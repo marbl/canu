@@ -162,6 +162,10 @@ sub schedulerFinish ($) {
     print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
     print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
     print STDERR "\n";
+    print STDERR "    cd $dir\n";
+
+    my $cwd = getcwd();  #  Remember where we are.
+    chdir($dir);        #  So we can root the jobs in the correct location.
 
     #  Run all submitted jobs
     #
@@ -187,6 +191,8 @@ sub schedulerFinish ($) {
     while (scalar(@processesRunning) > $numberOfProcessesToWait) {
         waitpid(shift @processesRunning, 0);
     }
+
+    chdir($cwd);
 
     $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
@@ -234,12 +240,12 @@ sub stopAfter ($) {
 }
 
 
-sub emitStage ($$$@) {
+sub emitStage ($$@) {
     return;
 }
 
 
-sub skipStage ($$$@) {
+sub skipStage ($$@) {
     return(0);
 }
 
@@ -509,8 +515,7 @@ sub makeUniqueJobName ($$) {
 #  The previous version (CA) would use "gridPropagateHold" to reset holds on existing jobs so that
 #  they would also hold on this job.
 #
-sub submitScript ($$$) {
-    my $wrk         = shift @_;
+sub submitScript ($$) {
     my $asm         = shift @_;
     my $jobHold     = shift @_;
 
@@ -528,16 +533,16 @@ sub submitScript ($$$) {
 
     #  Find the next available output file.
 
-    make_path("$wrk/canu-scripts")  if (! -d "$wrk/canu-scripts");  #  Done in canu.pl, just being paranoid
+    make_path("canu-scripts")  if (! -d "canu-scripts");  #  Done in canu.pl, just being paranoid
 
     my $idx = "01";
 
-    while (-e "$wrk/canu-scripts/canu.$idx.out") {
+    while (-e "canu-scripts/canu.$idx.out") {
         $idx++;
     }
 
-    my $output    = "$wrk/canu-scripts/canu.$idx.out";
-    my $script    = "$wrk/canu-scripts/canu.$idx.sh";
+    my $output    = "canu-scripts/canu.$idx.out";
+    my $script    = "canu-scripts/canu.$idx.sh";
     my $iteration = getGlobal("canuIteration");
 
     #  Make a script for us to submit.
@@ -606,7 +611,7 @@ sub submitScript ($$$) {
 
     my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName' $outputOption $output $script";
 
-    runCommand($wrk, $qcmd) and caFailure("Failed to submit script", undef);
+    runCommand(getcwd(), $qcmd) and caFailure("Failed to submit script", undef);
 
     exit(0);
 }
@@ -665,12 +670,10 @@ sub buildOutputName ($$$) {
     my $path   = shift @_;
     my $script = shift @_;
     my $tid    = shift @_;
+    my $outName;
 
-    my $outName = "$path/$script.$tid.out";
-
-    if ((-e "$path/logs") && ($script =~ m/scripts\/(.*)/)) {
-        $outName = "$path/logs/$1.$tid.out";
-    }
+    $outName = "$script.$tid.out";
+    $outName = "logs/$1.$tid.out"   if ((-e "logs") && ($script =~ m/scripts\/(.*)/));
 
     return($outName);
 }
@@ -799,13 +802,13 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $nameOption \"$jobName\" \\\n";
     print F "  $arrayOpt \\\n";
     print F "  $outputOption $outName \\\n";
-    print F "  $path/$script.sh $arrayOff \\\n";
-    print F "> $path/$script.jobSubmit.out 2>&1\n";
+    print F "  ./$script.sh $arrayOff \\\n";
+    print F "> ./$script.jobSubmit.out 2>&1\n";
     close(F);
 
     chmod 0755, "$path/$script.jobSubmit.sh";
 
-    return("$path/$script.jobSubmit", $jobName);
+    return("$script.jobSubmit", $jobName);
 }
 
 
@@ -905,8 +908,7 @@ sub convertToJobRange (@) {
 #
 #  If under grid control, submit grid jobs.  Otherwise, run in parallel locally.
 #
-sub submitOrRunParallelJob ($$$$$@) {
-    my $wrk          = shift @_;  #  Root of the assembly (NOT wrk/correction or wrk/trimming)
+sub submitOrRunParallelJob ($$$$@) {
     my $asm          = shift @_;  #  Name of the assembly
 
     my $jobType      = shift @_;  #  E.g., ovl, cns, ... - populates 'gridOptionsXXX
@@ -969,9 +971,9 @@ sub submitOrRunParallelJob ($$$$$@) {
         foreach my $j (@jobs) {
             my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
-            runCommandSilently($path, "$cmd.sh", 0) and caFailure("Failed to submit batch jobs", undef);
+            runCommandSilently($path, "./$cmd.sh", 0) and caFailure("Failed to submit batch jobs", undef);
 
-            open(F, "< $cmd.out");
+            open(F, "< $path/$cmd.out");
             while (<F>) {
                 chomp;
 
@@ -1044,7 +1046,7 @@ sub submitOrRunParallelJob ($$$$$@) {
             $jobHold = "--depend=afterany:" . join ":", @jobsSubmitted;
         }
 
-        submitScript($wrk, $asm, $jobHold);
+        submitScript($asm, $jobHold);
 
         #  submitScript() should never return.  If it does, then a parallel step was attempted too many time.
 
@@ -1062,9 +1064,10 @@ sub submitOrRunParallelJob ($$$$$@) {
         print STDERR "\n";
 
         foreach my $j (@jobs) {
+            my  $cwd = getcwd();
             my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
-            print "  $cmd.sh\n";
+            print "  $cwd/$path/$cmd.sh\n";
         }
 
         print STDERR "\n";
@@ -1075,9 +1078,6 @@ sub submitOrRunParallelJob ($$$$$@) {
     }
 
     #  Standard jobs, run locally.
-
-    my $cwd = getcwd();  #  Remember where we are.
-    chdir($path);        #  So we can root the jobs in the correct location.
 
     foreach my $j (@jobs) {
         my $st;
@@ -1093,10 +1093,9 @@ sub submitOrRunParallelJob ($$$$$@) {
         for (my $i=$st; $i<=$ed; $i++) {
             my $outName  = buildOutputName($path, $script, substr("000000" . $i, -6));
 
-            schedulerSubmit("$path/$script.sh $i > $outName 2>&1");
+            schedulerSubmit("./$script.sh $i > ./$outName 2>&1");
         }
     }
-
 
     # compute limit based on # of cpus
     my $nCParallel  = getGlobal("${jobType}Concurrency");
@@ -1113,8 +1112,6 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
-
-    chdir($cwd);
 }
 
 
@@ -1198,18 +1195,21 @@ sub runCommand ($$) {
 
     #  Log that we're starting, and show the pretty-ified command.
 
+    my $cwd       = getcwd();  #  Remember where we are.
+    chdir($dir);               #  So we can root the jobs in the correct location.
+
     my $startsecs = time();
-    my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
+    my $diskfree  = diskSpace(".");
 
     print STDERR "----------------------------------------\n";
-    print STDERR "-- Starting command on ", scalar(localtime()), " with $diskfree GB free disk space\n"  if  (defined($dir));
-    print STDERR "-- Starting command on ", scalar(localtime()), "\n"                                    if (!defined($dir));
+    print STDERR "-- Starting command on ", scalar(localtime()), " with $diskfree GB free disk space\n";
     print STDERR "\n";
+    print STDERR "    cd $dir\n";
     print STDERR "$dis\n";
 
-    my $rc = 0xffff & system("cd $dir && $cmd");
+    my $rc = 0xffff & system($cmd);
 
-    $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
+    $diskfree = diskSpace(".");
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
     my $elapsed = time() - $startsecs;
@@ -1221,6 +1221,8 @@ sub runCommand ($$) {
     print STDERR "\n";
     print STDERR "-- Finished on ", scalar(localtime()), " ($elapsed) with $diskfree GB free disk space$warning\n";
     print STDERR "----------------------------------------\n";
+
+    chdir($cwd);
 
     #  Pretty much copied from Programming Perl page 230
 
@@ -1241,11 +1243,12 @@ sub runCommandSilently ($$$) {
 
     return(0)   if ($cmd eq "");
 
-    if (! -d $dir) {
-        caFailure("Directory '$dir' doesn't exist, can't run command", "");
-    }
+    my $cwd       = getcwd();  #  Remember where we are.
+    chdir($dir);               #  So we can root the jobs in the correct location.
 
-    my $rc = 0xffff & system("cd $dir && $cmd");
+    my $rc = 0xffff & system($cmd);
+
+    chdir($cwd);
 
     return(0) if ($rc == 0);         #  No errors, return no error.
     return(1) if ($critical == 0);   #  If not critical, return that it failed, otherwise, report error and fail.
@@ -1289,7 +1292,6 @@ sub findExecutable ($) {
 
 #  Use caExit() for transient errors, like not opening files, processes that die, etc.
 sub caExit ($$) {
-    my  $wrk   = getGlobal("onExitDir");
     my  $asm   = getGlobal("onExitNam");
     my  $msg   = shift @_;
     my  $log   = shift @_;
@@ -1298,7 +1300,6 @@ sub caExit ($$) {
     print STDERR "Don't panic, but a mostly harmless error occurred and canu failed.\n";
     print STDERR "\n";
 
-    #  Really should pass in $wrk
     if (defined($log)) {
         my  $df = diskSpace($log);
 
@@ -1318,7 +1319,7 @@ sub caExit ($$) {
 
     my $fail = getGlobal('onFailure');
     if (defined($fail)) {
-        runCommandSilently($wrk, "$fail $asm", 0);
+        runCommandSilently(getGlobal("onExitDir"), "$fail $asm", 0);
     }
 
     exit(1);
@@ -1327,7 +1328,6 @@ sub caExit ($$) {
 
 #  Use caFailure() for errors that definitely will require code changes to fix.
 sub caFailure ($$) {
-    my  $wrk   = getGlobal("onExitDir");
     my  $asm   = getGlobal("onExitNam");
     my  $msg   = shift @_;
     my  $log   = shift @_;
@@ -1351,7 +1351,7 @@ sub caFailure ($$) {
 
     my $fail = getGlobal('onFailure');
     if (defined($fail)) {
-        runCommandSilently($wrk, "$fail $asm", 0);
+        runCommandSilently(getGlobal("onExitDir"), "$fail $asm", 0);
     }
 
     exit(1);

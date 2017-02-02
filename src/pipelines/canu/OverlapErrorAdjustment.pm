@@ -55,53 +55,18 @@ use canu::HTML;
 
 
 
-sub concatOutput ($@) {
-    my $outName     = shift @_;
-    my @successJobs =       @_;
-
-    open(O, "> $outName");
-    binmode(O);
-
-    foreach my $f (@successJobs) {
-        open(F, "< $f");
-        binmode(F);
-
-        my $buf;
-        my $len = sysread(F, $buf, 1024 * 1024);
-
-        while ($len > 0) {
-            syswrite(O, $buf, $len);
-
-            $len = sysread(F, $buf, 1024 * 1024);
-        }
-
-        close(F);
-    }
-
-    close(O);
-
-    foreach my $f (@successJobs) {
-        unlink $f;
-    }
-}
-
-
-
-
-sub readErrorDetectionConfigure ($$) {
-    my $WRK     = shift @_;           #  Root work directory
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
+sub readErrorDetectionConfigure ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
-    my $path    = "$wrk/3-overlapErrorAdjustment";
+    my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
-    goto allDone   if (skipStage($wrk, $asm, "readErrorDetectionConfigure") == 1);
+    goto allDone   if (skipStage($asm, "readErrorDetectionConfigure") == 1);
     goto allDone   if (-e "$path/red.red");
 
-    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.ctgStore");
+    goto allDone   if (-e "unitigging/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "unitigging/$asm.ctgStore");
 
     make_path("$path")  if (! -d "$path");
 
@@ -110,16 +75,16 @@ sub readErrorDetectionConfigure ($$) {
     my @readLengths;
     my @numOlaps;
 
-    #print STDERR "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads\n";
-    open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads |");
+    #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
+    open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
     while (<F>) {
         my @v = split '\s+', $_;
         $readLengths[$v[0]] = $v[2];
     }
     close(F);
 
-    #print STDERR "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts\n";
-    open(F, "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts |");
+    #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
+    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
     while (<F>) {
         my @v = split '\s+', $_;
         $numOlaps[$v[0]] = $v[1];
@@ -134,7 +99,7 @@ sub readErrorDetectionConfigure ($$) {
 
     #getAllowedResources("", "red");
 
-    my $maxID    = getNumberOfReadsInStore($wrk, $asm);
+    my $maxID    = getNumberOfReadsInStore("unitigging", $asm);
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
     my $maxBases = getGlobal("redBatchLength");
@@ -147,7 +112,7 @@ sub readErrorDetectionConfigure ($$) {
     my $bases    = 0;
     my $olaps    = 0;
 
-    my $coverage = getExpectedCoverage($wrk, $asm);
+    my $coverage = getExpectedCoverage("unitigging", $asm);
 
     push @bgn, 1;
 
@@ -189,7 +154,7 @@ sub readErrorDetectionConfigure ($$) {
     my $batchSize   = getGlobal("redBatchSize");
     my $numThreads  = getGlobal("redThreads");
 
-    my $numReads    = getNumberOfReadsInStore($wrk, $asm);
+    my $numReads    = getNumberOfReadsInStore("unitigging", $asm);
 
     open(F, "> $path/red.sh") or caExit("can't open '$path/red.sh' for writing: $!", undef);
 
@@ -207,23 +172,23 @@ sub readErrorDetectionConfigure ($$) {
 
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e $path/\$jobid.red ] ; then\n";
+    print F "if [ -e ./\$jobid.red ] ; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
 
     print F getBinDirectoryShellCode();
 
-    print F "if [ ! -e $path/\$jobid.red ] ; then\n";
+    print F "if [ ! -e ./\$jobid.red ] ; then\n";
     print F "  \$bin/findErrors \\\n";
-    print F "    -G $wrk/$asm.gkpStore \\\n";
-    print F "    -O $wrk/$asm.ovlStore \\\n";
+    print F "    -G ../$asm.gkpStore \\\n";
+    print F "    -O ../$asm.ovlStore \\\n";
     print F "    -R \$minid \$maxid \\\n";
     print F "    -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
-    print F "    -o $path/\$jobid.red.WORKING \\\n";
+    print F "    -o ./\$jobid.red.WORKING \\\n";
     print F "    -t $numThreads \\\n";
     print F "  && \\\n";
-    print F "  mv $path/\$jobid.red.WORKING $path/\$jobid.red\n";
+    print F "  mv ./\$jobid.red.WORKING ./\$jobid.red\n";
     print F "fi\n";
 
     close(F);
@@ -231,8 +196,8 @@ sub readErrorDetectionConfigure ($$) {
     chmod 0755, "$path/red.sh";
 
   finishStage:
-    emitStage($WRK, $asm, "readErrorDetectionConfigure");
-    buildHTML($WRK, $asm, "utg");
+    emitStage($asm, "readErrorDetectionConfigure");
+    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -241,19 +206,17 @@ sub readErrorDetectionConfigure ($$) {
 
 
 
-sub readErrorDetectionCheck ($$) {
-    my $WRK     = shift @_;           #  Root work directory
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
+sub readErrorDetectionCheck ($) {
     my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
-    my $path    = "$wrk/3-overlapErrorAdjustment";
+    my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
-    goto allDone   if (skipStage($wrk, $asm, "readErrorDetectionCheck", $attempt) == 1);
+    goto allDone   if (skipStage($asm, "readErrorDetectionCheck", $attempt) == 1);
     goto allDone   if (-e "$path/red.red");
 
-    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.ctgStore");
+    goto allDone   if (-e "unitigging/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "unitigging/$asm.ctgStore");
 
     #  Figure out if all the tasks finished correctly.
 
@@ -265,10 +228,10 @@ sub readErrorDetectionCheck ($$) {
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
             my $ji = substr("0000" . $1, -4);
-            my $jn = "$path/$ji.red";
+            my $jn = "unitigging/3-overlapErrorAdjustment/$ji.red";
 
             if (! -e $jn) {
-                $failureMessage .= "--   job $jn FAILED.\n";
+                $failureMessage .= "--   job $ji.red FAILED.\n";
                 push @failedJobs, $1;
             } else {
                 push @successJobs, $jn;
@@ -300,10 +263,10 @@ sub readErrorDetectionCheck ($$) {
 
         print STDERR "-- read error detection attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
-        emitStage($WRK, $asm, "readErrorDetectionCheck", $attempt);
-        buildHTML($WRK, $asm, "utg");
+        emitStage($asm, "readErrorDetectionCheck", $attempt);
+        buildHTML($asm, "utg");
 
-        submitOrRunParallelJob($WRK, $asm, "red", "$path", "red", @failedJobs);
+        submitOrRunParallelJob($asm, "red", $path, "red", @failedJobs);
         return;
     }
 
@@ -315,11 +278,34 @@ sub readErrorDetectionCheck ($$) {
     #  hacking correctOverlaps to handle multiple corrections files.  Plus, it is now really just a
     #  concat; before, the files needed to be parsed to strip off a header.
 
-    concatOutput("$path/red.red", @successJobs);
+    open(O, "> $path/red.red") or caExit("can't open '$path/red.red' for writing: $!", undef);
+    binmode(O);
+
+    foreach my $f (@successJobs) {
+        open(F, "< $f") or caExit("can't open '$f' for reading: $!", undef);
+        binmode(F);
+
+        my $buf;
+        my $len = sysread(F, $buf, 1024 * 1024);
+
+        while ($len > 0) {
+            syswrite(O, $buf, $len);
+
+            $len = sysread(F, $buf, 1024 * 1024);
+        }
+
+        close(F);
+    }
+
+    close(O);
+
+    foreach my $f (@successJobs) {
+        unlink $f;
+    }
 
     setGlobal("canuIteration", 1);
-    emitStage($WRK, $asm, "readErrorDetectionCheck");
-    buildHTML($WRK, $asm, "utg");
+    emitStage($asm, "readErrorDetectionCheck");
+    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -328,20 +314,18 @@ sub readErrorDetectionCheck ($$) {
 
 
 
-sub overlapErrorAdjustmentConfigure ($$) {
-    my $WRK     = shift @_;           #  Root work directory
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
+sub overlapErrorAdjustmentConfigure ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
-    my $path    = "$wrk/3-overlapErrorAdjustment";
+    my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
-    goto allDone   if (skipStage($wrk, $asm, "overlapErrorAdjustmentConfigure") == 1);
+    goto allDone   if (skipStage($asm, "overlapErrorAdjustmentConfigure") == 1);
     goto allDone   if (-e "$path/oea.sh");
 
-    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.ctgStore");
+    goto allDone   if (-e "unitigging/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "unitigging/$asm.ctgStore");
 
     #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number of adjustments, but that's
     #  basically error rate.  No adjustment is output for mismatches.
@@ -349,16 +333,16 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my @readLengths;
     my @numOlaps;
 
-    #print STDERR "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads\n";
-    open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads |");
+    #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
+    open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
     while (<F>) {
         my @v = split '\s+', $_;
         $readLengths[$v[0]] = $v[2];
     }
     close(F);
 
-    #print STDERR "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts\n";
-    open(F, "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts |");
+    #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
+    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
     while (<F>) {
         my @v = split '\s+', $_;
         $numOlaps[$v[0]] = $v[1];
@@ -374,7 +358,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     my $nj = 0;
 
-    my $maxID    = getNumberOfReadsInStore($wrk, $asm);
+    my $maxID    = getNumberOfReadsInStore("unitigging", $asm);
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("oeaBatchSize");
     my $maxBases = getGlobal("oeaBatchLength");
@@ -386,7 +370,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $bases    = 0;
     my $olaps    = 0;
 
-    my $coverage     = getExpectedCoverage($wrk, $asm);
+    my $coverage     = getExpectedCoverage("unitigging", $asm);
     my $corrSize     = (-s "$path/red.red");
 
     my $smallJobs    = 0;
@@ -485,23 +469,23 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e $path/\$jobid.oea ] ; then\n";
+    print F "if [ -e ./\$jobid.oea ] ; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
 
     print F getBinDirectoryShellCode();
 
-    print F "if [ ! -e $path/\$jobid.oea ] ; then\n";
+    print F "if [ ! -e ./\$jobid.oea ] ; then\n";
     print F "  \$bin/correctOverlaps \\\n";
-    print F "    -G $wrk/$asm.gkpStore \\\n";
-    print F "    -O $wrk/$asm.ovlStore \\\n";
+    print F "    -G ../$asm.gkpStore \\\n";
+    print F "    -O ../$asm.ovlStore \\\n";
     print F "    -R \$minid \$maxid \\\n";
     print F "    -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
-    print F "    -c $path/red.red \\\n";
-    print F "    -o $path/\$jobid.oea.WORKING \\\n";
+    print F "    -c ./red.red \\\n";
+    print F "    -o ./\$jobid.oea.WORKING \\\n";
     print F "  && \\\n";
-    print F "  mv $path/\$jobid.oea.WORKING $path/\$jobid.oea\n";
+    print F "  mv ./\$jobid.oea.WORKING ./\$jobid.oea\n";
     print F "fi\n";
 
     close(F);
@@ -509,8 +493,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
     chmod 0755, "$path/oea.sh";
 
   finishStage:
-    emitStage($WRK, $asm, "overlapErrorAdjustmentConfigure");
-    buildHTML($WRK, $asm, "utg");
+    emitStage($asm, "overlapErrorAdjustmentConfigure");
+    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -519,23 +503,21 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
 
 
-sub overlapErrorAdjustmentCheck ($$) {
-    my $WRK     = shift @_;           #  Root work directory
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
+sub overlapErrorAdjustmentCheck ($) {
     my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
-    my $path    = "$wrk/3-overlapErrorAdjustment";
+    my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
-    goto allDone   if (skipStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
+    goto allDone   if (skipStage($asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
     goto allDone   if (-e "$path/oea.files");
 
     #  Figure out if all the tasks finished correctly.
 
     my $batchSize   = getGlobal("oeaBatchSize");
     my $failedJobs  = 0;
-    my $numReads    = getNumberOfReadsInStore($wrk, $asm);
+    my $numReads    = getNumberOfReadsInStore("unitigging", $asm);
     my $numJobs     = 0;  #int($numReads / $batchSize) + (($numReads % $batchSize == 0) ? 0 : 1);
 
     #  Need to read script to find number of jobs!
@@ -548,13 +530,12 @@ sub overlapErrorAdjustmentCheck ($$) {
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
             my $ji = substr("0000" . $1, -4);
-            my $jn = "$path/$ji.oea";
 
-            if (! -e $jn) {
-                $failureMessage .= "--   job $jn FAILED.\n";
+            if (! -e "unitigging/3-overlapErrorAdjustment/$ji.oea") {
+                $failureMessage .= "--   job $ji.oea FAILED.\n";
                 push @failedJobs, $1;
             } else {
-                push @successJobs, $jn;
+                push @successJobs, "./$ji.oea";
             }
         }
     }
@@ -583,10 +564,10 @@ sub overlapErrorAdjustmentCheck ($$) {
 
         print STDERR "-- overlap error adjustment attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
-        emitStage($WRK, $asm, "overlapErrorAdjustmentCheck", $attempt);
-        buildHTML($WRK, $asm, "utg");
+        emitStage($asm, "overlapErrorAdjustmentCheck", $attempt);
+        buildHTML($asm, "utg");
 
-        submitOrRunParallelJob($WRK, $asm, "oea", "$path", "oea", @failedJobs);
+        submitOrRunParallelJob($asm, "oea", $path, "oea", @failedJobs);
         return;
     }
 
@@ -600,8 +581,8 @@ sub overlapErrorAdjustmentCheck ($$) {
     close(L);
 
     setGlobal("canuIteration", 1);
-    emitStage($WRK, $asm, "overlapErrorAdjustmentCheck");
-    buildHTML($WRK, $asm, "utg");
+    emitStage($asm, "overlapErrorAdjustmentCheck");
+    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -609,39 +590,37 @@ sub overlapErrorAdjustmentCheck ($$) {
 
 
 
-sub updateOverlapStore ($$) {
-    my $WRK     = shift @_;           #  Root work directory
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
+sub updateOverlapStore ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
-    my $path    = "$wrk/3-overlapErrorAdjustment";
+    my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
-    goto allDone   if (skipStage($wrk, $asm, "updateOverlapStore") == 1);
-    goto allDone   if (-e "$wrk/$asm.ovlStore/evalues");
+    goto allDone   if (skipStage($asm, "updateOverlapStore") == 1);
+    goto allDone   if (-e "unitigging/$asm.ovlStore/evalues");
 
-    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.ctgStore");
+    goto allDone   if (-e "unitigging/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "unitigging/$asm.ctgStore");
 
     caExit("didn't find '$path/oea.files' to add to store, yet overlapper finished", undef)  if (! -e "$path/oea.files");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
+    $cmd .= "  -G ../$asm.gkpStore \\\n";
+    $cmd .= "  -O ../$asm.ovlStore \\\n";
     $cmd .= "  -evalues \\\n";
-    $cmd .= "  -L $path/oea.files \\\n";
-    $cmd .= "> $path/oea.apply.err 2>&1";
+    $cmd .= "  -L ./oea.files \\\n";
+    $cmd .= "> ./oea.apply.err 2>&1";
 
-    if (runCommand("$path", $cmd)) {
-        unlink "$wrk/$asm.ovlStore/evalues";
+    if (runCommand($path, $cmd)) {
+        unlink "unitigging/$asm.ovlStore/evalues";
         caExit("failed to add error rates to overlap store", "$path/oea.apply.err");
     }
 
   finishStage:
-    emitStage($WRK, $asm, "updateOverlapStore");
-    buildHTML($WRK, $asm, "utg");
+    emitStage($asm, "updateOverlapStore");
+    buildHTML($asm, "utg");
 
   allDone:
 }

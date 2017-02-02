@@ -44,18 +44,17 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
+use canu::Gatekeeper;
 use canu::HTML;
 
 
-sub trimReads ($$) {
-    my $WRK    = shift @_;         #  Root work directory
-    my $wrk    = "$WRK/trimming";  #  Local work directory
+sub trimReads ($) {
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
-    my $path   = "$wrk/3-overlapbasedtrimming";
+    my $path   = "trimming/3-overlapbasedtrimming";
 
-    goto allDone   if (skipStage($WRK, $asm, "obt-trimReads") == 1);
+    goto allDone   if (skipStage($asm, "obt-trimReads") == 1);
     goto allDone   if (-e "$path/trimmed");
 
     make_path($path)  if (! -d $path);
@@ -64,16 +63,16 @@ sub trimReads ($$) {
     #  and require an obt specific error rate.
 
     $cmd  = "$bin/trimReads \\\n";
-    $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
-    $cmd .= "  -Co $path/$asm.1.trimReads.clear \\\n";
+    $cmd .= "  -G  ../$asm.gkpStore \\\n";
+    $cmd .= "  -O  ../$asm.ovlStore \\\n";
+    $cmd .= "  -Co ./$asm.1.trimReads.clear \\\n";
     $cmd .= "  -e  " . getGlobal("obtErrorRate") . " \\\n";
     $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
-    #$cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");
+    #$cmd .= "  -Cm ./$asm.max.clear \\\n"          if (-e "./$asm.max.clear");
     $cmd .= "  -ol " . getGlobal("trimReadsOverlap") . " \\\n";
     $cmd .= "  -oc " . getGlobal("trimReadsCoverage") . " \\\n";
-    $cmd .= "  -o  $path/$asm.1.trimReads \\\n";
-    $cmd .= ">     $path/$asm.1.trimReads.err 2>&1";
+    $cmd .= "  -o  ./$asm.1.trimReads \\\n";
+    $cmd .= ">     ./$asm.1.trimReads.err 2>&1";
 
     if (runCommand($path, $cmd)) {
         caFailure("trimReads failed", "$path/$asm.1.trimReads.err");
@@ -85,35 +84,33 @@ sub trimReads ($$) {
 
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -c $path/$asm.1.trimReads.clear \\\n";
-        $cmd .= "  -o $path/$asm.1.trimReads.trimmed \\\n";
-        $cmd .= ">    $path/$asm.1.trimReads.trimmed.err 2>&1";
+        $cmd .= "  -G ../$asm.gkpStore \\\n";
+        $cmd .= "  -c ./$asm.1.trimReads.clear \\\n";
+        $cmd .= "  -o ./$asm.1.trimReads.trimmed \\\n";
+        $cmd .= ">    ./$asm.1.trimReads.trimmed.err 2>&1";
 
         if (runCommand($path, $cmd)) {
-            caFailure("dumping trimmed reads failed", "$wrk/$asm.1.trimReads.trimmed.err");
+            caFailure("dumping trimmed reads failed", "$path/$asm.1.trimReads.trimmed.err");
         }
     }
 
   finishStage:
     touch("$path/trimmed");
-    emitStage($WRK, $asm, "obt-trimReads");
-    buildHTML($WRK, $asm, "obt");
+    emitStage($asm, "obt-trimReads");
+    buildHTML($asm, "obt");
 
   allDone:
 }
 
 
 
-sub splitReads ($$) {
-    my $WRK    = shift @_;         #  Root work directory
-    my $wrk    = "$WRK/trimming";  #  Local work directory
+sub splitReads ($) {
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
-    my $path   = "$wrk/3-overlapbasedtrimming";
+    my $path   = "trimming/3-overlapbasedtrimming";
 
-    goto allDone   if (skipStage($WRK, $asm, "obt-splitReads") == 1);
+    goto allDone   if (skipStage($asm, "obt-splitReads") == 1);
     goto allDone   if (-e "$path/splitted");  #  Splitted?
 
     make_path($path)  if (! -d $path);
@@ -123,15 +120,15 @@ sub splitReads ($$) {
     #$cmd .= "  -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
 
     $cmd  = "$bin/splitReads \\\n";
-    $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
-    $cmd .= "  -Ci $path/$asm.1.trimReads.clear \\\n"       if (-e "$path/$asm.1.trimReads.clear");
-    #$cmd .= "  -Cm $path/$asm.max.clear \\\n"               if (-e "$path/$asm.max.clear");
-    $cmd .= "  -Co $path/$asm.2.splitReads.clear \\\n";
+    $cmd .= "  -G  ../$asm.gkpStore \\\n";
+    $cmd .= "  -O  ../$asm.ovlStore \\\n";
+    $cmd .= "  -Ci ./$asm.1.trimReads.clear \\\n"       if (-e "trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
+    #$cmd .= "  -Cm ./$asm.max.clear \\\n"               if (-e "trimming/3-overlapbasedtrimming/$asm.max.clear");
+    $cmd .= "  -Co ./$asm.2.splitReads.clear \\\n";
     $cmd .= "  -e  $erate \\\n";
     $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
-    $cmd .= "  -o  $path/$asm.2.splitReads \\\n";
-    $cmd .= ">     $path/$asm.2.splitReads.err 2>&1";
+    $cmd .= "  -o  ./$asm.2.splitReads \\\n";
+    $cmd .= ">     ./$asm.2.splitReads.err 2>&1";
 
     if (runCommand($path, $cmd)) {
         caFailure("splitReads failed", "$path/$asm.2.splitReads.err");
@@ -143,68 +140,65 @@ sub splitReads ($$) {
 
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -c $path/$asm.2.splitReads.clear \\\n";
-        $cmd .= "  -o $path/$asm.2.splitReads.trimmed \\\n";
-        $cmd .= ">    $path/$asm.2.splitReads.trimmed.err 2>&1";
+        $cmd .= "  -G ../$asm.gkpStore \\\n";
+        $cmd .= "  -c ./$asm.2.splitReads.clear \\\n";
+        $cmd .= "  -o ./$asm.2.splitReads.trimmed \\\n";
+        $cmd .= ">    ./$asm.2.splitReads.trimmed.err 2>&1";
 
         if (runCommand($path, $cmd)) {
-            caFailure("dumping trimmed reads failed", "$wrk/$asm.2.splitReads.trimmed.err");
+            caFailure("dumping trimmed reads failed", "$path/$asm.2.splitReads.trimmed.err");
         }
     }
 
   finishStage:
     touch("$path/splitted", "Splitted?  Is that even a word?");
-    emitStage($WRK, $asm, "obt-splitReads");
-    buildHTML($WRK, $asm, "obt");
+    emitStage($asm, "obt-splitReads");
+    buildHTML($asm, "obt");
 
   allDone:
 }
 
 
 
-sub dumpReads ($$) {
-    my $WRK    = shift @_;         #  Root work directory
-    my $wrk    = "$WRK/trimming";  #  Local work directory
+sub dumpReads ($) {
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
-    my $path   = "$wrk/3-overlapbasedtrimming";
+    my $path   = "trimming/3-overlapbasedtrimming";
     my $inp;
 
-    goto allDone   if (skipStage($WRK, $asm, "obt-dumpReads") == 1);
-    goto allDone   if (-e "$WRK/$asm.trimmedReads.fasta");
-    goto allDone   if (-e "$WRK/$asm.trimmedReads.fasta.gz");
+    goto allDone   if (skipStage($asm, "obt-dumpReads") == 1);
+    goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
 
     make_path($path)  if (! -d $path);
 
-    $inp = "$path/$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
-    $inp = "$path/$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
+    $inp = "./3-overlapbasedtrimming/$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
+    $inp = "./3-overlapbasedtrimming/$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
 
-    caFailure("dumping trimmed reads failed; no 'clear' input", "$WRK/$asm.trimmedReads.err")  if (!defined($inp));
+    caFailure("dumping trimmed reads failed; no 'clear' input", "trimming/$asm.trimmedReads.err")  if (!defined($inp));
 
     $cmd  = "$bin/gatekeeperDumpFASTQ -fasta -nolibname \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -G ./$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "  -o $WRK/$asm.trimmedReads.gz \\\n";
-    $cmd .= ">    $WRK/$asm.trimmedReads.err 2>&1";
+    $cmd .= "  -o ../$asm.trimmedReads.gz \\\n";
+    $cmd .= ">    ../$asm.trimmedReads.err 2>&1";
 
-    if (runCommand($wrk, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$WRK/$asm.trimmedReads.err");
+    if (runCommand("trimming", $cmd)) {
+        caFailure("dumping trimmed reads failed", "./$asm.trimmedReads.err");
     }
 
-    unlink("$WRK/$asm.trimmedReads.err");
+    unlink("./$asm.trimmedReads.err");
 
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
-    #touch("$wrk/$asm.trimmedReads.gkp");
+    #touch("../$asm.trimmedReads.gkp");
 
   finishStage:
-    emitStage($WRK, $asm, "obt-dumpReads");
-    buildHTML($WRK, $asm, "obt");
+    emitStage($asm, "obt-dumpReads");
+    buildHTML($asm, "obt");
 
   allDone:
     print STDERR "--\n";
-    print STDERR "-- Trimmed reads saved in '$WRK/$asm.trimmedReads.fasta.gz'\n";
+    print STDERR "-- Trimmed reads saved in 'trimming/$asm.trimmedReads.fasta.gz'\n";
 
     stopAfter("readTrimming");
 }

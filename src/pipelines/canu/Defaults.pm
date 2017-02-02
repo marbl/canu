@@ -43,9 +43,11 @@ require Exporter;
 @EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults);
 
 use strict;
+use Cwd qw(getcwd abs_path);
 use Carp qw(cluck);
 use Sys::Hostname;
 use Text::Wrap;
+use File::Basename;   #  dirname
 
 my %global;    #  Parameter value
 my %synops;    #  Parameter description (for -defaults)
@@ -203,14 +205,12 @@ sub addCommandLineError($) {
 
 
 
-sub writeLog ($) {
-    my $wrk = shift @_;
-
+sub writeLog () {
     my $time = time();
     my $host = hostname();
     my $pid  = $$;
 
-    open(F, "> $wrk/canu-logs/${time}_${host}_${pid}_canu");
+    open(F, "> canu-logs/${time}_${host}_${pid}_canu");
     print F $specLog;
     close(F);
 }
@@ -271,26 +271,11 @@ sub getPhysicalMemorySize () {
 
 
 
-sub dirname ($) {
-    my $d = shift @_;
-
-    return($d)  if (-d $d);
-
-    my @d = split '/', $d;
-    pop @d;
-
-    $d = join('/', @d);
-
-    return($d);
-}
-
-
-
 sub diskSpace ($) {
-    my  $wrk                          = dirname($_[0]);
+    my  $dir                          = dirname($_[0]);
     my ($total, $used, $free, $avail) = (0, 0, 0, 0);
 
-    open(DF, "df -P -k $wrk |");
+    open(DF, "df -P -k $dir |");
     while (<DF>) {
         chomp;
 
@@ -404,9 +389,10 @@ sub printHelp (@) {
 sub makeAbsolute ($) {
     my $var = shift @_;
     my $val = getGlobal($var);
-    if (defined($val) && ($val !~ m!^/!)) {
-        $val = "$ENV{'PWD'}/$val";
-        setGlobal($var, $val);
+    my $abs = abs_path($val);
+
+    if (defined($val) && ($val != $abs)) {
+        setGlobal($var, $abs);
         $val =~ s/\\\"/\"/g;
         $val =~ s/\"/\\\"/g;
         $val =~ s/\\\$/\$/g;
@@ -462,7 +448,7 @@ sub setParametersFromFile ($@) {
             my $arg  = "-$1-$2";
             my $file = $3;
 
-            $file = "$ENV{'PWD'}/$file" if ($file !~ m!^/!);
+            $file = abs_path($file);
 
             push @fragFiles, "$arg\0$file";
         }

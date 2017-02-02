@@ -39,7 +39,7 @@
 use strict;
 
 use FindBin;
-use Cwd;
+use Cwd qw(getcwd abs_path);
 
 use lib "$FindBin::RealBin/lib";
 use lib "$FindBin::RealBin/lib/canu/lib/perl5";
@@ -92,7 +92,6 @@ setDefaults();
 
 my $bin = getBinDirectory();  #  Path to binaries, reset later.
 my $cmd = undef;              #  Temporary string passed to system().
-my $wrk = undef;              #  Path to our assembly directory.
 my $asm = undef;              #  Name of our assembly.
 
 #  Check for the presence of a -options switch BEFORE we do any work.
@@ -123,6 +122,7 @@ foreach my $arg (@ARGV) {
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
 #  all of @ARGV into here, because we need to fix up relative paths first.
 
+my $rootdir = undef;
 my $mode = undef;
 my $step = "run";
 my $haveRaw = 0;
@@ -132,19 +132,15 @@ while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
     if      ($arg =~ m/^-d/) {
-        $wrk = shift @ARGV;
-        $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
-        addCommandLineOption("-d '$wrk'");
-        setGlobal("onExitDir", $wrk);
+        $rootdir = shift @ARGV;
 
     } elsif ($arg eq "-p") {
         $asm = shift @ARGV;
         addCommandLineOption("-p '$asm'");
-        setGlobal("onExitNam", $asm);
 
     } elsif ($arg eq "-s") {
         my $spec = shift @ARGV;
-        $spec = "$ENV{'PWD'}/$spec" if ($spec !~ m!^/!);
+        $spec = abs_path($spec);
 
         push @specFiles, $spec;
 
@@ -175,7 +171,7 @@ while (scalar(@ARGV)) {
         while (-e $ARGV[0]) {
             my $file = shift @ARGV;
 
-            $file = "$ENV{'PWD'}/$file"  if ($file !~ m!^/!);
+            $file = abs_path($file);
 
             push @inputFiles, "$arg\0$file";
             addCommandLineOption("$arg '$file'");
@@ -196,14 +192,13 @@ while (scalar(@ARGV)) {
 #  Fail if some obvious things aren't set.
 
 addCommandLineError("ERROR:  Assembly name prefix not supplied with -p.\n")   if (!defined($asm));
-addCommandLineError("ERROR:  Directory not supplied with -d.\n")              if (!defined($wrk));
 
 #  If the mode isn't set - which is allowed only if a gkpStore exists somewhere - be a little smart
 #  and figure out which store exists.
 
-$mode = "run"            if (!defined($mode) && (-d "$wrk/correction/$asm.gkpStore"));
-$mode = "trim-assemble"  if (!defined($mode) && (-d "$wrk/trimming/$asm.gkpStore"));
-$mode = "assemble"       if (!defined($mode) && (-d "$wrk/unitigging/$asm.gkpStore"));
+$mode = "run"            if (!defined($mode) && (-d "correction/$asm.gkpStore"));
+$mode = "trim-assemble"  if (!defined($mode) && (-d "trimming/$asm.gkpStore"));
+$mode = "assemble"       if (!defined($mode) && (-d "unitigging/$asm.gkpStore"));
 
 #  Load paramters from the defaults files
 
@@ -248,9 +243,9 @@ addCommandLineError("ERROR:  Canu does not currently support mixing raw and corr
 if (scalar(@inputFiles) == 0) {
     my $gkpStore = undef;
 
-    $gkpStore = "$wrk/correction/$asm.gkpStore"   if (-e "$wrk/correction/$asm.gkpStore/libraries.txt");
-    $gkpStore = "$wrk/trimming/$asm.gkpStore"     if (-e "$wrk/trimming/$asm.gkpStore/libraries.txt");
-    $gkpStore = "$wrk/unitigging/$asm.gkpStore"   if (-e "$wrk/unitigging/$asm.gkpStore/libraries.txt");
+    $gkpStore = "correction/$asm.gkpStore"   if (-e "correction/$asm.gkpStore/libraries.txt");
+    $gkpStore = "trimming/$asm.gkpStore"     if (-e "trimming/$asm.gkpStore/libraries.txt");
+    $gkpStore = "unitigging/$asm.gkpStore"   if (-e "unitigging/$asm.gkpStore/libraries.txt");
 
     caExit("ERROR:  no reads supplied, and can't find any library information in gkpStore", undef)   if (!defined($gkpStore));
 
@@ -315,6 +310,21 @@ checkGnuplot();
 
 printHelp();
 
+#  Now that we're done parsing command line options and etc, make the work directory
+#  if needed and chdir there.  Also set where our onExit script needs to run from.
+
+if (defined($rootdir)) {
+    make_path($rootdir)  if (! -d $rootdir);
+    chdir($rootdir);
+}
+
+setGlobal("onExitDir", getcwd());
+setGlobal("onExitNam", $asm);
+
+print STDERR "--\n";
+print STDERR "-- Generating assembly '$asm' in '" . getcwd() . "'\n";
+print STDERR "--\n";
+
 #  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
 #  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
 #  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
@@ -378,9 +388,9 @@ if (defined(getGlobal('errorRateUsed'))) {
 #  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
 #  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
 
-my $cor = (-e "$wrk/correction/$asm.gkpStore") || sequenceFileExists("$wrk/$asm.correctedReads") || (-e "$wrk/$asm.correctedReads.gkp");
-my $obt = (-e "$wrk/trimming/$asm.gkpStore")   || sequenceFileExists("$wrk/$asm.trimmedReads")   || (-e "$wrk/$asm.trimmedReads.gkp");
-my $utg = (-e "$wrk/unitigging/$asm.gkpStore");
+my $cor = (-e "correction/$asm.gkpStore") || sequenceFileExists("$asm.correctedReads") || (-e "$asm.correctedReads.gkp");
+my $obt = (-e "trimming/$asm.gkpStore")   || sequenceFileExists("$asm.trimmedReads")   || (-e "$asm.trimmedReads.gkp");
+my $utg = (-e "unitigging/$asm.gkpStore");
 
 if (($cor + $obt + $utg == 0) &&
     (scalar(@inputFiles) == 0)) {
@@ -389,26 +399,21 @@ if (($cor + $obt + $utg == 0) &&
 
 #  Check that we were supplied a work directory, and that it exists, or we can create it.
 
-caExit("no run directory (-d option) specified", undef)  if (!defined($wrk));
-
-make_path("$wrk")               if (! -d "$wrk");
-make_path("$wrk/canu-logs")     if (! -d "$wrk/canu-logs");
-make_path("$wrk/canu-scripts")  if (! -d "$wrk/canu-scripts");
-
-caExit("run directory (-d option) '$wrk' doesn't exist and couldn't be created", undef)  if (! -d $wrk);
+make_path("canu-logs")     if (! -d "canu-logs");
+make_path("canu-scripts")  if (! -d "canu-scripts");
 
 #  This environment variable tells the binaries to log their execution in canu-logs/
 
-$ENV{'CANU_DIRECTORY'} = $wrk;
+$ENV{'CANU_DIRECTORY'} = getcwd();
 
 #  Report the parameters used.
 
-writeLog($wrk);
+writeLog();
 
 #  Submit ourself for grid execution?  If not grid enabled, or already running on the grid, this
 #  call just returns.  The arg MUST be undef.
 
-submitScript($wrk, $asm, undef);
+submitScript($asm, undef);
 
 #
 #  When doing 'run', this sets options for each stage.
@@ -436,9 +441,9 @@ sub setOptions ($$) {
 
     #  Create directories for the step, if needed.
 
-    make_path("$wrk/correction")  if ((! -d "$wrk/correction") && ($step eq "correct"));
-    make_path("$wrk/trimming")    if ((! -d "$wrk/trimming")   && ($step eq "trim"));
-    make_path("$wrk/unitigging")  if ((! -d "$wrk/unitigging") && ($step eq "assemble"));
+    make_path("correction")  if ((! -d "correction") && ($step eq "correct"));
+    make_path("trimming")    if ((! -d "trimming")   && ($step eq "trim"));
+    make_path("unitigging")  if ((! -d "unitigging") && ($step eq "assemble"));
 
     #  Return that we want to run this step.
 
@@ -449,36 +454,35 @@ sub setOptions ($$) {
 #  Pipeline piece
 #
 
-sub overlap ($$$) {
-    my $wrk  = shift @_;
+sub overlap ($$) {
     my $asm  = shift @_;
     my $tag  = shift @_;
 
     my $ovlType = ($tag eq "utg") ? "normal" : "partial";
 
     if (getGlobal("${tag}overlapper") eq "mhap") {
-        mhapConfigure($wrk, $asm, $tag, $ovlType);
+        mhapConfigure($asm, $tag, $ovlType);
 
-        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+        mhapPrecomputeCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
 
         #  this also does mhapReAlign
 
-        mhapCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+        mhapCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
 
    } elsif (getGlobal("${tag}overlapper") eq "minimap") {
-        mmapConfigure($wrk, $asm, $tag, $ovlType);
+        mmapConfigure($asm, $tag, $ovlType);
 
-        mmapPrecomputeCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+        mmapPrecomputeCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-        mmapCheck($wrk, $asm, $tag, $ovlType)   foreach (1..getGlobal("canuIterationMax") + 1);
+        mmapCheck($asm, $tag, $ovlType)   foreach (1..getGlobal("canuIterationMax") + 1);
 
     } else {
-        overlapConfigure($wrk, $asm, $tag, $ovlType);
+        overlapConfigure($asm, $tag, $ovlType);
 
-        overlapCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+        overlapCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
     }
 
-    createOverlapStore($wrk, $asm, $tag, getGlobal("ovsMethod"));
+    createOverlapStore($asm, $tag, getGlobal("ovsMethod"));
 }
 
 #
@@ -496,25 +500,25 @@ if (setOptions($mode, "correct") eq "correct") {
     print STDERR "-- BEGIN CORRECTION\n";
     print STDERR "--\n";
 
-    gatekeeper($wrk, $asm, "cor", @inputFiles);
+    gatekeeper($asm, "cor", @inputFiles);
 
-    merylConfigure($wrk, $asm, "cor");
-    merylCheck($wrk, $asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
-    merylProcess($wrk, $asm, "cor");
+    merylConfigure($asm, "cor");
+    merylCheck($asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
+    merylProcess($asm, "cor");
 
-    overlap($wrk, $asm, "cor");
+    overlap($asm, "cor");
 
-    buildCorrectionLayouts($wrk, $asm);
-    generateCorrectedReads($wrk, $asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-    dumpCorrectedReads($wrk, $asm);
+    buildCorrectionLayouts($asm);
+    generateCorrectedReads($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+    dumpCorrectedReads($asm);
 
-    estimateCorrectedError($wrk, $asm, "cor");
+    estimateCorrectedError($asm, "cor");
 
-    buildHTML($wrk, $asm, "cor");
+    buildHTML($asm, "cor");
 
-    my $correctedReads = sequenceFileExists("$wrk/$asm.correctedReads");
+    my $correctedReads = sequenceFileExists(getcwd() . "/$asm.correctedReads");
 
-    caExit("can't find corrected reads in '$wrk/$asm.correctedReads*'", undef)  if (!defined($correctedReads));
+    caExit("can't find corrected reads '$asm.correctedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($correctedReads));
 
     undef @inputFiles;
     push  @inputFiles, "-pacbio-corrected\0$correctedReads";
@@ -527,24 +531,24 @@ if (setOptions($mode, "trim") eq "trim") {
     print STDERR "-- BEGIN TRIMMING\n";
     print STDERR "--\n";
 
-    gatekeeper($wrk, $asm, "obt", @inputFiles);
+    gatekeeper($asm, "obt", @inputFiles);
 
-    merylConfigure($wrk, $asm, "obt");
-    merylCheck($wrk, $asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
-    merylProcess($wrk, $asm, "obt");
+    merylConfigure($asm, "obt");
+    merylCheck($asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
+    merylProcess($asm, "obt");
 
-    overlap($wrk, $asm, "obt");
+    overlap($asm, "obt");
 
-    trimReads ($wrk, $asm);
-    splitReads($wrk, $asm);
-    dumpReads ($wrk, $asm);
-    #summarizeReads($wrk, $asm);
+    trimReads ($asm);
+    splitReads($asm);
+    dumpReads ($asm);
+    #summarizeReads($asm);
 
-    buildHTML($wrk, $asm, "obt");
+    buildHTML($asm, "obt");
 
-    my $trimmedReads = sequenceFileExists("$wrk/$asm.trimmedReads");
+    my $trimmedReads = sequenceFileExists(getcwd() . "/$asm.trimmedReads");
 
-    caExit("can't find trimmed reads in '$wrk/$asm.trimmedReads*'", undef)  if (!defined($trimmedReads));
+    caExit("can't find trimmed reads '$asm.trimmedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($trimmedReads));
 
     undef @inputFiles;
     push  @inputFiles, "-pacbio-corrected\0$trimmedReads";
@@ -557,34 +561,34 @@ if (setOptions($mode, "assemble") eq "assemble") {
     print STDERR "-- BEGIN ASSEMBLY\n";
     print STDERR "--\n";
 
-    gatekeeper($wrk, $asm, "utg", @inputFiles);
+    gatekeeper($asm, "utg", @inputFiles);
 
-    merylConfigure($wrk, $asm, "utg");
-    merylCheck($wrk, $asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
-    merylProcess($wrk, $asm, "utg");
+    merylConfigure($asm, "utg");
+    merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
+    merylProcess($asm, "utg");
 
-    overlap($wrk, $asm, "utg");
+    overlap($asm, "utg");
 
-    #readErrorDetection($wrk, $asm);
+    #readErrorDetection($asm);
 
-    readErrorDetectionConfigure($wrk, $asm);
-    readErrorDetectionCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+    readErrorDetectionConfigure($asm);
+    readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    overlapErrorAdjustmentConfigure($wrk, $asm);
-    overlapErrorAdjustmentCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+    overlapErrorAdjustmentConfigure($asm);
+    overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    updateOverlapStore($wrk, $asm);
+    updateOverlapStore($asm);
 
-    unitig($wrk, $asm);
-    unitigCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+    unitig($asm);
+    unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    consensusConfigure($wrk, $asm);
-    consensusCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+    consensusConfigure($asm);
+    consensusCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    consensusLoad($wrk, $asm);
-    consensusAnalyze($wrk, $asm);
+    consensusLoad($asm);
+    consensusAnalyze($asm);
 
-    generateOutputs($wrk, $asm);
+    generateOutputs($asm);
 }
 
 exit(0);

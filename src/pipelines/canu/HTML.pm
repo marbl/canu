@@ -93,7 +93,7 @@ sub simpleFigure ($$$$) {
 
 
 sub buildGatekeeperHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -103,14 +103,14 @@ sub buildGatekeeperHTML ($$$$$$) {
     push @$body, "<h2>Input Reads</h2>\n";
     push @$body, "\n";
 
-    if (! -e "$wrk/$asm.gkpStore/load.dat") {
+    if (! -e "$base/$asm.gkpStore/load.dat") {
         push @$body, "<p>None loaded.</p>\n";
         return;
     }
 
     push @$body, "<table>\n";
 
-    open(F, "< $wrk/$asm.gkpStore/load.dat") or caExit("can't open '$wrk/$asm.gkpStore/load.dat' for reading: $!", undef);
+    open(F, "< $base/$asm.gkpStore/load.dat") or caExit("can't open '$base/$asm.gkpStore/load.dat' for reading: $!", undef);
     while (<F>) {
 
         #  nam blocks show up once per file.
@@ -183,28 +183,28 @@ sub buildGatekeeperHTML ($$$$$$) {
             push @$body, "<h2>Final Store</h2>\n";
             push @$body, "\n";
             push @$body, "<table>\n";
-            push @$body, "<tr><td colspan='2'>$wrk/$asm.gkpStore</td></tr>\n";
+            push @$body, "<tr><td colspan='2'>$base/$asm.gkpStore</td></tr>\n";
             push @$body, "<tr><td>readsLoaded</td><td>$nLOADED reads ($bLOADED bp)</td></tr>\n";
             push @$body, "<tr><td>readsSkipped</td><td>$nSKIPPED reads ($bSKIPPED bp) (read was too short)</td></tr>\n";
             push @$body, "<tr><td>warnings</td><td>$nWARNS warnings (invalid base or quality value)</td></tr>\n";
             push @$body, "</table>\n";
 
         } else {
-            caExit("failed to read '$wrk/$asm.gkpStore/load.log': invalid format", undef);
+            caExit("failed to read '$base/$asm.gkpStore/load.log': invalid format", undef);
         }
     }
     close(F);
 
     push @$body, "<h3>Read Length Histogram</h3>\n";
     simpleFigure($body,
-                 "$wrk/$asm.gkpStore/readlengths",
-                 "$wrk.html.files/readlengths",
+                 "$base/$asm.gkpStore/readlengths",
+                 "$base.html.files/readlengths",
                  "");
 }
 
 
 sub buildMerylHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -214,14 +214,14 @@ sub buildMerylHTML ($$$$$$) {
     push @$body, "<h2>k-Mer Counts</h2>\n";
     push @$body, "\n";
 
-    if (! -d "$wrk/0-mercounts") {
-        push @$body, "<p>Stage not computed. ($wrk/0-mercounts)</p>\n";
+    if (! -d "$base/0-mercounts") {
+        push @$body, "<p>Stage not computed. ($base/0-mercounts)</p>\n";
         return;
     }
 
     my %merSizes;
 
-    open(F, "ls $wrk/0-mercounts/ |") or caExit("can't find files in '$wrk/0-mercounts': $!", undef);
+    open(F, "ls $base/0-mercounts/ |") or caExit("can't find files in '$base/0-mercounts': $!", undef);
     while (<F>) {
         if (m/\.ms(\d+)\./) {
             $merSizes{$1}++;
@@ -235,8 +235,8 @@ sub buildMerylHTML ($$$$$$) {
         my $numUnique   = 0;
         my $largest     = 0;
 
-        if (-e "$wrk/0-mercounts/$asm.ms$ms.histogram.info") {
-            open(F, "<  $wrk/0-mercounts/$asm.ms$ms.histogram.info") or caExit("can't open '$wrk/0-mercounts/$asm.ms$ms.histogram.info' for reading: $!", undef);
+        if (-e "$base/0-mercounts/$asm.ms$ms.histogram.info") {
+            open(F, "<  $base/0-mercounts/$asm.ms$ms.histogram.info") or caExit("can't open '$base/0-mercounts/$asm.ms$ms.histogram.info' for reading: $!", undef);
             while (<F>) {
                 $numTotal    = $1   if (m/Found\s(\d+)\s+mers./);
                 $numDistinct = $1   if (m/Found\s(\d+)\s+distinct\smers./);
@@ -246,16 +246,16 @@ sub buildMerylHTML ($$$$$$) {
             close(F);
 
             simpleFigure($body,
-                         "$wrk/0-mercounts/$asm.ms$ms.histogram",
-                         "$wrk.html.files/$asm.ms$ms.histogram",
+                         "$base/0-mercounts/$asm.ms$ms.histogram",
+                         "$base.html.files/$asm.ms$ms.histogram",
                          "Histogram for k=$ms with $numTotal mers, $numDistinct distinct mers and $numUnique single-copy mers.  Largest count is $largest.");
         }
 
-        elsif ((-e "$wrk/0-mercounts/$asm.ms$ms.ignore") && (-z "$wrk/0-mercounts/$asm.ms$ms.ignore")) {
+        elsif ((-e "$base/0-mercounts/$asm.ms$ms.ignore") && (-z "$base/0-mercounts/$asm.ms$ms.ignore")) {
             push @$body, "Threshold zero.  No mers reported.\n";
         }
 
-        elsif ((-e "$wrk/0-mercounts/$asm.ms$ms.fasta")  && (-z "$wrk/0-mercounts/$asm.ms$ms.fasta")) {
+        elsif ((-e "$base/0-mercounts/$asm.ms$ms.fasta")  && (-z "$base/0-mercounts/$asm.ms$ms.fasta")) {
             push @$body, "Threshold zero.  No mers reported.\n";
         }
 
@@ -268,7 +268,7 @@ sub buildMerylHTML ($$$$$$) {
 
 
 sub buildCorrectionHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -284,12 +284,12 @@ sub buildCorrectionHTML ($$$$$$) {
     push @$body, "<h2>Overlap Filtering</h2>\n";
     push @$body, "\n";
 
-    if (-e "$wrk/2-correction/$asm.globalScores.stats") {
+    if (-e "$base/2-correction/$asm.globalScores.stats") {
         my $rh;   # 'row header', for labeling a set of rows with a common cell
 
         push @$body, "<table>\n";
 
-        open(F, "< $wrk/2-correction/$asm.globalScores.stats") or caExit("can't open '$wrk/2-correction/$asm.globalScores.stats' for reading: $!", undef);
+        open(F, "< $base/2-correction/$asm.globalScores.stats") or caExit("can't open '$base/2-correction/$asm.globalScores.stats' for reading: $!", undef);
         while (<F>) {
             chomp;
 
@@ -318,7 +318,7 @@ sub buildCorrectionHTML ($$$$$$) {
         push @$body, "</table>\n";
 
     } else {
-        push @$body, "<p>Stage not computed or results file removed ($wrk/2-correction/$asm.globalScores.stats).</p>\n";
+        push @$body, "<p>Stage not computed or results file removed ($base/2-correction/$asm.globalScores.stats).</p>\n";
     }
 
 
@@ -333,8 +333,8 @@ sub buildCorrectionHTML ($$$$$$) {
     my $nBasesIn  = undef;
     my $nBasesOut = undef;
 
-    if (-e "$wrk/2-correction/$asm.readsToCorrect.summary") {
-        open(F, "< $wrk/2-correction/$asm.readsToCorrect.summary") or caExit("can't open '$wrk/2-correction/$asm.readsToCorrect.summary' for reading: $!", undef);
+    if (-e "$base/2-correction/$asm.readsToCorrect.summary") {
+        open(F, "< $base/2-correction/$asm.readsToCorrect.summary") or caExit("can't open '$base/2-correction/$asm.readsToCorrect.summary' for reading: $!", undef);
         while (<F>) {
             $nReads    = $1  if ((m/nReads\s+(\d+)/)         && (!defined($nReads)));
             $nBasesIn  = $1  if ((m/nBasds\s+(\d+).*input/)  && (!defined($nBasesIn)));
@@ -350,17 +350,17 @@ sub buildCorrectionHTML ($$$$$$) {
     }
 
 
-    #  $wrk/2-correction/$asm.readsToCorrect has 'readID', 'originalLength' and 'expectedCorrectedLength'.
-    #  $WRK/$asm.correctedReads.length has 'readID', 'pieceID', 'length'.
+    #  $base/2-correction/$asm.readsToCorrect has 'readID', 'originalLength' and 'expectedCorrectedLength'.
+    #  $BASE/$asm.correctedReads.length has 'readID', 'pieceID', 'length'.
     #
     #  Both files should be sorted by increasing ID, so a simple merge sufficies.
 
-    if (-e "$wrk/2-correction/$asm.correction.summary") {
+    if (-e "$base/2-correction/$asm.correction.summary") {
         my $rh;
 
         push @$body, "<table>\n";
 
-        open(F, "< $wrk/2-correction/$asm.correction.summary") or caExit("can't open '$wrk/2-correction/$asm.correction.summary' for reading: $!", undef);
+        open(F, "< $base/2-correction/$asm.correction.summary") or caExit("can't open '$base/2-correction/$asm.correction.summary' for reading: $!", undef);
         while (<F>) {
             chomp;
 
@@ -393,8 +393,8 @@ sub buildCorrectionHTML ($$$$$$) {
     #  Simple vs Expensive filter true/false positive
 
     simpleFigure($body,
-                 "$wrk/2-correction/$asm.estimate.original-x-corrected",
-                 "$wrk.html.files/$asm.estimate.original-x-corrected",
+                 "$base/2-correction/$asm.estimate.original-x-corrected",
+                 "$base.html.files/$asm.estimate.original-x-corrected",
                  "Scatter plot of the original read length (X axis) against the expected corrected read length (Y axis).\n" .
                  "Colors show a comparison of the simple filter (which doesn't use overlaps) to the expensive filter (which does).\n" .
                  "A large green triangle (false negatives) hints that there could be abnormally low quality regions in the reads.\n");
@@ -403,33 +403,33 @@ sub buildCorrectionHTML ($$$$$$) {
 
     #  Original vs expected shown above.
     simpleFigure($body,
-                 "$wrk/2-correction/$asm.originalLength-vs-expectedLength",
-                 "$wrk.html.files/$asm.originalLength-vs-expectedLength",
+                 "$base/2-correction/$asm.originalLength-vs-expectedLength",
+                 "$base.html.files/$asm.originalLength-vs-expectedLength",
                  "Scatter plot of original vs expected read length.  Shown in filter plot above.");
 
     simpleFigure($body,
-                 "$wrk/2-correction/$asm.originalLength-vs-correctedLength",
-                 "$wrk.html.files/$asm.originalLength-vs-correctedLength",
+                 "$base/2-correction/$asm.originalLength-vs-correctedLength",
+                 "$base.html.files/$asm.originalLength-vs-correctedLength",
                  "Scatter plot of original vs corrected read length.");
 
     simpleFigure($body,
-                 "$wrk/2-correction/$asm.expectedLength-vs-correctedLength",
-                 "$wrk.html.files/$asm.expectedLength-vs-correctedLength",
+                 "$base/2-correction/$asm.expectedLength-vs-correctedLength",
+                 "$base.html.files/$asm.expectedLength-vs-correctedLength",
                  "Scatter plot of expected vs corrected read length.");
 
     #  Histogram - expected vs corrected lengths NEEDS TO SHOW NEGATIVES!?
 
     simpleFigure($body,
-                 "$wrk/2-correction/$asm.length-difference-histograms",
-                 "$wrk.html.files/$asm.length-difference-histograms",
+                 "$base/2-correction/$asm.length-difference-histograms",
+                 "$base.html.files/$asm.length-difference-histograms",
                  "Histogram of the difference between the expected and corrected read lengths.\n" .
                  "Note that a negative difference means the corrected read is larger than expected.\n");
 
     #  Histogram - original, expected, corrected lengths
 
     simpleFigure($body,
-                 "$wrk/2-correction/$asm.length-histograms",
-                 "$wrk.html.files/$asm.length-histograms",
+                 "$base/2-correction/$asm.length-histograms",
+                 "$base.html.files/$asm.length-histograms",
                  "Histogram of original (red), expected (green) and actual corrected (blue) read lengths.\n");
 }
 
@@ -437,7 +437,7 @@ sub buildCorrectionHTML ($$$$$$) {
 
 
 sub buildTrimmingHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -448,7 +448,7 @@ sub buildTrimmingHTML ($$$$$$) {
     push @$body, "\n";
 
 
-    if (-e "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats") {
+    if (-e "$base/3-overlapbasedtrimming/$asm.1.trimReads.stats") {
         my $rh;   # 'row header', for labeling a set of rows with a common cell
 
         #  Read once to make a paramters table.  We could have embedded this in the loop below, but it's cleaner here.
@@ -460,7 +460,7 @@ sub buildTrimmingHTML ($$$$$$) {
 
         push @$body, "<table>\n";
 
-        open(F, "< $wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats") or caExit("can't open '$wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats' for reading: $!", undef);
+        open(F, "< $base/3-overlapbasedtrimming/$asm.1.trimReads.stats") or caExit("can't open '$base/3-overlapbasedtrimming/$asm.1.trimReads.stats' for reading: $!", undef);
         while (<F>) {
             chomp;
 
@@ -496,23 +496,23 @@ sub buildTrimmingHTML ($$$$$$) {
         push @$body, "</table>\n";
 
     } else {
-        push @$body, "<p>Stage not computed or results file removed ($wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats).</p>\n";
+        push @$body, "<p>Stage not computed or results file removed ($base/3-overlapbasedtrimming/$asm.1.trimReads.stats).</p>\n";
     }
 
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "$wrk.html.files/$asm.1.trimReads.inputDeletedReads",    "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "$wrk.html.files/$asm.1.trimReads.inputNoTrimReads",     "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "$wrk.html.files/$asm.1.trimReads.inputReads",           "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "$wrk.html.files/$asm.1.trimReads.outputDeletedReads",   "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "$wrk.html.files/$asm.1.trimReads.outputNoOvlReads",     "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "$wrk.html.files/$asm.1.trimReads.outputTrimmedReads",   "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "$wrk.html.files/$asm.1.trimReads.outputUnchangedReads", "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "$wrk.html.files/$asm.1.trimReads.trim3",                "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "$wrk.html.files/$asm.1.trimReads.trim5",                "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "$base.html.files/$asm.1.trimReads.inputDeletedReads",    "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "$base.html.files/$asm.1.trimReads.inputNoTrimReads",     "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "$base.html.files/$asm.1.trimReads.inputReads",           "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "$base.html.files/$asm.1.trimReads.outputDeletedReads",   "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "$base.html.files/$asm.1.trimReads.outputNoOvlReads",     "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "$base.html.files/$asm.1.trimReads.outputTrimmedReads",   "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "$base.html.files/$asm.1.trimReads.outputUnchangedReads", "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "$base.html.files/$asm.1.trimReads.trim3",                "");
+    simpleFigure($body, "$base/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "$base.html.files/$asm.1.trimReads.trim5",                "");
 
     push @$body, "<h2>Splitting</h2>\n";
     push @$body, "\n";
 
-    if (-e "$wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats") {
+    if (-e "$base/3-overlapbasedtrimming/$asm.2.splitReads.stats") {
         my $rh;   # 'row header', for labeling a set of rows with a common cell
 
         #  Read once to make a paramters table.  We could have embedded this in the loop below, but it's cleaner here.
@@ -524,7 +524,7 @@ sub buildTrimmingHTML ($$$$$$) {
 
         push @$body, "<table>\n";
 
-        open(F, "< $wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats") or caExit("can't open '$wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats' for reading: $!", undef);
+        open(F, "< $base/3-overlapbasedtrimming/$asm.2.splitReads.stats") or caExit("can't open '$base/3-overlapbasedtrimming/$asm.2.splitReads.stats' for reading: $!", undef);
         while (<F>) {
             chomp;
 
@@ -570,11 +570,11 @@ sub buildTrimmingHTML ($$$$$$) {
         push @$body, "</table>\n";
 
     } else {
-        push @$body, "<p>Stage not computed or results file removed ($wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats).</p>\n";
+        push @$body, "<p>Stage not computed or results file removed ($base/3-overlapbasedtrimming/$asm.2.splitReads.stats).</p>\n";
     }
 
 
-    #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);
+    #buildGatekeeperHTML($base, $asm, $tag, $css, $body, $scripts);
     #  Analyzes the output fastq
 }
 
@@ -582,7 +582,7 @@ sub buildTrimmingHTML ($$$$$$) {
 
 
 sub buildOverlapperHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -592,13 +592,13 @@ sub buildOverlapperHTML ($$$$$$) {
     push @$body, "<h2>Overlaps</h2>\n";
     push @$body, "\n";
 
-    if (! -d "$wrk/$asm.ovlStore") {
+    if (! -d "$base/$asm.ovlStore") {
         push @$body, "<p>Overlaps not computed.</p>\n";
         return;
     }
 
-    if (! -e "$wrk/$asm.ovlStore.summary") {
-        push @$body, "<p>No statistics available for store '$wrk/$asm.ovlStore'.</p>\n";
+    if (! -e "$base/$asm.ovlStore.summary") {
+        push @$body, "<p>No statistics available for store '$base/$asm.ovlStore'.</p>\n";
         return;
     }
 
@@ -607,7 +607,7 @@ sub buildOverlapperHTML ($$$$$$) {
 
     my ($category, $reads, $readsP, $length, $lengthsd, $size, $sizesd, $analysis);
 
-    open(F, "< $wrk/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$wrk/$asm.ovlStore': $!", undef);
+    open(F, "< $base/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$base/$asm.ovlStore': $!", undef);
     $_ = <F>;
     $_ = <F>;
     while (<F>) {
@@ -639,7 +639,7 @@ sub buildOverlapperHTML ($$$$$$) {
 
         } else {
             chomp;
-            caExit("failed to parse line '$_' in file '$wrk/$asm.ovlStore.summary'", undef);
+            caExit("failed to parse line '$_' in file '$base/$asm.ovlStore.summary'", undef);
         }
     }
     close(F);
@@ -649,7 +649,7 @@ sub buildOverlapperHTML ($$$$$$) {
 
 
 sub buildOverlapErrorCorrectionHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -698,37 +698,37 @@ sub reportSizeStatistics ($$$) {
 
 
 sub buildUnitiggerHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
     my $body    = shift @_;  #  Array reference
     my $scripts = shift @_;  #  Array reference
 
-    return  if (! -d "$wrk/4-unitigger");
+    return  if (! -d "$base/4-unitigger");
 
     my @logs;
 
-    push @logs, "$wrk/4-unitigger/unitigger.err";
+    push @logs, "$base/4-unitigger/unitigger.err";
 
-    open(F, "ls $wrk/4-unitigger |");
+    open(F, "ls $base/4-unitigger |");
     while (<F>) {
         chomp;
 
-        push @logs, "$wrk/4-unitigger/$_"   if (m/log$/);
+        push @logs, "$base/4-unitigger/$_"   if (m/log$/);
     }
     close(F);
 
     push @$body, "<h2>Unitigs</h2>\n";
     push @$body, "\n";
 
-    if (-e "$wrk/4-unitigger/unitigger.err") {
+    if (-e "$base/4-unitigger/unitigger.err") {
         my $all   = 0;
         my $some  = 0;
         my $someL = 0;
         my $olaps = 0;
 
-        open(F, "< $wrk/4-unitigger/unitigger.err");
+        open(F, "< $base/4-unitigger/unitigger.err");
         while (<F>) {
             chomp;
 
@@ -753,7 +753,7 @@ sub buildUnitiggerHTML ($$$$$$) {
         push @$body, "Loaded $olaps overlaps in total.<br>\n";
     }
 
-    if (-e "$wrk/4-unitigger/$asm.001.filterOverlaps.thr000.num000.log") {
+    if (-e "$base/4-unitigger/$asm.001.filterOverlaps.thr000.num000.log") {
         push @$body, "<h3>Edges</h3>\n";
         push @$body, "\n";
 
@@ -785,7 +785,7 @@ sub buildUnitiggerHTML ($$$$$$) {
         my $finalBest1Mutual    = 0;
         my $finalBest2Mutual    = 0;
 
-        open(F, "$wrk/4-unitigger/$asm.001.filterOverlaps.thr000.num000.log");
+        open(F, "$base/4-unitigger/$asm.001.filterOverlaps.thr000.num000.log");
         $_ = <F>;  chomp;
 
         my $block = "none";
@@ -862,16 +862,16 @@ sub buildUnitiggerHTML ($$$$$$) {
 
     push @$body, "<h3>Initial Tig Sizes</h3>\n";
 
-    if (-e "$wrk/4-unitigger/$asm.003.buildUnitigs.sizes") {
-        open(F, "< $wrk/4-unitigger/$asm.003.buildUnitigs.sizes");
+    if (-e "$base/4-unitigger/$asm.003.buildUnitigs.sizes") {
+        open(F, "< $base/4-unitigger/$asm.003.buildUnitigs.sizes");
         reportSizeStatistics($css, $body, $scripts);
         close(F);
     }
 
     push @$body, "<h3>Final Tig Sizes</h3>\n";
 
-    if (-e "$wrk/4-unitigger/$asm.008.generateOutputs.sizes") {
-        open(F, "< $wrk/4-unitigger/$asm.008.generateOutputs.sizes");
+    if (-e "$base/4-unitigger/$asm.008.generateOutputs.sizes") {
+        open(F, "< $base/4-unitigger/$asm.008.generateOutputs.sizes");
         reportSizeStatistics($css, $body, $scripts);
         close(F);
     }
@@ -881,7 +881,7 @@ sub buildUnitiggerHTML ($$$$$$) {
 
 
 sub buildConsensusHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -894,7 +894,7 @@ sub buildConsensusHTML ($$$$$$) {
 
 
 sub buildOutputHTML ($$$$$$) {
-    my $wrk     = shift @_;
+    my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $css     = shift @_;  #  Array reference
@@ -906,62 +906,62 @@ sub buildOutputHTML ($$$$$$) {
 }
 
 
-sub buildHTML ($$$) {
-    my $WRK     = shift @_;  #  Root work directory
-    my $wrk     = $WRK;      #  Local work directory
+sub buildHTML ($$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
     my @css;
     my @body;
     my @scripts;
 
-    $wrk = "$WRK/correction"  if ($tag eq "cor");
-    $wrk = "$WRK/trimming"    if ($tag eq "obt");
-    $wrk = "$WRK/unitigging"  if ($tag eq "utg");
+    my $base;
 
-    make_path("$wrk.html.files")  if (! -e "$wrk.html.files");
+    $base = "correction"  if ($tag eq "cor");
+    $base = "trimming"    if ($tag eq "obt");
+    $base = "unitigging"  if ($tag eq "utg");
+
+    make_path("$base.html.files")  if (! -e "$base.html.files");
 
     #  For correction runs
     if ($tag eq "cor") {
         push @body, "<h1>Correction</h1>\n";
-        buildGatekeeperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildMerylHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildOverlapperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildCorrectionHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
+        buildGatekeeperHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildMerylHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildOverlapperHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildCorrectionHTML($base, $asm, $tag, \@css, \@body, \@scripts);
     }
 
     #  For trimming runs
     if ($tag eq "obt") {
         push @body, "<h1>Trimming</h1>\n";
-        buildGatekeeperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildMerylHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildOverlapperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildTrimmingHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
+        buildGatekeeperHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildMerylHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildOverlapperHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildTrimmingHTML($base, $asm, $tag, \@css, \@body, \@scripts);
     }
 
     #  For assembly runs
     if ($tag eq "utg") {
         push @body, "<h1>Assembly</h1>\n";
-        buildGatekeeperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildMerylHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildOverlapperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildOverlapErrorCorrectionHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildUnitiggerHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildConsensusHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildOutputHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
+        buildGatekeeperHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildMerylHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildOverlapperHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildOverlapErrorCorrectionHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildUnitiggerHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildConsensusHTML($base, $asm, $tag, \@css, \@body, \@scripts);
+        buildOutputHTML($base, $asm, $tag, \@css, \@body, \@scripts);
     }
 
 
-    #print STDERR "WRITING '$wrk/$asm-summary.html'\n";
+    #print STDERR "WRITING '$base/$asm-summary.html'\n";
 
-    open(F, "> $wrk.html") or die "can't open '$wrk.html' for writing: $!\n";
+    open(F, "> $base.html") or die "can't open '$base.html' for writing: $!\n";
 
     print F "<!DOCTYPE html>\n";
     print F "\n";
     print F "<html>\n";
     print F "\n";
     print F "<head>\n";
-    print F "<title>canu analysis for assembly '$asm' in directory '$wrk'</title>\n";
+    print F "<title>canu analysis for assembly '$asm' in directory '$base'</title>\n";
     print F "<style type='text/css'>\n";
     print F "body       { font-family: Helvetica, Verdana, sans-serif; }\n";
     print F "h1, h2, h3 { color: #ee3e80; }\n";
