@@ -79,29 +79,10 @@ sub getGenomeCoverage($$$) {
 
 
 
-
-
-#  Generates
-#    meryl mcdat/mcidx
-#    mer histogram file
-#    mer histogram plots
-#    mer threshold
-#    frequent mers
-#
-
 #  Threshold:  Three methods to pick it.
 #    Threshold  - 'auto', 'auto * X', 'auto / X', or an integer value
 #    Distinct   - by the fraction distinct retained
 #    Total      - by the fraction total retained
-#
-
-#  We always compute canonical mers, that are not compressed.
-
-
-#  Generates   $wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta
-#  stopBefore  meryl (stops before meryl itself runs)
-#  stopAfter   meryl (stops after output is generated, even if it is just a symlink)
-
 
 sub plotHistogram ($$$$) {
     my $wrk    = shift @_;  #  Local work directory
