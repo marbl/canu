@@ -166,7 +166,7 @@ computeIIDperBucket(uint32          fileLimit,
   allocateArray(oPR, maxIID);
 
   for (uint32 i=0; i<fileList.size(); i++)
-    hist->loadData(fileList[i]);
+    hist->loadData(fileList[i], maxIID);
 
   uint64   numOverlaps = hist->getOverlapsPerRead(oPR, maxIID);
 

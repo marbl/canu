@@ -274,7 +274,7 @@ ovStoreHistogram::saveData(char *prefix) {
 
 
 void
-ovStoreHistogram::loadData(char *prefix) {
+ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
   char    name[FILENAME_MAX];
 
   //  Add in any overlaps-per-read data.
@@ -293,6 +293,9 @@ ovStoreHistogram::loadData(char *prefix) {
 
     if (_oprMax < inLen)                                                            //  Resize to fit those values
       resizeArray(_opr, _oprLen, _oprMax, inLen + inLen/2, resizeArray_copyData | resizeArray_clearNew);
+
+    if (maxIID < inLen)
+      fprintf(stderr, "WARNING: histogram file '%s' has data for %u reads, but only %u reads known.\n", name, inLen, maxIID);
 
     if (_oprLen < inLen)                                                            //  Remember the new length
       _oprLen = inLen;

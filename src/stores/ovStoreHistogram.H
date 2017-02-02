@@ -74,7 +74,7 @@ public:
   //  In an ovStore, load the histogram saved in a file, and add it to our current data.
 
   void      saveData(char *prefix);
-  void      loadData(char *prefix);
+  void      loadData(char *prefix, uint32 maxIID=UINT32_MAX);
 
   //  Remove data associated with some prefix.
 
