@@ -69,7 +69,6 @@
 #include "overlapInCore.H"
 #include "prefixEditDistance.H"
 
-#undef DEBUG
 
 
 //  See how far the exact match in  Match  extends.  The match
@@ -86,10 +85,10 @@
 
 Overlap_t
 prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
-                                     char         *S,     int32   S_Len,
-                                     char         *T,     int32   T_Len,
-                                     int32        &S_Lo,  int32   &S_Hi,
-                                     int32        &T_Lo,  int32   &T_Hi,
+                                     char         *S,      uint32   S_ID,   int32   S_Len,
+                                     char         *T,      uint32   T_ID,   int32   T_Len,
+                                     int32        &S_Lo,   int32   &S_Hi,
+                                     int32        &T_Lo,   int32   &T_Hi,
                                      int32        &Errors) {
   int32  Right_Errors = 0;
   int32  Left_Errors  = 0;
@@ -112,10 +111,10 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   int32  Error_Limit = Error_Bound[Total_Olap];
 
-#ifdef DEBUG
-  fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
+#ifdef SHOW_EXTEND_ALIGN
+  fprintf(stdout, "prefixEditDistance::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
           Total_Olap, Error_Limit, 100.0 * Error_Limit / Total_Olap);
-  fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  S: %d-%d and %d-%d  T: %d-%d and %d-%d\n",
+  fprintf(stdout, "prefixEditDistance::Extend_Alignment()--  S: %d-%d and %d-%d  T: %d-%d and %d-%d\n",
           0, S_Left_Begin, S_Right_Begin, S_Right_Begin + S_Right_Len,
           0, T_Left_Begin, T_Right_Begin, T_Right_Begin + T_Right_Len);
 #endif
@@ -198,6 +197,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   assert(Errors <= Error_Limit);
 
+#ifdef SHOW_EXTEND_ALIGN
+  fprintf(stdout, "WorkArea %2d OVERLAP %6d %6d - %5d + %5d = %5d errors out of %d possible\n", omp_get_thread_num(), S_ID, T_ID, Left_Errors, Right_Errors, Errors, Edit_Space_Lazy_Max);
+#endif
 
   //  No overlap if both right and left don't match to end, otherwise a branch point if only one.
   //  If both match to end, a dovetail overlap.  Indenting is all screwed up here.

@@ -494,7 +494,7 @@ Process_Matches (int * Start,
       //        Longest_Match->Offset,
       //        Longest_Match->Start - Longest_Match->Offset,
       //        S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
-      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_Len, T, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
+      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_ID, S_Len, T, T_ID, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
 
 
       if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
