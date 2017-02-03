@@ -84,6 +84,7 @@ main (int argc, char **argv) {
   char    *inPackageName   = NULL;
 
   char      algorithm      = 'P';
+  char      aligner        = 'N';
   uint32    numThreads	   = 0;
 
   bool      forceCompute   = false;
@@ -146,6 +147,8 @@ main (int argc, char **argv) {
       algorithm = 'P';
     } else if (strcmp(argv[arg], "-utgcns") == 0) {
       algorithm = 'U';
+    } else if (strcmp(argv[arg], "-edlib") == 0) {
+      aligner = 'E';
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       numThreads = atoi(argv[++arg]);
@@ -503,7 +506,7 @@ main (int argc, char **argv) {
           break;
         case 'P':
         default:
-          success = utgcns->generatePBDAG(tig, inPackageRead, inPackageReadData);
+          success = utgcns->generatePBDAG(aligner, tig, inPackageRead, inPackageReadData);
           break;
         case 'U':
           success = utgcns->generate(tig, inPackageRead, inPackageReadData);

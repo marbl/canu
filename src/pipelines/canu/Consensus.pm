@@ -99,6 +99,7 @@ sub utgcns ($$$) {
     print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
     print F "  -pbdagcon \\\n"   if (getGlobal("cnsConsensus") eq "pbdagcon");
+    print F "  -edlib    \\\n"   if (getGlobal("canuIteration") >= 2);
     print F "  -utgcns \\\n"     if (getGlobal("cnsConsensus") eq "utgcns");
     print F "  -threads " . getGlobal("cnsThreads") . " \\\n";
     print F "&& \\\n";

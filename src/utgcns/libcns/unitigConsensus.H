@@ -84,7 +84,8 @@ public:
                   map<uint32, gkRead *>     *inPackageRead     = NULL,
                   map<uint32, gkReadData *> *inPackageReadData = NULL);
 
-  bool   generatePBDAG(tgTig                     *tig,
+  bool   generatePBDAG(char aligner,
+                       tgTig                     *tig,
                        map<uint32, gkRead *>     *inPackageRead     = NULL,
                        map<uint32, gkReadData *> *inPackageReadData = NULL);
 
