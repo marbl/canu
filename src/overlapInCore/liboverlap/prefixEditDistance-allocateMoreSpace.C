@@ -44,7 +44,7 @@
 uint32  EDIT_SPACE_SIZE  = 1 * 1024 * 1024;
 
 void
-prefixEditDistance::Allocate_More_Edit_Space(void) {
+prefixEditDistance::Allocate_More_Edit_Space(int32 ein) {
 
   //  Determine the last allocated block, and the last assigned block
 
@@ -94,6 +94,11 @@ prefixEditDistance::Allocate_More_Edit_Space(void) {
     fprintf(stderr, "Allocate_More_Edit_Space()-- ERROR: couldn't allocate enough space for even one more entry!  e=%d\n", e);
   assert(e != b);
 
-  //fprintf(stderr, "WorkArea %d allocates space %d of size %d for array %d through %d\n", thread_id, a, Size, b, e-1);
+#ifdef DEBUG_EDIT_SPACE_ALLOC
+  Edit_Space_Lazy_Max = e-1;
+
+  fprintf(stdout, "WorkArea %2d allocates space %d (for e=%d) of size %d for array %d through %d\n",
+          omp_get_thread_num(), a, ein, Size, b, e-1);
+#endif
 }
 

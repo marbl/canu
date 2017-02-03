@@ -29,7 +29,6 @@
 
 #include "prefixEditDistance.H"
 
-#undef DEBUG
 
 
 
@@ -126,7 +125,7 @@ prefixEditDistance::forward(char    *A,   int32 m,
     ;
 
   if (Edit_Array_Lazy[0] == NULL)
-    Allocate_More_Edit_Space();
+    Allocate_More_Edit_Space(0);
 
   Edit_Array_Lazy[0][0] = Row;
 
@@ -134,8 +133,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
     // Exact match
     A_End = T_End = m;
     Match_To_End = TRUE;
-#ifdef DEBUG
-    fprintf(stderr, "forward()- exact match\n");
+#ifdef SHOW_EXTEND_ALIGN
+    fprintf(stdout, "WorkArea %2d FWD exact match\n", omp_get_thread_num());
 #endif
     return  0;
   }
@@ -147,7 +146,7 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
   for (e = 1;  e <= Error_Limit;  e++) {
     if (Edit_Array_Lazy[e] == NULL)
-      Allocate_More_Edit_Space();
+      Allocate_More_Edit_Space(e);
 
     Left  = MAX (Left  - 1, -e);
     Right = MIN (Right + 1,  e);
@@ -183,9 +182,9 @@ prefixEditDistance::forward(char    *A,   int32 m,
         if ((doingPartialOverlaps == true) && (Score < Max_Score))
           abort = true;
 
-#ifdef DEBUG
-       fprintf(stderr, "prefixEditDistance()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
-                e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, slope, MIN_BRANCH_TAIL_SLOPE);
+#ifdef SHOW_EXTEND_ALIGN
+        fprintf(stdout, "WorkArea %2d FWD e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
+                omp_get_thread_num(), e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, slope, MIN_BRANCH_TAIL_SLOPE);
 #endif
 
         if ((e > MIN_BRANCH_END_DIST / 2) &&
@@ -201,8 +200,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
           Match_To_End = FALSE;
 
-#ifdef DEBUG
-          fprintf(stderr, "forward()- ABORT alignment\n");
+#ifdef SHOW_EXTEND_ALIGN
+          fprintf(stdout, "WorkArea %2d FWD ABORT alignment at e=%d best_e=%d\n", omp_get_thread_num(), e, Max_Score_Best_e);
 #endif
           return(Max_Score_Best_e);
         }
@@ -222,8 +221,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
         Match_To_End = TRUE;
 
-#ifdef DEBUG
-        fprintf(stderr, "forward()- END alignment\n");
+#ifdef SHOW_EXTEND_ALIGN
+        fprintf(stdout, "WorkArea %2d FWD END alignment at e=%d\n", omp_get_thread_num(), e);
 #endif
         return(e);
       }
@@ -237,8 +236,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
         Left++;
 
     if (Left > Right) {
-#ifdef DEBUG
-      fprintf(stderr, "reverse()- Left=%d Right=%d BREAK\n", Left, Right);
+#ifdef SHOW_EXTEND_ALIGN
+      //fprintf(stdout, "WorkArea %2d FWD BREAK at Left=%d Right=%d\n", omp_get_thread_num(), Left, Right);
 #endif
       break;
     }
@@ -270,9 +269,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
     }
   }
 
-#ifdef DEBUG
-  fprintf(stderr, "forward()- return e=%d Error_Limit=%d\n",
-          e, Error_Limit);
+#ifdef SHOW_EXTEND_ALIGN
+  fprintf(stdout, "WorkArea %2d FWD ERROR_LIMIT at e=%d Error_Limit=%d best_e=%d\n", omp_get_thread_num(), e, Error_Limit, Max_Score_Best_e);
 #endif
 
   A_End = Max_Score_Len;

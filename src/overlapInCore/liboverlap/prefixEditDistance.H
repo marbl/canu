@@ -39,6 +39,9 @@
 #include "gkStore.H"  //  For AS_MAX_READLEN
 
 
+#undef  DEBUG_EDIT_SPACE_ALLOC
+#undef  SHOW_EXTEND_ALIGN
+
 //  Used in -forward and -reverse
 #define Sign(a) ( ((a) > 0) - ((a) < 0) )
 
@@ -68,7 +71,7 @@ public:
   prefixEditDistance(bool doingPartialOverlaps_, double maxErate_);
   ~prefixEditDistance();
 
-  void   Allocate_More_Edit_Space(void);
+  void   Allocate_More_Edit_Space(int e);
 
   void   Set_Right_Delta(int32 e, int32 d);
   int32  forward(char    *A,   int32 m,
@@ -89,12 +92,12 @@ public:
                  bool    &Match_To_End);
 
 
-  Overlap_t  Extend_Alignment(Match_Node_t  *Match,
-                              char          *S,     int32    S_Len,
-                              char          *T,     int32    T_Len,
-                              int32         &S_Lo,  int32   &S_Hi,
-                              int32         &T_Lo,  int32   &T_Hi,
-                              int32         &Errors);
+  Overlap_t  Extend_Alignment(Match_Node_t *Match,
+                              char         *S,      uint32   S_ID,   int32   S_Len,
+                              char         *T,      uint32   T_ID,   int32   T_Len,
+                              int32        &S_Lo,   int32   &S_Hi,
+                              int32        &T_Lo,   int32   &T_Hi,
+                              int32        &Errors);
 
 public:
   //  The four below were global #defines, two depended on the error rate which is now local.
@@ -124,6 +127,10 @@ public:
 
   int32  **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
   int32  **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
+
+#ifdef DEBUG_EDIT_SPACE_ALLOC
+  int32    Edit_Space_Lazy_Max;  //  Last allocated block, DEBUG ONLY
+#endif
 
   //  This array [e] is the minimum value of  Edit_Array[e][d]
   //  to be worth pursuing in edit-distance computations between reads
