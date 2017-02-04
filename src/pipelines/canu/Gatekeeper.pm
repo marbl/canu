@@ -316,40 +316,40 @@ sub gatekeeperGenerateReadLengths ($$$) {
     my $tag    = shift @_;
     my $bin    = getBinDirectory();
 
-        my $nb = 0;
-        my @rl;
-        my @hi;
-        my $mm;
+    my $nb = 0;
+    my @rl;
+    my @hi;
+    my $mm;
 
-        open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
-        while (<F>) {
-            my @v = split '\s+', $_;
+    open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
+    while (<F>) {
+        my @v = split '\s+', $_;
 
-            push @rl, $v[2];           #  Save the length
-            $nb += $v[2];              #  Sum the bases
-            $hi[int($v[2] / 1000)]++;  #  Add to the histogram (int truncates)
-        }
-        close(F);
+        push @rl, $v[2];           #  Save the length
+        $nb += $v[2];              #  Sum the bases
+        $hi[int($v[2] / 1000)]++;  #  Add to the histogram (int truncates)
+    }
+    close(F);
 
-        @rl = sort { $a <=> $b } @rl;
-        $mm = int($rl[scalar(@rl)-1] / 1000);  #  max histogram value
+    @rl = sort { $a <=> $b } @rl;
+    $mm = int($rl[scalar(@rl)-1] / 1000);  #  max histogram value
 
-        open(F, "> $base/$asm.gkpStore/readlengths.txt") or caExit("can't open '$base/$asm.gkpStore/readlengths.txt' for writing: $!", undef);
-        foreach my $rl (@rl) {
-            print F "$rl\n";
-        }
-        close(F);
+    open(F, "> $base/$asm.gkpStore/readlengths.txt") or caExit("can't open '$base/$asm.gkpStore/readlengths.txt' for writing: $!", undef);
+    foreach my $rl (@rl) {
+        print F "$rl\n";
+    }
+    close(F);
 
-        open(F, "> $base/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$base/$asm.gkpStore/readlengthhistogram.txt' for writing: $!", undef);
-        for (my $ii=0; $ii<=$mm; $ii++) {
-            my $s = $ii * 1000;
-            my $e = $ii * 1000 + 999;
+    open(F, "> $base/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$base/$asm.gkpStore/readlengthhistogram.txt' for writing: $!", undef);
+    for (my $ii=0; $ii<=$mm; $ii++) {
+        my $s = $ii * 1000;
+        my $e = $ii * 1000 + 999;
 
-            $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
+        $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
 
-            print F "$s\t$e\t$hi[$ii]\n";
-        }
-        close(F);
+        print F "$s\t$e\t$hi[$ii]\n";
+    }
+    close(F);
 }
 
 
