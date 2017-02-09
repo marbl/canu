@@ -145,6 +145,22 @@ sub expandRange ($$) {
 }
 
 
+sub findGridMaxMemoryAndThreads () {
+    my @grid   = split '\0', getGlobal("availableHosts");
+    my $maxmem = 0;
+    my $maxcpu = 0;
+
+    foreach my $g (@grid) {
+        my ($cpu, $mem, $num) = split '-', $g;
+
+        $maxmem = ($maxmem < $mem) ? $mem : $maxmem;
+        $maxcpu = ($maxcpu < $cpu) ? $cpu : $maxcpu;
+    }
+
+    return($maxmem, $maxcpu);
+}
+
+
 #  Side effect!  This will RESET the $global{} parameters to the computed value.  This lets
 #  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
 #  resetting, I'd be making code changes all over the place to support the values returned.
@@ -159,6 +175,12 @@ sub getAllowedResources ($$$$@) {
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
 
     my $class = ((getGlobal("useGrid") ne "0") && (defined(getGlobal("gridEngine")))) ? "grid" : "local";
+
+    #  If grid, but no hosts, fail.
+
+    if (($class eq "grid") && (!defined(getGlobal("availableHosts")))) {
+        caExit("invalid useGrid (" . getGlobal("useGrid") . ") and gridEngine (" . getGlobal("gridEngine") . "); found no execution hosts - is grid available from this host?", undef);
+    }
 
     #  Figure out limits.
 
@@ -183,8 +205,13 @@ sub getAllowedResources ($$$$@) {
         print STDERR "-- DEBUG  Limited to $maxThreads threads via maxThreads option\n"   if (defined($maxThreads));
     }
 
-    $maxMemory  = (($class eq "grid") ? 1024 * 1024 : getPhysicalMemorySize())  if (!defined($maxMemory));    #  1 PB memory!
-    $maxThreads = (($class eq "grid") ? 1024        : getNumberOfCPUs())        if (!defined($maxThreads));   #  1 k  cores!
+    #  Figure out the largest memory and threads that could ever be supported.  This lets us short-circuit
+    #  the loop below.
+
+    my ($gridMaxMem, $gridMaxThr) = findGridMaxMemoryAndThreads();
+
+    $maxMemory  = (($class eq "grid") ? $gridMaxMem : getPhysicalMemorySize())  if (!defined($maxMemory));
+    $maxThreads = (($class eq "grid") ? $gridMaxThr : getNumberOfCPUs())        if (!defined($maxThreads));
 
     #  Build a list of the available hardware configurations we can run on.  If grid, we get this
     #  from the list of previously discovered hosts.  If local, it's just this machine.
@@ -195,10 +222,6 @@ sub getAllowedResources ($$$$@) {
 
     if ($class eq "grid") {
         my @grid = split '\0', getGlobal("availableHosts");
-
-        if (scalar(@grid) == 0) {
-            caExit("invalid useGrid (" . getGlobal("useGrid") . ") and gridEngine (" . getGlobal("gridEngine") . "); found no execution hosts - is grid available from this host?", undef);
-        }
 
         foreach my $g (@grid) {
             my ($cpu, $mem, $num) = split '-', $g;
@@ -217,7 +240,7 @@ sub getAllowedResources ($$$$@) {
 
     if ($dbg) {
         print STDERR "-- DEBUG\n";
-        print STDERR "-- DEBUG Have ", scalar(@gridCor), " configurations:\n";
+        print STDERR "-- DEBUG Have ", scalar(@gridCor), " configurations; largest memory size $maxMemory GB; most cores $maxThreads:\n";
         for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
             print STDERR "-- DEBUG   class$ii - $gridNum[$ii] machines with $gridCor[$ii] cores with $gridMem[$ii]GB memory each.\n";
         }
