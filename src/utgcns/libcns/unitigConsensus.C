@@ -448,7 +448,6 @@ unitigConsensus::generatePBDAG(char aligner,
 
        aln.start += align.startLocations[0];
        aln.end = aln.start + (align.endLocations[0] - align.startLocations[0]) + 1;
-       aln.start++;
        aln.qstr = std::string(qry_aln_str);
        aln.tstr = std::string(tgt_aln_str);
 
@@ -461,6 +460,7 @@ unitigConsensus::generatePBDAG(char aligner,
        aln.qstr = std::string(ndaln._qry_aln_str);
        aln.tstr = std::string(ndaln._tgt_aln_str);
     } 
+    aln.start++;
     cnspos[i].setMinMax(aln.start, aln.end);
     assert(aln.qstr.length() == aln.tstr.length());
     assert(aln.end < utg.seq.size());
