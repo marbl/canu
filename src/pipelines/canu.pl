@@ -59,6 +59,7 @@ use canu::Grid_SGE;
 use canu::Grid_Slurm;
 use canu::Grid_PBSTorque;
 use canu::Grid_LSF;
+use canu::Grid_DNANexus;
 
 use canu::Gatekeeper;
 use canu::Meryl;
@@ -338,6 +339,7 @@ detectSGE();
 detectSlurm();
 detectPBSTorque();
 detectLSF();
+detectDNANexus();
 
 #  Report if no grid engine found, or if the user has disabled grid support.
 
@@ -358,6 +360,7 @@ configureSlurm();
 configurePBSTorque();
 configureLSF();
 configureRemote();
+configureDNANexus();
 
 #  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
 
