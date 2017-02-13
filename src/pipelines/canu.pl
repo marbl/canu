@@ -489,11 +489,6 @@ sub overlap ($$) {
 #  Begin pipeline
 #
 
-if (getGlobal("canuIteration") > 0) {
-    print STDERR "--\n";
-    print STDERR "-- This is canu parallel iteration #" . getGlobal("canuIteration") . ", out of a maximum of " . getGlobal("canuIterationMax") . " attempts.\n";
-}
-
 if (setOptions($mode, "correct") eq "correct") {
     print STDERR "--\n";
     print STDERR "--\n";

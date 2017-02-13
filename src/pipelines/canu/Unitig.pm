@@ -145,6 +145,7 @@ sub unitig ($) {
     my $asm     = shift @_;
 
     goto allDone    if (skipStage($asm, "unitig") == 1);
+    goto allDone    if (-e "unitigging/4-unitigger/unitigger.sh");
     goto allDone    if ((-d "unitigging/$asm.ctgStore") && (-d "unitigging/$asm.utgStore"));
 
     make_path("unitigging/4-unitigger")  if (! -d "unitigging/4-unitigger");
@@ -235,8 +236,6 @@ sub unitigCheck ($) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "-- Unitigger attempt $attempt begins.\n";
-
     emitStage($asm, "unitigCheck", $attempt);
     buildHTML($asm, "utg");
 
@@ -251,7 +250,6 @@ sub unitigCheck ($) {
 
     reportUnitigSizes($asm, 1, "after unitig construction");
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "unitigCheck");
     buildHTML($asm, "utg");
 

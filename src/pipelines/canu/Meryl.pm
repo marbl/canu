@@ -230,6 +230,7 @@ sub merylConfigure ($$) {
     my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
 
     goto allDone   if (skipStage($asm, "$tag-merylConfigure") == 1);
+    goto allDone   if  (-e "$path/meryl.sh");
     goto allDone   if  (-e "$path/$ffile");
     goto allDone   if ((-e "$path/$ofile.mcidx") && (-e "$path/$ofile.mcdat"));
 
@@ -332,8 +333,6 @@ sub merylCheck ($$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- Meryl attempt $attempt begins.\n";
-
         emitStage($asm, "merylCheck", $attempt);
         buildHTML($asm, $tag);
 
@@ -347,7 +346,6 @@ sub merylCheck ($$) {
     rename("$path/$ofile.FINISHED.mcdat", "$path/$ofile.mcdat");
     rename("$path/$ofile.FINISHED.mcidx", "$path/$ofile.mcidx");
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "merylCheck");
     buildHTML($asm, $tag);
 

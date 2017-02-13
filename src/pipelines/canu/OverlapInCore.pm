@@ -390,8 +390,6 @@ sub overlapCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- overlapInCore attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-overlapCheck", $attempt);
         buildHTML($asm, $tag);
 
@@ -412,7 +410,6 @@ sub overlapCheck ($$$) {
 
     reportOverlapStats($base, $asm, @statsJobs);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-overlapCheck");
     buildHTML($asm, $tag);
 

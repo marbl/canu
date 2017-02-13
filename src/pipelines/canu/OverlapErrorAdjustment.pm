@@ -261,8 +261,6 @@ sub readErrorDetectionCheck ($) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- read error detection attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "readErrorDetectionCheck", $attempt);
         buildHTML($asm, "utg");
 
@@ -303,7 +301,6 @@ sub readErrorDetectionCheck ($) {
         unlink $f;
     }
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "readErrorDetectionCheck");
     buildHTML($asm, "utg");
 
@@ -562,8 +559,6 @@ sub overlapErrorAdjustmentCheck ($) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- overlap error adjustment attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "overlapErrorAdjustmentCheck", $attempt);
         buildHTML($asm, "utg");
 
@@ -580,7 +575,6 @@ sub overlapErrorAdjustmentCheck ($) {
     }
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "overlapErrorAdjustmentCheck");
     buildHTML($asm, "utg");
 

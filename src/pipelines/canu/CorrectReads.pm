@@ -976,8 +976,6 @@ sub generateCorrectedReads ($) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- generate corrected reads attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "cor-generateCorrectedReads", $attempt);
         buildHTML($asm, "cor");
 
@@ -992,7 +990,6 @@ sub generateCorrectedReads ($) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "cor-generateCorrectedReads");
     buildHTML($asm, "cor");
 

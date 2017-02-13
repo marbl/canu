@@ -155,6 +155,10 @@ sub overlapStoreConfigure ($$$$) {
     my $cmd;
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreConfigure") == 1);
+    goto allDone   if ((-e "$base/$asm.ovlStore.BUILDING/scripts/0-config.sh") &&
+                       (-e "$base/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") &&
+                       (-e "$base/$asm.ovlStore.BUILDING/scripts/2-sort.sh") &&
+                       (-e "$base/$asm.ovlStore.BUILDING/scripts/3-index.sh"));
     goto allDone   if (-d "$base/$asm.ovlStore");
 
     my $numInputs  = countOverlapStoreInputs($base);
@@ -405,8 +409,6 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- overlap store bucketizer attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt);
         buildHTML($asm, $tag);
 
@@ -419,7 +421,6 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
     touch("$base/$asm.ovlStore.BUILDING/1-bucketize.success");
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-overlapStoreBucketizerCheck");
     buildHTML($asm, $tag);
 
@@ -503,8 +504,6 @@ sub overlapStoreSorterCheck ($$$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- overlap store sorter attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-overlapStoreSorterCheck", $attempt);
         buildHTML($asm, $tag);
 
@@ -517,7 +516,6 @@ sub overlapStoreSorterCheck ($$$$) {
 
     touch("$base/$asm.ovlStore.BUILDING/2-sorter.success");
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-overlapStoreSorterCheck");
     buildHTML($asm, $tag);
 

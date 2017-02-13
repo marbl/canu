@@ -586,8 +586,6 @@ sub mhapPrecomputeCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- mhap precompute attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-mhapPrecomputeCheck", $attempt);
         buildHTML($asm, $tag);
 
@@ -602,7 +600,6 @@ sub mhapPrecomputeCheck ($$$) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-mhapPrecomputeCheck");
     buildHTML($asm, $tag);
 
@@ -709,8 +706,6 @@ sub mhapCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- mhap attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-mhapCheck", $attempt);
         buildHTML($asm, $tag);
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "mhap", @failedJobs);
@@ -732,7 +727,6 @@ sub mhapCheck ($$$) {
     print L @miscJobs;
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-mhapCheck");
     buildHTML($asm, $tag);
 

@@ -53,7 +53,7 @@ my %global;    #  Parameter value
 my %synops;    #  Parameter description (for -defaults)
 my %synnam;    #  Parameter name (beacuse the key is lowercase)
 
-my $cLineOpts = "";
+my $cLineOpts = undef;
 my $specLog   = "";
 
 
@@ -190,11 +190,12 @@ sub getCommandLineOptions () {
 
 
 sub addCommandLineOption ($) {
-    if ($cLineOpts =~ m/\s$/) {
-        $cLineOpts .= "$_[0]";
-    } else {
-        $cLineOpts .= " $_[0]";
-    }
+    my $opt = shift @_;
+
+    return   if ($opt =~ m/canuIteration=/);   #  Ignore canu resetting canuIteration
+
+    $cLineOpts .= " "   if (defined($cLineOpts) && ($cLineOpts !~ m/\s$/));
+    $cLineOpts .= $opt;
 }
 
 
@@ -618,7 +619,7 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
-    $global{"canuIteration"}               = 1;  #  See documentation in Execution.pm
+    $global{"canuIteration"}               = 0;  #  See documentation in Execution.pm
     $global{"canuIterationMax"}            = 2;
 
     $global{"showNext"}                    = undef;

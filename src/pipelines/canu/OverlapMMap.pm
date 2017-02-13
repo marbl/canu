@@ -443,8 +443,6 @@ sub mmapPrecomputeCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- mmap precompute attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-mmapPrecomputeCheck", $attempt);
         buildHTML($asm, $tag);
 
@@ -459,7 +457,6 @@ sub mmapPrecomputeCheck ($$$) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-mmapPrecomputeCheck");
     buildHTML($asm, $tag);
 
@@ -562,8 +559,6 @@ sub mmapCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- mmap attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "$tag-mmapCheck", $attempt);
         buildHTML($asm, $tag);
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "mmap", @failedJobs);
@@ -585,7 +580,6 @@ sub mmapCheck ($$$) {
     print L @miscJobs;
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "$tag-mmapCheck");
     buildHTML($asm, $tag);
 

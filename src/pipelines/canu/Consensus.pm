@@ -99,13 +99,20 @@ sub utgcns ($$$) {
     print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
     print F "  -pbdagcon \\\n"   if (getGlobal("cnsConsensus") eq "pbdagcon");
-    print F "  -edlib    \\\n"   if (getGlobal("canuIteration") >= 2);
+    print F "  -edlib    \\\n"   if (getGlobal("canuIteration") > 0);
     print F "  -utgcns \\\n"     if (getGlobal("cnsConsensus") eq "utgcns");
     print F "  -threads " . getGlobal("cnsThreads") . " \\\n";
     print F "&& \\\n";
     print F "mv ./\${tag}cns/\$jobid.cns.WORKING ./\${tag}cns/\$jobid.cns \\\n";
     print F "\n";
     print F "exit 0\n";
+
+    if (getGlobal("canuIteration") == 0) {
+        print STDERR "-- Using fast alignment for consensus.\n";
+    } else {
+        print STDERR "-- Using slow alignment for consensus.\n";
+    }
+
 
     close(F);
 }
@@ -204,6 +211,12 @@ sub consensusConfigure ($) {
     my $ctgjobs = computeNumberOfConsensusJobs($asm, "ctg");
     my $utgjobs = computeNumberOfConsensusJobs($asm, "utg");
 
+    #  This configure is an odd-ball.  Unlike all the other places that write scripts,
+    #  we'll rewrite this one every time, so that we can change the alignment algorithm
+    #  on the second attempt.
+
+    my $firstTime = (! -e "$path/consensus.sh");
+
     if ((getGlobal("cnsConsensus") eq "quick") ||
         (getGlobal("cnsConsensus") eq "pbdagcon") ||
         (getGlobal("cnsConsensus") eq "utgcns")) {
@@ -216,7 +229,7 @@ sub consensusConfigure ($) {
     print STDERR "-- Configured $ctgjobs contig and $utgjobs unitig consensus jobs.\n";
 
   finishStage:
-    emitStage($asm, "consensusConfigure");
+    emitStage($asm, "consensusConfigure")   if ($firstTime);
     buildHTML($asm, "utg");
 
   allDone:
@@ -301,8 +314,6 @@ sub consensusCheck ($) {
 
         #  Otherwise, run some jobs.
 
-        print STDERR "-- Consensus attempt $attempt begins with ", scalar(@ctgSuccessJobs) + scalar(@utgSuccessJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
         emitStage($asm, "consensusCheck", $attempt);
         buildHTML($asm, "utg");
 
@@ -321,7 +332,6 @@ sub consensusCheck ($) {
     print L @utgSuccessJobs;
     close(L);
 
-    setGlobal("canuIteration", 1);
     emitStage($asm, "consensusCheck");
     buildHTML($asm, "utg");
 

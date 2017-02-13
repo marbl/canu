@@ -241,7 +241,14 @@ sub stopAfter ($) {
 
 
 sub emitStage ($$@) {
-    return;
+    my $asm     = shift @_;
+    my $stage   = shift @_;
+    my $attempt = shift @_;
+
+    if (!defined($attempt)) {
+        print STDERR "-- Finished stage '$stage', reset canuIteration.\n";
+        setGlobal("canuIteration", 0);
+    }
 }
 
 
@@ -948,8 +955,27 @@ sub submitOrRunParallelJob ($$$$@) {
     #  If the jobs succeed in Iteration 2, the canu in iteration 3 will pass the Check(), never call
     #  this function, and continue the pipeline.
 
-    caExit("canu iteration count too high, stopping pipeline (most likely a problem in the grid-based computes)", undef)
-        if (getGlobal("canuIteration") > getGlobal("canuIterationMax"));
+    my $iter = getGlobal("canuIteration");
+    my $max  = getGlobal("canuIterationMax");
+
+    if ($iter >= $max) {
+        caExit("canu iteration count too high, stopping pipeline (most likely a problem in the grid-based computes)", undef);
+    } elsif ($iter == 0) {
+        $iter = "First";
+    } elsif ($iter == 1) {
+        $iter = "Second";
+    } elsif ($iter == 2) {
+        $iter = "Third";
+    } elsif ($iter == 3) {
+        $iter = "Fourth";
+    } elsif ($iter == 4) {
+        $iter = "Fifth";
+    } else {
+        $iter = "${iter}th";
+    }
+
+    print STDERR "--\n";
+    print STDERR "-- Running jobs.  $iter attempt out of $max.\n";
 
     setGlobal("canuIteration", getGlobal("canuIteration") + 1);
 
