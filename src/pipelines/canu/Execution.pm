@@ -1015,7 +1015,11 @@ sub submitOrRunParallelJob ($$$$@) {
             }
             close(F);
 
-            print STDERR "-- '$cmd.sh' -> job $jobName tasks $j.\n";
+            if ($j =~ m/^\d+$/) {
+                print STDERR "-- '$cmd.sh' -> job $jobName task $j.\n";
+            } else {
+                print STDERR "-- '$cmd.sh' -> job $jobName tasks $j.\n";
+            }
 
             push @jobsSubmitted, $jobName;
         }
