@@ -496,22 +496,36 @@ unitigConsensus::generatePBDAG(char aligner,
 
   assert(len < tig->_gappedMax);
 
+  uint32 minPos = cns.size();
+  uint32 maxPos = 0;
+
   // update positions, this requires remapping but this time to the final consensus
 #pragma omp parallel for schedule(dynamic)
   for (uint32 i=0; i<numfrags; i++) {
     if (cnspos[i].min() == 0 && cnspos[i].max() == 0) {
        continue;
     }
-    abSequence  *seq      = abacus->getSequence(i);
+    abSequence  *seq     = abacus->getSequence(i);
 
-    uint32  bandTolerance = (int32)round((double)(seq->length() * errorRate)) + 1;
-    EdlibAlignResult align = edlibAlign(seq->getBases(), seq->length()-1, cns.c_str(), cns.size()-1,  edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
-    if (align.numLocations >= 1) {
-       cnspos[i].setMinMax(align.startLocations[0], align.endLocations[0]+1);
+    uint32 bandTolerance = (int32)round((double)(seq->length() * errorRate)) + 1;
+    int32  padding       = bandTolerance;
+    uint32 start         = max((int32)0, (int32)utgpos[i].min() - padding);
+    uint32 end           = min((int32)cns.size(), (int32)utgpos[i].max() + padding);
+
+    EdlibAlignResult align = edlibAlign(seq->getBases(), seq->length()-1, cns.c_str()+start, end-start+1,  edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+    if (align.numLocations > 0) {
+       // why did we have to adjust this by one, always stop 1 short of end, off by one?
+       cnspos[i].setMinMax(align.startLocations[0]+start, (align.endLocations[0]+start+1 == cns.size()-1) ? cns.size() : align.endLocations[0]+start+1);
+#pragma omp critical (trackMin)
+       if (cnspos[i].min() < minPos) minPos = cnspos[i].min();
+#pragma omp critical (trackMax)
+       if (cnspos[i].max() > maxPos) maxPos = cnspos[i].max();
     }
     edlibFreeAlignResult(align);
   }
   memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
+  assert(minPos == 0);
+  assert(maxPos == cns.size());
 
   return(true);
 }
