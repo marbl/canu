@@ -390,7 +390,7 @@ unitigConsensus::generatePBDAG(char aligner,
     }
 
     while ((aligned == false) && (bandTolerance < errorRate * (aLen + bLen))) {
-       bandTolerance *= 4;
+       bandTolerance *= 2;
        if (aligner == 'E') 
           edlibFreeAlignResult(align);
  

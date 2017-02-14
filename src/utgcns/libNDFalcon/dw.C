@@ -177,6 +177,16 @@ bool align(const char * query_seq, seq_coor_t q_len,
 
     aln_path = (path_point *)calloc( q_len + t_len + 1, sizeof(path_point) );
 
+    if (d_path == NULL || aln_path == NULL) {
+       fprintf(stderr, "generatePBDAG()-- Failed memory allocation max_d %d band_size %d.\n",
+                    max_d, band_size);
+       free(V);
+       free(U);
+       free(d_path);
+       free(aln_path);
+       return aligned;
+    }
+
     if (get_aln_str) {
        align_rtn._tgt_aln_str = (char *)calloc( q_len + t_len + 1, sizeof(char));
        align_rtn._qry_aln_str = (char *)calloc( q_len + t_len + 1, sizeof(char));
