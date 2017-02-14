@@ -514,7 +514,7 @@ if (setOptions($mode, "correct") eq "correct") {
 
     buildHTML($asm, "cor");
 
-    my $correctedReads = sequenceFileExists(getcwd() . "/$asm.correctedReads");
+    my $correctedReads = sequenceFileExists("$asm.correctedReads");
 
     caExit("can't find corrected reads '$asm.correctedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($correctedReads));
 
@@ -544,7 +544,7 @@ if (setOptions($mode, "trim") eq "trim") {
 
     buildHTML($asm, "obt");
 
-    my $trimmedReads = sequenceFileExists(getcwd() . "/$asm.trimmedReads");
+    my $trimmedReads = sequenceFileExists("$asm.trimmedReads");
 
     caExit("can't find trimmed reads '$asm.trimmedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($trimmedReads));
 
