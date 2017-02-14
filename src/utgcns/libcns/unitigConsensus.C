@@ -411,9 +411,9 @@ unitigConsensus::generatePBDAG(char aligner,
 
     double errorRateAln = 0;
     if (aligner == 'E')
-       (align.alignmentLength > 0) ? ((double)align.editDistance / align.alignmentLength) : 1.0;
+       errorRateAln = (align.alignmentLength > 0) ? ((double)align.editDistance / align.alignmentLength) : 1.0;
     else
-       (ndaln._size > 0) ? ((double)ndaln._dist / ndaln._size) : 1.0;
+       errorRateAln = (ndaln._size > 0) ? ((double)ndaln._dist / ndaln._size) : 1.0;
 
     if ((aligned == true) && (errorRateAln > errorRate)) {
       fprintf(stderr, "generatePBDAG()-- error rate too high distance=%5d size=%5d, %f > %f\n",
@@ -469,13 +469,51 @@ unitigConsensus::generatePBDAG(char aligner,
 
 #pragma omp critical (graphAdd)
     ag.addAln(norm);  //  NOT thread safe!
-
   }
 
   //  Merge the nodes and call consensus
   ag.mergeNodes();
 
   std::string cns = ag.consensus(1);
+
+#ifdef REALIGN
+  // update positions, this requires remapping but this time to the final consensus, turned off for now
+  uint32 minPos = cns.size();
+  uint32 maxPos = 0;
+
+#pragma omp parallel for schedule(dynamic)
+  for (uint32 i=0; i<numfrags; i++) {
+    abSequence  *seq     = abacus->getSequence(i);
+
+    uint32 bandTolerance = (int32)round((double)(seq->length() * errorRate)) * 2;
+    uint32 maxExtend     = (int32)round((double)seq->length() * 0.01) + 1;
+    int32  padding       = bandTolerance;
+    uint32 start         = max((int32)0, (int32)utgpos[i].min() - padding);
+    uint32 end           = min((int32)cns.size(), (int32)utgpos[i].max() + padding);
+
+    EdlibAlignResult align = edlibAlign(seq->getBases(), seq->length()-1, cns.c_str()+start, end-start+1,  edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+    if (align.numLocations > 0) {
+       cnspos[i].setMinMax(align.startLocations[0]+start, align.endLocations[0]+start+1);
+       // when we are very close to end extend
+       if (cnspos[i].max() < cns.size() && cns.size() - cnspos[i].max() <= maxExtend && (align.editDistance + cns.size() - cnspos[i].max()) < bandTolerance) {
+          cnspos[i].setMinMax(cnspos[i].min(), cns.size());
+       }
+#pragma omp critical (trackMin)
+       if (cnspos[i].min() < minPos) minPos = cnspos[i].min();
+#pragma omp critical (trackMax)
+       if (cnspos[i].max() > maxPos) maxPos = cnspos[i].max();
+    } else {
+}
+    edlibFreeAlignResult(align);
+  }
+  memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
+
+  // trim consensus if needed
+  if (maxPos < cns.size()) 
+     cns = cns.substr(0, maxPos);
+  assert(minPos == 0);
+  assert(maxPos == cns.size());
+#endif
 
   //  Save consensus
 
@@ -495,37 +533,6 @@ unitigConsensus::generatePBDAG(char aligner,
   tig->_layoutLen        = len;
 
   assert(len < tig->_gappedMax);
-
-  uint32 minPos = cns.size();
-  uint32 maxPos = 0;
-
-  // update positions, this requires remapping but this time to the final consensus
-#pragma omp parallel for schedule(dynamic)
-  for (uint32 i=0; i<numfrags; i++) {
-    if (cnspos[i].min() == 0 && cnspos[i].max() == 0) {
-       continue;
-    }
-    abSequence  *seq     = abacus->getSequence(i);
-
-    uint32 bandTolerance = (int32)round((double)(seq->length() * errorRate)) + 1;
-    int32  padding       = bandTolerance;
-    uint32 start         = max((int32)0, (int32)utgpos[i].min() - padding);
-    uint32 end           = min((int32)cns.size(), (int32)utgpos[i].max() + padding);
-
-    EdlibAlignResult align = edlibAlign(seq->getBases(), seq->length()-1, cns.c_str()+start, end-start+1,  edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
-    if (align.numLocations > 0) {
-       // why did we have to adjust this by one, always stop 1 short of end, off by one?
-       cnspos[i].setMinMax(align.startLocations[0]+start, (align.endLocations[0]+start+1 == cns.size()-1) ? cns.size() : align.endLocations[0]+start+1);
-#pragma omp critical (trackMin)
-       if (cnspos[i].min() < minPos) minPos = cnspos[i].min();
-#pragma omp critical (trackMax)
-       if (cnspos[i].max() > maxPos) maxPos = cnspos[i].max();
-    }
-    edlibFreeAlignResult(align);
-  }
-  memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
-  assert(minPos == 0);
-  assert(maxPos == cns.size());
 
   return(true);
 }
