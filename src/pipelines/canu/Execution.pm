@@ -68,7 +68,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use File::Spec;
 
 use canu::Defaults;
-
+use canu::Grid_Cloud qw(setWorkDirectoryShellCode);
 
 #
 #  Functions for running multiple processes at the same time.  This is private to the module.
@@ -570,6 +570,8 @@ sub submitScript ($$) {
     print F "#  at run time where the binary is.\n";
     print F "\n";
     print F getBinDirectoryShellCode();
+    print F "\n";
+    print F setWorkDirectoryShellCode(".");
     print F "\n";
     print F "rm -f canu.out\n";
     print F "ln -s canu-scripts/canu.$idx.out canu.out\n";
