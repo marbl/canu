@@ -55,6 +55,7 @@ use canu::Execution;
 use canu::Configure;
 
 use canu::Grid;
+use canu::Grid_Cloud;
 use canu::Grid_SGE;
 use canu::Grid_Slurm;
 use canu::Grid_PBSTorque;
@@ -311,21 +312,6 @@ checkGnuplot();
 
 printHelp();
 
-#  Now that we're done parsing command line options and etc, make the work directory
-#  if needed and chdir there.  Also set where our onExit script needs to run from.
-
-if (defined($rootdir)) {
-    make_path($rootdir)  if (! -d $rootdir);
-    chdir($rootdir);
-}
-
-setGlobal("onExitDir", getcwd());
-setGlobal("onExitNam", $asm);
-
-print STDERR "--\n";
-print STDERR "-- Generating assembly '$asm' in '" . getcwd() . "'\n";
-print STDERR "--\n";
-
 #  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
 #  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
 #  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
@@ -366,10 +352,22 @@ configureDNANexus();
 
 configureAssembler();
 
-#  And, finally, report the critical parameters.
+#  And, finally, move to the assembly directory and report the critical parameters.
+
+setWorkDirectory();
+
+if (defined($rootdir)) {
+    make_path($rootdir)  if (! -d $rootdir);
+    chdir($rootdir);
+}
+
+setGlobal("onExitDir", getcwd());
+setGlobal("onExitNam", $asm);
 
 printf STDERR "--\n";
-print  STDERR "-- Parameters:\n";
+printf STDERR "-- Generating assembly '$asm' in '" . getcwd() . "'\n";
+printf STDERR "--\n";
+printf STDERR "-- Parameters:\n";
 printf STDERR "--\n";
 printf STDERR "--  genomeSize        %s\n", getGlobal("genomeSize");
 printf STDERR "--\n";
@@ -391,9 +389,9 @@ if (defined(getGlobal('errorRateUsed'))) {
 #  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
 #  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
 
-my $cor = (-e "correction/$asm.gkpStore") || sequenceFileExists("$asm.correctedReads") || (-e "$asm.correctedReads.gkp");
-my $obt = (-e "trimming/$asm.gkpStore")   || sequenceFileExists("$asm.trimmedReads")   || (-e "$asm.trimmedReads.gkp");
-my $utg = (-e "unitigging/$asm.gkpStore");
+my $cor = (-e "correction/$asm.gkpStore") || fileExists("correction/$asm.gkpStore.tar") || sequenceFileExists("$asm.correctedReads") || (-e "$asm.correctedReads.gkp");
+my $obt = (-e "trimming/$asm.gkpStore")   || fileExists("trimming/$asm.gkpStore.tar")   || sequenceFileExists("$asm.trimmedReads")   || (-e "$asm.trimmedReads.gkp");
+my $utg = (-e "unitigging/$asm.gkpStore") || fileExists("unitigging/$asm.gkpStore.tar");
 
 if (($cor + $obt + $utg == 0) &&
     (scalar(@inputFiles) == 0)) {
@@ -491,28 +489,36 @@ sub overlap ($$) {
 #
 #  Begin pipeline
 #
+#  The checks for sequenceFileExists() at the start aren't needed except for
+#  object storage mode.  Gatekeeper has no way of knowing, inside
+#  gatekeeper(), that this stage is completed and it shouldn't fetch the
+#  store.  In 'normal' operation, the store exists already, and we just
+#  return.
+#
 
 if (setOptions($mode, "correct") eq "correct") {
-    print STDERR "--\n";
-    print STDERR "--\n";
-    print STDERR "-- BEGIN CORRECTION\n";
-    print STDERR "--\n";
+    if (sequenceFileExists("$asm.correctedReads") eq undef) {
+        print STDERR "--\n";
+        print STDERR "--\n";
+        print STDERR "-- BEGIN CORRECTION\n";
+        print STDERR "--\n";
 
-    gatekeeper($asm, "cor", @inputFiles);
+        gatekeeper($asm, "cor", @inputFiles);
 
-    merylConfigure($asm, "cor");
-    merylCheck($asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
-    merylProcess($asm, "cor");
+        merylConfigure($asm, "cor");
+        merylCheck($asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
+        merylProcess($asm, "cor");
 
-    overlap($asm, "cor");
+        overlap($asm, "cor");
 
-    buildCorrectionLayouts($asm);
-    generateCorrectedReads($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-    dumpCorrectedReads($asm);
+        buildCorrectionLayouts($asm);
+        generateCorrectedReads($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        dumpCorrectedReads($asm);
 
-    estimateCorrectedError($asm, "cor");
+        estimateCorrectedError($asm, "cor");
 
-    buildHTML($asm, "cor");
+        buildHTML($asm, "cor");
+    }
 
     my $correctedReads = sequenceFileExists("$asm.correctedReads");
 
@@ -524,25 +530,27 @@ if (setOptions($mode, "correct") eq "correct") {
 
 
 if (setOptions($mode, "trim") eq "trim") {
-    print STDERR "--\n";
-    print STDERR "--\n";
-    print STDERR "-- BEGIN TRIMMING\n";
-    print STDERR "--\n";
+    if (sequenceFileExists("$asm.trimmedReads") eq undef) {
+        print STDERR "--\n";
+        print STDERR "--\n";
+        print STDERR "-- BEGIN TRIMMING\n";
+        print STDERR "--\n";
 
-    gatekeeper($asm, "obt", @inputFiles);
+        gatekeeper($asm, "obt", @inputFiles);
 
-    merylConfigure($asm, "obt");
-    merylCheck($asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
-    merylProcess($asm, "obt");
+        merylConfigure($asm, "obt");
+        merylCheck($asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
+        merylProcess($asm, "obt");
 
-    overlap($asm, "obt");
+        overlap($asm, "obt");
 
-    trimReads ($asm);
-    splitReads($asm);
-    dumpReads ($asm);
-    #summarizeReads($asm);
+        trimReads ($asm);
+        splitReads($asm);
+        dumpReads ($asm);
+        #summarizeReads($asm);
 
-    buildHTML($asm, "obt");
+        buildHTML($asm, "obt");
+    }
 
     my $trimmedReads = sequenceFileExists("$asm.trimmedReads");
 
@@ -554,39 +562,42 @@ if (setOptions($mode, "trim") eq "trim") {
 
 
 if (setOptions($mode, "assemble") eq "assemble") {
-    print STDERR "--\n";
-    print STDERR "--\n";
-    print STDERR "-- BEGIN ASSEMBLY\n";
-    print STDERR "--\n";
+    if (sequenceFileExists("$asm.contigs") eq undef) {
+        print STDERR "--\n";
+        print STDERR "--\n";
+        print STDERR "-- BEGIN ASSEMBLY\n";
+        print STDERR "--\n";
 
-    gatekeeper($asm, "utg", @inputFiles);
+        gatekeeper($asm, "utg", @inputFiles);
 
-    merylConfigure($asm, "utg");
-    merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
-    merylProcess($asm, "utg");
+        merylConfigure($asm, "utg");
+        merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
+        merylProcess($asm, "utg");
 
-    overlap($asm, "utg");
+        overlap($asm, "utg");
 
-    #readErrorDetection($asm);
+        #readErrorDetection($asm);
 
-    readErrorDetectionConfigure($asm);
-    readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        readErrorDetectionConfigure($asm);
+        readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    overlapErrorAdjustmentConfigure($asm);
-    overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        overlapErrorAdjustmentConfigure($asm);
+        overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    updateOverlapStore($asm);
+        updateOverlapStore($asm);
 
-    unitig($asm);
-    unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        unitig($asm);
+        unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    consensusConfigure($asm);
-    consensusCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        consensusConfigure($asm);
+        consensusCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    consensusLoad($asm);
-    consensusAnalyze($asm);
+        consensusLoad($asm);
+        consensusAnalyze($asm);
 
-    generateOutputs($asm);
+        generateOutputs($asm);
+    }
 }
+
 
 exit(0);

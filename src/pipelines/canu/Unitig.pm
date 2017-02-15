@@ -53,6 +53,7 @@ use canu::Configure;    #  For displayGenomeSize
 use canu::Gatekeeper;
 use canu::HTML;
 use canu::Meryl;
+use canu::Grid_Cloud;
 
 
 
@@ -83,8 +84,15 @@ sub reportUnitigSizes ($$$) {
     my $V = substr("000000" . $version, -3);
     my $N = "$asm.ctgStore/seqDB.v$V.sizes.txt";
 
+    fetchFile("unitigging/$N");
+
     if (! -e "unitigging/$N") {
-        $cmd  = "$bin/tgStoreDump \\\n";
+        fetchStore("unitigging/$asm.gkpStore");
+
+        fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.dat");
+        fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.tig");
+
+        $cmd  = "$bin/tgStoreDump \\\n";                     #  Duplicated at the end of unitigger.sh
         $cmd .= "  -G ./$asm.gkpStore \\\n";
         $cmd .= "  -T ./$asm.ctgStore $version \\\n";
         $cmd .= "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
@@ -93,6 +101,8 @@ sub reportUnitigSizes ($$$) {
         if (runCommand("unitigging", $cmd)) {
             caExit("failed to generate unitig sizes", undef);
         }
+
+        stashFile("unitigging/$N");
     }
 
     $ctgSizes .= "--            NG (bp)  LG (contigs)    sum (bp)\n";
@@ -143,12 +153,14 @@ sub reportUnitigSizes ($$$) {
 
 sub unitig ($) {
     my $asm     = shift @_;
+    my $path    = "unitigging/4-unitigger";
 
     goto allDone    if (skipStage($asm, "unitig") == 1);
-    goto allDone    if (-e "unitigging/4-unitigger/unitigger.sh");
-    goto allDone    if ((-d "unitigging/$asm.ctgStore") && (-d "unitigging/$asm.utgStore"));
+    goto allDone    if (fileExists("unitigging/4-unitigger/unitigger.sh"));
+    goto allDone    if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
+                        fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
 
-    make_path("unitigging/4-unitigger")  if (! -d "unitigging/4-unitigger");
+    make_path($path)  if (! -d $path);
 
     #  How many reads per partition?  This will change - it'll move to be after unitigs are constructed.
 
@@ -156,15 +168,24 @@ sub unitig ($) {
 
     #  Dump a script to run the unitigger.
 
-    open(F, "> unitigging/4-unitigger/unitigger.sh") or caExit("can't open 'unitigging/4-unitigger/unitigger.sh' for writing: $!\n", undef);
+    open(F, "> $path/unitigger.sh") or caExit("can't open '$path/unitigger.sh' for writing: $!\n", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
+    print F setWorkDirectoryShellCode($path);
+    print F "\n";
+    print F fetchStoreShellCode("unitigging/$asm.gkpStore", $path, "");
+    print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
+    print F "\n";
+    print F fetchFileShellCode("unitigging/$asm.ovlStore", "evalues", "");
+    print F "\n";
+    print F getJobIDShellCode();
     print F "\n";
     print F "if [ -e unitigging/$asm.ctgStore/seqDB.v001.tig -a -e unitigging/$asm.utgStore/seqDB.v001.tig ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
-    print F "\n";
-    print F getBinDirectoryShellCode();
     print F "\n";
 
     if      (getGlobal("unitigger") eq "bogart") {
@@ -195,9 +216,28 @@ sub unitig ($) {
     }
 
     print F "\n";
+    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
+    print F stashFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "");
+    print F "\n";
+    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
+    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");
+    print F "\n";
+    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
+    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
+    print F "\n";
+    print F "\$bin/tgStoreDump \\\n";                    #  Duplicated in reportUnitigSizes()
+    print F "  -G ../$asm.gkpStore \\\n";                 #  Done here so we don't need another
+    print F "  -T ../$asm.ctgStore 1 \\\n";               #  pull of gkpStore and ctgStore
+    print F "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
+    print F "> ../$asm.ctgStore/seqDB.v001.sizes.txt";
+    print F "\n";
+    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.sizes.txt", "");
+    print F "\n";
     print F "exit 0\n";
 
     close(F);
+
+    stashFile("$path/unitigger.sh");
 
   finishStage:
     emitStage($asm, "unitig");
@@ -214,11 +254,16 @@ sub unitigCheck ($) {
     my $attempt = getGlobal("canuIteration");
     my $path    = "unitigging/4-unitigger";
 
-    goto allDone  if (skipStage($asm, "unitigCheck", $attempt) == 1);
-    goto allDone  if ((-e "unitigging/$asm.ctgStore/seqDB.v001.tig") && (-e "unitigging/$asm.utgStore/seqDB.v001.tig"));
+    goto allDone      if (skipStage($asm, "unitigCheck", $attempt) == 1);
+    goto allDone      if (fileExists("$path/unitigger.success"));
+    goto finishStage  if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
+                          fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
+
+    fetchFile("$path/unitigger.sh");
 
     #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
     #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
+    #  (meryl is the same)
 
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
@@ -242,11 +287,15 @@ sub unitigCheck ($) {
     submitOrRunParallelJob($asm, "bat", $path, "unitigger", (1));
     return;
 
-    #  If onGrid, the submitOrRun() has submitted parallel jobs to the grid, and resubmitted the
-    #  executive.  #  The parallel version never gets here
-
   finishStage:
     print STDERR "-- Unitigger finished successfully.\n";
+
+    make_path($path);   #  With object storage, we might not have this directory!
+
+    open(F, "> $path/unitigger.success") or caExit("can't open '$path/unitigger.success' for writing: $!", undef);
+    close(F);
+
+    stashFile("$path/unitigger.success");
 
     reportUnitigSizes($asm, 1, "after unitig construction");
 

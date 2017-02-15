@@ -46,6 +46,7 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::HTML;
+use canu::Grid_Cloud;
 
 
 sub trimReads ($) {
@@ -55,9 +56,11 @@ sub trimReads ($) {
     my $path   = "trimming/3-overlapbasedtrimming";
 
     goto allDone   if (skipStage($asm, "obt-trimReads") == 1);
-    goto allDone   if (-e "$path/trimmed");
+    goto allDone   if (fileExists("trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear"));
 
     make_path($path)  if (! -d $path);
+
+    fetchStore("./trimming/$asm.ovlStore");
 
     #  Previously, we'd pick the error rate used by unitigger.  Now, we don't know unitigger here,
     #  and require an obt specific error rate.
@@ -82,6 +85,8 @@ sub trimReads ($) {
 
     unlink("$path/$asm.1.trimReads.err");
 
+    stashFile("./trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
+
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
         $cmd .= "  -G ../$asm.gkpStore \\\n";
@@ -95,7 +100,6 @@ sub trimReads ($) {
     }
 
   finishStage:
-    touch("$path/trimmed");
     emitStage($asm, "obt-trimReads");
     buildHTML($asm, "obt");
 
@@ -111,9 +115,12 @@ sub splitReads ($) {
     my $path   = "trimming/3-overlapbasedtrimming";
 
     goto allDone   if (skipStage($asm, "obt-splitReads") == 1);
-    goto allDone   if (-e "$path/splitted");  #  Splitted?
+    goto allDone   if (fileExists("trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear"));
 
     make_path($path)  if (! -d $path);
+
+    fetchStore("./trimming/$asm.ovlStore");
+    fetchFile("./trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
 
     my $erate  = getGlobal("obtErrorRate");  #  Was this historically
 
@@ -138,6 +145,8 @@ sub splitReads ($) {
 
     unlink("$path/$asm.2.splitReads.err");
 
+    stashFile("./trimming/3-overlapbasedtrimming/$asm.2.splitReads.clear");
+
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
         $cmd .= "  -G ../$asm.gkpStore \\\n";
@@ -151,7 +160,6 @@ sub splitReads ($) {
     }
 
   finishStage:
-    touch("$path/splitted", "Splitted?  Is that even a word?");
     emitStage($asm, "obt-splitReads");
     buildHTML($asm, "obt");
 
@@ -172,6 +180,9 @@ sub dumpReads ($) {
 
     make_path($path)  if (! -d $path);
 
+    fetchFile("./trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
+    fetchFile("./trimming/3-overlapbasedtrimming/$asm.2.splitReads.clear");
+
     $inp = "./3-overlapbasedtrimming/$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
     $inp = "./3-overlapbasedtrimming/$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
 
@@ -180,7 +191,7 @@ sub dumpReads ($) {
     $cmd  = "$bin/gatekeeperDumpFASTQ -fasta -nolibname \\\n";
     $cmd .= "  -G ./$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "  -o ../$asm.trimmedReads.gz \\\n";
+    $cmd .= "  -o ../$asm.trimmedReads.gz \\\n";     #  Adds .fasta
     $cmd .= ">    ../$asm.trimmedReads.err 2>&1";
 
     if (runCommand("trimming", $cmd)) {
@@ -188,6 +199,8 @@ sub dumpReads ($) {
     }
 
     unlink("./$asm.trimmedReads.err");
+
+    stashFile("./$asm.trimmedReads.fasta.gz");
 
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
     #touch("../$asm.trimmedReads.gkp");

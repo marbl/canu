@@ -45,36 +45,45 @@ require Exporter;
 use strict;
 
 use File::Path 2.08 qw(make_path remove_tree);
+use File::Basename;
 
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::ErrorEstimate;
 use canu::HTML;
+use canu::Grid_Cloud;
 
 sub getGenomeCoverage($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
     my $merSize = shift @_;
     my $bin     = getBinDirectory();
+    my $gs;
 
-    my $gs=`cat $base/0-mercounts/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
-    chomp $gs;
+    #  This used to look in the estimate-mer-threshold output for an estimate based on the kmer
+    #  histogram, but it stopped reporting that in late December 2016.
+    #
+    #fetchFile("$base/0-mercounts/$asm.ms$merSize.estMerThresh.err");
+    #
+    #if (-e "$base/0-mercounts/$asm.ms$merSize.estMerThresh.err") {
+    #    $gs=`cat $path/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
+    #    chomp $gs;
+    #}
 
-    # if we couldn't find the coverage, just take # bases divided by user supplied genome size as a guestimate
-    if ($gs == "") {
-        open(F, "$bin/gatekeeperDumpMetaData -stats -G $base/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$base/$asm.gkpStore'", undef);
-        while (<F>) {
-           my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
-           if ($library == 0) {
-              $gs = $bases / getGlobal("genomeSize");
-              last;
-           }
+    #  So, we end up using bases in gkpStore and genome size.
+
+    open(F, "$bin/gatekeeperDumpMetaData -stats -G $base/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$base/$asm.gkpStore'", undef);
+    while (<F>) {
+        my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
+        if ($library == 0) {
+            $gs = $bases / getGlobal("genomeSize");
+            last;
         }
-       close(F);
     }
+    close(F);
 
-    return $gs;
+    return($gs);
 }
 
 
@@ -90,10 +99,12 @@ sub plotHistogram ($$$$) {
     my $suffix = shift @_;
     my $size   = shift @_;
 
-    return  if (-e "$path/$ofile.histogram.$suffix.gp");
+    return  if (fileExists("$path/$ofile.histogram.$suffix.gp"));
 
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
+
+    fetchFile("$path/$ofile.histogram");
 
     open(F, "> $path/$ofile.histogram.$suffix.gp");
     print F "\n";
@@ -153,6 +164,9 @@ sub plotHistogram ($$$$) {
         print STDERR "--\n";
         print STDERR "----------------------------------------\n";
     }
+
+    stashFile("$path/$ofile.histogram.$suffix.gp");
+    stashFile("$path/$ofile.histogram.$suffix.$format");
 }
 
 
@@ -194,10 +208,15 @@ sub merylParameters ($$) {
         $ofile = "$asm.ms$merSize";                         #  The meryl database 'intermediate file'.
 
     } elsif (getGlobal("${tag}Overlapper") eq "minimap") {
-        # do nothing
-        $ffile = "$asm.ms$merSize.skip";
-        make_path("$path")  if (! -d "$path");
-        touch("$path/$ffile");
+        $merSize     = 0;
+        $merThresh   = 0;
+        $merScale    = 1.0;
+        $merDistinct = undef;
+        $merTotal    = undef;
+
+        $ffile = undef;
+        $ofile = undef;
+
     } else {
         caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
     }
@@ -230,30 +249,41 @@ sub merylConfigure ($$) {
     my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
 
     goto allDone   if (skipStage($asm, "$tag-merylConfigure") == 1);
-    goto allDone   if  (-e "$path/meryl.sh");
-    goto allDone   if  (-e "$path/$ffile");
-    goto allDone   if ((-e "$path/$ofile.mcidx") && (-e "$path/$ofile.mcdat"));
+    goto allDone   if (fileExists("$path/meryl.sh"));
+    goto allDone   if (!defined($ffile));
+    goto allDone   if (fileExists("$path/$ffile"));
+    goto allDone   if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
 
     make_path($path)  if (! -d $path);
 
-    #  User supplied mers?  Just symlink to them.
+    #  User supplied mers?  Copy them to the proper location and exit.
 
-    if (defined(getGlobal("${tag}OvlFrequentMers"))) {
-        #my $ffile = "$path/$asm.frequentMers.fasta";
-        my $sfile = getGlobal("${tag}OvlFrequentMers");
+    my $sfile = getGlobal("${tag}OvlFrequentMers");
 
-        if (! -e "$path/$ffile") {
-            caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
-            symlink $sfile, "$path/$ffile";
-        }
-
+    if (defined($sfile) && ! -e "$path/$ffile") {
+        caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
+        copy($sfile, "$path/$ffile");
+        stashFile("$path/$ffile");
         goto allDone;
     }
 
-    #  Nope, build a script.
+    #  No filtering?  Make an empty file and exit.
+
+    if ((defined($merThresh))    &&
+        ($merThresh ne "auto")   &&
+        ($merThresh == 0)        &&
+        (!defined($merDistinct)) &&
+        (!defined($merTotal))) {
+        touch("$path/$ffile");
+        stashFile("$path/$ffile");
+        goto allDone;
+    }
+
+    #  Nope, build a script for computing kmer counts.
 
     my $mem = int(getGlobal("merylMemory")  * 1024 * 0.8);   #  Because meryl expects megabytes, not gigabytes.
     my $thr = getGlobal("merylThreads");
+    my $cov = getGenomeCoverage($base, $asm, undef);
 
     caExit("merylMemory isn't defined?", undef)   if (!defined($mem));
     caExit("merylThreads isn't defined?", undef)  if (!defined($thr));
@@ -262,11 +292,10 @@ sub merylConfigure ($$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "if [ -e ../$asm.ctgStore/seqDB.v001.tig ] ; then\n";
-    print F "  exit 0\n";
-    print F "fi\n";
-    print F "\n";
     print F getBinDirectoryShellCode();
+    print F "\n";
+    print F setWorkDirectoryShellCode($path);
+    print F fetchStoreShellCode("$base/$asm.gkpStore", $path);
     print F "\n";
     print F "#  Purge any previous intermediate result.  Possibly not needed, but safer.\n";
     print F "\n";
@@ -277,13 +306,49 @@ sub merylConfigure ($$) {
     print F "  -s ../$asm.gkpStore \\\n";
     print F "  -o ./$ofile.WORKING \\\n";
     print F "&& \\\n";
-    print F "mv ./$ofile.WORKING.mcdat ./$ofile.FINISHED.mcdat \\\n";
+    print F "mv ./$ofile.WORKING.mcdat ./$ofile.mcdat \\\n";
     print F "&& \\\n";
-    print F "mv ./$ofile.WORKING.mcidx ./$ofile.FINISHED.mcidx\n";
+    print F "mv ./$ofile.WORKING.mcidx ./$ofile.mcidx\n";
+    print F "\n";
+    print F stashFileShellCode("$path", "$ofile.mcdat", "");
+    print F "\n";
+    print F stashFileShellCode("$path", "$ofile.mcidx", "");
+    print F "\n";
+    print F "\n";
+    print F "#  Dump a histogram\n";
+    print F "\n";
+    print F "\$bin/meryl \\\n";
+    print F "  -Dh -s ./$ofile \\\n";
+    print F ">  ./$ofile.histogram.WORKING \\\n";
+    print F "2> ./$ofile.histogram.info \\\n";
+    print F "&& \\\n";
+    print F "mv -f ./$ofile.histogram.WORKING ./$ofile.histogram\n";
+    print F "\n";
+    print F stashFileShellCode("$path", "$ofile.histogram", "");
+    print F "\n";
+    print F stashFileShellCode("$path", "$ofile.histogram.info", "");
+    print F "\n";
+    print F "\n";
+    print F "#  Compute a nice kmer threshold.\n";
+    print F "\n";
+    print F "\$bin/estimate-mer-threshold \\\n";
+    print F "  -h ./$ofile.histogram \\\n";
+    print F "  -c $cov \\\n";
+    print F ">  ./$ofile.estMerThresh.out.WORKING \\\n";
+    print F "2> ./$ofile.estMerThresh.err \\\n";
+    print F "&& \\\n";
+    print F "mv ./$ofile.estMerThresh.out.WORKING ./$ofile.estMerThresh.out\n";
+    print F "\n";
+    print F stashFileShellCode("$path", "$ofile.estMerThresh.out", "");
+    print F "\n";
+    print F stashFileShellCode("$path", "$ofile.estMerThresh.err", "");
+    print F "\n";
     print F "\n";
     print F "exit 0\n";
 
     close(F);
+
+    stashFile("$path/meryl.sh");
 
   finishStage:
     emitStage($asm, "merylConfigure");
@@ -299,7 +364,7 @@ sub merylCheck ($$) {
     my $tag     = shift @_;
     my $attempt = getGlobal("canuIteration");
 
-    my $bin    = getBinDirectory();
+    my $bin     = getBinDirectory();
     my $cmd;
 
     my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
@@ -307,44 +372,48 @@ sub merylCheck ($$) {
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
-    goto allDone   if  (skipStage($asm, "$tag-meryl") == 1);
-    goto allDone   if  (-e "$path/$ffile");
-    goto allDone   if ((-e "$path/$ofile.mcidx") && (-e "$path/$ofile.mcdat"));
+    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
+    goto allDone      if (fileExists("$path/meryl.success"));
+    goto finishStage  if (fileExists("$path/$ffile"));
+    goto finishStage  if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
 
-    #  If FINISHED exists, meryl finished successfully.  If WORKING, it failed during output.  If
-    #  nothing, it failed before output.
+    fetchFile("$path/meryl.sh");
 
-    if ((! -e "$path/$ofile.FINISHED.mcdat") ||
-        (! -e "$path/$ofile.FINISHED.mcidx")) {
+    #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
+    #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
+    #  (unitigger is the same)
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- meryl failed.\n";
-            print STDERR "--\n";
-        }
-
-        #  If too many attempts, give up.
-
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-        }
-
-        #  Otherwise, run some jobs.
-
-        emitStage($asm, "merylCheck", $attempt);
-        buildHTML($asm, $tag);
-
-        submitOrRunParallelJob($asm, "meryl", $path, "meryl", (1));
-        return;
+    if ($attempt > 1) {
+        print STDERR "--\n";
+        print STDERR "-- meryl failed.\n";
+        print STDERR "--\n";
     }
+
+    #  If too many attempts, give up.
+
+    if ($attempt > getGlobal("canuIterationMax")) {
+        caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
+    emitStage($asm, "merylCheck", $attempt);
+    buildHTML($asm, $tag);
+
+    submitOrRunParallelJob($asm, "meryl", $path, "meryl", (1));
+    return;
 
   finishStage:
     print STDERR "-- Meryl finished successfully.\n";
 
-    rename("$path/$ofile.FINISHED.mcdat", "$path/$ofile.mcdat");
-    rename("$path/$ofile.FINISHED.mcidx", "$path/$ofile.mcidx");
+    make_path($path);   #  With object storage, we might not have this directory!
+
+    open(F, "> $path/meryl.success") or caExit("can't open '$path/meryl.success' for writing: $!", undef);
+    close(F);
+
+    stashFile("$path/meryl.success");
 
     emitStage($asm, "merylCheck");
     buildHTML($asm, $tag);
@@ -358,53 +427,20 @@ sub merylProcess ($$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
 
-    my $bin    = getBinDirectory();
+    my $bin     = getBinDirectory();
     my $cmd;
 
     my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
 
+    #  ffile exists if we've already output it here, or if user supplied a file, or if user wants no masking.
+
     goto allDone   if (skipStage($asm, "$tag-meryl") == 1);
-    goto allDone   if (-e "$path/$ffile");
+    goto allDone   if (fileExists("$path/$ffile"));
 
-    #  A special case; if the threshold is zero, we can skip the rest.
-
-    if ((defined($merThresh))    &&
-        ($merThresh ne "auto")   &&
-        ($merThresh == 0)        &&
-        (!defined($merDistinct)) &&
-        (!defined($merTotal))) {
-        touch("$path/$ffile");
-        goto allDone;
-    }
-
-    #  Dump a histogram.
-
-    if (! -e "$path/$ofile.histogram") {
-        $cmd  = "$bin/meryl -Dh -s ./$ofile > ./$ofile.histogram 2> ./$ofile.histogram.info";
-
-        if (runCommand($path, $cmd)) {
-            rename "$path/$ofile.histogram", "$path/$ofile.histogram.FAILED";
-            caFailure("meryl histogram failed", "$path/$ofile.histogram.info");
-        }
-    }
-
-    #  Compute a threshold, if needed
+    #  Compute a threshold, if needed.
 
     if ($merThresh eq "auto") {
-        if (! -e "$path/$ofile.estMerThresh.out") {
-            my $coverage = getGenomeCoverage($base, $asm, undef);
-
-            $cmd  = "$bin/estimate-mer-threshold ";
-            $cmd .= " -m ./$ofile ";
-            $cmd .= " -c $coverage ";
-            $cmd .= " > ./$ofile.estMerThresh.out ";
-            $cmd .= "2> ./$ofile.estMerThresh.err";
-
-            if (runCommand($path, $cmd)) {
-                rename "$path/$ofile.estMerThresh.out", "$path/$ofile.estMerThresh.out.FAILED";
-                caFailure("estimate-mer-threshold failed", "$path/$ofile.estMerThresh.err");
-            }
-        }
+        fetchFile("$path/$ofile.estMerThresh.out");
 
         open(F, "< $path/$ofile.estMerThresh.out") or caFailure("failed to read estimated mer threshold from '$path/$ofile.estMerThresh.out'", undef);
         $merThresh = <F>;
@@ -415,6 +451,8 @@ sub merylProcess ($$) {
     #  Compute a threshold based on the fraction distinct or total.
 
     if (defined($merDistinct) || defined($merTotal)) {
+        fetchFile("$path/$ofile.histogram");
+
         open(F, "< $path/$ofile.histogram") or caFailure("failed to read mer histogram from '$path/$ofile.histogram'", undef);
         while (<F>) {
             my ($threshold, $num, $distinct, $total) = split '\s+', $_;
@@ -446,16 +484,17 @@ sub merylProcess ($$) {
 
     #  Generate the frequent mers for overlapper
 
-    if ((getGlobal("${tag}Overlapper") eq "ovl") &&
-        (! -e "$path/$ffile")) {
-        $cmd  = "$bin/meryl -Dt -n $merThresh -s ./$ofile > ./$ffile 2> ./$ffile.err";
+    if (getGlobal("${tag}Overlapper") eq "ovl") {
+        fetchFile("$path/$ofile.mcdat");
+        fetchFile("$path/$ofile.mcidx");
 
-        if (runCommand($path, $cmd)) {
+        if (runCommand($path, "$bin/meryl -Dt -n $merThresh -s ./$ofile > ./$ffile 2> ./$ffile.err")) {
             unlink "$path/$ffile";
             caFailure("meryl failed to dump frequent mers", "$path/$ffile.err");
         }
-
         unlink "$path/$ffile.err";
+
+        stashFile("$path/$ffile");
     }
 
     #  Generate the frequent mers for mhap
@@ -465,11 +504,12 @@ sub merylProcess ($$) {
     #
     #  The fraction is just $3/$4.  I assume this is used with "--filter-threshold 0.000005".
 
-    if ((getGlobal("${tag}Overlapper") eq "mhap") &&
-        (! -e "$path/$ffile")) {
-
+    if (getGlobal("${tag}Overlapper") eq "mhap") {
         my $totalMers = 0;
         my $maxCount  = 0;
+
+        fetchFile("$path/$ofile.histogram");
+        fetchFile("$path/$ofile.histogram.info");
 
         #  Meryl reports number of distinct canonical mers, we multiply by two to get the
         #  (approximate) number of distinct mers.  Palindromes are counted twice, oh well.
@@ -486,12 +526,16 @@ sub merylProcess ($$) {
         close(F);
         caFailure("didn't find any mers?", "$path/$ofile.histogram.info")  if ($totalMers == 0);
 
-        my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   getGlobal("${tag}MhapFilterThreshold") :   getGlobal("${tag}MhapFilterThreshold");  #  Also set in Meryl.pm
+        my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
+        my $misRate         = 0.1;
+        my $minCount        = int($filterThreshold * $totalMers);
+        my $totalToOutput   = 0;
+        my $totalFiltered   = 0;
 
-        my $misRate  = 0.1;
-        my $minCount = defined(getGlobal("${tag}MhapFilterUnique")) ? uniqueKmerThreshold($base, $asm, $merSize, $misRate)+1 : int($filterThreshold * $totalMers);
-        my $totalToOutput = 0;
-        my $totalFiltered = 0;
+        if (defined(getGlobal("${tag}MhapFilterUnique"))) {
+            $minCount = uniqueKmerThreshold($base, $asm, $merSize, $misRate) + 1;
+        }
+
         open(F, "< $path/$ofile.histogram") or die "Failed to open '$path/$ofile.histogram' for reading: $!\n";
         while (<F>) {
            my ($kCount, $occurences, $cumsum, $faction) = split '\s+', $_;
@@ -505,8 +549,12 @@ sub merylProcess ($$) {
         close(F);
         $totalToOutput *= 2; # for the reverse complement
 
+        fetchFile("$path/$ofile.mcdat");
+        fetchFile("$path/$ofile.mcidx");
+
         open(F, "$bin/meryl -Dt -n $minCount -s $path/$ofile | ")    or die "Failed to run meryl to generate frequent mers $!\n";
         open(O, "| gzip -c > $path/$ofile.frequentMers.ignore.gz")   or die "Failed to open '$path/$ofile.frequentMers.ignore.gz' for writing: $!\n";
+
         printf(O "%d\n", $totalToOutput);
 
         while (!eof(F)) {
@@ -524,6 +572,8 @@ sub merylProcess ($$) {
         close(O);
         close(F);
 
+        stashFile("$path/$ffile");
+
         if (defined(getGlobal("${tag}MhapFilterUnique"))) {
            printf STDERR "-- For %s overlapping, filtering low-occurence k-mers < %d (%.2f\%) based on estimated error of %.2f\%.\n", getGlobal("${tag}Overlapper"), $minCount, $totalFiltered, 100*estimateRawError($base, $asm, $tag, $merSize);
         }
@@ -538,6 +588,9 @@ sub merylProcess ($$) {
     }
 
   finishStage:
+    fetchFile("$path/$ofile.histogram.info");
+    fetchFile("$path/$ffile");
+
     if (-e "$path/$ofile.histogram.info") {
         my $numTotal    = 0;
         my $numDistinct = 0;

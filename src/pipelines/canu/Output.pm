@@ -49,6 +49,7 @@ use File::Copy;
 use canu::Defaults;
 use canu::Execution;
 use canu::HTML;
+use canu::Grid_Cloud;
 
 
 
@@ -63,7 +64,11 @@ sub generateOutputs ($) {
 
     #  Layouts
 
-    if (! -e "$asm.contigs.layout") {
+    if (! fileExists("$asm.contigs.layout")) {
+        fetchStore("unitigging/$asm.gkpStore");
+        fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
+        fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
+
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
         $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
@@ -76,9 +81,19 @@ sub generateOutputs ($) {
         }
 
         unlink "$asm.contigs.layout.err";
+
+        stashFile("$asm.contigs.layout");
     }
 
-    if (! -e "$asm.unitigs.layout") {
+    if (! fileExists("$asm.unitigs.layout")) {
+        fetchStore("unitigging/$asm.gkpStore");
+
+        fetchFile("unitigging/$asm.utgStore/seqDB.v001.dat");   #  Why is this needed?
+        fetchFile("unitigging/$asm.utgStore/seqDB.v001.tig");
+
+        fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
+        fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
+
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
         $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
@@ -91,12 +106,18 @@ sub generateOutputs ($) {
         }
 
         unlink "$asm.unitigs.layout.err";
+
+        stashFile("$asm.unitigs.layout");
     }
 
     #  Sequences
 
     foreach my $tt ("unassembled", "contigs") {
-        if (! -e "$asm.$tt.$type") {
+        if (! fileExists("$asm.$tt.$type")) {
+            fetchStore("unitigging/$asm.gkpStore");
+            fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
+            fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
+
             $cmd  = "$bin/tgStoreDump \\\n";
             $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
@@ -110,10 +131,16 @@ sub generateOutputs ($) {
             }
 
             unlink "$asm.$tt.err";
+
+            stashFile("$asm.$tt.$type");
         }
     }
 
-    if (! -e "$asm.unitigs.$type") {
+    if (! fileExists("$asm.unitigs.$type")) {
+        fetchStore("unitigging/$asm.gkpStore");
+        fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
+        fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
+
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
         $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
@@ -127,18 +154,24 @@ sub generateOutputs ($) {
         }
 
         unlink "$asm.unitigs.err";
+
+        stashFile("$asm.unitigs.$type");
     }
 
     #  Graphs
 
-    if ((! -e "$asm.contigs.gfa") &&
-        (  -e "unitigging/4-unitigger/$asm.contigs.gfa")) {
+    if ((!fileExists("$asm.contigs.gfa")) &&
+        ( fileExists("unitigging/4-unitigger/$asm.contigs.gfa"))) {
+        fetchFile("unitigging/4-unitigger/$asm.contigs.gfa");
         copy("unitigging/4-unitigger/$asm.contigs.gfa", "$asm.contigs.gfa");
+        stashFile("$asm.contigs.gfa");
     }
 
-    if ((! -e "$asm.unitigs.gfa") &&
-        (  -e "unitigging/4-unitigger/$asm.unitigs.gfa")) {
+    if ((! fileExists("$asm.unitigs.gfa")) &&
+        (  fileExists("unitigging/4-unitigger/$asm.unitigs.gfa"))) {
+        fetchFile("unitigging/4-unitigger/$asm.unitigs.gfa");
         copy("unitigging/4-unitigger/$asm.unitigs.gfa", "$asm.unitigs.gfa");
+        stashFile("$asm.unitigs.gfa");
     }
 
     #  User-supplied termination command.

@@ -51,6 +51,7 @@ use canu::Execution;
 use canu::Gatekeeper;
 use canu::Unitig;
 use canu::HTML;
+use canu::Grid_Cloud;
 
 
 sub utgcns ($$$) {
@@ -65,7 +66,11 @@ sub utgcns ($$$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
+    print F setWorkDirectoryShellCode($path);
+    print F "\n";
     print F getJobIDShellCode();
+    print F "\n";
+    print F getBinDirectoryShellCode();
     print F "\n";
     print F "if [ \$jobid -gt $jobs ]; then\n";
     print F "  echo Error: Only $jobs partitions, you asked for \$jobid.\n";
@@ -89,7 +94,10 @@ sub utgcns ($$$) {
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-    print F getBinDirectoryShellCode();
+    print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.dat", "");
+    print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.tig", "");
+    print F "\n";
+    print F fetchStoreShellCode("unitigging/$asm.\${tag}Store/partitionedReads.gkpStore", $path, "");
     print F "\n";
     print F "\$bin/utgcns \\\n";
     print F "  -G ../$asm.\${tag}Store/partitionedReads.gkpStore \\\n";      #  Optional; utgcns will default to this
@@ -105,16 +113,19 @@ sub utgcns ($$$) {
     print F "&& \\\n";
     print F "mv ./\${tag}cns/\$jobid.cns.WORKING ./\${tag}cns/\$jobid.cns \\\n";
     print F "\n";
+    print F stashFileShellCode("unitigging/5-consensus", "\${tag}cns/\$jobid.cns", "");
+    print F "\n";
     print F "exit 0\n";
 
     if (getGlobal("canuIteration") == 0) {
-        print STDERR "-- Using fast alignment for consensus.\n";
+        print STDERR "-- Using fast alignment for consensus (iteration '", getGlobal("canuIteration"), "').\n";
     } else {
-        print STDERR "-- Using slow alignment for consensus.\n";
+        print STDERR "-- Using slow alignment for consensus (iteration '", getGlobal("canuIteration"), "').\n";
     }
 
-
     close(F);
+
+    stashFile("$path/consensus.sh");
 }
 
 
@@ -146,17 +157,26 @@ sub partitionReads ($$) {
     my $cmd;
 
     return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions/map");
+    return  if (fileExists("unitigging/$asm.${tag}Store/partitionedReads.gkpStore.tar"));
+
+    fetchStore("unitigging/$asm.gkpStore");
+
+    fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.dat");
+    fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
 
     $cmd  = "$bin/gatekeeperPartition \\\n";
     $cmd .= "  -G ./$asm.gkpStore \\\n";
     $cmd .= "  -T ./$asm.${tag}Store 1 \\\n";
     $cmd .= "  -b " . getGlobal("cnsPartitionMin") . " \\\n"   if (defined(getGlobal("cnsPartitionMin")));
     $cmd .= "  -p " . getGlobal("cnsPartitions")   . " \\\n"   if (defined(getGlobal("cnsPartitions")));
-    $cmd .= "> ./$asm.${tag}Store/partitionedReads.err 2>&1";
+    $cmd .= "> ./$asm.${tag}Store/partitionedReads.log 2>&1";
 
     if (runCommand("unitigging", $cmd)) {
-        caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitionedReads.err");
+        caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitionedReads.log");
     }
+
+    stashStore("unitigging/$asm.${tag}Store/partitionedReads.gkpStore");
+    stashFile ("unitigging/$asm.${tag}Store/partitionedReads.log");
 }
 
 
@@ -164,13 +184,18 @@ sub partitionReads ($$) {
 sub computeNumberOfConsensusJobs ($$) {
     my $asm    = shift @_;
     my $tag    = shift @_;
-    my $jobs   = 0;
+    my $jobs   = "0001";
     my $bin    = getBinDirectory();
 
-    open(F, "ls unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions/blobs.* |") or caExit("failed to find partitioned files in 'unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions/blobs.*': $!", undef);
-    while (<F>) {
-        if (m/blobs.(\d+)$/) {
-            $jobs = int($1);
+    fetchFile("unitigging/$asm.${tag}Store/partitionedReads.log");
+
+    open(F, "< unitigging/$asm.${tag}Store/partitionedReads.log") or caExit("can't open 'unitigging/$asm.${tag}Store/partitionedReads.log' for reading: $!", undef);
+    while(<F>) {
+        #if (m/^partition (\d+) has \d+ reads$/) {
+        #    $jobs = $1;
+        #}
+        if (m/^Found \d+ unpartitioned reads and maximum partition of (\d+)$/) {
+            $jobs = $1;
         }
     }
     close(F);
@@ -187,10 +212,10 @@ sub consensusConfigure ($) {
     my $path   = "unitigging/5-consensus";
 
     goto allDone   if (skipStage($asm, "consensusConfigure") == 1);
-    goto allDone   if ((-e "unitigging/$asm.ctgStore/seqDB.v002.tig") &&
-                       (-e "unitigging/$asm.utgStore/seqDB.v002.tig"));
+    goto allDone   if ((fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig")) &&
+                       (fileExists("unitigging/$asm.utgStore/seqDB.v002.tig")));
 
-    make_path("$path")  if (! -d "$path");
+    make_path($path)  if (! -d $path);
 
     #  If the gkpStore partitions are older than the ctgStore unitig output, assume the unitigs have
     #  changed and remove the gkpStore partition.  -M is (annoyingly) 'file age', so we need to
@@ -248,14 +273,19 @@ sub consensusCheck ($) {
     my $path    = "unitigging/5-consensus";
 
     goto allDone  if (skipStage($asm, "consensusCheck", $attempt) == 1);
-    goto allDone  if ((-e "$path/ctgcns.files") && (-e "$path/utgcns.files"));
-    goto allDone  if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig");
+    goto allDone  if ((fileExists("$path/ctgcns.files")) &&
+                      (fileExists("$path/utgcns.files")));
+    goto allDone  if (fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig"));
+
+    fetchFile("$path/consensus.sh");
 
     #  Figure out if all the tasks finished correctly.
 
     my $ctgjobs = computeNumberOfConsensusJobs($asm, "ctg");
     my $utgjobs = computeNumberOfConsensusJobs($asm, "utg");
     my $jobs = $ctgjobs + $utgjobs;
+
+    caExit("no consensus jobs found?", undef)   if ($jobs == 0);
 
     my $currentJobID = "0001";
     my $tag          = "ctgcns";
@@ -266,19 +296,19 @@ sub consensusCheck ($) {
     my $failureMessage = "";
 
     for (my $job=1; $job <= $jobs; $job++) {
-        if      (-e "$path/$tag/$currentJobID.cns") {
+        if      (fileExists("$path/$tag/$currentJobID.cns")) {
             push @ctgSuccessJobs, "5-consensus/$tag/$currentJobID.cns\n"      if ($tag eq "ctgcns");
             push @utgSuccessJobs, "5-consensus/$tag/$currentJobID.cns\n"      if ($tag eq "utgcns");
 
-        } elsif (-e "$path/$tag/$currentJobID.cns.gz") {
+        } elsif (fileExists("$path/$tag/$currentJobID.cns.gz")) {
             push @ctgSuccessJobs, "5-consensus/$tag/$currentJobID.cns.gz\n"   if ($tag eq "ctgcns");
             push @utgSuccessJobs, "5-consensus/$tag/$currentJobID.cns.gz\n"   if ($tag eq "utgcns");
 
-        } elsif (-e "$path/$tag/$currentJobID.cns.bz2") {
+        } elsif (fileExists("$path/$tag/$currentJobID.cns.bz2")) {
             push @ctgSuccessJobs, "5-consensus/$tag/$currentJobID.cns.bz2\n"  if ($tag eq "ctgcns");
             push @utgSuccessJobs, "5-consensus/$tag/$currentJobID.cns.bz2\n"  if ($tag eq "utgcns");
 
-        } elsif (-e "$path/$tag/$currentJobID.cns.xz") {
+        } elsif (fileExists("$path/$tag/$currentJobID.cns.xz")) {
             push @ctgSuccessJobs, "5-consensus/$tag/$currentJobID.cns.xz\n"   if ($tag eq "ctgcns");
             push @utgSuccessJobs, "5-consensus/$tag/$currentJobID.cns.xz\n"   if ($tag eq "utgcns");
 
@@ -328,9 +358,13 @@ sub consensusCheck ($) {
     print L @ctgSuccessJobs;
     close(L);
 
+    stashFile("$path/ctgcns.files");
+
     open(L, "> $path/utgcns.files") or caExit("can't open '$path/utgcns.files' for writing: $!", undef);
     print L @utgSuccessJobs;
     close(L);
+
+    stashFile("$path/utgcns.files");
 
     emitStage($asm, "consensusCheck");
     buildHTML($asm, "utg");
@@ -396,33 +430,67 @@ sub consensusLoad ($) {
     my $path    = "unitigging/5-consensus";
 
     goto allDone    if (skipStage($asm, "consensusLoad") == 1);
-    goto allDone    if ((-e "unitigging/$asm.ctgStore/seqDB.v002.tig") && (-e "unitigging/$asm.utgStore/seqDB.v002.tig"));
+    goto allDone    if ((fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig")) &&
+                        (fileExists("unitigging/$asm.utgStore/seqDB.v002.tig")));
 
     #  Expects to have a list of output files from the consensusCheck() function.
+
+    fetchFile("$path/ctgcns.files");
+    fetchFile("$path/utgcns.files");
 
     caExit("can't find '$path/ctgcns.files' for loading tigs into store: $!", undef)  if (! -e "$path/ctgcns.files");
     caExit("can't find '$path/utgcns.files' for loading tigs into store: $!", undef)  if (! -e "$path/utgcns.files");
 
     #  Now just load them.
 
-    $cmd  = "$bin/tgStoreLoad \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
-    $cmd .= "  -T ./$asm.ctgStore 2 \\\n";
-    $cmd .= "  -L 5-consensus/ctgcns.files \\\n";
-    $cmd .= "> 5-consensus/ctgcns.files.ctgStoreLoad.err 2>&1";
+    if (! fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig")) {
+        fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");
+        fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");
 
-    if (runCommand("unitigging", $cmd)) {
-        caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
+        open(F, "< $path/ctgcns.files");
+        while (<F>) {
+            chomp;
+            fetchFile("unitigging/$_");
+        }
+        close(F);
+
+        $cmd  = "$bin/tgStoreLoad \\\n";
+        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -T ./$asm.ctgStore 2 \\\n";
+        $cmd .= "  -L ./5-consensus/ctgcns.files \\\n";
+        $cmd .= "> ./5-consensus/ctgcns.files.ctgStoreLoad.err 2>&1";
+
+        if (runCommand("unitigging", $cmd)) {
+            caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
+        }
+
+        stashFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
+        stashFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
     }
 
-    $cmd  = "$bin/tgStoreLoad \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
-    $cmd .= "  -T ./$asm.utgStore 2 \\\n";
-    $cmd .= "  -L 5-consensus/utgcns.files \\\n";
-    $cmd .= "> 5-consensus/utgcns.files.utgStoreLoad.err 2>&1";
+    if (! fileExists("unitigging/$asm.utgStore/seqDB.v002.tig")) {
+        fetchFile("unitigging/$asm.utgStore/seqDB.v001.dat");
+        fetchFile("unitigging/$asm.utgStore/seqDB.v001.tig");
 
-    if (runCommand("unitigging", $cmd)) {
-        caExit("failed to load unitig consensus into utgStore", "$path/utgcns.files.utgStoreLoad.err");
+        open(F, "< $path/utgcns.files");
+        while (<F>) {
+            chomp;
+            fetchFile("unitigging/$_");
+        }
+        close(F);
+
+        $cmd  = "$bin/tgStoreLoad \\\n";
+        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -T ./$asm.utgStore 2 \\\n";
+        $cmd .= "  -L ./5-consensus/utgcns.files \\\n";
+        $cmd .= "> ./5-consensus/utgcns.files.utgStoreLoad.err 2>&1";
+
+        if (runCommand("unitigging", $cmd)) {
+            caExit("failed to load unitig consensus into utgStore", "$path/utgcns.files.utgStoreLoad.err");
+        }
+
+        stashFile("unitigging/$asm.utgStore/seqDB.v002.dat");
+        stashFile("unitigging/$asm.utgStore/seqDB.v002.tig");
     }
 
     #  Remvoe consensus outputs
@@ -462,7 +530,15 @@ sub consensusAnalyze ($) {
     my $cmd;
 
     goto allDone   if (skipStage($asm, "consensusAnalyze") == 1);
-    goto allDone   if (-e "unitigging/$asm.ctgStore/status.coverageStat");
+    goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
+
+    fetchStore("unitigging/$asm.gkpStore");
+
+    fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");  #  Shouldn't need this, right?
+    fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");  #  So why does it?
+
+    fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
+    fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
     $cmd .= "  -G ./$asm.gkpStore \\\n";
@@ -477,10 +553,13 @@ sub consensusAnalyze ($) {
 
     unlink "unitigging/$asm.ctgStore.coverageStat.err";
 
+    stashFile("unitigging/$asm.ctgStore.coverageStat.stats");
+    stashFile("unitigging/$asm.ctgStore.coverageStat.log");
+
   finishStage:
     emitStage($asm, "consensusAnalyze");
     buildHTML($asm, "utg");
-    touch("unitigging/$asm.ctgStore/status.coverageStat");
+
   allDone:
     stopAfter("consensus");
 }

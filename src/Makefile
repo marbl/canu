@@ -543,6 +543,7 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/canu/Execution.pm \
      ${TARGET_DIR}/lib/canu/Gatekeeper.pm \
      ${TARGET_DIR}/lib/canu/Grid.pm \
+     ${TARGET_DIR}/lib/canu/Grid_Cloud.pm \
      ${TARGET_DIR}/lib/canu/Grid_DNANexus.pm \
      ${TARGET_DIR}/lib/canu/Grid_LSF.pm \
      ${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm \
@@ -630,6 +631,9 @@ ${TARGET_DIR}/lib/canu/Gatekeeper.pm: pipelines/canu/Gatekeeper.pm
 
 ${TARGET_DIR}/lib/canu/Grid.pm: pipelines/canu/Grid.pm
 	cp -pf pipelines/canu/Grid.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Grid_Cloud.pm: pipelines/canu/Grid_Cloud.pm
+	cp -pf pipelines/canu/Grid_Cloud.pm ${TARGET_DIR}/lib/canu/
 
 ${TARGET_DIR}/lib/canu/Grid_DNANexus.pm: pipelines/canu/Grid_DNANexus.pm
 	cp -pf pipelines/canu/Grid_DNANexus.pm ${TARGET_DIR}/lib/canu/

@@ -50,6 +50,8 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::HTML;
+use canu::Grid_Cloud;
+
 
 #  Returns a coverage:
 #    If $cov not defined, default to desired output coverage * 1.0.
@@ -158,6 +160,7 @@ sub buildCorrectionLayouts_direct ($) {
     my $bin  = getBinDirectory();
     my $cmd;
 
+    my $base = "correction";
     my $path = "correction/2-correction";
 
     #  Outer level buildCorrectionLayouts() ensures the task is not finished.
@@ -214,6 +217,11 @@ sub buildCorrectionLayouts_direct ($) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
+    print F setWorkDirectoryShellCode($path);
+    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/2-correction", "");
+    print F "\n";
     print F getJobIDShellCode();
     print F "\n";
     print F "if [ \$jobid -gt $jobs ]; then\n";
@@ -236,8 +244,6 @@ sub buildCorrectionLayouts_direct ($) {
     print F "if [ ! -d \"./correction_outputs\" ] ; then\n";
     print F "  mkdir -p \"./correction_outputs\"\n";
     print F "fi\n";
-    print F "\n";
-    print F getBinDirectoryShellCode();
     print F "\n";
 
     print F "gkpStore=\"../$asm.gkpStore\"\n";
@@ -315,6 +321,8 @@ sub buildCorrectionLayouts_direct ($) {
 
     close(F);
 
+    stashFile("$path/correctReads.sh");
+
   finishStage:
     ;
   allDone:
@@ -331,6 +339,7 @@ sub buildCorrectionLayouts_piped ($) {
     my $bin  = getBinDirectory();
     my $cmd;
 
+    my $base = "correction";
     my $path = "correction/2-correction";
 
     #  Outer level buildCorrectionLayouts() ensures the task is not finished.
@@ -347,6 +356,11 @@ sub buildCorrectionLayouts_piped ($) {
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
+    print F setWorkDirectoryShellCode($path);
+    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/2-correction", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -385,7 +399,14 @@ sub buildCorrectionLayouts_piped ($) {
     print F "  mkdir -p \"./correction_outputs\"\n";
     print F "fi\n";
     print F "\n";
-    print F getBinDirectoryShellCode();
+
+    print F fetchStoreShellCode("correction/$asm.gkpStore", "correction/3-correction", "");
+    print F "\n";
+    print F fetchStoreShellCode("correction/$asm.ovlStore", "correction/3-correction", "");
+    print F "\n";
+    print F fetchFileShellCode("correction/2-correction", "$asm.readsToCorrect", "");
+    print F "\n";
+    print F fetchFileShellCode("correction/2-correction", "$asm.globalScores", "");
     print F "\n";
 
     print F "gkpStore=\"../$asm.gkpStore\"\n";
@@ -452,17 +473,22 @@ sub buildCorrectionLayouts_piped ($) {
     print F "  echo Read layout generation failed.\n";
     print F "  mv ./correction_outputs/\$jobid.fasta ./correction_outputs/\$jobid.fasta.INCOMPLETE\n";
     print F "fi\n";
+    print F "\n";
 
     if (defined($stageDir)) {
-        print F "\n";
         print F "rm -rf $stageDir/$asm.gkpStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
         print F "rmdir  $stageDir\n";
+        print F "\n";
     }
+
+    print F stashFileShellCode("$path", "correction_outputs/\$jobid.fasta", "");
 
     print F "\n";
     print F "exit 0\n";
 
     close(F);
+
+    stashFile("$path/correctReads.sh");
 
   finishStage:
     ;
@@ -522,6 +548,8 @@ sub quickFilter ($$) {
     close(O);
 
     rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
+
+    stashFile("$path/$asm.readsToCorrect");
 }
 
 
@@ -537,7 +565,7 @@ sub expensiveFilter ($) {
     my $minCov = getGlobal("corMinCoverage");
     my $maxCov = getCorCov($asm, "Local");
 
-    if (! -e "$path/$asm.estimate.log") {
+    if (! fileExists("$path/$asm.estimate.log")) {
         print STDERR "-- Computing expected corrected read lengths '$path/$asm.estimate.log'.\n";
 
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
@@ -673,6 +701,8 @@ sub expensiveFilter ($) {
 
     rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
 
+    stashFile("$path/$asm.readsToCorrect");
+
     #  Generate true/false positive/negative lists.
 
     print STDERR "-- Summarizing filter.\n";
@@ -765,10 +795,12 @@ sub expensiveFilter ($) {
     printf F "TP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tpReads, $tpBasesR, $tpBasesRave, $tpBasesC, $tpBasesCave;
     close(F);
 
+    stashFile("$path/$asm.readsToCorrect.summary");
+
     #  Plot a scatter plot of the original vs the expected corrected read lengths.  Early versions
     #  also plotted the sorted length vs the other length, but those were not interesting.
 
-    if (! -e "$path/$asm.estimate.original-x-correctedLength.gp") {
+    if (! fileExists("$path/$asm.estimate.original-x-correctedLength.gp")) {
         my $gnuplot = getGlobal("gnuplot");
         my $format  = getGlobal("gnuplotImageFormat");
 
@@ -795,6 +827,10 @@ sub expensiveFilter ($) {
             print STDERR "--\n";
             print STDERR "----------------------------------------\n";
         }
+
+        stashFile("$path/$asm.estimate.original-x-correctedLength.gp");
+        stashFile("$path/$asm.estimate.original-x-corrected.lg.$format");
+        stashFile("$path/$asm.estimate.original-x-corrected.sm.$format");
     }
 }
 
@@ -821,16 +857,20 @@ sub buildCorrectionLayouts ($) {
 
     goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));         #  Output exists
-    goto allDone   if (-e "$path/cnsjob.files");                           #  Jobs all finished
-    goto allDone   if (-e "$path/correctReads.sh");                        #  Jobs created
+    goto allDone   if (fileExists("$path/cnsjob.files"));                  #  Jobs all finished
+    goto allDone   if (fileExists("$path/correctReads.sh"));               #  Jobs created
 
     make_path("$path")  if (! -d "$path");
 
     #  This will eventually get rolled into overlap store creation.  Generate a list of scores for
     #  'global' overlap filtering.
 
-    if (! -e "$path/$asm.globalScores") {
+    fetchFile("$path/$asm.globalScores");
+
+    if (! fileExists("$path/$asm.globalScores")) {
         print STDERR "-- Computing global filter scores '$path/$asm.globalScores'.\n";
+
+        fetchStore("./correction/$asm.ovlStore");
 
         my $maxCov = getCorCov($asm, "Global");
         my $minLen = (defined(getGlobal("corMinEvidenceLength"))) ? getGlobal("corMinEvidenceLength") : 0;
@@ -853,6 +893,8 @@ sub buildCorrectionLayouts ($) {
         rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
         rename "$path/$asm.globalScores.WORKING.log", "$path/$asm.globalScores.log";
         unlink "$path/$asm.globalScores.err";
+
+        stashFile("$path/$asm.globalScores");
     } else {
         print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
     }
@@ -865,7 +907,9 @@ sub buildCorrectionLayouts ($) {
     #
     #  Both are required to create a file $asm.readsToCorrect, containing a list of IDs to correct.
 
-    if (! -e "$path/$asm.readsToCorrect") {
+    fetchFile("$path/$asm.readsToCorrect");
+
+    if (! fileExists("$path/$asm.readsToCorrect")) {
         if      (getGlobal("corFilter") eq "quick") {
             quickFilter($asm, (getGlobal("genomeSize") * getGlobal("corOutCoverage")));
 
@@ -937,6 +981,8 @@ sub generateCorrectedReads ($) {
 
     #  Figure out if all the tasks finished correctly.
 
+    fetchFile("$path/correctReads.sh");
+
     my ($jobs, undef) = computeNumberOfCorrectionJobs($asm);
 
     my $currentJobID = "0001";
@@ -945,7 +991,7 @@ sub generateCorrectedReads ($) {
     my $failureMessage = "";
 
     for (my $job=1; $job <= $jobs; $job++) {
-        if (-e "$path/correction_outputs/$currentJobID.fasta") {
+        if (fileExists("$path/correction_outputs/$currentJobID.fasta")) {
             push @successJobs, "$path/correction_outputs/$currentJobID.fasta\n";
 
         } else {
@@ -990,6 +1036,8 @@ sub generateCorrectedReads ($) {
     print L @successJobs;
     close(L);
 
+    stashFile("$path/corjob.files");
+
     emitStage($asm, "cor-generateCorrectedReads");
     buildHTML($asm, "cor");
 
@@ -1012,6 +1060,8 @@ sub dumpCorrectedReads ($) {
     my $files = 0;
     my $reads = 0;
 
+    stashFile("$path/corjob.files");
+
     open(F, "< $path/corjob.files")                      or caExit("can't open '$path/corjob.files' for reading: $!", undef);
     open(N, "< correction/$asm.gkpStore/readNames.txt")  or caExit("can't open 'correction/$asm.gkpStore/readNames.txt' for reading: $!", undef);
     open(O, "| gzip -1c > $asm.correctedReads.fasta.gz") or caExit("can't open '$asm.correctedReads.fasta.gz' for writing: $!", undef);
@@ -1019,6 +1069,9 @@ sub dumpCorrectedReads ($) {
 
     while (<F>) {
         chomp;
+
+        fetchFile($_);
+
         open(R, "< $_") or caExit("can't open correction output '$_' for reading: $!\n", undef);
 
         my $h;   #  Current header line
@@ -1102,6 +1155,9 @@ sub dumpCorrectedReads ($) {
     close(O);
     close(F);
 
+    stashFile("$asm.correctedReads.fasta.gz");
+    stashFile("$asm.correctedReads.length");
+
     #  Analyze the results.
 
     print STDERR "-- Analyzing correctReads output.\n";
@@ -1128,6 +1184,9 @@ sub dumpCorrectedReads ($) {
 
     my $minDiff = 0;
     my $maxDiff = 0;
+
+    fetchFile("$path/$asm.readsToCorrect");
+    fetchFile("$asm.correctedReads.length");   #  Already here, we just wrote it.
 
     open(R, "< $path/$asm.readsToCorrect")    or caExit("can't open '$path/$asm.readsToCorrect' for reading: $!", undef);
     open(L, "< $asm.correctedReads.length")   or caExit("can't open '$asm.correctedReads.length' for reading: $!", undef);
@@ -1219,6 +1278,8 @@ sub dumpCorrectedReads ($) {
     close(R);
     close(L);
 
+    stashFile("$path/$asm.original-expected-corrected-length.dat");
+
     #  Write a summary of the corrections.
 
     open(F, "> $path/$asm.correction.summary") or caExit("", undef);
@@ -1241,6 +1302,8 @@ sub dumpCorrectedReads ($) {
         print F "$ii pieces: $corrPiecesHist[$ii]\n";
     }
     close(F);
+
+    stashFile("$path/$asm.correction.summary");
 
     #  Scatterplot of lengths.
 
@@ -1292,6 +1355,14 @@ sub dumpCorrectedReads ($) {
         print STDERR "----------------------------------------\n";
     }
 
+    stashFile("$path/$asm.originalLength-vs-correctedLength.gp");
+    stashFile("$asm.originalLength-vs-expectedLength.lg.$format");
+    stashFile("$asm.originalLength-vs-expectedLength.sm.$format");
+    stashFile("$asm.originalLength-vs-correctedLength.lg.$format");
+    stashFile("$asm.originalLength-vs-correctedLength.sm.$format");
+    stashFile("$asm.expectedLength-vs-correctedLength.lg.$format");
+    stashFile("$asm.expectedLength-vs-correctedLength.sm.$format");
+
     #  Histograms of lengths, including the difference between expected and actual corrected (the
     #  other two difference plots weren't interesting; original-expected was basically all zero, and
     #  so original-actual was nearly the same as expected-actual.
@@ -1332,6 +1403,12 @@ sub dumpCorrectedReads ($) {
         print STDERR "--\n";
         print STDERR "----------------------------------------\n";
     }
+
+    stashFile("$path/$asm.length-histograms.gp");
+    stashFile("$asm.length-histograms.lg.$format");
+    stashFile("$asm.length-histograms.sm.$format");
+    stashFile("$asm.length-difference-histograms.lg.$format");
+    stashFile("$asm.length-difference-histograms.sm.$format");
 
     #  Now that all outputs are (re)written, cleanup the job outputs.
 

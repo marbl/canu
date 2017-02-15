@@ -550,7 +550,6 @@ sub submitScript ($$) {
 
     my $output    = "canu-scripts/canu.$idx.out";
     my $script    = "canu-scripts/canu.$idx.sh";
-    my $iteration = getGlobal("canuIteration");
 
     #  Make a script for us to submit.
 
@@ -576,7 +575,7 @@ sub submitScript ($$) {
     print F "ln -s canu-scripts/canu.$idx.out canu.out\n";
     print F "\n";
     print F "/usr/bin/env perl \\\n";
-    print F "\$bin/canu " . getCommandLineOptions() . " canuIteration=$iteration\n";
+    print F "\$bin/canu " . getCommandLineOptions() . " canuIteration=" . getGlobal("canuIteration") . "\n";
     close(F);
 
     system("chmod +x $script");
@@ -1225,7 +1224,7 @@ sub runCommand ($$) {
 
     #  Log that we're starting, and show the pretty-ified command.
 
-    my $cwd       = getcwd();  #  Remember where we are.
+    my $cwd = getcwd();        #  Remember where we are.
     chdir($dir);               #  So we can root the jobs in the correct location.
 
     my $startsecs = time();

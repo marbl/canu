@@ -49,6 +49,7 @@ use POSIX qw(ceil);
 use canu::Defaults;
 use canu::Execution;
 use canu::HTML;
+use canu::Grid_Cloud;
 
 
 #  Parallel documentation: Each overlap job is converted into a single bucket of overlaps.  Within
@@ -59,13 +60,29 @@ use canu::HTML;
 #  NOT FILTERING overlaps by error rate when building the parallel store.
 
 
-sub createOverlapStoreSequential ($$$$) {
+sub createOverlapStoreSequential ($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $files   = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
+
+    #  Fetch inputs.  If you're not cloud-based, this does nothing.  Really.  Trust me.
+
+    fetchFile("$base/1-overlapper/ovljob.files");
+
+    open(F, "< $base/1-overlapper/ovljob.files") or caExit("failed to open overlapper output list in '$base/1-overlapper/ovljob.files'", undef);
+    while (<F>) {
+        chomp;
+
+        if (m/^(.*).ovb$/) {
+            fetchFile("$base/$1.ovb");
+            fetchFile("$base/$1.counts");
+        } else {
+            caExit("didn't recognize ovljob.files line '$_'", undef);
+        }
+    }
+    close(F);
 
     #  This is running in the canu process itself.  Execution.pm has special case code
     #  to submit canu to grids using the maximum of 4gb and this memory limit.
@@ -89,6 +106,8 @@ sub createOverlapStoreSequential ($$$$) {
     unlink "$base/$asm.ovlStore.err";
 
     rename "$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore";
+
+    stashStore("$base/$asm.ovlStore");
 }
 
 
@@ -146,11 +165,10 @@ sub getNumOlapsAndSlices ($$) {
 
 
 
-sub overlapStoreConfigure ($$$$) {
+sub overlapStoreConfigure ($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $files   = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
 
@@ -225,7 +243,7 @@ sub overlapStoreConfigure ($$$$) {
 
         my $tstid = 1;
 
-        open(I, "< $files") or die "Failed to open '$files': $0\n";
+        open(I, "< $base/1-overlapper/ovljob.files") or die "Failed to open '$base/1-overlapper/ovljob.files': $0\n";
 
         while (<I>) {
             chomp;
@@ -345,16 +363,17 @@ sub overlapStoreConfigure ($$$$) {
 
 
 
-sub overlapStoreBucketizerCheck ($$$$) {
+sub overlapStoreBucketizerCheck ($$$) {
     my $base    = shift @_;
-    my $asm     = shift @_;
     my $tag     = shift @_;
-    my $files   = shift @_;
+    my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
     goto allDone   if (-e "$base/$asm.ovlStore.BUILDING/1-bucketize.success");
+
+    fetchFile("scripts/1-bucketize/1-bucketize.sh");
 
     #  Figure out if all the tasks finished correctly.
 
@@ -370,7 +389,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
     #  exists.  The compute is done in a 'create' directory, which is renamed to 'bucket' just
     #  before the job completes.
 
-    open(F, "< $files") or caExit("can't open '$files' for reading: $!", undef);
+    open(F, "< $base/1-overlapper/ovljob.files") or caExit("can't open '$base/1-overlapper/ovljob.files' for reading: $!", undef);
 
     while (<F>) {
         chomp;
@@ -431,16 +450,17 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
 
 
-sub overlapStoreSorterCheck ($$$$) {
+sub overlapStoreSorterCheck ($$$) {
     my $base    = shift @_;
-    my $asm     = shift @_;
     my $tag     = shift @_;
-    my $files   = shift @_;
+    my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
     goto allDone   if (-e "$base/$asm.ovlStore.BUILDING/2-sorter.success");
+
+    fetchFile("scripts/1-bucketize/2-sort.sh");
 
     #  Figure out if all the tasks finished correctly.
 
@@ -453,7 +473,7 @@ sub overlapStoreSorterCheck ($$$$) {
 
     my $sortID       = "0001";
 
-    open(F, "< $files") or caExit("can't open '$files' for reading: $!", undef);
+    open(F, "< $base/1-overlapper/ovljob.files") or caExit("can't open '$base/1-overlapper/ovljob.files' for reading: $!", undef);
 
     #  A valid result has three files:
     #    $base/$asm.ovlStore.BUILDING/$sortID
@@ -525,15 +545,14 @@ sub overlapStoreSorterCheck ($$$$) {
 
 
 
-sub createOverlapStoreParallel ($$$$) {
+sub createOverlapStoreParallel ($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $files   = shift @_;
 
-    overlapStoreConfigure      ($base, $asm, $tag, $files);
-    overlapStoreBucketizerCheck($base, $asm, $tag, $files)   foreach (1..getGlobal("canuIterationMax") + 1);
-    overlapStoreSorterCheck    ($base, $asm, $tag, $files)   foreach (1..getGlobal("canuIterationMax") + 1);
+    overlapStoreConfigure      ($base, $tag, $asm);
+    overlapStoreBucketizerCheck($base, $tag, $asm)   foreach (1..getGlobal("canuIterationMax") + 1);
+    overlapStoreSorterCheck    ($base, $tag, $asm)   foreach (1..getGlobal("canuIterationMax") + 1);
 
     if (runCommand("$base/$asm.ovlStore.BUILDING", "./scripts/3-index.sh > ./logs/3-index.err 2>&1")) {
         caExit("failed to build index for overlap store", "$base/$asm.ovlStore.BUILDING/logs/3-index.err");
@@ -576,20 +595,18 @@ sub createOverlapStore ($$$) {
     $base = "trimming"    if ($tag eq "obt");
     $base = "unitigging"  if ($tag eq "utg");
 
-    my $path  = "$base/1-overlapper";
-
     goto allDone   if (skipStage($asm, "$tag-createOverlapStore") == 1);
-    goto allDone   if (-d "$base/$asm.ovlStore");
-    goto allDone   if (-d "$base/$asm.ctgStore");
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar")));
+    goto allDone   if ((-d "$base/$asm.ctgStore") || (fileExists("$base/$asm.ctgStore.tar")));
 
     #  Did we _really_ complete?
 
-    caExit("overlapper claims to be finished, but no job list found in '$path/ovljob.files'", undef)  if (! -e "$path/ovljob.files");
+    caExit("overlapper claims to be finished, but no job list found in '$base/1-overlapper/ovljob.files'", undef)  if (! fileExists("$base/1-overlapper/ovljob.files"));
 
     #  Then just build the store!  Simple!
 
-    createOverlapStoreSequential($base, $asm, $tag, "$path/ovljob.files")  if ($seq eq "sequential");
-    createOverlapStoreParallel  ($base, $asm, $tag, "$path/ovljob.files")  if ($seq eq "parallel");
+    createOverlapStoreSequential($base, $asm, $tag)  if ($seq eq "sequential");
+    createOverlapStoreParallel  ($base, $asm, $tag)  if ($seq eq "parallel");
 
     print STDERR "--\n";
     print STDERR "-- Overlap store '$base/$asm.ovlStore' successfully constructed.\n";
@@ -603,7 +620,11 @@ sub createOverlapStore ($$$) {
     my $bytes = 0;
     my $files = 0;
 
-    foreach my $file ("$path/ovljob.files", "$path/ovljob.more.files", "$path/mhap.files", "$path/mmap.files", "$path/precompute.files") {
+    foreach my $file ("$base/1-overlapper/ovljob.files",
+                      "$base/1-overlapper/ovljob.more.files",
+                      "$base/1-overlapper/mhap.files",
+                      "$base/1-overlapper/mmap.files",
+                      "$base/1-overlapper/precompute.files") {
         next  if (! -e $file);
 
         open(F, "< $file") or caExit("can't open '$file' for reading: $!\n", undef);

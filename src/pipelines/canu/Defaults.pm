@@ -159,7 +159,11 @@ sub setGlobal ($$) {
 
     return  if ($set > 0);
 
-    #  If we got a parameter we don't understand, we should be parsing command line options or
+    #if ($var eq "canuiteration") {
+    #    print STDERR "-- WARNING: set canuIteration to $val\n";
+    #}
+
+    #  If we get a parameter we don't understand, we should be parsing command line options or
     #  reading spec files, and we can let the usual error handling handle it.
 
     addCommandLineError("ERROR:  Paramter '$VAR' is not known.\n")   if (!exists($global{$var}));
@@ -790,6 +794,14 @@ sub setDefaults () {
 
     setExecDefaults("bat",    "unitig construction");
     setExecDefaults("cns",    "unitig consensus");
+
+    #####  Object Storage
+
+    $global{"objectStore"}                 = undef;
+    $synops{"objectStore"}                 = "Type of object storage used; not ready for production yet";
+
+    $global{"objectStoreClient"}           = undef;
+    $synops{"objectStoreClient"}           = "Path to the command line client used to access the object storage";
 
     #####  Overlapper
 
