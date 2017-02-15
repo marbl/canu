@@ -1149,6 +1149,12 @@ sub checkParameters () {
     fixCase("stopAfter");
 
     #
+    #  Well, crud.  'gridEngine' wants to be uppercase, not lowercase like fixCase() would do.
+    #
+
+    $global{"gridengine"} =~ tr/a-z/A-Z/;  #  NOTE: lowercase 'gridengine'
+
+    #
     #  Check for inconsistent parameters
     #
 
