@@ -127,6 +127,10 @@ sub setWorkDirectory () {
 
     elsif (isOS() eq "DNANEXUS") {
     }
+
+    elsif (getGlobal("gridEngine") eq "PBSPRO") {
+        chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
+    }
 }
 
 
@@ -146,7 +150,10 @@ sub setWorkDirectoryShellCode ($) {
     }
     elsif (isOS() eq "DNANEXUS") {
     }
-    else {
+    elsif (getGlobal("gridEngine") eq "PBSPRO") {
+        $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
+        $code .= "  cd \$PBS_O_WORKDIR\n";
+        $code .= "fi\n";
     }
 
     return($code);
