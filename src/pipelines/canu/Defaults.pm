@@ -166,7 +166,7 @@ sub setGlobal ($$) {
     #  If we get a parameter we don't understand, we should be parsing command line options or
     #  reading spec files, and we can let the usual error handling handle it.
 
-    addCommandLineError("ERROR:  Paramter '$VAR' is not known.\n")   if (!exists($global{$var}));
+    addCommandLineError("ERROR:  Parameter '$VAR' is not known.\n")   if (!exists($global{$var}));
 
     $global{$var} = $val;
 }

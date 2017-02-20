@@ -124,7 +124,7 @@ sub buildGatekeeperHTML ($$$$$$) {
             push @$scripts, "document.getElementById('gkpload$idx').style   = 'cursor: pointer;';\n";
         }
 
-        #  lib blocks show up once per file, all paramters are on the same line
+        #  lib blocks show up once per file, all parameters are on the same line
         elsif (m/^lib\s/) {
             my @libs = split '\s+', $_;
             my ($param, $np, $var, $val);
@@ -451,7 +451,7 @@ sub buildTrimmingHTML ($$$$$$) {
     if (-e "$base/3-overlapbasedtrimming/$asm.1.trimReads.stats") {
         my $rh;   # 'row header', for labeling a set of rows with a common cell
 
-        #  Read once to make a paramters table.  We could have embedded this in the loop below, but it's cleaner here.
+        #  Read once to make a parameters table.  We could have embedded this in the loop below, but it's cleaner here.
 
         #push @$body, "<table>\n";
         #push @$body, "</table>\n";
@@ -515,7 +515,7 @@ sub buildTrimmingHTML ($$$$$$) {
     if (-e "$base/3-overlapbasedtrimming/$asm.2.splitReads.stats") {
         my $rh;   # 'row header', for labeling a set of rows with a common cell
 
-        #  Read once to make a paramters table.  We could have embedded this in the loop below, but it's cleaner here.
+        #  Read once to make a parameters table.  We could have embedded this in the loop below, but it's cleaner here.
 
         #push @$body, "<table>\n";
         #push @$body, "</table>\n";
