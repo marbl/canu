@@ -365,8 +365,8 @@ sub overlapStoreConfigure ($$$) {
 
 sub overlapStoreBucketizerCheck ($$$) {
     my $base    = shift @_;
-    my $tag     = shift @_;
     my $asm     = shift @_;
+    my $tag     = shift @_;
     my $attempt = getGlobal("canuIteration");
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
@@ -452,8 +452,8 @@ sub overlapStoreBucketizerCheck ($$$) {
 
 sub overlapStoreSorterCheck ($$$) {
     my $base    = shift @_;
-    my $tag     = shift @_;
     my $asm     = shift @_;
+    my $tag     = shift @_;
     my $attempt = getGlobal("canuIteration");
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
@@ -550,9 +550,9 @@ sub createOverlapStoreParallel ($$$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
 
-    overlapStoreConfigure      ($base, $tag, $asm);
-    overlapStoreBucketizerCheck($base, $tag, $asm)   foreach (1..getGlobal("canuIterationMax") + 1);
-    overlapStoreSorterCheck    ($base, $tag, $asm)   foreach (1..getGlobal("canuIterationMax") + 1);
+    overlapStoreConfigure      ($base, $asm, $tag);
+    overlapStoreBucketizerCheck($base, $asm, $tag)   foreach (1..getGlobal("canuIterationMax") + 1);
+    overlapStoreSorterCheck    ($base, $asm, $tag)   foreach (1..getGlobal("canuIterationMax") + 1);
 
     if (runCommand("$base/$asm.ovlStore.BUILDING", "./scripts/3-index.sh > ./logs/3-index.err 2>&1")) {
         caExit("failed to build index for overlap store", "$base/$asm.ovlStore.BUILDING/logs/3-index.err");
