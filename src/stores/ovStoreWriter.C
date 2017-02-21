@@ -607,8 +607,8 @@ ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
   for (uint32 i=0; i<=_jobIdxMax; i++) {
     bucketSizes[i] = 0;
 
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);
-    snprintf(namz, FILENAME_MAX, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d",    _storePath, i, _fileID);
+    snprintf(namz, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, i, _fileID);
 
     //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
     //  With snappy compression, we expect the file to be not gzip compressed, but will happily
@@ -654,10 +654,10 @@ ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap
   if (expectedLen == 0)
     return;
 
-  snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d", _storePath, slice, _fileID);
+  snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d", _storePath, slice, _fileID);
 
   if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d.gz", _storePath, slice, _fileID);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, slice, _fileID);
 
     if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
       fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
@@ -688,8 +688,8 @@ ovStoreWriter::removeOverlapSlice(void) {
   char name[FILENAME_MAX];
 
   for (uint32 i=0; i<=_jobIdxMax; i++) {
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);    AS_UTL_unlink(name);
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, i, _fileID);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d",    _storePath, i, _fileID);    AS_UTL_unlink(name);
   }
 }
 

@@ -62,7 +62,7 @@ writeToFile(gkStore       *gkp,
   if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    snprintf(name, FILENAME_MAX, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
+    snprintf(name, FILENAME_MAX, "%s/create%04d/slice%04d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
     sliceFile[df] = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     sliceSize[df] = 0;
   }

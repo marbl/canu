@@ -293,13 +293,13 @@ computeIIDperBucket(uint32          fileLimit,
       iidToBucket[ii]   = bucket;
 
       if (olaps >= olapsPerBucketMax) {
-        fprintf(stderr, "  bucket %3d has " F_U64 " olaps.\n", bucket, olaps);
+        fprintf(stderr, "  bucket %4d has " F_U64 " olaps.\n", bucket, olaps);
         olaps = 0;
         bucket++;
       }
     }
 
-    fprintf(stderr, "  bucket %3d has " F_U64 " olaps.\n", bucket, olaps);
+    fprintf(stderr, "  bucket %4d has " F_U64 " olaps.\n", bucket, olaps);
   }
 
   fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets %.2f GB per bucket.\n",
@@ -329,7 +329,7 @@ writeToDumpFile(gkStore          *gkp,
 
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
-    snprintf(name, FILENAME_MAX, "%s/tmp.sort.%03d", ovlName, df);
+    snprintf(name, FILENAME_MAX, "%s/tmp.sort.%04d", ovlName, df);
     fprintf(stderr, "-- Create bucket '%s'\n", name);
     dumpFile[df]   = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     dumpLength[df] = 0;
@@ -594,7 +594,7 @@ main(int argc, char **argv) {
     //  directly....BUT....we can't do that because the AS_OVS interface is rearranging the data to
     //  make sure the store is cross-platform compatible.
 
-    snprintf(name, FILENAME_MAX, "%s/tmp.sort.%03d", ovlName, i);
+    snprintf(name, FILENAME_MAX, "%s/tmp.sort.%04d", ovlName, i);
     fprintf(stderr, "-  Loading '%s'\n", name);
 
     bof = new ovFile(gkp, name, ovFileFull);
