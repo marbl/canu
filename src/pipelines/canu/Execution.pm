@@ -494,6 +494,9 @@ sub makeUniqueJobName ($$) {
     if (uc(getGlobal("gridEngine")) eq "LSF") {
     }
 
+    if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+    }
+
     #  If the jobName doesn't exist, we can use it.
 
     return($jobName)  if (! exists($jobs{$jobName}));
@@ -626,14 +629,6 @@ sub submitScript ($$) {
 
 
 
-
-
-
-#  Expects
-#    job name
-#    number of jobs
-#    global pattern for option
-#
 sub buildGridArray ($$$$) {
     my ($name, $bgn, $end, $opt) = @_;
     my  $off = 0;
@@ -1021,6 +1016,10 @@ sub submitOrRunParallelJob ($$$$@) {
 
             runCommandSilently($path, "./$cmd.sh", 0) and caFailure("Failed to submit batch jobs", undef);
 
+            #  Parse the stdout/stderr from the submit command to find the id of the job
+            #  we just submitted.  We'll use this to hold the next iteration until all these
+            #  jobs have completed.
+
             open(F, "< $path/$cmd.out");
             while (<F>) {
                 chomp;
@@ -1060,6 +1059,9 @@ sub submitOrRunParallelJob ($$$$@) {
                         $jobName = $_;
                     }
                 }
+
+                if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+                }
             }
             close(F);
 
@@ -1096,6 +1098,10 @@ sub submitOrRunParallelJob ($$$$@) {
 
         if (uc(getGlobal("gridEngine")) eq "SLURM") {
             $jobHold = "--depend=afterany:" . join ":", @jobsSubmitted;
+        }
+
+        if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+            $jobHold = "...whatever magic needed to hold the job until all jobs in @jobsSubmitted are done...";
         }
 
         submitScript($asm, $jobHold);

@@ -78,7 +78,7 @@ sub configureDNANexus () {
 
     my %hosts;
 
-    #  Probe for how to request multiple CPUs on each node
+    #  Probe for how to request multiple CPUs on each node, set 
 
     #  .
     #  .
@@ -97,7 +97,7 @@ sub configureDNANexus () {
     #  The list is saved in global{"availableHosts"}
 
     #  .
-    #  .
+    #  $hosts{"4-32"} = 15;   #  15 machines with 4 CPUs and 32gb memory
     #  .
 
     setGlobal("availableHosts", formatAllowedResources(%hosts, "DNA Nexus"));
