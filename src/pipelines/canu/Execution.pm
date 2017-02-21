@@ -673,6 +673,24 @@ sub buildGridArray ($$$$) {
 }
 
 
+sub buildOutputName ($$$) {
+    my $path   = shift @_;
+    my $script = shift @_;
+    my $tid    = substr("000000" . (shift @_), -6);
+    my $o;
+
+    #  When this function is called, canu.pl is running in the assembly directory.
+    #  But, when the script is executed, it is rooted in '$path'.  To get the
+    #  'logs' working, we need to check if the directory relative to the assembly root exists,
+    #  but set it relative to $path (which is also where $script is relative to).
+
+    $o = "$script.$tid.out";
+    $o = "logs/$1.$tid.out"   if ((-e "$path/logs") && ($script =~ m/scripts\/(.*)/));
+
+    return($o);
+}
+
+
 sub buildOutputOption ($$) {
     my $path   = shift @_;
     my $script = shift @_;
@@ -683,7 +701,7 @@ sub buildOutputOption ($$) {
         my $o;
 
         $o = "$script.$tid.out";
-        $o = "logs/$1.$tid.out"   if ((-e "logs") && ($script =~ m/scripts\/(.*)/));
+        $o = "logs/$1.$tid.out"   if ((-e "$path/logs") && ($script =~ m/scripts\/(.*)/));
 
         return("$opt $o");
     }
@@ -1125,9 +1143,7 @@ sub submitOrRunParallelJob ($$$$@) {
         }
 
         for (my $i=$st; $i<=$ed; $i++) {
-            my $idx  = substr("000000" . $i, -6);
-
-            schedulerSubmit("./$script.sh $i > ./script.$idx.out 2>&1");
+            schedulerSubmit("./$script.sh $i > ./" . buildOutputName($path, $script, $i) . " 2>&1");
         }
     }
 
