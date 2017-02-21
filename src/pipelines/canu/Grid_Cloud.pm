@@ -221,6 +221,7 @@ sub fetchFile ($) {
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
+        #  Nothing we can be obnoxious about here, I suppose we could log...
     }
 }
 
@@ -252,6 +253,7 @@ sub fetchFileShellCode ($$$) {
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
+        $code .= "#  File must exist: $file\n";
     }
 
     return($code);
@@ -271,6 +273,7 @@ sub stashFile ($) {
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
+        #  Nothing we can be obnoxious about here, I suppose we could log...
     }
 
 }
@@ -296,6 +299,7 @@ sub stashFileShellCode ($$$) {
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
+        $code .= "#  File is important: $file\n";
     }
 
     return($code);
@@ -357,6 +361,7 @@ sub fetchStoreShellCode ($$@) {
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
+        $code .= "#  Store must exist: $store\n";
     }
 
     return($code);
@@ -383,6 +388,7 @@ sub stashStoreShellCode ($$@) {
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
+        $code .= "#  Store is important: $store\n";
     }
 
     return($code);
