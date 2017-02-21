@@ -158,14 +158,19 @@ sub configurePBSTorque () {
 
     my $isPro = (uc(getGlobal("gridEngine")) eq "PBSPRO");
 
-    setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
-    setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N")    if ($isPro == 0);
-    setGlobalIfUndef("gridEngineNameOption",                 "-N")             if ($isPro == 1);
+    #  PBSPro, again, throws a curve ball at us.  There is no way to set the output of array jobs
+    #  to someting reasonable like name.TASK_ID.err, even though that is basically the default.
+    #  So, we unset gridEngineArraySubmitID to get the default name, but then need to move the '-j oe'
+    #  somewhere else - and put it in the submit command.
+
+    setGlobalIfUndef("gridEngineSubmitCommand",              "qsub -j oe -d `pwd`")   if ($isPro == 0);
+    setGlobalIfUndef("gridEngineSubmitCommand",              "qsub -j oe")            if ($isPro == 1);
+    setGlobalIfUndef("gridEngineNameOption",                 "-N");
     setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS")  if ($isPro == 0);
     setGlobalIfUndef("gridEngineArrayOption",                "-J ARRAY_JOBS")  if ($isPro == 1);
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
     setGlobalIfUndef("gridEngineArrayMaxJobs",               268435456);  #  Effectively unlimited.
-    setGlobalIfUndef("gridEngineOutputOption",               "-j oe -o");
+    setGlobalIfUndef("gridEngineOutputOption",               "-o");
     setGlobalIfUndef("gridEngineThreadsOption",              "-l nodes=1:ppn=THREADS");
     setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");
     setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -W depend=afterany:\"WAIT_TAG\"");
@@ -174,7 +179,7 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID")           if ($isPro == 0);
     setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAY_INDEX")       if ($isPro == 1);
     setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID")       if ($isPro == 0);
-    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAY_INDEX")   if ($isPro == 1);
+    setGlobalIfUndef("gridEngineArraySubmitID",              undef)                   if ($isPro == 1);   #  Was "\\\$PBS_ARRAY_INDEX"
     setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys

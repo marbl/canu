@@ -548,7 +548,7 @@ sub submitScript ($$) {
         $idx++;
     }
 
-    my $output    = "canu-scripts/canu.$idx.out";
+    my $outName   = "canu-scripts/canu.$idx.out";
     my $script    = "canu-scripts/canu.$idx.sh";
 
     #  Make a script for us to submit.
@@ -617,7 +617,7 @@ sub submitScript ($$) {
     my $nameOption           = getGlobal("gridEngineNameOption");
     my $outputOption         = getGlobal("gridEngineOutputOption");
 
-    my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName' $outputOption $output $script";
+    my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName' $outputOption $outName $script";
 
     runCommand(getcwd(), $qcmd) and caFailure("Failed to submit script", undef);
 
@@ -673,17 +673,22 @@ sub buildGridArray ($$$$) {
 }
 
 
-
-sub buildOutputName ($$$) {
+sub buildOutputOption ($$) {
     my $path   = shift @_;
     my $script = shift @_;
-    my $tid    = shift @_;
-    my $outName;
+    my $tid    = getGlobal("gridEngineArraySubmitID");
+    my $opt    = getGlobal("gridEngineOutputOption");
 
-    $outName = "$script.$tid.out";
-    $outName = "logs/$1.$tid.out"   if ((-e "logs") && ($script =~ m/scripts\/(.*)/));
+    if (defined($tid) && defined($opt)) {
+        my $o;
 
-    return($outName);
+        $o = "$script.$tid.out";
+        $o = "logs/$1.$tid.out"   if ((-e "logs") && ($script =~ m/scripts\/(.*)/));
+
+        return("$opt $o");
+    }
+
+    return(undef);
 }
 
 
@@ -778,8 +783,7 @@ sub buildGridJob ($$$$$$$$$) {
     my ($jobName,  $jobOff)    = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayName"));
     my ($arrayOpt, $arrayOff)  = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayOption"));
 
-    my $outputOption           = getGlobal("gridEngineOutputOption");
-    my $outName                = buildOutputName($path, $script, getGlobal("gridEngineArraySubmitID"));
+    my $outputOption           = buildOutputOption($path, $script);
 
     my $stageOption            = buildStageOption($jobType, $dsk);
     my $memOption              = buildMemoryOption($mem, $thr);
@@ -794,7 +798,7 @@ sub buildGridJob ($$$$$$$$$) {
     $opts .= "$thrOption "      if (defined($thrOption));
     $opts .= "$globalOptions "  if (defined($globalOptions));
     $opts .= "$jobOptions "     if (defined($jobOptions));
-
+    $opts .= "$outputOption "   if (defined($outputOption));
     $opts =~ s/\s+$//;
 
     #  Build and save the command line.  Return the command PREFIX (we'll be adding .sh and .out as
@@ -809,7 +813,6 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $opts \\\n"  if (defined($opts));
     print F "  $nameOption \"$jobName\" \\\n";
     print F "  $arrayOpt \\\n";
-    print F "  $outputOption $outName \\\n";
     print F "  ./$script.sh $arrayOff \\\n";
     print F "> ./$script.jobSubmit.out 2>&1\n";
     close(F);
@@ -1122,9 +1125,9 @@ sub submitOrRunParallelJob ($$$$@) {
         }
 
         for (my $i=$st; $i<=$ed; $i++) {
-            my $outName  = buildOutputName($path, $script, substr("000000" . $i, -6));
+            my $idx  = substr("000000" . $i, -6);
 
-            schedulerSubmit("./$script.sh $i > ./$outName 2>&1");
+            schedulerSubmit("./$script.sh $i > ./script.$idx.out 2>&1");
         }
     }
 
