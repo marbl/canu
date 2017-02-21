@@ -442,85 +442,84 @@ assebmled, the type of processing desired, or the amount of comput resources ava
 enableOEA <boolean=true>
   Do overlap error adjustment - comprises two steps: read error detection (RED and overlap error adjustment (OEA
 
-WHERE IS OBT??
-
-
 Algorithm Execution Method
 --------------------------
 
-Each of the high compute stages can be computed either on a grid or in parallel on the local machine.
-Most algorithms will respect a given maximum memory usage.
-Most algorithms can support more than a single thread of computation.
-When the grid engine is not used, more than one task can be run at a time.
+Canu has a fairly sophisticated (or complicated, depending on if it is working or not) method for
+dividing large computes, such as read overlapping and consensus, into many smaller pieces and then
+running those pieces on a grid or in parallel on the local machine.  The size of each piece is
+generally determined by the amount of memory the task is allowed to use, and this memory size --
+actually a range of memory sizes -- is set based on the genomeSize parameter, but can be set
+explicitly by the user.  The same holds for the number of processors each task can use.
+For example, a genomeSize=5m would result in overlaps using between 4gb and
+8gb of memory, and between 1 and 8 processors.
 
-BUG:  Local execution doesn't pay attention to memory option.
+Given these requirements, Canu will pick a specific memory size and number of processors
+so that the maximum number of jobs will run at the same time.  In the overlapper example,
+if we are running on a machine with 32gb memory and 8 processors, it is not possible to run
+8 concurrent jobs that each require 8gb memory, but it is possible to run 4 concurrent jobs
+each using 6gb memory and 2 processors.
 
-For execution locally, three parameters describe the task:
+To completely specify how Canu runs algorithms, one needs to specify a maximum memory size, a
+maximum number of processors, and how many pieces to run at one time.  Users can set these manually
+through the {prefix}Memory, {prefix}Threads and {prefix}Concurrency options.  If they are not
+set, defaults are chosen based on genomeSize.
 
 {prefix}Concurrency <integer=unset>
   Set the number of tasks that can run at the same time, when running without grid support.
 
-  Available prefixes are:
-    - master
-    - cns
-    - cor
-    - cormhap
-    - obtmhap
-    - utgmhap
-    - corovl
-    - obtovl
-    - utgovl
-    - cormmap
-    - obtmmap
-    - utgmmap
-    - oea
-    - ovb
-    - ovs
-    - red
-
 {prefix}Threads <integer=unset>
   Set the number of compute threads used per task.
 
-  Available prefixes are:
-    - master
-    - bat
-    - cns
-    - cor
-    - cormhap
-    - obtmhap
-    - utgmhap
-    - corovl
-    - obtovl
-    - utgovl
-    - cormmap
-    - obtmmap
-    - utgmmap
-    - ovb
-    - ovs
-    - red
-    - oea
-
 {prefix}Memory <integer=unset>
-  Set the amount of memory, in GB, to use for each job in a task.
+  Set the amount of memory, in gigabytes, to use for each job in a task.
 
-  Available prefixes are:
-    - master
-    - bat
-    - ovb
-    - ovs
-    - cns
-    - cor
-    - cormhap
-    - obtmhap
-    - utgmhap
-    - corovl
-    - obtovl
-    - utgovl
-    - cormmap
-    - obtmmap
-    - utgmmap
-    - red
-    - oea
+Available prefixes are:
+
++-------+-----------+----------------------------------------+
+|    Prefix         | Algorithm                              |
++=======+===========+========================================+
+| cor   |           | | Overlap generation using the         |
++-------|           | | 'mhap' algorithm for                 |
+| obt   | mhap      | | 'cor'=correction,, 'obt'=trimming    |
++-------|           | | or 'utg'=assembly.                   |
+| utg   |           |                                        |
++-------+-----------+----------------------------------------+
+| cor   |           | | Overlap generation using the         |
++-------|           | | 'minimap' algorithm for              |
+| obt   | mmap      | | 'cor'=correction,, 'obt'=trimming    |
++-------|           | | or 'utg'=assembly.                   |
+| utg   |           |                                        |
++-------+-----------+----------------------------------------+
+| cor   |           | | Overlap generation using the         |
++-------|           | | 'overlapInCore' algorithm for        |
+| obt   | ovl       | | 'cor'=correction,, 'obt'=trimming    |
++-------|           | | or 'utg'=assembly.                   |
+| utg   |           |                                        |
++-------+-----------+----------------------------------------+
+|       | ovb       | Parallel overlap store bucketizing     |
++-------+-----------+----------------------------------------+
+|       | ovs       | Parallel overlap store bucket sorting  |
++-------+-----------+----------------------------------------+
+|       | cor       | Read correction                        |
++-------+-----------+----------------------------------------+
+|       | red       | Error detection in reads               |
++-------+-----------+----------------------------------------+
+|       | oea       | Error adjustment in overlaps           |
++-------+-----------+----------------------------------------+
+|       | bat       | Unitig/contig construction             |
++-------+-----------+----------------------------------------+
+|       | cns       | Unitig/contig consensus                |
++-------+-----------+----------------------------------------+
+
+For example, 'mhapMemory` would set the memory limit for computing overlaps with the mhap algorithm;
+'cormhapMemory' would set the memory limit only when mhap is used for generating overlaps used for
+correction.
+
+The 'minMemory', 'maxMemory', 'minThreads' and 'maxThreads' options will apply to all jobs, and
+can be used to artifically limit canu to a portion of the current machine.  In the overlapper
+example above, setting maxThreads=4 would result in two concurrent jobs instead of four.
+
 
 Overlap Error Adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
