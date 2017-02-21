@@ -708,6 +708,15 @@ sub configureAssembler () {
 
     ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
 
+    #  Check some minimums.
+
+    if ((getGlobal("ovsMemory") =~ m/^([0123456789.]+)-*[0123456789.]*$/) &&
+        ($1 < 0.25)) {
+        caExit("ovsMemory must be at least 0.25g or 256m", undef);
+    }
+
+    #  2017-02-21 -- not sure why $err is being reported here if it doesn't stop.  What's in it?
+
     print STDERR "--\n" if (defined($err));
     print STDERR $err   if (defined($err));
     print STDERR "--\n";
