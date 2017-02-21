@@ -5,3 +5,6 @@ http://docutils.sourceforge.net/rst.html
 http://docutils.sourceforge.net/docs/user/rst/quickstart.html
 http://docutils.sourceforge.net/docs/user/rst/quickref.html     <- most useful
 http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#definition-lists
+
+http://rest-sphinx-memo.readthedocs.io/en/latest/ReST.html
+ - A very useful page with examples.
