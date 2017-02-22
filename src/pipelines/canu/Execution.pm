@@ -55,7 +55,25 @@ package canu::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopAfter skipStage emitStage touch getInstallDirectory getJobIDShellCode getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable caExit caFailure);
+@EXPORT = qw(stopAfter
+             skipStage
+             emitStage
+             touch
+             getInstallDirectory
+             getJobIDShellCode
+             getLimitShellCode
+             getBinDirectory
+             getBinDirectoryShellCode
+             setWorkDirectory
+             setWorkDirectoryShellCode
+             submitScript
+             submitOrRunParallelJob
+             runCommand
+             runCommandSilently
+             findCommand
+             findExecutable
+             caExit
+             caFailure);
 
 use strict;
 use Config;            #  for @signame
@@ -69,10 +87,6 @@ use File::Spec;
 
 use canu::Defaults;
 
-#  Wants to be from 
-#    use canu::Grid_Cloud qw(setWorkDirectoryShellCode);
-#  but Grid_Cloud imports us, so we can't do that, and are forced to forward declare this.
-sub setWorkDirectoryShellCode ($);
 
 
 #
@@ -446,6 +460,64 @@ sub getBinDirectoryShellCode () {
 }
 
 
+
+
+#
+#  If running on a cloud system, shell scripts are started in some random location.
+#  setWorkDirectory() will create the directory the script is supposed to run in (e.g.,
+#  correction/0-mercounts) and move into it.  This will keep the scripts compatible with the way
+#  they are run from within canu.pl.
+#
+#  If you're fine running in 'some random location' do nothing here.
+#
+#  Note that canu does minimal cleanup.
+#
+
+sub setWorkDirectory () {
+
+    if    ((getGlobal("objectStore") eq "TEST") && (defined($ENV{"JOB_ID"}))) {
+        my $jid = $ENV{'JOB_ID'};
+        my $tid = $ENV{'SGE_TASK_ID'};
+
+        make_path("/assembly/COMPUTE/job-$jid-$tid");
+        chdir    ("/assembly/COMPUTE/job-$jid-$tid");
+    }
+
+    elsif (getGlobal("objectStore") eq "DNANEXUS") {
+    }
+
+    elsif (getGlobal("gridEngine") eq "PBSPRO") {
+        chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
+    }
+}
+
+
+
+sub setWorkDirectoryShellCode ($) {
+    my $path = shift @_;
+    my $code = "";
+
+    if    (getGlobal("objectStore") eq "TEST") {
+        $code .= "if [ z\$SGE_TASK_ID != z ] ; then\n";
+        $code .= "  jid=\$JOB_ID\n";
+        $code .= "  tid=\$SGE_TASK_ID\n";
+        $code .= "  mkdir -p /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "  cd       /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "  echo IN  /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "fi\n";
+    }
+    elsif (getGlobal("objectStore") eq "DNANEXUS") {
+        #  You're probably fine running in some random location, but if there is faster disk
+        #  available, move there.
+    }
+    elsif (getGlobal("gridEngine") eq "PBSPRO") {
+        $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
+        $code .= "  cd \$PBS_O_WORKDIR\n";
+        $code .= "fi\n";
+    }
+
+    return($code);
+}
 
 
 
@@ -1295,6 +1367,8 @@ sub runCommand ($$) {
 }
 
 
+
+#  Duplicated in Grid_Cloud.pm to get around recursive 'use' statements.
 
 sub runCommandSilently ($$$) {
     my $dir      = shift @_;

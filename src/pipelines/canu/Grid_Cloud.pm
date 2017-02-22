@@ -28,9 +28,7 @@ package canu::Grid_Cloud;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(setWorkDirectory
-             setWorkDirectoryShellCode
-             fileExists
+@EXPORT = qw(fileExists
              fileExistsShellCode
              fetchFile
              fetchFileShellCode
@@ -68,66 +66,6 @@ sub pathToDots ($) {
 sub isOS () {
     return(getGlobal("objectStore"));
 }
-
-
-
-#
-#  If running on a cloud system, shell scripts are started in some random location.
-#  setWorkDirectory() will create the directory the script is supposed to run in (e.g.,
-#  correction/0-mercounts) and move into it.  This will keep the scripts compatible with the way
-#  they are run from within canu.pl.
-#
-#  If you're fine running in 'some random location' do nothing here.
-#
-#  Note that canu does minimal cleanup.
-#
-
-sub setWorkDirectory () {
-
-    if    ((isOS() eq "TEST") && (defined($ENV{"JOB_ID"}))) {
-        my $jid = $ENV{'JOB_ID'};
-        my $tid = $ENV{'SGE_TASK_ID'};
-
-        make_path("/assembly/COMPUTE/job-$jid-$tid");
-        chdir    ("/assembly/COMPUTE/job-$jid-$tid");
-    }
-
-    elsif (isOS() eq "DNANEXUS") {
-    }
-
-    elsif (getGlobal("gridEngine") eq "PBSPRO") {
-        chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
-    }
-}
-
-
-
-sub setWorkDirectoryShellCode ($) {
-    my $path = shift @_;
-    my $code = "";
-
-    if    (isOS() eq "TEST") {
-        $code .= "if [ z\$SGE_TASK_ID != z ] ; then\n";
-        $code .= "  jid=\$JOB_ID\n";
-        $code .= "  tid=\$SGE_TASK_ID\n";
-        $code .= "  mkdir -p /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
-        $code .= "  cd       /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
-        $code .= "  echo IN  /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
-        $code .= "fi\n";
-    }
-    elsif (isOS() eq "DNANEXUS") {
-        #  You're probably fine running in some random location, but if there is faster disk
-        #  available, move there.
-    }
-    elsif (getGlobal("gridEngine") eq "PBSPRO") {
-        $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
-        $code .= "  cd \$PBS_O_WORKDIR\n";
-        $code .= "fi\n";
-    }
-
-    return($code);
-}
-
 
 
 #
