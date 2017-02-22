@@ -68,7 +68,12 @@ use File::Path 2.08 qw(make_path remove_tree);
 use File::Spec;
 
 use canu::Defaults;
-use canu::Grid_Cloud qw(setWorkDirectoryShellCode);
+
+#  Wants to be from 
+#    use canu::Grid_Cloud qw(setWorkDirectoryShellCode);
+#  but Grid_Cloud imports us, so we can't do that, and are forced to forward declare this.
+sub setWorkDirectoryShellCode ($);
+
 
 #
 #  Functions for running multiple processes at the same time.  This is private to the module.
