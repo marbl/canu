@@ -803,6 +803,9 @@ sub setDefaults () {
     $global{"objectStoreClient"}           = undef;
     $synops{"objectStoreClient"}           = "Path to the command line client used to access the object storage";
 
+    $global{"objectStoreNameSpace"}        = undef;
+    $synops{"objectStoreNameSpace"}        = "Object store parameters; specific to the type of objectStore used";
+
     #####  Overlapper
 
     setOverlapDefaults("cor", "correction",             "mhap");  #  Overlaps computed for correction

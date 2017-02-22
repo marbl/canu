@@ -50,57 +50,13 @@ use Cwd qw(getcwd);
 
 use canu::Defaults;
 use canu::Grid;
-use canu::Execution;
+use canu::Execution qw(runCommand runCommandSilently);
 
 
-#
-#  If running on a cloud system, shell scripts are started in some random location.
-#  setWorkDirectory() will create the directory the script is supposed to run in (e.b.,
-#  correction/0-mercounts) and move into it.  This will keep the scripts compatible with the way
-#  they are run from within canu.pl.
-#
-#sub setWorkDirectory          ()
-#sub setWorkDirectoryShellCode (workDirectory)
-#
-#
-#  fileExists() returns true if the file exists on disk or in the object store.  It does not fetch
-#  the file.  It returns undef if the file doesn't exist.  The second argument to
-#  fileExistsShellCode() is an optional indent level (a whitespace string).
-#
-#sub fileExists          ($)
-#sub fileExistsShellCode ($@)
-#
-#
-#
-#  fetchFile() and stashFile() both expect to be called from the assembly root directory, and have
-#  the path to the file, e.g., "correction/0-mercounts/whatever.histogram".
-#
-#  The shellCode versions expect the same, but need the path from the assembly root to the location
-#  the shell script is running split.  A meryl script would give "correction/0-mercounts" for the
-#  first arg, and could give "some/directory/file" for the file.
-#
-#sub fetchFile          ($base/$stage/$file)
-#sub fetchFileShellCode ($base/$stage, $file, $indent)
-#
-#
-#sub stashFile          ($base/$stage/$file)
-#sub stashFileShellCode ($base/$stage, $file, $indent)
-#
-#
-#  Given $base/$asm.gkpStore, fetch or stash it.
-#
-#  The non-shell versions are assumed to be running in the assembly directory, that is, where
-#  $base/$asm.gkpStore would exist naturally.  This is consistent with canu.pl - it runs in the
-#  assembly directory, and then chdir to subdirectories to run binaries.
-#
-#  The shell versions usually run within a subdirectory (e.g., in correction/0-mercounts).  They
-#  need to know this location, so they can go up to the assembly directory to fetch and unpack the
-#  store.  After fetching, they chdir back to the subdirectory.
-#
-#sub fetchStore          (base/storeName)
-#sub stashStore          (base/storeName)
-#sub fetchStoreShellCode (base/storeName, base/3-compute, indentLevel)
-
+#  This file contains most of the magic needed to access an object store.  Two flavors of each
+#  function are needed: one that runs in the canu.pl process (rooted in the base assembly directory,
+#  where the 'correction', 'trimming' and 'unitigging' directories exist) and one that is
+#  used in shell scripts (rooted where the shell script is run from).
 
 
 #  Convert a/path/to/file to ../../../..
@@ -114,6 +70,17 @@ sub isOS () {
 }
 
 
+
+#
+#  If running on a cloud system, shell scripts are started in some random location.
+#  setWorkDirectory() will create the directory the script is supposed to run in (e.g.,
+#  correction/0-mercounts) and move into it.  This will keep the scripts compatible with the way
+#  they are run from within canu.pl.
+#
+#  If you're fine running in 'some random location' do nothing here.
+#
+#  Note that canu does minimal cleanup.
+#
 
 sub setWorkDirectory () {
 
@@ -149,6 +116,8 @@ sub setWorkDirectoryShellCode ($) {
         $code .= "fi\n";
     }
     elsif (isOS() eq "DNANEXUS") {
+        #  You're probably fine running in some random location, but if there is faster disk
+        #  available, move there.
     }
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
         $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
@@ -161,15 +130,25 @@ sub setWorkDirectoryShellCode ($) {
 
 
 
+#
+#  fileExists() returns true if the file exists on disk or in the object store.  It does not fetch
+#  the file.  It returns undef if the file doesn't exist.  The second argument to
+#  fileExistsShellCode() is an optional indent level (a whitespace string).
+#
+#  The shellCode version should emit the if test for file existence, but nothing else (not even the
+#  endif).
+#
+
 sub fileExists ($) {
     my $file   = shift @_;
     my $exists = "";
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     return(1)   if (-e $file);           #  If file exists, it exists.
 
     if    (isOS() eq "TEST") {
-        $exists = `$client describe --name $file`;
+        $exists = `$client describe --name $ns/$file`;
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -190,10 +169,11 @@ sub fileExistsShellCode ($@) {
     my $indent = shift @_;
     my $code   = "";
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     if    (isOS() eq "TEST") {
         $code .= "${indent}if [ ! -e $file ] ; then\n";
-        $code .= "${indent}  exists=`$client describe --name $file`\n";
+        $code .= "${indent}  exists=`$client describe --name $ns/$file`\n";
         $code .= "${indent}fi\n";
         $code .= "${indent}if [ -e $file -o x\$exists != x ] ; then\n";
     }
@@ -208,15 +188,25 @@ sub fileExistsShellCode ($@) {
 
 
 
+#
+#  fetchFile() and stashFile() both expect to be called from the assembly root directory, and have
+#  the path to the file passed in, e.g., "correction/0-mercounts/whatever.histogram".
+#
+#  The shellCode versions expect the same, but need the path from the assembly root to the location
+#  the shell script is running split.  A meryl script would give "correction/0-mercounts" for the
+#  first arg, and could give "some/directory/file" for the file.
+#
+
 sub fetchFile ($) {
     my $file   = shift @_;
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     return   if (-e $file);   #  If it exists, we don't need to fetch it.
 
     if    (isOS() eq "TEST") {
         make_path(dirname($file));
-        runCommandSilently(".", "$client download --output $file $file", 1);
+        runCommandSilently(".", "$client download --output $file $ns/$file", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -225,6 +215,8 @@ sub fetchFile ($) {
     }
 }
 
+
+
 sub fetchFileShellCode ($$$) {
     my $path   = shift @_;
     my $dots   = pathToDots($path);
@@ -232,6 +224,7 @@ sub fetchFileShellCode ($$$) {
     my $indent = shift @_;
     my $code   = "";
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     #  We definitely need to be able to fetch files from places that are
     #  parallel to us, e.g., from 0-mercounts when we're in 1-overlapper.
@@ -246,7 +239,7 @@ sub fetchFileShellCode ($$$) {
         $code .= "${indent}if [ ! -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  mkdir -p $dots/$path\n";
         $code .= "${indent}  cd       $dots/$path\n";
-        $code .= "${indent}  $client download --output $file $path/$file\n";
+        $code .= "${indent}  $client download --output $file $ns/$path/$file\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
     }
@@ -264,11 +257,12 @@ sub fetchFileShellCode ($$$) {
 sub stashFile ($) {
     my $file   = shift @_;
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     return   if (! -e $file);
 
     if    (isOS() eq "TEST") {
-        runCommandSilently(".", "$client upload --path $file $file", 1);
+        runCommandSilently(".", "$client upload --path $ns/$file $file", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -278,6 +272,8 @@ sub stashFile ($) {
 
 }
 
+
+
 sub stashFileShellCode ($$$) {
     my $path   = shift @_;
     my $dots   = pathToDots($path);
@@ -285,6 +281,7 @@ sub stashFileShellCode ($$$) {
     my $indent = shift @_;
     my $code   = "";
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     #  Just like for fetching, we allow stashing files from parallel
     #  directories (even though that should never happen).
@@ -292,7 +289,7 @@ sub stashFileShellCode ($$$) {
     if    (isOS() eq "TEST") {
         $code .= "${indent}if [ -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  cd $dots/$path\n";
-        $code .= "${indent}  $client upload --path $path/$file $file\n";
+        $code .= "${indent}  $client upload --path $ns/$path/$file $file\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
     }
@@ -307,15 +304,28 @@ sub stashFileShellCode ($$$) {
 
 
 
+#
+#  Given $base/$asm.gkpStore, fetch or stash it.
+#
+#  The non-shell versions are assumed to be running in the assembly directory, that is, where
+#  $base/$asm.gkpStore would exist naturally.  This is consistent with canu.pl - it runs in the
+#  assembly directory, and then chdir to subdirectories to run binaries.
+#
+#  The shell versions usually run within a subdirectory (e.g., in correction/0-mercounts).  They
+#  need to know this location, so they can go up to the assembly directory to fetch and unpack the
+#  store.  After fetching, they chdir back to the subdirectory.
+#
+
 sub fetchStore ($) {
     my $store  = shift @_;                           #  correction/asm.gkpStore
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     return   if (-e "$store/info");                  #  Store exists on disk
     return   if (! fileExists("$store.tar"));        #  Store doesn't exist in object store
 
     if    (isOS() eq "TEST") {
-        runCommandSilently(".", "$client download --output - $store.tar | tar -xf -", 1);
+        runCommandSilently(".", "$client download --output - $ns/$store.tar | tar -xf -", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -328,11 +338,12 @@ sub fetchStore ($) {
 sub stashStore ($) {
     my $store  = shift @_;                         #  correction/asm.gkpStore
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     return   if (! -e "$store/info");              #  Store doesn't exist on disk
 
     if    (isOS() eq "TEST") {
-        runCommandSilently(".", "tar -cf - $store | $client upload --path $store.tar -", 1);
+        runCommandSilently(".", "tar -cf - $store | $client upload --path $ns/$store.tar -", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -351,11 +362,12 @@ sub fetchStoreShellCode ($$@) {
     my $name   = basename($store);   #             asm.gkpStore
     my $code;
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     if    (isOS() eq "TEST") {
         $code .= "${indent}if [ ! -e $basep/$store/info ] ; then\n";
-        $code .= "${indent}  echo Fetching $store\n";
-        $code .= "${indent}  $client download --output - $store.tar | tar -C $basep -xf -\n";
+        $code .= "${indent}  echo Fetching $ns/$store\n";
+        $code .= "${indent}  $client download --output - $ns/$store.tar | tar -C $basep -xf -\n";
         $code .= "${indent}fi\n";
     }
     elsif (isOS() eq "DNANEXUS") {
@@ -378,11 +390,12 @@ sub stashStoreShellCode ($$@) {
     my $name   = basename($store);   #             asm.gkpStore
     my $code;
     my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
 
     if    (isOS() eq "TEST") {
         $code .= "${indent}if [ -e $basep/$store/info ] ; then\n";
-        $code .= "${indent}  echo Stashing $store\n";
-        $code .= "${indent}  tar -C $basep -cf - $store | $client upload --path $store.tar -\n";
+        $code .= "${indent}  echo Stashing $ns/$store\n";
+        $code .= "${indent}  tar -C $basep -cf - $store | $client upload --path $ns/$store.tar -\n";
         $code .= "${indent}fi\n";
     }
     elsif (isOS() eq "DNANEXUS") {

@@ -348,11 +348,13 @@ configureLSF();
 configureRemote();
 configureDNANexus();
 
-#  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
+#  Based on genomeSize, configure the execution of every component.
+#  This needs to be done AFTER the grid is setup!
 
 configureAssembler();
 
-#  And, finally, move to the assembly directory and report the critical parameters.
+#  And, finally, move to the assembly directory, finish setting things up, and report the critical
+#  parameters.
 
 setWorkDirectory();
 
@@ -363,6 +365,8 @@ if (defined($rootdir)) {
 
 setGlobal("onExitDir", getcwd());
 setGlobal("onExitNam", $asm);
+
+setGlobalIfUndef("objectStoreNameSpace", $asm);   #  No good place to put this.
 
 printf STDERR "--\n";
 printf STDERR "-- Generating assembly '$asm' in '" . getcwd() . "'\n";
