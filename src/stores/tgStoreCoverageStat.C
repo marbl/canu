@@ -551,6 +551,8 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Computing coverage stat for tigs %u-%u.\n", bgnID, endID-1);
 
+  fprintf(outLOG, "#    tigID        rho    covStat    arrDist\n");
+
   for (uint32 i=bgnID; i<endID; i++) {
     tgTig  *tig = tigStore->loadTig(i);
 
@@ -573,8 +575,6 @@ main(int argc, char **argv) {
         (globalRate > 0.0))
       covStat = (rho * globalRate) - (ln2 * (numRandom - 1));
 
-    if (i == bgnID)
-      fprintf(outLOG, "     tigID        rho    covStat    arrDist\n");
     fprintf(outLOG, "%10u %10.2f %10.2f %10.2f\n", tig->tigID(), rho, covStat, arrDist);
 
 #undef ADJUST_FOR_PARTIAL_EXCESS
