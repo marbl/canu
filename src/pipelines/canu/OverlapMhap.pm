@@ -488,8 +488,8 @@ sub mhapConfigure ($$$) {
     print F "fi\n";
     print F "\n";
 
-    print F "if [   -e results/\$qry.mhap -a \\\n";
-    print F "     ! -e results/\$qry.ovb ] ; then\n";
+    print F "if [   -e ./results/\$qry.mhap -a \\\n";
+    print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
     print F "    -G ../$asm.gkpStore \\\n";
     print F "    \$cvt \\\n";
@@ -501,15 +501,15 @@ sub mhapConfigure ($$$) {
     print F "\n";
 
     if (getGlobal('saveOverlaps') eq "0") {
-        print F "if [   -e results/\$qry.mhap -a \\\n";
-        print F "       -e results/\$qry.mhap.ovb ] ; then\n";
+        print F "if [   -e ./results/\$qry.mhap -a \\\n";
+        print F "       -e ./results/\$qry.mhap.ovb ] ; then\n";
         print F "  rm -f ./results/\$qry.mhap\n";
         print F "fi\n";
         print F "\n";
     }
 
     if (getGlobal("${tag}ReAlign") eq "raw") {
-        print F "if [ -e $path/results/\$qry.mhap.ovb ] ; then\n";
+        print F "if [ -e ./results/\$qry.mhap.ovb ] ; then\n";
         print F "  \$bin/overlapPair \\\n";
         print F "    -G ../$asm.gkpStore \\\n";
         print F "    -O ./results/\$qry.mhap.ovb \\\n";

@@ -282,7 +282,7 @@ sub mmapConfigure ($$$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ -e results/\$qry.ovb ]; then\n";
+    print F "if [ -e ./results/\$qry.ovb ]; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
@@ -342,8 +342,8 @@ sub mmapConfigure ($$$) {
     print F "mv  ./results/\$qry.mmap.WORKING  ./results/\$qry.mmap\n";
     print F "\n";
 
-    print F "if [   -e \"./results/\$qry.mmap\" -a \\\n";
-    print F "     ! -e \"./results/\$qry.ovb\" ] ; then\n";
+    print F "if [   -e ./results/\$qry.mmap -a \\\n";
+    print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
     print F "    -G ../$asm.gkpStore \\\n";
     print F "    -o ./results/\$qry.mmap.ovb \\\n";
@@ -354,14 +354,14 @@ sub mmapConfigure ($$$) {
     print F "\n";
 
     if (getGlobal('saveOverlaps') eq "0") {
-        print F "if [   -e \"./results/\$qry.mmap\" -a \\\n";
-        print F "       -e \"./results/\$qry.mmap.ovb\" ] ; then\n";
+        print F "if [   -e ./results/\$qry.mmap -a \\\n";
+        print F "       -e ./results/\$qry.mmap.ovb ] ; then\n";
         print F "  rm -f ./results/\$qry.mmap\n";
         print F "fi\n";
         print F "\n";
     }
 
-    print F "if [ -e \"./results/\$qry.mmap.ovb\" ] ; then\n";
+    print F "if [ -e ./results/\$qry.mmap.ovb ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "raw") {
         print F "  \$bin/overlapPair \\\n";
         print F "    -G ../$asm.gkpStore \\\n";
@@ -374,8 +374,8 @@ sub mmapConfigure ($$$) {
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mmapThreads") . " \n";
     } else {
-        print F "  mv -f \"./results/\$qry.mmap.ovb\"    \"./results/\$qry.ovb\"\n";
-        print F "  mv -f \"./results/\$qry.mmap.counts\" \"./results/\$qry.counts\"\n";
+        print F "  mv -f ./results/\$qry.mmap.ovb    ./results/\$qry.ovb\n";
+        print F "  mv -f ./results/\$qry.mmap.counts ./results/\$qry.counts\n";
     }
     print F "fi\n";
 
