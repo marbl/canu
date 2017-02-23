@@ -137,10 +137,10 @@ File Staging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The correction stage of Canu requires random access to all the reads.  Performance is greatly
-improved if the gkpStore database of reads is copied locally to each node that computes
-corrected read consensus sequences.  Staging occurs only if `stageDirectory` is defined,
-and if jobs run under grid control.  If `gridEngineStageOption` is left undefined,
-no resources will be requested for staging the data.
+improved if the gkpStore database of reads is copied locally to each node that computes corrected
+read consensus sequences.  This 'staging' is enabled by supplying a path name to fast local storage
+with the `stageDirectory` option, and, optionally, requesting access to that resource from the grid
+with the `gridEngineStageOption` option.
 
 stageDirectory <string=undefined>
   A path to a directory local to each compute node.  The directory should use an environment
