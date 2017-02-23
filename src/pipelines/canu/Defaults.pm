@@ -97,7 +97,9 @@ sub setGlobal ($$) {
     my $set = 0;
 
     $var =~ tr/A-Z/a-z/;
-    $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
+
+    $val = undef  if ($val eq "undef");   #  Set to undefined, the default for many of the options.
+    $val = undef  if ($val eq "");
 
     #  Map 'true'/'false' et al. to 0/1.
 
@@ -448,27 +450,48 @@ sub setParametersFromFile ($@) {
         next if (m/^#/);
         next if (length($_) eq 0);
 
-        #  File handling is also present in canu.pl around line 165.
-        if (m/^-(pacbio|nanopore)-(corrected|raw)\s+(.*)$/) {
-            my $arg  = "-$1-$2";
-            my $file = $3;
+        #  First, figure out the two words.
 
-            $file = abs_path($file);
+        my $one;
+        my $two;
+        my $opt;
 
-            push @fragFiles, "$arg\0$file";
+        if (m/^-(pacbio|nanopore)-(corrected|raw)\s+(.*)\s*$/) {   #  Comments not allowed, because then we can't decide
+            $one  = "-$1-$2";                                      #  if the # is a comment, or part of the file!
+            $two = $3;                                             #  e.g.,   this_is_file_#1   vs
+            $opt = 0;                                              #          this_is_the_only_file#no more data
         }
 
-        elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
-            my ($var, $val) = ($1, $2);
-            $var =~ s/^\s+//; $var =~ s/\s+$//;
-            $val =~ s/^\s+//; $val =~ s/\s+$//;
-            undef $val if ($val eq "undef");
-            setGlobal($var, $val);
-        }
+        elsif (m/^(\w*)\s*=\s*([^#]*)\s*#*.*?$/) {   #  Word two won't match a #, but will gobble up spaces at the end.
+            $one = $1;                               #  Then, we can match a #, and any amount of comment, minimally.
+            $two = $2;                               #  If word two is made non-greedy, it will shrink to nothing, as
+            $opt = 1;                                #  the last bit will gobble up everything, since we're allowed
+        }                                            #  to match zero #'s in between.
 
         else {
             addCommandLineError("ERROR:  File not found or unknown specFile option line '$_'.\n");
         }
+
+        #  Now, clean up the second word to handle quotes.
+
+        $two =~ s/^\s+//;   #  There can be spaces from the greedy match.
+        $two =~ s/\s+$//;
+
+        $two = $1   if ($two =~ m/^'(.+)'$/);    #  Remove single quotes    | but don't allowed mixed quotes; users
+        $two = $1   if ($two =~ m/^"(.+)"$/);    #  Remove double quotes    | should certainly know better
+
+        #  Should we remove spaces again?  Yes, unless it's a file; in that case, find the absolute path.
+
+        $two = abs_path($two)  if ($opt == 0);
+        $two =~ s/^\s+//       if ($opt == 1);
+        $two =~ s/\s+$//       if ($opt == 1);
+
+        #  And do something.
+
+        addCommandLineError("ERROR:  File not found in spec file option '$_'\n")   if ((! -e $two) && ($opt == 0));
+
+        push @fragFiles, "$one\0$two"   if ($opt == 0);
+        setGlobal($one, $two)           if ($opt == 1);
     }
     close(F);
 
