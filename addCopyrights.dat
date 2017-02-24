@@ -11107,3 +11107,23 @@ A addCopyrights.dat nihh20160518Brian P. Walenz
 A addCopyrights.pl nihh20160518Brian P. Walenz
 D src/bogart/AS_BAT_MergeOrphans.C src/bogart/AS_BAT_PopBubbles.C
 D src/bogart/AS_BAT_MergeOrphans.H src/bogart/AS_BAT_PopBubbles.H
+D src/libkmer/driver-existDB.C kmer/libkmer/driver-existDB.C
+D src/libkmer/driver-posDB.C kmer/libkmer/driver-posDB.C
+D src/libkmer/existDB-create-from-fasta.C kmer/libkmer/existDB-create-from-fasta.C
+D src/libkmer/existDB-create-from-meryl.C kmer/libkmer/existDB-create-from-meryl.C
+D src/libkmer/existDB-create-from-sequence.C kmer/libkmer/existDB-create-from-sequence.C
+D src/libkmer/existDB-state.C kmer/libkmer/existDB-state.C
+D src/libkmer/existDB.C kmer/libkmer/existDB.C
+D src/libkmer/existDB.H kmer/libkmer/existDB.H
+D src/libkmer/existDB.mk kmer/libkmer/existDB.mk
+D src/libkmer/main.mk kmer/libkmer/main.mk
+D src/libkmer/percentCovered.C kmer/libkmer/percentCovered.C
+D src/libkmer/percentCovered.mk kmer/libkmer/percentCovered.mk
+D src/libkmer/posDB.mk kmer/libkmer/posDB.mk
+D src/libkmer/positionDB-access.C kmer/libkmer/positionDB-access.C
+D src/libkmer/positionDB-dump.C kmer/libkmer/positionDB-dump.C
+D src/libkmer/positionDB-file.C kmer/libkmer/positionDB-file.C
+D src/libkmer/positionDB-mismatch.C kmer/libkmer/positionDB-mismatch.C
+D src/libkmer/positionDB-sort.C kmer/libkmer/positionDB-sort.C
+D src/libkmer/positionDB.C kmer/libkmer/positionDB.C
+D src/libkmer/positionDB.H kmer/libkmer/positionDB.H
