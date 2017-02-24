@@ -32,7 +32,6 @@
  */
 
 #include "positionDB.H"
-#include "bio++.H"
 
 
 void
@@ -67,7 +66,7 @@ positionDB::sortAndRepackBucket(uint64 b) {
   uint32 le = (uint32)(ed - st);
 
   if (ed < st)
-    fprintf(stdout, "ERROR: Bucket "uint64FMT" starts at "uint64FMT" ends at "uint64FMT"?\n", b, st, ed);
+    fprintf(stdout, "ERROR: Bucket "F_U64" starts at "F_U64" ends at "F_U64"?\n", b, st, ed);
 
   if (le == 0)
     return;
@@ -108,7 +107,7 @@ positionDB::sortAndRepackBucket(uint64 b) {
   for (int64 t=(le-2)/2; t>=0; t--) {
     if (_sortedPosn[t] == uint64MASK(_posnWidth)) {
       unsetBucket = 1;
-      fprintf(stdout, "ERROR: unset posn bucket="uint64FMT" t="int64FMT" le="uint32FMT"\n", b, t, le);
+      fprintf(stdout, "ERROR: unset posn bucket="F_U64" t="F_S64" le="F_U32"\n", b, t, le);
     }
 
     adjustHeap(_sortedChck, _sortedPosn, t, le);
@@ -116,7 +115,7 @@ positionDB::sortAndRepackBucket(uint64 b) {
 
   if (unsetBucket)
     for (uint32 t=0; t<le; t++)
-      fprintf(stdout, uint32FMTW(4)"] chck="uint64HEX" posn="uint64FMT"\n", t, _sortedChck[t], _sortedPosn[t]);
+      fprintf(stdout, "%4"F_U32P"] chck="F_X64" posn="F_U64"\n", t, _sortedChck[t], _sortedPosn[t]);
 
   //  Interchange the new maximum with the element at the end of the tree
   //
@@ -140,7 +139,7 @@ positionDB::sortAndRepackBucket(uint64 b) {
 
   for (uint32 t=1; t<le; t++) {
     if (_sortedChck[t-1] > _sortedChck[t])
-      fprintf(stdout, "ERROR: bucket="uint64FMT" t="uint32FMT" le="uint32FMT": "uint64HEX" > "uint64HEX"\n",
+      fprintf(stdout, "ERROR: bucket="F_U64" t="F_U32" le="F_U32": "F_X64" > "F_X64"\n",
               b, t, le, _sortedChck[t-1], _sortedChck[t]);
 
     if (_sortedChck[t-1] != _sortedChck[t]) {

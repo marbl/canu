@@ -31,12 +31,10 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include "existDB.H"
-#include "libmeryl.H"
+#warning YUCK RELATIVE INCLUDE OF libmeryl.H
+#include "../libmeryl.H"
+#include "speedCounter.H"
 
 
 bool
@@ -57,7 +55,7 @@ existDB::createFromMeryl(char const  *prefix,
   _merSizeInBases        = M->merSize();
 
   if (merSize != _merSizeInBases) {
-    fprintf(stderr, "createFromMeryl()-- ERROR: requested merSize ("uint32FMT") is different than merSize in meryl database ("uint32FMT").\n",
+    fprintf(stderr, "createFromMeryl()-- ERROR: requested merSize ("F_U32") is different than merSize in meryl database ("F_U32").\n",
             merSize, _merSizeInBases);
     exit(1);
   }
@@ -84,8 +82,8 @@ existDB::createFromMeryl(char const  *prefix,
   uint64 *countingTable      = new uint64 [tableSizeInEntries + 1];
 
   if (beVerbose) {
-    fprintf(stderr, "createFromMeryl()-- tableSizeInEntries   "uint64FMT"\n", tableSizeInEntries);
-    fprintf(stderr, "createFromMeryl()-- count range          "uint32FMT"-"uint32FMT"\n", lo, hi);
+    fprintf(stderr, "createFromMeryl()-- tableSizeInEntries   "F_U64"\n", tableSizeInEntries);
+    fprintf(stderr, "createFromMeryl()-- count range          "F_U32"-"F_U32"\n", lo, hi);
   }
 
   for (uint64 i=tableSizeInEntries+1; i--; )
@@ -134,7 +132,7 @@ existDB::createFromMeryl(char const  *prefix,
   }
 
   if (beVerbose)
-    fprintf(stderr, "createFromMeryl()-- numberOfMers         "uint64FMT"\n", numberOfMers);
+    fprintf(stderr, "createFromMeryl()-- numberOfMers         "F_U64"\n", numberOfMers);
 
   delete C;
   delete M;
@@ -146,7 +144,7 @@ existDB::createFromMeryl(char const  *prefix,
   }
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromMeryl()-- Found "uint64FMT" mers between count of "uint32FMT" and "uint32FMT"\n",
+    fprintf(stderr, "existDB::createFromMeryl()-- Found "F_U64" mers between count of "F_U32" and "F_U32"\n",
             numberOfMers, lo, hi);
   }
 
@@ -165,10 +163,10 @@ existDB::createFromMeryl(char const  *prefix,
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "uint64FMT"MB\n", _hashTableWords >> 17);
-    fprintf(stderr, "existDB::createFromMeryl()-- buckets is "uint64FMT"MB\n", _bucketsWords >> 17);
+    fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "F_U64"MB\n", _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromMeryl()-- buckets is "F_U64"MB\n", _bucketsWords >> 17);
     if (flags & existDBcounts)
-      fprintf(stderr, "existDB::createFromMeryl()-- counts is "uint64FMT"MB\n", _countsWords >> 17);
+      fprintf(stderr, "existDB::createFromMeryl()-- counts is "F_U64"MB\n", _countsWords >> 17);
   }
 
   _hashTable   = new uint64 [_hashTableWords];

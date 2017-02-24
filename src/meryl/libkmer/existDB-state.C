@@ -31,12 +31,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include "existDB.H"
-#include "bio++.H"
 
 
 const char  magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '2',
@@ -199,21 +194,21 @@ existDB::loadState(char const *filename,
 void
 existDB::printState(FILE *stream) {
 
-  fprintf(stream, "merSizeInBases:   "uint32FMT"\n", _merSizeInBases);
-  fprintf(stream, "tableBits         "uint32FMT"\n", 2 * _merSizeInBases - _shift1);
+  fprintf(stream, "merSizeInBases:   "F_U32"\n", _merSizeInBases);
+  fprintf(stream, "tableBits         "F_U32"\n", 2 * _merSizeInBases - _shift1);
   fprintf(stream, "-----------------\n");
-  fprintf(stream, "_hashTableWords   "uint64FMT" ("uint64FMT" KB)\n", _hashTableWords, _hashTableWords >> 7);
-  fprintf(stream, "_bucketsWords     "uint64FMT" ("uint64FMT" KB)\n", _bucketsWords, _bucketsWords >> 7);
-  fprintf(stream, "_countsWords      "uint64FMT" ("uint64FMT" KB)\n", _countsWords, _countsWords >> 7);
+  fprintf(stream, "_hashTableWords   "F_U64" ("F_U64" KB)\n", _hashTableWords, _hashTableWords >> 7);
+  fprintf(stream, "_bucketsWords     "F_U64" ("F_U64" KB)\n", _bucketsWords, _bucketsWords >> 7);
+  fprintf(stream, "_countsWords      "F_U64" ("F_U64" KB)\n", _countsWords, _countsWords >> 7);
   fprintf(stream, "-----------------\n");
-  fprintf(stream, "_shift1:          "uint32FMT"\n", _shift1);
-  fprintf(stream, "_shift2           "uint32FMT"\n", _shift2);
-  fprintf(stream, "_mask1            "uint64HEX"\n", _mask1);
-  fprintf(stream, "_mask2            "uint64HEX"\n", _mask2);
+  fprintf(stream, "_shift1:          "F_U32"\n", _shift1);
+  fprintf(stream, "_shift2           "F_U32"\n", _shift2);
+  fprintf(stream, "_mask1            "F_X64"\n", _mask1);
+  fprintf(stream, "_mask2            "F_X64"\n", _mask2);
 
   if (_compressedHash) {
     fprintf(stream, "_compressedHash   true\n");
-    fprintf(stream, "_hshWidth         "uint32FMT"\n", _hshWidth);
+    fprintf(stream, "_hshWidth         "F_U32"\n", _hshWidth);
   } else {
     fprintf(stream, "_compressedHash   false\n");
     fprintf(stream, "_hshWidth         undefined\n");
@@ -221,7 +216,7 @@ existDB::printState(FILE *stream) {
 
   if (_compressedBucket) {
     fprintf(stream, "_compressedBucket true\n");
-    fprintf(stream, "_chkWidth         "uint32FMT"\n", _chkWidth);
+    fprintf(stream, "_chkWidth         "F_U32"\n", _chkWidth);
   } else {
     fprintf(stream, "_compressedBucket false\n");
     fprintf(stream, "_chkWidth         undefined\n");
@@ -229,7 +224,7 @@ existDB::printState(FILE *stream) {
 
   if (_compressedCounts) {
     fprintf(stream, "_compressedCount  true\n");
-    fprintf(stream, "_cntWidth         "uint32FMT"\n", _cntWidth);
+    fprintf(stream, "_cntWidth         "F_U32"\n", _cntWidth);
   } else {
     fprintf(stream, "_compressedCount  false\n");
     fprintf(stream, "_cntWidth         undefined\n");

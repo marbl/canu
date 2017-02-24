@@ -35,12 +35,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include "existDB.H"
-#include "bio++.H"
+
 #include "seqCache.H"
 #include "seqStream.H"
 #include "merStream.H"
@@ -72,7 +68,7 @@ existDB::createFromFastA(char const  *filename,
   //  Setting this too high drastically reduces performance, suspected because of cache misses.
   //  Setting this too low will also reduce performance, by increasing the search time in a bucket.
   //
-  uint32 tblBits = logBaseTwo64(sizeOfFile(filename));
+  uint32 tblBits = logBaseTwo64(AS_UTL_sizeOfFile(filename));
 
  rebuild:
   _shift1                = 2 * _merSizeInBases - tblBits;
@@ -170,10 +166,10 @@ existDB::createFromFastA(char const  *filename,
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromFastA()-- hashTable is "uint64FMT"MB\n", _hashTableWords >> 17);
-    fprintf(stderr, "existDB::createFromFastA()-- buckets is "uint64FMT"MB\n", _bucketsWords >> 17);
+    fprintf(stderr, "existDB::createFromFastA()-- hashTable is "F_U64"MB\n", _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromFastA()-- buckets is "F_U64"MB\n", _bucketsWords >> 17);
     if (flags & existDBcounts)
-      fprintf(stderr, "existDB::createFromFastA()-- counts is "uint64FMT"MB\n", _countsWords >> 17);
+      fprintf(stderr, "existDB::createFromFastA()-- counts is "F_U64"MB\n", _countsWords >> 17);
   }
 
   _hashTable   = new uint64 [_hashTableWords];
@@ -273,7 +269,7 @@ existDB::createFromFastA(char const  *filename,
   }
 
   if (beVerbose)
-    fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
+    fprintf(stderr, "Compressed from "F_U64" to "F_U64" ("F_U64" bits)\n",
             _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
 
   while (pos < _bucketsWords)

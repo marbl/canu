@@ -27,14 +27,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include "existDB.H"
-#include "bio++.H"
-#include "seqCache.H"
-#include "seqStream.H"
 #include "merStream.H"
 
 bool
@@ -162,10 +155,10 @@ existDB::createFromSequence(char const  *sequence,
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromSequence()-- hashTable is "uint64FMT"MB\n", _hashTableWords >> 17);
-    fprintf(stderr, "existDB::createFromSequence()-- buckets is "uint64FMT"MB\n", _bucketsWords >> 17);
+    fprintf(stderr, "existDB::createFromSequence()-- hashTable is "F_U64"MB\n", _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromSequence()-- buckets is "F_U64"MB\n", _bucketsWords >> 17);
     if (flags & existDBcounts)
-      fprintf(stderr, "existDB::createFromSequence()-- counts is "uint64FMT"MB\n", _countsWords >> 17);
+      fprintf(stderr, "existDB::createFromSequence()-- counts is "F_U64"MB\n", _countsWords >> 17);
   }
 
   _hashTable   = new uint64 [_hashTableWords];
@@ -265,7 +258,7 @@ existDB::createFromSequence(char const  *sequence,
   }
 
   if (beVerbose)
-    fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
+    fprintf(stderr, "Compressed from "F_U64" to "F_U64" ("F_U64" bits)\n",
             _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
 
   while (pos < _bucketsWords)

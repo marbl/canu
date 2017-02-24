@@ -32,16 +32,90 @@
  */
 
 #include "positionDB.H"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
 
 static
 char     magic[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', '.', 'v', '1', ' ', ' ', ' '  };
 static
 char     faild[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', 'f', 'a', 'i', 'l', 'e', 'd'  };
+
+
+
+
+
+//  These came from kmer/libutil/file.c and need to be replaced with more standard functions
+
+
+//  Split writes/reads into smaller pieces, check the result of each
+//  piece.  Really needed by OSF1 (V5.1).
+//
+void
+safeWrite(int filedes, const void *buffer, const char *desc, size_t nbytes) {
+  size_t  position = 0;
+  size_t  length   = 32 * 1024 * 1024;
+  size_t  towrite  = 0;
+  size_t  written  = 0;
+
+  while (position < nbytes) {
+    towrite = length;
+    if (position + towrite > nbytes)
+      towrite = nbytes - position;
+
+    errno = 0;
+    written = write(filedes, ((char *)buffer) + position, towrite);
+
+    if ((errno) || (towrite != written)) {
+      fprintf(stderr, "safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
+      fprintf(stderr, "safeWrite()-- Wanted to write "F_S64" bytes, wrote "F_S64".\n", (int64)towrite, (int64)written);
+      exit(1);
+    }
+
+    position += written;
+  }
+}
+
+int
+safeRead(int filedes, const void *buffer, const char *desc, size_t nbytes) {
+  size_t  position = 0;
+  size_t  length   = 32 * 1024 * 1024;
+  size_t  toread   = 0;
+  size_t  written  = 0;  //  readen?
+  int     failed   = 0;
+
+  while (position < nbytes) {
+    toread = length;
+    if (position + toread > nbytes)
+      toread = nbytes - position;
+
+    errno = 0;
+    written = read(filedes, ((char *)buffer) + position, toread);
+
+    failed = errno;
+#ifdef VERY_SAFE
+    if (toread != written)
+      failed = 1;
+#endif
+
+    if ((failed) && (errno != EINTR)) {
+      fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
+      fprintf(stderr, "safeRead()-- Wanted to read "F_S64" bytes, read "F_S64".\n", (int64)toread, (int64)written);
+      exit(1);
+    }
+
+    if (written == 0)
+      break;
+
+    position += written;
+  }
+
+  return(position);
+}
+
+
+
+
+
+
+
 
 void
 positionDB::saveState(char const *filename) {
@@ -93,7 +167,7 @@ positionDB::saveState(char const *filename) {
   _bucketSizes     = 0L;
   _countingBuckets = 0L;
   _hashTable_BP    = (uint64 *)((_hashTable_BP) ? uint64ONE : uint64ZERO);
-  _hashTable_FW    = (uint32 *)((_hashTable_FW) ? uint32ONE : uint32ZERO);
+  _hashTable_FW    = (uint32 *)((_hashTable_FW) ? uint64ONE : uint64ZERO);
   _buckets         = 0L;
   _positions       = 0L;
   _hashedErrors    = 0L;
@@ -227,18 +301,18 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
 
 void
 positionDB::printState(FILE *stream) {
-  fprintf(stream, "merSizeInBases:       "uint32FMT"\n", _merSizeInBases);
-  fprintf(stream, "merSkipInBases:       "uint32FMT"\n", _merSkipInBases);
-  fprintf(stream, "tableSizeInBits:      "uint32FMT"\n", _tableSizeInBits);
-  fprintf(stream, "tableSizeInEntries:   "uint64FMT"\n", _tableSizeInEntries);
-  fprintf(stream, "hashWidth:            "uint32FMT"\n", _hashWidth);
-  fprintf(stream, "chckWidth:            "uint32FMT"\n", _chckWidth);
-  fprintf(stream, "posnWidth:            "uint32FMT"\n", _posnWidth);
-  fprintf(stream, "numberOfMers:         "uint64FMT"\n", _numberOfMers);
-  fprintf(stream, "numberOfPositions:    "uint64FMT"\n", _numberOfPositions);
-  fprintf(stream, "numberOfDistinct:     "uint64FMT"\n", _numberOfDistinct);
-  fprintf(stream, "numberOfUnique:       "uint64FMT"\n", _numberOfUnique);
-  fprintf(stream, "numberOfEntries:      "uint64FMT"\n", _numberOfEntries);
-  fprintf(stream, "maximumEntries:       "uint64FMT"\n", _maximumEntries);
+  fprintf(stream, "merSizeInBases:       "F_U32"\n", _merSizeInBases);
+  fprintf(stream, "merSkipInBases:       "F_U32"\n", _merSkipInBases);
+  fprintf(stream, "tableSizeInBits:      "F_U32"\n", _tableSizeInBits);
+  fprintf(stream, "tableSizeInEntries:   "F_U64"\n", _tableSizeInEntries);
+  fprintf(stream, "hashWidth:            "F_U32"\n", _hashWidth);
+  fprintf(stream, "chckWidth:            "F_U32"\n", _chckWidth);
+  fprintf(stream, "posnWidth:            "F_U32"\n", _posnWidth);
+  fprintf(stream, "numberOfMers:         "F_U64"\n", _numberOfMers);
+  fprintf(stream, "numberOfPositions:    "F_U64"\n", _numberOfPositions);
+  fprintf(stream, "numberOfDistinct:     "F_U64"\n", _numberOfDistinct);
+  fprintf(stream, "numberOfUnique:       "F_U64"\n", _numberOfUnique);
+  fprintf(stream, "numberOfEntries:      "F_U64"\n", _numberOfEntries);
+  fprintf(stream, "maximumEntries:       "F_U64"\n", _maximumEntries);
 }
 

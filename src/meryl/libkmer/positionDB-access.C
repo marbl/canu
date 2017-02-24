@@ -31,7 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "bio++.H"
 #include "positionDB.H"
 
 
@@ -52,7 +51,7 @@ positionDB::reallocateSpace(uint64*&    posn,
     try {
       pp = new uint64 [posnMax];
     } catch (...) {
-      fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "uint64FMT" uint64's.\n", posnMax);
+      fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "F_U64" uint64's.\n", posnMax);
       abort();
     }
 
@@ -245,7 +244,7 @@ positionDB::filter(uint64 lo,
 
   //dump("posDB.before");
 
-  fprintf(stderr, "positionDB::filter()--  Filtering out kmers less than "uint64FMT" and more than "uint64FMT"\n", lo, hi);
+  fprintf(stderr, "positionDB::filter()--  Filtering out kmers less than "F_U64" and more than "F_U64"\n", lo, hi);
 
   if (_sizeWidth == 0) {
     //  Single copy mers in a table without counts can be multi-copy
@@ -369,9 +368,9 @@ positionDB::filter(uint64 lo,
 
   }  //  Over all buckets
 
-  fprintf(stderr, "positionDB::filter()--  Filtered "uint64FMT" kmers less than "uint64FMT"\n", loCount, lo);
-  fprintf(stderr, "positionDB::filter()--  Filtered "uint64FMT" kmers more than "uint64FMT"\n", hiCount, hi);
-  fprintf(stderr, "positionDB::filter()--  Saved    "uint64FMT" kmers with acceptable count\n", okCount);
+  fprintf(stderr, "positionDB::filter()--  Filtered "F_U64" kmers less than "F_U64"\n", loCount, lo);
+  fprintf(stderr, "positionDB::filter()--  Filtered "F_U64" kmers more than "F_U64"\n", hiCount, hi);
+  fprintf(stderr, "positionDB::filter()--  Saved    "F_U64" kmers with acceptable count\n", okCount);
 
   //dump("posDB.after");
 }

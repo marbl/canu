@@ -106,7 +106,19 @@ SOURCES      := AS_global.C \
                 utgcns/libcns/unitigConsensus.C \
                 utgcns/libpbutgcns/Alignment.C	\
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
-                utgcns/libNDFalcon/dw.C
+                utgcns/libNDFalcon/dw.C \
+                \
+                meryl/libkmer/existDB-create-from-fasta.C \
+                meryl/libkmer/existDB-create-from-meryl.C \
+                meryl/libkmer/existDB-create-from-sequence.C \
+                meryl/libkmer/existDB-state.C \
+                meryl/libkmer/existDB.C \
+                meryl/libkmer/positionDB-access.C \
+                meryl/libkmer/positionDB-dump.C \
+                meryl/libkmer/positionDB-file.C \
+                meryl/libkmer/positionDB-mismatch.C \
+                meryl/libkmer/positionDB-sort.C \
+                meryl/libkmer/positionDB.C
 
 SRC_INCDIRS  := . \
                 AS_UTL \

@@ -31,12 +31,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include "existDB.H"
-#include "bio++.H"
+#include "AS_UTL_fileIO.H"
 
 
 existDB::existDB(char const  *filename,
@@ -74,7 +70,7 @@ existDB::existDB(char const    *filename,
 
     if (_merSizeInBases != merSize) {
       fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different mer sizes\n", filename);
-      fprintf(stderr, "existDB::existDB()-- Got "uint32FMT", expected "uint32FMT"\n", _merSizeInBases, merSize);
+      fprintf(stderr, "existDB::existDB()-- Got "F_U32", expected "F_U32"\n", _merSizeInBases, merSize);
       fail = true;
     }
 
@@ -97,7 +93,7 @@ existDB::existDB(char const    *filename,
   //  meryl database.
 
 
-  if (fileExists(filename))
+  if (AS_UTL_fileExists(filename))
     createFromFastA(filename, merSize, flags);
   else
     createFromMeryl(filename, merSize, lo, hi, flags);
