@@ -31,17 +31,9 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
-#include "bio++.H"
 #include "existDB.H"
+#include "speedCounter.H"
 #include "libmeryl.H"
-
-#include "seqCache.H"
-#include "seqStream.H"
 #include "merStream.H"
 
 //  Driver for the existDB creation.  Reads a sequence.fasta, builds
@@ -83,10 +75,10 @@ testFiles(char *filename, char *prefix, uint32 merSize) {
     uint32 cg = g->count(m);
 
     if ((ee != ef) || (ef != eg) || (ee != eg))
-      fprintf(stderr, "mer "uint64HEX" not found : e=%d  f=%d  g=%d\n", m, ee, ef, eg);
+      fprintf(stderr, "mer "F_X64" not found : e=%d  f=%d  g=%d\n", m, ee, ef, eg);
 
     if ((ce != cf) || (cf != cg) || (ce != cg))
-      fprintf(stderr, "mer "uint64HEX" count differs : e=%u  f=%u  g=%u (exists=%d)\n", m, ce, cf, cg, ee);
+      fprintf(stderr, "mer "F_X64" count differs : e=%u  f=%u  g=%u (exists=%d)\n", m, ce, cf, cg, ee);
 
     if ((m & 0xffffff) == 0) {
       //  Been a while since a report, so report.
@@ -95,7 +87,7 @@ testFiles(char *filename, char *prefix, uint32 merSize) {
 
     if ((ce > 1) && (d == 1)) {
       //  Report anything not unique, to make sure that we're testing real counts and not just existence.
-      fprintf(stderr, "mer "uint64HEX" : e=%u  f=%u  g=%u (exists=%d)\n", m, ce, cf, cg, ee);
+      fprintf(stderr, "mer "F_X64" : e=%u  f=%u  g=%u (exists=%d)\n", m, ce, cf, cg, ee);
       d = 0;
     }
 
@@ -126,7 +118,7 @@ testExistence(char *filename, uint32 merSize) {
   delete E;
 
   if (lost) {
-    fprintf(stderr, "Tried "uint64FMT", didn't find "uint64FMT" merStream mers in the existDB.\n", tried, lost);
+    fprintf(stderr, "Tried "F_U64", didn't find "F_U64" merStream mers in the existDB.\n", tried, lost);
     return(1);
   } else {
     return(0);
@@ -150,15 +142,15 @@ testExhaustive(char *filename, char *merylname, uint32 merSize) {
   while (M->nextMer()) {
     if (E->exists(M->theFMer())) {
       expected++;
-      fprintf(DUMP, uint64HEX"\n", (uint64)M->theFMer());
+      fprintf(DUMP, F_X64"\n", (uint64)M->theFMer());
     } else {
-      fprintf(DUMP, uint64HEX" MISSED!\n", (uint64)M->theFMer());
+      fprintf(DUMP, F_X64" MISSED!\n", (uint64)M->theFMer());
     }
   }
 
   fclose(DUMP);
 
-  fprintf(stderr, "Found "uint64FMT" mers in the meryl database.\n", expected);
+  fprintf(stderr, "Found "F_U64" mers in the meryl database.\n", expected);
   fprintf(stderr, "Need to iterate over %7.2f Mmers.\n", (uint64MASK(2 * merSize) + 1) / 1000000.0);
 
   DUMP = fopen("testExhaustive.ck.dump", "w");
@@ -166,7 +158,7 @@ testExhaustive(char *filename, char *merylname, uint32 merSize) {
   for (uint64 m = uint64MASK(2 * merSize); m--; ) {
     if (E->exists(m)) {
       found++;
-      fprintf(DUMP, uint64HEX"\n", m);
+      fprintf(DUMP, F_X64"\n", m);
     }
     C->tick();
   }
@@ -178,7 +170,7 @@ testExhaustive(char *filename, char *merylname, uint32 merSize) {
   delete M;
 
   if (expected != found) {
-    fprintf(stderr, "Expected to find "uint64FMT" mers, but found "uint64FMT" instead.\n",
+    fprintf(stderr, "Expected to find "F_U64" mers, but found "F_U64" instead.\n",
             expected, found);
     return(1);
   } else {

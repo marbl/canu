@@ -159,6 +159,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 meryl/maskMers.mk \
                 meryl/simple.mk \
                 meryl/estimate-mer-threshold.mk \
+                meryl/existDB.mk \
+                meryl/positionDB.mk \
                 \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \

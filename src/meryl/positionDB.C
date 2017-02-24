@@ -31,18 +31,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
-#include "bio++.H"
-#include "existDB.H"
 #include "positionDB.H"
-
-#include "seqCache.H"
-#include "seqStream.H"
-#include "merStream.H"
+#include "existDB.H"
 
 //  Driver for the positionDB creation.  Reads a sequence.fasta, builds
 //  a positionDB for the mers in the file, and then writes the internal
@@ -51,9 +41,7 @@
 //  The positionDB constructor is smart enough to read either a pre-built
 //  image or a regular multi-fasta file.
 
-
 #define MERSIZE 20
-
 
 int
 test1(char *filename) {
@@ -84,11 +72,11 @@ test1(char *filename) {
       if (missing != 1) {
         failed++;
 
-        fprintf(stdout, "%s @ "uint64FMT"/"uint64FMT": Found "uint64FMT" table entries, and "uint32FMT" matching positions (",
+        fprintf(stdout, "%s @ "F_U64"/"F_U64": Found "F_U64" table entries, and "F_U32" matching positions (",
                 T->theFMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen, missing);
 
         for (uint32 i=0; i<posnLen; i++) {
-          fprintf(stdout, uint64FMT, posn[i]);
+          fprintf(stdout, F_U64, posn[i]);
           if (i < posnLen - 1)
             fprintf(stdout, " ");
           else
@@ -98,7 +86,7 @@ test1(char *filename) {
     } else {
       failed++;
 
-      fprintf(stdout, "Found no matches for mer=%s at pos="uint64FMT"\n",
+      fprintf(stdout, "Found no matches for mer=%s at pos="F_U64"\n",
               T->theFMer().merToString(str), T->thePositionInStream());
     }
   }
@@ -131,7 +119,7 @@ test2(char *filename, char *query) {
                     posnMax,
                     posnLen,
                     count)) {
-      fprintf(stdout, "Got a F match for mer=%s at "uint64FMT"/"uint64FMT" (in mers), numMatches="uint64FMT"\n",
+      fprintf(stdout, "Got a F match for mer=%s at "F_U64"/"F_U64" (in mers), numMatches="F_U64"\n",
               T->theFMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
 
@@ -140,7 +128,7 @@ test2(char *filename, char *query) {
                     posnMax,
                     posnLen,
                     count)) {
-      fprintf(stdout, "Got a R match for mer=%s at "uint64FMT"/"uint64FMT" (in mers), numMatches="uint64FMT"\n",
+      fprintf(stdout, "Got a R match for mer=%s at "F_U64"/"F_U64" (in mers), numMatches="F_U64"\n",
               T->theRMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
   }
@@ -219,10 +207,10 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
-      mersize = strtouint32(argv[++arg], 0L);
+      mersize = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-merskip") == 0) {
-      merskip = strtouint32(argv[++arg], 0L);
+      merskip = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-mask") == 0) {
       maskF = argv[++arg];
@@ -230,10 +218,10 @@ main(int argc, char **argv) {
       onlyF = argv[++arg];
 
     } else if (strcmp(argv[arg], "-merbegin") == 0) {
-      merBegin = strtouint64(argv[++arg], 0L);
+      merBegin = strtouint64(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-merend") == 0) {
-      merEnd = strtouint64(argv[++arg], 0L);
+      merEnd = strtouint64(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-sequence") == 0) {
       sequenceFile = argv[++arg];
@@ -260,7 +248,7 @@ main(int argc, char **argv) {
 
   //  Exit quickly if the output file exists.
   //
-  if (fileExists(outputFile)) {
+  if (AS_UTL_fileExists(outputFile)) {
     fprintf(stderr, "Output file '%s' exists already!\n", outputFile);
     exit(0);
   }
@@ -285,7 +273,7 @@ main(int argc, char **argv) {
   if (merEnd   == ~uint64ZERO)   merEnd   = numMers;
 
   if (merBegin >= merEnd) {
-    fprintf(stderr, "ERROR: merbegin="uint64FMT" and merend="uint64FMT" are incompatible.\n",
+    fprintf(stderr, "ERROR: merbegin="F_U64" and merend="F_U64" are incompatible.\n",
             merBegin, merEnd);
     exit(1);
   }
@@ -305,7 +293,7 @@ main(int argc, char **argv) {
     onlyDB = new existDB(onlyF, mersize, existDBnoFlags, 0, ~uint32ZERO);
   }
 
-  fprintf(stderr, "Building table with merSize "uint32FMT", merSkip "uint32FMT"\n", mersize, merskip);
+  fprintf(stderr, "Building table with merSize "F_U32", merSkip "F_U32"\n", mersize, merskip);
 
   positionDB *positions = new positionDB(MS, mersize, merskip, maskDB, onlyDB, 0L, 0, 0, 0, 0, true);
 
