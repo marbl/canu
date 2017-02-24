@@ -162,6 +162,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 meryl/existDB.mk \
                 meryl/positionDB.mk \
                 \
+                merTrim/merTrim.mk \
+                \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
                 overlapInCore/overlapConvert.mk \

@@ -35,9 +35,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "AS_global.H"
 
 #ifndef MERTRIMRESULT_H
@@ -60,11 +57,11 @@ public:
     if (F == NULL)
       return;
     if (chimer)
-      fprintf(F, F_IID"\t" F_U32 "\t" F_U32 "\tchimer\t" F_U32 "\t" F_U32 "%s\n",
+      fprintf(F, F_U32"\t" F_U32 "\t" F_U32 "\tchimer\t" F_U32 "\t" F_U32 "%s\n",
               readIID, clrBgn, clrEnd, chmBgn, chmEnd,
               (deleted) ? "\tdeleted" : "");
     else
-      fprintf(F, F_IID"\t" F_U32 "\t" F_U32 "%s\n",
+      fprintf(F, F_U32"\t" F_U32 "\t" F_U32 "%s\n",
               readIID, clrBgn, clrEnd,
               (deleted) ? "\tdeleted" : "");
   };
@@ -83,7 +80,7 @@ public:
     return(feof(R) == false);
   };
 
-  AS_IID readIID;
+  uint32 readIID;
   uint32 deleted;
   uint32 clrBgn;
   uint32 clrEnd;
