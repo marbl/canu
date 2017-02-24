@@ -160,6 +160,12 @@ sub getNumOlapsAndSlices ($$) {
         caExit("Failed to find any overlaps ($numOlaps) or slices ($numSlices) or memory limit ($memLimit)", undef);
     }
 
+    #  Bump up the memory limit on grid jobs a bit.
+
+    setGlobal("ovsMemory", ceil($memLimit + 0.5));
+
+    #  The memory limit returned is used to tell ovStoreSorter itself how much space to reserve.
+
     return($numOlaps, $numSlices, $memLimit);
 }
 
@@ -222,7 +228,6 @@ sub overlapStoreConfigure ($$$) {
     #  Parse the output to find the number of jobs we need to sort and the memory
     #  ovs store memory is left as a range (e.g. 4-16) so building can scale itself to (hopefully) fit both into memory and into max system open files
     my ($numOlaps, $numSlices, $memLimit) = getNumOlapsAndSlices($base, $asm);
-    setGlobal("ovsMemory", ceil($memLimit * 1.1)); # request more memory to avoid memory issues on machines with no swap
 
     #  Parallel jobs for bucketizing.  This should really be part of overlap computation itself.
 
@@ -464,7 +469,7 @@ sub overlapStoreSorterCheck ($$$) {
 
     #  Figure out if all the tasks finished correctly.
 
-    my ($numOlaps, $numSlices) = getNumOlapsAndSlices($base, $asm);
+    my ($numOlaps, $numSlices, $memLimit) = getNumOlapsAndSlices($base, $asm);
 
     my $currentJobID   = 1;
     my @successJobs;
