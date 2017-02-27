@@ -103,9 +103,9 @@ sub createOverlapStoreSequential ($$$) {
         caExit("failed to create the overlap store", "$base/$asm.ovlStore.err");
     }
 
-    unlink "$base/$asm.ovlStore.err";
+    unlink("$base/$asm.ovlStore.err");
 
-    rename "$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore";
+    rename("$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore");
 
     stashStore("$base/$asm.ovlStore");
 }
@@ -139,14 +139,15 @@ sub countOverlapStoreInputs ($) {
 
 
 sub getNumOlapsAndSlices ($$) {
-    my $base = shift @_;
-    my $asm  = shift @_;
+    my $base    = shift @_;
+    my $asm     = shift @_;
+    my $path    = "$base/$asm.ovlStore.BUILDING";
 
     my $numOlaps   = undef;
     my $numSlices  = undef;
     my $memLimit   = undef;
 
-    open(F, "< $base/$asm.ovlStore.BUILDING/config.err") or caExit("can't open '$base/$asm.ovlStore.BUILDING/config.err' for reading: $!\n", undef);
+    open(F, "< $path/config.err") or caExit("can't open '$path/config.err' for reading: $!\n", undef);
     while (<F>) {
         if (m/Will sort (\d+.\d+) million overlaps per bucket, using (\d+) buckets (\d+.\d+) GB per bucket./) {
             $numOlaps  = $1;
@@ -177,34 +178,38 @@ sub overlapStoreConfigure ($$$) {
     my $tag     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
+    my $path    = "$base/$asm.ovlStore.BUILDING";
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreConfigure") == 1);
-    goto allDone   if ((-e "$base/$asm.ovlStore.BUILDING/scripts/0-config.sh") &&
-                       (-e "$base/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") &&
-                       (-e "$base/$asm.ovlStore.BUILDING/scripts/2-sort.sh") &&
-                       (-e "$base/$asm.ovlStore.BUILDING/scripts/3-index.sh"));
+    goto allDone   if ((-e "$path/scripts/0-config.sh") &&
+                       (-e "$path/scripts/1-bucketize.sh") &&
+                       (-e "$path/scripts/2-sort.sh") &&
+                       (-e "$path/scripts/3-index.sh"));
     goto allDone   if (-d "$base/$asm.ovlStore");
 
     my $numInputs  = countOverlapStoreInputs($base);
 
     #  Create an output directory, and populate it with more directories and scripts
 
-    system("mkdir -p $base/$asm.ovlStore.BUILDING")                   if (! -d "$base/$asm.ovlStore.BUILDING");
-    system("mkdir -p $base/$asm.ovlStore.BUILDING/scripts")           if (! -d "$base/$asm.ovlStore.BUILDING/scripts");
-    system("mkdir -p $base/$asm.ovlStore.BUILDING/logs")              if (! -d "$base/$asm.ovlStore.BUILDING/logs");
+    system("mkdir -p $path/scripts")           if (! -d "$path/scripts");
+    system("mkdir -p $path/logs")              if (! -d "$path/logs");
 
     #  Run the normal store build, but just to get the partitioning.  ovStoreBuild internally
     #  writes to config.WORKING, then renames when it is finished.  No need for the script
     #  to be overly careful about incomplete files.
 
-    if (! -e "$base/$asm.ovlStore.BUILDING/scripts/0-config.sh") {
-        open(F, "> $base/$asm.ovlStore.BUILDING/scripts/0-config.sh") or die;
+    if (! -e "$path/scripts/0-config.sh") {
+        open(F, "> $path/scripts/0-config.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F setWorkDirectoryShellCode($path);
+        print F "\n";
+        #print F getJobIDShellCode();
+        #print F "\n";
+        print F getBinDirectoryShellCode();
         print F "\n";
         print F getLimitShellCode("processes");
         print F getLimitShellCode("files");
-        print F "\n";
-        print F getBinDirectoryShellCode();
         print F "\n";
         print F "\$bin/ovStoreBuild \\\n";
         print F " -G ./$asm.gkpStore \\\n";
@@ -214,14 +219,14 @@ sub overlapStoreConfigure ($$$) {
         print F " -L ./1-overlapper/ovljob.files \\\n";
         close(F);
     }
-    system("chmod +x $base/$asm.ovlStore.BUILDING/scripts/0-config.sh");
+    system("chmod +x $path/scripts/0-config.sh");
 
-    if (! -e "$base/$asm.ovlStore.BUILDING/config") {
+    if (! -e "$path/config") {
         $cmd  = "./$asm.ovlStore.BUILDING/scripts/0-config.sh \\\n";
         $cmd .= "> ./$asm.ovlStore.BUILDING/config.err 2>&1\n";
 
         if (runCommand($base, $cmd)) {
-            caExit("failed to generate configuration for building overlap store", "$base/$asm.ovlStore.BUILDING/config.err");
+            caExit("failed to generate configuration for building overlap store", "$path/config.err");
         }
     }
 
@@ -233,16 +238,20 @@ sub overlapStoreConfigure ($$$) {
 
     #getAllowedResources("", "ovb");
 
-    if (! -e "$base/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") {
-        open(F, "> $base/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") or die;
+    if (! -e "$path/scripts/1-bucketize.sh") {
+        open(F, "> $path/scripts/1-bucketize.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
+        print F setWorkDirectoryShellCode($path);
+        print F "\n";
         print F getJobIDShellCode();
+        print F "\n";
+        print F getBinDirectoryShellCode();
         print F "\n";
         print F "bn=`printf %04d \$jobid`\n";
         print F "jn=\"undefined\"\n";
         print F "\n";
-        print F "#  This script runs in $base/$asm.ovlStore.BUILDING/, but the overlap file list\n";
+        print F "#  This script runs in $path/, but the overlap file list\n";
         print F "#  is relative to $base/, so we need to add a few dots to make things work.\n";
         print F "\n";
 
@@ -278,8 +287,6 @@ sub overlapStoreConfigure ($$$) {
         print F getLimitShellCode("processes");
         print F getLimitShellCode("files");
         print F "\n";
-        print F getBinDirectoryShellCode();
-        print F "\n";
         print F "\$bin/ovStoreBucketizer \\\n";
         print F "  -O . \\\n";
         print F "  -G ../$asm.gkpStore \\\n";
@@ -302,16 +309,18 @@ sub overlapStoreConfigure ($$$) {
 
     #getAllowedResources("", "ovs");
 
-    if (! -e "$base/$asm.ovlStore.BUILDING/scripts/2-sort.sh") {
-        open(F, "> $base/$asm.ovlStore.BUILDING/scripts/2-sort.sh") or die;
+    if (! -e "$path/scripts/2-sort.sh") {
+        open(F, "> $path/scripts/2-sort.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F setWorkDirectoryShellCode($path);
         print F "\n";
         print F getJobIDShellCode();
         print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
         print F getLimitShellCode("processes");
         print F getLimitShellCode("files");
-        print F "\n";
-        print F getBinDirectoryShellCode();
         print F "\n";
         print F "\$bin/ovStoreSorter \\\n";
         print F "  -deletelate \\\n";  #  Choices -deleteearly -deletelate or nothing
@@ -333,10 +342,14 @@ sub overlapStoreConfigure ($$$) {
 
     #  A final job to merge the indices.
 
-    if (! -e "$base/$asm.ovlStore.BUILDING/scripts/3-index.sh") {
-        open(F, "> $base/$asm.ovlStore.BUILDING/scripts/3-index.sh") or die;
+    if (! -e "$path/scripts/3-index.sh") {
+        open(F, "> $path/scripts/3-index.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
+        print F setWorkDirectoryShellCode($path);
+        print F "\n";
+        #print F getJobIDShellCode();
+        #print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
         print F "\$bin/ovStoreIndexer \\\n";
@@ -354,9 +367,9 @@ sub overlapStoreConfigure ($$$) {
         close(F);
     }
 
-    system("chmod +x $base/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh");
-    system("chmod +x $base/$asm.ovlStore.BUILDING/scripts/2-sort.sh");
-    system("chmod +x $base/$asm.ovlStore.BUILDING/scripts/3-index.sh");
+    system("chmod +x $path/scripts/1-bucketize.sh");
+    system("chmod +x $path/scripts/2-sort.sh");
+    system("chmod +x $path/scripts/3-index.sh");
 
   finishStage:
     emitStage($asm, "$tag-overlapStoreConfigure");
@@ -373,10 +386,11 @@ sub overlapStoreBucketizerCheck ($$$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $attempt = getGlobal("canuIteration");
+    my $path    = "$base/$asm.ovlStore.BUILDING";
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
-    goto allDone   if (-e "$base/$asm.ovlStore.BUILDING/1-bucketize.success");
+    goto allDone   if (-e "$path/1-bucketize.success");
 
     fetchFile("scripts/1-bucketize/1-bucketize.sh");
 
@@ -399,8 +413,8 @@ sub overlapStoreBucketizerCheck ($$$) {
     while (<F>) {
         chomp;
 
-        if (! -e "$base/$asm.ovlStore.BUILDING/bucket$bucketID") {
-            $failureMessage .= "--   job $base/$asm.ovlStore.BUILDING/bucket$bucketID FAILED.\n";
+        if (! -e "$path/bucket$bucketID") {
+            $failureMessage .= "--   job $path/bucket$bucketID FAILED.\n";
             push @failedJobs, $currentJobID;
         } else {
             push @successJobs, $currentJobID;
@@ -436,14 +450,14 @@ sub overlapStoreBucketizerCheck ($$$) {
         emitStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt);
         buildHTML($asm, $tag);
 
-        submitOrRunParallelJob($asm, "ovB", "$base/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
+        submitOrRunParallelJob($asm, "ovB", $path, "scripts/1-bucketize", @failedJobs);
         return;
     }
 
   finishStage:
     print STDERR "-- Overlap store bucketizer finished.\n";
 
-    touch("$base/$asm.ovlStore.BUILDING/1-bucketize.success");
+    touch("$path/1-bucketize.success");
 
     emitStage($asm, "$tag-overlapStoreBucketizerCheck");
     buildHTML($asm, $tag);
@@ -460,10 +474,11 @@ sub overlapStoreSorterCheck ($$$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $attempt = getGlobal("canuIteration");
+    my $path    = "$base/$asm.ovlStore.BUILDING";
 
     goto allDone   if (skipStage($asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
-    goto allDone   if (-e "$base/$asm.ovlStore.BUILDING/2-sorter.success");
+    goto allDone   if (-e "$path/2-sorter.success");
 
     fetchFile("scripts/1-bucketize/2-sort.sh");
 
@@ -481,22 +496,22 @@ sub overlapStoreSorterCheck ($$$) {
     open(F, "< $base/1-overlapper/ovljob.files") or caExit("can't open '$base/1-overlapper/ovljob.files' for reading: $!", undef);
 
     #  A valid result has three files:
-    #    $base/$asm.ovlStore.BUILDING/$sortID
-    #    $base/$asm.ovlStore.BUILDING/$sortID.index
-    #    $base/$asm.ovlStore.BUILDING/$sortID.info
+    #    $path/$sortID
+    #    $path/$sortID.index
+    #    $path/$sortID.info
     #
     #  A crashed result has one file, if it crashes before output
-    #    $base/$asm.ovlStore.BUILDING/$sortID.ovs
+    #    $path/$sortID.ovs
     #
     #  On out of disk, the .info is missing.  It's the last thing created.
     #
     while ($currentJobID <= $numSlices) {
 
-        if ((! -e "$base/$asm.ovlStore.BUILDING/$sortID") ||
-            (! -e "$base/$asm.ovlStore.BUILDING/$sortID.info") ||
-            (  -e "$base/$asm.ovlStore.BUILDING/$sortID.ovs")) {
-            $failureMessage .= "--   job $base/$asm.ovlStore.BUILDING/$sortID FAILED.\n";
-            unlink "$base/$asm.ovlStore.BUILDING/$sortID.ovs";
+        if ((! -e "$path/$sortID") ||
+            (! -e "$path/$sortID.info") ||
+            (  -e "$path/$sortID.ovs")) {
+            $failureMessage .= "--   job $path/$sortID FAILED.\n";
+            unlink "$path/$sortID.ovs";
             push @failedJobs, $currentJobID;
         } else {
             push @successJobs, $currentJobID;
@@ -532,14 +547,14 @@ sub overlapStoreSorterCheck ($$$) {
         emitStage($asm, "$tag-overlapStoreSorterCheck", $attempt);
         buildHTML($asm, $tag);
 
-        submitOrRunParallelJob($asm, "ovS", "$base/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
+        submitOrRunParallelJob($asm, "ovS", $path, "scripts/2-sort", @failedJobs);
         return;
     }
 
   finishStage:
     print STDERR "-- Overlap store sorter finished.\n";
 
-    touch("$base/$asm.ovlStore.BUILDING/2-sorter.success");
+    touch("$path/2-sorter.success");
 
     emitStage($asm, "$tag-overlapStoreSorterCheck");
     buildHTML($asm, $tag);
@@ -554,16 +569,17 @@ sub createOverlapStoreParallel ($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
     my $tag     = shift @_;
+    my $path    = "$base/$asm.ovlStore.BUILDING";
 
     overlapStoreConfigure      ($base, $asm, $tag);
     overlapStoreBucketizerCheck($base, $asm, $tag)   foreach (1..getGlobal("canuIterationMax") + 1);
     overlapStoreSorterCheck    ($base, $asm, $tag)   foreach (1..getGlobal("canuIterationMax") + 1);
 
-    if (runCommand("$base/$asm.ovlStore.BUILDING", "./scripts/3-index.sh > ./logs/3-index.err 2>&1")) {
+    if (runCommand($path, "./scripts/3-index.sh > ./logs/3-index.err 2>&1")) {
         caExit("failed to build index for overlap store", "$base/$asm.ovlStore.BUILDING/logs/3-index.err");
     }
 
-    rename "$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore";
+    rename $path, "$base/$asm.ovlStore";
 }
 
 
