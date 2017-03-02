@@ -131,6 +131,16 @@ sub mhapConfigure ($$$) {
         caFailure("invalid ${tag}MhapSensitivity=" . getGlobal("${tag}MhapSensitivity"), undef);
     }
 
+    # due to systematic bias in nanopore data, adjust threshold up by 5%
+    my $numNanoporeRaw = 0;
+    open(L, "< $base/$asm.gkpStore/libraries.txt") or caExit("can't open '$base/$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    while (<L>) {
+        $numNanoporeRaw++         if (m/nanopore-raw/);
+    }
+    close(L);
+
+    $threshold += 0.05   if ($numNanoporeRaw > 0);
+
     my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
 
     #  Constants.
