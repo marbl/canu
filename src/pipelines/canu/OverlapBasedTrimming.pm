@@ -115,7 +115,7 @@ sub splitReads ($) {
     my $path   = "trimming/3-overlapbasedtrimming";
 
     goto allDone   if (skipStage($asm, "obt-splitReads") == 1);
-    goto allDone   if (fileExists("trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear"));
+    goto allDone   if (fileExists("trimming/3-overlapbasedtrimming/$asm.2.splitReads.clear"));
 
     make_path($path)  if (! -d $path);
 
