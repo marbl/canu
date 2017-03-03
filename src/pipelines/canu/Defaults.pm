@@ -653,7 +653,7 @@ sub setDefaults () {
     $synops{"showNext"}                    = "Don't run any commands, just report what would run";
 
     $global{"pathMap"}                     = undef;
-    $synops{"pathMap"}                     = "File with a hostname to binary directory map";
+    $synops{"pathMap"}                     = "File with a hostname to binary directory map; binary directories must be absolute paths";
 
     $global{"shell"}                       = "/bin/sh";
     $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'";
@@ -1151,8 +1151,6 @@ sub checkParameters () {
     #
     #  Fiddle with filenames to make them absolute paths.
     #
-
-    makeAbsolute("pathMap");
 
     makeAbsolute("corOvlFrequentMers");
     makeAbsolute("obtOvlFrequentMers");
