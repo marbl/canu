@@ -374,6 +374,7 @@ sub merylCheck ($$) {
 
     goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
     goto allDone      if (fileExists("$path/meryl.success"));
+    goto finishStage  if (!defined($ffile));
     goto finishStage  if (fileExists("$path/$ffile"));
     goto finishStage  if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
 

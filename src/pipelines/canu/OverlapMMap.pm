@@ -346,8 +346,8 @@ sub mmapConfigure ($$$) {
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
     print F "    -G ../$asm.gkpStore \\\n";
-    print F "    -o ./results/\$qry.mmap.ovb \\\n";
-    print F "    ./results/\$qry.mmap.WORKING \\\n";
+    print F "    -o ./results/\$qry.mmap.ovb.WORKING \\\n";
+    print F "    ./results/\$qry.mmap \\\n";
     print F "  && \\\n";
     print F "  mv ./results/\$qry.mmap.ovb.WORKING ./results/\$qry.mmap.ovb\n";
     print F "fi\n";
