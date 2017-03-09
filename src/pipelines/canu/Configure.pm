@@ -685,15 +685,15 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("",    "meryl",    $err, $all);
 
     ($err, $all) = getAllowedResources("cor", "mhap",     $err, $all)   if (getGlobal("corOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all)   if (getGlobal("corOverlapper") eq "minihap");
+    ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all)   if (getGlobal("corOverlapper") eq "minimap");
     ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all)   if (getGlobal("corOverlapper") eq "ovl");
 
     ($err, $all) = getAllowedResources("obt", "mhap",     $err, $all)   if (getGlobal("obtOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("obt", "mmap",     $err, $all)   if (getGlobal("obtOverlapper") eq "minihap");
+    ($err, $all) = getAllowedResources("obt", "mmap",     $err, $all)   if (getGlobal("obtOverlapper") eq "minimap");
     ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all)   if (getGlobal("obtOverlapper") eq "ovl");
 
     ($err, $all) = getAllowedResources("utg", "mhap",     $err, $all)   if (getGlobal("utgOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all)   if (getGlobal("utgOverlapper") eq "minihap");
+    ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all)   if (getGlobal("utgOverlapper") eq "minimap");
     ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all)   if (getGlobal("utgOverlapper") eq "ovl");
 
     ($err, $all) = getAllowedResources("",    "cor",      $err, $all);
