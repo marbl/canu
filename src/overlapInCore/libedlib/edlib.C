@@ -203,14 +203,14 @@ EdlibAlignResult edlibAlign(const char* queryOriginal, const int queryLength,
     if (result.editDistance >= 0) {  // If there is solution.
         // If NW mode, set end location explicitly.
         if (config.mode == EDLIB_MODE_NW) {
-            result.endLocations = (int *) malloc(sizeof(int) * 1);
+            result.endLocations = new int [1];
             result.endLocations[0] = targetLength - 1;
             result.numLocations = 1;
         }
 
         // Find starting locations.
         if (config.task == EDLIB_TASK_LOC || config.task == EDLIB_TASK_PATH) {
-            result.startLocations = (int*) malloc(result.numLocations * sizeof(int));
+            result.startLocations = new int [result.numLocations];
             if (config.mode == EDLIB_MODE_HW) {  // If HW, I need to calculate start locations.
                 const unsigned char* rTarget = createReverseCopy(target, targetLength);
                 const unsigned char* rQuery  = createReverseCopy(query, queryLength);
@@ -260,9 +260,9 @@ EdlibAlignResult edlibAlign(const char* queryOriginal, const int queryLength,
 
     //--- Free memory ---//
     delete[] Peq;
-    free(query);
-    free(target);
-    if (alignData) delete alignData;
+    delete[] query;
+    delete[] target;
+    delete alignData;
     //-------------------//
 
     return result;
@@ -313,7 +313,7 @@ char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
         }
     }
     cigar->push_back(0);  // Null character termination.
-    char* cigar_ = (char*) malloc(cigar->size() * sizeof(char));
+    char* cigar_ = new char [cigar->size()];
     memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
     delete cigar;
 
@@ -620,7 +620,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* const Peq, const int W, const i
         if (lastBlock < firstBlock) {
             *bestScore_ = bestScore;
             if (bestScore != -1) {
-                *positions_ = (int *) malloc(sizeof(int) * positions.size());
+                *positions_ = new int [positions.size()];
                 *numPositions_ = positions.size();
                 copy(positions.begin(), positions.end(), *positions_);
             }
@@ -669,7 +669,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* const Peq, const int W, const i
 
     *bestScore_ = bestScore;
     if (bestScore != -1) {
-        *positions_ = (int *) malloc(sizeof(int) * positions.size());
+        *positions_ = new int [positions.size()];
         *numPositions_ = positions.size();
         copy(positions.begin(), positions.end(), *positions_);
     }
@@ -907,7 +907,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     const int W = maxNumBlocks * WORD_SIZE - queryLength;
 
-    *alignment = (unsigned char*) malloc((queryLength + targetLength - 1) * sizeof(unsigned char));
+    *alignment = new unsigned char [queryLength + targetLength - 1];
     *alignmentLength = 0;
     int c = targetLength - 1; // index of column
     int b = maxNumBlocks - 1; // index of block in column
@@ -1087,7 +1087,8 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
         //----------------------------------//
     }
 
-    *alignment = (unsigned char*) realloc(*alignment, (*alignmentLength) * sizeof(unsigned char));
+    //  BPW suspects this is just releasing memory.
+    //*alignment = (unsigned char*) realloc(*alignment, (*alignmentLength) * sizeof(unsigned char));
     reverse(*alignment, *alignment + (*alignmentLength));
     return EDLIB_STATUS_OK;
 }
@@ -1116,7 +1117,7 @@ static int obtainAlignment(const unsigned char* query, const unsigned char* rQue
     // Handle special case when one of sequences has length of 0.
     if (queryLength == 0 || targetLength == 0) {
         *alignmentLength = targetLength + queryLength;
-        *alignment = (unsigned char*) malloc((*alignmentLength) * sizeof(unsigned char));
+        *alignment = new unsigned char [*alignmentLength];
         for (int i = 0; i < *alignmentLength; i++) {
             (*alignment)[i] = queryLength == 0 ? EDLIB_EDOP_DELETE : EDLIB_EDOP_INSERT;
         }
@@ -1324,19 +1325,19 @@ static int obtainAlignmentHirschberg(
                                        target + ulWidth, rTarget, lrWidth,
                                        alphabetLength, rightScore, &lrAlignment, &lrAlignmentLength);
     if (ulStatusCode == EDLIB_STATUS_ERROR || lrStatusCode == EDLIB_STATUS_ERROR) {
-        if (ulAlignment) free(ulAlignment);
-        if (lrAlignment) free(lrAlignment);
+        delete[] ulAlignment;
+        delete[] lrAlignment;
         return EDLIB_STATUS_ERROR;
     }
 
     // Build alignment by concatenating upper left alignment with lower right alignment.
     *alignmentLength = ulAlignmentLength + lrAlignmentLength;
-    *alignment = (unsigned char*) malloc((*alignmentLength) * sizeof(unsigned char));
+    *alignment = new unsigned char [*alignmentLength];
     memcpy(*alignment, ulAlignment, ulAlignmentLength);
     memcpy(*alignment + ulAlignmentLength, lrAlignment, lrAlignmentLength);
 
-    free(ulAlignment);
-    free(lrAlignment);
+    delete[] ulAlignment;
+    delete[] lrAlignment;
     return EDLIB_STATUS_OK;
 }
 
@@ -1365,8 +1366,8 @@ static int transformSequences(const char* queryOriginal, const int queryLength,
     // Each letter is assigned an ordinal number, starting from 0 up to alphabetLength - 1,
     // and new query and target are created in which letters are replaced with their ordinal numbers.
     // This query and target are used in all the calculations later.
-    *queryTransformed = (unsigned char *) malloc(sizeof(unsigned char) * queryLength);
-    *targetTransformed = (unsigned char *) malloc(sizeof(unsigned char) * targetLength);
+    *queryTransformed = new unsigned char [queryLength];
+    *targetTransformed = new unsigned char [targetLength];
 
     // Alphabet information, it is constructed on fly while transforming sequences.
     unsigned char letterIdx[128]; //!< letterIdx[c] is index of letter c in alphabet
@@ -1410,7 +1411,7 @@ EdlibAlignConfig edlibDefaultAlignConfig() {
 }
 
 void edlibFreeAlignResult(EdlibAlignResult result) {
-    if (result.endLocations) free(result.endLocations);
-    if (result.startLocations) free(result.startLocations);
-    if (result.alignment) free(result.alignment);
+    delete[] result.endLocations;
+    delete[] result.startLocations;
+    delete[] result.alignment;
 }
