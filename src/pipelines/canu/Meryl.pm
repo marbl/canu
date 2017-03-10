@@ -612,7 +612,7 @@ sub merylProcess ($$) {
 
     } elsif (-z "$path/$ffile") {
         print STDERR "--\n";
-        print STDERR "-- Threshold zero.  No mers will be to find.\n";
+        print STDERR "-- Threshold zero.  No mers will be masked.\n";
 
     } else {
         print STDERR "--\n";
