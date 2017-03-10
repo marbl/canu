@@ -2,6 +2,7 @@ gridOptions=-q big.q
 
 genomeSize=5.4m
 
+minReadLength=5000
 stopOnReadQuality=false
 
 #
@@ -27,8 +28,6 @@ stopOnReadQuality=false
 #  --    15000  15999      2 
 #
 #  
-
-minReadLength=5000
 
 -pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941219_m120316_171606_42132_c100305132550000001523012008061220_s1_p0.fasta.xz
 -pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941220_m120316_190306_42132_c100305132550000001523012008061221_s1_p0.fasta.xz
