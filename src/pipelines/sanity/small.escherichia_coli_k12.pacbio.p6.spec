@@ -53,9 +53,9 @@ stopOnReadQuality=false
 #  --    41000  41999      1 
 #
 
--pacbio-raw /data/reads/escherichia_coli_k12/escherichia_coli_k12_p6c4.m140930_121059_sherri_c100688052550000001823139503241542_s1_p0.1.subreads.fasta.xz
--pacbio-raw /data/reads/escherichia_coli_k12/escherichia_coli_k12_p6c4.m140930_121059_sherri_c100688052550000001823139503241542_s1_p0.2.subreads.fasta.xz
--pacbio-raw /data/reads/escherichia_coli_k12/escherichia_coli_k12_p6c4.m140930_121059_sherri_c100688052550000001823139503241542_s1_p0.3.subreads.fasta.xz
+-pacbio-raw /data/regression/reads/escherichia_coli_k12/escherichia_coli_k12_p6c4.m140930_121059_sherri_c100688052550000001823139503241542_s1_p0.1.subreads.fasta.xz
+-pacbio-raw /data/regression/reads/escherichia_coli_k12/escherichia_coli_k12_p6c4.m140930_121059_sherri_c100688052550000001823139503241542_s1_p0.2.subreads.fasta.xz
+-pacbio-raw /data/regression/reads/escherichia_coli_k12/escherichia_coli_k12_p6c4.m140930_121059_sherri_c100688052550000001823139503241542_s1_p0.3.subreads.fasta.xz
 
 onSuccess=/work/canu/src/pipelines/sanity/success.escherichia_coli_k12.sh
 

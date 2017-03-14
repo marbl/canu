@@ -7,24 +7,24 @@ stopOnReadQuality=false
 
 mhapSensitivity=high
 
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849064_m110921_065749_42130_c100170022555600000315046410191192_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849065_m110921_084304_42130_c100170022555600000315046410191193_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849066_m110921_135433_42130_c100170022555600000315046410191196_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849067_m110921_153812_42130_c100170022555600000315046410191197_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849068_m110923_004912_42142_c100170262555600000315046410191190_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849069_m110923_022319_42142_c100170262555600000315046410191191_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849073_m110923_035536_42142_c100170262555600000315046410191192_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849074_m110923_052847_42142_c100170262555600000315046410191193_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849075_m110923_070153_42142_c100170262555600000315046410191194_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849076_m110923_100814_42142_c100170262555600000315046410191196_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849077_m110923_114233_42142_c100170262555600000315046410191197_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849078_m110925_055245_42130_c100170532555600000315046410191130_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849079_m110925_072613_42130_c100170532555600000315046410191131_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849080_m110925_085910_42130_c100170532555600000315046410191132_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849081_m110925_103024_42130_c100170532555600000315046410191133_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849082_m110925_120401_42130_c100170532555600000315046410191134_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849083_m110925_133714_42130_c100170532555600000315046410191135_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849084_m110925_151024_42130_c100170532555600000315046410191136_s1_p0.fastq.xz
--pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849085_m110925_164348_42130_c100170532555600000315046410191137_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849064_m110921_065749_42130_c100170022555600000315046410191192_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849065_m110921_084304_42130_c100170022555600000315046410191193_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849066_m110921_135433_42130_c100170022555600000315046410191196_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849067_m110921_153812_42130_c100170022555600000315046410191197_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849068_m110923_004912_42142_c100170262555600000315046410191190_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849069_m110923_022319_42142_c100170262555600000315046410191191_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849073_m110923_035536_42142_c100170262555600000315046410191192_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849074_m110923_052847_42142_c100170262555600000315046410191193_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849075_m110923_070153_42142_c100170262555600000315046410191194_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849076_m110923_100814_42142_c100170262555600000315046410191196_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849077_m110923_114233_42142_c100170262555600000315046410191197_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849078_m110925_055245_42130_c100170532555600000315046410191130_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849079_m110925_072613_42130_c100170532555600000315046410191131_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849080_m110925_085910_42130_c100170532555600000315046410191132_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849081_m110925_103024_42130_c100170532555600000315046410191133_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849082_m110925_120401_42130_c100170532555600000315046410191134_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849083_m110925_133714_42130_c100170532555600000315046410191135_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849084_m110925_151024_42130_c100170532555600000315046410191136_s1_p0.fastq.xz
+-pacbio-raw /data/regression/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849085_m110925_164348_42130_c100170532555600000315046410191137_s1_p0.fastq.xz
 
 onSuccess=/work/canu/src/pipelines/sanity/success.bibersteinia_trehalosi.sh

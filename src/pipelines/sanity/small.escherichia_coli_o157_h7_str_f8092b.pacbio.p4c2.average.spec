@@ -71,29 +71,29 @@ stopOnReadQuality=false
 #  --    19000  19999      0 
 #  --    20000  20999      2 
 
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941219.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941220.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941221.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941222.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941223.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941224.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941225.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941226.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941227.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941228.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941230.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941231.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941233.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941234.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941235.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941242.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941244.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941245.fasta.xz
--pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941246.fasta.xz
--pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941247.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941248.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941249.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941250.fasta.xz
-#-pacbio-raw /data/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941251.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941219.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941220.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941221.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941222.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941223.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941224.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941225.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941226.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941227.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941228.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941230.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941231.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941233.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941234.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941235.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941242.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941244.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941245.fasta.xz
+-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941246.fasta.xz
+-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941247.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941248.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941249.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941250.fasta.xz
+#-pacbio-raw /data/regression/reads/escherichia_coli_o157:h7_str_f8092b-p4c2/escherichia_coli_o157:h7_str_f8092b.p4c2.nbacc.SRR941251.fasta.xz
 
 onSuccess=/work/canu/src/pipelines/sanity/success.escherichia_coli_o157_h7_str_f8092b.sh
