@@ -52,25 +52,27 @@ for ss in small.bibersteinia_trehalosi.pacbio.h5-1000 \
   perl $bins/sanity.pl assemble $date $spec/$ss.spec
 done
 
-for ss in small.escherichia_coli_k12.nanopore.r9.SpotOn.1d \
-          small.escherichia_coli_k12.nanopore.r9.4.superlong.spec \
-          small.bacillus_anthracis_sterne.nanopore.34F2_NBI0483991.poretools.2D.spec \
-          small.yersinia_pestis.nanopore.NBI0499872.poretools.2D.spec \
-          small.saccharomyces_cerevisiae_s288c.nanopore.r7 \
-          small.saccharomyces_cerevisiae_s288c.nanopore.r9 \
-          small.saccharomyces_cerevisiae_w303.nanopore.poretools.2D
-#         small.escherichia_coli_k12.nanopore.all.2d           Short reads
-#         small.escherichia_coli_k12.nanopore.map006-1.2d      Short reads
-#         small.escherichia_coli_k12.nanopore.map006-2.2d      Short reads
-#         small.escherichia_coli_k12.nanopore.map006-pcr-1.2d  Short reads
-#         small.escherichia_coli_k12.nanopore.map006-pcr-2.2d  Short reads
-  do
-  perl $bins/sanity.pl assemble $date $spec/$ss.spec
-done
+#  Run nanopore every other day
 
+if [ `expr $day % 2` = 0 ] ; then
+  for ss in small.escherichia_coli_k12.nanopore.r9.SpotOn.1d \
+            small.escherichia_coli_k12.nanopore.r9.4.superlong.spec \
+            small.bacillus_anthracis_sterne.nanopore.34F2_NBI0483991.poretools.2D.spec \
+            small.yersinia_pestis.nanopore.NBI0499872.poretools.2D.spec \
+            small.saccharomyces_cerevisiae_s288c.nanopore.r7 \
+            small.saccharomyces_cerevisiae_s288c.nanopore.r9 \
+            small.saccharomyces_cerevisiae_w303.nanopore.poretools.2D
+#           small.escherichia_coli_k12.nanopore.all.2d           Short reads
+#           small.escherichia_coli_k12.nanopore.map006-1.2d      Short reads
+#           small.escherichia_coli_k12.nanopore.map006-2.2d      Short reads
+#           small.escherichia_coli_k12.nanopore.map006-pcr-1.2d  Short reads
+#           small.escherichia_coli_k12.nanopore.map006-pcr-2.2d  Short reads
+    do
+    perl $bins/sanity.pl assemble $date $spec/$ss.spec
+  done
+fi
 
-
-#  Run big stuff weekly.
+#  Run big stuff weekly.  6 = Saturday.
 
 if [ `date +%u` = 6 ] ; then
   for ss in medium.arabidopsis_thaliana.pacbio.p4c2 \
