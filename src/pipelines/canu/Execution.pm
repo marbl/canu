@@ -1091,7 +1091,7 @@ sub submitOrRunParallelJob ($$$$@) {
         foreach my $j (@jobs) {
             my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
-            runCommandSilently($path, "./$cmd.sh", 0) and caFailure("Failed to submit batch jobs", undef);
+            runCommandSilently($path, "./$cmd.sh", 0) and caFailure("Failed to submit batch jobs", "$path/$cmd.out");
 
             #  Parse the stdout/stderr from the submit command to find the id of the job
             #  we just submitted.  We'll use this to hold the next iteration until all these
