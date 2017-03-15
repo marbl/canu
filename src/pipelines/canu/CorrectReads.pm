@@ -862,6 +862,18 @@ sub buildCorrectionLayouts ($) {
 
     make_path("$path")  if (! -d "$path");
 
+    #  Set the minimum coverage for a corrected read based on coverage in input reads.
+
+    if (!defined(getGlobal("corMinCoverage"))) {
+        my $cov = getExpectedCoverage("correction", $asm);
+
+        setGlobal("corMinCoverage", 4);
+        setGlobal("corMinCoverage", 4)   if ($cov <  60);
+        setGlobal("corMinCoverage", 0)   if ($cov <= 20);
+
+        print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
+    }
+
     #  This will eventually get rolled into overlap store creation.  Generate a list of scores for
     #  'global' overlap filtering.
 
@@ -926,18 +938,6 @@ sub buildCorrectionLayouts ($) {
         caExit("failed to create list of reads to correct", undef)  if (! -e "$path/$asm.readsToCorrect");
     } else {
         print STDERR "-- Filtered list of reads found in '$path/$asm.readsToCorrect'.\n";
-    }
-
-    #  Set the minimum coverage for a corrected read based on coverage in input reads.
-
-    if (!defined(getGlobal("corMinCoverage"))) {
-        my $cov = getExpectedCoverage("correction", $asm);
-
-        setGlobal("corMinCoverage", 4);
-        setGlobal("corMinCoverage", 4)   if ($cov <  60);
-        setGlobal("corMinCoverage", 0)   if ($cov <= 20);
-
-        print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
     }
 
     buildCorrectionLayouts_direct($asm)      if (getGlobal("corConsensus") eq "utgcns");
