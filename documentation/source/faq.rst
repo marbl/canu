@@ -186,12 +186,12 @@ Why do I get less corrected read data than I asked for?
 
 What is the minimum coverage required to run Canu?
 -------------------------------------
-    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods.
-    - For less than 30X coverage, we recommend using ``corMinCoverage=0 errorRate=0.035`` to correct
-      as many reads as possible.
-    - For more than 60X coverage, we recommend using ``errorRate=0.013`` to slightly decrease the
-      error rate to use only the better reads.  This is primarily an optimization for speed and
-      generally does not improve (or degrade) assembly continuity.
+    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods:
+     - For less than 30X coverage, we recommend using ``corMinCoverage=0 errorRate=0.035`` to correct
+       as many reads as possible.
+     - For more than 60X coverage, we recommend using ``errorRate=0.013`` to slightly decrease the
+       error rate to use only the better reads.  This is primarily an optimization for speed and
+       generally does not improve (or degrade) assembly continuity.
 
 
 My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly repetitive genomes?
