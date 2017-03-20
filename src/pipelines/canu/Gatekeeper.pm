@@ -110,6 +110,18 @@ sub getNumberOfBasesInStore ($$) {
     }
     close(F);
 
+    #  An alternate, used in Meryl::getGenomeCoverage (deceased) was to parse the stats output.
+    #
+    #open(F, "$bin/gatekeeperDumpMetaData -stats -G $base/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$base/$asm.gkpStore'", undef);
+    #while (<F>) {
+    #    my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
+    #    if ($library == 0) {
+    #        $gs = $bases / getGlobal("genomeSize");
+    #        last;
+    #    }
+    #}
+    #close(F);
+
     return($nb);
 }
 

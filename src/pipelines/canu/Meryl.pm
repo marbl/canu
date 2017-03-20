@@ -40,7 +40,7 @@ package canu::Meryl;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getGenomeCoverage merylConfigure merylCheck merylProcess);
+@EXPORT = qw(merylConfigure merylCheck merylProcess);
 
 use strict;
 
@@ -55,38 +55,6 @@ use canu::ErrorEstimate;
 use canu::HTML;
 use canu::Report;
 use canu::Grid_Cloud;
-
-sub getGenomeCoverage($$$) {
-    my $base    = shift @_;
-    my $asm     = shift @_;
-    my $merSize = shift @_;
-    my $bin     = getBinDirectory();
-    my $gs;
-
-    #  This used to look in the estimate-mer-threshold output for an estimate based on the kmer
-    #  histogram, but it stopped reporting that in late December 2016.
-    #
-    #fetchFile("$base/0-mercounts/$asm.ms$merSize.estMerThresh.err");
-    #
-    #if (-e "$base/0-mercounts/$asm.ms$merSize.estMerThresh.err") {
-    #    $gs=`cat $path/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
-    #    chomp $gs;
-    #}
-
-    #  So, we end up using bases in gkpStore and genome size.
-
-    open(F, "$bin/gatekeeperDumpMetaData -stats -G $base/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$base/$asm.gkpStore'", undef);
-    while (<F>) {
-        my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
-        if ($library == 0) {
-            $gs = $bases / getGlobal("genomeSize");
-            last;
-        }
-    }
-    close(F);
-
-    return($gs);
-}
 
 
 
@@ -445,7 +413,7 @@ sub merylConfigure ($$) {
 
     my $mem = int(getGlobal("merylMemory")  * 1024 * 0.8);   #  Because meryl expects megabytes, not gigabytes.
     my $thr = getGlobal("merylThreads");
-    my $cov = getGenomeCoverage($base, $asm, undef);
+    my $cov = getExpectedCoverage($base, $asm);
 
     caExit("merylMemory isn't defined?", undef)   if (!defined($mem));
     caExit("merylThreads isn't defined?", undef)  if (!defined($thr));
