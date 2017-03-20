@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
 
 use strict;
 use Cwd qw(getcwd abs_path);
@@ -321,22 +321,6 @@ sub printOptions () {
         }
 
         print "$o$u\n";
-    }
-}
-
-
-sub printVersion ($) {
-    my $bin = shift @_;
-    my $version;
-
-    open(F, "$bin/gatekeeperCreate --version 2>&1 |");
-    while (<F>) {
-        $version = $_;  chomp $version;
-    }
-    close(F);
-
-    if (length($version) > 0) {
-        print "-- $version\n";
     }
 }
 
@@ -643,6 +627,8 @@ sub setDefaults () {
 
     $global{"errors"}                      = undef;   #  Command line errors
     $global{"errorRateUsed"}               = undef;   #  A warning if obsolete 'errorRate' parameter is used.  This lets us print the error in a useful place, instead of at the very start of the output.
+
+    $global{"version"}                     = undef;   #  Reset at the end of this function, once we know where binaries are.
 
     #####  General Configuration Options (aka miscellany)
 
@@ -982,6 +968,21 @@ sub setDefaults () {
     }
 }
 
+
+#  Get the version information.  Needs to be last so that pathMap can be defined.
+
+sub setVersion ($) {
+    my $bin    = shift @_;
+    my $version;
+
+    open(F, "$bin/gatekeeperCreate --version 2>&1 |");
+    while (<F>) {
+        $version = $_;  chomp $version;
+    }
+    close(F);
+
+    $global{'version'} = $version;
+}
 
 
 sub checkJava () {

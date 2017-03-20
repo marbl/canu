@@ -78,7 +78,7 @@ require Exporter;
 use strict;
 use Config;            #  for @signame
 use Cwd qw(getcwd);
-use Carp qw(cluck);
+use Carp qw(longmess);
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 use List::Util qw(min max);
@@ -1435,7 +1435,7 @@ sub caExit ($$) {
     my  $log   = shift @_;
 
     print STDERR "================================================================================\n";
-    print STDERR "Don't panic, but a mostly harmless error occurred and canu failed.\n";
+    print STDERR "Don't panic, but a mostly harmless error occurred and Canu stopped.\n";
     print STDERR "\n";
 
     if (defined($log)) {
@@ -1452,7 +1452,10 @@ sub caExit ($$) {
         print STDERR "\n";
     }
 
-    print STDERR "canu failed with '$msg'.\n";
+    my $version = getGlobal("version");
+
+    print STDERR "$version failed with:\n";
+    print STDERR "  $msg\n";
     print STDERR "\n";
 
     my $fail = getGlobal('onFailure');
@@ -1466,16 +1469,18 @@ sub caExit ($$) {
 
 #  Use caFailure() for errors that definitely will require code changes to fix.
 sub caFailure ($$) {
-    my  $asm   = getGlobal("onExitNam");
-    my  $msg   = shift @_;
-    my  $log   = shift @_;
+    my  $asm     = getGlobal("onExitNam");
+    my  $msg     = shift @_;
+    my  $log     = shift @_;
+    my  $version = getGlobal("version");
+    my  $trace   = longmess(undef);
 
     print STDERR "================================================================================\n";
-    print STDERR "Please panic.  canu failed, and it shouldn't have.\n";
+    print STDERR "Please panic.  Canu failed, and it shouldn't have.\n";
     print STDERR "\n";
     print STDERR "Stack trace:\n";
     print STDERR "\n";
-    cluck;
+    print STDERR "$trace\n";
     print STDERR "\n";
 
     if (-e $log) {
@@ -1485,7 +1490,9 @@ sub caFailure ($$) {
     }
 
     print STDERR "\n";
-    print STDERR "canu failed with '$msg'.\n";
+    print STDERR "$version failed with:\n";
+    print STDERR "  $msg\n";
+    print STDERR "\n";
 
     my $fail = getGlobal('onFailure');
     if (defined($fail)) {

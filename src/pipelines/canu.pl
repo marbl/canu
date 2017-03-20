@@ -96,6 +96,12 @@ my $bin = getBinDirectory();  #  Path to binaries, reset later.
 my $cmd = undef;              #  Temporary string passed to system().
 my $asm = undef;              #  Name of our assembly.
 
+#  What a mess.  We can't set the version string until after we have a bin directory, and
+#  Defaults.pm can't call stuff in Execution.pm.  So, we need to special case setting the version
+#  string.
+
+setVersion($bin);
+
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
 
@@ -112,7 +118,7 @@ foreach my $arg (@ARGV) {
 
     if (($arg eq "-version") ||
         ($arg eq "--version")) {
-        system("$bin/gatekeeperCreate --version");
+        print getGlobal("version") . "\n";
         exit(0);
     }
 }
@@ -301,7 +307,7 @@ printHelp();
 #  Now that we know the bin directory, print the version so those pesky users
 #  will (hopefully) include it when they paste in logs.
 
-printVersion($bin);
+print "-- " . getGlobal("version") . "\n";
 
 #  Check java and gnuplot.
 
