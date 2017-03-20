@@ -157,7 +157,7 @@ sub addToReport ($$) {
     my $item = shift @_;
     my $text = shift @_;
 
-    #print STDERR $text;     #  Client code is GREATLY simplified if this dumps to the screen too.
+    print STDERR $text;     #  Client code is GREATLY simplified if this dumps to the screen too.
 
     $report{$item} = $text;
 }
