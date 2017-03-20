@@ -118,7 +118,7 @@ sub setGlobal ($$) {
         }
     }
 
-    foreach my $opt ("overlapper") {
+    foreach my $opt ("overlapper", "realign") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
@@ -631,8 +631,8 @@ sub setOverlapDefaults ($$$) {
     $synops{"${tag}MMapMerSize"}              = "K-mer size for seeds in minmap";
 
     # shared parameters for alignment-free overlappers
-    $global{"${tag}ReAlign"}                  = undef;
-    $synops{"${tag}ReAlign"}                  = "Compute actual alignments from overlaps; 'raw' from output, 'final' from overlap store; uses corErrorRate, obtOvlErrorRate or utgOvlErrorRate, depending on which overlaps are computed";
+    $global{"${tag}ReAlign"}                  = 0;
+    $synops{"${tag}ReAlign"}                  = "Refine mhap/minimap overlaps by computing the actual alignment: 'true' or 'false'.  Uses ${tag}OvlErrorRate";
 }
 
 

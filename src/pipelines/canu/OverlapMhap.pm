@@ -517,7 +517,7 @@ sub mhapConfigure ($$$) {
         print F "\n";
     }
 
-    if (getGlobal("${tag}ReAlign") eq "raw") {
+    if (getGlobal("${tag}ReAlign") eq "1") {
         print F "if [ -e ./results/\$qry.mhap.ovb ] ; then\n";
         print F "  \$bin/overlapPair \\\n";
         print F "    -G ../$asm.gkpStore \\\n";

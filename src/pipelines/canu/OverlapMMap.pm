@@ -362,13 +362,13 @@ sub mmapConfigure ($$$) {
     }
 
     print F "if [ -e ./results/\$qry.mmap.ovb ] ; then\n";
-    if (getGlobal("${tag}ReAlign") eq "raw") {
+    if (getGlobal("${tag}ReAlign") eq "1") {
         print F "  \$bin/overlapPair \\\n";
         print F "    -G ../$asm.gkpStore \\\n";
         print F "    -O ./results/\$qry.mmap.ovb \\\n";
         print F "    -o ./results/\$qry.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
-        print F "    -erate ", getGlobal("corOvlErrorRate"), " \\\n"  if ($tag eq "cor");
+        print F "    -erate ", getGlobal("corOvlErrorRate"), " \\\n"  if ($tag eq "cor");   #  Explicitly using proper name for grepability.
         print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($tag eq "obt");
         print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($tag eq "utg");
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";

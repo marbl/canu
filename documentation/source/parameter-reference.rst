@@ -257,7 +257,7 @@ Overlapper Configuration, mhap Algorithm
 .. _mhapReAlign:
 
 {prefix}ReAlign <boolean=false>
-  Compute actual alignments from mhap overlaps; 'raw' from mhap output;
+  Compute actual alignments from mhap overlaps.
   uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed)
 
 .. _mhapSensitivity:
