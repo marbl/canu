@@ -505,12 +505,14 @@ sub lengthStats (@) {
     my $mean   = 0;
     my $n50    = 0;
 
-    foreach my $v (@v) {
-        $total += $v;
-        $n50    = $v  if ($total < getGlobal("genomeSize") / 2);
-    }
+    if (scalar(@v) > 0) {
+        foreach my $v (@v) {
+            $total += $v;
+            $n50    = $v  if ($total < getGlobal("genomeSize") / 2);
+        }
 
-    $mean = int($total / scalar(@v) + 0.5);
+        $mean = int($total / scalar(@v) + 0.5);
+    }
 
     return($mean, $n50);
 }
