@@ -621,7 +621,7 @@ sub setOverlapDefaults ($$$) {
     $synops{"${tag}MhapOrderedMerSize"}       = "K-mer size for second-stage filter in mhap";
 
     $global{"${tag}MhapSensitivity"}          = undef;
-    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'low', 'normal' or 'high'.  Usually set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'";
+    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'low', 'normal' or 'high'.  Set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'";
 
     $global{"${tag}MMapBlockSize"}            = 6000;
     $synops{"${tag}MMapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
