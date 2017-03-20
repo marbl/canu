@@ -48,6 +48,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
+use canu::Report;
 use canu::HTML;
 use canu::Grid_Cloud;
 

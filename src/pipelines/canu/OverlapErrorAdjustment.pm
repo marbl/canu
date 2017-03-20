@@ -49,6 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::Report;
 use canu::HTML;
 use canu::Grid_Cloud;
 
@@ -655,6 +656,15 @@ sub updateOverlapStore ($) {
     }
 
     stashFile("unitigging/$asm.ovlStore/evalues");
+
+    my $report = "-- No report available.\n";
+
+    #open(F, "< $path/oea.apply.stats") or caExit("Failed to open error rate adjustment statistics in '$path/oea.apply.stats': $!", undef);
+    #while (<F>) {
+    #}
+    #close(F);
+
+    addToReport("adjustments", $report);
 
   finishStage:
     emitStage($asm, "updateOverlapStore");

@@ -558,6 +558,7 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/canu/OverlapMhap.pm \
      ${TARGET_DIR}/lib/canu/OverlapMMap.pm \
      ${TARGET_DIR}/lib/canu/OverlapStore.pm \
+     ${TARGET_DIR}/lib/canu/Report.pm \
      ${TARGET_DIR}/lib/canu/Unitig.pm
 	@echo ""
 	@echo "Success!"
@@ -676,6 +677,9 @@ ${TARGET_DIR}/lib/canu/OverlapMMap.pm: pipelines/canu/OverlapMMap.pm
 
 ${TARGET_DIR}/lib/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
 	cp -pf pipelines/canu/OverlapStore.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Report.pm: pipelines/canu/Report.pm
+	cp -pf pipelines/canu/Report.pm ${TARGET_DIR}/lib/canu/
 
 ${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
 	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/canu/

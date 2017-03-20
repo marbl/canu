@@ -45,6 +45,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::Report;
 use canu::HTML;
 use canu::Grid_Cloud;
 
@@ -86,6 +87,18 @@ sub trimReads ($) {
     unlink("$path/$asm.1.trimReads.err");
 
     stashFile("./trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
+
+    my $report;
+
+#FORMAT
+    open(F, "< trimming/3-overlapbasedtrimming/$asm.1.trimReads.stats") or caExit("can't open 'trimming/3-overlapbasedtrimming/$asm.1.trimReads.stats' for reading: $!", undef);
+    while (<F>) {
+        $report .= "--  $_";
+    }
+    close(F);
+
+    addToReport("trimming", $report);
+
 
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
@@ -146,6 +159,17 @@ sub splitReads ($) {
     unlink("$path/$asm.2.splitReads.err");
 
     stashFile("./trimming/3-overlapbasedtrimming/$asm.2.splitReads.clear");
+
+    my $report;
+
+#FORMAT
+    open(F, "< trimming/3-overlapbasedtrimming/$asm.2.splitReads.stats") or caExit("can't open 'trimming/3-overlapbasedtrimming/$asm.2.splitReads.stats' for reading: $!", undef);
+    while (<F>) {
+        $report .= "--  $_";
+    }
+    close(F);
+
+    addToReport("splitting", $report);
 
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";

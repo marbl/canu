@@ -86,6 +86,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use File::Spec;
 
 use canu::Defaults;
+use canu::Report   qw(generateReport);
 
 
 
@@ -263,6 +264,8 @@ sub emitStage ($$@) {
     my $asm     = shift @_;
     my $stage   = shift @_;
     my $attempt = shift @_;
+
+    generateReport($asm);
 
     if (!defined($attempt)) {
         print STDERR "-- Finished stage '$stage', reset canuIteration.\n";

@@ -49,6 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::Report;
 use canu::HTML;
 use canu::Grid_Cloud;
 
@@ -299,7 +300,7 @@ sub buildCorrectionLayouts_direct ($) {
         print F "\$bin/falcon_sense \\\n";
         print F "  --min_idt $minidt \\\n";
         print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
-        print F "  --max_read_len " . 2 * getMaxReadInStore("correction", $asm) . "\\\n";
+        print F "  --max_read_len " . 2 * getMaxReadLengthInStore($base, $asm) . " \\\n";
         print F "  --min_ovl_len " . getGlobal("minOverlapLength") . "\\\n";
         print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
         print F "  --n_core " . getGlobal("corThreads") . " \\\n";
@@ -460,7 +461,7 @@ sub buildCorrectionLayouts_piped ($) {
     print F "\$bin/falcon_sense \\\n";
     print F "  --min_idt $minidt \\\n";
     print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
-    print F "  --max_read_len " . 2 * getMaxReadInStore("correction", $asm) . "\\\n";
+    print F "  --max_read_len " . 2 * getMaxReadLengthInStore($base, $asm) . " \\\n";
     print F "  --min_ovl_len " . getGlobal("minOverlapLength") . "\\\n";
     print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
     print F "  --n_core " . getGlobal("corThreads") . " \\\n";
@@ -797,6 +798,21 @@ sub expensiveFilter ($) {
 
     stashFile("$path/$asm.readsToCorrect.summary");
 
+    my $report;
+
+    $report  = "--\n";
+    $report .= "-- Reads to be corrected:\n";
+    $report .= "--   $nCorReads reads longer than $minRawLength bp\n";
+    $report .= "--   $totCorLengthIn bp\n";
+    $report .= "-- Expected corrected reads:\n";
+    $report .= "--   $nCorReads reads\n";
+    $report .= "--   $totCorLengthOut bp\n";
+    $report .= "--   $minCorLength bp minimum length\n";
+    $report .= "--   $corFilterMean bp mean length\n";
+    $report .= "--   $corFilterN50 bp n50 length\n";
+
+    addToReport("corrections", $report);
+
     #  Plot a scatter plot of the original vs the expected corrected read lengths.  Early versions
     #  also plotted the sorted length vs the other length, but those were not interesting.
 
@@ -910,6 +926,17 @@ sub buildCorrectionLayouts ($) {
     } else {
         print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
     }
+
+    my $report;
+
+#FORMAT
+    open(F, "< $path/$asm.globalScores.stats") or caExit("can't open '$path/$asm.globalScores.stats' for reading: $!", undef);
+    while(<F>) {
+        $report .= "--  $_";
+    }
+    close(F);
+
+    addToReport("filtering", $report);
 
     #  For 'quick' filtering, but more reads to correct, sort the reads by length, and correct the
     #  longest Nx of reads.
@@ -1282,6 +1309,21 @@ sub dumpCorrectedReads ($) {
 
     #  Write a summary of the corrections.
 
+    my $report = getFromReport("corrections");
+
+    $report .= "-- Actual corrected reads:\n";
+    $report .= "--   $correctedReads reads\n";
+    $report .= "--   $correctedBases bp\n";
+
+    for (my $ii=0; $ii<scalar(@corrPiecesHist); $ii++) {
+        $corrPiecesHist[$ii] += 0;
+        $report .= "--   $corrPiecesHist[$ii] reads with $ii corrected block" . (($ii == 1) ? "" : "s") . "\n";
+    }
+
+    addToReport("corrections", $report);
+
+
+#OBSOLETE
     open(F, "> $path/$asm.correction.summary") or caExit("", undef);
     print F "CORRECTION INPUTS:\n";
     print F "-----------------\n";

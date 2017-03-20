@@ -48,6 +48,7 @@ use File::Basename;   #  dirname
 use POSIX qw(ceil);
 use canu::Defaults;
 use canu::Execution;
+use canu::Report;
 use canu::HTML;
 use canu::Grid_Cloud;
 
@@ -598,10 +599,23 @@ sub generateOverlapStoreStats ($$) {
 
     if (runCommand($base, $cmd)) {
         print STDERR "--\n";
-        print STDERR "-- WARNING: failed to generate statistics for the overlap store; no summary will appear in HTML output.\n";
+        print STDERR "-- WARNING: failed to generate statistics for the overlap store; no summary will appear in report.\n";
         print STDERR "--\n";
         print STDERR "----------------------------------------\n";
+        return;
     }
+
+    unlink "$base/$asm.ovlStore.summary.err";
+
+    my $report;
+
+    open(F, "< $base/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$base/$asm.ovlStore.summary': $!", undef);
+    while (<F>) {
+        $report .= "-- $_";
+    }
+    close(F);
+
+    addToReport("overlaps", $report);
 }
 
 

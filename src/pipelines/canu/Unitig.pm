@@ -51,6 +51,7 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Configure;    #  For displayGenomeSize
 use canu::Gatekeeper;
+use canu::Report;
 use canu::HTML;
 use canu::Meryl;
 use canu::Grid_Cloud;
@@ -138,15 +139,22 @@ sub reportUnitigSizes ($$$) {
     }
     close(F);
 
-    print STDERR "-- Found, in version $version, $label:\n";
-    print STDERR "--   contigs:      $ctgNum sequences, total length $ctgBases bp (including $rptNum repeats of total length $rptBases bp).\n";
-    print STDERR "--   bubbles:      $bubNum sequences, total length $bubBases bp.\n";
-    print STDERR "--   unassembled:  $usmNum sequences, total length $usmBases bp.\n";
-    print STDERR "--\n";
-    print STDERR "-- Contig sizes based on genome size ", displayGenomeSize($gs), "bp:\n";
-    print STDERR "--\n";
-    print STDERR "$ctgSizes";
-    print STDERR "--\n";
+    my $report;
+
+    $report .= "-- Found, in version $version, $label:\n";
+    $report .= "--   contigs:      $ctgNum sequences, total length $ctgBases bp (including $rptNum repeats of total length $rptBases bp).\n";
+    $report .= "--   bubbles:      $bubNum sequences, total length $bubBases bp.\n";
+    $report .= "--   unassembled:  $usmNum sequences, total length $usmBases bp.\n";
+    $report .= "--\n";
+    $report .= "-- Contig sizes based on genome size ", displayGenomeSize($gs), "bp:\n";
+    $report .= "--\n";
+    $report .= $ctgSizes;
+    $report .= "--\n";
+
+    #  Hmmm.  Report wants a small tag, but $label is a bit verbose.
+
+    addToReport("contigs",   $report)    if ($label eq "after unitig construction");
+    addToReport("consensus", $report)    if ($label eq "after consensus generation");
 }
 
 

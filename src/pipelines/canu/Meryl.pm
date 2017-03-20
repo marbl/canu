@@ -46,12 +46,14 @@ use strict;
 
 use File::Path 2.08 qw(make_path remove_tree);
 use File::Basename;
+use POSIX qw(ceil);
 
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::ErrorEstimate;
 use canu::HTML;
+use canu::Report;
 use canu::Grid_Cloud;
 
 sub getGenomeCoverage($$$) {
@@ -88,16 +90,176 @@ sub getGenomeCoverage($$$) {
 
 
 
+sub merylGenerateHistogram ($$) {
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $hist;
+
+    #  We don't know $ofile from where merylGenerateHistogram is typically called (Report.pm)
+    #  and so we're forced to configure every time.
+
+    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
+
+    return(undef)   if (! -e "$path/$ofile.histogram");
+    return(undef)   if (! -e "$path/$ofile.histogram.info");
+
+    #  Load the statistics
+
+    my $numTotal    = 0;
+    my $numDistinct = 0;
+    my $numUnique   = 0;
+    my $largest     = 0;
+
+    open(F, "< $path/$ofile.histogram.info") or caFailure("can't open meryl histogram information file '$path/$ofile.histogram.info' for reading: $!\n", undef);
+    while (<F>) {
+        $numTotal    = $1   if (m/Found\s(\d+)\s+mers./);
+        $numDistinct = $1   if (m/Found\s(\d+)\s+distinct\smers./);
+        $numUnique   = $1   if (m/Found\s(\d+)\s+unique\smers./);
+        $largest     = $1   if (m/Largest\smercount\sis\s(\d+)/);
+    }
+    close(F);
+
+    #  Load histogram data
+
+    my @tc;  #  Total count
+    my @fu;  #  Fraction unique
+    my @ft;  #  Fraction total
+    my $mc;
+
+    open(F, "< $path/$ofile.histogram");
+    while (<F>) {
+        my @v = split '\s+', $_;
+        $tc[$v[0]] = $v[1];
+        $fu[$v[0]] = $v[2];
+        $ft[$v[0]] = $v[3];
+        $mc        = $v[0];  #  histogram should be sorted
+    }
+    close(F);
+
+    #  Prune the high-count kmers
+    #
+    #  In blocks of 40, extend the histogram until the average of the next block is nearly the same
+    #  as the average of this block.
+if (0) {
+    my $lo      = 2;
+    my $hi      = 3;
+    my $st      = 1;
+    my $aveLast = 0;
+    my $aveThis = 0;
+
+    for (my $ii=$lo; $ii<$hi; $ii++) {
+        $aveThis += $tc[$ii];
+    }
+    $aveThis /= ($hi - $lo);
+    $aveLast  = 0;
+
+    print STDERR "aveLast $aveLast aveThis $aveThis $lo $hi INITIAL\n";
+
+    while (($hi < $mc) &&
+           ($aveThis > 2) &&
+           (($aveThis < 0.90 * $aveLast) ||
+            ($aveLast < 0.90 * $aveThis))) {
+        $lo += $st;
+        $hi += $st;
+        $st += 1;
+
+        $aveLast = $aveThis;
+        $aveThis = 0;
+
+        for (my $ii=$lo; $ii<$hi; $ii++) {
+            $aveThis += $tc[$ii];
+        }
+        $aveThis /= ($hi - $lo);
+        print STDERR "aveLast $aveLast aveThis $aveThis $lo $hi\n";
+    }
+
+    print STDERR "aveLast $aveLast aveThis $aveThis $lo $hi FINAL\n";
+}
+
+    my @TC;
+    my @FU;
+    my @FT;
+
+    my $TCmax  = 0;
+
+    my $lo = 1;
+    my $hi = 2;
+    my $st = 1;
+
+    for (my $ii=0; $ii <= 40; $ii++) {
+        for (my $jj=$lo; $jj < $hi; $jj++) {
+            $TC[$ii] += $tc[$jj];                                      #  Sum the counts
+
+            $FU[$ii] = ($fu[$ii] < $FU[$ii]) ? $FU[$ii] : $fu[$jj];    #  But the fractions are already cumulative,
+            $FT[$ii] = ($ft[$ii] < $FT[$ii]) ? $FT[$ii] : $ft[$jj];    #  we just need to skip zeros.
+        }
+
+        if ($ii > 0) {
+            $TCmax = ($TCmax < $TC[$ii]) ? $TC[$ii] : $TCmax;
+        }
+
+        $lo  = $hi;
+        $hi += $st;
+        $st += 1;
+    }
+
+    my $maxY   = $lo;
+    my $Xscale = $TCmax / 70;
+
+    #  Now just draw the histogram
+
+    $hist .= "--\n";
+    $hist .= "--  $merSize-mers                                                                                           Fraction\n";
+    $hist .= "--    Occurrences   NumMers                                                                         Unique Total\n";
+
+    $lo = 1;
+    $hi = 2;
+    $st = 1;
+
+    for (my $ii=0; $ii<=40; $ii++) {
+        my $numXs = int($TC[$ii] / $Xscale);
+
+        if ($numXs <= 70) {
+            $hist .= sprintf("--  %6d-%6d %9d %s%s %.4f %.4f\n",
+                             $lo, $hi-1, $TC[$ii],
+                             "*" x      ($numXs),
+                             " " x (70 - $numXs), $FU[$ii], $FT[$ii]);
+        } else {
+            $hist .= sprintf("--  %6d-%6d %9d %s%s %.4f %.4f\n",
+                             $lo, $hi-1, $TC[$ii],
+                             "*" x 67,
+                             "-->", $FU[$ii], $FT[$ii]);
+        }
+
+        last   if ($hi >= $maxY);
+
+        $lo  = $hi;
+        $hi += $st;
+        $st += 1;
+    }
+
+    $hist .= sprintf("--\n");
+    $hist .= sprintf("-- %11d (max occurrences)\n",             $largest);
+    $hist .= sprintf("-- %11d (total mers, non-unique)\n",      $numTotal    - $numUnique);
+    $hist .= sprintf("-- %11d (distinct mers, non-unique)\n",   $numDistinct - $numUnique);
+    $hist .= sprintf("-- %11d (unique mers)\n",                 $numUnique);
+
+    return($hist);
+}
+
+
+
+
 #  Threshold:  Three methods to pick it.
 #    Threshold  - 'auto', 'auto * X', 'auto / X', or an integer value
 #    Distinct   - by the fraction distinct retained
 #    Total      - by the fraction total retained
 
-sub plotHistogram ($$$$) {
+sub merylPlotHistogram ($$$$) {
     my $path   = shift @_;
     my $ofile  = shift @_;
     my $suffix = shift @_;
-    my $size   = shift @_;
+    my $size   = shift @_;  #  Size of image, not merSize!
 
     return  if (fileExists("$path/$ofile.histogram.$suffix.gp"));
 
@@ -480,14 +642,24 @@ sub merylProcess ($$) {
 
     #  Plot the histogram - annotated with the thesholds
 
-    plotHistogram($path, $ofile, "lg", 1024);
-    plotHistogram($path, $ofile, "sm", 256);
+    merylPlotHistogram($path, $ofile, "lg", 1024);    #  $ofile has merSize encoded in it
+    merylPlotHistogram($path, $ofile, "sm", 256);
+
+    #  Display the histogram, and save to the report.  Shouldn't this (and the plots above)
+    #  go in finishStage?
+
+    addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
 
     #  Generate the frequent mers for overlapper
 
     if (getGlobal("${tag}Overlapper") eq "ovl") {
         fetchFile("$path/$ofile.mcdat");
         fetchFile("$path/$ofile.mcidx");
+
+        if ((! -e "$path/$ofile.mcdat") || 
+            (! -e "$path/$ofile.mcdat")) {
+            caFailure("meryl can't dump frequent mers, databases don't exist.  Remove $path/meryl.success to try again.", undef);
+        }
 
         if (runCommand($path, "$bin/meryl -Dt -n $merThresh -s ./$ofile > ./$ffile 2> ./$ffile.err")) {
             unlink "$path/$ffile";

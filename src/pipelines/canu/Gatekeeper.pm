@@ -40,7 +40,7 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getMaxReadInStore getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists gatekeeper);
+@EXPORT = qw(getMaxReadLengthInStore getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists gatekeeper);
 
 use strict;
 
@@ -49,29 +49,24 @@ use Cwd qw(getcwd);
 use canu::Defaults;
 use canu::Execution;
 use canu::HTML;
+use canu::Report;
 use canu::Grid_Cloud;
 
 
-sub getMaxReadInStore ($$) {
+
+sub getMaxReadLengthInStore ($$) {
     my $base   = shift @_;
     my $asm    = shift @_;
-    my $nr     = 0;
+    my $ml     = 0;
 
-    #  No file, no reads.
+    open(L, "< $base/$asm.gkpStore/maxreadlength.txt") or caExit("can't open '$base/$asm.gkpStore/maxreadlength.txt' for reading: $!", undef);
+    $ml = <L>;
+    close(L);
 
-    return($nr)   if (! -e "$base/$asm.gkpStore/readlengthhistogram.txt");
-
-    #  Read the info file.  gatekeeperCreate creates this at the end.
-
-    open(F, "< $base/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$base/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
-    while (<F>) {
-       my @v = split '\s+', $_;
-       $nr = $v[1];
-    }
-    close(F);
-
-    return($nr);
+    return(int($ml));
 }
+
+
 
 sub getNumberOfReadsInStore ($$) {
     my $base   = shift @_;
@@ -101,7 +96,6 @@ sub getNumberOfBasesInStore ($$) {
     my $base   = shift @_;
     my $asm    = shift @_;
     my $nb     = 0;
-    my $bin    = getBinDirectory();
 
     #  No file, no bases.
 
@@ -306,6 +300,8 @@ sub gatekeeperGenerateReadsList ($$) {
     }
 }
 
+
+
 sub gatekeeperGenerateLibrariesList ($$) {
     my $base   = shift @_;
     my $asm    = shift @_;
@@ -316,28 +312,56 @@ sub gatekeeperGenerateLibrariesList ($$) {
     }
 }
 
+
+
 sub gatekeeperGenerateReadLengths ($$) {
     my $base   = shift @_;
     my $asm    = shift @_;
-    my $bin    = getBinDirectory();
 
     my $nb = 0;
     my @rl;
     my @hi;
     my $mm;
+    my $minLen = 999999;
+    my $maxLen = 0;
 
     open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
     while (<F>) {
         my @v = split '\s+', $_;
 
-        push @rl, $v[2];           #  Save the length
-        $nb += $v[2];              #  Sum the bases
-        $hi[int($v[2] / 1000)]++;  #  Add to the histogram (int truncates)
+        push @rl, $v[2];                  #  Save the length
+        $nb += $v[2];                     #  Sum the bases
+
+        $minLen = ($minLen < $v[2]) ? $minLen : $v[2];
+        $maxLen = ($v[2] < $maxLen) ? $maxLen : $v[2];
     }
     close(F);
 
     @rl = sort { $a <=> $b } @rl;
-    $mm = int($rl[scalar(@rl)-1] / 1000);  #  max histogram value
+
+    #  Buckets of size 1000 are easy to interpret, but sometimes not ideal.
+
+    my $bucketSize = 0;
+
+    if      ($maxLen - $minLen < 10000) {
+        $bucketSize = 100;
+    } elsif ($maxLen - $minLen < 100000) {
+        $bucketSize = 1000;
+    } elsif ($maxLen - $minLen < 1000000) {
+        $bucketSize = 5000;
+    }
+
+    #  Generate the histogram (int truncates)
+
+    foreach my $rl (@rl) {
+        my $b = int($rl / $bucketSize);
+
+        $hi[$b]++;
+    }
+
+    $mm = int($maxLen / $bucketSize);  #  Max histogram value
+
+    #  Write the sorted read lengths (for gnuplot) and the maximum read length (for correction consensus)
 
     open(F, "> $base/$asm.gkpStore/readlengths.txt") or caExit("can't open '$base/$asm.gkpStore/readlengths.txt' for writing: $!", undef);
     foreach my $rl (@rl) {
@@ -345,24 +369,11 @@ sub gatekeeperGenerateReadLengths ($$) {
     }
     close(F);
 
-    open(F, "> $base/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$base/$asm.gkpStore/readlengthhistogram.txt' for writing: $!", undef);
-    for (my $ii=0; $ii<=$mm; $ii++) {
-        my $s = $ii * 1000;
-        my $e = $ii * 1000 + 999;
-
-        $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
-
-        print F "$s\t$e\t$hi[$ii]\n";
-    }
+    open(F, "> $base/$asm.gkpStore/maxreadlength.txt") or caExit("can't open '$base/$asm.gkpStore/maxreadlength.txt' for writing: $!", undef);
+    print F "$maxLen\n";
     close(F);
-}
 
-
-
-sub gatekeeperGenerateReadLengthPlot ($$) {
-    my $base   = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
+    #  Generate PNG histograms
 
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
@@ -391,43 +402,36 @@ sub gatekeeperGenerateReadLengthPlot ($$) {
         print STDERR "--\n";
         print STDERR "----------------------------------------\n";
     }
-}
 
-
-
-sub gatekeeperReportReadLengthHistogram ($$) {
-    my $base   = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
+    #  Generate the ASCII histogram
 
     my $reads    = getNumberOfReadsInStore($base, $asm);
     my $bases    = getNumberOfBasesInStore($base, $asm);
     my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
-    my $maxhist  = 0;
+    my $scale    = 0;
+    my $hist;
 
-    open(F, "< $base/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$base/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
-    while (<F>) {
-        my @v = split '\s+', $_;
-        $maxhist = ($maxhist < $v[2]) ? $v[2] : $maxhist;
+    for (my $ii=0; $ii<=$mm; $ii++) {                           #  Scale the *'s so that the longest has 70 of 'em
+        $scale = $hi[$ii] / 70   if ($scale < $hi[$ii] / 70);
     }
-    close(F);
 
-    my $scale = $maxhist / 70;
+    $hist  = "--\n";
+    $hist .= "-- In gatekeeper store '$base/$asm.gkpStore':\n";
+    $hist .= "--   Found $reads reads.\n";
+    $hist .= "--   Found $bases bases ($coverage times coverage).\n";
+    $hist .= "--\n";
+    $hist .= "--   Read length histogram (one '*' equals " . int(100 * $scale) / 100 . " reads):\n";
 
-    print STDERR "--\n";
-    print STDERR "-- In gatekeeper store '$base/$asm.gkpStore':\n";
-    print STDERR "--   Found $reads reads.\n";
-    print STDERR "--   Found $bases bases ($coverage times coverage).\n";
-    print STDERR "--\n";
-    print STDERR "--   Read length histogram (one '*' equals ", int(100 * $scale) / 100, " reads):\n";
+    for (my $ii=0; $ii<=$mm; $ii++) {
+        my $s = $ii * $bucketSize;
+        my $e = $ii * $bucketSize + $bucketSize - 1;
 
-    open(F, "< $base/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$base/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
-    while (<F>) {
-        my @v = split '\s+', $_;
+        $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
 
-        printf STDERR "--   %6d %6d %6d %s\n", $v[0], $v[1], $v[2], "*" x int($v[2] / $scale);
+        $hist .= sprintf("--   %6d %6d %6d %s\n", $s, $e, $hi[$ii], "*" x int($hi[$ii] / $scale));
     }
-    close(F);
+
+    return($hist);
 }
 
 
@@ -435,7 +439,6 @@ sub gatekeeperReportReadLengthHistogram ($$) {
 sub gatekeeper ($$@) {
     my $asm    = shift @_;
     my $tag    = shift @_;
-    my $bin    = getBinDirectory();
     my @inputs = @_;
 
     my $base;
@@ -473,16 +476,16 @@ sub gatekeeper ($$@) {
 
     gatekeeperGenerateReadsList($base, $asm)                     if (! -e "$base/$asm.gkpStore/reads.txt");
     gatekeeperGenerateLibrariesList($base, $asm)                 if (! -e "$base/$asm.gkpStore/libraries.txt");
-    gatekeeperGenerateReadLengths($base, $asm)                   if (! -e "$base/$asm.gkpStore/readlengths.txt");
-    gatekeeperGenerateReadLengthPlot($base, $asm)                if (! -e "$base/$asm.gkpStore/readlengths.gp");
+
+    my $hist = gatekeeperGenerateReadLengths($base, $asm)        if (! -e "$base/$asm.gkpStore/readlengths.txt");
+
+    addToReport("${tag}GkpStore", $hist);
 
     #  Now that all the extra data is generated, stash the store.
 
     stashStore("$base/$asm.gkpStore");
 
   finishStage:
-    gatekeeperReportReadLengthHistogram($base, $asm);
-
     emitStage($asm, "$tag-gatekeeper");
     buildHTML($asm, $tag);
 
