@@ -271,7 +271,7 @@ if (scalar(@inputFiles) == 0) {
 #  Now set error rates (if not set already) based on the dominant read type.
 
 if ($setUpForNanopore > 0) {
-    setGlobalIfUndef("corOvlErrorRate",  0.144);
+    setGlobalIfUndef("corOvlErrorRate",  0.320);
     setGlobalIfUndef("obtOvlErrorRate",  0.144);
     setGlobalIfUndef("utgOvlErrorRate",  0.144);
     setGlobalIfUndef("corErrorRate",     0.500);
@@ -279,7 +279,7 @@ if ($setUpForNanopore > 0) {
     setGlobalIfUndef("utgErrorRate",     0.144);
     setGlobalIfUndef("cnsErrorRate",     0.144);
 } else {
-    setGlobalIfUndef("corOvlErrorRate",  0.045);
+    setGlobalIfUndef("corOvlErrorRate",  0.240);
     setGlobalIfUndef("obtOvlErrorRate",  0.045);
     setGlobalIfUndef("utgOvlErrorRate",  0.045);
     setGlobalIfUndef("corErrorRate",     0.300);
