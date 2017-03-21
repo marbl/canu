@@ -248,6 +248,10 @@ foreach my $typefile (@inputFiles) {
 
 addCommandLineError("ERROR:  Canu does not currently support mixing raw and corrected sequences.\n")   if ($haveRaw && $haveCorrected);
 
+#  If anything complained (invalid option, missing file, etc) printHelp() will trigger and exit.
+
+printHelp();
+
 #  When resuming a run without input files, set the error rates based on library type in the
 #  gkpStore.
 
