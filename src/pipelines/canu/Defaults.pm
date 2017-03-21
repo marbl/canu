@@ -1190,6 +1190,10 @@ sub checkParameters () {
     {
         my $gs = getGlobal("genomeSize");
 
+        if (!defined($gs)) {
+            addCommandLineError("ERROR:  Required parameter 'genomeSize' not set.\n");
+        }
+
         if (($gs =~ m/^(\d+)$/) ||
             ($gs =~ m/^(\d+\.\d+)$/)) {
             if ($gs < 1000) {
@@ -1355,8 +1359,6 @@ sub checkParameters () {
 
         addCommandLineError($failureString)   if ($ok == 0);
     }
-
-    addCommandLineError("ERROR:  Required parameter 'genomeSize' is not set\n")   if (! defined(getGlobal("genomeSize")));
 
     #
     #  Minimap, no valid identities, set legacy
