@@ -139,7 +139,10 @@ my $haveCorrected = 0;
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
-    if      ($arg =~ m/^-d/) {
+    if     (($arg eq "-h") || ($arg eq "-help") || ($arg eq "--help")) {
+        printHelp(1);
+
+    } elsif ($arg eq "-d") {
         $rootdir = shift @ARGV;
 
     } elsif ($arg eq "-p") {
