@@ -331,7 +331,8 @@ sub printHelp (@) {
     return   if (!defined($force) && !defined($global{"errors"}));
 
     print "\n";
-    print "usage: canu [-correct | -trim | -assemble | -trim-assemble] \\\n";
+    print "usage: canu [-version] \\\n";
+    print "            [-correct | -trim | -assemble | -trim-assemble] \\\n";
     print "            [-s <assembly-specifications-file>] \\\n";
     print "             -p <assembly-prefix> \\\n";
     print "             -d <assembly-directory> \\\n";
