@@ -54,41 +54,9 @@
 //  Linux    g++ -rdynamic -g3 -o st1 st1.C
 //  FreeBSD  CC -o unwind unwind.C -I/usr/local/include -L/usr/local/lib -lunwind
 
-//  (Not sure what this is about, but it was with the GDB commands at the end of this file)
-//
-//  http://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html#Separate-Debug-Files
-//
-//  objcopy --only-kep-debug foo foo.debug
-//  strip -g foo
-//  objcopy --add-gnu-debuglink=foo.debug foo
 
 
 #define WRITE_STRING(S) write(2, S, strlen(S))
-
-
-void
-AS_UTL_envokeGDB(void) {
-
-#if 0
-  uint64   pid = getpid();
-  uint64   cid = fork();
-  char     cmd[1024];
-
-  if (cid != 0) {
-    //  Parent
-    waitpid(cid, NULL, 0);
-    return;
-  }
-
-  //  Child
-
-  snprintf(cmd, 1024, "gdb -quiet -silent -p " F_U64 " -batch -x commands", pid);
-  system(cmd);
-  exit(0);
-#endif
-}
-
-
 
 
 #ifdef LIBUNWIND
@@ -132,9 +100,6 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
   }
 
   //WRITE_STRING("\nBacktrace (demangled):\n\n");
-
-  //WRITE_STRING("\nGDB:\n\n");
-  //AS_UTL_envokeGDB();
 
   //  Pass the signal through, only so a core file can get generated.
 
@@ -224,10 +189,6 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
     }
   }
 
-  WRITE_STRING("\nGDB:\n\n");
-
-  AS_UTL_envokeGDB();
-
   WRITE_STRING("\n");
 #endif
 #endif
@@ -277,155 +238,3 @@ AS_UTL_installCrashCatcher(void) {
 
 #endif
 }
-
-
-
-//
-//  Proposed commands for GDB.
-//
-//  print ""
-//  print "info thread"
-//  print ""
-//  info thread
-//  #
-//  print ""
-//  print "info proc all"
-//  print ""
-//  info proc all
-//  #
-//  print ""
-//  print "maintenance info sections"
-//  print ""
-//  maintenance info sections
-//  #
-//  print ""
-//  print "where"
-//  print ""
-//  where
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info args
-//  #
-//  print ""
-//  print ""
-//  print ""
-//  info locals
-//  up
-//  #
-//  quit
-//
