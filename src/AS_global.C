@@ -102,7 +102,7 @@ AS_configure(int argc, char **argv) {
 
   //  Install a signal handler to catch seg faults and errors.
 
-  AS_UTL_installCrashCatcher();
+  AS_UTL_installCrashCatcher(argv[0]);
 
 
   //

@@ -210,7 +210,7 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
 
 
 void
-AS_UTL_installCrashCatcher(void) {
+AS_UTL_installCrashCatcher(const char *filename) {
 
 #if (!defined(LIBUNWIND) && !defined(_GNU_SOURCE))
 

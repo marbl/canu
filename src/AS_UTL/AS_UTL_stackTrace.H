@@ -36,6 +36,6 @@ void
 AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx);
 
 void
-AS_UTL_installCrashCatcher(void);
+AS_UTL_installCrashCatcher(const char *filename);
 
 #endif  //  AS_UTL_STACKTRACE_H
