@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printHelp addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
 
 use strict;
 use Cwd qw(getcwd abs_path);
@@ -408,8 +408,29 @@ sub fixCase ($) {
 
 
 
-sub setParametersFromFile ($@) {
+sub addSequenceFile ($$@) {
+    my $dir   = shift @_;
+    my $file  = shift @_;
+    my $err   = shift @_;
+
+    return(undef)             if (!defined($file));   #  No file name?  Nothing to do.
+    $file = "$dir/$file"      if (defined($dir));     #  If $dir defined, assume file is in there.
+    return(abs_path($file))   if (-e $file);          #  If found, return the full path.
+
+    #  And if not found, report an error, unless told not to.  This is because on the command
+    #  line, the first word after -pacbio-raw must exist, but all the other words could
+    #  be files or options.
+
+    addCommandLineError("ERROR: Input read file '$file' not found.\n")  if (defined($err));
+
+    return(undef);
+}
+
+
+
+sub setParametersFromFile ($$@) {
     my $specFile  = shift @_;
+    my $readdir   = shift @_;
     my @fragFiles = @_;
 
     #  Client should be ensuring that the file exists before calling this function.
@@ -462,21 +483,27 @@ sub setParametersFromFile ($@) {
         $two =~ s/^\s+//;   #  There can be spaces from the greedy match.
         $two =~ s/\s+$//;
 
-        $two = $1   if ($two =~ m/^'(.+)'$/);    #  Remove single quotes    | but don't allowed mixed quotes; users
-        $two = $1   if ($two =~ m/^"(.+)"$/);    #  Remove double quotes    | should certainly know better
-
-        #  Should we remove spaces again?  Yes, unless it's a file; in that case, find the absolute path.
-
-        $two = abs_path($two)  if ($opt == 0);
-        $two =~ s/^\s+//       if ($opt == 1);
-        $two =~ s/\s+$//       if ($opt == 1);
+        $two = $1   if ($two =~ m/^'(.+)'$/);    #  Remove single quotes   |   But don't allowed mixed quotes; users
+        $two = $1   if ($two =~ m/^"(.+)"$/);    #  Remove double quotes   |   should certainly know better
 
         #  And do something.
 
-        addCommandLineError("ERROR:  File not found in spec file option '$_'\n")   if ((! -e $two) && ($opt == 0));
+        if ($opt == 1) {
+            $two =~ s/^\s+//;  #  Remove spaces again.  They'll just confuse our option processing.
+            $two =~ s/\s+$//;
 
-        push @fragFiles, "$one\0$two"   if ($opt == 0);
-        setGlobal($one, $two)           if ($opt == 1);
+            setGlobal($one, $two);
+        }
+
+        else {
+            my $file = addSequenceFile($readdir, $two, 1);   #  Don't remove spaces.  File could be " file ", for some stupid reason.
+
+            if (defined($file)) {
+                push @fragFiles, "$one\0$file";
+            } else {
+                addCommandLineError("ERROR:  File not found in spec file option '$_'\n");
+            }
+        }
     }
     close(F);
 

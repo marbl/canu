@@ -130,10 +130,11 @@ foreach my $arg (@ARGV) {
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
 #  all of @ARGV into here, because we need to fix up relative paths first.
 
-my $rootdir = undef;
-my $mode = undef;
-my $step = "run";
-my $haveRaw = 0;
+my $rootdir       = undef;
+my $readdir       = undef;
+my $mode          = undef;
+my $step          = "run";
+my $haveRaw       = 0;
 my $haveCorrected = 0;
 
 while (scalar(@ARGV)) {
@@ -173,19 +174,25 @@ while (scalar(@ARGV)) {
         $mode = $step = "trim-assemble";
         addCommandLineOption("-trim-assemble");
 
+    } elsif ($arg eq "-readdir") {
+        $readdir = shift @ARGV;
+        addCommandLineOption("-readdir '$readdir'");
+
     } elsif (($arg eq "-pacbio-raw")       ||    #  File handling is also present in
              ($arg eq "-pacbio-corrected") ||    #  Defaults.pm around line 438
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
-        addCommandLineError("ERROR:  File '$ARGV[0]' not found.\n")   if (! -e $ARGV[0]);
 
-        while (-e $ARGV[0]) {
-            my $file = shift @ARGV;
+        my $file = $ARGV[0];
+        my $fopt = addSequenceFile($readdir, $file, 1);
 
-            $file = abs_path($file);
+        while (defined($fopt)) {
+            push @inputFiles, "$arg\0$fopt";
 
-            push @inputFiles, "$arg\0$file";
-            addCommandLineOption("$arg '$file'");
+            shift @ARGV;
+
+            $file = $ARGV[0];
+            $fopt = addSequenceFile($readdir, $file);
         }
 
     } elsif (-e $arg) {
@@ -196,6 +203,7 @@ while (scalar(@ARGV)) {
         addCommandLineOption("'$arg'");
 
     } else {
+        print STDERR "INVALID $arg\n";
         addCommandLineError("ERROR:  Invalid command line option '$arg'.  Did you forget quotes around options with spaces?\n");
     }
 }
@@ -213,13 +221,13 @@ $mode = "assemble"       if (!defined($mode) && (-d "unitigging/$asm.gkpStore"))
 
 #  Load paramters from the defaults files
 
-@inputFiles = setParametersFromFile("$bin/canu.defaults",   @inputFiles)   if (-e "$bin/canu.defaults");
-@inputFiles = setParametersFromFile("$ENV{'HOME'}/.canu",   @inputFiles)   if (-e "$ENV{'HOME'}/.canu");
+@inputFiles = setParametersFromFile("$bin/canu.defaults", $readdir, @inputFiles)   if (-e "$bin/canu.defaults");
+@inputFiles = setParametersFromFile("$ENV{'HOME'}/.canu", $readdir, @inputFiles)   if (-e "$ENV{'HOME'}/.canu");
 
 #  For each of the spec files, parse it, setting parameters and remembering any input files discovered.
 
 foreach my $specFile (@specFiles) {
-    @inputFiles = setParametersFromFile($specFile, @inputFiles);
+    @inputFiles = setParametersFromFile($specFile, $readdir, @inputFiles);
 }
 
 #  Set parameters from the command line.
