@@ -373,6 +373,8 @@ endif
 #
 #  BUILDOPTIMIZED  will disable debug symbols (leaving it just optimized)
 #  BUILDDEBUG      will disable optimization  (leaving it just with debug symbols)
+#  BUILDSTACKTRACE will enable stack trace on crashes, only works for Linux
+#                  set to 0 on command line to disable (it's enabled by default for Linux)
 #
 #  BUILDPROFILE used to add -pg to LDFLAGS, and remove -D_GLIBCXX_PARALLE from CXXFLAGS and LDFLAGS,
 #  and remove -fomit-frame-pointer from CXXFLAGS.  It added a bunch of complication and wasn't
@@ -386,6 +388,8 @@ ifeq (${OSTYPE}, Linux)
   LDFLAGS   += -D_GLIBCXX_PARALLEL -pthread -fopenmp -lm
 
   CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+
+  BUILDSTACKTRACE ?= 1
 
   ifeq ($(BUILDOPTIMIZED), 1)
   else
@@ -449,19 +453,6 @@ ifeq (${MACHINETYPE}, amd64)
   #  callgrind
   #CXXFLAGS  += -g3 -Wa,--gstabs -save-temps
 
-  #  Backtraces with libunwind.  Not informative on FreeBSD.
-  #CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
-  #LDFLAGS   +=             -L/usr/local/lib
-  #LDLIBS    += -lunwind -lunwind-x86_64
-
-  #  Backtraces with libbacktrace.  Doesn't show the full trace on FreeBSD.
-  #CXXFLAGS  += -DLIBBACKTRACE -I/work/backtrace/libbacktrace
-  #LDFLAGS   +=                -L/work/backtrace/libbacktrace -lbacktrace
-  #LDLIBS    += -lbacktrace
-
-  #  No backtrace support.
-  #CXXFLAGS   += -DNOBACKTRACE
-
   ifeq ($(BUILDOPTIMIZED), 1)
   else
     CXXFLAGS += -g3
@@ -519,6 +510,77 @@ ifneq (,$(findstring CYGWIN, ${OSTYPE}))
     CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
   endif
 endif
+
+
+#  Stack tracing support.  Wow, what a pain.  Only Linux is supported.  This is just documentation,
+#  don't actually enable any of this stuff!
+#
+#  backward-cpp looks very nice, only a single header file.  But it needs libberty (-liberty) and
+#  libbfd (-lbfd).  The former should be installed with gcc, and the latter is in elfutils.  On
+#  three out of our three development machines, it fails for various reasons.
+#
+#  libunwind is pretty basic.
+#
+#  libbacktrace works (on Linux) and is simple enough to include in our tree.
+#
+#  None of these give any useful information on BSDs (which includes OS X aka macOS).
+#
+#
+#  Backtraces with libunwind.  Not informative on FreeBSD.
+#CXXFLAGS  += -DLIBUNWIND
+#LDFLAGS   +=
+#LDLIBS    += -lunwind -lunwind-x86_64
+#
+#
+#  Backtraces with libbacktrace.  FreeBSD works, but trace is empty.
+#BUILDSTACK = 1
+#CXXFLAGS  += -DLIBBACKTRACE
+#LDFLAGS   +=
+#LDLIBS    +=
+#
+#
+#  Backtraces with backward-cpp.
+#
+#  Stack walking:
+#    BACKWARD_HAS_UNWIND    - used by gcc/clang for exception handling
+#    BACKWARD_HAS_BACKTRACE - part of glib, not as accurate, more portable
+#
+#  Stack interpretation:
+#    BACKWARE_HAS_DW               - most information, libdw, (elfutils or libdwarf)
+#    BACKWARD_HAS_BFD              - some information, libbfd
+#    BACKWARD_HAS_BACKTRACE_SYMBOL - minimal information (file and function), portable
+#
+#  helix   fails with: cannot find -liberty
+#  gryphon fails with: cannot find -lbfd
+#  freebsd can't install a working elfutils, needed for libdw"
+#    In file included from AS_UTL/AS_UTL_stackTrace.C:183:0:
+#    AS_UTL/backward.hpp:241:30: fatal error: elfutils/libdw.h: No such file or directory
+#     #  include <elfutils/libdw.h>
+#
+#CXXFLAGS  += -DBACKWARDCPP -DBACKWARD_HAS_BFD
+#LDFLAGS   +=
+#LDLIBS    += -lbfd -liberty -ldl -lz
+#
+#  Needs libdw, elfutils
+#CXXFLAGS  += -DBACKWARDCPP -DBACKWARD_HAS_DW
+#LDFLAGS   +=
+#LDLIBS    += -ldl -lz
+#
+#  Generates nothing useful, no function names, just binary names
+#CXXFLAGS  += -DBACKWARDCPP
+#LDFLAGS   +=
+#LDLIBS    += -ldl -lz
+#
+#
+#  No backtrace support.
+#CXXFLAGS   += -DNOBACKTRACE
+
+ifeq (${BUILDSTACKTRACE}, 1)
+CXXFLAGS  += -DLIBBACKTRACE
+else
+CXXFLAGS  += -DNOBACKTRACE
+endif
+
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
@@ -687,4 +749,5 @@ ${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
 #  Makefile processed.  Report that we're starting the build.
 
 ${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'}
+${info CC ${CC} CXX ${CXX}}
 #${info Using LD_RUN_PATH '${LD_RUN_PATH}'}

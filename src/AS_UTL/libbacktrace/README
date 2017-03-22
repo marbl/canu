@@ -1,0 +1,15 @@
+Ian Lance Taylor's libbacktrace
+https://github.com/ianlancetaylor/libbacktrace
+
+Minor modifications were made to make it compile without 'configure'.
+
+
+--From the original README.md:
+
+A C library that may be linked into a C/C++ program to produce symbolic backtraces
+
+Initially written by Ian Lance Taylor <iant@golang.org>
+
+The libbacktrace library is provided under a BSD license.
+See the source files for the exact license text.
+

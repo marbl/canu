@@ -120,6 +120,26 @@ SOURCES      := AS_global.C \
                 meryl/libkmer/positionDB-sort.C \
                 meryl/libkmer/positionDB.C
 
+
+
+ifeq (${BUILDSTACKTRACE}, 1)
+SOURCES      += AS_UTL/libbacktrace/atomic.c \
+                AS_UTL/libbacktrace/backtrace.c \
+                AS_UTL/libbacktrace/dwarf.c \
+                AS_UTL/libbacktrace/elf.c \
+                AS_UTL/libbacktrace/fileline.c \
+                AS_UTL/libbacktrace/mmap.c \
+                AS_UTL/libbacktrace/mmapio.c \
+                AS_UTL/libbacktrace/posix.c \
+                AS_UTL/libbacktrace/print.c \
+                AS_UTL/libbacktrace/simple.c \
+                AS_UTL/libbacktrace/sort.c \
+                AS_UTL/libbacktrace/state.c \
+                AS_UTL/libbacktrace/unknown.c
+endif
+
+
+
 SRC_INCDIRS  := . \
                 AS_UTL \
                 stores \
