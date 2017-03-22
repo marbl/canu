@@ -400,10 +400,10 @@ endif
 
 
 ifeq (${OSTYPE}, Darwin)
-  CLANG = $(shell echo `${CXX} --version 2>&1 | grep -c clang`)
-
   CC       ?= gcc
   CXX      ?= g++
+
+  CLANG = $(shell echo `${CXX} --version 2>&1 | grep -c clang`)
 
   ifeq ($(CLANG), 0)
      CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
