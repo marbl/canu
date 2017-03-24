@@ -188,6 +188,7 @@ while (scalar(@ARGV)) {
 
         while (defined($fopt)) {
             push @inputFiles, "$arg\0$fopt";
+            addCommandLineOption("$arg '$fopt'");
 
             shift @ARGV;
 
