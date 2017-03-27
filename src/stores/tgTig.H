@@ -309,6 +309,8 @@ public:
   void                 dumpLayout(FILE *F);
   bool                 loadLayout(FILE *F);
 
+  void                 reverseComplement(void);  //  Does NOT update childDeltas
+
   void                 dumpFASTA(FILE *F, bool useGapped);
   void                 dumpFASTQ(FILE *F, bool useGapped);
 

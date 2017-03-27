@@ -183,7 +183,7 @@ tgTig::display(FILE     *F,
       node->quals[ii] += '!';
 
     if (node->read->isReverse())
-      reverseComplement(node->bases, node->quals, node->readLen);
+      ::reverseComplement(node->bases, node->quals, node->readLen);
 
     //fprintf(stderr, "NODE READ %u at %d %d tigLength %d with %u deltas at offset %u\n",
     //        i, node->read->bgn(), node->read->end(), gappedLength(), node->read->deltaLength(), node->read->deltaOffset());

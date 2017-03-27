@@ -36,6 +36,8 @@
 #include "AS_UTL_fileIO.H"
 #include "AS_UTL_fasta.C"
 
+#include "AS_UTL_reverseComplement.H"
+
 #include "splitToWords.H"
 #include "intervalList.H"
 
@@ -662,6 +664,36 @@ tgTig::loadLayout(FILE *F) {
   delete [] LINE;
 
   return(true);
+}
+
+
+void
+tgTig::reverseComplement(void) {
+
+  //  Primary data is in _gapped and _children.
+
+  ::reverseComplement(_gappedBases, _gappedQuals, _gappedLen);
+
+  //  Remove _ungapped and _gappedToUngapped, let it be rebuilt if needed.
+
+  delete [] _ungappedBases;   _ungappedBases = NULL;
+  delete [] _ungappedQuals;   _ungappedQuals = NULL;
+
+  _ungappedLen = 0;
+  _ungappedMax = 0;
+
+  delete [] _gappedToUngapped;  _gappedToUngapped = NULL;
+
+  //  _anchor, and the hangs, are now invalid.
+
+  for (uint32 ii=0; ii<_childrenLen; ii++) {
+    int32  bgn = _gappedLen - _children[ii].bgn();
+    int32  end = _gappedLen - _children[ii].end();
+
+    _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end);
+  }
+
+  //  _childDeltas are also invalid.
 }
 
 

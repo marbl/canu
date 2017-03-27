@@ -304,7 +304,7 @@ dumpTigs(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool us
 
 
 void
-dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char cnsFormat) {
+dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool useReverse, char cnsFormat) {
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -322,6 +322,9 @@ dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bo
       tigStore->unloadTig(ti);
       continue;
     }
+
+    if (useReverse)
+      tig->reverseComplement();
 
     switch (cnsFormat) {
       case 'A':
@@ -1011,6 +1014,7 @@ main (int argc, char **argv) {
   uint32        dumpType          = DUMP_UNSET;
 
   bool          useGapped         = false;
+  bool          useReverse        = false;
 
   char          cnsFormat         = 'A';  //  Or 'Q' for FASTQ
 
@@ -1120,6 +1124,9 @@ main (int argc, char **argv) {
     else if (strcmp(argv[arg], "-gapped") == 0)
       useGapped = true;
 
+    else if (strcmp(argv[arg], "-reverse") == 0)
+      useReverse = true;
+
     else if (strcmp(argv[arg], "-fasta") == 0)
       cnsFormat = 'A';
     else if (strcmp(argv[arg], "-fastq") == 0)
@@ -1188,6 +1195,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -consensus [opts]       the consensus sequence, with options:\n");
     fprintf(stderr, "                            -gapped           report the gapped (multialignment) consensus sequence\n");
+    fprintf(stderr, "                            -reverse          reverse complement the sequence\n");
     fprintf(stderr, "                            -fasta            report sequences in FASTA format (the default)\n");
     fprintf(stderr, "                            -fastq            report sequences in FASTQ format\n");
     fprintf(stderr, "\n");
@@ -1279,7 +1287,7 @@ main (int argc, char **argv) {
       dumpTigs(gkpStore, tigStore, filter, useGapped);
       break;
     case DUMP_CONSENSUS:
-      dumpConsensus(gkpStore, tigStore, filter, useGapped, cnsFormat);
+      dumpConsensus(gkpStore, tigStore, filter, useGapped, useReverse, cnsFormat);
       break;
     case DUMP_LAYOUT:
       dumpLayout(gkpStore, tigStore, filter, useGapped, outPrefix);
