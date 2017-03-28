@@ -173,37 +173,33 @@ sub gatekeeperCreateStore ($$@) {
     caExit("no input files specified, and store not already created, I have nothing to work on!", undef)
         if (scalar(@inputs) == 0);
 
-    #  Make sure all the inputs are here.
+    #  Convert the canu-supplied reads into correct relative paths.  This is made complicated by
+    #  gatekeeperCreate being run in a directory one below where we are now.
 
-    my $failedFiles = undef;
+    #  At the same time, check that all files exist.
 
-    #  Rewrite the file list to give absolute paths to any of the canu-generated
-    #  files.  And fetch them from object store.
-
-    foreach my $iii (@inputs) {
-        if (($iii =~ m/-pacbio-corrected\0($asm.correctedReads.*)/) ||
-            ($iii =~ m/-pacbio-corrected\0($asm.trimmedReads.*)/)) {
-            $iii = "-pacbio-corrected\0" . getcwd() . "/$1";
-            fetchFile($1);
-        }
-    }
-
-    #  Now, check that all the files exist.
+    my $ff = undef;
 
     foreach my $iii (@inputs) {
-        my $file = $iii;  #  This stupid foreach works by reference!
+        my ($type, $file) = split '\0', $iii;
 
-        $file = $2  if ($file =~ m/^(.*)\0(.*)/);   #  Handle the raw sequence inputs.
+        if (($file =~ m/\.correctedReads\./) ||
+            ($file =~ m/\.trimmedReads\./)) {
+            fetchFile($file);
 
-        if (! -e $file) {
-            if (defined($failedFiles)) {
-                $failedFiles .= "; '$file' not found in gatekeeperCreateStore()";
-            } else {
-                $failedFiles = "'$file' not found in gatekeeperCreateStore()";
-            }
+            chdir($base);
+            $file = "../$file";
+            $iii = "$type\0$file"   if (-e "$file");
+            chdir("..");
         }
+
+        chdir($base);
+        $ff .= (defined($ff) ? "\n  " : "") . "reads '$file' not found."  if (! -e $file);
+        chdir("..");
     }
-    caExit($failedFiles, undef) if defined($failedFiles);
+
+    caExit($ff, undef) if defined($ff);
+
 
     #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
     #  files as is.  This documents what gatekeeper was built with, etc.
