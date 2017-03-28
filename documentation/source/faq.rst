@@ -60,7 +60,7 @@ What parameters should I use for my genome? Sequencing type?
        ``errorRate=0.013``
 
     **PacBio Sequel**
-       Based on exactly one publically released `*A. thaliana* dataset <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_),
+       Based on exactly one publically released *A. thaliana* `dataset <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        ``errorRate=0.013 corMhapSensitivity=normal``
 
 
@@ -129,6 +129,20 @@ What parameters can I tweak?
       contig) and a false overlap (between two reads in different contigs) need to be before the
       contig is split.  When this occurs, it isn't clear which overlap is 'true' - the longer one or
       the slightly shorter one - and the contig is split to avoid misassemblies.
+      
+    For polyploid genomes:
+    
+        Generally, there's a couple of ways of dealing with the ploidy. 
+    
+        The first is to avoid collapsing the genome so you end up with double (assuming diploid) the genome size as long as your divergence is above about 2% (for PacBio data). Below this divergence, you'd end up collapsing the variations. We've used the following parameters for polyploid populations (PacBio data):
+       
+        - ``corOutCoverage=200 errorRate=0.013 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"``
+    
+        This will output more corrected reads (than the default 40x). The latter option will be more conservative at picking the error rate to use for the assembly to try to maintain haplotype separation. If it works, you'll end up with an assembly >= 2x your haploid genome size. Post-processing using gene information or other synteny information is required to remove redunancy from this assembly.
+
+        The alternative is to try to smash haplotypes together and then do phasing using another approach (like HapCUT2 or whatshap or others). In that case you want to do the opposite, increase the error rates:
+   
+        - ``corOutCoverage=200 ovlErrorRate=0.15 obtErrorRate=0.15``
 
     
 My asm.contigs.fasta is empty, why?
