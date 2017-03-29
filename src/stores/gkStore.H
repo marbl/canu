@@ -486,7 +486,8 @@ public:
 
   void         gkStore_buildPartitions(uint32 *partitionMap);
 
-  void         gkStore_clone(char *clonePath);
+  static
+  void         gkStore_clone(char *originalPath, char *clonePath);
 
   void         gkStore_delete(void);             //  Deletes the files in the store.
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.

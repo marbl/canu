@@ -1304,34 +1304,29 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
 
 void
-gkStore::gkStore_clone(char *clonePath) {
-  char rPath[FILENAME_MAX];
+gkStore::gkStore_clone(char *originalPath, char *clonePath) {
+  char cPath[FILENAME_MAX];
   char sPath[FILENAME_MAX];
-  char dPath[FILENAME_MAX];
+
+  getcwd(cPath, FILENAME_MAX);
 
   AS_UTL_mkdir(clonePath);
 
-  errno = 0;
-  realpath(gkStore_path(), rPath);
-  if (errno)
-    fprintf(stderr, "gkStore::gkStore_clone()- failed to find path of '%s': %s\n",
-            gkStore_path(), strerror(errno)), exit(1);
+  chdir(clonePath);
 
-  snprintf(sPath, FILENAME_MAX, "%s/info",      rPath);
-  snprintf(dPath, FILENAME_MAX, "%s/info",      clonePath);
-  AS_UTL_symlink(sPath, dPath);
+  snprintf(sPath, FILENAME_MAX, "%s/info",      originalPath);
+  AS_UTL_symlink(sPath, "info");
 
-  snprintf(sPath, FILENAME_MAX, "%s/libraries", rPath);
-  snprintf(dPath, FILENAME_MAX, "%s/libraries", clonePath);
-  AS_UTL_symlink(sPath, dPath);
+  snprintf(sPath, FILENAME_MAX, "%s/libraries", originalPath);
+  AS_UTL_symlink(sPath, "libraries");
 
-  snprintf(sPath, FILENAME_MAX, "%s/reads",     rPath);
-  snprintf(dPath, FILENAME_MAX, "%s/reads",     clonePath);
-  AS_UTL_symlink(sPath, dPath);
+  snprintf(sPath, FILENAME_MAX, "%s/reads",     originalPath);
+  AS_UTL_symlink(sPath, "reads");
 
-  snprintf(sPath, FILENAME_MAX, "%s/blobs",     rPath);
-  snprintf(dPath, FILENAME_MAX, "%s/blobs",     clonePath);
-  AS_UTL_symlink(sPath, dPath);
+  snprintf(sPath, FILENAME_MAX, "%s/blobs",     originalPath);
+  AS_UTL_symlink(sPath, "blobs");
+
+  chdir(cPath);
 }
 
 
