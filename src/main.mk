@@ -220,6 +220,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 utgcns/utgcns.mk \
                 \
+                utgcns/alignGFA.mk \
+                \
                 fastq-utilities/fastqAnalyze.mk \
                 fastq-utilities/fastqSample.mk \
                 fastq-utilities/fastqSimulate.mk \
