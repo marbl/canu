@@ -30,8 +30,8 @@ use Cwd qw(getcwd);
 
 my $cwd = getcwd();
 
-my $major    = "0";
-my $minor    = "0";
+my $major    = "1";
+my $minor    = "4";
 my $commits  = "0";
 my $hash     = undef;   #  This from 'git describe'
 my $dirty    = "";
@@ -95,8 +95,13 @@ else {
 
 #  Report what we found.  This is really for the gmake output.
 
-print STDERR "Building v$major.$minor (+$commits commits) r$revCount $hash ($dirty)\n";
-print STDERR "\n";
+if ($commits > 0) {
+    print STDERR "Building snapshot v$major.$minor (+$commits changes) r$revCount $hash ($dirty)\n";
+    print STDERR "\n";
+} else {
+    print STDERR "Building release v$major.$minor\n";
+    print STDERR "\n";
+}
 
 #  Dump a new file, but don't overwrite the original.
 
