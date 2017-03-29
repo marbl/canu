@@ -615,8 +615,10 @@ if (setOptions($mode, "assemble") eq "assemble") {
         unitig($asm);
         unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-        consensusConfigure($asm);
-        consensusCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
+            consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
+            consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
+        }
 
         consensusLoad($asm);
         consensusAnalyze($asm);
