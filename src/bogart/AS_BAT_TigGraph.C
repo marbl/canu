@@ -33,6 +33,7 @@
 #include "AS_BAT_TigGraph.H"
 
 #undef  SHOW_EDGES
+#undef  SHOW_EDGES_UNPLACED   //  Generates a lot of noise
 #undef  SHOW_EDGES_VERBOSE
 
 
@@ -163,6 +164,16 @@ emitEdges(TigVector      &tigs,
              (double)placements[pp].errors / placements[pp].aligned);
 #endif
 
+    //  Decide the orientation of the second tig based on the orientation of the read and its
+    //  alignment.  If the orientations are the same, then the second tig doesn't need to be
+    //  flipped.
+    //
+    //        <-------------------------------------
+    //        <---  read in first tig
+    //
+    //        <---  alignment on second tig  -  so if not the same, the second tig needs to be
+    //    ------------------->               -  flipped to make the alignment work
+
     bool fwd = false;
 
     if (((rdA->isForward() == true)  && (placements[pp].verified.isForward() == true)) ||
@@ -212,7 +223,7 @@ emitEdges(TigVector      &tigs,
            (placements[pp].covered.end < rdAlen)) &&
           (bgn       > 100) &&
           (end + 100 < tgBlen)) {
-#ifdef SHOW_EDGES
+#ifdef SHOW_EDGES_UNPLACED
         writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u in at %5u-%-5u in tig %4u\n",
                  rdA->ident, placements[pp].covered.bgn, placements[pp].covered.end, bgn, end, tgBid);
 #endif
@@ -243,7 +254,7 @@ emitEdges(TigVector      &tigs,
 
         if ((edges[ee].fwd == true) &&
             (bgn - nbgn > nend - end)) {  //  If we decrease bgn more than we increased end, fail
-#ifdef SHOW_EDGES
+#ifdef SHOW_EDGES_UNPLACED
         writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u - wrong direction\n",
                  ee,
                  edges[ee].bgn, edges[ee].end,
@@ -258,7 +269,7 @@ emitEdges(TigVector      &tigs,
 
         if ((edges[ee].fwd == false) &&
             (nend - end > bgn - nbgn)) {  //  If we increase end more than we decreased bgn, fail
-#ifdef SHOW_EDGES
+#ifdef SHOW_EDGES_UNPLACED
           writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u - wrong direction\n",
                    ee,
                    edges[ee].bgn, edges[ee].end,
@@ -287,6 +298,8 @@ emitEdges(TigVector      &tigs,
     //  A better idea is to see if this read is overlapping with the first/last read
     //  in the other tig, and we're close enough to the end, instead of these silly 100bp thresholds.
 
+    //  For edges making circles, when tgA == tgB, we need to flip tgB if tgA is flipped.
+
     for (uint32 ee=0; ee<edges.size(); ee++) {
       bool  tgBflipped = (edges[ee].tigID == tgA->id()) && (tgAflipped);
 
@@ -304,8 +317,8 @@ emitEdges(TigVector      &tigs,
                  edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
         fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM%s\n",
-                tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].tigID, tgBflipped ? '+' : '-',
+                tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].end - edges[ee].bgn,
                 (sameContig == true) ? "\tcv:A:T" : "\tcv:A:F");
         edges[ee].deleted = true;
@@ -320,8 +333,8 @@ emitEdges(TigVector      &tigs,
                  edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
         fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM%s\n",
-                tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].tigID, tgBflipped ? '-' : '+',
+                tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].end - edges[ee].bgn,
                 (sameContig == true) ? "\tcv:A:T" : "\tcv:A:F");
         edges[ee].deleted = true;
@@ -337,6 +350,9 @@ emitEdges(TigVector      &tigs,
       if (edges[ee].fwd == false)
         tgBflipped = !tgBflipped;
 
+      if (edges[ee].deleted == true)
+        continue;
+
       if (edges[ee].extended == true)
         continue;
 
@@ -351,7 +367,7 @@ emitEdges(TigVector      &tigs,
       edges[ee].deleted = true;
     }
 
-    //  Compress the edges list (optional) to remove the deleted edges.
+    //  Compress the edges list (optional, but messes up logging if not done) to remove the deleted edges.
 
     uint32 oo = 0;
 
