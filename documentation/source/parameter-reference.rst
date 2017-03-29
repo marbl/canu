@@ -45,6 +45,26 @@ correctedErrorRate <float=unset>
 
   Raising the `correctedErrorRate` will increase run time.  Likewise, decreasing `correctedErrorRate` will decrease run time, at the risk of missing overlaps and fracturing the assembly.
 
+.. _minReadLength:
+
+minReadLength <integer=1000>
+  Reads shorter than this are not loaded into the assembler.  Reads output by correction and
+  trimming that are shorter than this are discarded.
+
+  Must be no smaller than minOverlapLength.
+
+  If set high enough, the gatekeeper module will halt as too many of the input reads have been
+  discarded.  Set `stopOnReadQuality` to false to avoid this.
+
+.. _minOverlapLength:
+
+minOverlapLength <integer=500>
+  Overlaps shorter than this will not be discovered.  Smaller values can be used to overcome lack of
+  read coverage, but will also lead to false overlaps and potential misassemblies.  Larger values
+  will result in more correct assemblies, but more fragmented, assemblies.
+
+  Must be no bigger than minReadLength.
+
 .. _genomeSize:
 
 genomeSize <float=unset> *required*
@@ -54,6 +74,8 @@ genomeSize <float=unset> *required*
   parameter) and how sensitive the mhap overlapper should be (via the mhapSensitivity_
   parameter). It also impacts some logging, in particular, reports of NG50 sizes.
 
+.. _canuIteration:
+
 canuIteration <internal parameter, do not use>
   Which parallel iteration is being attempted.
 canuIterationMax <integer=2>
@@ -61,10 +83,14 @@ canuIterationMax <integer=2>
   Sometimes, jobs fail due to other jobs exhausting resources (memory), or by the node itself failing.  In this case, canu will launch the jobs
   again.  This parameter controls how many times it tries.
 
+.. _onSuccess:
+
 onSuccess <string=unset>
   Execute the command supplied when Canu successfully completes an assembly.  The command will
   execute in the <assembly-directory> (the -d option to canu) and will be supplied with the name of
   the assembly (the -p option to canu) as its first and only parameter.
+
+.. _onFailure:
 
 onFailure <string=unset>
   Execute the command supplied when Canu terminates abnormally.  The command will execute in the
