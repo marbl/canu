@@ -182,8 +182,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  char    gkpSourcePath[FILENAME_MAX];
-  char    gkpClonePath[FILENAME_MAX];
+  char    gkpSourcePath[FILENAME_MAX] = {0};
+  char    gkpClonePath[FILENAME_MAX]  = {0};
 
   //  We're making a clone of the master gkpStore in the tigStore directory.
 
@@ -200,24 +200,22 @@ main(int argc, char **argv) {
   //  for the directory we added above, and then more dots for each component in tigStorePath.
 
   else {
-    char    t[FILENAME_MAX];
-    char   *p = t;
+    char    t[FILENAME_MAX];                  //  Copy command line tigStorePath to a
+    char   *p = t;                            //  local, and modifiable, space.
 
     strcpy(p, tigStorePath);
 
-    //  One for the directory we added (and clean up any initial ./).
+    strcat(gkpSourcePath, "../");             //  One for the directory we created above
 
-    if ((gkpStorePath[0] == '.') && (gkpStorePath[1] == '/'))
-      snprintf(gkpSourcePath, FILENAME_MAX, "../%s", gkpStorePath + 2);
-    else
-      snprintf(gkpSourcePath, FILENAME_MAX, "../%s", gkpStorePath);
-
-    //  Add many dots for the directories the silly user added.
-
-    while ((p[0] != '.') || (p[1] != 0)) {
-      snprintf(gkpSourcePath, FILENAME_MAX, "../%s", gkpSourcePath);
+    while ((p[0] != '.') || (p[1] != 0)) {    //  Many for each component in the tigStorePath.
+      strcat(gkpSourcePath, "../");
       p = dirname(p);
     }
+
+    if ((gkpStorePath[0] == '.') && (gkpStorePath[1] == '/'))   //  Finally, append the supplied
+      strcat(gkpSourcePath, gkpStorePath + 2);                  //  gkpStorePath, possibly
+    else                                                        //  stripping off any ./ at the
+      strcat(gkpSourcePath, gkpStorePath);                      //  start.
   }
 
   //  Make the clone.
