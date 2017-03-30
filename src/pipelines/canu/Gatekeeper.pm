@@ -187,10 +187,10 @@ sub gatekeeperCreateStore ($$@) {
             ($file =~ m/\.trimmedReads\./)) {
             fetchFile($file);
 
-            chdir($base);
-            $file = "../$file";
-            $iii = "$type\0$file"   if (-e "$file");
-            chdir("..");
+            chdir($base);                                 #  Move to where we run the command
+            $file = "../$file"      if (-e "../$file");   #  If file exists up one dir, it's our file
+            $iii = "$type\0$file";                        #  Rewrite the option
+            chdir("..");                                  #  ($file is used below too)
         }
 
         chdir($base);
