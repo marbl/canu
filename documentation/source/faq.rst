@@ -40,28 +40,33 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
     To disable grid support and run only on the local machine, specify ``useGrid=false``
 
 
-What parameters should I use for my genome? Sequencing type?
+What parameters should I use for my reads?
 -------------------------------------
-    Canu is designed to be universal on a large range of PacBio (C2-P6-C4) and Oxford Nanopore
-    (R6-R9) data. You can adjust parameters to increase efficiency for your datatype:
+    Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford Nanopore
+    (R6 through R9) data.  Assembly quality and/or efficiency can be enhanced for specific datatypes:
     
     **Nanopore R7 1D** and **Low Identity Reads**
-       With R7 1D sequencing data, and generally for any reads lower than 80% identity, five to ten
-       rounds of error correction are helpful. To run just the correction phase, use options
+       With R7 1D sequencing data, and generally for any raw reads lower than 80% identity, five to
+       ten rounds of error correction are helpful. To run just the correction phase, use options
        ``-correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high``.  Use the output of
        the previous run (in ``asm.correctedReads.fasta.gz``) as input to the next round.
 
-       Once corrected, assemble with ``-nanopore-corrected <your data> errorRate=0.1 utgGraphDeviation=50``
+       Once corrected, assemble with ``-nanopore-corrected <your data> correctedErrorRate=0.3 utgGraphDeviation=50``
 
     **Nanopore R7 2D** and **Nanopore R9 1D**
-       ``errorRate=0.025``
+      Increase the maximum allowed difference in overlaps from the default of 4.5% to 7.5% with
+      ``correctedErrorRate=0.075``
 
     **Nanopore R9 2D** and **PacBio P6**
-       ``errorRate=0.013``
+       Slightly decrease the maximum allowed difference in overlaps from the default of 4.5% to 4.0%
+       with ``correctedErrorRate=0.040``
 
-    **PacBio Sequel**
-       Based on exactly one publically released *A. thaliana* `dataset <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
-       ``errorRate=0.013 corMhapSensitivity=normal``
+    **Early PacBio Sequel**
+       Based on exactly one publically released *A. thaliana* `dataset
+       <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
+       slightly decrease the maximum allowed difference from the default of 4.5% to 4.0% with
+       ``correctedErrorRate=0.040 corMhapSensitivity=normal``.  For recent Sequel data, the defaults
+       are appropriate.
 
 
 My assembly continuity is not good, how can I improve it?
@@ -96,8 +101,12 @@ What parameters can I tweak?
 -------------------------------------
     For all stages:
 
-    - ``errorRate`` is the expected error rate in _corrected_ reads.  It is a meta-parameter that
-      sets other parameters.  It has been obsolesced and will eventually be removed.
+    - ``rawErrorRate`` is the maximum expected difference in an alignment of two _uncorrected_
+      reads.  It is a meta-parameter that sets other parameters.
+
+    - ``correctedErrorRate`` is the maximum expected difference in an alignment of two _corrected_
+      reads.  It is a meta-parameter that sets other parameters.  (If you're used to the
+      ``errorRate`` parameter, multiply that by 3 and use it here.)
 
     - ``minReadLength`` and ``minOverlapLength``.  The defaults are to discard reads shorter than
       1000bp and to not look for overlaps shorter than 500bp.  Increasing ``minReadLength`` can
@@ -109,6 +118,7 @@ What parameters can I tweak?
 
     - ``corOutCoverage`` controls how much coverage in corrected reads is generated.  The default is
       to target 40X, but, for various reasons, this results in 30X to 35X of reads being generated.
+
     - ``corMinCoverage``, loosely, controls the quality of the corrected reads.  It is the coverage
       in evidence reads that is needed before a (portion of a) corrected read is reported.
       Corrected reads are generated as a consensus of other reads; this is just the minimum ocverage
@@ -129,20 +139,47 @@ What parameters can I tweak?
       contig) and a false overlap (between two reads in different contigs) need to be before the
       contig is split.  When this occurs, it isn't clear which overlap is 'true' - the longer one or
       the slightly shorter one - and the contig is split to avoid misassemblies.
-      
+
     For polyploid genomes:
-    
+
         Generally, there's a couple of ways of dealing with the ploidy. 
     
-        The first is to avoid collapsing the genome so you end up with double (assuming diploid) the genome size as long as your divergence is above about 2% (for PacBio data). Below this divergence, you'd end up collapsing the variations. We've used the following parameters for polyploid populations (PacBio data):
-       
-        - ``corOutCoverage=200 errorRate=0.013 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"``
-    
-        This will output more corrected reads (than the default 40x). The latter option will be more conservative at picking the error rate to use for the assembly to try to maintain haplotype separation. If it works, you'll end up with an assembly >= 2x your haploid genome size. Post-processing using gene information or other synteny information is required to remove redunancy from this assembly.
+        1) **Avoid collapsing the genome** so you end up with double (assuming diploid) the genome
+           size as long as your divergence is above about 2% (for PacBio data). Below this
+           divergence, you'd end up collapsing the variations. We've used the following parameters
+           for polyploid populations (PacBio data):
 
-        The alternative is to try to smash haplotypes together and then do phasing using another approach (like HapCUT2 or whatshap or others). In that case you want to do the opposite, increase the error rates:
+           ``corOutCoverage=200 correctedErrorRate=0.040 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"``
+    
+           This will output more corrected reads (than the default 40x). The latter option will be
+           more conservative at picking the error rate to use for the assembly to try to maintain
+           haplotype separation. If it works, you'll end up with an assembly >= 2x your haploid
+           genome size. Post-processing using gene information or other synteny information is
+           required to remove redunancy from this assembly.
+
+        2) **Smash haplotypes together** and then do phasing using another approach (like HapCUT2 or
+           whatshap or others). In that case you want to do the opposite, increase the error rates
+           used for finding overlaps:
    
-        - ``corOutCoverage=200 ovlErrorRate=0.15 obtErrorRate=0.15``
+           ``corOutCoverage=200 ovlErrorRate=0.15 obtErrorRate=0.15``
+
+           Error rates for trimming (``obtErrorRate``) and assembling (``batErrorRate``) can usually
+           be left as is.  When trimming, reads will be trimmed using other reads in the same
+           chromosome (and probably some reads from other chromosomes).  When assembling, overlaps
+           well outside the observed error rate distribution are discarded.
+
+    For low coverage:
+
+     - For less than 30X coverage, increase the alllowed difference in overlaps from 4.5% to 7.5%
+       (or more) with ``correctedErrorRate=0.075``, to adjust for inferior read correction.  Canu
+       will automatically reduce ``corMinCoverage`` to zero to correct as many reads as possible.
+
+    For high coverage:
+
+     - For more than 60X coverage, decrease the allowed difference in overlaps from 4.5% to 4.0%
+       with ``correctedErrorRate=0.040``, so that only the better corrected reads are used.  This is
+       primarily an optimization for speed and generally does not change assembly continuity.
+
 
     
 My asm.contigs.fasta is empty, why?
@@ -200,12 +237,7 @@ Why do I get less corrected read data than I asked for?
 
 What is the minimum coverage required to run Canu?
 -------------------------------------
-    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods:
-     - For less than 30X coverage, we recommend using ``corMinCoverage=0 errorRate=0.035`` to correct
-       as many reads as possible.
-     - For more than 60X coverage, we recommend using ``errorRate=0.013`` to slightly decrease the
-       error rate to use only the better reads.  This is primarily an optimization for speed and
-       generally does not improve (or degrade) assembly continuity.
+    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods.
 
 
 My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly repetitive genomes?
