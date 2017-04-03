@@ -357,6 +357,8 @@ sub gatekeeperGenerateReadLengths ($$) {
         $bucketSize = 1000;
     } elsif ($maxLen - $minLen < 1000000) {
         $bucketSize = 5000;
+    } else {
+        $bucketSize = 10000;
     }
 
     #  Generate the histogram (int truncates)
