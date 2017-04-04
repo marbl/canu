@@ -108,6 +108,8 @@ SOURCES      := AS_global.C \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 utgcns/libNDFalcon/dw.C \
                 \
+                gfa/gfa.C \
+                \
                 meryl/libkmer/existDB-create-from-fasta.C \
                 meryl/libkmer/existDB-create-from-meryl.C \
                 meryl/libkmer/existDB-create-from-sequence.C \

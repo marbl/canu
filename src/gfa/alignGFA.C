@@ -32,6 +32,7 @@
 #include "splitToWords.H"
 #include "AS_UTL_reverseComplement.H"
 
+#include "gfa.H"
 
 
 class sequence {
@@ -56,48 +57,6 @@ public:
   char   *seq;
   uint32  len;
 };
-
-
-
-
-class gfaEdge {
-public:
-  gfaEdge(char *inLine) {
-    splitToWords  W(inLine);
-
-    strcpy(Aname, W[1]);
-    strcpy(Bname, W[3]);
-
-    Aid   = atoi(Aname + 3);
-    Bid   = atoi(Bname + 3);
-
-    Afwd  = (W[2][0] == '+');
-    Bfwd  = (W[4][0] == '+');
-
-    cigar    = NULL;
-
-    olapLen = atoi(W[5]);
-  };
-
-  ~gfaEdge() {
-    delete [] cigar;
-    cigar = NULL;
-  };
-
-
-  char    Aname[128];
-  uint32  Aid;
-  bool    Afwd;
-
-  char    Bname[128];
-  uint32  Bid;
-  bool    Bfwd;
-
-  char   *cigar;
-
-  int32   olapLen;
-};
-
 
 
 
@@ -142,24 +101,39 @@ dotplot(uint32 Aid, bool Afwd, char *Aseq,
 
 
 bool
-checkEdge(gfaEdge  &edge,
+checkLink(gfaLink  *link,
           sequence *seqs,
           bool      beVerbose,
           bool      doPlot) {
 
-  char   *Aseq = seqs[edge.Aid].seq;
-  char   *Bseq = seqs[edge.Bid].seq;
+  char   *Aseq = seqs[link->_Aid].seq;
+  char   *Bseq = seqs[link->_Bid].seq;
 
-  int32  Abgn, Aend, Alen = seqs[edge.Aid].len;
-  int32  Bbgn, Bend, Blen = seqs[edge.Bid].len;
+  int32  Abgn, Aend, Alen = seqs[link->_Aid].len;
+  int32  Bbgn, Bend, Blen = seqs[link->_Bid].len;
 
   EdlibAlignResult  result  = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
-  int32             maxEdit  = (int32)ceil(edge.olapLen * 0.12);
+  int32  AalignLen = 0;
+  int32  BalignLen = 0;
+  int32  editDist  = 0;
+  int32  alignLen  = 0;
+  int32  maxEdit   = 0;
 
-  if (edge.Afwd == false)
+  //  NOTE!  edlibAlign calls the 'A' sequence the 'query' and
+  //  the 'B' sequence the 'target' (aka, 'reference').
+
+  link->alignmentLength(AalignLen, BalignLen, alignLen);
+
+  //  Regardless of if we find an new alignment or not, remove the old one.
+  //  If we don't find a new one, we'll discard the link.
+
+  delete [] link->_cigar;
+  link->_cigar = NULL;
+
+  if (link->_Afwd == false)
     reverseComplementSequence(Aseq, Alen);
-  if (edge.Bfwd == false)
+  if (link->_Bfwd == false)
     reverseComplementSequence(Bseq, Blen);
 
 
@@ -169,25 +143,38 @@ checkEdge(gfaEdge  &edge,
   //             [------------)------
   //
 
-  Abgn = max(Alen - edge.olapLen, 0);
+  Abgn = max(Alen - AalignLen, 0);
   Aend =     Alen;
 
   Bbgn = 0;
-  Bend = min(Blen, (int32)(1.25 * edge.olapLen));  //  Allow 25% gaps?
+  Bend = min(Blen, (int32)(1.10 * BalignLen));  //  Allow 25% gaps over what the GFA said?
+
+  maxEdit = (int32)ceil(alignLen * 0.12);
 
   if (beVerbose)
-    fprintf(stdout, "TEST tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  %6dM  (extend B)\n",
-            edge.Aid, (edge.Afwd) ? '+' : '-', Abgn, Aend,
-            edge.Bid, (edge.Bfwd) ? '+' : '-', Bbgn, Bend,
-            edge.olapLen);
+    fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u\n",
+            link->_Aid, (link->_Afwd) ? '+' : '-', "",
+            link->_Bid, (link->_Bfwd) ? '+' : '-', "",
+            AalignLen, BalignLen, alignLen);
 
-  result = edlibAlign(Aseq + Abgn, Aend-Abgn,
-                      Bseq + Bbgn, Bend-Bbgn,
+  if (beVerbose)
+    fprintf(stderr, "TEST tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend B)",
+            link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
+            link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
+            maxEdit);
+
+  result = edlibAlign(Aseq + Abgn, Aend-Abgn,  //  The 'query'
+                      Bseq + Bbgn, Bend-Bbgn,  //  The 'target'
                       edlibNewAlignConfig(maxEdit, EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
   if (result.numLocations > 0) {
+    if (beVerbose)
+      fprintf(stderr, "\n");
     Bend = Bbgn + result.endLocations[0] + 1;  // 0-based to space-based
     edlibFreeAlignResult(result);
+  } else {
+    if (beVerbose)
+      fprintf(stderr, " - FAILED\n");
   }
 
   //  Do the same for A.  Aend and Bbgn never change; Bend was set above.
@@ -196,69 +183,85 @@ checkEdge(gfaEdge  &edge,
   //         ^--??  [-------]-----------
   //
 
-  Abgn = max(Alen - (int32)(1.25 * edge.olapLen), 0);
+  Abgn = max(Alen - (int32)(1.10 * AalignLen), 0);  //  Allow 25% gaps over what the GFA said?
 
   if (beVerbose)
-    fprintf(stdout, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  %6dM  (extend A)\n",
-            edge.Aid, (edge.Afwd) ? '+' : '-', Abgn, Aend,
-            edge.Bid, (edge.Bfwd) ? '+' : '-', Bbgn, Bend,
-            edge.olapLen);
+    fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend A)",
+            link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
+            link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
+            maxEdit);
 
-  result = edlibAlign(Bseq + Bbgn, Bend-Bbgn,
-                      Aseq + Abgn, Aend-Abgn,
+  //  NEEDS to be MODE_HW because we need to find the suffix alignment.
+
+  result = edlibAlign(Bseq + Bbgn, Bend-Bbgn,  //  The 'query'
+                      Aseq + Abgn, Aend-Abgn,  //  The 'target'
                       edlibNewAlignConfig(maxEdit, EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
   if (result.numLocations > 0) {
+    if (beVerbose)
+      fprintf(stderr, "\n");
     Abgn = Abgn + result.startLocations[0];
     edlibFreeAlignResult(result);
+  } else {
+    if (beVerbose)
+      fprintf(stderr, " - FAILED\n");
   }
 
   //  One more alignment, this time, with feeling - notice EDLIB_MODE_MW and EDLIB_TASK_PATH.
 
+  if (beVerbose)
+    fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (final)",
+            link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
+            link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
+            maxEdit);
+
   result = edlibAlign(Aseq + Abgn, Aend-Abgn,
                       Bseq + Bbgn, Bend-Bbgn,
-                      edlibNewAlignConfig(maxEdit, EDLIB_MODE_NW, EDLIB_TASK_PATH));
+                      edlibNewAlignConfig(2 * maxEdit, EDLIB_MODE_NW, EDLIB_TASK_PATH));
 
 
-  int32  editDist = 0;
-  int32  alignLen = 0;
   bool   success = false;
 
   if (result.numLocations > 0) {
+    if (beVerbose)
+      fprintf(stderr, "\n");
+
     editDist = result.editDistance;
     alignLen = ((Aend - Abgn) + (Bend - Bbgn) + (editDist)) / 2;
     alignLen = result.alignmentLength;     //  Edlib 'alignmentLength' is populated only for TASK_PATH
 
-    edge.cigar = edlibAlignmentToCigar(result.alignment,
-                                       result.alignmentLength, EDLIB_CIGAR_STANDARD);
+    link->_cigar = edlibAlignmentToCigar(result.alignment,
+                                         result.alignmentLength, EDLIB_CIGAR_STANDARD);
 
     edlibFreeAlignResult(result);
 
-    success = true;
+    success = true; 
+  } else {
+    if (beVerbose)
+      fprintf(stderr, " - FAILED\n");
   }
 
   if (beVerbose)
-    fprintf(stdout, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  %6dM  (final)  %6dM %.4f\n",
-            edge.Aid, (edge.Afwd) ? '+' : '-', Abgn, Aend,
-            edge.Bid, (edge.Bfwd) ? '+' : '-', Bbgn, Bend,
-            edge.olapLen,
-            alignLen, (double)editDist / alignLen);
+    fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d   %.4f\n",
+            link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
+            link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
+            (double)editDist / alignLen);
 
   //  Make a plot.
 
   if ((success == false) && (doPlot == true))
-    dotplot(edge.Aid, edge.Afwd, Aseq,
-            edge.Bid, edge.Bfwd, Bseq);
+    dotplot(link->_Aid, link->_Afwd, Aseq,
+            link->_Bid, link->_Bfwd, Bseq);
 
-  //  Cleanup for the next edge.
+  //  Cleanup for the next link->
 
-  if (edge.Afwd == false)
+  if (link->_Afwd == false)
     reverseComplementSequence(Aseq, Alen);
-  if (edge.Bfwd == false)
+  if (link->_Bfwd == false)
     reverseComplementSequence(Bseq, Blen);
 
   if (beVerbose)
-    fprintf(stdout, "\n");
+    fprintf(stderr, "\n");
 
   return(success);
 }
@@ -302,6 +305,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-V") == 0) {
       verbosity++;
 
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      omp_set_num_threads(atoi(argv[++arg]));
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -318,11 +324,13 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -G g           Load reads from gkStore 'g'\n");
     fprintf(stderr, "    -T t v         Load tigs from tgStore 't', version 'v'.\n");
     fprintf(stderr, "                     Consensus sequence must exist (usually in v=2)\n");
+    fprintf(stderr, "    -i input.gfa\n");
+    fprintf(stderr, "    -o output.gfa\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -V             Increase chatter\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -i input.gfa\n");
-    fprintf(stderr, "    -o output.gfa\n");
+    fprintf(stderr, "    -t threads     Use 'threads' computational threads.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -339,6 +347,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "-- Opening tigStore '%s' version %u.\n", tigName, tigVers);
     tigStore = new tgStore(tigName, tigVers);
   }
+
+  //  Load the GFA file.
+
+  gfaFile  *gfa = new gfaFile(inGFA);
 
   //  Load all consensus sequences
 
@@ -366,21 +378,7 @@ main (int argc, char **argv) {
 
   delete tigStore;
 
-  //  Open the GFAs.
-
-  errno = 0;
-  FILE *in = fopen(inGFA, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open input GFA '%s': %s\n", inGFA, strerror(errno)), exit(1);
-
-  errno = 0;
-  FILE *ot = (otGFA != NULL) ? fopen(otGFA, "w") : NULL;
-  if (errno)
-    fprintf(stderr, "Failed to open input GFA '%s': %s\n", otGFA, strerror(errno)), exit(1);
-
-  //  Read the garbage.
-
-  char L[1048576];
+  //  Align!
 
   uint32  passCircular = 0;
   uint32  failCircular = 0;
@@ -388,35 +386,26 @@ main (int argc, char **argv) {
   uint32  passNormal = 0;
   uint32  failNormal = 0;
 
-  for (fgets(L, 1048576, in);
-       feof(in) == false;
-       fgets(L, 1048576, in)) {
+  uint32  iiLimit      = gfa->_links.size();
+  uint32  iiNumThreads = omp_get_max_threads();
+  uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
-    //  Bail on non links.
-    if (L[0] != 'L') {
-      if (ot)
-        fputs(L, ot);
-      continue;
-    }
+  fprintf(stderr, "-- Aligning " F_U32 " links using " F_U32 " threads.\n", iiLimit, iiNumThreads);
 
-    //  Find the data.
+#pragma omp parallel for schedule(dynamic, iiBlockSize)
+  for (uint32 ii=0; ii<iiLimit; ii++) {
+    gfaLink *link = gfa->_links[ii];
 
-    gfaEdge   edge(L);
+    if (link->_Aid == link->_Bid) {
+      if (verbosity > 0)
+        fprintf(stderr, "Processing circular link for tig %u\n", link->_Aid);
 
-    //  Handle circular stuff.  Some care -- not done yet -- needs to be taken so that we
-    //  don't just align self-to-self:
-    //    L tig00001121 + tig00001121 + 31504M
-    //    L tig00001121 - tig00001121 - 31504M
-
-    if (edge.Aid == edge.Bid) {
-      fprintf(stderr, "Processing circular edge for tig %u\n", edge.Aid);
-
-      if (edge.Afwd != edge.Bfwd)
+      if (link->_Afwd != link->_Bfwd)
         fprintf(stderr, "WARNING: %s %c %s %c -- circular to the same end!?\n",
-                edge.Aname, edge.Afwd ? '+' : '-',
-                edge.Bname, edge.Bfwd ? '+' : '-');
+                link->_Aname, link->_Afwd ? '+' : '-',
+                link->_Bname, link->_Bfwd ? '+' : '-');
 
-      bool  pN = checkEdge(edge, seqs, false, false);
+      bool  pN = checkLink(link, seqs, (verbosity > 0), false);
 
       if (pN == true)
         passCircular++;
@@ -427,11 +416,12 @@ main (int argc, char **argv) {
     //  Now the usual case.
 
     else {
-      fprintf(stderr, "Processing edge between tig %u %s and tig %u %s\n",
-              edge.Aid, edge.Afwd ? "-->" : "<--",
-              edge.Bid, edge.Bfwd ? "-->" : "<--");
+      if (verbosity > 0)
+        fprintf(stderr, "Processing link between tig %u %s and tig %u %s\n",
+                link->_Aid, link->_Afwd ? "-->" : "<--",
+                link->_Bid, link->_Bfwd ? "-->" : "<--");
 
-      bool  pN = checkEdge(edge, seqs, false, false);
+      bool  pN = checkLink(link, seqs, (verbosity > 0), false);
 
       if (pN == true)
         passNormal++;
@@ -439,24 +429,20 @@ main (int argc, char **argv) {
         failNormal++;
     }
 
-    //  If the cigar exists, we found an alignment.
+    //  If the cigar exists, we found an alignment.  If not, delete the link.
 
-    if ((ot) && (edge.cigar))
-      fprintf(ot, "L\t%s\t%c\t%s\t%c\t%s\n",
-              edge.Aname, edge.Afwd ? '+' : '-',
-              edge.Bname, edge.Bfwd ? '+' : '-',
-              edge.cigar);
-
-    delete [] edge.cigar;
-    edge.cigar = NULL;
+    if (link->_cigar == NULL) {
+      if (verbosity > 0)
+        fprintf(stderr, "  Failed to find alignment.\n");
+      delete gfa->_links[ii];
+      gfa->_links[ii] = NULL;
+    }
   }
 
-  delete [] seqs;
+  gfa->saveFile(otGFA);
 
-  if (in)
-    fclose(in);
-  if (ot)
-    fclose(ot);
+  delete [] seqs;
+  delete    gfa;
 
   fprintf(stderr, "passCircular  %u\n", passCircular);
   fprintf(stderr, "failCircular  %u\n", failCircular);
@@ -466,17 +452,3 @@ main (int argc, char **argv) {
 
   exit(0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
