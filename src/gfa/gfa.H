@@ -44,6 +44,7 @@ public:
 
 public:
   char   *_name;
+  uint32  _id;
   char   *_sequence;
   char   *_features;
 

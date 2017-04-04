@@ -372,6 +372,11 @@ main (int argc, char **argv) {
     tigStore->unloadTig(ti);
   }
 
+  //  Set GFA lengths based on the sequences we loaded.
+
+  for (uint32 ii=0; ii<gfa->_sequences.size(); ii++)
+    gfa->_sequences[ii]->_length = seqs[gfa->_sequences[ii]->_id].len;
+
   //  Done with the stores.
 
   gkpStore->gkStore_close();

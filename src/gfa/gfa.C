@@ -54,6 +54,20 @@ findGFAtokenI(char *features, char *token, TT &value) {
 }
 
 
+//  Search for canu-specific names, and convert to tigID's.
+static
+uint32
+nameToCanuID(char *name) {
+  uint32   id = UINT32_MAX;
+
+  if ((name[0] == 't') &&
+      (name[1] == 'i') &&
+      (name[2] == 'g'))
+    id = strtoll(name + 3, NULL, 10);
+
+  return(id);
+}
+
 
 
 gfaSequence::gfaSequence() {
@@ -81,6 +95,7 @@ gfaSequence::load(char *inLine) {
   splitToWords W(inLine);
 
   _name     = new char [strlen(W[1]) + 1];
+  _id       = UINT32_MAX;
   _sequence = new char [strlen(W[2]) + 1];
   _features = new char [strlen(W[3]) + 1];
 
@@ -93,6 +108,10 @@ gfaSequence::load(char *inLine) {
   //  Scan the _features for a length.
 
   findGFAtokenI(_features, "LN:i:", _length);
+
+  //  And any canu ID
+
+  _id = nameToCanuID(_name);
 }
 
 
@@ -106,9 +125,13 @@ gfaSequence::save(FILE *outFile) {
 
 gfaLink::gfaLink() {
   _Aname    = NULL;
+  _Aid      = UINT32_MAX;
   _Afwd     = false;
+
   _Bname    = NULL;
+  _Bid      = UINT32_MAX;
   _Bfwd     = false;
+
   _cigar    = NULL;
   _features = NULL;
 }
@@ -148,17 +171,8 @@ gfaLink::load(char *inLine) {
   strcpy(_cigar,    W[5]);
   strcpy(_features, (W[6]) ? W[6] : "");
 
-  //  Search for canu-specific names, and convert to tigID's.
-
-  if ((_Aname[0] == 't') &&   //  Could use findGFAtokenI().  This is 
-      (_Aname[1] == 'i') &&
-      (_Aname[2] == 'g'))
-    _Aid = strtoll(_Aname + 3, NULL, 10);
-
-  if ((_Bname[0] == 't') &&
-      (_Bname[1] == 'i') &&
-      (_Bname[2] == 'g'))
-    _Bid = strtoll(_Bname + 3, NULL, 10);
+  _Aid = nameToCanuID(_Aname);    //  Search for canu-specific names, and convert to tigID's.
+  _Bid = nameToCanuID(_Bname);
 }
 
 
