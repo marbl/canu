@@ -163,6 +163,92 @@ AS_UTL_safeRead(FILE *file, void *buffer, const char *desc, size_t size, size_t 
 
 
 
+#if 0
+//  Reads a line, allocating space as needed.  Alternate implementatioin, probably slower than the
+//  getc() based one below.
+bool
+readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F) {
+
+  if ((L == NULL) || (Lmax == 0))
+    allocateArray(L, Lmax = 4, resizeArray_clearNew);
+
+  L[Lmax-2] = 0;
+  L[Lmax-1] = 0;
+
+  fgets(L, Lmax, F);
+
+  Llen = strlen(L);
+
+  fprintf(stderr, "READ Llen %u\n", Llen);
+
+  //  fgets() will always NUL-terminate the string.  If the seocnd to last
+  //  character exists and is not a newline, we didn't read the whole string.
+
+  while ((L[Lmax-2] != 0) && (L[Lmax-2] != '\n')) {
+    uint32   growth = 4;
+
+    assert(Llen == Lmax - 1);
+
+    resizeArray(L, Llen, Lmax, Lmax + growth);  //  Grow the array.
+    L[Lmax-2] = 0;
+    L[Lmax-1] = 0;
+
+    fgets(L + Llen, 1 + growth, F);             //  Read more bytes.
+
+    Llen += strlen(L + Llen);                   //  How many more?
+
+    fprintf(stderr, "READ Llen %u Lmax %u '%s'\n", Llen, Lmax, L);
+  }
+
+  //  Trim trailing whitespace.
+
+  while ((Llen > 0) && (isspace(L[Llen-1])))
+    L[--Llen] = 0;
+
+  return(true);
+}
+#endif
+
+
+
+//  Reads a line of text from a file.  Trims off trailing whitespace, including newlines.
+bool
+AS_UTL_readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F) {
+
+  if ((L == NULL) || (Lmax == 0))
+    allocateArray(L, Lmax = 4, resizeArray_clearNew);
+
+  Llen = 0;
+
+  int32   ch     = getc(F);
+  uint32  growth = 4;
+
+  if (feof(F))
+    return(false);
+
+  while ((feof(F) == false) && (ch != '\n')) {
+    if (Llen >= Lmax)
+      resizeArray(L, Llen, Lmax, Lmax + growth, resizeArray_copyData | resizeArray_clearNew);  //  Grow the array.
+
+    L[Llen++] = ch;
+
+    ch = getc(F);
+  }
+
+  //  Terminate.
+
+  L[Llen] = 0;
+
+  //  Trim trailing whitespace.
+
+  while ((Llen > 0) && (isspace(L[Llen-1])))
+    L[--Llen] = 0;
+
+  return(true);
+}
+
+
+
 //  Ensure that directory 'dirname' exists.
 void
 AS_UTL_mkdir(const char *dirname) {

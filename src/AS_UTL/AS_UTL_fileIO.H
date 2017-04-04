@@ -58,6 +58,8 @@ void    AS_UTL_findBaseFileName(char *basename, const char *filename);
 void    AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj);
 size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_t size, size_t nobj);
 
+bool    AS_UTL_readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F);
+
 void    AS_UTL_mkdir(const char *dirname);
 
 void    AS_UTL_symlink(const char *pathToFile, const char *pathToLink);
