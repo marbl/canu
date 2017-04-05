@@ -247,21 +247,21 @@ main(int argc, char **argv) {
           100.0 * distinct / totalUsefulDistinct,
           100.0 * total    / totalUsefulAll);
 
-  //  Compute an average number of kmers around this count.
+  //  Compute an average number of kmers around this count.  Skip the 1 count.
 
-  int32  min = (maxCount - 25 < 2)       ? 2       : maxCount - 25;
-  int32  max = (maxCount + 25 > histLen) ? histLen : maxCount + 26;
-  int64  avg = 0;
-  int64  tot = 0;
+  uint32  min = (maxCount      < 27)      ? 2       : maxCount - 25;
+  uint32  max = (maxCount + 26 > histLen) ? histLen : maxCount + 26;
+  uint64  avg = 0;
+  uint64  tot = 0;
 
   for (int32 ii=min; ii<max; ii++) {
     avg += ii * hist[ii];
     tot += ii * hist[ii];
   }
 
-  avg /= 51;
+  avg /= (max - min);
 
-  fprintf(stderr, "Average number of kmers between count " F_S32 " and " F_S32 " is " F_S64 "\n", min, max, avg);
+  fprintf(stderr, "Average number of kmers between count " F_U32 " and " F_U32 " is " F_U64 "\n", min, max, avg);
 
   //  Scan forward until we find a big gap in kmers.  This lets us ignore wildly over represented
   //  kmers in small assemblies.
@@ -313,6 +313,8 @@ main(int argc, char **argv) {
           100.0 * total    / totalUsefulAll);
 
   fprintf(stdout, F_U32"\n", maxCount);
+
+  delete [] hist;
 
   return(0);
 }
