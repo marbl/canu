@@ -172,7 +172,7 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
     int32  blen = _gkp->gkStore_getRead(overlap->b_iid)->gkRead_sequenceLength();
 
     if (len < _opelLen) {
-      //fprintf(stderr, "overlap %8u (len %6d) %8u (len %6d) hangs %6lu %6d %6lu - %6lu %6d %6lu flip %lu\n",
+      //fprintf(stderr, "overlap %8u (len %6d) %8u (len %6d) hangs %6" F_U64P " %6d %6" F_U64P " - %6" F_U64P " %6d %6" F_U64P " flip " F_U64 "\n",
       //        overlap->a_iid, alen,
       //        overlap->b_iid, blen,
       //        overlap->dat.ovl.ahg5, (int32)alen - (int32)overlap->dat.ovl.ahg5 - (int32)overlap->dat.ovl.ahg3, overlap->dat.ovl.ahg3,
@@ -180,7 +180,7 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
       //        overlap->dat.ovl.flipped);
       _opel[ev][len]++;
     } else {
-      fprintf(stderr, "overlap %8u (len %6d) %8u (len %6d) hangs %6lu %6d %6lu - %6lu %6d %6lu flip %lu -- BOGUS\n",
+      fprintf(stderr, "overlap %8u (len %6d) %8u (len %6d) hangs %6" F_U64P " %6d %6" F_U64P " - %6" F_U64P " %6d %6" F_U64P " flip " F_U64 " -- BOGUS\n",
               overlap->a_iid, alen,
               overlap->b_iid, blen,
               overlap->dat.ovl.ahg5, (int32)alen - (int32)overlap->dat.ovl.ahg5 - (int32)overlap->dat.ovl.ahg3, overlap->dat.ovl.ahg3,
