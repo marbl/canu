@@ -251,3 +251,9 @@ My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly
    In general, with high coverage repetitive genomes (such as plants) it can be beneficial to set
    the above parameter anyway, as it will eliminate repetitive matches, speed up the assembly, and
    sometime improve unitigs.
+
+
+How can I send data to you?
+-------------------------------------
+   FTP to ftp://ftp.cbcb.umd.edu/incoming/sergek.  This is a write-only location that only the Canu
+   developers can see.
