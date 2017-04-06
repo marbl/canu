@@ -529,53 +529,21 @@ ovStore::numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag) {
 
 void
 ovStore::addEvalues(vector<char *> &fileList) {
-
-  for (uint32 i=0; i<fileList.size(); i++) {
-    errno = 0;
-    FILE  *fp = fopen(fileList[i], "r");
-    if (errno)
-      fprintf(stderr, "Failed to open evalues file '%s': %s\n", fileList[i], strerror(errno)), exit(1);
-
-    uint32        bgnID = 0;
-    uint32        endID = 0;
-    uint64        len   = 0;
-
-    AS_UTL_safeRead(fp, &bgnID, "loid",   sizeof(uint32), 1);
-    AS_UTL_safeRead(fp, &endID, "hiid",   sizeof(uint32), 1);
-    AS_UTL_safeRead(fp, &len,   "len",    sizeof(uint64), 1);
-
-    uint16 *evalues = new uint16 [len];
-
-    AS_UTL_safeRead(fp, evalues, "evalues", sizeof(uint16), len);
-
-    fclose(fp);
-
-    fprintf(stderr, "-  Loading evalues from '%s' -- ID range " F_U32 "-" F_U32 " with " F_U64 " overlaps\n",
-            fileList[i], bgnID, endID, len);
-
-    addEvalues(bgnID, endID, evalues, len);
-
-    delete [] evalues;
-  }
-}
-
-
-
-void
-ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen) {
-
   char  name[FILENAME_MAX];
   snprintf(name, FILENAME_MAX, "%s/evalues", _storePath);
 
-  //  If we have an opened memory mapped file, and it isn't open for writing, close it.
+  //  If we have an opened memory mapped file, close it.
 
-  if ((_evaluesMap) && (_evaluesMap->type() == memoryMappedFile_readOnly)) {
-    fprintf(stderr, "WARNING: closing read-only evalues file.\n");
+  if (_evaluesMap) {
     delete _evaluesMap;
 
     _evaluesMap = NULL;
     _evalues    = NULL;
   }
+
+  //  Allocate space for the evalues.
+
+  _evalues     = new uint16 [_info.numOverlaps()];
 
   //  Remove a bogus evalues file if one exists.
 
@@ -586,56 +554,63 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
     AS_UTL_unlink(name);
   }
 
-  //  Make a new evalues file if one doesn't exist.
+  //  Clear the evalues.
 
-  if (AS_UTL_fileExists(name) == false) {
-    fprintf(stderr, "Creating evalues file for " F_U64 " overlaps.\r", _info.numOverlaps());
+  for (uint64 ii=0; ii<_info.numOverlaps(); ii++)
+    _evalues[ii] = UINT16_MAX;
+
+  //  For each file in the fileList, open it, read the header (bgnID, endID and
+  //  number of values), load the evalues, then copy this data to the actual
+  //  evalues file.
+
+  for (uint32 i=0; i<fileList.size(); i++) {
+    uint32        bgnID = 0;
+    uint32        endID = 0;
+    uint64        len   = 0;
 
     errno = 0;
-    FILE *F = fopen(name, "w");
+    FILE  *fp = fopen(fileList[i], "r");
     if (errno)
-      fprintf(stderr, "Failed to make evalues file '%s': %s\n", name, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open evalues file '%s': %s\n", fileList[i], strerror(errno)), exit(1);
 
-    uint16  *Z  = new uint16 [1048576];
-    uint64   Zn = 0;
+    AS_UTL_safeRead(fp, &bgnID, "loid",   sizeof(uint32), 1);
+    AS_UTL_safeRead(fp, &endID, "hiid",   sizeof(uint32), 1);
+    AS_UTL_safeRead(fp, &len,   "len",    sizeof(uint64), 1);
 
-    memset(Z, 0, sizeof(uint16) * 1048576);
+    //  Figure out the overlap ID for the first overlap associated with bgnID
 
-    while (Zn < _info.numOverlaps()) {
-      uint64  S = (Zn + 1048576 < _info.numOverlaps()) ? 1048576 : _info.numOverlaps() - Zn;
+    setRange(bgnID, endID);
 
-      AS_UTL_safeWrite(F, Z, "zero evalues", sizeof(uint16), S);
+    //  Load data directly into the evalue array
 
-      Zn += S;
+    fprintf(stderr, "-  Loading evalues from '%s' -- ID range " F_U32 "-" F_U32 " with " F_U64 " overlaps\n",
+            fileList[i], bgnID, endID, len);
 
-      fprintf(stderr, "Creating evalues file for " F_U64 " overlaps....%07.3f%%\r",
-              _info.numOverlaps(), 100.0 * Zn / _info.numOverlaps());
-    }
+    AS_UTL_safeRead(fp, _evalues + _offt._overlapID + 1, "evalues", sizeof(uint16), len);
 
-    delete [] Z;
-
-    fclose(F);
-
-    fprintf(stderr, "Creating evalues file for " F_U64 " overlaps....%07.3f%%\n",
-            _info.numOverlaps(), 100.0 * Zn / _info.numOverlaps());
+    fclose(fp);
   }
+
+  //  Write the evalues to disk.
+
+  fprintf(stderr, "Saving evalues file for " F_U64 " overlaps.\r", _info.numOverlaps());
+
+  errno = 0;
+  FILE *F = fopen(name, "w");
+  if (errno)
+    fprintf(stderr, "Failed to make evalues file '%s': %s\n", name, strerror(errno)), exit(1);
+
+  AS_UTL_safeWrite(F, _evalues, "evalues", sizeof(uint16), _info.numOverlaps());
+
+  fclose(F);
+
+  //  Clean up, and reopen the file.  Usually, we just delete the store after
+  //  values are loaded, so this is pointless.
+
+  delete [] _evalues;
 
   //  Open the evalues file if it isn't already opened
 
-  if (_evalues == NULL) {
-    _evaluesMap = new memoryMappedFile(name, memoryMappedFile_readWrite);
-    _evalues    = (uint16 *)_evaluesMap->get(0);
-  }
-
-  //  Figure out the overlap ID for the first overlap associated with bgnID
-
-  setRange(bgnID, endID);
-
-  //  Load the evalues from 'evalues'
-
-  for (uint64 ii=0; ii<evaluesLen; ii++)
-    _evalues[_offt._overlapID + ii] = evalues[ii];
-
-  //  That's it.  Deleting the ovStore object will close the memoryMappedFile.  It's left open
-  //  for more updates.
+  _evaluesMap = new memoryMappedFile(name, memoryMappedFile_readOnly);
+  _evalues    = (uint16 *)_evaluesMap->get(0);
 }

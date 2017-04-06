@@ -322,7 +322,6 @@ public:
   //  of evalues must agree.
 
   void       addEvalues(vector<char *> &fileList);
-  void       addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen);
 
   //  Return the statistics associated with this store
 
