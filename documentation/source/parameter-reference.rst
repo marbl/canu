@@ -316,8 +316,8 @@ algorithms usually need to know all overlaps for a single read.  The overlap sto
 overlap, sorts them by the first ID, and stores them for quick retrieval of all overlaps for a
 single read.
 
-ovsMemory <integer=2>
-  How much memory, in gigabytes, to use for constructing overlap stores.
+ovsMemory <float>
+  How much memory, in gigabytes, to use for constructing overlap stores.  Must be at least 256m or 0.25g.
 
 ovsMethod <string="sequential">
   Two construction algorithms are supported.  One uses a single data stream, and is faster for small
