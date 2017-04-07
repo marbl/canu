@@ -10,6 +10,8 @@ To get the most up-to-date options, run
 
 The default values below will vary based on the input data type and genome size.
 
+Boolean options accept true/false or 1/0.
+
 Global Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
