@@ -161,16 +161,16 @@ sub generateOutputs ($) {
     #  Graphs
 
     if ((!fileExists("$asm.contigs.gfa")) &&
-        ( fileExists("unitigging/4-unitigger/$asm.contigs.gfa"))) {
-        fetchFile("unitigging/4-unitigger/$asm.contigs.gfa");
-        copy("unitigging/4-unitigger/$asm.contigs.gfa", "$asm.contigs.gfa");
+        ( fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa"))) {
+        fetchFile("unitigging/4-unitigger/$asm.contigs.aligned.gfa");
+        copy("unitigging/4-unitigger/$asm.contigs.aligned.gfa", "$asm.contigs.gfa");
         stashFile("$asm.contigs.gfa");
     }
 
     if ((! fileExists("$asm.unitigs.gfa")) &&
-        (  fileExists("unitigging/4-unitigger/$asm.unitigs.gfa"))) {
-        fetchFile("unitigging/4-unitigger/$asm.unitigs.gfa");
-        copy("unitigging/4-unitigger/$asm.unitigs.gfa", "$asm.unitigs.gfa");
+        (  fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa"))) {
+        fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.gfa");
+        copy("unitigging/4-unitigger/$asm.unitigs.aligned.gfa", "$asm.unitigs.gfa");
         stashFile("$asm.unitigs.gfa");
     }
 

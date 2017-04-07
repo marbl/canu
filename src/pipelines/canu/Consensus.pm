@@ -40,7 +40,7 @@ package canu::Consensus;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusAnalyze);
+@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusAnalyze alignGFA);
 
 use strict;
 
@@ -562,4 +562,123 @@ sub consensusAnalyze ($) {
 
   allDone:
     stopAfter("consensus");
+}
+
+
+
+
+sub alignGFA ($) {
+    my $asm     = shift @_;
+    my $attempt = getGlobal("canuIteration");
+    my $path    = "unitigging/4-unitigger";
+
+    #  Decide if this is small enough to run right now, or if we should submit to the grid.
+
+    #my $bin     = getBinDirectory();
+
+    #  This is just big enough to not fit comfortably in the canu process itself.
+
+    goto allDone   if (skipStage($asm, "alignGFA") == 1);
+    goto allDone   if (fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa") &&
+                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa"));
+
+    fetchFile("$path/alignGFA.sh");
+
+    if (! -e "$path/alignGFA.sh") {
+        open(F, "> $path/alignGFA.sh") or caExit("can't open '$path/alignGFA.sh.sh' for writing: $!\n", undef);
+        print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
+        print F setWorkDirectoryShellCode($path);
+        print F "\n";
+        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
+        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
+        print F "\n";
+        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v002.dat", "");
+        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v002.tig", "");
+        print F "\n";
+        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
+        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");
+        print F "\n";
+        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.dat", "");
+        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.tig", "");
+        print F "\n";
+        print F "\n";
+        print F "if [ ! -e ./$asm.unitigs.aligned.gfa ] ; then\n";
+        print F "  \$bin/alignGFA \\\n";
+        print F "    -T ../$asm.utgStore 2 \\\n";
+        print F "    -i ./$asm.unitigs.gfa \\\n";
+        print F "    -o ./$asm.unitigs.aligned.gfa \\\n";
+        print F "    -t " . getGlobal("gfaThreads") . " \\\n";
+        print F "  > ./$asm.unitigs.aligned.gfa.err 2>&1";
+        print F "\n";
+        print F stashFileShellCode("$path", "$asm.unitigs.aligned.gfa", "  ");
+        print F "fi\n";
+        print F "\n";
+        print F "\n";
+        print F "if [ ! -e ./$asm.contigs.aligned.gfa ] ; then\n";
+        print F "  \$bin/alignGFA \\\n";
+        print F "    -T ../$asm.ctgStore 2 \\\n";
+        print F "    -i ./$asm.contigs.gfa \\\n";
+        print F "    -o ./$asm.contigs.aligned.gfa \\\n";
+        print F "    -t " . getGlobal("gfaThreads") . " \\\n";
+        print F "  > ./$asm.contigs.aligned.gfa.err 2>&1";
+        print F "\n";
+        print F stashFileShellCode("$path", "$asm.contigs.aligned.gfa", "  ");
+        print F "fi\n";
+        print F "\n";
+        print F "\n";
+        print F "if [ -e ./$asm.unitigs.aligned.gfa -a \\\n";
+        print F "     -e ./$asm.contigs.aligned.gfa ] ; then\n";
+        print F "  echo GFA alignments updated.\n";
+        print F "  exit 0\n";
+        print F "else\n";
+        print F "  echo GFA alignments failed.\n";
+        print F "  exit 1\n";
+        print F "fi\n";
+        close(F);
+
+        system("chmod +x $path/alignGFA.sh");
+
+        stashFile("$path/alignGFA.sh");
+    }
+
+    #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
+    #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
+    #  (meryl and unitig are the same)
+
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+    if ($attempt > 1) {
+        print STDERR "--\n";
+        print STDERR "-- GFA alignment failed.\n";
+        print STDERR "--\n";
+    }
+
+    #  If too many attempts, give up.
+
+    if ($attempt > getGlobal("canuIterationMax")) {
+        caExit("failed to align GFA links.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.  If the genome is small, just do it here and now, otherwise,
+    #  run on the grid.
+
+    emitStage($asm, "alignGFA", $attempt);
+
+    if (getGlobal("genomeSize") < 40000000) {
+        if (runCommand("$path", "alignGFA.sh")) {
+            caExit("failed to align contigs", "./$asm.contigs.aligned.gfa.err");
+        }
+    } else {
+        submitOrRunParallelJob($asm, "gfa", $path, "alignGFA", (1));
+    }
+
+    return;
+
+  finishStage:
+    emitStage($asm, "alignGFA");
+
+  allDone:
 }

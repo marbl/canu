@@ -789,7 +789,7 @@ sub setDefaults () {
     $global{"useGrid"}                     = 1;
     $synops{"useGrid"}                     = "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'";
 
-    foreach my $c (qw(BAT CNS COR MERYL CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
+    foreach my $c (qw(BAT GFA CNS COR MERYL CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
         $global{"useGrid$c"} = 1;
         $synops{"useGrid$c"} = "If 'true', run module $c under grid control; if 'false' run locally.";
     }
@@ -831,6 +831,7 @@ sub setDefaults () {
 
     setExecDefaults("bat",    "unitig construction");
     setExecDefaults("cns",    "unitig consensus");
+    setExecDefaults("gfa",    "graph alignment and processing");
 
     #####  Object Storage
 

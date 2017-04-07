@@ -430,6 +430,10 @@ gridOptions <string=unset>
   Grid submission command options applied to all grid jobs
 gridOptionsJobName <string=unset>
   Grid submission command jobs name suffix
+gridOptionsBAT <string=unset>
+  Grid submission command options applied to unitig construction with the bogart algorithm
+gridOptionsGFA <string=unset>
+  Grid submission command options applied to gfa alignment and processing
 gridOptionsCNS <string=unset>
   Grid submission command options applied to unitig consensus jobs
 gridOptionsCOR <string=unset>
