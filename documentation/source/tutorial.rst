@@ -40,10 +40,10 @@ such as reformatting files, but generally just executes other programs.
     [other-options] \
     [-pacbio-raw | -pacbio-corrected | -nanopore-raw | -nanopore-corrected] *fastq
 
-Two options are mandatory, -d, to set the working directory, and -p, to set the file name prefix.
-All work is performed and output appears in the working directory.  The directory need not exist
-before starting.  Most files in this directory have file names beginning with the file name
-prefix, however, running two canu commands in the same directory will probably lead to confusion.
+The -p option, to set the file name prefix of intermediate and output files, is mandatory.  If -d is
+not supplied, canu will run in the current directory, otherwise, Canu will create the
+`assembly-directory` and run in that directory.  It is _not_ possible to run two different
+assemblies in the same directory.
 
 The -s option will import a list of parameters from the supplied specification ('spec') file.  These
 parameters will be applied before any from the command line are used, providing a method for
@@ -52,6 +52,8 @@ setting commonly used parameters, but overriding them for specific assemblies.
 By default, all three top-level tasks are performed.  It is possible to run exactly one task by
 using the -correct, -trim or -assemble options.  These options can be useful if you want to correct
 reads once and try many different assemblies.  We do exactly that in the :ref:`quickstart`.
+Additionally, suppling pre-corrected reads with -pacbio-corrected or -nanopore-corrected
+will run only the trimming (-trim) and assembling (-assemble) stages.
 
 Parameters are key=value pairs that configure the assembler.  They set run time parameters (e.g.,
 memory, threads, grid), algorithmic parameters (e.g., error rates, trimming aggressiveness), and
