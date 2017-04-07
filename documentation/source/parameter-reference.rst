@@ -12,6 +12,10 @@ The default values below will vary based on the input data type and genome size.
 
 Boolean options accept true/false or 1/0.
 
+Memory sizes are assumed to be in gigabytes if no units are supplied.  Values may be non-integer
+with or without a unit - 'k' for kilobytes, 'm' for megabytes, 'g' for gigabytes or 't' for
+terabytes.  For example, "0.25t" is equivalent to "256g" (or simply "256").
+
 Global Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
