@@ -354,27 +354,42 @@ trimReadsCoverage <integer=1>
 Grid Engine Support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Canu supports Sun/Open/Univa Grid Engine (SGE), Portable Batch System (PBS), Platform Computing's Load
-Sharing Facility (LSF), and the Simple Linux Utility for Resource Management (SLURM).  Most of the compute
-intensive stages can run under grid control.
+Canu directly supports most common grid scheduling systems.  Under normal use, Canu will query the
+system for grid support, congigure itself for the machines available in the grid, then submit itself
+to the grid for execution.  The Canu pipeline is a series of about a dozen steps that alternate
+between embarassingly parallel computations (e.g., overlap computation) and sequential bookkeeping
+steps (e.g., checking if all overlap jobs finished).  This is entirely managed by Canu.
 
-The useGrid* options control which algorithms run in parallel on the grid.
+Canu has first class support for the various schedulers derived from Sun Grid Engine (Univa, Son of
+Grid Engine) and the Simple Linux Utility for Resource Management (SLURM), meaning that the
+devlopers have direct access to these systems.  Platform Computing's Load Sharing Facility (LSF) and
+the various schedulers derived from the Portable Batch System (PBS, Torque and PBSPro) are supported
+as well, but without developer access bugs do creep in.  As of Canu v1.5, support seems stable and
+working.
 
 useGrid <boolean=true>
-  Master control.  If 'false', no algorithms will run under grid control.  Does not change the value of the other useGrid options.
+  Master control.  If 'false', no algorithms will run under grid control.  Does not change the value
+  of the other useGrid options.
 
-  If 'remote', jobs are configured for grid execution, but not submitted.  A message, with commands to launch the job, is reported and canu halts execution.
+  If 'remote', jobs are configured for grid execution, but not submitted.  A message, with commands
+  to launch the job, is reported and canu halts execution.
 
-  Note that the host used to run canu for 'remote' execution must know about the grid, that is, it must be able to submit jobs to the grid.
+  Note that the host used to run canu for 'remote' execution must know about the grid, that is, it
+  must be able to submit jobs to the grid.
+
+It is also possible to enable/disable grid support for individual algorithms with options such as
+`useGridBAT`, `useGridCNS`, et cetera.  This has been useful in the (far) past to prevent certain
+algorithms, notably overlap error adjustment, from running too many jobs concurrently and thrashing
+disk.  Recent storage systems seem to be able to handle the load better -- computers have gotten
+faster quicker than genomes have gotten larger.
 
 There are many options for configuring a new grid ('gridEngine*') and for configuring how canu
 configures its computes to run under grid control ('gridOptions*').  The grid engine to use is
 specified with the 'gridEngine' option.
 
 gridEngine <string>
-  Which grid engine to use.  Auto-detected.  Possible choices are 'sge', 'pbs', 'lsf' or 'slurm'.
-
-  NOTE: 'lsf' support is untested.
+  Which grid engine to use.  Auto-detected.  Possible choices are 'sge', 'pbs', 'pbspro', 'lsf' or
+  'slurm'.
 
 .. _grid-engine-config:
 
