@@ -307,5 +307,20 @@ sub configureSGE () {
     }
     close(F);
 
+    if (scalar(keys(%hosts)) == 0) {
+        my $mm = getGlobal("maxMemory");
+        my $mt = getGlobal("maxThreads");
+
+        print STDERR "--\n";
+        print STDERR "-- WARNING:  No hosts found in 'qhost' report.\n";
+        print STDERR "-- WARNING:  Will use maxMemory=$mm and maxThreads=$mt instead.\n";
+        print STDERR "-- ERROR:    maxMemory not defined!\n"   if (!defined($mm));
+        print STDERR "-- ERROR:    maxThreads not defined!\n"  if (!defined($mt));
+
+        caExit("maxMemory or maxThreads not defined", undef)  if (!defined($mm) || !defined($mt));
+
+        $hosts{"$mt-$mm"}++;
+    }
+
     setGlobal("availableHosts", formatAllowedResources(%hosts, "Sun Grid Engine"));
 }
