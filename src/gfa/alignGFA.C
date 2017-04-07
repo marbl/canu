@@ -271,8 +271,6 @@ checkLink(gfaLink  *link,
 
 int
 main (int argc, char **argv) {
-  char    *gkpName         = NULL;
-
   char    *tigName         = NULL;
   uint32   tigVers         = UINT32_MAX;
 
@@ -286,10 +284,7 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-T") == 0) {
+    if        (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
@@ -316,6 +311,13 @@ main (int argc, char **argv) {
     arg++;
   }
 
+  if (tigName == NULL)
+    err++;
+  if (inGFA == NULL)
+    err++;
+  if (otGFA == NULL)
+    err++;
+
   if (err) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "  Validates a GFA by generating alignments.\n");
@@ -332,24 +334,23 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -t threads     Use 'threads' computational threads.\n");
     fprintf(stderr, "\n");
+
+    if (tigName == NULL)
+      fprintf(stderr, "ERROR: no tigStore (-T) supplied.\n");
+    if (inGFA == NULL)
+      fprintf(stderr, "ERROR: no input GFA (-i) supplied.\n");
+    if (otGFA == NULL)
+      fprintf(stderr, "ERROR: no output GFA (-o) supplied.\n");
+
     exit(1);
   }
 
-  gkStore  *gkpStore          = NULL;
-  tgStore  *tigStore          = NULL;
-
-  if (gkpName) {
-    fprintf(stderr, "-- Opening gkpStore '%s'.\n", gkpName);
-    gkpStore = gkStore::gkStore_open(gkpName, gkStore_readOnly);
-  }
-
-  if (tigName) {
-    fprintf(stderr, "-- Opening tigStore '%s' version %u.\n", tigName, tigVers);
-    tigStore = new tgStore(tigName, tigVers);
-  }
+  fprintf(stderr, "-- Opening tigStore '%s' version %u.\n", tigName, tigVers);
+  tgStore *tigStore = new tgStore(tigName, tigVers);
 
   //  Load the GFA file.
 
+  fprintf(stderr, "-- Reading GFA '%s'.\n", inGFA);
   gfaFile  *gfa = new gfaFile(inGFA);
 
   //  Load all consensus sequences
@@ -374,12 +375,14 @@ main (int argc, char **argv) {
 
   //  Set GFA lengths based on the sequences we loaded.
 
+  fprintf(stderr, "-- Resetting sequence lengths.\n", inGFA);
+
   for (uint32 ii=0; ii<gfa->_sequences.size(); ii++)
     gfa->_sequences[ii]->_length = seqs[gfa->_sequences[ii]->_id].len;
 
   //  Done with the stores.
 
-  gkpStore->gkStore_close();
+  fprintf(stderr, "-- Closing tigStore '%s'.\n", tigName);
 
   delete tigStore;
 
@@ -444,16 +447,18 @@ main (int argc, char **argv) {
     }
   }
 
+  fprintf(stderr, "-- Writing GFA '%s'.\n", otGFA);
+
   gfa->saveFile(otGFA);
+
+  fprintf(stderr, "-- Cleaning up.\n");
 
   delete [] seqs;
   delete    gfa;
 
-  fprintf(stderr, "passCircular  %u\n", passCircular);
-  fprintf(stderr, "failCircular  %u\n", failCircular);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "passNormal    %u\n", passNormal);
-  fprintf(stderr, "failNormal    %u\n", failNormal);
+  fprintf(stderr, "-- Aligned %6u ciruclar tigs, failed %6u\n", passCircular, failCircular);
+  fprintf(stderr, "-- Aligned %6u   linear tigs, failed %6u\n", passNormal,   failNormal);
+  fprintf(stderr, "-- Bye.\n");
 
   exit(0);
 }
