@@ -668,7 +668,7 @@ sub alignGFA ($) {
     emitStage($asm, "alignGFA", $attempt);
 
     if (getGlobal("genomeSize") < 40000000) {
-        if (runCommand("$path", "alignGFA.sh")) {
+        if (runCommand("$path", "./alignGFA.sh")) {
             caExit("failed to align contigs", "./$asm.contigs.aligned.gfa.err");
         }
     } else {
