@@ -64,11 +64,13 @@ sub readErrorDetectionConfigure ($) {
 
     return         if (getGlobal("enableOEA") == 0);
 
-    goto allDone   if (skipStage($asm, "readErrorDetectionConfigure") == 1);
-    goto allDone   if (fileExists("$path/red.red"));
+    goto allDone   if (fileExists("$path/red.sh"));    #  Script exists
+    goto allDone   if (fileExists("$path/red.red"));   #  Result exists
 
-    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));
-    goto allDone   if (-d "unitigging/$asm.ctgStore");
+    goto allDone   if (skipStage($asm, "readErrorDetectionConfigure") == 1);
+
+    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
+    goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
     make_path("$path")  if (! -d "$path");
 
@@ -225,11 +227,13 @@ sub readErrorDetectionCheck ($) {
     my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
-    goto allDone   if (skipStage($asm, "readErrorDetectionCheck", $attempt) == 1);
-    goto allDone   if (fileExists("$path/red.red"));
 
-    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));
-    goto allDone   if (-d "unitigging/$asm.ctgStore");
+    goto allDone   if (fileExists("$path/red.red"));       #  Output exists
+
+    goto allDone   if (skipStage($asm, "readErrorDetectionCheck", $attempt) == 1);
+
+    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
+    goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
     fetchFile("$path/red.sh");
 
@@ -337,11 +341,12 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     return         if (getGlobal("enableOEA") == 0);
 
-    goto allDone   if (skipStage($asm, "overlapErrorAdjustmentConfigure") == 1);
-    goto allDone   if (fileExists("$path/oea.sh"));
+    goto allDone   if (fileExists("$path/oea.sh"));   #  Script exists
 
-    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));
-    goto allDone   if (-d "unitigging/$asm.ctgStore");
+    goto allDone   if (skipStage($asm, "overlapErrorAdjustmentConfigure") == 1);
+
+    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
+    goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
     #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number of adjustments, but that's
     #  basically error rate.  No adjustment is output for mismatches.
@@ -537,8 +542,12 @@ sub overlapErrorAdjustmentCheck ($) {
 
     return         if (getGlobal("enableOEA") == 0);
 
+    goto allDone   if (fileExists("$path/oea.files"));   #  Output exists
+
     goto allDone   if (skipStage($asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
-    goto allDone   if (fileExists("$path/oea.files"));
+
+    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
+    goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
     #  Figure out if all the tasks finished correctly.
 
@@ -627,8 +636,9 @@ sub updateOverlapStore ($) {
     return         if (getGlobal("enableOEA") == 0);
 
     goto allDone   if (skipStage($asm, "updateOverlapStore") == 1);
-    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));
-    goto allDone   if (-d "unitigging/$asm.ctgStore");
+
+    goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
+    goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
     fetchFile("unitigging/3-overlapErrorAdjustment/oea.files");
 
