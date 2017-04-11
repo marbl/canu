@@ -111,20 +111,7 @@ AS_configure(int argc, char **argv) {
 
   for (int32 i=0; i<argc; i++) {
     if (strcmp(argv[i], "--version") == 0) {
-      if (strcmp(CANU_VERSION_COMMITS, "0") == 0) {
-        fprintf(stderr, "Canu release v%s.%s (r%s %s)\n",
-                CANU_VERSION_MAJOR,
-                CANU_VERSION_MINOR,
-                CANU_VERSION_REVISION,
-                CANU_VERSION_HASH);
-      } else {
-        fprintf(stderr, "Canu snapshot v%s.%s +%s changes (r%s %s)\n",
-                CANU_VERSION_MAJOR,
-                CANU_VERSION_MINOR,
-                CANU_VERSION_COMMITS,
-                CANU_VERSION_REVISION,
-                CANU_VERSION_HASH);
-      }
+      fputs(CANU_VERSION, stderr);
       exit(0);
     }
   }
