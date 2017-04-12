@@ -714,6 +714,8 @@ sub configureAssembler () {
 
     ($err, $all) = getAllowedResources("",    "bat",      $err, $all);
 
+    ($err, $all) = getAllowedResources("",    "gfa",      $err, $all);
+
     ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
 
     #  Check some minimums.
