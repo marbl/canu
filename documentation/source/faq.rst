@@ -38,6 +38,13 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
     partition or queue.
 
     To disable grid support and run only on the local machine, specify ``useGrid=false``
+    
+My run stopped with the error ``'Failed to submit batch jobs'``
+-------------------------------------
+
+    The grid you run on must allow compute nodes to submit jobs. This means that if you are on a compute host, ``qsub/bsub/sbatch/etc`` must be available and working. You can test this by starting an interactive compute session and running the submit command manually (e.g. ``qsub`` on SGE, ``bsub`` on LSF, ``sbatch`` on SLURM). 
+    
+    If this is not the case, Canu **WILL NOT** work on your grid. You must then set ``useGrid=false`` and run on a single machine. Alternatively, you can run Canu with ``useGrid=remote`` which will stop at every submit command, list what should be submitted. You then submit these jobs manually, wait for them to complete, and run the Canu command again. This is a manual process but currently the only workaround for grids without submit support on the compute nodes.
 
 
 What parameters should I use for my reads?
