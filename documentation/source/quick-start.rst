@@ -205,7 +205,7 @@ and run the assembler adding sensitive parameters (**correctedErrorRate=0.105**)
 
 After the run completes, we can check the assembly statistics::
 
- tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
+ tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.ctgStore 2 -G yeast/unitigging/asm.gkpStore
 
 ::
 
