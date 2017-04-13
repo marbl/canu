@@ -586,7 +586,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
     fprintf(stderr, "-  Loading evalues from '%s' -- ID range " F_U32 "-" F_U32 " with " F_U64 " overlaps\n",
             fileList[i], bgnID, endID, len);
 
-    AS_UTL_safeRead(fp, _evalues + _offt._overlapID + 1, "evalues", sizeof(uint16), len);
+    AS_UTL_safeRead(fp, _evalues + _offt._overlapID, "evalues", sizeof(uint16), len);
 
     fclose(fp);
   }
