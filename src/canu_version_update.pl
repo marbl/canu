@@ -32,7 +32,7 @@ my $cwd = getcwd();
 
 my $label    = "snapshot";     #  Change this to 'release' just before making a release.
 my $major    = "1";            #  ...and this too.
-my $minor    = "4";            #  ...and this too.
+my $minor    = "5";            #  ...and this too.
 
 my $commits  = "0";
 my $hash1    = undef;          #  This from 'git describe'
