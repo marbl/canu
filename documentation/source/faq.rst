@@ -74,6 +74,9 @@ What parameters should I use for my reads?
        slightly decrease the maximum allowed difference from the default of 4.5% to 4.0% with
        ``correctedErrorRate=0.040 corMhapSensitivity=normal``.  For recent Sequel data, the defaults
        are appropriate.
+       
+   **Nanopore R9 large genomes**
+       Due to some systematic errors, the identity estimate used by Canu for correction can be an over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) we've used ``'corMhapOptions=--threshold 0.8 --num-hashes 512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This can be used with 30x or more of coverage, below that the defaults are OK.
 
 
 My assembly continuity is not good, how can I improve it?
