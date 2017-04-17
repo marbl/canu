@@ -593,7 +593,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
 
   //  Write the evalues to disk.
 
-  fprintf(stderr, "Saving evalues file for " F_U64 " overlaps.\r", _info.numOverlaps());
+  fprintf(stderr, "Saving evalues file for " F_U64 " overlaps.\n", _info.numOverlaps());
 
   errno = 0;
   FILE *F = fopen(name, "w");
