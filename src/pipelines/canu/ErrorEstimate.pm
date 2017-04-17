@@ -19,6 +19,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Brian P. Walenz beginning on 2016-DEC-12
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##

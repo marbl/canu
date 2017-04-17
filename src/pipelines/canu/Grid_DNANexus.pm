@@ -15,7 +15,7 @@
  #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2015-FEB-11
+ #    Brian P. Walenz beginning on 2017-FEB-11
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -78,7 +78,7 @@ sub configureDNANexus () {
 
     my %hosts;
 
-    #  Probe for how to request multiple CPUs on each node, set 
+    #  Probe for how to request multiple CPUs on each node, set
 
     #  .
     #  .

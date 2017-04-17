@@ -597,7 +597,7 @@ recomputeOverlaps(void *ptr) {
           }
           localStats.nExt3b++;
         }
-      
+
         //  Now reset the overlap.
 
         ovl->dat.ovl.ahg5 = ahg5;

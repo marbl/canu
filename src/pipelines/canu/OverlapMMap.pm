@@ -287,7 +287,7 @@ sub mmapConfigure ($$$) {
     print F "  exit\n";
     print F "fi\n";
     print F "\n";
- 
+
     print F fetchFileShellCode("$path", "queries.tar", "");
     print F "\n";
     print F "if [ -e ./queries.tar -a ! -d ./queries ] ; then\n";

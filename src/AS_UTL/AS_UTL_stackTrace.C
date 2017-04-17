@@ -101,10 +101,10 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *UNUSED(info), void *UNUSED(ctx)) {
   WRITE_STRING("'; backtrace (libbacktrace):\n");
   backtrace_full(backtraceState, 0, AS_UTL_catchCrash_full, NULL, NULL);
 
-  //WRITE_STRING("\nBacktrace (libbacktrace print):\n\n");                                                                                 
-  //backtrace_print(backtraceState, 0, stderr);                                                                                            
+  //WRITE_STRING("\nBacktrace (libbacktrace print):\n\n");
+  //backtrace_print(backtraceState, 0, stderr);
 
-  //  Pass the signal through, only so a core file can get generated.                                                                      
+  //  Pass the signal through, only so a core file can get generated.
 
   struct sigaction sa;
 
@@ -186,7 +186,7 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *UNUSED(info), void *UNUSED(ctx)) {
 
 void
 AS_UTL_catchCrash(int sig_num, siginfo_t *UNUSED(info), void *UNUSED(ctx)) {
- 
+
   //  Report the signal we failed on, be careful to not allocate memory.
 
   WRITE_STRING("\nFailed with '");

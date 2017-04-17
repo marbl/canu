@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-APR-03
+ *    Brian P. Walenz beginning on 2017-APR-04
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -149,7 +149,7 @@ gfaLink::~gfaLink() {
   delete [] _features;
 }
 
-  
+
 void
 gfaLink::load(char *inLine) {
   splitToWords W(inLine);
@@ -214,7 +214,7 @@ gfaLink::alignmentLength(int32 &queryLen, int32 &refceLen, int32 &alignLen) {
         alignLen += val;
         break;
       case 'D':  //  Deletion from the reference - gap in reference
-        refceLen += val; 
+        refceLen += val;
         alignLen += val;
        break;
       case 'N':  //  Skipped in the reference (e.g., intron)

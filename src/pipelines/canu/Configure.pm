@@ -400,7 +400,7 @@ sub getAllowedResources ($$$$@) {
     my $job = substr("    $concurrent",  -3) . " job" . (($concurrent == 1) ? " " : "s");
     my $thr = substr("    $taskThreads", -3) . " CPU" . (($taskThreads == 1) ? " " : "s");
     my $mem = substr("    $taskMemory",  -4) . " GB";
-    
+
     $all .= "-- Run $job concurrently using $mem and $thr for stage '$nam'.\n"   if ( defined($concurrent));
     $all .= "-- Run under grid control using $mem and $thr for stage '$nam'.\n"   if (!defined($concurrent));
 

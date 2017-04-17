@@ -19,6 +19,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Brian P. Walenz beginning on 2016-NOV-28
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -107,7 +111,7 @@ main (int argc, char **argv) {
     if (W[0][0] == '+') {
        uint32 splitSeqID = 0;
        FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, K, min_idy, min_ovl_len, max_read_len );
-       
+
 #ifdef TRACK_POSITIONS
        //const std::string& sequenceToCorrect = seqs.at(0);
        char * originalStringPointer = consensus_data_ptr->sequence;
@@ -122,9 +126,9 @@ main (int argc, char **argv) {
 #ifdef TRACK_POSITIONS
 			 int distance_from_beginning = split - originalStringPointer;
              std::vector<int> relevantOriginalPositions(consensus_data_ptr->originalPos.begin() + distance_from_beginning, consensus_data_ptr->originalPos.begin() + distance_from_beginning + strlen(split));
-			 int firstRelevantPosition = relevantOriginalPositions.front();		
+			 int firstRelevantPosition = relevantOriginalPositions.front();
 			 int lastRelevantPosition = relevantOriginalPositions.back();
-			 
+
 			 std::string relevantOriginalTemplate = seqs.at(0).substr(firstRelevantPosition, lastRelevantPosition - firstRelevantPosition + 1);
 
 		     // store relevantOriginalTemplate along with corrected read - not implemented

@@ -463,7 +463,7 @@ createUnitigs(AssemblyGraph   *AG,
         unitigSource[id].uID  = id;
       }
     }
-    
+
     //  Reset for the next iteration.
 
     ss = ee;

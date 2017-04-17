@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-APR-03
+ *    Brian P. Walenz beginning on 2017-APR-04
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -59,7 +59,7 @@ public:
   gfaLink();
   gfaLink(char *inLine);
   ~gfaLink();
-  
+
   void    load(char *inLine);
   void    save(FILE *outFile);
 

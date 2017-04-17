@@ -391,9 +391,9 @@ unitigConsensus::generatePBDAG(char aligner,
 
     while ((aligned == false) && (bandTolerance < errorRate * (aLen + bLen))) {
        bandTolerance *= 2;
-       if (aligner == 'E') 
+       if (aligner == 'E')
           edlibFreeAlignResult(align);
- 
+
        fprintf(stderr, "generatePBDAG()-- retry with bandTolerance = %d\n",
               bandTolerance);
 
@@ -459,7 +459,7 @@ unitigConsensus::generatePBDAG(char aligner,
        aln.end = aln.start + (ndaln._tgt_end - ndaln._tgt_bgn) - 1;
        aln.qstr = std::string(ndaln._qry_aln_str);
        aln.tstr = std::string(ndaln._tgt_aln_str);
-    } 
+    }
     aln.start++;
     cnspos[i].setMinMax(aln.start, aln.end);
     assert(aln.qstr.length() == aln.tstr.length());
@@ -509,7 +509,7 @@ unitigConsensus::generatePBDAG(char aligner,
   memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
 
   // trim consensus if needed
-  if (maxPos < cns.size()) 
+  if (maxPos < cns.size())
      cns = cns.substr(0, maxPos);
   assert(minPos == 0);
   assert(maxPos == cns.size());

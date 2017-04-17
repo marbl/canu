@@ -15,7 +15,7 @@
  #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2015-NOV-08
+ #    Brian P. Walenz beginning on 2017-MAR-20
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -118,7 +118,7 @@ sub saveReport ($) {
     my $tag;
 
     open(F, "> $asm.report") or caExit("can't open '$asm.report' for writing: $!", undef);
-    
+
     saveReportItem("CORRECTION/READS",       $report{"corGkpStore"});
     saveReportItem("CORRECTION/MERS",        $report{"corMeryl"});
     saveReportItem("CORRECTION/FILTERING",   $report{"correctionFiltering"});
@@ -168,5 +168,5 @@ sub getFromReport ($) {
     return($report{$_[0]});
 }
 
-  
+
 1;

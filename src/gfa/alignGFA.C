@@ -1,4 +1,4 @@
- 
+
 /******************************************************************************
  *
  *  This file is part of canu, a software program that assembles whole-genome
@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-MAR-23
+ *    Brian P. Walenz beginning on 2017-APR-04
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -235,7 +235,7 @@ checkLink(gfaLink  *link,
 
     edlibFreeAlignResult(result);
 
-    success = true; 
+    success = true;
   } else {
     if (beVerbose)
       fprintf(stderr, " - FAILED\n");
