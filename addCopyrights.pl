@@ -258,6 +258,11 @@ foreach my $file (@filesToProcess) {
 
     next if ($file =~ m/libboost/);
 
+    next if ($file =~ m/libedlib/);
+    next if ($file =~ m/libfalcon/);
+    next if ($file =~ m/libNDFalcon/);
+    next if ($file =~ m/libbacktrace/);
+
     next if ($file =~ m/qsort_mt.c$/);
 
     my $cb = "/";
@@ -273,29 +278,15 @@ foreach my $file (@filesToProcess) {
     my $iskmer   = 0;
 
     $iskmer = 1    if ($file =~ m/^kmer/);
-    $iskmer = 1    if ($file =~ m/meryl/);
+    #$iskmer = 1    if ($file =~ m/libmeryl/);
+    $iskmer = 1    if ($file =~ m/src\/meryl\/libkmer/);
+    $iskmer = 1    if ($file =~ m/src\/meryl\/existDB.C/);
+    $iskmer = 1    if ($file =~ m/src\/meryl\/positionDB.C/);
 
-    $iskmer = 1    if ($file =~ m/bitEncodings/);
-    $iskmer = 1    if ($file =~ m/bitOperations/);
-    $iskmer = 1    if ($file =~ m/bitPackedArray/);
-    $iskmer = 1    if ($file =~ m/bitPackedFile/);
-    $iskmer = 1    if ($file =~ m/bitPacking/);
-    $iskmer = 1    if ($file =~ m/decodeBooleanString/);
-    $iskmer = 1    if ($file =~ m/dnaAlphabets/);
-    $iskmer = 1    if ($file =~ m/intervalList/);
-    $iskmer = 1    if ($file =~ m/kMer/);
-    $iskmer = 1    if ($file =~ m/kMerHuge/);
-    $iskmer = 1    if ($file =~ m/kMerTiny/);
-    $iskmer = 1    if ($file =~ m/memoryMappedFile/);
-    $iskmer = 1    if ($file =~ m/memoryMappedFileTest/);
-    $iskmer = 1    if ($file =~ m/readBuffer/);
-    $iskmer = 1    if ($file =~ m/speedCounter/);
-    $iskmer = 1    if ($file =~ m/splitToWords/);
-    $iskmer = 1    if ($file =~ m/sweatShop/);
-    $iskmer = 1    if ($file =~ m/testHashTable/);
-    $iskmer = 1    if ($file =~ m/testRand/);
-    $iskmer = 1    if ($file =~ m/testVar/);
-    $iskmer = 1    if ($file =~ m/timeAndSize/);
+    if ($iskmer) {
+        print STDERR "Won't process:      '$file' - kmer copyrights screwed up\n";
+        next;
+    }
 
     if (($file !~ m/\.[CHch]$/) && ($file !~ m/\.p[lm]/)) {
         print STDERR "Won't process:      '$file'\n";
@@ -380,7 +371,7 @@ foreach my $file (@filesToProcess) {
         #  If a single "/*" at the start of the line, assume this is NOT an old copyright block,
         #  but a copyright block (or just a comment) from some third party code.
 
-        if ($_ eq "\/\*") {
+        if ($_ eq "/*") {
             print STDERR "Foreign code found: '$file'\n";
             $start = 0;
         }
@@ -414,7 +405,7 @@ foreach my $file (@filesToProcess) {
     if ($doForReal) {
         my $perms = `stat -f %p $file`;  chomp $perms;  $perms = substr($perms, -3);
 
-        rename "$file", "$file.ORIG";
+        #rename "$file", "$file.ORIG";
 
         open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
         print F @lines;

@@ -33,6 +33,7 @@ $stoppingCommits{"72c27c95d61cb8f37e859c4039456eb2acc5c55b"} = 1;   #  19 NOV 20
 $stoppingCommits{"b2df5790f77d38cc31fe77a7f65360e02389f92e"} = 1;   #  04 MAR 2016
 $stoppingCommits{"1ef335952342ef06ad1651a888f09c312f54dab8"} = 1;   #  18 MAY 2016
 $stoppingCommits{"bbbdcd063560e5f86006ee6b8b96d2d7b80bb750"} = 1;   #  21 NOV 2016
+$stoppingCommits{"64459fe33f97f6d23fe036ba1395743d0cdd03e4"} = 1;   #  17 APR 2017
 
 open(F, "< logs") or die "Failed to open 'logs': $!\n";
 
