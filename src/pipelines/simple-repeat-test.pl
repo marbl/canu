@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+use strict;
+
 #  Generate a circular 'genome' with nUnique pieces and nUnique+1 repeats, the pair at the start/end
 #  forming the circularization.  Assemble it, and compare against 'reference'.
 
