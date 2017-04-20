@@ -118,7 +118,7 @@ sub setGlobal ($$) {
         }
     }
 
-    foreach my $opt ("overlapper", "realign") {
+    foreach my $opt ("overlapper", "realign", "mhapfilterunique", "mhapfilterthreshold") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
