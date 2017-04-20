@@ -388,6 +388,7 @@ sub mhapConfigure ($$$) {
     print F "  --ordered-kmer-size $ordSketchMer \\\n";
     print F "  --threshold $threshold \\\n";
     print F "  --filter-threshold $filterThreshold \\\n";
+    print F "  --min-olap-length ", getGlobal("minOverlapLength"), " \\\n";
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "  -f $cygA ../../0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz $cygB \\\n"   if (-e "$base/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
@@ -487,6 +488,7 @@ sub mhapConfigure ($$$) {
     print F "    --filter-threshold $filterThreshold \\\n";
     print F "    --ordered-sketch-size $ordSketch \\\n";
     print F "    --ordered-kmer-size $ordSketchMer \\\n";
+    print F "    --min-olap-length ", getGlobal("minOverlapLength"), " \\\n";
     print F "    --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "    -s $cygA ./blocks/\$blk.dat \$slf $cygB \\\n";
