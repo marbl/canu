@@ -47,7 +47,7 @@ the PacBio RSII or Oxford Nanopore MinION).
 
 Publication
 ===========
-Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. `Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <http://biorxiv.org/content/early/2016/08/24/071282>`_. bioRxiv. (2016).
+Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. `Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <http://doi.org/10.1101/gr.215087.116>`_. Genome Research. (2017).
 
 Install
 =========
