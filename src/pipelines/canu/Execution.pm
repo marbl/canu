@@ -59,6 +59,7 @@ require Exporter;
              skipStage
              emitStage
              touch
+             makeExecutable
              getInstallDirectory
              getJobIDShellCode
              getLimitShellCode
@@ -240,6 +241,13 @@ sub touch ($@) {
     close(F);
 }
 
+
+
+sub makeExecutable ($) {
+    my $file = shift @_;
+
+    chmod(0755 & ~umask(), $file);
+}
 
 
 #
@@ -663,7 +671,7 @@ sub submitScript ($$) {
     print F "\$bin/canu " . getCommandLineOptions() . " canuIteration=" . getGlobal("canuIteration") . "\n";
     close(F);
 
-    system("chmod +x $script");
+    makeExecutable("$script");
 
     #  Construct a submission command line.
 
@@ -910,7 +918,7 @@ sub buildGridJob ($$$$$$$$$) {
     print F "> ./$script.jobSubmit.out 2>&1\n";
     close(F);
 
-    chmod 0755, "$path/$script.jobSubmit.sh";
+    makeExecutable("$path/$script.jobSubmit.sh");
 
     return("$script.jobSubmit", $jobName);
 }
@@ -1029,7 +1037,7 @@ sub submitOrRunParallelJob ($$$$@) {
 
     #  The script MUST be executable.
 
-    system("chmod +x \"$path/$script.sh\"");
+    makeExecutable("$path/$script.sh");
 
     #  Report what we're doing.
 

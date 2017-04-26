@@ -232,8 +232,7 @@ sub overlapConfigure ($$$) {
         print F "exit 0\n";
         close(F);
 
-        system("chmod +x $path/overlap.sh");
-
+        makeExecutable("$path/overlap.sh");
         stashFile("$path/overlap.sh");
     }
 

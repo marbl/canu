@@ -410,6 +410,9 @@ sub mmapConfigure ($$$) {
         print STDERR "-- Configured $numJobs mmap overlap jobs.\n";
     }
 
+    makeExecutable("$path/precompute.sh");
+    makeExecutable("$path/mhap.sh");
+
     stashFile("$path/precompute.sh");
     stashFile("$path/mhap.sh");
 

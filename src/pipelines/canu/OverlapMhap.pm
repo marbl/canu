@@ -571,6 +571,9 @@ sub mhapConfigure ($$$) {
         print STDERR "-- Configured $numJobs mhap overlap jobs.\n";
     }
 
+    makeExecutable("$path/precompute.sh");
+    makeExecutable("$path/mhap.sh");
+
     stashFile("$path/precompute.sh");
     stashFile("$path/mhap.sh");
 

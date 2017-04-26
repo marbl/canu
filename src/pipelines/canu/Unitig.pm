@@ -245,6 +245,7 @@ sub unitig ($) {
 
     close(F);
 
+    makeExecutable("$path/unitigger.sh");
     stashFile("$path/unitigger.sh");
 
   finishStage:

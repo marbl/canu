@@ -206,8 +206,7 @@ sub readErrorDetectionConfigure ($) {
 
     close(F);
 
-    chmod 0755, "$path/red.sh";
-
+    makeExecutable("$path/red.sh");
     stashFile("$path/red.sh");
 
   finishStage:
@@ -520,8 +519,7 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     close(F);
 
-    chmod 0755, "$path/oea.sh";
-
+    makeExecutable("$path/oea.sh");
     stashFile("$path/oea.sh");
 
   finishStage:

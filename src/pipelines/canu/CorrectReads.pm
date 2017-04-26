@@ -322,6 +322,7 @@ sub buildCorrectionLayouts_direct ($) {
 
     close(F);
 
+    makeExecutable("$path/correctReads.sh");
     stashFile("$path/correctReads.sh");
 
   finishStage:
@@ -489,6 +490,7 @@ sub buildCorrectionLayouts_piped ($) {
 
     close(F);
 
+    makeExecutable("$path/correctReads.sh");
     stashFile("$path/correctReads.sh");
 
   finishStage:

@@ -220,7 +220,8 @@ sub overlapStoreConfigure ($$$) {
         print F " -L ./1-overlapper/ovljob.files \\\n";
         close(F);
     }
-    system("chmod +x $path/scripts/0-config.sh");
+    makeExecutable("$path/scripts/0-config.sh");
+    stashFile("$path/scripts/0-config.sh");
 
     if (! -e "$path/config") {
         $cmd  = "./$asm.ovlStore.BUILDING/scripts/0-config.sh \\\n";
@@ -368,9 +369,13 @@ sub overlapStoreConfigure ($$$) {
         close(F);
     }
 
-    system("chmod +x $path/scripts/1-bucketize.sh");
-    system("chmod +x $path/scripts/2-sort.sh");
-    system("chmod +x $path/scripts/3-index.sh");
+    makeExecutable("$path/scripts/1-bucketize.sh");
+    makeExecutable("$path/scripts/2-sort.sh");
+    makeExecutable("$path/scripts/3-index.sh");
+
+    stashFile("$path/scripts/1-bucketize.sh");
+    stashFile("$path/scripts/2-sort.sh");
+    stashFile("$path/scripts/3-index.sh");
 
   finishStage:
     emitStage($asm, "$tag-overlapStoreConfigure");

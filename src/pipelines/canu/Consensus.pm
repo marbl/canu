@@ -125,6 +125,7 @@ sub utgcns ($$$) {
 
     close(F);
 
+    makeExecutable("$path/consensus.sh");
     stashFile("$path/consensus.sh");
 }
 
@@ -639,8 +640,7 @@ sub alignGFA ($) {
         print F "fi\n";
         close(F);
 
-        system("chmod +x $path/alignGFA.sh");
-
+        makeExecutable("$path/alignGFA.sh");
         stashFile("$path/alignGFA.sh");
     }
 
