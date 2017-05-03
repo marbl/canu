@@ -74,8 +74,8 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "--max_read_len") == 0) {
        max_read_len = atoi(argv[++arg]);
-       if (max_read_len <= 0 || max_read_len > AS_MAX_READLEN) {
-          max_read_len = AS_MAX_READLEN;
+       if (max_read_len <= 0 || max_read_len > 2*AS_MAX_READLEN) {
+          max_read_len = 2*AS_MAX_READLEN;
        }
 
     } else {
