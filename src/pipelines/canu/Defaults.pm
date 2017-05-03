@@ -993,7 +993,7 @@ sub checkJava () {
         addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr (from '$java').\n");
         addCommandLineError("ERROR:  '$java -showversion' reports:\n");
 
-        open(F, "$java -showversion 2>&1 |");
+        open(F, "$java -Xmx1g -showversion 2>&1 |");
         while (<F>) {
             chomp;
             addCommandLineError("ERROR:    '$_'\n");
