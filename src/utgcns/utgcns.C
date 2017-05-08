@@ -271,6 +271,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -maxcoverage c  Use non-contained reads and the longest contained reads, up to\n");
     fprintf(stderr, "                    C coverage, for consensus generation.  The default is 0, and will\n");
     fprintf(stderr, "                    use all reads.\n");
+    fprintf(stderr, "    -threads t      Use 't' compute threads; default 1.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  LOGGING\n");
     fprintf(stderr, "    -v              Show multialigns.\n");
