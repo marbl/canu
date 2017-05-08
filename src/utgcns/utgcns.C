@@ -202,26 +202,29 @@ main (int argc, char **argv) {
   if ((tigFileName == NULL) && (tigName == NULL) && (inPackageName == NULL))
     err++;
 
+  if ((algorithm != 'Q') && (algorithm != 'P') && (algorithm != 'U'))
+    err++;
+
   if (err) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  INPUT\n");
     fprintf(stderr, "    -G g            Load reads from gkStore 'g'\n");
-    fprintf(stderr, "    -T t v p        Load unitigs from tgStore 't', version 'v', partition 'p'.\n");
+    fprintf(stderr, "    -T t v p        Load tig from tgStore 't', version 'v', partition 'p'.\n");
     fprintf(stderr, "                      Expects reads will be in gkStore partition 'p' as well\n");
     fprintf(stderr, "                      Use p='.' to specify no partition\n");
-    fprintf(stderr, "    -t file         Test the computation of the unitig layout in 'file'\n");
+    fprintf(stderr, "    -t file         Test the computation of the tig layout in 'file'\n");
     fprintf(stderr, "                      'file' can be from:\n");
     fprintf(stderr, "                        'tgStoreDump -d layout' (human readable layout format)\n");
     fprintf(stderr, "                        'utgcns -L'             (human readable layout format)\n");
     fprintf(stderr, "                        'utgcns -O'             (binary multialignment format)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -p package      Load unitig and read from 'package' created with -P.  This\n");
+    fprintf(stderr, "    -p package      Load tig and reads from 'package' created with -P.  This\n");
     fprintf(stderr, "                    is usually used by developers.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALGORITHM\n");
-    fprintf(stderr, "    -quick          No alignments, just paste read sequence into the unitig positions.\n");
+    fprintf(stderr, "    -quick          No alignments, just paste read sequence into the tig positions.\n");
     fprintf(stderr, "                    This is very fast, but the consensus sequence is formed from a mosaic\n");
     fprintf(stderr, "                    of read sequences, and there can be large indel.  This is useful for\n");
     fprintf(stderr, "                    checking intermediate assembly structure by mapping to reference, or\n");
@@ -235,22 +238,31 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    output.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  ALIGNER\n");
+    fprintf(stderr, "    -edlib          Myers' O(ND) algorithm from Edlib (https://github.com/Martinsos/edlib).\n");
+    fprintf(stderr, "                    This is the default.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -normalize      Shift gaps to one side.  Probably not useful anymore.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  OUTPUT\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
     fprintf(stderr, "    -A fasta        Write computed tigs to fasta  output file 'fasta'\n");
     fprintf(stderr, "    -Q fastq        Write computed tigs to fastq  output file 'fastq'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -P package      Create a copy of the inputs needed to compute the unitigs.  This\n");
-    fprintf(stderr, "                    file can then be sent to the developers for debugging.  The unitig(s)\n");
+    fprintf(stderr, "    -P package      Create a copy of the inputs needed to compute the tigs.  This\n");
+    fprintf(stderr, "                    file can then be sent to the developers for debugging.  The tig(s)\n");
     fprintf(stderr, "                    are not processed and no other outputs are created.  Ideally,\n");
-    fprintf(stderr, "                    only one unitig is selected (-u, below).\n");
+    fprintf(stderr, "                    only one tig is selected (-u, below).\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  TIG SELECTION (if -T input is used)\n");
-    fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
-    fprintf(stderr, "    -u b-e          Compute only unitigs from ID 'b' to ID 'e'\n");
-    fprintf(stderr, "    -f              Recompute unitigs that already have a multialignment\n");
-    fprintf(stderr, "    -maxlength l    Do not compute consensus for unitigs longer than l bases.\n");
+    fprintf(stderr, "    -u b            Compute only tig ID 'b' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -u b-e          Compute only tigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "    -f              Recompute tigs that already have a multialignment\n");
+    fprintf(stderr, "    -maxlength l    Do not compute consensus for tigs longer than l bases.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  PARAMETERS\n");
     fprintf(stderr, "    -e e            Expect alignments at up to fraction e error\n");
@@ -270,7 +282,7 @@ main (int argc, char **argv) {
       fprintf(stderr, "ERROR:  No gkpStore (-G) and no package (-p) supplied.\n");
 
     if ((tigFileName == NULL) && (tigName == NULL)  && (inPackageName == NULL))
-      fprintf(stderr, "ERROR:  No tigStore (-T) OR no test unitig (-t) OR no package (-p)  supplied.\n");
+      fprintf(stderr, "ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p)  supplied.\n");
 
     exit(1);
   }
@@ -357,7 +369,7 @@ main (int argc, char **argv) {
   fprintf(stderr, "sizeof(abAbacus)   " F_SIZE_T "\n", sizeof(abAbacus));
   fprintf(stderr, "sizeof(abSequence) " F_SIZE_T "\n", sizeof(abSequence));
 
-  //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
+  //  Decide on what to compute.  Either all tigs, or a single tig, or a special case test.
 
   uint32  b = 0;
   uint32  e = UINT32_MAX;
@@ -375,12 +387,12 @@ main (int argc, char **argv) {
       e = utgEnd;
     }
 
-    fprintf(stderr, "-- Computing unitig consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
+    fprintf(stderr, "-- Computing consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
             b, e, errorRate, errorRateMax, minOverlap);
   }
 
   else {
-    fprintf(stderr, "-- Computing unitig consensus with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
+    fprintf(stderr, "-- Computing consensus with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
             errorRate, errorRateMax, minOverlap);
   }
 
@@ -444,20 +456,20 @@ main (int argc, char **argv) {
           missingReads++;
 
       if (missingReads) {
-        //fprintf(stderr, "SKIP unitig %u with %u reads found only %u reads in partition, skipped\n",
+        //fprintf(stderr, "SKIP tig %u with %u reads found only %u reads in partition, skipped\n",
         //        tig->tigID(), tig->numberOfChildren(), tig->numberOfChildren() - missingReads);
         continue;
       }
     }
 
     if (tig->length(true) > maxLen) {
-      fprintf(stderr, "SKIP unitig %d of length %d (%d children) - too long, skipped\n",
+      fprintf(stderr, "SKIP tig %d of length %d (%d children) - too long, skipped\n",
               tig->tigID(), tig->length(true), tig->numberOfChildren());
       continue;
     }
 
     if (tig->numberOfChildren() == 0) {
-      fprintf(stderr, "SKIP unitig %d of length %d (%d children) - no children, skipped\n",
+      fprintf(stderr, "SKIP tig %d of length %d (%d children) - no children, skipped\n",
               tig->tigID(), tig->length(true), tig->numberOfChildren());
       continue;
     }
@@ -465,7 +477,7 @@ main (int argc, char **argv) {
     bool exists   = tig->consensusExists();
 
     if (tig->numberOfChildren() > 1)
-      fprintf(stderr, "Working on unitig %d of length %d (%d children)%s%s\n",
+      fprintf(stderr, "Working on tig %d of length %d (%d children)%s%s\n",
               tig->tigID(), tig->length(true), tig->numberOfChildren(),
               ((exists == true)  && (forceCompute == false)) ? " - already computed"              : "",
               ((exists == true)  && (forceCompute == true))  ? " - already computed, recomputing" : "");
@@ -490,7 +502,7 @@ main (int argc, char **argv) {
 
     if (outPackageFile) {
       utgcns->savePackage(outPackageFile, tig);
-      fprintf(stderr, "  Packaged unitig %u into '%s'\n", tig->tigID(), outPackageName);
+      fprintf(stderr, "  Packaged tig %u into '%s'\n", tig->tigID(), outPackageName);
     }
 
     //  Compute consensus if it doesn't exist, or if we're forcing a recompute.  But only if we
@@ -514,7 +526,7 @@ main (int argc, char **argv) {
       }
     }
 
-    //  If it was successful (or existed already), output.  Success is always false if the unitig
+    //  If it was successful (or existed already), output.  Success is always false if the tig
     //  was packaged, regardless of if it existed already.
 
     if (success == true) {
@@ -539,7 +551,7 @@ main (int argc, char **argv) {
     //  Report failures.
 
     if ((success == false) && (outPackageFile == NULL)) {
-      fprintf(stderr, "unitigConsensus()-- unitig %d failed.\n", tig->tigID());
+      fprintf(stderr, "unitigConsensus()-- tig %d failed.\n", tig->tigID());
       numFailures++;
     }
 
@@ -567,7 +579,7 @@ main (int argc, char **argv) {
   if (inPackageFile)   fclose(inPackageFile);
 
   if (numFailures) {
-    fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);
+    fprintf(stderr, "WARNING:  Total number of tig failures = %d\n", numFailures);
     fprintf(stderr, "\n");
     fprintf(stderr, "Consensus did NOT finish successfully.\n");
 
