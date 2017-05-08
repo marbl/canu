@@ -285,6 +285,9 @@ main (int argc, char **argv) {
     if ((tigFileName == NULL) && (tigName == NULL)  && (inPackageName == NULL))
       fprintf(stderr, "ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p)  supplied.\n");
 
+    if ((algorithm != 'Q') && (algorithm != 'P') && (algorithm != 'U'))
+      fprintf(stderr, "ERROR:  Invalid algorithm '%c' specified; must be one of -quick, -pbdagcon, -utgcns.\n", algorithm);
+
     exit(1);
   }
 
@@ -523,6 +526,10 @@ main (int argc, char **argv) {
           break;
         case 'U':
           success = utgcns->generate(tig, inPackageRead, inPackageReadData);
+          break;
+        default:
+          fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+          assert(0);
           break;
       }
     }
