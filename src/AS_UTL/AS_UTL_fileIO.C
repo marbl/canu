@@ -216,18 +216,18 @@ bool
 AS_UTL_readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F) {
 
   if ((L == NULL) || (Lmax == 0))
-    allocateArray(L, Lmax = 4, resizeArray_clearNew);
+    allocateArray(L, Lmax = 1024, resizeArray_clearNew);
 
   Llen = 0;
 
   int32   ch     = getc(F);
-  uint32  growth = 4;
+  uint32  growth = 1024;
 
   if (feof(F))
     return(false);
 
   while ((feof(F) == false) && (ch != '\n')) {
-    if (Llen >= Lmax)
+    if (Llen + 1 >= Lmax)
       resizeArray(L, Llen, Lmax, Lmax + growth, resizeArray_copyData | resizeArray_clearNew);  //  Grow the array.
 
     L[Llen++] = ch;
