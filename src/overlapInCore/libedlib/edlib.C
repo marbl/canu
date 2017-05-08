@@ -157,6 +157,8 @@ EdlibAlignResult edlibAlign(const char* queryOriginal, const int queryLength,
     result.alignmentLength = 0;
     result.alphabetLength = 0;
 
+    assert(queryLength > 0);
+    assert(targetLength > 0);
 
     /*------------ TRANSFORM SEQUENCES AND RECOGNIZE ALPHABET -----------*/
     unsigned char* query, * target;
