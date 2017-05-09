@@ -40,45 +40,46 @@
 #include <string>
 #include <stdint.h>
 
-namespace dagcon {
-class Alignment {
+class dagAlignment {
 public:
-    // conforming offsets are 1-based
-    uint32_t start;
+  dagAlignment() {
+    start   = 0;
+    end     = 0;
 
-    uint32_t end;
+    length  = 0;
 
-    // Fragment ID
-    std::string frgid;
+    qstr    = NULL;
+    tstr    = NULL;
+  };
+  ~dagAlignment() {
+    delete [] qstr;
+    delete [] tstr;
+  };
 
-    // query and target strings must be equal length
-    std::string qstr;
-    std::string tstr;
+  void   clear(void) {
 
-    Alignment();
+    delete [] qstr;
+    delete [] tstr;
+
+    start  = 0;
+    end    = 0;
+
+    length = 0;
+
+    qstr   = NULL;
+    tstr   = NULL;
+  };
+
+  void     normalizeGaps(void);
+
+  uint32_t start;   //   1-based!
+  uint32_t end;
+
+  uint32_t length;
+
+  char *qstr;
+  char *tstr;
 };
-}
 
-struct Unitig {
-    uint32_t id;
-    std::string seq;
-};
-
-/// Simplifies the alignment by normalizing gaps.  Converts mismatches into
-/// indels ...
-///      query: CAC        query:  C-AC
-///             | |  --->          |  |
-///     target: CGC       target:  CG-C
-///
-/// Shifts equivalent gaps to the right in the reference ...
-///      query: CAACAT        query: CAACAT
-///             | | ||  --->         |||  |
-///     target: C-A-AT       target: CAA--T
-///
-/// Shifts equivalent gaps to the right in the read ...
-///      query: -C--CGT       query: CCG--T
-///              |  | |  --->        |||  |
-///     target: CCGAC-T      target: CCGACT
-dagcon::Alignment normalizeGaps(dagcon::Alignment& aln);
 
 #endif // __GCON_ALIGNMENT_HPP__

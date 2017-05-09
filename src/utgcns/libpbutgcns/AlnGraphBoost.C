@@ -120,12 +120,12 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
     _g[_exitVtx].backbone = true;
 }
 
-void AlnGraphBoost::addAln(dagcon::Alignment& aln) {
+void AlnGraphBoost::addAln(dagAlignment& aln) {
     IndexMap index = boost::get(boost::vertex_index, _g);
     // tracks the position on the backbone
     uint32_t bbPos = aln.start;
     VtxDesc prevVtx = _enterVtx;
-    for (size_t i = 0; i < aln.qstr.length(); i++) {
+    for (size_t i = 0; i < aln.length; i++) {
         char queryBase = aln.qstr[i], targetBase = aln.tstr[i];
         VtxDesc currVtx = index[bbPos];
         // match

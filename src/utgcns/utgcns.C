@@ -84,7 +84,9 @@ main (int argc, char **argv) {
   char    *inPackageName   = NULL;
 
   char      algorithm      = 'P';
-  char      aligner        = 'N';
+  char      aligner        = 'E';
+  bool      normalize      = false;   //  Not used, left for future use.
+
   uint32    numThreads	   = 0;
 
   bool      forceCompute   = false;
@@ -147,8 +149,14 @@ main (int argc, char **argv) {
       algorithm = 'P';
     } else if (strcmp(argv[arg], "-utgcns") == 0) {
       algorithm = 'U';
+
     } else if (strcmp(argv[arg], "-edlib") == 0) {
       aligner = 'E';
+
+    } else if (strcmp(argv[arg], "-normalize") == 0) {
+      normalize = true;
+    } else if (strcmp(argv[arg], "-nonormalize") == 0) {
+      normalize = false;
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       numThreads = atoi(argv[++arg]);
@@ -240,9 +248,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALIGNER\n");
     fprintf(stderr, "    -edlib          Myers' O(ND) algorithm from Edlib (https://github.com/Martinsos/edlib).\n");
-    fprintf(stderr, "                    This is the default.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -normalize      Shift gaps to one side.  Probably not useful anymore.\n");
+    fprintf(stderr, "                    This is the default (and, yes, there is no non-default aligner).\n");
+    //fprintf(stderr, "\n");
+    //fprintf(stderr, "    -normalize      Shift gaps to one side.  Probably not useful anymore.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  OUTPUT\n");
@@ -521,8 +529,7 @@ main (int argc, char **argv) {
           success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
           break;
         case 'P':
-        default:
-          success = utgcns->generatePBDAG(aligner, tig, inPackageRead, inPackageReadData);
+          success = utgcns->generatePBDAG(aligner, normalize, tig, inPackageRead, inPackageReadData);
           break;
         case 'U':
           success = utgcns->generate(tig, inPackageRead, inPackageReadData);

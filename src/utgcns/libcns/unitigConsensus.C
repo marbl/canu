@@ -76,7 +76,6 @@
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
 #include "edlib.H"
-#include "dw.H"
 
 #include "NDalign.H"
 
@@ -258,27 +257,13 @@ unitigConsensus::generate(tgTig                     *tig_,
 }
 
 
-bool
-unitigConsensus::generatePBDAG(char aligner,
-                               tgTig                     *tig_,
-                               map<uint32, gkRead *>     *inPackageRead_,
-                               map<uint32, gkReadData *> *inPackageReadData_) {
-  tig      = tig_;
-  numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
-    return(false);
-  }
-
-  //  First we need to load into Unitig data structure the quick cns
-
-  Unitig utg;
-
-  utg.id  = tig->tigID();
-  utg.seq = string(tig->_layoutLen, 'N');
-
-  //  Build a quick consensus to align to, just smash together sequences.
+void
+generateTemplateMosaic(abAbacus    *abacus,
+                       tgPosition  *utgpos,
+                       uint32       numfrags,
+                       uint32      &tiglen,
+                       char        *tigseq) {
 
   for (uint32 i=0; i<numfrags; i++) {
     abSequence  *seq      = abacus->getSequence(i);
@@ -288,9 +273,9 @@ unitigConsensus::generatePBDAG(char aligner,
     uint32       start    = utgpos[i].min();
     uint32       end      = utgpos[i].max();
 
-    if (start > utg.seq.length()) {
-      fprintf(stderr, "WARNING: reset start  from " F_U32 " to " F_U64 "\n", start, utg.seq.length()-1);
-      start = utg.seq.length() - 1;
+    if (start > tiglen) {
+      fprintf(stderr, "WARNING: reset start  from " F_U32 " to " F_U32 "\n", start, tiglen-1);
+      start = tiglen - 1;
     }
 
     if (end - start > readLen) {
@@ -298,183 +283,378 @@ unitigConsensus::generatePBDAG(char aligner,
       end = start + readLen;
     }
 
-    if (end > utg.seq.length()) {
-      fprintf(stderr, "WARNING: truncate end from " F_U32 " to " F_U64 "\n", end, utg.seq.length()-1);
-      end = utg.seq.length() - 1;
+    if (end > tiglen) {
+      fprintf(stderr, "WARNING: truncate end from " F_U32 " to " F_U32 "\n", end, tiglen-1);
+      end = tiglen - 1;
     }
 
     //  Read aligns from position start to end.  Skip ahead until we find unset bases.
 
     uint32 cur = start;
-    while ((cur < end) && (utg.seq[cur] != 'N'))
+    while ((cur < end) && (tigseq[cur] != 'N'))
       cur++;
 
-    fprintf(stderr, "generatePBDAG()-- template from %7d to %7d comes from read %3d id %6d bases (%5d %5d) nominally %6d %6d)\n",
-            cur, end, i, seq->gkpIdent(),
-            cur - start,
-            end - start,
-            utgpos[i].min(),
-            utgpos[i].max());
-
-    for (uint32 j=cur; j<end; j++) {
-      //if (utg.seq[j] != 'N')
-      //  fprintf(stderr, "WARNING: template %6d already set\n", j);
-      utg.seq[j] = fragment[j - start];
-    }
-  }
-
-  for (uint32 jj=0; jj<tig->_layoutLen; jj++)
-    if (utg.seq[jj] == 'N')
-      fprintf(stdout, "generatePBDAG()-- WARNING: template position %u not defined.\n", jj);
-
-  assert(utg.seq[tig->_layoutLen] == 0);
-
-#if 0
-  FILE *F = fopen("template.fasta", "w");
-  fprintf(F, ">tig%d template\n%s\n", tig->tigID(), utg.seq.c_str());
-  fclose(F);
+#if 1
+    if (cur < end)
+      fprintf(stderr, "generatePBDAG()-- template from %7d to %7d comes from read %3d id %6d bases (%5d %5d) nominally %6d %6d)\n",
+              cur, end, i, seq->gkpIdent(),
+              cur - start,
+              end - start,
+              utgpos[i].min(),
+              utgpos[i].max());
 #endif
 
-  AlnGraphBoost ag(utg.seq);
+    for (uint32 j=cur; j<end; j++)
+      tigseq[j] = fragment[j - start];
 
-  //  Compute alignments of each sequence in parallel
+    tigseq[end] = 0;
+    tiglen = end;
+  }
+}
 
-#pragma omp parallel for schedule(dynamic)
-  for (uint32 i=0; i<numfrags; i++) {
-    abSequence  *seq      = abacus->getSequence(i);
-    char        *fragment = seq->getBases();
 
-    //  computePositionFromLayout() does NOT work here; it needs to have abacus->numberOfColumns() updated.
-    //  When the reads aren't placed in frankenstein, this function probably also just returns
-    //  the original utgpos position anyway.
-    //
-    //computePositionFromLayout();
 
+void
+generateTemplateStitch(abAbacus    *abacus,
+                       tgPosition  *utgpos,
+                       uint32       numfrags,
+                       uint32      &tiglen,
+                       char        *tigseq) {
+  int32   minOlap  = 500;
+  bool    verbose  = false;
+
+  //  Initialize, copy the first read.
+
+  uint32       rid      = 0;
+
+  abSequence  *seq      = abacus->getSequence(rid);
+  char        *fragment = seq->getBases();
+  uint32       readLen  = seq->length();
+  int32        olapLen  = 0;
+
+  if (verbose) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "generatePBDAG()-- align read %u (%u/%u) at %u-%u\n",
-            seq->gkpIdent(), i, numfrags, utgpos[i].min(), utgpos[i].max());
-
-#if 0
-    char N[FILENAME_MAX];
-    sprintf(N, "read-%03d.fasta", i, seq->gkpIdent());
-    FILE *F = fopen(N, "w");
-    fprintf(F, ">read%d pos %d %d\n%s\n", seq->gkpIdent(), utgpos[i].min(), utgpos[i].max(), fragment);
-    fclose(F);
-#endif
-
-    dagcon::Alignment aln;
-    NDalignment::NDalignResult ndaln;
-    EdlibAlignResult align;
-    int32 padding = (aligner == 'E' ? (int32)round((double)(utgpos[i].max() - utgpos[i].min()) * errorRate) + 1 : 0);
-    aln.start = max((int32)0, (int32)utgpos[i].min() - padding);
-    aln.end   = min((int32)utg.seq.size(), (int32)utgpos[i].max() + padding);
-    aln.frgid = utgpos[i].ident();
-    aln.qstr  = string(fragment);
-
-    aln.tstr  = utg.seq.substr(aln.start, aln.end-aln.start);
-
-    uint32  aLen = aln.qstr.size();
-    uint32  bLen = aln.tstr.size();
-
-    uint32  bandTolerance = 150;
-    bool aligned = false;
-    if (aligner == 'E') {
-       align = edlibAlign(aln.qstr.c_str(), aln.qstr.size()-1, aln.tstr.c_str(), aln.tstr.size()-1, edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
-       aligned = (align.numLocations >= 1);
-    } else {
-       aligned = NDalignment::align(aln.qstr.c_str(), aln.qstr.size(),
-                                               aln.tstr.c_str(), aln.tstr.size(),
-                                               bandTolerance,
-                                               true,
-                                               ndaln);
-    }
-
-    while ((aligned == false) && (bandTolerance < errorRate * (aLen + bLen))) {
-       bandTolerance *= 2;
-       if (aligner == 'E')
-          edlibFreeAlignResult(align);
-
-       fprintf(stderr, "generatePBDAG()-- retry with bandTolerance = %d\n",
-              bandTolerance);
-
-       if (aligner == 'E') {
-          align = edlibAlign(aln.qstr.c_str(), aln.qstr.size()-1, aln.tstr.c_str(), aln.tstr.size()-1, edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
-          aligned = (align.numLocations >= 1);
-       } else {
-          aligned = NDalignment::align(aln.qstr.c_str(), aln.qstr.size(),
-                                       aln.tstr.c_str(), aln.tstr.size(),
-                                       bandTolerance,
-                                       true,
-                                       ndaln);
-       }
-    }
-
-    double errorRateAln = 0;
-    if (aligner == 'E')
-       errorRateAln = (align.alignmentLength > 0) ? ((double)align.editDistance / align.alignmentLength) : 1.0;
-    else
-       errorRateAln = (ndaln._size > 0) ? ((double)ndaln._dist / ndaln._size) : 1.0;
-
-    if ((aligned == true) && (errorRateAln > errorRate)) {
-      fprintf(stderr, "generatePBDAG()-- error rate too high distance=%5d size=%5d, %f > %f\n",
-              align.editDistance, align.alignmentLength, errorRateAln, errorRate);
-      aligned = false;
-    }
-
-
-    if (aligned == false) {
-      aln.start = aln.end = 0;
-      aln.qstr  = std::string();
-      aln.tstr  = std::string();
-
-      fprintf(stderr, "generatePBDAG()-- failed to align read #%u id %u at position %u-%u.\n",
-              i, utgpos[i].ident(), utgpos[i].min(), utgpos[i].max());
-
-      cnspos[i].setMinMax(0, 0);
-      if (aligner == 'E')
-          edlibFreeAlignResult(align);
-      continue;
-    }
-
-    if (aligner == 'E') {
-       fprintf(stderr, "generatePBDAG()-- aligned             distance=%5d size=%5d, %f < %f\n",
-            align.editDistance, align.alignmentLength,
-            (double) align.editDistance / align.alignmentLength,
-            errorRate);
-
-       char *tgt_aln_str = new char[align.alignmentLength+1];
-       char *qry_aln_str = new char[align.alignmentLength+1];
-       edlibAlignmentToStrings(align.alignment, align.alignmentLength, align.startLocations[0], align.endLocations[0]+1, 0, aln.qstr.length(), aln.tstr.c_str(), aln.qstr.c_str(), tgt_aln_str, qry_aln_str);
-
-       aln.start += align.startLocations[0];
-       aln.end = aln.start + (align.endLocations[0] - align.startLocations[0]) + 1;
-       aln.qstr = std::string(qry_aln_str);
-       aln.tstr = std::string(tgt_aln_str);
-
-       edlibFreeAlignResult(align);
-       delete[] tgt_aln_str;
-       delete[] qry_aln_str;
-    } else {
-       aln.start += ndaln._tgt_bgn;
-       aln.end = aln.start + (ndaln._tgt_end - ndaln._tgt_bgn) - 1;
-       aln.qstr = std::string(ndaln._qry_aln_str);
-       aln.tstr = std::string(ndaln._tgt_aln_str);
-    }
-    aln.start++;
-    cnspos[i].setMinMax(aln.start, aln.end);
-    assert(aln.qstr.length() == aln.tstr.length());
-    assert(aln.end < utg.seq.size());
-
-    dagcon::Alignment norm = normalizeGaps(aln);
-
-#pragma omp critical (graphAdd)
-    ag.addAln(norm);  //  NOT thread safe!
+    fprintf(stderr, "COPY READ read #%d %d (len=%d to %d-%d)\n",
+            0, utgpos[0].ident(), readLen, utgpos[0].min(), utgpos[0].max());
   }
 
-  //  Merge the nodes and call consensus
-  ag.mergeNodes();
+  for (uint32 ii=0; ii<readLen; ii++)
+    tigseq[tiglen++] = fragment[ii];
 
-  std::string cns = ag.consensus(1);
+  tigseq[tiglen] = 0;
+
+  uint32       ePos = utgpos[0].max();   //  Expected end of template, from bogart supplied positions.
+
+
+  //  Find the next read that has some minimum overlap and a large extension, copy that into the template.
+
+    //  Align read to template.  Expecting to find alignment:
+    //
+    //        template ---------------
+    //        read             ---------------
+    //                               ^
+    //
+    //  All we need to find is where the template ends on the read, the ^ above.  We know the
+    //  expected size of the overlap, and can extract those bases from the template and look for a
+    //  full alignment to the read.
+    //
+    //  We'll align 80% of the expected overlap to the read, allowing a 20% buffer on either end.
+    //
+    //                        |  +-80% expected overlap size
+    //                        |  |     +-fPos
+    //                        v  v     v
+    //        template ----------(-----)
+    //        read            (-----------)------
+    //
+
+  while (rid < numfrags) {
+    uint32 nr = 0;  //  Next read
+    uint32 nm = 0;  //  Next read maximum position
+
+    //  Pick the next read as the one with the longest extension from all with some minimum overlap
+    //  to the template
+
+    for (uint32 ii=rid+1; (ii < numfrags) && (utgpos[ii].min() + minOlap < ePos); ii++) {
+
+      if (utgpos[ii].max() < ePos) {
+        if (verbose)
+          fprintf(stderr, "SKIP read #%d/%d %d %d-%d contained\n", ii, numfrags, utgpos[ii].ident(), utgpos[ii].min(), utgpos[ii].max());
+        continue;
+      }
+
+      if (verbose)
+        fprintf(stderr, "TEST read #%d/%d %d %d-%d\n", ii, numfrags, utgpos[ii].ident(), utgpos[ii].min(), utgpos[ii].max());
+
+      if ((nm < utgpos[ii].max()) && (ePos < utgpos[ii].max())) {
+        nr = ii;
+        nm = utgpos[ii].max();
+      }
+    }
+
+    if (nr == 0) {
+      if (verbose)
+        fprintf(stderr, "NO MORE READS TO ALIGN\n");
+      break;
+    }
+
+    assert(nr != 0);
+
+    rid      = nr;        //  We'll place read 'nr' in the template.
+
+    seq      = abacus->getSequence(rid);
+    fragment = seq->getBases();
+    readLen  = seq->length();
+    olapLen  = ePos - utgpos[nr].min();
+
+    assert(olapLen > 0);
+
+    int32  readBgn;
+    int32  readEnd;
+
+    EdlibAlignResult result;
+    bool             aligned       = false;
+
+    double           templateSize  = 0.80;
+    double           extensionSize = 0.20;
+
+  alignAgain:
+    int32            templateLen  = (int32)ceil(olapLen * templateSize);    //  Extract 80% of the expected overlap size
+    int32            extensionLen = (int32)ceil(olapLen * extensionSize);   //  Extend read by 20% of the expected overlap size
+
+    readBgn = 0;
+    readEnd = olapLen + extensionLen;
+
+    if (readEnd > readLen)
+      readEnd = readLen;
+
+    if (verbose) {
+      fprintf(stderr, "\n");
+      fprintf(stderr, "TRY ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)\n",
+              tiglen - templateLen, tiglen, templateLen,
+              nr, utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen, utgpos[nr].min(), utgpos[nr].max());
+    }
+
+    result = edlibAlign(tigseq + tiglen - templateLen, templateLen,
+                        fragment, readEnd - readBgn,
+                        edlibNewAlignConfig(olapLen * 0.06, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+    //  We're expecting the template to align inside the read.
+    //  If the alignment bumps up against the start of the read, we have too much template.
+
+    bool   tryAgain = false;
+
+    bool   noResult      = (result.numLocations == 0);
+    bool   gotResult     = (result.numLocations  > 0);
+
+    bool   hitTheStart   = (gotResult) && (result.startLocations[0] == 0);
+
+    bool   hitTheEnd     = (gotResult) && (result.endLocations[0] + 1 == readEnd - readBgn);
+    bool   moreToExtend  = (readEnd < readLen);
+
+    if (noResult)
+      if (verbose)
+        fprintf(stderr, "FAILED to align\n");
+
+    if ((noResult) || (hitTheStart)) {
+      if ((verbose) && (gotResult))
+        fprintf(stderr, "FAILED to align - startLocation = %d\n", result.startLocations[0]);
+      tryAgain = true;
+      templateSize -= 0.10;
+    }
+
+    //  If the alignment bumps up against the end of the read, we don't have enough read.
+
+    if ((noResult) || (hitTheEnd && moreToExtend)) {
+      if ((verbose) && (gotResult))
+        fprintf(stderr, "FAILED to align - endLocation = %d (readEnd = %d readBgn = %d)\n", result.endLocations[0], readEnd, readBgn);
+      tryAgain = true;
+      extensionSize += 0.10;
+    }
+
+    if (tryAgain) {
+      edlibFreeAlignResult(result);
+      goto alignAgain;
+    }
+
+    readBgn = result.startLocations[0];     //  Expected to be zero
+    readEnd = result.endLocations[0] + 1;   //  Where we need to start copying the read
+
+    edlibFreeAlignResult(result);
+
+    if (verbose)
+      fprintf(stderr, "Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n", tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+
+    for (uint32 ii=readEnd; ii<readLen; ii++)
+      tigseq[tiglen++] = fragment[ii];
+
+    tigseq[tiglen] = 0;
+
+    if (verbose) {
+      fprintf(stderr, "Template now length %d\n", tiglen);
+      fprintf(stderr, "Reset ePos to %d\n", utgpos[rid].max());
+    }
+
+    ePos = utgpos[rid].max();
+  }
+}
+
+
+
+bool
+alignEdLib(dagAlignment      &aln,
+           tgPosition        &utgpos,
+           char              *fragment,
+           uint32             fragmentLength,
+           char              *tigseq,
+           uint32             tiglen,
+           double             lengthScale,
+           double             errorRate,
+           bool               normalize,
+           bool               verbose) {
+
+  EdlibAlignResult align;
+
+  int32   padding        = (int32)ceil(fragmentLength * 0.10);
+  double  bandErrRate    = errorRate / 2;
+  bool    aligned        = false;
+  double  alignedErrRate = 0.0;
+
+  //  Decide on where to align this read.
+
+  //  But, the utgpos positions are largely bogus, especially at the end of the tig.  utgcns (the
+  //  original) used to track positions of previously placed reads, find an overlap beterrn this
+  //  read and the last read, and use that info to find the coordinates for the new read.  That was
+  //  very complicated.  Here, we just linearly scale.
+
+  int32  tigbgn = max((int32)0,      (int32)floor(lengthScale * utgpos.min() - padding));
+  int32  tigend = min((int32)tiglen, (int32)floor(lengthScale * utgpos.max() + padding));
+
+  if (verbose)
+    fprintf(stderr, "alignEdLib()-- align read %7u eRate %.4f at %9d-%-9d", utgpos.ident(), bandErrRate, tigbgn, tigend);
+
+  //  This occurs if we don't lengthScale the positions.
+
+  if (tigend < tigbgn)
+    fprintf(stderr, "alignEdLib()-- ERROR: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
+            tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
+  assert(tigend > tigbgn);
+
+  //  Align!  If there is an alignment, compute error rate and declare success if acceptable.
+
+  align = edlibAlign(fragment, fragmentLength,
+                     tigseq + tigbgn, tigend - tigbgn,
+                     edlibNewAlignConfig(bandErrRate * fragmentLength, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+  if (align.alignmentLength > 0) {
+    alignedErrRate = (double)align.editDistance / align.alignmentLength;
+    aligned        = (alignedErrRate <= errorRate);
+    if (verbose)
+      fprintf(stderr, " - ALIGNED %.4f at %9d-%-9d\n", alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
+  } else {
+    if (verbose)
+      fprintf(stderr, "\n");
+  }
+
+  for (uint32 ii=0; ((ii < 4) && (aligned == false)); ii++) {
+    tigbgn = max((int32)0,      tigbgn - 2 * padding);
+    tigend = min((int32)tiglen, tigend + 2 * padding);
+
+    bandErrRate += errorRate / 2;
+
+    edlibFreeAlignResult(align);
+
+    if (verbose)
+      fprintf(stderr, "alignEdLib()--                    eRate %.4f at %9d-%-9d", bandErrRate, tigbgn, tigend);
+
+    align = edlibAlign(fragment, strlen(fragment),
+                       tigseq + tigbgn, tigend - tigbgn,
+                       edlibNewAlignConfig(bandErrRate * fragmentLength, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+    if (align.alignmentLength > 0) {
+      alignedErrRate = (double)align.editDistance / align.alignmentLength;
+      aligned        = (alignedErrRate <= errorRate);
+      if (verbose)
+        fprintf(stderr, " - ALIGNED %.4f at %9d-%-9d\n", alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
+    } else {
+      if (verbose)
+        fprintf(stderr, "\n");
+    }
+  }
+
+  if (aligned == false) {
+    edlibFreeAlignResult(align);
+    return(false);
+  }
+
+  char *tgtaln = new char [align.alignmentLength+1];
+  char *qryaln = new char [align.alignmentLength+1];
+
+  memset(tgtaln, 0, sizeof(char) * (align.alignmentLength+1));
+  memset(qryaln, 0, sizeof(char) * (align.alignmentLength+1));
+
+  edlibAlignmentToStrings(align.alignment,               //  Alignment
+                          align.alignmentLength,         //    and length
+                          align.startLocations[0],       //  tgtStart
+                          align.endLocations[0]+1,       //  tgtEnd
+                          0,                             //  qryStart
+                          fragmentLength,                //  qryEnd
+                          tigseq + tigbgn,               //  tgt sequence
+                          fragment,                      //  qry sequence
+                          tgtaln,                   //  output tgt alignment string
+                          qryaln);                  //  output qry alignment string
+
+  //  Populate the output.  AlnGraphBoost does not handle mismatch alignments, at all, so convert
+  //  them to a pair of indel.
+
+  uint32 nMatch = 0;
+
+  for (uint32 ii=0; ii<align.alignmentLength; ii++)   //  Edlib guarantees aln[alignmentLength] == 0.
+    if ((tgtaln[ii] != '-') &&
+        (qryaln[ii] != '-') &&
+        (tgtaln[ii] != qryaln[ii]))
+      nMatch++;
+
+  aln.start  = tigbgn + align.startLocations[0] + 1;   //  AlnGraphBoost expects 1-based positions.
+  aln.end    = tigbgn + align.endLocations[0] + 1;     //  EdLib returns 0-based positions.
+
+  aln.qstr   = new char [align.alignmentLength + nMatch + 1];
+  aln.tstr   = new char [align.alignmentLength + nMatch + 1];
+
+  for (uint32 ii=0, jj=0; ii<align.alignmentLength; ii++) {
+    char  tc = tgtaln[ii];
+    char  qc = qryaln[ii];
+
+    if ((tc != '-') &&
+        (qc != '-') &&
+        (tc != qc)) {
+      aln.tstr[jj] = '-';   aln.qstr[jj] = qc;    jj++;
+      aln.tstr[jj] = tc;    aln.qstr[jj] = '-';   jj++;
+    } else {
+      aln.tstr[jj] = tc;    aln.qstr[jj] = qc;    jj++;
+    }
+
+    aln.length = jj;
+  }
+
+  aln.qstr[aln.length] = 0;
+  aln.tstr[aln.length] = 0;
+
+  delete [] tgtaln;
+  delete [] qryaln;
+
+  edlibFreeAlignResult(align);
+
+  if (aln.end > tiglen)
+    fprintf(stderr, "ERROR:  alignment from %d to %d, but tiglen is only %d\n", aln.start, aln.end, tiglen);
+  assert(aln.end <= tiglen);
+
+  return(true);
+}
+
+
+
+void
+realignReads() {
 
 #ifdef REALIGN
   // update positions, this requires remapping but this time to the final consensus, turned off for now
@@ -493,27 +673,144 @@ unitigConsensus::generatePBDAG(char aligner,
 
     EdlibAlignResult align = edlibAlign(seq->getBases(), seq->length()-1, cns.c_str()+start, end-start+1,  edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
     if (align.numLocations > 0) {
-       cnspos[i].setMinMax(align.startLocations[0]+start, align.endLocations[0]+start+1);
-       // when we are very close to end extend
-       if (cnspos[i].max() < cns.size() && cns.size() - cnspos[i].max() <= maxExtend && (align.editDistance + cns.size() - cnspos[i].max()) < bandTolerance) {
-          cnspos[i].setMinMax(cnspos[i].min(), cns.size());
-       }
+      cnspos[i].setMinMax(align.startLocations[0]+start, align.endLocations[0]+start+1);
+      // when we are very close to end extend
+      if (cnspos[i].max() < cns.size() && cns.size() - cnspos[i].max() <= maxExtend && (align.editDistance + cns.size() - cnspos[i].max()) < bandTolerance) {
+        cnspos[i].setMinMax(cnspos[i].min(), cns.size());
+      }
 #pragma omp critical (trackMin)
-       if (cnspos[i].min() < minPos) minPos = cnspos[i].min();
+      if (cnspos[i].min() < minPos) minPos = cnspos[i].min();
 #pragma omp critical (trackMax)
-       if (cnspos[i].max() > maxPos) maxPos = cnspos[i].max();
+      if (cnspos[i].max() > maxPos) maxPos = cnspos[i].max();
     } else {
-}
+    }
     edlibFreeAlignResult(align);
   }
   memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
 
   // trim consensus if needed
   if (maxPos < cns.size())
-     cns = cns.substr(0, maxPos);
+    cns = cns.substr(0, maxPos);
+
   assert(minPos == 0);
   assert(maxPos == cns.size());
 #endif
+}
+
+
+
+bool
+unitigConsensus::generatePBDAG(char                       aligner,
+                               bool                       normalize,
+                               tgTig                     *tig_,
+                               map<uint32, gkRead *>     *inPackageRead_,
+                               map<uint32, gkReadData *> *inPackageReadData_) {
+
+  bool  verbose = false;
+
+  tig      = tig_;
+  numfrags = tig->numberOfChildren();
+
+  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    return(false);
+  }
+
+  //  First we need to load into Unitig data structure the quick cns
+
+  uint32  tiglen = 0;
+  char   *tigseq = new char [2 * tig->_layoutLen + 1];
+
+  memset(tigseq, 'N', sizeof(char) * 2 * tig->_layoutLen);
+
+  tigseq[2 * tig->_layoutLen] = 0;
+
+  //  Build a quick consensus to align to.
+
+  fprintf(stderr, "Generating template.\n");
+
+  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq);
+  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq);
+
+  uint32  pass = 0;
+  uint32  fail = 0;
+
+  for (uint32 jj=0; jj<tiglen; jj++)
+    if (tigseq[jj] == 'N')
+      fprintf(stdout, "generatePBDAG()-- WARNING: template position %u not defined.\n", jj);
+
+  assert(tigseq[tiglen] == 0);
+
+  fprintf(stderr, "Generated template of length %d\n", tiglen);
+
+  //  Compute alignments of each sequence in parallel
+
+  fprintf(stderr, "Aligning reads.\n");
+
+  dagAlignment *aligns = new dagAlignment [numfrags];
+
+#pragma omp parallel for schedule(dynamic)
+  for (uint32 ii=0; ii<numfrags; ii++) {
+    abSequence  *seq      = abacus->getSequence(ii);
+    bool         aligned  = false;
+
+    assert(aligner == 'E');  //  Maybe later we'll have more than one aligner again.
+
+    aligned = alignEdLib(aligns[ii],
+                         utgpos[ii],
+                         seq->getBases(), seq->length(),
+                         tigseq, tiglen,
+                         (double)tiglen / tig->_layoutLen,
+                         errorRate,
+                         normalize,
+                         verbose);
+
+    if (aligned == false) {
+      if (verbose)
+        fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", utgpos[ii].ident());
+
+      fail++;
+
+      continue;
+    }
+
+    pass++;
+  }
+
+  fprintf(stderr, "Finished aligning reads.  %d failed, %d passed.\n", fail, pass);
+
+  //  Construct the graph from the alignments.  This is not thread safe.
+
+  fprintf(stderr, "Constructing graph\n");
+
+  AlnGraphBoost ag(string(tigseq, tiglen));
+
+  for (uint32 ii=0; ii<numfrags; ii++) {
+    cnspos[ii].setMinMax(aligns[ii].start, aligns[ii].end);
+
+    if ((aligns[ii].start == 0) &&
+        (aligns[ii].end   == 0))
+      continue;
+
+    ag.addAln(aligns[ii]);
+
+    aligns[ii].clear();
+  }
+
+  delete [] aligns;
+
+  fprintf(stderr, "Merging graph\n");
+
+  //  Merge the nodes and call consensus
+  ag.mergeNodes();
+
+  fprintf(stderr, "Calling consensus\n");
+
+  std::string cns = ag.consensus(1);
+
+  //  Realign reads to get precise endpoints
+
+  realignReads();
 
   //  Save consensus
 
@@ -525,6 +822,7 @@ unitigConsensus::generatePBDAG(char aligner,
     tig->_gappedBases[len] = cns[len];
     tig->_gappedQuals[len] = CNS_MIN_QV;
   }
+
   //  Terminate the string.
 
   tig->_gappedBases[len] = 0;
@@ -538,76 +836,58 @@ unitigConsensus::generatePBDAG(char aligner,
 }
 
 
+
 bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
                                map<uint32, gkRead *>     *inPackageRead_,
                                map<uint32, gkReadData *> *inPackageReadData_) {
-
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
   if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
-    fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
 
-  //  The quick variety doesn't generate alignments, it just pastes read bases into consensus.  It
-  //  still needs to find a placement for the read, and it uses the other placed reads for that.
+  //  First we need to load into Unitig data structure the quick cns
 
-  while (moreFragments()) {
-    reportStartingWork();
+  uint32  tiglen = 0;
+  char   *tigseq = new char [2 * tig->_layoutLen + 1];
 
-    piid = -1;
+  memset(tigseq, 'N', sizeof(char) * 2 * tig->_layoutLen);
 
-    bool placed = computePositionFromLayout();
+  tigseq[2 * tig->_layoutLen] = 0;
 
-    abSequence  *seq      = abacus->getSequence(utgpos[tiid].ident());
-    char        *fragment = seq->getBases();
-    uint32       readLen  = seq->length();
+  //  Build a quick consensus to align to.
 
-    uint32       start = cnspos[tiid].min();
-    uint32       end = cnspos[tiid].max();
+  fprintf(stderr, "Generating template.\n");
 
-    // if we couldn't place the read, fall back to utg positions
-    if (placed == false) {
-      start = abacus->numberOfColumns() - 1;
-      end   = start + readLen;
-    }
+  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq);
+  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq);
 
-    uint32   bHang   = end - abacus->numberOfColumns();
-    if (bHang <= 0) {
-       //  this read doesn't add anything, skip it
-       continue;
-    }
+  //
+  //  The above and below came from generatePBDAG(), which should be modified to handle 'quick'.
+  //  generagePBDAG() has a bunch of other stuff here.
+  //
 
-    //  check if our positions are wonky, adjust the end to match reality
-    if (start > abacus->numberOfColumns()) {
-      start = abacus->numberOfColumns();
-    }
-    if (end - start > readLen) {
-      end = start + readLen;
-    }
-    cnspos[tiid].setMinMax(start, end);
+  //  Save consensus
 
-    //  appendBases() will append only if new bases are needed.  Otherwise, it just
-    //  sets the first/last bead position.
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, tiglen + 1, resizeArray_doNothing);
 
-    abacus->appendBases(tiid,
-                        cnspos[tiid].min(),
-                        cnspos[tiid].max());
-
-    //  I _think_ we need to rebuild iff bases are added.  This also resets positions for each read.
-    //  Until someone complains this is too slow, it's left in.
-
-    refreshPositions();
+  for (uint32 ii=0; ii<tiglen; ii++) {
+    tig->_gappedBases[ii] = tigseq[ii];
+    tig->_gappedQuals[ii] = CNS_MIN_QV;
   }
 
-  generateConsensus(tig);
+  //  Terminate the string.
+
+  tig->_gappedBases[tiglen] = 0;
+  tig->_gappedQuals[tiglen] = 0;
+  tig->_gappedLen           = tiglen;
+  tig->_layoutLen           = tiglen;
 
   return(true);
 }
-
-
 
 
 

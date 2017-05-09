@@ -104,9 +104,7 @@ SOURCES      := AS_global.C \
                 utgcns/libcns/abColumn.C \
                 utgcns/libcns/abMultiAlign.C \
                 utgcns/libcns/unitigConsensus.C \
-                utgcns/libpbutgcns/Alignment.C	\
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
-                utgcns/libNDFalcon/dw.C \
                 \
                 gfa/gfa.C \
                 \

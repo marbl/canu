@@ -149,7 +149,7 @@ public:
 
     /// Add alignment to the graph.
     /// \param Alignment an alignment record (see Alignment.hpp)
-    void addAln(dagcon::Alignment& aln);
+    void addAln(dagAlignment& aln);
 
     /// Adds a new or increments an existing edge between two aligned bases.
     /// \param u the 'from' vertex descriptor
