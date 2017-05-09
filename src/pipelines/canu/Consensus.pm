@@ -583,6 +583,9 @@ sub alignGFA ($) {
     goto allDone   if (fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa") &&
                        fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa"));
 
+    #  If a large genome, run this on the grid, else, run in the canu process itself.
+    my $runGrid = (getGlobal("genomeSize") >= 40000000);
+
     fetchFile("$path/alignGFA.sh");
 
     if (! -e "$path/alignGFA.sh") {
@@ -591,7 +594,7 @@ sub alignGFA ($) {
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
-        print F setWorkDirectoryShellCode($path);
+        print F setWorkDirectoryShellCode($path)   if ($runGrid);   #  If not local, need to cd first.
         print F "\n";
         print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
         print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
@@ -662,17 +665,16 @@ sub alignGFA ($) {
         caExit("failed to align GFA links.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
-    #  Otherwise, run some jobs.  If the genome is small, just do it here and now, otherwise,
-    #  run on the grid.
+    #  Otherwise, run some jobs.
 
     emitStage($asm, "alignGFA", $attempt);
 
-    if (getGlobal("genomeSize") < 40000000) {
-        if (runCommand("$path", "./alignGFA.sh")) {
+    if ($runGrid) {
+        submitOrRunParallelJob($asm, "gfa", $path, "alignGFA", (1));
+    } else {
+        if (runCommand($path, "./alignGFA.sh")) {
             caExit("failed to align contigs", "./$asm.contigs.aligned.gfa.err");
         }
-    } else {
-        submitOrRunParallelJob($asm, "gfa", $path, "alignGFA", (1));
     }
 
     return;
