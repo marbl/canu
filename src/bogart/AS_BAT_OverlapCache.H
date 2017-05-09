@@ -120,6 +120,7 @@ public:
     return(AS_OVS_decodeEvalue(evalue));
   }
 
+#if AS_MAX_READLEN_BITS < 24
   uint64      evalue    : AS_MAX_EVALUE_BITS;     //  12
   int64       a_hang    : AS_MAX_READLEN_BITS+1;  //  21+1
   int64       b_hang    : AS_MAX_READLEN_BITS+1;  //  21+1
@@ -130,11 +131,26 @@ public:
 
   uint32      a_iid;
   uint32      b_iid;
-};
 
 #if (AS_MAX_EVALUE_BITS + (AS_MAX_READLEN_BITS + 1) + (AS_MAX_READLEN_BITS + 1) + 1 + 1 + 1 > 64)
 #error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
 #endif
+
+#else
+  int32       a_hang;
+  int32       b_hang;
+
+  uint32      evalue    : AS_MAX_EVALUE_BITS;     //  12
+  uint32      flipped   : 1;                      //   1
+  uint32      filtered  : 1;                      //   1
+  uint32      symmetric : 1;                      //   1    - twin overlap exists
+
+  uint32      a_iid;
+  uint32      b_iid;
+#endif
+
+};
+
 
 
 
