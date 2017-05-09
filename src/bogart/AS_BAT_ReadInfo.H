@@ -39,14 +39,14 @@
 
 
 struct ReadStatus {
-  uint32  readLength   : AS_MAX_READLEN_BITS;
-  uint32  libraryID    : AS_MAX_LIBRARIES_BITS;
+  uint64  readLength   : AS_MAX_READLEN_BITS;
+  uint64  libraryID    : AS_MAX_LIBRARIES_BITS;
 
-  uint32  isBackbone   : 1;    //  Used to construct initial contig
-  uint32  isUnplaced   : 1;    //  Placed in initial contig using overlaps
-  uint32  isLeftover   : 1;    //  Not placed
+  uint64  isBackbone   : 1;    //  Used to construct initial contig
+  uint64  isUnplaced   : 1;    //  Placed in initial contig using overlaps
+  uint64  isLeftover   : 1;    //  Not placed
 
-  uint32  unused     : (32 - AS_MAX_READLEN_BITS - AS_MAX_LIBRARIES_BITS - 3);
+  uint64  unused       : (64 - AS_MAX_READLEN_BITS - AS_MAX_LIBRARIES_BITS - 3);
 };
 
 
@@ -57,7 +57,7 @@ public:
   ~ReadInfo();
 
   uint64  memoryUsage(void) {
-    return(sizeof(uint64) + sizeof(uint32) + sizeof(uint32) + sizeof(uint32) * _numReads);
+    return(sizeof(uint64) + sizeof(uint32) + sizeof(uint32) + sizeof(ReadStatus) * _numReads);
   };
 
   uint64  numBases(void)     { return(_numBases); };
