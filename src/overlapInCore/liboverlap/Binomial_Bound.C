@@ -176,6 +176,14 @@ Initialize_Match_Limit(int32 *ml, double maxErate, int32 maxErrors) {
   double sl = 0.986446300363063 / maxErate + 0.052358358862826;
 #endif
 
+#if AS_MAX_READLEN_BITS == 23
+  double sl = 0.989923769842693 / maxErate + 0.0395372203695468;
+#endif
+
+#if AS_MAX_READLEN_BITS == 24
+  double sl = 0.992440299290478 / maxErate + 0.036791522317757;
+#endif
+
   //  And the first value.
   double  vl = ml[e-1] + sl;
 
