@@ -854,9 +854,10 @@ mergeOrphans(TigVector &tigs,
         for (uint32 pp=0; pp<placed[rr].size(); pp++) {
           double erate = placed[rr][pp].errors / placed[rr][pp].aligned;
 
-          if (erate < er) {
-            er = erate;
-            bb = pp;
+          if ((erate < er) &&                             //  Reads placed in 'bubble' by this same method
+              (placed[rr][pp].tigID != bubble->id())) {   //  will pick 'bubble' (which is about the be removed)
+            er = erate;                                   //  as their best location, so careful to exclude
+            bb = pp;                                      //  all self placements!
           }
         }
 
@@ -876,6 +877,8 @@ mergeOrphans(TigVector &tigs,
                  frg.ident,
                  bubble->id(),
                  target->id(), frg.position.bgn, frg.position.end);
+
+        assert(target->id() != bubble->id());
 
         target->addRead(frg, 0, false);
       }
