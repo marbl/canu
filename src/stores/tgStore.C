@@ -446,7 +446,9 @@ tgStore::loadTig(uint32 tigID) {
     AS_UTL_fseek(FP, _tigEntry[tigID].fileOffset, SEEK_SET);
 
     _tigCache[tigID] = new tgTig;
-    _tigCache[tigID]->loadFromStream(FP);
+
+    if (_tigCache[tigID]->loadFromStream(FP) == false)
+      fprintf(stderr, "Failed to load tig %u.\n", tigID), exit(1);
 
     //  ALWAYS assume the incore record is more up to date
     *_tigCache[tigID] = _tigEntry[tigID].tigRecord;
@@ -509,7 +511,9 @@ tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
   AS_UTL_fseek(FP, _tigEntry[tigID].fileOffset, SEEK_SET);
 
   tigcopy->clear();
-  tigcopy->loadFromStream(FP);
+
+  if (tigcopy->loadFromStream(FP) == false)
+    fprintf(stderr, "Failed to load tig %u.\n", tigID), exit(1);
 
   //  ALWAYS assume the incore record is more up to date
   *tigcopy = _tigEntry[tigID].tigRecord;

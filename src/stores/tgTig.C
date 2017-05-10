@@ -400,6 +400,7 @@ tgTig::loadFromStream(FILE *F) {
   tgTigRecord  tr;
 
   if (4 != AS_UTL_safeRead(F, tag, "tgTig::saveToStream::tigr", sizeof(char), 4)) {
+    fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
     return(false);
   }
 
@@ -407,11 +408,14 @@ tgTig::loadFromStream(FILE *F) {
       (tag[1] != 'I') ||
       (tag[2] != 'G') ||
       (tag[3] != 'R')) {
+    fprintf(stderr, "tgTig::loadFromStream()-- not at a tigRecord, got bytes '%c%c%c%c' (0x%02x%02x%02x%02x).\n",
+            tag[0], tag[1], tag[2], tag[3],
+            tag[0], tag[1], tag[2], tag[3]);
     return(false);
   }
 
   if (0 == AS_UTL_safeRead(F, &tr, "tgTig::loadFromStream::tr", sizeof(tgTigRecord), 1)) {
-    //  Nothing loaded, end of file.
+    fprintf(stderr, "tgTig::loadFromStream()-- failed to read tgTigRecord: %s\n", strerror(errno));
     return(false);
   }
 
