@@ -158,6 +158,25 @@ sub configurePBSTorque () {
 
     my $isPro = (uc(getGlobal("gridEngine")) eq "PBSPRO");
 
+    #  For Torque, see if there is a max array size.
+    #  For Pro, set to 1000.
+
+    my $maxArraySize = getGlobal("gridEngineArrayMaxJobs");
+
+    if (!defined($maxArraySize)) {
+        $maxArraySize = 1000;
+
+        if ($isPro == 0) {
+            open(F, "qmgr -c 'p s' |");
+            while (<F>) {
+                if (m/max_job_array_size\s+=\s+(\d+)/) {
+                    $maxArraySize = $1;
+                }
+            }
+            close(F);
+        }
+    }
+
     #  PBSPro, again, throws a curve ball at us.  There is no way to set the output of array jobs
     #  to someting reasonable like name.TASK_ID.err, even though that is basically the default.
     #  So, we unset gridEngineArraySubmitID to get the default name, but then need to move the '-j oe'
@@ -169,7 +188,7 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS")  if ($isPro == 0);
     setGlobalIfUndef("gridEngineArrayOption",                "-J ARRAY_JOBS")  if ($isPro == 1);
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
-    setGlobalIfUndef("gridEngineArrayMaxJobs",               268435456);  #  Effectively unlimited.
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");
     setGlobalIfUndef("gridEngineThreadsOption",              "-l nodes=1:ppn=THREADS");
     setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");
