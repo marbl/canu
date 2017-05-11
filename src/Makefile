@@ -575,6 +575,21 @@ endif
 #  No backtrace support.
 #CXXFLAGS   += -DNOBACKTRACE
 
+#  But, if we we have an old GCC, stack tracing support isn't there.
+
+GCC_45 := $(shell expr `${CC} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
+GCC_VV := $(shell ${CC} -dumpversion)
+GXX_VV := $(shell ${CXX} -dumpversion)
+
+ifeq (${BUILDSTACKTRACE}, 1)
+ifeq (${GCC_45}, 0)
+$(info WARNING:)
+$(info WARNING: GCC ${GCC_VV} detected, disabling stack trace support.  Please upgrade to GCC 4.7 or higher.)
+$(info WARNING:)
+BUILDSTACKTRACE = 0
+endif
+endif
+
 ifeq (${BUILDSTACKTRACE}, 1)
 CXXFLAGS  += -DLIBBACKTRACE
 else
@@ -748,6 +763,8 @@ ${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
 
 #  Makefile processed.  Report that we're starting the build.
 
-${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'}
-${info CC ${CC} CXX ${CXX}}
+$(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}')
+$(info CC  ${CC} ${GCC_VV})
+$(info CXX ${CXX} ${GXX_VV})
+
 #${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
