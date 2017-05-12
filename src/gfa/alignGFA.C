@@ -643,7 +643,7 @@ processBED(char   *tigName,
   sequences *seqsp = new sequences(tigName, tigVers);
   sequences &seqs  = *seqsp;
 
-  //  Load the BED file.
+  //  Load the BED file and allocate an output GFA.
 
   fprintf(stderr, "-- Reading BED '%s'.\n", inBED);
 
@@ -652,9 +652,13 @@ processBED(char   *tigName,
 
   //  Iterate over sequences, looking for overlaps in contigs.  Stupid, O(n^2) but seems fast enough.
 
-  char   cigar[81];
-  uint32 maxID = 0;
+  uint32  iiLimit      = bed->_records.size();
+  uint32  iiNumThreads = omp_get_max_threads();
+  uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
+  fprintf(stderr, "-- Aligning " F_U32 " records using " F_U32 " threads.\n", iiLimit, iiNumThreads);
+
+#pragma omp parallel for schedule(dynamic, iiBlockSize)
   for (uint64 ii=0; ii<bed->_records.size(); ii++) {
     for (uint64 jj=ii+1; jj<bed->_records.size(); jj++) {
 
@@ -681,6 +685,8 @@ processBED(char   *tigName,
 
       assert(olapLen > 0);
 
+      char   cigar[81];
+
       sprintf(cigar, "%dM", olapLen);
 
       gfaLink *link = new gfaLink(bed->_records[ii]->_Bname, bed->_records[ii]->_Bid, true,
@@ -689,15 +695,18 @@ processBED(char   *tigName,
 
       bool  pN = checkLink(link, seqs, (verbosity > 0), false);
 
-      if (pN)
-        gfa->_links.push_back(link);
-      else
-        gfa->_links.push_back(link);
+#pragma omp critical
+      {
+        if (pN)
+          gfa->_links.push_back(link);
+        else
+          gfa->_links.push_back(link);
 
-      //  Remember sequences we've hit.
+        //  Remember sequences we've hit.
 
-      seqs.used[bed->_records[ii]->_Bid]++;
-      seqs.used[bed->_records[jj]->_Bid]++;
+        seqs.used[bed->_records[ii]->_Bid]++;
+        seqs.used[bed->_records[jj]->_Bid]++;
+      }
     }
   }
 
