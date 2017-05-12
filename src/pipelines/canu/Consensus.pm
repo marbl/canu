@@ -609,6 +609,7 @@ sub alignGFA ($) {
         print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.tig", "");
         print F "\n";
         print F "\n";
+
         print F "if [ ! -e ./$asm.unitigs.aligned.gfa ] ; then\n";
         print F "  \$bin/alignGFA \\\n";
         print F "    -T ../$asm.utgStore 2 \\\n";
@@ -621,6 +622,7 @@ sub alignGFA ($) {
         print F "fi\n";
         print F "\n";
         print F "\n";
+
         print F "if [ ! -e ./$asm.contigs.aligned.gfa ] ; then\n";
         print F "  \$bin/alignGFA \\\n";
         print F "    -T ../$asm.ctgStore 2 \\\n";
@@ -633,8 +635,38 @@ sub alignGFA ($) {
         print F "fi\n";
         print F "\n";
         print F "\n";
+
+        print F "if [ ! -e ./$asm.unitigs.aligned.bed ] ; then\n";
+        print F "  \$bin/alignGFA -bed \\\n";
+        print F "    -T ../$asm.utgStore 2 \\\n";
+        print F "    -C ../$asm.ctgStore 2 \\\n";
+        print F "    -i ./$asm.unitigs.bed \\\n";
+        print F "    -o ./$asm.unitigs.aligned.bed \\\n";
+        print F "    -t " . getGlobal("gfaThreads") . " \\\n";
+        print F "  > ./$asm.unitigs.aligned.bed.err 2>&1";
+        print F "\n";
+        print F stashFileShellCode("$path", "$asm.unitigs.aligned.bed", "  ");
+        print F "fi\n";
+        print F "\n";
+        print F "\n";
+
+        print F "if [ ! -e ./$asm.unitigs.aligned.bed.gfa ] ; then\n";
+        print F "  \$bin/alignGFA -bed \\\n";
+        print F "    -T ../$asm.utgStore 2 \\\n";
+        print F "    -i ./$asm.unitigs.bed \\\n";
+        print F "    -o ./$asm.unitigs.aligned.bed.gfa \\\n";
+        print F "    -t " . getGlobal("gfaThreads") . " \\\n";
+        print F "  > ./$asm.unitigs.aligned.bed.gfa.err 2>&1";
+        print F "\n";
+        print F stashFileShellCode("$path", "$asm.unitigs.aligned.bed.gfa", "  ");
+        print F "fi\n";
+        print F "\n";
+        print F "\n";
+
         print F "if [ -e ./$asm.unitigs.aligned.gfa -a \\\n";
-        print F "     -e ./$asm.contigs.aligned.gfa ] ; then\n";
+        print F "     -e ./$asm.contigs.aligned.gfa -a \\\n";
+        print F "     -e ./$asm.unitigs.aligned.bed -a \\\n";
+        print F "     -e ./$asm.unitigs.aligned.bed.gfa ] ; then\n";
         print F "  echo GFA alignments updated.\n";
         print F "  exit 0\n";
         print F "else\n";
