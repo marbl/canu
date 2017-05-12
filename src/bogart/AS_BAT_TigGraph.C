@@ -413,7 +413,8 @@ reportTigGraph(TigVector &tigs,
                vector<tigLoc> &tigSource,
                const char *prefix,
                const char *label) {
-  char   N[FILENAME_MAX];
+  char   BEGn[FILENAME_MAX];
+  char   BEDn[FILENAME_MAX];
 
   writeLog("\n");
   writeLog("----------------------------------------\n");
@@ -421,9 +422,11 @@ reportTigGraph(TigVector &tigs,
 
   writeStatus("AssemblyGraph()-- generating '%s.%s.gfa'.\n", prefix, label);
 
-  snprintf(N, FILENAME_MAX, "%s.%s.gfa", prefix, label);
+  snprintf(BEGn, FILENAME_MAX, "%s.%s.gfa", prefix, label);
+  snprintf(BEDn, FILENAME_MAX, "%s.%s.bed", prefix, label);
 
-  FILE *BEG = fopen(N, "w");
+  FILE *BEG =                          fopen(BEGn, "w");
+  FILE *BED = (tigSource.size() > 0) ? fopen(BEDn, "w") : NULL;
 
   if (BEG == NULL)
     return;
@@ -469,10 +472,20 @@ reportTigGraph(TigVector &tigs,
     emitEdges(tigs, tgA, true, BEG, tigSource);
     tgA->reverseComplement();
 
+    if ((tigSource.size() > 0) && (tigSource[ti].cID != UINT32_MAX))
+      fprintf(BED, "ctg%08u\t%u\t%u\tutg%08u\t%u\t%c\n",
+              tigSource[ti].cID,
+              tigSource[ti].cBgn,
+              tigSource[ti].cEnd,
+              ti,
+              0,
+              '+');
+
     //logFileFlags &= ~LOG_PLACE_READ;
   }
 
-  fclose(BEG);
+  if (BEG)   fclose(BEG);
+  if (BED)   fclose(BED);
 
   //  And report statistics.
 
