@@ -170,7 +170,7 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<tigLoc> &tigSource
       if ((tigSource.size() > 0) && (newtig)) {
         tigSource.resize(newtig->id() + 1);
 
-        tigSource[newtig->id()].cID  = tig->id();
+        tigSource[newtig->id()].cID  = tigSource[   tig->id()].cID,
         tigSource[newtig->id()].cBgn = tigSource[   tig->id()].cBgn + splitReads[0].position.min();
         tigSource[newtig->id()].cEnd = tigSource[newtig->id()].cBgn + newtig->getLength();
         tigSource[newtig->id()].uID  = newtig->id();
@@ -194,7 +194,7 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<tigLoc> &tigSource
       if ((tigSource.size() > 0) && (newtig)) {
         tigSource.resize(newtig->id() + 1);
 
-        tigSource[newtig->id()].cID  = tig->id();
+        tigSource[newtig->id()].cID  = tigSource[   tig->id()].cID,
         tigSource[newtig->id()].cBgn = tigSource[   tig->id()].cBgn + splitReads[0].position.min();
         tigSource[newtig->id()].cEnd = tigSource[newtig->id()].cBgn + newtig->getLength();
         tigSource[newtig->id()].uID  = newtig->id();
