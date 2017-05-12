@@ -73,6 +73,7 @@ nameToCanuID(char *name) {
 
 gfaSequence::gfaSequence() {
   _name     = NULL;
+  _id       = UINT32_MAX;
   _sequence = NULL;
   _features = NULL;
   _length   = 0;
@@ -81,6 +82,17 @@ gfaSequence::gfaSequence() {
 
 gfaSequence::gfaSequence(char *inLine) {
   load(inLine);
+}
+
+
+gfaSequence::gfaSequence(char *name, uint32 id, uint32 len) {
+  _name     = new char [strlen(name) + 1];
+  _id       = id;
+  _sequence = NULL;
+  _features = NULL;
+  _length   = len;
+
+  strcpy(_name, name);
 }
 
 
@@ -118,10 +130,11 @@ gfaSequence::load(char *inLine) {
 
 void
 gfaSequence::save(FILE *outFile) {
-  fprintf(outFile, "S\t%s\t%s\tLN:i:%u\n", _name, _sequence, _length);
+  fprintf(outFile, "S\t%s\t%s\tLN:i:%u\n",
+          _name,
+          _sequence ? _sequence : "*",
+          _length);
 }
-
-
 
 
 gfaLink::gfaLink() {
@@ -140,6 +153,28 @@ gfaLink::gfaLink() {
 
 gfaLink::gfaLink(char *inLine) {
   load(inLine);
+}
+
+
+gfaLink::gfaLink(char *Aname, uint32 Aid, bool Afwd,
+                 char *Bname, uint32 Bid, bool Bfwd, char *cigar) {
+  _Aname    = new char [strlen(Aname) + 1];
+  _Aid      = Aid;
+  _Afwd     = Afwd;
+
+  _Bname    = new char [strlen(Bname) + 1];
+  _Bid      = Bid;
+  _Bfwd     = Bfwd;
+
+  _cigar    = new char [strlen(cigar) + 1];
+  _features = NULL;
+
+  strcpy(_Aname,    Aname);
+  strcpy(_Bname,    Bname);
+  strcpy(_cigar,    cigar);
+
+  _Aid = nameToCanuID(_Aname);    //  Search for canu-specific names, and convert to tigID's.
+  _Bid = nameToCanuID(_Bname);
 }
 
 
@@ -252,10 +287,22 @@ gfaLink::alignmentLength(int32 &queryLen, int32 &refceLen, int32 &alignLen) {
 
 
 
+gfaFile::gfaFile() {
+  _header = NULL;
+}
+
+
 gfaFile::gfaFile(char *inFile) {
   _header = NULL;
 
-  loadFile(inFile);
+  if ((inFile[0] == 'H') && (inFile[1] == '\t')) {
+    _header = new char [strlen(inFile) + 1];
+    strcpy(_header, inFile);
+  }
+
+  else {
+    loadFile(inFile);
+  }
 }
 
 

@@ -37,6 +37,7 @@ class gfaSequence {
 public:
   gfaSequence();
   gfaSequence(char *inLine);
+  gfaSequence(char *name, uint32 id, uint32 len);
   ~gfaSequence();
 
   void    load(char *inLine);
@@ -58,6 +59,8 @@ class gfaLink {
 public:
   gfaLink();
   gfaLink(char *inLine);
+  gfaLink(char *Aname, uint32 Aid, bool Afwd,
+          char *Bname, uint32 Bid, bool Bfwd, char *cigar);
   ~gfaLink();
 
   void    load(char *inLine);
@@ -84,6 +87,7 @@ public:
 
 class gfaFile {
 public:
+  gfaFile();
   gfaFile(char *inFile);
   ~gfaFile();
 
