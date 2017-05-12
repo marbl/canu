@@ -107,6 +107,7 @@ SOURCES      := AS_global.C \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 \
                 gfa/gfa.C \
+                gfa/bed.C \
                 \
                 meryl/libkmer/existDB-create-from-fasta.C \
                 meryl/libkmer/existDB-create-from-meryl.C \
