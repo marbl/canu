@@ -55,14 +55,15 @@ findGFAtokenI(char *features, char *token, TT &value) {
 
 
 //  Search for canu-specific names, and convert to tigID's.
+//    Allow either 'tig', 'utg' or 'ctg'.
 static
 uint32
 nameToCanuID(char *name) {
   uint32   id = UINT32_MAX;
 
-  if ((name[0] == 't') &&
-      (name[1] == 'i') &&
-      (name[2] == 'g'))
+  if (((name[0] == 't') && (name[1] == 'i') && (name[2] == 'g')) ||
+      ((name[0] == 'u') && (name[1] == 't') && (name[2] == 'g')) ||
+      ((name[0] == 'c') && (name[1] == 't') && (name[2] == 'g')))
     id = strtoll(name + 3, NULL, 10);
 
   return(id);
