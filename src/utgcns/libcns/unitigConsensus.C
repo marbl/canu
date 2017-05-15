@@ -263,7 +263,8 @@ generateTemplateMosaic(abAbacus    *abacus,
                        tgPosition  *utgpos,
                        uint32       numfrags,
                        uint32      &tiglen,
-                       char        *tigseq) {
+                       char        *tigseq,
+                       bool         verbose) {
 
   for (uint32 i=0; i<numfrags; i++) {
     abSequence  *seq      = abacus->getSequence(i);
@@ -319,9 +320,10 @@ generateTemplateStitch(abAbacus    *abacus,
                        tgPosition  *utgpos,
                        uint32       numfrags,
                        uint32      &tiglen,
-                       char        *tigseq) {
+                       char        *tigseq,
+                       double       errorRate,
+                       bool         verbose) {
   int32   minOlap  = 500;
-  bool    verbose  = false;
 
   //  Initialize, copy the first read.
 
@@ -330,7 +332,6 @@ generateTemplateStitch(abAbacus    *abacus,
   abSequence  *seq      = abacus->getSequence(rid);
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
-  int32        olapLen  = 0;
 
   if (verbose) {
     fprintf(stderr, "\n");
@@ -404,9 +405,6 @@ generateTemplateStitch(abAbacus    *abacus,
     seq      = abacus->getSequence(rid);
     fragment = seq->getBases();
     readLen  = seq->length();
-    olapLen  = ePos - utgpos[nr].min();
-
-    assert(olapLen > 0);
 
     int32  readBgn;
     int32  readEnd;
@@ -417,9 +415,13 @@ generateTemplateStitch(abAbacus    *abacus,
     double           templateSize  = 0.80;
     double           extensionSize = 0.20;
 
+    int32            olapLen      = ePos - utgpos[nr].min();  //  The expected size of the overlap
+    int32            templateLen  = 0;
+    int32            extensionLen = 0;
+
   alignAgain:
-    int32            templateLen  = (int32)ceil(olapLen * templateSize);    //  Extract 80% of the expected overlap size
-    int32            extensionLen = (int32)ceil(olapLen * extensionSize);   //  Extend read by 20% of the expected overlap size
+    templateLen  = (int32)ceil(olapLen * templateSize);    //  Extract 80% of the expected overlap size
+    extensionLen = (int32)ceil(olapLen * extensionSize);   //  Extend read by 20% of the expected overlap size
 
     readBgn = 0;
     readEnd = olapLen + extensionLen;
@@ -429,17 +431,27 @@ generateTemplateStitch(abAbacus    *abacus,
 
     if (verbose) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "TRY ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)\n",
+      fprintf(stderr, "TRY ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
               tiglen - templateLen, tiglen, templateLen,
-              nr, utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen, utgpos[nr].min(), utgpos[nr].max());
+              nr, utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen,
+              utgpos[nr].min(), utgpos[nr].max(),
+              olapLen);
     }
 
     result = edlibAlign(tigseq + tiglen - templateLen, templateLen,
                         fragment, readEnd - readBgn,
-                        edlibNewAlignConfig(olapLen * 0.06, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+                        edlibNewAlignConfig(olapLen * errorRate, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
     //  We're expecting the template to align inside the read.
-    //  If the alignment bumps up against the start of the read, we have too much template.
+    //
+    //                                                        v- always the end
+    //    TEMPLATE  --------------------------[---------------]
+    //    READ                          [------------------------------]---------
+    //                always the start -^
+    //
+    //  If we don't find an alignment at all, we move the template start point to the right (making
+    //  the template smaller) and also move the read end point to the right (making the read
+    //  bigger).
 
     bool   tryAgain = false;
 
@@ -451,22 +463,49 @@ generateTemplateStitch(abAbacus    *abacus,
     bool   hitTheEnd     = (gotResult) && (result.endLocations[0] + 1 == readEnd - readBgn);
     bool   moreToExtend  = (readEnd < readLen);
 
-    if (noResult)
-      if (verbose)
-        fprintf(stderr, "FAILED to align\n");
+    //  HOWEVER, if we get a result and it's near perfect, declare success even if we hit the start.
+    //  These are simple repeats that will align with any overlap.  The one BPW debugged was 99+% A.
+
+    if ((gotResult == true) &&
+        (hitTheStart == true) &&
+        ((double)result.editDistance / result.alignmentLength < 0.1)) {
+      hitTheStart = false;
+    }
+
+    //  NOTE that if we hit the end with the same conditions, we should try again, unless there
+    //  isn't anything left.  In that case, we don't extend the template.
+
+    if ((gotResult == true) &&
+        (hitTheEnd == true) &&
+        (moreToExtend == false) &&
+        ((double)result.editDistance / result.alignmentLength < 0.1)) {
+      hitTheEnd = false;
+    }
+
+    //  Now, report what happened, and maybe try again.
+
+    if (verbose)
+      if (noResult)
+        fprintf(stderr, "FAILED to align - no result\n");
+      else
+        fprintf(stderr, "FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
+                result.startLocations[0], result.endLocations[0]+1,
+                result.editDistance,
+                result.alignmentLength,
+                (double)result.editDistance / result.alignmentLength);
 
     if ((noResult) || (hitTheStart)) {
-      if ((verbose) && (gotResult))
-        fprintf(stderr, "FAILED to align - startLocation = %d\n", result.startLocations[0]);
+      if (verbose)
+        fprintf(stderr, "FAILED to align - %s - decrease template size by 10%%\n",
+                (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
       templateSize -= 0.10;
     }
 
-    //  If the alignment bumps up against the end of the read, we don't have enough read.
-
     if ((noResult) || (hitTheEnd && moreToExtend)) {
-      if ((verbose) && (gotResult))
-        fprintf(stderr, "FAILED to align - endLocation = %d (readEnd = %d readBgn = %d)\n", result.endLocations[0], readEnd, readBgn);
+      if (verbose)
+        fprintf(stderr, "FAILED to align - %s - increase read size by 10%%\n",
+                (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
       extensionSize += 0.10;
     }
@@ -729,8 +768,8 @@ unitigConsensus::generatePBDAG(char                       aligner,
 
   fprintf(stderr, "Generating template.\n");
 
-  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq);
-  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq);
+  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq, tig->_utgcns_verboseLevel);
+  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq, errorRate, tig->_utgcns_verboseLevel);
 
   uint32  pass = 0;
   uint32  fail = 0;
@@ -862,8 +901,8 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
   fprintf(stderr, "Generating template.\n");
 
-  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq);
-  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq);
+  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq, tig->_utgcns_verboseLevel);
+  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq, errorRate, tig->_utgcns_verboseLevel);
 
   //
   //  The above and below came from generatePBDAG(), which should be modified to handle 'quick'.
