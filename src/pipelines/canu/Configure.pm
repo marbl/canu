@@ -381,18 +381,18 @@ sub getAllowedResources ($$$$@) {
 
     my $nam;
 
-    if    ($alg eq "bat")      {  $nam = "bogart"; }
-    elsif ($alg eq "cns")      {  $nam = "consensus"; }
-    elsif ($alg eq "gfa")      {  $nam = "GFA alignment and processing"; }
-    elsif ($alg eq "cor")      {  $nam = "falcon_sense"; }
-    elsif ($alg eq "meryl")    {  $nam = "meryl"; }
-    elsif ($alg eq "oea")      {  $nam = "overlap error adjustment"; }
-    elsif ($alg eq "ovb")      {  $nam = "ovStore bucketizer"; }
-    elsif ($alg eq "ovs")      {  $nam = "ovStore sorting"; }
-    elsif ($alg eq "red")      {  $nam = "read error detection"; }
-    elsif ($alg eq "mhap")     {  $nam = "mhap ($tag)"; }
-    elsif ($alg eq "mmap")     {  $nam = "minimap ($tag)"; }
-    elsif ($alg eq "ovl")      {  $nam = "overlapper ($tag)"; }
+    if    ($alg eq "meryl")    {  $nam = "(k-mer counting)"; }
+    elsif ($alg eq "mhap")     {  $nam = "(overlap detection with mhap)"; }
+    elsif ($alg eq "mmap")     {  $nam = "(overlap detection with minimap)"; }
+    elsif ($alg eq "ovl")      {  $nam = "(overlap detection)"; }
+    elsif ($alg eq "cor")      {  $nam = "(read correction)"; }
+    elsif ($alg eq "ovb")      {  $nam = "(overlap store bucketizer)"; }
+    elsif ($alg eq "ovs")      {  $nam = "(overlap store sorting)"; }
+    elsif ($alg eq "red")      {  $nam = "(read error detection)"; }
+    elsif ($alg eq "oea")      {  $nam = "(overlap error adjustment)"; }
+    elsif ($alg eq "bat")      {  $nam = "(contig construction)"; }
+    elsif ($alg eq "cns")      {  $nam = "(consensus)"; }
+    elsif ($alg eq "gfa")      {  $nam = "(GFA alignment and processing)"; }
     else {
         caFailure("unknown task '$alg' in getAllowedResources().", undef);
     }
@@ -401,8 +401,27 @@ sub getAllowedResources ($$$$@) {
     my $thr = substr("    $taskThreads", -3) . " CPU" . (($taskThreads == 1) ? " " : "s");
     my $mem = substr("    $taskMemory",  -4) . " GB";
 
-    $all .= "-- Run $job concurrently using $mem and $thr for stage '$nam'.\n"   if ( defined($concurrent));
-    $all .= "-- Run under grid control using $mem and $thr for stage '$nam'.\n"   if (!defined($concurrent));
+    my $t = substr("$tag$alg     ", 0, 7);
+
+    if (!defined($all)) {
+        #$all .= "-- Memory, Threads and Concurrency configuration:\n"  if ( defined($concurrent));
+        #$all .= "-- Memory and Threads configuration:\n"               if (!defined($concurrent));
+
+        if (defined($concurrent)) {
+            $all .= "--                            (tag)Concurrency\n";
+            $all .= "--                     (tag)Threads          |\n";
+            $all .= "--            (tag)Memory         |          |\n";
+            $all .= "--        (tag)         |         |          |  algorithm\n";
+            $all .= "--        -------  ------  --------   --------  -----------------------------\n";
+        } else {
+            $all .= "--                     (tag)Threads\n";
+            $all .= "--            (tag)Memory         |\n";
+            $all .= "--        (tag)         |         |  algorithm\n";
+            $all .= "--        -------  ------  --------  -----------------------------\n";
+        }
+    }
+    $all .= "-- Local: $t $mem  $thr x $job  $nam\n"      if ( defined($concurrent));
+    $all .= "-- Grid:  $t $mem  $thr  $nam\n"             if (!defined($concurrent));
 
     return($err, $all);
 }
@@ -714,9 +733,9 @@ sub configureAssembler () {
 
     ($err, $all) = getAllowedResources("",    "bat",      $err, $all);
 
-    ($err, $all) = getAllowedResources("",    "gfa",      $err, $all);
-
     ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
+
+    ($err, $all) = getAllowedResources("",    "gfa",      $err, $all);
 
     #  Check some minimums.
 
