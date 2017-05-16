@@ -168,8 +168,9 @@ sub schedulerRun () {
     }
 }
 
-sub schedulerFinish ($) {
+sub schedulerFinish ($$) {
     my $dir = shift @_;
+    my $nam = shift @_;
     my $child;
     my @newProcesses;
     my $remain;
@@ -180,8 +181,8 @@ sub schedulerFinish ($) {
     my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     print STDERR "----------------------------------------\n";
-    print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
-    print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
+    print STDERR "-- Starting '$nam' concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
+    print STDERR "-- Starting '$nam' concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
     print STDERR "\n";
     print STDERR "    cd $dir\n";
 
@@ -1255,7 +1256,7 @@ sub submitOrRunParallelJob ($$$$@) {
     my $nParallel  = $nCParallel < $nMParallel ? $nCParallel : $nMParallel;
 
     schedulerSetNumberOfProcesses($nParallel);
-    schedulerFinish($path);
+    schedulerFinish($path, $jobType);
 }
 
 
