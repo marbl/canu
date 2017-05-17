@@ -296,7 +296,7 @@ gkReadData::gkReadData_encodeBlobChunk(char const *tag,
 
   //  Or make it bigger
 
-  while (_blobMax + 8 + len < _blobMax) {
+  while (_blobMax <= _blobLen + 8 + len) {
     _blobMax *= 2;
     uint8 *b  = new uint8 [_blobMax];
     memcpy(b, _blob, sizeof(uint8) * _blobLen);

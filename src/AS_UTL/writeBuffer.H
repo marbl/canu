@@ -62,7 +62,7 @@ public:
       flush();
 
     if (_bufferMax < length)
-      AS_UTL_safeWrite(_file, _buffer, "writeBuffer", 1, length);
+      AS_UTL_safeWrite(_file, data, "writeBuffer", 1, length);
     else {
       memcpy(_buffer + _bufferLen, data, length);
       _bufferLen += length;
