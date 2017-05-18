@@ -267,3 +267,13 @@ How can I send data to you?
 -------------------------------------
    FTP to ftp://ftp.cbcb.umd.edu/incoming/sergek.  This is a write-only location that only the Canu
    developers can see.
+   
+   Here is a quick walk-through using a command-line ftp client (should be available on most Linux and OSX installations). Say we want to transfer a file named ``reads.fastq``. First, run ``ftp ftp.cbcb.umd.edu``, specify ``anonymous`` as the user name and hit return for password (blank). Then:
+   
+   .. code-block:: 
+   
+      cd incoming/sergek
+      put reads.fastq
+      quit
+
+   That's it, you won't be able to see the file but we can download it.
