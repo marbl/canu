@@ -581,7 +581,9 @@ sub alignGFA ($) {
 
     goto allDone   if (skipStage($asm, "alignGFA") == 1);
     goto allDone   if (fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa") &&
-                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa"));
+                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa") &&
+                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed") &&
+                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed.gfa"));
 
     #  If a large genome, run this on the grid, else, run in the canu process itself.
     my $runGrid = (getGlobal("genomeSize") >= 40000000);
