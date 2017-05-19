@@ -340,10 +340,6 @@ stripNonBackboneFromStart(TigVector &unitigs, Unitig *tig, bool isFirst) {
 
   while (ii < tig->ufpath.size()) {               //  and copy to a new vector.
     ufpath.push_back(tig->ufpath[ii]);
-    writeLog("SAVE     unitig %u %s read %u IS     backbone.\n",
-             tig->id(),
-             isFirst ? "first" : "last ",
-             tig->ufpath[ii].ident);
     ii++;
   }
 
