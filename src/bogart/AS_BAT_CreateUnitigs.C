@@ -98,22 +98,31 @@ splitTig(TigVector                &tigs,
          vector<breakPointEnd>    &BP,
          Unitig                  **newTigs,
          int32                    *lowCoord,
-         uint32                   *nMoved,
          bool                      doMove) {
 
-  if (doMove == true) {
-    memset(newTigs,  0, sizeof(Unitig *) * BP.size());
-    memset(lowCoord, 0, sizeof(int32)    * BP.size());
-  } else {
-    memset(nMoved,   0, sizeof(uint32)   * BP.size());
-  }
+  //  The first call is with doMove = false.  This call just figures out how many new tigs are
+  //  created.  We use nMoved to count if a new tig is made for a break point.
 
-  if (doMove)
+  uint32  *nMoved = NULL;
+
+  if (doMove == false)
+    allocateArray(nMoved, BP.size() + 2);
+
+  //  The second call is with doMove = true.  This does the actual moving.
+
+  if (doMove == true)
+    for (uint32 tt=0; tt < BP.size() + 2; tt++) {
+      newTigs[tt]  = NULL;
+      lowCoord[tt] = INT32_MAX;
+    }
+
+  if (doMove == true)
     for (uint32 tt=0; tt < BP.size() - 1; tt++)
       writeLog("splitTig()-- piece %2u from %8u %c to %8u %c\n",
                tt,
                BP[tt  ]._pos, BP[tt  ]._bgn ? 't' : 'f',
                BP[tt+1]._pos, BP[tt+1]._bgn ? 't' : 'f');
+
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode     &read   = tig->ufpath[fi];
@@ -219,9 +228,13 @@ splitTig(TigVector                &tigs,
 
   uint32  nTigsCreated = 0;
 
-  for (uint32 ii=0; ii<BP.size(); ii++)
-    if (nMoved[ii] > 0)
-      nTigsCreated++;
+  if (doMove == false) {
+    for (uint32 ii=0; ii<BP.size(); ii++)
+      if (nMoved[ii] > 0)
+        nTigsCreated++;
+
+    delete [] nMoved;
+  }
 
   return(nTigsCreated);
 }
@@ -399,8 +412,7 @@ createUnitigs(AssemblyGraph   *AG,
   vector<breakPointEnd>  BP;
 
   Unitig **newTigs   = new Unitig * [breaks.size() + 2];  //  Plus two, because we add an extra
-  int32   *lowCoord  = new int32    [breaks.size() + 2];  //  break at the start and end
-  uint32  *nMoved    = new uint32   [breaks.size() + 2];  //  of each set.
+  int32   *lowCoord  = new int32    [breaks.size() + 2];  //  break at the start and end of each set.
 
   //  Walk through the breaks, making a new vector of breaks for each tig.
 
@@ -433,16 +445,17 @@ createUnitigs(AssemblyGraph   *AG,
 
     //  Split the tig.  Copy it into the unitigs TigVector too.
 
-    uint32  nTigs = splitTig(contigs, tig, BP, newTigs, lowCoord, nMoved, false);
+    uint32  nTigs = splitTig(contigs, tig, BP, newTigs, lowCoord, false);
 
     if (nTigs > 1) {
-      splitTig(unitigs, tig, BP, newTigs, lowCoord, nMoved, true);
+      splitTig(unitigs, tig, BP, newTigs, lowCoord, true);
       writeLog("createUnitigs()-- contig %u was split into %u unitigs, %u through %u.\n",  //  Can't use newTigs, because
                tig->id(), nTigs, unitigs.size() - nTigs, unitigs.size() - 1);              //  there are holes in it
     }
 
     else {
-      newTigs[0] = copyTig(unitigs, tig);
+      newTigs[0]  = copyTig(unitigs, tig);    // splitTig populates newTigs and lowCoord, used below.
+      lowCoord[0] = 0;
       writeLog("createUnitigs()-- contig %u copied into unitig %u.\n", tig->id(), newTigs[0]->id());
     }
 
@@ -509,6 +522,5 @@ createUnitigs(AssemblyGraph   *AG,
 
   delete [] newTigs;
   delete [] lowCoord;
-  delete [] nMoved;
 }
 
