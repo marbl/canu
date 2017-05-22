@@ -638,5 +638,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
     }
 }
 
+print STDERR "--\n";
+print STDERR "-- Bye.\n";
 
 exit(0);
