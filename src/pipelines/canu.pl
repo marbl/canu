@@ -209,7 +209,6 @@ while (scalar(@ARGV)) {
         addCommandLineOption("'$arg'");
 
     } else {
-        print STDERR "INVALID $arg\n";
         addCommandLineError("ERROR:  Invalid command line option '$arg'.  Did you forget quotes around options with spaces?\n");
     }
 }
