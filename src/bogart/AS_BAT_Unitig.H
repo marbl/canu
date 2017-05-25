@@ -229,6 +229,8 @@ public:
     for (uint32 fi=1; (fi < ufpath.size()) && (rd5->position.min() != 0); fi++)
       rd5 = &ufpath[fi];
 
+    if (rd5->position.min() != 0)
+      fprintf(stderr, "ERROR: firstRead() in tig %u doesn't start at the start\n", id());
     assert(rd5->position.min() == 0);
 
     return(rd5);
@@ -242,6 +244,8 @@ public:
     for (uint32 fi=ufpath.size()-1; (fi-- > 0) && (rd3->position.max() != getLength()); )
       rd3 = &ufpath[fi];
 
+    if (rd3->position.max() != getLength())
+      fprintf(stderr, "ERROR: lastRead() in tig %u doesn't end at the end\n", id());
     assert(rd3->position.max() == getLength());
 
     return(rd3);
