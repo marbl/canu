@@ -203,8 +203,8 @@ sub overlapStoreConfigure ($$$) {
         open(F, "> $path/scripts/0-config.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
-        print F setWorkDirectoryShellCode($path);
-        print F "\n";
+        #print F setWorkDirectoryShellCode($path);   #  This is never run on grid, so don't need to cd first.
+        #print F "\n";
         #print F getJobIDShellCode();
         #print F "\n";
         print F getBinDirectoryShellCode();
@@ -348,8 +348,8 @@ sub overlapStoreConfigure ($$$) {
         open(F, "> $path/scripts/3-index.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
-        print F setWorkDirectoryShellCode($path);
-        print F "\n";
+        #print F setWorkDirectoryShellCode($path);   #  This is never run on grid, so don't need to cd first.
+        #print F "\n";
         #print F getJobIDShellCode();
         #print F "\n";
         print F getBinDirectoryShellCode();
