@@ -136,11 +136,38 @@ main (int argc, char * argv []) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-unassembled") == 0) {
-      fewReadsNumber  = atoi(argv[++arg]);
-      tooShortLength  = atoi(argv[++arg]);
-      spanFraction    = atof(argv[++arg]);
-      lowcovFraction  = atof(argv[++arg]);
-      lowcovDepth     = atoi(argv[++arg]);
+      uint32  invalid = 0;
+
+      if ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
+        fewReadsNumber  = atoi(argv[++arg]);
+      else
+        invalid++;
+
+      if ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
+        tooShortLength  = atoi(argv[++arg]);
+      else
+        invalid++;
+
+      if ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
+        spanFraction    = atof(argv[++arg]);
+      else
+        invalid++;
+
+      if ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
+        lowcovFraction  = atof(argv[++arg]);
+      else
+        invalid++;
+
+      if ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
+        lowcovDepth     = atoi(argv[++arg]);
+      else
+        invalid++;
+
+      if (invalid) {
+        char *s = new char [1024];
+        snprintf(s, 1024, "Too few parameters to -unassembled option.\n");
+        err.push_back(s);
+      }
 
     } else if (strcmp(argv[arg], "-RL") == 0) {
       minReadLen = atoi(argv[++arg]);

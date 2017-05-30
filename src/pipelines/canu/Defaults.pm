@@ -966,7 +966,7 @@ sub setDefaults () {
     #####  Unitig Filtering Options (also set in bogart/bogart.C)
 
     $global{"contigFilter"}                = "2 1000 0.75 0.75 2";
-    $synops{"contigFilter"}                = "Parameters to filter out 'unassembled' unitigs: minReads; minLength; singleReadSpan; lowCovFraction, lowCovDepth";
+    $synops{"contigFilter"}                = "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth";
 
     #####  Consensus Options
 
@@ -1432,6 +1432,22 @@ sub checkParameters () {
         }
 
         addCommandLineError($failureString)   if ($ok == 0);
+    }
+
+    {
+        my @v = split '\s+', getGlobal("contigFilter");
+
+        print STDERR "contigFilter ", getGlobal("contigFilter"), " num ", scalar(@v), "\n";
+
+        if (scalar(@v) != 5) {
+            addCommandLineError("contigFilter must have five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth\n");
+        }
+
+        addCommandLineError("contigFilter 'minReads' must be a positive integer, currently $v[0]\n")          if (($v[0] < 0) || ($v[0] !~ m/^[0-9]+$/));
+        addCommandLineError("contigFilter 'minLength' must be a positive integer, currently $v[1]\n")         if (($v[1] < 0) || ($v[1] !~ m/^[0-9]+$/));
+        addCommandLineError("contigFilter 'singleReadSpan' must be between 0.0 and 1.0, currently $v[2]\n")   if (($v[2] < 0) || (1 < $v[2]) || ($v[2] !~ m/^[0-9]*\.{0,1}[0-9]*$/));
+        addCommandLineError("contigFilter 'lowCovFraction' must be between 0.0 and 1.0, currently $v[3]\n")   if (($v[3] < 0) || (1 < $v[3]) || ($v[3] !~ m/^[0-9]*\.{0,1}[0-9]*$/));
+        addCommandLineError("contigFilter 'lowCovDepth' must be a positive integer, currently $v[4]\n")       if (($v[4] < 0) || ($v[4] !~ m/^[0-9]+$/));
     }
 
     #
