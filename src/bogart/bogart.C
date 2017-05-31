@@ -58,6 +58,8 @@
 
 #include "AS_BAT_SplitDiscontinuous.H"
 
+#include "AS_BAT_DropDeadEnds.H"
+
 #include "AS_BAT_PromoteToSingleton.H"
 
 #include "AS_BAT_CreateUnitigs.H"
@@ -86,6 +88,7 @@ main (int argc, char * argv []) {
   bool      filterHighError          = true;
   bool      filterLopsided           = true;
   bool      filterSpur               = true;
+  bool      filterDeadEnds           = true;
 
   uint64    genomeSize               = 0;
 
@@ -201,6 +204,7 @@ main (int argc, char * argv []) {
       filterHighError  = ((arg >= argc) || (strcasestr(argv[arg], "higherror")  == NULL));
       filterLopsided   = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")   == NULL));
       filterSpur       = ((arg >= argc) || (strcasestr(argv[arg], "spur")       == NULL));
+      filterDeadEnds   = ((arg >= argc) || (strcasestr(argv[arg], "deadends")   == NULL));
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
@@ -504,6 +508,9 @@ main (int argc, char * argv []) {
 
   splitDiscontinuous(contigs, minOverlap);
   promoteToSingleton(contigs);
+
+  if (filterDeadEnds)
+    dropDeadEnds(AG, contigs);
 
   writeStatus("\n");
   writeStatus("==> CLEANUP GRAPH.\n");

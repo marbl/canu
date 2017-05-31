@@ -13,6 +13,7 @@ SOURCES  := bogart.C \
             AS_BAT_BestOverlapGraph.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_CreateUnitigs.C \
+            AS_BAT_DropDeadEnds.C \
             AS_BAT_Instrumentation.C \
             AS_BAT_Logging.C \
             AS_BAT_MarkRepeatReads.C \
