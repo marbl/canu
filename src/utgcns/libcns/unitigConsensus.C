@@ -278,7 +278,7 @@ generateTemplateStitch(abAbacus    *abacus,
 
   if (verbose) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "COPY READ read #%d %d (len=%d to %d-%d)\n",
+    fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
             0, utgpos[0].ident(), readLen, utgpos[0].min(), utgpos[0].max());
   }
 
@@ -292,24 +292,24 @@ generateTemplateStitch(abAbacus    *abacus,
 
   //  Find the next read that has some minimum overlap and a large extension, copy that into the template.
 
-    //  Align read to template.  Expecting to find alignment:
-    //
-    //        template ---------------
-    //        read             ---------------
-    //                               ^
-    //
-    //  All we need to find is where the template ends on the read, the ^ above.  We know the
-    //  expected size of the overlap, and can extract those bases from the template and look for a
-    //  full alignment to the read.
-    //
-    //  We'll align 80% of the expected overlap to the read, allowing a 20% buffer on either end.
-    //
-    //                        |  +-80% expected overlap size
-    //                        |  |     +-fPos
-    //                        v  v     v
-    //        template ----------(-----)
-    //        read            (-----------)------
-    //
+  //  Align read to template.  Expecting to find alignment:
+  //
+  //        template ---------------
+  //        read             ---------------
+  //                               ^
+  //
+  //  All we need to find is where the template ends on the read, the ^ above.  We know the
+  //  expected size of the overlap, and can extract those bases from the template and look for a
+  //  full alignment to the read.
+  //
+  //  We'll align 80% of the expected overlap to the read, allowing a 20% buffer on either end.
+  //
+  //                        |  +-80% expected overlap size
+  //                        |  |     +-fPos
+  //                        v  v     v
+  //        template ----------(-----)
+  //        read            (-----------)------
+  //
 
   while (rid < numfrags) {
     uint32 nr = 0;  //  Next read
@@ -318,26 +318,46 @@ generateTemplateStitch(abAbacus    *abacus,
     //  Pick the next read as the one with the longest extension from all with some minimum overlap
     //  to the template
 
-    for (uint32 ii=rid+1; (ii < numfrags) && (utgpos[ii].min() + minOlap < ePos); ii++) {
+    if (verbose)
+      fprintf(stderr, "\n");
 
-      if (utgpos[ii].max() < ePos) {
-        if (verbose)
-          fprintf(stderr, "SKIP read #%d/%d %d %d-%d contained\n", ii, numfrags, utgpos[ii].ident(), utgpos[ii].min(), utgpos[ii].max());
+    for (uint32 ii=rid+1; ii < numfrags; ii++) {
+
+      //  If contained, move to the next read.  (Not terribly useful to log, so we don't)
+
+      if (utgpos[ii].max() < ePos)
         continue;
+
+      //  If a bigger end position, save the overlap.  One quirk: if we've already saved an overlap, and this
+      //  overlap is thin, don't save the thin overlap.
+
+      bool   thick = (utgpos[ii].min() + minOlap < ePos);
+      bool   first = (nm == 0);
+      bool   save  = false;
+
+      if ((nm < utgpos[ii].max()) && (thick || first)) {
+        save = true;
+        nr   = ii;
+        nm   = utgpos[ii].max();
       }
 
       if (verbose)
-        fprintf(stderr, "TEST read #%d/%d %d %d-%d\n", ii, numfrags, utgpos[ii].ident(), utgpos[ii].min(), utgpos[ii].max());
+        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d%s%s%s\n",
+                ii, numfrags, utgpos[ii].ident(), utgpos[ii].min(), utgpos[ii].max(),
+                (save  == true)  ? " SAVE"  : "",
+                (thick == false) ? " THIN"  : "",
+                (first == true)  ? " FIRST" : "");
 
-      if ((nm < utgpos[ii].max()) && (ePos < utgpos[ii].max())) {
-        nr = ii;
-        nm = utgpos[ii].max();
-      }
+
+      //  If this read has an overlap smaller than we want, stop searching.
+
+      if (thick == false)
+        break;
     }
 
     if (nr == 0) {
       if (verbose)
-        fprintf(stderr, "NO MORE READS TO ALIGN\n");
+        fprintf(stderr, "generateTemplateStitch()-- NO MORE READS TO ALIGN\n");
       break;
     }
 
@@ -374,7 +394,7 @@ generateTemplateStitch(abAbacus    *abacus,
 
     if (verbose) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "TRY ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
+      fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
               tiglen - templateLen, tiglen, templateLen,
               nr, utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen,
               utgpos[nr].min(), utgpos[nr].max(),
@@ -429,9 +449,9 @@ generateTemplateStitch(abAbacus    *abacus,
 
     if (verbose)
       if (noResult)
-        fprintf(stderr, "FAILED to align - no result\n");
+        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
       else
-        fprintf(stderr, "FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
+        fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
                 result.startLocations[0], result.endLocations[0]+1,
                 result.editDistance,
                 result.alignmentLength,
@@ -439,7 +459,7 @@ generateTemplateStitch(abAbacus    *abacus,
 
     if ((noResult) || (hitTheStart)) {
       if (verbose)
-        fprintf(stderr, "FAILED to align - %s - decrease template size by 10%%\n",
+        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - %s - decrease template size by 10%%\n",
                 (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
       templateSize -= 0.10;
@@ -447,7 +467,7 @@ generateTemplateStitch(abAbacus    *abacus,
 
     if ((noResult) || (hitTheEnd && moreToExtend)) {
       if (verbose)
-        fprintf(stderr, "FAILED to align - %s - increase read size by 10%%\n",
+        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - %s - increase read size by 10%%\n",
                 (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
       extensionSize += 0.10;
@@ -464,20 +484,31 @@ generateTemplateStitch(abAbacus    *abacus,
     edlibFreeAlignResult(result);
 
     if (verbose)
-      fprintf(stderr, "Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n", tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+      fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n", tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
 
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
 
     tigseq[tiglen] = 0;
 
-    if (verbose) {
-      fprintf(stderr, "Template now length %d\n", tiglen);
-      fprintf(stderr, "Reset ePos to %d\n", utgpos[rid].max());
-    }
-
     ePos = utgpos[rid].max();
+
+    if (verbose)
+      fprintf(stderr, "generateTemplateStitch()-- Template now length %d, expected %d, difference %7.4f%%\n",
+              tiglen, ePos, 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos));
   }
+
+  //  Report the expected and final size.  Guard against long tigs getting chopped.
+
+  double  pd = 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos);
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "generateTemplateStitch()-- generated template of length %d, expected length %d, %7.4f%% difference.\n",
+          tiglen, ePos, pd);
+
+  if ((tiglen >= 100000) && ((pd < -50.0) || (pd > 50.0)))
+    fprintf(stderr, "generateTemplateStitch()-- significant size difference, stopping.\n");
+  assert((tiglen < 100000) || ((-50.0 <= pd) && (pd <= 50.0)));
 }
 
 
