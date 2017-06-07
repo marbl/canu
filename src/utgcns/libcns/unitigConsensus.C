@@ -930,6 +930,45 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
 
 
+bool
+unitigConsensus::generateSingleton(tgTig                     *tig_,
+                                   map<uint32, gkRead *>     *inPackageRead_,
+                                   map<uint32, gkReadData *> *inPackageReadData_) {
+  tig      = tig_;
+  numfrags = tig->numberOfChildren();
+
+  assert(numfrags == 1);
+
+  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    return(false);
+  }
+
+  //  Copy the single read to the tig sequence.
+
+  abSequence  *seq      = abacus->getSequence(0);
+  char        *fragment = seq->getBases();
+  uint32       readLen  = seq->length();
+
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, readLen + 1, resizeArray_doNothing);
+
+  for (uint32 ii=0; ii<readLen; ii++) {
+    tig->_gappedBases[ii] = fragment[ii];
+    tig->_gappedQuals[ii] = CNS_MIN_QV;
+  }
+
+  //  Terminate the string.
+
+  tig->_gappedBases[readLen] = 0;
+  tig->_gappedQuals[readLen] = 0;
+  tig->_gappedLen            = readLen;
+  tig->_layoutLen            = readLen;
+
+  return(true);
+}
+
+
+
 int
 unitigConsensus::initialize(map<uint32, gkRead *>     *inPackageRead,
                             map<uint32, gkReadData *> *inPackageReadData) {

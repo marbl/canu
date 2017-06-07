@@ -524,20 +524,25 @@ main (int argc, char **argv) {
         ((exists == false) || (forceCompute == true))) {
       origChildren = stashContains(tig, maxCov, true);
 
-      switch (algorithm) {
-        case 'Q':
-          success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
-          break;
-        case 'P':
-          success = utgcns->generatePBDAG(aligner, normalize, tig, inPackageRead, inPackageReadData);
-          break;
-        case 'U':
-          success = utgcns->generate(tig, inPackageRead, inPackageReadData);
-          break;
-        default:
-          fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
-          assert(0);
-          break;
+      if (tig->numberOfChildren() == 1) {
+        success = utgcns->generateSingleton(tig, inPackageRead, inPackageReadData);
+      }
+
+      else if (algorithm == 'Q') {
+        success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
+      }
+
+      else if (algorithm == 'P') {
+        success = utgcns->generatePBDAG(aligner, normalize, tig, inPackageRead, inPackageReadData);
+      }
+
+      else if (algorithm == 'U') {
+        success = utgcns->generate(tig, inPackageRead, inPackageReadData);
+      }
+
+      else {
+        fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+        assert(0);
       }
     }
 
