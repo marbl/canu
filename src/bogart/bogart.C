@@ -574,12 +574,6 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "generateUnitigs");
   contigs.reportErrorProfiles(prefix, "generateUnitigs");
 
-  AssemblyGraph  *EG = new AssemblyGraph(prefix,
-                                         deviationBubble,
-                                         contigs,
-                                         true);
-
-
   //
   //  We want some way of tracking unitigs that came from the same contig.  Ideally,
   //  we'd be able to emit only the edges that would join unitigs into the original
@@ -596,9 +590,7 @@ main (int argc, char * argv []) {
   //  good first attempt.
   //
 
-  createUnitigs(EG, contigs, unitigs, unitigSource);
-
-  delete EG;
+  createUnitigs(contigs, unitigs, unitigSource);
 
   splitDiscontinuous(unitigs, minOverlap, unitigSource);
 

@@ -32,6 +32,8 @@
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_TigVector.H"
 
+#include "AS_BAT_PlaceReadUsingOverlaps.H"
+
 #include "AS_BAT_CreateUnitigs.H"
 
 
@@ -241,84 +243,293 @@ splitTig(TigVector                &tigs,
 
 
 
+
+//  True if A is contained in B.
+bool
+isContained(int32 Abgn, int32 Aend,
+            int32 Bbgn, int32 Bend) {
+  assert(Abgn < Aend);
+  assert(Bbgn < Bend);
+  return((Bbgn <= Abgn) &&
+         (Aend <= Bend));
+}
+
+bool
+isContained(SeqInterval &A, SeqInterval &B) {
+  return((B.min() <= A.min()) &&
+         (A.max() <= B.max()));
+}
+
+
+//  True if the A and B intervals overlap
+bool
+isOverlapping(int32 Abgn, int32 Aend,
+              int32 Bbgn, int32 Bend) {
+  assert(Abgn < Aend);
+  assert(Bbgn < Bend);
+  return((Abgn < Bend) &&
+         (Bbgn < Aend));
+}
+
+bool
+isOverlapping(SeqInterval &A, SeqInterval &B) {
+  return((A.min() < B.max()) &&
+         (B.min() < A.max()));
+}
+
+
+
+static
+uint32
+checkReadContained(overlapPlacement &op,
+                   Unitig           *tgB) {
+
+  for (uint32 ii=op.tigFidx; ii<=op.tigLidx; ii++) {
+    if (isContained(op.verified, tgB->ufpath[ii].position))
+      return(ii + 1);
+  }
+
+  return(0);
+}
+
+
+
+//  Decide which read, and which end, we're overlapping.  We know the positions
+//  covered with overlaps ('verified'), and this also tells us the orientation of the read.  is5
+//  can then be used to tell if the invading tig is flopping free to the left or right of this
+//  location.  The break then occurs at the 'verified' coordinate furthest from the start of the
+//  tig.
+//                                    break here
+//                                    v
+//    invaded tig     ----------------------------------------------
+//                        ------------>
+//                           ------->
+//                             <------------------    (ignore these two container reads)
+//                               <------------        (in reality, this wouldn't be split)
+//                                 |  |
+//                               (overlap)            (verified.isForward() == false)
+//                                 |  |
+//                                 <--------
+//                                     -----------
+//                                          -------------->
+//
+//  isLow is true if this coordinate is the start of the read placement
+//
+void
+findEnd(overlapPlacement &op,
+        bool              is5,
+        bool             &isLow,
+        int32            &coord) {
+
+  //  invaded tig     ----------------------
+  //                        |      |
+  //  reads in source       ------->
+  //                       is5    --------  -- so flops to the right
+  //
+  //  invaded tig     ----------------------
+  //                        |      |
+  //  reads in source       <-------
+  //                       !is5  --------   -- so flops to the right   ** this is the picture above **
+  //
+  if (((op.verified.isForward() == true)  && (is5 == true)) ||
+      ((op.verified.isForward() == false) && (is5 == false))) {
+    isLow = false;
+    coord = INT32_MIN;
+  }
+
+  //  invaded tig     ----------------------
+  //                        |      |
+  //  reads in source       ------->
+  //                    --------  !is5      -- so flops to the left
+  //
+  //  invaded tig     ----------------------
+  //                        |      |
+  //  reads in source       <-------
+  //                    --------  is5       -- so flops to the left
+  //
+  if (((op.verified.isForward() == true)  && (is5 == false)) ||
+      ((op.verified.isForward() == false) && (is5 == true))) {
+    isLow = true;
+    coord = INT32_MAX;
+  }
+}
+
+
+
+
 static
 void
-checkRead(AssemblyGraph *AG,
-          TigVector &contigs,
-          vector<breakPointEnd> &breaks,
-          Unitig  *tgA, ufNode *rdA,
-          bool isFirst) {
+checkRead(Unitig                    *tgA,
+          ufNode                    *rdA,
+          vector<overlapPlacement>  &rdAplacements,
+          TigVector                 &contigs,
+          vector<breakPointEnd>     &breaks,
+          uint32                     minOverlap,
+          bool                       isFirst) {
+  bool   verbose = true;
 
-  for (uint32 pp=0; pp<AG->getForward(rdA->ident).size(); pp++) {
-    BestPlacement  &pf = AG->getForward(rdA->ident)[pp];
+  for (uint32 pp=0; pp<rdAplacements.size(); pp++) {
+    overlapPlacement  &op = rdAplacements[pp];
+    Unitig            *tgB = contigs[op.tigID];
 
-    //  If a contained edge, we cannot split the other tig; it is correct (this read is contained in the other read).
+    bool    toUnassembled = false;
+    bool    toSelf        = false;
+    bool    expected5     = false;
+    bool    expected3     = false;
+    bool    tooSmall      = false;
+    bool    isContained   = false;
+    bool    noOverlaps    = false;
+    bool    notSimilar    = false;
 
-    if (pf.bestC.b_iid > 0) {
-      writeLog("createUnitigs()-- read %6u edgeTo tig %5u read %6u position %d-%d CONTAINED\n",
-               rdA->ident, contigs.inUnitig(pf.bestC.b_iid), pf.bestC.b_iid, pf.placedBgn, pf.placedEnd);
-      continue;
-    }
-
-    //  Decide which overlap we want to be using, based on the orientation of the read in the tig,
-    //  and if it is the first or last read.
-    //
-    //           first == true                  first == false
-    //  best5    fwd   == true  --------->      fwd   == false  <---------
-    //  best3    fwd   == false <----------     fwd   == true   --------->
-
-    BAToverlap     best = (isFirst == rdA->position.isForward()) ? pf.best5 : pf.best3;
-
-    //  If there is no overlap on the expected end, well, that's it, nothing we can do but give up.
-    //  Don't bother logging if it is the internal edge (which it shouldn't ever be, because those shouldn't
-    //  be in the graph, right?)
-
-    if (best.b_iid == 0) {
-      uint32  rdC = (isFirst == rdA->position.isForward()) ? pf.best3.b_iid : pf.best5.b_iid;   //  Grab the other edge
-      uint32  tgC = contigs.inUnitig(rdC);
-
-      if (tgC != tgA->id())
-        writeLog("createUnitigs()-- read %6u edgeTo tig %5u read %6u position %d-%d WRONG_END\n",
-                 rdA->ident, tgC, rdC, pf.placedBgn, pf.placedEnd);
-      continue;
-    }
-
-    //  Grab the tig and read we overlap to.
-
-    Unitig   *tgB  = contigs[ contigs.inUnitig(best.b_iid) ];
-    ufNode   *rdB = &tgB->ufpath[ contigs.ufpathIdx(best.b_iid) ];
-
-    //  And find the coordinate of the break based on the orientation of the rdB and the overlap.
-    //  isLow is true if the read is forward and the overlap is off of its 5' end, or
-    //                if the read is reverse and the overlap is off of its 3' end
-
-    bool      isLow = (rdB->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
-    uint32    coord = (isLow == true) ? rdB->position.min() : rdB->position.max();
-
-    //  With all that done, throw out the edge if the overlap was used to form the contig itself.
-    //
-    //  We used to also throw out edges to validated repeats (pf.isRepeat == true), but those are
-    //  indistinguishable from bubbles.
-
-    if (pf.isContig == true) {
-      writeLog("createUnitigs()-- read %6u edgeTo tig %5u at coordinate %8u via intersection with read %6u IS_%s\n",
-               rdA->ident, tgB->id(), coord, rdB->ident, (pf.isContig == true) ? "CONTIG" : "REPEAT");
-      continue;
-    }
-
-    //  Also chuck it out if it is to garbage.
+    //  Silently ignore stuff to unassembled tigs.
 
     if (tgB->_isUnassembled == true) {
-      writeLog("createUnitigs()-- read %6u edgeTo tig %5u read %6u UNASSEMBLED\n",
-               rdA->ident, tgB->id(), rdB->ident);
+      toUnassembled = true;
       continue;
     }
 
-    //  If here, we're all golden!
+    //  If we're overlapping with ourself, not a useful edge to be splitting on.
 
-    writeLog("splitThinEdge()-- read %6u splits tig %5u at coordinate %8u via intersection with read %6u isLow %u\n",
-             rdA->ident, pf.tigID, coord, rdB->ident, isLow);
-    breaks.push_back(breakPointEnd(pf.tigID, coord, isLow));
+    if ((tgA->id() == tgB->id()) && (isOverlapping(op.verified, rdA->position))) {
+      toSelf = true;
+      if (verbose == false)
+        continue;
+    }
+
+    //  If the overlap is on the end that is used in the tig, not a useful edge.
+    //
+    //           first == true        (tig)     first == false  (tig)
+    //  is5      fwd   == true  ---------->     fwd   == false  <---------
+    //  is3      fwd   == false <----------     fwd   == true   --------->
+
+    bool   is5 = (isFirst == rdA->position.isForward()) ? true : false;
+
+    if ((is5 == true) && (op.covered.bgn != 0)) {
+      expected5 = true;
+      if (verbose == false)
+        continue;
+    }
+
+    if ((is5 == false) && (op.covered.end != RI->readLength(rdA->ident))) {
+      expected3 = true;
+      if (verbose == false)
+        continue;
+    }
+
+    //  If too small, bail.
+
+    if (op.verified.max() - op.verified.min() < minOverlap) {
+      tooSmall = true;
+      if (verbose == false)
+        continue;
+    }
+
+    //  If a contained edge, we cannot split the other tig; it is correct.
+    //  The overlap from rdA is contained in some other read in tgB.
+
+    if (checkReadContained(op, tgB)) {
+      isContained = true;
+      if (verbose == false)
+        continue;
+    }
+
+    //  Sacn all the reads we supposedly overlap, checking for overlaps.  Save the one that is the
+    //  lowest (is5 == true) or highest (is5 == false).  Also, compute an average erate for the
+    //  overlaps to this read.
+
+    uint32       ovlLen = 0;
+    BAToverlap  *ovl    = OC->getOverlaps(rdA->ident, ovlLen);
+
+    double       erate  = 0.0;
+    uint32       erateN = 0;
+
+    bool         isLow  = false;
+    int32        coord  = 0;
+    ufNode      *rdB    = NULL;
+
+    findEnd(op, is5, isLow, coord);  //  Simple code, but lots of comments.
+
+    for (uint32 oo=0; oo<ovlLen; oo++) {
+      for (uint32 ii=op.tigFidx; ii<=op.tigLidx; ii++) {
+        if (ovl[oo].b_iid != tgB->ufpath[ii].ident)
+          continue;
+
+        erate  += ovl[oo].erate();
+        erateN += 1;
+
+        if ((isLow == false) && (coord < tgB->ufpath[ii].position.max())) {
+          rdB   = &tgB->ufpath[ii];
+          coord =  tgB->ufpath[ii].position.max();
+        }
+
+        if ((isLow == true) && (coord > tgB->ufpath[ii].position.min())) {
+          rdB   = &tgB->ufpath[ii];
+          coord =  tgB->ufpath[ii].position.min();
+        }
+      }
+    }
+
+    if (erateN > 0)
+      erate /= erateN;
+
+    //  Huh?  If didn't find any overlaps, give up without crashing (this hasn't ever been triggered).
+
+    if (rdB == NULL) {
+      noOverlaps = true;
+      if (verbose == false)
+        continue;
+    }
+
+    //  Finally, ignore it if the overlap isn't similar to everything else in the tig.  A
+    //  complication here is we don't know what erate we have between tgA and tgB.  We approximate
+    //  it by averaging all the overlaps from rdA to the reads it overlaps here.  Kind of expensive,
+    //  too bad.
+
+#define REPEAT_FRACTION   0.5
+
+#warning deviationGraph hard coded
+double deviationGraph = 6;
+
+    double sim = tgB->overlapConsistentWithTig(deviationGraph, op.verified.min(), op.verified.max(), erate);
+
+    if (sim  < REPEAT_FRACTION) {
+      notSimilar = true;
+      if (verbose == false)
+        continue;
+    }
+
+    //  if not useful, bail.  This only occurs here if verbose == true, otherwise, we shortcircuit in the tests above.
+
+    if (toSelf || expected5 || expected3 || tooSmall || isContained || noOverlaps || notSimilar) {
+      if (verbose)
+        writeLog("createUnitigs()-- read %6u place %3d edgeTo tig %5u reads #%5u %9u-%9u verified %9d-%9d position %9d-%9d covered %7d-%7d%s%s%s%s%s%s%s\n",
+                 rdA->ident, pp, op.tigID,
+                 op.tigFidx, tgB->ufpath[op.tigFidx].ident, tgB->ufpath[op.tigLidx].ident,
+                 op.verified.bgn, op.verified.end,
+                 op.position.bgn, op.position.end,
+                 op.covered.bgn,  op.covered.end,
+                 (toSelf      == true) ? " SELF"         : "",
+                 (expected5   == true) ? " EXPECTED_5'"  : "",
+                 (expected3   == true) ? " EXPECTED_3'"  : "",
+                 (tooSmall    == true) ? " TOO_SMALL"    : "",
+                 (isContained == true) ? " IS_CONTAINED" : "",   //  Would be nice to report read it's contained in?
+                 (noOverlaps  == true) ? " NO_OVERLAPS"  : "",
+                 (notSimilar  == true) ? " NOT_SIMILAR"  : "");
+      continue;
+    }
+
+    //  Otherwise, it's a useful edge.
+
+    if (verbose)
+      writeLog("createUnitigs()-- read %6u place %3d edgeTo tig %5u reads #%5u %9u-%9u verified %9d-%9d position %9d-%9d covered %7d-%7d BREAK at pos %8u read %6u isLow %u sim %.4f\n",
+               rdA->ident, pp, op.tigID,
+               op.tigFidx, tgB->ufpath[op.tigFidx].ident, tgB->ufpath[op.tigLidx].ident,
+               op.verified.bgn, op.verified.end,
+               op.position.bgn, op.position.end,
+               op.covered.bgn,  op.covered.end,
+               coord, rdB->ident, isLow, sim);
+
+    breaks.push_back(breakPointEnd(op.tigID, coord, isLow));
   }
 }
 
@@ -351,8 +562,7 @@ stripNonBackboneFromStart(TigVector &unitigs, Unitig *tig, bool isFirst) {
 
 
 void
-createUnitigs(AssemblyGraph   *AG,
-              TigVector       &contigs,
+createUnitigs(TigVector       &contigs,
               TigVector       &unitigs,
               vector<tigLoc>  &unitigSource) {
 
@@ -382,17 +592,22 @@ createUnitigs(AssemblyGraph   *AG,
 
     //  Find break points in other tigs using the first and last reads.
 
-    ufNode *fi = tig->firstRead();
-    ufNode *li = tig->lastRead();
+    ufNode                   *fi = tig->firstRead();
+    ufNode                   *li = tig->lastRead();
+    vector<overlapPlacement>  fiPlacements;
+    vector<overlapPlacement>  liPlacements;
 
-    if (AG->getForward(fi->ident).size() + AG->getForward(li->ident).size() > 0)
-      writeLog("\ncreateUnitigs()-- tig %u len %u first read %u with %lu edges - last read %u with %lu edges\n",
+    placeReadUsingOverlaps(contigs, NULL, fi->ident, fiPlacements, placeRead_all);
+    placeReadUsingOverlaps(contigs, NULL, li->ident, liPlacements, placeRead_all);
+
+    if (fiPlacements.size() + liPlacements.size() > 0)
+      writeLog("\ncreateUnitigs()-- tig %u len %u first read %u with %lu placements - last read %u with %lu placements\n",
                ti, tig->getLength(),
-               fi->ident, AG->getForward(fi->ident).size(),
-               li->ident, AG->getForward(li->ident).size());
+               fi->ident, fiPlacements.size(),
+               li->ident, liPlacements.size());
 
-    checkRead(AG, contigs, breaks, tig, fi, true);
-    checkRead(AG, contigs, breaks, tig, li, false);
+    checkRead(tig, fi, fiPlacements, contigs, breaks, 0, true);
+    checkRead(tig, li, liPlacements, contigs, breaks, 0, false);
   }
 
   //  The splitTigs function operates only on a single tig.  Sort the break points

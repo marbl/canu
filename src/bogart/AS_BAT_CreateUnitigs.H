@@ -53,8 +53,7 @@ public:
 
 
 void
-createUnitigs(AssemblyGraph    *AG,
-              TigVector        &contigs,
+createUnitigs(TigVector        &contigs,
               TigVector        &unitigs,
               vector<tigLoc>   &unitigSource);
 
