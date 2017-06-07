@@ -259,63 +259,6 @@ unitigConsensus::generate(tgTig                     *tig_,
 
 
 void
-generateTemplateMosaic(abAbacus    *abacus,
-                       tgPosition  *utgpos,
-                       uint32       numfrags,
-                       uint32      &tiglen,
-                       char        *tigseq,
-                       bool         verbose) {
-
-  for (uint32 i=0; i<numfrags; i++) {
-    abSequence  *seq      = abacus->getSequence(i);
-    char        *fragment = seq->getBases();
-    uint32       readLen  = seq->length();
-
-    uint32       start    = utgpos[i].min();
-    uint32       end      = utgpos[i].max();
-
-    if (start > tiglen) {
-      fprintf(stderr, "WARNING: reset start  from " F_U32 " to " F_U32 "\n", start, tiglen-1);
-      start = tiglen - 1;
-    }
-
-    if (end - start > readLen) {
-      fprintf(stderr, "WARNING: reset end    from " F_U32 " to " F_U32 "\n", end, start+readLen);
-      end = start + readLen;
-    }
-
-    if (end > tiglen) {
-      fprintf(stderr, "WARNING: truncate end from " F_U32 " to " F_U32 "\n", end, tiglen-1);
-      end = tiglen - 1;
-    }
-
-    //  Read aligns from position start to end.  Skip ahead until we find unset bases.
-
-    uint32 cur = start;
-    while ((cur < end) && (tigseq[cur] != 'N'))
-      cur++;
-
-#if 1
-    if (cur < end)
-      fprintf(stderr, "generatePBDAG()-- template from %7d to %7d comes from read %3d id %6d bases (%5d %5d) nominally %6d %6d)\n",
-              cur, end, i, seq->gkpIdent(),
-              cur - start,
-              end - start,
-              utgpos[i].min(),
-              utgpos[i].max());
-#endif
-
-    for (uint32 j=cur; j<end; j++)
-      tigseq[j] = fragment[j - start];
-
-    tigseq[end] = 0;
-    tiglen = end;
-  }
-}
-
-
-
-void
 generateTemplateStitch(abAbacus    *abacus,
                        tgPosition  *utgpos,
                        uint32       numfrags,
@@ -766,9 +709,6 @@ unitigConsensus::generatePBDAG(char                       aligner,
 
   //  Build a quick consensus to align to.
 
-  fprintf(stderr, "Generating template.\n");
-
-  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq, tig->_utgcns_verboseLevel);
   generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq, errorRate, tig->_utgcns_verboseLevel);
 
   uint32  pass = 0;
@@ -899,9 +839,6 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
   //  Build a quick consensus to align to.
 
-  fprintf(stderr, "Generating template.\n");
-
-  //generateTemplateMosaic(abacus, utgpos, numfrags, tiglen, tigseq, tig->_utgcns_verboseLevel);
   generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq, errorRate, tig->_utgcns_verboseLevel);
 
   //
