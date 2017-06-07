@@ -509,8 +509,11 @@ main (int argc, char * argv []) {
   splitDiscontinuous(contigs, minOverlap);
   promoteToSingleton(contigs);
 
-  if (filterDeadEnds)
+  if (filterDeadEnds) {
     dropDeadEnds(AG, contigs);
+    splitDiscontinuous(contigs, minOverlap);
+    promoteToSingleton(contigs);
+  }
 
   writeStatus("\n");
   writeStatus("==> CLEANUP GRAPH.\n");
