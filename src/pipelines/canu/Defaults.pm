@@ -1437,8 +1437,6 @@ sub checkParameters () {
     {
         my @v = split '\s+', getGlobal("contigFilter");
 
-        print STDERR "contigFilter ", getGlobal("contigFilter"), " num ", scalar(@v), "\n";
-
         if (scalar(@v) != 5) {
             addCommandLineError("contigFilter must have five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth\n");
         }
