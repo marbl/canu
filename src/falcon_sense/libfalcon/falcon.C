@@ -644,6 +644,10 @@ consensus_data * generate_consensus( vector<string> input_seq,
     tags_list = (align_tags_t **)calloc( seq_count, sizeof(align_tags_t*) );
 #pragma omp parallel for schedule(dynamic)
     for (uint32 j=0; j < seq_count; j++) {
+       // if the current sequence is too long, truncate it to be shorter
+       if (input_seq[j].size() > input_seq[0].size()) {
+          input_seq[j].resize(input_seq[0].size());
+       }
        int tolerance =  (int)ceil((double)min(input_seq[j].length(), input_seq[0].length())*max_diff*1.1);
        EdlibAlignResult align = edlibAlign(input_seq[j].c_str(), input_seq[j].size()-1, input_seq[0].c_str(), input_seq[0].size()-1, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
        if (align.numLocations >= 1 && align.endLocations[0] - align.startLocations[0] > min_len && ((float)align.editDistance / (align.endLocations[0]-align.startLocations[0]) < max_diff)) {
