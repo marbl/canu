@@ -176,7 +176,8 @@ main (int argc, char * argv []) {
       minReadLen = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
-      numThreads = atoi(argv[++arg]);
+      if ((numThreads = atoi(argv[++arg])) > 0)
+        omp_set_num_threads(numThreads);
 
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
