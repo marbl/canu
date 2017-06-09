@@ -155,7 +155,7 @@ EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask 
  * @return Default configuration object, with following defaults:
  *         k = -1, mode = EDLIB_MODE_NW, task = EDLIB_TASK_DISTANCE.
  */
-EdlibAlignConfig edlibDefaultAlignConfig();
+EdlibAlignConfig edlibDefaultAlignConfig(void);
 
 
 /**
@@ -222,9 +222,9 @@ void edlibFreeAlignResult(EdlibAlignResult result);
  * It always returns edit distance and end locations of optimal alignment in target.
  * It optionally returns start locations of optimal alignment in target and alignment path,
  * if you choose appropriate tasks.
- * @param [in] query  First sequence. Character codes should be in range [0, 127].
+ * @param [in] query  First sequence.
  * @param [in] queryLength  Number of characters in first sequence.
- * @param [in] target  Second sequence. Character codes should be in range [0, 127].
+ * @param [in] target  Second sequence.
  * @param [in] targetLength  Number of characters in second sequence.
  * @param [in] config  Additional alignment parameters, like alignment method and wanted results.
  * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
@@ -232,7 +232,7 @@ void edlibFreeAlignResult(EdlibAlignResult result);
  */
 EdlibAlignResult edlibAlign(const char* query, const int queryLength,
                             const char* target, const int targetLength,
-                            EdlibAlignConfig config);
+                            const EdlibAlignConfig config);
 
 
 /**
@@ -254,10 +254,16 @@ EdlibAlignResult edlibAlign(const char* query, const int queryLength,
  *     Needed memory is allocated and given pointer is set to it.
  *     Do not forget to free it later using free()!
  */
-char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
+char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
                             EdlibCigarFormat cigarFormat);
 
-void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength, int tgtStart, int tgtEnd, int qryStart, int qryEnd, const char *tgt, const char *qry, char *tgt_aln_str, char *qry_aln_str);
+void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength,
+                             int tgtStart, int tgtEnd,
+                             int qryStart, int qryEnd,
+                             const char *tgt,
+                             const char *qry,
+                             char *tgt_aln_str,
+                             char *qry_aln_str);
 
 
 #endif // EDLIB_H
