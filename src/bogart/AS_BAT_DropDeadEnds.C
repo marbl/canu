@@ -140,8 +140,10 @@ dropDeadFirstRead(AssemblyGraph *AG,
 
    //  No next read, keep fn in the tig.
 
-  if (sn == NULL)
+  if (sn == NULL) {
+    writeLog("dropDead()- read %8u no sn\n", fn->ident);
     return(0);
+  }
 
   //  Over all edges from the first read, look for any edge to something else.
   //
@@ -154,8 +156,15 @@ dropDeadFirstRead(AssemblyGraph *AG,
   for (uint32 pp=0; pp<AG->getForward(fn->ident).size(); pp++) {
     BestPlacement  &pf = AG->getForward(fn->ident)[pp];
 
-    if (pf.bestC.b_iid > 0)
+    writeLog("dropDead()-- 1st read %8u %s pf %3u/%3u best5 %8u best3 %8u bestC %8u\n",
+             fn->ident,
+             fn->position.isForward() ? "->" : "<-",
+             pp, AG->getForward(fn->ident).size(),
+             pf.best5.b_iid, pf.best3.b_iid, pf.bestC.b_iid);
+
+    if (pf.bestC.b_iid > 0) {
       return(0);
+    }
 
     if (((fn->position.isForward() == true)  && (pf.best5.b_iid != 0)) ||
         ((fn->position.isForward() == false) && (pf.best3.b_iid != 0)))
@@ -173,6 +182,12 @@ dropDeadFirstRead(AssemblyGraph *AG,
 
   for (uint32 pp=0; pp<AG->getForward(sn->ident).size(); pp++) {
     BestPlacement  &pf = AG->getForward(sn->ident)[pp];
+
+    writeLog("dropDead()-- 2nd read %8u %s pf %3u/%3u best5 %8u best3 %8u bestC %8u\n",
+             sn->ident,
+             sn->position.isForward() ? "->" : "<-",
+             pp, AG->getForward(sn->ident).size(),
+             pf.best5.b_iid, pf.best3.b_iid, pf.bestC.b_iid);
 
     if ((pf.bestC.b_iid > 0) && (pf.bestC.b_iid != fn->ident))
       return(fn->ident);
