@@ -239,9 +239,9 @@ dropDeadEnds(AssemblyGraph  *AG,
 
     //  Move reads to their new unitig.
 
-    sprintf(fnMsg, "                                      ");
-    sprintf(nnMsg, "                          ");
-    sprintf(lnMsg, "");
+    strcpy(fnMsg, "                                      ");
+    strcpy(nnMsg, "                          ");
+    strcpy(lnMsg, "");
 
     for (uint32 cc=0, tt=0; tt<tig->ufpath.size(); tt++) {
       ufNode  &read = tig->ufpath[tt];
