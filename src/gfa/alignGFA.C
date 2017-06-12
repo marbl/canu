@@ -368,8 +368,29 @@ checkRecord(bedRecord   *record,
             record->_Bname, Blen,
             record->_Aname, Abgn, Aend, Alen);
 
-  result = edlibAlign(Bseq + Bbgn, Bend-Bbgn,  //  The 'query'
-                      Aseq + Abgn, Aend-Abgn,  //  The 'target'
+#if 0
+  char N[FILENAME_MAX];
+  FILE *F;
+
+  char  ach = Aseq[Aend];   Aseq[Aend] = 0;
+  char  bch = Bseq[Bend];   Bseq[Bend] = 0;
+
+  sprintf(N, "compare%04d-%04d-ctg%04d.fasta", record->_Aid, record->_Bid, record->_Aid);
+  F = fopen(N, "w");
+  fprintf(F, ">ctg%04d\n%s\n", record->_Aid, Aseq + Abgn);
+  fclose(F);
+
+  sprintf(N, "compare%04d-%04d-utg%04d.fasta", record->_Aid, record->_Bid, record->_Bid);
+  F = fopen(N, "w");
+  fprintf(F, ">utg%04d\n%s\n", record->_Bid, Bseq + Bbgn);
+  fclose(F);
+
+  Aseq[Aend] = ach;
+  Bseq[Bend] = bch;
+#endif
+
+  result = edlibAlign(Bseq + Bbgn, Bend-Bbgn,  //  The 'query'   (unitig)
+                      Aseq + Abgn, Aend-Abgn,  //  The 'target'  (contig)
                       edlibNewAlignConfig(maxEdit, EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
   //  Got an alignment?  Process and report, and maybe try again.
@@ -377,17 +398,29 @@ checkRecord(bedRecord   *record,
   if (result.numLocations > 0) {
     int32  nAbgn = Abgn + result.startLocations[0];
     int32  nAend = Abgn + result.endLocations[0] + 1;  // 0-based to space-based
+    char  *cigar = NULL;
 
     editDist   = result.editDistance;
-    alignLen   = result.alignmentLength;     //  Edlib 'alignmentLength' is populated only for TASK_PATH
     alignLen   = ((nAend - nAbgn) + (Bend - Bbgn) + (editDist)) / 2;
-    alignScore = 100 - (int32)(1000.0 * editDist / alignLen);
+    alignScore = 1000 - (int32)(1000.0 * editDist / alignLen);
+
+    //  If there's an alignment, we can get a cigar string and better alignment length.
+    if ((result.alignment != NULL) && (result.alignmentLength > 0)) {
+      cigar      = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
+      alignLen   = result.alignmentLength;
+    }
 
     edlibFreeAlignResult(result);
 
     if (beVerbose)
-      fprintf(stderr, " - POSITION from %9d-%-9d to %9d-%-9d score %5d/%9d %4d\n",
-              record->_bgn, record->_end, nAbgn, nAend, editDist, alignLen, alignScore);
+      fprintf(stderr, " - POSITION from %9d-%-9d to %9d-%-9d score %5d/%9d = %4d%s%s\n",
+              record->_bgn, record->_end,
+              nAbgn, nAend,
+              editDist, alignLen, alignScore,
+              (cigar != NULL) ? " align " : "",
+              (cigar != NULL) ? cigar     : "");
+
+    delete [] cigar;
 
     //  If it's a full alignment -- if the A region was big enough to have unaligned bases -- then
     //  we're done.  Update the record and get out of here.
