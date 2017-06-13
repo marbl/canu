@@ -55,8 +55,11 @@ trimBadInterval(gkStore               *gkp,
   //  Find the largest good region, save it in the output clear range.  If there are no
   //  regions (the whole read was marked bad?), default to a bougs clear range.
 
-  w->clrBgn = UINT32_MAX;
-  w->clrEnd = UINT32_MAX;
+  //  Was previously set to UINT32_MAX. However, for a read with no good region, when UINT32_MAX is returned
+  //  to calling function, asserts on line 370-371 fail because UINT32_MAX is not in initial clear range
+  //  set to 0 instead.
+  w->clrBgn = 0;
+  w->clrEnd = 0;
 
   for (uint32 rr=0; rr<goodRegions.numberOfIntervals(); rr++) {
     if ((w->clrEnd - w->clrBgn) < (goodRegions.hi(rr) - goodRegions.lo(rr))) {
