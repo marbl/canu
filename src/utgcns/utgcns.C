@@ -125,7 +125,8 @@ main (int argc, char **argv) {
       if (tigPart == 0)
         fprintf(stderr, "invalid tigStore partition (-T store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
-    } else if (strcmp(argv[arg], "-u") == 0) {
+    } else if ((strcmp(argv[arg], "-u") == 0) ||
+               (strcmp(argv[arg], "-tig") == 0)) {
       AS_UTL_decodeRange(argv[++arg], utgBgn, utgEnd);
 
     } else if (strcmp(argv[arg], "-t") == 0) {
@@ -266,8 +267,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  TIG SELECTION (if -T input is used)\n");
-    fprintf(stderr, "    -u b            Compute only tig ID 'b' (must be in the correct partition!)\n");
-    fprintf(stderr, "    -u b-e          Compute only tigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "    -tig b          Compute only tig ID 'b' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -tig b-e        Compute only tigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "    -u              Alias for -tig\n");
     fprintf(stderr, "    -f              Recompute tigs that already have a multialignment\n");
     fprintf(stderr, "    -maxlength l    Do not compute consensus for tigs longer than l bases.\n");
     fprintf(stderr, "\n");
