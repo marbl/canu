@@ -719,7 +719,7 @@ unitigConsensus::generatePBDAG(char                       aligner,
                                map<uint32, gkRead *>     *inPackageRead_,
                                map<uint32, gkReadData *> *inPackageReadData_) {
 
-  bool  verbose = false;
+  bool  verbose = (tig_->_utgcns_verboseLevel > 1);
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
