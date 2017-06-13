@@ -353,11 +353,11 @@ checkRecord(bedRecord   *record,
 
   //  Align B to A, allowing the A positions to float.
 
-  Abgn = record->_bgn;
+  Abgn = 4 * step + record->_end - record->_bgn;  //  Not the begin, but the length of the region
   Aend = record->_end;
 
-  Abgn = max(Abgn - 2 * step, 0);
-  Aend = min(Aend + 2 * step, Alen);
+  Aend = min(Aend + 2 * step, Alen);   //  Limit Aend to the actual length of the contig (consensus can shrink repeats)
+  Abgn = max(Aend - Abgn, 0);          //  Then put the start at that position minus 4 steps and the unitig length.
 
   Bbgn = 0;
   Bend = Blen;
@@ -660,11 +660,11 @@ processBED(char   *tigName,
 //  input and toss that up to processGFA.
 //
 void
-processBED(char   *tigName,
-           uint32  tigVers,
-           char   *inBED,
-           char   *otGFA,
-           uint32  verbosity) {
+processBEDtoGFA(char   *tigName,
+                uint32  tigVers,
+                char   *inBED,
+                char   *otGFA,
+                uint32  verbosity) {
 
   int32  minOlap = 100;
 
@@ -875,7 +875,7 @@ main (int argc, char **argv) {
     processBED(tigName, tigVers, seqName, seqVers, inGraph, otGraph, verbosity);
 
   if ((graphType == IS_BED) && (seqName == NULL))
-    processBED(tigName, tigVers, inGraph, otGraph, verbosity);
+    processBEDtoGFA(tigName, tigVers, inGraph, otGraph, verbosity);
 
   fprintf(stderr, "Bye.\n");
 
