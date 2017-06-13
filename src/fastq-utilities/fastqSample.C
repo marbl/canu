@@ -42,7 +42,7 @@
 
 using namespace std;
 
-#define MAXLEN 1024*1024
+#define MAXLEN 1024*1024*50
 
 class aRead {
 public:
@@ -189,7 +189,7 @@ main(int argc, char **argv) {
 
 
     } else if (strcmp(argv[arg], "-g") == 0) {
-      GENOMESIZE = atoi(argv[++arg]);
+      GENOMESIZE = atol(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       COVERAGE = atof(argv[++arg]);
 
