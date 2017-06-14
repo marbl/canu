@@ -115,6 +115,8 @@ main (int argc, char * argv []) {
 
   uint32    minReadLen               = 0;
   uint32    minOverlapLen            = 500;
+  uint32    minIntersectLen          = 500;
+  uint32    maxPlacements            = 2;
 
   argc = AS_configure(argc, argv);
 
@@ -178,6 +180,11 @@ main (int argc, char * argv []) {
     } else if ((strcmp(argv[arg], "-mo") == 0) ||
                (strcmp(argv[arg], "-el") == 0)) {    //  Deprecated
       minOverlapLen = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-mi") == 0) {
+      minIntersectLen = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-mp") == 0) {
+      maxPlacements = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       if ((numThreads = atoi(argv[++arg])) > 0)
@@ -292,6 +299,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -mr len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "  -mo len    Ignore overlaps shorter than 'len' bases.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -mi len    Create unitigs from contig intersections of at least 'len' bases.\n");
+    fprintf(stderr, "  -mp num    Create unitigs from contig intersections with at most 'num' placements.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -nofilter [suspicious],[higherror],[lopsided],[spur]\n");
     fprintf(stderr, "             Disable filtering of:\n");
     fprintf(stderr, "               suspicious - reads that have a suspicious lack of overlaps\n");
@@ -347,6 +357,28 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlapLen);
   fprintf(stderr, "\n");
+  fprintf(stderr, "Lengths:\n");
+  fprintf(stderr, "  Minimum read          %u bases\n",     minReadLen);
+  fprintf(stderr, "  Minimum overlap       %u bases\n",     minOverlapLen);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Overlap Error Rates:\n");
+  fprintf(stderr, "  Graph                 %.3f (%.3f%%)\n", erateGraph, erateGraph  * 100);
+  fprintf(stderr, "  Max                   %.3f (%.3f%%)\n", erateMax,   erateMax    * 100);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Deviations:\n");
+  fprintf(stderr, "  Graph                 %.3f\n", deviationGraph);
+  fprintf(stderr, "  Bubble                %.3f\n", deviationBubble);
+  fprintf(stderr, "  Repeat                %.3f\n", deviationRepeat);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Edge Confusion:\n");
+  fprintf(stderr, "  Absolute              %d\n",   confusedAbsolute);
+  fprintf(stderr, "  Percent               %.4f\n", confusedPercent);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Unitig Construction:\n");
+  fprintf(stderr, "  Minimum intersection  %u bases\n",     minIntersectLen);
+  fprintf(stderr, "  Maxiumum placements   %u positions\n", maxPlacements);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Debugging Enabled:\n");
 
   if (numThreads > 0) {
     omp_set_num_threads(numThreads);
@@ -488,7 +520,9 @@ main (int argc, char * argv []) {
 
   contigs.computeErrorProfiles(prefix, "repeats");
 
-  markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent);
+  vector<confusedEdge>  confusedEdges;
+
+  markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent, confusedEdges);
 
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "markRepeatReads");
@@ -589,7 +623,7 @@ main (int argc, char * argv []) {
   //  good first attempt.
   //
 
-  createUnitigs(contigs, unitigs, unitigSource);
+  createUnitigs(contigs, unitigs, minIntersectLen, maxPlacements, confusedEdges, unitigSource);
 
   splitDiscontinuous(unitigs, minOverlapLen, unitigSource);
 

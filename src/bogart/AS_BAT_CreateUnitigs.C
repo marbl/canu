@@ -61,6 +61,13 @@ public:
     return(a < b);
   };
 
+  bool     operator==(breakPointEnd const &that) const {
+    uint64  a =      _tigID;  a <<= 32;  a |=      _pos;  a <<= 1;  a |=      _bgn;  //  Because _tigID is 32-bit
+    uint64  b = that._tigID;  b <<= 32;  b |= that._pos;  b <<= 1;  b |= that._bgn;
+
+    return(a == b);
+  };
+
   uint32  _tigID;
   uint32  _pos;
   bool    _bgn;
@@ -102,6 +109,9 @@ splitTig(TigVector                &tigs,
          int32                    *lowCoord,
          bool                      doMove) {
 
+  writeLog("\n");
+  writeLog("splitTig()-- processing tig %u\n", tig->id());
+
   //  The first call is with doMove = false.  This call just figures out how many new tigs are
   //  created.  We use nMoved to count if a new tig is made for a break point.
 
@@ -118,7 +128,7 @@ splitTig(TigVector                &tigs,
       lowCoord[tt] = INT32_MAX;
     }
 
-  if (doMove == true)
+  //if (doMove == true)
     for (uint32 tt=0; tt < BP.size() - 1; tt++)
       writeLog("splitTig()-- piece %2u from %8u %c to %8u %c\n",
                tt,
@@ -130,6 +140,8 @@ splitTig(TigVector                &tigs,
     ufNode     &read   = tig->ufpath[fi];
     uint32      lo     = read.position.min();
     uint32      hi     = read.position.max();
+
+    writeLog("splitTig()-- processing read #%u ident %u pos %u-%u\n", fi, read.ident, lo, hi);
 
     //  Find the intervals the end points of the read fall into.  Suppose we're trying to place
     //  the long read.  It begins in piece 1 and ends in piece 6.
@@ -216,12 +228,13 @@ splitTig(TigVector                &tigs,
     //  Now move the read, or account for moving it.
 
     if (doMove) {
-      //writeLog("splitTig()-- Move read %8u %8u-%-8u to piece %2u tig %6u\n",
-      //         read.ident, read.position.bgn, read.position.end, finBP, newTigs[finBP]->id());
+      writeLog("splitTig()-- Move read %8u %8u-%-8u to piece %2u tig %6u\n",
+               read.ident, read.position.bgn, read.position.end, finBP, newTigs[finBP]->id());
       newTigs[finBP]->addRead(read, -lowCoord[finBP], false);
     }
     else {
-      //writeLog("splitTig()-- Move read %u %u-%u to piece %u (pos=%u)\n", read.ident, read.position.bgn, read.position.end, bp, BP[finBP]._pos);
+      writeLog("splitTig()-- Move read %u %u-%u to piece %u (pos=%u)\n",
+               read.ident, read.position.bgn, read.position.end, finBP, BP[finBP]._pos);
       nMoved[finBP]++;
     }
   }
@@ -358,15 +371,21 @@ findEnd(overlapPlacement &op,
 
 
 static
-void
+uint32
 checkRead(Unitig                    *tgA,
           ufNode                    *rdA,
           vector<overlapPlacement>  &rdAplacements,
           TigVector                 &contigs,
-          vector<breakPointEnd>     &breaks,
+          vector<breakPointEnd>     &breakpoints,
           uint32                     minOverlap,
+          uint32                     maxPlacements,
           bool                       isFirst) {
   bool   verbose = true;
+
+  //  To support maxPlacements, we first find all the breaks as we've done forever, then simply
+  //  ignore them if there are too many.
+
+  vector<breakPointEnd>   breaks;
 
   for (uint32 pp=0; pp<rdAplacements.size(); pp++) {
     overlapPlacement  &op = rdAplacements[pp];
@@ -492,7 +511,7 @@ double deviationGraph = 6;
 
     double sim = tgB->overlapConsistentWithTig(deviationGraph, op.verified.min(), op.verified.max(), erate);
 
-    if (sim  < REPEAT_FRACTION) {
+    if (sim < REPEAT_FRACTION) {
       notSimilar = true;
       if (verbose == false)
         continue;
@@ -531,6 +550,25 @@ double deviationGraph = 6;
 
     breaks.push_back(breakPointEnd(op.tigID, coord, isLow));
   }
+
+  if (breaks.size() == 0) {
+    //  Do nothing.
+  }
+
+  else if (breaks.size() > maxPlacements) {
+    writeLog("createUnitigs()-- discarding %u breakpoints.\n", breaks.size());
+  }
+
+  else if (breaks.size() <= maxPlacements) {
+    writeLog("createUnitigs()-- saving %u breakpoints to master list.\n", breaks.size());
+
+    //breakpoints.isert(breakpoints.end(), breaks.begin(), breaks.end());
+
+    for (uint32 ii=0; ii<breaks.size(); ii++)
+      breakpoints.push_back(breaks[ii]);
+  }
+
+  return(breaks.size());
 }
 
 
@@ -562,11 +600,89 @@ stripNonBackboneFromStart(TigVector &unitigs, Unitig *tig, bool isFirst) {
 
 
 void
-createUnitigs(TigVector       &contigs,
-              TigVector       &unitigs,
-              vector<tigLoc>  &unitigSource) {
+createUnitigs(TigVector             &contigs,
+              TigVector             &unitigs,
+              uint32                 minIntersectLen,
+              uint32                 maxPlacements,
+              vector<confusedEdge>  &confusedEdges,
+              vector<tigLoc>        &unitigSource) {
 
   vector<breakPointEnd>   breaks;
+
+  uint32                  nBreaksSentinel;
+  uint32                  nBreaksConfused;
+  uint32                  nBreaksIntersection;
+
+
+  //  Give each tig a pair of bogus breakpoints at the ends, just to get it in the list.  If there
+  //  are no break points, it won't be split.  These also serve as sentinels during splitting.
+
+  writeLog("\n");
+  writeLog("----------------------------------------\n");
+  writeLog("Adding sentinel breaks at the ends of contigs.\n");
+
+  for (uint32 ti=0; ti<contigs.size(); ti++) {
+    Unitig    *tig = contigs[ti];
+
+    if ((tig == NULL) ||
+        (tig->_isUnassembled == true))
+      continue;
+
+    breaks.push_back(breakPointEnd(ti, 0,                true));    //  Add one at the start of the tig
+    breaks.push_back(breakPointEnd(ti, tig->getLength(), false));   //  And one at the end
+  }
+
+  nBreaksSentinel = breaks.size();
+
+
+  //  Add breaks for any confused edges detected during repeat detection.  We should, probably,
+  //  remove duplicates, but they (should) cause no harm.
+
+  writeLog("\n");
+  writeLog("----------------------------------------\n");
+  writeLog("Adding breaks at confused reads.\n");
+
+  for (uint32 ii=0; ii<confusedEdges.size(); ii++) {
+    uint32  aid  = confusedEdges[ii].aid;
+    uint32  a3p  = confusedEdges[ii].a3p;
+
+    uint32  tid =  contigs.inUnitig(aid);
+    uint32  tpp =  contigs.ufpathIdx(aid);  //  Not the Trans-Pacific Partnership, FYI.
+
+    Unitig *tig =  contigs[tid];
+    ufNode *rda = &tig->ufpath[tpp];
+
+    if ((tig == NULL) ||                 //  It won't be NULL, but we definitely don't want to
+        (tig->_isUnassembled == true))   //  see unassembled crap here.  We don't care, and they'll crash.
+      continue;
+
+    uint32   coord = 0;       //  Pick the coordinate and set isLow based on orientation
+    bool     isLow = false;   //  and the end of the read that is confused.
+
+    if (((rda->position.isForward() == true)  && (a3p == true)) ||
+        ((rda->position.isForward() == false) && (a3p == false))) {
+      coord = rda->position.max();
+      isLow = false;
+    }
+
+    if (((rda->position.isForward() == true)  && (a3p == false)) ||
+        ((rda->position.isForward() == false) && (a3p == true))) {
+      coord = rda->position.min();
+      isLow = true;
+    }
+
+    breakPointEnd  bp(tid, coord, isLow);
+
+    if (breaks.back() == bp)
+      continue;
+
+    writeLog("createUnitigs()-- add break tig %u pos %u isLow %c\n", tid, coord, (isLow) ? 't' : 'f');
+
+    breaks.push_back(bp);
+  }
+
+  nBreaksConfused = breaks.size();
+
 
   //  Check the reads at the end of every tig for intersections to other tigs.  If the read has a
   //  compatible overlap to the middle of some other tig, split the other tig into multiple unitigs.
@@ -575,20 +691,18 @@ createUnitigs(TigVector       &contigs,
   writeLog("----------------------------------------\n");
   writeLog("Finding contig-end to contig-middle intersections.\n");
 
+  uint32          *numP = NULL;
+  uint32           lenP = 0;
+  uint32           maxP = 1024;
+
+  allocateArray(numP, maxP);
+
   for (uint32 ti=0; ti<contigs.size(); ti++) {
     Unitig    *tig = contigs[ti];
 
-    if (tig == NULL)
+    if ((tig == NULL) ||
+        (tig->_isUnassembled == true))
       continue;
-
-    if (tig->_isUnassembled == true)    //  Edge is FROM an unassembled thing, ignore it.
-      continue;
-
-    //  Give this tig a pair of bogus breakpoints at the ends, just to get it in the list.  If there
-    //  are no break points, it won't be split.  These also serve as sentinels during splitting.
-
-    breaks.push_back(breakPointEnd(ti, 0,                true));    //  Add one at the start of the tig
-    breaks.push_back(breakPointEnd(ti, tig->getLength(), false));   //  And one at the end
 
     //  Find break points in other tigs using the first and last reads.
 
@@ -606,17 +720,40 @@ createUnitigs(TigVector       &contigs,
                fi->ident, fiPlacements.size(),
                li->ident, liPlacements.size());
 
-    checkRead(tig, fi, fiPlacements, contigs, breaks, 0, true);
-    checkRead(tig, li, liPlacements, contigs, breaks, 0, false);
+    uint32 npf = checkRead(tig, fi, fiPlacements, contigs, breaks, minIntersectLen, maxPlacements, true);
+    uint32 npr = checkRead(tig, li, liPlacements, contigs, breaks, minIntersectLen, maxPlacements, false);
+
+    lenP = max(lenP, npf);
+    lenP = max(lenP, npr);
+
+    resizeArray(numP, maxP, maxP, lenP, resizeArray_copyData | resizeArray_clearNew);
+
+    numP[npf]++;
+    numP[npr]++;
   }
+
+  nBreaksIntersection = breaks.size();
+
+  writeLog("\n");
+  writeLog("Histogram of number of placements per contig end:\n");
+  writeLog("numPlacements  numEnds\n");
+  for (uint32 pp=0; pp<=lenP; pp++)
+    writeLog("%13u  %7u\n", pp, numP[pp]);
+  writeLog("\n");
+  writeLog("----------------------------------------\n");
+  writeLog("Found %u breakpoints (including duplicates).\n", breaks.size());
+  writeLog("      %u from sentinels.\n",                     nBreaksSentinel);
+  writeLog("      %u from confused edges.\n",                nBreaksConfused     - nBreaksSentinel);
+  writeLog("      %u from intersections.\n",                 nBreaksIntersection - nBreaksConfused);
+  writeLog("\n");
+  writeLog("Splitting contigs into unitigs.\n");
+  writeLog("\n");
 
   //  The splitTigs function operates only on a single tig.  Sort the break points
   //  by tig id to find all the break points for each tig.
 
   sort(breaks.begin(), breaks.end());
 
-  writeLog("\n");
-  writeLog("createUnitigs()-- Found %u breakpoints.\n", breaks.size());
 
   //  Allocate space for breaking tigs.  These are _vastly_ too big, but guaranteed.
 

@@ -28,12 +28,32 @@
 
 #include "AS_BAT_TigVector.H"
 
+
+
+class confusedEdge {
+public:
+  confusedEdge(uint32 aid_, bool a3p_, uint32 bid_) {
+    aid = aid_;
+    a3p = a3p_;
+    bid = bid_;
+  };
+
+  uint32  aid;  //  Read that is confused and needs to be split.
+  bool    a3p;  //  End of read that is confused.
+
+  uint32  bid;  //  Read that causes confusion.
+};
+
+
+
 void
-markRepeatReads(AssemblyGraph  *AG,
-                TigVector      &tigs,
-                double          deviationRepeat,
-                uint32          confusedAbsolute,
-                double          confusedPercent);
+markRepeatReads(AssemblyGraph         *AG,
+                TigVector             &tigs,
+                double                 deviationRepeat,
+                uint32                 confusedAbsolute,
+                double                 confusedPercent,
+                vector<confusedEdge>  &confusedEdges);
+
 
 
 #endif  //  INCLUDE_AS_BAT_MARKREPEATREADS

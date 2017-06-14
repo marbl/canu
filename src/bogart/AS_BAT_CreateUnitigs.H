@@ -32,6 +32,8 @@
 #include "AS_BAT_AssemblyGraph.H"
 #include "AS_BAT_Logging.H"
 
+#include "AS_BAT_MarkRepeatReads.H"  //  confusedEdge
+
 #include "AS_BAT_TigVector.H"
 
 
@@ -53,8 +55,11 @@ public:
 
 
 void
-createUnitigs(TigVector        &contigs,
-              TigVector        &unitigs,
-              vector<tigLoc>   &unitigSource);
+createUnitigs(TigVector             &contigs,
+              TigVector             &unitigs,
+              uint32                 minIntersectLen,
+              uint32                 maxPlacements,
+              vector<confusedEdge>  &confusedEdges,
+              vector<tigLoc>        &unitigSource);
 
 #endif  //  AS_BAT_CREATEUNITIGS_H
