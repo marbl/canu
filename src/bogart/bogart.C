@@ -114,7 +114,7 @@ main (int argc, char * argv []) {
   char     *prefix                   = NULL;
 
   uint32    minReadLen               = 0;
-  uint32    minOverlap               = 500;
+  uint32    minOverlapLen            = 500;
 
   argc = AS_configure(argc, argv);
 
@@ -172,8 +172,12 @@ main (int argc, char * argv []) {
         err.push_back(s);
       }
 
-    } else if (strcmp(argv[arg], "-RL") == 0) {
+    } else if ((strcmp(argv[arg], "-mr") == 0) ||
+               (strcmp(argv[arg], "-RL") == 0)) {    //  Deprecated
       minReadLen = atoi(argv[++arg]);
+    } else if ((strcmp(argv[arg], "-mo") == 0) ||
+               (strcmp(argv[arg], "-el") == 0)) {    //  Deprecated
+      minOverlapLen = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       if ((numThreads = atoi(argv[++arg])) > 0)
@@ -183,9 +187,6 @@ main (int argc, char * argv []) {
       erateGraph = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-eM") == 0) {
       erateMax = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-el") == 0) {
-      minOverlap = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ca") == 0) {  //  Edge confused, based on absolute difference
       confusedAbsolute = atoi(argv[++arg]);
@@ -288,8 +289,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -gs        Genome size in bases.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
-    fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
+    fprintf(stderr, "  -mr len    Force reads below 'len' bases to be singletons.\n");
+    fprintf(stderr, "  -mo len    Ignore overlaps shorter than 'len' bases.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nofilter [suspicious],[higherror],[lopsided],[spur]\n");
     fprintf(stderr, "             Disable filtering of:\n");
@@ -315,9 +316,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  When loading overlaps, an inflated maximum (to allow reruns with different error rates):\n");
     fprintf(stderr, "    -eM 0.05   no more than 0.05 fraction (5.0%%) error in any overlap loaded into bogart\n");
     fprintf(stderr, "               the maximum used will ALWAYS be at leeast the maximum of the four error rates\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  For all, the lower limit on overlap length\n");
-    fprintf(stderr, "    -el 500     no shorter than 40 bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Storage\n");
     fprintf(stderr, "\n");
@@ -347,7 +345,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Graph  error threshold  = %.3f (%.3f%%)\n", erateGraph,  erateGraph  * 100);
   fprintf(stderr, "Max    error threshold  = %.3f (%.3f%%)\n", erateMax, erateMax * 100);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlap);
+  fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlapLen);
   fprintf(stderr, "\n");
 
   if (numThreads > 0) {
@@ -374,7 +372,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "filterOverlaps");
 
   RI = new ReadInfo(gkpStore, prefix, minReadLen);
-  OC = new OverlapCache(gkpStore, ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, genomeSize, doSave);
+  OC = new OverlapCache(gkpStore, ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur);
   CG = new ChunkGraph(prefix);
 
@@ -507,12 +505,12 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "cleanupMistakes");
 
-  splitDiscontinuous(contigs, minOverlap);
+  splitDiscontinuous(contigs, minOverlapLen);
   promoteToSingleton(contigs);
 
   if (filterDeadEnds) {
     dropDeadEnds(AG, contigs);
-    splitDiscontinuous(contigs, minOverlap);
+    splitDiscontinuous(contigs, minOverlapLen);
     promoteToSingleton(contigs);
   }
 
@@ -593,7 +591,7 @@ main (int argc, char * argv []) {
 
   createUnitigs(contigs, unitigs, unitigSource);
 
-  splitDiscontinuous(unitigs, minOverlap, unitigSource);
+  splitDiscontinuous(unitigs, minOverlapLen, unitigSource);
 
   setParentAndHang(unitigs);
   writeTigsToStore(unitigs, prefix, "utg", true);

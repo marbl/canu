@@ -204,7 +204,7 @@ sub unitig ($) {
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
         print F " -eg "             . getGlobal("utgErrorRate")       . " \\\n";
         print F " -eM "             . getGlobal("utgErrorRate")       . " \\\n";
-        print F " -el "             . $overlapLength                  . " \\\n";
+        print F " -mo "             . $overlapLength                  . " \\\n";
         print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n";
         print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n";
         print F " -dr "             . getGlobal("utgRepeatDeviation") . " \\\n";
