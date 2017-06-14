@@ -191,7 +191,7 @@ sub unitig ($) {
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
-    print F "if [ -e unitigging/$asm.ctgStore/seqDB.v001.tig -a -e unitigging/$asm.utgStore/seqDB.v001.tig ] ; then\n";
+    print F "if [ -e ../$asm.ctgStore/seqDB.v001.tig -a -e ../$asm.utgStore/seqDB.v001.tig ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
