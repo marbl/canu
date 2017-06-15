@@ -352,10 +352,11 @@ main (int argc, char * argv []) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Graph  error threshold  = %.3f (%.3f%%)\n", erateGraph,  erateGraph  * 100);
-  fprintf(stderr, "Max    error threshold  = %.3f (%.3f%%)\n", erateMax, erateMax * 100);
+  fprintf(stderr, "==> PARAMETERS.\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlapLen);
+  fprintf(stderr, "Resources:\n");
+  fprintf(stderr, "  Memory                " F_U64 " GB\n", ovlCacheMemory >> 30);
+  fprintf(stderr, "  Compute Threads       %d (%s)\n", omp_get_max_threads(), (numThreads > 0) ? "command line" : "OpenMP default");
   fprintf(stderr, "\n");
   fprintf(stderr, "Lengths:\n");
   fprintf(stderr, "  Minimum read          %u bases\n",     minReadLen);
@@ -380,18 +381,15 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Debugging Enabled:\n");
 
-  if (numThreads > 0) {
-    omp_set_num_threads(numThreads);
-    fprintf(stderr, "number of threads     = %d (command line)\n", numThreads);
-    fprintf(stderr, "\n");
-  } else {
-    fprintf(stderr, "number of threads     = %d (OpenMP default)\n", omp_get_max_threads());
-    fprintf(stderr, "\n");
-  }
+  if (logFileFlags == 0)
+    fprintf(stderr, "  (none)\n");
 
   for (uint64 i=0, j=1; i<64; i++, j<<=1)
     if (logFileFlagSet(j))
-      fprintf(stderr, "DEBUG                 = %s\n", logFileFlagNames[i]);
+      fprintf(stderr, "  %s\n", logFileFlagNames[i]);
+
+
+
 
   gkStore          *gkpStore     = gkStore::gkStore_open(gkpStorePath);
   ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
