@@ -155,12 +155,13 @@ emitEdges(TigVector      &tigs,
     }
 
 #ifdef SHOW_EDGES
-    writeLog("emitEdges()-- edge %3u - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u quality %f\n",
+    writeLog("emitEdges()-- edge %3u - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u %s quality %f\n",
              edges.size(),
              tgA->id(),
              rdA->ident, rdA->position.bgn, rdA->position.end,
              placements[pp].covered.bgn, placements[pp].covered.end,
              tgBid, bgn, end,
+             placements[pp].verified.isForward() ? "->" : "<-",
              (double)placements[pp].errors / placements[pp].aligned);
 #endif
 
@@ -222,8 +223,10 @@ emitEdges(TigVector      &tigs,
           (bgn       > 100) &&
           (end + 100 < tgBlen)) {
 #ifdef SHOW_EDGES_UNPLACED
-        writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u in at %5u-%-5u in tig %4u\n",
-                 rdA->ident, placements[pp].covered.bgn, placements[pp].covered.end, bgn, end, tgBid);
+        writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u in at %5u-%-5u %s in tig %4u\n",
+                 rdA->ident,
+                 placements[pp].covered.bgn, placements[pp].covered.end,
+                 bgn, end, placements[pp].verified.isForward() ? "->" : "<-", tgBid);
 #endif
         continue;
       }
@@ -244,20 +247,32 @@ emitEdges(TigVector      &tigs,
         //  we extend things in.
 
 
+        //
+        //
+        //  AM I MISSING A CASE HERE?
+        //
+        //
+
+
+
         //  Fail if most of the extension is to the wrong side.  We always move to higher
         //  coordinates on tgA.  If tgB is forward, it should move to higher coordinates too.
-
-        int32  nbgn = min(edges[ee].bgn, bgn);
+        //
+        //  tgB    -----------------------------------------------------
+        //                                      [----edges----]
+        //                                            [----read-----]
+        //
+        int32  nbgn = min(edges[ee].bgn, bgn);    //   edges[] is the current region aligned;  bgn is where the new read aligned
         int32  nend = max(edges[ee].end, end);
 
         if ((edges[ee].fwd == true) &&
             (bgn - nbgn > nend - end)) {  //  If we decrease bgn more than we increased end, fail
 #ifdef SHOW_EDGES_UNPLACED
-        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u - wrong direction\n",
+        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (fwd)\n",
                  ee,
                  edges[ee].bgn, edges[ee].end,
                  nbgn, nend,
-                 rdA->ident, bgn, end, tgBid);
+                 rdA->ident, bgn, end, placements[pp].verified.isForward() ? "->" : "<-", tgBid);
 #endif
           continue;
         }
@@ -268,21 +283,22 @@ emitEdges(TigVector      &tigs,
         if ((edges[ee].fwd == false) &&
             (nend - end > bgn - nbgn)) {  //  If we increase end more than we decreased bgn, fail
 #ifdef SHOW_EDGES_UNPLACED
-          writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u - wrong direction\n",
+          writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (rev)\n",
                    ee,
                    edges[ee].bgn, edges[ee].end,
                    nbgn, nend,
-                   rdA->ident, bgn, end, tgBid);
+                   rdA->ident, bgn, end, placements[pp].verified.isForward() ? "->" : "<-", tgBid);
 #endif
           continue;
         }
 
 #ifdef SHOW_EDGES
-        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u\n",
+        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u\n",
                  ee,
                  edges[ee].bgn, edges[ee].end,
                  nbgn, nend,
-                 rdA->ident, bgn, end, tgBid);
+                 rdA->ident, bgn, end, placements[pp].verified.isForward() ? "->" : "<-",
+                 tgBid);
 #endif
 
         edges[ee].bgn      = nbgn;
