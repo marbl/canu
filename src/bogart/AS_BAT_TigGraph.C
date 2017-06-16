@@ -174,11 +174,9 @@ emitEdges(TigVector      &tigs,
     //        <---  alignment on second tig  -  so if not the same, the second tig needs to be
     //    ------------------->               -  flipped to make the alignment work
 
-    bool fwd = false;
+    bool fwd = (rdA->isForward() == placements[pp].verified.isForward());
 
-    if (((rdA->isForward() == true)  && (placements[pp].verified.isForward() == true)) ||
-        ((rdA->isForward() == false) && (placements[pp].verified.isForward() == false)))
-      fwd = true;
+    //  And save the placement.
 
     edges.push_back(grEdge(tgBid, bgn, end, fwd));
   }
