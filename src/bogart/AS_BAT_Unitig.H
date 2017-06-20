@@ -88,7 +88,43 @@ public:
 
 
 
+//  True if A is contained in B.
+inline
+bool
+isContained(int32 Abgn, int32 Aend,
+            int32 Bbgn, int32 Bend) {
+  assert(Abgn < Aend);
+  assert(Bbgn < Bend);
+  return((Bbgn <= Abgn) &&
+         (Aend <= Bend));
+}
 
+inline
+bool
+isContained(SeqInterval &A, SeqInterval &B) {
+  return((B.min() <= A.min()) &&
+         (A.max() <= B.max()));
+}
+
+
+
+//  True if the A and B intervals overlap
+inline
+bool
+isOverlapping(int32 Abgn, int32 Aend,
+              int32 Bbgn, int32 Bend) {
+  assert(Abgn < Aend);
+  assert(Bbgn < Bend);
+  return((Abgn < Bend) &&
+         (Bbgn < Aend));
+}
+
+inline
+bool
+isOverlapping(SeqInterval &A, SeqInterval &B) {
+  return((A.min() < B.max()) &&
+         (B.min() < A.max()));
+}
 
 
 

@@ -256,42 +256,6 @@ splitTig(TigVector                &tigs,
 
 
 
-
-//  True if A is contained in B.
-bool
-isContained(int32 Abgn, int32 Aend,
-            int32 Bbgn, int32 Bend) {
-  assert(Abgn < Aend);
-  assert(Bbgn < Bend);
-  return((Bbgn <= Abgn) &&
-         (Aend <= Bend));
-}
-
-bool
-isContained(SeqInterval &A, SeqInterval &B) {
-  return((B.min() <= A.min()) &&
-         (A.max() <= B.max()));
-}
-
-
-//  True if the A and B intervals overlap
-bool
-isOverlapping(int32 Abgn, int32 Aend,
-              int32 Bbgn, int32 Bend) {
-  assert(Abgn < Aend);
-  assert(Bbgn < Bend);
-  return((Abgn < Bend) &&
-         (Bbgn < Aend));
-}
-
-bool
-isOverlapping(SeqInterval &A, SeqInterval &B) {
-  return((A.min() < B.max()) &&
-         (B.min() < A.max()));
-}
-
-
-
 static
 uint32
 checkReadContained(overlapPlacement &op,
