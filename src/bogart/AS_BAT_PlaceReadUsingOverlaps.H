@@ -43,11 +43,13 @@ public:
 
     refID         = 0;
     tigID         = 0;
+
+    clusterID     = 0;
+
     position      = SeqInterval();
     verified      = SeqInterval();
     covered       = SeqInterval();
 
-    clusterID     = 0;
     fCoverage     = 0.0;
 
     errors        = 0.0;
@@ -62,6 +64,9 @@ public:
 
     refID          = UINT32_MAX;       //  Not valid in the output overlapPlacement.
     tigID          = op.tigID;
+
+    clusterID      = op.clusterID;     //  Useless to track forward.
+
     position.bgn   = 0;
     position.end   = 0;
 
@@ -70,8 +75,6 @@ public:
 
     covered.bgn    = op.covered.bgn;
     covered.end    = op.covered.end;
-
-    clusterID      = op.clusterID;     //  Useless to track forward.
 
     fCoverage      = 0.0;
 
@@ -92,11 +95,11 @@ public:
   uint32            refID;      //  Read ID of the overlapping read were placed with.
   uint32            tigID;      //  Unitig ID of this placement
 
+  int32             clusterID;
+
   SeqInterval       position;   //  Unitig position of this placement
   SeqInterval       verified;   //  Unitig position of this placement, verified by overlaps
   SeqInterval       covered;    //  Position of the overlap on the read
-
-  int32             clusterID;
 
   double            fCoverage;  //  Coverage of the read
 
