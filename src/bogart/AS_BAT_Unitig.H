@@ -199,6 +199,7 @@ public:
   void reverseComplement(bool doSort=true);
 
   void cleanUp(void);
+  void optimize(const char *prefix, const char *label);
 
   // getNumRandomRead() is a placeholder, random reads should not
   // contain guides, or other reads that are not randomly sampled

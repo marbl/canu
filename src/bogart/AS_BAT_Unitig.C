@@ -111,6 +111,264 @@ Unitig::cleanUp(void) {
 
 
 
+
+
+class optPos {
+public:
+  optPos() {
+  };
+  ~optPos() {
+  };
+
+  void    set(ufNode &n) {
+    ident = n.ident;
+    min   = n.position.min();
+    max   = n.position.max();
+    fwd   = n.position.isForward();
+  };
+
+  uint32  ident;
+  double  min;
+  double  max;
+  bool    fwd;
+};
+
+
+
+void
+Unitig::optimize(const char *prefix, const char *label) {
+
+  if (ufpath.size() == 1)
+    return;
+
+  optPos *pp = NULL;
+  optPos *op = new optPos [ufpath.size()];
+  optPos *np = new optPos [ufpath.size()];
+
+  memset(op, 0, sizeof(optPos) * ufpath.size());
+  memset(np, 0, sizeof(optPos) * ufpath.size());
+
+  for (uint32 ii=0; ii<ufpath.size(); ii++) {
+    op[ii].set(ufpath[ii]);
+    np[ii].set(ufpath[ii]);
+  }
+
+  //
+  //  Initialize - one round using only reads/overlaps before us
+  //
+
+  op[0].min = np[0].min = 0;                                   //  Seed first read at zero and ending at length.
+  op[0].max = np[0].max = RI->readLength(ufpath[0].ident);
+
+  for (uint32 ii=1; ii<ufpath.size(); ii++) {
+    uint32       fid     = ufpath[ii].ident;
+
+    uint32       ovlLen  = 0;
+    BAToverlap  *ovl     = OC->getOverlaps(fid, ovlLen);
+
+    //  Unlike optimize below, we don't have any previous value to use with the read length, so
+    //  we don't use read length here.
+
+    double       nmin    = 0;
+    double       nmax    = 0;
+    int32        cnt     = 0;
+
+    //  Then process all overlaps.
+
+    for (uint32 oo=0; oo<ovlLen; oo++) {
+      uint32  uu = inUnitig (ovl[oo].b_iid);
+      uint32  jj = ufpathIdx(ovl[oo].b_iid);
+
+      if (uu != id())   //  Skip if the overlap is to a different tig.
+        continue;       //  (the ufpathIdx() call is valid, but using it isn't)
+
+      if (isOverlapping(ufpath[ii].position, ufpath[jj].position) == false)  //  Skip if the reads
+        continue;                                                            //  don't overlap
+
+      if (jj > ii)      //  We're setting initial positions, so overlaps to reads
+        continue;       //  after us aren't informative
+
+      //  Reads overlap.  Compute the position of the read using
+      //  the overlap and the other read.
+
+      nmin += (op[ii].fwd) ? (op[jj].min - ovl[oo].a_hang) : (op[jj].min + ovl[oo].b_hang);
+      nmax += (op[ii].fwd) ? (op[jj].max - ovl[oo].b_hang) : (op[jj].max + ovl[oo].a_hang);
+      cnt  += 1;
+    }  //  over all overlaps
+
+    assert(cnt > 0);   //  If no overlaps at all....what to do??  Crash!
+
+    op[ii].min = nmin / cnt;
+    op[ii].max = nmax / cnt;
+
+    np[ii].min = 0;
+    np[ii].max = 0;
+
+    //  The initialization above does very little to enforce read lengths, and the optimization
+    //  doesn't put enough weight in the read length to make it stable.  We simply force
+    //  the correct read length here.
+
+    op[ii].max = op[ii].min + RI->readLength(ufpath[ii].ident);
+
+    //writeLog("INIT tig %u read %u %9.2f-%-9.2f endDiff %9.2f\n",
+    //         id(), op[ii].ident,
+    //         op[ii].min,
+    //         op[ii].max,
+    //         op[ii].min + RI->readLength(ufpath[ii].ident));
+  }
+
+  //
+  //  Optimize
+  //
+
+  for (uint32 iter=0; iter<25; iter++) {
+    uint64  nOlapsTotal = 0;
+    uint64  nOlapsUsed  = 0;
+
+    for (uint32 ii=0; ii<ufpath.size(); ii++) {
+      uint32       fid     = op[ii].ident;
+
+      uint32       readLen = RI->readLength(fid);
+
+      uint32       ovlLen  = 0;
+      BAToverlap  *ovl     = OC->getOverlaps(fid, ovlLen);
+
+      double       nmin = 0.0;
+      double       nmax = 0.0;
+      uint32       cnt  = 0;
+
+      //writeLog("optimize()-- tig %8u read %8u previous  - %9.2f-%-9.2f\n", id(), fid, op[ii].min,           op[ii].max);
+      //writeLog("optimize()-- tig %8u read %8u length    - %9.2f-%-9.2f\n", id(), fid, op[ii].max - readLen, op[ii].min + readLen);
+
+      //  Process all overlaps.
+
+      for (uint32 oo=0; oo<ovlLen; oo++) {
+        uint32  uu = inUnitig (ovl[oo].b_iid);
+        uint32  jj = ufpathIdx(ovl[oo].b_iid);
+
+        if (uu != id())   //  Skip if the overlap is to a different tig.
+          continue;       //  (the ufpathIdx() call is valid, but using it isn't)
+
+        if (isOverlapping(ufpath[ii].position, ufpath[jj].position) == false)  //  Skip if the reads
+          continue;                                                            //  don't overlap
+
+        //  Reads overlap.  Compute the position of the read using
+        //  the overlap and the other read.
+
+        double tmin = (op[ii].fwd) ? (op[jj].min - ovl[oo].a_hang) : (op[jj].min + ovl[oo].b_hang);
+        double tmax = (op[ii].fwd) ? (op[jj].max - ovl[oo].b_hang) : (op[jj].max + ovl[oo].a_hang);
+
+        //writeLog("optimize()-- tig %8u read %8u olap %4u - %9.2f-%-9.2f\n", id(), fid, oo, tmin, tmax);
+
+        nmin += tmin;
+        nmax += tmax;
+        cnt  += 1;
+      }  //  over all overlaps
+
+      nOlapsTotal  += ovlLen;   //  Save some stats.
+      nOlapsUsed   += cnt;
+
+      //  Add in some evidence for the bases in the read.  We want higher weight than the overlaps,
+      //  but not enough to swamp the hangs.
+
+      nmin   += cnt/4 * (op[ii].max - readLen);
+      nmax   += cnt/4 * (op[ii].min + readLen);
+      cnt    += cnt/4;
+
+      //  Find the average and save.
+
+      np[ii].min = nmin / cnt;
+      np[ii].max = nmax / cnt;
+
+      //  Logging isn't quite correct - np needs to be offset first
+      //writeLog("optimize()-- tig %8u read %8u           - %8d-%-8d from %8d-%-8d iter %2u\n",
+
+      double dmin = 2 * (op[ii].min - np[ii].min) / (op[ii].min + np[ii].min);
+      double dmax = 2 * (op[ii].max - np[ii].max) / (op[ii].max + np[ii].max);
+
+      //writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6u posChange %+6.4f %+6.4f iter %2u\n",
+      //         id(), fid,
+      //         np[ii].min, np[ii].max,
+      //         np[ii].max - np[ii].min, readLen,
+      //         dmin, dmax,
+      //         iter);
+    }  //  Over all reads in the tig
+
+    //  Offset back to zero.
+
+    int32  z = np[0].min;
+
+    for (uint32 ii=0; ii<ufpath.size(); ii++) {
+      np[ii].min -= z;
+      np[ii].max -= z;
+    }
+
+    //  Decide if we've converged.  We used to compute percent difference in coordinates, but that is
+    //  biased by the position of the read.  Just use percent difference from read length.
+
+    uint32  nConverged = 0;
+    uint32  nChanged   = 0;
+
+    for (uint32 ii=0; ii<ufpath.size(); ii++) {
+      double  minp = 2 * (op[ii].min - np[ii].min) / (RI->readLength(ufpath[ii].ident));
+      double  maxp = 2 * (op[ii].max - np[ii].max) / (RI->readLength(ufpath[ii].ident));
+
+      if (minp < 0)  minp = -minp;
+      if (maxp < 0)  maxp = -maxp;
+
+      if ((minp < 0.005) && (maxp < 0.005))
+        nConverged++;
+      else
+        nChanged++;
+    }
+
+    //  All reads processed, swap op and np to compute the next iteration.
+
+    pp = op;
+    op = np;
+    np = pp;
+
+    writeLog("optimize()-- tig %8u iter %2u converged %6u changed %6u  olaps %9lu/%9lu\n",
+             id(), iter, nConverged, nChanged, nOlapsUsed, nOlapsTotal);
+
+    if (nChanged == 0)
+      break;
+  }
+
+  //  Update the tig with new positions.  op[] is the result of the last iteration.
+
+  for (uint32 ii=0; ii<ufpath.size(); ii++) {
+    if (op[ii].fwd) {
+      //writeLog("read %6u from %8d,%-8d to %8d,%-8d ->\n", 
+      //         ufpath[ii].ident,
+      //         ufpath[ii].position.bgn,
+      //         ufpath[ii].position.end,
+      //         (int32)op[ii].min,
+      //         (int32)op[ii].max);
+
+      ufpath[ii].position.bgn = (int32)op[ii].min;
+      ufpath[ii].position.end = (int32)op[ii].max;
+    } else {
+      //writeLog("read %6u from %8d,%-8d to %8d,%-8d <-\n", 
+      //         ufpath[ii].ident,
+      //         ufpath[ii].position.bgn,
+      //         ufpath[ii].position.end,
+      //         (int32)op[ii].max,
+      //         (int32)op[ii].min);
+
+      ufpath[ii].position.bgn = (int32)op[ii].max;
+      ufpath[ii].position.end = (int32)op[ii].min;
+    }
+  }
+
+  delete [] op;
+  delete [] np;
+
+  cleanUp();
+}
+
+
+
 class epOlapDat {
 public:
   epOlapDat(uint32 p, bool o, float e) {

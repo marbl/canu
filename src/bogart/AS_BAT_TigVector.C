@@ -151,7 +151,24 @@ Unitig *&operator[](uint32 i) {
 
 
 
+void
+TigVector::optimizePositions(const char *prefix, const char *label) {
+  uint32  tiLimit = size();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
+  writeStatus("optimizePositions()-- Optimizing read positions for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    Unitig  *tig = operator[](ti);
+
+    if (tig == NULL)
+      continue;
+
+    tig->optimize(prefix, label);
+  }
+}
 
 
 

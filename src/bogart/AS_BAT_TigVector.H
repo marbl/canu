@@ -41,6 +41,8 @@ public:
   size_t    size(void)            {  return(_totalTigs);  };
   Unitig  *&operator[](uint32 i)  {  return(_blocks[i / _blockSize][i % _blockSize]);  };
 
+  void      optimizePositions(const char *prefix, const char *label);
+
   void      computeArrivalRate(const char *prefix, const char *label);
 
   void      computeErrorProfiles(const char *prefix, const char *label);

@@ -435,6 +435,8 @@ main (int argc, char * argv []) {
 
   breakSingletonTigs(contigs);
 
+  contigs.optimizePositions(prefix, "buildGreedy");
+
   reportOverlaps(contigs, prefix, "buildGreedy");
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
 
