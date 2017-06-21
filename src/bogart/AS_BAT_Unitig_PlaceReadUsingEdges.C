@@ -70,6 +70,16 @@ placeRead_contained(uint32           readId,
   //  We don't know the true length of the overlap, and our hang-based math tends to shrink reads.
   //  Reset the end coordinate using the actual length of the read.
 
+#if 0
+#warning NOT RESETTING fMax BASED ON READ LENGTH
+  writeLog("placeCont()-- read %u %d-%d with hangs %d %d places read %u at %d-%d reset to %d\n",
+           parent.ident,
+           parent.position.min(), parent.position.max(),
+           ahang, bhang,
+           readId,
+           fMin, fMax,
+           fMin + RI->readLength(readId));
+#endif
   fMax = fMin + RI->readLength(readId);
 
   //  Orientation is straightforward, based on the orient of the parent, and the flipped flag.
@@ -88,11 +98,12 @@ placeRead_contained(uint32           readId,
   read.position.end = (fFwd) ? fMax : fMin;
 
 #ifdef DEBUG_PLACE_READ
-  writeLog("placeCont()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- read %7d C' -- placed %7d-%7d oriented %s %7d-%7d\n",
+  writeLog("placeCont()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- read %7d C' -- placed %7d-%7d oriented %s %7d-%7d %f%% of length\n",
            parent.ident, parent.position.bgn, parent.position.end,
            edge->readId(), (edge->read3p()) ? '3' : '5', edge->ahang(), edge->bhang(),
            readId,
-           fMin, fMax, (fFwd) ? "rev" : "fwd", read.position.bgn, read.position.end);
+           fMin, fMax, (fFwd) ? "rev" : "fwd", read.position.bgn, read.position.end,
+           100.0 * (read.position.max() - read.position.min()) / RI->readLength(readId));
 #endif
 
   return(read);
@@ -174,6 +185,16 @@ placeRead_dovetail(uint32           readId,
   //  We don't know the true length of the overlap, and our hang-based math tends to shrink reads.
   //  Reset the end coordinate using the actual length of the read.
 
+#if 0
+#warning NOT RESETTING fMax BASED ON READ LENGTH
+  writeLog("placeDovs()-- read %u %d-%d with hangs %d %d places read %u at %d-%d reset to %d\n",
+           parent.ident,
+           parent.position.min(), parent.position.max(),
+           ahang, bhang,
+           readId,
+           fMin, fMax,
+           fMin + RI->readLength(readId));
+#endif
   fMax = fMin + RI->readLength(readId);
 
 
@@ -205,11 +226,12 @@ placeRead_dovetail(uint32           readId,
   read.position.end = (fFwd) ? fMax : fMin;
 
 #ifdef DEBUG_PLACE_READ
-  writeLog("placeDove()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- read %7d %c' -- placed %7d-%7d oriented %s %7d-%7d\n",
+  writeLog("placeDove()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- read %7d %c' -- placed %7d-%7d oriented %s %7d-%7d %f%% of length\n",
            parent.ident, parent.position.bgn, parent.position.end,
            edge->readId(), (edge->read3p()) ? '3' : '5', edge->ahang(), edge->bhang(),
            readId, (read3p) ? '3' : '5',
-           fMin, fMax, (fFwd) ? "rev" : "fwd", read.position.bgn, read.position.end);
+           fMin, fMax, (fFwd) ? "rev" : "fwd", read.position.bgn, read.position.end,
+           100.0 * (read.position.max() - read.position.min()) / RI->readLength(readId));
 #endif
 
   return(read);
