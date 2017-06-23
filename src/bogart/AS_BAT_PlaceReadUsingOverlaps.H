@@ -111,10 +111,13 @@ public:
 };
 
 
-//  Sort by:  tigID, orientation, position
+//  Sort by:  clusterID, tigID, orientation, position
 //
 //  This sort is used to cluster the reads into overlapping regions.  We don't care
 //  about ties.
+//
+//  clusterID is UINT32_MAX if the placement should be ignored.
+//
 inline
 bool
 overlapPlacement_byLocation(const overlapPlacement &A, const overlapPlacement &B) {
