@@ -130,11 +130,11 @@ emitEdges(TigVector      &tigs,
     if (((rdA->isForward() == true) && (placements[pp].covered.bgn > 0)) ||
         ((rdA->isReverse() == true) && (placements[pp].covered.end < rdAlen))) {
 #ifdef SHOW_EDGES
-      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u - INCOMPLETELY PLACED outside\n",
+      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u len %6u placed bases %8u-%-8u in tig %6u %8u-%-8u %9u - INCOMPLETELY PLACED outside\n",
                tgA->id(),
-               rdA->ident, rdA->position.bgn, rdA->position.end,
+               rdA->ident, rdA->position.bgn, rdA->position.end, rdAlen,
                placements[pp].covered.bgn, placements[pp].covered.end,
-               tgBid, bgn, end);
+               tgBid, bgn, end, tgBlen);
 #endif
       continue;
     }
@@ -145,9 +145,9 @@ emitEdges(TigVector      &tigs,
     if (((rdA->isForward() == true) && (placements[pp].covered.end < rdAlen) && (bgn > 100) && (end + 100 < tgBlen)) ||
         ((rdA->isReverse() == true) && (placements[pp].covered.bgn > 0)      && (bgn > 100) && (end + 100 < tgBlen))) {
 #ifdef SHOW_EDGES
-      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u - INCOMPLETELY PLACED inside\n",
+      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u len %6u placed bases %8u-%-8u in tig %6u %8u-%-8u %9u - INCOMPLETELY PLACED inside\n",
                tgA->id(),
-               rdA->ident, rdA->position.bgn, rdA->position.end,
+               rdA->ident, rdA->position.bgn, rdA->position.end, rdAlen,
                placements[pp].covered.bgn, placements[pp].covered.end,
                tgBid, bgn, end, tgBlen);
 #endif
@@ -223,7 +223,7 @@ emitEdges(TigVector      &tigs,
           (bgn       > 100) &&
           (end + 100 < tgBlen)) {
 #ifdef SHOW_EDGES_UNPLACED
-        writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u in at %5u-%-5u %s in tig %4u\n",
+        writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u at %5u-%-5u %s in tig %4u\n",
                  rdA->ident,
                  placements[pp].covered.bgn, placements[pp].covered.end,
                  bgn, end, placements[pp].verified.isForward() ? "->" : "<-", tgBid);
@@ -246,27 +246,29 @@ emitEdges(TigVector      &tigs,
         //  tgA against CAB in the target tig.  If not, we'll need to keep count of which direction
         //  we extend things in.
 
-
-        //
-        //
-        //  AM I MISSING A CASE HERE?
-        //
-        //
-
-
-
         //  Fail if most of the extension is to the wrong side.  We always move to higher
         //  coordinates on tgA.  If tgB is forward, it should move to higher coordinates too.
         //
-        //  tgB    -----------------------------------------------------
-        //                                      [----edges----]
-        //                                            [----read-----]
+        //  tgA           ---------------------------------------------
+        //  rdA           -------------->
+        //                     <-------------------
+        //                            ---------------------
         //
-        int32  nbgn = min(edges[ee].bgn, bgn);    //   edges[] is the current region aligned;  bgn is where the new read aligned
-        int32  nend = max(edges[ee].end, end);
+        //  tgB    -----------------------------------------------------
+        //                [----edges----]
+        //                     [----read-----]
+        //
+        //  To make it more complicated, a contained read should do nothing, so we can't just
+        //  insist the end coordinate gets bigger.  We must make sure that the bgn coordinate
+        //  doesn't get (significantly) smaller.
 
-        if ((edges[ee].fwd == true) &&
-            (bgn - nbgn > nend - end)) {  //  If we decrease bgn more than we increased end, fail
+        int32  nbgn = min(edges[ee].bgn, bgn);    //   edges[] is the current region aligned
+        int32  nend = max(edges[ee].end, end);    //   bgn,end is where the new read aligned
+
+        //  If tgB is forward, fail if the read aligned to the left (lower) of the current region.
+
+        if ((edges[ee].fwd == true) && (bgn < edges[ee].bgn) && (end < edges[ee].end)) {
+
 #ifdef SHOW_EDGES_UNPLACED
         writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (fwd)\n",
                  ee,
@@ -277,11 +279,10 @@ emitEdges(TigVector      &tigs,
           continue;
         }
 
-        //  The reverse case is a bit tricky since we're tracking min/max posiiton on tgB.
-        //  When we extend on tgA, we expect the bgn to decrease on tgB and the end to stay the same.
+        //  If tgB is reverse, fail if the read aligned to the left (higher) of the current region.
 
-        if ((edges[ee].fwd == false) &&
-            (nend - end > bgn - nbgn)) {  //  If we increase end more than we decreased bgn, fail
+        if ((edges[ee].fwd == false) && (end > edges[ee].end) && (bgn > edges[ee].bgn)) {
+
 #ifdef SHOW_EDGES_UNPLACED
           writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (rev)\n",
                    ee,
