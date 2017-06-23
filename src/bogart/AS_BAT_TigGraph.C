@@ -268,13 +268,12 @@ emitEdges(TigVector      &tigs,
         //  If tgB is forward, fail if the read aligned to the left (lower) of the current region.
 
         if ((edges[ee].fwd == true) && (bgn < edges[ee].bgn) && (end < edges[ee].end)) {
-
 #ifdef SHOW_EDGES_UNPLACED
-        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (fwd)\n",
-                 ee,
-                 edges[ee].bgn, edges[ee].end,
-                 nbgn, nend,
-                 rdA->ident, bgn, end, placements[pp].verified.isForward() ? "->" : "<-", tgBid);
+          writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (fwd)\n",
+                   ee,
+                   edges[ee].bgn, edges[ee].end,
+                   nbgn, nend,
+                   rdA->ident, bgn, end, placements[pp].verified.isForward() ? "->" : "<-", tgBid);
 #endif
           continue;
         }
@@ -282,7 +281,6 @@ emitEdges(TigVector      &tigs,
         //  If tgB is reverse, fail if the read aligned to the left (higher) of the current region.
 
         if ((edges[ee].fwd == false) && (end > edges[ee].end) && (bgn > edges[ee].bgn)) {
-
 #ifdef SHOW_EDGES_UNPLACED
           writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u %s in tig %4u - wrong direction (rev)\n",
                    ee,
