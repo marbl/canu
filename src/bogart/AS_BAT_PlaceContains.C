@@ -78,8 +78,8 @@ breakSingletonTigs(TigVector &tigs) {
 
 
 void
-placeUnplacedUsingAllOverlaps(TigVector    &tigs,
-                              const char   *prefix) {
+placeUnplacedUsingAllOverlaps(TigVector           &tigs,
+                              const char   *UNUSED(prefix)) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
