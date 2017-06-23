@@ -128,7 +128,7 @@ splitTig(TigVector                &tigs,
       lowCoord[tt] = INT32_MAX;
     }
 
-  //if (doMove == true)
+  if (doMove == true)
     for (uint32 tt=0; tt < BP.size() - 1; tt++)
       writeLog("splitTig()-- piece %2u from %8u %c to %8u %c\n",
                tt,
@@ -141,7 +141,7 @@ splitTig(TigVector                &tigs,
     uint32      lo     = read.position.min();
     uint32      hi     = read.position.max();
 
-    writeLog("splitTig()-- processing read #%u ident %u pos %u-%u\n", fi, read.ident, lo, hi);
+    //writeLog("splitTig()-- processing read #%u ident %u pos %u-%u\n", fi, read.ident, lo, hi);
 
     //  Find the intervals the end points of the read fall into.  Suppose we're trying to place
     //  the long read.  It begins in piece 1 and ends in piece 6.
@@ -233,8 +233,8 @@ splitTig(TigVector                &tigs,
       newTigs[finBP]->addRead(read, -lowCoord[finBP], false);
     }
     else {
-      writeLog("splitTig()-- Move read %u %u-%u to piece %u (pos=%u)\n",
-               read.ident, read.position.bgn, read.position.end, finBP, BP[finBP]._pos);
+      //writeLog("splitTig()-- Move read %u %u-%u to piece %u (pos=%u)\n",
+      //         read.ident, read.position.bgn, read.position.end, finBP, BP[finBP]._pos);
       nMoved[finBP]++;
     }
   }
@@ -271,11 +271,13 @@ checkReadContained(overlapPlacement &op,
 
 
 
-//  Decide which read, and which end, we're overlapping.  We know the positions
-//  covered with overlaps ('verified'), and this also tells us the orientation of the read.  is5
-//  can then be used to tell if the invading tig is flopping free to the left or right of this
-//  location.  The break then occurs at the 'verified' coordinate furthest from the start of the
-//  tig.
+//  Decide which read, and which end, we're overlapping.  We know:
+//
+//    verified tells us the positions covered with overlaps and the orietation of the aligned read
+//
+//    isFirst and rdAfwd tell if the invading tig is flopping free to the left
+//    or right of this location
+//
 //                                    break here
 //                                    v
 //    invaded tig     ----------------------------------------------
@@ -294,38 +296,18 @@ checkReadContained(overlapPlacement &op,
 //
 void
 findEnd(overlapPlacement &op,
-        bool              is5,
+        bool              rdAfwd,
+        bool              isFirst,
         bool             &isLow,
         int32            &coord) {
 
-  //  invaded tig     ----------------------
-  //                        |      |
-  //  reads in source       ------->
-  //                       is5    --------  -- so flops to the right
-  //
-  //  invaded tig     ----------------------
-  //                        |      |
-  //  reads in source       <-------
-  //                       !is5  --------   -- so flops to the right   ** this is the picture above **
-  //
-  if (((op.verified.isForward() == true)  && (is5 == true)) ||
-      ((op.verified.isForward() == false) && (is5 == false))) {
+  if (((isFirst == true)  && (rdAfwd == true)  && (op.verified.isForward() == true))  ||
+      ((isFirst == true)  && (rdAfwd == false) && (op.verified.isForward() == false)) ||
+      ((isFirst == false) && (rdAfwd == false) && (op.verified.isForward() == true))  ||  //  rdAfwd is opposite what reality is,
+      ((isFirst == false) && (rdAfwd == true)  && (op.verified.isForward() == false))) {  //  because we've flipped the tig outside here
     isLow = false;
     coord = INT32_MIN;
-  }
-
-  //  invaded tig     ----------------------
-  //                        |      |
-  //  reads in source       ------->
-  //                    --------  !is5      -- so flops to the left
-  //
-  //  invaded tig     ----------------------
-  //                        |      |
-  //  reads in source       <-------
-  //                    --------  is5       -- so flops to the left
-  //
-  if (((op.verified.isForward() == true)  && (is5 == false)) ||
-      ((op.verified.isForward() == false) && (is5 == true))) {
+  } else {
     isLow = true;
     coord = INT32_MAX;
   }
@@ -407,15 +389,6 @@ checkRead(Unitig                    *tgA,
         continue;
     }
 
-    //  If a contained edge, we cannot split the other tig; it is correct.
-    //  The overlap from rdA is contained in some other read in tgB.
-
-    if (checkReadContained(op, tgB)) {
-      isContained = true;
-      if (verbose == false)
-        continue;
-    }
-
     //  Sacn all the reads we supposedly overlap, checking for overlaps.  Save the one that is the
     //  lowest (is5 == true) or highest (is5 == false).  Also, compute an average erate for the
     //  overlaps to this read.
@@ -430,25 +403,59 @@ checkRead(Unitig                    *tgA,
     int32        coord  = 0;
     ufNode      *rdB    = NULL;
 
-    findEnd(op, is5, isLow, coord);  //  Simple code, but lots of comments.
+    //  DEBUG:  If not to self, try to find the overlap.  Otherwise, this just adds useless clutter.
 
-    for (uint32 oo=0; oo<ovlLen; oo++) {
-      for (uint32 ii=op.tigFidx; ii<=op.tigLidx; ii++) {
-        if (ovl[oo].b_iid != tgB->ufpath[ii].ident)
+    if (toSelf == false) {
+
+    findEnd(op, rdA->position.isForward(), isFirst, isLow, coord);  //  Simple code, but lots of comments.
+
+    writeLog("\n");
+    writeLog("Scan reads from #%u to #%u for %s coordinate in verified region %u-%u\n",
+             op.tigFidx, op.tigLidx,
+             (isLow) ? "low" : "high",
+             op.verified.min(), op.verified.max());
+
+    for (uint32 ii=op.tigFidx; ii<=op.tigLidx; ii++) {
+      for (uint32 oo=0; oo<ovlLen; oo++) {
+        ufNode  *rdBii = &tgB->ufpath[ii];
+
+        if (ovl[oo].b_iid != rdBii->ident)
           continue;
+
+        writeLog("Test read #%6u ident %7u %9u-%9u against verified region %9u-%9u",
+                 ii,
+                 rdBii->ident, rdBii->position.min(), rdBii->position.max(),
+                 op.verified.min(), op.verified.max());
 
         erate  += ovl[oo].erate();
         erateN += 1;
 
-        if ((isLow == false) && (coord < tgB->ufpath[ii].position.max())) {
-          rdB   = &tgB->ufpath[ii];
-          coord =  tgB->ufpath[ii].position.max();
+        //  Split on the higher coordinate.  If this is larger than the current coordinate AND still
+        //  within the verified overlap range, reset the coordinate.  Allow only dovetail overlaps.
+
+        if ((isLow == false) && (rdBii->position.max() < op.verified.max())) {
+          writeLog(" - CANDIDATE hangs %7d %7d", ovl[oo].a_hang, ovl[oo].b_hang);
+
+          if ((rdBii->position.max() > coord) && (rdBii->position.min() < op.verified.min()) /* && (ovl[oo].a_hang < 0) */) {
+            writeLog(" - SAVED");
+            rdB   = rdBii;
+            coord = rdBii->position.max();
+          }
         }
 
-        if ((isLow == true) && (coord > tgB->ufpath[ii].position.min())) {
-          rdB   = &tgB->ufpath[ii];
-          coord =  tgB->ufpath[ii].position.min();
+        //  Split on the lower coordinate.
+
+        if ((isLow == true) && (rdBii->position.min() > op.verified.min())) {
+          writeLog(" - CANDIDATE hangs %7d %7d", ovl[oo].a_hang, ovl[oo].b_hang);
+
+          if ((rdBii->position.min() < coord) && (rdBii->position.max() > op.verified.max()) /* && (ovl[oo].b_hang > 0) */) {
+            writeLog(" - SAVED");
+            rdB   = rdBii;
+            coord = rdBii->position.min();
+          }
         }
+
+        writeLog("\n");
       }
     }
 
@@ -458,10 +465,21 @@ checkRead(Unitig                    *tgA,
     //  Huh?  If didn't find any overlaps, give up without crashing (this hasn't ever been triggered).
 
     if (rdB == NULL) {
+      writeLog("\n");
+      writeLog("Failed to find appropriate intersecting read.\n");
+      writeLog("\n");
+      flushLog();
+
       noOverlaps = true;
       if (verbose == false)
         continue;
+    } else {
+      writeLog("Found appropriate intersecting read.\n");
     }
+
+    }  //  End of toSelf DEBUG
+
+    //assert(rdB != NULL);
 
     //  Finally, ignore it if the overlap isn't similar to everything else in the tig.  A
     //  complication here is we don't know what erate we have between tgA and tgB.  We approximate
@@ -544,10 +562,11 @@ stripNonBackboneFromStart(TigVector &unitigs, Unitig *tig, bool isFirst) {
 
   while (RI->isBackbone(tig->ufpath[ii].ident) == false) { //  Find the first backbone read,
     unitigs.registerRead(tig->ufpath[ii].ident);
-    writeLog("WARNING: unitig %u %s read %u is not backbone, removing.\n",
+    writeLog("WARNING: unitig %u %s read %8u %9u-%9u is not backbone, removing.\n",
              tig->id(),
              isFirst ? "first" : "last ",
-             tig->ufpath[ii].ident);
+             tig->ufpath[ii].ident,
+             tig->ufpath[ii].position.bgn, tig->ufpath[ii].position.end);
     ii++;
   }
 
@@ -800,6 +819,7 @@ createUnitigs(TigVector             &contigs,
   //  If the last read in the tig is not a backbone read, we can remove it and all reads that come
   //  after it (because those reads are contained).
 
+#if 1
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig    *tig = unitigs[ti];
 
@@ -826,9 +846,10 @@ createUnitigs(TigVector             &contigs,
     writeLog("unitig %u with %u reads, %u backbone and %u unplaced.\n",
              tig->id(), tig->ufpath.size(), bbReads, nbReads);
 
-    stripNonBackboneFromStart(unitigs, tig, true);
+    stripNonBackboneFromStart(unitigs, tig, true);     //  Does reverse complement at very end
     stripNonBackboneFromStart(unitigs, tig, false);
   }
+#endif
 
   //  Cleanup.
 
