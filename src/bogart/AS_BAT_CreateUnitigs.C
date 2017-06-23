@@ -403,83 +403,80 @@ checkRead(Unitig                    *tgA,
     int32        coord  = 0;
     ufNode      *rdB    = NULL;
 
-    //  DEBUG:  If not to self, try to find the overlap.  Otherwise, this just adds useless clutter.
+    //  DEBUG: If not to self, try to find the overlap.  Otherwise, this just adds useless clutter,
+    //  the self edge is disqualifying enough.
 
     if (toSelf == false) {
+      findEnd(op, rdA->position.isForward(), isFirst, isLow, coord);  //  Simple code, but lots of comments.
 
-    findEnd(op, rdA->position.isForward(), isFirst, isLow, coord);  //  Simple code, but lots of comments.
+      writeLog("\n");
+      writeLog("Scan reads from #%u to #%u for %s coordinate in verified region %u-%u\n",
+               op.tigFidx, op.tigLidx,
+               (isLow) ? "low" : "high",
+               op.verified.min(), op.verified.max());
 
-    writeLog("\n");
-    writeLog("Scan reads from #%u to #%u for %s coordinate in verified region %u-%u\n",
-             op.tigFidx, op.tigLidx,
-             (isLow) ? "low" : "high",
-             op.verified.min(), op.verified.max());
+      for (uint32 ii=op.tigFidx; ii<=op.tigLidx; ii++) {
+        for (uint32 oo=0; oo<ovlLen; oo++) {
+          ufNode  *rdBii = &tgB->ufpath[ii];
 
-    for (uint32 ii=op.tigFidx; ii<=op.tigLidx; ii++) {
-      for (uint32 oo=0; oo<ovlLen; oo++) {
-        ufNode  *rdBii = &tgB->ufpath[ii];
+          if (ovl[oo].b_iid != rdBii->ident)
+            continue;
 
-        if (ovl[oo].b_iid != rdBii->ident)
-          continue;
+          writeLog("Test read #%6u ident %7u %9u-%9u against verified region %9u-%9u",
+                   ii,
+                   rdBii->ident, rdBii->position.min(), rdBii->position.max(),
+                   op.verified.min(), op.verified.max());
 
-        writeLog("Test read #%6u ident %7u %9u-%9u against verified region %9u-%9u",
-                 ii,
-                 rdBii->ident, rdBii->position.min(), rdBii->position.max(),
-                 op.verified.min(), op.verified.max());
+          erate  += ovl[oo].erate();
+          erateN += 1;
 
-        erate  += ovl[oo].erate();
-        erateN += 1;
+          //  Split on the higher coordinate.  If this is larger than the current coordinate AND still
+          //  within the verified overlap range, reset the coordinate.  Allow only dovetail overlaps.
 
-        //  Split on the higher coordinate.  If this is larger than the current coordinate AND still
-        //  within the verified overlap range, reset the coordinate.  Allow only dovetail overlaps.
+          if ((isLow == false) && (rdBii->position.max() < op.verified.max())) {
+            writeLog(" - CANDIDATE hangs %7d %7d", ovl[oo].a_hang, ovl[oo].b_hang);
 
-        if ((isLow == false) && (rdBii->position.max() < op.verified.max())) {
-          writeLog(" - CANDIDATE hangs %7d %7d", ovl[oo].a_hang, ovl[oo].b_hang);
-
-          if ((rdBii->position.max() > coord) && (rdBii->position.min() < op.verified.min()) /* && (ovl[oo].a_hang < 0) */) {
-            writeLog(" - SAVED");
-            rdB   = rdBii;
-            coord = rdBii->position.max();
+            if ((rdBii->position.max() > coord) && (rdBii->position.min() < op.verified.min()) /* && (ovl[oo].a_hang < 0) */) {
+              writeLog(" - SAVED");
+              rdB   = rdBii;
+              coord = rdBii->position.max();
+            }
           }
-        }
 
-        //  Split on the lower coordinate.
+          //  Split on the lower coordinate.
 
-        if ((isLow == true) && (rdBii->position.min() > op.verified.min())) {
-          writeLog(" - CANDIDATE hangs %7d %7d", ovl[oo].a_hang, ovl[oo].b_hang);
+          if ((isLow == true) && (rdBii->position.min() > op.verified.min())) {
+            writeLog(" - CANDIDATE hangs %7d %7d", ovl[oo].a_hang, ovl[oo].b_hang);
 
-          if ((rdBii->position.min() < coord) && (rdBii->position.max() > op.verified.max()) /* && (ovl[oo].b_hang > 0) */) {
-            writeLog(" - SAVED");
-            rdB   = rdBii;
-            coord = rdBii->position.min();
+            if ((rdBii->position.min() < coord) && (rdBii->position.max() > op.verified.max()) /* && (ovl[oo].b_hang > 0) */) {
+              writeLog(" - SAVED");
+              rdB   = rdBii;
+              coord = rdBii->position.min();
+            }
           }
-        }
 
-        writeLog("\n");
+          writeLog("\n");
+        }
       }
-    }
 
-    if (erateN > 0)
-      erate /= erateN;
+      if (erateN > 0)
+        erate /= erateN;
 
-    //  Huh?  If didn't find any overlaps, give up without crashing (this hasn't ever been triggered).
+      //  Huh?  If didn't find any overlaps, give up without crashing (this hasn't ever been triggered).
 
-    if (rdB == NULL) {
-      writeLog("\n");
-      writeLog("Failed to find appropriate intersecting read.\n");
-      writeLog("\n");
-      flushLog();
+      if (rdB == NULL) {
+        writeLog("\n");
+        writeLog("Failed to find appropriate intersecting read.\n");
+        writeLog("\n");
+        flushLog();
 
-      noOverlaps = true;
-      if (verbose == false)
-        continue;
-    } else {
-      writeLog("Found appropriate intersecting read.\n");
-    }
-
+        noOverlaps = true;
+        if (verbose == false)
+          continue;
+      } else {
+        writeLog("Found appropriate intersecting read.\n");
+      }
     }  //  End of toSelf DEBUG
-
-    //assert(rdB != NULL);
 
     //  Finally, ignore it if the overlap isn't similar to everything else in the tig.  A
     //  complication here is we don't know what erate we have between tgA and tgB.  We approximate
