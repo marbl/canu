@@ -33,35 +33,50 @@
 
 #include "AS_global.H"
 
-static char inv[256] = {0};
-
 
 static
-void
-initRC(void) {
-  if (inv['a'] == 't')
-    return;
+char
+inv[256] = {
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x00 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x08 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x10 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x18 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x20 -  !"#$%&'
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x28 - ()*+,-./
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x30 - 01234567
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x38 - 89:;<=>?
+   0,'T',  0,'G',  0,  0,  0,'C',  //  0x40 - @ABCDEFG
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x48 - HIJKLMNO
+   0,  0,  0,  0,'A',  0,  0,  0,  //  0x50 - PQRSTUVW
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x58 - XYZ[\]^_
+   0,'t',  0,'g',  0,  0,  0,'c',  //  0x60 - `abcdefg
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x68 - hijklmno
+   0,  0,  0,  0,'a',  0,  0,  0,  //  0x70 - pqrstuvw
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x78 - xyz{|}~
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x80 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x88 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x90 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0x98 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xa0 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xa8 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xb0 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xb8 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xc0 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xc8 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xd0 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xd8 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xe0 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xe8 - 
+   0,  0,  0,  0,  0,  0,  0,  0,  //  0xf0 - 
+   0,  0,  0,  0,  0,  0,  0,  0   //  0xf8 - 
+};
 
-  inv['a'] = 't';
-  inv['c'] = 'g';
-  inv['g'] = 'c';
-  inv['t'] = 'a';
-  inv['n'] = 'n';
-  inv['A'] = 'T';
-  inv['C'] = 'G';
-  inv['G'] = 'C';
-  inv['T'] = 'A';
-  inv['N'] = 'N';
-  inv['-'] = '-';
-}
 
 
 void
 reverseComplementSequence(char *seq, int len) {
   char   c=0;
   char  *s=seq,  *S=seq+len-1;
-
-  initRC();
 
   if (len == 0) {
     len = strlen(seq);
@@ -78,30 +93,23 @@ reverseComplementSequence(char *seq, int len) {
     *s = inv[*s];
 }
 
-//  Inplace reverse-complement an ACGT sequence.  A pointer the the
-//  string is returned.
-//
-#if 0
-//  From kmer
+
+
 char *
-reverseComplementSequence(char *seq, uint32 seqlen) {
-  char   *s = seq;
-  char   *e = seq + seqlen - 1;
-  char    t;
-  uint32  c = seqlen / 2;
+reverseComplementCopy(char *seq, int len) {
+  char  *rev = new char [len+1];
 
-  while (c--) {
-    t = complementSymbol[*s];
-    *(s++) = complementSymbol[*e];
-    *(e--) = t;
-  }
+  assert(len > 0);
 
-  if (s == e)
-    *s = complementSymbol[*s];
+  for (int32 p=len, q=0; p>0; )
+    rev[q++] = inv[seq[--p]];
 
-  return(seq);
+  rev[len] = 0;
+
+  return(rev);
 }
-#endif
+
+
 
 void
 reverseComplement(char *seq, char *qlt, int len) {
@@ -113,8 +121,6 @@ reverseComplement(char *seq, char *qlt, int len) {
     reverseComplementSequence(seq, len);
     return;
   }
-
-  initRC();
 
   if (len == 0) {
     len = strlen(seq);
@@ -136,42 +142,3 @@ reverseComplement(char *seq, char *qlt, int len) {
     *s = inv[*s];
 }
 
-
-void
-reverse(char *a, char *b, int len) {
-  char   c=0;
-  char  *s=a,  *S=a+len-1;
-  char  *q=b,  *Q=b+len-1;
-
-  while (s < S) {
-    c    = *s;
-    *s++ =  *S;
-    *S-- =  c;
-
-    c    = *q;
-    *q++ = *Q;
-    *Q-- =  c;
-  }
-}
-
-
-//  Inplace reverse a string.  A pointer the the string is returned.
-//
-#if 0
-//  From kmer
-char *
-reverseString(char *seq, uint32 seqlen) {
-  char   *s = seq;
-  char   *e = seq + seqlen - 1;
-  char    t;
-  uint32  c = seqlen / 2;
-
-  while (c--) {
-    t = *s;
-    *(s++) = *e;
-    *(e--) = t;
-  }
-
-  return(seq);
-}
-#endif

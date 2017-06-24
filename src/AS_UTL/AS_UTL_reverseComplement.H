@@ -32,8 +32,8 @@
 
 #include "AS_global.H"
 
-void reverseComplementSequence(char *seq, int len);
-void reverseComplement(char *seq, char *qlt, int len);
-void reverse(char *a, char *b, int len);
+void  reverseComplementSequence(char *seq, int len);
+char *reverseComplementCopy(char *seq, int len);
+void  reverseComplement(char *seq, char *qlt, int len);
 
 #endif
