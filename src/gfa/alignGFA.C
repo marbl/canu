@@ -159,8 +159,8 @@ checkLink(gfaLink   *link,
           bool       beVerbose,
           bool       doPlot) {
 
-  char   *Aseq = seqs[link->_Aid].seq;
-  char   *Bseq = seqs[link->_Bid].seq;
+  char   *Aseq = seqs[link->_Aid].seq, *Arev = NULL;
+  char   *Bseq = seqs[link->_Bid].seq, *Brev = NULL;
 
   int32  Abgn, Aend, Alen = seqs[link->_Aid].len;
   int32  Bbgn, Bend, Blen = seqs[link->_Bid].len;
@@ -185,10 +185,9 @@ checkLink(gfaLink   *link,
   link->_cigar = NULL;
 
   if (link->_Afwd == false)
-    reverseComplementSequence(Aseq, Alen);
+    Aseq = Arev = reverseComplementCopy(Aseq, Alen);
   if (link->_Bfwd == false)
-    reverseComplementSequence(Bseq, Blen);
-
+    Bseq = Brev = reverseComplementCopy(Bseq, Blen);
 
   //  Ty to find the end coordinate on B.  Align the last bits of A to B.
   //
@@ -306,12 +305,10 @@ checkLink(gfaLink   *link,
     dotplot(link->_Aid, link->_Afwd, Aseq,
             link->_Bid, link->_Bfwd, Bseq);
 
-  //  Cleanup for the next link->
+  //  Cleanup for the next link.
 
-  if (link->_Afwd == false)
-    reverseComplementSequence(Aseq, Alen);
-  if (link->_Bfwd == false)
-    reverseComplementSequence(Bseq, Blen);
+  delete [] Arev;
+  delete [] Brev;
 
   if (beVerbose)
     fprintf(stderr, "\n");
@@ -329,7 +326,7 @@ checkRecord(bedRecord   *record,
             bool         UNUSED(doPlot)) {
 
   char   *Aseq = ctgs[record->_Aid].seq;
-  char   *Bseq = utgs[record->_Bid].seq;
+  char   *Bseq = utgs[record->_Bid].seq, *Brev = NULL;
 
   int32  Abgn, Aend, Alen = ctgs[record->_Aid].len;
   int32  Bbgn, Bend, Blen = utgs[record->_Bid].len;
@@ -349,7 +346,7 @@ checkRecord(bedRecord   *record,
   record->_score = 0;
 
   if (record->_Bfwd == false)
-    reverseComplementSequence(Bseq, Blen);
+    Bseq = Brev = reverseComplementCopy(Bseq, Blen);
 
   //  Align B to A, allowing the A positions to float.
 
@@ -474,8 +471,7 @@ checkRecord(bedRecord   *record,
   //  Cleanup for the next record
 
  finishCheck:
-  if (record->_Bfwd == false)
-    reverseComplementSequence(Bseq, Blen);
+  delete [] Brev;
 
   return(success);
 }
