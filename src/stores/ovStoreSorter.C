@@ -61,10 +61,21 @@ void
 makeSentinel(char *storePath, uint32 fileID, bool forceRun) {
   char name[FILENAME_MAX];
 
+  //  Check if done.
+
+  snprintf(name, FILENAME_MAX, "%s/%04d", storePath, fileID);
+
+  if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
+    fprintf(stderr, "Job " F_U32 " is finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+
+  //  Check if running.
+
   snprintf(name, FILENAME_MAX, "%s/%04d.ovs", storePath, fileID);
 
   if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
-    fprintf(stderr, "Job " F_U32 " is running or finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+    fprintf(stderr, "Job " F_U32 " is running (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+
+  //  Not done, not running, so create a sentinel to say we're running.
 
   errno = 0;
   FILE *F = fopen(name, "w");
