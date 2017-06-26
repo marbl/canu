@@ -166,15 +166,16 @@ sub configurePBSTorque () {
     if (!defined($maxArraySize)) {
         $maxArraySize = 1000;
 
-        if ($isPro == 0) {
-            open(F, "qmgr -c 'p s' |");
-            while (<F>) {
-                if (m/max_job_array_size\s+=\s+(\d+)/) {
-                    $maxArraySize = $1;
-                }
+        open(F, "qmgr -c 'p s' |");
+        while (<F>) {
+            if (m/max_job_array_size\s+=\s+(\d+)/) {   #  Torque
+                $maxArraySize = $1;
             }
-            close(F);
+            if (m/max_array_size\s+=\s+(\d+)/) {       #  PBSPro
+                $maxArraySize = $1;
+            }
         }
+        close(F);
     }
 
     #  PBSPro, again, throws a curve ball at us.  There is no way to set the output of array jobs
