@@ -305,5 +305,7 @@ main(int argc, char **argv) {
   delete [] sliceFile;
   delete [] sliceSize;
 
+  fprintf(stderr, "Success!\n");
+
   return(0);
 }

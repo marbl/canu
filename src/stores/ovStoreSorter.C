@@ -258,5 +258,7 @@ main(int argc, char **argv) {
 
   //  Success!
 
+  fprintf(stderr, "Success!\n");
+
   return(0);
 }

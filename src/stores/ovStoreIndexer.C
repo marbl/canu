@@ -159,7 +159,7 @@ main(int argc, char **argv) {
 
   writer->removeAllIntermediateFiles();
 
-  fprintf(stderr, "Finished.\n");
+  fprintf(stderr, "Success!\n");
 
   exit(0);
 }
