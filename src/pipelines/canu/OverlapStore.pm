@@ -294,14 +294,6 @@ sub overlapStoreConfigure ($$$) {
         #print F "  -e " . getGlobal("") . " \\\n"  if (defined(getGlobal("")));
         print F "  -job \$jobid \\\n";
         print F "  -i   \$jn\n";
-        print F "\n";
-        print F "if [ \$? = 0 ] ; then\n";
-        print F "  echo Success.\n";
-        print F "  exit 0\n";
-        print F "else\n";
-        print F "  echo Failure.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
         close(F);
     }
 
@@ -328,14 +320,6 @@ sub overlapStoreConfigure ($$$) {
         print F "  -G ../$asm.gkpStore \\\n";
         print F "  -F $numSlices \\\n";
         print F "  -job \$jobid $numInputs\n";
-        print F "\n";
-        print F "if [ \$? = 0 ] ; then\n";
-        print F "  echo Success.\n";
-        print F "  exit 0\n";
-        print F "else\n";
-        print F "  echo Failure.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
         close(F);
     }
 
@@ -355,14 +339,6 @@ sub overlapStoreConfigure ($$$) {
         #print F "  -nodelete \\\n";  #  Choices -nodelete or nothing
         print F "  -O . \\\n";
         print F "  -F $numSlices\n";
-        print F "\n";
-        print F "if [ \$? = 0 ] ; then\n";
-        print F "  echo Success.\n";
-        print F "  exit 0\n";
-        print F "else\n";
-        print F "  echo Failure.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
         close(F);
     }
 
