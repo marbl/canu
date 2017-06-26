@@ -275,8 +275,6 @@ ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
 
   //  Dump the overlaps
 
-  fprintf(stderr, "Writing " F_U64 " overlaps.\n", ovlsLen);
-
   for (uint64 i=0; i<ovlsLen; i++ ) {
     bof->writeOverlap(ovls + i);
 
@@ -348,8 +346,8 @@ ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
 
   info.save(_storePath, _fileID, true);
 
-  fprintf(stderr, "Created ovStore segment '%s/%04d' with " F_U64 " overlaps for reads from " F_U32 " to " F_U32 ".\n",
-          _storePath, _fileID, _info.numOverlaps(), _info.smallestID(), _info.largestID());
+  fprintf(stderr, "  created '%s/%04d' with " F_U64 " overlaps for reads " F_U32 " to " F_U32 ".\n",
+          _storePath, _fileID, info.numOverlaps(), info.smallestID(), info.largestID());
 }
 
 
@@ -634,7 +632,7 @@ ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
     }
     assert(nr == _fileLimit + 1);
 
-    fprintf(stderr, "Found " F_U64 " overlaps from '%s'.\n", sliceSizes[_fileID], name);
+    fprintf(stderr, "  found %10" F_U64P " overlaps in '%s'.\n", sliceSizes[_fileID], name);
 
     bucketSizes[i] = sliceSizes[_fileID];
     totOvl        += sliceSizes[_fileID];
@@ -664,7 +662,7 @@ ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap
               expectedLen, name);
   }
 
-  fprintf(stderr, "Loading " F_U64 " overlaps from '%s'.\n", expectedLen, name);
+  fprintf(stderr, "  loading %10" F_U64P " overlaps from '%s'.\n", expectedLen, name);
 
   ovFile   *bof = new ovFile(_gkp, name, ovFileFull);
   uint64    num = 0;

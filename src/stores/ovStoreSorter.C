@@ -190,6 +190,9 @@ main(int argc, char **argv) {
 
   //  Get the number of overlaps in each bucket slice.
 
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Finding overlaps.\n");
+
   uint64 *bucketSizes = new uint64 [jobIdxMax + 1];
   uint64  totOvl      = writer->loadBucketSizes(bucketSizes);
 
@@ -204,8 +207,9 @@ main(int argc, char **argv) {
 
   //  Or report that we can process.
 
-  fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) " F_U64 " GB.\n",
-          ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Loading %10" F_U64P " overlaps using %.2f GB of requested (-M) " F_U64 " GB memory.\n",
+          totOvl, ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
   //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked when
   //  we loaded bucket sizes) or funny business is happening with our files.
@@ -229,6 +233,7 @@ main(int argc, char **argv) {
 
   //  Sort the overlaps!  Finally!  The parallel STL sort is NOT inplace, and blows up our memory.
 
+  fprintf(stderr, "\n");
   fprintf(stderr, "Sorting.\n");
 
 #ifdef _GLIBCXX_PARALLEL
@@ -239,22 +244,27 @@ main(int argc, char **argv) {
 
   //  Output to the store.
 
-  fprintf(stderr, "Writing output.\n");
+  fprintf(stderr, "\n");   //  Sorting has no output, so this would generate a distracting extra newline
+  fprintf(stderr, "Writing sorted overlaps.\n");
 
   writer->writeOverlaps(ovls, ovlsLen);
 
   //  Clean up.  Delete inputs, remove the sentinel, release memory, etc.
 
   delete [] ovls;
-
-  if (deleteIntermediateLate)
-    writer->removeOverlapSlice();
-
   delete [] bucketSizes;
 
   removeSentinel(storePath, fileID);
 
   gkp->gkStore_close();
+
+  if (deleteIntermediateLate) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Removing bucketized overlaps.\n");
+    fprintf(stderr, "\n");
+
+    writer->removeOverlapSlice();
+  }
 
   //  Success!
 
