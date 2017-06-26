@@ -209,8 +209,7 @@ sub overlapStoreConfigure ($$$) {
         #print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
-        print F getLimitShellCode("processes");
-        print F getLimitShellCode("files");
+        print F getLimitShellCode();
         print F "\n";
         print F "\$bin/ovStoreBuild \\\n";
         print F " -G ./$asm.gkpStore \\\n";
@@ -286,8 +285,7 @@ sub overlapStoreConfigure ($$$) {
         print F "  rm -rf \"./create\$bn\"\n";
         print F "fi\n";
         print F "\n";
-        print F getLimitShellCode("processes");
-        print F getLimitShellCode("files");
+        print F getLimitShellCode();
         print F "\n";
         print F "\$bin/ovStoreBucketizer \\\n";
         print F "  -O . \\\n";
@@ -321,8 +319,7 @@ sub overlapStoreConfigure ($$$) {
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
-        print F getLimitShellCode("processes");
-        print F getLimitShellCode("files");
+        print F getLimitShellCode();
         print F "\n";
         print F "\$bin/ovStoreSorter \\\n";
         print F "  -deletelate \\\n";  #  Choices -deleteearly -deletelate or nothing

@@ -355,41 +355,34 @@ sub getJobIDShellCode () {
 #  Emits a block of shell code to change shell imposed limit on the number of open files and
 #  processes.
 #
-sub getLimitShellCode ($) {
-    my $which = shift @_;
+sub getLimitShellCode () {
     my $string;
 
-    if ($which eq "processes") {
-        $string .= "\n";
-        $string .= "max=`ulimit -Hu`\n";
-        $string .= "bef=`ulimit -Su`\n";
-        $string .= "if [ \$bef -lt \$max ] ; then\n";
-        $string .= "  ulimit -Su \$max\n";
-        $string .= "  aft=`ulimit -Su`\n";
-        $string .= "  echo \"Changed max processes per user from \$bef to \$aft (max \$max).\"\n";
-        $string .= "  echo \"\"\n";
-        $string .= "else\n";
-        $string .= "  echo \"Max processes per user limited to \$bef, no increase possible.\"\n";
-        $string .= "  echo \"\"\n";
-        $string .= "fi\n";
-        $string .= "\n";
-    }
-
-    if ($which eq "files") {
-        $string .= "\n";
-        $string .= "max=`ulimit -Hn`\n";
-        $string .= "bef=`ulimit -Sn`\n";
-        $string .= "if [ \$bef -lt \$max ] ; then\n";
-        $string .= "  ulimit -Sn \$max\n";
-        $string .= "  aft=`ulimit -Sn`\n";
-        $string .= "  echo \"Changed max open files from \$bef to \$aft (max \$max).\"\n";
-        $string .= "  echo \"\"\n";
-        $string .= "else\n";
-        $string .= "  echo \"Max open files limited to \$bef, no increase possible.\"\n";
-        $string .= "  echo \"\"\n";
-        $string .= "fi\n";
-        $string .= "\n";
-    }
+    $string .= "echo \"\"\n";
+    $string .= "echo \"Attempting to increase maximum allowed processes and open files.\"";
+    $string .= "\n";
+    $string .= "max=`ulimit -Hu`\n";
+    $string .= "bef=`ulimit -Su`\n";
+    $string .= "if [ \$bef -lt \$max ] ; then\n";
+    $string .= "  ulimit -Su \$max\n";
+    $string .= "  aft=`ulimit -Su`\n";
+    $string .= "  echo \"  Changed max processes per user from \$bef to \$aft (max \$max).\"\n";
+    $string .= "else\n";
+    $string .= "  echo \"  Max processes per user limited to \$bef, no increase possible.\"\n";
+    $string .= "fi\n";
+    $string .= "\n";
+    $string .= "max=`ulimit -Hn`\n";
+    $string .= "bef=`ulimit -Sn`\n";
+    $string .= "if [ \$bef -lt \$max ] ; then\n";
+    $string .= "  ulimit -Sn \$max\n";
+    $string .= "  aft=`ulimit -Sn`\n";
+    $string .= "  echo \"  Changed max open files from \$bef to \$aft (max \$max).\"\n";
+    $string .= "else\n";
+    $string .= "  echo \"  Max open files limited to \$bef, no increase possible.\"\n";
+    $string .= "fi\n";
+    $string .= "\n";
+    $string .= "echo \"\"\n";
+    $string .= "\n";
 
     return($string);
 }
