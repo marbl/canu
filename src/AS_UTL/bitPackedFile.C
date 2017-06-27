@@ -154,17 +154,22 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
   nr += read(_file, &ac, sizeof(uint64));
   nr += read(_file, &bc, sizeof(uint64));
 
-  if (nr == 0) {
-    //  Empty file!  Write the magic number and our endianess check.
+  //  Errors?
+  if (errno)
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to read the header: %s\n", _name, strerror(errno)), exit(1);
 
+  //  Empty file, but expecting data!
+  if ((nr == 0) && (_isReadOnly))
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to read the header: empty file\n", _name), exit(1);
+
+  //  Empty file!  Write the magic number and our endianess check.
+  if (nr == 0) {
     errno = 0;
     write(_file,  t,  sizeof(char) * 16);
     write(_file, &at, sizeof(uint64));
     write(_file, &bt, sizeof(uint64));
     if (errno)
       fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to write the header: %s\n", _name, strerror(errno)), exit(1);
-
-    return;
   }
 
 
