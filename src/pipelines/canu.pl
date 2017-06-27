@@ -477,7 +477,6 @@ elsif (defined($reads)) {
 
 elsif (scalar(@inputFiles) > 0) {
     foreach my $typefile (@inputFiles) {
-        print STDERR "typefile '$typefile'\n";
         my ($type, $file) = split '\0', $typefile;
 
         $haveCorrected++         if ($type =~ m/corrected/);
