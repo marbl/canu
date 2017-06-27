@@ -61,7 +61,9 @@ static char *PmagicV = "merylStreamPv04\n";
 static char *PmagicX = "merylStreamPvXX\n";
 
 merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
-  char inpath[FILENAME_MAX];
+  char idxname[FILENAME_MAX];
+  char datname[FILENAME_MAX];
+  char posname[FILENAME_MAX];
 
   if (fn_ == 0L) {
     fprintf(stderr, "ERROR - no counted database file specified.\n");
@@ -74,17 +76,29 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
   //  Open the files
   //
 
-  snprintf(inpath, FILENAME_MAX, "%s.mcidx", _filename);
-  _IDX = new bitPackedFile(inpath);
+  snprintf(idxname, FILENAME_MAX, "%s.mcidx", _filename);
+  snprintf(datname, FILENAME_MAX, "%s.mcdat", _filename);
+  snprintf(posname, FILENAME_MAX, "%s.mcpos", _filename);
 
-  snprintf(inpath, FILENAME_MAX, "%s.mcdat", _filename);
-  _DAT = new bitPackedFile(inpath);
+  //  bitPackedFile will create a file if it doesn't exist, so we need to fail ahead
+  //  of time.
 
-  snprintf(inpath, FILENAME_MAX, "%s.mcpos", _filename);
-  if (AS_UTL_fileExists(inpath))
-    _POS = new bitPackedFile(inpath);
-  else
-    _POS = 0L;
+  bool idxexist = AS_UTL_fileExists(idxname);
+  bool datexist = AS_UTL_fileExists(datname);
+  bool posexist = AS_UTL_fileExists(posname);
+
+  if ((idxexist == false) ||
+      (datexist == false)) {
+    fprintf(stderr, "merylStreamReader()-- ERROR: Didn't find data files for reading mer data.\n");
+    fprintf(stderr, "merylStreamReader()-- ERROR: Expecting to find '%s' and\n", idxname);
+    fprintf(stderr, "merylStreamReader()-- ERROR:                   '%s'\n",     datname);
+    exit(1);
+  }
+
+  _IDX =              new bitPackedFile(idxname);
+  _DAT =              new bitPackedFile(datname);
+  _POS = (posexist) ? new bitPackedFile(posname) : 0L;
+    
 
   //  Verify that they are what they should be, and read in the header
   //
