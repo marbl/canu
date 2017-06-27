@@ -168,6 +168,23 @@ sub gatekeeperCreateStore ($$@) {
         return;
     }
 
+    #  If the store failed to build and the user just reruns canu, this will be triggered.  We'll
+    #  skip rebuilding the store again, and report the original error message.
+
+    if (-e "$base/$asm.gkpStore.BUILDING") {
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  Previously failed gkpStore detected.\n";
+        print STDERR "-- WARNING:\n";
+    }
+
+    #  Not sure how this can occur.  Possibly the user just deleted gkpStore.BUILDING and restarted?
+
+    if ((! -e "$base/$asm.gkpStore.BUILDING") && (-e "$base/$asm.gkpStore.gkp")) {
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  Existing sequence inputs used.\n";
+        print STDERR "-- WARNING:\n";
+    }
+
     #  Fail if there are no inputs.
 
     caExit("no input files specified, and store not already created, I have nothing to work on!", undef)
@@ -178,87 +195,91 @@ sub gatekeeperCreateStore ($$@) {
 
     #  At the same time, check that all files exist.
 
-    my $ff = undef;
+    if (!-e "$base/$asm.gkpStore.gkp") {
+        my $ff = undef;
 
-    foreach my $iii (@inputs) {
-        my ($type, $file) = split '\0', $iii;
+        foreach my $iii (@inputs) {
+            my ($type, $file) = split '\0', $iii;
 
-        if (($file =~ m/\.correctedReads\./) ||
-            ($file =~ m/\.trimmedReads\./)) {
-            fetchFile($file);
+            if (($file =~ m/\.correctedReads\./) ||
+                ($file =~ m/\.trimmedReads\./)) {
+                fetchFile($file);
 
-            chdir($base);                                 #  Move to where we run the command
-            $file = "../$file"      if (-e "../$file");   #  If file exists up one dir, it's our file
-            $iii = "$type\0$file";                        #  Rewrite the option
-            chdir("..");                                  #  ($file is used below too)
-        }
-
-        chdir($base);
-        $ff .= (defined($ff) ? "\n  " : "") . "reads '$file' not found."  if (! -e $file);
-        chdir("..");
-    }
-
-    caExit($ff, undef) if defined($ff);
-
-
-    #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
-    #  files as is.  This documents what gatekeeper was built with, etc.
-
-    open(F, "> $base/$asm.gkpStore.gkp") or caExit("cant' open '$base/$asm.gkpStore.gkp' for writing: $0", undef);
-
-    foreach my $iii (@inputs) {
-        if ($iii =~ m/^-(.*)\0(.*)$/) {
-            my $tech = $1;
-            my $file = $2;
-            my @name = split '/', $2;
-            my $name = $name[scalar(@name)-1];
-
-            $name = $1   if ($name =~ m/(.*).[xgb][z]2{0,1}$/i);
-            $name = $1   if ($name =~ m/(.*).fast[aq]$/i);
-            $name = $1   if ($name =~ m/(.*).f[aq]$/i);
-
-            print F "########################################\n";
-            print F "#  $tech: $file\n";
-            print F "#\n";
-            print F "name   $name\n";
-            print F "preset $tech\n";
-            print F "$file\n";
-            print F "\n";
-
-        } elsif (-e $iii) {
-            print F "########################################\n";
-            print F "#  $iii\n";
-            print F "#\n";
-            open(I, "< $iii") or caExit("can't open gatekeeper input '$iii' for reading: $0", undef);
-            while (<I>) {
-                print F $_;
+                chdir($base);                                 #  Move to where we run the command
+                $file = "../$file"      if (-e "../$file");   #  If file exists up one dir, it's our file
+                $iii = "$type\0$file";                        #  Rewrite the option
+                chdir("..");                                  #  ($file is used below too)
             }
-            close(I);
-            print F "\n";
 
-        } else {
-            caExit("unrecognized gatekeeper input file '$iii'", undef);
+            chdir($base);
+            $ff .= (defined($ff) ? "\n  " : "") . "reads '$file' not found."  if (! -e $file);
+            chdir("..");
         }
-    }
 
-    close(F);
+        caExit($ff, undef) if defined($ff);
+
+
+        #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
+        #  files as is.  This documents what gatekeeper was built with, etc.
+
+        open(F, "> $base/$asm.gkpStore.gkp") or caExit("cant' open '$base/$asm.gkpStore.gkp' for writing: $0", undef);
+
+        foreach my $iii (@inputs) {
+            if ($iii =~ m/^-(.*)\0(.*)$/) {
+                my $tech = $1;
+                my $file = $2;
+                my @name = split '/', $2;
+                my $name = $name[scalar(@name)-1];
+
+                $name = $1   if ($name =~ m/(.*).[xgb][z]2{0,1}$/i);
+                $name = $1   if ($name =~ m/(.*).fast[aq]$/i);
+                $name = $1   if ($name =~ m/(.*).f[aq]$/i);
+
+                print F "########################################\n";
+                print F "#  $tech: $file\n";
+                print F "#\n";
+                print F "name   $name\n";
+                print F "preset $tech\n";
+                print F "$file\n";
+                print F "\n";
+
+            } elsif (-e $iii) {
+                print F "########################################\n";
+                print F "#  $iii\n";
+                print F "#\n";
+                open(I, "< $iii") or caExit("can't open gatekeeper input '$iii' for reading: $0", undef);
+                while (<I>) {
+                    print F $_;
+                }
+                close(I);
+                print F "\n";
+
+            } else {
+                caExit("unrecognized gatekeeper input file '$iii'", undef);
+            }
+        }
+
+        close(F);
+    }
 
     #  Load the store.
 
-    my $cmd;
-    $cmd .= "$bin/gatekeeperCreate \\\n";
-    $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
-    $cmd .= "  -o ./$asm.gkpStore.BUILDING \\\n";
-    $cmd .= "  ./$asm.gkpStore.gkp \\\n";
-    $cmd .= "> ./$asm.gkpStore.BUILDING.err 2>&1";
+    if (! -e "$base/$asm.gkpStore.BUILDING") {
+        my $cmd;
+        $cmd .= "$bin/gatekeeperCreate \\\n";
+        $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
+        $cmd .= "  -o ./$asm.gkpStore.BUILDING \\\n";
+        $cmd .= "  ./$asm.gkpStore.gkp \\\n";
+        $cmd .= "> ./$asm.gkpStore.BUILDING.err 2>&1";
 
-    #  A little funny business to make gatekeeper not fail on read quality issues.
-    #  A return code of 0 is total success.
-    #  A return code of 1 means it found errors in the inputs, but finished.
-    #  Anything larger is a crash.
+        #  A little funny business to make gatekeeper not fail on read quality issues.
+        #  A return code of 0 is total success.
+        #  A return code of 1 means it found errors in the inputs, but finished.
+        #  Anything larger is a crash.
 
-    if (runCommand($base, $cmd) > 1) {
-        caExit("gatekeeper failed", "$base/$asm.gkpStore.BUILDING.err");
+        if (runCommand($base, $cmd) > 1) {
+            caExit("gatekeeper failed", "$base/$asm.gkpStore.BUILDING.err");
+        }
     }
 
     #  Check for quality issues.
@@ -273,6 +294,7 @@ sub gatekeeperCreateStore ($$@) {
         close(F);
 
         if ($nProblems > 0) {
+            print STDERR "\n";
             print STDERR "Gatekeeper detected problems in your input reads.  Please review the logging in files:\n";
             print STDERR "  ", getcwd(), "/$base/$asm.gkpStore.BUILDING.err\n";
             print STDERR "  ", getcwd(), "/$base/$asm.gkpStore.BUILDING/errorLog\n";
@@ -476,7 +498,7 @@ sub gatekeeper ($$@) {
     goto allDone    if (getNumberOfReadsInStore($base, $asm) > 0);
 
     #  Create the store.  If all goes well, we get asm.gkpStore.  If not, we could end up with
-    #  asm.BUILDING.gkpStore and ask the user to examine it and rename it to asm.ACCEPTED.gkpStore
+    #  asm.gkpStore.BUILDING and ask the user to examine it and rename it to asm.gkpStore.ACCEPTED
     #  and restart.  On the restart, gatekeeperCreateStore() detects the 'ACCPETED' store and
     #  renames to asm.gkpStore.
 
