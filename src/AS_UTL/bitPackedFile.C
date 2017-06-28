@@ -170,6 +170,8 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
     write(_file, &bt, sizeof(uint64));
     if (errno)
       fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to write the header: %s\n", _name, strerror(errno)), exit(1);
+
+    return;
   }
 
 
