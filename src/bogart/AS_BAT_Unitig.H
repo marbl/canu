@@ -178,7 +178,6 @@ private:
     _id            = 0;
 
     _isUnassembled = false;
-    _isBubble      = false;
     _isRepeat      = false;
   };
 
@@ -311,16 +310,13 @@ private:
   uint32            _id;
 
 public:
-  //  Classification.  The output is in three files: 'unassembled', 'bubbles', 'contigs' (defined as
-  //  not unassembled and not bubble).
+  //  Classification.
 
   uint32            _isUnassembled;  //  Is a single read or a pseudo singleton
-  uint32            _isBubble;       //  Annotation: from a failed bubble pop
-  uint32            _isRepeat;       //  Annotation: from an identified repeat region
+  uint32            _isRepeat;       //  From an identified repeat region
 
   char   type(void) {
     if (_isUnassembled)  return('U');
-    if (_isBubble)       return('B');
     if (_isRepeat)       return('R');
     return('N');
   }

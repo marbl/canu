@@ -707,11 +707,6 @@ findConfusedEdges(TigVector            &tigs,
             (tigs[tgBid]->ufpath.size() == 1))
           continue;
 
-        //  If the read is in an annotated bubble, skip.
-        if ((tigs[tgBid]->_isBubble == true) &&
-            (tigs[tgBid]->_isRepeat == false))
-          continue;
-
         //  Skip if this overlap is the best we're trying to match.
         if ((rdBid == b5->readId()) ||
             (rdBid == b3->readId()))

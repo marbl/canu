@@ -99,8 +99,7 @@ checkUnitigMembership(TigVector &tigs) {
 }
 
 
-//  Decides if a unitig is unassembled.  The other classifications (isBubble, isRepeat)
-//  are made when the type is processed (e.g., when bubbles are popped).
+//  Decides if a unitig is unassembled.
 //
 //  A unitig is unassembled if:
 //    1) it has fewer than R reads (R=2)
@@ -286,7 +285,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
   //  Generate n50.  Assumes tigs have been 'classified' already.
 
   vector<uint32>   unassembledLength;
-  vector<uint32>   bubbleLength;
   vector<uint32>   repeatLength;
   vector<uint32>   contigLength;
 
@@ -298,10 +296,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
 
     if (utg->_isUnassembled) {
       unassembledLength.push_back(utg->getLength());
-    }
-
-    else if (utg->_isBubble) {
-      bubbleLength.push_back(utg->getLength());
     }
 
     else if (utg->_isRepeat) {
@@ -321,7 +315,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
   FILE *F = fopen(N, "w");
   if (errno == 0) {
     reportN50(F, unassembledLength, "UNASSEMBLED", genomeSize);
-    reportN50(F, bubbleLength,      "BUBBLE",      genomeSize);
     reportN50(F, repeatLength,      "REPEAT",      genomeSize);
     reportN50(F, contigLength,      "CONTIGS",     genomeSize);
 
@@ -343,27 +336,26 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
 
 #define tCTG  0  //  To a read in a normal tig
 #define tRPT  1  //  To a read in a repeat tig
-#define tBUB  2  //  To a read in a bubble tig
-#define tUNA  3  //  To a read in an 'unassembled' leftover tig
-#define tUNU  4  //  To a read not placed in a tig
-#define tNOP  5  //  To no read (for best edges)
+#define tUNA  2  //  To a read in an 'unassembled' leftover tig
+#define tUNU  3  //  To a read not placed in a tig
+#define tNOP  4  //  To no read (for best edges)
 
 struct olapsUsed {
 
   uint64    total;
   //  By definition, satisfied overlaps are in the same tig.
 
-  uint64    doveSatSame[6];
-  uint64    contSatSame[6];
+  uint64    doveSatSame[5];
+  uint64    contSatSame[5];
 
   //  Unsatisfied overlaps can be in the same tig...
-  uint64    doveUnsatSame[6];
-  uint64    contUnsatSame[6];
+  uint64    doveUnsatSame[5];
+  uint64    contUnsatSame[5];
 
   //  ...or can be between tigs.
 
-  uint64    doveUnsatDiff[6][6];
-  uint64    contUnsatDiff[6][6];
+  uint64    doveUnsatDiff[5][5];
+  uint64    contUnsatDiff[5][5];
 };
 
 
@@ -372,7 +364,6 @@ uint32
 getTigType(Unitig *tg) {
   if (tg == NULL)          return(tUNU);
   if (tg->_isUnassembled)  return(tUNA);
-  if (tg->_isBubble)       return(tBUB);
   if (tg->_isRepeat)       return(tRPT);
   if (1)                   return(tCTG);
 }
@@ -585,8 +576,8 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
 
   //  Merge the symmetrical counts
 
-  for (uint32 ii=0; ii<6; ii++) {
-    for (uint32 jj=ii+1; jj<6; jj++) {
+  for (uint32 ii=0; ii<5; ii++) {
+    for (uint32 jj=ii+1; jj<5; jj++) {
       bb->doveUnsatDiff[ii][jj] += bb->doveUnsatDiff[jj][ii];      bb->doveUnsatDiff[jj][ii] = UINT64_MAX;
       dd->doveUnsatDiff[ii][jj] += dd->doveUnsatDiff[jj][ii];      dd->doveUnsatDiff[jj][ii] = UINT64_MAX;
       dc->doveUnsatDiff[ii][jj] += dc->doveUnsatDiff[jj][ii];      dc->doveUnsatDiff[jj][ii] = UINT64_MAX;
@@ -631,13 +622,11 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   fprintf(F, "---------                ------------ -------\n");
   fprintf(F, "same-contig              %12" F_U64P " %6.2f%%\n", bb->doveSatSame[tCTG], B(bb->doveSatSame[tCTG]));
   fprintf(F, "same-repeat              %12" F_U64P " %6.2f%%\n", bb->doveSatSame[tRPT], B(bb->doveSatSame[tRPT]));
-  fprintf(F, "same-bubble              %12" F_U64P " %6.2f%%\n", bb->doveSatSame[tBUB], B(bb->doveSatSame[tBUB]));
   fprintf(F, "\n");
   fprintf(F, "UNSATISFIED best edges       DOVETAIL\n");
   fprintf(F, "-----------              ------------ -------\n");
   fprintf(F, "same-contig              %12" F_U64P " %6.2f%%\n", bb->doveUnsatSame[tCTG], B(bb->doveUnsatSame[tCTG]));
   fprintf(F, "same-repeat              %12" F_U64P " %6.2f%%\n", bb->doveUnsatSame[tRPT], B(bb->doveUnsatSame[tRPT]));
-  fprintf(F, "same-bubble              %12" F_U64P " %6.2f%%\n", bb->doveUnsatSame[tBUB], B(bb->doveUnsatSame[tBUB]));
   fprintf(F, "same-unassembled         %12" F_U64P " %6.2f%%\n", bb->doveUnsatSame[tUNA], B(bb->doveUnsatSame[tUNA]));
   fprintf(F, "same-unused              %12" F_U64P " %6.2f%%\n", bb->doveUnsatSame[tUNU], B(bb->doveUnsatSame[tUNU]));
   fprintf(F, "\n");
@@ -645,35 +634,24 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   fprintf(F, "-----------              ------------ -------\n");
   fprintf(F, "contig-contig            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tCTG][tCTG], B(bb->doveUnsatDiff[tCTG][tCTG]));
   fprintf(F, "contig-repeat            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tCTG][tRPT], B(bb->doveUnsatDiff[tCTG][tRPT]));
-  fprintf(F, "contig-bubble            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tCTG][tBUB], B(bb->doveUnsatDiff[tCTG][tBUB]));
   fprintf(F, "contig-unassembled       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tCTG][tUNA], B(bb->doveUnsatDiff[tCTG][tUNA]));
   fprintf(F, "contig-unused            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tCTG][tUNU], B(bb->doveUnsatDiff[tCTG][tUNU]));
   fprintf(F, "contig-none              %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tCTG][tNOP], B(bb->doveUnsatDiff[tCTG][tNOP]));
   fprintf(F, "\n");
 //fprintf(F, "repeat-contig            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tRPT][tCTG], B(bb->doveUnsatDiff[tRPT][tCTG]));
   fprintf(F, "repeat-repeat            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tRPT][tRPT], B(bb->doveUnsatDiff[tRPT][tRPT]));
-  fprintf(F, "repeat-bubble            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tRPT][tBUB], B(bb->doveUnsatDiff[tRPT][tBUB]));
   fprintf(F, "repeat-unassembled       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tRPT][tUNA], B(bb->doveUnsatDiff[tRPT][tUNA]));
   fprintf(F, "repeat-unused            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tRPT][tUNU], B(bb->doveUnsatDiff[tRPT][tUNU]));
   fprintf(F, "repeat-none              %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tRPT][tNOP], B(bb->doveUnsatDiff[tRPT][tNOP]));
   fprintf(F, "\n");
-//fprintf(F, "bubble-contig            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tBUB][tCTG], B(bb->doveUnsatDiff[tBUB][tCTG]));
-//fprintf(F, "bubble-repeat            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tBUB][tRPT], B(bb->doveUnsatDiff[tBUB][tRPT]));
-  fprintf(F, "bubble-bubble            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tBUB][tBUB], B(bb->doveUnsatDiff[tBUB][tBUB]));
-  fprintf(F, "bubble-unassembled       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tBUB][tUNA], B(bb->doveUnsatDiff[tBUB][tUNA]));
-  fprintf(F, "bubble-unused            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tBUB][tUNU], B(bb->doveUnsatDiff[tBUB][tUNU]));
-  fprintf(F, "bubble-none              %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tBUB][tNOP], B(bb->doveUnsatDiff[tBUB][tNOP]));
-  fprintf(F, "\n");
 //fprintf(F, "unassembled-contig       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNA][tCTG], B(bb->doveUnsatDiff[tUNA][tCTG]));
 //fprintf(F, "unassembled-repeat       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNA][tRPT], B(bb->doveUnsatDiff[tUNA][tRPT]));
-//fprintf(F, "unassembled-bubble       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNA][tBUB], B(bb->doveUnsatDiff[tUNA][tBUB]));
   fprintf(F, "unassembled-unassembled  %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNA][tUNA], B(bb->doveUnsatDiff[tUNA][tUNA]));
   fprintf(F, "unassembled-unused       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNA][tUNU], B(bb->doveUnsatDiff[tUNA][tUNU]));
   fprintf(F, "unassembled-none         %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNA][tNOP], B(bb->doveUnsatDiff[tUNA][tNOP]));
   fprintf(F, "\n");
 //fprintf(F, "unused-contig            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNU][tCTG], B(bb->doveUnsatDiff[tUNU][tCTG]))
 //fprintf(F, "unused-repeat            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNU][tRPT], B(bb->doveUnsatDiff[tUNU][tRPT]));
-//fprintf(F, "unused-bubble            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNU][tBUB], B(bb->doveUnsatDiff[tUNU][tBUB]));
 //fprintf(F, "unused-unassembled       %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNU][tUNA], B(bb->doveUnsatDiff[tUNU][tUNA]));
   fprintf(F, "unused-unused            %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNU][tUNU], B(bb->doveUnsatDiff[tUNU][tUNU]));
   fprintf(F, "unused-none              %12" F_U64P " %6.2f%%\n", bb->doveUnsatDiff[tUNU][tNOP], B(bb->doveUnsatDiff[tUNU][tNOP]));
@@ -686,13 +664,11 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   fprintf(F, "---------                ------------ -------  ------------ -------  ------------ -------\n");
   fprintf(F, "same-contig              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveSatSame[tCTG], P(dd->doveSatSame[tCTG]), dc->doveSatSame[tCTG], Q(dc->doveSatSame[tCTG]), cc->contSatSame[tCTG], R(cc->contSatSame[tCTG]));
   fprintf(F, "same-repeat              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveSatSame[tRPT], P(dd->doveSatSame[tRPT]), dc->doveSatSame[tRPT], Q(dc->doveSatSame[tRPT]), cc->contSatSame[tRPT], R(cc->contSatSame[tRPT]));
-  fprintf(F, "same-bubble              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveSatSame[tBUB], P(dd->doveSatSame[tBUB]), dc->doveSatSame[tBUB], Q(dc->doveSatSame[tBUB]), cc->contSatSame[tBUB], R(cc->contSatSame[tBUB]));
   fprintf(F, "\n");
   fprintf(F, "UNSATISFIED all overlaps     DOVETAIL              DOVECONT           CONTAINMENT\n");
   fprintf(F, "-----------              ------------ -------  ------------ -------  ------------ -------\n");
   fprintf(F, "same-contig              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatSame[tCTG], P(dd->doveUnsatSame[tCTG]), dc->doveUnsatSame[tCTG], Q(dc->doveUnsatSame[tCTG]), cc->contUnsatSame[tCTG], R(cc->contUnsatSame[tCTG]));
   fprintf(F, "same-repeat              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatSame[tRPT], P(dd->doveUnsatSame[tRPT]), dc->doveUnsatSame[tRPT], Q(dc->doveUnsatSame[tRPT]), cc->contUnsatSame[tRPT], R(cc->contUnsatSame[tRPT]));
-  fprintf(F, "same-bubble              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatSame[tBUB], P(dd->doveUnsatSame[tBUB]), dc->doveUnsatSame[tBUB], Q(dc->doveUnsatSame[tBUB]), cc->contUnsatSame[tBUB], R(cc->contUnsatSame[tBUB]));
   fprintf(F, "same-unassembled         %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatSame[tUNA], P(dd->doveUnsatSame[tUNA]), dc->doveUnsatSame[tUNA], Q(dc->doveUnsatSame[tUNA]), cc->contUnsatSame[tUNA], R(cc->contUnsatSame[tUNA]));
   fprintf(F, "same-unused              %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatSame[tUNU], P(dd->doveUnsatSame[tUNU]), dc->doveUnsatSame[tUNU], Q(dc->doveUnsatSame[tUNU]), cc->contUnsatSame[tUNU], R(cc->contUnsatSame[tUNU]));
   fprintf(F, "\n");
@@ -700,31 +676,21 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   fprintf(F, "-----------              ------------ -------  ------------ -------  ------------ -------\n");
   fprintf(F, "contig-contig            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tCTG][tCTG], P(dd->doveUnsatDiff[tCTG][tCTG]), dc->doveUnsatDiff[tCTG][tCTG], Q(dc->doveUnsatDiff[tCTG][tCTG]), cc->contUnsatDiff[tCTG][tCTG], R(cc->contUnsatDiff[tCTG][tCTG]));
   fprintf(F, "contig-repeat            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tCTG][tRPT], P(dd->doveUnsatDiff[tCTG][tRPT]), dc->doveUnsatDiff[tCTG][tRPT], Q(dc->doveUnsatDiff[tCTG][tRPT]), cc->contUnsatDiff[tCTG][tRPT], R(cc->contUnsatDiff[tCTG][tRPT]));
-  fprintf(F, "contig-bubble            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tCTG][tBUB], P(dd->doveUnsatDiff[tCTG][tBUB]), dc->doveUnsatDiff[tCTG][tBUB], Q(dc->doveUnsatDiff[tCTG][tBUB]), cc->contUnsatDiff[tCTG][tBUB], R(cc->contUnsatDiff[tCTG][tBUB]));
   fprintf(F, "contig-unassembled       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tCTG][tUNA], P(dd->doveUnsatDiff[tCTG][tUNA]), dc->doveUnsatDiff[tCTG][tUNA], Q(dc->doveUnsatDiff[tCTG][tUNA]), cc->contUnsatDiff[tCTG][tUNA], R(cc->contUnsatDiff[tCTG][tUNA]));
   fprintf(F, "contig-unused            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tCTG][tUNU], P(dd->doveUnsatDiff[tCTG][tUNU]), dc->doveUnsatDiff[tCTG][tUNU], Q(dc->doveUnsatDiff[tCTG][tUNU]), cc->contUnsatDiff[tCTG][tUNU], R(cc->contUnsatDiff[tCTG][tUNU]));
   fprintf(F, "\n");
 //fprintf(F, "repeat-contig            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tRPT][tCTG], P(dd->doveUnsatDiff[tRPT][tCTG]), dc->doveUnsatDiff[tRPT][tCTG], Q(dc->doveUnsatDiff[tRPT][tCTG]), cc->contUnsatDiff[tRPT][tCTG], R(cc->contUnsatDiff[tRPT][tCTG]));
   fprintf(F, "repeat-repeat            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tRPT][tRPT], P(dd->doveUnsatDiff[tRPT][tRPT]), dc->doveUnsatDiff[tRPT][tRPT], Q(dc->doveUnsatDiff[tRPT][tRPT]), cc->contUnsatDiff[tRPT][tRPT], R(cc->contUnsatDiff[tRPT][tRPT]));
-  fprintf(F, "repeat-bubble            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tRPT][tBUB], P(dd->doveUnsatDiff[tRPT][tBUB]), dc->doveUnsatDiff[tRPT][tBUB], Q(dc->doveUnsatDiff[tRPT][tBUB]), cc->contUnsatDiff[tRPT][tBUB], R(cc->contUnsatDiff[tRPT][tBUB]));
   fprintf(F, "repeat-unassembled       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tRPT][tUNA], P(dd->doveUnsatDiff[tRPT][tUNA]), dc->doveUnsatDiff[tRPT][tUNA], Q(dc->doveUnsatDiff[tRPT][tUNA]), cc->contUnsatDiff[tRPT][tUNA], R(cc->contUnsatDiff[tRPT][tUNA]));
   fprintf(F, "repeat-unused            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tRPT][tUNU], P(dd->doveUnsatDiff[tRPT][tUNU]), dc->doveUnsatDiff[tRPT][tUNU], Q(dc->doveUnsatDiff[tRPT][tUNU]), cc->contUnsatDiff[tRPT][tUNU], R(cc->contUnsatDiff[tRPT][tUNU]));
   fprintf(F, "\n");
-//fprintf(F, "bubble-contig            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tBUB][tCTG], P(dd->doveUnsatDiff[tBUB][tCTG]), dc->doveUnsatDiff[tBUB][tCTG], Q(dc->doveUnsatDiff[tBUB][tCTG]), cc->contUnsatDiff[tBUB][tCTG], R(cc->contUnsatDiff[tBUB][tCTG]));
-//fprintf(F, "bubble-repeat            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tBUB][tRPT], P(dd->doveUnsatDiff[tBUB][tRPT]), dc->doveUnsatDiff[tBUB][tRPT], Q(dc->doveUnsatDiff[tBUB][tRPT]), cc->contUnsatDiff[tBUB][tRPT], R(cc->contUnsatDiff[tBUB][tRPT]));
-  fprintf(F, "bubble-bubble            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tBUB][tBUB], P(dd->doveUnsatDiff[tBUB][tBUB]), dc->doveUnsatDiff[tBUB][tBUB], Q(dc->doveUnsatDiff[tBUB][tBUB]), cc->contUnsatDiff[tBUB][tBUB], R(cc->contUnsatDiff[tBUB][tBUB]));
-  fprintf(F, "bubble-unassembled       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tBUB][tUNA], P(dd->doveUnsatDiff[tBUB][tUNA]), dc->doveUnsatDiff[tBUB][tUNA], Q(dc->doveUnsatDiff[tBUB][tUNA]), cc->contUnsatDiff[tBUB][tUNA], R(cc->contUnsatDiff[tBUB][tUNA]));
-  fprintf(F, "bubble-unused            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tBUB][tUNU], P(dd->doveUnsatDiff[tBUB][tUNU]), dc->doveUnsatDiff[tBUB][tUNU], Q(dc->doveUnsatDiff[tBUB][tUNU]), cc->contUnsatDiff[tBUB][tUNU], R(cc->contUnsatDiff[tBUB][tUNU]));
-  fprintf(F, "\n");
 //fprintf(F, "unassembled-contig       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNA][tCTG], P(dd->doveUnsatDiff[tUNA][tCTG]), dc->doveUnsatDiff[tUNA][tCTG], Q(dc->doveUnsatDiff[tUNA][tCTG]), cc->contUnsatDiff[tUNA][tCTG], R(cc->contUnsatDiff[tUNA][tCTG]));
 //fprintf(F, "unassembled-repeat       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNA][tRPT], P(dd->doveUnsatDiff[tUNA][tRPT]), dc->doveUnsatDiff[tUNA][tRPT], Q(dc->doveUnsatDiff[tUNA][tRPT]), cc->contUnsatDiff[tUNA][tRPT], R(cc->contUnsatDiff[tUNA][tRPT]));
-//fprintf(F, "unassembled-bubble       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNA][tBUB], P(dd->doveUnsatDiff[tUNA][tBUB]), dc->doveUnsatDiff[tUNA][tBUB], Q(dc->doveUnsatDiff[tUNA][tBUB]), cc->contUnsatDiff[tUNA][tBUB], R(cc->contUnsatDiff[tUNA][tBUB]));
   fprintf(F, "unassembled-unassembled  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNA][tUNA], P(dd->doveUnsatDiff[tUNA][tUNA]), dc->doveUnsatDiff[tUNA][tUNA], Q(dc->doveUnsatDiff[tUNA][tUNA]), cc->contUnsatDiff[tUNA][tUNA], R(cc->contUnsatDiff[tUNA][tUNA]));
   fprintf(F, "unassembled-unused       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNA][tUNU], P(dd->doveUnsatDiff[tUNA][tUNU]), dc->doveUnsatDiff[tUNA][tUNU], Q(dc->doveUnsatDiff[tUNA][tUNU]), cc->contUnsatDiff[tUNA][tUNU], R(cc->contUnsatDiff[tUNA][tUNU]));
   fprintf(F, "\n");
 //fprintf(F, "unused-contig            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNU][tCTG], P(dd->doveUnsatDiff[tUNU][tCTG]), dc->doveUnsatDiff[tUNU][tCTG], Q(dc->doveUnsatDiff[tUNU][tCTG]), cc->contUnsatDiff[tUNU][tCTG], R(cc->contUnsatDiff[tUNU][tCTG]));
 //fprintf(F, "unused-repeat            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNU][tRPT], P(dd->doveUnsatDiff[tUNU][tRPT]), dc->doveUnsatDiff[tUNU][tRPT], Q(dc->doveUnsatDiff[tUNU][tRPT]), cc->contUnsatDiff[tUNU][tRPT], R(cc->contUnsatDiff[tUNU][tRPT]));
-//fprintf(F, "unused-bubble            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNU][tBUB], P(dd->doveUnsatDiff[tUNU][tBUB]), dc->doveUnsatDiff[tUNU][tBUB], Q(dc->doveUnsatDiff[tUNU][tBUB]), cc->contUnsatDiff[tUNU][tBUB], R(cc->contUnsatDiff[tUNU][tBUB]));
 //fprintf(F, "unused-unassembled       %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNU][tUNA], P(dd->doveUnsatDiff[tUNU][tUNA]), dc->doveUnsatDiff[tUNU][tUNA], Q(dc->doveUnsatDiff[tUNU][tUNA]), cc->contUnsatDiff[tUNU][tUNA], R(cc->contUnsatDiff[tUNU][tUNA]));
   fprintf(F, "unused-unused            %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%  %12" F_U64P " %6.2f%%\n", dd->doveUnsatDiff[tUNU][tUNU], P(dd->doveUnsatDiff[tUNU][tUNU]), dc->doveUnsatDiff[tUNU][tUNU], Q(dc->doveUnsatDiff[tUNU][tUNU]), cc->contUnsatDiff[tUNU][tUNU], R(cc->contUnsatDiff[tUNU][tUNU]));
   fprintf(F, "\n");

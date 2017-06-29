@@ -85,7 +85,6 @@ copyTig(TigVector    &tigs,
   Unitig  *newtig = tigs.newUnitig(false);
 
   newtig->_isUnassembled = oldtig->_isUnassembled;
-  newtig->_isBubble      = oldtig->_isBubble;
   newtig->_isRepeat      = oldtig->_isRepeat;
 
   for (uint32 fi=0; fi<oldtig->ufpath.size(); fi++)

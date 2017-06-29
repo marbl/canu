@@ -367,7 +367,6 @@ mergeOrphans(TigVector &tigs,
   //  Clear flags.
   for (uint32 ti=0; ti<tiLimit; ti++) {
     if (tigs[ti]) {
-      tigs[ti]->_isBubble = false;
       tigs[ti]->_isRepeat = false;
     }
   }
@@ -797,7 +796,6 @@ mergeOrphans(TigVector &tigs,
       writeLog("\n");
 
       bubble->_isRepeat = (nBubble > 1);
-      bubble->_isBubble = true;
     }
 
     //  If a unique orphan placement, place it there.
