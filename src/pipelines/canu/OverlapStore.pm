@@ -561,6 +561,51 @@ sub createOverlapStoreParallel ($$$) {
 }
 
 
+
+sub checkOverlapStore ($$) {
+    my $base    = shift @_;
+    my $asm     = shift @_;
+
+    my $bin   = getBinDirectory();
+    my $cmd;
+
+    $cmd  = "$bin/ovStoreDump \\\n";
+    $cmd .= " -G ./$asm.gkpStore \\\n";
+    $cmd .= " -O ./$asm.ovlStore \\\n";
+    $cmd .= " -d -counts \\\n";
+    $cmd .= " > ./$asm.ovlStore/counts.dat 2> ./$asm.ovlStore/counts.err";
+
+    print STDERR "-- Checking store.\n";
+
+    if (runCommand($base, $cmd)) {
+        caExit("failed to dump counts of overlaps; invalid store?", "./$asm.ovlStore/counts.err");
+    }
+
+    my $totOvl   = 0;
+    my $nulReads = 0;
+    my $ovlReads = 0;
+
+    open(F, "< ./$base/$asm.ovlStore/counts.dat") or die;
+    while (<F>) {
+        my @v = split '\s+', $_;
+
+        $nulReads += 1       if ($v[1] < 1);
+        $ovlReads += 1       if ($v[1] > 0);
+        $totOvl   += $v[1];
+    }
+    close(F);
+
+    print STDERR "--\n";
+    print STDERR "-- Overlap store '$base/$asm.ovlStore' successfully constructed.\n";
+    print STDERR "-- Found $totOvl overlaps for $ovlReads reads; $nulReads reads have no overlaps.\n";
+    print STDERR "--\n";
+
+    unlink "./$base/$asm.ovlStore/counts.dat";
+    unlink "./$base/$asm.ovlStore/counts.err";
+}
+
+
+
 sub generateOverlapStoreStats ($$) {
     my $base    = shift @_;
     my $asm     = shift @_;
@@ -610,8 +655,7 @@ sub createOverlapStore ($$$) {
     createOverlapStoreSequential($base, $asm, $tag)  if ($seq eq "sequential");
     createOverlapStoreParallel  ($base, $asm, $tag)  if ($seq eq "parallel");
 
-    print STDERR "--\n";
-    print STDERR "-- Overlap store '$base/$asm.ovlStore' successfully constructed.\n";
+    checkOverlapStore($base, $asm);
 
     goto finishStage  if (getGlobal("saveOverlaps") eq "1");
 
