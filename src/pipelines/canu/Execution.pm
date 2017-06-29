@@ -1465,10 +1465,10 @@ sub caExit ($$) {
     print STDERR "ABORT: Don't panic, but a mostly harmless error occurred and Canu stopped.\n";
     print STDERR "ABORT: Try restarting.  If that doesn't work, ask for help.\n";
     print STDERR "ABORT:\n";
-    print STDERR "ABORT:   $msg.\n";
-    print STDERR "ABORT:\n";
+    print STDERR "ABORT:   $msg.\n"     if (defined($msg));
+    print STDERR "ABORT:\n"             if (defined($msg));
 
-    if (defined($log)) {
+    if (defined($log) && -e $log) {
         my  $df = diskSpace($log);
 
         print STDERR "ABORT: Disk space available:  $df GB\n";
