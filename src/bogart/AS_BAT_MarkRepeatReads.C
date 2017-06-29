@@ -96,9 +96,9 @@ olapDatByEviRid(const olapDat &A, const olapDat &B) {
 class breakPointCoords {
 public:
   breakPointCoords(int32 bgn, int32 end, bool rpt=false) {
-    _bgn      = bgn;
-    _end      = end;
-    _isRepeat = rpt;
+    _bgn = bgn;
+    _end = end;
+    _rpt = rpt;
   };
   ~breakPointCoords() {
   };
@@ -109,7 +109,7 @@ public:
 
   int32   _bgn;
   int32   _end;
-  bool    _isRepeat;
+  bool    _rpt;
 };
 
 
@@ -210,7 +210,7 @@ splitTig(TigVector                &tigs,
     for (uint32 ii=0; ii<BP.size(); ii++) {
       int32   rgnbgn = BP[ii]._bgn;
       int32   rgnend = BP[ii]._end;
-      bool    repeat = BP[ii]._isRepeat;
+      bool    repeat = BP[ii]._rpt;
 
       //  For repeats, the read must be contained fully.
 
@@ -232,7 +232,7 @@ splitTig(TigVector                &tigs,
     if (rid == UINT32_MAX) {
       fprintf(stderr, "Failed to place read %u at %d-%d\n", frg.ident, frgbgn, frgend);
       for (uint32 ii=0; ii<BP.size(); ii++)
-        fprintf(stderr, "BP[%3u] at %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._isRepeat);
+        fprintf(stderr, "BP[%3u] at %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._rpt);
       flushLog();
     }
     assert(rid != UINT32_MAX);  //  We searched all the BP's, the read had better be placed!
@@ -913,7 +913,7 @@ reportTigsCreated(Unitig                    *tig,
   for (uint32 ii=0; ii<BP.size(); ii++) {
     int32   rgnbgn = BP[ii]._bgn;
     int32   rgnend = BP[ii]._end;
-    bool    repeat = BP[ii]._isRepeat;
+    bool    repeat = BP[ii]._rpt;
 
     if      (nRepeat[ii] + nUnique[ii] == 0)
       writeLog("For tig %5u %s region %8d %8d - %6u/%6u repeat/unique reads - no new unitig created.\n",
@@ -1072,7 +1072,7 @@ markRepeatReads(AssemblyGraph         *AG,
     for (uint32 ii=0; ii<BP.size(); ii++)
       writeLog("  %8d %8d %s (length %d)\n",
                BP[ii]._bgn, BP[ii]._end,
-               BP[ii]._isRepeat ? "repeat" : "unique",
+               BP[ii]._rpt ? "repeat" : "unique",
                BP[ii]._end - BP[ii]._bgn);
 
     //  Scan the reads, counting the number of reads that would be placed in each new tig.  This is done
