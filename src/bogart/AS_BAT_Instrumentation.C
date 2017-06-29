@@ -99,7 +99,7 @@ checkUnitigMembership(TigVector &tigs) {
 }
 
 
-//  Decides if a unitig is unassembled.  The other classifications (isBubble, isCircular, isRepeat)
+//  Decides if a unitig is unassembled.  The other classifications (isBubble, isRepeat)
 //  are made when the type is processed (e.g., when bubbles are popped).
 //
 //  A unitig is unassembled if:
@@ -288,7 +288,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
   vector<uint32>   unassembledLength;
   vector<uint32>   bubbleLength;
   vector<uint32>   repeatLength;
-  vector<uint32>   circularLength;
   vector<uint32>   contigLength;
 
   for (uint32  ti=0; ti<tigs.size(); ti++) {
@@ -309,10 +308,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
       repeatLength.push_back(utg->getLength());
     }
 
-    else if (utg->_isCircular) {
-      circularLength.push_back(utg->getLength());
-    }
-
     else {
       contigLength.push_back(utg->getLength());
     }
@@ -328,7 +323,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
     reportN50(F, unassembledLength, "UNASSEMBLED", genomeSize);
     reportN50(F, bubbleLength,      "BUBBLE",      genomeSize);
     reportN50(F, repeatLength,      "REPEAT",      genomeSize);
-    reportN50(F, circularLength,    "CIRCULAR",    genomeSize);
     reportN50(F, contigLength,      "CONTIGS",     genomeSize);
 
     fclose(F);

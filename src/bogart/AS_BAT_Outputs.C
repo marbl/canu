@@ -93,7 +93,7 @@ writeTigsToStore(TigVector     &tigs,
       tig->_class = tgTig_contig;
 
     tig->_suggestRepeat   = (utg->_isRepeat   == true);
-    tig->_suggestCircular = (utg->_isCircular == true);
+    tig->_suggestCircular = false;
 
     tig->_layoutLen       = utg->getLength();
 

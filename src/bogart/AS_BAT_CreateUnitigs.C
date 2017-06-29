@@ -87,7 +87,6 @@ copyTig(TigVector    &tigs,
   newtig->_isUnassembled = oldtig->_isUnassembled;
   newtig->_isBubble      = oldtig->_isBubble;
   newtig->_isRepeat      = oldtig->_isRepeat;
-  newtig->_isCircular    = oldtig->_isCircular;
 
   for (uint32 fi=0; fi<oldtig->ufpath.size(); fi++)
     newtig->addRead(oldtig->ufpath[fi], 0, false);
