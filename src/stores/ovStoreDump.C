@@ -704,7 +704,7 @@ main(int argc, char **argv) {
 
   char           *erateFile   = NULL;
 
-  uint32          bgnID       = 0;
+  uint32          bgnID       = 1;
   uint32          endID       = UINT32_MAX;
   uint32          qryID       = 0;
 
