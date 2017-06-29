@@ -515,18 +515,19 @@ sub merylCheck ($$) {
     #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
     #  (unitigger is the same)
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- meryl failed.\n";
-        print STDERR "--\n";
-    }
-
     #  If too many attempts, give up.
 
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    if ($attempt >= getGlobal("canuIterationMax")) {
+        print STDERR "--\n";
+        print STDERR "-- Meryl failed, tried $attempt times, giving up.\n";
+        print STDERR "--\n";
+        caExit(undef, undef);
+    }
+
+    if ($attempt > 0) {
+        print STDERR "--\n";
+        print STDERR "-- Meryl failed, retry.\n";
+        print STDERR "--\n";
     }
 
     #  Otherwise, run some jobs.

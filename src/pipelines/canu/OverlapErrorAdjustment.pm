@@ -262,19 +262,21 @@ sub readErrorDetectionCheck ($) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " read error detection jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to detect errors in reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- Read error detection jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- Read error detection jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.
@@ -581,19 +583,21 @@ sub overlapErrorAdjustmentCheck ($) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to adjust overlap error rates.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- Overlap error adjustment jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- Overlap error adjustment jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.

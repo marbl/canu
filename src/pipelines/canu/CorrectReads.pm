@@ -1037,18 +1037,21 @@ sub generateCorrectedReads ($) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " read correction jobs failed:\n";
-            print STDERR $failureMessage;
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to generate corrected reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- Read correction jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- Read correction jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.

@@ -473,19 +473,21 @@ sub mmapPrecomputeCheck ($$$) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " mmap precompute jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to precompute mmap indices.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- MiniMap precompute jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- MiniMap precompute jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.
@@ -595,19 +597,21 @@ sub mmapCheck ($$$) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " mmap jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to compute mmap overlaps.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- MiniMap overlap jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- MiniMap overlap jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.

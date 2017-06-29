@@ -636,19 +636,21 @@ sub mhapPrecomputeCheck ($$$) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " mhap precompute jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to precompute mhap indices.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- Mhap precompute jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- Mhap precompute jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.
@@ -761,19 +763,21 @@ sub mhapCheck ($$$) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " mhap jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to compute mhap overlaps.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- Mhap overlap jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- Mhap overlap jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.

@@ -328,19 +328,21 @@ sub consensusCheck ($) {
 
     if (scalar(@failedJobs) > 0) {
 
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- ", scalar(@failedJobs), " consensus jobs failed:\n";
-            print STDERR $failureMessage;
-            print STDERR "--\n";
-        }
-
         #  If too many attempts, give up.
 
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to generate consensus.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        if ($attempt >= getGlobal("canuIterationMax")) {
+            print STDERR "--\n";
+            print STDERR "-- Consensus jobs failed, tried $attempt times, giving up.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+            caExit(undef, undef);
+        }
+
+        if ($attempt > 0) {
+            print STDERR "--\n";
+            print STDERR "-- Consensus jobs failed, retry.\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
 
         #  Otherwise, run some jobs.
@@ -685,18 +687,19 @@ sub alignGFA ($) {
     #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
     #  (meryl and unitig are the same)
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- GFA alignment failed.\n";
-        print STDERR "--\n";
-    }
-
     #  If too many attempts, give up.
 
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to align GFA links.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    if ($attempt >= getGlobal("canuIterationMax")) {
+        print STDERR "--\n";
+        print STDERR "-- Graph alignment jobs failed, tried $attempt times, giving up.\n";
+        print STDERR "--\n";
+        caExit(undef, undef);
+    }
+
+    if ($attempt > 0) {
+        print STDERR "--\n";
+        print STDERR "-- Graph alignment jobs failed, retry.\n";
+        print STDERR "--\n";
     }
 
     #  Otherwise, run some jobs.
