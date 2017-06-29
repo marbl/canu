@@ -282,18 +282,20 @@ sub diskSpace ($) {
     my  $dir                          = dirname($_[0]);
     my ($total, $used, $free, $avail) = (0, 0, 0, 0);
 
-    open(DF, "df -P -k $dir |");
-    while (<DF>) {
-        chomp;
+    if (-d $dir) {
+        open(DF, "df -P -k $dir |");
+        while (<DF>) {
+            chomp;
 
-        if (m/^(.*)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+%)\s+(.*)$/) {
-            $total = int($2 / 1048.576) / 1000;
-            $used  = int($3 / 1048.576) / 1000;
-            $free  = int($4 / 1048.576) / 1000;
-            $avail = int($4 / 1048.576) / 1000;  #  Possibly limited by quota?
+            if (m/^(.*)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+%)\s+(.*)$/) {
+                $total = int($2 / 1048.576) / 1000;
+                $used  = int($3 / 1048.576) / 1000;
+                $free  = int($4 / 1048.576) / 1000;
+                $avail = int($4 / 1048.576) / 1000;  #  Possibly limited by quota?
+            }
         }
+        close(DF);
     }
-    close(DF);
 
     #print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
 
