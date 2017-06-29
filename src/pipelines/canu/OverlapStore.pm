@@ -543,7 +543,6 @@ sub overlapStoreSorterCheck ($$$) {
 
 
 
-
 sub createOverlapStoreParallel ($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
@@ -704,6 +703,7 @@ sub createOverlapStore ($$$) {
 
     } else {
         print STDERR "-- Overlap store '$base/$asm.ovlStore' statistics not available (skipped in correction and trimming stages).\n";
+        print STDERR "--\n";
     }
 
     emitStage($asm, "$tag-createOverlapStore");
