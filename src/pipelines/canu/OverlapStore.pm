@@ -584,16 +584,6 @@ sub generateOverlapStoreStats ($$) {
     }
 
     unlink "$base/$asm.ovlStore.summary.err";
-
-    my $report;
-
-    open(F, "< $base/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$base/$asm.ovlStore.summary': $!", undef);
-    while (<F>) {
-        $report .= "-- $_";
-    }
-    close(F);
-
-    addToReport("overlaps", $report);
 }
 
 
@@ -702,11 +692,15 @@ sub createOverlapStore ($$$) {
         print STDERR "-- Overlap store '$base/$asm.ovlStore' contains:\n";
         print STDERR "--\n";
 
+        my $report;
+
         open(F, "< $base/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$base/$asm.ovlStore': $!", undef);
         while (<F>) {
-            print STDERR "--   $_";
+            $report .= "--   $_";
         }
         close(F);
+
+        addToReport("overlaps", $report);   #  Also shows it.
 
     } else {
         print STDERR "-- Overlap store '$base/$asm.ovlStore' statistics not available (skipped in correction and trimming stages).\n";
