@@ -186,7 +186,7 @@ public:
     //  It is possible, but unlikely, to have two overlaps to the same pair of reads,
     //  if we overlap a5'-b3' and a3'-b5'.  I think.
 
-    return(innie != that.innie);
+    return(innie < that.innie);
   };
 };
 
