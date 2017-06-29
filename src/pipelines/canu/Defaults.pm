@@ -1358,6 +1358,11 @@ sub checkParameters () {
         }
     }
 
+    if ((getGlobal("ovsMethod") ne "sequential") &&
+        (getGlobal("ovsMethod") ne "parallel")) {
+        addCommandLineError("ERROR:  Invalid 'ovsMethod' specified (" . getGlobal("ovsMethod") . "); must be 'sequential' or 'parallel'\n");
+    }
+
     if ((getGlobal("unitigger") ne "unitigger") &&
         (getGlobal("unitigger") ne "bogart")) {
         addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'\n");
