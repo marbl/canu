@@ -135,6 +135,7 @@ public:
 
 void
 Unitig::optimize(const char *prefix, const char *label) {
+  bool   beVerbose = false;
 
   if (ufpath.size() == 1)
     return;
@@ -157,6 +158,13 @@ Unitig::optimize(const char *prefix, const char *label) {
 
   op[0].min = np[0].min = 0;                                   //  Seed first read at zero and ending at length.
   op[0].max = np[0].max = RI->readLength(ufpath[0].ident);
+
+  if (beVerbose)
+    writeLog("INIT tig %u read %u %9.2f-%-9.2f endDiff %9.2f\n",
+             id(), op[0].ident,
+             op[0].min,
+             op[0].max,
+             op[0].min + RI->readLength(ufpath[0].ident));
 
   for (uint32 ii=1; ii<ufpath.size(); ii++) {
     uint32       fid     = ufpath[ii].ident;
@@ -208,11 +216,12 @@ Unitig::optimize(const char *prefix, const char *label) {
 
     op[ii].max = op[ii].min + RI->readLength(ufpath[ii].ident);
 
-    //writeLog("INIT tig %u read %u %9.2f-%-9.2f endDiff %9.2f\n",
-    //         id(), op[ii].ident,
-    //         op[ii].min,
-    //         op[ii].max,
-    //         op[ii].min + RI->readLength(ufpath[ii].ident));
+    if (beVerbose)
+      writeLog("INIT tig %u read %u %9.2f-%-9.2f endDiff %9.2f\n",
+               id(), op[ii].ident,
+               op[ii].min,
+               op[ii].max,
+               op[ii].min + RI->readLength(ufpath[ii].ident));
   }
 
   //
@@ -235,8 +244,10 @@ Unitig::optimize(const char *prefix, const char *label) {
       double       nmax = 0.0;
       uint32       cnt  = 0;
 
-      //writeLog("optimize()-- tig %8u read %8u previous  - %9.2f-%-9.2f\n", id(), fid, op[ii].min,           op[ii].max);
-      //writeLog("optimize()-- tig %8u read %8u length    - %9.2f-%-9.2f\n", id(), fid, op[ii].max - readLen, op[ii].min + readLen);
+      if (beVerbose) {
+        writeLog("optimize()-- tig %8u read %8u previous  - %9.2f-%-9.2f\n", id(), fid, op[ii].min,           op[ii].max);
+        writeLog("optimize()-- tig %8u read %8u length    - %9.2f-%-9.2f\n", id(), fid, op[ii].max - readLen, op[ii].min + readLen);
+      }
 
       //  Process all overlaps.
 
@@ -256,7 +267,8 @@ Unitig::optimize(const char *prefix, const char *label) {
         double tmin = (op[ii].fwd) ? (op[jj].min - ovl[oo].a_hang) : (op[jj].min + ovl[oo].b_hang);
         double tmax = (op[ii].fwd) ? (op[jj].max - ovl[oo].b_hang) : (op[jj].max + ovl[oo].a_hang);
 
-        //writeLog("optimize()-- tig %8u read %8u olap %4u - %9.2f-%-9.2f\n", id(), fid, oo, tmin, tmax);
+        if (beVerbose)
+          writeLog("optimize()-- tig %8u read %8u olap %4u - %9.2f-%-9.2f\n", id(), fid, oo, tmin, tmax);
 
         nmin += tmin;
         nmax += tmax;
@@ -278,18 +290,16 @@ Unitig::optimize(const char *prefix, const char *label) {
       np[ii].min = nmin / cnt;
       np[ii].max = nmax / cnt;
 
-      //  Logging isn't quite correct - np needs to be offset first
-      //writeLog("optimize()-- tig %8u read %8u           - %8d-%-8d from %8d-%-8d iter %2u\n",
-
       double dmin = 2 * (op[ii].min - np[ii].min) / (op[ii].min + np[ii].min);
       double dmax = 2 * (op[ii].max - np[ii].max) / (op[ii].max + np[ii].max);
 
-      //writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6u posChange %+6.4f %+6.4f iter %2u\n",
-      //         id(), fid,
-      //         np[ii].min, np[ii].max,
-      //         np[ii].max - np[ii].min, readLen,
-      //         dmin, dmax,
-      //         iter);
+      if (beVerbose)
+        writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6u posChange %+6.4f %+6.4f iter %2u\n",
+                 id(), fid,
+                 np[ii].min, np[ii].max,
+                 np[ii].max - np[ii].min, readLen,
+                 dmin, dmax,
+                 iter);
     }  //  Over all reads in the tig
 
     //  Offset back to zero.
@@ -337,22 +347,25 @@ Unitig::optimize(const char *prefix, const char *label) {
 
   for (uint32 ii=0; ii<ufpath.size(); ii++) {
     if (op[ii].fwd) {
-      //writeLog("read %6u from %8d,%-8d to %8d,%-8d ->\n", 
-      //         ufpath[ii].ident,
-      //         ufpath[ii].position.bgn,
-      //         ufpath[ii].position.end,
-      //         (int32)op[ii].min,
-      //         (int32)op[ii].max);
+      //  Logging isn't quite correct - np needs to be offset first
+      if (beVerbose)
+        writeLog("read %6u from %8d,%-8d to %8d,%-8d ->\n", 
+                 ufpath[ii].ident,
+                 ufpath[ii].position.bgn,
+                 ufpath[ii].position.end,
+                 (int32)op[ii].min,
+                 (int32)op[ii].max);
 
       ufpath[ii].position.bgn = (int32)op[ii].min;
       ufpath[ii].position.end = (int32)op[ii].max;
     } else {
-      //writeLog("read %6u from %8d,%-8d to %8d,%-8d <-\n", 
-      //         ufpath[ii].ident,
-      //         ufpath[ii].position.bgn,
-      //         ufpath[ii].position.end,
-      //         (int32)op[ii].max,
-      //         (int32)op[ii].min);
+      if (beVerbose)
+        writeLog("read %6u from %8d,%-8d to %8d,%-8d <-\n", 
+                 ufpath[ii].ident,
+                 ufpath[ii].position.bgn,
+                 ufpath[ii].position.end,
+                 (int32)op[ii].max,
+                 (int32)op[ii].min);
 
       ufpath[ii].position.bgn = (int32)op[ii].max;
       ufpath[ii].position.end = (int32)op[ii].min;
