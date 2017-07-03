@@ -44,10 +44,14 @@
 #include "stddev.H"
 
 #include <vector>
+#include <set>
 #include <algorithm>
 
-class BestEdgeOverlap;
+using namespace std;
 
+
+class BestEdgeOverlap;
+class optPos;
 
 
 class SeqInterval {
@@ -168,8 +172,6 @@ public:
 
 
 
-
-
 class Unitig {
 private:
   Unitig(TigVector *v) {
@@ -196,7 +198,17 @@ public:
   //void   bubbleSortLastRead(void);
   void reverseComplement(bool doSort=true);
 
+  //  Ensure that the children are sorted by begin position,
+  //  and that unitigs start at position zero.
   void cleanUp(void);
+
+  //  Recompute bgn/end positions using all overlaps.
+  void optimize_initPlace(uint32        ii,
+                          optPos       *op,
+                          optPos       *np,
+                          bool          firstPass,
+                          set<uint32>  &failed,
+                          bool          beVerbose);
   void optimize(const char *prefix, const char *label);
 
   // getNumRandomRead() is a placeholder, random reads should not
