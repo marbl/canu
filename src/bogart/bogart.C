@@ -435,6 +435,9 @@ main (int argc, char * argv []) {
 
   breakSingletonTigs(contigs);
 
+  //  populateUnitig() uses only one hang from one overlap to compute the positions of reads.
+  //  Once all reads are (approximately) placed, compute positions using all overlaps.
+
   contigs.optimizePositions(prefix, "buildGreedy");
 
   reportOverlaps(contigs, prefix, "buildGreedy");
@@ -465,6 +468,17 @@ main (int argc, char * argv []) {
   contigs.reportErrorProfiles(prefix, "initial");
 
   placeUnplacedUsingAllOverlaps(contigs, prefix);
+
+  //  Compute positions again.  This fixes issues with contains-in-contains that
+  //  tend to excessively shrink reads.  The one case debugged placed contains in
+  //  a three read nanopore contig, where one of the contained reads shrank by 10%,
+  //  which was enough to swap bgn/end coords when they were computed using hangs
+  //  (that is, sum of the hangs was bigger than the placed read length).
+
+//TMP
+  reportTigs(contigs, prefix, "placeContains1", genomeSize);
+
+  contigs.optimizePositions(prefix, "placeContains");
 
   reportOverlaps(contigs, prefix, "placeContains");
   reportTigs(contigs, prefix, "placeContains", genomeSize);
