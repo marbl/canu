@@ -494,7 +494,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
       bool   noExtend  = true;
 
       if ((flags & placeRead_fullMatch) &&
-          (op.fCoverage < 0.99))
+          (op.fCoverage < 1.0))
         fullMatch = false;
 
       if ((flags & placeRead_noExtend) &&
