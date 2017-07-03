@@ -274,14 +274,27 @@ placeRead_computePlacement(overlapPlacement &op,
                            uint32            oe,
                            overlapPlacement *ovlPlace,
                            Unitig           *tig) {
-  stdDev<double>   bgnPos, bgnVer;
-  stdDev<double>   endPos, endVer;
+  stdDev<double>   bgnPos, endPos;
+  stdDev<double>   bgnVer, endVer;
 
+  bool             isFwd   = ovlPlace[os].position.isForward();
   int32            readLen = RI->readLength(op.frgID);
   int32            tigLen  = tig->getLength();
 
   op.errors  = 0;
   op.aligned = 0;
+
+  op.verified.bgn = (isFwd) ? INT32_MAX : INT32_MIN;
+  op.verified.end = (isFwd) ? INT32_MIN : INT32_MAX;
+
+  int32            bgnVer1 = (isFwd) ? INT32_MAX : INT32_MIN;;
+  int32            endVer1 = (isFwd) ? INT32_MIN : INT32_MAX;;
+
+  int32            bgnVer2 = (isFwd) ? INT32_MAX : INT32_MIN;;
+  int32            endVer2 = (isFwd) ? INT32_MIN : INT32_MAX;;
+
+  int32            bgnVer3 = (isFwd) ? INT32_MAX : INT32_MIN;;
+  int32            endVer3 = (isFwd) ? INT32_MIN : INT32_MAX;;
 
   op.covered.bgn = INT32_MAX;  //  Covered interval is always in
   op.covered.end = INT32_MIN;  //  forward read coordinates
@@ -292,15 +305,48 @@ placeRead_computePlacement(overlapPlacement &op,
            (ovlPlace[oo].position.end != 0));
 
   //  Over all the placements that support this position:
-  //    compute the final position and verified as the mean of the supporting overlaps.
+  //    compute the final position as the mean of the supporting overlaps.
+  //    compute the verified position as.....
   //    compute the read bases covered by an overlap as the min/max.
+  //
+  //  The verified position is a bit annoying.
+  //    The first attempt used the mean just as for the position.  But this occasionally
+  //    left the verified outside the placed position.  It was thresholded to make it sane.
+  //
+  //    The second attempt set it relative to the position, using the hangs from the
+  //    'covered' position on the read.  This failed on am ~8k read placed with a 500bp
+  //    overlap.  The overlapping read was placed shorter than expected.  The sum of the overlap
+  //    hangs was larger than this placement.  (Largely solved by recomputing positions
+  //    after unplaced reads are placed).
+  //
+  //    The third attempt mirrors what is done for 'covered' -- just take the min/max
+  //    of all the overlaps used when placing the read.
 
   for (uint32 oo=os; oo<oe; oo++) {
     bgnPos.insert(ovlPlace[oo].position.bgn);
     endPos.insert(ovlPlace[oo].position.end);
 
+    //  First attempt
+
     bgnVer.insert(ovlPlace[oo].verified.bgn);
     endVer.insert(ovlPlace[oo].verified.end);
+
+    //  Third attempt
+
+    //fprintf(stderr, "op %3d  verified %12d %12d  ovl_verified  %12d %12d  ovl_position %12d %12d\n",
+    //        oo,
+    //        op.verified.bgn, op.verified.end,
+    //        ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
+
+#if 1
+    if (isFwd) {
+      bgnVer3 = min(bgnVer3, ovlPlace[oo].verified.bgn);
+      endVer3 = max(endVer3, ovlPlace[oo].verified.end);
+    } else {
+      bgnVer3 = max(bgnVer3, ovlPlace[oo].verified.bgn);
+      endVer3 = min(endVer3, ovlPlace[oo].verified.end);
+    }
+#endif
 
     op.errors      += ovlPlace[oo].errors;
     op.aligned     += ovlPlace[oo].aligned;
@@ -316,41 +362,80 @@ placeRead_computePlacement(overlapPlacement &op,
   bgnPos.finalize();
   endPos.finalize();
 
-  bgnVer.finalize();
-  endVer.finalize();
-
   op.position.bgn = bgnPos.mean();
   op.position.end = endPos.mean();
 
-  op.verified.bgn = bgnVer.mean();
-  op.verified.end = endVer.mean();
+  //  First attempt.
 
-  //  Set the verified to agree with covered
+#if 1
+  bgnVer.finalize();
+  endVer.finalize();
 
-  if (op.position.isForward()) {
-    op.verified.bgn = op.position.bgn +            op.covered.bgn;
-    op.verified.end = op.position.end - (readLen - op.covered.end);
+  bgnVer1 = bgnVer.mean();
+  endVer1 = endVer.mean();
+#endif
 
-    if (op.verified.bgn < 0)         op.verified.bgn = 0;
-    if (op.verified.end > tigLen)    op.verified.end = tigLen;
+  //  Second attempt.
+
+#if 1
+  if (isFwd) {
+    bgnVer2 = op.position.bgn +            op.covered.bgn;
+    endVer2 = op.position.end - (readLen - op.covered.end);
+  } else {
+    bgnVer2 = op.position.bgn -            op.covered.bgn;
+    endVer2 = op.position.end + (readLen - op.covered.end);
+  }
+#endif
+
+  writeLog("placeRead_computePlacement()-- position %d-%d verified %d-%d %d-%d %d-%d\n",
+           op.position.bgn, op.position.end,
+           bgnVer1, endVer1,
+           bgnVer2, endVer2,
+           bgnVer3, endVer3);
+
+  //  DO NOT USE, ever.  Results in MANY gfa edges being lost.
+#if 0
+  op.verified.bgn = bgnVer1;
+  op.verified.end = endVer1;
+#endif
+
+  //  Results in about 15% fewer contig and 3% fewer unitig edges, compared to v3.
+#if 0
+  op.verified.bgn = bgnVer2;
+  op.verified.end = endVer2;
+#endif
+
+  //  On dmel, gives more contig edges than v2, mostly small stuff.
+#if 1
+  op.verified.bgn = bgnVer3;
+  op.verified.end = endVer3;
+#endif
+
+  //  Finally, limit verified to be the extent of the tig, or the extent of the placement.
+
+  if (isFwd) {
+    if (op.verified.bgn < 0)                  op.verified.bgn = 0;
+    if (op.verified.end > tigLen)             op.verified.end = tigLen;
+  } else {
+    if (op.verified.bgn > tigLen)             op.verified.bgn = tigLen;
+    if (op.verified.end < 0)                  op.verified.end = 0;
   }
 
-  else {
-    op.verified.bgn = op.position.bgn -            op.covered.bgn;
-    op.verified.end = op.position.end + (readLen - op.covered.end);
-
-    if (op.verified.bgn > tigLen)    op.verified.bgn = tigLen;
-    if (op.verified.end < 0)         op.verified.end = 0;
+  if (isFwd) {
+    if (op.verified.bgn < op.position.bgn)    op.verified.bgn = op.position.bgn;
+    if (op.verified.end > op.position.end)    op.verified.end = op.position.end;
+  } else {
+    if (op.verified.bgn > op.position.bgn)    op.verified.bgn = op.position.bgn;
+    if (op.verified.end < op.position.end)    op.verified.end = op.position.end;
   }
-
-
 
   //  And check that the result is sane.
 
+  assert(op.position.isForward() == isFwd);
   assert(op.position.isForward() == op.verified.isForward());
   assert(op.covered.isForward() == true);
 
-  if (op.position.isForward()) {
+  if (isFwd) {
     assert(op.position.bgn <= op.verified.bgn);
     assert(op.verified.end <= op.position.end);
   } else {
