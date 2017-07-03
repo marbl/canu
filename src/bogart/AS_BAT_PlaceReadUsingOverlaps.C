@@ -370,7 +370,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
   set<uint32>  verboseEnable;
 
-  verboseEnable.insert( fid);  //  enable for all
+  //verboseEnable.insert( fid);  //  enable for all
 
   if (verboseEnable.count(fid) > 0)
     logFileFlags |= LOG_PLACE_READ;
