@@ -300,6 +300,9 @@ placeRead_computePlacement(overlapPlacement &op,
     assert((ovlPlace[oo].position.bgn != 0) ||
            (ovlPlace[oo].position.end != 0));
 
+  if (logFileFlagSet(LOG_PLACE_READ))
+    writeLog("computePlacement() for os=%u od=%u\n", os, oe);
+
   //  Over all the placements that support this position:
   //    compute the final position as the mean of the supporting overlaps.
   //    compute the verified position as.....
@@ -327,10 +330,11 @@ placeRead_computePlacement(overlapPlacement &op,
 
     //  Third attempt
 
-    //fprintf(stderr, "op %3d  verified %12d %12d  ovl_verified  %12d %12d  ovl_position %12d %12d\n",
-    //        oo,
-    //        op.verified.bgn, op.verified.end,
-    //        ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
+    if (logFileFlagSet(LOG_PLACE_READ))
+      writeLog("placeRead_computePlacement()-- op %3d ovl ver %12d %12d pos %12d %12d\n",
+              oo,
+              ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
+              ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
 
 #if 1
     if (isFwd) {
@@ -433,7 +437,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
   set<uint32>  verboseEnable;
 
-  //verboseEnable.insert( fid);  //  enable for all
+  //verboseEnable.insert(fid);  //  enable for all
 
   if (verboseEnable.count(fid) > 0)
     logFileFlags |= LOG_PLACE_READ;
