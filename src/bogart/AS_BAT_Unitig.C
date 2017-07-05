@@ -146,7 +146,6 @@ Unitig::optimize_initPlace(uint32        ii,
   //  we don't use read length here.
 
   double   nmin = 0;
-  double   nmax = 0;
   int32    cnt  = 0;
 
   //  Then process all overlaps.
@@ -174,7 +173,6 @@ Unitig::optimize_initPlace(uint32        ii,
     //  the overlap and the other read.
 
     nmin += (op[ii].fwd) ? (op[jj].min - ovl[oo].a_hang) : (op[jj].min + ovl[oo].b_hang);
-    nmax += (op[ii].fwd) ? (op[jj].max - ovl[oo].b_hang) : (op[jj].max + ovl[oo].a_hang);
     cnt  += 1;
   }  //  over all overlaps
 
@@ -196,24 +194,21 @@ Unitig::optimize_initPlace(uint32        ii,
 
   assert(cnt > 0);
 
-  op[ii].min = nmin / cnt;
-  op[ii].max = nmax / cnt;
-
-  np[ii].min = 0;
-  np[ii].max = 0;
-
   //  The initialization above does very little to enforce read lengths, and the optimization
   //  doesn't put enough weight in the read length to make it stable.  We simply force
   //  the correct read length here.
 
+  op[ii].min = nmin / cnt;
   op[ii].max = op[ii].min + RI->readLength(ufpath[ii].ident);
 
+  np[ii].min = 0;
+  np[ii].max = 0;
+
   if (beVerbose)
-    writeLog("INIT tig %u read %u %9.2f-%-9.2f endDiff %9.2f%s\n",
+    writeLog("INIT tig %7u read %9u at %9.2f %9.2f%s\n",
              id(), op[ii].ident,
              op[ii].min,
              op[ii].max,
-             op[ii].min + RI->readLength(ufpath[ii].ident),
              (firstPass == true) ? "" : " SECONDPASS");
 }
 
@@ -277,7 +272,7 @@ Unitig::optimize(const char *prefix, const char *label) {
     for (uint32 ii=0; ii<ufpath.size(); ii++) {
       uint32       fid     = op[ii].ident;
 
-      uint32       readLen = RI->readLength(fid);
+      int32        readLen = RI->readLength(fid);
 
       uint32       ovlLen  = 0;
       BAToverlap  *ovl     = OC->getOverlaps(fid, ovlLen);
@@ -334,12 +329,14 @@ Unitig::optimize(const char *prefix, const char *label) {
 
       double dmin = 2 * (op[ii].min - np[ii].min) / (op[ii].min + np[ii].min);
       double dmax = 2 * (op[ii].max - np[ii].max) / (op[ii].max + np[ii].max);
+      double npll = np[ii].max - np[ii].min;
 
       if (beVerbose)
-        writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6u posChange %+6.4f %+6.4f iter %2u\n",
+        writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6d %7.2f%% posChange %+6.4f %+6.4f iter %2u\n",
                  id(), fid,
                  np[ii].min, np[ii].max,
-                 np[ii].max - np[ii].min, readLen,
+                 npll, readLen,
+                 200.0 * (npll - readLen) / (npll + readLen),
                  dmin, dmax,
                  iter);
     }  //  Over all reads in the tig
@@ -388,26 +385,37 @@ Unitig::optimize(const char *prefix, const char *label) {
   //  Update the tig with new positions.  op[] is the result of the last iteration.
 
   for (uint32 ii=0; ii<ufpath.size(); ii++) {
+    int32   readLen = RI->readLength(ufpath[ii].ident);
+    int32   opll    = (int32)op[ii].max - (int32)op[ii].min;
+    double  opdd    = 200.0 * (opll - readLen) / (opll + readLen);
+
     if (op[ii].fwd) {
-      //  Logging isn't quite correct - np needs to be offset first
       if (beVerbose)
-        writeLog("read %6u from %8d,%-8d to %8d,%-8d ->\n", 
+        writeLog("optimize()-- read %8u -> from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n", 
                  ufpath[ii].ident,
                  ufpath[ii].position.bgn,
                  ufpath[ii].position.end,
+                 ufpath[ii].position.end - ufpath[ii].position.bgn,
                  (int32)op[ii].min,
-                 (int32)op[ii].max);
+                 (int32)op[ii].max,
+                 opll,
+                 readLen,
+                 opdd);
 
       ufpath[ii].position.bgn = (int32)op[ii].min;
       ufpath[ii].position.end = (int32)op[ii].max;
     } else {
       if (beVerbose)
-        writeLog("read %6u from %8d,%-8d to %8d,%-8d <-\n", 
+        writeLog("optimize()-- read %8u <- from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n", 
                  ufpath[ii].ident,
                  ufpath[ii].position.bgn,
                  ufpath[ii].position.end,
+                 ufpath[ii].position.bgn - ufpath[ii].position.end,
                  (int32)op[ii].max,
-                 (int32)op[ii].min);
+                 (int32)op[ii].min,
+                 opll,
+                 readLen,
+                 opdd);
 
       ufpath[ii].position.bgn = (int32)op[ii].max;
       ufpath[ii].position.end = (int32)op[ii].min;
