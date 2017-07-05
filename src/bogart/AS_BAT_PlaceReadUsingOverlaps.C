@@ -55,7 +55,8 @@ placeRead_fromOverlaps(TigVector          &tigs,
     writeLog("pROU()-- placements for read %u with %u overlaps\n", fid, ovlLen);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
-    uint32            btID  = tigs.inUnitig(ovl[oo].b_iid);
+    bool              disallow = false;
+    uint32            btID     = tigs.inUnitig(ovl[oo].b_iid);
 
     assert(ovl[oo].a_iid == fid);
 
@@ -114,6 +115,30 @@ placeRead_fromOverlaps(TigVector          &tigs,
       bver.bgn = bread.position.max() + ((ovl[oo].a_hang > 0) ? 0 : ovl[oo].a_hang);
     }
 
+    //  HOWEVER, the verified position is all goobered up if the overlapping read
+    //  was placed too short.  Imagine a 20k read with a 500bp overlap, so the hangs
+    //  are 19.5k.  If we position this read 1k too short, then readLen-hang is negative,
+    //  and we end up misorienting the verified coords (not too mention that they're
+    //  likely bogus too).  So, if that happens, we just ignore the overlap.
+
+    int32             bposlen = (bread.position.max() - bread.position.min());
+
+    if (ovl[oo].a_hang < 0)
+      bposlen += ovl[oo].a_hang;
+
+    if (ovl[oo].b_hang > 0)
+      bposlen -= ovl[oo].b_hang;
+
+    if (bposlen < 0) {
+      writeLog("WARNING: read %u overlap to read %u in tig %u at %d-%d - hangs %d %d to large for placement, ignoring overlap\n",
+               ovl[oo].a_iid,
+               ovl[oo].b_iid,
+               btID,
+               bread.position.bgn, bread.position.end,
+               ovl[oo].a_hang, ovl[oo].b_hang);
+      disallow = true;
+    }
+
     //  Save the placement in our work space.
 
     uint32  flen = RI->readLength(ovl[oo].a_iid);
@@ -134,18 +159,10 @@ placeRead_fromOverlaps(TigVector          &tigs,
     op.tigFidx      = UINT32_MAX;
     op.tigLidx      = 0;
 
-    assert(op.covered.bgn >= 0);
-    assert(op.covered.end >= 0);
-    assert(op.covered.bgn <= flen);
-    assert(op.covered.end <= flen);
-    assert(op.covered.bgn < op.covered.end);
-
     //  If we're looking for final placments either contained completely in the tig or covering the
     //  whole read, disallow any placements that exceed the boundary of the unitig.  This is NOT a
     //  filter on these placements; but any placement here that extends past the end of the tig is
     //  guaranteed to not generate a contained/whole-read placement.
-
-    bool   disallow = false;
 
     if ((flags & placeRead_noExtend) || (flags & placeRead_fullMatch))
       if ((op.position.min() < 0) ||
@@ -166,8 +183,25 @@ placeRead_fromOverlaps(TigVector          &tigs,
                (ovl[oo].flipped == true) ? "I" : "N",
                (disallow) ? " DISALLOW" : "");
 
-    if (disallow == false)
+    //  Ensure everything is hunkey dorey and save the overlap.
+
+    if (disallow == false) {
+      assert(op.covered.bgn >= 0);
+      assert(op.covered.end <= flen);
+      assert(op.covered.isForward() == true);
+
+      assert(op.position.isForward() == op.verified.isForward());
+
+      if (op.position.isForward() == true) {
+        assert(op.position.bgn <= op.verified.bgn);
+        assert(op.verified.end <= op.position.end);
+      } else {
+        assert(op.position.end <= op.verified.end);
+        assert(op.verified.bgn <= op.position.bgn);
+      }
+
       ovlPlace[ovlPlaceLen++] = op;
+    }
   }
 }
 
