@@ -275,7 +275,6 @@ placeRead_computePlacement(overlapPlacement &op,
                            overlapPlacement *ovlPlace,
                            Unitig           *tig) {
   stdDev<double>   bgnPos, endPos;
-  stdDev<double>   bgnVer, endVer;
 
   bool             isFwd   = ovlPlace[os].position.isForward();
   int32            readLen = RI->readLength(op.frgID);
@@ -286,9 +285,6 @@ placeRead_computePlacement(overlapPlacement &op,
 
   op.verified.bgn = (isFwd) ? INT32_MAX : INT32_MIN;
   op.verified.end = (isFwd) ? INT32_MIN : INT32_MAX;
-
-  int32            bgnVer1 = (isFwd) ? INT32_MAX : INT32_MIN;;
-  int32            endVer1 = (isFwd) ? INT32_MIN : INT32_MAX;;
 
   int32            bgnVer2 = (isFwd) ? INT32_MAX : INT32_MIN;;
   int32            endVer2 = (isFwd) ? INT32_MIN : INT32_MAX;;
@@ -310,8 +306,11 @@ placeRead_computePlacement(overlapPlacement &op,
   //    compute the read bases covered by an overlap as the min/max.
   //
   //  The verified position is a bit annoying.
+  //
   //    The first attempt used the mean just as for the position.  But this occasionally
   //    left the verified outside the placed position.  It was thresholded to make it sane.
+  //    IT ALSO TOTALLY BREAKS GFA EDGE FINDING.  (I think because the verified overlap position
+  //    is too small).
   //
   //    The second attempt set it relative to the position, using the hangs from the
   //    'covered' position on the read.  This failed on am ~8k read placed with a 500bp
@@ -325,11 +324,6 @@ placeRead_computePlacement(overlapPlacement &op,
   for (uint32 oo=os; oo<oe; oo++) {
     bgnPos.insert(ovlPlace[oo].position.bgn);
     endPos.insert(ovlPlace[oo].position.end);
-
-    //  First attempt
-
-    bgnVer.insert(ovlPlace[oo].verified.bgn);
-    endVer.insert(ovlPlace[oo].verified.end);
 
     //  Third attempt
 
@@ -365,16 +359,6 @@ placeRead_computePlacement(overlapPlacement &op,
   op.position.bgn = bgnPos.mean();
   op.position.end = endPos.mean();
 
-  //  First attempt.
-
-#if 1
-  bgnVer.finalize();
-  endVer.finalize();
-
-  bgnVer1 = bgnVer.mean();
-  endVer1 = endVer.mean();
-#endif
-
   //  Second attempt.
 
 #if 1
@@ -387,17 +371,11 @@ placeRead_computePlacement(overlapPlacement &op,
   }
 #endif
 
-  writeLog("placeRead_computePlacement()-- position %d-%d verified %d-%d %d-%d %d-%d\n",
-           op.position.bgn, op.position.end,
-           bgnVer1, endVer1,
-           bgnVer2, endVer2,
-           bgnVer3, endVer3);
-
-  //  DO NOT USE, ever.  Results in MANY gfa edges being lost.
-#if 0
-  op.verified.bgn = bgnVer1;
-  op.verified.end = endVer1;
-#endif
+  if (logFileFlagSet(LOG_PLACE_READ))
+    writeLog("placeRead_computePlacement()-- position %d-%d verified %d-%d %d-%d\n",
+             op.position.bgn, op.position.end,
+             bgnVer2, endVer2,
+             bgnVer3, endVer3);
 
   //  Results in about 15% fewer contig and 3% fewer unitig edges, compared to v3.
 #if 0
