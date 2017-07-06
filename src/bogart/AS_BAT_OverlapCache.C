@@ -490,22 +490,39 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
 uint32
 OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
-  uint32 ns = 0;
+  uint32 ns        = 0;
+  bool   beVerbose = false;
+
+ //beVerbose = (_ovs[0].a_iid == 3514657);
 
   for (uint32 ii=0; ii<no; ii++) {
     _ovsSco[ii] = 0;                                //  Overlaps 'continue'd below will be filtered, even if 'no filtering' is needed.
 
     if ((RI->readLength(_ovs[ii].a_iid) == 0) ||    //  At least one read in the overlap is deleted
-        (RI->readLength(_ovs[ii].b_iid) == 0))
+        (RI->readLength(_ovs[ii].b_iid) == 0)) {
+      if (beVerbose)
+        fprintf(stderr, "olap %d involves deleted reads - %u %s - %u %s\n",
+                ii,
+                _ovs[ii].a_iid, (RI->readLength(_ovs[ii].a_iid) == 0) ? "deleted" : "active",
+                _ovs[ii].b_iid, (RI->readLength(_ovs[ii].b_iid) == 0) ? "deleted" : "active");
       continue;
+    }
 
-    if (_ovs[ii].evalue() > maxEvalue)              //  Too noisy to care
+    if (_ovs[ii].evalue() > maxEvalue) {            //  Too noisy to care
+      if (beVerbose)
+        fprintf(stderr, "olap %d too noisy evalue %f > maxEvalue %f\n",
+                ii, AS_OVS_decodeEvalue(_ovs[ii].evalue()), AS_OVS_decodeEvalue(maxEvalue));
       continue;
+    }
 
     uint32  olen = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang());
 
-    if (olen < minOverlap)                          //  Too short to care
+    if (olen < minOverlap) {                        //  Too short to care
+      if (beVerbose)
+        fprintf(stderr, "olap %d too short olen %u minOverlap %u\n",
+                ii, olen, minOverlap);
       continue;
+    }
 
     //  Just right!
 
@@ -582,6 +599,9 @@ OverlapCache::loadOverlaps(bool doSave) {
     uint32  no = _ovlStoreUniq->readOverlaps(_ovs, _ovsMax);     //  no == total overlaps == numOvl
     uint32  nd = filterDuplicates(no);                           //  nd == duplicated overlaps (no is decreased by this amount)
     uint32  ns = filterOverlaps(_maxEvalue, _minOverlap, no);    //  ns == acceptable overlaps
+
+    //if (_ovs[0].a_iid == 3514657)
+    //  fprintf(stderr, "Loaded %u overlaps - no %u nd %u ns %u\n", numOvl, no, nd, ns);
 
     //  Allocate space for the overlaps.  Allocate a multiple of 8k, assumed to be the page size.
     //
