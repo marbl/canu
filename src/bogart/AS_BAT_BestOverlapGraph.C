@@ -331,23 +331,30 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
       //  Contained, not a spur.
       continue;
 
-    if ((spur5 == false) && (spur3 == false))
+    if ((spur5 == false) &&
+        (spur3 == false))
       //  Edges off of both ends.  Not a spur.
       continue;
 
-    if ((spur5 == true)  && (spur3 == true))
-      //  No edges off either end.  Not a spur, just garbage.
-      continue;
+    //  We've now got either a spur or a singleton.
+    //
+    //  How do we get an edge to a singleton, which, by definition, has no edges?  The one case I
+    //  looked at had different error rates for the A->B and B->A overlap, and these straddled the
+    //  error rate cutoff.  Dmel had 357 edges to singletons; I didn't look at any of them.
 
-    //  Exactly one end is missing a best edge.  Bad!
+    bool    isSingleton = ((spur5 == true) && (spur3 == true));
 
     if (F)
-      fprintf(F, F_U32" %c'\n", fi, (spur5) ? '5' : '3');
+      fprintf(F, F_U32" %s\n", fi, (isSingleton) ? "singleton" : ((spur5) ? "5'" : "3'"));
 
-    _spur.insert(fi);
+    if (isSingleton)
+      _singleton.insert(fi);
+    else
+      _spur.insert(fi);
   }
 
-  writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " spur reads.\n", _spur.size());
+  writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " spur reads and " F_SIZE_T " singleton reads.\n",
+              _spur.size(), _singleton.size());
 
   if (F)
     fclose(F);
@@ -383,7 +390,8 @@ BestOverlapGraph::findEdges(void) {
     //  they shouldn't because they're spurs).
 
     for (uint32 ii=0; ii<no; ii++)
-      if (_spur.count(ovl[ii].b_iid) == 0)
+      if ((_spur.count(ovl[ii].b_iid) == 0) &&
+          (_singleton.count(ovl[ii].b_iid) == 0))
         scoreEdge(ovl[ii]);
   }
 }
@@ -434,6 +442,7 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
   _n2EdgeIncompatible  = 0;
 
   _suspicious.clear();
+  _singleton.clear();
 
   _bestM.clear();
   _scorM.clear();

@@ -278,6 +278,7 @@ private:
   uint32                     _n2EdgeIncompatible;
 
   set<uint32>                _suspicious;
+  set<uint32>                _singleton;
   set<uint32>                _spur;
 
   map<uint32, BestOverlaps>  _bestM;
