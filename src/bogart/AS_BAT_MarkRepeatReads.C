@@ -1106,6 +1106,7 @@ markRepeatReads(AssemblyGraph         *AG,
     }
   }
 
+#if 0
   FILE *F = fopen("junk.confusedEdges", "w");
   for (uint32 ii=0; ii<confusedEdges.size(); ii++) {
     fprintf(F, "%7u %c' from read %7u\n",
@@ -1114,6 +1115,7 @@ markRepeatReads(AssemblyGraph         *AG,
             confusedEdges[ii].bid);
   }
   fclose(F);
+#endif
 
   writeStatus("markRepeatReads()-- Found %u confused edges.\n", confusedEdges.size());
 }
