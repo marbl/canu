@@ -363,7 +363,20 @@ OverlapCache::computeOverlapLimit(void) {
   writeStatus("OverlapCache()-- totalMemory      = " F_U64 "MB used\n", (_memUsed + totalLoad * sizeof(BAToverlap)) >> 20);
   writeStatus("\n");
 
+  //  We used to (pre 6 Jul 2017) do the symmetry check only if we didn't load all overlaps.  However, symmetry can
+  //  also break if we use an error rate cutoff because - for reasons not explored - the error rate on symmetric overlaps
+  //  differs.  So, just enable this always.
+  //
+  //  On a moderate coverage human nanopore assembly, it does:
+  //
+  //    OverlapCache()-- Symmetrizing overlaps -- finding missing twins.
+  //    OverlapCache()--                       -- found 8609 missing twins in 51413413 overlaps, 8002 are strong.
+  //    OverlapCache()-- Symmetrizing overlaps -- dropping weak non-twin overlaps.
+  //    OverlapCache()--                       -- dropped 454 overlaps.
+  //    OverlapCache()-- Symmetrizing overlaps -- adding 8155 missing twin overlaps.
+
   _checkSymmetry = (numAbove > 0) ? true : false;
+  _checkSymmetry = true;
 
   delete [] numPer;
 }
