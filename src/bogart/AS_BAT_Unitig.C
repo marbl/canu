@@ -271,9 +271,11 @@ Unitig::optimize(const char *prefix, const char *label) {
   //  Optimize
   //
 
-  for (uint32 iter=0; iter<25; iter++) {
+  for (uint32 iter=0; iter<5; iter++) {
     uint64  nOlapsTotal = 0;
     uint64  nOlapsUsed  = 0;
+
+    //  Now run through all reads and compute positions based on overlaps.
 
     for (uint32 ii=0; ii<ufpath.size(); ii++) {
       uint32       fid     = op[ii].ident;
@@ -387,6 +389,49 @@ Unitig::optimize(const char *prefix, const char *label) {
 
     if (nChanged == 0)
       break;
+  }
+
+  //  If we've placed a read too small, expand it (and all reads that overlap) to make
+  //  the length not smaller.
+
+  for (uint32 ii=0; ii<ufpath.size(); ii++) {
+    uint32       fid     = op[ii].ident;
+    int32        readLen = RI->readLength(fid);
+
+    double       opiimin = op[ii].min;             //  New start of this read, same as the old start
+    double       opiimax = op[ii].min + readLen;   //  New end of this read
+    double       opiilen = op[ii].max - op[ii].min;
+
+    if (readLen <= opiilen)   //  This read is sufficiently long,
+      continue;               //  do nothing.
+
+    double       scale   = readLen / opiilen;
+    double       expand  = opiimax - op[ii].max;   //  Amount we changed this read, bases
+
+    //  For each read, adjust positions based on how much they overlap with this read.
+
+    for (uint32 jj=0; jj<ufpath.size(); jj++) {
+
+      if      (op[jj].min < op[ii].min)
+        ;
+      else if (op[jj].min < op[ii].max)
+        op[jj].min  = opiimin + (op[jj].min - op[ii].min) * scale;
+      else
+        op[jj].min += expand;
+
+
+      if      (op[jj].max < op[ii].min)
+        ;
+      else if (op[jj].max < op[ii].max)
+        op[jj].max  = opiimin + (op[jj].max - op[ii].min) * scale;
+      else
+        op[jj].max += expand;
+    }
+
+    //  Finally, actually shift us
+
+    op[ii].min = opiimin;
+    op[ii].max = opiimax;
   }
 
   //  Update the tig with new positions.  op[] is the result of the last iteration.
