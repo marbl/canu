@@ -410,7 +410,7 @@ dumpPicture(ovOverlap     *overlaps,
             bogartStatus  *bogart) {
   char     ovl[256] = {0};
 
-  uint32   MHS = 7;  //  Max Hang Size, amount of padding for "+### "
+  uint32   MHS = 9;  //  Max Hang Size, amount of padding for "+### "
 
   uint32    Aid    = qryID;
   gkRead   *A      = gkpStore->gkStore_getRead(Aid);
@@ -424,9 +424,10 @@ dumpPicture(ovOverlap     *overlaps,
   ovl[ 99 + MHS] = '>';
   ovl[100 + MHS] = 0;
 
-  fprintf(stdout, "%8d  A: %5d %5d                                           %s        %s%s\n",
-          Aid,
+  fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s %s%s\n",
           0, frgLenA,
+          Aid,
+          0, frgLenA, frgLenA,
           ovl,
           bogart->getContained(Aid)  ? "contained"  : "",
           bogart->getSuspicious(Aid) ? "suspicious" : "");
@@ -583,10 +584,13 @@ dumpPicture(ovOverlap     *overlaps,
 
     //  Report!
 
-    fprintf(stdout, "%8d  A: %5d %5d (%5d)  B: %5d %5d (%5d)  %5.2f%%   %s%s\n",
+    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s%s\n",
+            ovlBgnA,
+            ovlEndA,
             Bid,
-            ovlBgnA, ovlEndA, frgLenA,
-            ovlBgnB, ovlEndB, frgLenB,
+            min(ovlBgnB, ovlEndB),
+            max(ovlBgnB, ovlEndB),
+            frgLenB,
             overlaps[o].erate() * 100.0,
             ovl,
             olapClass);
