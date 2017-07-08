@@ -741,7 +741,11 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   writeStatus("OverlapCache()-- Symmetrizing overlaps -- finding missing twins.\n");
 
-#pragma omp parallel for schedule(dynamic, RI->numReads() / 1000)
+  uint32  fiLimit    = RI->numReads();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
     nonsymPerRead[rr] = 0;
 
