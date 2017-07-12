@@ -818,7 +818,8 @@ createUnitigs(TigVector             &contigs,
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig    *tig = unitigs[ti];
 
-    if (tig == NULL)
+    if ((tig == NULL) ||
+        (tig->_isUnassembled == true))
       continue;
 
     //  First, check if we have any backbone reads.  If we have none, leave it as is.

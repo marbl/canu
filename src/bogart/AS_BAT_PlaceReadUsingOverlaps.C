@@ -67,6 +67,9 @@ placeRead_fromOverlaps(TigVector          &tigs,
     Unitig           *btig   = tigs[btID];
     ufNode           &bread  = btig->ufpath[ tigs.ufpathIdx(ovl[oo].b_iid) ];
 
+    if (btig->_isUnassembled == true)  //  Skip if overlapping read is in an unassembled contig.
+      continue;
+
     SeqInterval       apos;   //  Position of the read in the btig
     SeqInterval       bver;   //  Bases covered by the overlap in the B tig
 

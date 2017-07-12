@@ -217,7 +217,9 @@ dropDeadEnds(AssemblyGraph  *AG,
   for (uint32 ti=0; ti<tigs.size(); ti++) {
     Unitig  *tig = tigs[ti];
 
-    if ((tig == NULL) || (tig->ufpath.size() < 2))  //  No tig, or don't care.
+    if ((tig                 == NULL) ||            //  No tig, or don't care.
+        (tig->ufpath.size()  <= 1) ||
+        (tig->_isUnassembled == true))
       continue;
 
     uint32  fn = dropDeadFirstRead(AG, tig);        //  Decide if the first read is junk.

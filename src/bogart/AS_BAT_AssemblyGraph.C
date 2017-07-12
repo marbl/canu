@@ -131,6 +131,9 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
     if (fiTigID == 0)  //  Unplaced, don't care.
       continue;
 
+    if (tigs[fiTigID]->_isUnassembled == true)    //  Unassembled, don't care.
+      continue;
+
     if (tigEndsOnly == true) {
       uint32 f = tigs[fiTigID]->firstRead()->ident;
       uint32 l = tigs[fiTigID]->lastRead()->ident;

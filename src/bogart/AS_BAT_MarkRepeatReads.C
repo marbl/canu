@@ -950,10 +950,9 @@ markRepeatReads(AssemblyGraph         *AG,
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = tigs[ti];
 
-    if (tig == NULL)
-      continue;
-
-    if (tig->ufpath.size() == 1)
+    if ((tig == NULL) ||                  //  Deleted, nothing to do.
+        (tig->ufpath.size() == 1) ||      //  Singleton, nothing to do.
+        (tig->_isUnassembled == true))    //  Unassembled, don't care.
       continue;
 
     writeLog("Annotating repeats in reads for tig %u/%u.\n", ti, tiLimit);
