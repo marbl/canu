@@ -453,7 +453,8 @@ reportTigGraph(TigVector &tigs,
   //  make a disconnected unitig and need to split it again.
 
   for (uint32 ti=1; ti<tigs.size(); ti++)
-    if ((tigs[ti] != NULL) && (tigs[ti]->_isUnassembled == false))
+    if ((tigs[ti] != NULL) &&
+        (tigs[ti]->_isUnassembled == false))
       fprintf(BEG, "S\ttig%08u\t*\tLN:i:%u\n", ti, tigs[ti]->getLength());
 
   //  Run through all the tigs, emitting edges for the first and last read.
@@ -461,7 +462,8 @@ reportTigGraph(TigVector &tigs,
   for (uint32 ti=1; ti<tigs.size(); ti++) {
     Unitig  *tgA = tigs[ti];
 
-    if ((tgA == NULL) || (tgA->_isUnassembled == true))
+    if ((tgA == NULL) ||
+        (tgA->_isUnassembled == true))
       continue;
 
     //if (ti == 4)
