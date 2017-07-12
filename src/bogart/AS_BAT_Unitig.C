@@ -746,6 +746,12 @@ Unitig::overlapConsistentWithTig(double deviations,
   assert(bgn <  getLength());
   assert(end <= getLength());
 
+  //  If this is a singleton tig - we should only be here when finding graph edges to repeats -
+  //  we've got nothing to go on, so default to 'consistent'.
+
+  if (errorProfile.size() == 0)
+    return(1.0);
+
   //  Coarse search to find the first index that is after our region.
 
 #undef BINARY_SEARCH
