@@ -102,6 +102,12 @@ main (int argc, char **argv) {
   double    maxCov         = 0.0;
   uint32    maxLen         = UINT32_MAX;
 
+  bool      onlyUnassem    = false;
+  bool      onlyBubble     = false;
+  bool      onlyContig     = false;
+
+  bool      noSingleton    = false;
+
   uint32    verbosity      = 0;
 
   argc = AS_configure(argc, argv);
@@ -192,6 +198,18 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-maxlength") == 0) {
       maxLen   = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-onlyunassem") == 0) {
+      onlyUnassem = true;
+
+    } else if (strcmp(argv[arg], "-onlybubble") == 0) {
+      onlyBubble = true;
+
+    } else if (strcmp(argv[arg], "-onlycontig") == 0) {
+      onlyContig = true;
+
+    } else if (strcmp(argv[arg], "-nosingleton") == 0) {
+      noSingleton = true;
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -273,6 +291,11 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -f              Recompute tigs that already have a multialignment\n");
     fprintf(stderr, "    -maxlength l    Do not compute consensus for tigs longer than l bases.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -onlyunassem    Only compute consensus for unassembled tigs.\n");
+    fprintf(stderr, "    -onlybubble     Only compute consensus for bubble tigs (there are no bubbles).\n");
+    fprintf(stderr, "    -onlycontig     Only compute consensus for real unitigs/contigs.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -nosingleton    Do not compute consensus for singleton (single-read) tigs.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  PARAMETERS\n");
     fprintf(stderr, "    -e e            Expect alignments at up to fraction e error\n");
@@ -418,27 +441,33 @@ main (int argc, char **argv) {
     tgTig  *tig = NULL;
 
     //  If a tigStore, load the tig.  The tig is the owner; it cannot be deleted by us.
-    if (tigStore)
-      tig = tigStore->loadTig(ti);
 
-    //  If a tigFile or a package, create a new tig and fill it.  Obviously, we own it.
-    if (tigFile || inPackageFile) {
+    if (tigStore) {
+      tig = tigStore->loadTig(ti);
+    }
+
+    //  If a tigFile, create a new tig and load it.  Obviously, we own it.
+
+    if (tigFile) {
       tig = new tgTig();
 
-      if (tig->loadFromStreamOrLayout((tigFile != NULL) ? tigFile : inPackageFile) == false) {
+      if (tig->loadFromStreamOrLayout(tigFile) == false) {
         delete tig;
         break;
       }
     }
 
-    //  No tig loaded, keep going.
-
-    if (tig == NULL)
-      continue;
-
-    //  If a package, populate the read and readData maps with data from the package.
+    //  If a package, create a new tig and loat it.  Obviously, we own it.  If the tig loads,
+    //  populate the read and readData maps with data from the package.
 
     if (inPackageFile) {
+      tig = new tgTig();
+
+      if (tig->loadFromStreamOrLayout(inPackageFile) == false) {
+        delete tig;
+        break;
+      }
+
       inPackageRead      = new map<uint32, gkRead *>;
       inPackageReadData  = new map<uint32, gkReadData *>;
 
@@ -455,6 +484,11 @@ main (int argc, char **argv) {
         assert(read->gkRead_readID() == readID);
       }
     }
+
+    //  No tig loaded, keep going.
+
+    if (tig == NULL)
+      continue;
 
     //  More 'not liking' - set the verbosity level for logging.
 
@@ -476,17 +510,29 @@ main (int argc, char **argv) {
       }
     }
 
-    if (tig->length(true) > maxLen) {
-      fprintf(stderr, "SKIP tig %d of length %d (%d children) - too long, skipped\n",
-              tig->tigID(), tig->length(true), tig->numberOfChildren());
-      continue;
-    }
+    //  Skip stuff we want to skip.
 
-    if (tig->numberOfChildren() == 0) {
-      fprintf(stderr, "SKIP tig %d of length %d (%d children) - no children, skipped\n",
-              tig->tigID(), tig->length(true), tig->numberOfChildren());
+    if (tig->length(true) > maxLen)
       continue;
-    }
+
+    if ((onlyUnassem == true) && (tig->_class != tgTig_unassembled))
+      continue;
+
+    if ((onlyContig  == true) && (tig->_class != tgTig_contig))
+      continue;
+
+    if ((onlyBubble  == true) && (tig->_class != tgTig_bubble))
+      continue;
+
+    if ((noSingleton == true) && (tig->numberOfChildren() == 1))
+      continue;
+
+    if (tig->numberOfChildren() == 0)
+      continue;
+
+
+    //  Process the tig.  Remove deep coverage, create a consensus object, process it, and report the results.
+    //  before we add it to the store.
 
     bool exists   = tig->consensusExists();
 
@@ -495,9 +541,6 @@ main (int argc, char **argv) {
               tig->tigID(), tig->length(true), tig->numberOfChildren(),
               ((exists == true)  && (forceCompute == false)) ? " - already computed"              : "",
               ((exists == true)  && (forceCompute == true))  ? " - already computed, recomputing" : "");
-
-    //  Process the tig.  Remove deep coverage, create a consensus object, process it, and report the results.
-    //  before we add it to the store.
 
     unitigConsensus  *utgcns       = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
     savedChildren    *origChildren = NULL;
