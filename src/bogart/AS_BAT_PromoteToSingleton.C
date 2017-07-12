@@ -68,6 +68,8 @@ promoteToSingleton(TigVector &tigs) {
     read.position.end      = RI->readLength(fi);
 
     utg->addRead(read, 0, false);
+
+    utg->_isUnassembled = true;
   }
 
   writeStatus("promoteToSingleton()-- Moved " F_U32 " unplaced read%s to singleton tigs.\n",
