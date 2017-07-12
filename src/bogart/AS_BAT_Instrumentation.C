@@ -280,7 +280,7 @@ reportN50(FILE *F, vector<uint32> &data, char const *label, uint64 genomeSize) {
 
 
 void
-reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeSize) {
+reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name), uint64 genomeSize) {
 
   //  Generate n50.  Assumes tigs have been 'classified' already.
 
@@ -370,7 +370,8 @@ getTigType(Unitig *tg) {
 
 
 bool
-satisfiedOverlap(uint32 rdAlo, uint32 rdAhi, bool rdAfwd, uint32 rdBlo, uint32 rdBhi, bool rdBfwd, bool flipped) {
+satisfiedOverlap(uint32 UNUSED(rdAlo), uint32 rdAhi, bool rdAfwd,
+                 uint32         rdBlo, uint32 rdBhi, bool rdBfwd, bool flipped) {
   return(((rdAhi < rdBlo) || (rdBhi < rdBlo)) ||          //  Not satisfied, no overlap
          ((rdAfwd == rdBfwd) && (flipped == true)) ||     //  Not satisfied, same orient, but flipped overlap
          ((rdAfwd != rdBfwd) && (flipped == false)));     //  Not satisfied, diff orient, but normal overlap
@@ -380,7 +381,7 @@ satisfiedOverlap(uint32 rdAlo, uint32 rdAhi, bool rdAfwd, uint32 rdBlo, uint32 r
 //  Iterate over all overlaps (but the only interface we have is by iterating
 //  over all reads), and count the number of overlaps satisfied in tigs.
 void
-reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
+reportOverlaps(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)) {
   olapsUsed   *dd       = new olapsUsed;  //  Dovetail overlaps to non-contained reads
   olapsUsed   *dc       = new olapsUsed;  //  Dovetail overlaps to contained reads
   olapsUsed   *cc       = new olapsUsed;  //  Containment overlaps
