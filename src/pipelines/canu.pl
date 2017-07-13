@@ -134,7 +134,8 @@ foreach my $arg (@ARGV) {
 
 my $rootdir       = undef;
 my $readdir       = undef;
-my $mode          = undef;
+my $mode          = undef;   #  "correct", "trim", "trim-assemble" or "assemble"
+my $type          = undef;   #  "pacbio" or "nanopore"
 my $step          = "run";
 my $haveRaw       = 0;
 my $haveCorrected = 0;
@@ -184,6 +185,11 @@ while (scalar(@ARGV)) {
     } elsif ($arg eq "-readdir") {
         $readdir = shift @ARGV;
         addCommandLineOption("-readdir '$readdir'");
+
+    } elsif (($arg eq "-pacbio") ||
+             ($arg eq "-nanopore")) {
+        $type = "pacbio"    if ($arg eq "-pacbio");
+        $type = "nanopore"  if ($arg eq "-nanopore");
 
     } elsif (($arg eq "-pacbio-raw")       ||    #  File handling is also present in
              ($arg eq "-pacbio-corrected") ||    #  Defaults.pm around line 438
@@ -480,16 +486,17 @@ if (!defined($mode)) {
     $mode = "assemble"       if (-e "unitigging/$asm.gkpStore/libraries.txt");
 }
 
-#  Check for a few errors:
-#    no mode                -> don't have any reads or any store to run from.
-#    both raw and corrected -> don't know how to process these
+#  Set the type of the reads.  A command line option could force the type, e.g., "-pacbio" or
+#  "-nanopore", to let you do cRaZy stuff like "-nanopore -pacbio-raw *fastq".
 
-caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef)   if (!defined($mode));
-caExit("ERROR: Can't mix uncorrected and corrected reads", undef)                     if ($haveRaw && $haveCorrected);
+if (!defined($type)) {
+    $type = "pacbio"        if ($setUpForPacBio   > 0);
+    $type = "nanopore"      if ($setUpForNanopore > 0);
+}
 
 #  Now set error rates (if not set already) based on the dominant read type.
 
-if ($setUpForNanopore > 0) {
+if ($type eq"nanopore") {
     setGlobalIfUndef("corOvlErrorRate",  0.320);
     setGlobalIfUndef("obtOvlErrorRate",  0.144);
     setGlobalIfUndef("utgOvlErrorRate",  0.144);
@@ -497,7 +504,9 @@ if ($setUpForNanopore > 0) {
     setGlobalIfUndef("obtErrorRate",     0.144);
     setGlobalIfUndef("utgErrorRate",     0.144);
     setGlobalIfUndef("cnsErrorRate",     0.192);
-} else {
+}
+
+if ($type eq"pacbio") {
     setGlobalIfUndef("corOvlErrorRate",  0.240);
     setGlobalIfUndef("obtOvlErrorRate",  0.045);
     setGlobalIfUndef("utgOvlErrorRate",  0.045);
@@ -506,6 +515,14 @@ if ($setUpForNanopore > 0) {
     setGlobalIfUndef("utgErrorRate",     0.045);
     setGlobalIfUndef("cnsErrorRate",     0.075);
 }
+
+#  Check for a few errors:
+#    no mode                -> don't have any reads or any store to run from.
+#    both raw and corrected -> don't know how to process these
+
+caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef)   if (!defined($mode));
+caExit("ERROR: Failed to determine the sequencing technology of the reads", undef)    if (!defined($type));
+caExit("ERROR: Can't mix uncorrected and corrected reads", undef)                     if ($haveRaw && $haveCorrected);
 
 #  Do a final check on parameters, cleaning up paths and case, and failing on invalid stuff.
 
@@ -664,7 +681,7 @@ if (setOptions($mode, "correct") eq "correct") {
     caExit("can't find corrected reads '$asm.correctedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($correctedReads));
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected\0$correctedReads";
+    push  @inputFiles, "-$type-corrected\0$correctedReads";
 }
 
 
@@ -696,7 +713,7 @@ if (setOptions($mode, "trim") eq "trim") {
     caExit("can't find trimmed reads '$asm.trimmedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($trimmedReads));
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected\0$trimmedReads";
+    push  @inputFiles, "-$type-corrected\0$trimmedReads";
 }
 
 
