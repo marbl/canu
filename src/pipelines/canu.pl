@@ -404,18 +404,6 @@ if (defined($gkp)) {
     $haveRaw++             if ($numPacBioRaw       + $numNanoporeRaw       > 0);
     $haveCorrected++       if ($numPacBioCorrected + $numNanoporeCorrected > 0);
 
-#    my $rt;
-#    my $ct;
-#
-#    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
-#    $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
-#    $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
-#    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio == 0) && ($setUpForNanopore == 0));
-#
-#    $ct = "uncorrected"                 if (($haveRaw         > 0) && ($haveCorrected    == 0));
-#    $ct = "corrected"                   if (($haveRaw        == 0) && ($haveCorrected     > 0));
-#    $ct = "uncorrected AND corrected"   if (($haveRaw         > 0) && ($haveCorrected     > 0));
-
     my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
@@ -455,18 +443,6 @@ elsif (defined($reads)) {
     undef @inputFiles;
     push  @inputFiles, (($setUpForNanopore == 0) ? "-pacbio" : "-nanopore") . "-corrected\0$reads";
 
-#    my $rt;
-#    my $ct;
-#
-#    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
-#    $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
-#    $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
-#    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio == 0) && ($setUpForNanopore == 0));
-#
-#    $ct = "uncorrected"                 if (($haveRaw         > 0) && ($haveCorrected    == 0));
-#    $ct = "corrected"                   if (($haveRaw        == 0) && ($haveCorrected     > 0));
-#    $ct = "uncorrected AND corrected"   if (($haveRaw         > 0) && ($haveCorrected     > 0));
-
     my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
@@ -485,17 +461,6 @@ elsif (scalar(@inputFiles) > 0) {
         $setUpForPacBio++        if ($type =~ m/pacbio/);
         $setUpForNanopore++      if ($type =~ m/nanopore/);
     }
-
-    my $rt;
-    my $ct;
-
-#    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
-#    $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
-#    $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
-#
-#    $ct = "uncorrected"                 if (($haveRaw         > 0) && ($haveCorrected    == 0));
-#    $ct = "corrected"                   if (($haveRaw        == 0) && ($haveCorrected     > 0));
-#    $ct = "uncorrected AND corrected"   if (($haveRaw         > 0) && ($haveCorrected     > 0));
 
     my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
