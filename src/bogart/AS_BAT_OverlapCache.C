@@ -729,6 +729,9 @@ searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID) {
 
 void
 OverlapCache::symmetrizeOverlaps(void) {
+  uint32  fiLimit    = RI->numReads();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   if (_checkSymmetry == false)
     return;
@@ -741,16 +744,9 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   writeStatus("OverlapCache()-- Symmetrizing overlaps -- finding missing twins.\n");
 
-  uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
-
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
     nonsymPerRead[rr] = 0;
-
-    if ((rr % 100) == 0)
-      fprintf(stderr, " %6.3f%%\r", 100.0 * rr / RI->numReads());
 
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
       uint32  rb = _overlaps[rr][oo].b_iid;
@@ -792,56 +788,86 @@ OverlapCache::symmetrizeOverlaps(void) {
   //  need to keep these, only because figuring out which ones are 'saved' above will be a total
   //  pain in the ass.
 
-  double  fractionToDrop = 0.6;
-
-  uint64  nDropped = 0;
-
-#warning this should be parallelized
   writeStatus("OverlapCache()-- Symmetrizing overlaps -- dropping weak non-twin overlaps.\n");
 
+  //  Allocate some scratch space for each thread
+
+  uint64  **ovsScoScratch   = new uint64 * [numThreads];
+  uint64  **ovsTmpScratch   = new uint64 * [numThreads];
+  uint64   *nDroppedScratch = new uint64   [numThreads];
+
+  for (uint32 tt=0; tt<numThreads; tt++) {
+    ovsScoScratch[tt]   = new uint64 [_ovsMax];
+    ovsTmpScratch[tt]   = new uint64 [_ovsMax];
+    nDroppedScratch[tt] = 0;
+  }
+
+  //  As advertised, score all the overlaps and drop the weak ones.
+
+  double  fractionToDrop = 0.6;
+
+#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
     if (_overlapLen[rr] <= _minPer)
       continue;
 
-    if ((rr % 100) == 0)
-      fprintf(stderr, " %6.3f%%\r", 100.0 * rr / RI->numReads());
+    uint64 *ovsSco   = ovsScoScratch[omp_get_thread_num()];
+    uint64 *ovsTmp   = ovsTmpScratch[omp_get_thread_num()];
+    uint64 &nDropped = nDroppedScratch[omp_get_thread_num()];
 
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
-      _ovsSco[oo]   = RI->overlapLength( _overlaps[rr][oo].a_iid, _overlaps[rr][oo].b_iid, _overlaps[rr][oo].a_hang, _overlaps[rr][oo].b_hang);
-      _ovsSco[oo] <<= AS_MAX_EVALUE_BITS;
-      _ovsSco[oo]  |= (~_overlaps[rr][oo].evalue) & ERR_MASK;
-      _ovsSco[oo] <<= SALT_BITS;
-      _ovsSco[oo]  |= oo & SALT_MASK;
+      ovsSco[oo]   = RI->overlapLength( _overlaps[rr][oo].a_iid, _overlaps[rr][oo].b_iid, _overlaps[rr][oo].a_hang, _overlaps[rr][oo].b_hang);
+      ovsSco[oo] <<= AS_MAX_EVALUE_BITS;
+      ovsSco[oo]  |= (~_overlaps[rr][oo].evalue) & ERR_MASK;
+      ovsSco[oo] <<= SALT_BITS;
+      ovsSco[oo]  |= oo & SALT_MASK;
 
-      _ovsTmp[oo] = _ovsSco[oo];
+      ovsTmp[oo] = ovsSco[oo];
     }
 
-    sort(_ovsTmp, _ovsTmp + _overlapLen[rr]);
+    sort(ovsTmp, ovsTmp + _overlapLen[rr]);
 
     uint32  minIdx   = (uint32)floor(nonsymPerRead[rr] * fractionToDrop);
 
     if (minIdx < _minPer)
       minIdx = _minPer;
 
-    uint64  minScore = _ovsTmp[minIdx];
+    uint64  minScore = ovsTmp[minIdx];
 
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
-      if ((_ovsSco[oo] < minScore) && (_overlaps[rr][oo].symmetric == false)) {
+      if ((ovsSco[oo] < minScore) && (_overlaps[rr][oo].symmetric == false)) {
         nDropped++;
         _overlapLen[rr]--;
         _overlaps[rr][oo] = _overlaps[rr][_overlapLen[rr]];
-        _ovsSco      [oo] = _ovsSco      [_overlapLen[rr]];
+        ovsSco       [oo] = ovsSco       [_overlapLen[rr]];
         oo--;
       }
     }
 
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++)
       if (_overlaps[rr][oo].symmetric == false)
-        assert(minScore <= _ovsSco[oo]);
+        assert(minScore <= ovsSco[oo]);
   }
+
+  //  Cleanup and log results.
+
+  uint64  nDropped = 0;
+
+  for (uint32 ii=0; ii<numThreads; ii++)
+    nDropped += nDroppedScratch[ii];
+
 
   delete [] nonsymPerRead;
   nonsymPerRead = NULL;
+
+  for (uint32 tt=0; tt<numThreads; tt++) {
+    delete [] ovsScoScratch[tt];
+    delete [] ovsTmpScratch[tt];
+  }
+
+  delete [] ovsScoScratch;
+  delete [] ovsTmpScratch;
+  delete [] nDroppedScratch;
 
   writeStatus("OverlapCache()--                       -- dropped %llu overlaps.\n", nDropped);
 
@@ -873,10 +899,10 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   //  Copy non-twin overlaps to their twin.
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    if ((rr % 100) == 0)
-      fprintf(stderr, " %6.3f%%\r", 100.0 * rr / RI->numReads());
+  //  This cannot (easily) be parallelized.  We're iterating over overlaps in read rr, but inserting
+  //  overlaps into read rb.
 
+  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
       if (_overlaps[rr][oo].symmetric == true)
         continue;
