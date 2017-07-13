@@ -809,7 +809,7 @@ OverlapCache::symmetrizeOverlaps(void) {
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
       _ovsSco[oo]   = RI->overlapLength( _overlaps[rr][oo].a_iid, _overlaps[rr][oo].b_iid, _overlaps[rr][oo].a_hang, _overlaps[rr][oo].b_hang);
       _ovsSco[oo] <<= AS_MAX_EVALUE_BITS;
-      _ovsSco[oo]  |= (~_ovs[oo].evalue()) & ERR_MASK;
+      _ovsSco[oo]  |= (~_overlaps[rr][oo].evalue) & ERR_MASK;
       _ovsSco[oo] <<= SALT_BITS;
       _ovsSco[oo]  |= oo & SALT_MASK;
 
