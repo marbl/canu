@@ -334,6 +334,9 @@ emitEdges(TigVector      &tigs,
                 tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].end - edges[ee].bgn,
                 (sameContig == true) ? "\tcv:A:T" : "\tcv:A:F");
+
+        tgA->_isCircular  = (tgA->id() == edges[ee].tigID);
+
         edges[ee].deleted = true;
       }
 
@@ -350,6 +353,9 @@ emitEdges(TigVector      &tigs,
                 tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].end - edges[ee].bgn,
                 (sameContig == true) ? "\tcv:A:T" : "\tcv:A:F");
+
+        tgA->_isCircular = (tgA->id() == edges[ee].tigID);
+
         edges[ee].deleted = true;
       }
     }

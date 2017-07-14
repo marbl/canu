@@ -181,6 +181,7 @@ private:
 
     _isUnassembled = false;
     _isRepeat      = false;
+    _isCircular    = false;
   };
 
 public:
@@ -324,8 +325,9 @@ private:
 public:
   //  Classification.
 
-  uint32            _isUnassembled;  //  Is a single read or a pseudo singleton
-  uint32            _isRepeat;       //  From an identified repeat region
+  bool              _isUnassembled;  //  Is a single read or a pseudo singleton.
+  bool              _isRepeat;       //  Is from an identified repeat region.
+  bool              _isCircular;     //  Is (probably) a circular tig.
 
   char   type(void) {
     if (_isUnassembled)  return('U');

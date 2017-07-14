@@ -80,15 +80,11 @@ writeTigsToStore(TigVector     &tigs,
     tig->_coverageStat    = 1.0;  //  Default to just barely unique
     tig->_microhetProb    = 1.0;  //  Default to 100% probability of unique
 
-    //  Set the class.
+    //  Set the class and some flags.
 
-    if      (utg->_isUnassembled == true)
-      tig->_class = tgTig_unassembled;
-    else
-      tig->_class = tgTig_contig;
-
-    tig->_suggestRepeat   = (utg->_isRepeat == true);
-    tig->_suggestCircular = false;
+    tig->_class           = (utg->_isUnassembled == true) ? tgTig_unassembled : tgTig_contig;
+    tig->_suggestRepeat   = utg->_isRepeat;
+    tig->_suggestCircular = utg->_isCircular;
 
     tig->_layoutLen       = utg->getLength();
 

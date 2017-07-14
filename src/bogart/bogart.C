@@ -591,36 +591,7 @@ main (int argc, char * argv []) {
   AG = NULL;
 
   //
-  //  Generate outputs.  The graph MUST come after output, because it needs
-  //  the tigStore tigID.
-  //
-
-  setParentAndHang(contigs);
-  writeTigsToStore(contigs, prefix, "ctg", true);
-
-  vector<tigLoc>  unitigSource;  //  Needed only to pass something to reportTigGraph.
-
-  setLogFile(prefix, "tigGraph");
-
-  reportTigGraph(contigs, unitigSource, prefix, "contigs");
-
-  //
-  //  Generate unitigs
-  //
-  //  We want to split the contigs at any potential bubble, so this needs to be
-  //  at least the 'bubble' deviation.  We don't really want to split at confirmed
-  //  repeats, but we have no way of telling repeat from bubble yet.
-  //
-
-  writeStatus("\n");
-  writeStatus("==> GENERATE UNITIGS.\n");
-  writeStatus("\n");
-
-  setLogFile(prefix, "generateUnitigs");
-
-  contigs.computeErrorProfiles(prefix, "generateUnitigs");
-  contigs.reportErrorProfiles(prefix, "generateUnitigs");
-
+  //  unitigSource:
   //
   //  We want some way of tracking unitigs that came from the same contig.  Ideally,
   //  we'd be able to emit only the edges that would join unitigs into the original
@@ -637,16 +608,34 @@ main (int argc, char * argv []) {
   //  good first attempt.
   //
 
+  vector<tigLoc>  unitigSource;
+
+  //  The graph must come first, to find circular contigs.
+
+  reportTigGraph(contigs, unitigSource, prefix, "contigs");
+
+  setParentAndHang(contigs);
+  writeTigsToStore(contigs, prefix, "ctg", true);
+
+  setLogFile(prefix, "tigGraph");
+
+  writeStatus("\n");
+  writeStatus("==> GENERATE UNITIGS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "generateUnitigs");
+
+  contigs.computeErrorProfiles(prefix, "generateUnitigs");
+  contigs.reportErrorProfiles(prefix, "generateUnitigs");
+
   createUnitigs(contigs, unitigs, minIntersectLen, maxPlacements, confusedEdges, unitigSource);
 
   splitDiscontinuous(unitigs, minOverlapLen, unitigSource);
 
+  reportTigGraph(unitigs, unitigSource, prefix, "unitigs");
+
   setParentAndHang(unitigs);
   writeTigsToStore(unitigs, prefix, "utg", true);
-
-  setLogFile(prefix, "tigGraph");
-
-  reportTigGraph(unitigs, unitigSource, prefix, "unitigs");
 
   //
   //  Tear down bogart.
