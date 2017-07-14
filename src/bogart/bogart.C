@@ -475,9 +475,6 @@ main (int argc, char * argv []) {
   //  which was enough to swap bgn/end coords when they were computed using hangs
   //  (that is, sum of the hangs was bigger than the placed read length).
 
-//TMP
-  reportTigs(contigs, prefix, "placeContains1", genomeSize);
-
   contigs.optimizePositions(prefix, "placeContains");
 
   reportOverlaps(contigs, prefix, "placeContains");
