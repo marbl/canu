@@ -99,31 +99,161 @@ checkUnitigMembership(TigVector &tigs) {
 }
 
 
-//  Decides if a unitig is unassembled.
-//
-//  A unitig is unassembled if:
-//    1) it has fewer than R reads (R=2)
-//    2) it is shorter than S bases (S=1000)
-//    3) a single read spans at least fraction F of the lenth (F=1.0)
-//    4) at least fraction F of the unitig is below read depth D (F=1.0, D=2)
-//
+
+
+
+//  Rule S.  Singleton.
+bool
+classifyRuleS(Unitig *utg, FILE *UNUSED(F), uint32 &num, uint64 &len) {
+
+  if (utg->ufpath.size() > 1)
+    return(false);
+
+  //fprintf(F, "unitig " F_U32 " (%s) unassembled - singleton\n", utg->id(),
+  //        (utg->_isRepeat) ? "repeat" : "normal");
+
+  num += 1;
+  len += utg->getLength();
+
+  return(true);
+}
+
+
+
+//  Rule 1.  Too few reads.
+bool
+classifyRule1(Unitig *utg, FILE *F, uint32 &num, uint64 &len, uint32 fewReadsNumber) {
+
+  if (utg->ufpath.size() == 1)
+    return(false);
+  if (utg->ufpath.size() >= fewReadsNumber)
+    return(false);
+
+  fprintf(F, "unitig " F_U32 " (%s) unassembled - too few reads (" F_U64 " < " F_U32 ")\n",
+          utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
+          utg->ufpath.size(), fewReadsNumber);
+
+  num += 1;
+  len += utg->getLength();
+
+  return(true);
+}
+
+
+
+//  Rule 2.  Short.
+bool
+classifyRule2(Unitig *utg, FILE *F, uint32 &num, uint64 &len, uint32 tooShortLength) {
+
+  if (utg->ufpath.size() == 1)
+    return(false);
+  if (utg->getLength() >= tooShortLength)
+    return(false);
+
+  if (utg->ufpath.size() > 1)
+    fprintf(F, "unitig " F_U32 " (%s) unassembled - too short (" F_U32 " < " F_U32 ")\n",
+            utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
+            utg->getLength(), tooShortLength);
+
+  num += 1;
+  len += utg->getLength();
+
+  return(true);
+}
+
+
+
+//  Rule 3.  Single read spans large fraction of tig.
+bool
+classifyRule3(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double spanFraction) {
+
+  if (utg->ufpath.size() == 1)
+    return(false);
+
+  for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
+    ufNode  *frg = &utg->ufpath[oi];
+
+    int frgbgn = MIN(frg->position.bgn, frg->position.end);
+    int frgend = MAX(frg->position.bgn, frg->position.end);
+
+    if (frgend - frgbgn > utg->getLength() * spanFraction) {
+      if (utg->ufpath.size() > 1)
+        fprintf(F, "unitig " F_U32 " (%s) unassembled - single read spans unitig (read " F_U32 " " F_U32 "-" F_U32 " spans fraction %f > %f\n",
+                utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
+                frg->ident, frg->position.bgn, frg->position.end, (double)(frgend - frgbgn) / utg->getLength(), spanFraction);
+      num += 1;
+      len += utg->getLength();
+
+      return(true);
+    }
+  }
+
+  return(false);
+}
+
+
+
+//  Rule 4.  Low coverage.
+bool
+classifyRule4(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double lowcovFraction, uint32 lowcovDepth) {
+
+  if (utg->ufpath.size() == 1)
+    return(false);
+
+  intervalList<int32>  IL;
+
+  for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
+    ufNode  *frg = &utg->ufpath[oi];
+
+    int frgbgn = MIN(frg->position.bgn, frg->position.end);
+    int frgend = MAX(frg->position.bgn, frg->position.end);
+
+    IL.add(frgbgn, frgend - frgbgn);
+  }
+
+  intervalList<int32>  ID(IL);
+
+  uint32  basesLow  = 0;
+  uint32  basesHigh = 0;
+
+  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
+    if (ID.depth(ii) < lowcovDepth)
+      basesLow  += ID.hi(ii) - ID.lo(ii) + 1;
+    else
+      basesHigh += ID.hi(ii) - ID.lo(ii) + 1;
+
+  assert(basesLow + basesHigh > 0);
+
+  double  lowcov = (double)basesLow / (basesLow + basesHigh);
+
+  if (lowcov < lowcovFraction)
+    return(false);
+
+  if (utg->ufpath.size() > 1)
+    fprintf(F, "Unitig " F_U32 " (%s) unassembled - low coverage (%.2f%% of unitig at < " F_U32 "x coverage, allowed %.2f%%)\n",
+            utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
+            100.0 * lowcov, lowcovDepth, 100.0 * lowcovFraction);
+
+  num += 1;
+  len += utg->getLength();
+
+  return(true);
+}
+
+
+
 void
 classifyTigsAsUnassembled(TigVector    &tigs,
                           uint32        fewReadsNumber,
                           uint32        tooShortLength,
                           double        spanFraction,
                           double        lowcovFraction,   uint32  lowcovDepth) {
-  uint32  nTooFew   = 0;
-  uint32  nShort    = 0;
-  uint32  nSingle   = 0;
-  uint32  nCoverage = 0;
-  uint32  nContig   = 0;
-
-  uint64  bTooFew   = 0;
-  uint64  bShort    = 0;
-  uint64  bSingle   = 0;
-  uint64  bCoverage = 0;
-  uint64  bContig   = 0;
+  uint32  nSingleton  = 0;    uint64  bSingleton  = 0;
+  uint32  nTooFew     = 0;    uint64  bTooFew     = 0;
+  uint32  nShort      = 0;    uint64  bShort      = 0;
+  uint32  nSingleSpan = 0;    uint64  bSingleSpan = 0;
+  uint32  nCoverage   = 0;    uint64  bCoverage   = 0;
+  uint32  nContig     = 0;    uint64  bContig     = 0;
 
   char   N[FILENAME_MAX];
 
@@ -134,105 +264,59 @@ classifyTigsAsUnassembled(TigVector    &tigs,
   if (errno)
     F = NULL;
 
+  if (F) {
+    fprintf(F, "# Contigs flagged as unassembled.\n");
+    fprintf(F, "#\n");
+    fprintf(F, "# fewReadsNumber   %u (singletons always removed and not logged)\n", fewReadsNumber);
+    fprintf(F, "# tooShortLength   %u\n", tooShortLength);
+    fprintf(F, "# spanFraction     %f\n", spanFraction);
+    fprintf(F, "# lowcovFraction   %f\n", lowcovFraction);
+    fprintf(F, "# lowcovDepth      %u\n", lowcovDepth);
+    fprintf(F, "#\n");
+  }
+
   for (uint32  ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];
 
     if (utg == NULL)
       continue;
 
-    utg->_isUnassembled = false;
+    //  Decide that we're junk first.
 
-    //  Rule 1.  Too few reads.
+    utg->_isUnassembled = true;
 
-    if (utg->ufpath.size() < fewReadsNumber) {
-      fprintf(F, "unitig " F_U32 " unassembled - too few reads (" F_U64 " < " F_U32 ")\n", ti, utg->ufpath.size(), fewReadsNumber);
-      utg->_isUnassembled = true;
-      nTooFew += 1;
-      bTooFew += utg->getLength();
+    //  Check the tig.
+
+    bool  rr = (utg->_isRepeat == true);
+    bool  rs = classifyRuleS(utg, F, nSingleton,  bSingleton);
+    bool  r1 = classifyRule1(utg, F, nTooFew,     bTooFew,      fewReadsNumber);
+    bool  r2 = classifyRule2(utg, F, nShort,      bShort,       tooShortLength);
+    bool  r3 = classifyRule3(utg, F, nSingleSpan, bSingleSpan,  spanFraction);
+    bool  r4 = classifyRule4(utg, F, nCoverage,   bCoverage,    lowcovFraction, lowcovDepth);
+
+    //  If flagged, we're done, just move on.
+
+    if ((rr == false) && (rs || r1 || r2 || r3 || r4))
       continue;
-    }
-
-    //  Rule 2.  Short.
-
-    if (utg->getLength() < tooShortLength) {
-      fprintf(F, "unitig " F_U32 " unassembled - too short (" F_U32 " < " F_U32 ")\n", ti, utg->getLength(), tooShortLength);
-      utg->_isUnassembled = true;
-      nShort += 1;
-      bShort += utg->getLength();
-      continue;
-    }
-
-    //  Rule 3.  Single read spans large fraction of tig.
-
-    for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
-      ufNode  *frg = &utg->ufpath[oi];
-
-      int frgbgn = MIN(frg->position.bgn, frg->position.end);
-      int frgend = MAX(frg->position.bgn, frg->position.end);
-
-      if (frgend - frgbgn > utg->getLength() * spanFraction) {
-        fprintf(F, "unitig " F_U32 " unassembled - single read spans unitig (read " F_U32 " " F_U32 "-" F_U32 " spans fraction %f > %f\n",
-                 ti, frg->ident, frg->position.bgn, frg->position.end, (double)(frgend - frgbgn) / utg->getLength(), spanFraction);
-        utg->_isUnassembled = true;
-        nSingle += 1;
-        bSingle += utg->getLength();
-        break;
-      }
-    }
-    if (utg->_isUnassembled)
-      continue;
-
-    //  Rule 4.  Low coverage.
-
-    intervalList<int32>  IL;
-
-    for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
-      ufNode  *frg = &utg->ufpath[oi];
-
-      int frgbgn = MIN(frg->position.bgn, frg->position.end);
-      int frgend = MAX(frg->position.bgn, frg->position.end);
-
-      IL.add(frgbgn, frgend - frgbgn);
-    }
-
-    intervalList<int32>  ID(IL);
-
-    uint32  basesLow  = 0;
-    uint32  basesHigh = 0;
-
-    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
-      if (ID.depth(ii) < lowcovDepth)
-        basesLow  += ID.hi(ii) - ID.lo(ii) + 1;
-      else
-        basesHigh += ID.hi(ii) - ID.lo(ii) + 1;
-
-    assert(basesLow + basesHigh > 0);
-
-    double  lowcov = (double)basesLow / (basesLow + basesHigh);
-
-    if (lowcov >= lowcovFraction) {
-      fprintf(F, "Unitig " F_U32 " unassembled - low coverage (%.4f > %.4f at < " F_U32 "x coverage)\n",
-               ti, lowcov, lowcovFraction, lowcovDepth);
-      utg->_isUnassembled = true;
-      nCoverage += 1;
-      bCoverage += utg->getLength();
-      continue;
-    }
 
     //  Otherwise, unitig is assembled!
 
     nContig += 1;
     bContig += utg->getLength();
+
+    utg->_isUnassembled = false;
   }
 
   if (F)
     fclose(F);
 
-  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too few reads\n",        nTooFew,   bTooFew);
-  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too short\n",            nShort,    bShort);
-  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- single spanning read\n", nSingle,   bSingle);
-  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- low coverage\n",         nCoverage, bCoverage);
-  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- acceptable contigs\n",   nContig,   bContig);
+  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- singleton\n",                                               nSingleton,  bSingleton,  fewReadsNumber);
+  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too few reads        (< %u reads)\n",                       nTooFew,     bTooFew,     fewReadsNumber);
+  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too short            (< %u bp)\n",                          nShort,      bShort,      tooShortLength);
+  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- single spanning read (> %f tig length)\n",                  nSingleSpan, bSingleSpan, spanFraction);
+  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- low coverage         (> %f tig length at < %u coverage)\n", nCoverage,   bCoverage,   lowcovFraction, lowcovDepth);
+  writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- acceptable contigs\n",                                      nContig,     bContig);
+  writeStatus("\n");
 }
 
 
