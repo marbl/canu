@@ -212,15 +212,11 @@ public:
                           bool          beVerbose);
   void optimize(const char *prefix, const char *label);
 
-  // getNumRandomRead() is a placeholder, random reads should not
-  // contain guides, or other reads that are not randomly sampled
-  // across the whole genome.
 
-  uint32 id(void)                 { return(_id); };      //  ID internal to bogart
+  uint32 id(void)                 { return(_id); };
 
   int32  getLength(void)          { return(_length);       };
   uint32 getNumReads(void)        { return(ufpath.size()); };
-  uint32 getNumRandomReads(void)  { return(getNumReads()); };
 
   //  Place 'read' using an edge to some read in this tig.  The edge is from 'read3p' end.
   //
@@ -328,12 +324,6 @@ public:
   bool              _isUnassembled;  //  Is a single read or a pseudo singleton.
   bool              _isRepeat;       //  Is from an identified repeat region.
   bool              _isCircular;     //  Is (probably) a circular tig.
-
-  char   type(void) {
-    if (_isUnassembled)  return('U');
-    if (_isRepeat)       return('R');
-    return('N');
-  }
 };
 
 
