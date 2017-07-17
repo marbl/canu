@@ -93,10 +93,10 @@ main (int argc, char * argv []) {
   uint64    genomeSize               = 0;
 
   uint32    fewReadsNumber           = 2;      //  Parameters for labeling of unassembled; also set in pipelines/canu/Defaults.pm
-  uint32    tooShortLength           = 1000;
-  double    spanFraction             = 0.75;
-  double    lowcovFraction           = 0.75;
-  uint32    lowcovDepth              = 2;
+  uint32    tooShortLength           = 0;
+  double    spanFraction             = 1.0;
+  double    lowcovFraction           = 0.5;
+  uint32    lowcovDepth              = 5;
 
   double    deviationGraph           = 6.0;
   double    deviationBubble          = 6.0;
@@ -500,6 +500,16 @@ main (int argc, char * argv []) {
   reportTigs(contigs, prefix, "mergeOrphans", genomeSize);
 
   //
+  //  Initial construction done.  Classify what we have as assembled or unassembled.
+  //
+
+  classifyTigsAsUnassembled(contigs,
+                            fewReadsNumber,
+                            tooShortLength,
+                            spanFraction,
+                            lowcovFraction, lowcovDepth);
+
+  //
   //  Generate a new graph using only edges that are compatible with existing tigs.
   //
 
@@ -571,12 +581,6 @@ main (int argc, char * argv []) {
   writeStatus("\n");
 
   setLogFile(prefix, "generateOutputs");
-
-  classifyTigsAsUnassembled(contigs,
-                            fewReadsNumber,
-                            tooShortLength,
-                            spanFraction,
-                            lowcovFraction, lowcovDepth);
 
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "final");

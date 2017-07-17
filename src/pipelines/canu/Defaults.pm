@@ -968,6 +968,7 @@ sub setDefaults () {
     #####  Unitig Filtering Options (also set in bogart/bogart.C)
 
     $global{"contigFilter"}                = "2 1000 0.75 0.75 2";
+    $global{"contigFilter"}                = "2 0 1.0 0.5 5";
     $synops{"contigFilter"}                = "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth";
 
     #####  Consensus Options
