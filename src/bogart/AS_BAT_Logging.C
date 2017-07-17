@@ -202,8 +202,6 @@ getLogFilePrefix(void) {
 void
 writeStatus(char const *fmt, ...) {
   va_list           ap;
-  int32             nt = omp_get_num_threads();
-  int32             tn = omp_get_thread_num();
 
   va_start(ap, fmt);
 
