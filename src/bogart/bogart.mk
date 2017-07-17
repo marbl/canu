@@ -18,6 +18,7 @@ SOURCES  := bogart.C \
             AS_BAT_Logging.C \
             AS_BAT_MarkRepeatReads.C \
             AS_BAT_MergeOrphans.C \
+            AS_BAT_OptimizePositions.C \
             AS_BAT_Outputs.C \
             AS_BAT_OverlapCache.C \
             AS_BAT_PlaceContains.C \

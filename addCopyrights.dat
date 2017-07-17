@@ -11836,3 +11836,4 @@ A src/bogart/AS_BAT_Unitig.C nihh20161121Brian P. Walenz
 A addCopyrights-BuildData.pl nihh20161121Brian P. Walenz
 A addCopyrights.dat nihh20161121Brian P. Walenz
 A addCopyrights.pl nihh20161121Brian P. Walenz
+D src/bogart/AS_BAT_OptimizePositions.C src/bogart/AS_BAT_Unitig.C
