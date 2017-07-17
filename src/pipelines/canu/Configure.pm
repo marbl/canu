@@ -53,9 +53,11 @@ use canu::Execution;
 #           1g-2000m:1g only adds 1g.
 #           1g-2048m:1g adds 1 and 2g.
 
-sub expandRange ($$) {
+sub expandRange ($$$$) {
     my $var = shift @_;
     my $val = shift @_;
+    my $min = shift @_;  #  limit the minimum to be above this
+    my $max = shift @_;  #  limit the maximum to be below this
 
     my @v = split ',', $val;
     my @r;
@@ -126,9 +128,23 @@ sub expandRange ($$) {
         elsif ($def == 3) {
         }
 
+        #  Convert the value and unit to gigabytes.
+
         my $b = adjustMemoryValue("$bgn$bgnu");
         my $e = adjustMemoryValue("$end$endu");
         my $s = adjustMemoryValue("$stp$stpu");
+
+        #  Enforce the user supplied minimum and maximum.  We cannot 'decrease min to user supplied
+        #  maximum' because this effectively ignores the task setting.  For, e.g., batMemory=64-128
+        #  and maxMemory=32, we want it to fail.
+
+        $b = $min   if ((defined($min)) && ($b < $min));    #  Increase min to user supplied minimum.
+        $e = $min   if ((defined($min)) && ($e < $min));    #  Increase max to user supplied minimum.
+
+        #$b = $max   if ((defined($max)) && ($b > $max));    #  Decrease min to use supplied maximum.
+        $e = $max   if ((defined($max)) && ($e > $max));    #  Decrease max to use supplied maximum.
+
+        #  Iterate over the range, push values to test onto the array.
 
         for (my $ii=$b; $ii<=$e; $ii += $s) {
             push @r, $ii;
@@ -184,6 +200,9 @@ sub getAllowedResources ($$$$@) {
 
     #  Figure out limits.
 
+    my $minMemory    = getGlobal("minMemory");
+    my $minThreads   = getGlobal("minThreads");
+
     my $maxMemory    = getGlobal("maxMemory");
     my $maxThreads   = getGlobal("maxThreads");
 
@@ -200,9 +219,11 @@ sub getAllowedResources ($$$$@) {
 
     if ($dbg) {
         print STDERR "--\n";
-        print STDERR "-- DEBUG\n";
-        print STDERR "-- DEBUG  Limited to $maxMemory GB memory via maxMemory option\n"   if (defined($maxMemory));
-        print STDERR "-- DEBUG  Limited to $maxThreads threads via maxThreads option\n"   if (defined($maxThreads));
+        print STDERR "-- ERROR\n";
+        print STDERR "-- ERROR  Limited to at least $minMemory GB memory via minMemory option\n"   if (defined($minMemory));
+        print STDERR "-- ERROR  Limited to at least $minThreads threads via minThreads option\n"   if (defined($minThreads));
+        print STDERR "-- ERROR  Limited to at most $maxMemory GB memory via maxMemory option\n"    if (defined($maxMemory));
+        print STDERR "-- ERROR  Limited to at most $maxThreads threads via maxThreads option\n"    if (defined($maxThreads));
     }
 
     #  Figure out the largest memory and threads that could ever be supported.  This lets us short-circuit
@@ -239,12 +260,11 @@ sub getAllowedResources ($$$$@) {
     }
 
     if ($dbg) {
-        print STDERR "-- DEBUG\n";
-        print STDERR "-- DEBUG Have ", scalar(@gridCor), " configurations; largest memory size $maxMemory GB; most cores $maxThreads:\n";
+        print STDERR "-- ERROR\n";
+        print STDERR "-- ERROR  Found ", scalar(@gridCor), " machine ", ((scalar(@gridCor) == 1) ? "configuration:\n" : "configurations:\n");
         for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
-            print STDERR "-- DEBUG   class$ii - $gridNum[$ii] machines with $gridCor[$ii] cores with $gridMem[$ii]GB memory each.\n";
+            print STDERR "-- ERROR    class$ii - $gridNum[$ii] machines with $gridCor[$ii] cores with $gridMem[$ii] GB memory each.\n";
         }
-        print STDERR "-- DEBUG\n";
     }
 
     #  The task usually has multiple choices, and we have a little optimization problem to solve.  For each
@@ -255,8 +275,8 @@ sub getAllowedResources ($$$$@) {
     #  We then (typically) want to maximize the number of cores we can get running.
     #  Other options would be number of cores * amount of memory.
 
-    my @taskMemory  = expandRange("${tag}${alg}Memory",  $taskMemory);
-    my @taskThreads = expandRange("${tag}${alg}Threads", $taskThreads);
+    my @taskMemory  = expandRange("${tag}${alg}Memory",  $taskMemory,  $minMemory,  $maxMemory);
+    my @taskThreads = expandRange("${tag}${alg}Threads", $taskThreads, $minThreads, $maxThreads);
 
     #  Find task memory/thread settings that will maximize the number of cores running.  This used
     #  to also compute best as 'cores * memory' but that is better handled by ordering the task
@@ -271,7 +291,7 @@ sub getAllowedResources ($$$$@) {
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
             #if ($dbg && (($m > $maxMemory) || ($t > $maxThreads))) {
-            #    print STDERR "-- DEBUG Tested $tag$alg requesting $t cores and ${m}GB memory - rejected: limited to ${maxMemory}GB and $maxThreads cores.\n";
+            #    print STDERR "-- ERROR Tested $tag$alg requesting $t cores and ${m}GB memory - rejected: limited to ${maxMemory}GB and $maxThreads cores.\n";
             #}
             next  if ($m > $maxMemory);   #  Bail if either of the suggest settings are
             next  if ($t > $maxThreads);  #  larger than the maximum allowed.
@@ -297,7 +317,7 @@ sub getAllowedResources ($$$$@) {
                 my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;
 
                 if ($dbg) {
-                    print STDERR "-- DEBUG  for $t threads and $m memory - class$ii can support $np_cpu jobs(cores) and $np_mem jobs(memory), so $np jobs.\n";
+                    print STDERR "-- ERROR  for $t threads and $m memory - class$ii can support $np_cpu jobs(cores) and $np_mem jobs(memory), so $np jobs.\n";
                 }
 
                 $processes += $np;
@@ -306,7 +326,7 @@ sub getAllowedResources ($$$$@) {
             }
 
             if ($dbg) {
-                print STDERR "-- DEBUG Tested $tag$alg requesting $t cores and ${m}GB memory and found $cores could be used.\n";
+                print STDERR "-- ERROR  Tested $tag$alg requesting $t cores and ${m}GB memory and found $cores could be used.\n";
             }
 
             #  If no cores, then all machines were too small.
@@ -326,11 +346,18 @@ sub getAllowedResources ($$$$@) {
     if (!defined($bestCoresM)) {
         getAllowedResources($tag, $alg, $err, $all, 1)  if (!defined($dbg));
 
-        print STDERR "--\n";
-        print STDERR "-- Task $tag$alg can't run on any available machines.\n";
-        print STDERR "-- It is requesting ", getGlobal("${tag}${alg}Memory"), " GB memory and ", getGlobal("${tag}${alg}Threads"), " threads.\n";
-        print STDERR "-- See above for hardware limits.\n";
-        print STDERR "--\n";
+        print STDERR "-- ERROR\n";
+        print STDERR "-- ERROR  Task $tag$alg can't run on any available machines.\n";
+        print STDERR "-- ERROR  It is requesting:\n";
+        print STDERR "-- ERROR    ${tag}${alg}Memory=", getGlobal("${tag}${alg}Memory"), " memory (gigabytes)\n";
+        print STDERR "-- ERROR    ${tag}${alg}Threads=", getGlobal("${tag}${alg}Threads"), " threads\n";
+        print STDERR "-- ERROR\n";
+        print STDERR "-- ERROR  No available machine configuration can run this task.\n";
+        print STDERR "-- ERROR\n";
+        print STDERR "-- ERROR  Possible solutions:\n";
+        print STDERR "-- ERROR    Increase maxMemory\n"  if (defined(getGlobal("maxMemory")));
+        print STDERR "-- ERROR    Change ${tag}${alg}Memory and/or ${tag}${alg}Threads\n";
+        print STDERR "-- ERROR\n";
 
         caExit("task $tag$alg failed to find a configuration to run on", undef);
     }
@@ -699,6 +726,9 @@ sub configureAssembler () {
         setGlobalIfUndef("batMemory",   "256-1024");    setGlobalIfUndef("batThreads",   "16-64");
         setGlobalIfUndef("gfaMemory",   "32-64");       setGlobalIfUndef("gfaThreads",   "16-64");
     }
+
+    
+
 
     #  Finally, use all that setup to pick actual values for each component.
     #
