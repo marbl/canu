@@ -204,12 +204,19 @@ public:
   void cleanUp(void);
 
   //  Recompute bgn/end positions using all overlaps.
-  void optimize_initPlace(uint32        ii,
+  void optimize_initPlace(uint32        pp,
                           optPos       *op,
                           optPos       *np,
                           bool          firstPass,
                           set<uint32>  &failed,
                           bool          beVerbose);
+  void optimize_recompute(uint32        ii,
+                          optPos       *op,
+                          optPos       *np,
+                          bool          beVerbose);
+  void optimize_expand(optPos       *op);
+  void optimize_setPositions(optPos       *op,
+                             bool          beVerbose);
   void optimize(const char *prefix, const char *label);
 
 
