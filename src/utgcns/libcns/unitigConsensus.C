@@ -258,12 +258,10 @@ unitigConsensus::generate(tgTig                     *tig_,
 
 
 
-void
+char *
 generateTemplateStitch(abAbacus    *abacus,
                        tgPosition  *utgpos,
                        uint32       numfrags,
-                       uint32      &tiglen,
-                       char        *tigseq,
                        double       errorRate,
                        bool         verbose) {
   int32   minOlap  = 500;
@@ -275,6 +273,12 @@ generateTemplateStitch(abAbacus    *abacus,
   abSequence  *seq      = abacus->getSequence(rid);
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
+
+  uint32       tigmax = AS_MAX_READLEN;  //  Must be at least AS_MAX_READLEN, else resizeArray() could fail
+  uint32       tiglen = 0;
+  char        *tigseq = NULL;
+
+  allocateArray(tigseq, tigmax, resizeArray_clearNew);
 
   if (verbose) {
     fprintf(stderr, "\n");
@@ -486,10 +490,14 @@ generateTemplateStitch(abAbacus    *abacus,
     if (verbose)
       fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n", tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
 
+    increaseArray(tigseq, tiglen, tigmax, tiglen + readLen - readEnd + 1);
+
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
 
     tigseq[tiglen] = 0;
+
+    assert(tiglen < tigmax);
 
     ePos = utgpos[rid].max();
 
@@ -509,6 +517,8 @@ generateTemplateStitch(abAbacus    *abacus,
   if ((tiglen >= 100000) && ((pd < -50.0) || (pd > 50.0)))
     fprintf(stderr, "generateTemplateStitch()-- significant size difference, stopping.\n");
   assert((tiglen < 100000) || ((-50.0 <= pd) && (pd <= 50.0)));
+
+  return(tigseq);
 }
 
 
@@ -729,27 +739,10 @@ unitigConsensus::generatePBDAG(char                       aligner,
     return(false);
   }
 
-  //  First we need to load into Unitig data structure the quick cns
-
-  uint32  tiglen = 0;
-  char   *tigseq = new char [2 * tig->_layoutLen + 1];
-
-  memset(tigseq, 'N', sizeof(char) * 2 * tig->_layoutLen);
-
-  tigseq[2 * tig->_layoutLen] = 0;
-
   //  Build a quick consensus to align to.
 
-  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq, errorRate, tig->_utgcns_verboseLevel);
-
-  uint32  pass = 0;
-  uint32  fail = 0;
-
-  for (uint32 jj=0; jj<tiglen; jj++)
-    if (tigseq[jj] == 'N')
-      fprintf(stdout, "generatePBDAG()-- WARNING: template position %u not defined.\n", jj);
-
-  assert(tigseq[tiglen] == 0);
+  char   *tigseq = generateTemplateStitch(abacus, utgpos, numfrags, errorRate, tig->_utgcns_verboseLevel);
+  uint32  tiglen = strlen(tigseq);
 
   fprintf(stderr, "Generated template of length %d\n", tiglen);
 
@@ -758,6 +751,8 @@ unitigConsensus::generatePBDAG(char                       aligner,
   fprintf(stderr, "Aligning reads.\n");
 
   dagAlignment *aligns = new dagAlignment [numfrags];
+  uint32        pass = 0;
+  uint32        fail = 0;
 
 #pragma omp parallel for schedule(dynamic)
   for (uint32 ii=0; ii<numfrags; ii++) {
@@ -818,6 +813,8 @@ unitigConsensus::generatePBDAG(char                       aligner,
 
   std::string cns = ag.consensus(1);
 
+  delete [] tigseq;
+
   //  Realign reads to get precise endpoints
 
   realignReads();
@@ -859,23 +856,10 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     return(false);
   }
 
-  //  First we need to load into Unitig data structure the quick cns
+  //  Quick is just the template sequence, so one and done!
 
-  uint32  tiglen = 0;
-  char   *tigseq = new char [2 * tig->_layoutLen + 1];
-
-  memset(tigseq, 'N', sizeof(char) * 2 * tig->_layoutLen);
-
-  tigseq[2 * tig->_layoutLen] = 0;
-
-  //  Build a quick consensus to align to.
-
-  generateTemplateStitch(abacus, utgpos, numfrags, tiglen, tigseq, errorRate, tig->_utgcns_verboseLevel);
-
-  //
-  //  The above and below came from generatePBDAG(), which should be modified to handle 'quick'.
-  //  generagePBDAG() has a bunch of other stuff here.
-  //
+  char   *tigseq = generateTemplateStitch(abacus, utgpos, numfrags, errorRate, tig->_utgcns_verboseLevel);
+  uint32  tiglen = strlen(tigseq);
 
   //  Save consensus
 
@@ -892,6 +876,8 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
   tig->_gappedQuals[tiglen] = 0;
   tig->_gappedLen           = tiglen;
   tig->_layoutLen           = tiglen;
+
+  delete [] tigseq;
 
   return(true);
 }
