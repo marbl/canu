@@ -35,11 +35,13 @@
 
 using namespace std;
 
-
 int
 main(int argc, char **argv) {
   char           *outName  = NULL;
   char           *gkpName  = NULL;
+  bool		  partialOverlaps = false;
+  uint32          minOverlapLength = 0;
+  uint32          tolerance = 0;
 
   vector<char *>  files;
 
@@ -51,6 +53,15 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-tolerance") == 0) {
+      tolerance = atoi(argv[++arg]);;
+
+    } else if (strcmp(argv[arg], "-partial") == 0) {
+      partialOverlaps = true;
+
+    } else if (strcmp(argv[arg], "-len") == 0) {
+      minOverlapLength = atoi(argv[++arg]);
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -79,7 +90,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  char        *ovStr = new char [1024];
+  char        *ovStr = new char [1024*1024];
 
   gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
   ovOverlap   ov(gkpStore);
@@ -95,7 +106,7 @@ main(int argc, char **argv) {
     //  aiid  							alen    bgn	end	bori	biid 							blen	bgn	end	#match minimizers	alnlen	?	cm:i:errori
     //
 
-    while (fgets(ovStr, 1024, in->file()) != NULL) {
+    while (fgets(ovStr, 1024*1024, in->file()) != NULL) {
       splitToWords  W(ovStr);
 
       ov.a_iid = W(0);
@@ -103,10 +114,6 @@ main(int argc, char **argv) {
 
       if (ov.a_iid == ov.b_iid)
         continue;
-
-      ov.dat.ovl.forUTG = true;
-      ov.dat.ovl.forOBT = true;
-      ov.dat.ovl.forDUP = true;
 
       ov.dat.ovl.ahg5 = W(2);
       ov.dat.ovl.ahg3 = W(1) - W(3);
@@ -137,6 +144,50 @@ main(int argc, char **argv) {
                 ov.dat.ovl.bhg5, ov.dat.ovl.bhg3,
                 ov.dat.ovl.flipped);
         exit(1);
+      }
+
+      if (!ov.overlapIsDovetail() && partialOverlaps == false) {
+         if (alen <= blen && ov.dat.ovl.ahg5 >= 0 && ov.dat.ovl.ahg3 >= 0 && ov.dat.ovl.bhg5 >= ov.dat.ovl.ahg5 && ov.dat.ovl.bhg3 >= ov.dat.ovl.ahg3 && ((ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3)) < tolerance) {
+              ov.dat.ovl.bhg5 = max(0, ov.dat.ovl.bhg5 - ov.dat.ovl.ahg5); ov.dat.ovl.ahg5 = 0;
+              ov.dat.ovl.bhg3 = max(0, ov.dat.ovl.bhg3 - ov.dat.ovl.ahg3); ov.dat.ovl.ahg3 = 0;
+           }
+           // second is b contained (both b hangs can be extended)
+           //
+           else if (alen >= blen && ov.dat.ovl.bhg5 >= 0 && ov.dat.ovl.bhg3 >= 0 && ov.dat.ovl.ahg5 >= ov.dat.ovl.bhg5 && ov.dat.ovl.ahg3 >= ov.dat.ovl.bhg3 && ((ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3)) < tolerance) {
+              ov.dat.ovl.ahg5 = max(0, ov.dat.ovl.ahg5 - ov.dat.ovl.bhg5); ov.dat.ovl.bhg5 = 0;
+              ov.dat.ovl.ahg3 = max(0, ov.dat.ovl.ahg3 - ov.dat.ovl.bhg3); ov.dat.ovl.bhg3 = 0;
+           }
+           // third is 5' dovetal  ---------->
+           //                          ---------->
+           //                          or
+           //                          <---------
+           //                         bhg5 here is always first overhang on b read
+           //
+           else if (ov.dat.ovl.ahg3 <= ov.dat.ovl.bhg3 && (ov.dat.ovl.ahg3 >= 0 && ((double)(ov.dat.ovl.ahg3)) < tolerance) &&
+                   (ov.dat.ovl.bhg5 >= 0 && ((double)(ov.dat.ovl.bhg5)) < tolerance)) {
+              ov.dat.ovl.ahg5 = max(0, ov.dat.ovl.ahg5 - ov.dat.ovl.bhg5); ov.dat.ovl.bhg5 = 0;
+              ov.dat.ovl.bhg3 = max(0, ov.dat.ovl.bhg3 - ov.dat.ovl.ahg3); ov.dat.ovl.ahg3 = 0;
+           }
+           //
+           // fourth is 3' dovetail    ---------->
+           //                     ---------->
+           //                     or
+           //                     <----------
+           //                     bhg5 is always first overhang on b read
+           else if (ov.dat.ovl.ahg5 <= ov.dat.ovl.bhg5 && (ov.dat.ovl.ahg5 >= 0 && ((double)(ov.dat.ovl.ahg5)) < tolerance) &&
+                   (ov.dat.ovl.bhg3 >= 0 && ((double)(ov.dat.ovl.bhg3)) < tolerance)) {
+              ov.dat.ovl.bhg5 = max(0, ov.dat.ovl.bhg5 - ov.dat.ovl.ahg5); ov.dat.ovl.ahg5 = 0;
+              ov.dat.ovl.ahg3 = max(0, ov.dat.ovl.ahg3 - ov.dat.ovl.bhg3); ov.dat.ovl.bhg3 = 0;
+           }
+     }
+
+      ov.dat.ovl.forUTG = (partialOverlaps == false) && (ov.overlapIsDovetail() == true);;
+      ov.dat.ovl.forOBT = partialOverlaps;
+      ov.dat.ovl.forDUP = partialOverlaps;
+
+      // check the length is big enough
+      if (ov.a_end() - ov.a_bgn() < minOverlapLength || ov.b_end() - ov.b_bgn() < minOverlapLength) {
+         continue;
       }
 
       //  Overlap looks good, write it!
