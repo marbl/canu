@@ -318,18 +318,15 @@ checkLink(gfaLink   *link,
 
 
 
+//   Align all of B into A.  Extend A as needed to make the whole thing fit.
+//   Abgn, Aend and score are updated with the alignment.
+//
 bool
-checkRecord(bedRecord   *record,
-            sequences   &ctgs,
-            sequences   &utgs,
-            bool         beVerbose,
-            bool         UNUSED(doPlot)) {
-
-  char   *Aseq = ctgs[record->_Aid].seq;
-  char   *Bseq = utgs[record->_Bid].seq, *Brev = NULL;
-
-  int32  Abgn, Aend, Alen = ctgs[record->_Aid].len;
-  int32  Bbgn, Bend, Blen = utgs[record->_Bid].len;
+checkRecord_align(char *label,
+                  char *Aname, char *Aseq, int32 Alen, int32 &Abgn, int32 &Aend,
+                  char *Bname, char *Bseq, int32 Blen,
+                  int32 &score,
+                  bool   beVerbose) {
 
   EdlibAlignResult  result  = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
@@ -338,32 +335,16 @@ checkRecord(bedRecord   *record,
   int32  alignScore  = 0;
   int32  maxEdit     = (int32)ceil(Blen * 0.03);  //  Should be the same sequence, but allow for a little difference.
   int32  step        = (int32)ceil(Blen * 0.15);
-  bool   success     = false;
 
-  //  Regardless of if we find an new alignment or not, remove the old one.
-  //  If we don't find a new one, we'll discard the link.
-
-  record->_score = 0;
-
-  if (record->_Bfwd == false)
-    Bseq = Brev = reverseComplementCopy(Bseq, Blen);
-
-  //  Align B to A, allowing the A positions to float.
-
-  Abgn = 4 * step + record->_end - record->_bgn;  //  Not the begin, but the length of the region
-  Aend = record->_end;
-
-  Aend = min(Aend + 2 * step, Alen);   //  Limit Aend to the actual length of the contig (consensus can shrink repeats)
-  Abgn = max(Aend - Abgn, 0);          //  Then put the start at that position minus 4 steps and the unitig length.
-
-  Bbgn = 0;
-  Bend = Blen;
+  Aend = min(Aend + 2 * step, Alen);        //  Limit Aend to the actual length of the contig (consensus can shrink)
+  Abgn = max(Aend - Blen - 2 * step, 0);    //  Then push Abgn back to make space for the unitig.
 
  tryAgain:
   if (beVerbose)
-    fprintf(stderr, "ALIGN utg %s len=%7d to ctg %s %9d-%9d len=%9d",
-            record->_Bname, Blen,
-            record->_Aname, Abgn, Aend, Alen);
+    fprintf(stderr, "ALIGN %5s utg %s len=%7d to ctg %s %9d-%9d len=%9d",
+            label,
+            Bname, Blen,
+            Aname, Abgn, Aend, Alen);
 
 #if 0
   char N[FILENAME_MAX];
@@ -386,7 +367,7 @@ checkRecord(bedRecord   *record,
   Bseq[Bend] = bch;
 #endif
 
-  result = edlibAlign(Bseq + Bbgn, Bend-Bbgn,  //  The 'query'   (unitig)
+  result = edlibAlign(Bseq,        Blen,       //  The 'query'   (unitig)
                       Aseq + Abgn, Aend-Abgn,  //  The 'target'  (contig)
                       edlibNewAlignConfig(maxEdit, EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
@@ -398,7 +379,7 @@ checkRecord(bedRecord   *record,
     char  *cigar = NULL;
 
     editDist   = result.editDistance;
-    alignLen   = ((nAend - nAbgn) + (Bend - Bbgn) + (editDist)) / 2;
+    alignLen   = ((nAend - nAbgn) + (Blen) + (editDist)) / 2;
     alignScore = 1000 - (int32)(1000.0 * editDist / alignLen);
 
     //  If there's an alignment, we can get a cigar string and better alignment length.
@@ -411,7 +392,7 @@ checkRecord(bedRecord   *record,
 
     if (beVerbose)
       fprintf(stderr, " - POSITION from %9d-%-9d to %9d-%-9d score %5d/%9d = %4d%s%s\n",
-              record->_bgn, record->_end,
+              Abgn, Aend,
               nAbgn, nAend,
               editDist, alignLen, alignScore,
               (cigar != NULL) ? " align " : "",
@@ -420,17 +401,16 @@ checkRecord(bedRecord   *record,
     delete [] cigar;
 
     //  If it's a full alignment -- if the A region was big enough to have unaligned bases -- then
-    //  we're done.  Update the record and get out of here.
+    //  we're done.  Update the result and get out of here.
 
     if (((Abgn  < nAbgn) || (Abgn == 0)) &&
         ((nAend < Aend)  || (Aend == Alen))) {
-      success = true;
 
-      record->_bgn   = nAbgn;
-      record->_end   = nAend;
-      record->_score = alignScore;
+      Abgn  = nAbgn;
+      Aend  = nAend;
+      score = alignScore;
 
-      goto finishCheck;
+      return(true);
     }
 
     //  Otherwise, we ran out of A sequence to align to before we ran out of stuff to align.  Extend
@@ -468,10 +448,90 @@ checkRecord(bedRecord   *record,
   if (beVerbose)
     fprintf(stderr, " - ABORT, ABORT, ABORT!\n");
 
-  //  Cleanup for the next record
+  return(false);
+}
 
- finishCheck:
+
+
+bool
+checkRecord(bedRecord   *record,
+            sequences   &ctgs,
+            sequences   &utgs,
+            bool         beVerbose,
+            bool         UNUSED(doPlot)) {
+
+  char   *Aseq = ctgs[record->_Aid].seq;
+  char   *Bseq = utgs[record->_Bid].seq, *Brev = NULL;
+
+  int32  Abgn  = record->_bgn;
+  int32  Aend  = record->_end;
+
+  int32  Alen = ctgs[record->_Aid].len;
+  int32  Blen = utgs[record->_Bid].len;
+
+  bool   success    = true;
+  int32  alignScore = 0;
+
+  if (record->_Bfwd == false)
+    Bseq = Brev = reverseComplementCopy(Bseq, Blen);
+
+  //  If Bseq (the unitig) is small, just align the full thing.
+
+  if (Blen < 50000) {
+    success &= checkRecord_align("ALL",
+                                 record->_Aname, Aseq, Alen, Abgn, Aend,
+                                 record->_Bname, Bseq, Blen,
+                                 alignScore,
+                                 beVerbose);
+  }
+
+  //  Otherwise, we need to try to align only the ends of the unitig.
+  //
+  //        -----------------------[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA]------------------
+  //                                     BBBBB..............BBBBB
+  //
+
+  else {
+    int32   AbgnL = Abgn,         AendL = Abgn + 50000;
+    int32   AbgnR = Aend - 50000, AendR = Aend;
+
+    char   *BseqL = Bseq;
+    char   *BseqR = Bseq + Blen - 50000;
+
+#if 0
+    success &= checkRecord_align("ALL",
+                                 record->_Aname, Aseq, Alen, Abgn, Aend,
+                                 record->_Bname, Bseq, Blen,
+                                 alignScore,
+                                 beVerbose);
+#endif
+
+    success &= checkRecord_align("LEFT",
+                                 record->_Aname, Aseq,  Alen, AbgnL, AendL,
+                                 record->_Bname, BseqL, 50000,
+                                 alignScore,
+                                 beVerbose);
+
+    success &= checkRecord_align("RIGHT",
+                                 record->_Aname, Aseq,  Alen, AbgnR, AendR,
+                                 record->_Bname, BseqR, 50000,
+                                 alignScore,
+                                 beVerbose);
+
+    Abgn = AbgnL;
+    Aend = AendR;
+  }
+
   delete [] Brev;
+
+  //  If successful, save the coordinates.  Because we're usually not aligning the whole
+  //  unitig to the contig, we can't save the score.
+
+  if (success) {
+    record->_bgn   = Abgn;
+    record->_end   = Aend;
+    record->_score = 0;   //alignScore;
+  }
 
   return(success);
 }
