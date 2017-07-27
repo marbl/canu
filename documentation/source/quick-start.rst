@@ -15,12 +15,28 @@ reads for assembly, which will result in better assemblies.
 Input sequences can be FASTA or FASTQ format, uncompressed or compressed with gzip (.gz), bzip2
 (.bz2) or xz (.xz).  Zip files (.zip) are not supported.
 
+Canu will resume an assembly if you specify an existing directory, auto-detecting completed steps.
+
 Canu will auto-detect your resources and scale itself to fit, using all of the resources available
 (depending on the size of your assembly).  You can limit memory and processors used with parameters
 :ref:`maxMemory` and :ref:`maxThreads`.
 
 Canu will take full advantage of any LSF/PBS/PBSPro/Torque/Slrum/SGE grid available, and do so
-automagically, even submitting itself for execution.  For details, refer to the section on
+automagically, even submitting itself for execution.  Canu requires array jobs and job submission from compute nodes. If either is not available, you can submit Canu to a node and prevent it from using the grid resources with 
+
+::
+
+   useGrid=false
+
+Alternatively, run with 
+
+::
+
+    useGrid=remote
+    
+which will stop and print the submit command you can manually run. Once the submitted jobs complete, the run can be resumed by running Canu again.
+
+For details, refer to the section on
 :ref:`execution`.
 
 
