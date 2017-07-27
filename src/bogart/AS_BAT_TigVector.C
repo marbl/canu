@@ -210,6 +210,8 @@ TigVector::computeErrorProfiles(const char *prefix, const char *label) {
 
     tig->computeErrorProfile(prefix, label);
   }
+
+  writeStatus("computeErrorProfiles()-- Finished.\n");
 }
 
 
