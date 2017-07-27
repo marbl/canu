@@ -80,126 +80,119 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   if (memlimit == UINT64_MAX) {
     _memLimit = getPhysicalMemorySize();
     writeStatus("OverlapCache()-- limited to " F_U64 "MB memory (total physical memory).\n", _memLimit >> 20);
+    writeStatus("\n");
   }
 
   else if (memlimit > 0) {
     _memLimit = memlimit;
     writeStatus("OverlapCache()-- limited to " F_U64 "MB memory (user supplied).\n", _memLimit >> 20);
+    writeStatus("\n");
   }
 
   else {
     _memLimit = UINT64_MAX;
     writeStatus("OverlapCache()-- using unlimited memory (-M 0).\n");
+    writeStatus("\n");
   }
-
-  //  Need to initialize thread data before we can account for their size.
-  _threadMax = omp_get_max_threads();
-  _thread    = new OverlapCacheThreadData [_threadMax];
-
-  //  And this too.
-  _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
 
   //  Account for memory used by read data, best overlaps, and tigs.
   //  The chunk graph is temporary, and should be less than the size of the tigs.
+  //  Likewise, the buffers used for loading and scoring overlaps aren't accounted for.
+  //
+  //  NOTES:
+  //
+  //  memFI - read length,
+  //
+  //  memUT - worst case, we have one unitig per read.  also, maps of read-to-unitig and read-to-vector-position.
+  //
+  //  memEP - each read adds two epValue points, the open and close points, and two uint32 pointers
+  //  to the data.
+  //
+  //  memOS - make sure we're this much below using all the memory - allows for other stuff to run,
+  //  and a little buffer in case we're too big.
 
   uint64 memFI = RI->memoryUsage();
-  uint64 memBE = RI->numReads() * sizeof(BestEdgeOverlap);
-  uint64 memUL = RI->numReads() * sizeof(ufNode);             //  For read positions in tigs
-  uint64 memUT = RI->numReads() * sizeof(uint32) / 16;        //  For tigs (assumes 32 read / unitig)
-  uint64 memID = RI->numReads() * sizeof(uint32) * 2;         //  For maps of read id to unitig id
-  uint64 memEP = RI->numReads() * Unitig::epValueSize() * 2;  //  For error profile
+  uint64 memBE = RI->numReads() * sizeof(BestOverlaps);
+  uint64 memUT = RI->numReads() * sizeof(Unitig) + RI->numReads() * sizeof(uint32) * 2;
+  uint64 memUL = RI->numReads() * sizeof(ufNode);
+  uint64 memEP = RI->numReads() * sizeof(uint32) * 2 + RI->numReads() * Unitig::epValueSize() * 2;
 
-  uint64 memC1 = (RI->numReads() + 1) * (sizeof(BAToverlap *) + sizeof(uint32));
-  uint64 memC2 = _ovsMax * (sizeof(ovOverlap) + sizeof(uint64) + sizeof(uint64));
-  uint64 memC3 = _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
-  uint64 memC4 = (RI->numReads() + 1) * sizeof(uint32);
+  uint64 memOS = (_memLimit < 0.9 * getPhysicalMemorySize()) ? (0.0) : (0.1 * getPhysicalMemorySize());
 
-  uint64 memOS = (_memLimit == getPhysicalMemorySize()) ? (0.1 * getPhysicalMemorySize()) : 0.0;
+  uint64 memST = ((RI->numReads() + 1) * (sizeof(BAToverlap *) + sizeof(uint32)) +   //  Cache pointers
+                  (RI->numReads() + 1) * sizeof(uint32) +                            //  Num olaps stored per read
+                  (RI->numReads() + 1) * sizeof(uint32));                            //  Num olaps allocated per read
 
-  uint64 memTT = memFI + memBE + memUL + memUT + memID + memC1 + memC2 + memC3 + memC4 + memOS;
+  _memReserved = memFI + memBE + memUL + memUT + memEP + memST + memOS;
+  _memStore    = memST;
+  _memAvail    = (_memReserved + _memStore < _memLimit) ? (_memLimit - _memReserved - _memStore) : 0;
+  _memOlaps    = 0;
 
   writeStatus("OverlapCache()-- %7" F_U64P "MB for read data.\n",                      memFI >> 20);
   writeStatus("OverlapCache()-- %7" F_U64P "MB for best edges.\n",                     memBE >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for unitig layouts.\n",                 memUL >> 20);
   writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs.\n",                           memUT >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for id maps.\n",                        memID >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for error profiles.\n",                 memEP >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for overlap cache pointers.\n",         memC1 >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for overlap cache initial bucket.\n",   memC2 >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for overlap cache thread data.\n",      memC3 >> 20);
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for number of overlaps per read.\n",    memC4 >> 20);
+  writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs - read layouts.\n",            memUL >> 20);
+  writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs - error profiles.\n",          memEP >> 20);
   writeStatus("OverlapCache()-- %7" F_U64P "MB for other processes.\n",                memOS >> 20);
   writeStatus("OverlapCache()-- ---------\n");
-  writeStatus("OverlapCache()-- %7" F_U64P "MB for data structures (sum of above).\n", memTT >> 20);
+  writeStatus("OverlapCache()-- %7" F_U64P "MB for data structures (sum of above).\n", _memReserved >> 20);
+  writeStatus("OverlapCache()-- ---------\n");
+  writeStatus("OverlapCache()-- %7" F_U64P "MB for overlap store structure.\n",        _memStore >> 20);
+  writeStatus("OverlapCache()-- %7" F_U64P "MB for overlap data.\n",                   _memAvail >> 20);
+  writeStatus("OverlapCache()-- ---------\n");
+  writeStatus("OverlapCache()-- %7" F_U64P "MB allowed.\n",                            _memLimit >> 20);
+  writeStatus("OverlapCache()--\n");
 
-  if (_memLimit <= memTT) {
-    int64 defecit = (int64)memTT - (int64)_memLimit;
-
-    writeStatus("OverlapCache()-- %7" F_S64P "MB available for overlaps.\n", defecit);
+  if (_memAvail == 0) {
     writeStatus("OverlapCache()-- Out of memory before loading overlaps; increase -M.\n");
     exit(1);
   }
 
-  _memLimit -= memTT;
-  _memUsed   = 0;
-
-  writeStatus("OverlapCache()-- %7" F_U64P "MB available for overlaps.\n",             _memLimit >> 20);
-  writeStatus("\n");
-
-  _overlaps   = new BAToverlap * [RI->numReads() + 1];
-  _overlapLen = new uint32       [RI->numReads() + 1];
-  _overlapMax = new uint32       [RI->numReads() + 1];
-
-  memset(_overlaps,   0, sizeof(BAToverlap *) * (RI->numReads() + 1));
-  memset(_overlapLen, 0, sizeof(uint32)       * (RI->numReads() + 1));
-  memset(_overlapMax, 0, sizeof(uint32)       * (RI->numReads() + 1));
-
   _maxEvalue     = AS_OVS_encodeEvalue(maxErate);
   _minOverlap    = minOverlap;
 
-  _minPer  = 0;
-  _maxPer  = 0;
+  //  Allocate space to load overlaps.  With a NULL gkpStore we can't call the bgn or end methods.
 
-  _checkSymmetry = false;
-
-  _ovs     = ovOverlap::allocateOverlaps(NULL, _ovsMax);  //  So can't call bgn or end.
+  _ovsMax  = 16;
+  _ovs     = ovOverlap::allocateOverlaps(NULL, _ovsMax);
   _ovsSco  = new uint64     [_ovsMax];
   _ovsTmp  = new uint64     [_ovsMax];
 
-  _genomeSize    = genomeSize;
+  //  Allocate pointers to overlaps.
 
-  _gkp          = NULL;
-  _ovlStoreUniq = new ovStore(ovlStorePath, NULL);
-  _ovlStoreRept = NULL;
+  _overlapLen = new uint32       [RI->numReads() + 1];
+  _overlapMax = new uint32       [RI->numReads() + 1];
+  _overlaps   = new BAToverlap * [RI->numReads() + 1];
 
-  assert(_ovlStoreUniq != NULL);
-  assert(_ovlStoreRept == NULL);
+  memset(_overlapLen, 0, sizeof(uint32)       * (RI->numReads() + 1));
+  memset(_overlapMax, 0, sizeof(uint32)       * (RI->numReads() + 1));
+  memset(_overlaps,   0, sizeof(BAToverlap *) * (RI->numReads() + 1));
 
-  if (_memUsed > _memLimit)
-    writeStatus("OverlapCache()-- ERROR: not enough memory to load ANY overlaps.\n"), exit(1);
+  //  Open the overlap store.
 
-  computeOverlapLimit();
-  loadOverlaps(doSave);
+  ovStore *ovlStore = new ovStore(ovlStorePath, NULL);
+
+  //  Load overlaps!
+
+  computeOverlapLimit(ovlStore, genomeSize);
+  loadOverlaps(ovlStore, doSave);
+
+  delete [] _ovs;       _ovs      = NULL;   //  There is a small cost with these arrays that we'd
+  delete [] _ovsSco;    _ovsSco   = NULL;   //  like to not have, and a big cost with ovlStore (in that
+  delete [] _ovsTmp;    _ovsTmp   = NULL;   //  it loaded updated erates into memory), so release
+  delete     ovlStore;   ovlStore = NULL;   //  these before symmetrizing overlaps.
+
   symmetrizeOverlaps();
-
-  delete [] _ovs;       _ovs    = NULL;
-  delete [] _ovsSco;    _ovsSco = NULL;
-  delete [] _ovsTmp;    _ovsTmp = NULL;
 }
 
 
 OverlapCache::~OverlapCache() {
 
-  for (uint32 rr=0; rr<RI->numReads(); rr++)
-    delete [] _overlaps[rr];
-
   delete [] _overlaps;
   delete [] _overlapLen;
   delete [] _overlapMax;
 
-  delete [] _ovs;
-
-  delete [] _thread;
+  delete    _overlapStorage;
 }
 
 
@@ -225,145 +218,105 @@ OverlapCache::~OverlapCache() {
 //
 
 void
-OverlapCache::computeOverlapLimit(void) {
+OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
 
-  _ovlStoreUniq->resetRange();
-
-  //  AS_OVS_numOverlapsPerFrag returns an array that starts at firstIIDrequested.  This is usually
-  //  1, unless the first read has no overlaps.  In that case, firstIIDrequested will be the
-  //  first read with overlaps.  This is a terrible interface.
-
-  writeStatus("OverlapCache()-- Loading number of overlaps per read.\n");
+  ovlStore->resetRange();
 
   uint32  frstRead  = 0;
   uint32  lastRead  = 0;
-  uint32 *numPer    = _ovlStoreUniq->numOverlapsPerFrag(frstRead, lastRead);
+  uint32 *numPer    = ovlStore->numOverlapsPerFrag(frstRead, lastRead);
   uint32  totlRead  = lastRead - frstRead + 1;
-  uint32  numPerMax = findHighestOverlapCount();
 
-  uint64  memAvail  = (_memLimit - _memUsed);
+  //  Set the minimum number of overlaps per read to twice coverage.  Then set the maximum number of
+  //  overlaps per read to a guess of what it will take to fill up memory.
 
-  //  Set the minimum number of overlaps per read to 2-3x coverage.
+  _minPer = 2 * RI->numBases() / genomeSize;
+  _maxPer = _memAvail / (RI->numReads() * sizeof(BAToverlap));
 
-  _minPer = 2 * 3 * RI->numBases() / _genomeSize;
+  writeStatus("OverlapCache()-- Retain at least " F_U32 " overlaps/read, based on %.2fx coverage.\n", _minPer, (double)RI->numBases() / genomeSize);
+  writeStatus("OverlapCache()-- Initial guess at " F_U32 " overlaps/read.\n", _maxPer);
+  writeStatus("OverlapCache()--\n");
 
-  writeStatus("OverlapCache()--  Retain at least " F_U32 " overlaps/read, based on %.2fx coverage.\n",
-              _minPer, (double)RI->numBases() / _genomeSize);
+  if (_maxPer < _minPer)
+    writeStatus("OverlapCache()-- Not enough memory to load the minimum number of overlaps; increase -M.\n"), exit(1);
 
-  //  Set the maximum number of overlaps per read to a guess of what it will take to fill up memory.
+  uint64  totalOlaps = ovlStore->numOverlapsInRange();
 
-  _maxPer = memAvail / (RI->numReads() * sizeof(BAToverlap));
-
-  writeStatus("OverlapCache()--  Initial guess at " F_U32 " overlaps/read (maximum " F_U32 " overlaps/read).\n",
-              _maxPer, numPerMax);
-
-  if (_maxPer < 10)
-    writeStatus("OverlapCache()-- ERROR: not enough memory to load overlaps!.\n"), exit(1);
-
-  uint64  totalLoad  = 0;  //  Total overlaps we would load at this threshold
-  uint64  totalOlaps = _ovlStoreUniq->numOverlapsInRange();
+  uint64  olapLoad   = 0;  //  Total overlaps we would load at this threshold
+  uint64  olapMem    = 0;
 
   uint32  numBelow   = 0;  //  Number of reads below the threshold
   uint32  numEqual   = 0;
   uint32  numAbove   = 0;  //  Number of reads above the threshold
 
-  uint32  lastMax    = 0;
+  writeStatus("OverlapCache()-- Adjusting for sparse overlaps.\n");
+  writeStatus("OverlapCache()--\n");
+  writeStatus("OverlapCache()--               reads loading olaps          olaps               memory\n");
+  writeStatus("OverlapCache()--   olaps/read       all      some          loaded                 free\n");
+  writeStatus("OverlapCache()--   ----------   -------   -------     ----------- -------     --------\n");
 
-  uint32  adjust     = 1;
-
-  while (adjust > 0) {
-    totalLoad = 0;
-    numBelow  = 0;
-    numEqual  = 0;
-    numAbove  = 0;
+  while (true) {
+    olapLoad = 0;
+    numBelow = 0;
+    numEqual = 0;
+    numAbove = 0;
 
     for (uint32 i=0; i<totlRead; i++) {
       if (numPer[i] < _maxPer) {
-        numBelow++;
-        totalLoad  += numPer[i];
+        numBelow += 1;
+        olapLoad += numPer[i];
 
       } else if (numPer[i] == _maxPer) {
-        numEqual++;
-        totalLoad  += _maxPer;
+        numEqual += 1;
+        olapLoad += _maxPer;
 
       } else {
-        numAbove++;
-        totalLoad  += _maxPer;
+        numAbove += 1;
+        olapLoad += _maxPer;
       }
     }
 
-    writeStatus("OverlapCache()-- %7" F_U32P " overlaps/read - load all for %7" F_U32P " reads, some for %7" F_U32P " reads - %12" F_U64P " overlaps to load - %4" F_U64P "MB\n",
+    olapMem = olapLoad * sizeof(BAToverlap);
+
+    //  If we're too high, decrease the threshold and compute again.  We shouldn't ever be too high.
+
+    if (_memAvail < olapMem) {
+      _maxPer--;
+      continue;
+    }
+
+    //  Log what we will be loading.
+
+    writeStatus("OverlapCache()--      %7" F_U32P "   %7" F_U32P "   %7" F_U32P "    %12" F_U32P " %6.2f%%    %7" F_U32P " MB\n",
                 _maxPer,
                 numBelow + numEqual,
                 numAbove,
-                totalLoad,
-                totalLoad * sizeof(BAToverlap) >> 20);
+                olapLoad,
+                100.0 * olapLoad / totalOlaps,
+                (_memAvail - olapMem) >> 20);
 
+    //  If there are no more overlaps to load, we're done.
 
-    //  All done, nothing to do here.
-    if ((numAbove == 0) && (totalLoad * sizeof(BAToverlap) < memAvail)) {
-      adjust = 0;
-    }
+    if (numAbove == 0)
+      break;
 
-    //  This limit worked, let's try moving it a little higher.
-    else if (totalLoad * sizeof(BAToverlap) < memAvail) {
-      lastMax  = _maxPer;
+    //  Otherwise, there is still (potentially) space left for more overlaps.  Estimate how much
+    //  higher we could push the threshold: compute how many more overlaps we could load before
+    //  exceeding the memory limit, then assume we'd load that many overlaps for each of the
+    //  numAbove reads.
 
-      adjust   = (memAvail - totalLoad * sizeof(BAToverlap)) / numAbove / sizeof(BAToverlap);
-      _maxPer += adjust;
+    int64  olapFree  = (_memAvail - olapMem) / sizeof(BAToverlap);
+    int64  increase  = olapFree / numAbove;
 
-      if (_maxPer > numPerMax)
-        _maxPer = numPerMax;
-    }
+    if (increase == 0)
+      break;
 
-    //  Whoops!  Too high!  Revert to the last and recompute statistics.
-    else {
-      adjust    = 0;
-      _maxPer   = lastMax;
-
-      totalLoad = 0;
-      numBelow  = 0;
-      numEqual  = 0;
-      numAbove  = 0;
-
-      for (uint32 i=0; i<totlRead; i++) {
-        if (numPer[i] < _maxPer) {
-          numBelow++;
-          totalLoad  += numPer[i];
-
-        } else if (numPer[i] == _maxPer) {
-          numEqual++;
-          totalLoad  += _maxPer;
-
-        } else {
-          numAbove++;
-          totalLoad  += _maxPer;
-        }
-      }
-
-      writeStatus("OverlapCache()-- _maxPer=%7" F_U32P " (overestimated, revert to last good and stop)\n", _maxPer);
-    }
+    _maxPer += increase;
   }
 
-  //  Report
-
-  writeStatus("\n");
-  writeStatus("OverlapCache()-- minPer           = " F_U32 " overlaps/reads\n", _minPer);
-  writeStatus("OverlapCache()-- maxPer           = " F_U32 " overlaps/reads\n", _maxPer);
-  writeStatus("OverlapCache()-- numBelow         = " F_U32 " reads (all overlaps loaded)\n", numBelow);
-  writeStatus("OverlapCache()-- numEqual         = " F_U32 " reads (all overlaps loaded)\n", numEqual);
-  writeStatus("OverlapCache()-- numAbove         = " F_U32 " reads (some overlaps loaded)\n", numAbove);
-  writeStatus("OverlapCache()-- totalLoad        = " F_U64 " overlaps (%6.2f%%)\n", totalLoad, (totalOlaps > 0) ? (100.0 * totalLoad / totalOlaps) : 0.0);
-  writeStatus("\n");
-  writeStatus("OverlapCache()-- availForOverlaps = " F_U64 "MB\n", memAvail >> 20);
-  writeStatus("OverlapCache()-- totalMemory      = " F_U64 "MB for organization\n", _memUsed >> 20);
-  writeStatus("OverlapCache()-- totalMemory      = " F_U64 "MB for overlaps\n", (totalLoad * sizeof(BAToverlap)) >> 20);
-  writeStatus("OverlapCache()-- totalMemory      = " F_U64 "MB used\n", (_memUsed + totalLoad * sizeof(BAToverlap)) >> 20);
-  writeStatus("\n");
-
-  //  We used to (pre 6 Jul 2017) do the symmetry check only if we didn't load all overlaps.  However, symmetry can
-  //  also break if we use an error rate cutoff because - for reasons not explored - the error rate on symmetric overlaps
-  //  differs.  So, just enable this always.
+  //  We used to (pre 6 Jul 2017) do the symmetry check only if we didn't load all overlaps.
+  //  However, symmetry can also break if we use an error rate cutoff because - for reasons not
+  //  explored - the error rate on symmetric overlaps differs.  So, just enable this always.
   //
   //  On a moderate coverage human nanopore assembly, it does:
   //
@@ -377,42 +330,6 @@ OverlapCache::computeOverlapLimit(void) {
   _checkSymmetry = true;
 
   delete [] numPer;
-}
-
-
-
-uint32
-OverlapCache::findHighestOverlapCount(void) {
-  uint32  fRead    = 0;
-  uint32  lRead    = 0;
-  uint32 *numPer   = _ovlStoreUniq->numOverlapsPerFrag(fRead, lRead);
-  uint32  totlRead = lRead - fRead + 1;
-
-  uint32  numPerMax = 0;
-
-  for (uint32 i=0; i<totlRead; i++)
-    if (numPerMax < numPer[i])
-      numPerMax = numPer[i];
-
-  delete [] numPer;
-
-  return(numPerMax);
-}
-
-
-
-void
-OverlapCache::allocateLoadingSpace(void) {
-
-  _ovsMax = findHighestOverlapCount();
-
-  _ovs    = ovOverlap::allocateOverlaps(NULL, _ovsMax);  //  So can't call bgn or end.
-  _ovsSco = new uint64     [_ovsMax];
-  _ovsTmp = new uint64     [_ovsMax];
-
-  _memUsed += (_ovsMax) * sizeof(ovOverlap);
-  _memUsed += (_ovsMax) * sizeof(uint64);
-  _memUsed += (_ovsMax) * sizeof(uint64);
 }
 
 
@@ -573,41 +490,54 @@ OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
 
 
 void
-OverlapCache::loadOverlaps(bool doSave) {
+OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
 
   if (load() == true)
     return;
 
-  assert(_ovlStoreUniq != NULL);
-  assert(_ovlStoreRept == NULL);
+  writeStatus("OverlapCache()--\n");
+  writeStatus("OverlapCache()-- Loading overlaps.\n");
+  writeStatus("OverlapCache()--\n");
+  writeStatus("OverlapCache()--          read from store           saved in cache\n");
+  writeStatus("OverlapCache()--   ------------ ---------   ------------ ---------\n");
 
-  _ovlStoreUniq->resetRange();
+  ovlStore->resetRange();
 
   uint64   numTotal     = 0;
   uint64   numLoaded    = 0;
   uint64   numDups      = 0;
   uint32   numReads     = 0;
-  uint64   numStore     = _ovlStoreUniq->numOverlapsInRange();
+  uint64   numStore     = ovlStore->numOverlapsInRange();
 
   if (numStore == 0)
     writeStatus("ERROR: No overlaps in overlap store?\n"), exit(1);
 
-  //  Could probably easily extend to multiple stores.  Needs to interleave the two store
-  //  loads, can't do one after the other as we require all overlaps for a single read
-  //  be in contiguous memory.
+  _overlapStorage = new OverlapStorage(ovlStore->numOverlapsInRange());
 
   while (1) {
-    uint32  numOvl = _ovlStoreUniq->numberOfOverlaps();   //  Query how many overlaps for the next read.
+    uint32  numOvl = ovlStore->numberOfOverlaps();   //  Query how many overlaps for the next read.
 
     if (numOvl == 0)    //  If no overlaps, we're at the end of the store.
       break;
+
+    if (_ovsMax < numOvl) {
+      delete [] _ovs;
+      delete [] _ovsSco;
+      delete [] _ovsTmp;
+
+      _ovsMax  = numOvl + 1024;
+
+      _ovs     = ovOverlap::allocateOverlaps(NULL /* gkpStore */, _ovsMax);
+      _ovsSco  = new uint64     [_ovsMax];
+      _ovsTmp  = new uint64     [_ovsMax];
+    }
 
     assert(numOvl <= _ovsMax);
 
     //  Actually load the overlaps, then detect and remove overlaps between the same pair, then
     //  filter short and low quality overlaps.
 
-    uint32  no = _ovlStoreUniq->readOverlaps(_ovs, _ovsMax);     //  no == total overlaps == numOvl
+    uint32  no = ovlStore->readOverlaps(_ovs, _ovsMax);     //  no == total overlaps == numOvl
     uint32  nd = filterDuplicates(no);                           //  nd == duplicated overlaps (no is decreased by this amount)
     uint32  ns = filterOverlaps(_maxEvalue, _minOverlap, no);    //  ns == acceptable overlaps
 
@@ -624,11 +554,11 @@ OverlapCache::loadOverlaps(bool doSave) {
     if (ns > 0) {
       uint32  id = _ovs[0].a_iid;
 
-      _overlapMax[id] = (ns == no) ? (ns) : ((((sizeof(BAToverlap) * ns / 8192) + 1) * 8192) / sizeof(BAToverlap));
+      _overlapMax[id] = ns;
       _overlapLen[id] = ns;
-      _overlaps[id]   = new BAToverlap [ _overlapMax[id] ];
+      _overlaps[id]   = _overlapStorage->get(_overlapMax[id]);
 
-      _memUsed += _overlapMax[id] * sizeof(BAToverlap);
+      _memOlaps += _overlapMax[id] * sizeof(BAToverlap);
 
       uint32  oo=0;
 
@@ -660,17 +590,21 @@ OverlapCache::loadOverlaps(bool doSave) {
     numLoaded += ns;
     numDups   += nd;
 
-    if ((numReads++ % 100000) == 0)
-      writeStatus("OverlapCache()-- Loading: overlaps processed %12" F_U64P " (%06.2f%%) loaded %12" F_U64P " (%06.2f%%) droppeddupe %12" F_U64P " (%06.2f%%)\n",
+    if ((numReads++ % 100000) == 99999)
+      writeStatus("OverlapCache()--   %12" F_U64P " (%06.2f%%)   %12" F_U64P " (%06.2f%%)  ALLOC " F_U64 " MB  RUSAGE " F_U64 " MB\n",
                   numTotal,  100.0 * numTotal  / numStore,
                   numLoaded, 100.0 * numLoaded / numStore,
-                  numDups,   100.0 * numDups   / numStore);
+                  _memOlaps >> 20,
+                  getProcessSize() >> 20);
   }
 
-  writeStatus("OverlapCache()-- Loading: overlaps processed %12" F_U64P " (%06.2f%%) loaded %12" F_U64P " (%06.2f%%) droppeddupe %12" F_U64P " (%06.2f%%)\n",
+  writeStatus("OverlapCache()--   ------------ ---------   ------------ ---------\n");
+  writeStatus("OverlapCache()--   %12" F_U64P " (%06.2f%%)   %12" F_U64P " (%06.2f%%)\n",
               numTotal,  100.0 * numTotal  / numStore,
-              numLoaded, 100.0 * numLoaded / numStore,
-              numDups,   100.0 * numDups   / numStore);
+              numLoaded, 100.0 * numLoaded / numStore);
+
+  writeStatus("OverlapCache()--\n");
+  writeStatus("OverlapCache()-- Ignored %lu duplicate overlaps.\n", numDups);
 
   if (doSave == true)
     save();
@@ -740,7 +674,9 @@ OverlapCache::symmetrizeOverlaps(void) {
   //  b-read has loaded all overlaps (the overlap we're searching for must exist) but we can't.
   //  We must still mark the oevrlap as being symmetric.
 
-  writeStatus("OverlapCache()-- Symmetrizing overlaps -- finding missing twins.\n");
+  writeStatus("OverlapCache()--\n");
+  writeStatus("OverlapCache()-- Symmetrizing overlaps.\n");
+  writeStatus("OverlapCache()--   Finding missing twins.\n");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
@@ -777,7 +713,7 @@ OverlapCache::symmetrizeOverlaps(void) {
       nCritical += nonsymPerRead[rr];
   }
 
-  writeStatus("OverlapCache()--                       -- found %llu missing twins in %llu overlaps, %llu are strong.\n", nOnly, nOverlaps, nCritical);
+  writeStatus("OverlapCache()--   Found %llu missing twins in %llu overlaps, %llu are strong.\n", nOnly, nOverlaps, nCritical);
 
   //  Score all the overlaps (again) and drop the lower quality ones.  We need to drop half of the
   //  non-twin overlaps, but also want to retain some minimum number.
@@ -785,8 +721,6 @@ OverlapCache::symmetrizeOverlaps(void) {
   //  But, there are a bunch of overlaps that fall below our score threshold that are symmetric.  We
   //  need to keep these, only because figuring out which ones are 'saved' above will be a total
   //  pain in the ass.
-
-  writeStatus("OverlapCache()-- Symmetrizing overlaps -- dropping weak non-twin overlaps.\n");
 
   //  Allocate some scratch space for each thread
 
@@ -799,6 +733,9 @@ OverlapCache::symmetrizeOverlaps(void) {
     ovsTmpScratch[tt]   = new uint64 [_ovsMax];
     nDroppedScratch[tt] = 0;
   }
+
+  writeStatus("OverlapCache()--   Dropping weak non-twin overlaps; allocated " F_U64 " MB scratch space.\n",
+              ((2 * sizeof(uint64 *) + sizeof(uint64)) * numThreads) >> 20);
 
   //  As advertised, score all the overlaps and drop the weak ones.
 
@@ -867,7 +804,7 @@ OverlapCache::symmetrizeOverlaps(void) {
   delete [] ovsTmpScratch;
   delete [] nDroppedScratch;
 
-  writeStatus("OverlapCache()--                       -- dropped %llu overlaps.\n", nDropped);
+  writeStatus("OverlapCache()--   Dropped %llu overlaps; scratch space released.\n", nDropped);
 
   //  Finally, run through all the saved overlaps and count how many we need to add to each read.
 
@@ -887,16 +824,78 @@ OverlapCache::symmetrizeOverlaps(void) {
   for (uint32 rr=0; rr<RI->numReads()+1; rr++)
     nToAdd += toAddPerRead[rr];
 
-  writeStatus("OverlapCache()-- Symmetrizing overlaps -- adding %llu missing twin overlaps.\n", nToAdd);
+  writeStatus("OverlapCache()--   Adding %llu missing twin overlaps.\n", nToAdd);
 
+  //
   //  Expand or shrink space for the overlaps.
+  //
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++)
-    if (_overlapLen[rr] + toAddPerRead[rr] > _overlapMax[rr])
-      resizeArray(_overlaps[rr], _overlapLen[rr], _overlapMax[rr], _overlapLen[rr] + toAddPerRead[rr] + 2048);
+  //  Allocate new temporary pointers for each read.
+
+  BAToverlap  **nPtr = new BAToverlap * [RI->numReads()+1];
+
+  memset(nPtr, 0, sizeof(BAToverlap *) * (RI->numReads()+1));
+
+  //  The new storage must start after the old storage.  And if it starts after the old storage ends,
+  //  we can copy easier.  If not, we just grab some empty overlaps to make space.
+
+  //  A complication occurs at the end of a single segment.  If there isn't enough space in the
+  //  current segment for the overlaps, we skip ahead to the next segment without accounting for the
+  //  overlaps we skip.  It's possible for the new size to fit into this unused space, which would
+  //  then put the old overlaps physically after the new ones.
+  //
+  //  [ olaps1+unused   | olaps2+unused   | olaps3+unused    |        ] [ olaps4+unused   | ..... ]
+  //  [ olaps1+new      | olaps2+new      | olaps3+new | olaps4+new | ] [ olaps5+new  | ....      ]
+  //
+  //  So, we need to compare not overlap counts, but raw positions in the OverlapStorage object.
+
+  OverlapStorage   *oldS = new OverlapStorage(_overlapStorage);  //  Recreates the existing layout
+  OverlapStorage   *newS = _overlapStorage;                      //  Sets pointers for the new layout
+
+  newS->reset();
+
+  for (uint32 rr=1; rr<RI->numReads()+1; rr++) {
+    nPtr[rr] = newS->get();                               //  Grab the pointer to the new space
+
+    oldS->get(_overlapMax[rr]);                           //  Move both storages ahead by the
+    newS->get(_overlapLen[rr] + toAddPerRead[rr]);        //  number of overlaps in each.
+
+    newS->advance(oldS);                                  //  Ensure newS is not before where oldS is.
+
+    _overlapMax[rr] = _overlapLen[rr] + toAddPerRead[rr];
+  }
+
+  //  With new pointers in hand, copy overlap data - backwards - to the new locations.
+  //  (Remeber that the reads are 1..numReads(), not 0..numReads()-1)
+
+  for (uint32 rr=RI->numReads()+1; rr-- > 0; ) {
+
+    for (uint32 oo=_overlapLen[rr]; oo-- > 0; ) {
+      assert(_overlaps[rr][0                ].a_iid == rr);
+      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
+    }
+
+    for (uint32 oo=_overlapLen[rr]; oo-- > 0; ) {
+      nPtr[rr][oo] = _overlaps[rr][oo];
+    }
+
+    for (uint32 oo=_overlapLen[rr]; oo-- > 0; ) {
+      assert(_overlaps[rr][0                ].a_iid == rr);
+      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
+    }
+  }
+
+
+  //  Swap pointers to the pointers and cleanup.
+
+  delete [] _overlaps;
+  _overlaps = nPtr;
+
+  delete  oldS;
+  //      newS is the original _overlapStorage
 
   //  Copy non-twin overlaps to their twin.
-
+  //
   //  This cannot (easily) be parallelized.  We're iterating over overlaps in read rr, but inserting
   //  overlaps into read rb.
 
@@ -926,30 +925,36 @@ OverlapCache::symmetrizeOverlaps(void) {
     }
   }
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++)
+  //  Check that everything worked.
+
+  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
     assert(toAddPerRead[rr] == 0);
+
+    if (_overlapLen[rr] == 0)
+      continue;
+
+    assert(_overlaps[rr][0                ].a_iid == rr);
+    assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
+  }
+
+  //  Cleanup.
 
   delete [] toAddPerRead;
   toAddPerRead = NULL;
-
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++)
-    if (_overlaps[rr] != NULL) {
-      assert(_overlaps[rr][0                ].a_iid == rr);
-      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
-    }
 
   //  Probably should sort again.  Not sure if anything depends on this.
 
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
   }
 
-  writeStatus("OverlapCache()-- Symmetrizing overlaps -- finished.\n");
+  writeStatus("OverlapCache()--   Finished.\n");
 }
 
 
 
 bool
 OverlapCache::load(void) {
+#if 0
   char     name[FILENAME_MAX];
   FILE    *file;
   size_t   numRead;
@@ -977,12 +982,12 @@ OverlapCache::load(void) {
   if (magic != ovlCacheMagic)
     writeStatus("OverlapCache()-- ERROR:  File '%s' isn't a bogart ovlCache.\n", name), exit(1);
 
-  AS_UTL_safeRead(file, &_memLimit, "overlapCache_memLimit", sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_memUsed,  "overlapCache_memUsed",  sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_maxPer,   "overlapCache_maxPer",   sizeof(uint32), 1);
-
-  _threadMax = omp_get_max_threads();
-  _thread    = new OverlapCacheThreadData [_threadMax];
+  AS_UTL_safeRead(file, &_memLimit,    "overlapCache_memLimit",    sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &_memReserved, "overlapCache_memReserved", sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &_memAvail,    "overlapCache_memAvail",    sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &_memStore,    "overlapCache_memStore",    sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &_memOlaps,    "overlapCache_memOlaps",    sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &_maxPer,      "overlapCache_maxPer",      sizeof(uint32), 1);
 
   _overlaps   = new BAToverlap * [RI->numReads() + 1];
   _overlapLen = new uint32       [RI->numReads() + 1];
@@ -1006,12 +1011,15 @@ OverlapCache::load(void) {
   fclose(file);
 
   return(true);
+#endif
+  return(false);
 }
 
 
 
 void
 OverlapCache::save(void) {
+#if 0
   char  name[FILENAME_MAX];
   FILE *file;
 
@@ -1029,20 +1037,24 @@ OverlapCache::save(void) {
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
   uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
 
-  AS_UTL_safeWrite(file, &magic,       "overlapCache_magic",      sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &ovserrbits,  "overlapCache_ovserrbits", sizeof(uint32), 1);
-  AS_UTL_safeWrite(file, &ovshngbits,  "overlapCache_ovshngbits", sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &magic,        "overlapCache_magic",       sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &ovserrbits,   "overlapCache_ovserrbits",  sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &ovshngbits,   "overlapCache_ovshngbits",  sizeof(uint32), 1);
 
-  AS_UTL_safeWrite(file, &_memLimit,   "overlapCache_memLimit",   sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_memUsed,    "overlapCache_memUsed",    sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_maxPer,     "overlapCache_maxPer",     sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &_memLimit,    "overlapCache_memLimit",    sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &_memReserved, "overlapCache_memReserved", sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &_memAvail,    "overlapCache_memAvail",    sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &_memStore,    "overlapCache_memStore",    sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &_memOlaps,    "overlapCache_memOlaps",    sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &_maxPer,      "overlapCache_maxPer",      sizeof(uint32), 1);
 
-  AS_UTL_safeWrite(file,  _overlapLen, "overlapCache_len",        sizeof(uint32), RI->numReads() + 1);
-  AS_UTL_safeWrite(file,  _overlapMax, "overlapCache_max",        sizeof(uint32), RI->numReads() + 1);
+  AS_UTL_safeWrite(file,  _overlapLen,  "overlapCache_len",         sizeof(uint32), RI->numReads() + 1);
+  AS_UTL_safeWrite(file,  _overlapMax,  "overlapCache_max",         sizeof(uint32), RI->numReads() + 1);
 
   for (uint32 rr=0; rr<RI->numReads() + 1; rr++)
     AS_UTL_safeWrite(file,  _overlaps[rr],   "overlapCache_ovl", sizeof(BAToverlap), _overlapLen[rr]);
 
   fclose(file);
+#endif
 }
 
