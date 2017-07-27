@@ -53,7 +53,7 @@ struct ReadStatus {
 
 class ReadInfo {
 public:
-  ReadInfo(gkStore *gkp, const char *prefix, uint32 minReadLen);
+  ReadInfo(const char *gkpStorePath, const char *prefix, uint32 minReadLen);
   ~ReadInfo();
 
   uint64  memoryUsage(void) {

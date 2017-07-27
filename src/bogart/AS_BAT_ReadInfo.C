@@ -28,13 +28,15 @@
 
 
 
-ReadInfo::ReadInfo(gkStore    *gkp,
+ReadInfo::ReadInfo(const char *gkpStorePath,
                    const char *prefix,
                    uint32      minReadLen) {
 
+  gkStore  *gkpStore = gkStore::gkStore_open(gkpStorePath);
+
   _numBases     = 0;
-  _numReads     = gkp->gkStore_getNumReads();
-  _numLibraries = gkp->gkStore_getNumLibraries();
+  _numReads     = gkpStore->gkStore_getNumReads();
+  _numLibraries = gkpStore->gkStore_getNumLibraries();
 
   _readStatus    = new ReadStatus [_numReads + 1];
 
@@ -51,7 +53,7 @@ ReadInfo::ReadInfo(gkStore    *gkp,
   uint32 numLoaded  = 0;
 
   for (uint32 fi=1; fi<=_numReads; fi++) {
-    gkRead  *read = gkp->gkStore_getRead(fi);
+    gkRead  *read = gkpStore->gkStore_getRead(fi);
     uint32   iid  = read->gkRead_readID();
     uint32   len  = read->gkRead_sequenceLength();
 
@@ -67,6 +69,8 @@ ReadInfo::ReadInfo(gkStore    *gkp,
 
     numLoaded++;
   }
+
+  gkpStore->gkStore_close();
 
   if (minReadLen > 0)
     writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than " F_U32 " bp long.\n",

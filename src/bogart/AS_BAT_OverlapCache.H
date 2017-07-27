@@ -180,9 +180,7 @@ public:
 
 class OverlapCache {
 public:
-  OverlapCache(gkStore *gkp,
-               ovStore *ovlStoreUniq,
-               ovStore *ovlStoreRept,
+  OverlapCache(const char *ovlStorePath,
                const char *prefix,
                double maxErate,
                uint32 minOverlap,

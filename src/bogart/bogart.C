@@ -78,8 +78,7 @@ ChunkGraph       *CG  = 0L;
 int
 main (int argc, char * argv []) {
   char      *gkpStorePath            = NULL;
-  char      *ovlStoreUniqPath        = NULL;
-  char      *ovlStoreReptPath        = NULL;
+  char      *ovlStorePath            = NULL;
 
   double    erateGraph               = 0.075;
   double    erateMax                 = 0.100;
@@ -130,12 +129,7 @@ main (int argc, char * argv []) {
       gkpStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
-      if      (ovlStoreUniqPath == NULL)
-        ovlStoreUniqPath = argv[++arg];
-      else if (ovlStoreReptPath == NULL)
-        ovlStoreReptPath = argv[++arg];
-      else
-        err.push_back(NULL);
+      ovlStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-gs") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
@@ -278,11 +272,11 @@ main (int argc, char * argv []) {
     arg++;
   }
 
-  if (erateGraph        < 0.0)     err.push_back("Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
-  if (erateMax          < 0.0)     err.push_back("Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
-  if (prefix           == NULL)    err.push_back("No output prefix name (-o option) supplied.\n");
-  if (gkpStorePath     == NULL)    err.push_back("No gatekeeper store (-G option) supplied.\n");
-  if (ovlStoreUniqPath == NULL)    err.push_back("No overlap store (-O option) supplied.\n");
+  if (erateGraph    < 0.0)     err.push_back("Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
+  if (erateMax      < 0.0)     err.push_back("Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
+  if (prefix       == NULL)    err.push_back("No output prefix name (-o option) supplied.\n");
+  if (gkpStorePath == NULL)    err.push_back("No gatekeeper store (-G option) supplied.\n");
+  if (ovlStorePath == NULL)    err.push_back("No overlap store (-O option) supplied.\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
@@ -341,9 +335,6 @@ main (int argc, char * argv []) {
       fprintf(stderr, "               %s\n", logFileFlagNames[l]);
     fprintf(stderr, "\n");
 
-    if ((ovlStoreUniqPath != NULL) && (ovlStoreUniqPath == ovlStoreReptPath))
-      fprintf(stderr, "Too many overlap stores (-O option) supplied.\n");
-
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
         fputs(err[ii], stderr);
@@ -388,29 +379,16 @@ main (int argc, char * argv []) {
     if (logFileFlagSet(j))
       fprintf(stderr, "  %s\n", logFileFlagNames[i]);
 
-
-
-
-  gkStore          *gkpStore     = gkStore::gkStore_open(gkpStorePath);
-  ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
-  ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath, gkpStore) : NULL;
-
   writeStatus("\n");
   writeStatus("==> LOADING AND FILTERING OVERLAPS.\n");
   writeStatus("\n");
 
   setLogFile(prefix, "filterOverlaps");
 
-  RI = new ReadInfo(gkpStore, prefix, minReadLen);
-  OC = new OverlapCache(gkpStore, ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
+  RI = new ReadInfo(gkpStorePath, prefix, minReadLen);
+  OC = new OverlapCache(ovlStorePath, prefix, MAX(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur);
   CG = new ChunkGraph(prefix);
-
-  delete ovlStoreUniq;  ovlStoreUniq = NULL;
-  delete ovlStoreRept;  ovlStoreRept = NULL;
-
-  gkpStore->gkStore_close();
-  gkpStore = NULL;
 
   //
   //  Build the initial unitig path from non-contained reads.  The first pass is usually the

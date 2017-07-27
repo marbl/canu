@@ -65,9 +65,7 @@ uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 #define  SALT_MASK  (((uint64)1 << SALT_BITS) - 1)
 
 
-OverlapCache::OverlapCache(gkStore *gkp,
-                           ovStore *ovlStoreUniq,
-                           ovStore *ovlStoreRept,
+OverlapCache::OverlapCache(const char *ovlStorePath,
                            const char *prefix,
                            double maxErate,
                            uint32 minOverlap,
@@ -170,9 +168,9 @@ OverlapCache::OverlapCache(gkStore *gkp,
 
   _genomeSize    = genomeSize;
 
-  _gkp          = gkp;
-  _ovlStoreUniq = ovlStoreUniq;
-  _ovlStoreRept = ovlStoreRept;
+  _gkp          = NULL;
+  _ovlStoreUniq = new ovStore(ovlStorePath, NULL);
+  _ovlStoreRept = NULL;
 
   assert(_ovlStoreUniq != NULL);
   assert(_ovlStoreRept == NULL);
