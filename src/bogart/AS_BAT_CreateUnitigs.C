@@ -704,7 +704,7 @@ createUnitigs(TigVector             &contigs,
     lenP = max(lenP, npf);
     lenP = max(lenP, npr);
 
-    resizeArray(numP, maxP, maxP, lenP, resizeArray_copyData | resizeArray_clearNew);
+    resizeArray(numP, maxP, maxP, lenP+1, resizeArray_copyData | resizeArray_clearNew);
 
     numP[npf]++;
     numP[npr]++;
@@ -726,6 +726,8 @@ createUnitigs(TigVector             &contigs,
   writeLog("\n");
   writeLog("Splitting contigs into unitigs.\n");
   writeLog("\n");
+
+  delete [] numP;
 
   //  The splitTigs function operates only on a single tig.  Sort the break points
   //  by tig id to find all the break points for each tig.
