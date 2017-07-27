@@ -57,7 +57,7 @@ public:
   ~ReadInfo();
 
   uint64  memoryUsage(void) {
-    return(sizeof(uint64) + sizeof(uint32) + sizeof(uint32) + sizeof(ReadStatus) * _numReads);
+    return(sizeof(uint64) + sizeof(uint32) + sizeof(uint32) + sizeof(ReadStatus) * (_numReads + 1));
   };
 
   uint64  numBases(void)     { return(_numBases); };
