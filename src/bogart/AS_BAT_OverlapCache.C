@@ -591,11 +591,9 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
     numDups   += nd;
 
     if ((numReads++ % 100000) == 99999)
-      writeStatus("OverlapCache()--   %12" F_U64P " (%06.2f%%)   %12" F_U64P " (%06.2f%%)  ALLOC " F_U64 " MB  RUSAGE " F_U64 " MB\n",
+      writeStatus("OverlapCache()--   %12" F_U64P " (%06.2f%%)   %12" F_U64P " (%06.2f%%)\n",
                   numTotal,  100.0 * numTotal  / numStore,
-                  numLoaded, 100.0 * numLoaded / numStore,
-                  _memOlaps >> 20,
-                  getProcessSize() >> 20);
+                  numLoaded, 100.0 * numLoaded / numStore);
   }
 
   writeStatus("OverlapCache()--   ------------ ---------   ------------ ---------\n");
