@@ -184,7 +184,7 @@ sub readErrorDetectionConfigure ($) {
         print F "fi\n";
     }
 
-    print F "jobid=`printf %04d \$jobid`\n";
+    print F "jobid=`printf %05d \$jobid`\n";
     print F "\n";
     print F "if [ -e ./\$jobid.red ] ; then\n";
     print F "  echo Job previously completed successfully.\n";
@@ -245,7 +245,7 @@ sub readErrorDetectionCheck ($) {
     open(A, "< $path/red.sh") or caExit("can't open '$path/red.sh' for reading: $!", undef);
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
-            my $ji = substr("0000" . $1, -4);
+            my $ji = substr("00000" . $1, -5);
             my $jn = "unitigging/3-overlapErrorAdjustment/$ji.red";
 
             if (! fileExists($jn)) {
@@ -497,7 +497,7 @@ sub overlapErrorAdjustmentConfigure ($) {
         print F "fi\n";
     }
 
-    print F "jobid=`printf %04d \$jobid`\n";
+    print F "jobid=`printf %05d \$jobid`\n";
     print F "\n";
     print F "if [ -e ./\$jobid.oea ] ; then\n";
     print F "  echo Job previously completed successfully.\n";
@@ -567,7 +567,7 @@ sub overlapErrorAdjustmentCheck ($) {
     open(A, "< $path/oea.sh") or caExit("can't open '$path/oea.sh' for reading: $!", undef);
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
-            my $ji = substr("0000" . $1, -4);
+            my $ji = substr("00000" . $1, -5);
 
             if (! fileExists("unitigging/3-overlapErrorAdjustment/$ji.oea")) {
                 $failureMessage .= "--   job $ji.oea FAILED.\n";
