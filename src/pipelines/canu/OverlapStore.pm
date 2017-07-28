@@ -44,6 +44,7 @@ require Exporter;
 
 use strict;
 use File::Basename;   #  dirname
+use File::Path 2.08 qw(make_path remove_tree);
 
 use POSIX qw(ceil);
 use canu::Defaults;
@@ -664,8 +665,20 @@ sub createOverlapStore ($$$) {
 
     goto finishStage  if (getGlobal("saveOverlaps") eq "1");
 
-    #  Delete the inputs and directories.  Some contortions are needed to get directory deletes in order.
-    #  In particular, mhap's queries directory needs to be deleted after it's subdirectories are.
+    #  Delete the inputs and directories.
+    #
+    #    Directories - Viciously remove the whole thing (after all files are deleted, so we
+    #                  can get the sizes).
+    #    Files       - Sum the size, remove the file, and try to remove the directory.  In
+    #                  particular, we don't want to remove_tree() this directory - there could
+    #                  be other stuff in it - only remove if empty.
+    #
+    #  Ideally, every directory we have in our list should be empty after we delete the files in the
+    #  list.  But they won't be.  Usually because there are empty directories in there too.  Maybe
+    #  some stray files we didn't track.  Regardless, just blow them away.
+    #
+    #  Previous (to July 2017) versions tried to gently rmdir things, but it was ugly and didn't
+    #  quite work.
 
     my %directories;
     my $bytes = 0;
@@ -682,51 +695,35 @@ sub createOverlapStore ($$$) {
         while (<F>) {
             chomp;
 
-            #  Decide what to do.  Directories - register for later deletion.  Files - sum size and
-            #  delete.
-
             if (-d "$base/$_") {
-                $directories{"$base/$_"}++;
+            print STDERR "DIRECTORY $base/$_\n";
+                $directories{$_}++;
 
             } elsif (-e "$base/$_") {
+            print STDERR "FILE $base/$_\n";
                 $bytes += -s "$base/$_";
                 $files += 1;
 
                 unlink "$base/$_";
+                rmdir dirname("$base/$_");  #  Try to rmdir the directory the file is in.  If empty, yay!
             }
-
-            #  If the path isn't a directory register the directory it is in for deletion.
-
-            $directories{dirname("$base/$_")}++   if (! -d "$base/$_");
         }
         close(F);
-
-        unlink $file;
+    }
+    
+    foreach my $dir (keys %directories) {
+        print STDERR "REMOVE TREE $base/$dir\n";
+        remove_tree("$base/$dir");
     }
 
-    #  Ideally, every directory we have in our list should be empty.  But they won't be.  So, loop until we fail to delete anything.
-
-    my $dirs = 0;
-    my $deleted = 1;
-
-    while ($deleted > 0) {
-        $deleted = 0;
-
-        foreach my $dir (keys %directories) {
-            if (-d $dir) {
-                rmdir $dir;
-                $dirs++;
-            }
-
-            if (! -d $dir) {  #  If really removed, remove it from our list.
-                delete $directories{$dir};
-                $deleted++;
-            }
-        }
-    }
+    unlink "$base/1-overlapper/ovljob.files";
+    unlink "$base/1-overlapper/ovljob.more.files";
+    unlink "$base/1-overlapper/mhap.files";
+    unlink "$base/1-overlapper/mmap.files";
+    unlink "$base/1-overlapper/precompute.files";
 
     print STDERR "--\n";
-    print STDERR "-- Purged ", int(1000 * $bytes / 1024 / 1024 / 1024) / 1000, " GB in $files overlap output files and $dirs directories.\n";
+    print STDERR "-- Purged ", int(1000 * $bytes / 1024 / 1024 / 1024) / 1000, " GB in $files overlap output files.\n";
 
     #  Now all done!
 
