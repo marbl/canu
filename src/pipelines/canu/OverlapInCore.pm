@@ -390,7 +390,7 @@ sub overlapCheck ($$$) {
                 push @miscJobs,    "1-overlapper/$1.counts\n";
 
             } else {
-                $failureMessage .= "--   job 1-overlapper/$1.ovb FAILED.\n";
+                $failureMessage .= "--   job $path/$1.ovb FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 

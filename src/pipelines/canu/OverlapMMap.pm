@@ -500,7 +500,7 @@ sub mmapPrecomputeCheck ($$$) {
             if (fileExists("$path/blocks/$1.mmi")) {
                 push @successJobs, "1-overlapper/blocks/$1.mmi\\n";
             } else {
-                $failureMessage .= "--   job 1-overlapper/blocks/$1.fasta FAILED.\n";
+                $failureMessage .= "--   job $path/blocks/$1.fasta FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
@@ -615,7 +615,7 @@ sub mmapCheck ($$$) {
                 push @miscJobs,    "1-overlapper/results/$1.counts\n";
 
             } else {
-                $failureMessage .= "--   job 1-overlapper/results/$1.ovb FAILED.\n";
+                $failureMessage .= "--   job $path/results/$1.ovb FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 

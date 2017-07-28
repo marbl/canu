@@ -623,7 +623,7 @@ sub mhapPrecomputeCheck ($$$) {
             if (fileExists("$path/blocks/$1.dat")) {
                 push @successJobs, "1-overlapper/blocks/$1.dat\n";
             } else {
-                $failureMessage .= "--   job 1-overlapper/blocks/$1.dat FAILED.\n";
+                $failureMessage .= "--   job $path/blocks/$1.dat FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
@@ -741,7 +741,7 @@ sub mhapCheck ($$$) {
                 push @miscJobs,    "1-overlapper/results/$1.counts\n";
 
             } else {
-                $failureMessage .= "--   job 1-overlapper/results/$1.ovb FAILED.\n";
+                $failureMessage .= "--   job $path/results/$1.ovb FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
