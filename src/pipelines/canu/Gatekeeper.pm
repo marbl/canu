@@ -489,7 +489,7 @@ sub gatekeeper ($$@) {
 
     if ((-e "$base/$asm.gkpStore/info") && (getNumberOfReadsInStore($base, $asm) == 0)) {
         print STDERR "-- Removing empty or incomplate gkpStore '$base/$asm.gkpStore'\n";
-        runCommandSilently($base, "rm -rf ./$asm.gkpStore", 1);
+        remove_tree("$asm.gkpStore");
     }
 
     #  Store with reads?  Yay!  Report it, then skip.

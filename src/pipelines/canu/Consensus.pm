@@ -144,9 +144,7 @@ sub cleanupPartitions ($$) {
 
     print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning (gkpStore $gkpTime days old; ctgStore $tigTime days old).\n";
 
-    if (runCommandSilently("unitigging", "rm -rf ./$asm.${tag}Store/partitionedReads.gkpStore", 1)) {
-        caExit("failed to remove old partitions (unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions), can't continue until these are removed", undef);
-    }
+    remove_tree("unitigging/$asm.${tag}Store/partitionedReads.gkpStore");
 }
 
 
