@@ -753,7 +753,7 @@ sub mhapCheck ($$$) {
     #  Also find the queries symlinks so we can remove those.  And the query directories, because
     #  the last directory can be empty, and so we'd never see it at all if only finding files.
 
-    open(F, "find $path/queries -print |");
+    open(F, "cd $base && find 1-overlapper/queries -print |");
     while (<F>) {
         push @mhapJobs, $_;
     }
