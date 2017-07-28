@@ -181,13 +181,6 @@ sub generateOutputs ($) {
         stashFile("$asm.unitigs.bed");
     }
 
-    if ((! fileExists("$asm.unitigs.bed.gfa")) &&
-        (  fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed.gfa"))) {
-        fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.bed.gfa");
-        copy("unitigging/4-unitigger/$asm.unitigs.aligned.bed.gfa", "$asm.unitigs.bed.gfa");
-        stashFile("$asm.unitigs.bed.gfa");
-    }
-
     #  User-supplied termination command.
 
     if (defined(getGlobal("onSuccess"))) {

@@ -584,8 +584,7 @@ sub alignGFA ($) {
     goto allDone   if (skipStage($asm, "alignGFA") == 1);
     goto allDone   if (fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa") &&
                        fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa") &&
-                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed") &&
-                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed.gfa"));
+                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed"));
 
     #  If a large genome, run this on the grid, else, run in the canu process itself.
     my $runGrid = (getGlobal("genomeSize") >= 40000000);
@@ -654,23 +653,9 @@ sub alignGFA ($) {
         print F "\n";
         print F "\n";
 
-        print F "if [ ! -e ./$asm.unitigs.aligned.bed.gfa ] ; then\n";
-        print F "  \$bin/alignGFA -bed \\\n";
-        print F "    -T ../$asm.utgStore 2 \\\n";
-        print F "    -i ./$asm.unitigs.bed \\\n";
-        print F "    -o ./$asm.unitigs.aligned.bed.gfa \\\n";
-        print F "    -t " . getGlobal("gfaThreads") . " \\\n";
-        print F "  > ./$asm.unitigs.aligned.bed.gfa.err 2>&1";
-        print F "\n";
-        print F stashFileShellCode("$path", "$asm.unitigs.aligned.bed.gfa", "  ");
-        print F "fi\n";
-        print F "\n";
-        print F "\n";
-
         print F "if [ -e ./$asm.unitigs.aligned.gfa -a \\\n";
         print F "     -e ./$asm.contigs.aligned.gfa -a \\\n";
-        print F "     -e ./$asm.unitigs.aligned.bed -a \\\n";
-        print F "     -e ./$asm.unitigs.aligned.bed.gfa ] ; then\n";
+        print F "     -e ./$asm.unitigs.aligned.bed ] ; then\n";
         print F "  echo GFA alignments updated.\n";
         print F "  exit 0\n";
         print F "else\n";
