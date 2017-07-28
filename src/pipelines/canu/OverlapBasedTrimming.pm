@@ -230,8 +230,7 @@ sub dumpReads ($) {
 
     stashFile("./$asm.trimmedReads.fasta.gz");
 
-    #  Need gatekeeperDumpFASTQ to also write a gkp input file
-    #touch("../$asm.trimmedReads.gkp");
+    remove_tree("trimming/$asm.ovlStore")   if (getGlobal("saveOverlaps") eq "0");
 
   finishStage:
     emitStage($asm, "obt-dumpReads");

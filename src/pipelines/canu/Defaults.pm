@@ -1389,12 +1389,11 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set\n");
     }
 
-    #if ((getGlobal("cleanup") ne "none") &&
-    #    (getGlobal("cleanup") ne "light") &&
-    #    (getGlobal("cleanup") ne "heavy") &&
-    #    (getGlobal("cleanup") ne "aggressive")) {
-    #    addCommandLineError("ERROR:  Invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'\n");
-    #}
+    if ((getGlobal("saveOverlaps") ne "0") &&
+        (getGlobal("saveOverlaps") ne "stores") &&
+        (getGlobal("saveOverlaps") ne "1")) {
+        addCommandLineError("ERROR:  Invalid 'saveOverlaps' specified (" . getGlobal("saveOverlaps") . "); must be 'false', 'stores', or 'true'\n");
+    }
 
     if ((getGlobal("corFilter") ne "quick") &&
         (getGlobal("corFilter") ne "expensive") &&

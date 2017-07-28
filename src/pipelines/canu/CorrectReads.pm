@@ -1507,12 +1507,14 @@ sub dumpCorrectedReads ($) {
             }
         }
         close(F);
+
+        print STDERR "-- Purged $Nsuccess .dump.success sentinels.\n"   if ($Nsuccess > 0);
+        print STDERR "-- Purged $Nfasta .fasta outputs.\n"              if ($Nfasta > 0);
+        print STDERR "-- Purged $Nerr .err outputs.\n"                  if ($Nerr > 0);
+        print STDERR "-- Purged $Nlog .out job log outputs.\n"          if ($Nlog > 0);
     }
 
-    print STDERR "-- Purged $Nsuccess .dump.success sentinels.\n"   if ($Nsuccess > 0);
-    print STDERR "-- Purged $Nfasta .fasta outputs.\n"              if ($Nfasta > 0);
-    print STDERR "-- Purged $Nerr .err outputs.\n"                  if ($Nerr > 0);
-    print STDERR "-- Purged $Nlog .out job log outputs.\n"          if ($Nlog > 0);
+    remove_tree("correction/$asm.ovlStore")   if (getGlobal("saveOverlaps") eq "0");
 
   finishStage:
     emitStage($asm, "cor-dumpCorrectedReads");
