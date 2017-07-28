@@ -272,6 +272,21 @@ AS_UTL_mkdir(const char *dirname) {
 
 
 
+//  Remove a directory, or do nothing if the file doesn't exist.
+void
+AS_UTL_rmdir(const char *dirname) {
+
+  if (AS_UTL_fileExists(dirname, FALSE, FALSE) == false)
+    return;
+
+  errno = 0;
+  rmdir(dirname);
+  if (errno)
+    fprintf(stderr, "AS_UTL_rmdir()--  Failed to remove directory '%s': %s\n", dirname, strerror(errno)), exit(1);
+}
+
+
+
 void
 AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 

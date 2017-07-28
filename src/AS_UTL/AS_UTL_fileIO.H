@@ -61,6 +61,7 @@ size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_
 bool    AS_UTL_readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F);
 
 void    AS_UTL_mkdir(const char *dirname);
+void    AS_UTL_rmdir(const char *dirname);
 
 void    AS_UTL_symlink(const char *pathToFile, const char *pathToLink);
 
