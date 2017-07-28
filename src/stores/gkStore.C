@@ -1335,12 +1335,6 @@ void
 gkStore::gkStore_delete(void) {
   char path[FILENAME_MAX];
 
-  delete [] _libraries;
-  delete [] _reads;
-
-  _libraries = NULL;
-  _reads     = NULL;
-
   gkStore_deletePartitions();
 
   snprintf(path, FILENAME_MAX, "%s/info",      gkStore_path());  AS_UTL_unlink(path);
@@ -1348,7 +1342,7 @@ gkStore::gkStore_delete(void) {
   snprintf(path, FILENAME_MAX, "%s/reads",     gkStore_path());  AS_UTL_unlink(path);
   snprintf(path, FILENAME_MAX, "%s/blobs",     gkStore_path());  AS_UTL_unlink(path);
 
-  AS_UTL_unlink(path);
+  AS_UTL_rmdir(gkStore_path());
 }
 
 
@@ -1380,6 +1374,12 @@ gkStore::gkStore_deletePartitions(void) {
     snprintf(path, FILENAME_MAX, "%s/partitions/reads.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
     snprintf(path, FILENAME_MAX, "%s/partitions/blobs.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
   }
+
+  //  And the directory.
+
+  snprintf(path, FILENAME_MAX, "%s/partitions", gkStore_path());
+
+  AS_UTL_rmdir(path);
 }
 
 
