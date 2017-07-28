@@ -375,12 +375,19 @@ sub consensusCheck ($) {
 
 
 
-sub purgeFiles ($$$$$) {
+sub purgeFiles ($$$$$$) {
+    my $asm     = shift @_;
     my $tag     = shift @_;
     my $Ncns    = shift @_;
     my $Nfastq  = shift @_;
     my $Nlayout = shift @_;
     my $Nlog    = shift @_;
+
+    remove_tree("unitigging/$asm.ctgStore/partitionedReads.gkpStore");  #  The partitioned gkpStores
+    remove_tree("unitigging/$asm.utgStore/partitionedReads.gkpStore");  #  are useless now.  Bye bye!
+
+    unlink "unitigging/$asm.ctgStore/partitionedReads.log";
+    unlink "unitigging/$asm.utgStore/partitionedReads.log";
 
     my $path = "unitigging/5-consensus";
 
@@ -505,8 +512,8 @@ sub consensusLoad ($) {
         my $Nlayout = 0;
         my $Nlog    = 0;
 
-        ($Ncns, $Nfastq, $Nlayout, $Nlog) = purgeFiles("ctgcns", $Ncns, $Nfastq, $Nlayout, $Nlog);
-        ($Ncns, $Nfastq, $Nlayout, $Nlog) = purgeFiles("utgcns", $Ncns, $Nfastq, $Nlayout, $Nlog);
+        ($Ncns, $Nfastq, $Nlayout, $Nlog) = purgeFiles($asm, "ctgcns", $Ncns, $Nfastq, $Nlayout, $Nlog);
+        ($Ncns, $Nfastq, $Nlayout, $Nlog) = purgeFiles($asm, "utgcns", $Ncns, $Nfastq, $Nlayout, $Nlog);
 
         print STDERR "-- Purged $Ncns .cns outputs.\n"        if ($Ncns > 0);
         print STDERR "-- Purged $Nfastq .fastq outputs.\n"    if ($Nfastq > 0);
