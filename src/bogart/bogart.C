@@ -418,7 +418,7 @@ main (int argc, char * argv []) {
 
   contigs.optimizePositions(prefix, "buildGreedy");
 
-  reportOverlaps(contigs, prefix, "buildGreedy");
+  //reportOverlaps(contigs, prefix, "buildGreedy");
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
 
   //
@@ -455,7 +455,7 @@ main (int argc, char * argv []) {
 
   contigs.optimizePositions(prefix, "placeContains");
 
-  reportOverlaps(contigs, prefix, "placeContains");
+  //reportOverlaps(contigs, prefix, "placeContains");
   reportTigs(contigs, prefix, "placeContains", genomeSize);
 
   //
@@ -474,7 +474,7 @@ main (int argc, char * argv []) {
   mergeOrphans(contigs, deviationBubble);
 
   //checkUnitigMembership(contigs);
-  reportOverlaps(contigs, prefix, "mergeOrphans");
+  //reportOverlaps(contigs, prefix, "mergeOrphans");
   reportTigs(contigs, prefix, "mergeOrphans", genomeSize);
 
   //
@@ -524,7 +524,7 @@ main (int argc, char * argv []) {
   markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent, confusedEdges);
 
   //checkUnitigMembership(contigs);
-  reportOverlaps(contigs, prefix, "markRepeatReads");
+  //reportOverlaps(contigs, prefix, "markRepeatReads");
   reportTigs(contigs, prefix, "markRepeatReads", genomeSize);
 
   //
