@@ -124,6 +124,7 @@ main(int argc, char **argv) {
   uint32  tigStoreVers      = 0;
   uint32  readCountTarget   = 2500;   //  No partition smaller than this
   uint32  partCountTarget   = 200;    //  No more than this many partitions
+  bool    doDelete          = false;
 
   argc = AS_configure(argc, argv);
 
@@ -143,6 +144,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-p") == 0) {
       partCountTarget = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      tigStorePath = argv[++arg];
+      tigStoreVers = 1;
+      doDelete = true;
+
     } else {
       char *s = new char [1024];
       snprintf(s, 1024, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -152,13 +158,16 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStorePath == NULL)  err.push_back("ERROR: no gkpStore (-G) supplied.\n");
-  if (tigStorePath == NULL)  err.push_back("ERROR: no partition input (-P) supplied.\n");
+  if ((gkpStorePath == NULL) &&
+      (doDelete == false))       err.push_back("ERROR: no gkpStore (-G) supplied.\n");
+  if (tigStorePath == NULL)      err.push_back("ERROR: no tigStore (-T) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v>\n", argv[0]);
+    fprintf(stderr, "usage: %s [-G <gkpStore> -T <tigStore> <v>] ...\n", argv[0]);
+    fprintf(stderr, "       %s [-D <tigStore>]\n", argv[0]);
     fprintf(stderr, "  -G <gkpStore>       path to gatekeeper store\n");
     fprintf(stderr, "  -T <tigStore> <v>   path to tig store and version to be partitioned\n");
+    fprintf(stderr, "  -D <tigStore>       remove a partitioned gkpStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -b <nReads>         minimum number of reads per partition (50000)\n");
     fprintf(stderr, "  -p <nPartitions>    number of partitions (200)\n");
@@ -166,14 +175,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "Create a partitioned copy of <gkpStore> and place it in <tigStore>/partitionedReads.gkpStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "NOTE:  Path handling in this is probably quite brittle.  Due to an implementation\n");
-    fprintf(stderr, "       detail, the new store must have symlinks back to the original store.  Canu \n");
-    fprintf(stderr, "       wants to use relative paths, and this program tries to adjust <gkpStore> to be\n");
-    fprintf(stderr, "       relative to <tigStore/partitionedReads.gkpStore.  If it fails to do this correctly,\n");
-    fprintf(stderr, "       one of two (seen so far) errors will occur:\n");
+    fprintf(stderr, "       detail, the new store must have symlinks back to the original store.  Canu\n");
+    fprintf(stderr, "       wants to use relative paths, and this program tries to adjust <gkpStore> to\n");
+    fprintf(stderr, "       be relative to <tigStore/partitionedReads.gkpStore.  If it fails to do this,\n");
+    fprintf(stderr, "       correctly one of two (seen so far) errors will occur:\n");
     fprintf(stderr, "         Original file '.../partitionedReads.gkpStore/info' doesn't exist, won't make a link to nothing.\n");
-    fprintf(stderr, "         Couldn't open '.../partitionedReads.gkpStore/libraries' for mmap: No such file or directoryn");
-    fprintf(stderr, "       In both cases, try to simplify <tigStore> -- in particular, remove any '..' or '.' components -- or\n");
-    fprintf(stderr, "       run this from a higher/lower directory.\n");
+    fprintf(stderr, "         Couldn't open '.../partitionedReads.gkpStore/libraries' for mmap: No such file or directory\n");
+    fprintf(stderr, "       In both cases, try to simplify <tigStore> -- in particular, remove any '..'\n");
+    fprintf(stderr, "       or '.' components -- or run this from a higher/lower directory.\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -190,14 +199,20 @@ main(int argc, char **argv) {
   snprintf(gkpClonePath, FILENAME_MAX, "%s/partitionedReads.gkpStore", tigStorePath);
 
   //  The path to the gkpStore that we want to use in the link is a wee-bit more complicated.
-  //  If it's an absolute path, there's nothing we need to do.
+  //
+  //  1.  Do nothing if there is no gkpStore.
+  //  2.  If it's an absolute path, there's nothing we need to do.
+  //  3.  But if it's a relative path, we need to add a bunch of dots.  One pair
+  //      to account for the directory we added above, and then more dots for
+  //      each component in tigStorePath.
+  //
 
-  if (gkpStorePath[0] == '/') {
-    strcpy(gkpSourcePath, gkpStorePath);
+  if (gkpStorePath == NULL) {
   }
 
-  //  But if it's a relative path, we need to add a bunch of dots.  One pair to account
-  //  for the directory we added above, and then more dots for each component in tigStorePath.
+  else if (gkpStorePath[0] == '/') {
+    strcpy(gkpSourcePath, gkpStorePath);
+  }
 
   else {
     char    t[FILENAME_MAX];                  //  Copy command line tigStorePath to a
@@ -218,30 +233,32 @@ main(int argc, char **argv) {
       strcat(gkpSourcePath, gkpStorePath);                      //  start.
   }
 
-  //  Make the clone.
+  //  Now, just....do it.
 
-  gkStore::gkStore_clone(gkpSourcePath, gkpClonePath);
+  if (doDelete == true) {
+    gkStore *gkpStore = gkStore::gkStore_open(gkpClonePath, gkStore_readOnly);
+    gkpStore->gkStore_deletePartitions();
+    gkpStore->gkStore_close();
+  }
 
-  //  Open the clone.
 
-  gkStore *gkpStore = gkStore::gkStore_open(gkpClonePath, gkStore_readOnly);
+  if (doDelete == false) {
+    gkStore::gkStore_clone(gkpSourcePath, gkpClonePath);                           //  Make the clone.
 
-  //  Scan all the tigs to build a map from read to partition.
+    gkStore *gkpStore = gkStore::gkStore_open(gkpClonePath, gkStore_readOnly);     //  Open the clone.
 
-  uint32   *partition = buildPartition(tigStorePath, tigStoreVers,
-                                       readCountTarget,
-                                       partCountTarget,
-                                       gkpStore->gkStore_getNumReads());
+    uint32   *partition = buildPartition(tigStorePath, tigStoreVers,               //  Scan all the tigs
+                                         readCountTarget,                          //  to build a map from
+                                         partCountTarget,                          //  read to partition.
+                                         gkpStore->gkStore_getNumReads());
 
-  //  Dump the partition data to the store, let it build partitions.
+    gkpStore->gkStore_buildPartitions(partition);                                  //  Build partitions.
 
-  gkpStore->gkStore_buildPartitions(partition);
+    delete [] partition;
 
-  //  That's all folks.
+    gkpStore->gkStore_close();
+  }
 
-  delete [] partition;
-
-  gkpStore->gkStore_close();
 
   exit(0);
 }
