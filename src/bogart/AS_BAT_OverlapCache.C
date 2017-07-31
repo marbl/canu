@@ -853,12 +853,9 @@ OverlapCache::symmetrizeOverlaps(void) {
   newS->reset();
 
   for (uint32 rr=1; rr<RI->numReads()+1; rr++) {
-    nPtr[rr] = newS->get();                               //  Grab the pointer to the new space
-
-    oldS->get(_overlapMax[rr]);                           //  Move both storages ahead by the
-    newS->get(_overlapLen[rr] + toAddPerRead[rr]);        //  number of overlaps in each.
-
-    newS->advance(oldS);                                  //  Ensure newS is not before where oldS is.
+    nPtr[rr] = newS->get(_overlapLen[rr] + toAddPerRead[rr]);     //  Grab the pointer to the new space
+    oldS->get(_overlapMax[rr]);                                   //  Move old storages ahead
+    newS->advance(oldS);                                          //  Ensure newS is not before where oldS is.
 
     _overlapMax[rr] = _overlapLen[rr] + toAddPerRead[rr];
   }
