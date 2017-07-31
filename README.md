@@ -27,7 +27,7 @@ The [quick start](http://canu.readthedocs.io/en/latest/quick-start.html) will ge
 
 Brief command line help:
 
-    ../<architechture>/bin/canu
+    ../<architecture>/bin/canu
 
 Full list of parameters:
 
