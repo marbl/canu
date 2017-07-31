@@ -165,10 +165,10 @@ class OverlapStorage {
 public:
   OverlapStorage(uint64 nOvl) {
     _osAllocLen = 1024 * 1024 * 1024 / sizeof(BAToverlap);  //  1GB worth of overlaps
-    _osLen      = 0;
-    _osPos      = 0;
-    _osMax      = nOvl / _osAllocLen + 2;
-    _os         = new BAToverlap * [_osMax];
+    _osLen      = 0;                        //  osMax is cheap and we overallocate it.
+    _osPos      = 0;                        //  IF allocLen is small, we can end up with
+    _osMax      = 2 * nOvl / _osAllocLen;   //  more blocks than expected, when overlaps
+    _os         = new BAToverlap * [_osMax];//  don't fit in the remaining space.
 
     memset(_os, 0, sizeof(BAToverlap *) * _osMax);
 
