@@ -106,29 +106,60 @@ sub setGlobal ($$) {
     $val = 0  if (($val =~ m/^false$/i) || ($val =~ m/^f$/i));
     $val = 1  if (($val =~ m/^true$/i)  || ($val =~ m/^t$/i));
 
-    #  Translate from generic to specialized var
+    #  Grid options
 
-    foreach my $alg ("ovl", "mhap", "mmap") {
-        foreach my $opt ("gridoptions") {
-            $set += setGlobalSpecialization($val, ("${opt}cor${alg}", "${opt}obt${alg}", "${opt}utg${alg}"))  if ($var eq "${opt}${alg}");
-        }
-
-        foreach my $opt ("memory", "threads", "concurrency") {
-            $set += setGlobalSpecialization($val, ("cor${alg}${opt}", "obt${alg}${opt}", "utg${alg}${opt}"))  if ($var eq "${alg}${opt}");
-        }
+    foreach my $opt ("gridoptions") {
+        $set += setGlobalSpecialization($val, ("${opt}corovl",  "${opt}obtovl",  "${opt}utgovl"))   if ($var eq "${opt}ovl");
+        $set += setGlobalSpecialization($val, ("${opt}cormhap", "${opt}obtmhap", "${opt}utgmhap"))  if ($var eq "${opt}mhap");
+        $set += setGlobalSpecialization($val, ("${opt}cormmap", "${opt}obtmmap", "${opt}utgmmap"))  if ($var eq "${opt}mmap");
     }
 
-    foreach my $opt ("overlapper", "realign", "mhapfilterunique", "mhapfilterthreshold") {
+    foreach my $opt ("memory",
+                     "threads",
+                     "concurrency") {
+        $set += setGlobalSpecialization($val, ( "corovl${opt}",  "obtovl${opt}",  "utgovl${opt}"))  if ($var eq  "ovl${opt}");
+        $set += setGlobalSpecialization($val, ("cormhap${opt}", "obtmhap${opt}", "utgmhap${opt}"))  if ($var eq "mhap${opt}");
+        $set += setGlobalSpecialization($val, ("cormmap${opt}", "obtmmap${opt}", "utgmmap${opt}"))  if ($var eq "mmap${opt}");
+    }
+
+    #  Overlapping algorithm choice options
+
+    foreach my $opt ("overlapper",
+                     "realign") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
-    #  e.g., corOvlHashBlockLength
-    foreach my $opt ("ovlerrorrate", "ovlhashblocklength", "ovlrefblocksize", "ovlrefblocklength", "ovlhashbits", "ovlhashload", "ovlmersize", "ovlmerthreshold", "ovlmerdistinct", "ovlmertotal", "ovlfrequentmers") {
+    #  OverlapInCore options
+
+    foreach my $opt ("ovlerrorrate",
+                     "ovlhashblocklength",
+                     "ovlrefblocksize",
+                     "ovlrefblocklength",
+                     "ovlhashbits",
+                     "ovlhashload",
+                     "ovlmersize",
+                     "ovlmerthreshold",
+                     "ovlmerdistinct",
+                     "ovlmertotal",
+                     "ovlfrequentmers") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
-    #  e.g., corMhapBlockSize
-    foreach my $opt ("mhapblocksize", "mhapmersize", "mhaprealign", "mhapsensitivity") {
+    #  Mhap options
+
+    foreach my $opt ("mhapblocksize",
+                     "mhapmersize",
+                     "mhapsensitivity",
+                     "mhapfilterunique",
+                     "mhapfilterthreshold",
+                     "mhapnotf") {
+        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
+    }
+
+    #  MiniMap options
+
+    foreach my $opt ("mmapblocksize",
+                     "mmapmersize") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
@@ -306,7 +337,7 @@ sub printOptions () {
             $o = substr("$k                                    ", 0, 40);
 
         } else {
-            $Text::Wrap::columns = 100;
+            $Text::Wrap::columns = 60;
 
             $o = "$o\n";
             $u = wrap("    ", "    ", $u) . "\n";
@@ -323,35 +354,60 @@ sub printHelp (@) {
     return   if (!defined($force) && !defined($global{"errors"}));
 
     print "\n";
-    print "usage: canu [-version] [-citation] \\\n";
-    print "            [-correct | -trim | -assemble | -trim-assemble] \\\n";
-    print "            [-s <assembly-specifications-file>] \\\n";
-    print "             -p <assembly-prefix> \\\n";
-    print "             -d <assembly-directory> \\\n";
-    print "             genomeSize=<number>[g|m|k] \\\n";
-    print "            [other-options] \\\n";
-    print "            [-pacbio-raw | -pacbio-corrected | -nanopore-raw | -nanopore-corrected] *fastq\n";
+    print "usage:   canu [-version] [-citation] \\\n";
+    print "              [-correct | -trim | -assemble | -trim-assemble] \\\n";
+    print "              [-s <assembly-specifications-file>] \\\n";
+    print "               -p <assembly-prefix> \\\n";
+    print "               -d <assembly-directory> \\\n";
+    print "               genomeSize=<number>[g|m|k] \\\n";
+    print "              [other-options] \\\n";
+    print "              [-pacbio-raw |\n";
+    print "               -pacbio-corrected |\n";
+    print "               -nanopore-raw |\n";
+    print "               -nanopore-corrected] file1 file2 ...\n";
     print "\n";
-    print "  By default, all three stages (correct, trim, assemble) are computed.\n";
-    print "  To compute only a single stage, use:\n";
+    print "example: canu -d run1 -p godzilla genomeSize=1g -nanopore-raw reads/*.fasta.gz \n";
+    print "\n";
+    print "\n";
+    print "  To restrict canu to only a specific stage, use:\n";
     print "    -correct       - generate corrected reads\n";
     print "    -trim          - generate trimmed reads\n";
     print "    -assemble      - generate an assembly\n";
     print "    -trim-assemble - generate trimmed reads and then assemble them\n";
     print "\n";
-    print "  The assembly is computed in the (created) -d <assembly-directory>, with most\n";
-    print "  files named using the -p <assembly-prefix>.\n";
+    print "  The assembly is computed in the -d <assembly-directory>, with output files named\n";
+    print "  using the -p <assembly-prefix>.  This directory is created if needed.  It is not\n";
+    print "  possible to run multiple assemblies in the same directory.\n";
     print "\n";
-    print "  The genome size is your best guess of the genome size of what is being assembled.\n";
-    print "  It is used mostly to compute coverage in reads.  Fractional values are allowed: '4.7m'\n";
-    print "  is the same as '4700k' and '4700000'\n";
+    print "  The genome size should be your best guess of the haploid genome size of what is being\n";
+    print "  assembled.  It is used primarily to estimate coverage in reads, NOT as the desired\n";
+    print "  assembly size.  Fractional values are allowed: '4.7m' equals '4700k' equals '4700000'\n";
     print "\n";
-    print "  A full list of options can be printed with '-options'.  All options\n";
-    print "  can be supplied in an optional sepc file.\n";
+    print "  Some common options:\n";
+    print "    useGrid=string\n";
+    print "      - Run under grid control (true), locally (false), or set up for grid control\n";
+    print "        but don't submit any jobs (remote)\n";
+    print "    rawErrorRate=fraction-error\n";
+    print "      - The allowed difference in an overlap between two raw uncorrected reads.  For lower\n";
+    print "        quality reads, use a higher number.  The defaults are 0.300 for PacBio reads and\n";
+    print "        0.500 for Nanopore reads.\n";
+    print "    correctedErrorRate=fraction-error\n";
+    print "      - The allowed difference in an overlap between two corrected reads.  Assemblies of\n";
+    print "        low coverage or data with biological differences will benefit from a slight increase\n";
+    print "        in this.  Defaults are 0.045 for PacBio reads and 0.144 for Nanopore reads.\n";
+    print "    gridOptions=string\n";
+    print "      - Pass string to the command used to submit jobs to the grid.  Can be used to set\n";
+    print "        maximum run time limits.  Should NOT be used to set memory limits; Canu will do\n";
+    print "        that for you.\n";
+    print "    minReadLength=number\n";
+    print "      - Ignore reads shorter than 'number' bases long.  Default: 1000.\n";
+    print "    minOverlapLength=number\n";
+    print "      - Ignore read-to-read overlaps shorter than 'number' bases long.  Default: 500.\n";
+    print "  A full list of options can be printed with '-options'.  All options can be supplied in\n";
+    print "  an optional sepc file with the -s option.\n";
     print "\n";
-    print "  Reads can be either FASTA or FASTQ format, uncompressed, or compressed\n";
-    print "  with gz, bz2 or xz.  Reads are specified by the technology they were\n";
-    print "  generated with:\n";
+    print "  Reads can be either FASTA or FASTQ format, uncompressed, or compressed with gz, bz2 or xz.\n";
+    print "  Reads are specified by the technology they were generated with:\n";
     print "    -pacbio-raw         <files>\n";
     print "    -pacbio-corrected   <files>\n";
     print "    -nanopore-raw       <files>\n";
@@ -599,6 +655,19 @@ sub setExecDefaults ($$) {
 
 
 
+sub setOverlapDefault ($$$$) {
+    my $tag         = shift @_;
+    my $var         = shift @_;
+    my $value       = shift @_;
+    my $description = shift @_;
+
+    $global{"${tag}${var}"}  = $value;
+    $synops{"${tag}${var}"}  = $description;
+    $synops{      "${var}"}  = $description;
+}
+
+
+
 sub setOverlapDefaults ($$$) {
     my $tag     = shift @_;  #  If 'cor', some parameters are loosened for raw pacbio reads
     my $name    = shift @_;
@@ -606,83 +675,50 @@ sub setOverlapDefaults ($$$) {
 
     #  Which overlapper to use.
 
-    $global{"${tag}Overlapper"}               = $default;
-    $synops{"${tag}Overlapper"}               = "Which overlap algorithm to use for $name";
+    setOverlapDefault($tag, "Overlapper",          $default,                  "Which overlap algorithm to use for $name");
+    setOverlapDefault($tag, "ReAlign",             0,                         "Refine overlaps by computing the actual alignment: 'true' or 'false'.  Not useful for overlapper=ovl.  Uses ${tag}OvlErrorRate");
 
     #  OverlapInCore parameters.
 
-    $global{"${tag}OvlHashBlockLength"}       = undef;
-    $synops{"${tag}OvlHashBlockLength"}       = "Amount of sequence (bp) to load into the overlap hash table";
+    setOverlapDefault($tag, "OvlHashBlockLength",  undef,                     "Amount of sequence (bp) to load into the overlap hash table");
+    setOverlapDefault($tag, "OvlRefBlockSize",     undef,                     "Number of reads to search against the hash table per batch");
+    setOverlapDefault($tag, "OvlRefBlockLength",   0,                         "Amount of sequence (bp) to search against the hash table per batch");
+    setOverlapDefault($tag, "OvlHashBits",         ($tag eq "cor") ? 18 : 23, "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength");
+    setOverlapDefault($tag, "OvlHashLoad",         0.75,                      "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75");
+    setOverlapDefault($tag, "OvlMerSize",          ($tag eq "cor") ? 19 : 22, "K-mer size for seeds in overlaps");
+    setOverlapDefault($tag, "OvlMerThreshold",     "auto",                    "K-mer frequency threshold; mers more frequent than this count are ignored; default 'auto'");
+    setOverlapDefault($tag, "OvlMerDistinct",      undef,                     "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps");
+    setOverlapDefault($tag, "OvlMerTotal",         undef,                     "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps");
+    setOverlapDefault($tag, "OvlFrequentMers",     undef,                     "Do not seed overlaps with these kmers (fasta format)");
+    setOverlapDefault($tag, "OvlFilter",           undef,                     "Filter overlaps based on expected kmers vs observed kmers");
 
-    $global{"${tag}OvlRefBlockSize"}          = undef;
-    $synops{"${tag}OvlRefBlockSize"}          = "Number of reads to search against the hash table per batch";
+    #  Mhap parameters.  FilterThreshold MUST be a string, otherwise it gets printed in scientific notation (5e-06) which java doesn't understand.
 
-    $global{"${tag}OvlRefBlockLength"}        = 0;
-    $synops{"${tag}OvlRefBlockLength"}        = "Amount of sequence (bp) to search against the hash table per batch";
+    setOverlapDefault($tag, "MhapVersion",         "2.1.2",                   "Version of the MHAP jar file to use");
+    setOverlapDefault($tag, "MhapFilterThreshold", "0.000005",                "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted");
+    setOverlapDefault($tag, "MhapFilterUnique",    undef,                     "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.");
+    setOverlapDefault($tag, "MhapNoTf",            undef,                     "Expert option: True or false, do not use tf weighting, only idf of tf-idf.");
+    setOverlapDefault($tag, "MhapOptions",         undef,                     "Expert option: free-form parameters to pass to MHAP.");
+    setOverlapDefault($tag, "MhapBlockSize",       3000,                      "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job");
+    setOverlapDefault($tag, "MhapMerSize",         ($tag eq "cor") ? 16 : 16, "K-mer size for seeds in mhap");
+    setOverlapDefault($tag, "MhapOrderedMerSize",  ($tag eq "cor") ? 12 : 18, "K-mer size for second-stage filter in mhap");
+    setOverlapDefault($tag, "MhapSensitivity",     undef,                     "Coarse sensitivity level: 'low', 'normal' or 'high'.  Set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'");
 
-    $global{"${tag}OvlHashBits"}              = ($tag eq "cor") ? 18 : 23;
-    $synops{"${tag}OvlHashBits"}              = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength";
+    #  MiniMap parameters.
 
-    $global{"${tag}OvlHashLoad"}              = 0.75;
-    $synops{"${tag}OvlHashLoad"}              = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75";
+    setOverlapDefault($tag, "MMapBlockSize",       6000,                      "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job");
+    setOverlapDefault($tag, "MMapMerSize",         ($tag eq "cor") ? 15 : 21, "K-mer size for seeds in minmap");
+}
 
-    $global{"${tag}OvlMerSize"}               = ($tag eq "cor") ? 19 : 22;
-    $synops{"${tag}OvlMerSize"}               = "K-mer size for seeds in overlaps";
 
-    $global{"${tag}OvlMerThreshold"}          = "auto";
-    $synops{"${tag}OvlMerThreshold"}          = "K-mer frequency threshold; mers more frequent than this count are ignored; default 'auto'";
 
-    $global{"${tag}OvlMerDistinct"}           = undef;
-    $synops{"${tag}OvlMerDistinct"}           = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
+sub setDefault ($$$) {
+    my $var         = shift @_;
+    my $value       = shift @_;
+    my $description = shift @_;
 
-    $global{"${tag}OvlMerTotal"}              = undef;
-    $synops{"${tag}OvlMerTotal"}              = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
-
-    $global{"${tag}OvlFrequentMers"}          = undef;
-    $synops{"${tag}OvlFrequentMers"}          = "Do not seed overlaps with these kmers (fasta format)";
-
-    $global{"${tag}OvlFilter"}                = undef;
-    $synops{"${tag}OvlFilter"}                = "Filter overlaps based on expected kmers vs observed kmers";
-
-    #  Mhap parameters.
-
-    $global{"${tag}MhapVersion"}              = "2.1.2";
-    $synops{"${tag}MhapVersion"}              = "Version of the MHAP jar file to use";
-
-    $global{"${tag}MhapFilterThreshold"}      = "0.000005";   #  Needs to be a string, else it is printed as 5e-06.
-    $synops{"${tag}MhapFilterThreshold"}      = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
-
-    $global{"${tag}MhapFilterUnique"}         = undef;
-    $synops{"${tag}MhapFilterUnique"}         = "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.";
-
-    $global{"${tag}MhapNoTf"}                 = undef;
-    $synops{"${tag}MhapNoTf"}                 = "Expert option: True or false, do not use tf weighting, only idf of tf-idf.";
-
-    $global{"${tag}MhapOptions"}              = undef;
-    $synops{"${tag}MhapOptions"}              = "Expert option: free-form parameters to pass to MHAP.";
-
-    $global{"${tag}MhapBlockSize"}            = 3000;
-    $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
-
-    $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 16;
-    $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
-
-    $global{"${tag}MhapOrderedMerSize"}       = ($tag eq "cor") ? 12 : 18;
-    $synops{"${tag}MhapOrderedMerSize"}       = "K-mer size for second-stage filter in mhap";
-
-    $global{"${tag}MhapSensitivity"}          = undef;
-    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'low', 'normal' or 'high'.  Set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'";
-
-    $global{"${tag}MMapBlockSize"}            = 6000;
-    $synops{"${tag}MMapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
-
-    # minimap parameters.
-    $global{"${tag}MMapMerSize"}              = ($tag eq "cor") ? 15 : 21;
-    $synops{"${tag}MMapMerSize"}              = "K-mer size for seeds in minmap";
-
-    # shared parameters for alignment-free overlappers
-    $global{"${tag}ReAlign"}                  = 0;
-    $synops{"${tag}ReAlign"}                  = "Refine mhap/minimap overlaps by computing the actual alignment: 'true' or 'false'.  Uses ${tag}OvlErrorRate";
+    $global{$var} = $value;
+    $synops{$var} = $description;
 }
 
 
@@ -692,161 +728,107 @@ sub setDefaults () {
     #####  Internal stuff
 
     $global{"errors"}                      = undef;   #  Command line errors
-
     $global{"version"}                     = undef;   #  Reset at the end of this function, once we know where binaries are.
+    $global{"availablehosts"}              = undef;   #  Internal list of cpus-memory-nodes describing the grid
+
+    $global{"canuiteration"}               = 0;
+    $global{"canuiterationmax"}            = 2;
+
+    $global{"onexitdir"}                   = undef;   #  Copy of $wrk, for caExit() and caFailure() ONLY.
+    $global{"onexitnam"}                   = undef;   #  Copy of $asm, for caExit() and caFailure() ONLY.
+
+    #####  Meta options (no $global for these, only synopsis), more of these, many many more, are defined in setOverlapDefaults().
+
+    $synops{"rawErrorRate"}                = "Expected fraction error in an alignment of two uncorrected reads";
+    $synops{"correctedErrorRate"}          = "Expected fraction error in an alignment of two corrected reads";
 
     #####  General Configuration Options (aka miscellany)
 
-    $global{"canuIteration"}               = 0;  #  See documentation in Execution.pm
-    $global{"canuIterationMax"}            = 2;
+    my $java = (exists $ENV{"JAVA_HOME"} && -e "$ENV{'JAVA_HOME'}/bin/java") ? "$ENV{'JAVA_HOME'}/bin/java" : "java";
 
-    $global{"showNext"}                    = undef;
-    $synops{"showNext"}                    = "Don't run any commands, just report what would run";
-
-    $global{"pathMap"}                     = undef;
-    $synops{"pathMap"}                     = "File with a hostname to binary directory map; binary directories must be absolute paths";
-
-    $global{"shell"}                       = "/bin/sh";
-    $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'";
-
-    $global{"java"}                        = (exists $ENV{"JAVA_HOME"} && -e "$ENV{'JAVA_HOME'}/bin/java") ? "$ENV{'JAVA_HOME'}/bin/java" : "java";
-    $synops{"java"}                        = "Java interpreter to use; at least version 1.8; default 'java'";
-
-    $global{"gnuplot"}                     = "gnuplot";
-    $synops{"gnuplot"}                     = "Path to the gnuplot executable";
-
-    $global{"gnuplotImageFormat"}          = undef;
-    $synops{"gnuplotImageFormat"}          = "Image format that gnuplot will generate, used in HTML reports.  Default: based on gnuplot, 'png', 'svg' or 'gif'";
-
-    $global{"gnuplotTested"}               = 0;
-    $synops{"gnuplotTested"}               = "If set, skip the initial testing of gnuplot";
-
-    $global{"stageDirectory"}              = undef;
-    $synops{"stageDirectory"}              = "If set, copy heavily used data to this node-local location";
+    setDefault("showNext",            undef,     "Don't run any commands, just report what would run");
+    setDefault("pathMap",             undef,     "File with a hostname to binary directory map; binary directories must be absolute paths");
+    setDefault("shell",               "/bin/sh", "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
+    setDefault("java",                $java,     "Java interpreter to use; at least version 1.8; default 'java'");
+    setDefault("gnuplot",             "gnuplot", "Path to the gnuplot executable");
+    setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate, used in HTML reports.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
+    setDefault("gnuplotTested",       0,         "If set, skip the initial testing of gnuplot");
+    setDefault("stageDirectory",      undef,     "If set, copy heavily used data to this node-local location");
 
     #####  Cleanup and Termination options
 
-    $global{"saveOverlaps"}                = 0;
-    $synops{"saveOverlaps"}                = "Save intermediate overlap files, almost never a good idea";
-
-    $global{"saveReadCorrections"}         = 0;
-    $synops{"saveReadCorrections"}         = "Save intermediate read correction files, almost never a good idea";
-
-    $global{"saveMerCounts"}               = 0;
-    $synops{"saveMerCounts"}               = "Save full mer counting results, sometimes useful";
-
-    $global{"onSuccess"}                   = undef;
-    $synops{"onSuccess"}                   = "Full path to command to run on successful completion";
-
-    $global{"onFailure"}                   = undef;
-    $synops{"onFailure"}                   = "Full path to command to run on failure";
-
-    $global{"onExitDir"}                   = undef;   #  Copy of $wrk, for caExit() and caFailure() ONLY.
-    $global{"onExitNam"}                   = undef;   #  Copy of $asm, for caExit() and caFailure() ONLY.
+    setDefault("saveOverlaps",        0,     "Save intermediate overlap files, almost never a good idea");
+    setDefault("saveReadCorrections", 0,     "Save intermediate read correction files, almost never a good idea");
+    setDefault("saveMerCounts",       0,     "Save full mer counting results, sometimes useful");
+    setDefault("onSuccess",           undef, "Full path to command to run on successful completion");
+    setDefault("onFailure",           undef, "Full path to command to run on failure");
 
     #####  Error Rates
 
-    $global{"corOvlErrorRate"}             = undef;
-    $synops{"corOvlErrorRate"}             = "Overlaps above this error rate are not computed";
-
-    $global{"obtOvlErrorRate"}             = undef;
-    $synops{"obtOvlErrorRate"}             = "Overlaps at or below this error rate are used to trim reads";
-
-    $global{"utgOvlErrorRate"}             = undef;
-    $synops{"utgOvlErrorRate"}             = "Overlaps at or below this error rate are used to trim reads";
-
-    $global{"utgErrorRate"}                = undef;
-    $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct contigs";
-
-    $global{"utgGraphDeviation"}           = 6;
-    $synops{"utgGraphDeviation"}           = "Overlaps this much above median will not be used for initial graph construction";
-
-    $global{"utgRepeatDeviation"}          = 3;
-    $synops{"utgRepeatDeviation"}          = "Overlaps this much above mean unitig error rate will not be used for repeat splitting";
-
-    $global{"utgRepeatConfusedBP"}         = 2100;
-    $synops{"utgRepeatConfusedBP"}           = "Repeats where the next best edge is at least this many bp shorter will not be split";
-
-    $global{"corErrorRate"}                = undef;
-    $synops{"corErrorRate"}                = "Only use raw alignments below this error rate to construct corrected reads";
-
-    $global{"cnsErrorRate"}                = undef;
-    $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
+    setDefault("corOvlErrorRate",     undef, "Overlaps above this error rate are not computed");
+    setDefault("obtOvlErrorRate",     undef, "Overlaps at or below this error rate are used to trim reads");
+    setDefault("utgOvlErrorRate",     undef, "Overlaps at or below this error rate are used to trim reads");
+    setDefault("utgErrorRate",        undef, "Overlaps at or below this error rate are used to construct contigs");
+    setDefault("utgGraphDeviation",   6,     "Overlaps this much above median will not be used for initial graph construction");
+    setDefault("utgRepeatDeviation",  3,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
+    setDefault("utgRepeatConfusedBP", 2100,  "Repeats where the next best edge is at least this many bp shorter will not be split");
+    setDefault("corErrorRate",        undef, "Only use raw alignments below this error rate to construct corrected reads");
+    setDefault("cnsErrorRate",        undef, "Consensus expects alignments at about this error rate");
 
     #####  Minimums and maximums
 
-    $global{"minReadLength"}               = 1000;
-    $synops{"minReadLength"}               = "Reads shorter than this length are not loaded into the assembler; default 1000";
+    setDefault("minReadLength",    1000, "Reads shorter than this length are not loaded into the assembler; default 1000");
+    setDefault("minOverlapLength",  500, "Overlaps shorter than this length are not computed; default 500");
 
-    $global{"minOverlapLength"}            = 500;
-    $synops{"minOverlapLength"}            = "Overlaps shorter than this length are not computed; default 500";
+    setDefault("minMemory",        undef, "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
+    setDefault("maxMemory",        undef, "Maximum memory to use by any component of the assembler");
 
-    $global{"minMemory"}                   = undef;
-    $synops{"minMemory"}                   = "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)";
-    $global{"minThreads"}                  = undef;
-    $synops{"minThreads"}                  = "Minimum number of compute threads suggested to compute the assembly";
-
-    $global{"maxMemory"}                   = undef;
-    $synops{"maxMemory"}                   = "Maximum memory to use by any component of the assembler";
-    $global{"maxThreads"}                  = undef;
-    $synops{"maxThreads"}                  = "Maximum number of compute threads to use by any component of the assembler";
+    setDefault("minThreads",       undef, "Minimum number of compute threads suggested to compute the assembly");
+    setDefault("maxThreads",       undef, "Maximum number of compute threads to use by any component of the assembler");
 
     #####  Stopping conditions
 
-    $global{"stopOnReadQuality"}           = 1;
-    $synops{"stopOnReadQuality"}           = "Stop if a significant portion of the input data is too short or has quality value or base composition errors";
-
-    $global{"stopAfter"}                   = undef;
-    $synops{"stopAfter"}                   = "Tell canu when to halt execution";
+    setDefault("stopOnReadQuality", 1,     "Stop if a significant portion of the input data is too short or has quality value or base composition errors");
+    setDefault("stopAfter",         undef, "Stop after a specific algorithm step is completed");
 
     #####  Grid Engine configuration, internal parameters.  These are filled out in canu.pl, right after this function returns.
 
-    $global{"availableHosts"}                       = undef;  #  Internal list of cpus-memory-nodes describing the grid
-
-    $global{"gridEngine"}                           = undef;
-    $global{"gridEngineSubmitCommand"}              = undef;
-    $global{"gridEngineNameOption"}                 = undef;
-    $global{"gridEngineArrayOption"}                = undef;
-    $global{"gridEngineArrayName"}                  = undef;
-    $global{"gridEngineArrayMaxJobs"}               = undef;
-    $global{"gridEngineOutputOption"}               = undef;
-    $global{"gridEnginePropagateCommand"}           = undef;
-    $global{"gridEngineThreadsOption"}              = undef;
-    $global{"gridEngineMemoryOption"}               = undef;
-    $global{"gridEngineMemoryUnits"}                = undef;
-    $global{"gridEngineNameToJobIDCommand"}         = undef;
-    $global{"gridEngineNameToJobIDCommandNoArray"}  = undef;
-    $global{"gridEngineStageOption"}                = undef;
-    $global{"gridEngineTaskID"}                     = undef;
-    $global{"gridEngineArraySubmitID"}              = undef;
-    $global{"gridEngineJobID"}                      = undef;
+    setDefault("gridEngine",                          undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineSubmitCommand",             undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineNameOption",                undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineArrayOption",               undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineArrayName",                 undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineArrayMaxJobs",              undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineOutputOption",              undef, "Grid engine configuration, not documented");
+    setDefault("gridEnginePropagateCommand",          undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineThreadsOption",             undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineMemoryOption",              undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineMemoryUnits",               undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineNameToJobIDCommand",        undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineNameToJobIDCommandNoArray", undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineStageOption",               undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineTaskID",                    undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineArraySubmitID",             undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineJobID",                     undef, "Grid engine configuration, not documented");
 
     #####  Grid Engine Pipeline
 
-    $global{"useGrid"}                     = 1;
-    $synops{"useGrid"}                     = "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'";
+    setDefault("useGrid", 1, "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'");
 
     foreach my $c (qw(BAT GFA CNS COR MERYL CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
-        $global{"useGrid$c"} = 1;
-        $synops{"useGrid$c"} = "If 'true', run module $c under grid control; if 'false' run locally.";
+        setDefault("useGrid$c", 1, "If 'true', run module $c under grid control; if 'false' run locally.");
     }
 
     #####  Grid Engine configuration, for each step of the pipeline
 
-    $global{"gridOptions"}                 = undef;
-    $synops{"gridOptions"}                 = "Grid engine options applied to all jobs";
-
-    $global{"gridOptionsExecutive"}        = undef;
-    $synops{"gridOptionsExecutive"}        = "Grid engine options applied to the canu executive script";
-
-    $global{"gridOptionsJobName"}          = undef;
-    $synops{"gridOptionsJobName"}          = "Grid jobs job-name suffix";
+    setDefault("gridOptions",           undef,  "Grid engine options applied to all jobs");
+    setDefault("gridOptionsExecutive",  undef,  "Grid engine options applied to the canu executive script");
+    setDefault("gridOptionsJobName",    undef,  "Grid jobs job-name suffix");
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    setExecDefaults("meryl",  "mer counting");
-
-    setExecDefaults("cor",    "read correction");
+    setExecDefaults("meryl",   "mer counting");
+    setExecDefaults("cor",     "read correction");
 
     setExecDefaults("corovl",  "overlaps for correction");
     setExecDefaults("obtovl",  "overlaps for trimming");
@@ -860,26 +842,21 @@ sub setDefaults () {
     setExecDefaults("obtmmap", "mmap overlaps for trimming");
     setExecDefaults("utgmmap", "mmap overlaps for unitig construction");
 
-    setExecDefaults("ovb",    "overlap store bucketizing");
-    setExecDefaults("ovs",    "overlap store sorting");
+    setExecDefaults("ovb",     "overlap store bucketizing");
+    setExecDefaults("ovs",     "overlap store sorting");
 
-    setExecDefaults("red",    "read error detection");
-    setExecDefaults("oea",    "overlap error adjustment");
+    setExecDefaults("red",     "read error detection");
+    setExecDefaults("oea",     "overlap error adjustment");
 
-    setExecDefaults("bat",    "unitig construction");
-    setExecDefaults("cns",    "unitig consensus");
-    setExecDefaults("gfa",    "graph alignment and processing");
+    setExecDefaults("bat",     "unitig construction");
+    setExecDefaults("cns",     "unitig consensus");
+    setExecDefaults("gfa",     "graph alignment and processing");
 
     #####  Object Storage
 
-    $global{"objectStore"}                 = undef;
-    $synops{"objectStore"}                 = "Type of object storage used; not ready for production yet";
-
-    $global{"objectStoreClient"}           = undef;
-    $synops{"objectStoreClient"}           = "Path to the command line client used to access the object storage";
-
-    $global{"objectStoreNameSpace"}        = undef;
-    $synops{"objectStoreNameSpace"}        = "Object store parameters; specific to the type of objectStore used";
+    setDefault("objectStore",          undef,  "Type of object storage used; not ready for production yet");
+    setDefault("objectStoreClient",    undef,  "Path to the command line client used to access the object storage");
+    setDefault("objectStoreNameSpace", undef,  "Object store parameters; specific to the type of objectStore used");
 
     #####  Overlapper
 
@@ -889,141 +866,75 @@ sub setDefaults () {
 
     ##### Overlap Store
 
-    $global{"ovsMethod"}                   = undef;
-    $synops{"ovsMethod"}                   = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'";
+    setDefault("ovsMethod", undef, "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'");
 
     #####  Mers
 
-    $global{"merylMemory"}                 = undef;
-    $synops{"merylMemory"}                 = "Amount of memory, in gigabytes, to use for mer counting";
-
-    $global{"merylThreads"}                = undef;
-    $synops{"merylThreads"}                = "Number of threads to use for mer counting";
-
-    $global{"merylConcurrency"}            = undef;
-    $synops{"merylConcurrency"}            = "Unused, there is only one process";
+    setDefault("merylMemory",      undef,  "Amount of memory, in gigabytes, to use for mer counting");
+    setDefault("merylThreads",     undef,  "Number of threads to use for mer counting");
+    setDefault("merylConcurrency", undef,  "Unused, there is only one process");
 
     #####  Overlap Based Trimming
 
-    $global{"obtErrorRate"}                = undef;
-    $synops{"obtErrorRate"}                = "Stringency of overlaps to use for trimming";
-
-    $global{"trimReadsOverlap"}            = 1;
-    $synops{"trimReadsOverlap"}            = "Minimum overlap between evidence to make contiguous trim; default '1'";
-
-    $global{"trimReadsCoverage"}           = 1;
-    $synops{"trimReadsCoverage"}           = "Minimum depth of evidence to retain bases; default '1'";
+    setDefault("obtErrorRate",       undef, "Stringency of overlaps to use for trimming");
+    setDefault("trimReadsOverlap",   1,     "Minimum overlap between evidence to make contiguous trim; default '1'");
+    setDefault("trimReadsCoverage",  1,     "Minimum depth of evidence to retain bases; default '1'");
 
     #$global{"splitReads..."}               = 1;
     #$synops{"splitReads..."}               = "";
 
     #####  Fragment/Overlap Error Correction
 
-    $global{"enableOEA"}                   = 1;
-    $synops{"enableOEA"}                   = "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA); default 'true'";
-
-    $global{"redBatchSize"}                = undef;
-    $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch";
-
-    $global{"redBatchLength"}              = undef;
-    $synops{"redBatchLength"}              = "Number of bases per fragment error detection batch";
-
-    $global{"oeaBatchSize"}                = undef;
-    $synops{"oeaBatchSize"}                = "Number of reads per overlap error correction batch";
-
-    $global{"oeaBatchLength"}              = undef;
-    $synops{"oeaBatchLength"}              = "Number of bases per overlap error correction batch";
+    setDefault("enableOEA",      1,     "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA); default 'true'");
+    setDefault("redBatchSize",   undef, "Number of reads per fragment error detection batch");
+    setDefault("redBatchLength", undef, "Number of bases per fragment error detection batch");
+    setDefault("oeaBatchSize",   undef, "Number of reads per overlap error correction batch");
+    setDefault("oeaBatchLength", undef, "Number of bases per overlap error correction batch");
 
     #####  Unitigger & BOG & bogart Options
 
-    $global{"unitigger"}                   = "bogart";
-    $synops{"unitigger"}                   = "Which unitig algorithm to use; only 'bogart' supported; default 'bogart'";
+    setDefault("unitigger",      "bogart", "Which unitig algorithm to use; only 'bogart' supported; default 'bogart'");
+    setDefault("genomeSize",     undef, "An estimate of the size of the genome");
+    setDefault("batOptions",     undef, "Advanced options to bogart");
+    setDefault("batMemory",      undef, "Approximate maximum memory usage, in gigabytes, default is the maxMemory limit");
+    setDefault("batThreads",     undef, "Number of threads to use; default is the maxThreads limit");
+    setDefault("batConcurrency", undef, "Unused, only one process supported");
 
-    $global{"genomeSize"}                  = undef;
-    $synops{"genomeSize"}                  = "An estimate of the size of the genome";
-
-    $global{"batOptions"}                  = undef;
-    $synops{"batOptions"}                  = "Advanced options to bogart";
-
-    $global{"batMemory"}                   = undef;
-    $synops{"batMemory"}                   = "Approximate maximum memory usage, in gigabytes, default is the maxMemory limit";
-
-    $global{"batThreads"}                  = undef;
-    $synops{"batThreads"}                  = "Number of threads to use; default is the maxThreads limit";
-
-    $global{"batConcurrency"}              = undef;
-    $synops{"batConcurrency"}              = "Unused, only one process supported";
-
-    #####  Unitig Filtering Options (also set in bogart/bogart.C)
-
-    $global{"contigFilter"}                = "2 1000 0.75 0.75 2";
-    $global{"contigFilter"}                = "2 0 1.0 0.5 5";
-    $synops{"contigFilter"}                = "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth";
+    setDefault("contigFilter",   "2 0 1.0 0.5 5",   "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth");
 
     #####  Consensus Options
 
-    $global{"cnsPartitions"}               = undef;
-    $synops{"cnsPartitions"}               = "Partition consensus into N jobs";
-
-    $global{"cnsPartitionMin"}             = undef;
-    $synops{"cnsPartitionMin"}             = "Don't make a consensus partition with fewer than N reads";
-
-    $global{"cnsMaxCoverage"}              = 40;
-    $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage; default '0' = unlimited";
-
-    $global{"cnsConsensus"}                = "pbdagcon";
-    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'";
+    setDefault("cnsPartitions",   undef,       "Partition consensus into N jobs");
+    setDefault("cnsPartitionMin", undef,       "Don't make a consensus partition with fewer than N reads");
+    setDefault("cnsMaxCoverage",  40,          "Limit unitig consensus to at most this coverage; default '0' = unlimited");
+    setDefault("cnsConsensus",    "pbdagcon",  "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'");
 
     #####  Correction Options
 
-    $global{"corPartitions"}               = undef;
-    $synops{"corPartitions"}               = "Partition read correction into N jobs";
-
-    $global{"corPartitionMin"}             = undef;
-    $synops{"corPartitionMin"}             = "Don't make a read correction partition with fewer than N reads";
-
-    $global{"corMinEvidenceLength"}        = undef;
-    $synops{"corMinEvidenceLength"}        = "Limit read correction to only overlaps longer than this; default: unlimited";
-
-    $global{"corMaxEvidenceErate"}         = undef;
-    $synops{"corMaxEvidenceErate"}         = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
-
-    $global{"corMaxEvidenceCoverageGlobal"}= "1.0x";
-    $synops{"corMaxEvidenceCoverageGlobal"}= "Limit reads used for correction to supporting at most this coverage; default: '1.0x' = 1.0 * estimated coverage";
-
-    $global{"corMaxEvidenceCoverageLocal"} = "2.0x";
-    $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: '2.0x' = 2.0 * estimated coverage";
-
-    $global{"corOutCoverage"}              = 40;
-    $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 40";
-
-    $global{"corMinCoverage"}              = undef;
-    $synops{"corMinCoverage"}              = "Minimum number of bases supporting each corrected base, if less than this sequences are split; default based on input read coverage: 0 <= 30x < 4 < 60x <= 4";
-
-    $global{"corFilter"}                   = "expensive";
-    $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'";
-
-    $global{"corConsensus"}                = "falconpipe";
-    $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported; default 'falconpipe'";
-
-    $global{"corLegacyFilter"}             = undef;
-    $synops{"corLegacyFilter"}             = "Expert option: global filter, length * identity (default) or length with  broken by identity (if on)";
+    setDefault("corPartitions",                undef,        "Partition read correction into N jobs");
+    setDefault("corPartitionMin",              undef,        "Don't make a read correction partition with fewer than N reads");
+    setDefault("corMinEvidenceLength",         undef,        "Limit read correction to only overlaps longer than this; default: unlimited");
+    setDefault("corMaxEvidenceErate",          undef,        "Limit read correction to only overlaps at or below this fraction error; default: unlimited");
+    setDefault("corMaxEvidenceCoverageGlobal", "1.0x",       "Limit reads used for correction to supporting at most this coverage; default: '1.0x' = 1.0 * estimated coverage");
+    setDefault("corMaxEvidenceCoverageLocal",  "2.0x",       "Limit reads being corrected to at most this much evidence coverage; default: '2.0x' = 2.0 * estimated coverage");
+    setDefault("corOutCoverage",               40,           "Only correct the longest reads up to this coverage; default 40");
+    setDefault("corMinCoverage",               undef,        "Minimum number of bases supporting each corrected base, if less than this sequences are split; default based on input read coverage: 0 <= 30x < 4 < 60x <= 4");
+    setDefault("corFilter",                    "expensive",  "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'");
+    setDefault("corConsensus",                 "falconpipe", "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported; default 'falconpipe'");
+    setDefault("corLegacyFilter",              undef,        "Expert option: global filter, length * identity (default) or length with  broken by identity (if on)");
 
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 
-    foreach my $k (keys %global) {
+    foreach my $k (keys %synops) {
         (my $l = $k) =~ tr/A-Z/a-z/;
 
-        if (! exists($synnam{$l})) {
-            $synnam{$l} = $k;
+        $synnam{$l} = $k;                  #  Remember that option $l is stylized as $k.
 
-            if (!exists($global{$l})) {
-                $global{$l} = $global{$k};
-                delete $global{$k};
-            }
+        next  if (!exists($global{$k}));   #  If no option for this (it's a meta-option), skip.
+        next  if ( exists($global{$l}));   #  If lowercase already exists, skip.
 
-            #print "$k -> $l\n";
-        }
+        $global{$l} = $global{$k};         #  Otherwise, set the lowercase option and
+        delete $global{$k};                #  delete the uppercase version
     }
 
     #  If this is set, it breaks the consensus.sh and overlap.sh scripts.  Good grief!  Why
