@@ -741,7 +741,8 @@ OverlapCache::symmetrizeOverlaps(void) {
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    if (_overlapLen[rr] <= _minPer)
+
+    if (_overlapLen[rr] <= _minPer)  //  If already too few overlaps, leave them all as is.
       continue;
 
     uint64 *ovsSco   = ovsScoScratch[omp_get_thread_num()];
@@ -781,6 +782,14 @@ OverlapCache::symmetrizeOverlaps(void) {
       if (_overlaps[rr][oo].symmetric == false)
         assert(minScore <= ovsSco[oo]);
   }
+
+  //  Are we sane?
+
+  for (uint32 rr=RI->numReads()+1; rr-- > 0; )
+    if (_overlapLen[rr] > 0) {
+      assert(_overlaps[rr][0                ].a_iid == rr);
+      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
+    }
 
   //  Cleanup and log results.
 
@@ -847,14 +856,16 @@ OverlapCache::symmetrizeOverlaps(void) {
   //
   //  So, we need to compare not overlap counts, but raw positions in the OverlapStorage object.
 
-  OverlapStorage   *oldS = new OverlapStorage(_overlapStorage);  //  Recreates the existing layout
-  OverlapStorage   *newS = _overlapStorage;                      //  Sets pointers for the new layout
+  OverlapStorage   *oldS = new OverlapStorage(_overlapStorage);  //  Recreates the existing layout without allocating anything
+  OverlapStorage   *newS = _overlapStorage;                      //  Resets pointers for the new layout, using existing space
 
   newS->reset();
 
   for (uint32 rr=1; rr<RI->numReads()+1; rr++) {
     nPtr[rr] = newS->get(_overlapLen[rr] + toAddPerRead[rr]);     //  Grab the pointer to the new space
+
     oldS->get(_overlapMax[rr]);                                   //  Move old storages ahead
+
     newS->advance(oldS);                                          //  Ensure newS is not before where oldS is.
 
     _overlapMax[rr] = _overlapLen[rr] + toAddPerRead[rr];
@@ -864,22 +875,18 @@ OverlapCache::symmetrizeOverlaps(void) {
   //  (Remeber that the reads are 1..numReads(), not 0..numReads()-1)
 
   for (uint32 rr=RI->numReads()+1; rr-- > 0; ) {
+    if (_overlapLen[rr] == 0)
+      continue;
 
-    for (uint32 oo=_overlapLen[rr]; oo-- > 0; ) {
-      assert(_overlaps[rr][0                ].a_iid == rr);
-      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
-    }
+    assert(_overlaps[rr][0                ].a_iid == rr);
+    assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
 
-    for (uint32 oo=_overlapLen[rr]; oo-- > 0; ) {
+    for (uint32 oo=_overlapLen[rr]; oo-- > 0; )
       nPtr[rr][oo] = _overlaps[rr][oo];
-    }
 
-    for (uint32 oo=_overlapLen[rr]; oo-- > 0; ) {
-      assert(_overlaps[rr][0                ].a_iid == rr);
-      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
-    }
+    assert(_overlaps[rr][0                ].a_iid == rr);
+    assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
   }
-
 
   //  Swap pointers to the pointers and cleanup.
 
@@ -887,7 +894,7 @@ OverlapCache::symmetrizeOverlaps(void) {
   _overlaps = nPtr;
 
   delete  oldS;
-  //      newS is the original _overlapStorage
+  //      newS is the original _overlapStorage, which we could delete, we'd just lose all the overlaps.
 
   //  Copy non-twin overlaps to their twin.
   //

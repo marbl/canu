@@ -227,8 +227,9 @@ public:
 
 
   void          advance(OverlapStorage *that) {
-    if (that->_osLen < _osLen)   return;   //  segment for 'that' is before my segment
-    if (that->_osPos < _osPos)   return;   //  position for 'that' is before my position
+    if (((that->_osLen <  _osLen)) ||                            //  That segment before mine, or
+        ((that->_osLen == _osLen) && (that->_osPos <= _osPos)))  //  that segment equal and position before mine
+      return;                                                    //  So no need to modify
 
     _osLen = that->_osLen;
     _osPos = that->_osPos;
