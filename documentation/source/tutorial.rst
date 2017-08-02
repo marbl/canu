@@ -261,7 +261,7 @@ tells the consensus algorithm to not trust read alignments above that value.
 
 For convenience, two meta options set the error rates used with uncorrected reads
 (:ref:`rawErrorRate <rawErrorRate>`) or used with corrected reads.  (:ref:`correctedErrorRate
-<correctedErrorRate>`).  The default depends on the type or read being assembled.
+<correctedErrorRate>`).  The default depends on the type of read being assembled.
 
 ================== ======  ========
 Parameter          PacBio  Nanopore
