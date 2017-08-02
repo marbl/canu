@@ -552,10 +552,6 @@ printf STDERR "--    obtErrorRate    %6.4f (%6.2f%%)\n", getGlobal("obtErrorRate
 printf STDERR "--    utgErrorRate    %6.4f (%6.2f%%)\n", getGlobal("utgErrorRate"), getGlobal("utgErrorRate") * 100.0;
 printf STDERR "--    cnsErrorRate    %6.4f (%6.2f%%)\n", getGlobal("cnsErrorRate"), getGlobal("cnsErrorRate") * 100.0;
 
-if (defined(getGlobal('errorRateUsed'))) {
-    print STDERR getGlobal('errorRateUsed');
-}
-
 #  Check that we were supplied a work directory, and that it exists, or we can create it.
 
 make_path("canu-logs")     if (! -d "canu-logs");

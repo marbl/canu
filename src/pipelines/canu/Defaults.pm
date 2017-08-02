@@ -132,17 +132,7 @@ sub setGlobal ($$) {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
-    #  Handle the two error rate aliases.  Note 'errorRateUsed' must be lowercase.  setGlobal/getGlobal do that for us.
-
-    if ($var eq "errorrate") {
-        $var = "correctederrorrate";
-        $val = 3 * $val;
-
-        $global{"errorrateused"}  = "--\n";
-        $global{"errorrateused"} .= "-- WARNING: Obsolete 'errorRate' used, replace with 'correctedErrorRate', set to three times the value.\n";
-        $global{"errorrateused"} .= "-- WARNING: errorRate was the expected error rate in a single corrected read; correctedErrorRate is the\n";
-        $global{"errorrateused"} .= "-- WARNING: allowed difference in an alignment of two corrected reads.\n";
-    }
+    #  Handle the two error rate aliases.
 
     if ($var eq "rawerrorrate") {
         setGlobalIfUndef("corOvlErrorRate", $val);
@@ -702,7 +692,6 @@ sub setDefaults () {
     #####  Internal stuff
 
     $global{"errors"}                      = undef;   #  Command line errors
-    $global{"errorRateUsed"}               = undef;   #  A warning if obsolete 'errorRate' parameter is used.  This lets us print the error in a useful place, instead of at the very start of the output.
 
     $global{"version"}                     = undef;   #  Reset at the end of this function, once we know where binaries are.
 
