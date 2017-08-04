@@ -47,6 +47,8 @@
 //    ovlbat - batch names
 //    ovljob - job names
 //    ovlopt - overlapper options
+//
+//  From (very) old paper notes, overlapInCore only computes overlaps for referenceID < hashID.
 
 uint32  batchMax = 1000;
 
