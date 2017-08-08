@@ -620,12 +620,19 @@ main (int argc, char * argv []) {
   //  Tear down bogart.
   //
 
+  //  How bizarre.  Human regression of 2017-07-28-2128 deadlocked (apparently) when deleting OC.
+  //  It had 31 threads in futex_wait, thread 1 was in delete of the second block of data.  CPU
+  //  usage was 100% IIRC.  Reproducable, at least twice, possibly three times.  setLogFilePrefix
+  //  was moved before the deletes in hope that it'll close down threads.  Certainly, it should
+  //  close thread output files from createUnitigs.
+
+  setLogFile(prefix, NULL);    //  Close files.
+  omp_set_num_threads(1);      //  Hopefully kills off other threads.
+
   delete CG;
   delete OG;
   delete OC;
   delete RI;
-
-  setLogFile(prefix, NULL);
 
   writeStatus("\n");
   writeStatus("Bye.\n");
