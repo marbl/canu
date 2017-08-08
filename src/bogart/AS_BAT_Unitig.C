@@ -105,23 +105,6 @@ Unitig::cleanUp(void) {
 
 
 
-class epOlapDat {
-public:
-  epOlapDat(uint32 p, bool o, float e) {
-    pos    = p;
-    open   = o;
-    erate  = e;
-  };
-
-  bool operator<(const epOlapDat &that)     const { return(pos < that.pos); };
-
-  uint32  pos   : 31;
-  bool    open  :  1;
-  float   erate;
-};
-
-
-
 void
 Unitig::computeArrivalRate(const char *UNUSED(prefix),
                            const char *UNUSED(label),
@@ -149,6 +132,23 @@ Unitig::computeArrivalRate(const char *UNUSED(prefix),
     }
   }
 }
+
+
+
+class epOlapDat {
+public:
+  epOlapDat(uint32 p, bool o, float e) {
+    pos    = p;
+    open   = o;
+    erate  = e;
+  };
+
+  bool operator<(const epOlapDat &that)     const { return(pos < that.pos); };
+
+  uint32  pos   : 31;
+  bool    open  :  1;
+  float   erate;
+};
 
 
 
