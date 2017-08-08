@@ -47,8 +47,8 @@ workUnit::addAndFilterOverlaps(gkStore *gkp,
     ovOverlap *o = ovl + oo;
     adjOverlap *a = adj + adjLen;
 
-    int32 idA    = o->a_iid;
-    int32 idB    = o->b_iid;
+    uint32 idA    = o->a_iid;
+    uint32 idB    = o->b_iid;
 
     if (finClr->isDeleted(idA) ||
         finClr->isDeleted(idB))
