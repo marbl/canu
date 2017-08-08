@@ -107,6 +107,8 @@ My assembly continuity is not good, how can I improve it?
    information on tuning unitigging in those instances.
 
 
+.. _tweak:
+
 What parameters can I tweak?
 -------------------------------------
     For all stages:
@@ -191,50 +193,27 @@ What parameters can I tweak?
        primarily an optimization for speed and generally does not change assembly continuity.
 
 
-    
 My asm.contigs.fasta is empty, why?
 -------------------------------------
-    Canu will split the final output into three files:
+    Canu creates three assembled sequence :ref:`output files <outputs>`: ``<prefix>.contigs.fasta``,
+    ``<prefix>.unitigs.fasta``, and ``<prefix>.unassembled.fasta``, where contigs are the primary
+    output, unitigs are the primary output split at alternate paths,
+    and unassembled are the leftover pieces.
 
-    <prefix>.contigs.fasta
-      Everything which could be assembled and is part of the primary assembly, including both unique
-      and repetitive elements.  Each contig has several flags included on the fasta def line.
-
-      **This file currently includes alternate paths.**
-
-    <prefix>.bubbles.fasta
-       Alternate paths in the graph which could not be merged into the primary assembly.
-
-       **This file is currently ALWAYS empty.**
-
-    <prefix>.unassembled.fasta
-       Reads and small contigs that appear to be falsely assembled.  These are generally low quality
-       reads or assemblies of a few low quality reads.
-
-       **Small plasmids (unfortunately) tend to end up here.**
-
-    The ``contigFilter=<minReads minLength singleReadSpan lowCovFraction lowCovDepth>`` parameter
-    sets parameters for several filters that decide which contigs are 'unassembled'.  A contig is
-    'unassembled' if it:
-      - has fewer than minReads (2) reads, or
-      - is shorter than minLength (1000), or
-      - has a single read spanning singleReadSpan percent (75%) of the contig, or
-      - has less than lowCovDepth (2) coverage over at least lowCovSpan fraction (0.75) of the contig
-    The default filtering is ``contigFilter="2 1000 0.75 0.75 2"``.
-
-    If you are assembling amplified or viral data, it is possible your assembly will be flagged as
-    unassembled. Turn off filtering with the parameters ``contigFilter="2 1000 1.0 1.0 2"``.
+    The :ref:`contigFilter` parameter sets several parameters that control how small or low coverage
+    initial contigs are handled.  By default, initial contigs with more than 50% of the length at
+    less than 5X coverage will be classified as 'unassembled' and removed from the assembly, that
+    is, ``contigFilter="2 0 1.0 0.5 5"``.  The filtering can be disabled by changing the last number
+    from '5' to '0' (meaning, filter if 50% is less than 0X coverage).
 
 
 Why is my assembly is missing my favorite short plasmid?
 -------------------------------------
     Only the longest 40X of data (based on the specified genome size) is used for
-    correction. Datasets with uneven coverage or small plasmids can fail to generate enough
-    corrected reads to give enough coverage for assembly, resulting in gaps in the genome or zero
-    reads for small plasmids.  Set ``corOutCoverage=1000`` (any value greater than your total input
+    correction.  Datasets with uneven coverage or small plasmids can fail to generate enough
+    corrected reads to give enough coverage for assembly, resulting in gaps in the genome or even no
+    reads for small plasmids.  Set ``corOutCoverage=1000`` (or any value greater than your total input
     coverage) to correct all input data.
-
-    This option is also recommended for metagenomic datasets where all data is useful for assembly.
 
 
 Why do I get less corrected read data than I asked for?

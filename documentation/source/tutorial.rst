@@ -9,7 +9,7 @@ Canu Tutorial
 
 Canu assembles reads from PacBio RS II or Oxford Nanopore MinION instruments into
 uniquely-assemblable contigs, unitigs.  Canu owes lots of it design and code to
-`celera-assembler`_.
+`celera-assembler <Celera Assembler>`_.
 
 Canu can be run using hardware of nearly any shape or size, anywhere from laptops to computational
 grids with thousands of nodes.  Obviouisly, larger assemblies will take a long time to compute on
@@ -151,7 +151,7 @@ The tags are:
 |utgmhap | the mhap overlapper, as used in the assembly phase                |
 +--------+-------------------------------------------------------------------+
 +--------+-------------------------------------------------------------------+
-|mmap    | the `minimap <https://github.com/lh3/minimap>`_ overlapper                                      |
+|mmap    | the `minimap <https://github.com/lh3/minimap>`_ overlapper        |
 +--------+-------------------------------------------------------------------+
 |cormmap | the minimap overlapper, as used in the correction phase           |
 +--------+-------------------------------------------------------------------+
@@ -214,7 +214,6 @@ would be waiting for jobs named 'ovl_asm_orange'.
 Error Rates
 ~~~~~~~~~~~~~~~~~~~~~~
 
-
 Canu expects all error rates to be reported as fraction error, not as percent error.  We're not sure
 exactly why this is so.  Previously, it used a mix of fraction error and percent error (or both!),
 and was a little confusing.  Here's a handy table you can print out that converts between fraction
@@ -270,10 +269,8 @@ rawErrorRate       0.300   0.500
 correctedErrorRate 0.045   0.144
 ================== ======  ========
 
-In practice, only the :ref:`correctedErrorRate <correctedErrorRate>` is usually changed.
- * For low coverage datasets (less than 30X), we recommend increasing :ref:`correctedErrorRate <correctedErrorRate>` slightly, by 1% or so.
- * For high-coverage datasets (more than 60X), we recommend decreasing :ref:`correctedErrorRate <correctedErrorRate>` slightly, by 1% or so.
-Raising the :ref:`correctedErrorRate <correctedErrorRate>` will increase run time.  Likewise, decreasing :ref:`correctedErrorRate <correctedErrorRate>` will decrease run time, at the risk of missing overlaps and fracturing the assembly.
+In practice, only :ref:`correctedErrorRate <correctedErrorRate>` is usually changed.  The :ref:`faq`
+has :ref:`specific suggestions <tweak>` on when to change this.
 
 Canu v1.4 and earlier used the :ref:`errorRate <errorRate>` parameter, which set the expected
 rate of error in a single corrected read.
@@ -394,3 +391,93 @@ Minimap Overlapper Parameters
   Use k-mers of this size for detecting overlaps
 
 Minimap also will ignore high-frequency minimzers, but it's selection of frequent is not exposed.
+
+.. _outputs:
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As Canu runs, it outputs status messages, execution logs, and some analysis to the console.  Most of
+the analysis is captured in ``<prefix>.report`` as well.
+
+LOGGING
+
+<prefix>.report
+  Most of the analysis reported during assembly.
+
+READS
+
+<prefix>.correctedReads.fasta.gz
+   The reads after correction.
+
+<prefix>.trimmedReads.fasta.gz
+   The corrected reads after overlap based trimming.
+
+SEQUENCE
+
+<prefix>.contigs.fasta
+   Everything which could be assembled and is part of the primary assembly, including both unique
+   and repetitive elements.
+
+<prefix>.unitigs.fasta
+   Contigs, split at alternate paths in the graph.
+
+<prefix>.unassembled.fasta
+   Reads and low-coverage contigs which could not be incorporated into the primary assembly.
+
+The header line for each sequence provides some metadata on the sequence.::
+
+   >tig######## len=<integer> reads=<integer> covStat=<float> gappedBases=<yes|no> class=<contig|bubble|unassm> suggestRepeat=<yes|no> suggestCircular=<yes|no>
+
+   len
+      Length of the sequence, in bp.
+
+   reads
+      Number of reads used to form the contig.
+
+   covStat
+      The log of the ratio of the contig being unique versus being two-copy, based on the read arrival rate.  Positive values indicate more likely to be unique, while negative values indicate more likely to be repetitive.  See `Footnote 24 <http://science.sciencemag.org/content/287/5461/2196.full#ref-24>`_ in `Myers et al., A Whole-Genome Assembly of Drosophila <http://science.sciencemag.org/content/287/5461/2196.full>`_.
+
+   gappedBases
+      If yes, the sequence includes all gaps in the multialignment.
+
+   class
+      Type of sequence.  Unassembled sequences are primarily low-coverage sequences spanned by a single read.
+
+   suggestRepeat
+      If yes, sequence was detected as a repeat based on graph topology or read overlaps to other sequences.
+
+   suggestCircular
+      If yes, sequence is likely circular.  Not implemented.
+
+GRAPHS
+
+<prefix>.contigs.gfa
+  Unused or ambiguous edges between contig sequences.  Bubble edges cannot be represented in this format.
+
+<prefix>.unitigs.gfa
+  Contigs split at bubble intersections.
+
+<prefix>.unitigs.bed
+  The position of each unitig in a contig.
+
+METADATA
+
+The layout provides information on where each read ended up in the final assembly, including
+contig and positions. It also includes the consensus sequence for each contig.
+
+<prefix>.contigs.layout, <prefix>.unitigs.layout
+  (undocumented)
+
+<prefix>.contigs.layout.readToTig, <prefix>.unitigs.layout.readToTig
+  The position of each read in a contig (unitig).
+
+<prefix>.contigs.layout.tigInfo, <prefix>.unitigs.layout.tigInfo
+  A list of the contigs (unitigs), lengths, coverage, number of reads and other metadata.
+  Essentially the same information provided in the FASTA header line.
+
+
+
+
+
+

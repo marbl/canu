@@ -4,265 +4,164 @@
 Canu Quick Start
 ================
 
-Canu specializes in assembling PacBio or Oxford Nanopore sequences.  Canu will correct the reads,
-trim suspicious regions (such as remaining SMRTbell adapter), and then assemble the corrected and
-cleaned reads into contigs and unitigs.
+Canu specializes in assembling PacBio or Oxford Nanopore sequences.  Canu operates in three phases:
+correction, trimming and assembly.  The correction phase will improve the accuracy of bases in
+reads.  The trimming phase will trim reads to the portion that appears to be high-quality sequence,
+removing suspicious regions such as remaining SMRTbell adapter.  The assembly phase will order the
+reads into contigs, generate consensus sequences and create graphs of alternate paths.
 
-For eukaryotic genomes, coverage more than 20x is enough to outperform current hybrid methods.
-Between 30x and 60x coverage is the recommended minimum.  More coverage will let Canu use longer
-reads for assembly, which will result in better assemblies.
+For eukaryotic genomes, coverage more than 20x is enough to outperform current hybrid methods,
+however, between 30x and 60x coverage is the recommended minimum.  More coverage will let Canu use
+longer reads for assembly, which will result in better assemblies.
 
 Input sequences can be FASTA or FASTQ format, uncompressed or compressed with gzip (.gz), bzip2
-(.bz2) or xz (.xz).  Zip files (.zip) are not supported.
+(.bz2) or xz (.xz).  Note that zip files (.zip) are not supported.
 
-Canu will resume an assembly if you specify an existing directory, auto-detecting completed steps.
+Canu can resume incomplete assemblies, allowing for recovery from system outages or other abnormal
+terminations.
 
-Canu will auto-detect your resources and scale itself to fit, using all of the resources available
-(depending on the size of your assembly).  You can limit memory and processors used with parameters
-:ref:`maxMemory` and :ref:`maxThreads`.
+Canu will auto-detect computational resources and scale itself to fit, using all of the resources
+available and are reasonable for the size of your assembly.  Memory and processors can be explicitly
+limited with with parameters :ref:`maxMemory` and :ref:`maxThreads`.  See section :ref:`execution`
+for more details.
 
-Canu will take full advantage of any LSF/PBS/PBSPro/Torque/Slrum/SGE grid available, and do so
-automagically, even submitting itself for execution.  Canu requires array jobs and job submission from compute nodes. If either is not available, you can submit Canu to a node and prevent it from using the grid resources with 
+Canu will automaticall take full advantage of any LSF/PBS/PBSPro/Torque/Slrum/SGE grid available,
+even submitting itself for execution.  Canu makes heavy use of array jobs and requires job
+submission from compute nodes, which are sometimes not available or allowed.  Canu option
+``useGrid=false`` will restrict Canu to using only the current machine, while option
+``useGrid=remote`` will configure Canu for grid execution but not submit jobs to the grid.
+See section :ref:`execution` for more details.
 
-::
-
-   useGrid=false
-
-Alternatively, run with 
-
-::
-
-    useGrid=remote
-    
-which will stop and print the submit command you can manually run. Once the submitted jobs complete, the run can be resumed by running Canu again.
-
-For details, refer to the section on
-:ref:`execution`.
+The :ref:`tutorial` has more background, and the :ref:`faq` has a wealth of practical advice.
 
 
-Assembling PacBio data
+Assembling PacBio or Nanopore data
 ----------------------
 
-Pacific Biosciences released P6-C4 chemistry reads for Escherichia coli K12.  You can download them
-`here <https://github.com/PacificBiosciences/DevNet/wiki/E.-coli-Bacterial-Assembly>`_, but note that you must have the `SMRTpipe software <http://www.pacb.com/support/software-downloads/>`_ installed to extract the reads as FASTQ.
+Pacific Biosciences released P6-C4 chemistry reads for Escherichia coli K12.  You can `download them
+from their original release
+<https://github.com/PacificBiosciences/DevNet/wiki/E.-coli-Bacterial-Assembly>`_, but note that you
+must have the `SMRTpipe software <http://www.pacb.com/support/software-downloads/>`_ installed to
+extract the reads as FASTQ.  Instead, use a `FASTQ format 25X subset
+<http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq>`_ (223MB).  Download from the command line
+with::
 
-We made a 25X subset FASTQ available `here <http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq>`_ (223MB), which can be downloaded with:
+ curl -L -o pacbio.fastq http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq
 
-::
-
- curl -L -o p6.25x.fastq http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq
- 
-Correct, Trim and Assemble
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-By default, canu will correct the reads, then trim the reads, then assemble the reads to unitigs.  
-
-::
-
- canu \
-  -p ecoli -d ecoli-auto \
-  genomeSize=4.8m \
-  -pacbio-raw p6.25x.fastq
-
-This will use the prefix 'ecoli' to name files, compute the correction task in directory 'ecoli-auto/correction', the trimming task in directory 'ecoli-auto/trimming', and the unitig construction stage in 'ecoli-auto' itself.
-Output files are described in the next section.
-
-Find the Output
-~~~~~~~~~~~~~~~~~~~~~~
-
-The canu progress chatter records statistics such as an input read histogram, corrected read histogram, and overlap types. Outputs from the assembly tasks are in:
-
-ecoli*/ecoli.correctedReads.fasta.gz
-   The sequences after correction, trimmed and split based on consensus evidence. Typically >99% for PacBio and >98% for Nanopore but it can vary based on your input sequencing quality.
-
-ecoli*/ecoli.trimmedReads.fasta.gz
-   The sequences after correction and final trimming. The corrected sequences above are overlapped again to identify any missed hairpin adapters or bad sequence that could not be detected in the raw sequences.
-
-ecoli*/ecoli.layout
-   The layout provides information on where each read ended up in the final assembly, including contig and positions. It also includes the consensus sequence for each contig.
-   
-ecoli*/ecoli.gfa
-   The `GFA <http://lh3.github.io/2014/07/19/a-proposal-of-the-grapical-fragment-assembly-format/>`_ is the assembly graph generated by Canu. Currently this includes the contigs, associated bubbles, and any overlaps which were not used by the assembly.
-   
-The fasta output is split into three types:
-
-ecoli*/asm.contigs.fasta
-   Everything which could be assembled and is part of the primary assembly, including both unique and repetitive elements.  Each contig has several flags included on the fasta def line::
-
-   >tig######## len=<integer> reads=<integer> covStat=<float> gappedBases=<yes|no> class=<contig|bubble|unassm> suggestRepeat=<yes|no> suggestCircular=<yes|no>
-
-   len
-      Length of the sequence, in bp.
-
-   reads
-      Number of reads used to form the contig.
-
-   covStat
-      The log of the ratio of the contig being unique versus being two-copy, based on the read arrival rate.  Positive values indicate more likely to be unique, while negative values indicate more likely to be repetitive.  See `Footnote 24 <http://science.sciencemag.org/content/287/5461/2196.full#ref-24>`_ in `Myers et al., A Whole-Genome Assembly of Drosophila <http://science.sciencemag.org/content/287/5461/2196.full>`_.
-
-   gappedBases
-      If yes, the sequence includes all gaps in the multialignment.
-
-   class
-      Type of sequence.  Unassembled sequences are primarily low-coverage sequences spanned by a single read.
-
-   suggestRepeat
-      If yes, sequence was detected as a repeat based on graph topology or read overlaps to other sequences.
-
-   suggestCircular
-      If yes, sequence is likely circular.  Not implemented.
-
-ecoli*/asm.bubbles.fasta
-   alternate paths in the graph which could not be merged into the primary assembly.
-
-ecoli*/asm.unassembled.fasta
-   reads which could not be incorporated into the primary or bubble assemblies.
-
-
-Correct, Trim and Assemble, Manually
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes, however, it makes sense to do the three top-level tasks by hand.  This would allow trying
-multiple unitig construction parameters on the same set of corrected and trimmed reads.
-
-First, correct the raw reads::
-
- canu -correct \
-   -p ecoli -d ecoli \
-   genomeSize=4.8m \
-   -pacbio-raw  p6.25x.fastq
-
-Then, trim the output of the correction::
-
- canu -trim \
-   -p ecoli -d ecoli \
-   genomeSize=4.8m \
-   -pacbio-corrected ecoli/correction/ecoli.correctedReads.fasta.gz
-
-And finally, assemble the output of trimming, twice::
-
- canu -assemble \
-   -p ecoli -d ecoli-erate-0.013 \
-   genomeSize=4.8m \
-   correctedErrorRate=0.039 \
-   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fasta.gz
-
- canu -assemble \
-   -p ecoli -d ecoli-erate-0.025 \
-   genomeSize=4.8m \
-   correctedErrorRate=0.075 \
-   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fasta.gz
-
-The directory layout for correction and trimming is exactly the same as when we ran all tasks in the same command.
-Each unitig construction task needs its own private work space, and in there the 'correction' and 'trimming' directories are empty. The error rate always specifies the error in the corrected reads which is typically <1% for PacBio data and <2% for Nanopore data (<1% on newest chemistries).
-
-Assembling Oxford Nanopore data
---------------------------------
-A set of E. coli runs were released by the Loman lab.  You can download one
-`directly <http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta>`_
-or any of them from the
-`original page <http://lab.loman.net/2015/09/24/first-sqk-map-006-experiment/>`_.
-
-or use the following curl command:
-
-::
+There doesn't appear to be any "official" Oxford Nanopore sample data, but the `Loman Lab
+<http://lab.loman.net/>`_ released a `set of runs
+<http://lab.loman.net/2015/09/24/first-sqk-map-006-experiment/>`_, also for Escherichia coli K12.
+This is early data, from September 2015.  Any of the four runs will work; we picked `MAP-006-1
+<http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta>`_ (243 MB).  Download from the command
+line with::
 
  curl -L -o oxford.fasta http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta
 
-Canu assembles any of the four available datasets into a single contig but we picked one dataset to use in this tutorial. Then, assemble the data as before::
+By default, Canu will correct the reads, then trim the reads, then assemble the reads to unitigs.
+Canu needs to know the approximate genome size (so it can determine coverage in the input reads)
+and the technology used to generate the reads.
+
+For PacBio::
+
+ canu \
+  -p ecoli -d ecoli-pacbio \
+  genomeSize=4.8m \
+  -pacbio-raw pacbio.fastq
+
+For Nanopore::
 
  canu \
   -p ecoli -d ecoli-oxford \
   genomeSize=4.8m \
   -nanopore-raw oxford.fasta
 
-The assembled identity is >99% before polishing.
 
-Assembling With Multiple Technologies/Files 
+Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-nanopore',
+respectively.  Intermeditate files are written in directories 'correction', 'trimming' and
+'unitigging' for the respective stages.  Output files are named using the '-p' prefix, such as
+'ecoli.contigs.fasta', 'ecoli.contigs.gfa', etc.  See section :ref:`outputs` for more details on
+outputs (intermediate files aren't documented).
+
+
+Assembling With Multiple Technologies and Multiple Files
 -------------------------------------------
 
-Canu takes an arbitrary number of input files/formats. We made a mixed dataset of about 10X of a PacBio P6 and 10X of an Oxford Nanopore run available `here <http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz>`_
-
-or use the following curl command:
-
-::
+Canu can use reads from any number of input files, which can be a mix of formats and technologies.
+We'll assemble a mix of 10X PacBio reads in two FASTQ files and 10X of Nanopore reads in one FASTA
+file::
 
  curl -L -o mix.tar.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz
  tar xvzf mix.tar.gz
  
-Now you can assemble all the data::
-
  canu \
   -p ecoli -d ecoli-mix \
   genomeSize=4.8m \
-  -pacbio-raw pacbio*fastq.gz \
+  -pacbio-raw pacbio.part?.fastq.gz \
   -nanopore-raw oxford.fasta.gz
 
-.. _quick_low:
+
+Correct, Trim and Assemble, Manually
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, however, it makes sense to do the three top-level tasks by hand.  This would allow trying
+multiple unitig construction parameters on the same set of corrected and trimmed reads, or skipping
+trimming and assembly if you only want correced reads.
+
+We'll use the PacBio reads from above.  First, correct the raw reads::
+
+ canu -correct \
+   -p ecoli -d ecoli \
+   genomeSize=4.8m \
+   -pacbio-raw  pacbio.fastq
+
+Then, trim the output of the correction::
+
+ canu -trim \
+   -p ecoli -d ecoli \
+   genomeSize=4.8m \
+   -pacbio-corrected ecoli/ecoli.correctedReads.fasta.gz
+
+And finally, assemble the output of trimming, twice, with different stringency on which overlaps to
+use (see :ref:`correctedErrorRate <correctedErrorRate>`)::
+
+ canu -assemble \
+   -p ecoli -d ecoli-erate-0.039 \
+   genomeSize=4.8m \
+   correctedErrorRate=0.039 \
+   -pacbio-corrected ecoli/ecoli.trimmedReads.fasta.gz
+
+ canu -assemble \
+   -p ecoli -d ecoli-erate-0.075 \
+   genomeSize=4.8m \
+   correctedErrorRate=0.075 \
+   -pacbio-corrected ecoli/ecoli.trimmedReads.fasta.gz
+
+Note that the assembly stages use different '-d' directories.  It is not possible to run multiple
+copies of canu with the same work directory.
+
 
 Assembling Low Coverage Datasets
 ----------------------------------
-When you have 30X or less coverage, it helps to adjust the Canu assembly parameters. Typically, assembly 20X of single-molecule data outperforms hybrid methods with higher coverage. You can download a 20X subset of `S. cerevisae <http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_
- 
-or use the following curl command:
 
-::
+We claimed Canu works down to 20X coverage, and we will now assemble `a 20X subset of S. cerevisae
+<http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_ (215 MB).  When assembling, we
+adjust :ref:`correctedErrorRate <correctedErrorRate>` to accomodate the slightly lower
+quality corrected reads::
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
-
-and run the assembler adding sensitive parameters (**correctedErrorRate=0.105**)::
 
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  correctedErrorRate=0.105 \
+  correctedErrorRate=0.075 \
   -pacbio-raw yeast.20x.fastq.gz
-  
-
-After the run completes, we can check the assembly statistics::
-
- tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.ctgStore 2 -G yeast/unitigging/asm.gkpStore
-
-::
-
-   lenSuggestRepeat sum     160297 (genomeSize 12100000)
-   lenSuggestRepeat num         12
-   lenSuggestRepeat ave      13358
-   lenUnassembled ng10       13491 bp   lg10      77   sum    1214310 bp
-   lenUnassembled ng20       11230 bp   lg20     176   sum    2424556 bp
-   lenUnassembled ng30        9960 bp   lg30     290   sum    3632411 bp
-   lenUnassembled ng40        8986 bp   lg40     418   sum    4841978 bp
-   lenUnassembled ng50        8018 bp   lg50     561   sum    6054460 bp
-   lenUnassembled ng60        7040 bp   lg60     723   sum    7266816 bp
-   lenUnassembled ng70        6169 bp   lg70     906   sum    8474192 bp
-   lenUnassembled ng80        5479 bp   lg80    1114   sum    9684981 bp
-   lenUnassembled ng90        4787 bp   lg90    1348   sum   10890099 bp
-   lenUnassembled ng100       4043 bp   lg100   1624   sum   12103239 bp
-   lenUnassembled ng110       3323 bp   lg110   1952   sum   13310167 bp
-   lenUnassembled ng120       2499 bp   lg120   2370   sum   14520362 bp
-   lenUnassembled ng130       1435 bp   lg130   2997   sum   15731198 bp
-   lenUnassembled sum   16139888 (genomeSize 12100000)
-   lenUnassembled num       3332
-   lenUnassembled ave       4843
-   lenContig ng10      770772 bp   lg10       2   sum    1566457 bp
-   lenContig ng20      710140 bp   lg20       4   sum    3000257 bp
-   lenContig ng30      669248 bp   lg30       5   sum    3669505 bp
-   lenContig ng40      604859 bp   lg40       7   sum    4884914 bp
-   lenContig ng50      552911 bp   lg50      10   sum    6571204 bp
-   lenContig ng60      390415 bp   lg60      12   sum    7407061 bp
-   lenContig ng70      236725 bp   lg70      16   sum    8521520 bp
-   lenContig ng80      142854 bp   lg80      23   sum    9768299 bp
-   lenContig ng90       94308 bp   lg90      33   sum   10927790 bp
-   lenContig sum   12059140 (genomeSize 12100000)
-   lenContig num         56
-   lenContig ave     215341
 
 Consensus Accuracy
 -------------------
-While Canu corrects sequences and has 99% identity or greater with PacBio or Nanopore sequences, for the best accuracy we recommend polishing with a sequence-specific tool. We recommend `Quiver <http://github.com/PacificBiosciences/GenomicConsensus>`_ for PacBio and `Nanopolish <http://github.com/jts/nanopolish>`_ for Oxford Nanpore data.
 
-If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/software/pilon/>`_ can also be used to polish either PacBio or Oxford Nanopore assemblies.
-
-Futher Reading
--------------------
-See the `FAQ <faq.html>`_ page for commonly-asked questions and the `release <http://github.com/marbl/canu/releases>`_. notes page for information on what's changed and known issues.
+Canu consensus sequences are typically well above 99% identity.  Accuracy can be improved by
+polishing the contigs with tools developed specifically for that task.  We recommend `Quiver
+<http://github.com/PacificBiosciences/GenomicConsensus>`_ for PacBio and `Nanopolish
+<http://github.com/jts/nanopolish>`_ for Oxford Nanpore data.
+When Illumina reads are available, `Pilon <http://www.broadinstitute.org/software/pilon/>`_
+can be used to polish either PacBio or Oxford Nanopore assemblies.

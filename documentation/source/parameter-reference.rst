@@ -681,30 +681,15 @@ corFilter <string="expensive">
 Output Filtering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, canu will split the final output into three files:
+.. _contigFilter:
 
-asm.contigs.fasta
-   Everything which could be assembled and is part of the primary assembly, including both unique and repetitive elements.  Each contig has several flags included on the fasta def line::
-
-asm.bubbles.fasta
-   alternate paths in the graph which could not be merged into the primary assembly.
-
-asm.unassembled.fasta
-   reads/tigs which could not be incorporated into the primary or bubble assemblies.
-
-It is possible for tigs comprised of multiple reads to end up in asm.unassembled.fasta. The default filtering eliminates anything with < 2 reads, shorter than 1000bp, or comprised of mostly a single sequence (>75%). The filtering is controlled by the contigFilter parameter which takes 5 values.
-
-::
-
-   contigFilter
-     minReads
-     minLength
-     singleReadSpan
-     lowCovSpan
-     lowCovDepth
-
-The default filtering is "2 1000 0.75 0.75 2". If you are assembling amplified data or viral data, it is possible your assembly will be flagged as unassembled. In those cases, you can turn off the filtering with the parameters
-
-::
-
-   contigFilter="2 1000 1.0 1.0 2"
+contigFilter <minReads, integer=2> <minLength, integer=0> <singleReadSpan, float=1.0> <lowCovSpan, float=0.5> <lowCovDepth, integer=5>
+  Remove spurious assemblies from consideration.  Any contig that meeds any of the following
+  conditions is flagged as 'unassembled' and removed from further consideration:
+    - fewer than minReads reads
+    - shorter than minLength bases
+    - a single read covers more than singleReadSpan fraction of the contig
+    - more than lowCovSpan fraction of the contig is at coverage below lowCovDepth
+  This filtering is done immediately after initial contigs are formed, before repeat detection.
+  Initial contigs that span a repeat can be split into multiple conitgs; none of these
+  new contigs will be 'unassembled', even if they are a single read.
