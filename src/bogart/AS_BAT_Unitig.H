@@ -241,21 +241,29 @@ public:
     epValue(uint32 b, uint32 e) {
       bgn    = b;
       end    = e;
+      mean   = 0;
+      stddev = 0;
+    };
+
+    epValue(uint32 b, uint32 e, float m, float s) {
+      bgn    = b;
+      end    = e;
+      mean   = m;
+      stddev = s;
     };
 
     double    max(double deviations) {
-      return(dev.mean() + deviations * dev.stddev());
+      return(mean + deviations * stddev);
     };
 
     bool operator<(const epValue &that) const { return(bgn < that.bgn); };
     bool operator<(const uint32 &that)  const { return(bgn < that);     };
 
-
-
     uint32          bgn;
     uint32          end;
 
-    stdDev<float>   dev;
+    float           mean;
+    float           stddev;
   };
 
   static size_t epValueSize(void) { return(sizeof(epValue)); };

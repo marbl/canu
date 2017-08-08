@@ -194,7 +194,8 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
       uint32 end = min(rdAhi, rdBhi);
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-      writeLog("errorProfile()-- olap[%u] %u %u begin %u end %u\n", oi, rdA->ident, rdB->ident, bgn, end);
+      writeLog("errorProfile()-- olap %5u read %7u read %7u at %9u-%9u\n",
+               oi, rdA->ident, rdB->ident, bgn, end);
 #endif
 
       olaps.push_back(epOlapDat(bgn, true,  ovl[oi].erate()));  //  Save an open event,
@@ -222,104 +223,75 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   //  region.  And one more, for convenience, to hold the final 'close' values on intervals that
   //  extend to the end of the unitig.
 
-  if (olaps.size() == 0)
-    errorProfile.push_back(epValue(0, getLength()));
+  if (olaps.size() == 0)                                 //  No olaps, so add an interval
+    errorProfile.push_back(epValue(0, getLength()));     //  covering the whole tig
 
-  if ((olaps.size() > 0) && (olaps[0].pos != 0))
-    errorProfile.push_back(epValue(0, olaps[0].pos));
+  if ((olaps.size() > 0) && (olaps[0].pos != 0))         //  Olaps, but missing the first
+    errorProfile.push_back(epValue(0, olaps[0].pos));    //  interval, so add it.
 
-  for (uint32 bb=0, ii=1; ii<olaps.size(); ii++) {
-    if (olaps[bb].pos == olaps[ii].pos)
-      continue;
 
-    errorProfile.push_back(epValue(olaps[bb].pos, olaps[ii].pos));
+  stdDev<float>  curDev;
 
-#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("errorProfile()-- tig %u make region [%u-%u] @ %u-%u\n", id(), bb, ii, olaps[bb].pos, olaps[ii].pos);
-#endif
+  for (uint32 bb=0, ee=0; ee<olaps.size(); ee++) {
+    if (olaps[bb].pos != olaps[ee].pos) {                //  A different position.
+      errorProfile.push_back(epValue(olaps[bb].pos,      //  Save the current stats in a new profile entry.
+                                     olaps[ee].pos,
+                                     curDev.mean(),
+                                     curDev.stddev()));
+      bb = ee;
+    }
 
-    bb = ii;
+    if (olaps[ee].open == true)                          //  Add the new overlap to our running
+      curDev.insert(olaps[ee].erate);                    //  std.dev calculation.
+    else
+      curDev.remove(olaps[ee].erate);
+
+    if ((ee == olaps.size() - 1) &&
+        (olaps[bb].pos != olaps[ee].pos)) {              //  If the last olap,
+      errorProfile.push_back(epValue(olaps[bb].pos,      //  make the final profile entry
+                                     olaps[ee].pos,
+                                     curDev.mean(),
+                                     curDev.stddev()));
+    }
   }
 
-  if ((olaps.size() > 0) && (olaps[olaps.size()-1].pos != getLength()))
-    errorProfile.push_back(epValue(olaps[olaps.size()-1].pos, getLength()));
+  if ((olaps.size() > 0) && (olaps[olaps.size()-1].pos != getLength()))        //  Olaps, but missing the last
+    errorProfile.push_back(epValue(olaps[olaps.size()-1].pos, getLength()));   //  interval, so add it.
 
-  errorProfile.push_back(epValue(getLength(), getLength()+1));
-
+  errorProfile.push_back(epValue(getLength(), getLength()+1));   //  And one more to make life easier.
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
   writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions from " F_SIZE_T " overlaps.\n", id(), errorProfile.size(), olaps.size());
 #endif
 
-  //  Walk both lists, adding positive erates and removing negative erates.
-
-  stdDev<float>  curDev;
-
-  for (uint32 oo=0, ee=0; oo<olaps.size(); oo++) {
-    if (olaps[oo].pos != errorProfile[ee].bgn)  //  Move to the next profile if the pos is different.
-      ee++;                                     //  By construction, this single step should be all we need.
-
-#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("errorProfile()-- olap[%u] @ %u  ep[%u] @ %u  %s %f  %f +- %f size %u\n",
-             oo, olaps[oo].pos,
-             ee, errorProfile[ee].bgn,
-             olaps[oo].open ? "I" : "R",
-             olaps[oo].erate,
-             curDev.mean(), curDev.variance(), curDev.size());
-
-    if ((olaps[oo].open == false) && (curDev.size() == 0)) {
-      for (uint32 fi=0; fi<ufpath.size(); fi++) {
-        ufNode  *frg = &ufpath[fi];
-        writeLog("read %6u %6u-%6u\n", frg->ident, frg->position.bgn, frg->position.end);
-      }
-
-      writeLog("errorProfile()-- remove from empty set?\n");
-      flushLog();
-    }
-#endif
-
-    assert(olaps[oo].pos == errorProfile[ee].bgn);
-    assert(oo < olaps.size());
-    assert(ee < errorProfile.size());
-
-    if (olaps[oo].open == true)
-      curDev.insert(olaps[oo].erate);
-    else
-      curDev.remove(olaps[oo].erate);
-
-    errorProfile[ee].dev = curDev;
-  }
-
-  //  Finalize the values.
-
-  for (uint32 bi=0; bi<errorProfile.size(); bi++)
-    errorProfile[bi].dev.finalize();
+  olaps.clear();
 
   //  Adjust regions that have no overlaps (mean == 0) to be the average of the adjacent regions.
   //  There are always at least two elements in the profile list: one that starts at coordinate 0,
   //  and the terminating one at coordinate (len, len+1).
 
   for (uint32 bi=0; bi<errorProfile.size(); bi++) {
-    if (errorProfile[bi].dev.mean() != 0)
+    if (errorProfile[bi].mean != 0)
       continue;
 
     //  Set any initial zero coverage area to the next one.
     if      (bi == 0) {
-      errorProfile[bi].dev = errorProfile[bi+1].dev;
+      errorProfile[bi].mean   = errorProfile[bi+1].mean;
+      errorProfile[bi].stddev = errorProfile[bi+1].stddev;
     }
 
     //  Set intermediate ones to the average.
     else if (bi < errorProfile.size() - 2) {
       //writeLog("errorProfile()-- tig %u no overlap coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
 
-      errorProfile[bi].dev = stdDev<float>((errorProfile[bi-1].dev.mean()   + errorProfile[bi+1].dev.mean()) / 2,
-                                           (errorProfile[bi-1].dev.stddev() + errorProfile[bi+1].dev.stddev()) / 2,
-                                           1);
+      errorProfile[bi].mean   = (errorProfile[bi-1].mean   + errorProfile[bi+1].mean)   / 2;
+      errorProfile[bi].stddev = (errorProfile[bi-1].stddev + errorProfile[bi+1].stddev) / 2;
     }
 
     //  Set the last two - the last real one and the terminator - to the previous one.
     else {
-      errorProfile[bi].dev = errorProfile[bi-1].dev;
+      errorProfile[bi].mean   = errorProfile[bi-1].mean;
+      errorProfile[bi].stddev = errorProfile[bi-1].stddev;
     }
   }
 
@@ -339,8 +311,6 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
       errorProfileIndex.push_back(pi);
     }
   }
-
-
 
   //writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions with " F_U64 " overlap pieces.\n",
   //         id(), errorProfile.size(), nPieces);
@@ -502,10 +472,9 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
 
   if (F) {
     for (uint32 ii=0; ii<errorProfile.size(); ii++)
-      fprintf(F, "%u %u %f +- %f (%u overlaps)\n",
-              errorProfile[ii].bgn,        errorProfile[ii].end,
-              errorProfile[ii].dev.mean(), errorProfile[ii].dev.stddev(),
-              errorProfile[ii].dev.size());
+      fprintf(F, "%u %u %.5f +- %.5f\n",
+              errorProfile[ii].bgn,  errorProfile[ii].end,
+              errorProfile[ii].mean, errorProfile[ii].stddev);
     fclose(F);
   }
 
@@ -520,14 +489,13 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
     for (uint32 ii=0; ii<errorProfileIndex.size(); ii++) {
       uint32  xx = errorProfileIndex[ii];
 
-      fprintf(F, "index[%u] = %u -- errorProfile[] = %u-%u  %.6f +- %.6f (%u values)\n",
+      fprintf(F, "index[%u] = %u -- errorProfile[] = %u-%u  %.6f +- %.6f\n",
               ii,
               xx,
               errorProfile[xx].bgn,
               errorProfile[xx].end,
-              errorProfile[xx].dev.mean(),
-              errorProfile[xx].dev.stddev(),
-              errorProfile[xx].dev.size());
+              errorProfile[xx].mean,
+              errorProfile[xx].stddev);
     }
     fclose(F);
   }
