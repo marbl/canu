@@ -1268,6 +1268,10 @@ sub checkParameters () {
         (getGlobal("ovsMethod") ne "parallel")) {
         addCommandLineError("ERROR:  Invalid 'ovsMethod' specified (" . getGlobal("ovsMethod") . "); must be 'sequential' or 'parallel'\n");
     }
+    if ((getGlobal("useGrid")   eq "0") &&
+        (getGlobal("ovsMethod") eq "parallel")) {
+        addCommandLineError("ERROR:  ovsMethod=parallel requires useGrid=true or useGrid=remote.  Set ovsMethod=sequential if no grid is available\n");
+    }
 
     if ((getGlobal("unitigger") ne "unitigger") &&
         (getGlobal("unitigger") ne "bogart")) {
