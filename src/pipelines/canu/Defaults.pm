@@ -1200,7 +1200,10 @@ sub checkParameters () {
 
     foreach my $var ("corOutCoverage") {
         if (!defined(getGlobal($var))) {
-            addCommandLineError("ERROR:  Invalid 'corOutCoverage' specified (" . getGlobal("corOutCoverage") . "); must be at least 1.0\n");
+            addCommandLineError("ERROR:  Invalid 'corOutCoverage' specified; must be at least 1.0\n");
+        }
+        elsif (getGlobal($var) =~ m/all/i) {
+            setGlobal($var, 9999);
         }
         elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
