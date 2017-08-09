@@ -71,6 +71,9 @@ Unitig::optimize_initPlace(uint32        ii,
   if ((firstPass == false) && (failed.count(iid) == 0))  //  If the second pass and not
     return;                                              //  failed, do nothing.
 
+  if (firstPass == false)
+    writeLog("optimize_initPlace()-- Second pass begins.\n");
+
   //  Then process all overlaps.
 
   if (ii > 0) {
@@ -85,7 +88,7 @@ Unitig::optimize_initPlace(uint32        ii,
       //  Probably overkill, but report ALL overlaps for the troubling reads.
 
       if ((beVerbose) || (firstPass == false))
-        writeLog("olap %u a %u b %u hangs %d %d\n", oo, iid, jid, ovl[oo].a_hang, ovl[oo].b_hang);
+        writeLog("optimize_initPlace()-- olap %u a %u b %u hangs %d %d\n", oo, iid, jid, ovl[oo].a_hang, ovl[oo].b_hang);
 
       if (uu != id())   //  Skip if the overlap is to a different tig.
         continue;       //  (the ufpathIdx() call is valid, but using it isn't)
@@ -122,14 +125,14 @@ Unitig::optimize_initPlace(uint32        ii,
     //  not much we can do.
 
     if ((firstPass == true) && (cnt == 0)) {
-      writeLog("Failed to find overlaps for read %u in tig %u at %d-%d (first pass)\n",
+      writeLog("optimize_initPlace()-- Failed to find overlaps for read %u in tig %u at %d-%d (first pass)\n",
                iid, id(), ufpath[ii].position.bgn, ufpath[ii].position.end);
       failed.insert(iid);
       return;
     }
 
     if ((firstPass == false) && (cnt == 0)) {
-      writeLog("Failed to find overlaps for read %u in tig %u at %d-%d (second pass)\n",
+      writeLog("optimize_initPlace()-- Failed to find overlaps for read %u in tig %u at %d-%d (second pass)\n",
                iid, id(), ufpath[ii].position.bgn, ufpath[ii].position.end);
       flushLog();
     }
