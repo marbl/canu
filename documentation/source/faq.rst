@@ -215,6 +215,9 @@ Why is my assembly is missing my favorite short plasmid?
     reads for small plasmids.  Set ``corOutCoverage=1000`` (or any value greater than your total input
     coverage) to correct all input data.
 
+    An alternate approach is to correct all reads (``-correct corOutCoverage=1000``) then assemble
+    40X of reads picked at random from the ``<prefix>.correctedReads.fasta.gz`` output.
+
 
 Why do I get less corrected read data than I asked for?
 -------------------------------------
