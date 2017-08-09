@@ -401,7 +401,7 @@ AS_UTL_sizeOfFile(const char *path) {
   if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
     char   cmd[FILENAME_MAX], *p = cmd;
 
-    snprintf(cmd, FILENAME_MAX, "gzip -l %s", path);
+    snprintf(cmd, FILENAME_MAX, "gzip -l '%s'", path);
 
     FILE *F = popen(cmd, "r");
     fgets(cmd, FILENAME_MAX, F);    //   compressed uncompressed  ratio uncompressed_name
@@ -559,19 +559,19 @@ compressedFileReader::compressedFileReader(const char *filename) {
 
   switch (ft) {
     case cftGZ:
-      snprintf(cmd, FILENAME_MAX, "gzip -dc %s", filename);
+      snprintf(cmd, FILENAME_MAX, "gzip -dc '%s'", filename);
       _file = popen(cmd, "r");
       _pipe = true;
       break;
 
     case cftBZ2:
-      snprintf(cmd, FILENAME_MAX, "bzip2 -dc %s", filename);
+      snprintf(cmd, FILENAME_MAX, "bzip2 -dc '%s'", filename);
       _file = popen(cmd, "r");
       _pipe = true;
       break;
 
     case cftXZ:
-      snprintf(cmd, FILENAME_MAX, "xz -dc %s", filename);
+      snprintf(cmd, FILENAME_MAX, "xz -dc '%s'", filename);
       _file = popen(cmd, "r");
       _pipe = true;
 
@@ -627,19 +627,19 @@ compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
 
   switch (ft) {
     case cftGZ:
-      snprintf(cmd, FILENAME_MAX, "gzip -%dc > %s", level, filename);
+      snprintf(cmd, FILENAME_MAX, "gzip -%dc > '%s'", level, filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
 
     case cftBZ2:
-      snprintf(cmd, FILENAME_MAX, "bzip2 -%dc > %s", level, filename);
+      snprintf(cmd, FILENAME_MAX, "bzip2 -%dc > '%s'", level, filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
 
     case cftXZ:
-      snprintf(cmd, FILENAME_MAX, "xz -%dc > %s", level, filename);
+      snprintf(cmd, FILENAME_MAX, "xz -%dc > '%s'", level, filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
