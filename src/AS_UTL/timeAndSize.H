@@ -25,7 +25,10 @@
 
 #include "AS_global.H"
 
-double  getTime(void);
+double   getTime(void);
 
-uint64   getProcessSizeCurrent(void);
+double   getCPUTime(void);
+double   getProcessTime(void);
+
+uint64   getProcessSize(void);
 uint64   getProcessSizeLimit(void);

@@ -39,6 +39,7 @@
 #include "canu_version.H"
 
 #include "AS_UTL_stackTrace.H"
+#include "timeAndSize.H"
 
 #ifdef X86_GCC_LINUX
 #include <fpu_control.h>
@@ -103,6 +104,11 @@ AS_configure(int argc, char **argv) {
   //  Install a signal handler to catch seg faults and errors.
 
   AS_UTL_installCrashCatcher(argv[0]);
+
+
+  //  Set the start time.
+
+  getProcessTime();
 
 
   //
