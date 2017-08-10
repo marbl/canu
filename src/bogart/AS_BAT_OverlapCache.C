@@ -108,6 +108,9 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   //  memEP - each read adds two epValue points, the open and close points, and two uint32 pointers
   //  to the data.
   //
+  //  memEO - overlaps for computing error profiles.  this is definitely a hack, but I can't think of
+  //  any reasonable estimates.  just reserve 25% of memory, which then dominates our accounting.
+  //
   //  memOS - make sure we're this much below using all the memory - allows for other stuff to run,
   //  and a little buffer in case we're too big.
 
@@ -115,7 +118,9 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   uint64 memBE = RI->numReads() * sizeof(BestOverlaps);
   uint64 memUT = RI->numReads() * sizeof(Unitig) + RI->numReads() * sizeof(uint32) * 2;
   uint64 memUL = RI->numReads() * sizeof(ufNode);
+
   uint64 memEP = RI->numReads() * sizeof(uint32) * 2 + RI->numReads() * Unitig::epValueSize() * 2;
+  uint64 memEO = (_memLimit == UINT64_MAX) ? (0.0) : (0.25 * _memLimit);
 
   uint64 memOS = (_memLimit < 0.9 * getPhysicalMemorySize()) ? (0.0) : (0.1 * getPhysicalMemorySize());
 
@@ -123,7 +128,8 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
                   (RI->numReads() + 1) * sizeof(uint32) +                            //  Num olaps stored per read
                   (RI->numReads() + 1) * sizeof(uint32));                            //  Num olaps allocated per read
 
-  _memReserved = memFI + memBE + memUL + memUT + memEP + memST + memOS;
+
+  _memReserved = memFI + memBE + memUL + memUT + memEP + memEO + memST + memOS;
   _memStore    = memST;
   _memAvail    = (_memReserved + _memStore < _memLimit) ? (_memLimit - _memReserved - _memStore) : 0;
   _memOlaps    = 0;
@@ -133,6 +139,7 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs.\n",                           memUT >> 20);
   writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs - read layouts.\n",            memUL >> 20);
   writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs - error profiles.\n",          memEP >> 20);
+  writeStatus("OverlapCache()-- %7" F_U64P "MB for tigs - error profile overlaps.\n",  memEO >> 20);
   writeStatus("OverlapCache()-- %7" F_U64P "MB for other processes.\n",                memOS >> 20);
   writeStatus("OverlapCache()-- ---------\n");
   writeStatus("OverlapCache()-- %7" F_U64P "MB for data structures (sum of above).\n", _memReserved >> 20);
