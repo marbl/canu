@@ -137,6 +137,12 @@ Unitig::computeArrivalRate(const char *UNUSED(prefix),
 
 class epOlapDat {
 public:
+  epOlapDat() {
+    pos   = 0;
+    open  = false;
+    erate = 0.0;
+  };
+
   epOlapDat(uint32 p, bool o, float e) {
     pos    = p;
     open   = o;
@@ -163,9 +169,57 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   errorProfile.clear();
   errorProfileIndex.clear();
 
-  vector<epOlapDat>  olaps;
+  //  Count the number of overlaps we need to save.  We do this, instead of growing the array,
+  //  because occasionally these are big, and having two around at the same time can blow our
+  //  memory.  (Arabidopsis p5 has a tig with 160,246,250 olaps == 1gb memory)
+
+#if 0
+  //  A (much) fancier version would merge the overlap detection and errorProfile compute together.
+  //  Keep lists of epOlapDat for each read end (some cleverness could probably get rid of the map,
+  //  if we just use the index of the read).  Before we process a new read, all data for positions
+  //  before this reads start position can be processed and freed.
+
+  map<uint32, uint32>    baseToIndex;
+
+  uint32                *olapsMax = new uint32    [ufpath.size() * 2];
+  uint32                *olapsLen = new uint32    [ufpath.size() * 2];
+  epOlapDat            **olaps    = new epOlapDat [ufpath.size() * 2];
+#endif
+
+  uint32      olapsMax = 0;
+  uint32      olapsLen = 0;
+  epOlapDat  *olaps    = NULL;
+
+  for (uint32 fi=0; fi<ufpath.size(); fi++) {
+    ufNode     *rdA    = &ufpath[fi];
+    int32       rdAlo  = rdA->position.min();
+    int32       rdAhi  = rdA->position.max();
+
+    uint32      ovlLen =  0;
+    BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, ovlLen);
+
+    for (uint32 oi=0; oi<ovlLen; oi++) {
+      if (id() != _vector->inUnitig(ovl[oi].b_iid))          //  Reads in different tigs?
+        continue;                                            //  Don't care about this overlap.
+
+      ufNode  *rdB    = &ufpath[ _vector->ufpathIdx(ovl[oi].b_iid) ];
+
+      if (rdA->ident < rdB->ident)                           //  Only want to see one overlap
+        continue;                                            //  for each pair.
+
+      int32    rdBlo  = rdB->position.min();
+      int32    rdBhi  = rdB->position.max();
+
+      if ((rdAhi <= rdBlo) || (rdBhi <= rdAlo))              //  Reads in same tig but not overlapping?
+        continue;                                            //  Don't care about this overlap.
+
+      olapsMax += 2;
+    }
+  }
 
   // Scan overlaps to find those that we care about, and save their endpoints.
+
+  olaps = new epOlapDat [olapsMax];
 
   for (uint32 fi=0; fi<ufpath.size(); fi++) {
     ufNode     *rdA    = &ufpath[fi];
@@ -198,14 +252,15 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
                oi, rdA->ident, rdB->ident, bgn, end);
 #endif
 
-      olaps.push_back(epOlapDat(bgn, true,  ovl[oi].erate()));  //  Save an open event,
-      olaps.push_back(epOlapDat(end, false, ovl[oi].erate()));  //  and a close event.
+      olaps[olapsLen++] = epOlapDat(bgn, true,  ovl[oi].erate());  //  Save an open event,
+      olaps[olapsLen++] = epOlapDat(end, false, ovl[oi].erate());  //  and a close event.
+      assert(olapsLen <= olapsMax);
     }
   }
 
   //  Warn if no overlaps.
 
-  if (olaps.size() == 0) {
+  if (olapsLen == 0) {
     writeLog("WARNING:  tig %u length %u nReads %u has no overlaps.\n", id(), getLength(), ufpath.size());
     for (uint32 fi=0; fi<ufpath.size(); fi++)
       writeLog("WARNING:    read %7u %7u-%-7u\n",
@@ -216,23 +271,27 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
   //  Sort.
 
-  std::sort(olaps.begin(), olaps.end());
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::sort(olaps, olaps + olapsLen);
+#else
+  std::sort(olaps, olaps + olapsLen);
+#endif
 
   //  Convert coordinates into intervals.  Conceptually, squish out the duplicate numbers, then
   //  create an interval for every adjacent pair.  We need to add intervals for the first and last
   //  region.  And one more, for convenience, to hold the final 'close' values on intervals that
   //  extend to the end of the unitig.
 
-  if (olaps.size() == 0)                                 //  No olaps, so add an interval
+  if (olapsLen == 0)                                     //  No olaps, so add an interval
     errorProfile.push_back(epValue(0, getLength()));     //  covering the whole tig
 
-  if ((olaps.size() > 0) && (olaps[0].pos != 0))         //  Olaps, but missing the first
+  if ((olapsLen > 0) && (olaps[0].pos != 0))             //  Olaps, but missing the first
     errorProfile.push_back(epValue(0, olaps[0].pos));    //  interval, so add it.
 
 
   stdDev<float>  curDev;
 
-  for (uint32 bb=0, ee=0; ee<olaps.size(); ee++) {
+  for (uint32 bb=0, ee=0; ee<olapsLen; ee++) {
     if (olaps[bb].pos != olaps[ee].pos) {                //  A different position.
       errorProfile.push_back(epValue(olaps[bb].pos,      //  Save the current stats in a new profile entry.
                                      olaps[ee].pos,
@@ -246,7 +305,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     else
       curDev.remove(olaps[ee].erate);
 
-    if ((ee == olaps.size() - 1) &&
+    if ((ee == olapsLen - 1) &&
         (olaps[bb].pos != olaps[ee].pos)) {              //  If the last olap,
       errorProfile.push_back(epValue(olaps[bb].pos,      //  make the final profile entry
                                      olaps[ee].pos,
@@ -255,16 +314,16 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     }
   }
 
-  if ((olaps.size() > 0) && (olaps[olaps.size()-1].pos != getLength()))        //  Olaps, but missing the last
-    errorProfile.push_back(epValue(olaps[olaps.size()-1].pos, getLength()));   //  interval, so add it.
+  if ((olapsLen > 0) && (olaps[olapsLen-1].pos != getLength()))            //  Olaps, but missing the last
+    errorProfile.push_back(epValue(olaps[olapsLen-1].pos, getLength()));   //  interval, so add it.
 
   errorProfile.push_back(epValue(getLength(), getLength()+1));   //  And one more to make life easier.
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions from " F_SIZE_T " overlaps.\n", id(), errorProfile.size(), olaps.size());
+  writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions from " F_SIZE_T " overlaps.\n", id(), errorProfile.size(), olapsLen);
 #endif
 
-  olaps.clear();
+  delete [] olaps;
 
   //  Adjust regions that have no overlaps (mean == 0) to be the average of the adjacent regions.
   //  There are always at least two elements in the profile list: one that starts at coordinate 0,
