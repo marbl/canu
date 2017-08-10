@@ -518,6 +518,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "breakRepeats");
 
   contigs.computeErrorProfiles(prefix, "repeats");
+  contigs.reportErrorProfiles(prefix, "repeats");
 
   vector<confusedEdge>  confusedEdges;
 
