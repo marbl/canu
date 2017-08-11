@@ -399,25 +399,25 @@ sub purgeFiles ($$$$$$) {
             my $ID4 = substr("000"   . $2, -4);
             my $ID0 = $2;
 
-            if (-e "$1/$ID4.cns") {
+            if (-e "unitigging/$1/$ID4.cns") {
                 $Ncns++;
-                unlink "$1/$ID4.cns";
+                unlink "unitigging/$1/$ID4.cns";
             }
-            if (-e "$1/$ID4.fastq") {
+            if (-e "unitigging/$1/$ID4.fastq") {
                 $Nfastq++;
-                unlink "$1/$ID4.fastq";
+                unlink "unitigging/$1/$ID4.fastq";
             }
-            if (-e "$1/$ID4.layout") {
+            if (-e "unitigging/$1/$ID4.layout") {
                 $Nlayout++;
-                unlink "$1/$ID4.layout";
+                unlink "unitigging/$1/$ID4.layout";
             }
-            if (-e "$1/consensus.$ID6.out") {
+            if (-e "unitigging/$1/consensus.$ID6.out") {
                 $Nlog++;
-                unlink "$1/consensus.$ID6.out";
+                unlink "unitigging/$1/consensus.$ID6.out";
             }
-            if (-e "$1/consensus.$ID0.out") {
+            if (-e "unitigging/$1/consensus.$ID0.out") {
                 $Nlog++;
-                unlink "$1/consensus.$ID0.out";
+                unlink "unitigging/$1/consensus.$ID0.out";
             }
 
         } else {
@@ -425,6 +425,9 @@ sub purgeFiles ($$$$$$) {
         }
     }
     close(F);
+
+    unlink "$path/$tag.files";
+    rmdir  "$path/$tag";
 
     return($Ncns, $Nfastq, $Nlayout, $Nlog);
 }
@@ -471,6 +474,7 @@ sub consensusLoad ($) {
         if (runCommand("unitigging", $cmd)) {
             caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
         }
+        unlink "$path/ctgcns.files.ctgStoreLoad.err";
 
         stashFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
         stashFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
@@ -496,6 +500,7 @@ sub consensusLoad ($) {
         if (runCommand("unitigging", $cmd)) {
             caExit("failed to load unitig consensus into utgStore", "$path/utgcns.files.utgStoreLoad.err");
         }
+        unlink "$path/utgcns.files.utgStoreLoad.err";
 
         stashFile("unitigging/$asm.utgStore/seqDB.v002.dat");
         stashFile("unitigging/$asm.utgStore/seqDB.v002.tig");
