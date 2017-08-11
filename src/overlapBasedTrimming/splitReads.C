@@ -56,7 +56,7 @@ main(int argc, char **argv) {
   FILE     *reportFile   = NULL;
   FILE     *subreadFile  = NULL;
 
-  bool      doSubreadLogging        = true;
+  bool      doSubreadLogging        = false;
   bool      doSubreadLoggingVerbose = false;
 
   //  Statistics on the trimming - the second set are from the old logging, and don't really apply anymore.
@@ -201,12 +201,13 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
 
-  snprintf(outputName, FILENAME_MAX, "%s.subread.log", outputPrefix);
-  errno = 0;
-  subreadFile = fopen(outputName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
-
+  if (doSubreadLogging) {
+    snprintf(outputName, FILENAME_MAX, "%s.subread.log", outputPrefix);
+    errno = 0;
+    subreadFile = fopen(outputName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
+  }
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 64 * 1024;
