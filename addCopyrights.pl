@@ -2,12 +2,35 @@
 
 use strict;
 
-my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" );
+#  To run this:
+#
+#  Update the copyright data file by appending info on new commits:
+#      perl addCopyrights-BuildData.pl >> addCopyrights.dat
+#
+#  Update copyright on each file, writing to new files:
+#      perl addCopyrights.pl -test
+#
+#  Update copyright on specific files by listing them at then end:
+#      perl addCopyrights.pl -test src/bogart/bogart.C
+#
+#  All files get rewritten, even if there are no changes.  If not running in 'test' mode
+#  you can use git to see what changes, and to verify they look sane.
+#
+#  Once source files are updated, update addCopyright-BuildData.pl with the last
+#  commit hash and commit those changes (both the dat and pl).
+#
 
+#
 #  If set, rename original files to name.ORIG, rewrite files with updated copyright text.
 #  If not, create new name.MODIFIED files with updated copyright text.
 #
+
 my $doForReal = 1;
+
+if ($ARGV[0] eq "-test") {
+    shift @ARGV;
+    $doForReal = 0;
+}
 
 #
 #  The change data 'addCopyrights.dat' contains lines of two types:
@@ -25,7 +48,6 @@ my $doForReal = 1;
 #  If a file is renamed, a 'D' line needs to be added, and all previous mentions
 #  of the original name need to be updated to the new name.
 #
-
 
 sub toList (@) {
     my @all = sort { $a <=> $b } @_;
@@ -75,6 +97,8 @@ sub splitAC ($@) {
     my $cc = shift @_;
     my @AC = @_;
     my @AClist;
+
+    my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" );
 
     my %dates;
 
@@ -404,8 +428,6 @@ foreach my $file (@filesToProcess) {
 
     if ($doForReal) {
         my $perms = `stat -f %p $file`;  chomp $perms;  $perms = substr($perms, -3);
-
-        #rename "$file", "$file.ORIG";
 
         open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
         print F @lines;
