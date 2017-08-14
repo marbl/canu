@@ -98,7 +98,7 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
   _IDX =              new bitPackedFile(idxname);
   _DAT =              new bitPackedFile(datname);
   _POS = (posexist) ? new bitPackedFile(posname) : 0L;
-    
+
 
   //  Verify that they are what they should be, and read in the header
   //
