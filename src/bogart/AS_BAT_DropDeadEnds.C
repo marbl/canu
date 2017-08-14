@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-MAY-22
+ *    Brian P. Walenz beginning on 2017-MAY-31
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -232,7 +232,7 @@ dropDeadEnds(AssemblyGraph  *AG,
       continue;
 
     //  At least one read needs to be kicked out.  Make new tigs for everything.
- 
+
     char   fnMsg[80] = {0};   Unitig  *fnTig = NULL;
     char   nnMsg[80] = {0};   Unitig  *nnTig = NULL;  int32  nnOff = INT32_MAX;
     char   lnMsg[80] = {0};   Unitig  *lnTig = NULL;
@@ -263,7 +263,7 @@ dropDeadEnds(AssemblyGraph  *AG,
     for (uint32 cc=0, tt=0; tt<tig->ufpath.size(); tt++) {
       ufNode  &read = tig->ufpath[tt];
 
-      if        (read.ident == fn) { 
+      if        (read.ident == fn) {
         sprintf(fnMsg, "first read %9u to tig %7u --", read.ident, fnTig->id());
         fnTig->addRead(read, -read.position.min(), false);
 
