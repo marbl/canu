@@ -710,7 +710,7 @@ sub createOverlapStore ($$$) {
         }
         close(F);
     }
-    
+
     foreach my $dir (keys %directories) {
         print STDERR "REMOVE TREE $base/$dir\n";
         remove_tree("$base/$dir");
