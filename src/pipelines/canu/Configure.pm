@@ -727,7 +727,7 @@ sub configureAssembler () {
         setGlobalIfUndef("gfaMemory",   "32-64");       setGlobalIfUndef("gfaThreads",   "16-64");
     }
 
-    
+
 
 
     #  Finally, use all that setup to pick actual values for each component.
