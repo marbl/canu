@@ -414,7 +414,7 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
     SeqInterval    lPos;
 
     //  Find the read placement in this interval, if it exists.
-        
+
     for (uint32 pp=0; pp<placed[fReadID].size(); pp++) {
       fPos = placed[fReadID][pp].position;
 
