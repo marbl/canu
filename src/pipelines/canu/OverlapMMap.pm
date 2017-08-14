@@ -90,10 +90,10 @@ sub mmapConfigure ($$$) {
     } elsif ($numPacBioCorrected > 0) {
        $parameters = "-x ava-pb -c -Hk21 -w14"; #tuned to find 1000bp 5% error
     } elsif ($numNanoporeCorrected > 0) {
-       $parameters = "-x ava-ont -c -k17 -w11"; #tuned to find 1000bp 15% error 
+       $parameters = "-x ava-ont -c -k17 -w11"; #tuned to find 1000bp 15% error
     } else {
        caFailiure("--ERROR: no know read types found in $base/$asm.gkpStore/libraries.txt")
-    }  
+    }
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (mmap) (correction) with $parameters\n"  if ($tag eq "cor");
