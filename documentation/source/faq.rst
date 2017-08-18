@@ -54,29 +54,39 @@ What parameters should I use for my reads?
     
     **Nanopore R7 1D** and **Low Identity Reads**
        With R7 1D sequencing data, and generally for any raw reads lower than 80% identity, five to
-       ten rounds of error correction are helpful. To run just the correction phase, use options
-       ``-correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high``.  Use the output of
-       the previous run (in ``asm.correctedReads.fasta.gz``) as input to the next round.
+       ten rounds of error correction are helpful::
 
-       Once corrected, assemble with ``-nanopore-corrected <your data> correctedErrorRate=0.3 utgGraphDeviation=50``
+         canu -p r1 -d r1 -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high -nanopore-raw your_reads.fasta
+         canu -p r2 -d r2 -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high -nanopore-raw r1/r1.correctedReads.fasta.gz
+         canu -p r3 -d r3 -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high -nanopore-raw r2/r2.correctedReads.fasta.gz
+         canu -p r4 -d r4 -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high -nanopore-raw r3/r3.correctedReads.fasta.gz
+         canu -p r5 -d r5 -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high -nanopore-raw r4/r4.correctedReads.fasta.gz
+
+       Then assemble the output of the last round, allowing up to 30% difference in overlaps::
+
+         canu -p asm -d asm correctedErrorRate=0.3 utgGraphDeviation=50 -nanopore-corrected r5/r5.correctedReads.fasta.gz
 
     **Nanopore R7 2D** and **Nanopore R9 1D**
-      Increase the maximum allowed difference in overlaps from the default of 4.5% to 7.5% with
-      ``correctedErrorRate=0.075``
+      Increase the maximum allowed difference in overlaps from the default of 14.4% to 22.5% with
+      ``correctedErrorRate=0.225``
 
     **Nanopore R9 2D** and **PacBio P6**
-       Slightly decrease the maximum allowed difference in overlaps from the default of 4.5% to 4.0%
-       with ``correctedErrorRate=0.040``
+       Slightly decrease the maximum allowed difference in overlaps from the default of 14.4% to 12.0%
+       with ``correctedErrorRate=0.120``
 
     **Early PacBio Sequel**
        Based on exactly one publically released *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        slightly decrease the maximum allowed difference from the default of 4.5% to 4.0% with
        ``correctedErrorRate=0.040 corMhapSensitivity=normal``.  For recent Sequel data, the defaults
-       are appropriate.
+       seem to be appropriate.
        
    **Nanopore R9 large genomes**
-       Due to some systematic errors, the identity estimate used by Canu for correction can be an over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) we've used ``'corMhapOptions=--threshold 0.8 --num-hashes 512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This can be used with 30x or more of coverage, below that the defaults are OK.
+       Due to some systematic errors, the identity estimate used by Canu for correction can be an
+       over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) with more
+       than 30x coverage, we've used ``'corMhapOptions=--threshold 0.8 --num-hashes
+       512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This is not needed for below 30x
+       coverage.
 
 
 My assembly continuity is not good, how can I improve it?
