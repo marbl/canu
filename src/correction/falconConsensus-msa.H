@@ -1,0 +1,295 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/falcon_sense/libfalcon/falcon.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2017-AUG-21
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
+/*
+ * https://github.com/PacificBiosciences/FALCON/blob/master/src/c/falcon.c
+ *
+ * Copyright (c) 2011-2014, Pacific Biosciences of California, Inc.
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
+ *
+ *  * Redistributions in binary form must reproduce the above
+ *  copyright notice, this list of conditions and the following
+ *  disclaimer in the documentation and/or other materials provided
+ *  with the distribution.
+ *
+ *  * Neither the name of Pacific Biosciences nor the names of its
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY PACIFIC
+ * BIOSCIENCES AND ITS CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL PACIFIC BIOSCIENCES OR ITS
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+#include "falconConsensus.H"
+
+#ifndef FALCONCONSENSUS_MSA_H
+#define FALCONCONSENSUS_MSA_H
+
+class align_tag_col_t {
+public:
+  align_tag_col_t() {
+    size          =  8;
+    n_link        =  0;
+    p_t_pos       =  new int32   [size];   //memset(p_t_pos,    0, sizeof(int32)  * size);
+    p_delta       =  new uint16  [size];   //memset(p_delta,    0, sizeof(uint16) * size);
+    p_q_base      =  new char    [size];   //memset(p_q_base,   0, sizeof(char)   * size);
+    link_count    =  new uint16  [size];   //memset(link_count, 0, sizeof(uint16) * size);
+    count         =  0;
+    best_p_t_pos  = -1;
+    best_p_delta  = -1;
+    best_p_q_base = -1;
+    score         =  0;
+  };
+
+  ~align_tag_col_t() {
+    delete [] p_t_pos;
+    delete [] p_delta;
+    delete [] p_q_base;
+    delete [] link_count;
+  };
+
+  void   clean(void) {
+    n_link         =  0;
+    //memset(p_t_pos,    0, sizeof(int32)  * size);
+    //memset(p_delta,    0, sizeof(uint16) * size);
+    //memset(p_q_base,   0, sizeof(char)   * size);
+    //memset(link_count, 0, sizeof(uint16) * size);
+    count          =  0;
+    best_p_t_pos   = -1;
+    best_p_delta   = -1;
+    best_p_q_base  = -1;
+    score          =  0;
+  };
+
+  void  addEntry(alignTag *tag) {
+
+    if (n_link >= size) {
+      int32  ns;  //  Need to keep resetting this back to the real number of elements in each array
+
+      ns = size;  resizeArray(p_t_pos,    n_link, ns, size + 16);
+      ns = size;  resizeArray(p_delta,    n_link, ns, size + 16);
+      ns = size;  resizeArray(p_q_base,   n_link, ns, size + 16);
+      ns = size;  resizeArray(link_count, n_link, ns, size + 16);
+
+      size = size + 16;
+    }
+
+    p_t_pos   [n_link]  = tag->p_t_pos;
+    p_delta   [n_link]  = tag->p_delta;
+    p_q_base  [n_link]  = tag->p_q_base;
+    link_count[n_link]  = 1;
+
+    n_link++;
+  };
+
+  double     score;
+
+  int32     *p_t_pos;        // the tag position of the previous base
+  uint16    *p_delta;        // the tag delta of the previous base
+  char      *p_q_base;       // the previous base
+  uint16    *link_count;
+
+  int32      best_p_t_pos;
+
+  uint16     best_p_delta;
+  uint16     best_p_q_base;  // encoded base
+  uint16     count;
+  uint16     size;           //  Number of items allocated in the arrays
+  uint16     n_link;         //  Number of items used in the arrays
+};
+
+
+
+class  msa_base_group_t {
+public:
+  msa_base_group_t() {
+    //base = new align_tag_col_t [5];
+  };
+
+  ~msa_base_group_t() {
+    //delete [] base;
+  };
+
+  void                clean(void) {
+    base[0].clean();  //  A
+    base[1].clean();  //  C
+    base[2].clean();  //  G
+    base[3].clean();  //  T
+    base[4].clean();  //  - and everything else
+  }
+
+  align_tag_col_t  base[5];
+};
+
+
+
+class msa_delta_group_t {
+public:
+  msa_delta_group_t() {
+    deltaAlloc   = 8;                                    //  Allocate pointers for 8 new items
+    deltaLen     = 0;
+    delta        = new msa_base_group_t * [deltaAlloc];
+
+    deltaPtrsLen = 1;
+    deltaPtrs[0] = new msa_base_group_t   [deltaAlloc];  //  Allocate a block of items
+
+    for (uint32 ii=1; ii<128; ii++)                      //  Clear the other pointers.
+      deltaPtrs[ii] = 0;
+
+    for (uint32 ii=0; ii<deltaAlloc; ii++)               //  And set pointers to the items
+      delta[ii] = deltaPtrs[0] + ii;
+  };
+
+  ~msa_delta_group_t() {
+    for (uint32 ii=0; ii<128; ii++)
+      delete [] deltaPtrs[ii];
+
+    delete [] delta;
+  };
+
+  void       increaseDeltaGroup(uint16 newMax) {
+    uint32  newLen = newMax + 1;
+
+    if (newLen <= deltaLen)    //  Requested group is already used.
+      return;
+
+    if (newLen < deltaAlloc) { //  Requested group is already allocated.
+      deltaLen = newLen;
+      return;
+    }
+
+    //  Figure out how much we want to grow.  deltaAlloc is limited to 65,536, and we have 128
+    //  pointers to play with.  The first has 8.  We'll do a bunch of size 8, then size 16, then 32,
+    //  and finally give up and do 1024.
+
+    uint32  incr = 0;
+
+    if      (deltaPtrsLen < 16)    //  128 here
+      incr = 8;
+    else if (deltaPtrsLen < 32)   //   256 here
+      incr = 16;
+    else if (deltaPtrsLen < 64)   //  1024 here
+      incr = 32;
+    else                          // 65535 here
+      incr = 1024;
+
+    //  Make sure it's really big enough.
+
+    while (deltaAlloc + incr < newLen)
+      incr *= 2;
+
+    //  Then reallocate pointers and grab new blocks.  We copy all deltaAlloc elements, not just
+    //  deltaLen, because (a) deltaLen is the last used position, and (b) we've already allocated
+    //  space up to deltaAlloc.
+
+    resizeArray(delta, deltaAlloc, deltaAlloc, deltaAlloc+incr);
+
+    deltaPtrs[deltaPtrsLen] = new msa_base_group_t [incr];
+
+    //  Finally, assign pointers.  (deltaAlloc-incr because incr was already added to it)
+
+    for (uint32 ii=0; ii<incr; ii++)
+      delta[deltaAlloc+ii-incr] = deltaPtrs[deltaPtrsLen] + ii;
+
+    deltaPtrsLen++;
+
+    //deltaAlloc += incr;   //  Done by resizeArray().
+    deltaLen = newLen;
+  };
+
+
+  void    clean(void) {
+    for (uint32 j=0; j<deltaLen; j++)
+      delta[j]->clean();
+
+    deltaLen = 0;
+  }
+
+
+  uint16             deltaAlloc;       //  Size of delta array
+  uint16             deltaLen;         //  Number of delta positions actually used
+  msa_base_group_t **delta;            //  Just pointers into deltaPtrs;
+
+  uint32             deltaPtrsLen;     //  Next available pointer
+  msa_base_group_t  *deltaPtrs[128];   //  Holds the actual delta storage
+};
+
+
+
+//  msa_delta_group_t **msa_array
+class msa_vector_t {
+public:
+  msa_vector_t(uint32 templateLen) {
+    delta_groupsLen = templateLen;
+    delta_groupsMax = templateLen;
+    delta_groups    = new msa_delta_group_t [templateLen];
+    //msa_delta_group_t **msa_array = new msa_delta_group_t * [templateLen];
+  };
+
+  ~msa_vector_t() {
+    delete [] delta_groups;
+  };
+
+  void    clean(void) {
+    for (uint32 i=0; i<delta_groupsLen; i++)
+      delta_groups[i].clean();
+  };
+
+  msa_delta_group_t  *operator[](int32 i) {
+    assert(i < delta_groupsLen);
+    return(delta_groups + i);
+  };
+
+private:
+  uint32              delta_groupsLen;    //  Supposed to be last used, but never set
+  uint32              delta_groupsMax;    //  Space allocated.
+  msa_delta_group_t  *delta_groups;
+};
+
+#endif  //  FALCONCONSENSUS_MSA_H

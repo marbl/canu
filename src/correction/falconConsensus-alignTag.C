@@ -1,0 +1,236 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/falcon_sense/libfalcon/falcon.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2017-AUG-21
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
+/*
+ * https://github.com/PacificBiosciences/FALCON/blob/master/src/c/falcon.c
+ *
+ * Copyright (c) 2011-2014, Pacific Biosciences of California, Inc.
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
+ *
+ *  * Redistributions in binary form must reproduce the above
+ *  copyright notice, this list of conditions and the following
+ *  disclaimer in the documentation and/or other materials provided
+ *  with the distribution.
+ *
+ *  * Neither the name of Pacific Biosciences nor the names of its
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY PACIFIC
+ * BIOSCIENCES AND ITS CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL PACIFIC BIOSCIENCES OR ITS
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+#include "falconConsensus-alignTag.H"
+#include "edlib.H"
+
+static
+alignTagList *
+getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 Qid,    //  read
+             char       *Talign,   int32 Tbgn,  int32 Tlen,               //  template
+             int32       alignLen) {
+  int32  i        = Qbgn - 1;
+  int32  j        = Tbgn - 1;
+  int32  jj       = 0;         //  Number of non-gap bases in Q aligned to a gap in T
+  int32  p_j      = -1;
+  int32  p_jj     = 0;
+  char   p_q_base = '.';
+
+  alignTagList  *tags = new alignTagList(alignLen);
+
+  for (int32 k=0; k < alignLen; k++) {
+    if (Qalign[k] != '-') {
+      i++;
+      jj++;
+    }
+
+    if (Talign[k] != '-') {
+      j++;
+      jj = 0;
+    }
+
+    assert(i >= 0);
+    assert(i <  Qlen);
+    assert(j >= 0);
+    assert(j <  Tlen);
+
+#ifdef DEBUG
+    fprintf(stderr, "t %d %d %d %c %c\n", q_id, j, jj, Talign[k], Qalign[k]);
+#endif
+
+    if ((jj   >= uint16MAX) ||
+        (p_jj >= uint16MAX))
+      continue;
+
+    //tags->addTag(alignTag(Qid, j, p_j, jj, p_jj, Qalign[k], p_q_base));
+    tags->setTag(Qid, j, p_j, jj, p_jj, Qalign[k], p_q_base);
+
+    p_j       = j;
+    p_jj      = jj;
+    p_q_base  = Qalign[k];
+  }
+
+  // sentinal at the end
+
+  //tags->addTag(alignTag());
+
+  return(tags);
+}
+
+
+
+alignTagList **
+alignReadsToTemplate(falconInput    *evidence,
+                     uint32          evidenceLen,
+                     double          minIdentity) {
+
+  double         maxDifference = 1.0 - minIdentity;
+  alignTagList **tagList = new alignTagList * [evidenceLen];
+
+  //  I don't remember where this was causing problems, but reads longer than the template were.  So truncate them.
+
+  for (uint32 j=0; j<evidenceLen; j++)
+    if (evidence[j].readLength > evidence[0].readLength) {
+      evidence[j].readLength = evidence[0].readLength;
+      evidence[j].read[evidence[j].readLength]  = 0;
+    }
+
+  //  Set everything to an empty list.  Makes aborting the algnment loop much easier.
+
+  for (uint32 j=0; j<evidenceLen; j++)
+    tagList[j] = NULL;   //new alignTagList(0);
+
+
+#pragma omp parallel for schedule(dynamic)
+  for (uint32 j=0; j<evidenceLen; j++) {
+    if (evidence[j].readLength < 500)
+      continue;
+
+    int32 tolerance =  (int32)ceil(min(evidence[j].readLength, evidence[0].readLength) * maxDifference * 1.1);
+
+    //fprintf(stderr, "ALIGN read #%d ident %u of length %u to template of length %u tolerance %d\n",
+    //        j, evidence[j].ident, evidence[j].readLength, evidence[0].readLength, tolerance);
+
+    EdlibAlignResult align = edlibAlign(evidence[j].read, evidence[j].readLength,
+                                        evidence[0].read, evidence[0].readLength, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+    if (align.numLocations == 0) {
+      edlibFreeAlignResult(align);
+      continue;
+    }
+
+    int32  alignLen  = align.endLocations[0] - align.startLocations[0];
+    double alignDiff = align.editDistance / (double)alignLen;
+
+    if (alignDiff >= maxDifference) {
+      edlibFreeAlignResult(align);
+      continue;
+    }
+
+    int32  rBgn = 0;
+    int32  rEnd = evidence[j].readLength;
+
+    int32  tBgn = align.startLocations[0];
+    int32  tEnd = align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
+
+#ifdef DEBUG
+    fprintf(stderr, "Found alignment for seq %d from %d - %d to %d - %d the dist  %d length %d\n",
+            j, rBgn, rEnd, tBgn, tEnd, align.editDistance, align.alignmentLength);
+#endif
+
+    // convert edlib to expected
+    char *tAln = new char [align.alignmentLength + 1];
+    char *rAln = new char [align.alignmentLength + 1];
+
+    edlibAlignmentToStrings(align.alignment,
+                            align.alignmentLength,
+                            tBgn, tEnd,
+                            rBgn, rEnd,
+                            evidence[0].read, evidence[j].read,
+                            tAln, rAln);
+
+    // strip leading/trailing gaps on template
+
+    uint32 fBase = 0;                        //  First non-gap in the alignment
+    uint32 lBase  = align.alignmentLength;   //  Last base in the alignment (actually, first gap in the gaps at the end, but that was too long for a variable name)
+
+    while ((fBase < align.alignmentLength) && (tAln[fBase] == '-'))
+      fBase++;
+
+    while ((lBase > fBase) && (tAln[lBase-1] == '-'))
+      lBase--;
+
+    rBgn += fBase;
+    rEnd -= align.alignmentLength - lBase;
+
+    assert(rBgn >= 0);      assert(rEnd <= evidence[j].readLength);
+    assert(tBgn >= 0);      assert(tEnd <= evidence[0].readLength);
+
+    rAln[lBase] = 0;   //  Truncate the alignments before the gaps.
+    tAln[lBase] = 0;
+
+#ifdef DEBUG
+    fprintf(stderr, "Final positions to be %d %d for str %d and %d %d for str %d adjst %d %d %d\n", arange.s1, arange.e1, evidence[j].readLength, arange.s2, arange.e2, evidence[0].readLength, fBase, lBase, lBase-fBase);
+    fprintf(stderr, "Tgt string is %s %d\n", tAln+fBase, strlen(tAln+fBase));
+    fprintf(stderr, "Qry string is %s %d\n", rAln+fBase, strlen(rAln+fBase));
+#endif
+
+    //delete tagList[j];
+
+    tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength, j,
+                              tAln + fBase, tBgn, evidence[0].readLength,
+                              lBase - fBase);
+
+    delete [] tAln;
+    delete [] rAln;
+
+    edlibFreeAlignResult(align);
+  }
+
+  return(tagList);
+}

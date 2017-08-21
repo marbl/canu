@@ -48,6 +48,8 @@ SOURCES      := AS_global.C \
                 AS_UTL/kMer.C \
                 \
                 falcon_sense/libfalcon/falcon.C \
+                correction/falconConsensus.C \
+                correction/falconConsensus-alignTag.C \
                 \
                 stores/gkStore.C \
                 stores/gkStoreEncode.C \

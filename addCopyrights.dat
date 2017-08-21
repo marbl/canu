@@ -12856,3 +12856,13 @@ A src/bogart/AS_BAT_Unitig.C nihh20161121Brian P. Walenz
 A addCopyrights-BuildData.pl nihh20161121Brian P. Walenz
 A addCopyrights.dat nihh20161121Brian P. Walenz
 A addCopyrights.pl nihh20161121Brian P. Walenz
+D src/correction/falconConsensus-alignTag.C src/falcon_sense/libfalcon/falcon.C
+D src/correction/falconConsensus-alignTag.H src/falcon_sense/libfalcon/falcon.C
+D src/correction/falconConsensus-msa.H src/falcon_sense/libfalcon/falcon.C
+D src/correction/falconConsensus.C src/falcon_sense/libfalcon/falcon.C
+D src/correction/falconConsensus.H src/falcon_sense/libfalcon/falcon.C
+A src/correction/falconConsensus-alignTag.C nihh20170821Brian P. Walenz
+A src/correction/falconConsensus-alignTag.H  nihh20170821Brian P. Walenz
+A src/correction/falconConsensus-msa.H  nihh20170821Brian P. Walenz
+A src/correction/falconConsensus.C  nihh20170821Brian P. Walenz
+A src/correction/falconConsensus.H  nihh20170821Brian P. Walenz
