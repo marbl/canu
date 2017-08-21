@@ -34,7 +34,7 @@
 #include "tgTig.H"
 
 #include "AS_UTL_fileIO.H"
-#include "AS_UTL_fasta.C"
+#include "AS_UTL_fasta.H"
 
 #include "AS_UTL_reverseComplement.H"
 
