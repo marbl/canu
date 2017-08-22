@@ -42,6 +42,10 @@
 
 #include "splitToWords.H"
 #include "intervalList.H"
+#include "AS_UTL_reverseComplement.H"
+#include "AS_UTL_fasta.H"
+
+#include "falconConsensus.H"
 
 #include <set>
 
@@ -58,7 +62,6 @@ using namespace std;
 tgTig *
 generateLayout(gkStore    *gkpStore,
                uint64     *readScores,
-               bool        legacyScore,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
@@ -90,15 +93,14 @@ generateLayout(gkStore    *gkpStore,
   for (uint32 oo=0; oo<ovlLen; oo++) {
 
     //  ovlLength, in filterCorrectionOverlaps, is computed on the a read.  That is now the b read here.
+    //
+    //  Score '100 * ovlLength * (1 - ovl[oo].erate())' was tried early on, but it was worse than
+    //  the 'legacy' score.  This had been an option, always enabled, until August 2017.
+
     uint64   ovlLength = ((ovl[oo].b_bgn() < ovl[oo].b_end()) ?
                           ovl[oo].b_end() - ovl[oo].b_bgn() :
                           ovl[oo].b_bgn() - ovl[oo].b_end());
-    uint64   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
-
-    if (legacyScore) {
-      ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
-      ovlScore |= (AS_MAX_EVALUE - ovl[oo].evalue());
-    }
+    uint64   ovlScore  = ovlLength << AS_MAX_EVALUE_BITS | (AS_MAX_EVALUE - ovl[oo].evalue());
 
     if (ovlLength > AS_MAX_READLEN) {
       char ovlString[1024];
@@ -108,14 +110,14 @@ generateLayout(gkStore    *gkpStore,
 
     if (ovl[oo].erate() > maxEvidenceErate) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - low quality (threshold %.2f)\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - low quality (threshold %.2f)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
     if (ovl[oo].a_end() - ovl[oo].a_bgn() < minEvidenceLength) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - too short (threshold %u)\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - too short (threshold %u)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
@@ -123,20 +125,20 @@ generateLayout(gkStore    *gkpStore,
     if ((readScores != NULL) &&
         (ovlScore < readScores[ovl[oo].b_iid])) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - filtered by global filter (threshold " F_U64 ")\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U64 ")\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
 
     if (children.find(ovl[oo].b_iid) != children.end()) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - duplicate\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - duplicate\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
       continue;
     }
 
     if (flgFile)
-      fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5llu erate %.3f\n",
+      fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5lu erate %.3f\n",
               ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
 
     tgPosition   *pos = layout->addChild();
@@ -202,6 +204,115 @@ generateLayout(gkStore    *gkpStore,
 
 
 
+//  A mash up of falcon_sense.C and outputFalcon.C
+
+void
+generateFalconConsensus(gkStore      *gkpStore,
+                        tgTig        *tig,
+                        bool          trimToAlign,
+                        FILE         *F,
+                        gkReadData   *readData,
+                        uint32        minOutputLength,
+                        uint32        minAllowedCoverage,
+                        double        minIdentity) {
+
+  //  Grab and save the raw read for the template.
+
+  fprintf(stderr, "Processing read %u of length %u with %u evidence reads.\n",
+          tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
+
+  //  Now parse the layout and push all the sequences onto our seqs vector.
+
+  falconInput   *evidence = new falconInput [tig->numberOfChildren() + 1];
+
+  evidence[0].addInput(tig->tigID(),
+                       readData->gkReadData_getSequence(),
+                       readData->gkReadData_getRead()->gkRead_sequenceLength(),
+                       0,
+                       readData->gkReadData_getRead()->gkRead_sequenceLength());
+
+
+  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
+    tgPosition  *child = tig->getChild(cc);
+
+    gkpStore->gkStore_loadReadData(child->ident(), readData);
+
+    if (child->isReverse())
+      reverseComplementSequence(readData->gkReadData_getSequence(),
+                                readData->gkReadData_getRead()->gkRead_sequenceLength());
+
+    //  For debugging/testing, skip one orientation of overlap.
+    //
+    //if (child->isReverse() == false)
+    //  continue;
+    //if (child->isReverse() == true)
+    //  continue;
+
+    //  Trim the read to the aligned bit
+    char   *seq    = readData->gkReadData_getSequence();
+    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength();
+
+    if (trimToAlign) {
+      seq    += child->askip();
+      seqLen -= child->askip() + child->bskip();
+
+      seq[seqLen] = 0;
+    }
+
+    //  Used to skip if read length was less or equal to min_ovl_len
+
+    evidence[cc+1].addInput(child->ident(), seq, seqLen, child->min(), child->max());
+  }
+
+  //  Loaded all reads, build consensus.
+
+  uint32 splitSeqID = 0;
+
+  //FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, min_idt, min_ovl_len, max_read_len );
+
+  falconData  *fd = generateConsensus(evidence,
+                                      tig->numberOfChildren() + 1,
+                                      minAllowedCoverage, minIdentity, minOutputLength);
+
+#ifdef TRACK_POSITIONS
+  //const std::string& sequenceToCorrect = seqs.at(0);
+  char * originalStringPointer = consensus_data_ptr->sequence;
+#endif
+
+  char * split = strtok(fd->seq, "acgt");
+
+  while (split != NULL) {
+    if (strlen(split) > minOutputLength) {
+      fprintf(stderr, "Generated read %u_%u of length %lu.\n",
+              tig->tigID(), splitSeqID, strlen(split));
+
+      AS_UTL_writeFastA(F, split, strlen(split), 60, ">read%u_%d\n", tig->tigID(), splitSeqID);
+
+      splitSeqID++;
+
+#ifdef TRACK_POSITIONS
+      int distance_from_beginning = split - originalStringPointer;
+      std::vector<int> relevantOriginalPositions(consensus_data_ptr->originalPos.begin() + distance_from_beginning, consensus_data_ptr->originalPos.begin() + distance_from_beginning + strlen(split));
+      int firstRelevantPosition = relevantOriginalPositions.front();
+      int lastRelevantPosition = relevantOriginalPositions.back();
+
+      std::string relevantOriginalTemplate = seqs.at(0).substr(firstRelevantPosition, lastRelevantPosition - firstRelevantPosition + 1);
+
+      // store relevantOriginalTemplate along with corrected read - not implemented
+#endif
+    }
+
+    split = strtok(NULL, "acgt");
+  }
+
+  delete fd;  //FConsensus::free_consensus_data( consensus_data_ptr );
+
+  delete [] evidence;
+}
+
+
 
 int
 main(int argc, char **argv) {
@@ -210,8 +321,9 @@ main(int argc, char **argv) {
   char             *scoreName = 0L;
   char             *tigName   = 0L;
 
-  bool              falconOutput = false;  //  To stdout
-  bool              trimToAlign  = false;
+  bool              falconOutput    = false;  //  To stdout
+  bool              consensusOutput = false;
+  bool              trimToAlign     = true;
 
   uint32            errorRate = AS_OVS_encodeEvalue(0.015);
 
@@ -237,8 +349,12 @@ main(int argc, char **argv) {
 
   uint32            minCorLength        = 0;
 
-  bool              filterCorLength     = false;
-  bool              legacyScore         = false;
+  //  Consensus parameters
+
+  uint32            numThreads         = 1;
+  uint32            minAllowedCoverage = 4;
+  double            minIdentity        = 0.5;
+  uint32            minOutputLength    = 500;
 
   argc = AS_configure(argc, argv);
 
@@ -246,51 +362,68 @@ main(int argc, char **argv) {
   int err=0;
 
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {  //  Input gkpStore
+    if        (strcmp(argv[arg], "-G") == 0) {   //  INPUTS
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-O") == 0) {  //  Input ovlStore
+    } else if (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-S") == 0) {  //  Input scores
+    } else if (strcmp(argv[arg], "-S") == 0) {
       scoreName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-T") == 0) {  //  Output tigStore
-      tigName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-F") == 0) {  //  Output directly to falcon, not tigStore
-      falconOutput = true;
-      trimToAlign  = true;
-
-    } else if (strcmp(argv[arg], "-p") == 0) {  //  Output prefix, just logging and summary
+    } else if (strcmp(argv[arg], "-p") == 0) {
       outputPrefix = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-b") == 0) {  //  Begin read range
+
+    } else if (strcmp(argv[arg], "-t") == 0) {   //  COMPUTE RESOURCES
+      numThreads = atoi(argv[++arg]);
+
+
+    } else if (strcmp(argv[arg], "-T") == 0) {   //  OUTPUT FORMAT
+      tigName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      falconOutput = true;
+
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      consensusOutput = true;
+
+
+    } else if (strcmp(argv[arg], "-b") == 0) {   //  READ SELECTION
       iidMin  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-e") == 0) {  //  End read range
+    } else if (strcmp(argv[arg], "-e") == 0) {
       iidMax  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-rl") == 0) {  //  List of reads to correct, will also apply -b/-e range
+    } else if (strcmp(argv[arg], "-r") == 0) {
       readListName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-L") == 0) {  //  Minimum length of evidence overlap
+
+    } else if (strcmp(argv[arg], "-eL") == 0) {   //  EVIDENCE SELECTION
       minEvidenceLength  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-E") == 0) {  //  Max error rate of evidence overlap
+    } else if (strcmp(argv[arg], "-eE") == 0) {
       maxEvidenceErate = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-c") == 0) {  //  Min coverage of evidence reads to consider the read corrected
+    } else if (strcmp(argv[arg], "-ec") == 0) {
       minEvidenceCoverage = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-C") == 0) {  //  Max coverage of evidence reads to emit.
+    } else if (strcmp(argv[arg], "-eC") == 0) {
       maxEvidenceCoverage = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-M") == 0) {  //  Minimum length of a corrected read
+    } else if (strcmp(argv[arg], "-eM") == 0) {
       minCorLength = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-legacy") == 0) {
-      legacyScore = true;
+
+    } else if (strcmp(argv[arg], "-cc") == 0) {   //  CONSENSUS
+      minAllowedCoverage = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-cl") == 0) {
+      minOutputLength = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-ci") == 0) {
+      minIdentity = atoi(argv[++arg]);
+
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -304,29 +437,38 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [ -T tigStore | -F ] ...\n", argv[0]);
-    fprintf(stderr, "  -G gkpStore   mandatory path to gkpStore\n");
-    fprintf(stderr, "  -O ovlStore   mandatory path to ovlStore\n");
+    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -S file       global score (binary) input file\n");
+    fprintf(stderr, "INPUTS (all mandatory)\n");
+    fprintf(stderr, "  -G gkpStore      mandatory path to gkpStore\n");
+    fprintf(stderr, "  -O ovlStore      mandatory path to ovlStore\n");
+    fprintf(stderr, "  -S file          global scores (from filterCorrectionOverlaps)\n");
+    fprintf(stderr, "  -p prefix        output prefix name, for logging and summary report\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -T corStore   output layouts to tigStore corStore\n");
-    fprintf(stderr, "  -F            output falconsense-style input directly to stdout\n");
+    fprintf(stderr, "RESOURCE PARAMETERS\n");
+    fprintf(stderr, "  -t numThreads    number of compute threads to use\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -p  name      output prefix name, for logging and summary\n");
+    fprintf(stderr, "OUTPUT FORMAT\n");
+    fprintf(stderr, "  -T store         output layouts to tigStore 'store'\n");
+    fprintf(stderr, "  -F               output falconsense-style input directly to stdout (OBSOLETE)\n");
+    fprintf(stderr, "  -C               output corrected read consensus sequences to stdout\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -b  bgnID     \n");
-    fprintf(stderr, "  -e  endID     \n");
+    fprintf(stderr, "READ SELECTION\n");
+    fprintf(stderr, "  -b bgnID         process reads starting at bgnID\n");
+    fprintf(stderr, "  -e endID         process reads up to but not including endID\n");
+    fprintf(stderr, "  -r file          only process reads listed (must also be bgnID <= ID < endOD)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -rl file      \n");
+    fprintf(stderr, "EVIDENCE SELECTION\n");
+    fprintf(stderr, "  -eL length       minimum length of evidence overlaps\n");
+    fprintf(stderr, "  -eE erate        maximum error rate of evidence overlaps\n");
+    fprintf(stderr, "  -ec coverage     minimum coverage needed in evidence reads\n");       //  not used in canu
+    fprintf(stderr, "  -eC coverage     maximum coverage of evidence reads to emit\n");
+    fprintf(stderr, "  -eM length       minimum length of a corrected read\n");              //  not used in canu
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -L  length    minimum length of evidence overlaps\n");
-    fprintf(stderr, "  -E  erate     maximum error rate of evidence overlaps\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -c  coverage  minimum coverage needed in evidence reads\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -C  coverage  maximum coverage of evidence reads to emit\n");
-    fprintf(stderr, "  -M  length    minimum length of a corrected read\n");
+    fprintf(stderr, "CONSENSUS PARAMETERS\n");
+    fprintf(stderr, "  -cc coverage     minimum consensus coverage to output corrected base\n");
+    fprintf(stderr, "  -cl length       minimum length of corrected region\n");
+    fprintf(stderr, "  -ci identity     minimum identity of an aligned evidence read\n");
     fprintf(stderr, "\n");
 
     if (gkpName == NULL)
@@ -336,6 +478,11 @@ main(int argc, char **argv) {
 
     exit(1);
   }
+
+
+  omp_set_num_threads(numThreads);
+
+
 
   //  Open inputs and output tigStore.
 
@@ -447,7 +594,6 @@ main(int argc, char **argv) {
 
     tgTig *layout = generateLayout(gkpStore,
                                    readScores,
-                                   legacyScore,
                                    minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
                                    ovl, ovlLen,
                                    flgFile);
@@ -522,6 +668,9 @@ main(int argc, char **argv) {
     if ((skipIt == false) && (falconOutput == true))
       outputFalcon(gkpStore, layout, trimToAlign, stdout, readData);
 
+    if ((skipIt == false) && (consensusOutput == true))
+      generateFalconConsensus(gkpStore, layout, trimToAlign, stdout, readData, minOutputLength, minAllowedCoverage, minIdentity);
+
     delete layout;
 
     //  Load next batch of overlaps.
@@ -532,8 +681,6 @@ main(int argc, char **argv) {
   if (falconOutput)
     fprintf(stdout, "- -\n");
 
-  delete readData;
-
   if (logFile != NULL)
     fclose(logFile);
 
@@ -543,8 +690,11 @@ main(int argc, char **argv) {
   if (flgFile != NULL)
     fclose(flgFile);
 
-  delete tigStore;
-  delete ovlStore;
+  delete [] readScores;
+  delete    readData;
+  delete [] ovl;
+  delete    tigStore;
+  delete    ovlStore;
 
   gkpStore->gkStore_close();
 

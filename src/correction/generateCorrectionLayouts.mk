@@ -10,7 +10,7 @@ endif
 TARGET   := generateCorrectionLayouts
 SOURCES  := generateCorrectionLayouts.C ../utgcns/stashContains.C ../falcon_sense/outputFalcon.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns ../falcon_sense
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns ../falcon_sense ../falcon_sense/libfalcon
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := -lcanu
