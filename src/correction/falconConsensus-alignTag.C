@@ -153,11 +153,28 @@ alignReadsToTemplate(falconInput    *evidence,
 
     int32 tolerance =  (int32)ceil(min(evidence[j].readLength, evidence[0].readLength) * maxDifference * 1.1);
 
+    int32  alignBgn = evidence[j].placedBgn;
+    int32  alignEnd = evidence[j].placedEnd;
+
+    assert(alignEnd > alignBgn);
+
+    int32  expansion = (1.4 * evidence[j].readLength - (alignEnd - alignBgn)) / 2;
+
+  again:
+    if (expansion > 0) {
+      alignBgn -= expansion;
+      alignEnd += expansion;
+    }
+
+    if (alignBgn < 0)                         alignBgn = 0;
+    if (alignEnd > evidence[0].readLength)    alignEnd = evidence[0].readLength;
+
     //fprintf(stderr, "ALIGN read #%d ident %u of length %u to template of length %u tolerance %d\n",
     //        j, evidence[j].ident, evidence[j].readLength, evidence[0].readLength, tolerance);
 
-    EdlibAlignResult align = edlibAlign(evidence[j].read, evidence[j].readLength,
-                                        evidence[0].read, evidence[0].readLength, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+    EdlibAlignResult align = edlibAlign(evidence[j].read,        evidence[j].readLength,
+                                        evidence[0].read + alignBgn, alignEnd - alignBgn,
+                                        edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
     if (align.numLocations == 0) {
       edlibFreeAlignResult(align);
@@ -175,8 +192,8 @@ alignReadsToTemplate(falconInput    *evidence,
     int32  rBgn = 0;
     int32  rEnd = evidence[j].readLength;
 
-    int32  tBgn = align.startLocations[0];
-    int32  tEnd = align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
+    int32  tBgn = alignBgn + align.startLocations[0];
+    int32  tEnd = alignBgn + align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
 
 #ifdef DEBUG
     fprintf(stderr, "Found alignment for seq %d from %d - %d to %d - %d the dist  %d length %d\n",
