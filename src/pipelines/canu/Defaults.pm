@@ -1273,8 +1273,7 @@ sub checkParameters () {
         addCommandLineError("ERROR:  ovsMethod=parallel requires useGrid=true or useGrid=remote.  Set ovsMethod=sequential if no grid is available\n");
     }
 
-    if ((getGlobal("unitigger") ne "unitigger") &&
-        (getGlobal("unitigger") ne "bogart")) {
+    if ((getGlobal("unitigger") ne "bogart")) {
         addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'\n");
     }
 
