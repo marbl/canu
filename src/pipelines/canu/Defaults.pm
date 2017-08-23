@@ -920,7 +920,7 @@ sub setDefaults () {
     setDefault("corOutCoverage",               40,           "Only correct the longest reads up to this coverage; default 40");
     setDefault("corMinCoverage",               undef,        "Minimum number of bases supporting each corrected base, if less than this sequences are split; default based on input read coverage: 0 <= 30x < 4 < 60x <= 4");
     setDefault("corFilter",                    "expensive",  "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'");
-    setDefault("corConsensus",                 "falconpipe", "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported; default 'falconpipe'");
+    setDefault("corConsensus",                 "falcon",     "Which consensus algorithm to use; only 'falcon' is supported; default 'falcon'");
     setDefault("corLegacyFilter",              undef,        "Expert option: global filter, length * identity (default) or length with  broken by identity (if on)");
 
     #  Convert all the keys to lowercase, and remember the case-sensitive version
@@ -1277,9 +1277,7 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'\n");
     }
 
-    if ((getGlobal("corConsensus") ne "utgcns") &&
-        (getGlobal("corConsensus") ne "falcon") &&
-        (getGlobal("corConsensus") ne "falconpipe")) {
+    if ((getGlobal("corConsensus") ne "falcon")) {
         addCommandLineError("ERROR:  Invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'\n");
     }
 
