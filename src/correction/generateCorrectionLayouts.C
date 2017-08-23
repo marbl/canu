@@ -207,14 +207,13 @@ generateLayout(gkStore    *gkpStore,
 //  A mash up of falcon_sense.C and outputFalcon.C
 
 void
-generateFalconConsensus(gkStore      *gkpStore,
-                        tgTig        *tig,
-                        bool          trimToAlign,
-                        FILE         *F,
-                        gkReadData   *readData,
-                        uint32        minOutputLength,
-                        uint32        minAllowedCoverage,
-                        double        minIdentity) {
+generateFalconConsensus(falconConsensus   *fc,
+                        gkStore           *gkpStore,
+                        tgTig             *tig,
+                        bool               trimToAlign,
+                        FILE              *F,
+                        gkReadData        *readData,
+                        uint32             minOutputLength) {
 
   //  Grab and save the raw read for the template.
 
@@ -272,9 +271,8 @@ generateFalconConsensus(gkStore      *gkpStore,
 
   //FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, min_idt, min_ovl_len, max_read_len );
 
-  falconData  *fd = generateConsensus(evidence,
-                                      tig->numberOfChildren() + 1,
-                                      minAllowedCoverage, minIdentity, minOutputLength);
+  falconData  *fd = fc->generateConsensus(evidence,
+                                          tig->numberOfChildren() + 1);
 
 #ifdef TRACK_POSITIONS
   //const std::string& sequenceToCorrect = seqs.at(0);
@@ -308,7 +306,6 @@ generateFalconConsensus(gkStore      *gkpStore,
   }
 
   delete fd;  //FConsensus::free_consensus_data( consensus_data_ptr );
-
   delete [] evidence;
 }
 
@@ -586,6 +583,8 @@ main(int argc, char **argv) {
 
   gkReadData   *readData = new gkReadData;
 
+  falconConsensus  *fc = (consensusOutput == false) ? NULL : new falconConsensus(minAllowedCoverage, minIdentity, minOutputLength);
+
   //  And process.
 
   while (ovlLen > 0) {
@@ -669,7 +668,7 @@ main(int argc, char **argv) {
       outputFalcon(gkpStore, layout, trimToAlign, stdout, readData);
 
     if ((skipIt == false) && (consensusOutput == true))
-      generateFalconConsensus(gkpStore, layout, trimToAlign, stdout, readData, minOutputLength, minAllowedCoverage, minIdentity);
+      generateFalconConsensus(fc, gkpStore, layout, trimToAlign, stdout, readData, minOutputLength);
 
     delete layout;
 
@@ -680,6 +679,9 @@ main(int argc, char **argv) {
 
   if (falconOutput)
     fprintf(stdout, "- -\n");
+
+  if (consensusOutput)
+    delete fc;
 
   if (logFile != NULL)
     fclose(logFile);

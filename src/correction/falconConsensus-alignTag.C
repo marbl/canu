@@ -66,7 +66,7 @@
  * SUCH DAMAGE.
  */
 
-#include "falconConsensus-alignTag.H"
+#include "falconConsensus.H"
 #include "edlib.H"
 
 static

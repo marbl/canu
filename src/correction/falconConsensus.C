@@ -72,20 +72,18 @@
 
 #undef DEBUG
 
+
 falconData *
-getConsensus(uint32         tagsLen,                //  Number of evidence reads
-             alignTagList **tags,                   //  Alignment tags
-             uint32         templateLen,            //  Length of template read
-             uint32         minAllowedCoverage) {
+falconConsensus::getConsensus(uint32         tagsLen,                //  Number of evidence reads
+                              alignTagList **tags,                   //  Alignment tags
+                              uint32         templateLen) {          //  Length of template read
 
   //  If no tags, return an empty result.
 
   if (tagsLen == 0)
     return(new falconData);
 
-  uint32        *coverage = (uint32 *)calloc( templateLen, sizeof(uint32) );
-
-  msa_vector_t   msa(templateLen);
+  msa.resize(templateLen);
 
   //  For each alignment position, insert the alignment tag to msa
 
@@ -100,11 +98,11 @@ getConsensus(uint32         tagsLen,                //  Number of evidence reads
 
       if (tag->delta == 0) {
         t_pos = tag->t_pos;
-        coverage[ t_pos ] ++;
+        msa[t_pos]->coverage++;  //coverage[ t_pos ] ++;
       }
 
 #ifdef DEBUG
-      fprintf(stderr, "Processing position %d in sequence %d (in msa it is column %d with cov %d) with delta %d and current size is %d\n", j, i, t_pos, coverage[t_pos], tag->delta, msa[t_pos]->size);
+      fprintf(stderr, "Processing position %d in sequence %d (in msa it is column %d with cov %d) with delta %d and current size is %d\n", j, i, t_pos, msa[t_pos]->coverage, tag->delta, msa[t_pos]->size);
 #endif
 
       // Assume t_pos was set on earlier iteration.
@@ -212,7 +210,7 @@ getConsensus(uint32         tagsLen,                //  Number of evidence reads
           }
 
           //  Score is just our link weight, possibly with the previous column's score, and penalizing for coverage.
-          double score = aln_col->link_count[ck] - coverage[i] * 0.5;
+          double score = aln_col->link_count[ck] - msa[i]->coverage * 0.5;
 
           if ((aln_col->p_t_pos[ck] != -1) &&
               (pj <= msa[pi]->deltaLen))
@@ -256,8 +254,6 @@ getConsensus(uint32         tagsLen,                //  Number of evidence reads
   uint32  i      = g_best_t_pos;
   uint32  j      = 0;
 
-  char    bb = '$';
-
   while (1) {
 #ifdef TRACK_POSITIONS
     int originalI = i;
@@ -266,14 +262,14 @@ getConsensus(uint32         tagsLen,                //  Number of evidence reads
     //  Original version had bb outside, initialized to '$', with a comment that 'on bad input, bb
     //  will keep previous value, possibly '$'.'
 
-    //char  bb = '-';
+    char  bb = '-';
 
     switch (ck) {
-      case 0: bb = (coverage[i] <= minAllowedCoverage) ? 'a' : 'A'; break;
-      case 1: bb = (coverage[i] <= minAllowedCoverage) ? 'c' : 'C'; break;
-      case 2: bb = (coverage[i] <= minAllowedCoverage) ? 'g' : 'G'; break;
-      case 3: bb = (coverage[i] <= minAllowedCoverage) ? 't' : 'T'; break;
-      case 4: bb =                                             '-'; break;
+      case 0: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'a' : 'A'; break;
+      case 1: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'c' : 'C'; break;
+      case 2: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'g' : 'G'; break;
+      case 3: bb = (msa[i]->coverage <= minAllowedCoverage) ? 't' : 'T'; break;
+      case 4: bb =                                                  '-'; break;
     }
 
     i  = g_best_aln_col->best_p_t_pos;
@@ -290,7 +286,7 @@ getConsensus(uint32         tagsLen,                //  Number of evidence reads
     if (bb != '-') {
       fd->seq[index] = bb;
       fd->eqv[index] = (int) sco - (int) g_best_aln_col->score;
-      //fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, coverage[i], fd->eqv[index] );
+      //fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, msa[i]->coverage, fd->eqv[index] );
       index++;
 
 #ifdef TRACK_POSITIONS
@@ -310,36 +306,16 @@ getConsensus(uint32         tagsLen,                //  Number of evidence reads
   reverse(fd->seq, fd->seq+index);
   reverse(fd->eqv, fd->eqv+index);
 
-#if 0
-  for (int32 i=0; i<index/2; i++) {
-    fd->seq[i]         = fd->seq[i] ^ fd->seq[index-i-1];
-    fd->seq[index-i-1] = fd->seq[i] ^ fd->seq[index-i-1];
-    fd->seq[i]         = fd->seq[i] ^ fd->seq[index-i-1];
-
-    fd->eqv[i]         = fd->eqv[i] ^ fd->eqv[index-i-1];
-    fd->eqv[index-i-1] = fd->eqv[i] ^ fd->eqv[index-i-1];
-    fd->eqv[i]         = fd->eqv[i] ^ fd->eqv[index-i-1];
-  }
-#endif
-
-  msa.clean();
-
-  free(coverage);
-
   return(fd);
 }
 
 
 
 falconData *
-generateConsensus(falconInput   *evidence,
-                  uint32         evidenceLen,
-                  uint32         minAllowedCoverage,
-                  double         minIdentity,
-                  uint32         UNUSED(minOutputLength)) {
+falconConsensus::generateConsensus(falconInput   *evidence,
+                                   uint32         evidenceLen) {
 
   return(getConsensus(evidenceLen,
                       alignReadsToTemplate(evidence, evidenceLen, minIdentity),
-                      evidence[0].readLength,
-                      minAllowedCoverage));
+                      evidence[0].readLength));
 }

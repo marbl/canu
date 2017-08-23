@@ -78,6 +78,9 @@
 
 using namespace std;
 
+#include "falconConsensus-alignTag.H"
+#include "falconConsensus-msa.H"
+
 #ifndef FALCONCONSENSUS_H
 #define FALCONCONSENSUS_H
 
@@ -161,12 +164,35 @@ public:
 
 
 
-falconData *
-generateConsensus(falconInput         *evidence,
-                  uint32               evidenceLen,
-                  uint32               minAllowedCoverage,
-                  double               minIdentity,
-                  uint32               minOutputLength);
+class falconConsensus {
+public:
+  falconConsensus(uint32               minAllowedCoverage_,
+                  double               minIdentity_,
+                  uint32               minOutputLength_) {
+    minAllowedCoverage  = minAllowedCoverage_;
+    minIdentity         = minIdentity_;
+    minOutputLength     = minOutputLength_;
+  };
+
+  ~falconConsensus() {
+  };
+
+private:
+  falconData *getConsensus(uint32         tagsLen,
+                           alignTagList **tags,
+                           uint32         templateLen);
+
+public:
+  falconData *generateConsensus(falconInput         *evidence,
+                                uint32               evidenceLen);
+
+private:
+  uint32               minAllowedCoverage;
+  double               minIdentity;
+  uint32               minOutputLength;
+
+  msa_vector_t         msa;
+};
 
 
 #endif  //  FALCONCONSENSUS_H

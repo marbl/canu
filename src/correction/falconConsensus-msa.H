@@ -66,8 +66,6 @@
  * SUCH DAMAGE.
  */
 
-#include "falconConsensus.H"
-
 #ifndef FALCONCONSENSUS_MSA_H
 #define FALCONCONSENSUS_MSA_H
 
@@ -75,16 +73,11 @@ class align_tag_col_t {
 public:
   align_tag_col_t() {
     size          =  8;
-    n_link        =  0;
-    p_t_pos       =  new int32   [size];   //memset(p_t_pos,    0, sizeof(int32)  * size);
-    p_delta       =  new uint16  [size];   //memset(p_delta,    0, sizeof(uint16) * size);
-    p_q_base      =  new char    [size];   //memset(p_q_base,   0, sizeof(char)   * size);
-    link_count    =  new uint16  [size];   //memset(link_count, 0, sizeof(uint16) * size);
-    count         =  0;
-    best_p_t_pos  = -1;
-    best_p_delta  = -1;
-    best_p_q_base = -1;
-    score         =  0;
+    p_t_pos       =  new int32   [size];
+    p_delta       =  new uint16  [size];
+    p_q_base      =  new char    [size];
+    link_count    =  new uint16  [size];
+    clean();
   };
 
   ~align_tag_col_t() {
@@ -96,15 +89,11 @@ public:
 
   void   clean(void) {
     n_link         =  0;
-    //memset(p_t_pos,    0, sizeof(int32)  * size);
-    //memset(p_delta,    0, sizeof(uint16) * size);
-    //memset(p_q_base,   0, sizeof(char)   * size);
-    //memset(link_count, 0, sizeof(uint16) * size);
     count          =  0;
     best_p_t_pos   = -1;
     best_p_delta   = -1;
     best_p_q_base  = -1;
-    score          =  0;
+    score          =  DBL_MIN;
   };
 
   void  addEntry(alignTag *tag) {
@@ -149,19 +138,17 @@ public:
 class  msa_base_group_t {
 public:
   msa_base_group_t() {
-    //base = new align_tag_col_t [5];
   };
 
   ~msa_base_group_t() {
-    //delete [] base;
   };
 
   void                clean(void) {
-    base[0].clean();  //  A
-    base[1].clean();  //  C
-    base[2].clean();  //  G
-    base[3].clean();  //  T
-    base[4].clean();  //  - and everything else
+    base[0].clean();  //  'A'
+    base[1].clean();  //  'C'
+    base[2].clean();  //  'G'
+    base[3].clean();  //  'T'
+    base[4].clean();  //  '-' and everything else
   }
 
   align_tag_col_t  base[5];
@@ -172,6 +159,8 @@ public:
 class msa_delta_group_t {
 public:
   msa_delta_group_t() {
+    coverage     = 0;
+
     deltaAlloc   = 8;                                    //  Allocate pointers for 8 new items
     deltaLen     = 0;
     delta        = new msa_base_group_t * [deltaAlloc];
@@ -245,51 +234,60 @@ public:
 
 
   void    clean(void) {
-    for (uint32 j=0; j<deltaLen; j++)
+    for (uint32 j=0; j<deltaAlloc; j++)  //  Would deltaLen suffice?
       delta[j]->clean();
 
+    coverage = 0;
     deltaLen = 0;
   }
 
 
-  uint16             deltaAlloc;       //  Size of delta array
-  uint16             deltaLen;         //  Number of delta positions actually used
-  msa_base_group_t **delta;            //  Just pointers into deltaPtrs;
+  uint16             coverage;
+  uint16             deltaAlloc;       //  Size of 'delta' array
+  uint16             deltaLen;         //  Number of 'delta' positions actually used
+  uint16             deltaPtrsLen;     //  Next available spot 'deltaPtrs';
 
-  uint32             deltaPtrsLen;     //  Next available pointer
+  msa_base_group_t **delta;            //  Just pointers into deltaPtrs;
   msa_base_group_t  *deltaPtrs[128];   //  Holds the actual delta storage
 };
 
 
 
-//  msa_delta_group_t **msa_array
 class msa_vector_t {
 public:
-  msa_vector_t(uint32 templateLen) {
-    delta_groupsLen = templateLen;
-    delta_groupsMax = templateLen;
-    delta_groups    = new msa_delta_group_t [templateLen];
-    //msa_delta_group_t **msa_array = new msa_delta_group_t * [templateLen];
+  msa_vector_t() {
+    dgLen = 0;
+    dgMax = 0;
+    dg    = NULL;
   };
 
   ~msa_vector_t() {
-    delete [] delta_groups;
+    delete [] dg;
   };
 
-  void    clean(void) {
-    for (uint32 i=0; i<delta_groupsLen; i++)
-      delta_groups[i].clean();
+  void    resize(uint32 templateLen) {
+    dgLen = templateLen;
+
+    if (dgMax < dgLen) {
+      delete [] dg;
+
+      dgMax = dgLen;
+      dg    = new msa_delta_group_t [dgMax];
+    }
+
+    for (uint32 i=0; i<dgLen; i++)    //  Clean out old data
+      dg[i].clean();
   };
 
   msa_delta_group_t  *operator[](int32 i) {
-    assert(i < delta_groupsLen);
-    return(delta_groups + i);
+    assert(i < dgLen);
+    return(dg + i);
   };
 
 private:
-  uint32              delta_groupsLen;    //  Supposed to be last used, but never set
-  uint32              delta_groupsMax;    //  Space allocated.
-  msa_delta_group_t  *delta_groups;
+  uint32              dgLen;    //  Last used.
+  uint32              dgMax;    //  Space allocated.
+  msa_delta_group_t  *dg;
 };
 
 #endif  //  FALCONCONSENSUS_MSA_H

@@ -66,10 +66,13 @@
  * SUCH DAMAGE.
  */
 
-#include "falconConsensus.H"
-
 #ifndef FALCONCONSENSUS_ALIGNTAG_H
 #define FALCONCONSENSUS_ALIGNTAG_H
+
+
+class falconInput;
+
+
 
 class alignTag {       //  Completely initialized in get_align_tags()
 public:
