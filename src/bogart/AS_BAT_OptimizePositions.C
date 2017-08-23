@@ -342,7 +342,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
   bool    beVerbose   = false;
 
   writeStatus("optimizePositions()-- Optimizing read positions for %u reads in %u tigs, with %u thread%s.\n",
-              tiLimit, fiLimit, numThreads, (numThreads == 1) ? "" : "s");
+              fiLimit, tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
   //  Create work space and initialize to current read positions.
 
