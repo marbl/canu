@@ -74,12 +74,14 @@ alignTagList *
 getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 Qid,    //  read
              char       *Talign,   int32 Tbgn,  int32 Tlen,               //  template
              int32       alignLen) {
-  int32  i        = Qbgn - 1;
-  int32  j        = Tbgn - 1;
-  int32  jj       = 0;         //  Number of non-gap bases in Q aligned to a gap in T
-  int32  p_j      = -1;
-  int32  p_jj     = 0;
-  char   p_q_base = '.';
+  int32   i        = Qbgn - 1;   //  Position in query, not really used.
+  int32   j        = Tbgn - 1;   //  Position in template
+  int32   p_j      = -1;
+
+  uint32  jj       = 0;          //  Number of non-gap bases in Q aligned to a gap in T
+  uint32  p_jj     = 0;
+
+  char    p_q_base = '.';
 
   alignTagList  *tags = new alignTagList(alignLen);
 
@@ -99,25 +101,16 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 Qid,    //  re
     assert(j >= 0);
     assert(j <  Tlen);
 
-#ifdef DEBUG
-    fprintf(stderr, "t %d %d %d %c %c\n", q_id, j, jj, Talign[k], Qalign[k]);
-#endif
-
     if ((jj   >= uint16MAX) ||
         (p_jj >= uint16MAX))
       continue;
 
-    //tags->addTag(alignTag(Qid, j, p_j, jj, p_jj, Qalign[k], p_q_base));
-    tags->setTag(Qid, j, p_j, jj, p_jj, Qalign[k], p_q_base);
+    tags->setTag(j, p_j, jj, p_jj, Qalign[k], p_q_base);
 
     p_j       = j;
     p_jj      = jj;
     p_q_base  = Qalign[k];
   }
-
-  // sentinal at the end
-
-  //tags->addTag(alignTag());
 
   return(tags);
 }
@@ -143,7 +136,7 @@ alignReadsToTemplate(falconInput    *evidence,
   //  Set everything to an empty list.  Makes aborting the algnment loop much easier.
 
   for (uint32 j=0; j<evidenceLen; j++)
-    tagList[j] = NULL;   //new alignTagList(0);
+    tagList[j] = NULL;
 
 
 #pragma omp parallel for schedule(dynamic)
@@ -195,12 +188,6 @@ alignReadsToTemplate(falconInput    *evidence,
     int32  tBgn = alignBgn + align.startLocations[0];
     int32  tEnd = alignBgn + align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
 
-#ifdef DEBUG
-    fprintf(stderr, "Found alignment for seq %d from %d - %d to %d - %d the dist  %d length %d\n",
-            j, rBgn, rEnd, tBgn, tEnd, align.editDistance, align.alignmentLength);
-#endif
-
-    // convert edlib to expected
     char *tAln = new char [align.alignmentLength + 1];
     char *rAln = new char [align.alignmentLength + 1];
 
@@ -211,7 +198,7 @@ alignReadsToTemplate(falconInput    *evidence,
                             evidence[0].read, evidence[j].read,
                             tAln, rAln);
 
-    // strip leading/trailing gaps on template
+    //  Strip leading/trailing gaps on template sequence.
 
     uint32 fBase = 0;                        //  First non-gap in the alignment
     uint32 lBase  = align.alignmentLength;   //  Last base in the alignment (actually, first gap in the gaps at the end, but that was too long for a variable name)
@@ -230,14 +217,6 @@ alignReadsToTemplate(falconInput    *evidence,
 
     rAln[lBase] = 0;   //  Truncate the alignments before the gaps.
     tAln[lBase] = 0;
-
-#ifdef DEBUG
-    fprintf(stderr, "Final positions to be %d %d for str %d and %d %d for str %d adjst %d %d %d\n", arange.s1, arange.e1, evidence[j].readLength, arange.s2, arange.e2, evidence[0].readLength, fBase, lBase, lBase-fBase);
-    fprintf(stderr, "Tgt string is %s %d\n", tAln+fBase, strlen(tAln+fBase));
-    fprintf(stderr, "Qry string is %s %d\n", rAln+fBase, strlen(rAln+fBase));
-#endif
-
-    //delete tagList[j];
 
     tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength, j,
                               tAln + fBase, tBgn, evidence[0].readLength,

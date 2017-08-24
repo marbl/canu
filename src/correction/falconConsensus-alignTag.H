@@ -74,40 +74,34 @@ class falconInput;
 
 
 
-class alignTag {       //  Completely initialized in get_align_tags()
+class alignTag {
 public:
   alignTag() {
-    q_id     = INT32_MAX;
-    t_pos    = INT32_MAX;
-    p_t_pos  = INT32_MAX;
-    delta    = UINT16_MAX;
-    p_delta  = UINT16_MAX;
+    t_pos    = 0x0fff;
+    p_t_pos  = 0x0fff;
+    delta    = 0x00ff;
+    p_delta  = 0x00ff;
     q_base   = '.';
     p_q_base = '.';
   };
-  alignTag(uint32 id, int32  tp, int32 ptp, uint16 d, uint16 pd, char qb, char pqb) {
-    q_id     = id;
-    t_pos    = tp;
-    p_t_pos  = ptp;
-    delta    = d;
-    p_delta  = pd;
-    q_base   = qb;
-    p_q_base = pqb;
-  };
 
+  //  These goofy sizes aren't strictly necessary (this is about 20% of memory usage).  Without
+  //  them, the struct doubles in size due to alignment in an array.
 
-  uint32  q_id;
+  int64   t_pos    : 24;
+  int64   p_t_pos  : 24;   //  The tag position of the previous base
 
-  int32   t_pos;
-  int32   p_t_pos;         // the tag position of the previous base
+  uint64  delta    : 16;
+  uint64  p_delta  : 16;   //  The tag delta of the previous base
 
-  uint16  delta;
-  uint16  p_delta;         // the tag delta of the previous base
-
-  char    q_base;
-  char    p_q_base;        // the previous base
+  uint64  q_base   : 8;
+  uint64  p_q_base : 8;    //  The previous base
 };
 
+
+#if (AS_MAX_READLEN_BITS > 24)
+#error "AS_MAX_READLEN_BITS not supported over 24."
+#endif
 
 
 //  A list of aligned tags for a single evidence read.
@@ -126,8 +120,7 @@ public:
   alignTag      *operator[](int32 i) { return(&tags[i]); };
   int32          numberOfTags(void)  { return(tagsLen);  };
 
-  void           setTag(uint32 id, int32  tp, int32 ptp, uint16 d, uint16 pd, char qb, char pqb) {
-    tags[tagsLen].q_id     = id;
+  void           setTag(int32  tp, int32 ptp, uint16 d, uint16 pd, char qb, char pqb) {
     tags[tagsLen].t_pos    = tp;
     tags[tagsLen].p_t_pos  = ptp;
     tags[tagsLen].delta    = d;
