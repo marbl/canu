@@ -161,7 +161,7 @@ sub estimateMemoryNeededForCorrectionJobs ($) {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
         $cmd .= "  -G ../$asm.gkpStore \\\n";
         $cmd .= "  -O ../$asm.ovlStore \\\n";
-        $cmd .= "  -r ./$asm.readsToCorrect \\\n"    if (-e "./$asm.readsToCorrect");
+        $cmd .= "  -r ./$asm.readsToCorrect \\\n"    if (-e "$path/$asm.readsToCorrect");
         $cmd .= "  -M \\\n";
         $cmd .= " > ./correctReads.memory.out 2> ./correctReads.memory.err\n";
 
