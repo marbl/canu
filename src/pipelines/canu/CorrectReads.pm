@@ -122,17 +122,6 @@ sub computeNumberOfCorrectionJobs ($) {
     my $asm     = shift @_;
     my $nJobs   = 0;
     my $nPerJob = 0;
-    my $path    = "correction/2-correction";
-
-    if (-e "$path/correction_inputs" ) {
-        open(F, "ls $path/correction_inputs/ |") or caExit("can't find list of correction_inputs: $!", undef);
-        while (<F>) {
-            $nJobs++  if (m/^\d\d\d\d$/);
-        }
-        close(F);
-
-        return($nJobs, undef);
-    }
 
     my $nPart    = getGlobal("corPartitions");
     my $nReads   = getNumberOfReadsInStore("correction", $asm);
@@ -147,6 +136,71 @@ sub computeNumberOfCorrectionJobs ($) {
     }
 
     return($nJobs, $nPerJob);
+}
+
+
+
+sub estimateMemoryNeededForCorrectionJobs ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my $path    = "correction/2-correction";
+
+    my $readID   = 0;
+    my $readLen  = 0;
+    my $numOlaps = 0;
+    my $alignLen = 0;
+    my $memEst   = 0.0;
+
+    return   if (defined(getGlobal("corMemory")));
+
+    fetchFile("$path/correctReads.memory.out");
+
+    if (! fileExists("$path/correctReads.memory.out")) {
+        $cmd  = "$bin/generateCorrectionLayouts \\\n";
+        $cmd .= "  -G ../$asm.gkpStore \\\n";
+        $cmd .= "  -O ../$asm.ovlStore \\\n";
+        $cmd .= "  -r ./$asm.readsToCorrect \\\n"    if (-e "./$asm.readsToCorrect");
+        $cmd .= "  -M \\\n";
+        $cmd .= " > ./correctReads.memory.out 2> ./correctReads.memory.err\n";
+
+        if (runCommand($path, $cmd)) {
+            caExit("read correction memory estimate failed", "$path/correctReads.memory.err");
+        }
+
+        unlink "$path/correctReads.memory.err";
+        stashFile("$path/correctReads.memory.out");
+    }
+
+    open(F, "< $path/correctReads.memory.out") or caExit("can't open '$path/correctReads.memory.out' for reading: $!", undef);
+    while (<F>) {
+        if (m/Based\son\sread\s(\d+)\sof\slength\s(\d+)\swith\s(\d+)\soverlaps\scovering\s(\d+)\sbases,\sexpecting\sto\suse\s\d+\sbytes,\s(\d+\.\d+)\sGB\smemory\susage/) {
+            $readID   = $1;
+            $readLen  = $2;
+            $numOlaps = $3;
+            $alignLen = $4;
+            $memEst   = $5;
+        }
+    }
+    close(F);
+
+    if ($memEst == 0) {
+        $memEst = 8;
+
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING: Failed to parse read correction memory size estimate; set corMemory to 8 GB default.\n";
+        print STDERR "-- WARNING:\n";
+    } else {
+        $memEst   = int($memEst + 0.5);    #  Round up to the next GB.
+        $alignLen = int($alignLen / $numOlaps);
+
+        print STDERR "--\n";
+        print STDERR "-- Set corMemory to $memEst GB based on read $readID of length $readLen with $numOlaps overlaps of average size $alignLen.\n";
+        print STDERR "--\n";
+    }
+
+    setGlobal("corMemory", $memEst);
 }
 
 
@@ -514,8 +568,9 @@ sub setupFalcon ($) {
     my $base    = "correction";
     my $path    = "correction/2-correction";
 
-    make_path("$path/correction_inputs")   if (! -d "$path/correction_inputs");
-    make_path("$path/correction_outputs")  if (! -d "$path/correction_outputs");
+    make_path("$path/results")  if (! -d "$path/results");
+
+    estimateMemoryNeededForCorrectionJobs($asm);
 
     my ($nJobs, $nPerJob)  = computeNumberOfCorrectionJobs($asm);  #  Does math based on number of reads and parameters.
 
@@ -558,13 +613,13 @@ sub setupFalcon ($) {
     print F "\n";
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e \"./correction_outputs/\$jobid.fasta\" ] ; then\n";
+    print F "if [ -e \"./results/\$jobid.fasta\" ] ; then\n";
     print F "  echo Job finished successfully.\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ ! -d \"./correction_outputs\" ] ; then\n";
-    print F "  mkdir -p \"./correction_outputs\"\n";
+    print F "if [ ! -d \"./results\" ] ; then\n";
+    print F "  mkdir -p \"./results\"\n";
     print F "fi\n";
     print F "\n";
 
@@ -619,10 +674,10 @@ sub setupFalcon ($) {
     print F "  -ci $minidt \\\n";
     print F "  -cl " . getGlobal("minReadLength") . "\\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
-    print F "  > ./correction_outputs/\$jobid.fasta.WORKING \\\n";
-    print F " 2> ./correction_outputs/\$jobid.err \\\n";
+    print F "  > ./results/\$jobid.fasta.WORKING \\\n";
+    print F " 2> ./results/\$jobid.err \\\n";
     print F "&& \\\n";
-    print F "mv ./correction_outputs/\$jobid.fasta.WORKING ./correction_outputs/\$jobid.fasta \\\n";
+    print F "mv ./results/\$jobid.fasta.WORKING ./results/\$jobid.fasta \\\n";
     print F "\n";
 
     if (defined($stageDir)) {
@@ -631,7 +686,7 @@ sub setupFalcon ($) {
         print F "\n";
     }
 
-    print F stashFileShellCode("$path", "correction_outputs/\$jobid.fasta", "");
+    print F stashFileShellCode("$path", "results/\$jobid.fasta", "");
 
     print F "\n";
     print F "exit 0\n";
@@ -798,6 +853,10 @@ sub generateCorrectedReads ($) {
         setGlobal("corStageSpace", $size);
     }
 
+    #  Compute expected size of jobs, set if not set already.
+
+    estimateMemoryNeededForCorrectionJobs($asm);
+
     #  Figure out if all the tasks finished correctly.
 
     fetchFile("$path/correctReads.sh");
@@ -810,11 +869,11 @@ sub generateCorrectedReads ($) {
     my $failureMessage = "";
 
     for (my $job=1; $job <= $jobs; $job++) {
-        if (fileExists("$path/correction_outputs/$currentJobID.fasta")) {
-            push @successJobs, "$path/correction_outputs/$currentJobID.fasta\n";
+        if (fileExists("$path/results/$currentJobID.fasta")) {
+            push @successJobs, "$path/results/$currentJobID.fasta\n";
 
         } else {
-            $failureMessage .= "--   job $path/correction_outputs/$currentJobID.fasta FAILED.\n";
+            $failureMessage .= "--   job $path/results/$currentJobID.fasta FAILED.\n";
             push @failedJobs, $job;
         }
 
@@ -1263,22 +1322,22 @@ sub dumpCorrectedReads ($) {
         while (<F>) {
             chomp;
 
-            if (m/^(.*)\/correction_outputs\/0*(\d+).fasta$/) {
+            if (m/^(.*)\/results\/0*(\d+).fasta$/) {
                 my $ID6 = substr("00000" . $2, -6);
                 my $ID4 = substr("000"   . $2, -4);
                 my $ID0 = $2;
 
-                if (-e "$1/correction_outputs/$ID4.dump.success") {
+                if (-e "$1/results/$ID4.dump.success") {
                     $Nsuccess++;
-                    unlink "$1/correction_outputs/$ID4.dump.success";
+                    unlink "$1/results/$ID4.dump.success";
                 }
-                if (-e "$1/correction_outputs/$ID4.err") {
+                if (-e "$1/results/$ID4.err") {
                     $Nerr++;
-                    unlink "$1/correction_outputs/$ID4.err";
+                    unlink "$1/results/$ID4.err";
                 }
-                if (-e "$1/correction_outputs/$ID4.fasta") {
+                if (-e "$1/results/$ID4.fasta") {
                     $Nfasta++;
-                    unlink "$1/correction_outputs/$ID4.fasta";
+                    unlink "$1/results/$ID4.fasta";
                 }
 
                 if (-e "$1/correctReads.$ID6.out") {

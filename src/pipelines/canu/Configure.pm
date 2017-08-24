@@ -629,23 +629,24 @@ sub configureAssembler () {
         setGlobalIfUndef("ovsMemory",   "4-32");    setGlobalIfUndef("ovsThreads",   "1");
     }
 
-    #  Correction and consensus are somewhat invariant.
+    #  Correction and consensus are somewhat invariant.  Correction memory is set based on read length
+    #  in CorrectReads.pm.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("cnsMemory",     "8-32");     setGlobalIfUndef("cnsThreads",      "1-4");
-        setGlobalIfUndef("corMemory",     "6-16");     setGlobalIfUndef("corThreads",      "1-2");
+        setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "6-20");     setGlobalIfUndef("corThreads",      "2-4");
+        setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "10000");
 
     } else {
         setGlobalIfUndef("cnsMemory",     "64-128");   setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "10-32");    setGlobalIfUndef("corThreads",      "2-4");
+        setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "1024");     setGlobalIfUndef("corPartitionMin", "15000");
     }
@@ -753,7 +754,8 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all)   if (getGlobal("utgOverlapper") eq "minimap");
     ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all)   if (getGlobal("utgOverlapper") eq "ovl");
 
-    ($err, $all) = getAllowedResources("",    "cor",      $err, $all);
+    #  Usually set based on read length in CorrectReads.pm.  If defined by the user, run through configuration.
+    ($err, $all) = getAllowedResources("",    "cor",      $err, $all)   if (getGlobal("corMemory") ne undef);
 
     ($err, $all) = getAllowedResources("",    "ovb",      $err, $all);
     ($err, $all) = getAllowedResources("",    "ovs",      $err, $all);
