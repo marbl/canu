@@ -319,3 +319,35 @@ falconConsensus::generateConsensus(falconInput   *evidence,
                       alignReadsToTemplate(evidence, evidenceLen, minIdentity),
                       evidence[0].readLength));
 }
+
+
+
+uint64
+falconConsensus::estimateMemoryUsage(uint32 evidenceLen,
+                                     uint64 nBasesInOlaps,
+                                     uint32 templateLen) {
+
+  //  For evidence, each aligned base makes an alignTag, then 2 bytes for the read itself.
+  //  This _should_ be a vast over-estimate, but it is just barely the actual size.
+  //
+  //  Then during consensus, each base in the template allocates:
+  //     an msa_delta_group_t           each of which allocates:
+  //     at least 8 msa_base_group_t    each of which allocates:    (assume 16 max)
+  //     at least 8 64-bit words.                                   (assume 16 max)
+  //
+  //  Based on a single long nanopore read, using 16 instead of 8 is an overestimate.  I don't
+  //  understand what makes these grow.
+
+  uint64  perEvidence = sizeof(alignTag) + 2;
+  uint64  perTemplate = (sizeof(msa_delta_group_t) +
+                         16 * (sizeof(msa_base_group_t) +
+                               24 * (sizeof(int32) + sizeof(uint16) + sizeof(char) + sizeof(uint16))));
+  uint64  slush       = 500 * 1024 * 1024;
+
+  //fprintf(stderr, "evidence  %4lu x %9lu bases = %9lu %9lu MB\n",
+  //        perEvidence, nBasesInOlaps, nBasesInOlaps * perEvidence, nBasesInOlaps * perEvidence >> 20);
+  //fprintf(stderr, "template  %4lu x %9u bases = %9lu %9lu MB\n",
+  //        perTemplate, templateLen,   templateLen * perTemplate,   templateLen * perTemplate >> 20);
+
+  return(nBasesInOlaps * perEvidence + templateLen * perTemplate + slush);
+}

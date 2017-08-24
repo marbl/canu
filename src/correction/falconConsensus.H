@@ -186,6 +186,10 @@ public:
   falconData *generateConsensus(falconInput         *evidence,
                                 uint32               evidenceLen);
 
+  uint64      estimateMemoryUsage(uint32 evidenceLen,
+                                  uint64 nBasesInOlaps,
+                                  uint32 templateLen);
+
 private:
   uint32               minAllowedCoverage;
   double               minIdentity;

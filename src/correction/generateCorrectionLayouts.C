@@ -311,6 +311,64 @@ generateFalconConsensus(falconConsensus   *fc,
 
 
 
+void
+estimateMemoryUsage(gkStore       *gkpStore,
+                    uint32         iidMin,
+                    uint32         iidMax,
+                    set<uint32>   &readList,
+                    ovStore       *ovlStore) {
+
+    uint32   maxReadID  = 0;    //  Find the longest read and use that to estimate
+    uint32   maxReadLen = 0;    //  the maximum memory usage.
+
+    for (uint32 rr=iidMin; rr<iidMax; rr++) {
+      if ((readList.size() > 0) &&
+          (readList.count(rr) == 0))
+        continue;
+
+      gkRead *read = gkpStore->gkStore_getRead(rr);
+      uint32  rLen = read->gkRead_sequenceLength();
+
+      if (maxReadLen < rLen) {
+        maxReadID  = rr;
+        maxReadLen = rLen;
+      }
+    }
+
+    //  Estimate the number of evidence reads it'll have.  Just assume all overlaps are used and
+    //  that every error is an indel.
+
+    ovlStore->setRange(maxReadID, maxReadID);
+
+    ovOverlap   *overlaps    = NULL;
+    uint32       overlapsLen = 0;
+    uint32       overlapsMax = 0;
+
+    uint64       nOvl       = ovlStore->numOverlapsInRange();
+    uint32       nOvlLoaded = ovlStore->readOverlaps(maxReadID, overlaps, overlapsLen, overlapsMax);
+
+    assert(nOvl == nOvlLoaded);
+
+    uint64       nBasesInOlaps = 0;
+
+    for (uint32 oo=0; oo<nOvl; oo++) {
+      assert(overlaps[oo].a_bgn() < overlaps[oo].a_end());
+
+      nBasesInOlaps += (overlaps[oo].a_end() - overlaps[oo].a_bgn()) * (1 + overlaps[oo].erate());
+    }
+
+    //  Throw that at falconConsensus and let it decide memory usage.
+
+    falconConsensus *fc = new falconConsensus(0, 0.0, 0);
+
+    uint64 mem = fc->estimateMemoryUsage(nOvl, nBasesInOlaps, maxReadLen);
+
+    fprintf(stdout, "Based on read %u of length %u with %lu overlaps covering %lu bases, expecting to use %lu bytes, %.3f GB memory usage\n",
+            maxReadID, maxReadLen, nOvl, nBasesInOlaps,
+            mem, mem / 1024.0 / 1024.0 / 1024.0);
+}
+
+
 int
 main(int argc, char **argv) {
   char             *gkpName   = 0L;
@@ -321,6 +379,8 @@ main(int argc, char **argv) {
   bool              falconOutput    = false;  //  To stdout
   bool              consensusOutput = false;
   bool              trimToAlign     = true;
+
+  bool              estimateMemory  = false;
 
   uint32            errorRate = AS_OVS_encodeEvalue(0.015);
 
@@ -374,6 +434,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-t") == 0) {   //  COMPUTE RESOURCES
       numThreads = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-M") == 0) {
+      estimateMemory = true;
 
 
     } else if (strcmp(argv[arg], "-T") == 0) {   //  OUTPUT FORMAT
@@ -444,6 +507,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "RESOURCE PARAMETERS\n");
     fprintf(stderr, "  -t numThreads    number of compute threads to use\n");
+    fprintf(stderr, "  -M               estimate memory requirements for generating corrected reads (-C)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "OUTPUT FORMAT\n");
     fprintf(stderr, "  -T store         output layouts to tigStore 'store'\n");
@@ -515,7 +579,7 @@ main(int argc, char **argv) {
   }
 
   if (gkpStore->gkStore_getNumReads() < iidMax)
-      iidMax = gkpStore->gkStore_getNumReads();
+    iidMax = gkpStore->gkStore_getNumReads();
 
   ovlStore->setRange(iidMin, iidMax);
 
@@ -573,6 +637,14 @@ main(int argc, char **argv) {
   if (logFile)
     fprintf(logFile, "read\torigLen\tnumOlaps\tcorLen\n");
 
+  //  Estimate memory?
+
+  if (estimateMemory == true) {
+    estimateMemoryUsage(gkpStore, iidMin, iidMax, readList, ovlStore);
+    exit(0);  //  And exit rather ungracefully; just too many parameters to functionify the rest of main().
+  }
+
+
   //  Initialize processing.
 
   uint32       ovlMax = 1024 * 1024;
@@ -599,7 +671,7 @@ main(int argc, char **argv) {
 
     //  If there was a readList, skip anything not in it.
 
-    if ((readListName != NULL) &&
+    if ((readList.size() > 0) &&
         (readList.count(layout->tigID()) == 0)) {
       strcat(skipMsg, "\tnot_in_readList");
       skipIt = true;
@@ -682,6 +754,7 @@ main(int argc, char **argv) {
 
   if (consensusOutput)
     delete fc;
+
 
   if (logFile != NULL)
     fclose(logFile);
