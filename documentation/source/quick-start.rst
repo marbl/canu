@@ -22,7 +22,7 @@ terminations.
 
 Canu will auto-detect computational resources and scale itself to fit, using all of the resources
 available and are reasonable for the size of your assembly.  Memory and processors can be explicitly
-limited with with parameters :ref:`maxMemory` and :ref:`maxThreads`.  See section :ref:`execution`
+limited with with parameters :ref:`maxMemory <maxMemory>` and :ref:`maxThreads <maxThreads>`.  See section :ref:`execution`
 for more details.
 
 Canu will automaticall take full advantage of any LSF/PBS/PBSPro/Torque/Slrum/SGE grid available,

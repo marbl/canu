@@ -13,7 +13,7 @@ What resources does Canu require for a bacterial genome assembly? A mammalian as
 -------------------------------------
     Canu will detect available resources and configure itself to run efficiently using those
     resources.  It will request resources, for example, the number of compute threads to use, Based
-    on the ``genomeSize`` being assembled. It will fail to even start if it feels there are
+    on the genome size being assembled. It will fail to even start if it feels there are
     insufficient resources available.
     
     A typical bacterial genome can be assembled with 8GB memory in a few CPU hours - around an hour
@@ -210,11 +210,11 @@ My asm.contigs.fasta is empty, why?
     output, unitigs are the primary output split at alternate paths,
     and unassembled are the leftover pieces.
 
-    The :ref:`contigFilter` parameter sets several parameters that control how small or low coverage
-    initial contigs are handled.  By default, initial contigs with more than 50% of the length at
-    less than 5X coverage will be classified as 'unassembled' and removed from the assembly, that
-    is, ``contigFilter="2 0 1.0 0.5 5"``.  The filtering can be disabled by changing the last number
-    from '5' to '0' (meaning, filter if 50% is less than 0X coverage).
+    The :ref:`contigFilter <contigFilter>` parameter sets several parameters that control how small
+    or low coverage initial contigs are handled.  By default, initial contigs with more than 50% of
+    the length at less than 5X coverage will be classified as 'unassembled' and removed from the
+    assembly, that is, ``contigFilter="2 0 1.0 0.5 5"``.  The filtering can be disabled by changing
+    the last number from '5' to '0' (meaning, filter if 50% of the contig is less than 0X coverage).
 
 
 Why is my assembly is missing my favorite short plasmid?

@@ -34,22 +34,31 @@ errorRate <float=unset> (OBSOLETE)
 
 rawErrorRate <float=unset>
   The allowed difference in an overlap between two uncorrected reads, expressed as fraction error.
-  Sets :ref:`corOvlErrorRate` and :ref:`corErrorRate`.  The `rawErrorRate` typically does not need
-  to be modified.  It might need to be increased if very early reads are being assembled.  The
-  default is 0.300 For PacBio reads, and 0.500 for Nanopore reads.
+  Sets :ref:`corOvlErrorRate <corOvlErrorRate>` and :ref:`corErrorRate <corErrorRate>`.  The
+  :ref:`rawErrorRate <rawErrorRate>` typically does not need to be modified.  It might need to be
+  increased if very early reads are being assembled.  The default is 0.300 For PacBio reads, and
+  0.500 for Nanopore reads.
 
 .. _correctedErrorRate:
 
 correctedErrorRate <float=unset>
-  The allowed difference in an overlap between two corrected reads, expressed as fraction error.  Sets :ref:`obtOvlErrorRate`, :ref:`utgOvlErrorRate`, :ref:`obtErrorRate`, :ref:`utgErrorRate`, and :ref:`cnsErrorRate`.
-  The `correctedErrorRate` can be adjusted to account for the quality of read correction, for the amount of divergence in the sample being
-  assembled, and for the amount of sequence being assembled.  The default is 0.045 for PacBio reads, and 0.144 for Nanopore reads.
+  The allowed difference in an overlap between two corrected reads, expressed as fraction error.
+  Sets :ref:`obtOvlErrorRate <obtOvlErrorRate>`, :ref:`utgOvlErrorRate <utgOvlErrorRate>`,
+  :ref:`obtErrorRate <obtErrorRate>`, :ref:`utgErrorRate <utgErrorRate>`, and :ref:`cnsErrorRate
+  <cnsErrorRate>`.
+  The :ref:`correctedErrorRate <correctedErrorRate>` can be adjusted to account for the quality of
+  read correction, for the amount of divergence in the sample being assembled, and for the amount of
+  sequence being assembled.  The default is 0.045 for PacBio reads, and 0.144 for Nanopore reads.
 
-  For low coverage datasets (less than 30X), we recommend increasing `correctedErrorRate` slightly, by 1% or so.
+  For low coverage datasets (less than 30X), we recommend increasing :ref:`correctedErrorRate
+  <correctedErrorRate>` slightly, by 1% or so.
 
-  For high-coverage datasets (more than 60X), we recommend decreasing `correctedErrorRate` slighly, by 1% or so.
+  For high-coverage datasets (more than 60X), we recommend decreasing :ref:`correctedErrorRate
+  <correctedErrorRate>` slighly, by 1% or so.
 
-  Raising the `correctedErrorRate` will increase run time.  Likewise, decreasing `correctedErrorRate` will decrease run time, at the risk of missing overlaps and fracturing the assembly.
+  Raising the :ref:`correctedErrorRate <correctedErrorRate>` will increase run time.  Likewise,
+  decreasing :ref:`correctedErrorRate <correctedErrorRate>` will decrease run time, at the risk of
+  missing overlaps and fracturing the assembly.
 
 .. _minReadLength:
 
@@ -60,7 +69,7 @@ minReadLength <integer=1000>
   Must be no smaller than minOverlapLength.
 
   If set high enough, the gatekeeper module will halt as too many of the input reads have been
-  discarded.  Set `stopOnReadQuality` to false to avoid this.
+  discarded.  Set :ref:`stopOnReadQuality <stopOnReadQuality>` to false to avoid this.
 
 .. _minOverlapLength:
 
@@ -76,18 +85,21 @@ minOverlapLength <integer=500>
 genomeSize <float=unset> *required*
   An estimate of the size of the genome.  Common suffices are allowed, for example, 3.7m or 2.8g.
 
-  The genome size estimate is used to decide how many reads to correct (via the corOutCoverage_
-  parameter) and how sensitive the mhap overlapper should be (via the mhapSensitivity_
+  The genome size estimate is used to decide how many reads to correct (via the :ref:`corOutCoverage <corOutCoverage>`
+  parameter) and how sensitive the mhap overlapper should be (via the :ref:`mhapSensitivity <mhapSensitivity>`
   parameter). It also impacts some logging, in particular, reports of NG50 sizes.
 
 .. _canuIteration:
 
 canuIteration <internal parameter, do not use>
   Which parallel iteration is being attempted.
+
 canuIterationMax <integer=2>
-  How many parallel iterations to try.  Ideally, the parallel jobs, run under grid control, would all finish successfully on the first try.
-  Sometimes, jobs fail due to other jobs exhausting resources (memory), or by the node itself failing.  In this case, canu will launch the jobs
-  again.  This parameter controls how many times it tries.
+  How many parallel iterations to try.  Ideally, the parallel jobs, run under grid control, would
+  all finish successfully on the first try.
+  Sometimes, jobs fail due to other jobs exhausting resources (memory), or by the node itself
+  failing.  In this case, canu will launch the jobs again.  This parameter controls how many times
+  it tries.
 
 .. _onSuccess:
 
@@ -162,7 +174,9 @@ gnuplotImageFormat <string="png">
   The type of image to generate in gnuplot.  By default, canu will use png, svg or gif, in that order.
 
 gnuplotTested <boolean=false>
-  If set, skip the tests to determine if gnuplot will run, and to decide the image type to generate.  This is used when gnuplot fails to run, or isn't even installed, and allows canu to continue execution without generating graphs.
+  If set, skip the tests to determine if gnuplot will run, and to decide the image type to generate.
+  This is used when gnuplot fails to run, or isn't even installed, and allows canu to continue
+  execution without generating graphs.
 
 
 File Staging
@@ -171,8 +185,8 @@ File Staging
 The correction stage of Canu requires random access to all the reads.  Performance is greatly
 improved if the gkpStore database of reads is copied locally to each node that computes corrected
 read consensus sequences.  This 'staging' is enabled by supplying a path name to fast local storage
-with the `stageDirectory` option, and, optionally, requesting access to that resource from the grid
-with the `gridEngineStageOption` option.
+with the :ref:`stageDirectory` option, and, optionally, requesting access to that resource from the grid
+with the :ref:`gridEngineStageOption` option.
 
 stageDirectory <string=undefined>
   A path to a directory local to each compute node.  The directory should use an environment
@@ -198,11 +212,12 @@ Cleanup Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 saveOverlaps <boolean=false>
-  If set, do not remove raw overlap output from either mhap or overlapInCore.  Normally, this output is removed once
-  the overlaps are loaded into an overlap store.
+  If set, do not remove raw overlap output from either mhap or overlapInCore.  Normally, this output
+  is removed once the overlaps are loaded into an overlap store.
 
 saveReadCorrections <boolean=false.
-  If set, do not remove raw corrected read output from correction/2-correction. Normally, this output is removed once the corrected reads are generated.
+  If set, do not remove raw corrected read output from correction/2-correction. Normally, this
+  output is removed once the corrected reads are generated.
   
 saveIntermediates <boolean=false>
   If set, do not remove intermediate outputs.  Normally, intermediate files are removed
@@ -223,14 +238,15 @@ Two overlap algorithms are in use.  One, mhap, is typically applied to raw uncor
 returns alignment-free overlaps with imprecise extents.  The other, the original overlapper
 algorithm 'ovl', returns alignments but is much more expensive.
 
-There are three sets of parameters, one for the 'mhap' algorithm, one for the 'ovl' algorithm, and one for the 'minimap' algorithm.
-Parameters used for a specific type of overlap are set by a prefix on the option: 'cor' for read
-correction, 'obt' for read trimming ('overlap based trimming') or 'utg' for unitig construction.
-For example, 'corOverlapper=ovl' would set the overlapper used for read correction to the 'ovl'
-algorithm.
+There are three sets of parameters, one for the 'mhap' algorithm, one for the 'ovl' algorithm, and
+one for the 'minimap' algorithm.  Parameters used for a specific type of overlap are set by a prefix
+on the option: 'cor' for read correction, 'obt' for read trimming ('overlap based trimming') or
+'utg' for unitig construction.  For example, 'corOverlapper=ovl' would set the overlapper used for
+read correction to the 'ovl' algorithm.
 
 {prefix}Overlapper <string=see-below>
-  Specify which overlap algorith, 'mhap' or 'ovl' or 'minimap'.  The default is to use 'mhap' for 'cor' and 'ovl' for both 'obt' and 'utg'.
+  Specify which overlap algorith, 'mhap' or 'ovl' or 'minimap'.  The default is to use 'mhap' for
+  'cor' and 'ovl' for both 'obt' and 'utg'.
 
 Overlapper Configuration, ovl Algorithm
 ---------------------------------------
@@ -242,22 +258,24 @@ Overlapper Configuration, ovl Algorithm
 
 {prefix}OvlErrorRate <float=unset>
   Overlaps above this error rate are not computed.
-  * `corOvlErrorRate` applies to overlaps generated for correcting reads;
-  * `obtOvlErrorRate` applied to overlaps generated for trimming reads;
-  * `utgOvlErrorRate` applies to overlaps generated for assembling reads.
-  These limits apply to the 'ovl' overlap algorithm and when alignments are computed for mhap overlaps with :ref:`mhapReAlign <mhapReAlign>`.
+  * :ref:`corOvlErrorRate <corOvlErrorRate>` applies to overlaps generated for correcting reads;
+  * :ref:`obtOvlErrorRate <obtOvlErrorRate>` applied to overlaps generated for trimming reads;
+  * :ref:`utgOvlErrorRate <utgOvlErrorRate>` applies to overlaps generated for assembling reads.
+  These limits apply to the 'ovl' overlap algorithm and when alignments are computed for mhap
+  overlaps with :ref:`mhapReAlign <mhapReAlign>`.
 
 {prefix}OvlFrequentMers <string=undefined>
   Do not seed overlaps with these kmers (fasta format).
 
 {prefix}OvlHashBits <integer=unset>
-  Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per corOvlHashBlockLength.
+  Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength.
 
 {prefix}OvlHashBlockLength <integer=unset>
   Amount of sequence (bp to load into the overlap hash table.
 
 {prefix}OvlHashLoad <integer=unset>
-  Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time.
+  Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search
+  overhead dominates run time.
 
 {prefix}OvlMerDistinct <integer=unset>
   K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps.
@@ -567,6 +585,11 @@ For example, 'mhapMemory` would set the memory limit for computing overlaps with
 'cormhapMemory' would set the memory limit only when mhap is used for generating overlaps used for
 correction.
 
+.. _maxMemory:
+.. _minMemory:
+.. _minThreads:
+.. _maxThreads:
+
 The 'minMemory', 'maxMemory', 'minThreads' and 'maxThreads' options will apply to all jobs, and
 can be used to artifically limit canu to a portion of the current machine.  In the overlapper
 example above, setting maxThreads=4 would result in two concurrent jobs instead of four.
@@ -684,12 +707,13 @@ Output Filtering
 .. _contigFilter:
 
 contigFilter <minReads, integer=2> <minLength, integer=0> <singleReadSpan, float=1.0> <lowCovSpan, float=0.5> <lowCovDepth, integer=5>
-  Remove spurious assemblies from consideration.  Any contig that meeds any of the following
-  conditions is flagged as 'unassembled' and removed from further consideration:
-    - fewer than minReads reads
-    - shorter than minLength bases
-    - a single read covers more than singleReadSpan fraction of the contig
-    - more than lowCovSpan fraction of the contig is at coverage below lowCovDepth
-  This filtering is done immediately after initial contigs are formed, before repeat detection.
-  Initial contigs that span a repeat can be split into multiple conitgs; none of these
-  new contigs will be 'unassembled', even if they are a single read.
+  A contig that meeds any of the following conditions is flagged as 'unassembled' and removed from
+  further consideration:
+    - fewer than minReads reads (default 2)
+    - shorter than minLength bases (default 0)
+    - a single read covers more than singleReadSpan fraction of the contig (default 1.0)
+    - more than lowCovSpan fraction of the contig is at coverage below lowCovDepth (defaults 0.5, 5)
+  This filtering is done immediately after initial contigs are formed, before potentially
+  incorrectly spanned repeats are detected.  Initial contigs that incorrectly span a repeat can be
+  split into multiple conitgs; none of these new contigs will be flagged as 'unassembled', even if
+  they are a single read.
