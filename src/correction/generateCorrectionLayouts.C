@@ -97,10 +97,8 @@ generateLayout(gkStore    *gkpStore,
     //  Score '100 * ovlLength * (1 - ovl[oo].erate())' was tried early on, but it was worse than
     //  the 'legacy' score.  This had been an option, always enabled, until August 2017.
 
-    uint64   ovlLength = ((ovl[oo].b_bgn() < ovl[oo].b_end()) ?
-                          ovl[oo].b_end() - ovl[oo].b_bgn() :
-                          ovl[oo].b_bgn() - ovl[oo].b_end());
-    uint64   ovlScore  = ovlLength << AS_MAX_EVALUE_BITS | (AS_MAX_EVALUE - ovl[oo].evalue());
+    uint64   ovlLength = ovl[oo].b_len();
+    uint64   ovlScore  = ovl[oo].correctionScore(true);
 
     if (ovlLength > AS_MAX_READLEN) {
       char ovlString[1024];
