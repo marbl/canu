@@ -12866,3 +12866,5 @@ A src/correction/falconConsensus-alignTag.H  nihh20170821Brian P. Walenz
 A src/correction/falconConsensus-msa.H  nihh20170821Brian P. Walenz
 A src/correction/falconConsensus.C  nihh20170821Brian P. Walenz
 A src/correction/falconConsensus.H  nihh20170821Brian P. Walenz
+D src/correction/computeGlobalScore.H src/correction/filterCorrectionOverlaps.C
+D src/correction/computeGlobalScore.C src/correction/filterCorrectionOverlaps.C

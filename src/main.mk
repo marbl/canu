@@ -48,6 +48,7 @@ SOURCES      := AS_global.C \
                 AS_UTL/kMer.C \
                 \
                 falcon_sense/libfalcon/falcon.C \
+                correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
                 correction/falconConsensus-alignTag.C \
                 \
