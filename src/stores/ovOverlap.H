@@ -238,6 +238,9 @@ public:
   uint32     b_bgn(void) const          { return((dat.ovl.flipped) ? (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
   uint32     b_end(void) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3)); };
 
+  uint32     a_len(void) const          { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength() - dat.ovl.ahg3 - dat.ovl.ahg5); };
+  uint32     b_len(void) const          { return(g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3 - dat.ovl.bhg5); };
+
   uint32     span(void) const           { return(dat.ovl.span); };
   void       span(uint32 s)             { dat.ovl.span = s; };
 
@@ -293,6 +296,14 @@ public:
   uint32     overlap3primeIsPartial(void) const { return((dat.ovl.ahg3 > 0) && (dat.ovl.bhg3 > 0)); };
 
   uint32     overlapIsPartial(void)       const { return(overlap5primeIsPartial() || overlap3primeIsPartial()); };
+
+  uint64     correctionScore(bool forB=false) const {
+    uint64  len   = (forB == false) ? a_len() : b_len();   //  Needed to promote to 64-bit value
+    uint64  sco   = 100 * len * (1 - erate());
+    //uint64  sco   = (len << AS_MAX_EVALUE_BITS) | (AS_MAX_EVALUE - evalue());  //  LEGACY SCORE
+
+    return(sco);
+  };
 
   char      *toString(char *str, ovOverlapDisplayType type, bool newLine);
 
