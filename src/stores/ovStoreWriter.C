@@ -45,6 +45,54 @@ checkAndSaveName(char *storePath, const char *path) {
 
 
 
+ovStoreWriter::~ovStoreWriter() {
+
+  //  Write the last index element, filling in gaps.
+
+  if (_offt._numOlaps > 0) {
+    for (; _offm._a_iid < _offt._a_iid; _offm._a_iid++) {
+      _offm._fileno   = _offt._fileno;
+      _offm._offset   = _offt._offset;
+      _offm._numOlaps = 0;
+
+      AS_UTL_safeWrite(_offtFile, &_offm, "ovStore::~ovStore::offm", sizeof(ovStoreOfft), 1);
+    }
+
+    AS_UTL_safeWrite(_offtFile, &_offt, "ovStore::~ovStore::offt", sizeof(ovStoreOfft), 1);
+  }
+
+  fclose(_offtFile);
+
+  //  Update the on-disk info with the results and real magic number
+
+  _info.save(_storePath, _currentFileIndex);
+
+  //  Update our copy of the histogram from the last open file, and close it.
+
+  if (_bof)
+    _bof->transferHistogram(_histogram);
+  delete _bof;
+
+  //  Save the histogram data.
+
+  if (_histogram)
+    _histogram->saveData(_storePath);
+  delete _histogram;
+
+  //  Report a nice success message.
+
+  fprintf(stderr, "Created ovStore '%s' with " F_U64 " overlaps for reads from " F_U32 " to " F_U32 ".\n",
+          _storePath, _info.numOverlaps(), _info.smallestID(), _info.largestID());
+}
+
+
+
+
+////////////////////////////////////////
+//
+//  SEQUENTIAL STORE - only two functions.
+//
+
 ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
   char name[FILENAME_MAX];
 
@@ -97,66 +145,6 @@ ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
   _fileID              = 0;
   _jobIdxMax           = 0;
 }
-
-
-
-ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax) {
-
-  checkAndSaveName(_storePath, path);
-
-  _gkp                 = gkp;
-
-  _offtFile            = NULL;
-  _evaluesMap          = NULL;
-  _evalues             = NULL;
-
-  _overlapsThisFile    = 0;
-  _overlapsThisFileMax = 0;
-  _currentFileIndex    = 0;
-  _bof                 = NULL;
-
-  _histogram           = NULL;
-
-  _fileLimit           = fileLimit;
-  _fileID              = fileID;
-  _jobIdxMax           = jobIdxMax;
-};
-
-
-
-ovStoreWriter::~ovStoreWriter() {
-
-  //  Write the last index element (don't forget to fill in gaps);
-  //  update the info, using the final magic number
-
-  if (_offt._numOlaps > 0) {
-    for (; _offm._a_iid < _offt._a_iid; _offm._a_iid++) {
-      _offm._fileno   = _offt._fileno;
-      _offm._offset   = _offt._offset;
-      _offm._numOlaps = 0;
-
-      AS_UTL_safeWrite(_offtFile, &_offm, "ovStore::~ovStore::offm", sizeof(ovStoreOfft), 1);
-    }
-
-    AS_UTL_safeWrite(_offtFile, &_offt, "ovStore::~ovStore::offt", sizeof(ovStoreOfft), 1);
-  }
-
-  _info.save(_storePath, _currentFileIndex);
-
-  if (_bof)
-    _bof->transferHistogram(_histogram);
-  delete _bof;
-
-  if (_histogram)
-    _histogram->saveData(_storePath);
-  delete _histogram;
-
-  fprintf(stderr, "Created ovStore '%s' with " F_U64 " overlaps for reads from " F_U32 " to " F_U32 ".\n",
-          _storePath, _info.numOverlaps(), _info.smallestID(), _info.largestID());
-
-  fclose(_offtFile);
-}
-
 
 
 
@@ -235,9 +223,123 @@ ovStoreWriter::writeOverlap(ovOverlap *overlap) {
 
 
 
+////////////////////////////////////////
+//
+//  PARALLEL STORE - many functions, all the rest.
+//
+
+ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax) {
+
+  checkAndSaveName(_storePath, path);
+
+  _gkp                 = gkp;
+
+  _offtFile            = NULL;
+  _evaluesMap          = NULL;
+  _evalues             = NULL;
+
+  _overlapsThisFile    = 0;
+  _overlapsThisFileMax = 0;
+  _currentFileIndex    = 0;
+  _bof                 = NULL;
+
+  _histogram           = NULL;
+
+  _fileLimit           = fileLimit;
+  _fileID              = fileID;
+  _jobIdxMax           = jobIdxMax;
+};
 
 
-//  For the parallel sort, write a block of sorted overlaps into a single file, with index and info.
+
+uint64
+ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
+  char      namz[FILENAME_MAX];
+  char      name[FILENAME_MAX];
+
+  uint64   *sliceSizes = new uint64 [_fileLimit + 1];  //  For each overlap job, number of overlaps per bucket
+  uint64    totOvl     = 0;
+
+  for (uint32 i=0; i<=_jobIdxMax; i++) {
+    bucketSizes[i] = 0;
+
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d",    _storePath, i, _fileID);
+    snprintf(namz, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, i, _fileID);
+
+    //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
+    //  With snappy compression, we expect the file to be not gzip compressed, but will happily
+    //  accept a gzipped file.
+
+    if ((AS_UTL_fileExists(name, FALSE, FALSE) == false) &&
+        (AS_UTL_fileExists(namz, FALSE, FALSE) == false))
+      continue;
+
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", _storePath, i);
+
+    FILE *F = fopen(name, "r");
+    if (errno)
+      fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
+
+    uint64 nr = AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), _fileLimit + 1);
+
+    fclose(F);
+
+    if (nr != _fileLimit + 1) {
+      fprintf(stderr, "ERROR: short read on '%s'.\n", name);
+      fprintf(stderr, "ERROR: read " F_U64 " sizes insteadof " F_U32 ".\n", nr, _fileLimit + 1);
+    }
+    assert(nr == _fileLimit + 1);
+
+    fprintf(stderr, "  found %10" F_U64P " overlaps in '%s'.\n", sliceSizes[_fileID], name);
+
+    bucketSizes[i] = sliceSizes[_fileID];
+    totOvl        += sliceSizes[_fileID];
+  }
+
+  delete [] sliceSizes;
+
+  return(totOvl);
+}
+
+
+
+void
+ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen) {
+  char name[FILENAME_MAX];
+
+  if (expectedLen == 0)
+    return;
+
+  snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d", _storePath, slice, _fileID);
+
+  if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, slice, _fileID);
+
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
+      fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
+              expectedLen, name);
+  }
+
+  fprintf(stderr, "  loading %10" F_U64P " overlaps from '%s'.\n", expectedLen, name);
+
+  ovFile   *bof = new ovFile(_gkp, name, ovFileFull);
+  uint64    num = 0;
+
+  while (bof->readOverlap(ovls + ovlsLen)) {
+    ovlsLen++;
+    num++;
+  }
+
+  if (num != expectedLen)
+    fprintf(stderr, "ERROR: expected " F_U64 " overlaps, found " F_U64 " overlaps.\n", expectedLen, num);
+  assert(num == expectedLen);
+
+  delete bof;
+}
+
+
+
+//  Write a block of sorted overlaps into a single file, with index and info.
 
 void
 ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
@@ -352,78 +454,6 @@ ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
 
 
 
-
-//  For the parallel sort, but also generally applicable, test that the index is sane.
-
-bool
-ovStoreWriter::testIndex(bool doFixes) {
-  char name[FILENAME_MAX];
-  FILE *I = NULL;
-  FILE *F = NULL;
-
-  //  Open the input index.
-
-  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
-
-  errno = 0;
-  I = fopen(name, "r");
-  if (errno)
-    fprintf(stderr, "ERROR: Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
-
-  //  If we're fixing, open the output index.
-
-  if (doFixes) {
-    snprintf(name, FILENAME_MAX, "%s/index.fixed", _storePath);
-
-    errno = 0;
-    F = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
-  }
-
-  ovStoreOfft  O;
-
-  uint32  curIID = 0;
-  uint32  minIID = UINT32_MAX;
-  uint32  maxIID = 0;
-
-  uint32  nErrs = 0;
-
-  while (1 == AS_UTL_safeRead(I, &O, "offset", sizeof(ovStoreOfft), 1)) {
-    bool  maxIncreases   = (maxIID < O._a_iid);
-    bool  errorDecreased = ((O._a_iid < curIID));
-    bool  errorGap       = ((O._a_iid > 0) && (curIID + 1 != O._a_iid));
-
-    if (O._a_iid < minIID)
-      minIID = O._a_iid;
-
-    if (maxIncreases)
-      maxIID = O._a_iid;
-
-    if (errorDecreased)
-      fprintf(stderr, "ERROR: index decreased from " F_U32 " to " F_U32 "\n", curIID, O._a_iid), nErrs++;
-    else if (errorGap)
-      fprintf(stderr, "ERROR: gap between " F_U32 " and " F_U32 "\n", curIID, O._a_iid), nErrs++;
-
-    if ((maxIncreases == true) && (errorGap == false)) {
-      if (doFixes)
-        AS_UTL_safeWrite(F, &O, "offset", sizeof(ovStoreOfft), 1);
-
-    } else if (O._numOlaps > 0) {
-      fprintf(stderr, "ERROR: lost overlaps a_iid " F_U32 " fileno " F_U32 " offset " F_U32 " numOlaps " F_U32 "\n",
-              O._a_iid, O._fileno, O._offset, O._numOlaps);
-    }
-
-    curIID = O._a_iid;
-  }
-
-  fclose(I);
-
-  if (F)
-    fclose(F);
-
-  return(nErrs == 0);
-}
 
 
 
@@ -571,7 +601,6 @@ ovStoreWriter::mergeInfoFiles(void) {
 
 
 
-
 void
 ovStoreWriter::mergeHistogram(void) {
   char               name[FILENAME_MAX];
@@ -590,93 +619,74 @@ ovStoreWriter::mergeHistogram(void) {
 
 
 
+bool
+ovStoreWriter::testIndex(bool doFixes) {
+  char name[FILENAME_MAX];
+  FILE *I = NULL;
+  FILE *F = NULL;
 
+  //  Open the input index.
 
+  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
 
+  errno = 0;
+  I = fopen(name, "r");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
 
-uint64
-ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
-  char      namz[FILENAME_MAX];
-  char      name[FILENAME_MAX];
+  //  If we're fixing, open the output index.
 
-  uint64   *sliceSizes = new uint64 [_fileLimit + 1];  //  For each overlap job, number of overlaps per bucket
-  uint64    totOvl     = 0;
+  if (doFixes) {
+    snprintf(name, FILENAME_MAX, "%s/index.fixed", _storePath);
 
-  for (uint32 i=0; i<=_jobIdxMax; i++) {
-    bucketSizes[i] = 0;
-
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d",    _storePath, i, _fileID);
-    snprintf(namz, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, i, _fileID);
-
-    //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
-    //  With snappy compression, we expect the file to be not gzip compressed, but will happily
-    //  accept a gzipped file.
-
-    if ((AS_UTL_fileExists(name, FALSE, FALSE) == false) &&
-        (AS_UTL_fileExists(namz, FALSE, FALSE) == false))
-      continue;
-
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", _storePath, i);
-
-    FILE *F = fopen(name, "r");
+    errno = 0;
+    F = fopen(name, "w");
     if (errno)
-      fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
+      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+  }
 
-    uint64 nr = AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), _fileLimit + 1);
+  ovStoreOfft  O;
 
+  uint32  curIID = 0;
+  uint32  minIID = UINT32_MAX;
+  uint32  maxIID = 0;
+
+  uint32  nErrs = 0;
+
+  while (1 == AS_UTL_safeRead(I, &O, "offset", sizeof(ovStoreOfft), 1)) {
+    bool  maxIncreases   = (maxIID < O._a_iid);
+    bool  errorDecreased = ((O._a_iid < curIID));
+    bool  errorGap       = ((O._a_iid > 0) && (curIID + 1 != O._a_iid));
+
+    if (O._a_iid < minIID)
+      minIID = O._a_iid;
+
+    if (maxIncreases)
+      maxIID = O._a_iid;
+
+    if (errorDecreased)
+      fprintf(stderr, "ERROR: index decreased from " F_U32 " to " F_U32 "\n", curIID, O._a_iid), nErrs++;
+    else if (errorGap)
+      fprintf(stderr, "ERROR: gap between " F_U32 " and " F_U32 "\n", curIID, O._a_iid), nErrs++;
+
+    if ((maxIncreases == true) && (errorGap == false)) {
+      if (doFixes)
+        AS_UTL_safeWrite(F, &O, "offset", sizeof(ovStoreOfft), 1);
+
+    } else if (O._numOlaps > 0) {
+      fprintf(stderr, "ERROR: lost overlaps a_iid " F_U32 " fileno " F_U32 " offset " F_U32 " numOlaps " F_U32 "\n",
+              O._a_iid, O._fileno, O._offset, O._numOlaps);
+    }
+
+    curIID = O._a_iid;
+  }
+
+  fclose(I);
+
+  if (F)
     fclose(F);
 
-    if (nr != _fileLimit + 1) {
-      fprintf(stderr, "ERROR: short read on '%s'.\n", name);
-      fprintf(stderr, "ERROR: read " F_U64 " sizes insteadof " F_U32 ".\n", nr, _fileLimit + 1);
-    }
-    assert(nr == _fileLimit + 1);
-
-    fprintf(stderr, "  found %10" F_U64P " overlaps in '%s'.\n", sliceSizes[_fileID], name);
-
-    bucketSizes[i] = sliceSizes[_fileID];
-    totOvl        += sliceSizes[_fileID];
-  }
-
-  delete [] sliceSizes;
-
-  return(totOvl);
-}
-
-
-
-void
-ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen) {
-  char name[FILENAME_MAX];
-
-  if (expectedLen == 0)
-    return;
-
-  snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d", _storePath, slice, _fileID);
-
-  if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%04d.gz", _storePath, slice, _fileID);
-
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-      fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
-              expectedLen, name);
-  }
-
-  fprintf(stderr, "  loading %10" F_U64P " overlaps from '%s'.\n", expectedLen, name);
-
-  ovFile   *bof = new ovFile(_gkp, name, ovFileFull);
-  uint64    num = 0;
-
-  while (bof->readOverlap(ovls + ovlsLen)) {
-    ovlsLen++;
-    num++;
-  }
-
-  if (num != expectedLen)
-    fprintf(stderr, "ERROR: expected " F_U64 " overlaps, found " F_U64 " overlaps.\n", expectedLen, num);
-  assert(num == expectedLen);
-
-  delete bof;
+  return(nErrs == 0);
 }
 
 

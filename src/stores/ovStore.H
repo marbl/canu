@@ -241,17 +241,17 @@ public:
 
   ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax);
 
-  void         writeOverlaps(ovOverlap *ovls, uint64 ovlsLen);
-
   uint64       loadBucketSizes(uint64 *bucketSizes);
   void         loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen);
-  void         removeOverlapSlice(void);
+
+  void         writeOverlaps(ovOverlap *ovls, uint64 ovlsLen);
 
   void         mergeInfoFiles(void);
   void         mergeHistogram(void);
 
   bool         testIndex(bool doFixes);
 
+  void         removeOverlapSlice(void);
   void         checkSortingIsComplete(void);
   void         removeAllIntermediateFiles(void);
 
