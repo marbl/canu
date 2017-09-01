@@ -204,7 +204,7 @@ main(int argc, char **argv) {
       FRACTION = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-b") == 0) {
-      BASES = atoi(argv[++arg]);
+      BASES = atol(argv[++arg]);
 
     } else {
       err++;
