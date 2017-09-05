@@ -308,7 +308,8 @@ computeIIDperBucket(uint32          fileLimit,
           olapsPerBucketMax * GBperOlap + MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
   fprintf(stderr, "\n");
 
-  delete hist;
+  delete [] oPR;
+  delete    hist;
 
   return(iidToBucket);
 }
@@ -540,6 +541,8 @@ main(int argc, char **argv) {
     delete inputFile;
   }
 
+  delete [] iidToBucket;
+
   for (uint32 i=0; i<dumpFileMax; i++)
     delete dumpFile[i];
 
@@ -578,8 +581,6 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<dumpFileMax; i++)
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
-
-  ovStoreHistogram   *histogram = new ovStoreHistogram;
 
   ovOverlap  *overlapsort = ovOverlap::allocateOverlaps(gkp, dumpLengthMax);
 
