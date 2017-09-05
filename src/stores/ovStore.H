@@ -316,7 +316,11 @@ public:
   void         resetRange(void);
 
   uint64       numOverlapsInRange(void);
-  uint32 *     numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag);
+
+  void         numOverlapsPerRead(uint32 *olapsPerRead,
+                                  uint32  firstRead,
+                                  uint32  lastRead);
+  uint32      *numOverlapsPerRead(uint32  numReads=0);
 
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
   //  of evalues must agree.

@@ -651,12 +651,12 @@ main(int argc, char **argv) {
   uint64      *overlapIndex = new uint64     [numIIDs + 1];
   uint32       bgn = 0;
   uint32       end = 0;
-  uint32      *overlapLen   = ovlStore->numOverlapsPerFrag(bgn, end);
+  uint32      *overlapLen   = ovlStore->numOverlapsPerRead();
 
   overlapIndex[0] = 0;
 
   for (uint32 iid=0; iid<numIIDs; iid++)
-    overlapIndex[iid+1] = overlapIndex[iid] + overlapLen[iid];
+    overlapIndex[iid+1] = overlapIndex[iid] + overlapLen[iid+1];
 
   assert(overlapIndex[numIIDs] == numOvls);
 

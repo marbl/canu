@@ -254,8 +254,8 @@ dumpStore(ovStore                *ovlStore,
   uint32   obtDumped       = 0;
   uint32   merDumped       = 0;
 
-  uint32  *counts            = NULL;
-  ovStoreHistogram  *hist = NULL;
+  uint32            *counts = NULL;
+  ovStoreHistogram  *hist   = NULL;
 
   //  Set the range of the reads to dump early so that we can reset it later.
 
@@ -271,11 +271,17 @@ dumpStore(ovStore                *ovlStore,
   }
 
   //  If we're dumping counts, and no modifiers, we can just ask the store for the counts
-  //  and set the range to null.
+  //  and set the range to null.  Argh, the rest of the code expects counts[] to start at
+  //  bgnID, so we need to rewrite everything.
 
   if ((asCounts) && (dumpType == 0)) {
-    counts = ovlStore->numOverlapsPerFrag(bgnID, endID);
+    counts = new uint32 [endID - bgnID + 1];
+
+    ovlStore->numOverlapsPerRead(counts, bgnID, endID);
     ovlStore->setRange(1, 0);
+
+    for (uint32 ii=bgnID; ii<=endID; ii++)
+      counts[ii - bgnID] = counts[ii];
   }
 
   //  If we're dumping the erate-vs-length histogram, and no modifiers, grab it from the store and

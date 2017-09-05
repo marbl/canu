@@ -487,42 +487,53 @@ ovStore::numOverlapsInRange(void) {
 
 
 
-uint32 *
-ovStore::numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag) {
-
-  if (_firstIIDrequested > _lastIIDrequested)
-    return(NULL);
-
-  firstFrag = _firstIIDrequested;
-  lastFrag  = _lastIIDrequested;
+//  Fills olapsPerRead with the number of overlaps per read.
+//  olapsPerRead must be at least 'lastRead+1' in size, not just lastRead-firstRead+1.
+//  olapsPerRead is not initialized; must be cleared before calling.
+//
+void
+ovStore::numOverlapsPerRead(uint32 *olapsPerRead,
+                            uint32  firstRead,
+                            uint32  lastRead) {
 
   off_t  originalPosition = AS_UTL_ftell(_offtFile);
 
-  AS_UTL_fseek(_offtFile, (off_t)_firstIIDrequested * sizeof(ovStoreOfft), SEEK_SET);
+  AS_UTL_fseek(_offtFile, (off_t)firstRead * sizeof(ovStoreOfft), SEEK_SET);
 
-  //  Even if we're doing a whole human-size store, this allocation is
-  //  (a) temporary and (b) only 512MB.  The only current consumer of
-  //  this code is FragCorrectOVL.c, which doesn't run on the whole
-  //  human, it runs on ~24 pieces, which cuts this down to < 32MB.
-
-  uint64 len = _lastIIDrequested - _firstIIDrequested + 1;
+  uint64        len     = lastRead - firstRead + 1;
 
   ovStoreOfft  *offsets = new ovStoreOfft [len];
-  uint32       *numolap = new uint32      [len];
 
-  uint64 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsInRange::offsets", sizeof(ovStoreOfft), len);
+  uint64 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsPerRead", sizeof(ovStoreOfft), len);
 
   if (len != act)
-    fprintf(stderr, "AS_OVS_numOverlapsPerFrag()-- short read on offsets!  Expected len=" F_U64 " read act=" F_U64 "\n", len, act), exit(1);
+    fprintf(stderr, "ovStore::numOverlapsPerRead()-- short read on offsets!  Expected len=" F_U64 " read act=" F_U64 "\n", len, act), exit(1);
 
   for (uint64 i=0; i<len; i++)
-    numolap[i] = offsets[i]._numOlaps;
+    olapsPerRead[firstRead+i] = offsets[i]._numOlaps;
 
   delete [] offsets;
 
   AS_UTL_fseek(_offtFile, originalPosition, SEEK_SET);
+}
 
-  return(numolap);
+
+
+uint32 *
+ovStore::numOverlapsPerRead(uint32 numReads) {
+
+  if ((numReads == 0) && (_gkp != NULL))
+    numReads = _gkp->gkStore_getNumReads();
+
+  assert(numReads > 0);
+
+  uint32 *olapsPerRead = new uint32 [numReads+1];
+
+  memset(olapsPerRead, 0, (numReads+1) * sizeof(uint32));
+
+  numOverlapsPerRead(olapsPerRead, 1, numReads);
+
+  return(olapsPerRead);
 }
 
 

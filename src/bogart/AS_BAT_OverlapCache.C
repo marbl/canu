@@ -231,8 +231,7 @@ OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
 
   uint32  frstRead  = 0;
   uint32  lastRead  = 0;
-  uint32 *numPer    = ovlStore->numOverlapsPerFrag(frstRead, lastRead);
-  uint32  totlRead  = lastRead - frstRead + 1;
+  uint32 *numPer    = ovlStore->numOverlapsPerRead(RI->numReads());
 
   //  Set the minimum number of overlaps per read to twice coverage.  Then set the maximum number of
   //  overlaps per read to a guess of what it will take to fill up memory.
@@ -268,7 +267,7 @@ OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
     numEqual = 0;
     numAbove = 0;
 
-    for (uint32 i=0; i<totlRead; i++) {
+    for (uint32 i=1; i<=RI->numReads(); i++) {
       if (numPer[i] < _maxPer) {
         numBelow += 1;
         olapLoad += numPer[i];
