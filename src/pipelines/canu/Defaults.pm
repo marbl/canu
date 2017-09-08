@@ -509,6 +509,7 @@ sub addSequenceFile ($$@) {
 
     return(undef)             if (!defined($file));   #  No file name?  Nothing to do.
     $file = "$dir/$file"      if (defined($dir));     #  If $dir defined, assume file is in there.
+    return($file)             if ($file =~ m!/!);     #  If already a full path, use that.
     return(abs_path($file))   if (-e $file);          #  If found, return the full path.
 
     #  And if not found, report an error, unless told not to.  This is because on the command
@@ -921,7 +922,6 @@ sub setDefaults () {
     setDefault("corMinCoverage",               undef,        "Minimum number of bases supporting each corrected base, if less than this sequences are split; default based on input read coverage: 0 <= 30x < 4 < 60x <= 4");
     setDefault("corFilter",                    "expensive",  "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'");
     setDefault("corConsensus",                 "falcon",     "Which consensus algorithm to use; only 'falcon' is supported; default 'falcon'");
-    setDefault("corLegacyFilter",              undef,        "Expert option: global filter, length * identity (default) or length with  broken by identity (if on)");
 
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 
@@ -1357,14 +1357,6 @@ sub checkParameters () {
         addCommandLineError("contigFilter 'singleReadSpan' must be between 0.0 and 1.0, currently $v[2]\n")   if (($v[2] < 0) || (1 < $v[2]) || ($v[2] !~ m/^[0-9]*\.{0,1}[0-9]*$/));
         addCommandLineError("contigFilter 'lowCovFraction' must be between 0.0 and 1.0, currently $v[3]\n")   if (($v[3] < 0) || (1 < $v[3]) || ($v[3] !~ m/^[0-9]*\.{0,1}[0-9]*$/));
         addCommandLineError("contigFilter 'lowCovDepth' must be a positive integer, currently $v[4]\n")       if (($v[4] < 0) || ($v[4] !~ m/^[0-9]+$/));
-    }
-
-    #
-    #  Minimap, no valid identities, set legacy
-    #
-
-    if (getGlobal("corOverlapper") eq "minimap") {
-        setGlobalIfUndef("corLegacyFilter", 1);
     }
 }
 
