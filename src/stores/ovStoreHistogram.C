@@ -25,50 +25,13 @@
 
 #include "ovStoreHistogram.H"
 
+#include <algorithm>
+
+using namespace std;
 
 
-ovStoreHistogram::ovStoreHistogram() {
-
-  _gkp = NULL;
-
-  _maxOlength = 0;
-  _maxEvalue  = 0;
-
-  _epb = 0;
-  _bpb = 0;
-
-  _opelLen = 0;
-  _opel    = NULL;
-
-  _oprLen  = 0;
-  _oprMax  = 0;
-  _opr     = NULL;
-}
-
-
-ovStoreHistogram::ovStoreHistogram(char *path) {
-
-  _gkp = NULL;
-
-  _maxOlength = 0;
-  _maxEvalue  = 0;
-
-  _epb = 0;
-  _bpb = 0;
-
-  _opelLen = 0;
-  _opel    = NULL;
-
-  _oprLen  = 0;
-  _oprMax  = 0;
-  _opr     = NULL;
-
-  loadData(path);
-}
-
-
-ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
-
+void
+ovStoreHistogram::clear(gkStore *gkp) {
   _gkp = gkp;
 
   _maxOlength = 0;
@@ -83,6 +46,35 @@ ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
   _oprLen  = 0;
   _oprMax  = 0;
   _opr     = NULL;
+
+  _scoresListLen = 0;
+  _scoresListMax = 0;
+  _scoresList    = NULL;
+  _scoresListAid = 0;
+
+  _scoresBgn     = 0;
+  _scoresLen     = 0;
+  _scoresMax     = 0;
+  _scores        = NULL;
+}
+
+
+
+ovStoreHistogram::ovStoreHistogram() {
+  clear();
+}
+
+
+
+ovStoreHistogram::ovStoreHistogram(char *path) {
+  clear();
+  loadData(path);
+}
+
+
+
+ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
+  clear(gkp);
 
   //  When writing full overlaps out of an overlapper (ovFileFullWrite) we want
   //  to keep track of the number of overlaps per read.  We could pre-allocate
@@ -123,6 +115,26 @@ ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
 
     memset(_opel, 0, sizeof(uint32 *) * (AS_MAX_EVALUE + 1));
   }
+
+  //  When writing store overlaps (ovFileNormalWrite) _for_correction_ (which we don't know here) we
+  //  want to keep a profile of the overlap scores for later filtering.  We don't technically need
+  //  to allocate stuff here, but if we don't, we never collect these stats because _scores isn't
+  //  allocated.  Oh, the quandry!
+
+  if (type == ovFileNormalWrite) {
+    if (_gkp == NULL)
+      fprintf(stderr, "ovStoreHistogram()-- ERROR: I need a valid gkpStore.\n"), exit(1);
+
+    _scoresListLen = 0;
+    _scoresListMax = 16384;                          //  Enough for 16k overlaps per read.
+    _scoresList    = new uint16 [_scoresListMax];
+    _scoresListAid = 0;
+
+    _scoresBgn     = 0;
+    _scoresLen     = 0;
+    _scoresMax     = 65535;                          //  Enough for 64k reads.
+    _scores        = new oSH_ovlSco [_scoresMax];
+  }
 }
 
 
@@ -135,12 +147,76 @@ ovStoreHistogram::~ovStoreHistogram() {
 
   delete [] _opel;
   delete [] _opr;
+  delete [] _scoresList;
+  delete [] _scores;
+}
+
+
+
+void
+ovStoreHistogram::processScores(uint32 Aid) {
+
+  if (_scoresBgn == 0) {    //  Bootstrap.  On the first overlap, _scoresListAid == 0 and we call this function
+    _scoresListAid = Aid;   //  (because the overlap can't have a_iid == 0).  We just need to initialize by
+    _scoresBgn     = Aid;   //  setting _scoresListAid (the overlaps being loaded) and _scoreBgn (the first
+    return;                 //  stored in these stats) to Aid.
+  }
+
+  if (_scoresListLen == 0)  //  Likewise, if we haven't added any data, there's nothing for us to do.
+    return;                 //  This happens when we just add data, e.g., the master stats for a store.
+
+  assert(Aid > _scoresListAid);  //  Next overlap (Aid) must be strictly larger than what we've loaded.
+
+  uint32  scoff = _scoresListAid - _scoresBgn;   //  Index into _scores array for this read.
+
+  if (scoff >= _scoresMax)
+    resizeArray(_scores, _scoresLen, _scoresMax, scoff + 65536, resizeArray_copyData | resizeArray_clearNew);
+
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::
+#endif
+  sort(_scoresList, _scoresList + _scoresListLen, greater<uint16>());
+
+
+  //  Decide on a set of points to save.  Eventually, maybe, we'll analyze the graph to find inflection points.
+  //  For now, we just sample evenly-ish.
+
+  double  step  = (double)_scoresListLen / N_OVL_SCORE;
+  double  point = 0;
+
+  if (step < 1)
+    step = 1;
+
+  if (step > 10)   //  With current N_OVL_SCORE=16, this gets us to 150x coverage.
+    step = 10;
+
+  //  Then just save the points.  We first fill the array with the last point in case there are fewer
+  //  than space for.
+
+  for (uint32 ii=0; ii<N_OVL_SCORE; ii++)
+    _scores[scoff].points[ii] = _scoresListLen-1;
+
+  for (uint32 ii=0; ii<N_OVL_SCORE-1 && point<_scoresListLen; ii++, point += step)
+    _scores[scoff].points[ii] = (uint16)floor(point + 0.5);
+
+  //  Now just fill in the scores.
+
+  for (uint32 ii=0; ii<N_OVL_SCORE; ii++)
+    _scores[scoff].scores[ii] = _scoresList[ _scores[scoff].points[ii] ];
+
+
+  _scoresListLen = 0;           //  Reset the scores list for the overlaps for the next read.
+  _scoresListAid = Aid;         //  Remember that next read ID.
+
+  _scoresLen = scoff + 1;       //  Remember the last valid data in _scores.
 }
 
 
 
 void
 ovStoreHistogram::addOverlap(ovOverlap *overlap) {
+
+  //  For overlaps out of overlapper, track the number of overlaps per read.
 
   if (_opr) {
     uint32   maxID = max(overlap->a_iid, overlap->b_iid);
@@ -155,10 +231,15 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
     _opr[overlap->b_iid]++;
   }
 
+  //  For overlaps in the store, track the number of overlaps per evalue-length
+
   if (_opel) {
     uint32 ev  = overlap->evalue();
     uint32 len = (_gkp->gkStore_getRead(overlap->a_iid)->gkRead_sequenceLength() - overlap->dat.ovl.ahg5 - overlap->dat.ovl.ahg3 +
                   _gkp->gkStore_getRead(overlap->b_iid)->gkRead_sequenceLength() - overlap->dat.ovl.bhg5 - overlap->dat.ovl.bhg3) / 2;
+
+    if (_maxEvalue  < ev)    _maxEvalue  = ev;
+    if (_maxOlength < len)   _maxOlength = len;
 
     ev  /= _epb;
     len /= _bpb;
@@ -187,6 +268,21 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
               overlap->dat.ovl.bhg5, (int32)blen - (int32)overlap->dat.ovl.bhg5 - (int32)overlap->dat.ovl.bhg3, overlap->dat.ovl.bhg3,
               overlap->dat.ovl.flipped);
     }
+  }
+
+  //  For overlap scoring, process an existing scoresList if the ID changed, then and add the new overlap to the scoresList.
+
+  if (_scores) {
+    if (_scoresListAid != overlap->a_iid)
+      processScores(overlap->a_iid);
+
+    if (_scoresListLen >= _scoresListMax)
+      resizeArray(_scoresList, _scoresListLen, _scoresListMax, _scoresListMax + 32768);
+
+    _scoresList[_scoresListLen++] = overlap->overlapScore();
+
+    //fprintf(stderr, "ADD OLAP #%u for aid %u  a %u b %u - score %u - aid\n",
+    //        _scoresListLen-1, _scoresListAid, overlap->a_iid, overlap->b_iid, _scoresList[_scoresListLen-1]);
   }
 }
 
@@ -266,6 +362,25 @@ ovStoreHistogram::saveData(char *prefix) {
       AS_UTL_safeWrite(F, &ii,       "ovStoreHistogram::evalue",    sizeof(uint32),  1);
       AS_UTL_safeWrite(F, _opel[ii], "ovStoreHistogram::evalueLen", sizeof(uint32), _opelLen);
     }
+
+    fclose(F);
+  }
+
+  //  If we have overlap scores, process the last one and then dump it.
+
+  if (_scores) {
+    createDataName(name, prefix, "overlapScores");
+
+    processScores();
+
+    errno = 0;
+    FILE *F = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "failed to open overlapScores file '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+    AS_UTL_safeWrite(F, &_scoresBgn, "ovStoreHistogram::scoresBgn",   sizeof(uint32), 1);
+    AS_UTL_safeWrite(F, &_scoresLen, "ovStoreHistogram::scoresLen",   sizeof(uint32), 1);
+    AS_UTL_safeWrite(F,  _scores,    "ovStoreHistogram::scores",      sizeof(oSH_ovlSco), _scoresLen);
 
     fclose(F);
   }
@@ -351,6 +466,27 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
     fclose(F);
   }
+
+  //  Add in any overlap score data.
+
+  createDataName(name, prefix, "overlapScores");
+
+  if (AS_UTL_fileExists(name, false, false) == true) {
+    errno = 0;
+    FILE *F = fopen(name, "r");
+    if (errno)
+      fprintf(stderr, "failed to open evalueLen file '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+
+    uint32  nArr = 0;
+
+    AS_UTL_safeRead(F, &_scoresBgn,  "ovStoreHistogram::scoresBgn",  sizeof(uint32), 1);
+    AS_UTL_safeRead(F, &_scoresLen,  "ovStoreHistogram::scoresLen",  sizeof(uint32), 1);
+
+    _scoresMax = _scoresLen;
+    _scores    = new oSH_ovlSco [_scoresMax];
+
+    AS_UTL_safeRead(F,  _scores,     "ovStoreHistogram::scores",     sizeof(oSH_ovlSco), _scoresLen);
+  }
 }
 
 
@@ -359,14 +495,17 @@ void
 ovStoreHistogram::removeData(char *prefix) {
   char    name[FILENAME_MAX];
 
-  createDataName(name, prefix, "counts");      AS_UTL_unlink(name);
-  createDataName(name, prefix, "evalueLen");   AS_UTL_unlink(name);
+  createDataName(name, prefix, "counts");          AS_UTL_unlink(name);
+  createDataName(name, prefix, "evalueLen");       AS_UTL_unlink(name);
+  createDataName(name, prefix, "overlapScores");   AS_UTL_unlink(name);
 }
 
 
 
 void
 ovStoreHistogram::add(ovStoreHistogram *input) {
+
+  //  Add in any overlaps-per-read data.
 
   if (input->_opr) {
     resizeArray(_opr, _oprLen, _oprMax, input->_oprMax, resizeArray_copyData | resizeArray_clearNew);
@@ -376,6 +515,8 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
 
     _oprLen = max(_oprLen, input->_oprLen);
   }
+
+  //  Add in any overlaps-per-evalue-length data.
 
   if (input->_opel) {
     if (_opel == NULL) {
@@ -409,6 +550,56 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
 
       for (uint32 kk=0; kk<_opelLen; kk++)
         _opel[ev][kk] += input->_opel[ev][kk];
+    }
+  }
+
+  //  Add in any overlap score data.
+
+  if (input->_scores) {
+    uint32   oBgn = _scoresBgn;
+    uint32   oEnd = _scoresBgn + _scoresLen;
+    uint32   oLen = _scoresLen;
+
+    input->processScores();  //  Make sure the input is all up-to-date.
+
+    uint32   iBgn = input->_scoresBgn;
+    uint32   iEnd = input->_scoresBgn + input->_scoresLen;
+    uint32   iLen = input->_scoresLen;
+
+    //  Copy new scores to an empty allocation
+    if (_scoresLen == 0) {
+      duplicateArray(_scores, _scoresLen, _scoresMax, input->_scores, input->_scoresLen, input->_scoresMax);
+
+      _scoresBgn = iBgn;
+      _scoresLen = iLen;
+    }
+
+    //  Copy new scores to middle of (existing) scores.
+    else if ((oBgn <= iBgn) &&
+             (iEnd <= oEnd)) {
+      memcpy(_scores + iBgn - oBgn, input->_scores, sizeof(oSH_ovlSco) * iLen);
+    }
+
+    //  Copy new scores to end of (reallocated) scores.
+    else if (oEnd < iEnd) {
+      oSH_ovlSco *sccopy = new oSH_ovlSco [iEnd - oBgn];
+
+      memcpy(sccopy,                      _scores, sizeof(oSH_ovlSco) * oLen);
+      memcpy(sccopy + iBgn - oBgn, input->_scores, sizeof(oSH_ovlSco) * iLen);
+
+      delete [] _scores;
+      _scores = sccopy;
+    }
+
+    //  Copy new scores to start of (reallocated) scores.
+    else if (iBgn < oBgn) {
+      oSH_ovlSco *sccopy = new oSH_ovlSco [oEnd - iBgn];
+
+      memcpy(sccopy + oBgn - iBgn,        _scores, sizeof(oSH_ovlSco) * oLen);
+      memcpy(sccopy,               input->_scores, sizeof(oSH_ovlSco) * iLen);
+
+      delete [] _scores;
+      _scores = sccopy;
     }
   }
 }
@@ -464,4 +655,62 @@ ovStoreHistogram::dumpEvalueLength(FILE *out) {
 
   fprintf(stderr, "MAX Evalue  %.4f\n", AS_OVS_decodeEvalue(maxEvalue));
   fprintf(stderr, "MAX Length  %u\n",   maxLength * _bpb);
+}
+
+
+
+uint16
+ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage) {
+
+  if ((id < _scoresBgn) ||                             //  Return the highest score
+      (_scoresBgn + _scoresLen <= id))                 //  if the read is out of range.
+    return(UINT16_MAX);
+
+  id -= _scoresBgn;                                    //  Offset the id into the array, and check.
+
+  if (coverage == 0)                                   //  Return the highest score if the coverage is zero.
+    return(UINT16_MAX);
+
+  if (_scores[id].points[N_OVL_SCORE-1] < coverage)    //  Return the lowest score if the coverage is higher
+    return(0);                                         //  than the number of overlaps.
+
+  uint32   cp = 1;
+
+  for (; cp<N_OVL_SCORE; cp++)                         //  Search the list of data points for the pair surrounding 'coverage'.
+    if (coverage <= _scores[id].points[cp])
+      break;
+
+  assert(_scores[id].points[cp-1] <  coverage);        //  'coverage' is now between cp-1 and cp.
+  assert(coverage <= _scores[id].points[cp]);          //  Linearly interpolate to find the score.
+
+  double  x     = _scores[id].points[cp] - _scores[id].points[cp-1];
+  double  y     = _scores[id].scores[cp] - _scores[id].scores[cp-1];          
+  double  score = _scores[id].scores[cp-1] + y / x * (coverage - _scores[id].points[cp-1]);
+
+  if (score < 0)      score = 0;
+  if (score > 65535)  score = 65535;
+
+#if 0
+  fprintf(stdout, "%8u scores %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u %3u/%5u - %f\n",
+          id + _scoresBgn,
+          _scores[id].points[0], _scores[id].scores[0],
+          _scores[id].points[1], _scores[id].scores[1],
+          _scores[id].points[2], _scores[id].scores[2],
+          _scores[id].points[3], _scores[id].scores[3],
+          _scores[id].points[4], _scores[id].scores[4],
+          _scores[id].points[5], _scores[id].scores[5],
+          _scores[id].points[6], _scores[id].scores[6],
+          _scores[id].points[7], _scores[id].scores[7],
+          _scores[id].points[8], _scores[id].scores[8],
+          _scores[id].points[9], _scores[id].scores[9],
+          _scores[id].points[10], _scores[id].scores[10],
+          _scores[id].points[11], _scores[id].scores[11],
+          _scores[id].points[12], _scores[id].scores[12],
+          _scores[id].points[13], _scores[id].scores[13],
+          _scores[id].points[14], _scores[id].scores[14],
+          _scores[id].points[15], _scores[id].scores[15],
+          score);
+#endif
+
+  return((uint16)floor(score));
 }

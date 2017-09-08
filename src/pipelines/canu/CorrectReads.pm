@@ -751,22 +751,22 @@ sub buildCorrectionLayouts ($) {
         my $minLen = (defined(getGlobal("corMinEvidenceLength"))) ? getGlobal("corMinEvidenceLength") : 0;
 
         $cmd  = "$bin/filterCorrectionOverlaps \\\n";
+        $cmd .= "  -estimate -nolog \\\n";
         $cmd .= "  -G ../$asm.gkpStore \\\n";
         $cmd .= "  -O ../$asm.ovlStore \\\n";
         $cmd .= "  -S ./$asm.globalScores.WORKING \\\n";
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
         $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-        $cmd .= "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
         $cmd .= "> ./$asm.globalScores.err 2>&1";
 
         if (runCommand($path, $cmd)) {
             caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
         }
 
-        rename "$path/$asm.globalScores.WORKING", "$path/$asm.globalScores";
+        rename "$path/$asm.globalScores.WORKING",       "$path/$asm.globalScores";
         rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
-        rename "$path/$asm.globalScores.WORKING.log", "$path/$asm.globalScores.log";
+        rename "$path/$asm.globalScores.WORKING.log",   "$path/$asm.globalScores.log";
         unlink "$path/$asm.globalScores.err";
 
         stashFile("$path/$asm.globalScores");

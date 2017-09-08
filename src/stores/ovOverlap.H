@@ -265,7 +265,9 @@ public:
   uint32     flipped(void) const        { return(dat.ovl.flipped == true); };
 
   void       erate(double e)            { dat.ovl.evalue = AS_OVS_encodeEvalue(e); };
-  double     erate(void) const          { return(AS_OVS_decodeEvalue(dat.ovl.evalue)); };
+  double     erate(void) const          { return(    AS_OVS_decodeEvalue(dat.ovl.evalue)); };
+  double     identity(void) const       { return(1 - AS_OVS_decodeEvalue(dat.ovl.evalue)); };
+
 
   void       evalue(uint64 e)           { dat.ovl.evalue = e; };
   uint64     evalue(void) const         { return(dat.ovl.evalue); };
@@ -297,12 +299,14 @@ public:
 
   uint32     overlapIsPartial(void)       const { return(overlap5primeIsPartial() || overlap3primeIsPartial()); };
 
-  uint64     correctionScore(bool forB=false) const {
-    uint64  len   = (forB == false) ? a_len() : b_len();   //  Needed to promote to 64-bit value
-    uint64  sco   = 100 * len * (1 - erate());
-    //uint64  sco   = (len << AS_MAX_EVALUE_BITS) | (AS_MAX_EVALUE - evalue());  //  LEGACY SCORE
+  //  Score this overlap based on length and identity.  Used during read correction.  Note the
+  //  implicit conversion to floating point; lengths over 131072 will overflow a 32-bit signed
+  //  integer before the division.
 
-    return(sco);
+  uint16     overlapScore(bool forB=false) const {
+    return((forB == false) ?
+           (uint16)floor(16384.0 * identity() * a_len() / g->gkStore_getRead(a_iid)->gkRead_sequenceLength()) :
+           (uint16)floor(16384.0 * identity() * b_len() / g->gkStore_getRead(b_iid)->gkRead_sequenceLength()));
   };
 
   char      *toString(char *str, ovOverlapDisplayType type, bool newLine);

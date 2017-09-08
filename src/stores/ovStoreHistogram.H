@@ -35,18 +35,38 @@
 
 #include "ovStoreFile.H"
 
+
+
+#define  N_OVL_SCORE   16   //  Number of overlap scores to save per read
+
+class oSH_ovlSco {
+public:
+  oSH_ovlSco()  {}
+  ~oSH_ovlSco() {};
+
+  uint16    points[N_OVL_SCORE];
+  uint16    scores[N_OVL_SCORE];
+};
+
+
+
 class ovStoreHistogram {
+private:
+  void    clear(gkStore *gkp=NULL);
+
 public:
   ovStoreHistogram();                                //  Used when loading data, user must loadData() later
   ovStoreHistogram(char *path);                      //  Used when loading data, calls loadData() for you
   ovStoreHistogram(gkStore *gkp, ovFileType type);   //  Used when writing ovFile
   ~ovStoreHistogram();
 
+#if 0
   double    minErate(void)             {  return(AS_OVS_decodeEvalue(0));           };
   double    maxErate(void)             {  return(AS_OVS_decodeEvalue(_maxEvalue));  };
 
   uint32    minEvalue(void)            {  return(0);           };
   uint32    maxEvalue(void)            {  return(_maxEvalue);  };
+#endif
 
   uint32    numEvalueBuckets(void)     {  return(AS_MAX_EVALUE + 1);  };
   uint32    numLengthBuckets(void)     {  return(_opelLen);           };
@@ -88,18 +108,27 @@ public:
   //  Copies the number of overlaps per read into oprOut.  This array is assumed to sized using
   //  gkpStore to get the number of reads.  The data in the histogram can be shorter, but shouldn't
   //  be longer.  If so, it will fail and exit.
+  //
+  //  Returns total number of overlaps in this histogram.
 
-  uint64    getOverlapsPerRead(uint32 *oprOut, uint32 oprOutLen);     //  Returns total overlaps in this histogram
+  uint64    getOverlapsPerRead(uint32 *oprOut, uint32 oprOutLen);
 
   //  Dump a gnuplot-friendly data file of the evalues-length.
 
   void      dumpEvalueLength(FILE *out);
 
+  //  Report the ith overlap score estimate.  The top i overlaps will (usually) have score bigger
+  //  than this.
+
+  uint16    overlapScoreEstimate(uint32 id, uint32 i);
+
 private:
   gkStore   *_gkp;
 
-  uint32     _maxOlength;   //  Max overlap length seen
-  uint32     _maxEvalue;    //  Max evalue seen
+  uint32     _maxOlength;   //  Max overlap length seen - NOT USED
+  uint32     _maxEvalue;    //  Max evalue seen         - NOT USED
+
+  //  Overlaps per evalue-length, for overlaps in the store.
 
   uint32     _epb;      //  Evalues per bucket
   uint32     _bpb;      //  Bases per bucket
@@ -107,9 +136,28 @@ private:
   uint32     _opelLen;  //  Length of the data vector for one evalue
   uint32   **_opel;     //  Overlaps per evalue-length
 
+  //  Overlaps per read, for overlaps out of overlapper.
+
   uint32     _oprLen;   //  Length of opr valid data
   uint32     _oprMax;   //  Last allocated opr
   uint32    *_opr;      //  Overlaps per read
+
+  //  Overlap score for the top overlaps.  Used during correction.
+  //  Want to store ~11 values per read, 16 bits each, so 22 bytes.
+  //  Human has 14,625,060 reads -> 160,875,660 bytes data.
+  //  UINT32_MAX indicates the no more data.
+
+  void          processScores(uint32 Aid=UINT32_MAX);
+
+  uint32       _scoresListLen;
+  uint32       _scoresListMax;
+  uint16      *_scoresList;
+  uint32       _scoresListAid;  //  Current ID being stored in _scoresList
+
+  uint32       _scoresBgn;      //  First ID stored in _scores
+  uint32       _scoresLen;      //  Number of valid scores
+  uint32       _scoresMax;      //  Number of allocated scores
+  oSH_ovlSco  *_scores;
 };
 
 #endif  //  AS_OVSTOREHISTOGRAM_H

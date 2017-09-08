@@ -61,7 +61,7 @@ using namespace std;
 
 tgTig *
 generateLayout(gkStore    *gkpStore,
-               uint64     *readScores,
+               uint16     *olapThresh,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
@@ -98,7 +98,7 @@ generateLayout(gkStore    *gkpStore,
     //  the 'legacy' score.  This had been an option, always enabled, until August 2017.
 
     uint64   ovlLength = ovl[oo].b_len();
-    uint64   ovlScore  = ovl[oo].correctionScore(true);
+    uint16   ovlScore  = ovl[oo].overlapScore(true);
 
     if (ovlLength > AS_MAX_READLEN) {
       char ovlString[1024];
@@ -120,11 +120,11 @@ generateLayout(gkStore    *gkpStore,
       continue;
     }
 
-    if ((readScores != NULL) &&
-        (ovlScore < readScores[ovl[oo].b_iid])) {
+    if ((olapThresh != NULL) &&
+        (ovlScore < olapThresh[ovl[oo].b_iid])) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U64 ")\n",
-                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U16 ")\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), olapThresh[ovl[oo].b_iid]);
       continue;
     }
 
@@ -500,7 +500,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "INPUTS (all mandatory)\n");
     fprintf(stderr, "  -G gkpStore      mandatory path to gkpStore\n");
     fprintf(stderr, "  -O ovlStore      mandatory path to ovlStore\n");
-    fprintf(stderr, "  -S file          global scores (from filterCorrectionOverlaps)\n");
+    fprintf(stderr, "  -S file          overlap score thresholds (from filterCorrectionOverlaps)\n");
     fprintf(stderr, "  -p prefix        output prefix name, for logging and summary report\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "RESOURCE PARAMETERS\n");
@@ -551,17 +551,17 @@ main(int argc, char **argv) {
 
   //  Load read scores, if supplied.
 
-  uint64   *readScores = NULL;
+  uint16   *olapThresh = NULL;
 
   if (scoreName) {
-    readScores = new uint64 [gkpStore->gkStore_getNumReads() + 1];
+    olapThresh = new uint16 [gkpStore->gkStore_getNumReads() + 1];
 
     errno = 0;
     FILE *scoreFile = fopen(scoreName, "r");
     if (errno)
       fprintf(stderr, "failed to open '%s' for reading: %s\n", scoreName, strerror(errno)), exit(1);
 
-    AS_UTL_safeRead(scoreFile, readScores, "scores", sizeof(uint64), gkpStore->gkStore_getNumReads() + 1);
+    AS_UTL_safeRead(scoreFile, olapThresh, "scores", sizeof(uint16), gkpStore->gkStore_getNumReads() + 1);
 
     fclose(scoreFile);
   }
@@ -662,7 +662,7 @@ main(int argc, char **argv) {
     char   skipMsg[1024] = {0};
 
     tgTig *layout = generateLayout(gkpStore,
-                                   readScores,
+                                   olapThresh,
                                    minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
                                    ovl, ovlLen,
                                    flgFile);
@@ -763,7 +763,7 @@ main(int argc, char **argv) {
   if (flgFile != NULL)
     fclose(flgFile);
 
-  delete [] readScores;
+  delete [] olapThresh;
   delete    readData;
   delete [] ovl;
   delete    tigStore;

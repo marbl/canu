@@ -73,7 +73,8 @@ enum dumpFlags {
   NO_SINGLETON_READS  = 64,
   WITH_ERATE          = 128,
   WITH_LENGTH         = 256,
-  ONE_SIDED           = 512
+  ONE_SIDED           = 512,
+  GLOBAL_SCORE        = 1024
 };
 
 
@@ -230,14 +231,14 @@ dumpStore(ovStore                *ovlStore,
           bool                    asCounts,
           bool                    asErateLen,
           double                  dumpERate,
-          uint32                  dumpLength,
+          uint32           UNUSED(dumpLength),
           uint32                  dumpType,
           uint32                  bgnID,
           uint32                  endID,
           uint32                  qryID,
           ovOverlapDisplayType    type,
           bool                    beVerbose,
-          char                   *bestPrefix) {
+          char            *UNUSED(bestPrefix)) {
 
   ovOverlap     overlap(gkpStore);
   uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
@@ -413,7 +414,8 @@ dumpPicture(ovOverlap     *overlaps,
             uint64         novl,
             gkStore       *gkpStore,
             uint32         qryID,
-            bogartStatus  *bogart) {
+            bogartStatus  *bogart,
+            uint32         dumpType) {
   char     ovl[256] = {0};
 
   uint32   MHS = 9;  //  Max Hang Size, amount of padding for "+### "
@@ -550,18 +552,20 @@ dumpPicture(ovOverlap     *overlaps,
 
     //  Set flags for best edge and singleton/contained/suspicious.  Left in for when I get annoyed with the different lines.
 
-    char  olapClass[4] = { 0, ' ', 0, 0 };
+    char  olapClass[4] = { 0 };
 
 #if 0
     if ((bogart->getBest5id(Aid) == Bid) &&
         (overlaps[o].overlapAEndIs5prime() == true)) {
       olapClass[0] = ' ';
+      olapClass[1] = ' ';
       olapClass[2] = 'B';
     }
 
     if ((bogart->getBest3id(Aid) == Bid) &&
         (overlaps[o].overlapAEndIs3prime() == true)) {
       olapClass[0] = ' ';
+      olapClass[1] = ' ';
       olapClass[2] = 'B';
     }
 
@@ -590,16 +594,29 @@ dumpPicture(ovOverlap     *overlaps,
 
     //  Report!
 
-    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s%s\n",
-            ovlBgnA,
-            ovlEndA,
-            Bid,
-            min(ovlBgnB, ovlEndB),
-            max(ovlBgnB, ovlEndB),
-            frgLenB,
-            overlaps[o].erate() * 100.0,
-            ovl,
-            olapClass);
+    if ((dumpType & GLOBAL_SCORE) == GLOBAL_SCORE)
+      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d %7hu %5.2f%%  %s%s\n",
+              ovlBgnA,
+              ovlEndA,
+              Bid,
+              min(ovlBgnB, ovlEndB),
+              max(ovlBgnB, ovlEndB),
+              frgLenB,
+              overlaps[o].overlapScore(),
+              overlaps[o].erate() * 100.0,
+              ovl,
+              olapClass);
+    else
+      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s%s\n",
+              ovlBgnA,
+              ovlEndA,
+              Bid,
+              min(ovlBgnB, ovlEndB),
+              max(ovlBgnB, ovlEndB),
+              frgLenB,
+              overlaps[o].erate() * 100.0,
+              ovl,
+              olapClass);
   }
 }
 
@@ -687,7 +704,7 @@ dumpPicture(ovStore  *ovlStore,
   if (novl == 0)
     fprintf(stderr, "no overlaps to show.\n");
   else
-    dumpPicture(overlaps, novl, gkpStore, Aid, bogart);
+    dumpPicture(overlaps, novl, gkpStore, Aid, bogart, dumpType);
 
   delete [] overlaps;
 }
@@ -748,9 +765,9 @@ main(int argc, char **argv) {
     //  Dump as a picture
     else if (strcmp(argv[arg], "-p") == 0) {
       operation  = OP_DUMP_PICTURE;
-      bgnID      = atoi(argv[++arg]);
-      endID      = bgnID;
-      qryID      = bgnID;
+
+      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
+        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
     }
 
     //  Query if the overlap for the next two integers exists
@@ -824,6 +841,9 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-nosi") == 0)
       dumpType |= NO_SINGLETON_READS;
 
+    else if (strcmp(argv[arg], "-scores") == 0)
+      dumpType |= GLOBAL_SCORE;
+
 
     else {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
@@ -873,6 +893,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -noc              With -best data, don't show overlaps to contained reads.\n");
     fprintf(stderr, "  -nos              With -best data, don't show overlaps to suspicious reads.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -scores           Annotate picture with correction overlap score\n");
+    fprintf(stderr, "\n");
 
     if (operation == OP_NONE)
       fprintf(stderr, "ERROR: no operation (-d, -q or -p) supplied.\n");
@@ -907,8 +929,8 @@ main(int argc, char **argv) {
                 bestPrefix);
       break;
     case OP_DUMP_PICTURE:
-      for (qryID=bgnID; qryID <= endID; qryID++)
-        dumpPicture(ovlStore, gkpStore, dumpERate, dumpLength, dumpType, qryID, bestPrefix);
+      for (uint32 qq=bgnID; qq <= endID; qq++)
+        dumpPicture(ovlStore, gkpStore, dumpERate, dumpLength, dumpType, qq, bestPrefix);
       break;
     default:
       break;

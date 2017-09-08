@@ -96,11 +96,14 @@ public:
     delete    stats;
   };
 
-  uint64    compute(uint32             ovlLen,
+  uint16    compute(uint32             ovlLen,
                     ovOverlap         *ovl,
                     uint32             expectedCoverage,
                     uint32             thresholdsLen,
-                    uint64            *thresholds);
+                    uint16            *thresholds);
+
+  void      estimate(uint32            ovlLen,
+                     uint32            expectedCoverage);
 
   uint64      totalOverlaps(void)           { return(stats->totalOverlaps); };
   uint64      lowErate(void)                { return(stats->lowErate);      };

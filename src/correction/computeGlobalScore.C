@@ -34,12 +34,12 @@
 using namespace std;
 
 
-uint64
+uint16
 globalScore::compute(uint32             ovlLen,
                      ovOverlap         *ovl,
                      uint32             expectedCoverage,
                      uint32             thresholdsLen,
-                     uint64            *thresholds) {
+                     uint16            *thresholds) {
 
   //  Build a list of all the overlap scores.  Ignore
   //  overlaps that are too bad/good or too short/long.
@@ -55,7 +55,7 @@ globalScore::compute(uint32             ovlLen,
         (ovlLength        < minOvlLength) || (maxOvlLength < ovlLength))
       continue;
 
-    hist[histLen++] = ovl[oo].correctionScore();
+    hist[histLen++] = ovl[oo].overlapScore();
   }
 
   //  Sort, reversely.
@@ -67,7 +67,7 @@ globalScore::compute(uint32             ovlLen,
 
   //  Figure out our threshold score.  Any overlap with score below this should be filtered.
 
-  uint64 threshold = (expectedCoverage < histLen) ? hist[expectedCoverage] : 0;
+  uint16 threshold = (expectedCoverage < histLen) ? hist[expectedCoverage] : 0;
 
   for (uint32 ii=0; ii<thresholdsLen; ii++) {
     if (ii * 10 < histLen)
@@ -85,7 +85,7 @@ globalScore::compute(uint32             ovlLen,
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
     uint64  ovlLength  = ovl[oo].a_len();
-    uint64  ovlScore   = ovl[oo].correctionScore();
+    uint16  ovlScore   = ovl[oo].overlapScore();
 
     bool    isC        = false;
     bool    isD        = false;
@@ -132,19 +132,46 @@ globalScore::compute(uint32             ovlLen,
 
   double  fractionFiltered = (double)belowCutoffLocal / histLen;
 
-  if (fractionFiltered < 0.00)   stats->reads00OlapsFiltered++;
-  if (fractionFiltered < 0.50)   stats->reads50OlapsFiltered++;
-  if (fractionFiltered < 0.80)   stats->reads80OlapsFiltered++;
-  if (fractionFiltered < 0.95)   stats->reads95OlapsFiltered++;
-  if (fractionFiltered < 1.00)   stats->reads99OlapsFiltered++;
+  if (fractionFiltered <= 0.00)   stats->reads00OlapsFiltered++;
+  if (fractionFiltered <= 0.50)   stats->reads50OlapsFiltered++;
+  if (fractionFiltered <= 0.80)   stats->reads80OlapsFiltered++;
+  if (fractionFiltered <= 0.95)   stats->reads95OlapsFiltered++;
+  if (fractionFiltered <= 1.00)   stats->reads99OlapsFiltered++;
 
   if (logFile)
     if (histLen <= expectedCoverage)
       fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (no filtering)\n",
               ovl[0].a_iid, ovlLen, histLen, 0, histLen);
     else
-      fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (length * erate cutoff %.2f)\n",
-              ovl[0].a_iid, ovlLen, histLen, belowCutoffLocal, histLen - belowCutoffLocal, threshold / 100.0);
+      fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (threshold %u)\n",
+              ovl[0].a_iid, ovlLen, histLen, belowCutoffLocal, histLen - belowCutoffLocal, threshold);
 
   return(threshold);
 }
+
+
+
+void
+globalScore::estimate(uint32            ovlLen,
+                      uint32            expectedCoverage) {
+  double    fractionFiltered = 0;
+
+  stats->totalOverlaps += ovlLen;
+
+  if (ovlLen < expectedCoverage) {
+    stats->retained    += ovlLen;
+
+  } else {
+    fractionFiltered = (double)(ovlLen - expectedCoverage) / ovlLen;
+
+    stats->retained    +=          expectedCoverage;
+    stats->belowCutoff += ovlLen - expectedCoverage;
+  }
+
+  if (fractionFiltered <= 0.00)   stats->reads00OlapsFiltered++;
+  if (fractionFiltered <= 0.50)   stats->reads50OlapsFiltered++;
+  if (fractionFiltered <= 0.80)   stats->reads80OlapsFiltered++;
+  if (fractionFiltered <= 0.95)   stats->reads95OlapsFiltered++;
+  if (fractionFiltered <= 1.00)   stats->reads99OlapsFiltered++;
+}
+
