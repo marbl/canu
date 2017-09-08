@@ -316,54 +316,54 @@ estimateMemoryUsage(gkStore       *gkpStore,
                     set<uint32>   &readList,
                     ovStore       *ovlStore) {
 
-    uint32   maxReadID  = 0;    //  Find the longest read and use that to estimate
-    uint32   maxReadLen = 0;    //  the maximum memory usage.
+  uint32   maxReadID  = 0;    //  Find the longest read and use that to estimate
+  uint32   maxReadLen = 0;    //  the maximum memory usage.
 
-    for (uint32 rr=iidMin; rr<iidMax; rr++) {
-      if ((readList.size() > 0) &&
-          (readList.count(rr) == 0))
-        continue;
+  for (uint32 rr=iidMin; rr<iidMax; rr++) {
+    if ((readList.size() > 0) &&
+        (readList.count(rr) == 0))
+      continue;
 
-      gkRead *read = gkpStore->gkStore_getRead(rr);
-      uint32  rLen = read->gkRead_sequenceLength();
+    gkRead *read = gkpStore->gkStore_getRead(rr);
+    uint32  rLen = read->gkRead_sequenceLength();
 
-      if (maxReadLen < rLen) {
-        maxReadID  = rr;
-        maxReadLen = rLen;
-      }
+    if (maxReadLen < rLen) {
+      maxReadID  = rr;
+      maxReadLen = rLen;
     }
+  }
 
-    //  Estimate the number of evidence reads it'll have.  Just assume all overlaps are used and
-    //  that every error is an indel.
+  //  Estimate the number of evidence reads it'll have.  Just assume all overlaps are used and
+  //  that every error is an indel.
 
-    ovlStore->setRange(maxReadID, maxReadID);
+  ovlStore->setRange(maxReadID, maxReadID);
 
-    ovOverlap   *overlaps    = NULL;
-    uint32       overlapsLen = 0;
-    uint32       overlapsMax = 0;
+  ovOverlap   *overlaps    = NULL;
+  uint32       overlapsLen = 0;
+  uint32       overlapsMax = 0;
 
-    uint64       nOvl       = ovlStore->numOverlapsInRange();
-    uint32       nOvlLoaded = ovlStore->readOverlaps(maxReadID, overlaps, overlapsLen, overlapsMax);
+  uint64       nOvl       = ovlStore->numOverlapsInRange();
+  uint32       nOvlLoaded = ovlStore->readOverlaps(maxReadID, overlaps, overlapsLen, overlapsMax);
 
-    assert(nOvl == nOvlLoaded);
+  assert(nOvl == nOvlLoaded);
 
-    uint64       nBasesInOlaps = 0;
+  uint64       nBasesInOlaps = 0;
 
-    for (uint32 oo=0; oo<nOvl; oo++) {
-      assert(overlaps[oo].a_bgn() < overlaps[oo].a_end());
+  for (uint32 oo=0; oo<nOvl; oo++) {
+    assert(overlaps[oo].a_bgn() < overlaps[oo].a_end());
 
-      nBasesInOlaps += (overlaps[oo].a_end() - overlaps[oo].a_bgn()) * (1 + overlaps[oo].erate());
-    }
+    nBasesInOlaps += (overlaps[oo].a_end() - overlaps[oo].a_bgn()) * (1 + overlaps[oo].erate());
+  }
 
-    //  Throw that at falconConsensus and let it decide memory usage.
+  //  Throw that at falconConsensus and let it decide memory usage.
 
-    falconConsensus *fc = new falconConsensus(0, 0.0, 0);
+  falconConsensus *fc = new falconConsensus(0, 0.0, 0);
 
-    uint64 mem = fc->estimateMemoryUsage(nOvl, nBasesInOlaps, maxReadLen);
+  uint64 mem = fc->estimateMemoryUsage(nOvl, nBasesInOlaps, maxReadLen);
 
-    fprintf(stdout, "Based on read %u of length %u with %lu overlaps covering %lu bases, expecting to use %lu bytes, %.3f GB memory usage\n",
-            maxReadID, maxReadLen, nOvl, nBasesInOlaps,
-            mem, mem / 1024.0 / 1024.0 / 1024.0);
+  fprintf(stdout, "Based on read %u of length %u with %lu overlaps covering %lu bases, expecting to use %lu bytes, %.3f GB memory usage\n",
+          maxReadID, maxReadLen, nOvl, nBasesInOlaps,
+          mem, mem / 1024.0 / 1024.0 / 1024.0);
 }
 
 
