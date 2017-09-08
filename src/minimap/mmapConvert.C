@@ -99,12 +99,11 @@ main(int argc, char **argv) {
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader  *in = new compressedFileReader(files[ff]);
 
-    //  $1    							$2   	$3	$4 	$5  	$6 							$7   	$8   	$9  	$10 			$11  	$12	$13
-    //  0     							1    	2       3   	4   	5   							6    	7    	8   	9   			10   	11	12
-    //  0f1bd7b6-a7f2-4bcb-8575-d617f1394b8a_Basecall_2D_2d	8189	1310	8014	+	b74d9367-f45a-4684-8bfc-ff533629b030_Basecall_2D_2d	14205	7340	14051	277			6711	255	cm:i:32
-    //  0f1bd7b6-a7f2-4bcb-8575-d617f1394b8a_Basecall_2D_2d	8189	1152	7272	-	a3026aca-57a7-4639-96bf-b76624cf2d34_Basecall_2D_2d	7731	1642	7547	157			6120	255	cm:i:24
-    //  aiid  							alen    bgn	end	bori	biid 							blen	bgn	end	#match minimizers	alnlen	?	cm:i:errori
-    //
+    //  $1        $2     $3     $4     $5     $6         $7      $8    $9     $10      $11          $12        $13
+    //  0         1      2      3      4      5          6       7     8      9        10           11         12
+    //  0f1bd7b6  8189   1310   8014   +      b74d9367   14205   7340  14051  277      6711         255        cm:i:32
+    //  0f1bd7b6  8189   1152   7272   -      a3026aca   7731    1642  7547   157      6120         255        cm:i:24
+    //  aiid      alen   bgn    end    bori   biid       blen    bgn   end    #match   minimizers   alnlen     cm:i:errori
 
     while (fgets(ovStr, 1024*1024, in->file()) != NULL) {
       splitToWords  W(ovStr);
