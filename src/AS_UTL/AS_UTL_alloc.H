@@ -62,6 +62,19 @@ allocateArray(TT*& array, LL arrayMax, uint32 op=resizeArray_clearNew) {
 
 
 
+template<typename TT>
+TT *
+duplicateString(TT const *fr) {
+  uint32  ln = strlen(fr);
+  TT     *to = new TT [ln+1];
+
+  memcpy(to, fr, sizeof(TT) * (ln+1));
+
+  return(to);
+}
+
+
+
 template<typename TT, typename LL>
 void
 duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax), bool forceAlloc=false) {
