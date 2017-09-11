@@ -227,6 +227,7 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
 void
 dumpStore(ovStore                *ovlStore,
           gkStore                *gkpStore,
+          char                   *outPrefix,
           bool                    asBinary,
           bool                    asCounts,
           bool                    asErateLen,
@@ -240,23 +241,24 @@ dumpStore(ovStore                *ovlStore,
           bool                    beVerbose,
           char            *UNUSED(bestPrefix)) {
 
-  ovOverlap     overlap(gkpStore);
-  uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
-  char           ovlString[1024];
+  uint64             evalue = AS_OVS_encodeEvalue(dumpERate);
+  char               ovlString[1024];
 
-  uint32   ovlTooHighError = 0;
-  uint32   ovlNot5p        = 0;
-  uint32   ovlNot3p        = 0;
-  uint32   ovlNotContainer = 0;
-  uint32   ovlNotContainee = 0;
-  uint32   ovlNotUnique    = 0;
-  uint32   ovlDumped       = 0;
-  uint32   obtTooHighError = 0;
-  uint32   obtDumped       = 0;
-  uint32   merDumped       = 0;
+  uint32             ovlTooHighError = 0;
+  uint32             ovlNot5p        = 0;
+  uint32             ovlNot3p        = 0;
+  uint32             ovlNotContainer = 0;
+  uint32             ovlNotContainee = 0;
+  uint32             ovlNotUnique    = 0;
+  uint32             ovlDumped       = 0;
+  uint32             obtTooHighError = 0;
+  uint32             obtDumped       = 0;
+  uint32             merDumped       = 0;
 
-  uint32            *counts = NULL;
-  ovStoreHistogram  *hist   = NULL;
+  uint32            *counts     = NULL;
+  ovStoreHistogram  *hist       = NULL;
+
+  ovFile            *binaryFile = NULL;
 
   //  Set the range of the reads to dump early so that we can reset it later.
 
@@ -295,10 +297,22 @@ dumpStore(ovStore                *ovlStore,
     hist = new ovStoreHistogram(gkpStore, ovFileNormalWrite);
   }
 
+  //  If dumping binary, create an output file.
+
+  if (asBinary) {
+    char  binaryName[FILENAME_MAX];
+
+    sprintf(binaryName, "%s.ovb", outPrefix);
+
+    binaryFile = new ovFile(gkpStore, binaryName, ovFileFullWrite);
+  }
+
   //  Length filtering is expensive to compute, need to load both reads to get their length.
   //
   //if ((dumpType & WITH_LENGTH) && (dumpLength < overlapLength(overlap)))
   //  continue;
+
+  ovOverlap      overlap(gkpStore);
 
   while (ovlStore->readOverlap(&overlap) == TRUE) {
     if ((qryID != 0) && (qryID != overlap.b_iid))
@@ -351,7 +365,7 @@ dumpStore(ovStore                *ovlStore,
       hist->addOverlap(&overlap);
 
     else if (asBinary)
-      AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovOverlap), 1);
+      binaryFile->writeOverlap(&overlap);
 
     else
       fputs(overlap.toString(ovlString, type, true), stdout);
@@ -366,8 +380,9 @@ dumpStore(ovStore                *ovlStore,
     hist->dumpEvalueLength(stdout);
   }
 
-  delete [] counts;
+  delete    binaryFile;
   delete    hist;
+  delete [] counts;
 
   if (beVerbose) {
     fprintf(stderr, "ovlTooHighError %u\n",  ovlTooHighError);
@@ -719,6 +734,8 @@ main(int argc, char **argv) {
   char           *gkpName     = NULL;
   char           *ovlName     = NULL;
 
+  char           *outPrefix   = NULL;
+
   bool            asBinary    = false;
   bool            asCounts    = false;
   bool            asErateLen  = false;
@@ -786,11 +803,14 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-raw") == 0)
       type = ovOverlapAsRaw;
+
     else if (strcmp(argv[arg], "-paf") == 0)
       type = ovOverlapAsPaf;
 
-    else if (strcmp(argv[arg], "-binary") == 0)
+    else if (strcmp(argv[arg], "-binary") == 0) {
+      outPrefix = argv[++arg];
       asBinary = true;
+    }
 
     else if (strcmp(argv[arg], "-counts") == 0)
       asCounts = true;
@@ -868,13 +888,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  FORMAT (for -d)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -coords    dump overlap showing coordinates in the reads (default)\n");
-    fprintf(stderr, "  -hangs     dump overlap showing dovetail hangs unaligned\n");
-    fprintf(stderr, "  -raw       dump overlap showing its raw native format (four hangs)\n");
-    fprintf(stderr, "  -paf       dump overlaps in miniasm/minimap format\n");
-    fprintf(stderr, "  -binary    dump overlap as raw binary data\n");
-    fprintf(stderr, "  -counts    dump the number of overlaps per read\n");
-    fprintf(stderr, "  -eratelen  dump a heatmap of error-rate vs overlap-length\n");
+    fprintf(stderr, "  -coords           dump overlap showing coordinates in the reads (default)\n");
+    fprintf(stderr, "  -hangs            dump overlap showing dovetail hangs unaligned\n");
+    fprintf(stderr, "  -raw              dump overlap showing its raw native format (four hangs)\n");
+    fprintf(stderr, "  -paf              dump overlaps in miniasm/minimap format\n");
+    fprintf(stderr, "  -binary prefix    dump overlap as raw binary data to file prefix.ovb and prefix.counts\n");
+    fprintf(stderr, "  -counts           dump the number of overlaps per read\n");
+    fprintf(stderr, "  -eratelen         dump a heatmap of error-rate vs overlap-length\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  MODIFIERS (for -d and -p)\n");
     fprintf(stderr, "\n");
@@ -917,6 +937,7 @@ main(int argc, char **argv) {
     case OP_DUMP:
       dumpStore(ovlStore,
                 gkpStore,
+                outPrefix,
                 asBinary, asCounts, asErateLen,
                 dumpERate,
                 dumpLength,
