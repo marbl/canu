@@ -497,23 +497,24 @@ ovStore::numOverlapsPerRead(uint32 numReads) {
 
   assert(numReads > 0);
 
-  numReads++;  //  Because read 0 doesn't exist.
-
-  uint32       *olapsPerRead = new uint32      [numReads];
-  ovStoreOfft  *offsets      = new ovStoreOfft [numReads];
+  uint32       *olapsPerRead = new uint32      [numReads+1];
+  ovStoreOfft  *offsets      = new ovStoreOfft [numReads+1];
 
   off_t  originalPosition = AS_UTL_ftell(_offtFile);
 
   AS_UTL_fseek(_offtFile, 0, SEEK_SET);
 
-  uint64 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsPerRead", sizeof(ovStoreOfft), numReads);
+  uint32 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsPerRead", sizeof(ovStoreOfft), _info.largestID()+1);
 
-  if (numReads != act)
-    fprintf(stderr, "ovStore::numOverlapsPerRead()-- short read on offsets!  Expected len=" F_U64 " read act=" F_U64 "\n",
-            numReads, act), exit(1);
+  if (_info.largestID()+1 != act)
+    fprintf(stderr, "ovStore::numOverlapsPerRead()-- short read on offsets!  Read %u entries, store has smallest %u largest %u\n",
+            act, _info.smallestID(), _info.largestID()), exit(1);
 
-  for (uint64 i=0; i<numReads; i++)
-    olapsPerRead[i] = offsets[i]._numOlaps;
+  for (uint32 ii=0; ii<_info.largestID()+1; ii++)
+    olapsPerRead[ii] = offsets[ii]._numOlaps;
+
+  for (uint32 ii=_info.largestID()+1; ii<numReads+1; ii++)
+    olapsPerRead[ii] = 0;
 
   delete [] offsets;
 
