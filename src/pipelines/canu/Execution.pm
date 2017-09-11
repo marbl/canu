@@ -647,7 +647,9 @@ sub submitScript ($$) {
     print F "#  For the record, interactive logins (qlogin) DO set the environment.\n"  if (getGlobal("gridEngine") eq "SGE");
     print F "\n";
     print F "if [ \"x\$SGE_ROOT\" != \"x\" ]; then \n"                                  if (getGlobal("gridEngine") eq "SGE");
-    print F "  . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n"                            if (getGlobal("gridEngine") eq "SGE");
+    print F "   if [ -e  \$SGE_ROOT/\$SGE_CELL/common/settings.sh ]; then \n"           if (getGlobal("gridEngine") eq "SGE");
+    print F "     . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n"                         if (getGlobal("gridEngine") eq "SGE");
+    print F "   fi\n"                                                                   if (getGlobal("gridEngine") eq "SGE");
     print F "fi\n"                                                                      if (getGlobal("gridEngine") eq "SGE");
     print F "\n";
     print F "#  On the off chance that there is a pathMap, and the host we\n";
