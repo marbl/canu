@@ -546,37 +546,38 @@ compressedFileReader::compressedFileReader(const char *filename) {
   char    cmd[FILENAME_MAX];
   int32   len = 0;
 
-  _file = NULL;
-  _pipe = false;
-  _stdi = false;
+  _file     = NULL;
+  _filename = duplicateString(filename);
+  _pipe     = false;
+  _stdi     = false;
 
-  cftType   ft = compressedFileType(filename);
+  cftType   ft = compressedFileType(_filename);
 
-  if ((ft != cftSTDIN) && (AS_UTL_fileExists(filename, FALSE, FALSE) == FALSE))
-    fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", filename, strerror(errno)), exit(1);
+  if ((ft != cftSTDIN) && (AS_UTL_fileExists(_filename, FALSE, FALSE) == FALSE))
+    fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", _filename, strerror(errno)), exit(1);
 
   errno = 0;
 
   switch (ft) {
     case cftGZ:
-      snprintf(cmd, FILENAME_MAX, "gzip -dc '%s'", filename);
+      snprintf(cmd, FILENAME_MAX, "gzip -dc '%s'", _filename);
       _file = popen(cmd, "r");
       _pipe = true;
       break;
 
     case cftBZ2:
-      snprintf(cmd, FILENAME_MAX, "bzip2 -dc '%s'", filename);
+      snprintf(cmd, FILENAME_MAX, "bzip2 -dc '%s'", _filename);
       _file = popen(cmd, "r");
       _pipe = true;
       break;
 
     case cftXZ:
-      snprintf(cmd, FILENAME_MAX, "xz -dc '%s'", filename);
+      snprintf(cmd, FILENAME_MAX, "xz -dc '%s'", _filename);
       _file = popen(cmd, "r");
       _pipe = true;
 
       if (_file == NULL)    //  popen() returns NULL on error.  It does not reliably set errno.
-        fprintf(stderr, "ERROR:  Failed to open input file '%s': popen() returned NULL\n", filename), exit(1);
+        fprintf(stderr, "ERROR:  Failed to open input file '%s': popen() returned NULL\n", _filename), exit(1);
 
       errno = 0;
       break;
@@ -587,14 +588,15 @@ compressedFileReader::compressedFileReader(const char *filename) {
       break;
 
     default:
-      _file = fopen(filename, "r");
+      _file = fopen(_filename, "r");
       _pipe = false;
       break;
   }
 
   if (errno)
-    fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", filename, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", _filename, strerror(errno)), exit(1);
 }
+
 
 
 compressedFileReader::~compressedFileReader() {
@@ -609,6 +611,8 @@ compressedFileReader::~compressedFileReader() {
     pclose(_file);
   else
     fclose(_file);
+
+  delete [] _filename;
 }
 
 
@@ -617,29 +621,30 @@ compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
   char   cmd[FILENAME_MAX];
   int32  len = 0;
 
-  _file = NULL;
-  _pipe = false;
-  _stdi = false;
+  _file     = NULL;
+  _filename = duplicateString(filename);
+  _pipe     = false;
+  _stdi     = false;
 
-  cftType   ft = compressedFileType(filename);
+  cftType   ft = compressedFileType(_filename);
 
   errno = 0;
 
   switch (ft) {
     case cftGZ:
-      snprintf(cmd, FILENAME_MAX, "gzip -%dc > '%s'", level, filename);
+      snprintf(cmd, FILENAME_MAX, "gzip -%dc > '%s'", level, _filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
 
     case cftBZ2:
-      snprintf(cmd, FILENAME_MAX, "bzip2 -%dc > '%s'", level, filename);
+      snprintf(cmd, FILENAME_MAX, "bzip2 -%dc > '%s'", level, _filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
 
     case cftXZ:
-      snprintf(cmd, FILENAME_MAX, "xz -%dc > '%s'", level, filename);
+      snprintf(cmd, FILENAME_MAX, "xz -%dc > '%s'", level, _filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
@@ -650,13 +655,13 @@ compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
       break;
 
     default:
-      _file = fopen(filename, "w");
+      _file = fopen(_filename, "w");
       _pipe = false;
       break;
   }
 
   if (errno)
-    fprintf(stderr, "ERROR:  Failed to open output file '%s': %s\n", filename, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR:  Failed to open output file '%s': %s\n", _filename, strerror(errno)), exit(1);
 }
 
 
@@ -668,8 +673,15 @@ compressedFileWriter::~compressedFileWriter() {
   if (_stdi)
     return;
 
+  errno = 0;
+
   if (_pipe)
     pclose(_file);
   else
     fclose(_file);
+
+  if (errno)
+    fprintf(stderr, "ERROR:  Failed to cleanly close output file '%s': %s\n", _filename, strerror(errno)), exit(1);
+
+  delete [] _filename;
 }

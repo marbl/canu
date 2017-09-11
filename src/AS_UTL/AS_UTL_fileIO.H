@@ -103,6 +103,7 @@ public:
 
 private:
   FILE  *_file;
+  char  *_filename;
   bool   _pipe;
   bool   _stdi;
 };
@@ -121,6 +122,7 @@ public:
 
 private:
   FILE  *_file;
+  char  *_filename;
   bool   _pipe;
   bool   _stdi;
 };
