@@ -153,8 +153,7 @@ ovStore::readOverlap(ovOverlap *overlap) {
   //  overlaps.
 
   while (_offt._numOlaps == 0)
-    if (0 == AS_UTL_safeRead(_offtFile, &_offt, "ovStore::readOverlap::offset",
-                             sizeof(ovStoreOfft), 1))
+    if (0 == AS_UTL_safeRead(_offtFile, &_offt, "ovStore::readOverlap::offset", sizeof(ovStoreOfft), 1))
       return(0);
 
   //  And if we've exited the range of overlaps requested, return.
