@@ -317,9 +317,6 @@ public:
 
   uint64       numOverlapsInRange(void);
 
-  void         numOverlapsPerRead(uint32 *olapsPerRead,
-                                  uint32  firstRead,
-                                  uint32  lastRead);
   uint32      *numOverlapsPerRead(uint32  numReads=0);
 
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number

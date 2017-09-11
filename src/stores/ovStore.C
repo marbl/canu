@@ -487,38 +487,9 @@ ovStore::numOverlapsInRange(void) {
 
 
 
-//  Fills olapsPerRead with the number of overlaps per read.
-//  olapsPerRead must be at least 'lastRead+1' in size, not just lastRead-firstRead+1.
-//  olapsPerRead is not initialized; must be cleared before calling.
+//  Returns array with the number of overlaps per read.  If numReads is more than zero,
+//  only those reads will be loaded.
 //
-void
-ovStore::numOverlapsPerRead(uint32 *olapsPerRead,
-                            uint32  firstRead,
-                            uint32  lastRead) {
-
-  off_t  originalPosition = AS_UTL_ftell(_offtFile);
-
-  AS_UTL_fseek(_offtFile, (off_t)firstRead * sizeof(ovStoreOfft), SEEK_SET);
-
-  uint64        len     = lastRead - firstRead + 1;
-
-  ovStoreOfft  *offsets = new ovStoreOfft [len];
-
-  uint64 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsPerRead", sizeof(ovStoreOfft), len);
-
-  if (len != act)
-    fprintf(stderr, "ovStore::numOverlapsPerRead()-- short read on offsets!  Expected len=" F_U64 " read act=" F_U64 "\n", len, act), exit(1);
-
-  for (uint64 i=0; i<len; i++)
-    olapsPerRead[firstRead+i] = offsets[i]._numOlaps;
-
-  delete [] offsets;
-
-  AS_UTL_fseek(_offtFile, originalPosition, SEEK_SET);
-}
-
-
-
 uint32 *
 ovStore::numOverlapsPerRead(uint32 numReads) {
 
@@ -527,11 +498,27 @@ ovStore::numOverlapsPerRead(uint32 numReads) {
 
   assert(numReads > 0);
 
-  uint32 *olapsPerRead = new uint32 [numReads+1];
+  numReads++;  //  Because read 0 doesn't exist.
 
-  memset(olapsPerRead, 0, (numReads+1) * sizeof(uint32));
+  uint32       *olapsPerRead = new uint32      [numReads];
+  ovStoreOfft  *offsets      = new ovStoreOfft [numReads];
 
-  numOverlapsPerRead(olapsPerRead, 1, numReads);
+  off_t  originalPosition = AS_UTL_ftell(_offtFile);
+
+  AS_UTL_fseek(_offtFile, 0, SEEK_SET);
+
+  uint64 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsPerRead", sizeof(ovStoreOfft), numReads);
+
+  if (numReads != act)
+    fprintf(stderr, "ovStore::numOverlapsPerRead()-- short read on offsets!  Expected len=" F_U64 " read act=" F_U64 "\n",
+            numReads, act), exit(1);
+
+  for (uint64 i=0; i<numReads; i++)
+    olapsPerRead[i] = offsets[i]._numOlaps;
+
+  delete [] offsets;
+
+  AS_UTL_fseek(_offtFile, originalPosition, SEEK_SET);
 
   return(olapsPerRead);
 }

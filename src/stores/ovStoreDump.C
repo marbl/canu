@@ -276,9 +276,7 @@ dumpStore(ovStore                *ovlStore,
   //  bgnID, so we need to rewrite everything.
 
   if ((asCounts) && (dumpType == 0)) {
-    counts = new uint32 [endID - bgnID + 1];
-
-    ovlStore->numOverlapsPerRead(counts, bgnID, endID);
+    counts = ovlStore->numOverlapsPerRead(endID);
     ovlStore->setRange(1, 0);
 
     for (uint32 ii=bgnID; ii<=endID; ii++)
