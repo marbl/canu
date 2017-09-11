@@ -583,7 +583,7 @@ compressedFileReader::compressedFileReader(const char *filename) {
 
     case cftSTDIN:
       _file = stdin;
-      _stdi = 1;
+      _stdi = true;
       break;
 
     default:
