@@ -67,8 +67,7 @@ What parameters should I use for my reads?
          canu -p asm -d asm correctedErrorRate=0.3 utgGraphDeviation=50 -nanopore-corrected r5/r5.correctedReads.fasta.gz
 
     **Nanopore R7 2D** and **Nanopore R9 1D**
-      Increase the maximum allowed difference in overlaps from the default of 14.4% to 22.5% with
-      ``correctedErrorRate=0.225``
+      The defaults were designed with these datasets in mind so they should work.
 
     **Nanopore R9 2D** and **PacBio P6**
        Slightly decrease the maximum allowed difference in overlaps from the default of 14.4% to 12.0%
