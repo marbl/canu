@@ -748,8 +748,8 @@ main(int argc, char **argv) {
   //  Open logging and summary files
 
   logFile = openOutputFile(outputPrefix, "log");
-  sumFile = openOutputFile(outputPrefix, "summary");
-  flgFile = openOutputFile(outputPrefix, "filter.log", false);
+  sumFile = openOutputFile(outputPrefix, "summary",    false);    //  Never used!
+  flgFile = openOutputFile(outputPrefix, "filter.log", false);    //  Too much crud!
 
   //  Estimate memory?
 
