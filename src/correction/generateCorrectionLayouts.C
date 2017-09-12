@@ -144,6 +144,9 @@ openOutputFile(char *outputPrefix,
                bool  doOpen = true) {
   char   outputName[FILENAME_MAX];
 
+  if (outputPrefix == NULL)
+    return(NULL);
+
   if (doOpen == false)
     return(NULL);
 
