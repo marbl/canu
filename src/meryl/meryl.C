@@ -88,6 +88,7 @@ main(int argc, char **argv) {
       break;
 
     case PERSONALITY_SUB:
+    case PERSONALITY_DIFFERENCE:
     case PERSONALITY_ABS:
     case PERSONALITY_DIVIDE:
       binaryOperations(args);

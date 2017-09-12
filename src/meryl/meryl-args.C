@@ -421,6 +421,8 @@ merylArgs::merylArgs(int argc, char **argv) {
         personality = PERSONALITY_ADD;
       } else if (strcmp(argv[arg], "sub") == 0) {
         personality = PERSONALITY_SUB;
+      } else if (strcmp(argv[arg], "difference") == 0) {
+        personality = PERSONALITY_DIFFERENCE;
       } else if (strcmp(argv[arg], "abs") == 0) {
         personality = PERSONALITY_ABS;
       } else if (strcmp(argv[arg], "divide") == 0) {

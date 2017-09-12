@@ -64,8 +64,9 @@
 #define PERSONALITY_MAXEXIST      0x04
 #define PERSONALITY_ADD           0x05
 #define PERSONALITY_SUB           0x06
-#define PERSONALITY_DIVIDE        0x07
-#define PERSONALITY_ABS           0x08
+#define PERSONALITY_DIFFERENCE    0x07
+#define PERSONALITY_DIVIDE        0x08
+#define PERSONALITY_ABS           0x09
 
 #define PERSONALITY_AND           0x10
 #define PERSONALITY_NAND          0x11

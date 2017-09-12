@@ -64,6 +64,7 @@ binaryOperations(merylArgs *args) {
     exit(1);
   }
   if ((args->personality != PERSONALITY_SUB) &&
+      (args->personality != PERSONALITY_DIFFERENCE) &&
       (args->personality != PERSONALITY_ABS) &&
       (args->personality != PERSONALITY_DIVIDE)) {
     fprintf(stderr, "ERROR - only personalities sub and abs\n");
@@ -139,6 +140,43 @@ binaryOperations(merylArgs *args) {
           A->nextMer();
           B->nextMer();
         } else if (Amer < Bmer) {
+          W->addMer(Amer, Acnt);
+          A->nextMer();
+        } else {
+          B->nextMer();
+        }
+      }
+      break;
+    case PERSONALITY_DIFFERENCE:
+      while (A->validMer() || B->validMer()) {
+        Amer = A->theFMer();
+        Acnt = A->theCount();
+        Bmer = B->theFMer();
+        Bcnt = B->theCount();
+
+        //  If A stream is out of mers, do nothing but read the B stream.
+        if (A->validMer() == false) {
+          B->nextMer();
+          continue;
+        }
+
+        //  If B stream is out of mers, output the A mer.
+        if (B->validMer() == false) {
+          W->addMer(Amer, Acnt);
+          A->nextMer();
+          continue;
+        }
+
+        //  If the same mer, do nothing but read new mers.
+        if (Amer == Bmer) {
+          A->nextMer();
+          B->nextMer();
+          continue;
+        }
+
+        //  If A is before B, output A and read a new one.
+        //  Otherwise, do nothing and read a new one.
+        if (Amer < Bmer) {
           W->addMer(Amer, Acnt);
           A->nextMer();
         } else {
