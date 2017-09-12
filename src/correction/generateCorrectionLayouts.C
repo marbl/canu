@@ -369,7 +369,7 @@ analyzeExpectedConsensus(tgTig      *layout,
   for (uint32 ii=0; ii<layout->numberOfChildren(); ii++)
     status[layout->getChild(ii)->ident()].usedAsEvidence = true;
 
-  return(skipIt);
+  return(skipIt == false);
 }
 
 
