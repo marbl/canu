@@ -604,17 +604,22 @@ ovStoreWriter::mergeInfoFiles(void) {
 void
 ovStoreWriter::mergeHistogram(void) {
   char               name[FILENAME_MAX];
-  ovStoreHistogram  *histogram = new ovStoreHistogram;
+  ovStoreHistogram  *merged = new ovStoreHistogram;
+  ovStoreHistogram  *piece  = new ovStoreHistogram;
 
   for (uint32 i=1; i<=_fileLimit; i++) {
     snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, i);
 
-    histogram->loadData(name);
+    piece->clear();
+    piece->loadData(name);
+
+    merged->add(piece);
   }
 
-  histogram->saveData(_storePath);
+  merged->saveData(_storePath);
 
-  delete histogram;
+  delete piece;
+  delete merged;
 }
 
 
