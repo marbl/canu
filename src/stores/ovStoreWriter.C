@@ -596,7 +596,7 @@ ovStoreWriter::mergeInfoFiles(void) {
   info.save(_storePath, _fileLimit);
 
   fprintf(stderr, "Created ovStore '%s' with " F_U64 " overlaps for reads from " F_U32 " to " F_U32 ".\n",
-          _storePath, _info.numOverlaps(), _info.smallestID(), _info.largestID());
+          _storePath, info.numOverlaps(), info.smallestID(), info.largestID());
 }
 
 
