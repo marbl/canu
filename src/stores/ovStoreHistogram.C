@@ -576,10 +576,14 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
     uint32   iLen = input->_scoresLen;
 
     //  Copy new scores to an empty allocation
-    if (_scoresLen == 0) {
-      duplicateArray(_scores, _scoresLen, _scoresMax, input->_scores, input->_scoresLen, input->_scoresMax);
+    if (oLen == 0) {
+      oSH_ovlSco *sccopy = new oSH_ovlSco [iLen];
 
+      memcpy(sccopy, input->_scores, sizeof(oSH_ovlSco) * iLen);
+
+      _scores    = sccopy;
       _scoresBgn = iBgn;
+      _scoresMax = iLen;
       _scoresLen = iLen;
     }
 
@@ -593,22 +597,32 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
     else if (oEnd < iEnd) {
       oSH_ovlSco *sccopy = new oSH_ovlSco [iEnd - oBgn];
 
+      memset(sccopy, 0, sizeof(oSH_ovlSco) * (iEnd - oBgn));
+
       memcpy(sccopy,                      _scores, sizeof(oSH_ovlSco) * oLen);
       memcpy(sccopy + iBgn - oBgn, input->_scores, sizeof(oSH_ovlSco) * iLen);
 
       delete [] _scores;
-      _scores = sccopy;
+      _scores    = sccopy;
+      _scoresBgn = oBgn;
+      _scoresMax = iEnd - oBgn;
+      _scoresLen = iEnd - oBgn;
     }
 
     //  Copy new scores to start of (reallocated) scores.
     else if (iBgn < oBgn) {
       oSH_ovlSco *sccopy = new oSH_ovlSco [oEnd - iBgn];
 
+      memset(sccopy, 0, sizeof(oSH_ovlSco) * (oEnd - iBgn));
+
       memcpy(sccopy + oBgn - iBgn,        _scores, sizeof(oSH_ovlSco) * oLen);
       memcpy(sccopy,               input->_scores, sizeof(oSH_ovlSco) * iLen);
 
       delete [] _scores;
-      _scores = sccopy;
+      _scores    = sccopy;
+      _scoresBgn = iBgn;
+      _scoresMax = oEnd - iBgn;
+      _scoresLen = oEnd - iBgn;
     }
   }
 }
