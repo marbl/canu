@@ -52,7 +52,9 @@ public:
 
 class ovStoreHistogram {
 private:
-  void    clear(gkStore *gkp=NULL);
+  void    initialize(gkStore *gkp=NULL);
+public:
+  void    clear(void);
 
 public:
   ovStoreHistogram();                                //  Used when loading data, user must loadData() later

@@ -31,7 +31,7 @@ using namespace std;
 
 
 void
-ovStoreHistogram::clear(gkStore *gkp) {
+ovStoreHistogram::initialize(gkStore *gkp) {
   _gkp = gkp;
 
   _maxOlength = 0;
@@ -60,21 +60,38 @@ ovStoreHistogram::clear(gkStore *gkp) {
 
 
 
+void
+ovStoreHistogram::clear(void) {
+
+  if (_opel)
+    for (uint32 ii=0; ii<AS_MAX_EVALUE + 1; ii++)
+      delete [] _opel[ii];
+
+  delete [] _opel;
+  delete [] _opr;
+  delete [] _scoresList;
+  delete [] _scores;
+
+  initialize(_gkp);
+}
+
+
+
 ovStoreHistogram::ovStoreHistogram() {
-  clear();
+  initialize();
 }
 
 
 
 ovStoreHistogram::ovStoreHistogram(char *path) {
-  clear();
+  initialize();
   loadData(path);
 }
 
 
 
 ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
-  clear(gkp);
+  initialize(gkp);
 
   //  When writing full overlaps out of an overlapper (ovFileFullWrite) we want
   //  to keep track of the number of overlaps per read.  We could pre-allocate
@@ -140,15 +157,7 @@ ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
 
 
 ovStoreHistogram::~ovStoreHistogram() {
-
-  if (_opel)
-    for (uint32 ii=0; ii<AS_MAX_EVALUE + 1; ii++)
-      delete [] _opel[ii];
-
-  delete [] _opel;
-  delete [] _opr;
-  delete [] _scoresList;
-  delete [] _scores;
+  clear();
 }
 
 
