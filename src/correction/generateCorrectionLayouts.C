@@ -403,5 +403,7 @@ main(int argc, char **argv) {
 
   gkpStore->gkStore_close();
 
+  fprintf(stderr, "Bye.\n");
+
   return(0);
 }
