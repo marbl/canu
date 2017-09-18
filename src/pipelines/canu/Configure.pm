@@ -32,7 +32,7 @@ package canu::Configure;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(displayMemoryValue displayGenomeSize configureAssembler);
+@EXPORT = qw(getAllowedResources displayMemoryValue displayGenomeSize configureAssembler);
 
 use strict;
 use Carp qw(cluck);
