@@ -93,6 +93,7 @@ public:
 
     nReads  = 0;
     nBases  = 0;
+    cov     = 0;
     median  = 0;
     mean    = 0;
     n50     = 0;
@@ -107,7 +108,7 @@ public:
     L[N++] = length;
   };
 
-  void     compute(void) {
+  void     compute(uint64 genomeSize) {
 
     if (N == 0)
       return;
@@ -116,16 +117,13 @@ public:
 
     nReads  = N;
     nBases  = 0;
-    median  = L[N/2];
-    mean    = 0;
-    n50     = 0;
-    minimum = L[0];
-    maximum = L[N-1];
 
     for (uint32 ii=0; ii<N; ii++)
       nBases += L[ii];
 
-    mean = nBases / N;
+    cov    = nBases / (double)genomeSize;
+    median = L[N/2];
+    mean   = nBases / N;
 
     uint64  ss = 0;
     uint32  ii = 0;
@@ -133,7 +131,9 @@ public:
     while (ss < nBases/2)
       ss += L[ii++];
 
-    n50 = L[ii];
+    n50     = L[ii];
+    minimum = L[0];
+    maximum = L[N-1];
   };
 
 
@@ -142,6 +142,7 @@ public:
 
   uint32   nReads;
   uint64   nBases;
+  double   cov;
   uint32   median;
   uint32   mean;
   uint32   n50;
@@ -226,7 +227,7 @@ markEvidence(tgTig            *layout,
 
 
 void
-dumpStatistics(FILE *F, readStatus *status, uint32 numReads) {
+dumpStatistics(FILE *F, readStatus *status, uint32 numReads, uint64 genomeSize) {
 
   lengthStats  lenRaw(numReads+1);        //  All raw reads
 
@@ -278,25 +279,25 @@ dumpStatistics(FILE *F, readStatus *status, uint32 numReads) {
       maxMemory = status[ti].memoryRequired;
   }
 
-  lenRaw.compute();
+  lenRaw.compute(genomeSize);
 
-  lenNoOlaps.compute();
+  lenNoOlaps.compute(genomeSize);
 
-  lenEvidence.compute();
+  lenEvidence.compute(genomeSize);
 
-  lenCorrOrig.compute();
-  lenCorr.compute();
+  lenCorrOrig.compute(genomeSize);
+  lenCorr.compute(genomeSize);
 
-  lenRescOrig.compute();
-  lenResc.compute();
+  lenRescOrig.compute(genomeSize);
+  lenResc.compute(genomeSize);
 
-  lenNoCoOrig.compute();
-  lenNoCo.compute();
+  lenNoCoOrig.compute(genomeSize);
+  lenNoCo.compute(genomeSize);
 
 
 #define U32FORMAT  "%13" F_U32P
 #define U64FORMAT  "%13" F_U64P
-
+#define FLTFORMAT  "%13.3f"
 #if 0
   fprintf(F, "                          original      original                 --------corrected---------  ----------rescued----------  --------uncorrected--------\n");
   fprintf(F, "                               raw       with no      evidence                     expected                     expected                     expected\n");
@@ -304,6 +305,7 @@ dumpStatistics(FILE *F, readStatus *status, uint32 numReads) {
   fprintf(F, "-------------------- ------------- ------------- -------------  ------------- -------------  ------------- -------------  ------------- -------------\n");
   fprintf(F, "Number of Reads      " U32FORMAT " " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenRaw.nReads,  lenNoOlaps.nReads,  lenEvidence.nReads,  lenCorrOrig.nReads,  lenCorr.nReads,  lenRescOrig.nReads,  lenResc.nReads,  lenNoCoOrig.nReads,  lenNoCo.nReads);
   fprintf(F, "Number of Bases      " U64FORMAT " " U64FORMAT " " U64FORMAT "  " U64FORMAT " " U64FORMAT "  " U64FORMAT " " U64FORMAT "  " U64FORMAT " " U64FORMAT "\n", lenRaw.nBases,  lenNoOlaps.nBases,  lenEvidence.nBases,  lenCorrOrig.nBases,  lenCorr.nBases,  lenRescOrig.nBases,  lenResc.nBases,  lenNoCoOrig.nBases,  lenNoCo.nBases);
+  fprintf(F, "Coverage             " FLTFORMAT " " FLTFORMAT " " FLTFORMAT "  " FLTFORMAT " " FLTFORMAT "  " FLTFORMAT " " FLTFORMAT "  " FLTFORMAT " " FLTFORMAT "\n", lenRaw.cov,     lenNoOlaps.cov,     lenEvidence.cov,     lenCorrOrig.cov,     lenCorr.cov,     lenRescOrig.cov,     lenResc.cov,     lenNoCoOrig.cov,     lenNoCo.coverage);
   fprintf(F, "Median               " U32FORMAT " " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenRaw.median,  lenNoOlaps.median,  lenEvidence.median,  lenCorrOrig.median,  lenCorr.median,  lenRescOrig.median,  lenResc.median,  lenNoCoOrig.median,  lenNoCo.median);
   fprintf(F, "Mean                 " U32FORMAT " " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenRaw.mean,    lenNoOlaps.mean,    lenEvidence.mean,    lenCorrOrig.mean,    lenCorr.mean,    lenRescOrig.mean,    lenResc.mean,    lenNoCoOrig.mean,    lenNoCo.mean);
   fprintf(F, "N50                  " U32FORMAT " " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenRaw.n50,     lenNoOlaps.n50,     lenEvidence.n50,     lenCorrOrig.n50,     lenCorr.n50,     lenRescOrig.n50,     lenResc.n50,     lenNoCoOrig.n50,     lenNoCo.n50);
@@ -319,6 +321,7 @@ dumpStatistics(FILE *F, readStatus *status, uint32 numReads) {
   fprintf(F, "-------------------- ------------- -------------\n");
   fprintf(F, "Number of Reads      " U32FORMAT " " U32FORMAT "\n", lenRaw.nReads,  lenNoOlaps.nReads);
   fprintf(F, "Number of Bases      " U64FORMAT " " U64FORMAT "\n", lenRaw.nBases,  lenNoOlaps.nBases);
+  fprintf(F, "Coverage             " FLTFORMAT " " FLTFORMAT "\n", lenRaw.cov,     lenNoOlaps.cov);
   fprintf(F, "Median               " U32FORMAT " " U32FORMAT "\n", lenRaw.median,  lenNoOlaps.median);
   fprintf(F, "Mean                 " U32FORMAT " " U32FORMAT "\n", lenRaw.mean,    lenNoOlaps.mean);
   fprintf(F, "N50                  " U32FORMAT " " U32FORMAT "\n", lenRaw.n50,     lenNoOlaps.n50);
@@ -331,6 +334,7 @@ dumpStatistics(FILE *F, readStatus *status, uint32 numReads) {
   fprintf(F, "-------------------- -------------  ------------- -------------  ------------- -------------\n");
   fprintf(F, "Number of Reads      " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenEvidence.nReads,  lenCorrOrig.nReads,  lenCorr.nReads,  lenRescOrig.nReads,  lenResc.nReads);
   fprintf(F, "Number of Bases      " U64FORMAT "  " U64FORMAT " " U64FORMAT "  " U64FORMAT " " U64FORMAT "\n", lenEvidence.nBases,  lenCorrOrig.nBases,  lenCorr.nBases,  lenRescOrig.nBases,  lenResc.nBases);
+  fprintf(F, "Coverage             " FLTFORMAT "  " FLTFORMAT " " FLTFORMAT "  " FLTFORMAT " " FLTFORMAT "\n", lenEvidence.cov,     lenCorrOrig.cov,     lenCorr.cov,     lenRescOrig.cov,     lenResc.cov);
   fprintf(F, "Median               " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenEvidence.median,  lenCorrOrig.median,  lenCorr.median,  lenRescOrig.median,  lenResc.median);
   fprintf(F, "Mean                 " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenEvidence.mean,    lenCorrOrig.mean,    lenCorr.mean,    lenRescOrig.mean,    lenResc.mean);
   fprintf(F, "N50                  " U32FORMAT "  " U32FORMAT " " U32FORMAT "  " U32FORMAT " " U32FORMAT "\n", lenEvidence.n50,     lenCorrOrig.n50,     lenCorr.n50,     lenRescOrig.n50,     lenResc.n50);
@@ -343,6 +347,7 @@ dumpStatistics(FILE *F, readStatus *status, uint32 numReads) {
   fprintf(F, "-------------------- ------------- -------------\n");
   fprintf(F, "Number of Reads      " U32FORMAT " " U32FORMAT "\n", lenNoCoOrig.nReads,  lenNoCo.nReads);
   fprintf(F, "Number of Bases      " U64FORMAT " " U64FORMAT "\n", lenNoCoOrig.nBases,  lenNoCo.nBases);
+  fprintf(F, "Coverage             " FLTFORMAT " " FLTFORMAT "\n", lenNoCoOrig.cov,     lenNoCo.cov);
   fprintf(F, "Median               " U32FORMAT " " U32FORMAT "\n", lenNoCoOrig.median,  lenNoCo.median);
   fprintf(F, "Mean                 " U32FORMAT " " U32FORMAT "\n", lenNoCoOrig.mean,    lenNoCo.mean);
   fprintf(F, "N50                  " U32FORMAT " " U32FORMAT "\n", lenNoCoOrig.n50,     lenNoCo.n50);
@@ -515,8 +520,6 @@ main(int argc, char **argv) {
   uint64   desiredLength = genomeSize * outCoverage;
   uint64   corrLength    = 0;
 
-  fprintf(stderr, "for genomeSize %lu and coverage %u -> %lu bases\n", genomeSize, outCoverage, desiredLength);
-
   for (uint32 ii=1; ii<numReads+1; ii++) {
     if (status[ii].corrLength == 0)
       continue;
@@ -560,7 +563,7 @@ main(int argc, char **argv) {
 
   //  Write some statistics and logs.
 
-  dumpStatistics(stats, status, numReads);
+  dumpStatistics(stats, status, numReads, genomeSize);
   dumpLog(log, status, numReads);
 
   fclose(stats);
