@@ -75,7 +75,8 @@ sub loadReport ($) {
         if      (m/READS\]$/)        {  $rpt = "${tag}GkpStore";  $report{$rpt} = undef;
         } elsif (m/MERS\]$/)         {  $rpt = "${tag}Meryl";     $report{$rpt} = undef;
 
-        } elsif (m/FILTERING\]$/)    {  $rpt = "filtering";       $report{$rpt} = undef;
+        } elsif (m/FILTERING\]$/)    {  $rpt = "corFilter";       $report{$rpt} = undef;
+        } elsif (m/LAYOUT\]$/)       {  $rpt = "corLayout";          $report{$rpt} = undef;
         } elsif (m/CORRECTIONS\]$/)  {  $rpt = "corrections";     $report{$rpt} = undef;
 
         } elsif (m/TRIMMING\]$/)     {  $rpt = "trimming";        $report{$rpt} = undef;
@@ -121,7 +122,8 @@ sub saveReport ($) {
 
     saveReportItem("CORRECTION/READS",       $report{"corGkpStore"});
     saveReportItem("CORRECTION/MERS",        $report{"corMeryl"});
-    saveReportItem("CORRECTION/FILTERING",   $report{"correctionFiltering"});
+    saveReportItem("CORRECTION/FILTERING",   $report{"corFilter"});
+    saveReportItem("CORRECTION/LAYOUT",      $report{"corLayout"});
     saveReportItem("CORRECTION/CORRECTIONS", $report{"corrections"});
 
     saveReportItem("TRIMMING/READS",         $report{"obtGkpStore"});

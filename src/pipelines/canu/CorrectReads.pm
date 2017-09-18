@@ -265,7 +265,7 @@ sub buildCorrectionLayoutsConfigure ($) {
 
             stashFile("$path/$asm.globalScores");
 
-            my $report;
+            my $report = getFromReport("corFilter");
 
             open(F, "< $path/$asm.globalScores.stats") or caExit("can't open '$path/$asm.globalScores.stats' for reading: $!", undef);
             while(<F>) {
@@ -273,7 +273,7 @@ sub buildCorrectionLayoutsConfigure ($) {
             }
             close(F);
 
-            addToReport("filtering", $report);
+            addToReport("corFilter", $report);
 
         } else {
             print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
@@ -385,6 +385,16 @@ sub filterCorrectionLayouts ($) {
     stashFile("$path/$asm.readsToCorrect.stats");
     stashFile("$path/$asm.readsToCorrect.log");
 
+    my $report = getFromReport("corLayout");
+
+    open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
+    while (<F>) {
+        $report .= "--   $_";
+    }
+    close(F);
+
+    addToReport("corLayout", $report);
+
   finishStage:
     emitStage($asm, "cor-filterCorrectionLayouts");
     buildHTML($asm, "cor");
@@ -410,7 +420,7 @@ sub generateCorrectedReadsConfigure ($) {
 
     my $nReads             = getNumberOfReadsInStore("correction", $asm);
 
-    open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
+    open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
