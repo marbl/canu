@@ -665,8 +665,16 @@ if (setOptions($mode, "correct") eq "correct") {
 
         overlap($asm, "cor");
 
-        buildCorrectionLayouts($asm);
-        generateCorrectedReads($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+        setupCorrectionParameters($asm);
+
+        buildCorrectionLayoutsConfigure($asm);
+        buildCorrectionLayoutsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
+
+        filterCorrectionLayouts($asm);
+
+        generateCorrectedReadsConfigure($asm);
+        generateCorrectedReadsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
+
         dumpCorrectedReads($asm);
 
         buildHTML($asm, "cor");

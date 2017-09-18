@@ -40,13 +40,14 @@ package canu::CorrectReads;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(buildCorrectionLayouts generateCorrectedReads dumpCorrectedReads);
+@EXPORT = qw(setupCorrectionParameters buildCorrectionLayoutsConfigure buildCorrectionLayoutsCheck filterCorrectionLayouts generateCorrectedReadsConfigure generateCorrectedReadsCheck dumpCorrectedReads);
 
 use strict;
 
 use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
+use canu::Configure;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
@@ -79,14 +80,14 @@ sub getCorCov ($$) {
 
 #  Query gkpStore to find the read types involved.  Return an error rate that is appropriate for
 #  aligning reads of that type to each other.
-sub getCorErrorRate ($) {
+sub getCorIdentity ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $erate   = getGlobal("corErrorRate");
 
     if (defined($erate)) {
         print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads (from corErrorRate parameter).\n";
-        return($erate);
+        return(1 - $erate);
     }
 
     my $numPacBioRaw         = 0;
@@ -111,7 +112,7 @@ sub getCorErrorRate ($) {
     print STDERR "-- Found $numNanoporeRaw raw and $numNanoporeCorrected corrected Nanopore libraries.\n";
     print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads.\n";
 
-    return($erate);
+    return(1 - $erate);
 }
 
 
@@ -151,416 +152,249 @@ sub estimateMemoryNeededForCorrectionJobs ($) {
     my $readLen  = 0;
     my $numOlaps = 0;
     my $alignLen = 0;
-    my $memEst   = 0.0;
+    my $memEst   = 0;
 
     return   if (defined(getGlobal("corMemory")));
 
-    fetchFile("$path/correctReads.memory.out");
+    fetchFile("$path/$asm.readsToCorrect.stats");
 
-    if (! fileExists("$path/correctReads.memory.out")) {
-        $cmd  = "$bin/generateCorrectionLayouts \\\n";
-        $cmd .= "  -G ../$asm.gkpStore \\\n";
-        $cmd .= "  -O ../$asm.ovlStore \\\n";
-        $cmd .= "  -r ./$asm.readsToCorrect \\\n"    if (-e "$path/$asm.readsToCorrect");
-        $cmd .= "  -M \\\n";
-        $cmd .= " > ./correctReads.memory.out 2> ./correctReads.memory.err\n";
-
-        if (runCommand($path, $cmd)) {
-            caExit("read correction memory estimate failed", "$path/correctReads.memory.err");
+    if (-e "$path/$asm.readsToCorrect.stats") {
+        open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
+        while (<F>) {
+            if (m/Maximum\s+Memory\s+(\d+)/) {
+                $memEst = int($1 / 1073741824.0 + 0.5) * 2;
+            }
         }
-
-        unlink "$path/correctReads.memory.err";
-        stashFile("$path/correctReads.memory.out");
+        close(F);
     }
-
-    open(F, "< $path/correctReads.memory.out") or caExit("can't open '$path/correctReads.memory.out' for reading: $!", undef);
-    while (<F>) {
-        if (m/Based\son\sread\s(\d+)\sof\slength\s(\d+)\swith\s(\d+)\soverlaps\scovering\s(\d+)\sbases,\sexpecting\sto\suse\s\d+\sbytes,\s(\d+\.\d+)\sGB\smemory\susage/) {
-            $readID   = $1;
-            $readLen  = $2;
-            $numOlaps = $3;
-            $alignLen = $4;
-            $memEst   = $5;
-        }
-    }
-    close(F);
 
     if ($memEst == 0) {
-        $memEst = 8;
-
-        print STDERR "-- WARNING:\n";
-        print STDERR "-- WARNING: Failed to parse read correction memory size estimate; set corMemory to 8 GB default.\n";
-        print STDERR "-- WARNING:\n";
-    } else {
-        $memEst   = int($memEst + 0.5);    #  Round up to the next GB.
-        $alignLen = int($alignLen / $numOlaps);
-
-        print STDERR "--\n";
-        print STDERR "-- Set corMemory to $memEst GB based on read $readID of length $readLen with $numOlaps overlaps of average size $alignLen.\n";
-        print STDERR "--\n";
+        $memEst = 12;
     }
 
     setGlobal("corMemory", $memEst);
-}
 
+    my $err;
+    my $all;
 
+    ($err, $all) = getAllowedResources("", "cor", $err, $all);
 
-sub lengthStats (@) {
-    my @v = sort { $b <=> $a } @_;
-
-    my $total  = 0;
-    my $mean   = 0;
-    my $n50    = 0;
-
-    if (scalar(@v) > 0) {
-        foreach my $v (@v) {
-            $total += $v;
-            $n50    = $v  if ($total < getGlobal("genomeSize") / 2);
-        }
-
-        $mean = int($total / scalar(@v) + 0.5);
-    }
-
-    return($mean, $n50);
-}
-
-
-sub quickFilter ($$) {
-    my $asm      = shift @_;
-    my $minTotal = shift @_;
-    my $bin      = getBinDirectory();
-
-    my $path     = "correction/2-correction";
-
-    my $totCorLengthIn  = 0;
-    my $totCorLengthOut = 0;
-    my $minCorLength    = 0;
-
-    open(O, "> $path/$asm.readsToCorrect.WORKING") or caExit("can't open '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
-    open(F, "$bin/gatekeeperDumpMetaData -G correction/$asm.gkpStore -reads | sort -T . -k3nr | ") or caExit("can't dump gatekeeper for read lengths: $!\n", undef);
-
-    print O "read\toriginalLength\tcorrectedLength\n";
-
-    while (<F>) {
-        my @v = split '\s+', $_;
-
-        $totCorLengthIn  += $v[2];
-        $totCorLengthOut += $v[2];
-
-        print O "$v[0]\t$v[2]\t0\n";
-
-        if ($minTotal != 0 && $totCorLengthIn >= $minTotal) {
-            $minCorLength = $v[2];
-            last;
-        }
-    }
-    close(F);
-    close(O);
-
-    rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
-
-    stashFile("$path/$asm.readsToCorrect");
+    print STDERR "--\n";
+    print STDERR $all;
+    print STDERR "--\n";
 }
 
 
 
 
-sub expensiveFilter ($) {
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
+
+sub setupCorrectionParameters ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
-    my $path   = "correction/2-correction";
+    my $base    = "correction";
+    my $path    = "correction/2-correction";
 
-    my $minCov = getGlobal("corMinCoverage");
-    my $maxCov = getCorCov($asm, "Local");
+    make_path("$path")  if (! -d "$path");
 
-    if (! fileExists("$path/$asm.estimate.log")) {
-        print STDERR "-- Computing expected corrected read lengths '$path/$asm.estimate.log'.\n";
+    #  Set the minimum coverage for a corrected read based on coverage in input reads.
 
-        $cmd  = "$bin/generateCorrectionLayouts \\\n";
-        $cmd .= "  -G ../$asm.gkpStore \\\n";
-        $cmd .= "  -O ../$asm.ovlStore \\\n";
-        $cmd .= "  -S ./$asm.globalScores \\\n"                         if (-e "$path/$asm.globalScores");
-        $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
-        $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-        $cmd .= "  -ec $minCov \\\n"                                    if (defined($minCov));
-        $cmd .= "  -eC $maxCov \\\n"                                    if (defined($maxCov));
-        $cmd .= "  -p ./$asm.estimate.WORKING";
+    if (!defined(getGlobal("corMinCoverage"))) {
+        my $cov = getExpectedCoverage("correction", $asm);
 
-        if (runCommand($path, $cmd)) {
-            rename "$path/$asm.estimate.log", "$path/$asm.estimate.log.FAILED";
-            caExit("failed to generate estimated lengths of corrected reads", "correction/$asm.corStore.err");
-        }
-        rename "$path/$asm.estimate.WORKING.filter.log", "$path/$asm.estimate";
-        rename "$path/$asm.estimate.WORKING.summary",    "$path/$asm.estimate.stats";
-        rename "$path/$asm.estimate.WORKING.log",        "$path/$asm.estimate.log";
+        setGlobal("corMinCoverage", 4);
+        setGlobal("corMinCoverage", 4)   if ($cov <  60);
+        setGlobal("corMinCoverage", 0)   if ($cov <= 20);
 
-        unlink "$path/$asm.estimate.correctedLength.log";
-        unlink "$path/$asm.estimate.originalLength.log";
-    } else {
-        print STDERR "-- Expected corrected read lengths found in '$path/$asm.estimate.log'.\n";
-    }
-
-    if (! -e "$path/$asm.estimate.correctedLength.log") {
-        print STDERR "-- Sorting reads by expected corrected length.\n";
-        if (runCommandSilently($path, "sort -T . -k4nr -k2nr < ./$asm.estimate.log > ./$asm.estimate.correctedLength.log", 1)) {
-            caExit("failed to sort by corrected read length", undef);
-        }
-    }
-
-    if (! -e "$path/$asm.estimate.originalLength.log") {
-        print STDERR "-- Sorting reads by uncorrected length.\n";
-        if (runCommandSilently($path, "sort -T . -k2nr -k4nr < ./$asm.estimate.log > ./$asm.estimate.originalLength.log",  1)) {
-            caExit("failed to sort by original read length", undef);
-        }
-    }
-
-    my $totRawLengthIn    = 0;  #  Bases in raw reads we correct
-    my $totRawLengthOut   = 0;  #  Expected bases in corrected reads
-    my $minRawLength      = 0;
-
-    my $totCorLengthIn    = 0;  #  Bases in raw reads we correct
-    my $totCorLengthOut   = 0;  #  Expected bases in corrected reads
-    my $minCorLength      = 0;
-
-    my $minTotal          = getGlobal("genomeSize") * getGlobal("corOutCoverage");
-
-    #  Lists of reads to correct if we use the raw length or the corrected length as a filter.
-
-    my $nReads      = getNumberOfReadsInStore("correction", $asm);
-
-    my @rawReads;
-    my @corReads;
-    my @corReadLen;
-
-    for (my $ii=0; $ii<=$nReads; $ii++) {
-        $rawReads[$ii]   = undef;
-        $corReads[$ii]   = undef;
-        $corReadLen[$ii] = undef;
-    }
-
-    #  The expected length of the corrected reads, based on the filter
-
-    my @corLengthRawFilter;
-    my @corLengthCorFilter;
-
-    #  Filter!
-
-    print STDERR "-- Loading expected corrected read lengths.\n";
-
-    open(F, "< $path/$asm.estimate.originalLength.log");
-    while (<F>) {
-        my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
-
-        $corReadLen[int($v[0])] = int($v[3]);
-    }
-    close(F);
-
-    print STDERR "-- Picking longest corrected reads.\n";
-
-    open(F, "< $path/$asm.estimate.originalLength.log");
-    while (<F>) {
-        my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
-
-        $totRawLengthIn  += $v[1];
-        $totRawLengthOut += $v[3];
-
-        #print O "$v[0]\t$v[1]\t$v[3]\n";
-
-        $rawReads[int($v[0])] = 1;
-
-        push @corLengthRawFilter, $v[3];
-
-        if ($totRawLengthIn >= $minTotal) {  #  Compare against raw bases
-            $minRawLength = $v[1];
-            last;
-        }
-    }
-
-    print STDERR "-- Writing longest corrected reads to '$path/$asm.readsToCorrect'.\n";
-
-    open(F, "< $path/$asm.estimate.correctedLength.log");
-    open(O, "| sort -T . -k1n > $path/$asm.readsToCorrect.WORKING") or caExit("can't open sort -k1n > '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
-
-    print O "read\toriginalLength\tcorrectedLength\n";
-
-    while (<F>) {
-        my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
-
-        $totCorLengthIn  += $v[1];
-        $totCorLengthOut += $v[3];
-
-        print O "$v[0]\t$v[1]\t$v[3]\n";
-
-        $corReads[int($v[0])] = 1;
-
-        push @corLengthCorFilter, $v[3];
-
-        if ($totCorLengthOut >= $minTotal) {  #  Compare against corrected bases
-            $minCorLength = $v[3];
-            last;
-        }
-    }
-    close(O);
-    close(F);
-
-    rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
-
-    stashFile("$path/$asm.readsToCorrect");
-
-    #  Generate true/false positive/negative lists.
-
-    print STDERR "-- Summarizing filter.\n";
-
-    open(F, "< $path/$asm.estimate.correctedLength.log") or die;
-
-    open(TN, "> $path/$asm.estimate.tn.log") or die;
-    open(FN, "> $path/$asm.estimate.fn.log") or die;
-    open(FP, "> $path/$asm.estimate.fp.log") or die;
-    open(TP, "> $path/$asm.estimate.tp.log") or die;
-
-    my ($tnReads, $tnBasesR, $tnBasesC, $tnBasesRave, $tnBasesCave) = (0, 0, 0, 0, 0 );
-    my ($fnReads, $fnBasesR, $fnBasesC, $fnBasesRave, $fnBasesCave) = (0, 0, 0, 0, 0 );
-    my ($fpReads, $tpBasesR, $tpBasesC, $tpBasesRave, $tpBasesCave) = (0, 0, 0, 0, 0 );
-    my ($tpReads, $fpBasesR, $fpBasesC, $fpBasesRave, $fpBasesCave) = (0, 0, 0, 0, 0 );
-
-    while (<F>) {
-        my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
-
-        my $er = defined($rawReads[int($v[0])]);
-        my $ec = defined($corReads[int($v[0])]);
-
-        if (($er == 0) && ($ec == 0)) {  print TN $_;  $tnReads++;  $tnBasesR += $v[1];  $tnBasesC += $corReadLen[$v[0]];  }  #  True negative, yay!
-        if (($er == 0) && ($ec == 1)) {  print FN $_;  $fnReads++;  $fnBasesR += $v[1];  $fnBasesC += $corReadLen[$v[0]];  }  #  False negative.  Bad.
-        if (($er == 1) && ($ec == 0)) {  print FP $_;  $fpReads++;  $fpBasesR += $v[1];  $fpBasesC += $corReadLen[$v[0]];  }  #  False positive.  Bad.
-        if (($er == 1) && ($ec == 1)) {  print TP $_;  $tpReads++;  $tpBasesR += $v[1];  $tpBasesC += $corReadLen[$v[0]];  }  #  True positive, yay!
-    }
-
-    undef @corReadLen;
-
-    close(TP);
-    close(FP);
-    close(FN);
-    close(TN);
-
-    close(F);
-
-    $tnBasesRave = $tnBasesR / $tnReads  if ($tnReads > 0);
-    $tnBasesCave = $tnBasesC / $tnReads  if ($tnReads > 0);
-
-    $fnBasesRave = $fnBasesR / $fnReads  if ($fnReads > 0);
-    $fnBasesCave = $fnBasesC / $fnReads  if ($fnReads > 0);
-
-    $fpBasesRave = $fpBasesR / $fpReads  if ($fpReads > 0);
-    $fpBasesCave = $fpBasesC / $fpReads  if ($fpReads > 0);
-
-    $tpBasesRave = $tpBasesR / $tpReads  if ($tpReads > 0);
-    $tpBasesCave = $tpBasesC / $tpReads  if ($tpReads > 0);
-
-    #  Dump a summary of the filter
-
-    my ($rawFilterMean, $rawFilterN50) = lengthStats(@corLengthRawFilter);
-    my ($corFilterMean, $corFilterN50) = lengthStats(@corLengthCorFilter);
-
-    undef @corLengthRawFilter;
-    undef @corLengthCorFilter;
-
-    my $nCorReads = 0;
-    my $nRawReads = 0;
-
-    for (my $ii=0; $ii<=$nReads; $ii++) {
-        $nCorReads++  if (defined($corReads[$ii]));
-        $nRawReads++  if (defined($rawReads[$ii]));
-    }
-
-    undef @corReads;
-    undef @rawReads;
-
-    open(F, "> $path/$asm.readsToCorrect.summary") or caExit("can't open '$path/$asm.readsToCorrect.summary' for writing: $!\n", undef);
-    print F "Corrected read length filter:\n";
-    print F "\n";
-    print F "  nReads  $nCorReads\n";
-    print F "  nBases  $totCorLengthIn (input bases)\n";
-    print F "  nBases  $totCorLengthOut (corrected bases)\n";
-    print F "  Mean    $corFilterMean\n";
-    print F "  N50     $corFilterN50\n";
-    print F "\n";
-    print F "Raw read length filter:\n";
-    print F "\n";
-    print F "  nReads  $nRawReads\n";
-    print F "  nBases  $totRawLengthIn (input bases)\n";
-    print F "  nBases  $totRawLengthOut (corrected bases)\n";
-    print F "  Mean    $rawFilterMean\n";
-    print F "  N50     $rawFilterN50\n";
-    print F "\n";
-    printf F "TN %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tnReads, $tnBasesR, $tnBasesRave, $tnBasesC, $tnBasesCave;
-    printf F "FN %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $fnReads, $fnBasesR, $fnBasesRave, $fnBasesC, $fnBasesCave;
-    printf F "FP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $fpReads, $fpBasesR, $fpBasesRave, $fpBasesC, $fpBasesCave;
-    printf F "TP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tpReads, $tpBasesR, $tpBasesRave, $tpBasesC, $tpBasesCave;
-    close(F);
-
-    stashFile("$path/$asm.readsToCorrect.summary");
-
-    my $report;
-
-    $report  = "--\n";
-    $report .= "-- Reads to be corrected:\n";
-    $report .= "--   $nCorReads reads longer than $minRawLength bp\n";
-    $report .= "--   $totCorLengthIn bp\n";
-    $report .= "-- Expected corrected reads:\n";
-    $report .= "--   $nCorReads reads\n";
-    $report .= "--   $totCorLengthOut bp\n";
-    $report .= "--   $minCorLength bp minimum length\n";
-    $report .= "--   $corFilterMean bp mean length\n";
-    $report .= "--   $corFilterN50 bp n50 length\n";
-
-    addToReport("corrections", $report);
-
-    #  Plot a scatter plot of the original vs the expected corrected read lengths.  Early versions
-    #  also plotted the sorted length vs the other length, but those were not interesting.
-
-    if (! fileExists("$path/$asm.estimate.original-x-correctedLength.gp")) {
-        my $gnuplot = getGlobal("gnuplot");
-        my $format  = getGlobal("gnuplotImageFormat");
-
-        open(F, "> $path/$asm.estimate.original-x-correctedLength.gp");
-        print F "set title 'original length (x) vs corrected length (y)'\n";
-        print F "set xlabel 'original read length'\n";
-        print F "set ylabel 'corrected read length (expected)'\n";
-        print F "set pointsize 0.25\n";
-        print F "\n";
-        print F "set terminal $format size 1024,1024\n";
-        print F "set output './$asm.estimate.original-x-corrected.lg.$format'\n";
-        print F "plot './$asm.estimate.tn.log' using 2:4 title 'tn', \\\n";
-        print F "     './$asm.estimate.fn.log' using 2:4 title 'fn', \\\n";
-        print F "     './$asm.estimate.fp.log' using 2:4 title 'fp', \\\n";
-        print F "     './$asm.estimate.tp.log' using 2:4 title 'tp'\n";
-        print F "set terminal $format size 256,256\n";
-        print F "set output './$asm.estimate.original-x-corrected.sm.$format'\n";
-        print F "replot\n";
-        close(F);
-
-        if (runCommandSilently($path, "$gnuplot ./$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1", 0)) {
-            print STDERR "--\n";
-            print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
-            print STDERR "--\n";
-            print STDERR "----------------------------------------\n";
-        }
-
-        stashFile("$path/$asm.estimate.original-x-correctedLength.gp");
-        stashFile("$path/$asm.estimate.original-x-corrected.lg.$format");
-        stashFile("$path/$asm.estimate.original-x-corrected.sm.$format");
+        print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
     }
 }
 
 
 
-sub setupFalcon ($) {
+
+
+
+
+sub buildCorrectionLayoutsConfigure ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my $base    = "correction";
+    my $path    = "correction/2-correction";
+
+    goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
+    goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
+    goto allDone   if (fileExists("$base/$asm.corStore"));                      #  Jobs all finished
+    goto allDone   if (fileExists("$path/generateCorrectionLayouts.sh"));       #  Jobs created
+
+    #  The global filter can be estimated from data saved in ovlStore.  This code will compute it exactly.
+    #
+    #  IT HAS NOT BEEN UPDATED OR TESTED.
+
+    fetchFile("$path/$asm.globalScores");
+
+    my $computeGlobalScores = 0;
+
+    if ($computeGlobalScores) {
+        if (! fileExists("$path/$asm.globalScores")) {
+            print STDERR "-- Computing global filter scores '$path/$asm.globalScores'.\n";
+
+            fetchStore("./correction/$asm.ovlStore");
+
+            $cmd  = "$bin/filterCorrectionOverlaps \\\n";
+            $cmd .= "  -estimate -nolog \\\n";
+            $cmd .= "  -G ../$asm.gkpStore \\\n";
+            $cmd .= "  -O ../$asm.ovlStore \\\n";
+            $cmd .= "  -S ./$asm.globalScores.WORKING \\\n";
+            $cmd .= "  -c " . getCorCov($asm, "Global") . " \\\n";
+            $cmd .= "  -l " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
+            $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
+            $cmd .= "> ./$asm.globalScores.err 2>&1";
+
+            if (runCommand($path, $cmd)) {
+                caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
+            }
+
+            rename "$path/$asm.globalScores.WORKING",       "$path/$asm.globalScores";
+            rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
+            rename "$path/$asm.globalScores.WORKING.log",   "$path/$asm.globalScores.log";
+            unlink "$path/$asm.globalScores.err";
+
+            stashFile("$path/$asm.globalScores");
+
+            my $report;
+
+            open(F, "< $path/$asm.globalScores.stats") or caExit("can't open '$path/$asm.globalScores.stats' for reading: $!", undef);
+            while(<F>) {
+                $report .= "--  $_";
+            }
+            close(F);
+
+            addToReport("filtering", $report);
+
+        } else {
+            print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
+        }
+    } else {
+        print STDERR "-- Global filter scores will be estimated.\n";
+    }
+
+    #  Make layouts for each corrected read.
+
+    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.ovlStore");
+
+    print STDERR "-- Computing correction layouts.\n";
+
+    $cmd  = "$bin/generateCorrectionLayouts \\\n";
+    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -O ./$asm.ovlStore \\\n";
+    $cmd .= "  -C ./$asm.corStore.WORKING \\\n";
+    $cmd .= "  -S 2-correction/$asm.globalScores \\\n"              if (-e "$path/$asm.globalScores");
+    $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
+    $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
+    $cmd .= "  -ec " . getGlobal("corMinCoverage") . " \\\n";
+    $cmd .= "  -eC " . getCorCov($asm, "Local") . "\\\n";
+    $cmd .= "> ./$asm.corStore.err 2>&1\n";
+
+    if (runCommand($base, $cmd)) {
+        caExit("failed to generate correction layouts", "$base/$asm.corStore.err");
+    }
+
+    rename "$base/$asm.corStore.WORKING", "$base/$asm.corStore";
+    unlink "$base/$asm.corStore.err";
+
+    stashStore("./correction/$asm.corStore");
+
+  finishStage:
+    emitStage($asm, "cor-buildCorrectionLayoutsConfigure");
+    buildHTML($asm, "cor");
+
+  allDone:
+}
+
+
+
+sub buildCorrectionLayoutsCheck ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my $base    = "correction";
+    my $path    = "correction/2-correction";
+
+    goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
+    goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
+    goto allDone   if (fileExists("$base/$asm.corStore"));                      #  Jobs all finished
+    goto allDone   if (fileExists("$path/generateCorrectionLayouts.sh"));       #  Jobs created
+
+    #  Eventually, we'll run generateCorrectionLayouts on the grid.  Then we'll need to load the new
+    #  tigs into the corStore here.
+
+  finishStage:
+    emitStage($asm, "cor-buildCorrectionLayoutsCheck");
+    buildHTML($asm, "cor");
+
+  allDone:
+}
+
+
+
+sub filterCorrectionLayouts ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my $base    = "correction";
+    my $path    = "correction/2-correction";
+
+    goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
+    goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
+    goto allDone   if (fileExists("$path/$asm.readsToCorrect"));                #  Jobs all finished
+
+    #  Analyze the corStore to decide what reads we want to correct.
+
+    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.ovlStore");
+
+    my $genomeSize  = getGlobal("genomeSize");
+    my $outCoverage = getGlobal("corOutCoverage");
+
+    print STDERR "-- Computing correction layouts.\n";
+
+    $cmd  = "$bin/filterCorrectionLayouts \\\n";
+    $cmd .= "  -G ../$asm.gkpStore \\\n";
+    $cmd .= "  -C ../$asm.corStore \\\n";
+    $cmd .= "  -R ./$asm.readsToCorrect.WORKING \\\n";
+    $cmd .= "  -g $genomeSize \\\n";
+    $cmd .= "  -c $outCoverage \\\n";
+    $cmd .= "> ./$asm.readsToCorrect.err 2>&1\n";
+
+    if (runCommand($path, $cmd)) {
+        caExit("failed to generate list of reads to correct", "$path/$asm.readsToCorrect.err");
+    }
+
+    rename "$path/$asm.readsToCorrect.WORKING",       "$path/$asm.readsToCorrect";
+    rename "$path/$asm.readsToCorrect.WORKING.stats", "$path/$asm.readsToCorrect.stats";
+    rename "$path/$asm.readsToCorrect.WORKING.log",   "$path/$asm.readsToCorrect.log";
+
+    stashFile("$path/$asm.readsToCorrect");
+    stashFile("$path/$asm.readsToCorrect.stats");
+    stashFile("$path/$asm.readsToCorrect.log");
+
+  finishStage:
+    emitStage($asm, "cor-filterCorrectionLayouts");
+    buildHTML($asm, "cor");
+
+  allDone:
+}
+
+
+
+sub generateCorrectedReadsConfigure ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -655,23 +489,14 @@ sub setupFalcon ($) {
         print F "\n";
     }
 
-    my $maxCov   = getCorCov($asm, "Local");
-
-    my $erate    = getCorErrorRate($asm);
-    my $minidt   = 1 - $erate;
-
     print F "\n";
-    print F "\$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
+    print F "\$bin/falconsense \\\n";
     print F "  -G \$gkpStore \\\n";
-    print F "  -O ../$asm.ovlStore \\\n";
-    print F "  -r ./$asm.readsToCorrect \\\n"                       if (-e "$path/$asm.readsToCorrect");
-    print F "  -S ./$asm.globalScores \\\n"                         if (-e "$path/$asm.globalScores");
-    print F "  -C \\\n";
+    print F "  -C ../$asm.corStore \\\n";
+    print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if (  -e "$path/$asm.readsToCorrect");
+    print F "  -b \$bgn -e \$end \\\n"                              if (! -e "$path/$asm.readsToCorrect");
     print F "  -t  " . getGlobal("corThreads") . " \\\n";
-    print F "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
-    print F "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-    print F "  -eC $maxCov \\\n"                                    if (defined($maxCov));
-    print F "  -ci $minidt \\\n";
+    print F "  -ci " . getCorIdentity($asm) . "\\\n";
     print F "  -cl " . getGlobal("minReadLength") . "\\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
     print F "  > ./results/\$jobid.fasta.WORKING \\\n";
@@ -695,131 +520,10 @@ sub setupFalcon ($) {
 
     makeExecutable("$path/correctReads.sh");
     stashFile("$path/correctReads.sh");
-}
 
-
-
-sub buildCorrectionLayouts ($) {
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my $path    = "correction/2-correction";
-
-    #  All we do here is decide if the job is finished, and delegate
-    #  to the correct function if not finished.
-
-    #  But first we analyze the layouts to pick a length cutoff - or more precisely, to pick a set
-    #  of reads to correct.
-    #
-    #  If one doesn't want to compute the (expensive) stats, one can just correct more reads.  How many more to correct
-    #  is dependent on the particular reads.  An extra 1x to 5x seems reasonable.
-
-    #  A one-pass algorithm would write layouts to tigStore, computing stats as before, then delete
-    #  tigs that shouldn't be corrected.  I suspect this will be slower.
-
-    goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));         #  Output exists
-    goto allDone   if (fileExists("$path/cnsjob.files"));                  #  Jobs all finished
-    goto allDone   if (fileExists("$path/correctReads.sh"));               #  Jobs created
-
-    make_path("$path")  if (! -d "$path");
-
-    #  Set the minimum coverage for a corrected read based on coverage in input reads.
-
-    if (!defined(getGlobal("corMinCoverage"))) {
-        my $cov = getExpectedCoverage("correction", $asm);
-
-        setGlobal("corMinCoverage", 4);
-        setGlobal("corMinCoverage", 4)   if ($cov <  60);
-        setGlobal("corMinCoverage", 0)   if ($cov <= 20);
-
-        print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
-    }
-
-    #  This will eventually get rolled into overlap store creation.  Generate a list of scores for
-    #  'global' overlap filtering.
-
-    fetchFile("$path/$asm.globalScores");
-
-    if (! fileExists("$path/$asm.globalScores")) {
-        print STDERR "-- Computing global filter scores '$path/$asm.globalScores'.\n";
-
-        fetchStore("./correction/$asm.ovlStore");
-
-        my $maxCov = getCorCov($asm, "Global");
-        my $minLen = (defined(getGlobal("corMinEvidenceLength"))) ? getGlobal("corMinEvidenceLength") : 0;
-
-        $cmd  = "$bin/filterCorrectionOverlaps \\\n";
-        $cmd .= "  -estimate -nolog \\\n";
-        $cmd .= "  -G ../$asm.gkpStore \\\n";
-        $cmd .= "  -O ../$asm.ovlStore \\\n";
-        $cmd .= "  -S ./$asm.globalScores.WORKING \\\n";
-        $cmd .= "  -c $maxCov \\\n";
-        $cmd .= "  -l $minLen \\\n";
-        $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-        $cmd .= "> ./$asm.globalScores.err 2>&1";
-
-        if (runCommand($path, $cmd)) {
-            caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
-        }
-
-        rename "$path/$asm.globalScores.WORKING",       "$path/$asm.globalScores";
-        rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
-        rename "$path/$asm.globalScores.WORKING.log",   "$path/$asm.globalScores.log";
-        unlink "$path/$asm.globalScores.err";
-
-        stashFile("$path/$asm.globalScores");
-    } else {
-        print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
-    }
-
-    my $report;
-
-#FORMAT
-    open(F, "< $path/$asm.globalScores.stats") or caExit("can't open '$path/$asm.globalScores.stats' for reading: $!", undef);
-    while(<F>) {
-        $report .= "--  $_";
-    }
-    close(F);
-
-    addToReport("filtering", $report);
-
-    #  For 'quick' filtering, but more reads to correct, sort the reads by length, and correct the
-    #  longest Nx of reads.
-    #
-    #  For 'expensive' filtering, but fewer reads to correct, first estimate the corrected lengths
-    #  (requires a pass through the overlaps), then pull out the longest Nx of corrected reads.
-    #
-    #  Both are required to create a file $asm.readsToCorrect, containing a list of IDs to correct.
-
-    fetchFile("$path/$asm.readsToCorrect");
-
-    if (! fileExists("$path/$asm.readsToCorrect")) {
-        if      (getGlobal("corFilter") eq "quick") {
-            quickFilter($asm, (getGlobal("genomeSize") * getGlobal("corOutCoverage")));
-
-        } elsif (getGlobal("corFilter") eq "expensive") {
-            expensiveFilter($asm);
-
-        } elsif (getGlobal("corFilter") eq "none" ) {
-            quickFilter($asm, 0);
-
-        } else {
-            caFailure("unknown corFilter '" . getGlobal("corFilter") . "'", undef);
-        }
-
-        caExit("failed to create list of reads to correct", undef)  if (! -e "$path/$asm.readsToCorrect");
-    } else {
-        print STDERR "-- Filtered list of reads found in '$path/$asm.readsToCorrect'.\n";
-    }
-
-    #  Now just emit a script.
-
-    setupFalcon($asm)    if (getGlobal("corConsensus") eq "falcon");
 
   finishStage:
-    emitStage($asm, "cor-buildCorrectionLayouts");
+    emitStage($asm, "cor-generateCorrectedReadsConfigure");
     buildHTML($asm, "cor");
 
   allDone:
@@ -827,8 +531,7 @@ sub buildCorrectionLayouts ($) {
 
 
 
-
-sub generateCorrectedReads ($) {
+sub generateCorrectedReadsCheck ($) {
     my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
     my $bin     = getBinDirectory();
@@ -919,7 +622,7 @@ sub generateCorrectedReads ($) {
 
     stashFile("$path/corjob.files");
 
-    emitStage($asm, "cor-generateCorrectedReads");
+    emitStage($asm, "cor-generateCorrectedReadsCheck");
     buildHTML($asm, "cor");
 
   allDone:

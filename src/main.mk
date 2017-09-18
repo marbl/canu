@@ -203,6 +203,9 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 correction/filterCorrectionOverlaps.mk \
                 correction/generateCorrectionLayouts.mk \
+                correction/filterCorrectionLayouts.mk \
+                correction/falconsense.mk \
+                \
                 correction/readConsensus.mk \
                 correction/errorEstimate.mk \
                 \
