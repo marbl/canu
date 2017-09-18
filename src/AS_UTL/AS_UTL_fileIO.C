@@ -518,6 +518,34 @@ AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
 
 
+FILE *
+AS_UTL_openOutputFile(char *outputPrefix,
+                      char *outputSuffix,
+                      bool  doOpen) {
+  char   outputName[FILENAME_MAX];
+
+  if (outputPrefix == NULL)
+    return(NULL);
+
+  if (doOpen == false)
+    return(NULL);
+
+  if (outputSuffix)
+    snprintf(outputName, FILENAME_MAX, "%s.%s", outputPrefix, outputSuffix);
+  else
+    strncpy(outputName, outputPrefix, FILENAME_MAX);
+
+  errno = 0;
+
+  FILE *F = fopen(outputName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
+
+  return(F);
+}
+
+
+
 
 cftType
 compressedFileType(char const *filename) {

@@ -77,6 +77,7 @@ void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
 //  Read a file-of-files into a vector
 void    AS_UTL_loadFileList(char *fileName, vector<char *> &fileList);
 
+FILE   *AS_UTL_openOutputFile(char *outputPrefix, char *outputSuffix=NULL, bool  doOpen=true);
 
 
 enum cftType {
