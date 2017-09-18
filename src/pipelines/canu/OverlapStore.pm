@@ -238,8 +238,6 @@ sub overlapStoreConfigure ($$$) {
 
     #  Parallel jobs for bucketizing.  This should really be part of overlap computation itself.
 
-    #getAllowedResources("", "ovb");
-
     if (! -e "$path/scripts/1-bucketize.sh") {
         open(F, "> $path/scripts/1-bucketize.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
@@ -299,8 +297,6 @@ sub overlapStoreConfigure ($$$) {
     }
 
     #  Parallel jobs for sorting each bucket
-
-    #getAllowedResources("", "ovs");
 
     if (! -e "$path/scripts/2-sort.sh") {
         open(F, "> $path/scripts/2-sort.sh") or die;

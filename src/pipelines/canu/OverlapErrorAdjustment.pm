@@ -105,8 +105,6 @@ sub readErrorDetectionConfigure ($) {
     my @end;
     my $nj = 0;
 
-    #getAllowedResources("", "red");
-
     my $maxID    = getNumberOfReadsInStore("unitigging", $asm);
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
