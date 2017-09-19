@@ -444,8 +444,8 @@ reportTigGraph(TigVector &tigs,
   snprintf(BEGn, FILENAME_MAX, "%s.%s.gfa", prefix, label);
   snprintf(BEDn, FILENAME_MAX, "%s.%s.bed", prefix, label);
 
-  FILE *BEG =                          fopen(BEGn, "w");
-  FILE *BED = (tigSource.size() > 0) ? fopen(BEDn, "w") : NULL;
+  FILE *BEG = fopen(BEGn, "w");
+  FILE *BED = fopen(BEDn, "w");
 
   if (BEG == NULL)
     return;
