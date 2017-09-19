@@ -367,8 +367,7 @@ main(int argc, char **argv) {
     uint32   readID = (ovlLen > 0) ? ovl[0].a_iid : UINT32_MAX;   //  Read ID of overlaps, or maximum ID if no overlaps.
     tgTig   *layout = new tgTig;
 
-    layout->_tigID           = ii;
-    layout->_layoutLen       = gkpStore->gkStore_getRead(readID)->gkRead_sequenceLength();
+    layout->_tigID = ii;
 
     assert(ii <= readID);
 
@@ -376,10 +375,13 @@ main(int argc, char **argv) {
     //  But if ii is readID, we have overlaps, so process them, then load more.
 
     if (ii == readID) {
+      layout->_layoutLen = gkpStore->gkStore_getRead(readID)->gkRead_sequenceLength();
+
       layout = generateLayout(layout,
                               olapThresh,
                               minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
                               ovl, ovlLen);
+
       ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
     }
 
