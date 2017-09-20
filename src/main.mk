@@ -185,6 +185,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 meryl/estimate-mer-threshold.mk \
                 meryl/existDB.mk \
                 meryl/positionDB.mk \
+                meryl/simple-dump.mk \
                 \
                 merTrim/merTrim.mk \
                 \
