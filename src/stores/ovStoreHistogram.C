@@ -147,10 +147,14 @@ ovStoreHistogram::ovStoreHistogram(gkStore *gkp, ovFileType type) {
     _scoresList    = new uint16 [_scoresListMax];
     _scoresListAid = 0;
 
+    memset(_scoresList, 0, sizeof(uint16) * _scoresListMax);
+
     _scoresBgn     = 0;
     _scoresLen     = 0;
     _scoresMax     = 65535;                          //  Enough for 64k reads.
     _scores        = new oSH_ovlSco [_scoresMax];
+
+    memset(_scores, 0, sizeof(oSH_ovlSco) * _scoresMax);
   }
 }
 
@@ -694,8 +698,8 @@ ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage) {
   if (coverage == 0)                                   //  Return the highest score if the coverage is zero.
     return(UINT16_MAX);
 
-  if (_scores[id].points[N_OVL_SCORE-1] < coverage)    //  Return the lowest score if the coverage is higher
-    return(0);                                         //  than the number of overlaps.
+  if (_scores[id].points[N_OVL_SCORE-1] < coverage)    //  Return the lowest score if the coverage is higher than the
+    return(0);                                         //  number of overlaps.  This also handles the no overlaps case.
 
   uint32   cp = 1;
 
