@@ -46,6 +46,8 @@
 #include "timeAndSize.H" //  getTime();
 
 
+//  This uses the RED/OEA framework to generate corrected reads.  It probably isn't worth keeping.
+
 
 class consensusGlobalData {
 public:
