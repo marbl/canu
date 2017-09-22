@@ -742,7 +742,6 @@ sub buildGridArray ($$$$) {
 
     if (uc(getGlobal("gridEngine")) eq "PBS") {
         $off = "-F \"$off\"";
-        $off = "";
     }
 
     $opt =~ s/ARRAY_NAME/$name/g;        #  Replace ARRAY_NAME with 'job name'
