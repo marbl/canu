@@ -245,19 +245,12 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
   falconData   *fd = new falconData(templateLen * 2 + 1);
 
-#ifdef TRACK_POSITIONS
-  consensus->originalPos.reserve(templateLen * 2 + 1); // This is an over-generous pre-allocation
-#endif
-
-  uint32  index  = 0;
   uint32  ck     = g_best_ck;
   uint32  i      = g_best_t_pos;
+  uint32  ip     = i;
   uint32  j      = 0;
 
   while (1) {
-#ifdef TRACK_POSITIONS
-    int originalI = i;
-#endif
 
     //  Original version had bb outside, initialized to '$', with a comment that 'on bad input, bb
     //  will keep previous value, possibly '$'.'
@@ -272,39 +265,36 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       case 4: bb =                                                  '-'; break;
     }
 
+    ip = i;
     i  = g_best_aln_col->best_p_t_pos;
     j  = g_best_aln_col->best_p_delta;
     ck = g_best_aln_col->best_p_q_base;
 
     double sco = g_best_aln_col->score;
 
-    if ((i == -1) || (index >= templateLen * 2))
+    if ((i == -1) || (fd->len >= templateLen * 2))
       break;
 
     g_best_aln_col = msa[i]->delta[j]->base + ck;   //  Move to the next previous column
 
     if (bb != '-') {
-      fd->seq[index] = bb;
-      fd->eqv[index] = (int) sco - (int) g_best_aln_col->score;
-      //fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, msa[i]->coverage, fd->eqv[index] );
-      index++;
+      fd->seq[fd->len] = bb;
+      fd->eqv[fd->len] = (int) sco - (int) g_best_aln_col->score;
+      fd->pos[fd->len] = ip;
 
-#ifdef TRACK_POSITIONS
-      consensus->originalPos.push_back(originalI);
-#endif
+      //fprintf(stderr, "C %d %d %c %lf %d %d\n", i, fd->len, bb, g_best_aln_col->score, msa[i]->coverage, fd->eqv[fd->len] );
+
+      fd->len++;
     }
   }
 
-  fd->seq[index] = 0;
+  fd->seq[fd->len] = 0;
 
   // reverse the sequence
 
-#ifdef TRACK_POSITIONS
-  std::reverse(consensus->originalPos.begin(), consensus->originalPos.end());
-#endif
-
-  reverse(fd->seq, fd->seq+index);
-  reverse(fd->eqv, fd->eqv+index);
+  reverse(fd->seq, fd->seq + fd->len);
+  reverse(fd->eqv, fd->eqv + fd->len);
+  reverse(fd->pos, fd->pos + fd->len);
 
   return(fd);
 }

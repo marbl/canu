@@ -149,45 +149,47 @@ generateFalconConsensus(falconConsensus   *fc,
 
   //  Loaded all reads, build consensus.
 
-  uint32 splitSeqID = 0;
-
-  //FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, min_idt, min_ovl_len, max_read_len );
-
   falconData  *fd = fc->generateConsensus(evidence,
                                           tig->numberOfChildren() + 1);
 
-#ifdef TRACK_POSITIONS
-  //const std::string& sequenceToCorrect = seqs.at(0);
-  char * originalStringPointer = consensus_data_ptr->sequence;
-#endif
+  //  Find the largest stretch of uppercase sequence.  Lowercase sequence denotes MSA coverage was below minAllowedCoverage.
 
-  char * split = strtok(fd->seq, "acgt");
+  uint32  bgn = 0;
+  uint32  end = 0;
 
-  while (split != NULL) {
-    if (strlen(split) > minOutputLength) {
-      fprintf(stderr, "Generated read %u_%u of length %lu.\n",
-              tig->tigID(), splitSeqID, strlen(split));
+  for (uint32 in=0, bb=0, ee=0; ee<fd->len; ee++) {
+    bool   isLower = (('a' <= fd->seq[ee]) && (fd->seq[ee] <= 'z'));
+    bool   isLast  = (ee == fd->len - 1);
 
-      AS_UTL_writeFastA(F, split, strlen(split), 60, ">read%u_%d\n", tig->tigID(), splitSeqID);
+    if ((in == true) && (isLower || isLast))     //  Report the regions we could be saving.
+      fprintf(stderr, "Read %u region %u-%u\n",
+              tig->tigID(), bb, ee + isLast);
 
-      splitSeqID++;
-
-#ifdef TRACK_POSITIONS
-      int distance_from_beginning = split - originalStringPointer;
-      std::vector<int> relevantOriginalPositions(consensus_data_ptr->originalPos.begin() + distance_from_beginning, consensus_data_ptr->originalPos.begin() + distance_from_beginning + strlen(split));
-      int firstRelevantPosition = relevantOriginalPositions.front();
-      int lastRelevantPosition = relevantOriginalPositions.back();
-
-      std::string relevantOriginalTemplate = seqs.at(0).substr(firstRelevantPosition, lastRelevantPosition - firstRelevantPosition + 1);
-
-      // store relevantOriginalTemplate along with corrected read - not implemented
-#endif
+    if (isLower) {                               //  If lowercase, declare that we're not in a
+      in = 0;                                    //  good region any more.
     }
 
-    split = strtok(NULL, "acgt");
+    else if (in == 0) {                          //  Otherwise, if not in a region (so the first
+      bb = ee;                                   //  uppercase), remember the coordinate and
+      in = 1;                                    //  switch to being 'in' a region.
+    }
+
+    if ((in == 1) && (ee - bb > end - bgn)) {    //  If 'in' a good region, remember the longest.
+      bgn = bb;
+      end = ee + 1;
+    }
   }
 
-  delete fd;  //FConsensus::free_consensus_data( consensus_data_ptr );
+  //  Terminate the sequence we're going to print
+
+  fd->seq[end] = 0;
+
+  uint32  bgnRaw = fd->pos[bgn];
+  uint32  endRaw = fd->pos[end - 1] + 1;
+
+  AS_UTL_writeFastA(F, fd->seq + bgn, end - bgn, 0, ">read%u from %u-%u\n", tig->tigID(), bgnRaw, endRaw);
+
+  delete fd;
   delete [] evidence;
 }
 

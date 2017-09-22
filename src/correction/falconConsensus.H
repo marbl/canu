@@ -142,24 +142,27 @@ public:
   falconData() {
     seq = NULL;
     eqv = NULL;
+    pos = NULL;
+    len = 0;
   };
 
-  falconData(int32 len) {
-    maxLen = len;
-    seq    = new char  [len];
-    eqv    = new int32 [len];
+  falconData(int32 len_) {
+    seq    = new char  [len_];
+    eqv    = new int32 [len_];
+    pos    = new int32 [len_];
+    len    = 0;
   };
 
   ~falconData() {
     delete [] seq;
     delete [] eqv;
+    delete [] pos;
   };
-
-  int32            maxLen;
 
   char            *seq;
   int32           *eqv;
-  vector<int32>    originalPos;    //  For tracking original read positions in the corrected read
+  int32           *pos;    //  For tracking original read positions in corrected read.
+  int32            len;
 };
 
 
