@@ -180,14 +180,16 @@ generateFalconConsensus(falconConsensus   *fc,
     }
   }
 
-  //  Terminate the sequence we're going to print
+  //  Report the sequence.  If the whole string is lowercase (grrrr!) then bgn == end == 0.
 
-  fd->seq[end] = 0;
+  if (bgn < end) {
+    fd->seq[end] = 0;
 
-  uint32  bgnRaw = fd->pos[bgn];
-  uint32  endRaw = fd->pos[end - 1] + 1;
+    uint32  bgnRaw = fd->pos[bgn];
+    uint32  endRaw = fd->pos[end - 1] + 1;
 
-  AS_UTL_writeFastA(F, fd->seq + bgn, end - bgn, 0, ">read%u from %u-%u\n", tig->tigID(), bgnRaw, endRaw);
+    AS_UTL_writeFastA(F, fd->seq + bgn, end - bgn, 0, ">read%u from %u-%u\n", tig->tigID(), bgnRaw, endRaw);
+  }
 
   delete fd;
   delete [] evidence;
