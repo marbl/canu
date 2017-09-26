@@ -98,7 +98,7 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
       if (tag->delta == 0) {
         t_pos = tag->t_pos;
-        msa[t_pos]->coverage++;  //coverage[ t_pos ] ++;
+        msa[t_pos]->coverage++;
       }
 
 #ifdef DEBUG
@@ -167,7 +167,6 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
   // propogate score throught the alignment links, setup backtracking information
 
   align_tag_col_t *g_best_aln_col = NULL;
-  uint32           g_best_ck      = 0;
   int32            g_best_t_pos   = 0;
   double           g_best_score   = DBL_MIN;
 
@@ -184,10 +183,6 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
         aln_col->score    = DBL_MIN;
 
-        uint32 best_i     = UINT32_MAX;
-        uint32 best_j     = UINT32_MAX;
-        uint32 best_b     = UINT32_MAX;
-        uint32 best_ck    = UINT32_MAX;
         double best_score = DBL_MIN;
 
         //fprintf(stderr, "Processing consensus template %d which as %d delta and on base %d i pulled up col %d with %d links and best %d %d %d\n",
@@ -218,22 +213,20 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
           //  Save best score.
 
-          if (score > best_score) {
-            best_i  = aln_col->best_p_t_pos  = pi;
-            best_j  = aln_col->best_p_delta  = pj;
-            best_b  = aln_col->best_p_q_base = pkk;
-            best_ck                          = ck;
-            best_score                       = score;
+          if (best_score < score) {
+            aln_col->best_p_t_pos    = pi;
+            aln_col->best_p_delta    = pj;
+            aln_col->best_p_q_base   = pkk;
+            best_score               = score;
           }
         }  //  Over all links
 
         aln_col->score = best_score;
 
-        if (best_score > g_best_score) {
-          g_best_score   = best_score;
+        if (g_best_score < best_score) {
           g_best_aln_col = aln_col;
-          g_best_ck      = best_ck;
           g_best_t_pos   = i;
+          g_best_score   = best_score;
         }
       }
     }
@@ -243,21 +236,16 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
   //  Reconstruct the sequences.
 
-  falconData   *fd = new falconData(templateLen * 2 + 1);
+  falconData *fd = new falconData(templateLen * 2 + 1);
 
-  uint32  ck     = g_best_ck;
-  uint32  i      = g_best_t_pos;
-  uint32  ip     = i;
-  uint32  j      = 0;
+  int32      i  = g_best_t_pos;
+  int32      j  = 0;
+  uint32     kk = g_best_aln_col->best_p_q_base;
 
-  while (1) {
-
-    //  Original version had bb outside, initialized to '$', with a comment that 'on bad input, bb
-    //  will keep previous value, possibly '$'.'
-
+  while ((i != -1) && (fd->len < templateLen * 2)) {
     char  bb = '-';
 
-    switch (ck) {
+    switch (kk) {
       case 0: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'a' : 'A'; break;
       case 1: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'c' : 'C'; break;
       case 2: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'g' : 'G'; break;
@@ -265,27 +253,20 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       case 4: bb =                                                  '-'; break;
     }
 
-    ip = i;
-    i  = g_best_aln_col->best_p_t_pos;
-    j  = g_best_aln_col->best_p_delta;
-    ck = g_best_aln_col->best_p_q_base;
-
-    double sco = g_best_aln_col->score;
-
-    if ((i == -1) || (fd->len >= templateLen * 2))
-      break;
-
-    g_best_aln_col = msa[i]->delta[j]->base + ck;   //  Move to the next previous column
-
     if (bb != '-') {
       fd->seq[fd->len] = bb;
-      fd->eqv[fd->len] = (int) sco - (int) g_best_aln_col->score;
-      fd->pos[fd->len] = ip;
-
-      //fprintf(stderr, "C %d %d %c %lf %d %d\n", i, fd->len, bb, g_best_aln_col->score, msa[i]->coverage, fd->eqv[fd->len] );
+      fd->eqv[fd->len] = -10 * log((msa[i]->coverage - g_best_aln_col->count) / (double)msa[i]->coverage);
+      fd->pos[fd->len] = i;
 
       fd->len++;
     }
+
+    i   = g_best_aln_col->best_p_t_pos;
+    j   = g_best_aln_col->best_p_delta;
+    kk  = g_best_aln_col->best_p_q_base;
+
+    if (i != -1)
+      g_best_aln_col = msa[i]->delta[j]->base + kk;
   }
 
   fd->seq[fd->len] = 0;

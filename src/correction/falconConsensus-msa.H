@@ -128,7 +128,7 @@ public:
 
   uint16     best_p_delta;
   uint16     best_p_q_base;  // encoded base
-  uint16     count;
+  uint16     count;          //  Number of times we've encountered this base
   uint16     size;           //  Number of items allocated in the arrays
   uint16     n_link;         //  Number of items used in the arrays
 };
