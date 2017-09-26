@@ -105,6 +105,9 @@ sub getNumberOfBasesInStore ($$) {
 
     open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
     while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
+
         my @v = split '\s+', $_;
         $nb += $v[2];
     }
@@ -357,6 +360,12 @@ sub gatekeeperGenerateReadLengths ($$) {
 
     open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
     while (<F>) {
+        next  if (m/readID/);             #  Skip the header.
+        next  if (m/------/);
+
+        s/^\s+//;
+        s/\s+$//;
+
         my @v = split '\s+', $_;
 
         push @rl, $v[2];                  #  Save the length
