@@ -47,10 +47,8 @@ overlapReadCache::overlapReadCache(gkStore *gkpStore_, uint64 memLimit) {
   memset(readLen, 0, sizeof(uint32) * (nReads + 1));
 
   readSeqFwd  = new char * [nReads + 1];
-  //readSeqRev  = new char * [nReads + 1];
 
   memset(readSeqFwd, 0, sizeof(char *) * (nReads + 1));
-  //memset(readSeqRev, 0, sizeof(char *) * (nReads + 1));
 
   memoryLimit = memLimit * 1024 * 1024 * 1024;
 }
@@ -61,13 +59,10 @@ overlapReadCache::~overlapReadCache() {
   delete [] readAge;
   delete [] readLen;
 
-  for (uint32 rr=0; rr<=nReads; rr++) {
+  for (uint32 rr=0; rr<=nReads; rr++)
     delete [] readSeqFwd[rr];
-    //delete [] readSeqRev[rr];
-  }
 
   delete [] readSeqFwd;
-  //delete [] readSeqRev;
 }
 
 
@@ -81,7 +76,6 @@ overlapReadCache::loadRead(uint32 id) {
   readLen[id] = read->gkRead_sequenceLength();
 
   readSeqFwd[id] = new char [readLen[id] + 1];
-  //readSeqRev[id] = new char [readLen[id] + 1];
 
   memcpy(readSeqFwd[id], readdata.gkReadData_getSequence(), sizeof(char) * readLen[id]);
 
@@ -202,7 +196,6 @@ overlapReadCache::purgeReads(void) {
         memoryUsed -= readLen[rr];
 
         delete [] readSeqFwd[rr];  readSeqFwd[rr] = NULL;
-        //delete [] readSeqRev[rr];  readSeqRev[rr] = NULL;
 
         readLen[rr] = 0;
         readAge[rr] = 0;

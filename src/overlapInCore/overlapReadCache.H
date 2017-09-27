@@ -65,7 +65,6 @@ private:
   uint32      *readAge;
   uint32      *readLen;
   char       **readSeqFwd;
-  //char       **readSeqRev;  //  Save it, or recompute?
 
   gkReadData   readdata;
 
