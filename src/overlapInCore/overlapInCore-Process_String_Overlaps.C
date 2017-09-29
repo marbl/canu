@@ -400,12 +400,10 @@ void
 Process_Matches (int * Start,
                  char * S,
                  int S_Len,
-                 char * S_quality,
                  uint32 S_ID,
                  Direction_t Dir,
                  char * T,
                  Hash_Frag_Info_t t_info,
-                 char * T_quality,
                  uint32 T_ID,
                  Work_Area_t * WA,
                  int consistent) {
@@ -557,83 +555,18 @@ Process_Matches (int * Start,
 
     for  (i = 0;  i < distinct_olap_ct;  i ++) {
       if  (! deleted[i]) {
-        bool rejected = FALSE;
+        if  (G.Doing_Partial_Overlaps)
+          Output_Partial_Overlap(S_ID, T_ID, Dir, p, S_Len, t_len, WA);
+        else
+          Output_Overlap(S_ID, S_Len, Dir, T_ID, t_len, p, WA);
 
-        if  (G.Use_Window_Filter) {
-          int32  d;
-          int32  i = p->s_lo;;
-          int32  j = p->t_lo;
-          int32  q_len = 0;
+        overlaps_output++;
 
-          char  *q_diff = WA->q_diff;
+        if  (p->s_lo == 0)
+          WA->A_Olaps_For_Frag++;
 
-          for  (int32 k=0;  k<p->delta_ct;  k++) {
-            int32 len = abs(p->delta[k]);
-
-            for (int32 n = 1;  n < len;  n++) {
-              if  (S[i] == T[j] || S[i] == 'n' || T[j] == 'n') {
-                d = 0;
-              } else {
-                d = MIN (S_quality[i], T_quality[j]);
-                d = MIN (d, QUALITY_CUTOFF);
-              }
-
-              q_diff[q_len++] = d;
-
-              i++;
-              j++;
-            }
-
-            if  (p->delta[k] > 0) {
-              d = S_quality[i];
-              i++;
-            } else {
-              d = T_quality[j];
-              j++;
-            }
-            q_diff[q_len++] = MIN (d, QUALITY_CUTOFF);
-          }
-
-          while  (i <= p->s_hi) {
-            if  (S[i] == T[j] || S[i] == 'n' || T[j] == 'n') {
-              d = 0;
-            } else {
-              d = MIN(S_quality[i], T_quality[j]);
-              d = MIN(d, QUALITY_CUTOFF);
-            }
-
-            q_diff[q_len++] = d;
-
-            i++;
-            j++;
-          }
-
-          if (Has_Bad_Window(q_diff, q_len, BAD_WINDOW_LEN, BAD_WINDOW_VALUE)) {
-            rejected = TRUE;
-            Bad_Short_Window_Ct++;
-          }
-
-          else if (Has_Bad_Window(q_diff, q_len, 100, 240)) {
-            rejected = TRUE;
-            Bad_Long_Window_Ct++;
-          }
-
-        }
-
-        if  (! rejected) {
-          if  (G.Doing_Partial_Overlaps)
-            Output_Partial_Overlap(S_ID, T_ID, Dir, p, S_Len, t_len, WA);
-          else
-            Output_Overlap(S_ID, S_Len, Dir, T_ID, t_len, p, WA);
-
-          overlaps_output++;
-
-          if  (p->s_lo == 0)
-            WA->A_Olaps_For_Frag++;
-
-          if  (p->s_hi >= S_Len - 1)
-            WA->B_Olaps_For_Frag++;
-        }
+        if  (p->s_hi >= S_Len - 1)
+          WA->B_Olaps_For_Frag++;
       }
       p++;
     }
@@ -686,7 +619,6 @@ By_Diag_Sum (const void * a, const void * b) {
 int
 Process_String_Olaps (char * S,
                       int Len,
-                      char * S_quality,
                       uint32 ID,
                       Direction_t Dir,
                       Work_Area_t * WA) {
@@ -727,12 +659,10 @@ Process_String_Olaps (char * S,
       Process_Matches(&WA->String_Olap_Space[i].Match_List,
                       S,
                       Len,
-                      S_quality,
                       ID,
                       Dir,
                       basesData + String_Start[root_num],
                       String_Info[root_num],
-                      qualsData + String_Start[root_num],
                       root_num + Hash_String_Num_Offset,
                       WA,
                       WA->String_Olap_Space[i].consistent);
@@ -759,12 +689,10 @@ Process_String_Olaps (char * S,
     Process_Matches(&WA->String_Olap_Space[i].Match_List,
                     S,
                     Len,
-                    S_quality,
                     ID,
                     Dir,
                     basesData + String_Start[root_num],
                     String_Info[root_num],
-                    qualsData + String_Start[root_num],
                     root_num + Hash_String_Num_Offset,
                     WA,
                     WA->String_Olap_Space[i].consistent);
@@ -781,12 +709,10 @@ Process_String_Olaps (char * S,
     Process_Matches(&WA->String_Olap_Space[i].Match_List,
                     S,
                     Len,
-                    S_quality,
                     ID,
                     Dir,
                     basesData + String_Start[root_num],
                     String_Info[root_num],
-                    qualsData + String_Start[root_num],
                     root_num + Hash_String_Num_Offset,
                     WA,
                     WA->String_Olap_Space[i].consistent);

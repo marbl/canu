@@ -458,7 +458,6 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   //  Data_Len          = Max_Hash_Data_Len + AS_MAX_READLEN;
   //
   //  basesData         = new char [Data_Len];
-  //  qualsData         = new char [Data_Len];
   //
   //  old_ref_len       = Data_Len / (HASH_KMER_SKIP + 1);
   //  nextRef           = new String_Ref_t [old_ref_len];
@@ -528,7 +527,6 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   Extra_Data_Len = Data_Len  = maxAlloc;
 
   basesData = new char         [Data_Len];
-  qualsData = new char         [Data_Len];
   nextRef   = new String_Ref_t [nextRef_Len];
 
   memset(nextRef, 0xff, sizeof(String_Ref_t) * nextRef_Len);
@@ -563,7 +561,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     gkpStore->gkStore_loadReadData(read, readData);
 
     char   *seqptr   = readData->gkReadData_getSequence();
-    char   *qltptr   = readData->gkReadData_getQualities();
+    uint8  *qltptr   = readData->gkReadData_getQualities();
 
     //  Note where we are going to store the string, and how long it is
 
@@ -575,17 +573,14 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
     //  Store it.
 
-    for (uint32 i=0; i<len; i++, total_len++) {
+    for (uint32 i=0; i<len; i++, total_len++)
       basesData[total_len] = tolower(seqptr[i]);
-      qualsData[total_len] = qltptr[i];
-    }
 
     basesData[total_len] = 0;
-    qualsData[total_len] = 0;
 
     total_len++;
 
-    //  Skipping kners is totally untested.
+    //  Skipping kmers is totally untested.
 #if 0
     if (HASH_KMER_SKIP > 0) {
       uint32 extra   = new_len % (HASH_KMER_SKIP + 1);

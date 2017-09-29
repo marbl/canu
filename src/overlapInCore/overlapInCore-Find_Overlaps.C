@@ -281,7 +281,7 @@ Hash_Find(uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits) {
 //   Dir  is the orientation of  Frag .
 
 void
-Find_Overlaps(char Frag [], int Frag_Len, char quality [], uint32 Frag_Num, Direction_t Dir, Work_Area_t * WA) {
+Find_Overlaps(char Frag [], int Frag_Len, uint32 Frag_Num, Direction_t Dir, Work_Area_t * WA) {
   String_Ref_t  Ref;
   char  * P, * Window;
   uint64  Key, Next_Key;
@@ -381,6 +381,6 @@ Find_Overlaps(char Frag [], int Frag_Len, char quality [], uint32 Frag_Num, Dire
   }
 
 
-  Process_String_Olaps  (Frag, Frag_Len, quality, Frag_Num, Dir, WA);
+  Process_String_Olaps  (Frag, Frag_Len, Frag_Num, Dir, WA);
 }
 

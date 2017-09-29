@@ -76,7 +76,6 @@ int64  Bad_Long_Window_Ct = 0;
 
 //  Stores sequence and quality data of fragments in hash table
 char   *basesData = NULL;
-char   *qualsData = NULL;
 size_t  Data_Len = 0;
 
 String_Ref_t  *nextRef = NULL;
@@ -275,7 +274,6 @@ OverlapDriver(void) {
     //  Clear out the hash table.  This stuff is allocated in Build_Hash_Index
 
     delete [] basesData;  basesData = NULL;
-    delete [] qualsData;  qualsData = NULL;
     delete [] nextRef;    nextRef   = NULL;
 
     //  This one could be left allocated, except for the last iteration.
@@ -394,9 +392,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
       G.maxErate = strtof(argv[++arg], NULL);
 
-    } else if (strcmp(argv[arg], "-w") == 0) {
-      G.Use_Window_Filter = TRUE;
-
     } else if (strcmp(argv[arg], "-z") == 0) {
       G.Use_Hopeless_Check = FALSE;
 
@@ -413,12 +408,8 @@ main(int argc, char **argv) {
 
   //  Fix up some flags if we're allowing high error rates.
   //
-  if (G.maxErate > 0.06) {
-    if (G.Use_Window_Filter)
-      fprintf(stderr, "High error rates requested -- window-filter turned off despite -w flag!\n");
-    G.Use_Window_Filter  = FALSE;
+  if (G.maxErate > 0.06)
     G.Use_Hopeless_Check = FALSE;
-  }
 
   if (G.Max_Hash_Strings == 0)
     fprintf(stderr, "* No memory model supplied; -M needed!\n"), err++;
@@ -456,8 +447,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "-r <range>  specify old fragments to overlap\n");
     fprintf(stderr, "-t <n>      use <n> parallel threads\n");
     fprintf(stderr, "-u          allow only 1 overlap per oriented fragment pair\n");
-    fprintf(stderr, "-w          filter out overlaps with too many errors in a window\n");
-    fprintf(stderr, "-z          skip the hopeless check\n");
+    fprintf(stderr, "-z          skip the hopeless check (also skipped at > 0.06)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--maxerate <n>     only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%%)\n");
     fprintf(stderr, "--minlength <n>    only output overlaps of <n> or more bases\n");
@@ -558,7 +548,6 @@ main(int argc, char **argv) {
 
 
   delete [] basesData;
-  delete [] qualsData;
   delete [] nextRef;
 
   delete [] String_Start;

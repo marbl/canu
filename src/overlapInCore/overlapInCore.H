@@ -378,7 +378,6 @@ typedef  struct Hash_Frag_Info {
 
 
 extern char           *basesData;
-extern char           *qualsData;
 extern String_Ref_t   *nextRef;
 extern size_t          Data_Len;
 
@@ -456,8 +455,6 @@ public:
 
     Min_Olap_Len = 0;
 
-    Use_Window_Filter  = false;
-
     Use_Hopeless_Check = true;
 
     Frag_Store_Path = NULL;
@@ -517,10 +514,6 @@ public:
 
   int32  Min_Olap_Len;  //  --minlength, former -v
 
-  //  Determines whether check for a window containing too many
-  //  errors is used to disqualify overlaps.
-  bool  Use_Window_Filter;  //  -w
-
   //  Determines whether check for absence of kmer matches
   //  at the end of a read is used to abort the overlap before
   //  the extension from a single kmer match is attempted.
@@ -557,13 +550,12 @@ Output_Partial_Overlap(uint32 s_id, uint32 t_id, Direction_t dir,
 int
 Process_String_Olaps (char * S,
                       int Len,
-                      char * S_quality,
                       uint32 ID,
                       Direction_t Dir,
                       Work_Area_t * WA);
 
 void
-Find_Overlaps (char Frag [], int Frag_Len, char quality [], uint32 Frag_Num, Direction_t Dir, Work_Area_t * WA);
+Find_Overlaps (char Frag [], int Frag_Len, uint32 Frag_Num, Direction_t Dir, Work_Area_t * WA);
 
 void *
 Process_Overlaps (void *);

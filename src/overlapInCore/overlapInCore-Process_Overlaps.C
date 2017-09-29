@@ -117,23 +117,19 @@ Process_Overlaps(void *ptr){
       WA->gkpStore->gkStore_loadReadData(read, readData);
 
       char   *seqptr   = readData->gkReadData_getSequence();
-      char   *qltptr   = readData->gkReadData_getQualities();
 
-      for (uint32 i=0; i<len; i++) {
+      for (uint32 i=0; i<len; i++)
         bases[i] = tolower(seqptr[i]);
-        quals[i] = qltptr[i];
-      }
 
       bases[len] = 0;
-      quals[len] = 0;
 
       //  Generate overlaps.
 
-      Find_Overlaps(bases, len, quals, read->gkRead_readID(), FORWARD, WA);
+      Find_Overlaps(bases, len, read->gkRead_readID(), FORWARD, WA);
 
-      reverseComplement(bases, quals, len);
+      reverseComplementSequence(bases, len);
 
-      Find_Overlaps(bases, len, quals, read->gkRead_readID(), REVERSE, WA);
+      Find_Overlaps(bases, len, read->gkRead_readID(), REVERSE, WA);
     }
 
     //  Write out this block of overlaps, no need to keep them in core!
