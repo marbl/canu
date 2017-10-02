@@ -40,6 +40,7 @@ SOURCES      := AS_global.C \
                 AS_UTL/dnaAlphabets.C \
                 AS_UTL/hexDump.C \
                 AS_UTL/md5.C \
+                AS_UTL/memoryMappedFile.C \
                 AS_UTL/mt19937ar.C \
                 AS_UTL/readBuffer.C \
                 AS_UTL/speedCounter.C \

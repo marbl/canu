@@ -48,9 +48,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#include <set>
-#include <map>
-using namespace std;
 
 //  The BSD's are able to map to an arbitrary position in the file, but the Linux's can only map to
 //  multiples of pagesize.  Thus, this class maps the whole file into address space, then passes out
@@ -59,8 +56,10 @@ using namespace std;
 //  so it would take a big out-of-bounds to fail.
 
 enum memoryMappedFileType {
-  memoryMappedFile_readOnly   = 0x00,
-  memoryMappedFile_readWrite  = 0x01
+  memoryMappedFile_readOnly        = 0x00,
+  memoryMappedFile_readOnlyInCore  = 0x01,
+  memoryMappedFile_readWrite       = 0x02,
+  memoryMappedFile_readWriteInCore = 0x03
 };
 
 
@@ -71,64 +70,17 @@ enum memoryMappedFileType {
 class memoryMappedFile {
 public:
   memoryMappedFile(const char           *name,
-                   memoryMappedFileType  type = memoryMappedFile_readOnly) {
+                   memoryMappedFileType  type = memoryMappedFile_readOnly);
+  ~memoryMappedFile();
 
-    strcpy(_name, name);
-
-    _type = type;
-
-    errno = 0;
-    int fd = (_type == memoryMappedFile_readOnly) ? open(_name, O_RDONLY | O_LARGEFILE)
-                                                  : open(_name, O_RDWR   | O_LARGEFILE);
-    if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't open '%s' for mmap: %s\n", _name, strerror(errno)), exit(1);
-
-    struct stat  sb;
-
-    fstat(fd, &sb);
-    if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't stat '%s' for mmap: %s\n", _name, strerror(errno)), exit(1);
-
-    _length = sb.st_size;
-    _offset = 0;
-
-    if (_length == 0)
-      fprintf(stderr, "memoryMappedFile()-- File '%s' is empty, can't mmap.\n", _name), exit(1);
-
-    //  Map a region that allows reading, or reading and shared writing.  One could add PROT_WRITE
-    //  to the readOnly, and modifications will be kept private (if MAP_SHARED is switched to
-    //  MAP_PRIVATE) to the process (and discarded at the end).
-    //
-    //  FreeBSD supports MAP_NOCORE which will exclude the region from any core files generated.  Linux does not support it.
-    //
-    //  Linux supports MAP_NORESERVE which will not reserve swap space for the file.  When reserved, a write is guaranteed to succeed.
-    //
-    //  NOTA BENE!!  Even though it is writable, it CANNOT be extended.
-
-    _data = (_type == memoryMappedFile_readOnly) ? mmap(0L, _length, PROT_READ,              MAP_FILE | MAP_PRIVATE | MAP_POPULATE, fd, 0)
-                                                 : mmap(0L, _length, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fd, 0);
-
-    if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s' of length " F_SIZE_T ": %s\n", _name, _length, strerror(errno)), exit(1);
-
-    close(fd);
-
-    //fprintf(stderr, "memoryMappedFile()-- File '%s' of length %lu is mapped.\n", _name, _length);
-  };
-
-  ~memoryMappedFile() {
-    if (_type == memoryMappedFile_readWrite)
-      msync(_data, _length, MS_SYNC);
-
-    munmap(_data, _length);
-  };
-
-  //  Return a pointer to position 'offset' in the file, and set the current position to 'offset +
-  //  length'.
+  //  get(size_t offset, size_t length) returns 'length' bytes starting starting at position
+  //  'offset'.  The current position is updated to 'offset + length'.
   //
-  //  The length parameter is checked against the length of the file, and a fatal error occurs if
-  //  'offset + length' exceeds the bounds of the file.
+  //  get(length) returns 'length' bytes starting at the current position.  The current position
+  //  is updated to the byte after the last one returned.
   //
+  //  get(), get(0) and get(offset, 0) all return the current position.
+
   void  *get(size_t offset, size_t length) {
 
     if (length == 0)
@@ -143,23 +95,9 @@ public:
     return((uint8 *)_data + offset);
   };
 
-  //  Return a pointer to the current position in the file, and move the current position ahead by
-  //  'length' bytes.
-  //
-  //  get() (or get(0)) returns the current position without moving it.
-  //
-  void *get(size_t length=0) {
-    return(get(_offset, length));
-  };
-
-
-  size_t  length(void) {
-    return(_length);
-  };
-
-  memoryMappedFileType   type(void) {
-    return(_type);
-  };
+  void                  *get(size_t length=0)  { return(get(_offset, length)); };
+  size_t                 length(void)          { return(_length);              };
+  memoryMappedFileType   type(void)            { return(_type);                };
 
 
 private:
@@ -170,6 +108,7 @@ private:
   size_t                  _length;  //  Length of the mapped file
   size_t                  _offset;  //  File pointer for reading
 
+  int32                   _fd;
   void                   *_data;
 };
 
