@@ -75,9 +75,28 @@ void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
 
 
 //  Read a file-of-files into a vector
-void    AS_UTL_loadFileList(char *fileName, vector<char *> &fileList);
+void    AS_UTL_loadFileList(char *fileName, vector<char *> &FILE);
 
-FILE   *AS_UTL_openOutputFile(char *outputPrefix, char *outputSuffix=NULL, bool  doOpen=true);
+FILE   *AS_UTL_openInputFile (char *prefix, char *suffix=NULL, bool  doOpen=true);
+FILE   *AS_UTL_openOutputFile(char *prefix, char *suffix=NULL, bool  doOpen=true);
+
+
+
+template<typename OBJ>
+void    AS_UTL_loadFile(char *filename, OBJ *objects, uint64 numberToLoad) {
+  FILE    *file   = AS_UTL_openInputFile(filename);
+  uint64   length = AS_UTL_sizeOfFile(filename);
+
+  if (length / sizeof(OBJ) < numberToLoad)
+    fprintf(stderr, "AS_UTL_loadFile()-- File '%s' contains %lu objects, but asked to load %lu.\n",
+            length / sizeof(OBJ), numberToLoad), exit(1);
+
+  AS_UTL_safeRead(file, objects, "", sizeof(OBJ), numberToLoad);
+}
+
+
+
+
 
 
 enum cftType {

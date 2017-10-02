@@ -519,27 +519,55 @@ AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
 
 FILE *
-AS_UTL_openOutputFile(char *outputPrefix,
-                      char *outputSuffix,
-                      bool  doOpen) {
-  char   outputName[FILENAME_MAX];
+AS_UTL_openInputFile(char *prefix,
+                     char *suffix,
+                     bool  doOpen) {
+  char   filename[FILENAME_MAX];
 
-  if (outputPrefix == NULL)
+  if (prefix == NULL)
     return(NULL);
 
   if (doOpen == false)
     return(NULL);
 
-  if (outputSuffix)
-    snprintf(outputName, FILENAME_MAX, "%s.%s", outputPrefix, outputSuffix);
+  if (suffix)
+    snprintf(filename, FILENAME_MAX, "%s.%s", prefix, suffix);
   else
-    strncpy(outputName, outputPrefix, FILENAME_MAX);
+    strncpy(filename, prefix, FILENAME_MAX);
 
   errno = 0;
 
-  FILE *F = fopen(outputName, "w");
+  FILE *F = fopen(filename, "r");
   if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", filename, strerror(errno)), exit(1);
+
+  return(F);
+}
+
+
+
+FILE *
+AS_UTL_openOutputFile(char *prefix,
+                      char *suffix,
+                      bool  doOpen) {
+  char   filename[FILENAME_MAX];
+
+  if (prefix == NULL)
+    return(NULL);
+
+  if (doOpen == false)
+    return(NULL);
+
+  if (suffix)
+    snprintf(filename, FILENAME_MAX, "%s.%s", prefix, suffix);
+  else
+    strncpy(filename, prefix, FILENAME_MAX);
+
+  errno = 0;
+
+  FILE *F = fopen(filename, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for writing: %s\n", filename, strerror(errno)), exit(1);
 
   return(F);
 }
