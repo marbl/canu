@@ -692,11 +692,9 @@ sub createOverlapStore ($$$) {
             chomp;
 
             if (-d "$base/$_") {
-            print STDERR "DIRECTORY $base/$_\n";
                 $directories{$_}++;
 
             } elsif (-e "$base/$_") {
-            print STDERR "FILE $base/$_\n";
                 $bytes += -s "$base/$_";
                 $files += 1;
 
@@ -708,7 +706,6 @@ sub createOverlapStore ($$$) {
     }
 
     foreach my $dir (keys %directories) {
-        print STDERR "REMOVE TREE $base/$dir\n";
         remove_tree("$base/$dir");
     }
 
