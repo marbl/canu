@@ -45,6 +45,10 @@
 #include "AS_global.H"
 #include "AS_BAT_OverlapCache.H"
 
+#include <set>
+#include <map>
+using namespace std;
+
 class ReadEnd {
 public:
   ReadEnd() {

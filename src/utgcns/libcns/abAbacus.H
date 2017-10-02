@@ -62,6 +62,9 @@
 #include "gkStore.H"
 #include "tgStore.H"
 
+#include <map>
+using namespace std;
+
 //  Probably can't change these
 
 #define CNS_MIN_QV 0

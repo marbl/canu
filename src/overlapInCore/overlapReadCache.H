@@ -32,6 +32,9 @@
 #include "ovStore.H"
 #include "tgStore.H"
 
+#include <set>
+using namespace std;
+
 class overlapReadCache {
 public:
   overlapReadCache(gkStore *gkpStore_, uint64 memLimit);
