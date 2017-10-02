@@ -34,6 +34,8 @@
 
 void  reverseComplementSequence(char *seq, int len);
 char *reverseComplementCopy(char *seq, int len);
-void  reverseComplement(char *seq, char *qlt, int len);
+
+template<typename qvType>
+void  reverseComplement(char *seq, qvType *qlt, int len);
 
 #endif

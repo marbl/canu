@@ -111,11 +111,12 @@ reverseComplementCopy(char *seq, int len) {
 
 
 
+template<typename qvType>
 void
-reverseComplement(char *seq, char *qlt, int len) {
-  char   c=0;
-  char  *s=seq,  *S=seq+len-1;
-  char  *q=qlt,  *Q=qlt+len-1;
+reverseComplement(char *seq, qvType *qlt, int len) {
+  char    c=0;
+  char   *s=seq,  *S=seq+len-1;
+  qvType *q=qlt,  *Q=qlt+len-1;
 
   if (qlt == NULL) {
     reverseComplementSequence(seq, len);
@@ -142,3 +143,5 @@ reverseComplement(char *seq, char *qlt, int len) {
     *s = inv[*s];
 }
 
+template void reverseComplement<char> (char *seq, char  *qlt, int len);   //  Give the linker
+template void reverseComplement<uint8>(char *seq, uint8 *qlt, int len);   //  something to link
