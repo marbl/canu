@@ -83,9 +83,6 @@ public:
 
   void  *get(size_t offset, size_t length) {
 
-    if (length == 0)
-      length = _length - offset;
-
     if (offset + length > _length)
       fprintf(stderr, "memoryMappedFile()-- Requested " F_SIZE_T " bytes at position " F_SIZE_T " in file '%s', but only " F_SIZE_T " bytes in file.\n",
               length, offset, _name, _length), exit(1);
