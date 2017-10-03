@@ -77,8 +77,8 @@ void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
 //  Read a file-of-files into a vector
 void    AS_UTL_loadFileList(char *fileName, vector<char *> &FILE);
 
-FILE   *AS_UTL_openInputFile (char *prefix, char *suffix=NULL, bool  doOpen=true);
-FILE   *AS_UTL_openOutputFile(char *prefix, char *suffix=NULL, bool  doOpen=true);
+FILE   *AS_UTL_openInputFile (char *prefix, char separator='.', char *suffix=NULL, bool doOpen=true);
+FILE   *AS_UTL_openOutputFile(char *prefix, char separator='.', char *suffix=NULL, bool doOpen=true);
 
 
 

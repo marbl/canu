@@ -62,10 +62,7 @@ loadThresholds(gkStore *gkpStore,
   uint16  *olapThresh = new uint16 [numReads + 1];
 
   if (scoreName != NULL) {
-    errno = 0;
-    FILE *S = fopen(scoreName, "r");
-    if (errno)
-      fprintf(stderr, "failed to open '%s' for reading: %s\n", scoreName, strerror(errno)), exit(1);
+    FILE *S = AS_UTL_openInputFile(scoreName);
 
     AS_UTL_safeRead(S, olapThresh, "scores", sizeof(uint16), numReads + 1);
 
@@ -350,8 +347,8 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  logFile = AS_UTL_openOutputFile(outputPrefix, "log");
-  sumFile = AS_UTL_openOutputFile(outputPrefix, "summary",    false);    //  Never used!
+  logFile = AS_UTL_openOutputFile(outputPrefix, '.', "log");
+  sumFile = AS_UTL_openOutputFile(outputPrefix, '.', "summary",    false);    //  Never used!
 
   //  Initialize processing.
 

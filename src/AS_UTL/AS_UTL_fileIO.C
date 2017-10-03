@@ -520,6 +520,7 @@ AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
 FILE *
 AS_UTL_openInputFile(char *prefix,
+                     char  separator,
                      char *suffix,
                      bool  doOpen) {
   char   filename[FILENAME_MAX];
@@ -531,7 +532,7 @@ AS_UTL_openInputFile(char *prefix,
     return(NULL);
 
   if (suffix)
-    snprintf(filename, FILENAME_MAX, "%s.%s", prefix, suffix);
+    snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
   else
     strncpy(filename, prefix, FILENAME_MAX);
 
@@ -548,6 +549,7 @@ AS_UTL_openInputFile(char *prefix,
 
 FILE *
 AS_UTL_openOutputFile(char *prefix,
+                      char  separator,
                       char *suffix,
                       bool  doOpen) {
   char   filename[FILENAME_MAX];
@@ -559,7 +561,7 @@ AS_UTL_openOutputFile(char *prefix,
     return(NULL);
 
   if (suffix)
-    snprintf(filename, FILENAME_MAX, "%s.%s", prefix, suffix);
+    snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
   else
     strncpy(filename, prefix, FILENAME_MAX);
 

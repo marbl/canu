@@ -499,8 +499,8 @@ main(int argc, char **argv) {
   readStatus       *status   = new readStatus [numReads + 1];
 
   FILE             *roc      = AS_UTL_openOutputFile(outName);
-  FILE             *stats    = AS_UTL_openOutputFile(outName, "stats");
-  FILE             *log      = AS_UTL_openOutputFile(outName, "log");
+  FILE             *stats    = AS_UTL_openOutputFile(outName, '.', "stats");
+  FILE             *log      = AS_UTL_openOutputFile(outName, '.', "log");
 
   //  Scan the tigs, computing expected corrected length.
 

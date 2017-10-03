@@ -62,21 +62,17 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
   if (readListName == NULL)
     return;
 
-  errno = 0;
-  FILE *R = fopen(readListName, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", readListName, strerror(errno)), exit(1);
+  FILE *R = AS_UTL_openInputFile(readListName);
 
-  fgets(L, 1024, R);
-  while (!feof(R)) {
+  for (fgets(L, 1024, R);
+       feof(R) == false;
+       fgets(L, 1024, R)) {
     splitToWords W(L);
     uint32       id = W(0);
 
     if ((iidMin <= id) &&
         (id     <= iidMax))
       readList.insert(W(0));
-
-    fgets(L, 1024, R);
   }
 
   fclose(R);
@@ -208,11 +204,6 @@ main(int argc, char **argv) {
 
   char             *outputPrefix = NULL;
 
-  char              logName[FILENAME_MAX] = {0};
-  char              sumName[FILENAME_MAX] = {0};
-  char              flgName[FILENAME_MAX] = {0};
-  FILE             *logFile = 0L;
-
   uint32            idMin = 0;
   uint32            idMax = UINT32_MAX;
   char             *readListName = NULL;
@@ -304,9 +295,7 @@ main(int argc, char **argv) {
 
   omp_set_num_threads(numThreads);
 
-
-
-  //  Open inputs and output tigStore.
+  //  Open inputs.
 
   gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
   tgStore  *corStore = new tgStore(corName, corVers);
@@ -322,7 +311,9 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  logFile = AS_UTL_openOutputFile(outputPrefix, "log");
+  FILE *logFile = AS_UTL_openOutputFile(outputPrefix, '.', "log",   false);   //  Not used.
+  FILE *cnsFile = AS_UTL_openOutputFile(outputPrefix, '.', "cns",   true);
+  FILE *seqFile = AS_UTL_openOutputFile(outputPrefix, '.', "fasta", false);   //  Not useful.
 
   //  Initialize processing.
 
@@ -346,12 +337,17 @@ main(int argc, char **argv) {
   //  Close files and clean up.
 
   if (logFile != NULL)   fclose(logFile);
+  if (cnsFile != NULL)   fclose(cnsFile);
+  if (seqFile != NULL)   fclose(seqFile);
 
   delete    fc;
   delete    rd;
   delete    corStore;
 
   gkpStore->gkStore_close();
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Bye.\n");
 
   return(0);
 }
