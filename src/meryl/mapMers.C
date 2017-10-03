@@ -46,6 +46,10 @@
 #define  OP_REGIONS 2
 #define  OP_DETAILS 3
 
+//  Reports min, max, median, depth of kmer for each input sequence.
+//  Reports regions covered by kmers
+//  Reports kmer, position, forward and reverse counts at that position
+
 int
 main(int argc, char **argv) {
   uint32    merSize    = 16;
@@ -243,3 +247,7 @@ main(int argc, char **argv) {
   delete F;
   delete E;
 }
+
+
+
+
