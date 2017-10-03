@@ -519,10 +519,10 @@ AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
 
 FILE *
-AS_UTL_openInputFile(char *prefix,
-                     char  separator,
-                     char *suffix,
-                     bool  doOpen) {
+AS_UTL_openInputFile(char const *prefix,
+                     char        separator,
+                     char const *suffix,
+                     bool        doOpen) {
   char   filename[FILENAME_MAX];
 
   if (prefix == NULL)
@@ -548,10 +548,10 @@ AS_UTL_openInputFile(char *prefix,
 
 
 FILE *
-AS_UTL_openOutputFile(char *prefix,
-                      char  separator,
-                      char *suffix,
-                      bool  doOpen) {
+AS_UTL_openOutputFile(char const *prefix,
+                      char        separator,
+                      char const *suffix,
+                      bool        doOpen) {
   char   filename[FILENAME_MAX];
 
   if (prefix == NULL)
