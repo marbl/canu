@@ -279,7 +279,7 @@ computeIIDperBucket(uint32          fileLimit,
       }
     }
 
-    olapsPerBucketMax = (uint64)ceil((double)numOverlaps / (double)bucket);
+    olapsPerBucketMax = (uint64)ceil((double)numOverlaps / (double)bucket) + 1;
   }
 
   //  And, finally, assign IIDs to buckets.
