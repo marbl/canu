@@ -40,7 +40,7 @@ package canu::OverlapBasedTrimming;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(qualTrimReads dedupeReads trimReads splitReads dumpReads);
+@EXPORT = qw(qualTrimReads dedupeReads trimReads splitReads loadTrimmedReads dumpTrimmedReads);
 
 use strict;
 
@@ -196,7 +196,7 @@ sub splitReads ($) {
 
 
 
-sub dumpReads ($) {
+sub loadTrimmedReads ($) {
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
@@ -204,41 +204,72 @@ sub dumpReads ($) {
     my $inp;
 
     goto allDone   if (skipStage($asm, "obt-dumpReads") == 1);
-    goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
+    goto allDone   if (getNumberOfBasesInStore("unitigging", $asm) > 0);
 
     make_path($path)  if (! -d $path);
 
     fetchFile("./trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
     fetchFile("./trimming/3-overlapbasedtrimming/$asm.2.splitReads.clear");
 
-    $inp = "./3-overlapbasedtrimming/$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
-    $inp = "./3-overlapbasedtrimming/$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
+    $inp = "./$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
+    $inp = "./$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
 
-    caFailure("dumping trimmed reads failed; no 'clear' input", "trimming/$asm.trimmedReads.err")  if (!defined($inp));
+    caFailure("loading trimmed reads failed; no 'clear' input", "trimming/$asm.trimmedReads.err")  if (!defined($inp));
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ -fasta -nolibname \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd  = "$bin/loadTrimmedReads \\\n";
+    $cmd .= "  -G ../$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "  -o ../$asm.trimmedReads.gz \\\n";     #  Adds .fasta
-    $cmd .= ">    ../$asm.trimmedReads.err 2>&1";
+    $cmd .= "> ./$asm.loadtrimmedReads.err 2>&1";
 
-    if (runCommand("trimming", $cmd)) {
-        caFailure("dumping trimmed reads failed", "./$asm.trimmedReads.err");
+    if (runCommand($path, $cmd)) {
+        caFailure("loading clear ranges failed", "./$asm.trimmedReads.err");
     }
 
     unlink("./$asm.trimmedReads.err");
 
-    stashFile("./$asm.trimmedReads.fasta.gz");
+    #  Report reads.
 
-    remove_tree("trimming/$asm.ovlStore")   if (getGlobal("saveOverlaps") eq "0");
+    addToReport("trimmingGkpStore", generateReadLengthHistogram("trimming", $asm));
+
+    #stashFile("./$asm.trimmedReads.fasta.gz");
+
+    if (getGlobal("saveOverlaps") eq "1") {
+        print STDERR "--\n";
+        print STDERR "-- Purging overlaps used for trimming.\n";
+
+        remove_tree("trimming/$asm.ovlStore")
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- Overlaps used for trimming saved.\n";
+    }
 
   finishStage:
     emitStage($asm, "obt-dumpReads");
     buildHTML($asm, "obt");
 
   allDone:
-    print STDERR "--\n";
-    print STDERR "-- Trimmed reads saved in 'trimming/$asm.trimmedReads.fasta.gz'\n";
+    stopAfter("readTrimming");
+}
+
+
+
+sub dumpTrimmedReads ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+
+    my $path    = "trimming/3-overlapbasedtrimming";
+
+    goto allDone   if (skipStage($asm, "obt-dumpCorrectedReads") == 1);
+    goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
+
+
+  finishStage:
+    #emitStage($asm, "cor-dumpCorrectedReads");
+    #buildHTML($asm, "cor");
+
+  allDone:
+    #print STDERR "--\n";
+    #print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
 
     stopAfter("readTrimming");
 }

@@ -28,7 +28,7 @@
 
 //  Encode seq as 2-bit bases.  Doesn't touch qlt.
 uint32
-gkRead::gkRead_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
+gkReadData::gkReadData_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
 
   //  Scan the read, if there are non-acgt, return length 0; this cannot encode it.
 
@@ -79,7 +79,7 @@ gkRead::gkRead_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
 
 
 bool
-gkRead::gkRead_decode2bit(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
+gkReadData::gkReadData_decode2bit(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
 
   if (chunkLen == 0)
     return(false);
@@ -117,12 +117,12 @@ gkRead::gkRead_decode2bit(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLe
 
 //  Encode seq as 3-bases-in-7-bits.  Doesn't touch qlt.
 uint32
-gkRead::gkRead_encode3bit(uint8 *&UNUSED(chunk), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
+gkReadData::gkReadData_encode3bit(uint8 *&UNUSED(chunk), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
   return(0);
 }
 
 bool
-gkRead::gkRead_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
+gkReadData::gkReadData_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
   return(false);
 }
 
@@ -132,16 +132,12 @@ gkRead::gkRead_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *U
 
 //  Encode qualities as 4 bit integers.  Doesn't touch seq.
 uint32
-gkRead::gkRead_encode4bit(uint8 *&UNUSED(chunk), char *qlt, uint32 UNUSED(seqLen)) {
-  if (qlt[0] == 0)
-    //  No QVs in the string.
-    return(0);
-
+gkReadData::gkReadData_encode4bit(uint8 *&UNUSED(chunk), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(0);
 }
 
 bool
-gkRead::gkRead_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *UNUSED(qlt), uint32 UNUSED(seqLen)) {
+gkReadData::gkReadData_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(false);
 }
 
@@ -151,16 +147,11 @@ gkRead::gkRead_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *U
 
 //  Encode qualities as 5 bit integers.  Doesn't touch seq.
 uint32
-gkRead::gkRead_encode5bit(uint8 *&UNUSED(chunk), char  *qlt, uint32 UNUSED(seqLen)) {
-  if (qlt[0] == 0)
-    //  No QVs in the string.
-    return(0);
-
+gkReadData::gkReadData_encode5bit(uint8 *&UNUSED(chunk), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(0);
 }
 
 bool
-gkRead::gkRead_decode5bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *UNUSED(qlt), uint32 UNUSED(seqLen)) {
+gkReadData::gkReadData_decode5bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(false);
 }
-

@@ -216,6 +216,7 @@ public:
 
 class tgTig;  //  Early declaration, for use in tgTigRecord operator=
 
+
 //  On-disk tig, same as tgTig without the pointers
 class tgTigRecord {
 public:
@@ -229,16 +230,19 @@ public:
   uint32              _tigID;
 
   double              _coverageStat;
-  double              _microhetProb;   //  placeholder for some future multialignment based uniqueness probability
 
-  tgTig_class         _class           : 2;    //  Output classification: unassembled, bubble, contig
-  uint32              _suggestRepeat   : 1;    //  Bogart made this from detected repeat.
-  uint32              _suggestCircular : 1;    //  Bogart found overlaps making a circle.
+  uint32              _sourceID;
+  uint32              _sourceBgn;
+  uint32              _sourceEnd;
+
+  tgTig_class         _class           : 2;
+  uint32              _suggestRepeat   : 1;
+  uint32              _suggestCircular : 1;
 
   uint32              _spare           : 32 - 2 - 2;
 
-  uint32              _layoutLen;       //  Max coord
-  uint32              _gappedLen;       //  Gapped consensus
+  uint32              _layoutLen;
+  uint32              _gappedLen;
   uint32              _childrenLen;
   uint32              _childDeltasLen;
 };
@@ -261,7 +265,7 @@ public:
   bool                 consensusExists(void)               { return(_gappedLen > 0); };
 
   char                *bases(bool useGapped=true)          { return( (useGapped == true) ? gappedBases() : ungappedBases() ); };
-  char                *quals(bool useGapped=true)          { return( (useGapped == true) ? gappedQuals() : ungappedQuals() ); };
+  uint8               *quals(bool useGapped=true)          { return( (useGapped == true) ? gappedQuals() : ungappedQuals() ); };
 
   double               computeCoverage(bool useGapped=true);
 
@@ -270,13 +274,13 @@ private:
 
   uint32               gappedLength(void)                  { return(_gappedLen);   };
   char                *gappedBases(void)                   { return(_gappedBases); };
-  char                *gappedQuals(void)                   { return(_gappedQuals); };
+  uint8               *gappedQuals(void)                   { return(_gappedQuals); };
 
   void                 buildUngapped(void);
 
   uint32               ungappedLength(void)                { buildUngapped();  return(_ungappedLen);   };
   char                *ungappedBases(void)                 { buildUngapped();  return(_ungappedBases); };
-  char                *ungappedQuals(void)                 { buildUngapped();  return(_ungappedQuals); };
+  uint8               *ungappedQuals(void)                 { buildUngapped();  return(_ungappedQuals); };
 
 public:
 
@@ -326,13 +330,15 @@ public:
 
 private:
 public:
-  uint32              _tigID;           //  ID in the store, or UINT32_MAX if not set
+  uint32              _tigID;             //  ID in the store, or UINT32_MAX if not set
 
   double              coverageStat(void)  { return(_coverageStat); };
-  //double              microhetProb(void)  { return(_microhetProb); };
 
   double              _coverageStat;
-  double              _microhetProb;  //  Placeholder.
+
+  uint32              _sourceID;          //  Object we are placed in.
+  uint32              _sourceBgn;         //  Position of object in source - for a corrected read
+  uint32              _sourceEnd;         //  this is the (approximate) position in the raw read.
 
   //  A variety of flags to suggest what type of unitig this is
 
@@ -345,12 +351,12 @@ public:
   uint32              _layoutLen;         //  The max coord in the layout.  Same as gappedLen if it exists.
 
   char               *_gappedBases;       //  Gapped consensus - used by the multialignment.  NUL terminated.
-  char               *_gappedQuals;
+  uint8              *_gappedQuals;
   uint32              _gappedLen;         //  Doesn't include the NUL.
   uint32              _gappedMax;         //  Does    include the NUL.
 
   char               *_ungappedBases;     //  Ungapped consensus - not used by the assember, only output.
-  char               *_ungappedQuals;
+  uint8              *_ungappedQuals;
   uint32              _ungappedLen;
   uint32              _ungappedMax;
 

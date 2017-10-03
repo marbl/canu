@@ -171,6 +171,8 @@ scanPrefix(char *prefix) {
 int
 main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
+  uint32           gkpStorePart      = UINT32_MAX;
+
   char            *outPrefix         = NULL;
   char            *outSuffix         = NULL;
 
@@ -198,6 +200,9 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
       gkpStoreName = argv[++arg];
+
+      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
+        gkpStorePart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
@@ -290,7 +295,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore        *gkpStore  = gkStore::gkStore_open(gkpStoreName);
+  gkStore        *gkpStore  = gkStore::gkStore_open(gkpStoreName, gkStore_readOnly, gkpStorePart);
   uint32          numReads  = gkpStore->gkStore_getNumReads();
   uint32          numLibs   = gkpStore->gkStore_getNumLibraries();
 
@@ -306,9 +311,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID);
 
 
+  if (gkpStorePart == UINT32_MAX)
+    fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
+  else
+    fprintf(stderr, "Dumping reads from %u to %u (inclusive) from partition %u.\n", bgnID, endID, gkpStorePart);
 
-
-  fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
   libOutput   **out = new libOutput * [numLibs + 1];
 
@@ -322,10 +329,16 @@ main(int argc, char **argv) {
 
   //  Grab a new readData, and iterate through reads to dump.
 
-  gkReadData   *readData = new gkReadData;
+  gkReadData   *readData  = new gkReadData;
+
+  char         *qltString = new char [AS_MAX_READLEN + 1];
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     gkRead      *read   = gkpStore->gkStore_getRead(rid);
+
+    if ((read == NULL) ||
+        (gkpStore->gkStore_readInPartition(rid) == false))
+      continue;
 
     uint32       libID  = (withLibName == false) ? 0 : read->gkRead_libraryID();
 
@@ -333,8 +346,6 @@ main(int argc, char **argv) {
     uint32       lclr   = 0;
     uint32       rclr   = flen;
     bool         ignore = false;
-
-    //fprintf(stderr, "READ %u claims id %u length %u in lib %u\n", rid, read->gkRead_readID(), read->gkRead_sequenceLength(), libID);
 
     //  If a clear range file is supplied, grab the clear range.  If it hasn't been set, the default
     //  is the entire read.
@@ -355,6 +366,11 @@ main(int argc, char **argv) {
         ((dumpOnlyDeleted == true) && (ignore == false)))
       continue;
 
+    //  If the read length is zero, then the read has been removed from this set.
+
+    if (read->gkRead_sequenceLength() == 0)
+      continue;
+
     //  And if we're told to ignore the read, and here, then the read was deleted and we're printing
     //  all reads.  Reset the clear range to the whole read, the clear range is invalid.
 
@@ -370,10 +386,12 @@ main(int argc, char **argv) {
     char   *name = readData->gkReadData_getName();
 
     char   *seq  = readData->gkReadData_getSequence();
-    char   *qlt  = readData->gkReadData_getQualities();
+    uint8  *qlt8 = readData->gkReadData_getQualities();
+    char   *qlt  = qltString;
+
     uint32  clen = rclr - lclr;
 
-    //  Soft mask not-clear bases
+    //  Soft mask not-clear bases.
 
     if (dumpAllBases == true) {
       for (uint32 i=0; i<lclr; i++)
@@ -388,6 +406,11 @@ main(int argc, char **argv) {
       lclr = 0;
       rclr = flen;
     }
+
+    //  Create the QV string.
+
+    for (uint32 i=0; i<read->gkRead_sequenceLength(); i++)
+      qlt[i] = '!' + qlt8[i];
 
     //  Chop off the ends we're not printing.
 
@@ -424,6 +447,8 @@ main(int argc, char **argv) {
   delete clrRange;
 
   delete readData;
+
+  delete [] qltString;
 
   for (uint32 i=0; i<=numLibs; i++)
     delete out[i];

@@ -89,7 +89,6 @@ generateFalconConsensus(falconConsensus   *fc,
                         gkStore           *gkpStore,
                         tgTig             *tig,
                         bool               trimToAlign,
-                        FILE              *F,
                         gkReadData        *readData,
                         uint32             minOutputLength) {
 
@@ -176,16 +175,24 @@ generateFalconConsensus(falconConsensus   *fc,
     }
   }
 
-  //  Report the sequence.  If the whole string is lowercase (grrrr!) then bgn == end == 0.
+  //  Update the layout with consensus sequence, positions, et cetera.
+  //  If the whole string is lowercase (grrrr!) then bgn == end == 0.
 
-  if (bgn < end) {
-    fd->seq[end] = 0;
+  tig->_sourceID    = tig->tigID();
+  tig->_sourceBgn   = (end == 0) ? (0) : (fd->pos[bgn]);            //  Space based (probably).
+  tig->_sourceEnd   = (end == 0) ? (0) : (fd->pos[end - 1] + 1);    //  Space based.
 
-    uint32  bgnRaw = fd->pos[bgn];
-    uint32  endRaw = fd->pos[end - 1] + 1;
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax, end - bgn + 1, resizeArray_doNothing);
 
-    AS_UTL_writeFastA(F, fd->seq + bgn, end - bgn, 0, ">read%u from %u-%u\n", tig->tigID(), bgnRaw, endRaw);
+  for (uint32 ii=bgn; ii<end; ii++) {
+    tig->_gappedBases[ii-bgn] = fd->seq[ii];
+    tig->_gappedQuals[ii-bgn] = fd->eqv[ii];
   }
+
+  tig->_gappedLen = end - bgn;
+
+  tig->_gappedBases[tig->_gappedLen] = 0;
+  tig->_gappedQuals[tig->_gappedLen] = 0;
 
   delete fd;
   delete [] evidence;
@@ -329,7 +336,13 @@ main(int argc, char **argv) {
 
     tgTig *layout = corStore->loadTig(ii);
 
-    generateFalconConsensus(fc, gkpStore, layout, trimToAlign, stdout, rd, minOutputLength);
+    generateFalconConsensus(fc, gkpStore, layout, trimToAlign, rd, minOutputLength);
+
+    if (cnsFile)
+      layout->saveToStream(cnsFile);
+
+    if (seqFile)
+      layout->dumpFASTA(seqFile, false);
 
     corStore->unloadTig(ii);
   }

@@ -107,7 +107,10 @@ public:
   bool           isDeleted(uint32 tigID);
 
   double         getCoverageStat(uint32 tigID);
-  double         getMicroHetProb(uint32 tigID);
+
+  uint32         getSourceID(uint32 tigID);
+  uint32         getSourceBgn(uint32 tigID);
+  uint32         getSourceEnd(uint32 tigID);
 
   tgTig_class    getClass(uint32 tigID);
   bool           getSuggestRepeat(uint32 tigID);
@@ -116,7 +119,10 @@ public:
   uint32         getNumChildren(uint32 tigID);
 
   void           setCoverageStat(uint32 tigID, double cs);
-  void           setMicroHetProb(uint32 tigID, double mp);
+
+  void           setSourceID(uint32 tigID, uint32 id);
+  void           setSourceBgn(uint32 tigID, uint32 bgn);
+  void           setSourceEnd(uint32 tigID, uint32 end);
 
   void           setClass(uint32 tigID, tgTig_class c);
   void           setSuggestRepeat(uint32 tigID, bool enable=true);
@@ -186,10 +192,24 @@ tgStore::getCoverageStat(uint32 tigID) {
 }
 
 inline
-double
-tgStore::getMicroHetProb(uint32 tigID) {
+uint32
+tgStore::getSourceID(uint32 tigID) {
   assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._microhetProb);
+  return(_tigEntry[tigID].tigRecord._sourceID);
+}
+
+inline
+uint32
+tgStore::getSourceBgn(uint32 tigID) {
+  assert(tigID < _tigLen);
+  return(_tigEntry[tigID].tigRecord._sourceBgn);
+}
+
+inline
+uint32
+tgStore::getSourceEnd(uint32 tigID) {
+  assert(tigID < _tigLen);
+  return(_tigEntry[tigID].tigRecord._sourceEnd);
 }
 
 inline
@@ -219,6 +239,8 @@ tgStore::getNumChildren(uint32 tigID) {
   return(_tigEntry[tigID].tigRecord._childrenLen);
 }
 
+
+
 inline
 void
 tgStore::setCoverageStat(uint32 tigID, double cs) {
@@ -230,11 +252,29 @@ tgStore::setCoverageStat(uint32 tigID, double cs) {
 
 inline
 void
-tgStore::setMicroHetProb(uint32 tigID, double mp) {
+tgStore::setSourceID(uint32 tigID, uint32 id) {
   assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._microhetProb = mp;
+  _tigEntry[tigID].tigRecord._sourceID = id;
   if (_tigCache[tigID])
-    _tigCache[tigID]->_microhetProb = mp;
+    _tigCache[tigID]->_sourceID = id;
+}
+
+inline
+void
+tgStore::setSourceBgn(uint32 tigID, uint32 bgn) {
+  assert(tigID < _tigLen);
+  _tigEntry[tigID].tigRecord._sourceBgn = bgn;
+  if (_tigCache[tigID])
+    _tigCache[tigID]->_sourceBgn = bgn;
+}
+
+inline
+void
+tgStore::setSourceEnd(uint32 tigID, uint32 end) {
+  assert(tigID < _tigLen);
+  _tigEntry[tigID].tigRecord._sourceEnd = end;
+  if (_tigCache[tigID])
+    _tigCache[tigID]->_sourceEnd = end;
 }
 
 inline

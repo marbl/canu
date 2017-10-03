@@ -75,7 +75,7 @@ public:
   abSequence(uint32  readID,
              uint32  length,
              char   *seq,
-             char   *qlt,
+             uint8  *qlt,
              uint32  complemented);
 
   ~abSequence() {

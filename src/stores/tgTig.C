@@ -71,7 +71,10 @@ tgTigRecord::tgTigRecord() {
   _tigID           = UINT32_MAX;
 
   _coverageStat    = 0.0;
-  _microhetProb    = 0.0;
+
+  _sourceID        = 0;
+  _sourceBgn       = 0;
+  _sourceEnd       = 0;
 
   _class           = tgTig_noclass;
   _suggestRepeat   = false;
@@ -91,7 +94,10 @@ tgTig::tgTig() {
   _tigID                = UINT32_MAX;
 
   _coverageStat         = 0;
-  _microhetProb         = 0;
+
+  _sourceID             = 0;
+  _sourceBgn            = 0;
+  _sourceEnd            = 0;
 
   _utgcns_verboseLevel  = 0;
 
@@ -142,7 +148,10 @@ tgTigRecord::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
 
   _coverageStat        = tg._coverageStat;
-  _microhetProb        = tg._microhetProb;
+
+  _sourceID            = tg._sourceID;
+  _sourceBgn           = tg._sourceBgn;
+  _sourceEnd           = tg._sourceEnd;
 
   _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
@@ -166,7 +175,10 @@ tgTig::operator=(tgTigRecord & tr) {
   _tigID               = tr._tigID;
 
   _coverageStat        = tr._coverageStat;
-  _microhetProb        = tr._microhetProb;
+
+  _sourceID            = tr._sourceID;
+  _sourceBgn           = tr._sourceBgn;
+  _sourceEnd           = tr._sourceEnd;
 
   _class               = tr._class;
   _suggestRepeat       = tr._suggestRepeat;
@@ -191,7 +203,10 @@ tgTig::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
 
   _coverageStat        = tg._coverageStat;
-  _microhetProb        = tg._microhetProb;
+
+  _sourceID            = tg._sourceID;
+  _sourceBgn           = tg._sourceBgn;
+  _sourceEnd           = tg._sourceEnd;
 
   _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
@@ -325,7 +340,10 @@ tgTig::clear(void) {
   _tigID                = UINT32_MAX;
 
   _coverageStat         = 0;
-  _microhetProb         = 0;
+
+  _sourceID             = 0;
+  _sourceBgn            = 0;
+  _sourceEnd            = 0;
 
   _class                = tgTig_noclass;
   _suggestRepeat        = 0;
@@ -466,11 +484,6 @@ tgTig::dumpLayout(FILE *F) {
   fprintf(F, "tig " F_U32 "\n", _tigID);
   fprintf(F, "len %d\n",      _layoutLen);
 
-  //  Adjust QV's to Sanger encoding
-
-  for (uint32 ii=0; ii<_gappedLen; ii++)
-    _gappedQuals[ii] += '!';
-
   //  Dump the sequence and quality
 
   if (_gappedLen == 0) {
@@ -478,19 +491,25 @@ tgTig::dumpLayout(FILE *F) {
     fputs("qlt\n", F);
 
   } else {
-    fputs("cns ", F);  fputs(_gappedBases, F);  fputs("\n", F);  //  strings are null terminated now, but expected to be long.
-    fputs("qlt ", F);  fputs(_gappedQuals, F);  fputs("\n", F);
+    char  *qvString = new char [_gappedLen + 1];
+
+    for (uint32 ii=0; ii<_gappedLen; ii++)     //  Adjust QV's to Sanger encoding (and make it
+      qvString[ii] = _gappedQuals[ii] + '!';   //  a character string so we can actually print it).
+
+    qvString[_gappedLen] = 0;
+
+    fputs("cns ", F);  fputs(_gappedBases, F);  fputs("\n", F);
+    fputs("qlt ", F);  fputs(qvString,     F);  fputs("\n", F);
+
+    delete [] qvString;
   }
-
-  //  Adjust QV's back to no encoding
-
-  for (uint32 ii=0; ii<_gappedLen; ii++)
-    _gappedQuals[ii] -= '!';
 
   //  Properties.
 
   fprintf(F, "coverageStat    %f\n", _coverageStat);
-  fprintf(F, "microhetProb    %f\n", _microhetProb);
+  fprintf(F, "sourceID        %u\n", _sourceID);
+  fprintf(F, "sourceBgn       %u\n", _sourceBgn);
+  fprintf(F, "sourceEnd       %u\n", _sourceEnd);
   fprintf(F, "class           %s\n", toString(_class));
   fprintf(F, "suggestRepeat   %c\n", _suggestRepeat   ? 'T' : 'F');
   fprintf(F, "suggestCircular %c\n", _suggestCircular ? 'T' : 'F');
@@ -578,8 +597,12 @@ tgTig::loadLayout(FILE *F) {
     } else if (strcmp(W[0], "coverageStat") == 0) {
       _coverageStat = strtodouble(W[1]);
 
-    } else if (strcmp(W[0], "microhetProb") == 0) {
-      _microhetProb = strtodouble(W[1]);
+    } else if (strcmp(W[0], "sourceID") == 0) {
+      _sourceID = strtouint32(W[1]);
+    } else if (strcmp(W[0], "sourceBgn") == 0) {
+      _sourceBgn = strtouint32(W[1]);
+    } else if (strcmp(W[0], "sourceEnd") == 0) {
+      _sourceEnd = strtouint32(W[1]);
 
     } else if (strcmp(W[0], "class") == 0) {
       if      (strcmp(W[1], "unassembled") == 0)

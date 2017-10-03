@@ -40,7 +40,7 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getMaxReadLengthInStore getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists gatekeeper);
+@EXPORT = qw(getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists generateReadLengthHistogram gatekeeper);
 
 use strict;
 
@@ -54,20 +54,6 @@ use canu::Grid_Cloud;
 
 
 
-sub getMaxReadLengthInStore ($$) {
-    my $base   = shift @_;
-    my $asm    = shift @_;
-    my $ml     = 0;
-
-    open(L, "< $base/$asm.gkpStore/maxreadlength.txt") or caExit("can't open '$base/$asm.gkpStore/maxreadlength.txt' for reading: $!", undef);
-    $ml = <L>;
-    close(L);
-
-    return(int($ml));
-}
-
-
-
 sub getNumberOfReadsInStore ($$) {
     my $base   = shift @_;
     my $asm    = shift @_;
@@ -75,15 +61,13 @@ sub getNumberOfReadsInStore ($$) {
 
     #  No file, no reads.
 
-    return($nr)   if (! -e "$base/$asm.gkpStore/info.txt");
+    return($nr)   if (! -e "./$asm.gkpStore/info.txt");
 
     #  Read the info file.  gatekeeperCreate creates this at the end.
 
-    open(F, "< $base/$asm.gkpStore/info.txt") or caExit("can't open '$base/$asm.gkpStore/info.txt' for reading: $!", undef);
+    open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        if (m/numReads\s+=\s+(\d+)/) {
-            $nr = $1;
-        }
+        $nr = $1    if (m/numReads\s+=\s+(\d+)/);
     }
     close(F);
 
@@ -99,31 +83,19 @@ sub getNumberOfBasesInStore ($$) {
 
     #  No file, no bases.
 
-    return($nb)   if (! -e "$base/$asm.gkpStore/info.txt");
+    return($nb)   if (! -e "./$asm.gkpStore/info.txt");
 
     #  Read the info file.  gatekeeperCreate creates this at the end.
 
-    open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
+    open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        s/^\s+//;
-        s/\s+$//;
-
-        my @v = split '\s+', $_;
-        $nb += $v[2];
+        $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($base eq "correction"));
+        $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($base eq "trimming"));
+        $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($base eq "unitigging"));
     }
     close(F);
 
-    #  An alternate, used in Meryl::getGenomeCoverage (deceased) was to parse the stats output.
-    #
-    #open(F, "$bin/gatekeeperDumpMetaData -stats -G $base/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$base/$asm.gkpStore'", undef);
-    #while (<F>) {
-    #    my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
-    #    if ($library == 0) {
-    #        $gs = $bases / getGlobal("genomeSize");
-    #        last;
-    #    }
-    #}
-    #close(F);
+    print STDERR "FOUND $nb BASES IN $base\n";
 
     return($nb);
 }
@@ -165,16 +137,16 @@ sub gatekeeperCreateStore ($$@) {
     #  If the store failed to build because of input errors and warnings, rename the store and continue.
     #  Not sure how to support this in DNANexus.
 
-    if (-e "$base/$asm.gkpStore.ACCEPTED") {
-        rename("$base/$asm.gkpStore.ACCEPTED",          "$base/$asm.gkpStore");
-        rename("$base/$asm.gkpStore.BUILDING.err",      "$base/$asm.gkpStore.err");
+    if (-e "./$asm.gkpStore.ACCEPTED") {
+        rename("./$asm.gkpStore.ACCEPTED",          "./$asm.gkpStore");
+        rename("./$asm.gkpStore.BUILDING.err",      "./$asm.gkpStore.err");
         return;
     }
 
     #  If the store failed to build and the user just reruns canu, this will be triggered.  We'll
     #  skip rebuilding the store again, and report the original error message.
 
-    if (-e "$base/$asm.gkpStore.BUILDING") {
+    if (-e "./$asm.gkpStore.BUILDING") {
         print STDERR "-- WARNING:\n";
         print STDERR "-- WARNING:  Previously failed gkpStore detected.\n";
         print STDERR "-- WARNING:\n";
@@ -182,7 +154,7 @@ sub gatekeeperCreateStore ($$@) {
 
     #  Not sure how this can occur.  Possibly the user just deleted gkpStore.BUILDING and restarted?
 
-    if ((! -e "$base/$asm.gkpStore.BUILDING") && (-e "$base/$asm.gkpStore.gkp")) {
+    if ((! -e "./$asm.gkpStore.BUILDING") && (-e "./$asm.gkpStore.gkp")) {
         print STDERR "-- WARNING:\n";
         print STDERR "-- WARNING:  Existing sequence inputs used.\n";
         print STDERR "-- WARNING:\n";
@@ -198,7 +170,7 @@ sub gatekeeperCreateStore ($$@) {
 
     #  At the same time, check that all files exist.
 
-    if (!-e "$base/$asm.gkpStore.gkp") {
+    if (!-e "./$asm.gkpStore.gkp") {
         my $ff = undef;
 
         foreach my $iii (@inputs) {
@@ -225,7 +197,7 @@ sub gatekeeperCreateStore ($$@) {
         #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
         #  files as is.  This documents what gatekeeper was built with, etc.
 
-        open(F, "> $base/$asm.gkpStore.gkp") or caExit("cant' open '$base/$asm.gkpStore.gkp' for writing: $0", undef);
+        open(F, "> ./$asm.gkpStore.gkp") or caExit("cant' open './$asm.gkpStore.gkp' for writing: $0", undef);
 
         foreach my $iii (@inputs) {
             if ($iii =~ m/^-(.*)\0(.*)$/) {
@@ -267,7 +239,7 @@ sub gatekeeperCreateStore ($$@) {
 
     #  Load the store.
 
-    if (! -e "$base/$asm.gkpStore.BUILDING") {
+    if (! -e "./$asm.gkpStore.BUILDING") {
         my $cmd;
         $cmd .= "$bin/gatekeeperCreate \\\n";
         $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
@@ -280,17 +252,17 @@ sub gatekeeperCreateStore ($$@) {
         #  A return code of 1 means it found errors in the inputs, but finished.
         #  Anything larger is a crash.
 
-        if (runCommand($base, $cmd) > 1) {
-            caExit("gatekeeper failed", "$base/$asm.gkpStore.BUILDING.err");
+        if (runCommand(".", $cmd) > 1) {
+            caExit("gatekeeper failed", "./$asm.gkpStore.BUILDING.err");
         }
     }
 
     #  Check for quality issues.
 
-    if (-e "$base/$asm.gkpStore.BUILDING.err") {
+    if (-e "./$asm.gkpStore.BUILDING.err") {
         my $nProblems = 0;
 
-        open(F, "< $base/$asm.gkpStore.BUILDING.err");
+        open(F, "< ./$asm.gkpStore.BUILDING.err");
         while (<F>) {
             $nProblems++   if (m/Check\syour\sreads/);
         }
@@ -299,16 +271,16 @@ sub gatekeeperCreateStore ($$@) {
         if ($nProblems > 0) {
             print STDERR "\n";
             print STDERR "Gatekeeper detected problems in your input reads.  Please review the logging in files:\n";
-            print STDERR "  ", getcwd(), "/$base/$asm.gkpStore.BUILDING.err\n";
-            print STDERR "  ", getcwd(), "/$base/$asm.gkpStore.BUILDING/errorLog\n";
+            print STDERR "  ", getcwd(), "/./$asm.gkpStore.BUILDING.err\n";
+            print STDERR "  ", getcwd(), "/./$asm.gkpStore.BUILDING/errorLog\n";
 
             if (getGlobal("stopOnReadQuality")) {
                 print STDERR "If you wish to proceed, rename the store with the following commands and restart canu.\n";
                 print STDERR "\n";
-                print STDERR "  mv ", getcwd(), "/$base/$asm.gkpStore.BUILDING \\\n";
-                print STDERR "     ", getcwd(), "/$base/$asm.gkpStore.ACCEPTED\n";
+                print STDERR "  mv ", getcwd(), "/./$asm.gkpStore.BUILDING \\\n";
+                print STDERR "     ", getcwd(), "/./$asm.gkpStore.ACCEPTED\n";
                 print STDERR "\n";
-                print STDERR "Or remove '", getcwd(), "/$base/' and re-run with stopOnReadQuality=false\n";
+                print STDERR "Or remove '", getcwd(), "/./' and re-run with stopOnReadQuality=false\n";
                 print STDERR "\n";
                 exit(1);
             } else {
@@ -317,39 +289,16 @@ sub gatekeeperCreateStore ($$@) {
         }
     }
 
-    rename "$base/$asm.gkpStore.BUILDING",             "$base/$asm.gkpStore";
-    rename "$base/$asm.gkpStore.BUILDING.err",         "$base/$asm.gkpStore.err";
+    rename "./$asm.gkpStore.BUILDING",             "./$asm.gkpStore";
+    rename "./$asm.gkpStore.BUILDING.err",         "./$asm.gkpStore.err";
 }
 
 
 
-sub gatekeeperGenerateReadsList ($$) {
+sub generateReadLengthHistogram ($$) {
     my $base   = shift @_;
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
-
-    if (runCommandSilently($base, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -reads > ./$asm.gkpStore/reads.txt 2> /dev/null", 1)) {
-        caExit("failed to generate list of reads in store", undef);
-    }
-}
-
-
-
-sub gatekeeperGenerateLibrariesList ($$) {
-    my $base   = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
-
-    if (runCommandSilently($base, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -libs > ./$asm.gkpStore/libraries.txt 2> /dev/null", 1)) {
-        caExit("failed to generate list of libraries in store", undef);
-    }
-}
-
-
-
-sub gatekeeperGenerateReadLengths ($$) {
-    my $base   = shift @_;
-    my $asm    = shift @_;
 
     my $nb = 0;
     my @rl;
@@ -358,7 +307,7 @@ sub gatekeeperGenerateReadLengths ($$) {
     my $minLen = 999999;
     my $maxLen = 0;
 
-    open(F, "< $base/$asm.gkpStore/reads.txt") or caExit("can't open '$base/$asm.gkpStore/reads.txt' for reading: $!", undef);
+    open(F, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -reads |") or caExit("can't dump meta data from './$asm.gkpStore': $!", undef);
     while (<F>) {
         next  if (m/readID/);             #  Skip the header.
         next  if (m/------/);
@@ -368,11 +317,13 @@ sub gatekeeperGenerateReadLengths ($$) {
 
         my @v = split '\s+', $_;
 
-        push @rl, $v[2];                  #  Save the length
-        $nb += $v[2];                     #  Sum the bases
+        if ($v[2] > 0) {
+            push @rl, $v[2];              #  Save the length
+            $nb += $v[2];                 #  Sum the bases
 
-        $minLen = ($minLen < $v[2]) ? $minLen : $v[2];
-        $maxLen = ($v[2] < $maxLen) ? $maxLen : $v[2];
+            $minLen = ($minLen < $v[2]) ? $minLen : $v[2];
+            $maxLen = ($v[2] < $maxLen) ? $maxLen : $v[2];
+        }
     }
     close(F);
 
@@ -404,22 +355,22 @@ sub gatekeeperGenerateReadLengths ($$) {
 
     #  Write the sorted read lengths (for gnuplot) and the maximum read length (for correction consensus)
 
-    open(F, "> $base/$asm.gkpStore/readlengths.txt") or caExit("can't open '$base/$asm.gkpStore/readlengths.txt' for writing: $!", undef);
+    open(F, "> ./$asm.gkpStore/readlengths-$base.dat") or caExit("can't open './$asm.gkpStore/readlengths-$base.dat' for writing: $!", undef);
     foreach my $rl (@rl) {
         print F "$rl\n";
     }
     close(F);
 
-    open(F, "> $base/$asm.gkpStore/maxreadlength.txt") or caExit("can't open '$base/$asm.gkpStore/maxreadlength.txt' for writing: $!", undef);
-    print F "$maxLen\n";
-    close(F);
+    #open(F, "> ./$asm.gkpStore/maxreadlength.txt") or caExit("can't open './$asm.gkpStore/maxreadlength.txt' for writing: $!", undef);
+    #print F "$maxLen\n";
+    #close(F);
 
     #  Generate PNG histograms
 
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
 
-    open(F, "> $base/$asm.gkpStore/readlengths.gp") or caExit("can't open '$base/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
+    open(F, "> ./$asm.gkpStore/readlengths-$base.gp") or caExit("can't open './$asm.gkpStore/readlengths-$base.gp' for writing: $!", undef);
     print F "set title 'read length'\n";
     print F "set xlabel 'read length, bin width = 250'\n";
     print F "set ylabel 'number of reads'\n";
@@ -429,15 +380,15 @@ sub gatekeeperGenerateReadLengths ($$) {
     print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
     print F "\n";
     print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.gkpStore/readlengths.lg.$format'\n";
-    print F "plot [] './$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+    print F "set output './$asm.gkpStore/readlengths-$base.lg.$format'\n";
+    print F "plot [] './$asm.gkpStore/readlengths-$base.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
     print F "\n";
     print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.gkpStore/readlengths.sm.$format'\n";
-    print F "plot [] './$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+    print F "set output './$asm.gkpStore/readlengths-$base.sm.$format'\n";
+    print F "plot [] './$asm.gkpStore/readlengths-$base.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
     close(F);
 
-    if (runCommandSilently($base, "$gnuplot ./$asm.gkpStore/readlengths.gp > /dev/null 2>&1", 0)) {
+    if (runCommandSilently($base, "$gnuplot ./$asm.gkpStore/readlengths-$base.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
         print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
         print STDERR "--\n";
@@ -457,7 +408,7 @@ sub gatekeeperGenerateReadLengths ($$) {
     }
 
     $hist  = "--\n";
-    $hist .= "-- In gatekeeper store '$base/$asm.gkpStore':\n";
+    $hist .= "-- In gatekeeper store './$asm.gkpStore':\n";
     $hist .= "--   Found $reads reads.\n";
     $hist .= "--   Found $bases bases ($coverage times coverage).\n";
     $hist .= "--\n";
@@ -478,11 +429,11 @@ sub gatekeeperGenerateReadLengths ($$) {
 
 
 sub gatekeeper ($$@) {
+    my $base;
     my $asm    = shift @_;
     my $tag    = shift @_;
+    my $bin    = getBinDirectory();
     my @inputs = @_;
-
-    my $base;
 
     $base = "correction"  if ($tag eq "cor");
     $base = "trimming"    if ($tag eq "obt");
@@ -492,13 +443,14 @@ sub gatekeeper ($$@) {
     #  between mhap precompute and mhap compute), but it greatly simplifies stuff, like immediately
     #  here needing to check if the store exists.
 
-    fetchStore("$base/$asm.gkpStore");
+    fetchStore("./$asm.gkpStore");
 
-    #  An empty store?  Remove it and try again.
+    #  If the store exists, make a symlink and be done (well, be done once we call
+    #  getNumberOfReadsInStore() below).
 
-    if ((-e "$base/$asm.gkpStore/info") && (getNumberOfReadsInStore($base, $asm) == 0)) {
-        print STDERR "-- Removing empty or incomplate gkpStore '$base/$asm.gkpStore'\n";
-        remove_tree("$asm.gkpStore");
+    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info")) {
+        symlink("../$asm.gkpStore", "$base/$asm.gkpStore");
+        return;
     }
 
     #  Store with reads?  Yay!  Report it, then skip.
@@ -511,20 +463,29 @@ sub gatekeeper ($$@) {
     #  and restart.  On the restart, gatekeeperCreateStore() detects the 'ACCPETED' store and
     #  renames to asm.gkpStore.
 
-    gatekeeperCreateStore($base, $asm, @inputs)                  if (! -e "$base/$asm.gkpStore");
+    gatekeeperCreateStore($base, $asm, @inputs)                  if (! -e "./$asm.gkpStore");
+
+    #  Make a link to the freshly created store.
+
+    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info")) {
+        symlink("../$asm.gkpStore", "$base/$asm.gkpStore");
+    }
 
     caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($base, $asm) == 0);
 
-    gatekeeperGenerateReadsList($base, $asm)                     if (! -e "$base/$asm.gkpStore/reads.txt");
-    gatekeeperGenerateLibrariesList($base, $asm)                 if (! -e "$base/$asm.gkpStore/libraries.txt");
+    #  Dump the list of libraries.  Various parts use this for various stuff.
 
-    my $hist = gatekeeperGenerateReadLengths($base, $asm)        if (! -e "$base/$asm.gkpStore/readlengths.txt");
+    if (runCommandSilently($base, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -libs > ./$asm.gkpStore/libraries.txt 2> /dev/null", 1)) {
+        caExit("failed to generate list of libraries in store", undef);
+    }
 
-    addToReport("${tag}GkpStore", $hist);
+    #  Generate a histogram of the reads.
+
+    addToReport("${tag}GkpStore", generateReadLengthHistogram($base, $asm));
 
     #  Now that all the extra data is generated, stash the store.
 
-    stashStore("$base/$asm.gkpStore");
+    stashStore("./$asm.gkpStore");
 
   finishStage:
     emitStage($asm, "$tag-gatekeeper");

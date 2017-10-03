@@ -78,7 +78,6 @@ writeTigsToStore(TigVector     &tigs,
     tig->_tigID           = utg->id();
 
     tig->_coverageStat    = 1.0;  //  Default to just barely unique
-    tig->_microhetProb    = 1.0;  //  Default to 100% probability of unique
 
     //  Set the class and some flags.
 

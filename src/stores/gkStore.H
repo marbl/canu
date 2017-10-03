@@ -75,270 +75,32 @@ using namespace std;
 #define AS_MAX_READS               (((uint64)1 << AS_MAX_READS_BITS) - 1)
 
 
-//  Per-library options.
-
-//  Read type
-
-#define GK_READTYPE_GENERIC            0x0000
-#define GK_READTYPE_CONTIG             0x0001
-#define GK_READTYPE_PACBIO_RAW         0x0002
-#define GK_READTYPE_PACBIO_CORRECTED   0x0003
-#define GK_READTYPE_NANOPORE_RAW       0x0004
-#define GK_READTYPE_NANOPORE_CORRECTED 0x0005
-
-//  Correction algorithm
-
-#define GK_CORRECTION_NONE             0x0000
-#define GK_CORRECTION_CONSENSUS        0x0001
-#define GK_CORRECTION_MER              0x0002
-
-//  Trimming algorithm
-
-#define GK_FINALTRIM_NONE              0x0000
-#define GK_FINALTRIM_LARGEST_COVERED   0x0001  //  largest region covered by good overlaps
-#define GK_FINALTRIM_BEST_EDGE         0x0002  //  largest region covered by best overlaps (broken)
-
-
-
-class gkLibrary {
-public:
-  gkLibrary() {
-    memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
-    strncpy(_libraryName, "UNDEFINED", LIBRARY_NAME_SIZE-1);
-
-    _libraryID = UINT32_MAX;
-
-    gkLibrary_clearFeatures();
-  };
-
-  ~gkLibrary() {
-  };
-
-  void gkLibrary_clearFeatures(void) {
-    //  DO NOT change defaults without updating gkLibrary_parsePreset().
-    _isNonRandom                = 0;
-
-    _readCorrection             = GK_CORRECTION_NONE;
-    _readType                   = GK_READTYPE_GENERIC;
-
-    _finalTrim                  = GK_FINALTRIM_LARGEST_COVERED;
-    _removeDuplicateReads       = 1;
-    _removeSpurReads            = 1;
-    _removeChimericReads        = 1;
-    _checkForSubReads           = 1;
-
-    _defaultQV                  = 20;
-  };
-
-public:
-
-  char const    *gkLibrary_libraryName(void)           { return(_libraryName);          };
-  uint32         gkLibrary_libraryID(void)             { return(_libraryID);            };
-
-  uint32         gkLibrary_isNonRandom(void)           { return(_isNonRandom);          };
-  uint32         gkLibrary_readType(void)              { return(_readType);             };
-  char const    *gkLibrary_readTypeString(void);
-  uint32         gkLibrary_readCorrection(void)        { return(_readCorrection);       };
-  char const    *gkLibrary_readCorrectionString(void);
-  uint32         gkLibrary_finalTrim(void)             { return(_finalTrim);            };
-  char const    *gkLibrary_finalTrimString(void);
-  uint32         gkLibrary_removeDuplicateReads(void)  { return(_removeDuplicateReads); };
-  uint32         gkLibrary_removeSpurReads(void)       { return(_removeSpurReads);      };
-  uint32         gkLibrary_removeChimericReads(void)   { return(_removeChimericReads);  };
-  uint32         gkLibrary_checkForSubReads(void)      { return(_checkForSubReads);     };
-
-  uint32         gkLibrary_defaultQV(void)             { return(_defaultQV);            };
-
-
-  void           gkLibrary_setIsNonRandom(bool f)           { _isNonRandom = f;          };
-  void           gkLibrary_setReadType(char *f);
-  void           gkLibrary_setReadCorrection(char *t);
-  void           gkLibrary_setFinalTrim(char *t);
-  void           gkLibrary_setRemoveDuplicateReads(bool f)  { _removeDuplicateReads = f; };
-  void           gkLibrary_setRemoveSpurReads(bool f)       { _removeSpurReads = f;      };
-  void           gkLibrary_setRemoveChimericReads(bool f)   { _removeChimericReads = f;  };
-  void           gkLibrary_setCheckForSubReads(bool f)      { _checkForSubReads = f;     };
-
-  void           gkLibrary_setDefaultQV(double qv)          { _defaultQV = qv;           };
-
-  void           gkLibrary_parsePreset(char *t);
-
-
-private:
-  char           _libraryName[LIBRARY_NAME_SIZE];
-  uint32         _libraryID;
-
-  //  If set, reads are from a non-random library and shouldn't count toward coverage stats.
-  uint32         _isNonRandom;
-
-  //  What generated these reads?
-  uint32         _readType;
-
-  //  Should reads be corrected?  How?
-  uint32         _readCorrection;
-
-  //  Should reads be trimmed based on overlaps?  How?
-  uint32         _finalTrim;
-
-  //  Should duplicate reads (based on overlaps) be removed?
-  uint32         _removeDuplicateReads;
-
-  //  Should spur reads be cleaned up?  How?
-  uint32         _removeSpurReads;
-
-  //  Should chimeric reads be cleaned up?  How?
-  uint32         _removeChimericReads;
-
-  //  Should PacBio circular sub-reads be cleaned up?  How?
-  uint32         _checkForSubReads;
-
-  //  For reads with no QVs, use this.
-  uint32         _defaultQV;
-
-  friend class gkStore;
-};
-
-
-
-class gkRead;
-
-class gkReadData {
-public:
-  gkReadData() {
-    _read      = NULL;
-
-    _name      = NULL;
-    _nameAlloc = 0;
-
-    _seq       = NULL;
-    _qlt       = NULL;
-    _seqAlloc  = 0;
-
-    _blobLen   = 0;
-    _blobMax   = 0;
-    _blob      = NULL;
-  };
-
-  ~gkReadData() {
-    delete [] _name;
-
-    delete [] _seq;
-    delete [] _qlt;
-
-    delete [] _blob;
-  };
-
-  gkRead  *gkReadData_getRead(void)         { return(_read); };
-
-  char    *gkReadData_getName(void)         { return(_name); };
-
-  bool     gkReadData_hasSequence(void)     { return(_seq != NULL); };
-  bool     gkReadData_hasQualities(void)    { return(_qlt != NULL); };
-
-  char    *gkReadData_getSequence(void)     { return(_seq);  };
-  char    *gkReadData_getQualities(void)    { return(_qlt);  };
-
-private:
-  gkRead            *_read;     //  Pointer to the mmap'd read
-
-  char              *_name;
-  uint32             _nameAlloc;
-
-  char              *_seq;      //  Everyone has sequence
-  char              *_qlt;      //    and quality
-  uint32             _seqAlloc;
-
-  uint32             _blobLen;
-  uint32             _blobMax;
-  uint8             *_blob;     //  And maybe even an encoded blob of data from the store.
-
-  //  Used by the store for adding a read.
-
-  void     gkReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
-
-  friend class gkRead;
-  friend class gkStore;
-};
-
-
-
-
-class gkRead {
-public:
-  gkRead() {
-    _readID     = 0;
-    _libraryID  = 0;
-    _seqLen     = 0;
-
-    _mPtr       = 0;
-    _pID        = 0;
-  };
-
-  ~gkRead() {
-  };
-
-  uint32      gkRead_readID(void)             { return((uint32)_readID);           };
-
-  uint32      gkRead_libraryID(void)          { return((uint32)_libraryID);        };
-
-  uint32      gkRead_sequenceLength(void)     { return((uint32)_seqLen);           };
-
-  uint64      gkRead_mPtr(void) { return(_mPtr); };  //  For debugging, in gatekeeperDumpMetatData
-  uint64      gkRead_pID(void)  { return(_pID);  };
-
-  //  Functions to load the read data from disk.
-  //
-  //  loadData()           -- lowest level, called by the other functions to decode the
-  //                          encoded data into the gkReadData structure.
-  //  loadDataFromStream() -- reads data from a FILE, does not position the stream
-  //  loadDataFromFile()   -- reads data from a FILE, positions the stream first
-  //  loadDataFromMMap()   -- reads data from a memory mapped file
-  //
-private:
-  void        gkRead_loadData          (gkReadData *readData, uint8 *blob);
-
-  void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);
-  void        gkRead_loadDataFromFile  (gkReadData *readData, FILE *file);
-  void        gkRead_loadDataFromMMap  (gkReadData *readData, void *blob);
-
-private:
-  uint32      gkRead_encode2bit(uint8  *&chunk, char *seq, uint32 seqLen);
-  uint32      gkRead_encode3bit(uint8  *&chunk, char *seq, uint32 seqLen);
-  uint32      gkRead_encode4bit(uint8  *&chunk, char *qlt, uint32 seqLen);
-  uint32      gkRead_encode5bit(uint8  *&chunk, char *qlt, uint32 seqLen);
-
-  bool        gkRead_decode2bit(uint8  *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
-  bool        gkRead_decode3bit(uint8  *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
-  bool        gkRead_decode4bit(uint8  *chunk, uint32 chunkLen, char *qlt, uint32 seqLen);
-  bool        gkRead_decode5bit(uint8  *chunk, uint32 chunkLen, char *qlt, uint32 seqLen);
-
-  //  Called by gatekeeperCreate to add a new read to the store.
-public:
-  gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv);
-
-private:
-  char       *gkRead_encodeSequence(char *sequence, char *encoded);
-  char       *gkRead_decodeSequence(char *encoded,  char *sequence);
-
-  char       *gkRead_encodeQuality(char *sequence, char *encoded);
-  char       *gkRead_decodeQuality(char *encoded,  char *sequence);
-
-private:
-  //  Used by the store to copy data to a partition
-  void     gkRead_copyDataToPartition(void  *blobs,      FILE **partfiles, uint64 *partfileslen, uint32 partID);
-  void     gkRead_copyDataToPartition(FILE **blobsFiles, FILE **partfiles, uint64 *partfileslen, uint32 partID);
-
-private:
-
-  uint64   _readID       : AS_MAX_READS_BITS;
-  uint64   _libraryID    : AS_MAX_LIBRARIES_BITS;
-  uint64   _seqLen       : AS_MAX_READLEN_BITS;
-
-  uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file, 0..256 TB
-  uint64   _pID          : 16;      //  Partition file id, 0...65536
-
-  friend class gkStore;
-};
+#include "gkLibrary.H"
+#include "gkRead.H"
+
+
+//  The default behavior is to open the store for read only, and to load
+//  all the metadata into memory.
+
+typedef enum {
+  gkStore_create      = 0x00,  //  Open for creating, will fail if files exist already
+  gkStore_extend      = 0x01,  //  Open for modification and appending new reads/libraries
+  gkStore_readOnly    = 0x02,  //  Open read only
+} gkStore_mode;
+
+
+static
+const
+char *
+toString(gkStore_mode m) {
+  switch (m) {
+    case gkStore_create:       return("gkStore_create");       break;
+    case gkStore_extend:       return("gkStore_extend");       break;
+    case gkStore_readOnly:     return("gkStore_readOnly");     break;
+  }
+
+  return("undefined-mode");
+}
 
 
 
@@ -349,9 +111,9 @@ private:
 //
 class gkStoreInfo {
 public:
-  gkStoreInfo() {
+gkStoreInfo() {
     gkMagic            = 0x504b473a756e6163llu;  //  canu:GKP
-    gkVersion          = 0x0000000000000001llu;
+    gkVersion          = 0x0000000000000002llu;
 
     gkLibrarySize      = sizeof(gkLibrary);
     gkReadSize         = sizeof(gkRead);
@@ -359,10 +121,17 @@ public:
     gkLibraryNameSize  = LIBRARY_NAME_SIZE;
     gkMaxReadBits      = AS_MAX_READS_BITS;
     gkMaxReadLenBits   = AS_MAX_READLEN_BITS;
-    gkUNUSED           = 0;
 
     numLibraries       = 0;
     numReads           = 0;
+
+    numRawReads        = 0;
+    numCorrectedReads  = 0;
+    numTrimmedReads    = 0;
+
+    numRawBases        = 0;
+    numCorrectedBases  = 0;
+    numTrimmedBases    = 0;
   };
   ~gkStoreInfo() {
   };
@@ -380,6 +149,14 @@ public:
     fprintf(F, "\n");
     fprintf(F, "numLibraries       = " F_U32 "\n", numLibraries);
     fprintf(F, "numReads           = " F_U32 "\n", numReads);
+    fprintf(F, "\n");
+    fprintf(F, "numRawReads        = " F_U32 "\n", numRawReads);
+    fprintf(F, "numCorrectedReads  = " F_U32 "\n", numCorrectedReads);
+    fprintf(F, "numTrimmedReads    = " F_U32 "\n", numTrimmedReads);
+    fprintf(F, "\n");
+    fprintf(F, "numRawBases        = " F_U64 "\n", numRawBases);
+    fprintf(F, "numCorrectedBases  = " F_U64 "\n", numCorrectedBases);
+    fprintf(F, "numTrimmedBases    = " F_U64 "\n", numTrimmedBases);
   };
 
 private:
@@ -392,42 +169,20 @@ private:
   uint32    gkLibraryNameSize;
   uint32    gkMaxReadBits;
   uint32    gkMaxReadLenBits;
-  uint32    gkUNUSED;           //  Used to hold a blob block size that was never implemented
 
-  uint32    numLibraries;       //  Counts of types of things we have loaded
-  uint32    numReads;
+  uint32    numLibraries;       //  Counts of types of things we have loaded (next
+  uint32    numReads;           //  available index into _libraries and _reads in gkStore)
+
+  uint32    numRawReads;        //  If any corrected reads exist, the store will return
+  uint32    numCorrectedReads;  //  only corrected reads by default.
+  uint32    numTrimmedReads;
+
+  uint64    numRawBases;
+  uint64    numCorrectedBases;
+  uint64    numTrimmedBases;
 
   friend class gkStore;
 };
-
-
-
-//  The default behavior is to open the store for read only, and to load
-//  all the metadata into memory.
-
-typedef enum {
-  gkStore_readOnly    = 0x00,  //  Open read only
-  gkStore_modify      = 0x01,  //  Open for modification - never used, explicitly uses mmap file
-  gkStore_create      = 0x02,  //  Open for creating, will fail if files exist already
-  gkStore_extend      = 0x03,  //  Open for modification and appending new reads/libraries
-  gkStore_infoOnly    = 0x04   //  Open read only, but only load the info on the store; no access to reads or libraries
-} gkStore_mode;
-
-
-static
-const
-char *
-toString(gkStore_mode m) {
-  switch (m) {
-    case gkStore_readOnly:     return("gkStore_readOnly");     break;
-    case gkStore_modify:       return("gkStore_modify");       break;
-    case gkStore_create:       return("gkStore_create");       break;
-    case gkStore_extend:       return("gkStore_extend");       break;
-    case gkStore_infoOnly:     return("gkStore_infoOnly");     break;
-  }
-
-  return("undefined-mode");
-}
 
 
 
@@ -439,46 +194,8 @@ private:
 
 public:
   static
-  gkStore     *gkStore_open(char const *path, gkStore_mode mode=gkStore_readOnly, uint32 partID=UINT32_MAX) {
-
-    //  If an instance exists, return it, otherwise, make a new one.
-
-#pragma omp critical
-    {
-      if (_instance != NULL) {
-        _instanceCount++;
-        //fprintf(stderr, "gkStore_open(%s) from thread %d, %u instances now\n", path, omp_get_thread_num(), _instanceCount);
-      } else {
-        _instance      = new gkStore(path, mode, partID);
-        _instanceCount = 1;
-        //fprintf(stderr, "gkStore_open(%s) form thread %d, first instance, create store\n", path, omp_get_thread_num());
-      }
-    }
-
-    return(_instance);
-  };
-
-
-  void         gkStore_close(void) {
-
-#pragma omp critical
-    {
-      _instanceCount--;
-
-      if (_instanceCount == 0) {
-        delete _instance;
-        _instance = NULL;
-        //fprintf(stderr, "gkStore_close(%s) from thread %d, no instances remain, delete store\n",
-        //        _storeName, omp_get_thread_num());
-      }
-
-      else {
-        //fprintf(stderr, "gkStore_close(%s) from thread %d, %u instances remain\n",
-        //        _storeName, omp_get_thread_num(), _instanceCount);
-      }
-    }
-  };
-
+  gkStore     *gkStore_open(char const *path, gkStore_mode mode=gkStore_readOnly, uint32 partID=UINT32_MAX);
+  void         gkStore_close(void);
 
 public:
   const char  *gkStore_path(void) { return(_storePath); };  //  Returns the path to the store
@@ -493,60 +210,34 @@ public:
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.
 
   uint32       gkStore_getNumLibraries(void)       { return(_info.numLibraries); };
+
   uint32       gkStore_getNumReads(void)           { return(_info.numReads); };
+  uint32       gkStore_getNumRawReads(void)        { return(_info.numRawReads); };
+  uint32       gkStore_getNumCorrectedReads(void)  { return(_info.numCorrectedReads); };
+  uint32       gkStore_getNumTrimmedReads(void)    { return(_info.numTrimmedReads); };
 
   gkLibrary   *gkStore_getLibrary(uint32 id)       { return(&_libraries[id]); };
 
-  //  Returns a read, using the copy in the partition if the partition exists.
-  gkRead      *gkStore_getRead(uint32 id)          {
-    if ((_readIDtoPartitionID)   &&
-        (_readIDtoPartitionID[id] != _partitionID)) {
-      fprintf(stderr, "getRead()--  WARNING: access to read %u in partition %u is slow when partition %u is loaded.\n",
-              id, _readIDtoPartitionID[id], _partitionID);
-      assert(0);
-    }
+  //  The ONLY two approved methods for getting a read and data are:
+  //    gkStore_getRead(uint32 id)
+  //    gkStore_loadReadData(gkRead *read)  -- implies gkStore_getRead() was called already.
+  //    gkStore_loadReadData(uint32  id)    -- calls gkStore_getRead(), then loadReadData(gkRead).
 
-    if ((_readIDtoPartitionID)   &&
-        (_readIDtoPartitionID[id] == _partitionID)) {
-      //fprintf(stderr, "getRead()-- id=%u mapped=%u mappedid=%u\n",
-      //        id, _readIDtoPartitionIdx[id], _reads[_readIDtoPartitionIdx[id]].gkRead_readID());
-      return(_reads + _readIDtoPartitionIdx[id]);
-    }
+  gkRead      *gkStore_getRead(uint32 id);
+  void         gkStore_loadReadData(gkRead *read,   gkReadData *readData);
+  void         gkStore_loadReadData(uint32  readID, gkReadData *readData);
 
-    return(_reads + id);
+  void         gkStore_stashReadData(gkReadData *data);
+
+  bool         gkStore_readInPartition(uint32 id) {        //  True if read is in this partition.
+    return((_readIDtoPartitionID     == NULL) ||           //    Not partitioned, read in partition!
+           (_readIDtoPartitionID[id] == _partitionID));    //    Partitioned, and in this one!
   };
-
-  //  Returns a read, but only if it is in the currently loaded partition.
-  gkRead      *gkStore_getReadInPartition(uint32 id) {
-
-    if (_readIDtoPartitionID == NULL)              //  Not partitioned, return regular read.
-      return(gkStore_getRead(id));
-
-    if (_readIDtoPartitionID[id] != _partitionID)  //  Patitioned, and not in this partition.
-      return(NULL);
-
-    //fprintf(stderr, "getRead()--  SUCCESS: access to read %u in partition %u is FAST when partition %u is loaded.\n",
-    //        id, _readIDtoPartitionID[id], _partitionID);
-
-    return(_reads + _readIDtoPartitionIdx[id]);
-  }
 
   gkLibrary   *gkStore_addEmptyLibrary(char const *name);
-  gkRead      *gkStore_addEmptyRead(gkLibrary *lib);
+  gkReadData  *gkStore_addEmptyRead(gkLibrary *lib);
 
-  void         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
-    //fprintf(stderr, "loadReadData()- read " F_U64 " thread " F_S32 " out of " F_S32 "\n",
-    //        read->_readID, omp_get_thread_num(), omp_get_max_threads());
-    if (_blobs)
-      read->gkRead_loadDataFromMMap(readData, _blobs);
-    if (_blobsFiles)
-      read->gkRead_loadDataFromFile(readData, _blobsFiles[omp_get_thread_num()]);
-  };
-  void         gkStore_loadReadData(uint32  readID, gkReadData *readData) {
-    gkStore_loadReadData(gkStore_getRead(readID), readData);
-  };
-
-  void         gkStore_stashReadData(gkRead *read, gkReadData *data);
+  void         gkStore_setClearRange(uint32 id, uint32 bgn, uint32 end);
 
   //  Used in utgcns, for the package format.
   static
@@ -592,48 +283,6 @@ private:
   uint32              *_readIDtoPartitionID;    //  Map from global ID to partition ID
 };
 
-
-
-
-class gkStoreStats {
-public:
-  gkStoreStats(char const *gkStoreName) {
-    gkStore *gkp = gkStore::gkStore_open(gkStoreName);
-    init(gkp);
-    gkp->gkStore_close();
-  };
-
-  gkStoreStats(gkStore *gkp) {
-    init(gkp);
-  };
-
-  ~gkStoreStats() {
-    delete [] lowestID;
-    delete [] highestID;
-
-    delete [] numActivePerLib;
-
-    delete [] readLengthPerLib;
-    delete [] clearLengthPerLib;
-  };
-
-  void    init(gkStore *gkp);
-
-  //  Global stats over the whole store
-
-  uint32  numActiveFrag;
-  uint64  readLength;
-  uint64  clearLength;
-
-  //  Per library stats
-
-  uint32  *lowestID;
-  uint32  *highestID;
-
-  uint32  *numActivePerLib;
-  uint64  *readLengthPerLib;
-  uint64  *clearLengthPerLib;
-};
 
 
 #endif

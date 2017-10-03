@@ -40,7 +40,7 @@ package canu::CorrectReads;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(setupCorrectionParameters buildCorrectionLayoutsConfigure buildCorrectionLayoutsCheck filterCorrectionLayouts generateCorrectedReadsConfigure generateCorrectedReadsCheck dumpCorrectedReads);
+@EXPORT = qw(setupCorrectionParameters buildCorrectionLayoutsConfigure buildCorrectionLayoutsCheck filterCorrectionLayouts generateCorrectedReadsConfigure generateCorrectedReadsCheck loadCorrectedReads dumpCorrectedReads);
 
 use strict;
 
@@ -457,7 +457,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\n";
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e \"./results/\$jobid.fasta\" ] ; then\n";
+    print F "if [ -e \"./results/\$jobid.cns\" ] ; then\n";
     print F "  echo Job finished successfully.\n";
     print F "  exit 0\n";
     print F "fi\n";
@@ -509,10 +509,10 @@ sub generateCorrectedReadsConfigure ($) {
     print F "  -ci " . getCorIdentity($asm) . "\\\n";
     print F "  -cl " . getGlobal("minReadLength") . "\\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
-    print F "  > ./results/\$jobid.fasta.WORKING \\\n";
-    print F " 2> ./results/\$jobid.err \\\n";
+    print F "  -p ./results/\$jobid.WORKING \\\n";
+    print F "  > ./results/\$jobid.err 2>&1 \\\n";
     print F "&& \\\n";
-    print F "mv ./results/\$jobid.fasta.WORKING ./results/\$jobid.fasta \\\n";
+    print F "mv ./results/\$jobid.WORKING.cns ./results/\$jobid.cns \\\n";
     print F "\n";
 
     if (defined($stageDir)) {
@@ -521,7 +521,7 @@ sub generateCorrectedReadsConfigure ($) {
         print F "\n";
     }
 
-    print F stashFileShellCode("$path", "results/\$jobid.fasta", "");
+    print F stashFileShellCode("$path", "results/\$jobid.cns", "");
 
     print F "\n";
     print F "exit 0\n";
@@ -582,11 +582,11 @@ sub generateCorrectedReadsCheck ($) {
     my $failureMessage = "";
 
     for (my $job=1; $job <= $jobs; $job++) {
-        if (fileExists("$path/results/$currentJobID.fasta")) {
-            push @successJobs, "$path/results/$currentJobID.fasta\n";
+        if (fileExists("$path/results/$currentJobID.cns")) {
+            push @successJobs, "2-correction/results/$currentJobID.cns\n";
 
         } else {
-            $failureMessage .= "--   job $path/results/$currentJobID.fasta FAILED.\n";
+            $failureMessage .= "--   job 2-correction/results/$currentJobID.cns FAILED.\n";
             push @failedJobs, $job;
         }
 
@@ -640,417 +640,71 @@ sub generateCorrectedReadsCheck ($) {
 
 
 
-sub dumpCorrectedReads ($) {
+
+sub loadCorrectedReads ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
+    my $cmd;
 
+    my $base    = "correction";
     my $path    = "correction/2-correction";
 
-    goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));
+    goto allDone   if (skipStage($asm, "cor-loadCorrectedReads") == 1);
+    goto allDone   if (getNumberOfBasesInStore("trimming", $asm) > 0);
 
-    print STDERR "-- Concatenating correctReads output.\n";
+    print STDERR "--\n";
+    print STDERR "-- Loading corrected reads into corStore and gkpStore.\n";
 
-    my $files = 0;
-    my $reads = 0;
+    fetchFile("$path/corjob.files");
 
-    stashFile("$path/corjob.files");
+    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.corStore");
 
-    open(F, "< $path/corjob.files")                      or caExit("can't open '$path/corjob.files' for reading: $!", undef);
-    open(N, "< correction/$asm.gkpStore/readNames.txt")  or caExit("can't open 'correction/$asm.gkpStore/readNames.txt' for reading: $!", undef);
-    open(O, "| gzip -1c > $asm.correctedReads.fasta.gz") or caExit("can't open '$asm.correctedReads.fasta.gz' for writing: $!", undef);
-    open(L, "> $asm.correctedReads.length")              or caExit("can't open '$asm.correctedReads.length' for writing: $!", undef);
+    #my $genomeSize  = getGlobal("genomeSize");
+    #my $outCoverage = getGlobal("corOutCoverage");
 
-    while (<F>) {
-        chomp;
+    $cmd  = "$bin/loadCorrectedReads \\\n";
+    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -C ./$asm.corStore \\\n";
+    $cmd .= "  -L ./2-correction/corjob.files \\\n";
+    $cmd .= "> ./2-correction/corjob.files.load.err 2>&1\n";
 
-        fetchFile($_);
-
-        open(R, "< $_") or caExit("can't open correction output '$_' for reading: $!\n", undef);
-
-        my $h;   #  Current header line
-        my $s;   #  Current sequence
-        my $n;   #  Next header line
-
-        my $nameid;  #  Currently loaded id and name from gkpStore/readNames
-        my $name;
-
-        $n = <R>;  chomp $n;  #  Read the first line, the first header.
-
-        while (!eof(R)) {
-            $h = $n;              #  Read name.
-            $s = undef;           #  No sequence yet.
-            $n = <R>;  chomp $n;  #  Sequence, or the next header.
-
-            #  Read sequence until the next header or we stop reading lines.  Perl seems to be
-            #  setting EOF when the last line is read, which is early, IMHO.  We loop until
-            #  we both are EOF and have an empty line.
-
-            while (($n !~ m/^>/) && ((length($n) > 0) || !eof(R))) {
-                $s .= $n;
-
-                $n = <R>;  chomp $n;
-            }
-
-            #  Parse the header of the corrected read to find the IID and the split piece number
-
-            my $rid = undef;  #  Read ID
-            my $pid = undef;  #  Piece ID
-
-            if ($h =~ m/read(\d+)_(\d+)/) {
-                $rid = $1;
-                $pid = $2;
-            }
-
-            #  Load the next line from the gatekeeper ID map file until we find the
-            #  correct one.
-
-            while (!eof(N) && ($rid != $nameid)) {
-                my $rn = <N>;
-
-                ($rn =~ m/^(\d+)\s+(.*)$/);
-
-                $nameid = $1;
-                $name   = $2;
-            }
-
-            #  If a match, replace the header with the actual read id.  If no match, use the bogus
-            #  corrected read name as is.
-
-            if ($rid eq $nameid) {
-                $h = ">$name id=${rid}_${pid}";
-            }
-
-            #  And write the read to the output as FASTA.
-
-            print O "$h", "\n";
-            print O "$s", "\n";
-
-            #  Or as FASTQ
-
-            #my $q = $s;
-            #$n =~ s/^>/\@/;
-            #$q =~ tr/[A-Z][a-z]/*/;
-
-            #print O $h, "\n";
-            #print O $s, "\n";
-            #print O "+\n";
-            #print O $q, "\n";
-
-            print L "$rid\t$pid\t", length($s), "\n";
-
-            $reads++;
-        }
-
-        $files++;
-        close(R);
+    if (runCommand("correction", $cmd)) {
+        caExit("failed to generate list of reads to correct", "$path/corjob.files.load.err");
     }
 
-    close(O);
-    close(F);
+    unlink "$path/corjob.files.load.err";
 
-    stashFile("$asm.correctedReads.fasta.gz");
-    stashFile("$asm.correctedReads.length");
+    #  Report reads.
 
-    #  Analyze the results.
-
-    print STDERR "-- Analyzing correctReads output.\n";
-
-    my @origLengthHist;
-    my @expcLengthHist;
-    my @corrLengthHist;
-
-    #my @origExpcDiffLengthHist;
-    #my @origCorrDiffLengthHist;
-    #my @expcCorrDiffLengthHist;
-
-    my @corrPiecesHist;
-
-    my $inputReads     = 0;
-    my $inputBases     = 0;
-
-    my $failedReads    = 0;
-
-    my $correctedReads = 0;
-    my $correctedBases = 0;
-
-    my $maxReadLen     = 0;
-
-    my $minDiff = 0;
-    my $maxDiff = 0;
-
-    fetchFile("$path/$asm.readsToCorrect");
-    fetchFile("$asm.correctedReads.length");   #  Already here, we just wrote it.
-
-    open(R, "< $path/$asm.readsToCorrect")    or caExit("can't open '$path/$asm.readsToCorrect' for reading: $!", undef);
-    open(L, "< $asm.correctedReads.length")   or caExit("can't open '$asm.correctedReads.length' for reading: $!", undef);
-
-    open(S, "> $path/$asm.original-expected-corrected-length.dat") or caExit("", undef);
-
-    my $moreData = 1;
-
-    my $r = <R>;  chomp $r;    #  Read first 'read to correct' (input read)
-    my @r = split '\s+', $r;
-
-    if ($r[0] == 0) {
-        $r = <R>;  chomp $r;    #  First line was header, read again.
-        @r = split '\s+', $r;
-    }
-
-    my $l = <L>;  chomp $l;    #  Read first 'corrected read' (output read)
-    my @l = split '\s+', $l;
-
-    if ($l[0] == 0) {
-        $l = <L>;  chomp $l;    #  First line was header, read again.
-        @l = split '\s+', $l;
-    }
-
-    while ($moreData) {
-
-        #  The 'read to correct' should be a superset of the 'corrected reads'.
-        #  There will be only one 'read to correct', but possibly multiple (or even zero)
-        #  'corrected reads'.  Read until the IDs differ.  For this, we only want to
-        #  count the number of pieces and the total length.
-
-        my $numPieces = 0;
-        my $numBases  = 0;
-
-        while ($l[0] == $r[0]) {
-            $numPieces++;
-            $numBases += $l[2];
-
-            last   if (eof(L));  #  Ugly, break out if we just processed the last 'corrected read'.
-
-            $l = <L>;  chomp $l;    #  Read next 'corrected read'
-            @l = split '\s+', $l;
-        }
-
-        #  Add to the length scatter plot (original length, expected length, actual length).
-
-        print S "$r[0]\t$r[1]\t$r[2]\t$numBases\t", $r[1] - $r[2], "\t", $r[1] - $numBases, "\t", $r[2] - $numBases, "\n";
-
-        $minDiff = $r[2] - $numBases  if ($r[2] - $numBases < $minDiff);
-        $maxDiff = $r[2] - $numBases  if ($r[2] - $numBases > $minDiff);
-
-        #  Add to the histograms.
-
-        $origLengthHist[$r[1]]++;
-        $expcLengthHist[$r[2]]++;
-
-        $corrLengthHist[$numBases]++;
-
-        #$origExpcDiffLengthHist[$r[1] - $r[2]]++;
-        #$origCorrDiffLengthHist[$r[1] - $numBases]++;
-        #$expcCorrDiffLengthHist[$r[2] - $numBases]++;
-
-        $corrPiecesHist[$numPieces]++;
-
-        $inputReads++;
-        $inputBases += $r[1];
-
-        $failedReads++  if ($numBases == 0);
-
-        $correctedReads += $numPieces;
-        $correctedBases += $numBases;
-
-        $maxReadLen = $r[1]      if ($maxReadLen < $r[1]);
-        $maxReadLen = $r[2]      if ($maxReadLen < $r[2]);
-        $maxReadLen = $numBases  if ($maxReadLen < $numBases);
-
-        #  Read next 'read to correct'.  If this reads the last line, eof(R) is true, so can't
-        #  loop on that.  Instead, we set a flag after we process that last line.
-
-        if (!eof(R)) {
-            $r = <R>;  chomp $r;
-            @r = split '\s+', $r;
-        } else {
-            $moreData = 0;
-        }
-    }
-
-    close(S);
-    close(R);
-    close(L);
-
-    stashFile("$path/$asm.original-expected-corrected-length.dat");
-
-    #  Write a summary of the corrections.
-
-    my $report = getFromReport("corrections");
-
-    $report .= "-- Actual corrected reads:\n";
-    $report .= "--   $correctedReads reads\n";
-    $report .= "--   $correctedBases bp\n";
-
-    for (my $ii=0; $ii<scalar(@corrPiecesHist); $ii++) {
-        $corrPiecesHist[$ii] += 0;
-        $report .= "--   $corrPiecesHist[$ii] reads with $ii corrected block" . (($ii == 1) ? "" : "s") . "\n";
-    }
-
-    addToReport("corrections", $report);
-
-
-#OBSOLETE
-    open(F, "> $path/$asm.correction.summary") or caExit("", undef);
-    print F "CORRECTION INPUTS:\n";
-    print F "-----------------\n";
-    print F "$inputReads (input reads)\n";
-    print F "$inputBases (input bases)\n";
-    print F "\n";
-    print F "CORRECTION OUTPUTS:\n";
-    print F "-----------------\n";
-    print F "$failedReads (reads that failed to generate any corrected bases)\n";
-    print F "$correctedReads (corrected read pieces)\n";
-    print F "$correctedBases (corrected bases)\n";
-    print F "\n";
-    print F "PIECES PER READ:\n";
-    print F "---------------\n";
-
-    for (my $ii=0; $ii<scalar(@corrPiecesHist); $ii++) {
-        $corrPiecesHist[$ii] += 0;
-        print F "$ii pieces: $corrPiecesHist[$ii]\n";
-    }
-    close(F);
-
-    stashFile("$path/$asm.correction.summary");
-
-    #  Scatterplot of lengths.
-
-    my $gnuplot = getGlobal("gnuplot");
-    my $format  = getGlobal("gnuplotImageFormat");
-
-    open(F, "> $path/$asm.originalLength-vs-correctedLength.gp") or caExit("", undef);
-    print F "\n";
-    print F "set pointsize 0.25\n";
-    print F "\n";
-    print F "set title 'original read length vs expected corrected read length'\n";
-    print F "set xlabel 'original read length'\n";
-    print F "set ylabel 'expected corrected read length'\n";
-    print F "\n";
-    print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.originalLength-vs-expectedLength.lg.$format'\n";
-    print F "plot [0:$maxReadLen] [0:$maxReadLen] './$asm.original-expected-corrected-length.dat' using 2:3 title 'original (x) vs expected (y)'\n";
-    print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.originalLength-vs-expectedLength.sm.$format'\n";
-    print F "replot\n";
-    print F "\n";
-    print F "set title 'original read length vs sum of corrected read lengths'\n";
-    print F "set xlabel 'original read length'\n";
-    print F "set ylabel 'sum of corrected read lengths'\n";
-    print F "\n";
-    print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.originalLength-vs-correctedLength.lg.$format'\n";
-    print F "plot [0:$maxReadLen] [0:$maxReadLen] './$asm.original-expected-corrected-length.dat' using 2:4 title 'original (x) vs corrected (y)'\n";
-    print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.originalLength-vs-correctedLength.sm.$format'\n";
-    print F "replot\n";
-    print F "\n";
-    print F "set title 'expected read length vs sum of corrected read lengths'\n";
-    print F "set xlabel 'expected read length'\n";
-    print F "set ylabel 'sum of corrected read lengths'\n";
-    print F "\n";
-    print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.expectedLength-vs-correctedLength.lg.$format'\n";
-    print F "plot [0:$maxReadLen] [0:$maxReadLen] './$asm.original-expected-corrected-length.dat' using 3:4 title 'expected (x) vs corrected (y)'\n";
-    print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.expectedLength-vs-correctedLength.sm.$format'\n";
-    print F "replot\n";
-    close(F);
-
-    if (runCommandSilently($path, "$gnuplot ./$asm.originalLength-vs-correctedLength.gp > /dev/null 2>&1", 0)) {
-        print STDERR "--\n";
-        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
-        print STDERR "--\n";
-        print STDERR "----------------------------------------\n";
-    }
-
-    stashFile("$path/$asm.originalLength-vs-correctedLength.gp");
-    stashFile("$asm.originalLength-vs-expectedLength.lg.$format");
-    stashFile("$asm.originalLength-vs-expectedLength.sm.$format");
-    stashFile("$asm.originalLength-vs-correctedLength.lg.$format");
-    stashFile("$asm.originalLength-vs-correctedLength.sm.$format");
-    stashFile("$asm.expectedLength-vs-correctedLength.lg.$format");
-    stashFile("$asm.expectedLength-vs-correctedLength.sm.$format");
-
-    #  Histograms of lengths, including the difference between expected and actual corrected (the
-    #  other two difference plots weren't interesting; original-expected was basically all zero, and
-    #  so original-actual was nearly the same as expected-actual.
-
-    open(F, "> $path/$asm.length-histograms.gp") or caExit("", undef);
-    print F "set title 'read length'\n";
-    print F "set ylabel 'number of reads'\n";
-    print F "set xlabel 'read length, bin width = 250'\n";
-    print F "\n";
-    print F "binwidth=250\n";
-    print F "set boxwidth binwidth\n";
-    print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
-    print F "\n";
-    print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.length-histograms.lg.$format'\n";
-    print F "plot [1:$maxReadLen] [0:] \\\n";
-    print F "  './$asm.original-expected-corrected-length.dat' using (bin(\$2,binwidth)):(1.0) smooth freq with boxes title 'original', \\\n";
-    print F "  './$asm.original-expected-corrected-length.dat' using (bin(\$3,binwidth)):(1.0) smooth freq with boxes title 'expected', \\\n";
-    print F "  './$asm.original-expected-corrected-length.dat' using (bin(\$4,binwidth)):(1.0) smooth freq with boxes title 'corrected'\n";
-    print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.length-histograms.sm.$format'\n";
-    print F "replot\n";
-    print F "\n";
-    print F "set xlabel 'difference between expected and corrected read length, bin width = 250, min=$minDiff, max=$maxDiff'\n";
-    print F "\n";
-    print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.length-difference-histograms.lg.$format'\n";
-    print F "plot [$minDiff:$maxDiff] [0:] \\\n";
-    print F "  './$asm.original-expected-corrected-length.dat' using (bin(\$7,binwidth)):(1.0) smooth freq with boxes title 'expected - corrected'\n";
-    print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.length-difference-histograms.sm.$format'\n";
-    print F "replot\n";
-    close(F);
-
-    if (runCommandSilently($path, "$gnuplot ./$asm.length-histograms.gp > /dev/null 2>&1", 0)) {
-        print STDERR "--\n";
-        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
-        print STDERR "--\n";
-        print STDERR "----------------------------------------\n";
-    }
-
-    stashFile("$path/$asm.length-histograms.gp");
-    stashFile("$asm.length-histograms.lg.$format");
-    stashFile("$asm.length-histograms.sm.$format");
-    stashFile("$asm.length-difference-histograms.lg.$format");
-    stashFile("$asm.length-difference-histograms.sm.$format");
+    addToReport("trimmingGkpStore", generateReadLengthHistogram("trimming", $asm));
 
     #  Now that all outputs are (re)written, cleanup the job outputs.
 
-    print STDERR "--\n";
-    print STDERR "-- Purging correctReads output after merging to final output file.\n";
-    print STDERR "-- Purging disabled by saveReadCorrections=true.\n"  if (getGlobal("saveReadCorrections") == 1);
-
-    my $Nsuccess = 0;
+    my $Ncns     = 0;
     my $Nerr     = 0;
-    my $Nfasta   = 0;
     my $Nlog     = 0;
 
     if (getGlobal("saveReadCorrections") != 1) {
+        print STDERR "--\n";
+        print STDERR "-- Purging correctReads output after loading into stores.\n";
+
         open(F, "< $path/corjob.files") or caExit("can't open '$path/corjob.files' for reading: $!", undef);
         while (<F>) {
             chomp;
 
-            if (m/^(.*)\/results\/0*(\d+).fasta$/) {
+            if (m/^(.*)\/results\/0*(\d+).cns$/) {
                 my $ID6 = substr("00000" . $2, -6);
                 my $ID4 = substr("000"   . $2, -4);
                 my $ID0 = $2;
 
-                if (-e "$1/results/$ID4.dump.success") {
-                    $Nsuccess++;
-                    unlink "$1/results/$ID4.dump.success";
+                if (-e "$1/results/$ID4.cns") {
+                    $Ncns++;
+                    unlink "$1/results/$ID4.cns";
                 }
                 if (-e "$1/results/$ID4.err") {
-                    $Nerr++;
+                    $Nlog++;
                     unlink "$1/results/$ID4.err";
-                }
-                if (-e "$1/results/$ID4.fasta") {
-                    $Nfasta++;
-                    unlink "$1/results/$ID4.fasta";
                 }
 
                 if (-e "$1/correctReads.$ID6.out") {
@@ -1068,21 +722,54 @@ sub dumpCorrectedReads ($) {
         }
         close(F);
 
-        print STDERR "-- Purged $Nsuccess .dump.success sentinels.\n"   if ($Nsuccess > 0);
-        print STDERR "-- Purged $Nfasta .fasta outputs.\n"              if ($Nfasta > 0);
+        print STDERR "-- Purged $Ncns .cns outputs.\n"                  if ($Ncns > 0);
         print STDERR "-- Purged $Nerr .err outputs.\n"                  if ($Nerr > 0);
         print STDERR "-- Purged $Nlog .out job log outputs.\n"          if ($Nlog > 0);
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- Purging correctReads output disabled by saveReadCorrections=true.\n"  if (getGlobal("saveReadCorrections") == 1);
     }
 
-    remove_tree("correction/$asm.ovlStore")   if (getGlobal("saveOverlaps") eq "0");
+    #  And purge the usually massive overlap store.
+
+    if (getGlobal("saveOverlaps") eq "0") {
+        print STDERR "--\n";
+        print STDERR "-- Purging overlaps used for correction.\n";
+
+        remove_tree("correction/$asm.ovlStore")   
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- Overlaps used for correction saved.\n";
+    }
 
   finishStage:
-    emitStage($asm, "cor-dumpCorrectedReads");
+    emitStage($asm, "cor-loadCorrectedReads");
     buildHTML($asm, "cor");
 
   allDone:
-    print STDERR "--\n";
-    print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
+    stopAfter("readCorrection");
+}
+
+
+
+
+sub dumpCorrectedReads ($) {
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+
+    my $path    = "correction/2-correction";
+
+    goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
+    goto allDone   if (sequenceFileExists("$asm.correctedReads"));
+
+
+  finishStage:
+    #emitStage($asm, "cor-dumpCorrectedReads");
+    #buildHTML($asm, "cor");
+
+  allDone:
+    #print STDERR "--\n";
+    #print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
 
     stopAfter("readCorrection");
 }

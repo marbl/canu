@@ -53,8 +53,11 @@ SOURCES      := AS_global.C \
                 correction/falconConsensus.C \
                 correction/falconConsensus-alignTag.C \
                 \
+                stores/gkLibrary.C \
                 stores/gkStore.C \
+                stores/gkStoreConstructor.C \
                 stores/gkStoreEncode.C \
+                stores/gkStorePartition.C \
                 \
                 stores/ovOverlap.C \
                 stores/ovStore.C \
@@ -161,7 +164,8 @@ SRC_INCDIRS  := . \
                 overlapInCore/liboverlap \
                 falcon_sense/libfalcon
 
-SUBMAKEFILES := stores/gatekeeperCreate.mk \
+SUBMAKEFILES := stores/dumpBlob.mk \
+                stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
                 stores/gatekeeperDumpMetaData.mk \
                 stores/gatekeeperPartition.mk \
@@ -177,6 +181,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/tgStoreFilter.mk \
                 stores/tgStoreCoverageStat.mk \
                 stores/tgTigDisplay.mk \
+                stores/loadCorrectedReads.mk \
+                stores/loadTrimmedReads.mk \
                 \
                 meryl/libleaff.mk \
                 meryl/leaff.mk \

@@ -46,9 +46,9 @@
 
 
 void
-AS_UTL_writeFastA(FILE *f,
-                  char *s, int sl, int bl,
-                  char *h, ...) {
+AS_UTL_writeFastA(FILE  *f,
+                  char  *s, int sl, int bl,
+                  char  *h, ...) {
   va_list ap;
   char   *o  = new char [sl + sl / 60 + 2];
   int     si = 0;
@@ -75,10 +75,35 @@ AS_UTL_writeFastA(FILE *f,
 
 
 void
-AS_UTL_writeFastQ(FILE *f,
-                  char *s, int sl,
-                  char *q, int ql,
-                  char *h, ...) {
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  char  *q, int ql,
+                  char  *h, ...) {
+  va_list ap;
+  int     qi = 0;
+  int     oi = 0;
+
+  assert(sl == ql);
+
+  va_start(ap, h);
+  vfprintf(f, h, ap);
+  va_end(ap);
+
+  AS_UTL_safeWrite(f, s, "AS_UTL_writeFastQ", sizeof(char), sl);
+  fprintf(f, "\n");
+
+  fprintf(f, "+\n");
+  AS_UTL_safeWrite(f, q, "AS_UTL_writeFastQ", sizeof(char), ql);
+  fprintf(f, "\n");
+}
+
+
+
+void
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  uint8 *q, int ql,
+                  char  *h, ...) {
   va_list ap;
   char   *o  = new char [ql + 1];
   int     qi = 0;
@@ -86,9 +111,8 @@ AS_UTL_writeFastQ(FILE *f,
 
   assert(sl == ql);
 
-  //  Reencode the QV to the Sanger spec.  This is a copy, so we don't need to undo it.
-  while (qi < ql)
-    o[oi++] = q[qi++] + '!';
+  while (qi < ql)              //  Reencode the QV
+    o[oi++] = q[qi++] + '!';   //  to the Sanger spec.
   o[oi] = 0;
 
   va_start(ap, h);

@@ -473,10 +473,18 @@ public:
 
     g->gkp->gkStore_loadReadData(&fr, &rd);
 
-    strcpy(origSeq, rd.gkReadData_getSequence());
-    strcpy(origQlt, rd.gkReadData_getQualities());
-    strcpy(corrSeq, rd.gkReadData_getSequence());
-    strcpy(corrQlt, rd.gkReadData_getQualities());
+    for (uint32 ii=0; ii<seqLen; ii++) {
+      origSeq[ii] = rd.gkReadData_getSequence()[ii];
+      corrSeq[ii] = rd.gkReadData_getSequence()[ii];
+
+      origQlt[ii] = rd.gkReadData_getQualities()[ii] + '!';
+      corrQlt[ii] = rd.gkReadData_getQualities()[ii] + '!';
+    }
+
+    origSeq[seqLen] = 0;
+    corrSeq[seqLen] = 0;
+    origQlt[seqLen] = 0;
+    corrQlt[seqLen] = 0;
 
     //  Replace Ns with a random low-quality base.  This is necessary, since the mer routines
     //  will not make a mer for N, and we never see it to correct it.

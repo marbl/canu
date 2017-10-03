@@ -67,7 +67,7 @@ loadFASTA(char                 *L,
           char                 *H,
           char                 *S,
           uint32               &Slen,
-          char                 *Q,
+          uint8                *Q,
           compressedFileReader *F,
           FILE                 *errorLog,
           uint32               &nWARNS) {
@@ -85,7 +85,7 @@ loadFASTA(char                 *L,
   //  Clear the sequence.
 
   S[0] = 0;
-  Q[0] = 0;  //  Sentinel to tell gatekeeper to use the fixed QV value
+  Q[0] = 255;  //  Sentinel to tell gatekeeper to use the fixed QV value
 
   Slen = 0;
 
@@ -183,7 +183,7 @@ loadFASTQ(char                 *L,
           char                 *H,
           char                 *S,
           uint32               &Slen,
-          char                 *Q,
+          uint8                *Q,
           compressedFileReader *F,
           FILE                 *errorLog,
           uint32               &nWARNS) {
@@ -268,10 +268,10 @@ loadFASTQ(char                 *L,
 
   //  Load the qv header, and then load the qvs themselves over the header.
 
-  Q[0] = 0;
-  fgets(Q, AS_MAX_READLEN+1, F->file());
-  fgets(Q, AS_MAX_READLEN+1, F->file());
-  chomp(Q);
+  L[0] = 0;
+  fgets(L, AS_MAX_READLEN+1, F->file());   //  NOTE: Using L, not Q, since L is char and Q is uint8
+  fgets(L, AS_MAX_READLEN+1, F->file());
+  chomp(L);
 
   //  As with the base, we need to suck in the rest of the longer-than-allowed QV string.  But we don't need to report it
   //  or do anything fancy, just advance the file pointer.
@@ -288,22 +288,44 @@ loadFASTQ(char                 *L,
     delete [] overflow;
   }
 
-  //  Convert from the (assumed to be) Sanger QVs to plain ol' integers.
+  //  If we're not using QVs, just terminate the sequence.
+
+  Q[0] = 255;  //  Sentinel to tell gatekeeper to use the fixed QV value
+
+  //  But if we are storing QVs, check lengths and convert from letters to integers
+
+#ifndef DO_NOT_STORE_QVs
+  uint32   sLen = strlen(S);
+  uint32   qLen = strlen(L);
+
+  if (sLen < qLen) {
+    fprintf(errorLog, "read '%s' sequence length %u quality length %u; quality values trimmed.\n",
+            H, sLen, qLen);
+    nWARNS++;
+    L[sLen] = 0;
+  }
+
+  if (sLen > qLen) {
+    fprintf(errorLog, "read '%s' sequence length %u quality length %u; sequence trimmed.\n",
+            H, sLen, qLen);
+    nWARNS++;
+    S[qLen] = 0;
+  }
 
   uint32 QVerrors = 0;
 
-#ifndef DO_NOT_STORE_QVs
-
-  for (uint32 i=0; Q[i]; i++) {
-    if (Q[i] < '!') {  //  QV=0, ASCII=33
-      Q[i] = '!';
+  for (uint32 i=0; L[i]; i++) {
+    if (L[i] < '!') {  //  QV=0, ASCII=33
+      L[i] = '!';
       QVerrors++;
     }
 
-    if (Q[i] > '!' + 60) {  //  QV=60, ASCII=93=']'
-      Q[i] = '!' + 60;
+    if (L[i] > '!' + 60) {  //  QV=60, ASCII=93=']'
+      L[i] = '!' + 60;
       QVerrors++;
     }
+
+    Q[i] = L[i] - '!';
   }
 
   if (QVerrors > 0) {
@@ -311,14 +333,6 @@ loadFASTQ(char                 *L,
             L, QVerrors, (QVerrors > 1) ? "s" : "");
     nWARNS++;
   }
-
-#else
-
-  //  If we're not using QVs, just reset the first value to -1.  This is the sentinel that FASTA sequences set,
-  //  causing the encoding later to use a fixed QV for all bases.
-
-  Q[0] = 0;
-
 #endif
 
   //  Clear the lines, so we can load the next one.
@@ -346,13 +360,12 @@ loadReads(gkStore    *gkpStore,
           uint64     &bLOADED,
           uint32     &nSKIPPED,
           uint64     &bSKIPPED) {
-  char    *L = new char [AS_MAX_READLEN + 1];  //  +1.  One for the newline, and one for the terminating nul.
-  char    *H = new char [AS_MAX_READLEN + 1];
-  char    *S = new char [AS_MAX_READLEN + 1];
-  char    *Q = new char [AS_MAX_READLEN + 1];
+  char    *L = new char  [AS_MAX_READLEN + 1];  //  +1.  One for the newline, and one for the terminating nul.
+  char    *H = new char  [AS_MAX_READLEN + 1];
+  char    *S = new char  [AS_MAX_READLEN + 1];
+  uint8   *Q = new uint8 [AS_MAX_READLEN + 1];
 
   uint32   Slen = 0;
-  uint32   Qlen = 0;
 
   uint64   lineNumber = 1;
 
@@ -435,12 +448,14 @@ loadReads(gkStore    *gkpStore,
     }
 
     if (S[0] != 0) {
-      gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
-      gkReadData *nd = nr->gkRead_encodeSeqQlt(H, S, Q, gkpLibrary->gkLibrary_defaultQV());
+      gkReadData *readData = gkpStore->gkStore_addEmptyRead(gkpLibrary);
 
-      gkpStore->gkStore_stashReadData(nr, nd);
+      readData->gkReadData_setName(H);
+      readData->gkReadData_setBasesQuals(S, Q);
 
-      delete nd;
+      gkpStore->gkStore_stashReadData(readData);
+
+      delete readData;
 
       if (isFASTA) {
         nLOADEDAlocal += 1;
@@ -572,12 +587,9 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s [...] -o gkpStore\n", argv[0]);
-    fprintf(stderr, "  -o gkpStore         create this gkpStore\n");
-    fprintf(stderr, "  -a gkpStore         append to this gkpStore\n");
-    fprintf(stderr, "  \n");
-    fprintf(stderr, "  -minlength L        discard reads shorter than L\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "usage: %s [-minlength L] -o gkpStore input.gkp\n", argv[0]);
+    fprintf(stderr, "  -o gkpStore            load raw reads into new gkpStore\n");
+    fprintf(stderr, "  -minlength L           discard reads shorter than L\n");
     fprintf(stderr, "  \n");
 
     if (gkpStoreName == NULL)

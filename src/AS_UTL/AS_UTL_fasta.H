@@ -45,9 +45,15 @@ AS_UTL_writeFastA(FILE *f,
 
 //  Writes FastQ, with Sanger QVs.
 void
-AS_UTL_writeFastQ(FILE *f,
-                  char *s, int sl,
-                  char *q, int ql,
-                  char *h, ...);
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  char  *q, int ql,   //  As Sanger QV, already encoded
+                  char  *h, ...);
+
+void
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  uint8 *q, int ql,   //  As Sanger QV, from integer values
+                  char  *h, ...);
 
 #endif

@@ -500,7 +500,7 @@ main (int argc, char **argv) {
       uint32  missingReads = 0;
 
       for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
-        if (gkpStore->gkStore_getReadInPartition(tig->getChild(ii)->ident()) == NULL)
+        if (gkpStore->gkStore_readInPartition(tig->getChild(ii)->ident()) == false)
           missingReads++;
 
       if (missingReads) {

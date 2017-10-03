@@ -58,27 +58,32 @@ dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
 
 
 void
-dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID, bool fullDump) {
+dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
-  for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead  *read = gkp->gkStore_getReadInPartition(rid);
+  fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd       mPtr        pID      flags\n");
+  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------\n");
 
-    if (read == NULL)
+  for (uint32 rid=bgnID; rid<=endID; rid++) {
+    gkRead  *read = gkp->gkStore_getRead(rid);
+
+    if ((read == NULL) ||
+        (gkp->gkStore_readInPartition(rid) == false))
       continue;
 
-    if (fullDump == false)
-      fprintf(stdout, F_U32"\t" F_U32 "\t" F_U32 "\n",
-              read->gkRead_readID(),
-              read->gkRead_libraryID(),
-              read->gkRead_sequenceLength());
-    else
-      fprintf(stdout, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U64 "\t" F_U64 "\n",
-              read->gkRead_readID(),
-              read->gkRead_libraryID(),
-              read->gkRead_sequenceLength(),
-              read->gkRead_mPtr(),
-              read->gkRead_pID());
+    fprintf(stdout, "%10u %10u %10u %10u %10u %10u %10u %10lu %10lu %8s%c%c\n",
+            read->gkRead_readID(),
+            read->gkRead_libraryID(),
+            read->gkRead_sequenceLength(),
+            read->gkRead_rawLength(),
+            read->gkRead_correctedLength(),
+            read->gkRead_clearBgn(),
+            read->gkRead_clearEnd(),
+            read->gkRead_mPtr(),
+            read->gkRead_pID(),
+            "",
+            read->gkRead_cExists() ? 'C' : '-',
+            read->gkRead_tExists() ? 'T' : '-');
   }
 }
 
@@ -128,12 +133,13 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
   readStats  *rs = new readStats [gkp->gkStore_getNumLibraries() + 1];
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead  *read = gkp->gkStore_getReadInPartition(rid);
+    gkRead  *read = gkp->gkStore_getRead(rid);
 
-    if (read == NULL)
+    if ((read == NULL) ||
+        (gkp->gkStore_readInPartition(rid) == false))
       continue;
 
-    uint32   l    = read->gkRead_libraryID();
+    uint32   l = read->gkRead_libraryID();
 
     rs[0].addRead(read);
     rs[l].addRead(read);
@@ -162,8 +168,6 @@ main(int argc, char **argv) {
   bool             wantReads         = true;
   bool             wantStats         = false;  //  Useful only for reads
 
-  bool             fullDump          = true;
-
   uint32           bgnID             = 1;
   uint32           endID             = UINT32_MAX;
 
@@ -187,9 +191,6 @@ main(int argc, char **argv) {
       wantLibs  = false;
       wantReads = true;
       wantStats = false;
-
-    } else if (strcmp(argv[arg], "-full") == 0) {
-      fullDump = true;
 
     } else if (strcmp(argv[arg], "-stats") == 0) {
       wantLibs  = false;
@@ -223,8 +224,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                   partition 'p', if supplied.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libs            dump information about libraries\n");
-    fprintf(stderr, "  -reads [-full]   dump information about reads\n");
-    fprintf(stderr, "                     (-full also dumps some storage metadata)\n");
+    fprintf(stderr, "  -reads           dump information about reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -stats           dump summary statistics on reads\n");
     fprintf(stderr, "\n");
@@ -263,7 +263,7 @@ main(int argc, char **argv) {
     dumpLibs(gkpStore, bgnID, endID);
 
   if (wantReads)
-    dumpReads(gkpStore, bgnID, endID, fullDump);
+    dumpReads(gkpStore, bgnID, endID);
 
   if (wantStats)
     dumpStats(gkpStore, bgnID, endID);

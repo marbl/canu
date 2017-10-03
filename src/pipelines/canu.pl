@@ -651,7 +651,7 @@ sub overlap ($$) {
 #
 
 if (setOptions($mode, "correct") eq "correct") {
-    if (sequenceFileExists("$asm.correctedReads") eq undef) {
+    if (getNumberOfBasesInStore("trimming", $asm) == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN CORRECTION\n";
@@ -675,22 +675,16 @@ if (setOptions($mode, "correct") eq "correct") {
         generateCorrectedReadsConfigure($asm);
         generateCorrectedReadsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
 
+        loadCorrectedReads($asm);
         dumpCorrectedReads($asm);
 
         buildHTML($asm, "cor");
     }
-
-    my $correctedReads = sequenceFileExists("$asm.correctedReads");
-
-    caExit("can't find corrected reads '$asm.correctedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($correctedReads));
-
-    undef @inputFiles;
-    push  @inputFiles, "-$type-corrected\0$correctedReads";
 }
 
 
 if (setOptions($mode, "trim") eq "trim") {
-    if (sequenceFileExists("$asm.trimmedReads") eq undef) {
+    if (getNumberOfBasesInStore("unitigging", $asm) == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN TRIMMING\n";
@@ -704,20 +698,14 @@ if (setOptions($mode, "trim") eq "trim") {
 
         overlap($asm, "obt");
 
-        trimReads ($asm);
+        trimReads($asm);
         splitReads($asm);
-        dumpReads ($asm);
-        #summarizeReads($asm);
+
+        loadTrimmedReads($asm);
+        dumpTrimmedReads ($asm);
 
         buildHTML($asm, "obt");
     }
-
-    my $trimmedReads = sequenceFileExists("$asm.trimmedReads");
-
-    caExit("can't find trimmed reads '$asm.trimmedReads*' in directory '" . getcwd() . "'", undef)  if (!defined($trimmedReads));
-
-    undef @inputFiles;
-    push  @inputFiles, "-$type-corrected\0$trimmedReads";
 }
 
 

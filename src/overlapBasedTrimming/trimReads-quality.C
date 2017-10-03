@@ -254,7 +254,7 @@ doTrim(gkRead      *read,
        uint32      &left,
        uint32      &right) {
   uint32    qltLen = read->gkRead_sequenceLength();
-  char     *qltC   = readData->gkReadData_getQualities();
+  uint8    *qltC   = readData->gkReadData_getQualities();
   double   *qltD   = new double [qltLen];
 
   for (uint32 i=0; i<qltLen; i++)

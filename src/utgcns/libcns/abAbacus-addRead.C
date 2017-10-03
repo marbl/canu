@@ -71,7 +71,7 @@
 abSequence::abSequence(uint32  readID,
                        uint32  length,
                        char   *seq,
-                       char   *qlt,
+                       uint8  *qlt,
                        uint32  complemented) {
   _iid              = readID;
 
@@ -157,7 +157,7 @@ abAbacus::addRead(gkStore *gkpStore,
 
   uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
   char   *seq    = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-  char   *qlt    = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
+  uint8  *qlt    = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
 
   //  Tell abacus about it.  We could pre-allocate _sequences (in the constructor) but this is
   //  relatively painless and makes life easier outside here.
