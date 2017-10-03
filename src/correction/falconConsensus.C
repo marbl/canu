@@ -255,8 +255,16 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
     if (bb != '-') {
       fd->seq[fd->len] = bb;
-      fd->eqv[fd->len] = -10 * log((msa[i]->coverage - g_best_aln_col->count) / (double)msa[i]->coverage);
+      fd->eqv[fd->len] = (msa[i]->coverage == g_best_aln_col->count) ? (40) : (-10 * log((msa[i]->coverage - g_best_aln_col->count + 1) / (double)msa[i]->coverage));
       fd->pos[fd->len] = i;
+
+      if (fd->eqv[fd->len] > 40)
+        fd->eqv[fd->len] = 40;
+
+      assert(0 <= fd->eqv[fd->len]);
+
+      //fprintf(stderr, "pos %d cov %d count %d eqv %d\n",
+      //        fd->len, msa[i]->coverage, g_best_aln_col->count, fd->eqv[fd->len]);
 
       fd->len++;
     }
