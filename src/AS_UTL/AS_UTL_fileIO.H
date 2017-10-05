@@ -89,9 +89,11 @@ void    AS_UTL_loadFile(char *filename, OBJ *objects, uint64 numberToLoad) {
 
   if (length / sizeof(OBJ) < numberToLoad)
     fprintf(stderr, "AS_UTL_loadFile()-- File '%s' contains %lu objects, but asked to load %lu.\n",
-            length / sizeof(OBJ), numberToLoad), exit(1);
+            filename, length / sizeof(OBJ), numberToLoad), exit(1);
 
   AS_UTL_safeRead(file, objects, "", sizeof(OBJ), numberToLoad);
+
+  fclose(file);
 }
 
 
