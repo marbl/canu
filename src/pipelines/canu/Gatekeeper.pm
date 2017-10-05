@@ -95,8 +95,6 @@ sub getNumberOfBasesInStore ($$) {
     }
     close(F);
 
-    print STDERR "FOUND $nb BASES IN $base\n";
-
     return($nb);
 }
 
