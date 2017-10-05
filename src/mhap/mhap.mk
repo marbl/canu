@@ -7,6 +7,6 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET    := mhap-2.1.2.jar
-SOURCES   := mhap-2.1.2.tar
+TARGET    := mhap-2.1.3.jar
+SOURCES   := mhap-2.1.3.tar
 
