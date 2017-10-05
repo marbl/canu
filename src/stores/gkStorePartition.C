@@ -110,8 +110,8 @@ gkRead::gkRead_copyDataToPartition(FILE    **blobsFiles,
 
   //  Write the data and update pointers and lengths.
 
-  fprintf(stderr, "COPY blob of length %8lu from position _mPtr %8lu to position %8lu in partition %4u\n",
-          blobLen, _mPtr, partfileslen[partID], partID);
+  //fprintf(stderr, "COPY blob of length %8u from position _mPtr %8lu to position %8lu in partition %4u\n",
+  //        blobLen, _mPtr, partfileslen[partID], partID);
 
   AS_UTL_safeWrite(partfiles[partID], blob, "gkRead::gkRead_copyDataToPartition::blob", sizeof(char), blobLen + 8);
 
