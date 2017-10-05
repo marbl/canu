@@ -43,6 +43,7 @@
 #include "ovStoreFile.H"
 #include "ovStoreHistogram.H"
 
+#include "memoryMappedFile.H"
 
 
 const uint64 ovStoreVersion         = 2;

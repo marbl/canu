@@ -41,6 +41,7 @@
 #include "AS_UTL_decodeRange.H"
 #include "AS_UTL_fileIO.H"
 
+#include "memoryMappedFile.H"
 
 
 

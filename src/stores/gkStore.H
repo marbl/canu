@@ -31,7 +31,6 @@
 #define GKSTORE_H
 
 #include "AS_global.H"
-#include "memoryMappedFile.H"
 #include "writeBuffer.H"
 
 #include <vector>
