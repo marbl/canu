@@ -104,8 +104,10 @@ my $asmAuto = undef;              #  If set, the name was auto-discovered.
 
 setVersion($bin);
 
-#  Check for the presence of a -options switch BEFORE we do any work.
-#  This lets us print the default values of options.
+#  Check for the presence of -option switches BEFORE we do any work.
+#  This lets us print the default values of options (which we don't do anymore, because
+#  too many are set later), and change the defaults (-fast and -slow) before
+#  other options are applied.
 
 if (scalar(@ARGV) == 0) {
     printHelp(1);
@@ -122,6 +124,21 @@ foreach my $arg (@ARGV) {
         ($arg eq "--version")) {
         print getGlobal("version") . "\n";
         exit(0);
+    }
+
+    if ($arg eq "-fast") {
+        #  All defaults, unless noted.
+        setGlobal("corOverlapper",  "mhap");
+        setGlobal("obtOverlapper",  "mhap");    #  Changed
+        setGlobal("utgOverlapper",  "mhap");    #  Changed
+
+        setGlobal("corRealign", "false");
+        setGlobal("obtRealign", "true");    #  Changed
+        setGlobal("utgRealign", "true");    #  Changed
+    }
+
+    if ($arg eq "-accurate") {
+        #  All defaults, unless noted.
     }
 }
 
@@ -145,6 +162,10 @@ while (scalar(@ARGV)) {
 
     if     (($arg eq "-h") || ($arg eq "-help") || ($arg eq "--help")) {
         printHelp(1);
+
+    } elsif (($arg eq "-fast") ||
+             ($arg eq "-accurate")) {
+        addCommandLineOption($arg);
 
     } elsif (($arg eq "-citation") || ($arg eq "--citation")) {
         print STDERR "\n";
