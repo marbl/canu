@@ -117,8 +117,8 @@ private:
   void        gkReadData_loadFromBlob(uint8 *blob);
 
 private:
-  gkRead            *_read;     //  Pointer to the mmap'd read         set in gkStore_addEmptyRead() and
-  gkLibrary         *_library;  //  Pointer to the mmap'd library             gkStore_loadReadData().
+  gkRead            *_read;     //  Pointer to the read         set in gkStore_addEmptyRead() and
+  gkLibrary         *_library;  //  Pointer to the library             gkStore_loadReadData().
 
   char              *_name;
   uint32             _nameAlloc;
@@ -198,7 +198,7 @@ public:
 private:
   void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);  //  file at position
   void        gkRead_loadDataFromFile  (gkReadData *readData, FILE *file);  //  move file pointer before reading
-  void        gkRead_loadDataFromMMap  (gkReadData *readData, void *blob);  //  read from blob in core
+  void        gkRead_loadDataFromCore  (gkReadData *readData, void *blob);  //  read from blob in core
 
 private:
   void        gkRead_copyDataToPartition(void  *blobs,      FILE **partfiles, uint64 *partfileslen, uint32 partID);

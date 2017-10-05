@@ -192,6 +192,9 @@ private:
   gkStore(char const *path, gkStore_mode mode, uint32 partID);
   ~gkStore();
 
+  void         gkStore_loadMetadata(void);
+  void         gkStore_openBlobs(void);
+
 public:
   static
   gkStore     *gkStore_open(char const *path, gkStore_mode mode=gkStore_readOnly, uint32 partID=UINT32_MAX);
@@ -255,24 +258,16 @@ private:
 
   gkStore_mode         _mode;  //  What mode this store is opened as, sanity checking
 
-  //  If these are memory mapped, then multiple processes on the same host can share the
-  //  (read-only) data.
-  //
-  //  For blobs, we allow either using the mmap directly, or skipping the mmap and
-  //  using a buffer.
 
-  memoryMappedFile    *_librariesMMap;
-  uint32               _librariesAlloc;  //  If zero, the mmap is used.
-  gkLibrary           *_libraries;
+  uint32               _librariesAlloc;  //  Size of allocation
+  gkLibrary           *_libraries;       //  In core data
 
-  memoryMappedFile    *_readsMMap;
-  uint32               _readsAlloc;      //  If zero, the mmap is used.
-  gkRead              *_reads;
+  uint32               _readsAlloc;      //  Size of allocation
+  gkRead              *_reads;           //  In core data
 
-  memoryMappedFile    *_blobsMMap;       //  Either the full blobs, or the partitioned blobs.
-  void                *_blobs;           //  Pointer to the data in the blobsMMap.
+  uint8               *_blobs;           //  For partitioned data, in-core data.
   writeBuffer         *_blobsWriter;     //  For constructing a store, data gets dumped here.
-  FILE               **_blobsFiles;      //  For loading reads directly, one per thread.
+  FILE               **_blobsFiles;      //  For normal store, loading reads directly, one per thread.
 
   //  If the store is openend partitioned, this data is loaded from disk
 

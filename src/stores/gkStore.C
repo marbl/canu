@@ -67,8 +67,8 @@ gkRead::gkRead_loadDataFromStream(gkReadData *readData, FILE *file) {
 
 
 void
-gkRead::gkRead_loadDataFromMMap(gkReadData *readData, void *blobs) {
-  //fprintf(stderr, "gkRead::gkRead_loadDataFromMMap()-- read %lu position %lu\n", _readID, _mPtr);
+gkRead::gkRead_loadDataFromCore(gkReadData *readData, void *blobs) {
+  //fprintf(stderr, "gkRead::gkRead_loadDataFromCore()-- read %lu position %lu\n", _readID, _mPtr);
   readData->gkReadData_loadFromBlob(((uint8 *)blobs) + _mPtr);
 }
 
@@ -115,7 +115,7 @@ gkStore::gkStore_loadReadData(gkRead *read, gkReadData *readData) {
   readData->_library = gkStore_getLibrary(read->gkRead_libraryID());
 
   if (_blobs)
-    read->gkRead_loadDataFromMMap(readData, _blobs);
+    read->gkRead_loadDataFromCore(readData, _blobs);
 
   else if (_blobsFiles)
     read->gkRead_loadDataFromFile(readData, _blobsFiles[omp_get_thread_num()]);
@@ -573,7 +573,6 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
 gkLibrary *
 gkStore::gkStore_addEmptyLibrary(char const *name) {
 
-  assert(_librariesMMap == NULL);
   assert(_info.numLibraries <= _librariesAlloc);
 
   //  Library[0] doesn't exist, see comments in addEmptyRead below.
@@ -626,7 +625,6 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 gkReadData *
 gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
 
-  assert(_readsMMap == NULL);
   assert(_info.numReads <= _readsAlloc);
   assert(_mode != gkStore_readOnly);
 

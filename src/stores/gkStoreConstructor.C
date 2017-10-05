@@ -44,8 +44,39 @@
 //  3)  No addition, no modification.              gkStore(path);
 
 
-//  Define this to use the original memory mapped file interface to the blobs data.
-#undef MMAP_BLOBS
+
+
+void
+gkStore::gkStore_loadMetadata(void) {
+  char    name[FILENAME_MAX];
+
+
+  _librariesAlloc = _info.numLibraries + 1;
+  _libraries      = new gkLibrary [_librariesAlloc];
+
+  snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
+  AS_UTL_loadFile(name, _libraries, _librariesAlloc);
+
+
+  _readsAlloc = _info.numReads + 1;
+  _reads      = new gkRead [_readsAlloc];
+
+  snprintf(name, FILENAME_MAX, "%s/reads", _storePath);
+  AS_UTL_loadFile(name, _reads, _readsAlloc);
+}
+
+
+
+void
+gkStore::gkStore_openBlobs(void) {
+  char    name[FILENAME_MAX];
+
+  snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
+
+  _blobsFiles    = new FILE * [omp_get_max_threads()];
+  for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+    _blobsFiles[ii] = AS_UTL_openInputFile(_storePath, '/', "blobs");
+}
 
 
 
@@ -113,15 +144,12 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   //  Clear ourself, to make valgrind happier.
 
-  _librariesMMap          = NULL;
   _librariesAlloc         = 0;
   _libraries              = NULL;
 
-  _readsMMap              = NULL;
   _readsAlloc             = 0;
   _reads                  = NULL;
 
-  _blobsMMap              = NULL;
   _blobs                  = NULL;
   _blobsWriter            = NULL;
   _blobsFiles             = NULL;
@@ -166,44 +194,15 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   //  EXTEND - load libraries and reads into core, open blobs for reading and appending.
   //
 
+  if ((mode == gkStore_extend) &&
+      (partID != UINT32_MAX))
+    fprintf(stderr, "gkStore()-- Illegal combination of gkStore_extend with defined partID.\n"), exit(1);
+
   if (mode == gkStore_extend) {
-    if (partID != UINT32_MAX)
-      fprintf(stderr, "gkStore()-- Illegal combination of gkStore_extend with defined partID.\n"), exit(1);
-
-
-    _librariesAlloc = _info.numLibraries + 1;
-    _libraries      = new gkLibrary [_librariesAlloc];
-
-    snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
-    AS_UTL_loadFile(name, _libraries, _librariesAlloc);
-
-
-    _readsAlloc = _info.numReads + 1;
-    _reads      = new gkRead [_readsAlloc];
-
-    snprintf(name, FILENAME_MAX, "%s/reads", _storePath);
-    AS_UTL_loadFile(name, _reads, _readsAlloc);
-
-
-
+    gkStore_loadMetadata();
+    gkStore_openBlobs();
 
     snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
-#ifdef MMAP_BLOBS
-    _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
-    _blobs         = (void *)_blobsMMap->get(0);
-#else
-    _blobsFiles    = new FILE * [omp_get_max_threads()];
-
-    errno = 0;
-
-    for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
-      _blobsFiles[ii] = fopen(name, "r");
-
-    if (errno)
-      fprintf(stderr, "Failed to open %u copies of the blobs file '%s' for reading: %s\n",
-              omp_get_max_threads(), name, strerror(errno)), exit(1);
-#endif
-
     _blobsWriter   = new writeBuffer(name, "a+");
 
     return;
@@ -224,49 +223,21 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     fprintf(stderr, "gkStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath), exit(1);
 
 
-
-
+  //  If normal, nothing special; load the metadata and open the blob files, one file per thread.
 
   if (partID == UINT32_MAX) {
-    //fprintf(stderr, "gkStore()--  opening '%s' for read-only access.\n", _storePath);
-
-    snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
-    _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnlyInCore);
-    _libraries     = (gkLibrary *)_librariesMMap->get(0);
-
-    snprintf(name, FILENAME_MAX, "%s/reads", _storePath);
-    _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnlyInCore);
-    _reads         = (gkRead *)_readsMMap->get(0);
-
-    snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
-#ifdef MMAP_BLOBS
-    _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
-    _blobs         = (void *)_blobsMMap->get(0);
-#else
-    _blobsFiles    = new FILE * [omp_get_max_threads()];
-
-    errno = 0;
-
-    for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
-      _blobsFiles[ii] = fopen(name, "r");
-
-    if (errno)
-      fprintf(stderr, "Failed to open %u copies of the blobs file '%s' for reading: %s\n",
-              omp_get_max_threads(), name, strerror(errno)), exit(1);
-#endif
+    gkStore_loadMetadata();
+    gkStore_openBlobs();
   }
 
 
-
-    //  For partitioned reads, we need to have a uint32 map of readID to partitionReadID so we can
-    //  lookup the metadata in the partitoned _reads data.  This is 4 bytes per read, compared to 24
-    //  bytes for the full meta data.  Assuming 100x of 3kb read coverage on human, that's 100
-    //  million reads, so 0.400 GB vs 2.4 GB.
-
+  //  If partitioned, we need to have a uint32 map of readID to partitionReadID so we can
+  //  lookup the metadata in the partitoned _reads data.  This is 4 bytes per read, compared to 24
+  //  bytes for the full meta data.  Assuming 100x of 3kb read coverage on human, that's 100
+  //  million reads, so 0.400 GB vs 2.4 GB.
+  
 
   if (partID != UINT32_MAX) {
-    //fprintf(stderr, "gkStore()--  opening '%s' partition '%u' for read-only access.\n", _storePath, partID);
-
     snprintf(name, FILENAME_MAX, "%s/partitions/map", _storePath);
 
     errno = 0;
@@ -288,17 +259,32 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
     fclose(F);
 
+    //  Libraries are easy, just the normal file.
+
     snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
-    _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnlyInCore);
-    _libraries     = (gkLibrary *)_librariesMMap->get(0);
+
+    _librariesAlloc = _info.numLibraries + 1;
+    _libraries      = new gkLibrary [_librariesAlloc];
+
+    AS_UTL_loadFile(name, _libraries, _librariesAlloc);
+
+    //  Reads are partitioned.
 
     snprintf(name, FILENAME_MAX, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
-    _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnlyInCore);
-    _reads         = (gkRead *)_readsMMap->get(0);
+
+    _readsAlloc = _readsPerPartition[partID];
+    _reads      = new gkRead [_readsAlloc];
+
+    AS_UTL_loadFile(name, _reads, _readsAlloc);
+
+    //  Blobs are partitioned too.  Sadly, we don't know the size.
 
     snprintf(name, FILENAME_MAX, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
-    _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
-    _blobs         = (void *)_blobsMMap->get(0);
+
+    uint64 bs      = AS_UTL_sizeOfFile(name);
+    _blobs         = new uint8 [bs];
+
+    AS_UTL_loadFile(name, _blobs, bs);
   }
 }
 
@@ -354,18 +340,14 @@ gkStore::~gkStore() {
     F = AS_UTL_openOutputFile(gkStore_path(), '/', "info.txt");
     _info.writeInfoAsText(F);
     fclose(F);
-
-    delete [] _libraries;  //  If gkStore_read, these are pointers to the memory
-    delete [] _reads;      //  mapped file, which we cannot delete ourself.
   }
 
   //  Clean up.
 
-  delete _librariesMMap;
-  delete _readsMMap;
-  delete _blobsMMap;
-
-  delete _blobsWriter;
+  delete [] _libraries;
+  delete [] _reads;
+  delete [] _blobs;
+  delete    _blobsWriter;
 
   for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
     if ((_blobsFiles) && (_blobsFiles[ii]))
