@@ -357,6 +357,7 @@ sub mhapConfigure ($$$) {
     print F "  -G ../$asm.gkpStore \\\n";
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
+    print F "  -noreadname \\\n";
     print F "  -fasta \\\n";
     print F "  -o ./blocks/\$job.input \\\n";
     print F "|| \\\n";
@@ -382,6 +383,7 @@ sub mhapConfigure ($$$) {
     print F "  --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "  --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
     print F "  --no-tf \\\n"            if (defined(getGlobal("${tag}MhapNoTf")) && getGlobal("${tag}MhapNoTf") == 1);
+    print F "  --store-full-id \\\n";
     print F "  --num-hashes $numHashes \\\n";
     print F "  --num-min-matches $minNumMatches \\\n";
     print F "  --ordered-sketch-size $ordSketch \\\n";
@@ -482,6 +484,7 @@ sub mhapConfigure ($$$) {
     print F "    --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "    --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
     print F "    --no-tf \\\n"            if (defined(getGlobal("${tag}MhapNoTf")) && getGlobal("${tag}MhapNoTf") == 1);
+    print F "    --store-full-id \\\n";
     print F "    --num-hashes $numHashes \\\n";
     print F "    --num-min-matches $minNumMatches \\\n";
     print F "    --threshold $threshold \\\n";
@@ -503,7 +506,7 @@ sub mhapConfigure ($$$) {
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
     print F "    -G ../$asm.gkpStore \\\n";
-    print F "    \$cvt \\\n";
+    #print F "    \$cvt \\\n";
     print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
     print F "    ./results/\$qry.mhap \\\n";
     print F "  && \\\n";
