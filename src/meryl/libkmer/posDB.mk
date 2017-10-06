@@ -6,7 +6,7 @@ SOURCES      := driver-posDB.C
 
 SRC_INCDIRS := ../libutil ../libbio ../libseq ../libmeryl
 
-TGT_LDFLAGS := -L${TARGET_DIR}
+TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lkmer -lmeryl -lseq -lbio -lutil
 TGT_PREREQS := libkmer.a libmeryl.a libseq.a libbio.a libutil.a
 

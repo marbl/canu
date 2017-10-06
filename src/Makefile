@@ -67,40 +67,31 @@ define ADD_TARGET_RULE
     ifeq "$$(suffix ${1})" ".a"
         # Add a target for creating a static library.
         $${TARGET_DIR}/${1}: $${${1}_OBJS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${AR} $${ARFLAGS} $$@ $${${1}_OBJS})
-	    $${${1}_POSTMAKE}
+	        @mkdir -p $$(dir $$@)
+	        $$(strip $${AR} $${ARFLAGS} $$@ $${${1}_OBJS})
+	        $${${1}_POSTMAKE}
     else
-    ifeq "$$(suffix ${1})" ".jar"
-        # Add a target for copying files.  Actually, just untars the files, kind
-        # of ugly, but the only way I could discover to get the lib/ files installed.
-        $${TARGET_DIR}/${1}: $${${1}}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip tar -C $$(dir $$@) -xf $${${1}_SOURCES})
-    else
-        # Add a target for linking an executable. First, attempt to select the
-        # appropriate front-end to use for linking. This might not choose the
-        # right one (e.g. if linking with a C++ static library, but all other
-        # sources are C sources), so the user makefile is allowed to specify a
-        # linker to be used for each target.
-        ifeq "$$(strip $${${1}_LINKER})" ""
-            # No linker was explicitly specified to be used for this target. If
-            # there are any C++ sources for this target, use the C++ compiler.
-            # For all other targets, default to using the C compiler.
-            ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-                ${1}_LINKER = $${CXX}
-            else
-                ${1}_LINKER = $${CC}
-            endif
-        endif
+      # Add a target for linking an executable. First, attempt to select the
+      # appropriate front-end to use for linking. This might not choose the
+      # right one (e.g. if linking with a C++ static library, but all other
+      # sources are C sources), so the user makefile is allowed to specify a
+      # linker to be used for each target.
+      ifeq "$$(strip $${${1}_LINKER})" ""
+          # No linker was explicitly specified to be used for this target. If
+          # there are any C++ sources for this target, use the C++ compiler.
+          # For all other targets, default to using the C compiler.
+          ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+              ${1}_LINKER = $${CXX}
+          else
+              ${1}_LINKER = $${CC}
+          endif
+      endif
 
-        $${TARGET_DIR}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} \
-	        $${${1}_OBJS} $${${1}_LDLIBS} $${LDLIBS})
-	    $${${1}_POSTMAKE}
-    endif
-    endif
+      $${TARGET_DIR}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	      @mkdir -p $$(dir $$@)
+	      $$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_LDLIBS} $${LDLIBS})
+	      $${${1}_POSTMAKE}
+  endif
 endef
 
 # CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
@@ -183,7 +174,12 @@ define INCLUDE_SUBMAKEFILE
     ifneq "$$(strip $${TARGET})" ""
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
-        TGT := $$(strip $${TARGET})
+
+        ifeq "$$(suffix $${TARGET})" ".a"
+          TGT := $$(addprefix lib/, $$(strip $${TARGET}))
+        else
+          TGT := $$(addprefix bin/, $$(strip $${TARGET}))
+        endif
         ALL_TGTS += $${TGT}
         $${TGT}_CFLAGS    := $${TGT_CFLAGS}
         $${TGT}_CXXFLAGS  := $${TGT_CXXFLAGS}
@@ -198,7 +194,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_OBJS      :=
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTMAKE  := $${TGT_POSTMAKE}
-        $${TGT}_PREREQS   := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
+        $${TGT}_PREREQS   := $$(addprefix $${TARGET_DIR}/lib/,$${TGT_PREREQS})
         $${TGT}_SOURCES   :=
     else
         # The values defined by this makefile apply to the the "current" target
@@ -610,36 +606,37 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 .PHONY: all
 all: UPDATE_VERSION MAKE_DIRS \
      $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
-     ${TARGET_DIR}/canu \
-     ${TARGET_DIR}/canu.defaults \
-     ${TARGET_DIR}/lib/canu/Consensus.pm \
-     ${TARGET_DIR}/lib/canu/CorrectReads.pm \
-     ${TARGET_DIR}/lib/canu/Configure.pm \
-     ${TARGET_DIR}/lib/canu/Defaults.pm \
-     ${TARGET_DIR}/lib/canu/ErrorEstimate.pm \
-     ${TARGET_DIR}/lib/canu/Execution.pm \
-     ${TARGET_DIR}/lib/canu/Gatekeeper.pm \
-     ${TARGET_DIR}/lib/canu/Grid.pm \
-     ${TARGET_DIR}/lib/canu/Grid_Cloud.pm \
-     ${TARGET_DIR}/lib/canu/Grid_DNANexus.pm \
-     ${TARGET_DIR}/lib/canu/Grid_LSF.pm \
-     ${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm \
-     ${TARGET_DIR}/lib/canu/Grid_SGE.pm \
-     ${TARGET_DIR}/lib/canu/Grid_Slurm.pm \
-     ${TARGET_DIR}/lib/canu/HTML.pm \
-     ${TARGET_DIR}/lib/canu/Meryl.pm \
-     ${TARGET_DIR}/lib/canu/Output.pm \
-     ${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm \
-     ${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm \
-     ${TARGET_DIR}/lib/canu/OverlapInCore.pm \
-     ${TARGET_DIR}/lib/canu/OverlapMhap.pm \
-     ${TARGET_DIR}/lib/canu/OverlapMMap.pm \
-     ${TARGET_DIR}/lib/canu/OverlapStore.pm \
-     ${TARGET_DIR}/lib/canu/Report.pm \
-     ${TARGET_DIR}/lib/canu/Unitig.pm
+     ${TARGET_DIR}/bin/canu \
+     ${TARGET_DIR}/bin/canu.defaults \
+     ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar \
+     ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/CorrectReads.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Configure.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Defaults.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/ErrorEstimate.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Execution.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Gatekeeper.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_Cloud.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_DNANexus.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_LSF.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_PBSTorque.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_SGE.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_Slurm.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/HTML.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Meryl.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Output.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/OverlapBasedTrimming.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/OverlapErrorAdjustment.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/OverlapInCore.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/OverlapMhap.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/OverlapMMap.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/OverlapStore.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Report.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Unitig.pm
 	@echo ""
 	@echo "Success!"
-	@echo "canu installed in ${TARGET_DIR}/canu"
+	@echo "canu installed in ${TARGET_DIR}/bin/canu"
 
 # Add a new target rule for each user-defined target.
 $(foreach TGT,${ALL_TGTS},\
@@ -676,90 +673,95 @@ AS_global.C: UPDATE_VERSION
 #  A fake target, to make the directory for the canu perl modules.
 .PHONY: MAKE_DIRS
 MAKE_DIRS:
-	@if [ ! -e ${TARGET_DIR}/lib/canu ] ; then mkdir -p ${TARGET_DIR}/lib/canu ; fi
+	@if [ ! -e ${TARGET_DIR}/lib/site_perl/canu ] ; then mkdir -p ${TARGET_DIR}/lib/site_perl/canu ; fi
+	@if [ ! -e ${TARGET_DIR}/share/java/classes ] ; then mkdir -p ${TARGET_DIR}/share/java/classes ; fi
+	@if [ ! -e ${TARGET_DIR}/bin ]                ; then mkdir -p ${TARGET_DIR}/bin                ; fi
 
-${TARGET_DIR}/canu: pipelines/canu.pl
-	cp -pf pipelines/canu.pl ${TARGET_DIR}/canu
-	chmod +x ${TARGET_DIR}/canu
+${TARGET_DIR}/bin/canu: pipelines/canu.pl
+	cp -pf pipelines/canu.pl ${TARGET_DIR}/bin/canu
+	chmod +x ${TARGET_DIR}/bin/canu
 
-${TARGET_DIR}/canu.defaults:
-	echo > ${TARGET_DIR}/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
-	chmod -x ${TARGET_DIR}/canu.defaults
+${TARGET_DIR}/bin/canu.defaults:
+	echo > ${TARGET_DIR}/bin/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
+	chmod -x ${TARGET_DIR}/bin/canu.defaults
 
-${TARGET_DIR}/lib/canu/Consensus.pm: pipelines/canu/Consensus.pm
-	cp -pf pipelines/canu/Consensus.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar: mhap/mhap-2.1.3.jar
+	cp -pf mhap/mhap-2.1.3.jar ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar
 
-${TARGET_DIR}/lib/canu/CorrectReads.pm: pipelines/canu/CorrectReads.pm
-	cp -pf pipelines/canu/CorrectReads.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Consensus.pm: pipelines/canu/Consensus.pm
+	cp -pf pipelines/canu/Consensus.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Configure.pm: pipelines/canu/Configure.pm
-	cp -pf pipelines/canu/Configure.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/CorrectReads.pm: pipelines/canu/CorrectReads.pm
+	cp -pf pipelines/canu/CorrectReads.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Defaults.pm: pipelines/canu/Defaults.pm
-	cp -pf pipelines/canu/Defaults.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Configure.pm: pipelines/canu/Configure.pm
+	cp -pf pipelines/canu/Configure.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/ErrorEstimate.pm: pipelines/canu/ErrorEstimate.pm
-	cp -pf pipelines/canu/ErrorEstimate.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Defaults.pm: pipelines/canu/Defaults.pm
+	cp -pf pipelines/canu/Defaults.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Execution.pm: pipelines/canu/Execution.pm
-	cp -pf pipelines/canu/Execution.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/ErrorEstimate.pm: pipelines/canu/ErrorEstimate.pm
+	cp -pf pipelines/canu/ErrorEstimate.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Gatekeeper.pm: pipelines/canu/Gatekeeper.pm
-	cp -pf pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Execution.pm: pipelines/canu/Execution.pm
+	cp -pf pipelines/canu/Execution.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid.pm: pipelines/canu/Grid.pm
-	cp -pf pipelines/canu/Grid.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Gatekeeper.pm: pipelines/canu/Gatekeeper.pm
+	cp -pf pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid_Cloud.pm: pipelines/canu/Grid_Cloud.pm
-	cp -pf pipelines/canu/Grid_Cloud.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid.pm: pipelines/canu/Grid.pm
+	cp -pf pipelines/canu/Grid.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid_DNANexus.pm: pipelines/canu/Grid_DNANexus.pm
-	cp -pf pipelines/canu/Grid_DNANexus.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid_Cloud.pm: pipelines/canu/Grid_Cloud.pm
+	cp -pf pipelines/canu/Grid_Cloud.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid_LSF.pm: pipelines/canu/Grid_LSF.pm
-	cp -pf pipelines/canu/Grid_LSF.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid_DNANexus.pm: pipelines/canu/Grid_DNANexus.pm
+	cp -pf pipelines/canu/Grid_DNANexus.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm: pipelines/canu/Grid_PBSTorque.pm
-	cp -pf pipelines/canu/Grid_PBSTorque.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid_LSF.pm: pipelines/canu/Grid_LSF.pm
+	cp -pf pipelines/canu/Grid_LSF.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid_SGE.pm: pipelines/canu/Grid_SGE.pm
-	cp -pf pipelines/canu/Grid_SGE.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid_PBSTorque.pm: pipelines/canu/Grid_PBSTorque.pm
+	cp -pf pipelines/canu/Grid_PBSTorque.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Grid_Slurm.pm: pipelines/canu/Grid_Slurm.pm
-	cp -pf pipelines/canu/Grid_Slurm.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid_SGE.pm: pipelines/canu/Grid_SGE.pm
+	cp -pf pipelines/canu/Grid_SGE.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/HTML.pm: pipelines/canu/HTML.pm
-	cp -pf pipelines/canu/HTML.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Grid_Slurm.pm: pipelines/canu/Grid_Slurm.pm
+	cp -pf pipelines/canu/Grid_Slurm.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Meryl.pm: pipelines/canu/Meryl.pm
-	cp -pf pipelines/canu/Meryl.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/HTML.pm: pipelines/canu/HTML.pm
+	cp -pf pipelines/canu/HTML.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Output.pm: pipelines/canu/Output.pm
-	cp -pf pipelines/canu/Output.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Meryl.pm: pipelines/canu/Meryl.pm
+	cp -pf pipelines/canu/Meryl.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm: pipelines/canu/OverlapBasedTrimming.pm
-	cp -pf pipelines/canu/OverlapBasedTrimming.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Output.pm: pipelines/canu/Output.pm
+	cp -pf pipelines/canu/Output.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm: pipelines/canu/OverlapErrorAdjustment.pm
-	cp -pf pipelines/canu/OverlapErrorAdjustment.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/OverlapBasedTrimming.pm: pipelines/canu/OverlapBasedTrimming.pm
+	cp -pf pipelines/canu/OverlapBasedTrimming.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/OverlapInCore.pm: pipelines/canu/OverlapInCore.pm
-	cp -pf pipelines/canu/OverlapInCore.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/OverlapErrorAdjustment.pm: pipelines/canu/OverlapErrorAdjustment.pm
+	cp -pf pipelines/canu/OverlapErrorAdjustment.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/OverlapMhap.pm: pipelines/canu/OverlapMhap.pm
-	cp -pf pipelines/canu/OverlapMhap.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/OverlapInCore.pm: pipelines/canu/OverlapInCore.pm
+	cp -pf pipelines/canu/OverlapInCore.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/OverlapMMap.pm: pipelines/canu/OverlapMMap.pm
-	cp -pf pipelines/canu/OverlapMMap.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/OverlapMhap.pm: pipelines/canu/OverlapMhap.pm
+	cp -pf pipelines/canu/OverlapMhap.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
-	cp -pf pipelines/canu/OverlapStore.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/OverlapMMap.pm: pipelines/canu/OverlapMMap.pm
+	cp -pf pipelines/canu/OverlapMMap.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Report.pm: pipelines/canu/Report.pm
-	cp -pf pipelines/canu/Report.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
+	cp -pf pipelines/canu/OverlapStore.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
-	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/canu/
+${TARGET_DIR}/lib/site_perl/canu/Report.pm: pipelines/canu/Report.pm
+	cp -pf pipelines/canu/Report.pm ${TARGET_DIR}/lib/site_perl/canu/
+
+${TARGET_DIR}/lib/site_perl/canu/Unitig.pm: pipelines/canu/Unitig.pm
+	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/site_perl/canu/
 
 #  Makefile processed.  Report that we're starting the build.
 

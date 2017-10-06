@@ -19,7 +19,7 @@ ifeq "$(strip ${BUILD_DIR})" ""
 endif
 
 ifeq "$(strip ${TARGET_DIR})" ""
-  TARGET_DIR   := $(DESTDIR)$(PREFIX)/$(OSTYPE)-$(MACHINETYPE)/bin
+  TARGET_DIR   := $(DESTDIR)$(PREFIX)/$(OSTYPE)-$(MACHINETYPE)
 endif
 
 TARGET       := libcanu.a
@@ -204,7 +204,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 overlapInCore/liboverlap/prefixEditDistance-matchLimitGenerate.mk \
                 \
-                mhap/mhap.mk \
                 mhap/mhapConvert.mk \
                 \
                 minimap/mmapConvert.mk \
