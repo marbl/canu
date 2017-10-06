@@ -285,7 +285,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -noreadname         don't include the read name in the sequence header.  header will be:\n");
     fprintf(stderr, "                        '>original-name id=<gkpID> clr=<bgn>,<end>   with names\n");
-    fprintf(stderr, "                        '><gkpID> clr=<bgn>,<end>                 without names\n");
+    fprintf(stderr, "                        '>read<gkpID> clr=<bgn>,<end>                without names\n");
 
     if (gkpStoreName == NULL)
       fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
@@ -368,7 +368,7 @@ main(int argc, char **argv) {
 
     //  If the read length is zero, then the read has been removed from this set.
 
-    if (read->gkRead_sequenceLength() == 0)
+    if ((dumpAllReads == false) && (read->gkRead_sequenceLength() == 0))
       continue;
 
     //  And if we're told to ignore the read, and here, then the read was deleted and we're printing
@@ -424,12 +424,12 @@ main(int argc, char **argv) {
 
     if (dumpFASTA)  //  Dear GCC:  I'm NOT ambiguous
       if ((withReadName == true) && (name != NULL))
-        AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
+        AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 0,
                         ">%s id=" F_U32 " clr=" F_U32 "," F_U32 "\n",
                         name, rid, lclr, rclr);
       else
-        AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
-                          ">" F_U32 " clr=" F_U32 "," F_U32 "\n",
+        AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 0,
+                          ">read" F_U32 " clr=" F_U32 "," F_U32 "\n",
                           rid, lclr, rclr);
 
     if (dumpFASTQ)  //  Dear GCC:  I'm NOT ambiguous
@@ -440,7 +440,7 @@ main(int argc, char **argv) {
                           rid, lclr, rclr);
       else
         AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
-                          "@" F_U32 " clr=" F_U32 "," F_U32 "\n",
+                          "@read" F_U32 " clr=" F_U32 "," F_U32 "\n",
                           rid, lclr, rclr);
   }
 

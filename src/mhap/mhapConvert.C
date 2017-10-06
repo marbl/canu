@@ -45,10 +45,6 @@ main(int argc, char **argv) {
   char           *outName     = NULL;
   char           *gkpName     = NULL;
 
-  uint32          baseIDhash  = 0;
-  uint32          numIDhash   = 0;
-  uint32          baseIDquery = 0;
-
   vector<char *>  files;
 
 
@@ -57,13 +53,6 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-o") == 0) {
       outName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-h") == 0) {
-      baseIDhash = atoi(argv[++arg]) - 1;
-      numIDhash = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-q") == 0) {
-      baseIDquery = atoi(argv[++arg]) - 1;
 
     } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
@@ -80,16 +69,8 @@ main(int argc, char **argv) {
   }
 
   if ((err) || (gkpName == NULL) || (outName == NULL) || (files.size() == 0)) {
-    fprintf(stderr, "usage: %s [options] file.mhap[.gz]\n", argv[0]);
-    fprintf(stderr, "\n");
+    fprintf(stderr, "usage: %s -G gkpStore -o output.ovb input.mhap[.gz]\n", argv[0]);
     fprintf(stderr, "  Converts mhap native output to ovb\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -o out.ovb     output file\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -h id num      base id and number of hash table reads\n");
-    fprintf(stderr, "                   (mhap output IDs 1 through 'num')\n");
-    fprintf(stderr, "  -q id          base id of query reads\n");
-    fprintf(stderr, "                   (mhap output IDs 'num+1' and higher)\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "ERROR:  no gkpStore (-G) supplied\n");
@@ -99,11 +80,12 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  char        *ovStr = new char [1024];
+  char       *ovStr = new char [1024];
 
   gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
   ovOverlap   ov(gkpStore);
-  ovFile      *of = new ovFile(NULL, outName, ovFileFullWrite);
+  ovFile     *of = new ovFile(NULL, outName, ovFileFullWrite);
+
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader  *in = new compressedFileReader(files[ff]);
@@ -116,8 +98,17 @@ main(int argc, char **argv) {
     while (fgets(ovStr, 1024, in->file()) != NULL) {
       splitToWords  W(ovStr);
 
-      ov.a_iid = W(0) + baseIDquery - numIDhash;  //  First ID is the query
-      ov.b_iid = W(1) + baseIDhash;               //  Second ID is the hash table
+      char   *aid = W[0];
+      char   *bid = W[1];
+
+      if ((aid[0] == 'r') && (aid[1] == 'e') && (aid[2] == 'a') && (aid[3] == 'd'))
+        aid += 4;
+
+      if ((bid[0] == 'r') && (bid[1] == 'e') && (bid[2] == 'a') && (bid[3] == 'd'))
+        bid += 4;
+
+      ov.a_iid = strtouint32(aid);      //  First ID is the query
+      ov.b_iid = strtouint32(bid);      //  Second ID is the hash table
 
       if (ov.a_iid == ov.b_iid)
         continue;
@@ -142,8 +133,8 @@ main(int argc, char **argv) {
         ov.dat.ovl.bhg3 = W(11) - W(10);
         ov.flipped(false);
       } else {
-        ov.dat.ovl.bhg3 = W(9);
         ov.dat.ovl.bhg5 = W(11) - W(10);
+        ov.dat.ovl.bhg3 = W(9);
         ov.flipped(true);
       }
 
@@ -151,19 +142,26 @@ main(int argc, char **argv) {
 
       //  Check the overlap - the hangs must be less than the read length.
 
-      uint32  alen = gkpStore->gkStore_getRead(ov.a_iid)->gkRead_sequenceLength();
-      uint32  blen = gkpStore->gkStore_getRead(ov.b_iid)->gkRead_sequenceLength();
+      uint32  alen = gkpStore->gkStore_getRead( ov.a_iid )->gkRead_sequenceLength();
+      uint32  blen = gkpStore->gkStore_getRead( ov.b_iid )->gkRead_sequenceLength();
+
+      if ((alen != W(7)) ||
+          (blen != W(11)))
+        fprintf(stderr, "%s\nINVALID LENGTHS read %u (len %d) and read %u (len %d) lengths %lu and %lu\n",
+                ovStr,
+                ov.a_iid, alen,
+                ov.b_iid, blen,
+                W(7), W(11)), exit(1);
 
       if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
-          (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3)) {
-        fprintf(stderr, "INVALID OVERLAP %8u (len %6d) %8u (len %6d) hangs %6lu %6lu - %6lu %6lu flip %lu\n",
+          (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3))
+        fprintf(stderr, "%s\nINVALID OVERLAP read %u (len %d) and read %u (len %d) hangs %lu/%lu and %lu/%lu%s\n",
+                ovStr,
                 ov.a_iid, alen,
                 ov.b_iid, blen,
                 ov.dat.ovl.ahg5, ov.dat.ovl.ahg3,
                 ov.dat.ovl.bhg5, ov.dat.ovl.bhg3,
-                ov.dat.ovl.flipped);
-        exit(1);
-      }
+                (ov.dat.ovl.flipped) ? " flipped" : ""), exit(1);
 
       //  Overlap looks good, write it!
 

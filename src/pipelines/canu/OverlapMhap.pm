@@ -179,14 +179,12 @@ sub mhapConfigure ($$$) {
 
     my @hashes;    #  One for each job, the block that is the hash table
     my @skipSelf;  #  One for each job, jobs that would search block N against hash block N need to be handled special
-    my @convert;   #  One for each job, flags to the mhap-ovl conversion program
 
     push @blocks,   "no zeroth block, makes the loop where this is used easier";
     push @blockBgn, "no zeroth block";
     push @blockLen, "no zeroth block";
     push @hashes,   "no zeroth job";
     push @skipSelf, "no zeroth job";
-    push @convert,  "no zeroth job";
 
     for (my $bgn=1; $bgn < $numReads; $bgn += $blockSize) {
         my $end = $bgn + $blockSize - 1;
@@ -283,15 +281,6 @@ sub mhapConfigure ($$$) {
             #  This is easy, the ID of the hash.
 
             push @hashes, substr("000000" . $bid, -6);  #  One new job for block bid with qend-qbgn query files in it
-
-            #  Annoyingly, if we're against 'self', then the conversion needs to know that the query IDs
-            #  aren't offset by the number of hash reads.
-
-            if ($andSelf eq "") {
-                push @convert, "-h $blockBgn[$bid] $blockLen[$bid] -q $blockBgn[$qbgn]";
-            } else {
-                push @convert, "-h $blockBgn[$bid] 0 -q $blockBgn[$bid]";
-            }
         }
     }
 
@@ -430,7 +419,6 @@ sub mhapConfigure ($$$) {
         print F "if [ \$jobid -eq $ii ] ; then\n";
         print F "  blk=\"$hashes[$ii]\"\n";
         print F "  slf=\"$skipSelf[$ii]\"\n";
-        print F "  cvt=\"$convert[$ii]\"\n";
         print F "  qry=\"", substr("000000" . $ii, -6), "\"\n";
         print F "fi\n";
         print F "\n";
@@ -506,7 +494,6 @@ sub mhapConfigure ($$$) {
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
     print F "    -G ../$asm.gkpStore \\\n";
-    #print F "    \$cvt \\\n";
     print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
     print F "    ./results/\$qry.mhap \\\n";
     print F "  && \\\n";
