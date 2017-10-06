@@ -184,7 +184,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _reads          = new gkRead [_readsAlloc];
 
     snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
-    _blobsWriter   = new writeBuffer(name, "a+");
+    _blobsWriter   = new writeBuffer(name, "a");
 
     return;
   }
@@ -203,7 +203,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     gkStore_openBlobs();
 
     snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
-    _blobsWriter   = new writeBuffer(name, "a+");
+    _blobsWriter   = new writeBuffer(name, "a");
 
     return;
   }
