@@ -191,14 +191,14 @@ What parameters can I tweak?
 
     For low coverage:
 
-     - For less than 30X coverage, increase the alllowed difference in overlaps from 4.5% to 7.5%
-       (or more) with ``correctedErrorRate=0.075``, to adjust for inferior read correction.  Canu
+     - For less than 30X coverage, increase the alllowed difference in overlaps by a couple of percent (from 4.5% to 6.5%
+       (or more) with ``correctedErrorRate=0.075`` for PacBio and from 14.4% to 16% (or more) with ``correctedErrorRate=0.16`` for Nanopore), to adjust for inferior read correction.  Canu
        will automatically reduce ``corMinCoverage`` to zero to correct as many reads as possible.
 
     For high coverage:
 
-     - For more than 60X coverage, decrease the allowed difference in overlaps from 4.5% to 4.0%
-       with ``correctedErrorRate=0.040``, so that only the better corrected reads are used.  This is
+     - For more than 60X coverage, decrease the allowed difference in overlaps (from 4.5% to 4.0%
+       with ``correctedErrorRate=0.040`` for PacBio, from 14.4% to 12% with ``correctedErrorRate=0.12`` for Nanopore), so that only the better corrected reads are used.  This is
        primarily an optimization for speed and generally does not change assembly continuity.
 
 
@@ -238,7 +238,7 @@ Why do I get less corrected read data than I asked for?
 
 What is the minimum coverage required to run Canu?
 -------------------------------------
-    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods.
+    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods. Below that, you will likely not assemble the full genome.
 
 
 My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly repetitive genomes?
