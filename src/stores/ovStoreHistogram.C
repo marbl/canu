@@ -25,6 +25,7 @@
 
 #include "ovStoreHistogram.H"
 
+#include <set>
 #include <algorithm>
 
 using namespace std;

@@ -29,6 +29,7 @@
 
 #include "computeGlobalScore.H"
 
+#include <set>
 #include <algorithm>
 
 using namespace std;
@@ -63,7 +64,7 @@ globalScore::compute(uint32             ovlLen,
 #ifdef _GLIBCXX_PARALLEL
   __gnu_sequential::
 #endif
-  sort(hist, hist + histLen, greater<uint64>());
+  sort(hist, hist + histLen, std::greater<uint64>());
 
   //  Figure out our threshold score.  Any overlap with score below this should be filtered.
 
