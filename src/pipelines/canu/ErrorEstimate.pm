@@ -66,8 +66,8 @@ sub uniqueKmerThreshold($$$$$) {
     my $bin       = getBinDirectory();
     my $errorRate = estimateError($asm, $tag, $merSize);
 
-    my $readLength = getNumberOfBasesInStore($base, $asm) / getNumberOfReadsInStore ($base, $asm);
-    my $effective_coverage = getExpectedCoverage($base, $asm) * ( ($readLength - $merSize + 1)/$readLength ) * (1 - $errorRate) ** $merSize;
+    my $readLength = getNumberOfBasesInStore($tag, $asm) / getNumberOfReadsInStore ($tag, $asm);
+    my $effective_coverage = getExpectedCoverage($tag, $asm) * ( ($readLength - $merSize + 1)/$readLength ) * (1 - $errorRate) ** $merSize;
 
     my $threshold = 0;
     my $kMer_loss = poisson_pdf($effective_coverage, 0);
@@ -117,10 +117,10 @@ sub computeSampleSize($$$$$) {
     my $maxSampleSize = getGlobal("${tag}MhapBlockSize") * 4;
 
    if (defined($percent)) {
-      $sampleSize = int($percent * getNumberOfReadsInStore ($base, $asm))+1;
+      $sampleSize = int($percent * getNumberOfReadsInStore ($tag, $asm))+1;
       $sampleSize++ if ($sampleSize % 2 != 0);
    } elsif (defined($coverage)) {
-      $sampleSize = int(($coverage * getGlobal("genomeSize")) / (getNumberOfBasesInStore($base, $asm) / getNumberOfReadsInStore ($base, $asm))) + 1;
+      $sampleSize = int(($coverage * getGlobal("genomeSize")) / (getNumberOfBasesInStore($tag, $asm) / getNumberOfReadsInStore ($tag, $asm))) + 1;
    }
 
    $sampleSize = $maxSampleSize if (defined($percent) && $sampleSize > $maxSampleSize);
@@ -151,7 +151,7 @@ sub estimateRawError($$$) {
     my $tag     = shift @_;
     my $merSize = shift @_;
     my $bin     = getBinDirectory();
-    my $numReads = getNumberOfReadsInStore ($base, $asm);
+    my $numReads = getNumberOfReadsInStore ($tag, $asm);
 
     return;
 

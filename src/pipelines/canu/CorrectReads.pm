@@ -65,7 +65,7 @@ sub getCorCov ($$) {
     my $typ     = shift @_;
     my $cov     = getGlobal("corMaxEvidenceCoverage$typ");
 
-    my $exp = getExpectedCoverage("correction", $asm);
+    my $exp = getExpectedCoverage("cor", $asm);
     my $des = getGlobal("corOutCoverage");
 
     if (!defined($cov)) {
@@ -125,7 +125,7 @@ sub computeNumberOfCorrectionJobs ($) {
     my $nPerJob = 0;
 
     my $nPart    = getGlobal("corPartitions");
-    my $nReads   = getNumberOfReadsInStore("correction", $asm);
+    my $nReads   = getNumberOfReadsInStore("cor", $asm);
 
     caExit("didn't find any reads in store 'correction/$asm.gkpStore'?", undef)  if ($nReads == 0);
 
@@ -201,7 +201,7 @@ sub setupCorrectionParameters ($) {
     #  Set the minimum coverage for a corrected read based on coverage in input reads.
 
     if (!defined(getGlobal("corMinCoverage"))) {
-        my $cov = getExpectedCoverage("correction", $asm);
+        my $cov = getExpectedCoverage("cor", $asm);
 
         setGlobal("corMinCoverage", 4);
         setGlobal("corMinCoverage", 4)   if ($cov <  60);
@@ -418,7 +418,7 @@ sub generateCorrectedReadsConfigure ($) {
 
     my ($nJobs, $nPerJob)  = computeNumberOfCorrectionJobs($asm);  #  Does math based on number of reads and parameters.
 
-    my $nReads             = getNumberOfReadsInStore("correction", $asm);
+    my $nReads             = getNumberOfReadsInStore("cor", $asm);
 
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
 
@@ -650,7 +650,7 @@ sub loadCorrectedReads ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-loadCorrectedReads") == 1);
-    goto allDone   if (getNumberOfBasesInStore("trimming", $asm) > 0);
+    goto allDone   if (getNumberOfBasesInStore("obt", $asm) > 0);
 
     print STDERR "--\n";
     print STDERR "-- Loading corrected reads into corStore and gkpStore.\n";
@@ -677,7 +677,7 @@ sub loadCorrectedReads ($) {
 
     #  Report reads.
 
-    addToReport("trimmingGkpStore", generateReadLengthHistogram("trimming", $asm));
+    addToReport("obtGkpStore", generateReadLengthHistogram("obt", $asm));
 
     #  Now that all outputs are (re)written, cleanup the job outputs.
 

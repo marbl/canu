@@ -672,7 +672,7 @@ sub overlap ($$) {
 #
 
 if (setOptions($mode, "correct") eq "correct") {
-    if (getNumberOfBasesInStore("trimming", $asm) == 0) {
+    if (getNumberOfBasesInStore("obt", $asm) == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN CORRECTION\n";
@@ -705,7 +705,7 @@ if (setOptions($mode, "correct") eq "correct") {
 
 
 if (setOptions($mode, "trim") eq "trim") {
-    if (getNumberOfBasesInStore("unitigging", $asm) == 0) {
+    if (getNumberOfBasesInStore("utg", $asm) == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN TRIMMING\n";

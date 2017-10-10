@@ -97,7 +97,7 @@ sub mhapConfigure ($$$) {
     my ($numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer);
 
     if (!defined(getGlobal("${tag}MhapSensitivity"))) {
-        my $cov = getExpectedCoverage($base, $asm);
+        my $cov = getExpectedCoverage($tag, $asm);
 
         setGlobal("${tag}MhapSensitivity", "low");                          #  Yup, super inefficient.  The code is
         setGlobal("${tag}MhapSensitivity", "normal")   if ($cov <  60);     #  compact and clear and runs once.
@@ -147,7 +147,7 @@ sub mhapConfigure ($$$) {
 
     my $merSize       = getGlobal("${tag}MhapMerSize");
 
-    my $numReads      = getNumberOfReadsInStore($base, $asm);
+    my $numReads      = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
     my $memorySize    = getGlobal("${tag}mhapMemory");
     my $blockPerGb    = getGlobal("${tag}MhapBlockSize");
     if ($numHashes >= 768) {

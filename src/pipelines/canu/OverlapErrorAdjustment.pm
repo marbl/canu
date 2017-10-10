@@ -105,7 +105,7 @@ sub readErrorDetectionConfigure ($) {
     my @end;
     my $nj = 0;
 
-    my $maxID    = getNumberOfReadsInStore("unitigging", $asm);
+    my $maxID    = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
     my $maxBases = getGlobal("redBatchLength");
@@ -118,7 +118,7 @@ sub readErrorDetectionConfigure ($) {
     my $bases    = 0;
     my $olaps    = 0;
 
-    my $coverage = getExpectedCoverage("unitigging", $asm);
+    my $coverage = getExpectedCoverage("utg", $asm);
 
     push @bgn, 1;
 
@@ -159,8 +159,6 @@ sub readErrorDetectionConfigure ($) {
 
     my $batchSize   = getGlobal("redBatchSize");
     my $numThreads  = getGlobal("redThreads");
-
-    my $numReads    = getNumberOfReadsInStore("unitigging", $asm);
 
     open(F, "> $path/red.sh") or caExit("can't open '$path/red.sh' for writing: $!", undef);
 
@@ -378,7 +376,7 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     my $nj = 0;
 
-    my $maxID    = getNumberOfReadsInStore("unitigging", $asm);
+    my $maxID    = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("oeaBatchSize");
     my $maxBases = getGlobal("oeaBatchLength");
@@ -392,7 +390,7 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     fetchFile("$path/red.red");
 
-    my $coverage     = getExpectedCoverage("unitigging", $asm);
+    my $coverage     = getExpectedCoverage("utg", $asm);
     my $corrSize     = (-s "$path/red.red");
 
     my $smallJobs    = 0;
@@ -551,8 +549,7 @@ sub overlapErrorAdjustmentCheck ($) {
 
     my $batchSize   = getGlobal("oeaBatchSize");
     my $failedJobs  = 0;
-    my $numReads    = getNumberOfReadsInStore("unitigging", $asm);
-    my $numJobs     = 0;  #int($numReads / $batchSize) + (($numReads % $batchSize == 0) ? 0 : 1);
+    my $numJobs     = 0;
 
     #  Need to read script to find number of jobs!
 

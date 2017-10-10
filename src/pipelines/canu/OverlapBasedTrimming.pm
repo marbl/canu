@@ -204,7 +204,7 @@ sub loadTrimmedReads ($) {
     my $inp;
 
     goto allDone   if (skipStage($asm, "obt-dumpReads") == 1);
-    goto allDone   if (getNumberOfBasesInStore("unitigging", $asm) > 0);
+    goto allDone   if (getNumberOfBasesInStore("utg", $asm) > 0);
 
     make_path($path)  if (! -d $path);
 
@@ -229,7 +229,7 @@ sub loadTrimmedReads ($) {
 
     #  Report reads.
 
-    addToReport("trimmingGkpStore", generateReadLengthHistogram("trimming", $asm));
+    addToReport("utgGkpStore", generateReadLengthHistogram("utg", $asm));
 
     #stashFile("./$asm.trimmedReads.fasta.gz");
 

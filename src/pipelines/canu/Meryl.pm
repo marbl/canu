@@ -413,7 +413,7 @@ sub merylConfigure ($$) {
 
     my $mem = int(getGlobal("merylMemory")  * 1024 * 0.8);   #  Because meryl expects megabytes, not gigabytes.
     my $thr = getGlobal("merylThreads");
-    my $cov = getExpectedCoverage($base, $asm);
+    my $cov = getExpectedCoverage($tag, $asm);
 
     caExit("merylMemory isn't defined?", undef)   if (!defined($mem));
     caExit("merylThreads isn't defined?", undef)  if (!defined($thr));
@@ -672,7 +672,7 @@ sub merylProcess ($$) {
         my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
         my $misRate         = 0.05;
         my $minCovThresh    = 5.00; # should be a parameter
-        my $cov             = int($minCovThresh*getExpectedCoverage($base, $asm));
+        my $cov             = int($minCovThresh*getExpectedCoverage($tag, $asm));
         my $minCount        = ($cov > int($filterThreshold * $totalMers) ? $cov : int($filterThreshold * $totalMers));
         my $repeatThreshold = $minCount;
         my $totalToOutput   = 0;
@@ -684,7 +684,7 @@ sub merylProcess ($$) {
         }
         # if the threshold was too low, update it
         if ($cov > int($filterThreshold * $totalMers)) {
-           printf STDERR "-- For %s overlapping, the threshold %0.15f is too low, resetting to %0.15f to capture %f * %d coverage.\n", getGlobal("${tag}Overlapper"), getGlobal("${tag}MhapFilterThreshold"), ($cov / $totalMers), $minCovThresh, getExpectedCoverage($base, $asm);
+           printf STDERR "-- For %s overlapping, the threshold %0.15f is too low, resetting to %0.15f to capture %f * %d coverage.\n", getGlobal("${tag}Overlapper"), getGlobal("${tag}MhapFilterThreshold"), ($cov / $totalMers), $minCovThresh, getExpectedCoverage($tag, $asm);
            setGlobal("${tag}MhapFilterThreshold", $cov / $totalMers);
         }
 

@@ -53,11 +53,14 @@ use canu::Report;
 use canu::Grid_Cloud;
 
 
+use Carp qw(longmess cluck confess);
 
 sub getNumberOfReadsInStore ($$) {
-    my $base   = shift @_;
+    my $tag    = shift @_;
     my $asm    = shift @_;
     my $nr     = 0;
+
+    confess  if (($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
 
     #  No file, no reads.
 
@@ -67,7 +70,9 @@ sub getNumberOfReadsInStore ($$) {
 
     open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        $nr = $1    if (m/numReads\s+=\s+(\d+)/);
+        $nr = $1    if ((m/numRawReads\s+=\s+(\d+)/)       && ($tag eq "cor"));
+        $nr = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
+        $nr = $1    if ((m/numTrimmedReads\s+=\s+(\d+)/)   && ($tag eq "utg"));
     }
     close(F);
 
@@ -77,9 +82,11 @@ sub getNumberOfReadsInStore ($$) {
 
 
 sub getNumberOfBasesInStore ($$) {
-    my $base   = shift @_;
+    my $tag    = shift @_;
     my $asm    = shift @_;
     my $nb     = 0;
+
+    confess  if (($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
 
     #  No file, no bases.
 
@@ -89,9 +96,9 @@ sub getNumberOfBasesInStore ($$) {
 
     open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($base eq "correction"));
-        $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($base eq "trimming"));
-        $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($base eq "unitigging"));
+        $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor"));
+        $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($tag eq "obt"));
+        $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($tag eq "utg"));
     }
     close(F);
 
@@ -101,10 +108,10 @@ sub getNumberOfBasesInStore ($$) {
 
 
 sub getExpectedCoverage ($$) {
-    my $base = shift @_;
-    my $asm  = shift @_;
+    my $tag    = shift @_;
+    my $asm    = shift @_;
 
-    return(int(getNumberOfBasesInStore($base, $asm) / getGlobal("genomeSize")));
+    return(int(getNumberOfBasesInStore($tag, $asm) / getGlobal("genomeSize")));
 }
 
 
@@ -294,7 +301,7 @@ sub gatekeeperCreateStore ($$@) {
 
 
 sub generateReadLengthHistogram ($$) {
-    my $base   = shift @_;
+    my $tag    = shift @_;
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
 
@@ -353,7 +360,7 @@ sub generateReadLengthHistogram ($$) {
 
     #  Write the sorted read lengths (for gnuplot) and the maximum read length (for correction consensus)
 
-    open(F, "> ./$asm.gkpStore/readlengths-$base.dat") or caExit("can't open './$asm.gkpStore/readlengths-$base.dat' for writing: $!", undef);
+    open(F, "> ./$asm.gkpStore/readlengths-$tag.dat") or caExit("can't open './$asm.gkpStore/readlengths-$tag.dat' for writing: $!", undef);
     foreach my $rl (@rl) {
         print F "$rl\n";
     }
@@ -368,7 +375,7 @@ sub generateReadLengthHistogram ($$) {
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
 
-    open(F, "> ./$asm.gkpStore/readlengths-$base.gp") or caExit("can't open './$asm.gkpStore/readlengths-$base.gp' for writing: $!", undef);
+    open(F, "> ./$asm.gkpStore/readlengths-$tag.gp") or caExit("can't open './$asm.gkpStore/readlengths-$tag.gp' for writing: $!", undef);
     print F "set title 'read length'\n";
     print F "set xlabel 'read length, bin width = 250'\n";
     print F "set ylabel 'number of reads'\n";
@@ -378,15 +385,15 @@ sub generateReadLengthHistogram ($$) {
     print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
     print F "\n";
     print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.gkpStore/readlengths-$base.lg.$format'\n";
-    print F "plot [] './$asm.gkpStore/readlengths-$base.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+    print F "set output './$asm.gkpStore/readlengths-$tag.lg.$format'\n";
+    print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
     print F "\n";
     print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.gkpStore/readlengths-$base.sm.$format'\n";
-    print F "plot [] './$asm.gkpStore/readlengths-$base.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+    print F "set output './$asm.gkpStore/readlengths-$tag.sm.$format'\n";
+    print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
     close(F);
 
-    if (runCommandSilently($base, "$gnuplot ./$asm.gkpStore/readlengths-$base.gp > /dev/null 2>&1", 0)) {
+    if (runCommandSilently(".", "$gnuplot ./$asm.gkpStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
         print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
         print STDERR "--\n";
@@ -395,8 +402,8 @@ sub generateReadLengthHistogram ($$) {
 
     #  Generate the ASCII histogram
 
-    my $reads    = getNumberOfReadsInStore($base, $asm);
-    my $bases    = getNumberOfBasesInStore($base, $asm);
+    my $reads    = getNumberOfReadsInStore($tag, $asm);
+    my $bases    = getNumberOfBasesInStore($tag, $asm);
     my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
     my $scale    = 0;
     my $hist;
@@ -454,7 +461,7 @@ sub gatekeeper ($$@) {
     #  Store with reads?  Yay!  Report it, then skip.
 
     goto allDone    if (skipStage($asm, "$tag-gatekeeper") == 1);
-    goto allDone    if (getNumberOfReadsInStore($base, $asm) > 0);
+    goto allDone    if (getNumberOfReadsInStore($tag, $asm) > 0);
 
     #  Create the store.  If all goes well, we get asm.gkpStore.  If not, we could end up with
     #  asm.gkpStore.BUILDING and ask the user to examine it and rename it to asm.gkpStore.ACCEPTED
@@ -469,7 +476,7 @@ sub gatekeeper ($$@) {
         symlink("../$asm.gkpStore", "$base/$asm.gkpStore");
     }
 
-    caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($base, $asm) == 0);
+    caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($tag, $asm) == 0);
 
     #  Dump the list of libraries.  Various parts use this for various stuff.
 
@@ -479,7 +486,7 @@ sub gatekeeper ($$@) {
 
     #  Generate a histogram of the reads.
 
-    addToReport("${tag}GkpStore", generateReadLengthHistogram($base, $asm));
+    addToReport("${tag}GkpStore", generateReadLengthHistogram($tag, $asm));
 
     #  Now that all the extra data is generated, stash the store.
 
