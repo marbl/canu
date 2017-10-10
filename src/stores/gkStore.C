@@ -133,16 +133,6 @@ gkStore::gkStore_loadReadData(uint32  readID, gkReadData *readData) {
 
 
 
-
-
-
-
-
-
-
-
-
-
 //  Dump a block of encoded data to disk, then update the gkRead to point to it.
 //
 void
@@ -558,15 +548,6 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
   _blobMax = 0;
   _blob    = NULL;
 }
-
-
-
-
-
-
-
-
-
 
 
 
