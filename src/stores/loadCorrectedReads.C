@@ -133,6 +133,8 @@ main (int argc, char **argv) {
   delete tig;
   delete corStore;
 
+  delete readData;
+
   gkpStore->gkStore_close();
 
   exit(0);
