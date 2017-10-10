@@ -541,12 +541,6 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
     _aseq = _rseq;
     _aqlt = _rqlt;
   }
-
-  //  Clear the blob.  If left set, we'll write it again!
-
-  _blobLen = 0;
-  _blobMax = 0;
-  _blob    = NULL;
 }
 
 
