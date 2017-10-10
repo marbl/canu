@@ -727,6 +727,8 @@ build(merylArgs *args) {
     if (errno)
       fprintf(stderr, "ERROR: can't make outputs with prefix '%s': %s\n", args->outputFile, strerror(errno)), exit(1);
 
+    fclose(F);
+
     AS_UTL_unlink(N);
   }
 
