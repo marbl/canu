@@ -62,8 +62,7 @@ main(int argc, char **argv) {
   double          ovlAtMost      = AS_OVS_encodeEvalue(1.0);
   double          ovlAtLeast     = AS_OVS_encodeEvalue(0.0);
 
-  double          expectedMean   = 30.0;
-  double          expectedStdDev =  7.0;
+  double          expectedMean   = 40.0;
 
   bool            toFile         = true;
   bool            beVerbose      = false;
@@ -85,10 +84,8 @@ main(int argc, char **argv) {
       outPrefix = argv[++arg];
 
 
-    else if (strcmp(argv[arg], "-C") == 0) {
+    else if (strcmp(argv[arg], "-C") == 0)
       expectedMean   = atof(argv[++arg]);
-      expectedStdDev = atof(argv[++arg]);
-    }
 
     else if (strcmp(argv[arg], "-c") == 0)
       toFile = false;
@@ -156,7 +153,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Generates statistics for an overlap store.  By default all possible classes\n");
     fprintf(stderr, "are generated, options can disable specific classes.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -C mean stddev           Expect coverage at mean +- stddev\n");
+    fprintf(stderr, "  -C mean                  Expect coverage at mean (below 1/3 this is 'low coverage', above 5/3 is 'repeat')\n");
     fprintf(stderr, "  -c                       Write stats to stdout, not to a file\n");
     fprintf(stderr, "  -v                       Report processing speed to stderr\n");
     fprintf(stderr, "\n");
@@ -417,10 +414,10 @@ main(int argc, char **argv) {
     char *classification = new char [depth.numberOfIntervals()];
 
     for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++) {
-      if        (depth.depth(ii) < expectedMean - 3 * expectedStdDev) {
+      if        (depth.depth(ii) < 1 * expectedMean / 3) {
         classification[ii] = 'l';
 
-      } else if (depth.depth(ii) < expectedMean + 3 * expectedStdDev) {
+      } else if (depth.depth(ii) < 5 * expectedMean / 3) {
         classification[ii] = 'u';
 
       } else {
@@ -586,6 +583,16 @@ main(int argc, char **argv) {
   readUniqAnchor->finalizeData();
   olapUniqAnchor->finalizeData();
 
+  //  Gatekeeper can tell us the number of reads for each type, but we don't know which type we're working with.
+  //  Instead, we'll pick the latest available.
+
+  double  nReads = 0;
+
+  if (nReads < 1)  nReads = gkpStore->gkStore_getNumTrimmedReads()   / 100.0;
+  if (nReads < 1)  nReads = gkpStore->gkStore_getNumCorrectedReads() / 100.0;
+  if (nReads < 1)  nReads = gkpStore->gkStore_getNumRawReads()       / 100.0;
+
+  //  Write the report to somewhere.
 
   LOG = stdout;
 
@@ -599,20 +606,20 @@ main(int argc, char **argv) {
 
   fprintf(LOG, "category            reads     %%          read length        feature size or coverage  analysis\n");
   fprintf(LOG, "----------------  -------  -------  ----------------------  ------------------------  --------------------\n");
-  fprintf(LOG, "middle-missing    %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHole->numberOfObjects(), (float)readHole->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readHole->mean(), readHole->stddev(), olapHole->mean(), olapHole->stddev());
-  fprintf(LOG, "middle-hump       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHump->numberOfObjects(), (float)readHump->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readHump->mean(), readHump->stddev(), olapHump->mean(), olapHump->stddev());
-  fprintf(LOG, "no-5-prime        %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readNo5->numberOfObjects(), (float)readNo5->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readNo5->mean(), readNo5->stddev(), olapNo5->mean(), olapNo5->stddev());
-  fprintf(LOG, "no-3-prime        %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readNo3->numberOfObjects(), (float)readNo3->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readNo3->mean(), readNo3->stddev(), olapNo3->mean(), olapNo3->stddev());
+  fprintf(LOG, "middle-missing    %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHole->numberOfObjects(), readHole->numberOfObjects() / nReads, readHole->mean(), readHole->stddev(), olapHole->mean(), olapHole->stddev());
+  fprintf(LOG, "middle-hump       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHump->numberOfObjects(), readHump->numberOfObjects() / nReads, readHump->mean(), readHump->stddev(), olapHump->mean(), olapHump->stddev());
+  fprintf(LOG, "no-5-prime        %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readNo5->numberOfObjects(),  readNo5->numberOfObjects()  / nReads, readNo5->mean(),  readNo5->stddev(),  olapNo5->mean(),  olapNo5->stddev());
+  fprintf(LOG, "no-3-prime        %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readNo3->numberOfObjects(),  readNo3->numberOfObjects()  / nReads, readNo3->mean(),  readNo3->stddev(),  olapNo3->mean(),  olapNo3->stddev());
   fprintf(LOG, "\n");
-  fprintf(LOG, "low-coverage      %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (easy to assemble, potential for lower quality consensus)\n", readLowCov->numberOfObjects(), (float)readLowCov->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readLowCov->mean(), readLowCov->stddev(), covrLowCov->mean(), covrLowCov->stddev());
-  fprintf(LOG, "unique            %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (easy to assemble, perfect, yay)\n", readUnique->numberOfObjects(), (float)readUnique->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readUnique->mean(), readUnique->stddev(), covrUnique->mean(), covrUnique->stddev());
-  fprintf(LOG, "repeat-cont       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (potential for consensus errors, no impact on assembly)\n", readRepeatCont->numberOfObjects(), (float)readRepeatCont->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readRepeatCont->mean(), readRepeatCont->stddev(), covrRepeatCont->mean(), covrRepeatCont->stddev());
-  fprintf(LOG, "repeat-dove       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (hard to assemble, likely won't assemble correctly or even at all)\n", readRepeatDove->numberOfObjects(), (float)readRepeatDove->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readRepeatDove->mean(), readRepeatDove->stddev(), covrRepeatDove->mean(), covrRepeatDove->stddev());
+  fprintf(LOG, "low-coverage      %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (easy to assemble, potential for lower quality consensus)\n",          readLowCov->numberOfObjects(),     readLowCov->numberOfObjects()     / nReads, readLowCov->mean(),     readLowCov->stddev(),     covrLowCov->mean(),     covrLowCov->stddev());
+  fprintf(LOG, "unique            %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (easy to assemble, perfect, yay)\n",                                   readUnique->numberOfObjects(),     readUnique->numberOfObjects()     / nReads, readUnique->mean(),     readUnique->stddev(),     covrUnique->mean(),     covrUnique->stddev());
+  fprintf(LOG, "repeat-cont       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (potential for consensus errors, no impact on assembly)\n",            readRepeatCont->numberOfObjects(), readRepeatCont->numberOfObjects() / nReads, readRepeatCont->mean(), readRepeatCont->stddev(), covrRepeatCont->mean(), covrRepeatCont->stddev());
+  fprintf(LOG, "repeat-dove       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (hard to assemble, likely won't assemble correctly or even at all)\n", readRepeatDove->numberOfObjects(), readRepeatDove->numberOfObjects() / nReads, readRepeatDove->mean(), readRepeatDove->stddev(), covrRepeatDove->mean(), covrRepeatDove->stddev());
   fprintf(LOG, "\n");
-  fprintf(LOG, "span-repeat       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (read spans a large repeat, usually easy to assemble)\n", readSpanRepeat->numberOfObjects(), (float)readSpanRepeat->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readSpanRepeat->mean(), readSpanRepeat->stddev(), olapSpanRepeat->mean(), olapSpanRepeat->stddev());
-  fprintf(LOG, "uniq-repeat-cont  %7" F_U64P "  %6.2f  %10.2f +- %-8.2f                            (should be uniquely placed, low potential for consensus errors, no impact on assembly)\n", readUniqRepeatCont->numberOfObjects(), (float)readUniqRepeatCont->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readUniqRepeatCont->mean(), readUniqRepeatCont->stddev());
-  fprintf(LOG, "uniq-repeat-dove  %7" F_U64P "  %6.2f  %10.2f +- %-8.2f                            (will end contigs, potential to misassemble)\n", readUniqRepeatDove->numberOfObjects(), (float)readUniqRepeatDove->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readUniqRepeatDove->mean(), readUniqRepeatDove->stddev());
-  fprintf(LOG, "uniq-anchor       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (repeat read, with unique section, probable bad read)\n", readUniqAnchor->numberOfObjects(), (float)readUniqAnchor->numberOfObjects()/gkpStore->gkStore_getNumReads()*100, readUniqAnchor->mean(), readUniqAnchor->stddev(), olapUniqAnchor->mean(), olapUniqAnchor->stddev());
+  fprintf(LOG, "span-repeat       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (read spans a large repeat, usually easy to assemble)\n",                                        readSpanRepeat->numberOfObjects(),     readSpanRepeat->numberOfObjects()/nReads,     readSpanRepeat->mean(),     readSpanRepeat->stddev(),     olapSpanRepeat->mean(), olapSpanRepeat->stddev());
+  fprintf(LOG, "uniq-repeat-cont  %7" F_U64P "  %6.2f  %10.2f +- %-8.2f                            (should be uniquely placed, low potential for consensus errors, no impact on assembly)\n", readUniqRepeatCont->numberOfObjects(), readUniqRepeatCont->numberOfObjects()/nReads, readUniqRepeatCont->mean(), readUniqRepeatCont->stddev());
+  fprintf(LOG, "uniq-repeat-dove  %7" F_U64P "  %6.2f  %10.2f +- %-8.2f                            (will end contigs, potential to misassemble)\n",                                           readUniqRepeatDove->numberOfObjects(), readUniqRepeatDove->numberOfObjects()/nReads, readUniqRepeatDove->mean(), readUniqRepeatDove->stddev());
+  fprintf(LOG, "uniq-anchor       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (repeat read, with unique section, probable bad read)\n",                                        readUniqAnchor->numberOfObjects(),     readUniqAnchor->numberOfObjects()/nReads,     readUniqAnchor->mean(),     readUniqAnchor->stddev(),     olapUniqAnchor->mean(), olapUniqAnchor->stddev());
 
   if (toFile == true)
     fclose(LOG);

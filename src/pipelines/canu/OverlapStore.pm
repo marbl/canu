@@ -49,6 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use POSIX qw(ceil);
 use canu::Defaults;
 use canu::Execution;
+use canu::Gatekeeper;
 use canu::Report;
 use canu::HTML;
 use canu::Grid_Cloud;
@@ -608,31 +609,6 @@ sub checkOverlapStore ($$) {
 
 
 
-sub generateOverlapStoreStats ($$) {
-    my $base    = shift @_;
-    my $asm     = shift @_;
-
-    my $bin   = getBinDirectory();
-    my $cmd;
-
-    $cmd  = "$bin/ovStoreStats \\\n";
-    $cmd .= " -G ./$asm.gkpStore \\\n";
-    $cmd .= " -O ./$asm.ovlStore \\\n";
-    $cmd .= " -o ./$asm.ovlStore \\\n";
-    $cmd .= " > ./$asm.ovlStore.summary.err 2>&1";
-
-    if (runCommand($base, $cmd)) {
-        print STDERR "--\n";
-        print STDERR "-- WARNING: failed to generate statistics for the overlap store; no summary will appear in report.\n";
-        print STDERR "--\n";
-        print STDERR "----------------------------------------\n";
-        return;
-    }
-
-    unlink "$base/$asm.ovlStore.summary.err";
-}
-
-
 sub createOverlapStore ($$$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -722,27 +698,42 @@ sub createOverlapStore ($$$) {
 
   finishStage:
     if ($tag eq "utg") {
-        generateOverlapStoreStats($base, $asm);
-    }
+        my $bin   = getBinDirectory();
+        my $cmd;
 
-    if (-e "$base/$asm.ovlStore.summary") {
-        print STDERR "--\n";
-        print STDERR "-- Overlap store '$base/$asm.ovlStore' contains:\n";
-        print STDERR "--\n";
+        $cmd  = "$bin/ovStoreStats \\\n";
+        $cmd .= " -G ./$asm.gkpStore \\\n";
+        $cmd .= " -O ./$asm.ovlStore \\\n";
+        $cmd .= " -C " . getExpectedCoverage("utg", $asm). " \\\n";
+        $cmd .= " -o ./$asm.ovlStore \\\n";
+        $cmd .= " > ./$asm.ovlStore.summary.err 2>&1";
 
-        my $report;
-
-        open(F, "< $base/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$base/$asm.ovlStore': $!", undef);
-        while (<F>) {
-            $report .= "--   $_";
+        if (runCommand($base, $cmd)) {
+            #  Do nothing if it fails.  This is just logging.
         }
-        close(F);
 
-        addToReport("overlaps", $report);   #  Also shows it.
+        unlink "$base/$asm.ovlStore.summary.err";
 
-    } else {
-        print STDERR "-- Overlap store '$base/$asm.ovlStore' statistics not available (skipped in correction and trimming stages).\n";
-        print STDERR "--\n";
+        if (! -e "$base/$asm.ovlStore.summary") {
+            print STDERR "--\n";
+            print STDERR "-- WARNING: failed to generate statistics for the overlap store; no summary will appear in report.\n";
+            print STDERR "--\n";
+            print STDERR "----------------------------------------\n";
+        } else {
+            print STDERR "--\n";
+            print STDERR "-- Overlap store '$base/$asm.ovlStore' contains:\n";
+            print STDERR "--\n";
+
+            my $report;
+
+            open(F, "< $base/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$base/$asm.ovlStore': $!", undef);
+            while (<F>) {
+                $report .= "--   $_";
+            }
+            close(F);
+
+            addToReport("overlaps", $report);   #  Also shows it.
+        }
     }
 
     emitStage($asm, "$tag-createOverlapStore");
