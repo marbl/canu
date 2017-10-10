@@ -756,20 +756,33 @@ sub loadCorrectedReads ($) {
 sub dumpCorrectedReads ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
-
-    my $path    = "correction/2-correction";
+    my $cmd;
 
     goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));
+    goto allDone   if (getGlobal("saveReads") == 0);
+
+    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
+    $cmd .= "  -fasta \\\n";
+    $cmd .= "  -nolibname \\\n";
+    $cmd .= "> $asm.correctedReads.fasta.err 2>&1";
+
+    if (runCommand(".", $cmd)) {
+        caExit("failed to output corrected reads", "./$asm.correctedReads.fasta.err");
+    }
+
+    unlink "./$asm.correctedReads.fasta.err";
+
+    print STDERR "--\n";
+    print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
 
 
   finishStage:
-    #emitStage($asm, "cor-dumpCorrectedReads");
-    #buildHTML($asm, "cor");
+    emitStage($asm, "cor-dumpCorrectedReads");
+    buildHTML($asm, "cor");
 
   allDone:
-    #print STDERR "--\n";
-    #print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
-
     stopAfter("readCorrection");
 }

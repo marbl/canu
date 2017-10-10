@@ -256,20 +256,32 @@ sub loadTrimmedReads ($) {
 sub dumpTrimmedReads ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
+    my $cmd;
 
-    my $path    = "trimming/3-overlapbasedtrimming";
-
-    goto allDone   if (skipStage($asm, "obt-dumpCorrectedReads") == 1);
+    goto allDone   if (skipStage($asm, "obt-dumpTrimmedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
+    goto allDone   if (getGlobal("saveReads") == 0);
 
+    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
+    $cmd .= "  -fasta \\\n";
+    $cmd .= "  -nolibname \\\n";
+    $cmd .= "> ./$asm.trimmedReads.fasta.err 2>&1";
+
+    if (runCommand(".", $cmd)) {
+        caExit("failed to output trimmed reads", "./$asm.trimmedReads.fasta.err");
+    }
+
+    unlink "./$asm.trimmedReads.fasta.err";
+
+    print STDERR "--\n";
+    print STDERR "-- Trimmed reads saved in '", sequenceFileExists("$asm.trimmedReads"), "'.\n";
 
   finishStage:
-    #emitStage($asm, "cor-dumpCorrectedReads");
-    #buildHTML($asm, "cor");
+    emitStage($asm, "cor-dumpTrimmedReads");
+    buildHTML($asm, "cor");
 
   allDone:
-    #print STDERR "--\n";
-    #print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
-
     stopAfter("readTrimming");
 }

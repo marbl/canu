@@ -228,6 +228,10 @@ saveIntermediates <boolean=false>
 saveMerCounts <boolean=false>
   If set, do not remove meryl binary databases.
 
+saveReads <boolean=false>
+  If set, save the corrected reads (in asm.correctedReads.fasta.gz) and trimmed reads (in asm.trimmedReads.fasta.gz).
+  Both read sets are saved in the asm.gkpStore, and can be retrieved later.
+
 Overlapper Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
