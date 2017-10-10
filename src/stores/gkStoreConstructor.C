@@ -98,9 +98,6 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     FILE *I = fopen(name, "r");
     AS_UTL_safeRead(I, &_info, "gkStore::_info", sizeof(gkStoreInfo), 1);
     fclose(I);
-
-    fprintf(stderr, "Found %u libraries and %u reads: %u raw and %u corrected.\n",
-            _info.numLibraries, _info.numReads, _info.numRawReads, _info.numCorrectedReads);
   }
 
   //  Check sizes are correct.
