@@ -95,7 +95,7 @@ main (int argc, char * argv []) {
   uint32    tooShortLength           = 0;
   double    spanFraction             = 1.0;
   double    lowcovFraction           = 0.5;
-  uint32    lowcovDepth              = 5;
+  uint32    lowcovDepth              = 3;
 
   double    deviationGraph           = 6.0;
   double    deviationBubble          = 6.0;

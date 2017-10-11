@@ -902,7 +902,7 @@ sub setDefaults () {
     setDefault("batThreads",     undef, "Number of threads to use; default is the maxThreads limit");
     setDefault("batConcurrency", undef, "Unused, only one process supported");
 
-    setDefault("contigFilter",   "2 0 1.0 0.5 5",   "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth");
+    setDefault("contigFilter",   "2 0 1.0 0.5 3",   "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth");
 
     #####  Consensus Options
 
