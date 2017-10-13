@@ -153,7 +153,7 @@ quality corrected reads::
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  correctedErrorRate=0.075 \
+  correctedErrorRate=0.105 \
   -pacbio-raw yeast.20x.fastq.gz
 
 Consensus Accuracy
