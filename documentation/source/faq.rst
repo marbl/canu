@@ -85,7 +85,7 @@ What parameters should I use for my reads?
        over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) with more
        than 30x coverage, we've used ``'corMhapOptions=--threshold 0.8 --num-hashes
        512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This is not needed for below 30x
-       coverage.
+       coverage. You can also try the ``overlapper=mhap utgReAlign=true`` option which is much faster but may produce less contiguous assemblies.
 
 
 My assembly continuity is not good, how can I improve it?
@@ -191,8 +191,8 @@ What parameters can I tweak?
 
     For low coverage:
 
-     - For less than 30X coverage, increase the alllowed difference in overlaps by a couple of percent (from 4.5% to 6.5%
-       (or more) with ``correctedErrorRate=0.075`` for PacBio and from 14.4% to 16% (or more) with ``correctedErrorRate=0.16`` for Nanopore), to adjust for inferior read correction.  Canu
+     - For less than 30X coverage, increase the alllowed difference in overlaps by a few percent (from 4.5% to 8.5%
+       (or more) with ``correctedErrorRate=0.105`` for PacBio and from 14.4% to 16% (or more) with ``correctedErrorRate=0.16`` for Nanopore), to adjust for inferior read correction.  Canu
        will automatically reduce ``corMinCoverage`` to zero to correct as many reads as possible.
 
     For high coverage:
