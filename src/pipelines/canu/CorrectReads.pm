@@ -412,6 +412,9 @@ sub generateCorrectedReadsConfigure ($) {
     my $base    = "correction";
     my $path    = "correction/2-correction";
 
+    goto allDone   if (skipStage($asm, "cor-generateCorrectedReadsConfigure") == 1);
+    goto allDone   if (fileExists("$path/correctReads.sh"));
+
     make_path("$path/results")  if (! -d "$path/results");
 
     estimateMemoryNeededForCorrectionJobs($asm);
