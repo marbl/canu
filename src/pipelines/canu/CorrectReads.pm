@@ -162,7 +162,7 @@ sub estimateMemoryNeededForCorrectionJobs ($) {
         open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
         while (<F>) {
             if (m/Maximum\s+Memory\s+(\d+)/) {
-                $memEst = int($1 / 1073741824.0 + 0.5) * 2;
+                $memEst = int(4 * $1 / 1073741824.0 + 0.5);
             }
         }
         close(F);
