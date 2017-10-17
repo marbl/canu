@@ -211,14 +211,14 @@ My asm.contigs.fasta is empty, why?
 
     The :ref:`contigFilter <contigFilter>` parameter sets several parameters that control how small
     or low coverage initial contigs are handled.  By default, initial contigs with more than 50% of
-    the length at less than 5X coverage will be classified as 'unassembled' and removed from the
-    assembly, that is, ``contigFilter="2 0 1.0 0.5 5"``.  The filtering can be disabled by changing
-    the last number from '5' to '0' (meaning, filter if 50% of the contig is less than 0X coverage).
+    the length at less than 3X coverage will be classified as 'unassembled' and removed from the
+    assembly, that is, ``contigFilter="2 0 1.0 0.5 3"``.  The filtering can be disabled by changing
+    the last number from '3' to '0' (meaning, filter if 50% of the contig is less than 0X coverage).
 
 
 Why is my assembly is missing my favorite short plasmid?
 -------------------------------------
-    Only the longest 40X of data (based on the specified genome size) is used for
+    In Canu v1.6 and earlier only the longest 40X of data (based on the specified genome size) is used for
     correction.  Datasets with uneven coverage or small plasmids can fail to generate enough
     corrected reads to give enough coverage for assembly, resulting in gaps in the genome or even no
     reads for small plasmids.  Set ``corOutCoverage=1000`` (or any value greater than your total input
@@ -227,6 +227,7 @@ Why is my assembly is missing my favorite short plasmid?
     An alternate approach is to correct all reads (``-correct corOutCoverage=1000``) then assemble
     40X of reads picked at random from the ``<prefix>.correctedReads.fasta.gz`` output.
 
+    More recent Canu versions dynamically select poorly represented sequences to avoid missing short plasmids so this should no longer happen.
 
 Why do I get less corrected read data than I asked for?
 -------------------------------------
@@ -240,6 +241,22 @@ What is the minimum coverage required to run Canu?
 -------------------------------------
     For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods. Below that, you will likely not assemble the full genome.
 
+
+My circular element is duplicated/has overlap?
+-------------------------------------
+    This is expected for any circular elements. They can overlap by up to a read length due to how Canu constructs contigs. Canu provides an alignment string in the GFA output which can be converted to an alignment to identify the trimming points.
+
+    An alternative is to run MUMmer to get self-alignments on the contig and use those trim points. For example, assuming the circular element is in ``tig00000099.fa``. Run::
+    
+      nucmer -maxmatch -nosimplify tig00000099.fa tig00000099.fa
+      show-coords -lrcTH out.delta
+    
+    to find the end overlaps in the tig. The output would be something like::
+    
+      1	1895	48502	50400	1895	1899	99.37	50400	50400	3.76	3.77	tig00000001	tig00000001
+      48502	50400	1	1895	1899	1895	99.37	50400	50400	3.77	3.76	tig00000001	tig00000001
+    
+    means trim to 1 to 48502. There is also an alternate `writeup <https://github.com/PacificBiosciences/Bioinformatics-Training/wiki/Circularizing-and-trimming>`_.
 
 My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly repetitive genomes?
 -------------------------------------
