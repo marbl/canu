@@ -509,7 +509,7 @@ sub addSequenceFile ($$@) {
 
     return(undef)             if (!defined($file));   #  No file name?  Nothing to do.
     $file = "$dir/$file"      if (defined($dir));     #  If $dir defined, assume file is in there.
-    return($file)             if ($file =~ m!/!);     #  If already a full path, use that.
+    return($file)             if (substr($file, 0, 1) eq "/");     #  If already a full path, use that.
     return(abs_path($file))   if (-e $file);          #  If found, return the full path.
 
     #  And if not found, report an error, unless told not to.  This is because on the command
