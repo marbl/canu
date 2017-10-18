@@ -313,7 +313,7 @@ gkStore::~gkStore() {
 
       if (_reads[ii]._cseqLen > 0) {
         _info.numCorrectedReads++;
-        _info.numCorrectedBases += _reads[ii]._rseqLen;
+        _info.numCorrectedBases += _reads[ii]._cseqLen;
       }
 
       if (_reads[ii]._clearBgn < _reads[ii]._clearEnd) {
