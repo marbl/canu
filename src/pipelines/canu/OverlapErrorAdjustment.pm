@@ -105,7 +105,7 @@ sub readErrorDetectionConfigure ($) {
     my @end;
     my $nj = 0;
 
-    my $maxID    = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
+    my $maxID    = getNumberOfReadsInStore("utg", $asm);   #  Need to iterate over all read IDs!
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
     my $maxBases = getGlobal("redBatchLength");
@@ -376,7 +376,7 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     my $nj = 0;
 
-    my $maxID    = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
+    my $maxID    = getNumberOfReadsInStore("utg", $asm);   #  Need to iterate over all read IDs!
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("oeaBatchSize");
     my $maxBases = getGlobal("oeaBatchLength");
