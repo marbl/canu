@@ -59,7 +59,7 @@ main (int argc, char **argv) {
   if (gkpName == NULL)
     err.push_back("ERROR:  no gatekeeper store (-G) supplied.\n");
   if (clrName == NULL)
-    err.push_back("ERROR:  no clear range file (-c) supplied.\n");
+    fprintf(stderr, "Warning:  no clear range file (-c) supplied, using full read length.\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -G <gkpStore> -c <clearRangeFile>\n", argv[0]);
@@ -81,12 +81,20 @@ main (int argc, char **argv) {
   uint32          numReads  = gkpStore->gkStore_getNumReads();
   uint32          numLibs   = gkpStore->gkStore_getNumLibraries();
 
-  clearRangeFile *clrRange = new clearRangeFile(clrName, gkpStore);
+  clearRangeFile *clrRange = NULL;
+  if (clrName != NULL)
+     clrRange = new clearRangeFile(clrName, gkpStore);
 
 
   for (uint32 rid=1; rid<=numReads; rid++)
-    if (clrRange->isDeleted(rid) == false)
-      gkpStore->gkStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+    if (clrRange != NULL) {
+       if (clrRange->isDeleted(rid) == false) {
+          gkpStore->gkStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+       }
+    } else {
+       gkRead* read = gkpStore->gkStore_getRead(rid);
+       gkpStore->gkStore_setClearRange(rid, 0, read->gkRead_sequenceLength());
+    }
   
   delete clrRange;
 

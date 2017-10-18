@@ -476,6 +476,17 @@ sub gatekeeper ($$@) {
         symlink("../$asm.gkpStore", "$base/$asm.gkpStore");
     }
 
+    # ugly special case, if we were given corrected/raw reads but told to run assembly only we need to promote whatever latest reads are to trimmed
+    if ($tag == "utg" && getNumberOfReadsInStore($tag, $asm) == 0) {
+       if (getNumberOfReadsInStore("obt", $asm) > 0) {
+          # promote all reads as is to trimmed
+          if (runCommand($base, "$bin/loadTrimmedReads -G ../$asm.gkpStore")) {
+             caFailure("initializing clear ranges failed", undef);
+          }
+       } elsif (getNumberOfReadsInStore("cor", $asm) > 0) {
+          caExit("gatekeeper only contains raw reads, but you asked for assembly without correction, this is currently not supported", undef);
+       }
+    }
     caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($tag, $asm) == 0);
 
     #  Dump the list of libraries.  Various parts use this for various stuff.
