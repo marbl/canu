@@ -67,7 +67,7 @@ What parameters should I use for my reads?
          canu -p asm -d asm correctedErrorRate=0.3 utgGraphDeviation=50 -nanopore-corrected r5/r5.correctedReads.fasta.gz
 
     **Nanopore R7 2D** and **Nanopore R9 1D**
-      The defaults were designed with these datasets in mind so they should work.
+      The defaults were designed with these datasets in mind so they should work. Having very high coverage or very long Nanopore reads can slow down the assembly significantly. You can  try the ``overlapper=mhap utgReAlign=true`` option which is much faster but may produce less contiguous assemblies on large genomes.
 
     **Nanopore R9 2D** and **PacBio P6**
        Slightly decrease the maximum allowed difference in overlaps from the default of 14.4% to 12.0%
@@ -79,13 +79,13 @@ What parameters should I use for my reads?
        slightly decrease the maximum allowed difference from the default of 4.5% to 4.0% with
        ``correctedErrorRate=0.040 corMhapSensitivity=normal``.  For recent Sequel data, the defaults
        seem to be appropriate.
-       
+   
    **Nanopore R9 large genomes**
        Due to some systematic errors, the identity estimate used by Canu for correction can be an
        over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) with more
        than 30x coverage, we've used ``'corMhapOptions=--threshold 0.8 --num-hashes
        512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This is not needed for below 30x
-       coverage. You can also try the ``overlapper=mhap utgReAlign=true`` option which is much faster but may produce less contiguous assemblies.
+       coverage. 
 
 
 My assembly continuity is not good, how can I improve it?
