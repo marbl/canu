@@ -147,7 +147,7 @@ sub mhapConfigure ($$$) {
 
     my $merSize       = getGlobal("${tag}MhapMerSize");
 
-    my $numReads      = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
+    my $numReads      = getNumberOfReadsEarliestVersion($asm);   #  Need to iterate over all read IDs!
     my $memorySize    = getGlobal("${tag}mhapMemory");
     my $blockPerGb    = getGlobal("${tag}MhapBlockSize");
     if ($numHashes >= 768) {

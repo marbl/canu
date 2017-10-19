@@ -40,7 +40,7 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists generateReadLengthHistogram gatekeeper);
+@EXPORT = qw(getNumberOfReadsEarliestVersion getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage getExpectedCoverageEarliestVersion sequenceFileExists generateReadLengthHistogram gatekeeper);
 
 use strict;
 
@@ -55,6 +55,17 @@ use canu::Grid_Cloud;
 
 use Carp qw(longmess cluck confess);
 
+sub getNumberOfReadsEarliestVersion($) {
+    my $asm    = shift @_;
+
+    # get the earliest count we have in the store
+    my $maxID    = getNumberOfReadsInStore("cor", $asm); 
+    $maxID       = getNumberOfReadsInStore("obt", $asm) if $maxID == 0;
+    $maxID       = getNumberOfReadsInStore("utg", $asm) if $maxID == 0;
+
+    return $maxID;
+}
+    
 sub getNumberOfReadsInStore ($$) {
     my $tag    = shift @_;
     my $asm    = shift @_;
@@ -106,6 +117,16 @@ sub getNumberOfBasesInStore ($$) {
 }
 
 
+sub getExpectedCoverageEarliestVersion($) {
+    my $asm    = shift @_;
+
+    # get earliest count we can
+    my $coverage     = getExpectedCoverage("cor", $asm);
+    $coverage = getExpectedCoverage("obt", $asm) if $coverage == 0;
+    $coverage = getExpectedCoverage("utg", $asm) if $coverage == 0;
+
+    return $coverage;
+}
 
 sub getExpectedCoverage ($$) {
     my $tag    = shift @_;

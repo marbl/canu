@@ -106,9 +106,7 @@ sub readErrorDetectionConfigure ($) {
     my $nj = 0;
 
     # get the earliest count we have in the store
-    my $maxID    = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
-    $maxID       = getNumberOfReadsInStore("obt", $asm) if $maxID == 0;
-    $maxID       = getNumberOfReadsInStore("utg", $asm) if $maxID == 0;
+    my $maxID    = getNumberOfReadsEarliestVersion($asm);
 
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
@@ -122,11 +120,8 @@ sub readErrorDetectionConfigure ($) {
     my $bases    = 0;
     my $olaps    = 0;
 
-    my $coverage = getExpectedCoverage("cor", $asm);
     # get earliest count we can
-    my $coverage     = getExpectedCoverage("cor", $asm);
-    $coverage = getExpectedCoverage("obt", $asm) if $coverage == 0;
-    $coverage = getExpectedCoverage("utg", $asm) if $coverage == 0;
+    my $coverage     = getExpectedCoverageEarliestVersion($asm);
 
     push @bgn, 1;
 
@@ -385,9 +380,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     my $nj = 0;
 
     # get earliest count of reads in store
-    my $maxID    = getNumberOfReadsInStore("cor", $asm);   #  Need to iterate over all read IDs!
-    $maxID       = getNumberOfReadsInStore("obt", $asm) if $maxID == 0;
-    $maxID       = getNumberOfReadsInStore("utg", $asm) if $maxID == 0;
+    my $maxID    = getNumberOfReadsEarliestVersion($asm);
 
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("oeaBatchSize");
@@ -403,9 +396,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     fetchFile("$path/red.red");
 
     # get earliest count we can
-    my $coverage     = getExpectedCoverage("cor", $asm);
-    $coverage        = getExpectedCoverage("obt", $asm) if $coverage == 0;
-    $coverage        = getExpectedCoverage("utg", $asm) if $coverage == 0;
+    my $coverage     = getExpectedCoverageEarliestVersion($asm);
 
     my $corrSize     = (-s "$path/red.red");
 
