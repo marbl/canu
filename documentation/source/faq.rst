@@ -189,6 +189,12 @@ What parameters can I tweak?
            chromosome (and probably some reads from other chromosomes).  When assembling, overlaps
            well outside the observed error rate distribution are discarded.
 
+    For metagenomes:
+
+        The basic idea is to use all data for assembly rather than just the longest as default. The parameters we've used recently are:
+        
+          ``corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=200``
+
     For low coverage:
 
      - For less than 30X coverage, increase the alllowed difference in overlaps by a few percent (from 4.5% to 8.5%
