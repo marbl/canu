@@ -752,7 +752,7 @@ sub setDefaults () {
     setDefault("shell",               "/bin/sh", "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
     setDefault("java",                $java,     "Java interpreter to use; at least version 1.8; default 'java'");
     setDefault("gnuplot",             "gnuplot", "Path to the gnuplot executable");
-    setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate, used in HTML reports.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
+    setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
     setDefault("gnuplotTested",       0,         "If set, skip the initial testing of gnuplot");
     setDefault("stageDirectory",      undef,     "If set, copy heavily used data to this node-local location");
 

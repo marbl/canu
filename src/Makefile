@@ -623,7 +623,6 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_PBSTorque.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_SGE.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_Slurm.pm \
-     ${TARGET_DIR}/lib/site_perl/canu/HTML.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Meryl.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Output.pm \
      ${TARGET_DIR}/lib/site_perl/canu/OverlapBasedTrimming.pm \
@@ -729,9 +728,6 @@ ${TARGET_DIR}/lib/site_perl/canu/Grid_SGE.pm: pipelines/canu/Grid_SGE.pm
 
 ${TARGET_DIR}/lib/site_perl/canu/Grid_Slurm.pm: pipelines/canu/Grid_Slurm.pm
 	cp -pf pipelines/canu/Grid_Slurm.pm ${TARGET_DIR}/lib/site_perl/canu/
-
-${TARGET_DIR}/lib/site_perl/canu/HTML.pm: pipelines/canu/HTML.pm
-	cp -pf pipelines/canu/HTML.pm ${TARGET_DIR}/lib/site_perl/canu/
 
 ${TARGET_DIR}/lib/site_perl/canu/Meryl.pm: pipelines/canu/Meryl.pm
 	cp -pf pipelines/canu/Meryl.pm ${TARGET_DIR}/lib/site_perl/canu/

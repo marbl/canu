@@ -49,7 +49,6 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Report;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 
@@ -251,7 +250,6 @@ sub overlapConfigure ($$$) {
 
   finishStage:
     emitStage($asm, "$tag-overlapConfigure");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlapConfigure");
@@ -424,7 +422,6 @@ sub overlapCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-overlapCheck", $attempt);
-        buildHTML($asm, $tag);
 
         submitOrRunParallelJob($asm, "${tag}ovl", $path, "overlap", @failedJobs);
         return;
@@ -447,7 +444,6 @@ sub overlapCheck ($$$) {
     reportOverlapStats($base, $asm, @statsJobs);
 
     emitStage($asm, "$tag-overlapCheck");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlap");

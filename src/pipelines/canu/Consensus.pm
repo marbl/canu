@@ -50,7 +50,6 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Unitig;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 
@@ -254,7 +253,6 @@ sub consensusConfigure ($) {
 
   finishStage:
     emitStage($asm, "consensusConfigure")   if ($firstTime);
-    buildHTML($asm, "utg");
 
   allDone:
     stopAfter("consensusConfigure");
@@ -346,7 +344,6 @@ sub consensusCheck ($) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "consensusCheck", $attempt);
-        buildHTML($asm, "utg");
 
         submitOrRunParallelJob($asm, "cns", $path, "consensus", @failedJobs);
         return;
@@ -368,7 +365,6 @@ sub consensusCheck ($) {
     stashFile("$path/utgcns.files");
 
     emitStage($asm, "consensusCheck");
-    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -530,7 +526,6 @@ sub consensusLoad ($) {
 
   finishStage:
     emitStage($asm, "consensusLoad");
-    buildHTML($asm, "utg");
   allDone:
 }
 
@@ -571,7 +566,6 @@ sub consensusAnalyze ($) {
 
   finishStage:
     emitStage($asm, "consensusAnalyze");
-    buildHTML($asm, "utg");
 
   allDone:
     stopAfter("consensus");

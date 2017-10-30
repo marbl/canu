@@ -48,7 +48,6 @@ use File::Copy;
 
 use canu::Defaults;
 use canu::Execution;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 
@@ -191,13 +190,12 @@ sub generateOutputs ($) {
 
   finishStage:
     emitStage($asm, "generateOutputs");
-    buildHTML($asm, "utg");
 
   allDone:
     print STDERR "--\n";
     print STDERR "-- Assembly '", getGlobal("onExitNam"), "' finished in '", getGlobal("onExitDir"), "'.\n";
     print STDERR "--\n";
-    print STDERR "-- Summary saved in 'unitigging.html'.\n";
+    print STDERR "-- Summary saved in '$asm.report'.\n";
     print STDERR "--\n";
     print STDERR "-- Sequences saved:\n";
     print STDERR "--   Contigs       -> '$asm.contigs.$type'\n";
@@ -216,7 +214,6 @@ sub generateOutputs ($) {
 
   finishStage:
     emitStage($asm, "outputSequence");
-    buildHTML($asm, "utg");
 
   allDone:
 }

@@ -52,7 +52,6 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::ErrorEstimate;
-use canu::HTML;
 use canu::Report;
 use canu::Grid_Cloud;
 
@@ -290,7 +289,7 @@ sub merylPlotHistogram ($$$$) {
 
     if (runCommandSilently($path, "$gnuplot ./$ofile.histogram.$suffix.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
-        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+        print STDERR "-- WARNING: gnuplot failed.\n";
         print STDERR "--\n";
         print STDERR "----------------------------------------\n";
     }
@@ -483,7 +482,6 @@ sub merylConfigure ($$) {
 
   finishStage:
     emitStage($asm, "merylConfigure");
-    buildHTML($asm, $tag);
 
   allDone:
 }
@@ -533,7 +531,6 @@ sub merylCheck ($$) {
     #  Otherwise, run some jobs.
 
     emitStage($asm, "merylCheck", $attempt);
-    buildHTML($asm, $tag);
 
     submitOrRunParallelJob($asm, "meryl", $path, "meryl", (1));
     return;
@@ -549,7 +546,6 @@ sub merylCheck ($$) {
     stashFile("$path/meryl.success");
 
     emitStage($asm, "merylCheck");
-    buildHTML($asm, $tag);
 
   allDone:
 }
@@ -776,7 +772,6 @@ sub merylProcess ($$) {
     unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
 
     emitStage($asm, "$tag-meryl");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("meryl");

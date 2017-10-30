@@ -48,7 +48,6 @@ use Cwd qw(getcwd);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::HTML;
 use canu::Report;
 use canu::Grid_Cloud;
 
@@ -416,7 +415,7 @@ sub generateReadLengthHistogram ($$) {
 
     if (runCommandSilently(".", "$gnuplot ./$asm.gkpStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
-        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+        print STDERR "-- WARNING: gnuplot failed.\n";
         print STDERR "--\n";
         print STDERR "----------------------------------------\n";
     }
@@ -526,7 +525,6 @@ sub gatekeeper ($$@) {
 
   finishStage:
     emitStage($asm, "$tag-gatekeeper");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("gatekeeper");

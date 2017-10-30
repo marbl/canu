@@ -40,7 +40,6 @@ use POSIX qw(floor);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
-use canu::HTML;
 
 sub fac($) {
     my $x = shift @_;

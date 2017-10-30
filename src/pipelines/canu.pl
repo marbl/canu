@@ -79,8 +79,6 @@ use canu::Unitig;
 use canu::Consensus;
 use canu::Output;
 
-use canu::HTML;
-
 my @specFiles;    #  Files of specs
 my @specOpts;     #  Command line specs
 my @inputFiles;   #  Command line inputs, later inputs in spec files are added
@@ -698,8 +696,6 @@ if (setOptions($mode, "correct") eq "correct") {
 
         loadCorrectedReads($asm);
         dumpCorrectedReads($asm);
-
-        buildHTML($asm, "cor");
     }
 }
 
@@ -724,8 +720,6 @@ if (setOptions($mode, "trim") eq "trim") {
 
         loadTrimmedReads($asm);
         dumpTrimmedReads ($asm);
-
-        buildHTML($asm, "obt");
     }
 }
 

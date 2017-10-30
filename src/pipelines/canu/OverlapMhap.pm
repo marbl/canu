@@ -50,7 +50,6 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 #  Map long reads to long reads with mhap.
@@ -569,7 +568,6 @@ sub mhapConfigure ($$$) {
 
   finishStage:
     emitStage($asm, "$tag-mhapConfigure");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlapConfigure");
@@ -646,7 +644,6 @@ sub mhapPrecomputeCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-mhapPrecomputeCheck", $attempt);
-        buildHTML($asm, $tag);
 
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "precompute", @failedJobs);
         return;
@@ -662,7 +659,6 @@ sub mhapPrecomputeCheck ($$$) {
     stashFile("$path/precompute.files");
 
     emitStage($asm, "$tag-mhapPrecomputeCheck");
-    buildHTML($asm, $tag);
 
   allDone:
 }
@@ -773,7 +769,6 @@ sub mhapCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-mhapCheck", $attempt);
-        buildHTML($asm, $tag);
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "mhap", @failedJobs);
         return;
     }
@@ -798,7 +793,6 @@ sub mhapCheck ($$$) {
     stashFile("$path/ovljob.more.files");
 
     emitStage($asm, "$tag-mhapCheck");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlap");

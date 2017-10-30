@@ -52,7 +52,6 @@ use canu::Execution;
 use canu::Configure;    #  For displayGenomeSize
 use canu::Gatekeeper;
 use canu::Report;
-use canu::HTML;
 use canu::Meryl;
 use canu::Grid_Cloud;
 
@@ -250,7 +249,6 @@ sub unitig ($) {
 
   finishStage:
     emitStage($asm, "unitig");
-    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -292,7 +290,6 @@ sub unitigCheck ($) {
     #  Otherwise, run some jobs.
 
     emitStage($asm, "unitigCheck", $attempt);
-    buildHTML($asm, "utg");
 
     submitOrRunParallelJob($asm, "bat", $path, "unitigger", (1));
     return;
@@ -310,7 +307,6 @@ sub unitigCheck ($) {
     reportUnitigSizes($asm, 1, "after unitig construction");
 
     emitStage($asm, "unitigCheck");
-    buildHTML($asm, "utg");
 
   allDone:
     stopAfter("unitig");

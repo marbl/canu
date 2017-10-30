@@ -50,7 +50,6 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 #  Hardcoded to use utgOvlErrorRate
@@ -210,7 +209,6 @@ sub readErrorDetectionConfigure ($) {
 
   finishStage:
     emitStage($asm, "readErrorDetectionConfigure");
-    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -281,7 +279,6 @@ sub readErrorDetectionCheck ($) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "readErrorDetectionCheck", $attempt);
-        buildHTML($asm, "utg");
 
         submitOrRunParallelJob($asm, "red", $path, "red", @failedJobs);
         return;
@@ -325,7 +322,6 @@ sub readErrorDetectionCheck ($) {
     }
 
     emitStage($asm, "readErrorDetectionCheck");
-    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -529,7 +525,6 @@ sub overlapErrorAdjustmentConfigure ($) {
 
   finishStage:
     emitStage($asm, "overlapErrorAdjustmentConfigure");
-    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -605,7 +600,6 @@ sub overlapErrorAdjustmentCheck ($) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "overlapErrorAdjustmentCheck", $attempt);
-        buildHTML($asm, "utg");
 
         submitOrRunParallelJob($asm, "oea", $path, "oea", @failedJobs);
         return;
@@ -623,7 +617,6 @@ sub overlapErrorAdjustmentCheck ($) {
     stashFile("$path/oea.files");
 
     emitStage($asm, "overlapErrorAdjustmentCheck");
-    buildHTML($asm, "utg");
 
   allDone:
 }
@@ -682,7 +675,6 @@ sub updateOverlapStore ($) {
 
   finishStage:
     emitStage($asm, "updateOverlapStore");
-    buildHTML($asm, "utg");
 
   allDone:
 }

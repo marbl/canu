@@ -50,7 +50,6 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 
@@ -118,7 +117,6 @@ sub trimReads ($) {
 
   finishStage:
     emitStage($asm, "obt-trimReads");
-    buildHTML($asm, "obt");
 
   allDone:
 }
@@ -189,7 +187,6 @@ sub splitReads ($) {
 
   finishStage:
     emitStage($asm, "obt-splitReads");
-    buildHTML($asm, "obt");
 
   allDone:
 }
@@ -245,7 +242,6 @@ sub loadTrimmedReads ($) {
 
   finishStage:
     emitStage($asm, "obt-dumpReads");
-    buildHTML($asm, "obt");
 
   allDone:
     stopAfter("readTrimming");
@@ -280,7 +276,6 @@ sub dumpTrimmedReads ($) {
 
   finishStage:
     emitStage($asm, "cor-dumpTrimmedReads");
-    buildHTML($asm, "cor");
 
   allDone:
     stopAfter("readTrimming");

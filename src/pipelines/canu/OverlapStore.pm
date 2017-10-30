@@ -51,7 +51,6 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 
@@ -350,7 +349,6 @@ sub overlapStoreConfigure ($$$) {
 
   finishStage:
     emitStage($asm, "$tag-overlapStoreConfigure");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlapStoreConfigure");
@@ -427,7 +425,6 @@ sub overlapStoreBucketizerCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt);
-        buildHTML($asm, $tag);
 
         submitOrRunParallelJob($asm, "ovB", $path, "scripts/1-bucketize", @failedJobs);
         return;
@@ -439,7 +436,6 @@ sub overlapStoreBucketizerCheck ($$$) {
     touch("$path/1-bucketize.success");
 
     emitStage($asm, "$tag-overlapStoreBucketizerCheck");
-    buildHTML($asm, $tag);
 
   allDone:
 }
@@ -527,7 +523,6 @@ sub overlapStoreSorterCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-overlapStoreSorterCheck", $attempt);
-        buildHTML($asm, $tag);
 
         submitOrRunParallelJob($asm, "ovS", $path, "scripts/2-sort", @failedJobs);
         return;
@@ -539,7 +534,6 @@ sub overlapStoreSorterCheck ($$$) {
     touch("$path/2-sorter.success");
 
     emitStage($asm, "$tag-overlapStoreSorterCheck");
-    buildHTML($asm, $tag);
 
   allDone:
 }
@@ -737,7 +731,6 @@ sub createOverlapStore ($$$) {
     }
 
     emitStage($asm, "$tag-createOverlapStore");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlapStore");

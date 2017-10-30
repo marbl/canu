@@ -51,7 +51,6 @@ use canu::Configure;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 
@@ -311,7 +310,6 @@ sub buildCorrectionLayoutsConfigure ($) {
 
   finishStage:
     emitStage($asm, "cor-buildCorrectionLayoutsConfigure");
-    buildHTML($asm, "cor");
 
   allDone:
 }
@@ -336,7 +334,6 @@ sub buildCorrectionLayoutsCheck ($) {
 
   finishStage:
     emitStage($asm, "cor-buildCorrectionLayoutsCheck");
-    buildHTML($asm, "cor");
 
   allDone:
 }
@@ -397,7 +394,6 @@ sub filterCorrectionLayouts ($) {
 
   finishStage:
     emitStage($asm, "cor-filterCorrectionLayouts");
-    buildHTML($asm, "cor");
 
   allDone:
 }
@@ -537,7 +533,6 @@ sub generateCorrectedReadsConfigure ($) {
 
   finishStage:
     emitStage($asm, "cor-generateCorrectedReadsConfigure");
-    buildHTML($asm, "cor");
 
   allDone:
 }
@@ -620,7 +615,6 @@ sub generateCorrectedReadsCheck ($) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "cor-generateCorrectedReads", $attempt);
-        buildHTML($asm, "cor");
 
         submitOrRunParallelJob($asm, "cor", $path, "correctReads", @failedJobs);
         return;
@@ -636,7 +630,6 @@ sub generateCorrectedReadsCheck ($) {
     stashFile("$path/corjob.files");
 
     emitStage($asm, "cor-generateCorrectedReadsCheck");
-    buildHTML($asm, "cor");
 
   allDone:
 }
@@ -747,7 +740,6 @@ sub loadCorrectedReads ($) {
 
   finishStage:
     emitStage($asm, "cor-loadCorrectedReads");
-    buildHTML($asm, "cor");
 
   allDone:
     stopAfter("readCorrection");
@@ -784,7 +776,6 @@ sub dumpCorrectedReads ($) {
 
   finishStage:
     emitStage($asm, "cor-dumpCorrectedReads");
-    buildHTML($asm, "cor");
 
   allDone:
     stopAfter("readCorrection");

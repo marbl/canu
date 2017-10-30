@@ -41,7 +41,6 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 #  Map long reads to long reads with minimap.
@@ -458,7 +457,6 @@ sub mmapConfigure ($$$) {
 
   finishStage:
     emitStage($asm, "$tag-mmapConfigure");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlapConfigure");
@@ -533,7 +531,6 @@ sub mmapPrecomputeCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-mmapPrecomputeCheck", $attempt);
-        buildHTML($asm, $tag);
 
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "precompute", @failedJobs);
         return;
@@ -549,7 +546,6 @@ sub mmapPrecomputeCheck ($$$) {
     stashFile("$path/precompute.files");
 
     emitStage($asm, "$tag-mmapPrecomputeCheck");
-    buildHTML($asm, $tag);
 
   allDone:
 }
@@ -657,7 +653,6 @@ sub mmapCheck ($$$) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "$tag-mmapCheck", $attempt);
-        buildHTML($asm, $tag);
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "mmap", @failedJobs);
         return;
     }
@@ -682,7 +677,6 @@ sub mmapCheck ($$$) {
     stashFile("$path/ovljob.more.files");
 
     emitStage($asm, "$tag-mmapCheck");
-    buildHTML($asm, $tag);
 
   allDone:
     stopAfter("overlap");
