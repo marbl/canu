@@ -36,7 +36,6 @@
 #if (!defined(__CYGWIN__) && !defined(_WIN31))
 #include <execinfo.h>  //  backtrace
 #endif
-#include <execinfo.h>  //  backtrace
 
 #include <signal.h>
 #include <sys/types.h>

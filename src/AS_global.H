@@ -91,6 +91,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <omp.h>
+
 #ifndef TRUE
   #define TRUE true
 #endif
