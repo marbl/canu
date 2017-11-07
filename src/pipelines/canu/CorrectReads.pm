@@ -701,22 +701,22 @@ sub loadCorrectedReads ($) {
                 my $ID4 = substr("000"   . $2, -4);
                 my $ID0 = $2;
 
-                if (-e "$1/results/$ID4.cns") {
+                if (-e "correction/$1/results/$ID4.cns") {
                     $Ncns++;
-                    unlink "$1/results/$ID4.cns";
+                    unlink "correction/$1/results/$ID4.cns";
                 }
-                if (-e "$1/results/$ID4.err") {
+                if (-e "correction/$1/results/$ID4.err") {
                     $Nlog++;
-                    unlink "$1/results/$ID4.err";
+                    unlink "correction/$1/results/$ID4.err";
                 }
 
-                if (-e "$1/correctReads.$ID6.out") {
+                if (-e "correction/$1/correctReads.$ID6.out") {
                     $Nlog++;
-                    unlink "$1/correctReads.$ID6.out";
+                    unlink "correction/$1/correctReads.$ID6.out";
                 }
-                if (-e "$1/correctReads.$ID0.out") {
+                if (-e "correction/$1/correctReads.$ID0.out") {
                     $Nlog++;
-                    unlink "$1/correctReads.$ID0.out";
+                    unlink "correction/$1/correctReads.$ID0.out";
                 }
 
             } else {
