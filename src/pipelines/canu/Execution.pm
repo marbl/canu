@@ -692,13 +692,22 @@ sub submitScript ($$) {
 
     $gridOpts  = $jobHold;
     $gridOpts .= " "                                  if (defined($gridOpts));
+    # LSF takes the first argument to specify them in reverse order of preference, otherwise append
+    if (uc(getGlobal("gridEngine")) eq "LSF") {
+       $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
+       $gridOpts .= " "                                  if (defined($gridOpts));
+       $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
+       $gridOpts .= " "                                  if (defined($gridOpts));
+    }
     $gridOpts .= $memOption                           if (defined($memOption));
     $gridOpts .= " "                                  if (defined($gridOpts));
     $gridOpts .= $thrOption                           if (defined($thrOption));
-    $gridOpts .= " "                                  if (defined($gridOpts));
-    $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
-    $gridOpts .= " "                                  if (defined($gridOpts));
-    $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
+    if (uc(getGlobal("gridEngine")) ne "LSF") {
+       $gridOpts .= " "                                  if (defined($gridOpts));
+       $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
+       $gridOpts .= " "                                  if (defined($gridOpts));
+       $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
+    }
 
     my $submitCommand        = getGlobal("gridEngineSubmitCommand");
     my $nameOption           = getGlobal("gridEngineNameOption");
