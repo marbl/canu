@@ -19,6 +19,8 @@ Alternatively, you can also build the latest unreleased from github:
     cd canu/src
     make -j <number of threads>
 
+The unreleased tip has not undergone the same testing as a release and so may have unknown bugs or issues generating sub-optimal assemblies. We recommend the release version for most users.
+
 ## Learn:
 
 The [quick start](http://canu.readthedocs.io/en/latest/quick-start.html) will get you assembling quickly, while the [tutorial](http://canu.readthedocs.io/en/latest/tutorial.html) explains things in more detail.
