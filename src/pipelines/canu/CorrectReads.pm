@@ -756,8 +756,10 @@ sub dumpCorrectedReads ($) {
     goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
+    return         if (! -d "correction/$asm.gkpStore");  #  No corrections done, nothing to do.
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+    $cmd .= "  -corrected \\\n";
     $cmd .= "  -G ./$asm.gkpStore \\\n";
     $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
     $cmd .= "  -fasta \\\n";

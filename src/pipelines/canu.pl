@@ -689,10 +689,10 @@ if (setOptions($mode, "correct") eq "correct") {
         generateCorrectedReadsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
 
         loadCorrectedReads($asm);
-        dumpCorrectedReads($asm);
     }
 }
 
+dumpCorrectedReads($asm);
 
 if (setOptions($mode, "trim") eq "trim") {
     if (getNumberOfBasesInStore("utg", $asm) == 0) {
@@ -713,10 +713,10 @@ if (setOptions($mode, "trim") eq "trim") {
         splitReads($asm);
 
         loadTrimmedReads($asm);
-        dumpTrimmedReads ($asm);
     }
 }
 
+dumpTrimmedReads ($asm);
 
 if (setOptions($mode, "assemble") eq "assemble") {
     if (sequenceFileExists("$asm.contigs") eq undef) {

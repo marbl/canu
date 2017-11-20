@@ -257,8 +257,10 @@ sub dumpTrimmedReads ($) {
     goto allDone   if (skipStage($asm, "obt-dumpTrimmedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
+    return         if (! -d "trimming/$asm.gkpStore");  #  No trimming done, nothing to do.
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+    $cmd .= "  -trimmed \\\n";
     $cmd .= "  -G ./$asm.gkpStore \\\n";
     $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
     $cmd .= "  -fasta \\\n";
