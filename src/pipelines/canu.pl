@@ -662,12 +662,6 @@ sub overlap ($$) {
 #
 #  Begin pipeline
 #
-#  The checks for sequenceFileExists() at the start aren't needed except for
-#  object storage mode.  Gatekeeper has no way of knowing, inside
-#  gatekeeper(), that this stage is completed and it shouldn't fetch the
-#  store.  In 'normal' operation, the store exists already, and we just
-#  return.
-#
 
 if (setOptions($mode, "correct") eq "correct") {
     if (getNumberOfBasesInStore("obt", $asm) == 0) {
