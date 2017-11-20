@@ -832,7 +832,7 @@ AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *
   if (BEG == NULL)
     return;
 
-  fprintf(BEG, "H\tVN:Z:bogart/edges\n");
+  fprintf(BEG, "H\tVN:Z:1.0\n");
 
   //  First, figure out what sequences are used.  A sequence is used if it has forward edges,
   //  or if it is referred to by a forward edge.

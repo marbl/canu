@@ -697,7 +697,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   //  Write best edge graph.
 
   if (BEG) {
-    fprintf(BEG, "H\tVN:Z:bogart/edges\n");
+    fprintf(BEG, "H\tVN:Z:1.0\n");
 
     //  First, write the sequences used.
 

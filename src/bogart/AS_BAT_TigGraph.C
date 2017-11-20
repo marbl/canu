@@ -452,7 +452,7 @@ reportTigGraph(TigVector &tigs,
 
   //  Write a header.  You've gotta start somewhere!
 
-  fprintf(BEG, "H\tVN:Z:bogart/edges\n");
+  fprintf(BEG, "H\tVN:Z:1.0\n");
 
   //  Then write the sequences used in the graph.  Unlike the read and contig graphs, every sequence
   //  in our set is output.  By construction, only valid unitigs are in it.  Though we occasionally

@@ -737,7 +737,7 @@ processBEDtoGFA(char   *tigName,
   fprintf(stderr, "-- Reading BED '%s'.\n", inBED);
 
   bedFile   *bed  = new bedFile(inBED);
-  gfaFile   *gfa  = new gfaFile("H\tVN:Z:bogart/edges");
+  gfaFile   *gfa  = new gfaFile("H\tVN:Z:1.0");
 
   //  Iterate over sequences, looking for overlaps in contigs.  Stupid, O(n^2) but seems fast enough.
 
