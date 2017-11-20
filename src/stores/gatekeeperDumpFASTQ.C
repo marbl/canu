@@ -183,6 +183,10 @@ main(int argc, char **argv) {
   uint32           bgnID             = 1;
   uint32           endID             = UINT32_MAX;
 
+  bool             dumpRaw           = false;
+  bool             dumpCorrected     = false;
+  bool             dumpTrimmed       = false;
+
   bool             dumpAllReads      = false;
   bool             dumpAllBases      = false;
   bool             dumpOnlyDeleted   = false;
@@ -225,6 +229,15 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-r") == 0) {
       AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+
+    } else if (strcmp(argv[arg], "-raw") == 0) {
+      dumpRaw = true;
+
+    } else if (strcmp(argv[arg], "-corrected") == 0) {
+      dumpCorrected = true;
+
+    } else if (strcmp(argv[arg], "-trimmed") == 0) {
+      dumpTrimmed = true;
 
     } else if (strcmp(argv[arg], "-allreads") == 0) {
       dumpAllReads    = true;
@@ -270,14 +283,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "                      if fastq-prefix is '-', all sequences output to stdout\n");
     fprintf(stderr, "                      if fastq-prefix ends in .gz, .bz2 or .xz, output is compressed\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)\n");
-    fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -c clearFile        clear range file from OBT modules\n");
-    fprintf(stderr, "  -allreads           if a clear range file, lower case mask the deleted reads\n");
-    fprintf(stderr, "  -allbases           if a clear range file, lower case mask the non-clear bases\n");
-    fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -fastq              output is FASTQ format (with extension .fastq, default)\n");
     fprintf(stderr, "  -fasta              output is FASTA format (with extension .fasta)\n");
     fprintf(stderr, "\n");
@@ -286,6 +291,20 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -noreadname         don't include the read name in the sequence header.  header will be:\n");
     fprintf(stderr, "                        '>original-name id=<gkpID> clr=<bgn>,<end>   with names\n");
     fprintf(stderr, "                        '>read<gkpID> clr=<bgn>,<end>                without names\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -l libToDump        output only read in library number libToDump\n");
+    fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, " The default is to dump the latest version of each read.  You can force it to dump:\n");
+    fprintf(stderr, "  -raw                Dump only raw reads.\n");
+    fprintf(stderr, "  -corrected          Dump only corrected reads.\n");
+    fprintf(stderr, "  -trimmed            Dump only trimmed reads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, " An Overlap Based Trimming clear range file can be supplied (BUT NOT WIDELY TESTED):\n");
+    fprintf(stderr, "  -c clearFile        clear range file from OBT modules\n");
+    fprintf(stderr, "  -allreads           if a clear range file, lower case mask the deleted reads\n");
+    fprintf(stderr, "  -allbases           if a clear range file, lower case mask the non-clear bases\n");
+    fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
 
     if (gkpStoreName == NULL)
       fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
@@ -308,7 +327,17 @@ main(int argc, char **argv) {
     endID = numReads;
 
   if (endID < bgnID)
-    fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID);
+    fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID), exit(1);
+
+  if ((dumpRaw == true) && (gkpStore->gkStore_getNumRawReads() == 0))
+    fprintf(stderr, "No raw reads in store.\n"), exit(1);
+
+  if ((dumpCorrected == true) && (gkpStore->gkStore_getNumCorrectedReads() == 0))
+    fprintf(stderr, "No corrected reads in store.\n"), exit(1);
+
+  if ((dumpTrimmed == true) && (gkpStore->gkStore_getNumTrimmedReads() == 0))
+    fprintf(stderr, "No trimmed reads in store.\n"), exit(1);
+
 
 
   if (gkpStorePart == UINT32_MAX)
@@ -343,6 +372,16 @@ main(int argc, char **argv) {
     uint32       libID  = (withLibName == false) ? 0 : read->gkRead_libraryID();
 
     uint32       flen   = read->gkRead_sequenceLength();
+
+    if (dumpRaw == true)
+      flen = read->gkRead_rawLength();
+
+    if (dumpCorrected == true)
+      flen = read->gkRead_correctedLength();
+
+    if (dumpTrimmed == true)
+      flen = read->gkRead_trimmedLength();
+
     uint32       lclr   = 0;
     uint32       rclr   = flen;
     bool         ignore = false;
@@ -357,18 +396,15 @@ main(int argc, char **argv) {
     }
 
     //  Abort if we're not dumping anything from this read
-    //   - not in a library we care about
-    //   - deleted, and not dumping all reads
-    //   - not deleted, but only reporting deleted reads
 
-    if (((libToDump != 0) && (libID == libToDump)) ||
-        ((dumpAllReads == false) && (ignore == true)) ||
-        ((dumpOnlyDeleted == true) && (ignore == false)))
+    if (((libToDump != 0) && (libID == libToDump)) ||            //   - not in a library we care about
+        ((dumpAllReads == false) && (ignore == true)) ||         //   - deleted, and not dumping all reads
+        ((dumpOnlyDeleted == true) && (ignore == false)))        //   - not deleted, but only reporting deleted reads
       continue;
 
     //  If the read length is zero, then the read has been removed from this set.
 
-    if ((dumpAllReads == false) && (read->gkRead_sequenceLength() == 0))
+    if ((dumpAllReads == false) && (flen == 0))
       continue;
 
     //  And if we're told to ignore the read, and here, then the read was deleted and we're printing
@@ -376,10 +412,12 @@ main(int argc, char **argv) {
 
     if (ignore) {
       lclr = 0;
-      rclr = read->gkRead_sequenceLength();
+      rclr = flen;
     }
 
-    //  Grab the sequence and quality.
+    uint32  clen = rclr - lclr;
+
+    //  Grab the _latest_ sequence and quality.
 
     gkpStore->gkStore_loadReadData(read, readData);
 
@@ -389,7 +427,22 @@ main(int argc, char **argv) {
     uint8  *qlt8 = readData->gkReadData_getQualities();
     char   *qlt  = qltString;
 
-    uint32  clen = rclr - lclr;
+    //  Grab the specified sequence and quality, if specified.
+
+    if (dumpRaw == true) {
+      seq  = readData->gkReadData_getRawSequence();
+      qlt8 = readData->gkReadData_getRawQualities();
+    }
+
+    if (dumpCorrected == true) {
+      seq  = readData->gkReadData_getCorrectedSequence();
+      qlt8 = readData->gkReadData_getCorrectedQualities();
+    }
+
+    if (dumpTrimmed == true) {
+      seq  = readData->gkReadData_getTrimmedSequence();
+      qlt8 = readData->gkReadData_getTrimmedQualities();
+    }
 
     //  Soft mask not-clear bases.
 

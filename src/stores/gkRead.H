@@ -56,6 +56,9 @@ public:
     _cseqAlloc = 0;
     _cqltAlloc = 0;
 
+    _tseq      = NULL;   //  Trimmed read sequence and quality.
+    _tqlt      = NULL;
+
     _blobLen   = 0;
     _blobMax   = 0;
     _blob      = NULL;
@@ -70,6 +73,9 @@ public:
     delete [] _cseq;
     delete [] _cqlt;
 
+    //delete [] _tseq;  //  The trimmed read is just a
+    //delete [] _tqlt;  //  pointer into the corrected read.
+
     delete [] _blob;
   };
 
@@ -80,10 +86,12 @@ public:
 
   char       *gkReadData_getRawSequence(void)         { return(_rseq);  };
   char       *gkReadData_getCorrectedSequence(void)   { return(_cseq);  };
+  char       *gkReadData_getTrimmedSequence(void)     { return(_tseq);  };
   char       *gkReadData_getSequence(void)            { return(_aseq);  };
 
   uint8      *gkReadData_getRawQualities(void)        { return(_rqlt);  };
   uint8      *gkReadData_getCorrectedQualities(void)  { return(_cqlt);  };
+  uint8      *gkReadData_getTrimmedQualities(void)    { return(_tqlt);  };
   uint8      *gkReadData_getQualities(void)           { return(_aqlt);  };
 
 public:
@@ -135,6 +143,9 @@ private:
   uint8             *_cqlt;
   uint32             _cseqAlloc;
   uint32             _cqltAlloc;
+
+  char              *_tseq;
+  uint8             *_tqlt;
 
   uint32             _blobLen;
   uint32             _blobMax;

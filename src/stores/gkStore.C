@@ -528,8 +528,8 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
   //  Decide what data is active.
 
   if      (_read->_tExists) {
-    _aseq = _cseq + _read->_clearBgn;
-    _aqlt = _cqlt + _read->_clearBgn;
+    _aseq = _tseq = _cseq + _read->_clearBgn;
+    _aqlt = _tqlt = _cqlt + _read->_clearBgn;
   }
 
   else if (_read->_cExists) {
