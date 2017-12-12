@@ -305,7 +305,7 @@ For example:
 - To change the k-mer size for just the ovl overlapper used during correction, 'corMerSize=16' would be used.
 - To change the mhap k-mer size for all instances, 'mhapMerSize=18' would be used.
 - To change the mhap k-mer size just during correction, 'corMhapMerSize=15' would be used.
-- To use minimap for overlap computation just during correction, 'corOverlapper=minimap' would be used.
+- To use minimap for overlap computation just during correction, 'corOverlapper=minimap' would be used. The minimap2 executable must be symlinked from the Canu binary folder ('Linux-amd64/bin' or 'Darwin-amd64/bin' depending on your system).
 
 Ovl Overlapper Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
