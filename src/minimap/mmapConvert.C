@@ -108,8 +108,8 @@ main(int argc, char **argv) {
     while (fgets(ovStr, 1024*1024, in->file()) != NULL) {
       splitToWords  W(ovStr);
 
-      ov.a_iid = W(0);
-      ov.b_iid = W(5);
+      ov.a_iid = atoi(W[0]+4);
+      ov.b_iid = atoi(W[5]+4);
 
       if (ov.a_iid == ov.b_iid)
         continue;
@@ -144,7 +144,6 @@ main(int argc, char **argv) {
                 ov.dat.ovl.flipped);
         exit(1);
       }
-
       if (!ov.overlapIsDovetail() && partialOverlaps == false) {
          if (alen <= blen && ov.dat.ovl.ahg5 >= 0 && ov.dat.ovl.ahg3 >= 0 && ov.dat.ovl.bhg5 >= ov.dat.ovl.ahg5 && ov.dat.ovl.bhg3 >= ov.dat.ovl.ahg3 && ((ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3)) < tolerance) {
               ov.dat.ovl.bhg5 = max(0, ov.dat.ovl.bhg5 - ov.dat.ovl.ahg5); ov.dat.ovl.ahg5 = 0;
@@ -188,7 +187,6 @@ main(int argc, char **argv) {
       if (ov.a_end() - ov.a_bgn() < minOverlapLength || ov.b_end() - ov.b_bgn() < minOverlapLength) {
          continue;
       }
-
       //  Overlap looks good, write it!
 
       of->writeOverlap(&ov);
