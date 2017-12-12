@@ -81,6 +81,82 @@ loadThresholds(gkStore *gkpStore,
   return(olapThresh);
 }
 
+//  Duplicated in generateCorrectionLayouts.C
+void
+loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &readList) {
+  char  L[1024];
+
+  if (readListName == NULL)
+    return;
+
+  FILE *R = AS_UTL_openInputFile(readListName);
+
+  for (fgets(L, 1024, R);
+       feof(R) == false;
+       fgets(L, 1024, R)) {
+    splitToWords W(L);
+    uint32       id = W(0);
+
+    if ((iidMin <= id) &&
+        (id     <= iidMax))
+      readList.insert(W(0));
+  }
+
+  fclose(R);
+}
+
+void
+generateFalconLayout(
+                        gkStore           *gkpStore,
+                        tgTig             *tig,
+                        bool               trimToAlign,
+                        gkReadData        *readData,
+                        uint32             minOutputLength, uint32 minOverlapLength) {
+
+  //  Grab and save the raw read for the template.
+
+  fprintf(stderr, "Processing read %u of length %u with %u evidence reads.\n",
+          tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
+
+  //  Now parse the layout and push all the sequences onto our seqs vector.
+  if ( readData->gkReadData_getRead()->gkRead_sequenceLength() < minOutputLength) {
+     return;
+  }
+
+  fprintf(stdout, "read%d %s\n", tig->tigID(), readData->gkReadData_getSequence());
+
+  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
+    tgPosition  *child = tig->getChild(cc);
+
+    gkpStore->gkStore_loadReadData(child->ident(), readData);
+
+    if (child->isReverse())
+      reverseComplementSequence(readData->gkReadData_getSequence(),
+                                readData->gkReadData_getRead()->gkRead_sequenceLength());
+
+    //  Trim the read to the aligned bit
+    char   *seq    = readData->gkReadData_getSequence();
+    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength();
+
+    if (trimToAlign) {
+      seq    += child->askip();
+      seqLen -= child->askip() + child->bskip();
+
+      seq[seqLen] = 0;
+    }
+
+    //  Used to skip if read length was less or equal to min_ovl_len
+    if (seqLen < minOverlapLength) {
+       continue;
+    }
+
+    fprintf(stdout, "%d %s\n", child->ident(), seq);
+  }
+
+  fprintf(stdout, "+ +\n");
+}
 
 
 tgTig *
@@ -227,6 +303,9 @@ main(int argc, char **argv) {
 
   uint32            minCorLength        = 0;
 
+  char             *readListName = NULL;
+  set<uint32>       readList;
+
   argc = AS_configure(argc, argv);
 
   int arg=1;
@@ -256,6 +335,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       iidMax  = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-rl") == 0) {
+      readListName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-eL") == 0) {   //  EVIDENCE SELECTION
       minEvidenceLength  = atoi(argv[++arg]);
@@ -281,8 +362,6 @@ main(int argc, char **argv) {
     arg++;
   }
   if (gkpName == NULL)
-    err++;
-  if (ovlName == NULL)
     err++;
   if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
@@ -311,8 +390,6 @@ main(int argc, char **argv) {
 
     if (gkpName == NULL)
       fprintf(stderr, "ERROR: no input gkpStore (-G) supplied.\n");
-    if (ovlName == NULL)
-      fprintf(stderr, "ERROR: no input ovlStore (-O) supplied.\n");
     if (corName == NULL)
       fprintf(stderr, "ERROR: no output corStore (-C) supplied.\n");
     exit(1);
@@ -321,6 +398,31 @@ main(int argc, char **argv) {
   //  Open inputs and output tigStore.
 
   gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
+
+  if (ovlName == NULL && readListName != NULL) {
+     tgStore  *corStore = new tgStore(corName, 1);
+     gkReadData        *rd = new gkReadData;
+     uint32    numReads = gkpStore->gkStore_getNumReads();
+
+     if (numReads < iidMax)
+        iidMax = numReads;
+     loadReadList(readListName, iidMin, iidMax, readList);
+
+     for (uint32 ii=iidMin; ii<iidMax; ii++) {
+        if ((readList.size() > 0) &&                     //  Skip reads not on the read list.  We need
+           (readList.count(ii) == 0))
+         continue;
+
+       tgTig *layout = corStore->loadTig(ii);
+
+       generateFalconLayout(gkpStore, layout, true, rd, minCorLength, minEvidenceLength);
+
+       corStore->unloadTig(ii);
+     }
+     fprintf(stdout, "- -\n");
+     return 0;
+  }
+
   ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
 
   tgStore  *corStore = new tgStore(corName);
