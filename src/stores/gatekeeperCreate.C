@@ -352,7 +352,7 @@ loadReads(gkStore    *gkpStore,
           uint32      gkpFileID,
           uint32      minReadLength,
           FILE       *nameMap,
-          FILE       *htmlLog,
+          FILE       *loadLog,
           FILE       *errorLog,
           char       *fileName,
           uint32     &nWARNS,
@@ -372,16 +372,16 @@ loadReads(gkStore    *gkpStore,
   fprintf(stderr, "\n");
   fprintf(stderr, "  Loading reads from '%s'\n", fileName);
 
-  fprintf(htmlLog, "nam " F_U32 " %s\n", gkpFileID, fileName);
+  fprintf(loadLog, "nam " F_U32 " %s\n", gkpFileID, fileName);
 
-  fprintf(htmlLog, "lib preset=N/A");
-  fprintf(htmlLog,    " defaultQV=%u",            gkpLibrary->gkLibrary_defaultQV());
-  fprintf(htmlLog,    " isNonRandom=%s",          gkpLibrary->gkLibrary_isNonRandom()          ? "true" : "false");
-  fprintf(htmlLog,    " removeDuplicateReads=%s", gkpLibrary->gkLibrary_removeDuplicateReads() ? "true" : "false");
-  fprintf(htmlLog,    " finalTrim=%s",            gkpLibrary->gkLibrary_finalTrim()            ? "true" : "false");
-  fprintf(htmlLog,    " removeSpurReads=%s",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
-  fprintf(htmlLog,    " removeChimericReads=%s",  gkpLibrary->gkLibrary_removeChimericReads()  ? "true" : "false");
-  fprintf(htmlLog,    " checkForSubReads=%s\n",   gkpLibrary->gkLibrary_checkForSubReads()     ? "true" : "false");
+  fprintf(loadLog, "lib preset=N/A");
+  fprintf(loadLog,    " defaultQV=%u",            gkpLibrary->gkLibrary_defaultQV());
+  fprintf(loadLog,    " isNonRandom=%s",          gkpLibrary->gkLibrary_isNonRandom()          ? "true" : "false");
+  fprintf(loadLog,    " removeDuplicateReads=%s", gkpLibrary->gkLibrary_removeDuplicateReads() ? "true" : "false");
+  fprintf(loadLog,    " finalTrim=%s",            gkpLibrary->gkLibrary_finalTrim()            ? "true" : "false");
+  fprintf(loadLog,    " removeSpurReads=%s",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
+  fprintf(loadLog,    " removeChimericReads=%s",  gkpLibrary->gkLibrary_removeChimericReads()  ? "true" : "false");
+  fprintf(loadLog,    " checkForSubReads=%s\n",   gkpLibrary->gkLibrary_checkForSubReads()     ? "true" : "false");
 
   compressedFileReader *F = new compressedFileReader(fileName);
 
@@ -515,7 +515,7 @@ loadReads(gkStore    *gkpStore,
 
   //  Write status to HTML
 
-  fprintf(htmlLog, "dat " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n",
+  fprintf(loadLog, "dat " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n",
           nLOADEDAlocal, bLOADEDAlocal,
           nSKIPPEDAlocal, bSKIPPEDAlocal,
           nLOADEDQlocal, bLOADEDQlocal,
@@ -547,7 +547,7 @@ main(int argc, char **argv) {
   uint32           firstFileArg      = 0;
 
   char             errorLogName[FILENAME_MAX];
-  char             htmlLogName[FILENAME_MAX];
+  char             loadLogName[FILENAME_MAX];
   char             nameMapName[FILENAME_MAX];
 
   argc = AS_configure(argc, argv);
@@ -619,10 +619,10 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "ERROR:  cannot open error file '%s': %s\n", errorLogName, strerror(errno)), exit(1);
 
-  snprintf(htmlLogName, FILENAME_MAX,   "%s/load.dat", gkpStoreName);
-  FILE    *htmlLog   = fopen(htmlLogName,   "w");
+  snprintf(loadLogName, FILENAME_MAX,   "%s/load.dat", gkpStoreName);
+  FILE    *loadLog   = fopen(loadLogName,   "w");
   if (errno)
-    fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", htmlLogName, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", loadLogName, strerror(errno)), exit(1);
 
   snprintf(nameMapName, FILENAME_MAX,   "%s/readNames.txt", gkpStoreName);
   FILE    *nameMap   = fopen(nameMapName,   "w");
@@ -702,7 +702,7 @@ main(int argc, char **argv) {
                   gkpFileID++,
                   minReadLength,
                   nameMap,
-                  htmlLog,
+                  loadLog,
                   errorLog,
                   line,
                   nWARNS, nLOADED, bLOADED, nSKIPPED, bSKIPPED);
@@ -736,9 +736,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "  " F_U32 " reads (%.4f%%).\n", nSKIPPED, (nSKIPPED + nLOADED > 0) ? (100.0 * nSKIPPED / (nSKIPPED + nLOADED)) : 0);
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(htmlLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
+  fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
 
-  fclose(htmlLog);
+  fclose(loadLog);
 
   if (nERROR > 0)
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");
