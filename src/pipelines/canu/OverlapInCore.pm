@@ -172,8 +172,6 @@ sub overlapConfigure ($$$) {
         open(F, "> $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for writing: $!", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
-        print F "perl='/usr/bin/env perl'\n";
-        print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
         print F setWorkDirectoryShellCode($path);
