@@ -407,9 +407,9 @@ sub printHelp (@) {
     print "  an optional sepc file with the -s option.\n";
     print "\n";
     print "  Reads can be either FASTA or FASTQ format, uncompressed, or compressed with gz, bz2 or xz.\n";
-    print "  Reads are specified by the technology they were generated with:\n";
-    print "    -pacbio-raw         <files>\n";
-    print "    -pacbio-corrected   <files>\n";
+    print "  Reads are specified by the technology they were generated with, and any processing performed:\n";
+    print "    -pacbio-raw         <files>      Reads are straight off the machine.\n";
+    print "    -pacbio-corrected   <files>      Reads have been corrected.\n";
     print "    -nanopore-raw       <files>\n";
     print "    -nanopore-corrected <files>\n";
     print "\n";
