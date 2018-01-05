@@ -208,7 +208,7 @@ while (scalar(@ARGV)) {
     } elsif (($arg eq "-pacbio-raw")         ||  #  File handling is also present in Defaults.pm,
              ($arg eq "-pacbio-corrected")   ||  #  look for addSequenceFile().
              ($arg eq "-nanopore-raw")       ||
-             ($arg eq "-nanopore-corrected") {
+             ($arg eq "-nanopore-corrected")) {
 
         my $file = $ARGV[0];
         my $fopt = addSequenceFile($readdir, $file, 1);
