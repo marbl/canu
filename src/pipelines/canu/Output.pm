@@ -209,8 +209,6 @@ sub generateOutputs ($) {
     print STDERR "-- Graphs saved:\n";
     print STDERR "--   Contigs       -> '$asm.contigs.gfa'.\n";
     print STDERR "--   Unitigs       -> '$asm.unitigs.gfa'.\n";
-    print STDERR "--\n";
-    print STDERR "-- Bye.\n";
 
   finishStage:
     emitStage($asm, "outputSequence");
