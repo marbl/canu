@@ -205,15 +205,10 @@ while (scalar(@ARGV)) {
         $readdir = shift @ARGV;
         addCommandLineOption("-readdir '$readdir'");
 
-    } elsif (($arg eq "-pacbio") ||
-             ($arg eq "-nanopore")) {
-        $type = "pacbio"    if ($arg eq "-pacbio");
-        $type = "nanopore"  if ($arg eq "-nanopore");
-
-    } elsif (($arg eq "-pacbio-raw")       ||    #  File handling is also present in
-             ($arg eq "-pacbio-corrected") ||    #  Defaults.pm around line 438
-             ($arg eq "-nanopore-raw")     ||
-             ($arg eq "-nanopore-corrected")) {
+    } elsif (($arg eq "-pacbio-raw")         ||  #  File handling is also present in Defaults.pm,
+             ($arg eq "-pacbio-corrected")   ||  #  look for addSequenceFile().
+             ($arg eq "-nanopore-raw")       ||
+             ($arg eq "-nanopore-corrected") {
 
         my $file = $ARGV[0];
         my $fopt = addSequenceFile($readdir, $file, 1);
@@ -229,7 +224,7 @@ while (scalar(@ARGV)) {
         }
 
     } elsif (-e $arg) {
-        addCommandLineError("ERROR:  File '$arg' supplied on command line; use -s, -pacbio-raw, -pacbio-corrected, -nanopore-raw, or -nanopore-corrected.\n");
+        addCommandLineError("ERROR:  File '$arg' supplied on command line, don't know what to do with it.\n");
 
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
@@ -357,64 +352,34 @@ setGlobal("onExitNam", $asm);
 
 setGlobalIfUndef("objectStoreNameSpace", $asm);   #  No good place to put this.
 
+
 #  Figure out read inputs.  From an existing store?  From files?  Corrected?  Etc, etc.
 
-my $haveCorrected    = 0;
 my $haveRaw          = 0;
+my $haveCorrected    = 0;
 
 my $setUpForPacBio   = 0;
 my $setUpForNanopore = 0;
 
-#  If we're a cloud run, fetch the store we expect to be working with.
+#  If we're a cloud run, fetch the store.
 
-fetchStore("unitigging/$asm.gkpStore")    if ((! -e "unitigging/$asm.gkpStore") && (fileExists("unitigging/$asm.gkpStore.tar")));
-fetchStore("trimming/$asm.gkpStore")      if ((! -e "trimming/$asm.gkpStore")   && (fileExists("trimming/$asm.gkpStore.tar"))   && (! -e "unitigging/$asm.gkpStore"));
-fetchStore("correction/$asm.gkpStore")    if ((! -e "correction/$asm.gkpStore") && (fileExists("correction/$asm.gkpStore.tar")) && (! -e "trimming/$asm.gkpStore"));
+fetchStore("./$asm.gkpStore")    if ((! -e "./$asm.gkpStore") && (fileExists("$asm.gkpStore.tar")));
 
-#  Scan for an existing gkpStore.  If the output from that stage exists, ignore the store there.
+#  Scan for an existing gkpStore.
 
-my $gkp;
-
-$gkp = "correction/$asm.gkpStore"   if ((-e "correction/$asm.gkpStore/libraries.txt")  && (sequenceFileExists("$asm.correctedReads") eq undef));
-$gkp = "trimming/$asm.gkpStore"     if ((-e "trimming/$asm.gkpStore/libraries.txt")    && (sequenceFileExists("$asm.trimmedReads")   eq undef));
-$gkp = "unitigging/$asm.gkpStore"   if ((-e "unitigging/$asm.gkpStore/libraries.txt"));
-
-#  Scan for existing stage outputs.  These only get used if there isn't a gkpStore found above.
-
-my $reads;
-
-$reads = sequenceFileExists("$asm.correctedReads")  if (!defined($reads));
-$reads = sequenceFileExists("$asm.trimmedReads")    if (!defined($reads));
-
-#  A handy function for reporting what reads we found.
-
-sub reportReadsFound ($$$$) {
-    my ($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected) = @_;
-
-    my $rt;
-    my $ct;
-
-    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
-    $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
-    $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
-    $rt = "unknown"                     if (($setUpForPacBio == 0) && ($setUpForNanopore == 0));
-
-    $ct = "uncorrected"                 if (($haveRaw         > 0) && ($haveCorrected    == 0));
-    $ct = "corrected"                   if (($haveRaw        == 0) && ($haveCorrected     > 0));
-    $ct = "uncorrected AND corrected"   if (($haveRaw         > 0) && ($haveCorrected     > 0));
-
-    return("$rt $ct");
-}
+my $nCor = getNumberOfReadsInStore("cor", $asm);   #  Number of raw reads ready for correction.
+my $nOBT = getNumberOfReadsInStore("obt", $asm);   #  Number of corrected reads ready for OBT.
+my $nAsm = getNumberOfReadsInStore("utg", $asm);   #  Number of trimmed reads ready for assembly.
 
 #  If a gkpStore was found, scan the reads in it to decide what we're working with.
 
-if (defined($gkp)) {
+if ($nCor + $nOBT + $nAsm > 0) {
     my $numPacBioRaw         = 0;
     my $numPacBioCorrected   = 0;
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< $gkp/libraries.txt") or caExit("can't open '$gkp/libraries.txt' for reading: $!", undef);
+    open(L, "< $asm.gkpStore/libraries.txt") or caExit("can't open '$asm.gkpStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
@@ -429,52 +394,22 @@ if (defined($gkp)) {
     $haveRaw++             if ($numPacBioRaw       + $numNanoporeRaw       > 0);
     $haveCorrected++       if ($numPacBioCorrected + $numNanoporeCorrected > 0);
 
-    my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
+    my $rt;
+
+    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
+    $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
+    $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
+
+    #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
-    print STDERR "-- Found $rtct reads in '$gkp'.\n";
+    print STDERR "-- In '$asm.gkpStore', found $rt reads:\n";
+    print STDERR "--   Raw:        $nCor\n";
+    print STDERR "--   Corrected:  $nOBT\n";
+    print STDERR "--   Trimmed:    $nAsm\n";
 }
 
-#  Like above, scan the gkpStore to decide what we're working with.  The catch here is that
-#  we scan the previous store, and all reads are corrected.
-
-elsif (defined($reads)) {
-
-    $gkp = "correction/$asm.gkpStore"   if ((-e "correction/$asm.gkpStore/libraries.txt")  && (sequenceFileExists("$asm.correctedReads")));
-    $gkp = "trimming/$asm.gkpStore"     if ((-e "trimming/$asm.gkpStore/libraries.txt")    && (sequenceFileExists("$asm.trimmedReads")));
-
-    my $numPacBio   = 0;
-    my $numNanopore = 0;
-
-    if (defined($gkp)) {
-        open(L, "< $gkp/libraries.txt") or caExit("can't open '$gkp/libraries.txt' for reading: $!", undef);
-        while (<L>) {
-            $numPacBio++           if (m/pacbio/);
-            $numNanopore++         if (m/nanopore/);
-        }
-        close(L);
-
-        $setUpForPacBio++      if ($numPacBio    > 0);
-        $setUpForNanopore++    if ($numNanopore  > 0);
-
-        $haveCorrected++;
-    } else {
-        #$setUpForPacBio++;   #  Leaving both setUp's as zero reports 'unknown' and
-        $haveCorrected++;     #  defaults to Pacbio below (search for setUpForNanopore).
-    }
-
-    #  Regardless of what the user gave us, we always want to restart with these reads.
-
-    undef @inputFiles;
-    push  @inputFiles, (($setUpForNanopore == 0) ? "-pacbio" : "-nanopore") . "-corrected\0$reads";
-
-    my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
-
-    print STDERR "--\n";
-    print STDERR "-- Found $rtct reads in '$reads'.\n";
-}
-
-#  Scan input files, counting the different types of libraries we have.
+#  Otherwise, scan input files, counting the different types of libraries we have.
 
 elsif (scalar(@inputFiles) > 0) {
     foreach my $typefile (@inputFiles) {
@@ -487,10 +422,28 @@ elsif (scalar(@inputFiles) > 0) {
         $setUpForNanopore++      if ($type =~ m/nanopore/);
     }
 
-    my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
+    my $rt;
+    my $ct;
+
+    $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
+    $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
+    $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
+    $rt = "unknown"                     if (($setUpForPacBio == 0) && ($setUpForNanopore == 0));
+
+    $ct = "uncorrected"                 if (($haveRaw         > 0) && ($haveCorrected    == 0));
+    $ct = "corrected"                   if (($haveRaw        == 0) && ($haveCorrected     > 0));
+    $ct = "uncorrected AND corrected"   if (($haveRaw         > 0) && ($haveCorrected     > 0));
+
+    #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
-    print STDERR "-- Found $rtct reads in the input files.\n";
+    print STDERR "-- Found $rt $ct reads in the input files.\n";
+}
+
+#  Otherwise, no reads found in a store, and no input files.
+
+else {
+    caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef);
 }
 
 #  Set an initial run mode, based on the libraries we have found, or the stores that exist (unless

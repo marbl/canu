@@ -195,12 +195,13 @@ sub gatekeeperCreateStore ($$@) {
 
     #  At the same time, check that all files exist.
 
-    if (!-e "./$asm.gkpStore.gkp") {
+    if (! -e "./$asm.gkpStore.gkp") {
         my $ff = undef;
 
         foreach my $iii (@inputs) {
             my ($type, $file) = split '\0', $iii;
 
+            #  REMOVE THIS!
             if (($file =~ m/\.correctedReads\./) ||
                 ($file =~ m/\.trimmedReads\./)) {
                 fetchFile($file);
@@ -272,12 +273,7 @@ sub gatekeeperCreateStore ($$@) {
         $cmd .= "  ./$asm.gkpStore.gkp \\\n";
         $cmd .= "> ./$asm.gkpStore.BUILDING.err 2>&1";
 
-        #  A little funny business to make gatekeeper not fail on read quality issues.
-        #  A return code of 0 is total success.
-        #  A return code of 1 means it found errors in the inputs, but finished.
-        #  Anything larger is a crash.
-
-        if (runCommand(".", $cmd) > 1) {
+        if (runCommand(".", $cmd) > 0) {
             caExit("gatekeeper failed", "./$asm.gkpStore.BUILDING.err");
         }
     }
@@ -294,22 +290,30 @@ sub gatekeeperCreateStore ($$@) {
         close(F);
 
         if ($nProblems > 0) {
-            print STDERR "\n";
-            print STDERR "Gatekeeper detected problems in your input reads.  Please review the logging in files:\n";
-            print STDERR "  ", getcwd(), "/./$asm.gkpStore.BUILDING.err\n";
-            print STDERR "  ", getcwd(), "/./$asm.gkpStore.BUILDING/errorLog\n";
-
             if (getGlobal("stopOnReadQuality")) {
-                print STDERR "If you wish to proceed, rename the store with the following commands and restart canu.\n";
                 print STDERR "\n";
-                print STDERR "  mv ", getcwd(), "/./$asm.gkpStore.BUILDING \\\n";
-                print STDERR "     ", getcwd(), "/./$asm.gkpStore.ACCEPTED\n";
+                print STDERR "Gatekeeper detected potential problems in your input reads.\n";
                 print STDERR "\n";
-                print STDERR "Or remove '", getcwd(), "/./' and re-run with stopOnReadQuality=false\n";
+                print STDERR "Please review the logging in files:\n";
+                print STDERR "  ", getcwd(), "/$asm.gkpStore.BUILDING.err\n";
+                print STDERR "  ", getcwd(), "/$asm.gkpStore.BUILDING/errorLog\n";
                 print STDERR "\n";
+                print STDERR "If you wish to proceed, rename the store with the following command and restart canu.\n";
+                print STDERR "\n";
+                print STDERR "  mv ", getcwd(), "/$asm.gkpStore.BUILDING \\\n";
+                print STDERR "     ", getcwd(), "/$asm.gkpStore.ACCEPTED\n";
+                print STDERR "\n";
+                print STDERR "Option stopOnReadQuality=false skips these checks.\n";
                 exit(1);
             } else {
-                print STDERR "Proceeding with assembly because stopOnReadQuality=false.\n";
+                print STDERR "--\n";
+                print STDERR "-- WARNING:  Gatekeeper detected potential problems in your input reads.\n";
+                print STDERR "-- WARNING:\n";
+                print STDERR "-- WARNING:  Please review the logging in files:\n";
+                print STDERR "-- WARNING:    ", getcwd(), "/$asm.gkpStore.BUILDING.err\n";
+                print STDERR "-- WARNING:    ", getcwd(), "/$asm.gkpStore.BUILDING/errorLog\n";
+                print STDERR "-- \n";
+                print STDERR "-- Proceeding with assembly because stopOnReadQuality=false.\n";
             }
         }
     }
@@ -470,58 +474,83 @@ sub gatekeeper ($$@) {
 
     fetchStore("./$asm.gkpStore");
 
-    #  If the store exists, make a symlink and be done (well, be done once we call
-    #  getNumberOfReadsInStore() below).
+    #  We cannot abort this step anymore.  If trimming is skipped, we need ro promote the corrected
+    #  reads to trimmed reads, and also re-stash the store.
+    #
+    #goto allDone    if (skipStage($asm, "$tag-gatekeeper") == 1);
+    #goto allDone    if (getNumberOfReadsInStore($tag, $asm) > 0);
 
-    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info")) {
-        symlink("../$asm.gkpStore", "$base/$asm.gkpStore");
-        return;
+    #  Create the store.
+    #
+    #  If all goes well, we get asm.gkpStore.
+    #
+    #  If not, we could end up with asm.gkpStore.BUILDING and ask the user to examine it and rename
+    #  it to asm.gkpStore.ACCEPTED and restart.  On the restart, gatekeeperCreateStore() detects the
+    #  'ACCPETED' store and renames to asm.gkpStore.
+
+    my $histAndStash = 0;
+
+    if (! -e "./$asm.gkpStore") {
+        gatekeeperCreateStore($base, $asm, @inputs);
+
+        $histAndStash = 1;
     }
-
-    #  Store with reads?  Yay!  Report it, then skip.
-
-    goto allDone    if (skipStage($asm, "$tag-gatekeeper") == 1);
-    goto allDone    if (getNumberOfReadsInStore($tag, $asm) > 0);
-
-    #  Create the store.  If all goes well, we get asm.gkpStore.  If not, we could end up with
-    #  asm.gkpStore.BUILDING and ask the user to examine it and rename it to asm.gkpStore.ACCEPTED
-    #  and restart.  On the restart, gatekeeperCreateStore() detects the 'ACCPETED' store and
-    #  renames to asm.gkpStore.
-
-    gatekeeperCreateStore($base, $asm, @inputs)                  if (! -e "./$asm.gkpStore");
-
-    #  Make a link to the freshly created store.
-
-    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info")) {
-        symlink("../$asm.gkpStore", "$base/$asm.gkpStore");
-    }
-
-    # ugly special case, if we were given corrected/raw reads but told to run assembly only we need to promote whatever latest reads are to trimmed
-    if ($tag == "utg" && getNumberOfReadsInStore($tag, $asm) == 0) {
-       if (getNumberOfReadsInStore("obt", $asm) > 0) {
-          # promote all reads as is to trimmed
-          if (runCommand($base, "$bin/loadTrimmedReads -G ../$asm.gkpStore")) {
-             caFailure("initializing clear ranges failed", undef);
-          }
-       } elsif (getNumberOfReadsInStore("cor", $asm) > 0) {
-          caExit("gatekeeper only contains raw reads, but you asked for assembly without correction, this is currently not supported", undef);
-       }
-    }
-    caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($tag, $asm) == 0);
 
     #  Dump the list of libraries.  Various parts use this for various stuff.
 
-    if (runCommandSilently($base, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -libs > ./$asm.gkpStore/libraries.txt 2> /dev/null", 1)) {
-        caExit("failed to generate list of libraries in store", undef);
+    if (! -e "./$asm.gkpStore/libraries.txt") {
+        if (runCommandSilently(".", "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -libs > ./$asm.gkpStore/libraries.txt 2> /dev/null", 1)) {
+            caExit("failed to generate list of libraries in store", undef);
+        }
     }
 
-    #  Generate a histogram of the reads.
+    #  Most of the pipeline still expects a gkpStore to exist in the stage subdirectories.  So make it exist.
 
-    addToReport("${tag}GkpStore", generateReadLengthHistogram($tag, $asm));
+    symlink("../$asm.gkpStore", "$base/$asm.gkpStore")    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info"));
 
-    #  Now that all the extra data is generated, stash the store.
+    #  Query how many reads we have.
 
-    stashStore("./$asm.gkpStore");
+    my $nCor = getNumberOfReadsInStore("cor", $asm);   #  Number of corrected reads ready for OBT.
+    my $nOBT = getNumberOfReadsInStore("obt", $asm);   #  Number of corrected reads ready for OBT.
+    my $nAsm = getNumberOfReadsInStore("utg", $asm);   #  Number of trimmed reads ready for assembly.
+
+    #  Refuse to assemble uncorrected reads (but keep going if there are no reads at all).
+
+    if (($tag eq "utg") &&    #  Assembling.
+        ($nCor >  0) &&       #  And raw reads exist.
+        ($nOBT == 0) &&       #  But no corrected reads.
+        ($nAsm == 0)) {       #  And no trimmed reads!
+
+        print STDERR "-- Unable to assemble uncorrected reads.\n";
+
+        caExit("unable to assemble uncorrected reads", undef);
+    }
+
+    #  Promote corrected reads to trimmed reads, if needed.
+
+    if (($tag eq "utg") &&    #  Assembling.
+        ($nOBT > 0) &&        #  Corrected reads exist.
+        ($nAsm == 0)) {       #  But no trimmed reads exist.
+
+        print STDERR "--\n";
+        print STDERR "-- WARNING:  No trimmed reads found for assembly, but untrimmed reads exist.\n";
+        print STDERR "-- WARNING:  Upgrading untrimmed reads to trimmed reads for assembly.\n";
+
+        if (runCommandSilently(".", "$bin/loadTrimmedReads -G ./$asm.gkpStore > ./$asm.gkpStore.upgrade.err 2>&1", 1)) {
+            caExit("initializing clear ranges failed", "./$asm.gkpStore.upgrade.err");
+        }
+
+        unlink "./$asm.gkpStore.upgrade.err";
+
+        $histAndStash = 1;
+    }
+
+    #  Make a histogram and stash the (updated) store.
+
+    if ($histAndStash) {
+        addToReport("${tag}GkpStore", generateReadLengthHistogram($tag, $asm));
+        stashStore("./$asm.gkpStore");
+    }
 
   finishStage:
     emitStage($asm, "$tag-gatekeeper");

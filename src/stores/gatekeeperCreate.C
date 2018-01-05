@@ -756,7 +756,7 @@ main(int argc, char **argv) {
       (bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
       (nWARNS   > 0.25 * (nSKIPPED + nLOADED)) ||
       (nSKIPPED > 0.50 * (nSKIPPED + nLOADED)))
-    exit(1);
+    exit(0);
 
   fprintf(stderr, "gatekeeperCreate finished successfully.\n");
 
