@@ -277,7 +277,7 @@ sub emitStage ($$@) {
     generateReport($asm);
 
     if (!defined($attempt)) {
-        print STDERR "-- Finished stage '$stage', reset canuIteration.\n";
+        #print STDERR "-- Finished stage '$stage', reset canuIteration.\n";
         setGlobal("canuIteration", 0);
     }
 }
@@ -1326,6 +1326,7 @@ sub reportRunError ($) {
 
     #  The rest is rather straightforward at least.
 
+    print STDERR "\n";
     print STDERR "ERROR:\n";
 
     if      ($rc ==  -1) {
