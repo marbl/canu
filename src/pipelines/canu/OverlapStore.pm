@@ -204,12 +204,12 @@ sub overlapStoreConfigure ($$$) {
         open(F, "> $path/scripts/0-config.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
         #print F setWorkDirectoryShellCode($path);   #  This is never run on grid, so don't need to cd first.
         #print F "\n";
         #print F getJobIDShellCode();
         #print F "\n";
-        print F getBinDirectoryShellCode();
-        print F "\n";
         print F getLimitShellCode();
         print F "\n";
         print F "\$bin/ovStoreBuild \\\n";
@@ -242,11 +242,11 @@ sub overlapStoreConfigure ($$$) {
         open(F, "> $path/scripts/1-bucketize.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
         print F setWorkDirectoryShellCode($path);
         print F "\n";
         print F getJobIDShellCode();
-        print F "\n";
-        print F getBinDirectoryShellCode();
         print F "\n";
         print F "bn=`printf %04d \$jobid`\n";
         print F "jn=\"undefined\"\n";
@@ -302,11 +302,11 @@ sub overlapStoreConfigure ($$$) {
         open(F, "> $path/scripts/2-sort.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
         print F setWorkDirectoryShellCode($path);
         print F "\n";
         print F getJobIDShellCode();
-        print F "\n";
-        print F getBinDirectoryShellCode();
         print F "\n";
         print F getLimitShellCode();
         print F "\n";
@@ -326,12 +326,12 @@ sub overlapStoreConfigure ($$$) {
         open(F, "> $path/scripts/3-index.sh") or die;
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
         #print F setWorkDirectoryShellCode($path);   #  This is never run on grid, so don't need to cd first.
         #print F "\n";
         #print F getJobIDShellCode();
         #print F "\n";
-        print F getBinDirectoryShellCode();
-        print F "\n";
         print F "\$bin/ovStoreIndexer \\\n";
         #print F "  -nodelete \\\n";  #  Choices -nodelete or nothing
         print F "  -O . \\\n";

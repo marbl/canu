@@ -65,11 +65,11 @@ sub utgcns ($$$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
     print F setWorkDirectoryShellCode($path);
     print F "\n";
     print F getJobIDShellCode();
-    print F "\n";
-    print F getBinDirectoryShellCode();
     print F "\n";
     print F "if [ \$jobid -gt $jobs ]; then\n";
     print F "  echo Error: Only $jobs partitions, you asked for \$jobid.\n";
