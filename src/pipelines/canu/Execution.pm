@@ -388,31 +388,15 @@ sub getLimitShellCode () {
 }
 
 
-#  Used inside canu to find where binaries are located.  It uses uname to find OS, architecture and
-#  system name, then uses that to construct a path to binaries.  If a "pathMap" is defined, this is
-#  used to hardcode a path to a system name.
+#  Used inside canu to find where binaries are located.
 #
 sub getBinDirectory () {
     my $installDir = getInstallDirectory();
 
-    my $syst = `uname -s`;    chomp $syst;  #  OS implementation
-    my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
-    my $name = `uname -n`;    chomp $name;  #  Name of the system
-
-    $arch = "amd64"  if ($arch eq "x86_64");
-    $arch = "ppc"    if ($arch eq "Power Macintosh");
+    my $syst = `uname -s`;                          chomp $syst;  #  OS implementation
+    my $arch = `uname -m | sed s/x86_64/amd64/`;    chomp $arch;  #  Hardware platform
 
     my $path = "$installDir/$syst-$arch/bin";
-
-    my $pathMap = getGlobal("pathMap");
-    if (defined($pathMap)) {
-        open(F, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
-        while (<F>) {
-            my ($n, $b) = split '\s+', $_;
-            $path = $b if ($name eq $n);
-        }
-        close(F);
-    }
 
     if (! -d "$path") {
         $path = $installDir;
@@ -429,33 +413,25 @@ sub getBinDirectoryShellCode () {
     my $installDir = getInstallDirectory();
     my $string;
 
-    $string .= "syst=`uname -s`\n";
-    $string .= "arch=`uname -m`\n";
-    $string .= "name=`uname -n`\n";
-    $string .= "\n";
-    $string .= "if [ \"\$arch\" = \"x86_64\" ] ; then\n";
-    $string .= "  arch=\"amd64\"\n";
-    $string .= "fi\n";
-    $string .= "if [ \"\$arch\" = \"Power Macintosh\" ] ; then\n";
-    $string .= "  arch=\"ppc\"\n";
-    $string .= "fi\n";
-    $string .= "\n";
-    $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
-    $string .= "\n";
+    #  First, run any preExec command that might exist.
 
-    my $pathMap = getGlobal("pathMap");
-    if (defined($pathMap)) {
-        open(PM, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
-        while (<PM>) {
-            my ($n, $b) = split '\s+', $_;
-            $string .= "if [ \"\$name\" = \"$n\" ] ; then\n";
-            $string .= "  bin=\"$b\"\n";
-            $string .= "fi\n";
-        }
-        close(PM);
+    if (defined(getGlobal("preExec"))) {
+        $string .= "#  Pre-execution commands.\n";
+        $string .= "\n";
+        $string .= getGlobal('preExec') . "\n";
         $string .= "\n";
     }
 
+    #  Then, setup paths.
+
+    $string .= "\n";
+    $string .= "#  Path to Canu.\n";
+    $string .= "\n";
+    $string .= "syst=`uname -s`\n";
+    $string .= "arch=`uname -m | sed s/x86_64/amd64/`\n";
+    $string .= "\n";
+    $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
+    $string .= "\n";
     $string .= "if [ ! -d \"\$bin\" ] ; then\n";
     $string .= "  bin=\"$installDir\"\n";
     $string .= "fi\n";
@@ -640,21 +616,16 @@ sub submitScript ($$) {
 
     open(F, "> $script") or caFailure("failed to open '$script' for writing", undef);
     print F "#!" . getGlobal("shell") . "\n";
-    print F "\n"                                                                        if (getGlobal("gridEngine") eq "SGE");
+    print F "\n";
     print F "#  Attempt to (re)configure SGE.  For unknown reasons, jobs submitted\n"   if (getGlobal("gridEngine") eq "SGE");
     print F "#  to SGE, and running under SGE, fail to read the shell init scripts,\n"  if (getGlobal("gridEngine") eq "SGE");
     print F "#  and so they don't set up SGE (or ANY other paths, etc) properly.\n"     if (getGlobal("gridEngine") eq "SGE");
     print F "#  For the record, interactive logins (qlogin) DO set the environment.\n"  if (getGlobal("gridEngine") eq "SGE");
-    print F "\n";
-    print F "if [ \"x\$SGE_ROOT\" != \"x\" ]; then \n"                                  if (getGlobal("gridEngine") eq "SGE");
-    print F "   if [ -e  \$SGE_ROOT/\$SGE_CELL/common/settings.sh ]; then \n"           if (getGlobal("gridEngine") eq "SGE");
-    print F "     . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n"                         if (getGlobal("gridEngine") eq "SGE");
-    print F "   fi\n"                                                                   if (getGlobal("gridEngine") eq "SGE");
+    print F "\n"                                                                        if (getGlobal("gridEngine") eq "SGE");
+    print F "if [ \"x\$SGE_ROOT\" != \"x\" -a \\\n"                                     if (getGlobal("gridEngine") eq "SGE");
+    print F "     -e  \$SGE_ROOT/\$SGE_CELL/common/settings.sh ]; then\n"               if (getGlobal("gridEngine") eq "SGE");
+    print F "  . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n"                            if (getGlobal("gridEngine") eq "SGE");
     print F "fi\n"                                                                      if (getGlobal("gridEngine") eq "SGE");
-    print F "\n";
-    print F "#  On the off chance that there is a pathMap, and the host we\n";
-    print F "#  eventually get scheduled on doesn't see other hosts, we decide\n";
-    print F "#  at run time where the binary is.\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";

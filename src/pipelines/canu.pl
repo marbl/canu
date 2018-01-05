@@ -87,10 +87,7 @@ my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
 setDefaults();
 
-#  The bin directory is needed for -version, can only be set after setDefaults(), but really should be
-#  set after checkParameters() so it can know pathMap.
-
-my $bin     = getBinDirectory();  #  Path to binaries, reset later.
+my $bin     = getBinDirectory();  #  Path to binaries, must be set after setDefaults().
 my $cmd     = undef;              #  Temporary string passed to system().
 my $asm     = undef;              #  Name of our assembly.
 my $asmAuto = undef;              #  If set, the name was auto-discovered.
@@ -267,10 +264,6 @@ foreach my $specFile (@specFiles) {
 #  Set parameters from the command line.
 
 setParametersFromCommandLine(@specOpts);
-
-#  Reset $bin, now that all options, specifically the pathMap, are set.
-
-$bin = getBinDirectory();
 
 #  If anything complained (invalid option, missing file, etc) printHelp() will trigger and exit.
 

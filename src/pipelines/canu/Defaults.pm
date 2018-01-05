@@ -748,13 +748,13 @@ sub setDefaults () {
     my $java = (exists $ENV{"JAVA_HOME"} && -e "$ENV{'JAVA_HOME'}/bin/java") ? "$ENV{'JAVA_HOME'}/bin/java" : "java";
 
     setDefault("showNext",            undef,     "Don't run any commands, just report what would run");
-    setDefault("pathMap",             undef,     "File with a hostname to binary directory map; binary directories must be absolute paths");
     setDefault("shell",               "/bin/sh", "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
     setDefault("java",                $java,     "Java interpreter to use; at least version 1.8; default 'java'");
     setDefault("gnuplot",             "gnuplot", "Path to the gnuplot executable");
     setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
     setDefault("gnuplotTested",       0,         "If set, skip the initial testing of gnuplot");
     setDefault("stageDirectory",      undef,     "If set, copy heavily used data to this node-local location");
+    setDefault("preExec",             undef,     "A command line to run at the start of Canu execution scripts");
 
     #####  Cleanup and Termination options
 
@@ -948,7 +948,7 @@ sub setDefaults () {
 }
 
 
-#  Get the version information.  Needs to be last so that pathMap can be defined.
+#  Get the version information.
 
 sub setVersion ($) {
     my $bin    = shift @_;
