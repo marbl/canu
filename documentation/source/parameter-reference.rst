@@ -150,16 +150,6 @@ stopAfter <string=undefined>
 General Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pathMap <string=undefined>
-  A text file containing lines that map a hostname to a path to the assembler binaries.
-  This can be used to provide fine-grained binary directories, for example, when incompatible versions
-  of the operating system are used, or when canu is installed in a non-standard way.
-
-  The hostname must be the same as returned by 'uname -n'.  For example::
-
-   grid01   /grid/software/canu/Linux-amd64/bin/
-   devel01  /devel/canu/Linux-amd64/bin/
-
 shell <string="/bin/sh">
   A path to a Bourne shell, to be used for executing scripts.  By default, '/bin/sh', which is typically
   the same as 'bash'.  C shells (csh, tcsh) are not supported.
@@ -178,6 +168,9 @@ gnuplotTested <boolean=false>
   This is used when gnuplot fails to run, or isn't even installed, and allows canu to continue
   execution without generating graphs.
 
+preExec <string=undef>
+  A single command that will be run before Canu starts in a grid-enabled configuration.
+  Can be used to set up the environment, e.g., with 'module'.
 
 File Staging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
