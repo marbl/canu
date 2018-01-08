@@ -211,7 +211,7 @@ main(int argc, char **argv) {
 
   char             *outputPrefix = NULL;
 
-  uint32            idMin = 0;
+  uint32            idMin = 1;
   uint32            idMax = UINT32_MAX;
   char             *readListName = NULL;
   set<uint32>       readList;
