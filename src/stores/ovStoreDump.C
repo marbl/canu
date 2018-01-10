@@ -428,14 +428,15 @@ dumpPicture(ovOverlap     *overlaps,
             gkStore       *gkpStore,
             uint32         qryID,
             bogartStatus  *bogart,
-            uint32         dumpType) {
+            uint32         dumpType,
+            gkRead_version clearType) {
   char     ovl[256] = {0};
 
   uint32   MHS = 9;  //  Max Hang Size, amount of padding for "+### "
 
   uint32    Aid    = qryID;
   gkRead   *A      = gkpStore->gkStore_getRead(Aid);
-  uint32   frgLenA = A->gkRead_sequenceLength();
+  uint32   frgLenA = A->gkRead_sequenceLength(clearType);
 
   for (int32 i=0; i<256; i++)
     ovl[i] = ' ';
@@ -460,7 +461,7 @@ dumpPicture(ovOverlap     *overlaps,
   for (uint32 o=0; o<novl; o++) {
     uint32    Bid    = overlaps[o].b_iid;
     gkRead   *B      = gkpStore->gkStore_getRead(Bid);
-    uint32   frgLenB = B->gkRead_sequenceLength();
+    uint32   frgLenB = B->gkRead_sequenceLength(clearType);
 
     //  Find bgn/end points on each read.  If the overlap is reverse complement,
     //  the B coords are flipped so that bgn > end.
@@ -637,20 +638,21 @@ dumpPicture(ovOverlap     *overlaps,
 
 
 void
-dumpPicture(ovStore  *ovlStore,
-            gkStore  *gkpStore,
-            double    dumpERate,
-            uint32    dumpLength,
-            uint32    dumpType,
-            uint32    qryID,
-            char     *bestPrefix) {
+dumpPicture(ovStore        *ovlStore,
+            gkStore        *gkpStore,
+            double          dumpERate,
+            uint32          dumpLength,
+            uint32          dumpType,
+            uint32          qryID,
+            char           *bestPrefix,
+            gkRead_version  clearType) {
 
   //fprintf(stderr, "DUMPING PICTURE for ID " F_U32 " in store %s (gkp %s)\n",
   //        qryID, ovlName, gkpName);
 
   uint32    Aid    = qryID;
   gkRead   *A      = gkpStore->gkStore_getRead(Aid);
-  uint32   frgLenA = A->gkRead_sequenceLength();
+  uint32   frgLenA = A->gkRead_sequenceLength(clearType);
 
   ovlStore->setRange(Aid, Aid);
 
@@ -717,7 +719,7 @@ dumpPicture(ovStore  *ovlStore,
   if (novl == 0)
     fprintf(stderr, "no overlaps to show.\n");
   else
-    dumpPicture(overlaps, novl, gkpStore, Aid, bogart, dumpType);
+    dumpPicture(overlaps, novl, gkpStore, Aid, bogart, dumpType, clearType);
 
   delete [] overlaps;
 }
@@ -743,6 +745,8 @@ main(int argc, char **argv) {
   double          dumpERate   = 1.0;
   uint32          dumpLength  = 0;
   uint32          dumpType    = 0;
+
+  gkRead_version  clearType   = gkRead_latest;
 
   char           *erateFile   = NULL;
 
@@ -793,6 +797,13 @@ main(int argc, char **argv) {
       qryID      = atoi(argv[++arg]);
     }
 
+    //  Format of the read
+    else if (strcmp(argv[arg], "-raw") == 0)
+      clearType = gkRead_raw;
+    else if (strcmp(argv[arg], "-obt") == 0)
+      clearType = gkRead_corrected;
+    else if (strcmp(argv[arg], "-utg") == 0)
+      clearType = gkRead_trimmed;
 
     //  Format of the dump
     else if (strcmp(argv[arg], "-coords") == 0)
@@ -886,6 +897,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -q a b     report the a,b overlap, if it exists.\n");
     fprintf(stderr, "  -p a       dump a picture of overlaps to fragment 'a'.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  CLEAR RANGE SELECTION\n");
+    fprintf(stderr, "    By default, will use the latest available.  To dump overlaps\n");
+    fprintf(stderr, "    from earlier stages, the clear range must be supplied.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -raw\n");
+    fprintf(stderr, "  -obt\n");
+    fprintf(stderr, "  -utg\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  FORMAT (for -d)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coords           dump overlap showing coordinates in the reads (default)\n");
@@ -949,7 +968,7 @@ main(int argc, char **argv) {
       break;
     case OP_DUMP_PICTURE:
       for (uint32 qq=bgnID; qq <= endID; qq++)
-        dumpPicture(ovlStore, gkpStore, dumpERate, dumpLength, dumpType, qq, bestPrefix);
+        dumpPicture(ovlStore, gkpStore, dumpERate, dumpLength, dumpType, qq, bestPrefix, clearType);
       break;
     default:
       break;

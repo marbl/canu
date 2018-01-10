@@ -34,6 +34,14 @@
 //  DO NOT INCLUDE THIS FILE DIRECTLY, include gkStore.H.
 
 
+typedef enum {
+  gkRead_latest    = 0x00,  //  Return the latest version, default mode for most functions
+  gkRead_raw       = 0x01,  //  Return the raw read
+  gkRead_corrected = 0x02,  //  Return the corrected read
+  gkRead_trimmed   = 0x03,  //  Return the trimmed read
+} gkRead_version;
+
+
 class gkRead;
 class gkLibrary;
 
@@ -87,12 +95,24 @@ public:
   char       *gkReadData_getRawSequence(void)         { return(_rseq);  };
   char       *gkReadData_getCorrectedSequence(void)   { return(_cseq);  };
   char       *gkReadData_getTrimmedSequence(void)     { return(_tseq);  };
-  char       *gkReadData_getSequence(void)            { return(_aseq);  };
+
+  char       *gkReadData_getSequence(gkRead_version vers = gkRead_latest) {
+    if      (vers == gkRead_raw)          return(_rseq);
+    else if (vers == gkRead_corrected)    return(_cseq);
+    else if (vers == gkRead_trimmed)      return(_tseq);
+    else                                  return(_aseq);
+  };
 
   uint8      *gkReadData_getRawQualities(void)        { return(_rqlt);  };
   uint8      *gkReadData_getCorrectedQualities(void)  { return(_cqlt);  };
   uint8      *gkReadData_getTrimmedQualities(void)    { return(_tqlt);  };
-  uint8      *gkReadData_getQualities(void)           { return(_aqlt);  };
+
+  uint8      *gkReadData_getQualities(gkRead_version vers = gkRead_latest) {
+    if      (vers == gkRead_raw)          return(_rqlt);
+    else if (vers == gkRead_corrected)    return(_cqlt);
+    else if (vers == gkRead_trimmed)      return(_tqlt);
+    else                                  return(_aqlt);
+  };
 
 public:
   //  Set the name of the read.
@@ -191,10 +211,15 @@ public:
   uint32      gkRead_correctedLength(void)    { return(_cseqLen);              };
   uint32      gkRead_trimmedLength(void)      { return(_clearEnd - _clearBgn); };
 
-  uint32      gkRead_sequenceLength(void)     {
-    if      (_tExists)   return(gkRead_trimmedLength());
-    else if (_cExists)   return(gkRead_correctedLength());
-    else                 return(gkRead_rawLength());
+  uint32      gkRead_sequenceLength(gkRead_version vers = gkRead_latest) {
+    if      (vers == gkRead_raw)          return(_rseqLen);
+    else if (vers == gkRead_corrected)    return(_cseqLen);
+    else if (vers == gkRead_trimmed)      return(_clearEnd - _clearBgn);
+    else {
+      if      (_tExists)   return(_clearEnd - _clearBgn);
+      else if (_cExists)   return(_cseqLen);
+      else                 return(_rseqLen);
+    }
   };
 
   uint32      gkRead_clearBgn(void)           { return(_clearBgn); };
