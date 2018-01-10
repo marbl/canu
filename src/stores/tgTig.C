@@ -726,6 +726,10 @@ tgTig::reverseComplement(void) {
 
 void
 tgTig::dumpFASTA(FILE *F, bool useGapped) {
+
+  if (consensusExists() == false)
+    return;
+
   AS_UTL_writeFastA(F,
                     bases(useGapped), length(useGapped), 100,
                     ">tig%08u len=" F_U32 " reads=" F_U32 " covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
@@ -742,6 +746,10 @@ tgTig::dumpFASTA(FILE *F, bool useGapped) {
 
 void
 tgTig::dumpFASTQ(FILE *F, bool useGapped) {
+
+  if (consensusExists() == false)
+    return;
+
   AS_UTL_writeFastQ(F,
                     bases(useGapped), length(useGapped),
                     quals(useGapped), length(useGapped),
