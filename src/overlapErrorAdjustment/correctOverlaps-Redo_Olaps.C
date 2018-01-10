@@ -290,19 +290,19 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
   //  Allocate some temporary work space for the forward and reverse corrected B reads.
 
-  fprintf(stderr, "--Allocate " F_U64 " MB for fseq and rseq.\n", (2 * sizeof(char) * 2 * (AS_MAX_READLEN + 1)) >> 20);
+  fprintf(stderr, "--Allocate " F_SIZE_T " MB for fseq and rseq.\n", (2 * sizeof(char) * 2 * (AS_MAX_READLEN + 1)) >> 20);
   char          *fseq    = new char     [AS_MAX_READLEN + 1 + AS_MAX_READLEN + 1];
   uint32         fseqLen = 0;
 
   char          *rseq    = new char     [AS_MAX_READLEN + 1 + AS_MAX_READLEN + 1];
   uint32         rseqLen = 0;
 
-  fprintf(stderr, "--Allocate " F_U64 " MB for fadj and radj.\n", (2 * sizeof(Adjust_t) * (AS_MAX_READLEN + 1)) >> 20);
+  fprintf(stderr, "--Allocate " F_SIZE_T " MB for fadj and radj.\n", (2 * sizeof(Adjust_t) * (AS_MAX_READLEN + 1)) >> 20);
   Adjust_t      *fadj    = new Adjust_t [AS_MAX_READLEN + 1];
   Adjust_t      *radj    = new Adjust_t [AS_MAX_READLEN + 1];
   uint32         fadjLen  = 0;  //  radj is the same length
 
-  fprintf(stderr, "--Allocate " F_U64 " MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
+  fprintf(stderr, "--Allocate " F_SIZE_T " MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
   gkReadData    *readData = new gkReadData;
   pedWorkArea_t *ped      = new pedWorkArea_t;
 

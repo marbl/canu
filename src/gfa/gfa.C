@@ -359,7 +359,7 @@ gfaFile::loadFile(char *inFile) {
 
   delete [] L;
 
-  fprintf(stderr, "gfa:  Loaded " F_S64 " sequences and " F_S64 " links.\n", _sequences.size(), _links.size());
+  fprintf(stderr, "gfa:  Loaded " F_SIZE_T " sequences and " F_SIZE_T " links.\n", _sequences.size(), _links.size());
 
   return(true);
 }

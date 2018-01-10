@@ -82,7 +82,7 @@ FILE         *intervalOutput = NULL;
 
 static
 void
-writeInputsAsGFF3(char *outputPrefix) {
+writeInputsAsGFF3(char *UNUSED(outputPrefix)) {
 
   for (uint32 i=0; i<genome.size(); i++) {
     fprintf(gffOutput, "%s\t.\tbogus_raw_input\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d;Name=%s;Note=%d-%d\n",
@@ -101,7 +101,7 @@ writeInputsAsGFF3(char *outputPrefix) {
 
 static
 void
-processMatches(int32 alignWobble, int32 uniqEnd) {
+processMatches(int32 alignWobble, int32 UNUSED(uniqEnd)) {
 
   longest.resize(IIDname.size());
 
@@ -302,7 +302,7 @@ findSpannedMatches(int32 uniqEnd) {
 
 static
 void
-buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
+buildIntervals(char *UNUSED(outputPrefix), int32 fragTrim, bool includeRaw) {
 
   for (uint32 i=0; i<genome.size(); i++) {
     int32  frgIID = genome[i].frgIID;
@@ -634,7 +634,7 @@ main(int argc, char **argv) {
       if (refcnt == 0) {
         fprintf(stderr, "DIDN'T FIND REGION.\n");
         for (uint32 rr=0; rr<refList.size(); rr++) {
-          fprintf(stderr, "  %3u rschnBgn %6d REPT %5d %ld-%ld UNIQ %5d %ld-%ld rschnEnd %6d REPT\n",
+          fprintf(stderr, "  %3u rschnBgn %6d REPT %5d %lld-%lld UNIQ %5d %lld-%lld rschnEnd %6d REPT\n",
                   rr,
                   refList[rr].rschnBgn,
                   ir, lor, hir,

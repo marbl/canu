@@ -145,7 +145,7 @@ bedFile::loadFile(char *inFile) {
 
   delete [] L;
 
-  fprintf(stderr, "bed:  Loaded " F_S64 " records.\n", _records.size());
+  fprintf(stderr, "bed:  Loaded " F_SIZE_T " records.\n", _records.size());
 
   return(true);
 }

@@ -217,7 +217,7 @@ public:
   void          initialize(coParameters *G_, double errorRate) {
     G = G_;
 
-    fprintf(stderr, "-- Allocate " F_U64 " MB for Edit_Array pointers.\n", (sizeof(int32 *) * Edit_Array_Max) >> 20);
+    fprintf(stderr, "-- Allocate " F_SIZE_T " MB for Edit_Array pointers.\n", (sizeof(int32 *) * Edit_Array_Max) >> 20);
 
     Edit_Array_Max  = 1 + (uint32)(errorRate * AS_MAX_READLEN);
     Edit_Array_Lazy = new int32 * [Edit_Array_Max];
