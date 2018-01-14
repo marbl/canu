@@ -225,6 +225,7 @@ main(int argc, char **argv) {
   uint32            minOutputLength    = 500;
 
   bool              trimToAlign        = true;
+  bool              restrictToOverlap  = true;
 
   argc = AS_configure(argc, argv);
 
@@ -244,6 +245,10 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-t") == 0) {   //  COMPUTE RESOURCES
       numThreads = atoi(argv[++arg]);
+
+
+    } else if (strcmp(argv[arg], "-f") == 0) {   //  ALGORITHM OPTIONS
+      restrictToOverlap = false;
 
 
     } else if (strcmp(argv[arg], "-b") == 0) {   //  READ SELECTION
@@ -288,6 +293,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "RESOURCE PARAMETERS\n");
     fprintf(stderr, "  -t numThreads    number of compute threads to use\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "ALGORITHM PARAMETERS\n");
+    fprintf(stderr, "  -f               align evidence to the full read, ignore overlap position\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "CONSENSUS PARAMETERS\n");
     fprintf(stderr, "  -cc coverage     minimum consensus coverage to output corrected base\n");
     fprintf(stderr, "  -cl length       minimum length of corrected region\n");
@@ -327,7 +335,7 @@ main(int argc, char **argv) {
 
   //  Initialize processing.
 
-  falconConsensus   *fc = new falconConsensus(minAllowedCoverage, minIdentity, minOutputLength);
+  falconConsensus   *fc = new falconConsensus(minAllowedCoverage, minIdentity, minOutputLength, restrictToOverlap);
   gkReadData        *rd = new gkReadData;
 
   //  And process.

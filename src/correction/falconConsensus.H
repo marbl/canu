@@ -171,10 +171,12 @@ class falconConsensus {
 public:
   falconConsensus(uint32               minAllowedCoverage_,
                   double               minIdentity_,
-                  uint32               minOutputLength_) {
+                  uint32               minOutputLength_,
+                  bool                 restrictToOverlap_ = true) {
     minAllowedCoverage  = minAllowedCoverage_;
     minIdentity         = minIdentity_;
     minOutputLength     = minOutputLength_;
+    restrictToOverlap   = restrictToOverlap_;
   };
 
   ~falconConsensus() {
@@ -197,6 +199,8 @@ private:
   uint32               minAllowedCoverage;
   double               minIdentity;
   uint32               minOutputLength;
+
+  bool                 restrictToOverlap;
 
   msa_vector_t         msa;
 };

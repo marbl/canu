@@ -295,7 +295,7 @@ falconConsensus::generateConsensus(falconInput   *evidence,
                                    uint32         evidenceLen) {
 
   return(getConsensus(evidenceLen,
-                      alignReadsToTemplate(evidence, evidenceLen, minIdentity),
+                      alignReadsToTemplate(evidence, evidenceLen, minIdentity, restrictToOverlap),
                       evidence[0].readLength));
 }
 

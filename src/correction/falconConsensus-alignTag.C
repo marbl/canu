@@ -120,7 +120,8 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 Qid,    //  re
 alignTagList **
 alignReadsToTemplate(falconInput    *evidence,
                      uint32          evidenceLen,
-                     double          minIdentity) {
+                     double          minIdentity,
+                     bool            restrictToOverlap) {
 
   double         maxDifference = 1.0 - minIdentity;
   alignTagList **tagList = new alignTagList * [evidenceLen];
@@ -146,8 +147,8 @@ alignReadsToTemplate(falconInput    *evidence,
 
     int32 tolerance =  (int32)ceil(min(evidence[j].readLength, evidence[0].readLength) * maxDifference * 1.1);
 
-    int32  alignBgn = evidence[j].placedBgn;
-    int32  alignEnd = evidence[j].placedEnd;
+    int32  alignBgn = (restrictToOverlap == true) ? evidence[j].placedBgn : 0;
+    int32  alignEnd = (restrictToOverlap == true) ? evidence[j].placedEnd : evidence[0].readLength;
 
     assert(alignEnd > alignBgn);
 
