@@ -168,7 +168,7 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
   align_tag_col_t *g_best_aln_col = NULL;
   int32            g_best_t_pos   = 0;
-  double           g_best_score   = DBL_MIN;
+  double           g_best_score   = -1;  //  Might be a magic value.
 
   //  Over every template base,
   //  And every delta position,
@@ -181,9 +181,9 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       for (uint32 kk=0; kk<5; kk++) {
         align_tag_col_t *aln_col = msa[i]->delta[j]->base + kk;
 
-        aln_col->score    = DBL_MIN;
+        aln_col->score    = -1;  //  Probably needs to be the same magic value as above.
 
-        double best_score = DBL_MIN;
+        double best_score = -1;  //  Magic too?
 
         //fprintf(stderr, "Processing consensus template %d which as %d delta and on base %d i pulled up col %d with %d links and best %d %d %d\n",
         //        i, j, kk, aln_col, aln_col->n_link, aln_col->best_p_t_pos, aln_col->best_p_delta, aln_col->best_p_q_base);
