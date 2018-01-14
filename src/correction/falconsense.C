@@ -163,18 +163,18 @@ generateFalconConsensus(falconConsensus   *fc,
       fprintf(stderr, "Read %u region %u-%u\n",
               tig->tigID(), bb, ee + isLast);
 
-    if (isLower) {                               //  If lowercase, declare that we're not in a
-      in = 0;                                    //  good region any more.
+    if (isLower) {                                 //  If lowercase, declare that we're not in a
+      in = 0;                                      //  good region any more.
     }
 
-    else if (in == 0) {                          //  Otherwise, if not in a region (so the first
-      bb = ee;                                   //  uppercase), remember the coordinate and
-      in = 1;                                    //  switch to being 'in' a region.
+    else if (in == 0) {                            //  Otherwise, if not in a region (so the first
+      bb = ee;                                     //  uppercase), remember the coordinate and
+      in = 1;                                      //  switch to being 'in' a region.
     }
 
-    if ((in == 1) && (ee - bb > end - bgn)) {    //  If 'in' a good region, remember the longest.
-      bgn = bb;
-      end = ee + 1;
+    if ((in == 1) && (ee + 1 - bb > end - bgn)) {  //  If 'in' a good region, remember the longest.
+      bgn = bb;                                    //  'ee + 1': if the next letter is lower case
+      end = ee + 1;                                //  our bgn,end interval will be set in this iteration
     }
   }
 
