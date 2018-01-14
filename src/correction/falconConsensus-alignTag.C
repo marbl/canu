@@ -193,6 +193,18 @@ alignReadsToTemplate(falconInput    *evidence,
     int32  tBgn = alignBgn + align.startLocations[0];
     int32  tEnd = alignBgn + align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
 
+    if ((alignBgn > 0) &&
+        (tBgn <= alignBgn)) {
+      fprintf(stderr, "bumped into start align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
+      goto again;
+    }
+
+    if ((alignEnd < evidence[0].readLength) &&
+        (tEnd >= alignEnd)) {
+      fprintf(stderr, "bumped into end align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
+      goto again;
+    }
+
     char *tAln = new char [align.alignmentLength + 1];
     char *rAln = new char [align.alignmentLength + 1];
 
