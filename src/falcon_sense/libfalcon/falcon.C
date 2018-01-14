@@ -602,14 +602,16 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
         score0 = g_best_aln_col->score;
         i = g_best_aln_col->best_p_t_pos;
-        if (i == -1 || index >= t_len * 2) break;
+        //if (i == -1 || index >= t_len * 2) break;          //  WRONG!  Stops if _next_ column is invalid, never reports this column
         j = g_best_aln_col->best_p_delta;
         ck = g_best_aln_col->best_p_q_base;
-        g_best_aln_col = msa_array[i]->delta[j].base + ck;
+
+        if (i > -1)
+          g_best_aln_col = msa_array[i]->delta[j].base + ck;   //  used for next iteration and to compute eqv here
 
         if (bb != '-') {
             cns_str[index] = bb;
-            eqv[index] = (int) score0 - (int) g_best_aln_col->score;
+            eqv[index] = 0;  //(int) score0 - (int) g_best_aln_col->score;   //  totally bogus
             #ifdef DEBUG
             fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, coverage[i], eqv[index] );
             #endif
@@ -624,6 +626,8 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
             consensus->originalPos.push_back(originalI);
 #endif
         }
+
+        if (i == -1) break;
     }
 
     // reverse the sequence
@@ -671,7 +675,7 @@ consensus_data * generate_consensus( vector<string> input_seq,
           input_seq[j].resize(input_seq[0].size());
        }
        int tolerance =  (int)ceil((double)min(input_seq[j].length(), input_seq[0].length())*max_diff*1.1);
-       EdlibAlignResult align = edlibAlign(input_seq[j].c_str(), input_seq[j].size()-1, input_seq[0].c_str(), input_seq[0].size()-1, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+       EdlibAlignResult align = edlibAlign(input_seq[j].c_str(), input_seq[j].size(), input_seq[0].c_str(), input_seq[0].size(), edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
 #ifdef BRI
        for (int32 l=0; l<align.numLocations; l++)
@@ -685,10 +689,10 @@ consensus_data * generate_consensus( vector<string> input_seq,
                  (float)align.editDistance / (align.endLocations[l] - align.startLocations[l]));
 #endif
 
-       if (align.numLocations >= 1 && align.endLocations[0] - align.startLocations[0] > min_len && ((float)align.editDistance / (align.endLocations[0]-align.startLocations[0]) < max_diff)) {
+       if (align.numLocations >= 1 && align.endLocations[0] - align.startLocations[0] >= min_len && ((float)align.editDistance / (align.endLocations[0]-align.startLocations[0]) < max_diff)) {
           aln_range arange;
           arange.s1 = 0;
-          arange.e1 = input_seq[j].length()-1;
+          arange.e1 = input_seq[j].length();
           arange.s2 = align.startLocations[0];
           arange.e2 = align.endLocations[0];
           #ifdef DEBUG
