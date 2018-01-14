@@ -107,6 +107,13 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 Qid,    //  re
 
     tags->setTag(j, p_j, jj, p_jj, Qalign[k], p_q_base);
 
+#ifdef BRI
+#if 0
+    fprintf(stderr, "set tag j %5d p_j %5d jj %5d p_jj %5d base %c p_q_base %c\n",
+            j, p_j, jj, p_jj, Qalign[k], p_q_base);
+#endif
+#endif
+
     p_j       = j;
     p_jj      = jj;
     p_q_base  = Qalign[k];
@@ -163,15 +170,32 @@ alignReadsToTemplate(falconInput    *evidence,
     if (alignBgn < 0)                         alignBgn = 0;
     if (alignEnd > evidence[0].readLength)    alignEnd = evidence[0].readLength;
 
-    //fprintf(stderr, "ALIGN read #%d ident %u of length %u to template of length %u tolerance %d\n",
-    //        j, evidence[j].ident, evidence[j].readLength, evidence[0].readLength, tolerance);
+#ifdef BRI
+    fprintf(stderr, "ALIGN to %d-%d length %d\n",
+            alignBgn, alignEnd, evidence[0].readLength);
+#endif
 
-    EdlibAlignResult align = edlibAlign(evidence[j].read,        evidence[j].readLength,
+    EdlibAlignResult align = edlibAlign(evidence[j].read,            evidence[j].readLength,
                                         evidence[0].read + alignBgn, alignEnd - alignBgn,
                                         edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
+#ifdef BRI
+    for (int32 l=0; l<align.numLocations; l++)
+      fprintf(stderr, "read%u #%u location %d to template %d-%d length %d diff %f\n",
+              evidence[j].ident,
+              j,
+              l,
+              align.startLocations[l],
+              align.endLocations[l],
+              align.endLocations[l] - align.startLocations[l],
+              (float)align.editDistance / (align.endLocations[l] - align.startLocations[l]));
+#endif
+
     if (align.numLocations == 0) {
       edlibFreeAlignResult(align);
+#ifdef BRI
+      fprintf(stderr, "read %7u failed to map\n", j);
+#endif
       continue;
     }
 
@@ -180,11 +204,17 @@ alignReadsToTemplate(falconInput    *evidence,
 
     if (alignLen < 500) {
       edlibFreeAlignResult(align);
+#ifdef BRI
+      fprintf(stderr, "read %7u failed to map - short\n", j);
+#endif
       continue;
     }
 
     if (alignDiff >= maxDifference) {
       edlibFreeAlignResult(align);
+#ifdef BRI
+      fprintf(stderr, "read %7u failed to map - different\n", j);
+#endif
       continue;
     }
 
@@ -219,7 +249,7 @@ alignReadsToTemplate(falconInput    *evidence,
     //  Strip leading/trailing gaps on template sequence.
 
     uint32 fBase = 0;                        //  First non-gap in the alignment
-    uint32 lBase  = align.alignmentLength;   //  Last base in the alignment (actually, first gap in the gaps at the end, but that was too long for a variable name)
+    uint32 lBase = align.alignmentLength;    //  Last base in the alignment (actually, first gap in the gaps at the end, but that was too long for a variable name)
 
     while ((fBase < align.alignmentLength) && (tAln[fBase] == '-'))
       fBase++;
@@ -235,6 +265,18 @@ alignReadsToTemplate(falconInput    *evidence,
 
     rAln[lBase] = 0;   //  Truncate the alignments before the gaps.
     tAln[lBase] = 0;
+
+#ifdef BRI
+#if 1
+    fprintf(stderr, "mapped %5u %5u-%5u to template %6u-%6u trimmed by %6u-%6u %s %s\n",
+            evidence[j].ident,
+            rBgn - fBase, rEnd + align.alignmentLength - lBase,
+            tBgn, tEnd,
+            fBase, align.alignmentLength - lBase,
+            rAln + lBase - 10,
+            tAln + lBase - 10);
+#endif
+#endif
 
     tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength, j,
                               tAln + fBase, tBgn, evidence[0].readLength,

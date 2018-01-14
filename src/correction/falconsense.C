@@ -139,8 +139,26 @@ generateFalconConsensus(falconConsensus   *fc,
 
     //  Used to skip if read length was less or equal to min_ovl_len
 
-    if (seqLen < 500)
+    if (seqLen < 500) {
+#ifdef BRI
+      fprintf(stderr, "read %7u loaded %6u-%6u to template %6u-%6u -- TOO SHORT\n",
+              child->ident(),
+              child->askip(),
+              child->askip() + seqLen,
+              child->min(),
+              child->max());
+#endif
       continue;
+    }
+
+#ifdef BRI
+    fprintf(stderr, "read %7u loaded %6u-%6u to template %6u-%6u\n",
+            child->ident(),
+            child->askip(),
+            child->askip() + seqLen,
+            child->min(),
+            child->max());
+#endif
 
     evidence[cc+1].addInput(child->ident(), seq, seqLen, child->min(), child->max());
   }
@@ -196,6 +214,11 @@ generateFalconConsensus(falconConsensus   *fc,
 
   tig->_gappedBases[tig->_gappedLen] = 0;
   tig->_gappedQuals[tig->_gappedLen] = 0;
+
+#ifdef BRIOUT
+  if (tig->_gappedBases[0] != 0)
+    fprintf(stdout, "read%u %s\n", tig->tigID(), tig->_gappedBases);
+#endif
 
   delete fd;
   delete [] evidence;

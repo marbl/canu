@@ -204,7 +204,9 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
             default : pkk = 4; break;
           }
 
-          //  Score is just our link weight, possibly with the previous column's score, and penalizing for coverage.
+          //  Score is just our link weight, possibly with the previous column's score, and
+          //  penalizing for coverage.
+
           double score = aln_col->link_count[ck] - msa[i]->coverage * 0.5;
 
           if ((aln_col->p_t_pos[ck] != -1) &&
@@ -218,6 +220,11 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
             aln_col->best_p_delta    = pj;
             aln_col->best_p_q_base   = pkk;
             best_score               = score;
+#ifdef BRI
+#if 0
+            fprintf(stderr, "best_score %f at pi %d pj %d pkk %d\n", score, pi, pj, pkk);
+#endif
+#endif
           }
         }  //  Over all links
 
@@ -258,13 +265,17 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       fd->eqv[fd->len] = (msa[i]->coverage == g_best_aln_col->count) ? (40) : (-10 * log((msa[i]->coverage - g_best_aln_col->count + 1) / (double)msa[i]->coverage));
       fd->pos[fd->len] = i;
 
+#ifdef BRI
+      //fprintf(stderr, "seq %5u pos %5u '%c' cov %3u eqv %4d\n",
+      //        fd->len, i, bb, msa[i]->coverage, fd->eqv[fd->len]);
+      fprintf(stderr, "seq %5u pos %5u '%c' cov %3u\n",
+              fd->len, i, bb, msa[i]->coverage);
+#endif
+
       if (fd->eqv[fd->len] > 40)
         fd->eqv[fd->len] = 40;
 
       assert(0 <= fd->eqv[fd->len]);
-
-      //fprintf(stderr, "pos %d cov %d count %d eqv %d\n",
-      //        fd->len, msa[i]->coverage, g_best_aln_col->count, fd->eqv[fd->len]);
 
       fd->len++;
     }

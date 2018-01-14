@@ -84,6 +84,9 @@ using namespace std;
 #ifndef FALCONCONSENSUS_H
 #define FALCONCONSENSUS_H
 
+#undef BRI
+#undef BRIOUT
+
 class falconInput {
 public:
   falconInput() {
