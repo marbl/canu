@@ -177,6 +177,11 @@ alignReadsToTemplate(falconInput    *evidence,
     int32  alignLen  = align.endLocations[0] - align.startLocations[0];
     double alignDiff = align.editDistance / (double)alignLen;
 
+    if (alignLen < 500) {
+      edlibFreeAlignResult(align);
+      continue;
+    }
+
     if (alignDiff >= maxDifference) {
       edlibFreeAlignResult(align);
       continue;
