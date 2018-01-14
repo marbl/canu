@@ -139,6 +139,9 @@ generateFalconConsensus(falconConsensus   *fc,
 
     //  Used to skip if read length was less or equal to min_ovl_len
 
+    if (seqLen < 500)
+      continue;
+
     evidence[cc+1].addInput(child->ident(), seq, seqLen, child->min(), child->max());
   }
 
