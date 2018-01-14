@@ -294,7 +294,7 @@ main(int argc, char **argv) {
   uint32            minEvidenceOverlap  = 40;
   uint32            minEvidenceCoverage = 4;
 
-  uint32            iidMin       = 0;
+  uint32            iidMin       = 1;
   uint32            iidMax       = UINT32_MAX;
 
   uint32            minEvidenceLength   = 0;
