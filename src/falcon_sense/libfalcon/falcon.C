@@ -191,6 +191,13 @@ align_tags_t * get_align_tags( char * aln_q_seq,
             (tags->align_tags[k]).q_base = aln_q_seq[k];
             (tags->align_tags[k]).q_id = q_id;
 
+#ifdef BRI
+#if 0
+            fprintf(stderr, "set tag j %5d p_j %5d jj %5d p_jj %5d base %c p_q_base %c\n",
+                    j, p_j, jj, p_jj, aln_q_seq[k], p_q_base);
+#endif
+#endif
+
             p_j = j;
             p_jj = jj;
             p_q_base = aln_q_seq[k];
@@ -514,7 +521,12 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                             aln_col->best_p_q_base = best_b = pkk;
                             best_ck = ck;
                             // best_mark = '*';
-                        }
+#ifdef BRI
+#if 0
+                            fprintf(stderr, "best_score %f at pi %d pj %d pkk %d\n", score, pi, pj, pkk);
+#endif
+#endif
+                       }
                         #ifdef DEBUG 
                         fprintf(stderr, "X %d %d %d %d %d %d %c %d %lf\n", coverage[i], i, j, aln_col->count,
                                                               aln_col->p_t_pos[ck],
@@ -582,6 +594,10 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                 case 4: bb = '-'; break;
             }
         }
+
+        int32 cov = coverage[i];   //  save current values for reporting below
+        int32 iold = i;
+
         // Note: On bad input, bb will keep previous value, possibly '$'.
 
         score0 = g_best_aln_col->score;
@@ -597,6 +613,11 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
             #ifdef DEBUG
             fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, coverage[i], eqv[index] );
             #endif
+
+#ifdef BRI
+            fprintf(stderr, "seq %5u pos %5u '%c' cov %3u\n",
+                    index, iold, bb, cov);
+#endif
             index ++;
 
 #ifdef TRACK_POSITIONS
@@ -651,6 +672,19 @@ consensus_data * generate_consensus( vector<string> input_seq,
        }
        int tolerance =  (int)ceil((double)min(input_seq[j].length(), input_seq[0].length())*max_diff*1.1);
        EdlibAlignResult align = edlibAlign(input_seq[j].c_str(), input_seq[j].size()-1, input_seq[0].c_str(), input_seq[0].size()-1, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+#ifdef BRI
+       for (int32 l=0; l<align.numLocations; l++)
+         fprintf(stderr, "read%s #%u location %d to template %d-%d length %d diff %f\n",
+                 input_nam[j].c_str(),
+                 j,
+                 l,
+                 align.startLocations[l],
+                 align.endLocations[l],
+                 align.endLocations[l] - align.startLocations[l],
+                 (float)align.editDistance / (align.endLocations[l] - align.startLocations[l]));
+#endif
+
        if (align.numLocations >= 1 && align.endLocations[0] - align.startLocations[0] > min_len && ((float)align.editDistance / (align.endLocations[0]-align.startLocations[0]) < max_diff)) {
           aln_range arange;
           arange.s1 = 0;
@@ -660,6 +694,11 @@ consensus_data * generate_consensus( vector<string> input_seq,
           #ifdef DEBUG
           fprintf(stderr, "Found alignment for seq %d from %d - %d to %d - %d the dist  %d length %d\n", j, arange.s1, arange.e1, arange.s2, arange.e2, align.editDistance, align.alignmentLength);
           #endif
+
+#ifdef BRI
+          fprintf(stderr, "mapped %s %5u-%5u to template %6u-%6u\n",
+                  input_nam[j].c_str(), arange.s1, arange.e1, arange.s2, arange.e2+1);
+#endif
 
           // convert edlib to expected
           char *tgt_aln_str = (char *)calloc( align.alignmentLength+1, sizeof(char) );
@@ -696,6 +735,10 @@ consensus_data * generate_consensus( vector<string> input_seq,
           tags_list[j] = get_align_tags(qry_aln_str+first_pos, tgt_aln_str+first_pos, last_pos-first_pos, &arange, j, 0, input_seq[j].length(), input_seq[0].length());
           free(tgt_aln_str);
           free(qry_aln_str);
+#ifdef BRI
+       } else {
+         fprintf(stderr, "read %7u failed to map\n", j);
+#endif
        }
        edlibFreeAlignResult(align);
 

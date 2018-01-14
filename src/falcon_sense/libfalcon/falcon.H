@@ -84,6 +84,9 @@
 #include <cstdlib>
 #include <stdint.h>
 
+#undef BRI
+#undef BRIOUT
+
 using namespace std;
 
 namespace FConsensus {

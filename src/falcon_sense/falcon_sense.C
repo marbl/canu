@@ -121,7 +121,11 @@ main (int argc, char **argv) {
        char * split = strtok(consensus_data_ptr->sequence, "acgt");
        while (split != NULL) {
           if (strlen(split) > min_len) {
+#ifdef BRIOUT
+             fprintf(stdout, "%s %s\n", seed.c_str(), split);
+#else
              AS_UTL_writeFastA(stdout, split, strlen(split), 60, ">%s_%d\n", seed.c_str(), splitSeqID);
+#endif
              splitSeqID++;
 
 #ifdef TRACK_POSITIONS
