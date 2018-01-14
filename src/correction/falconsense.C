@@ -263,7 +263,7 @@ main(int argc, char **argv) {
       minOutputLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ci") == 0) {
-      minIdentity = atoi(argv[++arg]);
+      minIdentity = atof(argv[++arg]);
 
 
     } else {
