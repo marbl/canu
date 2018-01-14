@@ -121,11 +121,11 @@ generateFalconLayout(
   gkpStore->gkStore_loadReadData(tig->tigID(), readData);
 
   //  Now parse the layout and push all the sequences onto our seqs vector.
-  if ( readData->gkReadData_getRead()->gkRead_sequenceLength() < minOutputLength) {
+  if ( readData->gkReadData_getRead()->gkRead_rawLength() < minOutputLength) {
      return;
   }
 
-  fprintf(stdout, "read%d %s\n", tig->tigID(), readData->gkReadData_getSequence());
+  fprintf(stdout, "read%d %s\n", tig->tigID(), readData->gkReadData_getRawSequence());
 
   for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
     tgPosition  *child = tig->getChild(cc);
@@ -133,12 +133,12 @@ generateFalconLayout(
     gkpStore->gkStore_loadReadData(child->ident(), readData);
 
     if (child->isReverse())
-      reverseComplementSequence(readData->gkReadData_getSequence(),
-                                readData->gkReadData_getRead()->gkRead_sequenceLength());
+      reverseComplementSequence(readData->gkReadData_getRawSequence(),
+                                readData->gkReadData_getRead()->gkRead_rawLength());
 
     //  Trim the read to the aligned bit
-    char   *seq    = readData->gkReadData_getSequence();
-    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength();
+    char   *seq    = readData->gkReadData_getRawSequence();
+    uint32  seqLen = readData->gkReadData_getRead()->gkRead_rawLength();
 
     if (trimToAlign) {
       seq    += child->askip();
@@ -474,7 +474,7 @@ main(int argc, char **argv) {
     //  But if ii is readID, we have overlaps, so process them, then load more.
 
     if (ii == readID) {
-      layout->_layoutLen = gkpStore->gkStore_getRead(readID)->gkRead_sequenceLength();
+      layout->_layoutLen = gkpStore->gkStore_getRead(readID)->gkRead_rawLength();
 
       layout = generateLayout(layout,
                               olapThresh,
