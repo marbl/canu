@@ -201,6 +201,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 overlapInCore/overlapConvert.mk \
                 overlapInCore/overlapImport.mk \
                 overlapInCore/overlapPair.mk \
+                overlapInCore/edalign.mk \
                 \
                 overlapInCore/liboverlap/prefixEditDistance-matchLimitGenerate.mk \
                 \
