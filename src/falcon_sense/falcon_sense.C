@@ -98,6 +98,7 @@ main (int argc, char **argv) {
   }
 
   // read in a loop and get consensus of each read
+  vector<string> names;
   vector<string> seqs;
 
   string seed;
@@ -110,7 +111,7 @@ main (int argc, char **argv) {
 
     if (W[0][0] == '+') {
        uint32 splitSeqID = 0;
-       FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, K, min_idy, min_ovl_len, max_read_len );
+       FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, names, min_cov, K, min_idy, min_ovl_len, max_read_len );
 
 #ifdef TRACK_POSITIONS
        //const std::string& sequenceToCorrect = seqs.at(0);
@@ -137,6 +138,7 @@ main (int argc, char **argv) {
           split = strtok(NULL, "acgt");
        }
        FConsensus::free_consensus_data( consensus_data_ptr );
+       names.clear();
        seqs.clear();
        seed.clear();
     } else if (W[0][0] == '-') {
@@ -144,9 +146,11 @@ main (int argc, char **argv) {
     } else {
        if (seed.length() == 0) {
           seed = W[0];
+          names.push_back(string(W[0]));
           seqs.push_back(string(W[1]));
        }
        else if (strlen(W[1]) > min_ovl_len) {
+          names.push_back(string(W[0]));
           seqs.push_back(string(W[1]));
        }
     }

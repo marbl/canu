@@ -98,8 +98,9 @@ typedef struct {
 
 
 consensus_data * generate_consensus( vector<string> input_seq,
-                           uint32 min_cov,
-                           uint32 K,
-                           double min_idt, uint32 min_len, uint32 max_len);
+                                     vector<string> input_nam,
+                                     uint32 min_cov,
+                                     uint32 K,
+                                     double min_idt, uint32 min_len, uint32 max_len);
 void free_consensus_data(consensus_data *);
 }

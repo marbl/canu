@@ -629,6 +629,7 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 }
 
 consensus_data * generate_consensus( vector<string> input_seq,
+                                     vector<string> input_nam,
                            uint32 min_cov,
                            uint32 K,
                            double min_idt, uint32 min_len, uint32 max_len) {
