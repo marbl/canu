@@ -505,8 +505,8 @@ sub generateCorrectedReadsConfigure ($) {
     print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if (  -e "$path/$asm.readsToCorrect");
     print F "  -b \$bgn -e \$end \\\n"                              if (! -e "$path/$asm.readsToCorrect");
     print F "  -t  " . getGlobal("corThreads") . " \\\n";
-    print F "  -ci " . getCorIdentity($asm) . "\\\n";
-    print F "  -cl " . getGlobal("minReadLength") . "\\\n";
+    print F "  -ci " . getCorIdentity($asm) . " \\\n";
+    print F "  -cl " . getGlobal("minReadLength") . " \\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
     print F "  -p ./results/\$jobid.WORKING \\\n";
     print F "  > ./results/\$jobid.err 2>&1 \\\n";
