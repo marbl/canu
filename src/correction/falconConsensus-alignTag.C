@@ -159,13 +159,14 @@ alignReadsToTemplate(falconInput    *evidence,
 
     assert(alignEnd > alignBgn);
 
-    int32  expansion = (1.4 * evidence[j].readLength - (alignEnd - alignBgn)) / 2;
+    //  Extend the region we align to by ... some amount.
+    //  For simplicity, we'll use 10% of the read length.
+
+    int32  expansion = 0.1 * evidence[j].readLength;
 
   again:
-    if (expansion > 0) {
-      alignBgn -= expansion;
-      alignEnd += expansion;
-    }
+    alignBgn -= expansion;
+    alignEnd += expansion;
 
     if (alignBgn < 0)                         alignBgn = 0;
     if (alignEnd > evidence[0].readLength)    alignEnd = evidence[0].readLength;
@@ -226,12 +227,14 @@ alignReadsToTemplate(falconInput    *evidence,
 
     if ((alignBgn > 0) &&
         (tBgn <= alignBgn)) {
+      edlibFreeAlignResult(align);
       fprintf(stderr, "bumped into start align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
       goto again;
     }
 
     if ((alignEnd < evidence[0].readLength) &&
         (tEnd >= alignEnd)) {
+      edlibFreeAlignResult(align);
       fprintf(stderr, "bumped into end align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
       goto again;
     }
