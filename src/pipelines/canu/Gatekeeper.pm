@@ -553,7 +553,8 @@ sub gatekeeper ($$@) {
     }
 
   finishStage:
-    emitStage($asm, "$tag-gatekeeper");
+    #  DO NOT emitStage() here.  It resets canuIteration, and doesn't need to.
+    #emitStage($asm, "$tag-gatekeeper");
 
   allDone:
     stopAfter("gatekeeper");
