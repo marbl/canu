@@ -1994,6 +1994,8 @@ mertrimReader(void *G) {
   mertrimGlobalData    *g = (mertrimGlobalData  *)G;
   mertrimComputation   *s = NULL;
 
+  assert((g->gkp == NULL) || (g->fqInput == NULL));
+
   if (g->gkp)
     s = mertrimReaderGatekeeper(g);
 
