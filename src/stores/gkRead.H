@@ -54,6 +54,9 @@ public:
     _name      = NULL;
     _nameAlloc = 0;
 
+    _aseq      = NULL;
+    _aqlt      = NULL;
+
     _rseq      = NULL;   //  Raw read sequence and quality.
     _rqlt      = NULL;
     _rseqAlloc = 0;
