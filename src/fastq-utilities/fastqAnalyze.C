@@ -174,7 +174,7 @@ doStats(char *inName,
   fprintf(stdout, "sequences\t" F_U64 "\n", totSeqs);
   fprintf(stdout, "bases\t" F_U64 "\n",     totBases);
   fprintf(stdout, "\n");
-  fprintf(stdout, "average\t" F_U64 "\n", totBases / totSeqs);
+  fprintf(stdout, "average\t" F_U64 "\n", (totSeqs == 0) ? (0) : (totBases / totSeqs));
   fprintf(stdout, "\n");
 
   //sort(seqLen.begin(), seqLen.end());

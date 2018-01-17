@@ -205,6 +205,8 @@ Unitig::optimize_recompute(uint32        iid,
     cnt  += 1;
   }  //  over all overlaps
 
+  assert(cnt > 0);
+
   //  Add in some evidence for the bases in the read.  We want higher weight than the overlaps,
   //  but not enough to swamp the hangs.
 
@@ -217,17 +219,18 @@ Unitig::optimize_recompute(uint32        iid,
   np[iid].min = nmin / cnt;
   np[iid].max = nmax / cnt;
 
-  double dmin = 2 * (op[iid].min - np[iid].min) / (op[iid].min + np[iid].min);
-  double dmax = 2 * (op[iid].max - np[iid].max) / (op[iid].max + np[iid].max);
-  double npll = np[iid].max - np[iid].min;
+  if (beVerbose) {
+    double dmin = 2 * (op[iid].min - np[iid].min) / (op[iid].min + np[iid].min);
+    double dmax = 2 * (op[iid].max - np[iid].max) / (op[iid].max + np[iid].max);
+    double npll = np[iid].max - np[iid].min;
 
-  if (beVerbose)
     writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6d %7.2f%% posChange %+6.4f %+6.4f\n",
              id(), iid,
              np[iid].min, np[iid].max,
              npll, readLen,
              200.0 * (npll - readLen) / (npll + readLen),
              dmin, dmax);
+  }
 }
 
 

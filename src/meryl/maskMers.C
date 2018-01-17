@@ -337,11 +337,15 @@ computeDensity(merMaskedSequence *S, char *outputPrefix) {
         p++;
       }
 
-      fprintf(outputFile, F_U32"\t%f\t%f\t%f\n",
-              p - windowSize,
-              (double)uniqueSum / windowSize,
-              (double)repeatSum / windowSize,
-              (double)gapSum    / windowSize);
+      if (windowSize == 0)
+        fprintf(outputFile, F_U32"\t%f\t%f\t%f\n",
+                p - windowSize, 0.0, 0.0, 0.0);
+      else
+        fprintf(outputFile, F_U32"\t%f\t%f\t%f\n",
+                p - windowSize,
+                (double)uniqueSum / windowSize,
+                (double)repeatSum / windowSize,
+                (double)gapSum    / windowSize);
     }
 
     fclose(outputFile);
