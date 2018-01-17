@@ -57,7 +57,7 @@ public:
       _s[0] = 0;
 
     if (libName)
-      strcpy(_n, libName);
+      strncpy(_n, libName, FILENAME_MAX-1);
     else
       _n[0] = 0;
 

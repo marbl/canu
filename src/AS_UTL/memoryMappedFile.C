@@ -34,7 +34,7 @@
 memoryMappedFile::memoryMappedFile(const char           *name,
                                    memoryMappedFileType  type) {
 
-  strncpy(_name, name, FILENAME_MAX);
+  strncpy(_name, name, FILENAME_MAX-1);
 
   _type = type;
 

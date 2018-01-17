@@ -42,7 +42,7 @@ gkStoreFile::gkStoreFile(const char *name) {
 
   clear();
 
-  strcpy(_filename, name);
+  strncpy(_filename, name, FILENAME_MAX-1);
 
   gkp = gkStore::gkStore_open(_filename);
 

@@ -71,7 +71,7 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
   }
 
   memset(_filename, 0, sizeof(char) * FILENAME_MAX);
-  strcpy(_filename, fn_);
+  strncpy(_filename, fn_, FILENAME_MAX-1);
 
   //  Open the files
   //
@@ -302,7 +302,7 @@ merylStreamWriter::merylStreamWriter(const char *fn_,
   char outpath[FILENAME_MAX];
 
   memset(_filename, 0, sizeof(char) * FILENAME_MAX);
-  strcpy(_filename, fn_);
+  strncpy(_filename, fn_, FILENAME_MAX-1);
 
   snprintf(outpath, FILENAME_MAX, "%s.mcidx.creating", _filename);
   _IDX = new bitPackedFile(outpath, 0, true);

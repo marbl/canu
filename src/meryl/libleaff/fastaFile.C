@@ -42,7 +42,7 @@ fastaFile::fastaFile(const char *filename) {
   fprintf(stderr, "fastaFile::fastaFile()-- '%s'\n", (filename) ? filename : "NULLPOINTER");
 #endif
 
-  strcpy(_filename, filename);
+  strncpy(_filename, filename, FILENAME_MAX-1);
 
   constructIndex();
 
@@ -423,7 +423,7 @@ fastaFile::constructIndex(void) {
 
   char  indexname[FILENAME_MAX];
 
-  strcpy(indexname, _filename);
+  strncpy(indexname, _filename, FILENAME_MAX-1);
   uint32 l = strlen(_filename);
   if ((l > 5) && (strcmp(_filename + l - 6, ".fasta") == 0))
     strcat(indexname, "idx");

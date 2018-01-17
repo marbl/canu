@@ -42,7 +42,7 @@ fastqFile::fastqFile(const char *filename) {
   fprintf(stderr, "fastqFile::fastqFile()-- '%s'\n", (filename) ? filename : "NULLPOINTER");
 #endif
 
-  strcpy(_filename, filename);
+  strncpy(_filename, filename, FILENAME_MAX-1);
 
   constructIndex();
 
@@ -418,7 +418,7 @@ fastqFile::constructIndex(void) {
 
   char  indexname[FILENAME_MAX];
 
-  strcpy(indexname, _filename);
+  strncpy(indexname, _filename, FILENAME_MAX-1);
   uint32 l = strlen(_filename);
   if ((l > 5) && (strcmp(_filename + l - 6, ".fastq") == 0))
     strcat(indexname, "idx");

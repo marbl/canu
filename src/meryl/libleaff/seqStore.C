@@ -40,7 +40,7 @@
 seqStore::seqStore(const char *filename) {
   clear();
 
-  strcpy(_filename, filename);
+  strncpy(_filename, filename, FILENAME_MAX-1);
 
   errno = 0;
   FILE *F = fopen(_filename, "r");

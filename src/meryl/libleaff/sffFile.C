@@ -42,7 +42,7 @@ sffFile::sffFile(const char *name) {
 
   clear();
 
-  strcpy(_filename, name);
+  strncpy(_filename, name, FILENAME_MAX-1);
 
   _rb = new readBuffer(name);
 
