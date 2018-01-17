@@ -486,11 +486,7 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
   createDataName(name, prefix, "overlapScores");
 
   if (AS_UTL_fileExists(name, false, false) == true) {
-    errno = 0;
-    FILE *F = fopen(name, "r");
-    if (errno)
-      fprintf(stderr, "failed to open evalueLen file '%s' for reading: %s\n", name, strerror(errno)), exit(1);
-
+    FILE   *F    = AS_UTL_openInputFile(name);
     uint32  nArr = 0;
 
     AS_UTL_safeRead(F, &_scoresBgn,  "ovStoreHistogram::scoresBgn",  sizeof(uint32), 1);
@@ -500,6 +496,8 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
     _scores    = new oSH_ovlSco [_scoresMax];
 
     AS_UTL_safeRead(F,  _scores,     "ovStoreHistogram::scores",     sizeof(oSH_ovlSco), _scoresLen);
+
+    fclose(F);
   }
 }
 
