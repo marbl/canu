@@ -58,6 +58,7 @@ public:
     frgIID = frgBgn = frgEnd = 0;
     genIID = 0;
     genBgn = genEnd = 0;
+    chnBgn = chnEnd = 0;
     identity = 0.0;
     isDeleted = isReverse = isSpanned = isRepeat = false;
   };
