@@ -79,9 +79,15 @@ NDalgorithm::NDalgorithm(pedAlignType alignType_, double maxErate_) {
   MIN_BRANCH_END_DIST    = 20;
   MIN_BRANCH_TAIL_SLOPE  = ((maxErate > 0.06) ? 1.0 : 0.20);
 
-  Left_Delta  = new int32  [AS_MAX_READLEN];
-  Right_Delta = new int32  [AS_MAX_READLEN];
-  Delta_Stack = new int32  [AS_MAX_READLEN];
+  Left_Score      = 0;
+  Left_Delta_Len  = 0;
+  Left_Delta      = new int32  [AS_MAX_READLEN];
+
+  Right_Score     = 0;
+  Right_Delta_Len = 0;
+  Right_Delta     = new int32  [AS_MAX_READLEN];
+
+  Delta_Stack     = new int32  [AS_MAX_READLEN];
 
   allocated = 3 * AS_MAX_READLEN * sizeof(int32);
 
