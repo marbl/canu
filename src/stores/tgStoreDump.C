@@ -361,21 +361,9 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
     snprintf(R, FILENAME_MAX, "%s.layout.readToTig", outPrefix);
     snprintf(L, FILENAME_MAX, "%s.layout",           outPrefix);
 
-    errno = 0;
-
-    tigs   = fopen(T, "w");  Terr = errno;
-    reads  = fopen(R, "w");  Rerr = errno;
-    layout = fopen(L, "w");  Lerr = errno;
-
-    if (Terr)
-      fprintf(stderr, "Failed to open '%s': %s\n", T, strerror(Terr));
-    if (Rerr)
-      fprintf(stderr, "Failed to open '%s': %s\n", R, strerror(Rerr));
-    if (Lerr)
-      fprintf(stderr, "Failed to open '%s': %s\n", L, strerror(Lerr));
-
-    if (Terr + Rerr + Lerr > 0)
-      exit(1);
+    tigs   = AS_UTL_openOutputFile(T);
+    reads  = AS_UTL_openOutputFile(R);
+    layout = AS_UTL_openOutputFile(L);
 
     fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
     fprintf(reads, "#readID\ttigID\tcoordType\tbgn\tend\n");
@@ -408,11 +396,9 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
     tigStore->unloadTig(ti);
   }
 
-  if (outPrefix) {
-    fclose(tigs);
-    fclose(reads);
-    fclose(layout);
-  }
+  if (tigs)    fclose(tigs);
+  if (reads)   fclose(reads);
+  if (layout)  fclose(layout);
 }
 
 
@@ -493,10 +479,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
   //  Dump the values from min to max
 
-  errno = 0;
-  F = fopen(N, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno));
+  F = AS_UTL_openOutputFile(N);
 
   for (uint32 ii=minii; ii<=maxii; ii++)
     for (uint32 xx=0; xx<cov[ii]; xx++)
@@ -546,10 +529,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
   //  Dump the values again, this time as a real histogram.
 
-  errno = 0;
-  F = fopen(N, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno));
+  F = AS_UTL_openOutputFile(N);
 
   for (uint32 ii=minii; ii<=maxii; ii++)
     fprintf(F, F_U32"\t" F_U64 "\n", ii, cov[ii]);
@@ -752,9 +732,7 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
 
       snprintf(outName, FILENAME_MAX, "%s.tig%08u.depth", outPrefix, tig->tigID());
 
-      FILE *outFile = fopen(outName, "w");
-      if (errno)
-        fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+      FILE *outFile = AS_UTL_openOutputFile(outName);
 
       for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
         fprintf(outFile, "%d\t%u\n", ID.lo(ii),     ID.depth(ii));
