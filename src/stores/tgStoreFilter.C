@@ -331,7 +331,6 @@ main(int argc, char **argv) {
 
   for (uint32 uu=0; uu<maxID; uu++) {
     tgTig  *tig    = tigStore->loadTig(uu);
-    uint32  tigLen = tig->length(true);
 
     if (tig == NULL)
       continue;
@@ -357,6 +356,7 @@ main(int argc, char **argv) {
 
     //  Single read max fraction covered.
 
+    uint32  tigLen = tig->length(true);
     uint32  covMax = 0;
     uint32  cov;
 
