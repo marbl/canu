@@ -190,8 +190,9 @@ public:
     delete ID;
     ID = new intervalList<int32>(*IL);
 
-    uint32  goodCov = 0;
-    uint32  badCov  = 0;
+    uint32  goodCov  = 0;
+    uint32  badCov   = 0;
+    double  fracGood = 0.0;
 
     for (uint32 ii=0; ii<ID->numberOfIntervals(); ii++)
       if ((minCoverage  <= ID->depth(ii)) &&
@@ -200,7 +201,8 @@ public:
       else
         badCov += ID->hi(ii) - ID->lo(ii);
 
-    double fracGood = (double)(goodCov) / (goodCov + badCov);
+    if (goodCov + badCov > 0)
+      fracGood = (double)(goodCov) / (goodCov + badCov);
 
     return((fracGood < minGoodCov) ||
            (maxGoodCov < fracGood));
