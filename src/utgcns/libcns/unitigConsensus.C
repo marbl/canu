@@ -102,7 +102,14 @@ unitigConsensus::unitigConsensus(gkStore  *gkpStore_,
 
   tig             = NULL;
   numfrags        = 0;
+
+  traceLen        = 0;
+  traceMax        = 0;
   trace           = NULL;
+
+  traceABgn       = 0;
+  traceBBgn       = 0;
+
   abacus          = NULL;
   utgpos          = NULL;
   cnspos          = NULL;
