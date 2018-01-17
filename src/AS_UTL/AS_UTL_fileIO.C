@@ -551,7 +551,7 @@ AS_UTL_openInputFile(char const *prefix,
   if (suffix)
     snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
   else
-    strncpy(filename, prefix, FILENAME_MAX);
+    strncpy(filename, prefix, FILENAME_MAX-1);
 
   errno = 0;
 
@@ -580,7 +580,7 @@ AS_UTL_openOutputFile(char const *prefix,
   if (suffix)
     snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
   else
-    strncpy(filename, prefix, FILENAME_MAX);
+    strncpy(filename, prefix, FILENAME_MAX-1);
 
   errno = 0;
 
