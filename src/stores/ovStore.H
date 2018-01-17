@@ -113,6 +113,8 @@ public:
 
     AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
 
+    fclose(ovsinfo);
+
     return(checkMagic());
   };
 
