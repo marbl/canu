@@ -462,16 +462,16 @@ merylStreamWriter::~merylStreamWriter() {
 
   snprintf(outpath, FILENAME_MAX, "%s.mcidx.creating", _filename);
   snprintf(finpath, FILENAME_MAX, "%s.mcidx", _filename);
-  rename(outpath, finpath);
+  AS_UTL_rename(outpath, finpath);
 
   snprintf(outpath, FILENAME_MAX, "%s.mcdat.creating", _filename);
   snprintf(finpath, FILENAME_MAX, "%s.mcdat", _filename);
-  rename(outpath, finpath);
+  AS_UTL_rename(outpath, finpath);
 
   if (_POS) {
     snprintf(outpath, FILENAME_MAX, "%s.mcpos.creating", _filename);
     snprintf(finpath, FILENAME_MAX, "%s.mcpos", _filename);
-    rename(outpath, finpath);
+    AS_UTL_rename(outpath, finpath);
   }
 }
 

@@ -67,6 +67,8 @@ void    AS_UTL_symlink(const char *pathToFile, const char *pathToLink);
 
 void    AS_UTL_unlink(const char *filename);
 
+void    AS_UTL_rename(const char *oldname, const char *newname);
+
 int     AS_UTL_fileExists(const char *path, int directory=false, int readwrite=false);
 off_t   AS_UTL_sizeOfFile(const char *path);
 

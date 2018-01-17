@@ -295,11 +295,7 @@ main(int argc, char **argv) {
     snprintf(name, FILENAME_MAX, "%s/create%04d", ovlName, jobIndex);
     snprintf(finl, FILENAME_MAX, "%s/bucket%04d", ovlName, jobIndex);
 
-    errno = 0;
-    rename(name, finl);
-    if (errno)
-      fprintf(stderr, "ERROR:  Failed to rename '%s' to final name '%s': %s\n",
-              name, finl, strerror(errno));
+    AS_UTL_rename(name, finl);
   }
 
   delete [] sliceFile;

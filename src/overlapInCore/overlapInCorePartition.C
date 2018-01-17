@@ -379,7 +379,7 @@ renameToFinal(char *prefix, char *type) {
   snprintf(A, FILENAME_MAX, "%s.%s.WORKING", prefix, type);
   snprintf(B, FILENAME_MAX, "%s.%s",         prefix, type);
 
-  rename(A, B);
+  AS_UTL_rename(A, B);
 }
 
 

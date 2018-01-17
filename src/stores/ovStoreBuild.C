@@ -93,7 +93,7 @@ reportConfiguration(char *configOut, uint32 maxIID, uint32 *iidToBucket) {
 
   fclose(C);
 
-  rename(F, configOut);
+  AS_UTL_rename(F, configOut);
 
   delete [] iidToBucket;
 

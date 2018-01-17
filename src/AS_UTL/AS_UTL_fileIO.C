@@ -322,7 +322,24 @@ AS_UTL_unlink(const char *filename) {
   errno = 0;
   unlink(filename);
   if (errno)
-    fprintf(stderr, "AS_UTL_unlink()--  Failed to remove file '%s': %s\n", filename, strerror(errno)), exit(1);
+    fprintf(stderr, "AS_UTL_unlink()--  Failed to remove file '%s': %s\n",
+            filename, strerror(errno)), exit(1);
+}
+
+
+
+//  Rename a file, or do nothing if the file doesn't exist.
+void
+AS_UTL_rename(const char *oldname, const char *newname) {
+
+  if (AS_UTL_fileExists(oldname, FALSE, FALSE) == false)
+    return;
+
+  errno = 0;
+  rename(oldname, newname);
+  if (errno)
+    fprintf(stderr, "AS_UTL_renane()--  Failed to rename file '%s' to '%s': %s\n",
+            oldname, newname, strerror(errno)), exit(1);
 }
 
 
