@@ -167,7 +167,7 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
   // propogate score throught the alignment links, setup backtracking information
 
   align_tag_col_t *g_best_aln_col = NULL;
-  int32            g_best_t_pos   = 0;
+  int32            g_best_t_pos   = -1;
   double           g_best_score   = -1;  //  Might be a magic value.
 
   //  Over every template base,
@@ -239,7 +239,8 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
     }
   }
 
-  assert(g_best_score > DBL_MIN);
+  assert(g_best_t_pos   != -1);
+  assert(g_best_aln_col != NULL);
 
   //  Reconstruct the sequences.
 
