@@ -50,7 +50,7 @@ TigVector::TigVector(uint32 nReads) {
   _maxBlocks    = 1024;
   _blocks       = new Unitig ** [_maxBlocks];
   _blocks[0]    = new Unitig  * [_blockSize];
-  memset(_blocks[0], 0, sizeof(Unitig **) * _blockSize);
+  memset(_blocks[0], 0, sizeof(Unitig *) * _blockSize);
   _blockNext    = 1;
 
   _totalTigs    = 1;
@@ -99,7 +99,7 @@ TigVector::newUnitig(bool verbose) {
 
       _blocks[_numBlocks] = new Unitig * [_blockSize];
 
-      memset(_blocks[_numBlocks], 0, sizeof(Unitig **) * _blockSize);
+      memset(_blocks[_numBlocks], 0, sizeof(Unitig *) * _blockSize);
 
       _numBlocks++;
       _blockNext = 0;
