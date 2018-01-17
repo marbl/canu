@@ -814,8 +814,10 @@ processBEDtoGFA(char   *tigName,
 
   gfa->saveFile(otGFA);
 
-  delete gfa;
-  delete bed;
+  delete    gfa;
+  delete    bed;
+
+  delete [] seqsp;
 }
 
 
