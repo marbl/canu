@@ -52,36 +52,43 @@
 NDalign::NDalign(pedAlignType   alignType,
                  double         maxErate,
                  int32          merSize) {
-  _alignType        = alignType;
-  _maxErate         = maxErate;
-  _merSizeInitial   = merSize;
+  _alignType      = alignType;
+  _maxErate       = maxErate;
+  _merSizeInitial = merSize;
 
-  _aID      = UINT32_MAX;
-  _aStr     = NULL;
-  _aLen     = 0;
-  _aLoOrig  = 0;
-  _aHiOrig  = 0;
+  _aID            = UINT32_MAX;
+  _aStr           = NULL;
+  _aLen           = 0;
+  _aLoOrig        = 0;
+  _aHiOrig        = 0;
 
-  _bID      = UINT32_MAX;
-  _bStr     = NULL;
-  _bLen     = 0;
-  _bLoOrig  = 0;
-  _bHiOrig  = 0;
+  _bID            = UINT32_MAX;
+  _bStr           = NULL;
+  _bLen           = 0;
+  _bLoOrig        = 0;
+  _bHiOrig        = 0;
 
-  _bFlipped = false;
-  _bRevMax  = 0;
-  _bRev     = NULL;
+  _bFlipped       = false;
+  _bRevMax        = 0;
+  _bRev           = NULL;
 
-  _editDist = new NDalgorithm(_alignType, _maxErate);
+  _editDist       = new NDalgorithm(_alignType, _maxErate);
 
-  _minDiag  = 0;
-  _maxDiag  = 0;
+  _minDiag        = 0;
+  _maxDiag        = 0;
 
-  _merSize  = 0;
+  _merSize        = 0;
 
-  _topDisplay = NULL;
-  _botDisplay = NULL;
-  _resDisplay = NULL;
+  _hitr           = UINT32_MAX;
+
+  _topDisplay     = NULL;
+  _botDisplay     = NULL;
+  _resDisplay     = NULL;
+
+  _matches        = 0;
+  _errors         = 0;
+  _gapmatches     = 0;
+  _freegaps       = 0;
 
   //  Initialize Constants
 
