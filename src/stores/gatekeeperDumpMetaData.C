@@ -152,10 +152,11 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //    min, mean, stddev, max base per read
   //    length histogram plot
 
-  for (uint32 l=0; l<gkp->gkStore_getNumLibraries() + 1; l++) {
+  for (uint32 l=0; l<gkp->gkStore_getNumLibraries() + 1; l++)
     fprintf(stdout, "library " F_U32 "  reads " F_U32 " bases: total " F_U64 " ave " F_U64 " min " F_U64 " max " F_U64 "\n",
             l, rs[l].numberOfReads(), rs[l].numberOfBases(), rs[l].numberOfBases() / rs[l].numberOfReads(), rs[l].minBases(), rs[l].maxBases());
-  }
+
+  delete [] rs;
 }
 
 
