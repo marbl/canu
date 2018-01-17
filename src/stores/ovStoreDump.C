@@ -721,7 +721,7 @@ dumpPicture(ovStore        *ovlStore,
   else
     dumpPicture(overlaps, novl, gkpStore, Aid, bogart, dumpType, clearType);
 
-  delete [] bogart;
+  delete    bogart;
   delete [] overlaps;
 }
 
