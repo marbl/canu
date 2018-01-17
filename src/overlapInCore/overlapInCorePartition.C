@@ -448,6 +448,8 @@ main(int argc, char **argv) {
   }
   if (err) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
+    fprintf(stderr, "Someone should write the command line help.\n");
+    fprintf(stderr, "But this is only used interally to canu, so...\n");
     exit(1);
   }
 
@@ -456,6 +458,10 @@ main(int argc, char **argv) {
 
   if ((ovlRefBlockLength > 0) && (ovlRefBlockSize > 0))
     fprintf(stderr, "ERROR:  At most one of -rl and -rs can be non-zero.\n"), exit(1);
+
+  if (gkpStoreName == NULL)
+    fprintf(stderr, "ERROR:  gkpStore (-g) must be supplied.\n"), exit(1);
+
 
   fprintf(stderr, "HASH: " F_U64 " reads or " F_U64 " length.\n", ovlHashBlockSize, ovlHashBlockLength);
   fprintf(stderr, "REF:  " F_U64 " reads or " F_U64 " length.\n", ovlRefBlockSize,  ovlRefBlockLength);
