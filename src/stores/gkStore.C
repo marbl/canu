@@ -572,8 +572,6 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
   for (char const *orig=name; *orig; orig++) {
     if        (*orig == '/') {
       libname[libnamepos++] = '_';
-      libname[libnamepos++] = '-';
-      libname[libnamepos++] = '_';
       modified = true;
 
     } else if (isspace(*orig) == 0) {
