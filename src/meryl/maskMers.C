@@ -105,10 +105,10 @@ public:
     _repeatID  = 0L;
     _merSize   = 0;
 
-    strcpy(_fastaName, fastaName_);
-    strcpy(_merylName, merylName_);
+    strncpy(_fastaName, fastaName_, FILENAME_MAX);
+    strncpy(_merylName, merylName_, FILENAME_MAX);
 
-    strcpy(_maskMersName, _merylName);
+    strncpy(_maskMersName, _merylName, FILENAME_MAX);
     strcat(_maskMersName, ".maskMers");
 
     if (AS_UTL_fileExists(_maskMersName))

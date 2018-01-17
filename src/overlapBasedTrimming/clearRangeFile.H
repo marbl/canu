@@ -41,7 +41,7 @@ public:
 
   clearRangeFile(char *fileName, gkStore *gkp) {
 
-    strcpy(_fileName, fileName);
+    strncpy(_fileName, fileName, FILENAME_MAX);
 
     if (AS_UTL_fileExists(_fileName) == false) {
       _modified = true;   //  Always gets written, regardless of changes
