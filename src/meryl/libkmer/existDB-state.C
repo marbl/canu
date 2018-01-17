@@ -34,13 +34,13 @@
 #include "existDB.H"
 
 
-const char  magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '2',
-                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+const char  magic[17] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '2',
+                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 0 };
 
 
 void
 existDB::saveState(char const *filename) {
-  char     cigam[16] = { 0 };
+  char     cigam[17] = { 0 };
 
   errno = 0;
   FILE *F = fopen(filename, "wb");
@@ -49,7 +49,7 @@ existDB::saveState(char const *filename) {
     exit(1);
   }
 
-  strncpy(cigam, magic, 16);
+  memcpy(cigam, magic, 16);
 
   if (_compressedHash)
     cigam[8] = 'h';
@@ -96,7 +96,7 @@ bool
 existDB::loadState(char const *filename,
                    bool        beNoisy,
                    bool        loadData) {
-  char     cigam[16];
+  char     cigam[17] = { 0 };
 
   errno = 0;
   FILE *F = fopen(filename, "rb");
