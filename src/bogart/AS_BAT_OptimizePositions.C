@@ -346,7 +346,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
 
   //  Create work space and initialize to current read positions.
 
-  writeStatus("optimizePositions()--   Allocating scratch space for %u reads (%u KB).\n", fiLimit, sizeof(optPos) * fiLimit * 2 >> 1024);
+  writeStatus("optimizePositions()--   Allocating scratch space for %u reads (%u KB).\n", fiLimit, sizeof(optPos) * fiLimit * 2 / 1024);
 
   optPos *pp = NULL;
   optPos *op = new optPos [fiLimit];
