@@ -170,7 +170,7 @@ What parameters can I tweak?
            divergence, you'd end up collapsing the variations. We've used the following parameters
            for polyploid populations (PacBio data):
 
-           ``corOutCoverage=200 correctedErrorRate=0.040 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"``
+           ``corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"``
     
            This will output more corrected reads (than the default 40x). The latter option will be
            more conservative at picking the error rate to use for the assembly to try to maintain
