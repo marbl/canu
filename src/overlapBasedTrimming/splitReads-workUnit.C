@@ -70,13 +70,14 @@ workUnit::addAndFilterOverlaps(gkStore *gkp,
     bool  valid = false;
 
     if (o->flipped() == false)
-      valid = adjustNormal(finClr, gkp, o,
+      valid = adjustNormal(finClr, o,
                            a->aovlbgn, a->aovlend, a->bovlbgn, a->bovlend,
                            a->aclrbgn, a->aclrend, a->bclrbgn, a->bclrend);
     else
-      valid = adjustFlipped(finClr, gkp, o,
+      valid = adjustFlipped(finClr, o,
                             a->aovlbgn, a->aovlend, a->bovlbgn, a->bovlend,
-                            a->aclrbgn, a->aclrend, a->bclrbgn, a->bclrend);
+                            a->aclrbgn, a->aclrend, a->bclrbgn, a->bclrend,
+                            gkp);
 
     if (valid == false)
       //  adjust() says the overlap doesn't intersect the clear range, so nothing here.
