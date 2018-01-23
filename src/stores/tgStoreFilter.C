@@ -538,20 +538,14 @@ main(int argc, char **argv) {
 
     if (isUnique) {
       repeat_IsUnique += tigLen;
-#warning NOT setSuggestUnique
-      //tigStore->setSuggestUnique(tig->tigID());
       tigStore->setSuggestRepeat(tig->tigID(), false);
 
     } else if (isSingleton) {
       repeat_IsSingleton += tigLen;
-#warning NOT setSuggestUnique
-      //tigStore->setSuggestUnique(tig->tigID(), false);
       tigStore->setSuggestRepeat(tig->tigID());
 
     } else {
       repeat_IsRepeat += tigLen;
-#warning NOT setSuggestUnique
-      //tigStore->setSuggestUnique(tig->tigID(), false);
       tigStore->setSuggestRepeat(tig->tigID());
     }
   }

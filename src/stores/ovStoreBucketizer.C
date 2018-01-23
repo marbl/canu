@@ -266,12 +266,7 @@ main(int argc, char **argv) {
   }
 
   delete inputFile;
-
-#warning not reporting fate
-  //filter->reportFate();
-  //filter->resetCounters();
-
-  delete filter;
+  delete filter;        //  We, probably, should be reporting what we filtered.
 
   for (uint32 i=0; i<=fileLimit; i++)
     delete sliceFile[i];
