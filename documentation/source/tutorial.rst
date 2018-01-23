@@ -416,7 +416,7 @@ READS
 SEQUENCE
 
 <prefix>.contigs.fasta
-   Everything which could be assembled and is part of the primary assembly, including both unique
+   Everything which could be assembled and is the primary assembly, including both unique
    and repetitive elements.
 
 <prefix>.unitigs.fasta
