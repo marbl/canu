@@ -154,7 +154,11 @@ main(int argc, char **argv) {
   if (errorRate < 0.0)
     err++;
 
-  if ((gkpName == 0L) || (ovsName == 0L) || (outputPrefix == NULL) || (err)) {
+  if ((gkpName == 0L) ||
+      (ovsName == 0L) ||
+      (finClrName == 0L) ||
+      (outClrName == 0L) ||
+      (outputPrefix == NULL) || (err)) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -Ci input.clearFile -Co output.clearFile -o outputPrefix]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -G gkpStore    path to read store\n");
@@ -164,7 +168,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -Ci clearFile  path to input clear ranges (NOT SUPPORTED)\n");
+    fprintf(stderr, "  -Ci clearFile  path to input clear ranges\n");
     fprintf(stderr, "  -Co clearFile  path to ouput clear ranges\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e erate       ignore overlaps with more than 'erate' percent error\n");
