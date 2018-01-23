@@ -363,6 +363,8 @@ main(int argc, char **argv) {
   }
   if (gkpName == NULL)
     err++;
+  if (corName == NULL)
+    err++;
   if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
