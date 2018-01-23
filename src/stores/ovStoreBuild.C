@@ -390,7 +390,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxError = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
+    } else if (strcmp(argv[arg], "-l") == 0) {
       minOverlap = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-L") == 0) {
@@ -436,7 +436,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                          default 4; g-0.25 gb is available for sorting overlaps\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
-    fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)\n");
+    fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (BROKEN, not supported)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Non-building options:\n");
     fprintf(stderr, "  -evalues              input files are evalue updates from overlap error adjustment\n");
