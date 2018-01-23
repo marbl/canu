@@ -68,7 +68,7 @@ void
 detectSubReads(gkStore               *gkp,
                workUnit              *w,
                FILE                  *subreadFile,
-               bool                   subreadFileVerbose) {
+               bool            UNUSED(subreadFileVerbose)) {
 
   assert(w->adjLen > 0);
   assert(doCheckSubRead(gkp, w->id) == true);

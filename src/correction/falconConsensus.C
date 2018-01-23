@@ -314,9 +314,9 @@ falconConsensus::generateConsensus(falconInput   *evidence,
 
 
 uint64
-falconConsensus::estimateMemoryUsage(uint32 evidenceLen,
-                                     uint64 nBasesInOlaps,
-                                     uint32 templateLen) {
+falconConsensus::estimateMemoryUsage(uint32 UNUSED(evidenceLen),
+                                     uint64        nBasesInOlaps,
+                                     uint32        templateLen) {
 
   //  For evidence, each aligned base makes an alignTag, then 2 bytes for the read itself.
   //  This _should_ be a vast over-estimate, but it is just barely the actual size.

@@ -71,8 +71,8 @@
 
 static
 alignTagList *
-getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 Qid,    //  read
-             char       *Talign,   int32 Tbgn,  int32 Tlen,               //  template
+getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),    //  read
+             char       *Talign,   int32 Tbgn,  int32 Tlen,                       //  template
              int32       alignLen) {
   int32   i        = Qbgn - 1;   //  Position in query, not really used.
   int32   j        = Tbgn - 1;   //  Position in template

@@ -38,7 +38,7 @@
 //  Store the result in w->clrBgn and w->clrEnd.
 
 void
-trimBadInterval(gkStore               *gkp,
+trimBadInterval(gkStore        *UNUSED(gkp),
                 workUnit              *w,
                 uint32                 minReadLength,
                 FILE                  *subreadFile,

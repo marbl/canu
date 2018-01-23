@@ -33,18 +33,18 @@
 
 
 bool
-largestCovered(ovOverlap  *ovl,
-               uint32       ovlLen,
-               gkRead      *read,
-               uint32       ibgn,
-               uint32       iend,
-               uint32      &fbgn,
-               uint32      &fend,
-               char        *logMsg,
-               uint32       errorValue,
-               uint32       minOverlap,
-               uint32       minCoverage,
-               uint32       minReadLength) {
+largestCovered(ovOverlap    *ovl,
+               uint32        ovlLen,
+               gkRead       *read,
+               uint32 UNUSED(ibgn),
+               uint32        iend,
+               uint32       &fbgn,
+               uint32       &fend,
+               char         *logMsg,
+               uint32        errorValue,
+               uint32        minOverlap,
+               uint32        minCoverage,
+               uint32        minReadLength) {
 
   logMsg[0] = 0;
 
