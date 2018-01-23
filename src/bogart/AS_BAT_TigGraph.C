@@ -444,11 +444,8 @@ reportTigGraph(TigVector &tigs,
   snprintf(BEGn, FILENAME_MAX, "%s.%s.gfa", prefix, label);
   snprintf(BEDn, FILENAME_MAX, "%s.%s.bed", prefix, label);
 
-  FILE *BEG = fopen(BEGn, "w");
-  FILE *BED = fopen(BEDn, "w");
-
-  if (BEG == NULL)
-    return;
+  FILE *BEG = AS_UTL_openOutputFile(BEGn);
+  FILE *BED = AS_UTL_openOutputFile(BEDn);
 
   //  Write a header.  You've gotta start somewhere!
 
