@@ -507,7 +507,7 @@ main(int argc, char **argv) {
   trim5.generatePlots(outputPrefix, "trim5", 25);
   trim3.generatePlots(outputPrefix, "trim3", 25);
 
-  if ((staFile) && (staFile != stderr))
+  if (staFile != stderr)
     fclose(staFile);
 
   //  Buh-bye.
