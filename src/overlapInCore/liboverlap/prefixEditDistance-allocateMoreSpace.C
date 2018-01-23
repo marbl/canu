@@ -95,7 +95,8 @@ prefixEditDistance::Allocate_More_Edit_Space(int32 ein) {
   }
 
   if (e == b)
-    fprintf(stderr, "Allocate_More_Edit_Space()-- ERROR: couldn't allocate enough space for even one more entry!  e=%d\n", e);
+    fprintf(stderr, "Allocate_More_Edit_Space()-- ERROR: couldn't allocate enough space for even one more entry!  e=%d ein=%d\n",
+            e, ein);
   assert(e != b);
 
 #ifdef DEBUG_EDIT_SPACE_ALLOC

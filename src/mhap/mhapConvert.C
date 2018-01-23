@@ -147,7 +147,7 @@ main(int argc, char **argv) {
 
       if ((alen != W(7)) ||
           (blen != W(11)))
-        fprintf(stderr, "%s\nINVALID LENGTHS read %u (len %d) and read %u (len %d) lengths %lu and %lu\n",
+        fprintf(stderr, "%s\nINVALID LENGTHS read " F_U32 " (len %d) and read " F_U32 " (len %d) lengths " F_S64 " and " F_S64 "\n",
                 ovStr,
                 ov.a_iid, alen,
                 ov.b_iid, blen,
@@ -155,7 +155,7 @@ main(int argc, char **argv) {
 
       if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
           (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3))
-        fprintf(stderr, "%s\nINVALID OVERLAP read %u (len %d) and read %u (len %d) hangs %lu/%lu and %lu/%lu%s\n",
+        fprintf(stderr, "%s\nINVALID OVERLAP read " F_U32 " (len %d) and read " F_U32 " (len %d) hangs " F_U64 "/" F_U64 " and " F_U64 "/" F_U64 "%s\n",
                 ovStr,
                 ov.a_iid, alen,
                 ov.b_iid, blen,

@@ -129,7 +129,7 @@ classifyRule1(Unitig *utg, FILE *F, uint32 &num, uint64 &len, uint32 fewReadsNum
   if (utg->ufpath.size() >= fewReadsNumber)
     return(false);
 
-  fprintf(F, "unitig " F_U32 " (%s) unassembled - too few reads (" F_U64 " < " F_U32 ")\n",
+  fprintf(F, "unitig " F_U32 " (%s) unassembled - too few reads (" F_SIZE_T " < " F_U32 ")\n",
           utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
           utg->ufpath.size(), fewReadsNumber);
 

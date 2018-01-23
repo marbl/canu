@@ -103,14 +103,14 @@ main(int argc, char **argv) {
         (chunk[1] == 'L') &&
         (chunk[2] == 'O') &&
         (chunk[3] == 'B')) { 
-      fprintf(stdout, "START %s pos %8lu max %8lu length %8u\n", chunk, blobPos, blobMap->length(), chunkLen);
+      fprintf(stdout, "START %s pos %8" F_U64P " max %8" F_SIZE_TP " length %8" F_U32P "\n", chunk, blobPos, blobMap->length(), chunkLen);
     }
 
     else {
       blob    += chunkLen;
       blobPos += chunkLen;
 
-      fprintf(stdout, "      %s pos %8lu max %8lu length %8u\n", chunk, blobPos, blobMap->length(), chunkLen);
+      fprintf(stdout, "      %s pos %8" F_U64P " max %8" F_SIZE_TP " length %8" F_U32P "\n", chunk, blobPos, blobMap->length(), chunkLen);
     }
   }
 

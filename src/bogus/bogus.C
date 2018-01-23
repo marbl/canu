@@ -634,7 +634,7 @@ main(int argc, char **argv) {
       if (refcnt == 0) {
         fprintf(stderr, "DIDN'T FIND REGION.\n");
         for (uint32 rr=0; rr<refList.size(); rr++) {
-          fprintf(stderr, "  %3u rschnBgn %6d REPT %5d %lld-%lld UNIQ %5d %lld-%lld rschnEnd %6d REPT\n",
+          fprintf(stderr, "  %3u rschnBgn %6d REPT %5d " F_S64 "-" F_S64 " UNIQ %5d " F_S64 "-" F_S64 " rschnEnd %6d REPT\n",
                   rr,
                   refList[rr].rschnBgn,
                   ir, lor, hir,

@@ -74,7 +74,7 @@ Read_Frags(feParameters   *G,
                       sizeof(Vote_Tally_t) * basesLength +
                       sizeof(Frag_Info_t)  * G->readsLen);
 
-  fprintf(stderr, "Read_Frags()-- allocate %lu MB for bases, votes and info, for %u reads of total length %lu (%.4f bytes/base)\n",
+  fprintf(stderr, "Read_Frags()-- allocate " F_U64 " MB for bases, votes and info, for %u reads of total length " F_U64 " (%.4f bytes/base)\n",
           totAlloc >> 20,
           G->endID - G->bgnID + 1,
           basesLength,

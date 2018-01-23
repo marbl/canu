@@ -71,7 +71,7 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
         (gkp->gkStore_readInPartition(rid) == false))
       continue;
 
-    fprintf(stdout, "%10u %10u %10u %10u %10u %10u %10u %10lu %10lu %8s%c%c\n",
+    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U64P " %10" F_U64P " %8s%c%c\n",
             read->gkRead_readID(),
             read->gkRead_libraryID(),
             read->gkRead_sequenceLength(),

@@ -244,9 +244,9 @@ Correct_Frags(coParameters *G,
   fprintf(stderr, "Correcting " F_U64 " bases with " F_U64 " indel adjustments.\n", G->basesLen, G->adjustsLen);
 
   fprintf(stderr, "--Allocate " F_U64 " + " F_U64 " + " F_U64 " MB for bases, adjusts and reads.\n",
-          (sizeof(char) * G->basesLen) >> 20,
-          (sizeof(Adjust_t) * G->adjustsLen) >> 20,
-          (sizeof(Frag_Info_t) * (G->endID - G->bgnID + 1)) >> 20);
+          (sizeof(char)        * (uint64)(G->basesLen))             / 1048576,   //  MacOS GCC 4.9.4 can't decide if these three
+          (sizeof(Adjust_t)    * (uint64)(G->adjustsLen))           / 1048576,   //  values are %u, %lu or %llu.  We force cast
+          (sizeof(Frag_Info_t) * (uint64)(G->endID - G->bgnID + 1)) / 1048576);  //  them to be uint64.
 
   G->bases        = new char          [G->basesLen];
   G->adjusts      = new Adjust_t      [G->adjustsLen];

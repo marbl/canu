@@ -136,7 +136,7 @@ main(int argc, char **argv) {
 
       if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
           (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3)) {
-        fprintf(stderr, "INVALID OVERLAP %8u (len %6d) %8u (len %6d) hangs %6lu %6lu - %6lu %6lu flip %lu\n",
+        fprintf(stderr, "INVALID OVERLAP " F_U32 " (len %6d) " F_U32 " (len %6d) hangs " F_U64 " " F_U64 " - " F_U64 " " F_U64 " flip " F_U64 "\n",
                 ov.a_iid, alen,
                 ov.b_iid, blen,
                 ov.dat.ovl.ahg5, ov.dat.ovl.ahg3,

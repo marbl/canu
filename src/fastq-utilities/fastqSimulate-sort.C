@@ -249,7 +249,7 @@ main(int argc, char **argv) {
     reads.push_back(pr);
   }
 
-  fprintf(stderr, "Loaded " F_U64 " mated reads.\n", reads.size());
+  fprintf(stderr, "Loaded " F_SIZE_T " mated reads.\n", reads.size());
 
   sort(reads.begin(), reads.end());
 

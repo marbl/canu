@@ -128,7 +128,7 @@ public:
 
     reportThreshold += 10000;
 
-    fprintf(stderr, "Tested %9lu olaps -- Skipped %8.4f%% -- Passed %8.4f%% -- %8.2f olaps/sec\n",
+    fprintf(stderr, "Tested %9" F_U64P " olaps -- Skipped %8.4f%% -- Passed %8.4f%% -- %8.2f olaps/sec\n",
             nPassed + nFailed,
             100.0 * nSkipped / (nPassed + nFailed),
             100.0 * nPassed  / (nPassed + nFailed),
@@ -137,19 +137,19 @@ public:
 
   void    reportFinal(void) {
     fprintf(stderr, "\n");
-    fprintf(stderr, " -- %lu overlaps processed.\n", nPassed + nFailed);
-    fprintf(stderr, " -- %lu skipped.\n", nSkipped);
-    fprintf(stderr, " -- %lu failed %lu passed (%.4f%%).\n", nFailed, nPassed, 100.0 * nPassed / (nPassed + nFailed));
+    fprintf(stderr, " -- %" F_U64P " overlaps processed.\n", nPassed + nFailed);
+    fprintf(stderr, " -- %" F_U64P " skipped.\n", nSkipped);
+    fprintf(stderr, " -- %" F_U64P " failed %" F_U64P " passed (%.4f%%).\n", nFailed, nPassed, 100.0 * nPassed / (nPassed + nFailed));
     fprintf(stderr, " --\n");
-    fprintf(stderr, " -- %lu failed initial alignment, allowing A to extend\n", nFailExtA);
-    fprintf(stderr, " -- %lu failed initial alignment, allowing B to extend\n", nFailExtB);
-    fprintf(stderr, " -- %lu failed initial alignment\n", nFailExt);
+    fprintf(stderr, " -- %" F_U64P " failed initial alignment, allowing A to extend\n", nFailExtA);
+    fprintf(stderr, " -- %" F_U64P " failed initial alignment, allowing B to extend\n", nFailExtB);
+    fprintf(stderr, " -- %" F_U64P " failed initial alignment\n", nFailExt);
     fprintf(stderr, " --\n");
-    fprintf(stderr, " -- %lu partial overlaps (of any quality)\n", nPartial);
-    fprintf(stderr, " -- %lu dovetail overlaps (before extensions, of any quality)\n", nDovetail);
+    fprintf(stderr, " -- %" F_U64P " partial overlaps (of any quality)\n", nPartial);
+    fprintf(stderr, " -- %" F_U64P " dovetail overlaps (before extensions, of any quality)\n", nDovetail);
     fprintf(stderr, " --\n");
-    fprintf(stderr, " -- %lu/%lu A read dovetail extensions\n", nExt5a, nExt3a);
-    fprintf(stderr, " -- %lu/%lu B read dovetail extensions\n", nExt5b, nExt3b);
+    fprintf(stderr, " -- %" F_U64P "/%" F_U64P " A read dovetail extensions\n", nExt5a, nExt3a);
+    fprintf(stderr, " -- %" F_U64P "/%" F_U64P " B read dovetail extensions\n", nExt5b, nExt3b);
   };
 
   double        startTime;
@@ -384,8 +384,8 @@ recomputeOverlaps(void *ptr) {
 
       if (debug) {
         fprintf(stderr, "--------\n");
-        fprintf(stderr, "OLAP A %7u %6d-%-6d\n",    aID, abgn, aend);
-        fprintf(stderr, "     B %7u %6d-%-6d %s\n", bID, bbgn, bend, (ovl->flipped() == false) ? "" : " flipped");
+        fprintf(stderr, "OLAP A %7" F_U32P " %6d-%-6d\n",    aID, abgn, aend);
+        fprintf(stderr, "     B %7" F_U32P " %6d-%-6d %s\n", bID, bbgn, bend, (ovl->flipped() == false) ? "" : " flipped");
         fprintf(stderr, "\n");
       }
 
@@ -460,8 +460,8 @@ recomputeOverlaps(void *ptr) {
 
       if (debug) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "init A %7u %6d-%-6d\n", aID, abgn, aend);
-        fprintf(stderr, "     B %7u %6d-%-6d\n", bID, bbgn, bend);
+        fprintf(stderr, "init A %7" F_U32P " %6d-%-6d\n", aID, abgn, aend);
+        fprintf(stderr, "     B %7" F_U32P " %6d-%-6d\n", bID, bbgn, bend);
         fprintf(stderr, "\n");
       }
 
@@ -614,8 +614,8 @@ recomputeOverlaps(void *ptr) {
 
       if (debug) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "fini A %7u %6d-%-6d %d %d\n",    aID, abgn, aend, ovl->a_bgn(), ovl->a_end());
-        fprintf(stderr, "     B %7u %6d-%-6d %d %d %s\n", bID, bbgn, bend, ovl->b_bgn(), ovl->b_end(), (ovl->flipped() == false) ? "" : " flipped");
+        fprintf(stderr, "fini A %7" F_U32P " %6d-%-6d %d %d\n",    aID, abgn, aend, ovl->a_bgn(), ovl->a_end());
+        fprintf(stderr, "     B %7" F_U32P " %6d-%-6d %d %d %s\n", bID, bbgn, bend, ovl->b_bgn(), ovl->b_end(), (ovl->flipped() == false) ? "" : " flipped");
         fprintf(stderr, "\n");
       }
 
