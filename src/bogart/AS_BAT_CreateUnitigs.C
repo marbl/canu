@@ -324,7 +324,7 @@ checkRead(Unitig                    *tgA,
           uint32                     minOverlap,
           uint32                     maxPlacements,
           bool                       isFirst) {
-  bool   verbose = true;
+  bool   beVerbose = true;
 
   //  To support maxPlacements, we first find all the breaks as we've done forever, then simply
   //  ignore them if there are too many.
@@ -355,7 +355,7 @@ checkRead(Unitig                    *tgA,
 
     if ((tgA->id() == tgB->id()) && (isOverlapping(op.verified, rdA->position))) {
       toSelf = true;
-      if (verbose == false)
+      if (beVerbose == false)
         continue;
     }
 
@@ -369,13 +369,13 @@ checkRead(Unitig                    *tgA,
 
     if ((is5 == true) && (op.covered.bgn != 0)) {
       expected5 = true;
-      if (verbose == false)
+      if (beVerbose == false)
         continue;
     }
 
     if ((is5 == false) && (op.covered.end != RI->readLength(rdA->ident))) {
       expected3 = true;
-      if (verbose == false)
+      if (beVerbose == false)
         continue;
     }
 
@@ -383,7 +383,7 @@ checkRead(Unitig                    *tgA,
 
     if (op.verified.max() - op.verified.min() < minOverlap) {
       tooSmall = true;
-      if (verbose == false)
+      if (beVerbose == false)
         continue;
     }
 
@@ -469,7 +469,7 @@ checkRead(Unitig                    *tgA,
         flushLog();
 
         noOverlaps = true;
-        if (verbose == false)
+        if (beVerbose == false)
           continue;
       } else {
         writeLog("Found appropriate intersecting read.\n");
@@ -490,14 +490,14 @@ double deviationGraph = 6;
 
     if (sim < REPEAT_FRACTION) {
       notSimilar = true;
-      if (verbose == false)
+      if (beVerbose == false)
         continue;
     }
 
-    //  if not useful, bail.  This only occurs here if verbose == true, otherwise, we shortcircuit in the tests above.
+    //  if not useful, bail.  This only occurs here if beVerbose == true, otherwise, we shortcircuit in the tests above.
 
     if (toSelf || expected5 || expected3 || tooSmall || isContained || noOverlaps || notSimilar) {
-      if (verbose)
+      if (beVerbose)
         writeLog("createUnitigs()-- read %6u place %3d edgeTo tig %5u reads #%5u %9u-%9u verified %9d-%9d position %9d-%9d covered %7d-%7d%s%s%s%s%s%s%s\n",
                  rdA->ident, pp, op.tigID,
                  op.tigFidx, tgB->ufpath[op.tigFidx].ident, tgB->ufpath[op.tigLidx].ident,
@@ -516,7 +516,7 @@ double deviationGraph = 6;
 
     //  Otherwise, it's a useful edge.
 
-    if (verbose)
+    if (beVerbose)
       writeLog("createUnitigs()-- read %6u place %3d edgeTo tig %5u reads #%5u %9u-%9u verified %9d-%9d position %9d-%9d covered %7d-%7d BREAK at pos %8u read %6u isLow %u sim %.4f\n",
                rdA->ident, pp, op.tigID,
                op.tigFidx, tgB->ufpath[op.tigFidx].ident, tgB->ufpath[op.tigLidx].ident,
