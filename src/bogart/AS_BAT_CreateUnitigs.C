@@ -621,21 +621,20 @@ createUnitigs(TigVector             &contigs,
   writeLog("Adding breaks at confused reads.\n");
 
   for (uint32 ii=0; ii<confusedEdges.size(); ii++) {
-    uint32  aid  = confusedEdges[ii].aid;
-    uint32  a3p  = confusedEdges[ii].a3p;
+    uint32  aid   = confusedEdges[ii].aid;
+    uint32  a3p   = confusedEdges[ii].a3p;
 
-    uint32  tid =  contigs.inUnitig(aid);
-    uint32  tpp =  contigs.ufpathIdx(aid);  //  Not the Trans-Pacific Partnership, FYI.
-
-    Unitig *tig =  contigs[tid];
-    ufNode *rda = &tig->ufpath[tpp];
+    uint32  tid   = contigs.inUnitig(aid);
+    Unitig *tig   = contigs[tid];
 
     if ((tig == NULL) ||                 //  It won't be NULL, but we definitely don't want to
         (tig->_isUnassembled == true))   //  see unassembled crap here.  We don't care, and they'll crash.
       continue;
 
-    uint32   coord = 0;       //  Pick the coordinate and set isLow based on orientation
-    bool     isLow = false;   //  and the end of the read that is confused.
+    uint32  tpp   = contigs.ufpathIdx(aid);  //  Not the Trans-Pacific Partnership, FYI.
+    ufNode *rda   = &tig->ufpath[tpp];
+    uint32  coord = 0;       //  Pick the coordinate and set isLow based on orientation
+    bool    isLow = false;   //  and the end of the read that is confused.
 
     if (((rda->position.isForward() == true)  && (a3p == true)) ||
         ((rda->position.isForward() == false) && (a3p == false))) {
