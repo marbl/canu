@@ -189,6 +189,7 @@ main(int argc, char **argv) {
   }
   if ((gkpName       == NULL) ||
       (ovsName       == NULL) ||
+      (outClrName    == NULL) ||
       (outputPrefix  == NULL) ||
       (err)) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -Co output.clearFile -o outputPrefix\n", argv[0]);
@@ -222,7 +223,7 @@ main(int argc, char **argv) {
 
   clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp);
   clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp);
-  clearRangeFile   *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp);
+  clearRangeFile   *outClr =                               new clearRangeFile(outClrName, gkp);
 
   if (outClr)
     //  If the outClr file exists, those clear ranges are loaded.  We need to reset them
