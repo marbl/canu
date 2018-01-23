@@ -95,7 +95,12 @@ testFiles(char *filename, char *prefix, uint32 merSize) {
   }
 
   delete e;
+  delete f;
+  delete g;
+
   delete C;
+
+  delete [] prefixfilename;
 
   return(0);
 }
