@@ -61,6 +61,11 @@ public:
                       char   *fastqName,
                       uint64 memLimit_) {
 
+    //  Parameters
+
+    maxErate   = maxErate_;
+    memLimit   = memLimit_;
+
     //  Inputs
 
     gkpStore  = gkStore::gkStore_open(gkpName);
@@ -76,9 +81,6 @@ public:
       fprintf(stderr, "consensusGlobalData()--  opened tigStore '%s'\n", tigName);
 
     //  Parameters
-
-    maxErate   = maxErate_;
-    memLimit   = memLimit_;
 
     if (bgnID_ == 0)                                bgnID_ = 1;
     if (endID_  > gkpStore->gkStore_getNumReads())  endID_ = gkpStore->gkStore_getNumReads() + 1;
