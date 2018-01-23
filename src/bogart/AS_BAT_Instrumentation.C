@@ -129,9 +129,10 @@ classifyRule1(Unitig *utg, FILE *F, uint32 &num, uint64 &len, uint32 fewReadsNum
   if (utg->ufpath.size() >= fewReadsNumber)
     return(false);
 
-  fprintf(F, "unitig " F_U32 " (%s) unassembled - too few reads (" F_SIZE_T " < " F_U32 ")\n",
-          utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
-          utg->ufpath.size(), fewReadsNumber);
+  if (F)
+    fprintf(F, "unitig " F_U32 " (%s) unassembled - too few reads (" F_SIZE_T " < " F_U32 ")\n",
+            utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
+            utg->ufpath.size(), fewReadsNumber);
 
   num += 1;
   len += utg->getLength();
@@ -150,7 +151,7 @@ classifyRule2(Unitig *utg, FILE *F, uint32 &num, uint64 &len, uint32 tooShortLen
   if (utg->getLength() >= tooShortLength)
     return(false);
 
-  if (utg->ufpath.size() > 1)
+  if ((F) && (utg->ufpath.size() > 1))
     fprintf(F, "unitig " F_U32 " (%s) unassembled - too short (" F_U32 " < " F_U32 ")\n",
             utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
             utg->getLength(), tooShortLength);
@@ -177,7 +178,7 @@ classifyRule3(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double spanFractio
     int frgend = MAX(frg->position.bgn, frg->position.end);
 
     if (frgend - frgbgn > utg->getLength() * spanFraction) {
-      if (utg->ufpath.size() > 1)
+      if ((F) && (utg->ufpath.size() > 1))
         fprintf(F, "unitig " F_U32 " (%s) unassembled - single read spans unitig (read " F_U32 " " F_U32 "-" F_U32 " spans fraction %f > %f\n",
                 utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
                 frg->ident, frg->position.bgn, frg->position.end, (double)(frgend - frgbgn) / utg->getLength(), spanFraction);
@@ -229,7 +230,7 @@ classifyRule4(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double lowcovFract
   if (lowcov < lowcovFraction)
     return(false);
 
-  if (utg->ufpath.size() > 1)
+  if ((F) && (utg->ufpath.size() > 1))
     fprintf(F, "Unitig " F_U32 " (%s) unassembled - low coverage (%.2f%% of unitig at < " F_U32 "x coverage, allowed %.2f%%)\n",
             utg->id(), (utg->_isRepeat) ? "repeat" : "normal",
             100.0 * lowcov, lowcovDepth, 100.0 * lowcovFraction);
