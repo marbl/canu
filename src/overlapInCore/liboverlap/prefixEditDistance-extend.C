@@ -122,10 +122,6 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   Left_Delta_Len  = 0;
   Right_Delta_Len = 0;
 
-  bool   invertLeftDeltas  = false;
-  bool   invertRightDeltas = false;
-
-
   if ((S_Right_Len == 0) ||
       (T_Right_Len == 0)) {
     S_Hi        = 0;
@@ -189,13 +185,17 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   S_Lo += S_Left_Begin + 1;
   T_Lo += T_Left_Begin + 1;
 
-
-  assert(Right_Errors <= Error_Limit);
-  assert(Left_Errors <= Error_Limit);
-
   Errors = Left_Errors + Right_Errors;
 
-  assert(Errors <= Error_Limit);
+  if ((Right_Errors > Error_Limit) ||
+      (Left_Errors  > Error_Limit) ||
+      (Errors       > Error_Limit))
+    fprintf(stderr, "Extend_Alignment()- S_ID %u T_ID %u Error_Limit %d Left_Errors %d Right_Errors %d\n",
+            S_ID, T_ID, Error_Limit, Left_Errors, Right_Errors);
+
+  assert(Right_Errors <= Error_Limit);
+  assert(Left_Errors  <= Error_Limit);
+  assert(Errors       <= Error_Limit);
 
 #ifdef SHOW_EXTEND_ALIGN
   fprintf(stdout, "WorkArea %2d OVERLAP %6d %6d - %5d + %5d = %5d errors out of %d possible\n", omp_get_thread_num(), S_ID, T_ID, Left_Errors, Right_Errors, Errors, Edit_Space_Lazy_Max);
@@ -227,4 +227,3 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   return(return_type);
 }
-
