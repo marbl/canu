@@ -160,18 +160,17 @@ private:
   void
   castVote(Vote_Value_t  val,
            int32         pos) {
-    int32 v = 0;
 
     switch (val) {
-      case DELETE:    if (_vote[pos].deletes  < VOTETALLY_MAX)  v = ++_vote[pos].deletes;   break;
-      case A_SUBST:   if (_vote[pos].a_subst  < VOTETALLY_MAX)  v = ++_vote[pos].a_subst;   break;
-      case C_SUBST:   if (_vote[pos].c_subst  < VOTETALLY_MAX)  v = ++_vote[pos].c_subst;   break;
-      case G_SUBST:   if (_vote[pos].g_subst  < VOTETALLY_MAX)  v = ++_vote[pos].g_subst;   break;
-      case T_SUBST:   if (_vote[pos].t_subst  < VOTETALLY_MAX)  v = ++_vote[pos].t_subst;   break;
-      case A_INSERT:  if (_vote[pos].a_insert < VOTETALLY_MAX)  v = ++_vote[pos].a_insert;  break;
-      case C_INSERT:  if (_vote[pos].c_insert < VOTETALLY_MAX)  v = ++_vote[pos].c_insert;  break;
-      case G_INSERT:  if (_vote[pos].g_insert < VOTETALLY_MAX)  v = ++_vote[pos].g_insert;  break;
-      case T_INSERT:  if (_vote[pos].t_insert < VOTETALLY_MAX)  v = ++_vote[pos].t_insert;  break;
+      case DELETE:    if (_vote[pos].deletes  < VOTETALLY_MAX)  _vote[pos].deletes++;   break;
+      case A_SUBST:   if (_vote[pos].a_subst  < VOTETALLY_MAX)  _vote[pos].a_subst++;   break;
+      case C_SUBST:   if (_vote[pos].c_subst  < VOTETALLY_MAX)  _vote[pos].c_subst++;   break;
+      case G_SUBST:   if (_vote[pos].g_subst  < VOTETALLY_MAX)  _vote[pos].g_subst++;   break;
+      case T_SUBST:   if (_vote[pos].t_subst  < VOTETALLY_MAX)  _vote[pos].t_subst++;   break;
+      case A_INSERT:  if (_vote[pos].a_insert < VOTETALLY_MAX)  _vote[pos].a_insert++;  break;
+      case C_INSERT:  if (_vote[pos].c_insert < VOTETALLY_MAX)  _vote[pos].c_insert++;  break;
+      case G_INSERT:  if (_vote[pos].g_insert < VOTETALLY_MAX)  _vote[pos].g_insert++;  break;
+      case T_INSERT:  if (_vote[pos].t_insert < VOTETALLY_MAX)  _vote[pos].t_insert++;  break;
       case NO_VOTE:
         break;
       default :

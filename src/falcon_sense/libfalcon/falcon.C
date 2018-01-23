@@ -558,7 +558,7 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
     int ck;
     char * cns_str;
     int * eqv;
-    double score0;
+    //double score0;
 
     consensus = (consensus_data *)calloc( 1, sizeof(consensus_data) );
     consensus->sequence = (char *)calloc( t_len * 2 + 1, sizeof(char) );
@@ -600,7 +600,7 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
         // Note: On bad input, bb will keep previous value, possibly '$'.
 
-        score0 = g_best_aln_col->score;
+        //score0 = g_best_aln_col->score;
         i = g_best_aln_col->best_p_t_pos;
         //if (i == -1 || index >= t_len * 2) break;          //  WRONG!  Stops if _next_ column is invalid, never reports this column
         j = g_best_aln_col->best_p_delta;

@@ -45,27 +45,23 @@ Cast_Vote(feParameters *G,
           Vote_Value_t val,
           int32        pos,
           int32        sub) {
-  int32  v=0;
 
   switch (val) {
-    case DELETE:    if (G->reads[sub].vote[pos].deletes  < MAX_VOTE)  v = ++G->reads[sub].vote[pos].deletes;   break;
-    case A_SUBST:   if (G->reads[sub].vote[pos].a_subst  < MAX_VOTE)  v = ++G->reads[sub].vote[pos].a_subst;   break;
-    case C_SUBST:   if (G->reads[sub].vote[pos].c_subst  < MAX_VOTE)  v = ++G->reads[sub].vote[pos].c_subst;   break;
-    case G_SUBST:   if (G->reads[sub].vote[pos].g_subst  < MAX_VOTE)  v = ++G->reads[sub].vote[pos].g_subst;   break;
-    case T_SUBST:   if (G->reads[sub].vote[pos].t_subst  < MAX_VOTE)  v = ++G->reads[sub].vote[pos].t_subst;   break;
-    case A_INSERT:  if (G->reads[sub].vote[pos].a_insert < MAX_VOTE)  v = ++G->reads[sub].vote[pos].a_insert;  break;
-    case C_INSERT:  if (G->reads[sub].vote[pos].c_insert < MAX_VOTE)  v = ++G->reads[sub].vote[pos].c_insert;  break;
-    case G_INSERT:  if (G->reads[sub].vote[pos].g_insert < MAX_VOTE)  v = ++G->reads[sub].vote[pos].g_insert;  break;
-    case T_INSERT:  if (G->reads[sub].vote[pos].t_insert < MAX_VOTE)  v = ++G->reads[sub].vote[pos].t_insert;  break;
+    case DELETE:    if (G->reads[sub].vote[pos].deletes  < MAX_VOTE)  G->reads[sub].vote[pos].deletes++;   break;
+    case A_SUBST:   if (G->reads[sub].vote[pos].a_subst  < MAX_VOTE)  G->reads[sub].vote[pos].a_subst++;   break;
+    case C_SUBST:   if (G->reads[sub].vote[pos].c_subst  < MAX_VOTE)  G->reads[sub].vote[pos].c_subst++;   break;
+    case G_SUBST:   if (G->reads[sub].vote[pos].g_subst  < MAX_VOTE)  G->reads[sub].vote[pos].g_subst++;   break;
+    case T_SUBST:   if (G->reads[sub].vote[pos].t_subst  < MAX_VOTE)  G->reads[sub].vote[pos].t_subst++;   break;
+    case A_INSERT:  if (G->reads[sub].vote[pos].a_insert < MAX_VOTE)  G->reads[sub].vote[pos].a_insert++;  break;
+    case C_INSERT:  if (G->reads[sub].vote[pos].c_insert < MAX_VOTE)  G->reads[sub].vote[pos].c_insert++;  break;
+    case G_INSERT:  if (G->reads[sub].vote[pos].g_insert < MAX_VOTE)  G->reads[sub].vote[pos].g_insert++;  break;
+    case T_INSERT:  if (G->reads[sub].vote[pos].t_insert < MAX_VOTE)  G->reads[sub].vote[pos].t_insert++;  break;
     case NO_VOTE:
       break;
     default :
       fprintf(stderr, "ERROR:  Illegal vote type\n");
       break;
   }
-
-  //  Largely useless, just too much output.
-  //fprintf(stderr, "Cast_Vote()-- sub %d at %d vote %d\n", sub, p, val);
 }
 
 

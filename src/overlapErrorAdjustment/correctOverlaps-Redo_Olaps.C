@@ -295,7 +295,6 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
   uint32         fseqLen = 0;
 
   char          *rseq    = new char     [AS_MAX_READLEN + 1 + AS_MAX_READLEN + 1];
-  uint32         rseqLen = 0;
 
   fprintf(stderr, "--Allocate " F_SIZE_T " MB for fadj and radj.\n", (2 * sizeof(Adjust_t) * (AS_MAX_READLEN + 1)) >> 20);
   Adjust_t      *fadj    = new Adjust_t [AS_MAX_READLEN + 1];
@@ -341,8 +340,6 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
     //fprintf(stderr, "Correcting B read %u at Cpos=%u\n", curID, Cpos);
 
     fseqLen = 0;
-    rseqLen = 0;
-
     fadjLen = 0;
 
     correctRead(curID,

@@ -353,10 +353,9 @@ AS_UTL_fileExists(const char *path,
                   int directory,
                   int readwrite) {
   struct stat  s;
-  int          r;
 
   errno = 0;
-  r = stat(path, &s);
+  stat(path, &s);
   if (errno)
     return(0);
 
@@ -396,11 +395,10 @@ AS_UTL_fileExists(const char *path,
 off_t
 AS_UTL_sizeOfFile(const char *path) {
   struct stat  s;
-  int          r;
   off_t        size = 0;
 
   errno = 0;
-  r = stat(path, &s);
+  stat(path, &s);
   if (errno) {
     fprintf(stderr, "Failed to stat() file '%s': %s\n", path, strerror(errno));
     exit(1);

@@ -564,27 +564,22 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 
   char   *libname    = _libraries[_info.numLibraries]._libraryName;
   uint32  libnamepos = 0;
-  bool    modified   = false;
-  bool    truncated  = false;
 
   memset(libname, 0, sizeof(char) * LIBRARY_NAME_SIZE);
 
   for (char const *orig=name; *orig; orig++) {
     if        (*orig == '/') {
       libname[libnamepos++] = '_';
-      modified = true;
 
     } else if (isspace(*orig) == 0) {
       libname[libnamepos++] = *orig;
 
     } else {
       libname[libnamepos++] = '_';
-      modified = true;
     }
 
     if (libnamepos >= LIBRARY_NAME_SIZE) {
       libname[LIBRARY_NAME_SIZE-1] = 0;
-      truncated = true;
       break;
     }
   }
