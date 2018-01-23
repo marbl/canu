@@ -213,6 +213,9 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName2, strerror(errno)), exit(1);
 
+  if ((inFile1 == NULL) && (inFile2 == NULL))
+    fprintf(stderr, "ERROR:  Failed to open any input file!\n"), exit(1);
+
   //  Load reads.
 
   vector<pairedRead>  reads;
@@ -254,9 +257,9 @@ main(int argc, char **argv) {
   sort(reads.begin(), reads.end());
 
   for (uint32 i=0; i<reads.size(); i++) {
-    if (reads[i].readA)
+    if ((reads[i].readA) && (otFile1))
       fputs(reads[i].readA, otFile1);
-    if (reads[i].readB)
+    if ((reads[i].readB) && (otFile2))
       fputs(reads[i].readB, otFile2);
   }
 
