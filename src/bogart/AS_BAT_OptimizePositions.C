@@ -38,8 +38,10 @@
 class optPos {
 public:
   optPos() {
-  };
-  ~optPos() {
+    ident = 0;
+    min   = 0.0;
+    max   = 0.0;
+    fwd   = false;
   };
 
   void    set(ufNode &n) {
@@ -354,9 +356,6 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
   optPos *pp = NULL;
   optPos *op = new optPos [fiLimit];
   optPos *np = new optPos [fiLimit];
-
-  memset(op, 0, sizeof(optPos) * fiLimit);
-  memset(np, 0, sizeof(optPos) * fiLimit);
 
   for (uint32 fi=0; fi<fiLimit; fi++) {
     uint32 ti = inUnitig(fi);
