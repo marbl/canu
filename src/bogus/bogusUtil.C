@@ -327,6 +327,9 @@ loadReferenceSequence(char                       *refName,
     fgets(refseq, MAX_GENOME_SIZE_INPUT, F);   chomp(refseq);
   }
 
+  delete [] refseq;
+  delete [] refhdr;
+
   fclose(F);
 }
 
