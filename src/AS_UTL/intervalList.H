@@ -669,6 +669,8 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
 
   //  Init first interval.
 
+  assert(_list != NULL);  //  Coverity claimed this could happen, but only if _listLen != numberOfIntervals()
+
   _list[_listLen].lo = id[0].pos;
   _list[_listLen].hi = id[0].pos;
   _list[_listLen].ct = 1;
