@@ -220,6 +220,7 @@ partitionByBucket(char *prefix, uint64 partitionSize, char *filename) {
 
   outputPartition(F, prefix, p, (uint32)partitionSize, n);
 
+  delete [] s;
   delete [] p;
   delete    F;
 }
