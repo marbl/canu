@@ -422,6 +422,8 @@ printIDsFromFile(char *name) {
         fprintf(stderr, "WARNING: Didn't find sequence with name/iid '%s'\n", id);
       else
         printSequence(S);
+
+      delete S;
     }
   }
 
@@ -637,6 +639,7 @@ processArray(int argc, char **argv) {
       md5_s     md5;
       char      sum[33];
 
+      delete fasta;
       fasta = new seqCache(argv[++arg]);
 
       for (uint32 s=0; s<fasta->getNumberOfSequences(); s++) {
@@ -715,6 +718,7 @@ processArray(int argc, char **argv) {
       double  P = atof(argv[++arg]);            //  probability of mutation
       uint32  i = 0;
 
+      delete fasta;
       fasta = new seqCache(argv[++arg]);
 
       seqInCore *S = fasta->getSequenceInCore(i++);
