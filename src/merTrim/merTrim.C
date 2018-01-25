@@ -562,9 +562,9 @@ public:
       verifySeq  = new char   [allocLen];
       verifyErr  = new char   [allocLen];
 
-      memset(verifyName, 1024,     0);
-      memset(verifySeq,  allocLen, 0);  //  Needed, for verified reads shorter than real reads
-      memset(verifyErr,  allocLen, '-');
+      memset(verifyName, 0,   1024);
+      memset(verifySeq,  0,   allocLen);  //  Needed, for verified reads shorter than real reads
+      memset(verifyErr,  '-', allocLen);
 
       fgets(verifyName, 1024,     g->fqVerify->file());
       fgets(verifySeq,  allocLen, g->fqVerify->file());
