@@ -502,8 +502,8 @@ reportTigGraph(TigVector &tigs,
     //logFileFlags &= ~LOG_PLACE_READ;
   }
 
-  if (BEG)   fclose(BEG);
-  if (BED)   fclose(BED);
+  fclose(BEG);
+  fclose(BED);
 
   //  And report statistics.
 
