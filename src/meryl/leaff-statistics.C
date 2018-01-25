@@ -160,4 +160,5 @@ stats(char *filename, uint64 refLen) {
 
   delete [] Ls;
   delete [] Lb;
+  delete    F;
 }
