@@ -279,9 +279,9 @@ placeRead_assignPlacementsToCluster(uint32  bgn, uint32  end,
 
 void
 placeRead_findFirstLastOverlapping(overlapPlacement &op,
-                                   Unitig *tig,
                                    uint32 os, uint32 oe,
-                                   overlapPlacement *ovlPlace) {
+                                   overlapPlacement *ovlPlace,
+                                   Unitig *tig) {
   op.tigFidx = UINT32_MAX;
   op.tigLidx = 0;
 
@@ -465,6 +465,59 @@ placeRead_computePlacement(overlapPlacement &op,
 
 
 
+//  Compute how much of the read is covered by overlaps to the contig.
+//
+//  There's a bit of dead code in placeRead_computePlacement() above, that computes this coverage
+//  using the extent of overlaps, but ignoring any gaps in coverage in the middle.
+//
+void
+placeRead_computeCoverage(overlapPlacement &op,
+                          uint32            os,
+                          uint32            oe,
+                          overlapPlacement *ovlPlace,
+                          Unitig           *tig) {
+  intervalList<int32>    readCov;
+
+  //  Recompute op.covered, for no good reason except that the computation above should be removed.
+
+  op.covered.bgn = INT32_MAX;  //  Covered interval is always in
+  op.covered.end = INT32_MIN;  //  forward read coordinates
+
+  for (uint32 oo=os; oo<oe; oo++) {
+    op.covered.bgn  = min(op.covered.bgn, ovlPlace[oo].covered.bgn);
+    op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
+
+    if (logFileFlagSet(LOG_PLACE_READ))
+      writeLog("pRUO()-- op %3d covers %8d-%-8d extent %8d-%-8d\n",
+               oo,
+               ovlPlace[oo].covered.bgn, ovlPlace[oo].covered.end,
+               op.covered.bgn, op.covered.end);
+
+    readCov.add(ovlPlace[oo].covered.bgn, ovlPlace[oo].covered.end - ovlPlace[oo].covered.bgn);
+  }
+
+  assert(op.covered.isForward() == true);
+
+  readCov.merge();
+
+  int32  readLen = RI->readLength(op.frgID);
+  int32  bCov    = 0;
+
+  for (uint32 ii=0; ii<readCov.numberOfIntervals(); ii++)
+    bCov += readCov.hi(ii) - readCov.lo(ii);
+
+  double  eCov = (op.covered.end - op.covered.bgn) / (double)readLen;
+  double  fCov = (bCov)                            / (double)readLen;
+
+  op.fCoverage = fCov;
+
+  if (logFileFlagSet(LOG_PLACE_READ))
+    writeLog("pRUO()-- covered %6.4f extent %6.4f\n",
+             fCov, eCov);
+}
+
+
+
 bool
 placeReadUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
@@ -588,8 +641,9 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
       overlapPlacement  op(fid, ovlPlace[os]);
 
-      placeRead_findFirstLastOverlapping(op, tigs[op.tigID], os, oe, ovlPlace);
-      placeRead_computePlacement(op, os, oe, ovlPlace, tigs[op.tigID]);
+      placeRead_findFirstLastOverlapping(op, os, oe, ovlPlace, tigs[op.tigID]);
+      placeRead_computePlacement        (op, os, oe, ovlPlace, tigs[op.tigID]);
+      placeRead_computeCoverage         (op, os, oe, ovlPlace, tigs[op.tigID]);
 
       //  Filter out bogus placements.  There used to be a few more, but they made no sense for long reads.
       //  Reject if either end stddev is high.  It has to be pretty bad before this triggers.
