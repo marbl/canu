@@ -52,7 +52,7 @@ placeRead_fromOverlaps(TigVector          &tigs,
                        overlapPlacement   *ovlPlace) {
 
   if (logFileFlagSet(LOG_PLACE_READ))
-    writeLog("pROU()-- placements for read %u with %u overlaps\n", fid, ovlLen);
+    writeLog("pRUO()-- placements for read %u with %u overlaps\n", fid, ovlLen);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
     bool              disallow = false;
@@ -297,7 +297,7 @@ placeRead_findFirstLastOverlapping(overlapPlacement &op,
   assert(op.tigFidx <= op.tigLidx);
 
   if (logFileFlagSet(LOG_PLACE_READ))
-    writeLog("pRUO()--   spans reads #%u (%u) to #%u (%u) in tig %u\n",
+    writeLog("pRUO()--  spans reads #%u (%u) to #%u (%u) in tig %u\n",
              op.tigFidx, tig->ufpath[op.tigFidx].ident,
              op.tigLidx, tig->ufpath[op.tigLidx].ident,
              op.tigID);
@@ -338,7 +338,7 @@ placeRead_computePlacement(overlapPlacement &op,
            (ovlPlace[oo].position.end != 0));
 
   if (logFileFlagSet(LOG_PLACE_READ))
-    writeLog("computePlacement() for os=%u od=%u\n", os, oe);
+    writeLog("pRUO()-- compute placement for os=%u od=%u\n", os, oe);
 
   //  Over all the placements that support this position:
   //    compute the final position as the mean of the supporting overlaps.
@@ -368,7 +368,7 @@ placeRead_computePlacement(overlapPlacement &op,
     //  Third attempt
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("placeRead_computePlacement()-- op %3d ovl ver %12d %12d pos %12d %12d\n",
+      writeLog("pRUO()-- op %3d ovl ver %12d %12d pos %12d %12d\n",
               oo,
               ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
               ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
@@ -413,7 +413,7 @@ placeRead_computePlacement(overlapPlacement &op,
 #endif
 
   if (logFileFlagSet(LOG_PLACE_READ))
-    writeLog("placeRead_computePlacement()-- position %d-%d verified %d-%d %d-%d\n",
+    writeLog("pRUO()-- position %d-%d verified %d-%d %d-%d\n",
              op.position.bgn, op.position.end,
              bgnVer2, endVer2,
              bgnVer3, endVer3);
@@ -546,7 +546,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
       end++;
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("\nplaceReadUsingOverlaps()-- Merging placements %u to %u to place the read.\n", bgn, end);
+      writeLog("\npRUO()-- Merging placements %u to %u to place the read.\n", bgn, end);
 
     //  Build interval lists for the begin point and the end point.  Remember, this is all reads
     //  to a single unitig (the whole picture above), not just the overlapping read sets (left
