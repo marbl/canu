@@ -184,6 +184,32 @@ private:
   uint64     *_counts;
 
   void clear(void) {
+    _compressedHash   = false;
+    _compressedBucket = false;
+    _compressedCounts = false;
+    _isForward        = false;
+    _isCanonical      = false;
+
+    _searchForDupe    = false;
+
+    _merSizeInBases = 0;
+
+    _shift1 = 0;
+    _shift2 = 0;
+    _mask1  = 0;
+    _mask2  = 0;
+
+    _hshWidth = 0;
+    _chkWidth = 0;
+    _cntWidth = 0;
+
+    _hashTableWords = 0;
+    _bucketsWords   = 0;
+    _countsWords    = 0;
+
+    _hashTable = NULL;
+    _buckets   = NULL;
+    _counts    = NULL;
   };
 };
 
