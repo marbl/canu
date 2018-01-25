@@ -590,6 +590,9 @@ merylArgs::~merylArgs() {
   delete [] options;
   delete [] inputFile;
   delete [] outputFile;
+  delete [] sgeJobName;
+  delete [] sgeBuildOpt;
+  delete [] sgeMergeOpt;
 
   for (uint32 i=0; i<mergeFilesLen; i++)
     delete [] mergeFiles[i];
