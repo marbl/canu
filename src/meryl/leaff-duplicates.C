@@ -186,7 +186,9 @@ mapDuplicates(char *filea, char *fileb) {
     }
   }
 
-  delete A;
-  delete B;
+  delete [] resultB;
+  delete    B;
+  delete [] resultA;
+  delete    A;
 }
 
