@@ -56,6 +56,10 @@ fastaStdin::fastaStdin() {
 
 fastaStdin::~fastaStdin() {
   delete    _rb;
+
+  if (_pipe)
+    pclose(_pipe);
+
   delete [] _header;
   delete [] _sequence;
 }

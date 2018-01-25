@@ -56,6 +56,10 @@ fastqStdin::fastqStdin() {
 
 fastqStdin::~fastqStdin() {
   delete    _rb;
+
+  if (_pipe)
+    pclose(_pipe);
+
   delete [] _header;
   delete [] _sequence;
   delete [] _quality;
