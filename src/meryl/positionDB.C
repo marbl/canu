@@ -91,6 +91,8 @@ test1(char *filename) {
     }
   }
 
+  delete [] posn;
+
   delete M;
   delete T;
 
@@ -132,6 +134,8 @@ test2(char *filename, char *query) {
               T->theRMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
   }
+
+  delete [] posn;
 
   delete M;
   delete T;
