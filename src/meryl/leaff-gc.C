@@ -119,5 +119,7 @@ computeGCcontent(char *filename) {
     delete [] g;
     delete    S;
   }
+
+  delete A;
 }
 
