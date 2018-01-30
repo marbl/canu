@@ -229,12 +229,12 @@ saveProfile(uint32             iid,
   char    N[FILENAME_MAX];
   snprintf(N, FILENAME_MAX, "erate-%08u-%02u.dat", iid, iter);
 
-  FILE   *F = fopen(N, "w");
+  FILE   *F = AS_UTL_openOutputFile(N);
 
   for (uint32 pp=0; pp<readProfile[iid].seqLen; pp++)
     fprintf(F, "" F_U32 " %7.4f\n", pp, AS_OVS_decodeEvalue(readProfile[iid].errorMeanS[pp]));
 
-  fclose(F);
+  AS_UTL_closeFile(F, N);
 
   FILE *P = popen("gnuplot ", "w");
   fprintf(P, "set terminal png\n");
@@ -686,12 +686,8 @@ main(int argc, char **argv) {
 
     overlaps       = new ESToverlap [numOvls];
 
-    if (ovlCacheName) {
-      errno = 0;
-      ESTcache = fopen(ovlCacheName, "w");
-      if (errno)
-        fprintf(stderr, "Failed to open '%s' for writing: %s\n", ovlCacheName, strerror(errno)), exit(1);
-    }
+    if (ovlCacheName)
+      ESTcache = AS_UTL_openOutputFile(ovlCacheName);
 
     for (uint64 no=0; no<numOvls; ) {
       uint64 nLoad  = ovlStore->readOverlaps(overlapsload, overlapblock, false);
@@ -708,8 +704,7 @@ main(int argc, char **argv) {
 
     delete [] overlapsload;
 
-    if (ESTcache)
-      fclose(ESTcache);
+    AS_UTL_closeFile(ESTcache, ovlCacheName);
 
     fprintf(stderr, "\n");
     fprintf(stderr, "  loaded and cached " F_U64 " overlaps.\n", numOvls);

@@ -260,21 +260,16 @@ classifyTigsAsUnassembled(TigVector    &tigs,
 
   snprintf(N, FILENAME_MAX, "%s.unassembled", getLogFilePrefix());
 
-  errno = 0;
-  FILE *F = fopen(N, "w");
-  if (errno)
-    F = NULL;
+  FILE *F = AS_UTL_openOutputFile(N);
 
-  if (F) {
-    fprintf(F, "# Contigs flagged as unassembled.\n");
-    fprintf(F, "#\n");
-    fprintf(F, "# fewReadsNumber   %u (singletons always removed and not logged)\n", fewReadsNumber);
-    fprintf(F, "# tooShortLength   %u\n", tooShortLength);
-    fprintf(F, "# spanFraction     %f\n", spanFraction);
-    fprintf(F, "# lowcovFraction   %f\n", lowcovFraction);
-    fprintf(F, "# lowcovDepth      %u\n", lowcovDepth);
-    fprintf(F, "#\n");
-  }
+  fprintf(F, "# Contigs flagged as unassembled.\n");
+  fprintf(F, "#\n");
+  fprintf(F, "# fewReadsNumber   %u (singletons always removed and not logged)\n", fewReadsNumber);
+  fprintf(F, "# tooShortLength   %u\n", tooShortLength);
+  fprintf(F, "# spanFraction     %f\n", spanFraction);
+  fprintf(F, "# lowcovFraction   %f\n", lowcovFraction);
+  fprintf(F, "# lowcovDepth      %u\n", lowcovDepth);
+  fprintf(F, "#\n");
 
   for (uint32  ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];
@@ -308,8 +303,7 @@ classifyTigsAsUnassembled(TigVector    &tigs,
     utg->_isUnassembled = false;
   }
 
-  if (F)
-    fclose(F);
+  AS_UTL_closeFile(F, N);
 
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- singleton\n",                                               nSingleton,  bSingleton,  fewReadsNumber);
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too few reads        (< %u reads)\n",                       nTooFew,     bTooFew,     fewReadsNumber);
@@ -396,15 +390,13 @@ reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)
 
   snprintf(N, FILENAME_MAX, "%s.sizes", getLogFilePrefix());
 
-  errno = 0;
-  FILE *F = fopen(N, "w");
-  if (errno == 0) {
-    reportN50(F, unassembledLength, "UNASSEMBLED", genomeSize);
-    reportN50(F, repeatLength,      "REPEAT",      genomeSize);
-    reportN50(F, contigLength,      "CONTIGS",     genomeSize);
+  FILE *F = AS_UTL_openOutputFile(N);
 
-    fclose(F);
-  }
+  reportN50(F, unassembledLength, "UNASSEMBLED", genomeSize);
+  reportN50(F, repeatLength,      "REPEAT",      genomeSize);
+  reportN50(F, contigLength,      "CONTIGS",     genomeSize);
+
+  AS_UTL_closeFile(F, N);
 
   if (logFileFlagSet(LOG_INTERMEDIATE_TIGS) == 0)
     return;
@@ -688,10 +680,7 @@ reportOverlaps(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(n
 
   snprintf(N, FILENAME_MAX, "%s.overlaps", getLogFilePrefix());
 
-  errno = 0;
-  FILE *F = fopen(N, "w");
-  if (errno)
-    return;
+  FILE *F = AS_UTL_openOutputFile(N);
 
   fprintf(F, "=====================================\n");
   fprintf(F, "OVERLAP COUNTS\n");
@@ -782,7 +771,7 @@ reportOverlaps(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(n
   fprintf(F, "\n");
   fprintf(F, "\n");
 
-  fclose(F);
+  AS_UTL_closeFile(F, N);
 
   delete dd;
   delete dc;

@@ -201,7 +201,7 @@ loadNucmer(char                       *nucmerName,
     chomp(inLine);
   }
 
-  fclose(inFile);
+  AS_UTL_closeFile(inFile);
 }
 
 
@@ -275,7 +275,7 @@ loadSnapper(char                       *snapperName,
     chomp(inLine);
   }
 
-  fclose(inFile);
+  AS_UTL_closeFile(inFile);
 }
 
 
@@ -330,6 +330,6 @@ loadReferenceSequence(char                       *refName,
   delete [] refseq;
   delete [] refhdr;
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 }
 

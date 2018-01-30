@@ -340,7 +340,7 @@ ovStoreHistogram::saveData(char *prefix) {
     AS_UTL_safeWrite(F, &_oprLen, "ovStoreHistogram::nr",  sizeof(uint32), 1);
     AS_UTL_safeWrite(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprLen);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   }
 
   //  If we have overlaps-per-evalue-length, dump it.  This is a bit more complicated, as it has
@@ -377,7 +377,7 @@ ovStoreHistogram::saveData(char *prefix) {
       AS_UTL_safeWrite(F, _opel[ii], "ovStoreHistogram::evalueLen", sizeof(uint32), _opelLen);
     }
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   }
 
   //  If we have overlap scores, process the last one and then dump it.
@@ -396,7 +396,7 @@ ovStoreHistogram::saveData(char *prefix) {
     AS_UTL_safeWrite(F, &_scoresLen, "ovStoreHistogram::scoresLen",   sizeof(uint32), 1);
     AS_UTL_safeWrite(F,  _scores,    "ovStoreHistogram::scores",      sizeof(oSH_ovlSco), _scoresLen);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   }
 }
 
@@ -438,7 +438,7 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
     delete [] in;
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   }
 
   //  Add in any overlaps-per-evalue-length data.
@@ -478,7 +478,7 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
     delete [] in;
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   }
 
   //  Add in any overlap score data.
@@ -497,7 +497,7 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
     AS_UTL_safeRead(F,  _scores,     "ovStoreHistogram::scores",     sizeof(oSH_ovlSco), _scoresLen);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   }
 }
 

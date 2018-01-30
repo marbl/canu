@@ -125,7 +125,7 @@ main (int argc, char **argv) {
       gkpStore->gkStore_stashReadData(readData);                         //  Write.
     }
 
-    fclose(TI);
+    AS_UTL_closeFile(TI, corInputs[ff]);
 
     fprintf(stderr, "Reading layouts from '%s' completed.\n", corInputs[ff]);
   }

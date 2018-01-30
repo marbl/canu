@@ -279,13 +279,11 @@ main(int argc, char **argv) {
 
     snprintf(name, FILENAME_MAX, "%s/create%04d/sliceSizes", ovlName, jobIndex);
 
-    FILE *F = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
+    FILE *F = AS_UTL_openOutputFile(name);
 
     AS_UTL_safeWrite(F, sliceSize, "sliceSize", sizeof(uint64), fileLimit + 1);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
 
     snprintf(name, FILENAME_MAX, "%s/create%04d", ovlName, jobIndex);
     snprintf(finl, FILENAME_MAX, "%s/bucket%04d", ovlName, jobIndex);

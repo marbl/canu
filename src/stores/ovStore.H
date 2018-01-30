@@ -92,7 +92,7 @@ public:
 
     AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
 
-    fclose(ovsinfo);
+    AS_UTL_closeFile(ovsinfo, name);
 
     return(true);
   };
@@ -113,7 +113,7 @@ public:
 
     AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
 
-    fclose(ovsinfo);
+    AS_UTL_closeFile(ovsinfo, name);
 
     return(checkMagic());
   };
@@ -140,7 +140,7 @@ public:
 
     AS_UTL_safeWrite(ovsinfo, this, "ovStore::ovStore::saveinfo", sizeof(ovStoreInfo), 1);
 
-    fclose(ovsinfo);
+    AS_UTL_closeFile(ovsinfo, name);
   };
 
   void       addOverlap(uint32 id, uint32 nOverlaps=1) {

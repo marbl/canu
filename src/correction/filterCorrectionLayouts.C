@@ -559,15 +559,15 @@ main(int argc, char **argv) {
         (status[ti].rescued           == true))
       fprintf(roc, "%u\n", status[ti].readID);
 
-  fclose(roc);
+  AS_UTL_closeFile(roc);
 
   //  Write some statistics and logs.
 
   dumpStatistics(stats, status, numReads, genomeSize);
   dumpLog(log, status, numReads);
 
-  fclose(stats);
-  fclose(log);
+  AS_UTL_closeFile(stats);
+  AS_UTL_closeFile(log);
 
   //  And say goodbye.
 

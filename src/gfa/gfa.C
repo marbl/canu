@@ -292,16 +292,16 @@ gfaFile::gfaFile() {
 }
 
 
-gfaFile::gfaFile(char *inFile) {
+gfaFile::gfaFile(char *inName) {
   _header = NULL;
 
-  if ((inFile[0] == 'H') && (inFile[1] == '\t')) {
-    _header = new char [strlen(inFile) + 1];
-    strcpy(_header, inFile);
+  if ((inName[0] == 'H') && (inName[1] == '\t')) {
+    _header = new char [strlen(inName) + 1];
+    strcpy(_header, inName);
   }
 
   else {
-    loadFile(inFile);
+    loadFile(inName);
   }
 }
 
@@ -318,17 +318,12 @@ gfaFile::~gfaFile() {
 
 
 bool
-gfaFile::loadFile(char *inFile) {
-  FILE  *F    = NULL;
+gfaFile::loadFile(char *inName) {
   char  *L    = NULL;
   uint32 Llen = 0;
   uint32 Lmax = 0;
 
-  errno = 0;
-  F = fopen(inFile, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", inFile, strerror(errno)), exit(1);
-
+  FILE *F = AS_UTL_openInputFile(inName);
 
   while (AS_UTL_readLine(L, Llen, Lmax, F)) {
     char  type = L[0];
@@ -355,7 +350,7 @@ gfaFile::loadFile(char *inFile) {
     }
   }
 
-  fclose(F);
+  AS_UTL_closeFile(F, inName);
 
   delete [] L;
 
@@ -368,13 +363,9 @@ gfaFile::loadFile(char *inFile) {
 
 
 bool
-gfaFile::saveFile(char *outFile) {
-  FILE  *F = NULL;
+gfaFile::saveFile(char *outName) {
 
-  errno = 0;
-  F = fopen(outFile, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", outFile, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openOutputFile(outName);
 
   fprintf(F, "H\t%s\n", _header);
 
@@ -386,7 +377,7 @@ gfaFile::saveFile(char *outFile) {
     if (_links[ii])
       _links[ii]->save(F);
 
-  fclose(F);
+  AS_UTL_closeFile(F, outName);
 
   return(true);
 }

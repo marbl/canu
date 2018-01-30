@@ -94,19 +94,11 @@ public:
     cnsFile   = NULL;
     fastqFile = NULL;
 
-    if (cnsName) {
-      errno = 0;
-      cnsFile = fopen(cnsName, "w");
-      if (errno)
-        fprintf(stderr, "ERROR: failed to open '%s' for writing: %s\n", cnsName, strerror(errno)), exit(1);
-    }
+    if (cnsName)
+      cnsFile = AS_UTL_openOutputFile(cnsName);
 
-    if (fastqName) {
-      errno = 0;
-      fastqFile = fopen(fastqName, "w");
-      if (errno)
-        fprintf(stderr, "ERROR: failed to open '%s' for writing: %s\n", fastqName, strerror(errno)), exit(1);
-    }
+    if (fastqName)
+      fastqFile = AS_UTL_openOutputFile(fastqName);
 
     //  State for loading overlaps
 
@@ -121,11 +113,8 @@ public:
     delete ovlStore;
     delete tigStore;
 
-    if (cnsFile)
-      fclose(cnsFile);
-
-    if (fastqFile)
-      fclose(fastqFile);
+    AS_UTL_closeFile(cnsFile);
+    AS_UTL_closeFile(fastqFile);
   };
 
   //  Parameters

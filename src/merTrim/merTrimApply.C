@@ -97,12 +97,12 @@ merTrimApply(char *gkpStoreName,
       res.print(logFile);
     }
 
-    fclose(resultFile);
+    AS_UTL_closeFile(resultFile);
     fgets(resultFileName, FILENAME_MAX, listFile);
   }
 
-  fclose(listFile);
-  fclose(logFile);
+  AS_UTL_closeFile(listFile);
+  AS_UTL_closeFile(logFile);
 
   gkpStore->gkStore_close();
 }

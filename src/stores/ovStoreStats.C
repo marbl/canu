@@ -249,12 +249,10 @@ main(int argc, char **argv) {
 
   //  Open outputs.
 
-  char N[FILENAME_MAX];
-  snprintf(N, FILENAME_MAX, "%s.per-read.log", outPrefix);
+  char  LOGname[FILENAME_MAX+1];
+  snprintf(LOGname, FILENAME_MAX, "%s.per-read.log", outPrefix);
 
-  FILE  *LOG = fopen(N, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+  FILE  *LOG = AS_UTL_openOutputFile(LOGname);
 
   //  Compute!
 
@@ -539,7 +537,7 @@ main(int argc, char **argv) {
     overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
   }
 
-  fclose(LOG);  //  Done with logging.
+  AS_UTL_closeFile(LOG, LOGname);  //  Done with logging.
 
   readHole->finalizeData();
   olapHole->finalizeData();
@@ -597,11 +595,9 @@ main(int argc, char **argv) {
   LOG = stdout;
 
   if (toFile == true) {
-    snprintf(N, FILENAME_MAX, "%s.summary", outPrefix);
+    snprintf(LOGname, FILENAME_MAX, "%s.summary", outPrefix);
 
-    LOG = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+    LOG = AS_UTL_openOutputFile(LOGname);
   }
 
   fprintf(LOG, "category            reads     %%          read length        feature size or coverage  analysis\n");
@@ -622,7 +618,7 @@ main(int argc, char **argv) {
   fprintf(LOG, "uniq-anchor       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (repeat read, with unique section, probable bad read)\n",                                        readUniqAnchor->numberOfObjects(),     readUniqAnchor->numberOfObjects()/nReads,     readUniqAnchor->mean(),     readUniqAnchor->stddev(),     olapUniqAnchor->mean(), olapUniqAnchor->stddev());
 
   if (toFile == true)
-    fclose(LOG);
+    AS_UTL_closeFile(LOG, LOGname);
 
   // Clean up the histograms
   delete readNoOlaps;

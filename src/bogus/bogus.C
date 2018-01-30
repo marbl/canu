@@ -699,8 +699,8 @@ main(int argc, char **argv) {
     }
   }
 
-  fclose(gffOutput);
-  fclose(intervalOutput);
+  AS_UTL_closeFile(gffOutput);
+  AS_UTL_closeFile(intervalOutput);
 
   //  See CVS version 1.3 for writing rept/uniq fasta
 

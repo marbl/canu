@@ -37,6 +37,8 @@
 
 #include "AS_global.H"
 
+#include "AS_UTL_fileIO.H"
+
 #include <vector>
 #include <algorithm>
 
@@ -244,8 +246,8 @@ doStats(char *inName,
     fprintf(stdout, "%s\t" F_U64 "\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
   output.clear();
 
-  //fclose(O);
-  fclose(F);
+  //AS_UTL_closeFile(O);
+  AS_UTL_closeFile(F);
 
   delete freq;
 }
@@ -327,7 +329,7 @@ doAnalyzeQV(char *inName,
     numTrials--;
   }
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   fprintf(stdout, "%s --", inName);
 
@@ -426,8 +428,8 @@ doTransformQV(char *inName,
     fprintf(O, "%s%s%s%s\n", A, B, C, D);
   }
 
-  fclose(F);
-  fclose(O);
+  AS_UTL_closeFile(F);
+  AS_UTL_closeFile(O);
 }
 
 

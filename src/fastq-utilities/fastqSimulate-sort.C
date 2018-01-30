@@ -263,10 +263,10 @@ main(int argc, char **argv) {
       fputs(reads[i].readB, otFile2);
   }
 
-  if (inFile1)  fclose(inFile1);
-  if (inFile2)  fclose(inFile2);
-  if (otFile1)  fclose(otFile1);
-  if (otFile2)  fclose(otFile2);
+  AS_UTL_closeFile(inFile1);
+  AS_UTL_closeFile(inFile2);
+  AS_UTL_closeFile(otFile1);
+  AS_UTL_closeFile(otFile2);
 
   return(0);
 }

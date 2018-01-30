@@ -41,6 +41,8 @@
 
 #include "AS_global.H"
 
+#include "AS_UTL_fileIO.H"
+
 #include <vector>
 #include <algorithm>
 
@@ -316,8 +318,8 @@ main(int argc, char **argv) {
       moreB = Br->read(Bi);
     }
 
-    if (Ai)  fclose(Ai);
-    if (Bi)  fclose(Bi);
+    if (Ai)  AS_UTL_closeFile(Ai);
+    if (Bi)  AS_UTL_closeFile(Bi);
 
     fprintf(stderr, "Found " F_U64 " bases and " F_U64 " reads in '%s'\n",
             totBasesInInput, totPairsInInput, path1);
@@ -516,11 +518,11 @@ main(int argc, char **argv) {
       }
     }
 
-    fclose(Ai);
-    fclose(Bi);
+    AS_UTL_closeFile(Ai);
+    AS_UTL_closeFile(Bi);
 
-    fclose(Ao);
-    fclose(Bo);
+    AS_UTL_closeFile(Ao);
+    AS_UTL_closeFile(Bo);
 
   } else {
 
@@ -538,8 +540,8 @@ main(int argc, char **argv) {
       }
     }
 
-    fclose(Ai);
-    fclose(Ao);
+    AS_UTL_closeFile(Ai);
+    AS_UTL_closeFile(Ao);
   }
 
   delete Ar;

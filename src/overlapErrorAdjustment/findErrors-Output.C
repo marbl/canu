@@ -50,11 +50,7 @@ void
 Output_Corrections(feParameters *G) {
   Correction_Output_t  out;
 
-  errno = 0;
-  FILE *fp = fopen(G->outputFileName, "wb");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", G->outputFileName, strerror(errno)), exit(1);
-
+  FILE *fp = AS_UTL_openOutputFile(G->outputFileName);
 
   for (uint32 i=0; i<G->readsLen; i++) {
     //if (i == 0)
@@ -230,5 +226,5 @@ Output_Corrections(feParameters *G) {
     }
   }
 
-  fclose (fp);
+  AS_UTL_closeFile(fp, G->outputFileName);
 }

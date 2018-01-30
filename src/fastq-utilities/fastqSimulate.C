@@ -1119,7 +1119,7 @@ main(int argc, char **argv) {
     assert(seqLen < seqMax);
   }
 
-  fclose(fastaFile);
+  AS_UTL_closeFile(fastaFile);
 
   seq[seqLen] = 0;
 
@@ -1199,16 +1199,16 @@ main(int argc, char **argv) {
   //
 
   if ((seEnable == true) || (ccEnable == true))
-    fclose(outputI);
+    AS_UTL_closeFile(outputI);
 
   if ((seEnable == false) && (ccEnable == false)) {
-    fclose(outputI);
-    fclose(outputC);
+    AS_UTL_closeFile(outputI);
+    AS_UTL_closeFile(outputC);
   }
 
   if (peEnable || mpEnable) {
-    fclose(output1);
-    fclose(output2);
+    AS_UTL_closeFile(output1);
+    AS_UTL_closeFile(output2);
   }
 
   delete [] seq;

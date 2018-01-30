@@ -157,7 +157,7 @@ public:
     delete adapterDB;
 
     if (resFile != NULL)
-      fclose(resFile);
+      AS_UTL_closeFile(resFile);
   };
 
   void              initializeGatekeeper(void) {

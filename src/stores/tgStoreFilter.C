@@ -111,8 +111,10 @@ main(int argc, char **argv) {
 
   int64             genomeSize   = 0;
 
-  char              outName[FILENAME_MAX];
   char             *outPrefix = NULL;
+
+  char              outLOGname[FILENAME_MAX+1];
+  char              outSTAname[FILENAME_MAX+1];
 
   FILE             *outLOG = NULL;
   FILE             *outSTA = NULL;
@@ -256,19 +258,13 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  snprintf(outName, FILENAME_MAX, "%s.log", outPrefix);
+  snprintf(outLOGname, FILENAME_MAX, "%s.log", outPrefix);
+  snprintf(outSTAname, FILENAME_MAX, "%s.stats", outPrefix);
 
-  outLOG = fopen(outName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+  outLOG = AS_UTL_openOutputFile(outLOGname);
+  outSTA = AS_UTL_openOutputFile(outSTAname);
 
   fprintf(outLOG, "tigID\trho\tcovStat\tarrDist\n");
-
-  snprintf(outName, FILENAME_MAX, "%s.stats", outPrefix);
-
-  outSTA = fopen(outName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
   fprintf(stderr, "Command Line options:\n");
   fprintf(stderr, "  singleReadMaxCoverage    %f\n", singleReadMaxCoverage);
@@ -560,8 +556,8 @@ main(int argc, char **argv) {
   fprintf(outSTA, "    spanning read: %17" F_U32P "  %14" F_U64P "\n", repeat_SingleSpan.num,   repeat_SingleSpan.len);
   fprintf(outSTA, "    low coverage:  %17" F_U32P "  %14" F_U64P "\n", repeat_LowCov.num,       repeat_LowCov.len);
 
-  fclose(outLOG);
-  fclose(outSTA);
+  AS_UTL_closeFile(outLOG, outLOGname);
+  AS_UTL_closeFile(outSTA, outSTAname);
 
   delete [] isNonRandom;
   delete [] fragLength;

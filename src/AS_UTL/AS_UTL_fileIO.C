@@ -510,10 +510,7 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
 void
 AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
-  errno = 0;
-  FILE *F = fopen(fileName, "r");
-  if (errno)
-    fprintf(stderr, "Can't open '%s': %s\n", fileName, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openInputFile(fileName);
 
   char *line = new char [FILENAME_MAX];
 
@@ -528,7 +525,7 @@ AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
   delete [] line;
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 }
 
 
@@ -589,6 +586,28 @@ AS_UTL_openOutputFile(char const *prefix,
   return(F);
 }
 
+
+
+void
+AS_UTL_closeFile(FILE *F, const char *filename, bool critical) {
+
+  if ((F == NULL) || (F == stdout) || (F == stderr))
+    return;
+
+  errno = 0;
+
+  fclose(F);
+
+  if ((critical == false) || (errno == 0))
+    return;
+
+  if (filename)
+    fprintf(stderr, "Failed to close file '%s': %s\n", filename, strerror(errno));
+  else
+    fprintf(stderr, "Failed to close file: %s\n", strerror(errno));
+
+  exit(1);
+}
 
 
 
@@ -683,7 +702,7 @@ compressedFileReader::~compressedFileReader() {
   if (_pipe)
     pclose(_file);
   else
-    fclose(_file);
+    AS_UTL_closeFile(_file);
 
   delete [] _filename;
 }
@@ -751,7 +770,7 @@ compressedFileWriter::~compressedFileWriter() {
   if (_pipe)
     pclose(_file);
   else
-    fclose(_file);
+    AS_UTL_closeFile(_file);
 
   if (errno)
     fprintf(stderr, "ERROR:  Failed to cleanly close output file '%s': %s\n", _filename, strerror(errno)), exit(1);

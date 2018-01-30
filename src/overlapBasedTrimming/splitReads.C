@@ -388,21 +388,15 @@ main(int argc, char **argv) {
 
   //  Close log files
 
-  if (reportFile)
-    fclose(reportFile);
-
-  if (subreadFile)
-    fclose(subreadFile);
+  AS_UTL_closeFile(reportFile);
+  AS_UTL_closeFile(subreadFile);
 
   //  Write the summary
 
   if (outputPrefix) {
     snprintf(outputName, FILENAME_MAX, "%s.stats", outputPrefix);
 
-    errno = 0;
-    staFile = fopen(outputName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno));
+    staFile = AS_UTL_openOutputFile(outputName);
   }
 
   if (staFile == NULL)
@@ -473,7 +467,7 @@ main(int argc, char **argv) {
   //  CHIMERA TYPE = TRIMMED and DELETED chimera and both categories
 
   if (staFile != stdout)
-    fclose(staFile);
+    AS_UTL_closeFile(staFile);
 
   exit(0);
 }

@@ -256,12 +256,12 @@ main(int argc, char **argv) {
   fprintf(outputGP, "plot [0:100] [0:1000000] \"%s.dat\" using 1:2 with lines title \"true\", \"%s.dat\" using 1:3 with lines title \"false\"\n",
           outputPrefix, outputPrefix);
 
-  fclose(outputGP);
+  AS_UTL_closeFile(outputGP);
 
   for (uint32 i=0; i<HMAX; i++)
     fprintf(outputDAT, uint32FMT"\t"uint32FMT"\t"uint32FMT"\n", i, Htrue[i], Hnoise[i]);
 
-  fclose(outputDAT);
+  AS_UTL_closeFile(outputDAT);
 
   snprintf(outputName, FILENAME_MAX, "gnuplot < %s.gp", outputPrefix);
   system(outputName);

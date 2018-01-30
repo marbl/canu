@@ -632,16 +632,20 @@ main (int argc, char **argv) {
       delete tig;
   }
 
- finish:
   delete tigStore;
 
   gkpStore->gkStore_close();
 
-  if (tigFile)         fclose(tigFile);
-  if (outResultsFile)  fclose(outResultsFile);
-  if (outLayoutsFile)  fclose(outLayoutsFile);
-  if (outPackageFile)  fclose(outPackageFile);
-  if (inPackageFile)   fclose(inPackageFile);
+  AS_UTL_closeFile(tigFile,        tigFileName);
+
+  AS_UTL_closeFile(outResultsFile, outResultsName);
+  AS_UTL_closeFile(outLayoutsFile, outLayoutsName);
+
+  AS_UTL_closeFile(outSeqFileA,    outSeqNameA);
+  AS_UTL_closeFile(outSeqFileQ,    outSeqNameQ);
+
+  AS_UTL_closeFile(outPackageFile, outPackageName);
+  AS_UTL_closeFile(inPackageFile,  inPackageName);
 
   if (numFailures) {
     fprintf(stderr, "WARNING:  Total number of tig failures = %d\n", numFailures);

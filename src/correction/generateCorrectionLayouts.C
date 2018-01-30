@@ -66,7 +66,7 @@ loadThresholds(gkStore *gkpStore,
 
     AS_UTL_safeRead(S, olapThresh, "scores", sizeof(uint16), numReads + 1);
 
-    fclose(S);
+    AS_UTL_closeFile(S, scoreName);
   }
 
   else {
@@ -102,7 +102,7 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
       readList.insert(W(0));
   }
 
-  fclose(R);
+  AS_UTL_closeFile(R, readListName);
 }
 
 void
@@ -495,8 +495,8 @@ main(int argc, char **argv) {
 
   //  Close files and clean up.
 
-  if (logFile != NULL)   fclose(logFile);
-  if (sumFile != NULL)   fclose(sumFile);
+  AS_UTL_closeFile(logFile);
+  AS_UTL_closeFile(sumFile);
 
   delete [] olapThresh;
   delete    readData;

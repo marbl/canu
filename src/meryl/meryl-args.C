@@ -580,7 +580,7 @@ merylArgs::merylArgs(const char *prefix) {
   for (uint32 i=0; i<mergeFilesLen; i++)
     mergeFiles[i] = readString(F);
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 }
 
 
@@ -629,7 +629,7 @@ merylArgs::writeConfig(void) {
   for (uint32 i=0; i<mergeFilesLen; i++)
     writeString(mergeFiles[i], F);
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   return(true);
 }

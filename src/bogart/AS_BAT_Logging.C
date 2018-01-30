@@ -52,7 +52,7 @@ public:
   ~logFileInstance() {
     if ((name[0] != 0) && (file)) {
       fprintf(stderr, "WARNING: open file '%s'\n", name);
-      fclose(file);
+      AS_UTL_closeFile(file, name);
     }
   };
 
@@ -74,7 +74,7 @@ public:
 
     assert(name[0] != 0);
 
-    fclose(file);
+    AS_UTL_closeFile(file, name);
 
     file   = NULL;
     length = 0;
@@ -100,8 +100,7 @@ public:
   };
 
   void  close(void) {
-    if ((file != NULL) && (file != stderr))
-      fclose(file);
+    AS_UTL_closeFile(file, name);
 
     file      = NULL;
     prefix[0] = 0;

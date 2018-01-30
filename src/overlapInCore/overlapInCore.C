@@ -576,8 +576,7 @@ main(int argc, char **argv) {
   fprintf(stats, "Rejected by short window = " F_S64 "\n", Bad_Short_Window_Ct);
   fprintf(stats, " Rejected by long window = " F_S64 "\n", Bad_Long_Window_Ct);
 
-  if (stats != stderr)
-    fclose(stats);
+  AS_UTL_closeFile(stats, G.Outstat_Name);
 
   fprintf(stderr, "Bye.\n");
 

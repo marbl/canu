@@ -117,9 +117,9 @@ public:
 void
 dotplot(uint32 Aid, bool Afwd, char *Aseq,
         uint32 Bid, bool Bfwd, char *Bseq) {
-  char   Aname[128], Afile[128];
-  char   Bname[128], Bfile[128];
-  char   Pname[128], Pfile[128];
+  char   Aname[FILENAME_MAX+1], Afile[FILENAME_MAX+1];
+  char   Bname[FILENAME_MAX+1], Bfile[FILENAME_MAX+1];
+  char   Pname[FILENAME_MAX+1], Pfile[FILENAME_MAX+1];
   FILE  *F;
 
   sprintf(Aname, "tig%08u%c",       Aid, (Afwd) ? '+' : '-');
@@ -129,22 +129,22 @@ dotplot(uint32 Aid, bool Afwd, char *Aseq,
   sprintf(Pname, "plot-%s-%s",    Aname, Bname);
   sprintf(Pfile, "plot-%s-%s.sh", Aname, Bname);
 
-  F = fopen(Pfile, "w");
+  F = AS_UTL_openOutputFile(Pfile);
   fprintf(F, "#!/bin/sh\n");
   fprintf(F, "\n");
   fprintf(F, "nucmer --maxmatch --nosimplify -p %s %s.fasta %s.fasta\n", Pname, Aname, Bname);
   fprintf(F, "show-coords -l -o -r -T %s.delta | expand -t 8 > %s.coords\n", Pname, Pname);
   fprintf(F, "mummerplot --fat -t png -p %s %s.delta\n", Pname, Pname);
   fprintf(F, "echo mummerplot --fat -p %s %s.delta\n", Pname, Pname);
-  fclose(F);
+  AS_UTL_closeFile(F, Pfile);
 
-  F = fopen(Afile, "w");
+  F = AS_UTL_openOutputFile(Afile);
   fprintf(F, ">%s\n%s\n", Aname, Aseq);
-  fclose(F);
+  AS_UTL_closeFile(F, Afile);
 
-  F = fopen(Bfile, "w");
+  F = AS_UTL_openOutputFile(Bfile);
   fprintf(F, ">%s\n%s\n", Bname, Bseq);
-  fclose(F);
+  AS_UTL_closeFile(F, Bfile);
 
   sprintf(Pfile, "sh plot-%s-%s.sh", Aname, Bname);
 
@@ -347,21 +347,21 @@ checkRecord_align(char *label,
             Aname, Abgn, Aend, Alen);
 
 #if 0
-  char N[FILENAME_MAX];
+  char N[FILENAME_MAX+1];
   FILE *F;
 
   char  ach = Aseq[Aend];   Aseq[Aend] = 0;
   char  bch = Bseq[Bend];   Bseq[Bend] = 0;
 
   sprintf(N, "compare%04d-%04d-ctg%04d.fasta", record->_Aid, record->_Bid, record->_Aid);
-  F = fopen(N, "w");
+  F = AS_UTL_openOutputFile(N);
   fprintf(F, ">ctg%04d\n%s\n", record->_Aid, Aseq + Abgn);
-  fclose(F);
+  AS_UTL_closeFile(F, N);
 
   sprintf(N, "compare%04d-%04d-utg%04d.fasta", record->_Aid, record->_Bid, record->_Bid);
-  F = fopen(N, "w");
+  F = AS_UTL_openOutputFile(N);
   fprintf(F, ">utg%04d\n%s\n", record->_Bid, Bseq + Bbgn);
-  fclose(F);
+  AS_UTL_closeFile(F, N);
 
   Aseq[Aend] = ach;
   Bseq[Bend] = bch;

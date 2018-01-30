@@ -160,8 +160,8 @@ main(int argc, char **argv) {
   delete [] lineA;
   delete [] lineB;
 
-  fclose(fileA);
-  fclose(fileB);
+  AS_UTL_closeFile(fileA, nameA);
+  AS_UTL_closeFile(fileB, nameB);
 
   //fprintf(stderr, "\n");
   //fprintf(stderr, "Bye.\n");

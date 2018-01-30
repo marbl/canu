@@ -49,17 +49,13 @@ public:
     FILE *F;
 
     snprintf(N, FILENAME_MAX, "%s.%s.dat", outputPrefix, outputName);
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+    F = AS_UTL_openOutputFile(N);
     for (uint64 ii=0; ii<histo.size(); ii++)
       fprintf(F, F_U32"\n", histo[ii]);
-    fclose(F);
+    AS_UTL_closeFile(F, N);
 
     snprintf(N, FILENAME_MAX, "%s.%s.gp", outputPrefix, outputName);
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+    F = AS_UTL_openOutputFile(N);
     fprintf(F, "set title '%s'\n", outputName);
     fprintf(F, "set xlabel 'length, bin width = %u'\n", binwidth);
     fprintf(F, "set ylabel 'number'\n");
@@ -75,7 +71,7 @@ public:
     fprintf(F, "set terminal png size 256,256\n");
     fprintf(F, "set output '%s.%s.sm.png'\n", outputPrefix, outputName);
     fprintf(F, "replot\n");
-    fclose(F);
+    AS_UTL_closeFile(F, N);
 
     snprintf(N, FILENAME_MAX, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);
 

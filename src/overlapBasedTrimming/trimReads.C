@@ -238,10 +238,7 @@ main(int argc, char **argv) {
   if (outputPrefix) {
     snprintf(logName, FILENAME_MAX, "%s.log",   outputPrefix);
 
-    errno = 0;
-    logFile = fopen(logName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open log file '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
+    logFile = AS_UTL_openOutputFile(logName);
 
     fprintf(logFile, "id\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
   }
@@ -447,8 +444,7 @@ main(int argc, char **argv) {
   delete maxClr;
   delete outClr;
 
-  if (logFile)
-    fclose(logFile);
+  AS_UTL_closeFile(logFile, logName);
 
   //  should fprintf() the numbers directly here so an explanation of each category can be supplied;
   //  simpler for now to have report() do it.
@@ -458,10 +454,7 @@ main(int argc, char **argv) {
   if (outputPrefix) {
     snprintf(sumName, FILENAME_MAX, "%s.stats", outputPrefix);
 
-    errno = 0;
-    staFile = fopen(sumName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open stats file '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
+    staFile = AS_UTL_openOutputFile(sumName);
   }
 
   if (staFile == NULL)
@@ -507,8 +500,7 @@ main(int argc, char **argv) {
   trim5.generatePlots(outputPrefix, "trim5", 25);
   trim3.generatePlots(outputPrefix, "trim3", 25);
 
-  if (staFile != stderr)
-    fclose(staFile);
+  AS_UTL_closeFile(staFile, sumName);
 
   //  Buh-bye.
 

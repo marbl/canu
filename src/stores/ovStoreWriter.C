@@ -61,7 +61,7 @@ ovStoreWriter::~ovStoreWriter() {
     AS_UTL_safeWrite(_offtFile, &_offt, "ovStore::~ovStore::offt", sizeof(ovStoreOfft), 1);
   }
 
-  fclose(_offtFile);
+  AS_UTL_closeFile(_offtFile);
 
   //  Update the on-disk info with the results and real magic number
 
@@ -276,13 +276,10 @@ ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
 
     snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", _storePath, i);
 
-    FILE *F = fopen(name, "r");
-    if (errno)
-      fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
-
+    FILE  *F  = AS_UTL_openInputFile(name);
     uint64 nr = AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), _fileLimit + 1);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
 
     if (nr != _fileLimit + 1) {
       fprintf(stderr, "ERROR: short read on '%s'.\n", name);
@@ -344,7 +341,6 @@ ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap
 void
 ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
                              uint64      ovlsLen) {
-  char           name[FILENAME_MAX];
 
   uint32         currentFileIndex = _fileID;
 
@@ -363,17 +359,15 @@ ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
 
   //  Create the output file
 
-  snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, _fileID);
-  ovFile *bof = new ovFile(_gkp, name, ovFileNormalWrite);
+  char  offtName[FILENAME_MAX+1];
+
+  snprintf(offtName, FILENAME_MAX, "%s/%04d", _storePath, _fileID);
+  ovFile *bof = new ovFile(_gkp, offtName, ovFileNormalWrite);
 
   //  Create the index file
 
-  snprintf(name, FILENAME_MAX, "%s/%04d.index", _storePath, _fileID);
-
-  errno = 0;
-  FILE *offtFile=fopen(name,"w");
-  if (errno)
-    fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+  snprintf(offtName, FILENAME_MAX, "%s/%04d.index", _storePath, _fileID);
+  FILE *offtFile = AS_UTL_openOutputFile(offtName);
 
   //  Dump the overlaps
 
@@ -442,7 +436,7 @@ ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
 
   AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
 
-  fclose(offtFile);
+  AS_UTL_closeFile(offtFile, offtName);
 
   //  Write the info, and some stats for the user.
 
@@ -531,10 +525,7 @@ ovStoreWriter::mergeInfoFiles(void) {
     {
       snprintf(name, FILENAME_MAX, "%s/%04d.index", _storePath, i);
 
-      errno = 0;
-      FILE  *F = fopen(name, "r");
-      if (errno)
-        fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+      FILE  *F = AS_UTL_openInputFile(name);
 
       uint32          recsLen = 0;
       uint32          recsMax = 1024 * 1024;
@@ -576,7 +567,7 @@ ovStoreWriter::mergeInfoFiles(void) {
 
       delete [] recs;
 
-      fclose(F);
+      AS_UTL_closeFile(F, name);
     }
 
     //  Update the info block to include the overlaps we just added
@@ -588,7 +579,7 @@ ovStoreWriter::mergeInfoFiles(void) {
             info.smallestID(), info.largestID(), info.numOverlaps());
   }
 
-  fclose(idx);
+  AS_UTL_closeFile(idx);
 
 
   //  Dump the new store info file
@@ -626,29 +617,23 @@ ovStoreWriter::mergeHistogram(void) {
 
 bool
 ovStoreWriter::testIndex(bool doFixes) {
-  char name[FILENAME_MAX];
-  FILE *I = NULL;
-  FILE *F = NULL;
 
   //  Open the input index.
 
-  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
+  char Iname[FILENAME_MAX+1];
 
-  errno = 0;
-  I = fopen(name, "r");
-  if (errno)
-    fprintf(stderr, "ERROR: Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+  snprintf(Iname, FILENAME_MAX, "%s/index", _storePath);
+
+  FILE *I = AS_UTL_openInputFile(Iname);
 
   //  If we're fixing, open the output index.
 
-  if (doFixes) {
-    snprintf(name, FILENAME_MAX, "%s/index.fixed", _storePath);
+  char Fname[FILENAME_MAX+1];
 
-    errno = 0;
-    F = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
-  }
+  snprintf(Fname, FILENAME_MAX, "%s/index.fixed", _storePath);
+
+  FILE *F = (doFixes == true) ? AS_UTL_openOutputFile(Fname) : NULL;
+
 
   ovStoreOfft  O;
 
@@ -686,10 +671,8 @@ ovStoreWriter::testIndex(bool doFixes) {
     curIID = O._a_iid;
   }
 
-  fclose(I);
-
-  if (F)
-    fclose(F);
+  AS_UTL_closeFile(I, Iname);
+  AS_UTL_closeFile(F, Fname);
 
   return(nErrs == 0);
 }

@@ -77,11 +77,7 @@ makeSentinel(char *storePath, uint32 fileID, bool forceRun) {
 
   //  Not done, not running, so create a sentinel to say we're running.
 
-  errno = 0;
-  FILE *F = fopen(name, "w");
-  if (errno)
-    fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
-  fclose(F);
+  AS_UTL_closeFile(AS_UTL_openOutputFile(name), name);
 }
 
 
@@ -90,7 +86,7 @@ void
 removeSentinel(char *storePath, uint32 fileID) {
   char name[FILENAME_MAX];
   snprintf(name, FILENAME_MAX, "%s/%04d.ovs", storePath, fileID);
-  unlink(name);
+  AS_UTL_unlink(name);
 }
 
 

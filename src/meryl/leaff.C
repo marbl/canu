@@ -806,7 +806,7 @@ processFile(char  *filename) {
   }
 
   if (strcmp(filename, "-") != 0)
-    fclose(F);
+    AS_UTL_closeFile(F);
 
   len = pos;
 

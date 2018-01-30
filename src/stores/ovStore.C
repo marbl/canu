@@ -140,7 +140,7 @@ ovStore::~ovStore() {
 
   delete _bof;
 
-  fclose(_offtFile);
+  AS_UTL_closeFile(_offtFile);
 }
 
 
@@ -586,7 +586,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
 
     AS_UTL_safeRead(fp, _evalues + _offt._overlapID, "evalues", sizeof(uint16), len);
 
-    fclose(fp);
+    AS_UTL_closeFile(fp, fileList[i]);
   }
 
   //  Write the evalues to disk.
@@ -600,7 +600,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
 
   AS_UTL_safeWrite(F, _evalues, "evalues", sizeof(uint16), _info.numOverlaps());
 
-  fclose(F);
+  AS_UTL_closeFile(F, name);
 
   //  Clean up, and reopen the file.  Usually, we just delete the store after
   //  values are loaded, so this is pointless.

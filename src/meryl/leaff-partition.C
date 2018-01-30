@@ -117,7 +117,7 @@ outputPartition(seqCache *F,
           delete S;
         }
 
-      fclose(file);
+      AS_UTL_closeFile(file);
     }
 
   } else {

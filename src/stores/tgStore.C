@@ -178,7 +178,7 @@ tgStore::~tgStore() {
 
   for (uint32 v=0; v<MAX_VERS; v++)
     if (_dataFile[v].FP)
-      fclose(_dataFile[v].FP);
+      AS_UTL_closeFile(_dataFile[v].FP);
 
   delete [] _dataFile;
 }
@@ -215,10 +215,7 @@ tgStore::nextVersion(void) {
   //  Close the current version; we'll reopen on demand.
 
   if (_dataFile[_currentVersion].FP) {
-    errno = 0;
-    fclose(_dataFile[_currentVersion].FP);
-    if (errno)
-      fprintf(stderr, "tgStore::nextVersion()-- Failed to close '%s': %s\n", _name, strerror(errno)), exit(1);
+    AS_UTL_closeFile(_dataFile[_currentVersion].FP, _name);
 
     _dataFile[_currentVersion].FP    = NULL;
     _dataFile[_currentVersion].atEOF = false;
@@ -568,16 +565,13 @@ tgStore::numTigsInMASRfile(char *name) {
   if (AS_UTL_fileExists(name, false, false) == false)
     return(0);
 
-  errno = 0;
-  FILE *F = fopen(name, "r");
-  if (errno)
-    fprintf(stderr, "tgStore::numTigsInMASRfile()-- Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openInputFile(name);
 
   AS_UTL_safeRead(F, &MASRmagicInFile,   "MASRmagic",   sizeof(uint32), 1);
   AS_UTL_safeRead(F, &MASRversionInFile, "MASRversion", sizeof(uint32), 1);
   AS_UTL_safeRead(F, &MASRtotalInFile,   "MASRtotal",   sizeof(uint32), 1);
 
-  fclose(F);
+  AS_UTL_closeFile(F, name);
 
   if (MASRmagicInFile != MASRmagic) {
     fprintf(stderr, "tgStore::numTigsInMASRfile()-- Failed to open '%s': magic number mismatch; file=0x%08x code=0x%08x\n",
@@ -599,10 +593,7 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
 
   snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
 
-  errno = 0;
-  FILE *F = fopen(_name, "w");
-  if (errno)
-    fprintf(stderr, "tgStore::dumpMASR()-- Failed to create '%s': %s\n", _name, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openOutputFile(_name);
 
   AS_UTL_safeWrite(F, &MASRmagic,   "MASRmagic",   sizeof(uint32), 1);
   AS_UTL_safeWrite(F, &MASRversion, "MASRversion", sizeof(uint32), 1);
@@ -618,7 +609,7 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
   AS_UTL_safeWrite(F, &L,       "MASRlen",      sizeof(uint32),       1);
   AS_UTL_safeWrite(F,  R,       "MASR",         sizeof(tgStoreEntry), L);
 
-  fclose(F);
+  AS_UTL_closeFile(F, _name);
 }
 
 
@@ -653,10 +644,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
   if (V == 0)
     fprintf(stderr, "tgStore::loadMASR()-- Failed to find any tigs in store '%s'.\n", _path), exit(1);
 
-  errno = 0;
-  FILE *F = fopen(_name, "r");
-  if (errno)
-    fprintf(stderr, "tgStore::loadMASR()-- Failed to open '%s': %s\n", _name, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openInputFile(_name);
 
   uint32        MASRmagicInFile   = 0;
   uint32        MASRversionInFile = 0;
@@ -690,7 +678,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
   AS_UTL_safeRead(F,  R, "MASR", sizeof(tgStoreEntry), masrLen);
 
-  fclose(F);
+  AS_UTL_closeFile(F, _name);
 }
 
 

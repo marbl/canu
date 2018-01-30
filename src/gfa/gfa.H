@@ -88,11 +88,11 @@ public:
 class gfaFile {
 public:
   gfaFile();
-  gfaFile(char *inFile);
+  gfaFile(char *inName);
   ~gfaFile();
 
-  bool    loadFile(char *inFile);
-  bool    saveFile(char *outFile);
+  bool    loadFile(char *inName);
+  bool    saveFile(char *outName);
 
 public:
   char                  *_header;

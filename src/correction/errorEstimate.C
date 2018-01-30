@@ -140,7 +140,7 @@ main(int argc, char **argv) {
          readToIdy[ov.b_iid] = ov.erate();
       }
   }
-  fclose(scoreFile);
+  AS_UTL_closeFile(scoreFile, scoreFileName);
 
   stdDev<double>  edgeStats;
 
@@ -196,10 +196,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "with %u points - median %f mad %f - would use overlaps below %f fraction error\n",
            edgeStats.size(), median, mad, median + deviations * 1.4826 * mad);
 
-   fprintf(stderr, "with %u points - mass of %d is below %f\n", edgeStats.size(), totalBelow, massCutoff);
-
-  if (scoreFile)
-    fclose(scoreFile);
+  fprintf(stderr, "with %u points - mass of %d is below %f\n", edgeStats.size(), totalBelow, massCutoff);
 
   fprintf(stdout, "%.3f\n",  massCutoff /* median + deviations * 1.4826 * mad*/);
   exit(0);

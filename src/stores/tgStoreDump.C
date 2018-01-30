@@ -349,16 +349,15 @@ dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bo
 
 void
 dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+  char T[FILENAME_MAX+1];
+  char R[FILENAME_MAX+1];
+  char L[FILENAME_MAX+1];
 
   FILE *tigs   = NULL;    //  Length and flags of tigs, same as dumpTigs()
   FILE *reads  = NULL;    //  Length and flags of reads, mapping of read to tig
   FILE *layout = stdout;  //  Standard layout file
 
   if (outPrefix) {
-    char T[FILENAME_MAX];  int32 Terr = 0;
-    char R[FILENAME_MAX];  int32 Rerr = 0;
-    char L[FILENAME_MAX];  int32 Lerr = 0;
-
     snprintf(T, FILENAME_MAX, "%s.layout.tigInfo",   outPrefix);
     snprintf(R, FILENAME_MAX, "%s.layout.readToTig", outPrefix);
     snprintf(L, FILENAME_MAX, "%s.layout",           outPrefix);
@@ -398,9 +397,9 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
     tigStore->unloadTig(ti);
   }
 
-  if (tigs)    fclose(tigs);
-  if (reads)   fclose(reads);
-  if (layout)  fclose(layout);
+  AS_UTL_closeFile(tigs,   T);
+  AS_UTL_closeFile(reads,  R);
+  AS_UTL_closeFile(layout, L);
 }
 
 
@@ -461,7 +460,6 @@ dumpSizes(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool u
 
 void
 plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
-  FILE  *F;
 
   //  Find the smallest and largest values with counts.
 
@@ -481,13 +479,13 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
   //  Dump the values from min to max
 
-  F = AS_UTL_openOutputFile(N);
+  FILE *F = AS_UTL_openOutputFile(N);
 
   for (uint32 ii=minii; ii<=maxii; ii++)
     for (uint32 xx=0; xx<cov[ii]; xx++)
       fprintf(F, F_U32"\n", ii);
 
-  fclose(F);
+  AS_UTL_closeFile(F, N);
 
   //  Decide on a bucket size.  We want some even number, like 10, 100, 1000, 5000.
 
@@ -536,7 +534,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
   for (uint32 ii=minii; ii<=maxii; ii++)
     fprintf(F, F_U32"\t" F_U64 "\n", ii, cov[ii]);
 
-  fclose(F);
+  AS_UTL_closeFile(F, N);
 }
 
 
@@ -741,7 +739,7 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
         fprintf(outFile, "%d\t%u\n", ID.hi(ii) - 1, ID.depth(ii));
       }
 
-      fclose(outFile);
+      AS_UTL_closeFile(outFile, outName);
 
       FILE *gnuPlot = popen("gnuplot > /dev/null 2>&1", "w");
 

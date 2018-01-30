@@ -204,10 +204,7 @@ main(int argc, char **argv) {
 
       snprintf(name, FILENAME_MAX, "%s%04d", outputPrefix, pp);  //  Sync'd with canu/CorrectReads.pm
 
-      errno = 0;
-      partFile[pp] = fopen(name, "w");
-      if (errno)
-        fprintf(stderr, "Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+      partFile[pp] = AS_UTL_openOutputFile(name);
     }
 
     outputFalcon(gkpStore, tig, trimToAlign, partFile[pp], readData);
@@ -220,7 +217,7 @@ main(int argc, char **argv) {
       continue;
 
     fprintf(partFile[pp], "- -\n");
-    fclose(partFile[pp]);
+    AS_UTL_closeFile(partFile[pp]);
   }
 
   delete tigStore;

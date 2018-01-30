@@ -63,9 +63,7 @@ public:
     else {
       _modified = false;
 
-      FILE  *F = fopen(_fileName, "r");
-      if (errno)
-        fprintf(stderr, "clearRangeFile()--  Failed to open '%s' for loading clear ranges: %s\n", _fileName, strerror(errno)), exit(1);
+      FILE  *F = AS_UTL_openInputFile(_fileName);
 
       AS_UTL_safeRead(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
 
@@ -77,7 +75,7 @@ public:
       AS_UTL_safeRead(F,  _bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
       AS_UTL_safeRead(F,  _end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
 
-      fclose(F);
+      AS_UTL_closeFile(F, _fileName);
     }
   };
 
@@ -86,16 +84,14 @@ public:
 
   ~clearRangeFile() {
     if (_modified == true) {
-      FILE  *F = fopen(_fileName, "w");
-      if (errno)
-        fprintf(stderr, "clearRangeFile()--  Failed to open '%s' for saving clear ranges: %s\n", _fileName, strerror(errno)), exit(1);
+      FILE  *F = AS_UTL_openOutputFile(_fileName);
 
       AS_UTL_safeWrite(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
 
       AS_UTL_safeWrite(F,  _bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
       AS_UTL_safeWrite(F,  _end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
 
-      fclose(F);
+      AS_UTL_closeFile(F, _fileName);
     }
 
     delete [] _bgn;

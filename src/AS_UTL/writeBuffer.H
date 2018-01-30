@@ -55,7 +55,7 @@ public:
   ~writeBuffer() {
     flush();
     delete [] _buffer;
-    fclose(_file);
+    AS_UTL_closeFile(_file, _filename);
   };
 
   uint64               tell(void) { return(_filePos); };

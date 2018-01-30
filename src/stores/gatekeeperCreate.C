@@ -720,8 +720,8 @@ main(int argc, char **argv) {
 
   gkpStore->gkStore_close();
 
-  fclose(nameMap);
-  fclose(errorLog);
+  AS_UTL_closeFile(nameMap, nameMapName);
+  AS_UTL_closeFile(errorLog, errorLogName);
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
@@ -738,7 +738,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
 
-  fclose(loadLog);
+  AS_UTL_closeFile(loadLog, loadLogName);
 
   if (nERROR > 0)
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");

@@ -814,9 +814,6 @@ reportReadGraph_reportEdge(TigVector      &tigs,
 
 void
 AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *label) {
- char   N[FILENAME_MAX];
-  FILE *BEG = NULL;
-
   bool  skipBubble      = true;
   bool  skipRepeat      = true;
   bool  skipUnassembled = true;
@@ -825,12 +822,11 @@ AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *
 
   writeStatus("AssemblyGraph()-- generating '%s.%s.assembly.gfa'.\n", prefix, label);
 
-  snprintf(N, FILENAME_MAX, "%s.%s.assembly.gfa", prefix, label);
+  char   BEGname[FILENAME_MAX+1];
 
-  BEG = fopen(N, "w");
+  snprintf(BEGname, FILENAME_MAX, "%s.%s.assembly.gfa", prefix, label);
 
-  if (BEG == NULL)
-    return;
+  FILE *BEG = AS_UTL_openOutputFile(BEGname);
 
   fprintf(BEG, "H\tVN:Z:1.0\n");
 
@@ -959,7 +955,7 @@ AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *
     }
   }
 
-  fclose(BEG);
+  AS_UTL_closeFile(BEG, BEGname);
 
   //  And report statistics.
 

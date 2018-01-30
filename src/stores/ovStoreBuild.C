@@ -79,19 +79,16 @@ addEvalues(char *ovlName, vector<char *> &fileList) {
 
 void
 reportConfiguration(char *configOut, uint32 maxIID, uint32 *iidToBucket) {
-  char  F[FILENAME_MAX];
+  char  F[FILENAME_MAX+1];
 
   snprintf(F, FILENAME_MAX, "%s.WORKING", configOut);
 
-  errno = 0;
-  FILE *C = fopen(configOut, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open config output file '%s': %s\n", configOut, strerror(errno)), exit(1);
+  FILE *C = AS_UTL_openOutputFile(configOut);
 
   AS_UTL_safeWrite(C, &maxIID,      "maxIID",      sizeof(uint32), 1);
   AS_UTL_safeWrite(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
 
-  fclose(C);
+  AS_UTL_closeFile(C, configOut);
 
   AS_UTL_rename(F, configOut);
 

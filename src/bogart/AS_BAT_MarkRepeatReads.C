@@ -165,12 +165,12 @@ findUnitigCoverage(Unitig               *tig,
 #ifdef DUMP_READ_COVERAGE
   char  fn[FILENAME_MAX];
   snprintf(fn, FILENAME_MAX, "%08u.coverage", tig->id());
-  FILE *F = fopen(fn, "w");
+  FILE *F = AS_UTL_openOutputFile(fn);
 
   for (uint32 ii=0; ii<coverage.numberOfIntervals(); ii++)
     fprintf(F, "%u %u %u\n", coverage.lo(ii), coverage.hi(ii), coverage.depth(ii));
 
-  fclose(F);
+  AS_UTL_closeFile(F, fn);
 #endif
 }
 
@@ -1106,14 +1106,14 @@ markRepeatReads(AssemblyGraph         *AG,
   }
 
 #if 0
-  FILE *F = fopen("junk.confusedEdges", "w");
+  FILE *F = AS_UTL_openOutputFile("junk.confusedEdges");
   for (uint32 ii=0; ii<confusedEdges.size(); ii++) {
     fprintf(F, "%7u %c' from read %7u\n",
             confusedEdges[ii].aid,
             confusedEdges[ii].a3p ? '3' : '5',
             confusedEdges[ii].bid);
   }
-  fclose(F);
+  AS_UTL_closeFile(F, "junk.confusedEdges");
 #endif
 
   writeStatus("markRepeatReads()-- Found %u confused edges.\n", confusedEdges.size());

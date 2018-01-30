@@ -153,7 +153,7 @@ testExhaustive(char *filename, char *merylname, uint32 merSize) {
     }
   }
 
-  fclose(DUMP);
+  AS_UTL_closeFile(DUMP);
 
   fprintf(stderr, "Found "F_U64" mers in the meryl database.\n", expected);
   fprintf(stderr, "Need to iterate over %7.2f Mmers.\n", (uint64MASK(2 * merSize) + 1) / 1000000.0);
@@ -168,7 +168,7 @@ testExhaustive(char *filename, char *merylname, uint32 merSize) {
     C->tick();
   }
 
-  fclose(DUMP);
+  AS_UTL_closeFile(DUMP);
 
   delete C;
   delete E;

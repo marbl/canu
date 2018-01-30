@@ -964,7 +964,6 @@ bool
 OverlapCache::load(void) {
 #if 0
   char     name[FILENAME_MAX];
-  FILE    *file;
   size_t   numRead;
 
   snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
@@ -973,11 +972,7 @@ OverlapCache::load(void) {
 
   writeStatus("OverlapCache()-- Loading graph from '%s'.\n", name);
 
-  errno = 0;
-
-  file = fopen(name, "r");
-  if (errno)
-    writeStatus("OverlapCache()-- Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+  FILE *file = AS_UTL_openInputFile(name);
 
   uint64   magic      = ovlCacheMagic;
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
@@ -1016,7 +1011,7 @@ OverlapCache::load(void) {
     assert(_overlaps[rr][0].a_iid == rr);
   }
 
-  fclose(file);
+  AS_UTL_closeFile(file, name);
 
   return(true);
 #endif
@@ -1029,17 +1024,12 @@ void
 OverlapCache::save(void) {
 #if 0
   char  name[FILENAME_MAX];
-  FILE *file;
 
   snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
 
   writeStatus("OverlapCache()-- Saving graph to '%s'.\n", name);
 
-  errno = 0;
-
-  file = fopen(name, "w");
-  if (errno)
-    writeStatus("OverlapCache()-- Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+  FILE *file = AS_UTL_openOutputFile(name);
 
   uint64   magic      = ovlCacheMagic;
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
@@ -1062,7 +1052,7 @@ OverlapCache::save(void) {
   for (uint32 rr=0; rr<RI->numReads() + 1; rr++)
     AS_UTL_safeWrite(file,  _overlaps[rr],   "overlapCache_ovl", sizeof(BAToverlap), _overlapLen[rr]);
 
-  fclose(file);
+  AS_UTL_closeFile(file, name);
 #endif
 }
 

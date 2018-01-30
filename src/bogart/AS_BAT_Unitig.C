@@ -527,36 +527,33 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
 
   snprintf(N, FILENAME_MAX, "%s.%s.%08u.profile", prefix, label, id());
 
-  F = fopen(N, "w");
+  F = AS_UTL_openOutputFile(N);
 
-  if (F) {
-    for (uint32 ii=0; ii<errorProfile.size(); ii++)
-      fprintf(F, "%u %u %.5f +- %.5f\n",
-              errorProfile[ii].bgn,  errorProfile[ii].end,
-              errorProfile[ii].mean, errorProfile[ii].stddev);
-    fclose(F);
-  }
+  for (uint32 ii=0; ii<errorProfile.size(); ii++)
+    fprintf(F, "%u %u %.5f +- %.5f\n",
+            errorProfile[ii].bgn,  errorProfile[ii].end,
+            errorProfile[ii].mean, errorProfile[ii].stddev);
+
+  AS_UTL_closeFile(F, N);
 
   //  Reporting the index isn't generally useful, only for debugging.
 
 #if 0
   snprintf(N, FILENAME_MAX, "%s.%s.%08u.profile.index", prefix, label, id());
 
-  F = fopen(N, "w");
+  F = AS_UTL_openOutputFile(N);
 
-  if (F) {
-    for (uint32 ii=0; ii<errorProfileIndex.size(); ii++) {
-      uint32  xx = errorProfileIndex[ii];
+  for (uint32 ii=0; ii<errorProfileIndex.size(); ii++) {
+    uint32  xx = errorProfileIndex[ii];
 
-      fprintf(F, "index[%u] = %u -- errorProfile[] = %u-%u  %.6f +- %.6f\n",
-              ii,
-              xx,
-              errorProfile[xx].bgn,
-              errorProfile[xx].end,
-              errorProfile[xx].mean,
-              errorProfile[xx].stddev);
-    }
-    fclose(F);
+    fprintf(F, "index[%u] = %u -- errorProfile[] = %u-%u  %.6f +- %.6f\n",
+            ii,
+            xx,
+            errorProfile[xx].bgn,
+            errorProfile[xx].end,
+            errorProfile[xx].mean,
+            errorProfile[xx].stddev);
   }
+  AS_UTL_closeFile(F, N);
 #endif
 }

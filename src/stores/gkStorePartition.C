@@ -265,18 +265,13 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  cleanup -- close all the files, delete storage
 
-  fclose(rIDmF);
+  AS_UTL_closeFile(rIDmF, name);
 
   for (uint32 i=1; i<=maxPartition; i++) {
     fprintf(stderr, "partition " F_U32 " has " F_U32 " reads\n", i, readfileslen[i]);
 
-    errno = 0;
-
-    fclose(blobfiles[i]);
-    fclose(readfiles[i]);
-
-    if (errno)
-      fprintf(stderr, "  warning: %s\n", strerror(errno));
+    AS_UTL_closeFile(blobfiles[i]);
+    AS_UTL_closeFile(readfiles[i]);
   }
 
   delete [] readIDmap;

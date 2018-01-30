@@ -189,7 +189,7 @@ merMaskedSequence::loadMasking(uint32 onlySeqIID_) {
     }
   }
 
-  fclose(maskMersFile);
+  AS_UTL_closeFile(maskMersFile);
 }
 
 
@@ -206,7 +206,7 @@ merMaskedSequence::saveMasking(void) {
     fwrite(_repeatID[i], sizeof(uint32), _seqLen[i], maskMersFile);
   }
 
-  fclose(maskMersFile);
+  AS_UTL_closeFile(maskMersFile);
 }
 
 
@@ -348,7 +348,7 @@ computeDensity(merMaskedSequence *S, char *outputPrefix) {
                 (double)gapSum    / windowSize);
     }
 
-    fclose(outputFile);
+    AS_UTL_closeFile(outputFile);
   }
 }
 
@@ -558,8 +558,8 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
       }
     }
 
-    fclose(outputFile);
-    fclose(outputData);
+    AS_UTL_closeFile(outputFile);
+    AS_UTL_closeFile(outputData);
   }
 
   delete CT;

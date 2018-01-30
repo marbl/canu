@@ -315,10 +315,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
 
   snprintf(N, FILENAME_MAX, "%s.best.spurs", prefix);
 
-  errno = 0;
-  FILE   *F = fopen(N, "w");
-  if (errno)
-    F = NULL;
+  FILE   *F = AS_UTL_openOutputFile(N);
 
   _spur.clear();
 
@@ -355,8 +352,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
   writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " spur reads and " F_SIZE_T " singleton reads.\n",
               _spur.size(), _singleton.size());
 
-  if (F)
-    fclose(F);
+  AS_UTL_closeFile(F, N);
 }
 
 
@@ -645,14 +641,14 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
   //  Open output files.
 
-  snprintf(N, FILENAME_MAX, "%s.%s.edges",               prefix, label);   BE = fopen(N, "w");
-  snprintf(N, FILENAME_MAX, "%s.%s.singletons",          prefix, label);   BS = fopen(N, "w");
-  snprintf(N, FILENAME_MAX, "%s.%s.edges.suspicious",    prefix, label);   SS = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.edges",               prefix, label);   BE = AS_UTL_openOutputFile(N);
+  snprintf(N, FILENAME_MAX, "%s.%s.singletons",          prefix, label);   BS = AS_UTL_openOutputFile(N);
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.suspicious",    prefix, label);   SS = AS_UTL_openOutputFile(N);
 
-  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa",           prefix, label);   BEG = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa",           prefix, label);   BEG = AS_UTL_openOutputFile(N);
 
-  snprintf(N, FILENAME_MAX, "%s.%s.contains.histogram",  prefix, label);   BCH = fopen(N, "w");
-  snprintf(N, FILENAME_MAX, "%s.%s.edges.histogram",     prefix, label);   BEH = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.contains.histogram",  prefix, label);   BCH = AS_UTL_openOutputFile(N);
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.histogram",     prefix, label);   BEH = AS_UTL_openOutputFile(N);
 
   //  Write best edges, singletons and suspicious edges.
 
@@ -817,14 +813,14 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
   //  Close all the files.
 
-  if (BE)   fclose(BE);
-  if (BS)   fclose(BS);
-  if (SS)   fclose(SS);
+  AS_UTL_closeFile(BE);
+  AS_UTL_closeFile(BS);
+  AS_UTL_closeFile(SS);
 
-  if (BEG)   fclose(BEG);
+  AS_UTL_closeFile(BEG);
 
-  if (BCH)   fclose(BCH);
-  if (BEH)   fclose(BEH);
+  AS_UTL_closeFile(BCH);
+  AS_UTL_closeFile(BEH);
 }
 
 

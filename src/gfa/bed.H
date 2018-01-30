@@ -57,11 +57,11 @@ public:
 
 class bedFile {
 public:
-  bedFile(char *inFile);
+  bedFile(char *inName);
   ~bedFile();
 
-  bool    loadFile(char *inFile);
-  bool    saveFile(char *outFile);
+  bool    loadFile(char *inName);
+  bool    saveFile(char *outName);
 
 public:
   vector<bedRecord *>    _records;

@@ -503,9 +503,9 @@ main(int argc, char **argv) {
   else
     partitionLength(gkp, BAT, JOB, OPT, minOverlapLength, ovlHashBlockLength, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
 
-  fclose(BAT);
-  fclose(JOB);
-  fclose(OPT);
+  AS_UTL_closeFile(BAT);
+  AS_UTL_closeFile(JOB);
+  AS_UTL_closeFile(OPT);
 
   renameToFinal(outputPrefix, "ovlbat");
   renameToFinal(outputPrefix, "ovljob");

@@ -159,7 +159,7 @@ submitPrepareBatch(merylArgs *args) {
   fprintf(F, "#!/bin/sh\n\n");
   fprintf(F, ". $SGE_ROOT/$SGE_CELL/common/settings.sh\n");
   fprintf(F, "%s -forcebuild %s\n", args->execName, args->options);
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   if (args->sgeMergeOpt)
     snprintf(cmd, FILENAME_MAX, "qsub -cwd -b n -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
@@ -190,7 +190,7 @@ submitCountBatches(merylArgs *args) {
   fprintf(F, ". $SGE_ROOT/$SGE_CELL/common/settings.sh\n");
   fprintf(F, "batchnum=`expr $SGE_TASK_ID - 1`\n");
   fprintf(F, "%s -v -countbatch $batchnum -o %s\n", args->execName, args->outputFile);
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   if (args->sgeBuildOpt)
     snprintf(cmd, FILENAME_MAX, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
@@ -214,7 +214,7 @@ submitCountBatches(merylArgs *args) {
   fprintf(F, "#!/bin/sh\n\n");
   fprintf(F, ". $SGE_ROOT/$SGE_CELL/common/settings.sh\n");
   fprintf(F, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   if (args->sgeMergeOpt)
     snprintf(cmd, FILENAME_MAX, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
@@ -727,7 +727,7 @@ build(merylArgs *args) {
     if (errno)
       fprintf(stderr, "ERROR: can't make outputs with prefix '%s': %s\n", args->outputFile, strerror(errno)), exit(1);
 
-    fclose(F);
+    AS_UTL_closeFile(F);
 
     AS_UTL_unlink(N);
   }

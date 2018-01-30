@@ -36,6 +36,8 @@
  */
 
 #include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+
 #include "libmeryl.H"
 
 #include "splitToWords.H"
@@ -197,7 +199,7 @@ main(int argc, char **argv) {
   if (histogramFile) {
     FILE *HF = fopen(histogramFile, "r");
     loadHistogram(HF, nDistinct, nUnique, nTotal, histLen, hist);
-    fclose(HF);
+    AS_UTL_closeFile(HF);
   }
 
   //  Examine the counts, pick a reasonable upper limit.

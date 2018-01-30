@@ -71,7 +71,7 @@ operationBuild(char   *buildName,
     tigStore->insertTig(tig, false);
   }
 
-  fclose(F);
+  AS_UTL_closeFile(F, buildName);
 
   delete tig;
   delete tigStore;
@@ -206,7 +206,7 @@ main (int argc, char **argv) {
       tigStore->deleteTig(tig->tigID());
     }
 
-    fclose(TI);
+    AS_UTL_closeFile(TI, tigInputs[ff]);
 
     fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
   }

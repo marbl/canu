@@ -48,11 +48,7 @@ ChunkGraph::ChunkGraph(const char *prefix) {
 
   snprintf(N, FILENAME_MAX, "%s.chunkGraph.log", prefix);
 
-  errno = 0;
-  _chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? fopen(N, "w") : NULL;
-
-  if (errno)
-    _chunkLog = NULL;
+  _chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? AS_UTL_openOutputFile(N) : NULL;
 
   _maxRead = RI->numReads();
   _restrict    = NULL;
@@ -84,8 +80,7 @@ ChunkGraph::ChunkGraph(const char *prefix) {
     _chunkLength[fid-1].cnt    = l5 + l3;
   }
 
-  if (_chunkLog)
-    fclose(_chunkLog);
+  AS_UTL_closeFile(_chunkLog, N);
 
   delete [] _pathLen;
   _pathLen = NULL;

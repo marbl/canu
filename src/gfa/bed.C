@@ -114,8 +114,8 @@ bedRecord::save(FILE *outFile) {
 
 
 
-bedFile::bedFile(char *inFile) {
-  loadFile(inFile);
+bedFile::bedFile(char *inName) {
+  loadFile(inName);
 }
 
 
@@ -126,22 +126,18 @@ bedFile::~bedFile() {
 
 
 bool
-bedFile::loadFile(char *inFile) {
-  FILE  *F    = NULL;
+bedFile::loadFile(char *inName) {
   char  *L    = NULL;
   uint32 Llen = 0;
   uint32 Lmax = 0;
 
-  errno = 0;
-  F = fopen(inFile, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", inFile, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openInputFile(inName);
 
   while (AS_UTL_readLine(L, Llen, Lmax, F)) {
     _records.push_back(new bedRecord(L));
   }
 
-  fclose(F);
+  AS_UTL_closeFile(F, inName);
 
   delete [] L;
 
@@ -154,19 +150,15 @@ bedFile::loadFile(char *inFile) {
 
 
 bool
-bedFile::saveFile(char *outFile) {
-  FILE  *F = NULL;
+bedFile::saveFile(char *outName) {
 
-  errno = 0;
-  F = fopen(outFile, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", outFile, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openOutputFile(outName);
 
   for (uint32 ii=0; ii<_records.size(); ii++)
     if (_records[ii])
       _records[ii]->save(F);
 
-  fclose(F);
+  AS_UTL_closeFile(F, outName);
 
   return(true);
 }

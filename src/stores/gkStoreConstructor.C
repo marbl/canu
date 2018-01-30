@@ -94,10 +94,9 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   snprintf(name, FILENAME_MAX, "%s/info", _storePath);
 
   if (AS_UTL_fileExists(name, false, false) == true) {
-    errno = 0;
-    FILE *I = fopen(name, "r");
+    FILE *I = AS_UTL_openInputFile(name);
     AS_UTL_safeRead(I, &_info, "gkStore::_info", sizeof(gkStoreInfo), 1);
-    fclose(I);
+    AS_UTL_closeFile(I, name);
   }
 
   //  Check sizes are correct.
@@ -254,7 +253,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     AS_UTL_safeRead(F, _readIDtoPartitionID,  "gkStore::_readIDtoPartitionID",  sizeof(uint32), gkStore_getNumReads() + 1);
     AS_UTL_safeRead(F, _readIDtoPartitionIdx, "gkStore::_readIDtoPartitionIdx", sizeof(uint32), gkStore_getNumReads() + 1);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
 
     //  Libraries are easy, just the normal file.
 
@@ -324,19 +323,19 @@ gkStore::~gkStore() {
 
     F = AS_UTL_openOutputFile(gkStore_path(), '/', "libraries");
     AS_UTL_safeWrite(F, _libraries, "libraries", sizeof(gkLibrary), gkStore_getNumLibraries() + 1);
-    fclose(F);
+    AS_UTL_closeFile(F);
 
     F = AS_UTL_openOutputFile(gkStore_path(), '/', "reads");
     AS_UTL_safeWrite(F, _reads, "reads", sizeof(gkRead), gkStore_getNumReads() + 1);
-    fclose(F);
+    AS_UTL_closeFile(F);
 
     F = AS_UTL_openOutputFile(gkStore_path(), '/', "info");
     AS_UTL_safeWrite(F, &_info, "info", sizeof(gkStoreInfo), 1);
-    fclose(F);
+    AS_UTL_closeFile(F);
 
     F = AS_UTL_openOutputFile(gkStore_path(), '/', "info.txt");
     _info.writeInfoAsText(F);
-    fclose(F);
+    AS_UTL_closeFile(F);
   }
 
   //  Clean up.
@@ -348,7 +347,7 @@ gkStore::~gkStore() {
 
   for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
     if ((_blobsFiles) && (_blobsFiles[ii]))
-      fclose(_blobsFiles[ii]);
+      AS_UTL_closeFile(_blobsFiles[ii]);
 
   delete [] _blobsFiles;
 
@@ -459,13 +458,11 @@ gkStore::gkStore_deletePartitions(void) {
 
   //  How many partitions?
 
-  FILE *F = fopen(path, "r");
-  if (errno)
-    fprintf(stderr, "ERROR: failed to open partition meta data '%s': %s\n", path, strerror(errno)), exit(1);
+  FILE *F = AS_UTL_openInputFile(path);
 
   AS_UTL_safeRead(F, &_numberOfPartitions, "gkStore_deletePartitions::numberOfPartitions", sizeof(uint32), 1);
 
-  fclose(F);
+  AS_UTL_closeFile(F, path);
 
   //  Yay!  Delete!
 

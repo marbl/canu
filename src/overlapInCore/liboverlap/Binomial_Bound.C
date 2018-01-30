@@ -197,7 +197,7 @@ Initialize_Match_Limit(int32 *ml, double maxErate, int32 maxErrors) {
   FILE *F = fopen("values-new.dat", "w");
   for (int32 e=0; e<maxErrors; e++)
     fprintf(F, "%d %d\n", e, Edit_Match_Limit[e]);
-  fclose(F);
+  AS_UTL_closeFile(F, "values-new.dat");
 
   fprintf(stderr, "values-orig.dat and values-new.dat dumped.  exiting.\n");
   exit(1);

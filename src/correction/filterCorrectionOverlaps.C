@@ -256,13 +256,11 @@ main(int argc, char **argv) {
     }
   }
 
-  if (scoreFile) {
+  if (scoreFile)
     AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint16), gkpStore->gkStore_getNumReads() + 1);
-    fclose(scoreFile);
-  }
 
-  if (logFile)
-    fclose(logFile);
+  AS_UTL_closeFile(scoreFile, scoreFileName);
+  AS_UTL_closeFile(logFile,   logFileName);
 
   delete [] scores;
 
@@ -276,10 +274,7 @@ main(int argc, char **argv) {
   if (noStats == true)
     exit(0);
 
-  errno = 0;
-  FILE     *statsFile = fopen(statsFileName, "w");
-  if (errno)
-    fprintf(stderr, "ERROR: failed to open '%s' for writing: %s\n", statsFileName, strerror(errno)), exit(1);
+  FILE  *statsFile = AS_UTL_openOutputFile(statsFileName);
 
   fprintf(statsFile, "PARAMETERS:\n");
   fprintf(statsFile, "----------\n");
@@ -321,7 +316,8 @@ main(int argc, char **argv) {
   fprintf(statsFile, "%12" F_U64P " (<=  95%% overlaps filtered)\n", gs->reads95OlapsFiltered());
   fprintf(statsFile, "%12" F_U64P " (<= 100%% overlaps filtered)\n", gs->reads99OlapsFiltered());
   fprintf(statsFile, "\n");
-  fclose(statsFile);
+
+  AS_UTL_closeFile(statsFile, statsFileName);
 
   delete gs;
 

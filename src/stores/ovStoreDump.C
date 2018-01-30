@@ -116,7 +116,10 @@ private:
 
 
 bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
-  char          N[FILENAME_MAX];
+  char          EN[FILENAME_MAX+1];
+  char          SN[FILENAME_MAX+1];
+  char          GN[FILENAME_MAX+1];
+  char          NN[FILENAME_MAX+1];
   splitToWords  W;
 
   _status = NULL;
@@ -126,29 +129,18 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
 
   errno = 0;
 
-  snprintf(N, FILENAME_MAX, "%s.edges", prefix);
-  FILE *E = fopen(N, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", N, strerror(errno)), exit(1);
-
-  snprintf(N, FILENAME_MAX, "%s.edges.suspicious", prefix);
-  FILE *S = fopen(N, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", N, strerror(errno)), exit(1);
-
-  snprintf(N, FILENAME_MAX, "%s.singletons", prefix);
-  FILE *G = fopen(N, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", N, strerror(errno)), exit(1);
+  snprintf(EN, FILENAME_MAX, "%s.edges", prefix);
+  snprintf(SN, FILENAME_MAX, "%s.edges.suspicious", prefix);
+  snprintf(GN, FILENAME_MAX, "%s.singletons", prefix);
 
   _status = new readStatus [nReads+1];
 
   memset(_status, 0, sizeof(readStatus) * (nReads+1));
-
-
-  fgets(N, FILENAME_MAX, E);
+ 
+  FILE *E = AS_UTL_openInputFile(EN);
+  fgets(NN, FILENAME_MAX, E);
   while (!feof(E)) {
-    W.split(N);
+    W.split(NN);
 
     uint32  id = W(0);
 
@@ -162,14 +154,15 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
     _status[id].isContained  = ((W.numWords() > 10) && (W[10][0] == 'c'));
     _status[id].isSuspicious = false;
 
-    fgets(N, FILENAME_MAX, E);
+    fgets(NN, FILENAME_MAX, E);
   }
-  fclose(E);
+  AS_UTL_closeFile(E, EN);
 
 
-  fgets(N, FILENAME_MAX, S);
+  FILE *S = AS_UTL_openInputFile(SN);
+  fgets(NN, FILENAME_MAX, S);
   while (!feof(S)) {
-    W.split(N);
+    W.split(NN);
 
     uint32  id = W(0);
 
@@ -183,14 +176,15 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
     _status[id].isContained  = ((W.numWords() > 10) && (W[10][0] == 'c'));
     _status[id].isSuspicious = true;
 
-    fgets(N, FILENAME_MAX, S);
+    fgets(NN, FILENAME_MAX, S);
   }
-  fclose(S);
+  AS_UTL_closeFile(S, SN);
 
 
-  fgets(N, FILENAME_MAX, G);
+  FILE *G = AS_UTL_openInputFile(GN);
+  fgets(NN, FILENAME_MAX, G);
   while (!feof(G)) {
-    W.split(N);
+    W.split(NN);
 
     uint32  id = W(0);
 
@@ -204,9 +198,9 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
     _status[id].isContained  = false;
     _status[id].isSuspicious = false;
 
-    fgets(N, FILENAME_MAX, G);
+    fgets(NN, FILENAME_MAX, G);
   }
-  fclose(G);
+  AS_UTL_closeFile(G, GN);
 }
 
 

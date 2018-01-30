@@ -71,7 +71,7 @@ main(int argc, char **argv) {
 
   tig.loadFromStream(F);
 
-  fclose(F);
+  AS_UTL_closeFile(F, tigFileName);
 
   uint32  displayWidth    = 250;
   uint32  displaySpacing  = 10;

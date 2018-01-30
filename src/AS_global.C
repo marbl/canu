@@ -39,6 +39,8 @@
 #include "canu_version.H"
 
 #include "AS_UTL_stackTrace.H"
+#include "AS_UTL_fileIO.H"
+
 #include "timeAndSize.H"
 
 #ifdef X86_GCC_LINUX
@@ -191,7 +193,7 @@ AS_configure(int argc, char **argv) {
 
   fprintf(F, "\n");
 
-  fclose(F);
+  AS_UTL_closeFile(F, N, true);
 
   return(argc);
 }

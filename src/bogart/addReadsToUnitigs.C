@@ -308,11 +308,7 @@ main(int argc, char **argv) {
     uint32  numUnique = 0;
     uint32  numDups   = 0;
 
-    errno = 0;
-    FILE *M = fopen(alignMapNames[an], "r");
-    if (errno)
-      fprintf(stderr, "failed to open '%s': %s\n", alignMapNames[an], strerror(errno)), exit(1);
-
+    FILE *M = AS_UTL_openInputFile(alignMapNames[an]);
     char  L[1024];
 
     fgets(L, 1024, M);  //  Header line
@@ -366,7 +362,7 @@ main(int argc, char **argv) {
       fgets(L, 1024, M);
     }
 
-    fclose(M);
+    AS_UTL_closeFile(M, alignMapNames[an]);
 
     fprintf(stderr, "%s - %u aligns\n", alignMapNames[an], numAligns);
 

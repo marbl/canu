@@ -75,7 +75,7 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
       readList.insert(W(0));
   }
 
-  fclose(R);
+  AS_UTL_closeFile(R, readListName);
 }
 
 
@@ -383,9 +383,9 @@ main(int argc, char **argv) {
 
   //  Close files and clean up.
 
-  if (logFile != NULL)   fclose(logFile);
-  if (cnsFile != NULL)   fclose(cnsFile);
-  if (seqFile != NULL)   fclose(seqFile);
+  AS_UTL_closeFile(logFile);
+  AS_UTL_closeFile(cnsFile);
+  AS_UTL_closeFile(seqFile);
 
   delete    fc;
   delete    rd;

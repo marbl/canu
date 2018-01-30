@@ -194,30 +194,25 @@ main(int argc, char **argv) {
 
   fprintf (stderr, "Saving corrected error rates to file %s\n", G->eratesName);
 
-  {
-    errno = 0;
-    FILE *fp = fopen(G->eratesName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", G->eratesName, strerror(errno)), exit(1);
+  FILE *fp = AS_UTL_openOutputFile(G->eratesName);
 
-    AS_UTL_safeWrite(fp, &G->bgnID,    "loid", sizeof(int32),  1);
-    AS_UTL_safeWrite(fp, &G->endID,    "hiid", sizeof(int32),  1);
-    AS_UTL_safeWrite(fp, &G->olapsLen, "num",  sizeof(uint64), 1);
+  AS_UTL_safeWrite(fp, &G->bgnID,    "loid", sizeof(int32),  1);
+  AS_UTL_safeWrite(fp, &G->endID,    "hiid", sizeof(int32),  1);
+  AS_UTL_safeWrite(fp, &G->olapsLen, "num",  sizeof(uint64), 1);
 
-    fprintf(stderr, "--Allocate " F_U64 " MB for output error rates.\n",
-            (sizeof(uint16) * G->olapsLen) >> 20);
+  fprintf(stderr, "--Allocate " F_U64 " MB for output error rates.\n",
+          (sizeof(uint16) * G->olapsLen) >> 20);
 
-    uint16 *evalue = new uint16 [G->olapsLen];
+  uint16 *evalue = new uint16 [G->olapsLen];
 
-    for (int32 i=0; i<G->olapsLen; i++)
-      evalue[i] = G->olaps[i].evalue;
+  for (int32 i=0; i<G->olapsLen; i++)
+    evalue[i] = G->olaps[i].evalue;
 
-    AS_UTL_safeWrite(fp, evalue, "evalue", sizeof(uint16), G->olapsLen);
+  AS_UTL_safeWrite(fp, evalue, "evalue", sizeof(uint16), G->olapsLen);
 
-    delete [] evalue;
+  delete [] evalue;
 
-    fclose(fp);
-  }
+  AS_UTL_closeFile(fp, G->eratesName);
 
   //  Finished.
 

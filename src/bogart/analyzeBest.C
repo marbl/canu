@@ -80,18 +80,9 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Opening best edges and contains.\n");
 
-  errno = 0;
-  FILE *be = fopen(bEdge, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", bEdge, strerror(errno)), exit(1);
-
-  FILE *bc = fopen(bCont,  "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", bCont, strerror(errno)), exit(1);
-
-  FILE *bs = fopen(bSing,  "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", bSing, strerror(errno)), exit(1);
+  FILE *be = AS_UTL_openInputFile(bEdge);
+  FILE *bc = AS_UTL_openInputFile(bCont);
+  FILE *bs = AS_UTL_openInputFile(bSing);
 
   fprintf(stderr, "Loading read to library mapping.\n");
 
@@ -204,8 +195,9 @@ main(int argc, char **argv) {
 
   gkp->gkStore_close();
 
-  fclose(be);
-  fclose(bc);
+  AS_UTL_closeFile(be, bEdge);
+  AS_UTL_closeFile(bc, bCont);
+  AS_UTL_closeFile(bs, bSing);
 
   delete [] frgToLib;
 

@@ -391,8 +391,6 @@ main(int argc, char **argv) {
   int64             genomeSize = 0;
 
   char             *outPrefix  = NULL;
-  FILE             *outLOG     = NULL;
-  FILE             *outSTA     = NULL;
 
   uint32            bgnID      = 0;
   uint32            endID      = 0;
@@ -469,23 +467,14 @@ main(int argc, char **argv) {
 
   //  Open output files first, so we can fail before getting too far along.
 
-  {
-    char  outName[FILENAME_MAX];
+  char  outLOGname[FILENAME_MAX+1];
+  char  outSTAname[FILENAME_MAX+1];
 
-    errno = 0;
+  snprintf(outLOGname, FILENAME_MAX, "%s.log", outPrefix);
+  snprintf(outSTAname, FILENAME_MAX, "%s.stats", outPrefix);
 
-    snprintf(outName, FILENAME_MAX, "%s.log", outPrefix);
-
-    outLOG = fopen(outName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
-
-    snprintf(outName, FILENAME_MAX, "%s.stats", outPrefix);
-
-    outSTA = fopen(outName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
-  }
+  FILE *outLOG = AS_UTL_openOutputFile(outLOGname);
+  FILE *outSTA = AS_UTL_openOutputFile(outSTAname);
 
   //
   //  Load fragment data
@@ -601,7 +590,8 @@ main(int argc, char **argv) {
   }
 
 
-  fclose(outLOG);
+  AS_UTL_closeFile(outLOG, outLOGname);
+  AS_UTL_closeFile(outSTA, outSTAname);
 
   delete [] isNonRandom;
   delete [] readLength;

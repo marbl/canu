@@ -231,7 +231,7 @@ loadIdealUnitigs(char *idealName,
     fgets(L, 1024, F);
   }
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   fprintf(stderr, "Loaded %lu ideal unitigs.\n", ideal.size());
 }
@@ -751,8 +751,8 @@ main(int argc, char **argv) {
             bi->utgCov, bi->idlCov);
   }
 
-  fclose(gffOutput);
-  fclose(resultsOutput);
+  AS_UTL_closeFile(gffOutput);
+  AS_UTL_closeFile(resultsOutput);
 
 
 
