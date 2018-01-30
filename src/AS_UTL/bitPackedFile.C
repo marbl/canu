@@ -59,12 +59,6 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
   _name = new char [strlen(name) + 1];
   strcpy(_name, name);
 
-#ifdef WITH_BZIP2
-  _bzFILE = 0L;
-  _bzerr  = 0;
-  _bzfile = 0L;
-#endif
-
   _bfrmax = 1048576 / 8;
   _bfr    = new uint64 [_bfrmax];
   _pos    = uint64ZERO;
@@ -76,7 +70,6 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
   _bfrDirty       = false;
   _forceFirstLoad = false;
   _isReadOnly     = false;
-  _isBzip2        = false;
 
   stat_seekInside   = uint64ZERO;
   stat_seekOutside  = uint64ZERO;
@@ -169,40 +162,6 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
     return;
   }
 
-
-  if ((c[0] == 'B') && (c[1] == 'Z') && (c[2] == 'h')) {
-#ifdef WITH_BZIP2
-    //  Looks like a bzip2 file!
-
-    errno = 0;
-    _bzFILE = fopen(_name, "r");
-    if (errno) {
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open bzip2 file '%s'\n", _name);
-      exit(1);
-    }
-
-    _bzerr = 0;
-    _bzfile = BZ2_bzReadOpen(&_bzerr, _bzFILE, 0, 0, 0L, 0);
-    if ((_bzfile == 0L) || (_bzerr != BZ_OK)) {
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to init bzip2 file '%s'\n", _name);
-      exit(1);
-    }
-
-    BZ2_bzRead(&_bzerr, _bzfile, c,   sizeof(char) * 16);
-    BZ2_bzRead(&_bzerr, _bzfile, &ac, sizeof(uint64));
-    BZ2_bzRead(&_bzerr, _bzfile, &bc, sizeof(uint64));
-
-    //  XXX  should check bzerr!
-
-    _isReadOnly  = true;
-    _isBzip2 = true;
-#else
-    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looks like a bzip2 file, but bzip2 support not available!\n", _name);
-    exit(1);
-#endif
-  }
-
-
   //  Check the magic number, decide on an endianess to use.
   //
   if (strncmp(t, c, 16) == 0) {
@@ -233,14 +192,6 @@ bitPackedFile::~bitPackedFile() {
   delete [] _bfr;
   delete [] _name;
   close(_file);
-
-#ifdef WITH_BZIP2
-  if (_bzFILE)
-    fclose(_bzFILE);
-
-  if (_bzfile)
-    BZ2_bzReadClose(&_bzerr, _bzfile);
-#endif
 }
 
 
@@ -297,86 +248,6 @@ bitPackedFile::flushDirty(void) {
       _bfr[i] = uint64Swap(_bfr[i]);
 
   _bfrDirty = false;
-}
-
-
-
-void
-bitPackedFile::seekBzip2(uint64 UNUSED(bitpos)) {
-
-#ifdef WITH_BZIP2
-  //  All we can do here is check that bitpos is
-  //  a) in our current buffer
-  //  b) would be in the next buffer once we read it
-
-  uint64  newpos = bitpos >> 6;
-
-  if (_pos + _bfrmax < newpos) {
-    //  nope, not in the buffer -- we could probably handle this by just reading and
-    //  discarding from the file until we get to the correct bitpos.
-    fprintf(stderr, "bitPackedFile::seekBzip2()-- '%s' seek was not contiguous!\n", _name);
-    exit(1);
-  }
-
-  //  Copy the remaining bits of the current buffer to the start.  Or
-  //  not, if this is the first load.
-
-  uint64  lastpos = _bit >> 6;            //  The word we are currently in
-  uint64  lastlen = (_bfrmax - lastpos);  //  The number of words left in the buffer
-
-  if (_forceFirstLoad == true) {
-    lastpos = 0;
-    lastlen = 0;
-  } else {
-    memcpy(_bfr, _bfr + lastpos, sizeof(uint64) * lastlen);
-  }
-
-  //  Update _bit and _pos -- lastlen is now the first invalid word
-  //
-  _bit  = bitpos & 0x3f;  //  64 * lastlen;
-  _pos  = bitpos >> 6;
-
-  //  Fill the buffer
-
-  size_t  wordsread = 0;
-
-  if (_bzfile) {
-    _bzerr = 0;
-    wordsread = BZ2_bzRead(&_bzerr, _bzfile, _bfr + lastlen, sizeof(uint64) * (_bfrmax - lastlen));
-    if (_bzerr == BZ_STREAM_END) {
-      //fprintf(stderr, "bitPackedFile::seekBzip2() file ended.\n");
-      BZ2_bzReadClose(&_bzerr, _bzfile);
-      fclose(_bzFILE);
-      _bzfile = 0L;
-      _bzFILE = 0L;
-    } else if (_bzerr != BZ_OK) {
-      fprintf(stderr, "bitPackedFile::seekBzip2() '%s' read failed.\n", _name);
-      exit(1);
-    }
-  }
-
-  //fprintf(stderr, "Filled buffer with %d words!\n", wordsread);
-
-  //  Adjust to make wordsread be the index of the last word we actually read.
-  //
-  wordsread += lastlen;
-
-  //  Flip all the words we just read, if needed
-  //
-  if (endianess_flipped)
-    for (uint32 i=lastlen; i<wordsread; i++)
-      _bfr[i] = uint64Swap(_bfr[i]);
-
-  //  Clear any words that we didn't read (supposedly, because we hit
-  //  EOF).
-  //
-  while (wordsread < _bfrmax)
-    _bfr[wordsread++] = uint64ZERO;
-#else
-  fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s'\n", _name);
-  fprintf(stderr, "bitPackedFile::bitPackedFile()-- bzip2 support not present, but still tried to read it??\n");
-  exit(1);
-#endif
 }
 
 
@@ -480,10 +351,7 @@ bitPackedFile::seek(uint64 bitpos) {
 
   flushDirty();
 
-  if (_isBzip2)
-    seekBzip2(bitpos);
-  else
-    seekNormal(bitpos);
+  seekNormal(bitpos);
 
   _forceFirstLoad = false;
 

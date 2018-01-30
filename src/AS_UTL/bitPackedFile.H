@@ -52,12 +52,6 @@
 #include "bitEncodings.H"
 #include "bitPacking.H"
 
-//#define WITH_BZIP2
-
-#ifdef WITH_BZIP2
-#include <bzlib.h>
-#endif
-
 class bitPackedFile {
 public:
   bitPackedFile(char const *name, uint64 offset=0, bool forceTruncate=false);
@@ -91,17 +85,10 @@ private:
   };
 
   void       flushDirty(void);
-  void       seekBzip2(uint64 bitpos);
   void       seekNormal(uint64 bitpos);
 
   int       _file;
   char     *_name;
-
-#ifdef WITH_BZIP2
-  FILE     *_bzFILE;
-  int       _bzerr;
-  BZFILE   *_bzfile;
-#endif
 
   uint64    _bfrmax;  //  Number of words in the buffer
   uint64   *_bfr;     //  A chunk of the bitPackedFile in core
@@ -112,7 +99,6 @@ private:
   bool      _bfrDirty;
   bool      _forceFirstLoad;
   bool      _isReadOnly;
-  bool      _isBzip2;
 
   //  For collecting statistics on our usage
   //
