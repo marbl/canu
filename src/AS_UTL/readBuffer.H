@@ -56,6 +56,7 @@ public:
   char                 peek(void);
 
   char                 read(void);
+  char                 readuntil(char stop);
   uint64               read(void *buf, uint64 len);
   uint64               read(void *buf, uint64 maxlen, char stop);
 
@@ -117,6 +118,27 @@ readBuffer::read(void) {
     fillBuffer();
 
   if (_eof)
+    return(0);
+
+  _bufferPos++;
+  _filePos++;
+
+  return(_buffer[_bufferPos-1]);
+}
+
+
+
+inline
+char
+readBuffer::readuntil(char stop) {
+
+  if ((_eof == false) && (_bufferPos >= _bufferLen))
+    fillBuffer();
+
+  if (_eof)
+    return(0);
+
+  if (_buffer[_bufferPos] == stop)
     return(0);
 
   _bufferPos++;
