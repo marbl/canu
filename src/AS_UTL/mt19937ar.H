@@ -52,7 +52,7 @@ public:
 
   //  returns a random number with gaussian distribution, mean of zero and std.dev. of 1
   //
-  double  mtRandomGaussian(void);
+  double  mtRandomGaussian(double mean=0.0, double stddev=1.0);
 
   double  mtRandomExponential(double lambda, double tau=1.0);
 

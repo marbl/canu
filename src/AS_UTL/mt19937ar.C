@@ -143,7 +143,7 @@ mtRandom::mtRandom32(void) {
 
 //  generates a random number on gaussian distribution with 0 median and 1 std.dev.
 double
-mtRandom::mtRandomGaussian(void) {
+mtRandom::mtRandomGaussian(double mean, double stddev) {
   double  x1=0, x2=0, w=0;
 
   //  from http://www.taygeta.com/random/gaussian.html
@@ -163,7 +163,7 @@ mtRandom::mtRandomGaussian(void) {
 
   w = sqrt( (-2.0 * log(w)) / w);
 
-  return(x1 * w);  //  A second random can be generated from x2 * w.
+  return(mean + x1 * w * stddev);  //  A second random can be generated from x2 * w.
 }
 
 
