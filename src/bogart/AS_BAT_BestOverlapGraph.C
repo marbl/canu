@@ -101,7 +101,6 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
 #pragma omp critical (suspInsert)
       {
         _suspicious.insert(fi);
-        _nSuspicious;
       }
     }
   }
@@ -435,7 +434,6 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
 
   _errorLimit          = erateGraph;
 
-  _nSuspicious         = 0;
   _n1EdgeFiltered      = 0;
   _n2EdgeFiltered      = 0;
   _n1EdgeIncompatible  = 0;
@@ -535,7 +533,7 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
   writeLog("\n");
   writeLog("EDGE FILTERING\n");
   writeLog("-------- ------------------------------------------\n");
-  writeLog("%8u reads have a suspicious overlap pattern\n", _nSuspicious);
+  writeLog("%8u reads have a suspicious overlap pattern\n", _suspicious.size());
   writeLog("%8u reads had edges filtered\n", _n1EdgeFiltered + _n2EdgeFiltered);
   writeLog("         %8u had one\n", _n1EdgeFiltered);
   writeLog("         %8u had two\n", _n2EdgeFiltered);

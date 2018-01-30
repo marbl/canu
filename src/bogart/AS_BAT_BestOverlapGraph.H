@@ -275,8 +275,7 @@ private:
   double                     _median;
   double                     _mad;
 
-  uint32                     _nSuspicious;          //  Stats for output
-  uint32                     _n1EdgeFiltered;
+  uint32                     _n1EdgeFiltered;       //  Stats for output
   uint32                     _n2EdgeFiltered;
   uint32                     _n1EdgeIncompatible;
   uint32                     _n2EdgeIncompatible;
