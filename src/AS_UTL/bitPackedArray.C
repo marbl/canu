@@ -35,13 +35,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <errno.h>
-#include <string.h>
-#include <strings.h>
-
 #include "bitPackedArray.H"
 #include "bitPacking.H"
 

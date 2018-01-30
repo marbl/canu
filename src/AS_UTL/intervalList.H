@@ -46,6 +46,8 @@
 #ifndef INTERVALLIST_H
 #define INTERVALLIST_H
 
+#include "AS_global.H"
+
 #include <algorithm>
 
 //  iNum   - lo, hi - coordinates of the interval

@@ -46,13 +46,6 @@
 #include "readBuffer.H"
 #include "memoryMappedFile.H"
 
-#if 0
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#endif
 #include <fcntl.h>
 
 //  If bufferMax is zero, then the file is accessed using memory

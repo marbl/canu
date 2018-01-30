@@ -40,10 +40,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include <stdio.h>
-#include <ctype.h>
-
-
+#include "AS_global.H"
 
 class dnaAlphabets {
 public:

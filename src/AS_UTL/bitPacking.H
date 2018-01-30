@@ -42,8 +42,7 @@
 #ifndef BRI_BITPACKING_H
 #define BRI_BITPACKING_H
 
-#include <stdio.h>
-#include <assert.h>
+#include "AS_global.H"
 
 //  Routines used for stuffing bits into a word array.
 
