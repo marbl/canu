@@ -139,6 +139,44 @@ public:
 
 
 
+class sampleParameters {
+public:
+  sampleParameters() {
+    isPaired        = false;
+
+    desiredCoverage = 0.0;
+    genomeSize      = 0;
+
+    desiredNumReads = 0;
+    desiredNumBases = 0;
+
+    desiredFraction = 0.0;
+
+    memset(output1, 0, FILENAME_MAX+1);
+    memset(output2, 0, FILENAME_MAX+1);
+  }
+
+  ~sampleParameters() {
+  }
+
+  void    initialize(void) {
+  };
+
+  bool    isPaired;
+
+  double  desiredCoverage;
+  uint64  genomeSize;
+
+  uint64  desiredNumReads;
+  uint64  desiredNumBases;
+
+  double  desiredFraction;
+
+  char    output1[FILENAME_MAX+1];
+  char    output2[FILENAME_MAX+1];
+};
+
+
 
 void
 doSummarize(vector<char *> &inputs,
@@ -459,8 +497,158 @@ doSimulate(vector<char *> &inputs) {
 
 
 
+
+class seqEntry {
+public:
+  seqEntry(mtRandom &MT, uint64 pos_) {
+    pos = pos_;
+    rnd = MT.mtRandomRealOpen();
+  };
+
+  uint64   pos;    //  Position in the seqLengths vector.
+  double   rnd;    //  A random number.
+};
+
+
+bool seqOrderRandom(const seqEntry &a, const seqEntry &b) {
+  return(a.rnd < b.rnd);
+}
+
+bool seqOrderNormal(const seqEntry &a, const seqEntry &b) {
+  return(a.pos < b.pos);
+}
+
+
+
+
 void
-doSample(vector<char *> &inputs) {
+doSample(vector<char *> &inputs, sampleParameters &sPar) {
+
+  sPar.initialize();
+
+  uint32            nameMax = 0;
+  char             *name    = NULL;
+  uint64            seqMax  = 0;
+  char             *seq     = NULL;
+  uint8            *qlt     = NULL;
+
+  vector<uint64>    numSeqsPerFile;
+  vector<uint64>    seqLengths;
+  vector<seqEntry>  seqOrder;
+
+  uint64            numSeqsTotal  = 0;
+  uint64            numBasesTotal = 0;
+
+  vector<char *>    names;
+  vector<char *>    sequences;
+  vector<char *>    qualities;
+
+  mtRandom          MT;
+
+  //  Scan the inputs, saving the number of sequences in each and the length of each sequence.
+
+  for (uint32 ff=0; ff<inputs.size(); ff++) {
+    dnaSeqFile  *sf = new dnaSeqFile(inputs[ff]);
+
+    uint64  num = 0;
+    uint64  len = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
+
+    while (len > 0) {
+      seqLengths.push_back(len);
+      seqOrder.push_back(seqEntry(MT, numSeqsTotal));
+
+      numSeqsTotal  += 1;
+      numBasesTotal += len;
+
+      num += 1;
+      len  = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
+    }
+
+    numSeqsPerFile.push_back(num);
+
+    delete sf;
+  }
+
+  //  Randomize the sequences.
+
+  sort(seqOrder.begin(), seqOrder.end(), seqOrderRandom);
+
+  //  Do some math to figure out what sequences to report.
+
+  if (sPar.desiredCoverage > 0.0) {
+    sPar.desiredNumBases = (uint64)ceil(sPar.desiredCoverage * sPar.genomeSize);
+  }
+
+  if (sPar.desiredNumReads > 0) {
+    fprintf(stderr, "Emitting " F_U64 " reads.\n",
+            sPar.desiredNumReads);
+
+    for (uint64 ii=0; ii<numSeqsTotal; ii++)
+      if (ii < sPar.desiredNumReads)
+        ;
+      else
+        seqLengths[seqOrder[ii].pos] = 0;
+  }
+
+  if (sPar.desiredNumBases > 0) {
+    if (sPar.desiredCoverage > 0)
+      fprintf(stderr, "Emitting %.3fx coverage; " F_U64 " bases.\n",
+              sPar.desiredCoverage,
+              sPar.desiredNumBases);
+    else
+      fprintf(stderr, "Emitting " F_U64 " bases.\n",
+              sPar.desiredNumBases);
+
+    for (uint64 nbe=0, ii=0; ii<numSeqsTotal; ii++) {
+      if (nbe < sPar.desiredNumBases)
+        nbe += seqLengths[seqOrder[ii].pos];
+      else
+        seqLengths[seqOrder[ii].pos] = 0;
+    }
+  }
+
+  if (sPar.desiredFraction > 0.0) {
+    fprintf(stderr, "Emitting %.4f fraction of the reads.\n",
+            sPar.desiredFraction);
+
+    for (uint64 ii=0; ii<numSeqsTotal; ii++) {
+      if (seqOrder[ii].rnd < sPar.desiredFraction)
+        ;
+      else
+        seqLengths[seqOrder[ii].pos] = 0;
+    }
+  }
+
+  //  Unrandomize the sequences.  Not needed for 2-pass, but needed for 1-pass.
+
+  sort(seqOrder.begin(), seqOrder.end(), seqOrderNormal);
+
+  //  Scan the inputs again, this time emitting sequences if their saved length isn't zero.
+
+  for (uint32 ff=0; ff<inputs.size(); ff++) {
+    dnaSeqFile  *sf = new dnaSeqFile(inputs[ff]);
+
+    uint64  num = 0;
+    uint64  len = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
+
+    while (len > 0) {
+      if (seqLengths[num] > 0)
+        AS_UTL_writeFastA(stdout,
+                          seq, seqLengths[num], 0,
+                          ">%s\n", name);
+
+      num += 1;
+      len  = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
+    }
+
+    delete sf;
+  }
+
+  //  Cleanup and quit.
+
+  delete [] name;
+  delete [] seq;
+  delete [] qlt;
 }
 
 
@@ -475,7 +663,7 @@ main(int argc, char **argv) {
   opMode              mode = modeUnset;
 
   generateParameters  gPar;
-
+  sampleParameters    sPar;
 
   vector<char *>  err;
   int             arg = 1;
@@ -487,7 +675,7 @@ main(int argc, char **argv) {
       mode = modeSummarize;
     }
 
-    else if (strcmp(argv[arg], "-gs") == 0) {
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-gs") == 0)) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
     }
 
@@ -497,36 +685,42 @@ main(int argc, char **argv) {
       mode = modeExtract;
     }
 
+    else if ((mode == modeExtract) && (strcmp(argv[arg], "") == 0)) {
+    }
+
+    else if ((mode == modeExtract) && (strcmp(argv[arg], "") == 0)) {
+    }
+
     //  GENERATE
 
     else if (strcmp(argv[arg], "generate") == 0) {
       mode = modeGenerate;
     }
 
-    else if (strcmp(argv[arg], "-min") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-min") == 0)) {
       gPar.minLength = strtouint64(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-max") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-max") == 0)) {
       gPar.maxLength = strtouint64(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-sequences") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-sequences") == 0)) {
       gPar.nSeqs = strtouint64(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-bases") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-bases") == 0)) {
       gPar.nBases = strtouint64(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-guassian") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-guassian") == 0)) {
       gPar.useGaussian = true;
     }
 
-    else if (strcmp(argv[arg], "-mirror") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-mirror") == 0)) {
     }
 
-    else if (strcmp(argv[arg], "-gc") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-gc") == 0)) {
       double  gc = strtodouble(argv[++arg]);
       double  at = 1.0 - gc;
 
@@ -534,7 +728,7 @@ main(int argc, char **argv) {
       gPar.aFreq = gPar.tFreq = at / 2.0;
     }
 
-    else if (strcmp(argv[arg], "-at") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-at") == 0)) {
       double  at = strtodouble(argv[++arg]);
       double  gc = 1.0 - at;
 
@@ -542,19 +736,19 @@ main(int argc, char **argv) {
       gPar.aFreq = gPar.tFreq = at / 2.0;
     }
 
-    else if (strcmp(argv[arg], "-a") == 0) { 
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-a") == 0) ){ 
       gPar.aFreq = strtodouble(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-c") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-c") == 0)) {
       gPar.cFreq = strtodouble(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-g") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-g") == 0)) {
       gPar.gFreq = strtodouble(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-t") == 0) {
+    else if ((mode == modeGenerate) && (strcmp(argv[arg], "-t") == 0)) {
       gPar.tFreq = strtodouble(argv[++arg]);
     }
 
@@ -564,16 +758,48 @@ main(int argc, char **argv) {
       mode = modeSimulate;
     }
 
+    //  SAMPLE
+
     else if (strcmp(argv[arg], "sample") == 0) {
-      mode = modeSimulate;
+      mode = modeSample;
     }
 
-
-    else if (strcmp(argv[arg], "") == 0) {
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-paired") == 0)) {
+      sPar.isPaired = true;
     }
 
-    else if (strcmp(argv[arg], "") == 0) {
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-genomesize") == 0)) {
+      sPar.genomeSize = strtouint64(argv[++arg]);
     }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-coverage") == 0)) {      //  Sample reads up to some coverage C
+      sPar.desiredCoverage = strtodouble(argv[++arg]);
+    }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-reads") == 0)) {         //  Sample N reads
+      sPar.desiredNumReads = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-bases") == 0)) {         //  Sample B bases
+      sPar.desiredNumBases = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-fraction") == 0)) {      //  Sample F fraction
+      sPar.desiredFraction = strtodouble(argv[++arg]);
+    }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-output") == 0)) {
+      strncpy(sPar.output1, argv[++arg], FILENAME_MAX);  //  #'s in the name will be replaced
+      strncpy(sPar.output2, argv[  arg], FILENAME_MAX);  //  by '1' or '2' later.
+    }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "") == 0)) {
+    }
+
+    else if ((mode == modeSample) && (strcmp(argv[arg], "") == 0)) {
+    }
+
+    //  INPUTS
 
     else if (AS_UTL_fileExists(argv[arg]) == true) {
       inputs.push_back(argv[arg]);
@@ -663,7 +889,7 @@ main(int argc, char **argv) {
       doSimulate(inputs);
       break;
     case modeSample:
-      doSample(inputs);
+      doSample(inputs, sPar);
       break;
     default:
       break;
