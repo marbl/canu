@@ -41,6 +41,7 @@
 
 #include "AS_BAT_Logging.H"
 
+#include <algorithm>
 
 ChunkGraph::ChunkGraph(const char *prefix) {
   char N[FILENAME_MAX];

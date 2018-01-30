@@ -43,6 +43,10 @@
 
 #include "AS_BAT_SetParentAndHang.H"
 
+#include <map>
+
+using namespace std;
+
 void
 setParentAndHang(TigVector &tigs) {
 

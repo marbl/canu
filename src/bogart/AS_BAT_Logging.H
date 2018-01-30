@@ -41,19 +41,6 @@
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdarg.h>
-#include <errno.h>
-
-#ifndef BROKEN_CLANG_OpenMP
-#include <omp.h>
-#endif
-
 void    setLogFile(char const *prefix, char const *name);
 char   *getLogFilePrefix(void);
 

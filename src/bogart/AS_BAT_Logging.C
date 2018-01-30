@@ -37,6 +37,9 @@
 
 #include "AS_BAT_Logging.H"
 
+#include <stdarg.h>
+
+
 class logFileInstance {
 public:
   logFileInstance() {
