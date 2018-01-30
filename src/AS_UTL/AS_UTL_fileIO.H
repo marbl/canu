@@ -120,10 +120,12 @@ public:
   compressedFileReader(char const *filename);
   ~compressedFileReader();
 
-  FILE *operator*(void)     {  return(_file);  };
-  FILE *file(void)          {  return(_file);  };
+  FILE *operator*(void)     {  return(_file);              };
+  FILE *file(void)          {  return(_file);              };
 
-  bool  isCompressed(void)  {  return(_pipe);  };
+  bool  isCompressed(void)  {  return(_pipe == true);      };
+  bool  isNormal(void)      {  return((_pipe == false) &&
+                                      (_stdi == false));   };
 
 private:
   FILE  *_file;
@@ -139,10 +141,10 @@ public:
   compressedFileWriter(char const *filename, int32 level=1);
   ~compressedFileWriter();
 
-  FILE *operator*(void)     {  return(_file);  };
-  FILE *file(void)          {  return(_file);  };
+  FILE *operator*(void)     {  return(_file);          };
+  FILE *file(void)          {  return(_file);          };
 
-  bool  isCompressed(void)  {  return(_pipe);  };
+  bool  isCompressed(void)  {  return(_pipe == true);  };
 
 private:
   FILE  *_file;
