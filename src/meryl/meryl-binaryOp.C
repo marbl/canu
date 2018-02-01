@@ -66,7 +66,11 @@ binaryOperations(merylArgs *args) {
   if ((args->personality != PERSONALITY_SUB) &&
       (args->personality != PERSONALITY_DIFFERENCE) &&
       (args->personality != PERSONALITY_ABS) &&
-      (args->personality != PERSONALITY_DIVIDE)) {
+      (args->personality != PERSONALITY_DIVIDE) &&
+      (args->personality != PERSONALITY_AND) &&
+      (args->personality != PERSONALITY_NAND) &&
+      (args->personality != PERSONALITY_OR) &&
+      (args->personality != PERSONALITY_XOR)) {
     fprintf(stderr, "ERROR - only personalities sub and abs\n");
     fprintf(stderr, "ERROR - are supported in binaryOperations().\n");
     fprintf(stderr, "ERROR - this is a coding error, not a user error.\n");
@@ -141,6 +145,39 @@ binaryOperations(merylArgs *args) {
           B->nextMer();
         } else if (Amer < Bmer) {
           W->addMer(Amer, Acnt);
+          A->nextMer();
+        } else {
+          B->nextMer();
+        }
+      }
+      break;
+    case PERSONALITY_AND:
+      while (A->validMer() || B->validMer()) {
+        Amer = A->theFMer();
+        Acnt = A->theCount();
+        Bmer = B->theFMer();
+        Bcnt = B->theCount();
+
+        //  If A stream is out of mers, do nothing but read the B stream.
+        if (A->validMer() == false) {
+          B->nextMer();
+          continue;
+        }
+
+        //  If B stream is out of mers, do nothing but read the B stream.
+        if (B->validMer() == false) {
+          A->nextMer();
+          continue;
+        }
+
+        if (Amer == Bmer) {
+          W->addMer(Amer, Acnt);
+          A->nextMer();
+          B->nextMer();
+          continue;
+        }
+
+        if (Amer < Bmer) {
           A->nextMer();
         } else {
           B->nextMer();

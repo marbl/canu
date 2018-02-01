@@ -85,7 +85,7 @@ main(int argc, char **argv) {
     case PERSONALITY_MAX:
     case PERSONALITY_MAXEXIST:
     case PERSONALITY_ADD:
-    case PERSONALITY_AND:
+      //case PERSONALITY_AND:
     case PERSONALITY_NAND:
     case PERSONALITY_OR:
     case PERSONALITY_XOR:
@@ -96,6 +96,7 @@ main(int argc, char **argv) {
     case PERSONALITY_DIFFERENCE:
     case PERSONALITY_ABS:
     case PERSONALITY_DIVIDE:
+    case PERSONALITY_AND:
       binaryOperations(args);
       break;
 
