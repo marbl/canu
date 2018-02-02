@@ -186,8 +186,8 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   epOlapDat            **olaps    = new epOlapDat [ufpath.size() * 2];
 #endif
 
-  uint32      olapsMax = 0;
-  uint32      olapsLen = 0;
+  uint64      olapsMax = 0;
+  uint64      olapsLen = 0;
   epOlapDat  *olaps    = NULL;
 
   for (uint32 fi=0; fi<ufpath.size(); fi++) {
@@ -258,10 +258,19 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     }
   }
 
-  //  Warn if no overlaps.
+  //  Warn if too few or too many overlaps.
 
   if (olapsLen == 0) {
     writeLog("WARNING:  tig %u length %u nReads %u has no overlaps.\n", id(), getLength(), ufpath.size());
+    for (uint32 fi=0; fi<ufpath.size(); fi++)
+      writeLog("WARNING:    read %7u %7u-%-7u\n",
+               ufpath[fi].ident,
+               ufpath[fi].position.bgn,
+               ufpath[fi].position.end);
+  }
+
+  if (olapsLen > (uint64)4 * 1024 * 1024 * 1024) {
+    writeLog("WARNING:  tig %u length %u nReads %u has " F_U64 " overlaps.\n", id(), getLength(), ufpath.size(), olapsLen);
     for (uint32 fi=0; fi<ufpath.size(); fi++)
       writeLog("WARNING:    read %7u %7u-%-7u\n",
                ufpath[fi].ident,
@@ -291,7 +300,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
   stdDev<float>  curDev;
 
-  for (uint32 bb=0, ee=0; ee<olapsLen; ee++) {
+  for (uint64 bb=0, ee=0; ee<olapsLen; ee++) {
     if (olaps[bb].pos != olaps[ee].pos) {                //  A different position.
       errorProfile.push_back(epValue(olaps[bb].pos,      //  Save the current stats in a new profile entry.
                                      olaps[ee].pos,
@@ -320,7 +329,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   errorProfile.push_back(epValue(getLength(), getLength()+1));   //  And one more to make life easier.
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions from " F_SIZE_T " overlaps.\n", id(), errorProfile.size(), olapsLen);
+  writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions from " F_U64 " overlaps.\n", id(), errorProfile.size(), olapsLen);
 #endif
 
   delete [] olaps;
@@ -329,7 +338,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   //  There are always at least two elements in the profile list: one that starts at coordinate 0,
   //  and the terminating one at coordinate (len, len+1).
 
-  for (uint32 bi=0; bi<errorProfile.size(); bi++) {
+  for (uint64 bi=0; bi<errorProfile.size(); bi++) {
     if (errorProfile[bi].mean != 0)
       continue;
 
