@@ -698,8 +698,8 @@ sub alignGFA ($) {
     if ($runGrid) {
         submitOrRunParallelJob($asm, "gfa", $path, "alignGFA", (1));
     } else {
-        if (runCommand($path, "./alignGFA.sh")) {
-            caExit("failed to align contigs", "./$asm.contigs.aligned.gfa.err");
+        if (runCommand($path, "./alignGFA.sh > alignGFA.err 2>&1")) {
+            caExit("failed to align contigs", "./alignGFA.err");
         }
     }
 
