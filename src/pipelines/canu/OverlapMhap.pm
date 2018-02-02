@@ -130,6 +130,14 @@ sub mhapConfigure ($$$) {
         caFailure("invalid ${tag}MhapSensitivity=" . getGlobal("${tag}MhapSensitivity"), undef);
     }
 
+    # quick guess parameter adjustment for corrected reads, hack for now and should better take error rate into account
+    if (($tag eq "obt") || ($tag eq "utg")) {
+       $numHashes      = "128";
+       $minNumMatches  = 5;
+       $ordSketch      = 1000;
+       $threshold      = 1-getGlobal("${tag}OvlErrorRate");
+    }
+
     # due to systematic bias in nanopore data, adjust threshold up by 5%
     my $numNanoporeRaw = 0;
     open(L, "< $base/$asm.gkpStore/libraries.txt") or caExit("can't open '$base/$asm.gkpStore/libraries.txt' for reading: $!", undef);
@@ -148,18 +156,10 @@ sub mhapConfigure ($$$) {
 
     my $numReads      = getNumberOfReadsEarliestVersion($asm);   #  Need to iterate over all read IDs!
     my $memorySize    = getGlobal("${tag}mhapMemory");
-    my $blockPerGb    = getGlobal("${tag}MhapBlockSize");
-    if ($numHashes >= 768) {
-       $blockPerGb = int($blockPerGb / 2);
-    }
+    my $blockPerGb    = getGlobal("${tag}MhapBlockSize") / (($numHashes < 768) ? 1 : 2);
 
-    # quick guess parameter adjustment for corrected reads, hack for now and should better take error rate into account
-    if (($tag eq "obt") || ($tag eq "utg")) {
-       $numHashes      = "128";
-       $minNumMatches  = 5;
-       $ordSketch      = 1000;
-       $threshold      = 1-getGlobal("${tag}OvlErrorRate");
-    }
+    my $javaPath      = getGlobal("java");
+    my $javaMemory    = int(getGlobal("${tag}mhapMemory") * 1024 + 0.5);
 
     print STDERR "--\n";
     print STDERR "-- PARAMETERS: hashes=$numHashes, minMatches=$minNumMatches, threshold=$threshold\n";
@@ -296,9 +296,6 @@ sub mhapConfigure ($$$) {
     #OPTIMIZE  Probably a big optimization for cloud assemblies, the block fasta inputs can be
     #OPTIMIZE  computed ahead of time, stashed, and then fetched to do the actual precompute.
     #OPTIMIZE
-
-    my $javaPath   = getGlobal("java");
-    my $javaMemory = int(getGlobal("${tag}mhapMemory") * 1024 + 0.5);
 
     my $cygA       = ($^O ne "cygwin") ? "" : "\$(cygpath -w ";   #  Some baloney to convert nice POSIX paths into
     my $cygB       = ($^O ne "cygwin") ? "" : ")";                #  whatever abomination Windows expects.
