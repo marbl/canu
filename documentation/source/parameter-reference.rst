@@ -331,13 +331,24 @@ algorithms usually need to know all overlaps for a single read.  The overlap sto
 overlap, sorts them by the first ID, and stores them for quick retrieval of all overlaps for a
 single read.
 
+The overlap store construction process involves reading outputs of the overlap algorithm (in *.ovb files),
+duplicating each overlap, and writing these to intermediate files.  Each intermediate file is loaded into
+memory, sorted, and written back to disk.
+
 ovsMemory <float>
   How much memory, in gigabytes, to use for constructing overlap stores.  Must be at least 256m or 0.25g.
 
 ovsMethod <string="sequential">
-  Two construction algorithms are supported.  One uses a single data stream, and is faster for small
-  and moderate size assemblies.  The other uses parallel data streams and can be faster (depending
-  on your network disk bandwitdh) for moderate and large assemblies.
+  Two construction algorithms are supported.  The 'sequential' method uses a single data stream, and
+  is faster for small and moderate size assemblies.  The 'parallel' method uses multiple compute
+  nodes and can be faster (depending on your network disk bandwitdh) for moderate and large
+  assemblies.
+
+  The parallel method is selected for genomes larger than 1 Gbp, but only when Canu runs in grid
+  mode.  A special 'forceparallel' method will force usage of the parallel method regardless of the
+  availability of a grid.  Be advised that the parallel method is less efficient than the sequential
+  method, and can easily thrash consumer-level NAS devices resulting in exceptionally poor
+  performance.
 
 Meryl
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
