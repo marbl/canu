@@ -42,15 +42,24 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
 My run stopped with the error ``'Failed to submit batch jobs'``
 -------------------------------------
 
-    The grid you run on must allow compute nodes to submit jobs. This means that if you are on a compute host, ``qsub/bsub/sbatch/etc`` must be available and working. You can test this by starting an interactive compute session and running the submit command manually (e.g. ``qsub`` on SGE, ``bsub`` on LSF, ``sbatch`` on SLURM). 
+    The grid you run on must allow compute nodes to submit jobs. This means that if you are on a
+    compute host, ``qsub/bsub/sbatch/etc`` must be available and working. You can test this by
+    starting an interactive compute session and running the submit command manually (e.g. ``qsub``
+    on SGE, ``bsub`` on LSF, ``sbatch`` on SLURM).
     
-    If this is not the case, Canu **WILL NOT** work on your grid. You must then set ``useGrid=false`` and run on a single machine. Alternatively, you can run Canu with ``useGrid=remote`` which will stop at every submit command, list what should be submitted. You then submit these jobs manually, wait for them to complete, and run the Canu command again. This is a manual process but currently the only workaround for grids without submit support on the compute nodes.
+    If this is not the case, Canu **WILL NOT** work on your grid. You must then set
+    ``useGrid=false`` and run on a single machine. Alternatively, you can run Canu with
+    ``useGrid=remote`` which will stop at every submit command, list what should be submitted. You
+    then submit these jobs manually, wait for them to complete, and run the Canu command again. This
+    is a manual process but currently the only workaround for grids without submit support on the
+    compute nodes.
 
 
 What parameters should I use for my reads?
 -------------------------------------
-    Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford Nanopore
-    (R6 through R9) data.  Assembly quality and/or efficiency can be enhanced for specific datatypes:
+    Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford
+    Nanopore (R6 through R9) data.  Assembly quality and/or efficiency can be enhanced for specific
+    datatypes:
     
     **Nanopore R7 1D** and **Low Identity Reads**
        With R7 1D sequencing data, and generally for any raw reads lower than 80% identity, five to
@@ -67,7 +76,10 @@ What parameters should I use for my reads?
          canu -p asm -d asm correctedErrorRate=0.3 utgGraphDeviation=50 -nanopore-corrected r5/r5.correctedReads.fasta.gz
 
     **Nanopore R7 2D** and **Nanopore R9 1D**
-      The defaults were designed with these datasets in mind so they should work. Having very high coverage or very long Nanopore reads can slow down the assembly significantly. You can  try the ``overlapper=mhap utgReAlign=true`` option which is much faster but may produce less contiguous assemblies on large genomes.
+      The defaults were designed with these datasets in mind so they should work. Having very high
+      coverage or very long Nanopore reads can slow down the assembly significantly. You can try the
+      ``overlapper=mhap utgReAlign=true`` option which is much faster but may produce less
+      contiguous assemblies on large genomes.
 
     **Nanopore R9 2D** and **PacBio P6**
        Slightly decrease the maximum allowed difference in overlaps from the default of 14.4% to 12.0%
@@ -191,21 +203,26 @@ What parameters can I tweak?
 
     For metagenomes:
 
-        The basic idea is to use all data for assembly rather than just the longest as default. The parameters we've used recently are:
+        The basic idea is to use all data for assembly rather than just the longest as default. The
+        parameters we've used recently are:
         
           ``corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=200``
 
     For low coverage:
 
-     - For less than 30X coverage, increase the alllowed difference in overlaps by a few percent (from 4.5% to 8.5%
-       (or more) with ``correctedErrorRate=0.105`` for PacBio and from 14.4% to 16% (or more) with ``correctedErrorRate=0.16`` for Nanopore), to adjust for inferior read correction.  Canu
-       will automatically reduce ``corMinCoverage`` to zero to correct as many reads as possible.
+     - For less than 30X coverage, increase the alllowed difference in overlaps by a few percent
+       (from 4.5% to 8.5% (or more) with ``correctedErrorRate=0.105`` for PacBio and from 14.4% to
+       16% (or more) with ``correctedErrorRate=0.16`` for Nanopore), to adjust for inferior read
+       correction.  Canu will automatically reduce ``corMinCoverage`` to zero to correct as many
+       reads as possible.
 
     For high coverage:
 
      - For more than 60X coverage, decrease the allowed difference in overlaps (from 4.5% to 4.0%
-       with ``correctedErrorRate=0.040`` for PacBio, from 14.4% to 12% with ``correctedErrorRate=0.12`` for Nanopore), so that only the better corrected reads are used.  This is
-       primarily an optimization for speed and generally does not change assembly continuity.
+       with ``correctedErrorRate=0.040`` for PacBio, from 14.4% to 12% with
+       ``correctedErrorRate=0.12`` for Nanopore), so that only the better corrected reads are used.
+       This is primarily an optimization for speed and generally does not change assembly
+       continuity.
 
 
 My asm.contigs.fasta is empty, why?
@@ -224,16 +241,17 @@ My asm.contigs.fasta is empty, why?
 
 Why is my assembly is missing my favorite short plasmid?
 -------------------------------------
-    In Canu v1.6 and earlier only the longest 40X of data (based on the specified genome size) is used for
-    correction.  Datasets with uneven coverage or small plasmids can fail to generate enough
-    corrected reads to give enough coverage for assembly, resulting in gaps in the genome or even no
-    reads for small plasmids.  Set ``corOutCoverage=1000`` (or any value greater than your total input
-    coverage) to correct all input data.
+    In Canu v1.6 and earlier only the longest 40X of data (based on the specified genome size) is
+    used for correction.  Datasets with uneven coverage or small plasmids can fail to generate
+    enough corrected reads to give enough coverage for assembly, resulting in gaps in the genome or
+    even no reads for small plasmids.  Set ``corOutCoverage=1000`` (or any value greater than your
+    total input coverage) to correct all input data.
 
     An alternate approach is to correct all reads (``-correct corOutCoverage=1000``) then assemble
     40X of reads picked at random from the ``<prefix>.correctedReads.fasta.gz`` output.
 
-    More recent Canu versions dynamically select poorly represented sequences to avoid missing short plasmids so this should no longer happen.
+    More recent Canu versions dynamically select poorly represented sequences to avoid missing short
+    plasmids so this should no longer happen.
 
 Why do I get less corrected read data than I asked for?
 -------------------------------------
@@ -245,14 +263,18 @@ Why do I get less corrected read data than I asked for?
 
 What is the minimum coverage required to run Canu?
 -------------------------------------
-    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid methods. Below that, you will likely not assemble the full genome.
+    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid
+    methods. Below that, you will likely not assemble the full genome.
 
 
 My circular element is duplicated/has overlap?
 -------------------------------------
-    This is expected for any circular elements. They can overlap by up to a read length due to how Canu constructs contigs. Canu provides an alignment string in the GFA output which can be converted to an alignment to identify the trimming points.
+    This is expected for any circular elements. They can overlap by up to a read length due to how
+    Canu constructs contigs. Canu provides an alignment string in the GFA output which can be
+    converted to an alignment to identify the trimming points.
 
-    An alternative is to run MUMmer to get self-alignments on the contig and use those trim points. For example, assuming the circular element is in ``tig00000099.fa``. Run::
+    An alternative is to run MUMmer to get self-alignments on the contig and use those trim
+    points. For example, assuming the circular element is in ``tig00000099.fa``. Run::
     
       nucmer -maxmatch -nosimplify tig00000099.fa tig00000099.fa
       show-coords -lrcTH out.delta
@@ -262,7 +284,8 @@ My circular element is duplicated/has overlap?
       1	1895	48502	50400	1895	1899	99.37	50400	50400	3.76	3.77	tig00000001	tig00000001
       48502	50400	1	1895	1899	1895	99.37	50400	50400	3.77	3.76	tig00000001	tig00000001
     
-    means trim to 1 to 48502. There is also an alternate `writeup <https://github.com/PacificBiosciences/Bioinformatics-Training/wiki/Circularizing-and-trimming>`_.
+    means trim to 1 to 48502. There is also an alternate `writeup
+    <https://github.com/PacificBiosciences/Bioinformatics-Training/wiki/Circularizing-and-trimming>`_.
 
 My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly repetitive genomes?
 -------------------------------------
@@ -282,6 +305,9 @@ How can I send data to you?
    FTP to ftp://ftp.cbcb.umd.edu/incoming/sergek.  This is a write-only location that only the Canu
    developers can see.
    
-   Here is a quick walk-through using a command-line ftp client (should be available on most Linux and OSX installations). Say we want to transfer a file named ``reads.fastq``. First, run ``ftp ftp.cbcb.umd.edu``, specify ``anonymous`` as the user name and hit return for password (blank). Then ``cd incoming/sergek``, ``put reads.fastq``, and ``quit``.
+   Here is a quick walk-through using a command-line ftp client (should be available on most Linux
+   and OSX installations). Say we want to transfer a file named ``reads.fastq``. First, run ``ftp
+   ftp.cbcb.umd.edu``, specify ``anonymous`` as the user name and hit return for password
+   (blank). Then ``cd incoming/sergek``, ``put reads.fastq``, and ``quit``.
 
    That's it, you won't be able to see the file but we can download it.
