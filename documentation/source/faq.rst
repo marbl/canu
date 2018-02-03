@@ -38,6 +38,12 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
     partition or queue.
 
     To disable grid support and run only on the local machine, specify ``useGrid=false``
+
+    It is possible to limit the number of grid jobs running at the same time, but this isn't
+    directly supported by Canu.  The various :ref:`gridOptions <grid-options>` parameters
+    can pass grid-specific parameters to the submit commands used; see
+    `Issue #756 <https://github.com/marbl/canu/issues/756>`_ for Slurm and SGE examples.
+
     
 My run stopped with the error ``'Failed to submit batch jobs'``
 -------------------------------------
