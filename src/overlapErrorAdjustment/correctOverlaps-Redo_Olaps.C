@@ -252,6 +252,21 @@ Hang_Adjust(int32     hang,
     delta = adjust[i].adjust;
   }
 
+  if (hang + delta < 0) {
+    int32 i=0;
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "hang_adjust hang=%d\n", hang);
+
+    for  (; (i < adjust_ct) && (hang >= adjust[i].adjpos); i++)
+      fprintf(stderr, "hang_adjust i=%d adjust_ct=%d adjust=%d pos=%d --\n", i, adjust_ct, adjust[i].adjust, adjust[i].adjpos);
+
+    for  (int32 j=i+10; (i < adjust_ct) && (i < j); i++)
+      fprintf(stderr, "hang_adjust i=%d adjust_ct=%d adjust=%d pos=%d\n", i, adjust_ct, adjust[i].adjust, adjust[i].adjpos);
+
+    return(0);
+  }
+
   //fprintf(stderr, "hang adjust delta %d\n", delta);
   return(hang + delta);
 }
