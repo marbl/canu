@@ -107,8 +107,8 @@ readBuffer::peek(void) {
 }
 
 
-//  Returns the next letter in the buffer.  Returns EOF (0) if there
-//  is no next letter.
+//  Returns the next letter in the buffer and advances file position by one.
+//  Returns 0 on EOF.
 //
 inline
 char
@@ -128,9 +128,14 @@ readBuffer::read(void) {
 
 
 
+//  Like read(), but does not advance file position if
+//  the 'stop' character is encountered.
+//  Returns 'stop' on EOF.
+//
 inline
 char
 readBuffer::readuntil(char stop) {
+  char  ch;
 
   if ((_eof == false) && (_bufferPos >= _bufferLen))
     fillBuffer();
@@ -138,13 +143,15 @@ readBuffer::readuntil(char stop) {
   if (_eof)
     return(0);
 
-  if (_buffer[_bufferPos] == stop)
-    return(0);
+  ch = _buffer[_bufferPos];
+
+  if (ch == stop)
+    return(stop);
 
   _bufferPos++;
   _filePos++;
 
-  return(_buffer[_bufferPos-1]);
+  return(ch);
 }
 
 
