@@ -220,21 +220,19 @@ dnaSeqFile::loadBases(char    *seq,
     _buffer->read();
 
   //  We're now at sequence, so load until we're not in sequence or out of space.
-  //  Read the first letter.
 
   char    ch = _buffer->read();
 
   while (_buffer->eof() == false) {
 
-    //  End of a FASTA sequence.  Return the bases loaded so far, even if there are none.
+    //  If we hit the next sequence, skip the header, leaving us at the start of the bases.
+
     if (ch == '>') {
       for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the name of the next sequence
         ;
-      //fprintf(stderr, "loadBases()-- hit new FASTA, return seq length %lu pos %lu\n", seqLength, _buffer->tell());
       return(true);
     }
 
-    //  End of a FASTQ sequence.  Skip the qualities.  Then return the bases loaded so far, even if there are none.
     if (ch == '+') {
       for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the quality name line
         ;
@@ -242,28 +240,19 @@ dnaSeqFile::loadBases(char    *seq,
         ;
       for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the name of the next sequence
         ;
-      //fprintf(stderr, "loadBases()-- hit FASTQ qlt, return seq length %lu pos %lu\n", seqLength, _buffer->tell());
       return(true);
     }
 
     //  Otherwise, add the base and move ahead.
 
-    if (ch != '\n') {
-      //fprintf(stderr, "loadBases()-- LOAD %d %c into position %d pos %lu\n", ch, ch, seqLength, _buffer->tell());
+    if (ch != '\n')
       seq[seqLength++] = ch;
-    }
 
-    if (seqLength == maxLength) {
-      //fprintf(stderr, "loadBases()-- buffer full, return seq length %lu pos %lu.  next: %d %c\n", seqLength, _buffer->tell(), _buffer->peek(), _buffer->peek());
+    if (seqLength == maxLength)
       return(true);
-    }
 
-    //fprintf(stderr, "loadBases()-- READ %d %c at buffer pos %lu\n", _buffer->peek(), _buffer->peek(), _buffer->tell());
     ch = _buffer->read();
   }
 
-  //  We've hit EOF.  If bases were loaded, return them, otherwise, just say we're done.
-
-  //fprintf(stderr, "loadBases()-- file empty, return seq length %lu pos %lu.\n", seqLength, _buffer->tell());
-  return(seqLength > 0);
+  return(seqLength > 0);     //  We've hit EOF.  If no bases were loaded, indicate we're all done.
 }
