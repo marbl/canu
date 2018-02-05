@@ -517,10 +517,7 @@ main(int argc, char **argv) {
     ovFile *inputFile = new ovFile(gkp, fileList[i], ovFileFull);
 
     while (inputFile->readOverlap(&foverlap)) {
-      filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r
-
-      //  Check that overlap IDs are valid.
-#warning not checking overlap IDs for validity
+      filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r, and checks IDs
 
       //  If all are skipped, don't bother writing the overlap.
 
