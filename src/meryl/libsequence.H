@@ -90,17 +90,19 @@ public:
   //  Return the next sequence in the file.
   //  Returns the number of bases loaded; zero if EOF.
   //
-  uint64   loadSequence(char   *&name,     uint32   nameMax,
-                        char   *&seq,
-                        uint8  *&qlt,      uint64   seqMax);
+  bool   loadSequence(char   *&name,     uint32   nameMax,
+                      char   *&seq,
+                      uint8  *&qlt,      uint64   seqMax,
+                      uint64  &seqLen);
 
   //  Returns a chunk of sequence from the file, up to 'length' bases or
   //  the end of the current sequence.
   //
   //  Returns the number of bases loaded; zero if EOF.
   //
-  uint64   loadBases(char   *&seq,
-                     uint32   length);
+  bool   loadBases(char    *seq,
+                   uint64   maxLength,
+                   uint64  &seqLength);
 };
 
 

@@ -30,6 +30,7 @@
 #include "AS_UTL_fasta.H"
 
 #include <vector>
+#include <set>
 #include <algorithm>
 
 using namespace std;
@@ -41,8 +42,28 @@ enum opMode {
   modeGenerate,
   modeSimulate,
   modeSample,
+  modeShift,
   modeUnset
 };
+
+
+class summarizeParameters {
+public:
+  summarizeParameters() {
+    genomeSize   = 0;
+    asSequences  = 1;
+    asBases      = 0;
+  };
+
+  ~summarizeParameters() {
+  };
+
+  uint64    genomeSize;
+  bool      asSequences;
+  bool      asBases;
+};
+
+
 
 
 class generateParameters {
@@ -178,14 +199,63 @@ public:
 
 
 
+
+
+uint64
+doSummarize_loadSequence(dnaSeqFile  *sf,
+                         bool         asSequences,
+                         char       *&name,   uint32    &nameMax,
+                         char       *&seq,
+                         uint8      *&qlt,    uint64    &seqMax,
+                         uint64      &seqLen) {
+
+  if (asSequences)
+    return(sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen));
+
+  //  Otherwise, piece it together from multiple calls to get bases.
+
+  uint64   bufferMax = 23;
+  uint64   bufferLen = 0;
+  char    *buffer = new char [bufferMax];
+
+  resizeArray(name, 0, nameMax, (uint32)1024);
+  resizeArrayPair(seq, qlt, 0, seqMax, seqLen+1, resizeArray_doNothing);
+
+  name[0] = 0;
+  seq[0]  = 0;
+  qlt[0]  = 0;
+
+  seqLen = 0;
+
+  while (sf->loadBases(buffer, bufferMax, bufferLen)) {
+    if (seqLen + bufferLen >= seqMax)
+      resizeArrayPair(seq, qlt, seqLen, seqMax, 2 * seqLen + 1);
+
+    memcpy(seq + seqLen, buffer, sizeof(char) * bufferLen);
+    seqLen += bufferLen;
+
+    seq[seqLen] = 0;
+
+    if (bufferLen < bufferMax) {  //  Hit end of sequence, so return
+      return(true);               //  that we loaded something.
+    }
+  }
+
+  return(false);  //  sf->loadBases() returned false, so didn't load anything.
+}
+                         
+
+
 void
-doSummarize(vector<char *> &inputs,
-            uint64          genomeSize) {
+doSummarize(vector<char *>       &inputs,
+            summarizeParameters  &sumPar) {
 
   vector<uint64>  lengths;
 
   uint64          nSeqs  = 0;
   uint64          nBases = 0;
+
+  uint32          mer = 0;
 
   uint64          mn[4]     = {0};
   uint64          dn[4*4]   = {0};
@@ -200,12 +270,10 @@ doSummarize(vector<char *> &inputs,
   uint64          seqMax  = 0;
   char           *seq     = NULL;
   uint8          *qlt     = NULL;
+  uint64          seqLen  = 0;
 
   for (uint32 ff=0; ff<inputs.size(); ff++) {
     dnaSeqFile  *sf = new dnaSeqFile(inputs[ff]);
-
-    uint64  len = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
-    uint32  mer = 0;
 
     //  If sequence,
     //    Count mono-, di- and tri-nucleotides.
@@ -213,37 +281,36 @@ doSummarize(vector<char *> &inputs,
     //    Count number of sequences and total bases.
     //    Save the lengths of sequences.
 
-    while (len > 0) {
+    while (doSummarize_loadSequence(sf, sumPar.asSequences, name, nameMax, seq, qlt, seqMax, seqLen)) {
       uint64  pos = 0;
 
-      if (pos < len) {
+      if (pos < seqLen) {
         mer = ((mer << 2) | ((seq[pos++] >> 1) & 0x03)) & 0x3f;
         mn[mer & 0x03]++;
       }
 
-      if (pos < len) {
+      if (pos < seqLen) {
         mer = ((mer << 2) | ((seq[pos++] >> 1) & 0x03)) & 0x3f;
         mn[mer & 0x03]++;
         dn[mer & 0x0f]++;
       }
 
-      while (pos < len) {
+      while (pos < seqLen) {
         mer = ((mer << 2) | ((seq[pos++] >> 1) & 0x03)) & 0x3f;
         mn[mer & 0x03]++;
         dn[mer & 0x0f]++;
         tn[mer & 0x3f]++;
       }
 
-      nmn +=                 (len-0);
-      ndn += (len < 2) ? 0 : (len-1);
-      ntn += (len < 3) ? 0 : (len-2);
+      nmn +=                 (seqLen-0);
+      ndn += (seqLen < 2) ? 0 : (seqLen-1);
+      ntn += (seqLen < 3) ? 0 : (seqLen-2);
 
       nSeqs  += 1;
-      nBases += len;
+      nBases += seqLen;
 
-      lengths.push_back(len);
-
-      len = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
+      //fprintf(stderr, "READ seq length %lu total %lu\n", seqLen, nBases);
+      lengths.push_back(seqLen);
     }
 
     //  All done!
@@ -259,22 +326,22 @@ doSummarize(vector<char *> &inputs,
 
   sort(lengths.begin(), lengths.end(), greater<uint64>());
 
-  if (genomeSize == 0)
-    genomeSize = nBases;
+  if (sumPar.genomeSize == 0)
+    sumPar.genomeSize = nBases;
 
-  uint64   lSum  = 0;                          //  Sum of the lengths we've encountered so far
+  uint64   lSum  = 0;                                 //  Sum of the lengths we've encountered so far
 
-  uint32   nStep = 10;                         //  Step of each N report.
-  uint32   nVal  = nStep;                      //  Index of the threshold we're next printing.
-  uint64   nThr  = genomeSize * nVal / 100;    //  Threshold lenth; if sum is bigger, emit and move to the next threshold
+  uint32   nStep = 10;                                //  Step of each N report.
+  uint32   nVal  = nStep;                             //  Index of the threshold we're next printing.
+  uint64   nThr  = sumPar.genomeSize * nVal / 100;    //  Threshold lenth; if sum is bigger, emit and move to the next threshold
 
   ////////////////////////////////////////
 
   uint32   nCols    = 63;   //  Magic number to make the histogram the same width as the trinucleotide list
-  uint32   nRows    = 0;
+  uint32   nRows    = 0;    //  Height of the histogram; dynamically set.
   uint32   nRowsMin = 50;   //  Nothing really magic, just fits on the screen.
 
-  //  Count the number of rows we expect to get in the N histogram.
+  //  Count the number of lines we expect to get in the NG table.
 
   for (uint32 ii=0; ii<nSeqs; ii++) {
     lSum += lengths[ii];
@@ -282,52 +349,69 @@ doSummarize(vector<char *> &inputs,
     while (lSum >= nThr) {
       nRows++;
 
-      if      (nVal <   200)   nVal += nStep;
-      else if (nVal <  2000)   nVal += nStep * 10;
-      else if (nVal < 20000)   nVal += nStep * 100;
+      if      (nVal  <   200)  nVal += nStep;
+      else if (nVal  <  2000)  nVal += nStep * 10;
+      else if (nVal  < 20000)  nVal += nStep * 100;
       else                     nVal += nStep * 1000;
 
-      nThr  = genomeSize * nVal / 100;
+      nThr  = sumPar.genomeSize * nVal / 100;
     }
   }
 
-  if (nRows < nRowsMin)
+  uint64   minLength = lengths[nSeqs-1];
+  uint64   maxLength = lengths[0];
+
+  if (nRows < nRowsMin)                    //  If there are too few lines, make it some minimum value,
+    nRows = nRowsMin;                      //  otherwise, make the length histogram plot the same size.
+
+  double   bucketSized = (double)(maxLength - minLength) / nRows;
+  uint32   bucketSize  = (uint32)ceil(bucketSized);
+
+  nRows = (maxLength - minLength) / bucketSize;
+
+  if (nRows > nRowsMin)
     nRows = nRowsMin;
 
-  lSum  = 0;
+  lSum  = 0;                               //  Reset for actually generating the length histogram.
   nStep = 10;
   nVal  = nStep;
-  nThr  = genomeSize * nVal / 100;
+  nThr  = sumPar.genomeSize * nVal / 100;
 
   //  Generate the length histogram.
-
-  char **histPlot = new char * [nRows + 1];
-
-  for (uint32 rr=0; rr<nRows+1; rr++)           //  28 is a magic number based on the histPlot[] format string below.
-    histPlot[rr] = new char [28 + nCols + 1];   //  28 = 9 + 1 + 9 + 1 + 7 + 1
-
-  uint64   maxLength = lengths[0];
-  uint32   maxCount  = 0;
 
   uint32  *nSeqPerLen = new uint32 [nRows + 1];
 
   for (uint32 rr=0; rr<nRows+1; rr++)                   //  Clear the histogram.
     nSeqPerLen[rr] = 0;
 
-  for (uint32 ii=0; ii<nSeqs; ii++)                     //  Count number of sequences per column.
-    nSeqPerLen[nRows * lengths[ii] / maxLength]++;
+  for (uint32 ii=0; ii<nSeqs; ii++) {                   //  Count number of sequences per size range.
+    uint32 r = (lengths[ii] - minLength) / bucketSize;
 
-  for (uint32 rr=0; rr<nRows+1; rr++)                   //  Find the maximum count.
+    nSeqPerLen[r]++;
+  }
+
+  uint64  maxCount = 0;
+
+  for (uint32 rr=0; rr<nRows+1; rr++)                   //  Find the maximum number of sequences in a size range.
     if (maxCount < nSeqPerLen[rr])
       maxCount = nSeqPerLen[rr];
 
+  char **histPlot = new char * [nRows + 1];
+
+  for (uint32 rr=0; rr<nRows+1; rr++)                   //  28 is a magic number based on the histPlot[] format string below.
+    histPlot[rr] = new char [28 + nCols + 1];           //  28 = 9 + 1 + 9 + 1 + 7 + 1
+
   for (uint32 rr=0; rr<nRows+1; rr++) {                 //  Generate histogram in text.
     uint32  nn = (uint32)ceil(nSeqPerLen[rr] * nCols / (double)maxCount);
+    uint64  lo = (rr+0) * bucketSize + minLength;
+    uint64  hi = (rr+1) * bucketSize + minLength - 1;
 
-    sprintf(histPlot[rr], "%9" F_U64P "-%-9" F_U64P " %7" F_U32P "|",
-            (rr + 0) * maxLength / nRows,
-            (rr + 1) * maxLength / nRows - 1,
-            nSeqPerLen[rr]);
+    if (lo == hi)
+      sprintf(histPlot[rr], "%9" F_U64P "           %7" F_U32P "|",
+              lo, nSeqPerLen[rr]);
+    else
+      sprintf(histPlot[rr], "%9" F_U64P "-%-9" F_U64P " %7" F_U32P "|",
+              lo, hi, nSeqPerLen[rr]);
 
     for (uint32 cc=0; cc<nn; cc++)
       histPlot[rr][28 + cc] = '-';
@@ -340,7 +424,7 @@ doSummarize(vector<char *> &inputs,
   uint32  hp = 0;
 
   fprintf(stdout, "\n");
-  fprintf(stdout, "G=%-12" F_U64P "                     sum of  ||               length     num\n", genomeSize);
+  fprintf(stdout, "G=%-12" F_U64P "                     sum of  ||               length     num\n", sumPar.genomeSize);
   fprintf(stdout,   "NG         length     index       lengths  ||                range    seqs\n");
   fprintf(stdout,   "----- ------------ --------- ------------  ||  ------------------- -------\n");
 
@@ -357,13 +441,13 @@ doSummarize(vector<char *> &inputs,
       else if (nVal < 20000)   nVal += nStep * 100;
       else                     nVal += nStep * 1000;
 
-      nThr  = genomeSize * nVal / 100;
+      nThr  = sumPar.genomeSize * nVal / 100;
     }
   }
 
-  fprintf(stdout, "%07.3fx           %9" F_U64P " %12" F_U64P "  ||  %s\n", (double)lSum / genomeSize, nSeqs, lSum, histPlot[hp++]);
+  fprintf(stdout, "%07.3fx           %9" F_U64P " %12" F_U64P "  ||  %s\n", (double)lSum / sumPar.genomeSize, nSeqs, lSum, histPlot[hp++]);
   //fprintf(stdout,    "                                           ||  %s\n", histPlot[hp++]);
-  //fprintf(stdout,   "                 genome-size %12" F_U64P "  ||  %s\n", genomeSize, histPlot[hp++]);
+  //fprintf(stdout,   "                 genome-size %12" F_U64P "  ||  %s\n", sumPar.genomeSize, histPlot[hp++]);
 
   while (hp <= nRows)
     fprintf(stdout, "                                           ||  %s\n", histPlot[hp++]);
@@ -425,9 +509,9 @@ doExtract(vector<char *> &inputs) {
 
 
 void
-doGenerate(generateParameters &parameters) {
+doGenerate(generateParameters &genPar) {
 
-  parameters.finalize();
+  genPar.finalize();
 
   mtRandom   MT;
 
@@ -439,17 +523,17 @@ doGenerate(generateParameters &parameters) {
   char   *seq    = new char  [seqMax + 1];
   uint8  *qlt    = new uint8 [seqMax + 1];
 
-  double Athresh = parameters.aFreq;
-  double Cthresh = parameters.aFreq + parameters.cFreq;
-  double Gthresh = parameters.aFreq + parameters.cFreq + parameters.gFreq;
-  double Tthresh = parameters.aFreq + parameters.cFreq + parameters.gFreq + parameters.tFreq;
+  double Athresh = genPar.aFreq;
+  double Cthresh = genPar.aFreq + genPar.cFreq;
+  double Gthresh = genPar.aFreq + genPar.cFreq + genPar.gFreq;
+  double Tthresh = genPar.aFreq + genPar.cFreq + genPar.gFreq + genPar.tFreq;
 
-  while ((nSeqs  < parameters.nSeqs) &&
-         (nBases < parameters.nBases)) {
-    double   len = MT.mtRandomGaussian(parameters.gMean, parameters.gStdDev);
+  while ((nSeqs  < genPar.nSeqs) &&
+         (nBases < genPar.nBases)) {
+    double   len = MT.mtRandomGaussian(genPar.gMean, genPar.gStdDev);
 
-    while (len < 0.5)
-      len = MT.mtRandomGaussian(parameters.gMean, parameters.gStdDev);
+    while (len < -0.5)
+      len = MT.mtRandomGaussian(genPar.gMean, genPar.gStdDev);
 
     seqLen = (uint64)round(len);
 
@@ -522,15 +606,16 @@ bool seqOrderNormal(const seqEntry &a, const seqEntry &b) {
 
 
 void
-doSample(vector<char *> &inputs, sampleParameters &sPar) {
+doSample(vector<char *> &inputs, sampleParameters &samPar) {
 
-  sPar.initialize();
+  samPar.initialize();
 
   uint32            nameMax = 0;
   char             *name    = NULL;
   uint64            seqMax  = 0;
   char             *seq     = NULL;
   uint8            *qlt     = NULL;
+  uint64            seqLen  = 0;
 
   vector<uint64>    numSeqsPerFile;
   vector<uint64>    seqLengths;
@@ -551,17 +636,15 @@ doSample(vector<char *> &inputs, sampleParameters &sPar) {
     dnaSeqFile  *sf = new dnaSeqFile(inputs[ff]);
 
     uint64  num = 0;
-    uint64  len = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
 
-    while (len > 0) {
-      seqLengths.push_back(len);
+    while (sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen)) {
+      seqLengths.push_back(seqLen);
       seqOrder.push_back(seqEntry(MT, numSeqsTotal));
 
       numSeqsTotal  += 1;
-      numBasesTotal += len;
+      numBasesTotal += seqLen;
 
       num += 1;
-      len  = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
     }
 
     numSeqsPerFile.push_back(num);
@@ -575,44 +658,44 @@ doSample(vector<char *> &inputs, sampleParameters &sPar) {
 
   //  Do some math to figure out what sequences to report.
 
-  if (sPar.desiredCoverage > 0.0) {
-    sPar.desiredNumBases = (uint64)ceil(sPar.desiredCoverage * sPar.genomeSize);
+  if (samPar.desiredCoverage > 0.0) {
+    samPar.desiredNumBases = (uint64)ceil(samPar.desiredCoverage * samPar.genomeSize);
   }
 
-  if (sPar.desiredNumReads > 0) {
+  if (samPar.desiredNumReads > 0) {
     fprintf(stderr, "Emitting " F_U64 " reads.\n",
-            sPar.desiredNumReads);
+            samPar.desiredNumReads);
 
     for (uint64 ii=0; ii<numSeqsTotal; ii++)
-      if (ii < sPar.desiredNumReads)
+      if (ii < samPar.desiredNumReads)
         ;
       else
         seqLengths[seqOrder[ii].pos] = 0;
   }
 
-  if (sPar.desiredNumBases > 0) {
-    if (sPar.desiredCoverage > 0)
+  if (samPar.desiredNumBases > 0) {
+    if (samPar.desiredCoverage > 0)
       fprintf(stderr, "Emitting %.3fx coverage; " F_U64 " bases.\n",
-              sPar.desiredCoverage,
-              sPar.desiredNumBases);
+              samPar.desiredCoverage,
+              samPar.desiredNumBases);
     else
       fprintf(stderr, "Emitting " F_U64 " bases.\n",
-              sPar.desiredNumBases);
+              samPar.desiredNumBases);
 
     for (uint64 nbe=0, ii=0; ii<numSeqsTotal; ii++) {
-      if (nbe < sPar.desiredNumBases)
+      if (nbe < samPar.desiredNumBases)
         nbe += seqLengths[seqOrder[ii].pos];
       else
         seqLengths[seqOrder[ii].pos] = 0;
     }
   }
 
-  if (sPar.desiredFraction > 0.0) {
+  if (samPar.desiredFraction > 0.0) {
     fprintf(stderr, "Emitting %.4f fraction of the reads.\n",
-            sPar.desiredFraction);
+            samPar.desiredFraction);
 
     for (uint64 ii=0; ii<numSeqsTotal; ii++) {
-      if (seqOrder[ii].rnd < sPar.desiredFraction)
+      if (seqOrder[ii].rnd < samPar.desiredFraction)
         ;
       else
         seqLengths[seqOrder[ii].pos] = 0;
@@ -626,19 +709,16 @@ doSample(vector<char *> &inputs, sampleParameters &sPar) {
   //  Scan the inputs again, this time emitting sequences if their saved length isn't zero.
 
   for (uint32 ff=0; ff<inputs.size(); ff++) {
-    dnaSeqFile  *sf = new dnaSeqFile(inputs[ff]);
+    dnaSeqFile  *sf  = new dnaSeqFile(inputs[ff]);
+    uint64       num = 0;
 
-    uint64  num = 0;
-    uint64  len = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
-
-    while (len > 0) {
+    while (sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen)) {
       if (seqLengths[num] > 0)
         AS_UTL_writeFastA(stdout,
                           seq, seqLengths[num], 0,
                           ">%s\n", name);
 
       num += 1;
-      len  = sf->loadSequence(name, nameMax, seq, qlt, seqMax);
     }
 
     delete sf;
@@ -654,16 +734,168 @@ doSample(vector<char *> &inputs, sampleParameters &sPar) {
 
 
 
+class shiftRegisterParameters {
+public:
+  shiftRegisterParameters() {
+    len   = 0;
+    sr[0] = 0;
+    sv[0] = 0;
+  };
+  ~shiftRegisterParameters() {
+  };
+
+  void    initialize(void) {
+    uint32 srLen = strlen(sr);
+    uint32 svLen = strlen(sv);
+
+    if (srLen != svLen)
+      fprintf(stderr, "ERROR: srLen %u (%s) svLen %u (%s)\n",
+              srLen, sr,
+              svLen, sv);
+    assert(srLen == svLen);
+
+    len = srLen;
+  };
+
+  uint32  len;
+
+  char    sr[17];
+  char    sv[17];
+};
+
+
+void
+doShiftRegister(shiftRegisterParameters &srPar) {
+  uint32 len = 0;
+  char   sr[17];
+  uint8  sv[17];
+
+  srPar.initialize();
+
+  len = srPar.len;
+  len = 8;
+
+  for (uint32 ii=0; ii<srPar.len; ii++) {
+    sr[ii] =  srPar.sr[ii];
+    sv[ii] = (srPar.sv[ii] == '1') ? 1 : 0;
+  }
+
+  sr[0] = 'A';  sv[0] = 1;   //  Oldest value
+  sr[1] = 'A';  sv[1] = 0;
+  sr[2] = 'A';  sv[2] = 0;
+  sr[3] = 'A';  sv[3] = 0;
+  sr[4] = 'A';  sv[4] = 0;
+  sr[5] = 'A';  sv[5] = 0;
+  sr[6] = 'A';  sv[6] = 0;
+  sr[7] = 'G';  sv[7] = 0;  //  Newest value
+
+  sr[srPar.len] = 0;
+  sv[srPar.len] = 0;
+
+  uint32   kmer   = 0;
+  uint32  *detect = new uint32 [65536];
+
+  while ((sv[7] != 0) ||
+         (sv[6] != 0) ||
+         (sv[5] != 0) ||
+         (sv[4] != 0) ||
+         (sv[3] != 0) ||
+         (sv[2] != 0) ||
+         (sv[1] != 0) ||
+         (sv[0] != 0)) {
+
+    sr[0] = 'A';
+    sr[1] = 'A';
+    sr[2] = 'A';
+    sr[3] = 'A';
+    sr[4] = 'A';
+    sr[5] = 'A';
+    sr[6] = 'A';
+    sr[7] = 'G';
+
+    kmer = 0x0003;
+
+#define STRING
+#undef  KMER
+
+#ifdef STRING
+      fprintf(stdout, "%s", sr);
+#endif
+
+    memset(detect, 0, sizeof(uint32) * 65536);
+    detect[kmer] = 1;
+
+    for (uint32 ii=0; ii<65536; ii++) {
+#ifdef KMER
+      fprintf(stdout, "%06u %s 0x%04x %u\n", ii, sr, kmer, detect[kmer]);
+#endif
+
+      uint32  next = 0;
+
+      for (uint32 kk=0; kk<len; kk++)
+        if (sv[kk])
+          next += (sr[kk] >> 1) & 0x03;
+
+      if      ((next & 0x03) == 0x00)  next = 'A';
+      else if ((next & 0x03) == 0x01)  next = 'C';
+      else if ((next & 0x03) == 0x03)  next = 'G';
+      else if ((next & 0x03) == 0x02)  next = 'T';
+
+      for (uint32 kk=0; kk<len-1; kk++)
+        sr[kk] = sr[kk+1];
+
+      sr[len-1] = next;
+
+#ifdef STRING
+      fprintf(stdout, "%c", next);
+#endif
+
+      kmer <<= 2;
+      kmer  |= ((sr[len-1] >> 1) & 0x3);
+      kmer &= 0xffff;
+
+      detect[kmer]++;
+
+      if (detect[kmer] == 2) {
+        if (ii > 0) {
+#ifdef KMER
+          fprintf(stdout, "%06u %s 0x%04x %u\n", ii, sr, kmer, detect[kmer]);
+#endif
+#ifdef STRING
+          fprintf(stdout, "\n");
+#endif
+          fprintf(stderr, "cycle at ii=%5u  %d%d%d%d%d%d%d%d\n",
+                  ii, sv[0], sv[1], sv[2], sv[3], sv[4], sv[5], sv[6], sv[7]);
+        }
+        break;
+      }
+    }
+
+    sv[7]++;
+
+    if (sv[7] > 1)  { sv[7] = 0;  sv[6]++; }
+    if (sv[6] > 1)  { sv[6] = 0;  sv[5]++; }
+    if (sv[5] > 1)  { sv[5] = 0;  sv[4]++; }
+    if (sv[4] > 1)  { sv[4] = 0;  sv[3]++; }
+    if (sv[3] > 1)  { sv[3] = 0;  sv[2]++; }
+    if (sv[2] > 1)  { sv[2] = 0;  sv[1]++; }
+    if (sv[1] > 1)  { sv[1] = 0;  sv[0]++; }
+    if (sv[0] > 1)  { break; }
+  }
+}
+
+
+
 int
 main(int argc, char **argv) {
-  vector<char *>      inputs;
+  vector<char *>              inputs;
 
-  uint64              genomeSize = 0;
+  opMode                      mode = modeUnset;
 
-  opMode              mode = modeUnset;
-
-  generateParameters  gPar;
-  sampleParameters    sPar;
+  summarizeParameters         sumPar;
+  generateParameters          genPar;
+  sampleParameters            samPar;
+  shiftRegisterParameters     srPar;
 
   vector<char *>  err;
   int             arg = 1;
@@ -676,7 +908,17 @@ main(int argc, char **argv) {
     }
 
     else if ((mode == modeSummarize) && (strcmp(argv[arg], "-gs") == 0)) {
-      genomeSize = strtoull(argv[++arg], NULL, 10);
+      sumPar.genomeSize = strtoull(argv[++arg], NULL, 10);
+    }
+
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-assequences") == 0)) {
+      sumPar.asSequences = true;
+      sumPar.asBases     = false;
+    }
+
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-asbases") == 0)) {
+      sumPar.asSequences = false;
+      sumPar.asBases     = true;
     }
 
     //  EXTRACT
@@ -698,23 +940,23 @@ main(int argc, char **argv) {
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-min") == 0)) {
-      gPar.minLength = strtouint64(argv[++arg]);
+      genPar.minLength = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-max") == 0)) {
-      gPar.maxLength = strtouint64(argv[++arg]);
+      genPar.maxLength = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-sequences") == 0)) {
-      gPar.nSeqs = strtouint64(argv[++arg]);
+      genPar.nSeqs = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-bases") == 0)) {
-      gPar.nBases = strtouint64(argv[++arg]);
+      genPar.nBases = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-guassian") == 0)) {
-      gPar.useGaussian = true;
+      genPar.useGaussian = true;
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-mirror") == 0)) {
@@ -724,32 +966,32 @@ main(int argc, char **argv) {
       double  gc = strtodouble(argv[++arg]);
       double  at = 1.0 - gc;
 
-      gPar.gFreq = gPar.cFreq = gc / 2.0;
-      gPar.aFreq = gPar.tFreq = at / 2.0;
+      genPar.gFreq = genPar.cFreq = gc / 2.0;
+      genPar.aFreq = genPar.tFreq = at / 2.0;
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-at") == 0)) {
       double  at = strtodouble(argv[++arg]);
       double  gc = 1.0 - at;
 
-      gPar.gFreq = gPar.cFreq = gc / 2.0;
-      gPar.aFreq = gPar.tFreq = at / 2.0;
+      genPar.gFreq = genPar.cFreq = gc / 2.0;
+      genPar.aFreq = genPar.tFreq = at / 2.0;
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-a") == 0) ){ 
-      gPar.aFreq = strtodouble(argv[++arg]);
+      genPar.aFreq = strtodouble(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-c") == 0)) {
-      gPar.cFreq = strtodouble(argv[++arg]);
+      genPar.cFreq = strtodouble(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-g") == 0)) {
-      gPar.gFreq = strtodouble(argv[++arg]);
+      genPar.gFreq = strtodouble(argv[++arg]);
     }
 
     else if ((mode == modeGenerate) && (strcmp(argv[arg], "-t") == 0)) {
-      gPar.tFreq = strtodouble(argv[++arg]);
+      genPar.tFreq = strtodouble(argv[++arg]);
     }
 
     //  SIMULATE
@@ -765,38 +1007,58 @@ main(int argc, char **argv) {
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-paired") == 0)) {
-      sPar.isPaired = true;
+      samPar.isPaired = true;
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-genomesize") == 0)) {
-      sPar.genomeSize = strtouint64(argv[++arg]);
+      samPar.genomeSize = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-coverage") == 0)) {      //  Sample reads up to some coverage C
-      sPar.desiredCoverage = strtodouble(argv[++arg]);
+      samPar.desiredCoverage = strtodouble(argv[++arg]);
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-reads") == 0)) {         //  Sample N reads
-      sPar.desiredNumReads = strtouint64(argv[++arg]);
+      samPar.desiredNumReads = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-bases") == 0)) {         //  Sample B bases
-      sPar.desiredNumBases = strtouint64(argv[++arg]);
+      samPar.desiredNumBases = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-fraction") == 0)) {      //  Sample F fraction
-      sPar.desiredFraction = strtodouble(argv[++arg]);
+      samPar.desiredFraction = strtodouble(argv[++arg]);
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "-output") == 0)) {
-      strncpy(sPar.output1, argv[++arg], FILENAME_MAX);  //  #'s in the name will be replaced
-      strncpy(sPar.output2, argv[  arg], FILENAME_MAX);  //  by '1' or '2' later.
+      strncpy(samPar.output1, argv[++arg], FILENAME_MAX);  //  #'s in the name will be replaced
+      strncpy(samPar.output2, argv[  arg], FILENAME_MAX);  //  by '1' or '2' later.
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "") == 0)) {
     }
 
     else if ((mode == modeSample) && (strcmp(argv[arg], "") == 0)) {
+    }
+
+    //  SHIFT
+
+    else if (strcmp(argv[arg], "shift") == 0) {
+      mode = modeShift;
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-len") == 0)) {
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-init") == 0)) {
+      strcpy(srPar.sr, argv[++arg]);
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-map") == 0)) {
+      strcpy(srPar.sv, argv[++arg]);
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "") == 0)) {
     }
 
     //  INPUTS
@@ -873,23 +1135,28 @@ main(int argc, char **argv) {
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
         fputs(err[ii], stderr);
+
+    exit(1);
   }
 
   switch (mode) {
     case modeSummarize:
-      doSummarize(inputs, genomeSize);
+      doSummarize(inputs, sumPar);
       break;
     case modeExtract:
       doExtract(inputs);
       break;
     case modeGenerate:
-      doGenerate(gPar);
+      doGenerate(genPar);
       break;
     case modeSimulate:
       doSimulate(inputs);
       break;
     case modeSample:
-      doSample(inputs, sPar);
+      doSample(inputs, samPar);
+      break;
+    case modeShift:
+      doShiftRegister(srPar);
       break;
     default:
       break;

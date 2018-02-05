@@ -69,17 +69,19 @@ dnaSeqFile::loadFASTA(char   *&name,     uint32   nameMax,
 
   //  Read the header line into the name string.
 
-  while ((ch = _buffer->readuntil('\n')) != 0) {
+  for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
     if (nameLen+1 >= nameMax)
       resizeArray(name, nameLen, nameMax, 3 * nameMax / 2);
     name[nameLen++] = ch;
   }
 
-  //  Read sequence, skipping whitespace, into seq until we hit a new sequence.
+  //  Read sequence, skipping whitespace, until we hit a new sequence (or eof).
 
-  while ((ch = _buffer->readuntil('>')) != 0) {
+  for (ch=_buffer->readuntil('>'); (ch != '>') && (ch != 0); ch=_buffer->readuntil('>')) {
     if (ch == '\n')
       continue;
+
+    assert(_buffer->eof() == false);
 
     if (seqLen+1 >= seqMax)
       resizeArrayPair(seq, qlt, seqLen, seqMax, 3 * seqMax / 2);
@@ -106,16 +108,16 @@ uint64
 dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
                       char   *&seq,
                       uint8  *&qlt,      uint64   seqMax) {
-  uint64  nameLen = 0;
+  uint32  nameLen = 0;
   uint64  seqLen  = 0;
   uint64  qltLen  = 0;
-  char    ch      = _buffer->read();
+  char    ch      = _buffer->read();  
 
   assert(ch == '@');
 
   //  Read the header line into the name string.
 
-  while ((ch = _buffer->readuntil('\n')) != 0) {
+  for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
     if (nameLen+1 >= nameMax)
       resizeArray(name, nameLen, nameMax, 3 * nameMax / 2);
     name[nameLen++] = ch;
@@ -123,7 +125,7 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
 
   //  Read sequence.
 
-  while ((ch = _buffer->readuntil('\n')) != 0) {
+  for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
     if (seqLen+1 >= seqMax)
       resizeArrayPair(seq, qlt, seqLen, seqMax, 3 * seqMax / 2);
     seq[seqLen++] = ch;
@@ -131,16 +133,19 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
 
   //  Skip header line
 
-  while ((ch = _buffer->readuntil('\n')) != 0)
+  for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
     ;
+  }
 
   //  Read qualities.
 
-  while ((ch = _buffer->readuntil('\n')) != 0) {
-    if (seqLen+1 >= seqMax)
-      resizeArrayPair(seq, qlt, seqLen, seqMax, 3 * seqMax / 2);
+  for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
+    if (qltLen+1 >= seqMax)
+      resizeArrayPair(seq, qlt, qltLen, seqMax, 3 * seqMax / 2);
     qlt[qltLen++] = ch;
   }
+
+  //fprintf(stderr, "READ FASTQ name %u seq %lu qlt %lu\n", nameLen, seqLen, qltLen);
 
   name[nameLen] = 0;
   seq[seqLen] = 0;
@@ -156,11 +161,11 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
 
 
 
-uint64
+bool
 dnaSeqFile::loadSequence(char   *&name,     uint32   nameMax,
                          char   *&seq,
-                         uint8  *&qlt,      uint64   seqMax) {
-  char  ch = _buffer->peek();
+                         uint8  *&qlt,      uint64   seqMax,
+                         uint64  &seqLen) {
 
   if (nameMax == 0)
     resizeArray(name, 0, nameMax, (uint32)1024);
@@ -168,74 +173,97 @@ dnaSeqFile::loadSequence(char   *&name,     uint32   nameMax,
   if (seqMax == 0)
     resizeArrayPair(seq, qlt, 0, seqMax, (uint64)65536);
 
-  if        (ch == '>') {
-    return(loadFASTA(name, nameMax,
-                     seq,
-                     qlt, seqMax));
+  while (_buffer->peek() == '\n')
+    _buffer->read();
 
-  } else if (ch == '@') {
-    return(loadFASTQ(name, nameMax,
-                     seq,
-                     qlt, seqMax));
+  if      (_buffer->peek() == '>')
+    seqLen = loadFASTA(name, nameMax,
+                       seq,
+                       qlt, seqMax);
 
-  } else {
-    return(0);
-  }
+  else if (_buffer->peek() == '@')
+    seqLen = loadFASTQ(name, nameMax,
+                       seq,
+                       qlt, seqMax);
+
+  else
+    return(false);
+
+  return(true);
 }
 
 
 
-uint64
-dnaSeqFile::loadBases(char   *&seq,
-                      uint32   length) {
-  uint64  seqLen  = 0;
-  char    ch      = _buffer->peek();
+bool
+dnaSeqFile::loadBases(char    *seq,
+                      uint64   maxLength,
+                      uint64  &seqLength) {
 
-  //  If at the start of a sequence, skip the header
+  seqLength = 0;
 
-  if ((ch == '>') ||
-      (ch == '@')) {
-    while ((ch = _buffer->readuntil('\n')) != 0)
+  if (_buffer->eof() == true)
+    return(false);
+
+  //  If this is a new file, skip the first name line.
+
+  if (_buffer->tell() == 0) {
+    while (_buffer->peek() == '\n')    //  Skip whitespace before the first name line.
+      _buffer->read();
+
+    for (char ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())
       ;
   }
 
-  //  We're at sequence, so load until we're not in sequence or out of space.
+  //  Skip whitespace.
 
-  while ((_buffer->eof() == false) &&
-         (seqLen < length)) {
+  while (_buffer->peek() == '\n')
+    _buffer->read();
 
-    //  End of a FASTA sequence, just return the length.
+  //  We're now at sequence, so load until we're not in sequence or out of space.
+  //  Read the first letter.
+
+  char    ch = _buffer->read();
+
+  while (_buffer->eof() == false) {
+
+    //  End of a FASTA sequence.  Return the bases loaded so far, even if there are none.
     if (ch == '>') {
-      return(seqLen);
+      for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the name of the next sequence
+        ;
+      //fprintf(stderr, "loadBases()-- hit new FASTA, return seq length %lu pos %lu\n", seqLength, _buffer->tell());
+      return(true);
     }
 
-    //  End of a FASTQ sequence, skip ahead to the next sequence, then return the length.
+    //  End of a FASTQ sequence.  Skip the qualities.  Then return the bases loaded so far, even if there are none.
     if (ch == '+') {
-      while ((ch = _buffer->readuntil('\n')) != 0)
+      for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the quality name line
         ;
-      while ((ch = _buffer->readuntil('\n')) != 0)
+      for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the qualities
         ;
-      return(seqLen);
+      for (ch = _buffer->read(); (ch != '\n') && (ch != 0); ch = _buffer->read())   //  Skip the name of the next sequence
+        ;
+      //fprintf(stderr, "loadBases()-- hit FASTQ qlt, return seq length %lu pos %lu\n", seqLength, _buffer->tell());
+      return(true);
     }
 
     //  Otherwise, add the base and move ahead.
 
-    if (ch != '\n')
-      seq[seqLen++] = ch;
+    if (ch != '\n') {
+      //fprintf(stderr, "loadBases()-- LOAD %d %c into position %d pos %lu\n", ch, ch, seqLength, _buffer->tell());
+      seq[seqLength++] = ch;
+    }
 
+    if (seqLength == maxLength) {
+      //fprintf(stderr, "loadBases()-- buffer full, return seq length %lu pos %lu.  next: %d %c\n", seqLength, _buffer->tell(), _buffer->peek(), _buffer->peek());
+      return(true);
+    }
+
+    //fprintf(stderr, "loadBases()-- READ %d %c at buffer pos %lu\n", _buffer->peek(), _buffer->peek(), _buffer->tell());
     ch = _buffer->read();
   }
 
-  //  Out of space in the user buffer, return the length.
+  //  We've hit EOF.  If bases were loaded, return them, otherwise, just say we're done.
 
-  return(seqLen);
+  //fprintf(stderr, "loadBases()-- file empty, return seq length %lu pos %lu.\n", seqLength, _buffer->tell());
+  return(seqLength > 0);
 }
-
-
-
-
-
-
-
-
-
