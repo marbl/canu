@@ -92,11 +92,13 @@ public:
 
   void        printState(FILE *stream);
 
-  bool        isForward(void)    { return(_isForward);   };
-  bool        isCanonical(void)  { return(_isCanonical); };
+  bool        isForward(void)     { return(_isForward);   };
+  bool        isCanonical(void)   { return(_isCanonical); };
 
   bool        exists(uint64 mer);
   uint64      count(uint64 mer);
+
+  uint64      numberOfMers(void)  { return(_numMers);     };
 
 private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
@@ -183,6 +185,8 @@ private:
   uint64     *_buckets;
   uint64     *_counts;
 
+  uint64      _numMers;
+
   void clear(void) {
     _compressedHash   = false;
     _compressedBucket = false;
@@ -210,6 +214,8 @@ private:
     _hashTable = NULL;
     _buckets   = NULL;
     _counts    = NULL;
+
+    _numMers   = 0;
   };
 };
 

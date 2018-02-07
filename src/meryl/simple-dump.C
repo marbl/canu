@@ -97,7 +97,7 @@ main(int argc, char **argv) {
         foundMers++;
     }
 
-    fprintf(stdout, "%s\t%u\t%u\n", S->header(), totalMers, foundMers);
+    fprintf(stdout, "%s\t%u\t%lu\t%u\n", S->header(), totalMers, E->numberOfMers(), foundMers);
 
     delete MS;
     delete S;

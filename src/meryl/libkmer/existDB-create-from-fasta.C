@@ -71,17 +71,18 @@ existDB::createFromFastA(char const  *filename,
   uint32 tblBits = logBaseTwo64(AS_UTL_sizeOfFile(filename));
 
  rebuild:
-  _shift1                = 2 * _merSizeInBases - tblBits;
-  _shift2                = _shift1 / 2;
-  _mask1                 = uint64MASK(tblBits);
-  _mask2                 = uint64MASK(_shift1);
+  _shift1      = 2 * _merSizeInBases - tblBits;
+  _shift2      = _shift1 / 2;
+  _mask1       = uint64MASK(tblBits);
+  _mask2       = uint64MASK(_shift1);
 
-  _hshWidth              = uint32ZERO;
-  _chkWidth              = 2 * merSize - tblBits;
-  _cntWidth              = 16;
+  _hshWidth    = uint32ZERO;
+  _chkWidth    = 2 * merSize - tblBits;
+  _cntWidth    = 16;
+
+  _numMers     = uint64ZERO;
 
   uint64  tableSizeInEntries = uint64ONE << tblBits;
-  uint64  numberOfMers       = uint64ZERO;
   uint64 *countingTable      = new uint64 [tableSizeInEntries + 1];
 
   for (uint64 i=tableSizeInEntries+1; i--; )
@@ -103,12 +104,12 @@ existDB::createFromFastA(char const  *filename,
   while (M->nextMer()) {
     if (_isForward) {
       countingTable[ HASH(M->theFMer()) ]++;
-      numberOfMers++;
+      _numMers++;
     }
 
     if (_isCanonical) {
       countingTable[ HASH(M->theCMer()) ]++;
-      numberOfMers++;
+      _numMers++;
     }
   }
 
@@ -134,9 +135,9 @@ existDB::createFromFastA(char const  *filename,
   ////////////////////////////////////////////////////////////////////////////////
   //
   //  Determine how many bits we need to hold the value
-  //  numberOfMers.....then....
+  //  _numMers.....then....
   //
-  //  This is numberOfMers+1 because we need to store the
+  //  This is _numMers+1 because we need to store the
   //  first position after the last mer.  That is, if there are two
   //  mers, we will store that the first mer is at position 0, the
   //  second mer is at position 1, and the end of the second mer is at
@@ -144,7 +145,7 @@ existDB::createFromFastA(char const  *filename,
   //
   if (_compressedHash) {
     _hshWidth = 1;
-    while ((numberOfMers+1) > (uint64ONE << _hshWidth))
+    while ((_numMers+1) > (uint64ONE << _hshWidth))
       _hshWidth++;
   }
 
@@ -157,11 +158,11 @@ existDB::createFromFastA(char const  *filename,
   if (_compressedHash)
     _hashTableWords = _hashTableWords * _hshWidth / 64 + 1;
 
-  _bucketsWords = numberOfMers + 2;
+  _bucketsWords = _numMers + 2;
   if (_compressedBucket)
     _bucketsWords = _bucketsWords * _chkWidth / 64 + 1;
 
-  _countsWords = numberOfMers + 2;
+  _countsWords = _numMers + 2;
   if (_compressedCounts)
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 

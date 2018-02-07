@@ -68,17 +68,18 @@ existDB::createFromMeryl(char const  *prefix,
   //  But it is faster to reset to this.  Might use 2x the memory.
   //uint32 tblBits = logBaseTwo64(M->numberOfDistinctMers() + 1);
 
-  _shift1                = 2 * _merSizeInBases - tblBits;
-  _shift2                = _shift1 / 2;
-  _mask1                 = uint64MASK(tblBits);
-  _mask2                 = uint64MASK(_shift1);
+  _shift1      = 2 * _merSizeInBases - tblBits;
+  _shift2      = _shift1 / 2;
+  _mask1       = uint64MASK(tblBits);
+  _mask2       = uint64MASK(_shift1);
 
-  _hshWidth              = uint32ZERO;
-  _chkWidth              = 2 * _merSizeInBases - tblBits;
-  _cntWidth              = 16;
+  _hshWidth    = uint32ZERO;
+  _chkWidth    = 2 * _merSizeInBases - tblBits;
+  _cntWidth    = 16;
+
+  _numMers     = uint64ZERO;
 
   uint64  tableSizeInEntries = uint64ONE << tblBits;
-  uint64  numberOfMers       = uint64ZERO;
   uint64 *countingTable      = new uint64 [tableSizeInEntries + 1];
 
   if (beVerbose) {
@@ -113,7 +114,7 @@ existDB::createFromMeryl(char const  *prefix,
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
       if (_isForward) {
         countingTable[ HASH(M->theFMer()) ]++;
-        numberOfMers++;
+        _numMers++;
       }
 
       if (_isCanonical) {
@@ -124,7 +125,7 @@ existDB::createFromMeryl(char const  *prefix,
           countingTable[ HASH(M->theFMer()) ]++;
         else
           countingTable[ HASH(r) ]++;
-        numberOfMers++;
+        _numMers++;
       }
 
       C->tick();
@@ -132,20 +133,16 @@ existDB::createFromMeryl(char const  *prefix,
   }
 
   if (beVerbose)
-    fprintf(stderr, "createFromMeryl()-- numberOfMers         "F_U64"\n", numberOfMers);
+    fprintf(stderr, "createFromMeryl()-- Found " F_U64 " mers between count of " F_U32 " and " F_U32 "\n",
+            _numMers, lo, hi);
 
   delete C;
   delete M;
 
   if (_compressedHash) {
     _hshWidth = 1;
-    while ((numberOfMers+1) > (uint64ONE << _hshWidth))
+    while ((_numMers+1) > (uint64ONE << _hshWidth))
       _hshWidth++;
-  }
-
-  if (beVerbose) {
-    fprintf(stderr, "existDB::createFromMeryl()-- Found "F_U64" mers between count of "F_U32" and "F_U32"\n",
-            numberOfMers, lo, hi);
   }
 
   //  2) Allocate hash table, mer storage buckets
@@ -154,11 +151,11 @@ existDB::createFromMeryl(char const  *prefix,
   if (_compressedHash)
     _hashTableWords = _hashTableWords * _hshWidth / 64 + 1;
 
-  _bucketsWords = numberOfMers + 2;
+  _bucketsWords = _numMers + 2;
   if (_compressedBucket)
     _bucketsWords = _bucketsWords * _chkWidth / 64 + 1;
 
-  _countsWords = numberOfMers + 2;
+  _countsWords = _numMers + 2;
   if (_compressedCounts)
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
@@ -245,7 +242,6 @@ existDB::createFromMeryl(char const  *prefix,
           insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), M->theCount(), countingTable);
         else
           insertMer(HASH(r), CHECK(r), M->theCount(), countingTable);
-        numberOfMers++;
       }
 
 
