@@ -82,6 +82,7 @@ use Cwd qw(getcwd);
 use Carp qw(longmess);
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
+use File::Basename;
 use List::Util qw(min max);
 use File::Path 2.08 qw(make_path remove_tree);
 use File::Spec;
@@ -635,7 +636,7 @@ sub submitScript ($$) {
     print F "ln -s canu-scripts/canu.$idx.out canu.out\n";
     print F "\n";
     print F "/usr/bin/env perl \\\n";
-    print F "\$bin/canu " . getCommandLineOptions() . " canuIteration=" . getGlobal("canuIteration") . "\n";
+    print F "\$bin/" . basename($0) . " " . getCommandLineOptions() . " canuIteration=" . getGlobal("canuIteration") . "\n";
     close(F);
 
     makeExecutable("$script");
