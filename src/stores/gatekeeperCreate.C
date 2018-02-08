@@ -119,16 +119,19 @@ loadFASTA(char                 *L,
         case 'c':   S[Slen] = 'C';  break;
         case 'g':   S[Slen] = 'G';  break;
         case 't':   S[Slen] = 'T';  break;
+        case 'u':   S[Slen] = 'T';  break;
 #else
         case 'a':   S[Slen] = 'a';  break;
         case 'c':   S[Slen] = 'c';  break;
         case 'g':   S[Slen] = 'g';  break;
         case 't':   S[Slen] = 't';  break;
+        case 'u':   S[Slen] = 't';  break;
 #endif
         case 'A':   S[Slen] = 'A';  break;
         case 'C':   S[Slen] = 'C';  break;
         case 'G':   S[Slen] = 'G';  break;
         case 'T':   S[Slen] = 'T';  break;
+        case 'U':   S[Slen] = 'T';  break;
         case 'n':   S[Slen] = 'N';  break;
         case 'N':   S[Slen] = 'N';  break;
         default:
