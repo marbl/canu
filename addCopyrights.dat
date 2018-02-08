@@ -12874,3 +12874,9 @@ D src/stores/gkStoreConstructor.C src/stores/gkStore.C
 D src/stores/gkStorePartition.C src/stores/gkStore.C
 D src/stores/gkRead.H src/stores/gkStore.H
 D src/stores/gkLibrary.H src/stores/gkStore.H
+A src/pipelines/canu/HaplotypeReads.pm nihh20180208Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20180208Brian P. Walenz
+A src/haplotyping/splitHaplotypes.C    nihh20180208Sergey Koren
+A src/haplotyping/splitHaplotypes.C    nihh20180208Sergey Koren
+A src/pipelines/trioCanu.pl    nihh20180208Sergey Koren
+A src/pipelines/trioCanu.pl    nihh20180208Sergey Koren

@@ -40,7 +40,7 @@ package canu::Meryl;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(merylConfigure merylCheck merylProcess);
+@EXPORT = qw(merylConfigure merylCheck merylProcess merylSubtract merylFinishSubtraction);
 
 use strict;
 
@@ -54,6 +54,7 @@ use canu::Gatekeeper;
 use canu::ErrorEstimate;
 use canu::Report;
 use canu::Grid_Cloud;
+use canu::HaplotypeReads qw(getHaplotypes);
 
 
 
@@ -308,11 +309,13 @@ sub merylParameters ($$) {
 
     #  Find a place to run stuff.
 
+    $base = "haplotype"   if ($tag eq "hap");
     $base = "correction"  if ($tag eq "cor");
     $base = "trimming"    if ($tag eq "obt");
     $base = "unitigging"  if ($tag eq "utg");
 
     $path = "$base/0-mercounts";
+    $path = "$path-$asm" if ($tag eq "hap");
 
     #  Decide on which set of parameters we need to be using, and make output file names.
 
@@ -550,7 +553,109 @@ sub merylCheck ($$) {
   allDone:
 }
 
+sub merylSubtract ($$) {
+    my $asm     = shift @_;
+    my $tag     = shift @_;
 
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
+
+    goto allDone   if (skipStage($asm, "$tag-meryl") == 1);
+    goto allDone   if(fileExists("$path/$asm.ms$merSize.only.mcdat"));
+
+    my $otherHaplotypes = "";
+    my $toMerge = 0;
+
+    my @haplotypes = getHaplotypes($base);
+    foreach my $haplotype (@haplotypes) {
+       if ("$base/0-mercounts-$haplotype" ne $path) {
+          $otherHaplotypes .= "-s ../0-mercounts-$haplotype/$haplotype.ms$merSize";
+          $toMerge++;
+       }
+    }
+    if ($toMerge > 1) {
+       # run merge of other haplotypes, to create a single one, update otherHaplotypes to point to that
+       caFailure("Error: more than two haplotypes isn't implemented yet!", "$path");
+    }
+    if (runCommand($path, "$bin/meryl -M difference -s $asm.ms$merSize $otherHaplotypes -o $asm.ms$merSize.only > $asm.difference.out 2> $asm.difference.err")) {
+       caFailure("meryl failed to difference", "$asm.difference.err");
+    }
+    addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
+
+  allDone:
+}
+
+sub merylFinishSubtraction($$) {
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
+
+    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
+    goto allDone      if (fileExists("$path/$ofile.threshold"));
+    goto finishStage  if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
+
+  finishStage:
+    
+    # also figure out the histogram info for next step
+    fetchFile("$path/$ofile.histogram");
+
+    my $d = 0;
+    my $prevD = -1;
+    my $prevDPrime = 0;
+    my $dPrime = 0;
+    my $minCount = 0;
+    my $minCov = 0;
+    my $maxCov = 0;
+    my $prevCount = 0;
+
+    open(F, "< $path/$ofile.histogram") or caFailure("failed to read mer histogram from '$path/$ofile.histogram'", undef);
+    while (<F>) {
+       my ($threshold, $num, $distinct, $total) = split '\s+', $_;
+       if ($prevD == -1) {       
+          $prevD = $num;
+          $prevCount = $num;
+        } else {
+           $d = $num - $prevCount;
+           $dPrime = $d - $prevD;
+           if ($d * $prevD < 0) {
+              if ($d > $prevD) {
+                 $minCov = $threshold-1 if ($minCov == 0);
+                 $minCount = $prevCount;
+              }
+           }
+           if ($threshold - 5 > $minCov && $num < $minCount) {
+              $maxCov = $threshold;
+              last;
+           }
+           $prevCount = $num;
+           $prevD = $d;
+           $prevDPrime = $dPrime;
+        }
+    }
+    close(F);
+
+    print STDERR "-- Meryl finished successfully with threshold $minCov to $maxCov for $asm.\n";
+    open(F, "> $path/$ofile.threshold") or caExit("can't open '$path/$ofile.threshold' for writing: $!", undef);
+    printf (F "$minCov\t$maxCov\n");
+    close(F);
+
+    stashFile("$path/$ofile.threshold");
+
+    unlink "$path/$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
+    unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
+
+    emitStage($asm, "$tag-meryl");
+    buildHTML($asm, $tag);
+
+  allDone:
+     stopAfter("meryl");
+}
 
 sub merylProcess ($$) {
     my $asm     = shift @_;

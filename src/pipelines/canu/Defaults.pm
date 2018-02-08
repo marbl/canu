@@ -760,6 +760,7 @@ sub setDefaults () {
 
     setDefault("saveOverlaps",        0,     "Save intermediate overlap files, almost never a good idea");
     setDefault("saveReadCorrections", 0,     "Save intermediate read correction files, almost never a good idea");
+    setDefault("saveReadHaplotypes",  0,     "Save intermediate read haplotype files, almost never a good idea");
     setDefault("saveMerCounts",       0,     "Save full mer counting results, sometimes useful");
     setDefault("saveReads",           1,     "Save intermediate corrected and trimmed reads to asm.correctedReads.fasta.gz and asm.trimmedReads.fasta.gz");
     setDefault("onSuccess",           undef, "Full path to command to run on successful completion");

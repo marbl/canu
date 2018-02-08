@@ -613,10 +613,12 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 all: UPDATE_VERSION MAKE_DIRS \
      $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/bin/canu \
+     ${TARGET_DIR}/bin/trioCanu \
      ${TARGET_DIR}/bin/canu.defaults \
      ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar \
      ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm \
      ${TARGET_DIR}/lib/site_perl/canu/CorrectReads.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/HaplotypeReads.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Configure.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Defaults.pm \
      ${TARGET_DIR}/lib/site_perl/canu/ErrorEstimate.pm \
@@ -686,6 +688,10 @@ ${TARGET_DIR}/bin/canu: pipelines/canu.pl
 	cp -pf pipelines/canu.pl ${TARGET_DIR}/bin/canu
 	chmod +x ${TARGET_DIR}/bin/canu
 
+${TARGET_DIR}/bin/trioCanu: pipelines/trioCanu.pl
+	cp -pf pipelines/trioCanu.pl ${TARGET_DIR}/bin/trioCanu
+	chmod +x ${TARGET_DIR}/bin/trioCanu
+
 ${TARGET_DIR}/bin/canu.defaults:
 	echo > ${TARGET_DIR}/bin/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
 	chmod -x ${TARGET_DIR}/bin/canu.defaults
@@ -698,6 +704,9 @@ ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm: pipelines/canu/Consensus.pm
 
 ${TARGET_DIR}/lib/site_perl/canu/CorrectReads.pm: pipelines/canu/CorrectReads.pm
 	cp -pf pipelines/canu/CorrectReads.pm ${TARGET_DIR}/lib/site_perl/canu/
+
+${TARGET_DIR}/lib/site_perl/canu/HaplotypeReads.pm: pipelines/canu/HaplotypeReads.pm
+	cp -pf pipelines/canu/HaplotypeReads.pm ${TARGET_DIR}/lib/site_perl/canu/
 
 ${TARGET_DIR}/lib/site_perl/canu/Configure.pm: pipelines/canu/Configure.pm
 	cp -pf pipelines/canu/Configure.pm ${TARGET_DIR}/lib/site_perl/canu/

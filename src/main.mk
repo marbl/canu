@@ -219,6 +219,8 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 correction/readConsensus.mk \
                 correction/errorEstimate.mk \
                 \
+                haplotyping/splitHaplotype.mk \
+                \
                 falcon_sense/createFalconSenseInputs.mk \
                 falcon_sense/falcon_sense.mk \
                 \

@@ -70,7 +70,7 @@ sub getNumberOfReadsInStore ($$) {
     my $asm    = shift @_;
     my $nr     = 0;
 
-    confess  if (($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
+    confess  if (($tag ne "hap") && ($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
 
     #  No file, no reads.
 
@@ -80,7 +80,7 @@ sub getNumberOfReadsInStore ($$) {
 
     open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        $nr = $1    if ((m/numRawReads\s+=\s+(\d+)/)       && ($tag eq "cor"));
+        $nr = $1    if ((m/numRawReads\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
         $nr = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
         $nr = $1    if ((m/numTrimmedReads\s+=\s+(\d+)/)   && ($tag eq "utg"));
     }
@@ -96,7 +96,7 @@ sub getNumberOfBasesInStore ($$) {
     my $asm    = shift @_;
     my $nb     = 0;
 
-    confess  if (($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
+    confess  if (($tag ne "hap") && ($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
 
     #  No file, no bases.
 
@@ -106,7 +106,8 @@ sub getNumberOfBasesInStore ($$) {
 
     open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor"));
+        $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
+        $nb = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
         $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($tag eq "obt"));
         $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($tag eq "utg"));
     }
@@ -464,6 +465,7 @@ sub gatekeeper ($$@) {
     my $bin    = getBinDirectory();
     my @inputs = @_;
 
+    $base = "haplotype"   if ($tag eq "hap");
     $base = "correction"  if ($tag eq "cor");
     $base = "trimming"    if ($tag eq "obt");
     $base = "unitigging"  if ($tag eq "utg");
