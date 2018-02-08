@@ -47,7 +47,6 @@ use canu::Configure;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
-use canu::HTML;
 use canu::Grid_Cloud;
 
 sub getHaplotypes($) {
@@ -309,7 +308,6 @@ sub haplotypeConfigure ($) {
 
   finishStage:
     emitStage($asm, "hap-haplotypeConfigure");
-    buildHTML($asm, "hap");
 
   allDone:
 }
@@ -389,7 +387,6 @@ sub haplotypeCheck($) {
         #  Otherwise, run some jobs.
 
         emitStage($asm, "hap-haplotypeReads", $attempt);
-        buildHTML($asm, "hap");
 
         submitOrRunParallelJob($asm, "cor", $path, "haplotypeReads", @failedJobs);
         return;
@@ -405,7 +402,6 @@ sub haplotypeCheck($) {
     stashFile("$path/hapjob.files");
 
     emitStage($asm, "hap-haplotypeReadsCheck");
-    buildHTML($asm, "hap");
 
   allDone:
 }
@@ -593,7 +589,6 @@ sub dumpHaplotypeReads ($) {
 
   finishStage:
     emitStage($asm, "hap-dumpHaplotypeReads");
-    buildHTML($asm, "hap");
 
   allDone:
     foreach my $haplotype (@haplotypes) {
