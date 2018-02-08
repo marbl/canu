@@ -651,7 +651,6 @@ sub merylFinishSubtraction($$) {
     unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
 
     emitStage($asm, "$tag-meryl");
-    buildHTML($asm, $tag);
 
   allDone:
      stopAfter("meryl");
