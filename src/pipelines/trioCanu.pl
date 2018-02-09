@@ -375,7 +375,7 @@ writeLog();
 
 # check some params
 caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef)   if (scalar(@inputFiles) == 0);
-caExit("ERROR: Need at least two haplotypes", undef) if (scalar(%haplotypes) < 2);
+caExit("ERROR: Need at least two haplotypes", undef) if (scalar(keys %haplotypes) < 2);
 foreach my $h (keys(%haplotypes)) {
    caExit("ERROR: No haplotype reads supplied for haplotype", undef) if (scalar(@{ $haplotypes{$h} }) == 0);
 }

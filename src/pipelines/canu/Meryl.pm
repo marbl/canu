@@ -629,7 +629,7 @@ sub merylFinishSubtraction($$) {
                  $minCount = $prevCount;
               }
            }
-           if ($threshold - 5 > $minCov && $num < $minCount) {
+           if ($threshold - 5 > $minCov && $num < $minCount*0.75) {
               $maxCov = $threshold;
               last;
            }
