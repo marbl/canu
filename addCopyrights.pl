@@ -286,6 +286,7 @@ foreach my $file (@filesToProcess) {
     next if ($file =~ m/libfalcon/);
     next if ($file =~ m/libNDFalcon/);
     next if ($file =~ m/libbacktrace/);
+    next if ($file =~ m/libsnappy/);
 
     next if ($file =~ m/qsort_mt.c$/);
 
