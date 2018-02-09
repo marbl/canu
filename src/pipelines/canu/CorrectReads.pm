@@ -357,17 +357,16 @@ sub filterCorrectionLayouts ($) {
     fetchStore("./correction/$asm.gkpStore");
     fetchStore("./correction/$asm.ovlStore");
 
-    my $genomeSize  = getGlobal("genomeSize");
-    my $outCoverage = getGlobal("corOutCoverage");
-
     print STDERR "-- Computing correction layouts.\n";
 
     $cmd  = "$bin/filterCorrectionLayouts \\\n";
-    $cmd .= "  -G ../$asm.gkpStore \\\n";
-    $cmd .= "  -C ../$asm.corStore \\\n";
-    $cmd .= "  -R ./$asm.readsToCorrect.WORKING \\\n";
-    $cmd .= "  -g $genomeSize \\\n";
-    $cmd .= "  -c $outCoverage \\\n";
+    $cmd .= "  -G  ../$asm.gkpStore \\\n";
+    $cmd .= "  -C  ../$asm.corStore \\\n";
+    $cmd .= "  -R  ./$asm.readsToCorrect.WORKING \\\n";
+    $cmd .= "  -cc " . getGlobal("corMinCoverage") . " \\\n";
+    $cmd .= "  -cl " . getGlobal("minReadLength")  . " \\\n";
+    $cmd .= "  -g  " . getGlobal("genomeSize")     . " \\\n";
+    $cmd .= "  -c  " . getGlobal("corOutCoverage") . " \\\n";
     $cmd .= "> ./$asm.readsToCorrect.err 2>&1\n";
 
     if (runCommand($path, $cmd)) {
@@ -505,9 +504,10 @@ sub generateCorrectedReadsConfigure ($) {
     print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if (  -e "$path/$asm.readsToCorrect");
     print F "  -b \$bgn -e \$end \\\n"                              if (! -e "$path/$asm.readsToCorrect");
     print F "  -t  " . getGlobal("corThreads") . " \\\n";
-    print F "  -ci " . getCorIdentity($asm) . " \\\n";
-    print F "  -cl " . getGlobal("minReadLength") . " \\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
+    print F "  -cl " . getGlobal("minReadLength") . " \\\n";
+    print F "  -oi " . getCorIdentity($asm) . " \\\n";
+    print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
     print F "  -p ./results/\$jobid.WORKING \\\n";
     print F "  > ./results/\$jobid.err 2>&1 \\\n";
     print F "&& \\\n";
@@ -655,9 +655,6 @@ sub loadCorrectedReads ($) {
 
     fetchStore("./correction/$asm.gkpStore");
     fetchStore("./correction/$asm.corStore");
-
-    #my $genomeSize  = getGlobal("genomeSize");
-    #my $outCoverage = getGlobal("corOutCoverage");
 
     $cmd  = "$bin/loadCorrectedReads \\\n";
     $cmd .= "  -G ./$asm.gkpStore \\\n";

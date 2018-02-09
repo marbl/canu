@@ -155,8 +155,8 @@ public:
 
 void
 analyzeLength(tgTig            *layout,
-              uint32     UNUSED(minCorLength),
-              uint32            minEvidenceCoverage,
+              uint32     UNUSED(minOutputLength),
+              uint32            minOutputCoverage,
               readStatus       *status,
               falconConsensus  *fc) {
   uint32  readID        = layout->tigID();
@@ -180,7 +180,7 @@ analyzeLength(tgTig            *layout,
   int32    corLen    = 0;
 
   for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++) {
-    if (depth.depth(dd) < minEvidenceCoverage) {
+    if (depth.depth(dd) < minOutputCoverage) {
       bgn = INT32_MAX;
       continue;
     }
@@ -381,18 +381,21 @@ dumpLog(FILE *F, readStatus *status, uint32 numReads) {
 
 int
 main(int argc, char **argv) {
-  char           *gkpStoreName     = NULL;
-  char           *corStoreName     = NULL;
-  char           *outName          = NULL;
+  char           *gkpStoreName      = NULL;
+  char           *corStoreName      = NULL;
+  char           *outName           = NULL;
 
-  bool            filterNone       = false;
-  bool            filterStandard   = true;
+#if 0
+  //  for future work...
+  bool            filterNone        = false;
+  bool            filterStandard    = true;
+#endif
 
-  uint32          evidenceCoverage = 4;
-  uint32          minLength        = 500;
+  uint32          minOutputCoverage = 4;
+  uint32          minOutputLength   = 500;
 
-  uint64          genomeSize       = 0;
-  uint32          outCoverage      = 40;
+  uint64          genomeSize        = 0;
+  uint32          outCoverage       = 40;
 
   argc = AS_configure(argc, argv);
 
@@ -409,6 +412,7 @@ main(int argc, char **argv) {
       outName = argv[++arg];
 
 
+#if 0
     } else if (strcmp(argv[arg], "-all") == 0) {
       filterNone     = true;
       filterStandard = false;
@@ -416,13 +420,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-normal") == 0) {
       filterNone     = false;
       filterStandard = true;
-
+#endif
 
     } else if (strcmp(argv[arg], "-cc") == 0) {
-      evidenceCoverage = strtoul(argv[++arg], NULL, 10);
+      minOutputCoverage = strtoul(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-cl") == 0) {
-      minLength = strtoul(argv[++arg], NULL, 10);
+      minOutputLength = strtoul(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-g") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
@@ -463,9 +467,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "FILTERING STRATEGY and PARAMETERS\n");
     fprintf(stderr, "\n");
+#if 0
     fprintf(stderr, "  -all                     no filtering, correct all reads (NOT IMPLEMENTED)\n");
     fprintf(stderr, "  -normal                  correct longest expected corrected reads\n");
     fprintf(stderr, "\n");
+#endif
     fprintf(stderr, "  -cc                      minimum coverage of evidence reads\n");
     fprintf(stderr, "  -cl                      minimum length of a corrected read\n");
     fprintf(stderr, "\n");
@@ -492,7 +498,7 @@ main(int argc, char **argv) {
   gkStore          *gkpStore = gkStore::gkStore_open(gkpStoreName);
   tgStore          *corStore = new tgStore(corStoreName, 1);
 
-  falconConsensus  *fc       = new falconConsensus(0, 0, 0);  //  For memory estimtes
+  falconConsensus  *fc       = new falconConsensus(0, 0, 0, 0);  //  For memory estimtes
 
   uint32            numReads = gkpStore->gkStore_getNumReads();
 
@@ -507,7 +513,7 @@ main(int argc, char **argv) {
   for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
     tgTig  *layout = corStore->loadTig(ti);
 
-    analyzeLength(layout, minLength, evidenceCoverage, status, fc);
+    analyzeLength(layout, minOutputLength, minOutputCoverage, status, fc);
 
     corStore->unloadTig(layout->tigID());
   }
@@ -548,7 +554,7 @@ main(int argc, char **argv) {
   for (uint32 ti=1; ti<numReads+1; ti++) {
     if ((status[ti].usedForCorrection == false) &&
         (status[ti].usedForEvidence   == false) &&
-        (status[ti].corrLength         > minLength))
+        (status[ti].corrLength         > minOutputLength))
       status[ti].rescued = true;
   }
 

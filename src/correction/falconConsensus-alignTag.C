@@ -69,6 +69,9 @@
 #include "falconConsensus.H"
 #include "edlib.H"
 
+#define DEBUG_ALIGN
+#undef  DEBUG_ALIGN_VERBOSE
+
 static
 alignTagList *
 getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),    //  read
@@ -107,11 +110,9 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),  
 
     tags->setTag(j, p_j, jj, p_jj, Qalign[k], p_q_base);
 
-#ifdef BRI
-#if 0
+#ifdef DEBUG_ALIGN_VERBOSE
     fprintf(stderr, "set tag j %5d p_j %5d jj %5d p_jj %5d base %c p_q_base %c\n",
             j, p_j, jj, p_jj, Qalign[k], p_q_base);
-#endif
 #endif
 
     p_j       = j;
@@ -127,10 +128,11 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),  
 alignTagList **
 alignReadsToTemplate(falconInput    *evidence,
                      uint32          evidenceLen,
-                     double          minIdentity,
+                     double          minOlapIdentity,
+                     uint32          minOlapLength,
                      bool            restrictToOverlap) {
 
-  double         maxDifference = 1.0 - minIdentity;
+  double         maxDifference = 1.0 - minOlapIdentity;
   alignTagList **tagList = new alignTagList * [evidenceLen];
 
   //  I don't remember where this was causing problems, but reads longer than the template were.  So truncate them.
@@ -149,7 +151,7 @@ alignReadsToTemplate(falconInput    *evidence,
 
 #pragma omp parallel for schedule(dynamic)
   for (uint32 j=0; j<evidenceLen; j++) {
-    if (evidence[j].readLength < 500)
+    if (evidence[j].readLength < minOlapLength)
       continue;
 
     int32 tolerance =  (int32)ceil(min(evidence[j].readLength, evidence[0].readLength) * maxDifference * 1.1);
@@ -171,7 +173,7 @@ alignReadsToTemplate(falconInput    *evidence,
     if (alignBgn < 0)                         alignBgn = 0;
     if (alignEnd > evidence[0].readLength)    alignEnd = evidence[0].readLength;
 
-#ifdef BRI
+#ifdef DEBUG_ALIGN
     fprintf(stderr, "ALIGN to %d-%d length %d\n",
             alignBgn, alignEnd, evidence[0].readLength);
 #endif
@@ -180,7 +182,7 @@ alignReadsToTemplate(falconInput    *evidence,
                                         evidence[0].read + alignBgn, alignEnd - alignBgn,
                                         edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
-#ifdef BRI
+#ifdef DEBUG_ALIGN
     for (int32 l=0; l<align.numLocations; l++)
       fprintf(stderr, "read%u #%u location %d to template %d-%d length %d diff %f\n",
               evidence[j].ident,
@@ -194,7 +196,7 @@ alignReadsToTemplate(falconInput    *evidence,
 
     if (align.numLocations == 0) {
       edlibFreeAlignResult(align);
-#ifdef BRI
+#ifdef DEBUG_ALIGN
       fprintf(stderr, "read %7u failed to map\n", j);
 #endif
       continue;
@@ -203,9 +205,9 @@ alignReadsToTemplate(falconInput    *evidence,
     int32  alignLen  = align.endLocations[0] - align.startLocations[0];
     double alignDiff = align.editDistance / (double)alignLen;
 
-    if (alignLen < 500) {
+    if (alignLen < minOlapLength) {
       edlibFreeAlignResult(align);
-#ifdef BRI
+#ifdef DEBUG_ALIGN
       fprintf(stderr, "read %7u failed to map - short\n", j);
 #endif
       continue;
@@ -213,7 +215,7 @@ alignReadsToTemplate(falconInput    *evidence,
 
     if (alignDiff >= maxDifference) {
       edlibFreeAlignResult(align);
-#ifdef BRI
+#ifdef DEBUG_ALIGN
       fprintf(stderr, "read %7u failed to map - different\n", j);
 #endif
       continue;
@@ -269,8 +271,7 @@ alignReadsToTemplate(falconInput    *evidence,
     rAln[lBase] = 0;   //  Truncate the alignments before the gaps.
     tAln[lBase] = 0;
 
-#ifdef BRI
-#if 1
+#ifdef DEBUG_ALIGN
     fprintf(stderr, "mapped %5u %5u-%5u to template %6u-%6u trimmed by %6u-%6u %s %s\n",
             evidence[j].ident,
             rBgn - fBase, rEnd + align.alignmentLength - lBase,
@@ -278,7 +279,6 @@ alignReadsToTemplate(falconInput    *evidence,
             fBase, align.alignmentLength - lBase,
             rAln + lBase - 10,
             tAln + lBase - 10);
-#endif
 #endif
 
     tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength, j,

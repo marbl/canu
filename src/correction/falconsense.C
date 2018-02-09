@@ -90,7 +90,7 @@ generateFalconConsensus(falconConsensus   *fc,
                         tgTig             *tig,
                         bool               trimToAlign,
                         gkReadData        *readData,
-                        uint32             minOutputLength) {
+                        uint32             minOlapLength) {
 
   //  Grab and save the raw read for the template.
 
@@ -137,9 +137,9 @@ generateFalconConsensus(falconConsensus   *fc,
       seq[seqLen] = 0;
     }
 
-    //  Used to skip if read length was less or equal to min_ovl_len
+    //  Ignore the read if it's less than the minimum overlap length - it'll have no chance to align correctly anyway!
 
-    if (seqLen < 500) {
+    if (seqLen < minOlapLength) {
 #ifdef BRI
       fprintf(stderr, "read %7u loaded %6u-%6u to template %6u-%6u -- TOO SHORT\n",
               child->ident(),
@@ -165,10 +165,9 @@ generateFalconConsensus(falconConsensus   *fc,
 
   //  Loaded all reads, build consensus.
 
-  falconData  *fd = fc->generateConsensus(evidence,
-                                          tig->numberOfChildren() + 1);
+  falconData  *fd = fc->generateConsensus(evidence, tig->numberOfChildren() + 1);
 
-  //  Find the largest stretch of uppercase sequence.  Lowercase sequence denotes MSA coverage was below minAllowedCoverage.
+  //  Find the largest stretch of uppercase sequence.  Lowercase sequence denotes MSA coverage was below minOutputCoverage.
 
   uint32  bgn = 0;
   uint32  end = 0;
@@ -243,9 +242,11 @@ main(int argc, char **argv) {
   set<uint32>       readList;
 
   uint32            numThreads         = 1;
-  uint32            minAllowedCoverage = 4;
-  double            minIdentity        = 0.5;
-  uint32            minOutputLength    = 500;
+
+  uint32            minOutputCoverage  = 4;
+  uint32            minOutputLength    = 1000;
+  double            minOlapIdentity    = 0.5;
+  double            minOlapLength      = 500;
 
   bool              trimToAlign        = true;
   bool              restrictToOverlap  = true;
@@ -285,13 +286,16 @@ main(int argc, char **argv) {
 
 
     } else if (strcmp(argv[arg], "-cc") == 0) {   //  CONSENSUS
-      minAllowedCoverage = atoi(argv[++arg]);
+      minOutputCoverage = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-cl") == 0) {
       minOutputLength = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-ci") == 0) {
-      minIdentity = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-oi") == 0) {
+      minOlapIdentity = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-ol") == 0) {
+      minOlapLength = atof(argv[++arg]);
 
 
     } else {
@@ -309,20 +313,28 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "INPUTS (all mandatory)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -G gkpStore      mandatory path to gkpStore\n");
     fprintf(stderr, "  -C corStore      mandatory path to corStore\n");
     fprintf(stderr, "  -p prefix        output prefix name, for logging and summary report\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "RESOURCE PARAMETERS\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -t numThreads    number of compute threads to use\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "ALGORITHM PARAMETERS\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -f               align evidence to the full read, ignore overlap position\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CONSENSUS PARAMETERS\n");
-    fprintf(stderr, "  -cc coverage     minimum consensus coverage to output corrected base\n");
-    fprintf(stderr, "  -cl length       minimum length of corrected region\n");
-    fprintf(stderr, "  -ci identity     minimum identity of an aligned evidence read\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, " Of outputs:\n");
+    fprintf(stderr, "  -cc coverage     minimum consensus coverage to generate corrected base\n");
+    fprintf(stderr, "  -cl length       minimum length of corrected region to output as a corrected read\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, " Of inputs:\n");
+    fprintf(stderr, "  -oi identity     minimum identity of an aligned evidence read overlap\n");
+    fprintf(stderr, "  -ol length       minimum length of an aligned evidence read overlap\n");
     fprintf(stderr, "\n");
 
     if (gkpName == NULL)
@@ -358,7 +370,7 @@ main(int argc, char **argv) {
 
   //  Initialize processing.
 
-  falconConsensus   *fc = new falconConsensus(minAllowedCoverage, minIdentity, minOutputLength, restrictToOverlap);
+  falconConsensus   *fc = new falconConsensus(minOutputCoverage, minOutputLength, minOlapIdentity, minOlapLength, restrictToOverlap);
   gkReadData        *rd = new gkReadData;
 
   //  And process.
@@ -370,7 +382,7 @@ main(int argc, char **argv) {
 
     tgTig *layout = corStore->loadTig(ii);
 
-    generateFalconConsensus(fc, gkpStore, layout, trimToAlign, rd, minOutputLength);
+    generateFalconConsensus(fc, gkpStore, layout, trimToAlign, rd, minOlapLength);
 
     if (cnsFile)
       layout->saveToStream(cnsFile);

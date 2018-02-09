@@ -71,6 +71,7 @@
 #include "falconConsensus-msa.H"
 
 #undef DEBUG
+#undef DEBUG_VERBOSE
 
 
 falconData *
@@ -215,15 +216,18 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
           //  Save best score.
 
+#ifdef DEBUG_VERBOSE
+          fprintf(stderr, "best_score %f at pi %d pj %d pkk %d -- score %f\n", score, pi, pj, pkk, score);
+#endif
+
           if (best_score < score) {
             aln_col->best_p_t_pos    = pi;
             aln_col->best_p_delta    = pj;
             aln_col->best_p_q_base   = pkk;
             best_score               = score;
-#ifdef BRI
-#if 0
+
+#ifdef DEBUG
             fprintf(stderr, "best_score %f at pi %d pj %d pkk %d\n", score, pi, pj, pkk);
-#endif
 #endif
           }
         }  //  Over all links
@@ -239,8 +243,14 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
     }
   }
 
-  assert(g_best_t_pos   != -1);
-  assert(g_best_aln_col != NULL);
+  //  If there is no best found, then there was no evidence aligned to the template.  Prior versions
+  //  used to fail here:
+  //    assert(g_best_t_pos   != -1);
+  //    assert(g_best_aln_col != NULL);
+  //  but BPW thinks we can just fall through and return an empty sequence.  It should actually never
+  //  happen - the original falcon_sense had the asserts and worked fine; this version triggered the
+  //  asserts when short overlaps were falsely removed.  But really, I think it's a coordination
+  //  between this code and the thing that generates layouts.
 
   //  Reconstruct the sequences.
 
@@ -248,17 +258,17 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
   int32      i  = g_best_t_pos;
   int32      j  = 0;
-  uint32     kk = g_best_aln_col->best_p_q_base;
+  uint32     kk = (g_best_aln_col == NULL) ? 0 : g_best_aln_col->best_p_q_base;
 
   while ((i != -1) && (fd->len < templateLen * 2)) {
     char  bb = '-';
 
     switch (kk) {
-      case 0: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'a' : 'A'; break;
-      case 1: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'c' : 'C'; break;
-      case 2: bb = (msa[i]->coverage <= minAllowedCoverage) ? 'g' : 'G'; break;
-      case 3: bb = (msa[i]->coverage <= minAllowedCoverage) ? 't' : 'T'; break;
-      case 4: bb =                                                  '-'; break;
+      case 0: bb = (msa[i]->coverage <= minOutputCoverage) ? 'a' : 'A'; break;
+      case 1: bb = (msa[i]->coverage <= minOutputCoverage) ? 'c' : 'C'; break;
+      case 2: bb = (msa[i]->coverage <= minOutputCoverage) ? 'g' : 'G'; break;
+      case 3: bb = (msa[i]->coverage <= minOutputCoverage) ? 't' : 'T'; break;
+      case 4: bb =                                                 '-'; break;
     }
 
     if (bb != '-') {
@@ -266,7 +276,7 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       fd->eqv[fd->len] = (msa[i]->coverage == g_best_aln_col->count) ? (40) : (-10 * log((msa[i]->coverage - g_best_aln_col->count + 1) / (double)msa[i]->coverage));
       fd->pos[fd->len] = i;
 
-#ifdef BRI
+#ifdef DEBUG_VERBOSE
       //fprintf(stderr, "seq %5u pos %5u '%c' cov %3u eqv %4d\n",
       //        fd->len, i, bb, msa[i]->coverage, fd->eqv[fd->len]);
       fprintf(stderr, "seq %5u pos %5u '%c' cov %3u\n",
@@ -307,7 +317,7 @@ falconConsensus::generateConsensus(falconInput   *evidence,
                                    uint32         evidenceLen) {
 
   return(getConsensus(evidenceLen,
-                      alignReadsToTemplate(evidence, evidenceLen, minIdentity, restrictToOverlap),
+                      alignReadsToTemplate(evidence, evidenceLen, minOlapIdentity, minOlapLength, restrictToOverlap),
                       evidence[0].readLength));
 }
 

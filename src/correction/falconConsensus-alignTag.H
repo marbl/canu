@@ -145,7 +145,8 @@ private:
 alignTagList **
 alignReadsToTemplate(falconInput    *evidence,
                      uint32          evidenceLen,
-                     double          minIdentity,
+                     double          minOlapIdentity,
+                     uint32          minOlapLength,
                      bool            restrictToOverlap);
 
 #endif  //  FALCONCONSENSUS_ALIGNTAG_H
