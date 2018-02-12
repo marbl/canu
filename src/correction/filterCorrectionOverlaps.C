@@ -196,9 +196,6 @@ main(int argc, char **argv) {
     minErate = 0.0;
   }
 
-  uint32             maxEvalue   = AS_OVS_encodeEvalue(maxErate);
-  uint32             minEvalue   = AS_OVS_encodeEvalue(minErate);;
-
   gkStore           *gkpStore    = gkStore::gkStore_open(gkpStoreName);
 
   ovStore           *ovlStore    = new ovStore(ovlStoreName, gkpStore);
@@ -289,8 +286,8 @@ main(int argc, char **argv) {
   fprintf(statsFile, "\n");
   fprintf(statsFile, "IGNORED:\n");
   fprintf(statsFile, "\n");
-  fprintf(statsFile, "%12" F_U64P " (< %6.4f fraction error)\n", gs->lowErate(),  AS_OVS_decodeEvalue(minEvalue));
-  fprintf(statsFile, "%12" F_U64P " (> %6.4f fraction error)\n", gs->highErate(), AS_OVS_decodeEvalue(maxEvalue));
+  fprintf(statsFile, "%12" F_U64P " (< %6.4f fraction error)\n", gs->lowErate(),  minErate);
+  fprintf(statsFile, "%12" F_U64P " (> %6.4f fraction error)\n", gs->highErate(), maxErate);
   fprintf(statsFile, "%12" F_U64P " (< %u bases long)\n", gs->tooShort(),  minOvlLength);
   fprintf(statsFile, "%12" F_U64P " (> %u bases long)\n", gs->tooLong(),   maxOvlLength);
   fprintf(statsFile, "\n");
