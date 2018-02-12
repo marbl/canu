@@ -554,8 +554,6 @@ sub overlapErrorAdjustmentConfigure ($) {
     makeExecutable("$path/oea.sh");
     stashFile("$path/oea.sh");
 
-exit(1);
-
   finishStage:
     emitStage($asm, "overlapErrorAdjustmentConfigure");
 
