@@ -76,13 +76,19 @@ sub readErrorDetectionConfigure ($) {
     #  RED uses 13 bytes/base plus 12 bytes/overlap + space for evidence reads.
 
     my @readLengths;
+    my $readLengths = 0;
+
     my @numOlaps;
+    my $numOlaps = 0;
 
     #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
     open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
     while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
         my @v = split '\s+', $_;
         $readLengths[$v[0]] = $v[2];
+        $readLengths       += $v[2];
     }
     close(F);
 
@@ -93,8 +99,11 @@ sub readErrorDetectionConfigure ($) {
     #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
     open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
     while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
         my @v = split '\s+', $_;
         $numOlaps[$v[0]] = $v[1];
+        $numOlaps       += $v[1];
     }
     close(F);
 
@@ -111,9 +120,12 @@ sub readErrorDetectionConfigure ($) {
     my $maxReads = getGlobal("redBatchSize");
     my $maxBases = getGlobal("redBatchLength");
 
-    print STDERR "\n";
-    print STDERR "Configure RED for ", getGlobal("redMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
-    print STDERR "\n";
+    print STDERR "--\n";
+    print STDERR "-- Configure RED for ", getGlobal("redMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "--\n";
+    print STDERR "--           Total                                               Reads                 Olaps Evidence\n";
+    print STDERR "--    Job   Memory      Read Range         Reads        Bases   Memory        Olaps   Memory   Memory  (Memory in MB)\n";
+    print STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
 
     my $reads    = 0;
     my $bases    = 0;
@@ -140,12 +152,14 @@ sub readErrorDetectionConfigure ($) {
             (($id == $maxID))) {
             push @end, $id;
 
-            printf(STDERR "RED job %3u from read %9u to read %9u - %7.3f GB for %7u reads - %7.3f GB for %9u olaps - %7.3f GB for evidence\n",
-                   $nj + 1, $bgn[$nj], $end[$nj],
-                   $memory / 1024 / 1024 / 1024, $reads,
-                   13 * $bases / 1024 / 1024 / 1024, $bases,
-                   12 * $olaps / 1024 / 1024 / 1024, $olaps,
-                   2 * $bases * $coverage / 1024 / 1024 / 1024);
+            printf(STDERR "--   %4u %8.2f %9u-%-9u %9u %12u %8.2f %12u %8.2f %8.2f\n",
+                   $nj + 1,
+                   $memory / 1024 / 1024,
+                   $bgn[$nj], $end[$nj],
+                   $reads,
+                   $bases,               13 * $bases  / 1024 / 1024,
+                   $olaps,               12 * $olaps  / 1024 / 1024,
+                   2 * $bases * $coverage / 1024 / 1024);
 
             $nj++;
 
@@ -156,6 +170,10 @@ sub readErrorDetectionConfigure ($) {
             push @bgn, $id + 1;  #  RED expects inclusive ranges.
         }
     }
+
+    print  STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
+    printf(STDERR "--                                               %12u          %12u\n",
+           $readLengths, $numOlaps);
 
     #  Dump a script.
 
@@ -348,21 +366,30 @@ sub overlapErrorAdjustmentConfigure ($) {
     #  basically error rate.  No adjustment is output for mismatches.
 
     my @readLengths;
+    my $readLengths = 0;
+
     my @numOlaps;
+    my $numOlaps = 0;
 
     #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
     open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
     while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
         my @v = split '\s+', $_;
         $readLengths[$v[0]] = $v[2];
+        $readLengths       += $v[2];
     }
     close(F);
 
     #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
     open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
     while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
         my @v = split '\s+', $_;
         $numOlaps[$v[0]] = $v[1];
+        $numOlaps       += $v[1];
     }
     close(F);
 
@@ -382,8 +409,9 @@ sub overlapErrorAdjustmentConfigure ($) {
     my $maxReads = getGlobal("oeaBatchSize");
     my $maxBases = getGlobal("oeaBatchLength");
 
-    print STDERR "\n";
-    print STDERR "Configure OEA for ", getGlobal("oeaMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "--\n";
+    print STDERR "-- Configure OEA for ", getGlobal("oeaMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "--\n";
 
     my $reads    = 0;
     my $bases    = 0;
@@ -427,17 +455,17 @@ sub overlapErrorAdjustmentConfigure ($) {
 
             $smallJobs++   if ($end[$nj] - $bgn[$nj] < $smallJobSize);
 
-            push @log, sprintf("OEA job %3u from read %9u to read %9u - %4.1f bases + %4.1f adjusts + %4.1f reads + %4.1f olaps + %4.1f fseq/rseq + %4.1f fadj/radj + %4.1f work + %4.1f misc = %5.1f MB\n",
-                   $nj + 1, $bgn[$nj], $end[$nj],
-                   $memBases / 1024 / 1024,
-                   $memAdj1  / 1024 / 1024,
-                   $memReads / 1024 / 1024,
-                   $memOlaps / 1024 / 1024,
-                   $memSeq   / 1024 / 1024,
-                   $memAdj2  / 1024 / 1024,
-                   $memWA    / 1024 / 1024,
-                   $memMisc  / 1024 / 1024,
-                   $memory   / 1024 / 1024);
+            #  Save the log for later printing.  We redo the configuration if there are too many small jobs.
+
+            push @log, sprintf("--   %4u %8.2f %9u-%-9u %9u %12u %8.2f %12u %8.2f %8.2f\n",
+                               $nj + 1,
+                               $memory / 1024 / 1024,
+                               $bgn[$nj], $end[$nj],
+                               $reads, $bases,
+                               ($memReads + $memBases + $memSeq) / 1024 / 1024,
+                               $olaps,
+                               $memOlaps / 1024 / 1024,
+                               ($memAdj1 + $memAdj2 + $memWA + $memMisc) / 1024 / 1024);
 
             $nj++;
 
@@ -465,14 +493,17 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     #  Report.
 
-    print STDERR "Configured $nj jobs.\n";
-    print STDERR "\n";
+    print STDERR "--           Total                                               Reads                 Olaps  Adjusts\n";
+    print STDERR "--    Job   Memory      Read Range         Reads        Bases   Memory        Olaps   Memory   Memory  (Memory in MB)\n";
+    print STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
 
     foreach my $l (@log) {
         print STDERR $l;
     }
 
-    print STDERR "\n";
+    print  STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
+    printf(STDERR "--                                               %12u          %12u\n",
+           $readLengths, $numOlaps);
 
     #  Dump a script
 
@@ -522,6 +553,8 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     makeExecutable("$path/oea.sh");
     stashFile("$path/oea.sh");
+
+exit(1);
 
   finishStage:
     emitStage($asm, "overlapErrorAdjustmentConfigure");
