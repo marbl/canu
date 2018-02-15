@@ -56,12 +56,8 @@ void
 outputJob(FILE   *BAT,
           FILE   *JOB,
           FILE   *OPT,
-          uint32  hashBeg,
-          uint32  hashEnd,
-          uint32  refBeg,
-          uint32  refEnd,
-          uint32  maxNumReads,
-          uint32  maxLength,
+          uint32  hashBeg, uint32  hashEnd, uint32  numHashReads, uint64  numHashBases,
+          uint32  refBeg,  uint32  refEnd,  uint32  numRefReads,  uint64  numRefBases,
           uint32 &batchSize,
           uint32 &batchName,
           uint32 &jobName) {
@@ -69,17 +65,13 @@ outputJob(FILE   *BAT,
   fprintf(BAT, "%03" F_U32P "\n", batchName);
   fprintf(JOB, "%06" F_U32P "\n", jobName);
 
-  if (maxNumReads == 0) {
-    fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 "\n",
-            hashBeg, hashEnd, refBeg, refEnd);
-    fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d JOB %d\n",
-            hashBeg, hashEnd, refBeg, refEnd, jobName);
-  } else {
-    fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 " --hashstrings " F_U32 " --hashdatalen " F_U32 "\n",
-            hashBeg, hashEnd, refBeg, refEnd, maxNumReads, maxLength);
-    fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d  STRINGS %10d  BASES %10d JOB %d\n",
-            hashBeg, hashEnd, refBeg, refEnd, maxNumReads, maxLength, jobName);
-  }
+  if (numHashReads == 0)
+    fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 "\n", hashBeg, hashEnd, refBeg, refEnd);
+  else
+    fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 " --hashstrings " F_U32 " --hashdatalen " F_U64 "\n", hashBeg, hashEnd, refBeg, refEnd, numHashReads, numHashBases);
+
+  fprintf(stderr, "%5" F_U32P " %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "  %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "\n", jobName, hashBeg, hashEnd, numHashReads, numHashBases, refBeg, refEnd, numRefReads, numRefBases);
+
   refBeg = refEnd + 1;
 
   batchSize++;
@@ -125,10 +117,21 @@ loadReadLengths(gkStore *gkp,
     doRef[i]  = (libToRef.count(i)  == 0) ? false : true;
   }
 
-  fprintf(stderr, "Loading lengths of " F_U32 " fragments (" F_SIZE_T "mb)\n",
-          numReads, (numReads * sizeof(uint32)) >> 20);
+  //fprintf(stderr, "Loading lengths of " F_U32 " fragments (" F_SIZE_T "mb)\n",
+  //        numReads, (numReads * sizeof(uint32)) >> 20);
 
   memset(readLen, 0, sizeof(uint32) * (numReads + 1));
+
+  uint64  rawReads = 0, rawBases = 0;
+  uint64  corReads = 0, corBases = 0;
+  uint64  triReads = 0, triBases = 0;
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "       Raw          Raw  Corrected    Corrected    Trimmed      Trimmed\n");
+  fprintf(stderr, "     Reads        Bases      Reads        Bases      Reads        Bases\n");
+  fprintf(stderr, "---------- ------------ ---------- ------------ ---------- ------------\n");
+
+  uint32  reportInterval = numReads / 40;
 
   for (uint32 ii=1; ii<=numReads; ii++) {
     gkRead  *read = gkp->gkStore_getRead(ii);
@@ -138,26 +141,42 @@ loadReadLengths(gkStore *gkp,
               read->gkRead_readID(), ii);
     assert(read->gkRead_readID() == ii);
 
+    if (read->gkRead_rawLength() > 0) {
+      rawReads += 1;
+      rawBases += read->gkRead_rawLength();
+    }
+
+    if (read->gkRead_correctedLength() > 0) {
+      corReads += 1;
+      corBases += read->gkRead_correctedLength();
+    }
+
+    if (read->gkRead_trimmedLength() > 0) {
+      triReads += 1;
+      triBases += read->gkRead_trimmedLength();
+    }
+
     readLen[ii] = read->gkRead_sequenceLength();
 
     if ((testHash == true) && (doHash[read->gkRead_libraryID()] == true)) {
-      if (ii < hashMin)
-        hashMin = ii;
-      if (hashMax < ii)
-        hashMax = ii;
+      hashMin = min(hashMin, ii);
+      hashMax = max(hashMax, ii);
     }
 
     if ((testRef == true) && (doRef[read->gkRead_libraryID()] == true)) {
-      if (ii < refMin)
-        refMin = ii;
-      if (refMax < ii)
-        refMax = ii;
+      refMin = min(refMin, ii);
+      refMax = max(refMax, ii);
     }
 
-    if ((ii % 1048576) == 0)
-      fprintf(stderr, "Loading lengths at " F_U32 " out of " F_U32 ".  H: " F_U32 "," F_U32 "  R: " F_U32 "," F_U32 "\n",
-              ii, numReads, hashMin, hashMax, refMin, refMax);
+    if ((ii % reportInterval) == 0)
+      fprintf(stderr, "%10" F_U64P " %12" F_U64P " %10" F_U64P " %12" F_U64P " %10" F_U64P " %12" F_U64P "\n",
+              rawReads, rawBases, corReads, corBases, triReads, triBases);
   }
+
+  fprintf(stderr, "---------- ------------ ---------- ------------ ---------- ------------\n");
+  fprintf(stderr, "%10" F_U64P " %12" F_U64P " %10" F_U64P " %12" F_U64P " %10" F_U64P " %12" F_U64P "\n",
+          rawReads, rawBases, corReads, corBases, triReads, triBases);
+  fprintf(stderr, "\n");
 
   delete [] doHash;
   delete [] doRef;
@@ -166,131 +185,45 @@ loadReadLengths(gkStore *gkp,
 }
 
 
-void
-partitionFrags(gkStore      *gkp,
-               FILE         *BAT,
-               FILE         *JOB,
-               FILE         *OPT,
-               uint32        minOverlapLength,
-               uint64        ovlHashBlockSize,
-               uint64        ovlRefBlockLength,
-               uint64        ovlRefBlockSize,
-               set<uint32>  &libToHash,
-               set<uint32>  &libToRef) {
-  uint32  hashMin = 1;
-  uint32  hashBeg = 1;
-  uint32  hashEnd = 0;
-  uint32  hashMax = UINT32_MAX;
-
-  uint32  refMin = 1;
-  uint32  refBeg = 1;
-  uint32  refEnd = 0;
-  uint32  refMax = UINT32_MAX;
-
-  uint32  batchSize = 0;
-  uint32  batchName = 1;
-  uint32  jobName   = 1;
-
-  uint32  numReads = gkp->gkStore_getNumReads();
-  uint32 *readLen  = NULL;
-
-  if ((ovlRefBlockLength > 0) ||
-      (libToHash.size() > 0) ||
-      (libToRef.size() > 0))
-    readLen = loadReadLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
-
-  if (hashMax > numReads)
-    hashMax = numReads;
-  if (refMax > numReads)
-    refMax = numReads;
-
-  fprintf(stderr, "Partitioning for hash: " F_U32 "-" F_U32 " ref: " F_U32 "," F_U32 "\n",
-          hashMin, hashMax, refMin, refMax);
-
-  hashBeg = hashMin;
-
-  while (hashBeg < hashMax) {
-    hashEnd = hashBeg + ovlHashBlockSize - 1;
-
-    if (hashEnd > hashMax)
-      hashEnd = hashMax;
-
-    refBeg = refMin;
-    refEnd = 0;
-
-    while ((refBeg < refMax) &&
-           ((refBeg < hashEnd) || (libToHash.size() != 0 && libToHash == libToRef))) {
-      uint64  refLen  = 0;
-
-      if (ovlRefBlockLength > 0) {
-        do {
-          refEnd++;
-
-          if (readLen[refEnd] < minOverlapLength)
-            continue;
-
-          refLen += readLen[refEnd];
-        } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
-
-      } else {
-        refEnd = refBeg + ovlRefBlockSize - 1;
-      }
-
-      if (refEnd > refMax)
-        refEnd = refMax;
-      if ((refEnd > hashEnd) && (libToHash.size() == 0 || libToHash != libToRef))
-        refEnd = hashEnd;
-
-      outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, 0, 0, batchSize, batchName, jobName);
-
-      refBeg = refEnd + 1;
-    }
-
-    hashBeg = hashEnd + 1;
-  }
-
-  delete [] readLen;
-}
-
-
-
-
 
 void
 partitionLength(gkStore      *gkp,
+                uint32       *readLen,
                 FILE         *BAT,
                 FILE         *JOB,
                 FILE         *OPT,
                 uint32        minOverlapLength,
                 uint64        ovlHashBlockLength,
                 uint64        ovlRefBlockLength,
-                uint64        ovlRefBlockSize,
                 set<uint32>  &libToHash,
-                set<uint32>  &libToRef) {
-  uint32  hashMin = 1;
-  uint32  hashBeg = 1;
-  uint32  hashEnd = 0;
-  uint32  hashMax = UINT32_MAX;
+                uint32        hashMin,
+                uint32        hashMax,
+                set<uint32>  &libToRef,
+                uint32        refMin,
+                uint32        refMax) {
+  uint32  hashBeg   = 1;
+  uint32  hashEnd   = 0;
+  uint32  hashReads = 0;
+  uint64  hashBases = 0;
 
-  uint32  refMin = 1;
-  uint32  refBeg = 1;
-  uint32  refEnd = 0;
-  uint32  refMax = UINT32_MAX;
+  uint32  refBeg    = 1;
+  uint32  refEnd    = 0;
+  uint32  refReads  = 0;
+  uint64  refBases  = 0;
 
-  uint32  batchSize = 0;
-  uint32  batchName = 1;
-  uint32  jobName   = 1;
+  uint32  batchSize = 0;    //  Number of jobs in this directory
+  uint32  batchName = 1;    //  Name of the directory
+  uint32  jobName   = 1;    //  Name of the job
 
   uint32  numReads = gkp->gkStore_getNumReads();
-  uint32 *readLen  = loadReadLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
 
   if (hashMax > numReads)
     hashMax = numReads;
   if (refMax > numReads)
     refMax = numReads;
 
-  fprintf(stderr, "Partitioning for hash: " F_U32 "-" F_U32 " ref: " F_U32 "," F_U32 "\n",
-          hashMin, hashMax, refMin, refMax);
+  //fprintf(stderr, "Partitioning for hash: " F_U32 "-" F_U32 " ref: " F_U32 "," F_U32 "\n",
+  //        hashMin, hashMax, refMin, refMax);
 
   hashBeg = hashMin;
   hashEnd = hashMin - 1;
@@ -303,6 +236,9 @@ partitionLength(gkStore      *gkp,
     //  Non deleted reads contribute one byte per untrimmed base, and every fragment contributes one
     //  more byte for the terminating zero.  In canu, there are no deleted reads.
 
+    hashReads = 0;
+    hashBases = 0;
+
     do {
       hashEnd++;
 
@@ -310,6 +246,9 @@ partitionLength(gkStore      *gkp,
         continue;
 
       hashLen += readLen[hashEnd] + 1;
+
+      hashReads += 1;
+      hashBases += readLen[hashEnd] + 1;
     } while ((hashLen < ovlHashBlockLength) && (hashEnd < hashMax));
 
     assert(hashEnd <= hashMax);
@@ -321,26 +260,33 @@ partitionLength(gkStore      *gkp,
            ((refBeg < hashEnd) || (libToHash.size() != 0 && libToHash == libToRef))) {
       uint64  refLen = 0;
 
-      if (ovlRefBlockLength > 0) {
-        do {
-          refEnd++;
+      refReads  = 0;
+      refBases  = 0;
 
-          if (readLen[refEnd] < minOverlapLength)
-            continue;
+      do {
+        refEnd++;
 
-          refLen += readLen[refEnd];
-        } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
+        if (readLen[refEnd] < minOverlapLength)
+          continue;
 
-      } else {
-        refEnd = refBeg + ovlRefBlockSize - 1;
-      }
+        refLen += readLen[refEnd];
+
+        refReads += 1;
+        refBases += readLen[refEnd] + 1;
+      } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
 
       if (refEnd > refMax)
         refEnd = refMax;
       if ((refEnd > hashEnd) && (libToHash.size() == 0 || libToHash != libToRef))
         refEnd = hashEnd;
 
-      outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, hashEnd - hashBeg + 1, hashLen, batchSize, batchName, jobName);
+      outputJob(BAT,
+                JOB,
+                OPT,
+                hashBeg, hashEnd, hashReads, hashBases,
+                refBeg,  refEnd,  refReads,  refBases,
+                //hashEnd - hashBeg + 1, hashLen,
+                batchSize, batchName, jobName);
 
       refBeg = refEnd + 1;
     }
@@ -348,7 +294,6 @@ partitionLength(gkStore      *gkp,
     hashBeg = hashEnd + 1;
   }
 
-  delete [] readLen;
 }
 
 
@@ -393,9 +338,7 @@ main(int argc, char **argv) {
   char             outputName[FILENAME_MAX];
 
   uint64           ovlHashBlockLength  = 0;
-  uint64           ovlHashBlockSize    = 0;
   uint64           ovlRefBlockLength   = 0;
-  uint64           ovlRefBlockSize     = 0;
 
   uint32           minOverlapLength    = 0;
 
@@ -409,23 +352,17 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpStoreName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-bl") == 0) {
-      ovlHashBlockLength = strtoull(argv[++arg], NULL, 10);
-
-    } else if (strcmp(argv[arg], "-bs") == 0) {
-      ovlHashBlockSize   = strtoull(argv[++arg], NULL, 10);
+    } else if (strcmp(argv[arg], "-hl") == 0) {
+      ovlHashBlockLength = strtouint64(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-rl") == 0) {
-      ovlRefBlockLength  = strtoull(argv[++arg], NULL, 10);
-
-    } else if (strcmp(argv[arg], "-rs") == 0) {
-      ovlRefBlockSize    = strtoull(argv[++arg], NULL, 10);
+      ovlRefBlockLength  = strtouint64(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ol") == 0) {
-      minOverlapLength   = strtoull(argv[++arg], NULL, 10);
+      minOverlapLength   = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
       AS_UTL_decodeRange(argv[++arg], libToHash);
@@ -446,25 +383,28 @@ main(int argc, char **argv) {
 
     arg++;
   }
+
+  if (ovlHashBlockLength == 0)
+    fprintf(stderr, "ERROR:  Hash length (-hl) must be specified.\n"), err++;
+
+  if (ovlRefBlockLength == 0)
+    fprintf(stderr, "ERROR:  Reference length (-rl) must be specified.\n"), err++;
+
+  if (gkpStoreName == NULL)
+    fprintf(stderr, "ERROR:  gkpStore (-G) must be supplied.\n"), err++;
+
   if (err) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
-    fprintf(stderr, "Someone should write the command line help.\n");
-    fprintf(stderr, "But this is only used interally to canu, so...\n");
+    fprintf(stderr, "  Someone should write the command line help.\n");
+    fprintf(stderr, "  But this is only used interally to canu, so...\n");
     exit(1);
   }
 
-  if ((ovlHashBlockLength > 0) && (ovlHashBlockSize > 0))
-    fprintf(stderr, "ERROR:  At most one of -bl and -bs can be non-zero.\n"), exit(1);
-
-  if ((ovlRefBlockLength > 0) && (ovlRefBlockSize > 0))
-    fprintf(stderr, "ERROR:  At most one of -rl and -rs can be non-zero.\n"), exit(1);
-
-  if (gkpStoreName == NULL)
-    fprintf(stderr, "ERROR:  gkpStore (-g) must be supplied.\n"), exit(1);
-
-
-  fprintf(stderr, "HASH: " F_U64 " reads or " F_U64 " length.\n", ovlHashBlockSize, ovlHashBlockLength);
-  fprintf(stderr, "REF:  " F_U64 " reads or " F_U64 " length.\n", ovlRefBlockSize,  ovlRefBlockLength);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Configuring for:\n");
+  fprintf(stderr, "  hash table:   %12" F_U64P " bases.\n", ovlHashBlockLength);
+  fprintf(stderr, "  read stream:  %12" F_U64P " bases.\n",  ovlRefBlockLength);
+  fprintf(stderr, "\n");
 
   gkStore   *gkp         = gkStore::gkStore_open(gkpStoreName);
   uint32     numLibs     = gkp->gkStore_getNumLibraries();
@@ -494,18 +434,32 @@ main(int argc, char **argv) {
   if (invalidLibs > 0)
     fprintf(stderr, "ERROR: one of -H and/or -R are invalid.\n"), exit(1);
 
+
+  assert(ovlHashBlockLength > 0);
+
+
+  uint32  hashMin = 1;
+  uint32  hashMax = UINT32_MAX;
+
+  uint32  refMin  = 1;
+  uint32  refMax  = UINT32_MAX;
+
+  uint32 *readLen = loadReadLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
+
   FILE *BAT = openOutput(outputPrefix, "ovlbat");
   FILE *JOB = openOutput(outputPrefix, "ovljob");
   FILE *OPT = openOutput(outputPrefix, "ovlopt");
 
-  if (ovlHashBlockLength == 0)
-    partitionFrags(gkp, BAT, JOB, OPT, minOverlapLength, ovlHashBlockSize, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
-  else
-    partitionLength(gkp, BAT, JOB, OPT, minOverlapLength, ovlHashBlockLength, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
+  fprintf(stderr, "  Job       Hash Range        # Reads      # Bases      Stream Range        # Reads      # Bases\n");
+  fprintf(stderr, "----- --------------------- --------- ------------  --------------------- --------- ------------\n");
+
+  partitionLength(gkp, readLen, BAT, JOB, OPT, minOverlapLength, ovlHashBlockLength, ovlRefBlockLength, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
 
   AS_UTL_closeFile(BAT);
   AS_UTL_closeFile(JOB);
   AS_UTL_closeFile(OPT);
+
+  delete [] readLen;
 
   renameToFinal(outputPrefix, "ovlbat");
   renameToFinal(outputPrefix, "ovljob");

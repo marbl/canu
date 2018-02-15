@@ -536,24 +536,63 @@ sub configureAssembler () {
     #  For uncorrected overlapper, both memory and thread count is reduced.  Memory because it is
     #  very CPU bound, and thread count because it can be quite unbalanced.
 
+    #  22 bits ->   864 MB table structure,   64 million kmers
+    #  23 bits ->  1728 MB table structure,  128 million kmers
+    #  24 bits ->  3456 MB table structure,  256 million kmers
+    #  25 bits ->  6912 MB table structure,  512 million kmers
+    #  26 bits -> 13824 MB table structure, 1024 million kmers
+    #
+    #    sequence generate -min 5000 -max 25000 -bases 10000000000                                   > random.fasta
+    #    sequence generate -min 5000 -max 25000 -bases 10000000000 -a 0.9 -c 0.033 -g 0.033 -t 0.033 > repeat.fasta
+    #
+    #               TABLE    W/DATA
+    #    bits 20   216 MB -  2500 MB random -   16 million kmers at 75% load
+    #    bits 21   432 MB -  2750 MB random -   32 million kmers
+    #
+    #    bits 22   864 MB -  3000 MB random -   64 million kmers
+    #
+    #    bits 23  1728 MB -  3500 MB random -  128 million kmers
+    #
+    #    bits 24  3456 MB -  5750 MB random -  200 million kmers at 56% load
+    #             3456 MB -  6500 MB random -  256 million kmers at 75% load
+    #             3456 MB -  8200 MB repeat -  256 million kmers at  5% load
+    #
+    #    bits 25  6912 MB - 10000 MB random -  300 million kmers at 42% load
+    #             6912 MB - 12750 MB random -  512 million kmers at 75% load
+    #             6912 MB - 21000 MB repeat -  600 million kmers at  5% load
+    #
+    #    bits 26 13824 MB - 25000 MB random - 1024 million kmers at 75% load
+    #
+    #
+    #  An expansion factor for the bases to load into the hash table.  Each table size will hold a
+    #  little more than the above number of different kmers.  The additional third in the expansion
+    #  is to adjust for repeated kmers in the reads.
+
+    my $hx = 1.333 * 1000000;
+
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
-        setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
-        setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
+        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",    64 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",    64 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",   1000000000);    setGlobalIfUndef("utgOvlRefBlockLength",   1000000000);   #    1 Gbp
 
-        setGlobalIfUndef("corMhapMemory", "4-6");   setGlobalIfUndef("corMhapThreads", "1-16");
-        setGlobalIfUndef("obtMhapMemory", "4-6");   setGlobalIfUndef("obtMhapThreads", "1-16");
-        setGlobalIfUndef("utgMhapMemory", "4-6");   setGlobalIfUndef("utgMhapThreads", "1-16");
+        setGlobalIfUndef("corOvlMemory", "2");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 22);
+        setGlobalIfUndef("obtOvlMemory", "4");       setGlobalIfUndef("obtOvlThreads", "2-8");    setGlobalIfUndef("obtOvlHashBits", 22);
+        setGlobalIfUndef("utgOvlMemory", "4");       setGlobalIfUndef("utgOvlThreads", "2-8");    setGlobalIfUndef("utgOvlHashBits", 22);
 
-        setGlobalIfUndef("corMMapMemory", "4-6");   setGlobalIfUndef("corMMapThreads", "1-16");
-        setGlobalIfUndef("obtMMapMemory", "4-6");   setGlobalIfUndef("obtMMapThreads", "1-16");
-        setGlobalIfUndef("utgMMapMemory", "4-6");   setGlobalIfUndef("utgMMapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "4-6");    setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "4-6");    setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "4-6");    setGlobalIfUndef("utgMhapThreads", "1-16");
 
+        setGlobalIfUndef("corMMapMemory", "4-6");    setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "4-6");    setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "4-6");    setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
-        setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
-        setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
+        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   128 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   128 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",   5000000000);    setGlobalIfUndef("utgOvlRefBlockLength",   5000000000);   #    5 Gbp
+
+        setGlobalIfUndef("corOvlMemory", "2");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 23);
+        setGlobalIfUndef("obtOvlMemory", "8");       setGlobalIfUndef("obtOvlThreads", "2-8");    setGlobalIfUndef("obtOvlHashBits", 23);
+        setGlobalIfUndef("utgOvlMemory", "8");       setGlobalIfUndef("utgOvlThreads", "2-8");    setGlobalIfUndef("utgOvlHashBits", 23);
 
         setGlobalIfUndef("corMhapMemory", "8-13");   setGlobalIfUndef("corMhapThreads", "1-16");
         setGlobalIfUndef("obtMhapMemory", "8-13");   setGlobalIfUndef("obtMhapThreads", "1-16");
@@ -564,22 +603,28 @@ sub configureAssembler () {
         setGlobalIfUndef("utgMMapMemory", "8-13");   setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
-        setGlobalIfUndef("obtOvlMemory", "4-12");    setGlobalIfUndef("obtOvlThreads", "1-8");
-        setGlobalIfUndef("utgOvlMemory", "4-12");    setGlobalIfUndef("utgOvlThreads", "1-8");
+        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   256 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   256 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",  15000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  15000000000);   #   15 Gbp
 
-        setGlobalIfUndef("corMhapMemory", "16-32");   setGlobalIfUndef("corMhapThreads", "4-16");
-        setGlobalIfUndef("obtMhapMemory", "16-32");   setGlobalIfUndef("obtMhapThreads", "4-16");
-        setGlobalIfUndef("utgMhapMemory", "16-32");   setGlobalIfUndef("utgMhapThreads", "4-16");
+        setGlobalIfUndef("corOvlMemory", "8");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 24);
+        setGlobalIfUndef("obtOvlMemory", "16");      setGlobalIfUndef("obtOvlThreads", "4-16");   setGlobalIfUndef("obtOvlHashBits", 24);
+        setGlobalIfUndef("utgOvlMemory", "16");      setGlobalIfUndef("utgOvlThreads", "4-16");   setGlobalIfUndef("utgOvlHashBits", 24);
 
-        setGlobalIfUndef("corMMapMemory", "16-32");   setGlobalIfUndef("corMMapThreads", "1-16");
-        setGlobalIfUndef("obtMMapMemory", "16-32");   setGlobalIfUndef("obtMMapThreads", "1-16");
-        setGlobalIfUndef("utgMMapMemory", "16-32");   setGlobalIfUndef("utgMMapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "16-32");  setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "16-32");  setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "16-32");  setGlobalIfUndef("utgMhapThreads", "4-16");
+
+        setGlobalIfUndef("corMMapMemory", "16-32");  setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "16-32");  setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "16-32");  setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-        setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
-        setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
-        setGlobalIfUndef("utgOvlMemory", "4-16");    setGlobalIfUndef("utgOvlThreads", "1-8");
+        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   512 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   512 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",  20000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  20000000000);   #   20 Gbp
+
+        setGlobalIfUndef("corOvlMemory", "8");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 25);
+        setGlobalIfUndef("obtOvlMemory", "24");      setGlobalIfUndef("obtOvlThreads", "4-16");   setGlobalIfUndef("obtOvlHashBits", 25);
+        setGlobalIfUndef("utgOvlMemory", "24");      setGlobalIfUndef("utgOvlThreads", "4-16");   setGlobalIfUndef("utgOvlHashBits", 25);
 
         setGlobalIfUndef("corMhapMemory", "16-48");  setGlobalIfUndef("corMhapThreads", "4-16");
         setGlobalIfUndef("obtMhapMemory", "16-48");  setGlobalIfUndef("obtMhapThreads", "4-16");
@@ -590,9 +635,12 @@ sub configureAssembler () {
         setGlobalIfUndef("utgMMapMemory", "16-48");  setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } else {
-        setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
-        setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
-        setGlobalIfUndef("utgOvlMemory", "4-16");    setGlobalIfUndef("utgOvlThreads", "1-8");
+        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   512 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   512 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",  30000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  30000000000);   #   30 Gbp
+
+        setGlobalIfUndef("corOvlMemory", "8");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 25);
+        setGlobalIfUndef("obtOvlMemory", "24");      setGlobalIfUndef("obtOvlThreads", "4-16");   setGlobalIfUndef("obtOvlHashBits", 25);
+        setGlobalIfUndef("utgOvlMemory", "24");      setGlobalIfUndef("utgOvlThreads", "4-16");   setGlobalIfUndef("utgOvlHashBits", 25);
 
         setGlobalIfUndef("corMhapMemory", "32-64");  setGlobalIfUndef("corMhapThreads", "4-16");
         setGlobalIfUndef("obtMhapMemory", "32-64");  setGlobalIfUndef("obtMhapThreads", "4-16");
@@ -602,12 +650,6 @@ sub configureAssembler () {
         setGlobalIfUndef("obtMMapMemory", "32-64");  setGlobalIfUndef("obtMMapThreads", "1-16");
         setGlobalIfUndef("utgMMapMemory", "32-64");  setGlobalIfUndef("utgMMapThreads", "1-16");
     }
-
-    #  Overlapper block sizes probably don't need to be modified based on genome size.
-
-    setGlobalIfUndef("corOvlHashBlockLength",   2500000);   setGlobalIfUndef("corOvlRefBlockSize",   20000);   setGlobalIfUndef("corOvlRefBlockLength", 0);
-    setGlobalIfUndef("obtOvlHashBlockLength", 100000000);   setGlobalIfUndef("obtOvlRefBlockSize", 2000000);   setGlobalIfUndef("obtOvlRefBlockLength", 0);
-    setGlobalIfUndef("utgOvlHashBlockLength", 100000000);   setGlobalIfUndef("utgOvlRefBlockSize", 2000000);   setGlobalIfUndef("utgOvlRefBlockLength", 0);
 
     #  Overlap store construction should be based on the number of overlaps, but we obviously don't
     #  know that until much later.  If we set memory too large, we risk (in the parallel version for sure)
@@ -629,24 +671,23 @@ sub configureAssembler () {
         setGlobalIfUndef("ovsMemory",   "4-32");    setGlobalIfUndef("ovsThreads",   "1");
     }
 
-    #  Correction and consensus are somewhat invariant.
-    #    Correction memory is set based on read length in CorrectReads.pm.
-    #    Consensus memory is set based on tig size in Consensus.pm.
+    #  Correction and consensus are somewhat invariant.  Correction memory is set based on read length
+    #  in CorrectReads.pm.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "1-4");
+        setGlobalIfUndef("cnsMemory",     "8-32");     setGlobalIfUndef("cnsThreads",      "1-4");
         setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "10000");
 
     } else {
-        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("cnsMemory",     "64-128");   setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "1024");     setGlobalIfUndef("corPartitionMin", "15000");
@@ -766,7 +807,7 @@ sub configureAssembler () {
 
     ($err, $all) = getAllowedResources("",    "bat",      $err, $all);
 
-    ($err, $all) = getAllowedResources("",    "cns",      $err, $all)   if (getGlobal("cnsMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
 
     ($err, $all) = getAllowedResources("",    "gfa",      $err, $all);
 

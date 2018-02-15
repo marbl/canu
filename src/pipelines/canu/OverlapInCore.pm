@@ -105,30 +105,15 @@ sub overlapConfigure ($$$) {
         #  Salmon assembly when overlaps were computed differently depending on the libraries
         #  involved (and was run manually).  These are left in for documentation.
         #
-        #my $checkLibrary       = getGlobal("${tag}CheckLibrary");
-        #my $hashLibrary        = getGlobal("${tag}HashLibrary");
-        #my $refLibrary         = getGlobal("${tag}RefLibrary");
-
-        my $hashBlockLength = getGlobal("${tag}OvlHashBlockLength");
-        my $hashBlockSize   = 0;
-        my $refBlockSize    = getGlobal("${tag}OvlRefBlockSize");
-        my $refBlockLength  = getGlobal("${tag}OvlRefBlockLength");
-        my $minOlapLength   = getGlobal("minOverlapLength");
-
-        if (($refBlockSize > 0) && ($refBlockLength > 0)) {
-            caExit("can't set both ${tag}OvlRefBlockSize and ${tag}OvlRefBlockLength", undef);
-        }
+        #my $checkLibrary       = getGlobal("${tag}CheckLibrary");    #  -C
+        #my $hashLibrary        = getGlobal("${tag}HashLibrary");     #  -H $hashLibrary
+        #my $refLibrary         = getGlobal("${tag}RefLibrary");      #  -R $refLibrary
 
         $cmd  = "$bin/overlapInCorePartition \\\n";
-        $cmd .= " -g  ../$asm.gkpStore \\\n";
-        $cmd .= " -bl $hashBlockLength \\\n";
-        $cmd .= " -bs $hashBlockSize \\\n";
-        $cmd .= " -rs $refBlockSize \\\n";
-        $cmd .= " -rl $refBlockLength \\\n";
-        #$cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
-        #$cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
-        #$cmd .= " -C \\\n" if (!$checkLibrary);
-        $cmd .= " -ol $minOlapLength \\\n";
+        $cmd .= " -G  ../$asm.gkpStore \\\n";
+        $cmd .= " -hl " . getGlobal("${tag}OvlHashBlockLength") . " \\\n";
+        $cmd .= " -rl " . getGlobal("${tag}OvlRefBlockLength")  . " \\\n";
+        $cmd .= " -ol " . getGlobal("minOverlapLength") . " \\\n";
         $cmd .= " -o  ./$asm.partition \\\n";
         $cmd .= "> ./$asm.partition.err 2>&1";
 

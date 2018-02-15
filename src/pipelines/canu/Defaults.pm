@@ -133,7 +133,6 @@ sub setGlobal ($$) {
 
     foreach my $opt ("ovlerrorrate",
                      "ovlhashblocklength",
-                     "ovlrefblocksize",
                      "ovlrefblocklength",
                      "ovlhashbits",
                      "ovlhashload",
@@ -682,8 +681,7 @@ sub setOverlapDefaults ($$$) {
     #  OverlapInCore parameters.
 
     setOverlapDefault($tag, "OvlHashBlockLength",  undef,                     "Amount of sequence (bp) to load into the overlap hash table");
-    setOverlapDefault($tag, "OvlRefBlockSize",     undef,                     "Number of reads to search against the hash table per batch");
-    setOverlapDefault($tag, "OvlRefBlockLength",   0,                         "Amount of sequence (bp) to search against the hash table per batch");
+    setOverlapDefault($tag, "OvlRefBlockLength",   undef,                     "Amount of sequence (bp) to search against the hash table per batch");
     setOverlapDefault($tag, "OvlHashBits",         ($tag eq "cor") ? 18 : 23, "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength");
     setOverlapDefault($tag, "OvlHashLoad",         0.75,                      "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75");
     setOverlapDefault($tag, "OvlMerSize",          ($tag eq "cor") ? 19 : 22, "K-mer size for seeds in overlaps");
