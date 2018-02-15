@@ -176,7 +176,7 @@ sub estimateMemoryNeededForCorrectionJobs ($) {
     my $err;
     my $all;
 
-    ($err, $all) = getAllowedResources("", "cor", $err, $all);
+    ($err, $all) = getAllowedResources("", "cor", $err, $all, 0);
 
     print STDERR "--\n";
     print STDERR $all;

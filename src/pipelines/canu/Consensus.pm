@@ -302,7 +302,7 @@ sub estimateMemoryNeededForConsensusJobs ($) {
         my $err;
         my $all;
 
-        ($err, $all) = getAllowedResources("", "cns", $err, $all);
+        ($err, $all) = getAllowedResources("", "cns", $err, $all, 0);
 
         print STDERR "--\n";
         print STDERR $all;

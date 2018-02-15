@@ -181,11 +181,12 @@ sub findGridMaxMemoryAndThreads () {
 #  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
 #  resetting, I'd be making code changes all over the place to support the values returned.
 
-sub getAllowedResources ($$$$@) {
+sub getAllowedResources ($$$$$@) {
     my $tag  = shift @_;  #  Variant, e.g., "cor", "utg"
     my $alg  = shift @_;  #  Algorithm, e.g., "mhap", "ovl"
     my $err  = shift @_;  #  Report of things we can't run.
     my $all  = shift @_;  #  Report of things we can run.
+    my $uni  = shift @_;  #  There's only one task to run (meryl, bogart, gfa)
     my $dbg  = shift @_;  #  Optional, report debugging stuff
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
@@ -286,7 +287,12 @@ sub getAllowedResources ($$$$@) {
     #    taskThreads = 4,8,32,64
     #    taskMemory  = 16g,32g,64g
 
-    my ($bestCores, $bestCoresM, $bestCoresT, $availMemoryMin, $availMemoryMax)  = (0, undef, undef, undef, undef);
+    my $bestCores      = 0;
+    my $bestMemory     = 16 * 1024 * 1024;   #  16 petabytes.
+    my $bestCoresM     = undef;
+    my $bestCoresT     = undef;
+    my $availMemoryMin = undef;
+    my $availMemoryMax = undef;
 
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
@@ -312,17 +318,19 @@ sub getAllowedResources ($$$$@) {
 
             for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
                 my $np_cpu = $gridNum[$ii] * int($gridCor[$ii] / $t);  #  Each process uses $t cores, node has $gridCor[$ii] cores available.
-                my $np_mem = $gridNum[$ii] * int($gridMem[$ii] / $m);  #  Same idea.
+                my $np_mem = $gridNum[$ii] * int($gridMem[$ii] / $m);  #  Each process uses $m GBs,   node ame $gridMem[$ii] GBs   available.
 
-                my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;
+                my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;      #  Number of processes we can fit on this machine.
+
+                $np = 1  if ($uni);                                    #  But don't care if there is only one process to run!
 
                 if ($dbg) {
                     print STDERR "-- ERROR  for $t threads and $m memory - class$ii can support $np_cpu jobs(cores) and $np_mem jobs(memory), so $np jobs.\n";
                 }
 
-                $processes += $np;
-                $cores     += $np * $t;
-                $memory    += $np * $m;
+                $processes += $np;        #  Total number of processes running
+                $cores     += $np * $t;   #  Total cores in use
+                $memory    += $np * $m;   #  Total memory in use
             }
 
             if ($dbg) {
@@ -333,18 +341,19 @@ sub getAllowedResources ($$$$@) {
 
             next if ($cores == 0);
 
-            #  Save the best one seen so far.
+            #  Save the best one seen so far.  Break ties by selecting the one with the most memory.
 
-            if ($bestCores <= $cores) {
+            if (($bestCores <  $cores) ||
+                ($bestCores <= $cores) && ($bestMemory > $memory)) {
                 $bestCores  = $cores;
-                $bestCoresM = $m;
                 $bestCoresT = $t;
+                $bestCoresM = $m;
             }
         }
     }
 
     if (!defined($bestCoresM)) {
-        getAllowedResources($tag, $alg, $err, $all, 1)  if (!defined($dbg));
+        getAllowedResources($tag, $alg, $err, $all, $uni, 1)  if (!defined($dbg));
 
         print STDERR "-- ERROR\n";
         print STDERR "-- ERROR  Task $tag$alg can't run on any available machines.\n";
@@ -365,41 +374,52 @@ sub getAllowedResources ($$$$@) {
     #  Reset the global values for later use.  SPECIAL CASE!  For ovsMemory, we just want the list
     #  of valid memory sizes.
 
-    if ("$alg" ne "ovs") {
-        $taskMemory  = $bestCoresM;
-        $taskThreads = $bestCoresT;
-
-        setGlobal("${tag}${alg}Memory",  $taskMemory);
-        setGlobal("${tag}${alg}Threads", $taskThreads);
-
-    } else {
+    if ("$alg" eq "ovs") {
         $taskMemory  = $availMemoryMax;
         $taskThreads = $bestCoresT;
 
         setGlobal("${tag}${alg}Memory",  "$availMemoryMin-$availMemoryMax");
         setGlobal("${tag}${alg}Threads",  $taskThreads);
+
+    } else {
+        $taskMemory  = $bestCoresM;
+        $taskThreads = $bestCoresT;
+
+        setGlobal("${tag}${alg}Memory",  $taskMemory);
+        setGlobal("${tag}${alg}Threads", $taskThreads);
     }
 
     #  Check for stupidity.
 
-    caExit("invalid taskMemory=$taskMemory; maxMemory=$maxMemory", undef)     if ($taskMemory > $maxMemory);
+    caExit("invalid taskMemory=$taskMemory; maxMemory=$maxMemory", undef)     if ($taskMemory  > $maxMemory);
     caExit("invalid taskThread=$taskThreads; maxThreads=$maxThreads", undef)  if ($taskThreads > $maxThreads);
 
     #  Finally, reset the concurrency (if we're running locally) so we don't swamp our poor workstation.
 
-    my $concurrent = undef;
+    my $concurrent = undef;  #  Undef if in grid mode.
 
     if ($class eq "local") {
-        my $nc = int($maxThreads / $taskThreads);
+        my $nct = int($maxThreads / $taskThreads);
+        my $ncm = int($maxMemory  / $taskMemory);
 
-        if (($taskThreads * getGlobal("${tag}${alg}Concurrency") > $maxThreads)) {
+        my $nc  = ($nct < $ncm) ? $nct : $ncm;
+
+        $nc = 1  if ($uni);
+
+        #  If already set (on the command line), reset if too big.
+
+        if ($nc < getGlobal("${tag}${alg}Concurrency")) {
             $err .= "-- Reset concurrency from ", getGlobal("${tag}${alg}Concurrency"), " to $nc.\n";
             setGlobal("${tag}${alg}Concurrency", $nc);
         }
 
+        #  If not set, set it.
+
         if (!defined(getGlobal("${tag}${alg}Concurrency"))) {
             setGlobal("${tag}${alg}Concurrency", $nc);
         }
+
+        #  Update the local variable for the report.
 
         $concurrent = getGlobal("${tag}${alg}Concurrency");
     }
@@ -424,9 +444,12 @@ sub getAllowedResources ($$$$@) {
         caFailure("unknown task '$alg' in getAllowedResources().", undef);
     }
 
-    my $job = substr("    $concurrent",  -3) . " job" . (($concurrent == 1) ? " " : "s");
-    my $thr = substr("    $taskThreads", -3) . " CPU" . (($taskThreads == 1) ? " " : "s");
-    my $mem = substr("    $taskMemory",  -4) . " GB";
+    my $mem  = substr("    $taskMemory",  -4) . " GB";
+    my $thr  = substr("    $taskThreads", -3) . " CPU" . (($taskThreads == 1) ? " " : "s");
+    my $job  = substr("    $concurrent",  -3) . " job" . (($concurrent == 1) ? " " : "s");
+
+    my $memt = substr("     " . $mem * $job, -4) . " GB";
+    my $thrt = substr("     " . $thr * $job, -4) . " CPU" . (($thr * $job == 1) ? " " : "s");
 
     my $t = substr("$tag$alg     ", 0, 7);
 
@@ -438,8 +461,8 @@ sub getAllowedResources ($$$$@) {
             $all .= "--                            (tag)Concurrency\n";
             $all .= "--                     (tag)Threads          |\n";
             $all .= "--            (tag)Memory         |          |\n";
-            $all .= "--        (tag)         |         |          |  algorithm\n";
-            $all .= "--        -------  ------  --------   --------  -----------------------------\n";
+            $all .= "--        (tag)         |         |          |     total usage     algorithm\n";
+            $all .= "--        -------  ------  --------   --------  -----------------  -----------------------------\n";
         } else {
             $all .= "--                     (tag)Threads\n";
             $all .= "--            (tag)Memory         |\n";
@@ -447,8 +470,8 @@ sub getAllowedResources ($$$$@) {
             $all .= "--        -------  ------  --------  -----------------------------\n";
         }
     }
-    $all .= "-- Local: $t $mem  $thr x $job  $nam\n"      if ( defined($concurrent));
-    $all .= "-- Grid:  $t $mem  $thr  $nam\n"             if (!defined($concurrent));
+    $all .= "-- Local: $t $mem  $thr x $job  $memt $thrt  $nam\n"      if ( defined($concurrent));
+    $all .= "-- Grid:  $t $mem  $thr  $nam\n"                          if (!defined($concurrent));
 
     return($err, $all);
 }
@@ -783,34 +806,34 @@ sub configureAssembler () {
     my $err;
     my $all;
 
-    ($err, $all) = getAllowedResources("",    "meryl",    $err, $all);
+    ($err, $all) = getAllowedResources("",    "meryl",    $err, $all, 1);
 
-    ($err, $all) = getAllowedResources("cor", "mhap",     $err, $all)   if (getGlobal("corOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all)   if (getGlobal("corOverlapper") eq "minimap");
-    ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all)   if (getGlobal("corOverlapper") eq "ovl");
+    ($err, $all) = getAllowedResources("cor", "mhap",     $err, $all, 0)   if (getGlobal("corOverlapper") eq "mhap");
+    ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all, 0)   if (getGlobal("corOverlapper") eq "minimap");
+    ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "ovl");
 
-    ($err, $all) = getAllowedResources("obt", "mhap",     $err, $all)   if (getGlobal("obtOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("obt", "mmap",     $err, $all)   if (getGlobal("obtOverlapper") eq "minimap");
-    ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all)   if (getGlobal("obtOverlapper") eq "ovl");
+    ($err, $all) = getAllowedResources("obt", "mhap",     $err, $all, 0)   if (getGlobal("obtOverlapper") eq "mhap");
+    ($err, $all) = getAllowedResources("obt", "mmap",     $err, $all, 0)   if (getGlobal("obtOverlapper") eq "minimap");
+    ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all, 0)   if (getGlobal("obtOverlapper") eq "ovl");
 
-    ($err, $all) = getAllowedResources("utg", "mhap",     $err, $all)   if (getGlobal("utgOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all)   if (getGlobal("utgOverlapper") eq "minimap");
-    ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all)   if (getGlobal("utgOverlapper") eq "ovl");
+    ($err, $all) = getAllowedResources("utg", "mhap",     $err, $all, 0)   if (getGlobal("utgOverlapper") eq "mhap");
+    ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all, 0)   if (getGlobal("utgOverlapper") eq "minimap");
+    ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all, 0)   if (getGlobal("utgOverlapper") eq "ovl");
 
     #  Usually set based on read length in CorrectReads.pm.  If defined by the user, run through configuration.
-    ($err, $all) = getAllowedResources("",    "cor",      $err, $all)   if (getGlobal("corMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cor",      $err, $all, 0)   if (getGlobal("corMemory") ne undef);
 
-    ($err, $all) = getAllowedResources("",    "ovb",      $err, $all);
-    ($err, $all) = getAllowedResources("",    "ovs",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "ovb",      $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "ovs",      $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("",    "red",      $err, $all);
-    ($err, $all) = getAllowedResources("",    "oea",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "red",      $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "oea",      $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("",    "bat",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "bat",      $err, $all, 1);
 
-    ($err, $all) = getAllowedResources("",    "cns",      $err, $all)   if (getGlobal("cnsMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cns",      $err, $all, 0)   if (getGlobal("cnsMemory") ne undef);
 
-    ($err, $all) = getAllowedResources("",    "gfa",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "gfa",      $err, $all, 1);
 
     #  Check some minimums.
 
@@ -826,5 +849,3 @@ sub configureAssembler () {
     print STDERR "--\n";
     print STDERR $all;
 }
-
-
