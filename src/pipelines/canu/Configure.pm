@@ -629,23 +629,24 @@ sub configureAssembler () {
         setGlobalIfUndef("ovsMemory",   "4-32");    setGlobalIfUndef("ovsThreads",   "1");
     }
 
-    #  Correction and consensus are somewhat invariant.  Correction memory is set based on read length
-    #  in CorrectReads.pm.
+    #  Correction and consensus are somewhat invariant.
+    #    Correction memory is set based on read length in CorrectReads.pm.
+    #    Consensus memory is set based on tig size in Consensus.pm.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("cnsMemory",     "8-32");     setGlobalIfUndef("cnsThreads",      "1-4");
+        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "1-4");
         setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "10000");
 
     } else {
-        setGlobalIfUndef("cnsMemory",     "64-128");   setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "1024");     setGlobalIfUndef("corPartitionMin", "15000");
@@ -765,7 +766,7 @@ sub configureAssembler () {
 
     ($err, $all) = getAllowedResources("",    "bat",      $err, $all);
 
-    ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "cns",      $err, $all)   if (getGlobal("cnsMemory") ne undef);
 
     ($err, $all) = getAllowedResources("",    "gfa",      $err, $all);
 

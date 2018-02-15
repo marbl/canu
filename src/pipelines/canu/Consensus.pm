@@ -47,6 +47,7 @@ use strict;
 use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
+use canu::Configure;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Unitig;
@@ -189,12 +190,7 @@ sub computeNumberOfConsensusJobs ($$) {
 
     open(F, "< unitigging/$asm.${tag}Store/partitionedReads.log") or caExit("can't open 'unitigging/$asm.${tag}Store/partitionedReads.log' for reading: $!", undef);
     while(<F>) {
-        #if (m/^partition (\d+) has \d+ reads$/) {
-        #    $jobs = $1;
-        #}
-        if (m/^Found \d+ unpartitioned reads and maximum partition of (\d+)$/) {
-            $jobs = $1;
-        }
+        $jobs = $1   if (m/^Creating (\d+) partitions with/);
     }
     close(F);
 
@@ -260,6 +256,62 @@ sub consensusConfigure ($) {
 
 
 
+sub largestTigLength ($$) {
+    my $asm    = shift @_;
+    my $tag    = shift @_;
+    my $length = 0;
+
+    fetchFile("unitigging/$asm.${tag}Store/partitionedReads.log");
+
+    open(F, "< unitigging/$asm.${tag}Store/partitionedReads.log") or caExit("can't open 'unitigging/$asm.${tag}Store/partitionedReads.log' for reading: $!", undef);
+    while(<F>) {
+        $length = $1   if (m/^\s+\d+\s+\d+\s+(\d+)\s+\(partitioned\)$/)
+    }
+    close(F);
+
+    return($length);
+}
+
+
+
+sub estimateMemoryNeededForConsensusJobs ($) {
+    my $asm    = shift @_;
+
+    my $ctgLen = largestTigLength($asm, "ctg");
+    my $utgLen = largestTigLength($asm, "utg");
+
+    my $maxLen = ($ctgLen < $utgLen) ? $utgLen : $ctgLen;
+
+    #  Expect to use 1GB memory for every 1Mbp of sequence.
+
+    my $minMem = int($maxLen / 1000000 + 0.5) + 1;
+    my $curMem = getGlobal("cnsMemory");
+
+    if (defined($curMem)) {
+        if ($curMem < $minMem) {
+            print STDERR "--\n";
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  cnsMemory set to $curMem GB, but expected usage is $minMem GB.\n";
+            print STDERR "-- WARNING:  Jobs may fail.\n";
+            print STDERR "-- WARNING:\n";
+        }
+
+    } else {
+        setGlobal("cnsMemory", $minMem);
+
+        my $err;
+        my $all;
+
+        ($err, $all) = getAllowedResources("", "cns", $err, $all);
+
+        print STDERR "--\n";
+        print STDERR $all;
+        print STDERR "--\n";
+    }
+
+    return($minMem);
+}
+
 
 
 #  Checks that all consensus jobs are complete, loads them into the store.
@@ -281,6 +333,12 @@ sub consensusCheck ($) {
     my $ctgjobs = computeNumberOfConsensusJobs($asm, "ctg");
     my $utgjobs = computeNumberOfConsensusJobs($asm, "utg");
     my $jobs = $ctgjobs + $utgjobs;
+
+    #  Setup memory and threads and etc.  Complain if not enough memory.
+
+    my $minMem = estimateMemoryNeededForConsensusJobs($asm);
+
+    #  Decide what to run.
 
     caExit("no consensus jobs found?", undef)   if ($jobs == 0);
 

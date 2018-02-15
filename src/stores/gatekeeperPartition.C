@@ -64,6 +64,7 @@ buildPartition(char    *tigStoreName,
           (numParts == 1) ? "" : "s",
           readCountTarget,
           (numParts == 1) ? "" : " in each");
+  fprintf(stderr, "\n");
 
   //  Allocate space for the partitioning.
 
@@ -74,9 +75,17 @@ buildPartition(char    *tigStoreName,
 
   //  Run through all tigs and partition!
 
-  uint32   partCount = 1;
-  uint32   tigsCount = 0;
-  uint32   readCount = 0;
+  uint32   partCount  = 1;
+  uint32   tigsCount  = 0;
+  uint32   readCount  = 0;
+  uint32   longest    = 0;
+
+  uint32   totalTigs  = 0;
+  uint32   totalReads = 0;
+  uint32   longestG   = 0;   //  Globally longest
+
+  fprintf(stderr, "Partition      Tigs     Reads   Longest\n");
+  fprintf(stderr, "--------- --------- --------- ---------\n");
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -88,17 +97,27 @@ buildPartition(char    *tigStoreName,
 
     if ((readCount + tig->numberOfChildren() >= readCountTarget) &&
         (readCount                           >  0)) {
-      fprintf(stderr, "Partition %d has %d tigs and %d reads.\n",
-              partCount, tigsCount, readCount);
+      fprintf(stderr, "%9u %9u %9u %9u\n", partCount, tigsCount, readCount, longest);
 
       partCount++;
       tigsCount = 0;
       readCount = 0;
+      longest   = 0;
     }
 
     //  Assign all the reads in this tig to this partition.
 
-    readCount += tig->numberOfChildren();
+    tigsCount  += 1;
+    readCount  += tig->numberOfChildren();
+
+    totalTigs  += 1;
+    totalReads += tig->numberOfChildren();
+
+    longest  = max(longest,  tig->length());
+    longestG = max(longestG, tig->length());
+
+    //if (longest < tig->length())
+    //  longest = tig->length();
 
     for (uint32 ci=0; ci<tig->numberOfChildren(); ci++)
       readToPart[tig->getChild(ci)->ident()] = partCount;
@@ -107,8 +126,12 @@ buildPartition(char    *tigStoreName,
   }
 
   if (readCount > 0)
-    fprintf(stderr, "Partition %d has %d tigs and %d reads.\n",
-            partCount, tigsCount, readCount);
+    fprintf(stderr, "%9u %9u %9u %9u\n", partCount, tigsCount, readCount, longest);
+
+  fprintf(stderr, "--------- --------- --------- ---------\n");
+  fprintf(stderr, "          %9u %9u %9u (partitioned)\n", totalTigs, totalReads, longestG);
+  fprintf(stderr, "                    %9u           (unpartitioned)\n", numReads - totalReads);
+  fprintf(stderr, "\n");
 
   delete tigStore;
 

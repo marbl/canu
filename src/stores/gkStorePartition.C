@@ -34,6 +34,9 @@
 #include "gkStore.H"
 
 
+#undef SHOW_MOVING    //  define to get a verbose description of reads moving to partitioned files
+
+
 void
 gkRead::gkRead_copyDataToPartition(void     *blobs,
                                    FILE    **partfiles,
@@ -139,21 +142,26 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  Figure out what the last partition is
 
-  uint32  maxPartition = 0;
-  uint32  unPartitioned = 0;
+  uint32  maxPartition       = 0;
+  uint32  readsPartitioned   = 0;
+  uint32  readsUnPartitioned = 0;
 
   assert(partitionMap[0] == UINT32_MAX);
 
   for (uint32 fi=1; fi<=gkStore_getNumReads(); fi++) {
-    if (partitionMap[fi] == UINT32_MAX)
-      unPartitioned++;
+    if (partitionMap[fi] == UINT32_MAX) {
+      readsUnPartitioned++;
+      continue;
+    }
 
-    else if (maxPartition < partitionMap[fi])
+    readsPartitioned++;
+
+    if (maxPartition < partitionMap[fi])
       maxPartition = partitionMap[fi];
   }
 
-  fprintf(stderr, "Found " F_U32 " unpartitioned reads and maximum partition of " F_U32 "\n",
-          unPartitioned, maxPartition);
+  fprintf(stderr, "Creating " F_U32 " partitions with " F_U32 " reads.  Ignoring " F_U32 " reads.\n",
+          maxPartition, readsPartitioned, readsUnPartitioned);
 
   //  Create the partitions by opening N copies of the data stores,
   //  and writing data to each.
@@ -217,6 +225,10 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   for (uint32 fi=1; fi<=gkStore_getNumReads(); fi++) {
     uint32  pi = partitionMap[fi];
 
+    //  Since both copyDataToPartition() flavors will seek to the correct data location, we can
+    //  immediately skip reads that aren't in a partition.  At some time in the past, this wasn't
+    //  always the case, and, for blobsFiles, every single read needed to be loaded.
+
     if (pi == UINT32_MAX)
       continue;
 
@@ -232,28 +244,22 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
     if (_blobsFiles)
       partRead.gkRead_copyDataToPartition(_blobsFiles, blobfiles, blobfileslen, pi);
 
-    //  Because the blobsFiles copyDataToPartition variant is streaming through the file,
-    //  we need to let it load (and ignore) deleted reads.  After they're loaded (and ignored)
-    //  we can then skip it.
+    //  Log some stuff.
 
-    if (pi < UINT32_MAX) {
-      fprintf(stderr, "read " F_U32 "=" F_U32 " len " F_U32 " -- blob master " F_U64 " -- to part " F_U32 " new read id " F_U32 " part " F_U64 " blob " F_U64 " -- at readIdx " F_U32 "\n",
-              fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
-              _reads[fi]._mPtr,
-              pi,
-              partRead.gkRead_readID(), partRead._pID, partRead._mPtr,
-              readfileslen[pi]);
+#ifdef SHOW_MOVING
+    fprintf(stderr, "read " F_U32 "=" F_U32 " len " F_U32 " -- blob master " F_U64 " -- to part " F_U32 " new read id " F_U32 " part " F_U64 " blob " F_U64 " -- at readIdx " F_U32 "\n",
+            fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
+            _reads[fi]._mPtr,
+            pi,
+            partRead.gkRead_readID(), partRead._pID, partRead._mPtr,
+            readfileslen[pi]);
+#endif
 
-      AS_UTL_safeWrite(readfiles[pi], &partRead, "gkStore::gkStore_buildPartitions::read", sizeof(gkRead), 1);
+    //  And write the read to the partition, saving the position of the read in the partition index.
 
-      readIDmap[fi] = readfileslen[pi]++;
-    }
+    AS_UTL_safeWrite(readfiles[pi], &partRead, "gkStore::gkStore_buildPartitions::read", sizeof(gkRead), 1);
 
-    else {
-      fprintf(stderr, "read " F_U32 "=" F_U32 " len " F_U32 " -- blob master " F_U64 " -- DELETED\n",
-              fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
-              _reads[fi]._mPtr);
-    }
+    readIDmap[fi] = readfileslen[pi]++;
   }
 
   //  There isn't a zeroth read.
@@ -268,8 +274,6 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   AS_UTL_closeFile(rIDmF, name);
 
   for (uint32 i=1; i<=maxPartition; i++) {
-    fprintf(stderr, "partition " F_U32 " has " F_U32 " reads\n", i, readfileslen[i]);
-
     AS_UTL_closeFile(blobfiles[i]);
     AS_UTL_closeFile(readfiles[i]);
   }
@@ -279,6 +283,8 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   delete [] readfiles;
   delete [] blobfileslen;
   delete [] blobfiles;
+
+  fprintf(stderr, "Partitions created.  Bye.\n");
 }
 
 
