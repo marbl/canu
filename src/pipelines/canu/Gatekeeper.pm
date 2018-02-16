@@ -555,6 +555,7 @@ sub gatekeeper ($$@) {
     }
 
   finishStage:
+    ;  #  Perl 5.10 (at least) is VERY unhappy about having two adjacent labels.
     #  DO NOT emitStage() here.  It resets canuIteration, and doesn't need to.
     #emitStage($asm, "$tag-gatekeeper");
 
