@@ -81,6 +81,8 @@ sub readErrorDetectionConfigure ($) {
     my @numOlaps;
     my $numOlaps = 0;
 
+    print STDERR "-- Loading read lengths.\n";
+
     #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
     open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
     while (<F>) {
@@ -92,9 +94,13 @@ sub readErrorDetectionConfigure ($) {
     }
     close(F);
 
+    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($readLengths == 0);
+
     #  NEEDS OPTIMIZE - only need counts here, not the whole store
 
     fetchStore("unitigging/$asm.ovlStore");
+
+    print STDERR "-- Loading number of overlaps per read.\n";
 
     #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
     open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
@@ -107,21 +113,39 @@ sub readErrorDetectionConfigure ($) {
     }
     close(F);
 
+    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($numOlaps == 0);
+
     #  Make an array of partitions, putting as many reads into each as will fit in the desired memory.
 
-    my @bgn;
-    my @end;
-    my $nj = 0;
 
     # get the earliest count we have in the store
     my $maxID    = getNumberOfReadsEarliestVersion($asm);
+
+    #  Find the maximum size of each block of 100,000 reads.  findErrors reads up to 100,000 reads
+    #  to process at one time.  It uses 1 * length + 4 * 100,000 bytes of memory for bases and ID storage,
+    #  and has two buffers of this size.
+
+    my $maxBlockSize = 0;
+
+    for (my $id = 1; $id <= $maxID; $id += 100000) {
+        my $sum = 0;
+
+        for (my $ii=$id; ($ii < $id + 100000) && ($ii < $maxID); $ii++) {
+            $sum += $readLengths[$ii];
+        }
+
+        $maxBlockSize = $sum   if ($maxBlockSize < $sum);
+    }
 
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
     my $maxBases = getGlobal("redBatchLength");
 
     print STDERR "--\n";
-    print STDERR "-- Configure RED for ", getGlobal("redMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "-- Configure RED for ", getGlobal("redMemory"), "gb memory.\n";
+    print STDERR "--                   Batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads.\n";
+    print STDERR "--                                      ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "--                   Expecting evidence of at most $maxBlockSize bases per iteration.\n";
     print STDERR "--\n";
     print STDERR "--           Total                                               Reads                 Olaps Evidence\n";
     print STDERR "--    Job   Memory      Read Range         Reads        Bases   Memory        Olaps   Memory   Memory  (Memory in MB)\n";
@@ -131,20 +155,36 @@ sub readErrorDetectionConfigure ($) {
     my $bases    = 0;
     my $olaps    = 0;
 
-    # get earliest count we can
-    my $coverage     = getExpectedCoverageEarliestVersion($asm);
+    my @bgn;
+    my @end;
+    my $nj = 0;
 
     push @bgn, 1;
 
     for (my $id = 1; $id <= $maxID; $id++) {
-        $reads += 1;
-        $bases += $readLengths[$id];
-        $olaps += $numOlaps[$id];
+        if ($readLengths[$id] > 0) {
+            $reads += 1;
+            $bases += $readLengths[$id];
+            $olaps += $numOlaps[$id];
+        }
 
         #  Guess how much extra memory used for overlapping reads.  Small genomes tend to load every read in the store,
         #  large genomes ... load repeats + 2 * coverage * bases in reads (times 2 for overlaps off of each end)
 
-        my $memory = (13 * $bases) + (12 * $olaps) + (2 * $bases * $coverage);
+        #  Per base/vote:
+        #    1 byte  for sequence
+        #   12 bytes for Vote_Tally_t
+        #
+        #  Per read:
+        #   32 bytes for Frag_Info_t
+        #
+        #  Per olap:
+        #   12 bytes for Olap_Info_t
+        #
+        #  To process, the overlapping reads (in batches of up to 100,000) are loaded.  One batch is processed while
+        #  the next batch loads.  This needs 1 byte per base, but we don't know how many reads are getting loaded.
+
+        my $memory = (12 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize);
 
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop (10% is probably sufficient)
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
@@ -157,9 +197,9 @@ sub readErrorDetectionConfigure ($) {
                    $memory / 1024 / 1024,
                    $bgn[$nj], $end[$nj],
                    $reads,
-                   $bases,               13 * $bases  / 1024 / 1024,
-                   $olaps,               12 * $olaps  / 1024 / 1024,
-                   2 * $bases * $coverage / 1024 / 1024);
+                   $bases,               (12 * $bases + 33 * $reads)  / 1024 / 1024,
+                   $olaps,               (12 * $olaps)                / 1024 / 1024,
+                   2 * $maxBlockSize / 1024 / 1024);
 
             $nj++;
 
@@ -371,6 +411,8 @@ sub overlapErrorAdjustmentConfigure ($) {
     my @numOlaps;
     my $numOlaps = 0;
 
+    print STDERR "-- Loading read lengths.\n";
+
     #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
     open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
     while (<F>) {
@@ -382,6 +424,14 @@ sub overlapErrorAdjustmentConfigure ($) {
     }
     close(F);
 
+    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($readLengths == 0);
+
+    #  NEEDS OPTIMIZE - only need counts here, not the whole store
+
+    fetchStore("unitigging/$asm.ovlStore");
+
+    print STDERR "-- Loading number of overlaps per read.\n";
+
     #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
     open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
     while (<F>) {
@@ -392,6 +442,8 @@ sub overlapErrorAdjustmentConfigure ($) {
         $numOlaps       += $v[1];
     }
     close(F);
+
+    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($numOlaps == 0);
 
     #  Make an array of partitions, putting as many reads into each as will fit in the desired memory.
 
@@ -419,9 +471,6 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     fetchFile("$path/red.red");
 
-    # get earliest count we can
-    my $coverage     = getExpectedCoverageEarliestVersion($asm);
-
     my $corrSize     = (-s "$path/red.red");
 
     my $smallJobs    = 0;
@@ -430,9 +479,11 @@ sub overlapErrorAdjustmentConfigure ($) {
     push @bgn, 1;
 
     for (my $id = 1; $id <= $maxID; $id++) {
-        $reads += 1;
-        $bases += $readLengths[$id];
-        $olaps += $numOlaps[$id];
+        if ($readLengths[$id] > 0) {
+            $reads += 1;
+            $bases += $readLengths[$id];
+            $olaps += $numOlaps[$id];
+        }
 
         #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
 

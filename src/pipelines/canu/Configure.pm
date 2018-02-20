@@ -742,31 +742,31 @@ sub configureAssembler () {
     #   On drosophila, with 270,000 reads (median len ~17,000bp), this will result in about  50 jobs.
     #   The memory-only limit generated 36 jobs.
     #
-    setGlobalIfUndef("redBatchSize",   "5000");
-    setGlobalIfUndef("redBatchLength", "");
+    setGlobalIfUndef("redBatchSize",   undef);
+    setGlobalIfUndef("redBatchLength", "500000000");
 
-    setGlobalIfUndef("oeaBatchSize",   "25000");
-    setGlobalIfUndef("oeaBatchLength", "");
+    setGlobalIfUndef("oeaBatchSize",   undef);
+    setGlobalIfUndef("oeaBatchLength", "300000000");
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("redMemory",   "1-2");    setGlobalIfUndef("redThreads",   "1-4");
-        setGlobalIfUndef("oeaMemory",   "1");      setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory",   "2-4");    setGlobalIfUndef("redThreads",   "1-4");
+        setGlobalIfUndef("oeaMemory",   "4");      setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("redMemory",   "2-6");    setGlobalIfUndef("redThreads",   "1-6");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory",   "4-8");    setGlobalIfUndef("redThreads",   "1-4");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("redMemory",   "2-8");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory",   "4-8");    setGlobalIfUndef("redThreads",   "2-4");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-        setGlobalIfUndef("redMemory",   "2-16");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "2-4");
+        setGlobalIfUndef("oeaMemory",   "8");       setGlobalIfUndef("oeaThreads",   "1");
 
     } else {
-        setGlobalIfUndef("redMemory",   "2-16");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "2-4");
+        setGlobalIfUndef("oeaMemory",   "8");       setGlobalIfUndef("oeaThreads",   "1");
     }
 
     #  And bogart and GFA alignment/processing.
