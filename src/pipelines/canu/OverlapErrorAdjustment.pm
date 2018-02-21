@@ -55,6 +55,55 @@ use canu::Grid_Cloud;
 #  Hardcoded to use utgOvlErrorRate
 
 
+sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
+    my $asm     = shift @_;
+    my $maxID   = shift @_;
+    my $rlVec   = shift @_;
+    my $rlSum   = 0;
+    my $noVec   = shift @_;
+    my $noSum   = 0;
+
+    my $bin     = getBinDirectory();
+
+    $$rlVec     = "\xff" x ($maxID * 4 + 4);
+    $$noVec     = "\xff" x ($maxID * 4 + 4);
+
+    print STDERR "--\n";
+    print STDERR "-- Loading read lengths.\n";
+
+    open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
+    while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
+        my @v = split '\s+', $_;
+        vec($$rlVec, $v[0], 32) = $v[2];
+        $rlSum                 += $v[2];
+    }
+    close(F);
+
+    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($rlSum == 0);
+
+
+    fetchStore("unitigging/$asm.ovlStore");
+
+    print STDERR "-- Loading number of overlaps per read.\n";
+
+    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
+    while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
+        my @v = split '\s+', $_;
+        vec($$noVec, $v[0], 32) = $v[1];
+        $noSum                 += $v[1];
+    }
+    close(F);
+
+    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($noSum == 0);
+
+    return($rlSum, $noSum);
+}
+
+
 
 sub readErrorDetectionConfigure ($) {
     my $asm     = shift @_;
@@ -73,54 +122,10 @@ sub readErrorDetectionConfigure ($) {
 
     make_path("$path")  if (! -d "$path");
 
-    #  RED uses 13 bytes/base plus 12 bytes/overlap + space for evidence reads.
+    my $maxID = getNumberOfReadsEarliestVersion($asm);
 
-    my @readLengths;
-    my $readLengths = 0;
-
-    my @numOlaps;
-    my $numOlaps = 0;
-
-    print STDERR "--\n";
-    print STDERR "-- Loading read lengths.\n";
-
-    #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
-    open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
-    while (<F>) {
-        s/^\s+//;
-        s/\s+$//;
-        my @v = split '\s+', $_;
-        $readLengths[$v[0]] = $v[2];
-        $readLengths       += $v[2];
-    }
-    close(F);
-
-    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($readLengths == 0);
-
-    #  NEEDS OPTIMIZE - only need counts here, not the whole store
-
-    fetchStore("unitigging/$asm.ovlStore");
-
-    print STDERR "-- Loading number of overlaps per read.\n";
-
-    #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
-    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
-    while (<F>) {
-        s/^\s+//;
-        s/\s+$//;
-        my @v = split '\s+', $_;
-        $numOlaps[$v[0]] = $v[1];
-        $numOlaps       += $v[1];
-    }
-    close(F);
-
-    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($numOlaps == 0);
-
-    #  Make an array of partitions, putting as many reads into each as will fit in the desired memory.
-
-
-    # get the earliest count we have in the store
-    my $maxID    = getNumberOfReadsEarliestVersion($asm);
+    my ($rlVec, $noVec);
+    my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);
 
     #  Find the maximum size of each block of 100,000 reads.  findErrors reads up to 100,000 reads
     #  to process at one time.  It uses 1 * length + 4 * 100,000 bytes of memory for bases and ID storage,
@@ -132,7 +137,7 @@ sub readErrorDetectionConfigure ($) {
         my $sum = 0;
 
         for (my $ii=$id; ($ii < $id + 100000) && ($ii < $maxID); $ii++) {
-            $sum += $readLengths[$ii];
+            $sum += vec($rlVec, $ii, 32);
         }
 
         $maxBlockSize = $sum   if ($maxBlockSize < $sum);
@@ -163,10 +168,10 @@ sub readErrorDetectionConfigure ($) {
     push @bgn, 1;
 
     for (my $id = 1; $id <= $maxID; $id++) {
-        if ($readLengths[$id] > 0) {
+        if (vec($rlVec, $id, 32) > 0) {
             $reads += 1;
-            $bases += $readLengths[$id];
-            $olaps += $numOlaps[$id];
+            $bases += vec($rlVec, $id, 32);
+            $olaps += vec($noVec, $id, 32);
         }
 
         #  Memory usage:
@@ -218,7 +223,7 @@ sub readErrorDetectionConfigure ($) {
 
     print  STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
     printf(STDERR "--                                               %12u          %12u\n",
-           $readLengths, $numOlaps);
+           $rlSum, $noSum);
 
     #  Dump a script.
 
@@ -407,49 +412,10 @@ sub overlapErrorAdjustmentConfigure ($) {
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
-    #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number of adjustments, but that's
-    #  basically error rate.  No adjustment is output for mismatches.
+    my $maxID = getNumberOfReadsEarliestVersion($asm);
 
-    my @readLengths;
-    my $readLengths = 0;
-
-    my @numOlaps;
-    my $numOlaps = 0;
-
-    print STDERR "--\n";
-    print STDERR "-- Loading read lengths.\n";
-
-    #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
-    open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads |");
-    while (<F>) {
-        s/^\s+//;
-        s/\s+$//;
-        my @v = split '\s+', $_;
-        $readLengths[$v[0]] = $v[2];
-        $readLengths       += $v[2];
-    }
-    close(F);
-
-    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($readLengths == 0);
-
-    #  NEEDS OPTIMIZE - only need counts here, not the whole store
-
-    fetchStore("unitigging/$asm.ovlStore");
-
-    print STDERR "-- Loading number of overlaps per read.\n";
-
-    #print STDERR "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts\n";
-    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
-    while (<F>) {
-        s/^\s+//;
-        s/\s+$//;
-        my @v = split '\s+', $_;
-        $numOlaps[$v[0]] = $v[1];
-        $numOlaps       += $v[1];
-    }
-    close(F);
-
-    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($numOlaps == 0);
+    my ($rlVec, $noVec);
+    my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);
 
     #  Make an array of partitions, putting as many reads into each as will fit in the desired memory.
 
@@ -487,11 +453,14 @@ sub overlapErrorAdjustmentConfigure ($) {
     push @bgn, 1;
 
     for (my $id = 1; $id <= $maxID; $id++) {
-        if ($readLengths[$id] > 0) {
+        if (vec($rlVec, $id, 32) > 0) {
             $reads += 1;
-            $bases += $readLengths[$id];
-            $olaps += $numOlaps[$id];
+            $bases += vec($rlVec, $id, 32);
+            $olaps += vec($noVec, $id, 32);
         }
+
+        #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number
+        #  of adjustments, but that's basically error rate.  No adjustment is output for mismatches.
 
         #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
 
@@ -563,7 +532,7 @@ sub overlapErrorAdjustmentConfigure ($) {
 
     print  STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
     printf(STDERR "--                                               %12u          %12u\n",
-           $readLengths, $numOlaps);
+           $rlSum, $noSum);
 
     #  Dump a script
 
