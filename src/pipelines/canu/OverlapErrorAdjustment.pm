@@ -81,6 +81,7 @@ sub readErrorDetectionConfigure ($) {
     my @numOlaps;
     my $numOlaps = 0;
 
+    print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
 
     #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
@@ -168,9 +169,8 @@ sub readErrorDetectionConfigure ($) {
             $olaps += $numOlaps[$id];
         }
 
-        #  Guess how much extra memory used for overlapping reads.  Small genomes tend to load every read in the store,
-        #  large genomes ... load repeats + 2 * coverage * bases in reads (times 2 for overlaps off of each end)
-
+        #  Memory usage:
+        #
         #  Per base/vote:
         #    1 byte  for sequence
         #   12 bytes for Vote_Tally_t
@@ -181,14 +181,19 @@ sub readErrorDetectionConfigure ($) {
         #  Per olap:
         #   12 bytes for Olap_Info_t
         #
-        #  To process, the overlapping reads (in batches of up to 100,000) are loaded.  One batch is processed while
-        #  the next batch loads.  This needs 1 byte per base, but we don't know how many reads are getting loaded.
+        #  When processing, the overlapping reads are loaded in batches of up to 100,000 reads
+        #  (depending on overlaps).  This needs 1 byte per base, but we don't know how many reads
+        #  are getting loaded, so we overestimate by finding the largest block of 100,000 reads that
+        #  could be loaded (done above) and using 2x that (because there are two buffers of these
+        #  reads).
+        #
+        #  Throw in another 2 GB for unknown overheads (gkpStore, ovlStore) and alignment generation.
 
-        my $memory = (12 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize);
+        my $memory = (12 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize) + 2 * 1024 * 1024 * 1024;
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop (10% is probably sufficient)
-            (($maxReads > 0) && ($reads  >= $maxReads))      ||
-            (($maxBases > 0) && ($bases  >= $maxBases))      ||
+        if ((($maxMem   > 0) && ($memory >= $maxMem))    ||
+            (($maxReads > 0) && ($reads  >= $maxReads))  ||
+            (($maxBases > 0) && ($bases  >= $maxBases))  ||
             (($id == $maxID))) {
             push @end, $id;
 
@@ -411,6 +416,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     my @numOlaps;
     my $numOlaps = 0;
 
+    print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
 
     #print STDERR "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads\n";
@@ -462,7 +468,9 @@ sub overlapErrorAdjustmentConfigure ($) {
     my $maxBases = getGlobal("oeaBatchLength");
 
     print STDERR "--\n";
-    print STDERR "-- Configure OEA for ", getGlobal("oeaMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "-- Configure OEA for ", getGlobal("oeaMemory"), "gb memory.\n";
+    print STDERR "--                   Batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads.\n";
+    print STDERR "--                                      ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
     print STDERR "--\n";
 
     my $reads    = 0;
@@ -487,20 +495,21 @@ sub overlapErrorAdjustmentConfigure ($) {
 
         #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
 
-        my $memBases  = (1   * $bases);              #  Corrected reads for this batch
-        my $memAdj1   = (8   * $corrSize) * 0.33;    #  Overestimate of the size of the indel adjustments needed (total size includes mismatches)
-        my $memReads  = (32  * $reads);              #  Read data in the batch
-        my $memOlaps  = (32  * $olaps);              #  Loaded overlaps
-        my $memSeq    = (4   * 2097152);             #  two char arrays of 2*maxReadLen
-        my $memAdj2   = (16  * 2097152);             #  two Adjust_t arrays of maxReadLen
-        my $memWA     = (32  * 1048576);             #  Work area (16mb) and edit array (16mb)
-        my $memMisc   = (256 * 1048576);             #  Work area (16mb) and edit array (16mb) and (192mb) slop
+        my $memBases  = (1    * $bases);              #  Corrected reads for this batch
+        my $memAdj1   = (8    * $corrSize) * 0.33;    #  Overestimate of the size of the indel adjustments needed (total size includes mismatches)
+        my $memReads  = (32   * $reads);              #  Read data in the batch
+        my $memOlaps  = (32   * $olaps);              #  Loaded overlaps
+        my $memSeq    = (4    * 2097152);             #  two char arrays of 2*maxReadLen
+        my $memAdj2   = (16   * 2097152);             #  two Adjust_t arrays of maxReadLen
+        my $memWA     = (32   * 1048576);             #  Work area (16mb) and edit array (16mb)
+        my $memMisc   = (256  * 1048576);             #  Work area (16mb) and edit array (16mb) and (192mb) slop
+        my $memExtra  = (2048 * 1048576);             #  For alignments and overhead.
 
-        my $memory = $memBases + $memAdj1 + $memReads + $memOlaps + $memSeq + $memAdj2 + $memWA + $memMisc;
+        my $memory = $memBases + $memAdj1 + $memReads + $memOlaps + $memSeq + $memAdj2 + $memWA + $memMisc + $memExtra;
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||
-            (($maxReads > 0) && ($reads  >= $maxReads))      ||
-            (($maxBases > 0) && ($bases  >= $maxBases))      ||
+        if ((($maxMem   > 0) && ($memory >= $maxMem))   ||
+            (($maxReads > 0) && ($reads  >= $maxReads)) ||
+            (($maxBases > 0) && ($bases  >= $maxBases)) ||
             (($id == $maxID))) {
             push @end, $id;
 
