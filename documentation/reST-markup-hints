@@ -8,3 +8,11 @@ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#definition-li
 
 http://rest-sphinx-memo.readthedocs.io/en/latest/ReST.html
  - A very useful page with examples.
+
+
+`italics`
+*italics*
+**bold**
+``red-code``
+
+
