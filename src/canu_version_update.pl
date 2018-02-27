@@ -30,9 +30,9 @@ use Cwd qw(getcwd);
 
 my $cwd = getcwd();
 
-my $label    = "snapshot";     #  Change this to 'release' just before making a release.
-my $major    = "1";            #  ...and this too.
-my $minor    = "6";            #  ...and this too.
+my $label    = "snapshot";     #  Automagically set to 'release' for releases.
+my $major    = "1";            #  Bump before release.
+my $minor    = "7";            #  Bump before release.
 
 my $commits  = "0";
 my $hash1    = undef;          #  This from 'git describe'
