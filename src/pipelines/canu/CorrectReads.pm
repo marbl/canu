@@ -729,7 +729,7 @@ sub loadCorrectedReads ($) {
         print STDERR "--\n";
         print STDERR "-- Purging overlaps used for correction.\n";
 
-        remove_tree("correction/$asm.ovlStore")   
+        remove_tree("correction/$asm.ovlStore")
     } else {
         print STDERR "--\n";
         print STDERR "-- Overlaps used for correction saved.\n";

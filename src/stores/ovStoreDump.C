@@ -136,7 +136,7 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
   _status = new readStatus [nReads+1];
 
   memset(_status, 0, sizeof(readStatus) * (nReads+1));
- 
+
   FILE *E = AS_UTL_openInputFile(EN);
   fgets(NN, FILENAME_MAX, E);
   while (!feof(E)) {

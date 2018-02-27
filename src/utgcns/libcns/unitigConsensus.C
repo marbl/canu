@@ -403,7 +403,7 @@ generateTemplateStitch(abAbacus    *abacus,
     if (readEnd > readLen)
       readEnd = readLen;
     // enforce minimum template length
-    if (templateLen <= 1) 
+    if (templateLen <= 1)
        templateLen ++;
 
     if (verbose) {

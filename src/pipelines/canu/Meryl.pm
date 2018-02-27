@@ -601,7 +601,7 @@ sub merylFinishSubtraction($$) {
     goto finishStage  if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
 
   finishStage:
-    
+
     # also figure out the histogram info for next step
     fetchFile("$path/$ofile.histogram");
 
@@ -617,7 +617,7 @@ sub merylFinishSubtraction($$) {
     open(F, "< $path/$ofile.histogram") or caFailure("failed to read mer histogram from '$path/$ofile.histogram'", undef);
     while (<F>) {
        my ($threshold, $num, $distinct, $total) = split '\s+', $_;
-       if ($prevD == -1) {       
+       if ($prevD == -1) {
           $prevD = $num;
           $prevCount = $num;
         } else {

@@ -58,13 +58,13 @@ sub getNumberOfReadsEarliestVersion($) {
     my $asm    = shift @_;
 
     # get the earliest count we have in the store
-    my $maxID    = getNumberOfReadsInStore("cor", $asm); 
+    my $maxID    = getNumberOfReadsInStore("cor", $asm);
     $maxID       = getNumberOfReadsInStore("obt", $asm) if $maxID == 0;
     $maxID       = getNumberOfReadsInStore("utg", $asm) if $maxID == 0;
 
     return $maxID;
 }
-    
+
 sub getNumberOfReadsInStore ($$) {
     my $tag    = shift @_;
     my $asm    = shift @_;
