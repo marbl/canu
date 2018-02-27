@@ -35,6 +35,10 @@
  *      are Copyright 2014 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2017-SEP-12
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -161,7 +165,7 @@ toString(merylOp op) {
     case opDifference:           return("opDifference");           break;
     case opSymmetricDifference:  return("opSymmetricDifference");  break;
     case opComplement:           return("opComplement");           break;
-    case opNothing:              return("opNothing");              break; 
+    case opNothing:              return("opNothing");              break;
   }
 
   assert(0);
@@ -516,7 +520,7 @@ merylOperation::nextMer(void) {
 
     case opNothing:
       break;
-  }  
+  }
 
   //  If flagged for output, output!
 

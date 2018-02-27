@@ -13,17 +13,17 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gkStore.C
+ *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2014-NOV-26 to 2015-AUG-10
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-OCT-09
+ *    Brian P. Walenz beginning on 2017-OCT-03
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
- *    Sergey Koren beginning on 2015-DEC-09
+ *    Sergey Koren beginning on 2017-OCT-18
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -210,7 +210,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   //
   //  READ ONLY - Two options: normal and partitioned.
   //
-  //  If normal, 
+  //  If normal,
 
 
   assert(mode == gkStore_readOnly);
@@ -231,7 +231,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   //  lookup the metadata in the partitoned _reads data.  This is 4 bytes per read, compared to 24
   //  bytes for the full meta data.  Assuming 100x of 3kb read coverage on human, that's 100
   //  million reads, so 0.400 GB vs 2.4 GB.
-  
+
 
   if (partID != UINT32_MAX) {
     snprintf(name, FILENAME_MAX, "%s/partitions/map", _storePath);

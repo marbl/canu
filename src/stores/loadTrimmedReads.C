@@ -15,7 +15,11 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-SEP-25
+ *    Brian P. Walenz beginning on 2017-OCT-03
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2017-OCT-18
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -95,7 +99,7 @@ main (int argc, char **argv) {
        gkRead* read = gkpStore->gkStore_getRead(rid);
        gkpStore->gkStore_setClearRange(rid, 0, read->gkRead_sequenceLength());
     }
-  
+
   delete clrRange;
 
   gkpStore->gkStore_close();

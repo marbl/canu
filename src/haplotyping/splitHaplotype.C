@@ -19,10 +19,6 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
- *    Sergey Koren beginning on 2018-FEB-08
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -74,7 +70,7 @@ main(int argc, char **argv) {
       prefix = argv[++arg];
 
 
-    } else if (strcmp(argv[arg], "-cr") == 0) { 
+    } else if (strcmp(argv[arg], "-cr") == 0) {
       minRatio = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-h") == 0) {
@@ -131,7 +127,7 @@ main(int argc, char **argv) {
     idMax = numReads;
 
 
-  
+
   // open all the haplotype read input and output files, assume we have few enough haplotypes that we won't hit max file limits
   map<char*, FILE*> outputFasta;
   char outputName[256];
@@ -139,11 +135,11 @@ main(int argc, char **argv) {
   for (map<char*,FILE*>::iterator it=haplotypeList.begin(); it!=haplotypeList.end(); ++it) {
      it->second = AS_UTL_openInputFile(prefix, '.', it->first);
      sprintf(outputName, "%s.%s", prefix, it->first);
-     outputFasta[it->first] = AS_UTL_openOutputFile(outputName, '.', "fasta"); 
+     outputFasta[it->first] = AS_UTL_openOutputFile(outputName, '.', "fasta");
   }
   outputFasta["unknown"] = AS_UTL_openOutputFile(prefix, '.', "unknown.fasta");
 
-  // now loop reads and write 
+  // now loop reads and write
   char       *ovStr = new char [1024];
 
   fprintf(stderr, "Launched with range %d - %d\n", idMin, idMax);

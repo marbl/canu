@@ -15,6 +15,9 @@
  *
  *  Modifications by:
  *
+ *    Brian P. Walenz beginning on 2017-SEP-18
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

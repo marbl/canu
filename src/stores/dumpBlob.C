@@ -13,21 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/AS_GKP/gkpStoreDumpFASTQ.C
- *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2012-FEB-06 to 2013-AUG-01
- *      are Copyright 2012-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-NOV-21 to 2015-JUN-03
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-NOV-23
+ *    Brian P. Walenz beginning on 2017-OCT-03
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -95,14 +83,14 @@ main(int argc, char **argv) {
     chunk[3] = blob[3];
     chunk[4] = 0;
 
-    chunkLen = *((uint32 *)blob + 1); 
+    chunkLen = *((uint32 *)blob + 1);
     blob    += 8;
     blobPos += 8;
 
     if ((chunk[0] == 'B') &&
         (chunk[1] == 'L') &&
         (chunk[2] == 'O') &&
-        (chunk[3] == 'B')) { 
+        (chunk[3] == 'B')) {
       fprintf(stdout, "START %s pos %8" F_U64P " max %8" F_SIZE_TP " length %8" F_U32P "\n", chunk, blobPos, blobMap->length(), chunkLen);
     }
 

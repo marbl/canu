@@ -16,15 +16,15 @@
  #
  #  This file is derived from:
  #
- #    src/pipelines/ca3g.pl
+ #    src/pipelines/canu.pl
  #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2018-FEB-08
+ #    Sergey Koren beginning on 2018-FEB-08
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
- #    Sergey Koren beginning on 2018-FEB-08
+ #    Brian P. Walenz beginning on 2018-FEB-08
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -413,7 +413,7 @@ if (checkHaplotypeReads($asm, "haplotype") != 1) {
       merylConfigure("haplotype$h", "hap");
       merylCheck("haplotype$h", "hap")  foreach (1..getGlobal("canuIterationMax") + 1);
    }
-   foreach my $h (keys(%haplotypes)) { 
+   foreach my $h (keys(%haplotypes)) {
       merylSubtract("haplotype$h", "hap");
    }
    foreach my $h (keys(%haplotypes)) {
@@ -498,7 +498,7 @@ if ($unknownPercent <= 2) {
 } elsif ($unknownPercent > 50) {
    print STDERR "-- Haplotype unknown has $unknownPercent\% of total, not auto-assembling\n";
    caExit("Failed to haplotype reads, majority is unclassified", undef);
-} else { 
+} else {
    $unknownReads = " $readType $asm.unknownReads.fasta.gz"
 }
 print STDERR "-- Haplotype unknown has $unknownC sequences with $unknownB bp (% of total = $unknownPercent\%, mean = $mean).\n";

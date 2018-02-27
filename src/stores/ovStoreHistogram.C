@@ -19,6 +19,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Koren beginning on 2017-OCT-09
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -710,7 +714,7 @@ ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage) {
   assert(coverage <= _scores[id].points[cp]);          //  Linearly interpolate to find the score.
 
   double  x     = _scores[id].points[cp] - _scores[id].points[cp-1];
-  double  y     = _scores[id].scores[cp] - _scores[id].scores[cp-1];          
+  double  y     = _scores[id].scores[cp] - _scores[id].scores[cp-1];
   double  score = _scores[id].scores[cp-1] + y / x * (coverage - _scores[id].points[cp-1]);
 
   if (score < 0)      score = 0;

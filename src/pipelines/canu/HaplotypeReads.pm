@@ -15,15 +15,11 @@
  #
  #  This file is derived from:
  #
- #    src/pipelines/ca3g/CorrectReads.pm
+ #    src/pipelines/canu/CorrectReads.pm
  #
  #  Modifications by:
  #
  #    Brian P. Walenz beginning on 2018-FEB-08
- #      are a 'United States Government Work', and
- #      are released in the public domain
- #
- #    Sergey Koren beginning on 2018-FEB-08
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
