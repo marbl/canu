@@ -500,7 +500,7 @@ generateTemplateStitch(abAbacus    *abacus,
     if (verbose)
       fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n", tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
 
-    increaseArray(tigseq, tiglen, tigmax, tiglen + readLen - readEnd + 1);
+    resizeArray(tigseq, tiglen, tigmax, tiglen + readLen - readEnd + 1);
 
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
