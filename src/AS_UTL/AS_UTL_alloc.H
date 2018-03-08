@@ -92,13 +92,11 @@ duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax)
 }
 
 
+//  Set the array size to 'newMax'.  No guards, the array will ALWAYS be reallocated.
 
 template<typename TT, typename LL>
 void
-resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
-
-  if (newMax <= arrayMax)
-    return;
+setArraySize(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
 
   arrayMax = newMax;
 
@@ -116,6 +114,35 @@ resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=
 
 
 
+
+//  Ensure that there is enough space to hold one more element in the array.
+//  Increase the array by 'moreSpace' if needed.
+
+template<typename TT, typename LL>
+void
+increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 moreSpace) {
+
+  if (arrayLen < arrayMax)
+    return;
+
+  setArraySize(array, arrayLen, arrayMax, arrayMax + moreSpace, resizeArray_copyData);
+}
+
+
+//  Resize the array so that it is at least as bit as new max.  Do nothing
+//  if the array is big enough already.
+
+template<typename TT, typename LL>
+void
+resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
+
+  if (newMax <= arrayMax)
+    return;
+
+  setArraySize(array, arrayLen, arrayMax, newMax, op);
+}
+
+
 template<typename T1, typename T2, typename LL>
 void
 resizeArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, LL newMax, uint32 op=resizeArray_copyData) {
@@ -123,62 +150,9 @@ resizeArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, LL newM
   if (newMax <= arrayMax)
     return;
 
-  arrayMax = newMax;
-
-  T1 *copy1 = new T1 [arrayMax];
-  T2 *copy2 = new T2 [arrayMax];
-
-  if (op & resizeArray_copyData) {
-    memcpy(copy1, array1, sizeof(T1) * arrayLen);
-    memcpy(copy2, array2, sizeof(T2) * arrayLen);
-  }
-
-  delete [] array1;
-  delete [] array2;
-
-  array1 = copy1;
-  array2 = copy2;
-
-  if (op & resizeArray_clearNew) {
-    memset(array1 + arrayLen, 0, sizeof(T1) * (newMax - arrayLen));
-    memset(array2 + arrayLen, 0, sizeof(T2) * (newMax - arrayLen));
-  }
+  setArraySize(array1, arrayLen, arrayMax, newMax, op);
+  setArraySize(array2, arrayLen, arrayMax, newMax, op);
 }
-
-
-
-template<typename TT, typename LL>
-void
-increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
-
-  if (arrayLen + increment <= arrayMax)
-    return;
-
-  LL newMax = arrayMax;
-
-  while (newMax < arrayLen + increment)
-    newMax *= 2;
-
-  resizeArray(array, arrayLen, arrayMax, newMax, resizeArray_copyData);
-}
-
-
-
-template<typename T1, typename T2, typename LL>
-void
-increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint64 increment) {
-
-  if (arrayLen + increment <= arrayMax)
-    return;
-
-  LL newMax = arrayMax;
-
-  while (newMax < arrayLen + increment)
-    newMax *= 2;
-
-  resizeArrayPair(array1, array2, arrayLen, arrayMax, newMax, resizeArray_copyData);
-}
-
 
 
 #endif // AS_UTL_ALLOC_H

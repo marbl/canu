@@ -550,12 +550,13 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 
   assert(_info.numLibraries <= _librariesAlloc);
 
-  //  Library[0] doesn't exist, see comments in addEmptyRead below.
+  //  Just like with reads below, there is no _libraries[0] element.
 
   _info.numLibraries++;
 
-  if (_info.numLibraries == _librariesAlloc)
-    increaseArray(_libraries, _info.numLibraries, _librariesAlloc, 128);
+  increaseArray(_libraries, _info.numLibraries, _librariesAlloc, 128);
+
+  //  Initialize the new library.
 
   _libraries[_info.numLibraries] = gkLibrary();
   _libraries[_info.numLibraries]._libraryID = _info.numLibraries;
@@ -593,7 +594,7 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 gkReadData *
 gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
 
-  assert(_info.numReads <= _readsAlloc);
+  assert(_info.numReads < _readsAlloc);
   assert(_mode != gkStore_readOnly);
 
   //  We reserve the zeroth read for "null".  This is easy to accomplish
@@ -602,8 +603,9 @@ gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
 
   _info.numReads++;
 
-  if (_info.numReads == _readsAlloc)
-    increaseArray(_reads, _info.numReads, _readsAlloc, _info.numReads/2);
+  increaseArray(_reads, _info.numReads, _readsAlloc, _info.numReads/2);
+
+  //  Initialize the new read.
 
   _reads[_info.numReads]            = gkRead();
   _reads[_info.numReads]._readID    = _info.numReads;

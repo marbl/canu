@@ -173,7 +173,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
     AS_UTL_mkdir(_storePath);
 
-    _librariesAlloc = 32;
+    _librariesAlloc = 32;                                   //  _libraries and _reads MUST be preallocated.
     _libraries      = new gkLibrary [_librariesAlloc];
 
     _readsAlloc     = 32768;
