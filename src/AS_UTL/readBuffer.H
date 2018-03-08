@@ -64,6 +64,9 @@ public:
   uint64               read(void *buf, uint64 len);
   uint64               read(void *buf, uint64 maxlen, char stop);
 
+  void                 skipAhead(char stop);
+  uint64               copyUntil(char stop, char *dest, uint64 destLen);
+
   void                 seek(uint64 pos);
   uint64               tell(void) { return(_filePos); };
 
@@ -157,6 +160,96 @@ readBuffer::readuntil(char stop) {
 
   return(ch);
 }
+
+
+//  Advances the file position to the next 'stop' character and returns
+//  'stop', or 0 if eof.
+inline
+void
+readBuffer::skipAhead(char stop) {
+
+#if 0
+  while (_eof == false) {
+    while ((_bufferPos < _bufferLen) &&
+           (_buffer[_bufferPos] != stop)) {
+      _bufferPos++;
+      _filePos++;
+    }
+
+    if ((_bufferPos < _bufferLen) &&
+        (_buffer[_bufferPos] == stop))
+      return;
+
+    //assert(_bufferPos == _bufferLen);
+
+    fillBuffer();
+
+    //if (_eof)
+    //  return;
+  }
+#else
+  //_buffer[_bufferLen] = stop;
+  assert(_buffer[_bufferLen] == stop);
+
+  while (_eof == false) {
+    //fprintf(stderr, "search for stop starting at %u to len=%u\n", _bufferPos, _bufferLen);
+    while (_buffer[_bufferPos] != stop) {
+      _bufferPos++;
+      _filePos++;
+    }
+
+    //assert(_buffer[_bufferPos] == stop);
+
+    if (_bufferPos < _bufferLen) {
+      //fprintf(stderr, "found at _pos=%u\n", _bufferPos);
+      return;
+    }
+
+    //fprintf(stderr, "not found at _pos=%u\n", _bufferPos);
+    //assert(_bufferPos == _bufferLen);
+
+    //_bufferPos--;
+    //_filePos--;
+
+    fillBuffer();
+
+    //if (_eof)
+    //  return;
+  }
+#endif
+}
+
+
+//  Advances the file position to the next 'stop' character, copying
+//  the characters into a user buffer.
+//
+//  Returns the number of letters copied.
+//
+inline
+uint64
+readBuffer::copyUntil(char stop, char *dest, uint64 destLen) {
+  uint64  copied = 0;
+
+  while (_eof == false) {
+    while ((_buffer[_bufferPos] != stop) &&
+           (copied < destLen)) {
+      dest[copied] = _buffer[_bufferPos];
+
+      copied++;
+      _bufferPos++;
+      _filePos++;
+    }
+
+    if (_bufferPos < _bufferLen)
+      return(copied);
+
+    fillBuffer();
+  }
+
+  return(copied);
+}
+
+
 
 
 #endif  //  READ_BUFFER_H
