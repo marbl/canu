@@ -24,7 +24,7 @@ The source code includes programs in the C++ language with Unix make scripts. Th
 Celera Assembler was designed to run under Compaq(R) Tru64(R) Unix with access to 32GB 
 RAM. It has also run under IBM(R) AIX(R) and Red Hat Linux. 
 
-The Celera Assembler was released under the GNU General Public License, version 2 as as supplement
+The Celera Assembler was released under the GNU General Public License, version 2 as supplement
 to the publication [Istrail 2004]. For the most recent license information please see
 README.licences
 
