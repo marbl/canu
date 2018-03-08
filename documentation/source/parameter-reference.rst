@@ -208,7 +208,7 @@ saveOverlaps <boolean=false>
   If set, do not remove raw overlap output from either mhap or overlapInCore.  Normally, this output
   is removed once the overlaps are loaded into an overlap store.
 
-saveReadCorrections <boolean=false.
+saveReadCorrections <boolean=false>.
   If set, do not remove raw corrected read output from correction/2-correction. Normally, this
   output is removed once the corrected reads are generated.
   
