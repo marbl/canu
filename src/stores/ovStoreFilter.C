@@ -163,6 +163,22 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
     skipERATE++;
   }
 
+  //  Ignore opposite oriented overlaps
+#if 0
+  if ((foverlap.flipped() == true)) {
+    foverlap.dat.ovl.forUTG = false;
+    foverlap.dat.ovl.forOBT = false;
+    foverlap.dat.ovl.forDUP = false;
+
+    roverlap.dat.ovl.forUTG = false;
+    roverlap.dat.ovl.forOBT = false;
+    roverlap.dat.ovl.forDUP = false;
+
+    skipFLIPPED++;
+    skipFLIPPED++;
+  }
+#endif
+
   //  Don't OBT if not requested.
 
   if ((foverlap.dat.ovl.forOBT == false) && (skipReadOBT[foverlap.a_iid] == true)) {
@@ -269,6 +285,8 @@ ovStoreFilter::resetCounters(void) {
   saveDUP         = 0;
 
   skipERATE       = 0;
+
+  skipFLIPPED     = 0;
 
   skipOBT         = 0;
   skipOBTbad      = 0;

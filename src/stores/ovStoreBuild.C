@@ -561,6 +561,9 @@ main(int argc, char **argv) {
   if (filter->filteredErate() > 0)
     fprintf(stderr, "-- Discarded  " F_U64 " low quality, more than %.4f fraction error\n", filter->filteredErate(), maxError);
 
+  if (filter->filteredFlipped() > 0)
+    fprintf(stderr, "-- Discarded  " F_U64 " opposite orientation\n", filter->filteredFlipped());
+
   delete filter;
 
   //

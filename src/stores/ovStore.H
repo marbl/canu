@@ -376,6 +376,8 @@ public:
 
   uint64   filteredErate(void)      { return(skipERATE);    };
 
+  uint64   filteredFlipped(void)    { return(skipFLIPPED);  };
+
   uint64   filteredNoTrim(void)     { return(skipOBT);      };
   uint64   filteredBadTrim(void)    { return(skipOBTbad);   };
   uint64   filteredShortTrim(void)  { return(skipOBTshort); };
@@ -395,6 +397,8 @@ public:
   uint64   saveDUP;
 
   uint64   skipERATE;
+
+  uint64   skipFLIPPED;
 
   uint64   skipOBT;        //  OBT not requested for the A read
   uint64   skipOBTbad;     //  Overlap too similiar
