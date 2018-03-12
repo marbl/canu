@@ -156,10 +156,41 @@ quality corrected reads::
   correctedErrorRate=0.105 \
   -pacbio-raw yeast.20x.fastq.gz
 
+Trio Binning Assembly
+----------------------------------
+
+Canu has support for using parental short-read sequencing to classify and bin the F1 reads (see `Trio Binning manuscript
+<https://www.biorxiv.org/content/early/2018/02/26/271486>`_ for details). This example demonstrates the functionality using a synthetic mix of two Escherichia coli datasets.  First download the data::
+
+ curl -L -o K12.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/k12.12.fasta
+ curl -L -o O157.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/o157.12.fasta
+ curl -L -o F1.fasta https://gembox.cbcb.umd.edu/triobinning/example/pacbio.fasta
+
+ trioCanu \
+  -p asm -d ecoliTrio \
+  genomeSize=5m \
+  -haplotypeK12 K12.parental.fasta \
+  -haplotypeO157 O157.parental.fasta \
+  -pacbio-raw F1.fasta
+
+The run will produce two assemblies, ecoliTrio/haplotypeK12/asm.contigs.fasta and ecoliTrio/haplotypeO157/asm.contigs.fasta. As comparison, you can try co-assembling the datasets instead::
+
+ canu \
+  -p asm -d ecoliHap \
+  genomeSize=5m \
+  corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" \
+ -pacbio-raw F1.fasta
+
+and compare the contiguity/accuracy. The current version of trioCanu is not yet optimized for memory use so requires adjusted parameters for large genomes. Adding the options::
+
+  gridOptionsExecutive="--mem=250g" griodOptionsMeryl='--partition=largemem --mem=1000g'
+
+should be sufficient for a mammalian genome.
+
 Consensus Accuracy
 -------------------
 
-Canu consensus sequences are typically well above 99% identity.  Accuracy can be improved by
+Canu consensus sequences are typically well above 99% identity for PacBio datasets.  Nanopore accuracy varies depending on pore and basecaller version, but is typically above 98% for recent data. Accuracy can be improved by
 polishing the contigs with tools developed specifically for that task.  We recommend `Quiver
 <http://github.com/PacificBiosciences/GenomicConsensus>`_ for PacBio and `Nanopolish
 <http://github.com/jts/nanopolish>`_ for Oxford Nanpore data.
