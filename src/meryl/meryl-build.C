@@ -813,8 +813,8 @@ build(merylArgs *args) {
       fprintf(stderr, "Merge results.\n");
 
     int     argc = 0;
-    char  **argv = new char* [7 + 2 * args->segmentLimit];
-    bool   *arga = new bool  [7 + 2 * args->segmentLimit];
+    char  **argv = new char* [8 + 2 * args->segmentLimit];
+    bool   *arga = new bool  [8 + 2 * args->segmentLimit];
 
     arga[argc] = false;  argv[argc++] = "meryl-build-merge";
     arga[argc] = false;  argv[argc++] = "-M";
@@ -823,6 +823,11 @@ build(merylArgs *args) {
     if (args->beVerbose) {
       arga[argc] = false;
       argv[argc++] = "-v";
+    }
+
+    if (args->positionsEnabled) {
+      arga[argc] = false;
+      argv[argc++] = "-p";
     }
 
     for (uint32 i=0; i<args->segmentLimit; i++) {
