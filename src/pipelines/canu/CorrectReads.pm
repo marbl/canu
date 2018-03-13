@@ -660,13 +660,12 @@ sub loadCorrectedReads ($) {
     $cmd .= "  -G ./$asm.gkpStore \\\n";
     $cmd .= "  -C ./$asm.corStore \\\n";
     $cmd .= "  -L ./2-correction/corjob.files \\\n";
-    $cmd .= "> ./2-correction/corjob.files.load.err 2>&1\n";
+    $cmd .= ">  ./$asm.loadCorrectedReads.log \\\n";
+    $cmd .= "2> ./$asm.loadCorrectedReads.err \n";
 
     if (runCommand("correction", $cmd)) {
         caExit("failed to generate list of reads to correct", "$path/corjob.files.load.err");
     }
-
-    unlink "$path/corjob.files.load.err";
 
     #  Report reads.
 
