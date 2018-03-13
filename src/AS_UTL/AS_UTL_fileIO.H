@@ -71,6 +71,7 @@ void    AS_UTL_rename(const char *oldname, const char *newname);
 
 int     AS_UTL_fileExists(const char *path, int directory=false, int readwrite=false);
 off_t   AS_UTL_sizeOfFile(const char *path);
+off_t   AS_UTL_sizeOfFile(FILE *file);
 
 off_t   AS_UTL_ftell(FILE *stream);
 void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
@@ -82,22 +83,50 @@ void    AS_UTL_loadFileList(char *fileName, vector<char *> &FILE);
 FILE   *AS_UTL_openInputFile (char const *prefix, char separator='.', char const *suffix=NULL, bool doOpen=true);
 FILE   *AS_UTL_openOutputFile(char const *prefix, char separator='.', char const *suffix=NULL, bool doOpen=true);
 
+void    AS_UTL_closeFile(FILE *F, const char *filename, char separator, char const *suffix, bool critical=true);
 void    AS_UTL_closeFile(FILE *F, const char *filename=NULL, bool critical=true);
 
 template<typename OBJ>
-void    AS_UTL_loadFile(char *filename, OBJ *objects, uint64 numberToLoad) {
-  FILE    *file   = AS_UTL_openInputFile(filename);
-  uint64   length = AS_UTL_sizeOfFile(filename);
+void    AS_UTL_loadFile(char const *prefix, char separator, char const *suffix, OBJ *objects, uint64 numberToLoad) {
+  FILE    *file   = AS_UTL_openInputFile(prefix, separator, suffix);
+  uint64   length = AS_UTL_sizeOfFile(file);
 
-  if (length / sizeof(OBJ) < numberToLoad)
-    fprintf(stderr, "AS_UTL_loadFile()-- File '%s' contains " F_U64 " objects, but asked to load " F_U64 ".\n",
-            filename, length / sizeof(OBJ), numberToLoad), exit(1);
+  if (numberToLoad == 0)
+    numberToLoad = length / sizeof(OBJ);
+
+  if (length / sizeof(OBJ) < numberToLoad) {
+    if (suffix)
+      fprintf(stderr, "AS_UTL_loadFile()-- File '%s%c%s' contains " F_U64 " objects, but asked to load " F_U64 ".\n",
+              prefix, separator, suffix, length / sizeof(OBJ), numberToLoad);
+    else
+      fprintf(stderr, "AS_UTL_loadFile()-- File '%s' contains " F_U64 " objects, but asked to load " F_U64 ".\n",
+              prefix, length / sizeof(OBJ), numberToLoad);
+    exit(1);
+  }
 
   AS_UTL_safeRead(file, objects, "", sizeof(OBJ), numberToLoad);
 
-  AS_UTL_closeFile(file);
+  AS_UTL_closeFile(file, prefix, separator, suffix);
 }
 
+template<typename OBJ>
+void    AS_UTL_loadFile(char const *prefix, OBJ *objects, uint64 numberToLoad) {
+  AS_UTL_loadFile(prefix, '.', NULL, objects, numberToLoad);
+}
+
+template<typename OBJ>
+void    AS_UTL_saveFile(char const *prefix, char separator, char const *suffix, OBJ *objects, uint64 numberToWrite) {
+  FILE    *file = AS_UTL_openOutputFile(prefix, separator, suffix);
+
+  AS_UTL_safeWrite(file, objects, "", sizeof(OBJ), numberToWrite);
+
+  AS_UTL_closeFile(file, prefix, separator, suffix);
+}
+
+template<typename OBJ>
+void    AS_UTL_saveFile(char const *prefix, OBJ *objects, uint64 numberToWrite) {
+  AS_UTL_saveFile(prefix, '.', NULL, objects, numberToWrite);
+}
 
 
 

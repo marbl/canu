@@ -443,18 +443,35 @@ AS_UTL_sizeOfFile(const char *path) {
 
 
 
+off_t
+AS_UTL_sizeOfFile(FILE *file) {
+  struct stat  s;
+  off_t        size = 0;
+
+  errno = 0;
+
+  fstat(fileno(file), &s);
+
+  if (errno)
+    fprintf(stderr, "Failed to stat() FILE*: %s\n", strerror(errno)), exit(1);
+
+  return(s.st_size);
+}
+
+
 
 off_t
 AS_UTL_ftell(FILE *stream) {
-  off_t  pos = 0;
+
   errno = 0;
-  pos = ftello(stream);
-  if ((errno == ESPIPE) || (errno == EBADF))
-    //  Not a seekable stream.  Return some goofy big number.
-    return(((off_t)1) < 42);
+  off_t pos = ftello(stream);
+
+  if ((errno == ESPIPE) || (errno == EBADF))   //  Not a seekable stream.
+    return(((off_t)1) < 42);                   //  Return some goofy big number.
+
   if (errno)
-    fprintf(stderr, "AS_UTL_ftell()--  Failed with %s.\n", strerror(errno));
-  assert(errno == 0);
+    fprintf(stderr, "AS_UTL_ftell()--  Failed with %s.\n", strerror(errno)), exit(1);
+
   return(pos);
 }
 
@@ -589,7 +606,7 @@ AS_UTL_openOutputFile(char const *prefix,
 
 
 void
-AS_UTL_closeFile(FILE *F, const char *filename, bool critical) {
+AS_UTL_closeFile(FILE *F, const char *prefix, char separator, char const *suffix, bool critical) {
 
   if ((F == NULL) || (F == stdout) || (F == stderr))
     return;
@@ -601,12 +618,19 @@ AS_UTL_closeFile(FILE *F, const char *filename, bool critical) {
   if ((critical == false) || (errno == 0))
     return;
 
-  if (filename)
-    fprintf(stderr, "Failed to close file '%s': %s\n", filename, strerror(errno));
+  if ((prefix) && (suffix))
+    fprintf(stderr, "Failed to close file '%s%c%s': %s\n", prefix, separator, suffix, strerror(errno));
+  else if (prefix)
+    fprintf(stderr, "Failed to close file '%s': %s\n", prefix, strerror(errno));
   else
     fprintf(stderr, "Failed to close file: %s\n", strerror(errno));
 
   exit(1);
+}
+
+
+void    AS_UTL_closeFile(FILE *F, const char *filename, bool critical) {
+  AS_UTL_closeFile(F, filename, '.', NULL, critical);
 }
 
 
