@@ -193,11 +193,19 @@ public:
     _clearBgn     = 0;
     _clearEnd     = 0;
 
+    _blobLen      = 0;
+    _unusedA      = 0;
+    _unusedB      = 0;
+    _unusedC      = 0;
+    _unusedD      = 0;
+
+    _unusedF      = 0;
     _cExists      = false;
     _tExists      = false;
 
-    _mPtr         = 0;
-    _pID          = 0;
+    _mSegm        = 0;
+    _mByte        = 0;
+    _mPart        = 0;
   };
 
   ~gkRead() {
@@ -231,17 +239,12 @@ public:
   bool        gkRead_cExists(void)            { return(_cExists); };
   bool        gkRead_tExists(void)            { return(_tExists); };
 
-  uint64      gkRead_mPtr(void) { return(_mPtr); };  //  For debugging, in gatekeeperDumpMetatData
-  uint64      gkRead_pID(void)  { return(_pID);  };
+  uint64      gkRead_mSegm(void) { return(_mSegm); };
+  uint64      gkRead_mByte(void) { return(_mByte); };
+  uint64      gkRead_mPart(void) { return(_mPart); };
 
 private:
-  void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);  //  file at position
-  void        gkRead_loadDataFromFile  (gkReadData *readData, FILE *file);  //  move file pointer before reading
-  void        gkRead_loadDataFromCore  (gkReadData *readData, void *blob);  //  read from blob in core
-
-private:
-  void        gkRead_copyDataToPartition(void  *blobs,      FILE **partfiles, uint64 *partfileslen, uint32 partID);
-  void        gkRead_copyDataToPartition(FILE **blobsFiles, FILE **partfiles, uint64 *partfileslen, uint32 partID);
+  void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);  //  'file' MUST be at correct position
 
 private:
   //  Description of the read.
@@ -255,18 +258,29 @@ private:
   uint32   _clearBgn;       //  Trim points in corrected read.
   uint32   _clearEnd;
 
+  uint32   _blobLen;        //  For easier loading of reads.
+  uint32   _unusedA : 8;
+  uint32   _unusedB : 8;    //  Unused, to keep this struct 64-bit aligned.
+  uint32   _unusedC : 8;    //  (It's 5 64-bit words)
+  uint32   _unusedD : 8;
+
   //  Each gkRead needs to know which read (raw, corrected or trimmed) is to be returned.
   //  In particular, if corrections are done, but there is no corrected read for this raw
   //  read, _cseqLen will be zero, and we need to return zero.
 
+  uint64   _unusedF : 6;
   uint64   _cExists : 1;    //  Set by gkStore when the gkRead is returned to the user.
   uint64   _tExists : 1;
 
   //  Last but not least, we need to remember where the actual data is stored in the blob.
 
-  uint64   _mPtr    : 46;
-  uint64   _pID     : 18;
+  uint64   _mSegm   : 13;   //          8,192 files          - Pointer to the blobs file we are in.
+  uint64   _mByte   : 30;   //  1,073,741,824 bytes per file - Pointer to the blob data in the blobs file.
+  uint64   _mPart   : 13;   //          8,192 partitions     - If partitioned, which partition is it in.
 
+#if (6 + 1 + 1 + 13 + 30 + 13 != 64)
+#error gkRead bits too big.
+#endif
 
   friend class gkReadData;
   friend class gkStore;

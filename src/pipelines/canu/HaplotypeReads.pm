@@ -231,7 +231,7 @@ sub haplotypeConfigure ($) {
         print F "cp -p \$gkpStore/info      $stageDir/$asm.gkpStore/info\n";
         print F "cp -p \$gkpStore/libraries $stageDir/$asm.gkpStore/libraries\n";
         print F "cp -p \$gkpStore/reads     $stageDir/$asm.gkpStore/reads\n";
-        print F "cp -p \$gkpStore/blobs     $stageDir/$asm.gkpStore/blobs\n";
+        print F "cp -p \$gkpStore/blobs.*   $stageDir/$asm.gkpStore/\n";
         print F "echo Finished   at `date`\n";
         print F "\n";
         print F "gkpStore=\"$stageDir/$asm.gkpStore\"\n";
@@ -323,18 +323,7 @@ sub haplotypeCheck($) {
 
     #  Compute the size of gkpStore for staging
 
-    {
-        my $size = 0;
-
-        $size += -s "haplotype/$asm.gkpStore/info";
-        $size += -s "haplotype/$asm.gkpStore/libraries";
-        $size += -s "haplotype/$asm.gkpStore/reads";
-        $size += -s "haplotype/$asm.gkpStore/blobs";
-
-        $size = int($size / 1024 / 1024 / 1024 + 1.5);
-
-        setGlobal("corStageSpace", $size);
-    }
+    setGlobal("corStageSpace", getSizeOfGatekeeperStore($asm));
 
     #  Figure out if all the tasks finished correctly.
 

@@ -66,24 +66,6 @@ gkRead::gkRead_loadDataFromStream(gkReadData *readData, FILE *file) {
 
 
 
-void
-gkRead::gkRead_loadDataFromCore(gkReadData *readData, void *blobs) {
-  //fprintf(stderr, "gkRead::gkRead_loadDataFromCore()-- read %lu position %lu\n", _readID, _mPtr);
-  readData->gkReadData_loadFromBlob(((uint8 *)blobs) + _mPtr);
-}
-
-
-
-void
-gkRead::gkRead_loadDataFromFile(gkReadData *readData, FILE *file) {
-  //fprintf(stderr, "gkRead::gkRead_loadDataFromFile()-- read %lu position %lu\n", _readID, _mPtr);
-  AS_UTL_fseek(file, _mPtr, SEEK_SET);
-  gkRead_loadDataFromStream(readData, file);
-}
-
-
-
-
 gkRead *
 gkStore::gkStore_getRead(uint32 id) {
 
@@ -114,14 +96,16 @@ gkStore::gkStore_loadReadData(gkRead *read, gkReadData *readData) {
   readData->_read    = read;
   readData->_library = gkStore_getLibrary(read->gkRead_libraryID());
 
-  if (_blobs)
-    read->gkRead_loadDataFromCore(readData, _blobs);
+  if (_blobsData) {
+    readData->gkReadData_loadFromBlob(_blobsData + read->gkRead_mByte());
+    return;
+  }
 
-  else if (_blobsFiles)
-    read->gkRead_loadDataFromFile(readData, _blobsFiles[omp_get_thread_num()]);
+  uint32   tnum = omp_get_thread_num();
 
-  else
-    fprintf(stderr, "No data loaded for read %u: no _blobs or _blobsFiles?\n", read->_readID), assert(0);
+  assert(tnum < _blobsFilesMax);
+
+  read->gkRead_loadDataFromStream(readData, _blobsFiles[tnum].getFile(_storePath, read));
 }
 
 
@@ -138,16 +122,13 @@ gkStore::gkStore_loadReadData(uint32  readID, gkReadData *readData) {
 void
 gkStore::gkStore_stashReadData(gkReadData *data) {
 
-  assert(_blobsWriter != NULL);
+  data->gkReadData_encodeBlob();                            //  Encode the data.
 
-  data->gkReadData_encodeBlob();
+  _blobsWriter->writeData(data->_blob, data->_blobLen);     //  Write the data.
 
-  data->_read->_mPtr = _blobsWriter->tell();
-  data->_read->_pID  = _partitionID;                //  0 if not partitioned
-
-  //fprintf(stderr, "STASH read %u at position " F_U64 " or length " F_U64 "\n", read->gkRead_readID(), read->_mPtr, data->_blobLen);
-
-  _blobsWriter->write(data->_blob, data->_blobLen);
+  data->_read->_mSegm = _blobsWriter->writtenIndex();       //  Remember where it was written.
+  data->_read->_mByte = _blobsWriter->writtenPosition();
+  data->_read->_mPart = _partitionID;                       //  (0 if not partitioned)
 }
 
 
@@ -198,7 +179,7 @@ gkStore::gkStore_saveReadToStream(FILE *S, uint32 id) {
 
   //  Figure out where the blob actually is, and make sure that it really is a blob
 
-  uint8  *blob    = (uint8 *)_blobs + read->_mPtr;
+  uint8  *blob    = _blobsData + read->_mByte;
   uint32  blobLen = 8 + *((uint32 *)blob + 1);
 
   assert(blob[0] == 'B');
@@ -414,9 +395,9 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
   //  Make sure that our blob is actually a blob.
 
   if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
-    fprintf(stderr, "Index error in read " F_U32 " mPtr " F_U64 " pID " F_U64 " expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
+    fprintf(stderr, "Index error in read " F_U32 " mSegm " F_U64 " mByte " F_U64 " mPart " F_U64 " expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
             _read->gkRead_readID(),
-            _read->_mPtr, _read->_pID,
+            _read->_mSegm, _read->_mByte, _read->_mPart,
             blob[0], blob[1], blob[2], blob[3],
             blob[0], blob[1], blob[2], blob[3]);
   assert(blob[0] == 'B');

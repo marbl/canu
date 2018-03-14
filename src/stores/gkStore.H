@@ -73,10 +73,13 @@ using namespace std;
 #define AS_MAX_READS_BITS          64 - AS_MAX_READLEN_BITS - AS_MAX_LIBRARIES_BITS
 #define AS_MAX_READS               (((uint64)1 << AS_MAX_READS_BITS) - 1)
 
+#define AS_BLOBFILE_MAX_SIZE       1024 * 1024 * 1024
+
 
 #include "gkLibrary.H"
 #include "gkRead.H"
-
+#include "gkStoreBlobReader.H"
+#include "gkStoreBlobWriter.H"
 
 //  The default behavior is to open the store for read only, and to load
 //  all the metadata into memory.
@@ -85,6 +88,7 @@ typedef enum {
   gkStore_create      = 0x00,  //  Open for creating, will fail if files exist already
   gkStore_extend      = 0x01,  //  Open for modification and appending new reads/libraries
   gkStore_readOnly    = 0x02,  //  Open read only
+  gkStore_buildPart   = 0x03   //  For building the partitions
 } gkStore_mode;
 
 
@@ -96,6 +100,7 @@ toString(gkStore_mode m) {
     case gkStore_create:       return("gkStore_create");       break;
     case gkStore_extend:       return("gkStore_extend");       break;
     case gkStore_readOnly:     return("gkStore_readOnly");     break;
+    case gkStore_buildPart:    return("gkStore_buildPart");    break;
   }
 
   return("undefined-mode");
@@ -103,6 +108,8 @@ toString(gkStore_mode m) {
 
 
 
+#define GK_MAGIC   0x504b473a756e6162llu      //  canu:GKP
+#define GK_VERSION 0x0000000000000004llu
 
 
 //  gkStoreInfo is saved on disk.
@@ -111,8 +118,8 @@ toString(gkStore_mode m) {
 class gkStoreInfo {
 public:
 gkStoreInfo() {
-    gkMagic            = 0x504b473a756e6163llu;  //  canu:GKP
-    gkVersion          = 0x0000000000000002llu;
+    gkMagic            = GK_MAGIC;
+    gkVersion          = GK_VERSION;
 
     gkLibrarySize      = sizeof(gkLibrary);
     gkReadSize         = sizeof(gkRead);
@@ -188,25 +195,25 @@ private:
 class gkStore {
 
 private:
-  gkStore(char const *path, gkStore_mode mode, uint32 partID);
+  gkStore(char const *storePath, char const *clonePath, gkStore_mode mode, uint32 partID);
   ~gkStore();
 
   void         gkStore_loadMetadata(void);
-  void         gkStore_openBlobs(void);
+  void         gkStore_checkInfo(void);
 
 public:
   static
   gkStore     *gkStore_open(char const *path, gkStore_mode mode=gkStore_readOnly, uint32 partID=UINT32_MAX);
+
+  static
+  gkStore     *gkStore_open(char const *storePath, char const *clonePath);
+
   void         gkStore_close(void);
 
 public:
   const char  *gkStore_path(void) { return(_storePath); };  //  Returns the path to the store
-  const char  *gkStore_name(void) { return(_storeName); };  //  Returns the name, e.g., name.gkpStore
 
   void         gkStore_buildPartitions(uint32 *partitionMap);
-
-  static
-  void         gkStore_clone(char *originalPath, char *clonePath);
 
   void         gkStore_delete(void);             //  Deletes the files in the store.
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.
@@ -252,8 +259,8 @@ private:
 
   gkStoreInfo          _info;  //  All the stuff stored on disk.
 
-  char                 _storePath[FILENAME_MAX];  //  Needed to create files
-  char                 _storeName[FILENAME_MAX];  //  Useful for log files in other programs
+  char                 _storePath[FILENAME_MAX+1];    //  Needed to create files
+  char                 _clonePath[FILENAME_MAX+1];    //  Path to the partitioned store data, for when building the partitions
 
   gkStore_mode         _mode;  //  What mode this store is opened as, sanity checking
 
@@ -264,9 +271,12 @@ private:
   uint32               _readsAlloc;      //  Size of allocation
   gkRead              *_reads;           //  In core data
 
-  uint8               *_blobs;           //  For partitioned data, in-core data.
-  writeBuffer         *_blobsWriter;     //  For constructing a store, data gets dumped here.
-  FILE               **_blobsFiles;      //  For normal store, loading reads directly, one per thread.
+  uint8               *_blobsData;       //  For partitioned data, in-core data.
+
+  uint32               _blobsFilesMax;   //  For normal store, loading reads
+  gkStoreBlobReader   *_blobsFiles;      //  directly, one per thread.
+
+  gkStoreBlobWriter   *_blobsWriter;
 
   //  If the store is openend partitioned, this data is loaded from disk
 

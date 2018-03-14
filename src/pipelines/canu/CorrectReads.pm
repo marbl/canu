@@ -490,7 +490,7 @@ sub generateCorrectedReadsConfigure ($) {
         print F "cp -p \$gkpStore/info      $stageDir/$asm.gkpStore/info\n";
         print F "cp -p \$gkpStore/libraries $stageDir/$asm.gkpStore/libraries\n";
         print F "cp -p \$gkpStore/reads     $stageDir/$asm.gkpStore/reads\n";
-        print F "cp -p \$gkpStore/blobs     $stageDir/$asm.gkpStore/blobs\n";
+        print F "cp -p \$gkpStore/blobs.*   $stageDir/$asm.gkpStore/\n";
         print F "echo Finished   at `date`\n";
         print F "\n";
         print F "gkpStore=\"$stageDir/$asm.gkpStore\"\n";
@@ -551,18 +551,7 @@ sub generateCorrectedReadsCheck ($) {
 
     #  Compute the size of gkpStore for staging
 
-    {
-        my $size = 0;
-
-        $size += -s "correction/$asm.gkpStore/info";
-        $size += -s "correction/$asm.gkpStore/libraries";
-        $size += -s "correction/$asm.gkpStore/reads";
-        $size += -s "correction/$asm.gkpStore/blobs";
-
-        $size = int($size / 1024 / 1024 / 1024 + 1.5);
-
-        setGlobal("corStageSpace", $size);
-    }
+    setGlobal("corStageSpace", getSizeOfGatekeeperStore($asm));
 
     #  Compute expected size of jobs, set if not set already.
 

@@ -40,7 +40,15 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfReadsEarliestVersion getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage getExpectedCoverageEarliestVersion sequenceFileExists generateReadLengthHistogram gatekeeper);
+@EXPORT = qw(getNumberOfReadsEarliestVersion
+             getNumberOfReadsInStore
+             getNumberOfBasesInStore
+             getSizeOfGatekeeperStore
+             getExpectedCoverage
+             getExpectedCoverageEarliestVersion
+             sequenceFileExists
+             generateReadLengthHistogram
+             gatekeeper);
 
 use strict;
 
@@ -115,6 +123,26 @@ sub getNumberOfBasesInStore ($$) {
 
     return($nb);
 }
+
+
+
+sub getSizeOfGatekeeperStore ($) {
+    my $asm    = shift @_;
+    my $size   = 0;
+    my $idx    = "0000";
+
+    $size += -s "./$asm.gkpStore/info";
+    $size += -s "./$asm.gkpStore/libraries";
+    $size += -s "./$asm.gkpStore/reads";
+
+    while (-e "./$asm.gkpStore/blobs.$idx") {
+        $size += -s "./$asm.gkpStore/blobs.$idx";
+        $idx++;
+    }
+
+    return(int($size / 1024 / 1024 / 1024 + 1.5));
+}
+
 
 
 sub getExpectedCoverageEarliestVersion($) {
@@ -509,6 +537,15 @@ sub gatekeeper ($$@) {
     #  Most of the pipeline still expects a gkpStore to exist in the stage subdirectories.  So make it exist.
 
     symlink("../$asm.gkpStore", "$base/$asm.gkpStore")    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info"));
+
+    if (! -e "$base/$asm.gkpStore/info") {
+        print STDERR "ERROR:\n";
+        print STDERR "ERROR:  Failed to create a symlink to '$asm.gkpStore' from within the '$base' directory.\n";
+        print STDERR "ERROR:  This is known to happen on VirtualBox when running in the 'shared' directory.\n";
+        print STDERR "ERROR:\n";
+
+        caExit("failed to make symlink '$base/$asm.gkpStore' to '../$asm.gkpStore'", undef);
+    }
 
     #  Query how many reads we have.
 

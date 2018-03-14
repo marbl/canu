@@ -68,7 +68,7 @@ gkStoreFile::openFile(const char *name) {
 
   sprintf(infoName, "%s/info",  name);
   sprintf(readName, "%s/reads", name);
-  sprintf(blobName, "%s/blobs", name);
+  sprintf(blobName, "%s/blobs.0000", name);
 
   if ((AS_UTL_fileExists(name, true) == false) ||
       (AS_UTL_fileExists(infoName) == false) ||

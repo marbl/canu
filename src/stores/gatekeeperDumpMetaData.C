@@ -61,8 +61,8 @@ void
 dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
-  fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd       mPtr        pID      flags\n");
-  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------\n");
+  fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd  segm      byte  part      flags\n");
+  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ----- --------- ----- ----------\n");
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     gkRead  *read = gkp->gkStore_getRead(rid);
@@ -71,7 +71,7 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
         (gkp->gkStore_readInPartition(rid) == false))
       continue;
 
-    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U64P " %10" F_U64P " %8s%c%c\n",
+    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %9" F_U64P " %4" F_U64P " %8s%c%c\n",
             read->gkRead_readID(),
             read->gkRead_libraryID(),
             read->gkRead_sequenceLength(),
@@ -79,8 +79,9 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
             read->gkRead_correctedLength(),
             read->gkRead_clearBgn(),
             read->gkRead_clearEnd(),
-            read->gkRead_mPtr(),
-            read->gkRead_pID(),
+            read->gkRead_mSegm(),
+            read->gkRead_mByte(),
+            read->gkRead_mPart(),
             "",
             read->gkRead_cExists() ? 'C' : '-',
             read->gkRead_tExists() ? 'T' : '-');
