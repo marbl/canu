@@ -56,6 +56,7 @@ SOURCES      := AS_global.C \
                 stores/gkLibrary.C \
                 stores/gkStore.C \
                 stores/gkStoreConstructor.C \
+                stores/gkStoreInfo.C \
                 stores/gkStoreEncode.C \
                 stores/gkStorePartition.C \
                 \

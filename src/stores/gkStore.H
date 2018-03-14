@@ -37,6 +37,11 @@
 
 using namespace std;
 
+
+#define GK_MAGIC   0x504b473a756e6162lu      //  canu:GKP
+#define GK_VERSION 0x0000000000000004lu
+
+
 //  The number of library IIDs we can handle.
 //
 #define AS_MAX_LIBRARIES_BITS      6
@@ -81,6 +86,7 @@ using namespace std;
 #include "gkStoreBlobReader.H"
 #include "gkStoreBlobWriter.H"
 
+
 //  The default behavior is to open the store for read only, and to load
 //  all the metadata into memory.
 
@@ -108,87 +114,50 @@ toString(gkStore_mode m) {
 
 
 
-#define GK_MAGIC   0x504b473a756e6162llu      //  canu:GKP
-#define GK_VERSION 0x0000000000000004llu
-
-
-//  gkStoreInfo is saved on disk.
-//  gkStore is the in memory structure used to access the data.
-//
 class gkStoreInfo {
 public:
-gkStoreInfo() {
-    gkMagic            = GK_MAGIC;
-    gkVersion          = GK_VERSION;
+  gkStoreInfo();
+  ~gkStoreInfo();
 
-    gkLibrarySize      = sizeof(gkLibrary);
-    gkReadSize         = sizeof(gkRead);
-    gkMaxLibrariesBits = AS_MAX_LIBRARIES_BITS;
-    gkLibraryNameSize  = LIBRARY_NAME_SIZE;
-    gkMaxReadBits      = AS_MAX_READS_BITS;
-    gkMaxReadLenBits   = AS_MAX_READLEN_BITS;
+  bool      checkInfo(void);
+  void      recountReads(gkRead *reads);
+  void      writeInfoAsText(FILE *F);
 
-    numLibraries       = 0;
-    numReads           = 0;
+  uint64    gkInfo_numLibraries(void)        { return(_numLibraries);      };
+  uint64    gkInfo_numReads(void)            { return(_numReads);          };
 
-    numRawReads        = 0;
-    numCorrectedReads  = 0;
-    numTrimmedReads    = 0;
+  uint64    gkInfo_numRawReads(void)         { return(_numRawReads);       };
+  uint64    gkInfo_numCorrectedReads(void)   { return(_numCorrectedReads); };
+  uint64    gkInfo_numTrimmedReads(void)     { return(_numTrimmedReads);   };
 
-    numRawBases        = 0;
-    numCorrectedBases  = 0;
-    numTrimmedBases    = 0;
-  };
-  ~gkStoreInfo() {
-  };
-
-  void      writeInfoAsText(FILE *F) {
-    fprintf(F, "gkMagic            = 0x" F_X64 "\n", gkMagic);
-    fprintf(F, "gkVersion          = 0x" F_X64 "\n", gkVersion);
-    fprintf(F, "\n");
-    fprintf(F, "gkLibrarySize      = " F_U32 "\n", gkLibrarySize);
-    fprintf(F, "gkReadSize         = " F_U32 "\n", gkReadSize);
-    fprintf(F, "gkMaxLibrariesBits = " F_U32 "\n", gkMaxLibrariesBits);
-    fprintf(F, "gkLibraryNameSize  = " F_U32 "\n", gkLibraryNameSize);
-    fprintf(F, "gkMaxReadBits      = " F_U32 "\n", gkMaxReadBits);
-    fprintf(F, "gkMaxReadLenBits   = " F_U32 "\n", gkMaxReadLenBits);
-    fprintf(F, "\n");
-    fprintf(F, "numLibraries       = " F_U32 "\n", numLibraries);
-    fprintf(F, "numReads           = " F_U32 "\n", numReads);
-    fprintf(F, "\n");
-    fprintf(F, "numRawReads        = " F_U32 "\n", numRawReads);
-    fprintf(F, "numCorrectedReads  = " F_U32 "\n", numCorrectedReads);
-    fprintf(F, "numTrimmedReads    = " F_U32 "\n", numTrimmedReads);
-    fprintf(F, "\n");
-    fprintf(F, "numRawBases        = " F_U64 "\n", numRawBases);
-    fprintf(F, "numCorrectedBases  = " F_U64 "\n", numCorrectedBases);
-    fprintf(F, "numTrimmedBases    = " F_U64 "\n", numTrimmedBases);
-  };
+  void      gkInfo_addLibrary(void)          { _numLibraries++; };
+  void      gkInfo_addRead(void)             { _numReads++;     };
 
 private:
-  uint64    gkMagic;
-  uint64    gkVersion;
+  uint64    _gkMagic;
+  uint64    _gkVersion;
 
-  uint32    gkLibrarySize;      //  Sanity checks that this code can load the data properly.
-  uint32    gkReadSize;
-  uint32    gkMaxLibrariesBits;
-  uint32    gkLibraryNameSize;
-  uint32    gkMaxReadBits;
-  uint32    gkMaxReadLenBits;
+  uint32    _gkLibrarySize;      //  Sanity checks that this code can load the data properly.
+  uint32    _gkReadSize;
+  uint32    _gkMaxLibrariesBits;
+  uint32    _gkLibraryNameSize;
+  uint32    _gkMaxReadBits;
+  uint32    _gkMaxReadLenBits;
 
-  uint32    numLibraries;       //  Counts of types of things we have loaded (next
-  uint32    numReads;           //  available index into _libraries and _reads in gkStore)
+  uint32    _numLibraries;       //  Counts of types of things we have loaded (next
+  uint32    _numReads;           //  available index into _libraries and _reads in gkStore)
 
-  uint32    numRawReads;        //  If any corrected reads exist, the store will return
-  uint32    numCorrectedReads;  //  only corrected reads by default.
-  uint32    numTrimmedReads;
+  uint32    _numRawReads;        //  If any corrected reads exist, the store will return
+  uint32    _numCorrectedReads;  //  only corrected reads by default.
+  uint32    _numTrimmedReads;
 
-  uint64    numRawBases;
-  uint64    numCorrectedBases;
-  uint64    numTrimmedBases;
-
-  friend class gkStore;
+  uint64    _numRawBases;
+  uint64    _numCorrectedBases;
+  uint64    _numTrimmedBases;
 };
+
+
+
 
 
 
@@ -218,12 +187,12 @@ public:
   void         gkStore_delete(void);             //  Deletes the files in the store.
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.
 
-  uint32       gkStore_getNumLibraries(void)       { return(_info.numLibraries); };
+  uint32       gkStore_getNumLibraries(void)       { return(_info.gkInfo_numLibraries()); };
 
-  uint32       gkStore_getNumReads(void)           { return(_info.numReads); };
-  uint32       gkStore_getNumRawReads(void)        { return(_info.numRawReads); };
-  uint32       gkStore_getNumCorrectedReads(void)  { return(_info.numCorrectedReads); };
-  uint32       gkStore_getNumTrimmedReads(void)    { return(_info.numTrimmedReads); };
+  uint32       gkStore_getNumReads(void)           { return(_info.gkInfo_numReads()); };
+  uint32       gkStore_getNumRawReads(void)        { return(_info.gkInfo_numRawReads()); };
+  uint32       gkStore_getNumCorrectedReads(void)  { return(_info.gkInfo_numCorrectedReads()); };
+  uint32       gkStore_getNumTrimmedReads(void)    { return(_info.gkInfo_numTrimmedReads()); };
 
   gkLibrary   *gkStore_getLibrary(uint32 id)       { return(&_libraries[id]); };
 

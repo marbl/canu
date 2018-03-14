@@ -41,60 +41,18 @@ void
 gkStore::gkStore_loadMetadata(void) {
   char    name[FILENAME_MAX+1];
 
-  _librariesAlloc = _info.numLibraries + 1;
-  _readsAlloc     = _info.numReads + 1;
+  _librariesAlloc = _info.gkInfo_numLibraries() + 1;
+  _readsAlloc     = _info.gkInfo_numReads()     + 1;
 
   _libraries      = new gkLibrary [_librariesAlloc];
   _reads          = new gkRead    [_readsAlloc];
 
   AS_UTL_loadFile(_storePath, '/', "libraries", _libraries, _librariesAlloc);
-  AS_UTL_loadFile(_storePath, '/', "reads", _reads, _readsAlloc);
+  AS_UTL_loadFile(_storePath, '/', "reads",     _reads,     _readsAlloc);
 }
 
 
 
-void
-gkStore::gkStore_checkInfo(void) {
-  uint32  failed = 0;
-
-  if (_info.gkMagic            != GK_MAGIC)
-    failed += fprintf(stderr, "ERROR:  gkMagic in store = 0x%016" F_X64P ", differs from executable = 0x%016" F_X64P "\n",
-                      _info.gkMagic, GK_MAGIC);
-
-  if (_info.gkVersion          != GK_VERSION)
-    failed += fprintf(stderr, "ERROR:  gkVersion in store = 0x%016" F_X64P ", differs from executable = 0x%016" F_X64P "\n",
-                      _info.gkVersion, GK_VERSION);
-
-  if (_info.gkLibrarySize      != sizeof(gkLibrary))
-    failed += fprintf(stderr, "ERROR:  gkLibrary size in store = " F_U32 ", differs from executable = " F_SIZE_T "\n",
-                      _info.gkLibrarySize, sizeof(gkLibrary));
-
-  if (_info.gkReadSize         != sizeof(gkRead))
-    failed += fprintf(stderr, "ERROR:  gkRead size in store = " F_U32 ", differs from executable = " F_SIZE_T "\n",
-                      _info.gkReadSize, sizeof(gkRead));
-
-  if (_info.gkMaxLibrariesBits != AS_MAX_LIBRARIES_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_LIBRARIES_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
-                      _info.gkMaxLibrariesBits, AS_MAX_LIBRARIES_BITS);
-
-  if (_info.gkLibraryNameSize  != LIBRARY_NAME_SIZE)
-    failed += fprintf(stderr, "ERROR:  LIBRARY_NAME_SIZE in store = " F_U32 ", differs from executable = " F_U32 "\n",
-                      _info.gkLibraryNameSize, LIBRARY_NAME_SIZE);
-
-  if (_info.gkMaxReadBits      != AS_MAX_READS_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_READS_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
-                      _info.gkMaxReadBits, AS_MAX_READS_BITS);
-
-  if (_info.gkMaxReadLenBits   != AS_MAX_READLEN_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
-                      _info.gkMaxReadLenBits, AS_MAX_READLEN_BITS);
-
-  if (failed) {
-    fprintf(stderr, "ERROR:\n");
-    fprintf(stderr, "ERROR:  Can't open store '%s': parameters in gkStore.H and gkRead.H are incompatible with the store.\n", _storePath);
-    exit(1);
-  }
-}
 
 
 
@@ -151,7 +109,11 @@ gkStore::gkStore(char const    *storePath,
 
   //  Check sizes are correct.
 
-  gkStore_checkInfo();
+  if (_info.checkInfo() == false) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "ERROR:  Can't open store '%s': parameters in gkStore.H and gkRead.H are incompatible with the store.\n", _storePath);
+    exit(1);
+  }
 
   //
   //  CREATE - allocate some memory for saving libraries and reads, and create a file to dump the data into.
@@ -256,7 +218,7 @@ gkStore::gkStore(char const    *storePath,
   snprintf(nameR, FILENAME_MAX, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
   snprintf(nameB, FILENAME_MAX, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
 
-  _librariesAlloc = _info.numLibraries + 1;
+  _librariesAlloc = _info.gkInfo_numLibraries() + 1;
   _readsAlloc     = _readsPerPartition[partID];
 
   uint64 bs       = AS_UTL_sizeOfFile(nameB);
@@ -312,8 +274,12 @@ gkStore::~gkStore() {
 
   if ((_mode == gkStore_create) ||
       (_mode == gkStore_extend)) {
+    _info.recountReads(_reads);
+  }
+#if 0
     _info.numRawReads = _info.numCorrectedReads = _info.numTrimmedReads = 0;
     _info.numRawBases = _info.numCorrectedBases = _info.numTrimmedBases = 0;
+
 
     for (uint32 ii=0; ii<_info.numReads + 1; ii++) {
       if (_reads[ii]._rseqLen > 0) {
@@ -332,6 +298,7 @@ gkStore::~gkStore() {
       }
     }
   }
+#endif
 
   //  Write updated metadata.
 

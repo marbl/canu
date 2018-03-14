@@ -13593,3 +13593,4 @@ A src/canu_version_update.pl nihh20170814Brian P. Walenz
 A addCopyrights-BuildData.pl nihh20170814Brian P. Walenz
 A addCopyrights.dat nihh20170814Brian P. Walenz
 A addCopyrights.pl nihh20170814Brian P. Walenz
+D src/stores/gkStoreInfo.C src/stores/gkStore.C

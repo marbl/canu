@@ -529,22 +529,22 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
 gkLibrary *
 gkStore::gkStore_addEmptyLibrary(char const *name) {
 
-  assert(_info.numLibraries <= _librariesAlloc);
+  assert(_info.gkInfo_numLibraries() <= _librariesAlloc);
 
   //  Just like with reads below, there is no _libraries[0] element.
 
-  _info.numLibraries++;
+  _info.gkInfo_addLibrary();
 
-  increaseArray(_libraries, _info.numLibraries, _librariesAlloc, 128);
+  increaseArray(_libraries, _info.gkInfo_numLibraries(), _librariesAlloc, 128);
 
   //  Initialize the new library.
 
-  _libraries[_info.numLibraries] = gkLibrary();
-  _libraries[_info.numLibraries]._libraryID = _info.numLibraries;
+  _libraries[_info.gkInfo_numLibraries()] = gkLibrary();
+  _libraries[_info.gkInfo_numLibraries()]._libraryID = _info.gkInfo_numLibraries();
 
   //  Bullet proof the library name - so we can make files with this prefix.
 
-  char   *libname    = _libraries[_info.numLibraries]._libraryName;
+  char   *libname    = _libraries[_info.gkInfo_numLibraries()]._libraryName;
   uint32  libnamepos = 0;
 
   memset(libname, 0, sizeof(char) * LIBRARY_NAME_SIZE);
@@ -566,7 +566,7 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
     }
   }
 
-  return(_libraries + _info.numLibraries);
+  return(_libraries + _info.gkInfo_numLibraries());
 }
 
 
@@ -575,28 +575,28 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 gkReadData *
 gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
 
-  assert(_info.numReads < _readsAlloc);
+  assert(_info.gkInfo_numReads() < _readsAlloc);
   assert(_mode != gkStore_readOnly);
 
   //  We reserve the zeroth read for "null".  This is easy to accomplish
   //  here, just pre-increment the number of reads.  However, we need to be sure
-  //  to iterate up to and including _info.numReads.
+  //  to iterate up to and including _info.gkInfo_numReads().
 
-  _info.numReads++;
+  _info.gkInfo_addRead();
 
-  increaseArray(_reads, _info.numReads, _readsAlloc, _info.numReads/2);
+  increaseArray(_reads, _info.gkInfo_numReads(), _readsAlloc, _info.gkInfo_numReads()/2);
 
   //  Initialize the new read.
 
-  _reads[_info.numReads]            = gkRead();
-  _reads[_info.numReads]._readID    = _info.numReads;
-  _reads[_info.numReads]._libraryID = lib->gkLibrary_libraryID();
+  _reads[_info.gkInfo_numReads()]            = gkRead();
+  _reads[_info.gkInfo_numReads()]._readID    = _info.gkInfo_numReads();
+  _reads[_info.gkInfo_numReads()]._libraryID = lib->gkLibrary_libraryID();
 
   //  With the read set up, set pointers in the readData.  Whatever data is in there can stay.
 
   gkReadData *readData = new gkReadData;
 
-  readData->_read    = _reads + _info.numReads;
+  readData->_read    = _reads + _info.gkInfo_numReads();
   readData->_library = lib;
 
   return(readData);
