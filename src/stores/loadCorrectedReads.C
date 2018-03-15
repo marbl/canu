@@ -40,6 +40,7 @@ main (int argc, char **argv) {
   char            *corInputsFile  = NULL;
 
   bool             updateCorStore = false;
+  bool             loadQVs        = false;
 
   argc = AS_configure(argc, argv);
 
@@ -59,6 +60,9 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       updateCorStore = true;
+
+    } else if (strcmp(argv[arg], "-qv") == 0) {
+      loadQVs = true;
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       corInputs.push_back(argv[arg]);
@@ -91,6 +95,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -u                    Also load the populated tig layout into version 2 of the corStore.\n");
     fprintf(stderr, "                        (WARNING: not rigorously tested)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -qv                   Also load the QVs into the gatekeeper store.\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -138,10 +144,13 @@ main (int argc, char **argv) {
 
       //  Load the data into corStore.
 
-      if (updateCorStore)
+      if (updateCorStore == true)
         corStore->insertTig(tig, false);
 
       //  Load the data into gkpStore.
+
+      if (loadQVs == false)
+        tig->quals()[0] = 255;
 
       gkpStore->gkStore_loadReadData(tig->tigID(), readData);            //  Load old data into the read.
       readData->gkReadData_setBasesQuals(tig->bases(), tig->quals());    //  Insert new data.
