@@ -136,6 +136,8 @@ private:
   uint32      gkReadData_encode4bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
   uint32      gkReadData_encode5bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
 
+  uint32      gkReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV);
+
   void        gkReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
   void        gkReadData_encodeBlob(void);
 

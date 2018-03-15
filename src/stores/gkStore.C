@@ -312,74 +312,81 @@ gkReadData::gkReadData_encodeBlob(void) {
   _read->_rseqLen = (_rseq == NULL) ? 0 : strlen(_rseq);
   _read->_cseqLen = (_cseq == NULL) ? 0 : strlen(_cseq);
 
-  //  Compute the preferred encodings.  If either fail, the length is set to zero, and the
-  //  non-preferred encoding will be computed.  If this too fails, sequences/qualities will be
-  //  stored unencoded.
-
-  uint8   *rseq = NULL, *rqlt = NULL;
-  uint8   *cseq = NULL, *cqlt = NULL;
-
-  uint32  rseq2Len =                   gkReadData_encode2bit(rseq, _rseq, _read->_rseqLen);
-  uint32  rseq3Len = (rseq2Len == 0) ? gkReadData_encode3bit(rseq, _rseq, _read->_rseqLen) : 0;
-
-  uint32  rqlt4Len =                   gkReadData_encode4bit(rqlt, _rqlt, _read->_rseqLen);
-  uint32  rqlt5Len = (rqlt4Len == 0) ? gkReadData_encode5bit(rqlt, _rqlt, _read->_rseqLen) : 0;
-
-  uint32  cseq2Len =                   gkReadData_encode2bit(cseq, _cseq, _read->_cseqLen);
-  uint32  cseq3Len = (cseq2Len == 0) ? gkReadData_encode3bit(cseq, _cseq, _read->_cseqLen) : 0;
-
-  uint32  cqlt4Len =                   gkReadData_encode4bit(cqlt, _cqlt, _read->_cseqLen);
-  uint32  cqlt5Len = (cqlt4Len == 0) ? gkReadData_encode5bit(cqlt, _cqlt, _read->_cseqLen) : 0;
-
-  uint32  qv       = _library->gkLibrary_defaultQV();
-
   //  Encode the data into chunks in the blob.
 
   gkReadData_encodeBlobChunk("BLOB", 0,  NULL);
 
   gkReadData_encodeBlobChunk("NAME", strlen(_name), _name);
 
-  if      (rseq2Len > 0)
-    gkReadData_encodeBlobChunk("2SQR",         rseq2Len, rseq);    //  Two-bit encoded sequence (ACGT only)
-  else if (rseq3Len > 0)
-    gkReadData_encodeBlobChunk("3SQR",         rseq3Len, rseq);    //  Three-bit encoded sequence (ACGTN)
-  else if (_read->_rseqLen > 0)
-    gkReadData_encodeBlobChunk("USQR", _read->_rseqLen, _rseq);    //  Unencoded sequence
+  //  Compute the preferred encodings.  If either fail, the length is set to zero, and the
+  //  non-preferred encoding will be computed.  If this too fails, sequences/qualities will be
+  //  stored unencoded.
 
-  if      (rqlt4Len > 0)
-    gkReadData_encodeBlobChunk("4QVR",         rqlt4Len, rqlt);    //  Four-bit (0-15) encoded QVs
-  else if (rqlt5Len > 0)
-    gkReadData_encodeBlobChunk("5QVR",         rqlt5Len, rqlt);    //  Five-bit (0-32) encoded QVs
-  else if ((_read->_rseqLen > 0) && (_rqlt[0] < 255))
-    gkReadData_encodeBlobChunk("UQVR", _read->_rseqLen, _rqlt);    //  Unencoded quality
-  else if (_read->_rseqLen > 0)
-    gkReadData_encodeBlobChunk("1QVR",                 4, &qv);    //  Constant QV for every base (if sequence exists)
+  if (_read->_rseqLen > 0) {
+    uint8   *rseq = NULL;
+    uint8   *rqlt = NULL;
 
-  if      (cseq2Len > 0)
-    gkReadData_encodeBlobChunk("2SQC",         cseq2Len, cseq);    //  Two-bit encoded sequence (ACGT only)
-  else if (cseq3Len > 0)
-    gkReadData_encodeBlobChunk("3SQC",         cseq3Len, cseq);    //  Three-bit encoded sequence (ACGTN)
-  else if (_read->_cseqLen > 0)
-    gkReadData_encodeBlobChunk("USQC", _read->_cseqLen, _cseq);    //  Unencoded sequence
+    uint32  rseq2Len =                   gkReadData_encode2bit(rseq, _rseq, _read->_rseqLen);
+    uint32  rseq3Len = (rseq2Len == 0) ? gkReadData_encode3bit(rseq, _rseq, _read->_rseqLen) : 0;
 
-  if      (cqlt4Len > 0)
-    gkReadData_encodeBlobChunk("4QVC",         cqlt4Len, cqlt);    //  Four-bit (0-15) encoded QVs
-  else if (cqlt5Len > 0)
-    gkReadData_encodeBlobChunk("5QVC",         cqlt5Len, cqlt);    //  Five-bit (0-32) encoded QVs
-  else if ((_read->_cseqLen > 0) && (_cqlt[0] < 255))
-    gkReadData_encodeBlobChunk("UQVC", _read->_cseqLen, _cqlt);    //  Unencoded quality
-  else if (_read->_cseqLen > 0)
-    gkReadData_encodeBlobChunk("1QVC",                 4, &qv);    //  Constant QV for every base (if sequence exists)
+    uint32  rqv      = gkReadData_encodeConstantQV(_rqlt, _read->_rseqLen, _library->gkLibrary_defaultQV());
+
+    uint32  rqlt4Len = ((rqv == 255))                    ? gkReadData_encode4bit(rqlt, _rqlt, _read->_rseqLen) : 0;
+    uint32  rqlt5Len = ((rqv == 255) && (rqlt4Len == 0)) ? gkReadData_encode5bit(rqlt, _rqlt, _read->_rseqLen) : 0;
+
+    if      (rseq2Len > 0)
+      gkReadData_encodeBlobChunk("2SQR",         rseq2Len, rseq);    //  Two-bit encoded sequence (ACGT only)
+    else if (rseq3Len > 0)
+      gkReadData_encodeBlobChunk("3SQR",         rseq3Len, rseq);    //  Three-bit encoded sequence (ACGTN)
+    else
+      gkReadData_encodeBlobChunk("USQR", _read->_rseqLen, _rseq);    //  Unencoded sequence
+
+    if      (rqv < 255)
+      gkReadData_encodeBlobChunk("1QVR",                 4, &rqv);   //  Constant QV for every base
+    else if (rqlt4Len > 0)
+      gkReadData_encodeBlobChunk("4QVR",         rqlt4Len, rqlt);    //  Four-bit (0-15) encoded QVs
+    else if (rqlt5Len > 0)
+      gkReadData_encodeBlobChunk("5QVR",         rqlt5Len, rqlt);    //  Five-bit (0-32) encoded QVs
+    else
+      gkReadData_encodeBlobChunk("UQVR", _read->_rseqLen, _rqlt);    //  Unencoded quality
+
+    delete [] rseq;
+    delete [] rqlt;
+  }
+
+  if (_read->_cseqLen > 0) {
+    uint8   *cseq = NULL;
+    uint8   *cqlt = NULL;
+
+    uint32  cseq2Len =                   gkReadData_encode2bit(cseq, _cseq, _read->_cseqLen);
+    uint32  cseq3Len = (cseq2Len == 0) ? gkReadData_encode3bit(cseq, _cseq, _read->_cseqLen) : 0;
+
+    uint32  cqv      = gkReadData_encodeConstantQV(_cqlt, _read->_cseqLen, _library->gkLibrary_defaultQV());
+
+    uint32  cqlt4Len = ((cqv == 255))                    ? gkReadData_encode4bit(cqlt, _cqlt, _read->_cseqLen) : 0;
+    uint32  cqlt5Len = ((cqv == 255) && (cqlt4Len == 0)) ? gkReadData_encode5bit(cqlt, _cqlt, _read->_cseqLen) : 0;
+
+    if      (cseq2Len > 0)
+      gkReadData_encodeBlobChunk("2SQC",         cseq2Len, cseq);    //  Two-bit encoded sequence (ACGT only)
+    else if (cseq3Len > 0)
+      gkReadData_encodeBlobChunk("3SQC",         cseq3Len, cseq);    //  Three-bit encoded sequence (ACGTN)
+    else
+      gkReadData_encodeBlobChunk("USQC", _read->_cseqLen, _cseq);    //  Unencoded sequence
+
+    if      (cqv < 255)
+      gkReadData_encodeBlobChunk("1QVC",                 4, &cqv);   //  Constant QV for every base
+    else if (cqlt4Len > 0)
+      gkReadData_encodeBlobChunk("4QVC",         cqlt4Len, cqlt);    //  Four-bit (0-15) encoded QVs
+    else if (cqlt5Len > 0)
+      gkReadData_encodeBlobChunk("5QVC",         cqlt5Len, cqlt);    //  Five-bit (0-32) encoded QVs
+    else
+      gkReadData_encodeBlobChunk("UQVC", _read->_cseqLen, _cqlt);    //  Unencoded quality
+
+    delete [] cseq;
+    delete [] cqlt;
+  }
 
   gkReadData_encodeBlobChunk("STOP", 0,  NULL);
-
-  //  Cleanup.
-
-  delete [] rseq;
-  delete [] rqlt;
-
-  delete [] cseq;
-  delete [] cqlt;
 }
 
 

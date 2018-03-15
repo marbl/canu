@@ -155,3 +155,26 @@ bool
 gkReadData::gkReadData_decode5bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(false);
 }
+
+
+
+//  Analyze a QV string to decide if all the QVs are the same.  Returns a valid QV if so, 255 otherwise.
+//
+//  This occurs when we store a default QV, then load the read (which expands the default QV to the
+//  QV array) and we then store the sequence again.  As when we load corrected reads.
+//
+uint32
+gkReadData::gkReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV) {
+
+  if (qltLen == 0)                     //  If no sequence, do nothing.
+    return(255);
+
+  if (qlt[0] == 255)                   //  If no QV's, return the
+    return(defaultQV);                 //  default QV for the library.
+
+  for (uint32 ii=1; ii<qltLen; ii++)
+    if (qlt[0] != qlt[ii])             //  If the QV's differ,
+      return(255);                     //  return the sentinel.
+
+  return(qlt[0]);                      //  Otherwise, QV's are the same!
+}
