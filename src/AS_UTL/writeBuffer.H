@@ -36,16 +36,16 @@
 class writeBuffer {
 public:
   writeBuffer(const char *filename, const char *filemode, uint64 bufferMax = 1024 * 1024) {
-    _filename = filename;
-    _filemode = filemode;
+    strncpy(_filename, filename, FILENAME_MAX);
+    strncpy(_filemode, filemode, 16);
 
-    errno = 0;
-    _file    = fopen(filename, filemode);
-    if (errno)
-      fprintf(stderr, "writeBuffer()--  Failed to open file '%s' with mode '%s': %s\n",
-              filename, filemode, strerror(errno)), exit(1);
+    _file    = NULL;
+    _filePos = 0;
 
-    _filePos = AS_UTL_ftell(_file);
+    if      (filemode[0] == 'a')           //  If appending, open the file now
+      open();                              //  so we can set the file position.
+    else if (filemode[0] != 'w')           //  Otherwise, if not writing, fail.
+      fprintf(stderr, "writeBuffer()--  Unknown mode '%s'\n", filemode), exit(1);
 
     _bufferLen = 0;
     _bufferMax = bufferMax;
@@ -58,33 +58,61 @@ public:
     AS_UTL_closeFile(_file, _filename);
   };
 
-  uint64               tell(void) { return(_filePos); };
+  const char          *filename(void) { return(_filename); };
+  uint64               tell(void)     { return(_filePos);  };
 
   void                 write(void *data, uint64 length) {
-    if ((_bufferMax < length) ||
-        (_bufferLen + length > _bufferMax))
-      flush();
 
-    if (_bufferMax < length)
-      AS_UTL_safeWrite(_file, data, "writeBuffer", 1, length);
-    else {
-      memcpy(_buffer + _bufferLen, data, length);
+    if (_bufferMax < _bufferLen + length)           //  Flush the buffer if this
+      flush();                                      //  data is too big for it.
+
+    if (_bufferMax < length) {                      //  And if it is still too big
+      assert(_bufferLen == 0);                      //  (ensure the buffer is empty)
+      writeToDisk(data, length);                    //  and just dump it to disk.
+    }
+
+    else {                                          //  Otherwise, copy it to
+      memcpy(_buffer + _bufferLen, data, length);   //  our buffer.
       _bufferLen += length;
     }
+
+    assert(_bufferLen <= _bufferMax);
 
     _filePos += length;
   };
 
-  const char          *filename(void) { return(_filename); };
 
 private:
+  void                 open(void) {
+    if (_file != NULL)
+      return;
+
+    errno = 0;
+    _file = fopen(_filename, _filemode);
+    if (errno)
+      fprintf(stderr, "writeBuffer()--  Failed to open file '%s' with mode '%s': %s\n",
+              _filename, _filemode, strerror(errno)), exit(1);
+
+    //  If appending, _filePos is zero, and ftell() is non-zero.
+    //  If writing, _filePos is non-zero, and ftell() is zero.
+    _filePos += AS_UTL_ftell(_file);
+  };
+
+  void                 writeToDisk(void *data, uint64 length) {
+    if (length == 0)
+     return;
+
+    open();
+    AS_UTL_safeWrite(_file, data, "writeBuffer::writeToDisk", 1, length);
+  };
+
   void                 flush(void) {
-    AS_UTL_safeWrite(_file, _buffer, "writeBuffer", 1, _bufferLen);
+    writeToDisk(_buffer, _bufferLen);
     _bufferLen = 0;
   };
 
-  const char         *_filename;
-  const char         *_filemode;
+  char                _filename[FILENAME_MAX+1];
+  char                _filemode[17];
 
   FILE               *_file;
   uint64              _filePos;
