@@ -183,6 +183,7 @@ private:
   void   removeSuspicious(const char *prefix);
   void   removeSpurs(const char *prefix);
   void   removeLopsidedEdges(const char *prefix);
+  void   findZombies(const char *prefix);
 
   void   findEdges(void);
 
@@ -240,6 +241,10 @@ public:
     return(_suspicious.count(readid) > 0);
   };
 
+  bool isZombie(const uint32 readid) {
+    return(_zombie.count(readid) > 0);
+  };
+
   void      reportEdgeStatistics(const char *prefix, const char *label);
   void      reportBestEdges(const char *prefix, const char *label);
 
@@ -283,6 +288,7 @@ private:
   set<uint32>                _suspicious;
   set<uint32>                _singleton;
   set<uint32>                _spur;
+  set<uint32>                _zombie;
 
   map<uint32, BestOverlaps>  _bestM;
   map<uint32, BestScores>    _scorM;

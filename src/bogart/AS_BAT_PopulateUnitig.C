@@ -119,8 +119,11 @@ populateUnitig(TigVector &tigs,
                int32      fi) {
 
   if ((RI->readLength(fi) == 0) ||      //  Skip deleted
-      (tigs.inUnitig(fi) != 0) ||         //  Skip placed
-      (OG->isContained(fi) == true))    //  Skip contained
+      (tigs.inUnitig(fi) != 0))         //  Skip placed
+    return;
+
+  if ((OG->isContained(fi) == true) &&  //  Skip contained...
+      (OG->isZombie(fi) == false))      //  that aren't zombies.
     return;
 
   Unitig *utg = tigs.newUnitig(logFileFlagSet(LOG_BUILD_UNITIG));
@@ -140,6 +143,22 @@ populateUnitig(TigVector &tigs,
 
   utg->addRead(read, 0, logFileFlagSet(LOG_BUILD_UNITIG));
 
+  //  If suspicious or a zombie, don't bother trying to extend.  In the former
+  //  case, we don't want to extend, and in the latter case, there isn't anything
+  //  to extend.
+
+  if (OG->isSuspicious(fi)) {
+    writeLog("Stopping unitig construction of suspicious read %d in unitig %d\n",
+            utg->ufpath.back().ident, utg->id());
+    return;
+  }
+
+  if (OG->isZombie(fi)) {
+    writeLog("Stopping unitig construction of zombie read %d in unitig %d\n",
+            utg->ufpath.back().ident, utg->id());
+    return;
+  }
+
   //  Add reads as long as there is a path to follow...from the 3' end of the first read.
 
   BestEdgeOverlap  *bestedge5 = OG->getBestEdgeOverlap(fi, false);
@@ -149,34 +168,6 @@ populateUnitig(TigVector &tigs,
   assert(bestedge5->bhang() <= 0);  //  much simpler.
   assert(bestedge3->ahang() >= 0);
   assert(bestedge3->bhang() >= 0);
-
-  //  If this read is not covered by the two best overlaps we are finished.  We will not follow
-  //  the paths out.  This indicates either low coverage, or a chimeric read.  If it is low
-  //  coverage, then the best overlaps will be mutual and we'll recover the same path.  If it is a
-  //  chimeric read the overlaps will not be mutual and we will skip this read.
-  //
-  //  The amount of our read that is covered by the two best overlaps is
-  //
-  //    (readLen + bestedge5->bhang()) + (readLen - bestedge3->ahang())
-  //
-  //  If that is not significantly longer than the read length, then we will not use this
-  //  read as a seed for unitig construction.
-  //
-
-  if (OG->isSuspicious(fi))
-    return;
-
-#if 0
-  uint32  covered = RI->readLength(fi) + bestedge5->bhang() + RI->readLength(fi) - bestedge3->ahang();
-
-  //  This breaks tigs at 0x best-coverage regions.  There might be a contain that spans (joins)
-  //  the two best overlaps to verify the read, but we can't easily tell right now.
-  if (covered < RI->readLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
-    writeLog("Stopping unitig construction of suspicious read %d in unitig %d\n",
-            utg->ufpath.back().ident, utg->id());
-    return;
-  }
-#endif
 
   if (logFileFlagSet(LOG_BUILD_UNITIG))
     writeLog("Adding 5' edges off of read %d in unitig %d\n",
