@@ -46,6 +46,7 @@ use strict;
 
 use File::Path 2.08 qw(make_path remove_tree);
 use File::Basename;
+use File::Copy;
 use POSIX qw(ceil);
 
 use canu::Defaults;
