@@ -172,6 +172,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/gatekeeperDumpMetaData.mk \
                 stores/gatekeeperPartition.mk \
                 stores/ovStoreBuild.mk \
+                stores/ovStoreConfig.mk \
                 stores/ovStoreBucketizer.mk \
                 stores/ovStoreSorter.mk \
                 stores/ovStoreIndexer.mk \
