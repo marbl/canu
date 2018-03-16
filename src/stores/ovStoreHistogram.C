@@ -406,9 +406,10 @@ ovStoreHistogram::saveData(char *prefix) {
 
 
 
-void
+uint64
 ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
   char    name[FILENAME_MAX];
+  uint64  nOlaps = 0;
 
   //  Add in any overlaps-per-read data.
 
@@ -437,8 +438,10 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
     AS_UTL_safeRead(F, in, "ovStoreHistogram::opr", sizeof(uint32), inLen);         //  Load new values
 
-    for (uint32 ii=0; ii<inLen; ii++)                                               //  Add in new values
+    for (uint32 ii=0; ii<inLen; ii++) {                                             //  Add in new values
       _opr[ii] += in[ii];
+      nOlaps   += in[ii];
+    }
 
     delete [] in;
 
@@ -503,6 +506,8 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
     AS_UTL_closeFile(F, name);
   }
+
+  return(nOlaps);
 }
 
 

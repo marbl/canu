@@ -94,9 +94,10 @@ public:
   void      addOverlap(ovOverlap *overlap);
 
   //  In an ovStore, load the histogram saved in a file, and add it to our current data.
+  //  loadData() returns the number of overlaps in that file.
 
   void      saveData(char *prefix);
-  void      loadData(char *prefix, uint32 maxIID=UINT32_MAX);
+  uint64    loadData(char *prefix, uint32 maxIID=UINT32_MAX);
 
   //  Remove data associated with some prefix.
 
