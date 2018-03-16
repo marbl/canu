@@ -35,6 +35,8 @@
 #include "gkStore.H"
 #include "ovStore.H"
 
+#include "AS_UTL_decodeRange.H"
+
 #include "splitToWords.H"
 #include "mt19937ar.H"
 
@@ -61,7 +63,9 @@ main(int argc, char **argv) {
 
   char                   inType = TYPE_NONE;
 
-  uint64                 numRandom = 0;
+  uint64                 rmin = 0, rmax = 0;
+  uint32                 abgn = 1, aend = 0;
+  uint32                 bbgn = 1, bend = 0;
 
   bool                   native = false;
 
@@ -100,8 +104,14 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-random") == 0) {
       inType    = TYPE_RANDOM;
-      numRandom = strtoull(argv[++arg], NULL, 10);
+      AS_UTL_decodeRange(argv[++arg], rmin, rmax);
       files.push_back(NULL);
+
+    } else if (strcmp(argv[arg], "-a") == 0) {
+      AS_UTL_decodeRange(argv[++arg], abgn, aend);
+
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      AS_UTL_decodeRange(argv[++arg], bbgn, bend);
 
     } else if (strcmp(argv[arg], "-native") == 0) {
       native = true;
@@ -140,6 +150,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -raw               'overlapConvert -raw' format\n");
     fprintf(stderr, "  -ovb               'overlapInCore' format (not implemented)\n");
     fprintf(stderr, "  -random N          create N random overlaps, for store testing\n");
+    fprintf(stderr, "    -a x-y             A read IDs will be between x and y\n");
+    fprintf(stderr, "    -b x-y             B read IDs will be between x and y\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -native            output ovb (-o) files will not be snappy compressed\n");
     fprintf(stderr, "\n");
@@ -174,9 +186,14 @@ main(int argc, char **argv) {
   if (inType == TYPE_RANDOM) {
     mtRandom  mt;
 
+    if (aend == 0)   aend = gkpStore->gkStore_getNumReads();
+    if (bend == 0)   bend = gkpStore->gkStore_getNumReads();
+
+    uint64  numRandom = rmin + floor(mt.mtRandomRealOpen() * (rmax - rmin));
+
     for (uint64 ii=0; ii<numRandom; ii++) {
-      uint32   aID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads()) + 1;
-      uint32   bID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads()) + 1;
+      uint32   aID      = abgn + floor(mt.mtRandomRealOpen() * (aend - abgn));
+      uint32   bID      = bbgn + floor(mt.mtRandomRealOpen() * (bend - bbgn));
 
 #if 0
       //  For testing when reads have no overlaps in store building.  Issue #302.
