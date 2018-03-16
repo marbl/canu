@@ -383,7 +383,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
     Unitig       *tig = operator[](ti);
     set<uint32>   failed;
 
-    if (tig == NULL)
+    if ((tig == NULL) || (tig->ufpath.size() == 1))
       continue;
 
     for (uint32 ii=0; ii<tig->ufpath.size(); ii++)
@@ -406,12 +406,13 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
 
 #pragma omp parallel for schedule(dynamic, fiBlockSize)
     for (uint32 fi=0; fi<fiLimit; fi++) {
-      uint32 ti = inUnitig(fi);
+      uint32        ti  = inUnitig(fi);
+      Unitig       *tig = operator[](ti);
 
-      if (ti == 0)
+      if ((tig == NULL) || (tig->ufpath.size() == 1))
         continue;
 
-      operator[](ti)->optimize_recompute(fi, op, np, beVerbose);
+      tig->optimize_recompute(fi, op, np, beVerbose);
     }
 
     //  Reset zero
@@ -421,7 +422,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
     for (uint32 ti=0; ti<tiLimit; ti++) {
       Unitig       *tig = operator[](ti);
 
-      if (tig == NULL)
+      if ((tig == NULL) || (tig->ufpath.size() == 1))
         continue;
 
       int32  z = np[ tig->ufpath[0].ident ].min;
@@ -479,7 +480,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig       *tig = operator[](ti);
 
-    if (tig == NULL)
+    if ((tig == NULL) || (tig->ufpath.size() == 1))
       continue;
 
     tig->optimize_expand(op);
@@ -494,7 +495,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig       *tig = operator[](ti);
 
-    if (tig == NULL)
+    if ((tig == NULL) || (tig->ufpath.size() == 1))
       continue;
 
     tig->optimize_setPositions(op, beVerbose);
