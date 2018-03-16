@@ -130,6 +130,27 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
 
     if (b5->readId() != 0)   edgeStats.insert(erates[eratesLen++] = b5->erate());
     if (b3->readId() != 0)   edgeStats.insert(erates[eratesLen++] = b3->erate());
+
+    //  If there are NO best edges, find the overlap with the most matches and use that.
+
+    if ((b5->readId() == 0) &&
+        (b3->readId() == 0)) {
+      uint32      no    = 0;
+      BAToverlap *ovl   = OC->getOverlaps(fi, no);
+      uint32      bestM = 0;
+      double      bestE = 0.0;
+
+      for (uint32 oo=0; oo<no; oo++) {
+        double  matches = (1 - ovl[oo].erate()) * RI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
+        if (bestM < matches) {
+          bestM = matches;
+          bestE = ovl[oo].erate();
+        }
+      }
+
+      if (no > 0)
+        edgeStats.insert(erates[eratesLen++] = bestE);
+    }
   }
 
   _mean   = edgeStats.mean();
