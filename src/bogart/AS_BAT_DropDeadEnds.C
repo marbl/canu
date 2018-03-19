@@ -133,17 +133,16 @@ findPrevRead(Unitig *tig,
 
 uint32
 dropDeadFirstRead(AssemblyGraph *AG,
-                  Unitig        *tig) {
+                  Unitig        *tig,
+                  bool           isForward) {
 
   ufNode *fn = tig->firstRead();
   ufNode *sn = findNextRead(tig, fn);
 
    //  No next read, keep fn in the tig.
 
-  if (sn == NULL) {
-    writeLog("dropDead()- read %8u no sn\n", fn->ident);
+  if (sn == NULL)
     return(0);
-  }
 
   //  Over all edges from the first read, look for any edge to something else.
   //
@@ -153,23 +152,35 @@ dropDeadFirstRead(AssemblyGraph *AG,
   //  the tig.  We assume that this is always the first read, which is OK, because the function name
   //  says so.  Any edge to anywhere means the read is good and should be kept.
 
+  if (AG->getForward(fn->ident).size() == 0)
+    writeLog("dropDead()-- (%s) 1st read %8u has no edges\n", (isForward) ? "fwd" : "rev", fn->ident);
+
   for (uint32 pp=0; pp<AG->getForward(fn->ident).size(); pp++) {
     BestPlacement  &pf = AG->getForward(fn->ident)[pp];
 
-    writeLog("dropDead()-- 1st read %8u %s pf %3u/%3u best5 %8u best3 %8u bestC %8u\n",
-             fn->ident,
-             fn->position.isForward() ? "->" : "<-",
-             pp, AG->getForward(fn->ident).size(),
-             pf.best5.b_iid, pf.best3.b_iid, pf.bestC.b_iid);
 
     if (pf.bestC.b_iid > 0) {
+      writeLog("dropDead()-- (%s) 1st read %8u %s edge %4u/%-4u - contained in %u - confirmed\n",
+               (isForward) ? "fwd" : "rev",
+               fn->ident,
+               fn->position.isForward() ? "->" : "<-",
+               pp, AG->getForward(fn->ident).size(),
+               pf.bestC.b_iid);
       return(0);
     }
 
     if (((fn->position.isForward() == true)  && (pf.best5.b_iid != 0)) ||
-        ((fn->position.isForward() == false) && (pf.best3.b_iid != 0)))
+        ((fn->position.isForward() == false) && (pf.best3.b_iid != 0))) {
+      writeLog("dropDead()-- (%s) 1st read %8u %s edge %4u/%-4u - 5:%u 3:%u - confirmed\n",
+               (isForward) ? "fwd" : "rev",
+               fn->ident,
+               fn->position.isForward() ? "->" : "<-",
+               pp, AG->getForward(fn->ident).size(),
+               pf.best5.b_iid, pf.best3.b_iid);
       return(0);
+    }
   }
+
 
   //  But no edge means we need to check the second read.  If it has an edge, then we infer the
   //  first read is bogus and should be removed.  If it also has no edge (except to the first read,
@@ -180,25 +191,40 @@ dropDeadFirstRead(AssemblyGraph *AG,
   //  first read.  Well, and that if the second read has an edge we declare the first read to be
   //  junk.  That's also a bit of a difference from the previous loop.
 
+  if (AG->getForward(sn->ident).size() == 0) {
+    writeLog("dropDead()-- (%s) 2nd read %8u has no edges - keep first\n", (isForward) ? "fwd" : "rev", sn->ident);
+    return(0);
+  }
+
   for (uint32 pp=0; pp<AG->getForward(sn->ident).size(); pp++) {
     BestPlacement  &pf = AG->getForward(sn->ident)[pp];
 
-    writeLog("dropDead()-- 2nd read %8u %s pf %3u/%3u best5 %8u best3 %8u bestC %8u\n",
-             sn->ident,
-             sn->position.isForward() ? "->" : "<-",
-             pp, AG->getForward(sn->ident).size(),
-             pf.best5.b_iid, pf.best3.b_iid, pf.bestC.b_iid);
-
-    if ((pf.bestC.b_iid > 0) && (pf.bestC.b_iid != fn->ident))
+    if ((pf.bestC.b_iid > 0) && (pf.bestC.b_iid != fn->ident)) {
+      writeLog("dropDead()-- (%s) 2nd read %8u %s edge %4u/%-4u - contained in %u - drop first\n",
+               (isForward) ? "fwd" : "rev",
+               sn->ident,
+               sn->position.isForward() ? "->" : "<-",
+               pp, AG->getForward(sn->ident).size(),
+               pf.bestC.b_iid);
       return(fn->ident);
+    }
 
     if (((sn->position.isForward() == true)  && (pf.best5.b_iid != 0) && (pf.best5.b_iid != fn->ident)) ||
-        ((sn->position.isForward() == false) && (pf.best3.b_iid != 0) && (pf.best3.b_iid != fn->ident)))
+        ((sn->position.isForward() == false) && (pf.best3.b_iid != 0) && (pf.best3.b_iid != fn->ident))) {
+      writeLog("dropDead()-- (%s) 2nd read %8u %s edge %4u/%-4u - 5:%u 3:8u - drop first\n",
+               (isForward) ? "fwd" : "rev",
+               sn->ident,
+               sn->position.isForward() ? "->" : "<-",
+               pp, AG->getForward(sn->ident).size(),
+               pf.best5.b_iid, pf.best3.b_iid);
       return(fn->ident);
+    }
   }
 
   //  Otherwise, the second read had only edges to the first read, and we should keep the first
   //  read.
+
+  writeLog("dropDead()-- (%s) 2nd read %8u has no useful external edges - keep first\n", (isForward) ? "fwd" : "rev", sn->ident);
 
   return(0);
 }
@@ -222,20 +248,32 @@ dropDeadEnds(AssemblyGraph  *AG,
         (tig->_isUnassembled == true))
       continue;
 
-    uint32  fn = dropDeadFirstRead(AG, tig);        //  Decide if the first read is junk.
+    writeLog("\n");
+    writeLog("dropDead()-- testing tig %u length %u\n", ti, tig->getLength());
+
+    uint32  fn = dropDeadFirstRead(AG, tig, true);  //  Decide if the first read is junk.
+
+    //fprintf(stderr, "drop dead for tig %u (flipped)\n", ti);
 
     tig->reverseComplement();                       //  Flip.
-    uint32  ln = dropDeadFirstRead(AG, tig);        //  Decide if the last (now first) read is junk.
+    uint32  ln = dropDeadFirstRead(AG, tig, false); //  Decide if the last (now first) read is junk.
     tig->reverseComplement();                       //  Flip back.
 
-    if ((fn == 0) && (ln == 0))                     //  Nothing to remove, just get out of here.
+    if ((fn == 0) && (ln == 0)) {                   //  Nothing to remove, nothing to do.
+      writeLog("dropDead()-- both ends confirmed\n");
       continue;
+    }
+
+    if (fn == ln) {                                 //  The same thing to remove, ignore it.
+      writeLog("dropDead()-- retaining spanning read %u\n", fn);
+      continue;
+    }
 
     //  At least one read needs to be kicked out.  Make new tigs for everything.
 
-    char   fnMsg[80] = {0};   Unitig  *fnTig = NULL;
-    char   nnMsg[80] = {0};   Unitig  *nnTig = NULL;  int32  nnOff = INT32_MAX;
-    char   lnMsg[80] = {0};   Unitig  *lnTig = NULL;
+    Unitig  *fnTig = NULL;
+    Unitig  *nnTig = NULL;  int32  nnOff = INT32_MAX;
+    Unitig  *lnTig = NULL;
 
     if (fn > 0)
       fnTig = tigs.newUnitig(false);
@@ -256,31 +294,25 @@ dropDeadEnds(AssemblyGraph  *AG,
 
     //  Move reads to their new unitig.
 
-    strcpy(fnMsg, "                                      ");
-    strcpy(nnMsg, "                          ");
-    strcpy(lnMsg, "");
-
     for (uint32 cc=0, tt=0; tt<tig->ufpath.size(); tt++) {
       ufNode  &read = tig->ufpath[tt];
 
       if        (read.ident == fn) {
-        sprintf(fnMsg, "first read %9u to tig %7u --", read.ident, fnTig->id());
+        writeLog("dropDead()-- tig %u gets first read %u\n", fnTig->id(), read.ident);
         fnTig->addRead(read, -read.position.min(), false);
 
       } else if (read.ident == ln) {
-        sprintf(lnMsg, "-- last read %9u to tig %7u", read.ident, lnTig->id());
+        writeLog("dropDead()-- tig %u gets last read %u\n", lnTig->id(), read.ident);
         lnTig->addRead(read, -read.position.min(), false);
 
       } else {
         if (nnOff == INT32_MAX) {
-          sprintf(nnMsg, "other reads to tig %7u", nnTig->id());
+          writeLog("dropDead()-- tig %u gets all other reads\n", nnTig->id());
           nnOff = read.position.min();
         }
         nnTig->addRead(read, -nnOff, false);
       }
     }
-
-    writeLog("dropDeadEnds()-- tig %7u --> %s %s %s\n", tig->id(), fnMsg, nnMsg, lnMsg);
 
     if (fnTig)  fnTig->cleanUp();   //  Probably not neeeded, but cheap.
     if (lnTig)  lnTig->cleanUp();   //  Probably not neeeded, but cheap.
@@ -292,6 +324,6 @@ dropDeadEnds(AssemblyGraph  *AG,
     tigs[ti] = NULL;
   }
 
-  writeStatus("dropDeadEnds()-- Modified %u tigs.  Dropped %u first and %u last reads, %u tig%s had both reads dropped.\n",
+  writeStatus("dropDead()-- Modified %u tigs.  Dropped %u first and %u last reads, %u tig%s had both reads dropped.\n",
               numT, numF, numL, numB, (numB == 1) ? "" : "s");
 }
