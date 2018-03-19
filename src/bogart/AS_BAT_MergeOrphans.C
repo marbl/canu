@@ -657,7 +657,7 @@ mergeOrphans(TigVector &tigs,
                    targets[tt]->placed[op].frgID,
                    targets[tt]->placed[op].position.bgn, targets[tt]->placed[op].position.end);
 
-      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3" F_SIZE_TP " reads, had %3" F_SIZE_TP " reads.\n",
+      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3" F_U32 " reads, had %3" F_U32 " reads.\n",
                orphan->id(), orphan->getLength(),
                targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
                orphanSize, targetSize);
