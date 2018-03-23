@@ -196,32 +196,42 @@ sub unitig ($) {
     print F "\n";
 
     if      (getGlobal("unitigger") eq "bogart") {
-        print F "\$bin/bogart \\\n";
-        print F " -G ../$asm.gkpStore \\\n";
-        print F " -O ../$asm.ovlStore \\\n";
-        print F " -o ./$asm \\\n";
-        print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
-        print F " -eg "             . getGlobal("utgErrorRate")       . " \\\n";
-        print F " -eM "             . getGlobal("utgErrorRate")       . " \\\n";
-        print F " -mo "             . $overlapLength                  . " \\\n";
-        print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n";
-        print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n";
-        print F " -dr "             . getGlobal("utgRepeatDeviation") . " \\\n";
-        print F " -ca "             . getGlobal("utgRepeatConfusedBP"). " \\\n";
-        print F " -cp "             . "200"                           . " \\\n";
-        print F " -threads "        . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
-        print F " -M "              . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
-        print F " -unassembled "    . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));
-        print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
-        print F " > ./unitigger.err 2>&1 \\\n";
-        print F "&& \\\n";
-        print F "mv ./$asm.ctgStore ../$asm.ctgStore \\\n";
-        print F "&& \\\n";
-        print F "mv ./$asm.utgStore ../$asm.utgStore\n";
+        print F "if [ ! -e ../$asm.ctgStore -o \\\n";
+        print F "     ! -e ../$asm.utgStore ] ; then\n";
+        print F "  \$bin/bogart \\\n";
+        print F "    -G ../$asm.gkpStore \\\n";
+        print F "    -O ../$asm.ovlStore \\\n";
+        print F "    -o ./$asm \\\n";
+        print F "    -gs "             . getGlobal("genomeSize")         . " \\\n";
+        print F "    -eg "             . getGlobal("utgErrorRate")       . " \\\n";
+        print F "    -eM "             . getGlobal("utgErrorRate")       . " \\\n";
+        print F "    -mo "             . $overlapLength                  . " \\\n";
+        print F "    -dg "             . getGlobal("utgGraphDeviation")  . " \\\n";
+        print F "    -db "             . getGlobal("utgGraphDeviation")  . " \\\n";
+        print F "    -dr "             . getGlobal("utgRepeatDeviation") . " \\\n";
+        print F "    -ca "             . getGlobal("utgRepeatConfusedBP"). " \\\n";
+        print F "    -cp "             . "200"                           . " \\\n";
+        print F "    -threads "        . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
+        print F "    -M "              . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
+        print F "    -unassembled "    . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));
+        print F "    "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
+        print F "    > ./unitigger.err 2>&1 \\\n";
+        print F "  && \\\n";
+        print F "  mv ./$asm.ctgStore ../$asm.ctgStore \\\n";
+        print F "  && \\\n";
+        print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
+        print F "fi\n";
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
 
+    print F "\n";
+    print F "if [ ! -e ../$asm.ctgStore -o \\\n";
+    print F "     ! -e ../$asm.utgStore ] ; then\n";
+    print F "  echo bogart appears to have failed; no $asm.ctgStore or $asm.utgStore.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
     print F "\n";
     print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
     print F stashFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "");
@@ -232,11 +242,13 @@ sub unitig ($) {
     print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
     print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
     print F "\n";
-    print F "\$bin/tgStoreDump \\\n";                    #  Duplicated in reportUnitigSizes()
-    print F "  -G ../$asm.gkpStore \\\n";                 #  Done here so we don't need another
-    print F "  -T ../$asm.ctgStore 1 \\\n";               #  pull of gkpStore and ctgStore
-    print F "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
-    print F "> ../$asm.ctgStore/seqDB.v001.sizes.txt";
+    print F "if [ ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
+    print F "  \$bin/tgStoreDump \\\n";                    #  Duplicated in reportUnitigSizes()
+    print F "    -G ../$asm.gkpStore \\\n";                 #  Done here so we don't need another
+    print F "    -T ../$asm.ctgStore 1 \\\n";               #  pull of gkpStore and ctgStore
+    print F "    -sizes -s " . getGlobal("genomeSize") . " \\\n";
+    print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt";
+    print F "fi\n";
     print F "\n";
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.sizes.txt", "");
     print F "\n";
