@@ -131,7 +131,7 @@ loadReadLengths(gkStore *gkp,
   fprintf(stderr, "     Reads        Bases      Reads        Bases      Reads        Bases\n");
   fprintf(stderr, "---------- ------------ ---------- ------------ ---------- ------------\n");
 
-  uint32  reportInterval = numReads / 40;
+  uint32  reportInterval = numReads / 39 + 1;
 
   for (uint32 ii=1; ii<=numReads; ii++) {
     gkRead  *read = gkp->gkStore_getRead(ii);
