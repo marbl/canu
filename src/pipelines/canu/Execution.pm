@@ -1462,9 +1462,9 @@ sub caExit ($$) {
         print STDERR "ABORT: Last 50 lines of the relevant log file ($log):\n";
         print STDERR "ABORT:\n";
 
-        open(Z, "tail -n 50 $log");
+        open(Z, "tail -n 50 $log |");
         while (<Z>) {
-            print STDERR "ABORT: $_";
+            print STDERR "ABORT:   $_";
         }
         close(Z);
 
