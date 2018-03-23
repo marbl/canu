@@ -52,38 +52,6 @@
 
 uint32  batchMax = 1000;
 
-void
-outputJob(FILE   *BAT,
-          FILE   *JOB,
-          FILE   *OPT,
-          uint32  hashBeg, uint32  hashEnd, uint32  numHashReads, uint64  numHashBases,
-          uint32  refBeg,  uint32  refEnd,  uint32  numRefReads,  uint64  numRefBases,
-          uint32 &batchSize,
-          uint32 &batchName,
-          uint32 &jobName) {
-
-  fprintf(BAT, "%03" F_U32P "\n", batchName);
-  fprintf(JOB, "%06" F_U32P "\n", jobName);
-
-  if (numHashReads == 0)
-    fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 "\n", hashBeg, hashEnd, refBeg, refEnd);
-  else
-    fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 " --hashstrings " F_U32 " --hashdatalen " F_U64 "\n", hashBeg, hashEnd, refBeg, refEnd, numHashReads, numHashBases);
-
-  fprintf(stderr, "%5" F_U32P " %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "  %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "\n", jobName, hashBeg, hashEnd, numHashReads, numHashBases, refBeg, refEnd, numRefReads, numRefBases);
-
-  refBeg = refEnd + 1;
-
-  batchSize++;
-
-  if (batchSize >= batchMax) {
-    batchSize = 0;
-    batchName++;
-  }
-
-  jobName++;
-}
-
 
 
 uint32 *
@@ -280,13 +248,28 @@ partitionLength(gkStore      *gkp,
       if ((refEnd > hashEnd) && (libToHash.size() == 0 || libToHash != libToRef))
         refEnd = hashEnd;
 
-      outputJob(BAT,
-                JOB,
-                OPT,
-                hashBeg, hashEnd, hashReads, hashBases,
-                refBeg,  refEnd,  refReads,  refBases,
-                //hashEnd - hashBeg + 1, hashLen,
-                batchSize, batchName, jobName);
+      //  Output the job.
+
+      fprintf(BAT, "%03" F_U32P "\n", batchName);
+      fprintf(JOB, "%06" F_U32P "\n", jobName);
+
+      if (hashReads == 0)
+        fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 "\n", hashBeg, hashEnd, refBeg, refEnd);
+      else
+        fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 " --hashstrings " F_U32 " --hashdatalen " F_U64 "\n", hashBeg, hashEnd, refBeg, refEnd, hashReads, hashBases);
+
+      fprintf(stderr, "%5" F_U32P " %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "  %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "\n", jobName, hashBeg, hashEnd, hashReads, hashBases, refBeg, refEnd, refReads, refBases);
+
+      //  Move to the next.
+
+      batchSize++;
+
+      if (batchSize >= batchMax) {
+        batchSize = 0;
+        batchName++;
+      }
+
+      jobName++;
 
       refBeg = refEnd + 1;
     }
