@@ -593,6 +593,8 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
 
       memcpy(sccopy, input->_scores, sizeof(oSH_ovlSco) * iLen);
 
+      delete [] _scores;
+
       _scores    = sccopy;
       _scoresBgn = iBgn;
       _scoresMax = iLen;
@@ -615,6 +617,7 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
       memcpy(sccopy + iBgn - oBgn, input->_scores, sizeof(oSH_ovlSco) * iLen);
 
       delete [] _scores;
+
       _scores    = sccopy;
       _scoresBgn = oBgn;
       _scoresMax = iEnd - oBgn;
@@ -631,6 +634,7 @@ ovStoreHistogram::add(ovStoreHistogram *input) {
       memcpy(sccopy,               input->_scores, sizeof(oSH_ovlSco) * iLen);
 
       delete [] _scores;
+
       _scores    = sccopy;
       _scoresBgn = iBgn;
       _scoresMax = oEnd - iBgn;
