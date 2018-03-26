@@ -329,7 +329,7 @@ createDataName(char *name, char *prefix, char *suffix) {
 
 void
 ovStoreHistogram::saveData(char *prefix) {
-  char  name[FILENAME_MAX];
+  char  name[FILENAME_MAX+1];
 
   //  If we have overlaps-per-read data, dump it.  Just a simple array.
 
@@ -408,7 +408,7 @@ ovStoreHistogram::saveData(char *prefix) {
 
 uint64
 ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
-  char    name[FILENAME_MAX];
+  char    name[FILENAME_MAX+1];
   uint64  nOlaps = 0;
 
   //  Add in any overlaps-per-read data.
@@ -514,7 +514,7 @@ ovStoreHistogram::loadData(char *prefix, uint32 maxIID) {
 
 void
 ovStoreHistogram::removeData(char *prefix) {
-  char    name[FILENAME_MAX];
+  char    name[FILENAME_MAX+1];
 
   createDataName(name, prefix, "counts");          AS_UTL_unlink(name);
   createDataName(name, prefix, "evalueLen");       AS_UTL_unlink(name);
