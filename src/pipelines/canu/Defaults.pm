@@ -438,22 +438,28 @@ sub printCitation ($) {
     print STDERR "${prefix}  Bioinformatics. 2017 May 1;33(9):1394-1395.\n";
     print STDERR "${prefix}  http://doi.org/10.1093/bioinformatics/btw753\n";
     print STDERR "${prefix}\n";
-    print STDERR "${prefix}Overlaps are generated using:\n";
-    print STDERR "${prefix}  Berlin K, et al.\n";
-    print STDERR "${prefix}  Assembling large genomes with single-molecule sequencing and locality-sensitive hashing.\n";
-    print STDERR "${prefix}  Nat Biotechnol. 2015 Jun;33(6):623-30.\n";
-    print STDERR "${prefix}  http://doi.org/10.1038/nbt.3238\n";
-    print STDERR "${prefix}\n";
-    print STDERR "${prefix}  Myers EW, et al.\n";
-    print STDERR "${prefix}  A Whole-Genome Assembly of Drosophila.\n";
-    print STDERR "${prefix}  Science. 2000 Mar 24;287(5461):2196-204.\n";
-    print STDERR "${prefix}  http://doi.org/10.1126/science.287.5461.2196\n";
-    print STDERR "${prefix}\n";
-    print STDERR "${prefix}  Li H.\n";
-    print STDERR "${prefix}  Minimap and miniasm: fast mapping and de novo assembly for noisy long sequences.\n";
-    print STDERR "${prefix}  Bioinformatics. 2016 Jul 15;32(14):2103-10.\n";
-    print STDERR "${prefix}  http://doi.org/10.1093/bioinformatics/btw152\n";
-    print STDERR "${prefix}\n";
+    if (getGlobal("corOverlapper") eq "mhap" || getGlobal("obtOverlapper") eq "mhap" || getGlobal("utgOverlapper") eq "mhap") {
+       print STDERR "${prefix}Overlaps are generated using:\n";
+       print STDERR "${prefix}  Berlin K, et al.\n";
+       print STDERR "${prefix}  Assembling large genomes with single-molecule sequencing and locality-sensitive hashing.\n";
+       print STDERR "${prefix}  Nat Biotechnol. 2015 Jun;33(6):623-30.\n";
+       print STDERR "${prefix}  http://doi.org/10.1038/nbt.3238\n";
+       print STDERR "${prefix}\n";
+    }
+    if (getGlobal("corOverlapper") eq "ovl" || getGlobal("obtOverlapper") eq "ovl" || getGlobal("utgOverlapper") eq "ovl") {
+       print STDERR "${prefix}  Myers EW, et al.\n";
+       print STDERR "${prefix}  A Whole-Genome Assembly of Drosophila.\n";
+       print STDERR "${prefix}  Science. 2000 Mar 24;287(5461):2196-204.\n";
+       print STDERR "${prefix}  http://doi.org/10.1126/science.287.5461.2196\n";
+       print STDERR "${prefix}\n";
+    }
+    if (getGlobal("corOverlapper") eq "minimap" || getGlobal("obtOverlapper") eq "minimap" || getGlobal("utgOverlapper") eq "minimap") {
+       print STDERR "${prefix}  Li H.\n";
+       print STDERR "${prefix}  Minimap and miniasm: fast mapping and de novo assembly for noisy long sequences.\n";
+       print STDERR "${prefix}  Bioinformatics. 2016 Jul 15;32(14):2103-10.\n";
+       print STDERR "${prefix}  http://doi.org/10.1093/bioinformatics/btw152\n";
+       print STDERR "${prefix}\n";
+    }
     print STDERR "${prefix}Corrected read consensus sequences are generated using an algorithm derived from FALCON-sense:\n";
     print STDERR "${prefix}  Chin CS, et al.\n";
     print STDERR "${prefix}  Phased diploid genome assembly with single-molecule real-time sequencing.\n";
