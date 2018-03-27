@@ -257,17 +257,24 @@ AS_UTL_mkdir(const char *dirname) {
   //  Stat the file.  Don't fail if the file doesn't exist though.
 
   errno = 0;
-  if ((stat(dirname, &st) != 0) && (errno != ENOENT))
+  stat(dirname, &st);
+
+  if ((errno > 0) && (errno != ENOENT))
     fprintf(stderr, "AS_UTL_mkdir()--  Couldn't stat '%s': %s\n", dirname, strerror(errno)), exit(1);
 
-  //  If file doesn't exist, make the directory.  Fail horribly if it can't be made..
-  //  Or, fail horribly if the 'directory' is a file instead.
+  //  If the file exists, and isn't a directory, fail.
 
-  if ((errno == ENOENT) && (mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO) != 0))
+  if ((errno == 0) && (S_ISDIR(st.st_mode) == false))
+    fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname), exit(1);
+
+  //  Otherwise, make a directory.  Ignore any errors about the directory existing already.
+
+  errno = 0;
+  mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO);
+
+  if ((errno > 0) && (errno != EEXIST))
     fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno)), exit(1);
 
-  if ((errno != ENOENT) && (S_ISDIR(st.st_mode) == false))
-    fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname), exit(1);
 }
 
 
