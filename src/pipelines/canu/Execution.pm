@@ -327,9 +327,9 @@ sub getJobIDShellCode () {
     $string .= "#  Discover the job ID to run, from either a grid environment variable and a\n";
     $string .= "#  command line offset, or directly from the command line.\n";
     $string .= "#\n";
-    $string .= "if [ x\$PBS_JOBID != x -a x\$$taskenv = x ]; then\n"   if (uc(getGlobal("gridEngine")) eq "PBSPRO");
-    $string .= "  $taskenv=1\n"                                        if (uc(getGlobal("gridEngine")) eq "PBSPRO");
-    $string .= "fi\n"                                                  if (uc(getGlobal("gridEngine")) eq "PBSPRO");
+    $string .= "if [ x\$PBS_JOBID != x -a x\$$taskenv = x ]; then\n"   if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS");
+    $string .= "  $taskenv=1\n"                                        if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS");
+    $string .= "fi\n"                                                  if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS");
     $string .= "if [ x\$$taskenv = x -o x\$$taskenv = xundefined -o x\$$taskenv = x0 ]; then\n";
     $string .= "  baseid=\$1\n";           #  Off grid
     $string .= "  offset=0\n";
@@ -712,10 +712,11 @@ sub buildGridArray ($$$$) {
     #  PBSPro requires array jobs to have bgn < end.  When $bgn == $end, we
     #  just remove the array qualifier.  But only if this option is setting
     #  the number of jobs, not if it is setting the name.
+    #  New versions of PBS have this behavior too
 
-    if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
+    if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS") {
         $opt = ""  if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
-        $off = "";
+        $off = $bgn;
     }
 
     #  Further, PBS/Torque won't let scripts be passed options unless they
@@ -908,6 +909,7 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $opts \\\n"  if (defined($opts));
     print F "  $nameOption \"$jobName\" \\\n";
     print F "  $arrayOpt \\\n";
+    print F " -- " if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     print F "  ./$script.sh $arrayOff \\\n";
     print F "> ./$script.jobSubmit-$idx.out 2>&1\n";
     close(F);
@@ -1173,7 +1175,10 @@ sub submitOrRunParallelJob ($$$$@) {
         }
 
         if (uc(getGlobal("gridEngine")) eq "PBS") {
-            $jobHold = "-W depend=afteranyarray:" . join ":", @jobsSubmitted;
+            # new PBS versions dont have 1-task arrays like PBSPro but still have afteranyarray (which doesn't work on a not-array task) 
+            # so we need to check if we are waiting for a regular job or array
+            my $holdType = (join ":", @jobsSubmitted)  =~ m/^(\d+)\[(.*)\]/ ? "afteranyarray" : "afterany";
+            $jobHold = "-W depend=$holdType:" . join ":", @jobsSubmitted;
         }
 
         if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
