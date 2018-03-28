@@ -977,34 +977,47 @@ sub checkJava () {
     my $java       = getGlobal("java");
     my $versionStr = "unknown";
     my $version    = 0;
+    my @javaVersionStrings;
 
-    #  Argh, we can't use runCommand() here, because we're included in Execution.pm.  Try to check
-    #  it with -x.  Nope.  Fails if $java == "java".
+    #  We've seen errors running just this tiny java if too many copies are ran at the same time.
+    #  So, run it twice, if needed, with a little random delay between.
 
-    #if (! -x $java) {
-    #    addCommandLineError("ERROR:  java executable '$java' not found or not executable\n");
-    #}
+    for (my $iter=0; $iter<2; $iter++) {
+        open(F, "$java -Xmx1g -showversion 2>&1 |");
+        @javaVersionStrings = <F>;
+        chomp @javaVersionStrings;
+        close(F);
 
-    open(F, "$java -Xmx1g -showversion 2>&1 |");
-    while (<F>) {
-        #  First word is either "java" or "openjdk" or ...
-        if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
-            $versionStr = "$1$2";
-            $version    =  $1;
+        foreach (@javaVersionStrings) {
+            #  First word is either "java" or "openjdk" or ...
+            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
+                $versionStr = "$1$2";
+                $version    =  $1;
+            }
         }
+        close(F);
+
+        last  if ($version >= 1.8);
+
+        print STDERR "-- Failed Java version check.\n";
+        print STDERR "--   '$javaVersionStrings[0]'\n"  if (length($javaVersionStrings[0]) > 0);
+        print STDERR "--   '$javaVersionStrings[1]'\n"  if (length($javaVersionStrings[1]) > 0);
+        print STDERR "--   '$javaVersionStrings[2]'\n"  if (length($javaVersionStrings[2]) > 0);
+        print STDERR "--   '$javaVersionStrings[3]'\n"  if (length($javaVersionStrings[3]) > 0);
+        print STDERR "--\n";
+        print STDERR "-- Trying again.\n";
+        print STDERR "--\n";
+
+        sleep(int(rand(3)+1));
     }
-    close(F);
 
     if ($version < 1.8) {
         addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr (from '$java').\n");
-        addCommandLineError("ERROR:  '$java -showversion' reports:\n");
+        addCommandLineError("ERROR:  '$java -Xmx1g -showversion' reports:\n");
 
-        open(F, "$java -Xmx1g -showversion 2>&1 |");
-        while (<F>) {
-            chomp;
-            addCommandLineError("ERROR:    '$_'\n");
+        for (my $ii=0; (($ii<20) && ($ii < scalar(@javaVersionStrings))); $ii++) {
+            addCommandLineError("ERROR:    '$javaVersionStrings[$ii]'\n");
         }
-        close(F);
 
     } else {
         print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
