@@ -214,10 +214,8 @@ main(int argc, char **argv) {
   }
 
   uint32      ovlLen = 0;
-  uint32      ovlMax = 64 * 1024;
-  ovOverlap  *ovl    = ovOverlap::allocateOverlaps(gkp, ovlMax);
-
-  memset(ovl, 0, sizeof(ovOverlap) * ovlMax);
+  uint32      ovlMax = 0;
+  ovOverlap  *ovl    = NULL;
 
   workUnit *w = new workUnit;
 
@@ -254,11 +252,11 @@ main(int argc, char **argv) {
     readsIn += read->gkRead_sequenceLength();
 
 
-    uint32   nLoaded = ovs->readOverlaps(id, ovl, ovlLen, ovlMax);
+    ovlLen = ovs->loadOverlapsForRead(id, ovl, ovlMax);
 
     //fprintf(stderr, "read %7u with %7u overlaps\r", id, nLoaded);
 
-    if (nLoaded == 0) {
+    if (ovlLen == 0) {
       //  No overlaps, nothing to check!
       noOverlaps += read->gkRead_sequenceLength();
       continue;

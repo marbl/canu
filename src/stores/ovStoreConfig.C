@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2015-NOV-03
+ *    Brian P. Walenz beginning on 2018-MAR-15
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -28,129 +28,20 @@
 
 #include "gkStore.H"
 #include "ovStore.H"
+#include "ovStoreConfig.H"
 
 #include <vector>
 #include <algorithm>
 
 using namespace std;
 
-#define  MEMORY_OVERHEAD  (256 * 1024 * 1024)
-
-//  This is the size of the datastructure that we're using to store overlaps for sorting.
-//  At present, with ovOverlap, it is over-allocating a pointer that we don't need, but
-//  to make a custom structure, we'd need to duplicate a bunch of code or copy data after
-//  loading and before writing.
-//
-//  Used in both ovStoreSorter.C and ovStoreBuild.C.
-//
-#define ovOverlapSortSize  (sizeof(ovOverlap))
-
-
-
-class ovStoreConfig {
-public:
-  ovStoreConfig() {
-    _maxID         = 0;
-    _numInputs     = 0;
-    _inputNames    = NULL;
-    _inputToBucket = NULL;
-    _readToSlice   = NULL;
-  };
-
-  ovStoreConfig(vector<char *> &names, uint32 maxID) {
-    _maxID         = maxID;
-
-    _numInputs  = names.size();
-    _inputNames = new char * [_numInputs];
-
-    for (uint32 ii=0; ii<names.size(); ii++)
-      _inputNames[ii] = duplicateString(names[ii]);
-
-    _inputToBucket = new uint32 [_numInputs];
-    _readToSlice   = new uint16 [_maxID+1];
-  };
-
-  ~ovStoreConfig() {
-    for (uint32 ii=0; ii<_numInputs; ii++)
-      delete [] _inputNames[ii];
-
-    delete [] _inputNames;
-
-    delete [] _inputToBucket;
-    delete [] _readToSlice;
-  };
-
-  void    loadConfig(const char *configName) {
-    FILE *C = AS_UTL_openInputFile(configName);
-
-    AS_UTL_safeRead(C, &_maxID,     "maxID",     sizeof(uint32), 1);
-    AS_UTL_safeRead(C, &_numInputs, "numInputs", sizeof(uint32), 1);
-
-    _inputNames = new char * [_numInputs];
-
-    for (uint32 ii=0; ii<_numInputs; ii++) {
-      uint32  nl = 0;
-
-      AS_UTL_safeRead(C, &nl, "nameLen", sizeof(uint32), 1);
-
-      _inputNames[ii] = new char [nl+1];
-
-      AS_UTL_safeRead(C, _inputNames[ii], "name", sizeof(uint32), nl+1);
-    }
-
-    _inputToBucket = new uint32 [_numInputs];
-    _readToSlice   = new uint16 [_maxID+1];
-
-    AS_UTL_safeRead(C, _inputToBucket, "inputToBucket", sizeof(uint32), _numInputs);
-    AS_UTL_safeRead(C, _readToSlice,   "readToSlice",   sizeof(uint16), _maxID+1);
-
-    AS_UTL_closeFile(C, configName);
-  };
-
-  void    writeConfig(const char *configName) {
-    FILE *C = AS_UTL_openOutputFile(configName);
-
-    AS_UTL_safeWrite(C, &_maxID,     "maxID",     sizeof(uint32), 1);
-    AS_UTL_safeWrite(C, &_numInputs, "numInputs", sizeof(uint32), 1);
-
-    for (uint32 ii=0; ii<_numInputs; ii++) {
-      uint32 nl = strlen(_inputNames[ii]);
-
-      AS_UTL_safeWrite(C, &nl,             "nameLen", sizeof(uint32), 1);
-      AS_UTL_safeWrite(C, _inputNames[ii], "name",    sizeof(char),   nl+1);
-    }
-
-    AS_UTL_safeWrite(C, _inputToBucket, "inputToBucket", sizeof(uint32), _numInputs);
-    AS_UTL_safeWrite(C, _readToSlice,   "readToSlice",   sizeof(uint16), _maxID+1);
-
-    AS_UTL_closeFile(C, configName);
-
-    fprintf(stderr, "Saved configuration to '%s'.\n", configName);
-  };
-
-  void    getNumberOfInputs(void);
-  uint32  getInputBucket(uint32 bucketNumber);
-  char   *getInput(uint32 bucketNumber, uint32 fileNumber);
-
-  void    assignReadsToSlices(uint64  minMemory,
-                              uint64  maxMemory);
-
-private:
-  uint32     _maxID;
-
-  uint32     _numInputs;       //  Number of input ovb files.
-  char     **_inputNames;      //  Input ovb files.
-
-  uint32    *_inputToBucket;   //  Maps an input name to a bucket.
-  uint16    *_readToSlice;      //  Map each read ID to a slice.
-};
-
 
 
 
 
 void
-ovStoreConfig::assignReadsToSlices(uint64          minMemory,
+ovStoreConfig::assignReadsToSlices(gkStore        *gkp,
+                                   uint64          minMemory,
                                    uint64          maxMemory) {
 
   int64    procMax       = sysconf(_SC_CHILD_MAX);
@@ -159,28 +50,36 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
   //
   //  Load the number of overlaps per read.
   //
-  //  WE NEED TO KNOW OVERLAPS PER INPUT FILE, SO WE CAN BALANCE BUCKETIZER JOBS
 
+  fprintf(stderr, "\n");
   fprintf(stderr, "Finding number of overlaps per read and per file.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "      Molaps\n");
   fprintf(stderr, "------------ ----------------------------------------\n");
 
-  uint64             *oPF  = new uint64 [_numInputs];
-  uint32             *oPR  = new uint32 [_maxID+1];
-  ovStoreHistogram   *hist = new ovStoreHistogram();
+  uint64             *oPF         = new uint64 [_numInputs];
+  uint32             *oPR         = new uint32 [_maxID + 1];
+  uint64              numOverlaps = 0;
+
+  memset(oPR, 0, sizeof(uint32) * (_maxID + 1));
 
   for (uint32 ii=0; ii<_numInputs; ii++) {
-    oPF[ii] = hist->loadData(_inputNames[ii], _maxID+1);
-    fprintf(stderr, "%12.3f %40s\n", oPF[ii] / 1024.0 / 1024.0, _inputNames[ii]);
+    ovFile            *inputFile = new ovFile(gkp, _inputNames[ii], ovFileFull);
+
+    oPF[ii]      = inputFile->getCounts()->numOverlaps();       //  Used for load balancing.
+    numOverlaps += inputFile->getCounts()->numOverlaps() * 2;   //  Because we symmetrize!
+
+    for (uint32 rr=0; rr<_maxID + 1; rr++)
+      oPR[rr] += inputFile->getCounts()->numOverlaps(rr);
+
+    delete inputFile;
+
+    fprintf(stderr, "%12.3f %40s\n", oPF[ii] / 1000000.0, _inputNames[ii]);
   }
 
-  uint64  numOverlaps = hist->getOverlapsPerRead(oPR, _maxID+1);
-
-  delete hist;
-
   fprintf(stderr, "------------ ----------------------------------------\n");
-  fprintf(stderr, "%12.3f %40" F_U32P "\n", numOverlaps / 1024.0 / 1024.0, _numInputs);
+  fprintf(stderr, "%12.3f overlaps in inputs\n", numOverlaps / 2 / 1000000.0);
+  fprintf(stderr, "%12.3f overlaps to sort\n",   numOverlaps     / 1000000.0);
   fprintf(stderr, "\n");
 
   if (numOverlaps == 0)
@@ -194,8 +93,8 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
   //  values can break this - either too low memory or too high allowed open files (an OS limit).
   //
 
-  uint64  olapsPerSliceMin = (minMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
-  uint64  olapsPerSliceMax = (maxMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
+  uint64  olapsPerSliceMin = (minMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
+  uint64  olapsPerSliceMax = (maxMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
 
   fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory.  Not to exceed " F_S64 " processes or " F_S64 " open files.\n",
           minMemory / 1024.0 / 1024.0 / 1024.0,
@@ -203,37 +102,39 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
           procMax, openMax);
   fprintf(stderr, "  At minimum memory, %4" F_U64P " sort processes with %.2f Molaps each.\n",
           numOverlaps / olapsPerSliceMin + 1,
-          olapsPerSliceMin / 1024.0 / 1024.0);
+          olapsPerSliceMin / 1000000.0);
   fprintf(stderr, "  At maximum memory, %4" F_U64P " sort processes with %.2f Molaps each.\n",
           numOverlaps / olapsPerSliceMax + 1,
-          olapsPerSliceMax / 1024.0 / 1024.0);
+          olapsPerSliceMax / 1000000.0);
   fprintf(stderr, "\n");
 
   //  More processes -> higher bandwidth utilization, but can also thrash the FS
   //  More memory    -> harder to get machines to run on
+  //
+  //  So arbitrarily pick a memory size 75% of the maximum.
 
-  uint64  useMemory     = minMemory + 3 * (maxMemory - minMemory) / 4;
-  uint64  olapsPerSlice = (useMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
+  uint64  sortMemory       = minMemory + 3 * (maxMemory - minMemory) / 4;
+
+  uint64  olapsPerSlice    = (sortMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
+  uint64  maxOlapsPerSlice = 0;
 
   //  With that upper limit on the number of overlaps per slice, count how many slices
   //  we need to make.
 
-  uint32  numSlices        = 1;
-  //uint32  numBuckers       = 1;
-  uint64  maxOlapsPerSlice = 0;
+  _numSlices = 1;
 
   for (uint64 olaps=0, ii=0; ii<_maxID+1; ii++) {
     olaps += oPR[ii];
 
     if (olaps >= olapsPerSlice) {
       olaps = 0;
-      numSlices++;
+      _numSlices++;
     }
   }
 
   //  Now, divide those overlaps evenly among the slices and find the maximum number of overlaps in any slice.
 
-  olapsPerSlice = (uint64)ceil((double)numOverlaps / (double)numSlices) + 1;
+  olapsPerSlice = (uint64)ceil((double)numOverlaps / (double)_numSlices) + 1;
 
   for (uint64 olaps=0, ii=0; ii<_maxID+1; ii++) {
     olaps += oPR[ii];
@@ -247,31 +148,37 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
 
   //  Assign inputs to each bucketizer.  Greedy load balancing.
 
-  uint64  *olapsPerBucket = new uint64 [numSlices];
+  //  Essentially a free parameter - lower makes bigger buckets and fewer files.
+  _numBuckets = min(_numInputs, _numSlices);
 
-  for (uint32 ii=0; ii<numSlices; ii++)
+  uint64  *olapsPerBucket = new uint64 [_numBuckets];
+
+  for (uint32 ii=0; ii<_numBuckets; ii++)
     olapsPerBucket[ii] = 0;
 
   for (uint32 ss=0, ii=0; ii<_numInputs; ii++) {
     uint32  mb = 0;
 
-    for (uint32 bb=0; bb<numSlices; bb++)
+    for (uint32 bb=0; bb<_numBuckets; bb++)
       if (olapsPerBucket[bb] < olapsPerBucket[mb])
         mb = bb;
 
     _inputToBucket[ii]  = mb;
-    olapsPerBucket[mb] += oPF[ii];
+    olapsPerBucket[mb] += oPF[ii] * 2;
   }
 
-  //  Report results to nobody.
+  delete [] oPF;
 
-  fprintf(stderr, "Will bucketize using " F_U32 " processes.\n", numSlices);
+  //  Report results that nobody will read.
+
+  _sortMemory = (maxOlapsPerSlice * ovOverlapSortSize + OVSTORE_MEMORY_OVERHEAD) / 1024.0 / 1024.0 / 1024.0;
+
+  fprintf(stderr, "Will bucketize using " F_U32 " processes.\n", _numBuckets);
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Will sort using " F_U32 " slices.\n",  numSlices);
-  fprintf(stderr, "  Up to %7.2f M overlaps per slice\n", maxOlapsPerSlice / 1000000.0);
-  fprintf(stderr, "        %7.2f GB memory  per slice\n", (maxOlapsPerSlice * ovOverlapSortSize + MEMORY_OVERHEAD) / 1024.0 / 1024.0 / 1024.0);
+  fprintf(stderr, "Will sort using " F_U32 " processes.\n",  _numSlices);
+  fprintf(stderr, "  Up to %7.2f M overlaps\n", maxOlapsPerSlice / 1000000.0);
+  fprintf(stderr, "        %7.2f GB memory\n", _sortMemory);
   fprintf(stderr, "\n");
 
 
@@ -281,7 +188,9 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
   fprintf(stderr, " bucket  inputs     overlaps\n");
   fprintf(stderr, "------- ------- ------------\n");
 
-  for (uint32 ii=0; ii<numSlices; ii++) {
+  uint64  totOlaps = 0;
+
+  for (uint32 ii=0; ii<_numBuckets; ii++) {
     uint32  ni = 0;
 
     for (uint32 xx=0; xx<_numInputs; xx++) {
@@ -291,8 +200,14 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
 
     fprintf(stderr, "%7" F_U32P " %7" F_U32P " %12" F_U64P "\n",
             ii, ni, olapsPerBucket[ii]);
+
+    totOlaps += olapsPerBucket[ii];
   }
 
+  delete [] olapsPerBucket;
+
+  fprintf(stderr, "------- ------- ------------\n");
+  fprintf(stderr, "                %12" F_U64P "\n", totOlaps);
   fprintf(stderr, "\n");
 
   //  Assign reads to slices.
@@ -300,6 +215,8 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
   fprintf(stderr, "          number of\n");
   fprintf(stderr, " slice     overlaps\n");
   fprintf(stderr, "------ ------------\n");
+
+  totOlaps = 0;
 
   {
     uint64  olaps = 0;
@@ -311,13 +228,20 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
 
       if (olaps >= olapsPerSlice) {
         fprintf(stderr, "%6" F_U32P " %12" F_U64P "\n", slice, olaps);
+        totOlaps += olaps;
         olaps = 0;
         slice++;
       }
     }
 
     fprintf(stderr, "%6" F_U32P " %12" F_U64P "\n", slice, olaps);
+    totOlaps += olaps;
+    olaps = 0;
+    slice++;
   }
+
+  fprintf(stderr, "------ ------------\n");
+  fprintf(stderr, "       %12" F_U64P "\n", totOlaps);
 
   fprintf(stderr, "\n");
 
@@ -329,18 +253,19 @@ ovStoreConfig::assignReadsToSlices(uint64          minMemory,
 
 int
 main(int argc, char **argv) {
-  char           *gkpName        = NULL;
-  uint64          minMemory      = (uint64)1 * 1024 * 1024 * 1024;
-  uint64          maxMemory      = (uint64)4 * 1024 * 1024 * 1024;
+  char           *gkpName    = NULL;
+  uint64          minMemory  = (uint64)1 * 1024 * 1024 * 1024;
+  uint64          maxMemory  = (uint64)4 * 1024 * 1024 * 1024;
 
   vector<char *>  fileList;
 
-  char           *configOut    = NULL;
+  char           *configOut  = NULL;
+  char           *configIn   = NULL;
 
   argc = AS_configure(argc, argv);
 
-  int err=0;
-  int arg=1;
+  vector<char *>  err;
+  int             arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
@@ -356,8 +281,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-L") == 0) {
       AS_UTL_loadFileList(argv[++arg], fileList);
 
-    } else if (strcmp(argv[arg], "-config") == 0) {
+    } else if (strcmp(argv[arg], "-create") == 0) {
       configOut = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-describe") == 0) {
+      configIn = argv[++arg];
 
     } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
                (AS_UTL_fileExists(argv[arg]))) {
@@ -365,20 +293,28 @@ main(int argc, char **argv) {
       fileList.push_back(argv[arg]);
 
     } else {
-      fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
-  if (gkpName == NULL)
-    err++;
-  if (fileList.size() == 0)
-    err++;
-  if (maxMemory < MEMORY_OVERHEAD + ovOverlapSortSize)
-    err++;
-  if (err) {
-    fprintf(stderr, "usage: %s -G asm.gkpStore -config out.config [opts] [-L fileList | *.ovb]\n", argv[0]);
+
+  if ((gkpName == NULL) && (configIn == NULL))
+    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+
+  if ((fileList.size() == 0) && (configIn == NULL))
+    err.push_back("ERROR: No input overlap files (-L or last on the command line) supplied.\n");
+
+  if ((configOut != NULL) && (configIn != NULL))
+    err.push_back("ERROR: Can't both -create -describe a config.\n");
+
+  if (maxMemory < OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize)
+    fprintf(stderr, "ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
+
+  if (err.size() > 0) {
+    fprintf(stderr, "usage: %s -G asm.gkpStore -create out.config [opts] [-L fileList | *.ovb]\n", argv[0]);
     fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L fileList           a list of ovb files in 'fileList'\n");
@@ -386,7 +322,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -M g                  use up to 'g' gigabytes memory for sorting overlaps\n");
     fprintf(stderr, "                          default 4; g-0.25 gb is available for sorting overlaps\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -config out.config    write overlap store configuration to file 'out.config'\n");
+    fprintf(stderr, "  -create config        write overlap store configuration to file 'config'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -describe config      write a description of the config in 'config' to the screen\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Sizes and Limits:\n");
     fprintf(stderr, "  ovOverlap             " F_S32 " words of " F_S32 " bits each.\n", (int32)ovOverlapNWORDS, (int32)ovOverlapWORDSZ);
@@ -395,40 +333,53 @@ main(int argc, char **argv) {
     fprintf(stderr, "  SC_OPEN_MAX           " F_S32 " files\n",     (int32)sysconf(_SC_OPEN_MAX));
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: No gatekeeper store (-G) supplied.\n");
-    if (fileList.size() == 0)
-      fprintf(stderr, "ERROR: No input overlap files (-L or last on the command line) supplied.\n");
-
-    if (maxMemory < MEMORY_OVERHEAD + ovOverlapSortSize)
-      fprintf(stderr, "ERROR: Memory (-M) must be at least %.3f GB to account for overhead.\n", MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
 
-  //  Check parameters, reset some of them.
+  ovStoreConfig  *config = NULL;
 
-  if (minMemory < MEMORY_OVERHEAD + ovOverlapSortSize) {
-    fprintf(stderr, "Reset minMemory from " F_U64 " to " F_SIZE_T "\n", minMemory, MEMORY_OVERHEAD + ovOverlapSortSize);
-    minMemory  = MEMORY_OVERHEAD + ovOverlapSortSize;
+  //  If describing, load and describe.
+
+  if (configIn) {
+    config = new ovStoreConfig(configIn);
   }
 
-  //
+  //  Check parameters, reset some of them.
 
-  gkStore        *gkp    = gkStore::gkStore_open(gkpName);
-  uint32          maxID = gkp->gkStore_getNumReads();
+  else {
+    if (minMemory < OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize) {
+      fprintf(stderr, "Reset minMemory from " F_U64 " to " F_SIZE_T "\n", minMemory, OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize);
+      minMemory  = OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize;
+    }
 
-  gkp->gkStore_close();
+    gkStore        *gkp    = gkStore::gkStore_open(gkpName);
+    uint32          maxID  = gkp->gkStore_getNumReads();
 
-  ovStoreConfig  *config = new ovStoreConfig(fileList, maxID);
+    config = new ovStoreConfig(fileList, maxID);
 
-  config->assignReadsToSlices(minMemory, maxMemory);
+    config->assignReadsToSlices(gkp, minMemory, maxMemory);
+    config->writeConfig(configOut);
+ 
+    gkp->gkStore_close();
+  }
 
-  config->writeConfig(configOut);
+  //  If we have a config, report parameters.
+
+  if (config) {
+    fprintf(stdout, "\n");
+    fprintf(stdout, "Configured for:\n");
+    fprintf(stdout, "  numBuckets %8" F_U32P "\n", config->numBuckets());
+    fprintf(stdout, "  numSlices  %8" F_U32P "\n", config->numSlices());
+    fprintf(stdout, "  sortMemory %8" F_U32P " GB (%5.3f GB)\n",
+            (uint32)(config->sortMemory()) + 1,  //  Adds an extra 0.5 to 1.4 gb.
+            config->sortMemory());
+  }
 
   delete config;
-
-  fprintf(stderr, "Bye.\n");
 
   exit(0);
 }

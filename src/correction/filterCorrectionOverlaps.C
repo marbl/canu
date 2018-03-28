@@ -204,8 +204,8 @@ main(int argc, char **argv) {
   uint32             *numOlaps   = ovlStore->numOverlapsPerRead();
 
   uint32              ovlLen     = 0;
-  uint32              ovlMax     = 131072;
-  ovOverlap          *ovl        = (doExact == true) ? ovOverlap::allocateOverlaps(gkpStore, ovlMax) : NULL;
+  uint32              ovlMax     = 0;
+  ovOverlap          *ovl        = NULL;
 
   uint16             *scores     = new uint16 [gkpStore->gkStore_getNumReads() + 1];
   uint16              scoreExact = 0;
@@ -241,11 +241,14 @@ main(int argc, char **argv) {
     }
 
     if (doExact == true) {
-      ovlStore->readOverlaps(id, ovl, ovlLen, ovlMax);
-      assert(ovlLen == numOlaps[id]);
-      assert(ovl[0].a_iid == id);
+      ovlLen = ovlStore->loadOverlapsForRead(id, ovl, ovlMax);
 
-      scores[id] = scoreExact = gs->compute(ovlLen, ovl, expectedCoverage, 0, NULL);
+      if (ovlLen > 0) {
+        assert(ovlLen == numOlaps[id]);
+        assert(ovl[0].a_iid == id);
+
+        scores[id] = scoreExact = gs->compute(ovlLen, ovl, expectedCoverage, 0, NULL);
+      }
     }
 
     if (doCompare) {

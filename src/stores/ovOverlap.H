@@ -339,6 +339,7 @@ public:
   };
 
 public:
+  static
   gkStore             *g;
 
 public:
@@ -350,6 +351,14 @@ public:
     ovOverlapDAT      ovl;
   } dat;
 };
+
+
+//  This is the size of the datastructure that we're using to store overlaps for sorting.
+//  At present, with ovOverlap, it is over-allocating a pointer that we don't need, but
+//  to make a custom structure, we'd need to duplicate a bunch of code or copy data after
+//  loading and before writing.
+//
+#define ovOverlapSortSize  (sizeof(ovOverlap))
 
 
 #endif  //  AS_OVOVERLAP_H

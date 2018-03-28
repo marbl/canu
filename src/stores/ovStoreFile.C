@@ -52,13 +52,63 @@
 
 //  The histogram associated with this is written to files with any suffices stripped off.
 
+
 ovFile::ovFile(gkStore     *gkp,
-               const char  *name,
+               const char  *fileName,
                ovFileType   type,
                uint32       bufferSize) {
+  construct(gkp, fileName, type, bufferSize);
+}
 
+
+
+ovFile::ovFile(gkStore     *gkp,
+               const char  *ovlName,
+               uint32       sliceNum,
+               uint32       pieceNum,
+               ovFileType   type,
+               uint32       bufferSize) {
+  char fileName[FILENAME_MAX+1];
+
+  snprintf(fileName, FILENAME_MAX, "%s/%04u<%03u>", ovlName, sliceNum, pieceNum);
+
+  construct(gkp, fileName, type, bufferSize);
+}
+
+
+
+ovFile::~ovFile() {
+
+  writeBuffer(true);
+
+  delete    _reader;
+  delete    _writer;
+  delete [] _buffer;
+
+#ifdef SNAPPY
+  delete [] _snappyBuffer;
+#endif
+
+  if ((_isOutput) && (_histogram))
+    _histogram->saveHistogram(_prefix);
+
+  delete _countsW;
+  delete _countsR;
+  delete _histogram;
+}
+
+
+
+void
+ovFile::construct(gkStore     *gkp,
+                  const char  *name,
+                  ovFileType   type,
+                  uint32       bufferSize) {
   _gkp       = gkp;
-  _histogram = new ovStoreHistogram(_gkp, type);
+
+  _countsW   = NULL;
+  _countsR   = NULL;
+  _histogram = NULL;
 
   //  We write two sizes of overlaps.  The 'normal' format doesn't contain the a_iid, while the
   //  'full' format does.  The buffer size must hold an integer number of overlaps, otherwise the
@@ -70,10 +120,10 @@ ovFile::ovFile(gkStore     *gkp,
   if (bufferSize < 16 * 1024)
     bufferSize = 16 * 1024;
 
-  _bufferLen  = 0;
-  _bufferPos  = (bufferSize / (lcm * sizeof(uint32))) * lcm;  //  Forces reload on next read
-  _bufferMax  = (bufferSize / (lcm * sizeof(uint32))) * lcm;
-  _buffer     = new uint32 [_bufferMax];
+  _bufferLen    = 0;
+  _bufferPos    = (bufferSize / (lcm * sizeof(uint32))) * lcm;  //  Forces reload on next read
+  _bufferMax    = (bufferSize / (lcm * sizeof(uint32))) * lcm;
+  _buffer       = new uint32 [_bufferMax];
 
 #ifdef SNAPPY
   _snappyLen    = 0;
@@ -95,60 +145,72 @@ ovFile::ovFile(gkStore     *gkp,
   _reader     = NULL;
   _writer     = NULL;
 
-  //  Open store files for reading.  These generally cannot be compressed, but we pretend they can be.
-  if (type == ovFileNormal) {
-    _reader      = new compressedFileReader(name);
-    _file        = _reader->file();
-    _isSeekable  = (_reader->isCompressed() == false);
-  }
+  memset(_prefix, 0, FILENAME_MAX+1);
+  memset(_name,   0, FILENAME_MAX+1);
 
-  //  Open dump files for reading.  These certainly can be compressed.
-  else if (type == ovFileFull) {
-    _reader      = new compressedFileReader(name);
-    _file        = _reader->file();
-    _isSeekable  = (_reader->isCompressed() == false);
+  strncpy(_name, name, FILENAME_MAX);
+  AS_UTL_findBaseFileName(_prefix, _name);
+
+
+  switch (type) {
+
+    //  Open store files for reading.
+    //  These generally cannot be compressed, but we pretend they can
+    //  be.
+    case ovFileNormal:
+      _reader      = new compressedFileReader(_name);
+      _file        = _reader->file();
+      _isSeekable  = (_reader->isCompressed() == false);
+      _histogram   = new ovStoreHistogram(_prefix);
+      break;
+
+    //  Open dump files for reading.
+    //  These certainly can be compressed.
+    //  But it's pointless with snappy.
+    case ovFileFull:
+      _reader      = new compressedFileReader(_name);
+      _file        = _reader->file();
+      _isSeekable  = (_reader->isCompressed() == false);
 #ifdef SNAPPY
-    _useSnappy   = true;
+      _useSnappy   = true;
 #endif
-  }
+      _countsR     = new ovFileOCR(_gkp, _prefix);
+      break;
 
-  //  Open a store file for writing?
-  else if (type == ovFileNormalWrite) {
-    _writer      = new compressedFileWriter(name);
-    _file        = _writer->file();
-    _isOutput    = true;
-  }
+    //  Open a store file for writing.
+    case ovFileNormalWrite:
+      _writer      = new compressedFileWriter(_name);
+      _file        = _writer->file();
+      _isOutput    = true;
+      _histogram   = new ovStoreHistogram(_gkp);
+      _countsW     = new ovFileOCW(_gkp, NULL);
+      break;
 
-  //  Else, open a dump file for writing.  This catches two cases, one with counts and one without counts.
-  else {
-    _writer      = new compressedFileWriter(name);
-    _file        = _writer->file();
-    _isOutput    = true;
+    //  Open an overlapper output file for writing.
+    case ovFileFullWrite:
+      _writer      = new compressedFileWriter(_name);
+      _file        = _writer->file();
+      _isOutput    = true;
 #ifdef SNAPPY
-    _useSnappy   = true;
+      _useSnappy   = true;
 #endif
-  }
+      _countsW     = new ovFileOCW(_gkp, _prefix);
+      break;
 
-  AS_UTL_findBaseFileName(_prefix, name);
-}
-
-
-
-ovFile::~ovFile() {
-
-  writeBuffer(true);
-
-  delete    _reader;
-  delete    _writer;
-  delete [] _buffer;
-
+    //  Open a dump file for writing, ignoring counts.  These are the intermediate
+    //  bucket files used when creating an overlap store.
+    case ovFileFullWriteNoCounts:
+      _writer      = new compressedFileWriter(_name);
+      _file        = _writer->file();
+      _isOutput    = true;
 #ifdef SNAPPY
-  delete [] _snappyBuffer;
+      _useSnappy   = true;
 #endif
+      break;
 
-  _histogram->saveData(_prefix);
-
-  delete _histogram;
+    default:
+      assert(0);
+  }
 }
 
 
@@ -201,7 +263,11 @@ ovFile::writeOverlap(ovOverlap *overlap) {
 
   writeBuffer();
 
-  _histogram->addOverlap(overlap);
+  if (_countsW)                      //  _countsW doesn't exist if we're writing
+    _countsW->addOverlap(overlap);   //  store intermediate buckets.
+
+  if (_histogram)
+    _histogram->addOverlap(overlap);
 
   if (_isNormal == false)
     _buffer[_bufferLen++] = overlap->a_iid;
@@ -227,35 +293,37 @@ ovFile::writeOverlap(ovOverlap *overlap) {
 
 void
 ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
-  uint64  nWritten = 0;
 
   assert(_isOutput == true);
 
   //  Add all overlaps to the buffer.
 
-  while (nWritten < overlapsLen) {
+  for (uint32 oo=0; oo<overlapsLen; oo++) {
     writeBuffer();
 
-    _histogram->addOverlap(overlaps + nWritten);
+    assert(_countsW != NULL);
+    if (_countsW)
+      _countsW->addOverlap(overlaps + oo);
+
+    if (_histogram)
+      _histogram->addOverlap(overlaps + oo);
 
     if (_isNormal == false)
-      _buffer[_bufferLen++] = overlaps[nWritten].a_iid;
+      _buffer[_bufferLen++] = overlaps[oo].a_iid;
 
-    _buffer[_bufferLen++] = overlaps[nWritten].b_iid;
+    _buffer[_bufferLen++] = overlaps[oo].b_iid;
 
 #if (ovOverlapWORDSZ == 32)
     for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
-      _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[ii];
+      _buffer[_bufferLen++] = overlaps[oo].dat.dat[ii];
 #endif
 
 #if (ovOverlapWORDSZ == 64)
     for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
-      _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[ii] >> 32) & 0xffffffff;
-      _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[ii])       & 0xffffffff;
+      _buffer[_bufferLen++] = (overlaps[oo].dat.dat[ii] >> 32) & 0xffffffff;
+      _buffer[_bufferLen++] = (overlaps[oo].dat.dat[ii])       & 0xffffffff;
     }
 #endif
-
-    nWritten++;
   }
 
   assert(_bufferLen <= _bufferMax);
@@ -404,16 +472,10 @@ ovFile::seekOverlap(off_t overlap) {
 
 
 
+//  Well, shoot.  We can't know ovStoreHistogram in
+//  ovStoreFile.H, so we can't delete it there.
 void
-ovFile::transferHistogram(ovStoreHistogram *copy) {
-
-  if (copy == NULL)
-    return;
-
-  copy->add(_histogram);
-
+ovFile::removeHistogram(void) {
   delete _histogram;
-
-  _histogram = new ovStoreHistogram;
+  _histogram = NULL;
 }
-

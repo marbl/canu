@@ -195,6 +195,12 @@ main(int argc, char **argv) {
       uint32   aID      = abgn + floor(mt.mtRandomRealOpen() * (aend - abgn));
       uint32   bID      = bbgn + floor(mt.mtRandomRealOpen() * (bend - bbgn));
 
+      if (aID < bID) {
+        uint32 t = aID;
+        aID = bID;
+        bID = aID;
+      }
+
 #if 0
       //  For testing when reads have no overlaps in store building.  Issue #302.
       aID = aID & 0xfffffff0;

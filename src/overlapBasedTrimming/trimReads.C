@@ -245,10 +245,8 @@ main(int argc, char **argv) {
 
 
   uint32      ovlLen       = 0;
-  uint32      ovlMax       = 64 * 1024;
-  ovOverlap  *ovl          = ovOverlap::allocateOverlaps(gkp, ovlMax);
-
-  memset(ovl, 0, sizeof(ovOverlap) * ovlMax);
+  uint32      ovlMax       = 0;
+  ovOverlap  *ovl          = NULL;
 
   char        logMsg[1024] = {0};
 
@@ -304,11 +302,11 @@ main(int argc, char **argv) {
 
     //  Load overlaps.
 
-    uint32      nLoaded = ovs->readOverlaps(id, ovl, ovlLen, ovlMax);
+    ovlLen = ovs->loadOverlapsForRead(id, ovl, ovlMax);
 
     //  Trim!
 
-    if (nLoaded == 0) {
+    if (ovlLen == 0) {
       //  No overlaps, so mark it as junk.
       isGood = false;
     }
@@ -370,7 +368,7 @@ main(int argc, char **argv) {
 
     //  If bad trimming or too small, write the log and keep going.
     //
-    if (nLoaded == 0) {
+    if (ovlLen == 0) {
       noOvlOut += read->gkRead_sequenceLength();
 
       outClr->setbgn(id) = fbgn;
@@ -438,11 +436,12 @@ main(int argc, char **argv) {
 
   gkp->gkStore_close();
 
-  delete ovs;
+  delete [] ovl;
+  delete    ovs;
 
-  delete iniClr;
-  delete maxClr;
-  delete outClr;
+  delete    iniClr;
+  delete    maxClr;
+  delete    outClr;
 
   AS_UTL_closeFile(logFile, logName);
 

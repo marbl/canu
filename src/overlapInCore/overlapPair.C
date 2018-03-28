@@ -849,7 +849,7 @@ main(int argc, char **argv) {
   overlapsMax /= 8;
 
   if (ovlStore)
-    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+    *overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
   if (ovlFile)
     *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
 
@@ -909,7 +909,7 @@ main(int argc, char **argv) {
     //  Load more overlaps
 
     if (ovlStore)
-      *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+      *overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
     if (ovlFile)
       *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
 

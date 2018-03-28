@@ -263,7 +263,7 @@ main(int argc, char **argv) {
 
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
-  overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+  overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
 
   while (overlapsLen > 0) {
     uint32  readID  = overlaps[0].a_iid;
@@ -315,7 +315,7 @@ main(int argc, char **argv) {
     if (cov.numberOfIntervals() == 0) {
       readNoOlaps->add(readLen);
 
-      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -350,7 +350,7 @@ main(int argc, char **argv) {
       readHole->add(readLen);
       olapHole->add(holeSize);
 
-      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -359,7 +359,7 @@ main(int argc, char **argv) {
       readHump->add(readLen);
       olapHump->add(no5Size + no3Size);
 
-      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -368,7 +368,7 @@ main(int argc, char **argv) {
       readNo5->add(readLen);
       olapNo5->add(no5Size);
 
-      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -377,7 +377,7 @@ main(int argc, char **argv) {
       readNo3->add(readLen);
       olapNo3->add(no3Size);
 
-      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -534,7 +534,7 @@ main(int argc, char **argv) {
 
     C.tick();
 
-    overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+    overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
   }
 
   AS_UTL_closeFile(LOG, LOGname);  //  Done with logging.

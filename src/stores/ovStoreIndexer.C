@@ -39,128 +39,122 @@
 
 #include "gkStore.H"
 #include "ovStore.H"
+#include "ovStoreConfig.H"
 
 
 
 int
 main(int argc, char **argv) {
-  char           *storePath    = NULL;
-  uint32          fileLimit    = 0;         //  Number of 'slices' from bucketizer
-
-  bool            deleteIntermediates = true;
-
-  bool            doExplicitTest = false;
-  bool            doFixes        = false;
-
-  char            name[FILENAME_MAX];
+  char           *ovlName     = NULL;
+  char           *gkpName     = NULL;
+  char           *cfgName     = NULL;
+  bool            deleteInter = false;
+  bool            testFailed  = false;
 
   argc = AS_configure(argc, argv);
 
-  int err=0;
-  int arg=1;
+  vector<char *>  err;
+  int             arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
-      storePath = argv[++arg];
+      ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-F") == 0) {
-      fileLimit = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-G") == 0) {    //  Yup, not used, but left in
+      gkpName = argv[++arg];                      //  so it's the same as the others.
 
-    } else if (strcmp(argv[arg], "-f") == 0) {
-      doFixes = true;
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      cfgName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
-      doExplicitTest = true;
-      storePath = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-nodelete") == 0) {
-      deleteIntermediates = false;
+    } else if (strcmp(argv[arg], "-delete") == 0) {
+      deleteInter = true;
 
     } else {
-      fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
-  if (storePath == NULL)
-    err++;
-  if ((fileLimit == 0) && (doExplicitTest == false))
-    err++;
 
-  if (err) {
-    fprintf(stderr, "usage: %s ...\n", argv[0]);
-    fprintf(stderr, "  -O x.ovlStore    path to overlap store to build the final index for\n");
-    fprintf(stderr, "  -F s             number of slices used in bucketizing/sorting\n");
+  if (ovlName == NULL)
+    err.push_back("ERROR: No overlap store (-O) supplied.\n");
+
+  if (gkpName == NULL)
+    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+
+  if (cfgName == NULL)
+    err.push_back("ERROR: No config (-C) supplied.\n");
+
+  if (err.size()) {
+    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig [options]\n", argv[0]);
+    fprintf(stderr, "  -O asm.ovlStore    path to overlap store to create\n");
+    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -C config          path to ovStoreConfig configuration file\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -t x.ovlStore    explicitly test a previously constructed index\n");
-    fprintf(stderr, "  -f               when testing, also create a new 'idx.fixed' which might\n");
-    fprintf(stderr, "                   resolve rare problems\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -nodelete        do not remove intermediate files when the index is\n");
+    fprintf(stderr, "  -delete          remove intermediate files when the index is\n");
     fprintf(stderr, "                   successfully created\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
-    fprintf(stderr, "    DANGER                                                DANGER\n");
-    fprintf(stderr, "    DANGER   This command is difficult to run by hand.    DANGER\n");
-    fprintf(stderr, "    DANGER          Use ovStoreCreate instead.            DANGER\n");
-    fprintf(stderr, "    DANGER                                                DANGER\n");
-    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
-    fprintf(stderr, "\n");
 
-    if (storePath == NULL)
-      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
-    if ((fileLimit == 0) && (doExplicitTest == false))
-      fprintf(stderr, "ERROR: One of -F (number of slices) or -t (test a store) must be supplied.\n");
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
 
-  //  Do the test, and maybe fix things up.
+  //  Load the config, make a new writer.
 
-  //gkStore        *gkp    = gkStore::gkStore_open(gkpName);
-  ovStoreWriter  *writer = new ovStoreWriter(storePath, NULL, fileLimit, 0, 0);
+  gkStore             *gkp    = gkStore::gkStore_open(gkpName);
+  ovStoreConfig       *config = new ovStoreConfig(cfgName);
+  ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, gkp, 0, config->numSlices(), config->numBuckets());
 
-  if (doExplicitTest == true) {
-    bool  passed = writer->testIndex(doFixes);
-    if (passed == true)
-      fprintf(stderr, "Index looks correct.\n");
-    delete writer;
-    exit(passed == false);
-  }
+  //  Finalize the store if not testing.
 
-  //  Check that all segments are present.  Every segment should have an info file.
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Checking that sorting is complete (every slice should have an info file).\n");
 
   writer->checkSortingIsComplete();
 
-  //  Merge the indices and histogram data.
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Merging indices.\n");
 
   writer->mergeInfoFiles();
-  writer->mergeHistogram();
-
-  //  Diagnostics.
-
-  if (writer->testIndex(false) == false) {
-    fprintf(stderr, "ERROR: index failed tests.\n");
-    delete writer;
-    exit(1);
-  }
-
-  //  Remove intermediates.  For the buckets, we keep going until there are 10 in a row not present.
-  //  During testing, on a microbe using 2850 buckets, some buckets were empty.
-
-  if (deleteIntermediates == false) {
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Not removing intermediate files.  Finished.\n");
-    exit(0);
-  }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Removing intermediate files.\n");
+  fprintf(stderr, "Merging histograms.\n");
 
-  writer->removeAllIntermediateFiles();
+  writer->mergeHistogram();
 
-  fprintf(stderr, "Success!\n");
+  //  Do some tests.
 
-  exit(0);
+#if 0
+  testFailed = (writer->testIndex(doFixes) == true) ? false : true;
+
+  if (testFailed == false)
+    fprintf(stderr, "Index looks correct.\n");
+  else
+    deleteInter = false;
+#endif
+
+  //  Remove the intermediate files.
+
+  if (deleteInter == true) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Removing intermediate files.\n");
+
+    writer->removeAllIntermediateFiles();
+  }
+
+  delete writer;
+
+  gkp->gkStore_close();
+
+  if (testFailed)
+    fprintf(stderr, "Index not valid.  Intermediate files not removed.\n");
+  else
+    fprintf(stderr, "Success!\n");
+
+  exit(testFailed);
 }
 

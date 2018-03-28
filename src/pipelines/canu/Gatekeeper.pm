@@ -116,7 +116,6 @@ sub getNumberOfBasesInStore ($$) {
     while (<F>) {
         $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
         $nb = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
-        $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($tag eq "obt"));
         $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($tag eq "utg"));
     }
     close(F);

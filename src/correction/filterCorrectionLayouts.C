@@ -48,8 +48,8 @@ public:
 
     numOlaps           = 0;
 
-    origLength         = UINT32_MAX;
-    corrLength         = UINT32_MAX;   //  Makes zeroth read first when sorted by length.
+    origLength         = 0;
+    corrLength         = 0;
 
     memoryRequired     = 0;
 
@@ -162,7 +162,6 @@ analyzeLength(tgTig            *layout,
               uint32            minOutputCoverage,
               readStatus       *status,
               falconConsensus  *fc) {
-  uint32  readID        = layout->tigID();
 
   //  Estimate the length of the corrected read, using overlap position and depth.
 
@@ -197,16 +196,21 @@ analyzeLength(tgTig            *layout,
 
   //  Save our results.
 
-  status[readID].readID         = readID;
+  uint32  rid = layout->tigID();
 
-  status[readID].numOlaps       = layout->numberOfChildren();
+  status[rid].readID         = rid;
 
-  status[readID].origLength     = layout->length();
-  status[readID].corrLength     = corLen;
+  status[rid].numOlaps       = layout->numberOfChildren();
 
-  status[readID].memoryRequired = fc->estimateMemoryUsage(layout->numberOfChildren(),
-                                                          basesInOlaps,
-                                                          layout->length());
+  status[rid].origLength     = layout->length();
+  status[rid].corrLength     = corLen;
+
+  status[rid].memoryRequired = fc->estimateMemoryUsage(layout->numberOfChildren(),
+                                                       basesInOlaps,
+                                                       layout->length());
+
+  //fprintf(stderr, "analyze for readID %u - olaps %u lengths %u %u\n",
+  //        rid, status[rid].numOlaps, status[rid].origLength, status[rid].corrLength);
 }
 
 
@@ -511,14 +515,22 @@ main(int argc, char **argv) {
   FILE             *stats    = AS_UTL_openOutputFile(outName, '.', "stats");
   FILE             *log      = AS_UTL_openOutputFile(outName, '.', "log");
 
+  //  Initialize.  Used to be done in analuzeLength(), but we skip it on
+  //  empty tigs, and the re-sort below absolutely needs every readStatus
+  //  element with a valid read id.
+
+  for (uint32 rr=0; rr<numReads+1; rr++)
+    status[rr].readID = rr;
+
   //  Scan the tigs, computing expected corrected length.
 
   for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
     tgTig  *layout = corStore->loadTig(ti);
 
-    analyzeLength(layout, minOutputLength, minOutputCoverage, status, fc);
+    if (layout)
+      analyzeLength(layout, minOutputLength, minOutputCoverage, status, fc);
 
-    corStore->unloadTig(layout->tigID());
+    corStore->unloadTig(ti);
   }
 
   //  Sort by expected corrected length, then mark reads for correction until we get the desired
@@ -529,13 +541,13 @@ main(int argc, char **argv) {
   uint64   desiredLength = genomeSize * outCoverage;
   uint64   corrLength    = 0;
 
-  for (uint32 ii=1; ii<numReads+1; ii++) {
-    if (status[ii].corrLength == 0)
+  for (uint32 rr=1; rr<numReads+1; rr++) {
+    if (status[rr].corrLength == 0)
       continue;
 
-    status[ii].usedForCorrection = (corrLength < desiredLength);
+    status[rr].usedForCorrection = (corrLength < desiredLength);
 
-    corrLength += status[ii].corrLength;
+    corrLength += status[rr].corrLength;
   }
 
   //  Sort by ID.
@@ -547,26 +559,27 @@ main(int argc, char **argv) {
   for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
     tgTig  *layout = corStore->loadTig(ti);
 
-    markEvidence(layout, status);
+    if (layout)
+      markEvidence(layout, status);
 
-    corStore->unloadTig(layout->tigID());
+    corStore->unloadTig(ti);
   }
 
   //  And finally, flag any read for correction if it isn't already used as evidence or being corrected.
 
-  for (uint32 ti=1; ti<numReads+1; ti++) {
-    if ((status[ti].usedForCorrection == false) &&
-        (status[ti].usedForEvidence   == false) &&
-        (status[ti].corrLength         > minOutputLength))
-      status[ti].rescued = true;
+  for (uint32 rr=1; rr<numReads+1; rr++) {
+    if ((status[rr].usedForCorrection == false) &&
+        (status[rr].usedForEvidence   == false) &&
+        (status[rr].corrLength         > minOutputLength))
+      status[rr].rescued = true;
   }
 
   //  Output the list of reads to correct.
 
-  for (uint32 ti=1; ti<numReads+1; ti++)
-    if ((status[ti].usedForCorrection == true) ||
-        (status[ti].rescued           == true))
-      fprintf(roc, "%u\n", status[ti].readID);
+  for (uint32 rr=1; rr<numReads+1; rr++)
+    if ((status[rr].usedForCorrection == true) ||
+        (status[rr].rescued           == true))
+      fprintf(roc, "%u\n", status[rr].readID);
 
   AS_UTL_closeFile(roc);
 

@@ -34,6 +34,9 @@
 #include "ovStore.H"
 #include "gkStore.H"
 
+
+gkStore *ovOverlap::g = NULL;
+
 //  Even though the b_end_hi | b_end_lo is uint64 in the struct, the result
 //  of combining them doesn't appear to be 64-bit.  The cast is necessary.
 

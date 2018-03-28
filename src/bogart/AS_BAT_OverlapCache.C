@@ -160,10 +160,10 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
 
   //  Allocate space to load overlaps.  With a NULL gkpStore we can't call the bgn or end methods.
 
-  _ovsMax  = 16;
-  _ovs     = ovOverlap::allocateOverlaps(NULL, _ovsMax);
-  _ovsSco  = new uint64     [_ovsMax];
-  _ovsTmp  = new uint64     [_ovsMax];
+  _ovsMax  = 0;
+  _ovs     = NULL;
+  _ovsSco  = NULL;
+  _ovsTmp  = NULL;
 
   //  Allocate pointers to overlaps.
 
@@ -226,12 +226,9 @@ OverlapCache::~OverlapCache() {
 
 void
 OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
-
-  ovlStore->resetRange();
-
   uint32  frstRead  = 0;
   uint32  lastRead  = 0;
-  uint32 *numPer    = ovlStore->numOverlapsPerRead(RI->numReads());
+  uint32 *numPer    = ovlStore->numOverlapsPerRead();
 
   //  Set the minimum number of overlaps per read to twice coverage.  Then set the maximum number of
   //  overlaps per read to a guess of what it will take to fill up memory.
@@ -507,8 +504,6 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
   writeStatus("OverlapCache()--          read from store           saved in cache\n");
   writeStatus("OverlapCache()--   ------------ ---------   ------------ ---------\n");
 
-  ovlStore->resetRange();
-
   uint64   numTotal     = 0;
   uint64   numLoaded    = 0;
   uint64   numDups      = 0;
@@ -520,32 +515,30 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
 
   _overlapStorage = new OverlapStorage(ovlStore->numOverlapsInRange());
 
-  while (1) {
-    uint32  numOvl = ovlStore->numberOfOverlaps();   //  Query how many overlaps for the next read.
+  //  Scan the overlaps, finding the maximum number of overlaps for a single read.  This lets
+  //  us pre-allocate space and simplifies the loading process.
 
-    if (numOvl == 0)    //  If no overlaps, we're at the end of the store.
-      break;
+  assert(_ovsMax == 0);
+  assert(_ovs    == NULL);
 
-    if (_ovsMax < numOvl) {
-      delete [] _ovs;
-      delete [] _ovsSco;
-      delete [] _ovsTmp;
+  _ovsMax = 0;
 
-      _ovsMax  = numOvl + 1024;
+  for (uint32 rr=0; rr<RI->numReads()+1; rr++)
+    _ovsMax = max(_ovsMax, ovlStore->numOverlaps(rr));
 
-      _ovs     = ovOverlap::allocateOverlaps(NULL /* gkpStore */, _ovsMax);
-      _ovsSco  = new uint64     [_ovsMax];
-      _ovsTmp  = new uint64     [_ovsMax];
-    }
+  _ovs     = ovOverlap::allocateOverlaps(NULL /* gkpStore */, _ovsMax);
+  _ovsSco  = new uint64 [_ovsMax];
+  _ovsTmp  = new uint64 [_ovsMax];
 
-    assert(numOvl <= _ovsMax);
+
+  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
 
     //  Actually load the overlaps, then detect and remove overlaps between the same pair, then
     //  filter short and low quality overlaps.
 
-    uint32  no = ovlStore->readOverlaps(_ovs, _ovsMax);     //  no == total overlaps == numOvl
-    uint32  nd = filterDuplicates(no);                           //  nd == duplicated overlaps (no is decreased by this amount)
-    uint32  ns = filterOverlaps(_maxEvalue, _minOverlap, no);    //  ns == acceptable overlaps
+    uint32  no = ovlStore->loadOverlapsForRead(rr, _ovs, _ovsMax);   //  no == total overlaps == numOvl
+    uint32  nd = filterDuplicates(no);                               //  nd == duplicated overlaps (no is decreased by this amount)
+    uint32  ns = filterOverlaps(_maxEvalue, _minOverlap, no);        //  ns == acceptable overlaps
 
     //if (_ovs[0].a_iid == 3514657)
     //  fprintf(stderr, "Loaded %u overlaps - no %u nd %u ns %u\n", numOvl, no, nd, ns);

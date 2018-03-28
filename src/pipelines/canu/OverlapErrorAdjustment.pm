@@ -88,7 +88,7 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
 
     print STDERR "-- Loading number of overlaps per read.\n";
 
-    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -d -counts |");
+    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -counts |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -710,10 +710,9 @@ sub updateOverlapStore ($) {
 
     fetchStore("unitigging/$asm.ovlStore");
 
-    $cmd  = "$bin/ovStoreBuild \\\n";
+    $cmd  = "$bin/loadErates \\\n";
     $cmd .= "  -G ../$asm.gkpStore \\\n";
     $cmd .= "  -O ../$asm.ovlStore \\\n";
-    $cmd .= "  -evalues \\\n";
     $cmd .= "  -L ./oea.files \\\n";
     $cmd .= "> ./oea.apply.err 2>&1";
 

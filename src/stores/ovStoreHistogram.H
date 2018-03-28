@@ -32,13 +32,21 @@
 
 #include "AS_global.H"
 #include "gkStore.H"
-
-#include "ovStoreFile.H"
-
+#include "ovStoreFile.H"  //  For ovFileType.
 
 
 #define  N_OVL_SCORE   16   //  Number of overlap scores to save per read
 
+
+//  Points to estimate the overlap score function for each read.
+//  This is populated when overlaps are written to store files.
+//  Since each store file only has a small subset of reads,
+//  we don't want to allocate one of these for every read in the store,
+//  only those reads we see in this file.
+//
+//  When the store is finalized, all the pieces will be collected
+//  into one list.
+//
 class oSH_ovlSco {
 public:
   oSH_ovlSco()  {}
@@ -50,31 +58,69 @@ public:
 
 
 
+//  There are two types of histograms.
+//
+//  For ovFileFullWrite   - overlapper output
+//     the number of overlaps for each read
+//
+//  For ovFileNormalWrite - ovlStore files
+//     an erateXlength histogram
+//     scores for each read
+//
+//  The parallel store makes the scores complicated, because we don't want
+//  to keep scores for reads not in each piece.  When merging, we need
+//  to copy scores in, allocating more space for them as needed.
+
 class ovStoreHistogram {
+
 private:
-  void    initialize(gkStore *gkp=NULL);
-public:
-  void    clear(void);
+  void    clear(gkStore *gkp=NULL);
 
 public:
-  ovStoreHistogram();                                //  Used when loading data, user must loadData() later
-  ovStoreHistogram(char *path);                      //  Used when loading data, calls loadData() for you
-  ovStoreHistogram(gkStore *gkp, ovFileType type);   //  Used when writing ovFile
   ~ovStoreHistogram();
+  ovStoreHistogram();                        //  Just for merging data, allocates fully.
+  ovStoreHistogram(gkStore *gkp);            //  Just for writing data, allocates as needed.
+  ovStoreHistogram(const char *path);        //  Just for loading data, read-only.
 
-#if 0
-  double    minErate(void)             {  return(AS_OVS_decodeEvalue(0));           };
-  double    maxErate(void)             {  return(AS_OVS_decodeEvalue(_maxEvalue));  };
+  static
+  char     *createDataName(char *name, const char *prefix);
 
-  uint32    minEvalue(void)            {  return(0);           };
-  uint32    maxEvalue(void)            {  return(_maxEvalue);  };
-#endif
+  void      saveHistogram(char *prefix);     //  Write data to a file.
+
+  //
+  //  For the first constructor, merge in data from another histogram.
+  //
+
+private:
+  void      mergeOPEL(ovStoreHistogram *other);
+  void      mergeScores(ovStoreHistogram *other);
+public:
+  void      mergeHistogram(ovStoreHistogram *other) {
+    assert(_gkp == NULL);  //  Can't work on a constructor
+
+    mergeOPEL(other);
+    mergeScores(other);
+
+    _bgnID = min(_bgnID, other->_bgnID);   //  Update the min/max read id
+    _endID = max(_endID, other->_endID);   //  present here.
+  };
+
+  //
+  //  For the second constructor:
+  //    add a single overlap to the data.
+  //
+
+private:
+  void      processScores(uint32 Aid=UINT32_MAX);
+public:
+  void      addOverlap(ovOverlap *overlap);
+
+  //
+  //  For erate X length histogram.
+  //
 
   uint32    numEvalueBuckets(void)     {  return(AS_MAX_EVALUE + 1);  };
   uint32    numLengthBuckets(void)     {  return(_opelLen);           };
-
-  //uint32    minOverlapLength(void)     {  return(0);                  };
-  //uint32    maxOverlapLength(void)     {  return(_maxLength * _bpb);  };
 
   uint32    evaluePerBucket(void)      {  return(_epb);  };
   uint32    basesPerBucket(void)       {  return(_bpb);  };
@@ -86,81 +132,42 @@ public:
     return((_opel[eb] == NULL) ? 0 : _opel[eb][lb]);
   };
 
-  //uint32    numOverlaps(uint32 id);
-  //uint32    numOverlaps(uint32 evalue, uint32 length);
+  void      dumpEvalueLength(FILE *out);  //  gnuplot-friendly dump of the evalues-length.
 
-  //  In an ovFile, add a single value to the histogram
-
-  void      addOverlap(ovOverlap *overlap);
-
-  //  In an ovStore, load the histogram saved in a file, and add it to our current data.
-  //  loadData() returns the number of overlaps in that file.
-
-  void      saveData(char *prefix);
-  uint64    loadData(char *prefix, uint32 maxIID=UINT32_MAX);
-
-  //  Remove data associated with some prefix.
-
-  static
-  void      removeData(char *prefix);
-
-  //  Add in the data from histogram 'input' to this histogram
-
-  void      add(ovStoreHistogram *input);
-
-  //  Copies the number of overlaps per read into oprOut.  This array is assumed to sized using
-  //  gkpStore to get the number of reads.  The data in the histogram can be shorter, but shouldn't
-  //  be longer.  If so, it will fail and exit.
   //
-  //  Returns total number of overlaps in this histogram.
+  //  For score data.
+  //
 
-  uint64    getOverlapsPerRead(uint32 *oprOut, uint32 oprOutLen);
-
-  //  Dump a gnuplot-friendly data file of the evalues-length.
-
-  void      dumpEvalueLength(FILE *out);
-
-  //  Report the ith overlap score estimate.  The top i overlaps will (usually) have score bigger
-  //  than this.
-
-  uint16    overlapScoreEstimate(uint32 id, uint32 i);
+  uint16    overlapScoreEstimate(uint32 id, uint32 i, bool showLog=false);
 
 private:
-  gkStore   *_gkp;
+  gkStore     *_gkp;
 
-  uint32     _maxOlength;   //  Max overlap length seen - NOT USED
-  uint32     _maxEvalue;    //  Max evalue seen         - NOT USED
+  uint32       _bgnID;        //  Lowest  read ID with data in this histogram.
+  uint32       _endID;        //  Highest read ID with data in this histogram.
+  uint32       _maxID;        //  Highest read ID in this assembly.
 
   //  Overlaps per evalue-length, for overlaps in the store.
 
-  uint32     _epb;      //  Evalues per bucket
-  uint32     _bpb;      //  Bases per bucket
+  uint32       _epb;      //  Evalues per bucket
+  uint32       _bpb;      //  Bases per bucket
 
-  uint32     _opelLen;  //  Length of the data vector for one evalue
-  uint32   **_opel;     //  Overlaps per evalue-length
-
-  //  Overlaps per read, for overlaps out of overlapper.
-
-  uint32     _oprLen;   //  Length of opr valid data
-  uint32     _oprMax;   //  Last allocated opr
-  uint32    *_opr;      //  Overlaps per read
+  uint32       _opelLen;  //  Length of the data vector for one evalue
+  uint32     **_opel;     //  Overlaps per evalue-length
 
   //  Overlap score for the top overlaps.  Used during correction.
   //  Want to store ~11 values per read, 16 bits each, so 22 bytes.
   //  Human has 14,625,060 reads -> 160,875,660 bytes data.
-  //  UINT32_MAX indicates the no more data.
+  //  UINT32_MAX indicates there is no more data.
 
-  void          processScores(uint32 Aid=UINT32_MAX);
+  uint32       _scoresListLen;  //  Temporary data for collecting overlap scores
+  uint32       _scoresListMax;  //  before finding the _scores[] values.
+  uint16      *_scoresList;     //
 
-  uint32       _scoresListLen;
-  uint32       _scoresListMax;
-  uint16      *_scoresList;
-  uint32       _scoresListAid;  //  Current ID being stored in _scoresList
+  uint32       _scoresListAid;  //  (current ID being stored in _scoresList)
 
-  uint32       _scoresBgn;      //  First ID stored in _scores
-  uint32       _scoresLen;      //  Number of valid scores
-  uint32       _scoresMax;      //  Number of allocated scores
-  oSH_ovlSco  *_scores;
+  uint32       _scoresLen;      //  Number of allocated scores.
+  oSH_ovlSco  *_scores;         //  Only scores 0 .. _endID-_bgnID+1 are used.
 };
 
 #endif  //  AS_OVSTOREHISTOGRAM_H

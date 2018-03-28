@@ -35,8 +35,10 @@
 
 #include "ovOverlap.H"
 
-
 class ovStoreHistogram;
+
+
+#define  OVFILE_MAX_OVERLAPS  (1024 * 1024 * 1024 / (sizeof(ovOverlapDAT) + sizeof(uint32)))
 
 
 //  The default, no flags, is to open for normal overlaps, read only.  Normal overlaps mean they
@@ -54,17 +56,169 @@ enum ovFileType {
 };
 
 
+//  For overlaps out of an overlapper, stored in ovFileFull, we want to keep the number
+//  of overlaps per read.  For simplicity, we keep the number of overlaps
+//  for all reads, not just those with overlaps.
+
+class ovFileOCW {
+public:
+  ovFileOCW(gkStore *gkp, const char *prefix) {
+
+    memset(_name, 0, sizeof(char) * (FILENAME_MAX+1));
+
+    _nOlaps = 0;
+    _oprMax = 0;
+    _opr    = NULL;
+
+    //  If no prefix supplied, we're being constructed to count
+    //  only the number of overlaps.  Leave the array empty.
+    //
+    //  Otherwise, we want to keep track of the number of overlaps
+    //  per read, too.
+
+    if (prefix != NULL) {
+      snprintf(_name, FILENAME_MAX, "%s.oc", prefix);
+
+      _oprMax = gkp->gkStore_getNumReads() + 1;
+
+      allocateArray(_opr, _oprMax, resizeArray_clearNew);
+    }
+  };
+
+  ~ovFileOCW() {
+
+    if ((_nOlaps == 0) ||     //  If no counts, or no data,
+        (_opr    == NULL))    //  don't make an empty file.
+      return;
+
+    FILE   *F = AS_UTL_openOutputFile(_name);
+
+    AS_UTL_safeWrite(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint32), 1);
+    AS_UTL_safeWrite(F, &_oprMax, "ovStoreHistogram::nr",  sizeof(uint32), 1);
+    AS_UTL_safeWrite(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprMax);
+
+    fclose(F);
+
+    delete [] _opr;
+  };
+
+  void          addOverlap(ovOverlap *overlap) {
+
+    _nOlaps++;
+
+    if (_opr == NULL)   //  No _opr for writing store overlap files, but
+      return;           //  we still need to get _nOlaps for fileTooBig().
+
+    assert(overlap->a_iid < _oprMax);
+    assert(overlap->b_iid < _oprMax);
+
+    _opr[overlap->a_iid]++;
+    _opr[overlap->b_iid]++;
+  };
+
+  uint32        numOverlaps(void)           { return(_nOlaps);      };
+
+private:
+  uint64       _nOlaps;   //  Total number of overlaps stored in this file.
+  uint32       _oprMax;   //  Length of _opr; number of reads + 1.
+  uint32      *_opr;      //  Overlaps per read - assumes only one overlap per (a,b) read pair.
+
+  char         _name[FILENAME_MAX+1];
+};
+
+
+
+
+class ovFileOCR {
+public:
+  ovFileOCR(gkStore *gkp, const char *prefix) {
+
+    //  If no prefix supplied, there just aren't any
+    //  overlap counts expected with this input, so
+    //  leave things empty.
+
+    _nOlaps = 0;
+    _oprMax = 0;
+    _opr    = NULL;
+
+    if (prefix == NULL)
+      return;
+
+    //  Otherwise, look for the overlap counts file.
+
+    char  name[FILENAME_MAX+1];
+    snprintf(name, FILENAME_MAX, "%s.oc", prefix);
+
+    //  If no counts file, then this must be an intermediate overlap file (and the user
+    //  should have sent in a NULL prefix!) used when constructing the store.
+    //  Return with no counts allocated and trust that the user doesn't try to access them.
+
+    if (AS_UTL_fileExists(name) == false)
+      return;
+
+    //  Otherwise, counts exist, and we load them.
+
+    _oprMax = gkp->gkStore_getNumReads() + 1;
+
+    allocateArray(_opr, _oprMax, resizeArray_clearNew);
+
+    FILE   *F = AS_UTL_openInputFile(name);
+
+    AS_UTL_safeRead(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint32), 1);
+    AS_UTL_safeRead(F, &_oprMax, "ovStoreHistogram::nr",  sizeof(uint32), 1);
+    AS_UTL_safeRead(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprMax);
+
+    fclose(F);
+  };
+
+  ~ovFileOCR() {
+    delete [] _opr;
+  };
+
+  uint32        numOverlaps(void)           { return(_nOlaps);      };
+  uint32        numOverlaps(uint32 readID)  { return(_opr[readID]); };
+
+private:
+  uint64       _nOlaps;   //  Total number of overlaps here.
+  uint32       _oprMax;   //  Length of _opr; number of reads + 1.
+  uint32      *_opr;      //  Overlaps per read.
+};
+
+
+
+
+
 class ovFile {
 public:
-  ovFile(gkStore     *gkpName,
-         const char  *name,
+  ovFile(gkStore     *gkp,
+         const char  *fileName,
          ovFileType   type = ovFileNormal,
          uint32       bufferSize = 1 * 1024 * 1024);
+
+  ovFile(gkStore     *gkp,
+         const char  *ovlName,
+         uint32       sliceNum,
+         uint32       pieceNum,
+         ovFileType   type = ovFileNormal,
+         uint32       bufferSize = 1 * 1024 * 1024);
+
   ~ovFile();
 
+private:
+  void    construct(gkStore *gkpName, const char *fileName, ovFileType type, uint32 bufferSize);
+
+public:
+  bool    nextFile(const char  *ovlName,
+                   uint32      &sliceNum,
+                   uint32      &pieceNum);
+
+public:
   void    writeBuffer(bool force=false);
   void    writeOverlap(ovOverlap *overlap);
   void    writeOverlaps(ovOverlap *overlaps, uint64 overlapLen);
+
+  bool    fileTooBig(void)    { return(_countsW->numOverlaps() > OVFILE_MAX_OVERLAPS);  };
+  uint64  filePosition(void)  { return(_countsW->numOverlaps());                        };
 
   void    readBuffer(void);
   bool    readOverlap(ovOverlap *overlap);
@@ -85,11 +239,17 @@ public:
   };
 #endif
 
-  //  Move the stats in our histogram to the one supplied, and remove our data
-  void    transferHistogram(ovStoreHistogram *copy);
+  //  Used primarily for copying the data from this file into the data for the full overlap store.
+  ovStoreHistogram       *getHistogram(void)     { return(_histogram); };
+  void                    removeHistogram(void);
+
+  ovFileOCR              *getCounts(void)        { return(_countsR);   };
 
 private:
   gkStore                *_gkp;
+
+  ovFileOCW              *_countsW;
+  ovFileOCR              *_countsR;
   ovStoreHistogram       *_histogram;
 
   uint32                  _bufferLen;    //  length of valid data in the buffer
@@ -112,7 +272,8 @@ private:
   compressedFileReader   *_reader;
   compressedFileWriter   *_writer;
 
-  char                    _prefix[FILENAME_MAX];
+  char                    _prefix[FILENAME_MAX+1];
+  char                    _name[FILENAME_MAX+1];
   FILE                   *_file;
 };
 

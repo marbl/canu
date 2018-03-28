@@ -46,76 +46,56 @@
 #include "memoryMappedFile.H"
 
 
-const uint64 ovStoreVersion         = 2;
+const uint64 ovStoreVersion         = 3;
 const uint64 ovStoreMagic           = 0x53564f3a756e6163;   //  == "canu:OVS - store complete
-const uint64 ovStoreMagicIncomplete = 0x50564f3a756e6163;   //  == "canu:OVP - store under construction
+//const uint64 ovStoreMagicIncomplete = 0x50564f3a756e6163;   //  == "canu:OVP - store under construction
+
+#define  OVSTORE_MEMORY_OVERHEAD     (256 * 1024 * 1024)
+
 
 
 class ovStoreInfo {
 public:
-  ovStoreInfo() {
-    clear();
+  ovStoreInfo(uint32 maxID=0) {
+    clear(maxID);
   };
 
-  void     clear(void) {
-    _ovsMagic         = ovStoreMagicIncomplete;  //  Appropriate for a new store.
-    _ovsVersion       = ovStoreVersion;
-    _UNUSED           = 0;
-    _smallestIID      = UINT64_MAX;
-    _largestIID       = 0;
-    _numOverlapsTotal = 0;
-    _highestFileIndex = 0;
-    _maxReadLenInBits = AS_MAX_READLEN_BITS;
+  void     clear(uint32 maxID) {
+    _ovsMagic      = 0;
+    _ovsVersion    = 0;
+    _readLenInBits = AS_MAX_READLEN_BITS;
+    _bgnID         = UINT32_MAX;
+    _endID         = 0;
+    _maxID         = maxID;
+    _numOlaps      = 0;
   };
 
-  bool       load(const char *path, uint32 index=UINT32_MAX, bool temporary=false) {
-    char  name[FILENAME_MAX];
+  void       load(const char *path, uint32 index=UINT32_MAX, bool temporary=false) {
+    char    name[FILENAME_MAX];
+    uint32  failed = 0;
 
     if (temporary == false)
       snprintf(name, FILENAME_MAX, "%s/info", path);
     else
       snprintf(name, FILENAME_MAX, "%s/%04u.info", path, index);
 
-    if (AS_UTL_fileExists(name, false, false) == false) {
-      fprintf(stderr, "ERROR: directory '%s' is not an overlapStore; didn't find file '%s': %s\n",
-              path, name, strerror(errno));
-      return(false);
-    }
+    FILE *F = AS_UTL_openInputFile(name);
+    AS_UTL_safeRead(F, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
+    AS_UTL_closeFile(F, name);
 
-    errno = 0;
-    FILE *ovsinfo = fopen(name, "r");
-    if (errno) {
-      fprintf(stderr, "ERROR: directory '%s' is not an overlapStore; failed to open '%s': %s\n",
-              path, name, strerror(errno));
-      return(false);
-    }
+    if (_ovsMagic != ovStoreMagic)
+      failed += fprintf(stderr, "ERROR:  directory '%s' is not an ovStore.\n", path);
 
-    AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
+    if (_ovsVersion != ovStoreVersion)
+      failed += fprintf(stderr, "ERROR:  directory '%s' is not a supported ovStore version (store version " F_U64 "; supported version " F_U64 ".\n",
+                        path, _ovsVersion, ovStoreVersion);
 
-    AS_UTL_closeFile(ovsinfo, name);
+    if (_readLenInBits != AS_MAX_READLEN_BITS)
+      failed += fprintf(stderr, "ERROR:  directory '%s' is not a supported read length (store is " F_U32 " bits, AS_MAX_READLEN_BITS is " F_U32 ").\n",
+                        path, _readLenInBits, AS_MAX_READLEN_BITS);
 
-    return(true);
-  };
-
-  bool       test(const char *path) {
-    char  name[FILENAME_MAX];
-
-    snprintf(name, FILENAME_MAX, "%s/info", path);
-
-    if (AS_UTL_fileExists(name, false, false) == false)
-      return(false);
-
-    errno = 0;
-    FILE *ovsinfo = fopen(name, "r");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to load '%s'; can't check if this is a valid ovStore: %s\n",
-              name, strerror(errno)), exit(1);
-
-    AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
-
-    AS_UTL_closeFile(ovsinfo, name);
-
-    return(checkMagic());
+    if (failed)
+      exit(1);
   };
 
   void       save(const char *path, uint32 index=UINT32_MAX, bool temporary=false) {
@@ -126,54 +106,47 @@ public:
     else
       snprintf(name, FILENAME_MAX, "%s/%04u.info", path, index);
 
-    if (temporary == false) {
-      _ovsMagic         = ovStoreMagic;
-      _ovsVersion       = ovStoreVersion;
-      _highestFileIndex = index;
-    } else {
-    }
+    _ovsMagic   = ovStoreMagic;
+    _ovsVersion = ovStoreVersion;
 
-    errno = 0;
-    FILE *ovsinfo = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to save '%s': %s\n", name, strerror(errno)), exit(1);
+    assert(_bgnID    != UINT32_MAX);
+    assert(_endID    != 0);
+    assert(_maxID    != 0);
+    assert(_numOlaps != 0);
 
-    AS_UTL_safeWrite(ovsinfo, this, "ovStore::ovStore::saveinfo", sizeof(ovStoreInfo), 1);
+    //fprintf(stderr, "ovStoreInfo::save()-- bgnID=%u endID=%u maxID=%u numOlaps=%lu\n",
+    //        _bgnID, _endID, _maxID, _numOlaps);
 
-    AS_UTL_closeFile(ovsinfo, name);
+    FILE *F = AS_UTL_openOutputFile(name);
+    AS_UTL_safeWrite(F, this, "ovStore::ovStore::saveinfo", sizeof(ovStoreInfo), 1);
+    AS_UTL_closeFile(F, name);
   };
 
-  void       addOverlap(uint32 id, uint32 nOverlaps=1) {
-    if (_smallestIID > id) _smallestIID = id;
-    if (_largestIID  < id) _largestIID  = id;
+  uint32     bgnID(void)  { return(_bgnID); };
+  uint32     endID(void)  { return(_endID); };
+  uint32     maxID(void)  { return(_maxID); };
 
-    _numOverlapsTotal += nOverlaps;
+  void       addOverlaps(uint32 curID, uint32 nOverlaps=1)   {
+    _bgnID = min(_bgnID, curID);
+    _endID = max(_endID, curID);
+
+    _numOlaps += nOverlaps;
   };
-
-  bool       checkIncomplete(void)    { return(_ovsMagic         == ovStoreMagicIncomplete);  };
-  bool       checkMagic(void)         { return(_ovsMagic         == ovStoreMagic);            };
-  bool       checkVersion(void)       { return(_ovsVersion       == ovStoreVersion);          };
-  bool       checkSize(void)          { return(_maxReadLenInBits == AS_MAX_READLEN_BITS);     };
-
-  uint32     getVersion(void)         { return((uint32)_ovsVersion);          };
-  uint32     getCurrentVersion(void)  { return((uint32)ovStoreVersion);       };
-  uint32     getSize(void)            { return((uint32)_maxReadLenInBits);    };
-
-  uint64     numOverlaps(void)        { return(_numOverlapsTotal); };
-  uint32     smallestID(void)         { return(_smallestIID);      };
-  uint32     largestID(void)          { return(_largestIID);       };
-
-  uint32     lastFileIndex(void)      { return(_highestFileIndex); };
+  uint64     numOverlaps(void) {
+    return(_numOlaps);
+  };
 
 private:
   uint64    _ovsMagic;
   uint64    _ovsVersion;
-  uint64    _UNUSED;              //  needed to keep the file layout the same
-  uint64    _smallestIID;         //  smallest frag iid in the store
-  uint64    _largestIID;          //  largest frag iid in the store
-  uint64    _numOverlapsTotal;    //  number of overlaps in the store
-  uint64    _highestFileIndex;
-  uint64    _maxReadLenInBits;    //  length of a fragment
+
+  uint32    _readLenInBits;
+
+  uint32    _bgnID;               //  First ID with overlaps
+  uint32    _endID;               //  Last ID with overlaps
+  uint32    _maxID;               //  ID of the last read in the assembly.
+
+  uint64    _numOlaps;            //  number of overlaps in the store
 };
 
 
@@ -181,108 +154,93 @@ private:
 class ovStoreOfft {
 public:
   ovStoreOfft() {
-    clear();
-  };
-  ~ovStoreOfft() {
-  };
-
-  void       clear(void) {
-    _a_iid     = 0;
-    _fileno    = 0;
+    _slice     = 0;
+    _piece     = 0;
     _offset    = 0;
     _numOlaps  = 0;
     _overlapID = 0;
   };
 
-private:
-  uint32    _a_iid;      //  read ID for this block of overlaps.
+  void       addOverlap(uint32 slice, uint32 piece, uint32 offset, uint64 overlapID) {
+    if (_numOlaps == 0) {      //  If the first overlap to be added,
+      _slice     = slice;      //  set all the good info.
+      _piece     = piece;
+      _offset    = offset;
+      _numOlaps  = 0;
+      _overlapID = overlapID;
+    }
 
-  uint32    _fileno;     //  the file that contains this a_iid
-  uint32    _offset;     //  offset to the first overlap for this iid
-  uint32    _numOlaps;   //  number of overlaps for this iid
+    _numOlaps++;
+  }
 
-  uint64    _overlapID;  //  overlapID for the first overlap in this block.  in memory, this is the id of the next overlap.
+  uint16    _slice;           //  Which slice are these overlaps in?
+  uint16    _piece;           //  Which piece are these overlaps in?
+  uint32    _offset;          //  Offset (in overlaps) in the piece file.
+  uint32    _numOlaps;        //  number of overlaps for this iid
 
-  friend class ovStore;
-  friend class ovStoreWriter;
-
-  friend
-  void
-  writeOverlaps(gkStore    *gkp,
-                char       *storePath,
-                ovOverlap  *ovls,
-                uint64      ovlsLen,
-                uint32      fileID);
-
-  friend
-  bool
-  testIndex(char     *storePath,
-            bool      doFixes);
-
-  friend
-  void
-  mergeInfoFiles(char       *storePath,
-                 uint32      nPieces);
+  uint64    _overlapID;       //  index into erates for this block.
 };
 
 
 
+//  For sequential construction, there is only a constructor, destructor and writeOverlap().
+//  Overlaps must be sorted by a_iid (then b_iid) already.
+
 class ovStoreWriter {
 public:
+  ovStoreWriter(const char *path, gkStore *gkp);
   ~ovStoreWriter();
 
-  //  For sequential construction, there is only a constructor, destructor and writeOverlap().
-  //  Overlaps must be sorted by a_iid (then b_iid) already.
+  void                writeOverlap(ovOverlap *olap);
 
-  ovStoreWriter(const char *path, gkStore *gkp);
+private:
+  char               _storePath[FILENAME_MAX+1];
 
-  void         writeOverlap(ovOverlap *olap);
+  ovStoreInfo        _info;
+  gkStore           *_gkp;
 
-  //  For parallel construction, usage is much more complicated.  The constructor
-  //  will write a single file of sorted overlaps, and each file has it's own metadata.
-  //  After all files are written, the metadata is merged into one file.
+  ovStoreOfft       *_index;
 
-  ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax);
+  ovFile            *_bof;
+  uint32             _bofSlice;
+  uint32             _bofPiece;
+
+  ovStoreHistogram  *_histogram;         //  When constructing a sequential store, collects all the stats from each file
+};
+
+
+
+//  For parallel construction, usage is much more complicated.  The constructor
+//  will write a single file of sorted overlaps, and each file has it's own metadata.
+//  After all files are written, the metadata is merged into one file.
+
+class ovStoreSliceWriter {
+public:
+  ovStoreSliceWriter(const char *path, gkStore *gkp, uint32 sliceNum, uint32 numSlices, uint32 numBuckets);
+  ~ovStoreSliceWriter();
 
   uint64       loadBucketSizes(uint64 *bucketSizes);
-  void         loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen);
+  void         loadOverlapsFromBucket(uint32 bucket, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen);
 
   void         writeOverlaps(ovOverlap *ovls, uint64 ovlsLen);
 
   void         mergeInfoFiles(void);
   void         mergeHistogram(void);
 
-  bool         testIndex(bool doFixes);
-
   void         removeOverlapSlice(void);
   void         checkSortingIsComplete(void);
   void         removeAllIntermediateFiles(void);
 
 private:
-  char               _storePath[FILENAME_MAX];
+  char               _storePath[FILENAME_MAX+1];
 
   ovStoreInfo        _info;
   gkStore           *_gkp;
 
-  FILE              *_offtFile;   //  For writing overlaps, a place to dump ovStoreOfft's.
-  ovStoreOfft        _offt;       //  For writing overlaps, the current ovStoreOfft.
-  ovStoreOfft        _offm;       //  For writing overlaps, an empty ovStoreOfft, for reads with no overlaps.
-
-  memoryMappedFile  *_evaluesMap;
-  uint16            *_evalues;
-
-  uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
-  uint64             _overlapsThisFileMax;
-  uint32             _currentFileIndex;
-  ovFile            *_bof;
-
-  ovStoreHistogram  *_histogram;         //  When constructing a sequential store, collects all the stats from each file
-
-  //  Parallel store support
-
-  uint32             _fileLimit;   //  number of slices used in bucketizing/sorting
-  uint32             _fileID;      //  index of the overlap file we're processing
-  uint32             _jobIdxMax;   //  total number of overlap files
+  uint32             _sliceNum;
+  uint32             _pieceNum;
+  uint32             _numSlices;
+  uint32             _numBuckets;
 };
 
 
@@ -293,39 +251,29 @@ public:
   ~ovStore();
 
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
-  uint32     readOverlap(ovOverlap *overlap);
+  uint32             readOverlap(ovOverlap *overlap);
 
-  //  Return the number of overlaps that would be read.  Basically the same as the next readOverlaps() call.
-  uint32     numberOfOverlaps(void);
+  //  Loads the overlaps for a single read, returning the number of overlaps loaded.
+  uint32             loadOverlapsForRead(uint32       id,
+                                         ovOverlap  *&ovl,
+                                         uint32      &ovlMax);
 
-  //  Read ALL remaining overlaps for the current A_iid.  Return value is the number of overlaps read.
-  uint32     readOverlaps(ovOverlap *&overlaps,
-                          uint32     &maxOverlaps,
-                          bool        restrictToIID=true);
+  uint32             loadBlockOfOverlaps(ovOverlap *ovl,
+                                         uint32     ovlMax);
 
-  //  Append ALL remaining overlaps for the current A_iid to the overlaps in ovl.  Return value is
-  //  the number of overlaps in ovl that are for A_iid == iid.
-  //
-  //  It is up to the client to verify that ovl[0] is the same as iid (e.g., that the return value
-  //  is not zero); ovlLen is the number of overlaps in ovl, NOT the number of overlaps in ovl that
-  //  are the same as iid.
-  //
-  uint32       readOverlaps(uint32       iid,
-                            ovOverlap  *&ovl,
-                            uint32      &ovlLen,
-                            uint32      &ovlMax);
+  void               setRange(uint32 bgnID, uint32 endID);
 
-  void         setRange(uint32 low, uint32 high);
-  void         resetRange(void);
+  void               restartIteration(void);    //  UNTESTED, probably needs to seekOverlap() too
+  void               endIteration(void);
 
-  uint64       numOverlapsInRange(void);
-
-  uint32      *numOverlapsPerRead(uint32  numReads=0);
+  uint32             numOverlaps(uint32 readID)   {  return(_index[readID]._numOlaps);  };
+  uint64             numOverlapsInRange(void);
+  uint32            *numOverlapsPerRead(void);
 
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
   //  of evalues must agree.
 
-  void       addEvalues(vector<char *> &fileList);
+  void               addEvalues(vector<char *> &fileList);
 
   //  Return the statistics associated with this store
 
@@ -333,25 +281,29 @@ public:
     return(new ovStoreHistogram(_storePath));
   };
 
+public:
+  void                dumpMetaData(uint32 bgnID, uint32 endID);
+
 private:
-  char               _storePath[FILENAME_MAX];
+  char               _storePath[FILENAME_MAX+1];
 
   ovStoreInfo        _info;
   gkStore           *_gkp;
 
-  uint32             _firstIIDrequested;
-  uint32             _lastIIDrequested;
+  uint32             _bgnID;    //  First ID requested
+  uint32             _endID;    //  Last ID requested
 
-  FILE              *_offtFile;   //  For writing overlaps, a place to dump ovStoreOfft's.
-  ovStoreOfft        _offt;       //  For writing overlaps, the current ovStoreOfft.
-  ovStoreOfft        _offm;       //  For writing overlaps, an empty ovStoreOfft, for reads with no overlaps.
+  uint32             _curID;    //  Current ID being read
+  uint32             _curOlap;  //  Current overlap being read (0 .. N)
+
+  ovStoreOfft       *_index;
 
   memoryMappedFile  *_evaluesMap;
   uint16            *_evalues;
 
-  uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
-  uint32             _currentFileIndex;
   ovFile            *_bof;
+  uint32             _bofSlice;
+  uint32             _bofPiece;
 };
 
 

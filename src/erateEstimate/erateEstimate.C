@@ -435,11 +435,11 @@ outputOverlaps(gkStore           *gkpStore,
   //  Overlaps in the store and those in the list should be in lock-step.  We can just
   //  walk down each.
 
-  uint32            overlapblock = 100000000;
-  ovOverlap        *overlapsload = ovOverlap::allocateOverlaps(gkpStore, overlapblock);
+  uint32            ovlLen = 100000000;
+  ovOverlap        *ovl = ovOverlap::allocateOverlaps(gkpStore, ovlLen);
 
   for (uint64 no=0; no<numOvls; ) {
-    uint64 nLoad  = inpStore->readOverlaps(overlapsload, overlapblock, false);
+    uint64 nLoad  = inpStore->loadBlockOfOverlaps(ovl, ovlLen);
 
     assert(nLoad > 0);
 
@@ -447,14 +447,14 @@ outputOverlaps(gkStore           *gkpStore,
       uint32  a_iid =   overlaps[no].a_iid;
       uint32  b_iid = ((overlaps[no].b_iid_hi << 14) | (overlaps[no].b_iid_lo));
 
-      assert(overlapsload[xx].a_iid == a_iid);
-      assert(overlapsload[xx].b_iid == b_iid);;
+      assert(ovl[xx].a_iid == a_iid);
+      assert(ovl[xx].b_iid == b_iid);;
 
       if (overlaps[no].discarded == true) {
         nDiscarded++;
 
       } else {
-        outStore->writeOverlap(overlapsload + xx);
+        outStore->writeOverlap(ovl + xx);
         nRemain++;
       }
 
@@ -463,7 +463,7 @@ outputOverlaps(gkStore           *gkpStore,
     }
   }
 
-  delete [] overlapsload;
+  delete [] ovl;
 
 
 
@@ -681,8 +681,8 @@ main(int argc, char **argv) {
 
   } else {
     FILE             *ESTcache     = NULL;
-    uint32            overlapblock = 100000000;
-    ovOverlap        *overlapsload = ovOverlap::allocateOverlaps(gkpStore, overlapblock);
+    uint32            ovlLen = 100000000;
+    ovOverlap        *ovl = ovOverlap::allocateOverlaps(gkpStore, ovlLen);
 
     overlaps       = new ESToverlap [numOvls];
 
@@ -690,10 +690,10 @@ main(int argc, char **argv) {
       ESTcache = AS_UTL_openOutputFile(ovlCacheName);
 
     for (uint64 no=0; no<numOvls; ) {
-      uint64 nLoad  = ovlStore->readOverlaps(overlapsload, overlapblock, false);
+      uint64 nLoad  = ovlStore->loadBlockOfOverlaps(ovl, ovlLen);
 
       for (uint32 xx=0; xx<nLoad; xx++)
-        overlaps[no++].populate(overlapsload[xx]);
+        overlaps[no++].populate(ovl[xx]);
 
       if (ESTcache)
         fwrite(overlaps + no - nLoad, sizeof(ESToverlap), nLoad, ESTcache);
@@ -702,7 +702,7 @@ main(int argc, char **argv) {
               no, numOvls, 100.0 * no / numOvls);
     }
 
-    delete [] overlapsload;
+    delete [] ovl;
 
     AS_UTL_closeFile(ESTcache, ovlCacheName);
 

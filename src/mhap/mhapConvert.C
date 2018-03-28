@@ -84,7 +84,7 @@ main(int argc, char **argv) {
 
   gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
   ovOverlap   ov(gkpStore);
-  ovFile     *of = new ovFile(NULL, outName, ovFileFullWrite);
+  ovFile     *of = new ovFile(gkpStore, outName, ovFileFullWrite);
 
 
   for (uint32 ff=0; ff<files.size(); ff++) {

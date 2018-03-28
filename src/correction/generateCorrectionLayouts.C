@@ -51,7 +51,8 @@ using namespace std;
 //  to meet coverage thresholds.  Very big.
 #undef DEBUG_LAYOUT
 
-
+//FILE *flgFile = stderr;
+FILE *flgFile = NULL;
 
 uint16 *
 loadThresholds(gkStore *gkpStore,
@@ -73,7 +74,7 @@ loadThresholds(gkStore *gkpStore,
     ovStoreHistogram  *ovlHisto = ovlStore->getHistogram();
 
     for (uint32 ii=0; ii<numReads+1; ii++)
-      olapThresh[ii] = ovlHisto->overlapScoreEstimate(ii, expectedCoverage);
+      olapThresh[ii] = ovlHisto->overlapScoreEstimate(ii, expectedCoverage, false);
 
     delete ovlHisto;
   }
@@ -106,12 +107,11 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
 }
 
 void
-generateFalconLayout(
-                        gkStore           *gkpStore,
-                        tgTig             *tig,
-                        bool               trimToAlign,
-                        gkReadData        *readData,
-                        uint32             minOutputLength, uint32 minOverlapLength) {
+generateFalconLayout(gkStore           *gkpStore,
+                     tgTig             *tig,
+                     bool               trimToAlign,
+                     gkReadData        *readData,
+                     uint32             minOutputLength, uint32 minOverlapLength) {
 
   //  Grab and save the raw read for the template.
 
@@ -159,22 +159,25 @@ generateFalconLayout(
 }
 
 
-tgTig *
+
+static
+void
 generateLayout(tgTig      *layout,
                uint16     *olapThresh,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
                ovOverlap *ovl,
-               uint32      ovlLen) {
+               uint32      ovlLen,
+               FILE       *logFile) {
 
   //  Generate a layout for the read in ovl[0].a_iid, using most or all of the overlaps in ovl.
 
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
-  //if (flgFile)
-  //  fprintf(flgFile, "Generate layout for read " F_U32 " length " F_U32 " using up to " F_U32 " overlaps.\n",
-  //          layout->_tigID, layout->_layoutLen, ovlLen);
+  if (logFile)
+    fprintf(logFile, "Generate layout for read " F_U32 " length " F_U32 " using up to " F_U32 " overlaps.\n",
+            layout->_tigID, layout->_layoutLen, ovlLen);
 
   set<uint32_t>  children;
 
@@ -189,37 +192,37 @@ generateLayout(tgTig      *layout,
     assert(ovlLength < AS_MAX_READLEN);
 
     if (ovl[oo].erate() > maxEvidenceErate) {
-      //if (flgFile)
-      //  fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - low quality (threshold %.2f)\n",
-      //          ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - low quality (threshold %.2f)\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
     if (ovl[oo].a_end() - ovl[oo].a_bgn() < minEvidenceLength) {
-      //if (flgFile)
-      //  fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - too short (threshold %u)\n",
-      //          ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - too short (threshold %u)\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
 
     if ((olapThresh != NULL) &&
         (ovlScore < olapThresh[ovl[oo].b_iid])) {
-      //if (flgFile)
-      //  fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U16 ")\n",
-      //          ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), olapThresh[ovl[oo].b_iid]);
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U16 ")\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), olapThresh[ovl[oo].b_iid]);
       continue;
     }
 
     if (children.find(ovl[oo].b_iid) != children.end()) {
-      //if (flgFile)
-      //  fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - duplicate\n",
-      //          ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - duplicate\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
       continue;
     }
 
-    //if (flgFile)
-    //  fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5lu erate %.3f\n",
-    //          ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
+    if (logFile)
+      fprintf(logFile, "  allow  read %9u at position %6u,%6u length %5lu erate %.3f\n",
+              ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
 
     tgPosition   *pos = layout->addChild();
 
@@ -251,22 +254,21 @@ generateLayout(tgTig      *layout,
     children.insert(ovl[oo].b_iid);
   }
 
-  //  Use utgcns's stashContains to get rid of extra coverage; we don't care about it, and
-  //  just delete it immediately.
+  //  Use utgcns's stashContains() to get rid of extra coverage.  This function removes
+  //  extra coverage from the layout and stores it in the savedChildren object.  We don't
+  //  care about these, and can just delete them.
+  //
+  //  stashContains() also sorts by position, so we're done after this.
 
   savedChildren *sc = stashContains(layout, maxEvidenceCoverage);
 
-  //if ((flgFile) && (sc))
-  //  sc->reportRemoved(flgFile, layout->tigID());
+  if ((logFile) && (sc))
+    sc->reportRemoved(logFile, layout->tigID());
 
   if (sc) {
     delete sc->children;
     delete sc;
   }
-
-  //  stashContains also sorts by position, so we're done.
-
-  return(layout);
 }
 
 
@@ -278,17 +280,14 @@ main(int argc, char **argv) {
   char             *gkpName   = 0L;
   char             *ovlName   = 0L;
   char             *corName   = 0L;
+  char             *flgName   = 0L;
 
   char             *scoreName = 0L;
 
   uint32            errorRate = AS_OVS_encodeEvalue(0.015);
 
-  char             *outputPrefix = NULL;
-  char              logName[FILENAME_MAX] = {0};
-  char              sumName[FILENAME_MAX] = {0};
-  char              flgName[FILENAME_MAX] = {0};
+  bool              doLogging = false;
   FILE             *logFile = 0L;
-  FILE             *sumFile = 0L;
 
   uint32            expectedCoverage    = 40;    //  How many overlaps per read to save, global filter
   uint32            minEvidenceOverlap  = 40;
@@ -325,9 +324,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-C") == 0) {   //  OUTPUT FORMAT
       corName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-p") == 0) {
-      outputPrefix = argv[++arg];
-
 
     } else if (strcmp(argv[arg], "-b") == 0) {   //  READ SELECTION
       iidMin  = atoi(argv[++arg]);
@@ -353,6 +349,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-eM") == 0) {
       minCorLength = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-V") == 0) {
+      doLogging = true;
+
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -376,7 +375,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "OUTPUTS\n");
     fprintf(stderr, "  -C corStore      output layouts to store 'corStore'\n");
-    fprintf(stderr, "  -p prefix        output prefix name, for logging and summary report\n");
+    fprintf(stderr, "  -V               write extremely verbose logging to 'corStore.log'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "READ SELECTION\n");
     fprintf(stderr, "  -b bgnID         process reads starting at bgnID\n");
@@ -426,7 +425,6 @@ main(int argc, char **argv) {
   }
 
   ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
-
   tgStore  *corStore = new tgStore(corName);
 
   uint32    numReads = gkpStore->gkStore_getNumReads();
@@ -451,55 +449,41 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  logFile = AS_UTL_openOutputFile(outputPrefix, '.', "log");
-  sumFile = AS_UTL_openOutputFile(outputPrefix, '.', "summary",    false);    //  Never used!
+  logFile = AS_UTL_openOutputFile(corName, '.', "log", doLogging);
 
   //  Initialize processing.
 
-  uint32             ovlMax    = 1024 * 1024;
-  ovOverlap         *ovl       = ovOverlap::allocateOverlaps(gkpStore, ovlMax);
-  uint32             ovlLen    = ovlStore->readOverlaps(ovl, ovlMax, true);
-
-  gkReadData        *readData  = new gkReadData;
+  uint32             ovlMax    = 0;
+  ovOverlap         *ovl       = NULL;
 
   //  And process.
 
-  for (uint32 ii=0; ii<numReads+1; ii++) {
-    uint32   readID = (ovlLen > 0) ? ovl[0].a_iid : UINT32_MAX;   //  Read ID of overlaps, or maximum ID if no overlaps.
-    tgTig   *layout = new tgTig;
+  for (uint32 rr=1; rr<numReads+1; rr++) {
+    uint32 ovlLen = ovlStore->loadOverlapsForRead(rr, ovl, ovlMax);
 
-    layout->_tigID = ii;
+    if (ovlLen > 0) {
+      tgTig   *layout = new tgTig;
 
-    assert(ii <= readID);
+      layout->_tigID     = rr;
+      layout->_layoutLen = gkpStore->gkStore_getRead(rr)->gkRead_rawLength();
 
-    //  If ii is below readID, there are no overlaps for this read.  Make an empty placeholder tig for it.
-    //  But if ii is readID, we have overlaps, so process them, then load more.
+      generateLayout(layout,
+                     olapThresh,
+                     minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
+                     ovl, ovlLen,
+                     logFile);
 
-    if (ii == readID) {
-      layout->_layoutLen = gkpStore->gkStore_getRead(readID)->gkRead_rawLength();
+      corStore->insertTig(layout, false);
 
-      layout = generateLayout(layout,
-                              olapThresh,
-                              minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
-                              ovl, ovlLen);
-
-      ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
+      delete layout;
     }
-
-    //  And save the layout into the corStore.
-
-    corStore->insertTig(layout, false);
-
-    delete layout;
   }
 
   //  Close files and clean up.
 
   AS_UTL_closeFile(logFile);
-  AS_UTL_closeFile(sumFile);
 
   delete [] olapThresh;
-  delete    readData;
   delete [] ovl;
   delete    corStore;
   delete    ovlStore;

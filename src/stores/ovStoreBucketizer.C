@@ -43,26 +43,25 @@
 
 #include "gkStore.H"
 #include "ovStore.H"
+#include "ovStoreConfig.H"
 
 
 static
 void
-writeToFile(gkStore       *gkp,
-            ovOverlap    *overlap,
-            ovFile       **sliceFile,
-            uint32         sliceFileMax,
-            uint64        *sliceSize,
-            uint32        *iidToBucket,
-            char          *ovlName,
-            uint32         jobIndex,
-            bool           useGzip) {
+writeToFile(gkStore          *gkp,
+            ovOverlap        *overlap,
+            ovFile          **sliceFile,
+            uint64           *sliceSize,
+            ovStoreConfig    *config,
+            char             *ovlName,
+            uint32            bucketNum) {
 
-  uint32 df = iidToBucket[overlap->a_iid];
+  uint32 df = config->getAssignedSlice(overlap->a_iid);
 
   if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    snprintf(name, FILENAME_MAX, "%s/create%04d/slice%04d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
+    snprintf(name, FILENAME_MAX, "%s/create%04d/slice%04d", ovlName, bucketNum, df);
     sliceFile[df] = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     sliceSize[df] = 0;
   }
@@ -78,22 +77,18 @@ main(int argc, char **argv) {
   char           *ovlName      = NULL;
   char           *gkpName      = NULL;
   char           *cfgName      = NULL;
-  uint32          maxFiles     = sysconf(_SC_OPEN_MAX) - 16;
-  uint32          fileLimit    = maxFiles;
-
-  uint32          jobIndex     = 0;
+  uint32          bucketNum    = UINT32_MAX;
 
   double          maxErrorRate = 1.0;
-  uint64          maxError     = AS_OVS_encodeEvalue(maxErrorRate);
 
-  char           *ovlInput     = NULL;
-
-  bool            useGzip      = false;
+  char            createName[FILENAME_MAX+1];
+  char            sliceSName[FILENAME_MAX+1];
+  char            bucketName[FILENAME_MAX+1];
 
   argc = AS_configure(argc, argv);
 
-  int err=0;
-  int arg=1;
+  vector<char *>  err;
+  int             arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
@@ -104,195 +99,163 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-C") == 0) {
       cfgName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-F") == 0) {
-      fileLimit = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-job") == 0) {
-      jobIndex = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-i") == 0) {
-      ovlInput = argv[++arg];
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      bucketNum = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
-      maxError     = AS_OVS_encodeEvalue(maxErrorRate);
-
-    } else if (strcmp(argv[arg], "-gzip") == 0) {
-      useGzip = true;
 
     } else {
-      fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
-  if (ovlName == NULL)
-    err++;
-  if (gkpName == NULL)
-    err++;
-  if (ovlInput == NULL)
-    err++;
-  if (jobIndex == 0)
-    err++;
-  if (fileLimit > maxFiles)
-    err++;
 
-  if (err) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -i file.ovb -job j [opts]\n", argv[0]);
-    fprintf(stderr, "  -O asm.ovlStore       path to store to create\n");
-    fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -C config             path to previously created ovStoreBuild config data file\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -i file.ovb[.gz]      input overlaps\n");
-    fprintf(stderr, "  -job j                index of this overlap input file\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -obt                  filter overlaps for OBT\n");
-    fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
+  if (ovlName == NULL)
+    err.push_back("ERROR: No overlap store (-O) supplied.\n");
+
+  if (gkpName == NULL)
+    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+
+  if (cfgName == NULL)
+    err.push_back("ERROR: No store configuration (-C) supplied.\n");
+
+  if (bucketNum == UINT32_MAX)
+    err.push_back("ERROR: Invalid or no bucket (-b) supplied.\n");
+
+  if (err.size() > 0) {
+    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig -b bucket [opts]\n", argv[0]);
+    fprintf(stderr, "  -O asm.ovlStore       path to overlap store to create\n");
+    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -C config             path to ovStoreConfig configuration file\n");
+    fprintf(stderr, "  -b bucket             bucket to create (1 ... N)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -gzip                 compress buckets even more\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
-    fprintf(stderr, "    DANGER                                                DANGER\n");
-    fprintf(stderr, "    DANGER   This command is difficult to run by hand.    DANGER\n");
-    fprintf(stderr, "    DANGER          Use ovStoreCreate instead.            DANGER\n");
-    fprintf(stderr, "    DANGER                                                DANGER\n");
-    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
-    fprintf(stderr, "\n");
 
-    if (ovlName == NULL)
-      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: No gatekeeper store (-G) supplied.\n");
-    if (ovlInput == NULL)
-      fprintf(stderr, "ERROR: No input (-i) supplied.\n");
-    if (jobIndex == 0)
-      fprintf(stderr, "ERROR: No job index (-job) supplied.\n");
-    if (fileLimit > maxFiles)
-      fprintf(stderr, "ERROR: Too many jobs (-F); only " F_U32 " supported on this architecture.\n", maxFiles);
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
 
+  //  Load the config.
 
-  {
-    if (AS_UTL_fileExists(ovlName, TRUE, FALSE) == false)
-      AS_UTL_mkdir(ovlName);
+  ovStoreConfig  *config = new ovStoreConfig(cfgName);
+
+  //  Create the output directory names and check if we're running or done.  Or if the user is a moron.
+
+  snprintf(createName, FILENAME_MAX, "%s/create%04u",            ovlName, bucketNum);
+  snprintf(sliceSName, FILENAME_MAX, "%s/create%04u/sliceSizes", ovlName, bucketNum);  //  sliceSizes name before rename.
+  snprintf(bucketName, FILENAME_MAX, "%s/bucket%04u",            ovlName, bucketNum);
+
+  if (AS_UTL_fileExists(createName, TRUE, FALSE) == true) {
+    fprintf(stderr, "Job (appears to be) in progress; directory '%s' exists.\n", createName);
+    exit(1);
   }
 
-
-  {
-    char name[FILENAME_MAX];
-
-    snprintf(name, FILENAME_MAX, "%s/create%04d", ovlName, jobIndex);
-
-    if (AS_UTL_fileExists(name, TRUE, FALSE) == false)
-      AS_UTL_mkdir(name);
-    else
-      fprintf(stderr, "Overwriting previous result; directory '%s' exists.\n", name), exit(0);
+  if (AS_UTL_fileExists(bucketName, FALSE, FALSE) == true) {
+    fprintf(stderr, "Job finished; file '%s' exists.\n", sliceSName);
+    exit(0);
   }
 
-
-  {
-    char name[FILENAME_MAX];
-
-    snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
-
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
-      fprintf(stderr, "Job finished; file '%s' exists.\n", name), exit(0);
+  if ((bucketNum == 0) ||
+      (bucketNum > config->numBuckets())) {
+    fprintf(stderr, "No bucket " F_U32 " exists; only buckets 1-" F_U32 " exist.\n", bucketNum, config->numBuckets());
+    exit(1);
   }
 
+  //  Report options.
 
-  gkStore *gkp         = gkStore::gkStore_open(gkpName);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Constructing slice " F_U32 " for store '%s'.\n", bucketNum, ovlName);
+  fprintf(stderr, " - Filtering overlaps over %.4f fraction error.\n", maxErrorRate);
+  fprintf(stderr, "\n");
 
-  uint32  maxIID       = gkp->gkStore_getNumReads() + 1;
-  uint32 *iidToBucket  = new uint32 [maxIID];
+  //  Make directories.
 
-  {
-    errno = 0;
-    FILE *C = fopen(cfgName, "r");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open config file '%s' for reading: %s\n", cfgName, strerror(errno)), exit(1);
+  AS_UTL_mkdir(ovlName);
+  AS_UTL_mkdir(createName);
 
-    uint32  maxIIDtest  = 0;
+  //  Open inputs.
 
-    AS_UTL_safeRead(C, &maxIIDtest,  "maxIID",      sizeof(uint32), 1);
-    AS_UTL_safeRead(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
+  gkStore        *gkp    = gkStore::gkStore_open(gkpName);
 
-    if (maxIIDtest != maxIID)
-      fprintf(stderr, "ERROR: maxIID in store (" F_U32 ") differs from maxIID in config file (" F_U32 ").\n",
-              maxIID, maxIIDtest), exit(1);
-  }
+  //  Allocate stuff.
 
+  ovFile        **sliceFile = new ovFile * [config->numSlices() + 1];
+  uint64         *sliceSize = new uint64   [config->numSlices() + 1];
 
-  ovFile       **sliceFile = new ovFile * [fileLimit + 1];
-  uint64        *sliceSize = new uint64   [fileLimit + 1];
+  memset(sliceFile, 0, sizeof(ovFile *) * (config->numSlices() + 1));
+  memset(sliceSize, 0, sizeof(uint64)   * (config->numSlices() + 1));
 
-  memset(sliceFile, 0, sizeof(ovFile *) * (fileLimit + 1));
-  memset(sliceSize, 0, sizeof(uint64)   * (fileLimit + 1));
-
-  fprintf(stderr, "maxError fraction: %.3f percent: %.3f encoded: " F_U64 "\n",
-          maxErrorRate, maxErrorRate * 100, maxError);
-
-  fprintf(stderr, "Bucketizing %s\n", ovlInput);
-
-  ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
+  ovStoreFilter *filter = new ovStoreFilter(gkp, maxErrorRate);
   ovOverlap      foverlap(gkp);
   ovOverlap      roverlap(gkp);
-  ovFile         *inputFile = new ovFile(gkp, ovlInput, ovFileFull);
 
-  //  Do bigger buffers increase performance?  Do small ones hurt?
-  //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
+  //  And process each input!
 
-  while (inputFile->readOverlap(&foverlap)) {
-    filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r, and checks IDs
+  for (uint32 ff=0; ff<config->numInputs(bucketNum); ff++) {
+    fprintf(stderr, "Bucketizing input %4" F_U32P " out of %4" F_U32P " - '%s'\n",
+            ff+1, config->numInputs(bucketNum), config->getInput(bucketNum, ff));
 
-    //  If all are skipped, don't bother writing the overlap.
+    ovFile  *inputFile = new ovFile(gkp, config->getInput(bucketNum, ff), ovFileFull);
 
-    if ((foverlap.dat.ovl.forUTG == true) ||
-        (foverlap.dat.ovl.forOBT == true) ||
-        (foverlap.dat.ovl.forDUP == true))
-      writeToFile(gkp, &foverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
+    //  Do bigger buffers increase performance?  Do small ones hurt?
+    //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
 
-    if ((roverlap.dat.ovl.forUTG == true) ||
-        (roverlap.dat.ovl.forOBT == true) ||
-        (roverlap.dat.ovl.forDUP == true))
-      writeToFile(gkp, &roverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
+    while (inputFile->readOverlap(&foverlap)) {
+      filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r, and checks IDs
+
+      //  Write the overlap if anything requests it.  These can be non-symmetric; e.g., if
+      //  we only want to trim reads 1-1000, we'll not output any overlaps for a_iid > 1000.
+
+      if ((foverlap.dat.ovl.forUTG == true) ||
+          (foverlap.dat.ovl.forOBT == true) ||
+          (foverlap.dat.ovl.forDUP == true))
+        writeToFile(gkp, &foverlap, sliceFile, sliceSize, config, ovlName, bucketNum);
+
+      if ((roverlap.dat.ovl.forUTG == true) ||
+          (roverlap.dat.ovl.forOBT == true) ||
+          (roverlap.dat.ovl.forDUP == true))
+        writeToFile(gkp, &roverlap, sliceFile, sliceSize, config, ovlName, bucketNum);
+    }
+
+    delete inputFile;
   }
 
-  delete inputFile;
-  delete filter;        //  We, probably, should be reporting what we filtered.
+  //  Report what we've filtered.
 
-  for (uint32 i=0; i<=fileLimit; i++)
+
+
+  //  Write slice sizes.
+
+  AS_UTL_saveFile(sliceSName, sliceSize, config->numSlices() + 1);
+
+  //  Close the output files.
+
+  for (uint32 i=0; i<config->numSlices() + 1; i++)
     delete sliceFile[i];
 
-  //  Write slice sizes, rename bucket.
+  //  Cleanup.
 
-  {
-    char name[FILENAME_MAX];
-    char finl[FILENAME_MAX];
-
-    snprintf(name, FILENAME_MAX, "%s/create%04d/sliceSizes", ovlName, jobIndex);
-
-    FILE *F = AS_UTL_openOutputFile(name);
-
-    AS_UTL_safeWrite(F, sliceSize, "sliceSize", sizeof(uint64), fileLimit + 1);
-
-    AS_UTL_closeFile(F, name);
-
-    snprintf(name, FILENAME_MAX, "%s/create%04d", ovlName, jobIndex);
-    snprintf(finl, FILENAME_MAX, "%s/bucket%04d", ovlName, jobIndex);
-
-    AS_UTL_rename(name, finl);
-  }
+  gkp->gkStore_close();
 
   delete [] sliceFile;
   delete [] sliceSize;
+
+  delete    filter;
+  delete    config;
+
+  //  Rename the bucket to show we're done.
+
+  AS_UTL_rename(createName, bucketName);
+
+  //  Then be done.
 
   fprintf(stderr, "Success!\n");
 

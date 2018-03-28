@@ -186,6 +186,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/tgTigDisplay.mk \
                 stores/loadCorrectedReads.mk \
                 stores/loadTrimmedReads.mk \
+                stores/loadErates.mk \
                 \
                 meryl/libleaff.mk \
                 meryl/leaff.mk \
@@ -247,3 +248,4 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 fastq-utilities/fastqSample.mk \
                 fastq-utilities/fastqSimulate.mk \
                 fastq-utilities/fastqSimulate-sort.mk
+

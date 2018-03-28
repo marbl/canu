@@ -39,93 +39,107 @@
 
 #include "gkStore.H"
 #include "ovStore.H"
+#include "ovStoreConfig.H"
 
-#include <vector>
 #include <algorithm>
-
 using namespace std;
 
 
-//  This is the size of the datastructure that we're using to store overlaps for sorting.
-//  At present, with ovOverlap, it is over-allocating a pointer that we don't need, but
-//  to make a custom structure, we'd need to duplicate a bunch of code or copy data after
-//  loading and before writing.
-//
-//  Used in both ovStoreSorter.C and ovStoreBuild.C.
-//
-#define ovOverlapSortSize  (sizeof(ovOverlap))
-
-
-
 void
-makeSentinel(char *storePath, uint32 fileID, bool forceRun) {
-  char name[FILENAME_MAX];
+checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config) {
+  char   N[FILENAME_MAX+1];
+
+  //  Check if the user is a moron.
+
+  if ((sliceNum == 0) ||
+      (sliceNum > config->numSlices())) {
+    fprintf(stderr, "No slice " F_U32 " exists; only slices 1-" F_U32 " exist.\n", sliceNum, config->numSlices());
+    exit(1);
+  }
 
   //  Check if done.
 
-  snprintf(name, FILENAME_MAX, "%s/%04d", storePath, fileID);
+  snprintf(N, FILENAME_MAX, "%s/%04u.started", ovlName, sliceNum);
 
-  if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
-    fprintf(stderr, "Job " F_U32 " is finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+  if (AS_UTL_fileExists(N, TRUE, FALSE) == true) {
+    fprintf(stderr, "Job (appears to be) in progress; sentinel file '%s' exists.\n", N);
+    exit(1);
+  }
 
-  //  Check if running.
+  //  Not done and not running, so create a sentinel to say we're running.
 
-  snprintf(name, FILENAME_MAX, "%s/%04d.ovs", storePath, fileID);
-
-  if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
-    fprintf(stderr, "Job " F_U32 " is running (remove '%s' or -force to try again).\n", fileID, name), exit(0);
-
-  //  Not done, not running, so create a sentinel to say we're running.
-
-  AS_UTL_closeFile(AS_UTL_openOutputFile(name), name);
+  AS_UTL_closeFile(AS_UTL_openOutputFile(N), N);
 }
 
 
 
 void
-removeSentinel(char *storePath, uint32 fileID) {
-  char name[FILENAME_MAX];
-  snprintf(name, FILENAME_MAX, "%s/%04d.ovs", storePath, fileID);
-  AS_UTL_unlink(name);
+removeSentinel(const char *ovlName, uint32 sliceNum) {
+  char   N[FILENAME_MAX+1];
+
+  snprintf(N, FILENAME_MAX, "%s/%04u.started", ovlName, sliceNum);
+
+  AS_UTL_unlink(N);
 }
+
+
+
+void
+checkMemory(const char *ovlName, uint32 sliceNum, uint64 totOvl, uint64 maxMemory) {
+
+  if (ovOverlapSortSize * totOvl > maxMemory) {
+    fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to " F_U64 " GB.\n",
+            ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
+    removeSentinel(ovlName, sliceNum);
+    exit(1);
+  }
+
+  fprintf(stderr, "\n");
+
+  double  memUsed    = totOvl * ovOverlapSortSize / 1024.0 / 1024.0 / 1024.0;
+  uint64  memAllowed = maxMemory >> 30;
+
+  if (maxMemory == UINT64_MAX)
+    fprintf(stderr, "Loading %10" F_U64P " overlaps using %.2f GB memory.\n", totOvl, memUsed);
+  else
+    fprintf(stderr, "Loading %10" F_U64P " overlaps using %.2f GB of allowed (-M) " F_U64 " GB memory.\n", totOvl, memUsed, memAllowed);
+}
+
+
+
+
 
 
 
 int
 main(int argc, char **argv) {
-  char           *storePath      = NULL;
-  char           *gkpName        = NULL;
+  char           *ovlName      = NULL;
+  char           *gkpName      = NULL;
+  char           *cfgName      = NULL;
+  uint32          sliceNum     = UINT32_MAX;
 
-  uint32          fileLimit      = 512;   //  Number of 'slices' from bucketizer
-  uint32          fileID         = 0;     //  'slice' that we are going to be sorting
-  uint32          jobIdxMax      = 0;     //  Number of 'buckets' from bucketizer
-
-  uint64          maxMemory      = UINT64_MAX;
+  uint64          maxMemory    = UINT64_MAX;
 
   bool            deleteIntermediateEarly = false;
   bool            deleteIntermediateLate  = false;
-
   bool            forceRun = false;
-
-  char            name[FILENAME_MAX];
 
   argc = AS_configure(argc, argv);
 
-  int err=0;
-  int arg=1;
+  vector<char *>  err;
+  int             arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
-      storePath = argv[++arg];
+      ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-F") == 0) {
-      fileLimit = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      cfgName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-job") == 0) {
-      fileID  = atoi(argv[++arg]);
-      jobIdxMax = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      sliceNum  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       maxMemory  = (uint64)ceil(atof(argv[++arg]) * 1024.0 * 1024.0 * 1024.0);
@@ -140,26 +154,29 @@ main(int argc, char **argv) {
       forceRun = true;
 
     } else {
-      fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
-  if (storePath == NULL)
-    err++;
-  if (fileID == 0)
-    err++;
-  if (jobIdxMax == 0)
-    err++;
 
-  if (err) {
-    fprintf(stderr, "usage: %s ...\n", argv[0]);
-    fprintf(stderr, "  -G asm.gkpStore  path to gkpStore for this assembly\n");
-    fprintf(stderr, "  -O x.ovlStore    path to overlap store to build the final index for\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -F s             number of slices used in bucketizing/sorting\n");
-    fprintf(stderr, "  -job j m         index of this overlap input file, and max number of files\n");
+  if (ovlName == NULL)
+    err.push_back("ERROR: No overlap store (-O) supplied.\n");
+
+  if (sliceNum == UINT32_MAX)
+    err.push_back("ERROR: no slice number (-F) supplied.\n");
+
+  if (maxMemory < OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize)
+    fprintf(stderr, "ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
+
+  if (err.size() > 0) {
+    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig -s slice [opts]\n", argv[0]);
+    fprintf(stderr, "  -O asm.ovlStore       path to overlap store to create\n");
+    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -C config             path to ovStoreConfig configuration file\n");
+    fprintf(stderr, "  -s slice              slice to process (1 ... N)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -M m             maximum memory to use, in gigabytes\n");
     fprintf(stderr, "\n");
@@ -168,70 +185,53 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -force           force a recompute, even if the output exists\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
-    fprintf(stderr, "    DANGER                                                DANGER\n");
-    fprintf(stderr, "    DANGER   This command is difficult to run by hand.    DANGER\n");
-    fprintf(stderr, "    DANGER          Use ovStoreCreate instead.            DANGER\n");
-    fprintf(stderr, "    DANGER                                                DANGER\n");
-    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
-    fprintf(stderr, "\n");
 
-    if (storePath == NULL)
-      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
-    if (fileID == 0)
-      fprintf(stderr, "ERROR: no slice number (-F) supplied.\n");
-    if (jobIdxMax == 0)
-      fprintf(stderr, "ERROR: no max job ID (-job) supplied.\n");
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
 
-  //  Check if we're running or done (or crashed), then note that we're running.
+  //  Load the config.
 
-  makeSentinel(storePath, fileID, forceRun);
+  ovStoreConfig  *config = new ovStoreConfig(cfgName);
+
+  //  Check if the sentinel exists (and if the user is a moron).
+
+  checkSentinel(ovlName, sliceNum, config);
 
   //  Not done.  Let's go!
 
-  gkStore        *gkp    = gkStore::gkStore_open(gkpName);
-  ovStoreWriter  *writer = new ovStoreWriter(storePath, gkp, fileLimit, fileID, jobIdxMax);
+  gkStore             *gkp    = gkStore::gkStore_open(gkpName);
+  ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, gkp, sliceNum, config->numSlices(), config->numBuckets());
 
   //  Get the number of overlaps in each bucket slice.
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finding overlaps.\n");
 
-  uint64 *bucketSizes = new uint64 [jobIdxMax + 1];
+  uint64 *bucketSizes = new uint64 [config->numBuckets() + 1];     //  The number of overlaps in bucket i
   uint64  totOvl      = writer->loadBucketSizes(bucketSizes);
 
   //  Fail if we don't have enough memory to process.
 
-  if (ovOverlapSortSize * totOvl > maxMemory) {
-    fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to " F_U64 " GB.\n",
-            ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
-    removeSentinel(storePath, fileID);
-    exit(1);
-  }
+  checkMemory(ovlName, sliceNum, totOvl, maxMemory);
 
-  //  Or report that we can process.
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Loading %10" F_U64P " overlaps using %.2f GB of requested (-M) " F_U64 " GB memory.\n",
-          totOvl, ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
-
-  //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked when
-  //  we loaded bucket sizes) or funny business is happening with our files.
+  //  Allocatge space for overlaps, and load them.
 
   ovOverlap *ovls   = ovOverlap::allocateOverlaps(gkp, totOvl);
-  uint64    ovlsLen = 0;
+  uint64     ovlsLen = 0;
 
-  for (uint32 i=0; i<=jobIdxMax; i++)
-    writer->loadOverlapsFromSlice(i, bucketSizes[i], ovls, ovlsLen);
+  for (uint32 bb=0; bb<=config->numBuckets(); bb++)
+    writer->loadOverlapsFromBucket(bb, bucketSizes[bb], ovls, ovlsLen);
 
   //  Check that we found all the overlaps we were expecting.
 
-  if (ovlsLen != totOvl)
+  if (ovlsLen != totOvl) {
     fprintf(stderr, "ERROR: read " F_U64 " overlaps, expected " F_U64 "\n", ovlsLen, totOvl);
-  assert(ovlsLen == totOvl);
+    exit(1);
+  }
 
   //  Clean up space if told to.
 
@@ -261,7 +261,7 @@ main(int argc, char **argv) {
   delete [] ovls;
   delete [] bucketSizes;
 
-  removeSentinel(storePath, fileID);
+  removeSentinel(ovlName, sliceNum);
 
   gkp->gkStore_close();
 
