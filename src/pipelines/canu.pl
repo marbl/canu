@@ -128,7 +128,7 @@ foreach my $arg (@ARGV) {
         setGlobal("utgOverlapper",  "mhap");    #  Changed
 
         setGlobal("corRealign", "false");
-        setGlobal("obtRealign", "true");    #  Changed
+        setGlobal("obtRealign", "false");   #  Changed
         setGlobal("utgRealign", "true");    #  Changed
     }
 
