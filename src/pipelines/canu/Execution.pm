@@ -715,8 +715,8 @@ sub buildGridArray ($$$$) {
     #  New versions of PBS have this behavior too
 
     if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS") {
-        $opt = ""  if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
-        $off = $bgn;
+        $opt = ""   if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
+        $off = $bgn if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
     }
 
     #  Further, PBS/Torque won't let scripts be passed options unless they
