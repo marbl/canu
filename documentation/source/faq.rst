@@ -200,10 +200,9 @@ What parameters can I tweak?
            whatshap or others). In that case you want to do the opposite, increase the error rates
            used for finding overlaps:
    
-           ``corOutCoverage=200 ovlErrorRate=0.15 obtErrorRate=0.15``
+           ``corOutCoverage=200 correctedErrorRate=0.15``
 
-           Error rates for trimming (``obtErrorRate``) and assembling (``batErrorRate``) can usually
-           be left as is.  When trimming, reads will be trimmed using other reads in the same
+           When trimming, reads will be trimmed using other reads in the same
            chromosome (and probably some reads from other chromosomes).  When assembling, overlaps
            well outside the observed error rate distribution are discarded.
 
