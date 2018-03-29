@@ -55,6 +55,25 @@
 #include "gkStore.H"
 #include "ovStore.H"
 
+#include <algorithm>
+using namespace std;
+
+
+
+class bogartStatus {
+public:
+  uint64  best5id      : 29;
+  uint64  best53p      : 1;  // Unwieldy - best edge from my 5' is to the 3' of 'best5id'.
+
+  uint64  best3id      : 29;
+  uint64  best33p      : 1;
+
+  uint64  unused       : 1;
+  uint64  isSingleton  : 1;
+  uint64  isContained  : 1;
+  uint64  isSuspicious : 1;
+};
+
 
 
 class dumpParameters {
@@ -79,6 +98,8 @@ public:
     queryMin           = 0;
     queryMax           = UINT32_MAX;
 
+    status             = NULL;
+
 
     ovlKept            = 0;
     ovlFiltered        = 0;
@@ -96,6 +117,11 @@ public:
     ovlLengthHi        = 0;
   };
 
+  ~dumpParameters() {
+    delete [] status;
+  };
+
+
   bool        parametersAreDefaults(void) {       //  Returns true if all the parameters
     return((no5p               == false) &&       //  are the default setting.
            (no3p               == false) &&       //
@@ -112,6 +138,16 @@ public:
            (queryMin           == 0) &&           //  So there.
            (queryMax           == UINT32_MAX));
   };
+
+  void        loadBogartStatus(const char *prefix, uint32 nReads);
+
+  void        drawPicture(uint32         Aid,
+                          ovOverlap     *overlaps,
+                          uint64         overlapsLen,
+                          gkStore       *gkpStore,
+                          bool           withScores,
+                          gkRead_version clearType);
+
 
   bool        filterOverlap(ovOverlap *overlap) {
     double erate    = overlap->erate();
@@ -145,6 +181,18 @@ public:
       filtered = true;
     }
 
+    if ((noBogartContained) && (status) && (status[overlap->b_iid].isContained == true)) {
+      filtered = true;
+    }
+
+    if ((noBogartSuspicious) && (status) && (status[overlap->b_iid].isSuspicious == true)) {
+      filtered = true;
+    }
+
+    if ((noBogartSingleton) && (status) && (status[overlap->b_iid].isSingleton == true)) {
+      filtered = true;
+    }
+
     if ((overlap->b_iid < queryMin) ||
         (queryMax < overlap->b_iid)) {
       filtered = true;
@@ -175,42 +223,355 @@ public:
 
   //  Filtering options.
 
-  bool        no5p;
-  bool        no3p;
-  bool        noContainer;
-  bool        noContained;
-  bool        noRedundant;
+  bool           no5p;
+  bool           no3p;
+  bool           noContainer;
+  bool           noContained;
+  bool           noRedundant;
 
-  bool        noBogartContained;
-  bool        noBogartSuspicious;
-  bool        noBogartSingleton;
+  bool           noBogartContained;
+  bool           noBogartSuspicious;
+  bool           noBogartSingleton;
 
-  uint32      queryMin;
-  uint32      queryMax;
+  uint32         queryMin;
+  uint32         queryMax;
 
-  double      erateMin;
-  double      erateMax;
+  double         erateMin;
+  double         erateMax;
 
-  uint32      lengthMin;
-  uint32      lengthMax;
+  uint32         lengthMin;
+  uint32         lengthMax;
+
+  char          *bogartPath;
+  bogartStatus  *status;
 
   //  Counts of what we filtered.
 
-  uint64      ovlKept;
-  uint64      ovlFiltered;
+  uint64         ovlKept;
+  uint64         ovlFiltered;
 
-  uint64      ovl5p;
-  uint64      ovl3p;
-  uint64      ovlContainer;
-  uint64      ovlContained;
-  uint64      ovlRedundant;
+  uint64         ovl5p;
+  uint64         ovl3p;
+  uint64         ovlContainer;
+  uint64         ovlContained;
+  uint64         ovlRedundant;
 
-  uint64      ovlErateHi;
-  uint64      ovlErateLo;
+  uint64         ovlErateHi;
+  uint64         ovlErateLo;
 
-  uint64      ovlLengthHi;
-  uint64      ovlLengthLo;
+  uint64         ovlLengthHi;
+  uint64         ovlLengthLo;
 };
+
+
+
+void
+dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
+  char          EN[FILENAME_MAX+1];
+  char          SN[FILENAME_MAX+1];
+  char          GN[FILENAME_MAX+1];
+  char          NN[FILENAME_MAX+1];
+  splitToWords  W;
+
+  if (prefix == NULL)
+    return;
+
+  snprintf(EN, FILENAME_MAX, "%s.edges", prefix);
+  snprintf(SN, FILENAME_MAX, "%s.edges.suspicious", prefix);
+  snprintf(GN, FILENAME_MAX, "%s.singletons", prefix);
+
+  allocateArray(status, nReads+1, resizeArray_clearNew);
+
+  FILE *E = AS_UTL_openInputFile(EN);
+  fgets(NN, FILENAME_MAX, E);
+  while (!feof(E)) {
+    W.split(NN);
+
+    uint32  id = W(0);
+
+    status[id].best5id = W(2);
+    status[id].best53p = (W[3][0] == '3');
+
+    status[id].best3id = W(4);
+    status[id].best33p = (W[5][0] == '3');
+
+    status[id].isSingleton  = false;
+    status[id].isContained  = ((W.numWords() > 10) && (W[10][0] == 'c'));
+    status[id].isSuspicious = false;
+
+    fgets(NN, FILENAME_MAX, E);
+  }
+  AS_UTL_closeFile(E, EN);
+
+
+  FILE *S = AS_UTL_openInputFile(SN);
+  fgets(NN, FILENAME_MAX, S);
+  while (!feof(S)) {
+    W.split(NN);
+
+    uint32  id = W(0);
+
+    status[id].best5id = W(2);
+    status[id].best53p = (W[3][0] == '3');
+
+    status[id].best3id = W(4);
+    status[id].best33p = (W[5][0] == '3');
+
+    status[id].isSingleton  = false;
+    status[id].isContained  = ((W.numWords() > 10) && (W[10][0] == 'c'));
+    status[id].isSuspicious = true;
+
+    fgets(NN, FILENAME_MAX, S);
+  }
+  AS_UTL_closeFile(S, SN);
+
+
+  FILE *G = AS_UTL_openInputFile(GN);
+  fgets(NN, FILENAME_MAX, G);
+  while (!feof(G)) {
+    W.split(NN);
+
+    uint32  id = W(0);
+
+    status[id].best5id = 0;
+    status[id].best53p = 0;
+
+    status[id].best3id = 0;
+    status[id].best33p = 0;
+
+    status[id].isSingleton  = true;
+    status[id].isContained  = false;
+    status[id].isSuspicious = false;
+
+    fgets(NN, FILENAME_MAX, G);
+  }
+  AS_UTL_closeFile(G, GN);
+}
+
+
+
+class sortByPosition {
+public:
+  sortByPosition(gkRead_version version) {
+    v = version ;
+  };
+
+  bool operator()(const ovOverlap &a, const ovOverlap &b) {
+    if (a.a_bgn(v) < b.a_bgn(v))  return(true);
+    if (a.a_bgn(v) > b.a_bgn(v))  return(false);
+
+    return(a.a_end() < b.a_end());
+  };
+
+private:
+  gkRead_version v;
+};
+
+
+
+void
+dumpParameters::drawPicture(uint32         Aid,
+                            ovOverlap     *overlaps,
+                            uint64         overlapsLen,
+                            gkStore       *gkpStore,
+                            bool           withScores,
+                            gkRead_version clearType) {
+  char     line[256] = {0};
+
+  uint32   MHS   = 9;  //  Max Hang Size, amount of padding for "+### "
+
+  gkRead   *A    = gkpStore->gkStore_getRead(Aid);
+  uint32    Alen = A->gkRead_sequenceLength(clearType);
+
+  for (int32 i=0; i<256; i++)
+    line[i] = ' ';
+
+  for (int32 i=0; i<100; i++)
+    line[i + MHS] = '-';
+  line[ 99 + MHS] = '>';
+  line[100 + MHS] = 0;
+
+  fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s %s%s\n",
+          0, Alen,
+          Aid,
+          0, Alen, Alen,
+          line,
+          ((status) && (status[Aid].isContained))  ? "contained"  : "",
+          ((status) && (status[Aid].isSuspicious)) ? "suspicious" : "");
+
+  sort(overlaps, overlaps + overlapsLen, sortByPosition(clearType));
+
+  //  Build ascii representations for each overlapping read.
+
+  for (uint32 o=0; o<overlapsLen; o++) {
+    uint32    Bid  = overlaps[o].b_iid;
+    gkRead   *B    = gkpStore->gkStore_getRead(Bid);
+    uint32    Blen = B->gkRead_sequenceLength(clearType);
+
+    //  Find bgn/end points on each read.  If the overlap is reverse complement,
+    //  the B coords are flipped so that bgn > end.
+
+    uint32   ovlBgnA = overlaps[o].a_bgn(clearType);
+    uint32   ovlEndA = overlaps[o].a_end(clearType);
+
+    uint32   ovlBgnB = overlaps[o].b_bgn(clearType);
+    uint32   ovlEndB = overlaps[o].b_end(clearType);
+
+    assert(ovlBgnA < ovlEndA);  //  The A coordiantes are always forward
+
+    if (overlaps[o].flipped() == false)
+      assert(ovlBgnB < ovlEndB);  //  Forward overlaps are forward
+    else
+      assert(ovlEndB < ovlBgnB);  //  Flipped overlaps are reversed
+
+    //  For the A read, find the points in our string representation where the overlap ends.
+
+    uint32 ovlStrBgn = (int32)floor(ovlBgnA * 100.0 / Alen + MHS);
+    uint32 ovlStrEnd = (int32)ceil (ovlEndA * 100.0 / Alen + MHS);
+
+    //  Fill the string representation with spaces, then fill the string with dashes where the read
+    //  is, add an arrow, and terminate the string.
+
+    for (int32 i=0; i<256; i++)
+      line[i] = ' ';
+
+    //  Decide how to draw this overlap.
+    //    For best edges, use '='.
+    //    For contained,  use '-', alternating with spaces.
+    //    For suspicious, use '*', alternating with dashes.
+    //    For edges,      use '-', solid.
+
+    bool  isBest = ((status) && (((status[Aid].best5id == Bid) && (overlaps[o].overlapAEndIs5prime() == true)) ||
+                                 ((status[Aid].best3id == Bid) && (overlaps[o].overlapAEndIs3prime() == true))));
+    bool  isCont = ((status) && (status[Bid].isContained));
+    bool  isSusp = ((status) && (status[Bid].isSuspicious));
+
+    //  This bit of confusion makes sure that the alternating overlap lines (especially '- - - -')
+    //  end with a dash.
+
+    bool  oddEven = (overlaps[o].flipped() == false) ? (false) : (((ovlStrEnd - ovlStrBgn) % 2) == false);
+
+    if      (isCont == true) {
+      for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
+        line[i] = (oddEven = !oddEven) ? '-' : ' ';
+    }
+
+    else if (isSusp == true) {
+      for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
+        line[i] = (oddEven = !oddEven) ? '-' : '*';
+    }
+
+    else {
+      char  c = (isBest) ? '=' : '-';
+
+      for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
+        line[i] = c;
+    }
+
+    if (overlaps[o].flipped() == true)
+      line[ovlStrBgn] = '<';
+    else
+      line[ovlStrEnd-1] = '>';
+
+    assert(line[ovlStrBgn]   != ' ');
+    assert(line[ovlStrEnd-1] != ' ');
+
+    line[ovlStrEnd] = 0;
+
+    //  For the B read, find how much is unaliged on each end.  Though the store directly keeps this information,
+    //  we can't get to it, and have to reverse the compuitation.
+
+    uint32  ovlBgnHang = 0;
+    uint32  ovlEndHang = 0;
+
+    if (overlaps[o].flipped() == false) {
+      ovlBgnHang = ovlBgnB;
+      ovlEndHang = Blen - ovlEndB;
+    } else {
+      ovlBgnHang = Blen - ovlBgnB;
+      ovlEndHang = ovlEndB;
+    }
+
+    //  Paste the bgn hang into the overlap string.
+    if (ovlBgnHang > 0) {
+      char  str[256];
+      int32 len;
+
+      snprintf(str, 256, "+%d", ovlBgnHang);
+      len = strlen(str);
+
+      for (int32 i=0; i<len; i++)
+        line[ovlStrBgn - len - 1 + i] = str[i];
+    }
+
+    //  Append the end hang.
+    if (ovlEndHang > 0) {
+      snprintf(line + ovlStrEnd, 256 - ovlStrEnd, " +%d", ovlEndHang);
+    }
+
+    //  Set flags for best edge and singleton/contained/suspicious.
+
+    char  olapClass[4] = { 0 };
+
+    if ((status) && (status[Aid].best5id == Bid) && (overlaps[o].overlapAEndIs5prime() == true)) {
+      olapClass[0] = ' ';
+      olapClass[1] = ' ';
+      olapClass[2] = 'B';
+    }
+
+    if ((status) && (status[Aid].best3id == Bid) && (overlaps[o].overlapAEndIs3prime() == true)) {
+      olapClass[0] = ' ';
+      olapClass[1] = ' ';
+      olapClass[2] = 'B';
+    }
+
+    if (olapClass[2] == 'B')
+      for (uint32 ii=0; line[ii]; ii++)
+        if (line[ii] == '-')
+          line[ii] = '=';
+
+    if ((status) && (status[Bid].isSingleton)) {
+      olapClass[0] = ' ';
+      olapClass[1] = 'S';
+    }
+
+    if ((status) && (status[Bid].isContained)) {
+      olapClass[0] = ' ';
+      olapClass[1] = 'C';
+    }
+
+    if ((status) && (status[Bid].isSuspicious)) {
+      olapClass[0] = ' ';
+      olapClass[1] = '!';
+    }
+
+    //  Report!
+
+    if (withScores)
+      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d %7hu %5.2f%%  %s%s\n",
+              ovlBgnA,
+              ovlEndA,
+              Bid,
+              min(ovlBgnB, ovlEndB),
+              max(ovlBgnB, ovlEndB),
+              Blen,
+              overlaps[o].overlapScore(),
+              overlaps[o].erate() * 100.0,
+              line,
+              olapClass);
+    else
+      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s%s\n",
+              ovlBgnA,
+              ovlEndA,
+              Bid,
+              min(ovlBgnB, ovlEndB),
+              max(ovlBgnB, ovlEndB),
+              Blen,
+              overlaps[o].erate() * 100.0,
+              line,
+              olapClass);
+  }
+}
 
 
 
@@ -219,23 +580,27 @@ main(int argc, char **argv) {
   char                 *gkpName     = NULL;
   char                 *ovlName     = NULL;
   char                 *outPrefix   = NULL;
+  char                 *bogartPath  = NULL;
 
   dumpParameters        params;
 
-  gkRead_version        clearType = gkRead_latest;
-  ovOverlapDisplayType  displType = ovOverlapAsCoords;
+  gkRead_version        clearType   = gkRead_latest;
+  //ovOverlapDisplayType  displType = ovOverlapAsCoords;
+
   char                  ovlString[1024];
 
   bool                  asOverlaps  = true;    //  What to show?
+  bool                  asPicture   = false;
   bool                  asMetadata  = false;
   bool                  asCounts    = false;
   bool                  asErateLen  = false;
 
-  bool                  asCoords = true;       //  How to show overlaps?
-  bool                  asHangs  = false;
-  bool                  asRaw    = false;
-  bool                  asPAF    = false;
-  bool                  asBinary = false;
+  bool                  asCoords    = true;       //  How to show overlaps?
+  bool                  asHangs     = false;
+  bool                  asRaw       = false;
+  bool                  asPAF       = false;
+  bool                  asBinary    = false;
+  bool                  withScores  = false;
 
 #if 0
   if (asBinary) {
@@ -267,6 +632,18 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-overlaps") == 0) {
       asOverlaps = true;
+      asPicture  = false;
+      asMetadata = false;
+      asCounts   = false;
+      asErateLen = false;
+      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
+        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+    }
+
+    else if ((strcmp(argv[arg], "-picture") == 0) ||
+             (strcmp(argv[arg], "-p")       == 0)) {
+      asOverlaps = false;
+      asPicture  = true;
       asMetadata = false;
       asCounts   = false;
       asErateLen = false;
@@ -276,6 +653,7 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-metadata") == 0) {
       asOverlaps = false;
+      asPicture  = false;
       asMetadata = true;
       asCounts   = false;
       asErateLen = false;
@@ -285,6 +663,7 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-counts") == 0) {
       asOverlaps = false;
+      asPicture  = false;
       asMetadata = false;
       asCounts   = true;
       asErateLen = false;
@@ -294,6 +673,7 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-eratelen") == 0) {
       asOverlaps = false;
+      asPicture  = false;
       asMetadata = false;
       asCounts   = false;
       asErateLen = true;
@@ -352,6 +732,9 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-length") == 0)
       AS_UTL_decodeRange(argv[++arg], params.lengthMin, params.lengthMax);
 
+    else if (strcmp(argv[arg], "-bogart") == 0)
+      bogartPath = argv[++arg];
+
 
     else if (strcmp(argv[arg], "-v") == 0)
       beVerbose = true;
@@ -382,11 +765,20 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  //
+  //  Open stores, allocate space to store overlaps.
+  //
+
   gkStore   *gkpStore = gkStore::gkStore_open(gkpName);
   ovStore   *ovlStore = new ovStore(ovlName, gkpStore);
+
   uint32     ovlLen   = 0;
   uint32     ovlMax   = 65536;
   ovOverlap *ovl      = ovOverlap::allocateOverlaps(gkpStore, ovlMax);
+
+  //
+  //  Fix up ranges and restrict the overlaps.
+  //
 
   if (endID > gkpStore->gkStore_getNumReads())
     endID = gkpStore->gkStore_getNumReads();
@@ -396,6 +788,11 @@ main(int argc, char **argv) {
 
   ovlStore->setRange(bgnID, endID);
 
+  //
+  //  Load bogart status.
+  //
+
+  params.loadBogartStatus(bogartPath, gkpStore->gkStore_getNumReads());
 
 
   //
@@ -513,6 +910,26 @@ main(int argc, char **argv) {
       }
 
       ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
+    }
+  }
+
+  //
+  //  If as a picture, we need to build a list of the overlaps to show,
+  //  then draw the picture.
+  //
+
+  if (asPicture) { 
+    for (uint32 rr=bgnID; rr<=endID; rr++) {
+      uint32  ovlSav = 0;
+
+      ovlLen = ovlStore->loadOverlapsForRead(rr, ovl, ovlMax);
+
+      for (uint32 oo=0; oo<ovlLen; oo++)
+        if (params.filterOverlap(ovl + oo) == false)   //  If not filtered,
+          ovl[ovlSav++] = ovl[oo];                     //  save the overlap for drawing
+
+      if (ovlSav > 0)
+        params.drawPicture(rr, ovl, ovlSav, gkpStore, withScores, clearType);
     }
   }
 
