@@ -413,8 +413,10 @@ BestOverlapGraph::findZombies(const char *prefix) {
 
     if (fi < nc) {                             //  If we're smaller, we're a
 #pragma omp critical (suspInsert)              //  Zombie Master!
-      writeLog("read %u is a zombie.\n", fi);
-      _zombie.insert(fi);
+      {
+        writeLog("read %u is a zombie.\n", fi);
+        _zombie.insert(fi);
+      }
     }
   }
 
