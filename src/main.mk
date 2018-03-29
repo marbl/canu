@@ -48,7 +48,6 @@ SOURCES      := AS_global.C \
                 AS_UTL/timeAndSize.C \
                 AS_UTL/kMer.C \
                 \
-                falcon_sense/libfalcon/falcon.C \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
                 correction/falconConsensus-alignTag.C \
@@ -163,8 +162,7 @@ SRC_INCDIRS  := . \
                 meryl/libleaff \
                 overlapInCore \
                 overlapInCore/libedlib \
-                overlapInCore/liboverlap \
-                falcon_sense/libfalcon
+                overlapInCore/liboverlap
 
 SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/gatekeeperCreate.mk \
@@ -223,9 +221,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 correction/errorEstimate.mk \
                 \
                 haplotyping/splitHaplotype.mk \
-                \
-                falcon_sense/createFalconSenseInputs.mk \
-                falcon_sense/falcon_sense.mk \
                 \
                 overlapBasedTrimming/trimReads.mk \
                 overlapBasedTrimming/splitReads.mk \

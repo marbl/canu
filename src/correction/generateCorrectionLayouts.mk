@@ -8,9 +8,9 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := generateCorrectionLayouts
-SOURCES  := generateCorrectionLayouts.C ../utgcns/stashContains.C ../falcon_sense/outputFalcon.C
+SOURCES  := generateCorrectionLayouts.C ../utgcns/stashContains.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns ../falcon_sense ../falcon_sense/libfalcon
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu
