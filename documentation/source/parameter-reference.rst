@@ -205,8 +205,17 @@ Cleanup Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 saveOverlaps <boolean=false>
-  If set, do not remove raw overlap output from either mhap or overlapInCore.  Normally, this output
-  is removed once the overlaps are loaded into an overlap store.
+  If set to 'false', the raw overlapper outputs are removed as soon as they are loaded into an
+  overlap store.  Also, the correction and trimming overlap stores are removed when they are no
+  longer needed..  This is recommended in nearly every case.
+
+  If set to 'stores', the raw overlapper outputs are removed, but all of the overlap stores are
+  retained.  The overlap stores capture all the critical informatoion in the raw outputs and the raw
+  outputs are redundant and unwieldy.  Retaining the overlap stores can allow one to 'back up' and
+  redo a step, but this is generally not useful unless one is familiar with the algorithms.
+
+  If set to 'true', all overlapper outputs and all stores are retained.  This is useful for
+  debugging potential problems with the overlap store.
 
 saveReadCorrections <boolean=false>.
   If set, do not remove raw corrected read output from correction/2-correction. Normally, this
