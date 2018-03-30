@@ -55,7 +55,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       merylFile = argv[++arg];
     } else if (strcmp(argv[arg], "-e") == 0) {
-      merylFile = argv[++arg];
+      existFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-l") == 0) {
       loCount = atoi(argv[++arg]);
@@ -71,8 +71,14 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((merylFile == NULL) || (fastaFile == NULL)) {
-    fprintf(stderr, "usage: %s -m mersize -mers mers [-exist existDB] -seq fasta > output\n", argv[0]);
+  if ((existFile == NULL) && ((merylFile == NULL) || (fastaFile == NULL))) {
+    fprintf(stderr, "usage: %s -m mersize [-s mers] -e dump-db [-l int] [-h int] [-f fasta] > output\n", argv[0]);
+    fprintf(stderr, "\t-e: dump (create a new db) from the given -s mers to have random access\n");
+    fprintf(stderr, "\t-l: kmers with counts >= l will be reported\n");
+    fprintf(stderr, "\t-h: kmers with counts <= h will be reported\n");
+    fprintf(stderr, "\t-f: fasta file, or -f - for stdin (assuming also being fasta)\n");
+    fprintf(stderr, "\t    *If no fasta file is porvided, this dump creates a query file (-e) and exits.\n");
+    fprintf(stderr, "\toutput: readid\ttotal-mers-in-read\ttotal-mers-in-s(0 if called from -e)\tfound-mers-in-read\n");
     exit(1);
   }
 
@@ -89,11 +95,16 @@ main(int argc, char **argv) {
 
     if (existFile)
       E->saveState(existFile);
+    
+    if (fastaFile == NULL)
+      exit(0);
   }
 
   //  Open the fasta/fastq input for random access, though we only read sequentially.
 
+  fprintf(stderr, "..Start cashing\n");
   seqCache *F = new seqCache(fastaFile);
+  fprintf(stderr, "..End cashing\n");
 
   for (uint32 Sid=0; Sid < F->getNumberOfSequences(); Sid++) {
     seqInCore  *S  = F->getSequenceInCore(Sid);
