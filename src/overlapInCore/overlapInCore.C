@@ -214,7 +214,7 @@ OverlapDriver(void) {
   //  Note distinction between the local bgn/end and the global G.bgn/G.end.
 
   uint32  bgnHashID = G.bgnHashID;
-  uint32  endHashID = G.bgnHashID + G.Max_Hash_Strings - 1;  //  Inclusive!
+  uint32  endHashID = G.endHashID;
 
   //  Iterate over read blocks, build a hash table, then search in threads.
 
@@ -282,7 +282,7 @@ OverlapDriver(void) {
 
     //  Prepare for another hash table iteration.
     bgnHashID = endHashID + 1;
-    endHashID = bgnHashID + G.Max_Hash_Strings - 1;  //  Inclusive!
+    endHashID = G.endHashID;
   }
 
   delete Out_BOF;
@@ -352,9 +352,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--hashbits") == 0) {
       G.Hash_Mask_Bits = strtoull(argv[++arg], NULL, 10);
 
-    } else if (strcmp(argv[arg], "--hashstrings") == 0) {
-      G.Max_Hash_Strings = strtoull(argv[++arg], NULL, 10);
-
     } else if (strcmp(argv[arg], "--hashdatalen") == 0) {
       G.Max_Hash_Data_Len = strtoull(argv[++arg], NULL, 10);
 
@@ -411,14 +408,8 @@ main(int argc, char **argv) {
   if (G.maxErate > 0.06)
     G.Use_Hopeless_Check = FALSE;
 
-  if (G.Max_Hash_Strings == 0)
-    fprintf(stderr, "* No memory model supplied; -M needed!\n"), err++;
-
   if (G.Kmer_Len == 0)
     fprintf(stderr, "* No kmer length supplied; -k needed!\n"), err++;
-
-  if (G.Max_Hash_Strings > MAX_STRING_NUM)
-    fprintf(stderr, "Too many strings (--hashstrings), must be less than " F_U64 "\n", MAX_STRING_NUM), err++;
 
   if (G.Outfile_Name == NULL)
     fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
@@ -483,22 +474,25 @@ main(int argc, char **argv) {
   //  Log parameters.
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "STRING_NUM_BITS       " F_U32 "\n", STRING_NUM_BITS);
-  fprintf(stderr, "OFFSET_BITS           " F_U32 "\n", OFFSET_BITS);
-  fprintf(stderr, "STRING_NUM_MASK       " F_U64 "\n", STRING_NUM_MASK);
-  fprintf(stderr, "OFFSET_MASK           " F_U64 "\n", OFFSET_MASK);
-  fprintf(stderr, "MAX_STRING_NUM        " F_U64 "\n", MAX_STRING_NUM);
+  fprintf(stderr, "STRING_NUM_BITS          " F_U32 "\n", STRING_NUM_BITS);
+  fprintf(stderr, "OFFSET_BITS              " F_U32 "\n", OFFSET_BITS);
+  fprintf(stderr, "STRING_NUM_MASK          " F_U64 "\n", STRING_NUM_MASK);
+  fprintf(stderr, "OFFSET_MASK              " F_U64 "\n", OFFSET_MASK);
+  fprintf(stderr, "MAX_STRING_NUM           " F_U64 "\n", MAX_STRING_NUM);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Hash_Mask_Bits        " F_U32 "\n", G.Hash_Mask_Bits);
-  fprintf(stderr, "Max_Hash_Strings      " F_U32 "\n", G.Max_Hash_Strings);
-  fprintf(stderr, "Max_Hash_Data_Len     " F_U64 "\n", G.Max_Hash_Data_Len);
-  fprintf(stderr, "Max_Hash_Load         %f\n", G.Max_Hash_Load);
-  fprintf(stderr, "Kmer Length           " F_U64 "\n", G.Kmer_Len);
-  fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
-  fprintf(stderr, "Max Error Rate        %f\n", G.maxErate);
-  fprintf(stderr, "Min Kmer Matches      " F_U64 "\n", G.Filter_By_Kmer_Count);
+  fprintf(stderr, "Hash_Mask_Bits           " F_U32 "\n", G.Hash_Mask_Bits);
+
+  fprintf(stderr, "bgnHashID                " F_U32 "\n", G.bgnHashID);
+  fprintf(stderr, "bgnHashID                " F_U32 "\n", G.endHashID);
+
+  fprintf(stderr, "Max_Hash_Data_Len        " F_U64 "\n", G.Max_Hash_Data_Len);
+  fprintf(stderr, "Max_Hash_Load            %f\n", G.Max_Hash_Load);
+  fprintf(stderr, "Kmer Length              " F_U64 "\n", G.Kmer_Len);
+  fprintf(stderr, "Min Overlap Length       %d\n", G.Min_Olap_Len);
+  fprintf(stderr, "Max Error Rate           %f\n", G.maxErate);
+  fprintf(stderr, "Min Kmer Matches         " F_U64 "\n", G.Filter_By_Kmer_Count);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Num_PThreads          " F_U32 "\n", G.Num_PThreads);
+  fprintf(stderr, "Num_PThreads             " F_U32 "\n", G.Num_PThreads);
 
   omp_set_num_threads(G.Num_PThreads);
 
@@ -519,27 +513,28 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "HASH_TABLE_SIZE         " F_U64 "\n",     HASH_TABLE_SIZE);
-  fprintf(stderr, "sizeof(Hash_Bucket_t)   " F_U64 "\n",  (uint64)sizeof(Hash_Bucket_t));
-  fprintf(stderr, "hash table size:        " F_U64 " MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
+  fprintf(stderr, "sizeof(Hash_Bucket_t)    " F_U64 "\n",     (uint64)sizeof(Hash_Bucket_t));
+  fprintf(stderr, "sizeof(Check_Vector_t)   " F_U64 "\n",     (uint64)sizeof(Check_Vector_t));
+  fprintf(stderr, "sizeof(Hash_Frag_Info_t) " F_U64 "\n",     (uint64)sizeof(Hash_Frag_Info_t));
+  fprintf(stderr, "\n");
+  fprintf(stderr, "HASH_TABLE_SIZE          " F_U64 "\n",     HASH_TABLE_SIZE);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "hash table size:         " F_U64    " MB\n", (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
+  fprintf(stderr, "hash check array         " F_U64    " MB\n", (HASH_TABLE_SIZE    * sizeof (Check_Vector_t))   >> 20);
+  fprintf(stderr, "string info              " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (Hash_Frag_Info_t)) >> 20);
+  fprintf(stderr, "string start             " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (int64))            >> 20);
   fprintf(stderr, "\n");
 
-  Hash_Table       = new Hash_Bucket_t [HASH_TABLE_SIZE];
+  Hash_Table       = new Hash_Bucket_t    [HASH_TABLE_SIZE];
+  Hash_Check_Array = new Check_Vector_t   [HASH_TABLE_SIZE];
+  String_Info      = new Hash_Frag_Info_t [G.endHashID - G.bgnHashID + 1];
+  String_Start     = new int64            [G.endHashID - G.bgnHashID + 1];
 
-  fprintf(stderr, "check  " F_U64    " MB\n", ((HASH_TABLE_SIZE    * sizeof (Check_Vector_t))   >> 20));
-  fprintf(stderr, "info   " F_SIZE_T " MB\n", ((G.Max_Hash_Strings * sizeof (Hash_Frag_Info_t)) >> 20));
-  fprintf(stderr, "start  " F_SIZE_T " MB\n", ((G.Max_Hash_Strings * sizeof (int64))            >> 20));
-  fprintf(stderr, "\n");
-
-  Hash_Check_Array = new Check_Vector_t [HASH_TABLE_SIZE];
-  String_Info      = new Hash_Frag_Info_t [G.Max_Hash_Strings];
-  String_Start     = new int64 [G.Max_Hash_Strings];
-
-  String_Start_Size = G.Max_Hash_Strings;
+  String_Start_Size = G.endHashID - G.bgnHashID + 1;
 
   memset(Hash_Check_Array, 0, sizeof(Check_Vector_t)   * HASH_TABLE_SIZE);
-  memset(String_Info,      0, sizeof(Hash_Frag_Info_t) * G.Max_Hash_Strings);
-  memset(String_Start,     0, sizeof(int64)            * G.Max_Hash_Strings);
+  memset(String_Info,      0, sizeof(Hash_Frag_Info_t) * (G.endHashID - G.bgnHashID + 1));
+  memset(String_Start,     0, sizeof(int64)            * (G.endHashID - G.bgnHashID + 1));
 
 
 

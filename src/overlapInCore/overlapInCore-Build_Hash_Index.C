@@ -436,8 +436,9 @@ Put_String_In_Hash(uint32 UNUSED(curID), uint32 i) {
 
 // Read the next batch of strings from  stream  and create a hash
 //  table index of their  G.Kmer_Len -mers.  Return  1  if successful;
-//  0 otherwise.  The batch ends when either end-of-file is encountered
-//  or  Max_Hash_Strings  have been read in.   first_frag_id  is the
+//  0 otherwise.
+//
+//  first_frag_id  is the
 //  internal ID of the first fragment in the hash table.
 int
 Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
@@ -472,14 +473,6 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   Hash_Entries     = 0;
   hash_entry_limit = G.Max_Hash_Load * HASH_TABLE_SIZE * ENTRIES_PER_BUCKET;
 
-#if 0
-  fprintf(stderr, "HASH LOADING STARTED: fragID   %12" F_U64P "\n", first_frag_id);
-  fprintf(stderr, "HASH LOADING STARTED: strings  %12" F_U64P " out of %12" F_U64P " max.\n", String_Ct, G.Max_Hash_Strings);
-  fprintf(stderr, "HASH LOADING STARTED: length   %12" F_U64P " out of %12" F_U64P " max.\n", total_len, G.Max_Hash_Data_Len);
-  fprintf(stderr, "HASH LOADING STARTED: entries  %12" F_U64P " out of %12" F_U64P " max (load %.2f).\n", Hash_Entries, hash_entry_limit,
-         (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
-#endif
-
   //  Compute an upper limit on the number of bases we will load.  The number of Hash_Entries
   //  can't be computed here, so the real loop below could end earlier than expected - and we
   //  don't use a little bit of memory.
@@ -491,8 +484,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   uint64  maxAlloc = 0;
   uint32  curID    = 0;  //  The last ID loaded into the hash
 
-  for (curID=bgnID; ((String_Ct <  G.Max_Hash_Strings) &&
-                     (total_len <  G.Max_Hash_Data_Len) &&
+  for (curID=bgnID; ((total_len <  G.Max_Hash_Data_Len) &&
                      (curID     <= endID)); curID++) {
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
@@ -512,6 +504,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     maxAlloc += read->gkRead_sequenceLength() + 1;
   }
 
+  fprintf(stderr, "\n");
   fprintf(stderr, "Found " F_U32 " reads with length " F_U64 " to load; " F_U32 " skipped by being too short; " F_U32 " skipped per library restriction\n",
           nLoadable, maxAlloc, nShort, nSkipped);
 
@@ -533,8 +526,9 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   gkReadData   *readData = new gkReadData;
 
-  for (curID=bgnID; ((String_Ct    <  G.Max_Hash_Strings) &&
-                     (total_len    <  G.Max_Hash_Data_Len) &&
+  //  Every read must have an entry in the table, otherwise
+
+  for (curID=bgnID; ((total_len    <  G.Max_Hash_Data_Len) &&
                      (Hash_Entries <  hash_entry_limit) &&
                      (curID        <= endID)); curID++, String_Ct++) {
 
@@ -603,18 +597,16 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
     if ((String_Ct % 100000) == 0)
       fprintf (stderr, "String_Ct:%12" F_U64P "/%12" F_U32P "  totalLen:%12" F_U64P "/%12" F_U64P "  Hash_Entries:%12" F_U64P "/%12" F_U64P "  Load: %.2f%%\n",
-               String_Ct,    G.Max_Hash_Strings,
+               String_Ct,    G.endHashID - G.bgnHashID + 1,
                total_len,    G.Max_Hash_Data_Len,
                Hash_Entries,
                hash_entry_limit,
                100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
   }
 
-  curID--;  //  We always stop on the read after we loaded.
-
   delete readData;
 
-  fprintf(stderr, "HASH LOADING STOPPED: strings  %12" F_U64P " out of %12" F_U32P " max.\n", String_Ct, G.Max_Hash_Strings);
+  fprintf(stderr, "HASH LOADING STOPPED: curID    %12" F_U32P " out of %12" F_U32P "\n", curID-1, G.endHashID);
   fprintf(stderr, "HASH LOADING STOPPED: length   %12" F_U64P " out of %12" F_U64P " max.\n", total_len, G.Max_Hash_Data_Len);
   fprintf(stderr, "HASH LOADING STOPPED: entries  %12" F_U64P " out of %12" F_U64P " max (load %.2f).\n", Hash_Entries, hash_entry_limit,
           100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
@@ -666,5 +658,5 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
       }
     }
 
-  return(curID);
+  return(curID - 1);  //  Return the ID of the last read loaded.
 }

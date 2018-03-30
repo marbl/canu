@@ -256,7 +256,7 @@ partitionLength(gkStore      *gkp,
       if (hashReads == 0)
         fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 "\n", hashBeg, hashEnd, refBeg, refEnd);
       else
-        fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 " --hashstrings " F_U32 " --hashdatalen " F_U64 "\n", hashBeg, hashEnd, refBeg, refEnd, hashReads, hashBases);
+        fprintf(OPT, "-h " F_U32 "-" F_U32 " -r " F_U32 "-" F_U32 " --hashdatalen " F_U64 "\n", hashBeg, hashEnd, refBeg, refEnd, hashBases);
 
       fprintf(stderr, "%5" F_U32P " %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "  %10" F_U32P "-%-10" F_U32P " %9" F_U32P " %12" F_U64P "\n", jobName, hashBeg, hashEnd, hashReads, hashBases, refBeg, refEnd, refReads, refBases);
 

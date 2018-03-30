@@ -154,10 +154,6 @@
 //  in a given orientation.  For fragments of approximately
 //  same size, should never be more than 2.
 
-#define  EXPECTED_STRING_LEN     (AS_MAX_READLEN / 2)
-#define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
-//  The number of bytes to allocate initially for hash-table sequence
-
 #define  MAX_LINE_LEN            1000
 //  Maximum input line when reading FASTA file
 
@@ -445,7 +441,6 @@ public:
 
     Hash_Mask_Bits       = 22;
     Max_Hash_Load        = 0.6;
-    Max_Hash_Strings     = 10000;
     Max_Hash_Data_Len    = 100000000;
 
     Outfile_Name = NULL;
@@ -501,7 +496,6 @@ public:
 
   uint32  Hash_Mask_Bits;  //  --hashbits
 
-  uint32  Max_Hash_Strings;  //  --hashstrings
   uint64  Max_Hash_Data_Len;  //  --hashdatalen
   double  Max_Hash_Load;  //  --hashload
 
