@@ -256,18 +256,14 @@ main(int argc, char **argv) {
 
   //  Compute!
 
-  uint32                 overlapsMax = 1024;
-
-  uint32                 overlapsLen = 0;
+  uint32                 overlapsMax = 65536;
   ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
 
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
-  overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
-
-  while (overlapsLen > 0) {
-    uint32  readID  = overlaps[0].a_iid;
-    uint32  readLen = gkpStore->gkStore_getRead(readID)->gkRead_sequenceLength();
+  for (uint32 fi=0; fi<gkpStore->gkStore_getNumReads()+1; fi++) {
+    uint32  overlapsLen = ovlStore->loadOverlapsForRead(fi, overlaps, overlapsMax);
+    uint32  readLen     = gkpStore->gkStore_getRead(fi)->gkRead_sequenceLength();
 
     intervalList<uint32>   cov;
     uint32                 covID = 0;
@@ -309,13 +305,10 @@ main(int argc, char **argv) {
       cov.add(overlaps[oo].a_bgn(), overlaps[oo].a_end() - overlaps[oo].a_bgn());
     }
 
-    //  If we filtered all the overlaps, just get out of here.  Yeah, some code duplication,
-    //  but cleaner than sticking an if block around the rest of the loop.
+    //  If we filtered all the overlaps, just get out of here.
 
     if (cov.numberOfIntervals() == 0) {
       readNoOlaps->add(readLen);
-
-      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -346,38 +339,30 @@ main(int argc, char **argv) {
 
 
     if (readMissingMiddle == true) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "middle-missing");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "middle-missing");
       readHole->add(readLen);
       olapHole->add(holeSize);
-
-      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
     if ((readCoverage5 == false) && (readCoverage3 == false) && (readContained == false) && (readPartial == false)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "middle-only");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "middle-only");
       readHump->add(readLen);
       olapHump->add(no5Size + no3Size);
-
-      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
     if ((readCoverage5 == false) && (readContained == false) && (readPartial == false)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "no-5-prime");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "no-5-prime");
       readNo5->add(readLen);
       olapNo5->add(no5Size);
-
-      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
     if ((readCoverage3 == false) && (readContained == false) && (readPartial == false)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "no-3-prime");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "no-3-prime");
       readNo3->add(readLen);
       olapNo3->add(no3Size);
-
-      overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
       continue;
     }
 
@@ -477,7 +462,7 @@ main(int argc, char **argv) {
     //  LOG - readID readLen classification
 
     if (isLowCov) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "low-cov");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "low-cov");
       readLowCov->add(readLen);
 
       for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
@@ -485,7 +470,7 @@ main(int argc, char **argv) {
     }
 
     if (isUnique) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "unique");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "unique");
       readUnique->add(readLen);
 
       for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
@@ -493,7 +478,7 @@ main(int argc, char **argv) {
     }
 
     if ((isRepeat) && (readContained == true)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "contained-repeat");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "contained-repeat");
       readRepeatCont->add(readLen);
 
       for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
@@ -501,7 +486,7 @@ main(int argc, char **argv) {
     }
 
     if ((isRepeat) && (readContained == false)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "dovetail-repeat");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "dovetail-repeat");
       readRepeatDove->add(readLen);
 
       for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
@@ -509,23 +494,23 @@ main(int argc, char **argv) {
     }
 
     if (isSpanRepeat) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "span-repeat");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "span-repeat");
       readSpanRepeat->add(readLen);
       olapSpanRepeat->add(depth.lo(endi) - depth.hi(bgni));
     }
 
     if ((isUniqRepeat) && (readContained == true)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-repeat-cont");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "uniq-repeat-cont");
       readUniqRepeatCont->add(readLen);
     }
 
     if ((isUniqRepeat) && (readContained == false)) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-repeat-dove");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "uniq-repeat-dove");
       readUniqRepeatDove->add(readLen);
     }
 
     if (isUniqAnchor) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-anchor");
+      fprintf(LOG, "%u\t%u\t%s\n", fi, readLen, "uniq-anchor");
       readUniqAnchor->add(readLen);
       olapUniqAnchor->add(depth.lo(endi) - depth.hi(bgni));
     }
@@ -533,8 +518,6 @@ main(int argc, char **argv) {
     //  Done.  Read more data.
 
     C.tick();
-
-    overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
   }
 
   AS_UTL_closeFile(LOG, LOGname);  //  Done with logging.
