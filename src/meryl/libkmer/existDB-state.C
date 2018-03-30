@@ -65,6 +65,7 @@ existDB::saveState(char const *filename) {
 
   fwrite(cigam, sizeof(char), 16, F);
 
+  fwrite(&_numMers, sizeof(uint64), 1, F);
   fwrite(&_merSizeInBases, sizeof(uint32), 1, F);
   fwrite(&_shift1, sizeof(uint32), 1, F);
   fwrite(&_shift2, sizeof(uint32), 1, F);
@@ -149,6 +150,7 @@ existDB::loadState(char const *filename,
     return(false);
   }
 
+  fread(&_numMers, sizeof(uint64), 1, F);
   fread(&_merSizeInBases, sizeof(uint32), 1, F);
   fread(&_shift1, sizeof(uint32), 1, F);
   fread(&_shift2, sizeof(uint32), 1, F);
@@ -194,6 +196,7 @@ existDB::loadState(char const *filename,
 void
 existDB::printState(FILE *stream) {
 
+  fprintf(stream, "numMers:          "F_U64"\n", _numMers);
   fprintf(stream, "merSizeInBases:   "F_U32"\n", _merSizeInBases);
   fprintf(stream, "tableBits         "F_U32"\n", 2 * _merSizeInBases - _shift1);
   fprintf(stream, "-----------------\n");

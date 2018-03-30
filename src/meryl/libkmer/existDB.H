@@ -166,6 +166,7 @@ private:
 
   bool        _searchForDupe;
 
+  uint64      _numMers;
   uint32      _merSizeInBases;
 
   uint32      _shift1;
@@ -185,7 +186,6 @@ private:
   uint64     *_buckets;
   uint64     *_counts;
 
-  uint64      _numMers;
 
   void clear(void) {
     _compressedHash   = false;
@@ -196,6 +196,7 @@ private:
 
     _searchForDupe    = false;
 
+    _numMers        = 0;
     _merSizeInBases = 0;
 
     _shift1 = 0;
@@ -214,8 +215,6 @@ private:
     _hashTable = NULL;
     _buckets   = NULL;
     _counts    = NULL;
-
-    _numMers   = 0;
   };
 };
 
