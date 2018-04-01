@@ -990,7 +990,7 @@ sub checkJava () {
 
         foreach (@javaVersionStrings) {
             #  First word is either "java" or "openjdk" or ...
-            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
+            if (m/^.*\s+version\s+\"(\d+\.*\d*)(.*)\".*$/) {
                 $versionStr = "$1$2";
                 $version    =  $1;
             }
