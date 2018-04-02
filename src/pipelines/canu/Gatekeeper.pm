@@ -115,7 +115,7 @@ sub getNumberOfBasesInStore ($$) {
     open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
         $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
-        $nb = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
+        $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($tag eq "obt"));
         $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($tag eq "utg"));
     }
     close(F);
