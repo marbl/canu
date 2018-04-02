@@ -276,7 +276,7 @@ multipleOperations(merylArgs *args) {
 
   for (uint32 i=0; i<args->mergeFilesLen; i++)
     delete R[i];
-  delete R;
-  delete W;
-  delete C;
+  delete [] R;
+  delete    W;
+  delete    C;
 }
