@@ -374,13 +374,13 @@ main(int argc, char **argv) {
     uint32       flen   = read->gkRead_sequenceLength();
 
     if (dumpRaw == true)
-      flen = read->gkRead_rawLength();
+      flen = read->gkRead_sequenceLength(gkRead_raw);
 
     if (dumpCorrected == true)
-      flen = read->gkRead_correctedLength();
+      flen = read->gkRead_sequenceLength(gkRead_corrected);
 
     if (dumpTrimmed == true)
-      flen = read->gkRead_trimmedLength();
+      flen = read->gkRead_sequenceLength(gkRead_trimmed);
 
     uint32       lclr   = 0;
     uint32       rclr   = flen;

@@ -213,16 +213,8 @@ public:
   ~gkRead() {
   };
 
-  uint32      gkRead_readID(void)             { return(_readID);               };
-
-  uint32      gkRead_libraryID(void)          { return(_libraryID);            };
-
-  //  Move these to read data?  It's nice not having to load anything to get lengths.
-  //  But then we need someway of telling if corrected/trimmed reads exist.
-
-  uint32      gkRead_rawLength(void)          { return(_rseqLen);              };
-  uint32      gkRead_correctedLength(void)    { return(_cseqLen);              };
-  uint32      gkRead_trimmedLength(void)      { return(_clearEnd - _clearBgn); };
+  uint32      gkRead_readID(void)     { return(_readID);    };
+  uint32      gkRead_libraryID(void)  { return(_libraryID); };
 
   uint32      gkRead_sequenceLength(gkRead_version vers = gkRead_latest) {
     if      (vers == gkRead_raw)          return(_rseqLen);

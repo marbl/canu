@@ -185,7 +185,7 @@ main(int argc, char **argv) {
      gkReadData read;
      gkpStore->gkStore_loadReadData(ii, &read);
 
-     if (read.gkReadData_getRead()->gkRead_rawLength() < minOutputLength) {
+     if (read.gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw) < minOutputLength) {
         continue;
      }
 
@@ -198,7 +198,7 @@ main(int argc, char **argv) {
      }
      fprintf(stderr, "Processing read %d classified as %s with counts %f and %f\n", ii, haplotype, bestCount, secondBest);
 
-     AS_UTL_writeFastA(outputFasta[haplotype], read.gkReadData_getRawSequence(), read.gkReadData_getRead()->gkRead_rawLength(), 0,
+     AS_UTL_writeFastA(outputFasta[haplotype], read.gkReadData_getRawSequence(), read.gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw), 0,
                        ">read" F_U32 "\n",
                        ii);
   }

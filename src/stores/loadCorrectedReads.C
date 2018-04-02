@@ -158,9 +158,9 @@ main (int argc, char **argv) {
 
       //  Log it.
 
-      fprintf(stdout, "%9u %9u %9u\n", rID, read->gkRead_rawLength(), read->gkRead_correctedLength());
+      fprintf(stdout, "%9u %9u %9u\n", rID, read->gkRead_sequenceLength(gkRead_raw), read->gkRead_sequenceLength(gkRead_corrected));
 
-      assert(read->gkRead_correctedLength() == tig->length());
+      assert(read->gkRead_sequenceLength(gkRead_corrected) == tig->length());
     }
 
     AS_UTL_closeFile(TI, corInputs[ff]);

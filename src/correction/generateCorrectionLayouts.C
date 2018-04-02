@@ -127,7 +127,7 @@ generateFalconLayout(gkStore           *gkpStore,
   gkpStore->gkStore_loadReadData(tig->tigID(), readData);
 
   //  Now parse the layout and push all the sequences onto our seqs vector.
-  if ( readData->gkReadData_getRead()->gkRead_rawLength() < minOutputLength) {
+  if ( readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw) < minOutputLength) {
      return;
   }
 
@@ -140,11 +140,11 @@ generateFalconLayout(gkStore           *gkpStore,
 
     if (child->isReverse())
       reverseComplementSequence(readData->gkReadData_getRawSequence(),
-                                readData->gkReadData_getRead()->gkRead_rawLength());
+                                readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw));
 
     //  Trim the read to the aligned bit
     char   *seq    = readData->gkReadData_getRawSequence();
-    uint32  seqLen = readData->gkReadData_getRead()->gkRead_rawLength();
+    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw);
 
     if (trimToAlign) {
       seq    += child->askip();
@@ -471,7 +471,7 @@ main(int argc, char **argv) {
       tgTig   *layout = new tgTig;
 
       layout->_tigID     = rr;
-      layout->_layoutLen = gkpStore->gkStore_getRead(rr)->gkRead_rawLength();
+      layout->_layoutLen = gkpStore->gkStore_getRead(rr)->gkRead_sequenceLength(gkRead_raw);
 
       generateLayout(layout,
                      olapThresh,

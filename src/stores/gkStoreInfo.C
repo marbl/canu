@@ -108,19 +108,23 @@ gkStoreInfo::recountReads(gkRead *reads) {
   _numRawBases = _numCorrectedBases = _numTrimmedBases = 0;
 
   for (uint32 ii=0; ii<_numReads + 1; ii++) {
-    if (reads[ii].gkRead_rawLength() > 0) {
+    uint32 rr = reads[ii].gkRead_sequenceLength(gkRead_raw);
+    uint32 rc = reads[ii].gkRead_sequenceLength(gkRead_corrected);
+    uint32 rt = reads[ii].gkRead_sequenceLength(gkRead_trimmed);
+
+    if (rr > 0) {
       _numRawReads++;
-      _numRawBases += reads[ii].gkRead_rawLength();
+      _numRawBases += rr;
     }
 
-    if (reads[ii].gkRead_correctedLength() > 0) {
+    if (rc > 0) {
       _numCorrectedReads++;
-      _numCorrectedBases += reads[ii].gkRead_correctedLength();
+      _numCorrectedBases += rc;
     }
 
-    if (reads[ii].gkRead_clearBgn() < reads[ii].gkRead_clearEnd()) {
+    if (rt > 0) {
       _numTrimmedReads++;
-      _numTrimmedBases += reads[ii].gkRead_clearEnd() - reads[ii].gkRead_clearBgn();
+      _numTrimmedBases += rt;
     }
   }
 }

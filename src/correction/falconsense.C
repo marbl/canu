@@ -103,9 +103,9 @@ generateFalconConsensus(falconConsensus   *fc,
 
   evidence[0].addInput(tig->tigID(),
                        readData->gkReadData_getRawSequence(),
-                       readData->gkReadData_getRead()->gkRead_rawLength(),
+                       readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw),
                        0,
-                       readData->gkReadData_getRead()->gkRead_rawLength());
+                       readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw));
 
 
   for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
@@ -115,7 +115,7 @@ generateFalconConsensus(falconConsensus   *fc,
 
     if (child->isReverse())
       reverseComplementSequence(readData->gkReadData_getRawSequence(),
-                                readData->gkReadData_getRead()->gkRead_rawLength());
+                                readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw));
 
     //  For debugging/testing, skip one orientation of overlap.
     //
@@ -126,7 +126,7 @@ generateFalconConsensus(falconConsensus   *fc,
 
     //  Trim the read to the aligned bit
     char   *seq    = readData->gkReadData_getRawSequence();
-    uint32  seqLen = readData->gkReadData_getRead()->gkRead_rawLength();
+    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw);
 
     if (trimToAlign) {
       seq    += child->askip();

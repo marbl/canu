@@ -109,19 +109,23 @@ loadReadLengths(gkStore *gkp,
               read->gkRead_readID(), ii);
     assert(read->gkRead_readID() == ii);
 
-    if (read->gkRead_rawLength() > 0) {
+    uint32 rr = read->gkRead_sequenceLength(gkRead_raw);
+    uint32 rc = read->gkRead_sequenceLength(gkRead_corrected);
+    uint32 rt = read->gkRead_sequenceLength(gkRead_trimmed);
+
+    if (rr > 0) {
       rawReads += 1;
-      rawBases += read->gkRead_rawLength();
+      rawBases += rr;
     }
 
-    if (read->gkRead_correctedLength() > 0) {
+    if (rc > 0) {
       corReads += 1;
-      corBases += read->gkRead_correctedLength();
+      corBases += rc;
     }
 
-    if (read->gkRead_trimmedLength() > 0) {
+    if (rt > 0) {
       triReads += 1;
-      triBases += read->gkRead_trimmedLength();
+      triBases += rt;
     }
 
     readLen[ii] = read->gkRead_sequenceLength();
