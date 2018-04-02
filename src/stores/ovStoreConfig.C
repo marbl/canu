@@ -310,6 +310,9 @@ main(int argc, char **argv) {
   if ((configOut != NULL) && (configIn != NULL))
     err.push_back("ERROR: Can't both -create -describe a config.\n");
 
+  if ((configOut == NULL) && (configIn == NULL))
+    err.push_back("ERROR: Must supply one of -create or -describe.\n");
+
   if (maxMemory < OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize)
     fprintf(stderr, "ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
 
