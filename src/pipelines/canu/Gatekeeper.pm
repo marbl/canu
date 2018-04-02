@@ -296,8 +296,13 @@ sub gatekeeperCreateStore ($$@) {
     if (! -e "./$asm.gkpStore.BUILDING") {
         my $cmd;
         $cmd .= "$bin/gatekeeperCreate \\\n";
-        $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
         $cmd .= "  -o ./$asm.gkpStore.BUILDING \\\n";
+        $cmd .= "  -minlength "  . getGlobal("minReadLength")        . " \\\n";
+        if (getGlobal("readSamplingCoverage") > 0) {
+            $cmd .= "  -genomesize " . getGlobal("genomeSize")           . " \\\n";
+            $cmd .= "  -coverage   " . getGlobal("readSamplingCoverage") . " \\\n";
+            $cmd .= "  -bias       " . getGlobal("readSamplingBias")     . " \\\n";
+        }
         $cmd .= "  ./$asm.gkpStore.gkp \\\n";
         $cmd .= "> ./$asm.gkpStore.BUILDING.err 2>&1";
 

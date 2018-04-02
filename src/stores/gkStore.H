@@ -216,6 +216,7 @@ public:
   gkReadData  *gkStore_addEmptyRead(gkLibrary *lib);
 
   void         gkStore_setClearRange(uint32 id, uint32 bgn, uint32 end);
+  void         gkStore_setIgnore(uint32 id);
 
   //  Used in utgcns, for the package format.
   static

@@ -71,7 +71,7 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
         (gkp->gkStore_readInPartition(rid) == false))
       continue;
 
-    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %9" F_U64P " %4" F_U64P " %8s%c%c\n",
+    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %9" F_U64P " %4" F_U64P " %7s%c%c%c\n",
             read->gkRead_readID(),
             read->gkRead_libraryID(),
             read->gkRead_sequenceLength(),
@@ -83,6 +83,7 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
             read->gkRead_mByte(),
             read->gkRead_mPart(),
             "",
+            read->gkRead_ignore()  ? 'I' : '-',
             read->gkRead_cExists() ? 'C' : '-',
             read->gkRead_tExists() ? 'T' : '-');
   }

@@ -619,3 +619,11 @@ gkStore::gkStore_setClearRange(uint32 id, uint32 bgn, uint32 end) {
   read->_clearBgn = bgn;
   read->_clearEnd = end;
 }
+
+
+void
+gkStore::gkStore_setIgnore(uint32 id) {
+  gkRead  *read = gkStore_getRead(id);
+
+  read->_ignore = true;
+}

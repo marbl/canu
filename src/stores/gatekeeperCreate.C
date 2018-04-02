@@ -40,6 +40,9 @@
 #include "findKeyAndValue.H"
 #include "AS_UTL_fileIO.H"
 
+#include "mt19937ar.H"
+
+#include <algorithm>
 
 #undef  UPCASE  //  Don't convert lowercase to uppercase, special case for testing alignments.
 #define UPCASE  //  Convert lowercase to uppercase.  Probably needed.
@@ -539,72 +542,15 @@ loadReads(gkStore    *gkpStore,
 
 
 
-int
-main(int argc, char **argv) {
-  char            *gkpStoreName      = NULL;
-  char            *outPrefix         = NULL;
-  gkStore_mode     mode              = gkStore_create;
 
-  uint32           minReadLength     = 0;
+bool
+createStore(const char *gkpStoreName,
+            uint32      firstFileArg,
+            char      **argv,
+            uint32      argc,
+            uint32      minReadLength) {
 
-  uint32           firstFileArg      = 0;
-
-  char             errorLogName[FILENAME_MAX];
-  char             loadLogName[FILENAME_MAX];
-  char             nameMapName[FILENAME_MAX];
-
-  argc = AS_configure(argc, argv);
-
-  int arg = 1;
-  int err = 0;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {  //  This previously used gkStore_append here, but if
-      mode         = gkStore_create;            //  two instances of gatekeeperCreate were run in the
-      gkpStoreName = argv[++arg];               //  same directory, they would clobber each other,
-                                                //  generating a blobs file that is a mix of both.
-    } else if (strcmp(argv[arg], "-a") == 0) {  //  So now the -c will fail if any trace of a store
-      mode         = gkStore_extend;            //  exists in the output location, and -a will
-      gkpStoreName = argv[++arg];               //  blindly add reads to an existing set of files
-
-    } else if (strcmp(argv[arg], "-minlength") == 0) {
-      minReadLength = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "--") == 0) {
-      firstFileArg = arg++;
-      break;
-
-    } else if (argv[arg][0] == '-') {
-      fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
-      err++;
-
-    } else {
-      firstFileArg = arg;
-      break;
-    }
-    arg++;
-  }
-
-  if (gkpStoreName == NULL)
-    err++;
-  if (firstFileArg == 0)
-    err++;
-
-  if (err) {
-    fprintf(stderr, "usage: %s [-minlength L] -o gkpStore input.gkp\n", argv[0]);
-    fprintf(stderr, "  -o gkpStore            load raw reads into new gkpStore\n");
-    fprintf(stderr, "  -minlength L           discard reads shorter than L\n");
-    fprintf(stderr, "  \n");
-
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore (-o) supplied.\n");
-    if (firstFileArg == 0)
-      fprintf(stderr, "ERROR: no input files supplied.\n");
-
-    exit(1);
-  }
-
-
-  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, mode);
+  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, gkStore_create);   //  gkStore_extend MIGHT work
   gkRead      *gkpRead      = NULL;
   gkLibrary   *gkpLibrary   = NULL;
   uint32       gkpFileID    = 0;      //  Used for HTML output, an ID for each file loaded.
@@ -612,34 +558,19 @@ main(int argc, char **argv) {
   uint32       inLineLen    = 1024;
   char         inLine[1024] = { 0 };
 
-  validSeq['a'] = validSeq['c'] = validSeq['g'] = validSeq['t'] = validSeq['n'] = 1;
-  validSeq['A'] = validSeq['C'] = validSeq['G'] = validSeq['T'] = validSeq['N'] = 1;
+  FILE        *errorLog = AS_UTL_openOutputFile(gkpStoreName, '/', "errorLog");
+  FILE        *loadLog  = AS_UTL_openOutputFile(gkpStoreName, '/', "load.dat");
+  FILE        *nameMap  = AS_UTL_openOutputFile(gkpStoreName, '/', "readNames.txt");
 
-  errno = 0;
+  uint32       nERROR   = 0;  //  There aren't any errors, we just exit fatally if encountered.
+  uint32       nWARNS   = 0;
 
-  snprintf(errorLogName, FILENAME_MAX, "%s/errorLog",    gkpStoreName);
-  FILE    *errorLog = fopen(errorLogName, "w");
-  if (errno)
-    fprintf(stderr, "ERROR:  cannot open error file '%s': %s\n", errorLogName, strerror(errno)), exit(1);
+  uint32       nLOADED  = 0;  //  Reads loaded
+  uint64       bLOADED  = 0;  //  Bases loaded
 
-  snprintf(loadLogName, FILENAME_MAX,   "%s/load.dat", gkpStoreName);
-  FILE    *loadLog   = fopen(loadLogName,   "w");
-  if (errno)
-    fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", loadLogName, strerror(errno)), exit(1);
+  uint32       nSKIPPED = 0;
+  uint64       bSKIPPED = 0;  //  Bases not loaded, too short
 
-  snprintf(nameMapName, FILENAME_MAX,   "%s/readNames.txt", gkpStoreName);
-  FILE    *nameMap   = fopen(nameMapName,   "w");
-  if (errno)
-    fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);
-
-  uint32  nERROR   = 0;  //  There aren't any errors, we just exit fatally if encountered.
-  uint32  nWARNS   = 0;
-
-  uint32  nLOADED  = 0;  //  Reads loaded
-  uint64  bLOADED  = 0;  //  Bases loaded
-
-  uint32  nSKIPPED = 0;
-  uint64  bSKIPPED = 0;  //  Bases not loaded, too short
 
   for (; firstFileArg < argc; firstFileArg++) {
     fprintf(stderr, "\n");
@@ -723,8 +654,9 @@ main(int argc, char **argv) {
 
   gkpStore->gkStore_close();
 
-  AS_UTL_closeFile(nameMap, nameMapName);
-  AS_UTL_closeFile(errorLog, errorLogName);
+  AS_UTL_closeFile(nameMap,  gkpStoreName, '/', "readNames.txt");
+  AS_UTL_closeFile(loadLog,  gkpStoreName, '/', "load.dat");
+  AS_UTL_closeFile(errorLog, gkpStoreName, '/', "errorLog");
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
@@ -740,8 +672,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
-
-  AS_UTL_closeFile(loadLog, loadLogName);
 
   if (nERROR > 0)
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");
@@ -761,7 +691,201 @@ main(int argc, char **argv) {
       (nSKIPPED > 0.50 * (nSKIPPED + nLOADED)))
     exit(0);
 
-  fprintf(stderr, "gatekeeperCreate finished successfully.\n");
+  return(true);
+}
 
-  exit(0);
+
+
+struct rl_t {
+  uint32   readID;
+  uint32   length;
+  double   score;
+};
+
+bool  byScore(const rl_t &a, const rl_t &b)   { return(a.score > b.score); }
+
+
+bool
+deleteShortReads(const char *gkpStoreName,
+                 uint64      genomeSize,
+                 double      desiredCoverage,
+                 double      lengthBias) {
+  mtRandom     mtctx;
+  uint64       desiredBases = (uint64)floor(genomeSize * desiredCoverage);
+
+  if (desiredBases == 0)
+    return(true);
+
+  //
+  //  Open the store for modification.
+  //
+
+  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, gkStore_extend);
+
+  uint32       nReads       = gkpStore->gkStore_getNumReads();
+  rl_t        *readLen      = new rl_t [nReads + 1];
+  uint64       readLenSum   = 0;
+
+  //
+  //  Initialize our list of read scores, and report a summary.
+  //
+
+  fprintf(stderr, "Analyzing read lengths in store '%s'\n", gkpStoreName);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "For genome size of " F_U64 " bases, at coverage %.2f, want to keep " F_U64 " bases.\n",
+          genomeSize, desiredCoverage, desiredBases);
+  fprintf(stderr, "\n");
+
+  for (uint32 ii=0; ii<nReads+1; ii++) {
+    uint32  len = gkpStore->gkStore_getRead(ii)->gkRead_sequenceLength();
+
+    readLen[ii].readID = ii;
+    readLen[ii].length = len;
+    readLen[ii].score  = mtctx.mtRandomRealOpen() * pow(len, lengthBias);
+
+    readLenSum  += len;
+  }
+
+  fprintf(stderr, "Found %12" F_U32P " reads of length\n", nReads);
+  fprintf(stderr, "      %12" F_U64P " bases.\n", readLenSum);
+  fprintf(stderr, "\n");
+
+  //
+  //  Sort the array by length, keep only the longest reads up to coverage * genomeSize.
+  //
+
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::
+#endif
+  sort(readLen, readLen + nReads+1, byScore);
+
+  readLenSum = 0;
+
+  uint32   readsKept = 0;
+  uint32   readsLost = 0;
+
+  for (uint32 ii=0; ii<nReads+1; ii++) {
+    fprintf(stdout, "%7u %8u %12.4f%s\n",
+            readLen[ii].readID,
+            readLen[ii].length,
+            readLen[ii].score,
+            (readLenSum < desiredBases) ? "" : " REMOVED");
+
+    if (readLenSum < desiredBases) {
+      readLenSum  += readLen[ii].length;
+
+      readsKept++;
+    }
+
+    else {
+      gkpStore->gkStore_setIgnore(readLen[ii].readID);
+
+      readsLost++;
+    }
+  }
+
+  delete [] readLen;
+
+  gkpStore->gkStore_close();
+
+  fprintf(stderr, "Kept  %12" F_U32P " reads of length\n", readsKept);
+  fprintf(stderr, "      %12" F_U64P " bases.\n", readLenSum);
+  fprintf(stderr, "\n");
+
+  return(true);
+}
+
+
+
+
+
+int
+main(int argc, char **argv) {
+  char            *gkpStoreName      = NULL;
+
+  uint32           minReadLength     = 0;
+  uint64           genomeSize        = 0;
+  double           desiredCoverage   = 0;
+  double           lengthBias        = 1.0;
+
+  uint32           firstFileArg      = 0;
+
+  //  Initialize the global.
+
+  validSeq['a'] = validSeq['c'] = validSeq['g'] = validSeq['t'] = validSeq['n'] = 1;
+  validSeq['A'] = validSeq['C'] = validSeq['G'] = validSeq['T'] = validSeq['N'] = 1;
+
+  //  Parse options.
+
+  argc = AS_configure(argc, argv);
+
+  vector<char *>  err;
+  int             arg = 1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-o") == 0) {
+      gkpStoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-minlength") == 0) {
+      minReadLength = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-genomesize") == 0) {
+      genomeSize = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-coverage") == 0) {
+      desiredCoverage = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-bias") == 0) {
+      lengthBias = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "--") == 0) {
+      firstFileArg = arg++;
+      break;
+
+    } else if (argv[arg][0] == '-') {
+      char *s = new char [1024];
+      snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
+      err.push_back(s);
+
+    } else {
+      firstFileArg = arg;
+      break;
+    }
+    arg++;
+  }
+
+  if (gkpStoreName == NULL)
+    err.push_back("ERROR: no gkpStore (-o) supplied.\n");
+
+  if (firstFileArg == 0)
+    err.push_back("ERROR: no input files supplied.\n");
+
+  if ((desiredCoverage > 0) && (genomeSize == 0))
+    err.push_back("ERROR: no genome size (-genomesize) set, needed for coverage filtering (-coverage) to work.\n");
+
+  if (err.size() > 0) {
+    fprintf(stderr, "usage: %s -o gkpStore [-minlength L] [-genomesize G -coverage C] input.gkp\n", argv[0]);
+    fprintf(stderr, "  -o gkpStore            load raw reads into new gkpStore\n");
+    fprintf(stderr, "  \n");
+    fprintf(stderr, "  -minlength L           discard reads shorter than L\n");
+    fprintf(stderr, "  \n");
+    fprintf(stderr, "  -genomesize G          expected genome size, for keeping only the longest reads\n");
+    fprintf(stderr, "  -coverage C            desired coverage in long reads\n");
+    fprintf(stderr, "  \n");
+
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
+
+    exit(1);
+  }
+
+
+  if (createStore(gkpStoreName, firstFileArg, argv, argc, minReadLength) &&
+      deleteShortReads(gkpStoreName, genomeSize, desiredCoverage, lengthBias)) {
+    fprintf(stderr, "gatekeeperCreate finished successfully.\n");
+    exit(0);
+  } else {
+    fprintf(stderr, "gatekeeperCreate terminated abnormally.\n");
+    exit(1);
+  }
 }

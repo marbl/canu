@@ -217,6 +217,9 @@ public:
   uint32      gkRead_libraryID(void)  { return(_libraryID); };
 
   uint32      gkRead_sequenceLength(gkRead_version vers = gkRead_latest) {
+    if      (_ignore)
+      return(0);
+
     if      (vers == gkRead_raw)          return(_rseqLen);
     else if (vers == gkRead_corrected)    return(_cseqLen);
     else if (vers == gkRead_trimmed)      return(_clearEnd - _clearBgn);
@@ -227,15 +230,16 @@ public:
     }
   };
 
-  uint32      gkRead_clearBgn(void)           { return(_clearBgn); };
-  uint32      gkRead_clearEnd(void)           { return(_clearEnd); };
+  uint32      gkRead_clearBgn(void)   { return(_clearBgn); };
+  uint32      gkRead_clearEnd(void)   { return(_clearEnd); };
 
-  bool        gkRead_cExists(void)            { return(_cExists); };
-  bool        gkRead_tExists(void)            { return(_tExists); };
+  bool        gkRead_ignore(void)     { return(_ignore);   };
+  bool        gkRead_cExists(void)    { return(_cExists);  };
+  bool        gkRead_tExists(void)    { return(_tExists);  };
 
-  uint64      gkRead_mSegm(void) { return(_mSegm); };
-  uint64      gkRead_mByte(void) { return(_mByte); };
-  uint64      gkRead_mPart(void) { return(_mPart); };
+  uint64      gkRead_mSegm(void)      { return(_mSegm);    };
+  uint64      gkRead_mByte(void)      { return(_mByte);    };
+  uint64      gkRead_mPart(void)      { return(_mPart);    };
 
 private:
   void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);  //  'file' MUST be at correct position
@@ -262,7 +266,8 @@ private:
   //  In particular, if corrections are done, but there is no corrected read for this raw
   //  read, _cseqLen will be zero, and we need to return zero.
 
-  uint64   _unusedF : 6;
+  uint64   _ignore  : 1;    //  Ignore this read; it's too short for our needs.
+  uint64   _unusedF : 5;
   uint64   _cExists : 1;    //  Set by gkStore when the gkRead is returned to the user.
   uint64   _tExists : 1;
 

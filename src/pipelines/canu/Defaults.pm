@@ -784,14 +784,17 @@ sub setDefaults () {
 
     #####  Minimums and maximums
 
-    setDefault("minReadLength",    1000, "Reads shorter than this length are not loaded into the assembler; default 1000");
-    setDefault("minOverlapLength",  500, "Overlaps shorter than this length are not computed; default 500");
+    setDefault("minReadLength",        1000,      "Reads shorter than this length are not loaded into the assembler; default 1000");
+    setDefault("minOverlapLength",     500,       "Overlaps shorter than this length are not computed; default 500");
 
-    setDefault("minMemory",        undef, "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
-    setDefault("maxMemory",        undef, "Maximum memory to use by any component of the assembler");
+    setDefault("readSamplingBias",     0.0,       "Score reads as 'random * length^bias', keep the highest scoring reads");
+    setDefault("readSamplingCoverage", undef,     "Discard reads to make the input be of this size");
 
-    setDefault("minThreads",       undef, "Minimum number of compute threads suggested to compute the assembly");
-    setDefault("maxThreads",       undef, "Maximum number of compute threads to use by any component of the assembler");
+    setDefault("minMemory",            undef,     "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
+    setDefault("maxMemory",            undef,     "Maximum memory to use by any component of the assembler");
+
+    setDefault("minThreads",           undef,     "Minimum number of compute threads suggested to compute the assembly");
+    setDefault("maxThreads",           undef,     "Maximum number of compute threads to use by any component of the assembler");
 
     #####  Stopping conditions
 
