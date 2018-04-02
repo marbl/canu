@@ -165,7 +165,7 @@ main(int argc, char **argv) {
         uint64 totalMers = strtouint64(W[3]);	// haplotype specific mers
         uint64 count = strtouint64(W[4]);		// haplotype mers in the read
         double scaledCount = (double) count / totalMers;
-        fprintf(stderr, "After scaling for %s by %d the count is %f\n", it->first, totalMers, scaledCount);
+        fprintf(stderr, "After scaling for %s by " F_U64 " the count is %f\n", it->first, totalMers, scaledCount);
 
         if (aid != ii) {
            fprintf(stderr, "Error: expected %d but got read %d\n", ii, aid);
