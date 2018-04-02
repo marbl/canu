@@ -82,13 +82,19 @@ loadThresholds(gkStore *gkpStore,
   return(olapThresh);
 }
 
-//  Duplicated in generateCorrectionLayouts.C
+//  Duplicated in falconsense.C
 void
 loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &readList) {
   char  L[1024];
 
   if (readListName == NULL)
     return;
+
+  //  To give the list some size - if the read list has no elements between iidMin and iidMax,
+  //  nothing is inserted below, and then we _think_ no read list was supplied, and try to
+  //  process every read, when in fact we should be processing no reads.
+
+  readList.insert(0);
 
   FILE *R = AS_UTL_openInputFile(readListName);
 
