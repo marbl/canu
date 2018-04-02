@@ -87,9 +87,12 @@ public:
 
   ~ovFileOCW() {
 
-    if ((_nOlaps == 0) ||     //  If no counts, or no data,
-        (_opr    == NULL))    //  don't make an empty file.
+    if (_opr == NULL)
       return;
+
+    //  Even if there are no overlaps (_nOlaps == 0), save the counts file.  If this isn't
+    //  saved, we'd need to special case a whole bunch of stuff that assumes counts exist
+    //  (e.g., in ovStoreConfig).
 
     FILE   *F = AS_UTL_openOutputFile(_name);
 
