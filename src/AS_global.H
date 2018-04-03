@@ -94,17 +94,17 @@
 #include <omp.h>
 
 #ifndef TRUE
-  #define TRUE true
+#define TRUE true
 #endif
 #ifndef FALSE
-  #define FALSE false
+#define FALSE false
 #endif
 
 #ifndef MIN
-  #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 #ifndef MAX
-  #define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
 typedef int8_t  int8;
@@ -116,8 +116,6 @@ typedef uint8_t  uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
-
-//typedef void* PtrT;
 
 //  Correct?  Or should it be LLU and LU?
 #define  uint64NUMBER(X) X ## LU
@@ -144,13 +142,17 @@ typedef uint64_t uint64;
 #define  uint8MASK(X)    ((~uint8ZERO) >> (8 - (X)))
 
 
-#define  strtouint32(N)   (uint32)strtoul (N, NULL, 10)
-#define  strtouint64(N)   (uint64)strtoull(N, NULL, 10)
-#define  strtodouble(N)   (double)strtod  (N, NULL)
+inline  int32  strtoint32 (char *str)  {  return( (int32)strtol  (str, NULL, 10));  }
+inline uint32  strtouint32(char *str)  {  return((uint32)strtoul (str, NULL, 10));  }
+inline  int64  strtoint64 (char *str)  {  return( (int64)strtoll (str, NULL, 10));  }
+inline uint64  strtouint64(char *str)  {  return((uint64)strtoull(str, NULL, 10));  }
+inline double  strtodouble(char *str)  {  return((double)strtod  (str, NULL));      }
 
-//inline uint32  strtouint32(char *N, O) (uint32)strtoul (N, O, 10)
-//inline uint64  strtouint64(char *N, O) (uint64)strtoull(N, O, 10)
-//inline double  strtodouble(char *N, O) (double)strtod  (N, O)
+inline void    strtonumber( int32 &num, char *str, char **rem)  {  num =  (int32)strtol  (str, rem, 10);  }
+inline void    strtonumber(uint32 &num, char *str, char **rem)  {  num = (uint32)strtoul (str, rem, 10);  }
+inline void    strtonumber( int64 &num, char *str, char **rem)  {  num =  (int64)strtoll (str, rem, 10);  }
+inline void    strtonumber(uint64 &num, char *str, char **rem)  {  num = (uint64)strtoull(str, rem, 10);  }
+inline void    strtonumber(double &num, char *str, char **rem)  {  num = (double)strtod  (str, rem);      }
 
 
 // Pointers

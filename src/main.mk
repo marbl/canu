@@ -26,7 +26,6 @@ TARGET       := libcanu.a
 
 SOURCES      := AS_global.C \
                 \
-                AS_UTL/AS_UTL_decodeRange.C \
                 AS_UTL/AS_UTL_fasta.C \
                 AS_UTL/AS_UTL_fileIO.C \
                 AS_UTL/AS_UTL_reverseComplement.C \

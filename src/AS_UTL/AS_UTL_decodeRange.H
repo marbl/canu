@@ -33,17 +33,122 @@
 #include "AS_global.H"
 
 #include <set>
+#include <vector>
 
 using namespace std;
 
-void  AS_UTL_decodeRange(char *range, set<uint64> &ranges);
-void  AS_UTL_decodeRange(char *range, set<uint32> &ranges);
 
-void  AS_UTL_decodeRange(char *range, uint64 &lo, uint64 &hi);
-void  AS_UTL_decodeRange(char *range,  int64 &lo,  int64 &hi);
-void  AS_UTL_decodeRange(char *range, uint32 &lo, uint32 &hi);
-void  AS_UTL_decodeRange(char *range,  int32 &lo,  int32 &hi);
 
-void  AS_UTL_decodeRange(char *range, double &lo, double &hi);
+template<typename T>
+class AS_UTL_range {
+public:
+  AS_UTL_range() {
+  };
+  AS_UTL_range(T bgn, T end) {
+  }
+
+  bool  operator<(const AS_UTL_range<T> &that) const {
+    if (_bgn < that._bgn)
+      return(true);
+    return(_end < that._end);
+  };
+
+private:
+  T  _bgn;
+  T  _end;
+};
+
+
+
+template<typename T>
+void
+AS_UTL_decodeRange(char *range, vector< AS_UTL_range<T> > &ranges) {
+  char    *ap = range;
+  T        av = 0;
+  T        bv = 0;
+
+  while (*ap != 0) {
+    strtonumber(av, ap, &ap);
+
+    if (*ap == ',') {
+      ap++;
+      ranges.insert(av);
+
+    } else if (*ap == 0) {
+      ranges.insert(av);
+
+    } else if (*ap == '-') {
+      ap++;
+      strtonumber(bv, ap, &ap);
+
+      for (T xx=av; xx<=bv; xx++)
+        ranges.insert(xx);
+
+      if (*ap == ',')
+        ap++;
+
+    } else if (*ap != 0) {
+      fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+      exit(1);
+    }
+  }
+}
+
+
+
+template<typename T>
+void
+AS_UTL_decodeRange(char *range, set<T> &ranges) {
+  char    *ap = range;
+  T        av = 0;
+  T        bv = 0;
+
+  while (*ap != 0) {
+    strtonumber(av, ap, &ap);
+
+    if (*ap == ',') {
+      ap++;
+      ranges.insert(av);
+
+    } else if (*ap == 0) {
+      ranges.insert(av);
+
+    } else if (*ap == '-') {
+      ap++;
+      strtonumber(bv, ap, &ap);
+
+      for (T xx=av; xx<=bv; xx++)
+        ranges.insert(xx);
+
+      if (*ap == ',')
+        ap++;
+
+    } else if (*ap != 0) {
+      fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+      exit(1);
+    }
+  }
+}
+
+
+
+template<typename T>
+void
+AS_UTL_decodeRange(char *range, T &lo, T &hi) {
+  char    *ap = range;
+
+  strtonumber(lo, ap, &ap);
+  hi = lo;
+
+  if (*ap == '-') {
+    ap++;
+    strtonumber(hi, ap, &ap);
+
+  } else if (*ap != 0) {
+    fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+    exit(1);
+  }
+}
+
 
 #endif  //  AS_UTL_DECODERANGE_H
