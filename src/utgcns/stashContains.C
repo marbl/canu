@@ -92,7 +92,7 @@ stashContains(tgTig       *tig,
       nBaseDove += posLen[fi].len;
     }
 
-    hiEnd = MAX(hi, hiEnd);
+    hiEnd = max(hi, hiEnd);
   }
 
   //  Entertain the user with some statistics

@@ -291,7 +291,7 @@ public:
 
     } else if (merCountsFile) {
       fprintf(stderr, "loading genome mer database from meryl '%s'.\n", merCountsFile);
-      genomicDB = new existDB(merCountsFile, merSize, existDBcounts, MIN(minCorrect, minVerified), UINT32_MAX);
+      genomicDB = new existDB(merCountsFile, merSize, existDBcounts, min(minCorrect, minVerified), UINT32_MAX);
 
       if (merCountsCache) {
         fprintf(stderr, "saving genome mer database to cache '%s'.\n", cacheName);
@@ -978,7 +978,7 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, uint32 mExtra, bool
     //  coverage drops at this location, and we trim the read.  This would result in
     //  zero coverage at every variation.
 
-    uint32  mm = MAX(MAX(nA, nC), MAX(nG, nT));
+    uint32  mm = max(max(nA, nC), max(nG, nT));
 
     if (nA == mm)   { rB = 'A';  rV = nA; }
     if (nC == mm)   { rB = 'C';  rV = nC; }
@@ -1236,8 +1236,8 @@ mertrimComputation::scoreAdapter(void) {
 
     containsAdapterCount++;
 
-    containsAdapterBgn = MIN(containsAdapterBgn, bgn);
-    containsAdapterEnd = MAX(containsAdapterEnd, end + 1);
+    containsAdapterBgn = min(containsAdapterBgn, bgn);
+    containsAdapterEnd = max(containsAdapterEnd, end + 1);
 
     if (VERBOSE > 1)
       fprintf(stderr, "ADAPTER at " F_U32 "," F_U32 " [" F_U32 "," F_U32 "]\n",
@@ -1377,7 +1377,7 @@ mertrimComputation::testBaseChange(uint32 pos, char replacement) {
 
   corrSeq[pos] = replacement;
 
-  numConfirmed = testBases(corrSeq + offset, MIN(seqLen - offset, 2 * g->merSize - 1));
+  numConfirmed = testBases(corrSeq + offset, min(seqLen - offset, 2 * g->merSize - 1));
 
 #ifdef TEST_TESTBASE
   {

@@ -348,7 +348,7 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
     _tigCache = nc;
   }
 
-  _tigLen = MAX(_tigLen, tig->_tigID + 1);
+  _tigLen = max(_tigLen, tig->_tigID + 1);
 
   _tigEntry[tig->_tigID].tigRecord       = *tig;
 

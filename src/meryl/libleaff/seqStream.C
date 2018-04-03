@@ -360,7 +360,7 @@ seqStream::fillBuffer(void) {
 #ifdef DEBUG
     fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos=" F_U32 " len=" F_U32 "\n", _currentPos, _idx[_currentIdx]._len);
 #endif
-    _bufferLen = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
+    _bufferLen = min(_idx[_currentIdx]._len - _currentPos, _bufferMax);
 
     if (_file->getSequence(_idx[_currentIdx]._iid,
                            _currentPos,
@@ -406,7 +406,7 @@ seqStream::fillBuffer(void) {
   //  the buffer size.  Don't forget about the separator we already
   //  inserted!
   //
-  uint32 bl = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax - _bufferLen);
+  uint32 bl = min(_idx[_currentIdx]._len - _currentPos, _bufferMax - _bufferLen);
 
   if (_file->getSequence(_idx[_currentIdx]._iid,
                          _currentPos,

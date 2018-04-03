@@ -230,17 +230,17 @@ abColumn::baseCallQuality(void) {
   double  minTau =  DBL_MAX;
   double  maxTau = -DBL_MAX;
 
-  minTau = MIN(minTau, tau[0]);
-  minTau = MIN(minTau, tau[1]);
-  minTau = MIN(minTau, tau[2]);
-  minTau = MIN(minTau, tau[3]);
-  minTau = MIN(minTau, tau[4]);
+  minTau = min(minTau, tau[0]);
+  minTau = min(minTau, tau[1]);
+  minTau = min(minTau, tau[2]);
+  minTau = min(minTau, tau[3]);
+  minTau = min(minTau, tau[4]);
 
-  maxTau = MAX(maxTau, tau[0]);
-  maxTau = MAX(maxTau, tau[1]);
-  maxTau = MAX(maxTau, tau[2]);
-  maxTau = MAX(maxTau, tau[3]);
-  maxTau = MAX(maxTau, tau[4]);
+  maxTau = max(maxTau, tau[0]);
+  maxTau = max(maxTau, tau[1]);
+  maxTau = max(maxTau, tau[2]);
+  maxTau = max(maxTau, tau[3]);
+  maxTau = max(maxTau, tau[4]);
 
   //  Now that we know the min and max values, shift them as far positive as possible.  Ideally,
   //  this will just add an offset to bring the smallest value up to the minimum representable.
@@ -384,8 +384,8 @@ abColumn::baseCallQuality(void) {
         qual++;
     }
 
-    qual = MIN(CNS_MAX_QV, qual);
-    qual = MAX(CNS_MIN_QV, qual);
+    qual = min(CNS_MAX_QV, qual);
+    qual = max(CNS_MIN_QV, qual);
 
     consensusQual = qual;
   }

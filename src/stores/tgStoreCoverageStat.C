@@ -115,11 +115,11 @@ computeRho(tgTig *tig) {
   for (uint32 i=0; i<tig->numberOfChildren(); i++) {
     tgPosition  *pos = tig->getChild(i);
 
-    minBgn = MIN(minBgn, pos->min());
-    maxEnd = MAX(maxEnd, pos->max());
+    minBgn = min(minBgn, pos->min());
+    maxEnd = max(maxEnd, pos->max());
 
-    fwdRho = MAX(fwdRho, pos->min());  //  largest begin coord
-    revRho = MIN(revRho, pos->max());  //  smallest end coord
+    fwdRho = max(fwdRho, pos->min());  //  largest begin coord
+    revRho = min(revRho, pos->max());  //  smallest end coord
   }
 
   if ((leniant == false) && (minBgn != 0)) {
@@ -336,7 +336,7 @@ getGlobalArrivalRate(tgStore         *tigStore,
       ard = arc - arp;
       arp = arc;
 
-      maxDiff = MAX(maxDiff, ard);
+      maxDiff = max(maxDiff, ard);
     }
 
     maxDiff    *= 2.0;
@@ -357,11 +357,11 @@ getGlobalArrivalRate(tgStore         *tigStore,
     double recalRate = 0;
 
     recalRate  =                ar[arLen * 19 / 20];
-    recalRate  = MIN(recalRate, ar[arLen *  1 / 10] * 2.0);
-    recalRate  = MIN(recalRate, ar[arLen *  1 /  2] * 1.25);
-    recalRate  = MIN(recalRate, ar[maxDiffIdx]);
+    recalRate  = min(recalRate, ar[arLen *  1 / 10] * 2.0);
+    recalRate  = min(recalRate, ar[arLen *  1 /  2] * 1.25);
+    recalRate  = min(recalRate, ar[maxDiffIdx]);
 
-    globalRate = MAX(globalRate, recalRate);
+    globalRate = max(globalRate, recalRate);
 
     tigStore->unloadTig(i);
   }

@@ -498,7 +498,7 @@ Process_Matches (int * Start,
       if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
         if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len
              && 1 + T_Hi - T_Lo >= G.Min_Olap_Len) {
-          Olap_Len = 1 + MIN (S_Hi - S_Lo, T_Hi - T_Lo);
+          Olap_Len = 1 + min (S_Hi - S_Lo, T_Hi - T_Lo);
           Quality = (double) Errors / Olap_Len;
 
           if  (Errors <= WA->editDist->Error_Bound[Olap_Len]) {

@@ -1143,7 +1143,7 @@ unitigConsensus::computePositionFromLayout(void) {
       //
       //assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-      int32 ooo = MIN(cnspos[tiid].max(), abacus->numberOfColumns()) - cnspos[tiid].min();
+      int32 ooo = min(cnspos[tiid].max(), (int32)abacus->numberOfColumns()) - cnspos[tiid].min();
 
 #if 1
       if (showPlacement())
@@ -1284,8 +1284,8 @@ unitigConsensus::computePositionFromAlignment(void) {
     if ((tiid != qiid) &&
         (cnspos[tiid].min() < cnspos[qiid].max()) &&
         (cnspos[tiid].max() > cnspos[qiid].min())) {
-      int32 ooo = (MIN(cnspos[tiid].max(), cnspos[qiid].max()) -
-                   MAX(cnspos[tiid].min(), cnspos[qiid].min()));
+      int32 ooo = (min(cnspos[tiid].max(), cnspos[qiid].max()) -
+                   max(cnspos[tiid].min(), cnspos[qiid].min()));
 
       if (thickestLen < ooo) {
         thickestLen = ooo;
@@ -1489,7 +1489,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (cnspos[tiid].max() + endExtra > abacus->numberOfColumns())
     endExtra = abacus->numberOfColumns() - cnspos[tiid].max();
 
-  int32 cnsBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in consensus
+  int32 cnsBgn     = max(0, cnspos[tiid].min() - bgnExtra);   //  Start position in consensus
   int32 cnsEnd     = cnspos[tiid].max() + endExtra;           //  Truncation of consensus
   int32 cnsEndBase = abacus->bases()[cnsEnd];                 //  Saved base (if not truncated, it's the NUL byte at the end)
 

@@ -174,8 +174,8 @@ classifyRule3(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double spanFractio
   for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
     ufNode  *frg = &utg->ufpath[oi];
 
-    int frgbgn = MIN(frg->position.bgn, frg->position.end);
-    int frgend = MAX(frg->position.bgn, frg->position.end);
+    int frgbgn = min(frg->position.bgn, frg->position.end);
+    int frgend = max(frg->position.bgn, frg->position.end);
 
     if (frgend - frgbgn > utg->getLength() * spanFraction) {
       if ((F) && (utg->ufpath.size() > 1))
@@ -206,8 +206,8 @@ classifyRule4(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double lowcovFract
   for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
     ufNode  *frg = &utg->ufpath[oi];
 
-    int frgbgn = MIN(frg->position.bgn, frg->position.end);
-    int frgend = MAX(frg->position.bgn, frg->position.end);
+    int frgbgn = min(frg->position.bgn, frg->position.end);
+    int frgend = max(frg->position.bgn, frg->position.end);
 
     IL.add(frgbgn, frgend - frgbgn);
   }

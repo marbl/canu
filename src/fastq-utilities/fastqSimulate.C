@@ -775,15 +775,15 @@ main(int argc, char **argv) {
   char      *fastaName = NULL;
   FILE      *fastaFile = NULL;
 
-  int32      numSeq = 0;
+  uint32     numSeq = 0;
 
   int32      seqMax = 0;
   int32      seqLen = 0;
   char      *seq    = NULL;
 
-  int32      readLen        = 100;         //  Length of read to generate
-  int32      numReads       = UINT32_MAX;  //  Number of reads to generate, constant
-  int32      numPairs       = UINT32_MAX;  //  Number of pairs to generate, constant (= numReads / 2)
+  uint32     readLen        = 100;         //  Length of read to generate
+  uint64     numReads       = UINT64_MAX;  //  Number of reads to generate, constant
+  uint64     numPairs       = UINT64_MAX;  //  Number of pairs to generate, constant (= numReads / 2)
   double     readCoverage   = 0.0;         //  Number of pairs to generate, based on length of read
   double     cloneCoverage  = 0.0;         //  Number of pairs to generate, based on length of clone
 
@@ -1141,38 +1141,38 @@ main(int argc, char **argv) {
     uint32  cloneSize      = 0;
     uint32  cloneStdDev    = 0;
 
-    uint32  readNumReads   = UINT32_MAX;
-    uint32  readNumPairs   = UINT32_MAX;
+    uint64  readNumReads   = UINT64_MAX;
+    uint64  readNumPairs   = UINT64_MAX;
 
-    uint32  cloneNumReads  = UINT32_MAX;
-    uint32  cloneNumPairs  = UINT32_MAX;
+    uint64  cloneNumReads  = UINT64_MAX;
+    uint64  cloneNumPairs  = UINT64_MAX;
 
     if (peEnable) { cloneSize = peShearSize;  cloneStdDev = peShearStdDev; }
     if (mpEnable) { cloneSize = mpInsertSize; cloneStdDev = mpInsertStdDev; }
     if (ccEnable) { cloneSize = ccJunkSize;   cloneStdDev = ccJunkStdDev; }
 
     if (readCoverage > 0) {
-      readNumReads = (uint32)floor(readCoverage * (seqLen - numSeq) / readLen);
+      readNumReads = (uint64)floor(readCoverage * (seqLen - numSeq) / readLen);
       readNumPairs = readNumReads / 2;
     }
 
     if ((cloneCoverage > 0) && (seEnable == false)) {
-      cloneNumPairs = (uint32)floor(cloneCoverage * (seqLen - numSeq) / cloneSize);
+      cloneNumPairs = (uint64)floor(cloneCoverage * (seqLen - numSeq) / cloneSize);
       cloneNumReads = cloneNumPairs * 2;
     }
 
-    numReads = MIN(numReads, readNumReads);
-    numPairs = MIN(numPairs, readNumPairs);
+    numReads = min(numReads, readNumReads);
+    numPairs = min(numPairs, readNumPairs);
 
-    numReads = MIN(numReads, cloneNumReads);
-    numPairs = MIN(numPairs, cloneNumPairs);
+    numReads = min(numReads, cloneNumReads);
+    numPairs = min(numPairs, cloneNumPairs);
 
     if (seEnable)
-      fprintf(stderr, "Generate %.2f X read coverage of a %dbp genome with %u %dbp reads.\n",
+      fprintf(stderr, "Generate %.2f X read coverage of a %dbp genome with %lu %ubp reads.\n",
               (double)numReads * readLen / seqLen,
               seqLen - numSeq, numReads, readLen);
     else
-      fprintf(stderr, "Generate %.2f X read (%.2f X clone) coverage of a %dbp genome with %u pairs of %dbp reads from a clone of %d +- %dbp.\n",
+      fprintf(stderr, "Generate %.2f X read (%.2f X clone) coverage of a %dbp genome with %lu pairs of %dbp reads from a clone of %u +- %ubp.\n",
               (double)numReads * readLen / seqLen,
               (double)numPairs * cloneSize / seqLen,
               seqLen - numSeq, numPairs, readLen, cloneSize, cloneStdDev);

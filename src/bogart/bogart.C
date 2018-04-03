@@ -386,7 +386,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "filterOverlaps");
 
   RI = new ReadInfo(gkpStorePath, prefix, minReadLen);
-  OC = new OverlapCache(ovlStorePath, prefix, MAX(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
+  OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur);
   CG = new ChunkGraph(prefix);
 

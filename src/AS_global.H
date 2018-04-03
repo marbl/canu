@@ -94,13 +94,6 @@
 #include <omp.h>
 
 
-#ifndef MIN
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#endif
-#ifndef MAX
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#endif
-
 typedef int8_t  int8;
 typedef int16_t int16;
 typedef int32_t int32;

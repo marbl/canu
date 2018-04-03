@@ -174,8 +174,8 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
         return;
       }
 
-    Left  = MAX (Left  - 1, -ei);
-    Right = MIN (Right + 1,  ei);
+    Left  = max (Left  - 1, -ei);
+    Right = min (Right + 1,  ei);
 
     //fprintf(stderr, "REVERSE ei=%d Left=%d Right=%d\n", ei, Left, Right);
 

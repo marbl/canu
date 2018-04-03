@@ -389,7 +389,7 @@ main(int argc, char **argv) {
     uint32    maxReadsPerUnitig = 0;
 
     for (uint32 uu=0; uu<maxID; uu++)
-      maxReadsPerUnitig = MAX(maxReadsPerUnitig, numReadsPerUnitig[uu] + 1);
+      maxReadsPerUnitig = max(maxReadsPerUnitig, numReadsPerUnitig[uu] + 1);
 
     uint32   *totReadsPerNumReads  = new uint32 [maxReadsPerUnitig];
     uint32    totReads             = 0;

@@ -39,8 +39,8 @@
 
 uint32
 intervalOverlap(uint32 b1, uint32 e1, uint32 b2, uint32 e2) {
-  uint32 minmax = MIN(e1, e2);
-  uint32 maxmin = MAX(b1, b2);
+  uint32 minmax = min(e1, e2);
+  uint32 maxmin = max(b1, b2);
 
   if (minmax > maxmin)
     return(minmax - maxmin);

@@ -80,7 +80,7 @@ abColumn::allocateInitialBeads(void) {
   uint32   pmax = (_prevColumn != NULL) ? (_prevColumn->depth() + 1) : (4);
   uint32   nmax = (_nextColumn != NULL) ? (_nextColumn->depth() + 1) : (4);
 
-  _beadsMax = MAX(pmax, nmax);
+  _beadsMax = max(pmax, nmax);
   _beadsLen = 0;
   _beads    = new abBead [_beadsMax];
 
@@ -526,7 +526,7 @@ abAbacus::applyAlignment(uint32    bid,
   //  We used to check that alen and blen were both positive, but we now allow applyAlignment() of
   //  the first read (to an empty multialignment) to initialize the structure.
 
-  int32       apos     = MAX(ahang, 0);   //  if apos == alen, we'd just be pasting on new sequence.
+  int32       apos     = max(ahang, 0);   //  if apos == alen, we'd just be pasting on new sequence.
   int32       bpos     = 0;               //  if bpos == blen...we're pasting on one base?
 
   assert(apos <= alen);
@@ -667,7 +667,7 @@ abAbacus::applyAlignment(uint32    bid,
   //  Remaining alignment contains no indels, just slap in the bases.  Note that when there is
   //  no consensus sequence (this is the first read added) this loop does nothing; alen=apos=0.
 
-  for (int32 rem = MIN(blen - bpos, alen - apos); rem > 0; rem--) {
+  for (int32 rem = min(blen - bpos, alen - apos); rem > 0; rem--) {
 #ifdef DEBUG_ABACUS_ALIGN
     fprintf(stderr, "applyAlignment()--  align base %6d/%6d '%c' to column %7d (end of read)\n", bpos, blen, bseq->getBase(bpos), ncolumn->position());
 #endif

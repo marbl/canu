@@ -181,23 +181,23 @@ doStats(char *inName,
 
   //sort(seqLen.begin(), seqLen.end());
 
-  uint64   min        = UINT64_MAX;
-  uint64   max        = 0;
+  uint32   minLen     = UINT64_MAX;
+  uint32   maxLen     = 0;
 
   for (uint32 ii=0; ii<seqLen.size(); ii++) {
-    min = MIN(min, seqLen[ii]);
-    max = MAX(max, seqLen[ii]);
+    minLen = min(minLen, seqLen[ii]);
+    maxLen = max(maxLen, seqLen[ii]);
   }
 
-  uint64  *histogram  = new uint64 [max + 1];
+  uint64  *histogram  = new uint64 [maxLen + 1];
 
-  for (uint32 ii=0; ii<=max; ii++)
+  for (uint32 ii=0; ii<=maxLen; ii++)
     histogram[ii] = 0;
 
   for (uint32 ii=0; ii<seqLen.size(); ii++)
     histogram[seqLen[ii]]++;
 
-  for (uint32 ii=min; ii<=max; ii++)
+  for (uint32 ii=minLen; ii<=maxLen; ii++)
     fprintf(stdout, F_U32"\t" F_U64 "\n", ii, histogram[ii]);
 
   delete [] histogram;

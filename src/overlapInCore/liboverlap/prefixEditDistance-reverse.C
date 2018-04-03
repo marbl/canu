@@ -174,8 +174,8 @@ prefixEditDistance::reverse(char    *A,   int32 m,
     if (Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space(e);
 
-    Left  = MAX (Left  - 1, -e);
-    Right = MIN (Right + 1,  e);
+    Left  = max (Left  - 1, -e);
+    Right = min (Right + 1,  e);
 
     Edit_Array_Lazy[e - 1][Left     ] = -2;
     Edit_Array_Lazy[e - 1][Left  - 1] = -2;

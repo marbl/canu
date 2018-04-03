@@ -255,7 +255,7 @@ seqStore::getSequence(uint32 iid,
   //  Handle the partial block.  Copy what is left in the block, or
   //  the requested size, whichever is smaller.
 
-  uint32 partLen = MIN((_block[block]._pos + _block[block]._len - bgn),
+  uint32 partLen = min((uint32)(_block[block]._pos + _block[block]._len - bgn),
                        (end - bgn));
 
   if (_block[block]._isACGT == 0) {
@@ -280,7 +280,7 @@ seqStore::getSequence(uint32 iid,
     //  Like the partial block above, pick how much to copy as the
     //  smaller of the block size and what is left to fill.
 
-    partLen = MIN((_block[block]._len), (end - sPos));
+    partLen = min((uint32)(_block[block]._len), (end - sPos));
 
     if (_block[block]._isACGT == 0) {
       memset(s + sLen, 'N', partLen);

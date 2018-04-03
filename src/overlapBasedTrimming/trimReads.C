@@ -85,8 +85,8 @@ enforceMaximumClearRange(gkRead          *read,
   } else if ((fbgn < mbgn) ||
              (mend < fend)) {
     //  Final clear extends outside the maximum clear.
-    fbgn = MAX(fbgn, mbgn);
-    fend = MIN(fend, mend);
+    fbgn = max(fbgn, mbgn);
+    fend = min(fend, mend);
 
     strcat(logMsg, (logMsg[0]) ? " - " : "\t");
     strcat(logMsg, "adjusted to obey maximum allowed clear range");
