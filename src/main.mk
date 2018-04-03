@@ -76,7 +76,6 @@ SOURCES      := AS_global.C \
                 stores/libsnappy/snappy.cc \
                 \
                 meryl/libmeryl.C \
-                meryl/libsequence.C \
                 \
                 overlapInCore/overlapReadCache.C \
                 \
@@ -189,7 +188,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 meryl/libleaff.mk \
                 meryl/leaff.mk \
                 meryl/meryl.mk \
-                meryl/sequence.mk \
                 meryl/maskMers.mk \
                 meryl/simple.mk \
                 meryl/estimate-mer-threshold.mk \
