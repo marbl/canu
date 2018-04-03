@@ -183,7 +183,7 @@ The run will produce two assemblies, ecoliTrio/haplotypeK12/asm.contigs.fasta an
 
 and compare the contiguity/accuracy. The current version of trioCanu is not yet optimized for memory use so requires adjusted parameters for large genomes. Adding the options::
 
-  gridOptionsExecutive="--mem=250g" griodOptionsMeryl='--partition=largemem --mem=1000g'
+  gridOptionsExecutive="--mem=250g" gridOptionsMeryl='--partition=largemem --mem=1000g'
 
 should be sufficient for a mammalian genome.
 
