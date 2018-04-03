@@ -328,7 +328,7 @@ public:
 
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
-    Use_Haplo_Ct     = TRUE;
+    Use_Haplo_Ct     = true;
 
     //  Analyze_Alignment
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;

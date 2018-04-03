@@ -149,10 +149,10 @@ Mark_Screened_Ends_Single(String_Ref_t ref) {
   int32 len = String_Info[s_num].length;
 
   if (getStringRefOffset(ref) < HOPELESS_MATCH)
-    String_Info[s_num].lfrag_end_screened = TRUE;
+    String_Info[s_num].lfrag_end_screened = true;
 
   if (len - getStringRefOffset(ref) - G.Kmer_Len + 1 < HOPELESS_MATCH)
-    String_Info[s_num].rfrag_end_screened = TRUE;
+    String_Info[s_num].rfrag_end_screened = true;
 }
 
 
@@ -222,7 +222,7 @@ Hash_Mark_Empty(uint64 key, char * s) {
   }  while (++ ct < HASH_TABLE_SIZE);
 
   fprintf (stderr, "ERROR:  Hash table full\n");
-  assert (FALSE);
+  assert (false);
 }
 
 
@@ -346,7 +346,7 @@ Hash_Insert(String_Ref_t Ref, uint64 Key, char * S) {
   }  while (++ Ct < HASH_TABLE_SIZE);
 
   fprintf (stderr, "ERROR:  Hash table full\n");
-  assert (FALSE);
+  assert (false);
 }
 
 
@@ -538,8 +538,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     String_Start[String_Ct]                    = UINT64_MAX;
 
     String_Info[String_Ct].length              = 0;
-    String_Info[String_Ct].lfrag_end_screened  = TRUE;
-    String_Info[String_Ct].rfrag_end_screened  = TRUE;
+    String_Info[String_Ct].lfrag_end_screened  = true;
+    String_Info[String_Ct].rfrag_end_screened  = true;
 
     gkRead  *read = gkpStore->gkStore_getRead(curID);
 
@@ -562,8 +562,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     String_Start[String_Ct]                    = total_len;
 
     String_Info[String_Ct].length              = len;
-    String_Info[String_Ct].lfrag_end_screened  = FALSE;
-    String_Info[String_Ct].rfrag_end_screened  = FALSE;
+    String_Info[String_Ct].lfrag_end_screened  = false;
+    String_Info[String_Ct].rfrag_end_screened  = false;
 
     //  Store it.
 

@@ -206,7 +206,7 @@ unitigConsensus::generate(tgTig                     *tig_,
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+  if (initialize(inPackageRead_, inPackageReadData_) == false) {
     fprintf(stderr, "generate()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     goto returnFailure;
   }
@@ -744,7 +744,7 @@ unitigConsensus::generatePBDAG(char                       aligner,
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+  if (initialize(inPackageRead_, inPackageReadData_) == false) {
     fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
@@ -861,7 +861,7 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+  if (initialize(inPackageRead_, inPackageReadData_) == false) {
     fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
@@ -903,7 +903,7 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
   assert(numfrags == 1);
 
-  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+  if (initialize(inPackageRead_, inPackageReadData_) == false) {
     fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }

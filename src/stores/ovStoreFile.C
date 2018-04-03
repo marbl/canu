@@ -389,7 +389,7 @@ ovFile::readOverlap(ovOverlap *overlap) {
 
   assert(_bufferPos < _bufferLen);
 
-  if (_isNormal == FALSE)
+  if (_isNormal == false)
     overlap->a_iid      = _buffer[_bufferPos++];
 
   overlap->b_iid      = _buffer[_bufferPos++];
@@ -428,7 +428,7 @@ ovFile::readOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
     assert(_bufferPos < _bufferLen);
 
-    if (_isNormal == FALSE)
+    if (_isNormal == false)
       overlaps[nLoaded].a_iid      = _buffer[_bufferPos++];
 
     overlaps[nLoaded].b_iid      = _buffer[_bufferPos++];

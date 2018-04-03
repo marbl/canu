@@ -136,7 +136,7 @@ prefixEditDistance::forward(char    *A,   int32 m,
   if (Row == m) {
     // Exact match
     A_End = T_End = m;
-    Match_To_End = TRUE;
+    Match_To_End = true;
 #ifdef SHOW_EXTEND_ALIGN
     fprintf(stdout, "WorkArea %2d FWD exact match\n", omp_get_thread_num());
 #endif
@@ -202,7 +202,7 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
           Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
 
-          Match_To_End = FALSE;
+          Match_To_End = false;
 
 #ifdef SHOW_EXTEND_ALIGN
           fprintf(stdout, "WorkArea %2d FWD ABORT alignment at e=%d best_e=%d\n", omp_get_thread_num(), e, Max_Score_Best_e);
@@ -223,7 +223,7 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
         Set_Right_Delta (e, d);
 
-        Match_To_End = TRUE;
+        Match_To_End = true;
 
 #ifdef SHOW_EXTEND_ALIGN
         fprintf(stdout, "WorkArea %2d FWD END alignment at e=%d\n", omp_get_thread_num(), e);
@@ -280,7 +280,7 @@ prefixEditDistance::forward(char    *A,   int32 m,
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;
   Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
-  Match_To_End = FALSE;
+  Match_To_End = false;
   return  Max_Score_Best_e;
 }
 

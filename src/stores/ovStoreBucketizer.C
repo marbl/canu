@@ -153,12 +153,12 @@ main(int argc, char **argv) {
   snprintf(sliceSName, FILENAME_MAX, "%s/create%04u/sliceSizes", ovlName, bucketNum);  //  sliceSizes name before rename.
   snprintf(bucketName, FILENAME_MAX, "%s/bucket%04u",            ovlName, bucketNum);
 
-  if (AS_UTL_fileExists(createName, TRUE, FALSE) == true) {
+  if (AS_UTL_fileExists(createName, true, false) == true) {
     fprintf(stderr, "Job (appears to be) in progress; directory '%s' exists.\n", createName);
     exit(1);
   }
 
-  if (AS_UTL_fileExists(bucketName, FALSE, FALSE) == true) {
+  if (AS_UTL_fileExists(bucketName, false, false) == true) {
     fprintf(stderr, "Job finished; file '%s' exists.\n", sliceSName);
     exit(0);
   }

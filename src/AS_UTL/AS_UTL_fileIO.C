@@ -283,7 +283,7 @@ AS_UTL_mkdir(const char *dirname) {
 void
 AS_UTL_rmdir(const char *dirname) {
 
-  if (AS_UTL_fileExists(dirname, FALSE, FALSE) == false)
+  if (AS_UTL_fileExists(dirname, false, false) == false)
     return;
 
   errno = 0;
@@ -299,13 +299,13 @@ AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 
   //  Fail horribly if the file doesn't exist.
 
-  if (AS_UTL_fileExists(pathToFile, FALSE, FALSE) == false)
+  if (AS_UTL_fileExists(pathToFile, false, false) == false)
     fprintf(stderr, "AS_UTL_symlink()-- Original file '%s' doesn't exist, won't make a link to nothing.\n",
             pathToFile), exit(1);
 
   //  Succeed silently if the link already exists.
 
-  if (AS_UTL_fileExists(pathToLink, FALSE, FALSE) == true)
+  if (AS_UTL_fileExists(pathToLink, false, false) == true)
     return;
 
   //  Nope?  Make the link.
@@ -323,7 +323,7 @@ AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 void
 AS_UTL_unlink(const char *filename) {
 
-  if (AS_UTL_fileExists(filename, FALSE, FALSE) == false)
+  if (AS_UTL_fileExists(filename, false, false) == false)
     return;
 
   errno = 0;
@@ -339,7 +339,7 @@ AS_UTL_unlink(const char *filename) {
 void
 AS_UTL_rename(const char *oldname, const char *newname) {
 
-  if (AS_UTL_fileExists(oldname, FALSE, FALSE) == false)
+  if (AS_UTL_fileExists(oldname, false, false) == false)
     return;
 
   errno = 0;
@@ -676,7 +676,7 @@ compressedFileReader::compressedFileReader(const char *filename) {
 
   cftType   ft = compressedFileType(_filename);
 
-  if ((ft != cftSTDIN) && (AS_UTL_fileExists(_filename, FALSE, FALSE) == FALSE))
+  if ((ft != cftSTDIN) && (AS_UTL_fileExists(_filename, false, false) == false))
     fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", _filename, strerror(errno)), exit(1);
 
   errno = 0;

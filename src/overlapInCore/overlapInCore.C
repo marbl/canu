@@ -313,7 +313,7 @@ main(int argc, char **argv) {
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
-      G.Doing_Partial_Overlaps = TRUE;
+      G.Doing_Partial_Overlaps = true;
 
     } else if (strcmp(argv[arg], "-h") == 0) {
       AS_UTL_decodeRange(argv[++arg], G.bgnHashID, G.endHashID);
@@ -345,9 +345,9 @@ main(int argc, char **argv) {
         G.Frag_Olap_Limit = UINT64_MAX;
 
     } else if (strcmp(argv[arg], "-m") == 0) {
-      G.Unique_Olap_Per_Pair = FALSE;
+      G.Unique_Olap_Per_Pair = false;
     } else if (strcmp(argv[arg], "-u") == 0) {
-      G.Unique_Olap_Per_Pair = TRUE;
+      G.Unique_Olap_Per_Pair = true;
 
     } else if (strcmp(argv[arg], "--hashbits") == 0) {
       G.Hash_Mask_Bits = strtoull(argv[++arg], NULL, 10);
@@ -390,7 +390,7 @@ main(int argc, char **argv) {
       G.maxErate = strtof(argv[++arg], NULL);
 
     } else if (strcmp(argv[arg], "-z") == 0) {
-      G.Use_Hopeless_Check = FALSE;
+      G.Use_Hopeless_Check = false;
 
     } else {
       if (G.Frag_Store_Path == NULL) {
@@ -406,7 +406,7 @@ main(int argc, char **argv) {
   //  Fix up some flags if we're allowing high error rates.
   //
   if (G.maxErate > 0.06)
-    G.Use_Hopeless_Check = FALSE;
+    G.Use_Hopeless_Check = false;
 
   if (G.Kmer_Len == 0)
     fprintf(stderr, "* No kmer length supplied; -k needed!\n"), err++;

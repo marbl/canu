@@ -83,7 +83,7 @@ Add_Match(String_Ref_t ref,
           Work_Area_t * WA) {
   int  * p, save;
   int  diag = 0, new_diag, expected_start = 0, num_checked = 0;
-  int  move_to_front = FALSE;
+  int  move_to_front = false;
 
   new_diag = getStringRefOffset(ref) - offset;
 
@@ -106,7 +106,7 @@ Add_Match(String_Ref_t ref,
         }
         return;
       } else
-        move_to_front = TRUE;
+        move_to_front = true;
     }
     num_checked ++;
   }
@@ -127,7 +127,7 @@ Add_Match(String_Ref_t ref,
       && (num_checked > 0
           || abs (diag - new_diag) > 3
           || offset < expected_start + G.Kmer_Len - 2))
-    (* consistent) = FALSE;
+    (* consistent) = false;
 
   save = (* start);
   (* start) = WA->Next_Avail_Match_Node;
@@ -181,7 +181,7 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
 
       Sub = WA->Next_Avail_String_Olap ++;
       WA->String_Olap_Space [Prev].Next = Sub;
-      WA->String_Olap_Space [Sub].Full = FALSE;
+      WA->String_Olap_Space [Sub].Full = false;
       break;
     }
   }
@@ -194,8 +194,8 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
     WA->String_Olap_Space [Sub].diag_bgn = AS_MAX_READLEN;
     WA->String_Olap_Space [Sub].diag_end = 0;
     WA->String_Olap_Space [Sub].Next = 0;
-    WA->String_Olap_Space [Sub].Full = TRUE;
-    WA->String_Olap_Space [Sub].consistent = TRUE;
+    WA->String_Olap_Space [Sub].Full = true;
+    WA->String_Olap_Space [Sub].consistent = true;
   }
 
   consistent = WA->String_Olap_Space [Sub].consistent;
@@ -219,8 +219,8 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
 //  reference in the hash table if there is one, or else a reference
 //  with the  Empty bit set true.  Set  (* Where)  to the subscript in
 //  Extra_Ref_Space  where the reference was found if it was found there.
-//  Set  (* hi_hits)  to  TRUE  if hash table entry is found but is empty
-//  because it was screened out, otherwise set to FALSE.
+//  Set  (* hi_hits)  to  true  if hash table entry is found but is empty
+//  because it was screened out, otherwise set to false.
 static
 String_Ref_t
 Hash_Find(uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits) {
@@ -233,7 +233,7 @@ Hash_Find(uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits) {
   Key_Check = KEY_CHECK_FUNCTION (Key);
   Probe = PROBE_FUNCTION (Key);
 
-  (* hi_hits) = FALSE;
+  (* hi_hits) = false;
   Ct = 0;
   do {
     for (i = 0;  i < Hash_Table [Sub].Entry_Ct;  i ++)
@@ -254,7 +254,7 @@ Hash_Find(uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits) {
         if (strncmp (S, T, G.Kmer_Len) == 0) {
           if (is_empty) {
             setStringRefEmpty(H_Ref, TRUELY_ONE);
-            (* hi_hits) = TRUE;
+            (* hi_hits) = true;
           }
           return  H_Ref;
         }
@@ -300,8 +300,8 @@ Find_Overlaps(char Frag [], int Frag_Len, uint32 Frag_Num, Direction_t Dir, Work
   Offset = 0;
   P = Window = Frag;
 
-  WA->left_end_screened  = FALSE;
-  WA->right_end_screened = FALSE;
+  WA->left_end_screened  = false;
+  WA->right_end_screened = false;
 
   WA->A_Olaps_For_Frag = 0;
   WA->B_Olaps_For_Frag = 0;
@@ -321,10 +321,10 @@ Find_Overlaps(char Frag [], int Frag_Len, uint32 Frag_Num, Direction_t Dir, Work
   if ((Hash_Check_Array [Sub] & (((Check_Vector_t) 1) << Shift)) != 0) {
     Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
     if (hi_hits) {
-      WA->left_end_screened = TRUE;
+      WA->left_end_screened = true;
     }
     if (! getStringRefEmpty(Ref)) {
-      while (TRUE) {
+      while (true) {
         if (Frag_Num < getStringRefStringNum(Ref) + Hash_String_Num_Offset)
           Add_Ref  (Ref, Offset, WA);
 
@@ -358,14 +358,14 @@ Find_Overlaps(char Frag [], int Frag_Len, uint32 Frag_Num, Direction_t Dir, Work
       Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
       if (hi_hits) {
         if (Offset < HOPELESS_MATCH) {
-          WA->left_end_screened = TRUE;
+          WA->left_end_screened = true;
         }
         if (Frag_Len - Offset - G.Kmer_Len + 1 < HOPELESS_MATCH) {
-          WA->right_end_screened = TRUE;
+          WA->right_end_screened = true;
         }
       }
       if (! getStringRefEmpty(Ref)) {
-        while (TRUE) {
+        while (true) {
           if (Frag_Num < getStringRefStringNum(Ref) + Hash_String_Num_Offset)
             Add_Ref  (Ref, Offset, WA);
 

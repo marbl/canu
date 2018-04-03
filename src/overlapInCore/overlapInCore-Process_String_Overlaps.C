@@ -184,11 +184,11 @@ Merge_Intersecting_Olaps(Olap_Info_t p[], int ct, int deleted[]) {
           if  (p[i].quality < p[j].quality) {
             keep = p + i;
             discard = p + j;
-            deleted[j] = TRUE;
+            deleted[j] = true;
           } else {
             keep = p + j;
             discard = p + i;
-            deleted[i] = TRUE;
+            deleted[i] = true;
           }
           if  (discard->min_diag < keep->min_diag)
             keep->min_diag = discard->min_diag;
@@ -294,7 +294,7 @@ Add_Overlap(int s_lo, int s_hi, int t_lo, int t_hi, double qual, Olap_Info_t * o
 
 
 
-//  Return  TRUE  iff the exact match region beginning at
+//  Return  true  iff the exact match region beginning at
 //  position  start  in the first string and  offset  in
 //  the second string lies along the alignment from
 //   lo .. hi  on the first string where the delta-encoding
@@ -358,14 +358,14 @@ Choose_Best_Partial(Olap_Info_t * olap, int ct, int deleted[]) {
 
 
 
-//  Return  TRUE  iff there is any length-( window_len ) subarray
+//  Return  true  iff there is any length-( window_len ) subarray
 //  of  a[0 .. (n-1)]  that sums to  threshold  or higher.
 static
 int
 Has_Bad_Window(char *a, int n, int window_len, int threshold) {
 
   if (n < window_len)
-    return(FALSE);
+    return(false);
 
   int32 sum = 0;
   int32 i=0;
@@ -375,16 +375,16 @@ Has_Bad_Window(char *a, int n, int window_len, int threshold) {
     sum += a[i];
 
   if (sum >= threshold)
-    return(TRUE);
+    return(true);
 
   while (i < n) {
     sum -= a[j++];
     sum += a[i++];
     if (sum >= threshold)
-      return(TRUE);
+      return(true);
   }
 
-  return(FALSE);
+  return(false);
 }
 
 
@@ -420,7 +420,7 @@ Process_Matches (int * Start,
   int  Done_S_Left, Done_S_Right;
   int  Errors;
 
-  Done_S_Left = Done_S_Right = FALSE;
+  Done_S_Left = Done_S_Right = false;
   t_len = t_info.length;
 
   assert ((* Start) != 0);
@@ -432,26 +432,26 @@ Process_Matches (int * Start,
        && WA->Match_Node_Space[(* Start)].Next == 0
        && ! G.Doing_Partial_Overlaps) {
     int  s_head, t_head, s_tail, t_tail;
-    int  is_hopeless = FALSE;
+    int  is_hopeless = false;
 
     s_head = WA->Match_Node_Space[(* Start)].Start;
     t_head = WA->Match_Node_Space[(* Start)].Offset;
     if  (s_head <= t_head) {
       if  (s_head > HOPELESS_MATCH && ! WA->left_end_screened)
-        is_hopeless = TRUE;
+        is_hopeless = true;
     } else {
       if  (t_head > HOPELESS_MATCH  && ! t_info.lfrag_end_screened)
-        is_hopeless = TRUE;
+        is_hopeless = true;
     }
 
     s_tail = S_Len - s_head - WA->Match_Node_Space[(* Start)].Len + 1;
     t_tail = t_len - t_head - WA->Match_Node_Space[(* Start)].Len + 1;
     if  (s_tail <= t_tail) {
       if  (s_tail > HOPELESS_MATCH && ! WA->right_end_screened)
-        is_hopeless = TRUE;
+        is_hopeless = true;
     } else {
       if  (t_tail > HOPELESS_MATCH && ! t_info.rfrag_end_screened)
-        is_hopeless = TRUE;
+        is_hopeless = true;
     }
 
     if  (is_hopeless) {
@@ -466,7 +466,7 @@ Process_Matches (int * Start,
 
   while  ((* Start) != 0) {
     int  a_hang, b_hang;
-    int  hit_limit = FALSE;
+    int  hit_limit = false;
 
     Max_Len = WA->Match_Node_Space[(* Start)].Len;
     Longest_Match = WA->Match_Node_Space + (* Start);

@@ -44,7 +44,7 @@ operationBuild(char   *buildName,
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", buildName, strerror(errno)), exit(1);
 
-  if (AS_UTL_fileExists(tigName, TRUE, TRUE)) {
+  if (AS_UTL_fileExists(tigName, true, true)) {
     fprintf(stderr, "ERROR: '%s' exists, and I will not clobber an existing store.\n", tigName);
     exit(1);
   }

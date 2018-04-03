@@ -59,7 +59,7 @@ merTrimApply(char *gkpStoreName,
   if (errno)
     fprintf(stderr, "Failed to open -l '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
 
-  gkStore *gkpStore = gkStore::gkStore_open(gkpStoreName, FALSE, TRUE);
+  gkStore *gkpStore = gkStore::gkStore_open(gkpStoreName, false, true);
 
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_TNT);

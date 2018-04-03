@@ -93,12 +93,6 @@
 
 #include <omp.h>
 
-#ifndef TRUE
-#define TRUE true
-#endif
-#ifndef FALSE
-#define FALSE false
-#endif
 
 #ifndef MIN
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))

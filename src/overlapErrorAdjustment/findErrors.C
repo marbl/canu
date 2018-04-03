@@ -408,7 +408,7 @@ main(int argc, char **argv) {
       G->Kmer_Len = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
-      G->Use_Haplo_Ct = FALSE;
+      G->Use_Haplo_Ct = false;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       G->Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
