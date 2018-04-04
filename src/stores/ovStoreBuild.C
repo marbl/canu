@@ -180,7 +180,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
 
   if (totOverlaps == 0)
-    fprintf(stderr, "Found no overlaps to sort.\n"), exit(1);
+    fprintf(stderr, "Found no overlaps to sort.\n");
 
   //  Load overlaps into memory.
 

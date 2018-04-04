@@ -83,7 +83,7 @@ ovStoreConfig::assignReadsToSlices(gkStore        *gkp,
   fprintf(stderr, "\n");
 
   if (numOverlaps == 0)
-    fprintf(stderr, "Found no overlaps to sort.\n"), exit(1);
+    fprintf(stderr, "Found no overlaps to sort.\n");
 
 
   //
