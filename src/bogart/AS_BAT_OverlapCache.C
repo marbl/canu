@@ -510,9 +510,6 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
   uint32   numReads     = 0;
   uint64   numStore     = ovlStore->numOverlapsInRange();
 
-  if (numStore == 0)
-    writeStatus("ERROR: No overlaps in overlap store?\n"), exit(1);
-
   _overlapStorage = new OverlapStorage(ovlStore->numOverlapsInRange());
 
   //  Scan the overlaps, finding the maximum number of overlaps for a single read.  This lets
