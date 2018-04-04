@@ -201,6 +201,7 @@ public:
     _unusedC      = 0;
     _unusedD      = 0;
 
+    _ignore       = false;
     _unusedF      = 0;
     _cExists      = false;
     _tExists      = false;
