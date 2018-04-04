@@ -109,10 +109,18 @@ public:
     _ovsMagic   = ovStoreMagic;
     _ovsVersion = ovStoreVersion;
 
-    assert(_bgnID    != UINT32_MAX);
-    assert(_endID    != 0);
-    assert(_maxID    != 0);
-    assert(_numOlaps != 0);
+    if (_numOlaps == 0) {
+      fprintf(stderr, "WARNING:\n");
+      fprintf(stderr, "WARNING:  No overlaps loaded in to the store.\n");
+      fprintf(stderr, "WARNING:\n");
+    }
+
+    else {
+      assert(_bgnID    != UINT32_MAX);
+      assert(_endID    != 0);
+      assert(_maxID    != 0);
+      assert(_numOlaps != 0);
+    }
 
     //fprintf(stderr, "ovStoreInfo::save()-- bgnID=%u endID=%u maxID=%u numOlaps=%lu\n",
     //        _bgnID, _endID, _maxID, _numOlaps);
