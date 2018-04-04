@@ -301,7 +301,12 @@ ovStore::loadOverlapsForRead(uint32       id,
 void
 ovStore::setRange(uint32 bgnID, uint32 endID) {
 
-  //  Set and check ranges.
+  //  Remove the old file.
+
+  delete _bof;
+  _bof = NULL;
+
+  //  Set and check ranges.  Well, looks like more setting and less checking....
 
   _bgnID = bgnID;
   _curID = bgnID;
@@ -313,15 +318,22 @@ ovStore::setRange(uint32 bgnID, uint32 endID) {
          (_index[_curID]._numOlaps == 0))
     _curID++;
 
-  //  Open new file, and position at the correct spot.
+  //  If no overlaps, the range is already exhausted and we can just return.
 
-  delete _bof;
-  _bof = NULL;
-
-  if (_index[_curID]._slice == 0) {
-    fprintf(stderr, "ovStore::setRange(%u, %u)-- no overlaps in range\n", _bgnID, _endID);
+  if (_curID > _endID)
     return;
-  }
+
+  //  If no slice or piece, that's kind of bad and we blow ourself up.
+
+  if ((_index[_curID]._slice == 0) ||
+      (_index[_curID]._piece == 0))
+    fprintf(stderr, "ovStore::setRange(%u, %u)-- invalid slice/piece %u/%u for curID %u\n",
+            _bgnID, _endID, _index[_curID]._slice, _index[_curID]._piece, _curID);
+
+  assert(_index[_curID]._slice != 0);
+  assert(_index[_curID]._piece != 0);
+
+  //  Open new file, and position at the correct spot.
 
   _bof = new ovFile(_gkp, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
   _bof->seekOverlap(_index[_curID]._offset);
