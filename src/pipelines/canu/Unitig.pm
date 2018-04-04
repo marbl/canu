@@ -243,11 +243,11 @@ sub unitig ($) {
     print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
     print F "\n";
     print F "if [ ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
-    print F "  \$bin/tgStoreDump \\\n";                    #  Duplicated in reportUnitigSizes()
+    print F "  \$bin/tgStoreDump \\\n";                     #  Duplicated in reportUnitigSizes()
     print F "    -G ../$asm.gkpStore \\\n";                 #  Done here so we don't need another
     print F "    -T ../$asm.ctgStore 1 \\\n";               #  pull of gkpStore and ctgStore
     print F "    -sizes -s " . getGlobal("genomeSize") . " \\\n";
-    print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt";
+    print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt\n";
     print F "fi\n";
     print F "\n";
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.sizes.txt", "");
