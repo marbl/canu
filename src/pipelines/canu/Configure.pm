@@ -680,18 +680,18 @@ sub configureAssembler () {
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("300m")) {
         setGlobalIfUndef("ovsMethod", "sequential");
-        setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "2-8");     setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovbMemory",   "4");       setGlobalIfUndef("ovbThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "4-8");     setGlobalIfUndef("ovsThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("ovsMethod", "parallel");
-        setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "4-16");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovbMemory",   "4");       setGlobalIfUndef("ovbThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "8-16");    setGlobalIfUndef("ovsThreads",   "1");
 
     } else {
         setGlobalIfUndef("ovsMethod", "parallel");
-        setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "4-32");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovbMemory",   "4");       setGlobalIfUndef("ovbThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "16-32");   setGlobalIfUndef("ovsThreads",   "1");
     }
 
     #  Correction and consensus are somewhat invariant.
@@ -749,24 +749,24 @@ sub configureAssembler () {
     setGlobalIfUndef("oeaBatchLength", "300000000");
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("redMemory",   "2-4");    setGlobalIfUndef("redThreads",   "1-4");
-        setGlobalIfUndef("oeaMemory",   "4");      setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory", "4-8");         setGlobalIfUndef("redThreads", "2-4");
+        setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("redMemory",   "4-8");    setGlobalIfUndef("redThreads",   "1-4");
-        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory", "4-8");         setGlobalIfUndef("redThreads", "2-4");
+        setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("redMemory",   "4-8");    setGlobalIfUndef("redThreads",   "2-4");
-        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory", "4-8");         setGlobalIfUndef("redThreads", "2-4");
+        setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-        setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "2-4");
-        setGlobalIfUndef("oeaMemory",   "8");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory", "8-16");        setGlobalIfUndef("redThreads", "4-8");
+        setGlobalIfUndef("oeaMemory", "8");           setGlobalIfUndef("oeaThreads", "1");
 
     } else {
-        setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "2-4");
-        setGlobalIfUndef("oeaMemory",   "8");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("redMemory", "8-16");        setGlobalIfUndef("redThreads", "4-8");
+        setGlobalIfUndef("oeaMemory", "8");           setGlobalIfUndef("oeaThreads", "1");
     }
 
     #  And bogart and GFA alignment/processing.
@@ -774,24 +774,24 @@ sub configureAssembler () {
     #  GFA for genomes less than 40m is run in the canu process itself.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("batMemory",   "2-16");        setGlobalIfUndef("batThreads",   "1-4");
-        setGlobalIfUndef("gfaMemory",   "2-8");         setGlobalIfUndef("gfaThreads",   "1-4");
+        setGlobalIfUndef("batMemory", "4-16");        setGlobalIfUndef("batThreads", "2-4");
+        setGlobalIfUndef("gfaMemory", "2-8");         setGlobalIfUndef("gfaThreads", "1-4");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("batMemory",   "16-64");       setGlobalIfUndef("batThreads",   "2-8");
-        setGlobalIfUndef("gfaMemory",   "4-8");         setGlobalIfUndef("gfaThreads",   "2-8");
+        setGlobalIfUndef("batMemory", "16-64");       setGlobalIfUndef("batThreads", "2-8");
+        setGlobalIfUndef("gfaMemory", "4-8");         setGlobalIfUndef("gfaThreads", "2-8");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("batMemory",   "32-256");      setGlobalIfUndef("batThreads",   "4-16");
-        setGlobalIfUndef("gfaMemory",   "8-16");         setGlobalIfUndef("gfaThreads",  "4-16");
+        setGlobalIfUndef("batMemory", "32-256");      setGlobalIfUndef("batThreads", "4-16");
+        setGlobalIfUndef("gfaMemory", "8-16");        setGlobalIfUndef("gfaThreads", "4-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-        setGlobalIfUndef("batMemory",   "128-512");     setGlobalIfUndef("batThreads",   "8-32");
-        setGlobalIfUndef("gfaMemory",   "16-32");        setGlobalIfUndef("gfaThreads",  "8-32");
+        setGlobalIfUndef("batMemory", "128-512");     setGlobalIfUndef("batThreads", "8-32");
+        setGlobalIfUndef("gfaMemory", "16-32");       setGlobalIfUndef("gfaThreads", "8-32");
 
     } else {
-        setGlobalIfUndef("batMemory",   "256-1024");    setGlobalIfUndef("batThreads",   "16-64");
-        setGlobalIfUndef("gfaMemory",   "32-64");       setGlobalIfUndef("gfaThreads",   "16-64");
+        setGlobalIfUndef("batMemory", "256-1024");    setGlobalIfUndef("batThreads", "16-64");
+        setGlobalIfUndef("gfaMemory", "32-64");       setGlobalIfUndef("gfaThreads", "16-64");
     }
 
 
