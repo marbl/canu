@@ -329,15 +329,23 @@ main(int argc, char **argv) {
   if (endID < bgnID)
     fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID), exit(1);
 
-  if ((dumpRaw == true) && (gkpStore->gkStore_getNumRawReads() == 0))
-    fprintf(stderr, "No raw reads in store.\n"), exit(1);
+  if ((dumpRaw == true) && (gkpStore->gkStore_getNumRawReads() == 0)) {
+    fprintf(stderr, "WARNING:\n");
+    fprintf(stderr, "WARNING:  No raw reads in store.\n");
+    fprintf(stderr, "WARNING:\n");
+  }
 
-  if ((dumpCorrected == true) && (gkpStore->gkStore_getNumCorrectedReads() == 0))
-    fprintf(stderr, "No corrected reads in store.\n"), exit(1);
+  if ((dumpCorrected == true) && (gkpStore->gkStore_getNumCorrectedReads() == 0)) {
+    fprintf(stderr, "WARNING:\n");
+    fprintf(stderr, "WARNING:  No corrected reads in store.\n");
+    fprintf(stderr, "WARNING:\n");
+  }
 
-  if ((dumpTrimmed == true) && (gkpStore->gkStore_getNumTrimmedReads() == 0))
-    fprintf(stderr, "No trimmed reads in store.\n"), exit(1);
-
+  if ((dumpTrimmed == true) && (gkpStore->gkStore_getNumTrimmedReads() == 0)) {
+    fprintf(stderr, "WARNING:\n");
+    fprintf(stderr, "WARNING:  No trimmed reads in store.\n");
+    fprintf(stderr, "WARNING:\n");
+  }
 
 
   if (gkpStorePart == UINT32_MAX)
