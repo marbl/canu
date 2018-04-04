@@ -152,6 +152,8 @@ public:
   FILE *operator*(void)     {  return(_file);              };
   FILE *file(void)          {  return(_file);              };
 
+  char *filename(void)      {  return(_filename);          };
+
   bool  isCompressed(void)  {  return(_pipe == true);      };
   bool  isNormal(void)      {  return((_pipe == false) &&
                                       (_stdi == false));   };
@@ -172,6 +174,8 @@ public:
 
   FILE *operator*(void)     {  return(_file);          };
   FILE *file(void)          {  return(_file);          };
+
+  char *filename(void)      {  return(_filename);          };
 
   bool  isCompressed(void)  {  return(_pipe == true);  };
 
