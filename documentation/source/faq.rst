@@ -92,11 +92,10 @@ What parameters should I use for my reads?
        with ``correctedErrorRate=0.120``
 
     **Early PacBio Sequel**
-       Based on exactly one publically released *A. thaliana* `dataset
+       Based on one publically released *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
-       slightly decrease the maximum allowed difference from the default of 4.5% to 4.0% with
-       ``correctedErrorRate=0.040 corMhapSensitivity=normal``.  For recent Sequel data, the defaults
-       seem to be appropriate.
+       and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 6.5% with
+       ``correctedErrorRate=0.065 corMhapSensitivity=normal``.  
    
    **Nanopore R9 large genomes**
        Due to some systematic errors, the identity estimate used by Canu for correction can be an
