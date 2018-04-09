@@ -363,11 +363,15 @@ sub generateReadLengthHistogram ($$) {
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
 
-    my $nb = 0;
+    my $reads    = getNumberOfReadsInStore($tag, $asm);
+    my $bases    = getNumberOfBasesInStore($tag, $asm);
+    my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
+    my $hist;
+
     my @rl;
     my @hi;
-    my $minLen = 999999;
-    my $maxLen = 0;
+
+    #  Load the read lengths, find min and max lengths.
 
     open(F, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -reads |") or caExit("can't dump meta data from './$asm.gkpStore': $!", undef);
     while (<F>) {
@@ -384,108 +388,101 @@ sub generateReadLengthHistogram ($$) {
         $l = $v[4]          if (($tag eq "obt"));
         $l = $v[6] - $v[5]  if (($tag eq "utg"));
 
-        if ($l > 0) {
-            push @rl, $l;              #  Save the length
-            $nb += $l;                 #  Sum the bases
-
-            $minLen = ($minLen < $l) ? $minLen : $l;
-            $maxLen = ($l < $maxLen) ? $maxLen : $l;
-        }
+        push @rl, $l   if ($l > 0);
     }
     close(F);
 
     @rl = sort { $a <=> $b } @rl;
 
-    #  Buckets of size 1000 are easy to interpret, but sometimes not ideal.
+    #  Generate PNG histograms if there are any reads.
 
-    my $bucketSize = 0;
+    if ($reads > 0) {
+        my $gnuplot = getGlobal("gnuplot");
+        my $format  = getGlobal("gnuplotImageFormat");
 
-    if      ($maxLen - $minLen < 10000) {
-        $bucketSize = 100;
-    } elsif ($maxLen - $minLen < 100000) {
-        $bucketSize = 1000;
-    } elsif ($maxLen - $minLen < 1000000) {
-        $bucketSize = 5000;
-    } else {
-        $bucketSize = 10000;
+        open(F, "> ./$asm.gkpStore/readlengths-$tag.gp") or caExit("can't open './$asm.gkpStore/readlengths-$tag.gp' for writing: $!", undef);
+        print F "set title 'read length'\n";
+        print F "set xlabel 'read length, bin width = 250'\n";
+        print F "set ylabel 'number of reads'\n";
+        print F "\n";
+        print F "binwidth=250\n";
+        print F "set boxwidth binwidth\n";
+        print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
+        print F "\n";
+        print F "set terminal $format size 1024,1024\n";
+        print F "set output './$asm.gkpStore/readlengths-$tag.lg.$format'\n";
+        print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+        print F "\n";
+        print F "set terminal $format size 256,256\n";
+        print F "set output './$asm.gkpStore/readlengths-$tag.sm.$format'\n";
+        print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+        close(F);
+
+        open(F, "> ./$asm.gkpStore/readlengths-$tag.dat") or caExit("can't open './$asm.gkpStore/readlengths-$tag.dat' for writing: $!", undef);
+        foreach my $rl (@rl) {
+            print F "$rl\n";
+        }
+        close(F);
+
+        if (runCommandSilently(".", "$gnuplot ./$asm.gkpStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
+            print STDERR "--\n";
+            print STDERR "-- WARNING: gnuplot failed.\n";
+            print STDERR "--\n";
+            print STDERR "----------------------------------------\n";
+        }
     }
 
-    #  Generate the histogram (int truncates)
-
-    my $mBgn = int($minLen / $bucketSize);
-    my $mEnd = int($maxLen / $bucketSize);
-
-    foreach my $rl (@rl) {
-        my $b = int($rl / $bucketSize);
-
-        $hi[$b]++;
-    }
-
-    #  Write the sorted read lengths (for gnuplot) and the maximum read length (for correction consensus)
-
-    open(F, "> ./$asm.gkpStore/readlengths-$tag.dat") or caExit("can't open './$asm.gkpStore/readlengths-$tag.dat' for writing: $!", undef);
-    foreach my $rl (@rl) {
-        print F "$rl\n";
-    }
-    close(F);
-
-    #  Generate PNG histograms
-
-    my $gnuplot = getGlobal("gnuplot");
-    my $format  = getGlobal("gnuplotImageFormat");
-
-    open(F, "> ./$asm.gkpStore/readlengths-$tag.gp") or caExit("can't open './$asm.gkpStore/readlengths-$tag.gp' for writing: $!", undef);
-    print F "set title 'read length'\n";
-    print F "set xlabel 'read length, bin width = 250'\n";
-    print F "set ylabel 'number of reads'\n";
-    print F "\n";
-    print F "binwidth=250\n";
-    print F "set boxwidth binwidth\n";
-    print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
-    print F "\n";
-    print F "set terminal $format size 1024,1024\n";
-    print F "set output './$asm.gkpStore/readlengths-$tag.lg.$format'\n";
-    print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
-    print F "\n";
-    print F "set terminal $format size 256,256\n";
-    print F "set output './$asm.gkpStore/readlengths-$tag.sm.$format'\n";
-    print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
-    close(F);
-
-    if (runCommandSilently(".", "$gnuplot ./$asm.gkpStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
-        print STDERR "--\n";
-        print STDERR "-- WARNING: gnuplot failed.\n";
-        print STDERR "--\n";
-        print STDERR "----------------------------------------\n";
-    }
-
-    #  Generate the ASCII histogram
-
-    my $reads    = getNumberOfReadsInStore($tag, $asm);
-    my $bases    = getNumberOfBasesInStore($tag, $asm);
-    my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
-    my $scale    = 0;
-    my $hist;
-
-    for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {                           #  Scale the *'s so that the longest has 70 of 'em
-        $scale = $hi[$ii] / 70   if ($scale < $hi[$ii] / 70);
-    }
+    #  Generate the ASCII histogram.
 
     $hist  = "--\n";
     $hist .= "-- In gatekeeper store './$asm.gkpStore':\n";
     $hist .= "--   Found $reads reads.\n";
     $hist .= "--   Found $bases bases ($coverage times coverage).\n";
-    $hist .= "--\n";
-    $hist .= "--   Read length histogram (one '*' equals " . int(100 * $scale) / 100 . " reads):\n";
 
-    for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {
-        my $s = $ii * $bucketSize;
-        my $e = $ii * $bucketSize + $bucketSize - 1;
+    if ($reads > 0) {
+        my $minLen     = $rl[ 0];
+        my $maxLen     = $rl[-1];
+        my $scale      = 0;
+        my $bucketSize = 0;
 
-        $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
+        #  Buckets of size 1000 are easy to interpret, but sometimes not ideal.
 
-        $hist .= sprintf("--   %6d %6d %6d %s\n", $s, $e, $hi[$ii], "*" x int($hi[$ii] / $scale));
+        $bucketSize = 10000;
+        $bucketSize = 5000    if ($maxLen - $minLen < 1000000);
+        $bucketSize = 1000    if ($maxLen - $minLen < 100000);
+        $bucketSize = 100     if ($maxLen - $minLen < 10000);
+
+        #  Generate the histogram (int truncates)
+
+        my $mBgn = int($minLen / $bucketSize);
+        my $mEnd = int($maxLen / $bucketSize);
+
+        foreach my $rl (@rl) {
+            my $b = int($rl / $bucketSize);
+
+            $hi[$b]++;
+        }
+
+        for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {                           #  Scale the *'s so that the longest has 70 of 'em
+            $scale = $hi[$ii] / 70   if ($scale < $hi[$ii] / 70);
+        }
+
+        #  Draw the histogram.
+
+        $hist .= "--\n";
+        $hist .= "--   Read length histogram (one '*' equals " . int(100 * $scale) / 100 . " reads):\n";
+
+        for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {
+            my $s = $ii * $bucketSize;
+            my $e = $ii * $bucketSize + $bucketSize - 1;
+
+            $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
+
+            $hist .= sprintf("--   %6d %6d %6d %s\n", $s, $e, $hi[$ii], "*" x int($hi[$ii] / $scale));
+        }
     }
+
+    #  Return the ASCII histogram.
 
     return($hist);
 }
@@ -610,9 +607,6 @@ sub gatekeeper ($$@) {
         print STDERR "-- WARNING:  No trimmed ",   "reads detected.  Cannot proceed; empty outputs generated.\n"  if ($tag eq "utg");
         print STDERR "-- WARNING:\n";
         print STDERR "--\n";
-
-        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.correctedReads.gz 2> /dev/null", 0)   if (! -e "$asm.correctedReads.gz");
-        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
 
         generateOutputs($asm);
 
