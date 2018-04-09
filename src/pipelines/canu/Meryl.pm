@@ -93,7 +93,7 @@ sub merylGenerateHistogram ($$) {
     my @tc;  #  Total count
     my @fu;  #  Fraction unique
     my @ft;  #  Fraction total
-    my $mc;
+    my $mc;  #  Max count seen
 
     open(F, "< $path/$ofile.histogram");
     while (<F>) {
@@ -105,51 +105,13 @@ sub merylGenerateHistogram ($$) {
     }
     close(F);
 
-    #  Prune the high-count kmers
-    #
-    #  In blocks of 40, extend the histogram until the average of the next block is nearly the same
-    #  as the average of this block.
-if (0) {
-    my $lo      = 2;
-    my $hi      = 3;
-    my $st      = 1;
-    my $aveLast = 0;
-    my $aveThis = 0;
+    #  Find blocks for the histogram.
 
-    for (my $ii=$lo; $ii<$hi; $ii++) {
-        $aveThis += $tc[$ii];
-    }
-    $aveThis /= ($hi - $lo);
-    $aveLast  = 0;
+    my @TC;  #  Total count in the i'th histogram block
+    my @FU;  #  Fraction unique ...
+    my @FT;  #  Fraction total  ...
 
-    print STDERR "aveLast $aveLast aveThis $aveThis $lo $hi INITIAL\n";
-
-    while (($hi < $mc) &&
-           ($aveThis > 2) &&
-           (($aveThis < 0.90 * $aveLast) ||
-            ($aveLast < 0.90 * $aveThis))) {
-        $lo += $st;
-        $hi += $st;
-        $st += 1;
-
-        $aveLast = $aveThis;
-        $aveThis = 0;
-
-        for (my $ii=$lo; $ii<$hi; $ii++) {
-            $aveThis += $tc[$ii];
-        }
-        $aveThis /= ($hi - $lo);
-        print STDERR "aveLast $aveLast aveThis $aveThis $lo $hi\n";
-    }
-
-    print STDERR "aveLast $aveLast aveThis $aveThis $lo $hi FINAL\n";
-}
-
-    my @TC;
-    my @FU;
-    my @FT;
-
-    my $TCmax  = 0;
+    my $TCmax  = 0;   #  Max count of of any block, excluding the first (we ignore the tail of this block when drawing the histogram)
 
     my $lo = 1;
     my $hi = 2;
@@ -172,8 +134,16 @@ if (0) {
         $st += 1;
     }
 
-    my $maxY   = $lo;
-    my $Xscale = $TCmax / 70;
+    if ($TCmax == 0) {           #  A pathological case; if all kmers are unique,
+        $TCmax = $TC[0];         #  no max size is set, Xscale is zero,
+    }                            #  and we fail.
+
+    my $maxY   = 1;              #  Last count to include in the histogram.
+    my $Xscale = $TCmax / 70;    #  Scale of each * in the histogram.
+
+    for (my $ii=0; $ii <= 40; $ii++) {
+        $maxY = $ii  if ($TC[$ii] > 0);
+    }
 
     #  Now just draw the histogram
 
