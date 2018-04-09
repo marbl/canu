@@ -273,8 +273,15 @@ sub dumpTrimmedReads ($) {
 
     unlink "./$asm.trimmedReads.fasta.err";
 
-    print STDERR "--\n";
-    print STDERR "-- Trimmed reads saved in '", sequenceFileExists("$asm.trimmedReads"), "'.\n";
+    my $out = sequenceFileExists("$asm.trimmedReads");
+
+    if (defined($out)) {
+        print STDERR "--\n";
+        print STDERR "-- Trimmed reads saved in '$out'.\n";
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- No trimmed reads output from '$asm.gkpStore'.\n";
+    }
 
   finishStage:
     emitStage($asm, "cor-dumpTrimmedReads");

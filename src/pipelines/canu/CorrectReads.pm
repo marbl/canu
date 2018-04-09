@@ -757,9 +757,15 @@ sub dumpCorrectedReads ($) {
 
     unlink "./$asm.correctedReads.fasta.err";
 
-    print STDERR "--\n";
-    print STDERR "-- Corrected reads saved in '", sequenceFileExists("$asm.correctedReads"), "'.\n";
+    my $out = sequenceFileExists("$asm.correctedReads");
 
+    if (defined($out)) {
+        print STDERR "--\n";
+        print STDERR "-- Corrected reads saved in '$out'.\n";
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- No corrected reads output from '$asm.gkpStore'.\n";
+    }
 
   finishStage:
     emitStage($asm, "cor-dumpCorrectedReads");
