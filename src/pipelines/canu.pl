@@ -616,25 +616,25 @@ if (setOptions($mode, "correct") eq "correct") {
         print STDERR "-- BEGIN CORRECTION\n";
         print STDERR "--\n";
 
-        gatekeeper($asm, "cor", @inputFiles);
+        if (gatekeeper($asm, "cor", @inputFiles)) {
+            merylConfigure($asm, "cor");
+            merylCheck($asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
+            merylProcess($asm, "cor");
 
-        merylConfigure($asm, "cor");
-        merylCheck($asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
-        merylProcess($asm, "cor");
+            overlap($asm, "cor");
 
-        overlap($asm, "cor");
+            setupCorrectionParameters($asm);
 
-        setupCorrectionParameters($asm);
+            buildCorrectionLayoutsConfigure($asm);
+            buildCorrectionLayoutsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
 
-        buildCorrectionLayoutsConfigure($asm);
-        buildCorrectionLayoutsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
+            filterCorrectionLayouts($asm);
 
-        filterCorrectionLayouts($asm);
+            generateCorrectedReadsConfigure($asm);
+            generateCorrectedReadsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
 
-        generateCorrectedReadsConfigure($asm);
-        generateCorrectedReadsCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
-
-        loadCorrectedReads($asm);
+            loadCorrectedReads($asm);
+        }
     }
 }
 
@@ -647,18 +647,18 @@ if (setOptions($mode, "trim") eq "trim") {
         print STDERR "-- BEGIN TRIMMING\n";
         print STDERR "--\n";
 
-        gatekeeper($asm, "obt", @inputFiles);
+        if (gatekeeper($asm, "obt", @inputFiles)) {
+            merylConfigure($asm, "obt");
+            merylCheck($asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
+            merylProcess($asm, "obt");
 
-        merylConfigure($asm, "obt");
-        merylCheck($asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
-        merylProcess($asm, "obt");
+            overlap($asm, "obt");
 
-        overlap($asm, "obt");
+            trimReads($asm);
+            splitReads($asm);
 
-        trimReads($asm);
-        splitReads($asm);
-
-        loadTrimmedReads($asm);
+            loadTrimmedReads($asm);
+        }
     }
 }
 
@@ -671,38 +671,38 @@ if (setOptions($mode, "assemble") eq "assemble") {
         print STDERR "-- BEGIN ASSEMBLY\n";
         print STDERR "--\n";
 
-        gatekeeper($asm, "utg", @inputFiles);
+        if (gatekeeper($asm, "utg", @inputFiles)) {
+            merylConfigure($asm, "utg");
+            merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
+            merylProcess($asm, "utg");
 
-        merylConfigure($asm, "utg");
-        merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
-        merylProcess($asm, "utg");
+            overlap($asm, "utg");
 
-        overlap($asm, "utg");
+            #readErrorDetection($asm);
 
-        #readErrorDetection($asm);
+            readErrorDetectionConfigure($asm);
+            readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-        readErrorDetectionConfigure($asm);
-        readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+            overlapErrorAdjustmentConfigure($asm);
+            overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-        overlapErrorAdjustmentConfigure($asm);
-        overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+            updateOverlapStore($asm);
 
-        updateOverlapStore($asm);
+            unitig($asm);
+            unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-        unitig($asm);
-        unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+            foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
+                consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
+                consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
+            }
 
-        foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
-            consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
-            consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
+            consensusLoad($asm);
+            consensusAnalyze($asm);
+
+            alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+
+            generateOutputs($asm);
         }
-
-        consensusLoad($asm);
-        consensusAnalyze($asm);
-
-        alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-
-        generateOutputs($asm);
     }
 }
 

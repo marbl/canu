@@ -57,6 +57,7 @@ use Cwd qw(getcwd);
 use canu::Defaults;
 use canu::Execution;
 use canu::Report;
+use canu::Output;
 use canu::Grid_Cloud;
 
 
@@ -596,6 +597,28 @@ sub gatekeeper ($$@) {
         stashStore("./$asm.gkpStore");
     }
 
+    #  Refuse to conitnue if there are no reads.
+
+    if ((($tag eq "cor") && ($nCor == 0)) ||
+        (($tag eq "obt") && ($nOBT == 0)) ||
+        (($tag eq "utg") && ($nAsm == 0))) {
+
+        print STDERR "--\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  No raw ",       "reads detected.  Cannot proceed; empty outputs generated.\n"  if ($tag eq "cor");
+        print STDERR "-- WARNING:  No corrected ", "reads detected.  Cannot proceed; empty outputs generated.\n"  if ($tag eq "obt");
+        print STDERR "-- WARNING:  No trimmed ",   "reads detected.  Cannot proceed; empty outputs generated.\n"  if ($tag eq "utg");
+        print STDERR "-- WARNING:\n";
+        print STDERR "--\n";
+
+        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.correctedReads.gz 2> /dev/null", 0)   if (! -e "$asm.correctedReads.gz");
+        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
+
+        generateOutputs($asm);
+
+        return(0);
+    }
+
   finishStage:
     ;  #  Perl 5.10 (at least) is VERY unhappy about having two adjacent labels.
     #  DO NOT emitStage() here.  It resets canuIteration, and doesn't need to.
@@ -603,4 +626,6 @@ sub gatekeeper ($$@) {
 
   allDone:
     stopAfter("gatekeeper");
+
+    return(1);
 }
