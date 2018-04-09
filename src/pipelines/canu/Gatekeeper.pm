@@ -558,7 +558,7 @@ sub gatekeeper ($$@) {
     my $nOBT = getNumberOfReadsInStore("obt", $asm);   #  Number of corrected reads ready for OBT.
     my $nAsm = getNumberOfReadsInStore("utg", $asm);   #  Number of trimmed reads ready for assembly.
 
-    #  Refuse to assemble uncorrected reads (but keep going if there are no reads at all).
+    #  Refuse to assemble uncorrected reads.
 
     if (($tag eq "utg") &&    #  Assembling.
         ($nCor >  0) &&       #  And raw reads exist.
