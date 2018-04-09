@@ -50,6 +50,7 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
+use canu::Output;
 use canu::Grid_Cloud;
 
 
@@ -259,19 +260,26 @@ sub dumpTrimmedReads ($) {
     goto allDone   if (getGlobal("saveReads") == 0);
     return         if (! -d "trimming/$asm.gkpStore");  #  No trimming done, nothing to do.
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-    $cmd .= "  -trimmed \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
-    $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
-    $cmd .= "  -fasta \\\n";
-    $cmd .= "  -nolibname \\\n";
-    $cmd .= "> ./$asm.trimmedReads.fasta.err 2>&1";
+    #  If no trimmed reads exist, don't bother trying to dump them.
 
-    if (runCommand(".", $cmd)) {
-        caExit("failed to output trimmed reads", "./$asm.trimmedReads.fasta.err");
+    if (getNumberOfReadsInStore("utg", $asm) > 0) {
+        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+        $cmd .= "  -trimmed \\\n";
+        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
+        $cmd .= "  -fasta \\\n";
+        $cmd .= "  -nolibname \\\n";
+        $cmd .= "> ./$asm.trimmedReads.fasta.err 2>&1";
+
+        if (runCommand(".", $cmd)) {
+            caExit("failed to output trimmed reads", "./$asm.trimmedReads.fasta.err");
+        }
+
+        unlink "./$asm.trimmedReads.fasta.err";
     }
 
-    unlink "./$asm.trimmedReads.fasta.err";
+    #  If the trimmed reads file exists, report so.
+    #  Otherwise, report no trimmed reads, and generate fake outputs so we terminate.
 
     my $out = sequenceFileExists("$asm.trimmedReads");
 
@@ -280,7 +288,14 @@ sub dumpTrimmedReads ($) {
         print STDERR "-- Trimmed reads saved in '$out'.\n";
     } else {
         print STDERR "--\n";
-        print STDERR "-- No trimmed reads output from '$asm.gkpStore'.\n";
+        print STDERR "-- Yikes!  No trimmed reads generated!\n";
+        print STDERR "-- Can't proceed!\n";
+        print STDERR "--\n";
+        print STDERR "-- Generating empty outputs.\n";
+
+        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
+
+        generateOutputs($asm);
     }
 
   finishStage:

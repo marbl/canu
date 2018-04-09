@@ -51,6 +51,7 @@ use canu::Configure;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Report;
+use canu::Output;
 use canu::Grid_Cloud;
 
 
@@ -743,19 +744,26 @@ sub dumpCorrectedReads ($) {
     goto allDone   if (getGlobal("saveReads") == 0);
     return         if (! -d "correction/$asm.gkpStore");  #  No corrections done, nothing to do.
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-    $cmd .= "  -corrected \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
-    $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
-    $cmd .= "  -fasta \\\n";
-    $cmd .= "  -nolibname \\\n";
-    $cmd .= "> $asm.correctedReads.fasta.err 2>&1";
+    #  If no corrected reads exist, don't bother trying to dump them.
 
-    if (runCommand(".", $cmd)) {
-        caExit("failed to output corrected reads", "./$asm.correctedReads.fasta.err");
+    if (getNumberOfReadsInStore("obt", $asm) > 0) {
+        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+        $cmd .= "  -corrected \\\n";
+        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
+        $cmd .= "  -fasta \\\n";
+        $cmd .= "  -nolibname \\\n";
+        $cmd .= "> $asm.correctedReads.fasta.err 2>&1";
+
+        if (runCommand(".", $cmd)) {
+            caExit("failed to output corrected reads", "./$asm.correctedReads.fasta.err");
+        }
+
+        unlink "./$asm.correctedReads.fasta.err";
     }
 
-    unlink "./$asm.correctedReads.fasta.err";
+    #  If the corrected reads file exists, report so.
+    #  Otherwise, report no corrected reads, and generate fake outputs so we terminate.
 
     my $out = sequenceFileExists("$asm.correctedReads");
 
@@ -764,7 +772,15 @@ sub dumpCorrectedReads ($) {
         print STDERR "-- Corrected reads saved in '$out'.\n";
     } else {
         print STDERR "--\n";
-        print STDERR "-- No corrected reads output from '$asm.gkpStore'.\n";
+        print STDERR "-- Yikes!  No corrected reads generated!\n"; 
+        print STDERR "-- Can't proceed!\n";
+        print STDERR "--\n";
+        print STDERR "-- Generating empty outputs.\n";
+
+        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.correctedReads.gz 2> /dev/null", 0)   if (! -e "$asm.correctedReads.gz");
+        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
+
+        generateOutputs($asm);
     }
 
   finishStage:
