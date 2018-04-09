@@ -377,13 +377,18 @@ sub generateReadLengthHistogram ($$) {
         s/\s+$//;
 
         my @v = split '\s+', $_;
+        my $l = 0;
 
-        if ($v[2] > 0) {
-            push @rl, $v[2];              #  Save the length
-            $nb += $v[2];                 #  Sum the bases
+        $l = $v[3]          if (($tag eq "cor") || ($tag eq "hap"));
+        $l = $v[4]          if (($tag eq "obt"));
+        $l = $v[6] - $v[5]  if (($tag eq "utg"));
 
-            $minLen = ($minLen < $v[2]) ? $minLen : $v[2];
-            $maxLen = ($v[2] < $maxLen) ? $maxLen : $v[2];
+        if ($l > 0) {
+            push @rl, $l;              #  Save the length
+            $nb += $l;                 #  Sum the bases
+
+            $minLen = ($minLen < $l) ? $minLen : $l;
+            $maxLen = ($l < $maxLen) ? $maxLen : $l;
         }
     }
     close(F);
