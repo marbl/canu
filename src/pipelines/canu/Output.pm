@@ -68,18 +68,22 @@ sub generateOutputs ($) {
         fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
-        $cmd  = "$bin/tgStoreDump \\\n";
-        $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
-        $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
-        $cmd .= "  -o ./$asm.contigs \\\n";
-        $cmd .= "  -layout \\\n";
-        $cmd .= "> ./$asm.contigs.layout.err 2>&1";
+        if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig") {
+            $cmd  = "$bin/tgStoreDump \\\n";
+            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+            $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
+            $cmd .= "  -o ./$asm.contigs \\\n";
+            $cmd .= "  -layout \\\n";
+            $cmd .= "> ./$asm.contigs.layout.err 2>&1";
 
-        if (runCommand(".", $cmd)) {
-            caExit("failed to output contig layouts", "$asm.contigs.layout.err");
+            if (runCommand(".", $cmd)) {
+                caExit("failed to output contig layouts", "$asm.contigs.layout.err");
+            }
+
+            unlink "$asm.contigs.layout.err";
+        } else {
+            touch("$asm.contigs.layout");
         }
-
-        unlink "$asm.contigs.layout.err";
 
         stashFile("$asm.contigs.layout");
     }
@@ -93,18 +97,22 @@ sub generateOutputs ($) {
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
 
-        $cmd  = "$bin/tgStoreDump \\\n";
-        $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
-        $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
-        $cmd .= "  -o ./$asm.unitigs \\\n";
-        $cmd .= "  -layout \\\n";
-        $cmd .= "> ./$asm.unitigs.layout.err 2>&1";
+        if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
+            $cmd  = "$bin/tgStoreDump \\\n";
+            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+            $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
+            $cmd .= "  -o ./$asm.unitigs \\\n";
+            $cmd .= "  -layout \\\n";
+            $cmd .= "> ./$asm.unitigs.layout.err 2>&1";
 
-        if (runCommand(".", $cmd)) {
-            caExit("failed to output unitig layouts", "$asm.unitigs.layout.err");
+            if (runCommand(".", $cmd)) {
+                caExit("failed to output unitig layouts", "$asm.unitigs.layout.err");
+            }
+
+            unlink "$asm.unitigs.layout.err";
+        } else {
+            touch("$asm.unitigs.layout");
         }
-
-        unlink "$asm.unitigs.layout.err";
 
         stashFile("$asm.unitigs.layout");
     }
@@ -117,19 +125,23 @@ sub generateOutputs ($) {
             fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
             fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
-            $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
-            $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
-            $cmd .= "  -consensus -$type \\\n";
-            $cmd .= "  -$tt \\\n";
-            $cmd .= "> ./$asm.$tt.$type\n";
-            $cmd .= "2> ./$asm.$tt.err";
+            if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig") {
+                $cmd  = "$bin/tgStoreDump \\\n";
+                $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+                $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
+                $cmd .= "  -consensus -$type \\\n";
+                $cmd .= "  -$tt \\\n";
+                $cmd .= "> ./$asm.$tt.$type\n";
+                $cmd .= "2> ./$asm.$tt.err";
 
-            if (runCommand(".", $cmd)) {
-                caExit("failed to output $tt consensus sequences", "$asm.$tt.err");
+                if (runCommand(".", $cmd)) {
+                    caExit("failed to output $tt consensus sequences", "$asm.$tt.err");
+                }
+
+                unlink "$asm.$tt.err";
+            } else {
+                touch("$asm.$tt.$type");
             }
-
-            unlink "$asm.$tt.err";
 
             stashFile("$asm.$tt.$type");
         }
@@ -140,43 +152,61 @@ sub generateOutputs ($) {
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
 
-        $cmd  = "$bin/tgStoreDump \\\n";
-        $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
-        $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
-        $cmd .= "  -consensus -$type \\\n";
-        $cmd .= "  -contigs \\\n";
-        $cmd .= "> ./$asm.unitigs.$type\n";
-        $cmd .= "2> ./$asm.unitigs.err";
+        if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
+            $cmd  = "$bin/tgStoreDump \\\n";
+            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+            $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
+            $cmd .= "  -consensus -$type \\\n";
+            $cmd .= "  -contigs \\\n";
+            $cmd .= "> ./$asm.unitigs.$type\n";
+            $cmd .= "2> ./$asm.unitigs.err";
 
-        if (runCommand(".", $cmd)) {
-            caExit("failed to output unitig consensus sequences", "$asm.unitigs.err");
+            if (runCommand(".", $cmd)) {
+                caExit("failed to output unitig consensus sequences", "$asm.unitigs.err");
+            }
+
+            unlink "$asm.unitigs.err";
+        } else {
+            touch("$asm.unitigs.$type");
         }
-
-        unlink "$asm.unitigs.err";
 
         stashFile("$asm.unitigs.$type");
     }
 
     #  Graphs
 
-    if ((!fileExists("$asm.contigs.gfa")) &&
-        ( fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa"))) {
+    if (!fileExists("$asm.contigs.gfa")) {
         fetchFile("unitigging/4-unitigger/$asm.contigs.aligned.gfa");
-        copy("unitigging/4-unitigger/$asm.contigs.aligned.gfa", "$asm.contigs.gfa");
+
+        if (-e "unitigging/4-unitigger/$asm.contigs.aligned.gfa") {
+            copy("unitigging/4-unitigger/$asm.contigs.aligned.gfa", "$asm.contigs.gfa");
+        } else {
+            touch("$asm.contigs.gfa");
+        }
+
         stashFile("$asm.contigs.gfa");
     }
 
-    if ((! fileExists("$asm.unitigs.gfa")) &&
-        (  fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa"))) {
+    if (!fileExists("$asm.unitigs.gfa")) {
         fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.gfa");
-        copy("unitigging/4-unitigger/$asm.unitigs.aligned.gfa", "$asm.unitigs.gfa");
+
+        if (-e "unitigging/4-unitigger/$asm.unitigs.aligned.gfa") {
+            copy("unitigging/4-unitigger/$asm.unitigs.aligned.gfa", "$asm.unitigs.gfa");
+        } else {
+            touch("$asm.unitigs.gfa");
+        }
+
         stashFile("$asm.unitigs.gfa");
     }
 
-    if ((! fileExists("$asm.unitigs.bed")) &&
-        (  fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed"))) {
+    if (!fileExists("$asm.unitigs.bed")) {
         fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.bed");
-        copy("unitigging/4-unitigger/$asm.unitigs.aligned.bed", "$asm.unitigs.bed");
+
+        if (-e "unitigging/4-unitigger/$asm.unitigs.aligned.bed") {
+            copy("unitigging/4-unitigger/$asm.unitigs.aligned.bed", "$asm.unitigs.bed");
+        } else {
+        }
+
         stashFile("$asm.unitigs.bed");
     }
 
