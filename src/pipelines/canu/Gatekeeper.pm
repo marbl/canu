@@ -365,7 +365,6 @@ sub generateReadLengthHistogram ($$) {
     my $nb = 0;
     my @rl;
     my @hi;
-    my $mm;
     my $minLen = 999999;
     my $maxLen = 0;
 
@@ -407,13 +406,14 @@ sub generateReadLengthHistogram ($$) {
 
     #  Generate the histogram (int truncates)
 
+    my $mBgn = int($minLen / $bucketSize);
+    my $mEnd = int($maxLen / $bucketSize);
+
     foreach my $rl (@rl) {
         my $b = int($rl / $bucketSize);
 
         $hi[$b]++;
     }
-
-    $mm = int($maxLen / $bucketSize);  #  Max histogram value
 
     #  Write the sorted read lengths (for gnuplot) and the maximum read length (for correction consensus)
 
@@ -422,10 +422,6 @@ sub generateReadLengthHistogram ($$) {
         print F "$rl\n";
     }
     close(F);
-
-    #open(F, "> ./$asm.gkpStore/maxreadlength.txt") or caExit("can't open './$asm.gkpStore/maxreadlength.txt' for writing: $!", undef);
-    #print F "$maxLen\n";
-    #close(F);
 
     #  Generate PNG histograms
 
@@ -465,7 +461,7 @@ sub generateReadLengthHistogram ($$) {
     my $scale    = 0;
     my $hist;
 
-    for (my $ii=0; $ii<=$mm; $ii++) {                           #  Scale the *'s so that the longest has 70 of 'em
+    for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {                           #  Scale the *'s so that the longest has 70 of 'em
         $scale = $hi[$ii] / 70   if ($scale < $hi[$ii] / 70);
     }
 
@@ -476,7 +472,7 @@ sub generateReadLengthHistogram ($$) {
     $hist .= "--\n";
     $hist .= "--   Read length histogram (one '*' equals " . int(100 * $scale) / 100 . " reads):\n";
 
-    for (my $ii=0; $ii<=$mm; $ii++) {
+    for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {
         my $s = $ii * $bucketSize;
         my $e = $ii * $bucketSize + $bucketSize - 1;
 
