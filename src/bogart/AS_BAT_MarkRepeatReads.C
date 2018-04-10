@@ -702,12 +702,15 @@ findConfusedEdges(TigVector            &tigs,
         uint32   tgBid    = tigs.inUnitig(rdBid);
 
         //  If the read is in a singleton, skip.  These are unassembled crud.
-        if ((tgBid                         == 0) ||
+        if ((tgBid                      == 0) ||
             (tigs[tgBid]                == NULL) ||
             (tigs[tgBid]->ufpath.size() == 1))
           continue;
 
         //  Skip if this overlap is the best we're trying to match.
+        //
+        //  NOTE.  This doesn't care about potential duplicate overlaps between a pair of reads,
+        //  as we're looking for thicker overlaps off only one end of the read.
         if ((rdBid == b5->readId()) ||
             (rdBid == b3->readId()))
           continue;
