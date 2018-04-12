@@ -567,6 +567,10 @@ sub gatekeeper ($$@) {
 
         unlink "./$asm.gkpStore.upgrade.err";
 
+        $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of corrected reads ready for OBT.
+        $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
+        $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads ready for assembly.
+
         $histAndStash = 1;
     }
 
