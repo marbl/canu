@@ -104,7 +104,7 @@ sub mmapConfigure ($$$) {
 
     #  Constants.
 
-    my $numReads      = getNumberOfReadsEarliestVersion($asm);   #  Need to iterate over all read IDs!
+    my $numReads      = getNumberOfReadsInStore($asm, "all");   #  Need to iterate over all read IDs!
     my $memorySize    = getGlobal("${tag}mmapMemory");
     my $blockPerGb    = getGlobal("${tag}MMapBlockSize");
     my $blockSize = int($blockPerGb * $memorySize);

@@ -360,9 +360,9 @@ fetchStore("./$asm.gkpStore")    if ((! -e "./$asm.gkpStore") && (fileExists("$a
 
 #  Scan for an existing gkpStore.
 
-my $nCor = getNumberOfReadsInStore("cor", $asm);   #  Number of raw reads ready for correction.
-my $nOBT = getNumberOfReadsInStore("obt", $asm);   #  Number of corrected reads ready for OBT.
-my $nAsm = getNumberOfReadsInStore("utg", $asm);   #  Number of trimmed reads ready for assembly.
+my $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of raw reads ready for correction.
+my $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
+my $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads ready for assembly.
 
 #  If a gkpStore was found, scan the reads in it to decide what we're working with.
 
@@ -610,7 +610,7 @@ sub overlap ($$) {
 #
 
 if (setOptions($mode, "correct") eq "correct") {
-    if (getNumberOfBasesInStore("obt", $asm) == 0) {
+    if (getNumberOfBasesInStore($asm, "obt") == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN CORRECTION\n";
@@ -641,7 +641,7 @@ if (setOptions($mode, "correct") eq "correct") {
 dumpCorrectedReads($asm);
 
 if (setOptions($mode, "trim") eq "trim") {
-    if (getNumberOfBasesInStore("utg", $asm) == 0) {
+    if (getNumberOfBasesInStore($asm, "utg") == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN TRIMMING\n";

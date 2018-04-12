@@ -125,9 +125,7 @@ sub computeNumberOfCorrectionJobs ($) {
     my $nPerJob = 0;
 
     my $nPart    = getGlobal("corPartitions");
-    my $nReads   = getNumberOfReadsInStore("cor", $asm);
-
-    caExit("didn't find any reads in store 'correction/$asm.gkpStore'?", undef)  if ($nReads == 0);
+    my $nReads   = getNumberOfReadsInStore($asm, "all");
 
     $nPerJob     = int($nReads / $nPart + 1);
     $nPerJob     = getGlobal("corPartitionMin")  if ($nPerJob < getGlobal("corPartitionMin"));
@@ -417,7 +415,7 @@ sub generateCorrectedReadsConfigure ($) {
 
     my ($nJobs, $nPerJob)  = computeNumberOfCorrectionJobs($asm);  #  Does math based on number of reads and parameters.
 
-    my $nReads             = getNumberOfReadsInStore("cor", $asm);
+    my $nReads             = getNumberOfReadsInStore($asm, "all");
 
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
 
@@ -636,7 +634,7 @@ sub loadCorrectedReads ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-loadCorrectedReads") == 1);
-    goto allDone   if (getNumberOfBasesInStore("obt", $asm) > 0);
+    goto allDone   if (getNumberOfBasesInStore($asm, "obt") > 0);
 
     print STDERR "--\n";
     print STDERR "-- Loading corrected reads into corStore and gkpStore.\n";
@@ -746,7 +744,7 @@ sub dumpCorrectedReads ($) {
 
     #  If no corrected reads exist, don't bother trying to dump them.
 
-    if (getNumberOfReadsInStore("obt", $asm) > 0) {
+    if (getNumberOfReadsInStore($asm, "obt") > 0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
         $cmd .= "  -corrected \\\n";
         $cmd .= "  -G ./$asm.gkpStore \\\n";

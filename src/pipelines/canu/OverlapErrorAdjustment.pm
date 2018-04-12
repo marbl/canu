@@ -128,7 +128,7 @@ sub readErrorDetectionConfigure ($) {
 
     make_path("$path")  if (! -d "$path");
 
-    my $maxID = getNumberOfReadsEarliestVersion($asm);
+    my $maxID = getNumberOfReadsInStore($asm, "all");
 
     my ($rlVec, $noVec);
     my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);
@@ -428,7 +428,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
-    my $maxID = getNumberOfReadsEarliestVersion($asm);
+    my $maxID = getNumberOfReadsInStore($asm, "all");
 
     my ($rlVec, $noVec);
     my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);
@@ -441,9 +441,6 @@ sub overlapErrorAdjustmentConfigure ($) {
     my @log;   undef @log;
 
     my $nj = 0;
-
-    # get earliest count of reads in store
-    my $maxID    = getNumberOfReadsEarliestVersion($asm);
 
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("oeaBatchSize");

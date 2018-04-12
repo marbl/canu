@@ -65,7 +65,7 @@ sub uniqueKmerThreshold($$$$$) {
     my $bin       = getBinDirectory();
     my $errorRate = estimateError($asm, $tag, $merSize);
 
-    my $readLength = getNumberOfBasesInStore($tag, $asm) / getNumberOfReadsInStore ($tag, $asm);
+    my $readLength = getNumberOfBasesInStore($asm, $tag) / getNumberOfReadsInStore($asm, $tag);
     my $effective_coverage = getExpectedCoverage($tag, $asm) * ( ($readLength - $merSize + 1)/$readLength ) * (1 - $errorRate) ** $merSize;
 
     my $threshold = 0;
@@ -116,10 +116,10 @@ sub computeSampleSize($$$$$) {
     my $maxSampleSize = getGlobal("${tag}MhapBlockSize") * 4;
 
    if (defined($percent)) {
-      $sampleSize = int($percent * getNumberOfReadsInStore ($tag, $asm))+1;
+      $sampleSize = int($percent * getNumberOfReadsInStore($asm, $tag))+1;
       $sampleSize++ if ($sampleSize % 2 != 0);
    } elsif (defined($coverage)) {
-      $sampleSize = int(($coverage * getGlobal("genomeSize")) / (getNumberOfBasesInStore($tag, $asm) / getNumberOfReadsInStore ($tag, $asm))) + 1;
+      $sampleSize = int(($coverage * getGlobal("genomeSize")) / (getNumberOfBasesInStore($asm, $tag) / getNumberOfReadsInStore($asm, $tag))) + 1;
    }
 
    $sampleSize = $maxSampleSize if (defined($percent) && $sampleSize > $maxSampleSize);
@@ -150,7 +150,7 @@ sub estimateRawError($$$) {
     my $tag     = shift @_;
     my $merSize = shift @_;
     my $bin     = getBinDirectory();
-    my $numReads = getNumberOfReadsInStore ($tag, $asm);
+    my $numReads = getNumberOfReadsInStore($asm, $tag);
 
     return;
 

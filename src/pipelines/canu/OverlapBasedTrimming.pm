@@ -202,7 +202,7 @@ sub loadTrimmedReads ($) {
     my $inp;
 
     goto allDone   if (skipStage($asm, "obt-dumpReads") == 1);
-    goto allDone   if (getNumberOfBasesInStore("utg", $asm) > 0);
+    goto allDone   if (getNumberOfBasesInStore($asm, "utg") > 0);
 
     make_path($path)  if (! -d $path);
 
@@ -262,7 +262,7 @@ sub dumpTrimmedReads ($) {
 
     #  If no trimmed reads exist, don't bother trying to dump them.
 
-    if (getNumberOfReadsInStore("utg", $asm) > 0) {
+    if (getNumberOfReadsInStore($asm, "utg") > 0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
         $cmd .= "  -trimmed \\\n";
         $cmd .= "  -G ./$asm.gkpStore \\\n";

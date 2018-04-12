@@ -40,12 +40,10 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfReadsEarliestVersion
-             getNumberOfReadsInStore
+@EXPORT = qw(getNumberOfReadsInStore
              getNumberOfBasesInStore
              getSizeOfGatekeeperStore
              getExpectedCoverage
-             getExpectedCoverageEarliestVersion
              sequenceFileExists
              generateReadLengthHistogram
              gatekeeper);
@@ -63,32 +61,28 @@ use canu::Grid_Cloud;
 
 use Carp qw(longmess cluck confess);
 
-sub getNumberOfReadsEarliestVersion($) {
-    my $asm    = shift @_;
-
-    # get the earliest count we have in the store
-    my $maxID    = getNumberOfReadsInStore("cor", $asm);
-    $maxID       = getNumberOfReadsInStore("obt", $asm) if $maxID == 0;
-    $maxID       = getNumberOfReadsInStore("utg", $asm) if $maxID == 0;
-
-    return $maxID;
-}
 
 sub getNumberOfReadsInStore ($$) {
-    my $tag    = shift @_;
     my $asm    = shift @_;
+    my $tag    = shift @_;
     my $nr     = 0;
 
-    confess  if (($tag ne "hap") && ($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
+    confess  if (($tag ne "all") && ($tag ne "hap") && ($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
 
     #  No file, no reads.
 
     return($nr)   if (! -e "./$asm.gkpStore/info.txt");
 
     #  Read the info file.  gatekeeperCreate creates this at the end.
+    #
+    #  The 'all' category returns the number of reads that are in the store; essentailly, the maxID of any read.
+    #  The 'cor' category returns the number of reads that are available for correction.
+    #  The 'obt' category returns the number of reads that are available for trimming.
+    #  The 'utg' category returns the number of reads that are available for assembly.
 
     open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
     while (<F>) {
+        $nr = $1    if ((m/numReads\s+=\s+(\d+)/)          && ($tag eq "all"));
         $nr = $1    if ((m/numRawReads\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
         $nr = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
         $nr = $1    if ((m/numTrimmedReads\s+=\s+(\d+)/)   && ($tag eq "utg"));
@@ -101,8 +95,8 @@ sub getNumberOfReadsInStore ($$) {
 
 
 sub getNumberOfBasesInStore ($$) {
-    my $tag    = shift @_;
     my $asm    = shift @_;
+    my $tag    = shift @_;
     my $nb     = 0;
 
     confess  if (($tag ne "hap") && ($tag ne "cor") && ($tag ne "obt") && ($tag ne "utg"));
@@ -145,22 +139,11 @@ sub getSizeOfGatekeeperStore ($) {
 
 
 
-sub getExpectedCoverageEarliestVersion($) {
-    my $asm    = shift @_;
-
-    # get earliest count we can
-    my $coverage     = getExpectedCoverage("cor", $asm);
-    $coverage = getExpectedCoverage("obt", $asm) if $coverage == 0;
-    $coverage = getExpectedCoverage("utg", $asm) if $coverage == 0;
-
-    return $coverage;
-}
-
 sub getExpectedCoverage ($$) {
     my $tag    = shift @_;
     my $asm    = shift @_;
 
-    return(int(getNumberOfBasesInStore($tag, $asm) / getGlobal("genomeSize")));
+    return(int(getNumberOfBasesInStore($asm, $tag) / getGlobal("genomeSize")));
 }
 
 
@@ -363,8 +346,8 @@ sub generateReadLengthHistogram ($$) {
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
 
-    my $reads    = getNumberOfReadsInStore($tag, $asm);
-    my $bases    = getNumberOfBasesInStore($tag, $asm);
+    my $reads    = getNumberOfReadsInStore($asm, $tag);
+    my $bases    = getNumberOfBasesInStore($asm, $tag);
     my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
     my $hist;
 
@@ -511,7 +494,7 @@ sub gatekeeper ($$@) {
     #  reads to trimmed reads, and also re-stash the store.
     #
     #goto allDone    if (skipStage($asm, "$tag-gatekeeper") == 1);
-    #goto allDone    if (getNumberOfReadsInStore($tag, $asm) > 0);
+    #goto allDone    if (getNumberOfReadsInStore($asm, $tag) > 0);
 
     #  Create the store.
     #
@@ -552,9 +535,9 @@ sub gatekeeper ($$@) {
 
     #  Query how many reads we have.
 
-    my $nCor = getNumberOfReadsInStore("cor", $asm);   #  Number of corrected reads ready for OBT.
-    my $nOBT = getNumberOfReadsInStore("obt", $asm);   #  Number of corrected reads ready for OBT.
-    my $nAsm = getNumberOfReadsInStore("utg", $asm);   #  Number of trimmed reads ready for assembly.
+    my $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of corrected reads ready for OBT.
+    my $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
+    my $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads ready for assembly.
 
     #  Refuse to assemble uncorrected reads.
 

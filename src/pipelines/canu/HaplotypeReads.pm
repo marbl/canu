@@ -87,7 +87,7 @@ sub computeNumberOfHaplotypeJobs ($) {
     my $nPerJob = 0;
 
     my $nPart    = getGlobal("corPartitions");
-    my $nReads   = getNumberOfReadsInStore("hap", $asm);
+    my $nReads   = getNumberOfReadsInStore($asm, "all");
 
     caExit("didn't find any reads in store 'haplotype/$asm.gkpStore'?", undef)  if ($nReads == 0);
 
@@ -162,7 +162,7 @@ sub haplotypeConfigure ($) {
 
     my ($nJobs, $nPerJob)  = computeNumberOfHaplotypeJobs($asm);  #  Does math based on number of reads and parameters.
 
-    my $nReads             = getNumberOfReadsInStore("hap", $asm);
+    my $nReads             = getNumberOfReadsInStore($asm, "all");
 
     open(F, "> $path/haplotypeReads.sh") or caExit("can't open '$path/haplotypeReads.sh' for writing: $!", undef);
 
