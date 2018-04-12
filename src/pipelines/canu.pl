@@ -123,13 +123,20 @@ foreach my $arg (@ARGV) {
 
     if ($arg eq "-fast") {
         #  All defaults, unless noted.
-        setGlobal("corOverlapper",  "mhap");
-        setGlobal("obtOverlapper",  "mhap");    #  Changed
-        setGlobal("utgOverlapper",  "mhap");    #  Changed
+        #if (-e "$bin/minimap2") {
+        #   setGlobal("corOverlapper",  "minimap"); # Changed
+        #   setGlobal("obtOverlapper",  "minimap"); # Changed
+        #   setGlobal("utgOverlapper",  "minimap"); # Changed
+        #} else {
+           setGlobal("corOverlapper",  "mhap");
+           setGlobal("obtOverlapper",  "mhap");    # Changed
+           setGlobal("utgOverlapper",  "mhap");    # Changed
+        #}
+        setGlobal("utgReAlign",        "true");    # Changed
 
-        setGlobal("corRealign", "false");
-        setGlobal("obtRealign", "false");   #  Changed
-        setGlobal("utgRealign", "true");    #  Changed
+        if (-e "$bin/wtdbg-1.2.8") {
+           setGlobal("unitigger",         "wtdbg");   # Changed
+        }
     }
 
     if ($arg eq "-accurate") {
@@ -640,7 +647,7 @@ if (setOptions($mode, "correct") eq "correct") {
 
 dumpCorrectedReads($asm);
 
-if (setOptions($mode, "trim") eq "trim") {
+if (setOptions($mode, "trim") eq "trim") && uc(getGlobal("unitigger")) ne "WTDBG"){
     if (getNumberOfBasesInStore($asm, "utg") == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
@@ -672,25 +679,27 @@ if (setOptions($mode, "assemble") eq "assemble") {
         print STDERR "--\n";
 
         if (gatekeeper($asm, "utg", @inputFiles)) {
-            merylConfigure($asm, "utg");
-            merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
-            merylProcess($asm, "utg");
+            if (uc(getGlobal("unitigger")) ne "WTDBG") {
+                merylConfigure($asm, "utg");
+                merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
+                merylProcess($asm, "utg");
 
-            overlap($asm, "utg");
+                overlap($asm, "utg");
 
-            #readErrorDetection($asm);
+                #readErrorDetection($asm);
 
-            readErrorDetectionConfigure($asm);
-            readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+                readErrorDetectionConfigure($asm);
+                readErrorDetectionCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-            overlapErrorAdjustmentConfigure($asm);
-            overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+                overlapErrorAdjustmentConfigure($asm);
+                overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-            updateOverlapStore($asm);
+                updateOverlapStore($asm);
+            }
 
             unitig($asm);
             unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-
+            
             foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
                 consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
                 consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
@@ -699,8 +708,9 @@ if (setOptions($mode, "assemble") eq "assemble") {
             consensusLoad($asm);
             consensusAnalyze($asm);
 
-            alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-
+            if (uc(getGlobal("unitigger")) ne "WTDBG") {
+                alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+            }
             generateOutputs($asm);
         }
     }
