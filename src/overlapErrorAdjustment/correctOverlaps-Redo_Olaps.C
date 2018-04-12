@@ -352,7 +352,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
     //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
-    //fprintf(stderr, "Correcting B read %u at Cpos=%u\n", curID, Cpos);
+    //fprintf(stderr, "Correcting B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
 
     fseqLen = 0;
     fadjLen = 0;
@@ -362,6 +362,8 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
                 readData->gkReadData_getSequence(),
                 read->gkRead_sequenceLength(),
                 C, Cpos, Clen);
+
+    //fprintf(stderr, "Finished   B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
 
     //  Create copies of the sequence for forward and reverse.  There isn't a need for the forward copy (except that
     //  we mutate it with corrections), and the reverse copy could be deferred until it is needed.

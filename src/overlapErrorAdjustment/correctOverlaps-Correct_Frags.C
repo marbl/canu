@@ -56,7 +56,7 @@ correctRead(uint32 curID,
   //  Find the correct corrections.
 
   while ((Cpos < Clen) && (C[Cpos].readID < curID)) {
-    //fprintf(stderr, "SKIP Cpos=%d for read %u, want read %u\n", Cpos, C[Cpos].readID, curID);
+    //fprintf(stderr, "SKIP Cpos=%u Clen=%u for read %u, want read %u\n", Cpos, Clen, C[Cpos].readID, curID);
     Cpos++;
   }
 
@@ -68,6 +68,7 @@ correctRead(uint32 curID,
   //G.reads[G.readsLen].keep_right = C[Cpos].keep_right;
 
   Cpos++;
+  assert(Cpos <= Clen);
 
   //fprintf(stderr, "Start at Cpos=%d position=%d type=%d id=%d\n", Cpos, C[Cpos].pos, C[Cpos].type, C[Cpos].readID);
 
@@ -82,6 +83,8 @@ correctRead(uint32 curID,
         fseq[fseqLen++] = filter[oseq[i++]];
       break;
     }
+
+    assert(Cpos < Clen);
 
     //  Not at a correction -- copy the base.
     if (i < C[Cpos].pos) {
