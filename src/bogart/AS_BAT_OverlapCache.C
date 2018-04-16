@@ -619,30 +619,29 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
 
 
 
+//  Binary search a list of overlaps for one matching bID and flipped.
 bool
-searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID) {
+searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID, bool flipped) {
+  int32  F = 0;
+  int32  L = ovlLen - 1;
+  int32  M = 0;
 
 #ifdef TEST_LINEAR_SEARCH
   bool linearSearchFound = false;
 
   for (uint32 ss=0; ss<ovlLen; ss++)
-    if (ovl[ss].b_iid == bID) {
+    if ((ovl[ss].b_iid   == bID) &&
+        (ovl[ss].flipped == flipped)) {
       linearSearchFound = true;
       break;
     }
 #endif
 
-  //  If not, these are repeats and we should binary search everything.
-  //  There will be no short lists where we could exhaustively search.
-
-  int32  F = 0;
-  int32  L = ovlLen - 1;
-  int32  M = 0;
-
   while (F <= L) {
     M = (F + L) / 2;
 
-    if (ovl[M].b_iid == bID) {
+    if ((ovl[M].b_iid   == bID) &&
+        (ovl[M].flipped == flipped)) {
       ovl[M].symmetric = true;
 #ifdef TEST_LINEAR_SEARCH
       assert(linearSearchFound == true);
@@ -650,7 +649,8 @@ searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID) {
       return(true);
     }
 
-    if (ovl[M].b_iid < bID)
+    if (((ovl[M].b_iid  < bID)) ||
+        ((ovl[M].b_iid == bID) && (ovl[M].flipped < flipped)))
       F = M+1;
     else
       L = M-1;
@@ -679,7 +679,7 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   //  For each overlap, see if the twin overlap exists.  It is tempting to skip searching if the
   //  b-read has loaded all overlaps (the overlap we're searching for must exist) but we can't.
-  //  We must still mark the oevrlap as being symmetric.
+  //  We must still mark the overlap as being symmetric.
 
   writeStatus("OverlapCache()--\n");
   writeStatus("OverlapCache()-- Symmetrizing overlaps.\n");
@@ -697,7 +697,7 @@ OverlapCache::symmetrizeOverlaps(void) {
 
       //  Search for the twin overlap, and if found, we're done.  The twin is marked as symmetric in the function.
 
-      if (searchForOverlap(_overlaps[rb], _overlapLen[rb], rr)) {
+      if (searchForOverlap(_overlaps[rb], _overlapLen[rb], rr, _overlaps[rr][oo].flipped)) {
         _overlaps[rr][oo].symmetric = true;
         continue;
       }
