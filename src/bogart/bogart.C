@@ -416,7 +416,11 @@ main (int argc, char * argv []) {
   //  populateUnitig() uses only one hang from one overlap to compute the positions of reads.
   //  Once all reads are (approximately) placed, compute positions using all overlaps.
 
-  contigs.optimizePositions(prefix, "buildGreedy");
+  reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+
+  setLogFile(prefix, "buildGreedyOpt");
+
+  contigs.optimizePositions(prefix, "buildGreedyOpt");
 
   //reportOverlaps(contigs, prefix, "buildGreedy");
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
@@ -453,10 +457,14 @@ main (int argc, char * argv []) {
   //  which was enough to swap bgn/end coords when they were computed using hangs
   //  (that is, sum of the hangs was bigger than the placed read length).
 
-  contigs.optimizePositions(prefix, "placeContains");
+  reportTigs(contigs, prefix, "placeContains", genomeSize);
+
+  setLogFile(prefix, "placeContainsOpt");
+
+  contigs.optimizePositions(prefix, "placeContainsOpt");
 
   //reportOverlaps(contigs, prefix, "placeContains");
-  reportTigs(contigs, prefix, "placeContains", genomeSize);
+  reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
 
   //
   //  Merge orphans.
