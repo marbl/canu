@@ -333,7 +333,7 @@ ovStoreHistogram::processScores(uint32 Aid) {
   for (uint32 ii=0; ii<N_OVL_SCORE; ii++)                                   //  Initialize all points with
     _scores[scoff].points[ii] = _scoresListLen-1;                           //  the last data value.
 
-  for (uint32 ii=0; ((ii<N_OVL_SCORE-10) &&                                 //  Fill valid data.
+  for (uint32 ii=0; ((ii<N_OVL_SCORE-1) &&                                  //  Fill valid data.
                      (point<_scoresListLen)); ii++, point += step)
     _scores[scoff].points[ii] = (uint16)floor(point + 0.5);
 
