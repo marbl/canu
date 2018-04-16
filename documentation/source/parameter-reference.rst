@@ -159,6 +159,8 @@ stopOnReadQuality <string=true>
 
   To proceed, set ``stopOnReadQuality=false`` or rename the directory as shown.
 
+  Note that `U` bases are silently translated to `T` bases, to allow assembly of RNA sequences.
+
 .. _stopAfter:
 
 stopAfter <string=undefined>
