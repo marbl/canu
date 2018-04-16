@@ -61,7 +61,7 @@ ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
   _bofSlice  = 1;      //  Constant, never changes.
   _bofPiece  = 1;      //  Incremented whenever a file is closed.
 
-  _histogram = new ovStoreHistogram();  //  Only used for merging in results from output files.
+  _histogram = new ovStoreHistogram(_gkp);  //  Only used for merging in results from output files.
 }
 
 
@@ -419,7 +419,7 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
 void
 ovStoreSliceWriter::mergeHistogram(void) {
   char               name[FILENAME_MAX+1];
-  ovStoreHistogram  *merged = new ovStoreHistogram();
+  ovStoreHistogram  *merged = new ovStoreHistogram(_gkp);
 
   for (uint32 ss=1; ss <= _numSlices; ss++) {
     fprintf(stderr, " - Merge histograms for slice %u\n", ss);

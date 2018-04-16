@@ -864,7 +864,7 @@ main(int argc, char **argv) {
   }
 
   if ((asErateLen) && (params.parametersAreDefaults() == true)) {
-    ovStoreHistogram *hist = new ovStoreHistogram();
+    ovStoreHistogram *hist = new ovStoreHistogram(gkpStore);
 
     ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
