@@ -87,9 +87,9 @@ sub mmapConfigure ($$$) {
     } elsif ($numNanoporeRaw > 0) {
        $parameters = "-x ava-ont";
     } elsif ($numPacBioCorrected > 0) {
-       $parameters = "-x ava-pb -c -Hk21 -w14"; #tuned to find 1000bp 5% error
+       $parameters = "-x ava-pb"; # -Hk21 -w14"; #tuned to find 1000bp 5% error
     } elsif ($numNanoporeCorrected > 0) {
-       $parameters = "-x ava-ont -c -k17 -w11"; #tuned to find 1000bp 15% error
+       $parameters = "-x ava-ont"; # -k17 -w11"; #tuned to find 1000bp 15% error
     } else {
        caFailiure("--ERROR: no know read types found in $base/$asm.gkpStore/libraries.txt")
     }
@@ -383,8 +383,8 @@ sub mmapConfigure ($$$) {
     print F "  \$bin/mmapConvert \\\n";
     print F "    -G ../$asm.gkpStore \\\n";
     print F "    -o ./results/\$qry.mmap.ovb.WORKING \\\n";
+    print F "    -e " . getGlobal("${tag}OvlErrorRate");
     print F "    -partial \\\n"  if ($typ eq "partial");
-    print F "    -tolerance 100 \\\n" if ($typ eq "normal");
     print F "    -len "  , getGlobal("minOverlapLength"),  " \\\n";
     print F "    ./results/\$qry.mmap \\\n";
     print F "  && \\\n";
