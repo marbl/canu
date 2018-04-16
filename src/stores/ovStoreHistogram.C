@@ -476,7 +476,7 @@ ovStoreHistogram::dumpEvalueLength(FILE *out) {
 
 
 uint16
-ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage, bool showLog) {
+ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage, FILE *scoreDumpFile) {
 
   if ((id < _scoresBaseID) ||                          //  Return the highest score possible
       (_scoresLastID < id))                            //  if the read is out of range.
@@ -511,8 +511,8 @@ ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage, bool showLog)
   if (score < 0)      score = 0;
   if (score > 65535)  score = 65535;
 
-  if (showLog == true)
-    fprintf(stdout, "%8u scores %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u - %f\n",
+  if (scoreDumpFile != NULL)
+    fprintf(scoreDumpFile, "%8u scores %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u %4u/%5u - %f\n",
             id + _scoresBaseID,
             _scores[id].points[0], _scores[id].scores[0],
             _scores[id].points[1], _scores[id].scores[1],

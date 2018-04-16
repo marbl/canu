@@ -128,7 +128,7 @@ public:
   //  For score data.
   //
 
-  uint16    overlapScoreEstimate(uint32 id, uint32 i, bool showLog=false);
+  uint16    overlapScoreEstimate(uint32 id, uint32 i, FILE *scoreDumpFile=NULL);
 
 private:
   gkStore     *_gkp;
