@@ -36,9 +36,10 @@
 #include "AS_UTL_fileIO.H"
 
 
-gkStore *gkStore::_instance      = NULL;
-uint32   gkStore::_instanceCount = 0;
+gkStore       *gkStore::_instance      = NULL;
+uint32          gkStore::_instanceCount = 0;
 
+gkRead_version  gkRead_defaultVersion = gkRead_latest;
 
 
 void

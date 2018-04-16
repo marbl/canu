@@ -145,8 +145,7 @@ public:
                           ovOverlap     *overlaps,
                           uint64         overlapsLen,
                           gkStore       *gkpStore,
-                          bool           withScores,
-                          gkRead_version clearType);
+                          bool           withScores);
 
 
   bool        filterOverlap(ovOverlap *overlap) {
@@ -349,22 +348,14 @@ dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
 }
 
 
-
 class sortByPosition {
 public:
-  sortByPosition(gkRead_version version) {
-    v = version ;
-  };
-
   bool operator()(const ovOverlap &a, const ovOverlap &b) {
-    if (a.a_bgn(v) < b.a_bgn(v))  return(true);
-    if (a.a_bgn(v) > b.a_bgn(v))  return(false);
+    if (a.a_bgn() < b.a_bgn())  return(true);
+    if (a.a_bgn() > b.a_bgn())  return(false);
 
     return(a.a_end() < b.a_end());
   };
-
-private:
-  gkRead_version v;
 };
 
 
@@ -374,14 +365,13 @@ dumpParameters::drawPicture(uint32         Aid,
                             ovOverlap     *overlaps,
                             uint64         overlapsLen,
                             gkStore       *gkpStore,
-                            bool           withScores,
-                            gkRead_version clearType) {
+                            bool           withScores) {
   char     line[256] = {0};
 
   uint32   MHS   = 9;  //  Max Hang Size, amount of padding for "+### "
 
   gkRead   *A    = gkpStore->gkStore_getRead(Aid);
-  uint32    Alen = A->gkRead_sequenceLength(clearType);
+  uint32    Alen = A->gkRead_sequenceLength();
 
   for (int32 i=0; i<256; i++)
     line[i] = ' ';
@@ -399,23 +389,23 @@ dumpParameters::drawPicture(uint32         Aid,
           ((status) && (status[Aid].isContained))  ? "contained"  : "",
           ((status) && (status[Aid].isSuspicious)) ? "suspicious" : "");
 
-  sort(overlaps, overlaps + overlapsLen, sortByPosition(clearType));
+  sort(overlaps, overlaps + overlapsLen, sortByPosition());
 
   //  Build ascii representations for each overlapping read.
 
   for (uint32 o=0; o<overlapsLen; o++) {
     uint32    Bid  = overlaps[o].b_iid;
     gkRead   *B    = gkpStore->gkStore_getRead(Bid);
-    uint32    Blen = B->gkRead_sequenceLength(clearType);
+    uint32    Blen = B->gkRead_sequenceLength();
 
     //  Find bgn/end points on each read.  If the overlap is reverse complement,
     //  the B coords are flipped so that bgn > end.
 
-    uint32   ovlBgnA = overlaps[o].a_bgn(clearType);
-    uint32   ovlEndA = overlaps[o].a_end(clearType);
+    uint32   ovlBgnA = overlaps[o].a_bgn();
+    uint32   ovlEndA = overlaps[o].a_end();
 
-    uint32   ovlBgnB = overlaps[o].b_bgn(clearType);
-    uint32   ovlEndB = overlaps[o].b_end(clearType);
+    uint32   ovlBgnB = overlaps[o].b_bgn();
+    uint32   ovlEndB = overlaps[o].b_end();
 
     assert(ovlBgnA < ovlEndA);  //  The A coordiantes are always forward
 
@@ -584,9 +574,6 @@ main(int argc, char **argv) {
 
   dumpParameters        params;
 
-  gkRead_version        clearType   = gkRead_latest;
-  //ovOverlapDisplayType  displType = ovOverlapAsCoords;
-
   char                  ovlString[1024];
 
   bool                  asOverlaps  = true;    //  What to show?
@@ -683,29 +670,54 @@ main(int argc, char **argv) {
 
 
     else if (strcmp(argv[arg], "-raw") == 0)
-      clearType = gkRead_raw;
+      gkRead_setDefaultVersion(gkRead_raw);
 
     else if (strcmp(argv[arg], "-obt") == 0)
-      clearType = gkRead_corrected;
+      gkRead_setDefaultVersion(gkRead_corrected);
 
     else if (strcmp(argv[arg], "-utg") == 0)
-      clearType = gkRead_trimmed;
+      gkRead_setDefaultVersion(gkRead_trimmed);
 
 
-    else if (strcmp(argv[arg], "-coords") == 0)
+    else if (strcmp(argv[arg], "-coords") == 0) {
       asCoords = true;
+      asHangs  = false;
+      asRaw    = false;
+      asPAF    = false;
+      asBinary = false;
+    }
 
-    else if (strcmp(argv[arg], "-hangs") == 0)
-      asHangs = true;
+    else if (strcmp(argv[arg], "-hangs") == 0) {
+      asCoords = false;
+      asHangs  = true;
+      asRaw    = false;
+      asPAF    = false;
+      asBinary = false;
+    }
 
-    else if (strcmp(argv[arg], "-raw") == 0)
-      asRaw = true;
+    else if (strcmp(argv[arg], "-raw") == 0) {
+      asCoords = false;
+      asHangs  = false;
+      asRaw    = true;
+      asPAF    = false;
+      asBinary = false;
+    }
 
-    else if (strcmp(argv[arg], "-paf") == 0)
-      asPAF = true;
+    else if (strcmp(argv[arg], "-paf") == 0) {
+      asCoords = false;
+      asHangs  = false;
+      asRaw    = false;
+      asPAF    = true;
+      asBinary = false;
+    }
 
-    else if (strcmp(argv[arg], "-binary") == 0)
+    else if (strcmp(argv[arg], "-binary") == 0) {
+      asCoords = false;
+      asHangs  = false;
+      asRaw    = false;
+      asPAF    = false;
       asBinary = true;
+    }
 
 
     else if (strcmp(argv[arg], "-no5p") == 0)
@@ -929,7 +941,7 @@ main(int argc, char **argv) {
           ovl[ovlSav++] = ovl[oo];                     //  save the overlap for drawing
 
       if (ovlSav > 0)
-        params.drawPicture(rr, ovl, ovlSav, gkpStore, withScores, clearType);
+        params.drawPicture(rr, ovl, ovlSav, gkpStore, withScores);
     }
   }
 
