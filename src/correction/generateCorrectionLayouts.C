@@ -58,7 +58,8 @@ uint16 *
 loadThresholds(gkStore *gkpStore,
                ovStore *ovlStore,
                char    *scoreName,
-               uint32   expectedCoverage) {
+               uint32   expectedCoverage,
+               FILE    *scoFile) {
   uint32   numReads   = gkpStore->gkStore_getNumReads();
   uint16  *olapThresh = new uint16 [numReads + 1];
 
@@ -74,7 +75,7 @@ loadThresholds(gkStore *gkpStore,
     ovStoreHistogram  *ovlHisto = ovlStore->getHistogram();
 
     for (uint32 ii=0; ii<numReads+1; ii++)
-      olapThresh[ii] = ovlHisto->overlapScoreEstimate(ii, expectedCoverage, false);
+      olapThresh[ii] = ovlHisto->overlapScoreEstimate(ii, expectedCoverage, scoFile);
 
     delete ovlHisto;
   }
@@ -283,24 +284,24 @@ generateLayout(tgTig      *layout,
 
 int
 main(int argc, char **argv) {
-  char             *gkpName   = 0L;
-  char             *ovlName   = 0L;
-  char             *corName   = 0L;
-  char             *flgName   = 0L;
+  char             *gkpName    = 0L;
+  char             *ovlName    = 0L;
+  char             *corName    = 0L;
+  char             *flgName    = 0L;
 
-  char             *scoreName = 0L;
+  char             *scoreName  = 0L;
 
-  uint32            errorRate = AS_OVS_encodeEvalue(0.015);
+  uint32            errorRate  = AS_OVS_encodeEvalue(0.015);
 
-  bool              doLogging = false;
-  FILE             *logFile = 0L;
+  bool              dumpScores = false;
+  bool              doLogging  = false;
 
   uint32            expectedCoverage    = 40;    //  How many overlaps per read to save, global filter
   uint32            minEvidenceOverlap  = 40;
   uint32            minEvidenceCoverage = 4;
 
-  uint32            iidMin       = 1;
-  uint32            iidMax       = UINT32_MAX;
+  uint32            iidMin = 1;
+  uint32            iidMax = UINT32_MAX;
 
   uint32            minEvidenceLength   = 0;
   double            maxEvidenceErate    = 1.0;
@@ -358,6 +359,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-V") == 0) {
       doLogging = true;
 
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      dumpScores = true;
+
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -382,6 +386,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "OUTPUTS\n");
     fprintf(stderr, "  -C corStore      output layouts to store 'corStore'\n");
     fprintf(stderr, "  -V               write extremely verbose logging to 'corStore.log'\n");
+    fprintf(stderr, "  -D               dump the data used to estimate overlap scores to 'corStore.scores'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "READ SELECTION\n");
     fprintf(stderr, "  -b bgnID         process reads starting at bgnID\n");
@@ -403,6 +408,8 @@ main(int argc, char **argv) {
   }
 
   //  Open inputs and output tigStore.
+
+  gkRead_setDefaultVersion(gkRead_raw);
 
   gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
 
@@ -435,10 +442,6 @@ main(int argc, char **argv) {
 
   uint32    numReads = gkpStore->gkStore_getNumReads();
 
-  //  Load read scores, if supplied.
-
-  uint16   *olapThresh = loadThresholds(gkpStore, ovlStore, scoreName, expectedCoverage);
-
   //  Threshold the range of reads to operate on.
 
   if (numReads < iidMin) {
@@ -455,7 +458,12 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  logFile = AS_UTL_openOutputFile(corName, '.', "log", doLogging);
+  FILE *logFile = AS_UTL_openOutputFile(corName, '.', "log",    doLogging);
+  FILE *scoFile = AS_UTL_openOutputFile(corName, '.', "scores", dumpScores);
+
+  //  Load read scores, if supplied.
+
+  uint16   *olapThresh = loadThresholds(gkpStore, ovlStore, scoreName, expectedCoverage, scoFile);
 
   //  Initialize processing.
 

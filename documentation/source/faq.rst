@@ -105,6 +105,18 @@ What parameters should I use for my reads?
        coverage. 
 
 
+Can I assemble RNA sequence data?
+-------------------------------------
+    Canu will likely mis-assemble, or completely fail to assemble, RNA data.  It will do a
+    reasonable job at generating corrected reads though.  Reads are corrected using (local) best
+    alignments to other reads, and alignments between different isoforms are usually obviously not
+    'best'.  Just like with DNA sequences, similar isoforms can get 'mixed' together.  We've heard
+    of reasonable success from users, but do not have any parameter suggestions to make.
+
+    Note that Canu will silently translate 'U' bases to 'T' bases on input, but **NOT** translate
+    the output bases back to 'U'.
+
+
 My assembly continuity is not good, how can I improve it?
 -------------------------------------
     The most important determinant for assembly quality is sequence length, followed by the repeat

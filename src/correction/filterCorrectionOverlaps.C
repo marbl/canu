@@ -196,6 +196,8 @@ main(int argc, char **argv) {
     minErate = 0.0;
   }
 
+  gkRead_setDefaultVersion(gkRead_raw);
+
   gkStore           *gkpStore    = gkStore::gkStore_open(gkpStoreName);
 
   ovStore           *ovlStore    = new ovStore(ovlStoreName, gkpStore);

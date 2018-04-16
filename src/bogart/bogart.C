@@ -101,8 +101,8 @@ main (int argc, char * argv []) {
   double    deviationBubble          = 6.0;
   double    deviationRepeat          = 3.0;
 
-  uint32    confusedAbsolute         = 5000;
-  double    confusedPercent          = 500.0;
+  uint32    confusedAbsolute         = 2100;
+  double    confusedPercent          = 200.0;
 
   int32     numThreads               = 0;
 
@@ -122,14 +122,26 @@ main (int argc, char * argv []) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
-      prefix = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-G") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlStorePath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      prefix = argv[++arg];
+
+
+    } else if (strcmp(argv[arg], "-threads") == 0) {
+      if ((numThreads = atoi(argv[++arg])) > 0)
+        omp_set_num_threads(numThreads);
+
+    } else if (strcmp(argv[arg], "-M") == 0) {
+      ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
+
+    } else if (strcmp(argv[arg], "-save") == 0) {
+      doSave = true;
+
 
     } else if (strcmp(argv[arg], "-gs") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
@@ -168,11 +180,9 @@ main (int argc, char * argv []) {
         err.push_back(s);
       }
 
-    } else if ((strcmp(argv[arg], "-mr") == 0) ||
-               (strcmp(argv[arg], "-RL") == 0)) {    //  Deprecated
+    } else if (strcmp(argv[arg], "-mr") == 0) {
       minReadLen = atoi(argv[++arg]);
-    } else if ((strcmp(argv[arg], "-mo") == 0) ||
-               (strcmp(argv[arg], "-el") == 0)) {    //  Deprecated
+    } else if (strcmp(argv[arg], "-mo") == 0) {
       minOverlapLen = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-mi") == 0) {
@@ -180,9 +190,6 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-mp") == 0) {
       maxPlacements = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-threads") == 0) {
-      if ((numThreads = atoi(argv[++arg])) > 0)
-        omp_set_num_threads(numThreads);
 
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
@@ -209,11 +216,6 @@ main (int argc, char * argv []) {
       filterSpur       = ((arg >= argc) || (strcasestr(argv[arg], "spur")       == NULL));
       filterDeadEnds   = ((arg >= argc) || (strcasestr(argv[arg], "deadends")   == NULL));
 
-    } else if (strcmp(argv[arg], "-M") == 0) {
-      ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
-
-    } else if (strcmp(argv[arg], "-save") == 0) {
-      doSave = true;
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
@@ -279,53 +281,55 @@ main (int argc, char * argv []) {
   if (ovlStorePath == NULL)    err.push_back("No overlap store (-O option) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
+    fprintf(stderr, "usage: %s -G gkpPath -O ovlPath -T tigPath -o outPrefix ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -O         Mandatory path to an ovlStore.\n");
-    fprintf(stderr, "  -G         Mandatory path to a gkpStore.\n");
-    fprintf(stderr, "  -T         Mandatory path to a tigStore (can exist or not).\n");
-    fprintf(stderr, "  -o prefix  Mandatory name for the output files\n");
+    fprintf(stderr, "Mandatory Parameters:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Algorithm Options\n");
+    fprintf(stderr, "  -G gkpPath     Mandatory path to an existing gkpStore.\n");
+    fprintf(stderr, "  -O ovlPath     Mandatory path to an existing ovlStore.\n");
+    fprintf(stderr, "  -T tigPath     Mandatory path to an output tigStore (can exist or not).\n");
+    fprintf(stderr, "  -o outPrefix   Mandatory prefix for the output files.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -gs        Genome size in bases.\n");
+    fprintf(stderr, "Process Options:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -mr len    Force reads below 'len' bases to be singletons.\n");
-    fprintf(stderr, "  -mo len    Ignore overlaps shorter than 'len' bases.\n");
+    fprintf(stderr, "  -threads T     Use at most T compute threads.\n");
+    fprintf(stderr, "  -M gb          Use at most 'gb' gigabytes of memory.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -mi len    Create unitigs from contig intersections of at least 'len' bases.\n");
-    fprintf(stderr, "  -mp num    Create unitigs from contig intersections with at most 'num' placements.\n");
+    fprintf(stderr, "  -save          Save the overlap graph to disk, and continue (not implemented).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Algorithm Options:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -gs            Genome size in bases.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -mr len        Force reads below 'len' bases to be singletons.\n");
+    fprintf(stderr, "  -mo len        Ignore overlaps shorter than 'len' bases.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -mi len        Create unitigs from contig intersections of at least 'len' bases.\n");
+    fprintf(stderr, "  -mp num        Create unitigs from contig intersections with at most 'num' placements.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nofilter [suspicious],[higherror],[lopsided],[spur]\n");
-    fprintf(stderr, "             Disable filtering of:\n");
-    fprintf(stderr, "               suspicious - reads that have a suspicious lack of overlaps\n");
-    fprintf(stderr, "               higherror  - overlaps that have error rates well outside the observed\n");
-    fprintf(stderr, "               lopsided   - reads that have unusually asymmetric best overlaps\n");
-    fprintf(stderr, "               spur       - reads that have no overlaps on one end\n");
-    fprintf(stderr, "             The value supplied to -nofilter must be one word, order and punctuation\n");
-    fprintf(stderr, "             do not matter.  The following examples behave the same:\n");
-    fprintf(stderr, "                '-nofilter suspicious,higherror'\n");
-    fprintf(stderr, "                '-nofilter suspicious-and-higherror'\n");
+    fprintf(stderr, "                 Disable filtering of:\n");
+    fprintf(stderr, "                   suspicious - reads that have a suspicious lack of overlaps\n");
+    fprintf(stderr, "                   higherror  - overlaps that have error rates well outside the observed\n");
+    fprintf(stderr, "                   lopsided   - reads that have unusually asymmetric best overlaps\n");
+    fprintf(stderr, "                   spur       - reads that have no overlaps on one end\n");
+    fprintf(stderr, "                 The value supplied to -nofilter must be one word, order and punctuation\n");
+    fprintf(stderr, "                 do not matter.  The following examples behave the same:\n");
+    fprintf(stderr, "                    '-nofilter suspicious,higherror'\n");
+    fprintf(stderr, "                    '-nofilter suspicious-and-higherror'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -threads N Use N compute threads during repeat detection.\n");
-    fprintf(stderr, "               0 - use OpenMP default (default)\n");
-    fprintf(stderr, "               1 - use one thread\n");
+    fprintf(stderr, "  -eg F          Do not use overlaps more than F fraction error when when finding initial best edges.\n");
+    fprintf(stderr, "  -eM F          Do not load overlaps more then F fraction error (useful only for -save).\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig under\n");
-    fprintf(stderr, "                    the following conditions:\n");
+    fprintf(stderr, "  -ca L          Split a contig if there is an alternate path from an overlap of at least L bases.\n");
+    fprintf(stderr, "                 Default: 2100.\n");
+    fprintf(stderr, "  -cp P          Split a contig if there is an alternate path from an overlap at most P percent\n");
+    fprintf(stderr, "                 different from the length of the best overlap.  Default: 200.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  When constructing the Best Overlap Graph and Greedy tigs ('g'raph):\n");
-    fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error   ** DEPRECATED **\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  When loading overlaps, an inflated maximum (to allow reruns with different error rates):\n");
-    fprintf(stderr, "    -eM 0.05   no more than 0.05 fraction (5.0%%) error in any overlap loaded into bogart\n");
-    fprintf(stderr, "               the maximum used will ALWAYS be at leeast the maximum of the four error rates\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Overlap Storage\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -M gb    Use at most 'gb' gigabytes of memory for storing overlaps.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -save    Save the overlap graph to disk, and continue.\n");
+    fprintf(stderr, "  -dg D          Use overlaps upto D standard deviations from the mean when building the best\n");
+    fprintf(stderr, "                 overlap graph.  Default 6.0.\n");
+    fprintf(stderr, "  -db D          Like -dg, but for merging bubbles into primary contigs.  Default 6.0.\n");
+    fprintf(stderr, "  -dr D          Like -dg, but for breaking repeats.  Default 3.0.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");
@@ -416,7 +420,11 @@ main (int argc, char * argv []) {
   //  populateUnitig() uses only one hang from one overlap to compute the positions of reads.
   //  Once all reads are (approximately) placed, compute positions using all overlaps.
 
-  contigs.optimizePositions(prefix, "buildGreedy");
+  reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+
+  setLogFile(prefix, "buildGreedyOpt");
+
+  contigs.optimizePositions(prefix, "buildGreedyOpt");
 
   //reportOverlaps(contigs, prefix, "buildGreedy");
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
@@ -453,10 +461,14 @@ main (int argc, char * argv []) {
   //  which was enough to swap bgn/end coords when they were computed using hangs
   //  (that is, sum of the hangs was bigger than the placed read length).
 
-  contigs.optimizePositions(prefix, "placeContains");
+  reportTigs(contigs, prefix, "placeContains", genomeSize);
+
+  setLogFile(prefix, "placeContainsOpt");
+
+  contigs.optimizePositions(prefix, "placeContainsOpt");
 
   //reportOverlaps(contigs, prefix, "placeContains");
-  reportTigs(contigs, prefix, "placeContains", genomeSize);
+  reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
 
   //
   //  Merge orphans.

@@ -38,59 +38,48 @@
 using namespace std;
 
 
-
 template<typename T>
-class AS_UTL_range {
-public:
-  AS_UTL_range() {
-  };
-  AS_UTL_range(T bgn, T end) {
+char *
+AS_UTL_decodeRange(char *range, T &lo, T &hi) {
+  char    *ap = range;
+
+  strtonumber(lo, ap, &ap);     //  Grab the first number.
+
+  hi = lo;                      //  Set the second to that.
+
+  if (*ap == '-') {             //  If this is a range,
+    ap++;                       //  grab the second number
+    strtonumber(hi, ap, &ap);
   }
 
-  bool  operator<(const AS_UTL_range<T> &that) const {
-    if (_bgn < that._bgn)
-      return(true);
-    return(_end < that._end);
-  };
+  if (*ap == ',')               //  If the next letter continues
+    return(ap + 1);             //  move past that and return.
 
-private:
-  T  _bgn;
-  T  _end;
-};
+  if (*ap == 0)                 //  If the next letter is the end
+    return(NULL);               //  of the string, return NULL.
+
+  //  Otherwise, we can't decode this range.
+
+  fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+  exit(1);
+
+  return(NULL);
+}
 
 
 
 template<typename T>
 void
-AS_UTL_decodeRange(char *range, vector< AS_UTL_range<T> > &ranges) {
+AS_UTL_decodeRange(char *range, vector<T> &bgn, vector<T> &end) {
   char    *ap = range;
   T        av = 0;
   T        bv = 0;
 
-  while (*ap != 0) {
-    strtonumber(av, ap, &ap);
+  while ((ap != NULL) && (*ap != 0)) {
+    range = AS_UTL_decodeRange(range, av, bv);
 
-    if (*ap == ',') {
-      ap++;
-      ranges.insert(av);
-
-    } else if (*ap == 0) {
-      ranges.insert(av);
-
-    } else if (*ap == '-') {
-      ap++;
-      strtonumber(bv, ap, &ap);
-
-      for (T xx=av; xx<=bv; xx++)
-        ranges.insert(xx);
-
-      if (*ap == ',')
-        ap++;
-
-    } else if (*ap != 0) {
-      fprintf(stderr, "ERROR: invalid range '%s'\n", range);
-      exit(1);
-    }
+    bgn.push_back(av);
+    end.push_back(bv);
   }
 }
 
@@ -103,50 +92,11 @@ AS_UTL_decodeRange(char *range, set<T> &ranges) {
   T        av = 0;
   T        bv = 0;
 
-  while (*ap != 0) {
-    strtonumber(av, ap, &ap);
+  while ((ap != NULL) && (*ap != 0)) {
+    range = AS_UTL_decodeRange(range, av, bv);
 
-    if (*ap == ',') {
-      ap++;
-      ranges.insert(av);
-
-    } else if (*ap == 0) {
-      ranges.insert(av);
-
-    } else if (*ap == '-') {
-      ap++;
-      strtonumber(bv, ap, &ap);
-
-      for (T xx=av; xx<=bv; xx++)
-        ranges.insert(xx);
-
-      if (*ap == ',')
-        ap++;
-
-    } else if (*ap != 0) {
-      fprintf(stderr, "ERROR: invalid range '%s'\n", range);
-      exit(1);
-    }
-  }
-}
-
-
-
-template<typename T>
-void
-AS_UTL_decodeRange(char *range, T &lo, T &hi) {
-  char    *ap = range;
-
-  strtonumber(lo, ap, &ap);
-  hi = lo;
-
-  if (*ap == '-') {
-    ap++;
-    strtonumber(hi, ap, &ap);
-
-  } else if (*ap != 0) {
-    fprintf(stderr, "ERROR: invalid range '%s'\n", range);
-    exit(1);
+    for (T xx=av; xx<=bv; xx++)
+      ranges.insert(xx);
   }
 }
 

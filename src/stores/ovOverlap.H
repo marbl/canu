@@ -232,14 +232,14 @@ public:
 
   //  These return the actual coordinates on the read.  For reverse B reads, the coordinates are in the reverse-complemented
   //  sequence, and are returned as bgn > end to show this.
-  uint32     a_bgn(gkRead_version v=gkRead_latest) const          { return(dat.ovl.ahg5); };
-  uint32     a_end(gkRead_version v=gkRead_latest) const          { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength(v) - dat.ovl.ahg3); };
+  uint32     a_bgn(gkRead_version v=gkRead_defaultVersion) const          { return(dat.ovl.ahg5); };
+  uint32     a_end(gkRead_version v=gkRead_defaultVersion) const          { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength(v) - dat.ovl.ahg3); };
 
-  uint32     b_bgn(gkRead_version v=gkRead_latest) const          { return((dat.ovl.flipped) ? (g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v) - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
-  uint32     b_end(gkRead_version v=gkRead_latest) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v) - dat.ovl.bhg3)); };
+  uint32     b_bgn(gkRead_version v=gkRead_defaultVersion) const          { return((dat.ovl.flipped) ? (g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v) - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
+  uint32     b_end(gkRead_version v=gkRead_defaultVersion) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v) - dat.ovl.bhg3)); };
 
-  uint32     a_len(gkRead_version v=gkRead_latest) const          { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength(v) - dat.ovl.ahg3 - dat.ovl.ahg5); };
-  uint32     b_len(gkRead_version v=gkRead_latest) const          { return(g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v) - dat.ovl.bhg3 - dat.ovl.bhg5); };
+  uint32     a_len(gkRead_version v=gkRead_defaultVersion) const          { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength(v) - dat.ovl.ahg3 - dat.ovl.ahg5); };
+  uint32     b_len(gkRead_version v=gkRead_defaultVersion) const          { return(g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v) - dat.ovl.bhg3 - dat.ovl.bhg5); };
 
   uint32     span(void) const           { return(dat.ovl.span); };
   void       span(uint32 s)             { dat.ovl.span = s; };
@@ -303,7 +303,7 @@ public:
   //  implicit conversion to floating point; lengths over 131072 will overflow a 32-bit signed
   //  integer before the division.
 
-  uint16     overlapScore(bool forB=false, gkRead_version v=gkRead_latest) const {
+  uint16     overlapScore(bool forB=false, gkRead_version v=gkRead_defaultVersion) const {
     return((forB == false) ?
            (uint16)floor(16384.0 * identity() * a_len() / g->gkStore_getRead(a_iid)->gkRead_sequenceLength(v)) :
            (uint16)floor(16384.0 * identity() * b_len() / g->gkStore_getRead(b_iid)->gkRead_sequenceLength(v)));

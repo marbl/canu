@@ -41,6 +41,16 @@ typedef enum {
   gkRead_trimmed   = 0x03,  //  Return the trimmed read
 } gkRead_version;
 
+extern
+gkRead_version  gkRead_defaultVersion;
+
+inline
+void
+gkRead_setDefaultVersion(gkRead_version v) {
+  gkRead_defaultVersion = v;
+};
+
+
 
 class gkRead;
 class gkLibrary;
@@ -99,7 +109,7 @@ public:
   char       *gkReadData_getCorrectedSequence(void)   { return(_cseq);  };
   char       *gkReadData_getTrimmedSequence(void)     { return(_tseq);  };
 
-  char       *gkReadData_getSequence(gkRead_version vers = gkRead_latest) {
+  char       *gkReadData_getSequence(gkRead_version vers = gkRead_defaultVersion) {
     if      (vers == gkRead_raw)          return(_rseq);
     else if (vers == gkRead_corrected)    return(_cseq);
     else if (vers == gkRead_trimmed)      return(_tseq);
@@ -110,7 +120,7 @@ public:
   uint8      *gkReadData_getCorrectedQualities(void)  { return(_cqlt);  };
   uint8      *gkReadData_getTrimmedQualities(void)    { return(_tqlt);  };
 
-  uint8      *gkReadData_getQualities(gkRead_version vers = gkRead_latest) {
+  uint8      *gkReadData_getQualities(gkRead_version vers = gkRead_defaultVersion) {
     if      (vers == gkRead_raw)          return(_rqlt);
     else if (vers == gkRead_corrected)    return(_cqlt);
     else if (vers == gkRead_trimmed)      return(_tqlt);
@@ -217,7 +227,7 @@ public:
   uint32      gkRead_readID(void)     { return(_readID);    };
   uint32      gkRead_libraryID(void)  { return(_libraryID); };
 
-  uint32      gkRead_sequenceLength(gkRead_version vers = gkRead_latest) {
+  uint32      gkRead_sequenceLength(gkRead_version vers = gkRead_defaultVersion) {
     if      (_ignore)
       return(0);
 

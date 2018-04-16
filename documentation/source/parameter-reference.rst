@@ -124,10 +124,44 @@ onFailure <string=unset>
 Process Control
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _showNext:
+
 showNext <boolean=false>
   Report the first major command that would be run, but don't run it.  Processing to get to that
-  command, for example, checking the output of the previous command or preparing inputs for the
-  next command, is still performed.
+  command, for example, checking the output of the previous command or preparing inputs for the next
+  command, is still performed.
+
+.. _stopOnReadQuality:
+
+stopOnReadQuality <string=true>
+  If set, Canu will stop with the following error if there are significantly fewer reads or bases
+  loaded into the read store than what is in the input data.
+
+  ::
+
+   Gatekeeper detected potential problems in your input reads.
+   
+   Please review the logging in files:
+     /assembly/godzilla/asm.gkpStore.BUILDING.err
+     /assembly/godzilla/asm.gkpStore.BUILDING/errorLog
+   
+   If you wish to proceed, rename the store with the following command and restart canu.
+   
+     mv /assembly/godzilla/asm.gkpStore.BUILDING \
+        /assembly/godzilla/asm.gkpStore.ACCEPTED
+   
+   Option stopOnReadQuality=false skips these checks.
+
+  The missing reads could be too short (decrease :ref:`minReadLength <minReadLength>` to include
+  them), or have invalid bases or quality values.  A summary of the files loaded and errors detected
+  is in the ``asm.gkpStore.BUILDING.err`` file, with full gory details in the
+  ``asm.gkpStore.BUILDING/errorLog``.
+
+  To proceed, set ``stopOnReadQuality=false`` or rename the directory as shown.
+
+  Note that `U` bases are silently translated to `T` bases, to allow assembly of RNA sequences.
+
+.. _stopAfter:
 
 stopAfter <string=undefined>
   If set, Canu will stop processing after a specific stage in the pipeline finishes.

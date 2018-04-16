@@ -502,6 +502,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  gkRead_setDefaultVersion(gkRead_raw);
+
   gkStore          *gkpStore = gkStore::gkStore_open(gkpStoreName);
   tgStore          *corStore = new tgStore(corStoreName, 1);
 

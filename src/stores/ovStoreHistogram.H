@@ -72,15 +72,10 @@ public:
 //  to copy scores in, allocating more space for them as needed.
 
 class ovStoreHistogram {
-
-private:
-  void    clear(gkStore *gkp=NULL);
-
 public:
   ~ovStoreHistogram();
-  ovStoreHistogram();                        //  Just for merging data, allocates fully.
-  ovStoreHistogram(gkStore *gkp);            //  Just for writing data, allocates as needed.
-  ovStoreHistogram(const char *path);        //  Just for loading data, read-only.
+  ovStoreHistogram(gkStore *gkp);            //  For writing data, allocates as needed.  Also for merging data.
+  ovStoreHistogram(const char *path);        //  For loading data, read-only.
 
   static
   char     *createDataName(char *name, const char *prefix);
@@ -96,13 +91,8 @@ private:
   void      mergeScores(ovStoreHistogram *other);
 public:
   void      mergeHistogram(ovStoreHistogram *other) {
-    assert(_gkp == NULL);  //  Can't work on a constructor
-
     mergeOPEL(other);
     mergeScores(other);
-
-    _bgnID = min(_bgnID, other->_bgnID);   //  Update the min/max read id
-    _endID = max(_endID, other->_endID);   //  present here.
   };
 
   //
@@ -138,22 +128,19 @@ public:
   //  For score data.
   //
 
-  uint16    overlapScoreEstimate(uint32 id, uint32 i, bool showLog=false);
+  uint16    overlapScoreEstimate(uint32 id, uint32 i, FILE *scoreDumpFile=NULL);
 
 private:
   gkStore     *_gkp;
-
-  uint32       _bgnID;        //  Lowest  read ID with data in this histogram.
-  uint32       _endID;        //  Highest read ID with data in this histogram.
-  uint32       _maxID;        //  Highest read ID in this assembly.
+  uint32       _maxID;          //  Highest read ID in this assembly.
 
   //  Overlaps per evalue-length, for overlaps in the store.
 
-  uint32       _epb;      //  Evalues per bucket
-  uint32       _bpb;      //  Bases per bucket
+  uint32       _epb;            //  Evalues per bucket
+  uint32       _bpb;            //  Bases per bucket
 
-  uint32       _opelLen;  //  Length of the data vector for one evalue
-  uint32     **_opel;     //  Overlaps per evalue-length
+  uint32       _opelLen;        //  Length of the data vector for one evalue
+  uint32     **_opel;           //  Overlaps per evalue-length
 
   //  Overlap score for the top overlaps.  Used during correction.
   //  Want to store ~11 values per read, 16 bits each, so 22 bytes.
@@ -166,7 +153,9 @@ private:
 
   uint32       _scoresListAid;  //  (current ID being stored in _scoresList)
 
-  uint32       _scoresLen;      //  Number of allocated scores.
+  uint32       _scoresBaseID;   //  First ID with a score in the array.
+  uint32       _scoresLastID;   //  Last  ID with a score in the array.
+  uint32       _scoresAlloc;    //  Number of allocated scores.
   oSH_ovlSco  *_scores;         //  Only scores 0 .. _endID-_bgnID+1 are used.
 };
 
