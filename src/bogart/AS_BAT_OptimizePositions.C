@@ -59,6 +59,77 @@ public:
 
 
 
+//  Decide if two reads in a tig are compatible with an overlap.
+//
+//  Returns true if the reads are overlapping in the tig, and are oriented consistent with the overlap.
+//
+bool
+Unitig::optimize_isCompatible(uint32       ii,
+                              uint32       jj,
+                              BAToverlap  &olap,
+                              bool         inInit,
+                              bool         secondPass,
+                              bool         beVerbose) {
+
+  SeqInterval  &ip = ufpath[ii].position;
+  SeqInterval  &jp = ufpath[jj].position;
+
+
+  bool  isOvl = isOverlapping(ufpath[ii].position, ufpath[jj].position);
+
+  //  Decide if the overlap preserves the ordering in the tig.
+  //
+  //  This is of questionable value, and might be incorrect.  We can have two overlaps between
+  //  a pair of reads iff the orientation differs - the flipped flag.  That gets tested elsewhere.
+
+  bool  isOrdered = true;
+
+#if 1
+  bool  isOvlLo = ((jp.min() <= ip.min()) && (ip.min() <= jp.max()) && (jp.max() <= ip.max()));
+  bool  isOvlHi = ((ip.min() <= jp.min()) && (jp.min() <= ip.max()) && (ip.max() <= jp.max()));
+
+  //bool  isOvlLo = jp.min() < ip.min();   //  Is the above too rigorous?
+  //bool  isOvlHi = ip.min() < jp.min();
+
+  //  isOvl tells the end of the read that should have the overlap (according to the tig layout),
+  //  so check if the overlap actually is on that end.  If not, flag this as 'mis ordered'.
+
+  if (((isOvlLo == true) && (ip.isForward()) && (olap.AEndIs5prime() == false)) ||
+      ((isOvlLo == true) && (ip.isReverse()) && (olap.AEndIs3prime() == false)) ||
+      ((isOvlHi == true) && (ip.isForward()) && (olap.AEndIs3prime() == false)) ||
+      ((isOvlHi == true) && (ip.isReverse()) && (olap.AEndIs5prime() == false)))
+    isOrdered = false;
+
+  //  But if in a containment relationship, it cannot be mis ordered.
+  if ((olap.AisContained() == true) ||
+      (olap.AisContainer() == true))
+    isOrdered = true;
+#endif
+
+  bool  isOriented = true;
+
+  if (((ip.isForward() == jp.isForward()) && (olap.flipped == true)) ||
+      ((ip.isForward() != jp.isForward()) && (olap.flipped == false)))
+    isOriented = false;
+
+  if ((beVerbose) || (secondPass))
+    writeLog("optimize_%s()-- tig %7u read %9u (at %9d %9d) olap to read %9u (at %9d %9d) - hangs %7d %7d - %s %s ovlLo %d ovlHi %d contained %d container %d\n",
+             (inInit) ? "initPlace" : "recompute",
+             id(),
+             ufpath[ii].ident, ip.bgn, ip.end,
+             ufpath[jj].ident, jp.bgn, jp.end,
+             olap.a_hang, olap.b_hang,
+             (isOvl     == true) ? "overlapping" : "not-overlapping",
+             (isOrdered == true) ? "ordered"     : "mis-ordered",
+             isOvlLo, isOvlHi, olap.AisContained(), olap.AisContainer());
+
+  return((isOvl      == true) &&
+         (isOrdered  == true) &&
+         (isOriented == true));
+}
+
+
+
 void
 Unitig::optimize_initPlace(uint32        ii,
                            optPos       *op,
@@ -87,37 +158,18 @@ Unitig::optimize_initPlace(uint32        ii,
       uint32  uu  = inUnitig (jid);
       uint32  jj  = ufpathIdx(jid);
 
-      //  Probably overkill, but report ALL overlaps for the troubling reads.
+      if (uu != id())   //  Skip if to a different tig.
+        continue;       //  (otherwise, ufpath[jj] is invalid below)
 
-      if ((beVerbose) || (firstPass == false))
-        writeLog("optimize_initPlace()-- olap %u a %u b %u hangs %d %d\n", oo, iid, jid, ovl[oo].a_hang, ovl[oo].b_hang);
+      //  Skip if:
+      //    this is the first pass, but the overlap is to a read after us.
+      //    the overlap isn't compatible with the layout.
 
-      if (uu != id())   //  Skip if the overlap is to a different tig.
-        continue;       //  (the ufpathIdx() call is valid, but using it isn't)
+      if (((firstPass) && (ii < jj)) ||
+          (optimize_isCompatible(ii, jj, ovl[oo], true, !firstPass, beVerbose) == false))
+        continue;
 
-      //  Reads are in the same tig.  Decide if they overlap in position.
-
-      bool  isOvl = isOverlapping(ufpath[ii].position, ufpath[jj].position);
-
-      //  Log!  beVerbose should be true for the second pass, but just in case it isn't.
-
-      if ((beVerbose) || (firstPass == false))
-        writeLog("optimize_initPlace()-- olap %4u tig %7u read %8u (at %9d %9d) olap to read %8u (at %9d %9d) - hangs %7d %7d - %s %s\n",
-                 oo, id(),
-                 iid, ufpath[ii].position.bgn, ufpath[ii].position.end,
-                 jid, ufpath[jj].position.bgn, ufpath[jj].position.end,
-                 ovl[oo].a_hang, ovl[oo].b_hang,
-                 (isOvl == true) ? "overlapping" : "not-overlapping",
-                 (jj > ii)       ? "after"       : "before");
-
-      if (isOvl == false)            //  Skip if the reads
-        continue;                    //  don't overlap
-
-      if ((firstPass) && (jj > ii))  //  We're setting initial positions, so overlaps to reads after
-        continue;                    //  us aren't correct, unless we're in the 2nd pass
-
-      //  Reads overlap.  Compute the position of the read using
-      //  the overlap and the other read.
+      //  Compute the position of the read using the overlap and the other read.
 
       nmin += (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang);
       cnt  += 1;
@@ -176,8 +228,9 @@ Unitig::optimize_recompute(uint32        iid,
   uint32       cnt  = 0;
 
   if (beVerbose) {
-    writeLog("optimize()-- tig %8u read %8u previous  - %9.2f-%-9.2f\n", id(), iid, op[iid].min,           op[iid].max);
-    writeLog("optimize()-- tig %8u read %8u length    - %9.2f-%-9.2f\n", id(), iid, op[iid].max - readLen, op[iid].min + readLen);
+    writeLog("optimize()--\n");
+    writeLog("optimize()-- tig %8u read %9u previous  - %9.2f-%-9.2f\n", id(), iid, op[iid].min,           op[iid].max);
+    writeLog("optimize()-- tig %8u read %9u length    - %9.2f-%-9.2f\n", id(), iid, op[iid].max - readLen, op[iid].min + readLen);
   }
 
   //  Process all overlaps.
@@ -187,26 +240,34 @@ Unitig::optimize_recompute(uint32        iid,
     uint32  uu  = inUnitig (jid);
     uint32  jj  = ufpathIdx(jid);
 
-    if (uu != id())   //  Skip if the overlap is to a different tig.
-      continue;       //  (the ufpathIdx() call is valid, but using it isn't)
+    if (uu != id())   //  Skip if to a different tig.
+      continue;       //  (otherwise, ufpath[jj] is invalid below)
 
-    if (isOverlapping(ufpath[ii].position, ufpath[jj].position) == false)  //  Skip if the reads
-      continue;                                                            //  don't overlap
-
-    //  Reads overlap.  Compute the position of the read using
-    //  the overlap and the other read.
+    //  Compute the position of the read using the overlap and the other read.
 
     double tmin = (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang);
     double tmax = (op[iid].fwd) ? (op[jid].max - ovl[oo].b_hang) : (op[jid].max + ovl[oo].a_hang);
 
     if (beVerbose)
-      writeLog("optimize()-- tig %8u read %8u olap %4u - %9.2f-%-9.2f\n", id(), iid, oo, tmin, tmax);
+      writeLog("optimize()-- tig %8u read %9u olap %4u - %9.2f-%-9.2f\n", id(), iid, oo, tmin, tmax);
+
+    //  Skip if the overlap isn't compatible with the layout.
+
+    if (optimize_isCompatible(ii, jj, ovl[oo], false, false, beVerbose) == false)
+      continue;
+
+    //  Update estimate.
 
     nmin += tmin;
     nmax += tmax;
     cnt  += 1;
-  }  //  over all overlaps
+  }
 
+  if (cnt == 0) {
+    writeLog("Failed to optimize read %u in tig %u\n", iid, id());
+    fprintf(stderr, "Failed to optimize read %u in tig %u\n", iid, id());
+    flushLog();
+  }
   assert(cnt > 0);
 
   //  Add in some evidence for the bases in the read.  We want higher weight than the overlaps,
@@ -226,7 +287,7 @@ Unitig::optimize_recompute(uint32        iid,
     double dmax = 2 * (op[iid].max - np[iid].max) / (op[iid].max + np[iid].max);
     double npll = np[iid].max - np[iid].min;
 
-    writeLog("optimize()-- tig %8u read %8u           - %9.2f-%-9.2f length %9.2f/%-6d %7.2f%% posChange %+6.4f %+6.4f\n",
+    writeLog("optimize()-- tig %8u read %9u           - %9.2f-%-9.2f length %9.2f/%-6d %7.2f%% posChange %+6.4f %+6.4f\n",
              id(), iid,
              np[iid].min, np[iid].max,
              npll, readLen,
@@ -234,8 +295,6 @@ Unitig::optimize_recompute(uint32        iid,
              dmin, dmax);
   }
 }
-
-
 
 
 
@@ -300,7 +359,7 @@ Unitig::optimize_setPositions(optPos  *op,
 
     if (op[iid].fwd) {
       if (beVerbose)
-        writeLog("optimize()-- read %8u -> from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n",
+        writeLog("optimize()-- read %9u -> from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n",
                  iid,
                  ufpath[ii].position.bgn,
                  ufpath[ii].position.end,
@@ -315,7 +374,7 @@ Unitig::optimize_setPositions(optPos  *op,
       ufpath[ii].position.end = (int32)op[iid].max;
     } else {
       if (beVerbose)
-        writeLog("optimize()-- read %8u <- from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n",
+        writeLog("optimize()-- read %9u <- from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n",
                  iid,
                  ufpath[ii].position.bgn,
                  ufpath[ii].position.end,
@@ -358,14 +417,15 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
   optPos *np = new optPos [fiLimit];
 
   for (uint32 fi=0; fi<fiLimit; fi++) {
-    uint32 ti = inUnitig(fi);
-    uint32 pp = ufpathIdx(fi);
+    uint32    ti = inUnitig(fi);
+    uint32    pp = ufpathIdx(fi);
+    Unitig   *tig = operator[](ti);
 
-    if (ti == 0)
+    if (tig == NULL)
       continue;
 
-    op[fi].set(operator[](ti)->ufpath[pp]);
-    np[fi].set(operator[](ti)->ufpath[pp]);
+    op[fi].set(tig->ufpath[pp]);
+    np[fi].set(tig->ufpath[pp]);
   }
 
   //  Compute initial positions using previously placed reads and the read length.
@@ -406,7 +466,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
 
 #pragma omp parallel for schedule(dynamic, fiBlockSize)
     for (uint32 fi=0; fi<fiLimit; fi++) {
-      uint32        ti  = inUnitig(fi);
+      uint32        ti = inUnitig(fi);
       Unitig       *tig = operator[](ti);
 
       if ((tig == NULL) || (tig->ufpath.size() == 1))
