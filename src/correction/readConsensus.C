@@ -68,6 +68,8 @@ public:
 
     //  Inputs
 
+    gkRead_setDefaultVersion(gkRead_raw);
+
     gkpStore  = gkStore::gkStore_open(gkpName);
 
     readCache = new overlapReadCache(gkpStore, memLimit);

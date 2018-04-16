@@ -348,6 +348,8 @@ main(int argc, char **argv) {
 
   //  Open inputs.
 
+  gkRead_setDefaultVersion(gkRead_raw);
+
   gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
   tgStore  *corStore = new tgStore(corName, corVers);
 

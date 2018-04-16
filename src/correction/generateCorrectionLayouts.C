@@ -404,6 +404,8 @@ main(int argc, char **argv) {
 
   //  Open inputs and output tigStore.
 
+  gkRead_setDefaultVersion(gkRead_raw);
+
   gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
 
   if (ovlName == NULL && readListName != NULL) {
