@@ -341,7 +341,7 @@ uint32
 OverlapCache::filterDuplicates(uint32 &no) {
   uint32   nFiltered = 0;
 
-  for (uint32 ii=0, jj=1; jj<no; ii++, jj++) {
+  for (uint32 ii=0, jj=1, dd=0; jj<no; ii++, jj++) {
     if (_ovs[ii].b_iid != _ovs[jj].b_iid)
       continue;
 
@@ -349,22 +349,35 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
     nFiltered++;
 
-    //  Drop the shorter overlap, or the one with the higher erate.
+    //  Drop the weaker overlap.  If a tie, drop the flipped one.
 
-    uint32  iilen = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang());
-    uint32  jjlen = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang());
+    double iiSco = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang()) * _ovs[ii].erate();
+    double jjSco = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang()) * _ovs[jj].erate();
 
-    if (iilen == jjlen) {
-      if (_ovs[ii].evalue() < _ovs[jj].evalue())
-        jjlen = 0;
-      else
-        iilen = 0;
+    if (iiSco == jjSco) {             //  Hey gcc!  See how nice I was by putting brackets
+      if (_ovs[ii].flipped())         //  around this so you don't get confused by the
+        iiSco = 0;                    //  non-ambiguous ambiguous else clause?
+      else                            //
+        jjSco = 0;                    //  You're welcome.
     }
 
-    if (iilen < jjlen)
-      _ovs[ii].a_iid = _ovs[ii].b_iid = 0;
+    if (iiSco < jjSco)
+      dd = ii;
     else
-      _ovs[jj].a_iid = _ovs[jj].b_iid = 0;
+      dd = jj;
+
+#if 0
+    writeLog("OverlapCache::filterDuplicates()-- Dropping overlap A: %9" F_U64P " B: %9" F_U64P " - %6.4f%% - %6" F_S32P " %6" F_S32P " - %s\n",
+             _ovs[dd].a_iid,
+             _ovs[dd].b_iid,
+             _ovs[dd].a_hang(),
+             _ovs[dd].b_hang(),
+             _ovs[dd].erate(),
+             _ovs[dd].flipped() ? "flipped" : "");
+#endif
+
+    _ovs[dd].a_iid = 0;
+    _ovs[dd].b_iid = 0;
   }
 
   //  If nothing was filtered, return.
