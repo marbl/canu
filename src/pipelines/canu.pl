@@ -135,7 +135,7 @@ foreach my $arg (@ARGV) {
         setGlobal("utgReAlign",        "true");    # Changed
 
         if (-e "$bin/wtdbg-1.2.8") {
-           setGlobal("unitigger",         "wtdbg");   # Changed
+           setGlobal("unitigger",      "wtdbg");   # Changed
         }
     }
 
@@ -647,7 +647,8 @@ if (setOptions($mode, "correct") eq "correct") {
 
 dumpCorrectedReads($asm);
 
-if (setOptions($mode, "trim") eq "trim") && uc(getGlobal("unitigger")) ne "WTDBG"){
+if ((setOptions($mode, "trim") eq "trim") &&
+    (getGlobal("unitigger") ne "wtdbg")) {
     if (getNumberOfBasesInStore($asm, "utg") == 0) {
         print STDERR "--\n";
         print STDERR "--\n";
@@ -679,7 +680,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
         print STDERR "--\n";
 
         if (gatekeeper($asm, "utg", @inputFiles)) {
-            if (uc(getGlobal("unitigger")) ne "WTDBG") {
+            if (getGlobal("unitigger") ne "wtdbg") {
                 merylConfigure($asm, "utg");
                 merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
                 merylProcess($asm, "utg");
@@ -708,7 +709,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
             consensusLoad($asm);
             consensusAnalyze($asm);
 
-            if (uc(getGlobal("unitigger")) ne "WTDBG") {
+            if (getGlobal("unitigger") ne "wtdbg") {
                 alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
             }
             generateOutputs($asm);
