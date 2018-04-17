@@ -378,7 +378,7 @@ main(int argc, char **argv) {
     fprintf(stdout, "  numBuckets %8" F_U32P "\n", config->numBuckets());
     fprintf(stdout, "  numSlices  %8" F_U32P "\n", config->numSlices());
     fprintf(stdout, "  sortMemory %8" F_U32P " GB (%5.3f GB)\n",
-            (uint32)(config->sortMemory()) + 1,  //  Adds an extra 0.5 to 1.4 gb.
+            (uint32)ceil(config->sortMemory() + 0.5),  //  Adds an extra 0.5 to 1.49 gb.
             config->sortMemory());
   }
 
