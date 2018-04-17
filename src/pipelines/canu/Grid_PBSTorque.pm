@@ -198,8 +198,7 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
     setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID")           if ($isPro == 0);
     setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAY_INDEX")       if ($isPro == 1);
-    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID")       if ($isPro == 0);
-    setGlobalIfUndef("gridEngineArraySubmitID",              undef)                   if ($isPro == 1);   #  Was "\\\$PBS_ARRAY_INDEX"
+    setGlobalIfUndef("gridEngineArraySubmitID",              undef);
     setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
