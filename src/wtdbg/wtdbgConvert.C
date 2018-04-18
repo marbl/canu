@@ -38,7 +38,7 @@
 using namespace std;
 
 double MIN_READ_FRACTION = 0.5;
-double MAX_READ_STRETCH  = 1.3;
+double MAX_READ_STRETCH  = 1.2;
 
 void save_tig(sqStore *seqStore, tgStore *tigStore, tgTig *tig,
               map<uint32, map<uint32, int32> > &readToStart,
@@ -127,7 +127,7 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-o") == 0) {
       outName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
+    } else if (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
 
     } else if (AS_UTL_fileExists(argv[arg])) {
@@ -150,7 +150,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
 
     if (seqName == NULL)
-      fprintf(stderr, "ERROR:  no seqStore (-G) supplied\n");
+      fprintf(stderr, "ERROR:  no seqStore (-S) supplied\n");
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
 
@@ -232,7 +232,6 @@ main(int argc, char **argv) {
              end            = int(offset) + W(4);
           }
          if (readToStart.find(rid) == readToStart.end() || readToStart[rid].find(index) == readToStart[rid].end()) {
-             if (bgn < 0) continue; 
              readToStart[rid][index] = max(0, bgn);
              readToEnd[rid][index] = end;
              readPieces[rid][index] = 1;

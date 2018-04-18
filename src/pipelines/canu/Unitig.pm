@@ -222,8 +222,8 @@ sub unitig ($) {
         print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
         print F "fi\n";
     } elsif (getGlobal("unitigger") eq "wtdbg") {
-        print F "\$bin/gatekeeperDumpFASTQ \\\n";
-        print F "  -G ../$asm.gkpStore \\\n";
+        print F "\$bin/sqStoreDumpFASTQ \\\n";
+        print F "  -S ../$asm.seqStore \\\n";
         print F "  -nolibname \\\n";
         print F "  -noreadname \\\n";
         print F "  -fasta \\\n";
@@ -251,7 +251,7 @@ sub unitig ($) {
         print F "fi\n";
         print F "\n";
         print F "\n";
-        print F " \$bin/wtdbgConvert -o ./$asm -G ../$asm.gkpStore $asm.ctg.lay \\\n";
+        print F " \$bin/wtdbgConvert -o ./$asm -S ../$asm.seqStore $asm.ctg.lay \\\n";
         print F "  && \\\n";
         print F "  cp -r ./$asm.ctgStore ../$asm.utgStore \\\n";
         print F "  && \\\n";
