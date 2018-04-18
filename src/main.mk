@@ -51,12 +51,12 @@ SOURCES      := AS_global.C \
                 correction/falconConsensus.C \
                 correction/falconConsensus-alignTag.C \
                 \
-                stores/gkLibrary.C \
-                stores/gkStore.C \
-                stores/gkStoreConstructor.C \
-                stores/gkStoreInfo.C \
-                stores/gkStoreEncode.C \
-                stores/gkStorePartition.C \
+                stores/sqLibrary.C \
+                stores/sqStore.C \
+                stores/sqStoreConstructor.C \
+                stores/sqStoreInfo.C \
+                stores/sqStoreEncode.C \
+                stores/sqStorePartition.C \
                 \
                 stores/ovOverlap.C \
                 stores/ovStore.C \
@@ -163,10 +163,6 @@ SRC_INCDIRS  := . \
                 overlapInCore/liboverlap
 
 SUBMAKEFILES := stores/dumpBlob.mk \
-                stores/gatekeeperCreate.mk \
-                stores/gatekeeperDumpFASTQ.mk \
-                stores/gatekeeperDumpMetaData.mk \
-                stores/gatekeeperPartition.mk \
                 stores/ovStoreBuild.mk \
                 stores/ovStoreConfig.mk \
                 stores/ovStoreBucketizer.mk \
@@ -174,6 +170,10 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/ovStoreIndexer.mk \
                 stores/ovStoreDump.mk \
                 stores/ovStoreStats.mk \
+                stores/sqStoreCreate.mk \
+                stores/sqStoreCreatePartition.mk \
+                stores/sqStoreDumpFASTQ.mk \
+                stores/sqStoreDumpMetaData.mk \
                 stores/tgStoreCompress.mk \
                 stores/tgStoreDump.mk \
                 stores/tgStoreLoad.mk \

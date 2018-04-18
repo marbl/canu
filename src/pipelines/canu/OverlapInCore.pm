@@ -110,7 +110,7 @@ sub overlapConfigure ($$$) {
         #my $refLibrary         = getGlobal("${tag}RefLibrary");      #  -R $refLibrary
 
         $cmd  = "$bin/overlapInCorePartition \\\n";
-        $cmd .= " -G  ../$asm.gkpStore \\\n";
+        $cmd .= " -S  ../$asm.seqStore \\\n";
         $cmd .= " -hl " . getGlobal("${tag}OvlHashBlockLength") . " \\\n";
         $cmd .= " -rl " . getGlobal("${tag}OvlRefBlockLength")  . " \\\n";
         $cmd .= " -ol " . getGlobal("minOverlapLength") . " \\\n";
@@ -160,7 +160,7 @@ sub overlapConfigure ($$$) {
         print F getBinDirectoryShellCode();
         print F "\n";
         print F setWorkDirectoryShellCode($path);
-        print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/1-overlapper", "");
+        print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
         print F "\n";
         print F getJobIDShellCode();
         print F "\n";
@@ -187,7 +187,7 @@ sub overlapConfigure ($$$) {
         print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.frequentMers.fasta", "");
         print F "\n";
         print F "\$bin/overlapInCore \\\n";
-        print F "  -G \\\n"  if ($type eq "partial");
+        print F "  -partial \\\n"  if ($type eq "partial");
         print F "  -t ", getGlobal("${tag}OvlThreads"), " \\\n";
         print F "  -k $merSize \\\n";
         print F "  -k ../0-mercounts/$asm.ms$merSize.frequentMers.fasta \\\n";
@@ -203,7 +203,7 @@ sub overlapConfigure ($$$) {
         print F "  -s ./\$job.stats \\\n";
         #print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
-        print F "  ../$asm.gkpStore \\\n";
+        print F "  ../$asm.seqStore \\\n";
         print F "&& \\\n";
         print F "mv ./\$job.ovb.WORKING ./\$job.ovb\n";
         print F "\n";

@@ -24,7 +24,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include "edlib.H"
@@ -891,7 +891,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "  Validates a GFA by generating alignments.\n");
     fprintf(stderr, "  Optionally writes new GFA with updated CIGAR string (NOT IMPLEMENTED).\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -G g           Load reads from gkStore 'g'.\n");
     fprintf(stderr, "    -T t v         Load tigs from tgStore 't', version 'v'.\n");
     fprintf(stderr, "    -C t v         For BED format, the source of the 'chromosomes'.  Similar to -T.\n");
     fprintf(stderr, "                     Consensus sequence must exist for -T and -C (usually in v=2)\n");

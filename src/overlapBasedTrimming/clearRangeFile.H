@@ -32,7 +32,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "AS_UTL_fileIO.H"
 
@@ -43,14 +43,14 @@ public:
   //  of reads allowed.  If the file does exist, we don't care and load the number of reads
   //  from the file.
 
-  clearRangeFile(char *fileName, gkStore *gkp) {
+  clearRangeFile(char *fileName, sqStore *seq) {
 
     strncpy(_fileName, fileName, FILENAME_MAX-1);
 
     if (AS_UTL_fileExists(_fileName) == false) {
       _modified = true;   //  Always gets written, regardless of changes
 
-      _lastID   = gkp->gkStore_getNumReads();
+      _lastID   = seq->sqStore_getNumReads();
       _bgn      = new uint32 [_lastID + 1];
       _end      = new uint32 [_lastID + 1];
 
@@ -61,7 +61,7 @@ public:
 
       //  Nope, every range is set to fully clear.
 
-      reset(gkp);
+      reset(seq);
     }
 
     else {
@@ -71,7 +71,7 @@ public:
 
       AS_UTL_safeRead(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
 
-      assert(gkp->gkStore_getNumReads() == _lastID);  //  Sane?
+      assert(seq->sqStore_getNumReads() == _lastID);  //  Sane?
 
       _bgn = new uint32 [_lastID + 1];
       _end = new uint32 [_lastID + 1];
@@ -103,10 +103,10 @@ public:
   };
 
 
-  void      reset(gkStore *gkp) {
+  void      reset(sqStore *seq) {
     for (uint32 fi=1; fi <= _lastID; fi++) {
       _bgn[fi] = 0;
-      _end[fi] = gkp->gkStore_getRead(fi)->gkRead_sequenceLength();
+      _end[fi] = seq->sqStore_getRead(fi)->sqRead_sequenceLength();
     }
   };
 

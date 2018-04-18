@@ -28,7 +28,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "adjustOverlaps.H"
@@ -176,7 +176,7 @@ public:
     //adj         = NULL;
   };
 
-  void          addAndFilterOverlaps(gkStore *gkp,
+  void          addAndFilterOverlaps(sqStore *seq,
                                      clearRangeFile *finClr,
                                      double errorRate,
                                      ovOverlap *ovl, uint32 ovlLen);
@@ -219,25 +219,25 @@ public:
 
 
 void
-detectSpur(gkStore               *gkp,
+detectSpur(sqStore               *seq,
            workUnit              *w,
            FILE                  *subreadFile,
            bool                   subreadFileVerbose);
 
 void
-detectChimer(gkStore               *gkp,
+detectChimer(sqStore               *seq,
              workUnit              *w,
              FILE                  *subreadFile,
              bool                   subreadFileVerbose);
 
 void
-detectSubReads(gkStore               *gkp,
+detectSubReads(sqStore               *seq,
                workUnit              *w,
                FILE                  *subreadFile,
                bool                   subreadFileVerbose);
 
 void
-trimBadInterval(gkStore               *gkp,
+trimBadInterval(sqStore               *seq,
                 workUnit              *w,
                 uint32                 minReadLength,
                 FILE                  *subreadFile,

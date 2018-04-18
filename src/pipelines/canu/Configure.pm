@@ -719,7 +719,7 @@ sub configureAssembler () {
     }
 
     #  Meryl too, basically just small or big.  This should really be using the number of bases
-    #  reported from gatekeeper.
+    #  reported from sqStore.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
         setGlobalIfUndef("merylMemory", "4-8");     setGlobalIfUndef("merylThreads", "1-4");

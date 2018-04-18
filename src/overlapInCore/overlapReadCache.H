@@ -32,7 +32,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
@@ -41,7 +41,7 @@ using namespace std;
 
 class overlapReadCache {
 public:
-  overlapReadCache(gkStore *gkpStore_, uint64 memLimit);
+  overlapReadCache(sqStore *seqStore_, uint64 memLimit);
   ~overlapReadCache();
 
 private:
@@ -66,14 +66,14 @@ public:
   };
 
 private:
-  gkStore     *gkpStore;
+  sqStore     *seqStore;
   uint32       nReads;
 
   uint32      *readAge;
   uint32      *readLen;
   char       **readSeqFwd;
 
-  gkReadData   readdata;
+  sqReadData   readdata;
 
   uint64       memoryLimit;
 };

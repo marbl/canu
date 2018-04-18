@@ -15,7 +15,7 @@
  *
  *  This file is derived from:
  *
- *    src/AS_GKP/gkpStoreDumpFASTQ.C
+ *    src/stores/gatekeeperDumpFASTQ.C
  *
  *  Modifications by:
  *
@@ -36,7 +36,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "AS_UTL_decodeRange.H"
 #include "AS_UTL_fileIO.H"
 #include "AS_UTL_fasta.H"
@@ -170,8 +170,8 @@ scanPrefix(char *prefix) {
 
 int
 main(int argc, char **argv) {
-  char            *gkpStoreName      = NULL;
-  uint32           gkpStorePart      = UINT32_MAX;
+  char            *seqStoreName      = NULL;
+  uint32           seqStorePart      = UINT32_MAX;
 
   char            *outPrefix         = NULL;
   char            *outSuffix         = NULL;
@@ -202,11 +202,11 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStoreName = argv[++arg];
 
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        gkpStorePart = atoi(argv[++arg]);
+        seqStorePart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
@@ -272,13 +272,13 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStoreName == NULL)
+  if (seqStoreName == NULL)
     err++;
   if (outPrefix == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s [...] -o fastq-prefix -g gkpStore\n", argv[0]);
-    fprintf(stderr, "  -G gkpStore\n");
+    fprintf(stderr, "usage: %s [...] -o fastq-prefix -g seqStore\n", argv[0]);
+    fprintf(stderr, "  -S seqStore\n");
     fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.(libname).fastq, ...\n");
     fprintf(stderr, "                      if fastq-prefix is '-', all sequences output to stdout\n");
     fprintf(stderr, "                      if fastq-prefix ends in .gz, .bz2 or .xz, output is compressed\n");
@@ -289,8 +289,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -nolibname          don't include the library name in the output file name\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -noreadname         don't include the read name in the sequence header.  header will be:\n");
-    fprintf(stderr, "                        '>original-name id=<gkpID> clr=<bgn>,<end>   with names\n");
-    fprintf(stderr, "                        '>read<gkpID> clr=<bgn>,<end>                without names\n");
+    fprintf(stderr, "                        '>original-name id=<seqID> clr=<bgn>,<end>   with names\n");
+    fprintf(stderr, "                        '>read<seqID> clr=<bgn>,<end>                without names\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -l libToDump        output only read in library number libToDump\n");
     fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
@@ -306,19 +306,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -allbases           if a clear range file, lower case mask the non-clear bases\n");
     fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
 
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
+    if (seqStoreName == NULL)
+      fprintf(stderr, "ERROR: no seqStore (-S) supplied.\n");
     if (outPrefix == NULL)
       fprintf(stderr, "ERROR: no output prefix (-o) supplied.\n");
 
     exit(1);
   }
 
-  gkStore        *gkpStore  = gkStore::gkStore_open(gkpStoreName, gkStore_readOnly, gkpStorePart);
-  uint32          numReads  = gkpStore->gkStore_getNumReads();
-  uint32          numLibs   = gkpStore->gkStore_getNumLibraries();
+  sqStore        *seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_readOnly, seqStorePart);
+  uint32          numReads  = seqStore->sqStore_getNumReads();
+  uint32          numLibs   = seqStore->sqStore_getNumLibraries();
 
-  clearRangeFile *clrRange  = (clrName == NULL) ? NULL : new clearRangeFile(clrName, gkpStore);
+  clearRangeFile *clrRange  = (clrName == NULL) ? NULL : new clearRangeFile(clrName, seqStore);
 
   if (bgnID < 1)
     bgnID = 1;
@@ -329,29 +329,29 @@ main(int argc, char **argv) {
   if (endID < bgnID)
     fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID), exit(1);
 
-  if ((dumpRaw == true) && (gkpStore->gkStore_getNumRawReads() == 0)) {
+  if ((dumpRaw == true) && (seqStore->sqStore_getNumRawReads() == 0)) {
     fprintf(stderr, "WARNING:\n");
     fprintf(stderr, "WARNING:  No raw reads in store.\n");
     fprintf(stderr, "WARNING:\n");
   }
 
-  if ((dumpCorrected == true) && (gkpStore->gkStore_getNumCorrectedReads() == 0)) {
+  if ((dumpCorrected == true) && (seqStore->sqStore_getNumCorrectedReads() == 0)) {
     fprintf(stderr, "WARNING:\n");
     fprintf(stderr, "WARNING:  No corrected reads in store.\n");
     fprintf(stderr, "WARNING:\n");
   }
 
-  if ((dumpTrimmed == true) && (gkpStore->gkStore_getNumTrimmedReads() == 0)) {
+  if ((dumpTrimmed == true) && (seqStore->sqStore_getNumTrimmedReads() == 0)) {
     fprintf(stderr, "WARNING:\n");
     fprintf(stderr, "WARNING:  No trimmed reads in store.\n");
     fprintf(stderr, "WARNING:\n");
   }
 
 
-  if (gkpStorePart == UINT32_MAX)
+  if (seqStorePart == UINT32_MAX)
     fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
   else
-    fprintf(stderr, "Dumping reads from %u to %u (inclusive) from partition %u.\n", bgnID, endID, gkpStorePart);
+    fprintf(stderr, "Dumping reads from %u to %u (inclusive) from partition %u.\n", bgnID, endID, seqStorePart);
 
 
   libOutput   **out = new libOutput * [numLibs + 1];
@@ -362,33 +362,33 @@ main(int argc, char **argv) {
   out[0] = new libOutput(outPrefix, outSuffix, NULL);
 
   for (uint32 i=1; i<=numLibs; i++)
-    out[i] = new libOutput(outPrefix, outSuffix, gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
+    out[i] = new libOutput(outPrefix, outSuffix, seqStore->sqStore_getLibrary(i)->sqLibrary_libraryName());
 
   //  Grab a new readData, and iterate through reads to dump.
 
-  gkReadData   *readData  = new gkReadData;
+  sqReadData   *readData  = new sqReadData;
 
   char         *qltString = new char [AS_MAX_READLEN + 1];
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead      *read   = gkpStore->gkStore_getRead(rid);
+    sqRead      *read   = seqStore->sqStore_getRead(rid);
 
     if ((read == NULL) ||
-        (gkpStore->gkStore_readInPartition(rid) == false))
+        (seqStore->sqStore_readInPartition(rid) == false))
       continue;
 
-    uint32       libID  = (withLibName == false) ? 0 : read->gkRead_libraryID();
+    uint32       libID  = (withLibName == false) ? 0 : read->sqRead_libraryID();
 
-    uint32       flen   = read->gkRead_sequenceLength();
+    uint32       flen   = read->sqRead_sequenceLength();
 
     if (dumpRaw == true)
-      flen = read->gkRead_sequenceLength(gkRead_raw);
+      flen = read->sqRead_sequenceLength(sqRead_raw);
 
     if (dumpCorrected == true)
-      flen = read->gkRead_sequenceLength(gkRead_corrected);
+      flen = read->sqRead_sequenceLength(sqRead_corrected);
 
     if (dumpTrimmed == true)
-      flen = read->gkRead_sequenceLength(gkRead_trimmed);
+      flen = read->sqRead_sequenceLength(sqRead_trimmed);
 
     uint32       lclr   = 0;
     uint32       rclr   = flen;
@@ -427,29 +427,29 @@ main(int argc, char **argv) {
 
     //  Grab the _latest_ sequence and quality.
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
 
-    char   *name = readData->gkReadData_getName();
+    char   *name = readData->sqReadData_getName();
 
-    char   *seq  = readData->gkReadData_getSequence();
-    uint8  *qlt8 = readData->gkReadData_getQualities();
+    char   *seq  = readData->sqReadData_getSequence();
+    uint8  *qlt8 = readData->sqReadData_getQualities();
     char   *qlt  = qltString;
 
     //  Grab the specified sequence and quality, if specified.
 
     if (dumpRaw == true) {
-      seq  = readData->gkReadData_getRawSequence();
-      qlt8 = readData->gkReadData_getRawQualities();
+      seq  = readData->sqReadData_getRawSequence();
+      qlt8 = readData->sqReadData_getRawQualities();
     }
 
     if (dumpCorrected == true) {
-      seq  = readData->gkReadData_getCorrectedSequence();
-      qlt8 = readData->gkReadData_getCorrectedQualities();
+      seq  = readData->sqReadData_getCorrectedSequence();
+      qlt8 = readData->sqReadData_getCorrectedQualities();
     }
 
     if (dumpTrimmed == true) {
-      seq  = readData->gkReadData_getTrimmedSequence();
-      qlt8 = readData->gkReadData_getTrimmedQualities();
+      seq  = readData->sqReadData_getTrimmedSequence();
+      qlt8 = readData->sqReadData_getTrimmedQualities();
     }
 
     //  Soft mask not-clear bases.
@@ -470,7 +470,7 @@ main(int argc, char **argv) {
 
     //  Create the QV string.
 
-    for (uint32 i=0; i<read->gkRead_sequenceLength(); i++)
+    for (uint32 i=0; i<read->sqRead_sequenceLength(); i++)
       qlt[i] = '!' + qlt8[i];
 
     //  Chop off the ends we're not printing.
@@ -515,7 +515,7 @@ main(int argc, char **argv) {
     delete out[i];
   delete [] out;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

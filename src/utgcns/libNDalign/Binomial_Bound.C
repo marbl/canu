@@ -24,7 +24,7 @@
  */
 
 #include "Binomial_Bound.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 #undef COMPUTE_IN_LOG_SPACE
 

@@ -29,14 +29,14 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 
 int
 main(int argc, char **argv) {
   tgTig  tig;
-  char  *gkpName     = NULL;
+  char  *seqName     = NULL;
   char  *tigFileName = NULL;
 
   argc = AS_configure(argc, argv);
@@ -44,8 +44,8 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigFileName = argv[++arg];
@@ -56,16 +56,16 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (tigFileName == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -t tigFile\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -t tigFile\n", argv[0]);
     exit(1);
   }
 
-  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
+  sqStore  *seqStore = sqStore::sqStore_open(seqName);
 
   FILE *F = fopen(tigFileName, "r");
 
@@ -78,7 +78,7 @@ main(int argc, char **argv) {
   bool    withQV          = false;
   bool    withDots        = true;
 
-  tig.display(stdout, gkpStore, displayWidth, displaySpacing, withQV, withDots);
+  tig.display(stdout, seqStore, displayWidth, displaySpacing, withQV, withDots);
 
   exit(0);
 }

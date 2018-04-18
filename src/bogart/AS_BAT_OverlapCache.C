@@ -158,7 +158,7 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   _maxEvalue     = AS_OVS_encodeEvalue(maxErate);
   _minOverlap    = minOverlap;
 
-  //  Allocate space to load overlaps.  With a NULL gkpStore we can't call the bgn or end methods.
+  //  Allocate space to load overlaps.  With a NULL seqStore we can't call the bgn or end methods.
 
   _ovsMax  = 0;
   _ovs     = NULL;
@@ -536,7 +536,7 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
   for (uint32 rr=0; rr<RI->numReads()+1; rr++)
     _ovsMax = max(_ovsMax, ovlStore->numOverlaps(rr));
 
-  _ovs     = ovOverlap::allocateOverlaps(NULL /* gkpStore */, _ovsMax);
+  _ovs     = ovOverlap::allocateOverlaps(NULL /* seqStore */, _ovsMax);
   _ovsSco  = new uint64 [_ovsMax];
   _ovsTmp  = new uint64 [_ovsMax];
 

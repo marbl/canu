@@ -34,9 +34,9 @@
 //  Overlaps can be unsorted.
 
 void
-Read_Olaps(coParameters *G, gkStore *gkpStore) {
+Read_Olaps(coParameters *G, sqStore *seqStore) {
 
-  ovStore *ovs = new ovStore(G->ovlStorePath, gkpStore);
+  ovStore *ovs = new ovStore(G->ovlStorePath, seqStore);
 
   ovs->setRange(G->bgnID, G->endID);
 
@@ -53,7 +53,7 @@ Read_Olaps(coParameters *G, gkStore *gkpStore) {
   G->olaps    = new Olap_Info_t [numolaps];
   G->olapsLen = 0;
 
-  ovOverlap  olap(gkpStore);
+  ovOverlap  olap(seqStore);
 
   while (ovs->readOverlap(&olap)) {
     G->olaps[G->olapsLen].a_iid  =  olap.a_iid;

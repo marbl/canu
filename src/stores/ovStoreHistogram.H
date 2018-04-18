@@ -31,7 +31,7 @@
 //    in the store, the number of overlaps per (evalue,overlapLength)
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStoreFile.H"  //  For ovFileType.
 
 
@@ -74,7 +74,7 @@ public:
 class ovStoreHistogram {
 public:
   ~ovStoreHistogram();
-  ovStoreHistogram(gkStore *gkp);            //  For writing data, allocates as needed.  Also for merging data.
+  ovStoreHistogram(sqStore *seq);            //  For writing data, allocates as needed.  Also for merging data.
   ovStoreHistogram(const char *path);        //  For loading data, read-only.
 
   static
@@ -131,7 +131,7 @@ public:
   uint16    overlapScoreEstimate(uint32 id, uint32 i, FILE *scoreDumpFile=NULL);
 
 private:
-  gkStore     *_gkp;
+  sqStore     *_seq;
   uint32       _maxID;          //  Highest read ID in this assembly.
 
   //  Overlaps per evalue-length, for overlaps in the store.

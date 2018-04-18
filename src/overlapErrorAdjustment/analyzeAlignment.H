@@ -29,7 +29,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "correctionOutput.H"
 

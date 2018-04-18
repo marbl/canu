@@ -35,7 +35,7 @@
 bool
 largestCovered(ovOverlap    *ovl,
                uint32        ovlLen,
-               gkRead       *read,
+               sqRead       *read,
                uint32 UNUSED(ibgn),
                uint32        iend,
                uint32       &fbgn,
@@ -48,12 +48,12 @@ largestCovered(ovOverlap    *ovl,
 
   logMsg[0] = 0;
 
-  assert(read->gkRead_readID() == ovl[0].a_iid);
+  assert(read->sqRead_readID() == ovl[0].a_iid);
   assert(ovlLen > 0);
 
   intervalList<uint32>  IL;
   intervalList<uint32>  ID;
-  int32                 iid = read->gkRead_readID();
+  int32                 iid = read->sqRead_readID();
 
   uint32                nSkip = 0;
   uint32                nUsed = 0;
@@ -80,10 +80,10 @@ largestCovered(ovOverlap    *ovl,
 
 #if 0
   for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-    fprintf(stderr, "IL - %d - " F_S64 " " F_S64 " " F_S64 "\n", fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
+    fprintf(stderr, "IL - %d - " F_S64 " " F_S64 " " F_S64 "\n", fr.sqRead_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
 
   for (uint32 it=0; it<ID.numberOfIntervals(); it++)
-    fprintf(stderr, "ID - %d - " F_S64 " " F_S64 " " F_S64 "\n", fr.gkFragment_getReadIID(), ID.lo(it), ID.hi(it), ID.de(it));
+    fprintf(stderr, "ID - %d - " F_S64 " " F_S64 " " F_S64 "\n", fr.sqRead_getReadIID(), ID.lo(it), ID.hi(it), ID.de(it));
 #endif
 
   //  I thought I'd allow low coverage at the end of the read, but not internally, but that is hard,
@@ -98,7 +98,7 @@ largestCovered(ovOverlap    *ovl,
     uint32  ie = 0;
 
     while (it < DE.numberOfIntervals()) {
-      //fprintf(stderr, "DE - %d - " F_S64 " " F_S64 " " F_U32 "\n", fr.gkFragment_getReadIID(), DE.lo(it), DE.hi(it), DE.depth(it));
+      //fprintf(stderr, "DE - %d - " F_S64 " " F_S64 " " F_U32 "\n", fr.sqRead_getReadIID(), DE.lo(it), DE.hi(it), DE.depth(it));
 
       if (DE.depth(it) < minCoverage) {
         //  Dropped below good coverage depth.  If we have an interval, save it.  Reset.
@@ -209,7 +209,7 @@ largestCovered(ovOverlap    *ovl,
 #if 0
   if (IL.numberOfIntervals() > 1)
     for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-      fprintf(stderr, "IL[%02d] - iid %d - " F_S64 " " F_S64 "\n", it, read->gkRead_readID(), IL.lo(it), IL.hi(it));
+      fprintf(stderr, "IL[%02d] - iid %d - " F_S64 " " F_S64 "\n", it, read->sqRead_readID(), IL.lo(it), IL.hi(it));
 #endif
 
   if (IL.numberOfIntervals() == 0) {

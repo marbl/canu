@@ -19,7 +19,15 @@
  #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2018-FEB-08
+ #    Brian P. Walenz from 2015-APR-09 to 2015-SEP-03
+ #      are Copyright 2015 Battelle National Biodefense Institute, and
+ #      are subject to the BSD 3-Clause License
+ #
+ #    Brian P. Walenz beginning on 2015-OCT-19
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
+ #    Sergey Koren beginning on 2015-NOV-17
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -41,7 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Configure;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Report;
 use canu::Grid_Cloud;
 
@@ -89,7 +97,7 @@ sub computeNumberOfHaplotypeJobs ($) {
     my $nPart    = getGlobal("corPartitions");
     my $nReads   = getNumberOfReadsInStore($asm, "all");
 
-    caExit("didn't find any reads in store 'haplotype/$asm.gkpStore'?", undef)  if ($nReads == 0);
+    caExit("didn't find any reads in store 'haplotype/$asm.seqStore'?", undef)  if ($nReads == 0);
 
     $nPerJob     = int($nReads / $nPart + 1);
     $nPerJob     = getGlobal("corPartitionMin")  if ($nPerJob < getGlobal("corPartitionMin"));
@@ -156,7 +164,7 @@ sub haplotypeConfigure ($) {
     goto allDone   if (skipStage($asm, "hap-haplotypeConfigure") == 1);
     goto allDone   if (fileExists("$path/haplotypeReads.sh"));              #  Jobs created
 
-    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.seqStore");
 
     estimateMemoryNeededForHaplotypeJobs($asm);
 
@@ -171,7 +179,7 @@ sub haplotypeConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/2-correction", "");
+    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/2-correction", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -211,11 +219,11 @@ sub haplotypeConfigure ($) {
     print F "fi\n";
     print F "\n";
 
-    print F fetchStoreShellCode("haplotype/$asm.gkpStore", "haplotype/2-haplotype", "");
+    print F fetchStoreShellCode("haplotype/$asm.seqStore", "haplotype/2-haplotype", "");
     print F "\n";
     # fetch the filter files
 
-    print F "gkpStore=\"../$asm.gkpStore\"\n";
+    print F "seqStore=\"../$asm.seqStore\"\n";
     print F "\n";
 
     my $stageDir = getGlobal("stageDirectory");
@@ -225,22 +233,22 @@ sub haplotypeConfigure ($) {
         print F "  mkdir -p $stageDir\n";
         print F "fi\n";
         print F "\n";
-        print F "mkdir -p $stageDir/$asm.gkpStore\n";
+        print F "mkdir -p $stageDir/$asm.seqStore\n";
         print F "\n";
         print F "echo Start copy at `date`\n";
-        print F "cp -p \$gkpStore/info      $stageDir/$asm.gkpStore/info\n";
-        print F "cp -p \$gkpStore/libraries $stageDir/$asm.gkpStore/libraries\n";
-        print F "cp -p \$gkpStore/reads     $stageDir/$asm.gkpStore/reads\n";
-        print F "cp -p \$gkpStore/blobs.*   $stageDir/$asm.gkpStore/\n";
+        print F "cp -p \$seqStore/info      $stageDir/$asm.seqStore/info\n";
+        print F "cp -p \$seqStore/libraries $stageDir/$asm.seqStore/libraries\n";
+        print F "cp -p \$seqStore/reads     $stageDir/$asm.seqStore/reads\n";
+        print F "cp -p \$seqStore/blobs.*   $stageDir/$asm.seqStore/\n";
         print F "echo Finished   at `date`\n";
         print F "\n";
-        print F "gkpStore=\"$stageDir/$asm.gkpStore\"\n";
+        print F "seqStore=\"$stageDir/$asm.seqStore\"\n";
         print F "\n";
     }
 
     print F "\n";
-    print F "\$bin/gatekeeperDumpFASTQ \\\n";
-    print F "  -G \$gkpStore \\\n";
+    print F "\$bin/sqStoreDumpFASTQ \\\n";
+    print F "  -S \$seqStore \\\n";
     print F "  -o ./results/\$jobid.fasta.WORKING \\\n";
     print F "  -r \$bgn-\$end \\\n";
     print F "  -fasta -nolibname -noreadname \\\n";
@@ -276,7 +284,7 @@ sub haplotypeConfigure ($) {
 
     # now classify and dump the fasta
     print F "\$bin/splitHaplotype \\\n";
-    print F "  -G \$gkpStore \\\n";
+    print F "  -S \$seqStore \\\n";
     print F "  -p results/\$jobid \\\n";
     print F "  -h " . join(" ", @haplotypes) . "\\\n";
     print F "  -cr 1 -cl " . getGlobal("minReadLength") . " \\\n";
@@ -286,7 +294,7 @@ sub haplotypeConfigure ($) {
     print F "\n";
 
     if (defined($stageDir)) {
-        print F "rm -rf $stageDir/$asm.gkpStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
+        print F "rm -rf $stageDir/$asm.seqStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
         print F "rmdir  $stageDir\n";
         print F "\n";
     }
@@ -321,9 +329,9 @@ sub haplotypeCheck($) {
     goto allDone   if (skipStage($asm, "hap-haplotypeCheck", $attempt) == 1);
     goto allDone   if (sequenceFileExists("$asm.haplotypeReads"));
 
-    #  Compute the size of gkpStore for staging
+    #  Compute the size of seqStore for staging
 
-    setGlobal("corStageSpace", getSizeOfGatekeeperStore($asm));
+    setGlobal("corStageSpace", getSizeOfSequenceStore($asm));
 
     #  Figure out if all the tasks finished correctly.
 
@@ -419,7 +427,7 @@ sub dumpHaplotypeReads ($) {
        open(L, "> $asm.${haplotype}Reads.length")              or caExit("can't open '$asm.${haplotype}Reads.length' for writing: $!", undef);
 
        open(F, "< $path/hapjob.files")                      or caExit("can't open '$path/hapjob.files' for reading: $!", undef);
-       open(N, "< $asm.gkpStore/readNames.txt")             or caExit("can't open '$asm.gkpStore/readNames.txt' for reading: $!", undef);
+       open(N, "< $asm.seqStore/readNames.txt")             or caExit("can't open '$asm.seqStore/readNames.txt' for reading: $!", undef);
 
 
         while (<F>) {
@@ -436,7 +444,7 @@ sub dumpHaplotypeReads ($) {
            my $s;   #  Current sequence
            my $n;   #  Next header line
 
-           my $nameid;  #  Currently loaded id and name from gkpStore/readNames
+           my $nameid;  #  Currently loaded id and name from seqStore/readNames
            my $name;
 
            $n = <R>;  chomp $n;  #  Read the first line, the first header.
@@ -464,7 +472,7 @@ sub dumpHaplotypeReads ($) {
                    $rid = $1;
                }
 
-               #  Load the next line from the gatekeeper ID map file until we find the
+               #  Load the next line from the ID map file until we find the
                #  correct one.
 
                while (!eof(N) && ($rid != $nameid)) {
@@ -567,9 +575,9 @@ sub dumpHaplotypeReads ($) {
 
     foreach my $haplotype (@haplotypes) {
         print STDERR "--\n";
-        print STDERR "-- Purging haplotype $haplotype gatekeeper store used for classification.\n";
-        unlink("$base/$haplotype.gkpStore");
-        remove_tree("$haplotype.gkpStore");
+        print STDERR "-- Purging haplotype $haplotype sequence store used for classification.\n";
+        unlink("$base/$haplotype.seqStore");
+        remove_tree("$haplotype.seqStore");
      }
 
   finishStage:

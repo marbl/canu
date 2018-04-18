@@ -15,11 +15,19 @@
  *
  *  This file is derived from:
  *
- *    src/stores/gkStore.C
+ *    src/stores/gkStorePartition.C
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-OCT-03
+ *    Brian P. Walenz from 2014-NOV-26 to 2015-AUG-10
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-09
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2015-DEC-09
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -27,12 +35,12 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 
 
 void
-gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
+sqStore::sqStore_buildPartitions(uint32 *partitionMap) {
   char              name[FILENAME_MAX];
 
   //  Store cannot be partitioned already, and it must be readOnly (for safety) as we don't need to
@@ -43,7 +51,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   assert(_blobsData          == NULL);  //  Can't already be partitioned!
   assert(_numberOfPartitions == 0);
 
-  assert(_mode               == gkStore_buildPart);
+  assert(_mode               == sqStore_buildPart);
 
   //  Figure out what the last partition is
 
@@ -53,7 +61,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   assert(partitionMap[0] == UINT32_MAX);
 
-  for (uint32 fi=1; fi<=gkStore_getNumReads(); fi++) {
+  for (uint32 fi=1; fi<=sqStore_getNumReads(); fi++) {
     if (partitionMap[fi] == UINT32_MAX) {
       readsUnPartitioned++;
       continue;
@@ -75,7 +83,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   uint64        *partfileslen = new uint64 [maxPartition + 1];            //  Offset, in bytes, into the blobs file
   FILE         **readfiles    = new FILE * [maxPartition + 1];
   uint32        *readfileslen = new uint32 [maxPartition + 1];            //  aka _readsPerPartition
-  uint32        *readIDmap    = new uint32 [gkStore_getNumReads() + 1];   //  aka _readIDtoPartitionIdx
+  uint32        *readIDmap    = new uint32 [sqStore_getNumReads() + 1];   //  aka _readIDtoPartitionIdx
 
   //  Be nice and put all the partitions in a subdirectory.
 
@@ -110,7 +118,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   readIDmap[0] = UINT32_MAX;    //  There isn't a zeroth read, make it bogus.
 
-  for (uint32 fi=1; fi<=gkStore_getNumReads(); fi++) {
+  for (uint32 fi=1; fi<=sqStore_getNumReads(); fi++) {
     uint32  pi = partitionMap[fi];
 
     //  Skip reads not in a partition.
@@ -131,15 +139,15 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     FILE *blobFile = _blobsFiles[omp_get_thread_num()].getFile(_storePath, &_reads[fi]);  //  NOTE!  _storePath for original data!
 
-    AS_UTL_safeRead(blobFile,  tag,     "gkStore::gkStore_buildPartitions::tag",     sizeof(int8),   4);
-    AS_UTL_safeRead(blobFile, &blobLen, "gkStore::gkStore_buildPartitions::blobLen", sizeof(uint32), 1);
+    AS_UTL_safeRead(blobFile,  tag,     "sqStore::sqStore_buildPartitions::tag",     sizeof(int8),   4);
+    AS_UTL_safeRead(blobFile, &blobLen, "sqStore::sqStore_buildPartitions::blobLen", sizeof(uint32), 1);
 
     uint8 *blob     = new uint8 [8 + blobLen];
 
     memcpy(blob,    tag,     sizeof(uint8)  * 4);
     memcpy(blob+4, &blobLen, sizeof(uint32) * 1);
 
-    AS_UTL_safeRead(blobFile, blob+8, "gkStore::gkStore_buildPartitions::blob", sizeof(char), blobLen);
+    AS_UTL_safeRead(blobFile, blob+8, "sqStore::sqStore_buildPartitions::blob", sizeof(char), blobLen);
 
     assert(blob[0] == 'B');
     assert(blob[1] == 'L');
@@ -153,7 +161,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     //  Make a copy of the read, then modify it for the partition, then write it to the partition.
 
-    gkRead  partRead = _reads[fi];
+    sqRead  partRead = _reads[fi];
 
     partRead._mSegm = 0;
     partRead._mByte = partfileslen[pi];   //  Update the read to point to this data
@@ -161,8 +169,8 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     //  Write the data.
 
-    AS_UTL_safeWrite(partfiles[pi], blob, "gkRead::gkRead_buildPartitions::blob", sizeof(char), blobLen + 8);
-    AS_UTL_safeWrite(readfiles[pi], &partRead, "gkStore::gkStore_buildPartitions::read", sizeof(gkRead), 1);
+    AS_UTL_safeWrite(partfiles[pi], blob, "sqRead::sqRead_buildPartitions::blob", sizeof(char), blobLen + 8);
+    AS_UTL_safeWrite(readfiles[pi], &partRead, "sqStore::sqStore_buildPartitions::read", sizeof(sqRead), 1);
 
     delete [] blob;
 
@@ -176,10 +184,10 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  There isn't a zeroth read.
 
-  AS_UTL_safeWrite(mapFile, &maxPartition,  "gkStore::gkStore_buildPartitions::maxPartition", sizeof(uint32), 1);
-  AS_UTL_safeWrite(mapFile,  readfileslen,  "gkStore::gkStore_buildPartitions::readfileslen", sizeof(uint32), maxPartition + 1);
-  AS_UTL_safeWrite(mapFile,  partitionMap,  "gkStore::gkStore_buildPartitions::partitionMap", sizeof(uint32), gkStore_getNumReads() + 1);
-  AS_UTL_safeWrite(mapFile,  readIDmap,     "gkStore::gkStore_buildPartitions::readIDmap",    sizeof(uint32), gkStore_getNumReads() + 1);
+  AS_UTL_safeWrite(mapFile, &maxPartition,  "sqStore::sqStore_buildPartitions::maxPartition", sizeof(uint32), 1);
+  AS_UTL_safeWrite(mapFile,  readfileslen,  "sqStore::sqStore_buildPartitions::readfileslen", sizeof(uint32), maxPartition + 1);
+  AS_UTL_safeWrite(mapFile,  partitionMap,  "sqStore::sqStore_buildPartitions::partitionMap", sizeof(uint32), sqStore_getNumReads() + 1);
+  AS_UTL_safeWrite(mapFile,  readIDmap,     "sqStore::sqStore_buildPartitions::readIDmap",    sizeof(uint32), sqStore_getNumReads() + 1);
 
   //  cleanup -- close all the files, delete storage
 

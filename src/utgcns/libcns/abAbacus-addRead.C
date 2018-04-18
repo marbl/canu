@@ -124,25 +124,25 @@ abSequence::abSequence(uint32  readID,
 
 
 void
-abAbacus::addRead(gkStore *gkpStore,
+abAbacus::addRead(sqStore *seqStore,
                   uint32   readID,
                   uint32   askip, uint32 bskip,
                   bool     complemented,
-                  map<uint32, gkRead *>     *inPackageRead,
-                  map<uint32, gkReadData *> *inPackageReadData) {
+                  map<uint32, sqRead *>     *inPackageRead,
+                  map<uint32, sqReadData *> *inPackageReadData) {
 
   //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
   //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
   //  otherwise.  Hey, it's used for debugging only...
 
-  gkRead      *read     = NULL;
-  gkReadData  *readData = NULL;
+  sqRead      *read     = NULL;
+  sqReadData  *readData = NULL;
 
   if (inPackageRead == NULL) {
-    read     = gkpStore->gkStore_getRead(readID);
-    readData = new gkReadData;
+    read     = seqStore->sqStore_getRead(readID);
+    readData = new sqReadData;
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
   }
 
   else {
@@ -155,9 +155,9 @@ abAbacus::addRead(gkStore *gkpStore,
 
   //  Grab seq/qlt from the read, offset to the proper begin and length.
 
-  uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
-  char   *seq    = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-  uint8  *qlt    = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
+  uint32  seqLen = read->sqRead_sequenceLength() - askip - bskip;
+  char   *seq    = readData->sqReadData_getSequence()  + ((complemented == false) ? askip : bskip);
+  uint8  *qlt    = readData->sqReadData_getQualities() + ((complemented == false) ? askip : bskip);
 
   //  Tell abacus about it.  We could pre-allocate _sequences (in the constructor) but this is
   //  relatively painless and makes life easier outside here.

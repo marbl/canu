@@ -19,7 +19,31 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-OCT-28
+ *    Brian P. Walenz from 2007-MAR-08 to 2013-AUG-01
+ *      are Copyright 2007-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren on 2007-MAY-08
+ *      are Copyright 2007 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren from 2011-JUN-02 to 2011-JUN-03
+ *      are Copyright 2011 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Gregory Sims from 2012-FEB-01 to 2012-FEB-14
+ *      are Copyright 2012 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2014-DEC-09 to 2015-AUG-14
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-12
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2015-DEC-15
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -35,7 +59,7 @@
 //  SEQUENTIAL STORE - only two functions.
 //
 
-ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
+ovStoreWriter::ovStoreWriter(const char *path, sqStore *seq) {
   char name[FILENAME_MAX+1];
 
   memset(_storePath, 0, FILENAME_MAX);
@@ -50,10 +74,10 @@ ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
 
   AS_UTL_mkdir(_storePath);
 
-  _info.clear(gkp->gkStore_getNumReads());
+  _info.clear(seq->sqStore_getNumReads());
   //_info.save(_storePath);   Used to save this as a sentinel, but now fails asserts I like
 
-  _gkp       = gkp;
+  _seq       = seq;
 
   _index     = new ovStoreOfft [_info.maxID() + 1];
 
@@ -61,7 +85,7 @@ ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
   _bofSlice  = 1;      //  Constant, never changes.
   _bofPiece  = 1;      //  Incremented whenever a file is closed.
 
-  _histogram = new ovStoreHistogram(_gkp);  //  Only used for merging in results from output files.
+  _histogram = new ovStoreHistogram(_seq);  //  Only used for merging in results from output files.
 }
 
 
@@ -132,7 +156,7 @@ ovStoreWriter::writeOverlap(ovOverlap *overlap) {
   //  Open a new output file if there isn't one.
 
   if (_bof == NULL)
-    _bof = new ovFile(_gkp, _storePath, _bofSlice, _bofPiece, ovFileNormalWrite);
+    _bof = new ovFile(_seq, _storePath, _bofSlice, _bofPiece, ovFileNormalWrite);
 
   //  Make sure the overlaps are sorted, and add the overlap to the info file.
 
@@ -160,7 +184,7 @@ ovStoreWriter::writeOverlap(ovOverlap *overlap) {
 //
 
 ovStoreSliceWriter::ovStoreSliceWriter(const char *path,
-                                       gkStore    *gkp,
+                                       sqStore    *seq,
                                        uint32      sliceNum,
                                        uint32      numSlices,
                                        uint32      numBuckets) {
@@ -168,7 +192,7 @@ ovStoreSliceWriter::ovStoreSliceWriter(const char *path,
   memset(_storePath, 0, FILENAME_MAX);
   strncpy(_storePath, path, FILENAME_MAX);
 
-  _gkp                 = gkp;
+  _seq                 = seq;
 
   _sliceNum            = sliceNum;
   _pieceNum            = 1;
@@ -239,7 +263,7 @@ ovStoreSliceWriter::loadOverlapsFromBucket(uint32 bucket, uint64 expectedLen, ov
 
   fprintf(stderr, "  loading %10" F_U64P " overlaps from '%s'.\n", expectedLen, name);
 
-  ovFile   *bof    = new ovFile(_gkp, name, ovFileFull);
+  ovFile   *bof    = new ovFile(_seq, name, ovFileFull);
   uint64    before = ovlsLen;
 
   while (bof->readOverlap(ovls + ovlsLen))
@@ -257,7 +281,7 @@ ovStoreSliceWriter::loadOverlapsFromBucket(uint32 bucket, uint64 expectedLen, ov
 void
 ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
                                   uint64      ovlsLen) {
-  ovStoreInfo    info(_gkp->gkStore_getNumReads());
+  ovStoreInfo    info(_seq->sqStore_getNumReads());
 
   //  Probably wouldn't be too hard to make this take all overlaps for one read.
   //  But would need to track the open files in the class, not only in this function.
@@ -278,8 +302,8 @@ ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
 
   //  Create the index and overlaps files
 
-  ovStoreOfft  *index     = new ovStoreOfft [_gkp->gkStore_getNumReads() + 1];
-  ovFile       *olapFile  = new ovFile(_gkp, _storePath, _sliceNum, _pieceNum, ovFileNormalWrite);
+  ovStoreOfft  *index     = new ovStoreOfft [_seq->sqStore_getNumReads() + 1];
+  ovFile       *olapFile  = new ovFile(_seq, _storePath, _sliceNum, _pieceNum, ovFileNormalWrite);
 
   //  Dump the overlaps
 
@@ -294,7 +318,7 @@ ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
 
       _pieceNum++;
 
-      olapFile  = new ovFile(_gkp, _storePath, _sliceNum, _pieceNum, ovFileNormalWrite);
+      olapFile  = new ovFile(_seq, _storePath, _sliceNum, _pieceNum, ovFileNormalWrite);
     }
 
     //  Add the overlap to the index.
@@ -319,7 +343,7 @@ ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
   AS_UTL_saveFile(indexName, index, info.maxID()+1);
 
   delete [] index;
-  
+
   info.save(_storePath, _sliceNum, true);
 
   //  And done.
@@ -419,7 +443,7 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
 void
 ovStoreSliceWriter::mergeHistogram(void) {
   char               name[FILENAME_MAX+1];
-  ovStoreHistogram  *merged = new ovStoreHistogram(_gkp);
+  ovStoreHistogram  *merged = new ovStoreHistogram(_seq);
 
   for (uint32 ss=1; ss <= _numSlices; ss++) {
     fprintf(stderr, " - Merge histograms for slice %u\n", ss);

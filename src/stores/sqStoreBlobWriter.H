@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gkStoreBlobWriter.H
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz beginning on 2018-MAR-13
@@ -27,9 +31,9 @@
 #define GKSTOREBLOBWRITER_H
 
 
-class gkStoreBlobWriter {
+class sqStoreBlobWriter {
 public:
-  gkStoreBlobWriter(const char *storePath) {
+  sqStoreBlobWriter(const char *storePath) {
 
     //  Initialize us.
 
@@ -40,7 +44,7 @@ public:
 
     //  Find the first available file.
 
-    makeNextName(0);  //  Don't increment _bufferCount. 
+    makeNextName(0);  //  Don't increment _bufferCount.
     while (AS_UTL_fileExists(_blobName) == true)
       makeNextName();
 
@@ -49,7 +53,7 @@ public:
     _buffer = new writeBuffer(_blobName, "w");
   };
 
-  ~gkStoreBlobWriter() {
+  ~sqStoreBlobWriter() {
     delete _buffer;
   };
 
@@ -79,7 +83,7 @@ public:
   uint64         writtenPosition(void) { return(_writtenBP); };
 
 private:
-  char          _storePath[FILENAME_MAX+1];        //  Path to the gkpStore.
+  char          _storePath[FILENAME_MAX+1];        //  Path to the seqStore.
   char          _blobName[FILENAME_MAX+1];         //  A temporary to make life easier.
 
   uint32        _writtenBC;                        //  The position before the

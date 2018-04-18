@@ -192,11 +192,11 @@ correctRead(uint32 curID,
 //  Open and read corrections from  Correct_File_Path  and
 //  apply them to sequences in  Frag .
 
-//  Load reads from gkpStore, and apply corrections.
+//  Load reads from seqStore, and apply corrections.
 
 void
 Correct_Frags(coParameters *G,
-              gkStore      *gkpStore) {
+              sqStore      *seqStore) {
 
   //  The original converted to lowercase, and made non-acgt be 'a'.
 
@@ -227,9 +227,9 @@ Correct_Frags(coParameters *G,
   G->adjustsLen = 0;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    gkRead *read = gkpStore->gkStore_getRead(curID);
+    sqRead *read = seqStore->sqStore_getRead(curID);
 
-    G->basesLen += read->gkRead_sequenceLength() + 1;
+    G->basesLen += read->sqRead_sequenceLength() + 1;
   }
 
   for (uint64 c=0; c<Clen; c++) {
@@ -263,15 +263,15 @@ Correct_Frags(coParameters *G,
 
   //  Load reads and apply corrections for each one.
 
-  gkReadData *readData = new gkReadData;
+  sqReadData *readData = new sqReadData;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    gkRead *read       = gkpStore->gkStore_getRead(curID);
+    sqRead *read       = seqStore->sqStore_getRead(curID);
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
 
-    uint32  readLength = read->gkRead_sequenceLength();
-    char   *readBases  = readData->gkReadData_getSequence();
+    uint32  readLength = read->sqRead_sequenceLength();
+    char   *readBases  = readData->sqReadData_getSequence();
 
     //  Save pointers to the bases and adjustments.
 
@@ -310,8 +310,8 @@ Correct_Frags(coParameters *G,
                 G->reads[G->readsLen].basesLen,
                 G->reads[G->readsLen].adjusts,
                 G->reads[G->readsLen].adjustsLen,
-                readData->gkReadData_getSequence(),
-                read->gkRead_sequenceLength(),
+                readData->sqReadData_getSequence(),
+                read->sqRead_sequenceLength(),
                 C,
                 Cpos,
                 Clen,

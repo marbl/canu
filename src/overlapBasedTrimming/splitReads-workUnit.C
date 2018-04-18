@@ -33,7 +33,7 @@
 //  overlap into a useful format.
 
 void
-workUnit::addAndFilterOverlaps(gkStore *gkp,
+workUnit::addAndFilterOverlaps(sqStore *seq,
                                clearRangeFile *finClr,
                                double errorRate,
                                ovOverlap *ovl, uint32 ovlLen) {
@@ -77,7 +77,7 @@ workUnit::addAndFilterOverlaps(gkStore *gkp,
       valid = adjustFlipped(finClr, o,
                             a->aovlbgn, a->aovlend, a->bovlbgn, a->bovlend,
                             a->aclrbgn, a->aclrend, a->bclrbgn, a->bclrend,
-                            gkp);
+                            seq);
 
     if (valid == false)
       //  adjust() says the overlap doesn't intersect the clear range, so nothing here.

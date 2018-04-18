@@ -243,10 +243,10 @@ sub stashFileShellCode ($$$) {
 
 
 #
-#  Given $base/$asm.gkpStore, fetch or stash it.
+#  Given $base/$asm.seqStore, fetch or stash it.
 #
 #  The non-shell versions are assumed to be running in the assembly directory, that is, where
-#  $base/$asm.gkpStore would exist naturally.  This is consistent with canu.pl - it runs in the
+#  $base/$asm.seqStore would exist naturally.  This is consistent with canu.pl - it runs in the
 #  assembly directory, and then chdir to subdirectories to run binaries.
 #
 #  The shell versions usually run within a subdirectory (e.g., in correction/0-mercounts).  They
@@ -255,7 +255,7 @@ sub stashFileShellCode ($$$) {
 #
 
 sub fetchStore ($) {
-    my $store  = shift @_;                           #  correction/asm.gkpStore
+    my $store  = shift @_;                           #  correction/asm.seqStore
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
@@ -274,7 +274,7 @@ sub fetchStore ($) {
 
 
 sub stashStore ($) {
-    my $store  = shift @_;                         #  correction/asm.gkpStore
+    my $store  = shift @_;                         #  correction/asm.seqStore
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
@@ -292,12 +292,12 @@ sub stashStore ($) {
 
 
 sub fetchStoreShellCode ($$@) {
-    my $store  = shift @_;           #  correction/asm.gkpStore - store we're trying to get
+    my $store  = shift @_;           #  correction/asm.seqStore - store we're trying to get
     my $root   = shift @_;           #  correction/1-overlapper - place the script is running in
     my $indent = shift @_;           #
     my $base   = dirname($store);    #  correction
     my $basep  = pathToDots($root);  #  ../..
-    my $name   = basename($store);   #             asm.gkpStore
+    my $name   = basename($store);   #             asm.seqStore
     my $code;
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
@@ -320,12 +320,12 @@ sub fetchStoreShellCode ($$@) {
 
 
 sub stashStoreShellCode ($$@) {
-    my $store  = shift @_;           #  correction/asm.gkpStore - store we're trying to get
+    my $store  = shift @_;           #  correction/asm.seqStore - store we're trying to get
     my $root   = shift @_;           #  correction/1-overlapper - place the script is running in
     my $indent = shift @_;           #
     my $base   = dirname($store);    #  correction
     my $basep  = pathToDots($root);  #  ../..
-    my $name   = basename($store);   #             asm.gkpStore
+    my $name   = basename($store);   #             asm.seqStore
     my $code;
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");

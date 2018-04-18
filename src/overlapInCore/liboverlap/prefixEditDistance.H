@@ -36,7 +36,7 @@
 
 
 #include "AS_global.H"
-#include "gkStore.H"  //  For AS_MAX_READLEN
+#include "sqStore.H"  //  For AS_MAX_READLEN
 
 
 #undef  DEBUG_EDIT_SPACE_ALLOC

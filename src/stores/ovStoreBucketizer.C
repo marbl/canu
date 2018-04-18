@@ -41,14 +41,14 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
 
 static
 void
-writeToFile(gkStore          *gkp,
+writeToFile(sqStore          *seq,
             ovOverlap        *overlap,
             ovFile          **sliceFile,
             uint64           *sliceSize,
@@ -62,7 +62,7 @@ writeToFile(gkStore          *gkp,
     char name[FILENAME_MAX];
 
     snprintf(name, FILENAME_MAX, "%s/create%04d/slice%04d", ovlName, bucketNum, df);
-    sliceFile[df] = new ovFile(gkp, name, ovFileFullWriteNoCounts);
+    sliceFile[df] = new ovFile(seq, name, ovFileFullWriteNoCounts);
     sliceSize[df] = 0;
   }
 
@@ -75,7 +75,7 @@ writeToFile(gkStore          *gkp,
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
-  char           *gkpName      = NULL;
+  char           *seqName      = NULL;
   char           *cfgName      = NULL;
   uint32          bucketNum    = UINT32_MAX;
 
@@ -93,8 +93,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       cfgName = argv[++arg];
@@ -117,8 +117,8 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err.push_back("ERROR: No overlap store (-O) supplied.\n");
 
-  if (gkpName == NULL)
-    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR: No sequence store (-S) supplied.\n");
 
   if (cfgName == NULL)
     err.push_back("ERROR: No store configuration (-C) supplied.\n");
@@ -127,9 +127,9 @@ main(int argc, char **argv) {
     err.push_back("ERROR: Invalid or no bucket (-b) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig -b bucket [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -O asm.ovlStore -S asm.seqStore -C ovStoreConfig -b bucket [opts]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore       path to overlap store to create\n");
-    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -S asm.seqStore       path to a sequence store\n");
     fprintf(stderr, "  -C config             path to ovStoreConfig configuration file\n");
     fprintf(stderr, "  -b bucket             bucket to create (1 ... N)\n");
     fprintf(stderr, "\n");
@@ -183,7 +183,7 @@ main(int argc, char **argv) {
 
   //  Open inputs.
 
-  gkStore        *gkp    = gkStore::gkStore_open(gkpName);
+  sqStore        *seq    = sqStore::sqStore_open(seqName);
 
   //  Allocate stuff.
 
@@ -193,9 +193,9 @@ main(int argc, char **argv) {
   memset(sliceFile, 0, sizeof(ovFile *) * (config->numSlices() + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (config->numSlices() + 1));
 
-  ovStoreFilter *filter = new ovStoreFilter(gkp, maxErrorRate);
-  ovOverlap      foverlap(gkp);
-  ovOverlap      roverlap(gkp);
+  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate);
+  ovOverlap      foverlap(seq);
+  ovOverlap      roverlap(seq);
 
   //  And process each input!
 
@@ -203,7 +203,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Bucketizing input %4" F_U32P " out of %4" F_U32P " - '%s'\n",
             ff+1, config->numInputs(bucketNum), config->getInput(bucketNum, ff));
 
-    ovFile  *inputFile = new ovFile(gkp, config->getInput(bucketNum, ff), ovFileFull);
+    ovFile  *inputFile = new ovFile(seq, config->getInput(bucketNum, ff), ovFileFull);
 
     //  Do bigger buffers increase performance?  Do small ones hurt?
     //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
@@ -217,12 +217,12 @@ main(int argc, char **argv) {
       if ((foverlap.dat.ovl.forUTG == true) ||
           (foverlap.dat.ovl.forOBT == true) ||
           (foverlap.dat.ovl.forDUP == true))
-        writeToFile(gkp, &foverlap, sliceFile, sliceSize, config, ovlName, bucketNum);
+        writeToFile(seq, &foverlap, sliceFile, sliceSize, config, ovlName, bucketNum);
 
       if ((roverlap.dat.ovl.forUTG == true) ||
           (roverlap.dat.ovl.forOBT == true) ||
           (roverlap.dat.ovl.forDUP == true))
-        writeToFile(gkp, &roverlap, sliceFile, sliceSize, config, ovlName, bucketNum);
+        writeToFile(seq, &roverlap, sliceFile, sliceSize, config, ovlName, bucketNum);
     }
 
     delete inputFile;
@@ -243,7 +243,7 @@ main(int argc, char **argv) {
 
   //  Cleanup.
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   delete [] sliceFile;
   delete [] sliceSize;

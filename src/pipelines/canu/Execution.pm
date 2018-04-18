@@ -1175,7 +1175,7 @@ sub submitOrRunParallelJob ($$$$@) {
         }
 
         if (uc(getGlobal("gridEngine")) eq "PBS") {
-            # new PBS versions dont have 1-task arrays like PBSPro but still have afteranyarray (which doesn't work on a not-array task) 
+            # new PBS versions dont have 1-task arrays like PBSPro but still have afteranyarray (which doesn't work on a not-array task)
             # so we need to check if we are waiting for a regular job or array
             my $holdType = (join ":", @jobsSubmitted)  =~ m/^(\d+)\[(.*)\]/ ? "afteranyarray" : "afterany";
             $jobHold = "-W depend=$holdType:" . join ":", @jobsSubmitted;

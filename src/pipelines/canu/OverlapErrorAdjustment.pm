@@ -48,7 +48,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Report;
 use canu::Grid_Cloud;
 
@@ -75,7 +75,7 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
 
-    open(F, "$bin/gatekeeperDumpMetaData -G unitigging/$asm.gkpStore -reads 2> /dev/null |");
+    open(F, "$bin/sqStoreDumpMetaData -S unitigging/$asm.seqStore -reads 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -86,14 +86,14 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     }
     close(F);
 
-    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($rlCnt == 0);
+    caExit("Failed to load read lengths from '$asm.seqStore'", undef)   if ($rlCnt == 0);
 
 
     fetchStore("unitigging/$asm.ovlStore");
 
     print STDERR "-- Loading number of overlaps per read.\n";
 
-    open(F, "$bin/ovStoreDump -G unitigging/$asm.gkpStore -O unitigging/$asm.ovlStore -counts 2> /dev/null |");
+    open(F, "$bin/ovStoreDump -S unitigging/$asm.seqStore -O unitigging/$asm.ovlStore -counts 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -197,7 +197,7 @@ sub readErrorDetectionConfigure ($) {
         #  could be loaded (done above) and using 2x that (because there are two buffers of these
         #  reads).
         #
-        #  Throw in another 2 GB for unknown overheads (gkpStore, ovlStore) and alignment generation.
+        #  Throw in another 2 GB for unknown overheads (seqStore, ovlStore) and alignment generation.
 
         my $memory = (12 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize) + 2 * 1024 * 1024 * 1024;
 
@@ -242,7 +242,7 @@ sub readErrorDetectionConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("unitigging/$asm.gkpStore", $path, "");
+    print F fetchStoreShellCode("unitigging/$asm.seqStore", $path, "");
     print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
     print F "\n";
     print F getJobIDShellCode();
@@ -263,7 +263,7 @@ sub readErrorDetectionConfigure ($) {
     print F "fi\n";
     print F "\n";
     print F "\$bin/findErrors \\\n";
-    print F "  -G ../$asm.gkpStore \\\n";
+    print F "  -S ../$asm.seqStore \\\n";
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
     print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
@@ -545,7 +545,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("unitigging/$asm.gkpStore", $path, "");
+    print F fetchStoreShellCode("unitigging/$asm.seqStore", $path, "");
     print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
     print F "\n";
     print F getJobIDShellCode();
@@ -568,7 +568,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     print F fetchFileShellCode("unitigging/3-overlapErrorAdjustment", "red.red", "");
     print F "\n";
     print F "\$bin/correctOverlaps \\\n";
-    print F "  -G ../$asm.gkpStore \\\n";
+    print F "  -S ../$asm.seqStore \\\n";
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
     print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
@@ -713,7 +713,7 @@ sub updateOverlapStore ($) {
     fetchStore("unitigging/$asm.ovlStore");
 
     $cmd  = "$bin/loadErates \\\n";
-    $cmd .= "  -G ../$asm.gkpStore \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -O ../$asm.ovlStore \\\n";
     $cmd .= "  -L ./oea.files \\\n";
     $cmd .= "> ./oea.apply.err 2>&1";

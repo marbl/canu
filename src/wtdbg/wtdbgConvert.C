@@ -40,7 +40,7 @@ using namespace std;
 double MIN_READ_FRACTION = 0.5;
 double MAX_READ_STRETCH  = 1.3;
 
-void save_tig(gkStore *gkpStore, tgStore *tigStore, tgTig *tig,
+void save_tig(sqStore *seqStore, tgStore *tigStore, tgTig *tig,
               map<uint32, map<uint32, int32> > &readToStart,
               map<uint32, map<uint32, int32> > &readToEnd,
               map<uint32, map<uint32, bool> >   &readToOri,
@@ -62,7 +62,7 @@ void save_tig(gkStore *gkpStore, tgStore *tigStore, tgTig *tig,
       for (map<uint32, uint32>::iterator chunks=readPieces[it->first].begin(); chunks != readPieces[it->first].end(); ++chunks) {
         if (bestCount < chunks->second) {
           // sanity check the placement
-          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*gkpStore->gkStore_getRead(it->first)->gkRead_sequenceLength() && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
+          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
             bestCount = chunks->second;
             best = chunks->first;
           }
@@ -82,8 +82,8 @@ void save_tig(gkStore *gkpStore, tgStore *tigStore, tgTig *tig,
       for (map<uint32, uint32>::iterator chunks=readPieces[it->first].begin(); chunks != readPieces[it->first].end(); ++chunks) {
         if (bestCount < chunks->second) {
           // sanity check the placement
-          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*gkpStore->gkStore_getRead(it->first)->gkRead_sequenceLength() 
-              && readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] > gkpStore->gkStore_getRead(it->first)->gkRead_sequenceLength() / MAX_READ_STRETCH
+          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() 
+              && readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] > seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() / MAX_READ_STRETCH
               && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
             bestCount = chunks->second;
             best = chunks->first;
@@ -116,7 +116,7 @@ void save_tig(gkStore *gkpStore, tgStore *tigStore, tgTig *tig,
 int
 main(int argc, char **argv) {
   char           *outName  = NULL;
-  char           *gkpName  = NULL;
+  char           *seqName  = NULL;
   uint32          minOverlapLength = 0;
 
   vector<char *>  files;
@@ -128,7 +128,7 @@ main(int argc, char **argv) {
       outName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+      seqName = argv[++arg];
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -141,7 +141,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((err) || (gkpName == NULL) || (outName == NULL) || (files.size() == 0)) {
+  if ((err) || (seqName == NULL) || (outName == NULL) || (files.size() == 0)) {
     fprintf(stderr, "usage: %s [options] file.dbg.lay[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  Converts wtdbg layout to tigStore\n");
@@ -149,8 +149,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o out     output prefix\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  no gkpStore (-G) supplied\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR:  no seqStore (-G) supplied\n");
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
 
@@ -159,7 +159,7 @@ main(int argc, char **argv) {
 
   char        *ovStr = new char [1024*1024];
 
-  gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
+  sqStore    *seqStore = sqStore::sqStore_open(seqName);
   char        filename[FILENAME_MAX] = {0};
   snprintf(filename, FILENAME_MAX, "%s.%sStore", outName, "ctg");
   tgStore     *tigStore = new tgStore(filename);
@@ -186,7 +186,7 @@ main(int argc, char **argv) {
        splitToWords  W(ovStr);
 
        if (ovStr[0] == '>') {
-          save_tig(gkpStore, tigStore, tig, readToStart, readToEnd, readToOri, readUsed, readFraction, readPieces);
+          save_tig(seqStore, tigStore, tig, readToStart, readToEnd, readToOri, readUsed, readFraction, readPieces);
 
           offset = 0;
           readToStart.clear();
@@ -225,10 +225,10 @@ main(int argc, char **argv) {
           if (W[2][0] == '+') { 
              readToOri[rid][index] = true;
              bgn            = (int)(offset) - W(3);
-             end            = int(offset) + W(4) + gkpStore->gkStore_getRead(rid)->gkRead_sequenceLength() - (W(3) + W(4));
+             end            = int(offset) + W(4) + seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W(3) + W(4));
           } else if (W[2][0] == '-') {
              readToOri[rid][index] = false;
-             bgn            = int(offset) - (gkpStore->gkStore_getRead(rid)->gkRead_sequenceLength() - (W(3) + W(4)));
+             bgn            = int(offset) - (seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W(3) + W(4)));
              end            = int(offset) + W(4);
           }
          if (readToStart.find(rid) == readToStart.end() || readToStart[rid].find(index) == readToStart[rid].end()) {
@@ -236,24 +236,24 @@ main(int argc, char **argv) {
              readToStart[rid][index] = max(0, bgn);
              readToEnd[rid][index] = end;
              readPieces[rid][index] = 1;
-             readFraction[rid][index] = (double)W(4) / gkpStore->gkStore_getRead(rid)->gkRead_sequenceLength();
-             fprintf(stderr, "Initialized read %d at index %d of length %d at offset %f to %d-%d\n", rid, index, gkpStore->gkStore_getRead(rid)->gkRead_sequenceLength(), offset, bgn, end);
+             readFraction[rid][index] = (double)W(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
+             fprintf(stderr, "Initialized read %d at index %d of length %d at offset %f to %d-%d\n", rid, index, seqStore->sqStore_getRead(rid)->sqRead_sequenceLength(), offset, bgn, end);
           }
           if (readToEnd[rid][index] < end) {
              readToEnd[rid][index] = end;
              ++readPieces[rid][index];
-             readFraction[rid][index] += (double)W(4) / gkpStore->gkStore_getRead(rid)->gkRead_sequenceLength();
-             fprintf(stderr, "Updated read %d at index %d to %d-%d based on %d and %d of length %d\n", rid, index, readToStart[rid][index], end, W(3), W(4), gkpStore->gkStore_getRead(rid)->gkRead_sequenceLength());
+             readFraction[rid][index] += (double)W(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
+             fprintf(stderr, "Updated read %d at index %d to %d-%d based on %d and %d of length %d\n", rid, index, readToStart[rid][index], end, W(3), W(4), seqStore->sqStore_getRead(rid)->sqRead_sequenceLength());
           }
        }
     }
   }
-  save_tig(gkpStore, tigStore, tig, readToStart, readToEnd, readToOri, readUsed, readFraction, readPieces);
+  save_tig(seqStore, tigStore, tig, readToStart, readToEnd, readToOri, readUsed, readFraction, readPieces);
 
   delete tig;
   delete tigStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

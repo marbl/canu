@@ -35,7 +35,7 @@
 #define AS_OVSTORE_H
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 #define SNAPPY
 
@@ -196,7 +196,7 @@ public:
 
 class ovStoreWriter {
 public:
-  ovStoreWriter(const char *path, gkStore *gkp);
+  ovStoreWriter(const char *path, sqStore *seq);
   ~ovStoreWriter();
 
   void                writeOverlap(ovOverlap *olap);
@@ -205,7 +205,7 @@ private:
   char               _storePath[FILENAME_MAX+1];
 
   ovStoreInfo        _info;
-  gkStore           *_gkp;
+  sqStore           *_seq;
 
   ovStoreOfft       *_index;
 
@@ -224,7 +224,7 @@ private:
 
 class ovStoreSliceWriter {
 public:
-  ovStoreSliceWriter(const char *path, gkStore *gkp, uint32 sliceNum, uint32 numSlices, uint32 numBuckets);
+  ovStoreSliceWriter(const char *path, sqStore *seq, uint32 sliceNum, uint32 numSlices, uint32 numBuckets);
   ~ovStoreSliceWriter();
 
   uint64       loadBucketSizes(uint64 *bucketSizes);
@@ -243,7 +243,7 @@ private:
   char               _storePath[FILENAME_MAX+1];
 
   ovStoreInfo        _info;
-  gkStore           *_gkp;
+  sqStore           *_seq;
 
   uint32             _sliceNum;
   uint32             _pieceNum;
@@ -255,7 +255,7 @@ private:
 
 class ovStore {
 public:
-  ovStore(const char *name, gkStore *gkp);
+  ovStore(const char *name, sqStore *seq);
   ~ovStore();
 
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
@@ -296,7 +296,7 @@ private:
   char               _storePath[FILENAME_MAX+1];
 
   ovStoreInfo        _info;
-  gkStore           *_gkp;
+  sqStore           *_seq;
 
   uint32             _bgnID;    //  First ID requested
   uint32             _endID;    //  Last ID requested
@@ -322,7 +322,7 @@ private:
 
 class ovStoreFilter {
 public:
-  ovStoreFilter(gkStore *gkp_, double maxErate);
+  ovStoreFilter(sqStore *seq_, double maxErate);
   ~ovStoreFilter();
 
   void     filterOverlap(ovOverlap     &foverlap,
@@ -347,7 +347,7 @@ public:
   uint64   filteredDiffLib(void)    { return(skipDUPlib);   };
 
 public:
-  gkStore *gkp;
+  sqStore *seq;
 
   uint32   maxID;
   uint32   maxEvalue;

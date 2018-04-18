@@ -95,7 +95,7 @@ main(int argc, char **argv) {
 
     if (existFile)
       E->saveState(existFile);
-    
+
     if (fastaFile == NULL)
       exit(0);
   }

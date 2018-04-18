@@ -56,7 +56,7 @@
 
 
 
-ovStore::ovStore(const char *path, gkStore *gkp) {
+ovStore::ovStore(const char *path, sqStore *seq) {
   char  name[FILENAME_MAX];
 
   //  Save the path name.
@@ -77,7 +77,7 @@ ovStore::ovStore(const char *path, gkStore *gkp) {
 
   //  Initialize.
 
-  _gkp              = gkp;
+  _seq              = seq;
 
   _curID            = 1;
   _bgnID            = 1;
@@ -143,7 +143,7 @@ ovStore::readOverlap(ovOverlap *overlap) {
     if ((_bofSlice != _index[_curID]._slice) ||     //  Make sure we're in the correct file.
         (_bofPiece != _index[_curID]._piece)) {
       delete _bof;
-      _bof = new ovFile(_gkp, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
+      _bof = new ovFile(_seq, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
       _bof->seekOverlap(_index[_curID]._offset);
     }
   }
@@ -152,7 +152,7 @@ ovStore::readOverlap(ovOverlap *overlap) {
 
   if (_bof->readOverlap(overlap) == true) {
     overlap->a_iid = _curID;
-    overlap->g     = _gkp;
+    overlap->g     = _seq;
 
     _curOlap++;
 
@@ -192,7 +192,7 @@ ovStore::loadBlockOfOverlaps(ovOverlap *ovl,
       _bofSlice = _index[_curID]._slice;
       _bofPiece = _index[_curID]._piece;
 
-      _bof = new ovFile(_gkp, _storePath, _bofSlice, _bofPiece, ovFileNormal);
+      _bof = new ovFile(_seq, _storePath, _bofSlice, _bofPiece, ovFileNormal);
       _bof->seekOverlap(_index[_curID]._offset);
     }
 
@@ -206,7 +206,7 @@ ovStore::loadBlockOfOverlaps(ovOverlap *ovl,
       }
 
       ovl[ovlLen].a_iid = _curID;
-      ovl[ovlLen].g     = _gkp;
+      ovl[ovlLen].g     = _seq;
 
       ovlLen++;
     }
@@ -248,7 +248,7 @@ ovStore::loadOverlapsForRead(uint32       id,
     delete [] ovl;
 
     ovlMax = _index[_curID]._numOlaps * 1.2;
-    ovl    = ovOverlap::allocateOverlaps(_gkp, ovlMax);
+    ovl    = ovOverlap::allocateOverlaps(_seq, ovlMax);
   }
 
   //  If we're not in the correct file, open the correct file.
@@ -265,7 +265,7 @@ ovStore::loadOverlapsForRead(uint32       id,
 
     delete _bof;
 
-    _bof = new ovFile(_gkp, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
+    _bof = new ovFile(_seq, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
   }
 
   //  Always reposition (unless there are no overlaps).
@@ -284,7 +284,7 @@ ovStore::loadOverlapsForRead(uint32       id,
     }
 
     ovl[oo].a_iid = _curID;
-    ovl[oo].g     = _gkp;
+    ovl[oo].g     = _seq;
   }
 
   _curID   += 1;     //  Advance to the next read.
@@ -335,7 +335,7 @@ ovStore::setRange(uint32 bgnID, uint32 endID) {
 
   //  Open new file, and position at the correct spot.
 
-  _bof = new ovFile(_gkp, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
+  _bof = new ovFile(_seq, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
   _bof->seekOverlap(_index[_curID]._offset);
 }
 

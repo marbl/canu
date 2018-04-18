@@ -36,7 +36,7 @@
  */
 
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
+#include "AS_PER_seqStore.H"
 #include "splitToWords.H"
 
 
@@ -47,7 +47,7 @@
 
 int
 main(int argc, char **argv) {
-  char  *gkpName = 0L;
+  char  *seqName = 0L;
   char  *bEdge   = "best.edges";
   char  *bCont   = "best.contains";
   char  *bSing   = "best.singletons";
@@ -56,7 +56,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
-      gkpName = argv[++arg];
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       bEdge = argv[++arg];
@@ -73,8 +73,8 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((err) || (gkpName == 0L)) {
-    fprintf(stderr, "usage: %s -g gkpName [-e best.edges] [-c best.contains]\n", argv[0]);
+  if ((err) || (seqName == 0L)) {
+    fprintf(stderr, "usage: %s -g seqName [-e best.edges] [-c best.contains]\n", argv[0]);
     exit(1);
   }
 
@@ -86,12 +86,12 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Loading read to library mapping.\n");
 
-  gkStore    *gkp = gkStore::gkStore_open(gkpName, false, false);
-  gkStream   *str = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-  gkFragment  fr;
+  sqStore    *seq = sqStore::sqStore_open(seqName, false, false);
+  gkStream   *str = new gkStream(seq, 0, 0, GKFRAGMENT_INF);
+  sqRead      fr;
 
-  uint32   numFrg = gkp->gkStore_getNumFragments();
-  uint32   numLib = gkp->gkStore_getNumLibraries();
+  uint32   numFrg = seq->sqStore_getNumFragments();
+  uint32   numLib = seq->sqStore_getNumLibraries();
 
   uint32  *frgToLib  = new uint32 [numFrg + 1];  memset(frgToLib, 0, sizeof(uint32) * (numFrg + 1));
 
@@ -99,12 +99,12 @@ main(int argc, char **argv) {
   uint64  *deldPerLib = new uint64 [numLib + 1];  memset(deldPerLib, 0, sizeof(uint64) * (numLib + 1));
 
   while (str->next(&fr)) {
-    frgToLib[fr.gkFragment_getReadIID()] = fr.gkFragment_getLibraryIID();
+    frgToLib[fr.sqRead_getReadIID()] = fr.sqRead_getLibraryIID();
 
-    if (fr.gkFragment_getIsDeleted())
-      deldPerLib[fr.gkFragment_getLibraryIID()]++;
+    if (fr.sqRead_getIsDeleted())
+      deldPerLib[fr.sqRead_getLibraryIID()]++;
     else
-      readPerLib[fr.gkFragment_getLibraryIID()]++;
+      readPerLib[fr.sqRead_getLibraryIID()]++;
   }
 
   delete str;
@@ -182,7 +182,7 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "%-8u %-30s %8" F_U64P " %8" F_U64P " (%4.1f%%)  %8" F_U64P " (%4.1f%%)  %8" F_U64P " (%4.1f%%)  %8" F_U64P " (%4.1f%%)  %8" F_U64P " (%4.1f%%)  %8" F_U64P " (%4.1f%%)  %8" F_U64P " (%4.1f%%)\n",
             i,
-            gkp->gkStore_getLibrary(i)->libraryName,
+            seq->sqStore_getLibrary(i)->libraryName,
             readPerLib[i],
             deldPerLib[i], (deldPerLib[i] == 0) ? 0.0 : 100.0 * deldPerLib[i] / tot,
             cntdPerLib[i], (cntdPerLib[i] == 0) ? 0.0 : 100.0 * cntdPerLib[i] / tot,
@@ -193,7 +193,7 @@ main(int argc, char **argv) {
             dovePerLib[i], (dovePerLib[i] == 0) ? 0.0 : 100.0 * dovePerLib[i] / tot);
   }
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   AS_UTL_closeFile(be, bEdge);
   AS_UTL_closeFile(bc, bCont);

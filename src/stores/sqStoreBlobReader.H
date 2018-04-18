@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gkStoreBlobReader.H
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz beginning on 2018-MAR-13
@@ -28,26 +32,26 @@
 
 //  Manages access to blob data.  You need one of these per thread.
 //
-class gkStoreBlobReader {
+class sqStoreBlobReader {
 public:
-  gkStoreBlobReader() {
+  sqStoreBlobReader() {
     _filesMax = 0;
     _files    = NULL;
   };
 
-  ~gkStoreBlobReader() {
+  ~sqStoreBlobReader() {
     for (uint32 ii=0; ii<_filesMax; ii++)
       AS_UTL_closeFile(_files[ii]);
 
     delete [] _files;
   };
 
-  FILE      *getFile(const char *storePath, gkRead *read) {
-    uint32  file = read->gkRead_mSegm();
-    uint32  posn = read->gkRead_mByte();
+  FILE      *getFile(const char *storePath, sqRead *read) {
+    uint32  file = read->sqRead_mSegm();
+    uint32  posn = read->sqRead_mByte();
 
     if (_filesMax == 0) {
-      _filesMax = 8192;                   //  Limited in gkRead->H
+      _filesMax = 8192;                   //  Limited in sqRead->H
       allocateArray(_files, _filesMax);
     }
 

@@ -29,7 +29,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 
@@ -83,7 +83,7 @@ operationBuild(char   *buildName,
 
 int
 main (int argc, char **argv) {
-  char            *gkpName       = NULL;
+  char            *seqName       = NULL;
   char            *tigName       = NULL;
   int32            tigVers       = -1;
   vector<char *>   tigInputs;
@@ -95,8 +95,8 @@ main (int argc, char **argv) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
@@ -121,17 +121,17 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
-    err.push_back("ERROR:  no gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR:  no sequence store (-S) supplied.\n");
   if (tigName == NULL)
     err.push_back("ERROR:  no tig store (-T) supplied.\n");
   if ((tigInputs.size() == 0) && (tigInputsFile == NULL))
     err.push_back("ERROR:  no input tigs supplied on command line and no -L file supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [input.cns]\n", argv[0]);
+    fprintf(stderr, "usage: %s -S <seqStore> -T <tigStore> <v> [input.cns]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
+    fprintf(stderr, "  -S <seqStore>         Path to the sequence store\n");
     fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore and version to add tigs to\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L <file-of-files>    Load the tig(s) from files listed in 'file-of-files'\n");
@@ -171,7 +171,7 @@ main (int argc, char **argv) {
     delete tigStore;
   }
 
-  gkStore *gkpStore = gkStore::gkStore_open(gkpName);
+  sqStore *seqStore = sqStore::sqStore_open(seqName);
   tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
   tgTig   *tig      = new tgTig;
 
@@ -214,7 +214,7 @@ main (int argc, char **argv) {
   delete tig;
   delete tigStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

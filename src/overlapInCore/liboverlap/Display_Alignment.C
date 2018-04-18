@@ -24,7 +24,7 @@
  */
 
 #include "Display_Alignment.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 #define  DISPLAY_WIDTH   250
 

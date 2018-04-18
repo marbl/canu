@@ -24,7 +24,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
@@ -43,7 +43,7 @@ using namespace std;
 
 int
 main(int argc, char **argv) {
-  char             *gkpName   = 0L;
+  char             *seqName   = 0L;
   char             *corName   = 0L;
   uint32            corVers   = 1;
 
@@ -63,8 +63,8 @@ main(int argc, char **argv) {
   int err=0;
 
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {   //  INPUTS
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {   //  INPUTS
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       prefix = argv[++arg];
@@ -96,13 +96,13 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "INPUTS (all mandatory)\n");
-    fprintf(stderr, "  -G gkpStore      mandatory path to gkpStore\n");
+    fprintf(stderr, "  -S seqStore      mandatory path to seqStore\n");
     fprintf(stderr, "  -p prefix        output prefix name, for logging and summary report\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CONSENSUS PARAMETERS\n");
@@ -110,16 +110,16 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -cl length       minimum length of output read\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore input (-G) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR: no sequence store input (-S) supplied.\n");
     exit(1);
   }
 
 
   //  Open inputs.
 
-  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
-  uint32    numReads = gkpStore->gkStore_getNumReads();
+  sqStore  *seqStore = sqStore::sqStore_open(seqName);
+  uint32    numReads = seqStore->sqStore_getNumReads();
 
   //  Decide what reads to operate on.
 
@@ -157,7 +157,7 @@ main(int argc, char **argv) {
            exit(1);
         }
         splitToWords  W(ovStr);
-        // skip the read in the name (that is gatekeeper output readX clr= so W[0] needs to ignore the "read" text
+        // skip the read in the name (that is seqStore output readX clr= so W[0] needs to ignore the "read" text
         char *rid = W[0] + 4;
         fprintf(stderr, "For haplotype %s read %s with count %s\n", it->first, rid, W[4]);
 
@@ -182,10 +182,10 @@ main(int argc, char **argv) {
 			}
         }
      }
-     gkReadData read;
-     gkpStore->gkStore_loadReadData(ii, &read);
+     sqReadData read;
+     seqStore->sqStore_loadReadData(ii, &read);
 
-     if (read.gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw) < minOutputLength) {
+     if (read.sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw) < minOutputLength) {
         continue;
      }
 
@@ -198,7 +198,7 @@ main(int argc, char **argv) {
      }
      fprintf(stderr, "Processing read %d classified as %s with counts %f and %f\n", ii, haplotype, bestCount, secondBest);
 
-     AS_UTL_writeFastA(outputFasta[haplotype], read.gkReadData_getRawSequence(), read.gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw), 0,
+     AS_UTL_writeFastA(outputFasta[haplotype], read.sqReadData_getRawSequence(), read.sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw), 0,
                        ">read" F_U32 "\n",
                        ii);
   }
@@ -209,7 +209,7 @@ main(int argc, char **argv) {
   }
   fclose(outputFasta["unknown"]);
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Bye.\n");

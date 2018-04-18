@@ -170,13 +170,13 @@ abAbacus::getPositions(tgTig *tig) {
     abSequence *seq   = getSequence(si);
     tgPosition *child = tig->getChild(si);  //  Assumes one-to-one map of seqs to children;
 
-    assert(seq->gkpIdent() == child->ident());
+    assert(seq->seqIdent() == child->ident());
 
     beadID    fBead = readTofBead[si];
     beadID    lBead = readTolBead[si];
 
     if (fBead.column == NULL) {
-      fprintf(stderr, "WARNING: read %u not in multialignment; position set to 0,0.\n", seq->gkpIdent());
+      fprintf(stderr, "WARNING: read %u not in multialignment; position set to 0,0.\n", seq->seqIdent());
       child->setMinMax(0, 0);
       continue;
     }
@@ -255,7 +255,7 @@ abAbacus::display(FILE *F) {
       end[i]        = 0;
 
     } else {
-      fid[i]        = seq->gkpIdent();
+      fid[i]        = seq->seqIdent();
       fit[i].column = NULL;
       fit[i].link   = UINT16_MAX;
       type[i]       = (seq->isRead() == true) ? 'R' : '?';

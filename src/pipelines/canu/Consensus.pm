@@ -49,7 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Configure;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Unitig;
 use canu::Grid_Cloud;
 
@@ -97,10 +97,10 @@ sub utgcns ($$$) {
     print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.dat", "");
     print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.tig", "");
     print F "\n";
-    print F fetchStoreShellCode("unitigging/$asm.\${tag}Store/partitionedReads.gkpStore", $path, "");
+    print F fetchStoreShellCode("unitigging/$asm.\${tag}Store/partitionedReads.seqStore", $path, "");
     print F "\n";
     print F "\$bin/utgcns \\\n";
-    print F "  -G ../$asm.\${tag}Store/partitionedReads.gkpStore \\\n";      #  Optional; utgcns will default to this
+    print F "  -S ../$asm.\${tag}Store/partitionedReads.seqStore \\\n";      #  Optional; utgcns will default to this
     print F "  -T ../$asm.\${tag}Store 1 \$jobid \\\n";
     print F "  -O ./\${tag}cns/\$jobid.cns.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
@@ -135,16 +135,16 @@ sub cleanupPartitions ($$) {
     my $asm    = shift @_;
     my $tag    = shift @_;
 
-    return  if (! -e "unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions/map");
+    return  if (! -e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
 
-    my $gkpTime = -M "unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions/map";
+    my $seqTime = -M "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map";
     my $tigTime = -M "unitigging/$asm.ctgStore/seqDB.v001.tig";
 
-    return  if ($gkpTime <= $tigTime);
+    return  if ($seqTime <= $tigTime);
 
-    print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning (gkpStore $gkpTime days old; ctgStore $tigTime days old).\n";
+    print STDERR "-- Partitioned seqStore is older than tigs, rebuild partitioning (seqStore $seqTime days old; ctgStore $tigTime days old).\n";
 
-    remove_tree("unitigging/$asm.${tag}Store/partitionedReads.gkpStore");
+    remove_tree("unitigging/$asm.${tag}Store/partitionedReads.seqStore");
 }
 
 
@@ -155,16 +155,16 @@ sub partitionReads ($$) {
     my $bin    = getBinDirectory();
     my $cmd;
 
-    return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.gkpStore/partitions/map");
-    return  if (fileExists("unitigging/$asm.${tag}Store/partitionedReads.gkpStore.tar"));
+    return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
+    return  if (fileExists("unitigging/$asm.${tag}Store/partitionedReads.seqStore.tar"));
 
-    fetchStore("unitigging/$asm.gkpStore");
+    fetchStore("unitigging/$asm.seqStore");
 
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.dat");
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
 
-    $cmd  = "$bin/gatekeeperPartition \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd  = "$bin/sqStoreCreatePartition \\\n";
+    $cmd .= "  -S ./$asm.seqStore \\\n";
     $cmd .= "  -T ./$asm.${tag}Store 1 \\\n";
     $cmd .= "  -b " . getGlobal("cnsPartitionMin") . " \\\n"   if (defined(getGlobal("cnsPartitionMin")));
     $cmd .= "  -p " . getGlobal("cnsPartitions")   . " \\\n"   if (defined(getGlobal("cnsPartitions")));
@@ -174,7 +174,7 @@ sub partitionReads ($$) {
         caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitionedReads.log");
     }
 
-    stashStore("unitigging/$asm.${tag}Store/partitionedReads.gkpStore");
+    stashStore("unitigging/$asm.${tag}Store/partitionedReads.seqStore");
     stashFile ("unitigging/$asm.${tag}Store/partitionedReads.log");
 }
 
@@ -211,14 +211,14 @@ sub consensusConfigure ($) {
 
     make_path($path)  if (! -d $path);
 
-    #  If the gkpStore partitions are older than the ctgStore unitig output, assume the unitigs have
-    #  changed and remove the gkpStore partition.  -M is (annoyingly) 'file age', so we need to
-    #  rebuild if gkp is older (larger) than tig.
+    #  If the seqStore partitions are older than the ctgStore unitig output, assume the unitigs have
+    #  changed and remove the seqStore partition.  -M is (annoyingly) 'file age', so we need to
+    #  rebuild if seq is older (larger) than tig.
 
     cleanupPartitions($asm, "ctg");
     cleanupPartitions($asm, "utg");
 
-    #  Partition gkpStore if needed.  Yeah, we could create both at the same time, with significant
+    #  Partition seqStore if needed.  Yeah, we could create both at the same time, with significant
     #  effort in coding it up.
 
     partitionReads($asm, "ctg");
@@ -437,8 +437,8 @@ sub purgeFiles ($$$$$$) {
     my $Nlayout = shift @_;
     my $Nlog    = shift @_;
 
-    remove_tree("unitigging/$asm.ctgStore/partitionedReads.gkpStore");  #  The partitioned gkpStores
-    remove_tree("unitigging/$asm.utgStore/partitionedReads.gkpStore");  #  are useless now.  Bye bye!
+    remove_tree("unitigging/$asm.ctgStore/partitionedReads.seqStore");  #  The partitioned seqStores
+    remove_tree("unitigging/$asm.utgStore/partitionedReads.seqStore");  #  are useless now.  Bye bye!
 
     unlink "unitigging/$asm.ctgStore/partitionedReads.log";
     unlink "unitigging/$asm.utgStore/partitionedReads.log";
@@ -520,7 +520,7 @@ sub consensusLoad ($) {
         close(F);
 
         $cmd  = "$bin/tgStoreLoad \\\n";
-        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
         $cmd .= "  -T ./$asm.ctgStore 2 \\\n";
         $cmd .= "  -L ./5-consensus/ctgcns.files \\\n";
         $cmd .= "> ./5-consensus/ctgcns.files.ctgStoreLoad.err 2>&1";
@@ -546,7 +546,7 @@ sub consensusLoad ($) {
         close(F);
 
         $cmd  = "$bin/tgStoreLoad \\\n";
-        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
         $cmd .= "  -T ./$asm.utgStore 2 \\\n";
         $cmd .= "  -L ./5-consensus/utgcns.files \\\n";
         $cmd .= "> ./5-consensus/utgcns.files.utgStoreLoad.err 2>&1";
@@ -598,7 +598,7 @@ sub consensusAnalyze ($) {
     goto allDone   if (skipStage($asm, "consensusAnalyze") == 1);
     goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
 
-    fetchStore("unitigging/$asm.gkpStore");
+    fetchStore("unitigging/$asm.seqStore");
 
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");  #  Shouldn't need this, right?
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");  #  So why does it?
@@ -607,7 +607,7 @@ sub consensusAnalyze ($) {
     fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -S ./$asm.seqStore \\\n";
     $cmd .= "  -T ./$asm.ctgStore 2 \\\n";
     $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
     $cmd .= "  -o ./$asm.ctgStore.coverageStat \\\n";

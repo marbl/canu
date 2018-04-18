@@ -50,7 +50,7 @@ use POSIX qw(ceil);
 use canu::Defaults;
 use canu::Execution;
 use canu::Configure;    #  For displayGenomeSize
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Report;
 use canu::Meryl;
 use canu::Grid_Cloud;
@@ -87,13 +87,13 @@ sub reportUnitigSizes ($$$) {
     fetchFile("unitigging/$N");
 
     if (! -e "unitigging/$N") {
-        fetchStore("unitigging/$asm.gkpStore");
+        fetchStore("unitigging/$asm.seqStore");
 
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.dat");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.tig");
 
         $cmd  = "$bin/tgStoreDump \\\n";                     #  Duplicated at the end of unitigger.sh
-        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
         $cmd .= "  -T ./$asm.ctgStore $version \\\n";
         $cmd .= "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
         $cmd .= "> ./$N";
@@ -183,7 +183,7 @@ sub unitig ($) {
     print F "\n";
     print F setWorkDirectoryShellCode($path);
     print F "\n";
-    print F fetchStoreShellCode("unitigging/$asm.gkpStore", $path, "");
+    print F fetchStoreShellCode("unitigging/$asm.seqStore", $path, "");
     print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
     print F "\n";
     print F fetchFileShellCode("unitigging/$asm.ovlStore", "evalues", "");
@@ -199,7 +199,7 @@ sub unitig ($) {
         print F "if [ ! -e ../$asm.ctgStore -o \\\n";
         print F "     ! -e ../$asm.utgStore ] ; then\n";
         print F "  \$bin/bogart \\\n";
-        print F "    -G ../$asm.gkpStore \\\n";
+        print F "    -S ../$asm.seqStore \\\n";
         print F "    -O ../$asm.ovlStore \\\n";
         print F "    -o ./$asm \\\n";
         print F "    -gs "             . getGlobal("genomeSize")         . " \\\n";
@@ -281,9 +281,9 @@ sub unitig ($) {
     print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
     print F "\n";
     print F "if [ ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
-    print F "  \$bin/tgStoreDump \\\n";                    #  Duplicated in reportUnitigSizes()
-    print F "    -G ../$asm.gkpStore \\\n";                 #  Done here so we don't need another
-    print F "    -T ../$asm.ctgStore 1 \\\n";               #  pull of gkpStore and ctgStore
+    print F "  \$bin/tgStoreDump \\\n";                     #  Duplicated in reportUnitigSizes()
+    print F "    -S ../$asm.seqStore \\\n";                 #  Done here so we don't need another
+    print F "    -T ../$asm.ctgStore 1 \\\n";               #  pull of seqStore and ctgStore
     print F "    -sizes -s " . getGlobal("genomeSize") . " \\\n";
     print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt";
     print F "fi\n";

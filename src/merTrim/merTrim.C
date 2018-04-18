@@ -41,7 +41,7 @@
 
 #include "AS_global.H"
 #include "ovStore.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include <algorithm>
@@ -78,8 +78,8 @@ uint32  VERBOSE = 0;
 class mertrimGlobalData {
 public:
   mertrimGlobalData() {
-    gkpPath                   = 0L;
-    gkp                       = 0L;
+    seqPath                   = 0L;
+    seq                       = 0L;
     fqInputPath               = 0L;
     fqOutputPath              = 0L;
 
@@ -145,8 +145,8 @@ public:
   };
 
   ~mertrimGlobalData() {
-    gkp->gkStore_close();
-    gkp = NULL;
+    seq->sqStore_close();
+    seq = NULL;
 
     delete fqInput;
     delete fqOutput;
@@ -162,15 +162,15 @@ public:
 
   void              initializeGatekeeper(void) {
 
-    if (gkpPath == NULL)
+    if (seqPath == NULL)
       return;
 
-    fprintf(stderr, "opening gkStore '%s'\n", gkpPath);
-    gkp  = gkStore::gkStore_open(gkpPath);
+    fprintf(stderr, "opening sqStore '%s'\n", seqPath);
+    seq  = sqStore::sqStore_open(seqPath);
 
     if (gktBgn == 0) {
       gktBgn = 1;
-      gktEnd = gkp->gkStore_getNumReads();
+      gktEnd = seq->sqStore_getNumReads();
     }
 
     gktCur = gktBgn;
@@ -178,9 +178,9 @@ public:
     if (gktBgn > gktEnd)
       fprintf(stderr, "ERROR: invalid range:  -b (" F_U32 ") >= -e (" F_U32 ").\n",
               gktBgn, gktEnd), exit(1);
-    if (gktEnd > gkp->gkStore_getNumReads())
+    if (gktEnd > seq->sqStore_getNumReads())
       fprintf(stderr, "ERROR: invalid range:  -e (" F_U32 ") > num frags (" F_U32 ").\n",
-              gktEnd, gkp->gkStore_getNumReads()), exit(1);
+              gktEnd, seq->sqStore_getNumReads()), exit(1);
 
     errno = 0;
     resFile = fopen(resPath, "w");
@@ -304,7 +304,7 @@ public:
 
   //  Command line parameters
   //
-  char         *gkpPath;
+  char         *seqPath;
   char         *fqInputPath;
   char         *fqOutputPath;
 
@@ -346,7 +346,7 @@ public:
 
   //  Global data
   //
-  gkStore      *gkp;
+  sqStore      *seq;
 
   uint32        actualCoverage;
   double        minCorrectFraction;
@@ -437,8 +437,8 @@ public:
   void   initializeGatekeeper(mertrimGlobalData *g_) {
     g  = g_;
 
-    readIID  = fr.gkRead_readID();
-    seqLen   = fr.gkRead_sequenceLength();
+    readIID  = fr.sqRead_readID();
+    seqLen   = fr.sqRead_sequenceLength();
     allocLen = seqLen + seqLen;
 
     readName = NULL;
@@ -469,16 +469,16 @@ public:
     eDB        = NULL;
 
 #warning HORRIBLY NON OPTIMAL READING OF READS
-    gkReadData  rd;
+    sqReadData  rd;
 
-    g->gkp->gkStore_loadReadData(&fr, &rd);
+    g->seq->sqStore_loadReadData(&fr, &rd);
 
     for (uint32 ii=0; ii<seqLen; ii++) {
-      origSeq[ii] = rd.gkReadData_getSequence()[ii];
-      corrSeq[ii] = rd.gkReadData_getSequence()[ii];
+      origSeq[ii] = rd.sqReadData_getSequence()[ii];
+      corrSeq[ii] = rd.sqReadData_getSequence()[ii];
 
-      origQlt[ii] = rd.gkReadData_getQualities()[ii] + '!';
-      corrQlt[ii] = rd.gkReadData_getQualities()[ii] + '!';
+      origQlt[ii] = rd.sqReadData_getQualities()[ii] + '!';
+      corrQlt[ii] = rd.sqReadData_getQualities()[ii] + '!';
     }
 
     origSeq[seqLen] = 0;
@@ -600,7 +600,7 @@ public:
       if (origQlt[i] < '!')
         fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
                 origQlt[i], origQlt[i], readName, origQlt);
-      //  Our Sanger reads (dumped as fastq from gkpStore) have QV's higher than this.
+      //  Our Sanger reads (dumped as fastq from seqStore) have QV's higher than this.
       //if ('J' < origQlt[i])
       //  fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
       //          origQlt[i], origQlt[i], readName, origQlt);
@@ -695,7 +695,7 @@ public:
   void       dump(char *label);
 
   //  Public for the writer.
-  gkRead           fr;
+  sqRead           fr;
 
   mertrimGlobalData   *g;
   mertrimThreadData   *t;
@@ -1953,7 +1953,7 @@ mertrimReaderGatekeeper(mertrimGlobalData *g) {
          (s == NULL)) {
     s = new mertrimComputation();
 
-    g->gkp->gkStore_getRead(g->gktCur);
+    g->seq->sqStore_getRead(g->gktCur);
     g->gktCur++;
 
     //  Original version used to check if the library was eligible for initial trimming
@@ -1963,7 +1963,7 @@ mertrimReaderGatekeeper(mertrimGlobalData *g) {
     s->initializeGatekeeper(g);
 #else
     if ((g->forceCorrection) ||
-        (g->gkp->gkStore_getLibrary(s->fr.gkRead_libraryID())->doTrim_initialMerBased)) {
+        (g->seq->sqStore_getLibrary(s->fr.sqRead_libraryID())->doTrim_initialMerBased)) {
       s->initializeGatekeeper(g);
     } else {
       delete s;
@@ -1994,9 +1994,9 @@ mertrimReader(void *G) {
   mertrimGlobalData    *g = (mertrimGlobalData  *)G;
   mertrimComputation   *s = NULL;
 
-  assert((g->gkp == NULL) || (g->fqInput == NULL));
+  assert((g->seq == NULL) || (g->fqInput == NULL));
 
-  if (g->gkp)
+  if (g->seq)
     s = mertrimReaderGatekeeper(g);
 
   if (g->fqInput)
@@ -2011,7 +2011,7 @@ void
 mertrimWriterGatekeeper(mertrimGlobalData *g, mertrimComputation *s) {
   mertrimResult         res;
 
-  res.readIID = s->fr.gkRead_readID();
+  res.readIID = s->fr.sqRead_readID();
 
 #warning BOGUS MIN_READ_LENGTH USED
   uint32 minReadLength = 500;
@@ -2259,7 +2259,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
-      g->gkpPath = argv[++arg];
+      g->seqPath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       g->fqInputPath = argv[++arg];
@@ -2358,7 +2358,7 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((g->gkpPath == 0L) && (g->fqInputPath == 0L))
+  if ((g->seqPath == 0L) && (g->fqInputPath == 0L))
     err++;
 
   if (err) {
@@ -2403,7 +2403,7 @@ main(int argc, char **argv) {
 
   g->initialize();
 
-  gkRead   fr;
+  sqRead   fr;
 
 #if 0
   //  DEBUG, non-threaded version.

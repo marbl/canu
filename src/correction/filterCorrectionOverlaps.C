@@ -66,7 +66,7 @@ openOutput(char *fileName, bool doOpen) {
 
 int
 main(int argc, char **argv) {
-  char           *gkpStoreName     = NULL;
+  char           *seqStoreName     = NULL;
   char           *ovlStoreName     = NULL;
   char           *scoreFileName    = NULL;
   char            logFileName[FILENAME_MAX];
@@ -92,13 +92,13 @@ main(int argc, char **argv) {
   int32     arg = 1;
   int32     err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlStoreName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-S") == 0) {
+    } else if (strcmp(argv[arg], "-scores") == 0) {
       scoreFileName = argv[++arg];
 
 
@@ -141,7 +141,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStoreName == NULL)
+  if (seqStoreName == NULL)
     err++;
   if (ovlStoreName == NULL)
     err++;
@@ -153,11 +153,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Rewrites an ovlStore, filtering overlaps that shouldn't be used for correcting reads.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpStore     input reads\n");
+    fprintf(stderr, "  -S seqStore     input reads\n");
     fprintf(stderr, "  -O ovlStore     input overlaps\n");
-    fprintf(stderr, "  -S scoreFile    output scores for each read, binary file, to 'scoreFile'\n");
-    fprintf(stderr, "                  per-read logging to 'scoreFile.log' (see -nolog)\n");
-    fprintf(stderr, "                  summary statistics to 'scoreFile.stats' (see -nostats)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -scores sf      output scores for each read, binary file, to file 'sf'\n");
+    fprintf(stderr, "                  per-read logging to 'sf.log' (see -nolog)\n");
+    fprintf(stderr, "                  summary statistics to 'sf.stats' (see -nostats)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -estimate       estimate the cutoff from precomputed scores\n");
     fprintf(stderr, "  -exact          compute an exact cutoff by reading all overlaps\n");
@@ -177,12 +178,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -nolog          don't create 'scoreFile.log'\n");
     fprintf(stderr, "  -nostats        don't create 'scoreFile.stats'\n");
 
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gatekeeper store (-G) supplied.\n");
+    if (seqStoreName == NULL)
+      fprintf(stderr, "ERROR: no sequence store (-S) supplied.\n");
     if (ovlStoreName == NULL)
       fprintf(stderr, "ERROR: no overlap store (-O) supplied.\n");
     if (scoreFileName == NULL)
-      fprintf(stderr, "ERROR: no output scoreFile (-S) supplied.\n");
+      fprintf(stderr, "ERROR: no output scoreFile (-scores) supplied.\n");
 
     exit(1);
   }
@@ -196,11 +197,11 @@ main(int argc, char **argv) {
     minErate = 0.0;
   }
 
-  gkRead_setDefaultVersion(gkRead_raw);
+  sqRead_setDefaultVersion(sqRead_raw);
 
-  gkStore           *gkpStore    = gkStore::gkStore_open(gkpStoreName);
+  sqStore           *seqStore    = sqStore::sqStore_open(seqStoreName);
 
-  ovStore           *ovlStore    = new ovStore(ovlStoreName, gkpStore);
+  ovStore           *ovlStore    = new ovStore(ovlStoreName, seqStore);
   ovStoreHistogram  *ovlHisto    = ovlStore->getHistogram();
 
   uint32             *numOlaps   = ovlStore->numOverlapsPerRead();
@@ -209,7 +210,7 @@ main(int argc, char **argv) {
   uint32              ovlMax     = 0;
   ovOverlap          *ovl        = NULL;
 
-  uint16             *scores     = new uint16 [gkpStore->gkStore_getNumReads() + 1];
+  uint16             *scores     = new uint16 [seqStore->sqStore_getNumReads() + 1];
   uint16              scoreExact = 0;
   uint16              scoreEstim = 0;
 
@@ -228,7 +229,7 @@ main(int argc, char **argv) {
     //fprintf(stdout, "-------- ------ ------\n");
   }
 
-  for (uint32 id=0; id <= gkpStore->gkStore_getNumReads(); id++) {
+  for (uint32 id=0; id <= seqStore->sqStore_getNumReads(); id++) {
     scores[id] = UINT16_MAX;
 
     if (numOlaps[id] == 0) {
@@ -259,7 +260,7 @@ main(int argc, char **argv) {
   }
 
   if (scoreFile)
-    AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint16), gkpStore->gkStore_getNumReads() + 1);
+    AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint16), seqStore->sqStore_getNumReads() + 1);
 
   AS_UTL_closeFile(scoreFile, scoreFileName);
   AS_UTL_closeFile(logFile,   logFileName);
@@ -271,7 +272,7 @@ main(int argc, char **argv) {
   delete    ovlHisto;
   delete    ovlStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   if (noStats == true)
     exit(0);

@@ -2,8 +2,8 @@
 
 bin="/work/canu/FreeBSD-amd64/bin"
 
-if [ ! -e test.gkpStore ] ; then
-  echo Didn\'t find \'test.gkpStore\', can\'t make fake overlaps.
+if [ ! -e test.seqStore ] ; then
+  echo Didn\'t find \'test.seqStore\', can\'t make fake overlaps.
   exit
 fi
 
@@ -20,12 +20,12 @@ echo ""
 
 for ii in `seq 1 $jobs` ; do
   name=`printf %03d $ii`
-  $bin/overlapImport -G test.gkpStore -o $name.ovb -random $size
+  $bin/overlapImport -G test.seqStore -o $name.ovb -random $size
 done
 
 #  Configure.
 
-$bin/ovStoreBuild -G test.gkpStore -O test.ovlStore -M 0.26 -config config *ovb > config.err 2>&1
+$bin/ovStoreBuild -G test.seqStore -O test.ovlStore -M 0.26 -config config *ovb > config.err 2>&1
 
 buckets=`grep Will config.err | grep buckets | awk '{ print $9 }'`
 
@@ -37,7 +37,7 @@ echo ""
 
 for ii in `seq 1 $jobs` ; do
   name=`printf %03d $ii`
-  $bin/ovStoreBucketizer -G test.gkpStore -O test.ovlStore -C config -i $name.ovb -job $ii
+  $bin/ovStoreBucketizer -G test.seqStore -O test.ovlStore -C config -i $name.ovb -job $ii
 done
 
 #  Sort each bucket.
@@ -50,7 +50,7 @@ for ii in `seq 1 $buckets` ; do
   echo ""
   echo "Sorting bucket $ii"
   echo ""
-  $bin/ovStoreSorter -deletelate -G test.gkpStore -O test.ovlStore -F $jobs -job $ii $jobs
+  $bin/ovStoreSorter -deletelate -G test.seqStore -O test.ovlStore -F $jobs -job $ii $jobs
 done
 
 #  And build the index
@@ -65,4 +65,4 @@ echo ""
 echo "Building sequential store"
 echo ""
 
-$bin/ovStoreBuild -G test.gkpStore -O test.ovlStore.seq *ovb > test.ovlStore.seq.err 2>&1
+$bin/ovStoreBuild -G test.seqStore -O test.ovlStore.seq *ovb > test.ovlStore.seq.err 2>&1

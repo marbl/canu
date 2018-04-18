@@ -55,7 +55,7 @@
 //  the original clear range was completely outside the max range.
 //
 bool
-enforceMaximumClearRange(gkRead          *read,
+enforceMaximumClearRange(sqRead          *read,
                          uint32    UNUSED(ibgn),
                          uint32    UNUSED(iend),
                          uint32          &fbgn,
@@ -69,8 +69,8 @@ enforceMaximumClearRange(gkRead          *read,
   if (fbgn == fend)
     return(true);
 
-  uint32 mbgn = maxClr->bgn(read->gkRead_readID());
-  uint32 mend = maxClr->end(read->gkRead_readID());
+  uint32 mbgn = maxClr->bgn(read->sqRead_readID());
+  uint32 mend = maxClr->end(read->sqRead_readID());
 
   assert(mbgn <  mend);
   assert(fbgn <= fend);
@@ -102,7 +102,7 @@ enforceMaximumClearRange(gkRead          *read,
 
 int
 main(int argc, char **argv) {
-  char       *gkpName = 0L;
+  char       *seqName = 0L;
   char       *ovsName = 0L;
 
   char       *iniClrName = NULL;
@@ -145,8 +145,8 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovsName = argv[++arg];
@@ -187,14 +187,14 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((gkpName       == NULL) ||
+  if ((seqName       == NULL) ||
       (ovsName       == NULL) ||
       (outClrName    == NULL) ||
       (outputPrefix  == NULL) ||
       (err)) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -Co output.clearFile -o outputPrefix\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore -Co output.clearFile -o outputPrefix\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpStore    path to read store\n");
+    fprintf(stderr, "  -S seqStore    path to read store\n");
     fprintf(stderr, "  -O ovlStore    path to overlap store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o name        output prefix, for logging\n");
@@ -218,17 +218,17 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore          *gkp = gkStore::gkStore_open(gkpName);
-  ovStore          *ovs = new ovStore(ovsName, gkp);
+  sqStore          *seq = sqStore::sqStore_open(seqName);
+  ovStore          *ovs = new ovStore(ovsName, seq);
 
-  clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp);
-  clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp);
-  clearRangeFile   *outClr =                               new clearRangeFile(outClrName, gkp);
+  clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, seq);
+  clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, seq);
+  clearRangeFile   *outClr =                               new clearRangeFile(outClrName, seq);
 
   if (outClr)
     //  If the outClr file exists, those clear ranges are loaded.  We need to reset them
     //  back to 'untrimmed' for now.
-    outClr->reset(gkp);
+    outClr->reset(seq);
 
   if (iniClr && outClr)
     //  An iniClr file was supplied, so use those as the initial clear ranges.
@@ -252,18 +252,18 @@ main(int argc, char **argv) {
 
   if (idMin < 1)
     idMin = 1;
-  if (idMax > gkp->gkStore_getNumReads())
-    idMax = gkp->gkStore_getNumReads();
+  if (idMax > seq->sqStore_getNumReads())
+    idMax = seq->sqStore_getNumReads();
 
   fprintf(stderr, "Processing from ID " F_U32 " to " F_U32 " out of " F_U32 " reads.\n",
           idMin,
           idMax,
-          gkp->gkStore_getNumReads());
+          seq->sqStore_getNumReads());
 
 
   for (uint32 id=idMin; id<=idMax; id++) {
-    gkRead     *read = gkp->gkStore_getRead(id);
-    gkLibrary  *libr = gkp->gkStore_getLibrary(read->gkRead_libraryID());
+    sqRead     *read = seq->sqStore_getRead(id);
+    sqLibrary  *libr = seq->sqStore_getLibrary(read->sqRead_libraryID());
 
     logMsg[0] = 0;
 
@@ -272,20 +272,20 @@ main(int argc, char **argv) {
     //  we skip.
     //
     if ((iniClr) && (iniClr->isDeleted(id) == true)) {
-      deletedIn += read->gkRead_sequenceLength();
+      deletedIn += read->sqRead_sequenceLength();
       continue;
     }
 
     //  If it did not request trimming, do nothing.  Similar to the above, we'll get overlaps to
     //  fragments we skip.
     //
-    if ((libr->gkLibrary_finalTrim() == GK_FINALTRIM_LARGEST_COVERED) &&
-        (libr->gkLibrary_finalTrim() == GK_FINALTRIM_BEST_EDGE)) {
-      noTrimIn += read->gkRead_sequenceLength();
+    if ((libr->sqLibrary_finalTrim() == SQ_FINALTRIM_LARGEST_COVERED) &&
+        (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_BEST_EDGE)) {
+      noTrimIn += read->sqRead_sequenceLength();
       continue;
     }
 
-    readsIn += read->gkRead_sequenceLength();
+    readsIn += read->sqRead_sequenceLength();
 
 
     //  Decide on the initial trimming.  We copied any iniClr into outClr above, and if there wasn't
@@ -311,7 +311,7 @@ main(int argc, char **argv) {
       isGood = false;
     }
 
-    else if (libr->gkLibrary_finalTrim() == GK_FINALTRIM_LARGEST_COVERED) {
+    else if (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_LARGEST_COVERED) {
       //  Use the largest region covered by overlaps as the trim
 
       assert(ovlLen > 0);
@@ -328,7 +328,7 @@ main(int argc, char **argv) {
       assert(fbgn <= fend);
     }
 
-    else if (libr->gkLibrary_finalTrim() == GK_FINALTRIM_BEST_EDGE) {
+    else if (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_BEST_EDGE) {
       //  Use the largest region covered by overlaps as the trim
 
       assert(ovlLen > 0);
@@ -369,7 +369,7 @@ main(int argc, char **argv) {
     //  If bad trimming or too small, write the log and keep going.
     //
     if (ovlLen == 0) {
-      noOvlOut += read->gkRead_sequenceLength();
+      noOvlOut += read->sqRead_sequenceLength();
 
       outClr->setbgn(id) = fbgn;
       outClr->setend(id) = fend;
@@ -383,7 +383,7 @@ main(int argc, char **argv) {
     }
 
     else if ((isGood == false) || (fend - fbgn < minReadLength)) {
-      deletedOut += read->gkRead_sequenceLength();
+      deletedOut += read->sqRead_sequenceLength();
 
       outClr->setbgn(id) = fbgn;
       outClr->setend(id) = fend;
@@ -400,7 +400,7 @@ main(int argc, char **argv) {
     //
     else if ((ibgn == fbgn) &&
              (iend == fend)) {
-      noChangeOut += read->gkRead_sequenceLength();
+      noChangeOut += read->sqRead_sequenceLength();
 
       fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tNOC%s\n",
               id,
@@ -434,7 +434,7 @@ main(int argc, char **argv) {
 
   //  Clean up.
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   delete [] ovl;
   delete    ovs;

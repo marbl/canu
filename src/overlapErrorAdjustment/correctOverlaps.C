@@ -39,13 +39,13 @@
 
 
 void
-Read_Olaps(coParameters *G, gkStore *gkpStore);
+Read_Olaps(coParameters *G, sqStore *seqStore);
 
 void
-Correct_Frags(coParameters *G, gkStore *gkpStore);
+Correct_Frags(coParameters *G, sqStore *seqStore);
 
 void
-Redo_Olaps(coParameters *G, gkStore *gkpStore);
+Redo_Olaps(coParameters *G, sqStore *seqStore);
 
 
 int
@@ -57,8 +57,8 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      G->gkpStorePath = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      G->seqStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-R") == 0) {
       G->bgnID = atoi(argv[++arg]);
@@ -89,8 +89,8 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (G->gkpStorePath == NULL)
-    fprintf(stderr, "ERROR: no input gatekeeper store (-G) supplied.\n"), err++;
+  if (G->seqStorePath == NULL)
+    fprintf(stderr, "ERROR: no input sequence store (-S) supplied.\n"), err++;
   if (G->ovlStorePath == NULL)
     fprintf(stderr, "ERROR: no input overlap store (-O) supplied.\n"), err++;
   if (G->correctionsName == NULL)
@@ -100,23 +100,16 @@ main(int argc, char **argv) {
 
 
   if (err) {
-    fprintf(stderr, "USAGE:  %s [-d <dna-file>] [-o <ovl_file>] [-q <quality>]\n", argv[0]);
-    fprintf(stderr, "            [-x <del_file>] [-F OlapFile] [-S OlapStore]\n");
-    fprintf(stderr, "            [-c <cgb_file>] [-e <erate_file>\n");
-    fprintf(stderr, "           <gkpStore> <CorrectFile> <lo> <hi>\n");
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore -R bgn end ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "Recalculates overlaps for frags  <lo> .. <hi>  in\n");
-    fprintf(stderr, " <gkpStore>  using corrections in  <CorrectFile> \n");
+    fprintf(stderr, "  -S   seqStore           path to a sequence store\n");
+    fprintf(stderr, "  -O   ovlStore           path to an overlap store\n");
+    fprintf(stderr, "  -R   bgn end            only compute for reads bgn-end\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr, "-e <erate-file>  specifies binary file to dump corrected erates to\n");
-    fprintf(stderr, "                 for later updating of olap store by  update-erates \n");
-    fprintf(stderr, "-F             specify file of sorted overlaps to use (in the format\n");
-    fprintf(stderr, "               produced by  get-olaps\n");
-    fprintf(stderr, "-o <ovl_file>  specifies name of file to which OVL messages go\n");
-    fprintf(stderr, "-q <quality>   overlaps less than this error rate are\n");
-    fprintf(stderr, "               automatically output\n");
-    fprintf(stderr, "-S             specify the binary overlap store containing overlaps to use\n");
+    fprintf(stderr, "  -c   input-name         read corrections from 'input-name'\n");
+    fprintf(stderr, "  -o   output-name        write updated error rates to 'output-name'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -t   num-threads        not used; only one thread used\n");
     exit(1);
   }
 
@@ -139,27 +132,27 @@ main(int argc, char **argv) {
   //
   //
 
-  fprintf(stderr, "Opening gkpStore '%s'.\n", G->gkpStorePath);
+  fprintf(stderr, "Opening seqStore '%s'.\n", G->seqStorePath);
 
-  gkStore *gkpStore = gkStore::gkStore_open(G->gkpStorePath);
+  sqStore *seqStore = sqStore::sqStore_open(G->seqStorePath);
 
   if (G->bgnID < 1)
     G->bgnID = 1;
 
-  if (gkpStore->gkStore_getNumReads() < G->endID)
-    G->endID = gkpStore->gkStore_getNumReads();
+  if (seqStore->sqStore_getNumReads() < G->endID)
+    G->endID = seqStore->sqStore_getNumReads();
 
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
 
   fprintf(stderr, "Correcting reads " F_U32 " to " F_U32 ".\n", G->bgnID, G->endID);
 
-  Correct_Frags(G, gkpStore);
+  Correct_Frags(G, seqStore);
 
   //  Load overlaps we're going to correct
 
   fprintf(stderr, "Loading overlaps.\n");
 
-  Read_Olaps(G, gkpStore);
+  Read_Olaps(G, seqStore);
 
   //  Now sort them on the B iid.
 
@@ -175,10 +168,10 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Recomputing overlaps.\n");
 
-  Redo_Olaps(G, gkpStore);
+  Redo_Olaps(G, seqStore);
 
-  gkpStore->gkStore_close();
-  gkpStore = NULL;
+  seqStore->sqStore_close();
+  seqStore = NULL;
 
   //  Sort the overlaps back into the original order
 

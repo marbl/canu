@@ -27,7 +27,7 @@
 
 #include <pthread.h>
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include <algorithm>
@@ -245,7 +245,7 @@ public:
 class coParameters {
 public:
   coParameters() {
-    gkpStorePath = NULL;
+    seqStorePath = NULL;
     ovlStorePath = NULL;
 
     //  Input read corrections, output overlap corrections
@@ -281,7 +281,7 @@ public:
 
 
   //  Paths to stores
-  char         *gkpStorePath;
+  char         *seqStorePath;
   char         *ovlStorePath;
 
   //  Input read corrections, output overlap corrections

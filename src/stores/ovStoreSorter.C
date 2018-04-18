@@ -37,7 +37,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
@@ -114,7 +114,7 @@ checkMemory(const char *ovlName, uint32 sliceNum, uint64 totOvl, uint64 maxMemor
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
-  char           *gkpName      = NULL;
+  char           *seqName      = NULL;
   char           *cfgName      = NULL;
   uint32          sliceNum     = UINT32_MAX;
 
@@ -132,8 +132,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       cfgName = argv[++arg];
@@ -172,9 +172,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig -s slice [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -O asm.ovlStore -S asm.seqStore -C ovStoreConfig -s slice [opts]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore       path to overlap store to create\n");
-    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -S asm.seqStore       path to sequence store\n");
     fprintf(stderr, "  -C config             path to ovStoreConfig configuration file\n");
     fprintf(stderr, "  -s slice              slice to process (1 ... N)\n");
     fprintf(stderr, "\n");
@@ -203,8 +203,8 @@ main(int argc, char **argv) {
 
   //  Not done.  Let's go!
 
-  gkStore             *gkp    = gkStore::gkStore_open(gkpName);
-  ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, gkp, sliceNum, config->numSlices(), config->numBuckets());
+  sqStore             *seq    = sqStore::sqStore_open(seqName);
+  ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, seq, sliceNum, config->numSlices(), config->numBuckets());
 
   //  Get the number of overlaps in each bucket slice.
 
@@ -220,7 +220,7 @@ main(int argc, char **argv) {
 
   //  Allocatge space for overlaps, and load them.
 
-  ovOverlap *ovls   = ovOverlap::allocateOverlaps(gkp, totOvl);
+  ovOverlap *ovls   = ovOverlap::allocateOverlaps(seq, totOvl);
   uint64     ovlsLen = 0;
 
   for (uint32 bb=0; bb<=config->numBuckets(); bb++)
@@ -263,7 +263,7 @@ main(int argc, char **argv) {
 
   removeSentinel(ovlName, sliceNum);
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   if (deleteIntermediateLate) {
     fprintf(stderr, "\n");

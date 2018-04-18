@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gkStore.C
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz from 2014-NOV-26 to 2015-AUG-10
@@ -31,59 +35,59 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "AS_UTL_fileIO.H"
 
 
-gkStore       *gkStore::_instance      = NULL;
-uint32          gkStore::_instanceCount = 0;
+sqStore       *sqStore::_instance      = NULL;
+uint32          sqStore::_instanceCount = 0;
 
-gkRead_version  gkRead_defaultVersion = gkRead_latest;
+sqRead_version  sqRead_defaultVersion = sqRead_latest;
 
 
 void
-gkRead::gkRead_loadDataFromStream(gkReadData *readData, FILE *file) {
+sqRead::sqRead_loadDataFromStream(sqReadData *readData, FILE *file) {
   char    tag[5];
   uint32  size;
 
   //  Ideally, we'd do one read to get the whole blob.  Without knowing
   //  the length, we're forced to do two.
 
-  AS_UTL_safeRead(file,  tag,  "gkStore::gkStore_loadDataFromFile::blob", sizeof(int8),   4);
-  AS_UTL_safeRead(file, &size, "gkStore::gkStore_loadDataFromFile::size", sizeof(uint32), 1);
+  AS_UTL_safeRead(file,  tag,  "sqStore::sqStore_loadDataFromFile::blob", sizeof(int8),   4);
+  AS_UTL_safeRead(file, &size, "sqStore::sqStore_loadDataFromFile::size", sizeof(uint32), 1);
 
   uint8 *blob = new uint8 [8 + size];
 
   memcpy(blob,    tag,  sizeof(uint8)  * 4);
   memcpy(blob+4, &size, sizeof(uint32) * 1);
 
-  AS_UTL_safeRead(file, blob+8, "gkStore::gkStore_loadDataFromFile::blob", sizeof(char), size);
+  AS_UTL_safeRead(file, blob+8, "sqStore::sqStore_loadDataFromFile::blob", sizeof(char), size);
 
-  readData->gkReadData_loadFromBlob(blob);
+  readData->sqReadData_loadFromBlob(blob);
 
   delete [] blob;
 }
 
 
 
-gkRead *
-gkStore::gkStore_getRead(uint32 id) {
+sqRead *
+sqStore::sqStore_getRead(uint32 id) {
 
-  if (gkStore_readInPartition(id) == false)
+  if (sqStore_readInPartition(id) == false)
     return(NULL);
 
-  if (gkStore_readInPartition(id) == false)
+  if (sqStore_readInPartition(id) == false)
     fprintf(stderr, "getRead()--  access to read %u in partition %u is not allowed when partition %u is loaded.\n",
             id, _readIDtoPartitionID[id], _partitionID), assert(0);
 
-  gkRead *read = _reads + (((_readIDtoPartitionID     != NULL) &&
+  sqRead *read = _reads + (((_readIDtoPartitionID     != NULL) &&
                             (_readIDtoPartitionID[id] == _partitionID)) ? _readIDtoPartitionIdx[id] : id);
 
-  if (gkStore_getNumCorrectedReads() > 0)     //  If there are corrected or trimmed reads in the store,
+  if (sqStore_getNumCorrectedReads() > 0)     //  If there are corrected or trimmed reads in the store,
     read->_cExists = true;                    //  set the flags so the read can return the appropriate data.
 
-  if (gkStore_getNumTrimmedReads() > 0)
+  if (sqStore_getNumTrimmedReads() > 0)
     read->_tExists = true;
 
   return(read);
@@ -92,13 +96,13 @@ gkStore::gkStore_getRead(uint32 id) {
 
 
 void
-gkStore::gkStore_loadReadData(gkRead *read, gkReadData *readData) {
+sqStore::sqStore_loadReadData(sqRead *read, sqReadData *readData) {
 
   readData->_read    = read;
-  readData->_library = gkStore_getLibrary(read->gkRead_libraryID());
+  readData->_library = sqStore_getLibrary(read->sqRead_libraryID());
 
   if (_blobsData) {
-    readData->gkReadData_loadFromBlob(_blobsData + read->gkRead_mByte());
+    readData->sqReadData_loadFromBlob(_blobsData + read->sqRead_mByte());
     return;
   }
 
@@ -106,24 +110,24 @@ gkStore::gkStore_loadReadData(gkRead *read, gkReadData *readData) {
 
   assert(tnum < _blobsFilesMax);
 
-  read->gkRead_loadDataFromStream(readData, _blobsFiles[tnum].getFile(_storePath, read));
+  read->sqRead_loadDataFromStream(readData, _blobsFiles[tnum].getFile(_storePath, read));
 }
 
 
 void
-gkStore::gkStore_loadReadData(uint32  readID, gkReadData *readData) {
+sqStore::sqStore_loadReadData(uint32  readID, sqReadData *readData) {
 
-  gkStore_loadReadData(gkStore_getRead(readID), readData);
+  sqStore_loadReadData(sqStore_getRead(readID), readData);
 }
 
 
 
-//  Dump a block of encoded data to disk, then update the gkRead to point to it.
+//  Dump a block of encoded data to disk, then update the sqRead to point to it.
 //
 void
-gkStore::gkStore_stashReadData(gkReadData *data) {
+sqStore::sqStore_stashReadData(sqReadData *data) {
 
-  data->gkReadData_encodeBlob();                            //  Encode the data.
+  data->sqReadData_encodeBlob();                            //  Encode the data.
 
   _blobsWriter->writeData(data->_blob, data->_blobLen);     //  Write the data.
 
@@ -137,27 +141,27 @@ gkStore::gkStore_stashReadData(gkReadData *data) {
 //  Load read metadata and data from a stream.
 //
 void
-gkStore::gkStore_loadReadFromStream(FILE *S, gkRead *read, gkReadData *readData) {
+sqStore::sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData) {
   char    tag[5];
   uint32  size;
 
   //  Mark this as a read.  Needed for tgTig::loadFromStreamOrLayout(), and loading this stuff in
   //  utgcns.
 
-  AS_UTL_safeRead(S, tag, "gkStore::gkStore_loadReadFromStream::tag", sizeof(char), 4);
+  AS_UTL_safeRead(S, tag, "sqStore::sqStore_loadReadFromStream::tag", sizeof(char), 4);
 
   if (strncmp(tag, "READ", 4) != 0)
-    fprintf(stderr, "Failed to load gkRead, got tag '%c%c%c%c' (0x%02x 0x%02x 0x%02x 0x%02x), expected 'READ'.\n",
+    fprintf(stderr, "Failed to load sqRead, got tag '%c%c%c%c' (0x%02x 0x%02x 0x%02x 0x%02x), expected 'READ'.\n",
             tag[0], tag[1], tag[2], tag[3],
             tag[0], tag[1], tag[2], tag[3]), exit(1);
 
   //  Load the read metadata
 
-  AS_UTL_safeRead(S, read, "gkStore::gkStore_loadReadFromStream::read", sizeof(gkRead), 1);
+  AS_UTL_safeRead(S, read, "sqStore::sqStore_loadReadFromStream::read", sizeof(sqRead), 1);
 
   //  Load the read data.
 
-  read->gkRead_loadDataFromStream(readData, S);
+  read->sqRead_loadDataFromStream(readData, S);
 }
 
 
@@ -165,7 +169,7 @@ gkStore::gkStore_loadReadFromStream(FILE *S, gkRead *read, gkReadData *readData)
 //  Dump the read metadata and read data to a stream.
 //
 void
-gkStore::gkStore_saveReadToStream(FILE *S, uint32 id) {
+sqStore::sqStore_saveReadToStream(FILE *S, uint32 id) {
 
   //  Mark this as a read.  Needed for tgTig::loadFromStreamOrLayout(), and loading this stuff in
   //  utgcns.
@@ -174,9 +178,9 @@ gkStore::gkStore_saveReadToStream(FILE *S, uint32 id) {
 
   //  Dump the read metadata
 
-  gkRead  *read = gkStore_getRead(id);
+  sqRead  *read = sqStore_getRead(id);
 
-  AS_UTL_safeWrite(S, read, "gkStore::gkStore_saveReadToStream::read", sizeof(gkRead), 1);
+  AS_UTL_safeWrite(S, read, "sqStore::sqStore_saveReadToStream::read", sizeof(sqRead), 1);
 
   //  Figure out where the blob actually is, and make sure that it really is a blob
 
@@ -190,13 +194,13 @@ gkStore::gkStore_saveReadToStream(FILE *S, uint32 id) {
 
   //  Write the blob to the stream
 
-  AS_UTL_safeWrite(S, blob, "gkStore::gkStore_saveReadToStream::blob", sizeof(char), blobLen);
+  AS_UTL_safeWrite(S, blob, "sqStore::sqStore_saveReadToStream::blob", sizeof(char), blobLen);
 }
 
 
 
 void
-gkReadData::gkReadData_setName(char *H) {
+sqReadData::sqReadData_setName(char *H) {
   uint32  Hlen = strlen(H) + 1;
 
   resizeArray(_name, 0, _nameAlloc, Hlen, resizeArray_doNothing);
@@ -207,10 +211,10 @@ gkReadData::gkReadData_setName(char *H) {
 
 
 void
-gkReadData::gkReadData_setBasesQuals(char  *S,
+sqReadData::sqReadData_setBasesQuals(char  *S,
                                      uint8 *Q) {
-  bool        isRaw = ((_library->gkLibrary_readType() == GK_READTYPE_PACBIO_RAW) ||
-                       (_library->gkLibrary_readType() == GK_READTYPE_NANOPORE_RAW));
+  bool        isRaw = ((_library->sqLibrary_readType() == SQ_READTYPE_PACBIO_RAW) ||
+                       (_library->sqLibrary_readType() == SQ_READTYPE_NANOPORE_RAW));
 
   uint32      Slen  = strlen(S) + 1;
 
@@ -228,7 +232,7 @@ gkReadData::gkReadData_setBasesQuals(char  *S,
 
   else {
     if (_read->_cExists)
-      fprintf(stderr, "gkReadData_setBasesQuals()- read %u has existing cseq of length %u, replacing with length %u\n",
+      fprintf(stderr, "sqReadData_setBasesQuals()- read %u has existing cseq of length %u, replacing with length %u\n",
               _read->_readID, _read->_cseqLen, (uint32)strlen(S));
 
     resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);
@@ -246,7 +250,7 @@ gkReadData::gkReadData_setBasesQuals(char  *S,
 //  Ensures that the _blob block is appropriately padded to maintain 32-bit alignment.
 //
 void
-gkReadData::gkReadData_encodeBlobChunk(char const *tag,
+sqReadData::sqReadData_encodeBlobChunk(char const *tag,
                                        uint32      len,
                                        void       *dat) {
 
@@ -304,7 +308,7 @@ gkReadData::gkReadData_encodeBlobChunk(char const *tag,
 
 
 void
-gkReadData::gkReadData_encodeBlob(void) {
+sqReadData::sqReadData_encodeBlob(void) {
 
   _blobLen = 0;
 
@@ -315,9 +319,9 @@ gkReadData::gkReadData_encodeBlob(void) {
 
   //  Encode the data into chunks in the blob.
 
-  gkReadData_encodeBlobChunk("BLOB", 0,  NULL);
+  sqReadData_encodeBlobChunk("BLOB", 0,  NULL);
 
-  gkReadData_encodeBlobChunk("NAME", strlen(_name), _name);
+  sqReadData_encodeBlobChunk("NAME", strlen(_name), _name);
 
   //  Compute the preferred encodings.  If either fail, the length is set to zero, and the
   //  non-preferred encoding will be computed.  If this too fails, sequences/qualities will be
@@ -327,29 +331,29 @@ gkReadData::gkReadData_encodeBlob(void) {
     uint8   *rseq = NULL;
     uint8   *rqlt = NULL;
 
-    uint32  rseq2Len =                   gkReadData_encode2bit(rseq, _rseq, _read->_rseqLen);
-    uint32  rseq3Len = (rseq2Len == 0) ? gkReadData_encode3bit(rseq, _rseq, _read->_rseqLen) : 0;
+    uint32  rseq2Len =                   sqReadData_encode2bit(rseq, _rseq, _read->_rseqLen);
+    uint32  rseq3Len = (rseq2Len == 0) ? sqReadData_encode3bit(rseq, _rseq, _read->_rseqLen) : 0;
 
-    uint32  rqv      = gkReadData_encodeConstantQV(_rqlt, _read->_rseqLen, _library->gkLibrary_defaultQV());
+    uint32  rqv      = sqReadData_encodeConstantQV(_rqlt, _read->_rseqLen, _library->sqLibrary_defaultQV());
 
-    uint32  rqlt4Len = ((rqv == 255))                    ? gkReadData_encode4bit(rqlt, _rqlt, _read->_rseqLen) : 0;
-    uint32  rqlt5Len = ((rqv == 255) && (rqlt4Len == 0)) ? gkReadData_encode5bit(rqlt, _rqlt, _read->_rseqLen) : 0;
+    uint32  rqlt4Len = ((rqv == 255))                    ? sqReadData_encode4bit(rqlt, _rqlt, _read->_rseqLen) : 0;
+    uint32  rqlt5Len = ((rqv == 255) && (rqlt4Len == 0)) ? sqReadData_encode5bit(rqlt, _rqlt, _read->_rseqLen) : 0;
 
     if      (rseq2Len > 0)
-      gkReadData_encodeBlobChunk("2SQR",         rseq2Len, rseq);    //  Two-bit encoded sequence (ACGT only)
+      sqReadData_encodeBlobChunk("2SQR",         rseq2Len, rseq);    //  Two-bit encoded sequence (ACGT only)
     else if (rseq3Len > 0)
-      gkReadData_encodeBlobChunk("3SQR",         rseq3Len, rseq);    //  Three-bit encoded sequence (ACGTN)
+      sqReadData_encodeBlobChunk("3SQR",         rseq3Len, rseq);    //  Three-bit encoded sequence (ACGTN)
     else
-      gkReadData_encodeBlobChunk("USQR", _read->_rseqLen, _rseq);    //  Unencoded sequence
+      sqReadData_encodeBlobChunk("USQR", _read->_rseqLen, _rseq);    //  Unencoded sequence
 
     if      (rqv < 255)
-      gkReadData_encodeBlobChunk("1QVR",                 4, &rqv);   //  Constant QV for every base
+      sqReadData_encodeBlobChunk("1QVR",                 4, &rqv);   //  Constant QV for every base
     else if (rqlt4Len > 0)
-      gkReadData_encodeBlobChunk("4QVR",         rqlt4Len, rqlt);    //  Four-bit (0-15) encoded QVs
+      sqReadData_encodeBlobChunk("4QVR",         rqlt4Len, rqlt);    //  Four-bit (0-15) encoded QVs
     else if (rqlt5Len > 0)
-      gkReadData_encodeBlobChunk("5QVR",         rqlt5Len, rqlt);    //  Five-bit (0-32) encoded QVs
+      sqReadData_encodeBlobChunk("5QVR",         rqlt5Len, rqlt);    //  Five-bit (0-32) encoded QVs
     else
-      gkReadData_encodeBlobChunk("UQVR", _read->_rseqLen, _rqlt);    //  Unencoded quality
+      sqReadData_encodeBlobChunk("UQVR", _read->_rseqLen, _rqlt);    //  Unencoded quality
 
     delete [] rseq;
     delete [] rqlt;
@@ -359,35 +363,35 @@ gkReadData::gkReadData_encodeBlob(void) {
     uint8   *cseq = NULL;
     uint8   *cqlt = NULL;
 
-    uint32  cseq2Len =                   gkReadData_encode2bit(cseq, _cseq, _read->_cseqLen);
-    uint32  cseq3Len = (cseq2Len == 0) ? gkReadData_encode3bit(cseq, _cseq, _read->_cseqLen) : 0;
+    uint32  cseq2Len =                   sqReadData_encode2bit(cseq, _cseq, _read->_cseqLen);
+    uint32  cseq3Len = (cseq2Len == 0) ? sqReadData_encode3bit(cseq, _cseq, _read->_cseqLen) : 0;
 
-    uint32  cqv      = gkReadData_encodeConstantQV(_cqlt, _read->_cseqLen, _library->gkLibrary_defaultQV());
+    uint32  cqv      = sqReadData_encodeConstantQV(_cqlt, _read->_cseqLen, _library->sqLibrary_defaultQV());
 
-    uint32  cqlt4Len = ((cqv == 255))                    ? gkReadData_encode4bit(cqlt, _cqlt, _read->_cseqLen) : 0;
-    uint32  cqlt5Len = ((cqv == 255) && (cqlt4Len == 0)) ? gkReadData_encode5bit(cqlt, _cqlt, _read->_cseqLen) : 0;
+    uint32  cqlt4Len = ((cqv == 255))                    ? sqReadData_encode4bit(cqlt, _cqlt, _read->_cseqLen) : 0;
+    uint32  cqlt5Len = ((cqv == 255) && (cqlt4Len == 0)) ? sqReadData_encode5bit(cqlt, _cqlt, _read->_cseqLen) : 0;
 
     if      (cseq2Len > 0)
-      gkReadData_encodeBlobChunk("2SQC",         cseq2Len, cseq);    //  Two-bit encoded sequence (ACGT only)
+      sqReadData_encodeBlobChunk("2SQC",         cseq2Len, cseq);    //  Two-bit encoded sequence (ACGT only)
     else if (cseq3Len > 0)
-      gkReadData_encodeBlobChunk("3SQC",         cseq3Len, cseq);    //  Three-bit encoded sequence (ACGTN)
+      sqReadData_encodeBlobChunk("3SQC",         cseq3Len, cseq);    //  Three-bit encoded sequence (ACGTN)
     else
-      gkReadData_encodeBlobChunk("USQC", _read->_cseqLen, _cseq);    //  Unencoded sequence
+      sqReadData_encodeBlobChunk("USQC", _read->_cseqLen, _cseq);    //  Unencoded sequence
 
     if      (cqv < 255)
-      gkReadData_encodeBlobChunk("1QVC",                 4, &cqv);   //  Constant QV for every base
+      sqReadData_encodeBlobChunk("1QVC",                 4, &cqv);   //  Constant QV for every base
     else if (cqlt4Len > 0)
-      gkReadData_encodeBlobChunk("4QVC",         cqlt4Len, cqlt);    //  Four-bit (0-15) encoded QVs
+      sqReadData_encodeBlobChunk("4QVC",         cqlt4Len, cqlt);    //  Four-bit (0-15) encoded QVs
     else if (cqlt5Len > 0)
-      gkReadData_encodeBlobChunk("5QVC",         cqlt5Len, cqlt);    //  Five-bit (0-32) encoded QVs
+      sqReadData_encodeBlobChunk("5QVC",         cqlt5Len, cqlt);    //  Five-bit (0-32) encoded QVs
     else
-      gkReadData_encodeBlobChunk("UQVC", _read->_cseqLen, _cqlt);    //  Unencoded quality
+      sqReadData_encodeBlobChunk("UQVC", _read->_cseqLen, _cqlt);    //  Unencoded quality
 
     delete [] cseq;
     delete [] cqlt;
   }
 
-  gkReadData_encodeBlobChunk("STOP", 0,  NULL);
+  sqReadData_encodeBlobChunk("STOP", 0,  NULL);
 }
 
 
@@ -396,7 +400,7 @@ gkReadData::gkReadData_encodeBlob(void) {
 //  Lowest level function to load data into a read.
 //
 void
-gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
+sqReadData::sqReadData_loadFromBlob(uint8 *blob) {
   char    chunk[5];
   uint32  chunkLen = 0;
 
@@ -404,7 +408,7 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
 
   if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
     fprintf(stderr, "Index error in read " F_U32 " mSegm " F_U64 " mByte " F_U64 " mPart " F_U64 " expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
-            _read->gkRead_readID(),
+            _read->sqRead_readID(),
             _read->_mSegm, _read->_mByte, _read->_mPart,
             blob[0], blob[1], blob[2], blob[3],
             blob[0], blob[1], blob[2], blob[3]);
@@ -446,10 +450,10 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
     }
 
     else if (strncmp(chunk, "2SQR", 4) == 0) {
-      gkReadData_decode2bit(blob + 8, chunkLen, _rseq, _read->_rseqLen);
+      sqReadData_decode2bit(blob + 8, chunkLen, _rseq, _read->_rseqLen);
     }
     else if (strncmp(chunk, "3SQR", 4) == 0) {
-      gkReadData_decode3bit(blob + 8, chunkLen, _rseq, _read->_rseqLen);
+      sqReadData_decode3bit(blob + 8, chunkLen, _rseq, _read->_rseqLen);
     }
     else if (strncmp(chunk, "USQR", 4) == 0) {
       assert(_read->_rseqLen <= chunkLen);
@@ -459,10 +463,10 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
     }
 
     else if (strncmp(chunk, "4QVR", 4) == 0) {
-      gkReadData_decode4bit(blob + 8, chunkLen, _rqlt, _read->_rseqLen);
+      sqReadData_decode4bit(blob + 8, chunkLen, _rqlt, _read->_rseqLen);
     }
     else if (strncmp(chunk, "5QVR", 4) == 0) {
-      gkReadData_decode5bit(blob + 8, chunkLen, _rqlt, _read->_rseqLen);
+      sqReadData_decode5bit(blob + 8, chunkLen, _rqlt, _read->_rseqLen);
     }
     else if (strncmp(chunk, "UQVR", 4) == 0) {
       assert(_read->_rseqLen <= chunkLen);
@@ -476,10 +480,10 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
     }
 
     else if (strncmp(chunk, "2SQC", 4) == 0) {
-      gkReadData_decode2bit(blob + 8, chunkLen, _cseq, _read->_cseqLen);
+      sqReadData_decode2bit(blob + 8, chunkLen, _cseq, _read->_cseqLen);
     }
     else if (strncmp(chunk, "3SQC", 4) == 0) {
-      gkReadData_decode3bit(blob + 8, chunkLen, _cseq, _read->_cseqLen);
+      sqReadData_decode3bit(blob + 8, chunkLen, _cseq, _read->_cseqLen);
     }
     else if (strncmp(chunk, "USQC", 4) == 0) {
       assert(_read->_cseqLen <= chunkLen);
@@ -489,10 +493,10 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
     }
 
     else if (strncmp(chunk, "4QVC", 4) == 0) {
-      gkReadData_decode4bit(blob + 8, chunkLen, _cqlt, _read->_cseqLen);
+      sqReadData_decode4bit(blob + 8, chunkLen, _cqlt, _read->_cseqLen);
     }
     else if (strncmp(chunk, "5QVC", 4) == 0) {
-      gkReadData_decode5bit(blob + 8, chunkLen, _cqlt, _read->_cseqLen);
+      sqReadData_decode5bit(blob + 8, chunkLen, _cqlt, _read->_cseqLen);
     }
     else if (strncmp(chunk, "UQVC", 4) == 0) {
       assert(_read->_cseqLen <= chunkLen);
@@ -506,7 +510,7 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
     }
 
     else {
-      fprintf(stderr, "gkRead::gkRead_loadDataFromBlob()--  unknown chunk type %02x %02x %02x %02x '%c%c%c%c' skipped\n",
+      fprintf(stderr, "sqRead::sqRead_loadDataFromBlob()--  unknown chunk type %02x %02x %02x %02x '%c%c%c%c' skipped\n",
               chunk[0], chunk[1], chunk[2], chunk[3],
               chunk[0], chunk[1], chunk[2], chunk[3]);
     }
@@ -534,25 +538,25 @@ gkReadData::gkReadData_loadFromBlob(uint8 *blob) {
 
 
 
-gkLibrary *
-gkStore::gkStore_addEmptyLibrary(char const *name) {
+sqLibrary *
+sqStore::sqStore_addEmptyLibrary(char const *name) {
 
-  assert(_info.gkInfo_numLibraries() <= _librariesAlloc);
+  assert(_info.sqInfo_numLibraries() <= _librariesAlloc);
 
   //  Just like with reads below, there is no _libraries[0] element.
 
-  _info.gkInfo_addLibrary();
+  _info.sqInfo_addLibrary();
 
-  increaseArray(_libraries, _info.gkInfo_numLibraries(), _librariesAlloc, 128);
+  increaseArray(_libraries, _info.sqInfo_numLibraries(), _librariesAlloc, 128);
 
   //  Initialize the new library.
 
-  _libraries[_info.gkInfo_numLibraries()] = gkLibrary();
-  _libraries[_info.gkInfo_numLibraries()]._libraryID = _info.gkInfo_numLibraries();
+  _libraries[_info.sqInfo_numLibraries()] = sqLibrary();
+  _libraries[_info.sqInfo_numLibraries()]._libraryID = _info.sqInfo_numLibraries();
 
   //  Bullet proof the library name - so we can make files with this prefix.
 
-  char   *libname    = _libraries[_info.gkInfo_numLibraries()]._libraryName;
+  char   *libname    = _libraries[_info.sqInfo_numLibraries()]._libraryName;
   uint32  libnamepos = 0;
 
   memset(libname, 0, sizeof(char) * LIBRARY_NAME_SIZE);
@@ -574,37 +578,37 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
     }
   }
 
-  return(_libraries + _info.gkInfo_numLibraries());
+  return(_libraries + _info.sqInfo_numLibraries());
 }
 
 
 
 
-gkReadData *
-gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
+sqReadData *
+sqStore::sqStore_addEmptyRead(sqLibrary *lib) {
 
-  assert(_info.gkInfo_numReads() < _readsAlloc);
-  assert(_mode != gkStore_readOnly);
+  assert(_info.sqInfo_numReads() < _readsAlloc);
+  assert(_mode != sqStore_readOnly);
 
   //  We reserve the zeroth read for "null".  This is easy to accomplish
   //  here, just pre-increment the number of reads.  However, we need to be sure
-  //  to iterate up to and including _info.gkInfo_numReads().
+  //  to iterate up to and including _info.sqInfo_numReads().
 
-  _info.gkInfo_addRead();
+  _info.sqInfo_addRead();
 
-  increaseArray(_reads, _info.gkInfo_numReads(), _readsAlloc, _info.gkInfo_numReads()/2);
+  increaseArray(_reads, _info.sqInfo_numReads(), _readsAlloc, _info.sqInfo_numReads()/2);
 
   //  Initialize the new read.
 
-  _reads[_info.gkInfo_numReads()]            = gkRead();
-  _reads[_info.gkInfo_numReads()]._readID    = _info.gkInfo_numReads();
-  _reads[_info.gkInfo_numReads()]._libraryID = lib->gkLibrary_libraryID();
+  _reads[_info.sqInfo_numReads()]            = sqRead();
+  _reads[_info.sqInfo_numReads()]._readID    = _info.sqInfo_numReads();
+  _reads[_info.sqInfo_numReads()]._libraryID = lib->sqLibrary_libraryID();
 
   //  With the read set up, set pointers in the readData.  Whatever data is in there can stay.
 
-  gkReadData *readData = new gkReadData;
+  sqReadData *readData = new sqReadData;
 
-  readData->_read    = _reads + _info.gkInfo_numReads();
+  readData->_read    = _reads + _info.sqInfo_numReads();
   readData->_library = lib;
 
   return(readData);
@@ -614,8 +618,8 @@ gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
 
 
 void
-gkStore::gkStore_setClearRange(uint32 id, uint32 bgn, uint32 end) {
-  gkRead  *read = gkStore_getRead(id);
+sqStore::sqStore_setClearRange(uint32 id, uint32 bgn, uint32 end) {
+  sqRead  *read = sqStore_getRead(id);
 
   read->_clearBgn = bgn;
   read->_clearEnd = end;
@@ -623,8 +627,8 @@ gkStore::gkStore_setClearRange(uint32 id, uint32 bgn, uint32 end) {
 
 
 void
-gkStore::gkStore_setIgnore(uint32 id) {
-  gkRead  *read = gkStore_getRead(id);
+sqStore::sqStore_setIgnore(uint32 id) {
+  sqRead  *read = sqStore_getRead(id);
 
   read->_ignore = true;
 }

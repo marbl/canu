@@ -77,7 +77,7 @@ ChunkGraph       *CG  = 0L;
 
 int
 main (int argc, char * argv []) {
-  char      *gkpStorePath            = NULL;
+  char      *seqStorePath            = NULL;
   char      *ovlStorePath            = NULL;
 
   double    erateGraph               = 0.075;
@@ -122,8 +122,8 @@ main (int argc, char * argv []) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStorePath = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlStorePath = argv[++arg];
@@ -277,15 +277,15 @@ main (int argc, char * argv []) {
   if (erateGraph    < 0.0)     err.push_back("Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
   if (erateMax      < 0.0)     err.push_back("Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
   if (prefix       == NULL)    err.push_back("No output prefix name (-o option) supplied.\n");
-  if (gkpStorePath == NULL)    err.push_back("No gatekeeper store (-G option) supplied.\n");
+  if (seqStorePath == NULL)    err.push_back("No sequence store (-S option) supplied.\n");
   if (ovlStorePath == NULL)    err.push_back("No overlap store (-O option) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G gkpPath -O ovlPath -T tigPath -o outPrefix ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqPath -O ovlPath -T tigPath -o outPrefix ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "Mandatory Parameters:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpPath     Mandatory path to an existing gkpStore.\n");
+    fprintf(stderr, "  -S seqPath     Mandatory path to an existing seqStore.\n");
     fprintf(stderr, "  -O ovlPath     Mandatory path to an existing ovlStore.\n");
     fprintf(stderr, "  -T tigPath     Mandatory path to an output tigStore (can exist or not).\n");
     fprintf(stderr, "  -o outPrefix   Mandatory prefix for the output files.\n");
@@ -389,7 +389,7 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "filterOverlaps");
 
-  RI = new ReadInfo(gkpStorePath, prefix, minReadLen);
+  RI = new ReadInfo(seqStorePath, prefix, minReadLen);
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur);
   CG = new ChunkGraph(prefix);

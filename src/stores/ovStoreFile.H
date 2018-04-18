@@ -19,7 +19,15 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-OCT-24
+ *    Brian P. Walenz from 2014-DEC-09 to 2015-JUL-01
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-12
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2016-MAR-11
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -31,7 +39,7 @@
 #define AS_OVSTOREFILE_H
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "ovOverlap.H"
 
@@ -62,7 +70,7 @@ enum ovFileType {
 
 class ovFileOCW {
 public:
-  ovFileOCW(gkStore *gkp, const char *prefix) {
+  ovFileOCW(sqStore *seq, const char *prefix) {
 
     memset(_name, 0, sizeof(char) * (FILENAME_MAX+1));
 
@@ -79,7 +87,7 @@ public:
     if (prefix != NULL) {
       snprintf(_name, FILENAME_MAX, "%s.oc", prefix);
 
-      _oprMax = gkp->gkStore_getNumReads() + 1;
+      _oprMax = seq->sqStore_getNumReads() + 1;
 
       allocateArray(_opr, _oprMax, resizeArray_clearNew);
     }
@@ -134,7 +142,7 @@ private:
 
 class ovFileOCR {
 public:
-  ovFileOCR(gkStore *gkp, const char *prefix) {
+  ovFileOCR(sqStore *seq, const char *prefix) {
 
     //  If no prefix supplied, there just aren't any
     //  overlap counts expected with this input, so
@@ -161,7 +169,7 @@ public:
 
     //  Otherwise, counts exist, and we load them.
 
-    _oprMax = gkp->gkStore_getNumReads() + 1;
+    _oprMax = seq->sqStore_getNumReads() + 1;
 
     allocateArray(_opr, _oprMax, resizeArray_clearNew);
 
@@ -193,12 +201,12 @@ private:
 
 class ovFile {
 public:
-  ovFile(gkStore     *gkp,
+  ovFile(sqStore     *seq,
          const char  *fileName,
          ovFileType   type = ovFileNormal,
          uint32       bufferSize = 1 * 1024 * 1024);
 
-  ovFile(gkStore     *gkp,
+  ovFile(sqStore     *seq,
          const char  *ovlName,
          uint32       sliceNum,
          uint32       pieceNum,
@@ -208,7 +216,7 @@ public:
   ~ovFile();
 
 private:
-  void    construct(gkStore *gkpName, const char *fileName, ovFileType type, uint32 bufferSize);
+  void    construct(sqStore *seqName, const char *fileName, ovFileType type, uint32 bufferSize);
 
 public:
   bool    nextFile(const char  *ovlName,
@@ -249,7 +257,7 @@ public:
   ovFileOCR              *getCounts(void)        { return(_countsR);   };
 
 private:
-  gkStore                *_gkp;
+  sqStore                *_seq;
 
   ovFileOCW              *_countsW;
   ovFileOCR              *_countsR;

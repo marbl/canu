@@ -8,10 +8,10 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)
 endif
 
-TARGET   := gatekeeperDumpMetaData
-SOURCES  := gatekeeperDumpMetaData.C
+TARGET   := sqStoreDumpFASTQ
+SOURCES  := sqStoreDumpFASTQ.C
 
-SRC_INCDIRS := .. ../AS_UTL
+SRC_INCDIRS := .. ../stores ../AS_UTL ../overlapBasedTrimming
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

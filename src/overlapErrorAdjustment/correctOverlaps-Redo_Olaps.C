@@ -281,11 +281,11 @@ Hang_Adjust(int32     hang,
 
 
 
-//  Read old fragments in  gkpStore  and choose the ones that
+//  Read old fragments in  seqStore  and choose the ones that
 //  have overlaps with fragments in  Frag. Recompute the
 //  overlaps, using fragment corrections and output the revised error.
 void
-Redo_Olaps(coParameters *G, gkStore *gkpStore) {
+Redo_Olaps(coParameters *G, sqStore *seqStore) {
 
   //  Figure out the range of B reads we care about.  We probably could just loop over every read in
   //  the store with minimal penalty.
@@ -317,7 +317,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
   uint32         fadjLen  = 0;  //  radj is the same length
 
   fprintf(stderr, "--Allocate " F_SIZE_T " MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
-  gkReadData    *readData = new gkReadData;
+  sqReadData    *readData = new sqReadData;
   pedWorkArea_t *ped      = new pedWorkArea_t;
 
   uint64         Total_Alignments_Ct           = 0;
@@ -346,9 +346,9 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
     if (curID < G->olaps[thisOvl].b_iid)
       continue;
 
-    gkRead *read = gkpStore->gkStore_getRead(curID);
+    sqRead *read = seqStore->sqStore_getRead(curID);
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
 
     //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
@@ -359,8 +359,8 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
     correctRead(curID,
                 fseq, fseqLen, fadj, fadjLen,
-                readData->gkReadData_getSequence(),
-                read->gkRead_sequenceLength(),
+                readData->sqReadData_getSequence(),
+                read->sqRead_sequenceLength(),
                 C, Cpos, Clen);
 
     //fprintf(stderr, "Finished   B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);

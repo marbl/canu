@@ -29,7 +29,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "stddev.H"
@@ -51,7 +51,7 @@
 
 int
 main(int argc, char **argv) {
-  char           *gkpName        = NULL;
+  char           *seqName        = NULL;
   char           *ovlName        = NULL;
   char           *outPrefix      = NULL;
 
@@ -73,8 +73,8 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
 
-    if      (strcmp(argv[arg], "-G") == 0)
-      gkpName = argv[++arg];
+    if      (strcmp(argv[arg], "-S") == 0)
+      seqName = argv[++arg];
 
     else if (strcmp(argv[arg], "-O") == 0)
       ovlName = argv[++arg];
@@ -140,7 +140,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (ovlName == NULL)
     err++;
@@ -148,7 +148,7 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o outPrefix [-b bgnID] [-e endID] ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore -o outPrefix [-b bgnID] [-e endID] ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "Generates statistics for an overlap store.  By default all possible classes\n");
     fprintf(stderr, "are generated, options can disable specific classes.\n");
@@ -194,14 +194,14 @@ main(int argc, char **argv) {
 
   //  Open inputs, find limits.
 
-  gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
-  ovStore    *ovlStore = new ovStore(ovlName, gkpStore);
+  sqStore    *seqStore = sqStore::sqStore_open(seqName);
+  ovStore    *ovlStore = new ovStore(ovlName, seqStore);
 
-  if (endID > gkpStore->gkStore_getNumReads())
-    endID = gkpStore->gkStore_getNumReads();
+  if (endID > seqStore->sqStore_getNumReads())
+    endID = seqStore->sqStore_getNumReads();
 
   if (endID < bgnID)
-    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, gkpStore->gkStore_getNumReads()), exit(1);
+    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, seqStore->sqStore_getNumReads()), exit(1);
 
   ovlStore->setRange(bgnID, endID);
 
@@ -257,13 +257,13 @@ main(int argc, char **argv) {
   //  Compute!
 
   uint32                 overlapsMax = 65536;
-  ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
+  ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(seqStore, overlapsMax);
 
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
-  for (uint32 fi=0; fi<gkpStore->gkStore_getNumReads()+1; fi++) {
+  for (uint32 fi=0; fi<seqStore->sqStore_getNumReads()+1; fi++) {
     uint32  overlapsLen = ovlStore->loadOverlapsForRead(fi, overlaps, overlapsMax);
-    uint32  readLen     = gkpStore->gkStore_getRead(fi)->gkRead_sequenceLength();
+    uint32  readLen     = seqStore->sqStore_getRead(fi)->sqRead_sequenceLength();
 
     intervalList<uint32>   cov;
     uint32                 covID = 0;
@@ -569,9 +569,9 @@ main(int argc, char **argv) {
 
   double  nReads = 0;
 
-  if (nReads < 1)  nReads = gkpStore->gkStore_getNumTrimmedReads()   / 100.0;
-  if (nReads < 1)  nReads = gkpStore->gkStore_getNumCorrectedReads() / 100.0;
-  if (nReads < 1)  nReads = gkpStore->gkStore_getNumRawReads()       / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumTrimmedReads()   / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumCorrectedReads() / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumRawReads()       / 100.0;
 
   //  Write the report to somewhere.
 
@@ -644,7 +644,7 @@ main(int argc, char **argv) {
 
   delete ovlStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

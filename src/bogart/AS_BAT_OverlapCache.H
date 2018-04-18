@@ -44,7 +44,7 @@
 
 #include "AS_global.H"
 #include "ovStore.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "memoryMappedFile.H"
 
 //  CA8 used to re-encode the error rate into a smaller-precision number.  This was

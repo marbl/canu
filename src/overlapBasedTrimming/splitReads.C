@@ -36,7 +36,7 @@
 
 int
 main(int argc, char **argv) {
-  char     *gkpName = NULL;
+  char     *seqName = NULL;
   char     *ovsName = NULL;
 
   char     *finClrName = NULL;
@@ -118,8 +118,8 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovsName = argv[++arg];
@@ -154,14 +154,14 @@ main(int argc, char **argv) {
   if (errorRate < 0.0)
     err++;
 
-  if ((gkpName == 0L) ||
+  if ((seqName == 0L) ||
       (ovsName == 0L) ||
       (finClrName == 0L) ||
       (outClrName == 0L) ||
       (outputPrefix == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -Ci input.clearFile -Co output.clearFile -o outputPrefix]\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore -Ci input.clearFile -Co output.clearFile -o outputPrefix]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpStore    path to read store\n");
+    fprintf(stderr, "  -S seqStore    path to read store\n");
     fprintf(stderr, "  -O ovlStore    path to overlap store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o name        output prefix, for logging\n");
@@ -183,16 +183,16 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore         *gkp = gkStore::gkStore_open(gkpName);
-  ovStore         *ovs = new ovStore(ovsName, gkp);
+  sqStore         *seq = sqStore::sqStore_open(seqName);
+  ovStore         *ovs = new ovStore(ovsName, seq);
 
-  clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp);
-  clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp);
+  clearRangeFile  *finClr = new clearRangeFile(finClrName, seq);
+  clearRangeFile  *outClr = new clearRangeFile(outClrName, seq);
 
   if (outClr)
     //  If the outClr file exists, those clear ranges are loaded.  We need to reset them
     //  back to 'untrimmed' for now.
-    outClr->reset(gkp);
+    outClr->reset(seq);
 
   if (finClr && outClr)
     //  A finClr file was supplied, so use those as the clear ranges.
@@ -222,34 +222,34 @@ main(int argc, char **argv) {
 
   if (idMin < 1)
     idMin = 1;
-  if (idMax > gkp->gkStore_getNumReads())
-    idMax = gkp->gkStore_getNumReads();
+  if (idMax > seq->sqStore_getNumReads())
+    idMax = seq->sqStore_getNumReads();
 
   fprintf(stderr, "Processing from ID " F_U32 " to " F_U32 " out of " F_U32 " reads, using errorRate = %.2f\n",
           idMin,
           idMax,
-          gkp->gkStore_getNumReads(),
+          seq->sqStore_getNumReads(),
           errorRate);
 
   for (uint32 id=idMin; id<=idMax; id++) {
-    gkRead     *read = gkp->gkStore_getRead(id);
-    gkLibrary  *libr = gkp->gkStore_getLibrary(read->gkRead_libraryID());
+    sqRead     *read = seq->sqStore_getRead(id);
+    sqLibrary  *libr = seq->sqStore_getLibrary(read->sqRead_libraryID());
 
     if (finClr->isDeleted(id)) {
       //  Read already trashed.
-      deletedIn += read->gkRead_sequenceLength();
+      deletedIn += read->sqRead_sequenceLength();
       continue;
     }
 
-    if ((libr->gkLibrary_removeSpurReads()     == false) &&
-        (libr->gkLibrary_removeChimericReads() == false) &&
-        (libr->gkLibrary_checkForSubReads()    == false)) {
+    if ((libr->sqLibrary_removeSpurReads()     == false) &&
+        (libr->sqLibrary_removeChimericReads() == false) &&
+        (libr->sqLibrary_checkForSubReads()    == false)) {
       //  Nothing to do.
-      noTrimIn += read->gkRead_sequenceLength();
+      noTrimIn += read->sqRead_sequenceLength();
       continue;
     }
 
-    readsIn += read->gkRead_sequenceLength();
+    readsIn += read->sqRead_sequenceLength();
 
 
     ovlLen = ovs->loadOverlapsForRead(id, ovl, ovlMax);
@@ -258,49 +258,49 @@ main(int argc, char **argv) {
 
     if (ovlLen == 0) {
       //  No overlaps, nothing to check!
-      noOverlaps += read->gkRead_sequenceLength();
+      noOverlaps += read->sqRead_sequenceLength();
       continue;
     }
 
     w->clear(id, finClr->bgn(id), finClr->end(id));
-    w->addAndFilterOverlaps(gkp, finClr, errorRate, ovl, ovlLen);
+    w->addAndFilterOverlaps(seq, finClr, errorRate, ovl, ovlLen);
 
     if (w->adjLen == 0) {
       //  All overlaps trimmed out!
-      noCoverage += read->gkRead_sequenceLength();
+      noCoverage += read->sqRead_sequenceLength();
       continue;
     }
 
     //  Find bad regions.
 
-    //if (libr->gkLibrary_markBad() == true)
+    //if (libr->sqLibrary_markBad() == true)
     //  //  From an external file, a list of known bad regions.  If no overlaps span
     //  //  the region with sufficient coverage, mark the region as bad.  This was
     //  //  motivated by the old 454 linker detection.
-    //  markBad(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    //  markBad(seq, w, subreadFile, doSubreadLoggingVerbose);
 
-    //if (libr->gkLibrary_removeSpurReads() == true) {
-    //  readsProcSpur += read->gkRead_sequenceLength();
-    //  detectSpur(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    //if (libr->sqLibrary_removeSpurReads() == true) {
+    //  readsProcSpur += read->sqRead_sequenceLength();
+    //  detectSpur(seq, w, subreadFile, doSubreadLoggingVerbose);
     //  Get stats on spur region detected - save the length of each region to the trimStats object.
     //}
 
-    //if (libr->gkLibrary_removeChimericReads() == true) {
-    //  readsProcChimera += read->gkRead_sequenceLength();
-    //  detectChimer(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    //if (libr->sqLibrary_removeChimericReads() == true) {
+    //  readsProcChimera += read->sqRead_sequenceLength();
+    //  detectChimer(seq, w, subreadFile, doSubreadLoggingVerbose);
     //  Get stats on chimera region detected - save the length of each region to the trimStats object.
     //}
 
-    if (libr->gkLibrary_checkForSubReads() == true) {
-      readsProcSubRead += read->gkRead_sequenceLength();
-      detectSubReads(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    if (libr->sqLibrary_checkForSubReads() == true) {
+      readsProcSubRead += read->sqRead_sequenceLength();
+      detectSubReads(seq, w, subreadFile, doSubreadLoggingVerbose);
     }
 
     //  Get stats on the bad regions found.  This kind of duplicates code in trimBadInterval(), but
     //  I don't want to pass all the stats objects into there.
 
     if (w->blist.size() == 0) {
-      readsNoChange += read->gkRead_sequenceLength();
+      readsNoChange += read->sqRead_sequenceLength();
     }
 
     else {
@@ -342,7 +342,7 @@ main(int argc, char **argv) {
     //  largest good region, generates a log of the bad regions that support this decision, and sets
     //  the trim points.
 
-    trimBadInterval(gkp, w, minReadLength, subreadFile, doSubreadLoggingVerbose);
+    trimBadInterval(seq, w, minReadLength, subreadFile, doSubreadLoggingVerbose);
 
     //  Log the solution.
 
@@ -356,7 +356,7 @@ main(int argc, char **argv) {
     //  And maybe delete the read.
 
     if (w->isOK == false) {
-      deletedOut += read->gkRead_sequenceLength();
+      deletedOut += read->sqRead_sequenceLength();
 
       outClr->setDeleted(w->id);
     }
@@ -379,7 +379,7 @@ main(int argc, char **argv) {
 
   delete    w;
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   delete    finClr;
   delete    outClr;

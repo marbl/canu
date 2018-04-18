@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gatekeeperPartition.C
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz from 2014-DEC-23 to 2015-MAR-17
@@ -29,7 +33,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 //#include "AS_UTL_fileIO.H"
@@ -142,15 +146,15 @@ buildPartition(char    *tigStoreName,
 
 int
 main(int argc, char **argv) {
-  char     *gkpStorePath                = NULL;
-  char      gkpClonePath[FILENAME_MAX]  = { 0 };
+  char     *seqStorePath                = NULL;
+  char      seqClonePath[FILENAME_MAX]  = { 0 };
   char     *tigStorePath                = NULL;
   uint32    tigStoreVers                = 0;
   uint32    readCountTarget             = 2500;   //  No partition smaller than this
   uint32    partCountTarget             = 200;    //  No more than this many partitions
   bool      doDelete                    = false;
 
-  gkStore  *gkpStore                    = NULL;
+  sqStore  *seqStore                    = NULL;
   uint32   *partition                   = NULL;
 
   argc = AS_configure(argc, argv);
@@ -158,8 +162,8 @@ main(int argc, char **argv) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStorePath = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
@@ -185,21 +189,21 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((gkpStorePath == NULL) &&
-      (doDelete == false))       err.push_back("ERROR: no gkpStore (-G) supplied.\n");
+  if ((seqStorePath == NULL) &&
+      (doDelete == false))       err.push_back("ERROR: no seqStore (-S) supplied.\n");
   if (tigStorePath == NULL)      err.push_back("ERROR: no tigStore (-T) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s [-G <gkpStore> -T <tigStore> <v>] ...\n", argv[0]);
+    fprintf(stderr, "usage: %s [-S <seqStore> -T <tigStore> <v>] ...\n", argv[0]);
     fprintf(stderr, "       %s [-D <tigStore>]\n", argv[0]);
-    fprintf(stderr, "  -G <gkpStore>       path to gatekeeper store\n");
+    fprintf(stderr, "  -S <seqStore>       path to sequence store\n");
     fprintf(stderr, "  -T <tigStore> <v>   path to tig store and version to be partitioned\n");
-    fprintf(stderr, "  -D <tigStore>       remove a partitioned gkpStore\n");
+    fprintf(stderr, "  -D <tigStore>       remove a partitioned seqStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -b <nReads>         minimum number of reads per partition (50000)\n");
     fprintf(stderr, "  -p <nPartitions>    number of partitions (200)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Create a partitioned copy of <gkpStore> and place it in <tigStore>/partitionedReads.gkpStore\n");
+    fprintf(stderr, "Create a partitioned copy of <seqStore> and place it in <tigStore>/partitionedReads.seqStore\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -210,34 +214,34 @@ main(int argc, char **argv) {
   }
 
 
-  snprintf(gkpClonePath, FILENAME_MAX, "%s/partitionedReads.gkpStore", tigStorePath);
+  snprintf(seqClonePath, FILENAME_MAX, "%s/partitionedReads.seqStore", tigStorePath);
 
   //  If deleting, delete.
 
   if (doDelete == true) {
-    gkpStore = gkStore::gkStore_open(gkpClonePath, gkStore_readOnly);
-    gkpStore->gkStore_deletePartitions();
+    seqStore = sqStore::sqStore_open(seqClonePath, sqStore_readOnly);
+    seqStore->sqStore_deletePartitions();
   }
 
   //  Otherwise, partitioning, so partition.
 
   else {
-    gkpStore = gkStore::gkStore_open(gkpStorePath,                       //  Open the store, preparing it for
-                                     gkpClonePath);                      //  a copy to the partitioned version.
+    seqStore = sqStore::sqStore_open(seqStorePath,                       //  Open the store, preparing it for
+                                     seqClonePath);                      //  a copy to the partitioned version.
 
     partition = buildPartition(tigStorePath, tigStoreVers,               //  Scan all the tigs
                                readCountTarget,                          //  to build a map from
                                partCountTarget,                          //  read to partition.
-                               gkpStore->gkStore_getNumReads());
+                               seqStore->sqStore_getNumReads());
 
-    gkpStore->gkStore_buildPartitions(partition);                        //  Build partitions.
+    seqStore->sqStore_buildPartitions(partition);                        //  Build partitions.
   }
 
   //  Cleanp and bye.
 
   delete [] partition;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "Bye.\n");
   exit(0);

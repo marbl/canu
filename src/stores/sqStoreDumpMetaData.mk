@@ -8,8 +8,8 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)
 endif
 
-TARGET   := gatekeeperPartition
-SOURCES  := gatekeeperPartition.C
+TARGET   := sqStoreDumpMetaData
+SOURCES  := sqStoreDumpMetaData.C
 
 SRC_INCDIRS := .. ../AS_UTL
 

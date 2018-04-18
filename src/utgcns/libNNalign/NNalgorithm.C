@@ -33,7 +33,7 @@
  */
 
 #include "aligners.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "AS_UTL_reverseComplement.H"
 
 #undef DEBUG

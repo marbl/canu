@@ -50,13 +50,13 @@ ovStoreHistogram::~ovStoreHistogram() {
 
 
 //  For use when writing ovStore files.  Data allocated as needed.
-ovStoreHistogram::ovStoreHistogram(gkStore *gkp) {
+ovStoreHistogram::ovStoreHistogram(sqStore *seq) {
 
-  if (gkp == NULL)
-    fprintf(stderr, "ovStoreHistogram()-- ERROR: I need a valid gkpStore.\n"), exit(1);
+  if (seq == NULL)
+    fprintf(stderr, "ovStoreHistogram()-- ERROR: I need a valid seqStore.\n"), exit(1);
 
-  _gkp           = gkp;
-  _maxID         = gkp->gkStore_getNumReads();
+  _seq           = seq;
+  _maxID         = seq->sqStore_getNumReads();
 
   _epb           = 1;     //  Evalues per bucket
   _bpb           = 250;   //  Bases per bucket
@@ -80,7 +80,7 @@ ovStoreHistogram::ovStoreHistogram(gkStore *gkp) {
 //  Read only access to existing data.
 ovStoreHistogram::ovStoreHistogram(const char *path) {
 
-  _gkp           = NULL;
+  _seq           = NULL;
   _maxID         = 0;
 
   _epb           = 0;
@@ -360,13 +360,13 @@ ovStoreHistogram::processScores(uint32 Aid) {
 void
 ovStoreHistogram::addOverlap(ovOverlap *overlap) {
 
-  assert(_gkp != NULL);                  //  Must have a valid gkpStore so we can get read lengths.
+  assert(_seq != NULL);                  //  Must have a valid seqStore so we can get read lengths.
 
   //  Allocate space for the overlaps-per-evalue-len data.
 
   if (_opelLen == 0) {
-    for (uint32 ii=1; ii<_gkp->gkStore_getNumReads(); ii++)
-      _opelLen = max(_opelLen, _gkp->gkStore_getRead(ii)->gkRead_sequenceLength());
+    for (uint32 ii=1; ii<_seq->sqStore_getNumReads(); ii++)
+      _opelLen = max(_opelLen, _seq->sqStore_getRead(ii)->sqRead_sequenceLength());
 
     _opelLen = _opelLen * 1.40 / _bpb + 1;  //  the overlap could have 40% insertions.
   }
@@ -377,8 +377,8 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
 
   //  Add one to the appropriate entry.
 
-  int32  alen = _gkp->gkStore_getRead(overlap->a_iid)->gkRead_sequenceLength();
-  int32  blen = _gkp->gkStore_getRead(overlap->b_iid)->gkRead_sequenceLength();
+  int32  alen = _seq->sqStore_getRead(overlap->a_iid)->sqRead_sequenceLength();
+  int32  blen = _seq->sqStore_getRead(overlap->b_iid)->sqRead_sequenceLength();
 
   uint32 ev   = overlap->evalue();
   uint32 len  = (alen - overlap->dat.ovl.ahg5 - overlap->dat.ovl.ahg3 +

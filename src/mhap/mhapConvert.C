@@ -43,7 +43,7 @@ using namespace std;
 int
 main(int argc, char **argv) {
   char           *outName     = NULL;
-  char           *gkpName     = NULL;
+  char           *seqName     = NULL;
 
   vector<char *>  files;
 
@@ -54,8 +54,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-o") == 0) {
       outName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -68,12 +68,12 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((err) || (gkpName == NULL) || (outName == NULL) || (files.size() == 0)) {
-    fprintf(stderr, "usage: %s -G gkpStore -o output.ovb input.mhap[.gz]\n", argv[0]);
+  if ((err) || (seqName == NULL) || (outName == NULL) || (files.size() == 0)) {
+    fprintf(stderr, "usage: %s -S seqStore -o output.ovb input.mhap[.gz]\n", argv[0]);
     fprintf(stderr, "  Converts mhap native output to ovb\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  no gkpStore (-G) supplied\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR:  no seqStore (-S) supplied\n");
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
 
@@ -82,9 +82,9 @@ main(int argc, char **argv) {
 
   char       *ovStr = new char [1024];
 
-  gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
-  ovOverlap   ov(gkpStore);
-  ovFile     *of = new ovFile(gkpStore, outName, ovFileFullWrite);
+  sqStore    *seqStore = sqStore::sqStore_open(seqName);
+  ovOverlap   ov(seqStore);
+  ovFile     *of = new ovFile(seqStore, outName, ovFileFullWrite);
 
 
   for (uint32 ff=0; ff<files.size(); ff++) {
@@ -142,8 +142,8 @@ main(int argc, char **argv) {
 
       //  Check the overlap - the hangs must be less than the read length.
 
-      uint32  alen = gkpStore->gkStore_getRead( ov.a_iid )->gkRead_sequenceLength();
-      uint32  blen = gkpStore->gkStore_getRead( ov.b_iid )->gkRead_sequenceLength();
+      uint32  alen = seqStore->sqStore_getRead( ov.a_iid )->sqRead_sequenceLength();
+      uint32  blen = seqStore->sqStore_getRead( ov.b_iid )->sqRead_sequenceLength();
 
       if ((alen != W(7)) ||
           (blen != W(11)))
@@ -176,7 +176,7 @@ main(int argc, char **argv) {
   delete    of;
   delete [] ovStr;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

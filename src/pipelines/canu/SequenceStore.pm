@@ -15,7 +15,7 @@
  #
  #  This file is derived from:
  #
- #    src/pipelines/ca3g/Gatekeeper.pm
+ #    src/pipelines/ca3g/SequenceStore.pm
  #
  #  Modifications by:
  #
@@ -35,18 +35,18 @@
  #  full conditions and disclaimers for each license.
  ##
 
-package canu::Gatekeeper;
+package canu::SequenceStore;
 
 require Exporter;
 
 @ISA    = qw(Exporter);
 @EXPORT = qw(getNumberOfReadsInStore
              getNumberOfBasesInStore
-             getSizeOfGatekeeperStore
+             getSizeOfSequenceStore
              getExpectedCoverage
              sequenceFileExists
              generateReadLengthHistogram
-             gatekeeper);
+             checkSequenceStore);
 
 use strict;
 
@@ -71,16 +71,16 @@ sub getNumberOfReadsInStore ($$) {
 
     #  No file, no reads.
 
-    return($nr)   if (! -e "./$asm.gkpStore/info.txt");
+    return($nr)   if (! -e "./$asm.seqStore/info.txt");
 
-    #  Read the info file.  gatekeeperCreate creates this at the end.
+    #  Read the info file.  sqStoreCreate creates this at the end.
     #
     #  The 'all' category returns the number of reads that are in the store; essentailly, the maxID of any read.
     #  The 'cor' category returns the number of reads that are available for correction.
     #  The 'obt' category returns the number of reads that are available for trimming.
     #  The 'utg' category returns the number of reads that are available for assembly.
 
-    open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
+    open(F, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
     while (<F>) {
         $nr = $1    if ((m/numReads\s+=\s+(\d+)/)          && ($tag eq "all"));
         $nr = $1    if ((m/numRawReads\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
@@ -103,11 +103,11 @@ sub getNumberOfBasesInStore ($$) {
 
     #  No file, no bases.
 
-    return($nb)   if (! -e "./$asm.gkpStore/info.txt");
+    return($nb)   if (! -e "./$asm.seqStore/info.txt");
 
-    #  Read the info file.  gatekeeperCreate creates this at the end.
+    #  Read the info file.  sqStoreCreate creates this at the end.
 
-    open(F, "< ./$asm.gkpStore/info.txt") or caExit("can't open './$asm.gkpStore/info.txt' for reading: $!", undef);
+    open(F, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
     while (<F>) {
         $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
         $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($tag eq "obt"));
@@ -120,17 +120,17 @@ sub getNumberOfBasesInStore ($$) {
 
 
 
-sub getSizeOfGatekeeperStore ($) {
+sub getSizeOfSequenceStore ($) {
     my $asm    = shift @_;
     my $size   = 0;
     my $idx    = "0000";
 
-    $size += -s "./$asm.gkpStore/info";
-    $size += -s "./$asm.gkpStore/libraries";
-    $size += -s "./$asm.gkpStore/reads";
+    $size += -s "./$asm.seqStore/info";
+    $size += -s "./$asm.seqStore/libraries";
+    $size += -s "./$asm.seqStore/reads";
 
-    while (-e "./$asm.gkpStore/blobs.$idx") {
-        $size += -s "./$asm.gkpStore/blobs.$idx";
+    while (-e "./$asm.seqStore/blobs.$idx") {
+        $size += -s "./$asm.seqStore/blobs.$idx";
         $idx++;
     }
 
@@ -165,7 +165,7 @@ sub sequenceFileExists ($) {
 
 
 
-sub gatekeeperCreateStore ($$@) {
+sub createSequenceStore ($$@) {
     my $base   = shift @_;
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
@@ -174,24 +174,24 @@ sub gatekeeperCreateStore ($$@) {
     #  If the store failed to build because of input errors and warnings, rename the store and continue.
     #  Not sure how to support this in DNANexus.
 
-    if (-e "./$asm.gkpStore.ACCEPTED") {
-        rename("./$asm.gkpStore.ACCEPTED",          "./$asm.gkpStore");
-        rename("./$asm.gkpStore.BUILDING.err",      "./$asm.gkpStore.err");
+    if (-e "./$asm.seqStore.ACCEPTED") {
+        rename("./$asm.seqStore.ACCEPTED",          "./$asm.seqStore");
+        rename("./$asm.seqStore.BUILDING.err",      "./$asm.seqStore.err");
         return;
     }
 
     #  If the store failed to build and the user just reruns canu, this will be triggered.  We'll
     #  skip rebuilding the store again, and report the original error message.
 
-    if (-e "./$asm.gkpStore.BUILDING") {
+    if (-e "./$asm.seqStore.BUILDING") {
         print STDERR "-- WARNING:\n";
-        print STDERR "-- WARNING:  Previously failed gkpStore detected.\n";
+        print STDERR "-- WARNING:  Previously failed seqStore detected.\n";
         print STDERR "-- WARNING:\n";
     }
 
-    #  Not sure how this can occur.  Possibly the user just deleted gkpStore.BUILDING and restarted?
+    #  Not sure how this can occur.  Possibly the user just deleted seqStore.BUILDING and restarted?
 
-    if ((! -e "./$asm.gkpStore.BUILDING") && (-e "./$asm.gkpStore.gkp")) {
+    if ((! -e "./$asm.seqStore.BUILDING") && (-e "./$asm.seqStore.ssi")) {
         print STDERR "-- WARNING:\n";
         print STDERR "-- WARNING:  Existing sequence inputs used.\n";
         print STDERR "-- WARNING:\n";
@@ -203,11 +203,11 @@ sub gatekeeperCreateStore ($$@) {
         if (scalar(@inputs) == 0);
 
     #  Convert the canu-supplied reads into correct relative paths.  This is made complicated by
-    #  gatekeeperCreate being run in a directory one below where we are now.
+    #  sqStoreCreate being run in a directory one below where we are now.
 
     #  At the same time, check that all files exist.
 
-    if (! -e "./$asm.gkpStore.gkp") {
+    if (! -e "./$asm.seqStore.ssi") {
         my $ff = undef;
 
         foreach my $iii (@inputs) {
@@ -232,10 +232,10 @@ sub gatekeeperCreateStore ($$@) {
         caExit($ff, undef) if defined($ff);
 
 
-        #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
-        #  files as is.  This documents what gatekeeper was built with, etc.
+        #  Build a ssi file for all the raw sequence inputs.  For simplicity, we just copy in any
+        #  ssi files as is.  This documents what the store was built with, etc.
 
-        open(F, "> ./$asm.gkpStore.gkp") or caExit("cant' open './$asm.gkpStore.gkp' for writing: $0", undef);
+        open(F, "> ./$asm.seqStore.ssi") or caExit("cant' open './$asm.seqStore.ssi' for writing: $0", undef);
 
         foreach my $iii (@inputs) {
             if ($iii =~ m/^-(.*)\0(.*)$/) {
@@ -260,7 +260,7 @@ sub gatekeeperCreateStore ($$@) {
                 print F "########################################\n";
                 print F "#  $iii\n";
                 print F "#\n";
-                open(I, "< $iii") or caExit("can't open gatekeeper input '$iii' for reading: $0", undef);
+                open(I, "< $iii") or caExit("can't open sqStoreCreate input '$iii' for reading: $0", undef);
                 while (<I>) {
                     print F $_;
                 }
@@ -268,7 +268,7 @@ sub gatekeeperCreateStore ($$@) {
                 print F "\n";
 
             } else {
-                caExit("unrecognized gatekeeper input file '$iii'", undef);
+                caExit("unrecognized sqStoreCreate input file '$iii'", undef);
             }
         }
 
@@ -277,30 +277,30 @@ sub gatekeeperCreateStore ($$@) {
 
     #  Load the store.
 
-    if (! -e "./$asm.gkpStore.BUILDING") {
+    if (! -e "./$asm.seqStore.BUILDING") {
         my $cmd;
-        $cmd .= "$bin/gatekeeperCreate \\\n";
-        $cmd .= "  -o ./$asm.gkpStore.BUILDING \\\n";
+        $cmd .= "$bin/sqStoreCreate \\\n";
+        $cmd .= "  -o ./$asm.seqStore.BUILDING \\\n";
         $cmd .= "  -minlength "  . getGlobal("minReadLength")        . " \\\n";
         if (getGlobal("readSamplingCoverage") > 0) {
             $cmd .= "  -genomesize " . getGlobal("genomeSize")           . " \\\n";
             $cmd .= "  -coverage   " . getGlobal("readSamplingCoverage") . " \\\n";
             $cmd .= "  -bias       " . getGlobal("readSamplingBias")     . " \\\n";
         }
-        $cmd .= "  ./$asm.gkpStore.gkp \\\n";
-        $cmd .= "> ./$asm.gkpStore.BUILDING.err 2>&1";
+        $cmd .= "  ./$asm.seqStore.ssi \\\n";
+        $cmd .= "> ./$asm.seqStore.BUILDING.err 2>&1";
 
         if (runCommand(".", $cmd) > 0) {
-            caExit("gatekeeper failed", "./$asm.gkpStore.BUILDING.err");
+            caExit("sqStoreCreate failed", "./$asm.seqStore.BUILDING.err");
         }
     }
 
     #  Check for quality issues.
 
-    if (-e "./$asm.gkpStore.BUILDING.err") {
+    if (-e "./$asm.seqStore.BUILDING.err") {
         my $nProblems = 0;
 
-        open(F, "< ./$asm.gkpStore.BUILDING.err");
+        open(F, "< ./$asm.seqStore.BUILDING.err");
         while (<F>) {
             $nProblems++   if (m/Check\syour\sreads/);
         }
@@ -309,34 +309,34 @@ sub gatekeeperCreateStore ($$@) {
         if ($nProblems > 0) {
             if (getGlobal("stopOnReadQuality")) {
                 print STDERR "\n";
-                print STDERR "Gatekeeper detected potential problems in your input reads.\n";
+                print STDERR "Potential problems with your input reads were detected.\n";
                 print STDERR "\n";
                 print STDERR "Please review the logging in files:\n";
-                print STDERR "  ", getcwd(), "/$asm.gkpStore.BUILDING.err\n";
-                print STDERR "  ", getcwd(), "/$asm.gkpStore.BUILDING/errorLog\n";
+                print STDERR "  ", getcwd(), "/$asm.seqStore.BUILDING.err\n";
+                print STDERR "  ", getcwd(), "/$asm.seqStore.BUILDING/errorLog\n";
                 print STDERR "\n";
                 print STDERR "If you wish to proceed, rename the store with the following command and restart canu.\n";
                 print STDERR "\n";
-                print STDERR "  mv ", getcwd(), "/$asm.gkpStore.BUILDING \\\n";
-                print STDERR "     ", getcwd(), "/$asm.gkpStore.ACCEPTED\n";
+                print STDERR "  mv ", getcwd(), "/$asm.seqStore.BUILDING \\\n";
+                print STDERR "     ", getcwd(), "/$asm.seqStore.ACCEPTED\n";
                 print STDERR "\n";
                 print STDERR "Option stopOnReadQuality=false skips these checks.\n";
                 exit(1);
             } else {
                 print STDERR "--\n";
-                print STDERR "-- WARNING:  Gatekeeper detected potential problems in your input reads.\n";
+                print STDERR "-- WARNING:  Potential problems with your input reads were detected.\n";
                 print STDERR "-- WARNING:\n";
                 print STDERR "-- WARNING:  Please review the logging in files:\n";
-                print STDERR "-- WARNING:    ", getcwd(), "/$asm.gkpStore.BUILDING.err\n";
-                print STDERR "-- WARNING:    ", getcwd(), "/$asm.gkpStore.BUILDING/errorLog\n";
+                print STDERR "-- WARNING:    ", getcwd(), "/$asm.seqStore.BUILDING.err\n";
+                print STDERR "-- WARNING:    ", getcwd(), "/$asm.seqStore.BUILDING/errorLog\n";
                 print STDERR "-- \n";
                 print STDERR "-- Proceeding with assembly because stopOnReadQuality=false.\n";
             }
         }
     }
 
-    rename "./$asm.gkpStore.BUILDING",             "./$asm.gkpStore";
-    rename "./$asm.gkpStore.BUILDING.err",         "./$asm.gkpStore.err";
+    rename "./$asm.seqStore.BUILDING",             "./$asm.seqStore";
+    rename "./$asm.seqStore.BUILDING.err",         "./$asm.seqStore.err";
 }
 
 
@@ -356,7 +356,7 @@ sub generateReadLengthHistogram ($$) {
 
     #  Load the read lengths, find min and max lengths.
 
-    open(F, "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -reads |") or caExit("can't dump meta data from './$asm.gkpStore': $!", undef);
+    open(F, "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -reads |") or caExit("can't dump meta data from './$asm.seqStore': $!", undef);
     while (<F>) {
         next  if (m/readID/);             #  Skip the header.
         next  if (m/------/);
@@ -383,7 +383,7 @@ sub generateReadLengthHistogram ($$) {
         my $gnuplot = getGlobal("gnuplot");
         my $format  = getGlobal("gnuplotImageFormat");
 
-        open(F, "> ./$asm.gkpStore/readlengths-$tag.gp") or caExit("can't open './$asm.gkpStore/readlengths-$tag.gp' for writing: $!", undef);
+        open(F, "> ./$asm.seqStore/readlengths-$tag.gp") or caExit("can't open './$asm.seqStore/readlengths-$tag.gp' for writing: $!", undef);
         print F "set title 'read length'\n";
         print F "set xlabel 'read length, bin width = 250'\n";
         print F "set ylabel 'number of reads'\n";
@@ -393,21 +393,21 @@ sub generateReadLengthHistogram ($$) {
         print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
         print F "\n";
         print F "set terminal $format size 1024,1024\n";
-        print F "set output './$asm.gkpStore/readlengths-$tag.lg.$format'\n";
-        print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+        print F "set output './$asm.seqStore/readlengths-$tag.lg.$format'\n";
+        print F "plot [] './$asm.seqStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
         print F "\n";
         print F "set terminal $format size 256,256\n";
-        print F "set output './$asm.gkpStore/readlengths-$tag.sm.$format'\n";
-        print F "plot [] './$asm.gkpStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+        print F "set output './$asm.seqStore/readlengths-$tag.sm.$format'\n";
+        print F "plot [] './$asm.seqStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
         close(F);
 
-        open(F, "> ./$asm.gkpStore/readlengths-$tag.dat") or caExit("can't open './$asm.gkpStore/readlengths-$tag.dat' for writing: $!", undef);
+        open(F, "> ./$asm.seqStore/readlengths-$tag.dat") or caExit("can't open './$asm.seqStore/readlengths-$tag.dat' for writing: $!", undef);
         foreach my $rl (@rl) {
             print F "$rl\n";
         }
         close(F);
 
-        if (runCommandSilently(".", "$gnuplot ./$asm.gkpStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
+        if (runCommandSilently(".", "$gnuplot ./$asm.seqStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
             print STDERR "--\n";
             print STDERR "-- WARNING: gnuplot failed.\n";
             print STDERR "--\n";
@@ -418,7 +418,7 @@ sub generateReadLengthHistogram ($$) {
     #  Generate the ASCII histogram.
 
     $hist  = "--\n";
-    $hist .= "-- In gatekeeper store './$asm.gkpStore':\n";
+    $hist .= "-- In sequence store './$asm.seqStore':\n";
     $hist .= "--   Found $reads reads.\n";
     $hist .= "--   Found $bases bases ($coverage times coverage).\n";
 
@@ -472,7 +472,7 @@ sub generateReadLengthHistogram ($$) {
 
 
 
-sub gatekeeper ($$@) {
+sub checkSequenceStore ($$@) {
     my $base;
     my $asm    = shift @_;
     my $tag    = shift @_;
@@ -488,49 +488,49 @@ sub gatekeeper ($$@) {
     #  between mhap precompute and mhap compute), but it greatly simplifies stuff, like immediately
     #  here needing to check if the store exists.
 
-    fetchStore("./$asm.gkpStore");
+    fetchStore("./$asm.seqStore");
 
     #  We cannot abort this step anymore.  If trimming is skipped, we need ro promote the corrected
     #  reads to trimmed reads, and also re-stash the store.
     #
-    #goto allDone    if (skipStage($asm, "$tag-gatekeeper") == 1);
+    #goto allDone    if (skipStage($asm, "$tag-sqStoreCreate") == 1);
     #goto allDone    if (getNumberOfReadsInStore($asm, $tag) > 0);
 
     #  Create the store.
     #
-    #  If all goes well, we get asm.gkpStore.
+    #  If all goes well, we get asm.seqStore.
     #
-    #  If not, we could end up with asm.gkpStore.BUILDING and ask the user to examine it and rename
-    #  it to asm.gkpStore.ACCEPTED and restart.  On the restart, gatekeeperCreateStore() detects the
-    #  'ACCPETED' store and renames to asm.gkpStore.
+    #  If not, we could end up with asm.seqStore.BUILDING and ask the user to examine it and rename
+    #  it to asm.seqStore.ACCEPTED and restart.  On the restart, sqStoreCreateStore() detects the
+    #  'ACCPETED' store and renames to asm.seqStore.
 
     my $histAndStash = 0;
 
-    if (! -e "./$asm.gkpStore") {
-        gatekeeperCreateStore($base, $asm, @inputs);
+    if (! -e "./$asm.seqStore") {
+        createSequenceStore($base, $asm, @inputs);
 
         $histAndStash = 1;
     }
 
     #  Dump the list of libraries.  Various parts use this for various stuff.
 
-    if (! -e "./$asm.gkpStore/libraries.txt") {
-        if (runCommandSilently(".", "$bin/gatekeeperDumpMetaData -G ./$asm.gkpStore -libs > ./$asm.gkpStore/libraries.txt 2> /dev/null", 1)) {
+    if (! -e "./$asm.seqStore/libraries.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
             caExit("failed to generate list of libraries in store", undef);
         }
     }
 
-    #  Most of the pipeline still expects a gkpStore to exist in the stage subdirectories.  So make it exist.
+    #  Most of the pipeline still expects a seqStore to exist in the stage subdirectories.  So make it exist.
 
-    symlink("../$asm.gkpStore", "$base/$asm.gkpStore")    if ((-e "./$asm.gkpStore") && (! -e "$base/$asm.gkpStore/info"));
+    symlink("../$asm.seqStore", "$base/$asm.seqStore")    if ((-e "./$asm.seqStore") && (! -e "$base/$asm.seqStore/info"));
 
-    if (! -e "$base/$asm.gkpStore/info") {
+    if (! -e "$base/$asm.seqStore/info") {
         print STDERR "ERROR:\n";
-        print STDERR "ERROR:  Failed to create a symlink to '$asm.gkpStore' from within the '$base' directory.\n";
+        print STDERR "ERROR:  Failed to create a symlink to '$asm.seqStore' from within the '$base' directory.\n";
         print STDERR "ERROR:  This is known to happen on VirtualBox when running in the 'shared' directory.\n";
         print STDERR "ERROR:\n";
 
-        caExit("failed to make symlink '$base/$asm.gkpStore' to '../$asm.gkpStore'", undef);
+        caExit("failed to make symlink '$base/$asm.seqStore' to '../$asm.seqStore'", undef);
     }
 
     #  Query how many reads we have.
@@ -561,11 +561,11 @@ sub gatekeeper ($$@) {
         print STDERR "-- WARNING:  No trimmed reads found for assembly, but untrimmed reads exist.\n";
         print STDERR "-- WARNING:  Upgrading untrimmed reads to trimmed reads for assembly.\n";
 
-        if (runCommandSilently(".", "$bin/loadTrimmedReads -G ./$asm.gkpStore > ./$asm.gkpStore.upgrade.err 2>&1", 1)) {
-            caExit("initializing clear ranges failed", "./$asm.gkpStore.upgrade.err");
+        if (runCommandSilently(".", "$bin/loadTrimmedReads -S ./$asm.seqStore > ./$asm.seqStore.upgrade.err 2>&1", 1)) {
+            caExit("initializing clear ranges failed", "./$asm.seqStore.upgrade.err");
         }
 
-        unlink "./$asm.gkpStore.upgrade.err";
+        unlink "./$asm.seqStore.upgrade.err";
 
         $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of corrected reads ready for OBT.
         $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
@@ -577,8 +577,8 @@ sub gatekeeper ($$@) {
     #  Make a histogram and stash the (updated) store.
 
     if ($histAndStash) {
-        addToReport("${tag}GkpStore", generateReadLengthHistogram($tag, $asm));
-        stashStore("./$asm.gkpStore");
+        addToReport("${tag}SeqStore", generateReadLengthHistogram($tag, $asm));
+        stashStore("./$asm.seqStore");
     }
 
     #  Refuse to conitnue if there are no reads.
@@ -603,10 +603,10 @@ sub gatekeeper ($$@) {
   finishStage:
     ;  #  Perl 5.10 (at least) is VERY unhappy about having two adjacent labels.
     #  DO NOT emitStage() here.  It resets canuIteration, and doesn't need to.
-    #emitStage($asm, "$tag-gatekeeper");
+    #emitStage($asm, "$tag-sqStoreCreate");
 
   allDone:
-    stopAfter("gatekeeper");
+    stopAfter("sequenceStore");
 
     return(1);
 }

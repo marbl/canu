@@ -26,7 +26,7 @@
 #include "AS_global.H"
 #include "AS_UTL_decodeRange.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
@@ -40,7 +40,7 @@ using namespace std;
 
 
 void
-ovStoreConfig::assignReadsToSlices(gkStore        *gkp,
+ovStoreConfig::assignReadsToSlices(sqStore        *seq,
                                    uint64          minMemory,
                                    uint64          maxMemory) {
 
@@ -64,7 +64,7 @@ ovStoreConfig::assignReadsToSlices(gkStore        *gkp,
   memset(oPR, 0, sizeof(uint32) * (_maxID + 1));
 
   for (uint32 ii=0; ii<_numInputs; ii++) {
-    ovFile            *inputFile = new ovFile(gkp, _inputNames[ii], ovFileFull);
+    ovFile            *inputFile = new ovFile(seq, _inputNames[ii], ovFileFull);
 
     oPF[ii]      = inputFile->getCounts()->numOverlaps();       //  Used for load balancing.
     numOverlaps += inputFile->getCounts()->numOverlaps() * 2;   //  Because we symmetrize!
@@ -253,7 +253,7 @@ ovStoreConfig::assignReadsToSlices(gkStore        *gkp,
 
 int
 main(int argc, char **argv) {
-  char           *gkpName    = NULL;
+  char           *seqName    = NULL;
   uint64          minMemory  = (uint64)1 * 1024 * 1024 * 1024;
   uint64          maxMemory  = (uint64)4 * 1024 * 1024 * 1024;
 
@@ -267,8 +267,8 @@ main(int argc, char **argv) {
   vector<char *>  err;
   int             arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       double lo=0.0, hi=0.0;
@@ -301,8 +301,8 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((gkpName == NULL) && (configIn == NULL))
-    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+  if ((seqName == NULL) && (configIn == NULL))
+    err.push_back("ERROR: No sequence store (-S) supplied.\n");
 
   if ((fileList.size() == 0) && (configIn == NULL))
     err.push_back("ERROR: No input overlap files (-L or last on the command line) supplied.\n");
@@ -317,8 +317,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G asm.gkpStore -create out.config [opts] [-L fileList | *.ovb]\n", argv[0]);
-    fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "usage: %s -S asm.seqStore -create out.config [opts] [-L fileList | *.ovb]\n", argv[0]);
+    fprintf(stderr, "  -S asm.seqStore       path to seqStore for this assembly\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L fileList           a list of ovb files in 'fileList'\n");
     fprintf(stderr, "\n");
@@ -359,15 +359,15 @@ main(int argc, char **argv) {
       minMemory  = OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize;
     }
 
-    gkStore        *gkp    = gkStore::gkStore_open(gkpName);
-    uint32          maxID  = gkp->gkStore_getNumReads();
+    sqStore        *seq    = sqStore::sqStore_open(seqName);
+    uint32          maxID  = seq->sqStore_getNumReads();
 
     config = new ovStoreConfig(fileList, maxID);
 
-    config->assignReadsToSlices(gkp, minMemory, maxMemory);
+    config->assignReadsToSlices(seq, minMemory, maxMemory);
     config->writeConfig(configOut);
- 
-    gkp->gkStore_close();
+
+    seq->sqStore_close();
   }
 
   //  If we have a config, report parameters.

@@ -52,7 +52,7 @@
 #include "AS_UTL_decodeRange.H"
 #include "splitToWords.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include <algorithm>
@@ -144,7 +144,7 @@ public:
   void        drawPicture(uint32         Aid,
                           ovOverlap     *overlaps,
                           uint64         overlapsLen,
-                          gkStore       *gkpStore,
+                          sqStore       *seqStore,
                           bool           withScores);
 
 
@@ -364,14 +364,14 @@ void
 dumpParameters::drawPicture(uint32         Aid,
                             ovOverlap     *overlaps,
                             uint64         overlapsLen,
-                            gkStore       *gkpStore,
+                            sqStore       *seqStore,
                             bool           withScores) {
   char     line[256] = {0};
 
   uint32   MHS   = 9;  //  Max Hang Size, amount of padding for "+### "
 
-  gkRead   *A    = gkpStore->gkStore_getRead(Aid);
-  uint32    Alen = A->gkRead_sequenceLength();
+  sqRead   *A    = seqStore->sqStore_getRead(Aid);
+  uint32    Alen = A->sqRead_sequenceLength();
 
   for (int32 i=0; i<256; i++)
     line[i] = ' ';
@@ -395,8 +395,8 @@ dumpParameters::drawPicture(uint32         Aid,
 
   for (uint32 o=0; o<overlapsLen; o++) {
     uint32    Bid  = overlaps[o].b_iid;
-    gkRead   *B    = gkpStore->gkStore_getRead(Bid);
-    uint32    Blen = B->gkRead_sequenceLength();
+    sqRead   *B    = seqStore->sqStore_getRead(Bid);
+    uint32    Blen = B->sqRead_sequenceLength();
 
     //  Find bgn/end points on each read.  If the overlap is reverse complement,
     //  the B coords are flipped so that bgn > end.
@@ -567,7 +567,7 @@ dumpParameters::drawPicture(uint32         Aid,
 
 int
 main(int argc, char **argv) {
-  char                 *gkpName     = NULL;
+  char                 *seqName     = NULL;
   char                 *ovlName     = NULL;
   char                 *outPrefix   = NULL;
   char                 *bogartPath  = NULL;
@@ -595,7 +595,7 @@ main(int argc, char **argv) {
 
     sprintf(binaryName, "%s.ovb", outPrefix);
 
-    binaryFile = new ovFile(gkpStore, binaryName, ovFileFullWrite);
+    binaryFile = new ovFile(seqStore, binaryName, ovFileFullWrite);
   }
 #endif
 
@@ -610,8 +610,8 @@ main(int argc, char **argv) {
   vector<char *>  err;
   int             arg=1;
   while (arg < argc) {
-    if      (strcmp(argv[arg], "-G") == 0)
-      gkpName = argv[++arg];
+    if      (strcmp(argv[arg], "-S") == 0)
+      seqName = argv[++arg];
 
     else if (strcmp(argv[arg], "-O") == 0)
       ovlName = argv[++arg];
@@ -670,13 +670,13 @@ main(int argc, char **argv) {
 
 
     else if (strcmp(argv[arg], "-raw") == 0)
-      gkRead_setDefaultVersion(gkRead_raw);
+      sqRead_setDefaultVersion(sqRead_raw);
 
     else if (strcmp(argv[arg], "-obt") == 0)
-      gkRead_setDefaultVersion(gkRead_corrected);
+      sqRead_setDefaultVersion(sqRead_corrected);
 
     else if (strcmp(argv[arg], "-utg") == 0)
-      gkRead_setDefaultVersion(gkRead_trimmed);
+      sqRead_setDefaultVersion(sqRead_trimmed);
 
 
     else if (strcmp(argv[arg], "-coords") == 0) {
@@ -760,14 +760,14 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
-    err.push_back("ERROR: no input gkpStore (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR: no input seqStore (-S) supplied.\n");
 
   if (ovlName == NULL)
     err.push_back("ERROR: no input ovlStore (-O) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -781,22 +781,22 @@ main(int argc, char **argv) {
   //  Open stores, allocate space to store overlaps.
   //
 
-  gkStore   *gkpStore = gkStore::gkStore_open(gkpName);
-  ovStore   *ovlStore = new ovStore(ovlName, gkpStore);
+  sqStore   *seqStore = sqStore::sqStore_open(seqName);
+  ovStore   *ovlStore = new ovStore(ovlName, seqStore);
 
   uint32     ovlLen   = 0;
   uint32     ovlMax   = 65536;
-  ovOverlap *ovl      = ovOverlap::allocateOverlaps(gkpStore, ovlMax);
+  ovOverlap *ovl      = ovOverlap::allocateOverlaps(seqStore, ovlMax);
 
   //
   //  Fix up ranges and restrict the overlaps.
   //
 
-  if (endID > gkpStore->gkStore_getNumReads())
-    endID = gkpStore->gkStore_getNumReads();
+  if (endID > seqStore->sqStore_getNumReads())
+    endID = seqStore->sqStore_getNumReads();
 
   if (endID < bgnID)
-    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, gkpStore->gkStore_getNumReads()), exit(1);
+    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, seqStore->sqStore_getNumReads()), exit(1);
 
   ovlStore->setRange(bgnID, endID);
 
@@ -804,7 +804,7 @@ main(int argc, char **argv) {
   //  Load bogart status.
   //
 
-  params.loadBogartStatus(bogartPath, gkpStore->gkStore_getNumReads());
+  params.loadBogartStatus(bogartPath, seqStore->sqStore_getNumReads());
 
 
   //
@@ -829,7 +829,7 @@ main(int argc, char **argv) {
   }
 
   if ((asCounts) && (params.parametersAreDefaults() == false)) {
-    uint32   *nopr = new uint32 [gkpStore->gkStore_getNumReads() + 1];
+    uint32   *nopr = new uint32 [seqStore->sqStore_getNumReads() + 1];
 
     ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
@@ -864,7 +864,7 @@ main(int argc, char **argv) {
   }
 
   if ((asErateLen) && (params.parametersAreDefaults() == true)) {
-    ovStoreHistogram *hist = new ovStoreHistogram(gkpStore);
+    ovStoreHistogram *hist = new ovStoreHistogram(seqStore);
 
     ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
@@ -888,7 +888,7 @@ main(int argc, char **argv) {
   //  But if dumping actual overlaps, we've got to filter, and
   //  change the output format willy nilly.
   //
-  
+
   if (asOverlaps) {
     ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
@@ -930,7 +930,7 @@ main(int argc, char **argv) {
   //  then draw the picture.
   //
 
-  if (asPicture) { 
+  if (asPicture) {
     for (uint32 rr=bgnID; rr<=endID; rr++) {
       uint32  ovlSav = 0;
 
@@ -941,7 +941,7 @@ main(int argc, char **argv) {
           ovl[ovlSav++] = ovl[oo];                     //  save the overlap for drawing
 
       if (ovlSav > 0)
-        params.drawPicture(rr, ovl, ovlSav, gkpStore, withScores);
+        params.drawPicture(rr, ovl, ovlSav, seqStore, withScores);
     }
   }
 
@@ -950,7 +950,7 @@ main(int argc, char **argv) {
   //
 
   delete ovlStore;
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

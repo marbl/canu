@@ -623,7 +623,7 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/site_perl/canu/Defaults.pm \
      ${TARGET_DIR}/lib/site_perl/canu/ErrorEstimate.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Execution.pm \
-     ${TARGET_DIR}/lib/site_perl/canu/Gatekeeper.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/SequenceStore.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_Cloud.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_DNANexus.pm \
@@ -720,8 +720,8 @@ ${TARGET_DIR}/lib/site_perl/canu/ErrorEstimate.pm: pipelines/canu/ErrorEstimate.
 ${TARGET_DIR}/lib/site_perl/canu/Execution.pm: pipelines/canu/Execution.pm
 	cp -pf pipelines/canu/Execution.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-${TARGET_DIR}/lib/site_perl/canu/Gatekeeper.pm: pipelines/canu/Gatekeeper.pm
-	cp -pf pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/site_perl/canu/
+${TARGET_DIR}/lib/site_perl/canu/SequenceStore.pm: pipelines/canu/SequenceStore.pm
+	cp -pf pipelines/canu/SequenceStore.pm ${TARGET_DIR}/lib/site_perl/canu/
 
 ${TARGET_DIR}/lib/site_perl/canu/Grid.pm: pipelines/canu/Grid.pm
 	cp -pf pipelines/canu/Grid.pm ${TARGET_DIR}/lib/site_perl/canu/

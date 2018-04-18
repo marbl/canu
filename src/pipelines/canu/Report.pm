@@ -72,7 +72,7 @@ sub loadReport ($) {
             $tag = "utg";
         }
 
-        if      (m/READS\]$/)        {  $rpt = "${tag}GkpStore";  $report{$rpt} = undef;
+        if      (m/READS\]$/)        {  $rpt = "${tag}SeqStore";  $report{$rpt} = undef;
         } elsif (m/MERS\]$/)         {  $rpt = "${tag}Meryl";     $report{$rpt} = undef;
 
         } elsif (m/FILTERING\]$/)    {  $rpt = "corFilter";       $report{$rpt} = undef;
@@ -120,18 +120,18 @@ sub saveReport ($) {
 
     open(F, "> $asm.report") or caExit("can't open '$asm.report' for writing: $!", undef);
 
-    saveReportItem("CORRECTION/READS",       $report{"corGkpStore"});
+    saveReportItem("CORRECTION/READS",       $report{"corSeqStore"});
     saveReportItem("CORRECTION/MERS",        $report{"corMeryl"});
     saveReportItem("CORRECTION/FILTERING",   $report{"corFilter"});
     saveReportItem("CORRECTION/LAYOUT",      $report{"corLayout"});
     saveReportItem("CORRECTION/CORRECTIONS", $report{"corrections"});
 
-    saveReportItem("TRIMMING/READS",         $report{"obtGkpStore"});
+    saveReportItem("TRIMMING/READS",         $report{"obtSeqStore"});
     saveReportItem("TRIMMING/MERS",          $report{"obtMeryl"});
     saveReportItem("TRIMMING/TRIMMING",      $report{"trimming"});
     saveReportItem("TRIMMING/SPLITTING",     $report{"splitting"});
 
-    saveReportItem("UNITIGGING/READS",       $report{"utgGkpStore"});
+    saveReportItem("UNITIGGING/READS",       $report{"utgSeqStore"});
     saveReportItem("UNITIGGING/MERS",        $report{"utgMeryl"});
     saveReportItem("UNITIGGING/OVERLAPS",    $report{"overlaps"});
     saveReportItem("UNITIGGING/ADJUSTMENT",  $report{"adjustments"});

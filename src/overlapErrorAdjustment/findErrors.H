@@ -27,7 +27,7 @@
 
 #include <pthread.h>
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "correctionOutput.H"
@@ -298,7 +298,7 @@ struct Thread_Work_Area_t {
 class feParameters {
 public:
   feParameters() {
-    gkpStorePath   = NULL;
+    seqStorePath   = NULL;
     ovlStorePath   = NULL;
 
     bgnID          = 0;
@@ -338,7 +338,7 @@ public:
 
 
   //  Paths to stores
-  char         *gkpStorePath;
+  char         *seqStorePath;
   char         *ovlStorePath;
 
   // Range of IDs to process

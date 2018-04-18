@@ -36,9 +36,9 @@
 using namespace std;
 
 
-overlapReadCache::overlapReadCache(gkStore *gkpStore_, uint64 memLimit) {
-  gkpStore    = gkpStore_;
-  nReads      = gkpStore->gkStore_getNumReads();
+overlapReadCache::overlapReadCache(sqStore *seqStore_, uint64 memLimit) {
+  seqStore    = seqStore_;
+  nReads      = seqStore->sqStore_getNumReads();
 
   readAge     = new uint32 [nReads + 1];
   readLen     = new uint32 [nReads + 1];
@@ -69,15 +69,15 @@ overlapReadCache::~overlapReadCache() {
 
 void
 overlapReadCache::loadRead(uint32 id) {
-  gkRead *read = gkpStore->gkStore_getRead(id);
+  sqRead *read = seqStore->sqStore_getRead(id);
 
-  gkpStore->gkStore_loadReadData(read, &readdata);
+  seqStore->sqStore_loadReadData(read, &readdata);
 
-  readLen[id] = read->gkRead_sequenceLength();
+  readLen[id] = read->sqRead_sequenceLength();
 
   readSeqFwd[id] = new char [readLen[id] + 1];
 
-  memcpy(readSeqFwd[id], readdata.gkReadData_getSequence(), sizeof(char) * readLen[id]);
+  memcpy(readSeqFwd[id], readdata.sqReadData_getSequence(), sizeof(char) * readLen[id]);
 
   readSeqFwd[id][readLen[id]] = 0;
 }

@@ -19,7 +19,19 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-APR-18
+ *    Brian P. Walenz from 2009-OCT-05 to 2014-MAR-31
+ *      are Copyright 2009-2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren on 2010-FEB-05
+ *      are Copyright 2010 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2014-DEC-22 to 2015-AUG-11
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-29
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -28,7 +40,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 
@@ -119,7 +131,7 @@ operationCompress(char *tigName, int tigVers) {
 
 int
 main (int argc, char **argv) {
-  char            *gkpName   = NULL;
+  char            *seqName   = NULL;
   char            *tigName   = NULL;
   int32            tigVers   = -1;
   vector<char *>   tigInputs;
@@ -130,8 +142,8 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
@@ -144,11 +156,11 @@ main (int argc, char **argv) {
 
     arg++;
   }
-  if ((err) || (gkpName == NULL) || (tigName == NULL) || (tigInputs.size() == 0)) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v>\n", argv[0]);
+  if ((err) || (seqName == NULL) || (tigName == NULL) || (tigInputs.size() == 0)) {
+    fprintf(stderr, "usage: %s -S <seqStore> -T <tigStore> <v>\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
-    fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore and version to add tigs to\n");
+    fprintf(stderr, "  -S <seqStore>         Path to a sequence store\n");
+    fprintf(stderr, "  -T <tigStore> <v>     Path to a tigStore and version to add tigs to\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Remove store versions before <v>.  Data present in versions before <v>\n");
     fprintf(stderr, "  are copied to version <v>.  Files for the earlier versions are removed.\n");
@@ -156,8 +168,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "  WARNING!  This code HAS NOT been tested with canu.\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  no gatekeeper store (-G) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR:  no sequence store (-S) supplied.\n");
     if (tigName == NULL)
       fprintf(stderr, "ERROR:  no tig store (-T) supplied.\n");
 

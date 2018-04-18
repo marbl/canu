@@ -184,7 +184,7 @@ private:
   abBead          *_beads;
 
 
-  //  If allocated, the read idx (NOT gkpID) for each bead in the column.  This will
+  //  If allocated, the read idx (NOT seqID) for each bead in the column.  This will
   //  be used to (efficiently) map arbitrary columns back to their reads when refining abacus
   //  layouts.  The data is never populated (needs to be done in applyAlignment()).
   //

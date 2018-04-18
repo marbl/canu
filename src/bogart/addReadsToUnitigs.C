@@ -87,7 +87,7 @@ public:
 
 int
 main(int argc, char **argv) {
-  char  *gkpName = NULL;
+  char  *seqName = NULL;
 
   char  *tigName = NULL;
   int32  tigVers = -1;
@@ -136,7 +136,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
-      gkpName = argv[++arg];
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigName = argv[++arg];
@@ -173,7 +173,7 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (tigName == NULL)
     err++;
@@ -182,17 +182,17 @@ main(int argc, char **argv) {
   if (lookupFile == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version -m coords\n", argv[0]);
-    fprintf(stderr, "  -g gkpStore           gatekeeper store\n");
+    fprintf(stderr, "usage: %s -g seqStore -t tigStore version -m coords\n", argv[0]);
+    fprintf(stderr, "  -g seqStore           sequence store\n");
     fprintf(stderr, "  -t tigStore version   tigStore and version to modify\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -m map-file           input map coords\n");
-    fprintf(stderr, "  -M fastqUIDmap        gatekeeper output fastqUIDmap for read name to IID translation\n");
+    fprintf(stderr, "  -M fastqUIDmap        seqStore output fastqUIDmap for read name to IID translation\n");
     fprintf(stderr, "\n");
 #if 0
     fprintf(stderr, "unmapped reads:  default is to promote to singleton tigs\n");
     fprintf(stderr, "  -U                    leave unmapped reads alone (will crash CGW)\n");
-    fprintf(stderr, "  -D                    delete unmapped reads from gkpStore\n");
+    fprintf(stderr, "  -D                    delete unmapped reads from seqStore\n");
 #else
     fprintf(stderr, "unmapped reads: all reads that are mapped and eligible for addition must be\n");
     fprintf(stderr, "marked as deleted before running this program.  reads that are added will be\n");
@@ -203,12 +203,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -r                    rebuild consensus including the new reads\n");
     fprintf(stderr, "  -v                      show result\n");
     fprintf(stderr, "  -V                      verbose\n");
-    fprintf(stderr, "  -loadall                load all reads in gkpStore into memory (faster consensus)\n");
+    fprintf(stderr, "  -loadall                load all reads in seqStore into memory (faster consensus)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -n                    do all the work, but discard the result\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore (-g) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR: no seqStore (-g) supplied.\n");
     if (tigName == NULL)
       fprintf(stderr, "ERROR: no tigStore (-t) supplied.\n");
     if (alignMapNames.size() == 0)
@@ -317,7 +317,7 @@ main(int argc, char **argv) {
     while (!feof(M)) {
       numAligns++;
 
-      //  Some gatekeeper dumps contain NAME,IID.  Strip out the ,IID, BEFORE converting to words.
+      //  Some seqStore dumps contain NAME,IID.  Strip out the ,IID, BEFORE converting to words.
       bool  cF = false;
       for (uint32 xx=0; !isspace(L[xx]); xx++) {
         if (L[xx] == ',')
@@ -382,11 +382,11 @@ main(int argc, char **argv) {
           totAligns, lowID, maxID, totUnmap, totUnique, totDups);
 
   //
-  //  Update deletion status in gkpStore.  This processes every read, regardless.
+  //  Update deletion status in seqStore.  This processes every read, regardless.
   //
 
-  fprintf(stderr, "Processing mate pairs, updating gkpStore.\n");
-  gkpStore = gkStore::gkStore_open(gkpName, false, true);  //  last arg - TRUE - writable
+  fprintf(stderr, "Processing mate pairs, updating seqStore.\n");
+  seqStore = sqStore::sqStore_open(seqName, false, true);  //  last arg - TRUE - writable
 
   uint32   unpaired    = 0;
   uint32   multiple    = 0;
@@ -395,15 +395,15 @@ main(int argc, char **argv) {
 
 #ifdef UNFINISHED_ADD_TO_SINGLETON
   //  Need to process all reads, since we don't know where the first/last unmapped read is!
-  //  We could instead process from the first to last deleted read in gkpStore, or ask which
+  //  We could instead process from the first to last deleted read in seqStore, or ask which
   //  libraries were being added.
   lowID = 1;
-  maxID = gkpStore->gkStore_getNumFragments();
+  maxID = seqStore->sqStore_getNumFragments();
 #endif
 
   for (uint32 ff=lowID, mm=lowID; ff<=maxID; ff++) {
-    gkFragment  read;
-    gkFragment  mate;
+    sqRead  read;
+    sqRead  mate;
 
     //  I think this is just a short circuit of the two checks of 'one or both reads has too
     //  few/many mappings' below.
@@ -411,9 +411,9 @@ main(int argc, char **argv) {
     //  //  Not mapped, mapped too much
     //  continue;
 
-    gkpStore->gkStore_getFragment(ff, &read, GKFRAGMENT_INF);
+    seqStore->sqStore_getFragment(ff, &read, GKFRAGMENT_INF);
 
-    mm = read.gkFragment_getMateIID();
+    mm = read.sqRead_getMateIID();
 
     if (mm == 0)
       //  No mate, pacbio read?
@@ -423,7 +423,7 @@ main(int argc, char **argv) {
       //  Already processed.
       continue;
 
-    gkpStore->gkStore_getFragment(mm, &mate, GKFRAGMENT_INF);
+    seqStore->sqStore_getFragment(mm, &mate, GKFRAGMENT_INF);
 
     if ((RM[ff].rCNT == 0) ||
         (RM[mm].rCNT == 0)) {
@@ -446,11 +446,11 @@ main(int argc, char **argv) {
     RM[ff].good = true;
     RM[mm].good = true;
 
-    read.gkFragment_setIsDeleted(false);
-    mate.gkFragment_setIsDeleted(false);
+    read.sqRead_setIsDeleted(false);
+    mate.sqRead_setIsDeleted(false);
 
-    gkpStore->gkStore_setFragment(&read);
-    gkpStore->gkStore_setFragment(&mate);
+    seqStore->sqStore_setFragment(&read);
+    seqStore->sqStore_setFragment(&mate);
 
     if (RM[ff].tIID == RM[mm].tIID)
       pairsToSame++;
@@ -458,7 +458,7 @@ main(int argc, char **argv) {
       pairsToDiff++;
   }
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "Will NOT add %u pairs - one read failed to map.\n", unpaired);
   fprintf(stderr, "Will NOT add %u pairs - multiple mappings.\n", multiple);
@@ -466,15 +466,15 @@ main(int argc, char **argv) {
   fprintf(stderr, "Will add %u pairs in different tigs\n", pairsToDiff);
 
   //
-  //  Open stores.  gkpStore cannot be opened for writing, because then we can't loadall.
+  //  Open stores.  seqStore cannot be opened for writing, because then we can't loadall.
   //
 
-  gkpStore = gkStore::gkStore_open(gkpName, false, false);                              //  last arg - false - not writable
+  seqStore = sqStore::sqStore_open(seqName, false, false);                              //  last arg - false - not writable
   tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, true, true, false);  //  Write back to the same version
 
   if (loadall) {
     fprintf(stderr, "Loading all reads into memory.\n");
-    gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);  //  fails if gkStore is writable
+    seqStore->sqStore_load(0, 0, GKFRAGMENT_QLT);  //  fails if sqStore is writable
   }
 
   //
@@ -550,9 +550,9 @@ main(int argc, char **argv) {
     if (doConsensus) {
       fprintf(stderr, "Regenerating consensus.\n");
 
-      if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
+      if (MultiAlignUnitig(ma, seqStore, &options, NULL)) {
         if (showResult)
-          PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
+          PrintMultiAlignT(stdout, ma, seqStore, false, false, AS_READ_CLEAR_LATEST);
       } else {
         fprintf(stderr, "MultiAlignUnitig()-- tig %d failed.\n", ma->maID);
         numFailures++;
@@ -565,7 +565,7 @@ main(int argc, char **argv) {
     }
   }
 
-  delete gkpStore;
+  delete seqStore;
   delete tigStore;
 
   exit(0);

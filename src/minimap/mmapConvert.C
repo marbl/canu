@@ -38,7 +38,7 @@ using namespace std;
 int
 main(int argc, char **argv) {
   char           *outName  = NULL;
-  char           *gkpName  = NULL;
+  char           *seqName  = NULL;
   bool		  partialOverlaps = false;
   uint32          minOverlapLength = 0;
   double          erate = 0;
@@ -51,8 +51,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-o") == 0) {
       outName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-partial") == 0) {
       partialOverlaps = true;
@@ -74,7 +74,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((err) || (gkpName == NULL) || (outName == NULL) || (files.size() == 0)) {
+  if ((err) || (seqName == NULL) || (outName == NULL) || (files.size() == 0)) {
     fprintf(stderr, "usage: %s [options] file.mhap[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  Converts mhap native output to ovb\n");
@@ -82,8 +82,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o out.ovb     output file\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  no gkpStore (-G) supplied\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR:  no seqStore (-S) supplied\n");
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
 
@@ -92,9 +92,9 @@ main(int argc, char **argv) {
 
   char        *ovStr = new char [1024*1024];
 
-  gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
-  ovOverlap   ov(gkpStore);
-  ovFile      *of = new ovFile(gkpStore, outName, ovFileFullWrite);
+  sqStore    *seqStore = sqStore::sqStore_open(seqName);
+  ovOverlap   ov(seqStore);
+  ovFile      *of = new ovFile(seqStore, outName, ovFileFullWrite);
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader  *in = new compressedFileReader(files[ff]);
@@ -131,8 +131,8 @@ main(int argc, char **argv) {
 
       //  Check the overlap - the hangs must be less than the read length.
 
-      uint32  alen = gkpStore->gkStore_getRead(ov.a_iid)->gkRead_sequenceLength();
-      uint32  blen = gkpStore->gkStore_getRead(ov.b_iid)->gkRead_sequenceLength();
+      uint32  alen = seqStore->sqStore_getRead(ov.a_iid)->sqRead_sequenceLength();
+      uint32  blen = seqStore->sqStore_getRead(ov.b_iid)->sqRead_sequenceLength();
 
       if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
           (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3)) {
@@ -168,7 +168,7 @@ main(int argc, char **argv) {
   delete    of;
   delete [] ovStr;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

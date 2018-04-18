@@ -491,7 +491,7 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
   //  If the stream is already at the correct position, just return.
   //
   //  Unless we're on FreeBSD.  For unknown reasons, FreeBSD fails
-  //  updating the gkpStore with mate links.  It seems to misplace the
+  //  updating the seqStore with mate links.  It seems to misplace the
   //  file pointer, and ends up writing the record to the wrong
   //  location.  ftell() is returning the correct current location,
   //  and so AS_PER_genericStore doesn't seek() and just writes to the

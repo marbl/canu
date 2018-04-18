@@ -41,7 +41,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include "intervalList.H"
@@ -105,7 +105,7 @@ computeCoverage(tgTig *tig) {
 
 int
 main(int argc, char **argv) {
-  char             *gkpName      = NULL;
+  char             *seqName      = NULL;
   char             *tigName      = NULL;
   int32             tigVers      = -1;
 
@@ -137,7 +137,7 @@ main(int argc, char **argv) {
   uint32            endID = 0;
   uint32            maxID = 0;
 
-  gkStore          *gkpStore = NULL;
+  sqStore          *seqStore = NULL;
   tgStore          *tigStore = NULL;
   tgStoreType       tigMode  = tgStoreModify;
 
@@ -150,8 +150,8 @@ main(int argc, char **argv) {
   int err = 0;
   int arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
@@ -200,15 +200,15 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (tigName == NULL)
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
+    fprintf(stderr, "usage: %s -g seqStore -t tigStore version\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <G>       Mandatory, path G to a gkpStore directory.\n");
+    fprintf(stderr, "  -S <S>       Mandatory, path S to a seqStore directory.\n");
     fprintf(stderr, "  -T <T> <v>   Mandatory, path T to a tigStore, and version V.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -j J         Unitig is not unique if astat is below J (cgbUniqueCutoff)\n");
@@ -236,8 +236,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  7)  A unitig shorter than S (-short) bases long is NOT unique.\n");
     fprintf(stderr, "  8)  Otherwise, the unitig IS unique.\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "No sequence store (-S option) supplied.\n");
 
     if (tigName == NULL)
       fprintf(stderr, "No input tigStore (-T option) supplied.\n");
@@ -248,7 +248,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore     = gkStore::gkStore_open(gkpName, gkStore_readOnly);
+  seqStore     = sqStore::sqStore_open(seqName, sqStore_readOnly);
   tigStore     = new tgStore(tigName, tigVers, tgStoreReadOnly);
 
   if (endID == 0)
@@ -284,15 +284,15 @@ main(int argc, char **argv) {
 
   double      globalRate     = 0;
 
-  bool       *isNonRandom = new bool   [gkpStore->gkStore_getNumReads() + 1];
-  uint32     *fragLength  = new uint32 [gkpStore->gkStore_getNumReads() + 1];
+  bool       *isNonRandom = new bool   [seqStore->sqStore_getNumReads() + 1];
+  uint32     *fragLength  = new uint32 [seqStore->sqStore_getNumReads() + 1];
 
-  for (uint32 fi=1; fi <= gkpStore->gkStore_getNumReads(); fi++) {
-    gkRead     *read = gkpStore->gkStore_getRead(fi);
-    gkLibrary  *libr = gkpStore->gkStore_getLibrary(read->gkRead_libraryID());
+  for (uint32 fi=1; fi <= seqStore->sqStore_getNumReads(); fi++) {
+    sqRead     *read = seqStore->sqStore_getRead(fi);
+    sqLibrary  *libr = seqStore->sqStore_getLibrary(read->sqRead_libraryID());
 
-    isNonRandom[fi] = libr->gkLibrary_isNonRandom();
-    fragLength[fi]  = read->gkRead_sequenceLength();
+    isNonRandom[fi] = libr->sqLibrary_isNonRandom();
+    fragLength[fi]  = read->sqRead_sequenceLength();
   }
 
   //
@@ -562,7 +562,7 @@ main(int argc, char **argv) {
   delete [] isNonRandom;
   delete [] fragLength;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   delete tigStore;
 

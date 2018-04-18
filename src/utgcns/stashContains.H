@@ -31,7 +31,7 @@
 #define STASH_CONTAINS_H
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 

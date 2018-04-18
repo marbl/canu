@@ -32,7 +32,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "AS_UTL_decodeRange.H"
@@ -55,8 +55,8 @@ using namespace std;
 
 int
 main(int argc, char **argv) {
-  char                  *gkpStoreName = NULL;
-  gkStore               *gkpStore = NULL;
+  char                  *seqStoreName = NULL;
+  sqStore               *seqStore = NULL;
 
   char                  *ovlFileName = NULL;
   char                  *ovlStoreName = NULL;
@@ -75,8 +75,8 @@ main(int argc, char **argv) {
   int32     arg = 1;
   int32     err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       ovlFileName = argv[++arg];
@@ -128,7 +128,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStoreName == NULL)
+  if (seqStoreName == NULL)
     err++;
   if (inType == TYPE_NONE)
     err++;
@@ -137,7 +137,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [options] ascii-ovl-file-input.[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "Required:\n");
-    fprintf(stderr, "  -G name.gkpStore   path to valid gatekeeper store\n");
+    fprintf(stderr, "  -S name.seqStore   path to valid sequence store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Output Format:\n");
     fprintf(stderr, "  -o file.ovb        output file name\n");
@@ -158,8 +158,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
     fprintf(stderr, "\n");
 
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: need to supply a gkpStore (-G).\n");
+    if (seqStoreName == NULL)
+      fprintf(stderr, "ERROR: need to supply a seqStore (-S).\n");
     if (inType == TYPE_NONE)
       fprintf(stderr, "ERROR: need to supply a format type (-legacy, -coords, -hangs, -raw).\n");
     if (files.size() == 0)
@@ -168,15 +168,15 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  if (gkpStoreName)
-    gkpStore = gkStore::gkStore_open(gkpStoreName);
+  if (seqStoreName)
+    seqStore = sqStore::sqStore_open(seqStoreName);
 
   char          *S     = new char [1024];
   splitToWords   W;
-  ovOverlap     ov(gkpStore);
+  ovOverlap     ov(seqStore);
 
-  ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(gkpStore, ovlFileName, ovFileFullWrite);
-  ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, gkpStore);
+  ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(seqStore, ovlFileName, ovFileFullWrite);
+  ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, seqStore);
 
   if ((of) && (native == true))
     of->enableSnappy(false);
@@ -186,8 +186,8 @@ main(int argc, char **argv) {
   if (inType == TYPE_RANDOM) {
     mtRandom  mt;
 
-    if (aend == 0)   aend = gkpStore->gkStore_getNumReads();
-    if (bend == 0)   bend = gkpStore->gkStore_getNumReads();
+    if (aend == 0)   aend = seqStore->sqStore_getNumReads();
+    if (bend == 0)   bend = seqStore->sqStore_getNumReads();
 
     uint64  numRandom = rmin + floor(mt.mtRandomRealOpen() * (rmax - rmin));
 
@@ -210,8 +210,8 @@ main(int argc, char **argv) {
       if (bID == 0)   bID = 1;
 #endif
 
-      uint32   aLen     = gkpStore->gkStore_getRead(aID)->gkRead_sequenceLength();
-      uint32   bLen     = gkpStore->gkStore_getRead(bID)->gkRead_sequenceLength();
+      uint32   aLen     = seqStore->sqStore_getRead(aID)->sqRead_sequenceLength();
+      uint32   bLen     = seqStore->sqStore_getRead(bID)->sqRead_sequenceLength();
 
       bool     olapFlip = mt.mtRandom32() % 2;
 
@@ -322,7 +322,7 @@ main(int argc, char **argv) {
 
   delete [] S;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

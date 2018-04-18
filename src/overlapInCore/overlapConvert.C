@@ -28,7 +28,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include <vector>
@@ -38,8 +38,8 @@ using namespace std;
 
 int
 main(int argc, char **argv) {
-  char                  *gkpStoreName = NULL;
-  gkStore               *gkpStore = NULL;
+  char                  *seqStoreName = NULL;
+  sqStore               *seqStore = NULL;
 
   ovOverlapDisplayType   dt = ovOverlapAsCoords;
   bool                   native = false;
@@ -49,8 +49,8 @@ main(int argc, char **argv) {
   int32     arg = 1;
   int32     err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-coords") == 0) {
       dt = ovOverlapAsCoords;
@@ -75,13 +75,13 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((gkpStoreName == NULL) && (dt == ovOverlapAsCoords))
+  if ((seqStoreName == NULL) && (dt == ovOverlapAsCoords))
     err++;
 
   if ((err) || (files.size() == 0)) {
     fprintf(stderr, "usage: %s [options] file.ovb[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G             gkpStore (needed for -coords, the default)\n");
+    fprintf(stderr, "  -S             seqStore (needed for -coords, the default)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coords        output coordiantes on reads\n");
     fprintf(stderr, "  -hangs         output hangs on reads\n");
@@ -90,8 +90,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -native        input ovb file is NOT snappy compressed\n");
     fprintf(stderr, "\n");
 
-    if ((gkpStoreName == NULL) && (dt == ovOverlapAsCoords))
-      fprintf(stderr, "ERROR:  -coords mode requires a gkpStore (-G)\n");
+    if ((seqStoreName == NULL) && (dt == ovOverlapAsCoords))
+      fprintf(stderr, "ERROR:  -coords mode requires a seqStore (-S)\n");
 
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
@@ -99,14 +99,14 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  if (gkpStoreName)
-    gkpStore = gkStore::gkStore_open(gkpStoreName);
+  if (seqStoreName)
+    seqStore = sqStore::sqStore_open(seqStoreName);
 
   char  *ovStr = new char [1024];
 
   for (uint32 ff=0; ff<files.size(); ff++) {
-    ovFile      *of = new ovFile(gkpStore, files[ff], ovFileFull);
-    ovOverlap   ov(gkpStore);
+    ovFile      *of = new ovFile(seqStore, files[ff], ovFileFull);
+    ovOverlap   ov(seqStore);
 
     if (native == true)
       of->enableSnappy(false);
@@ -119,7 +119,7 @@ main(int argc, char **argv) {
 
   delete [] ovStr;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

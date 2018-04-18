@@ -29,7 +29,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "clearRangeFile.H"
 
@@ -37,7 +37,7 @@
 
 int
 main (int argc, char **argv) {
-  char            *gkpName       = NULL;
+  char            *seqName       = NULL;
   char            *clrName       = NULL;
 
   argc = AS_configure(argc, argv);
@@ -45,8 +45,8 @@ main (int argc, char **argv) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       clrName = argv[++arg];
@@ -60,18 +60,18 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
-    err.push_back("ERROR:  no gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR:  no sequence store (-S) supplied.\n");
   if (clrName == NULL)
     fprintf(stderr, "Warning:  no clear range file (-c) supplied, using full read length.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -c <clearRangeFile>\n", argv[0]);
+    fprintf(stderr, "usage: %s -S <seqStore> -c <clearRangeFile>\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
+    fprintf(stderr, "  -S <seqStore>         Path to the sequence store\n");
     fprintf(stderr, "  -c <clearRangeFile>   Path to the file of clear ranges\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  Loads results of read trimming into gkpStore.\n");
+    fprintf(stderr, "  Loads results of read trimming into seqStore.\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -81,28 +81,28 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  gkStore        *gkpStore = gkStore::gkStore_open(gkpName, gkStore_extend);
-  uint32          numReads  = gkpStore->gkStore_getNumReads();
-  uint32          numLibs   = gkpStore->gkStore_getNumLibraries();
+  sqStore        *seqStore = sqStore::sqStore_open(seqName, sqStore_extend);
+  uint32          numReads  = seqStore->sqStore_getNumReads();
+  uint32          numLibs   = seqStore->sqStore_getNumLibraries();
 
   clearRangeFile *clrRange = NULL;
   if (clrName != NULL)
-     clrRange = new clearRangeFile(clrName, gkpStore);
+     clrRange = new clearRangeFile(clrName, seqStore);
 
 
   for (uint32 rid=1; rid<=numReads; rid++)
     if (clrRange != NULL) {
        if (clrRange->isDeleted(rid) == false) {
-          gkpStore->gkStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+          seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
        }
     } else {
-       gkRead* read = gkpStore->gkStore_getRead(rid);
-       gkpStore->gkStore_setClearRange(rid, 0, read->gkRead_sequenceLength());
+       sqRead* read = seqStore->sqStore_getRead(rid);
+       seqStore->sqStore_setClearRange(rid, 0, read->sqRead_sequenceLength());
     }
 
   delete clrRange;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

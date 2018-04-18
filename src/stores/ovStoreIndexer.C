@@ -37,7 +37,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
@@ -46,7 +46,7 @@
 int
 main(int argc, char **argv) {
   char           *ovlName     = NULL;
-  char           *gkpName     = NULL;
+  char           *seqName     = NULL;
   char           *cfgName     = NULL;
   bool            deleteInter = false;
   bool            testFailed  = false;
@@ -59,8 +59,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {    //  Yup, not used, but left in
-      gkpName = argv[++arg];                      //  so it's the same as the others.
+    } else if (strcmp(argv[arg], "-S") == 0) {    //  Yup, not used, but left in
+      seqName = argv[++arg];                      //  so it's the same as the others.
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       cfgName = argv[++arg];
@@ -80,16 +80,16 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err.push_back("ERROR: No overlap store (-O) supplied.\n");
 
-  if (gkpName == NULL)
-    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR: No sequence store (-S) supplied.\n");
 
   if (cfgName == NULL)
     err.push_back("ERROR: No config (-C) supplied.\n");
 
   if (err.size()) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig [options]\n", argv[0]);
+    fprintf(stderr, "usage: %s -O asm.ovlStore -S asm.seqStore -C ovStoreConfig [options]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore    path to overlap store to create\n");
-    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -S asm.seqStore    path to sequence store\n");
     fprintf(stderr, "  -C config          path to ovStoreConfig configuration file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -delete          remove intermediate files when the index is\n");
@@ -105,9 +105,9 @@ main(int argc, char **argv) {
 
   //  Load the config, make a new writer.
 
-  gkStore             *gkp    = gkStore::gkStore_open(gkpName);
+  sqStore             *seq    = sqStore::sqStore_open(seqName);
   ovStoreConfig       *config = new ovStoreConfig(cfgName);
-  ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, gkp, 0, config->numSlices(), config->numBuckets());
+  ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, seq, 0, config->numSlices(), config->numBuckets());
 
   //  Finalize the store if not testing.
 
@@ -148,7 +148,7 @@ main(int argc, char **argv) {
 
   delete writer;
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   if (testFailed)
     fprintf(stderr, "Index not valid.  Intermediate files not removed.\n");

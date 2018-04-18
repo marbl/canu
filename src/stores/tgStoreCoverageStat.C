@@ -41,7 +41,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include <algorithm>
@@ -384,7 +384,7 @@ getGlobalArrivalRate(tgStore         *tigStore,
 
 int
 main(int argc, char **argv) {
-  char             *gkpName    = NULL;
+  char             *seqName    = NULL;
   char             *tigName    = NULL;
   int32             tigVers    = -1;
 
@@ -403,8 +403,8 @@ main(int argc, char **argv) {
   int err = 0;
   int arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
@@ -432,7 +432,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (tigName == NULL)
     err++;
@@ -440,9 +440,9 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -T tigStore version -o output-prefix [-s genomeSize] ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -T tigStore version -o output-prefix [-s genomeSize] ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <G>     Mandatory, path G to a gkpStore directory.\n");
+    fprintf(stderr, "  -S <G>     Mandatory, path G to a seqStore directory.\n");
     fprintf(stderr, "  -T <T> <v> Mandatory, path T to a tigStore, and version V.\n");
     fprintf(stderr, "  -o <name>  Mandatory, prefix for output files.\n");
     fprintf(stderr, "  -s <S>     Optional, assume genome size S.\n");
@@ -453,8 +453,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -L         Be leniant; don't require reads start at position zero.\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "No sequence store (-S option) supplied.\n");
 
     if (tigName == NULL)
       fprintf(stderr, "No input tigStore (-T option) supplied.\n");
@@ -480,28 +480,28 @@ main(int argc, char **argv) {
   //  Load fragment data
   //
 
-  fprintf(stderr, "Opening gkpStore '%s'\n", gkpName);
+  fprintf(stderr, "Opening seqStore '%s'\n", seqName);
 
-  gkStore *gkpStore = gkStore::gkStore_open(gkpName, gkStore_readOnly);
+  sqStore *seqStore = sqStore::sqStore_open(seqName, sqStore_readOnly);
 
   fprintf(stderr, "Reading read lengths and randomness for %u reads.\n",
-          gkpStore->gkStore_getNumReads());
+          seqStore->sqStore_getNumReads());
 
-  isNonRandom = new bool   [gkpStore->gkStore_getNumReads() + 1];
-  readLength  = new uint32 [gkpStore->gkStore_getNumReads() + 1];
+  isNonRandom = new bool   [seqStore->sqStore_getNumReads() + 1];
+  readLength  = new uint32 [seqStore->sqStore_getNumReads() + 1];
 
-  for (uint32 ii=0; ii<=gkpStore->gkStore_getNumReads(); ii++) {
-    gkRead      *read = gkpStore->gkStore_getRead(ii);
-    gkLibrary   *libr = gkpStore->gkStore_getLibrary(read->gkRead_libraryID());
+  for (uint32 ii=0; ii<=seqStore->sqStore_getNumReads(); ii++) {
+    sqRead      *read = seqStore->sqStore_getRead(ii);
+    sqLibrary   *libr = seqStore->sqStore_getLibrary(read->sqRead_libraryID());
 
-    isNonRandom[ii] = libr->gkLibrary_isNonRandom();
-    readLength[ii]  = read->gkRead_sequenceLength();
+    isNonRandom[ii] = libr->sqLibrary_isNonRandom();
+    readLength[ii]  = read->sqRead_sequenceLength();
   }
 
-  fprintf(stderr, "Closing gkpStore.\n");
+  fprintf(stderr, "Closing seqStore.\n");
 
-  gkpStore->gkStore_close();
-  gkpStore = NULL;
+  seqStore->sqStore_close();
+  seqStore = NULL;
 
   //
   //  Open tigs.  Kind of important to do this.

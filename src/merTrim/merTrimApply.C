@@ -36,14 +36,14 @@
  */
 
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
+#include "AS_PER_seqStore.H"
 #include "splitToWords.H"
 
 #include "merTrimResult.H"
 
 
 void
-merTrimApply(char *gkpStoreName,
+merTrimApply(char *seqStoreName,
              char *listName,
              char *logName) {
   char  resultFileName[FILENAME_MAX] = {0};
@@ -59,17 +59,17 @@ merTrimApply(char *gkpStoreName,
   if (errno)
     fprintf(stderr, "Failed to open -l '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
 
-  gkStore *gkpStore = gkStore::gkStore_open(gkpStoreName, false, true);
+  sqStore *seqStore = sqStore::sqStore_open(seqStoreName, false, true);
 
-  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
-  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_TNT);
-  gkpStore->gkStore_metadataCaching(true);
+  seqStore->sqStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
+  seqStore->sqStore_enableClearRange(AS_READ_CLEAR_TNT);
+  seqStore->sqStore_metadataCaching(true);
 
   bool            tntEnabled = false;
 
   //  Over every result file, read each line, change the clear range.
 
-  gkFragment      gkf;
+  sqRead          gkf;
   mertrimResult   res;
 
   fgets(resultFileName, FILENAME_MAX, listFile);
@@ -82,17 +82,17 @@ merTrimApply(char *gkpStoreName,
       fprintf(stderr, "Failed to open result file '%s' for reading: %s\n", resultFileName, strerror(errno)), exit(1);
 
     while (res.readResult(resultFile)) {
-      gkpStore->gkStore_getFragment(res.readIID, &gkf, GKFRAGMENT_INF);
+      seqStore->sqStore_getFragment(res.readIID, &gkf, GKFRAGMENT_INF);
 
       if (res.chimer)
-        gkf.gkFragment_setClearRegion(res.chmBgn, res.chmEnd, AS_READ_CLEAR_TNT);
+        gkf.sqRead_setClearRegion(res.chmBgn, res.chmEnd, AS_READ_CLEAR_TNT);
 
-      gkf.gkFragment_setClearRegion(res.clrBgn, res.clrEnd, AS_READ_CLEAR_OBTINITIAL);
+      gkf.sqRead_setClearRegion(res.clrBgn, res.clrEnd, AS_READ_CLEAR_OBTINITIAL);
 
       if (res.deleted)
-        gkpStore->gkStore_delFragment(res.readIID);
+        seqStore->sqStore_delFragment(res.readIID);
       else
-        gkpStore->gkStore_setFragment(&gkf);
+        seqStore->sqStore_setFragment(&gkf);
 
       res.print(logFile);
     }
@@ -104,14 +104,14 @@ merTrimApply(char *gkpStoreName,
   AS_UTL_closeFile(listFile);
   AS_UTL_closeFile(logFile);
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 }
 
 
 
 
 void
-merTrimShow(char *gkpStoreName,
+merTrimShow(char *seqStoreName,
             char *resultName) {
 
   errno = 0;
@@ -131,7 +131,7 @@ merTrimShow(char *gkpStoreName,
 
 int
 main(int argc, char **argv) {
-  char     *gkpStoreName = NULL;
+  char     *seqStoreName = NULL;
   char     *listName     = NULL;
   char     *logName      = NULL;
   char     *resultName   = NULL;
@@ -140,7 +140,7 @@ main(int argc, char **argv) {
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
-      gkpStoreName = argv[++arg];
+      seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       listName = argv[++arg];
@@ -157,29 +157,29 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (((gkpStoreName == NULL) && (listName != NULL)) ||
-      ((gkpStoreName != NULL) && (listName == NULL)))
+  if (((seqStoreName == NULL) && (listName != NULL)) ||
+      ((seqStoreName != NULL) && (listName == NULL)))
     err++;
   if ((listName == NULL) && (resultName == NULL))
     err++;
   if ((listName != NULL) && (resultName != NULL))
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -L merTrimOutputList -g gkpStore [-l output.log]\n", argv[0]);
+    fprintf(stderr, "usage: %s -L merTrimOutputList -g seqStore [-l output.log]\n", argv[0]);
     fprintf(stderr, "       %s -d merTrimOutput\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  The first form will read a list of merTrim output names from\n");
-    fprintf(stderr, "  merTrimOuptutList, and apply the results to gkpStore.\n");
+    fprintf(stderr, "  merTrimOuptutList, and apply the results to seqStore.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  The second form will read a single merTrimOutput file and decode\n");
     fprintf(stderr, "  the results to stdout.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
-    if (((gkpStoreName == NULL) && (listName != NULL)) ||
-        ((gkpStoreName != NULL) && (listName == NULL)))
+    if (((seqStoreName == NULL) && (listName != NULL)) ||
+        ((seqStoreName != NULL) && (listName == NULL)))
       fprintf(stderr, "ERROR:  First form needs both -L and -g.\n");
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR:  No gatekeeper store supplied with -g.\n");
+    if (seqStoreName == NULL)
+      fprintf(stderr, "ERROR:  No sequence store supplied with -g.\n");
     if ((listName == NULL) && (resultName == NULL))
       fprintf(stderr, "ERROR:  Exactly one of -L and -d must be specified.\n");
     if ((listName != NULL) && (resultName != NULL))
@@ -190,10 +190,10 @@ main(int argc, char **argv) {
 
 
   if (listName)
-    merTrimApply(gkpStoreName, listName, logName);
+    merTrimApply(seqStoreName, listName, logName);
 
   if (resultName)
-    merTrimShow(gkpStoreName, resultName);
+    merTrimShow(seqStoreName, resultName);
 
   return(0);
 }

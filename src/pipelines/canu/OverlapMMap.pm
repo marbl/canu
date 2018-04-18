@@ -40,7 +40,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Grid_Cloud;
 
 #  Map long reads to long reads with minimap.
@@ -73,7 +73,7 @@ sub mmapConfigure ($$$) {
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< $base/$asm.gkpStore/libraries.txt") or caExit("can't open '$base/$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    open(L, "< $base/$asm.seqStore/libraries.txt") or caExit("can't open '$base/$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
@@ -91,7 +91,7 @@ sub mmapConfigure ($$$) {
     } elsif ($numNanoporeCorrected > 0) {
        $parameters = "-x ava-ont"; # -k17 -w11"; #tuned to find 1000bp 15% error
     } else {
-       caFailiure("--ERROR: no know read types found in $base/$asm.gkpStore/libraries.txt")
+       caFailiure("--ERROR: no know read types found in $base/$asm.seqStore/libraries.txt")
     }
 
     print STDERR "--\n";
@@ -221,7 +221,7 @@ sub mmapConfigure ($$$) {
     runCommandSilently($path, "tar -cf queries.tar queries", 1);
     stashFile("$path/queries.tar");
 
-    #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
+    #  Create a script to generate precomputed blocks, including extracting the reads from seqStore.
 
     #OPTIMIZE
     #OPTIMIZE  Probably a big optimization for cloud assemblies, the block fasta inputs can be
@@ -235,7 +235,7 @@ sub mmapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/1-overlapper", "");
+    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -261,8 +261,8 @@ sub mmapConfigure ($$$) {
     print F "  exit\n";
     print F "fi\n";
     print F "\n";
-    print F "\$bin/gatekeeperDumpFASTQ \\\n";
-    print F "  -G ../$asm.gkpStore \\\n";
+    print F "\$bin/sqStoreDumpFASTQ \\\n";
+    print F "  -S ../$asm.seqStore \\\n";
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
     print F "  -noreadname \\\n";
@@ -307,7 +307,7 @@ sub mmapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/1-overlapper", "");
+    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -381,7 +381,7 @@ sub mmapConfigure ($$$) {
     print F "if [   -e ./results/\$qry.mmap -a \\\n";
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
-    print F "    -G ../$asm.gkpStore \\\n";
+    print F "    -S ../$asm.seqStore \\\n";
     print F "    -o ./results/\$qry.mmap.ovb.WORKING \\\n";
     print F "    -e " . getGlobal("${tag}OvlErrorRate");
     print F "    -partial \\\n"  if ($typ eq "partial");
@@ -403,7 +403,7 @@ sub mmapConfigure ($$$) {
     print F "if [ -e ./results/\$qry.mmap.ovb ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "1") {
         print F "  \$bin/overlapPair \\\n";
-        print F "    -G ../$asm.gkpStore \\\n";
+        print F "    -S ../$asm.seqStore \\\n";
         print F "    -O ./results/\$qry.mmap.ovb \\\n";
         print F "    -o ./results/\$qry.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");

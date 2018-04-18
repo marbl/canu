@@ -51,11 +51,11 @@ intervalOverlap(uint32 b1, uint32 e1, uint32 b2, uint32 e2) {
 
 
 bool
-doCheckSubRead(gkStore *gkp, uint32 id) {
-  gkRead     *read = gkp->gkStore_getRead(id);
-  gkLibrary  *libr = gkp->gkStore_getLibrary(read->gkRead_libraryID());
+doCheckSubRead(sqStore *seq, uint32 id) {
+  sqRead     *read = seq->sqStore_getRead(id);
+  sqLibrary  *libr = seq->sqStore_getLibrary(read->sqRead_libraryID());
 
-  return(libr->gkLibrary_checkForSubReads() == true);
+  return(libr->sqLibrary_checkForSubReads() == true);
 }
 
 
@@ -65,13 +65,13 @@ doCheckSubRead(gkStore *gkp, uint32 id) {
 //  Populate w->blist with intervals where a suspected subread junction occurs.
 
 void
-detectSubReads(gkStore               *gkp,
+detectSubReads(sqStore               *seq,
                workUnit              *w,
                FILE                  *subreadFile,
                bool            UNUSED(subreadFileVerbose)) {
 
   assert(w->adjLen > 0);
-  assert(doCheckSubRead(gkp, w->id) == true);
+  assert(doCheckSubRead(seq, w->id) == true);
 
   map<uint32, uint32>  secondIdx;
   map<uint32, uint32>  numOlaps;
@@ -139,8 +139,8 @@ detectSubReads(gkStore               *gkp,
     assert(w->adj[ii].flipped != w->adj[jj].flipped);
 
 
-    bool  AcheckSub = (doCheckSubRead(gkp, w->adj[ii].a_iid) == true);
-    bool  BcheckSub = (doCheckSubRead(gkp, w->adj[ii].b_iid) == true);
+    bool  AcheckSub = (doCheckSubRead(seq, w->adj[ii].a_iid) == true);
+    bool  BcheckSub = (doCheckSubRead(seq, w->adj[ii].b_iid) == true);
 
     assert(AcheckSub == true);  //  Otherwise we wouldn't be in this function!
 
@@ -284,7 +284,7 @@ detectSubReads(gkStore               *gkp,
 
     for (uint32 ii=0; ii<w->adjLen; ii++)
       if ((w->adj[ii].aovlbgn + 100 < BAD.lo(bb)) && (BAD.hi(bb) + 100 < w->adj[ii].aovlend))
-        numSpan += (doCheckSubRead(gkp, w->adj[ii].a_iid)) ? 1 : 2;
+        numSpan += (doCheckSubRead(seq, w->adj[ii].a_iid)) ? 1 : 2;
 
     if (subreadFile)
       fprintf(subreadFile, "AcheckSub region %u (" F_S32 "-" F_S32 ") with %u hits %u bighits - span %u largePalindrome %s\n",

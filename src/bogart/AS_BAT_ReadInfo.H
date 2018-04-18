@@ -28,7 +28,7 @@
 
 #include "AS_global.H"
 #include "ovStore.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 
 
@@ -47,7 +47,7 @@ struct ReadStatus {
 
 class ReadInfo {
 public:
-  ReadInfo(const char *gkpStorePath, const char *prefix, uint32 minReadLen);
+  ReadInfo(const char *seqStorePath, const char *prefix, uint32 minReadLen);
   ~ReadInfo();
 
   uint64  memoryUsage(void) {

@@ -25,14 +25,14 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 
 
 int
 main (int argc, char **argv) {
-  char            *gkpName        = NULL;
+  char            *seqName        = NULL;
   char            *corName        = NULL;
   int32            corVers        = 1;
 
@@ -47,8 +47,8 @@ main (int argc, char **argv) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       corName = argv[++arg];
@@ -76,19 +76,19 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
-    err.push_back("ERROR:  no gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR:  no sequence store (-S) supplied.\n");
   if (corName == NULL)
     err.push_back("ERROR:  no tig store (-T) supplied.\n");
   if ((corInputs.size() == 0) && (corInputsFile == NULL))
     err.push_back("ERROR:  no input tigs supplied on command line and no -L file supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -C <corStore> [input.cns]\n", argv[0]);
-    fprintf(stderr, "  Load the output of falconsense into the corStore and gkpStore.\n");
+    fprintf(stderr, "usage: %s -S <seqStore> -C <corStore> [input.cns]\n", argv[0]);
+    fprintf(stderr, "  Load the output of falconsense into the corStore and seqStore.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
-    fprintf(stderr, "  -C <corStore>         Path to the corStore\n");
+    fprintf(stderr, "  -S <seqStore>         Path to a sequence store\n");
+    fprintf(stderr, "  -C <corStore>         Path to a correction store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L <file-of-files>    Load the tig(s) from files listed in 'file-of-files'\n");
     fprintf(stderr, "                        (WARNING: program will succeed if this file is empty)\n");
@@ -96,7 +96,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -u                    Also load the populated tig layout into version 2 of the corStore.\n");
     fprintf(stderr, "                        (WARNING: not rigorously tested)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -qv                   Also load the QVs into the gatekeeper store.\n");
+    fprintf(stderr, "  -qv                   Also load the QVs into the sequence store.\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -106,8 +106,8 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  gkStore     *gkpStore = gkStore::gkStore_open(gkpName, gkStore_extend);
-  gkReadData  *readData = new gkReadData;
+  sqStore     *seqStore = sqStore::sqStore_open(seqName, sqStore_extend);
+  sqReadData  *readData = new sqReadData;
   tgStore     *corStore = new tgStore(corName, corVers, tgStoreModify);
   tgTig       *tig      = new tgTig;
 
@@ -133,7 +133,7 @@ main (int argc, char **argv) {
 
     while (tig->loadFromStreamOrLayout(TI) == true) {
       uint32  rID  = tig->tigID();
-      gkRead *read = gkpStore->gkStore_getRead(rID);
+      sqRead *read = seqStore->sqStore_getRead(rID);
 
       if (tig->consensusExists() == false) {
         nSkip++;
@@ -147,20 +147,20 @@ main (int argc, char **argv) {
       if (updateCorStore == true)
         corStore->insertTig(tig, false);
 
-      //  Load the data into gkpStore.
+      //  Load the data into seqStore.
 
       if (loadQVs == false)
         tig->quals()[0] = 255;
 
-      gkpStore->gkStore_loadReadData(tig->tigID(), readData);            //  Load old data into the read.
-      readData->gkReadData_setBasesQuals(tig->bases(), tig->quals());    //  Insert new data.
-      gkpStore->gkStore_stashReadData(readData);                         //  Write combined data.
+      seqStore->sqStore_loadReadData(tig->tigID(), readData);            //  Load old data into the read.
+      readData->sqReadData_setBasesQuals(tig->bases(), tig->quals());    //  Insert new data.
+      seqStore->sqStore_stashReadData(readData);                         //  Write combined data.
 
       //  Log it.
 
-      fprintf(stdout, "%9u %9u %9u\n", rID, read->gkRead_sequenceLength(gkRead_raw), read->gkRead_sequenceLength(gkRead_corrected));
+      fprintf(stdout, "%9u %9u %9u\n", rID, read->sqRead_sequenceLength(sqRead_raw), read->sqRead_sequenceLength(sqRead_corrected));
 
-      assert(read->gkRead_sequenceLength(gkRead_corrected) == tig->length());
+      assert(read->sqRead_sequenceLength(sqRead_corrected) == tig->length());
     }
 
     AS_UTL_closeFile(TI, corInputs[ff]);
@@ -176,7 +176,7 @@ main (int argc, char **argv) {
 
   delete readData;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "--------- --------- -----------------------------------\n");
   fprintf(stderr, "%9" F_U64P " %9" F_U64P " %35" F_U64P "\n", nLoadTot, nSkipTot, corInputs.size());

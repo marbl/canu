@@ -84,7 +84,7 @@ public:
   };
 
 
-  uint32                gkpIdent(void)          { return(_iid);        };
+  uint32                seqIdent(void)          { return(_iid);        };
 
   bool                  isRead(void)            { return(_is_read);    };
   bool                  isForward(void)         { return(_complement == false); };
@@ -96,7 +96,7 @@ public:
   char                 *getBases(void)          { return(_bases);      };
 
 private:
-  uint32           _iid;            //  external, aka gatekeeper, ID;
+  uint32           _iid;            //  external, aka seqStore, ID;
 
   bool             _is_read;
   bool             _complement;

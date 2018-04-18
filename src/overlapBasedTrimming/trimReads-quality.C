@@ -242,19 +242,19 @@ findGoodQuality(double  *qltD,
 
 
 
-//  Takes a gkFragment, returns clear ranges for some quality
+//  Takes a sqRead, returns clear ranges for some quality
 //  threshold.  Higher level than I wanted, but it obscures
 //  everything, and is exactly the interface that this and
 //  mergeTrimming.C want.
 //
 void
-doTrim(gkRead      *read,
-       gkReadData  *readData,
+doTrim(sqRead      *read,
+       sqReadData  *readData,
        double       minQuality,
        uint32      &left,
        uint32      &right) {
-  uint32    qltLen = read->gkRead_sequenceLength();
-  uint8    *qltC   = readData->gkReadData_getQualities();
+  uint32    qltLen = read->sqRead_sequenceLength();
+  uint8    *qltC   = readData->sqReadData_getQualities();
   double   *qltD   = new double [qltLen];
 
   for (uint32 i=0; i<qltLen; i++)

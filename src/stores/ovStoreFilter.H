@@ -19,7 +19,15 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-OCT-28
+ *    Brian P. Walenz from 2014-DEC-09 to 2015-JUL-01
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-12
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2016-MAR-11
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gkStoreEncode.C
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz beginning on 2015-DEC-03
@@ -23,12 +27,12 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 
 //  Encode seq as 2-bit bases.  Doesn't touch qlt.
 uint32
-gkReadData::gkReadData_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
+sqReadData::sqReadData_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
 
   //  Scan the read, if there are non-acgt, return length 0; this cannot encode it.
 
@@ -79,7 +83,7 @@ gkReadData::gkReadData_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
 
 
 bool
-gkReadData::gkReadData_decode2bit(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
+sqReadData::sqReadData_decode2bit(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
 
   if (chunkLen == 0)
     return(false);
@@ -117,12 +121,12 @@ gkReadData::gkReadData_decode2bit(uint8 *chunk, uint32 chunkLen, char *seq, uint
 
 //  Encode seq as 3-bases-in-7-bits.  Doesn't touch qlt.
 uint32
-gkReadData::gkReadData_encode3bit(uint8 *&UNUSED(chunk), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
+sqReadData::sqReadData_encode3bit(uint8 *&UNUSED(chunk), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
   return(0);
 }
 
 bool
-gkReadData::gkReadData_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
+sqReadData::sqReadData_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *UNUSED(seq), uint32 UNUSED(seqLen)) {
   return(false);
 }
 
@@ -132,12 +136,12 @@ gkReadData::gkReadData_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen),
 
 //  Encode qualities as 4 bit integers.  Doesn't touch seq.
 uint32
-gkReadData::gkReadData_encode4bit(uint8 *&UNUSED(chunk), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
+sqReadData::sqReadData_encode4bit(uint8 *&UNUSED(chunk), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(0);
 }
 
 bool
-gkReadData::gkReadData_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
+sqReadData::sqReadData_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(false);
 }
 
@@ -147,12 +151,12 @@ gkReadData::gkReadData_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen),
 
 //  Encode qualities as 5 bit integers.  Doesn't touch seq.
 uint32
-gkReadData::gkReadData_encode5bit(uint8 *&UNUSED(chunk), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
+sqReadData::sqReadData_encode5bit(uint8 *&UNUSED(chunk), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(0);
 }
 
 bool
-gkReadData::gkReadData_decode5bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
+sqReadData::sqReadData_decode5bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), uint8 *UNUSED(qlt), uint32 UNUSED(qltLen)) {
   return(false);
 }
 
@@ -164,7 +168,7 @@ gkReadData::gkReadData_decode5bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen),
 //  QV array) and we then store the sequence again.  As when we load corrected reads.
 //
 uint32
-gkReadData::gkReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV) {
+sqReadData::sqReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV) {
 
   if (qltLen == 0)                     //  If no sequence, do nothing.
     return(255);

@@ -39,7 +39,7 @@ use POSIX qw(floor);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 
 sub fac($) {
     my $x = shift @_;
@@ -155,7 +155,7 @@ sub estimateRawError($$$) {
     return;
 
     goto allDone   if (skipStage($asm, "errorEstimate") == 1);
-    goto allDone   if (-e "$base/$asm.gkpStore/raw.estimate.out");
+    goto allDone   if (-e "$base/$asm.seqStore/raw.estimate.out");
     goto allDone   if (getGlobal("errorrate") > 0);
 
     my ($numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer);
@@ -169,26 +169,26 @@ sub estimateRawError($$$) {
     # subsample raw reads
     my $sampleSize = computeSampleSize($base, $asm, $tag, 0.01, undef);
     $sampleSize /= 2;
-    my $cmd = "$bin/gatekeeperDumpFASTQ -G $base/$asm.gkpStore -nolibname -fasta -r 1-$sampleSize -o - > $base/$asm.gkpStore/subset.fasta 2> /dev/null";
+    my $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r 1-$sampleSize -o - > $base/$asm.seqStore/subset.fasta 2> /dev/null";
     runCommandSilently($base, $cmd, 1);
     my $min = $numReads - $sampleSize + 1;
-    my $cmd = "$bin/gatekeeperDumpFASTQ -G $base/$asm.gkpStore -nolibname -fasta -r $min-$numReads -o - >> $base/$asm.gkpStore/subset.fasta 2> /dev/null";
+    my $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r $min-$numReads -o - >> $base/$asm.seqStore/subset.fasta 2> /dev/null";
     runCommandSilently($base, $cmd, 1);
     my $querySize = computeSampleSize($base, $asm, $tag, undef, 2);
-    my $cmd = "$bin/gatekeeperDumpFASTQ -G $base/$asm.gkpStore -nolibname -fasta -r 1-$querySize -o - > $base/$asm.gkpStore/reads.fasta 2> /dev/null";
+    my $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r 1-$querySize -o - > $base/$asm.seqStore/reads.fasta 2> /dev/null";
     runCommandSilently($base, $cmd, 1);
 
     print STDERR "--\n";
     print STDERR "-- ESTIMATOR (mhap) (raw) (hash sample size=". ($sampleSize*2) . ") (query sample size=$querySize)\n";
-    runMHAP($base, $tag, $numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer, $sampleSize*2, "$base/$asm.gkpStore/subset.fasta", "$base/$asm.gkpStore/reads.fasta", "$base/$asm.gkpStore/raw.estimate.out", "$base/$asm.gkpStore/raw.estimate.err");
-    unlink("$base/$asm.gkpStore/subset.fasta");
-    unlink("$base/$asm.gkpStore/reads.fasta");
+    runMHAP($base, $tag, $numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer, $sampleSize*2, "$base/$asm.seqStore/subset.fasta", "$base/$asm.seqStore/reads.fasta", "$base/$asm.seqStore/raw.estimate.out", "$base/$asm.seqStore/raw.estimate.err");
+    unlink("$base/$asm.seqStore/subset.fasta");
+    unlink("$base/$asm.seqStore/reads.fasta");
 
   allDone:
-    return 0.15 if (! -e "$base/$asm.gkpStore/raw.estimate.out");
+    return 0.15 if (! -e "$base/$asm.seqStore/raw.estimate.out");
 
     my $errorRate = 0;
-    open(L, "< $base/$asm.gkpStore/raw.estimate.out") or caExit("can't open '$base/$asm.gkpStore/raw.estimate.out' for reading: $!", undef);
+    open(L, "< $base/$asm.seqStore/raw.estimate.out") or caExit("can't open '$base/$asm.seqStore/raw.estimate.out' for reading: $!", undef);
     while (<L>) {
         $errorRate = sprintf "%.3f", ($_ / 2.5);
     }

@@ -13,7 +13,7 @@ SOURCES  := libleaff/fastaFile.C \
             libleaff/fastaStdin.C \
             libleaff/fastqFile.C \
             libleaff/fastqStdin.C \
-            libleaff/gkStoreFile.C \
+            libleaff/sqStoreFile.C \
             libleaff/merStream.C \
             libleaff/seqCache.C \
             libleaff/seqFactory.C \

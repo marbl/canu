@@ -32,7 +32,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "memoryMappedFile.H"
@@ -73,11 +73,11 @@ public:
     delete [] errorMeanU;
   };
 
-  uint64     initialize(gkRead *read) {
-    //uint32      lid = read->gkRead_getLibraryIID();
-    //gkLibrary  *lb  = gkpStore->gkStore_getLibrary(lid);
+  uint64     initialize(sqRead *read) {
+    //uint32      lid = read->sqRead_getLibraryIID();
+    //sqLibrary  *lb  = seqStore->sqStore_getLibrary(lid);
 
-    seqLen = read->gkRead_sequenceLength();
+    seqLen = read->sqRead_sequenceLength();
 
     errorMeanS      = new uint32 [seqLen + 1];
     //errorStdDev     = new double [seqLen + 1];
@@ -286,7 +286,7 @@ computeEstimatedErate(uint32 iidMin, ESToverlapSpan &ovl, readErrorEstimate *rea
 
 
 void
-recomputeErrorProfile(gkStore           *gkpStore,
+recomputeErrorProfile(sqStore           *seqStore,
                       uint32             iidMin,
                       uint32             numIIDs,
                       uint64            *overlapIndex,
@@ -300,7 +300,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
   fprintf(stderr, "Processing from IID " F_U32 " to " F_U32 " out of " F_U32 " reads, iteration " F_U32 ".\n",
           iidMin,
           iidMin + numIIDs,
-          gkpStore->gkStore_getNumReads(),
+          seqStore->sqStore_getNumReads(),
           iter);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
@@ -406,7 +406,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
 
 
 void
-outputOverlaps(gkStore           *gkpStore,
+outputOverlaps(sqStore           *seqStore,
                uint32             iidMin,
                uint32             numIIDs,
                char              *ovlStoreName,
@@ -420,15 +420,15 @@ outputOverlaps(gkStore           *gkpStore,
   //  Open the original and output stores.  We copy overlaps from the original to the copy, instead
   //  of recreating overlaps from our cache.  The cache doesn't have all the overlap information.
 
-  ovStore        *inpStore = new ovStore(ovlStoreName, gkpStore);
-  ovStoreWriter  *outStore = new ovStoreWriter(outputName, gkpStore);
+  ovStore        *inpStore = new ovStore(ovlStoreName, seqStore);
+  ovStoreWriter  *outStore = new ovStoreWriter(outputName, seqStore);
 
   uint64    numOvls = inpStore->numOverlapsInRange();
 
   fprintf(stderr, "Processing from IID " F_U32 " to " F_U32 " out of " F_U32 " reads.\n",
           iidMin,
           iidMin + numIIDs,
-          gkpStore->gkStore_getNumReads());
+          seqStore->sqStore_getNumReads());
 
   //  Can't thread.  This does sequential output.  Plus, it doesn't compute anything.
 
@@ -436,7 +436,7 @@ outputOverlaps(gkStore           *gkpStore,
   //  walk down each.
 
   uint32            ovlLen = 100000000;
-  ovOverlap        *ovl = ovOverlap::allocateOverlaps(gkpStore, ovlLen);
+  ovOverlap        *ovl = ovOverlap::allocateOverlaps(seqStore, ovlLen);
 
   for (uint64 no=0; no<numOvls; ) {
     uint64 nLoad  = inpStore->loadBlockOfOverlaps(ovl, ovlLen);
@@ -510,8 +510,8 @@ outputOverlaps(gkStore           *gkpStore,
 
 int
 main(int argc, char **argv) {
-  char             *gkpName        = 0L;
-  gkStore          *gkpStore       = 0L;
+  char             *seqName        = 0L;
+  sqStore          *seqStore       = 0L;
   char             *ovlStoreName   = 0L;
   ovStore          *ovlStore       = 0L;
 
@@ -543,8 +543,8 @@ main(int argc, char **argv) {
   int err=0;
 
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlStoreName = argv[++arg];
@@ -587,15 +587,15 @@ main(int argc, char **argv) {
 
   omp_set_dynamic(false);
 
-  //  Open gatekeeper store
+  //  Open sequence store
 
-  fprintf(stderr, "Opening '%s'\n", gkpName);
-  gkpStore = gkStore::gkStore_open(gkpName);
+  fprintf(stderr, "Opening '%s'\n", seqName);
+  seqStore = sqStore::sqStore_open(seqName);
 
   //  Compute what to compute.
 
   if (partNum < partMax) {
-    uint32  nf = gkpStore->gkStore_getNumReads();
+    uint32  nf = seqStore->sqStore_getNumReads();
 
     iidMin = (partNum + 0) * nf / partMax + 1;
     iidMax = (partNum + 1) * nf / partMax;
@@ -608,12 +608,12 @@ main(int argc, char **argv) {
     iidMin = 1;
 
   if (iidMax == UINT32_MAX)
-    iidMax = gkpStore->gkStore_getNumReads();
+    iidMax = seqStore->sqStore_getNumReads();
 
   uint32    numIIDs = (iidMax - iidMin + 1);
 
   fprintf(stderr, "  iidMin  = %9u\n", iidMin);
-  fprintf(stderr, "  iidMax  = %9u numReads = %9u\n", iidMax, gkpStore->gkStore_getNumReads());
+  fprintf(stderr, "  iidMax  = %9u numReads = %9u\n", iidMax, seqStore->sqStore_getNumReads());
   fprintf(stderr, "  partNum = %9u\n", partNum);
   fprintf(stderr, "  partMax = %9u\n", partMax);
 
@@ -628,7 +628,7 @@ main(int argc, char **argv) {
   readErrorEstimate  *readProfile     = new readErrorEstimate [numIIDs];
 
   for (uint32 iid=0; iid<numIIDs; iid++) {
-    readProfileSize += readProfile[iid].initialize(gkpStore->gkStore_getRead(iid + iidMin));
+    readProfileSize += readProfile[iid].initialize(seqStore->sqStore_getRead(iid + iidMin));
 
     if ((iid % 10000) == 0)
       fprintf(stderr, "  " F_U32 " reads\r", iid);
@@ -640,7 +640,7 @@ main(int argc, char **argv) {
   //  Open overlap stores
 
   fprintf(stderr, "Opening '%s'\n", ovlStoreName);
-  ovlStore = new ovStore(ovlStoreName, gkpStore);
+  ovlStore = new ovStore(ovlStoreName, seqStore);
 
   fprintf(stderr, "Finding number of overlaps\n");
 
@@ -682,7 +682,7 @@ main(int argc, char **argv) {
   } else {
     FILE             *ESTcache     = NULL;
     uint32            ovlLen = 100000000;
-    ovOverlap        *ovl = ovOverlap::allocateOverlaps(gkpStore, ovlLen);
+    ovOverlap        *ovl = ovOverlap::allocateOverlaps(seqStore, ovlLen);
 
     overlaps       = new ESToverlap [numOvls];
 
@@ -721,7 +721,7 @@ main(int argc, char **argv) {
   //  Compute the initial read profile.
 
 #if 0
-  computeInitialErrorProfile(gkpStore, iidMin, numIIDs,
+  computeInitialErrorProfile(seqStore, iidMin, numIIDs,
                              overlapIndex,
                              overlaps,
                              readProfile);
@@ -730,14 +730,14 @@ main(int argc, char **argv) {
   //  Recompute, using the existing profile to weed out probably false overlaps.
 
   for (uint32 ii=0; ii<4; ii++)
-    recomputeErrorProfile(gkpStore, iidMin, numIIDs,
+    recomputeErrorProfile(seqStore, iidMin, numIIDs,
                           overlapIndex,
                           overlaps,
                           readProfile,
                           ii);
 
 
-  outputOverlaps(gkpStore, iidMin, numIIDs,
+  outputOverlaps(seqStore, iidMin, numIIDs,
                  ovlStoreName,
                  overlapIndex,
                  overlaps,

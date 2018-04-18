@@ -62,7 +62,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "prefixEditDistance.H"
@@ -283,7 +283,7 @@ typedef  struct Work_Area {
   int32  A_Olaps_For_Frag;
   int32  B_Olaps_For_Frag;
 
-  gkStore  *gkpStore;
+  sqStore  *seqStore;
 
   int    left_end_screened;
   int    right_end_screened;
@@ -555,6 +555,6 @@ void *
 Process_Overlaps (void *);
 
 int
-Build_Hash_Index(gkStore *store, uint32 bgnID, uint32 endID);
+Build_Hash_Index(sqStore *store, uint32 bgnID, uint32 endID);
 
 #endif  //  OVERLAPINCORE_H

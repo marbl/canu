@@ -32,7 +32,7 @@
 #include "sweatShop.H"
 //#include <pthread.h>
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
@@ -54,7 +54,7 @@ public:
   consensusGlobalData(double  maxErate_,
                       uint32  bgnID_,
                       int32   endID_,
-                      char   *gkpName,
+                      char   *seqName,
                       char   *ovlName,
                       char   *tigName,  uint32  tigVers,
                       char   *cnsName,
@@ -68,13 +68,13 @@ public:
 
     //  Inputs
 
-    gkRead_setDefaultVersion(gkRead_raw);
+    sqRead_setDefaultVersion(sqRead_raw);
 
-    gkpStore  = gkStore::gkStore_open(gkpName);
+    seqStore  = sqStore::sqStore_open(seqName);
 
-    readCache = new overlapReadCache(gkpStore, memLimit);
+    readCache = new overlapReadCache(seqStore, memLimit);
 
-    ovlStore  = (ovlName) ? new ovStore(ovlName, gkpStore) : NULL;
+    ovlStore  = (ovlName) ? new ovStore(ovlName, seqStore) : NULL;
     tigStore  = (tigName) ? new tgStore(tigName, tigVers)  : NULL;
 
     if (ovlStore)
@@ -85,7 +85,7 @@ public:
     //  Parameters
 
     if (bgnID_ == 0)                                bgnID_ = 1;
-    if (endID_  > gkpStore->gkStore_getNumReads())  endID_ = gkpStore->gkStore_getNumReads() + 1;
+    if (endID_  > seqStore->sqStore_getNumReads())  endID_ = seqStore->sqStore_getNumReads() + 1;
 
     bgnID = bgnID_;
     curID = bgnID_;
@@ -109,7 +109,7 @@ public:
   };
 
   ~consensusGlobalData() {
-    gkpStore->gkStore_close();
+    seqStore->sqStore_close();
 
     delete readCache;
     delete ovlStore;
@@ -130,7 +130,7 @@ public:
 
   //  Inputs
 
-  gkStore           *gkpStore;
+  sqStore           *seqStore;
 
   overlapReadCache  *readCache;
 
@@ -139,7 +139,7 @@ public:
 
   //  State for loading
 
-  gkReadData         readData;
+  sqReadData         readData;
 
   //  State for loading overlaps
 
@@ -416,7 +416,7 @@ consensusWriter(void *G, void *S) {
 
 int
 main(int argc, char **argv) {
-  char    *gkpName         = NULL;
+  char    *seqName         = NULL;
   char    *ovlName         = NULL;
   char    *tigName         = NULL;
   uint32   tigVers         = 1;
@@ -437,8 +437,8 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
@@ -477,7 +477,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if ((ovlName == NULL) && (tigName == NULL))
     err++;
@@ -488,7 +488,7 @@ main(int argc, char **argv) {
 
   if (err) {
     fprintf(stderr, "usage: %s ...\n", argv[0]);
-    fprintf(stderr, "  -G gkpStore     Mandatory, path to gkpStore\n");
+    fprintf(stderr, "  -S seqStore     Mandatory, path to seqStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Inputs can come from either an overlap or a tig store.\n");
     fprintf(stderr, "  -O ovlStore     \n");
@@ -508,8 +508,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t n            Use up to 'n' cores\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: no gatekeeper (-G) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR: no seqStore (-S) supplied.\n");
     if ((ovlName == NULL) && (tigName == NULL))
       fprintf(stderr, "ERROR: no inputs (-O or -T) supplied.\n");
     if ((ovlName != NULL) && (tigName != NULL))
@@ -523,7 +523,7 @@ main(int argc, char **argv) {
   consensusGlobalData  *g = new consensusGlobalData(maxErate,
                                                     bgnID,
                                                     endID,
-                                                    gkpName,
+                                                    seqName,
                                                     ovlName,
                                                     tigName, tigVers,
                                                     cnsName,

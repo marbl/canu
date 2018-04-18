@@ -38,7 +38,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include "AS_UTL_reverseComplement.H"
@@ -127,7 +127,7 @@ public:
 
 void
 tgTig::display(FILE     *F,
-               gkStore  *gkp,
+               sqStore  *seq,
                uint32    displayWidth,
                uint32    displaySpacing,
                bool      withQV,
@@ -156,25 +156,25 @@ tgTig::display(FILE     *F,
 
   //  Load into lanes.
 
-  gkReadData *readData  = new gkReadData;
+  sqReadData *readData  = new sqReadData;
 
   for (int32 i=0; i<_childrenLen; i++) {
-    gkRead     *read      = gkp->gkStore_getRead(_children[i].ident());  //  Too many reads in this code.
+    sqRead     *read      = seq->sqStore_getRead(_children[i].ident());  //  Too many reads in this code.
 
-    gkp->gkStore_loadReadData(read, readData);
+    seq->sqStore_loadReadData(read, readData);
 
     LaneNode   *node = new LaneNode();
 
     node->read      = _children + i;
-    node->readLen   = read->gkRead_sequenceLength();
+    node->readLen   = read->sqRead_sequenceLength();
 
     node->bases     = new char [node->readLen + 1];
     node->quals     = new char [node->readLen + 1];
 
     node->delta     = _childDeltas + node->read->deltaOffset();
 
-    memcpy(node->bases, readData->gkReadData_getSequence(),  sizeof(char) * node->readLen);
-    memcpy(node->quals, readData->gkReadData_getQualities(), sizeof(char) * node->readLen);
+    memcpy(node->bases, readData->sqReadData_getSequence(),  sizeof(char) * node->readLen);
+    memcpy(node->quals, readData->sqReadData_getQualities(), sizeof(char) * node->readLen);
 
     node->bases[node->readLen] = 0;
     node->quals[node->readLen] = 0;

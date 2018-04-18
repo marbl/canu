@@ -53,16 +53,16 @@
 //  The histogram associated with this is written to files with any suffices stripped off.
 
 
-ovFile::ovFile(gkStore     *gkp,
+ovFile::ovFile(sqStore     *seq,
                const char  *fileName,
                ovFileType   type,
                uint32       bufferSize) {
-  construct(gkp, fileName, type, bufferSize);
+  construct(seq, fileName, type, bufferSize);
 }
 
 
 
-ovFile::ovFile(gkStore     *gkp,
+ovFile::ovFile(sqStore     *seq,
                const char  *ovlName,
                uint32       sliceNum,
                uint32       pieceNum,
@@ -72,7 +72,7 @@ ovFile::ovFile(gkStore     *gkp,
 
   snprintf(fileName, FILENAME_MAX, "%s/%04u<%03u>", ovlName, sliceNum, pieceNum);
 
-  construct(gkp, fileName, type, bufferSize);
+  construct(seq, fileName, type, bufferSize);
 }
 
 
@@ -100,11 +100,11 @@ ovFile::~ovFile() {
 
 
 void
-ovFile::construct(gkStore     *gkp,
+ovFile::construct(sqStore     *seq,
                   const char  *name,
                   ovFileType   type,
                   uint32       bufferSize) {
-  _gkp       = gkp;
+  _seq       = seq;
 
   _countsW   = NULL;
   _countsR   = NULL;
@@ -174,7 +174,7 @@ ovFile::construct(gkStore     *gkp,
 #ifdef SNAPPY
       _useSnappy   = true;
 #endif
-      _countsR     = new ovFileOCR(_gkp, _prefix);
+      _countsR     = new ovFileOCR(_seq, _prefix);
       break;
 
     //  Open a store file for writing.
@@ -182,8 +182,8 @@ ovFile::construct(gkStore     *gkp,
       _writer      = new compressedFileWriter(_name);
       _file        = _writer->file();
       _isOutput    = true;
-      _histogram   = new ovStoreHistogram(_gkp);
-      _countsW     = new ovFileOCW(_gkp, NULL);
+      _histogram   = new ovStoreHistogram(_seq);
+      _countsW     = new ovFileOCW(_seq, NULL);
       break;
 
     //  Open an overlapper output file for writing.
@@ -194,7 +194,7 @@ ovFile::construct(gkStore     *gkp,
 #ifdef SNAPPY
       _useSnappy   = true;
 #endif
-      _countsW     = new ovFileOCW(_gkp, _prefix);
+      _countsW     = new ovFileOCW(_seq, _prefix);
       break;
 
     //  Open a dump file for writing, ignoring counts.  These are the intermediate

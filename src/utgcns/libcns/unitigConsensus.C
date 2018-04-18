@@ -93,12 +93,12 @@ using namespace std;
 
 
 
-unitigConsensus::unitigConsensus(gkStore  *gkpStore_,
+unitigConsensus::unitigConsensus(sqStore  *seqStore_,
                                  double    errorRate_,
                                  double    errorRateMax_,
                                  uint32    minOverlap_) {
 
-  gkpStore        = gkpStore_;
+  seqStore        = seqStore_;
 
   tig             = NULL;
   numfrags        = 0;
@@ -191,7 +191,7 @@ unitigConsensus::savePackage(FILE   *outPackageFile,
   //  Saving the reads is also easy, but it's a non-standard dump.
 
   for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
-    gkpStore->gkStore_saveReadToStream(outPackageFile, tig->getChild(ii)->ident());
+    seqStore->sqStore_saveReadToStream(outPackageFile, tig->getChild(ii)->ident());
 
   return(true);
 }
@@ -200,8 +200,8 @@ unitigConsensus::savePackage(FILE   *outPackageFile,
 
 bool
 unitigConsensus::generate(tgTig                     *tig_,
-                          map<uint32, gkRead *>     *inPackageRead_,
-                          map<uint32, gkReadData *> *inPackageReadData_) {
+                          map<uint32, sqRead *>     *inPackageRead_,
+                          map<uint32, sqReadData *> *inPackageReadData_) {
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
@@ -742,8 +742,8 @@ bool
 unitigConsensus::generatePBDAG(char                       aligner,
                                bool                       normalize,
                                tgTig                     *tig_,
-                               map<uint32, gkRead *>     *inPackageRead_,
-                               map<uint32, gkReadData *> *inPackageReadData_) {
+                               map<uint32, sqRead *>     *inPackageRead_,
+                               map<uint32, sqReadData *> *inPackageReadData_) {
 
   bool  verbose = (tig_->_utgcns_verboseLevel > 1);
 
@@ -862,8 +862,8 @@ unitigConsensus::generatePBDAG(char                       aligner,
 
 bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
-                               map<uint32, gkRead *>     *inPackageRead_,
-                               map<uint32, gkReadData *> *inPackageReadData_) {
+                               map<uint32, sqRead *>     *inPackageRead_,
+                               map<uint32, sqReadData *> *inPackageReadData_) {
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
@@ -902,8 +902,8 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
 bool
 unitigConsensus::generateSingleton(tgTig                     *tig_,
-                                   map<uint32, gkRead *>     *inPackageRead_,
-                                   map<uint32, gkReadData *> *inPackageReadData_) {
+                                   map<uint32, sqRead *>     *inPackageRead_,
+                                   map<uint32, sqReadData *> *inPackageReadData_) {
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
@@ -940,8 +940,8 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
 
 int
-unitigConsensus::initialize(map<uint32, gkRead *>     *inPackageRead,
-                            map<uint32, gkReadData *> *inPackageReadData) {
+unitigConsensus::initialize(map<uint32, sqRead *>     *inPackageRead,
+                            map<uint32, sqReadData *> *inPackageReadData) {
 
   int32 num_columns = 0;
   //int32 num_bases   = 0;
@@ -977,7 +977,7 @@ unitigConsensus::initialize(map<uint32, gkRead *>     *inPackageRead,
     num_columns  = (utgpos[i].min() > num_columns) ? utgpos[i].min() : num_columns;
     num_columns  = (utgpos[i].max() > num_columns) ? utgpos[i].max() : num_columns;
 
-    abacus->addRead(gkpStore,
+    abacus->addRead(seqStore,
                     utgpos[i].ident(),
                     utgpos[i]._askip, utgpos[i]._bskip,
                     utgpos[i].isReverse(),
@@ -1034,7 +1034,7 @@ unitigConsensus::computePositionFromAnchor(void) {
   for (piid = tiid-1; piid >= 0; piid--) {
     abSequence *aseq = abacus->getSequence(piid);
 
-    if (anchor != aseq->gkpIdent())
+    if (anchor != aseq->seqIdent())
       //  Not the anchor.
       continue;
 

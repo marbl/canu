@@ -32,7 +32,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 
 typedef enum {
@@ -320,7 +320,7 @@ public:
 
   //  There are two multiAlign displays; this one, and one in abMultiAlign.
   void                 display(FILE     *F,
-                               gkStore  *gkp,
+                               sqStore  *seq,
                                uint32    displayWidth    = 100,    //  Width of display
                                uint32    displaySpacing  = 3,      //  Space between reads on the same line
                                bool      withQV          = false,

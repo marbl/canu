@@ -49,7 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Grid_Cloud;
 
 #  Map long reads to long reads with mhap.
@@ -140,7 +140,7 @@ sub mhapConfigure ($$$) {
 
     # due to systematic bias in nanopore data, adjust threshold up by 5%
     my $numNanoporeRaw = 0;
-    open(L, "< $base/$asm.gkpStore/libraries.txt") or caExit("can't open '$base/$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    open(L, "< $base/$asm.seqStore/libraries.txt") or caExit("can't open '$base/$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numNanoporeRaw++         if (m/nanopore-raw/);
     }
@@ -290,7 +290,7 @@ sub mhapConfigure ($$$) {
     runCommandSilently($path, "tar -cf queries.tar queries", 1);
     stashFile("$path/queries.tar");
 
-    #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
+    #  Create a script to generate precomputed blocks, including extracting the reads from seqStore.
 
     #OPTIMIZE
     #OPTIMIZE  Probably a big optimization for cloud assemblies, the block fasta inputs can be
@@ -307,7 +307,7 @@ sub mhapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/1-overlapper", "");
+    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -338,8 +338,8 @@ sub mhapConfigure ($$$) {
     print F "\n";
     #print F fetchFileShellCode("./blocks/\$job.input.fasta");
     print F "\n";
-    print F "\$bin/gatekeeperDumpFASTQ \\\n";
-    print F "  -G ../$asm.gkpStore \\\n";
+    print F "\$bin/sqStoreDumpFASTQ \\\n";
+    print F "  -S ../$asm.seqStore \\\n";
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
     print F "  -noreadname \\\n";
@@ -407,7 +407,7 @@ sub mhapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/1-overlapper", "");
+    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -489,7 +489,7 @@ sub mhapConfigure ($$$) {
     print F "if [   -e ./results/\$qry.mhap -a \\\n";
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
-    print F "    -G ../$asm.gkpStore \\\n";
+    print F "    -S ../$asm.seqStore \\\n";
     print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
     print F "    ./results/\$qry.mhap \\\n";
     print F "  && \\\n";
@@ -508,7 +508,7 @@ sub mhapConfigure ($$$) {
     if (getGlobal("${tag}ReAlign") eq "1") {
         print F "if [ -e ./results/\$qry.mhap.ovb ] ; then\n";
         print F "  \$bin/overlapPair \\\n";
-        print F "    -G ../$asm.gkpStore \\\n";
+        print F "    -S ../$asm.seqStore \\\n";
         print F "    -O ./results/\$qry.mhap.ovb \\\n";
         print F "    -o ./results/\$qry.WORKING.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");

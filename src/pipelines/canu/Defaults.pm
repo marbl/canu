@@ -974,7 +974,7 @@ sub setVersion ($) {
     my $bin    = shift @_;
     my $version;
 
-    open(F, "$bin/gatekeeperCreate --version 2>&1 |");
+    open(F, "$bin/sqStoreCreate --version 2>&1 |");
     while (<F>) {
         $version = $_;  chomp $version;
     }
@@ -1359,7 +1359,7 @@ sub checkParameters () {
 
         my $failureString = "ERROR:  Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
 
-        my @stopAfter = ("gatekeeper",
+        my @stopAfter = ("sequenceStore",
                          "meryl",
                          "overlapConfigure",
                          "overlap",

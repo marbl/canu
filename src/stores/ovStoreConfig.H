@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-MAR-15
+ *    Brian P. Walenz beginning on 2018-MAR-28
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -184,7 +184,7 @@ public:
   };
 
 
-  void    assignReadsToSlices(gkStore *gkp,
+  void    assignReadsToSlices(sqStore *seq,
                               uint64   minMemory,
                               uint64   maxMemory);
 

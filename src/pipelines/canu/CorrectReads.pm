@@ -49,7 +49,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Configure;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Report;
 use canu::Output;
 use canu::Grid_Cloud;
@@ -78,7 +78,7 @@ sub getCorCov ($$) {
 }
 
 
-#  Query gkpStore to find the read types involved.  Return an error rate that is appropriate for
+#  Query seqStore to find the read types involved.  Return an error rate that is appropriate for
 #  aligning reads of that type to each other.
 sub getCorIdentity ($) {
     my $asm     = shift @_;
@@ -95,7 +95,7 @@ sub getCorIdentity ($) {
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< correction/$asm.gkpStore/libraries.txt") or caExit("can't open 'correction/$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    open(L, "< correction/$asm.seqStore/libraries.txt") or caExit("can't open 'correction/$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
@@ -244,9 +244,9 @@ sub buildCorrectionLayoutsConfigure ($) {
 
             $cmd  = "$bin/filterCorrectionOverlaps \\\n";
             $cmd .= "  -estimate -nolog \\\n";
-            $cmd .= "  -G ../$asm.gkpStore \\\n";
+            $cmd .= "  -S ../$asm.seqStore \\\n";
             $cmd .= "  -O ../$asm.ovlStore \\\n";
-            $cmd .= "  -S ./$asm.globalScores.WORKING \\\n";
+            $cmd .= "  -scores ./$asm.globalScores.WORKING \\\n";
             $cmd .= "  -c " . getCorCov($asm, "Global") . " \\\n";
             $cmd .= "  -l " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
             $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
@@ -282,16 +282,16 @@ sub buildCorrectionLayoutsConfigure ($) {
 
     #  Make layouts for each corrected read.
 
-    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.seqStore");
     fetchStore("./correction/$asm.ovlStore");
 
     print STDERR "-- Computing correction layouts.\n";
 
     $cmd  = "$bin/generateCorrectionLayouts \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -S ./$asm.seqStore \\\n";
     $cmd .= "  -O ./$asm.ovlStore \\\n";
     $cmd .= "  -C ./$asm.corStore.WORKING \\\n";
-    $cmd .= "  -S 2-correction/$asm.globalScores \\\n"              if (-e "$path/$asm.globalScores");
+    $cmd .= "  -scores 2-correction/$asm.globalScores \\\n"         if (-e "$path/$asm.globalScores");
     $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     $cmd .= "  -ec " . getGlobal("corMinCoverage") . " \\\n";
@@ -353,13 +353,13 @@ sub filterCorrectionLayouts ($) {
 
     #  Analyze the corStore to decide what reads we want to correct.
 
-    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.seqStore");
     fetchStore("./correction/$asm.ovlStore");
 
     print STDERR "-- Computing correction layouts.\n";
 
     $cmd  = "$bin/filterCorrectionLayouts \\\n";
-    $cmd .= "  -G  ../$asm.gkpStore \\\n";
+    $cmd .= "  -S  ../$asm.seqStore \\\n";
     $cmd .= "  -C  ../$asm.corStore \\\n";
     $cmd .= "  -R  ./$asm.readsToCorrect.WORKING \\\n";
     $cmd .= "  -cc " . getGlobal("corMinCoverage") . " \\\n";
@@ -424,7 +424,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", "$base/2-correction", "");
+    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/2-correction", "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -464,7 +464,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F "fi\n";
     print F "\n";
 
-    print F fetchStoreShellCode("correction/$asm.gkpStore", "correction/3-correction", "");
+    print F fetchStoreShellCode("correction/$asm.seqStore", "correction/3-correction", "");
     print F "\n";
     print F fetchStoreShellCode("correction/$asm.ovlStore", "correction/3-correction", "");
     print F "\n";
@@ -473,7 +473,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F fetchFileShellCode("correction/2-correction", "$asm.globalScores", "");
     print F "\n";
 
-    print F "gkpStore=\"../$asm.gkpStore\"\n";
+    print F "seqStore=\"../$asm.seqStore\"\n";
     print F "\n";
 
     my $stageDir = getGlobal("stageDirectory");
@@ -483,22 +483,22 @@ sub generateCorrectedReadsConfigure ($) {
         print F "  mkdir -p $stageDir\n";
         print F "fi\n";
         print F "\n";
-        print F "mkdir -p $stageDir/$asm.gkpStore\n";
+        print F "mkdir -p $stageDir/$asm.seqStore\n";
         print F "\n";
         print F "echo Start copy at `date`\n";
-        print F "cp -p \$gkpStore/info      $stageDir/$asm.gkpStore/info\n";
-        print F "cp -p \$gkpStore/libraries $stageDir/$asm.gkpStore/libraries\n";
-        print F "cp -p \$gkpStore/reads     $stageDir/$asm.gkpStore/reads\n";
-        print F "cp -p \$gkpStore/blobs.*   $stageDir/$asm.gkpStore/\n";
+        print F "cp -p \$seqStore/info      $stageDir/$asm.seqStore/info\n";
+        print F "cp -p \$seqStore/libraries $stageDir/$asm.seqStore/libraries\n";
+        print F "cp -p \$seqStore/reads     $stageDir/$asm.seqStore/reads\n";
+        print F "cp -p \$seqStore/blobs.*   $stageDir/$asm.seqStore/\n";
         print F "echo Finished   at `date`\n";
         print F "\n";
-        print F "gkpStore=\"$stageDir/$asm.gkpStore\"\n";
+        print F "seqStore=\"$stageDir/$asm.seqStore\"\n";
         print F "\n";
     }
 
     print F "\n";
     print F "\$bin/falconsense \\\n";
-    print F "  -G \$gkpStore \\\n";
+    print F "  -S \$seqStore \\\n";
     print F "  -C ../$asm.corStore \\\n";
     print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if (  -e "$path/$asm.readsToCorrect");
     print F "  -b \$bgn -e \$end \\\n"                              if (! -e "$path/$asm.readsToCorrect");
@@ -514,7 +514,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\n";
 
     if (defined($stageDir)) {
-        print F "rm -rf $stageDir/$asm.gkpStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
+        print F "rm -rf $stageDir/$asm.seqStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
         print F "rmdir  $stageDir\n";
         print F "\n";
     }
@@ -548,9 +548,9 @@ sub generateCorrectedReadsCheck ($) {
     goto allDone   if (skipStage($asm, "cor-generateCorrectedReads", $attempt) == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));
 
-    #  Compute the size of gkpStore for staging
+    #  Compute the size of seqStore for staging
 
-    setGlobal("corStageSpace", getSizeOfGatekeeperStore($asm));
+    setGlobal("corStageSpace", getSizeOfSequenceStore($asm));
 
     #  Compute expected size of jobs, set if not set already.
 
@@ -637,15 +637,15 @@ sub loadCorrectedReads ($) {
     goto allDone   if (getNumberOfBasesInStore($asm, "obt") > 0);
 
     print STDERR "--\n";
-    print STDERR "-- Loading corrected reads into corStore and gkpStore.\n";
+    print STDERR "-- Loading corrected reads into corStore and seqStore.\n";
 
     fetchFile("$path/corjob.files");
 
-    fetchStore("./correction/$asm.gkpStore");
+    fetchStore("./correction/$asm.seqStore");
     fetchStore("./correction/$asm.corStore");
 
     $cmd  = "$bin/loadCorrectedReads \\\n";
-    $cmd .= "  -G ./$asm.gkpStore \\\n";
+    $cmd .= "  -S ./$asm.seqStore \\\n";
     $cmd .= "  -C ./$asm.corStore \\\n";
     $cmd .= "  -L ./2-correction/corjob.files \\\n";
     $cmd .= ">  ./$asm.loadCorrectedReads.log \\\n";
@@ -657,7 +657,7 @@ sub loadCorrectedReads ($) {
 
     #  Report reads.
 
-    addToReport("obtGkpStore", generateReadLengthHistogram("obt", $asm));
+    addToReport("obtSeqStore", generateReadLengthHistogram("obt", $asm));
 
     #  Now that all outputs are (re)written, cleanup the job outputs.
 
@@ -740,14 +740,14 @@ sub dumpCorrectedReads ($) {
     goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
-    return         if (! -d "correction/$asm.gkpStore");  #  No corrections done, nothing to do.
+    return         if (! -d "correction/$asm.seqStore");  #  No corrections done, nothing to do.
 
     #  If no corrected reads exist, don't bother trying to dump them.
 
     if (getNumberOfReadsInStore($asm, "obt") > 0) {
-        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+        $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
         $cmd .= "  -corrected \\\n";
-        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
         $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
         $cmd .= "  -fasta \\\n";
         $cmd .= "  -nolibname \\\n";
@@ -770,7 +770,7 @@ sub dumpCorrectedReads ($) {
         print STDERR "-- Corrected reads saved in '$out'.\n";
     } else {
         print STDERR "--\n";
-        print STDERR "-- Yikes!  No corrected reads generated!\n"; 
+        print STDERR "-- Yikes!  No corrected reads generated!\n";
         print STDERR "-- Can't proceed!\n";
         print STDERR "--\n";
         print STDERR "-- Generating empty outputs.\n";

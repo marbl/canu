@@ -39,11 +39,11 @@ Process_Olap(Olap_Info_t        *olap,
 
 void
 Read_Frags(feParameters   *G,
-           gkStore        *gkpStore);
+           sqStore        *seqStore);
 
 void
 Read_Olaps(feParameters   *G,
-           gkStore        *gkpStore);
+           sqStore        *seqStore);
 
 void
 Output_Corrections(feParameters *G);
@@ -57,7 +57,7 @@ Output_Corrections(feParameters *G);
 static
 void
 extractReads(feParameters *G,
-             gkStore      *gkpStore,
+             sqStore      *seqStore,
              Frag_List_t  *fl,
              uint64       &nextOlap) {
 
@@ -96,10 +96,10 @@ extractReads(feParameters *G,
          (lastOlap     < G->olapsLen)) {
     hiID = G->olaps[lastOlap].b_iid;                        //  Grab the ID of the overlap we're at.
 
-    gkRead *read = gkpStore->gkStore_getRead(hiID);         //  Grab that read.
+    sqRead *read = seqStore->sqStore_getRead(hiID);         //  Grab that read.
 
     fl->readsLen += 1;                                      //  Add the read to our set.
-    fl->basesLen += read->gkRead_sequenceLength() + 1;
+    fl->basesLen += read->sqRead_sequenceLength() + 1;
 
     lastOlap++;                                             //  Advance to the next overlap
     while ((lastOlap < G->olapsLen) &&                      //
@@ -137,29 +137,29 @@ extractReads(feParameters *G,
 
   //  Load the sequence data for reads loID to hiID, as long as the read has an overlap.
 
-  gkReadData *readData = new gkReadData;
+  sqReadData *readData = new sqReadData;
 
   fl->readsLen = 0;
   fl->basesLen = 0;
 
   while ((loID <= hiID) &&
          (nextOlap < G->olapsLen)) {
-    gkRead *read = gkpStore->gkStore_getRead(loID);
+    sqRead *read       = seqStore->sqStore_getRead(loID);
 
     fl->readIDs[fl->readsLen]   = loID;                          //  Save the ID of _this_ read.
     fl->readBases[fl->readsLen] = fl->bases + fl->basesLen;      //  Set the data pointer to where this read should start.
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
 
-    uint32  readLen    = read->gkRead_sequenceLength();
-    char   *readBases  = readData->gkReadData_getSequence();
+    uint32  readLen    = read->sqRead_sequenceLength();
+    char   *readBases  = readData->sqReadData_getSequence();
 
     for (uint32 bb=0; bb<readLen; bb++)
       fl->readBases[fl->readsLen][bb] = filter[readBases[bb]];
 
     fl->readBases[fl->readsLen][readLen] = 0;                    //  All good reads end.
 
-    fl->basesLen += read->gkRead_sequenceLength() + 1;           //  Update basesLen to account for this read.
+    fl->basesLen += read->sqRead_sequenceLength() + 1;           //  Update basesLen to account for this read.
     fl->readsLen += 1;                                           //  And note that we loaded a read.
 
     nextOlap++;                                                  //  Advance past all the overlaps for this read.
@@ -179,7 +179,7 @@ extractReads(feParameters *G,
 
 
 
-//  Process all old fragments in  Internal_gkpStore. Only
+//  Process all old fragments in  Internal_seqStore. Only
 //  do overlaps/corrections with fragments where
 //    frag_iid % Num_PThreads == thread_id
 
@@ -227,7 +227,7 @@ processThread(void *ptr) {
 
 
 
-//  Read old fragments in  gkpStore  that have overlaps with
+//  Read old fragments in  seqStore  that have overlaps with
 //  fragments in  Frag. Read a batch at a time and process them
 //  with multiple pthreads.  Each thread processes all the old fragments
 //  but only changes entries in  Frag  that correspond to its thread
@@ -238,7 +238,7 @@ processThread(void *ptr) {
 static
 void
 processReads(feParameters *G,
-             gkStore      *gkpStore,
+             sqStore      *seqStore,
              uint64       &passedOlaps,
              uint64       &failedOlaps) {
 
@@ -275,7 +275,7 @@ processReads(feParameters *G,
   Frag_List_t  *curr_frag_list = &frag_list_1;
   Frag_List_t  *next_frag_list = &frag_list_2;
 
-  extractReads(G, gkpStore, curr_frag_list, nextOlap);
+  extractReads(G, seqStore, curr_frag_list, nextOlap);
 
   while (curr_frag_list->readsLen > 0) {
 
@@ -297,7 +297,7 @@ processReads(feParameters *G,
 
     frstOlap = nextOlap;
 
-    extractReads(G, gkpStore, next_frag_list, nextOlap);
+    extractReads(G, seqStore, next_frag_list, nextOlap);
 
     // Wait for background processing to finish
 
@@ -352,8 +352,8 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      G->gkpStorePath = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      G->seqStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-R") == 0) {
       G->bgnID = atoi(argv[++arg]);
@@ -397,7 +397,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (G->gkpStorePath == NULL)
+  if (G->seqStorePath == NULL)
     err++;
   if (G->ovlStorePath == NULL)
     err++;
@@ -407,33 +407,25 @@ main(int argc, char **argv) {
     err++;
 
   if (err > 0) {
-    fprintf(stderr, "usage: %s[-ehp][-d DegrThresh][-k KmerLen][-x ExcludeLen]\n", argv[0]);
-    fprintf(stderr, "        [-F OlapFile][-S OlapStore][-o CorrectFile]\n");
-    fprintf(stderr, "        [-t NumPThreads][-v VerboseLevel]\n");
-    fprintf(stderr, "        [-V Vote_Qualify_Len]\n");
-    fprintf(stderr, "          <FragStore> <lo> <hi>\n");
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore -R bgn-end ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "Makes corrections to fragment sequence based on overlaps\n");
-    fprintf(stderr, "and recomputes overlaps on corrected fragments\n");
-    fprintf(stderr, "Fragments come from <FragStore> <lo> and <hi> specify\n");
-    fprintf(stderr, "the range of fragments to modify\n");
+    fprintf(stderr, "  -S   seqStore           path to a sequence store\n");
+    fprintf(stderr, "  -O   ovlStore           path to an overlap store\n");
+    fprintf(stderr, "  -R   bgn end            only compute for reads bgn-end\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr, "-d   set keep flag on end of frags with less than this many olaps\n");
-    fprintf(stderr, "-F   specify file of sorted overlaps to use (in the format produced\n");
-    fprintf(stderr, "     by  get-olaps\n");
-    fprintf(stderr, "-h   print this message\n");
-    fprintf(stderr, "-k   minimum exact-match region to prevent change\n");
-    fprintf(stderr, "-o   specify output file to hold correction info\n");
-    fprintf(stderr, "-p   don't use haplotype counts to correct\n");
-    fprintf(stderr, "-S   specify the binary overlap store containing overlaps to use\n");
-    fprintf(stderr, "-t   set number of p-threads to use\n");
-    fprintf(stderr, "-v   specify level of verbose outputs, higher is more\n");
-    fprintf(stderr, "-V   specify number of exact match bases around an error to vote to change\n");
-    fprintf(stderr, "-x   length of end of exact match to exclude in preventing change\n");
+    fprintf(stderr, "  -o   output-name        write corrections to 'output-name'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -e   error-rate         expected error rate in alignments\n");
+    fprintf(stderr, "  -l   min-overlap        \n");
+    fprintf(stderr, "  -t   num-threads        \n");
+    fprintf(stderr, "  -d   degree-threshold   set keep flag if fewer than this many overlaps\n");
+    fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
+    fprintf(stderr, "  -p                      don't use the haplo_ct\n");
+    fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
+    fprintf(stderr, "  -x   end-exclude-len    length of end of exact match to exclude in preventing change\n");
 
-    if (G->gkpStorePath == NULL)
-      fprintf(stderr, "ERROR: no gatekeeper store (-G) supplied.\n");
+    if (G->seqStorePath == NULL)
+      fprintf(stderr, "ERROR: no sequence store (-S) supplied.\n");
     if (G->ovlStorePath == NULL)
       fprintf(stderr, "ERROR: no overlap store (-O) supplied.\n");
     if (G->numThreads == 0)
@@ -455,16 +447,16 @@ main(int argc, char **argv) {
 
   //  Load data.
 
-  gkStore *gkpStore = gkStore::gkStore_open(G->gkpStorePath);
+  sqStore *seqStore = sqStore::sqStore_open(G->seqStorePath);
 
   if (G->bgnID < 1)
     G->bgnID = 1;
 
-  if (gkpStore->gkStore_getNumReads() < G->endID)
-    G->endID = gkpStore->gkStore_getNumReads();
+  if (seqStore->sqStore_getNumReads() < G->endID)
+    G->endID = seqStore->sqStore_getNumReads();
 
-  Read_Frags(G, gkpStore);
-  Read_Olaps(G, gkpStore);
+  Read_Frags(G, seqStore);
+  Read_Olaps(G, seqStore);
 
   //  Sort overlaps, process each.
 
@@ -473,7 +465,7 @@ main(int argc, char **argv) {
   uint64  passedOlaps = 0;
   uint64  failedOlaps = 0;
 
-  processReads(G, gkpStore, passedOlaps, failedOlaps);
+  processReads(G, seqStore, passedOlaps, failedOlaps);
 
   //  All done.  Sum up what we did.
 
@@ -488,7 +480,7 @@ main(int argc, char **argv) {
 
   //  Cleanup and exit!
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   delete G;
 

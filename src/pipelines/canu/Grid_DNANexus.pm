@@ -44,7 +44,7 @@ sub detectDNANexus () {
     print STDERR "-- Detected DNA Nexus '...some-version...'.\n";
     setGlobal("gridEngine", "DNANEXUS");
 
-    #  DNANexus mode doesn't support (easily) the gatekeeper check on short reads.
+    #  DNANexus mode doesn't support (easily) the sequence store check on short reads.
     #  The issue is that we'd need to save the store, ask the user to accept it (and rename),
     #  then continue.  Nothing super tricky, just not done.
 

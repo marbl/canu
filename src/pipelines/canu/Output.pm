@@ -64,13 +64,13 @@ sub generateOutputs ($) {
     #  Layouts
 
     if (! fileExists("$asm.contigs.layout")) {
-        fetchStore("unitigging/$asm.gkpStore");
+        fetchStore("unitigging/$asm.seqStore");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
         if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig") {
             $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+            $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
             $cmd .= "  -o ./$asm.contigs \\\n";
             $cmd .= "  -layout \\\n";
@@ -89,7 +89,7 @@ sub generateOutputs ($) {
     }
 
     if (! fileExists("$asm.unitigs.layout")) {
-        fetchStore("unitigging/$asm.gkpStore");
+        fetchStore("unitigging/$asm.seqStore");
 
         fetchFile("unitigging/$asm.utgStore/seqDB.v001.dat");   #  Why is this needed?
         fetchFile("unitigging/$asm.utgStore/seqDB.v001.tig");
@@ -99,7 +99,7 @@ sub generateOutputs ($) {
 
         if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
             $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+            $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
             $cmd .= "  -o ./$asm.unitigs \\\n";
             $cmd .= "  -layout \\\n";
@@ -121,13 +121,13 @@ sub generateOutputs ($) {
 
     foreach my $tt ("unassembled", "contigs") {
         if (! fileExists("$asm.$tt.$type")) {
-            fetchStore("unitigging/$asm.gkpStore");
+            fetchStore("unitigging/$asm.seqStore");
             fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
             fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
             if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig") {
                 $cmd  = "$bin/tgStoreDump \\\n";
-                $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+                $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
                 $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
                 $cmd .= "  -consensus -$type \\\n";
                 $cmd .= "  -$tt \\\n";
@@ -148,13 +148,13 @@ sub generateOutputs ($) {
     }
 
     if (! fileExists("$asm.unitigs.$type")) {
-        fetchStore("unitigging/$asm.gkpStore");
+        fetchStore("unitigging/$asm.seqStore");
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
 
         if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
             $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -G ./unitigging/$asm.gkpStore \\\n";
+            $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
             $cmd .= "  -consensus -$type \\\n";
             $cmd .= "  -contigs \\\n";

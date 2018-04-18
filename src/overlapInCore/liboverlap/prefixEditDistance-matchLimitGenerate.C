@@ -32,7 +32,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "Binomial_Bound.H"
 
@@ -42,7 +42,7 @@
 
 //  To use:
 //
-//  Set read length in gkStore.H.  Run this "50 5000 50" to compute data from 0.50% to 50.00%
+//  Set read length in sqStore.H.  Run this "50 5000 50" to compute data from 0.50% to 50.00%
 //  in steps of 0.50%.  It will write three output files with the data:
 //    *.C    - for inclusion in programs
 //    *.bin  - binary dump of the array
@@ -200,7 +200,7 @@ main(int argc, char **argv) {
       fprintf(F, "//  Automagically generated.  Do not edit.\n");
       fprintf(F, "//\n");
       fprintf(F, "\n");
-      fprintf(F, "#include \"gkStore.H\"\n");
+      fprintf(F, "#include \"sqStore.H\"\n");
       fprintf(F, "\n");
       fprintf(F, "#if (AS_MAX_READLEN_BITS == %d)\n", AS_MAX_READLEN_BITS);
       fprintf(F, "\n");

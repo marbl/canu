@@ -20,11 +20,15 @@
  #
  #  Modifications by:
  #
- #    Sergey Koren beginning on 2018-FEB-08
+ #    Brian P. Walenz from 2015-FEB-27 to 2015-AUG-26
+ #      are Copyright 2015 Battelle National Biodefense Institute, and
+ #      are subject to the BSD 3-Clause License
+ #
+ #    Brian P. Walenz beginning on 2015-NOV-03
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
- #    Brian P. Walenz beginning on 2018-FEB-08
+ #    Sergey Koren beginning on 2015-NOV-19
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -57,7 +61,7 @@ use canu::Grid_PBSTorque;
 use canu::Grid_LSF;
 use canu::Grid_DNANexus;
 
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Meryl;
 use canu::HaplotypeReads;
 
@@ -374,7 +378,7 @@ $ENV{'CANU_DIRECTORY'} = getcwd();
 writeLog();
 
 # check some params
-caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef)   if (scalar(@inputFiles) == 0);
+caExit("ERROR: No reads supplied, and can't find any reads in any seqStore", undef)   if (scalar(@inputFiles) == 0);
 caExit("ERROR: Need at least two haplotypes", undef) if (scalar(keys %haplotypes) < 2);
 foreach my $h (keys(%haplotypes)) {
    caExit("ERROR: No haplotype reads supplied for haplotype", undef) if (scalar(@{ $haplotypes{$h} }) == 0);
@@ -390,8 +394,8 @@ submitScript($asm, undef);
 #  Begin pipeline
 #
 #  The checks for sequenceFileExists() at the start aren't needed except for
-#  object storage mode.  Gatekeeper has no way of knowing, inside
-#  gatekeeper(), that this stage is completed and it shouldn't fetch the
+#  object storage mode.  The sequence store has no way of knowing, inside
+#  createSequenceStore(), that this stage is completed and it shouldn't fetch the
 #  store.  In 'normal' operation, the store exists already, and we just
 #  return.
 #
@@ -406,10 +410,10 @@ if (checkHaplotypeReads($asm, "haplotype") != 1) {
    # reset read length
    setGlobal("minReadLength", 50);
 
-   # gkpStore for each haplotype and setup meryl
-   gatekeeper($asm, "hap", @inputFiles);
+   # seqStore for each haplotype and setup meryl
+   createSequenceStore($asm, "hap", @inputFiles);
    foreach my $h (keys(%haplotypes)) {
-      gatekeeper("haplotype$h", "hap", @{ $haplotypes{$h} });
+      createSequenceStore("haplotype$h", "hap", @{ $haplotypes{$h} });
       merylConfigure("haplotype$h", "hap");
       merylCheck("haplotype$h", "hap")  foreach (1..getGlobal("canuIterationMax") + 1);
    }

@@ -51,7 +51,7 @@ use POSIX qw(ceil);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::ErrorEstimate;
 use canu::Report;
 use canu::Grid_Cloud;
@@ -398,7 +398,7 @@ sub merylConfigure ($$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.gkpStore", $path);
+    print F fetchStoreShellCode("$base/$asm.seqStore", $path);
     print F "\n";
     print F "#  Purge any previous intermediate result.  Possibly not needed, but safer.\n";
     print F "\n";
@@ -406,7 +406,7 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "\$bin/meryl \\\n";
     print F "  -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
-    print F "  -s ../$asm.gkpStore \\\n";
+    print F "  -s ../$asm.seqStore \\\n";
     print F "  -o ./$ofile.WORKING \\\n";
     print F "&& \\\n";
     print F "mv ./$ofile.WORKING.mcdat ./$ofile.mcdat \\\n";

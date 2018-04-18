@@ -32,10 +32,10 @@
  */
 
 #include "ovStore.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 
-gkStore *ovOverlap::g = NULL;
+sqStore *ovOverlap::g = NULL;
 
 //  Even though the b_end_hi | b_end_lo is uint64 in the struct, the result
 //  of combining them doesn't appear to be 64-bit.  The cast is necessary.
@@ -96,10 +96,10 @@ ovOverlap::toString(char                  *str,
       // no padding spaces on names we don't confuse read identifiers
       sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " %s",
               a_iid,
-              (g->gkStore_getRead(a_iid)->gkRead_sequenceLength()), a_bgn(), a_end(),
+              (g->sqStore_getRead(a_iid)->sqRead_sequenceLength()), a_bgn(), a_end(),
               flipped() ? '-' : '+',
               b_iid,
-              (g->gkStore_getRead(b_iid)->gkRead_sequenceLength()), flipped() ? b_end() : b_bgn(), flipped() ? b_bgn() : b_end(),
+              (g->sqStore_getRead(b_iid)->sqRead_sequenceLength()), flipped() ? b_end() : b_bgn(), flipped() ? b_bgn() : b_end(),
               (uint32)floor(span() == 0 ? (1-erate() * (a_end()-a_bgn())) : (1-erate()) * span()),
               span() == 0 ? a_end() - a_bgn() : span(),
               255,

@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/meryl/libleaff/gkStoreFile.H
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz from 2015-FEB-04 to 2015-MAR-17
@@ -31,28 +35,28 @@
 #define GKSTOREFILE_H
 
 #include "seqFile.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
-class gkStoreFile : public seqFile {
+class sqStoreFile : public seqFile {
 protected:
-  gkStoreFile(const char *filename);
-  gkStoreFile();
+  sqStoreFile(const char *filename);
+  sqStoreFile();
 
 public:
-  ~gkStoreFile();
+  ~sqStoreFile();
 
 protected:
   seqFile      *openFile(const char *name);
 
 public:
   uint32        find(const char *sequencename) {
-    fprintf(stderr, "gkStoreFile::find()--  Lookup of sequencename '%s' not supported.\n", sequencename);
+    fprintf(stderr, "sqStoreFile::find()--  Lookup of sequencename '%s' not supported.\n", sequencename);
     assert(0);
     return(0);
   };
 
   uint32        getSequenceLength(uint32 iid) {
-    return(gkp->gkStore_getRead(iid + 1)->gkRead_sequenceLength());
+    return(seq->sqStore_getRead(iid + 1)->sqRead_sequenceLength());
   };
 
   bool          getSequence(uint32 iid,
@@ -64,8 +68,8 @@ public:
 private:
   void          clear(void);
 
-  gkStore      *gkp;
-  gkReadData    readData;
+  sqStore      *seq;
+  sqReadData    readData;
 
   friend class seqFactory;
 };

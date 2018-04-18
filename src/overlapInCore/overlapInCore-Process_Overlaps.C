@@ -78,7 +78,7 @@ void *
 Process_Overlaps(void *ptr){
   Work_Area_t  *WA = (Work_Area_t *)ptr;
 
-  gkReadData   *readData = new gkReadData;
+  sqReadData   *readData = new sqReadData;
 
   char         *bases = new char [AS_MAX_READLEN + 1];
   char         *quals = new char [AS_MAX_READLEN + 1];
@@ -103,20 +103,20 @@ Process_Overlaps(void *ptr){
       //  Load sequence/quality data
       //  Duplicated in Build_Hash_Index()
 
-      gkRead   *read = WA->gkpStore->gkStore_getRead(fi);
+      sqRead   *read = WA->seqStore->sqStore_getRead(fi);
 
-      if ((read->gkRead_libraryID() < G.minLibToRef) ||
-          (read->gkRead_libraryID() > G.maxLibToRef))
+      if ((read->sqRead_libraryID() < G.minLibToRef) ||
+          (read->sqRead_libraryID() > G.maxLibToRef))
         continue;
 
-      uint32 len = read->gkRead_sequenceLength();
+      uint32 len = read->sqRead_sequenceLength();
 
       if (len < G.Min_Olap_Len)
         continue;
 
-      WA->gkpStore->gkStore_loadReadData(read, readData);
+      WA->seqStore->sqStore_loadReadData(read, readData);
 
-      char   *seqptr   = readData->gkReadData_getSequence();
+      char   *seqptr   = readData->sqReadData_getSequence();
 
       for (uint32 i=0; i<len; i++)
         bases[i] = tolower(seqptr[i]);
@@ -125,11 +125,11 @@ Process_Overlaps(void *ptr){
 
       //  Generate overlaps.
 
-      Find_Overlaps(bases, len, read->gkRead_readID(), FORWARD, WA);
+      Find_Overlaps(bases, len, read->sqRead_readID(), FORWARD, WA);
 
       reverseComplementSequence(bases, len);
 
-      Find_Overlaps(bases, len, read->gkRead_readID(), REVERSE, WA);
+      Find_Overlaps(bases, len, read->sqRead_readID(), REVERSE, WA);
     }
 
     //  Write out this block of overlaps, no need to keep them in core!

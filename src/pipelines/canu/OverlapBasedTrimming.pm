@@ -48,7 +48,7 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Report;
 use canu::Output;
 use canu::Grid_Cloud;
@@ -71,7 +71,7 @@ sub trimReads ($) {
     #  and require an obt specific error rate.
 
     $cmd  = "$bin/trimReads \\\n";
-    $cmd .= "  -G  ../$asm.gkpStore \\\n";
+    $cmd .= "  -S  ../$asm.seqStore \\\n";
     $cmd .= "  -O  ../$asm.ovlStore \\\n";
     $cmd .= "  -Co ./$asm.1.trimReads.clear \\\n";
     $cmd .= "  -e  " . getGlobal("obtErrorRate") . " \\\n";
@@ -105,8 +105,8 @@ sub trimReads ($) {
 
 
     if (0) {
-        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-        $cmd .= "  -G ../$asm.gkpStore \\\n";
+        $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
         $cmd .= "  -c ./$asm.1.trimReads.clear \\\n";
         $cmd .= "  -o ./$asm.1.trimReads.trimmed \\\n";
         $cmd .= ">    ./$asm.1.trimReads.trimmed.err 2>&1";
@@ -143,7 +143,7 @@ sub splitReads ($) {
     #$cmd .= "  -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
 
     $cmd  = "$bin/splitReads \\\n";
-    $cmd .= "  -G  ../$asm.gkpStore \\\n";
+    $cmd .= "  -S  ../$asm.seqStore \\\n";
     $cmd .= "  -O  ../$asm.ovlStore \\\n";
     $cmd .= "  -Ci ./$asm.1.trimReads.clear \\\n"       if (-e "trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
     #$cmd .= "  -Cm ./$asm.max.clear \\\n"               if (-e "trimming/3-overlapbasedtrimming/$asm.max.clear");
@@ -175,8 +175,8 @@ sub splitReads ($) {
     addToReport("splitting", $report);
 
     if (0) {
-        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-        $cmd .= "  -G ../$asm.gkpStore \\\n";
+        $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
         $cmd .= "  -c ./$asm.2.splitReads.clear \\\n";
         $cmd .= "  -o ./$asm.2.splitReads.trimmed \\\n";
         $cmd .= ">    ./$asm.2.splitReads.trimmed.err 2>&1";
@@ -215,7 +215,7 @@ sub loadTrimmedReads ($) {
     caFailure("loading trimmed reads failed; no 'clear' input", "trimming/$asm.trimmedReads.err")  if (!defined($inp));
 
     $cmd  = "$bin/loadTrimmedReads \\\n";
-    $cmd .= "  -G ../$asm.gkpStore \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -c $inp \\\n";
     $cmd .= "> ./$asm.loadtrimmedReads.err 2>&1";
 
@@ -227,7 +227,7 @@ sub loadTrimmedReads ($) {
 
     #  Report reads.
 
-    addToReport("utgGkpStore", generateReadLengthHistogram("utg", $asm));
+    addToReport("utgSeqStore", generateReadLengthHistogram("utg", $asm));
 
     #stashFile("./$asm.trimmedReads.fasta.gz");
 
@@ -258,14 +258,14 @@ sub dumpTrimmedReads ($) {
     goto allDone   if (skipStage($asm, "obt-dumpTrimmedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
-    return         if (! -d "trimming/$asm.gkpStore");  #  No trimming done, nothing to do.
+    return         if (! -d "trimming/$asm.seqStore");  #  No trimming done, nothing to do.
 
     #  If no trimmed reads exist, don't bother trying to dump them.
 
     if (getNumberOfReadsInStore($asm, "utg") > 0) {
-        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+        $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
         $cmd .= "  -trimmed \\\n";
-        $cmd .= "  -G ./$asm.gkpStore \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
         $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
         $cmd .= "  -fasta \\\n";
         $cmd .= "  -nolibname \\\n";

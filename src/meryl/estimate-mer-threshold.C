@@ -145,7 +145,6 @@ loadHistogram(FILE *HF,
 
 int
 main(int argc, char **argv) {
-  char              *gkpPath = 0L;
   char              *merCountsFile = 0L;
   char              *histogramFile = 0L;
 

@@ -24,7 +24,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
@@ -84,10 +84,10 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
 
 void
 generateFalconConsensus(falconConsensus   *fc,
-                        gkStore           *gkpStore,
+                        sqStore           *seqStore,
                         tgTig             *tig,
                         bool               trimToAlign,
-                        gkReadData        *readData,
+                        sqReadData        *readData,
                         uint32             minOlapLength) {
 
   //  Grab and save the raw read for the template.
@@ -95,27 +95,27 @@ generateFalconConsensus(falconConsensus   *fc,
   fprintf(stderr, "Processing read %u of length %u with %u evidence reads.\n",
           tig->tigID(), tig->length(), tig->numberOfChildren());
 
-  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
+  seqStore->sqStore_loadReadData(tig->tigID(), readData);
 
   //  Now parse the layout and push all the sequences onto our seqs vector.
 
   falconInput   *evidence = new falconInput [tig->numberOfChildren() + 1];
 
   evidence[0].addInput(tig->tigID(),
-                       readData->gkReadData_getRawSequence(),
-                       readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw),
+                       readData->sqReadData_getRawSequence(),
+                       readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw),
                        0,
-                       readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw));
+                       readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw));
 
 
   for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
     tgPosition  *child = tig->getChild(cc);
 
-    gkpStore->gkStore_loadReadData(child->ident(), readData);
+    seqStore->sqStore_loadReadData(child->ident(), readData);
 
     if (child->isReverse())
-      reverseComplementSequence(readData->gkReadData_getRawSequence(),
-                                readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw));
+      reverseComplementSequence(readData->sqReadData_getRawSequence(),
+                                readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw));
 
     //  For debugging/testing, skip one orientation of overlap.
     //
@@ -125,8 +125,8 @@ generateFalconConsensus(falconConsensus   *fc,
     //  continue;
 
     //  Trim the read to the aligned bit
-    char   *seq    = readData->gkReadData_getRawSequence();
-    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw);
+    char   *seq    = readData->sqReadData_getRawSequence();
+    uint32  seqLen = readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw);
 
     if (trimToAlign) {
       seq    += child->askip();
@@ -226,7 +226,7 @@ generateFalconConsensus(falconConsensus   *fc,
 
 int
 main(int argc, char **argv) {
-  char             *gkpName   = 0L;
+  char             *seqName   = 0L;
   char             *corName   = 0L;
   uint32            corVers   = 1;
 
@@ -255,8 +255,8 @@ main(int argc, char **argv) {
   int err=0;
 
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {   //  INPUTS
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {   //  INPUTS
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       corName = argv[++arg];
@@ -303,16 +303,16 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (corName == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "INPUTS (all mandatory)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpStore      mandatory path to gkpStore\n");
+    fprintf(stderr, "  -S seqStore      mandatory path to seqStore\n");
     fprintf(stderr, "  -C corStore      mandatory path to corStore\n");
     fprintf(stderr, "  -p prefix        output prefix name, for logging and summary report\n");
     fprintf(stderr, "\n");
@@ -335,8 +335,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -ol length       minimum length of an aligned evidence read overlap\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore input (-G) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR: no seqStore input (-S) supplied.\n");
     if (corName == NULL)
       fprintf(stderr, "ERROR: no corStore input (-C) supplied.\n");
 
@@ -348,12 +348,12 @@ main(int argc, char **argv) {
 
   //  Open inputs.
 
-  gkRead_setDefaultVersion(gkRead_raw);
+  sqRead_setDefaultVersion(sqRead_raw);
 
-  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
+  sqStore  *seqStore = sqStore::sqStore_open(seqName);
   tgStore  *corStore = new tgStore(corName, corVers);
 
-  uint32    numReads = gkpStore->gkStore_getNumReads();
+  uint32    numReads = seqStore->sqStore_getNumReads();
 
   //  Decide what reads to operate on.
 
@@ -371,7 +371,7 @@ main(int argc, char **argv) {
   //  Initialize processing.
 
   falconConsensus   *fc = new falconConsensus(minOutputCoverage, minOutputLength, minOlapIdentity, minOlapLength, restrictToOverlap);
-  gkReadData        *rd = new gkReadData;
+  sqReadData        *rd = new sqReadData;
 
   //  And process.
 
@@ -382,7 +382,7 @@ main(int argc, char **argv) {
 
     tgTig *layout = corStore->loadTig(ii);
 
-    generateFalconConsensus(fc, gkpStore, layout, trimToAlign, rd, minOlapLength);
+    generateFalconConsensus(fc, seqStore, layout, trimToAlign, rd, minOlapLength);
 
     if (cnsFile)
       layout->saveToStream(cnsFile);
@@ -403,7 +403,7 @@ main(int argc, char **argv) {
   delete    rd;
   delete    corStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Bye.\n");

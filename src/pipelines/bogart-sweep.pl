@@ -117,7 +117,7 @@ foreach my $cs (@CS) {
     print F "\n";
     print F "if [ ! -e test.tigStore ] ; then\n";
     print F "  /work/canu/FreeBSD-amd64/bin/bogart \\\n";
-    print F "    -G $wrk/$asm.gkpStore \\\n";
+    print F "    -S $wrk/$asm.seqStore \\\n";
     print F "    -O $wrk/$asm.ovlStore \\\n";
     print F "    -T test.tigStore -o test\\\n";
     print F "    -B $b -M $m -threads $t \\\n";
@@ -141,7 +141,7 @@ foreach my $cs (@CS) {
     print F "\n";
     print F "if [ ! -e test.fasta ] ; then\n";
     print F "  /work/canu/FreeBSD-amd64/bin/utgcns \\\n";
-    print F "    -G $wrk/$asm.gkpStore \\\n";
+    print F "    -S $wrk/$asm.seqStore \\\n";
     print F "    -T test.tigStore 1 . \\\n";
     print F "    -O test.cns -L test.lay -A test.fasta\n";
     print F "fi\n";
@@ -150,12 +150,12 @@ foreach my $cs (@CS) {
     print F "rm -f test.tigStore/seqDB.v002.tig\n";
     print F "\n";
     print F "/work/canu/FreeBSD-amd64/bin/tgStoreLoad \\\n";
-    print F "  -G $wrk/$asm.gkpStore \\\n";
+    print F "  -S $wrk/$asm.seqStore \\\n";
     print F "  -T test.tigStore 2 \\\n";
     print F "  test.cns\n";
     print F "\n";
     print F "/work/canu/FreeBSD-amd64/bin/tgStoreDump \\\n";
-    print F "  -G $wrk/$asm.gkpStore \\\n";
+    print F "  -S $wrk/$asm.seqStore \\\n";
     print F "  -T test.tigStore 2 \\\n";
     print F "  -consensus -fasta -contigs -bubbles \\\n";
     print F "> contigs.fasta\n";

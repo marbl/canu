@@ -25,7 +25,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include "falconConsensus.H"
@@ -388,7 +388,7 @@ dumpLog(FILE *F, readStatus *status, uint32 numReads) {
 
 int
 main(int argc, char **argv) {
-  char           *gkpStoreName      = NULL;
+  char           *seqStoreName      = NULL;
   char           *corStoreName      = NULL;
   char           *outName           = NULL;
 
@@ -409,8 +409,8 @@ main(int argc, char **argv) {
   int32     arg = 1;
   int32     err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       corStoreName = argv[++arg];
@@ -450,7 +450,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStoreName == NULL)
+  if (seqStoreName == NULL)
     err++;
   if (corStoreName == NULL)
     err++;
@@ -465,7 +465,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "INPUTS and OUTPUTS\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpStore              input reads\n");
+    fprintf(stderr, "  -S seqStore              input reads\n");
     fprintf(stderr, "  -C corStore              input correction layouts\n");
     fprintf(stderr, "  -R asm.readsToCorrect    output ascii list of read IDs to correct\n");
     fprintf(stderr, "                           also creates\n");
@@ -492,24 +492,24 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
 
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gatekeeper store (-G) supplied.\n");
+    if (seqStoreName == NULL)
+      fprintf(stderr, "ERROR: no sequence store (-S) supplied.\n");
     if (corStoreName == NULL)
-      fprintf(stderr, "ERROR: no correction store (-C) supplied.\n");
+      fprintf(stderr, "ERROR: no corStore store (-C) supplied.\n");
     if (outName == NULL)
       fprintf(stderr, "ERROR: no output (-R) supplied.\n");
 
     exit(1);
   }
 
-  gkRead_setDefaultVersion(gkRead_raw);
+  sqRead_setDefaultVersion(sqRead_raw);
 
-  gkStore          *gkpStore = gkStore::gkStore_open(gkpStoreName);
+  sqStore          *seqStore = sqStore::sqStore_open(seqStoreName);
   tgStore          *corStore = new tgStore(corStoreName, 1);
 
   falconConsensus  *fc       = new falconConsensus(0, 0, 0, 0);  //  For memory estimtes
 
-  uint32            numReads = gkpStore->gkStore_getNumReads();
+  uint32            numReads = seqStore->sqStore_getNumReads();
 
   readStatus       *status   = new readStatus [numReads + 1];
 

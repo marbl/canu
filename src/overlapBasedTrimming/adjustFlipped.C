@@ -41,11 +41,11 @@ adjustFlipped(clearRangeFile  *iniClr,
               ovOverlap       *ovl,
               uint32 &aovlbgn,  uint32 &aovlend,  uint32 &bovlbgn,  uint32 &bovlend,
               uint32 &aclrbgn,  uint32 &aclrend,  uint32 &bclrbgn,  uint32 &bclrend,
-              gkStore         *gkp) {
+              sqStore         *seq) {
 
   assert(ovl->flipped() == true);
 
-  uint32  bLen = gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
+  uint32  bLen = seq->sqStore_getRead(ovl->b_iid)->sqRead_sequenceLength();
 
   aovlbgn =        ovl->a_bgn();
   bovlbgn = bLen - ovl->b_bgn();  //  bgn(), because this is the higher coord

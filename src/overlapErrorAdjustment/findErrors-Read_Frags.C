@@ -32,14 +32,14 @@
 
 
 //  Open and read fragments with IIDs from  Lo_Frag_IID  to
-//  Hi_Frag_IID (INCLUSIVE) from  gkpStore_Path  and store them in
+//  Hi_Frag_IID (INCLUSIVE) from  seqStore_Path  and store them in
 //  global  Frag .
 
 //  This shares lots of code with Extract_Needed_Frags.
 
 void
 Read_Frags(feParameters   *G,
-           gkStore        *gkpStore) {
+           sqStore        *seqStore) {
 
   //  The original converted to lowercase, and made non-acgt be 'a'.
 
@@ -62,10 +62,10 @@ Read_Frags(feParameters   *G,
 
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    gkRead *read = gkpStore->gkStore_getRead(curID);
+    sqRead *read = seqStore->sqStore_getRead(curID);
 
-    basesLength += read->gkRead_sequenceLength() + 1;
-    votesLength += read->gkRead_sequenceLength();
+    basesLength += read->sqRead_sequenceLength() + 1;
+    votesLength += read->sqRead_sequenceLength();
   }
 
   uint64  totAlloc = (sizeof(char)         * basesLength +
@@ -85,15 +85,15 @@ Read_Frags(feParameters   *G,
   basesLength = 0;
   votesLength = 0;
 
-  gkReadData  *readData = new gkReadData;
+  sqReadData  *readData = new sqReadData;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    gkRead *read       = gkpStore->gkStore_getRead(curID);
+    sqRead *read       = seqStore->sqStore_getRead(curID);
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
 
-    uint32  readLength = read->gkRead_sequenceLength();
-    char   *readBases  = readData->gkReadData_getSequence();
+    uint32  readLength = read->sqRead_sequenceLength();
+    char   *readBases  = readData->sqReadData_getSequence();
 
     G->reads[curID - G->bgnID].sequence = G->readBases + basesLength;
     G->reads[curID - G->bgnID].vote     = G->readVotes + votesLength;

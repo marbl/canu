@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/gatekeeperDumpMetaData.C
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz from 2015-MAR-18 to 2015-SEP-21
@@ -28,64 +32,64 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 
 
 
 void
-dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
+dumpLibs(sqStore *seq, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping libraries from %u to %u (inclusive).\n", bgnID, endID);
 
   fprintf(stdout, "libID\tnonRandom\treadType\tcorrectBases\tfinalTrim\tremoveDupe\tremoveSpur\tremoveChimer\tcheckSubRead\tdefaultQV\tlibName\n");
 
   for (uint32 lid=bgnID; lid<=endID; lid++) {
-    gkLibrary  *library = gkp->gkStore_getLibrary(lid);
+    sqLibrary  *library = seq->sqStore_getLibrary(lid);
 
     fprintf(stdout, F_U32"\t" F_U32 "\t%s\t%s\t%s\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t%s\n",
-            library->gkLibrary_libraryID(),
-            library->gkLibrary_isNonRandom(),
-            library->gkLibrary_readTypeString(),
-            library->gkLibrary_readCorrectionString(),
-            library->gkLibrary_finalTrimString(),
-            library->gkLibrary_removeDuplicateReads(),
-            library->gkLibrary_removeSpurReads(),
-            library->gkLibrary_removeChimericReads(),
-            library->gkLibrary_checkForSubReads(),
-            library->gkLibrary_defaultQV(),
-            library->gkLibrary_libraryName());
+            library->sqLibrary_libraryID(),
+            library->sqLibrary_isNonRandom(),
+            library->sqLibrary_readTypeString(),
+            library->sqLibrary_readCorrectionString(),
+            library->sqLibrary_finalTrimString(),
+            library->sqLibrary_removeDuplicateReads(),
+            library->sqLibrary_removeSpurReads(),
+            library->sqLibrary_removeChimericReads(),
+            library->sqLibrary_checkForSubReads(),
+            library->sqLibrary_defaultQV(),
+            library->sqLibrary_libraryName());
   }
 }
 
 
 void
-dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
+dumpReads(sqStore *seq, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
   fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd  segm      byte  part      flags\n");
   fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ----- --------- ----- ----------\n");
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead  *read = gkp->gkStore_getRead(rid);
+    sqRead  *read = seq->sqStore_getRead(rid);
 
     if ((read == NULL) ||
-        (gkp->gkStore_readInPartition(rid) == false))
+        (seq->sqStore_readInPartition(rid) == false))
       continue;
 
     fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %9" F_U64P " %4" F_U64P " %7s%c%c%c\n",
-            read->gkRead_readID(),
-            read->gkRead_libraryID(),
-            read->gkRead_sequenceLength(),
-            read->gkRead_sequenceLength(gkRead_raw),
-            read->gkRead_sequenceLength(gkRead_corrected),
-            read->gkRead_clearBgn(),
-            read->gkRead_clearEnd(),
-            read->gkRead_mSegm(),
-            read->gkRead_mByte(),
-            read->gkRead_mPart(),
+            read->sqRead_readID(),
+            read->sqRead_libraryID(),
+            read->sqRead_sequenceLength(),
+            read->sqRead_sequenceLength(sqRead_raw),
+            read->sqRead_sequenceLength(sqRead_corrected),
+            read->sqRead_clearBgn(),
+            read->sqRead_clearEnd(),
+            read->sqRead_mSegm(),
+            read->sqRead_mByte(),
+            read->sqRead_mPart(),
             "",
-            read->gkRead_ignore()  ? 'I' : '-',
-            read->gkRead_cExists() ? 'C' : '-',
-            read->gkRead_tExists() ? 'T' : '-');
+            read->sqRead_ignore()  ? 'I' : '-',
+            read->sqRead_cExists() ? 'C' : '-',
+            read->sqRead_tExists() ? 'T' : '-');
   }
 }
 
@@ -101,8 +105,8 @@ public:
   ~readStats() {
   };
 
-  void     addRead(gkRead *read) {
-    uint32 l = read->gkRead_sequenceLength();
+  void     addRead(sqRead *read) {
+    uint32 l = read->sqRead_sequenceLength();
 
     _readLengths.push_back(l);
 
@@ -129,19 +133,19 @@ private:
 
 
 void
-dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
+dumpStats(sqStore *seq, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping read statistics from %u to %u (inclusive).\n", bgnID, endID);
 
-  readStats  *rs = new readStats [gkp->gkStore_getNumLibraries() + 1];
+  readStats  *rs = new readStats [seq->sqStore_getNumLibraries() + 1];
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead  *read = gkp->gkStore_getRead(rid);
+    sqRead  *read = seq->sqStore_getRead(rid);
 
     if ((read == NULL) ||
-        (gkp->gkStore_readInPartition(rid) == false))
+        (seq->sqStore_readInPartition(rid) == false))
       continue;
 
-    uint32   l = read->gkRead_libraryID();
+    uint32   l = read->sqRead_libraryID();
 
     rs[0].addRead(read);
     rs[l].addRead(read);
@@ -154,7 +158,7 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //    min, mean, stddev, max base per read
   //    length histogram plot
 
-  for (uint32 l=0; l<gkp->gkStore_getNumLibraries() + 1; l++)
+  for (uint32 l=0; l<seq->sqStore_getNumLibraries() + 1; l++)
     fprintf(stdout, "library " F_U32 "  reads " F_U32 " bases: total " F_U64 " ave " F_U64 " min " F_U64 " max " F_U64 "\n",
             l, rs[l].numberOfReads(), rs[l].numberOfBases(), rs[l].numberOfBases() / rs[l].numberOfReads(), rs[l].minBases(), rs[l].maxBases());
 
@@ -164,8 +168,8 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
 
 int
 main(int argc, char **argv) {
-  char            *gkpStoreName      = NULL;
-  uint32           gkpStorePart      = UINT32_MAX;
+  char            *seqStoreName      = NULL;
+  uint32           seqStorePart      = UINT32_MAX;
 
   bool             wantLibs          = false;
   bool             wantReads         = true;
@@ -179,11 +183,11 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqStoreName = argv[++arg];
 
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        gkpStorePart = atoi(argv[++arg]);
+        seqStorePart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-libs") == 0) {
       wantLibs  = true;
@@ -217,13 +221,13 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStoreName == NULL)
+  if (seqStoreName == NULL)
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore [p] [...]\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore [p] [...]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G gkpStore [p]  dump reads from 'gkpStore', restricted to\n");
+    fprintf(stderr, "  -S seqStore [p]  dump reads from 'seqStore', restricted to\n");
     fprintf(stderr, "                   partition 'p', if supplied.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libs            dump information about libraries\n");
@@ -237,15 +241,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -r id            output only the single read 'id'\n");
     fprintf(stderr, "\n");
 
-    if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
+    if (seqStoreName == NULL)
+      fprintf(stderr, "ERROR: no seqStore (-S) supplied.\n");
 
     exit(1);
   }
 
-  gkStore    *gkpStore  = gkStore::gkStore_open(gkpStoreName, gkStore_readOnly, gkpStorePart);
-  uint32      numReads  = gkpStore->gkStore_getNumReads();
-  uint32      numLibs   = gkpStore->gkStore_getNumLibraries();
+  sqStore    *seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_readOnly, seqStorePart);
+  uint32      numReads  = seqStore->sqStore_getNumReads();
+  uint32      numLibs   = seqStore->sqStore_getNumLibraries();
 
 
   if (wantLibs) {
@@ -263,16 +267,16 @@ main(int argc, char **argv) {
 
 
   if (wantLibs)
-    dumpLibs(gkpStore, bgnID, endID);
+    dumpLibs(seqStore, bgnID, endID);
 
   if (wantReads)
-    dumpReads(gkpStore, bgnID, endID);
+    dumpReads(seqStore, bgnID, endID);
 
   if (wantStats)
-    dumpStats(gkpStore, bgnID, endID);
+    dumpStats(seqStore, bgnID, endID);
 
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   exit(0);
 }

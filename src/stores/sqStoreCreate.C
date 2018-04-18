@@ -15,7 +15,7 @@
  *
  *  This file is derived from:
  *
- *    src/AS_GKP/gkpStoreCreate.C
+ *    src/stores/gatekeeperCreate.C
  *
  *  Modifications by:
  *
@@ -36,7 +36,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "findKeyAndValue.H"
 #include "AS_UTL_fileIO.H"
 
@@ -51,7 +51,7 @@
 
 //  Canu doesn't really use QVs as of late 2015.  Only consensus is aware of them, but since read
 //  correction doesn't output QVs, the QVs that consensus sees are totally bogus.  So, disable
-//  storage of them - gatekeeperCreate will store a default QV for every read, and consensus will
+//  storage of them - seqStoreCreate will store a default QV for every read, and consensus will
 //  process as usual.
 //
 #define  DO_NOT_STORE_QVs
@@ -88,7 +88,7 @@ loadFASTA(char                 *L,
   //  Clear the sequence.
 
   S[0] = 0;
-  Q[0] = 255;  //  Sentinel to tell gatekeeper to use the fixed QV value
+  Q[0] = 255;  //  Sentinel to tell sqStore to use the fixed QV value
 
   Slen = 0;
 
@@ -296,7 +296,7 @@ loadFASTQ(char                 *L,
 
   //  If we're not using QVs, just terminate the sequence.
 
-  Q[0] = 255;  //  Sentinel to tell gatekeeper to use the fixed QV value
+  Q[0] = 255;  //  Sentinel to tell sqStore to use the fixed QV value
 
   //  But if we are storing QVs, check lengths and convert from letters to integers
 
@@ -353,9 +353,9 @@ loadFASTQ(char                 *L,
 
 
 void
-loadReads(gkStore    *gkpStore,
-          gkLibrary  *gkpLibrary,
-          uint32      gkpFileID,
+loadReads(sqStore    *seqStore,
+          sqLibrary  *seqLibrary,
+          uint32      seqFileID,
           uint32      minReadLength,
           FILE       *nameMap,
           FILE       *loadLog,
@@ -378,16 +378,16 @@ loadReads(gkStore    *gkpStore,
   fprintf(stderr, "\n");
   fprintf(stderr, "  Loading reads from '%s'\n", fileName);
 
-  fprintf(loadLog, "nam " F_U32 " %s\n", gkpFileID, fileName);
+  fprintf(loadLog, "nam " F_U32 " %s\n", seqFileID, fileName);
 
   fprintf(loadLog, "lib preset=N/A");
-  fprintf(loadLog,    " defaultQV=%u",            gkpLibrary->gkLibrary_defaultQV());
-  fprintf(loadLog,    " isNonRandom=%s",          gkpLibrary->gkLibrary_isNonRandom()          ? "true" : "false");
-  fprintf(loadLog,    " removeDuplicateReads=%s", gkpLibrary->gkLibrary_removeDuplicateReads() ? "true" : "false");
-  fprintf(loadLog,    " finalTrim=%s",            gkpLibrary->gkLibrary_finalTrim()            ? "true" : "false");
-  fprintf(loadLog,    " removeSpurReads=%s",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
-  fprintf(loadLog,    " removeChimericReads=%s",  gkpLibrary->gkLibrary_removeChimericReads()  ? "true" : "false");
-  fprintf(loadLog,    " checkForSubReads=%s\n",   gkpLibrary->gkLibrary_checkForSubReads()     ? "true" : "false");
+  fprintf(loadLog,    " defaultQV=%u",            seqLibrary->sqLibrary_defaultQV());
+  fprintf(loadLog,    " isNonRandom=%s",          seqLibrary->sqLibrary_isNonRandom()          ? "true" : "false");
+  fprintf(loadLog,    " removeDuplicateReads=%s", seqLibrary->sqLibrary_removeDuplicateReads() ? "true" : "false");
+  fprintf(loadLog,    " finalTrim=%s",            seqLibrary->sqLibrary_finalTrim()            ? "true" : "false");
+  fprintf(loadLog,    " removeSpurReads=%s",      seqLibrary->sqLibrary_removeSpurReads()      ? "true" : "false");
+  fprintf(loadLog,    " removeChimericReads=%s",  seqLibrary->sqLibrary_removeChimericReads()  ? "true" : "false");
+  fprintf(loadLog,    " checkForSubReads=%s\n",   seqLibrary->sqLibrary_checkForSubReads()     ? "true" : "false");
 
   compressedFileReader *F = new compressedFileReader(fileName);
 
@@ -454,12 +454,12 @@ loadReads(gkStore    *gkpStore,
     }
 
     if (S[0] != 0) {
-      gkReadData *readData = gkpStore->gkStore_addEmptyRead(gkpLibrary);
+      sqReadData *readData = seqStore->sqStore_addEmptyRead(seqLibrary);
 
-      readData->gkReadData_setName(H);
-      readData->gkReadData_setBasesQuals(S, Q);
+      readData->sqReadData_setName(H);
+      readData->sqReadData_setBasesQuals(S, Q);
 
-      gkpStore->gkStore_stashReadData(readData);
+      seqStore->sqStore_stashReadData(readData);
 
       delete readData;
 
@@ -473,7 +473,7 @@ loadReads(gkStore    *gkpStore,
         bLOADEDQlocal += Slen;
       }
 
-      fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
+      fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_getNumReads(), H);
     }
 
     //  If L[0] is nul, we need to load the next line.  If not, the next line is the header (from
@@ -544,23 +544,23 @@ loadReads(gkStore    *gkpStore,
 
 
 bool
-createStore(const char *gkpStoreName,
+createStore(const char *seqStoreName,
             uint32      firstFileArg,
             char      **argv,
             uint32      argc,
             uint32      minReadLength) {
 
-  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, gkStore_create);   //  gkStore_extend MIGHT work
-  gkRead      *gkpRead      = NULL;
-  gkLibrary   *gkpLibrary   = NULL;
-  uint32       gkpFileID    = 0;      //  Used for HTML output, an ID for each file loaded.
+  sqStore     *seqStore     = sqStore::sqStore_open(seqStoreName, sqStore_create);   //  sqStore_extend MIGHT work
+  sqRead      *seqRead      = NULL;
+  sqLibrary   *seqLibrary   = NULL;
+  uint32       seqFileID    = 0;      //  Used for HTML output, an ID for each file loaded.
 
   uint32       inLineLen    = 1024;
   char         inLine[1024] = { 0 };
 
-  FILE        *errorLog = AS_UTL_openOutputFile(gkpStoreName, '/', "errorLog");
-  FILE        *loadLog  = AS_UTL_openOutputFile(gkpStoreName, '/', "load.dat");
-  FILE        *nameMap  = AS_UTL_openOutputFile(gkpStoreName, '/', "readNames.txt");
+  FILE        *errorLog = AS_UTL_openOutputFile(seqStoreName, '/', "errorLog");
+  FILE        *loadLog  = AS_UTL_openOutputFile(seqStoreName, '/', "load.dat");
+  FILE        *nameMap  = AS_UTL_openOutputFile(seqStoreName, '/', "readNames.txt");
 
   uint32       nERROR   = 0;  //  There aren't any errors, we just exit fatally if encountered.
   uint32       nWARNS   = 0;
@@ -592,48 +592,48 @@ createStore(const char *gkpStoreName,
       }
 
       if (strcasecmp(keyval.key(), "name") == 0) {
-        gkpLibrary = gkpStore->gkStore_addEmptyLibrary(keyval.value());
+        seqLibrary = seqStore->sqStore_addEmptyLibrary(keyval.value());
         continue;
       }
 
-      //  We'd better have a gkpLibrary defined, if not, the .gkp input file is incorrect.
-      if (gkpLibrary == NULL) {
-        fprintf(stderr, "WARNING: no 'name' tag in gkp input; creating library with name 'DEFAULT'.\n");
-        gkpLibrary = gkpStore->gkStore_addEmptyLibrary(keyval.value());
+      //  We'd better have a seqLibrary defined, if not, the .seq input file is incorrect.
+      if (seqLibrary == NULL) {
+        fprintf(stderr, "WARNING: no 'name' tag in seq input; creating library with name 'DEFAULT'.\n");
+        seqLibrary = seqStore->sqStore_addEmptyLibrary(keyval.value());
         nWARNS++;
       }
 
       if        (strcasecmp(keyval.key(), "preset") == 0) {
-        gkpLibrary->gkLibrary_parsePreset(keyval.value());
+        seqLibrary->sqLibrary_parsePreset(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "qv") == 0) {
-        gkpLibrary->gkLibrary_setDefaultQV(keyval.value_double());
+        seqLibrary->sqLibrary_setDefaultQV(keyval.value_double());
 
       } else if (strcasecmp(keyval.key(), "isNonRandom") == 0) {
-        gkpLibrary->gkLibrary_setIsNonRandom(keyval.value_bool());
+        seqLibrary->sqLibrary_setIsNonRandom(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "readType") == 0) {
-        gkpLibrary->gkLibrary_setReadType(keyval.value());
+        seqLibrary->sqLibrary_setReadType(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "removeDuplicateReads") == 0) {
-        gkpLibrary->gkLibrary_setRemoveDuplicateReads(keyval.value_bool());
+        seqLibrary->sqLibrary_setRemoveDuplicateReads(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "finalTrim") == 0) {
-        gkpLibrary->gkLibrary_setFinalTrim(keyval.value());
+        seqLibrary->sqLibrary_setFinalTrim(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "removeSpurReads") == 0) {
-        gkpLibrary->gkLibrary_setRemoveSpurReads(keyval.value_bool());
+        seqLibrary->sqLibrary_setRemoveSpurReads(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "removeChimericReads") == 0) {
-        gkpLibrary->gkLibrary_setRemoveChimericReads(keyval.value_bool());
+        seqLibrary->sqLibrary_setRemoveChimericReads(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "checkForSubReads") == 0) {
-        gkpLibrary->gkLibrary_setCheckForSubReads(keyval.value_bool());
+        seqLibrary->sqLibrary_setCheckForSubReads(keyval.value_bool());
 
       } else if (AS_UTL_fileExists(line, false, false)) {
-        loadReads(gkpStore,
-                  gkpLibrary,
-                  gkpFileID++,
+        loadReads(seqStore,
+                  seqLibrary,
+                  seqFileID++,
                   minReadLength,
                   nameMap,
                   loadLog,
@@ -652,11 +652,11 @@ createStore(const char *gkpStoreName,
     delete [] linekv;
   }
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
-  AS_UTL_closeFile(nameMap,  gkpStoreName, '/', "readNames.txt");
-  AS_UTL_closeFile(loadLog,  gkpStoreName, '/', "load.dat");
-  AS_UTL_closeFile(errorLog, gkpStoreName, '/', "errorLog");
+  AS_UTL_closeFile(nameMap,  seqStoreName, '/', "readNames.txt");
+  AS_UTL_closeFile(loadLog,  seqStoreName, '/', "load.dat");
+  AS_UTL_closeFile(errorLog, seqStoreName, '/', "errorLog");
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
@@ -674,16 +674,16 @@ createStore(const char *gkpStoreName,
   fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
 
   if (nERROR > 0)
-    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");
+    fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many errors.\n");
 
   if (bSKIPPED > 0.25 * (bSKIPPED + bLOADED))
-    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many bases skipped.  Check your reads.\n");
+    fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many bases skipped.  Check your reads.\n");
 
   if (nWARNS > 0.25 * (nLOADED))
-    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many warnings.  Check your reads.\n");
+    fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many warnings.  Check your reads.\n");
 
   if (nSKIPPED > 0.50 * (nLOADED))
-    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
+    fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
 
   if ((nERROR > 0) ||
       (bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
@@ -706,7 +706,7 @@ bool  byScore(const rl_t &a, const rl_t &b)   { return(a.score > b.score); }
 
 
 bool
-deleteShortReads(const char *gkpStoreName,
+deleteShortReads(const char *seqStoreName,
                  uint64      genomeSize,
                  double      desiredCoverage,
                  double      lengthBias) {
@@ -720,9 +720,9 @@ deleteShortReads(const char *gkpStoreName,
   //  Open the store for modification.
   //
 
-  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, gkStore_extend);
+  sqStore     *seqStore     = sqStore::sqStore_open(seqStoreName, sqStore_extend);
 
-  uint32       nReads       = gkpStore->gkStore_getNumReads();
+  uint32       nReads       = seqStore->sqStore_getNumReads();
   rl_t        *readLen      = new rl_t [nReads + 1];
   uint64       readLenSum   = 0;
 
@@ -730,14 +730,14 @@ deleteShortReads(const char *gkpStoreName,
   //  Initialize our list of read scores, and report a summary.
   //
 
-  fprintf(stderr, "Analyzing read lengths in store '%s'\n", gkpStoreName);
+  fprintf(stderr, "Analyzing read lengths in store '%s'\n", seqStoreName);
   fprintf(stderr, "\n");
   fprintf(stderr, "For genome size of " F_U64 " bases, at coverage %.2f, want to keep " F_U64 " bases.\n",
           genomeSize, desiredCoverage, desiredBases);
   fprintf(stderr, "\n");
 
   for (uint32 ii=0; ii<nReads+1; ii++) {
-    uint32  len = gkpStore->gkStore_getRead(ii)->gkRead_sequenceLength();
+    uint32  len = seqStore->sqStore_getRead(ii)->sqRead_sequenceLength();
 
     readLen[ii].readID = ii;
     readLen[ii].length = len;
@@ -778,7 +778,7 @@ deleteShortReads(const char *gkpStoreName,
     }
 
     else {
-      gkpStore->gkStore_setIgnore(readLen[ii].readID);
+      seqStore->sqStore_setIgnore(readLen[ii].readID);
 
       readsLost++;
     }
@@ -786,7 +786,7 @@ deleteShortReads(const char *gkpStoreName,
 
   delete [] readLen;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "Kept  %12" F_U32P " reads of length\n", readsKept);
   fprintf(stderr, "      %12" F_U64P " bases.\n", readLenSum);
@@ -801,7 +801,7 @@ deleteShortReads(const char *gkpStoreName,
 
 int
 main(int argc, char **argv) {
-  char            *gkpStoreName      = NULL;
+  char            *seqStoreName      = NULL;
 
   uint32           minReadLength     = 0;
   uint64           genomeSize        = 0;
@@ -823,7 +823,7 @@ main(int argc, char **argv) {
   int             arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-o") == 0) {
-      gkpStoreName = argv[++arg];
+      seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
@@ -853,8 +853,8 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (gkpStoreName == NULL)
-    err.push_back("ERROR: no gkpStore (-o) supplied.\n");
+  if (seqStoreName == NULL)
+    err.push_back("ERROR: no seqStore (-o) supplied.\n");
 
   if (firstFileArg == 0)
     err.push_back("ERROR: no input files supplied.\n");
@@ -863,8 +863,8 @@ main(int argc, char **argv) {
     err.push_back("ERROR: no genome size (-genomesize) set, needed for coverage filtering (-coverage) to work.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -o gkpStore [-minlength L] [-genomesize G -coverage C] input.gkp\n", argv[0]);
-    fprintf(stderr, "  -o gkpStore            load raw reads into new gkpStore\n");
+    fprintf(stderr, "usage: %s -o seqStore [-minlength L] [-genomesize G -coverage C] input.ssi\n", argv[0]);
+    fprintf(stderr, "  -o seqStore            load raw reads into new seqStore\n");
     fprintf(stderr, "  \n");
     fprintf(stderr, "  -minlength L           discard reads shorter than L\n");
     fprintf(stderr, "  \n");
@@ -880,12 +880,12 @@ main(int argc, char **argv) {
   }
 
 
-  if (createStore(gkpStoreName, firstFileArg, argv, argc, minReadLength) &&
-      deleteShortReads(gkpStoreName, genomeSize, desiredCoverage, lengthBias)) {
-    fprintf(stderr, "gatekeeperCreate finished successfully.\n");
+  if (createStore(seqStoreName, firstFileArg, argv, argc, minReadLength) &&
+      deleteShortReads(seqStoreName, genomeSize, desiredCoverage, lengthBias)) {
+    fprintf(stderr, "sqStoreCreate finished successfully.\n");
     exit(0);
   } else {
-    fprintf(stderr, "gatekeeperCreate terminated abnormally.\n");
+    fprintf(stderr, "sqStoreCreate terminated abnormally.\n");
     exit(1);
   }
 }

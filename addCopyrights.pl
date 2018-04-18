@@ -225,7 +225,9 @@ my %derived;
             $authcopy{$1} .= "$2\n";
 
         } elsif (m/^D\s+(\S+)\s+(\S+)$/) {
-            $derived{$1} .= "$2\n";
+            $authcopy{$1} .= $authcopy{$2};   #  Include all authors of old file in new file.
+            #$derived{$1}  .= $derived{$2};
+            $derived{$1}  .= "$2\n";
 
         } else {
             die "invalid addCopyrights.dat line '$_'\n";

@@ -15,15 +15,19 @@
  *
  *  This file is derived from:
  *
- *    src/stores/gkStore.C
+ *    src/stores/gkStoreConstructor.C
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-OCT-03
+ *    Brian P. Walenz from 2014-NOV-26 to 2015-AUG-10
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-09
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
- *    Sergey Koren beginning on 2017-OCT-18
+ *    Sergey Koren beginning on 2015-DEC-09
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -31,21 +35,21 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "gkStore.H"
+#include "sqStore.H"
 
 #include "AS_UTL_fileIO.H"
 
 
 
 void
-gkStore::gkStore_loadMetadata(void) {
+sqStore::sqStore_loadMetadata(void) {
   char    name[FILENAME_MAX+1];
 
-  _librariesAlloc = _info.gkInfo_numLibraries() + 1;
-  _readsAlloc     = _info.gkInfo_numReads()     + 1;
+  _librariesAlloc = _info.sqInfo_numLibraries() + 1;
+  _readsAlloc     = _info.sqInfo_numReads()     + 1;
 
-  _libraries      = new gkLibrary [_librariesAlloc];
-  _reads          = new gkRead    [_readsAlloc];
+  _libraries      = new sqLibrary [_librariesAlloc];
+  _reads          = new sqRead    [_readsAlloc];
 
   AS_UTL_loadFile(_storePath, '/', "libraries", _libraries, _librariesAlloc);
   AS_UTL_loadFile(_storePath, '/', "reads",     _reads,     _readsAlloc);
@@ -60,9 +64,9 @@ gkStore::gkStore_loadMetadata(void) {
 
 
 
-gkStore::gkStore(char const    *storePath,
+sqStore::sqStore(char const    *storePath,
                  char const    *clonePath,
-                 gkStore_mode   mode,
+                 sqStore_mode   mode,
                  uint32         partID) {
   char    nameI[FILENAME_MAX+1];
   char    nameL[FILENAME_MAX+1];
@@ -111,7 +115,7 @@ gkStore::gkStore(char const    *storePath,
 
   if (_info.checkInfo() == false) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "ERROR:  Can't open store '%s': parameters in gkStore.H and gkRead.H are incompatible with the store.\n", _storePath);
+    fprintf(stderr, "ERROR:  Can't open store '%s': parameters in sqStore.H and sqRead.H are incompatible with the store.\n", _storePath);
     exit(1);
   }
 
@@ -119,22 +123,22 @@ gkStore::gkStore(char const    *storePath,
   //  CREATE - allocate some memory for saving libraries and reads, and create a file to dump the data into.
   //
 
-  if (mode == gkStore_create) {
+  if (mode == sqStore_create) {
     if (partID != UINT32_MAX)
-      fprintf(stderr, "gkStore()-- Illegal combination of gkStore_create with defined partID.\n"), exit(1);
+      fprintf(stderr, "sqStore()-- Illegal combination of sqStore_create with defined partID.\n"), exit(1);
 
     if (AS_UTL_fileExists(_storePath, true, true) == true)
       fprintf(stderr, "ERROR:  Can't create store '%s': store already exists.\n", _storePath), exit(1);
 
     AS_UTL_mkdir(_storePath);
 
-    _librariesAlloc = 32;           //  _libraries and 
+    _librariesAlloc = 32;           //  _libraries and
     _readsAlloc     = 32768;        //  _reads MUST be preallocated.
 
-    _libraries      = new gkLibrary [_librariesAlloc];
-    _reads          = new gkRead    [_readsAlloc];
+    _libraries      = new sqLibrary [_librariesAlloc];
+    _reads          = new sqRead    [_readsAlloc];
 
-    _blobsWriter    = new gkStoreBlobWriter(_storePath);
+    _blobsWriter    = new sqStoreBlobWriter(_storePath);
 
     return;
   }
@@ -144,23 +148,23 @@ gkStore::gkStore(char const    *storePath,
   //
 
   if (AS_UTL_fileExists(_storePath, true, false) == false)
-    fprintf(stderr, "gkStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath), exit(1);
+    fprintf(stderr, "sqStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath), exit(1);
 
-  if ((mode == gkStore_extend) &&
+  if ((mode == sqStore_extend) &&
       (partID != UINT32_MAX))
-    fprintf(stderr, "gkStore()-- Illegal combination of gkStore_extend with defined partID.\n"), exit(1);
+    fprintf(stderr, "sqStore()-- Illegal combination of sqStore_extend with defined partID.\n"), exit(1);
 
   //
   //  EXTEND - just load the metadata, allocate some stuff, and return.
   //
 
-  if (mode == gkStore_extend) {
-    gkStore_loadMetadata();
+  if (mode == sqStore_extend) {
+    sqStore_loadMetadata();
 
     _blobsFilesMax = omp_get_max_threads();
-    _blobsFiles    = new gkStoreBlobReader [_blobsFilesMax];
+    _blobsFiles    = new sqStoreBlobReader [_blobsFilesMax];
 
-    _blobsWriter   = new gkStoreBlobWriter(_storePath);
+    _blobsWriter   = new sqStoreBlobWriter(_storePath);
 
     return;
   }
@@ -169,11 +173,11 @@ gkStore::gkStore(char const    *storePath,
   //  BUILDING PARTITIONS - load metadata and return.
   //
 
-  if (mode == gkStore_buildPart) {
-    gkStore_loadMetadata();
+  if (mode == sqStore_buildPart) {
+    sqStore_loadMetadata();
 
     _blobsFilesMax = omp_get_max_threads();
-    _blobsFiles    = new gkStoreBlobReader [_blobsFilesMax];
+    _blobsFiles    = new sqStoreBlobReader [_blobsFilesMax];
 
     return;
   }
@@ -183,10 +187,10 @@ gkStore::gkStore(char const    *storePath,
   //
 
   if (partID == UINT32_MAX) {       //  READ ONLY, non-partitioned (also for creating partitions)
-    gkStore_loadMetadata();
+    sqStore_loadMetadata();
 
     _blobsFilesMax = omp_get_max_threads();
-    _blobsFiles    = new gkStoreBlobReader [_blobsFilesMax];
+    _blobsFiles    = new sqStoreBlobReader [_blobsFilesMax];
 
     return;
   }
@@ -199,16 +203,16 @@ gkStore::gkStore(char const    *storePath,
 
   FILE *F = AS_UTL_openInputFile(nameI);
 
-  AS_UTL_safeRead(F, &_numberOfPartitions, "gkStore::_numberOfPartitions", sizeof(uint32), 1);
+  AS_UTL_safeRead(F, &_numberOfPartitions, "sqStore::_numberOfPartitions", sizeof(uint32), 1);
 
   _partitionID            = partID;
   _readsPerPartition      = new uint32 [_numberOfPartitions   + 1];  //  No zeroth element in any of these
-  _readIDtoPartitionID    = new uint32 [gkStore_getNumReads() + 1];
-  _readIDtoPartitionIdx   = new uint32 [gkStore_getNumReads() + 1];
+  _readIDtoPartitionID    = new uint32 [sqStore_getNumReads() + 1];
+  _readIDtoPartitionIdx   = new uint32 [sqStore_getNumReads() + 1];
 
-  AS_UTL_safeRead(F, _readsPerPartition,    "gkStore::_readsPerPartition",    sizeof(uint32), _numberOfPartitions   + 1);
-  AS_UTL_safeRead(F, _readIDtoPartitionID,  "gkStore::_readIDtoPartitionID",  sizeof(uint32), gkStore_getNumReads() + 1);
-  AS_UTL_safeRead(F, _readIDtoPartitionIdx, "gkStore::_readIDtoPartitionIdx", sizeof(uint32), gkStore_getNumReads() + 1);
+  AS_UTL_safeRead(F, _readsPerPartition,    "sqStore::_readsPerPartition",    sizeof(uint32), _numberOfPartitions   + 1);
+  AS_UTL_safeRead(F, _readIDtoPartitionID,  "sqStore::_readIDtoPartitionID",  sizeof(uint32), sqStore_getNumReads() + 1);
+  AS_UTL_safeRead(F, _readIDtoPartitionIdx, "sqStore::_readIDtoPartitionIdx", sizeof(uint32), sqStore_getNumReads() + 1);
 
   AS_UTL_closeFile(F, nameI);
 
@@ -218,13 +222,13 @@ gkStore::gkStore(char const    *storePath,
   snprintf(nameR, FILENAME_MAX, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
   snprintf(nameB, FILENAME_MAX, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
 
-  _librariesAlloc = _info.gkInfo_numLibraries() + 1;
+  _librariesAlloc = _info.sqInfo_numLibraries() + 1;
   _readsAlloc     = _readsPerPartition[partID];
 
   uint64 bs       = AS_UTL_sizeOfFile(nameB);
 
-  _libraries = new gkLibrary [_librariesAlloc];
-  _reads     = new gkRead    [_readsAlloc];
+  _libraries = new sqLibrary [_librariesAlloc];
+  _reads     = new sqRead    [_readsAlloc];
   _blobsData = new uint8     [bs];
 
   AS_UTL_loadFile(nameL, _libraries, _librariesAlloc);
@@ -237,14 +241,14 @@ gkStore::gkStore(char const    *storePath,
 
 
 
-gkStore::~gkStore() {
+sqStore::~sqStore() {
   char    No[FILENAME_MAX+1];
   char    Nn[FILENAME_MAX+1];
   uint32  V = 1;
 
   //  Save original metadata.
 
-  if (_mode == gkStore_extend) {
+  if (_mode == sqStore_extend) {
     snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
     while (AS_UTL_fileExists(No) == true) {
       V++;
@@ -272,8 +276,8 @@ gkStore::~gkStore() {
 
   //  Recount.
 
-  if ((_mode == gkStore_create) ||
-      (_mode == gkStore_extend)) {
+  if ((_mode == sqStore_create) ||
+      (_mode == sqStore_extend)) {
     _info.recountReads(_reads);
   }
 #if 0
@@ -302,10 +306,10 @@ gkStore::~gkStore() {
 
   //  Write updated metadata.
 
-  if ((_mode == gkStore_create) ||
-      (_mode == gkStore_extend)) {
-    AS_UTL_saveFile(_storePath, '/', "libraries", _libraries, gkStore_getNumLibraries() + 1);
-    AS_UTL_saveFile(_storePath, '/', "reads",     _reads,     gkStore_getNumReads()     + 1);
+  if ((_mode == sqStore_create) ||
+      (_mode == sqStore_extend)) {
+    AS_UTL_saveFile(_storePath, '/', "libraries", _libraries, sqStore_getNumLibraries() + 1);
+    AS_UTL_saveFile(_storePath, '/', "reads",     _reads,     sqStore_getNumReads()     + 1);
     AS_UTL_saveFile(_storePath, '/', "info",     &_info,                                  1);
 
     FILE *F = AS_UTL_openOutputFile(_storePath, '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
@@ -315,8 +319,8 @@ gkStore::~gkStore() {
 
   //  Write original metadata to the clone.
 
-  if (_mode == gkStore_buildPart) {
-    AS_UTL_saveFile(_clonePath, '/', "libraries", _libraries, gkStore_getNumLibraries() + 1);
+  if (_mode == sqStore_buildPart) {
+    AS_UTL_saveFile(_clonePath, '/', "libraries", _libraries, sqStore_getNumLibraries() + 1);
     AS_UTL_saveFile(_clonePath, '/', "info",     &_info,                                  1);
 
     FILE *F = AS_UTL_openOutputFile(_clonePath, '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
@@ -340,8 +344,8 @@ gkStore::~gkStore() {
 
 
 
-gkStore *
-gkStore::gkStore_open(char const *path, gkStore_mode mode, uint32 partID) {
+sqStore *
+sqStore::sqStore_open(char const *path, sqStore_mode mode, uint32 partID) {
 
   //  If an instance exists, return it, otherwise, make a new one.
 
@@ -350,7 +354,7 @@ gkStore::gkStore_open(char const *path, gkStore_mode mode, uint32 partID) {
     if (_instance != NULL) {
       _instanceCount++;
     } else {
-      _instance      = new gkStore(path, NULL, mode, partID);
+      _instance      = new sqStore(path, NULL, mode, partID);
       _instanceCount = 1;
     }
   }
@@ -360,8 +364,8 @@ gkStore::gkStore_open(char const *path, gkStore_mode mode, uint32 partID) {
 
 
 
-gkStore *
-gkStore::gkStore_open(char const *storePath, char const *clonePath) {
+sqStore *
+sqStore::sqStore_open(char const *storePath, char const *clonePath) {
 
   //  Only one instance can be opened at a time.
 
@@ -369,7 +373,7 @@ gkStore::gkStore_open(char const *storePath, char const *clonePath) {
   {
     assert(_instance == NULL);
 
-    _instance      = new gkStore(storePath, clonePath, gkStore_buildPart, UINT32_MAX);
+    _instance      = new sqStore(storePath, clonePath, sqStore_buildPart, UINT32_MAX);
     _instanceCount = 1;
   }
 
@@ -379,7 +383,7 @@ gkStore::gkStore_open(char const *storePath, char const *clonePath) {
 
 
 void
-gkStore::gkStore_close(void) {
+sqStore::sqStore_close(void) {
 
 #pragma omp critical
   {
@@ -395,10 +399,10 @@ gkStore::gkStore_close(void) {
 
 
 void
-gkStore::gkStore_delete(void) {
+sqStore::sqStore_delete(void) {
   char path[FILENAME_MAX+1];
 
-  gkStore_deletePartitions();
+  sqStore_deletePartitions();
 
   snprintf(path, FILENAME_MAX, "%s/info",      _storePath);  AS_UTL_unlink(path);
   snprintf(path, FILENAME_MAX, "%s/libraries", _storePath);  AS_UTL_unlink(path);
@@ -411,7 +415,7 @@ gkStore::gkStore_delete(void) {
 
 
 void
-gkStore::gkStore_deletePartitions(void) {
+sqStore::sqStore_deletePartitions(void) {
   char path[FILENAME_MAX+1];
 
   snprintf(path, FILENAME_MAX, "%s/partitions/map", _storePath);
@@ -423,7 +427,7 @@ gkStore::gkStore_deletePartitions(void) {
 
   FILE *F = AS_UTL_openInputFile(path);
 
-  AS_UTL_safeRead(F, &_numberOfPartitions, "gkStore_deletePartitions::numberOfPartitions", sizeof(uint32), 1);
+  AS_UTL_safeRead(F, &_numberOfPartitions, "sqStore_deletePartitions::numberOfPartitions", sizeof(uint32), 1);
 
   AS_UTL_closeFile(F, path);
 

@@ -62,7 +62,7 @@ use canu::Grid_PBSTorque;
 use canu::Grid_LSF;
 use canu::Grid_DNANexus;
 
-use canu::Gatekeeper;
+use canu::SequenceStore;
 use canu::Meryl;
 use canu::OverlapInCore;
 use canu::OverlapMhap;
@@ -238,11 +238,11 @@ while (scalar(@ARGV)) {
 if (!defined($asm)) {
     $asmAuto = 1;   #  If we don't actually find a prefix, we'll fail right after this, so OK to set blindly.
 
-    open(F, "ls -d */*gkpStore |");
+    open(F, "ls -d */*seqStore |");
     while (<F>) {
-        $asm = $1   if (m/^correction\/(.*).gkpStore$/);
-        $asm = $1   if (m/^trimming\/(.*).gkpStore$/);
-        $asm = $1   if (m/^unitigging\/(.*).gkpStore$/);
+        $asm = $1   if (m/^correction\/(.*).seqStore$/);
+        $asm = $1   if (m/^trimming\/(.*).seqStore$/);
+        $asm = $1   if (m/^unitigging\/(.*).seqStore$/);
     }
     close(F);
 }
@@ -357,15 +357,15 @@ my $setUpForNanopore = 0;
 
 #  If we're a cloud run, fetch the store.
 
-fetchStore("./$asm.gkpStore")    if ((! -e "./$asm.gkpStore") && (fileExists("$asm.gkpStore.tar")));
+fetchStore("./$asm.seqStore")    if ((! -e "./$asm.seqStore") && (fileExists("$asm.seqStore.tar")));
 
-#  Scan for an existing gkpStore.
+#  Scan for an existing seqStore.
 
 my $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of raw reads ready for correction.
 my $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
 my $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads ready for assembly.
 
-#  If a gkpStore was found, scan the reads in it to decide what we're working with.
+#  If a seqStore was found, scan the reads in it to decide what we're working with.
 
 if ($nCor + $nOBT + $nAsm > 0) {
     my $numPacBioRaw         = 0;
@@ -373,7 +373,7 @@ if ($nCor + $nOBT + $nAsm > 0) {
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< $asm.gkpStore/libraries.txt") or caExit("can't open '$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    open(L, "< $asm.seqStore/libraries.txt") or caExit("can't open '$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
@@ -397,7 +397,7 @@ if ($nCor + $nOBT + $nAsm > 0) {
     #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
-    print STDERR "-- In '$asm.gkpStore', found $rt reads:\n";
+    print STDERR "-- In '$asm.seqStore', found $rt reads:\n";
     print STDERR "--   Raw:        $nCor\n";
     print STDERR "--   Corrected:  $nOBT\n";
     print STDERR "--   Trimmed:    $nAsm\n";
@@ -437,7 +437,7 @@ elsif (scalar(@inputFiles) > 0) {
 #  Otherwise, no reads found in a store, and no input files.
 
 else {
-    caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef);
+    caExit("ERROR: No reads supplied, and can't find any reads in any seqStore", undef);
 }
 
 #  Set an initial run mode, based on the libraries we have found, or the stores that exist (unless
@@ -447,9 +447,9 @@ if (!defined($mode)) {
     $mode = "run"            if ($haveRaw       > 0);
     $mode = "trim-assemble"  if ($haveCorrected > 0);
 
-    $mode = "run"            if (-e "correction/$asm.gkpStore/libraries.txt");
-    $mode = "trim-assemble"  if (-e "trimming/$asm.gkpStore/libraries.txt");
-    $mode = "assemble"       if (-e "unitigging/$asm.gkpStore/libraries.txt");
+    $mode = "run"            if (-e "correction/$asm.seqStore/libraries.txt");
+    $mode = "trim-assemble"  if (-e "trimming/$asm.seqStore/libraries.txt");
+    $mode = "assemble"       if (-e "unitigging/$asm.seqStore/libraries.txt");
 }
 
 #  Set the type of the reads.  A command line option could force the type, e.g., "-pacbio" or
@@ -486,7 +486,7 @@ if ($type eq"pacbio") {
 #    no mode                -> don't have any reads or any store to run from.
 #    both raw and corrected -> don't know how to process these
 
-caExit("ERROR: No reads supplied, and can't find any reads in any gkpStore", undef)   if (!defined($mode));
+caExit("ERROR: No reads supplied, and can't find any reads in any seqStore", undef)   if (!defined($mode));
 caExit("ERROR: Failed to determine the sequencing technology of the reads", undef)    if (!defined($type));
 caExit("ERROR: Can't mix uncorrected and corrected reads", undef)                     if ($haveRaw && $haveCorrected);
 
@@ -617,7 +617,7 @@ if (setOptions($mode, "correct") eq "correct") {
         print STDERR "-- BEGIN CORRECTION\n";
         print STDERR "--\n";
 
-        if (gatekeeper($asm, "cor", @inputFiles)) {
+        if (checkSequenceStore($asm, "cor", @inputFiles)) {
             merylConfigure($asm, "cor");
             merylCheck($asm, "cor")  foreach (1..getGlobal("canuIterationMax") + 1);
             merylProcess($asm, "cor");
@@ -649,7 +649,7 @@ if ((setOptions($mode, "trim") eq "trim") &&
         print STDERR "-- BEGIN TRIMMING\n";
         print STDERR "--\n";
 
-        if (gatekeeper($asm, "obt", @inputFiles)) {
+        if (checkSequenceStore($asm, "obt", @inputFiles)) {
             merylConfigure($asm, "obt");
             merylCheck($asm, "obt")  foreach (1..getGlobal("canuIterationMax") + 1);
             merylProcess($asm, "obt");
@@ -673,7 +673,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
         print STDERR "-- BEGIN ASSEMBLY\n";
         print STDERR "--\n";
 
-        if (gatekeeper($asm, "utg", @inputFiles)) {
+        if (checkSequenceStore($asm, "utg", @inputFiles)) {
             if (getGlobal("unitigger") ne "wtdbg") {
                 merylConfigure($asm, "utg");
                 merylCheck($asm, "utg")  foreach (1..getGlobal("canuIterationMax") + 1);
@@ -694,7 +694,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
 
             unitig($asm);
             unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-            
+
             foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
                 consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
                 consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.

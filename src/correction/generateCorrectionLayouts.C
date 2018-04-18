@@ -32,7 +32,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
@@ -55,12 +55,12 @@ using namespace std;
 FILE *flgFile = NULL;
 
 uint16 *
-loadThresholds(gkStore *gkpStore,
+loadThresholds(sqStore *seqStore,
                ovStore *ovlStore,
                char    *scoreName,
                uint32   expectedCoverage,
                FILE    *scoFile) {
-  uint32   numReads   = gkpStore->gkStore_getNumReads();
+  uint32   numReads   = seqStore->sqStore_getNumReads();
   uint16  *olapThresh = new uint16 [numReads + 1];
 
   if (scoreName != NULL) {
@@ -114,10 +114,10 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
 }
 
 void
-generateFalconLayout(gkStore           *gkpStore,
+generateFalconLayout(sqStore           *seqStore,
                      tgTig             *tig,
                      bool               trimToAlign,
-                     gkReadData        *readData,
+                     sqReadData        *readData,
                      uint32             minOutputLength, uint32 minOverlapLength) {
 
   //  Grab and save the raw read for the template.
@@ -125,27 +125,27 @@ generateFalconLayout(gkStore           *gkpStore,
   fprintf(stderr, "Processing read %u of length %u with %u evidence reads.\n",
           tig->tigID(), tig->length(), tig->numberOfChildren());
 
-  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
+  seqStore->sqStore_loadReadData(tig->tigID(), readData);
 
   //  Now parse the layout and push all the sequences onto our seqs vector.
-  if ( readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw) < minOutputLength) {
+  if ( readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw) < minOutputLength) {
      return;
   }
 
-  fprintf(stdout, "read%d %s\n", tig->tigID(), readData->gkReadData_getRawSequence());
+  fprintf(stdout, "read%d %s\n", tig->tigID(), readData->sqReadData_getRawSequence());
 
   for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
     tgPosition  *child = tig->getChild(cc);
 
-    gkpStore->gkStore_loadReadData(child->ident(), readData);
+    seqStore->sqStore_loadReadData(child->ident(), readData);
 
     if (child->isReverse())
-      reverseComplementSequence(readData->gkReadData_getRawSequence(),
-                                readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw));
+      reverseComplementSequence(readData->sqReadData_getRawSequence(),
+                                readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw));
 
     //  Trim the read to the aligned bit
-    char   *seq    = readData->gkReadData_getRawSequence();
-    uint32  seqLen = readData->gkReadData_getRead()->gkRead_sequenceLength(gkRead_raw);
+    char   *seq    = readData->sqReadData_getRawSequence();
+    uint32  seqLen = readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw);
 
     if (trimToAlign) {
       seq    += child->askip();
@@ -284,7 +284,7 @@ generateLayout(tgTig      *layout,
 
 int
 main(int argc, char **argv) {
-  char             *gkpName    = 0L;
+  char             *seqName    = 0L;
   char             *ovlName    = 0L;
   char             *corName    = 0L;
   char             *flgName    = 0L;
@@ -318,13 +318,13 @@ main(int argc, char **argv) {
   int err=0;
 
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {   //  INPUTS
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {   //  INPUTS
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-S") == 0) {
+    } else if (strcmp(argv[arg], "-scores") == 0) {
       scoreName = argv[++arg];
 
 
@@ -370,18 +370,19 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (corName == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "INPUTS\n");
-    fprintf(stderr, "  -G gkpStore      mandatory path to gkpStore\n");
+    fprintf(stderr, "  -S seqStore      mandatory path to seqStore\n");
     fprintf(stderr, "  -O ovlStore      mandatory path to ovlStore\n");
-    fprintf(stderr, "  -S file          overlap score thresholds (from filterCorrectionOverlaps)\n");
-    fprintf(stderr, "                     if not supplied, will be estimated from ovlStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -scores sf       overlap score thresholds (from filterCorrectionOverlaps)\n");
+    fprintf(stderr, "                   if not supplied, will be estimated from ovlStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "OUTPUTS\n");
     fprintf(stderr, "  -C corStore      output layouts to store 'corStore'\n");
@@ -400,8 +401,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -eM length       minimum length of a corrected read\n");              //  not used in canu
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR: no input gkpStore (-G) supplied.\n");
+    if (seqName == NULL)
+      fprintf(stderr, "ERROR: no input seqStore (-S) supplied.\n");
     if (corName == NULL)
       fprintf(stderr, "ERROR: no output corStore (-C) supplied.\n");
     exit(1);
@@ -409,14 +410,14 @@ main(int argc, char **argv) {
 
   //  Open inputs and output tigStore.
 
-  gkRead_setDefaultVersion(gkRead_raw);
+  sqRead_setDefaultVersion(sqRead_raw);
 
-  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
+  sqStore  *seqStore = sqStore::sqStore_open(seqName);
 
   if (ovlName == NULL && readListName != NULL) {
      tgStore  *corStore = new tgStore(corName, 1);
-     gkReadData        *rd = new gkReadData;
-     uint32    numReads = gkpStore->gkStore_getNumReads();
+     sqReadData        *rd = new sqReadData;
+     uint32    numReads = seqStore->sqStore_getNumReads();
 
      if (numReads < iidMax)
         iidMax = numReads;
@@ -429,7 +430,7 @@ main(int argc, char **argv) {
 
        tgTig *layout = corStore->loadTig(ii);
 
-       generateFalconLayout(gkpStore, layout, true, rd, minCorLength, minEvidenceLength);
+       generateFalconLayout(seqStore, layout, true, rd, minCorLength, minEvidenceLength);
 
        corStore->unloadTig(ii);
      }
@@ -437,10 +438,10 @@ main(int argc, char **argv) {
      return 0;
   }
 
-  ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
+  ovStore  *ovlStore = new ovStore(ovlName, seqStore);
   tgStore  *corStore = new tgStore(corName);
 
-  uint32    numReads = gkpStore->gkStore_getNumReads();
+  uint32    numReads = seqStore->sqStore_getNumReads();
 
   //  Threshold the range of reads to operate on.
 
@@ -463,7 +464,7 @@ main(int argc, char **argv) {
 
   //  Load read scores, if supplied.
 
-  uint16   *olapThresh = loadThresholds(gkpStore, ovlStore, scoreName, expectedCoverage, scoFile);
+  uint16   *olapThresh = loadThresholds(seqStore, ovlStore, scoreName, expectedCoverage, scoFile);
 
   //  Initialize processing.
 
@@ -479,7 +480,7 @@ main(int argc, char **argv) {
       tgTig   *layout = new tgTig;
 
       layout->_tigID     = rr;
-      layout->_layoutLen = gkpStore->gkStore_getRead(rr)->gkRead_sequenceLength(gkRead_raw);
+      layout->_layoutLen = seqStore->sqStore_getRead(rr)->sqRead_sequenceLength(sqRead_raw);
 
       generateLayout(layout,
                      olapThresh,
@@ -502,7 +503,7 @@ main(int argc, char **argv) {
   delete    corStore;
   delete    ovlStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   fprintf(stderr, "Bye.\n");
 

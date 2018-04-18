@@ -45,7 +45,7 @@ using namespace std;
 bool
 bestEdge(ovOverlap  *ovl,
          uint32       ovlLen,
-         gkRead      *read,
+         sqRead      *read,
          uint32       ibgn,
          uint32       iend,
          uint32      &fbgn,
@@ -60,7 +60,7 @@ bestEdge(ovOverlap  *ovl,
   fend      = iend;
   logMsg[0] = 0;
 
-  assert(read->gkRead_readID() == ovl[0].a_iid);
+  assert(read->sqRead_readID() == ovl[0].a_iid);
   assert(ovlLen > 0);
 
   //
@@ -78,8 +78,8 @@ bestEdge(ovOverlap  *ovl,
   //  Trim again, to maximize overlap length.
   //
 
-  int32             iid = read->gkRead_readID();
-  uint32            len = read->gkRead_sequenceLength();
+  int32             iid = read->sqRead_readID();
+  uint32            len = read->sqRead_sequenceLength();
 
   vector<uint32>    trim5;
   vector<uint32>    trim3;
@@ -330,9 +330,9 @@ bestEdge(ovOverlap  *ovl,
 
     FILE *F;
 
-    snprintf(D, FILENAME_MAX, "trim-%08d.dat", read->gkRead_readID());
-    snprintf(G, FILENAME_MAX, "trim-%08d.gp",  read->gkRead_readID());
-    snprintf(S, FILENAME_MAX, "gnuplot < trim-%08d.gp", read->gkRead_readID());
+    snprintf(D, FILENAME_MAX, "trim-%08d.dat", read->sqRead_readID());
+    snprintf(G, FILENAME_MAX, "trim-%08d.gp",  read->sqRead_readID());
+    snprintf(S, FILENAME_MAX, "gnuplot < trim-%08d.gp", read->sqRead_readID());
 
     F = fopen(D, "w");
     for (uint32 i=0; i<MAX(trim5.size(), trim3.size()); i++) {
@@ -358,10 +358,10 @@ bestEdge(ovOverlap  *ovl,
     F = fopen(G, "w");
     fprintf(F, "set terminal png\n");
     fprintf(F, "set output \"trim-%08d.png\"\n",
-            read->gkRead_readIID());
+            read->sqRead_readIID());
     fprintf(F, "plot \"trim-%08d.dat\" using 3:5 with linespoints, \"trim-%08d.dat\" using 10:12 with linespoints\n",
-            read->gkRead_readIID(),
-            read->gkRead_readIID());
+            read->sqRead_readIID(),
+            read->sqRead_readIID());
     AS_UTL_closeFile(F, G);
 
 
@@ -393,7 +393,7 @@ bestEdge(ovOverlap  *ovl,
 
 #if 1
   if (fend < fbgn) {
-    fprintf(stderr, "iid = %u\n", read->gkRead_readID());
+    fprintf(stderr, "iid = %u\n", read->sqRead_readID());
     fbgn = lbgn;
     fend = lend;
   }

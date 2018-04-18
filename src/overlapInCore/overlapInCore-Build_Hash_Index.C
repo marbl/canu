@@ -441,7 +441,7 @@ Put_String_In_Hash(uint32 UNUSED(curID), uint32 i) {
 //  first_frag_id  is the
 //  internal ID of the first fragment in the hash table.
 int
-Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
+Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
   String_Ref_t  ref;
   uint64  total_len;
   uint64   hash_entry_limit;
@@ -486,22 +486,22 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   for (curID=bgnID; ((total_len <  G.Max_Hash_Data_Len) &&
                      (curID     <= endID)); curID++) {
-    gkRead *read = gkpStore->gkStore_getRead(curID);
+    sqRead *read = seqStore->sqStore_getRead(curID);
 
-    if ((read->gkRead_libraryID() < G.minLibToHash) ||
-        (read->gkRead_libraryID() > G.maxLibToHash)) {
+    if ((read->sqRead_libraryID() < G.minLibToHash) ||
+        (read->sqRead_libraryID() > G.maxLibToHash)) {
       nSkipped++;
       continue;
     }
 
-    if (read->gkRead_sequenceLength() < G.Min_Olap_Len) {
+    if (read->sqRead_sequenceLength() < G.Min_Olap_Len) {
       nShort++;
       continue;
     }
 
     nLoadable++;
 
-    maxAlloc += read->gkRead_sequenceLength() + 1;
+    maxAlloc += read->sqRead_sequenceLength() + 1;
   }
 
   fprintf(stderr, "\n");
@@ -524,7 +524,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   memset(nextRef, 0xff, sizeof(String_Ref_t) * nextRef_Len);
 
-  gkReadData   *readData = new gkReadData;
+  sqReadData   *readData = new sqReadData;
 
   //  Every read must have an entry in the table, otherwise
 
@@ -541,21 +541,21 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     String_Info[String_Ct].lfrag_end_screened  = true;
     String_Info[String_Ct].rfrag_end_screened  = true;
 
-    gkRead  *read = gkpStore->gkStore_getRead(curID);
+    sqRead  *read = seqStore->sqStore_getRead(curID);
 
-    if ((read->gkRead_libraryID() < G.minLibToHash) ||
-        (read->gkRead_libraryID() > G.maxLibToHash))
+    if ((read->sqRead_libraryID() < G.minLibToHash) ||
+        (read->sqRead_libraryID() > G.maxLibToHash))
       continue;
 
-    uint32 len = read->gkRead_sequenceLength();
+    uint32 len = read->sqRead_sequenceLength();
 
     if (len < G.Min_Olap_Len)
       continue;
 
-    gkpStore->gkStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, readData);
 
-    char   *seqptr   = readData->gkReadData_getSequence();
-    uint8  *qltptr   = readData->gkReadData_getQualities();
+    char   *seqptr   = readData->sqReadData_getSequence();
+    uint8  *qltptr   = readData->sqReadData_getQualities();
 
     //  Note where we are going to store the string, and how long it is
 

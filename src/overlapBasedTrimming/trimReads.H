@@ -32,7 +32,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 
 #include "intervalList.H"
@@ -55,7 +55,7 @@
 bool
 largestCovered(ovOverlap   *ovl,
                uint32       ovlLen,
-               gkRead      *read,
+               sqRead      *read,
                uint32       ibgn,
                uint32       iend,
                uint32      &fbgn,
@@ -69,7 +69,7 @@ largestCovered(ovOverlap   *ovl,
 bool
 bestEdge(ovOverlap   *ovl,
          uint32       ovlLen,
-         gkRead      *read,
+         sqRead      *read,
          uint32       ibgn,
          uint32       iend,
          uint32      &fbgn,

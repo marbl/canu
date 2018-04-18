@@ -15,11 +15,15 @@
  *
  *  This file is derived from:
  *
- *    src/stores/gkStore.H
+ *    src/stores/gkRead.H
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-OCT-03
+ *    Brian P. Walenz from 2014-NOV-26 to 2015-AUG-14
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-09
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -27,37 +31,37 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef GKREAD_H
-#define GKREAD_H
+#ifndef SQREAD_H
+#define SQREAD_H
 
 
-//  DO NOT INCLUDE THIS FILE DIRECTLY, include gkStore.H.
+//  DO NOT INCLUDE THIS FILE DIRECTLY, include sqStore.H.
 
 
 typedef enum {
-  gkRead_latest    = 0x00,  //  Return the latest version, default mode for most functions
-  gkRead_raw       = 0x01,  //  Return the raw read
-  gkRead_corrected = 0x02,  //  Return the corrected read
-  gkRead_trimmed   = 0x03,  //  Return the trimmed read
-} gkRead_version;
+  sqRead_latest    = 0x00,  //  Return the latest version, default mode for most functions
+  sqRead_raw       = 0x01,  //  Return the raw read
+  sqRead_corrected = 0x02,  //  Return the corrected read
+  sqRead_trimmed   = 0x03,  //  Return the trimmed read
+} sqRead_version;
 
 extern
-gkRead_version  gkRead_defaultVersion;
+sqRead_version  sqRead_defaultVersion;
 
 inline
 void
-gkRead_setDefaultVersion(gkRead_version v) {
-  gkRead_defaultVersion = v;
+sqRead_setDefaultVersion(sqRead_version v) {
+  sqRead_defaultVersion = v;
 };
 
 
 
-class gkRead;
-class gkLibrary;
+class sqRead;
+class sqLibrary;
 
-class gkReadData {
+class sqReadData {
 public:
-  gkReadData() {
+  sqReadData() {
     _read      = NULL;   //  Set in stashReadData() and loadFromBlob()
     _library   = NULL;
 
@@ -85,7 +89,7 @@ public:
     _blob      = NULL;
   };
 
-  ~gkReadData() {
+  ~sqReadData() {
     delete [] _name;
 
     delete [] _rseq;
@@ -100,30 +104,30 @@ public:
     delete [] _blob;
   };
 
-  gkRead     *gkReadData_getRead(void)                { return(_read); };
-  gkLibrary  *gkReadData_getLibrary(void)             { return(_library); };
+  sqRead     *sqReadData_getRead(void)                { return(_read); };
+  sqLibrary  *sqReadData_getLibrary(void)             { return(_library); };
 
-  char       *gkReadData_getName(void)                { return(_name); };
+  char       *sqReadData_getName(void)                { return(_name); };
 
-  char       *gkReadData_getRawSequence(void)         { return(_rseq);  };
-  char       *gkReadData_getCorrectedSequence(void)   { return(_cseq);  };
-  char       *gkReadData_getTrimmedSequence(void)     { return(_tseq);  };
+  char       *sqReadData_getRawSequence(void)         { return(_rseq);  };
+  char       *sqReadData_getCorrectedSequence(void)   { return(_cseq);  };
+  char       *sqReadData_getTrimmedSequence(void)     { return(_tseq);  };
 
-  char       *gkReadData_getSequence(gkRead_version vers = gkRead_defaultVersion) {
-    if      (vers == gkRead_raw)          return(_rseq);
-    else if (vers == gkRead_corrected)    return(_cseq);
-    else if (vers == gkRead_trimmed)      return(_tseq);
+  char       *sqReadData_getSequence(sqRead_version vers = sqRead_defaultVersion) {
+    if      (vers == sqRead_raw)          return(_rseq);
+    else if (vers == sqRead_corrected)    return(_cseq);
+    else if (vers == sqRead_trimmed)      return(_tseq);
     else                                  return(_aseq);
   };
 
-  uint8      *gkReadData_getRawQualities(void)        { return(_rqlt);  };
-  uint8      *gkReadData_getCorrectedQualities(void)  { return(_cqlt);  };
-  uint8      *gkReadData_getTrimmedQualities(void)    { return(_tqlt);  };
+  uint8      *sqReadData_getRawQualities(void)        { return(_rqlt);  };
+  uint8      *sqReadData_getCorrectedQualities(void)  { return(_cqlt);  };
+  uint8      *sqReadData_getTrimmedQualities(void)    { return(_tqlt);  };
 
-  uint8      *gkReadData_getQualities(gkRead_version vers = gkRead_defaultVersion) {
-    if      (vers == gkRead_raw)          return(_rqlt);
-    else if (vers == gkRead_corrected)    return(_cqlt);
-    else if (vers == gkRead_trimmed)      return(_tqlt);
+  uint8      *sqReadData_getQualities(sqRead_version vers = sqRead_defaultVersion) {
+    if      (vers == sqRead_raw)          return(_rqlt);
+    else if (vers == sqRead_corrected)    return(_cqlt);
+    else if (vers == sqRead_trimmed)      return(_tqlt);
     else                                  return(_aqlt);
   };
 
@@ -137,31 +141,31 @@ public:
   //  If Q[0] == 255, then no QVs exists, and the library
   //  default is used instead.
 
-  void        gkReadData_setName(char *H);
-  void        gkReadData_setBasesQuals(char *S, uint8 *Q);
+  void        sqReadData_setName(char *H);
+  void        sqReadData_setBasesQuals(char *S, uint8 *Q);
 
 private:
-  uint32      gkReadData_encode2bit(uint8  *&chunk, char  *seq, uint32 seqLen);
-  uint32      gkReadData_encode3bit(uint8  *&chunk, char  *seq, uint32 seqLen);
-  uint32      gkReadData_encode4bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
-  uint32      gkReadData_encode5bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
+  uint32      sqReadData_encode2bit(uint8  *&chunk, char  *seq, uint32 seqLen);
+  uint32      sqReadData_encode3bit(uint8  *&chunk, char  *seq, uint32 seqLen);
+  uint32      sqReadData_encode4bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
+  uint32      sqReadData_encode5bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
 
-  uint32      gkReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV);
+  uint32      sqReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV);
 
-  void        gkReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
-  void        gkReadData_encodeBlob(void);
+  void        sqReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
+  void        sqReadData_encodeBlob(void);
 
 
-  bool        gkReadData_decode2bit(uint8  *chunk, uint32 chunkLen, char  *seq, uint32 seqLen);
-  bool        gkReadData_decode3bit(uint8  *chunk, uint32 chunkLen, char  *seq, uint32 seqLen);
-  bool        gkReadData_decode4bit(uint8  *chunk, uint32 chunkLen, uint8 *qlt, uint32 qltLen);
-  bool        gkReadData_decode5bit(uint8  *chunk, uint32 chunkLen, uint8 *qlt, uint32 qltLen);
+  bool        sqReadData_decode2bit(uint8  *chunk, uint32 chunkLen, char  *seq, uint32 seqLen);
+  bool        sqReadData_decode3bit(uint8  *chunk, uint32 chunkLen, char  *seq, uint32 seqLen);
+  bool        sqReadData_decode4bit(uint8  *chunk, uint32 chunkLen, uint8 *qlt, uint32 qltLen);
+  bool        sqReadData_decode5bit(uint8  *chunk, uint32 chunkLen, uint8 *qlt, uint32 qltLen);
 
-  void        gkReadData_loadFromBlob(uint8 *blob);
+  void        sqReadData_loadFromBlob(uint8 *blob);
 
 private:
-  gkRead            *_read;     //  Pointer to the read         set in gkStore_addEmptyRead() and
-  gkLibrary         *_library;  //  Pointer to the library             gkStore_loadReadData().
+  sqRead            *_read;     //  Pointer to the read         set in sqStore_addEmptyRead() and
+  sqLibrary         *_library;  //  Pointer to the library             sqStore_loadReadData().
 
   char              *_name;
   uint32             _nameAlloc;
@@ -186,16 +190,16 @@ private:
   uint32             _blobMax;
   uint8             *_blob;     //  And maybe even an encoded blob of data from the store.
 
-  friend class gkRead;
-  friend class gkStore;
+  friend class sqRead;
+  friend class sqStore;
 };
 
 
 
 
-class gkRead {
+class sqRead {
 public:
-  gkRead() {
+  sqRead() {
     _readID       = 0;            //  Must be zero so first read (id 0) is
     _libraryID    = 0;            //  initialized correctly.
 
@@ -221,19 +225,19 @@ public:
     _mPart        = 0;
   };
 
-  ~gkRead() {
+  ~sqRead() {
   };
 
-  uint32      gkRead_readID(void)     { return(_readID);    };
-  uint32      gkRead_libraryID(void)  { return(_libraryID); };
+  uint32      sqRead_readID(void)     { return(_readID);    };
+  uint32      sqRead_libraryID(void)  { return(_libraryID); };
 
-  uint32      gkRead_sequenceLength(gkRead_version vers = gkRead_defaultVersion) {
+  uint32      sqRead_sequenceLength(sqRead_version vers = sqRead_defaultVersion) {
     if      (_ignore)
       return(0);
 
-    if      (vers == gkRead_raw)          return(_rseqLen);
-    else if (vers == gkRead_corrected)    return(_cseqLen);
-    else if (vers == gkRead_trimmed)      return(_clearEnd - _clearBgn);
+    if      (vers == sqRead_raw)          return(_rseqLen);
+    else if (vers == sqRead_corrected)    return(_cseqLen);
+    else if (vers == sqRead_trimmed)      return(_clearEnd - _clearBgn);
     else {
       if      (_tExists)   return(_clearEnd - _clearBgn);
       else if (_cExists)   return(_cseqLen);
@@ -241,19 +245,19 @@ public:
     }
   };
 
-  uint32      gkRead_clearBgn(void)   { return(_clearBgn); };
-  uint32      gkRead_clearEnd(void)   { return(_clearEnd); };
+  uint32      sqRead_clearBgn(void)   { return(_clearBgn); };
+  uint32      sqRead_clearEnd(void)   { return(_clearEnd); };
 
-  bool        gkRead_ignore(void)     { return(_ignore);   };
-  bool        gkRead_cExists(void)    { return(_cExists);  };
-  bool        gkRead_tExists(void)    { return(_tExists);  };
+  bool        sqRead_ignore(void)     { return(_ignore);   };
+  bool        sqRead_cExists(void)    { return(_cExists);  };
+  bool        sqRead_tExists(void)    { return(_tExists);  };
 
-  uint64      gkRead_mSegm(void)      { return(_mSegm);    };
-  uint64      gkRead_mByte(void)      { return(_mByte);    };
-  uint64      gkRead_mPart(void)      { return(_mPart);    };
+  uint64      sqRead_mSegm(void)      { return(_mSegm);    };
+  uint64      sqRead_mByte(void)      { return(_mByte);    };
+  uint64      sqRead_mPart(void)      { return(_mPart);    };
 
 private:
-  void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);  //  'file' MUST be at correct position
+  void        sqRead_loadDataFromStream(sqReadData *readData, FILE *file);  //  'file' MUST be at correct position
 
 private:
   //  Description of the read.
@@ -273,13 +277,13 @@ private:
   uint32   _unusedC : 8;    //  (It's 5 64-bit words)
   uint32   _unusedD : 8;
 
-  //  Each gkRead needs to know which read (raw, corrected or trimmed) is to be returned.
+  //  Each sqRead needs to know which read (raw, corrected or trimmed) is to be returned.
   //  In particular, if corrections are done, but there is no corrected read for this raw
   //  read, _cseqLen will be zero, and we need to return zero.
 
   uint64   _ignore  : 1;    //  Ignore this read; it's too short for our needs.
   uint64   _unusedF : 5;
-  uint64   _cExists : 1;    //  Set by gkStore when the gkRead is returned to the user.
+  uint64   _cExists : 1;    //  Set by sqStore when the sqRead is returned to the user.
   uint64   _tExists : 1;
 
   //  Last but not least, we need to remember where the actual data is stored in the blob.
@@ -289,12 +293,12 @@ private:
   uint64   _mPart   : 13;   //          8,192 partitions     - If partitioned, which partition is it in.
 
 #if (6 + 1 + 1 + 13 + 30 + 13 != 64)
-#error gkRead bits too big.
+#error sqRead bits too big.
 #endif
 
-  friend class gkReadData;
-  friend class gkStore;
+  friend class sqReadData;
+  friend class sqStore;
 };
 
 
-#endif  //  GKREAD_H
+#endif  //  SQREAD_H

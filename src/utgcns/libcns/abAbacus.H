@@ -59,7 +59,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include <map>
@@ -190,13 +190,13 @@ public:
   char         *bases(void) { return(_cnsBases); };
   uint8        *quals(void) { return(_cnsQuals); };
 
-  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
-  void          addRead(gkStore *gkpStore,
+  //  Adds seqStore read 'readID' to the abacus; former AppendFragToLocalStore
+  void          addRead(sqStore *seqStore,
                         uint32 readID,
                         uint32 askip, uint32 bskip,
                         bool complemented,
-                        map<uint32, gkRead *>     *inPackageRead,
-                        map<uint32, gkReadData *> *inPackageReadData);
+                        map<uint32, sqRead *>     *inPackageRead,
+                        map<uint32, sqReadData *> *inPackageReadData);
 
 public:
   void          refreshColumns(void);

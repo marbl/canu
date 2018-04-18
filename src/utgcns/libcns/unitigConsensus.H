@@ -71,7 +71,7 @@ class NDalign;
 
 class unitigConsensus {
 public:
-  unitigConsensus(gkStore  *gkpStore_,
+  unitigConsensus(sqStore  *seqStore_,
                   double    errorRate_,
                   double    errorRateMax_,
                   uint32    minOverlap_);
@@ -81,25 +81,25 @@ public:
                      tgTig  *tig);
 
   bool   generate(tgTig                     *tig,
-                  map<uint32, gkRead *>     *inPackageRead     = NULL,
-                  map<uint32, gkReadData *> *inPackageReadData = NULL);
+                  map<uint32, sqRead *>     *inPackageRead     = NULL,
+                  map<uint32, sqReadData *> *inPackageReadData = NULL);
 
   bool   generatePBDAG(char                       aligner,
                        bool                       normalize,
                        tgTig                     *tig,
-                       map<uint32, gkRead *>     *inPackageRead     = NULL,
-                       map<uint32, gkReadData *> *inPackageReadData = NULL);
+                       map<uint32, sqRead *>     *inPackageRead     = NULL,
+                       map<uint32, sqReadData *> *inPackageReadData = NULL);
 
   bool   generateQuick(tgTig                     *tig,
-                       map<uint32, gkRead *>     *inPackageRead     = NULL,
-                       map<uint32, gkReadData *> *inPackageReadData = NULL);
+                       map<uint32, sqRead *>     *inPackageRead     = NULL,
+                       map<uint32, sqReadData *> *inPackageReadData = NULL);
 
   bool   generateSingleton(tgTig                     *tig,
-                           map<uint32, gkRead *>     *inPackageRead     = NULL,
-                           map<uint32, gkReadData *> *inPackageReadData = NULL);
+                           map<uint32, sqRead *>     *inPackageRead     = NULL,
+                           map<uint32, sqReadData *> *inPackageReadData = NULL);
 
-  int32  initialize(map<uint32, gkRead *>     *inPackageRead,
-                    map<uint32, gkReadData *> *inPackageReadData);
+  int32  initialize(map<uint32, sqRead *>     *inPackageRead,
+                    map<uint32, sqReadData *> *inPackageReadData);
 
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
   void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };
@@ -132,7 +132,7 @@ public:
   void   generateConsensus(tgTig *tig);
 
 private:
-  gkStore        *gkpStore;
+  sqStore        *seqStore;
 
   tgTig          *tig;
   uint32          numfrags;    //  == tig->numberOfChildren()

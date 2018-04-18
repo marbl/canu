@@ -142,7 +142,7 @@ ovFile  *Out_BOF = NULL;
 //  Allocate memory for  (* WA)  and set initial values.
 //  Set  thread_id  field to  id .
 void
-Initialize_Work_Area(Work_Area_t *WA, int id, gkStore *gkpStore) {
+Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *seqStore) {
   uint64  allocated = 0;
 
   WA->String_Olap_Size  = INIT_STRING_OLAP_SIZE;
@@ -157,11 +157,11 @@ Initialize_Work_Area(Work_Area_t *WA, int id, gkStore *gkpStore) {
   WA->status     = 0;
   WA->thread_id  = id;
 
-  WA->gkpStore = gkpStore;
+  WA->seqStore = seqStore;
 
   WA->overlapsLen = 0;
   WA->overlapsMax = 1024 * 1024 / sizeof(ovOverlap);
-  WA->overlaps    = ovOverlap::allocateOverlaps(WA->gkpStore, WA->overlapsMax);
+  WA->overlaps    = ovOverlap::allocateOverlaps(WA->seqStore, WA->overlapsMax);
 
   allocated += sizeof(ovOverlap) * WA->overlapsMax;
 
@@ -191,15 +191,15 @@ OverlapDriver(void) {
 
   Work_Area_t    *thread_wa = new Work_Area_t [G.Num_PThreads];
 
-  gkStore        *gkpStore  = gkStore::gkStore_open(G.Frag_Store_Path);
+  sqStore        *seqStore  = sqStore::sqStore_open(G.Frag_Store_Path);
 
-  Out_BOF = new ovFile(gkpStore, G.Outfile_Name, ovFileFullWrite);
+  Out_BOF = new ovFile(seqStore, G.Outfile_Name, ovFileFullWrite);
 
   fprintf(stderr, "Initializing %u work areas.\n", G.Num_PThreads);
 
 #pragma omp parallel for
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
-    Initialize_Work_Area(thread_wa+i, i, gkpStore);
+    Initialize_Work_Area(thread_wa+i, i, seqStore);
 
   //  Command line options are Lo_Hash_Frag and Hi_Hash_Frag
   //  Command line options are Lo_Old_Frag and Hi_Old_Frag
@@ -207,8 +207,8 @@ OverlapDriver(void) {
   if (G.bgnHashID < 1)
     G.bgnHashID = 1;
 
-  if (gkpStore->gkStore_getNumReads() < G.endHashID)
-    G.endHashID = gkpStore->gkStore_getNumReads();
+  if (seqStore->sqStore_getNumReads() < G.endHashID)
+    G.endHashID = seqStore->sqStore_getNumReads();
 
 
   //  Note distinction between the local bgn/end and the global G.bgn/G.end.
@@ -224,20 +224,20 @@ OverlapDriver(void) {
 
     assert(0          <  bgnHashID);
     assert(bgnHashID  <= endHashID);
-    assert(endHashID  <= gkpStore->gkStore_getNumReads());
+    assert(endHashID  <= seqStore->sqStore_getNumReads());
 
     //  Load as much as we can.  If we load less than expected, the endHashID is updated to reflect
     //  the last read loaded.
 
-    endHashID = Build_Hash_Index(gkpStore, bgnHashID, endHashID);
+    endHashID = Build_Hash_Index(seqStore, bgnHashID, endHashID);
 
     //  Decide the range of reads to process.  No more than what is loaded in the table.
 
     if (G.bgnRefID < 1)
       G.bgnRefID = 1;
 
-    if (G.endRefID > gkpStore->gkStore_getNumReads())
-      G.endRefID = gkpStore->gkStore_getNumReads();
+    if (G.endRefID > seqStore->sqStore_getNumReads())
+      G.endRefID = seqStore->sqStore_getNumReads();
 
     G.curRefID = G.bgnRefID;
 
@@ -249,7 +249,7 @@ OverlapDriver(void) {
 
     fprintf(stderr, "\n");
     fprintf(stderr, "Range: %u-%u.  Store has %u reads.\n",
-            G.bgnRefID, G.endRefID, gkpStore->gkStore_getNumReads());
+            G.bgnRefID, G.endRefID, seqStore->sqStore_getNumReads());
     fprintf(stderr, "Chunk: " F_U32 " reads/thread -- (G.endRefID=" F_U32 " - G.bgnRefID=" F_U32 ") / G.Num_PThreads=" F_U32 " / 8\n",
             G.perThread, G.endRefID, G.bgnRefID, G.Num_PThreads);
 
@@ -287,7 +287,7 @@ OverlapDriver(void) {
 
   delete Out_BOF;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
     Delete_Work_Area(thread_wa + i);
@@ -312,7 +312,7 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
+    if        (strcmp(argv[arg], "-partial") == 0) {
       G.Doing_Partial_Overlaps = true;
 
     } else if (strcmp(argv[arg], "-h") == 0) {
@@ -415,12 +415,12 @@ main(int argc, char **argv) {
     fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
 
   if ((err) || (G.Frag_Store_Path == NULL)) {
-    fprintf(stderr, "USAGE:  %s [options] <gkpStorePath>\n", argv[0]);
+    fprintf(stderr, "USAGE:  %s [options] <seqStorePath>\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "-b <fn>     in contig mode, specify the output file\n");
     fprintf(stderr, "-c          contig mode.  Use 2 frag stores.  First is\n");
     fprintf(stderr, "            for reads; second is for contigs\n");
-    fprintf(stderr, "-G          do partial overlaps\n");
+    fprintf(stderr, "-partial    do partial overlaps\n");
     fprintf(stderr, "-h <range>  to specify fragments to put in hash table\n");
     fprintf(stderr, "            Implies LSF mode (no changes to frag store)\n");
     fprintf(stderr, "-I          designate a file of frag iids to limit olaps to\n");
@@ -434,7 +434,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "-M          specify memory size.  Valid values are '8GB', '4GB',\n");
     fprintf(stderr, "            '2GB', '1GB', '256MB'.  (Not for Contig mode)\n");
     fprintf(stderr, "-o          specify output file name\n");
-    fprintf(stderr, "-P          write protoIO output (if not -G)\n");
+    fprintf(stderr, "-P          write protoIO output (if not -partial)\n");
     fprintf(stderr, "-r <range>  specify old fragments to overlap\n");
     fprintf(stderr, "-t <n>      use <n> parallel threads\n");
     fprintf(stderr, "-u          allow only 1 overlap per oriented fragment pair\n");

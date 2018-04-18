@@ -15,7 +15,7 @@
  *
  *  This file is derived from:
  *
- *    src/AS_OVS/overlapStoreBuild.C
+ *    src/stores/ovStoreBuild.C
  *
  *  Modifications by:
  *
@@ -41,7 +41,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
@@ -181,7 +181,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
 int
 main(int argc, char **argv) {
   char           *ovlName        = NULL;
-  char           *gkpName        = NULL;
+  char           *seqName        = NULL;
   vector<char *>  fileList;
 
   argc = AS_configure(argc, argv);
@@ -192,8 +192,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       AS_UTL_loadFileList(argv[++arg], fileList);
@@ -214,16 +214,16 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err.push_back("ERROR: No overlap store (-O) supplied.\n");
 
-  if (gkpName == NULL)
-    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR: No sequence store (-S) supplied.\n");
 
   if (fileList.size() == 0)
     err.push_back("ERROR: No input erate files (-L or last on the command line) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore [-L evalueFileList] [evalueFile ...]\n", argv[0]);
-    fprintf(stderr, "  -O asm.ovlStore       path to overlap store to create\n");
-    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "usage: %s -O asm.ovlStore -S asm.seqStore [-L evalueFileList] [evalueFile ...]\n", argv[0]);
+    fprintf(stderr, "  -O asm.ovlStore       path to the overlap store to create\n");
+    fprintf(stderr, "  -S asm.seqStore       path to a sequence store\n");
     fprintf(stderr, "  -L fileList           a list of evalue files in 'fileList'\n");
     fprintf(stderr, "\n");
 

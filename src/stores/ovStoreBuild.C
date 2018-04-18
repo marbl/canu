@@ -41,7 +41,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
@@ -55,7 +55,7 @@ using namespace std;
 
 static
 void
-writeToDumpFile(gkStore          *gkp,
+writeToDumpFile(sqStore          *seq,
                 ovOverlap       *overlap,
                 ovFile          **dumpFile,
                 uint64           *dumpLength,
@@ -69,7 +69,7 @@ writeToDumpFile(gkStore          *gkp,
     char name[FILENAME_MAX];
     snprintf(name, FILENAME_MAX, "%s/tmp.sort.%04d", ovlName, df);
     fprintf(stderr, "-- Create bucket '%s'\n", name);
-    dumpFile[df]   = new ovFile(gkp, name, ovFileFullWriteNoCounts);
+    dumpFile[df]   = new ovFile(seq, name, ovFileFullWriteNoCounts);
     dumpLength[df] = 0;
   }
 
@@ -84,7 +84,7 @@ writeToDumpFile(gkStore          *gkp,
 int
 main(int argc, char **argv) {
   char           *ovlName        = NULL;
-  char           *gkpName        = NULL;
+  char           *seqName        = NULL;
   char           *cfgName        = NULL;
 
   double          maxErrorRate   = 1.0;
@@ -100,8 +100,8 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       cfgName = argv[++arg];
@@ -121,13 +121,13 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err.push_back("ERROR: No overlap store (-O) supplied.\n");
 
-  if (gkpName == NULL)
-    err.push_back("ERROR: No gatekeeper store (-G) supplied.\n");
+  if (seqName == NULL)
+    err.push_back("ERROR: No sequence store (-S) supplied.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -C ovStoreConfig [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -O asm.ovlStore -S asm.seqStore -C ovStoreConfig [opts]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore       path to overlap store to create\n");
-    fprintf(stderr, "  -G asm.gkpStore       path to gatekeeper store\n");
+    fprintf(stderr, "  -S asm.seqStore       path to a sequence store\n");
     fprintf(stderr, "  -C config             path to ovStoreConfig configuration file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
@@ -143,12 +143,12 @@ main(int argc, char **argv) {
   //  Load the config, open the store, create a filter.
 
   ovStoreConfig    *config = new ovStoreConfig(cfgName);
-  gkStore          *gkp    = gkStore::gkStore_open(gkpName);
-  ovStoreFilter    *filter = new ovStoreFilter(gkp, maxErrorRate);
+  sqStore          *seq    = sqStore::sqStore_open(seqName);
+  ovStoreFilter    *filter = new ovStoreFilter(seq, maxErrorRate);
 
   //  Figure out how many overlaps there are, quit if too many.
 
-  uint32  maxID       = gkp->gkStore_getNumReads();
+  uint32  maxID       = seq->sqStore_getNumReads();
   uint64  totOverlaps = 0;  //  Total in inputs.
   uint32  numInputs   = 0;
 
@@ -161,12 +161,12 @@ main(int argc, char **argv) {
   for (uint32 bb=1; bb<=config->numBuckets(); bb++) {
     for (uint32 ii=0; ii<config->numInputs(bb); ii++) {
       char              *inputName = config->getInput(bb, ii);
-      ovFile            *inputFile = new ovFile(gkp, inputName, ovFileFull);
+      ovFile            *inputFile = new ovFile(seq, inputName, ovFileFull);
 
       totOverlaps += inputFile->getCounts()->numOverlaps() * 2;
       numInputs   += 1;
 
-      fprintf(stderr, "%12.3f %40s\n", 
+      fprintf(stderr, "%12.3f %40s\n",
               inputFile->getCounts()->numOverlaps() / 1000000.0,
               inputName);
 
@@ -188,7 +188,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Allocating space for " F_U64 " overlaps.\n", totOverlaps);
   fprintf(stderr, "\n");
 
-  ovOverlap      *ovls    = ovOverlap::allocateOverlaps(gkp, totOverlaps);
+  ovOverlap      *ovls    = ovOverlap::allocateOverlaps(seq, totOverlaps);
   uint64          ovlsLen = 0;
 
   fprintf(stderr, "\n");
@@ -208,10 +208,10 @@ main(int argc, char **argv) {
               0.0,
               inputName);
 
-      ovOverlap foverlap(gkp);
-      ovOverlap roverlap(gkp);
+      ovOverlap foverlap(seq);
+      ovOverlap roverlap(seq);
 
-      ovFile   *inputFile = new ovFile(gkp, inputName, ovFileFull);
+      ovFile   *inputFile = new ovFile(seq, inputName, ovFileFull);
 
       while (inputFile->readOverlap(&foverlap)) {
         filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r, and checks IDs
@@ -296,7 +296,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "-- OUTPUT OVERLAPS --\n");
   fprintf(stderr, "\n");
 
-  ovStoreWriter  *store = new ovStoreWriter(ovlName, gkp);
+  ovStoreWriter  *store = new ovStoreWriter(ovlName, seq);
 
   for (uint64 oo=0; oo<ovlsLen; oo++)
     store->writeOverlap(ovls + oo);
@@ -304,7 +304,7 @@ main(int argc, char **argv) {
   delete    store;
   delete [] ovls;
 
-  gkp->gkStore_close();
+  seq->sqStore_close();
 
   //  And we have a store.
 

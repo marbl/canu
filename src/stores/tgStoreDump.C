@@ -49,7 +49,7 @@
 
 #include "AS_global.H"
 
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include "AS_UTL_decodeRange.H"
@@ -244,7 +244,7 @@ public:
 
 
 void
-dumpStatus(gkStore *UNUSED(gkpStore), tgStore *tigStore) {
+dumpStatus(sqStore *UNUSED(seqStore), tgStore *tigStore) {
   fprintf(stderr, "%u\n", tigStore->numTigs());
 }
 
@@ -279,7 +279,7 @@ dumpRead(FILE *out, tgTig *tig, tgPosition *read, bool useGapped) {
 
 
 void
-dumpTigs(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped) {
+dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped) {
 
   fprintf(stdout, "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
 
@@ -306,7 +306,7 @@ dumpTigs(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool us
 
 
 void
-dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool useReverse, char cnsFormat) {
+dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool useReverse, char cnsFormat) {
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -348,7 +348,7 @@ dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bo
 
 
 void
-dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
   char T[FILENAME_MAX+1];
   char R[FILENAME_MAX+1];
   char L[FILENAME_MAX+1];
@@ -405,7 +405,7 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
 
 
 void
-dumpMultialign(gkStore *gkpStore, tgStore *tigStore, tgFilter &filter, bool maWithQV, bool maWithDots, uint32 maDisplayWidth, uint32 maDisplaySpacing) {
+dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWithQV, bool maWithDots, uint32 maDisplayWidth, uint32 maDisplaySpacing) {
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -418,7 +418,7 @@ dumpMultialign(gkStore *gkpStore, tgStore *tigStore, tgFilter &filter, bool maWi
       continue;
     }
 
-    tig->display(stdout, gkpStore, maDisplayWidth, maDisplaySpacing, maWithQV, maWithDots);
+    tig->display(stdout, seqStore, maDisplayWidth, maDisplaySpacing, maWithQV, maWithDots);
 
     tigStore->unloadTig(ti);
   }
@@ -427,7 +427,7 @@ dumpMultialign(gkStore *gkpStore, tgStore *tigStore, tgFilter &filter, bool maWi
 
 
 void
-dumpSizes(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint64 genomeSize) {
+dumpSizes(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint64 genomeSize) {
 
   tgTigSizeAnalysis *siz = new tgTigSizeAnalysis(genomeSize);
 
@@ -540,7 +540,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
 
 void
-dumpDepthHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool single, char *outPrefix) {
+dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool single, char *outPrefix) {
   char                  N[FILENAME_MAX];
   intervalList<uint32>  IL;
 
@@ -609,7 +609,7 @@ dumpDepthHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filte
 
 
 void
-dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
   uint32   covMax = 1024;
   uint64  *cov    = new uint64 [covMax];
 
@@ -772,7 +772,7 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
 
 
 void
-dumpThinOverlap(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint32 minOverlap) {
+dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint32 minOverlap) {
 
   fprintf(stderr, "reporting overlaps of at most %u bases\n", minOverlap);
 
@@ -860,7 +860,7 @@ dumpThinOverlap(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, 
 
 
 void
-dumpOverlapHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+dumpOverlapHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
   uint32     histMax = AS_MAX_READLEN;
   uint64    *hist    = new uint64 [histMax];
 
@@ -979,7 +979,7 @@ dumpOverlapHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &fil
 
 int
 main (int argc, char **argv) {
-  char         *gkpName           = NULL;
+  char         *seqName           = NULL;
   char         *tigName           = NULL;
   int           tigVers           = -1;
 
@@ -1015,8 +1015,8 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if      (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if      (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
     }
 
     else if (strcmp(argv[arg], "-T") == 0) {
@@ -1135,7 +1135,7 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
+  if (seqName == NULL)
     err++;
   if (tigName == NULL)
     err++;
@@ -1145,11 +1145,11 @@ main (int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -S <seqStore> -T <tigStore> <v> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "STORE SELECTION (mandatory)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G <gkpStore>           path to the gatekeeper store\n");
+    fprintf(stderr, "  -S <seqStore>           path to the sequence store\n");
     fprintf(stderr, "  -T <tigStore> <v>       path to the tigStore, version, to use\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "TIG SELECTION - if nothing specified, all tigs are reported\n");
@@ -1211,7 +1211,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
 #endif
 
-    if (gkpName == NULL)
+    if (seqName == NULL)
       err++;
     if (tigName == NULL)
       err++;
@@ -1225,7 +1225,7 @@ main (int argc, char **argv) {
 
   //  Open stores.
 
-  gkStore *gkpStore = gkStore::gkStore_open(gkpName);
+  sqStore *seqStore = sqStore::sqStore_open(seqName);
   tgStore *tigStore = new tgStore(tigName, tigVers);
 
   //  Check that the tig ID range is valid, and fix it if possible.
@@ -1259,34 +1259,34 @@ main (int argc, char **argv) {
 
   switch (dumpType) {
     case DUMP_STATUS:
-      dumpStatus(gkpStore, tigStore);
+      dumpStatus(seqStore, tigStore);
       break;
     case DUMP_TIGS:
-      dumpTigs(gkpStore, tigStore, filter, useGapped);
+      dumpTigs(seqStore, tigStore, filter, useGapped);
       break;
     case DUMP_CONSENSUS:
-      dumpConsensus(gkpStore, tigStore, filter, useGapped, useReverse, cnsFormat);
+      dumpConsensus(seqStore, tigStore, filter, useGapped, useReverse, cnsFormat);
       break;
     case DUMP_LAYOUT:
-      dumpLayout(gkpStore, tigStore, filter, useGapped, outPrefix);
+      dumpLayout(seqStore, tigStore, filter, useGapped, outPrefix);
       break;
     case DUMP_MULTIALIGN:
-      dumpMultialign(gkpStore, tigStore, filter, maWithQV, maWithDots, maDisplayWidth, maDisplaySpacing);
+      dumpMultialign(seqStore, tigStore, filter, maWithQV, maWithDots, maDisplayWidth, maDisplaySpacing);
       break;
     case DUMP_SIZES:
-      dumpSizes(gkpStore, tigStore, filter, useGapped, genomeSize);
+      dumpSizes(seqStore, tigStore, filter, useGapped, genomeSize);
       break;
     case DUMP_COVERAGE:
-      dumpCoverage(gkpStore, tigStore, filter, useGapped, outPrefix);
+      dumpCoverage(seqStore, tigStore, filter, useGapped, outPrefix);
       break;
     case DUMP_DEPTH_HISTOGRAM:
-      dumpDepthHistogram(gkpStore, tigStore, filter, useGapped, single, outPrefix);
+      dumpDepthHistogram(seqStore, tigStore, filter, useGapped, single, outPrefix);
       break;
     case DUMP_THIN_OVERLAP:
-      dumpThinOverlap(gkpStore, tigStore, filter, useGapped, minOverlap);
+      dumpThinOverlap(seqStore, tigStore, filter, useGapped, minOverlap);
       break;
     case DUMP_OVERLAP_HISTOGRAM:
-      dumpOverlapHistogram(gkpStore, tigStore, filter, useGapped, outPrefix);
+      dumpOverlapHistogram(seqStore, tigStore, filter, useGapped, outPrefix);
       break;
     default:
       break;
@@ -1296,7 +1296,7 @@ main (int argc, char **argv) {
 
   delete tigStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   //  Bye.
 

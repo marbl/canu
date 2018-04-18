@@ -40,7 +40,7 @@
  */
 
 #include "AS_global.H"
-#include "gkStore.H"
+#include "sqStore.H"
 #include "tgStore.H"
 
 #include "AS_UTL_decodeRange.H"
@@ -58,7 +58,7 @@
 
 int
 main (int argc, char **argv) {
-  char    *gkpName         = NULL;
+  char    *seqName         = NULL;
 
   char    *tigName         = NULL;
   uint32   tigVers         = UINT32_MAX;
@@ -115,8 +115,8 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpName = argv[++arg];
+    if        (strcmp(argv[arg], "-S") == 0) {
+      seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
@@ -218,12 +218,12 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if ((gkpName == NULL) && (tigName != NULL)) {
-    gkpName = new char [FILENAME_MAX];
-    snprintf(gkpName, FILENAME_MAX, "%s/partitionedReads.gkpStore", tigName);
+  if ((seqName == NULL) && (tigName != NULL)) {
+    seqName = new char [FILENAME_MAX];
+    snprintf(seqName, FILENAME_MAX, "%s/partitionedReads.seqStore", tigName);
   }
 
-  if ((gkpName == NULL) && (inPackageName == NULL))
+  if ((seqName == NULL) && (inPackageName == NULL))
     err++;
 
   if ((tigFileName == NULL) && (tigName == NULL) && (inPackageName == NULL))
@@ -236,9 +236,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  INPUT\n");
-    fprintf(stderr, "    -G g            Load reads from gkStore 'g'\n");
+    fprintf(stderr, "    -S g            Load reads from sqStore 'g'\n");
     fprintf(stderr, "    -T t v p        Load tig from tgStore 't', version 'v', partition 'p'.\n");
-    fprintf(stderr, "                      Expects reads will be in gkStore partition 'p' as well\n");
+    fprintf(stderr, "                      Expects reads will be in sqStore partition 'p' as well\n");
     fprintf(stderr, "                      Use p='.' to specify no partition\n");
     fprintf(stderr, "    -t file         Test the computation of the tig layout in 'file'\n");
     fprintf(stderr, "                      'file' can be from:\n");
@@ -312,8 +312,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
 
 
-    if ((gkpName == NULL) && (inPackageName == NULL))
-      fprintf(stderr, "ERROR:  No gkpStore (-G) and no package (-p) supplied.\n");
+    if ((seqName == NULL) && (inPackageName == NULL))
+      fprintf(stderr, "ERROR:  No seqStore (-S) and no package (-p) supplied.\n");
 
     if ((tigFileName == NULL) && (tigName == NULL)  && (inPackageName == NULL))
       fprintf(stderr, "ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p)  supplied.\n");
@@ -362,18 +362,18 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
   }
 
-  //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
+  //  Open sequence store for read only, and load the partitioned data if tigPart > 0.
 
-  gkStore                   *gkpStore          = NULL;
+  sqStore                   *seqStore          = NULL;
   tgStore                   *tigStore          = NULL;
   FILE                      *tigFile           = NULL;
   FILE                      *inPackageFile     = NULL;
-  map<uint32, gkRead *>     *inPackageRead     = NULL;
-  map<uint32, gkReadData *> *inPackageReadData = NULL;
+  map<uint32, sqRead *>     *inPackageRead     = NULL;
+  map<uint32, sqReadData *> *inPackageReadData = NULL;
 
-  if (gkpName) {
-    fprintf(stderr, "-- Opening gkpStore '%s' partition %u.\n", gkpName, tigPart);
-    gkpStore = gkStore::gkStore_open(gkpName, gkStore_readOnly, tigPart);
+  if (seqName) {
+    fprintf(stderr, "-- Opening seqStore '%s' partition %u.\n", seqName, tigPart);
+    seqStore = sqStore::sqStore_open(seqName, sqStore_readOnly, tigPart);
   }
 
   if (tigName) {
@@ -468,20 +468,20 @@ main (int argc, char **argv) {
         break;
       }
 
-      inPackageRead      = new map<uint32, gkRead *>;
-      inPackageReadData  = new map<uint32, gkReadData *>;
+      inPackageRead      = new map<uint32, sqRead *>;
+      inPackageReadData  = new map<uint32, sqReadData *>;
 
       for (int32 ii=0; ii<tig->numberOfChildren(); ii++) {
         uint32       readID = tig->getChild(ii)->ident();
-        gkRead      *read   = (*inPackageRead)[readID]     = new gkRead;
-        gkReadData  *data   = (*inPackageReadData)[readID] = new gkReadData;
+        sqRead      *read   = (*inPackageRead)[readID]     = new sqRead;
+        sqReadData  *data   = (*inPackageReadData)[readID] = new sqReadData;
 
-        gkStore::gkStore_loadReadFromStream(inPackageFile, read, data);
+        sqStore::sqStore_loadReadFromStream(inPackageFile, read, data);
 
-        if (read->gkRead_readID() != readID)
+        if (read->sqRead_readID() != readID)
           fprintf(stderr, "ERROR: package not in sync with tig.  package readID = %u  tig readID = %u\n",
-                  read->gkRead_readID(), readID);
-        assert(read->gkRead_readID() == readID);
+                  read->sqRead_readID(), readID);
+        assert(read->sqRead_readID() == readID);
       }
     }
 
@@ -500,7 +500,7 @@ main (int argc, char **argv) {
       uint32  missingReads = 0;
 
       for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
-        if (gkpStore->gkStore_readInPartition(tig->getChild(ii)->ident()) == false)
+        if (seqStore->sqStore_readInPartition(tig->getChild(ii)->ident()) == false)
           missingReads++;
 
       if (missingReads) {
@@ -542,7 +542,7 @@ main (int argc, char **argv) {
               ((exists == true)  && (forceCompute == false)) ? " - already computed"              : "",
               ((exists == true)  && (forceCompute == true))  ? " - already computed, recomputing" : "");
 
-    unitigConsensus  *utgcns       = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
+    unitigConsensus  *utgcns       = new unitigConsensus(seqStore, errorRate, errorRateMax, minOverlap);
     savedChildren    *origChildren = NULL;
     bool              success      = exists;
 
@@ -595,8 +595,8 @@ main (int argc, char **argv) {
     //  was packaged, regardless of if it existed already.
 
     if (success == true) {
-      if ((showResult) && (gkpStore))  //  No gkpStore if we're from a package.  Dang.
-        tig->display(stdout, gkpStore, 200, 3);
+      if ((showResult) && (seqStore))  //  No seqStore if we're from a package.  Dang.
+        tig->display(stdout, seqStore, 200, 3);
 
       unstashContains(tig, origChildren);
 
@@ -634,7 +634,7 @@ main (int argc, char **argv) {
 
   delete tigStore;
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   AS_UTL_closeFile(tigFile,        tigFileName);
 

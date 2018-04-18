@@ -28,15 +28,15 @@
 
 
 
-ReadInfo::ReadInfo(const char *gkpStorePath,
+ReadInfo::ReadInfo(const char *seqStorePath,
                    const char *prefix,
                    uint32      minReadLen) {
 
-  gkStore  *gkpStore = gkStore::gkStore_open(gkpStorePath);
+  sqStore  *seqStore = sqStore::sqStore_open(seqStorePath);
 
   _numBases     = 0;
-  _numReads     = gkpStore->gkStore_getNumReads();
-  _numLibraries = gkpStore->gkStore_getNumLibraries();
+  _numReads     = seqStore->sqStore_getNumReads();
+  _numLibraries = seqStore->sqStore_getNumLibraries();
 
   _readStatus    = new ReadStatus [_numReads + 1];
 
@@ -53,9 +53,9 @@ ReadInfo::ReadInfo(const char *gkpStorePath,
   uint32 numLoaded  = 0;
 
   for (uint32 fi=1; fi<=_numReads; fi++) {
-    gkRead  *read = gkpStore->gkStore_getRead(fi);
-    uint32   iid  = read->gkRead_readID();
-    uint32   len  = read->gkRead_sequenceLength();
+    sqRead  *read = seqStore->sqStore_getRead(fi);
+    uint32   iid  = read->sqRead_readID();
+    uint32   len  = read->sqRead_sequenceLength();
 
     if (len < minReadLen) {
       numSkipped++;
@@ -65,12 +65,12 @@ ReadInfo::ReadInfo(const char *gkpStorePath,
     _numBases += len;
 
     _readStatus[iid].readLength = len;
-    _readStatus[iid].libraryID  = read->gkRead_libraryID();
+    _readStatus[iid].libraryID  = read->sqRead_libraryID();
 
     numLoaded++;
   }
 
-  gkpStore->gkStore_close();
+  seqStore->sqStore_close();
 
   if (minReadLen > 0)
     writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than " F_U32 " bp long.\n",
