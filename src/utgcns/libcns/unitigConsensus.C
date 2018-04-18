@@ -567,9 +567,15 @@ alignEdLib(dagAlignment      &aln,
 
   //  This occurs if we don't lengthScale the positions.
 
-  if (tigend < tigbgn)
-    fprintf(stderr, "alignEdLib()-- ERROR: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
+  if (tigend < tigbgn) {
+    fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
             tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
+    // try to align it to full 
+    tigbgn = 0; 
+    tigend = utgpos.max();
+    fprintf(stderr, "alignEdLib()-- WARNING: updated tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
+            tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
+  }
   assert(tigend > tigbgn);
 
   //  Align!  If there is an alignment, compute error rate and declare success if acceptable.
