@@ -221,6 +221,44 @@ sub unitig ($) {
         print F "  && \\\n";
         print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
         print F "fi\n";
+    } elsif (getGlobal("unitigger") eq "wtdbg") {
+        print F "\$bin/gatekeeperDumpFASTQ \\\n";
+        print F "  -G ../$asm.gkpStore \\\n";
+        print F "  -nolibname \\\n";
+        print F "  -noreadname \\\n";
+        print F "  -fasta \\\n";
+        print F "  -o $asm.input.gz \\\n";
+        print F "&& \\\n";
+        print F "mv -f $asm.input.fasta.gz $asm.fasta.gz\n";
+        print F "if [ ! -e ./$asm.fasta.gz ] ; then\n";
+        print F "  echo Failed to extract fasta.\n";
+        print F "  exit 1\n";
+        print F "fi\n";
+        print F "\n";
+        print F "\n";
+        print F "\$bin/wtdbg-1.2.8 \\\n";
+        print F " -i $asm.fasta.gz \\\n";
+        print F " -fo ./$asm \\\n";
+        print F " -S "              . "2"                             . " \\\n";
+        print F " --edge-min "      . "2"                             . " \\\n";
+        print F " -l "             . $overlapLength                  . " \\\n";
+        print F " -t "              . getGlobal("dbgThreads")         . " \\\n"   if (defined(getGlobal("dbgThreads")));
+        print F " "                 . getGlobal("dbgOptions")         . " \\\n"   if (defined(getGlobal("dbgOptions")));
+        print F " > ./unitigger.err 2>&1 \n";
+        print F "if [ ! -s ./$asm.ctg.lay ]; then \n";
+        print F "  echo Failed to run wtdbg.\n";
+        print F "  exit 1\n";
+        print F "fi\n";
+        print F "\n";
+        print F "\n";
+        print F " \$bin/wtdbgConvert -o ./$asm -G ../$asm.gkpStore $asm.ctg.lay \\\n";
+        print F "  && \\\n";
+        print F "  cp -r ./$asm.ctgStore ../$asm.utgStore \\\n";
+        print F "  && \\\n";
+        print F "  mv ./$asm.ctgStore ../$asm.ctgStore\n";
+        print F "fi\n";
+
+
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
@@ -243,11 +281,11 @@ sub unitig ($) {
     print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
     print F "\n";
     print F "if [ ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
-    print F "  \$bin/tgStoreDump \\\n";                     #  Duplicated in reportUnitigSizes()
+    print F "  \$bin/tgStoreDump \\\n";                    #  Duplicated in reportUnitigSizes()
     print F "    -G ../$asm.gkpStore \\\n";                 #  Done here so we don't need another
     print F "    -T ../$asm.ctgStore 1 \\\n";               #  pull of gkpStore and ctgStore
     print F "    -sizes -s " . getGlobal("genomeSize") . " \\\n";
-    print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt\n";
+    print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt";
     print F "fi\n";
     print F "\n";
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.sizes.txt", "");

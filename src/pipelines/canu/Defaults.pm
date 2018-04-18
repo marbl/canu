@@ -438,8 +438,8 @@ sub printCitation ($) {
     print STDERR "${prefix}  Bioinformatics. 2017 May 1;33(9):1394-1395.\n";
     print STDERR "${prefix}  http://doi.org/10.1093/bioinformatics/btw753\n";
     print STDERR "${prefix}\n";
+    print STDERR "${prefix}Overlaps are generated using:\n";
     if (getGlobal("corOverlapper") eq "mhap" || getGlobal("obtOverlapper") eq "mhap" || getGlobal("utgOverlapper") eq "mhap") {
-       print STDERR "${prefix}Overlaps are generated using:\n";
        print STDERR "${prefix}  Berlin K, et al.\n";
        print STDERR "${prefix}  Assembling large genomes with single-molecule sequencing and locality-sensitive hashing.\n";
        print STDERR "${prefix}  Nat Biotechnol. 2015 Jun;33(6):623-30.\n";
@@ -455,11 +455,19 @@ sub printCitation ($) {
     }
     if (getGlobal("corOverlapper") eq "minimap" || getGlobal("obtOverlapper") eq "minimap" || getGlobal("utgOverlapper") eq "minimap") {
        print STDERR "${prefix}  Li H.\n";
-       print STDERR "${prefix}  Minimap and miniasm: fast mapping and de novo assembly for noisy long sequences.\n";
-       print STDERR "${prefix}  Bioinformatics. 2016 Jul 15;32(14):2103-10.\n";
-       print STDERR "${prefix}  http://doi.org/10.1093/bioinformatics/btw152\n";
+       print STDERR "${prefix}  Minimap2: pairwise alignment for nucleotide sequences.\n";
+       print STDERR "${prefix}  arXiv.org. 2017 Aug 4.\n";
+       print STDERR "${prefix}  https://arxiv.org/abs/1708.01492\n";
        print STDERR "${prefix}\n";
     }
+    if (getGlobal("unitigger") eq "wtdbg") {
+       print STDERR "${prefix}Contigs are constructed use:\n";
+       print STDERR "${prefix}  Ruan J.\n";
+       print STDERR "${prefix}  WTDBG A fuzzy Bruijn graph (FBG) approach to long noisy reads assembly.\n";
+       print STDERR "${prefix}  https://github.com/ruanjue/wtdbg\n";
+       print STDERR "${prefix}\n";
+    }
+
     print STDERR "${prefix}Corrected read consensus sequences are generated using an algorithm derived from FALCON-sense:\n";
     print STDERR "${prefix}  Chin CS, et al.\n";
     print STDERR "${prefix}  Phased diploid genome assembly with single-molecule real-time sequencing.\n";
@@ -903,12 +911,16 @@ sub setDefaults () {
 
     #####  Unitigger & BOG & bogart Options
 
-    setDefault("unitigger",      "bogart", "Which unitig algorithm to use; only 'bogart' supported; default 'bogart'");
+    setDefault("unitigger",      "bogart", "Which unitig algorithm to use; 'bogart' or 'wtdbg' supported; default 'bogart'");
     setDefault("genomeSize",     undef, "An estimate of the size of the genome");
     setDefault("batOptions",     undef, "Advanced options to bogart");
     setDefault("batMemory",      undef, "Approximate maximum memory usage, in gigabytes, default is the maxMemory limit");
     setDefault("batThreads",     undef, "Number of threads to use; default is the maxThreads limit");
     setDefault("batConcurrency", undef, "Unused, only one process supported");
+    setDefault("dbgOptions",     undef, "Advanced options to wtdbg");
+    setDefault("dbgMemory",      undef, "Approximate maximum memory usage, in gigabytes, default is the maxMemory limit");
+    setDefault("dbgThreads",     undef, "Number of threads to use; default is the maxThreads limit");
+    setDefault("dbgConcurrency", undef, "Unused, only one process supported");
 
     setDefault("contigFilter",   "2 0 1.0 0.5 3",   "Parameters to filter out 'unassembled' unitigs.  Five values: minReads minLength singleReadSpan lowCovFraction lowCovDepth");
 
@@ -1300,8 +1312,9 @@ sub checkParameters () {
         setGlobal("ovsMethod", "parallel");
     }
 
-    if ((getGlobal("unitigger") ne "bogart")) {
-        addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'\n");
+    if ((getGlobal("unitigger") ne "bogart") && 
+        (getGlobal("unitigger") ne "wtdbg")) {
+        addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'wtdbg' or 'bogart'\n");
     }
 
     if ((getGlobal("corConsensus") ne "falcon")) {

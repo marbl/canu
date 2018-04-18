@@ -123,15 +123,9 @@ foreach my $arg (@ARGV) {
 
     if ($arg eq "-fast") {
         #  All defaults, unless noted.
-        #if (-e "$bin/minimap2") {
-        #   setGlobal("corOverlapper",  "minimap"); # Changed
-        #   setGlobal("obtOverlapper",  "minimap"); # Changed
-        #   setGlobal("utgOverlapper",  "minimap"); # Changed
-        #} else {
-           setGlobal("corOverlapper",  "mhap");
-           setGlobal("obtOverlapper",  "mhap");    # Changed
-           setGlobal("utgOverlapper",  "mhap");    # Changed
-        #}
+        setGlobal("corOverlapper",  "mhap");
+        setGlobal("obtOverlapper",  "mhap");    # Changed
+        setGlobal("utgOverlapper",  "mhap");    # Changed
         setGlobal("utgReAlign",        "true");    # Changed
 
         if (-e "$bin/wtdbg-1.2.8") {
