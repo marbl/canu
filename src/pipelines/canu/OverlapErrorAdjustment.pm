@@ -147,21 +147,10 @@ sub readErrorDetectionConfigure ($) {
     #  to process at one time.  It uses 1 * length + 4 * 100,000 bytes of memory for bases and ID storage,
     #  and has two buffers of this size.
 
-    my $maxBlockSize = 0;
-
-    for (my $id = 1; $id <= $maxID; $id += 100000) {
-        my $sum = 0;
-
-        for (my $ii=$id; ($ii < $id + 100000) && ($ii < $maxID); $ii++) {
-            $sum += vec($rlVec, $ii, 32);
-        }
-
-        $maxBlockSize = $sum   if ($maxBlockSize < $sum);
-    }
-
-    my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
-    my $maxReads = getGlobal("redBatchSize");
-    my $maxBases = getGlobal("redBatchLength");
+    my $maxBlockSize = 512 * 1024 * 1024;  #  This is hardcoded in findErrors.C
+    my $maxMem       = getGlobal("redMemory") * 1024 * 1024 * 1024;
+    my $maxReads     = getGlobal("redBatchSize");
+    my $maxBases     = getGlobal("redBatchLength");
 
     print STDERR "--\n";
     print STDERR "-- Configure RED for ", getGlobal("redMemory"), "gb memory.\n";

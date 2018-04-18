@@ -51,23 +51,20 @@ Output_Corrections(feParameters *G);
 
 
 
-//  From overlapInCore.C
-int
-Binomial_Bound(int e, double p, int Start, double Limit);
-
-
-
 //  Read fragments lo_frag..hi_frag (INCLUSIVE) from store and save the ids and sequences of those
 //  with overlaps to fragments in global Frag .
 
 static
 void
-Extract_Needed_Frags(feParameters *G,
-                     gkStore      *gkpStore,
-                     uint32        loID,
-                     uint32        hiID,
-                     Frag_List_t  *fl,
-                     uint64       &nextOlap) {
+extractReads(feParameters *G,
+             gkStore      *gkpStore,
+             Frag_List_t  *fl,
+             uint64       &nextOlap) {
+
+  //  Clear the buffer.
+
+  fl->readsLen = 0;
+  fl->basesLen = 0;
 
   //  The original converted to lowercase, and made non-acgt be 'a'.
 
@@ -81,35 +78,44 @@ Extract_Needed_Frags(feParameters *G,
   filter['G'] = filter['g'] = 'g';
   filter['T'] = filter['t'] = 't';
 
+  //  Return if we've exhausted the overlaps.
+
+  if (nextOlap >= G->olapsLen)
+    return;
+
   //  Count the amount of stuff we're loading.
 
-  fl->readsLen = 0;
-  fl->basesLen = 0;
-
   uint64 lastOlap = nextOlap;
-  uint32 ii       = 0;                        //  Index into reads arrays
-  uint32 fi       = G->olaps[lastOlap].b_iid;  //  Actual ID we're extracting
+  uint32 loID     = G->olaps[lastOlap].b_iid;  //  Actual ID we're extracting
+  uint32 hiID     = loID;
+  uint64 maxBases = 512 * 1024 * 1024;
 
-  assert(loID <= fi);
+  //  Find the highest read ID that we can load without exceeding maxBases.
 
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Extract_Needed_Frags()--  Loading used reads between " F_U32 " and " F_U32 ", at overlap " F_U64 ".\n", fi, hiID, lastOlap);
+  while ((fl->basesLen < maxBases) &&
+         (lastOlap     < G->olapsLen)) {
+    hiID = G->olaps[lastOlap].b_iid;                        //  Grab the ID of the overlap we're at.
 
-  while (fi <= hiID) {
-    gkRead *read = gkpStore->gkStore_getRead(fi);
+    gkRead *read = gkpStore->gkStore_getRead(hiID);         //  Grab that read.
 
-    fl->readsLen += 1;
+    fl->readsLen += 1;                                      //  Add the read to our set.
     fl->basesLen += read->gkRead_sequenceLength() + 1;
 
-    //  Advance to the next overlap
-
-    lastOlap++;
-    while ((lastOlap < G->olapsLen) && (G->olaps[lastOlap].b_iid == fi))
-      lastOlap++;
-    fi = (lastOlap < G->olapsLen) ? G->olaps[lastOlap].b_iid : hiID + 1;
+    lastOlap++;                                             //  Advance to the next overlap
+    while ((lastOlap < G->olapsLen) &&                      //
+           (G->olaps[lastOlap].b_iid == hiID))              //  If we've exceeded the max size or hit the last overlap,
+      lastOlap++;                                           //  the loop will stop on the next iteration.
   }
 
-  fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps " F_U64 " to " F_U64 " (reads " F_U32 " bases " F_U64 ")\n", nextOlap, lastOlap, fl->readsLen, fl->basesLen);
+  //  If nothing to load, just return.
+
+  if (fl->readsLen == 0)
+    return;
+
+  //  Report what we're going to do.
+
+  fprintf(stderr, "extractReads()-- Loading reads " F_U32 " to " F_U32 " (" F_U32 " reads with " F_U64 " bases) overlaps " F_U64 " through " F_U64 ".\n", 
+          loID, hiID, fl->readsLen, fl->basesLen, nextOlap, lastOlap);
 
   //  Ensure there is space.
 
@@ -117,42 +123,31 @@ Extract_Needed_Frags(feParameters *G,
     delete [] fl->readIDs;
     delete [] fl->readBases;
 
-    //fprintf(stderr, "Extract_Needed_Frags()--  realloc reads from " F_U32 " to " F_U32 "\n", fl->readsMax, 12 * fl->readsLen / 10);
-
-    fl->readIDs   = new uint32 [12 * fl->readsLen / 10];
-    fl->readBases = new char * [12 * fl->readsLen / 10];
-
     fl->readsMax  = 12 * fl->readsLen / 10;
+    fl->readIDs   = new uint32 [fl->readsMax];
+    fl->readBases = new char * [fl->readsMax];
   }
 
   if (fl->basesMax < fl->basesLen) {
     delete [] fl->bases;
 
-    //fprintf(stderr, "Extract_Needed_Frags()--  realloc bases from " F_U64 " to " F_U64 "\n", fl->basesMax, 12 * fl->basesLen / 10);
-
-    fl->bases       = new char [12 * fl->basesLen / 10];
-
     fl->basesMax    = 12 * fl->basesLen / 10;
+    fl->bases       = new char [fl->basesMax];
   }
 
-  //  Load.  This is complicated by loading only the reads that have overlaps we care about.
+  //  Load the sequence data for reads loID to hiID, as long as the read has an overlap.
+
+  gkReadData *readData = new gkReadData;
 
   fl->readsLen = 0;
   fl->basesLen = 0;
 
-  gkReadData *readData = new gkReadData;
+  while ((loID <= hiID) &&
+         (nextOlap < G->olapsLen)) {
+    gkRead *read = gkpStore->gkStore_getRead(loID);
 
-  ii = 0;
-  fi = G->olaps[nextOlap].b_iid;
-
-  assert(loID <= fi);
-
-  while (fi <= hiID) {
-    gkRead *read       = gkpStore->gkStore_getRead(fi);
-
-    fl->readIDs[ii]     = fi;
-    fl->readBases[ii]   = fl->bases + fl->basesLen;
-    fl->basesLen       += read->gkRead_sequenceLength() + 1;
+    fl->readIDs[fl->readsLen]   = loID;                          //  Save the ID of _this_ read.
+    fl->readBases[fl->readsLen] = fl->bases + fl->basesLen;      //  Set the data pointer to where this read should start.
 
     gkpStore->gkStore_loadReadData(read, readData);
 
@@ -160,31 +155,26 @@ Extract_Needed_Frags(feParameters *G,
     char   *readBases  = readData->gkReadData_getSequence();
 
     for (uint32 bb=0; bb<readLen; bb++)
-      fl->readBases[ii][bb] = filter[readBases[bb]];
+      fl->readBases[fl->readsLen][bb] = filter[readBases[bb]];
 
-    fl->readBases[ii][readLen] = 0;  //  All good reads end.
+    fl->readBases[fl->readsLen][readLen] = 0;                    //  All good reads end.
 
-    ii++;
+    fl->basesLen += read->gkRead_sequenceLength() + 1;           //  Update basesLen to account for this read.
+    fl->readsLen += 1;                                           //  And note that we loaded a read.
 
-    //  Advance to the next overlap.
-
-    nextOlap++;
-    while ((nextOlap < G->olapsLen) && (G->olaps[nextOlap].b_iid == fi))
+    nextOlap++;                                                  //  Advance past all the overlaps for this read.
+    while ((nextOlap < G->olapsLen) &&
+           (G->olaps[nextOlap].b_iid == loID))
       nextOlap++;
-    fi = (nextOlap < G->olapsLen) ? G->olaps[nextOlap].b_iid : hiID + 1;
+
+    if (nextOlap < G->olapsLen)                                  //  If we have valid overlap, grab the read ID.
+      loID = G->olaps[nextOlap].b_iid;                           //  If we don't have a valid overlap, the loop will stop.
   }
 
   delete readData;
 
-  fl->readsLen = ii;
 
-  if (fl->readsLen > 0)
-    fprintf(stderr, "Extract_Needed_Frags()--  Loaded " F_U32 " reads (%.4f%%).  Loaded IDs " F_U32 " through " F_U32 ".\n",
-            fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID),
-            fl->readIDs[0], fl->readIDs[fl->readsLen-1]);
-  else
-    fprintf(stderr, "Extract_Needed_Frags()--  Loaded " F_U32 " reads (%.4f%%).\n",
-            fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID));
+  fprintf(stderr, "extractReads()-- Loaded.\n");
 }
 
 
@@ -194,7 +184,7 @@ Extract_Needed_Frags(feParameters *G,
 //    frag_iid % Num_PThreads == thread_id
 
 void *
-Threaded_Process_Stream(void *ptr) {
+processThread(void *ptr) {
   Thread_Work_Area_t  *wa = (Thread_Work_Area_t *)ptr;
 
   for (int32 i=0; i<wa->frag_list->readsLen; i++) {
@@ -247,10 +237,10 @@ Threaded_Process_Stream(void *ptr) {
 
 static
 void
-Threaded_Stream_Old_Frags(feParameters *G,
-                          gkStore      *gkpStore,
-                          uint64       &passedOlaps,
-                          uint64       &failedOlaps) {
+processReads(feParameters *G,
+             gkStore      *gkpStore,
+             uint64       &passedOlaps,
+             uint64       &failedOlaps) {
 
   pthread_attr_t  attr;
 
@@ -262,8 +252,6 @@ Threaded_Stream_Old_Frags(feParameters *G,
 
   for (uint32 i=0; i<G->numThreads; i++) {
     thread_wa[i].thread_id    = i;
-    thread_wa[i].loID         = 0;
-    thread_wa[i].hiID         = 0;
     thread_wa[i].nextOlap     = 0;
     thread_wa[i].G            = G;
     thread_wa[i].frag_list    = NULL;
@@ -278,14 +266,6 @@ Threaded_Stream_Old_Frags(feParameters *G,
     thread_wa[i].ped.initialize(G, G->errorRate);
   }
 
-  uint32 loID  = G->olaps[0].b_iid;
-  uint32 hiID  = loID + FRAGS_PER_BATCH - 1;
-
-  uint32 endID = G->olaps[G->olapsLen - 1].b_iid;
-
-  if (hiID > endID)
-    hiID = endID;
-
   uint64 frstOlap = 0;
   uint64 nextOlap = 0;
 
@@ -295,19 +275,19 @@ Threaded_Stream_Old_Frags(feParameters *G,
   Frag_List_t  *curr_frag_list = &frag_list_1;
   Frag_List_t  *next_frag_list = &frag_list_2;
 
-  Extract_Needed_Frags(G, gkpStore, loID, hiID, curr_frag_list, nextOlap);
+  extractReads(G, gkpStore, curr_frag_list, nextOlap);
 
-  while (loID <= endID) {
+  while (curr_frag_list->readsLen > 0) {
 
     // Process fragments in curr_frag_list in background
 
+    fprintf(stderr, "processReads()-- Launching compute.\n");
+
     for (uint32 i=0; i<G->numThreads; i++) {
-      thread_wa[i].loID      = loID;
-      thread_wa[i].hiID      = hiID;
       thread_wa[i].nextOlap  = frstOlap;
       thread_wa[i].frag_list = curr_frag_list;
 
-      int status = pthread_create(thread_id + i, &attr, Threaded_Process_Stream, thread_wa + i);
+      int status = pthread_create(thread_id + i, &attr, processThread, thread_wa + i);
 
       if (status != 0)
         fprintf(stderr, "pthread_create error:  %s\n", strerror(status)), exit(1);
@@ -315,20 +295,13 @@ Threaded_Stream_Old_Frags(feParameters *G,
 
     // Read next batch of fragments
 
-    loID = hiID + 1;
+    frstOlap = nextOlap;
 
-    if (loID <= endID) {
-      hiID = loID + FRAGS_PER_BATCH - 1;
-
-      if (hiID > endID)
-        hiID = endID;
-
-      frstOlap = nextOlap;
-
-      Extract_Needed_Frags(G, gkpStore, loID, hiID, next_frag_list, nextOlap);
-    }
+    extractReads(G, gkpStore, next_frag_list, nextOlap);
 
     // Wait for background processing to finish
+
+    fprintf(stderr, "processReads()-- Waiting for compute.\n");
 
     for (uint32 i=0; i<G->numThreads; i++) {
       void  *ptr;
@@ -430,6 +403,8 @@ main(int argc, char **argv) {
     err++;
   if (G->numThreads == 0)
     err++;
+  if (G->bgnID > G->endID)
+    err++;
 
   if (err > 0) {
     fprintf(stderr, "usage: %s[-ehp][-d DegrThresh][-k KmerLen][-x ExcludeLen]\n", argv[0]);
@@ -463,6 +438,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: no overlap store (-O) supplied.\n");
     if (G->numThreads == 0)
       fprintf(stderr, "ERROR: number of compute threads (-t) must be larger than zero.\n");
+    if (G->bgnID > G->endID)
+      fprintf(stderr, "ERROR: read range (-R) %u-%u invalid.\n", G->bgnID, G->endID);
 
     exit(1);
   }
@@ -496,7 +473,7 @@ main(int argc, char **argv) {
   uint64  passedOlaps = 0;
   uint64  failedOlaps = 0;
 
-  Threaded_Stream_Old_Frags(G, gkpStore, passedOlaps, failedOlaps);
+  processReads(G, gkpStore, passedOlaps, failedOlaps);
 
   //  All done.  Sum up what we did.
 
