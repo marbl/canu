@@ -80,7 +80,7 @@ AS_UTL_decodeRange(char *range, vector<T> &bgn, vector<T> &end) {
   T        bv = 0;
 
   while ((ap != NULL) && (*ap != 0)) {
-    range = AS_UTL_decodeRange(range, av, bv);
+    ap = AS_UTL_decodeRange(ap, av, bv);
 
     bgn.push_back(av);
     end.push_back(bv);
@@ -97,7 +97,7 @@ AS_UTL_decodeRange(char *range, set<T> &ranges) {
   T        bv = 0;
 
   while ((ap != NULL) && (*ap != 0)) {
-    range = AS_UTL_decodeRange(range, av, bv);
+    ap = AS_UTL_decodeRange(ap, av, bv);
 
     for (T xx=av; xx<=bv; xx++)
       ranges.insert(xx);
