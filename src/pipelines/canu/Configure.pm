@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(getAllowedResources displayMemoryValue displayGenomeSize configureAssembler);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 use Carp qw(cluck);
 use Sys::Hostname;
 

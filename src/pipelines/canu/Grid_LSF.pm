@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(detectLSF configureLSF);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use canu::Defaults;
 use canu::Execution;

@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(mmapConfigure mmapPrecomputeCheck mmapCheck);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use File::Path 2.08 qw(make_path remove_tree);
 

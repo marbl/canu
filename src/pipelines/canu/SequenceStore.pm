@@ -49,6 +49,8 @@ require Exporter;
              checkSequenceStore);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use Cwd qw(getcwd);
 

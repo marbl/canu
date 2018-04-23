@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(estimateError uniqueKmerThreshold);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 use POSIX qw(floor);
 
 use canu::Defaults;

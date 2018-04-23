@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(formatAllowedResources configureRemote);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use canu::Defaults;
 

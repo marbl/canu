@@ -43,6 +43,8 @@ require Exporter;
 @EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusAnalyze alignGFA);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use File::Path 2.08 qw(make_path remove_tree);
 

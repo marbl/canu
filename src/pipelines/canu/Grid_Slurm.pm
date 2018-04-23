@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(detectSlurm configureSlurm);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use canu::Defaults;
 use canu::Execution;

@@ -37,6 +37,8 @@
  ##
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use FindBin;
 use Cwd qw(getcwd abs_path);

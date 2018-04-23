@@ -43,6 +43,8 @@ require Exporter;
 @EXPORT = qw(generateOutputs);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use File::Copy;
 

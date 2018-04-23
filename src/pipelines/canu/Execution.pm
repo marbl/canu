@@ -77,6 +77,9 @@ require Exporter;
              caFailure);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
+
 use Config;            #  for @signame
 use Cwd qw(getcwd);
 use Carp qw(longmess);

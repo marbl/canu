@@ -43,6 +43,9 @@ require Exporter;
 @EXPORT = qw(createOverlapStore);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
+
 use File::Basename;   #  dirname
 use File::Path 2.08 qw(make_path remove_tree);
 

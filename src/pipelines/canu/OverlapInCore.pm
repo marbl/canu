@@ -43,6 +43,8 @@ require Exporter;
 @EXPORT = qw(overlapConfigure overlap overlapCheck);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use File::Path 2.08 qw(make_path remove_tree);
 

@@ -40,6 +40,8 @@ require Exporter;
              stashStoreShellCode);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use File::Path qw(make_path);
 use File::Basename;

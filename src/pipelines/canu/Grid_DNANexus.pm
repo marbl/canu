@@ -31,6 +31,8 @@ require Exporter;
 @EXPORT = qw(detectDNANexus configureDNANexus);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use canu::Defaults;
 use canu::Grid;

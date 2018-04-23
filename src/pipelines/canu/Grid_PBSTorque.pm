@@ -35,6 +35,8 @@ require Exporter;
 @EXPORT = qw(detectPBSTorque configurePBSTorque);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
 
 use canu::Defaults;
 use canu::Execution;

@@ -43,6 +43,9 @@ require Exporter;
 @EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
 
 use strict;
+use warnings "all";
+no  warnings "uninitialized";
+
 use Cwd qw(getcwd abs_path);
 use Carp qw(cluck);
 use Sys::Hostname;
