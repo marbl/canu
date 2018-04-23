@@ -617,13 +617,16 @@ mergeOrphans(TigVector &tigs,
     vector<candidatePop *>    targets;
 
     for (map<uint32, intervalList<uint32> *>::iterator it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
-      saveCorrectlySizedInitialIntervals(orphan,
-                                         tigs[it->first],     //  The targetID      in targetIntervals
-                                         it->second,          //  The interval list in targetIntervals
-                                         fReadID,
-                                         lReadID,
-                                         placed,
-                                         targets);
+      if (tigs[it->first] == NULL)
+        writeLog("mergeOrphans()-- orphan %u wants to go into nonexistent tig %u!\n", ti, it->first);
+      else
+        saveCorrectlySizedInitialIntervals(orphan,
+                                           tigs[it->first],     //  The targetID      in targetIntervals
+                                           it->second,          //  The interval list in targetIntervals
+                                           fReadID,
+                                           lReadID,
+                                           placed,
+                                           targets);
 
     targetIntervals.clear();   //  intervalList already freed.
 
