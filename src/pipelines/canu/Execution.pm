@@ -94,6 +94,56 @@ use canu::Defaults;
 
 
 
+
+
+#  Log that we've finished a task.
+
+sub logFinished ($$) {
+    my $dir       = shift @_;
+    my $startsecs = shift @_;
+
+    my $diskfree  = diskSpace(".");
+
+    my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
+    my $elapsed = time() - $startsecs;
+    my $message;
+
+    my @fast;
+
+    push @fast, "lickety-split";
+    push @fast, "fast as lightning";
+    push @fast, "fuirously fast";
+    push @fast, "like a bat out of hell";
+    push @fast, "in the blink of an eye";
+
+    my @slow;
+
+    push @slow, "fashionably late";
+    push @slow, "better late than never";
+    push @slow, "like watching paint dry";
+    push @slow, "at least I didn't crash";
+    push @slow, "it'll be worth it in the end";
+    push @slow, "no bitcoins found either";
+
+    my $rf = int(rand(scalar(@fast)));
+    my $rs = int(rand(scalar(@slow)));
+    my $rp = int(rand(100));
+
+    $message  = "$elapsed seconds" if ($elapsed  > 1);
+    $message  = "one second"       if ($elapsed == 1);
+    $message  = $fast[$rf]         if ($elapsed  < 1);
+
+    $message .= ", " . $slow[$rs]  if ((($elapsed > 1000)  && ($rp < 1)) ||
+                                       (($elapsed > 10000) && ($rp < 50)) ||
+                                       (($elapsed > 86400)));
+
+    print STDERR "\n";
+    print STDERR "-- Finished on ", scalar(localtime()), " ($message) with $diskfree GB free disk space$warning\n";
+    print STDERR "----------------------------------------\n";
+}
+
+
+
 #
 #  Functions for running multiple processes at the same time.  This is private to the module.
 #
@@ -217,20 +267,9 @@ sub schedulerFinish ($$) {
         waitpid(shift @processesRunning, 0);
     }
 
+    logFinished($dir, $startsecs);
+
     chdir($cwd);
-
-    $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
-
-    my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
-    my $elapsed = time() - $startsecs;
-
-    $elapsed = "lickety-split"    if ($elapsed eq "0");
-    $elapsed = "$elapsed second"  if ($elapsed eq "1");
-    $elapsed = "$elapsed seconds" if ($elapsed  >  1);
-
-    print STDERR "\n";
-    print STDERR "-- Finished on ", scalar(localtime()), " ($elapsed) with $diskfree GB free disk space$warning\n";
-    print STDERR "----------------------------------------\n";
 }
 
 
@@ -1371,44 +1410,7 @@ sub runCommand ($$) {
 
     my $rc = 0xffff & system($cmd);
 
-    $diskfree = diskSpace(".");
-
-    my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
-    my $elapsed = time() - $startsecs;
-    my $message;
-
-    my @fast;
-
-    push @fast, "lickety-split";
-    push @fast, "fast as lightning";
-    push @fast, "fuirously fast";
-    push @fast, "like a bat out of hell";
-    push @fast, "in the blink of an eye";
-
-    my @slow;
-
-    push @slow, "fashionably late";
-    push @slow, "better late than never";
-    push @slow, "like watching paint dry";
-    push @slow, "at least I didn't crash";
-    push @slow, "it'll be worth it in the end";
-    push @slow, "no bitcoins found either";
-
-    my $rf = int(rand(scalar(@fast)));
-    my $rs = int(rand(scalar(@slow)));
-    my $rp = int(rand(100));
-
-    $message  = "$elapsed seconds" if ($elapsed  > 1);
-    $message  = "one second"       if ($elapsed == 1);
-    $message  = $fast[$rf]         if ($elapsed  < 1);
-
-    $message .= ", " . $slow[$rs]  if ((($elapsed > 1000)  && ($rp < 1)) ||
-                                       (($elapsed > 10000) && ($rp < 50)) ||
-                                       (($elapsed > 86400)));
-
-    print STDERR "\n";
-    print STDERR "-- Finished on ", scalar(localtime()), " ($message) with $diskfree GB free disk space$warning\n";
-    print STDERR "----------------------------------------\n";
+    logFinished(".", $startsecs);
 
     chdir($cwd);
 
