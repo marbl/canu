@@ -31,8 +31,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef GKSTOREFILE_H
-#define GKSTOREFILE_H
+#ifndef SQSTOREFILE_H
+#define SQSTOREFILE_H
 
 #include "seqFile.H"
 #include "sqStore.H"
@@ -75,4 +75,4 @@ private:
 };
 
 
-#endif  //  GKSTOREFILE_H
+#endif  //  SQSTOREFILE_H

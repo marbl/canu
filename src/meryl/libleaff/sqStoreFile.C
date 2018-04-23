@@ -161,7 +161,7 @@ sqStoreFile::clear(void) {
   memset(_filename, 0, FILENAME_MAX);
   memset(_typename, 0, FILENAME_MAX);
 
-  strcpy(_typename, "GKSTORE");
+  strcpy(_typename, "SQSTORE");
 
   _numberOfSequences = 0;
 }
