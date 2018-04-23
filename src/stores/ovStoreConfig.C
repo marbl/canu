@@ -64,7 +64,7 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
   memset(oPR, 0, sizeof(uint32) * (_maxID + 1));
 
   for (uint32 ii=0; ii<_numInputs; ii++) {
-    ovFile            *inputFile = new ovFile(seq, _inputNames[ii], ovFileFull);
+    ovFile            *inputFile = new ovFile(seq, _inputNames[ii], ovFileFullCounts);
 
     oPF[ii]      = inputFile->getCounts()->numOverlaps();       //  Used for load balancing.
     numOverlaps += inputFile->getCounts()->numOverlaps() * 2;   //  Because we symmetrize!

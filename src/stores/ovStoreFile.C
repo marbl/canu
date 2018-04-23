@@ -142,62 +142,74 @@ ovFile::construct(sqStore     *seq,
   strncpy(_name, name, FILENAME_MAX);
   AS_UTL_findBaseFileName(_prefix, _name);
 
+  //
+  //  Handle ovStore files.  These CANNOT be compressed, not even snappy.  We need
+  //  random access to specific overlaps.
+  //
+  //  ovFileFileWriteNoCounts is used for intermediate bucket files when constructing
+  //  the store.  They CAN be compressed.
+  //
 
-  switch (type) {
-
-    //  Open store files for reading.
-    //  These generally cannot be compressed, but we pretend they can
-    //  be.
-    case ovFileNormal:
-      _reader      = new compressedFileReader(_name);
-      _file        = _reader->file();
-      _isSeekable  = (_reader->isCompressed() == false);
-      _useSnappy   = false;
-      _histogram   = new ovStoreHistogram(_prefix);
-      break;
-
-    //  Open dump files for reading.
-    //  These certainly can be compressed.
-    //  But it's pointless with snappy.
-    case ovFileFull:
-      _reader      = new compressedFileReader(_name);
-      _file        = _reader->file();
-      _isSeekable  = (_reader->isCompressed() == false);
-      _useSnappy   = true;
-      _countsR     = new ovFileOCR(_seq, _prefix);
-      break;
-
-    //  Open a store file for writing.
-    case ovFileNormalWrite:
-      _writer      = new compressedFileWriter(_name);
-      _file        = _writer->file();
-      _isOutput    = true;
-      _useSnappy   = false;
-      _histogram   = new ovStoreHistogram(_seq);
-      _countsW     = new ovFileOCW(_seq, NULL);
-      break;
-
-    //  Open an overlapper output file for writing.
-    case ovFileFullWrite:
-      _writer      = new compressedFileWriter(_name);
-      _file        = _writer->file();
-      _isOutput    = true;
-      _useSnappy   = true;
-      _countsW     = new ovFileOCW(_seq, _prefix);
-      break;
-
-    //  Open a dump file for writing, ignoring counts.  These are the intermediate
-    //  bucket files used when creating an overlap store.
-    case ovFileFullWriteNoCounts:
-      _writer      = new compressedFileWriter(_name);
-      _file        = _writer->file();
-      _isOutput    = true;
-      _useSnappy   = true;
-      break;
-
-    default:
-      assert(0);
+  if (type == ovFileNormal) {
+    _reader      = new compressedFileReader(_name);
+    _file        = _reader->file();
+    _isSeekable  = (_reader->isCompressed() == false);
+    _useSnappy   = false;
+    _histogram   = new ovStoreHistogram(_prefix);
   }
+
+  if (type == ovFileNormalWrite) {
+    _writer      = new compressedFileWriter(_name);
+    _file        = _writer->file();
+    _isOutput    = true;
+    _useSnappy   = false;
+    _histogram   = new ovStoreHistogram(_seq);
+    _countsW     = new ovFileOCW(_seq, NULL);
+  }
+
+  //
+  //  Handle overlapper output files.  These can be compressed, but not really useful with
+  //  snappy enabled.
+  //
+  //  As a special case for Object Stores, when opening an ovFileFull, 
+  //
+
+  if (type == ovFileFull) {
+    _reader      = new compressedFileReader(_name);
+    _file        = _reader->file();
+    _isSeekable  = (_reader->isCompressed() == false);
+    _useSnappy   = true;
+    _countsR     = new ovFileOCR(_seq, _prefix);
+  }
+
+  if (type == ovFileFullCounts) {
+    _reader      = NULL;
+    _file        = NULL;
+    _isSeekable  = false;
+    _useSnappy   = true;
+    _countsR     = new ovFileOCR(_seq, _prefix);
+  }
+
+  if (type == ovFileFullWrite) {
+    _writer      = new compressedFileWriter(_name);
+    _file        = _writer->file();
+    _isOutput    = true;
+    _useSnappy   = true;
+    _countsW     = new ovFileOCW(_seq, _prefix);
+  }
+
+  //
+  //  Handle store construction intermediate files.  These are full overlaps, but we
+  //  don't need to save any histogram/count data.  They CAN be compressed.
+  //
+
+  if (type == ovFileFullWriteNoCounts) {
+    _writer      = new compressedFileWriter(_name);
+    _file        = _writer->file();
+    _isOutput    = true;
+    _useSnappy   = true;
+  }
+
 }
 
 

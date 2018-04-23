@@ -58,9 +58,10 @@ class ovStoreHistogram;
 enum ovFileType {
   ovFileNormal              = 0,  //  Reading of b_id overlaps (aka store files)
   ovFileNormalWrite         = 1,  //  Writing of b_id overlaps
-  ovFileFull                = 2,  //  Reading of a_id+b_id overlaps (aka dump files)
-  ovFileFullWrite           = 3,  //  Writing of a_id+b_id overlaps
-  ovFileFullWriteNoCounts   = 4   //  Writing of a_id+b_id overlaps, omitting the counts of olaps per read
+  ovFileFull                = 2,  //  Reading of a_id+b_id overlaps (aka overlapper output files)
+  ovFileFullCounts          = 3,  //  Reading of a_id+b_id overlaps (but only loading the count data, no overlaps)
+  ovFileFullWrite           = 4,  //  Writing of a_id+b_id overlaps
+  ovFileFullWriteNoCounts   = 5   //  Writing of a_id+b_id overlaps, omitting the counts of olaps per read
 };
 
 
