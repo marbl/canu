@@ -183,6 +183,8 @@ sub findGridMaxMemoryAndThreads () {
 #  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
 #  resetting, I'd be making code changes all over the place to support the values returned.
 
+sub getAllowedResources ($$$$$@);  #  Recursive call to getAllowedResources() wants the prototype.
+
 sub getAllowedResources ($$$$$@) {
     my $tag  = shift @_;  #  Variant, e.g., "cor", "utg"
     my $alg  = shift @_;  #  Algorithm, e.g., "mhap", "ovl"
