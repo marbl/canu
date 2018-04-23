@@ -51,7 +51,10 @@ use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
+
 use canu::SequenceStore;
+use canu::Report;
+
 use canu::Grid_Cloud;
 
 #  Map long reads to long reads with mhap.

@@ -40,7 +40,10 @@ no  warnings "uninitialized";
 
 use canu::Defaults;
 use canu::Execution;
-use canu::Grid;
+
+use canu::Grid "formatAllowedResources";
+
+
 
 sub detectSlurm () {
 

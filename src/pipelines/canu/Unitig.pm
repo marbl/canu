@@ -51,10 +51,12 @@ use POSIX qw(ceil);
 
 use canu::Defaults;
 use canu::Execution;
+
 use canu::Configure;    #  For displayGenomeSize
 use canu::SequenceStore;
-use canu::Report;
 use canu::Meryl;
+use canu::Report;
+
 use canu::Grid_Cloud;
 
 

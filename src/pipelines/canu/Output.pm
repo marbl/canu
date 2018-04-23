@@ -50,6 +50,9 @@ use File::Copy;
 
 use canu::Defaults;
 use canu::Execution;
+
+use canu::Report;
+
 use canu::Grid_Cloud;
 
 

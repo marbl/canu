@@ -48,12 +48,14 @@ no  warnings "uninitialized";
 
 use File::Basename;   #  dirname
 use File::Path 2.08 qw(make_path remove_tree);
-
 use POSIX qw(ceil);
+
 use canu::Defaults;
 use canu::Execution;
+
 use canu::SequenceStore;
 use canu::Report;
+
 use canu::Grid_Cloud;
 
 

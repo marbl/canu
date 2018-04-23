@@ -35,8 +35,11 @@ use warnings "all";
 no  warnings "uninitialized";
 
 use canu::Defaults;
-use canu::Grid;
 use canu::Execution;
+
+use canu::Grid "formatAllowedResources";
+
+
 
 sub detectDNANexus () {
 

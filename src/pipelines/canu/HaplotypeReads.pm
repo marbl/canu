@@ -49,10 +49,12 @@ no  warnings "uninitialized";
 use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
-use canu::Configure;
 use canu::Execution;
+
+use canu::Configure;
 use canu::SequenceStore;
 use canu::Report;
+
 use canu::Grid_Cloud;
 
 sub getHaplotypes($) {

@@ -46,11 +46,11 @@ no  warnings "uninitialized";
 use File::Path qw(make_path);
 use File::Basename;
 
-use Cwd qw(getcwd);
-
 use canu::Defaults;
-use canu::Grid;
-use canu::Execution qw(runCommand runCommandSilently);
+use canu::Execution;
+
+#use canu::Grid "formatAllowedResources";
+
 
 
 #  This file contains most of the magic needed to access an object store.  Two flavors of each

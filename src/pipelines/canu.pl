@@ -56,14 +56,6 @@ use canu::Execution;
 
 use canu::Configure;
 
-use canu::Grid;
-use canu::Grid_Cloud;
-use canu::Grid_SGE;
-use canu::Grid_Slurm;
-use canu::Grid_PBSTorque;
-use canu::Grid_LSF;
-use canu::Grid_DNANexus;
-
 use canu::SequenceStore;
 use canu::Meryl;
 use canu::OverlapInCore;
@@ -72,7 +64,6 @@ use canu::OverlapMMap;
 use canu::OverlapStore;
 
 use canu::CorrectReads;
-use canu::ErrorEstimate;
 
 use canu::OverlapBasedTrimming;
 
@@ -80,6 +71,14 @@ use canu::OverlapErrorAdjustment;
 use canu::Unitig;
 use canu::Consensus;
 use canu::Output;
+
+use canu::Grid;
+use canu::Grid_Cloud;
+use canu::Grid_SGE;
+use canu::Grid_Slurm;
+use canu::Grid_PBSTorque;
+use canu::Grid_LSF;
+use canu::Grid_DNANexus;
 
 my @specFiles;    #  Files of specs
 my @specOpts;     #  Command line specs
