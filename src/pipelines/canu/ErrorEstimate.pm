@@ -153,6 +153,7 @@ sub estimateRawError($$$) {
     my $merSize = shift @_;
     my $bin     = getBinDirectory();
     my $numReads = getNumberOfReadsInStore($asm, $tag);
+    my $cmd;
 
     return;
 
@@ -171,13 +172,13 @@ sub estimateRawError($$$) {
     # subsample raw reads
     my $sampleSize = computeSampleSize($base, $asm, $tag, 0.01, undef);
     $sampleSize /= 2;
-    my $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r 1-$sampleSize -o - > $base/$asm.seqStore/subset.fasta 2> /dev/null";
+    $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r 1-$sampleSize -o - > $base/$asm.seqStore/subset.fasta 2> /dev/null";
     runCommandSilently($base, $cmd, 1);
     my $min = $numReads - $sampleSize + 1;
-    my $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r $min-$numReads -o - >> $base/$asm.seqStore/subset.fasta 2> /dev/null";
+    $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r $min-$numReads -o - >> $base/$asm.seqStore/subset.fasta 2> /dev/null";
     runCommandSilently($base, $cmd, 1);
     my $querySize = computeSampleSize($base, $asm, $tag, undef, 2);
-    my $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r 1-$querySize -o - > $base/$asm.seqStore/reads.fasta 2> /dev/null";
+    $cmd = "$bin/sqStoreDumpFASTQ -S $base/$asm.seqStore -nolibname -fasta -r 1-$querySize -o - > $base/$asm.seqStore/reads.fasta 2> /dev/null";
     runCommandSilently($base, $cmd, 1);
 
     print STDERR "--\n";
@@ -207,6 +208,7 @@ sub estimateCorrectedError ($$$) {
     my $tag     = shift @_;
     my $merSize = shift @_;
     my $bin     = getBinDirectory();
+    my $cmd;
 
     #  DISABLED 2016 JAN 27 when 'errorRate' was replaced with 'correctedErrorRate'.
     #
@@ -215,7 +217,6 @@ sub estimateCorrectedError ($$$) {
 
     return;
 
-    my $base = "correction";
     my $base = "correction/3-estimator";
 
     # only run if we aren't done and were asked to
@@ -236,14 +237,14 @@ sub estimateCorrectedError ($$$) {
 
     # subsample corrected reads, this assumes the fasta records are on a single line. We take some reads from the top and bottom of file to avoid sampling one library
     my $sampleSize = computeSampleSize("correction", $asm, $tag, 0.01, undef);
-    my $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |head -n $sampleSize > $base/subset.fasta";
+    $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |head -n $sampleSize > $base/subset.fasta";
     runCommandSilently($base, $cmd, 1);
-    my $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |tail -n $sampleSize >> $base/subset.fasta";
+    $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |tail -n $sampleSize >> $base/subset.fasta";
     runCommandSilently($base, $cmd, 1);
     my $querySize =  computeSampleSize("correction", $asm, $tag, undef, 2);
-    my $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |head -n $querySize > $base/reads.fasta";
+    $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |head -n $querySize > $base/reads.fasta";
     runCommandSilently($base, $cmd, 1);
-    my $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |tail -n $querySize >> $base/reads.fasta";
+    $cmd = "gunzip -c correction/asm.correctedReads.fasta.gz |tail -n $querySize >> $base/reads.fasta";
     runCommandSilently($base, $cmd, 1);
 
     # now compute the overlaps
