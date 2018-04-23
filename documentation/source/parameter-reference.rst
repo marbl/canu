@@ -80,6 +80,20 @@ minOverlapLength <integer=500>
 
   Must be no bigger than minReadLength.
 
+.. _readSamplingCoverage:
+
+readSamplingCoverage <integer=unset>
+  After loading all reads into the sequence store, flag some reads as 'not to be used' until this
+  amount of coverage remains.  Reads are flagged according to the score described in
+  :ref:`readSamplingBias <readSamplingBias>`.
+
+.. _readSamplingBias:
+
+readSamplingBias <float=0.0>
+  Adjust the sampling bias towards shorter (negative numbers) or longer (positive numbers) reads.
+  Reads are assigned a score of `random * length ^ bias` and the lowest scoring reads are flagged as
+  described in :ref:`readSamplingCoverage <readSamplingCoverage>`.
+
 .. _genomeSize:
 
 genomeSize <float=unset> *required*
