@@ -69,7 +69,7 @@ sub getHaplotypes($) {
          push @haplotypes, $1;
       }
    }
-   closedir(DOR);
+   closedir(DIR);
 
    return @haplotypes;
 }
