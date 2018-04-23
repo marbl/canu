@@ -254,6 +254,7 @@ sub consensusConfigure ($) {
     print STDERR "-- Configured $ctgjobs contig and $utgjobs unitig consensus jobs.\n";
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "consensusConfigure")   if ($firstTime);
 
   allDone:
@@ -407,6 +408,7 @@ sub consensusCheck ($) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "consensusCheck", $attempt);
 
         submitOrRunParallelJob($asm, "cns", $path, "consensus", @failedJobs);
@@ -428,6 +430,7 @@ sub consensusCheck ($) {
 
     stashFile("$path/utgcns.files");
 
+    generateReport($asm);
     emitStage($asm, "consensusCheck");
 
   allDone:
@@ -589,7 +592,9 @@ sub consensusLoad ($) {
     reportUnitigSizes($asm, 2, "after consensus generation");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "consensusLoad");
+
   allDone:
 }
 
@@ -629,6 +634,7 @@ sub consensusAnalyze ($) {
     stashFile("unitigging/$asm.ctgStore.coverageStat.log");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "consensusAnalyze");
 
   allDone:
@@ -757,6 +763,7 @@ sub alignGFA ($) {
 
     #  Otherwise, run some jobs.
 
+    generateReport($asm);
     emitStage($asm, "alignGFA", $attempt);
 
     if ($runGrid) {
@@ -770,6 +777,7 @@ sub alignGFA ($) {
     return;
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "alignGFA");
 
   allDone:

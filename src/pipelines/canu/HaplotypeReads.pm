@@ -315,6 +315,7 @@ sub haplotypeConfigure ($) {
 
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "hap-haplotypeConfigure");
 
   allDone:
@@ -383,6 +384,7 @@ sub haplotypeCheck($) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "hap-haplotypeReads", $attempt);
 
         submitOrRunParallelJob($asm, "cor", $path, "haplotypeReads", @failedJobs);
@@ -398,6 +400,7 @@ sub haplotypeCheck($) {
 
     stashFile("$path/hapjob.files");
 
+    generateReport($asm);
     emitStage($asm, "hap-haplotypeReadsCheck");
 
   allDone:
@@ -585,6 +588,7 @@ sub dumpHaplotypeReads ($) {
      }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "hap-dumpHaplotypeReads");
 
   allDone:

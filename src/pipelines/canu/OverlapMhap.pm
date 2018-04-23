@@ -569,6 +569,7 @@ sub mhapConfigure ($$$) {
     stashFile("$path/mhap.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "$tag-mhapConfigure");
 
   allDone:
@@ -645,6 +646,7 @@ sub mhapPrecomputeCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-mhapPrecomputeCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "precompute", @failedJobs);
@@ -660,6 +662,7 @@ sub mhapPrecomputeCheck ($$$) {
 
     stashFile("$path/precompute.files");
 
+    generateReport($asm);
     emitStage($asm, "$tag-mhapPrecomputeCheck");
 
   allDone:
@@ -770,7 +773,9 @@ sub mhapCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-mhapCheck", $attempt);
+
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "mhap", @failedJobs);
         return;
     }
@@ -794,6 +799,7 @@ sub mhapCheck ($$$) {
     stashFile("$path/ovljob.files");
     stashFile("$path/ovljob.more.files");
 
+    generateReport($asm);
     emitStage($asm, "$tag-mhapCheck");
 
   allDone:

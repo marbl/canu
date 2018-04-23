@@ -121,6 +121,7 @@ sub trimReads ($) {
     }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "obt-trimReads");
 
   allDone:
@@ -191,6 +192,7 @@ sub splitReads ($) {
     }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "obt-splitReads");
 
   allDone:
@@ -246,6 +248,7 @@ sub loadTrimmedReads ($) {
     }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "obt-dumpReads");
 
   allDone:
@@ -303,6 +306,7 @@ sub dumpTrimmedReads ($) {
     }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-dumpTrimmedReads");
 
   allDone:

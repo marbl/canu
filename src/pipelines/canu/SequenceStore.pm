@@ -605,7 +605,8 @@ sub checkSequenceStore ($$@) {
     }
 
   finishStage:
-    ;  #  Perl 5.10 (at least) is VERY unhappy about having two adjacent labels.
+    generateReport($asm);
+
     #  DO NOT emitStage() here.  It resets canuIteration, and doesn't need to.
     #emitStage($asm, "$tag-sqStoreCreate");
 

@@ -312,6 +312,7 @@ sub buildCorrectionLayoutsConfigure ($) {
     stashStore("./correction/$asm.corStore");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-buildCorrectionLayoutsConfigure");
 
   allDone:
@@ -336,6 +337,7 @@ sub buildCorrectionLayoutsCheck ($) {
     #  tigs into the corStore here.
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-buildCorrectionLayoutsCheck");
 
   allDone:
@@ -395,6 +397,7 @@ sub filterCorrectionLayouts ($) {
     addToReport("corLayout", $report);
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-filterCorrectionLayouts");
 
   allDone:
@@ -535,6 +538,7 @@ sub generateCorrectedReadsConfigure ($) {
 
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-generateCorrectedReadsConfigure");
 
   allDone:
@@ -606,6 +610,7 @@ sub generateCorrectedReadsCheck ($) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "cor-generateCorrectedReads", $attempt);
 
         submitOrRunParallelJob($asm, "cor", $path, "correctReads", @failedJobs);
@@ -621,6 +626,7 @@ sub generateCorrectedReadsCheck ($) {
 
     stashFile("$path/corjob.files");
 
+    generateReport($asm);
     emitStage($asm, "cor-generateCorrectedReadsCheck");
 
   allDone:
@@ -727,6 +733,7 @@ sub loadCorrectedReads ($) {
     }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-loadCorrectedReads");
 
   allDone:
@@ -786,6 +793,7 @@ sub dumpCorrectedReads ($) {
     }
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "cor-dumpCorrectedReads");
 
   allDone:

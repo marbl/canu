@@ -198,6 +198,7 @@ sub createOverlapStoreParallel ($$$$$$) {
     stashFile("$path/scripts/2-sort.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "$tag-overlapStoreConfigure");
 
   allDone:
@@ -271,6 +272,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt);
 
         submitOrRunParallelJob($asm, "ovB", $path, "scripts/1-bucketize", @failedJobs);
@@ -282,6 +284,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     touch("$path/1-bucketize.success");
 
+    generateReport($asm);
     emitStage($asm, "$tag-overlapStoreBucketizerCheck");
 
   allDone:
@@ -366,6 +369,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-overlapStoreSorterCheck", $attempt);
 
         submitOrRunParallelJob($asm, "ovS", $path, "scripts/2-sort", @failedJobs);
@@ -377,6 +381,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     touch("$path/2-sorter.success");
 
+    generateReport($asm);
     emitStage($asm, "$tag-overlapStoreSorterCheck");
 
   allDone:
@@ -633,6 +638,7 @@ sub createOverlapStore ($$$) {
         }
     }
 
+    generateReport($asm);
     emitStage($asm, "$tag-createOverlapStore");
 
   allDone:

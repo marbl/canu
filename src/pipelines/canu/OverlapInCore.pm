@@ -236,6 +236,7 @@ sub overlapConfigure ($$$) {
     print STDERR "-- Configured $numJobs overlapInCore jobs.\n";
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "$tag-overlapConfigure");
 
   allDone:
@@ -408,6 +409,7 @@ sub overlapCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-overlapCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}ovl", $path, "overlap", @failedJobs);
@@ -430,6 +432,7 @@ sub overlapCheck ($$$) {
 
     reportOverlapStats($base, $asm, @statsJobs);
 
+    generateReport($asm);
     emitStage($asm, "$tag-overlapCheck");
 
   allDone:

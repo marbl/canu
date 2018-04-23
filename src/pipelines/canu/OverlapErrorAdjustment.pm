@@ -292,6 +292,7 @@ sub readErrorDetectionConfigure ($) {
     stashFile("$path/red.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "readErrorDetectionConfigure");
 
   allDone:
@@ -362,6 +363,7 @@ sub readErrorDetectionCheck ($) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "readErrorDetectionCheck", $attempt);
 
         submitOrRunParallelJob($asm, "red", $path, "red", @failedJobs);
@@ -405,6 +407,7 @@ sub readErrorDetectionCheck ($) {
         unlink $f;
     }
 
+    generateReport($asm);
     emitStage($asm, "readErrorDetectionCheck");
 
   allDone:
@@ -597,6 +600,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     stashFile("$path/oea.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "overlapErrorAdjustmentConfigure");
 
   allDone:
@@ -672,6 +676,7 @@ sub overlapErrorAdjustmentCheck ($) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "overlapErrorAdjustmentCheck", $attempt);
 
         submitOrRunParallelJob($asm, "oea", $path, "oea", @failedJobs);
@@ -689,6 +694,7 @@ sub overlapErrorAdjustmentCheck ($) {
 
     stashFile("$path/oea.files");
 
+    generateReport($asm);
     emitStage($asm, "overlapErrorAdjustmentCheck");
 
   allDone:
@@ -746,6 +752,7 @@ sub updateOverlapStore ($) {
     addToReport("adjustments", $report);
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "updateOverlapStore");
 
   allDone:

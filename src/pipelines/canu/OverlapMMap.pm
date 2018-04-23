@@ -461,6 +461,7 @@ sub mmapConfigure ($$$) {
     stashFile("$path/mhap.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "$tag-mmapConfigure");
 
   allDone:
@@ -535,6 +536,7 @@ sub mmapPrecomputeCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-mmapPrecomputeCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "precompute", @failedJobs);
@@ -550,6 +552,7 @@ sub mmapPrecomputeCheck ($$$) {
 
     stashFile("$path/precompute.files");
 
+    generateReport($asm);
     emitStage($asm, "$tag-mmapPrecomputeCheck");
 
   allDone:
@@ -657,6 +660,7 @@ sub mmapCheck ($$$) {
 
         #  Otherwise, run some jobs.
 
+        generateReport($asm);
         emitStage($asm, "$tag-mmapCheck", $attempt);
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "mmap", @failedJobs);
         return;
@@ -681,6 +685,7 @@ sub mmapCheck ($$$) {
     stashFile("$path/ovljob.files");
     stashFile("$path/ovljob.more.files");
 
+    generateReport($asm);
     emitStage($asm, "$tag-mmapCheck");
 
   allDone:

@@ -224,6 +224,7 @@ sub generateOutputs ($) {
 
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "generateOutputs");
 
   allDone:
@@ -246,6 +247,7 @@ sub generateOutputs ($) {
     print STDERR "--   Unitigs       -> '$asm.unitigs.gfa'.\n";
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "outputSequence");
 
   allDone:

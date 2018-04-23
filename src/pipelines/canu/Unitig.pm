@@ -302,6 +302,7 @@ sub unitig ($) {
     stashFile("$path/unitigger.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "unitig");
 
   allDone:
@@ -343,6 +344,7 @@ sub unitigCheck ($) {
 
     #  Otherwise, run some jobs.
 
+    generateReport($asm);
     emitStage($asm, "unitigCheck", $attempt);
 
     submitOrRunParallelJob($asm, "bat", $path, "unitigger", (1));
@@ -360,6 +362,7 @@ sub unitigCheck ($) {
 
     reportUnitigSizes($asm, 1, "after unitig construction");
 
+    generateReport($asm);
     emitStage($asm, "unitigCheck");
 
   allDone:
