@@ -83,7 +83,12 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
+
+        next if (m/^readID/);   #  Header line
+        next if (m/^------/);   #  ------ ----
+
         my @v = split '\s+', $_;
+
         vec($$rlVec, $v[0], 32) = $v[2];
         $rlCnt                 += 1;
         $rlSum                 += $v[2];
@@ -101,7 +106,9 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
+
         my @v = split '\s+', $_;
+
         vec($$noVec, $v[0], 32) = $v[1];
         $noCnt                 += 1;
         $noSum                 += $v[1];
