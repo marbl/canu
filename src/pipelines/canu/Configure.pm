@@ -413,7 +413,7 @@ sub getAllowedResources ($$$$$@) {
         #  If already set (on the command line), reset if too big.
 
         if ($nc < getGlobal("${tag}${alg}Concurrency")) {
-            $err .= "-- Reset concurrency from ", getGlobal("${tag}${alg}Concurrency"), " to $nc.\n";
+            $err .= "-- Reset concurrency from " . getGlobal("${tag}${alg}Concurrency") . " to $nc.\n";
             setGlobal("${tag}${alg}Concurrency", $nc);
         }
 
@@ -453,8 +453,8 @@ sub getAllowedResources ($$$$$@) {
     my $thr  = substr("    $taskThreads", -3) . " CPU" . (($taskThreads == 1) ? " " : "s");
     my $job  = substr("    $concurrent",  -3) . " job" . (($concurrent == 1) ? " " : "s");
 
-    my $memt = substr("     " . $mem * $job, -4) . " GB";
-    my $thrt = substr("     " . $thr * $job, -4) . " CPU" . (($thr * $job == 1) ? " " : "s");
+    my $memt = substr("     " . $taskMemory  * $concurrent, -4) . " GB";
+    my $thrt = substr("     " . $taskThreads * $concurrent, -4) . " CPU" . (($taskThreads * $concurrent == 1) ? " " : "s");
 
     my $t = substr("$tag$alg     ", 0, 7);
 

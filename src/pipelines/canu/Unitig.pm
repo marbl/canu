@@ -149,7 +149,7 @@ sub reportUnitigSizes ($$$) {
     $report .= "--   bubbles:      $bubNum sequences, total length $bubBases bp.\n";
     $report .= "--   unassembled:  $usmNum sequences, total length $usmBases bp.\n";
     $report .= "--\n";
-    $report .= "-- Contig sizes based on genome size ", displayGenomeSize($gs), "bp:\n";
+    $report .= "-- Contig sizes based on genome size " . displayGenomeSize($gs) . "bp:\n";
     $report .= "--\n";
     $report .= $ctgSizes;
     $report .= "--\n";
