@@ -129,9 +129,6 @@ sub createOverlapStoreParallel ($$$$$$) {
                        (-e "$path/scripts/2-sort.sh"));
     goto allDone   if (-d "$base/$asm.ovlStore");
 
-
-    my $path       = "$base/$asm.ovlStore.BUILDING";
-
     make_path("$path/scripts");
     make_path("$path/logs");
 
