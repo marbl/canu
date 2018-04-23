@@ -45,10 +45,7 @@
  */
 
 #include "ovStore.H"
-
-#ifdef SNAPPY
 #include "snappy.h"
-#endif
 
 //  The histogram associated with this is written to files with any suffices stripped off.
 
@@ -85,9 +82,7 @@ ovFile::~ovFile() {
   delete    _writer;
   delete [] _buffer;
 
-#ifdef SNAPPY
   delete [] _snappyBuffer;
-#endif
 
   if ((_isOutput) && (_histogram))
     _histogram->saveHistogram(_prefix);
@@ -125,10 +120,8 @@ ovFile::construct(sqStore     *seq,
   _bufferMax    = (bufferSize / (lcm * sizeof(uint32))) * lcm;
   _buffer       = new uint32 [_bufferMax];
 
-#ifdef SNAPPY
   _snappyLen    = 0;
   _snappyBuffer = NULL;
-#endif
 
   assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovOverlapDAT))) == 0);
   assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovOverlapDAT))) == 0);
@@ -138,9 +131,7 @@ ovFile::construct(sqStore     *seq,
   _isOutput   = false;
   _isSeekable = false;
   _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
-#ifdef SNAPPY
   _useSnappy  = false;
-#endif
 
   _reader     = NULL;
   _writer     = NULL;
@@ -161,6 +152,7 @@ ovFile::construct(sqStore     *seq,
       _reader      = new compressedFileReader(_name);
       _file        = _reader->file();
       _isSeekable  = (_reader->isCompressed() == false);
+      _useSnappy   = false;
       _histogram   = new ovStoreHistogram(_prefix);
       break;
 
@@ -171,9 +163,7 @@ ovFile::construct(sqStore     *seq,
       _reader      = new compressedFileReader(_name);
       _file        = _reader->file();
       _isSeekable  = (_reader->isCompressed() == false);
-#ifdef SNAPPY
       _useSnappy   = true;
-#endif
       _countsR     = new ovFileOCR(_seq, _prefix);
       break;
 
@@ -182,6 +172,7 @@ ovFile::construct(sqStore     *seq,
       _writer      = new compressedFileWriter(_name);
       _file        = _writer->file();
       _isOutput    = true;
+      _useSnappy   = false;
       _histogram   = new ovStoreHistogram(_seq);
       _countsW     = new ovFileOCW(_seq, NULL);
       break;
@@ -191,9 +182,7 @@ ovFile::construct(sqStore     *seq,
       _writer      = new compressedFileWriter(_name);
       _file        = _writer->file();
       _isOutput    = true;
-#ifdef SNAPPY
       _useSnappy   = true;
-#endif
       _countsW     = new ovFileOCW(_seq, _prefix);
       break;
 
@@ -203,9 +192,7 @@ ovFile::construct(sqStore     *seq,
       _writer      = new compressedFileWriter(_name);
       _file        = _writer->file();
       _isOutput    = true;
-#ifdef SNAPPY
       _useSnappy   = true;
-#endif
       break;
 
     default:
@@ -228,7 +215,6 @@ ovFile::writeBuffer(bool force) {
 
   //  If compressing, compress the block then write compressed length and the block.
 
-#ifdef SNAPPY
   if (_useSnappy == true) {
     size_t   bl = snappy::MaxCompressedLength(_bufferLen * sizeof(uint32));
 
@@ -247,7 +233,6 @@ ovFile::writeBuffer(bool force) {
   //  Otherwise, just dump the block
 
   else
-#endif
     AS_UTL_safeWrite(_file, _buffer, "ovFile::writeBuffer", sizeof(uint32), _bufferLen);
 
   //  Buffer written.  Clear it.
@@ -343,7 +328,6 @@ ovFile::readBuffer(void) {
 
   //  If compressed, we need to decode the block.
 
-#ifdef SNAPPY
   if (_useSnappy == true) {
     size_t  cl  = 0;
     size_t  clc = AS_UTL_safeRead(_file, &cl, "ovFile::readBuffer::cl", sizeof(size_t), 1);
@@ -371,7 +355,6 @@ ovFile::readBuffer(void) {
   //  But if loading from 'normal' files, just load.  Easy peasy.
 
   else
-#endif
     _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readBuffer", sizeof(uint32), _bufferMax);
 }
 

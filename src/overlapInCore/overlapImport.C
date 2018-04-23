@@ -67,8 +67,6 @@ main(int argc, char **argv) {
   uint32                 abgn = 1, aend = 0;
   uint32                 bbgn = 1, bend = 0;
 
-  bool                   native = false;
-
   vector<char *>         files;
 
 
@@ -113,9 +111,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-b") == 0) {
       AS_UTL_decodeRange(argv[++arg], bbgn, bend);
 
-    } else if (strcmp(argv[arg], "-native") == 0) {
-      native = true;
-
     } else if ((strcmp(argv[arg], "-") == 0) ||
                (AS_UTL_fileExists(argv[arg]))) {
       files.push_back(argv[arg]);
@@ -153,8 +148,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "    -a x-y             A read IDs will be between x and y\n");
     fprintf(stderr, "    -b x-y             B read IDs will be between x and y\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -native            output ovb (-o) files will not be snappy compressed\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
     fprintf(stderr, "\n");
 
@@ -177,9 +170,6 @@ main(int argc, char **argv) {
 
   ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(seqStore, ovlFileName, ovFileFullWrite);
   ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, seqStore);
-
-  if ((of) && (native == true))
-    of->enableSnappy(false);
 
   //  Make random inputs first.
 

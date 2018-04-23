@@ -242,14 +242,6 @@ public:
     return(sizeof(uint32) * ((_isNormal) ? 1 : 2) + sizeof(ovOverlapWORD) * ovOverlapNWORDS);
   };
 
-  //  For use in conversion, force snappy compression.  By default, it is ENABLED, and we cannot
-  //  read older ovb files.
-#ifdef SNAPPY
-  void    enableSnappy(bool enabled) {
-    _useSnappy = enabled;
-  };
-#endif
-
   //  Used primarily for copying the data from this file into the data for the full overlap store.
   ovStoreHistogram       *getHistogram(void)     { return(_histogram); };
   void                    removeHistogram(void);
@@ -268,17 +260,13 @@ private:
   uint32                  _bufferMax;    //  allocated size of the buffer
   uint32                 *_buffer;
 
-#ifdef SNAPPY
   size_t                  _snappyLen;
   char                   *_snappyBuffer;
-#endif
 
   bool                    _isOutput;     //  if true, we can writeOverlap()
   bool                    _isSeekable;   //  if true, we can seekOverlap()
   bool                    _isNormal;     //  if true, 3 words per overlap, else 4
-#ifdef SNAPPY
   bool                    _useSnappy;    //  if true, compress with snappy before writing
-#endif
 
   compressedFileReader   *_reader;
   compressedFileWriter   *_writer;

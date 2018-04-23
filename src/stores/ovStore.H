@@ -37,8 +37,6 @@
 #include "AS_global.H"
 #include "sqStore.H"
 
-#define SNAPPY
-
 #include "ovOverlap.H"
 #include "ovStoreFile.H"
 #include "ovStoreHistogram.H"

@@ -42,7 +42,6 @@ main(int argc, char **argv) {
   sqStore               *seqStore = NULL;
 
   ovOverlapDisplayType   dt = ovOverlapAsCoords;
-  bool                   native = false;
   vector<char *>         files;
 
 
@@ -60,9 +59,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-raw") == 0) {
       dt = ovOverlapAsRaw;
-
-    } else if (strcmp(argv[arg], "-native") == 0) {
-      native = true;
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -87,8 +83,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -hangs         output hangs on reads\n");
     fprintf(stderr, "  -raw           output raw hangs on reads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -native        input ovb file is NOT snappy compressed\n");
-    fprintf(stderr, "\n");
 
     if ((seqStoreName == NULL) && (dt == ovOverlapAsCoords))
       fprintf(stderr, "ERROR:  -coords mode requires a seqStore (-S)\n");
@@ -107,9 +101,6 @@ main(int argc, char **argv) {
   for (uint32 ff=0; ff<files.size(); ff++) {
     ovFile      *of = new ovFile(seqStore, files[ff], ovFileFull);
     ovOverlap   ov(seqStore);
-
-    if (native == true)
-      of->enableSnappy(false);
 
     while (of->readOverlap(&ov))
       fputs(ov.toString(ovStr, dt, true), stdout);
