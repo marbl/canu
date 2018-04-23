@@ -103,7 +103,7 @@ sub utgcns ($$$) {
     print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.dat", "");
     print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.tig", "");
     print F "\n";
-    print F fetchStoreShellCode("unitigging/$asm.\${tag}Store/partitionedReads.seqStore", $path, "");
+    print F fetchSeqStorePartitionShellCode($asm, $path, "");
     print F "\n";
     print F "\$bin/utgcns \\\n";
     print F "  -S ../$asm.\${tag}Store/partitionedReads.seqStore \\\n";      #  Optional; utgcns will default to this
@@ -164,7 +164,7 @@ sub partitionReads ($$) {
     return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
     return  if (fileExists("unitigging/$asm.${tag}Store/partitionedReads.seqStore.tar"));
 
-    fetchStore("unitigging/$asm.seqStore");
+    fetchSeqStore($asm);
 
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.dat");
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
@@ -180,7 +180,8 @@ sub partitionReads ($$) {
         caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitionedReads.log");
     }
 
-    stashStore("unitigging/$asm.${tag}Store/partitionedReads.seqStore");
+    stashSeqStorePartitions($asm, "unitigging", $tag);
+
     stashFile ("unitigging/$asm.${tag}Store/partitionedReads.log");
 }
 
@@ -609,7 +610,7 @@ sub consensusAnalyze ($) {
     goto allDone   if (skipStage($asm, "consensusAnalyze") == 1);
     goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
 
-    fetchStore("unitigging/$asm.seqStore");
+    fetchSeqStore($asm);
 
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");  #  Shouldn't need this, right?
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");  #  So why does it?
@@ -685,9 +686,10 @@ sub alignGFA ($) {
         print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.dat", "");
         print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.tig", "");
         print F "\n";
-        print F "\n";
 
         print F "if [ ! -e ./$asm.unitigs.aligned.gfa ] ; then\n";
+        print F    fetchFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "  ");
+        print F "\n";
         print F "  \$bin/alignGFA \\\n";
         print F "    -T ../$asm.utgStore 2 \\\n";
         print F "    -i ./$asm.unitigs.gfa \\\n";
@@ -695,12 +697,14 @@ sub alignGFA ($) {
         print F "    -t " . getGlobal("gfaThreads") . " \\\n";
         print F "  > ./$asm.unitigs.aligned.gfa.err 2>&1";
         print F "\n";
-        print F stashFileShellCode("$path", "$asm.unitigs.aligned.gfa", "  ");
+        print F    stashFileShellCode("$path", "$asm.unitigs.aligned.gfa", "  ");
         print F "fi\n";
         print F "\n";
         print F "\n";
 
         print F "if [ ! -e ./$asm.contigs.aligned.gfa ] ; then\n";
+        print F    fetchFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "  ");
+        print F "\n";
         print F "  \$bin/alignGFA \\\n";
         print F "    -T ../$asm.ctgStore 2 \\\n";
         print F "    -i ./$asm.contigs.gfa \\\n";
@@ -708,12 +712,14 @@ sub alignGFA ($) {
         print F "    -t " . getGlobal("gfaThreads") . " \\\n";
         print F "  > ./$asm.contigs.aligned.gfa.err 2>&1";
         print F "\n";
-        print F stashFileShellCode("$path", "$asm.contigs.aligned.gfa", "  ");
+        print F    stashFileShellCode("$path", "$asm.contigs.aligned.gfa", "  ");
         print F "fi\n";
         print F "\n";
         print F "\n";
 
         print F "if [ ! -e ./$asm.unitigs.aligned.bed ] ; then\n";
+        print F    fetchFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "  ");
+        print F "\n";
         print F "  \$bin/alignGFA -bed \\\n";
         print F "    -T ../$asm.utgStore 2 \\\n";
         print F "    -C ../$asm.ctgStore 2 \\\n";
@@ -722,7 +728,7 @@ sub alignGFA ($) {
         print F "    -t " . getGlobal("gfaThreads") . " \\\n";
         print F "  > ./$asm.unitigs.aligned.bed.err 2>&1";
         print F "\n";
-        print F stashFileShellCode("$path", "$asm.unitigs.aligned.bed", "  ");
+        print F    stashFileShellCode("$path", "$asm.unitigs.aligned.bed", "  ");
         print F "fi\n";
         print F "\n";
         print F "\n";

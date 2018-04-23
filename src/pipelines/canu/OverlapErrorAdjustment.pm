@@ -98,7 +98,7 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     caExit("Failed to load read lengths from '$asm.seqStore'", undef)   if ($rlCnt == 0);
 
 
-    fetchStore("unitigging/$asm.ovlStore");
+    fetchOvlStore($asm, "unitigging");
 
     print STDERR "-- Loading number of overlaps per read.\n";
 
@@ -253,8 +253,8 @@ sub readErrorDetectionConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("unitigging/$asm.seqStore", $path, "");
-    print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
+    print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -559,8 +559,8 @@ sub overlapErrorAdjustmentConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("unitigging/$asm.seqStore", $path, "");
-    print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
+    print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -727,7 +727,7 @@ sub updateOverlapStore ($) {
     }
     close(F);
 
-    fetchStore("unitigging/$asm.ovlStore");
+    fetchOvlStore($asm, "unitigging");
 
     $cmd  = "$bin/loadErates \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";

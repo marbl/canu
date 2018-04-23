@@ -687,6 +687,13 @@ sub submitScript ($$) {
 
     my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName' $outputOption $outName $script";
 
+    if (getGlobal("objectStore") eq "TEST") {
+        print STDERR "--\n";
+        print STDERR "-- Stopping before submitting script to grid in Execution.pm.\n";
+        print STDERR "--\n";
+        exit(0);
+    }
+
     runCommand(getcwd(), $qcmd) and caFailure("Failed to submit script", undef);
 
     exit(0);
@@ -1259,6 +1266,13 @@ sub submitOrRunParallelJob ($$$$@) {
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path, $jobType);
+
+    if (getGlobal("objectStore") eq "TEST") {
+        print STDERR "--\n";
+        print STDERR "-- Stopping after parallel jobs in Execution.pm.\n";
+        print STDERR "--\n";
+        exit(0);
+    }
 }
 
 

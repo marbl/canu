@@ -67,6 +67,46 @@ use canu::Grid_Cloud;
 #  NOT FILTERING overlaps by error rate when building the parallel store.
 
 
+#
+#  Fetch overlap outputs.  If you're not cloud-based, this does nothing.  Really.  Trust me.
+#
+sub fetchOverlapData ($$@) {
+    my $asm  = shift @_;   #  Not actually used.
+    my $base = shift @_;   #  What stage we're in, 'correction', 'trimming', etc.
+    my $getD = shift @_;   #  If set, only fetch count data.
+
+    fetchFile("$base/1-overlapper/ovljob.files");
+
+    open(F, "< $base/1-overlapper/ovljob.files") or caExit("failed to open overlapper output list in '$base/1-overlapper/ovljob.files'", undef);
+    while (<F>) {
+        my $dir;
+        my $num;
+
+        if (m/^(.*)\/([0-9]*).ovb$/) {
+            $dir = $1;
+            $num = $2;
+        } else {
+            caExit("didn't recognize ovljob.files line '$_'", undef);
+        }
+
+        #  Make the output directory.
+
+        make_path("$base/$dir");
+
+        #  Fetch the counts.  Everyone needs the counts.
+        #  https://www.youtube.com/watch?v=vC0uvUuXVh8
+
+        fetchFile("$base/$dir/$num.oc");
+
+        #  Fetch the overlap data if told to.
+
+        fetchFile("$base/$dir/$num.ovb")   if (defined($getD));
+    }
+    close(F);
+}
+
+
+
 sub createOverlapStoreSequential ($$$) {
     my $base    = shift @_;
     my $asm     = shift @_;
@@ -74,22 +114,9 @@ sub createOverlapStoreSequential ($$$) {
     my $bin     = getBinDirectory();
     my $cmd;
 
-    #  Fetch inputs.  If you're not cloud-based, this does nothing.  Really.  Trust me.
+    #  Fetch all the data.
 
-    fetchFile("$base/1-overlapper/ovljob.files");
-
-    open(F, "< $base/1-overlapper/ovljob.files") or caExit("failed to open overlapper output list in '$base/1-overlapper/ovljob.files'", undef);
-    while (<F>) {
-        chomp;
-
-        if (m/^(.*).ovb$/) {
-            fetchFile("$base/$1.ovb");
-            fetchFile("$base/$1.counts");
-        } else {
-            caExit("didn't recognize ovljob.files line '$_'", undef);
-        }
-    }
-    close(F);
+    fetchOverlapData($asm, $base, 1);
 
     #  This is running in the canu process itself.  Execution.pm has special case code
     #  to submit canu to grids using the maximum of 4gb and this memory limit.
@@ -108,7 +135,7 @@ sub createOverlapStoreSequential ($$$) {
 
     rename("$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore");
 
-    stashStore("$base/$asm.ovlStore");
+    stashOvlStore($asm, $base);
 }
 
 
@@ -521,6 +548,18 @@ sub createOverlapStore ($$$) {
 
     #  Figure out how to build the store.
 
+    fetchFile("$base/1-overlapper/ovljob.files");
+    fetchFile("$base/$asm.ovlStore.config");
+    fetchFile("$base/$asm.ovlStore.config.txt");
+
+    #  We need the .oc files for each overlap job.
+
+    if (! -e "$base/$asm.ovlStore.config") {
+        fetchOverlapData($asm, $base);
+    }
+
+    #  Now we can figure out a configuration.
+
     if (! -e "$base/$asm.ovlStore.config") {
         $cmd  = "$bin/ovStoreConfig \\\n";
         $cmd .= " -S ./$asm.seqStore \\\n";
@@ -535,9 +574,14 @@ sub createOverlapStore ($$$) {
         }
 
         unlink "$base/$asm.ovlStore.config.err";
+
+        stashFile("$base/$asm.ovlStore.config");
+        stashFile("$base/$asm.ovlStore.config.txt");
     }
 
     if (! -e "$base/$asm.ovlStore.config.txt") {
+        fetchFile("$base/$asm.ovlStore.config");
+
         $cmd  = "$bin/ovStoreConfig -describe ./$asm.ovlStore.config \\\n";
         $cmd .= " > ./$asm.ovlStore.config.txt \\\n";
         $cmd .= "2> ./$asm.ovlStore.config.err\n";
@@ -547,6 +591,8 @@ sub createOverlapStore ($$$) {
         }
 
         unlink "$base/$asm.ovlStore.config.err";
+
+        stashFile("$base/$asm.ovlStore.config.txt");
     }
 
     my $numBuckets = 0;
@@ -594,6 +640,8 @@ sub createOverlapStore ($$$) {
     }
 
     checkOverlapStore($base, $asm);
+
+    stashOvlStore($asm, $base);
 
     goto finishStage  if (getGlobal("saveOverlaps") eq "1");
 

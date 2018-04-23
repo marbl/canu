@@ -492,7 +492,7 @@ sub checkSequenceStore ($$@) {
     #  between mhap precompute and mhap compute), but it greatly simplifies stuff, like immediately
     #  here needing to check if the store exists.
 
-    fetchStore("./$asm.seqStore");
+    fetchSeqStore($asm);
 
     #  We cannot abort this step anymore.  If trimming is skipped, we need ro promote the corrected
     #  reads to trimmed reads, and also re-stash the store.
@@ -582,7 +582,7 @@ sub checkSequenceStore ($$@) {
 
     if ($histAndStash) {
         addToReport("${tag}SeqStore", generateReadLengthHistogram($tag, $asm));
-        stashStore("./$asm.seqStore");
+        stashSeqStore($asm);
     }
 
     #  Refuse to conitnue if there are no reads.

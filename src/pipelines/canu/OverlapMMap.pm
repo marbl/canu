@@ -240,7 +240,7 @@ sub mmapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -312,7 +312,7 @@ sub mmapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/1-overlapper", "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -418,13 +418,13 @@ sub mmapConfigure ($$$) {
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mmapThreads") . " \n";
     } else {
-        print F "  mv -f ./results/\$qry.mmap.ovb    ./results/\$qry.ovb\n";
-        print F "  mv -f ./results/\$qry.mmap.counts ./results/\$qry.counts\n";
+        print F "  mv -f ./results/\$qry.mmap.ovb ./results/\$qry.ovb\n";
+        print F "  mv -f ./results/\$qry.mmap.oc  ./results/\$qry.oc\n";
     }
     print F "fi\n";
 
-    print F stashFileShellCode("$path", "results/\$qry.ovb",    "");
-    print F stashFileShellCode("$path", "results/\$qry.counts", "");
+    print F stashFileShellCode("$path", "results/\$qry.ovb", "");
+    print F stashFileShellCode("$path", "results/\$qry.oc",  "");
     print F "\n";
 
     print F "\n";
@@ -598,25 +598,25 @@ sub mmapCheck ($$$) {
                 push @mmapJobs,    "1-overlapper/results/$1.mmap\n";
                 push @successJobs, "1-overlapper/results/$1.ovb.gz\n";
                 push @miscJobs,    "1-overlapper/results/$1.stats\n";
-                push @miscJobs,    "1-overlapper/results/$1.counts\n";
+                push @miscJobs,    "1-overlapper/results/$1.oc\n";
 
             } elsif (fileExists("$path/results/$1.ovb")) {
                 push @mmapJobs,    "1-overlapper/results/$1.mmap\n";
                 push @successJobs, "1-overlapper/results/$1.ovb\n";
                 push @miscJobs,    "1-overlapper/results/$1.stats\n";
-                push @miscJobs,    "1-overlapper/results/$1.counts\n";
+                push @miscJobs,    "1-overlapper/results/$1.oc\n";
 
             } elsif (fileExists("$path/results/$1.ovb.bz2")) {
                 push @mmapJobs,    "1-overlapper/results/$1.mmap\n";
                 push @successJobs, "1-overlapper/results/$1.ovb.bz2\n";
                 push @miscJobs,    "1-overlapper/results/$1.stats\n";
-                push @miscJobs,    "1-overlapper/results/$1.counts\n";
+                push @miscJobs,    "1-overlapper/results/$1.oc\n";
 
             } elsif (fileExists("$path/results/$1.ovb.xz")) {
                 push @mmapJobs,    "1-overlapper/results/$1.mmap\n";
                 push @successJobs, "1-overlapper/results/$1.ovb.xz\n";
                 push @miscJobs,    "1-overlapper/results/$1.stats\n";
-                push @miscJobs,    "1-overlapper/results/$1.counts\n";
+                push @miscJobs,    "1-overlapper/results/$1.oc\n";
 
             } else {
                 $failureMessage .= "--   job $path/results/$1.ovb FAILED.\n";

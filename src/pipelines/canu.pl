@@ -356,7 +356,7 @@ my $setUpForNanopore = 0;
 
 #  If we're a cloud run, fetch the store.
 
-fetchStore("./$asm.seqStore")    if ((! -e "./$asm.seqStore") && (fileExists("$asm.seqStore.tar")));
+fetchSeqStore($asm)   if ((! -e "./$asm.seqStore/info") && (fileExists("$asm.seqStore.tar")));
 
 #  Scan for an existing seqStore.
 

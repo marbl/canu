@@ -28,16 +28,14 @@ package canu::Grid_Cloud;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(fileExists
-             fileExistsShellCode
-             fetchFile
-             fetchFileShellCode
-             stashFile
-             stashFileShellCode
-             fetchStore
-             fetchStoreShellCode
-             stashStore
-             stashStoreShellCode);
+@EXPORT = qw(fileExists           fileExistsShellCode
+             fetchFile            fetchFileShellCode
+             stashFile            stashFileShellCode
+             fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
+             fetchOvlStore        fetchOvlStoreShellCode
+             stashSeqStore
+             stashSeqStorePartitions
+             stashOvlStore);
 
 use strict;
 use warnings "all";
@@ -82,6 +80,7 @@ sub isOS () {
 sub fileExists ($) {
     my $file   = shift @_;
     my $exists = "";
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
@@ -107,9 +106,10 @@ sub fileExists ($) {
 sub fileExistsShellCode ($@) {
     my $file   = shift @_;
     my $indent = shift @_;
-    my $code   = "";
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
+    my $code   = "";
 
     if    (isOS() eq "TEST") {
         $code .= "${indent}if [ ! -e $file ] ; then\n";
@@ -139,12 +139,14 @@ sub fileExistsShellCode ($@) {
 
 sub fetchFile ($) {
     my $file   = shift @_;
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
     return   if (-e $file);   #  If it exists, we don't need to fetch it.
 
     if    (isOS() eq "TEST") {
+        print STDERR "fetchFile()-- '$file'\n";
         make_path(dirname($file));
         runCommandSilently(".", "$client download --output $file $ns/$file", 1);
     }
@@ -162,9 +164,10 @@ sub fetchFileShellCode ($$$) {
     my $dots   = pathToDots($path);
     my $file   = shift @_;
     my $indent = shift @_;
-    my $code   = "";
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
+    my $code   = "";
 
     #  We definitely need to be able to fetch files from places that are
     #  parallel to us, e.g., from 0-mercounts when we're in 1-overlapper.
@@ -196,12 +199,14 @@ sub fetchFileShellCode ($$$) {
 
 sub stashFile ($) {
     my $file   = shift @_;
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
     return   if (! -e $file);
 
     if    (isOS() eq "TEST") {
+        print STDERR "stashFile()-- '$file'\n";
         runCommandSilently(".", "$client upload --path $ns/$file $file", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
@@ -219,9 +224,10 @@ sub stashFileShellCode ($$$) {
     my $dots   = pathToDots($path);
     my $file   = shift @_;
     my $indent = shift @_;
-    my $code   = "";
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
+    my $code   = "";
 
     #  Just like for fetching, we allow stashing files from parallel
     #  directories (even though that should never happen).
@@ -244,6 +250,8 @@ sub stashFileShellCode ($$$) {
 
 
 
+### SEQUENCE
+
 #
 #  Given $base/$asm.seqStore, fetch or stash it.
 #
@@ -256,16 +264,18 @@ sub stashFileShellCode ($$$) {
 #  store.  After fetching, they chdir back to the subdirectory.
 #
 
-sub fetchStore ($) {
-    my $store  = shift @_;                           #  correction/asm.seqStore
+sub fetchSeqStore ($) {
+    my $asm    = shift @_;
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
-    return   if (-e "$store/info");                  #  Store exists on disk
-    return   if (! fileExists("$store.tar"));        #  Store doesn't exist in object store
+    return   if (-e "./$asm.seqStore/info");
+    return   if (! fileExists("$asm.seqStore.tar"));
 
     if    (isOS() eq "TEST") {
-        runCommandSilently(".", "$client download --output - $ns/$store.tar | tar -xf -", 1);
+        print STDERR "fetchStore()-- Retrieving store '$asm.seqStore'\n";
+        runCommandSilently(".", "$client download --output - $ns/$asm.seqStore.tar | tar -xf -", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -274,46 +284,28 @@ sub fetchStore ($) {
 }
 
 
-
-sub stashStore ($) {
-    my $store  = shift @_;                         #  correction/asm.seqStore
-    my $client = getGlobal("objectStoreClient");
-    my $ns     = getGlobal("objectStoreNameSpace");
-
-    return   if (! -e "$store/info");              #  Store doesn't exist on disk
-
-    if    (isOS() eq "TEST") {
-        runCommandSilently(".", "tar -cf - $store | $client upload --path $ns/$store.tar -", 1);
-    }
-    elsif (isOS() eq "DNANEXUS") {
-    }
-    else {
-    }
-}
-
-
-
-sub fetchStoreShellCode ($$@) {
-    my $store  = shift @_;           #  correction/asm.seqStore - store we're trying to get
-    my $root   = shift @_;           #  correction/1-overlapper - place the script is running in
+sub fetchSeqStoreShellCode ($$$) {
+    my $asm    = shift @_;           #  The name of the assembly.
+    my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
     my $indent = shift @_;           #
-    my $base   = dirname($store);    #  correction
-    my $basep  = pathToDots($root);  #  ../..
-    my $name   = basename($store);   #             asm.seqStore
-    my $code;
+
+    my $base   = dirname($path);     #  'unitigging'
+    my $root   = pathToDots($path);  #  '../..'
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
+    my $code   = "";
 
     if    (isOS() eq "TEST") {
-        $code .= "${indent}if [ ! -e $basep/$store/info ] ; then\n";
-        $code .= "${indent}  echo Fetching $ns/$store\n";
-        $code .= "${indent}  $client download --output - $ns/$store.tar | tar -C $basep -xf -\n";
+        $code .= "${indent}if [ ! -e $root/$asm.seqStore/info ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, fetching $ns/$asm.seqStore.tar, unzipping in '$root'\n";
+        $code .= "${indent}  $client download --output - $ns/$asm.seqStore.tar | tar -C $root -xf -\n";
         $code .= "${indent}fi\n";
     }
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
-        $code .= "#  Store must exist: $store\n";
+        $code .= "#  Store must exist: $root/$asm.seqStore\n";
     }
 
     return($code);
@@ -321,29 +313,153 @@ sub fetchStoreShellCode ($$@) {
 
 
 
-sub stashStoreShellCode ($$@) {
-    my $store  = shift @_;           #  correction/asm.seqStore - store we're trying to get
-    my $root   = shift @_;           #  correction/1-overlapper - place the script is running in
-    my $indent = shift @_;           #
-    my $base   = dirname($store);    #  correction
-    my $basep  = pathToDots($root);  #  ../..
-    my $name   = basename($store);   #             asm.seqStore
-    my $code;
+sub stashSeqStore ($) {
+    my $asm    = shift @_;
+
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
+    return   if (! -e "./$asm.seqStore/info");
+
     if    (isOS() eq "TEST") {
-        $code .= "${indent}if [ -e $basep/$store/info ] ; then\n";
-        $code .= "${indent}  echo Stashing $ns/$store\n";
-        $code .= "${indent}  tar -C $basep -cf - $store | $client upload --path $ns/$store.tar -\n";
+        print STDERR "stashSeqStore()-- Saving sequence store '$asm.seqStore'\n";
+        runCommandSilently(".", "tar -cf - ./$asm.seqStore* ./*/$asm.seqStore* | $client upload --path $ns/$asm.seqStore.tar -", 1);
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+    }
+}
+
+
+
+sub fetchSeqStorePartitionShellCode ($$$) {
+    my $asm    = shift @_;           #  The name of the assembly.
+    my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
+    my $indent = shift @_;           #
+
+    my $base   = dirname($path);     #  'unitigging'
+    my $root   = pathToDots($path);  #  '../..'
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $code   = "";
+
+    my $storePath = "$base/$asm.\${tag}Store";
+    my $storeName = "partitionedReads.seqStore";
+
+    if    (isOS() eq "TEST") {
+        $code .= "${indent}if [ ! -e $root/$storePath/$storeName/info ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, fetching $ns/$storePath.$storeName.tar, unzipping in '$root/$storePath'\n";
+        $code .= "${indent}  $client download --output - $ns/$storePath.$storeName.tar | tar -C $root/$storePath -xf -\n";
         $code .= "${indent}fi\n";
     }
     elsif (isOS() eq "DNANEXUS") {
     }
     else {
-        $code .= "#  Store is important: $store\n";
+        $code .= "#  Store must exist: $root/$storePath/$storeName\n";
     }
 
     return($code);
 }
 
+
+
+sub stashSeqStorePartitions ($$$) {
+    my $asm    = shift @_;           #  The name of the assembly.
+    my $base   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
+    my $tag    = shift @_;           #  Which tigs are the partitions for
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+
+    my $storePath = "$base/$asm.\${tag}Store";
+    my $storeName = "partitionedReads.seqStore";
+
+    return   if (! -e "$storePath/$storeName/info");
+
+    if    (isOS() eq "TEST") {
+        print STDERR "stashPartitionedSeqStore()-- Saving partitioned sequence store '$storePath/$storeName'\n";
+        runCommandSilently($storePath, "tar -cf ./$storeName* | $client upload --path $ns/$storePath.$storeName.tar -", 1);
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+    }
+}
+
+
+
+### OVERLAPS
+
+
+
+sub fetchOvlStore ($$) {
+    my $asm    = shift @_;
+    my $base   = shift @_;
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+
+    return   if (-e "./$base/$asm.ovlStore/index");
+    return   if (! fileExists("$base/$asm.ovlStore.tar"));
+
+    if    (isOS() eq "TEST") {
+        print STDERR "fetchStore()-- Retrieving store '$base/$asm.ovlStore'\n";
+        runCommandSilently($base, "$client download --output - $ns/$base/$asm.ovlStore.tar | tar -xf -", 1);
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+    }
+}
+
+
+
+sub stashOvlStore ($$) {
+    my $asm    = shift @_;
+    my $base   = shift @_;
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+
+    return   if (! -e "./$base/$asm.ovlStore/index");
+
+    if    (isOS() eq "TEST") {
+        print STDERR "stashOvlStore()-- Saving overlap store '$base/$asm.ovlStore'\n";
+        runCommandSilently($base, "tar -cf - ./$asm.ovlStore* | $client upload --path $ns/$base/$asm.ovlStore.tar -", 1);
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+    }
+}
+
+
+
+sub fetchOvlStoreShellCode ($$$) {
+    my $asm    = shift @_;           #  The name of the assembly.
+    my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
+    my $indent = shift @_;           #
+
+    my $base   = dirname($path);    #  'unitigging'
+    my $root   = pathToDots($path);  #  '../..'
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $code   = "";
+
+    if    (isOS() eq "TEST") {
+        $code .= "${indent}if [ ! -e $root/$base/$asm.ovlStore/index ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, fetching $ns/$base/$asm.ovlStore.tar, unzipping in '$root/$base'\n";
+        $code .= "${indent}  $client download --output - $ns/$base/$asm.ovlStore.tar | tar -C $root/$base -xf -\n";
+        $code .= "${indent}fi\n";
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+        $code .= "#  Store must exist: $root/$base/$asm.ovlStore\n";
+    }
+
+    return($code);
+}

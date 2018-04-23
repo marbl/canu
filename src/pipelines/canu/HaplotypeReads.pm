@@ -168,7 +168,7 @@ sub haplotypeConfigure ($) {
     goto allDone   if (skipStage($asm, "hap-haplotypeConfigure") == 1);
     goto allDone   if (fileExists("$path/haplotypeReads.sh"));              #  Jobs created
 
-    fetchStore("./correction/$asm.seqStore");
+    fetchSeqStore($asm);
 
     estimateMemoryNeededForHaplotypeJobs($asm);
 
@@ -183,7 +183,7 @@ sub haplotypeConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/2-correction", "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -223,7 +223,7 @@ sub haplotypeConfigure ($) {
     print F "fi\n";
     print F "\n";
 
-    print F fetchStoreShellCode("haplotype/$asm.seqStore", "haplotype/2-haplotype", "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     # fetch the filter files
 

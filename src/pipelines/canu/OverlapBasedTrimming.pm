@@ -69,7 +69,7 @@ sub trimReads ($) {
 
     make_path($path)  if (! -d $path);
 
-    fetchStore("./trimming/$asm.ovlStore");
+    fetchOvlStore($asm, "trimming");
 
     #  Previously, we'd pick the error rate used by unitigger.  Now, we don't know unitigger here,
     #  and require an obt specific error rate.
@@ -140,7 +140,8 @@ sub splitReads ($) {
 
     make_path($path)  if (! -d $path);
 
-    fetchStore("./trimming/$asm.ovlStore");
+    fetchOvlStore($asm, "trimming");
+
     fetchFile("./trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear");
 
     my $erate  = getGlobal("obtErrorRate");  #  Was this historically
@@ -231,6 +232,10 @@ sub loadTrimmedReads ($) {
 
     unlink("$path/$asm.trimmedReads.err");
 
+    #  Save results.
+
+    stashSeqStore($asm);
+
     #  Report reads.
 
     addToReport("utgSeqStore", generateReadLengthHistogram("utg", $asm));
@@ -284,6 +289,8 @@ sub dumpTrimmedReads ($) {
 
         unlink "./$asm.trimmedReads.fasta.err";
     }
+
+    stashFile("$asm.trimmedReads.fasta.gz");
 
     #  If the trimmed reads file exists, report so.
     #  Otherwise, report no trimmed reads, and generate fake outputs so we terminate.

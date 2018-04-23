@@ -91,7 +91,7 @@ sub reportUnitigSizes ($$$) {
     fetchFile("unitigging/$N");
 
     if (! -e "unitigging/$N") {
-        fetchStore("unitigging/$asm.seqStore");
+        fetchSeqStore($asm);
 
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.dat");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.tig");
@@ -187,8 +187,8 @@ sub unitig ($) {
     print F "\n";
     print F setWorkDirectoryShellCode($path);
     print F "\n";
-    print F fetchStoreShellCode("unitigging/$asm.seqStore", $path, "");
-    print F fetchStoreShellCode("unitigging/$asm.ovlStore", $path, "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
+    print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
     print F fetchFileShellCode("unitigging/$asm.ovlStore", "evalues", "");
     print F "\n";
@@ -198,6 +198,8 @@ sub unitig ($) {
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
+
+    #  The 'if -e' below does nothing in Cloud mode, but it'd be a pain to support it properly.
 
     if      (getGlobal("unitigger") eq "bogart") {
         print F "if [ ! -e ../$asm.ctgStore -o \\\n";
@@ -225,7 +227,9 @@ sub unitig ($) {
         print F "  && \\\n";
         print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
         print F "fi\n";
-    } elsif (getGlobal("unitigger") eq "wtdbg") {
+    }
+
+    elsif (getGlobal("unitigger") eq "wtdbg") {
         print F "\$bin/sqStoreDumpFASTQ \\\n";
         print F "  -S ../$asm.seqStore \\\n";
         print F "  -nolibname \\\n";
@@ -262,7 +266,6 @@ sub unitig ($) {
         print F "  mv ./$asm.ctgStore ../$asm.ctgStore\n";
         print F "fi\n";
 
-
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
@@ -277,6 +280,7 @@ sub unitig ($) {
     print F "\n";
     print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
     print F stashFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "");
+    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "");
     print F "\n";
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");

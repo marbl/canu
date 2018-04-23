@@ -228,9 +228,10 @@ sub buildCorrectionLayoutsConfigure ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
-    goto allDone   if (fileExists("$base/$asm.corStore"));                      #  Jobs all finished
-    goto allDone   if (fileExists("$path/generateCorrectionLayouts.sh"));       #  Jobs created
+    goto allDone   if (sequenceFileExists("$asm.correctedReads"));        #  Output exists
+    goto allDone   if (-d "$base/$asm.corStore");                         #  Jobs all finished
+    goto allDone   if (fileExists("$base/$asm.corStore/seqDB.v001.dat"));
+    goto allDone   if (fileExists("$base/$asm.corStore/seqDB.v001.tig"));
 
     #  The global filter can be estimated from data saved in ovlStore.  This code will compute it exactly.
     #
@@ -244,7 +245,7 @@ sub buildCorrectionLayoutsConfigure ($) {
         if (! fileExists("$path/$asm.globalScores")) {
             print STDERR "-- Computing global filter scores '$path/$asm.globalScores'.\n";
 
-            fetchStore("./correction/$asm.ovlStore");
+            fetchOvlStore($asm, $base);
 
             $cmd  = "$bin/filterCorrectionOverlaps \\\n";
             $cmd .= "  -estimate -nolog \\\n";
@@ -286,8 +287,8 @@ sub buildCorrectionLayoutsConfigure ($) {
 
     #  Make layouts for each corrected read.
 
-    fetchStore("./correction/$asm.seqStore");
-    fetchStore("./correction/$asm.ovlStore");
+    fetchSeqStore($asm);
+    fetchOvlStore($asm, $base);
 
     print STDERR "-- Computing correction layouts.\n";
 
@@ -309,7 +310,8 @@ sub buildCorrectionLayoutsConfigure ($) {
     rename "$base/$asm.corStore.WORKING", "$base/$asm.corStore";
     unlink "$base/$asm.corStore.err";
 
-    stashStore("./correction/$asm.corStore");
+    stashFile("$base/$asm.corStore/seqDB.v001.dat");
+    stashFile("$base/$asm.corStore/seqDB.v001.tig");
 
   finishStage:
     generateReport($asm);
@@ -331,7 +333,6 @@ sub buildCorrectionLayoutsCheck ($) {
     goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
     goto allDone   if (fileExists("$base/$asm.corStore"));                      #  Jobs all finished
-    goto allDone   if (fileExists("$path/generateCorrectionLayouts.sh"));       #  Jobs created
 
     #  Eventually, we'll run generateCorrectionLayouts on the grid.  Then we'll need to load the new
     #  tigs into the corStore here.
@@ -359,8 +360,8 @@ sub filterCorrectionLayouts ($) {
 
     #  Analyze the corStore to decide what reads we want to correct.
 
-    fetchStore("./correction/$asm.seqStore");
-    fetchStore("./correction/$asm.ovlStore");
+    fetchSeqStore($asm);
+    fetchOvlStore($asm, $base);
 
     print STDERR "-- Computing correction layouts.\n";
 
@@ -431,7 +432,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.seqStore", "$base/2-correction", "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -471,13 +472,11 @@ sub generateCorrectedReadsConfigure ($) {
     print F "fi\n";
     print F "\n";
 
-    print F fetchStoreShellCode("correction/$asm.seqStore", "correction/3-correction", "");
+    print F fetchSeqStoreShellCode($asm, $path, "");
+    print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
-    print F fetchStoreShellCode("correction/$asm.ovlStore", "correction/3-correction", "");
-    print F "\n";
-    print F fetchFileShellCode("correction/2-correction", "$asm.readsToCorrect", "");
-    print F "\n";
-    print F fetchFileShellCode("correction/2-correction", "$asm.globalScores", "");
+    print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
+    print F fetchFileShellCode($path, "$asm.globalScores",   "");
     print F "\n";
 
     print F "seqStore=\"../$asm.seqStore\"\n";
@@ -649,10 +648,25 @@ sub loadCorrectedReads ($) {
     print STDERR "--\n";
     print STDERR "-- Loading corrected reads into corStore and seqStore.\n";
 
+    #  Grab the correction outputs.
+
     fetchFile("$path/corjob.files");
 
-    fetchStore("./correction/$asm.seqStore");
-    fetchStore("./correction/$asm.corStore");
+    open(F, "< $path/corjob.files") or caExit("failed to open '$path/corjob.files' for reading: $!", undef);
+    while (<F>) {
+        chomp;
+        fetchFile("correction/$_");
+    }
+    close(F);
+
+    #  Grab the stores we're going to load into.
+
+    fetchSeqStore($asm);  #  Already fetched, no harm done.
+
+    fetchFile("$base/$asm.corStore/seqDB.v001.dat");
+    fetchFile("$base/$asm.corStore/seqDB.v001.tig");
+
+    #  Load the results into the stores.
 
     $cmd  = "$bin/loadCorrectedReads \\\n";
     $cmd .= "  -S ./$asm.seqStore \\\n";
@@ -662,8 +676,17 @@ sub loadCorrectedReads ($) {
     $cmd .= "2> ./$asm.loadCorrectedReads.err \n";
 
     if (runCommand("correction", $cmd)) {
-        caExit("failed to generate list of reads to correct", "$path/corjob.files.load.err");
+        caExit("failed to load corrected reads into store", "$path/$asm.loadCorrectedReads.err");
     }
+
+    unlink("$path/$asm.loadCorrectedReads.err");
+
+    #  Save updated stores.
+
+    stashSeqStore($asm);
+
+    stashFile("$base/$asm.corStore/seqDB.v002.dat");
+    stashFile("$base/$asm.corStore/seqDB.v002.tig");
 
     #  Report reads.
 
@@ -770,6 +793,8 @@ sub dumpCorrectedReads ($) {
 
         unlink "./$asm.correctedReads.fasta.err";
     }
+
+    stashFile("$asm.correctedReads.fasta.gz");
 
     #  If the corrected reads file exists, report so.
     #  Otherwise, report no corrected reads, and generate fake outputs so we terminate.

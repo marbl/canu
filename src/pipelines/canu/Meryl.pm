@@ -402,7 +402,7 @@ sub merylConfigure ($$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchStoreShellCode("$base/$asm.seqStore", $path);
+    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     print F "#  Purge any previous intermediate result.  Possibly not needed, but safer.\n";
     print F "\n";

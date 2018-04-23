@@ -69,7 +69,8 @@ sub generateOutputs ($) {
     #  Layouts
 
     if (! fileExists("$asm.contigs.layout")) {
-        fetchStore("unitigging/$asm.seqStore");
+        fetchSeqStore($asm);
+
         fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
@@ -94,7 +95,7 @@ sub generateOutputs ($) {
     }
 
     if (! fileExists("$asm.unitigs.layout")) {
-        fetchStore("unitigging/$asm.seqStore");
+        fetchSeqStore($asm);
 
         fetchFile("unitigging/$asm.utgStore/seqDB.v001.dat");   #  Why is this needed?
         fetchFile("unitigging/$asm.utgStore/seqDB.v001.tig");
@@ -126,7 +127,8 @@ sub generateOutputs ($) {
 
     foreach my $tt ("unassembled", "contigs") {
         if (! fileExists("$asm.$tt.$type")) {
-            fetchStore("unitigging/$asm.seqStore");
+            fetchSeqStore($asm);
+
             fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
             fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
@@ -153,7 +155,8 @@ sub generateOutputs ($) {
     }
 
     if (! fileExists("$asm.unitigs.$type")) {
-        fetchStore("unitigging/$asm.seqStore");
+        fetchSeqStore($asm);
+
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
         fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
 
