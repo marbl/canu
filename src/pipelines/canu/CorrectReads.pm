@@ -301,7 +301,7 @@ sub buildCorrectionLayoutsConfigure ($) {
     $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     $cmd .= "  -ec " . getGlobal("corMinCoverage") . " \\\n";
     $cmd .= "  -eC " . getCorCov($asm, "Local") . " \\\n";
-    $cmd .= "> ./$asm.corStore.err 2>&1\n";
+    $cmd .= "> ./$asm.corStore.err 2>&1";
 
     if (runCommand($base, $cmd)) {
         caExit("failed to generate correction layouts", "$base/$asm.corStore.err");
@@ -373,7 +373,7 @@ sub filterCorrectionLayouts ($) {
     $cmd .= "  -cl " . getGlobal("minReadLength")  . " \\\n";
     $cmd .= "  -g  " . getGlobal("genomeSize")     . " \\\n";
     $cmd .= "  -c  " . getGlobal("corOutCoverage") . " \\\n";
-    $cmd .= "> ./$asm.readsToCorrect.err 2>&1\n";
+    $cmd .= "> ./$asm.readsToCorrect.err 2>&1";
 
     if (runCommand($path, $cmd)) {
         caExit("failed to generate list of reads to correct", "$path/$asm.readsToCorrect.err");
@@ -673,7 +673,7 @@ sub loadCorrectedReads ($) {
     $cmd .= "  -C ./$asm.corStore \\\n";
     $cmd .= "  -L ./2-correction/corjob.files \\\n";
     $cmd .= ">  ./$asm.loadCorrectedReads.log \\\n";
-    $cmd .= "2> ./$asm.loadCorrectedReads.err \n";
+    $cmd .= "2> ./$asm.loadCorrectedReads.err";
 
     if (runCommand("correction", $cmd)) {
         caExit("failed to load corrected reads into store", "$path/$asm.loadCorrectedReads.err");

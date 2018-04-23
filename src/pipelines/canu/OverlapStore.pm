@@ -567,7 +567,7 @@ sub createOverlapStore ($$$) {
         $cmd .= " -L ./1-overlapper/ovljob.files \\\n";
         $cmd .= " -create ./$asm.ovlStore.config \\\n";
         $cmd .= " > ./$asm.ovlStore.config.txt \\\n";
-        $cmd .= "2> ./$asm.ovlStore.config.err\n";
+        $cmd .= "2> ./$asm.ovlStore.config.err";
 
         if (runCommand($base, $cmd)) {
             caExit("failed to configure the overlap store", "$base/$asm.ovlStore.config.err");
@@ -584,7 +584,7 @@ sub createOverlapStore ($$$) {
 
         $cmd  = "$bin/ovStoreConfig -describe ./$asm.ovlStore.config \\\n";
         $cmd .= " > ./$asm.ovlStore.config.txt \\\n";
-        $cmd .= "2> ./$asm.ovlStore.config.err\n";
+        $cmd .= "2> ./$asm.ovlStore.config.err";
 
         if (runCommand($base, $cmd)) {
             caExit("failed to dump overlap store configuration", "$base/$asm.ovlStore.config.err");
