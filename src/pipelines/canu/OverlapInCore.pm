@@ -40,7 +40,7 @@ package canu::OverlapInCore;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(overlapConfigure overlap overlapCheck);
+@EXPORT = qw(overlapConfigure overlapCheck);
 
 use strict;
 use warnings "all";
