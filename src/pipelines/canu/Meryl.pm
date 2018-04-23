@@ -174,7 +174,7 @@ sub merylGenerateHistogram ($$) {
                              "-->", $FU[$ii], $FT[$ii]);
         }
 
-        last   if ($hi >= $maxY);
+        last   if ($ii >= $maxY);
 
         $lo  = $hi;
         $hi += $st;
@@ -459,6 +459,7 @@ sub merylConfigure ($$) {
     stashFile("$path/meryl.sh");
 
   finishStage:
+    generateReport($asm);
     emitStage($asm, "merylConfigure");
 
   allDone:
@@ -508,6 +509,7 @@ sub merylCheck ($$) {
 
     #  Otherwise, run some jobs.
 
+    generateReport($asm);
     emitStage($asm, "merylCheck", $attempt);
 
     submitOrRunParallelJob($asm, "meryl", $path, "meryl", (1));
@@ -523,6 +525,7 @@ sub merylCheck ($$) {
 
     stashFile("$path/meryl.success");
 
+    generateReport($asm);
     emitStage($asm, "merylCheck");
 
   allDone:
@@ -625,6 +628,7 @@ sub merylFinishSubtraction($$) {
     unlink "$path/$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
     unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
 
+    generateReport($asm);
     emitStage($asm, "$tag-meryl");
 
   allDone:
@@ -850,6 +854,7 @@ sub merylProcess ($$) {
     unlink "$path/$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
     unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
 
+    generateReport($asm);
     emitStage($asm, "$tag-meryl");
 
   allDone:
