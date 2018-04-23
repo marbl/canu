@@ -152,8 +152,6 @@ my $readdir       = undef;
 my $mode          = undef;   #  "correct", "trim", "trim-assemble" or "assemble"
 my $type          = undef;   #  "pacbio" or "nanopore"
 my $step          = "run";
-my $haveRaw       = 0;
-my $haveCorrected = 0;
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
