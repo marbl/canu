@@ -224,10 +224,10 @@ sub loadTrimmedReads ($) {
     $cmd .= "> ./$asm.loadtrimmedReads.err 2>&1";
 
     if (runCommand($path, $cmd)) {
-        caFailure("loading clear ranges failed", "./$asm.trimmedReads.err");
+        caFailure("loading clear ranges failed", "$path/$asm.loadTrimmedReads.err");
     }
 
-    unlink("./$asm.trimmedReads.err");
+    unlink("$path/$asm.trimmedReads.err");
 
     #  Report reads.
 
