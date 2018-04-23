@@ -43,7 +43,7 @@ use canu::Defaults;
 use canu::Execution;
 use canu::SequenceStore;
 
-sub fac($) {
+sub fac {
     my $x = shift @_;
 
     return 1 if($x == 0);
