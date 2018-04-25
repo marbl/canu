@@ -470,7 +470,7 @@ main(int argc, char **argv) {
 
     //  Create the QV string.
 
-    for (uint32 i=0; i<read->sqRead_sequenceLength(); i++)
+    for (uint32 i=0; i<flen; i++)
       qlt[i] = '!' + qlt8[i];
 
     //  Chop off the ends we're not printing.
