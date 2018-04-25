@@ -432,7 +432,6 @@ sub generateCorrectedReadsConfigure ($) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode($path);
-    print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
@@ -475,6 +474,9 @@ sub generateCorrectedReadsConfigure ($) {
     print F fetchSeqStoreShellCode($asm, $path, "");
     print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
+    print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.dat", "");
+    print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.tig", "");
+    print F "\n";
     print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
     print F fetchFileShellCode($path, "$asm.globalScores",   "");
     print F "\n";
@@ -506,8 +508,8 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\$bin/falconsense \\\n";
     print F "  -S \$seqStore \\\n";
     print F "  -C ../$asm.corStore \\\n";
-    print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if (  -e "$path/$asm.readsToCorrect");
-    print F "  -b \$bgn -e \$end \\\n"                              if (! -e "$path/$asm.readsToCorrect");
+    print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if ( fileExists("$path/$asm.readsToCorrect"));
+    print F "  -b \$bgn -e \$end \\\n"                              if (!fileExists("$path/$asm.readsToCorrect"));
     print F "  -t  " . getGlobal("corThreads") . " \\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
     print F "  -cl " . getGlobal("minReadLength") . " \\\n";
