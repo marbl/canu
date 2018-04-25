@@ -54,6 +54,8 @@ using namespace std;
 //FILE *flgFile = stderr;
 FILE *flgFile = NULL;
 
+
+
 uint16 *
 loadThresholds(sqStore *seqStore,
                ovStore *ovlStore,
@@ -81,88 +83,6 @@ loadThresholds(sqStore *seqStore,
   }
 
   return(olapThresh);
-}
-
-//  Duplicated in falconsense.C
-void
-loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &readList) {
-  char  L[1024];
-
-  if (readListName == NULL)
-    return;
-
-  //  To give the list some size - if the read list has no elements between iidMin and iidMax,
-  //  nothing is inserted below, and then we _think_ no read list was supplied, and try to
-  //  process every read, when in fact we should be processing no reads.
-
-  readList.insert(0);
-
-  FILE *R = AS_UTL_openInputFile(readListName);
-
-  for (fgets(L, 1024, R);
-       feof(R) == false;
-       fgets(L, 1024, R)) {
-    splitToWords W(L);
-    uint32       id = W(0);
-
-    if ((iidMin <= id) &&
-        (id     <= iidMax))
-      readList.insert(W(0));
-  }
-
-  AS_UTL_closeFile(R, readListName);
-}
-
-void
-generateFalconLayout(sqStore           *seqStore,
-                     tgTig             *tig,
-                     bool               trimToAlign,
-                     sqReadData        *readData,
-                     uint32             minOutputLength, uint32 minOverlapLength) {
-
-  //  Grab and save the raw read for the template.
-
-  fprintf(stderr, "Processing read %u of length %u with %u evidence reads.\n",
-          tig->tigID(), tig->length(), tig->numberOfChildren());
-
-  seqStore->sqStore_loadReadData(tig->tigID(), readData);
-
-  //  Now parse the layout and push all the sequences onto our seqs vector.
-  if ( readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw) < minOutputLength) {
-     return;
-  }
-
-  fprintf(stdout, "read%d %s\n", tig->tigID(), readData->sqReadData_getRawSequence());
-
-  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
-    tgPosition  *child = tig->getChild(cc);
-
-    seqStore->sqStore_loadReadData(child->ident(), readData);
-
-    if (child->isReverse())
-      reverseComplementSequence(readData->sqReadData_getRawSequence(),
-                                readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw));
-
-    //  Trim the read to the aligned bit
-    char   *seq    = readData->sqReadData_getRawSequence();
-    uint32  seqLen = readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw);
-
-    if (trimToAlign) {
-      seq    += child->askip();
-      seqLen -= child->askip() + child->bskip();
-
-      seq[seqLen] = 0;
-    }
-
-    //  Used to skip if read length was less or equal to min_ovl_len
-    if (seqLen < minOverlapLength) {
-       continue;
-    }
-
-    fprintf(stdout, "%d %s\n", child->ident(), seq);
-  }
-
-  fprintf(stdout, "+ +\n");
 }
 
 
@@ -298,7 +218,6 @@ main(int argc, char **argv) {
 
   uint32            expectedCoverage    = 40;    //  How many overlaps per read to save, global filter
   uint32            minEvidenceOverlap  = 40;
-  uint32            minEvidenceCoverage = 4;
 
   uint32            iidMin = 1;
   uint32            iidMax = UINT32_MAX;
@@ -307,10 +226,6 @@ main(int argc, char **argv) {
   double            maxEvidenceErate    = 1.0;
   double            maxEvidenceCoverage = DBL_MAX;
 
-  uint32            minCorLength        = 0;
-
-  char             *readListName = NULL;
-  set<uint32>       readList;
 
   argc = AS_configure(argc, argv);
 
@@ -338,23 +253,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       iidMax  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-rl") == 0) {
-      readListName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-eL") == 0) {   //  EVIDENCE SELECTION
       minEvidenceLength  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-eE") == 0) {
       maxEvidenceErate = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-ec") == 0) {
-      minEvidenceCoverage = atof(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-eC") == 0) {
       maxEvidenceCoverage = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-eM") == 0) {
-      minCorLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       doLogging = true;
@@ -396,9 +302,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "EVIDENCE SELECTION\n");
     fprintf(stderr, "  -eL length       minimum length of evidence overlaps\n");
     fprintf(stderr, "  -eE erate        maximum error rate of evidence overlaps\n");
-    fprintf(stderr, "  -ec coverage     minimum coverage needed in evidence reads\n");       //  not used in canu
     fprintf(stderr, "  -eC coverage     maximum coverage of evidence reads to emit\n");
-    fprintf(stderr, "  -eM length       minimum length of a corrected read\n");              //  not used in canu
     fprintf(stderr, "\n");
 
     if (seqName == NULL)
@@ -413,31 +317,6 @@ main(int argc, char **argv) {
   sqRead_setDefaultVersion(sqRead_raw);
 
   sqStore  *seqStore = sqStore::sqStore_open(seqName);
-
-  if (ovlName == NULL && readListName != NULL) {
-     tgStore  *corStore = new tgStore(corName, 1);
-     sqReadData        *rd = new sqReadData;
-     uint32    numReads = seqStore->sqStore_getNumReads();
-
-     if (numReads < iidMax)
-        iidMax = numReads;
-     loadReadList(readListName, iidMin, iidMax, readList);
-
-     for (uint32 ii=iidMin; ii<iidMax; ii++) {
-        if ((readList.size() > 0) &&                     //  Skip reads not on the read list.  We need
-           (readList.count(ii) == 0))
-         continue;
-
-       tgTig *layout = corStore->loadTig(ii);
-
-       generateFalconLayout(seqStore, layout, true, rd, minCorLength, minEvidenceLength);
-
-       corStore->unloadTig(ii);
-     }
-     fprintf(stdout, "- -\n");
-     return 0;
-  }
-
   ovStore  *ovlStore = new ovStore(ovlName, seqStore);
   tgStore  *corStore = new tgStore(corName);
 
