@@ -237,11 +237,9 @@ while (scalar(@ARGV)) {
 if (!defined($asm)) {
     $asmAuto = 1;   #  If we don't actually find a prefix, we'll fail right after this, so OK to set blindly.
 
-    open(F, "ls -d */*seqStore |");
+    open(F, "ls -d . *seqStore |");
     while (<F>) {
-        $asm = $1   if (m/^correction\/(.*).seqStore$/);
-        $asm = $1   if (m/^trimming\/(.*).seqStore$/);
-        $asm = $1   if (m/^unitigging\/(.*).seqStore$/);
+        $asm = $1   if (m/^(.*).seqStore$/);
     }
     close(F);
 }
@@ -443,12 +441,12 @@ else {
 #  it was set on the command line).
 
 if (!defined($mode)) {
-    $mode = "run"            if ($haveRaw       > 0);
-    $mode = "trim-assemble"  if ($haveCorrected > 0);
+    $mode = "run"            if ($haveRaw       > 0);   #  If no seqStore, these are set based
+    $mode = "trim-assemble"  if ($haveCorrected > 0);   #  on flags describing the input files.
 
-    $mode = "run"            if (-e "correction/$asm.seqStore/libraries.txt");
-    $mode = "trim-assemble"  if (-e "trimming/$asm.seqStore/libraries.txt");
-    $mode = "assemble"       if (-e "unitigging/$asm.seqStore/libraries.txt");
+    $mode = "run"            if ($nCor > 0);            #  If a seqStore, these are set based
+    $mode = "trim-assemble"  if ($nOBT > 0);            #  on the reads present in the stores.
+    $mode = "assemble"       if ($nAsm > 0);
 }
 
 #  Set the type of the reads.  A command line option could force the type, e.g., "-pacbio" or
