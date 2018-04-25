@@ -73,7 +73,7 @@
 #include "falconConsensus.H"
 #include "edlib.H"
 
-#define DEBUG_ALIGN
+#undef  DEBUG_ALIGN
 #undef  DEBUG_ALIGN_VERBOSE
 
 static
@@ -234,14 +234,18 @@ alignReadsToTemplate(falconInput    *evidence,
     if ((alignBgn > 0) &&
         (tBgn <= alignBgn)) {
       edlibFreeAlignResult(align);
+#ifdef DEBUG_ALIGN
       fprintf(stderr, "bumped into start align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
+#endif
       goto again;
     }
 
     if ((alignEnd < evidence[0].readLength) &&
         (tEnd >= alignEnd)) {
       edlibFreeAlignResult(align);
+#ifdef DEBUG_ALIGN
       fprintf(stderr, "bumped into end align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
+#endif
       goto again;
     }
 
