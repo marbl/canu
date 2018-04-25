@@ -1252,21 +1252,26 @@ sub submitOrRunParallelJob ($$$$@) {
         (getGlobal("useGrid") ne "0") &&
         (getGlobal("useGrid$jobType") eq "1") &&
         (! exists($ENV{getGlobal("gridEngineJobID")}))) {
+        my $cwd = getcwd();
+        my $s   = (scalar(@jobs) == 1) ? "" : "s";
+
         print STDERR "\n";
-        print STDERR "Please run the following commands to submit jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
+        print STDERR "Please run the following command$s to submit tasks to the grid for execution.\n";
+        print STDERR "Each task will use $mem gigabytes memory and $thr threads.\n";
         print STDERR "\n";
+        print STDERR "  cd $cwd/$path\n";
 
         purgeGridJobSubmitScripts($path, $script);
 
         foreach my $j (@jobs) {
-            my  $cwd = getcwd();
             my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
-            print "  $cwd/$path/$cmd.sh\n";
+            print "  ./$cmd.sh\n";
         }
 
         print STDERR "\n";
-        print STDERR "When all jobs complete, restart canu as before.\n";
+        print STDERR "When all tasks are finished, restart canu as before.  The output of the grid\n";
+        print STDERR "submit command$s will be in *jobSubmit*out.\n";
         print STDERR "\n";
 
         exit(0);
