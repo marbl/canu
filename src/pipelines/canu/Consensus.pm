@@ -164,8 +164,6 @@ sub partitionReads ($$) {
     return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
     return  if (fileExists("unitigging/$asm.${tag}Store/partitionedReads.seqStore.tar"));
 
-    fetchSeqStore($asm);
-
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.dat");
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
 
@@ -609,8 +607,6 @@ sub consensusAnalyze ($) {
 
     goto allDone   if (skipStage($asm, "consensusAnalyze") == 1);
     goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
-
-    fetchSeqStore($asm);
 
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");  #  Shouldn't need this, right?
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");  #  So why does it?

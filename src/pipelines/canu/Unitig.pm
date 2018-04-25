@@ -91,8 +91,6 @@ sub reportUnitigSizes ($$$) {
     fetchFile("unitigging/$N");
 
     if (! -e "unitigging/$N") {
-        fetchSeqStore($asm);
-
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.dat");
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.tig");
 

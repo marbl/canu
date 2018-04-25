@@ -168,8 +168,6 @@ sub haplotypeConfigure ($) {
     goto allDone   if (skipStage($asm, "hap-haplotypeConfigure") == 1);
     goto allDone   if (fileExists("$path/haplotypeReads.sh"));              #  Jobs created
 
-    fetchSeqStore($asm);
-
     estimateMemoryNeededForHaplotypeJobs($asm);
 
     my ($nJobs, $nPerJob)  = computeNumberOfHaplotypeJobs($asm);  #  Does math based on number of reads and parameters.

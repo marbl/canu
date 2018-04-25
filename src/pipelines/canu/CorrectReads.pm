@@ -287,7 +287,6 @@ sub buildCorrectionLayoutsConfigure ($) {
 
     #  Make layouts for each corrected read.
 
-    fetchSeqStore($asm);
     fetchOvlStore($asm, $base);
 
     print STDERR "-- Computing correction layouts.\n";
@@ -360,7 +359,6 @@ sub filterCorrectionLayouts ($) {
 
     #  Analyze the corStore to decide what reads we want to correct.
 
-    fetchSeqStore($asm);
     fetchOvlStore($asm, $base);
 
     print STDERR "-- Computing correction layouts.\n";
@@ -662,8 +660,6 @@ sub loadCorrectedReads ($) {
     close(F);
 
     #  Grab the stores we're going to load into.
-
-    fetchSeqStore($asm);  #  Already fetched, no harm done.
 
     fetchFile("$base/$asm.corStore/seqDB.v001.dat");
     fetchFile("$base/$asm.corStore/seqDB.v001.tig");
