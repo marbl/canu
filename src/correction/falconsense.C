@@ -376,11 +376,22 @@ main(int argc, char **argv) {
   //  And process.
 
   for (uint32 ii=idMin; ii<idMax; ii++) {
-    if ((readList.size() > 0) &&                     //  Skip reads not on the read list.  We need
+
+    //  Skip reads not on the read list.
+
+    if ((readList.size() > 0) &&
         (readList.count(ii) == 0))
       continue;
 
+    //  Load the layout, and then skip any reads with no layout.
+    //  You should use a read list.
+
     tgTig *layout = corStore->loadTig(ii);
+
+    if (layout == NULL)
+      continue;
+
+    //  Generate consensus, dump it to the outputs, and drop the layout.
 
     generateFalconConsensus(fc, seqStore, layout, trimToAlign, rd, minOlapLength);
 
