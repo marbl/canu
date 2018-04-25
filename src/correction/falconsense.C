@@ -92,8 +92,7 @@ generateFalconConsensus(falconConsensus   *fc,
 
   //  Grab and save the raw read for the template.
 
-  fprintf(stderr, "Processing read %u of length %u with %u evidence reads.\n",
-          tig->tigID(), tig->length(), tig->numberOfChildren());
+  fprintf(stdout, "%8u %7u %8u", tig->tigID(), tig->length(), tig->numberOfChildren());
 
   seqStore->sqStore_loadReadData(tig->tigID(), readData);
 
@@ -175,8 +174,7 @@ generateFalconConsensus(falconConsensus   *fc,
     bool   isLast  = (ee == fd->len - 1);
 
     if ((in == true) && (isLower || isLast))     //  Report the regions we could be saving.
-      fprintf(stderr, "Read %u region %u-%u\n",
-              tig->tigID(), bb, ee + isLast);
+      fprintf(stdout, " %6u-%-6u", bb, ee + isLast);
 
     if (isLower) {                                 //  If lowercase, declare that we're not in a
       in = 0;                                      //  good region any more.
@@ -192,6 +190,8 @@ generateFalconConsensus(falconConsensus   *fc,
       end = ee + 1;                                //  our bgn,end interval will be set in this iteration
     }
   }
+
+  fprintf(stdout, "\n");
 
   //  Update the layout with consensus sequence, positions, et cetera.
   //  If the whole string is lowercase (grrrr!) then bgn == end == 0.
@@ -212,10 +212,7 @@ generateFalconConsensus(falconConsensus   *fc,
   tig->_gappedBases[tig->_gappedLen] = 0;
   tig->_gappedQuals[tig->_gappedLen] = 0;
 
-#ifdef BRIOUT
-  if (tig->_gappedBases[0] != 0)
-    fprintf(stdout, "read%u %s\n", tig->tigID(), tig->_gappedBases);
-#endif
+  //  One could dump bases and quals here, if so desired.
 
   delete fd;
   delete [] evidence;
@@ -374,6 +371,10 @@ main(int argc, char **argv) {
   sqReadData        *rd = new sqReadData;
 
   //  And process.
+
+  fprintf(stdout, "    read    read evidence     corrected\n");
+  fprintf(stdout, "      ID  length    reads       regions\n");
+  fprintf(stdout, "-------- ------- -------- ------------- ...\n");
 
   for (uint32 ii=idMin; ii<idMax; ii++) {
 
