@@ -298,7 +298,6 @@ sub buildCorrectionLayoutsConfigure ($) {
     $cmd .= "  -scores 2-correction/$asm.globalScores \\\n"         if (-e "$path/$asm.globalScores");
     $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-    $cmd .= "  -ec " . getGlobal("corMinCoverage") . " \\\n";
     $cmd .= "  -eC " . getCorCov($asm, "Local") . " \\\n";
     $cmd .= "> ./$asm.corStore.err 2>&1";
 
