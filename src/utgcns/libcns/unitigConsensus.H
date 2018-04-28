@@ -81,25 +81,30 @@ public:
                      tgTig  *tig);
 
   bool   generate(tgTig                     *tig,
-                  map<uint32, sqRead *>     *inPackageRead     = NULL,
-                  map<uint32, sqReadData *> *inPackageReadData = NULL);
+                  char                       algorithm,
+                  char                       aligner,
+                  map<uint32, sqRead *>     *reads = NULL,
+                  map<uint32, sqReadData *> *datas = NULL);
 
-  bool   generatePBDAG(char                       aligner,
-                       bool                       normalize,
-                       tgTig                     *tig,
-                       map<uint32, sqRead *>     *inPackageRead     = NULL,
-                       map<uint32, sqReadData *> *inPackageReadData = NULL);
+  bool   generateUTGCNS(tgTig                     *tig,
+                        map<uint32, sqRead *>     *reads = NULL,
+                        map<uint32, sqReadData *> *datas = NULL);
+
+  bool   generatePBDAG(tgTig                     *tig,
+                       char                       aligner,
+                       map<uint32, sqRead *>     *reads = NULL,
+                       map<uint32, sqReadData *> *datas = NULL);
 
   bool   generateQuick(tgTig                     *tig,
-                       map<uint32, sqRead *>     *inPackageRead     = NULL,
-                       map<uint32, sqReadData *> *inPackageReadData = NULL);
+                       map<uint32, sqRead *>     *reads = NULL,
+                       map<uint32, sqReadData *> *datas = NULL);
 
   bool   generateSingleton(tgTig                     *tig,
-                           map<uint32, sqRead *>     *inPackageRead     = NULL,
-                           map<uint32, sqReadData *> *inPackageReadData = NULL);
+                           map<uint32, sqRead *>     *reads = NULL,
+                           map<uint32, sqReadData *> *datas = NULL);
 
-  int32  initialize(map<uint32, sqRead *>     *inPackageRead,
-                    map<uint32, sqReadData *> *inPackageReadData);
+  int32  initialize(map<uint32, sqRead *>     *reads,
+                    map<uint32, sqReadData *> *datas);
 
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
   void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };

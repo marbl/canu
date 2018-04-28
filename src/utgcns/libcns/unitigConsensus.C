@@ -200,13 +200,39 @@ unitigConsensus::savePackage(FILE   *outPackageFile,
 
 bool
 unitigConsensus::generate(tgTig                     *tig_,
-                          map<uint32, sqRead *>     *inPackageRead_,
-                          map<uint32, sqReadData *> *inPackageReadData_) {
+                          char                       algorithm_,
+                          char                       aligner_,
+                          map<uint32, sqRead *>     *reads_,
+                          map<uint32, sqReadData *> *datas_) {
+
+  if (tig_->numberOfChildren() == 1)
+    return(generateSingleton(tig_, reads_, datas_));
+
+  else if (algorithm_ == 'Q')
+    return(generateQuick(tig_, reads_, datas_));
+
+  else if (algorithm_ == 'P')
+    return(generatePBDAG(tig_, aligner_, reads_, datas_));
+
+  else if (algorithm_ == 'U')
+    return(generateUTGCNS(tig_, reads_, datas_));
+
+  fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+
+  return(false);
+}
+
+
+
+bool
+unitigConsensus::generateUTGCNS(tgTig                     *tig_,
+                                map<uint32, sqRead *>     *reads_,
+                                map<uint32, sqReadData *> *datas_) {
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == false) {
+  if (initialize(reads_, datas_) == false) {
     fprintf(stderr, "generate()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     goto returnFailure;
   }
@@ -461,15 +487,15 @@ generateTemplateStitch(abAbacus    *abacus,
 
     //  Now, report what happened, and maybe try again.
 
-    if (verbose)
-      if (noResult)
-        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
-      else
-        fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
-                result.startLocations[0], result.endLocations[0]+1,
-                result.editDistance,
-                result.alignmentLength,
-                (double)result.editDistance / result.alignmentLength);
+    if ((verbose) && (noResult == true))
+      fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
+
+    if ((verbose) && (noResult == false))
+      fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
+              result.startLocations[0], result.endLocations[0]+1,
+              result.editDistance,
+              result.alignmentLength,
+              (double)result.editDistance / result.alignmentLength);
 
     if ((noResult) || (hitTheStart)) {
       if (verbose)
@@ -520,9 +546,11 @@ generateTemplateStitch(abAbacus    *abacus,
 
   double  pd = 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos);
 
-  fprintf(stderr, "\n");
-  fprintf(stderr, "generateTemplateStitch()-- generated template of length %d, expected length %d, %7.4f%% difference.\n",
-          tiglen, ePos, pd);
+  if (verbose) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "generateTemplateStitch()-- generated template of length %d, expected length %d, %7.4f%% difference.\n",
+            tiglen, ePos, pd);
+  }
 
   if ((tiglen >= 100000) && ((pd < -50.0) || (pd > 50.0)))
     fprintf(stderr, "generateTemplateStitch()-- significant size difference, stopping.\n");
@@ -542,7 +570,6 @@ alignEdLib(dagAlignment      &aln,
            uint32             tiglen,
            double             lengthScale,
            double             errorRate,
-           bool               normalize,
            bool               verbose) {
 
   EdlibAlignResult align;
@@ -739,18 +766,17 @@ realignReads() {
 
 
 bool
-unitigConsensus::generatePBDAG(char                       aligner,
-                               bool                       normalize,
-                               tgTig                     *tig_,
-                               map<uint32, sqRead *>     *inPackageRead_,
-                               map<uint32, sqReadData *> *inPackageReadData_) {
+unitigConsensus::generatePBDAG(tgTig                     *tig_,
+                               char                       aligner_,
+                               map<uint32, sqRead *>     *reads_,
+                               map<uint32, sqReadData *> *datas_) {
 
   bool  verbose = (tig_->_utgcns_verboseLevel > 1);
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == false) {
+  if (initialize(reads_, datas_) == false) {
     fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
@@ -760,11 +786,13 @@ unitigConsensus::generatePBDAG(char                       aligner,
   char   *tigseq = generateTemplateStitch(abacus, utgpos, numfrags, errorRate, tig->_utgcns_verboseLevel);
   uint32  tiglen = strlen(tigseq);
 
-  fprintf(stderr, "Generated template of length %d\n", tiglen);
+  if (verbose)
+    fprintf(stderr, "Generated template of length %d\n", tiglen);
 
   //  Compute alignments of each sequence in parallel
 
-  fprintf(stderr, "Aligning reads.\n");
+  if (verbose)
+    fprintf(stderr, "Aligning reads.\n");
 
   dagAlignment *aligns = new dagAlignment [numfrags];
   uint32        pass = 0;
@@ -775,7 +803,7 @@ unitigConsensus::generatePBDAG(char                       aligner,
     abSequence  *seq      = abacus->getSequence(ii);
     bool         aligned  = false;
 
-    assert(aligner == 'E');  //  Maybe later we'll have more than one aligner again.
+    assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
 
     aligned = alignEdLib(aligns[ii],
                          utgpos[ii],
@@ -783,7 +811,6 @@ unitigConsensus::generatePBDAG(char                       aligner,
                          tigseq, tiglen,
                          (double)tiglen / tig->_layoutLen,
                          errorRate,
-                         normalize,
                          verbose);
 
     if (aligned == false) {
@@ -798,11 +825,13 @@ unitigConsensus::generatePBDAG(char                       aligner,
     pass++;
   }
 
-  fprintf(stderr, "Finished aligning reads.  %d failed, %d passed.\n", fail, pass);
+  if (verbose)
+    fprintf(stderr, "Finished aligning reads.  %d failed, %d passed.\n", fail, pass);
 
   //  Construct the graph from the alignments.  This is not thread safe.
 
-  fprintf(stderr, "Constructing graph\n");
+  if (verbose)
+    fprintf(stderr, "Constructing graph\n");
 
   AlnGraphBoost ag(string(tigseq, tiglen));
 
@@ -820,12 +849,14 @@ unitigConsensus::generatePBDAG(char                       aligner,
 
   delete [] aligns;
 
-  fprintf(stderr, "Merging graph\n");
+  if (verbose)
+    fprintf(stderr, "Merging graph\n");
 
   //  Merge the nodes and call consensus
   ag.mergeNodes();
 
-  fprintf(stderr, "Calling consensus\n");
+  if (verbose)
+    fprintf(stderr, "Calling consensus\n");
 
   std::string cns = ag.consensus(1);
 
@@ -862,19 +893,19 @@ unitigConsensus::generatePBDAG(char                       aligner,
 
 bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
-                               map<uint32, sqRead *>     *inPackageRead_,
-                               map<uint32, sqReadData *> *inPackageReadData_) {
+                               map<uint32, sqRead *>     *reads_,
+                               map<uint32, sqReadData *> *datas_) {
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(inPackageRead_, inPackageReadData_) == false) {
+  if (initialize(reads_, datas_) == false) {
     fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
 
   //  Quick is just the template sequence, so one and done!
 
-  char   *tigseq = generateTemplateStitch(abacus, utgpos, numfrags, errorRate, tig->_utgcns_verboseLevel);
+  char   *tigseq = generateTemplateStitch(abacus, utgpos, numfrags, errorRate, showAlgorithm());
   uint32  tiglen = strlen(tigseq);
 
   //  Save consensus
@@ -902,14 +933,14 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
 bool
 unitigConsensus::generateSingleton(tgTig                     *tig_,
-                                   map<uint32, sqRead *>     *inPackageRead_,
-                                   map<uint32, sqReadData *> *inPackageReadData_) {
+                                   map<uint32, sqRead *>     *reads_,
+                                   map<uint32, sqReadData *> *datas_) {
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
   assert(numfrags == 1);
 
-  if (initialize(inPackageRead_, inPackageReadData_) == false) {
+  if (initialize(reads_, datas_) == false) {
     fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
@@ -940,8 +971,8 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
 
 int
-unitigConsensus::initialize(map<uint32, sqRead *>     *inPackageRead,
-                            map<uint32, sqReadData *> *inPackageReadData) {
+unitigConsensus::initialize(map<uint32, sqRead *>     *reads,
+                            map<uint32, sqReadData *> *datas) {
 
   int32 num_columns = 0;
   //int32 num_bases   = 0;
@@ -981,8 +1012,8 @@ unitigConsensus::initialize(map<uint32, sqRead *>     *inPackageRead,
                     utgpos[i].ident(),
                     utgpos[i]._askip, utgpos[i]._bskip,
                     utgpos[i].isReverse(),
-                    inPackageRead,
-                    inPackageReadData);
+                    reads,
+                    datas);
   }
 
   //  Check for duplicate reads

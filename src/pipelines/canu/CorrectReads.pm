@@ -505,14 +505,15 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\$bin/falconsense \\\n";
     print F "  -S \$seqStore \\\n";
     print F "  -C ../$asm.corStore \\\n";
-    print F "  -b \$bgn -e \$end -r ./$asm.readsToCorrect \\\n"     if ( fileExists("$path/$asm.readsToCorrect"));
-    print F "  -b \$bgn -e \$end \\\n"                              if (!fileExists("$path/$asm.readsToCorrect"));
+    print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
+    print F "  -r \$bgn-\$end \\\n";
     print F "  -t  " . getGlobal("corThreads") . " \\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
     print F "  -cl " . getGlobal("minReadLength") . " \\\n";
     print F "  -oi " . getCorIdentity($asm) . " \\\n";
     print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
     print F "  -p ./results/\$jobid.WORKING \\\n";
+    print F "  -cns \\\n";
     print F "  > ./results/\$jobid.err 2>&1 \\\n";
     print F "&& \\\n";
     print F "mv ./results/\$jobid.WORKING.cns ./results/\$jobid.cns \\\n";

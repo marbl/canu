@@ -222,7 +222,7 @@ public:
   void         sqStore_setClearRange(uint32 id, uint32 bgn, uint32 end);
   void         sqStore_setIgnore(uint32 id);
 
-  //  Used in utgcns, for the package format.
+  //  Used in utgcns, for the package format.  Needs to be static for use in tgTig::importData().
   static
   void         sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData);
   void         sqStore_saveReadToStream(FILE *S, uint32 id);

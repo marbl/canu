@@ -34,6 +34,9 @@
 
 #include "sqStore.H"
 
+#include <map>
+using namespace std;
+
 
 typedef enum {
   tgTig_noclass      = 0x00,    //  Could use a tgTig_read for corrections
@@ -313,6 +316,16 @@ public:
   void                 dumpLayout(FILE *F);
   bool                 loadLayout(FILE *F);
 
+  //  Save and load a package of data needed to process this tig.
+
+  void                 exportData(FILE                       *exportDataFile,
+                                  sqStore                    *seqStore,
+                                  bool                        isForCorrection);
+  bool                 importData(FILE                       *importDataFile,
+                                  map<uint32, sqRead *>      &reads,
+                                  map<uint32, sqReadData *>  &datas);
+
+
   void                 reverseComplement(void);  //  Does NOT update childDeltas
 
   void                 dumpFASTA(FILE *F, bool useGapped);
@@ -374,5 +387,6 @@ public:
 
   uint32              _utgcns_verboseLevel;
 };
+
 
 #endif

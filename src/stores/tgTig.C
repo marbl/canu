@@ -32,6 +32,7 @@
  */
 
 #include "tgTig.H"
+#include "sqStore.H"
 
 #include "AS_UTL_fileIO.H"
 #include "AS_UTL_fasta.H"
@@ -692,6 +693,76 @@ tgTig::loadLayout(FILE *F) {
 
   return(true);
 }
+
+
+
+//  Dump the tig and all data referenced to a file.
+//  For correction, we also need to dump the read this tig is representing.
+//
+void
+tgTig::exportData(FILE     *exportDataFile,
+                  sqStore  *seqStore,
+                  bool      isForCorrection=false) {
+
+  //  Export the metadata.
+
+  saveToStream(exportDataFile);
+
+  //  Export a read.  This is either the first read in the tig (redundantly stored)
+  //  or the read that this tig is a correction layout for.
+
+  if (isForCorrection)
+    seqStore->sqStore_saveReadToStream(exportDataFile, tigID());
+  else
+    seqStore->sqStore_saveReadToStream(exportDataFile, getChild(0)->ident());
+
+  //  Now export all the reads in the layot.
+
+  for (uint32 ii=0; ii<numberOfChildren(); ii++)
+    seqStore->sqStore_saveReadToStream(exportDataFile, getChild(ii)->ident());
+}
+
+
+
+//  Undo the dump.  This tig is populated with the data from disk,
+//  and the reads are loaded into a pair of map<>s.
+//
+//  Returns true if data was loaded, but minimal checking is done.
+//
+bool
+tgTig::importData(FILE                       *importDataFile,
+                  map<uint32, sqRead     *>  &reads,
+                  map<uint32, sqReadData *>  &datas) {
+
+  //  Try to load the metadata.  If nothing there, we're done.
+
+  if (loadFromStreamOrLayout(importDataFile) == false)
+    return(false);
+
+  //  We stored numberOfChildren() + 1 reads in the export.  The first read is either a redundant
+  //  copy of the first read in the layout, or the read we're trying to correct.  If it's redundant,
+  //  we'll just ignore the next copy.
+
+  for (int32 ii=0; ii<numberOfChildren() + 1; ii++) {
+    sqRead     *read = new sqRead;
+    sqReadData *data = new sqReadData;
+
+    sqStore::sqStore_loadReadFromStream(importDataFile, read, data);
+
+    if (reads[read->sqRead_readID()] != NULL) {   //  If we already have data, just nuke it.  We've
+      delete read;                                //  got to read the data from disk regardless, so
+      delete data;                                //  just reload it instead of special casing a skip.
+    }
+
+    else {
+      reads[read->sqRead_readID()] = read;
+      datas[read->sqRead_readID()] = data;
+    }
+  }
+
+  return(true);
+}
+
 
 
 void

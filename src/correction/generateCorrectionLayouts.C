@@ -187,15 +187,7 @@ generateLayout(tgTig      *layout,
   //
   //  stashContains() also sorts by position, so we're done after this.
 
-  savedChildren *sc = stashContains(layout, maxEvidenceCoverage);
-
-  if ((logFile) && (sc))
-    sc->reportRemoved(logFile, layout->tigID());
-
-  if (sc) {
-    delete sc->children;
-    delete sc;
-  }
+  delete stashContains(layout, maxEvidenceCoverage);
 }
 
 

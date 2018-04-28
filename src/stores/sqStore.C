@@ -46,8 +46,10 @@ uint32          sqStore::_instanceCount = 0;
 sqRead_version  sqRead_defaultVersion = sqRead_latest;
 
 
-void
-sqRead::sqRead_loadDataFromStream(sqReadData *readData, FILE *file) {
+
+static
+uint8 *
+sqStore_loadBlobFromStream(FILE *file) {
   char    tag[5];
   uint32  size;
 
@@ -62,7 +64,16 @@ sqRead::sqRead_loadDataFromStream(sqReadData *readData, FILE *file) {
   memcpy(blob,    tag,  sizeof(uint8)  * 4);
   memcpy(blob+4, &size, sizeof(uint32) * 1);
 
-  AS_UTL_safeRead(file, blob+8, "sqStore::sqStore_loadDataFromFile::blob", sizeof(char), size);
+  AS_UTL_safeRead(file, blob+8, "sqStore::sqStore_loadDataFromFile::blob", sizeof(uint8), size);
+
+  return(blob);
+}
+
+
+
+void
+sqRead::sqRead_loadDataFromStream(sqReadData *readData, FILE *file) {
+  uint8 *blob = sqStore_loadBlobFromStream(file);
 
   readData->sqReadData_loadFromBlob(blob);
 
@@ -101,10 +112,14 @@ sqStore::sqStore_loadReadData(sqRead *read, sqReadData *readData) {
   readData->_read    = read;
   readData->_library = sqStore_getLibrary(read->sqRead_libraryID());
 
+  //  If partitioned data, we can load from the already-in-core data.
+
   if (_blobsData) {
     readData->sqReadData_loadFromBlob(_blobsData + read->sqRead_mByte());
     return;
   }
+
+  //  Otherwise, we need to read from disk.
 
   uint32   tnum = omp_get_thread_num();
 
@@ -112,6 +127,7 @@ sqStore::sqStore_loadReadData(sqRead *read, sqReadData *readData) {
 
   read->sqRead_loadDataFromStream(readData, _blobsFiles[tnum].getFile(_storePath, read));
 }
+
 
 
 void
@@ -160,6 +176,11 @@ sqStore::sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData)
   AS_UTL_safeRead(S, read, "sqStore::sqStore_loadReadFromStream::read", sizeof(sqRead), 1);
 
   //  Load the read data.
+  //
+  //  Sadly, we don't have an actual sqStore here (usually), so we don't have a sqLibrary hanging around.
+
+  readData->_read    = read;
+  readData->_library = NULL;  //sqStore_getLibrary(read->sqRead_libraryID());
 
   read->sqRead_loadDataFromStream(readData, S);
 }
@@ -170,22 +191,26 @@ sqStore::sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData)
 //
 void
 sqStore::sqStore_saveReadToStream(FILE *S, uint32 id) {
+  sqRead  *read   = sqStore_getRead(id);
+  uint8   *blob   = NULL;
+  uint32  blobLen = 0;
 
-  //  Mark this as a read.  Needed for tgTig::loadFromStreamOrLayout(), and loading this stuff in
-  //  utgcns.
+  //  If partitioned -- if _blobsData exists -- we can grab the blob from there.  Otherwise,
+  //  we need to load it from dist.
 
-  fprintf(S, "READ");
+  if (_blobsData) {
+    blob = _blobsData + read->_mByte;
+  }
 
-  //  Dump the read metadata
+  else {
+    uint32  tnum = omp_get_thread_num();
 
-  sqRead  *read = sqStore_getRead(id);
+    assert(tnum < _blobsFilesMax);
 
-  AS_UTL_safeWrite(S, read, "sqStore::sqStore_saveReadToStream::read", sizeof(sqRead), 1);
+    blob = sqStore_loadBlobFromStream(_blobsFiles[tnum].getFile(_storePath, read));
+  }
 
-  //  Figure out where the blob actually is, and make sure that it really is a blob
-
-  uint8  *blob    = _blobsData + read->_mByte;
-  uint32  blobLen = 8 + *((uint32 *)blob + 1);
+  blobLen = 8 + *((uint32 *)blob + 1);
 
   assert(blob[0] == 'B');
   assert(blob[1] == 'L');
@@ -194,7 +219,14 @@ sqStore::sqStore_saveReadToStream(FILE *S, uint32 id) {
 
   //  Write the blob to the stream
 
-  AS_UTL_safeWrite(S, blob, "sqStore::sqStore_saveReadToStream::blob", sizeof(char), blobLen);
+  fprintf(S, "READ");
+  AS_UTL_safeWrite(S, read, "sqStore::sqStore_saveReadToStream::read", sizeof(sqRead), 1);
+  AS_UTL_safeWrite(S, blob, "sqStore::sqStore_saveReadToStream::blob", sizeof(uint8),  blobLen);
+
+  //  And cleanup.
+
+  if (_blobsData == NULL)
+    delete [] blob;
 }
 
 
