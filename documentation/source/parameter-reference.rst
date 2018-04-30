@@ -353,7 +353,8 @@ Overlapper Configuration, mhap Algorithm
 ----------------------------------------
 
 {prefix}MhapBlockSize <integer=unset>
-  Number of reads per 1GB block.  Memory * size is loaded into memory per job.
+  For the MHAP overlapper, the number of reads to load per GB of memory (mhapMemory).
+  When mhapSensitivity=high, this value is automatically divided by two.
 
 {prefix}MhapMerSize <integer=unset>
   K-mer size for seeds in mhap.

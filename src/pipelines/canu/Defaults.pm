@@ -715,7 +715,7 @@ sub setOverlapDefaults ($$$) {
     setOverlapDefault($tag, "MhapFilterUnique",    undef,                     "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.");
     setOverlapDefault($tag, "MhapNoTf",            undef,                     "Expert option: True or false, do not use tf weighting, only idf of tf-idf.");
     setOverlapDefault($tag, "MhapOptions",         undef,                     "Expert option: free-form parameters to pass to MHAP.");
-    setOverlapDefault($tag, "MhapBlockSize",       3000,                      "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job");
+    setOverlapDefault($tag, "MhapBlockSize",       3000,                      "Number of reads per GB of memory allowed (mhapMemory)");
     setOverlapDefault($tag, "MhapMerSize",         ($tag eq "cor") ? 16 : 16, "K-mer size for seeds in mhap");
     setOverlapDefault($tag, "MhapOrderedMerSize",  ($tag eq "cor") ? 12 : 18, "K-mer size for second-stage filter in mhap");
     setOverlapDefault($tag, "MhapSensitivity",     undef,                     "Coarse sensitivity level: 'low', 'normal' or 'high'.  Set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'");
