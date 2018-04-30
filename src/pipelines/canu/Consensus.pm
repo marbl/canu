@@ -162,7 +162,7 @@ sub partitionReads ($$) {
     my $cmd;
 
     return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
-    return  if (fileExists("unitigging/$asm.${tag}Store/partitionedReads.seqStore.tar"));
+    return  if (fileExists("unitigging/$asm.${tag}Store.partitionedReads.seqStore.0001.tar"));
 
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.dat");
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
@@ -178,9 +178,9 @@ sub partitionReads ($$) {
         caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitionedReads.log");
     }
 
-    stashSeqStorePartitions($asm, "unitigging", $tag);
+    stashFile("unitigging/$asm.${tag}Store/partitionedReads.log");
 
-    stashFile ("unitigging/$asm.${tag}Store/partitionedReads.log");
+    stashSeqStorePartitions($asm, "unitigging", $tag, computeNumberOfConsensusJobs($asm, $tag));
 }
 
 

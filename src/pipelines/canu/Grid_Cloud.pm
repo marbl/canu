@@ -349,9 +349,9 @@ sub fetchSeqStorePartitionShellCode ($$$) {
     my $storeName = "partitionedReads.seqStore";
 
     if    (isOS() eq "TEST") {
-        $code .= "${indent}if [ ! -e $root/$storePath/$storeName/info ] ; then\n";
-        $code .= "${indent}  echo In `pwd`, fetching $ns/$storePath.$storeName.tar, unzipping in '$root/$storePath'\n";
-        $code .= "${indent}  $client download --output - $ns/$storePath.$storeName.tar | tar -C $root/$storePath -xf -\n";
+        $code .= "${indent}if [ ! -e $root/$storePath/$storeName/partitions/blobs.\$jobid ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, fetching $ns/$storePath.$storeName.\$jobid.tar, unzipping in '$root/$storePath'\n";
+        $code .= "${indent}  $client download --output - $ns/$storePath.$storeName.\$jobid.tar | tar -C $root/$storePath -xf -\n";
         $code .= "${indent}fi\n";
     }
     elsif (isOS() eq "DNANEXUS") {
@@ -365,22 +365,44 @@ sub fetchSeqStorePartitionShellCode ($$$) {
 
 
 
-sub stashSeqStorePartitions ($$$) {
+sub stashSeqStorePartitions ($$$$) {
     my $asm    = shift @_;           #  The name of the assembly.
     my $base   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
     my $tag    = shift @_;           #  Which tigs are the partitions for
+    my $nJobs  = shift @_;           #  Number of partitions
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
-    my $storePath = "$base/$asm.\${tag}Store";
+    my $storePath = "$base/$asm.${tag}Store";
     my $storeName = "partitionedReads.seqStore";
+
+    print STDERR "storePath '$storePath'\n";
+    print STDERR "storeName '$storeName'\n";
 
     return   if (! -e "$storePath/$storeName/info");
 
     if    (isOS() eq "TEST") {
-        print STDERR "stashPartitionedSeqStore()-- Saving partitioned sequence store '$storePath/$storeName'\n";
-        runCommandSilently($storePath, "tar -cf ./$storeName* | $client upload --path $ns/$storePath.$storeName.tar -", 1);
+        my $jName = "0001";
+
+        for (my $job=1; $job <= $nJobs; $job++) {
+            my $cmd;
+
+            $cmd  = "tar -cf - ";
+            $cmd .= " ./$storeName/info";
+            $cmd .= " ./$storeName/info.txt";
+            $cmd .= " ./$storeName/libraries";
+            $cmd .= " ./$storeName/partitions/map";
+            $cmd .= " ./$storeName/partitions/blobs.$jName";
+            $cmd .= " ./$storeName/partitions/reads.$jName";
+            $cmd .= " | $client upload --path $ns/$storePath.$storeName.$jName.tar -";
+
+            print STDERR "stashPartitionedSeqStore()-- Saving partitioned sequence store '$storePath/$storeName.$jName'\n";
+
+            runCommandSilently($storePath, $cmd, 1);
+
+            $jName++;
+        }
     }
     elsif (isOS() eq "DNANEXUS") {
     }
