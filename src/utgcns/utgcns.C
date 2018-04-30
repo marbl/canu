@@ -86,7 +86,7 @@ main (int argc, char **argv) {
   double    errorRateMax   = 0.40;
   uint32    minOverlap     = 40;
 
-  int32     numFailures    = 0;
+  uint32    numFailures    = 0;
 
   bool      showResult     = false;
 
@@ -387,6 +387,11 @@ main (int argc, char **argv) {
       (tigEnd > tigStore->numTigs() - 1))
     tigEnd = tigStore->numTigs() - 1;
 
+  //  Write a nice header if we're computing stuff.
+
+  uint32  nTigs       = 0;   //  For reporting at the end.
+  uint32  nSingletons = 0;
+
   if (exportFile == NULL) {
     fprintf(stderr, "-- Computing consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
             tigBgn, tigEnd, errorRate, errorRateMax, minOverlap);
@@ -459,7 +464,6 @@ main (int argc, char **argv) {
   //  Otherwise, input is from a tigStore, process all tigs requested.
 
   else {
-
     for (uint32 ti=tigBgn; ti<=tigEnd; ti++) {
       tgTig *tig = tigStore->loadTig(ti);
 
@@ -500,12 +504,13 @@ main (int argc, char **argv) {
       savedChildren *origChildren = stashContains(tig, maxCov, true);
 
       if (origChildren != NULL) {
+        nTigs++;
         fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
                 origChildren->numContainsSaved,    origChildren->covContainsSaved,
                 origChildren->numContainsRemoved,  origChildren->covContainsRemoved,
                 origChildren->numDovetails,        origChildren->covDovetail);
       } else {
-        fprintf(stdout, "\n");
+        nSingletons++;
       }
 
       //  Compute!
@@ -551,24 +556,31 @@ main (int argc, char **argv) {
 
   seqStore->sqStore_close();
 
-  AS_UTL_closeFile(tigFile,        tigFileName);
+  AS_UTL_closeFile(tigFile, tigFileName);
 
   AS_UTL_closeFile(outResultsFile, outResultsName);
   AS_UTL_closeFile(outLayoutsFile, outLayoutsName);
 
-  AS_UTL_closeFile(outSeqFileA,    outSeqNameA);
-  AS_UTL_closeFile(outSeqFileQ,    outSeqNameQ);
+  AS_UTL_closeFile(outSeqFileA, outSeqNameA);
+  AS_UTL_closeFile(outSeqFileQ, outSeqNameQ);
 
   AS_UTL_closeFile(exportFile, exportName);
-  AS_UTL_closeFile(importFile,  importName);
+  AS_UTL_closeFile(importFile, importName);
 
-  if (numFailures) {
-    fprintf(stderr, "WARNING:  Total number of tig failures = %d\n", numFailures);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Consensus did NOT finish successfully.\n");
+  if (exportFile == NULL) {
+    fprintf(stdout, "\n");
+    fprintf(stdout, "Processed %u tig%s and %u singleton%s.\n",
+            nTigs, (nTigs == 1)             ? "" : "s",
+            nSingletons, (nSingletons == 1) ? "" : "s");
+    fprintf(stdout, "\n");
 
-  } else {
-    fprintf(stderr, "Consensus finished successfully.  Bye.\n");
+    if (numFailures) {
+      fprintf(stderr, "WARNING:  %u tig%s failed.\n", numFailures, (numFailures == 1) ? "" : "s");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "Consensus did NOT finish successfully.\n");
+    } else {
+      fprintf(stderr, "Consensus finished successfully.  Bye.\n");
+    }
   }
 
   return(numFailures != 0);
