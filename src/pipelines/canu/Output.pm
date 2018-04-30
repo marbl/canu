@@ -74,7 +74,7 @@ sub generateOutputs ($) {
 
         if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig") {
             $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
+            $cmd .= "  -S ./$asm.seqStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
             $cmd .= "  -o ./$asm.contigs \\\n";
             $cmd .= "  -layout \\\n";
@@ -101,7 +101,7 @@ sub generateOutputs ($) {
 
         if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
             $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
+            $cmd .= "  -S ./$asm.seqStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
             $cmd .= "  -o ./$asm.unitigs \\\n";
             $cmd .= "  -layout \\\n";
@@ -128,7 +128,7 @@ sub generateOutputs ($) {
 
             if (-e "unitigging/$asm.ctgStore/seqDB.v002.tig") {
                 $cmd  = "$bin/tgStoreDump \\\n";
-                $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
+                $cmd .= "  -S ./$asm.seqStore \\\n";
                 $cmd .= "  -T ./unitigging/$asm.ctgStore 2 \\\n";
                 $cmd .= "  -consensus -$type \\\n";
                 $cmd .= "  -$tt \\\n";
@@ -154,7 +154,7 @@ sub generateOutputs ($) {
 
         if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
             $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -S ./unitigging/$asm.seqStore \\\n";
+            $cmd .= "  -S ./$asm.seqStore \\\n";
             $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
             $cmd .= "  -consensus -$type \\\n";
             $cmd .= "  -contigs \\\n";

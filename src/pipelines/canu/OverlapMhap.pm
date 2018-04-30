@@ -145,7 +145,7 @@ sub mhapConfigure ($$$) {
 
     # due to systematic bias in nanopore data, adjust threshold up by 5%
     my $numNanoporeRaw = 0;
-    open(L, "< $base/$asm.seqStore/libraries.txt") or caExit("can't open '$base/$asm.seqStore/libraries.txt' for reading: $!", undef);
+    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numNanoporeRaw++         if (m/nanopore-raw/);
     }
@@ -344,7 +344,7 @@ sub mhapConfigure ($$$) {
     #print F fetchFileShellCode("./blocks/\$job.input.fasta");
     print F "\n";
     print F "\$bin/sqStoreDumpFASTQ \\\n";
-    print F "  -S ../$asm.seqStore \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
     print F "  -noreadname \\\n";
@@ -494,7 +494,7 @@ sub mhapConfigure ($$$) {
     print F "if [   -e ./results/\$qry.mhap -a \\\n";
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
-    print F "    -S ../$asm.seqStore \\\n";
+    print F "    -S ../../$asm.seqStore \\\n";
     print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
     print F "    ./results/\$qry.mhap \\\n";
     print F "  && \\\n";
@@ -513,7 +513,7 @@ sub mhapConfigure ($$$) {
     if (getGlobal("${tag}ReAlign") eq "1") {
         print F "if [ -e ./results/\$qry.mhap.ovb ] ; then\n";
         print F "  \$bin/overlapPair \\\n";
-        print F "    -S ../$asm.seqStore \\\n";
+        print F "    -S ../../$asm.seqStore \\\n";
         print F "    -O ./results/\$qry.mhap.ovb \\\n";
         print F "    -o ./results/\$qry.WORKING.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");

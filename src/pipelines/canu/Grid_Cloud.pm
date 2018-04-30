@@ -323,7 +323,7 @@ sub stashSeqStore ($) {
 
     if    (isOS() eq "TEST") {
         print STDERR "stashSeqStore()-- Saving sequence store '$asm.seqStore'\n";
-        runCommandSilently(".", "tar -cf - ./$asm.seqStore* ./*/$asm.seqStore* | $client upload --path $ns/$asm.seqStore.tar -", 1);
+        runCommandSilently(".", "tar -cf - ./$asm.seqStore* | $client upload --path $ns/$asm.seqStore.tar -", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }

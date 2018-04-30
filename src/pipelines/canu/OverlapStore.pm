@@ -122,9 +122,9 @@ sub createOverlapStoreSequential ($$$) {
     #  to submit canu to grids using the maximum of 4gb and this memory limit.
 
     $cmd  = "$bin/ovStoreBuild \\\n";
-    $cmd .= " -O ./$asm.ovlStore.BUILDING \\\n";
-    $cmd .= " -S ./$asm.seqStore \\\n";
-    $cmd .= " -C ./$asm.ovlStore.config \\\n";
+    $cmd .= " -O  ./$asm.ovlStore.BUILDING \\\n";
+    $cmd .= " -S ../$asm.seqStore \\\n";
+    $cmd .= " -C  ./$asm.ovlStore.config \\\n";
     $cmd .= " > ./$asm.ovlStore.err 2>&1";
 
     if (runCommand($base, $cmd)) {
@@ -179,9 +179,9 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "cd ..\n";
         print F "\n";
         print F "\$bin/ovStoreBucketizer \\\n";
-        print F "  -O ./$asm.ovlStore.BUILDING \\\n";
-        print F "  -S ./$asm.seqStore \\\n";
-        print F "  -C ./$asm.ovlStore.config \\\n";
+        print F "  -O  ./$asm.ovlStore.BUILDING \\\n";
+        print F "  -S ../$asm.seqStore \\\n";
+        print F "  -C  ./$asm.ovlStore.config \\\n";
         print F "  -b \$jobid \n";
         #print F "  -e " . getGlobal("") . " \\\n"  if (defined(getGlobal("")));
         close(F);
@@ -208,9 +208,9 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "\n";
         print F "\$bin/ovStoreSorter \\\n";
         #print F "  -deletelate \\\n";  #  Choices -deleteearly -deletelate or nothing
-        print F "  -O ./$asm.ovlStore.BUILDING \\\n";
-        print F "  -S ./$asm.seqStore \\\n";
-        print F "  -C ./$asm.ovlStore.config \\\n";
+        print F "  -O  ./$asm.ovlStore.BUILDING \\\n";
+        print F "  -S ../$asm.seqStore \\\n";
+        print F "  -C  ./$asm.ovlStore.config \\\n";
         print F "  -s \$jobid \\\n";
         print F "  -M $sortMemory \n";
         close(F);
@@ -425,8 +425,8 @@ sub checkOverlapStore ($$) {
     my $cmd;
 
     $cmd  = "$bin/ovStoreDump \\\n";
-    $cmd .= " -S ./$asm.seqStore \\\n";
-    $cmd .= " -O ./$asm.ovlStore \\\n";
+    $cmd .= " -S ../$asm.seqStore \\\n";
+    $cmd .= " -O  ./$asm.ovlStore \\\n";
     $cmd .= " -counts \\\n";
     $cmd .= " > ./$asm.ovlStore/counts.dat 2> ./$asm.ovlStore/counts.err";
 
@@ -562,7 +562,7 @@ sub createOverlapStore ($$$) {
 
     if (! -e "$base/$asm.ovlStore.config") {
         $cmd  = "$bin/ovStoreConfig \\\n";
-        $cmd .= " -S ./$asm.seqStore \\\n";
+        $cmd .= " -S ../$asm.seqStore \\\n";
         $cmd .= " -M " . getGlobal("ovsMemory") . " \\\n";    #  User supplied memory limit, reset below
         $cmd .= " -L ./1-overlapper/ovljob.files \\\n";
         $cmd .= " -create ./$asm.ovlStore.config \\\n";
@@ -625,9 +625,9 @@ sub createOverlapStore ($$$) {
         overlapStoreSorterCheck    ($base, $asm, $tag, $numBuckets, $numSlices)   foreach (1..getGlobal("canuIterationMax") + 1);
 
         $cmd  = "$bin/ovStoreIndexer \\\n";
-        $cmd .= "  -O ./$asm.ovlStore.BUILDING \\\n";
-        $cmd .= "  -S ./$asm.seqStore \\\n";
-        $cmd .= "  -C ./$asm.ovlStore.config \\\n";
+        $cmd .= "  -O  ./$asm.ovlStore.BUILDING \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
+        $cmd .= "  -C  ./$asm.ovlStore.config \\\n";
         #$cmd .= "  -delete \\\n";
         $cmd .= "> ./$asm.ovlStore.BUILDING.index.err 2>&1";
 
@@ -652,10 +652,10 @@ sub createOverlapStore ($$$) {
   finishStage:
     if ($tag eq "utg") {
         $cmd  = "$bin/ovStoreStats \\\n";
-        $cmd .= " -S ./$asm.seqStore \\\n";
-        $cmd .= " -O ./$asm.ovlStore \\\n";
         $cmd .= " -C " . getExpectedCoverage("utg", $asm). " \\\n";
-        $cmd .= " -o ./$asm.ovlStore \\\n";
+        $cmd .= " -S ../$asm.seqStore \\\n";
+        $cmd .= " -O  ./$asm.ovlStore \\\n";
+        $cmd .= " -o  ./$asm.ovlStore \\\n";
         $cmd .= " > ./$asm.ovlStore.summary.err 2>&1";
 
         if (runCommand($base, $cmd)) {

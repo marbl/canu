@@ -78,7 +78,7 @@ sub mmapConfigure ($$$) {
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< $base/$asm.seqStore/libraries.txt") or caExit("can't open '$base/$asm.seqStore/libraries.txt' for reading: $!", undef);
+    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
@@ -267,7 +267,7 @@ sub mmapConfigure ($$$) {
     print F "fi\n";
     print F "\n";
     print F "\$bin/sqStoreDumpFASTQ \\\n";
-    print F "  -S ../$asm.seqStore \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
     print F "  -noreadname \\\n";
@@ -386,7 +386,7 @@ sub mmapConfigure ($$$) {
     print F "if [   -e ./results/\$qry.mmap -a \\\n";
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
-    print F "    -S ../$asm.seqStore \\\n";
+    print F "    -S ../../$asm.seqStore \\\n";
     print F "    -o ./results/\$qry.mmap.ovb.WORKING \\\n";
     print F "    -e " . getGlobal("${tag}OvlErrorRate");
     print F "    -partial \\\n"  if ($typ eq "partial");
@@ -408,7 +408,7 @@ sub mmapConfigure ($$$) {
     print F "if [ -e ./results/\$qry.mmap.ovb ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "1") {
         print F "  \$bin/overlapPair \\\n";
-        print F "    -S ../$asm.seqStore \\\n";
+        print F "    -S ../../$asm.seqStore \\\n";
         print F "    -O ./results/\$qry.mmap.ovb \\\n";
         print F "    -o ./results/\$qry.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");

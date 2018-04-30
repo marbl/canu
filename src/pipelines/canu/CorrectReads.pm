@@ -99,7 +99,7 @@ sub getCorIdentity ($) {
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< correction/$asm.seqStore/libraries.txt") or caExit("can't open 'correction/$asm.seqStore/libraries.txt' for reading: $!", undef);
+    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
@@ -249,8 +249,8 @@ sub buildCorrectionLayoutsConfigure ($) {
 
             $cmd  = "$bin/filterCorrectionOverlaps \\\n";
             $cmd .= "  -estimate -nolog \\\n";
-            $cmd .= "  -S ../$asm.seqStore \\\n";
-            $cmd .= "  -O ../$asm.ovlStore \\\n";
+            $cmd .= "  -S ../../$asm.seqStore \\\n";
+            $cmd .= "  -O    ../$asm.ovlStore \\\n";
             $cmd .= "  -scores ./$asm.globalScores.WORKING \\\n";
             $cmd .= "  -c " . getCorCov($asm, "Global") . " \\\n";
             $cmd .= "  -l " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
@@ -292,9 +292,9 @@ sub buildCorrectionLayoutsConfigure ($) {
     print STDERR "-- Computing correction layouts.\n";
 
     $cmd  = "$bin/generateCorrectionLayouts \\\n";
-    $cmd .= "  -S ./$asm.seqStore \\\n";
-    $cmd .= "  -O ./$asm.ovlStore \\\n";
-    $cmd .= "  -C ./$asm.corStore.WORKING \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
+    $cmd .= "  -O  ./$asm.ovlStore \\\n";
+    $cmd .= "  -C  ./$asm.corStore.WORKING \\\n";
     $cmd .= "  -scores 2-correction/$asm.globalScores \\\n"         if (-e "$path/$asm.globalScores");
     $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
@@ -363,9 +363,9 @@ sub filterCorrectionLayouts ($) {
     print STDERR "-- Computing correction layouts.\n";
 
     $cmd  = "$bin/filterCorrectionLayouts \\\n";
-    $cmd .= "  -S  ../$asm.seqStore \\\n";
-    $cmd .= "  -C  ../$asm.corStore \\\n";
-    $cmd .= "  -R  ./$asm.readsToCorrect.WORKING \\\n";
+    $cmd .= "  -S  ../../$asm.seqStore \\\n";
+    $cmd .= "  -C     ../$asm.corStore \\\n";
+    $cmd .= "  -R      ./$asm.readsToCorrect.WORKING \\\n";
     $cmd .= "  -cc " . getGlobal("corMinCoverage") . " \\\n";
     $cmd .= "  -cl " . getGlobal("minReadLength")  . " \\\n";
     $cmd .= "  -g  " . getGlobal("genomeSize")     . " \\\n";
@@ -478,7 +478,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F fetchFileShellCode($path, "$asm.globalScores",   "");
     print F "\n";
 
-    print F "seqStore=\"../$asm.seqStore\"\n";
+    print F "seqStore=\"../../$asm.seqStore\"\n";
     print F "\n";
 
     my $stageDir = getGlobal("stageDirectory");
@@ -667,7 +667,7 @@ sub loadCorrectedReads ($) {
     #  Load the results into the stores.
 
     $cmd  = "$bin/loadCorrectedReads \\\n";
-    $cmd .= "  -S ./$asm.seqStore \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -C ./$asm.corStore \\\n";
     $cmd .= "  -L ./2-correction/corjob.files \\\n";
     $cmd .= ">  ./$asm.loadCorrectedReads.log \\\n";

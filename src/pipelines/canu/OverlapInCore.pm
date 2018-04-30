@@ -114,7 +114,7 @@ sub overlapConfigure ($$$) {
         #my $refLibrary         = getGlobal("${tag}RefLibrary");      #  -R $refLibrary
 
         $cmd  = "$bin/overlapInCorePartition \\\n";
-        $cmd .= " -S  ../$asm.seqStore \\\n";
+        $cmd .= " -S  ../../$asm.seqStore \\\n";
         $cmd .= " -hl " . getGlobal("${tag}OvlHashBlockLength") . " \\\n";
         $cmd .= " -rl " . getGlobal("${tag}OvlRefBlockLength")  . " \\\n";
         $cmd .= " -ol " . getGlobal("minOverlapLength") . " \\\n";
@@ -207,7 +207,7 @@ sub overlapConfigure ($$$) {
         print F "  -s ./\$job.stats \\\n";
         #print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
-        print F "  ../$asm.seqStore \\\n";
+        print F "  ../../$asm.seqStore \\\n";
         print F "&& \\\n";
         print F "mv ./\$job.ovb.WORKING ./\$job.ovb\n";
         print F "\n";

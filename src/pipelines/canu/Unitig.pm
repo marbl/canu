@@ -95,7 +95,7 @@ sub reportUnitigSizes ($$$) {
         fetchFile("unitigging/$asm.ctgStore/seqDB.v$V.tig");
 
         $cmd  = "$bin/tgStoreDump \\\n";                     #  Duplicated at the end of unitigger.sh
-        $cmd .= "  -S ./$asm.seqStore \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
         $cmd .= "  -T ./$asm.ctgStore $version \\\n";
         $cmd .= "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
         $cmd .= "> ./$N";
@@ -203,9 +203,9 @@ sub unitig ($) {
         print F "if [ ! -e ../$asm.ctgStore -o \\\n";
         print F "     ! -e ../$asm.utgStore ] ; then\n";
         print F "  \$bin/bogart \\\n";
-        print F "    -S ../$asm.seqStore \\\n";
-        print F "    -O ../$asm.ovlStore \\\n";
-        print F "    -o ./$asm \\\n";
+        print F "    -S ../../$asm.seqStore \\\n";
+        print F "    -O    ../$asm.ovlStore \\\n";
+        print F "    -o     ./$asm \\\n";
         print F "    -gs "             . getGlobal("genomeSize")         . " \\\n";
         print F "    -eg "             . getGlobal("utgErrorRate")       . " \\\n";
         print F "    -eM "             . getGlobal("utgErrorRate")       . " \\\n";
@@ -229,7 +229,7 @@ sub unitig ($) {
 
     elsif (getGlobal("unitigger") eq "wtdbg") {
         print F "\$bin/sqStoreDumpFASTQ \\\n";
-        print F "  -S ../$asm.seqStore \\\n";
+        print F "  -S ../../$asm.seqStore \\\n";
         print F "  -nolibname \\\n";
         print F "  -noreadname \\\n";
         print F "  -fasta \\\n";
@@ -247,7 +247,7 @@ sub unitig ($) {
         print F " -fo ./$asm \\\n";
         print F " -S "              . "2"                             . " \\\n";
         print F " --edge-min "      . "2"                             . " \\\n";
-        print F " -l "             . $overlapLength                  . " \\\n";
+        print F " -l "             . $overlapLength                   . " \\\n";
         print F " -t "              . getGlobal("dbgThreads")         . " \\\n"   if (defined(getGlobal("dbgThreads")));
         print F " "                 . getGlobal("dbgOptions")         . " \\\n"   if (defined(getGlobal("dbgOptions")));
         print F " > ./unitigger.err 2>&1 \n";
@@ -257,7 +257,7 @@ sub unitig ($) {
         print F "fi\n";
         print F "\n";
         print F "\n";
-        print F " \$bin/wtdbgConvert -o ./$asm -S ../$asm.seqStore $asm.ctg.lay \\\n";
+        print F " \$bin/wtdbgConvert -o ./$asm -S ../../$asm.seqStore $asm.ctg.lay \\\n";
         print F "  && \\\n";
         print F "  cp -r ./$asm.ctgStore ../$asm.utgStore \\\n";
         print F "  && \\\n";
@@ -288,7 +288,7 @@ sub unitig ($) {
     print F "\n";
     print F "if [ ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
     print F "  \$bin/tgStoreDump \\\n";                     #  Duplicated in reportUnitigSizes()
-    print F "    -S ../$asm.seqStore \\\n";                 #  Done here so we don't need another
+    print F "    -S ../../$asm.seqStore \\\n";              #  Done here so we don't need another
     print F "    -T ../$asm.ctgStore 1 \\\n";               #  pull of seqStore and ctgStore
     print F "    -sizes -s " . getGlobal("genomeSize") . " \\\n";
     print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt";

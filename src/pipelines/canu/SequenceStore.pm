@@ -524,19 +524,6 @@ sub checkSequenceStore ($$@) {
         }
     }
 
-    #  Most of the pipeline still expects a seqStore to exist in the stage subdirectories.  So make it exist.
-
-    symlink("../$asm.seqStore", "$base/$asm.seqStore")    if ((-e "./$asm.seqStore") && (! -e "$base/$asm.seqStore/info"));
-
-    if (! -e "$base/$asm.seqStore/info") {
-        print STDERR "ERROR:\n";
-        print STDERR "ERROR:  Failed to create a symlink to '$asm.seqStore' from within the '$base' directory.\n";
-        print STDERR "ERROR:  This is known to happen on VirtualBox when running in the 'shared' directory.\n";
-        print STDERR "ERROR:\n";
-
-        caExit("failed to make symlink '$base/$asm.seqStore' to '../$asm.seqStore'", undef);
-    }
-
     #  Query how many reads we have.
 
     my $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of corrected reads ready for OBT.

@@ -410,7 +410,7 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "\$bin/meryl \\\n";
     print F "  -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
-    print F "  -s ../$asm.seqStore \\\n";
+    print F "  -s ../../$asm.seqStore \\\n";
     print F "  -o ./$ofile.WORKING \\\n";
     print F "&& \\\n";
     print F "mv ./$ofile.WORKING.mcdat ./$ofile.mcdat \\\n";

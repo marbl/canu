@@ -79,7 +79,7 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
 
-    open(F, "$bin/sqStoreDumpMetaData -S unitigging/$asm.seqStore -reads 2> /dev/null |");
+    open(F, "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -reads 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -102,7 +102,7 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
 
     print STDERR "-- Loading number of overlaps per read.\n";
 
-    open(F, "$bin/ovStoreDump -S unitigging/$asm.seqStore -O unitigging/$asm.ovlStore -counts 2> /dev/null |");
+    open(F, "$bin/ovStoreDump -S ./$asm.seqStore -O unitigging/$asm.ovlStore -counts 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -274,7 +274,7 @@ sub readErrorDetectionConfigure ($) {
     print F "fi\n";
     print F "\n";
     print F "\$bin/findErrors \\\n";
-    print F "  -S ../$asm.seqStore \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
     print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
@@ -582,7 +582,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     print F fetchFileShellCode("unitigging/3-overlapErrorAdjustment", "red.red", "");
     print F "\n";
     print F "\$bin/correctOverlaps \\\n";
-    print F "  -S ../$asm.seqStore \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
     print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
@@ -730,7 +730,7 @@ sub updateOverlapStore ($) {
     fetchOvlStore($asm, "unitigging");
 
     $cmd  = "$bin/loadErates \\\n";
-    $cmd .= "  -S ../$asm.seqStore \\\n";
+    $cmd .= "  -S ../../$asm.seqStore \\\n";
     $cmd .= "  -O ../$asm.ovlStore \\\n";
     $cmd .= "  -L ./oea.files \\\n";
     $cmd .= "> ./oea.apply.err 2>&1";

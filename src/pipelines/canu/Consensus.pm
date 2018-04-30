@@ -168,8 +168,8 @@ sub partitionReads ($$) {
     fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
 
     $cmd  = "$bin/sqStoreCreatePartition \\\n";
-    $cmd .= "  -S ./$asm.seqStore \\\n";
-    $cmd .= "  -T ./$asm.${tag}Store 1 \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
+    $cmd .= "  -T  ./$asm.${tag}Store 1 \\\n";
     $cmd .= "  -b " . getGlobal("cnsPartitionMin") . " \\\n"   if (defined(getGlobal("cnsPartitionMin")));
     $cmd .= "  -p " . getGlobal("cnsPartitions")   . " \\\n"   if (defined(getGlobal("cnsPartitions")));
     $cmd .= "> ./$asm.${tag}Store/partitionedReads.log 2>&1";
@@ -528,8 +528,8 @@ sub consensusLoad ($) {
         close(F);
 
         $cmd  = "$bin/tgStoreLoad \\\n";
-        $cmd .= "  -S ./$asm.seqStore \\\n";
-        $cmd .= "  -T ./$asm.ctgStore 2 \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
+        $cmd .= "  -T  ./$asm.ctgStore 2 \\\n";
         $cmd .= "  -L ./5-consensus/ctgcns.files \\\n";
         $cmd .= "> ./5-consensus/ctgcns.files.ctgStoreLoad.err 2>&1";
 
@@ -554,8 +554,8 @@ sub consensusLoad ($) {
         close(F);
 
         $cmd  = "$bin/tgStoreLoad \\\n";
-        $cmd .= "  -S ./$asm.seqStore \\\n";
-        $cmd .= "  -T ./$asm.utgStore 2 \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
+        $cmd .= "  -T  ./$asm.utgStore 2 \\\n";
         $cmd .= "  -L ./5-consensus/utgcns.files \\\n";
         $cmd .= "> ./5-consensus/utgcns.files.utgStoreLoad.err 2>&1";
 
@@ -615,8 +615,8 @@ sub consensusAnalyze ($) {
     fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
-    $cmd .= "  -S ./$asm.seqStore \\\n";
-    $cmd .= "  -T ./$asm.ctgStore 2 \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
+    $cmd .= "  -T  ./$asm.ctgStore 2 \\\n";
     $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
     $cmd .= "  -o ./$asm.ctgStore.coverageStat \\\n";
     $cmd .= "> ./$asm.ctgStore.coverageStat.err 2>&1";

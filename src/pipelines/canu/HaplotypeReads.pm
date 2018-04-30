@@ -101,7 +101,7 @@ sub computeNumberOfHaplotypeJobs ($) {
     my $nPart    = getGlobal("corPartitions");
     my $nReads   = getNumberOfReadsInStore($asm, "all");
 
-    caExit("didn't find any reads in store 'haplotype/$asm.seqStore'?", undef)  if ($nReads == 0);
+    caExit("didn't find any reads in the sequence store", undef)  if ($nReads == 0);
 
     $nPerJob     = int($nReads / $nPart + 1);
     $nPerJob     = getGlobal("corPartitionMin")  if ($nPerJob < getGlobal("corPartitionMin"));
@@ -225,7 +225,7 @@ sub haplotypeConfigure ($) {
     print F "\n";
     # fetch the filter files
 
-    print F "seqStore=\"../$asm.seqStore\"\n";
+    print F "seqStore=\"../../$asm.seqStore\"\n";
     print F "\n";
 
     my $stageDir = getGlobal("stageDirectory");
