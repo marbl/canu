@@ -335,6 +335,7 @@ sub unitigCheck ($) {
         print STDERR "--\n";
         print STDERR "-- Bogart failed, tried $attempt times, giving up.\n";
         print STDERR "--\n";
+        caExit(undef, "$path/unitigger.err")   if (-e "$path/unitigger.err");
         caExit(undef, undef);
     }
 
