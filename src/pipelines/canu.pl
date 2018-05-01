@@ -321,6 +321,7 @@ configureSlurm();
 configurePBSTorque();
 configureLSF();
 configureRemote();
+configureCloud($asm);
 configureDNANexus();
 
 #  Based on genomeSize, configure the execution of every component.
@@ -340,9 +341,6 @@ if (defined($rootdir)) {
 
 setGlobal("onExitDir", getcwd());
 setGlobal("onExitNam", $asm);
-
-setGlobalIfUndef("objectStoreNameSpace", $asm);   #  No good place to put this.
-
 
 #  Figure out read inputs.  From an existing store?  From files?  Corrected?  Etc, etc.
 

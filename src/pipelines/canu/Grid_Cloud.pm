@@ -25,10 +25,16 @@
 
 package canu::Grid_Cloud;
 
+#  This file contains most of the magic needed to access an object store.  Two flavors of each
+#  function are needed: one that runs in the canu.pl process (rooted in the base assembly directory,
+#  where the 'correction', 'trimming' and 'unitigging' directories exist) and one that is
+#  used in shell scripts (rooted where the shell script is run from).
+
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(fileExists           fileExistsShellCode
+@EXPORT = qw(configureCloud
+             fileExists           fileExistsShellCode
              fetchFile            fetchFileShellCode
              stashFile            stashFileShellCode
              fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
@@ -66,6 +72,23 @@ sub pathToDots ($) {
 sub isOS () {
     return(getGlobal("objectStore"));
 }
+
+
+
+sub configureCloud ($) {
+    my $asm = shift @_;
+
+    setGlobalIfUndef("objectStoreNameSpace", $asm);
+
+    #  The seqStore and ovlStore use these to pull data files directly
+    #  from cloud storage.  Right now, it's hard coded to use a 'dx' like
+    #  command.  Anything else will need a third variable to pass in the
+    #  type of object store in use.
+
+    $ENV{"CANU_OBJECT_STORE_CLIENT"}    = getGlobal("objectStoreClient");
+    $ENV{"CANU_OBJECT_STORE_NAMESPACE"} = getGlobal("objectStoreNameSpace");
+}
+
 
 
 #
