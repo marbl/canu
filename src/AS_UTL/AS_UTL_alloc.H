@@ -129,7 +129,7 @@ increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 moreSpace) {
 }
 
 
-//  Resize the array so that it is at least as bit as new max.  Do nothing
+//  Resize the array so that it is at least as big as new max.  Do nothing
 //  if the array is big enough already.
 
 template<typename TT, typename LL>
