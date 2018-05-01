@@ -30,6 +30,8 @@
 #ifndef GKSTOREBLOBREADER_H
 #define GKSTOREBLOBREADER_H
 
+#include "objectStore.H"
+
 //  Manages access to blob data.  You need one of these per thread.
 //
 class sqStoreBlobReader {
@@ -62,6 +64,9 @@ public:
       char  N[FILENAME_MAX + 1];
 
       snprintf(N, FILENAME_MAX, "%s/blobs.%04u", storePath, file);
+
+#pragma omp critical
+      fetchFromObjectStore(N);   //  Fetch from object store, if needed and possible.
 
       _files[file] = AS_UTL_openInputFile(N);
     }

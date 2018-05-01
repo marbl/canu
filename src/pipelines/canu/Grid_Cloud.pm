@@ -56,13 +56,6 @@ use canu::Execution;
 #use canu::Grid "formatAllowedResources";
 
 
-
-#  This file contains most of the magic needed to access an object store.  Two flavors of each
-#  function are needed: one that runs in the canu.pl process (rooted in the base assembly directory,
-#  where the 'correction', 'trimming' and 'unitigging' directories exist) and one that is
-#  used in shell scripts (rooted where the shell script is run from).
-
-
 #  Convert a/path/to/file to ../../../..
 sub pathToDots ($) {
     return(join("/", map("..", (1..scalar(split '/', $_[0])))));
@@ -92,22 +85,23 @@ sub configureCloud ($) {
 
 
 #
-#  fileExists() returns true if the file exists on disk or in the object store.  It does not fetch
-#  the file.  It returns undef if the file doesn't exist.  The second argument to
-#  fileExistsShellCode() is an optional indent level (a whitespace string).
+#  fileExists() returns true if the file exists on disk or in the object store.
+#  It does not fetch the file.  It returns undef if the file doesn't exist.
 #
-#  The shellCode version should emit the if test for file existence, but nothing else (not even the
-#  endif).
+#  If a second parameter is supplied, this only tests if the file exists
+#  in the object store.  It is not intended to be used outside this module.
 #
 
-sub fileExists ($) {
-    my $file   = shift @_;
+sub fileExists ($@) {
+    my $file     = shift @_;
+    my $nonLocal = shift @_;
+
     my $exists = "";
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
-    return(1)   if (-e $file);           #  If file exists, it exists.
+    return(1)   if ((-e $file) && (!defined($nonLocal)));   #  If file exists, it exists.
 
     if    (isOS() eq "TEST") {
         $exists = `$client describe --name $ns/$file`;
@@ -135,9 +129,9 @@ sub fileExistsShellCode ($@) {
     my $code   = "";
 
     if    (isOS() eq "TEST") {
-        $code .= "${indent}if [ ! -e $file ] ; then\n";
-        $code .= "${indent}  exists=`$client describe --name $ns/$file`\n";
-        $code .= "${indent}fi\n";
+        $code .= "${indent}if [ ! -e $file ] ; then\n";                        #  NOTE that this does
+        $code .= "${indent}  exists=`$client describe --name $ns/$file`\n";    #  not emit the closing
+        $code .= "${indent}fi\n";                                              #  fi.
         $code .= "${indent}if [ -e $file -o x\$exists != x ] ; then\n";
     }
     elsif (isOS() eq "DNANEXUS") {
@@ -169,7 +163,7 @@ sub fetchFile ($) {
     return   if (-e $file);   #  If it exists, we don't need to fetch it.
 
     if    (isOS() eq "TEST") {
-        print STDERR "fetchFile()-- '$file'\n";
+        print STDERR "fetchFile()-- '$file' from '$ns/$file'\n";
         make_path(dirname($file));
         runCommandSilently(".", "$client download --output $file $ns/$file", 1);
     }
@@ -229,7 +223,7 @@ sub stashFile ($) {
     return   if (! -e $file);
 
     if    (isOS() eq "TEST") {
-        print STDERR "stashFile()-- '$file'\n";
+        print STDERR "stashFile()-- '$file' to '$ns/$file'\n";
         runCommandSilently(".", "$client upload --path $ns/$file $file", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
@@ -307,6 +301,7 @@ sub fetchSeqStore ($) {
 }
 
 
+
 sub fetchSeqStoreShellCode ($$$) {
     my $asm    = shift @_;           #  The name of the assembly.
     my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
@@ -338,15 +333,43 @@ sub fetchSeqStoreShellCode ($$$) {
 
 sub stashSeqStore ($) {
     my $asm    = shift @_;
+    my $cmd;
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
 
-    return   if (! -e "./$asm.seqStore/info");
+    return   if (! -e "$asm.seqStore/info");
 
     if    (isOS() eq "TEST") {
+
+        #  Stash the store metadata.
+
+        $cmd  = "tar -cf - ";
+        $cmd .= " ./$asm.seqStore.err";
+        $cmd .= " ./$asm.seqStore.ssi";
+        $cmd .= " ./$asm.seqStore/errorLog";
+        $cmd .= " ./$asm.seqStore/info";
+        $cmd .= " ./$asm.seqStore/info.txt";
+        $cmd .= " ./$asm.seqStore/libraries";
+        $cmd .= " ./$asm.seqStore/libraries.txt";
+        $cmd .= " ./$asm.seqStore/load.dat";
+        $cmd .= " ./$asm.seqStore/readNames.txt";
+        $cmd .= " ./$asm.seqStore/readLengths*";
+        $cmd .= " ./$asm.seqStore/reads";
+        $cmd .= " ./$asm.seqStore/version*";
+        $cmd .= " | $client upload --path $ns/$asm.seqStore.tar -";
+
         print STDERR "stashSeqStore()-- Saving sequence store '$asm.seqStore'\n";
-        runCommandSilently(".", "tar -cf - ./$asm.seqStore* | $client upload --path $ns/$asm.seqStore.tar -", 1);
+
+        runCommandSilently(".", $cmd, 1);
+
+        #  Stash the store data files.
+
+        for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
+            if (! fileExists("$ns/$asm.seqStore.blobs.$bIdx", 1)) {
+                runCommandSilently(".", "cat $asm.seqStore/blobs.$bIdx | $client upload --path $ns/$asm.seqStore.blobs.$bIdx -", 1);
+            }
+        }
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -464,6 +487,7 @@ sub fetchOvlStore ($$) {
 sub stashOvlStore ($$) {
     my $asm    = shift @_;
     my $base   = shift @_;
+    my $cmd;
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
@@ -471,8 +495,30 @@ sub stashOvlStore ($$) {
     return   if (! -e "./$base/$asm.ovlStore/index");
 
     if    (isOS() eq "TEST") {
+
+        #  Stash the store metadata.
+
+        $cmd  = "tar -cf - ";
+        $cmd .= " ./$asm.ovlStore/info";
+        $cmd .= " ./$asm.ovlStore/index";
+        $cmd .= " ./$asm.ovlStore/statistics";
+        $cmd .= " ./$asm.ovlStore.config";
+        $cmd .= " ./$asm.ovlStore.config.txt";
+        $cmd .= " | $client upload --path $ns/$base/$asm.ovlStore.tar -";
+
         print STDERR "stashOvlStore()-- Saving overlap store '$base/$asm.ovlStore'\n";
-        runCommandSilently($base, "tar -cf - ./$asm.ovlStore* | $client upload --path $ns/$base/$asm.ovlStore.tar -", 1);
+
+        runCommandSilently($base, $cmd, 1);
+
+        #  Stash the store data files.
+
+        for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
+        for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
+            if (! fileExists("$ns/$base/$asm.ovlStore.$bIdx.$sIdx", 1)) {
+                runCommandSilently(".", "cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --path $ns/$base/$asm.ovlStore.$bIdx.$sIdx -", 1);
+            }
+        }
+        }
     }
     elsif (isOS() eq "DNANEXUS") {
     }

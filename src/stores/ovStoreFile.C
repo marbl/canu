@@ -141,6 +141,9 @@ ovFile::construct(sqStore     *seq,
   //  random access to specific overlaps.
   //
 
+  if (type == ovFileNormal)          //  For store overlaps, fetch from
+    fetchFromObjectStore(_name);     //  the object store if needed.
+
   if (type == ovFileNormal) {
     _file        = AS_UTL_openInputFile(_name);
     _isOutput    = false;
