@@ -281,29 +281,6 @@ sqStore::~sqStore() {
     _info.recountReads(_reads);
     _info.setLastBlob(_blobsWriter);
   }
-#if 0
-    _info.numRawReads = _info.numCorrectedReads = _info.numTrimmedReads = 0;
-    _info.numRawBases = _info.numCorrectedBases = _info.numTrimmedBases = 0;
-
-
-    for (uint32 ii=0; ii<_info.numReads + 1; ii++) {
-      if (_reads[ii]._rseqLen > 0) {
-        _info.numRawReads++;
-        _info.numRawBases += _reads[ii]._rseqLen;
-      }
-
-      if (_reads[ii]._cseqLen > 0) {
-        _info.numCorrectedReads++;
-        _info.numCorrectedBases += _reads[ii]._cseqLen;
-      }
-
-      if (_reads[ii]._clearBgn < _reads[ii]._clearEnd) {
-        _info.numTrimmedReads++;
-        _info.numTrimmedBases += _reads[ii]._clearEnd - _reads[ii]._clearBgn;
-      }
-    }
-  }
-#endif
 
   //  Write updated metadata.
 
