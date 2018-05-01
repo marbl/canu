@@ -65,19 +65,19 @@ sqStoreFile::openFile(const char *name) {
   struct stat  st;
 
   //  Assume it's a sqStore if it is a directory, and the info / reads / blobs files exist.
+  //
+  //  Well, we used to check for the blobs file, but it doesn't exist if
+  //  an object store is being used.
 
   char  infoName[FILENAME_MAX];
   char  readName[FILENAME_MAX];
-  char  blobName[FILENAME_MAX];
 
   sprintf(infoName, "%s/info",  name);
   sprintf(readName, "%s/reads", name);
-  sprintf(blobName, "%s/blobs.0000", name);
 
   if ((AS_UTL_fileExists(name, true) == false) ||
       (AS_UTL_fileExists(infoName) == false) ||
-      (AS_UTL_fileExists(readName) == false) ||
-      (AS_UTL_fileExists(blobName) == false))
+      (AS_UTL_fileExists(readName) == false))
     return(0L);
 
   //  Yup, probably a sqStore.  If it isn't, the sqStore() constructor blows up.
