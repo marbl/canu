@@ -102,7 +102,7 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
 
     print STDERR "-- Loading number of overlaps per read.\n";
 
-    open(F, "$bin/ovStoreDump -S ./$asm.seqStore -O unitigging/$asm.ovlStore -counts 2> /dev/null |");
+    open(F, "$bin/ovStoreDump -S ./$asm.seqStore -O ./unitigging/$asm.ovlStore -counts 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
