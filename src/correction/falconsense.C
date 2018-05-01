@@ -28,7 +28,6 @@
 #include "ovStore.H"
 #include "tgStore.H"
 
-#include "splitToWords.H"
 #include "intervalList.H"
 
 #include "AS_UTL_decodeRange.H"
@@ -63,12 +62,11 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
   for (fgets(L, 1024, R);
        feof(R) == false;
        fgets(L, 1024, R)) {
-    splitToWords W(L);
-    uint32       id = W(0);
+    uint32  id = strtouint32(L);
 
     if ((iidMin <= id) &&
         (id     <= iidMax))
-      readList.insert(W(0));
+      readList.insert(id);
   }
 
   AS_UTL_closeFile(R, readListName);
