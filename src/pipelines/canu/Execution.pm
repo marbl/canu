@@ -476,6 +476,12 @@ sub getBinDirectoryShellCode () {
     $string .= "  bin=\"$installDir\"\n";
     $string .= "fi\n";
     $string .= "\n";
+    $string .= "#  Environment for any object storage.\n";
+    $string .= "\n";
+    $string .= "export CANU_OBJECT_STORE_CLIENT="    . getGlobal("objectStoreClient")    . "\n";
+    $string .= "export CANU_OBJECT_STORE_NAMESPACE=" . getGlobal("objectStoreNameSpace") . "\n";
+    $string .= "\n";
+    $string .= "\n";
 
     return($string);
 }
