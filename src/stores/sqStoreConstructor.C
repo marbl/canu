@@ -138,7 +138,7 @@ sqStore::sqStore(char const    *storePath,
     _libraries      = new sqLibrary [_librariesAlloc];
     _reads          = new sqRead    [_readsAlloc];
 
-    _blobsWriter    = new sqStoreBlobWriter(_storePath);
+    _blobsWriter    = new sqStoreBlobWriter(_storePath, 0);
 
     return;
   }
@@ -164,7 +164,7 @@ sqStore::sqStore(char const    *storePath,
     _blobsFilesMax = omp_get_max_threads();
     _blobsFiles    = new sqStoreBlobReader [_blobsFilesMax];
 
-    _blobsWriter   = new sqStoreBlobWriter(_storePath);
+    _blobsWriter   = new sqStoreBlobWriter(_storePath, _info.sqInfo_numBlobs());
 
     return;
   }
@@ -279,6 +279,7 @@ sqStore::~sqStore() {
   if ((_mode == sqStore_create) ||
       (_mode == sqStore_extend)) {
     _info.recountReads(_reads);
+    _info.setLastBlob(_blobsWriter);
   }
 #if 0
     _info.numRawReads = _info.numCorrectedReads = _info.numTrimmedReads = 0;

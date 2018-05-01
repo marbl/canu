@@ -43,7 +43,7 @@ using namespace std;
 
 
 #define SQ_MAGIC   0x504b473a756e6162lu      //  canu:GKP
-#define SQ_VERSION 0x0000000000000004lu
+#define SQ_VERSION 0x0000000000000005lu
 
 
 //  The number of library IIDs we can handle.
@@ -124,11 +124,15 @@ public:
   ~sqStoreInfo();
 
   bool      checkInfo(void);
+
   void      recountReads(sqRead *reads);
+  void      setLastBlob(sqStoreBlobWriter *writer);
+
   void      writeInfoAsText(FILE *F);
 
   uint64    sqInfo_numLibraries(void)        { return(_numLibraries);      };
   uint64    sqInfo_numReads(void)            { return(_numReads);          };
+  uint32    sqInfo_numBlobs(void)            { return(_numBlobs);          };
 
   uint64    sqInfo_numRawReads(void)         { return(_numRawReads);       };
   uint64    sqInfo_numCorrectedReads(void)   { return(_numCorrectedReads); };
@@ -136,6 +140,7 @@ public:
 
   void      sqInfo_addLibrary(void)          { _numLibraries++; };
   void      sqInfo_addRead(void)             { _numReads++;     };
+  void      sqInfo_addBlob(void)             { _numBlobs++;     };
 
 private:
   uint64    _sqMagic;
@@ -150,6 +155,7 @@ private:
 
   uint32    _numLibraries;       //  Counts of types of things we have loaded (next
   uint32    _numReads;           //  available index into _libraries and _reads in sqStore)
+  uint32    _numBlobs;
 
   uint32    _numRawReads;        //  If any corrected reads exist, the store will return
   uint32    _numCorrectedReads;  //  only corrected reads by default.

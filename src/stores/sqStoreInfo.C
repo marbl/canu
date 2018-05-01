@@ -51,6 +51,7 @@ sqStoreInfo::sqStoreInfo() {
 
   _numLibraries       = 0;
   _numReads           = 0;
+  _numBlobs           = 0;
 
   _numRawReads        = 0;
   _numCorrectedReads  = 0;
@@ -140,6 +141,14 @@ sqStoreInfo::recountReads(sqRead *reads) {
 
 
 void
+sqStoreInfo::setLastBlob(sqStoreBlobWriter *writer) {
+  if (writer)
+    _numBlobs = writer->writtenBlob();
+}
+
+
+
+void
 sqStoreInfo::writeInfoAsText(FILE *F) {
   fprintf(F, "sqMagic            = 0x" F_X64 "\n", _sqMagic);
   fprintf(F, "sqVersion          = 0x" F_X64 "\n", _sqVersion);
@@ -153,6 +162,7 @@ sqStoreInfo::writeInfoAsText(FILE *F) {
   fprintf(F, "\n");
   fprintf(F, "numLibraries       = " F_U32 "\n", _numLibraries);
   fprintf(F, "numReads           = " F_U32 "\n", _numReads);
+  fprintf(F, "numBlobs           = " F_U32 "\n", _numBlobs);
   fprintf(F, "\n");
   fprintf(F, "numRawReads        = " F_U32 "\n", _numRawReads);
   fprintf(F, "numCorrectedReads  = " F_U32 "\n", _numCorrectedReads);

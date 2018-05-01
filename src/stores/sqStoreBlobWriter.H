@@ -33,20 +33,23 @@
 
 class sqStoreBlobWriter {
 public:
-  sqStoreBlobWriter(const char *storePath) {
+  sqStoreBlobWriter(const char *storePath, uint32 blobNumber) {
 
     //  Initialize us.
 
     strncpy(_storePath, storePath, FILENAME_MAX);
 
-    _bufferCount = 0;
+    _bufferCount = blobNumber;
     _buffer      = NULL;
 
-    //  Find the first available file.
+    //  Make a filename.
 
-    makeNextName(0);  //  Don't increment _bufferCount.
-    while (AS_UTL_fileExists(_blobName) == true)
-      makeNextName();
+    makeName();
+
+    //  Fail if it exists already.
+
+    if (AS_UTL_fileExists(_blobName) == true)
+      fprintf(stderr, "sqStoreBlobWriter()-- blob file '%s' already exists.\n", _blobName), exit(1);
 
     //  Make a new write buffer;
 
@@ -58,9 +61,13 @@ public:
   };
 
 
-  void           makeNextName(uint32 next=1) {
-    _bufferCount += next;
+  void           makeName(void) {
     snprintf(_blobName, FILENAME_MAX, "%s/blobs.%04" F_U32P , _storePath, _bufferCount);
+  };
+
+  void           makeNextName(void) {
+    _bufferCount++;
+    makeName();
   };
 
   void           writeData(uint8 *data, uint64 dataLen) {
@@ -79,8 +86,9 @@ public:
     _buffer->write(data, dataLen);
   };
 
-  uint32         writtenIndex(void)    { return(_writtenBC); };
-  uint64         writtenPosition(void) { return(_writtenBP); };
+  uint32         writtenIndex(void)    { return(_writtenBC);       };
+  uint64         writtenPosition(void) { return(_writtenBP);       };
+  uint32         writtenBlob(void)     { return(_bufferCount + 1); };
 
 private:
   char          _storePath[FILENAME_MAX+1];        //  Path to the seqStore.
