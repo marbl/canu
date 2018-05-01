@@ -89,13 +89,13 @@ bedRecord::load(char *inLine) {
   _Aname    = new char [strlen(W[0]) + 1];
   _Aid      = UINT32_MAX;
 
-  _bgn      = W(1);
-  _end      = W(2);
+  _bgn      = W.toint32(1);
+  _end      = W.toint32(2);
 
   _Bname    = new char [strlen(W[3]) + 1];
   _Bid      = UINT32_MAX;
 
-  _score    = W(4);
+  _score    = W.touint32(4);
   _Bfwd     = W[5][0] == '+';
 
   strcpy(_Aname,    W[0]);

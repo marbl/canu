@@ -99,41 +99,41 @@ main(int argc, char **argv) {
       splitToWords  W(ovStr);
 
       if (isOvl) {
-         ov.a_iid = W(0);
-         ov.b_iid = W(1);
+         ov.a_iid = W.toint32(0);
+         ov.b_iid = W.toint32(1);
          if (ov.a_iid == ov.b_iid)
             continue;
-         ov.dat.ovl.ahg5 = W(4);
-         ov.dat.ovl.ahg3 = W(6);
-         ov.dat.ovl.bhg5 = W(6);
-         ov.dat.ovl.bhg3 = W(7);
-         ov.span(W(3));
+         ov.dat.ovl.ahg5 = W.toint32(4);
+         ov.dat.ovl.ahg3 = W.toint32(6);
+         ov.dat.ovl.bhg5 = W.toint32(6);
+         ov.dat.ovl.bhg3 = W.toint32(7);
+         ov.span(W.toint32(3));
          ov.erate(atof(W[8]));
          ov.flipped(W[3][0] == 'I' ? true : false);
 
       } else {
-         ov.a_iid = W(0);
-         ov.b_iid = W(1);
+         ov.a_iid = W.toint32(0);
+         ov.b_iid = W.toint32(1);
 
          if (ov.a_iid == ov.b_iid)
             continue;
 
          assert(W[4][0] == '0');
 
-         ov.dat.ovl.ahg5 = W(5);
-         ov.dat.ovl.ahg3 = W(7) - W(6);
+         ov.dat.ovl.ahg5 = W.toint32(5);
+         ov.dat.ovl.ahg3 = W.toint32(7) - W.toint32(6);
 
          if (W[8][0] == '0') {
-            ov.dat.ovl.bhg5 = W(9);
-            ov.dat.ovl.bhg3 = W(11) - W(10);
+            ov.dat.ovl.bhg5 = W.toint32(9);
+            ov.dat.ovl.bhg3 = W.toint32(11) - W.toint32(10);
             ov.flipped(false);
          } else {
-            ov.dat.ovl.bhg3 = W(9);
-            ov.dat.ovl.bhg5 = W(11) - W(10);
+            ov.dat.ovl.bhg3 = W.toint32(9);
+            ov.dat.ovl.bhg5 = W.toint32(11) - W.toint32(10);
             ov.flipped(true);
          }
          ov.erate(atof(W[2]));
-         ov.span(W(10)-W(9));
+         ov.span(W.toint32(10)-W.toint32(9));
       }
 
       if (ov.erate() == 0.0)

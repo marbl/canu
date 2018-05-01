@@ -286,12 +286,12 @@ dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
   while (!feof(E)) {
     W.split(NN);
 
-    uint32  id = W(0);
+    uint32  id = W.touint32(0);
 
-    status[id].best5id = W(2);
+    status[id].best5id = W.touint64(2);
     status[id].best53p = (W[3][0] == '3');
 
-    status[id].best3id = W(4);
+    status[id].best3id = W.touint64(4);
     status[id].best33p = (W[5][0] == '3');
 
     status[id].isSingleton  = false;
@@ -308,12 +308,12 @@ dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
   while (!feof(S)) {
     W.split(NN);
 
-    uint32  id = W(0);
+    uint32  id = W.touint32(0);
 
-    status[id].best5id = W(2);
+    status[id].best5id = W.touint64(2);
     status[id].best53p = (W[3][0] == '3');
 
-    status[id].best3id = W(4);
+    status[id].best3id = W.touint64(4);
     status[id].best33p = (W[5][0] == '3');
 
     status[id].isSingleton  = false;
@@ -330,7 +330,7 @@ dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
   while (!feof(G)) {
     W.split(NN);
 
-    uint32  id = W(0);
+    uint32  id = W.touint32(0);
 
     status[id].best5id = 0;
     status[id].best53p = 0;

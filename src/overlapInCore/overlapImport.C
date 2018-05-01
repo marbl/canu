@@ -245,13 +245,13 @@ main(int argc, char **argv) {
       switch (inType) {
       case TYPE_LEGACY:
         //  Aiid Biid 'I/N' ahang bhang erate erate
-        ov.a_iid = W(0);
-        ov.b_iid = W(1);
+        ov.a_iid = W.touint32(0);
+        ov.b_iid = W.touint32(1);
 
         ov.flipped(W[2][0] == 'I');
 
-        ov.a_hang(W(3));
-        ov.b_hang(W(4));
+        ov.a_hang(W.toint32(3));
+        ov.b_hang(W.toint32(4));
 
         //  Overlap store reports %error, but we expect fraction error.
         //ov.erate(atof(W[5]);  //  Don't use the original uncorrected error rate
@@ -265,18 +265,18 @@ main(int argc, char **argv) {
         break;
 
       case TYPE_RAW:
-         ov.a_iid = W(0);
-         ov.b_iid = W(1);
+         ov.a_iid = W.touint32(0);
+         ov.b_iid = W.touint32(1);
 
          ov.flipped(W[2][0] == 'I');
 
-         ov.dat.ovl.span = W(3);
+         ov.dat.ovl.span = W.touint32(3);
 
-         ov.dat.ovl.ahg5 = W(4);
-         ov.dat.ovl.ahg3 = W(5);
+         ov.dat.ovl.ahg5 = W.touint32(4);
+         ov.dat.ovl.ahg3 = W.touint32(5);
 
-         ov.dat.ovl.bhg5 = W(6);
-         ov.dat.ovl.bhg3 = W(7);
+         ov.dat.ovl.bhg5 = W.touint32(6);
+         ov.dat.ovl.bhg3 = W.touint32(7);
 
          ov.erate(atof(W[8]) / 1);
 

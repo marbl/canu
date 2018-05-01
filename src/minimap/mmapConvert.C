@@ -114,16 +114,16 @@ main(int argc, char **argv) {
       if (ov.a_iid == ov.b_iid)
         continue;
 
-      ov.dat.ovl.ahg5 = W(2);
-      ov.dat.ovl.ahg3 = W(1) - W(3);
+      ov.dat.ovl.ahg5 = W.toint32(2);
+      ov.dat.ovl.ahg3 = W.toint32(1) - W.toint32(3);
 
       if (W[4][0] == '+') {
-        ov.dat.ovl.bhg5 = W(7);
-        ov.dat.ovl.bhg3 = W(6) - W(8);
+        ov.dat.ovl.bhg5 = W.toint32(7);
+        ov.dat.ovl.bhg3 = W.toint32(6) - W.toint32(8);
         ov.flipped(false);
       } else {
-        ov.dat.ovl.bhg3 = W(7);
-        ov.dat.ovl.bhg5 = W(6) - W(8);
+        ov.dat.ovl.bhg3 = W.toint32(7);
+        ov.dat.ovl.bhg5 = W.toint32(6) - W.toint32(8);
         ov.flipped(true);
       }
 

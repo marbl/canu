@@ -203,7 +203,7 @@ main(int argc, char **argv) {
 
           tig->_layoutLen       = atoi(W[2]+4);
        } if (ovStr[0] == 'E') {
-          offset = W(1) * 1.10;
+          offset = W.toint32(1) * 1.10;
           fprintf(stderr, "The offset is updated to be %f\n", offset);
        } if (ovStr[0] == 'S' || ovStr[0] == 's') {
           uint32 rid = atoi(W[1]+4);
@@ -224,25 +224,25 @@ main(int argc, char **argv) {
 
           if (W[2][0] == '+') { 
              readToOri[rid][index] = true;
-             bgn            = (int)(offset) - W(3);
-             end            = int(offset) + W(4) + seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W(3) + W(4));
+             bgn            = (int)(offset) - W.toint32(3);
+             end            = int(offset) + W.toint32(4) + seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W.toint32(3) + W.toint32(4));
           } else if (W[2][0] == '-') {
              readToOri[rid][index] = false;
-             bgn            = int(offset) - (seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W(3) + W(4)));
-             end            = int(offset) + W(4);
+             bgn            = int(offset) - (seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W.toint32(3) + W.toint32(4)));
+             end            = int(offset) + W.toint32(4);
           }
          if (readToStart.find(rid) == readToStart.end() || readToStart[rid].find(index) == readToStart[rid].end()) {
              readToStart[rid][index] = max(0, bgn);
              readToEnd[rid][index] = end;
              readPieces[rid][index] = 1;
-             readFraction[rid][index] = (double)W(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
+             readFraction[rid][index] = W.todouble(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
              fprintf(stderr, "Initialized read %d at index %d of length %d at offset %f to %d-%d\n", rid, index, seqStore->sqStore_getRead(rid)->sqRead_sequenceLength(), offset, bgn, end);
           }
           if (readToEnd[rid][index] < end) {
              readToEnd[rid][index] = end;
              ++readPieces[rid][index];
-             readFraction[rid][index] += (double)W(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
-             fprintf(stderr, "Updated read %d at index %d to %d-%d based on %d and %d of length %d\n", rid, index, readToStart[rid][index], end, W(3), W(4), seqStore->sqStore_getRead(rid)->sqRead_sequenceLength());
+             readFraction[rid][index] += W.todouble(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
+             fprintf(stderr, "Updated read %d at index %d to %d-%d based on %d and %d of length %d\n", rid, index, readToStart[rid][index], end, W.toint32(3), W.toint32(4), seqStore->sqStore_getRead(rid)->sqRead_sequenceLength());
           }
        }
     }

@@ -160,11 +160,11 @@ loadNucmer(char                       *nucmerName,
     //  Unlike snapper, these are already in base-based coords.
 
     A.frgIID    = IIDmap[fID];
-    A.frgBgn    = W(2);
-    A.frgEnd    = W(3);
+    A.frgBgn    = W.toint32(2);
+    A.frgEnd    = W.toint32(3);
     A.genIID    = refMap[gID];
-    A.genBgn    = W(0);
-    A.genEnd    = W(1);
+    A.genBgn    = W.toint32(0);
+    A.genEnd    = W.toint32(1);
     A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
     A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
     A.identity  = atof(W[wIdent]);
@@ -173,8 +173,8 @@ loadNucmer(char                       *nucmerName,
     A.isRepeat  = true;
 
     if (A.frgBgn > A.frgEnd) {
-      A.frgBgn    = W(3);
-      A.frgEnd    = W(2);
+      A.frgBgn    = W.toint32(3);
+      A.frgEnd    = W.toint32(2);
       A.isReverse = true;
     }
 
@@ -244,11 +244,11 @@ loadSnapper(char                       *snapperName,
     //  "+1" -- Convert from space-based coords to base-based coords.
 
     A.frgIID    = IIDmap[fID];
-    A.frgBgn    = W(3) + 1;
-    A.frgEnd    = W(4);
+    A.frgBgn    = W.toint32(3) + 1;
+    A.frgEnd    = W.toint32(4);
     A.genIID    = refMap[gID];
-    A.genBgn    = W(6) + 1;
-    A.genEnd    = W(7);
+    A.genBgn    = W.toint32(6) + 1;
+    A.genEnd    = W.toint32(7);
     A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
     A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
     A.identity  = atof(W[8]);
@@ -257,8 +257,8 @@ loadSnapper(char                       *snapperName,
     A.isRepeat  = true;
 
     if (A.frgBgn > A.frgEnd) {
-      A.frgBgn    = W(4) + 1;
-      A.frgEnd    = W(3);
+      A.frgBgn    = W.toint32(4) + 1;
+      A.frgEnd    = W.toint32(3);
       A.isReverse = true;
     }
 

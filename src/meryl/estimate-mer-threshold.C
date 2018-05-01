@@ -117,8 +117,8 @@ loadHistogram(FILE *HF,
   while (!feof(HF)) {
     splitToWords  W(L);
 
-    uint32  h = W(0);
-    uint32  c = W(1);
+    uint32  h = W.touint32(0);
+    uint32  c = W.touint32(1);
 
     while (h >= histMax)
       resizeArray(hist, histLen, histMax, histMax * 2, resizeArray_copyData | resizeArray_clearNew);
