@@ -78,8 +78,6 @@ ovFile::~ovFile() {
 
   writeBuffer(true);
 
-  delete    _reader;
-  delete    _writer;
   delete [] _buffer;
 
   delete [] _snappyBuffer;
@@ -129,12 +127,8 @@ ovFile::construct(sqStore     *seq,
   //  Create the input/output buffers and files.
 
   _isOutput   = false;
-  _isSeekable = false;
   _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
   _useSnappy  = false;
-
-  _reader     = NULL;
-  _writer     = NULL;
 
   memset(_prefix, 0, FILENAME_MAX+1);
   memset(_name,   0, FILENAME_MAX+1);
@@ -146,21 +140,16 @@ ovFile::construct(sqStore     *seq,
   //  Handle ovStore files.  These CANNOT be compressed, not even snappy.  We need
   //  random access to specific overlaps.
   //
-  //  ovFileFileWriteNoCounts is used for intermediate bucket files when constructing
-  //  the store.  They CAN be compressed.
-  //
 
   if (type == ovFileNormal) {
-    _reader      = new compressedFileReader(_name);
-    _file        = _reader->file();
-    _isSeekable  = (_reader->isCompressed() == false);
+    _file        = AS_UTL_openInputFile(_name);
+    _isOutput    = false;
     _useSnappy   = false;
     _histogram   = new ovStoreHistogram(_prefix);
   }
 
   if (type == ovFileNormalWrite) {
-    _writer      = new compressedFileWriter(_name);
-    _file        = _writer->file();
+    _file        = AS_UTL_openOutputFile(_name);
     _isOutput    = true;
     _useSnappy   = false;
     _histogram   = new ovStoreHistogram(_seq);
@@ -171,28 +160,26 @@ ovFile::construct(sqStore     *seq,
   //  Handle overlapper output files.  These can be compressed, but not really useful with
   //  snappy enabled.
   //
-  //  As a special case for Object Stores, when opening an ovFileFull, 
+  //  ovFileFileWriteNoCounts is used for intermediate bucket files when constructing
+  //  the store.  They CAN be compressed.
   //
 
-  if (type == ovFileFull) {
-    _reader      = new compressedFileReader(_name);
-    _file        = _reader->file();
-    _isSeekable  = (_reader->isCompressed() == false);
+  if (type == ovFileFull) {                       //  No automagic object store fetch;
+    _file        = AS_UTL_openInputFile(_name);   //  the executive must do this for us.
+    _isOutput    = false;
     _useSnappy   = true;
     _countsR     = new ovFileOCR(_seq, _prefix);
   }
 
   if (type == ovFileFullCounts) {
-    _reader      = NULL;
     _file        = NULL;
-    _isSeekable  = false;
+    _isOutput    = false;
     _useSnappy   = true;
     _countsR     = new ovFileOCR(_seq, _prefix);
   }
 
   if (type == ovFileFullWrite) {
-    _writer      = new compressedFileWriter(_name);
-    _file        = _writer->file();
+    _file        = AS_UTL_openOutputFile(_name);
     _isOutput    = true;
     _useSnappy   = true;
     _countsW     = new ovFileOCW(_seq, _prefix);
@@ -204,12 +191,10 @@ ovFile::construct(sqStore     *seq,
   //
 
   if (type == ovFileFullWriteNoCounts) {
-    _writer      = new compressedFileWriter(_name);
-    _file        = _writer->file();
+    _file        = AS_UTL_openOutputFile(_name);
     _isOutput    = true;
     _useSnappy   = true;
   }
-
 }
 
 
@@ -455,9 +440,6 @@ ovFile::readOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 //  the end of the buffer.
 void
 ovFile::seekOverlap(off_t overlap) {
-
-  if (_isSeekable == false)
-    fprintf(stderr, "ovFile::seekOverlap()-- can't seek.\n"), exit(1);
 
   AS_UTL_fseek(_file, overlap * recordSize(), SEEK_SET);
 

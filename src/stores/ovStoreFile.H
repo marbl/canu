@@ -265,12 +265,8 @@ private:
   char                   *_snappyBuffer;
 
   bool                    _isOutput;     //  if true, we can writeOverlap()
-  bool                    _isSeekable;   //  if true, we can seekOverlap()
   bool                    _isNormal;     //  if true, 3 words per overlap, else 4
   bool                    _useSnappy;    //  if true, compress with snappy before writing
-
-  compressedFileReader   *_reader;
-  compressedFileWriter   *_writer;
 
   char                    _prefix[FILENAME_MAX+1];
   char                    _name[FILENAME_MAX+1];
