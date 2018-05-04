@@ -73,8 +73,15 @@ typedef  map<uint32, vector<uint32> >  BubTargetList;
 
 
 
-//  Decide which tigs can be orphans.  Any unitig where (nearly) every dovetail read has an overlap
-//  to some other unitig is a candidate for orphan popping.
+//  Decide which tigs can be orphans.  Any unitig where (nearly) every dovetail
+//  read has an overlap to some other unitig is a candidate for orphan popping.
+//
+//  Counts the number of reads that have an overlap to some other tig
+//  (tigOlapsTo).  if more than half the reads in the tig have an overlap to
+//  some other tig, it is a potential place to pop the bubble.
+//
+//  Returns BubTargetList, a map of uint32 to vector<uint32>, of the potential
+//  places that some tig could be popped into.
 
 void
 findPotentialOrphans(TigVector       &tigs,
