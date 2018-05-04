@@ -128,6 +128,9 @@ public:
   //  For score data.
   //
 
+  uint32    overlapScoresBaseID(void) { return(_scoresBaseID); };
+  uint32    overlapScoresLastID(void) { return(_scoresLastID); };
+
   uint16    overlapScoreEstimate(uint32 id, uint32 i, FILE *scoreDumpFile=NULL);
 
 private:
