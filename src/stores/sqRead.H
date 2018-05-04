@@ -294,10 +294,11 @@ private:
   friend class sqStore;
 };
 
-//  Even though we can store up to 4GB blob files, we artificially limit it to 512 MB
-//  for (presumed) better caching on object storage systems.  With 65k files,
-//  this sill allows for a usable limit of 47 Tbp in sequence inputs.
+//  Even though we can store up to 4GB blob files, we artificially limit it to 1 GB
+//  for (presumed) better caching on object storage systems.  Though there are
+//  65k files allowed, pieces that stream through the store (correction, RED, OEA)
+//  run out of file handles well before that.
 
-const uint64 AS_BLOBFILE_MAX_SIZE  = 512 * 1024 * 1024;
+const uint64 AS_BLOBFILE_MAX_SIZE  = 1024 * 1024 * 1024;
 
 #endif  //  SQREAD_H
