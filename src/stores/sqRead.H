@@ -213,7 +213,6 @@ public:
     _unusedA      = 0;
     _unusedB      = 0;
     _unusedC      = 0;
-    _unusedD      = 0;
 
     _ignore       = false;
     _unusedF      = 0;
@@ -275,7 +274,6 @@ private:
   uint32   _unusedA : 8;
   uint32   _unusedB : 8;    //  Unused, to keep this struct 64-bit aligned.
   uint32   _unusedC : 8;    //  (It's 5 64-bit words)
-  uint32   _unusedD : 8;
 
   //  Each sqRead needs to know which read (raw, corrected or trimmed) is to be returned.
   //  In particular, if corrections are done, but there is no corrected read for this raw
@@ -288,17 +286,18 @@ private:
 
   //  Last but not least, we need to remember where the actual data is stored in the blob.
 
-  uint64   _mSegm   : 13;   //          8,192 files          - Pointer to the blobs file we are in.
-  uint64   _mByte   : 30;   //  1,073,741,824 bytes per file - Pointer to the blob data in the blobs file.
-  uint64   _mPart   : 13;   //          8,192 partitions     - If partitioned, which partition is it in.
-
-#if (6 + 1 + 1 + 13 + 30 + 13 != 64)
-#error sqRead bits too big.
-#endif
+  uint32   _mByte;          //   4G per file    - Pointer to the blob data in the blobs file.
+  uint16   _mSegm;          //  65k files       - Pointer to the blobs file we are in.
+  uint16   _mPart;          //  65k partitions  - If partitioned, which partition is it in.
 
   friend class sqReadData;
   friend class sqStore;
 };
 
+//  Even though we can store up to 4GB blob files, we artificially limit it to 512 MB
+//  for (presumed) better caching on object storage systems.  With 65k files,
+//  this sill allows for a usable limit of 47 Tbp in sequence inputs.
+
+const uint64 AS_BLOBFILE_MAX_SIZE  = 512 * 1024 * 1024;
 
 #endif  //  SQREAD_H

@@ -43,7 +43,7 @@ using namespace std;
 
 
 #define SQ_MAGIC   0x504b473a756e6162lu      //  canu:GKP
-#define SQ_VERSION 0x0000000000000005lu
+#define SQ_VERSION 0x0000000000000006lu
 
 
 //  The number of library IIDs we can handle.
@@ -81,8 +81,6 @@ using namespace std;
 //
 #define AS_MAX_READS_BITS          64 - AS_MAX_READLEN_BITS - AS_MAX_LIBRARIES_BITS
 #define AS_MAX_READS               (((uint64)1 << AS_MAX_READS_BITS) - 1)
-
-#define AS_BLOBFILE_MAX_SIZE       1024 * 1024 * 1024
 
 
 #include "sqLibrary.H"
