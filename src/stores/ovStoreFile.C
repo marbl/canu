@@ -50,6 +50,20 @@
 //  The histogram associated with this is written to files with any suffices stripped off.
 
 
+
+char *
+ovFile::createDataName(char       *name,
+                       const char *storeName,
+                       uint32      sliceNum,
+                       uint32      pieceNum) {
+
+  snprintf(name, FILENAME_MAX, "%s/%04u<%03u>", storeName, sliceNum, pieceNum);
+
+  return(name);
+}
+
+
+
 ovFile::ovFile(sqStore     *seq,
                const char  *filename,
                ovFileType   type,
@@ -65,11 +79,11 @@ ovFile::ovFile(sqStore     *seq,
                uint32       pieceNum,
                ovFileType   type,
                uint32       bufferSize) {
-  char fileName[FILENAME_MAX+1];
+  char  filename[FILENAME_MAX+1];
 
-  snprintf(fileName, FILENAME_MAX, "%s/%04u<%03u>", ovlName, sliceNum, pieceNum);
+  createDataName(filename, ovlName, sliceNum, pieceNum);
 
-  construct(seq, fileName, type, bufferSize);
+  construct(seq, filename, type, bufferSize);
 }
 
 

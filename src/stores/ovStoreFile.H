@@ -220,9 +220,8 @@ private:
   void    construct(sqStore *seqName, const char *fileName, ovFileType type, uint32 bufferSize);
 
 public:
-  bool    nextFile(const char  *ovlName,
-                   uint32      &sliceNum,
-                   uint32      &pieceNum);
+  static
+  char   *createDataName(char *name, const char *storeName, uint32 slice, uint32 piece);
 
 public:
   void    writeBuffer(bool force=false);

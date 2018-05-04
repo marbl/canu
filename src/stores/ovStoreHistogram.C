@@ -100,6 +100,7 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
   _scores        = NULL;
 
   char    name[FILENAME_MAX+1];
+
   createDataName(name, path);
 
   if (AS_UTL_fileExists(name, false, false) == false)    //  If no data, nothing to
@@ -182,8 +183,6 @@ ovStoreHistogram::saveHistogram(char *prefix) {
   createDataName(name, prefix);
 
   FILE   *F = AS_UTL_openOutputFile(name);
-
-  fprintf(stderr, "SAVE HISTOGRAM DATA to '%s' for ID %u to %u\n", name, _scoresBaseID, _scoresLastID);
 
   //  Save all the parameters.
 
@@ -291,8 +290,6 @@ ovStoreHistogram::mergeScores(ovStoreHistogram *other) {
   other->processScores();
 
   //  Copy other scores to our array.  No checking of overwriting data is performed.
-
-  fprintf(stderr, "COPYING scores for ID %u to %u\n", other->_scoresBaseID, other->_scoresLastID);
 
   assert(_scoresBaseID == 0);  //  Can't copy into a histogram used for counting overlaps.
 
