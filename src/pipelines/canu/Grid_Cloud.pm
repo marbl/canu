@@ -35,6 +35,8 @@ require Exporter;
 @ISA    = qw(Exporter);
 @EXPORT = qw(configureCloud
              fileExists           fileExistsShellCode
+             renameStashedFile
+             removeStashedFile
              fetchFile            fetchFileShellCode
              stashFile            stashFileShellCode
              fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
@@ -141,6 +143,47 @@ sub fileExistsShellCode ($@) {
     }
 
     return($code);
+}
+
+
+
+sub renameStashedFile ($$) {
+    my $oldname = shift @_;
+    my $newname = shift @_;
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+
+    if    (isOS() eq "TEST") {
+        print STDERR "renameStashedFile()-- '$ns/$oldname' -> '$ns/$newname'\n";
+
+        runCommandSilently(".", "$client mv $ns/$oldname $ns/$newname", 1);
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+        #  Nothing we can be obnoxious about here, I suppose we could log...
+    }
+}
+
+
+
+sub removeStashedFile ($) {
+    my $name = shift @_;
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+
+    if    (isOS() eq "TEST") {
+        print STDERR "removeStashedFile()-- '$ns/$name'\n";
+
+        runCommandSilently(".", "$client rm --recursive $ns/$name", 1);
+    }
+    elsif (isOS() eq "DNANEXUS") {
+    }
+    else {
+        #  Nothing we can be obnoxious about here, I suppose we could log...
+    }
 }
 
 
