@@ -1,5 +1,11 @@
 #!/bin/sh
 
+#  Before building a release:
+#
+#    Update copyrights
+#    Increase version in documentation/source/conf.py
+#    Increase version in src/canu_version_update.pl
+
 version=$1
 
 if [ x$version = x ] ; then
