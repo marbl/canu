@@ -267,7 +267,7 @@ sub stashFile ($) {
 
     if    (isOS() eq "TEST") {
         print STDERR "stashFile()-- '$file' to '$ns/$file'\n";
-        runCommandSilently(".", "$client upload --path $ns/$file $file", 1);
+        runCommandSilently(".", "$client upload --wait --parents --path $ns/$file $file", 1);
     }
     elsif (isOS() eq "DNANEXUS") {
     }
@@ -295,7 +295,7 @@ sub stashFileShellCode ($$$) {
     if    (isOS() eq "TEST") {
         $code .= "${indent}if [ -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  cd $dots/$path\n";
-        $code .= "${indent}  $client upload --path $ns/$path/$file $file\n";
+        $code .= "${indent}  $client upload --wait --parents --path $ns/$path/$file $file\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
     }
@@ -400,7 +400,7 @@ sub stashSeqStore ($) {
         $cmd .= " ./$asm.seqStore/readLengths*";
         $cmd .= " ./$asm.seqStore/reads";
         $cmd .= " ./$asm.seqStore/version*";
-        $cmd .= " | $client upload --path $ns/$asm.seqStore.tar -";
+        $cmd .= " | $client upload --wait --parents --path $ns/$asm.seqStore.tar -";
 
         print STDERR "stashSeqStore()-- Saving sequence store '$asm.seqStore'\n";
 
@@ -410,7 +410,7 @@ sub stashSeqStore ($) {
 
         for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
             if (! fileExists("$ns/$asm.seqStore.blobs.$bIdx", 1)) {
-                runCommandSilently(".", "cat $asm.seqStore/blobs.$bIdx | $client upload --path $ns/$asm.seqStore.blobs.$bIdx -", 1);
+                runCommandSilently(".", "cat $asm.seqStore/blobs.$bIdx | $client upload --wait --parents --path $ns/$asm.seqStore.blobs.$bIdx -", 1);
             }
         }
     }
@@ -484,7 +484,7 @@ sub stashSeqStorePartitions ($$$$) {
             $cmd .= " ./$storeName/partitions/map";
             $cmd .= " ./$storeName/partitions/blobs.$jName";
             $cmd .= " ./$storeName/partitions/reads.$jName";
-            $cmd .= " | $client upload --path $ns/$storePath.$storeName.$jName.tar -";
+            $cmd .= " | $client upload --wait --parents --path $ns/$storePath.$storeName.$jName.tar -";
 
             print STDERR "stashPartitionedSeqStore()-- Saving partitioned sequence store '$storePath/$storeName.$jName'\n";
 
@@ -547,7 +547,7 @@ sub stashOvlStore ($$) {
         $cmd .= " ./$asm.ovlStore/statistics";
         $cmd .= " ./$asm.ovlStore.config";
         $cmd .= " ./$asm.ovlStore.config.txt";
-        $cmd .= " | $client upload --path $ns/$base/$asm.ovlStore.tar -";
+        $cmd .= " | $client upload --wait --parents --path $ns/$base/$asm.ovlStore.tar -";
 
         print STDERR "stashOvlStore()-- Saving overlap store '$base/$asm.ovlStore'\n";
 
@@ -558,7 +558,7 @@ sub stashOvlStore ($$) {
         for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
         for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
             if (! fileExists("$ns/$base/$asm.ovlStore.$bIdx.$sIdx", 1)) {
-                runCommandSilently(".", "cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --path $ns/$base/$asm.ovlStore.$bIdx.$sIdx -", 1);
+                runCommandSilently(".", "cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --wait --parents --path $ns/$base/$asm.ovlStore.$bIdx.$sIdx -", 1);
             }
         }
         }
@@ -576,7 +576,7 @@ sub fetchOvlStoreShellCode ($$$) {
     my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
     my $indent = shift @_;           #
 
-    my $base   = dirname($path);    #  'unitigging'
+    my $base   = dirname($path);     #  'unitigging'
     my $root   = pathToDots($path);  #  '../..'
 
     my $client = getGlobal("objectStoreClient");
