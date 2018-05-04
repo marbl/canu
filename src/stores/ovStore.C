@@ -391,7 +391,7 @@ ovStore::dumpMetaData(uint32 bgnID, uint32 endID) {
   fprintf(stdout, "--------- ----- ----- --------- --------- ---------\n");
 
   for (uint32 ii=bgnID; ii<endID; ii++)
-    fprintf(stdout, "%9u %5u %5u %9u %9u %9u\n", ii,
+    fprintf(stdout, "%9u %5u %5u %9u %9u %9lu\n", ii,
             _index[ii]._slice,
             _index[ii]._piece,
             _index[ii]._offset,
