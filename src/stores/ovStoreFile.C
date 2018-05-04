@@ -51,10 +51,10 @@
 
 
 ovFile::ovFile(sqStore     *seq,
-               const char  *fileName,
+               const char  *filename,
                ovFileType   type,
                uint32       bufferSize) {
-  construct(seq, fileName, type, bufferSize);
+  construct(seq, filename, type, bufferSize);
 }
 
 
