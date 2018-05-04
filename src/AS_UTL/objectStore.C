@@ -64,7 +64,7 @@ findSeqStorePath(char *requested) {
 
   char  *filepath = new char [FILENAME_MAX + 1];
 
-  snprintf(filepath, FILENAME_MAX, "%s.%s", storename, filename);
+  snprintf(filepath, FILENAME_MAX, "%s/%s", storename, filename);
 
   return(filepath);
 }
@@ -188,7 +188,7 @@ findOvlStorePath(char *requested) {
   //fprintf(stderr, "          STORENAME '%s'\n", storename);
   //fprintf(stderr, "          FILENAME  '%s'\n", filename);
 
-  snprintf(filepath, FILENAME_MAX, "%s/%s.%s", basename, storename, filename);
+  snprintf(filepath, FILENAME_MAX, "%s/%s/%s", basename, storename, filename);
 
   return(filepath);
 }

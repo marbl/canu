@@ -410,7 +410,7 @@ sub stashSeqStore ($) {
 
         for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
             if (! fileExists("$ns/$asm.seqStore.blobs.$bIdx", 1)) {
-                runCommandSilently(".", "cat $asm.seqStore/blobs.$bIdx | $client upload --wait --parents --path $ns/$asm.seqStore.blobs.$bIdx -", 1);
+                runCommandSilently(".", "cat $asm.seqStore/blobs.$bIdx | $client upload --wait --parents --path $ns/$asm.seqStore/blobs.$bIdx -", 1);
             }
         }
     }
@@ -557,8 +557,8 @@ sub stashOvlStore ($$) {
 
         for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
         for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
-            if (! fileExists("$ns/$base/$asm.ovlStore.$bIdx.$sIdx", 1)) {
-                runCommandSilently(".", "cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --wait --parents --path $ns/$base/$asm.ovlStore.$bIdx.$sIdx -", 1);
+            if (! fileExists("$ns/$base/$asm.ovlStore/$bIdx.$sIdx", 1)) {
+                runCommandSilently(".", "cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --wait --parents --path $ns/$base/$asm.ovlStore/$bIdx.$sIdx -", 1);
             }
         }
         }
