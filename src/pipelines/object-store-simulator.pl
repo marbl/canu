@@ -1,0 +1,162 @@
+#!/usr/bin/env perl
+
+use strict;
+use File::Basename;
+
+my $STASH;
+
+$STASH = "/assembly/STASH"         if (-d "/assembly/STASH");
+$STASH = "/work/STASH"             if (-d "/work/STASH");
+$STASH = "/Users/walenzbp/STASH"   if (-d "/Users/walenzbp/STASH");
+
+die "No STASH found\n"  if (!defined($STASH));
+
+my $task = shift @ARGV;
+
+
+
+if ($task eq "describe") {
+    my $file;
+    my $path = "";
+    my $wait = 0;
+
+    while (scalar(@ARGV) > 0) {
+        my $arg = shift @ARGV;
+
+        if      ($arg eq "--name") {
+            $path = shift @ARGV;
+        }
+
+        else {
+            die "Unknown option $arg\n";
+        }
+    }
+
+    if (-e "$STASH/$path") {
+        print "$path\n";
+    }
+}
+
+
+
+if ($task eq "mv") {
+    my $file;
+    my $path = "";
+    my $wait = 0;
+
+    my $oldname = shift @ARGV;
+    my $newname = shift @ARGV;
+
+    print STDERR "DX:  STASH '$STASH'\n";
+    print STDERR "DX:  oldname '$oldname'\n";
+    print STDERR "DX:  newname '$newname'\n";
+    print STDERR "DX: '$STASH/$oldname' -> '$STASH/$newname'\n";
+
+    rename("$STASH/$oldname", "$STASH/$newname");
+}
+
+
+
+if ($task eq "rm") {
+    my $file;
+    my $path = "";
+    my $recursive = 0;
+
+    while (scalar(@ARGV) > 0) {
+        my $arg = shift @ARGV;
+
+        if      ($arg eq "--recursive") {    #  NOT SUPPORTED!
+            $recursive = 1;
+            continue;
+        }
+
+        unlink("$STASH/$arg");
+    }
+}
+
+
+
+if ($task eq "upload") {
+    my $file;
+    my $path;
+    my $wait    = 0;
+    my $parents = 0;
+
+    while (scalar(@ARGV) > 0) {
+        my $arg = shift @ARGV;
+
+        if      ($arg eq "--path") {
+            $path = shift @ARGV;
+        }
+
+        elsif ($arg eq "--wait") {
+            $wait = 1;
+        }
+
+        elsif ($arg eq "--parents") {
+            $parents = 1;
+        }
+
+        elsif (!defined($file)) {
+            $file = $arg;
+        }
+
+        else {
+            die "Unknown option $arg\n";
+        }
+    }
+
+    #  Copy local file $file, assumed to be in this directory, to the stash as $path.
+
+    die "dx upload - no stash path supplied.\n"      if (!defined($path));
+    die "dx upload - no input file supplied.\n"      if (!defined($file));
+    die "dx upload - input file $file not found.\n"  if (($file ne "-") && (! -e $file));
+
+    system("mkdir -p $STASH/" . dirname($path))   if ($parents);
+
+    if ($file eq "-") {
+        system("dd status=none \"of=$STASH/$path\"");
+    } else {
+        system("cp -fp \"$file\" \"$STASH/$path\"");
+    }
+}
+
+
+
+if ($task eq "download") {
+    my $file;
+    my $path;
+    my $wait = 0;
+
+    while (scalar(@ARGV) > 0) {
+        my $arg = shift @ARGV;
+
+        if      ($arg eq "--output") {
+            $file = shift @ARGV;
+        }
+
+        elsif (!defined($path)) {
+            $path = $arg;
+        }
+
+        else {
+            die "Unknown option $arg\n";
+        }
+    }
+
+    #  Copy local file $file, assumed to be in this directory, to the stash as $path.
+
+    die "dx download - no stash path supplied.\n"       if (!defined($path));
+    die "dx download - no output file supplied.\n"      if (!defined($file));
+    #die "dx download - stash path $path not found.\n"   if (! -e "$STASH/$path");
+
+    exit(0)  if (! -e "$STASH/$path");
+
+    if ($file eq "-") {
+        system("dd status=none \"if=$STASH/$path\"");
+    } else {
+        system("cp -fp \"$STASH/$path\" \"$file\"");
+    }
+}
+
+
