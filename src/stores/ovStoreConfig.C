@@ -253,14 +253,20 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
 
 int
 main(int argc, char **argv) {
-  char           *seqName    = NULL;
-  uint64          minMemory  = (uint64)1 * 1024 * 1024 * 1024;
-  uint64          maxMemory  = (uint64)4 * 1024 * 1024 * 1024;
+  char           *seqName         = NULL;
+  uint64          minMemory       = (uint64)1 * 1024 * 1024 * 1024;
+  uint64          maxMemory       = (uint64)4 * 1024 * 1024 * 1024;
 
   vector<char *>  fileList;
 
-  char           *configOut  = NULL;
-  char           *configIn   = NULL;
+  char           *configOut       = NULL;
+  char           *configIn        = NULL;
+
+  bool            writeNumBuckets = false;
+  bool            writeNumSlices  = false;
+  bool            writeMemory     = false;
+  uint32          writeInputs     = 0;
+  uint32          writeSlices     = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -286,6 +292,17 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-describe") == 0) {
       configIn = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-numbuckets") == 0) {
+      writeNumBuckets = true;
+    } else if (strcmp(argv[arg], "-numslices") == 0) {
+      writeNumSlices = true;
+    } else if (strcmp(argv[arg], "-sortmemory") == 0) {
+      writeMemory = true;
+    } else if (strcmp(argv[arg], "-listinputs") == 0) {
+      writeInputs = strtouint32(argv[++arg]);
+    } else if (strcmp(argv[arg], "-listslices") == 0) {
+      writeSlices = strtouint32(argv[++arg]);
 
     } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
                (AS_UTL_fileExists(argv[arg]))) {
@@ -327,7 +344,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -create config        write overlap store configuration to file 'config'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -describe config      write a description of the config in 'config' to the screen\n");
+    fprintf(stderr, "  -describe config      write a readable description of the config in 'config' to the screen\n");
+    fprintf(stderr, "  -numbuckets           write the number of buckets to the screen\n");
+    fprintf(stderr, "  -numslices            write the number of slices to the screen\n");
+    fprintf(stderr, "  -sortmemory           write the memory needed (in GB) for a sort job to the screen\n");
+    fprintf(stderr, "  -listinputs n         write a list of the input ovb files needed for bucketizer job 'n'");
+    fprintf(stderr, "  -listslices n         write a list of the input slice files needed for sorter job 'n'\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Sizes and Limits:\n");
     fprintf(stderr, "  ovOverlap             " F_S32 " words of " F_S32 " bits each.\n", (int32)ovOverlapNWORDS, (int32)ovOverlapWORDSZ);
@@ -373,14 +396,42 @@ main(int argc, char **argv) {
   //  If we have a config, report parameters.
 
   if (config) {
-    fprintf(stdout, "\n");
-    fprintf(stdout, "Configured for:\n");
-    fprintf(stdout, "  numBuckets %8" F_U32P "\n", config->numBuckets());
-    fprintf(stdout, "  numSlices  %8" F_U32P "\n", config->numSlices());
-    fprintf(stdout, "  sortMemory %8" F_U32P " GB (%5.3f GB)\n",
-            (uint32)ceil(config->sortMemory() + 0.5),  //  Adds an extra 0.5 to 1.49 gb.
-            config->sortMemory());
+    uint32  memGB = (uint32)ceil(config->sortMemory() + 0.5);  //  Adds an extra 0.5 to 1.49 gb.
+
+    if (writeNumBuckets) {
+      fprintf(stdout, F_U32 "\n", config->numBuckets());
+    }
+
+    else if (writeNumSlices) {
+      fprintf(stdout, F_U32 "\n", config->numSlices());
+    }
+
+    else if (writeMemory) {
+      fprintf(stdout, F_U32 "\n", memGB);
+    }
+
+    else if (writeInputs) {
+      for (uint32 ff=0; ff<config->numInputs(writeInputs); ff++) 
+        fprintf(stdout, "%s\n", config->getInput(writeInputs, ff));
+    }
+
+    else if (writeSlices) {
+      for (uint32 bb=0; bb<config->numBuckets(); bb++) {
+        fprintf(stdout, "bucket%04" F_U32P "/slice%04" F_U32P "\n", bb, writeSlices);
+        fprintf(stdout, "bucket%04" F_U32P "/sliceSizes\n", bb);
+      }
+    }
+
+    else {
+      fprintf(stdout, "\n");
+      fprintf(stdout, "Configured for:\n");
+      fprintf(stdout, "  numBuckets %8" F_U32P "\n", config->numBuckets());
+      fprintf(stdout, "  numSlices  %8" F_U32P "\n", config->numSlices());
+      fprintf(stdout, "  sortMemory %8" F_U32P " GB (%5.3f GB)\n", memGB, config->sortMemory());
+    }
   }
+
+  //  Cleanup and quit!
 
   delete config;
 
