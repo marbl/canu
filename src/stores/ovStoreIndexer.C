@@ -49,7 +49,6 @@ main(int argc, char **argv) {
   char           *seqName     = NULL;
   char           *cfgName     = NULL;
   bool            deleteInter = false;
-  bool            testFailed  = false;
 
   argc = AS_configure(argc, argv);
 
@@ -103,58 +102,26 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Load the config, make a new writer.
-
   sqStore             *seq    = sqStore::sqStore_open(seqName);
   ovStoreConfig       *config = new ovStoreConfig(cfgName);
   ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, seq, 0, config->numSlices(), config->numBuckets());
 
-  //  Finalize the store if not testing.
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Checking that sorting is complete (every slice should have an info file).\n");
-
   writer->checkSortingIsComplete();
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Merging indices.\n");
-
   writer->mergeInfoFiles();
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Merging histograms.\n");
-
   writer->mergeHistogram();
 
-  //  Do some tests.
-
-#if 0
-  testFailed = (writer->testIndex(doFixes) == true) ? false : true;
-
-  if (testFailed == false)
-    fprintf(stderr, "Index looks correct.\n");
-  else
-    deleteInter = false;
-#endif
-
-  //  Remove the intermediate files.
-
-  if (deleteInter == true) {
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Removing intermediate files.\n");
-
+  if (deleteInter == true)
     writer->removeAllIntermediateFiles();
-  }
 
   delete writer;
+  delete config;
 
   seq->sqStore_close();
 
-  if (testFailed)
-    fprintf(stderr, "Index not valid.  Intermediate files not removed.\n");
-  else
-    fprintf(stderr, "Success!\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Success!\n");
+  fprintf(stderr, "\n");
 
-  exit(testFailed);
+  exit(0);
 }
 

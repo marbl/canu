@@ -364,16 +364,15 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
 
   //  Load the info files.  We need to load at least one to figure out maxID.
 
-  fprintf(stderr, " -\n");
   fprintf(stderr, " - Loading slice information.\n");
   fprintf(stderr, " -\n");
-  fprintf(stderr, " - slice    bgnID    endID    maxID   numOlaps\n");
-  fprintf(stderr, " - ----- -------- -------- -------- ----------\n");
+  fprintf(stderr, " - slice     bgnID     endID    maxID   numOlaps\n");
+  fprintf(stderr, " - ----- --------- --------- -------- ----------\n");
 
   for (uint32 ss=1; ss<=_numSlices; ss++) {
     infopiece[ss].load(_storePath, ss, true);
 
-    fprintf(stderr, " - %5" F_U32P " %8" F_U32P " %8" F_U32P " %8" F_U32P " %10" F_U64P "\n",
+    fprintf(stderr, " - %5" F_U32P " %9" F_U32P " %9" F_U32P " %8" F_U32P " %10" F_U64P "\n",
             ss,
             infopiece[ss].bgnID(),
             infopiece[ss].endID(),
@@ -381,7 +380,7 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
             infopiece[ss].numOverlaps());
   }
 
-  fprintf(stderr, " - ----- -------- -------- -------- ----------\n");
+  fprintf(stderr, " - ----- --------- --------- -------- ----------\n");
 
   //  Set us up and allocate some space.
 
@@ -436,33 +435,41 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
 
   fprintf(stderr, " - Finished.  " F_U32 " reads with " F_U64 " overlaps.\n",
           info.endID(), info.numOverlaps());
+  fprintf(stderr, " -\n");
 }
 
 
 
 void
 ovStoreSliceWriter::mergeHistogram(void) {
-  char               name[FILENAME_MAX+1];
+  char               dataname[FILENAME_MAX+1] = {0};
+
+  fprintf(stderr, " - Merging histograms.\n");
+  fprintf(stderr, " -\n");
+  fprintf(stderr, " -\n");
+  fprintf(stderr, " - slice piece     bgnID     endID\n");
+  fprintf(stderr, " - ----- ----- --------- ---------\n");
+
   ovStoreHistogram  *merged = new ovStoreHistogram(_seq);
 
   for (uint32 ss=1; ss <= _numSlices; ss++) {
-    fprintf(stderr, " - Merge histograms for slice %u\n", ss);
-
     for (uint32 pp=1; pp < 1000; pp++) {
-      snprintf(name, FILENAME_MAX, "%s/%04u<%03u>", _storePath, ss, pp);
+      ovStoreHistogram  piece(ovFile::createDataName(dataname, _storePath, ss, pp));
 
-      if (AS_UTL_fileExists(name) == false)
+      if (piece.overlapScoresLastID() > 0) {
+        fprintf(stderr, " - %5u %5u %9u %9u\n",
+                ss, pp, piece.overlapScoresBaseID(), piece.overlapScoresLastID());
+
+        merged->mergeHistogram(&piece);
+      } else {
         break;
-
-      ovStoreHistogram *piece = new ovStoreHistogram(name);
-
-      merged->mergeHistogram(piece);
-
-      delete piece;
+      }
     }
   }
 
   merged->saveHistogram(_storePath);
+
+  fprintf(stderr, " - ----- ----- --------- ---------\n");
 
   delete merged;
 }
@@ -485,6 +492,10 @@ void
 ovStoreSliceWriter::checkSortingIsComplete(void) {
   char    nameF[FILENAME_MAX+1];
   char    nameI[FILENAME_MAX+1];
+
+  fprintf(stderr, " - Checking that sorting is complete (every slice should have an info file).\n");
+  fprintf(stderr, " -\n");
+  fprintf(stderr, "\n");
 
   uint32  failedJobs = 0;
 
@@ -517,6 +528,9 @@ ovStoreSliceWriter::removeAllIntermediateFiles(void) {
 
   //  Remove sorting (slices) intermediates.
 
+  fprintf(stderr, " - Removing intermediate files.\n");
+  fprintf(stderr, " -\n");
+
   for (uint32 ss=1; ss <= _numSlices; ss++) {
     snprintf(name, FILENAME_MAX, "%s/%04u.index", _storePath, ss);
     AS_UTL_unlink(name);
@@ -525,12 +539,13 @@ ovStoreSliceWriter::removeAllIntermediateFiles(void) {
     AS_UTL_unlink(name);
 
     for (uint32 pp=1; pp < 1000; pp++) {
-      snprintf(name, FILENAME_MAX, "%s/%04u<%03u>", _storePath, ss, pp);
+      ovFile::createDataName(name, _storePath, ss, pp);
+      ovStoreHistogram::createDataName(nomo, name);
 
-      if (AS_UTL_fileExists(name) == false)   //  If no overlap file, no more
-        break;                                //  files exist; we're done.
+      if (AS_UTL_fileExists(nomo) == false)
+        break;
 
-      AS_UTL_unlink(ovStoreHistogram::createDataName(nomo, name));
+      AS_UTL_unlink(nomo);
     }
   }
 
