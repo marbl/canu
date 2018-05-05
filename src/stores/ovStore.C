@@ -143,7 +143,14 @@ ovStore::readOverlap(ovOverlap *overlap) {
     if ((_bofSlice != _index[_curID]._slice) ||     //  Make sure we're in the correct file.
         (_bofPiece != _index[_curID]._piece)) {
       delete _bof;
-      _bof = new ovFile(_seq, _storePath, _index[_curID]._slice, _index[_curID]._piece, ovFileNormal);
+
+      assert(_index[_curID]._slice > 0);
+      assert(_index[_curID]._piece > 0);
+
+      _bofSlice = _index[_curID]._slice;
+      _bofPiece = _index[_curID]._piece;
+
+      _bof = new ovFile(_seq, _storePath, _bofSlice, _bofPiece, ovFileNormal);
       _bof->seekOverlap(_index[_curID]._offset);
     }
   }
