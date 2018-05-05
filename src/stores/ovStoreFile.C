@@ -92,16 +92,16 @@ ovFile::~ovFile() {
 
   writeBuffer(true);
 
-  delete [] _buffer;
-
-  delete [] _snappyBuffer;
+  AS_UTL_closeFile(_file);
 
   if ((_isOutput) && (_histogram))
     _histogram->saveHistogram(_prefix);
 
-  delete _countsW;
-  delete _countsR;
-  delete _histogram;
+  delete    _countsW;
+  delete    _countsR;
+  delete    _histogram;
+  delete [] _buffer;
+  delete [] _snappyBuffer;
 }
 
 
