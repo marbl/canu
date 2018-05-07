@@ -73,6 +73,9 @@ sub merylGenerateHistogram ($$) {
 
     my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
 
+    fetchFile("$path/$ofile.histogram");
+    fetchFile("$path/$ofile.histogram.info");
+
     return(undef)   if (! -e "$path/$ofile.histogram");
     return(undef)   if (! -e "$path/$ofile.histogram.info");
 
