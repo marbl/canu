@@ -416,7 +416,7 @@ main(int argc, char **argv) {
     }
 
     else if (writeSlices) {
-      for (uint32 bb=0; bb<config->numBuckets(); bb++) {
+      for (uint32 bb=1; bb<=config->numBuckets(); bb++) {
         fprintf(stdout, "bucket%04" F_U32P "/slice%04" F_U32P "\n", bb, writeSlices);
         fprintf(stdout, "bucket%04" F_U32P "/sliceSizes\n", bb);
       }
