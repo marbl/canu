@@ -174,7 +174,7 @@ Execution Configuration
 
 There are two modes that canu runs in: locally, using just one machine, or grid-enabled, using
 multiple hosts managed by a grid engine.  LSF, PBS/Torque, PBSPro, Sun Grid Engine (and
-derivations), and Slurm are supported, though LSF has has limited testing. Section
+derivations), and Slurm are supported, though LSF has had limited testing. Section
 :ref:`grid-engine-config` has a few hints on how to set up a new grid engine.
 
 By default, if a grid is detected the canu pipeline will immediately submit itself to the grid and
