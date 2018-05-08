@@ -222,17 +222,33 @@ EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLeng
                 Word* rPeq = buildPeq(alphabetLength, rQuery, queryLength); // Peq for reversed query
                 for (int i = 0; i < result.numLocations; i++) {
                     int endLocation = result.endLocations[i];
-                    int bestScoreSHW, numPositionsSHW;
-                    int* positionsSHW;
-                    myersCalcEditDistanceSemiGlobal(
-                            rPeq, W, maxNumBlocks,
-                            rQuery, queryLength, rTarget + targetLength - endLocation - 1, endLocation + 1,
-                            alphabetLength, result.editDistance, EDLIB_MODE_SHW,
-                            &bestScoreSHW, &positionsSHW, &numPositionsSHW);
-                    // Taking last location as start ensures that alignment will not start with insertions
-                    // if it can start with mismatches instead.
-                    result.startLocations[i] = endLocation - positionsSHW[numPositionsSHW - 1];
-                    delete[] positionsSHW;
+                    if (endLocation == -1) {
+                        // NOTE: Sometimes one of optimal solutions is that query starts before target, like this:
+                        //                       AAGG <- target
+                        //                   CCTT     <- query
+                        //   It will never be only optimal solution and it does not happen often, however it is
+                        //   possible and in that case end location will be -1. What should we do with that?
+                        //   Should we just skip reporting such end location, although it is a solution?
+                        //   If we do report it, what is the start location? -4? -1? Nothing?
+                        // TODO: Figure this out. This has to do in general with how we think about start
+                        //   and end locations.
+                        //   Also, we have alignment later relying on this locations to limit the space of it's
+                        //   search -> how can it do it right if these locations are negative or incorrect?
+                        result.startLocations[i] = 0;  // I put 0 for now, but it does not make much sense.
+                    } else {
+                        int bestScoreSHW, numPositionsSHW;
+                        int* positionsSHW;
+                        myersCalcEditDistanceSemiGlobal(
+                                rPeq, W, maxNumBlocks,
+                                rQuery, queryLength, rTarget + targetLength - endLocation - 1, endLocation + 1,
+                                alphabetLength, result.editDistance, EDLIB_MODE_SHW,
+                                &bestScoreSHW, &positionsSHW, &numPositionsSHW);
+                        // Taking last location as start ensures that alignment will not start with insertions
+                        // if it can start with mismatches instead.
+                        result.startLocations[i] = endLocation - positionsSHW[numPositionsSHW - 1];
+                        delete[] positionsSHW;
+                    }
+
                 }
                 delete[] rTarget;
                 delete[] rQuery;
