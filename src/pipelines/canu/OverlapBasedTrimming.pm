@@ -270,7 +270,7 @@ sub dumpTrimmedReads ($) {
     goto allDone   if (skipStage($asm, "obt-dumpTrimmedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
-    return         if (! -d "trimming/$asm.seqStore");  #  No trimming done, nothing to do.
+    return         if (! -d "trimming/0-mercounts");  #  No trimming done, nothing to do.
 
     #  If no trimmed reads exist, don't bother trying to dump them.
 
