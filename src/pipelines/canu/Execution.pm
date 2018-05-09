@@ -1094,8 +1094,8 @@ sub submitOrRunParallelJob ($$$$@) {
     #  Assuming grid jobs die on each attempt:
     #    0) canu run from the command line submits iteration 1; canuIteration is NOT incremented
     #       because no parallel jobs have been submitted.
-    #    1) Iteration 1 - canu.pl submits jobs, increments the interation count, and submits itself as iteration 2
-    #    2) Iteration 2 - canu.pl submits jobs, increments the interation count, and submits itself as iteration 3
+    #    1) Iteration 1 - canu.pl submits jobs, increments the iteration count, and submits itself as iteration 2
+    #    2) Iteration 2 - canu.pl submits jobs, increments the iteration count, and submits itself as iteration 3
     #    3) Iteration 3 - canu.pl fails with the error below
     #
     #  If the jobs succeed in Iteration 2, the canu in iteration 3 will pass the Check(), never call
@@ -1555,7 +1555,7 @@ sub caFailure ($$) {
         print STDERR "CRASH: Last 50 lines of the relevant log file ($log):\n";
         print STDERR "CRASH:\n";
 
-        open(Z, "tail -n 50 $log");
+        open(Z, "tail -n 50 $log |");
         while (<Z>) {
             print STDERR "CRASH: $_";
         }
