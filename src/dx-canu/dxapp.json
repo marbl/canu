@@ -28,7 +28,6 @@
       "label": "Approximate size of genome, suffixes like k/m/g are supported",
       "class": "string",
       "optional": false,
-      "default" : "50k",
       "help": ""
     },
     {
@@ -43,7 +42,6 @@
       "name": "parameters",
       "label": "Parameters to pass through to Canu",
       "class": "string",
-      "default" : "-fast corPartitions=100 corPartitionMin=100",
       "optional": true,
       "help": ""
     }
