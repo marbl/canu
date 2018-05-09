@@ -25,7 +25,7 @@ available and are reasonable for the size of your assembly.  Memory and processo
 limited with with parameters :ref:`maxMemory <maxMemory>` and :ref:`maxThreads <maxThreads>`.  See section :ref:`execution`
 for more details.
 
-Canu will automaticall take full advantage of any LSF/PBS/PBSPro/Torque/Slrum/SGE grid available,
+Canu will automatically take full advantage of any LSF/PBS/PBSPro/Torque/Slrum/SGE grid available,
 even submitting itself for execution.  Canu makes heavy use of array jobs and requires job
 submission from compute nodes, which are sometimes not available or allowed.  Canu option
 ``useGrid=false`` will restrict Canu to using only the current machine, while option
@@ -77,7 +77,7 @@ For Nanopore::
 
 
 Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-nanopore',
-respectively.  Intermeditate files are written in directories 'correction', 'trimming' and
+respectively.  Intermediate files are written in directories 'correction', 'trimming' and
 'unitigging' for the respective stages.  Output files are named using the '-p' prefix, such as
 'ecoli.contigs.fasta', 'ecoli.contigs.gfa', etc.  See section :ref:`outputs` for more details on
 outputs (intermediate files aren't documented).
@@ -92,7 +92,7 @@ file::
 
  curl -L -o mix.tar.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz
  tar xvzf mix.tar.gz
- 
+
  canu \
   -p ecoli -d ecoli-mix \
   genomeSize=4.8m \
@@ -105,7 +105,7 @@ Correct, Trim and Assemble, Manually
 
 Sometimes, however, it makes sense to do the three top-level tasks by hand.  This would allow trying
 multiple unitig construction parameters on the same set of corrected and trimmed reads, or skipping
-trimming and assembly if you only want correced reads.
+trimming and assembly if you only want corrected reads.
 
 We'll use the PacBio reads from above.  First, correct the raw reads::
 
@@ -145,7 +145,7 @@ Assembling Low Coverage Datasets
 
 We claimed Canu works down to 20X coverage, and we will now assemble `a 20X subset of S. cerevisae
 <http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_ (215 MB).  When assembling, we
-adjust :ref:`correctedErrorRate <correctedErrorRate>` to accomodate the slightly lower
+adjust :ref:`correctedErrorRate <correctedErrorRate>` to accommodate the slightly lower
 quality corrected reads::
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz

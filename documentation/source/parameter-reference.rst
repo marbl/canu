@@ -54,7 +54,7 @@ correctedErrorRate <float=unset>
   <correctedErrorRate>` slightly, by 1% or so.
 
   For high-coverage datasets (more than 60X), we recommend decreasing :ref:`correctedErrorRate
-  <correctedErrorRate>` slighly, by 1% or so.
+  <correctedErrorRate>` slightly, by 1% or so.
 
   Raising the :ref:`correctedErrorRate <correctedErrorRate>` will increase run time.  Likewise,
   decreasing :ref:`correctedErrorRate <correctedErrorRate>` will decrease run time, at the risk of
@@ -154,16 +154,16 @@ stopOnReadQuality <string=true>
   ::
 
    Gatekeeper detected potential problems in your input reads.
-   
+
    Please review the logging in files:
      /assembly/godzilla/asm.gkpStore.BUILDING.err
      /assembly/godzilla/asm.gkpStore.BUILDING/errorLog
-   
+
    If you wish to proceed, rename the store with the following command and restart canu.
-   
+
      mv /assembly/godzilla/asm.gkpStore.BUILDING \
         /assembly/godzilla/asm.gkpStore.ACCEPTED
-   
+
    Option stopOnReadQuality=false skips these checks.
 
   The missing reads could be too short (decrease :ref:`minReadLength <minReadLength>` to include
@@ -258,7 +258,7 @@ saveOverlaps <boolean=false>
   longer needed..  This is recommended in nearly every case.
 
   If set to 'stores', the raw overlapper outputs are removed, but all of the overlap stores are
-  retained.  The overlap stores capture all the critical informatoion in the raw outputs and the raw
+  retained.  The overlap stores capture all the critical information in the raw outputs and the raw
   outputs are redundant and unwieldy.  Retaining the overlap stores can allow one to 'back up' and
   redo a step, but this is generally not useful unless one is familiar with the algorithms.
 
@@ -268,7 +268,7 @@ saveOverlaps <boolean=false>
 saveReadCorrections <boolean=false>.
   If set, do not remove raw corrected read output from correction/2-correction. Normally, this
   output is removed once the corrected reads are generated.
-  
+
 saveIntermediates <boolean=false>
   If set, do not remove intermediate outputs.  Normally, intermediate files are removed
   once they are no longer needed.
@@ -299,7 +299,7 @@ on the option: 'cor' for read correction, 'obt' for read trimming ('overlap base
 read correction to the 'ovl' algorithm.
 
 {prefix}Overlapper <string=see-below>
-  Specify which overlap algorith, 'mhap' or 'ovl' or 'minimap'.  The default is to use 'mhap' for
+  Specify which overlap algorithm, 'mhap' or 'ovl' or 'minimap'.  The default is to use 'mhap' for
   'cor' and 'ovl' for both 'obt' and 'utg'.
 
 Overlapper Configuration, ovl Algorithm
@@ -328,7 +328,7 @@ Overlapper Configuration, ovl Algorithm
   Amount of sequence (bp to load into the overlap hash table.
 
 {prefix}OvlHashLoad <integer=unset>
-  Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search
+  Maximum hash table load.  If set too high, table lookups are inefficient; if too low, search
   overhead dominates run time.
 
 {prefix}OvlMerDistinct <integer=unset>
@@ -399,7 +399,7 @@ ovsMemory <float>
 ovsMethod <string="sequential">
   Two construction algorithms are supported.  The 'sequential' method uses a single data stream, and
   is faster for small and moderate size assemblies.  The 'parallel' method uses multiple compute
-  nodes and can be faster (depending on your network disk bandwitdh) for moderate and large
+  nodes and can be faster (depending on your network disk bandwidth) for moderate and large
   assemblies.
 
   The parallel method is selected for genomes larger than 1 Gbp, but only when Canu runs in grid
@@ -445,14 +445,14 @@ Grid Engine Support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Canu directly supports most common grid scheduling systems.  Under normal use, Canu will query the
-system for grid support, congigure itself for the machines available in the grid, then submit itself
+system for grid support, configure itself for the machines available in the grid, then submit itself
 to the grid for execution.  The Canu pipeline is a series of about a dozen steps that alternate
-between embarassingly parallel computations (e.g., overlap computation) and sequential bookkeeping
+between embarrassingly parallel computations (e.g., overlap computation) and sequential bookkeeping
 steps (e.g., checking if all overlap jobs finished).  This is entirely managed by Canu.
 
 Canu has first class support for the various schedulers derived from Sun Grid Engine (Univa, Son of
 Grid Engine) and the Simple Linux Utility for Resource Management (SLURM), meaning that the
-devlopers have direct access to these systems.  Platform Computing's Load Sharing Facility (LSF) and
+developers have direct access to these systems.  Platform Computing's Load Sharing Facility (LSF) and
 the various schedulers derived from the Portable Batch System (PBS, Torque and PBSPro) are supported
 as well, but without developer access bugs do creep in.  As of Canu v1.5, support seems stable and
 working.
@@ -529,7 +529,7 @@ To run on the grid, each stage needs to be configured - to tell the grid how man
 Some support for this is automagic (for example, overlapInCore and mhap know how to do this), others need to be manually configured.
 Yes, it's a problem, and yes, we want to fix it.
 
-The gridOptions* parameters supply grid-specific opitons to the grid submission command.
+The gridOptions* parameters supply grid-specific options to the grid submission command.
 
 gridOptions <string=unset>
   Grid submission command options applied to all grid jobs
@@ -572,7 +572,7 @@ Algorithm Selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Several algorithmic components of canu can be disabled, based on the type of the reads being
-assebmled, the type of processing desired, or the amount of comput resources available.  Overlap
+assembled, the type of processing desired, or the amount of compute resources available.  Overlap
 
 enableOEA <boolean=true>
   Do overlap error adjustment - comprises two steps: read error detection (RED and overlap error adjustment (OEA
@@ -657,7 +657,7 @@ correction.
 .. _maxThreads:
 
 The 'minMemory', 'maxMemory', 'minThreads' and 'maxThreads' options will apply to all jobs, and
-can be used to artifically limit canu to a portion of the current machine.  In the overlapper
+can be used to artificially limit canu to a portion of the current machine.  In the overlapper
 example above, setting maxThreads=4 would result in two concurrent jobs instead of four.
 
 
@@ -704,15 +704,15 @@ cnsPartitions
   Compute conseus by splitting the tigs into N partitions.
 
 cnsPartitionMin
-  Don't make a paritition with fewer than N reads
+  Don't make a partition with fewer than N reads
 
 cnsMaxCoverage
   Limit unitig consensus to at most this coverage.
- 
+
 .. _cnsErrorRate:
 
 cnsErrorRate
-  Inform the consensus genration algorithm of the amount of difference it should expect in a
+  Inform the consensus generation algorithm of the amount of difference it should expect in a
   read-to-read alignment.  Typically set to :ref:`utgOvlErrorRate <utgOvlErrorRate>`.  If set too
   high, reads could be placed in an incorrect location, leading to errors in the consensus sequence.
   If set too low, reads could be omitted from the consensus graph (or multialignment, depending on
@@ -773,7 +773,7 @@ Output Filtering
 .. _contigFilter:
 
 contigFilter <minReads, integer=2> <minLength, integer=0> <singleReadSpan, float=1.0> <lowCovSpan, float=0.5> <lowCovDepth, integer=5>
-  A contig that meeds any of the following conditions is flagged as 'unassembled' and removed from
+  A contig that needs any of the following conditions is flagged as 'unassembled' and removed from
   further consideration:
     - fewer than minReads reads (default 2)
     - shorter than minLength bases (default 0)
@@ -781,5 +781,5 @@ contigFilter <minReads, integer=2> <minLength, integer=0> <singleReadSpan, float
     - more than lowCovSpan fraction of the contig is at coverage below lowCovDepth (defaults 0.5, 5)
   This filtering is done immediately after initial contigs are formed, before potentially
   incorrectly spanned repeats are detected.  Initial contigs that incorrectly span a repeat can be
-  split into multiple conitgs; none of these new contigs will be flagged as 'unassembled', even if
+  split into multiple contigs; none of these new contigs will be flagged as 'unassembled', even if
   they are a single read.
