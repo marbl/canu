@@ -12,7 +12,7 @@ uniquely-assemblable contigs, unitigs.  Canu owes lots of it design and code to
 `celera-assembler <Celera Assembler>`_.
 
 Canu can be run using hardware of nearly any shape or size, anywhere from laptops to computational
-grids with thousands of nodes.  Obviouisly, larger assemblies will take a long time to compute on
+grids with thousands of nodes.  Obviously, larger assemblies will take a long time to compute on
 laptops, and smaller assemblies can't take advantage of hundreds of nodes, so what is being
 assembled plays some part in determining what hardware can be effectively used.
 
@@ -223,14 +223,14 @@ confidence you can figure out the missing values:
 ==============  =============
 Fraction Error  Percent Error
 ==============  =============
-0.01            1%           
-0.02            2%           
-0.03            3%           
-.               .            
-.               .            
-0.12            12%          
-.               .            
-.               .            
+0.01            1%
+0.02            2%
+0.03            3%
+.               .
+.               .
+0.12            12%
+.               .
+.               .
 ==============  =============
 
 Canu error rates always refer to the percent difference in an alignment of two reads, not the
@@ -320,7 +320,7 @@ Ovl Overlapper Parameters
   how many bases to reads to include in the hash table; directly controls process size
 <tag>ovlRefBlockSize
   how many reads to compute overlaps for in one process; directly controls process time
-<tag>ovlRefBlockLength 
+<tag>ovlRefBlockLength
  same, but use 'bases in reads' instead of 'number of reads'
 <tag>ovlHashBits
   size of the hash table (SHOULD BE REMOVED AND COMPUTED, MAYBE TWO PASS)
@@ -390,7 +390,7 @@ Minimap Overlapper Parameters
 <tag>MMapMerSize
   Use k-mers of this size for detecting overlaps
 
-Minimap also will ignore high-frequency minimzers, but it's selection of frequent is not exposed.
+Minimap also will ignore high-frequency minimizers, but it's selection of frequent is not exposed.
 
 .. _outputs:
 

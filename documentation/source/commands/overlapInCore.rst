@@ -6,7 +6,7 @@ overlapInCore
   * No kmer length supplied; -k needed!
   ERROR:  No output file name specified
   USAGE:  overlapInCore [options] <gkpStorePath>
-  
+
   -b <fn>     in contig mode, specify the output file
   -c          contig mode.  Use 2 frag stores.  First is
               for reads; second is for contigs
@@ -30,15 +30,15 @@ overlapInCore
   -u          allow only 1 overlap per oriented fragment pair
   -w          filter out overlaps with too many errors in a window
   -z          skip the hopeless check
-  
-  --maxerate <n>     only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%)
+
+  --maxrate <n>      only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%)
   --minlength <n>    only output overlaps of <n> or more bases
-  
+
   --hashbits n       Use n bits for the hash mask.
   --hashstrings n    Load at most n strings into the hash table at one time.
   --hashdatalen n    Load at most n bytes into the hash table at one time.
   --hashload f       Load to at most 0.0 < f < 1.0 capacity (default 0.7).
-  
+
   --maxreadlen n     For batches with all short reads, pack bits differently to
                      process more reads per batch.
                        all reads must be shorter than n
@@ -47,7 +47,7 @@ overlapInCore
                        maxreadlen 2048->hashstrings  524288 (default)
                        maxreadlen  512->hashstrings 2097152
                        maxreadlen  128->hashstrings 8388608
-  
+
   --readsperbatch n  Force batch size to n.
   --readsperthread n Force each thread to process n reads.
-  
+

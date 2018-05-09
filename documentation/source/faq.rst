@@ -15,7 +15,7 @@ What resources does Canu require for a bacterial genome assembly? A mammalian as
     resources.  It will request resources, for example, the number of compute threads to use, Based
     on the genome size being assembled. It will fail to even start if it feels there are
     insufficient resources available.
-    
+
     A typical bacterial genome can be assembled with 8GB memory in a few CPU hours - around an hour
     on 8 cores.  It is possible, but not allowed by default, to run with only 4GB memory.
 
@@ -28,7 +28,7 @@ What resources does Canu require for a bacterial genome assembly? A mammalian as
     1TB memory.  We develop and test (mostly bacteria, yeast and drosophila) on laptops and desktops
     with 4 to 12 compute threads and 16GB to 64GB memory.
 
-    
+
 How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
 -------------------------------------
     Canu will detect and configure itself to use on most grids. You can supply your own grid
@@ -44,7 +44,7 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
     can pass grid-specific parameters to the submit commands used; see
     `Issue #756 <https://github.com/marbl/canu/issues/756>`_ for Slurm and SGE examples.
 
-    
+
 My run stopped with the error ``'Failed to submit batch jobs'``
 -------------------------------------
 
@@ -52,7 +52,7 @@ My run stopped with the error ``'Failed to submit batch jobs'``
     compute host, ``qsub/bsub/sbatch/etc`` must be available and working. You can test this by
     starting an interactive compute session and running the submit command manually (e.g. ``qsub``
     on SGE, ``bsub`` on LSF, ``sbatch`` on SLURM).
-    
+
     If this is not the case, Canu **WILL NOT** work on your grid. You must then set
     ``useGrid=false`` and run on a single machine. Alternatively, you can run Canu with
     ``useGrid=remote`` which will stop at every submit command, list what should be submitted. You
@@ -66,7 +66,7 @@ What parameters should I use for my reads?
     Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford
     Nanopore (R6 through R9) data.  Assembly quality and/or efficiency can be enhanced for specific
     datatypes:
-    
+
     **Nanopore R7 1D** and **Low Identity Reads**
        With R7 1D sequencing data, and generally for any raw reads lower than 80% identity, five to
        ten rounds of error correction are helpful::
@@ -92,17 +92,17 @@ What parameters should I use for my reads?
        with ``correctedErrorRate=0.120``
 
     **Early PacBio Sequel**
-       Based on one publically released *A. thaliana* `dataset
+       Based on one publicly released *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 6.5% with
-       ``correctedErrorRate=0.065 corMhapSensitivity=normal``.  
-   
+       ``correctedErrorRate=0.065 corMhapSensitivity=normal``.
+
    **Nanopore R9 large genomes**
        Due to some systematic errors, the identity estimate used by Canu for correction can be an
        over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) with more
        than 30x coverage, we've used ``'corMhapOptions=--threshold 0.8 --num-hashes
        512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This is not needed for below 30x
-       coverage. 
+       coverage.
 
 
 Can I assemble RNA sequence data?
@@ -124,9 +124,9 @@ My assembly continuity is not good, how can I improve it?
     bases output by the correction step.  This is logged in the stdout of Canu or in
     canu-scripts/canu.*.out if you are running in a grid environment. For example on `a
     haploid H. sapiens <https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SAMN02744161>`_ sample:
-    
+
     ::
-    
+
        -- BEGIN TRIMMING
        --
        ...
@@ -171,13 +171,13 @@ What parameters can I tweak?
 
     - ``corMinCoverage``, loosely, controls the quality of the corrected reads.  It is the coverage
       in evidence reads that is needed before a (portion of a) corrected read is reported.
-      Corrected reads are generated as a consensus of other reads; this is just the minimum ocverage
+      Corrected reads are generated as a consensus of other reads; this is just the minimum coverage
       needed for the consensus sequence to be reported.  The default is based on input read
       coverage: 0x coverage for less than 30X input coverage, and 4x coverage for more than that.
 
     For assembly:
 
-    - ``utgOvlErrorRate`` is essientially a speed optimization.  Overlaps above this error rate are
+    - ``utgOvlErrorRate`` is essentially a speed optimization.  Overlaps above this error rate are
       not computed.  Setting it too high generally just wastes compute time, while setting it too
       low will degrade assemblies by missing true overlaps between lower quality reads.
 
@@ -192,25 +192,25 @@ What parameters can I tweak?
 
     For polyploid genomes:
 
-        Generally, there's a couple of ways of dealing with the ploidy. 
-    
+        Generally, there's a couple of ways of dealing with the ploidy.
+
         1) **Avoid collapsing the genome** so you end up with double (assuming diploid) the genome
            size as long as your divergence is above about 2% (for PacBio data). Below this
            divergence, you'd end up collapsing the variations. We've used the following parameters
            for polyploid populations (PacBio data):
 
            ``corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"``
-    
+
            This will output more corrected reads (than the default 40x). The latter option will be
            more conservative at picking the error rate to use for the assembly to try to maintain
            haplotype separation. If it works, you'll end up with an assembly >= 2x your haploid
            genome size. Post-processing using gene information or other synteny information is
-           required to remove redunancy from this assembly.
+           required to remove redundancy from this assembly.
 
         2) **Smash haplotypes together** and then do phasing using another approach (like HapCUT2 or
            whatshap or others). In that case you want to do the opposite, increase the error rates
            used for finding overlaps:
-   
+
            ``corOutCoverage=200 correctedErrorRate=0.15``
 
            When trimming, reads will be trimmed using other reads in the same
@@ -221,7 +221,7 @@ What parameters can I tweak?
 
         The basic idea is to use all data for assembly rather than just the longest as default. The
         parameters we've used recently are:
-        
+
           ``corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=200``
 
     For low coverage:
@@ -291,15 +291,15 @@ My circular element is duplicated/has overlap?
 
     An alternative is to run MUMmer to get self-alignments on the contig and use those trim
     points. For example, assuming the circular element is in ``tig00000099.fa``. Run::
-    
+
       nucmer -maxmatch -nosimplify tig00000099.fa tig00000099.fa
       show-coords -lrcTH out.delta
-    
+
     to find the end overlaps in the tig. The output would be something like::
-    
+
       1	1895	48502	50400	1895	1899	99.37	50400	50400	3.76	3.77	tig00000001	tig00000001
       48502	50400	1	1895	1899	1895	99.37	50400	50400	3.77	3.76	tig00000001	tig00000001
-    
+
     means trim to 1 to 48502. There is also an alternate `writeup
     <https://github.com/PacificBiosciences/Bioinformatics-Training/wiki/Circularizing-and-trimming>`_.
 
@@ -320,7 +320,7 @@ How can I send data to you?
 -------------------------------------
    FTP to ftp://ftp.cbcb.umd.edu/incoming/sergek.  This is a write-only location that only the Canu
    developers can see.
-   
+
    Here is a quick walk-through using a command-line ftp client (should be available on most Linux
    and OSX installations). Say we want to transfer a file named ``reads.fastq``. First, run ``ftp
    ftp.cbcb.umd.edu``, specify ``anonymous`` as the user name and hit return for password
