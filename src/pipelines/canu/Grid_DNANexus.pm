@@ -44,7 +44,7 @@ use canu::Grid "formatAllowedResources";
 sub buildAvailableNodeList() {
     my %hosts;
 
-    open(F, "dx-jobutil-new-job --instance-type-help | grep -v azure |iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
+    open(F, "dx-jobutil-new-job --instance-type-help |iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
 
     my $cpuIdx = 0;
     my $memIdx = 0;
