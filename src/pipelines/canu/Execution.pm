@@ -1026,7 +1026,7 @@ sub convertToJobRange (@) {
 
     my $l = getGlobal("gridEngineArrayMaxJobs") - 1;
 
-    if ($l > 0) {
+    if ($l >= 0) {
         @jobsA = @jobs;
         undef @jobs;
 
