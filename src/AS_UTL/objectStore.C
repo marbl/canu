@@ -206,9 +206,11 @@ fetchFromObjectStore(char *requested) {
 
   char  *dx = getenv("CANU_OBJECT_STORE_CLIENT");
   char  *ns = getenv("CANU_OBJECT_STORE_NAMESPACE");
+  char  *pr = getenv("CANU_OBJECT_STORE_PROJECT");
 
   if ((dx == NULL) ||
-      (ns == NULL))
+      (ns == NULL) ||
+      (pr == NULL))
     return;
 
   //  But now we've got a bit of a problem.  Paths to stores are relative, but we need
@@ -237,7 +239,7 @@ fetchFromObjectStore(char *requested) {
 
   char *cmd = new char [FILENAME_MAX+1];
 
-  snprintf(cmd, FILENAME_MAX, "%s download --output \"%s\" %s/%s", dx, requested, ns, path);
+  snprintf(cmd, FILENAME_MAX, "%s download --output \"%s\" %s:%s/%s", dx, requested, pr, ns, path);
 
   fprintf(stderr, "fetchFromObjectStore()-- executing '%s'\n", cmd);
 

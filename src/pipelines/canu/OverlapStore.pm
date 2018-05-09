@@ -308,7 +308,7 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "outputs=`ls ./$asm.ovlStore.BUILDING/\$jobid*`\n";
             print F "for file in \$outputs ; do\n";
             print F "  outf=`echo \"\$file\" | tr '<' '.' | tr -d '>'`\n";
-            print F "  $client upload --wait --parents --path \"$ns/$base/\$outf\" \"\$file\"\n";
+            print F stashFileShellCode($base, "\$outf", "");
             print F "done\n";
             print F "\n";
         }

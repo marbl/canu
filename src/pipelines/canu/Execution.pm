@@ -480,6 +480,7 @@ sub getBinDirectoryShellCode () {
     $string .= "\n";
     $string .= "export CANU_OBJECT_STORE_CLIENT="    . getGlobal("objectStoreClient")    . "\n";
     $string .= "export CANU_OBJECT_STORE_NAMESPACE=" . getGlobal("objectStoreNameSpace") . "\n";
+    $string .= "export CANU_OBJECT_STORE_PROJECT="   . getGlobal("objectStoreProject")   . "\n";
     $string .= "\n";
     $string .= "\n";
 
@@ -533,7 +534,7 @@ sub setWorkDirectoryShellCode ($) {
         $code .= "  echo IN  /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
         $code .= "fi\n";
     }
-    elsif (getGlobal("objectStore") eq "DNANEXUS") {
+    if (getGlobal("objectStore") eq "DNANEXUS") {
         #  You're probably fine running in some random location, but if there is faster disk
         #  available, move there.
     }
@@ -730,7 +731,20 @@ sub submitScript ($$) {
     my $nameOption           = getGlobal("gridEngineNameOption");
     my $outputOption         = getGlobal("gridEngineOutputOption");
 
-    my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName' $outputOption $outName $script";
+    my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName'";
+    $qcmd .= " $outputOption $outName" if defined($outputOption);
+
+    # on dna nexus we don't submit a script and there is no logging
+    # any parameters get passed through the -i option
+    # the fetch_and_run call is to a function in the app which will downloaded the requested shell script and execute it
+    if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+        $qcmd .= " -iscript_name:string=\"canu.sh\" -icanu_path:string=\"\" \\\n";
+        $qcmd .= " -icanu_iteration:int=" . getGlobal("canuIteration") . " \\\n";
+        $qcmd .= " -icanu_iteration_max:int=" . getGlobal("canuIterationMax") . " \\\n";
+        $qcmd .= " fetch_and_run \\\n";
+    } else {
+        $qcmd .= "  $script";
+    }
 
     runCommand(getcwd(), $qcmd) and caFailure("Failed to submit script", undef);
 
@@ -762,6 +776,13 @@ sub buildGridArray ($$$$) {
     if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS") {
         $opt = ""   if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
         $off = $bgn if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
+    }
+    # DNA nexus doesn't have arrays and only supports 1 job, which we use to pass the identifier
+    # Set the offset to blank since it is not supported as well
+    if (uc(getGlobal("gridEngine")) eq "DNANEXUS" && ($bgn == $end) && ($opt =~ m/ARRAY_JOBS/)) {
+           my $jid = $bgn + $off;
+           $opt =~ s/ARRAY_JOBS/$jid/g;
+           $off = "";
     }
 
     #  Further, PBS/Torque won't let scripts be passed options unless they
@@ -855,6 +876,11 @@ sub buildMemoryOption ($$) {
         $m = $m * 1024 * 1024   if (getGlobal("gridEngineMemoryUnits") eq "k");
         $u = "";
     }
+    if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+       $m = canu::Grid_DNANexus::getDNANexusInstance($m, $t);
+       $u = "";
+    }
+
 
     $r =  getGlobal("gridEngineMemoryOption");
     $r =~ s/MEMORY/${m}${u}/g;
@@ -955,7 +981,8 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $nameOption \"$jobName\" \\\n";
     print F "  $arrayOpt \\\n";
     print F " -- " if (uc(getGlobal("gridEngine")) eq "PBSPRO");
-    print F "  ./$script.sh $arrayOff \\\n";
+    print F " -iscript_name:string=\"$script.sh\" -icanu_path:string=\"$path\" fetch_and_run \\\n" if (uc(getGlobal("gridEngine")) eq "DNANEXUS");
+    print F "  ./$script.sh $arrayOff \\\n"                                                        if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
     print F "> ./$script.jobSubmit-$idx.out 2>&1\n";
     close(F);
 
@@ -1192,6 +1219,7 @@ sub submitOrRunParallelJob ($$$$@) {
                 }
 
                 if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+                   $jobName = $_;
                 }
             }
             close(F);
@@ -1235,7 +1263,7 @@ sub submitOrRunParallelJob ($$$$@) {
         }
 
         if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
-            $jobHold = "...whatever magic needed to hold the job until all jobs in @jobsSubmitted are done...";
+            $jobHold = "--depends-on " . join " ", @jobsSubmitted;
         }
 
         submitScript($asm, $jobHold);

@@ -1,0 +1,79 @@
+{
+  "name": "canu",
+  "title": "canu",
+  "summary": "A single molecule sequence assembler for genomes large and small (http://canu.readthedocs.io/)",
+  "dxapi": "1.0.0",
+  "version": "1.0.0",
+  "inputSpec": [
+    {
+      "name": "input_files",
+      "label": "input sequences to assemble (fasta or fastq) (gz/bz2/xz are ok)",
+      "class": "array:file",
+      "optional": false,
+      "patterns": [
+        "*.fa", "*.fa.gz", "*.fa.bz2", "*.fa.xz", "*.fasta", "*.fasta.gz", "*.fasta.bz2", "*.fasta.xz", "*.fq", "*.fq.gz", "*.fq.bz2", "*.fq.xz", "*.fastq", "*.fastq.gz", "*.fastq.bz2", "*.fastq.xz"
+      ],
+      "help": ""
+    },
+    {
+      "name": "input_type",
+      "label": "input type to assemble, only one type is supported",
+      "class": "string",
+      "optional": false,
+      "choices": ["-pacbio-raw", "-pacbio-corrected", "-nanopore-raw", "-nanopore-corrected"],
+      "help": ""
+    },
+    {
+      "name": "genome_size",
+      "label": "Approximate size of genome, suffixes like k/m/g are supported",
+      "class": "string",
+      "optional": false,
+      "default" : "50k",
+      "help": ""
+    },
+    {
+      "name": "output_prefix",
+      "label": "Prefix to use for output files",
+      "class": "string",
+      "default": "asm",
+      "optional": false,
+      "help": ""
+    },
+    {
+      "name": "parameters",
+      "label": "Parameters to pass through to Canu",
+      "class": "string",
+      "default" : "-fast corPartitions=100 corPartitionMin=100",
+      "optional": true,
+      "help": ""
+    }
+  ],
+  "outputSpec": [
+  ],
+  "runSpec": {
+    "execDepends": [
+        {"name": "gnuplot"},
+        {"name": "openjdk-8-jre-headless"}
+    ],
+    "timeoutPolicy": {
+      "*": {
+        "hours": 72
+      }
+    },
+    "interpreter": "bash",
+    "file": "src/canu.sh",
+    "systemRequirements": {
+      "*": {
+        "instanceType": "mem1_ssd1_x2"
+      }
+    },
+    "distribution": "Ubuntu",
+    "release": "14.04"
+  },
+  "access": {
+    "project": "CONTRIBUTE",
+    "network": [
+      "*"
+    ]
+  }
+}

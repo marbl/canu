@@ -28,7 +28,7 @@ package canu::Grid_DNANexus;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(detectDNANexus configureDNANexus);
+@EXPORT = qw(detectDNANexus configureDNANexus getDNANexusInstance);
 
 use strict;
 use warnings "all";
@@ -41,12 +41,84 @@ use canu::Grid "formatAllowedResources";
 
 
 
+sub buildAvailableNodeList() {
+    my %hosts;
+
+    open(F, "dx-jobutil-new-job --instance-type-help | grep -v azure |iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
+
+    my $cpuIdx = 0;
+    my $memIdx = 0;
+    my $nameIdx = 0;
+
+    while (<F>) {
+       if (m/Name\s+|\s+Memory_GB/) {
+          my @h = split '\|';
+
+          for (my $ii=0; ($ii < scalar(@h)); $ii++) {
+             $cpuIdx  = $ii  if ($h[$ii] eq "CPU_Cores");
+             $memIdx  = $ii  if ($h[$ii] eq "Memory_GB");
+             $nameIdx = $ii  if ($h[$ii] =~ m/Name/);
+          }
+          last;
+       }
+    }
+
+    while (<F>) {
+        my @v = split '\|', $_;
+
+        my $cpus = $v[$cpuIdx];
+        my $mem  = $v[$memIdx];
+        my $name = $v[$nameIdx];
+
+        $mem  = int($mem);
+        $hosts{"$cpus-$mem-$name"}++ if ($mem > 0 && $cpus > 0);
+     }
+     close(F);
+
+     return %hosts;
+}
+
+sub getDNANexusInstance($$) {
+    my $requestMem       = shift @_;
+    my $requestCPU       = shift @_;
+    my $instance         = "";
+    my $currCPU          = 99999;
+    my $currMem          = 99999;
+
+    my %hosts = buildAvailableNodeList();
+
+    foreach my $host (keys %hosts) {
+        my @v = split '-', $host;
+
+        my $cpus = $v[0];
+        my $mem  = $v[1];
+
+        if ($mem >= $requestMem && $cpus >= $requestCPU && $mem <= $currMem) {
+            $instance = $v[2];
+            $currCPU = $cpus;
+            $currMem = $mem;
+         }
+    }
+
+    die "-- ERROR:    cannot fine a node to satisfy request for CPU=$requestCPU and MEM=${requestMem}G\n" if (! defined($instance));
+    print STDERR "-- Selected $instance for request of ${requestMem}G and $requestCPU.\n";
+    return $instance;
+}
+
+
 sub detectDNANexus () {
 
     return   if ( defined(getGlobal("gridEngine")));   #  Grid not requested.
-    return   if (!defined($ENV{'DNA_NEXUS'}));         #  Not a DNA Nexus grid
+    return   if (!defined($ENV{'DNANEXUS_HOME'}));     #  Not a DNA Nexus grid
 
-    print STDERR "-- Detected DNA Nexus '...some-version...'.\n";
+    my $dnanodes = findExecutable("dx-jobutil-new-job");
+
+    return   if (!defined($dnanodes));
+
+    my ($version) = `dx --version`;
+    chomp $version;
+
+    print STDERR "-- Detected DNA Nexus '$version' in '$ENV{'DNANEXUS_HOME'}'.\n";
     setGlobal("gridEngine", "DNANEXUS");
 
     #  DNANexus mode doesn't support (easily) the sequence store check on short reads.
@@ -61,39 +133,25 @@ sub configureDNANexus () {
 
     return   if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
 
-    my $maxArraySize = 65535;
+    my $maxArraySize = 1;    # no array jobs
 
     #  Probe for the maximum array job size
 
-    setGlobalIfUndef("gridEngineSubmitCommand",              "");
-    setGlobalIfUndef("gridEngineNameOption",                 "");
-    setGlobalIfUndef("gridEngineArrayOption",                "");
-    setGlobalIfUndef("gridEngineArrayName",                  "");
+    setGlobalIfUndef("gridEngineSubmitCommand",              "dx-jobutil-new-job");
+    setGlobalIfUndef("gridEngineNameOption",                 "--name");
+    setGlobalIfUndef("gridEngineArrayOption",                "-iDX_ARRAY_ID:int=ARRAY_JOBS");
+    setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
     setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
-    setGlobalIfUndef("gridEngineOutputOption",               "");
-    setGlobalIfUndef("gridEnginePropagateCommand",           "");
+    setGlobalIfUndef("gridEngineOutputOption",               undef);
+    setGlobalIfUndef("gridEnginePropagateCommand",           undef);
     setGlobalIfUndef("gridEngineThreadsOption",              undef);
-    setGlobalIfUndef("gridEngineMemoryOption",               undef);
+    setGlobalIfUndef("gridEngineMemoryOption",               "--instance-type MEMORY");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
-    setGlobalIfUndef("gridEngineTaskID",                     "");
-    setGlobalIfUndef("gridEngineArraySubmitID",              "");
-    setGlobalIfUndef("gridEngineJobID",                      "");
+    setGlobalIfUndef("gridEngineTaskID",                     "DX_ARRAY_ID");
+    setGlobalIfUndef("gridEngineArraySubmitID",              undef);
+    setGlobalIfUndef("gridEngineJobID",                      "DX_JOB_ID");
 
-
-    my %hosts;
-
-    #  Probe for how to request multiple CPUs on each node, set
-
-    #  .
-    #  .
-    #  .
-
-    #  Probe for how to reserve memory on each node
-
-    #  .
-    #  .
-    #  .
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys of
     #  "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
@@ -101,9 +159,33 @@ sub configureDNANexus () {
     #
     #  The list is saved in global{"availableHosts"}
 
-    #  .
-    #  $hosts{"4-32"} = 15;   #  15 machines with 4 CPUs and 32gb memory
-    #  .
+
+    my %hosts = buildAvailableNodeList();
+
+
+    foreach my $host (keys %hosts) {
+        my @v = split '-', $host;
+
+        my $cpus = $v[0];
+        my $mem  = $v[1];
+
+        $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
+    }
+
+    if (scalar(keys(%hosts)) == 0) {
+        my $mm = getGlobal("maxMemory");
+        my $mt = getGlobal("maxThreads");
+
+        print STDERR "--\n";
+        print STDERR "-- WARNING:  No hosts found in 'instance' report.\n";
+        print STDERR "-- WARNING:  Will use maxMemory=$mm and maxThreads=$mt instead.\n";
+        print STDERR "-- ERROR:    maxMemory not defined!\n"   if (!defined($mm));
+        print STDERR "-- ERROR:    maxThreads not defined!\n"  if (!defined($mt));
+
+        caExit("maxMemory or maxThreads not defined", undef)  if (!defined($mm) || !defined($mt));
+
+        $hosts{"$mt-$mm"}++;
+    }
 
     setGlobal("availableHosts", formatAllowedResources(%hosts, "DNA Nexus"));
 }

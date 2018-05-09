@@ -878,6 +878,7 @@ sub setDefaults () {
     setDefault("objectStore",          undef,  "Type of object storage used; not ready for production yet");
     setDefault("objectStoreClient",    undef,  "Path to the command line client used to access the object storage");
     setDefault("objectStoreNameSpace", undef,  "Object store parameters; specific to the type of objectStore used");
+    setDefault("objectStoreProject",   undef,  "Object store project; specific to the type of objectStore used");
 
     #####  Overlapper
 
