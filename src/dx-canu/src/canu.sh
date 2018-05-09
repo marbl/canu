@@ -78,8 +78,9 @@ main() {
     if [ ! -s ${output_prefix}.contigs.fasta ]; then
        # save the command without the inputs
        echo "canu objectStore=DNANEXUS objectStoreClient=dx objectStoreNameSpace=$output_path objectStoreProject=$DX_PROJECT_CONTEXT_ID -d . -p ${output_prefix} genomeSize=${genome_size} $parameters" > canu.sh
-       exists=`dx describe --name $DX_PROJECT_CONTEXT_ID:$output_path/canu.sh`
-       if [ -e canu.sh -o x$exists != x ] ; then
+       # bash is set to quit in the app on any error (including file doesn't exist) so we only run rm on success of describe, otherwise nothing
+       exists=`dx describe --name $DX_PROJECT_CONTEXT_ID:$output_path/canu.sh || true`
+       if [[ -e canu.sh && x$exists != x ]] ; then
            dx rm --recursive $DX_PROJECT_CONTEXT_ID:$output_path/canu.sh
        fi
        dx upload --wait --parents --path $DX_PROJECT_CONTEXT_ID:$output_path/canu.sh canu.sh
