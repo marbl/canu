@@ -475,7 +475,6 @@ sub generateCorrectedReadsConfigure ($) {
     print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.tig", "");
     print F "\n";
     print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
-    print F fetchFileShellCode($path, "$asm.globalScores",   "");
     print F "\n";
 
     print F "seqStore=\"../../$asm.seqStore\"\n";
