@@ -771,7 +771,7 @@ sub dumpCorrectedReads ($) {
     goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
-    return         if (! -d "correction/$asm.corStore");  #  No corrections done, nothing to do.
+    return         if (! -d "correction/2-correction");  #  No corrections done, nothing to do.
 
     #  If no corrected reads exist, don't bother trying to dump them.
 
