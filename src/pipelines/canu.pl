@@ -648,7 +648,8 @@ if ((setOptions($mode, "trim") eq "trim") &&
 dumpTrimmedReads ($asm);
 
 if (setOptions($mode, "assemble") eq "assemble") {
-    if (sequenceFileExists("$asm.contigs") eq undef) {
+    if ((! fileExists("$asm.contigs.fasta")) &&
+        (! fileExists("$asm.contigs.fastq"))) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN ASSEMBLY\n";
