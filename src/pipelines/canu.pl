@@ -512,11 +512,6 @@ $ENV{'CANU_DIRECTORY'} = getcwd();
 
 writeLog();
 
-#  Submit ourself for grid execution?  If not grid enabled, or already running on the grid, this
-#  call just returns.  The arg MUST be undef.
-
-submitScript($asm, undef);
-
 #
 #  When doing 'run', this sets options for each stage.
 #    - overlapper 'mhap' for correction, 'ovl' for trimming and assembly.
@@ -595,6 +590,9 @@ if (setOptions($mode, "correct") eq "correct") {
     if ((getNumberOfBasesInStore($asm, "obt") == 0) &&
         (! fileExists("$asm.correctedReads.fasta.gz")) &&
         (! fileExists("$asm.correctedReads.fastq.gz"))) {
+
+        submitScript($asm, undef);   #  See comments there as to why this is safe.
+
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN CORRECTION\n";
@@ -629,6 +627,9 @@ if ((setOptions($mode, "trim") eq "trim") &&
     if ((getNumberOfBasesInStore($asm, "utg") == 0) &&
         (! fileExists("$asm.trimmedReads.fasta.gz")) &&
         (! fileExists("$asm.trimmedReads.fastq.gz"))) {
+
+        submitScript($asm, undef);   #  See comments there as to why this is safe.
+
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN TRIMMING\n";
@@ -654,6 +655,9 @@ dumpTrimmedReads ($asm);
 if (setOptions($mode, "assemble") eq "assemble") {
     if ((! fileExists("$asm.contigs.fasta")) &&
         (! fileExists("$asm.contigs.fastq"))) {
+
+        submitScript($asm, undef);   #  See comments there as to why this is safe.
+
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN ASSEMBLY\n";
