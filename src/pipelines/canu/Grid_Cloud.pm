@@ -57,6 +57,8 @@ use canu::Execution;
 
 #use canu::Grid "formatAllowedResources";
 
+my $showWork = 0;
+
 
 #  Convert a/path/to/file to ../../../..
 sub pathToDots ($) {
@@ -110,11 +112,6 @@ sub fileExists ($@) {
     if    (isOS() eq "DNANEXUS") {
         $exists = `$client describe --name $pr:$ns/$file`;
     }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        $exists = "";
-    }
 
     $exists =~ s/^\s+//;
     $exists =~ s/\s+$//;
@@ -133,13 +130,13 @@ sub fileExistsShellCode ($@) {
     my $pr     = getGlobal("objectStoreProject");
     my $code   = "";
 
+    #  NOTE that this does NOT emit the closing fi.
+
     if    (isOS() eq "DNANEXUS") {
-        $code .= "${indent}if [ ! -e $file ] ; then\n";                        #  NOTE that this does
-        $code .= "${indent}  exists=`$client describe --name $pr:$ns/$file`\n";    #  not emit the closing
-        $code .= "${indent}fi\n";                                              #  fi.
+        $code .= "${indent}if [ ! -e $file ] ; then\n";
+        $code .= "${indent}  exists=`$client describe --name $pr:$ns/$file`\n";
+        $code .= "${indent}fi\n";
         $code .= "${indent}if [ -e $file -o x\$exists != x ] ; then\n";
-    }
-    elsif (isOS() eq "TEST") {
     }
     else {
         $code .= "${indent}if [ -e $file ]; then\n";
@@ -156,16 +153,12 @@ sub renameStashedFile ($$) {
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
+
+    print STDERR "renameStashedFile()-- '$ns/$oldname' -> '$ns/$newname'\n"   if ($showWork);
 
     if    (isOS() eq "DNANEXUS") {
-        print STDERR "renameStashedFile()-- '$ns/$oldname' -> '$ns/$newname'\n";
-
-        runCommandSilently(".", "$client mv $ns/$oldname $ns/$newname", 1);
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        #  Nothing we can be obnoxious about here, I suppose we could log...
+        runCommandSilently(".", "$client mv $pr:$ns/$oldname $pr:$ns/$newname", 1);
     }
 }
 
@@ -180,15 +173,10 @@ sub removeStashedFile ($) {
 
     return   if (! fileExists("$name", 1));
 
-    if    (isOS() eq "DNANEXUS") {
-        print STDERR "removeStashedFile()-- '$ns/$name'\n";
+    print STDERR "removeStashedFile()-- '$ns/$name'\n"   if ($showWork);
 
+    if    (isOS() eq "DNANEXUS") {
         runCommandSilently(".", "$client rm --recursive $pr:$ns/$name", 1);
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        #  Nothing we can be obnoxious about here, I suppose we could log...
     }
 }
 
@@ -213,15 +201,12 @@ sub fetchFile ($) {
     return   if (-e $file);   #  If it exists, we don't need to fetch it.
     return   if (! fileExists($file, 1)); # If it doesn't exist in the env we don't fetch either
 
+    print STDERR "fetchFile()-- '$file' from '$ns/$file'\n"   if ($showWork);
+
+    make_path(dirname($file));
+
     if    (isOS() eq "DNANEXUS") {
-        print STDERR "fetchFile()-- '$file' from '$ns/$file'\n";
-        make_path(dirname($file));
         runCommandSilently(".", "$client download --output $file $pr:$ns/$file", 1);
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        #  Nothing we can be obnoxious about here, I suppose we could log...
     }
 }
 
@@ -256,11 +241,6 @@ sub fetchFileShellCode ($$$) {
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
     }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        $code .= "#  File must exist: $file\n";
-    }
 
     return($code);
 }
@@ -278,16 +258,11 @@ sub stashFile ($) {
 
     removeStashedFile($file);
 
+    print STDERR "stashFile()-- '$file' to '$ns/$file'\n"   if ($showWork);
+
     if    (isOS() eq "DNANEXUS") {
-        print STDERR "stashFile()-- '$file' to '$ns/$file'\n";
         runCommandSilently(".", "$client upload --wait --parents --path $pr:$ns/$file $file", 1);
     }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        #  Nothing we can be obnoxious about here, I suppose we could log...
-    }
-
 }
 
 
@@ -309,17 +284,12 @@ sub stashFileShellCode ($$$) {
     if    (isOS() eq "DNANEXUS") {
         $code .= "${indent}if [ -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  cd $dots/$path\n";
-        $code .= fileExistsShellCode("$path/$file", $indent);
-        $code .= "${indent}  $client rm --recursive $pr:$ns/$path/$file\n";
+        $code .= fileExistsShellCode("$path/$file", "$indent  ");
+        $code .= "${indent}    $client rm --recursive $pr:$ns/$path/$file\n";
         $code .= "${indent}  fi\n";
         $code .= "${indent}  $client upload --wait --parents --path $pr:$ns/$path/$file $file\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        $code .= "#  File is important: $file\n";
     }
 
     return($code);
@@ -351,13 +321,10 @@ sub fetchSeqStore ($) {
     return   if (-e "./$asm.seqStore/info");
     return   if (! fileExists("$asm.seqStore.tar"));
 
+    print STDERR "fetchStore()-- Retrieving store '$asm.seqStore'\n"   if ($showWork);
+
     if    (isOS() eq "DNANEXUS") {
-        print STDERR "fetchStore()-- Retrieving store '$asm.seqStore'\n";
         runCommandSilently(".", "$client download --output - $pr:$ns/$asm.seqStore.tar | tar -xf -", 1);
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
     }
 }
 
@@ -382,11 +349,6 @@ sub fetchSeqStoreShellCode ($$$) {
         $code .= "${indent}  $client download --output - $pr:$ns/$asm.seqStore.tar | tar -C $root -xf -\n";
         $code .= "${indent}fi\n";
     }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        $code .= "#  Store must exist: $root/$asm.seqStore\n";
-    }
 
     return($code);
 }
@@ -395,7 +357,6 @@ sub fetchSeqStoreShellCode ($$$) {
 
 sub stashSeqStore ($) {
     my $asm    = shift @_;
-    my $cmd;
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
@@ -404,10 +365,10 @@ sub stashSeqStore ($) {
     return   if (! -e "$asm.seqStore/info");
 
     if    (isOS() eq "DNANEXUS") {
+        my $cmd;
 
         #  Stash the store metadata.
 
-        removeStashedFile("$asm.seqStore.tar");
         $cmd  = "tar -cf - ";
         $cmd .= "./$asm.seqStore.err";
         $cmd .= " ./$asm.seqStore.ssi";
@@ -423,7 +384,9 @@ sub stashSeqStore ($) {
         $cmd .= " ./$asm.seqStore/version*" if (-e "./$asm.seqStore/version.001");
         $cmd .= " | $client upload --wait --parents --path $pr:$ns/$asm.seqStore.tar -";
 
-        print STDERR "stashSeqStore()-- Saving sequence store '$asm.seqStore'\n";
+        removeStashedFile("$asm.seqStore.tar");
+
+        print STDERR "stashSeqStore()-- Saving sequence store '$asm.seqStore'\n"   if ($showWork);
 
         runCommandSilently(".", $cmd, 1);
 
@@ -434,10 +397,6 @@ sub stashSeqStore ($) {
                 runCommandSilently(".", "cat $asm.seqStore/blobs.$bIdx | $client upload --wait --parents --path $pr:$ns/$asm.seqStore/blobs.$bIdx -", 1);
             }
         }
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
     }
 }
 
@@ -465,11 +424,6 @@ sub fetchSeqStorePartitionShellCode ($$$) {
         $code .= "${indent}  $client download --output - $pr:$ns/$storePath.$storeName.\$jobid.tar | tar -C $root/$storePath -xf -\n";
         $code .= "${indent}fi\n";
     }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        $code .= "#  Store must exist: $root/$storePath/$storeName\n";
-    }
 
     return($code);
 }
@@ -489,9 +443,6 @@ sub stashSeqStorePartitions ($$$$) {
     my $storePath = "$base/$asm.${tag}Store";
     my $storeName = "partitionedReads.seqStore";
 
-    print STDERR "storePath '$storePath'\n";
-    print STDERR "storeName '$storeName'\n";
-
     return   if (! -e "$storePath/$storeName/info");
 
     if    (isOS() eq "DNANEXUS") {
@@ -500,7 +451,6 @@ sub stashSeqStorePartitions ($$$$) {
         for (my $job=1; $job <= $nJobs; $job++) {
             my $cmd;
 
-            removeStashedFile("$storePath.$storeName.$jName.tar");
             $cmd  = "tar -cf - ";
             $cmd .= " ./$storeName/info";
             $cmd .= " ./$storeName/info.txt";
@@ -510,16 +460,14 @@ sub stashSeqStorePartitions ($$$$) {
             $cmd .= " ./$storeName/partitions/reads.$jName";
             $cmd .= " | $client upload --wait --parents --path $pr:$ns/$storePath.$storeName.$jName.tar -";
 
-            print STDERR "stashPartitionedSeqStore()-- Saving partitioned sequence store '$storePath/$storeName.$jName'\n";
+            removeStashedFile("$storePath.$storeName.$jName.tar");
+
+            print STDERR "stashPartitionedSeqStore()-- Saving partitioned sequence store '$storePath/$storeName.$jName'\n"   if ($showWork);
 
             runCommandSilently($storePath, $cmd, 1);
 
             $jName++;
         }
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
     }
 }
 
@@ -540,13 +488,10 @@ sub fetchOvlStore ($$) {
     return   if (-e "./$base/$asm.ovlStore/index");
     return   if (! fileExists("$base/$asm.ovlStore.tar"));
 
+    print STDERR "fetchStore()-- Retrieving store '$base/$asm.ovlStore'\n"   if ($showWork);
+
     if    (isOS() eq "DNANEXUS") {
-        print STDERR "fetchStore()-- Retrieving store '$base/$asm.ovlStore'\n";
         runCommandSilently($base, "$client download --output - $pr:$ns/$base/$asm.ovlStore.tar | tar -xf -", 1);
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
     }
 }
 
@@ -555,7 +500,6 @@ sub fetchOvlStore ($$) {
 sub stashOvlStore ($$) {
     my $asm    = shift @_;
     my $base   = shift @_;
-    my $cmd;
 
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
@@ -564,10 +508,10 @@ sub stashOvlStore ($$) {
     return   if (! -e "./$base/$asm.ovlStore/index");
 
     if    (isOS() eq "DNANEXUS") {
+        my $cmd;
 
         #  Stash the store metadata.
 
-        removeStashedFile("$base/$asm.ovlStore.tar");
         $cmd  = "tar -cf - ";
         $cmd .= " ./$asm.ovlStore/info";
         $cmd .= " ./$asm.ovlStore/index";
@@ -576,7 +520,9 @@ sub stashOvlStore ($$) {
         $cmd .= " ./$asm.ovlStore.config.txt";
         $cmd .= " | $client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore.tar -";
 
-        print STDERR "stashOvlStore()-- Saving overlap store '$base/$asm.ovlStore'\n";
+        removeStashedFile("$base/$asm.ovlStore.tar");
+
+        print STDERR "stashOvlStore()-- Saving overlap store '$base/$asm.ovlStore'\n"   if ($showWork);
 
         runCommandSilently($base, $cmd, 1);
 
@@ -589,10 +535,6 @@ sub stashOvlStore ($$) {
             }
         }
         }
-    }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
     }
 }
 
@@ -617,11 +559,10 @@ sub fetchOvlStoreShellCode ($$$) {
         $code .= "${indent}  $client download --output - $pr:$ns/$base/$asm.ovlStore.tar | tar -C $root/$base -xf -\n";
         $code .= "${indent}fi\n";
     }
-    elsif (isOS() eq "TEST") {
-    }
-    else {
-        $code .= "#  Store must exist: $root/$base/$asm.ovlStore\n";
-    }
 
     return($code);
 }
+
+
+1;
+
