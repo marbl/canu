@@ -501,7 +501,11 @@ sub getBinDirectoryShellCode () {
 #  Note that canu does minimal cleanup.
 #
 
-sub setWorkDirectory () {
+sub setWorkDirectory ($$) {
+    my $asm     = shift @_;
+    my $rootdir = shift @_;
+
+    #  Set the initial directory based on various rules.
 
     if    ((getGlobal("objectStore") eq "TEST") && (defined($ENV{"JOB_ID"}))) {
         my $jid = $ENV{'JOB_ID'};
@@ -517,6 +521,18 @@ sub setWorkDirectory () {
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
         chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
     }
+
+    #  Now move into the assembly directory.
+
+    if (defined($rootdir)) {
+        make_path($rootdir)  if (! -d $rootdir);
+        chdir($rootdir);
+    }
+
+    #  And save some pieces we need when we quit.
+
+    setGlobal("onExitDir", getcwd());
+    setGlobal("onExitNam", $asm);
 }
 
 

@@ -324,23 +324,17 @@ configureRemote();
 configureCloud($asm);
 configureDNANexus();
 
-#  Based on genomeSize, configure the execution of every component.
-#  This needs to be done AFTER the grid is setup!
+#  Set jobs sizes based on genomeSize and available hosts;
+#  Check that parameters (except error rates) are valid and consistent;
+#  Fail if any thing flagged an error condition;
 
-configureAssembler();
+configureAssembler();  #  Set job sizes and etc bases on genomeSize and hosts available.
+checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
+printHelp();           #  And one final last chance to fail.
 
-#  And, finally, move to the assembly directory, finish setting things up, and report the critical
-#  parameters.
+#  Make space for us to work in, and move there.
 
-setWorkDirectory();
-
-if (defined($rootdir)) {
-    make_path($rootdir)  if (! -d $rootdir);
-    chdir($rootdir);
-}
-
-setGlobal("onExitDir", getcwd());
-setGlobal("onExitNam", $asm);
+setWorkDirectory($asm, $rootdir);
 
 #  Figure out read inputs.  From an existing store?  From files?  Corrected?  Etc, etc.
 
@@ -484,14 +478,6 @@ if ($type eq"pacbio") {
 caExit("ERROR: No reads supplied, and can't find any reads in any seqStore", undef)   if (!defined($mode));
 caExit("ERROR: Failed to determine the sequencing technology of the reads", undef)    if (!defined($type));
 caExit("ERROR: Can't mix uncorrected and corrected reads", undef)                     if ($haveRaw && $haveCorrected);
-
-#  Do a final check on parameters, cleaning up paths and case, and failing on invalid stuff.
-
-checkParameters();
-
-#  And one final last chance to fail - because java and gnuplot both can set an error.
-
-printHelp();
 
 #  Go!
 

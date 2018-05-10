@@ -1219,9 +1219,11 @@ sub checkParameters () {
         }
     }
 
+    #  Undefined error rate are OK; we'll set them to defaults later.
+    #  Non-numeric or negative (or too positive) rates are definitely bad.
+
     foreach my $var ("corOvlErrorRate", "obtOvlErrorRate", "utgOvlErrorRate", "corErrorRate", "obtErrorRate", "utgErrorRate", "cnsErrorRate") {
-        if (!defined(getGlobal($var))) {
-            addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
+        if    (!defined(getGlobal($var))) {
         }
         elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
