@@ -771,7 +771,16 @@ sub dumpCorrectedReads ($) {
     goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
     goto allDone   if (sequenceFileExists("$asm.correctedReads"));
     goto allDone   if (getGlobal("saveReads") == 0);
-    return         if (! -d "correction/2-correction");  #  No corrections done, nothing to do.
+
+    #  We need to skip this entire function if corrected reads were not computed.
+    #  Otherwise, we incorrectly declare that no corrected reads were generated
+    #  and halt the assembly.
+    #
+    #  In cloud mode, we dump reads right after loading them, and to load them,
+    #  the 2-correction directory must exist, so we use that to decide if correction
+    #  was attempted.
+
+    return         if (! -d "correction/2-correction");
 
     #  If no corrected reads exist, don't bother trying to dump them.
 
@@ -789,9 +798,9 @@ sub dumpCorrectedReads ($) {
         }
 
         unlink "./$asm.correctedReads.fasta.err";
-    }
 
-    stashFile("$asm.correctedReads.fasta.gz");
+        stashFile("$asm.correctedReads.fasta.gz");
+    }
 
     #  If the corrected reads file exists, report so.
     #  Otherwise, report no corrected reads, and generate fake outputs so we terminate.
@@ -810,6 +819,9 @@ sub dumpCorrectedReads ($) {
 
         runCommandSilently(".", "gzip -1vc < /dev/null > $asm.correctedReads.gz 2> /dev/null", 0)   if (! -e "$asm.correctedReads.gz");
         runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
+
+        stashFile("$asm.correctedReads.fasta.gz");
+        stashFile("$asm.trimmedReads.fasta.gz");
 
         generateOutputs($asm);
     }
