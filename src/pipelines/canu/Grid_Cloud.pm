@@ -319,7 +319,7 @@ sub fetchSeqStore ($) {
     my $pr     = getGlobal("objectStoreProject");
 
     return   if (-e "./$asm.seqStore/info");
-    return   if (! fileExists("$asm.seqStore.tar"));
+    return   if (! fileExists("$asm.seqStore.tar", 1));
 
     print STDERR "fetchStore()-- Retrieving store '$asm.seqStore'\n"   if ($showWork);
 
