@@ -1190,10 +1190,12 @@ sub checkParameters () {
     fixCase("stopAfter");
 
     #
-    #  Well, crud.  'gridEngine' wants to be uppercase, not lowercase like fixCase() would do.
+    #  Well, crud.  'gridEngine' and 'objectStore' want to be uppercase, not lowercase like
+    #  fixCase() would do.
     #
 
-    $global{"gridengine"} =~ tr/a-z/A-Z/;  #  NOTE: lowercase 'gridengine'
+    $global{"gridengine"}  =~ tr/a-z/A-Z/;  #  NOTE: lowercase 'gridengine'
+    $global{"objectstore"} =~ tr/a-z/A-Z/;  #  NOTE: lowercase 'objectstore'
 
     #
     #  Check for inconsistent parameters
@@ -1355,6 +1357,21 @@ sub checkParameters () {
         (getGlobal("useGrid") ne "remote")) {
         addCommandLineError("ERROR:  Invalid 'useGrid' specified (" . getGlobal("useGrid") . "); must be 'true', 'false' or 'remote'\n");
     }
+
+
+    if ((getGlobal("objectStore") ne "") &&
+        (getGlobal("objectStore") ne "DNANEXUS")) {
+        addCommandLineError("ERROR:  Invalid 'objectStore' specified (" . getGlobal("objectStore") . "); must be unset or 'DNANEXUS'\n");
+    }
+
+    if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClient")))) {
+        addCommandLineError("ERROR:  objectStoreClient must be specified if objectStore is specified\n");
+    }
+
+    if ((getGlobal("objectStore") eq "DNANEXUS") && (!defined(getGlobal("objectStoreProject")))) {
+        addCommandLineError("ERROR:  objectStoreProject must be specified if objectStore=DNANEXUS is specified\n");
+    }
+
 
     if (defined(getGlobal("stopAfter"))) {
         my $ok = 0;
