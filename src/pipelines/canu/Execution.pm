@@ -1353,13 +1353,6 @@ sub submitOrRunParallelJob ($$$$@) {
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path, $jobType);
-
-    if (getGlobal("objectStore") eq "TEST") {
-        print STDERR "--\n";
-        print STDERR "-- Stopping after parallel jobs in Execution.pm.\n";
-        print STDERR "--\n";
-        exit(0);
-    }
 }
 
 
