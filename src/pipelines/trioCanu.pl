@@ -327,8 +327,6 @@ if (defined($rootdir)) {
 setGlobal("onExitDir", getcwd());
 setGlobal("onExitNam", $asm);
 
-setGlobalIfUndef("objectStoreNameSpace", $asm);   #  No good place to put this.
-
 #  Check for a few errors:
 #    no mode                -> don't have any reads or any store to run from.
 #    both raw and corrected -> don't know how to process these
