@@ -506,13 +506,17 @@ sub setWorkDirectory ($$) {
     my $rootdir = shift @_;
 
     #  Set the initial directory based on various rules.
+    #
+    #  For the canu executive, in grid mode, both setWorkDirectoryShellCode and
+    #  this (in that order) are called.  TEST is assuming that all (non-executive)
+    #  compute jobs are run as arrays.
 
     if    ((getGlobal("objectStore") eq "TEST") && (defined($ENV{"JOB_ID"}))) {
         my $jid = $ENV{'JOB_ID'};
-        my $tid = $ENV{'SGE_TASK_ID'};
+        my $tid = $ENV{'SGE_TASK_ID'};   #  'undefined' since this isn't an array job.
 
-        make_path("/assembly/COMPUTE/job-$jid-$tid");
-        chdir    ("/assembly/COMPUTE/job-$jid-$tid");
+        make_path("/assembly/COMPUTE/job-$jid");
+        chdir    ("/assembly/COMPUTE/job-$jid");
     }
 
     elsif (getGlobal("objectStore") eq "DNANEXUS") {
@@ -545,15 +549,18 @@ sub setWorkDirectoryShellCode ($) {
         $code .= "if [ z\$SGE_TASK_ID != z ] ; then\n";
         $code .= "  jid=\$JOB_ID\n";
         $code .= "  tid=\$SGE_TASK_ID\n";
-        $code .= "  mkdir -p /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
-        $code .= "  cd       /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
-        $code .= "  echo IN  /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "  if [ x\$tid != xundefined ] ; then\n";
+        $code .= "    mkdir -p /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "    cd       /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "  fi\n";
         $code .= "fi\n";
     }
-    if (getGlobal("objectStore") eq "DNANEXUS") {
+
+    elsif (getGlobal("objectStore") eq "DNANEXUS") {
         #  You're probably fine running in some random location, but if there is faster disk
         #  available, move there.
     }
+
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
         $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
         $code .= "  cd \$PBS_O_WORKDIR\n";

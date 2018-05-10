@@ -67,7 +67,12 @@ sub pathToDots ($) {
 
 #  True if we're using an object store.
 sub isOS () {
-    return(getGlobal("objectStore"));
+    my $os = getGlobal("objectStore");
+
+    #  TEST mode is just like DNANEXUS, except where jobs run; see Execution.pm.
+    $os = "DNANEXUS"   if ($os eq "TEST");
+
+    return($os);
 }
 
 

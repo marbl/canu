@@ -1362,6 +1362,7 @@ sub checkParameters () {
 
 
     if ((getGlobal("objectStore") ne "") &&
+        (getGlobal("objectStore") ne "TEST") &&
         (getGlobal("objectStore") ne "DNANEXUS")) {
         addCommandLineError("ERROR:  Invalid 'objectStore' specified (" . getGlobal("objectStore") . "); must be unset or 'DNANEXUS'\n");
     }
