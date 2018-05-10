@@ -198,8 +198,8 @@ sub fetchFile ($) {
     my $ns     = getGlobal("objectStoreNameSpace");
     my $pr     = getGlobal("objectStoreProject");
 
-    return   if (-e $file);   #  If it exists, we don't need to fetch it.
-    return   if (! fileExists($file, 1)); # If it doesn't exist in the env we don't fetch either
+    return   if (-e $file);                 #  If it exists, we don't need to fetch it.
+    return   if (! fileExists($file, 1));   #  If it doesn't exist in the store, we don't fetch it either.  Because it doesn't exist.
 
     print STDERR "fetchFile()-- '$file' from '$ns/$file'\n"   if ($showWork);
 
