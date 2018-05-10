@@ -67,7 +67,7 @@ if ($task eq "rm") {
 
         if      ($arg eq "--recursive") {    #  NOT SUPPORTED!
             $recursive = 1;
-            continue;
+            next;
         }
 
         unlink("$STASH/$arg");
@@ -112,12 +112,12 @@ if ($task eq "upload") {
     die "dx upload - no input file supplied.\n"      if (!defined($file));
     die "dx upload - input file $file not found.\n"  if (($file ne "-") && (! -e $file));
 
-    system("mkdir -p $STASH/" . dirname($path))   if ($parents);
+    system("mkdir -p $STASH/" . dirname($path) . " 2> /dev/null")   if ($parents);
 
     if ($file eq "-") {
-        system("dd status=none \"of=$STASH/$path\"");
+        system("dd status=none \"of=$STASH/$path\" 2> /dev/null");
     } else {
-        system("cp -fp \"$file\" \"$STASH/$path\"");
+        system("cp -fp \"$file\" \"$STASH/$path\" 2> /dev/null");
     }
 }
 
@@ -153,9 +153,9 @@ if ($task eq "download") {
     exit(0)  if (! -e "$STASH/$path");
 
     if ($file eq "-") {
-        system("dd status=none \"if=$STASH/$path\"");
+        system("dd status=none \"if=$STASH/$path\" 2> /dev/null");
     } else {
-        system("cp -fp \"$STASH/$path\" \"$file\"");
+        system("cp -fp \"$STASH/$path\" \"$file\" 2> /dev/null");
     }
 }
 
