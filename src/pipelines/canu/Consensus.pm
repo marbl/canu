@@ -660,10 +660,11 @@ sub alignGFA ($) {
     #  If a large genome, run this on the grid, else, run in the canu process itself.
     my $runGrid = (getGlobal("genomeSize") >= 40000000);
 
+    make_path($path);                  #  In cloud mode, 4-unitigger doesn't exist when we get here.
     fetchFile("$path/alignGFA.sh");
 
     if (! -e "$path/alignGFA.sh") {
-        open(F, "> $path/alignGFA.sh") or caExit("can't open '$path/alignGFA.sh.sh' for writing: $!\n", undef);
+        open(F, "> $path/alignGFA.sh") or caExit("can't open '$path/alignGFA.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F getBinDirectoryShellCode();
