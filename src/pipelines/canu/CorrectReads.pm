@@ -228,7 +228,6 @@ sub buildCorrectionLayoutsConfigure ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));        #  Output exists
     goto allDone   if (-d "$base/$asm.corStore");                         #  Jobs all finished
     goto allDone   if (fileExists("$base/$asm.corStore/seqDB.v001.dat"));
     goto allDone   if (fileExists("$base/$asm.corStore/seqDB.v001.tig"));
@@ -329,7 +328,6 @@ sub buildCorrectionLayoutsCheck ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
     goto allDone   if (fileExists("$base/$asm.corStore"));                      #  Jobs all finished
 
     #  Eventually, we'll run generateCorrectionLayouts on the grid.  Then we'll need to load the new
@@ -353,7 +351,6 @@ sub filterCorrectionLayouts ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));              #  Output exists
     goto allDone   if (fileExists("$path/$asm.readsToCorrect"));                #  Jobs all finished
 
     #  Analyze the corStore to decide what reads we want to correct.
@@ -552,7 +549,6 @@ sub generateCorrectedReadsCheck ($) {
     my $path    = "correction/2-correction";
 
     goto allDone   if (skipStage($asm, "cor-generateCorrectedReads", $attempt) == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));
 
     #  Compute the size of seqStore for staging
 
@@ -769,7 +765,8 @@ sub dumpCorrectedReads ($) {
     my $cmd;
 
     goto allDone   if (skipStage($asm, "cor-dumpCorrectedReads") == 1);
-    goto allDone   if (sequenceFileExists("$asm.correctedReads"));
+    goto allDone   if (fileExists("$asm.correctedReads.fasta.gz"));
+    goto allDone   if (fileExists("$asm.correctedReads.fastq.gz"));
     goto allDone   if (getGlobal("saveReads") == 0);
 
     #  We need to skip this entire function if corrected reads were not computed.
@@ -805,7 +802,10 @@ sub dumpCorrectedReads ($) {
     #  If the corrected reads file exists, report so.
     #  Otherwise, report no corrected reads, and generate fake outputs so we terminate.
 
-    my $out = sequenceFileExists("$asm.correctedReads");
+    my $out;
+
+    $out = "$asm.correctedReads.fasta.gz"   if (fileExists("$asm.correctedReads.fasta.gz"));
+    $out = "$asm.correctedReads.fastq.gz"   if (fileExists("$asm.correctedReads.fastq.gz"));
 
     if (defined($out)) {
         print STDERR "--\n";

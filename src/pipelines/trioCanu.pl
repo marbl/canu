@@ -391,12 +391,7 @@ submitScript($asm, undef);
 #
 #  Begin pipeline
 #
-#  The checks for sequenceFileExists() at the start aren't needed except for
-#  object storage mode.  The sequence store has no way of knowing, inside
-#  createSequenceStore(), that this stage is completed and it shouldn't fetch the
-#  store.  In 'normal' operation, the store exists already, and we just
-#  return.
-#
+
 print STDERR "--\n";
 print STDERR "--\n";
 print STDERR "-- BEGIN HAPLOTYPING\n";

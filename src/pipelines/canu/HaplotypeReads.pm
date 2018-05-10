@@ -83,7 +83,7 @@ sub checkHaplotypeReads($$) {
 
     push @haplotypes, "unknown";
     foreach my $haplotype (@haplotypes) {
-       if (!sequenceFileExists("$asm.${haplotype}Reads.fasta.gz")) {
+       if (! fileExists("$asm.${haplotype}Reads.fasta.gz")) {
           $allSequencesDone = 0;
        }
     }
@@ -330,7 +330,6 @@ sub haplotypeCheck($) {
 
     goto allDone   if (checkHaplotypeReads($asm, "haplotype") == 1);
     goto allDone   if (skipStage($asm, "hap-haplotypeCheck", $attempt) == 1);
-    goto allDone   if (sequenceFileExists("$asm.haplotypeReads"));
 
     #  Compute the size of seqStore for staging
 
@@ -590,9 +589,10 @@ sub dumpHaplotypeReads ($) {
     emitStage($asm, "hap-dumpHaplotypeReads");
 
   allDone:
+    print STDERR "--\n";
+
     foreach my $haplotype (@haplotypes) {
-       print STDERR "--\n";
-       print STDERR "-- Haplotype reads saved in '", sequenceFileExists("$asm.${haplotype}Reads"), "'.\n";
+        print STDERR "-- Haplotype reads saved in '$asm.${haplotype}Reads.fasta.gz'.\n";
     }
 
     stopAfter("readHaplotyping");

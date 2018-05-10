@@ -268,7 +268,8 @@ sub dumpTrimmedReads ($) {
     my $cmd;
 
     goto allDone   if (skipStage($asm, "obt-dumpTrimmedReads") == 1);
-    goto allDone   if (sequenceFileExists("$asm.trimmedReads"));
+    goto allDone   if (fileExists("$asm.trimmedReads.fasta.gz"));
+    goto allDone   if (fileExists("$asm.trimmedReads.fastq.gz"));
     goto allDone   if (getGlobal("saveReads") == 0);
 
     #  We need to skip this entire function if trimmed reads were not computed.
@@ -304,7 +305,10 @@ sub dumpTrimmedReads ($) {
     #  If the trimmed reads file exists, report so.
     #  Otherwise, report no trimmed reads, and generate fake outputs so we terminate.
 
-    my $out = sequenceFileExists("$asm.trimmedReads");
+    my $out;
+
+    $out = "$asm.trimmedReads.fasta.gz"   if (fileExists("$asm.trimmedReads.fasta.gz"));
+    $out = "$asm.trimmedReads.fastq.gz"   if (fileExists("$asm.trimmedReads.fastq.gz"));
 
     if (defined($out)) {
         print STDERR "--\n";

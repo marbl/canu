@@ -592,7 +592,9 @@ sub overlap ($$) {
 #
 
 if (setOptions($mode, "correct") eq "correct") {
-    if (getNumberOfBasesInStore($asm, "obt") == 0) {
+    if ((getNumberOfBasesInStore($asm, "obt") == 0) &&
+        (! fileExists("$asm.correctedReads.fasta.gz")) &&
+        (! fileExists("$asm.correctedReads.fastq.gz"))) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN CORRECTION\n";
@@ -624,7 +626,9 @@ dumpCorrectedReads($asm);
 
 if ((setOptions($mode, "trim") eq "trim") &&
     (getGlobal("unitigger") ne "wtdbg")) {
-    if (getNumberOfBasesInStore($asm, "utg") == 0) {
+    if ((getNumberOfBasesInStore($asm, "utg") == 0) &&
+        (! fileExists("$asm.trimmedReads.fasta.gz")) &&
+        (! fileExists("$asm.trimmedReads.fastq.gz"))) {
         print STDERR "--\n";
         print STDERR "--\n";
         print STDERR "-- BEGIN TRIMMING\n";

@@ -44,7 +44,6 @@ require Exporter;
              getNumberOfBasesInStore
              getSizeOfSequenceStore
              getExpectedCoverage
-             sequenceFileExists
              generateReadLengthHistogram
              checkSequenceStore);
 
@@ -148,23 +147,6 @@ sub getExpectedCoverage ($$) {
     my $asm    = shift @_;
 
     return(int(getNumberOfBasesInStore($asm, $tag) / getGlobal("genomeSize")));
-}
-
-
-
-#  Returns undef if a sequence file with the supplied name cannot be found.  Common suffices and compressions are tried.
-#  Otherwise, returns the found sequence file.
-
-sub sequenceFileExists ($) {
-    my $p = shift @_;
-
-    foreach my $s ("", ".fasta", ".fastq", ".fa", ".fq") {
-        foreach my $c ("", ".gz", ".xz") {
-            return("$p$s$c")  if (fileExists("$p$s$c"));
-        }
-    }
-
-    return(undef);
 }
 
 
