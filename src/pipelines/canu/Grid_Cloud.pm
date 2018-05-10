@@ -585,7 +585,7 @@ sub stashOvlStore ($$) {
         for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
         for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
             if (! fileExists("$base/$asm.ovlStore/$bIdx.$sIdx", 1)) {
-                runCommandSilently(".", "$client cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore/$bIdx.$sIdx -", 1);
+                runCommandSilently(".", "cat \"./$base/$asm.ovlStore/$bIdx<$sIdx>\" | $client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore/$bIdx.$sIdx -", 1);
             }
         }
         }
