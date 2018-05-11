@@ -24,6 +24,19 @@
  #  full conditions and disclaimers for each license.
  ##
 
+initialize_region() {
+    region_type=`cat dnanexus-job.json |jq .region |sed s/,//g |sed s/\"//g |awk -F ":" '{print $1}'`
+    if [ $region_type == "aws" ]; then
+       export DNANEXUS_REGION="aws"
+    elif [ $region_type == "azure" ]; then
+       export DNANEXUS_REGION="azure"
+    else
+       echo "ERROR: region type $region_type is unknown, I only know aws or azure"
+       exit 1
+    fi
+    echo "Initialized region to $DNANEXUS_REGION"
+}
+
 fetch_and_run() {
    env
 
@@ -32,8 +45,10 @@ fetch_and_run() {
    echo "Value of array ID $DX_ARRAY_ID"
    echo "Value of iter is $canu_iteration"
    echo "Value of max is $canu_iteration_max"
-   output_path=`cat dnanexus-job.json |tr ',' '\n'|grep folder |awk -F ": " '{print $NF}' |sed s/,//g |sed s/\"//g`
+   output_path=`cat dnanexus-job.json |jq .folder |sed s/,//g |sed s/\"//g`
    echo "Value of output path is $output_path"
+
+   initialize_region
 
    if [ "x"$canu_iteration != "x" ] && [ $canu_iteration -gt $canu_iteration_max ]; then
       echo "Error: tried $canu_iteration times, giving up."
@@ -50,7 +65,6 @@ fetch_and_run() {
       canuPath=`dirname $canuPath`
       echo "canuIteration=$canu_iteration"        >  $canuPath/canu.defaults
       echo "canuIterationMax=$canu_iteration_max" >> $canuPath/canu.defaults
-cat $canuPath/canu.defaults
    fi
    dx download $DX_PROJECT_CONTEXT_ID:$output_path/$canu_path/$script_name
    export DX_ARRAY_ID=$DX_ARRAY_ID
@@ -67,11 +81,14 @@ main() {
     echo "Value of genome size '${genome_size}'"
     echo "Value of parameters '${parameters}'"
 
-    output_path=`cat dnanexus-job.json |tr ',' '\n'|grep folder |awk -F ": " '{print $NF}' |sed s/,//g |sed s/\"//g`
+    output_path=`cat dnanexus-job.json |jq .folder |sed s/,//g |sed s/\"//g`
     echo "Value of output path is $output_path"
+
+    initialize_region
 
     for i in ${!input_files[@]}
     do
+        echo "Downloading ${input_files_name[$i]}"
         dx download "${input_files[$i]}"
     done
 

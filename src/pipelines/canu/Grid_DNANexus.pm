@@ -44,7 +44,12 @@ use canu::Grid "formatAllowedResources";
 sub buildAvailableNodeList() {
     my %hosts;
 
-    open(F, "dx-jobutil-new-job --instance-type-help |iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
+    my $region = $ENV{'DNANEXUS_REGION'};
+    my $grepCommand = undef;
+    $grepCommand = " | grep -v azure" if ($region eq "aws");
+    $grepCommand = " | grep    azure" if ($region eq "azure");
+
+    open(F, "dx-jobutil-new-job --instance-type-help $grepCommand | iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
 
     my $cpuIdx = 0;
     my $memIdx = 0;
