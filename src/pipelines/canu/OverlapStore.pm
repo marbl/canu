@@ -616,10 +616,9 @@ sub deleteOverlapIntermediateFiles ($$) {
 
 
 
-sub createOverlapStore ($$$) {
+sub createOverlapStore ($$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $seq     = shift @_;
     my $cmd;
     my $bin     = getBinDirectory();
 

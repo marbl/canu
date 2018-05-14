@@ -721,13 +721,6 @@ sub submitScript ($$) {
     my $mem = 4;
     my $thr = 1;
 
-    #  However, the sequential overlap store is still built from within the canu process.
-
-    if (getGlobal("ovsMethod") eq "sequential") {
-        $mem = getGlobal("ovsMemory");
-        $mem = $2  if ($mem =~ m/^(\d+)-(\d+)$/);
-    }
-
     $memOption = buildMemoryOption($mem, 1);
     $thrOption = buildThreadOption($thr);
 

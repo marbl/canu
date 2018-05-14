@@ -186,7 +186,7 @@ stopAfter <string=undefined>
    - ``meryl`` - stops after frequent kmers are tabulated.
    - ``overlapConfigure`` - stops after overlap jobs are configured.
    - ``overlap`` - stops after overlaps are generated, before they are loaded into the overlap database.
-   - ``overlapStoreConfigure`` - stops after the ``ovsMethod=parallel`` jobs are configured; has no impact for ``ovsMethod=sequential``.
+   - ``overlapStoreConfigure`` - stops after the jobs for creating the overlap store are configured.
    - ``overlapStore`` - stops after overlaps are loaded into the overlap database.
    - ``readCorrection`` - stops after corrected reads are generated.
    - ``readTrimming`` - stops after trimmed reads are generated.
@@ -384,29 +384,38 @@ Overlapper Configuration, mhap Algorithm
 Overlap Store
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The overlap algorithms return overlaps in an arbitrary order.  The correction, trimming and assembly
-algorithms usually need to know all overlaps for a single read.  The overlap store duplicates each
-overlap, sorts them by the first ID, and stores them for quick retrieval of all overlaps for a
-single read.
+The overlap algorithms return overlaps in an arbitrary order, however, all other algorithms (or
+nearly all) require all overlaps for a single read to be readily available.  Thus, the overlap store
+collects and sorts the overlapper outputs into a store of overlaps, sorted by the first read in the
+overlap.  Each overlap is listed twice in the store, once in an "A vs B" format, and once in a "B vs
+A" format (that is, swapping which read is 'first' in the overlap description).
 
-The overlap store construction process involves reading outputs of the overlap algorithm (in *.ovb files),
-duplicating each overlap, and writing these to intermediate files.  Each intermediate file is loaded into
-memory, sorted, and written back to disk.
+Two construction algorithms are supported.  A 'sequential' method uses a single data stream, and is
+faster for small and moderate size assemblies.  A 'parallel' method uses multiple compute nodes and
+can be faster (depending on your network disk bandwidth) for moderate and large assemblies.  Be
+advised that the parallel method is less efficient than the sequential method, and can easily thrash
+consumer-level NAS devices resulting in exceptionally poor performance.
+
+The sequential method load all overlapper outputs (.ovb files in 1-overlapper) into memory,
+duplicating each overlap.  It then sortes overlaps, and creates the final overlap store.
+
+The parallel method uses two parallel tasks: bucketizing ('ovb' tasks) and sorting ('ovs' tasks).
+Bucketizing reads the outputs of the overlap tasks (ovb files in 1-overlapper), duplicates each
+overlap, and writes these to intermediate files.  Sorting tasks load these intermediate file into
+memory, sorts the overlaps, then writes the sorted overlaps back to disk.  There will be one
+'bucketizer' ('ovb' tasks) task per overlap task, and tens to hundreds of 'sorter' ('ovs' tasks).  A
+final 'indexing' step is done in the Canu executive, which ties all the various files togather into
+the final overlap store.
+
+Increasing ovsMemory will allow more overlaps to fit into memory at once.  This will allow larger
+assemblies to use the sequential method, or reduce the number of 'ovs' tasks for the parallel
+method.
+
+Increasing the allowed memory for the Canu executive can allow the overlap store to be constructed as
+part of the executive job -- a separate grid job for constructing the store is not needed.
 
 ovsMemory <float>
   How much memory, in gigabytes, to use for constructing overlap stores.  Must be at least 256m or 0.25g.
-
-ovsMethod <string="sequential">
-  Two construction algorithms are supported.  The 'sequential' method uses a single data stream, and
-  is faster for small and moderate size assemblies.  The 'parallel' method uses multiple compute
-  nodes and can be faster (depending on your network disk bandwidth) for moderate and large
-  assemblies.
-
-  The parallel method is selected for genomes larger than 1 Gbp, but only when Canu runs in grid
-  mode.  A special 'forceparallel' method will force usage of the parallel method regardless of the
-  availability of a grid.  Be advised that the parallel method is less efficient than the sequential
-  method, and can easily thrash consumer-level NAS devices resulting in exceptionally poor
-  performance.
 
 Meryl
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

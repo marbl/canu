@@ -684,17 +684,14 @@ sub configureAssembler () {
     #  inefficiency; too small and we run out of file handles.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("300m")) {
-        setGlobalIfUndef("ovsMethod", "sequential");
         setGlobalIfUndef("ovbMemory",   "4");       setGlobalIfUndef("ovbThreads",   "1");
         setGlobalIfUndef("ovsMemory",   "4-8");     setGlobalIfUndef("ovsThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("ovsMethod", "parallel");
         setGlobalIfUndef("ovbMemory",   "4");       setGlobalIfUndef("ovbThreads",   "1");
         setGlobalIfUndef("ovsMemory",   "8-16");    setGlobalIfUndef("ovsThreads",   "1");
 
     } else {
-        setGlobalIfUndef("ovsMethod", "parallel");
         setGlobalIfUndef("ovbMemory",   "4");       setGlobalIfUndef("ovbThreads",   "1");
         setGlobalIfUndef("ovsMemory",   "16-32");   setGlobalIfUndef("ovsThreads",   "1");
     }

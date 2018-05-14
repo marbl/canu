@@ -888,7 +888,7 @@ sub setDefaults () {
 
     ##### Overlap Store
 
-    setDefault("ovsMethod", undef, "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'");
+    #  ovbMemory and ovsMemory are set above.
 
     #####  Mers
 
@@ -1304,20 +1304,6 @@ sub checkParameters () {
             (getGlobal("${tag}MhapSensitivity") ne "high")) {
             addCommandLineError("ERROR:  Invalid '${tag}MhapSensitivity' specified (" . getGlobal("${tag}MhapSensitivity") . "); must be 'fast' or 'normal' or 'high'\n");
         }
-    }
-
-    if ((getGlobal("ovsMethod") ne "sequential") &&
-        (getGlobal("ovsMethod") ne "parallel") &&
-        (getGlobal("ovsMethod") ne "forceparallel")) {
-        addCommandLineError("ERROR:  Invalid 'ovsMethod' specified (" . getGlobal("ovsMethod") . "); must be 'sequential', 'parallel', or 'forceparallel' (not recommended)\n");
-    }
-    if ((getGlobal("useGrid")   eq "0") &&
-        (getGlobal("ovsMethod") eq "parallel")) {
-        setGlobal("ovsMethod", "sequential");
-        #addCommandLineError("ERROR:  ovsMethod=parallel requires useGrid=true or useGrid=remote.  Set ovsMethod=sequential if no grid is available, or ovsMethod=forceparallel to use the (disk intensive) parallel method\n");
-    }
-    if (getGlobal("ovsMethod") eq "forceparallel") {
-        setGlobal("ovsMethod", "parallel");
     }
 
     if ((getGlobal("unitigger") ne "bogart") && 
