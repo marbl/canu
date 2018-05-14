@@ -282,6 +282,33 @@ saveReads <boolean=false>
   If set, save the corrected reads (in asm.correctedReads.fasta.gz) and trimmed reads (in asm.trimmedReads.fasta.gz).
   Both read sets are saved in the asm.gkpStore, and can be retrieved later.
 
+Executive Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Canu 'executive' is responsible for controlling what tasks run and when they run.  It doesn't
+directly do any significant computations, rather it just examines the files that exist and decides
+which component to run next.  For example, if overlaps exist but contigs do not, it would create
+contigs next.
+
+When under grid control, some tasks can be run in the same job as the executive, if there is emough
+memory and threads reserved for the executive.  The benefit of this is slight; on a heavily loaded
+grid, it would reduce the number of job scheduling iterations Canu needs to run.
+
+.. _executiveMemory:
+
+executiveMemory <integer=4>
+
+  The amount of memory, in gigabytes, to reserve when running the Canu exectuve (and any jobs it
+  runs directly).  Increasing this past 4 GB can allow some tasks (such as creating an overlap store
+  or creating contigs) to run directly, without needing a separate grid job.
+
+.. _executiveThreads:
+
+executiveThreads <integer=1>
+
+  The number of threads to reserve for the Canu executive.
+
+
 Overlapper Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

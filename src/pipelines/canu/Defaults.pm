@@ -890,6 +890,11 @@ sub setDefaults () {
 
     #  ovbMemory and ovsMemory are set above.
 
+    #####  Executive
+
+    setDefault("executiveMemory",   4,   "Amount of memory, in GB, to reserve for the Canu exective process");
+    setDefault("executiveThreads",  1,   "Number of threads to reserve for the Canu exective process");
+
     #####  Mers
 
     setDefault("merylMemory",      undef,  "Amount of memory, in gigabytes, to use for mer counting");

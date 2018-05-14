@@ -718,10 +718,10 @@ sub submitScript ($$) {
 
     #  The canu.pl script isn't expected to take resources.  We'll default to 4gb and one thread.
 
-    my $mem = 4;
-    my $thr = 1;
+    my $mem = getGlobal("executiveMemory");
+    my $thr = getGlobal("executiveThreads");
 
-    $memOption = buildMemoryOption($mem, 1);
+    $memOption = buildMemoryOption($mem, $thr);
     $thrOption = buildThreadOption($thr);
 
     $gridOpts  = $jobHold;
@@ -1119,9 +1119,20 @@ sub submitOrRunParallelJob ($$$$@) {
 
     my @jobs         = convertToJobRange(@_);
 
+    my $runDirectly  = 0;
+
     #  The script MUST be executable.
 
     makeExecutable("$path/$script.sh");
+
+    #  If the job can fit in the task running the executive, run it right here.
+
+    my $nJobs = scalar(@jobs);
+
+    if (($nJobs * $mem <= getGlobal("executiveMemory")) &&
+        ($nJobs * $thr <= getGlobal("executiveThreads"))) {
+        $runDirectly = 1;
+    }
 
     #  Report what we're doing.
 
@@ -1178,7 +1189,8 @@ sub submitOrRunParallelJob ($$$$@) {
     if (defined(getGlobal("gridEngine")) &&
         (getGlobal("useGrid") eq "1") &&
         (getGlobal("useGrid$jobType") eq "1") &&
-        (exists($ENV{getGlobal("gridEngineJobID")}))) {
+        (exists($ENV{getGlobal("gridEngineJobID")})) &&
+        ($runDirectly == 0)) {
         my @jobsSubmitted;
 
         print STDERR "--\n";
@@ -1294,7 +1306,8 @@ sub submitOrRunParallelJob ($$$$@) {
     if (defined(getGlobal("gridEngine")) &&
         (getGlobal("useGrid") ne "0") &&
         (getGlobal("useGrid$jobType") eq "1") &&
-        (! exists($ENV{getGlobal("gridEngineJobID")}))) {
+        (! exists($ENV{getGlobal("gridEngineJobID")})) &&
+        ($runDirectly == 0)) {
         my $cwd = getcwd();
         my $s   = (scalar(@jobs) == 1) ? "" : "s";
 
