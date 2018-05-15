@@ -245,6 +245,7 @@ sub fetchFileShellCode ($$$) {
         $code .= "${indent}  $client download --output $file $pr:$ns/$path/$file\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
+        $code .= "\n";
     }
 
     return($code);
