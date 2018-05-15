@@ -165,7 +165,7 @@ sub createOverlapStoreParallel ($$$$$$) {
     fetchFile("$path/scripts/2-sort.sh");
 
     if (! -e "$path/scripts/1-bucketize.sh") {
-        open(F, "> $path/scripts/1-bucketize.sh") or die;
+        open(F, "> $path/scripts/1-bucketize.sh") or caExit("can't open '$path/scripts/1-bucketize.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F getBinDirectoryShellCode();
@@ -230,7 +230,7 @@ sub createOverlapStoreParallel ($$$$$$) {
     #  Parallel jobs for sorting each bucket
 
     if (! -e "$path/scripts/2-sort.sh") {
-        open(F, "> $path/scripts/2-sort.sh") or die;
+        open(F, "> $path/scripts/2-sort.sh") or caExit("can't open '$path/scripts/2-sort.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F getBinDirectoryShellCode();
@@ -531,7 +531,7 @@ sub checkOverlapStore ($$) {
     my $nulReads = 0;
     my $ovlReads = 0;
 
-    open(F, "< ./$base/$asm.ovlStore/counts.dat") or die;
+    open(F, "< ./$base/$asm.ovlStore/counts.dat") or caExit("can't open './$base/$asm.ovlStore/counts.dat' for reading: $!\n", undef);
     while (<F>) {
         my @v = split '\s+', $_;
 
