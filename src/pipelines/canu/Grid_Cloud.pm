@@ -43,7 +43,7 @@ require Exporter;
              fetchOvlStore        fetchOvlStoreShellCode
              stashSeqStore
              stashSeqStorePartitions
-             stashOvlStore);
+             stashOvlStore        stashOvlStoreShellCode);
 
 use strict;
 use warnings "all";
@@ -542,6 +542,54 @@ sub stashOvlStore ($$) {
         }
         }
     }
+}
+
+
+
+sub stashOvlStoreShellCode ($$) {
+    my $asm    = shift @_;
+    my $base   = shift @_;
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
+    my $code   = "";
+
+
+    $code .= "\n";
+    $code .= "#  If the store doesn't exist, ovStoreBuild failed, and we should just quit.\n";
+    $code .= "\n";
+    $code .= "if [ ! -e ./$asm.ovlStore ] ; then\n";
+    $code .= "  exit\n";
+    $code .= "fi\n";
+    $code .= "\n";
+
+    if    (isOS() eq "DNANEXUS") {
+        $code .= "#\n";
+        $code .= "#  Upload the metadata files.  These shouldn't exist, so we don't bother trying to remove before uploading.\n";
+        $code .= "#\n";
+        $code .= "\n";
+        $code .= "tar -cf - \\\n";
+        $code .= " ./$asm.ovlStore/info \\\n";
+        $code .= " ./$asm.ovlStore/index \\\n";
+        $code .= " ./$asm.ovlStore/statistics \\\n";
+        $code .= " ./$asm.ovlStore.config \\\n";
+        $code .= " ./$asm.ovlStore.config.txt \\\n";
+        $code .= "| \\\n";
+        $code .= "$client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore.tar -\n";
+        $code .= "\n";
+        $code .= "#\n";
+        $code .= "#  Upload data files.\n";
+        $code .= "#\n";
+        $code .= "\n";
+        $code .= "for ff in `ls $asm.ovlStore/????\\<???\\>` ; do\n";
+        $code .= "  oo=`echo \$ff | sed \"s/\</./\" | sed \"s/\>//\"`\n";
+        $code .= "  $client upload --wait --parents --path $pr:$ns/$base/\$oo \"./\$ff\"\n";
+        $code .= "done\n";
+        $code .= "\n";
+    }
+
+    return($code);
 }
 
 

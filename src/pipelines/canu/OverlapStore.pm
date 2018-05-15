@@ -71,9 +71,9 @@ use canu::Grid_Cloud;
 #  Fetch overlap outputs.  If you're not cloud-based, this does nothing.  Really.  Trust me.
 #
 sub fetchOverlapData ($$@) {
-    my $asm  = shift @_;   #  Not actually used.
-    my $base = shift @_;   #  What stage we're in, 'correction', 'trimming', etc.
-    my $getD = shift @_;   #  If set, only fetch count data.
+    my $asm    = shift @_;   #  Not actually used.
+    my $base   = shift @_;   #  What stage we're in, 'correction', 'trimming', etc.
+    my $getD   = shift @_;   #  If set, only fetch count data.
 
     fetchFile("$base/1-overlapper/ovljob.files");
 
@@ -89,53 +89,142 @@ sub fetchOverlapData ($$@) {
             caExit("didn't recognize ovljob.files line '$_'", undef);
         }
 
-        #  Make the output directory.
-
-        make_path("$base/$dir");
-
-        #  Fetch the counts.  Everyone needs the counts.
-        #  https://www.youtube.com/watch?v=vC0uvUuXVh8
-
-        fetchFile("$base/$dir/$num.oc");
-
-        #  Fetch the overlap data if told to.
-
-        fetchFile("$base/$dir/$num.ovb")   if (defined($getD));
+        make_path("$base/$dir");                                  #  Make the output directory.
+        fetchFile("$base/$dir/$num.oc");                          #  Fetch The Counts.   https://www.youtube.com/watch?v=vC0uvUuXVh8
+        fetchFile("$base/$dir/$num.ovb")   if (defined($getD));   #  Fetch the overlap data if told to.
     }
     close(F);
 }
 
 
 
+sub fetchOverlapDataShellCode ($$) {
+    my $asm    = shift @_;   #  Not actually used.
+    my $base   = shift @_;   #  What stage we're in, 'correction', 'trimming', etc.
+    my $string;
+
+    fetchFile("$base/1-overlapper/ovljob.files");
+
+    open(I, "< $base/1-overlapper/ovljob.files") or caExit("failed to open overlapper output list in '$base/1-overlapper/ovljob.files'", undef);
+    while (<I>) {
+        my $dir;
+        my $num;
+
+        if (m/^(.*)\/([0-9]*).ovb$/) {
+            $dir = $1;
+            $num = $2;
+        } else {
+            caExit("didn't recognize ovljob.files line '$_'", undef);
+        }
+
+        $string .= fetchFileShellCode("$base/$dir", "$num.oc",  "");
+        $string .= fetchFileShellCode("$base/$dir", "$num.ovb", "");
+    }
+    close(I);
+
+    return($string);
+}
+
+
+
 sub createOverlapStoreSequential ($$$) {
-    my $base    = shift @_;
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-    my $bin     = getBinDirectory();
+    my $base       = shift @_;
+    my $asm        = shift @_;
+    my $tag        = shift @_;
+    my $bin        = getBinDirectory();
     my $cmd;
 
     #  Fetch all the data.
 
-    fetchOverlapData($asm, $base, 1);
+    #fetchOverlapData($asm, $base, 1);
 
     #  This is running in the canu process itself.  Execution.pm has special case code
     #  to submit canu to grids using the maximum of 4gb and this memory limit.
 
-    $cmd  = "$bin/ovStoreBuild \\\n";
-    $cmd .= " -O  ./$asm.ovlStore.BUILDING \\\n";
-    $cmd .= " -S ../$asm.seqStore \\\n";
-    $cmd .= " -C  ./$asm.ovlStore.config \\\n";
-    $cmd .= " > ./$asm.ovlStore.err 2>&1";
+    if (! -e "./$base/$asm.ovlStore.sh") {
+        open(F, "> ./$base/$asm.ovlStore.sh") or caExit("can't open './$base/$asm.ovlStore.sh' for writing: $!\n", undef);
 
-    if (runCommand($base, $cmd)) {
-        caExit("failed to create the overlap store", "$base/$asm.ovlStore.err");
+        print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
+        print F setWorkDirectoryShellCode($base);
+        print F "\n";
+        print F getJobIDShellCode();
+        print F "\n";
+        print F getLimitShellCode();
+        print F "\n";
+        print F fetchSeqStoreShellCode($asm, $base, "");
+        print F "\n";
+        print F fetchFileShellCode($base, "$asm.ovlStore.config", "");
+        print F "\n";
+        print F fetchOverlapDataShellCode($asm, $base);
+        print F "\n";
+        print F "$bin/ovStoreBuild \\\n";
+        print F " -O  ./$asm.ovlStore.BUILDING \\\n";
+        print F" -S ../$asm.seqStore \\\n";
+        print F " -C  ./$asm.ovlStore.config \\\n";
+        print F " > ./$asm.ovlStore.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "mv ./$asm.ovlStore.BUILDING ./$asm.ovlStore\n";
+        print F "\n";
+        print F stashOvlStoreShellCode($asm, $base);
+        print F "\n";
+        close(F);
     }
 
-    unlink("$base/$asm.ovlStore.err");
+    makeExecutable("./$base/$asm.ovlStore.sh");
+    stashFile("./$base/$asm.ovlStore.sh");
+}
 
-    rename("$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore");
 
-    stashOvlStore($asm, $base);
+
+sub overlapStoreCheck ($$$) {
+    my $base       = shift @_;
+    my $asm        = shift @_;
+    my $tag        = shift @_;
+    my $attempt    = getGlobal("canuIteration");
+
+    goto allDone   if (skipStage($asm, "$tag-overlapStoreCheck", $attempt) == 1);
+    goto allDone   if (-d "$base/$asm.ovlStore");
+
+    fetchFile("scripts/1-bucketize/2-sort.sh");
+
+    #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
+    #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
+    #  (meryl, unitig, overlapStoreSequential are the same)
+
+    #  If too many attempts, give up.
+
+    if ($attempt >= getGlobal("canuIterationMax")) {
+        print STDERR "--\n";
+        print STDERR "-- Overlap store failed, tried $attempt times, giving up.\n";
+        print STDERR "--\n";
+        caExit(undef, "$base/$asm.ovlStore.err")   if (-e "$base/$asm.ovlStore.err");
+        caExit(undef, undef);
+    }
+
+    if ($attempt > 0) {
+        print STDERR "--\n";
+        print STDERR "-- Overlap store failed, retry.\n";
+        print STDERR "--\n";
+    }
+
+    #  Otherwise, run some jobs.
+
+    generateReport($asm);
+    emitStage($asm, "$tag-overlapStoreCheck", $attempt);
+
+    submitOrRunParallelJob($asm, "ovS", $base, "$asm.ovlStore", (1));
+    return;
+
+  finishStage:
+    print STDERR "-- Overlap store finished.\n";
+
+    generateReport($asm);
+    emitStage($asm, "$tag-overlapStoreCheck");
+
+  allDone:
 }
 
 
@@ -709,7 +798,10 @@ sub createOverlapStore ($$) {
 
     if ($numSlices == 1) {
         createOverlapStoreSequential($base, $asm, $tag);
-    } else {
+        overlapStoreCheck           ($base, $asm, $tag)   foreach (1..getGlobal("canuIterationMax") + 1);
+    }
+
+    else {
         createOverlapStoreParallel ($base, $asm, $tag, $numBuckets, $numSlices, $sortMemory);
         overlapStoreBucketizerCheck($base, $asm, $tag, $numBuckets, $numSlices)   foreach (1..getGlobal("canuIterationMax") + 1);
         overlapStoreSorterCheck    ($base, $asm, $tag, $numBuckets, $numSlices)   foreach (1..getGlobal("canuIterationMax") + 1);
