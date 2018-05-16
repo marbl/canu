@@ -397,7 +397,7 @@ ovStore::dumpMetaData(uint32 bgnID, uint32 endID) {
   fprintf(stdout, "   readID slice piece    offset  numOlaps overlapID\n");
   fprintf(stdout, "--------- ----- ----- --------- --------- ---------\n");
 
-  for (uint32 ii=bgnID; ii<endID; ii++)
+  for (uint32 ii=bgnID; ii<=endID; ii++)
     fprintf(stdout, "%9u %5u %5u %9u %9u %9lu\n", ii,
             _index[ii]._slice,
             _index[ii]._piece,
