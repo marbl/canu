@@ -242,7 +242,7 @@ sub loadTrimmedReads ($) {
 
     #stashFile("./$asm.trimmedReads.fasta.gz");
 
-    if (getGlobal("saveOverlaps") eq "1") {
+    if (getGlobal("saveOverlaps") eq "0") {
         print STDERR "--\n";
         print STDERR "-- Purging overlaps used for trimming.\n";
 
