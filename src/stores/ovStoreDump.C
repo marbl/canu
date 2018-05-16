@@ -584,26 +584,13 @@ main(int argc, char **argv) {
 
   bool                  asCoords    = true;       //  How to show overlaps?
   bool                  asHangs     = false;
-  bool                  asRaw       = false;
+  bool                  asUnaligned = false;
   bool                  asPAF       = false;
   bool                  asBinary    = false;
   bool                  withScores  = false;
 
-#if 0
-  if (asBinary) {
-    char  binaryName[FILENAME_MAX];
-
-    sprintf(binaryName, "%s.ovb", outPrefix);
-
-    binaryFile = new ovFile(seqStore, binaryName, ovFileFullWrite);
-  }
-#endif
-
   uint32                bgnID       = 1;
   uint32                endID       = UINT32_MAX;
-
-  bool                  beVerbose   = false;
-
 
   argc = AS_configure(argc, argv);
 
@@ -669,6 +656,10 @@ main(int argc, char **argv) {
     }
 
 
+    else if (strcmp(argv[arg], "-prefix") == 0)
+      outPrefix = argv[++arg];
+
+
     else if (strcmp(argv[arg], "-raw") == 0)
       sqRead_setDefaultVersion(sqRead_raw);
 
@@ -680,43 +671,43 @@ main(int argc, char **argv) {
 
 
     else if (strcmp(argv[arg], "-coords") == 0) {
-      asCoords = true;
-      asHangs  = false;
-      asRaw    = false;
-      asPAF    = false;
-      asBinary = false;
+      asCoords    = true;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = false;
+      asBinary    = false;
     }
 
     else if (strcmp(argv[arg], "-hangs") == 0) {
-      asCoords = false;
-      asHangs  = true;
-      asRaw    = false;
-      asPAF    = false;
-      asBinary = false;
+      asCoords    = false;
+      asHangs     = true;
+      asUnaligned = false;
+      asPAF       = false;
+      asBinary    = false;
     }
 
-    else if (strcmp(argv[arg], "-raw") == 0) {
-      asCoords = false;
-      asHangs  = false;
-      asRaw    = true;
-      asPAF    = false;
-      asBinary = false;
+    else if (strcmp(argv[arg], "-unaligned") == 0) {
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = true;
+      asPAF       = false;
+      asBinary    = false;
     }
 
     else if (strcmp(argv[arg], "-paf") == 0) {
-      asCoords = false;
-      asHangs  = false;
-      asRaw    = false;
-      asPAF    = true;
-      asBinary = false;
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = true;
+      asBinary    = false;
     }
 
     else if (strcmp(argv[arg], "-binary") == 0) {
-      asCoords = false;
-      asHangs  = false;
-      asRaw    = false;
-      asPAF    = false;
-      asBinary = true;
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = false;
+      asBinary    = true;
     }
 
 
@@ -748,9 +739,6 @@ main(int argc, char **argv) {
       bogartPath = argv[++arg];
 
 
-    else if (strcmp(argv[arg], "-v") == 0)
-      beVerbose = true;
-
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
@@ -766,8 +754,53 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err.push_back("ERROR: no input ovlStore (-O) supplied.\n");
 
+  if ((asBinary) && (outPrefix == NULL))
+    err.push_back("ERROR: -prefix is necessary for -binary output.\n");
+
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -S seqStore -O ovlStore ...\n", argv[0]);
+    fprintf(stderr, "  -S seqStore         mandatory path to a sequence store\n");
+    fprintf(stderr, "  -O ovlStore         mandatory path to an overlap store\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "WHAT TO DUMP:\n");
+    fprintf(stderr, "  Select what data to dump.  All take an optional read ID, or inclusive\n");
+    fprintf(stderr, "  range of read IDs, to dump.  Dumps are to stdout.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -overlaps [b[-e]]   dump overlaps (default)\n");
+    fprintf(stderr, "  -picture  [b[-e]]   dump an ASCII picture of the overlaps relative to a read\n");
+    fprintf(stderr, "  -metadata [b[-3]]   tabular metadata, including the number of overlaps per read\n");
+    fprintf(stderr, "  -counts   [b[-e]]   the number of overlaps per read\n");
+    fprintf(stderr, "  -eratelen [b[-e]]   a histogram of overlap length vs error rate\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -prefix name        * for -eratelen, write histogram to name.dat\n");
+    fprintf(stderr, "                        and also output a gnuplot script to name.gp\n");
+    fprintf(stderr, "                      * for -binary, mandatory, write overlaps to name.ovb\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "WHICH READ VERSION TO USE:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -raw                uncorrected raw reads\n");
+    fprintf(stderr, "  -obt                corrected reads\n");
+    fprintf(stderr, "  -utg                trimmed reads\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "FORMAT OF -overlaps OUTPUT\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -coords             as coordinates on each read\n");
+    fprintf(stderr, "  -hangs              as dovetail hangs\n");
+    fprintf(stderr, "  -unaligned          as unaligned regions on each read\n");
+    fprintf(stderr, "  -paf                as miniasm Pairwise mApping Format\n");
+    fprintf(stderr, "  -binary             as an overlapper output file (needs -prefix)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "OVERLAP FILTERING\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -no5p               \n");
+    fprintf(stderr, "  -no3p               \n");
+    fprintf(stderr, "  -nocontainer        \n");
+    fprintf(stderr, "  -nocontained        \n");
+    fprintf(stderr, "  -noreduntant        \n");
+    fprintf(stderr, "  -query              \n");
+    fprintf(stderr, "  -erate              \n");
+    fprintf(stderr, "  -length             \n");
+    fprintf(stderr, "  -bogart             \n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -855,34 +888,114 @@ main(int argc, char **argv) {
   //  If as erate-v-length, again, maybe, maybe not.
   //
 
-  if ((asErateLen) && (params.parametersAreDefaults() == true)) {
-    ovStoreHistogram  *hist = ovlStore->getHistogram();
+  if (asErateLen) {
+    ovStoreHistogram *hist;
 
-    hist->dumpEvalueLength(stdout);
+    //  If all defaults, load the histogram from disk.  Otherwise,
+    //  read all the overlaps and generate a new histogram.
 
-    delete hist;
-  }
-
-  if ((asErateLen) && (params.parametersAreDefaults() == true)) {
-    ovStoreHistogram *hist = new ovStoreHistogram(seqStore);
-
-    ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
-
-    while (ovlLen > 0) {
-      for (uint32 oo=0; oo<ovlLen; oo++) {
-        if (params.filterOverlap(ovl + oo) == true)
-          continue;
-
-        hist->addOverlap(ovl + oo);
-      }
-
-      ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
+    if (params.parametersAreDefaults() == true) {
+      hist = ovlStore->getHistogram();
     }
 
-    hist->dumpEvalueLength(stdout);
+    else {
+      hist = new ovStoreHistogram(seqStore);
+
+      ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
+
+      while (ovlLen > 0) {
+        for (uint32 oo=0; oo<ovlLen; oo++) {
+          if (params.filterOverlap(ovl + oo) == true)
+            continue;
+
+          hist->addOverlap(ovl + oo);
+        }
+
+        ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
+      }
+
+      hist->dumpEvalueLength(stdout);
+    }
+
+    //  If no outPrefix, dump the histogram to stdout.
+    //  Otherwise, dump to a file and emit a gnuplot script.
+
+    if (outPrefix == NULL) {
+      hist->dumpEvalueLength(stdout);
+    }
+
+    else {
+
+      FILE *D = AS_UTL_openOutputFile(outPrefix, '.', "dat");
+      hist->dumpEvalueLength(D);
+      AS_UTL_closeFile(D, outPrefix, '.', "dat");
+
+      FILE *G = AS_UTL_openOutputFile(outPrefix, '.', "gp");
+      fprintf(G, "unset key\n");
+      fprintf(G, "set tic scale 0\n");
+      fprintf(G, "\n");
+      fprintf(G, "set palette defined(\\\n");
+      fprintf(G, "0       0.2314  0.2980  0.7529,\\\n");
+      fprintf(G, "0.03125 0.2667  0.3529  0.8000,\\\n");
+      fprintf(G, "0.0625  0.3020  0.4078  0.8431,\\\n");
+      fprintf(G, "0.09375 0.3412  0.4588  0.8824,\\\n");
+      fprintf(G, "0.125   0.3843  0.5098  0.9176,\\\n");
+      fprintf(G, "0.15625 0.4235  0.5569  0.9451,\\\n");
+      fprintf(G, "0.1875  0.4667  0.6039  0.9686,\\\n");
+      fprintf(G, "0.21875 0.5098  0.6471  0.9843,\\\n");
+      fprintf(G, "0.25    0.5529  0.6902  0.9961,\\\n");
+      fprintf(G, "0.28125 0.5961  0.7255  1.0000,\\\n");
+      fprintf(G, "0.3125  0.6392  0.7608  1.0000,\\\n");
+      fprintf(G, "0.34375 0.6824  0.7882  0.9922,\\\n");
+      fprintf(G, "0.375   0.7216  0.8157  0.9765,\\\n");
+      fprintf(G, "0.40625 0.7608  0.8353  0.9569,\\\n");
+      fprintf(G, "0.4375  0.8000  0.8510  0.9333,\\\n");
+      fprintf(G, "0.46875 0.8353  0.8588  0.9020,\\\n");
+      fprintf(G, "0.5     0.8667  0.8667  0.8667,\\\n");
+      fprintf(G, "0.53125 0.8980  0.8471  0.8196,\\\n");
+      fprintf(G, "0.5625  0.9255  0.8275  0.7725,\\\n");
+      fprintf(G, "0.59375 0.9451  0.8000  0.7255,\\\n");
+      fprintf(G, "0.625   0.9608  0.7686  0.6784,\\\n");
+      fprintf(G, "0.65625 0.9686  0.7333  0.6275,\\\n");
+      fprintf(G, "0.6875  0.9686  0.6941  0.5804,\\\n");
+      fprintf(G, "0.71875 0.9686  0.6510  0.5294,\\\n");
+      fprintf(G, "0.75    0.9569  0.6039  0.4824,\\\n");
+      fprintf(G, "0.78125 0.9451  0.5529  0.4353,\\\n");
+      fprintf(G, "0.8125  0.9255  0.4980  0.3882,\\\n");
+      fprintf(G, "0.84375 0.8980  0.4392  0.3451,\\\n");
+      fprintf(G, "0.875   0.8706  0.3765  0.3020,\\\n");
+      fprintf(G, "0.90625 0.8353  0.3137  0.2588,\\\n");
+      fprintf(G, "0.9375  0.7961  0.2431  0.2196,\\\n");
+      fprintf(G, "0.96875 0.7529  0.1569  0.1843,\\\n");
+      fprintf(G, "1       0.7059  0.0157  0.1490\\\n");
+      fprintf(G, ")\n");
+      fprintf(G, "\n");
+      fprintf(G, "set format cb '%%5.0f'\n");
+      fprintf(G, "set colorbox user size .03, .6 noborder\n");
+      fprintf(G, "set cbtics scale 0\n");
+      fprintf(G, "set cblabel 'NumOlaps'\n");
+      fprintf(G, "\n");
+      fprintf(G, "set xlabel 'Overlap Length'\n");
+      fprintf(G, "set ylabel 'Error Rate'\n");
+      fprintf(G, "\n");
+      fprintf(G, "set view map\n");
+      fprintf(G, "\n");
+      fprintf(G, "set terminal 'png' size 1024,1024\n");
+      fprintf(G, "set output '%s.png'\n", outPrefix);
+      fprintf(G, "\n");
+      fprintf(G, "plot [0:" F_U32 "] [0:%.3f] '%s.dat' using 1:2:3 with image\n",
+              hist->maxLength(),
+              hist->maxErate(),
+              outPrefix);
+
+      AS_UTL_closeFile(G, outPrefix, '.', "gp");
+    }
+
+    //  All dumped!  Delete the data.
 
     delete hist;
   }
+
 
   //
   //  But if dumping actual overlaps, we've got to filter, and
@@ -890,6 +1003,15 @@ main(int argc, char **argv) {
   //
 
   if (asOverlaps) {
+    char     binaryName[FILENAME_MAX + 1];
+    ovFile  *binaryFile = NULL;
+
+    if (asBinary) {
+      snprintf(binaryName, FILENAME_MAX, "%s.ovb", outPrefix);
+
+      binaryFile = new ovFile(seqStore, binaryName, ovFileFullWrite);
+    }
+
     ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
     while (ovlLen > 0) {
@@ -905,8 +1027,8 @@ main(int argc, char **argv) {
           fputs(ovl[oo].toString(ovlString, ovOverlapAsHangs, true), stdout);
         }
 
-        else if (asRaw) {
-          fputs(ovl[oo].toString(ovlString, ovOverlapAsRaw, true), stdout);
+        else if (asUnaligned) {
+          fputs(ovl[oo].toString(ovlString, ovOverlapAsUnaligned, true), stdout);
         }
 
         else if (asPAF) {
@@ -914,7 +1036,7 @@ main(int argc, char **argv) {
         }
 
         else if (asBinary) {
-          //binaryFile->writeOverlap(&overlap);
+          binaryFile->writeOverlap(&ovl[oo]);
         }
 
         else {
@@ -923,6 +1045,9 @@ main(int argc, char **argv) {
 
       ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
     }
+
+    if (asBinary)
+      delete binaryFile;
   }
 
   //
@@ -949,7 +1074,9 @@ main(int argc, char **argv) {
   //  Phew, that was a lot of work.
   //
 
-  delete ovlStore;
+  delete [] ovl;
+  delete    ovlStore;
+
   seqStore->sqStore_close();
 
   exit(0);

@@ -436,28 +436,58 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
 
 
 
-void
-ovStoreHistogram::dumpEvalueLength(FILE *out) {
-  uint32  maxEvalue = 0;
-  uint32  maxLength = 0;
-
-  //  Find the largest Evalue and length with values in the histogram
+uint32
+ovStoreHistogram::maxEvalue(void) {
+  uint32  maxE = 0;
 
   for (uint32 ee=0; ee<AS_MAX_EVALUE + 1; ee++) {
     if (_opel[ee] == NULL)
       continue;
 
-    maxEvalue = ee;
-
-    for (uint32 ll=maxLength; ll<_opelLen; ll++)
-      if (_opel[ee][ll] > 0)
-        maxLength = ll;
+    maxE = ee;
   }
 
-  //  Dump those values
+  return(maxE);
+}
 
-  for (uint32 ee=0; ee<=maxEvalue; ee++) {
-    for (uint32 ll=0; ll<=maxLength; ll++)
+
+
+double
+ovStoreHistogram::maxErate(void) {
+  return(AS_OVS_decodeEvalue(maxEvalue()));
+}
+
+
+
+uint32
+ovStoreHistogram::maxLength(void) {
+  uint32  maxL = 0;
+
+  for (uint32 ee=0; ee<AS_MAX_EVALUE + 1; ee++) {
+    if (_opel[ee] == NULL)
+      continue;
+
+    for (uint32 ll=maxL; ll<_opelLen; ll++)
+      if (_opel[ee][ll] > 0)
+        maxL = ll;
+  }
+
+  return(maxL * _bpb);
+}
+
+
+
+void
+ovStoreHistogram::dumpEvalueLength(FILE *out) {
+  uint32  maxE = maxEvalue();
+  uint32  maxL = maxLength() / _bpb;
+
+  fprintf(out, "# MAX Evalue  %.4f\n", AS_OVS_decodeEvalue(maxE));
+  fprintf(out, "# MAX Length  %u\n",   maxL * _bpb);
+  fprintf(out, "$\n");
+
+  for (uint32 ee=0; ee<=maxE; ee++) {
+    for (uint32 ll=0; ll<=maxL; ll++)
       fprintf(out, "%u\t%.4f\t%u\n",
               ll * _bpb,
               AS_OVS_decodeEvalue(ee),
@@ -465,9 +495,6 @@ ovStoreHistogram::dumpEvalueLength(FILE *out) {
 
     fprintf(out, "\n");
   }
-
-  fprintf(stderr, "MAX Evalue  %.4f\n", AS_OVS_decodeEvalue(maxEvalue));
-  fprintf(stderr, "MAX Length  %u\n",   maxLength * _bpb);
 }
 
 

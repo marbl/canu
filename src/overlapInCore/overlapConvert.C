@@ -57,8 +57,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-hangs") == 0) {
       dt = ovOverlapAsHangs;
 
-    } else if (strcmp(argv[arg], "-raw") == 0) {
-      dt = ovOverlapAsRaw;
+    } else if (strcmp(argv[arg], "-unaligned") == 0) {
+      dt = ovOverlapAsUnaligned;
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -81,7 +81,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coords        output coordiantes on reads\n");
     fprintf(stderr, "  -hangs         output hangs on reads\n");
-    fprintf(stderr, "  -raw           output raw hangs on reads\n");
+    fprintf(stderr, "  -unaligned     output unaligned regions on each read\n");
     fprintf(stderr, "\n");
 
     if ((seqStoreName == NULL) && (dt == ovOverlapAsCoords))

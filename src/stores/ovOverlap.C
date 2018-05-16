@@ -67,7 +67,7 @@ ovOverlap::toString(char                  *str,
               (newLine) ? "\n" : "");
       break;
 
-    case ovOverlapAsRaw:
+    case ovOverlapAsUnaligned:
       sprintf(str, "%10" F_U32P " %10" F_U32P "  %c  %6" F_U32P "  %6" F_OVP " %6" F_OVP "  %6" F_OVP " %6" F_OVP "  %7.6f %s %s %s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',

@@ -122,6 +122,10 @@ public:
     return((_opel[eb] == NULL) ? 0 : _opel[eb][lb]);
   };
 
+  uint32    maxEvalue(void);
+  double    maxErate(void);
+  uint32    maxLength(void);
+
   void      dumpEvalueLength(FILE *out);  //  gnuplot-friendly dump of the evalues-length.
 
   //
