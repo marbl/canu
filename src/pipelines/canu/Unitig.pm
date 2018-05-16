@@ -276,7 +276,7 @@ sub unitig ($) {
     print F "\n";
     print F "if [ ! -e ../$asm.ctgStore -o \\\n";
     print F "     ! -e ../$asm.utgStore ] ; then\n";
-    print F "  echo bogart appears to have failed; no $asm.ctgStore or $asm.utgStore.\n";
+    print F "  echo bogart appears to have failed.  No $asm.ctgStore or $asm.utgStore found.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
