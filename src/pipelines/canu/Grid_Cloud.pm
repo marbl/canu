@@ -556,15 +556,14 @@ sub stashOvlStoreShellCode ($$) {
     my $code   = "";
 
 
-    $code .= "\n";
-    $code .= "#  If the store doesn't exist, ovStoreBuild failed, and we should just quit.\n";
-    $code .= "\n";
-    $code .= "if [ ! -e ./$asm.ovlStore ] ; then\n";
-    $code .= "  exit\n";
-    $code .= "fi\n";
-    $code .= "\n";
-
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
+        $code .= "#  If the store doesn't exist, ovStoreBuild failed, and we should just quit.\n";
+        $code .= "\n";
+        $code .= "if [ ! -e ./$asm.ovlStore ] ; then\n";
+        $code .= "  exit\n";
+        $code .= "fi\n";
+        $code .= "\n";
         $code .= "#\n";
         $code .= "#  Upload the metadata files.  These shouldn't exist, so we don't bother trying to remove before uploading.\n";
         $code .= "#\n";
