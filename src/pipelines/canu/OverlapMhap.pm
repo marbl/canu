@@ -164,6 +164,7 @@ sub mhapConfigure ($$$) {
     my $blockPerGb    = getGlobal("${tag}MhapBlockSize") / (($numHashes < 768) ? 1 : 2);
 
     my $javaPath      = getGlobal("java");
+    my $javaOpt       = "-d64" if (defined(getGlobal("javaUse64Bit")) && getGlobal("javaUse64Bit") == 1);
     my $javaMemory    = int(getGlobal("${tag}mhapMemory") * 1024 + 0.5);
 
     print STDERR "--\n";
@@ -368,7 +369,7 @@ sub mhapConfigure ($$$) {
     print F "#  So mhap writes its output in the correct spot.\n";
     print F "cd ./blocks\n";
     print F "\n";
-    print F "$javaPath -d64 -server -Xmx", $javaMemory, "m \\\n";
+    print F "$javaPath $javaOpt -server -Xmx", $javaMemory, "m \\\n";
     print F "  -jar $cygA \$bin/../share/java/classes/mhap-" . getGlobal("${tag}MhapVersion") . ".jar $cygB \\\n";
     print F "  --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "  --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
@@ -468,7 +469,7 @@ sub mhapConfigure ($$$) {
     print F "echo \"\"\n";
     print F "\n";
     print F "if [ ! -e ./results/\$qry.mhap ] ; then\n";
-    print F "  $javaPath -d64 -server -Xmx", $javaMemory, "m \\\n";
+    print F "  $javaPath $javaOpt -server -Xmx", $javaMemory, "m \\\n";
     print F "    -jar $cygA \$bin/../share/java/classes/mhap-" . getGlobal("${tag}MhapVersion") . ".jar $cygB \\\n";
     print F "    --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "    --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);

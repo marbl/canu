@@ -765,6 +765,7 @@ sub setDefaults () {
     setDefault("showNext",            undef,     "Don't run any commands, just report what would run");
     setDefault("shell",               "/bin/sh", "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
     setDefault("java",                $java,     "Java interpreter to use; at least version 1.8; default 'java'");
+    setDefault("javaUse64Bit",        undef,     "Java interpreter supports the -d64 or -d32 flags; default auto");
     setDefault("gnuplot",             "gnuplot", "Path to the gnuplot executable");
     setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
     setDefault("gnuplotTested",       0,         "If set, skip the initial testing of gnuplot");
@@ -998,9 +999,10 @@ sub checkJava () {
                 (getGlobal("obtOverlapper") ne "mhap") &&
                 (getGlobal("utgOverlapper") ne "mhap"));
 
-    my $java       = getGlobal("java");
-    my $versionStr = "unknown";
-    my $version    = 0;
+    my $java         = getGlobal("java");
+    my $javaUse64Bit = getGlobal("javaUse64Bit");
+    my $versionStr   = "unknown";
+    my $version      = 0;
     my @javaVersionStrings;
 
     #  We've seen errors running just this tiny java if too many copies are ran at the same time.
@@ -1018,6 +1020,9 @@ sub checkJava () {
                 $versionStr = "$1$2";
                 $version    =  $1;
             }
+            if (m/-d64/) {
+               setGlobal("javaUse64Bit", 1);
+            }
         }
         close(F);
 
@@ -1034,6 +1039,7 @@ sub checkJava () {
 
         sleep(int(rand(3)+1));
     }
+    setGlobal("javaUse64Bit",  0) if (!defined(getGlobal("javaUse64Bit")));
 
     if ($version < 1.8) {
         addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr (from '$java').\n");
@@ -1044,7 +1050,9 @@ sub checkJava () {
         }
 
     } else {
-        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
+        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java')";
+        print STDERR (defined(getGlobal("javaUse64Bit")) && getGlobal("javaUse64Bit") == 1) ? " with " : " without ";
+        print STDERR "-d64 support.\n";
     }
 }
 
