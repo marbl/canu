@@ -66,7 +66,11 @@ fetch_and_run() {
       echo "canuIteration=$canu_iteration"        >  $canuPath/canu.defaults
       echo "canuIterationMax=$canu_iteration_max" >> $canuPath/canu.defaults
    fi
-   dx download $DX_PROJECT_CONTEXT_ID:$output_path/$canu_path/$script_name
+   script_path=`dirname $script_name`
+   if [ x$script_path != "." ]; then
+      mkdir -p $script_path
+   fi
+   dx download $DX_PROJECT_CONTEXT_ID:$output_path/$canu_path/$script_name -o $script_name
    export DX_ARRAY_ID=$DX_ARRAY_ID
 
    bash $script_name
