@@ -62,7 +62,7 @@
     "file": "src/canu.sh",
     "systemRequirements": {
       "*": {
-        "instanceType": "mem1_ssd1_x2"
+        "instanceType": "mem2_hdd2_x2"
       }
     },
     "distribution": "Ubuntu",

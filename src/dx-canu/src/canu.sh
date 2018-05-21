@@ -94,7 +94,7 @@ main() {
 
     if [ ! -s ${output_prefix}.contigs.fasta ]; then
        # save the command without the inputs
-       echo "canu objectStore=DNANEXUS objectStoreClient=dx objectStoreNameSpace=$output_path objectStoreProject=$DX_PROJECT_CONTEXT_ID -d . -p ${output_prefix} genomeSize=${genome_size} $parameters" > canu.sh
+       echo "canu executiveMemory=8 executiveThreads=2 objectStore=DNANEXUS objectStoreClient=dx objectStoreNameSpace=$output_path objectStoreProject=$DX_PROJECT_CONTEXT_ID -d . -p ${output_prefix} genomeSize=${genome_size} $parameters" > canu.sh
        # bash is set to quit in the app on any error (including file doesn't exist) so we only run rm on success of describe, otherwise nothing
        exists=`dx describe --name $DX_PROJECT_CONTEXT_ID:$output_path/canu.sh || true`
        if [[ -e canu.sh && x$exists != x ]] ; then
@@ -103,6 +103,6 @@ main() {
        dx upload --wait --parents --path $DX_PROJECT_CONTEXT_ID:$output_path/canu.sh canu.sh
 
        # run the canu command
-       canu objectStore=DNANEXUS objectStoreClient=dx objectStoreNameSpace=$output_path objectStoreProject=$DX_PROJECT_CONTEXT_ID -d . -p ${output_prefix} genomeSize=${genome_size} $parameters ${input_type} ${input_files_name[@]}
+       canu executiveMemory=8 executiveThreads=2 objectStore=DNANEXUS objectStoreClient=dx objectStoreNameSpace=$output_path objectStoreProject=$DX_PROJECT_CONTEXT_ID -d . -p ${output_prefix} genomeSize=${genome_size} $parameters ${input_type} ${input_files_name[@]}
     fi
 }
