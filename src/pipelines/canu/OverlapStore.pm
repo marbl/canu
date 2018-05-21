@@ -117,8 +117,8 @@ sub fetchOverlapDataShellCode ($$) {
             caExit("didn't recognize ovljob.files line '$_'", undef);
         }
 
-        $string .= fetchFileShellCode("$base/$dir", "$num.oc",  "");
-        $string .= fetchFileShellCode("$base/$dir", "$num.ovb", "");
+        $string .= fetchFileShellCode("$base", "$dir/$num.oc",  "");
+        $string .= fetchFileShellCode("$base", "$dir/$num.ovb", "");
     }
     close(I);
 
