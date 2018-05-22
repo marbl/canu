@@ -181,9 +181,6 @@ findOvlStorePath(char *requested) {
 
   char  *filepath = new char [FILENAME_MAX + 1];
 
-  filename[4] = '.';   //  Convert the filename to the one we
-  filename[8] =  0;    //  saved in the object store.
-
   //fprintf(stderr, "MAKE PATH STAGE     '%s'\n", basename);
   //fprintf(stderr, "          STORENAME '%s'\n", storename);
   //fprintf(stderr, "          FILENAME  '%s'\n", filename);
@@ -239,7 +236,7 @@ fetchFromObjectStore(char *requested) {
 
   char *cmd = new char [FILENAME_MAX+1];
 
-  snprintf(cmd, FILENAME_MAX, "%s download --output \"%s\" %s:%s/%s", dx, requested, pr, ns, path);
+  snprintf(cmd, FILENAME_MAX, "%s download --output \"%s\" \"%s:%s/%s\"", dx, requested, pr, ns, path);
 
   fprintf(stderr, "fetchFromObjectStore()-- executing '%s'\n", cmd);
 

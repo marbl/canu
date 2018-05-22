@@ -115,7 +115,7 @@ sub fileExists ($@) {
     return(1)   if ((-e $file) && (!defined($nonLocal)));   #  If file exists, it exists.
 
     if    (isOS() eq "DNANEXUS") {
-        $exists = `$client describe --name $pr:$ns/$file`;
+        $exists = `$client describe --name \"$pr:$ns/$file\"`;
     }
 
     $exists =~ s/^\s+//;
@@ -139,7 +139,7 @@ sub fileExistsShellCode ($@) {
 
     if    (isOS() eq "DNANEXUS") {
         $code .= "${indent}if [ ! -e $file ] ; then\n";
-        $code .= "${indent}  exists=`$client describe --name $pr:$ns/$file`\n";
+        $code .= "${indent}  exists=`$client describe --name \"$pr:$ns/$file\"`\n";
         $code .= "${indent}fi\n";
         $code .= "${indent}if [ -e $file -o x\$exists != x ] ; then\n";
     }
@@ -160,10 +160,10 @@ sub renameStashedFile ($$) {
     my $ns     = getGlobal("objectStoreNameSpace");
     my $pr     = getGlobal("objectStoreProject");
 
-    print STDERR "renameStashedFile()-- '$ns/$oldname' -> '$ns/$newname'\n"   if ($showWork);
+    print STDERR "renameStashedFile()-- \"$ns/$oldname\" -> \"$ns/$newname\"\n"   if ($showWork);
 
     if    (isOS() eq "DNANEXUS") {
-        runCommandSilently(".", "$client mv $pr:$ns/$oldname $pr:$ns/$newname", 1);
+        runCommandSilently(".", "$client mv \"$pr:$ns/$oldname\" \"$pr:$ns/$newname\"", 1);
     }
 }
 
@@ -178,10 +178,10 @@ sub removeStashedFile ($) {
 
     return   if (! fileExists("$name", 1));
 
-    print STDERR "removeStashedFile()-- '$ns/$name'\n"   if ($showWork);
+    print STDERR "removeStashedFile()-- $ns/$name'\n"   if ($showWork);
 
     if    (isOS() eq "DNANEXUS") {
-        runCommandSilently(".", "$client rm --recursive $pr:$ns/$name", 1);
+        runCommandSilently(".", "$client rm --recursive \"$pr:$ns/$name\"", 1);
     }
 }
 
@@ -211,7 +211,7 @@ sub fetchFile ($) {
     make_path(dirname($file));
 
     if    (isOS() eq "DNANEXUS") {
-        runCommandSilently(".", "$client download --output $file $pr:$ns/$file", 1);
+        runCommandSilently(".", "$client download --output \"$file\" \"$pr:$ns/$file\"", 1);
     }
 }
 
@@ -242,7 +242,7 @@ sub fetchFileShellCode ($$$) {
         $code .= "${indent}if [ ! -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  mkdir -p $dots/$path\n";
         $code .= "${indent}  cd       $dots/$path\n";
-        $code .= "${indent}  $client download --output $file $pr:$ns/$path/$file\n";
+        $code .= "${indent}  $client download --output \"$file\" \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
         $code .= "\n";
@@ -267,7 +267,7 @@ sub stashFile ($) {
     print STDERR "stashFile()-- '$file' to '$ns/$file'\n"   if ($showWork);
 
     if    (isOS() eq "DNANEXUS") {
-        runCommandSilently(".", "$client upload --wait --parents --path $pr:$ns/$file $file", 1);
+        runCommandSilently(".", "$client upload --wait --parents --path \"$pr:$ns/$file\" \"$file\"", 1);
     }
 }
 
@@ -288,12 +288,12 @@ sub stashFileShellCode ($$$) {
     #  directories (even though that should never happen).
 
     if    (isOS() eq "DNANEXUS") {
-        $code .= "${indent}if [ -e $dots/$path/$file ] ; then\n";
+        $code .= "${indent}if [ -e \"$dots/$path/$file\" ] ; then\n";
         $code .= "${indent}  cd $dots/$path\n";
         $code .= fileExistsShellCode("$path/$file", "$indent  ");
-        $code .= "${indent}    $client rm --recursive $pr:$ns/$path/$file\n";
+        $code .= "${indent}    $client rm --recursive \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  fi\n";
-        $code .= "${indent}  $client upload --wait --parents --path $pr:$ns/$path/$file $file\n";
+        $code .= "${indent}  $client upload --wait --parents --path \"$pr:$ns/$path/$file\" \"$file\"\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
     }
@@ -536,8 +536,8 @@ sub stashOvlStore ($$) {
 
         for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
         for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
-            if (! fileExists("$base/$asm.ovlStore/$bIdx.$sIdx", 1)) {
-                runCommandSilently(".", "$client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore/$bIdx.$sIdx \"./$base/$asm.ovlStore/$bIdx<$sIdx>\"", 1);
+            if (! fileExists("$base/$asm.ovlStore/$bIdx<$sIdx>", 1)) {
+                runCommandSilently(".", "$client upload --wait --parents --path \"$pr:$ns/$base/$asm.ovlStore/$bIdx<$sIdx>\" \"./$base/$asm.ovlStore/$bIdx<$sIdx>\"", 1);
             }
         }
         }
@@ -582,8 +582,7 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "#\n";
         $code .= "\n";
         $code .= "for ff in `ls $asm.ovlStore/????\\<???\\>` ; do\n";
-        $code .= "  oo=`echo \$ff | sed \"s/\</./\" | sed \"s/\>//\"`\n";
-        $code .= "  $client upload --wait --parents --path $pr:$ns/$base/\$oo \"./\$ff\"\n";
+        $code .= "  $client upload --wait --parents --path \"$pr:$ns/$base/\$ff\" \"./\$ff\"\n";
         $code .= "done\n";
         $code .= "\n";
     }

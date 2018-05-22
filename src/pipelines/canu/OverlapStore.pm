@@ -396,8 +396,7 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "\n";
             print F "outputs=`ls ./$asm.ovlStore.BUILDING/\$jobid*`\n";
             print F "for file in \$outputs ; do\n";
-            print F "  outf=`echo \"\$file\" | tr '<' '.' | tr -d '>'`\n";
-            print F stashFileShellCode($base, "\$outf", "  ");
+            print F stashFileShellCode($base, "\$file", "  ");
             print F "done\n";
             print F "\n";
         }
@@ -436,7 +435,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     goto allDone   if (-d "$base/$asm.ovlStore");
     goto allDone   if (-e "$path/1-bucketize.success");
 
-    fetchFile("scripts/1-bucketize/1-bucketize.sh");
+    fetchFile("$path/scripts/1-bucketize.sh");
 
     #  Figure out if all the tasks finished correctly.
 
@@ -452,7 +451,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     #  before the job completes.
 
     for (my $bb=1; $bb<=$numBuckets; $bb++) {
-        if (! fileExists("$path/bucket$bucketID")) {
+        if (! fileExists("$path/bucket$bucketID/sliceSizes")) {
             $failureMessage .= "--   job $path/bucket$bucketID FAILED.\n";
             push @failedJobs, $currentJobID;
         } else {
@@ -523,7 +522,7 @@ sub overlapStoreSorterCheck ($$$$$) {
     goto allDone   if (-d "$base/$asm.ovlStore");
     goto allDone   if (-e "$path/2-sorter.success");
 
-    fetchFile("scripts/1-bucketize/2-sort.sh");
+    fetchFile("$path/scripts/2-sort.sh");
 
     #  Figure out if all the tasks finished correctly.
 
