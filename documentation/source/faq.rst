@@ -61,6 +61,20 @@ My run stopped with the error ``'Failed to submit batch jobs'``
     compute nodes.
 
 
+My run of Canu was killed by the sysadmin; the power going out; my cat stepping on the power button; et cetera.  Is it safe to restart?  How do I restart?
+-------------------------------------
+
+    Yes, perfectly safe!  It's actually how Canu runs normally: each time Canu starts, it examines
+    the state of the assembly to decide what it should do next.  For example, if six overlap tasks
+    have no reults, it'll run just those six tasks.
+
+    This also means that if you want to redo some step, just remove those results from the assembly
+    directory.  Some care needs to be taken to make sure results computed after those are also
+    removed.
+
+    Short answer: just rerun the _exact_ same command as before.  It'll do the right thing.
+
+
 What parameters should I use for my reads?
 -------------------------------------
     Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford

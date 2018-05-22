@@ -18,7 +18,9 @@ Input sequences can be FASTA or FASTQ format, uncompressed or compressed with gz
 (.bz2) or xz (.xz).  Note that zip files (.zip) are not supported.
 
 Canu can resume incomplete assemblies, allowing for recovery from system outages or other abnormal
-terminations.
+terminations.  On each restart of Canu, it will examine the files in the assembly directory to
+decide what to do next.  For example, if all but two overlap tasks have finished, only the two that
+are missing will be computed.  For best results, do not change Canu parameters between restarts.
 
 Canu will auto-detect computational resources and scale itself to fit, using all of the resources
 available and are reasonable for the size of your assembly.  Memory and processors can be explicitly
