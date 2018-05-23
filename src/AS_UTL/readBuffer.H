@@ -64,6 +64,7 @@ public:
   uint64               read(void *buf, uint64 len);
   uint64               read(void *buf, uint64 maxlen, char stop);
 
+  void                 skipLine(void);
   void                 skipAhead(char stop);
   uint64               copyUntil(char stop, char *dest, uint64 destLen);
 
@@ -160,6 +161,16 @@ readBuffer::readuntil(char stop) {
 
   return(ch);
 }
+
+
+
+inline
+void
+readBuffer::skipLine(void) {
+  for (char ch = read(); (ch != '\n') && (ch != 0); ch = read())
+    ;
+}
+
 
 
 //  Advances the file position to the next 'stop' character and returns
