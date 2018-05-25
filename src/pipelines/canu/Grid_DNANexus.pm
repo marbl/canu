@@ -72,7 +72,7 @@ sub buildAvailableNodeList() {
         my @v = split '\|', $_;
 
         my $cpus = $v[$cpuIdx];
-        my $mem  = $v[$memIdx];
+        my $mem  = $v[$memIdx] * 0.85; # the machines don't have swap so save some space for OS overhead
         my $name = $v[$nameIdx];
 
         $mem  = int($mem);

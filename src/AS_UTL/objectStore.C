@@ -29,6 +29,7 @@
 #include "splitToWords.H"
 
 #include <libgen.h>
+#include <sys/wait.h>
 
 
 static
@@ -235,12 +236,25 @@ fetchFromObjectStore(char *requested) {
   fprintf(stderr, "fetchFromObjectStore()-- found path '%s'\n", path);
 
   char *cmd = new char [FILENAME_MAX+1];
-
-  snprintf(cmd, FILENAME_MAX, "%s download --output \"%s\" \"%s:%s/%s\"", dx, requested, pr, ns, path);
+  snprintf(cmd, FILENAME_MAX, "%s:%s/%s", pr, ns, path);
+  char *args[8] = {"dx", "download", "--overwrite", "--no-progress", "--output", "", "", (char*)0};
+  args[5] = requested;
+  args[6] = cmd;
 
   fprintf(stderr, "fetchFromObjectStore()-- executing '%s'\n", cmd);
 
-  int32  err = system(cmd);
+  int32 err;
+  int32 pid = vfork();
+  if ( pid == -1)
+    fprintf(stderr, "vfork failed with error '%s'.\n", strerror(errno));
+
+  if ( pid == 0 ) {
+    execve(dx, args, environ);
+    fprintf(stderr, "execve failed with error '%s'.\n", strerror(errno));
+    _exit(-1);
+  }
+  waitpid(-1, (int*)&err, 0);
+  err = WEXITSTATUS(err);
 
   if (err == 127)
     fprintf(stderr, "Failed to execute '%s'.\n", cmd), exit(1);
