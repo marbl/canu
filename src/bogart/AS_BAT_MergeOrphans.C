@@ -73,8 +73,15 @@ typedef  map<uint32, vector<uint32> >  BubTargetList;
 
 
 
-//  Decide which tigs can be orphans.  Any unitig where (nearly) every dovetail read has an overlap
-//  to some other unitig is a candidate for orphan popping.
+//  Decide which tigs can be orphans.  Any unitig where (nearly) every dovetail
+//  read has an overlap to some other unitig is a candidate for orphan popping.
+//
+//  Counts the number of reads that have an overlap to some other tig
+//  (tigOlapsTo).  if more than half the reads in the tig have an overlap to
+//  some other tig, it is a potential place to pop the bubble.
+//
+//  Returns BubTargetList, a map of uint32 to vector<uint32>, of the potential
+//  places that some tig could be popped into.
 
 void
 findPotentialOrphans(TigVector       &tigs,
@@ -617,13 +624,16 @@ mergeOrphans(TigVector &tigs,
     vector<candidatePop *>    targets;
 
     for (map<uint32, intervalList<uint32> *>::iterator it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
-      saveCorrectlySizedInitialIntervals(orphan,
-                                         tigs[it->first],     //  The targetID      in targetIntervals
-                                         it->second,          //  The interval list in targetIntervals
-                                         fReadID,
-                                         lReadID,
-                                         placed,
-                                         targets);
+      if (tigs[it->first] == NULL)
+        writeLog("mergeOrphans()-- orphan %u wants to go into nonexistent tig %u!\n", ti, it->first);
+      else
+        saveCorrectlySizedInitialIntervals(orphan,
+                                           tigs[it->first],     //  The targetID      in targetIntervals
+                                           it->second,          //  The interval list in targetIntervals
+                                           fReadID,
+                                           lReadID,
+                                           placed,
+                                           targets);
 
     targetIntervals.clear();   //  intervalList already freed.
 
@@ -657,7 +667,7 @@ mergeOrphans(TigVector &tigs,
                    targets[tt]->placed[op].frgID,
                    targets[tt]->placed[op].position.bgn, targets[tt]->placed[op].position.end);
 
-      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3" F_SIZE_TP " reads, had %3" F_SIZE_TP " reads.\n",
+      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3" F_U32 " reads, had %3" F_U32 " reads.\n",
                orphan->id(), orphan->getLength(),
                targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
                orphanSize, targetSize);

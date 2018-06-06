@@ -130,6 +130,27 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
 
     if (b5->readId() != 0)   edgeStats.insert(erates[eratesLen++] = b5->erate());
     if (b3->readId() != 0)   edgeStats.insert(erates[eratesLen++] = b3->erate());
+
+    //  If there are NO best edges, find the overlap with the most matches and use that.
+
+    if ((b5->readId() == 0) &&
+        (b3->readId() == 0)) {
+      uint32      no    = 0;
+      BAToverlap *ovl   = OC->getOverlaps(fi, no);
+      uint32      bestM = 0;
+      double      bestE = 0.0;
+
+      for (uint32 oo=0; oo<no; oo++) {
+        double  matches = (1 - ovl[oo].erate()) * RI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
+        if (bestM < matches) {
+          bestM = matches;
+          bestE = ovl[oo].erate();
+        }
+      }
+
+      if (no > 0)
+        edgeStats.insert(erates[eratesLen++] = bestE);
+    }
   }
 
   _mean   = edgeStats.mean();
@@ -357,6 +378,53 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
 
 
 
+//  Mark zombie masters.  Any read that has only contained overlaps (it is the container) and is the
+//  smallest ID of those with no hangs, is a master.  These get promoted to unitigs.
+//
+void
+BestOverlapGraph::findZombies(const char *prefix) {
+  uint32  fiLimit    = RI->numReads();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    uint32      nc = 0;
+
+    if (no == 0)
+      continue;
+
+    for (uint32 ii=0; ii<no; ii++, nc++)       //  If any overlap makes A not
+      if (ovl[ii].AisContainer() == false)     //  a container, it's not a zombie
+        break;
+
+    if (nc < no)
+      continue;
+
+    nc = UINT32_MAX;
+
+    for (uint32 ii=0; ii<no; ii++)             //  Find the smallest ID
+      if ((ovl[ii].a_hang == 0) &&             //  with no hangs.
+          (ovl[ii].b_hang == 0) &&
+          (ovl[ii].b_iid < nc))
+        nc = ovl[ii].b_iid;
+
+    if (fi < nc) {                             //  If we're smaller, we're a
+#pragma omp critical (suspInsert)              //  Zombie Master!
+      {
+        writeLog("read %u is a zombie.\n", fi);
+        _zombie.insert(fi);
+      }
+    }
+  }
+
+  writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " zombie reads.\n", _zombie.size());
+}
+
+
+
 void
 BestOverlapGraph::findEdges(void) {
   uint32  fiLimit    = RI->numReads();
@@ -512,6 +580,8 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
     removeSpurs(prefix);
     findEdges();
   }
+
+  findZombies(prefix);
 
   reportBestEdges(prefix, logFileFlagSet(LOG_ALL_BEST_EDGES) ? "best.3.final" : "best");
 

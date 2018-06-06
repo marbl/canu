@@ -40,6 +40,7 @@
 
 #include "AS_global.H"
 #include "AS_BAT_TigVector.H"
+#include "AS_BAT_OverlapCache.H"
 
 #include "stddev.H"
 
@@ -204,6 +205,13 @@ public:
   void cleanUp(void);
 
   //  Recompute bgn/end positions using all overlaps.
+  bool optimize_isCompatible(uint32       ii,
+                             uint32       jj,
+                             BAToverlap  &olap,
+                             bool         inInit,
+                             bool         secondPass,
+                             bool         beVerbose);
+
   void optimize_initPlace(uint32        pp,
                           optPos       *op,
                           optPos       *np,

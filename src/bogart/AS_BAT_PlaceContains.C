@@ -65,6 +65,11 @@ breakSingletonTigs(TigVector &tigs) {
     if (utg->ufpath.size() > 1)
       continue;
 
+    if (OG->isZombie(utg->ufpath[0].ident) == true) {
+      writeLog("Not breaking sinleton zombie tig %u with read %u\n", ti, utg->ufpath[0].ident);
+      continue;
+    }
+
     tigs[ti] = NULL;                           //  Remove the tig from the list
     tigs.registerRead(utg->ufpath[0].ident);   //  Eject the read
     delete utg;                                //  Reclaim space
@@ -125,6 +130,16 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
 
     placeReadUsingOverlaps(tigs, NULL, fid, placements, placeRead_fullMatch);
 
+    //  If all placements are in singletons, allow them.  If any placement is to a 'real' tig,
+    //  ignore singleton placements.
+
+    bool  ignoreSingleton = false;
+
+    for (uint32 i=0; i<placements.size(); i++)
+      if ((placements[i].fCoverage >= 0.99) &&
+          (tigs[placements[i].tigID]->ufpath.size() > 1))
+        ignoreSingleton = true;
+
     //  Search the placements for the highest expected identity placement using all overlaps in the unitig.
 
     uint32   b = UINT32_MAX;
@@ -132,10 +147,11 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
     for (uint32 i=0; i<placements.size(); i++) {
       Unitig *tig = tigs[placements[i].tigID];
 
-      if (placements[i].fCoverage < 0.99)                   //  Ignore partially placed reads.
+      if (placements[i].fCoverage < 0.99)     //  Ignore partially placed reads.
         continue;
 
-      if (tig->ufpath.size() == 1)  //  Ignore placements in singletons.
+      if ((ignoreSingleton == true) &&
+          (tig->ufpath.size() == 1))          //  Ignore placements in singletons.
         continue;
 
       uint32  bgn   = placements[i].position.min();
