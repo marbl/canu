@@ -60,9 +60,6 @@ Read_Frags(feParameters   *G,
   uint64  votesLength = 0;
   uint64  readsLoaded = 0;
 
-  fprintf(stderr, "Read_Frags()-- from " F_U32 " through " F_U32 "\n",
-          G->bgnID, G->endID);
-
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
@@ -74,11 +71,7 @@ Read_Frags(feParameters   *G,
                       sizeof(Vote_Tally_t) * votesLength +
                       sizeof(Frag_Info_t)  * G->readsLen);
 
-  fprintf(stderr, "Read_Frags()-- allocate " F_U64 " MB for bases, votes and info, for %u reads of total length " F_U64 " (%.2f MB)\n",
-          totAlloc >> 20,
-          G->endID - G->bgnID + 1,
-          basesLength,
-          totAlloc / 1024.0 / 1024.0);
+  fprintf(stderr, "Read_Frags()-- Loading target reads " F_U32 " through " F_U32 " with " F_U64 " bases.\n", G->bgnID, G->endID, basesLength);
 
   G->readBases = new char          [basesLength];
   G->readVotes = new Vote_Tally_t  [votesLength];             //  NO constructor, MUST INIT
@@ -122,6 +115,6 @@ Read_Frags(feParameters   *G,
 
   delete readData;
 
-  fprintf(stderr, "Read_Frags()-- from " F_U32 " through " F_U32 " -- loaded " F_U64 " bases in " F_U64 " reads.\n",
-          G->bgnID, G->endID-1, basesLength, readsLoaded);
+  fprintf(stderr, "Read_Frags()-- %.3f GB for bases, votes and info.\n", totAlloc / 1024.0 / 1024.0 / 1024.0);
+  fprintf(stderr, "\n");
 }

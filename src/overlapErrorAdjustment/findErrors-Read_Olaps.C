@@ -41,8 +41,7 @@ Read_Olaps(feParameters *G, gkStore *gkpStore) {
 
   uint64 numolaps = ovs->numOverlapsInRange();
 
-  fprintf(stderr, "Read_Olaps()-- loading " F_U64 " overlaps (%.2f MB).\n",
-          numolaps, sizeof(Olap_Info_t) * numolaps / 1024.0 / 1024.0);
+  fprintf(stderr, "Read_Olaps()-- Loading " F_U64 " overlaps.\n", numolaps);
 
   G->olaps    = new Olap_Info_t [numolaps];
   G->olapsLen = 0;
@@ -68,6 +67,9 @@ Read_Olaps(feParameters *G, gkStore *gkpStore) {
   }
 
   delete ovs;
+
+  fprintf(stderr, "Read_Olaps()-- %.3f GB for overlaps..\n", sizeof(Olap_Info_t) * numolaps / 1024.0 / 1024.0 / 1024.0);
+  fprintf(stderr, "\n");
 }
 
 

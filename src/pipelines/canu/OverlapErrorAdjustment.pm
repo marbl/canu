@@ -58,9 +58,13 @@ use canu::Grid_Cloud;
 sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     my $asm     = shift @_;
     my $maxID   = shift @_;
+
     my $rlVec   = shift @_;
+    my $rlCnt   = 0;
     my $rlSum   = 0;
+
     my $noVec   = shift @_;
+    my $noCnt   = 0;
     my $noSum   = 0;
 
     my $bin     = getBinDirectory();
@@ -75,13 +79,19 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
+ 
+        next if (m/^readID/);   #  Header line
+        next if (m/^------/);   #  ------ ----
+
         my @v = split '\s+', $_;
+
         vec($$rlVec, $v[0], 32) = $v[2];
+        $rlCnt                 += 1;
         $rlSum                 += $v[2];
     }
     close(F);
 
-    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($rlSum == 0);
+    caExit("Failed to load read lengths from '$asm.gkpStore'", undef)   if ($rlCnt == 0);
 
 
     fetchStore("unitigging/$asm.ovlStore");
@@ -92,13 +102,16 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
+
         my @v = split '\s+', $_;
+
         vec($$noVec, $v[0], 32) = $v[1];
+        $noCnt                 += 1;
         $noSum                 += $v[1];
     }
     close(F);
 
-    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($noSum == 0);
+    caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($noCnt == 0);
 
     return($rlSum, $noSum);
 }
@@ -127,25 +140,24 @@ sub readErrorDetectionConfigure ($) {
     my ($rlVec, $noVec);
     my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);
 
+    if ($noSum == 0) {
+        print STDERR "--\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING: Found no overlaps.  Disabling Overlap Error Adjustment.\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "--\n";
+        setGlobal("enableOEA", 0);
+        return;
+    }
+
     #  Find the maximum size of each block of 100,000 reads.  findErrors reads up to 100,000 reads
     #  to process at one time.  It uses 1 * length + 4 * 100,000 bytes of memory for bases and ID storage,
     #  and has two buffers of this size.
 
-    my $maxBlockSize = 0;
-
-    for (my $id = 1; $id <= $maxID; $id += 100000) {
-        my $sum = 0;
-
-        for (my $ii=$id; ($ii < $id + 100000) && ($ii < $maxID); $ii++) {
-            $sum += vec($rlVec, $ii, 32);
-        }
-
-        $maxBlockSize = $sum   if ($maxBlockSize < $sum);
-    }
-
-    my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
-    my $maxReads = getGlobal("redBatchSize");
-    my $maxBases = getGlobal("redBatchLength");
+    my $maxBlockSize = 512 * 1024 * 1024;  #  This is hardcoded in findErrors.C
+    my $maxMem       = getGlobal("redMemory") * 1024 * 1024 * 1024;
+    my $maxReads     = getGlobal("redBatchSize");
+    my $maxBases     = getGlobal("redBatchLength");
 
     print STDERR "--\n";
     print STDERR "-- Configure RED for ", getGlobal("redMemory"), "gb memory.\n";
@@ -425,9 +437,6 @@ sub overlapErrorAdjustmentConfigure ($) {
     my @log;   undef @log;
 
     my $nj = 0;
-
-    # get earliest count of reads in store
-    my $maxID    = getNumberOfReadsEarliestVersion($asm);
 
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("oeaBatchSize");

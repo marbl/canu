@@ -72,10 +72,6 @@ using namespace std;
 //  Factor by which to grow memory in olap array when reading it
 #define  EXPANSION_FACTOR            1.4
 
-//  Number of old fragments to read into memory-based fragment
-//  store at a time for processing
-#define  FRAGS_PER_BATCH             100000
-
 //  Longest name allowed for a file in the overlap store
 #define  MAX_FILENAME_LEN            1000
 
@@ -273,8 +269,6 @@ public:
 
 struct Thread_Work_Area_t {
   int32         thread_id;
-  uint32        loID;
-  uint32        hiID;
   uint64        nextOlap;
 
   feParameters *G;
