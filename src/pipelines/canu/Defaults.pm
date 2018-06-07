@@ -682,7 +682,7 @@ sub setOverlapDefaults ($$$) {
 
     setOverlapDefault($tag, "OvlHashBlockLength",  undef,                     "Amount of sequence (bp) to load into the overlap hash table");
     setOverlapDefault($tag, "OvlRefBlockLength",   undef,                     "Amount of sequence (bp) to search against the hash table per batch");
-    setOverlapDefault($tag, "OvlHashBits",         ($tag eq "cor") ? 18 : 23, "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength");
+    setOverlapDefault($tag, "OvlHashBits",         undef,                     "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength");
     setOverlapDefault($tag, "OvlHashLoad",         0.75,                      "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75");
     setOverlapDefault($tag, "OvlMerSize",          ($tag eq "cor") ? 19 : 22, "K-mer size for seeds in overlaps");
     setOverlapDefault($tag, "OvlMerThreshold",     "auto",                    "K-mer frequency threshold; mers more frequent than this count are ignored; default 'auto'");
