@@ -32,6 +32,11 @@
 #include <sys/wait.h>
 
 
+
+extern char **environ;  //  Where, or where, is this really defined?!
+
+
+
 static
 char *
 findSeqStorePath(char *requested) {
