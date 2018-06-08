@@ -783,6 +783,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -utg                trimmed reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "FORMAT OF -overlaps OUTPUT\n");
+    fprintf(stderr, "  NOTE!  Overlap type flags are only reported with -unaligned.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coords             as coordinates on each read (default)\n");
     fprintf(stderr, "  -hangs              as dovetail hangs\n");
