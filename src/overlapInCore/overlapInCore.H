@@ -154,9 +154,6 @@
 //  in a given orientation.  For fragments of approximately
 //  same size, should never be more than 2.
 
-#define  MAX_LINE_LEN            1000
-//  Maximum input line when reading FASTA file
-
 #define  MAX_NAME_LEN            500
 //  Longest file name allowed
 
@@ -432,7 +429,7 @@ public:
     maxLibToRef  = UINT32_MAX;
 
     Kmer_Len = 0;
-    Kmer_Skip_File = NULL;
+    kmerSkipFileName = NULL;
     Filter_By_Kmer_Count = 0;
 
     Frag_Olap_Limit = UINT64_MAX;
@@ -483,7 +480,7 @@ public:
 
   uint64  Kmer_Len;         //  -k
   uint64  Filter_By_Kmer_Count;
-  FILE   *Kmer_Skip_File;   //  -k
+  char   *kmerSkipFileName; //  -k
 
   //  Maximum number of overlaps for end of an old fragment against
   //  a single hash table of frags, in each orientation

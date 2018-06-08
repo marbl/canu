@@ -329,15 +329,12 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-k") == 0) {
       arg++;
+
       if ((isdigit(argv[arg][0]) && (argv[arg][1] == 0)) ||
-          (isdigit(argv[arg][0]) && isdigit(argv[arg][1]) && (argv[arg][2] == 0))) {
+          (isdigit(argv[arg][0]) && isdigit(argv[arg][1]) && (argv[arg][2] == 0)))
         G.Kmer_Len = strtoull(argv[arg], NULL, 10);
-      } else {
-        errno = 0;
-        G.Kmer_Skip_File = fopen(argv[arg], "r");
-        if (errno)
-          fprintf(stderr, "ERROR: Failed to open -k '%s': %s\n", argv[arg], strerror(errno)), exit(1);
-      }
+      else
+        G.kmerSkipFileName = argv[arg];
 
     } else if (strcmp(argv[arg], "-l") == 0) {
       G.Frag_Olap_Limit = strtol(argv[++arg], NULL, 10);

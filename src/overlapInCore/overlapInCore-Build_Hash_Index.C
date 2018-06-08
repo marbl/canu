@@ -67,7 +67,7 @@
 #include "overlapInCore.H"
 
 #include "AS_UTL_reverseComplement.H"
-
+#include "splitToWords.H"
 
 
 //  Add string  s  as an extra hash table string and return
@@ -228,61 +228,78 @@ Hash_Mark_Empty(uint64 key, char * s) {
 
 
 //  Set  Empty  bit true for all entries in global  Hash_Table
-//  that match a kmer in file  Kmer_Skip_File .
+//  that match a kmer in file  kmerSkipFileName .
 //  Add the entry (and then mark it empty) if it's not in  Hash_Table.
 static
 void
 Mark_Skip_Kmers(void) {
-  uint64  key;
-  char  line[MAX_LINE_LEN];
-  int  ct = 0;
+  char    line[1024];
+  int32   lineNum = 0;
+  int32   kmerNum = 0;
+  uint64  key = 0;
 
-  rewind (G.Kmer_Skip_File);
+  if (G.kmerSkipFileName == NULL)
+    return;
 
-  while (fgets (line, MAX_LINE_LEN, G.Kmer_Skip_File) != NULL) {
-    int  i, len;
+  //fprintf(stderr, "\n");
+  //fprintf(stderr, "Loading kmers to skip.\n");
+  //fprintf(stderr, "\n");
+  //fprintf(stderr, "String_Ct             = " F_U64 "\n", String_Ct);
+  //fprintf(stderr, "Extra_String_Ct       = " F_U64 "\n", Extra_String_Ct);
+  //fprintf(stderr, "Extra_String_Subcount = " F_U64 "\n", Extra_String_Subcount);
+  //fprintf(stderr, "\n");
 
-    ct ++;
-    len = strlen (line) - 1;
-    if (line[0] != '>' || line[len] != '\n') {
-      fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
-      fputs (line, stderr);
-      exit (1);
+  FILE *F = AS_UTL_openInputFile(G.kmerSkipFileName);
+
+  while (fgets(line, 1024, F) != NULL) {
+    lineNum++;
+
+    if (line[0] == '>') {
+      fgets(line, 1024, F);
+      lineNum++;
     }
 
-    if (fgets (line, MAX_LINE_LEN, G.Kmer_Skip_File) == NULL) {
-      fprintf (stderr, "ERROR:  Bad line after %d in kmer skip file\n", ct);
-      exit (1);
-    }
-    ct ++;
-    len = strlen (line) - 1;
-    if (len != G.Kmer_Len || line[len] != '\n') {
-      fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
-      fputs (line, stderr);
-      exit (1);
-    }
-    line[len] = '\0';
+    for (int32 ii=0; line[ii]; ii++)
+      if ((line[ii] == ' ') ||
+          (line[ii] == '\t') ||
+          (line[ii] == '\n') ||
+          (line[ii] == '\r'))
+        line[ii] = 0;
 
-    //if ((ct % 200000) == 0)
-    //  fprintf(stderr, "Loaded skip %10d '%s'\n", ct/2, line);
+    int32  len = strlen(line);
+
+    if (len != G.Kmer_Len)
+      fprintf(stderr, "Short kmer skip kmer '%s' at line %d, expecting length %d got length %d.\n",
+              line, lineNum, (int32)G.Kmer_Len, len), exit(1);
 
     key = 0;
-    for (i = 0;  i < len;  i ++) {
-      line[i] = tolower (line[i]);
-      key |= (uint64) (Bit_Equivalent[(int) line[i]]) << (2 * i);
-    }
-    Hash_Mark_Empty (key, line);
 
-    reverseComplementSequence (line, len);
+    for (int32 ii=0; ii<len; ii++)
+      key |= (uint64)(Bit_Equivalent[(int32)line[ii]]) << (2 * ii);
+
+    Hash_Mark_Empty(key, line);
+
+    reverseComplementSequence(line, len);
+
     key = 0;
-    for (i = 0;  i < len;  i ++)
-      key |= (uint64) (Bit_Equivalent[(int) line[i]]) << (2 * i);
-    Hash_Mark_Empty (key, line);
+
+    for (int32 ii=0; ii<len; ii++)
+      key |= (uint64)(Bit_Equivalent[(int) line[ii]]) << (2 * ii);
+
+    Hash_Mark_Empty(key, line);
+
+    kmerNum++;
   }
 
-  fprintf (stderr, "String_Ct = " F_U64 "  Extra_String_Ct = " F_U64 "  Extra_String_Subcount = " F_U64 "\n",
-           String_Ct, Extra_String_Ct, Extra_String_Subcount);
-  fprintf (stderr, "Read %d kmers to mark to skip\n", ct / 2);
+  AS_UTL_closeFile(F, G.kmerSkipFileName);
+
+  //  BPW has no idea what these are.
+  //fprintf(stderr, "String_Ct             = " F_U64 "\n", String_Ct);
+  //fprintf(stderr, "Extra_String_Ct       = " F_U64 "\n", Extra_String_Ct);
+  //fprintf(stderr, "Extra_String_Subcount = " F_U64 "\n", Extra_String_Subcount);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Read %d kmers to mark to skip\n", kmerNum);
+  fprintf(stderr, "\n");
 }
 
 
@@ -637,8 +654,7 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
   }
 
 
-  if (G.Kmer_Skip_File != NULL)
-    Mark_Skip_Kmers();
+  Mark_Skip_Kmers();
 
 
   // Coalesce reference chain into adjacent entries in  Extra_Ref_Space
