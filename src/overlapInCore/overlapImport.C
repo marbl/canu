@@ -44,14 +44,6 @@
 
 using namespace std;
 
-#define  TYPE_NONE    'N'
-#define  TYPE_LEGACY  'L'
-#define  TYPE_COORDS  'C'
-#define  TYPE_HANGS   'H'
-#define  TYPE_RAW     'R'
-#define  TYPE_OVB     'O'
-#define  TYPE_RANDOM  'r'
-
 
 int
 main(int argc, char **argv) {
@@ -61,7 +53,11 @@ main(int argc, char **argv) {
   char                  *ovlFileName = NULL;
   char                  *ovlStoreName = NULL;
 
-  char                   inType = TYPE_NONE;
+  bool                   asCoords    = false;    //  Format of input overlaps
+  bool                   asHangs     = false;
+  bool                   asUnaligned = false;
+  bool                   asPAF       = false;
+  bool                   asRandom    = false;
 
   uint64                 rmin = 0, rmax = 0;
   uint32                 abgn = 1, aend = 0;
@@ -70,65 +66,105 @@ main(int argc, char **argv) {
   vector<char *>         files;
 
 
-  int32     arg = 1;
-  int32     err = 0;
+  vector<char *>  err;
+  int32           arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-S") == 0) {
+    if      (strcmp(argv[arg], "-S") == 0) {
       seqStoreName = argv[++arg];
+    }
 
-    } else if (strcmp(argv[arg], "-o") == 0) {
+    else if (strcmp(argv[arg], "-o") == 0) {
       ovlFileName = argv[++arg];
+    }
 
-    } else if (strcmp(argv[arg], "-O") == 0) {
+    else if (strcmp(argv[arg], "-O") == 0) {
       ovlStoreName = argv[++arg];
+    }
 
-    } else if (strcmp(argv[arg], "-legacy") == 0) {
-      inType = TYPE_LEGACY;
 
-    } else if (strcmp(argv[arg], "-coords") == 0) {
-      fprintf(stderr, "-coords not implemented.\n"), exit(1);
-      inType = TYPE_COORDS;
+    else if (strcmp(argv[arg], "-raw") == 0)
+      sqRead_setDefaultVersion(sqRead_raw);
 
-    } else if (strcmp(argv[arg], "-hangs") == 0) {
-      fprintf(stderr, "-hangs not implemented.\n"), exit(1);
-      inType = TYPE_HANGS;
+    else if (strcmp(argv[arg], "-obt") == 0)
+      sqRead_setDefaultVersion(sqRead_corrected);
 
-    } else if (strcmp(argv[arg], "-raw") == 0) {
-      inType = TYPE_RAW;
+    else if (strcmp(argv[arg], "-utg") == 0)
+      sqRead_setDefaultVersion(sqRead_trimmed);
 
-    } else if (strcmp(argv[arg], "-ovb") == 0) {
-      fprintf(stderr, "-ovb not implemented.\n"), exit(1);
-      inType = TYPE_OVB;
 
-    } else if (strcmp(argv[arg], "-random") == 0) {
-      inType    = TYPE_RANDOM;
+    else if (strcmp(argv[arg], "-coords") == 0) {
+      asCoords    = true;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = false;
+      asRandom    = false;
+    }
+
+    else if (strcmp(argv[arg], "-hangs") == 0) {
+      asCoords    = false;
+      asHangs     = true;
+      asUnaligned = false;
+      asPAF       = false;
+      asRandom    = false;
+    }
+
+    else if (strcmp(argv[arg], "-unaligned") == 0) {
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = true;
+      asPAF       = false;
+      asRandom    = false;
+    }
+
+    else if (strcmp(argv[arg], "-paf") == 0) {
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = true;
+      asRandom    = false;
+    }
+
+    else if (strcmp(argv[arg], "-random") == 0) {
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = false;
+      asRandom    = true;
+
       AS_UTL_decodeRange(argv[++arg], rmin, rmax);
-      files.push_back(NULL);
+    }
 
-    } else if (strcmp(argv[arg], "-a") == 0) {
+    else if (strcmp(argv[arg], "-a") == 0) {
       AS_UTL_decodeRange(argv[++arg], abgn, aend);
+    }
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
+    else if (strcmp(argv[arg], "-b") == 0) {
       AS_UTL_decodeRange(argv[++arg], bbgn, bend);
+    }
 
-    } else if ((strcmp(argv[arg], "-") == 0) ||
+    else if ((strcmp(argv[arg], "-") == 0) ||
                (AS_UTL_fileExists(argv[arg]))) {
       files.push_back(argv[arg]);
+    }
 
-    } else {
-      fprintf(stderr, "ERROR:  invalid arg '%s'\n", argv[arg]);
-      err++;
+    else {
+      char *s = new char [1024];
+      snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
 
-  if (seqStoreName == NULL)
-    err++;
-  if (inType == TYPE_NONE)
-    err++;
 
-  if ((err) || (files.size() == 0)) {
+  if (seqStoreName == NULL)
+    err.push_back("ERROR: no input seqStore (-S) supplied.\n");
+
+  if ((files.size() == 0) && (asRandom == false))
+    err.push_back("ERROR: no input overlap files supplied.\n");
+
+
+  if (err.size() > 0) {
     fprintf(stderr, "usage: %s [options] ascii-ovl-file-input.[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "Required:\n");
@@ -139,11 +175,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -O name.ovlStore   output overlap store");
     fprintf(stderr, "\n");
     fprintf(stderr, "Input Format:\n");
-    fprintf(stderr, "  -legacy            'CA8 overlapStore -d' format\n");
-    fprintf(stderr, "  -coords            'overlapConvert -coords' format (not implemented)\n");
-    fprintf(stderr, "  -hangs             'overlapConvert -hangs' format (not implemented)\n");
-    fprintf(stderr, "  -raw               'overlapConvert -raw' format\n");
-    fprintf(stderr, "  -ovb               'overlapInCore' format (not implemented)\n");
+    fprintf(stderr, "  -coords            \n");
+    fprintf(stderr, "  -hangs             \n");
+    fprintf(stderr, "  -unaligned         \n");
+    fprintf(stderr, "  -paf               \n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -random N          create N random overlaps, for store testing\n");
     fprintf(stderr, "    -a x-y             A read IDs will be between x and y\n");
     fprintf(stderr, "    -b x-y             B read IDs will be between x and y\n");
@@ -151,12 +187,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
     fprintf(stderr, "\n");
 
-    if (seqStoreName == NULL)
-      fprintf(stderr, "ERROR: need to supply a seqStore (-S).\n");
-    if (inType == TYPE_NONE)
-      fprintf(stderr, "ERROR: need to supply a format type (-legacy, -coords, -hangs, -raw).\n");
-    if (files.size() == 0)
-      fprintf(stderr, "ERROR: need to supply input files.\n");
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
@@ -173,7 +206,7 @@ main(int argc, char **argv) {
 
   //  Make random inputs first.
 
-  if (inType == TYPE_RANDOM) {
+  if (asRandom == true) {
     mtRandom  mt;
 
     if (aend == 0)   aend = seqStore->sqStore_getNumReads();
@@ -228,8 +261,6 @@ main(int argc, char **argv) {
       if (os)
         os->writeOverlap(&ov);
     }
-
-    files.pop_back();
   }
 
   //  Now process any files.
@@ -242,57 +273,23 @@ main(int argc, char **argv) {
     while (!feof(in->file())) {
       W.split(S);
 
-      switch (inType) {
-      case TYPE_LEGACY:
-        //  Aiid Biid 'I/N' ahang bhang erate erate
-        ov.a_iid = W.touint32(0);
-        ov.b_iid = W.touint32(1);
+      if (asCoords) {
+        ov.fromString(W, ovOverlapAsCoords);
+      }
 
-        ov.flipped(W[2][0] == 'I');
+      else if (asHangs) {
+        ov.fromString(W, ovOverlapAsHangs);
+      }
 
-        ov.a_hang(W.toint32(3));
-        ov.b_hang(W.toint32(4));
+      else if (asUnaligned) {
+        ov.fromString(W, ovOverlapAsUnaligned);
+      }
 
-        //  Overlap store reports %error, but we expect fraction error.
-        //ov.erate(atof(W[5]);  //  Don't use the original uncorrected error rate
-        ov.erate(atof(W[6]) / 100.0);
-        break;
+      else if (asPAF) {
+        ov.fromString(W, ovOverlapAsPaf);
+      }
 
-      case TYPE_COORDS:
-        break;
-
-      case TYPE_HANGS:
-        break;
-
-      case TYPE_RAW:
-         ov.a_iid = W.touint32(0);
-         ov.b_iid = W.touint32(1);
-
-         ov.flipped(W[2][0] == 'I');
-
-         ov.dat.ovl.span = W.touint32(3);
-
-         ov.dat.ovl.ahg5 = W.touint32(4);
-         ov.dat.ovl.ahg3 = W.touint32(5);
-
-         ov.dat.ovl.bhg5 = W.touint32(6);
-         ov.dat.ovl.bhg3 = W.touint32(7);
-
-         ov.erate(atof(W[8]) / 1);
-
-         ov.dat.ovl.forUTG = false;
-         ov.dat.ovl.forOBT = false;
-         ov.dat.ovl.forDUP = false;
-
-         for (uint32 i = 9; i < W.numWords(); i++) {
-           ov.dat.ovl.forUTG |= ((W[i][0] == 'U') && (W[i][1] == 'T') && (W[i][2] == 'G'));  //  Fails if W[i] == "U".
-           ov.dat.ovl.forOBT |= ((W[i][0] == 'O') && (W[i][1] == 'B') && (W[i][2] == 'T'));
-           ov.dat.ovl.forDUP |= ((W[i][0] == 'D') && (W[i][1] == 'U') && (W[i][2] == 'P'));
-         }
-        break;
-
-      default:
-        break;
+      else {
       }
 
       if (of)

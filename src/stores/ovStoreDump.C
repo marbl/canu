@@ -784,7 +784,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "FORMAT OF -overlaps OUTPUT\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -coords             as coordinates on each read\n");
+    fprintf(stderr, "  -coords             as coordinates on each read (default)\n");
     fprintf(stderr, "  -hangs              as dovetail hangs\n");
     fprintf(stderr, "  -unaligned          as unaligned regions on each read\n");
     fprintf(stderr, "  -paf                as miniasm Pairwise mApping Format\n");

@@ -105,10 +105,105 @@ ovOverlap::toString(char                  *str,
               255,
               (newLine) ? "\n" : "");
       break;
-
   }
 
   return(str);
+}
+
+
+
+bool
+ovOverlap::fromString(splitToWords          &W,
+                      ovOverlapDisplayType   type) {
+
+
+  switch (type) {
+    case ovOverlapAsHangs:
+      a_iid = W.touint32(0);
+      b_iid = W.touint32(1);
+
+      flipped(W[2][0] == 'I');
+
+      a_hang(W.touint32(3));
+      span(W.touint32(4));
+      b_hang(W.touint32(5));
+
+      erate(W.todouble(6));
+
+      break;
+
+    case ovOverlapAsCoords:
+      a_iid = W.touint32(0);
+      b_iid = W.touint32(1);
+
+      flipped(W[2][0] == 'I');
+
+      span(W.touint32(3));
+
+      {
+        uint32  alen = g->sqStore_getRead(a_iid)->sqRead_sequenceLength();
+        uint32  blen = g->sqStore_getRead(b_iid)->sqRead_sequenceLength();
+
+        uint32  abgn = W.touint32(4);
+        uint32  aend = W.touint32(5);
+
+        uint32  bbgn = W.touint32(6);
+        uint32  bend = W.touint32(7);
+
+        dat.ovl.ahg5 = abgn;
+        dat.ovl.ahg3 = alen - aend;
+
+        dat.ovl.bhg5 = (dat.ovl.flipped) ? blen - bbgn :        bbgn;
+        dat.ovl.bhg3 = (dat.ovl.flipped) ?        bend : blen - bend;
+      }
+
+      erate(W.todouble(8));
+      break;
+
+    case ovOverlapAsUnaligned:
+      a_iid = W.touint32(0);
+      b_iid = W.touint32(1);
+
+      flipped(W[2][0] == 'I');
+
+      dat.ovl.span = W.touint32(3);
+
+      dat.ovl.ahg5 = W.touint32(4);
+      dat.ovl.ahg3 = W.touint32(5);
+
+      dat.ovl.bhg5 = W.touint32(6);
+      dat.ovl.bhg3 = W.touint32(7);
+
+      erate(W.todouble(8));
+
+      dat.ovl.forUTG = false;
+      dat.ovl.forOBT = false;
+      dat.ovl.forDUP = false;
+
+      for (uint32 i = 9; i < W.numWords(); i++) {
+        dat.ovl.forUTG |= ((W[i][0] == 'U') && (W[i][1] == 'T') && (W[i][2] == 'G'));  //  Fails if W[i] == "U".
+        dat.ovl.forOBT |= ((W[i][0] == 'O') && (W[i][1] == 'B') && (W[i][2] == 'T'));
+        dat.ovl.forDUP |= ((W[i][0] == 'D') && (W[i][1] == 'U') && (W[i][2] == 'P'));
+      }
+      break;
+
+    case ovOverlapAsCompat:
+        //  Aiid Biid 'I/N' ahang bhang erate erate
+        a_iid = W.touint32(0);
+        b_iid = W.touint32(1);
+
+        flipped(W[2][0] == 'I');
+
+        a_hang(W.toint32(3));
+        b_hang(W.toint32(4));
+
+        //  Overlap store reports %error, but we expect fraction error.
+        //erate(atof(W[5]);  //  Don't use the original uncorrected error rate
+        erate(atof(W[6]) / 100.0);
+      break;
+    case ovOverlapAsPaf:
+      break;
+  }
 }
 
 

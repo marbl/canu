@@ -38,6 +38,8 @@
 #ifndef AS_OVOVERLAP_H
 #define AS_OVOVERLAP_H
 
+#include "splitToWords.H"
+
 
 //  Error rates are encoded as a 12-bit fixed-point value.  This gives us up to 40.95% error, with
 //  0.01% resolution.  Changing the number of bits WILL break the carefully structured
@@ -318,6 +320,7 @@ public:
   };
 
   char      *toString(char *str, ovOverlapDisplayType type, bool newLine);
+  bool       fromString(splitToWords &W, ovOverlapDisplayType type);
 
   void       swapIDs(ovOverlap const &orig);
 
