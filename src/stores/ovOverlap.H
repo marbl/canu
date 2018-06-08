@@ -174,8 +174,7 @@ enum ovOverlapDisplayType {
   ovOverlapAsHangs      = 0,  //  Show a and b hang
   ovOverlapAsCoords     = 1,  //  Show bgn,end for each read
   ovOverlapAsUnaligned  = 2,  //  Show all four hangs, the unaligned bits on the end of each read
-  ovOverlapAsCompat     = 3,  //  Show in a format more-or-less compatible with CA 8.3
-  ovOverlapAsPaf        = 4,  //  Show in a format compatible with miniasm
+  ovOverlapAsPaf        = 3,  //  Show in a format compatible with miniasm
 };
 
 

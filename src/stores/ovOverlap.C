@@ -81,16 +81,6 @@ ovOverlap::toString(char                  *str,
               (newLine) ? "\n" : "");
       break;
 
-    case ovOverlapAsCompat:
-      sprintf(str, "%8" F_U32P " %8" F_U32P "  %c  %6d  %6d  %5.2f  %5.2f%s",
-              a_iid,
-              b_iid,
-              dat.ovl.flipped ? 'I' : 'N',
-              a_hang(), b_hang(),
-              erate() * 100.0,
-              erate() * 100.0,
-              (newLine) ? "\n" : "");
-      break;
     case ovOverlapAsPaf:
       // miniasm/map expects entries to be separated by tabs
       // no padding spaces on names we don't confuse read identifiers
@@ -187,20 +177,6 @@ ovOverlap::fromString(splitToWords          &W,
       }
       break;
 
-    case ovOverlapAsCompat:
-        //  Aiid Biid 'I/N' ahang bhang erate erate
-        a_iid = W.touint32(0);
-        b_iid = W.touint32(1);
-
-        flipped(W[2][0] == 'I');
-
-        a_hang(W.toint32(3));
-        b_hang(W.toint32(4));
-
-        //  Overlap store reports %error, but we expect fraction error.
-        //erate(atof(W[5]);  //  Don't use the original uncorrected error rate
-        erate(atof(W[6]) / 100.0);
-      break;
     case ovOverlapAsPaf:
       break;
   }
