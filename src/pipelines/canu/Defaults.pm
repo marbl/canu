@@ -1094,6 +1094,8 @@ sub checkGnuplot () {
         print F "set terminal\n";
         close(F);
 
+        # explicitly set pager to avoid having output corrupted by "Press enter..."
+        $ENV{"PAGER"} = "cat";
         system("cd /tmp && $gnuplot < /dev/null /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
 
         open(F, "< /tmp/gnuplot-$$-test.err");
@@ -1123,6 +1125,12 @@ sub checkGnuplot () {
         addCommandLineError("ERROR:  Failed to detect a suitable output format for gnuplot.\n");
         addCommandLineError("ERROR:  Looked for png, svg and gif, found none of them.\n");
         addCommandLineError("Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
+        open(F, "< /tmp/gnuplot-$$-test.err");
+        while (<F>) {
+            chomp;
+            addCommandLineError("ERROR:  gnuplot reports:  $_\n");
+        }
+        close(F);
         return;
     }
 
