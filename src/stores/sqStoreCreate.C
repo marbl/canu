@@ -652,6 +652,8 @@ createStore(const char *seqStoreName,
     delete [] linekv;
   }
 
+  fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
+
   seqStore->sqStore_close();
 
   AS_UTL_closeFile(nameMap,  seqStoreName, '/', "readNames.txt");
@@ -671,7 +673,6 @@ createStore(const char *seqStoreName,
   fprintf(stderr, "  " F_U32 " reads (%.4f%%).\n", nSKIPPED, (nSKIPPED + nLOADED > 0) ? (100.0 * nSKIPPED / (nSKIPPED + nLOADED)) : 0);
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
 
   if (nERROR > 0)
     fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many errors.\n");
