@@ -733,7 +733,11 @@ sub submitScript ($$) {
        $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
        $gridOpts .= " "                                  if (defined($gridOpts));
     }
-    $gridOpts .= $memOption                           if (defined($memOption));
+    # For DNANEXUS, we won't specify memory when resubmitting canu.  It will use the same setup
+    # as was specified when it was first submitted.
+    if (uc(getGlobal("gridEngine")) ne "DNANEXUS") {
+        $gridOpts .= $memOption                           if (defined($memOption));
+    }
     $gridOpts .= " "                                  if (defined($gridOpts));
     $gridOpts .= $thrOption                           if (defined($thrOption));
     if (uc(getGlobal("gridEngine")) ne "LSF") {
