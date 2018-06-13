@@ -295,6 +295,9 @@ sub stashFileShellCode ($$$) {
         $code .= "${indent}  fi\n";
         $code .= "${indent}  $client upload --wait --parents --path \"$pr:$ns/$path/$file\" \"$file\"\n";
         $code .= "${indent}  cd -\n";
+        $code .= "${indent}else\n";
+        $code .= "${indent}  # Could not find file that we are meant to stash.  We should exit with an error.\n";
+        $code .= "${indent}  exit 1\n";
         $code .= "${indent}fi\n";
     }
 
