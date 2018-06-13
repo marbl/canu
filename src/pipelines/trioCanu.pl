@@ -317,7 +317,7 @@ configureAssembler();
 #  And, finally, move to the assembly directory, finish setting things up, and report the critical
 #  parameters.
 
-setWorkDirectory();
+setWorkDirectory($asm, $rootdir);
 
 if (defined($rootdir)) {
     make_path($rootdir)  if (! -d $rootdir);
