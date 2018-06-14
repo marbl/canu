@@ -73,5 +73,21 @@
     "network": [
       "*"
     ]
+  },
+  "regionalOptions": {
+    "azure:westus": {
+      "systemRequirements": {
+        "*": {
+          "instanceType": "azure:mem2_ssd1_x16"
+        }
+      }
+    },
+    "aws:us-east-1": {
+      "systemRequirements": {
+        "*": {
+          "instanceType": "mem3_ssd1_x32"
+        }
+      }
+    }
   }
 }
