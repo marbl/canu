@@ -613,7 +613,7 @@ AS_UTL_openOutputFile(char const *prefix,
 
 
 void
-AS_UTL_closeFile(FILE *F, const char *prefix, char separator, char const *suffix, bool critical) {
+AS_UTL_closeFile(FILE *&F, const char *prefix, char separator, char const *suffix, bool critical) {
 
   if ((F == NULL) || (F == stdout) || (F == stderr))
     return;
@@ -621,6 +621,8 @@ AS_UTL_closeFile(FILE *F, const char *prefix, char separator, char const *suffix
   errno = 0;
 
   fclose(F);
+
+  F = NULL;
 
   if ((critical == false) || (errno == 0))
     return;
@@ -636,7 +638,7 @@ AS_UTL_closeFile(FILE *F, const char *prefix, char separator, char const *suffix
 }
 
 
-void    AS_UTL_closeFile(FILE *F, const char *filename, bool critical) {
+void    AS_UTL_closeFile(FILE *&F, const char *filename, bool critical) {
   AS_UTL_closeFile(F, filename, '.', NULL, critical);
 }
 

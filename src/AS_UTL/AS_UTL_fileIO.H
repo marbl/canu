@@ -83,8 +83,8 @@ void    AS_UTL_loadFileList(char *fileName, vector<char *> &FILE);
 FILE   *AS_UTL_openInputFile (char const *prefix, char separator='.', char const *suffix=NULL, bool doOpen=true);
 FILE   *AS_UTL_openOutputFile(char const *prefix, char separator='.', char const *suffix=NULL, bool doOpen=true);
 
-void    AS_UTL_closeFile(FILE *F, const char *filename, char separator, char const *suffix, bool critical=true);
-void    AS_UTL_closeFile(FILE *F, const char *filename=NULL, bool critical=true);
+void    AS_UTL_closeFile(FILE *&F, const char *filename, char separator, char const *suffix, bool critical=true);
+void    AS_UTL_closeFile(FILE *&F, const char *filename=NULL, bool critical=true);
 
 void    AS_UTL_createEmptyFile(char const *prefix, char separator='.', char const *suffix=NULL);
 
