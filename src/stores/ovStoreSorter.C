@@ -68,7 +68,7 @@ checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config) {
 
   //  Not done and not running, so create a sentinel to say we're running.
 
-  AS_UTL_closeFile(AS_UTL_openOutputFile(N), N);
+  AS_UTL_createEmptyFile(N);
 }
 
 

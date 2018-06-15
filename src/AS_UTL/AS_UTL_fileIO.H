@@ -86,6 +86,8 @@ FILE   *AS_UTL_openOutputFile(char const *prefix, char separator='.', char const
 void    AS_UTL_closeFile(FILE *F, const char *filename, char separator, char const *suffix, bool critical=true);
 void    AS_UTL_closeFile(FILE *F, const char *filename=NULL, bool critical=true);
 
+void    AS_UTL_createEmptyFile(char const *prefix, char separator='.', char const *suffix=NULL);
+
 template<typename OBJ>
 void    AS_UTL_loadFile(char const *prefix, char separator, char const *suffix, OBJ *objects, uint64 numberToLoad) {
   FILE    *file   = AS_UTL_openInputFile(prefix, separator, suffix);

@@ -642,6 +642,16 @@ void    AS_UTL_closeFile(FILE *F, const char *filename, bool critical) {
 
 
 
+void    AS_UTL_createEmptyFile(char const *prefix, char separator, char const *suffix) {
+  FILE *file = AS_UTL_openOutputFile(prefix, separator, suffix);
+
+  AS_UTL_closeFile(file, prefix, separator, suffix);
+}
+
+
+
+
+
 cftType
 compressedFileType(char const *filename) {
 
