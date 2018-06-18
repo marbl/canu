@@ -54,6 +54,11 @@
 
 #include "ovStore.H"
 
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
 
 
 ovStore::ovStore(const char *path, gkStore *gkp) {
@@ -525,12 +530,42 @@ ovStore::numOverlapsPerRead(uint32 numReads) {
 
 
 
+class evalueFileMap {
+public:
+  evalueFileMap() {
+    _name  = NULL;
+    _bgnID = UINT32_MAX;
+    _endID = 0;
+    _Nolap = 0;
+  }
+
+  char     *_name;
+
+  uint32    _bgnID;
+  uint32    _endID;
+  uint64    _Nolap;
+};
+
+bool
+operator<(evalueFileMap const &a, evalueFileMap const &b) {
+  return(a._bgnID < b._bgnID);
+};
+
+
+
 void
 ovStore::addEvalues(vector<char *> &fileList) {
-  char  name[FILENAME_MAX];
-  snprintf(name, FILENAME_MAX, "%s/evalues", _storePath);
+  char  evalueName[FILENAME_MAX+1];
+  char  evalueTemp[FILENAME_MAX+1];
 
-  //  If we have an opened memory mapped file, close it.
+  //  Handy to have the name of the file we're working with.
+
+  snprintf(evalueTemp, FILENAME_MAX, "%s/evalues.WORKING", _storePath);
+  snprintf(evalueName, FILENAME_MAX, "%s/evalues",         _storePath);
+
+  //  If we have an opened memory mapped file, close it.  There _shouldn't_ be one,
+  //  as it would exist only if evalues were already added, but it might.  And if it
+  //  does exist, nuke it from disk too (well, not quite yet).
 
   if (_evaluesMap) {
     delete _evaluesMap;
@@ -539,76 +574,78 @@ ovStore::addEvalues(vector<char *> &fileList) {
     _evalues    = NULL;
   }
 
-  //  Allocate space for the evalues.
-
-  _evalues     = new uint16 [_info.numOverlaps()];
-
-  //  Remove a bogus evalues file if one exists.
-
-  if ((AS_UTL_fileExists(name) == true) &&
-      (AS_UTL_sizeOfFile(name) != (sizeof(uint16) * _info.numOverlaps()))) {
-    fprintf(stderr, "WARNING: existing evalues file is incorrect size: should be " F_U64 " bytes, is " F_U64 " bytes.  Removing.\n",
-            (sizeof(uint16) * _info.numOverlaps()), AS_UTL_sizeOfFile(name));
-    AS_UTL_unlink(name);
+  if (AS_UTL_fileExists(evalueName) == true) {
+    fprintf(stderr, "WARNING:\n");
+    fprintf(stderr, "WARNING: existing evalue file will be overwritten!\n");
+    fprintf(stderr, "WARNING:\n");
   }
 
-  //  Clear the evalues.
+  //  Scan each file, finding the first overlap in it.
 
-  for (uint64 ii=0; ii<_info.numOverlaps(); ii++)
-    _evalues[ii] = UINT16_MAX;
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Scanning.\n");
 
-  //  For each file in the fileList, open it, read the header (bgnID, endID and
-  //  number of values), load the evalues, then copy this data to the actual
-  //  evalues file.
+  evalueFileMap   *emap = new evalueFileMap [fileList.size()];
 
-  for (uint32 i=0; i<fileList.size(); i++) {
-    uint32        bgnID = 0;
-    uint32        endID = 0;
-    uint64        len   = 0;
+  for (uint32 ii=0; ii<fileList.size(); ii++) {
+    emap[ii]._name  = fileList[ii];
+    emap[ii]._bgnID = 0;
+    emap[ii]._endID = 0;
+    emap[ii]._Nolap = 0;
 
-    errno = 0;
-    FILE  *fp = fopen(fileList[i], "r");
-    if (errno)
-      fprintf(stderr, "Failed to open evalues file '%s': %s\n", fileList[i], strerror(errno)), exit(1);
+    FILE *E = AS_UTL_openInputFile(fileList[ii]);
 
-    AS_UTL_safeRead(fp, &bgnID, "loid",   sizeof(uint32), 1);
-    AS_UTL_safeRead(fp, &endID, "hiid",   sizeof(uint32), 1);
-    AS_UTL_safeRead(fp, &len,   "len",    sizeof(uint64), 1);
+    AS_UTL_safeRead(E, &emap[ii]._bgnID, "bgnID", sizeof(uint32), 1);
+    AS_UTL_safeRead(E, &emap[ii]._endID, "endID", sizeof(uint32), 1);
+    AS_UTL_safeRead(E, &emap[ii]._Nolap, "Nolap", sizeof(uint64), 1);
 
-    //  Figure out the overlap ID for the first overlap associated with bgnID
+    AS_UTL_closeFile(E);
 
-    setRange(bgnID, endID);
-
-    //  Load data directly into the evalue array
-
-    fprintf(stderr, "-  Loading evalues from '%s' -- ID range " F_U32 "-" F_U32 " with " F_U64 " overlaps\n",
-            fileList[i], bgnID, endID, len);
-
-    AS_UTL_safeRead(fp, _evalues + _offt._overlapID, "evalues", sizeof(uint16), len);
-
-    AS_UTL_closeFile(fp, fileList[i]);
+    fprintf(stderr, "  '%s' covers reads %7" F_U32P "-%-7" F_U32P " with %10" F_U64P " overlaps.\n",
+            emap[ii]._name, emap[ii]._bgnID, emap[ii]._endID, emap[ii]._Nolap);
   }
 
-  //  Write the evalues to disk.
+  //  Sort the emap by starting read.
 
-  fprintf(stderr, "Saving evalues file for " F_U64 " overlaps.\n", _info.numOverlaps());
+  sort(emap, emap + fileList.size());
 
-  errno = 0;
-  FILE *F = fopen(name, "w");
-  if (errno)
-    fprintf(stderr, "Failed to make evalues file '%s': %s\n", name, strerror(errno)), exit(1);
+  //  Check that all IDs are present.
 
-  AS_UTL_safeWrite(F, _evalues, "evalues", sizeof(uint16), _info.numOverlaps());
+  for (uint32 ii=1; ii<fileList.size(); ii++) {
+    if (emap[ii-1]._endID < emap[ii]._bgnID)
+      fprintf(stderr, "Discontinuity between files '%s' and '%s'.\n", emap[ii-1]._name, emap[ii]._name);
+  }
 
-  AS_UTL_closeFile(F, name);
+  //  Now just copy the new evalues to the real evalues file.  The inputs two 32-bit words and
+  //  a 64-bit word at the start we need to ignore.  That's 8 16-bit words.
 
-  //  Clean up, and reopen the file.  Usually, we just delete the store after
-  //  values are loaded, so this is pointless.
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Merging.\n");
 
-  delete [] _evalues;
+  FILE *EO = AS_UTL_openOutputFile(evalueTemp);
 
-  //  Open the evalues file if it isn't already opened
+  for (uint32 ii=0; ii<fileList.size(); ii++) {
+    uint16 *ev = new uint16 [emap[ii]._Nolap + 8];
 
-  _evaluesMap = new memoryMappedFile(name, memoryMappedFile_readOnly);
-  _evalues    = (uint16 *)_evaluesMap->get(0);
+    AS_UTL_loadFile(emap[ii]._name, ev, emap[ii]._Nolap + 8);
+
+    AS_UTL_safeWrite(EO, ev + 8, "evalues", sizeof(uint16), emap[ii]._Nolap);
+
+    delete [] ev;
+
+    fprintf(stderr, "  '%s' covers reads %7" F_U32P "-%-7" F_U32P "; %10" F_U64P " with overlaps.\n",
+            emap[ii]._name, emap[ii]._bgnID, emap[ii]._endID, emap[ii]._Nolap);
+  }
+
+  AS_UTL_closeFile(EO, evalueTemp);
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Renaming.\n");
+
+  AS_UTL_unlink(evalueName);
+  AS_UTL_rename(evalueTemp, evalueName);
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Success!\n");
+  fprintf(stderr, "\n");
 }
