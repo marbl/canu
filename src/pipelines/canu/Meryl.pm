@@ -794,16 +794,24 @@ sub merylProcess ($$) {
         printf(O "%d\t%d\n", $totalToFilter, $totalToOutput);
 
         while (!eof(F)) {
-            my $h = <F>;
-            my $m = <F>;  chomp $m;
-            my $r = reverse $m;
+            my $c = <F>;
+            my $m;
+            my $r;
 
+            if ($c =~ m/^>(\d+)/) {            #  If FASTA, parse out the count from the name
+                $c = $1;                       #  line, and read the next line to get the kmer.
+                $m = <F>;                      #
+            } else {                           #  Otherwise, the kmer is the first word
+                ($m, $c) = split '\s+', $c;    #  in the line we already read.
+            }
+
+            chomp $m;
+
+            $r = reverse $m;
             $r =~ tr/ACGTacgt/TGCAtgca/;
 
-            if ($h =~ m/^>(\d+)/) {
-                printf(O "%s\t%e\n", $m, $1 / $totalMers);
-                printf(O "%s\t%e\n", $r, $1 / $totalMers);
-            }
+            printf(O "%s\t%e\n", $m, $c / $totalMers);
+            printf(O "%s\t%e\n", $r, $c / $totalMers);
         }
         close(O);
         close(F);
