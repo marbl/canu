@@ -78,8 +78,8 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
   }
 
   fprintf(stderr, "------------ ----------------------------------------\n");
-  fprintf(stderr, "%12.3f overlaps in inputs\n", numOverlaps / 2 / 1000000.0);
-  fprintf(stderr, "%12.3f overlaps to sort\n",   numOverlaps     / 1000000.0);
+  fprintf(stderr, "%12.3f Moverlaps in inputs\n", numOverlaps / 2 / 1000000.0);
+  fprintf(stderr, "%12.3f Moverlaps to sort\n",   numOverlaps     / 1000000.0);
   fprintf(stderr, "\n");
 
   if (numOverlaps == 0)
@@ -330,8 +330,9 @@ main(int argc, char **argv) {
   if ((configOut == NULL) && (configIn == NULL))
     err.push_back("ERROR: Must supply one of -create or -describe.\n");
 
-  if (maxMemory < OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize)
-    fprintf(stderr, "ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
+  if ((minMemory <= OVSTORE_MEMORY_OVERHEAD) ||
+      (maxMemory <= OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize))
+    err.push_back("ERROR: Memory (-M) must be at least 0.25 GB to account for overhead.\n");  //  , OVSTORE_MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -S asm.seqStore -create out.config [opts] [-L fileList | *.ovb]\n", argv[0]);
