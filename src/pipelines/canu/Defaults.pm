@@ -487,13 +487,12 @@ sub printCitation ($) {
 
 
 
-
 sub makeAbsolute ($) {
     my $var = shift @_;
     my $val = getGlobal($var);
     my $abs = abs_path($val);
 
-    if (defined($val) && ($val != $abs)) {
+    if (defined($val) && ($val ne $abs)) {
         setGlobal($var, $abs);
         $val =~ s/\\\"/\"/g;
         $val =~ s/\"/\\\"/g;
