@@ -297,6 +297,7 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "  -O  ./$asm.ovlStore.BUILDING \\\n";
         print F "  -S ../$asm.seqStore \\\n";
         print F "  -C  ./$asm.ovlStore.config \\\n";
+        print F "  -f \\\n";
         print F "  -b \$jobid \n";
         print F "\n";
 

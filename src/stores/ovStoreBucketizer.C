@@ -74,12 +74,14 @@ writeToFile(sqStore          *seq,
 
 int
 main(int argc, char **argv) {
-  char           *ovlName      = NULL;
-  char           *seqName      = NULL;
-  char           *cfgName      = NULL;
-  uint32          bucketNum    = UINT32_MAX;
+  char           *ovlName        = NULL;
+  char           *seqName        = NULL;
+  char           *cfgName        = NULL;
+  uint32          bucketNum      = UINT32_MAX;
 
-  double          maxErrorRate = 1.0;
+  double          maxErrorRate   = 1.0;
+
+  bool            forceOverwrite = false;
 
   char            createName[FILENAME_MAX+1];
   char            sliceSName[FILENAME_MAX+1];
@@ -104,6 +106,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      forceOverwrite = true;
 
     } else {
       char *s = new char [1024];
@@ -135,6 +140,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -f                    force overwriting existing data\n");
+    fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -154,8 +161,12 @@ main(int argc, char **argv) {
   snprintf(bucketName, FILENAME_MAX, "%s/bucket%04u",            ovlName, bucketNum);
 
   if (AS_UTL_fileExists(createName, true, false) == true) {
-    fprintf(stderr, "Job (appears to be) in progress; directory '%s' exists.\n", createName);
-    exit(1);
+    if (forceOverwrite) {
+      fprintf(stderr, "Overwriting incomplete result from presumed crashed job in directory '%s'.\n", createName);
+    } else {
+      fprintf(stderr, "Job (appears to be) in progress (or crashed); directory '%s' exists.\n", createName);
+      exit(1);
+    }
   }
 
   if (AS_UTL_fileExists(bucketName, false, false) == true) {
