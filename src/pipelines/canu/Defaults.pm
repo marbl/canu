@@ -1004,6 +1004,10 @@ sub checkJava () {
     my $version      = 0;
     my @javaVersionStrings;
 
+    if ($java =~ m/^\./) {
+        addCommandLineError("ERROR:  path to java '$java' must not be a relative path.\n");
+    }
+
     #  We've seen errors running just this tiny java if too many copies are ran at the same time.
     #  So, run it twice, if needed, with a little random delay between.
 
@@ -1064,6 +1068,10 @@ sub checkGnuplot () {
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
     my $version = undef;
+
+    if ($gnuplot =~ m/^\./) {
+        addCommandLineError("ERROR:  path to gnuplot '$gnuplot' must not be a relative path.\n")
+    }
 
     #  Check for existence of gnuplot.
 
