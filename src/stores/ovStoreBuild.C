@@ -92,6 +92,8 @@ main(int argc, char **argv) {
   bool            eValues        = false;
   char           *configOut      = NULL;
 
+  bool            beVerbose      = false;
+
   argc = AS_configure(argc, argv);
 
   vector<char *>  err;
@@ -108,6 +110,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
 
     } else {
       char *s = new char [1024];
@@ -132,6 +137,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -v                    be overly verbose\n");
+    fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -144,7 +151,7 @@ main(int argc, char **argv) {
 
   ovStoreConfig    *config = new ovStoreConfig(cfgName);
   sqStore          *seq    = sqStore::sqStore_open(seqName);
-  ovStoreFilter    *filter = new ovStoreFilter(seq, maxErrorRate);
+  ovStoreFilter    *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
 
   //  Figure out how many overlaps there are, quit if too many.
 

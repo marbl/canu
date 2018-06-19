@@ -60,20 +60,22 @@
 
 
 
-ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate) {
+ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate_, bool beVerbose_) {
   seq             = seq_;
-  maxID           = seq->sqStore_getNumReads() + 1;
-  maxEvalue       = AS_OVS_encodeEvalue(maxErate);
+  maxID           = seq->sqStore_getNumReads();
+  maxEvalue       = AS_OVS_encodeEvalue(maxErate_);
+
+  beVerbose       = beVerbose_;
 
   resetCounters();
 
-  skipReadOBT     = new char [maxID];
-  skipReadDUP     = new char [maxID];
+  skipReadOBT     = new char [maxID + 1];
+  skipReadDUP     = new char [maxID + 1];
 
   uint32  numSkipOBT = 0;
   uint32  numSkipDUP = 0;
 
-  for (uint64 iid=0; iid<maxID; iid++) {
+  for (uint64 iid=0; iid<=maxID; iid++) {
     uint32     Lid = seq->sqStore_getRead(iid)->sqRead_libraryID();
     sqLibrary *L   = seq->sqStore_getLibrary(Lid);
 
@@ -154,12 +156,20 @@ void
 ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
                              ovOverlap       &roverlap) {
 
+  //  GREATLY annoy the poor user that asked for 'overly verbose' mode.
+
+  if (beVerbose) {
+    char ovlstr[256];
+
+    fprintf(stderr, "%s\n", foverlap.toString(ovlstr, ovOverlapAsUnaligned, false));
+  }
+
   //  Quick sanity check on IIDs.
 
   if ((foverlap.a_iid == 0) ||
       (foverlap.b_iid == 0) ||
-      (foverlap.a_iid >= maxID) ||
-      (foverlap.b_iid >= maxID)) {
+      (foverlap.a_iid > maxID) ||
+      (foverlap.b_iid > maxID)) {
     char ovlstr[256];
 
     fprintf(stderr, "Overlap has IDs out of range (maxID " F_U32 "), possibly corrupt input data.\n", maxID);

@@ -320,7 +320,7 @@ private:
 
 class ovStoreFilter {
 public:
-  ovStoreFilter(sqStore *seq_, double maxErate);
+  ovStoreFilter(sqStore *seq_, double maxErate, bool beVerbose = false);
   ~ovStoreFilter();
 
   void     filterOverlap(ovOverlap     &foverlap,
@@ -349,6 +349,8 @@ public:
 
   uint32   maxID;
   uint32   maxEvalue;
+
+  bool     beVerbose;
 
   uint64   saveUTG;
   uint64   saveOBT;

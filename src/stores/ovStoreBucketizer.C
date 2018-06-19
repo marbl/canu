@@ -66,6 +66,14 @@ writeToFile(sqStore          *seq,
     sliceSize[df] = 0;
   }
 
+  if ((df < 1) ||
+      (df > config->numSlices() + 1)) {
+    char ovlstr[256];
+
+    fprintf(stderr, "Invalid slice file %u in overlap %s\n",
+            df, overlap->toString(ovlstr, ovOverlapAsUnaligned, false));
+  }
+
   sliceFile[df]->writeOverlap(overlap);
   sliceSize[df]++;
 }
@@ -82,6 +90,7 @@ main(int argc, char **argv) {
   double          maxErrorRate   = 1.0;
 
   bool            forceOverwrite = false;
+  bool            beVerbose      = false;
 
   char            createName[FILENAME_MAX+1];
   char            sliceSName[FILENAME_MAX+1];
@@ -109,6 +118,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       forceOverwrite = true;
+
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
 
     } else {
       char *s = new char [1024];
@@ -141,6 +153,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -f                    force overwriting existing data\n");
+    fprintf(stderr, "  -v                    be overly verbose\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -180,9 +193,16 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Report options.
+  //  Open inputs.
+
+  sqStore        *seq    = sqStore::sqStore_open(seqName);
 
   fprintf(stderr, "\n");
+  fprintf(stderr, "Opened '%s' with %u reads.\n", seqName, seq->sqStore_getNumReads());
+  fprintf(stderr, "\n");
+
+  //  Report options.
+
   fprintf(stderr, "Constructing slice " F_U32 " for store '%s'.\n", bucketNum, ovlName);
   fprintf(stderr, " - Filtering overlaps over %.4f fraction error.\n", maxErrorRate);
   fprintf(stderr, "\n");
@@ -192,10 +212,6 @@ main(int argc, char **argv) {
   AS_UTL_mkdir(ovlName);
   AS_UTL_mkdir(createName);
 
-  //  Open inputs.
-
-  sqStore        *seq    = sqStore::sqStore_open(seqName);
-
   //  Allocate stuff.
 
   ovFile        **sliceFile = new ovFile * [config->numSlices() + 1];
@@ -204,7 +220,7 @@ main(int argc, char **argv) {
   memset(sliceFile, 0, sizeof(ovFile *) * (config->numSlices() + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (config->numSlices() + 1));
 
-  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate);
+  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
   ovOverlap      foverlap(seq);
   ovOverlap      roverlap(seq);
 
