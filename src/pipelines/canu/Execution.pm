@@ -1100,6 +1100,23 @@ sub convertToJobRange (@) {
 
 
 
+sub countJobsInRange (@) {
+    my @jobs  = @_;
+    my $nJobs = 0;
+
+    foreach my $j (@jobs) {
+        if ($j =~ m/^(\d+)-(\d+)$/) {
+            $nJobs += $2 - $1 + 1;
+        } else {
+            $nJobs++;
+        }
+    }
+
+    return($nJobs);
+}
+
+
+
 #  Expects
 #    job type ("ovl", etc)
 #    output directory
@@ -1122,6 +1139,7 @@ sub submitOrRunParallelJob ($$$$@) {
     my $dsk          = getGlobal("${jobType}StageSpace");
 
     my @jobs         = convertToJobRange(@_);
+    my $nJobs        = countJobsInRange(@jobs);
 
     my $runDirectly  = 0;
 
@@ -1131,10 +1149,8 @@ sub submitOrRunParallelJob ($$$$@) {
 
     #  If the job can fit in the task running the executive, run it right here.
 
-    my $nJobs = scalar(@jobs);
-
-    if (($nJobs * $mem <= getGlobal("executiveMemory")) &&
-        ($nJobs * $thr <= getGlobal("executiveThreads"))) {
+    if (($nJobs * $mem + 0.5 <= getGlobal("executiveMemory")) &&
+        ($nJobs * $thr       <= getGlobal("executiveThreads"))) {
         $runDirectly = 1;
     }
 
@@ -1182,7 +1198,6 @@ sub submitOrRunParallelJob ($$$$@) {
     print STDERR "-- Running jobs.  $iter attempt out of $max.\n";
 
     setGlobal("canuIteration", getGlobal("canuIteration") + 1);
-
 
     #  If 'gridEngineJobID' environment variable exists (SGE: JOB_ID; LSF: LSB_JOBID) then we are
     #  currently running under grid crontrol.  If so, run the grid command to submit more jobs, then
