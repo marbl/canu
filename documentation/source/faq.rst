@@ -105,8 +105,8 @@ What parameters should I use for my reads?
        Slightly decrease the maximum allowed difference in overlaps from the default of 14.4% to 12.0%
        with ``correctedErrorRate=0.120``
 
-    **Early PacBio Sequel**
-       Based on one publicly released *A. thaliana* `dataset
+    **PacBio Sequel**
+       Based on an *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 6.5% with
        ``correctedErrorRate=0.065 corMhapSensitivity=normal``.
@@ -230,6 +230,8 @@ What parameters can I tweak?
            When trimming, reads will be trimmed using other reads in the same
            chromosome (and probably some reads from other chromosomes).  When assembling, overlaps
            well outside the observed error rate distribution are discarded.
+           
+         We typically prefer option 2 which will lead to a larger than expected genome size. We have done some testing using `purge_haplotigs <https://bitbucket.org/mroachawri/purge_haplotigs>`_ to remove this duplication.
 
     For metagenomes:
 
