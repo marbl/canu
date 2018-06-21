@@ -105,7 +105,7 @@ public:
 
     FILE   *F = AS_UTL_openOutputFile(_name);
 
-    AS_UTL_safeWrite(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint32), 1);
+    AS_UTL_safeWrite(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint64), 1);
     AS_UTL_safeWrite(F, &_oprMax, "ovStoreHistogram::nr",  sizeof(uint32), 1);
     AS_UTL_safeWrite(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprMax);
 
@@ -128,7 +128,7 @@ public:
     _opr[overlap->b_iid]++;
   };
 
-  uint32        numOverlaps(void)           { return(_nOlaps);      };
+  uint64        numOverlaps(void)           { return(_nOlaps);      };
 
 private:
   uint64       _nOlaps;   //  Total number of overlaps stored in this file.
@@ -176,7 +176,7 @@ public:
 
     FILE   *F = AS_UTL_openInputFile(name);
 
-    AS_UTL_safeRead(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint32), 1);
+    AS_UTL_safeRead(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint64), 1);
     AS_UTL_safeRead(F, &_oprMax, "ovStoreHistogram::nr",  sizeof(uint32), 1);
     AS_UTL_safeRead(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprMax);
 
@@ -187,7 +187,7 @@ public:
     delete [] _opr;
   };
 
-  uint32        numOverlaps(void)           { return(_nOlaps);      };
+  uint64        numOverlaps(void)           { return(_nOlaps);      };
   uint32        numOverlaps(uint32 readID)  { return(_opr[readID]); };
 
 private:
