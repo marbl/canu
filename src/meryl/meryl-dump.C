@@ -59,9 +59,8 @@ dumpThreshold(merylArgs *args) {
 
   while (M->nextMer()) {
     if (M->theCount() >= args->numMersEstimated)
-      fprintf(stdout, ">" F_U64 "\n%s\n",
-              M->theCount(),
-              M->theFMer().merToString(str));
+      //fprintf(stdout, ">" F_U64 "\n%s\n", M->theCount(), M->theFMer().merToString(str));
+      fprintf(stdout, "%s\t" F_U64 "\n", M->theFMer().merToString(str), M->theCount());
   }
 
   delete M;
