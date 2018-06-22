@@ -49,23 +49,23 @@ dnaAlphabets::initTablesForACGTSpace(void) {
 
   _letterToBits['a'] = _letterToBits['A'] = (unsigned char)0x00;
   _letterToBits['c'] = _letterToBits['C'] = (unsigned char)0x01;
-  _letterToBits['g'] = _letterToBits['G'] = (unsigned char)0x02;
-  _letterToBits['t'] = _letterToBits['T'] = (unsigned char)0x03;
+  _letterToBits['g'] = _letterToBits['G'] = (unsigned char)0x03;
+  _letterToBits['t'] = _letterToBits['T'] = (unsigned char)0x02;
 
   _letterToBits['0'] = (unsigned char)0x00;
   _letterToBits['1'] = (unsigned char)0x01;
-  _letterToBits['2'] = (unsigned char)0x02;
-  _letterToBits['3'] = (unsigned char)0x03;
+  _letterToBits['2'] = (unsigned char)0x03;
+  _letterToBits['3'] = (unsigned char)0x02;
 
   _bitsToLetter[0x00] = 'A';
   _bitsToLetter[0x01] = 'C';
-  _bitsToLetter[0x02] = 'G';
-  _bitsToLetter[0x03] = 'T';
+  _bitsToLetter[0x02] = 'T';
+  _bitsToLetter[0x03] = 'G';
 
   _bitsToColor[0x00] = '0';
   _bitsToColor[0x01] = '1';
-  _bitsToColor[0x02] = '2';
-  _bitsToColor[0x03] = '3';
+  _bitsToColor[0x02] = '3';
+  _bitsToColor[0x03] = '2';
 
   _complementSymbol['a'] = 't';  //  a
   _complementSymbol['t'] = 'a';  //  t
