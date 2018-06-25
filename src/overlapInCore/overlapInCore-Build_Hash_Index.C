@@ -275,6 +275,9 @@ Mark_Skip_Kmers(void) {
     key = 0;
 
     for (int32 ii=0; ii<len; ii++)
+      line[ii] = tolower(line[ii]);
+
+    for (int32 ii=0; ii<len; ii++)
       key |= (uint64)(Bit_Equivalent[(int32)line[ii]]) << (2 * ii);
 
     Hash_Mark_Empty(key, line);
