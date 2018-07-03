@@ -44,7 +44,7 @@ use canu::Grid "formatAllowedResources";
 sub buildAvailableNodeList() {
     my %hosts;
 
-    open(F, "dx-get-instance-info.py -p -s 64 | iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
+    open(F, "dx-get-instance-info.py -p -s 128 | iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
 
     my $cpuIdx = 0;
     my $memIdx = 0;
