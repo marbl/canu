@@ -68,7 +68,8 @@ def output_region_compatible_instances(instance_type_to_resources):
         return (mem, storage, int(cores[1:]))
 
     sorted_keys = sorted(instance_type_to_resources.keys(), key=instance_compare)
-    print 'Instance Type\tMemory (GB)\tStorage (GB)\tCores'
+    #print 'Instance Type\tMemory (GB)\tStorage (GB)\tCores'
+    print 'Name\tMemory_GB\tStorage_GB\tCPU_Cores'
     for inst_type in sorted_keys:
         resource_dict = instance_type_to_resources[inst_type]
         print '{}\t{}\t{}\t{}'.format(inst_type, resource_dict['memory_gb'], resource_dict['storage_gb'], resource_dict['cores'])

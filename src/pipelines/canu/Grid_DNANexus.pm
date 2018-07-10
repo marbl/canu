@@ -44,7 +44,7 @@ use canu::Grid "formatAllowedResources";
 sub buildAvailableNodeList() {
     my %hosts;
 
-    open(F, "dx-get-instance-info.py -p -s 64 | iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
+    open(F, "dx-get-instance-info.py -p -s 128 | iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
 
     my $cpuIdx = 0;
     my $memIdx = 0;
@@ -52,10 +52,10 @@ sub buildAvailableNodeList() {
 
     while (<F>) {
        if (m/Name\s+|\s+Memory_GB/) {
-          my @h = split '\|';
+          my @h = split '\t';
 
           for (my $ii=0; ($ii < scalar(@h)); $ii++) {
-             $cpuIdx  = $ii  if ($h[$ii] eq "CPU_Cores");
+             $cpuIdx  = $ii  if ($h[$ii] eq "CPU_Cores\n");
              $memIdx  = $ii  if ($h[$ii] eq "Memory_GB");
              $nameIdx = $ii  if ($h[$ii] =~ m/Name/);
           }
@@ -64,7 +64,7 @@ sub buildAvailableNodeList() {
     }
 
     while (<F>) {
-        my @v = split '\|', $_;
+        my @v = split '\t', $_;
 
         my $cpus = $v[$cpuIdx];
         my $mem  = $v[$memIdx] * 0.85; # the machines don't have swap so save some space for OS overhead

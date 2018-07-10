@@ -211,6 +211,7 @@ sub fetchFile ($) {
     make_path(dirname($file));
 
     if    (isOS() eq "DNANEXUS") {
+        runCommandSilently(".", "dirname \"$file\" | xargs -n 1 mkdir -p", 1);
         runCommandSilently(".", "$client download --output \"$file\" \"$pr:$ns/$file\"", 1);
     }
 }
@@ -242,6 +243,7 @@ sub fetchFileShellCode ($$$) {
         $code .= "${indent}if [ ! -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  mkdir -p $dots/$path\n";
         $code .= "${indent}  cd       $dots/$path\n";
+        $code .= "${indent}  dirname \"$file\" | xargs -n 1 mkdir -p \n";
         $code .= "${indent}  $client download --output \"$file\" \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";

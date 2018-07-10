@@ -58,8 +58,10 @@
         "hours": 72
       }
     },
+    "restartableEntryPoints": "all", 
     "interpreter": "bash",
     "file": "src/canu.sh",
+    "executionPolicy": {"restartOn": {"*": 2}},
     "distribution": "Ubuntu",
     "release": "14.04"
   },
@@ -80,7 +82,7 @@
     "aws:us-east-1": {
       "systemRequirements": {
         "*": {
-          "instanceType": "mem3_ssd1_x32"
+          "instanceType": "mem1_ssd2_x36"
         }
       }
     }
