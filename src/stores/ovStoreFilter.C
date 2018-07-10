@@ -198,7 +198,7 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
   }
 
   //  Ignore opposite oriented overlaps
-#if 0
+#ifdef IGNORE_FLIPPED_OVERLAPS
   if ((foverlap.flipped() == true)) {
     foverlap.dat.ovl.forUTG = false;
     foverlap.dat.ovl.forOBT = false;
