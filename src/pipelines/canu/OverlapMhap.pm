@@ -342,8 +342,6 @@ sub mhapConfigure ($$$) {
     print F "#  Remove any previous result.\n";
     print F "rm -f ./blocks/\$job.input.dat\n";
     print F "\n";
-    #print F fetchFileShellCode("./blocks/\$job.input.fasta");
-    print F "\n";
     print F "\$bin/sqStoreDumpFASTQ \\\n";
     print F "  -S ../../$asm.seqStore \\\n";
     print F "  \$rge \\\n";
