@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkMinimap checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
 
 use strict;
 use warnings "all";
@@ -1056,6 +1056,34 @@ sub checkJava () {
         print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java')";
         print STDERR (defined(getGlobal("javaUse64Bit")) && getGlobal("javaUse64Bit") == 1) ? " with " : " without ";
         print STDERR "-d64 support.\n";
+    }
+}
+
+
+
+sub checkMinimap ($) {
+    my $bin = shift @_;
+
+    return  if ((getGlobal("corOverlapper") ne "minimap") &&
+                (getGlobal("obtOverlapper") ne "minimap") &&
+                (getGlobal("utgOverlapper") ne "minimap"));
+
+    if (! -e "$bin/minimap2") {
+        addCommandLineError("ERROR:  minimap overlapper requires minimap2 executable installed in Canu binary directory '$bin/'.\n");
+    }
+
+    else {
+        my $versionStr;
+
+        open(F, "$bin/minimap2 --version |");
+        while (<F>) {
+            $versionStr = $_;
+        }
+        close(F);
+
+        chomp $versionStr;
+
+        print STDERR "-- Detected minimap2 version '$versionStr' using '$bin/minimap2'.\n";
     }
 }
 

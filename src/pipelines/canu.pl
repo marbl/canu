@@ -281,6 +281,7 @@ print STDERR "--\n";
 #  Check java and gnuplot.
 
 checkJava();
+checkMinimap($bin);
 checkGnuplot();
 
 #  And one last chance to fail - because java and gnuplot both can set an error.
