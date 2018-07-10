@@ -61,6 +61,7 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
   uint32             *oPR                = new uint32 [_maxID + 1];
   uint64              numOverlaps        = 0;
 
+  memset(oPF, 0, sizeof(uint64) * (_numInputs));
   memset(oPR, 0, sizeof(uint32) * (_maxID + 1));
 
   for (uint32 ii=0; ii<_numInputs; ii++) {
