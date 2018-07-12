@@ -399,7 +399,7 @@ Overlapper Configuration, mhap Algorithm
   genomeSize), 'low' sensitivity is used if coverage is more than 60; 'normal' is used if coverage
   is between 60 and 30, and 'high' is used for coverages less than 30.
 
-Overlapper Configuration, mhap Algorithm
+Overlapper Configuration, mmap Algorithm
 ----------------------------------------
 
 {prefix}MMapBlockSize <integer=unset>
