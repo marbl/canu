@@ -10,7 +10,7 @@ endif
 TARGET   := findErrors-Dump
 SOURCES  := findErrors-Dump.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore/liboverlap
+SRC_INCDIRS  := .. ../utility ../stores ../overlapInCore/liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

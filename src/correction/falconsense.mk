@@ -10,7 +10,7 @@ endif
 TARGET   := falconsense
 SOURCES  := falconsense.C ../utgcns/stashContains.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns
+SRC_INCDIRS  := .. ../utility ../stores ../utgcns
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

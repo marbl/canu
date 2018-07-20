@@ -11,7 +11,7 @@ endif
 TARGET   := simple-dump
 SOURCES  := simple-dump.C
 
-SRC_INCDIRS  := .. ../AS_UTL libleaff libkmer
+SRC_INCDIRS  := .. ../utility libleaff libkmer
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lleaff -lcanu

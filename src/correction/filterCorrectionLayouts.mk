@@ -10,7 +10,7 @@ endif
 TARGET   := filterCorrectionLayouts
 SOURCES  := filterCorrectionLayouts.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores
+SRC_INCDIRS  := .. ../utility ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

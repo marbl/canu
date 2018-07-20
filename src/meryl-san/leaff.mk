@@ -17,7 +17,7 @@ SOURCES  := leaff-blocks.C \
             leaff-statistics.C \
             leaff.C
 
-SRC_INCDIRS  := .. ../AS_UTL libleaff
+SRC_INCDIRS  := .. ../utility libleaff
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lleaff -lcanu

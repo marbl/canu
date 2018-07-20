@@ -10,7 +10,7 @@ endif
 TARGET   := fastqSimulate
 SOURCES  := fastqSimulate.C
 
-SRC_INCDIRS  := .. ../AS_UTL
+SRC_INCDIRS  := .. ../utility
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

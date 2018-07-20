@@ -11,7 +11,7 @@ endif
 TARGET   := loadTrimmedReads
 SOURCES  := loadTrimmedReads.C
 
-SRC_INCDIRS := .. ../stores ../AS_UTL ../overlapBasedTrimming
+SRC_INCDIRS := .. ../stores ../utility ../overlapBasedTrimming
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

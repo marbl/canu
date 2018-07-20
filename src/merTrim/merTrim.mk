@@ -10,7 +10,7 @@ endif
 TARGET   := merTrim
 SOURCES  := merTrim.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../meryl-san ../meryl-san/libleaff ../meryl-san/libkmer
+SRC_INCDIRS  := .. ../utility ../stores ../meryl-san ../meryl-san/libleaff ../meryl-san/libkmer
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lleaff -lcanu

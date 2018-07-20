@@ -26,27 +26,27 @@ TARGET       := libcanu.a
 
 SOURCES      := AS_global.C \
                 \
-                AS_UTL/AS_UTL_fasta.C \
-                AS_UTL/AS_UTL_fileIO.C \
-                AS_UTL/AS_UTL_reverseComplement.C \
-                AS_UTL/AS_UTL_stackTrace.C \
+                utility/AS_UTL_fasta.C \
+                utility/AS_UTL_fileIO.C \
+                utility/AS_UTL_reverseComplement.C \
+                utility/AS_UTL_stackTrace.C \
                 \
-                AS_UTL/AS_UTL_alloc.C \
+                utility/AS_UTL_alloc.C \
                 \
-                AS_UTL/bitEncodings.C \
-                AS_UTL/bitPackedFile.C \
-                AS_UTL/bitPackedArray.C \
-                AS_UTL/dnaAlphabets.C \
-                AS_UTL/hexDump.C \
-                AS_UTL/md5.C \
-                AS_UTL/memoryMappedFile.C \
-                AS_UTL/mt19937ar.C \
-                AS_UTL/objectStore.C \
-                AS_UTL/readBuffer.C \
-                AS_UTL/speedCounter.C \
-                AS_UTL/sweatShop.C \
-                AS_UTL/timeAndSize.C \
-                AS_UTL/kMer.C \
+                utility/bitEncodings.C \
+                utility/bitPackedFile.C \
+                utility/bitPackedArray.C \
+                utility/dnaAlphabets.C \
+                utility/hexDump.C \
+                utility/md5.C \
+                utility/memoryMappedFile.C \
+                utility/mt19937ar.C \
+                utility/objectStore.C \
+                utility/readBuffer.C \
+                utility/speedCounter.C \
+                utility/sweatShop.C \
+                utility/timeAndSize.C \
+                utility/kMer.C \
                 \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
@@ -131,25 +131,25 @@ SOURCES      := AS_global.C \
 
 
 ifeq (${BUILDSTACKTRACE}, 1)
-SOURCES      += AS_UTL/libbacktrace/atomic.c \
-                AS_UTL/libbacktrace/backtrace.c \
-                AS_UTL/libbacktrace/dwarf.c \
-                AS_UTL/libbacktrace/elf.c \
-                AS_UTL/libbacktrace/fileline.c \
-                AS_UTL/libbacktrace/mmap.c \
-                AS_UTL/libbacktrace/mmapio.c \
-                AS_UTL/libbacktrace/posix.c \
-                AS_UTL/libbacktrace/print.c \
-                AS_UTL/libbacktrace/simple.c \
-                AS_UTL/libbacktrace/sort.c \
-                AS_UTL/libbacktrace/state.c \
-                AS_UTL/libbacktrace/unknown.c
+SOURCES      += utility/libbacktrace/atomic.c \
+                utility/libbacktrace/backtrace.c \
+                utility/libbacktrace/dwarf.c \
+                utility/libbacktrace/elf.c \
+                utility/libbacktrace/fileline.c \
+                utility/libbacktrace/mmap.c \
+                utility/libbacktrace/mmapio.c \
+                utility/libbacktrace/posix.c \
+                utility/libbacktrace/print.c \
+                utility/libbacktrace/simple.c \
+                utility/libbacktrace/sort.c \
+                utility/libbacktrace/state.c \
+                utility/libbacktrace/unknown.c
 endif
 
 
 
 SRC_INCDIRS  := . \
-                AS_UTL \
+                utility \
                 stores \
                 stores/libsnappy \
                 alignment \

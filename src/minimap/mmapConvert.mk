@@ -10,7 +10,7 @@ endif
 TARGET   := mmapConvert
 SOURCES  := mmapConvert.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores liboverlap
+SRC_INCDIRS  := .. ../utility ../stores liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

@@ -10,7 +10,7 @@ endif
 TARGET   := edalign
 SOURCES  := edalign.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../meryl/libleaff libedlib
+SRC_INCDIRS  := .. ../utility ../stores ../meryl/libleaff libedlib
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lleaff -lcanu
