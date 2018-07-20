@@ -37,7 +37,7 @@
 
 #include "positionDB.H"
 #include "existDB.H"
-#include "../libmeryl.H"
+#include "../libmeryl-san.H"
 
 #include "speedCounter.H"
 

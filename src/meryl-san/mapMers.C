@@ -42,7 +42,7 @@
 #include "bio++.H"
 #include "seqCache.H"
 #include "merStream.H"
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 #include "existDB.H"
 
 #define  OP_NONE    0

@@ -33,7 +33,7 @@
 
 #include "existDB.H"
 #include "speedCounter.H"
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 #include "merStream.H"
 
 //  Driver for the existDB creation.  Reads a sequence.fasta, builds

@@ -8,7 +8,7 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)
 endif
 
-TARGET   := meryl
+TARGET   := meryl-san
 SOURCES  := meryl-args.C \
             meryl-binaryOp.C \
             meryl-build.C \
@@ -16,7 +16,7 @@ SOURCES  := meryl-args.C \
             meryl-estimate.C \
             meryl-merge.C \
             meryl-unaryOp.C \
-            meryl.C
+            meryl-san.C
 
 SRC_INCDIRS  := .. ../AS_UTL libleaff
 

@@ -40,7 +40,7 @@
 
 #include "kMer.H"
 #include "bitPackedFile.H"
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 
 #include "seqStream.H"
 #include "merStream.H"
@@ -63,7 +63,7 @@ using namespace std;
 #include <algorithm>
 
 #include "bio++.H"
-#include "meryl.H"
+#include "meryl-san.H"
 
 #include "libmeryl.H"
 #include "seqStream.H"

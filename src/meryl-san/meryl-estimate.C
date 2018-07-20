@@ -47,7 +47,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "meryl.H"
+#include "meryl-san.H"
 #include "libleaff/seqCache.H"
 #include "libleaff/seqStore.H"
 #include "libleaff/merStream.H"

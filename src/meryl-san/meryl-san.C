@@ -53,7 +53,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "meryl.H"
+#include "meryl-san.H"
 
 int
 main(int argc, char **argv) {
@@ -127,7 +127,7 @@ main(int argc, char **argv) {
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"
 
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 #include "kMer.H"
 
 #include <vector>

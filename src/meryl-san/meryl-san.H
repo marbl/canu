@@ -51,7 +51,7 @@
 
 #include "kMer.H"
 #include "bitPackedFile.H"
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 
 #include "speedCounter.H"
 #include "timeAndSize.H"

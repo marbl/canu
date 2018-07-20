@@ -40,7 +40,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 
 
 

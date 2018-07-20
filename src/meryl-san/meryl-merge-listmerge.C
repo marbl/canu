@@ -15,7 +15,7 @@
  *
  *  This file is derived from:
  *
- *    kmer/meryl/merge.qsort.C
+ *    kmer/meryl/merge.listmerge.C
  *
  *  Modifications by:
  *
@@ -35,8 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "meryl.H"
-#include "libmeryl.H"
+#include "meryl-san.H"
+#include "libmeryl-san.H"
 
 
 using namespace std;
@@ -47,16 +47,9 @@ struct mMer {
   kMer     _mer;
   uint32   _cnt;
   uint32   _off;
+  uint32   _nxt;
+  uint32   _stp;
 };
-
-static
-int
-mMerGreaterThan(void const *a, void const *b) {
-  mMer const *A = (mMer const *)a;
-  mMer const *B = (mMer const *)b;
-  return(B->_mer.qsort_less(A->_mer));
-}
-
 
 
 class mMerList {
@@ -69,43 +62,60 @@ public:
     _mmmLen = 0;
     _mmmMax = maxSize;
     _mmm    = new mMer [_mmmMax];
+
+    _tip    = ~uint32ZERO;
+    _fre    = 0;
+
+    for (uint32 i=0; i<_mmmMax; i++) {
+      _mmm[i]._cnt = 0;
+      _mmm[i]._off = 0;
+      _mmm[i]._nxt = i+1;
+      _mmm[i]._stp = 0;
+    }
+
+    _mmm[_mmmMax-1]._nxt = ~uint32ZERO;
   };
   ~mMerList() {
     delete [] _pos;
     delete [] _mmm;
   };
 
-  uint32  length(void) { return(_mmmLen);              };
+  bool    loadMore(void)  { return((_mmmMax < _tip) || (_mmm[_tip]._stp == 1)); };
 
-  //  Until we sort, first() is the last thing loaded.
-  //  After we sort, first() is the lowest mer in the set.
+  uint32  length(void) { return(_mmmLen); };
 
-  kMer   &first(void)   { return(_mmm[_mmmLen-1]._mer); };
-  //kMer   &last(void)    { return(_mmm[0]._mer);         };
-  //kMer   &get(uint32 i) { return(_mmm[i]._mer); };
-
-  //  Return the first (sorted order) thing in the list -- it's the last on the list.
   kMer   *pop(uint32 &cnt, uint32* &pos) {
-    if (_mmmLen == 0)
-      return(0L);
+    kMer  *ret = 0L;
 
-    _mmmLen--;
+    //fprintf(stderr, "POP tip="uint32FMT"\n", _tip);
 
-    assert(_sorted);
+    if (_tip < _mmmMax) {
+      uint32 f = _tip;
 
-    cnt = _mmm[_mmmLen]._cnt;
-    pos = 0L;
+      ret = &_mmm[f]._mer;
+      cnt =  _mmm[f]._cnt;
+      pos = (_mmm[f]._off != ~uint32ZERO) ? _pos + _mmm[f]._off : 0L;
 
-    if (_mmm[_mmmLen]._off != ~uint32ZERO)
-      pos = _pos + _mmm[_mmmLen]._off;
+      //  Move tip to the next thing
+      _tip = _mmm[f]._nxt;
 
-    return(&_mmm[_mmmLen]._mer);
-  }
+      //  And append this one to the free list.
+      _mmm[f]._nxt = _fre;
+      _fre = f;
+
+      _mmmLen--;
+
+      //fprintf(stderr, "POP f="uint32FMT" tip="uint32FMT" len="uint32FMT"\n", f, _tip, _mmmLen);
+    }
+
+    return(ret);
+  };
 
 
   //  rebuild the position list, squeezes out empty items
   void    rebuild(void) {
     if (_posLen > 0) {
+      assert(0);
       uint32   *np = new uint32 [_posMax];
 
       _posLen = 0;
@@ -129,41 +139,36 @@ public:
 
 
   //  Read more mers from the file
-  void    read(merylStreamReader *R, uint32 num) {
-    uint32 xxx = 0;
+  void    read(merylStreamReader *R, uint32 num, bool loadAll) {
+    uint32 xxx  = 0;
+    uint32 las  = ~uint32ZERO;
+    uint32 pos  = _tip;
+    bool   stop = false;
 
-    if (_mmmLen + num >= _mmmMax) {
-      fprintf(stderr, "Reallocate _mmm\n");
-      _mmmMax = _mmmMax + 2 * num;
-      mMer *tmp = new mMer [_mmmMax];
-      memcpy(tmp, _mmm, sizeof(mMer) * _mmmLen);
-      delete [] _mmm;
-      _mmm = tmp;
-    }
+    //fprintf(stderr, "read()- loading "uint32FMT"\n", num);
 
-    _sorted = false;
+    assert(_mmmLen + num < _mmmMax);
 
-    R->nextMer();
+    //  Load until we hit the sentinal.
+    if (loadAll == false)
+      num = ~uint32ZERO;
 
-    for (xxx=0; (xxx < num) && (R->validMer()); xxx++) {
-      if (_mmmMax <= _mmmLen) {
-        fprintf(stderr, "Reallocate _mmm\n");
-        _mmmMax *= 2;
-        mMer *tmp = new mMer [_mmmMax];
-        memcpy(tmp, _mmm, sizeof(mMer) * _mmmLen);
-        delete [] _mmm;
-        _mmm = tmp;
-      }
+    for (xxx=0; (xxx < num) && (stop == false) && (R->nextMer()); xxx++) {
 
-      _mmm[_mmmLen]._mer = R->theFMer();
-      _mmm[_mmmLen]._cnt = R->theCount();
-      _mmm[_mmmLen]._off = ~uint32ZERO;
+      //  Insert into a free node
+      uint32 fre = _fre;
+      _fre = _mmm[fre]._nxt;
 
-      uint32  *pos = R->thePositions();
-      if (pos) {
-        _mmm[_mmmLen]._off = _posLen;
+      _mmm[fre]._mer = R->theFMer();
+      _mmm[fre]._cnt = R->theCount();
+      _mmm[fre]._off = ~uint32ZERO;
+      _mmm[fre]._stp = 0;
 
-        if (_posMax <= _posLen + _mmm[_mmmLen]._cnt) {
+      uint32  *ppp = R->thePositions();
+      if (ppp) {
+        _mmm[fre]._off = _posLen;
+
+        if (_posMax <= _posLen + _mmm[fre]._cnt) {
           fprintf(stderr, "Reallocate _pos\n");
           _posMax *= 2;
           uint32 *tmp = new uint32 [_posMax];
@@ -172,33 +177,61 @@ public:
           _pos = tmp;
         }
 
-        for (uint32 i=0; i<_mmm[_mmmLen]._cnt; i++, _posLen++)
-          _pos[_posLen] = pos[i];
+        for (uint32 i=0; i<_mmm[fre]._cnt; i++, _posLen++)
+          _pos[_posLen] = ppp[i];
       }
 
+      //  Keep count
       _mmmLen++;
 
-      R->nextMer();
+      //  Figure out where to put it in the list.  New duplicates must
+      //  go AFTER the existing -- that's the job of <=.
+
+      while ((pos < _mmmMax) && (_mmm[pos]._mer <= R->theFMer())) {
+        las = pos;
+        pos = _mmm[pos]._nxt;
+      }
+
+      if (_mmmMax < _tip) {
+        //  No tip, make new list.
+        _mmm[fre]._nxt = _tip;
+        _tip           = fre;
+        las = ~uint32ZERO;
+        pos = _tip;
+      } else if (_mmmMax < las) {
+        //  Valid list, but we want to insert before the start
+        _mmm[fre]._nxt = _tip;
+        _tip           = fre;
+        las = ~uint32ZERO;
+        pos = _tip;
+      } else if (pos < _mmmMax) {
+        //  Valid pos, insert in the middle (after las, before pos)
+        _mmm[fre]._nxt = _mmm[las]._nxt;
+        _mmm[las]._nxt = fre;
+        las = fre;
+        //pos = _mmm[las]._nxt;
+      } else {
+        //  Have a list, but we ran off the end, append (after las)
+        _mmm[fre]._nxt = ~uint32ZERO;
+        _mmm[las]._nxt = fre;
+        pos = fre;
+
+        if (loadAll == false)
+          stop = true;
+      }
+    }
+
+    //  Set the sentinal.  This forces us to load more mers.
+    //
+    if (loadAll == true) {
+      //fprintf(stderr, "read()-- stop on tip = "uint32FMT"\n", las);
+      _mmm[las]._stp = 1;
     }
 
     //fprintf(stderr, "read()-- now up to "uint32FMT" mers ("uint32FMT" pos); loaded "uint32FMT" out of "uint32FMT" requested.\n", _mmmLen, _posLen, xxx, num);
   };
 
-
-  //  Sort our list of mers
-  void    sort(void) {
-    if (_sorted == false) {
-      //fprintf(stderr, "SORT BEG\n");
-      qsort_mt(_mmm, _mmmLen, sizeof(mMer), mMerGreaterThan, 8, 32 * 1024);
-      _sorted = true;
-      //fprintf(stderr, "SORT END\n");
-    }
-  };
-
-
 private:
-  bool    _sorted;
-
   uint32  _posLen;
   uint32  _posMax;
   uint32 *_pos;
@@ -206,6 +239,9 @@ private:
   uint32  _mmmLen;
   uint32  _mmmMax;
   mMer   *_mmm;
+
+  uint32  _tip;
+  uint32  _fre;
 };
 
 
@@ -213,9 +249,6 @@ private:
 
 void
 multipleOperations(merylArgs *args) {
-
-  char  debugstring[256];
-  char  debugstring2[256];
 
   if (args->mergeFilesLen < 2) {
     fprintf(stderr, "ERROR - must have at least two databases (you gave "uint32FMT")!\n", args->mergeFilesLen);
@@ -240,21 +273,14 @@ multipleOperations(merylArgs *args) {
     exit(1);
   }
 
+  uint32               maxSize = 64 * 1024 * 1024;
+
   merylStreamReader  **R = new merylStreamReader* [args->mergeFilesLen];
   merylStreamWriter   *W = 0L;
-
-  uint32               maxSize = 512 * 1024;
-
   mMerList            *M = new mMerList(maxSize + maxSize / 4);
 
-
-  //  Open the input files and load some mers - we need to do this
-  //  just so we can check the mersizes/compression next.
-  //
-  for (uint32 i=0; i<args->mergeFilesLen; i++) {
+  for (uint32 i=0; i<args->mergeFilesLen; i++)
     R[i] = new merylStreamReader(args->mergeFiles[i]);
-    M->read(R[i], 1 + i);
-  }
 
   //  Verify that the mersizes are all the same
   //
@@ -268,7 +294,7 @@ multipleOperations(merylArgs *args) {
   }
 
   if (fail)
-    fprintf(stderr, "ERROR:  mer sizes (or compression level) differ.\n"), exit(1);
+    fprintf(stderr, "ERROR:  mer size or compression level differ.\n"), exit(1);
 
   //  Open the output file, using the largest prefix size found in the
   //  input/mask files.
@@ -280,32 +306,16 @@ multipleOperations(merylArgs *args) {
 
   W = new merylStreamWriter(args->outputFile, merSize, merComp, prefixSize);
 
-
-  kMer     lastLoaded;
-
-  lastLoaded.setMerSize(merSize);
-  lastLoaded.smallest();
-
   //  Load mers from all files, remember the largest mer we load.
   //
+  bool     loadAll = true;
   for (uint32 i=0; i<args->mergeFilesLen; i++) {
-    M->read(R[i], maxSize / args->mergeFilesLen);
-    if (lastLoaded < M->first())
-      lastLoaded = M->first();
+    M->read(R[i], maxSize / args->mergeFilesLen, loadAll);
+    loadAll = false;
   }
 
-  //  Make sure all files have at least that largest mer loaded.
-  //
-  for (uint32 i=0; i<args->mergeFilesLen; i++)
-    while (R[i]->validMer() && (R[i]->theFMer() <= lastLoaded))
-      M->read(R[i], 2 * 1024);
+  fprintf(stderr, "Initial load:  length="uint32FMT"\n", M->length());
 
-  fprintf(stderr, "Initial load:  length="uint32FMT" lastLoaded=%s\n",
-          M->length(), lastLoaded.merToString(debugstring));
-
-  M->sort();
-
-  bool     allLoaded = false;
   bool     moreStuff = true;
 
   kMer     currentMer;                      //  The current mer we're operating on
@@ -325,59 +335,25 @@ multipleOperations(merylArgs *args) {
 
   while (moreStuff) {
 
-    //  Load more stuff if needed.  M is sorted, so first() is the
-    //  smallest mer in the set - we're good up to and including
-    //  lastLoaded.
+    //  Load more stuff if needed.
     //
-    if ((allLoaded == false) &&
-        ((M->length() == 0) || (lastLoaded < M->first()))) {
-
-#if 0
-      if (M->length() > 0)
-        fprintf(stderr, "LOADMORE length="uint32FMT" lastLoaded=%s first=%s\n",
-                M->length(), lastLoaded.merToString(debugstring2), M->first().merToString(debugstring));
-      else
-        fprintf(stderr, "LOADMORE length="uint32FMT" lastLoaded=%s first=EMPTY\n",
-                M->length(), lastLoaded.merToString(debugstring2));
-#endif
-
-      //  We need to copy all the mers currently loaded into fresh
-      //  storage, so we can deallocate the position storage.  Yucky.
-      //
+    if (M->loadMore() == true) {
       M->rebuild();
 
-      allLoaded = true;
-
-      //  Load more stuff to give us a large collection of mers
-      //
       uint32 additionalLoading = 8192;
 
       if (maxSize / args->mergeFilesLen > M->length())
         additionalLoading = maxSize / args->mergeFilesLen - M->length();
 
-      //fprintf(stderr, "LOADMORE adding "uint32FMT" from each file\n", additionalLoading);
-
-      lastLoaded.setMerSize(merSize);
-      lastLoaded.smallest();
+      loadAll   = true;
 
       for (uint32 i=0; i<args->mergeFilesLen; i++) {
         if (R[i]->validMer()) {
-          M->read(R[i], additionalLoading);
-          if (lastLoaded < M->first())
-            lastLoaded = M->first();
-          allLoaded = false;
+          M->read(R[i], additionalLoading, loadAll);
+          loadAll   = false;
         }
       }
-
-      //  Make sure all files have at least that largest mer loaded.
-      //
-      for (uint32 i=0; i<args->mergeFilesLen; i++)
-        while (R[i]->validMer() && (R[i]->theFMer() <= lastLoaded))
-          M->read(R[i], 2 * 1024);
-
-      M->sort();
     }
-
 
     //  All done?  Exit.
     if (M->length() == 0)

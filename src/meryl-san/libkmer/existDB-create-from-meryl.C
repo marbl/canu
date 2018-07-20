@@ -33,7 +33,7 @@
 
 #include "existDB.H"
 #warning YUCK RELATIVE INCLUDE OF libmeryl.H
-#include "../libmeryl.H"
+#include "../libmeryl-san.H"
 #include "speedCounter.H"
 
 

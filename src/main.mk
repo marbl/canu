@@ -75,7 +75,7 @@ SOURCES      := AS_global.C \
                 stores/libsnappy/snappy-stubs-internal.cc \
                 stores/libsnappy/snappy.cc \
                 \
-                meryl/libmeryl.C \
+                meryl-san/libmeryl-san.C \
                 \
                 overlapInCore/overlapReadCache.C \
                 \
@@ -116,17 +116,17 @@ SOURCES      := AS_global.C \
                 gfa/gfa.C \
                 gfa/bed.C \
                 \
-                meryl/libkmer/existDB-create-from-fasta.C \
-                meryl/libkmer/existDB-create-from-meryl.C \
-                meryl/libkmer/existDB-create-from-sequence.C \
-                meryl/libkmer/existDB-state.C \
-                meryl/libkmer/existDB.C \
-                meryl/libkmer/positionDB-access.C \
-                meryl/libkmer/positionDB-dump.C \
-                meryl/libkmer/positionDB-file.C \
-                meryl/libkmer/positionDB-mismatch.C \
-                meryl/libkmer/positionDB-sort.C \
-                meryl/libkmer/positionDB.C
+                meryl-san/libkmer/existDB-create-from-fasta.C \
+                meryl-san/libkmer/existDB-create-from-meryl.C \
+                meryl-san/libkmer/existDB-create-from-sequence.C \
+                meryl-san/libkmer/existDB-state.C \
+                meryl-san/libkmer/existDB.C \
+                meryl-san/libkmer/positionDB-access.C \
+                meryl-san/libkmer/positionDB-dump.C \
+                meryl-san/libkmer/positionDB-file.C \
+                meryl-san/libkmer/positionDB-mismatch.C \
+                meryl-san/libkmer/positionDB-sort.C \
+                meryl-san/libkmer/positionDB.C
 
 
 
@@ -158,7 +158,7 @@ SRC_INCDIRS  := . \
                 utgcns/libpbutgcns \
                 utgcns/libNDFalcon \
                 utgcns/libboost \
-                meryl/libleaff \
+                meryl-san/libleaff \
                 overlapInCore \
                 overlapInCore/libedlib \
                 overlapInCore/liboverlap
@@ -185,15 +185,15 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/loadTrimmedReads.mk \
                 stores/loadErates.mk \
                 \
-                meryl/libleaff.mk \
-                meryl/leaff.mk \
-                meryl/meryl.mk \
-                meryl/maskMers.mk \
-                meryl/simple.mk \
-                meryl/estimate-mer-threshold.mk \
-                meryl/existDB.mk \
-                meryl/positionDB.mk \
-                meryl/simple-dump.mk \
+                meryl-san/libleaff.mk \
+                meryl-san/leaff.mk \
+                meryl-san/meryl-san.mk \
+                meryl-san/maskMers.mk \
+                meryl-san/simple.mk \
+                meryl-san/estimate-mer-threshold.mk \
+                meryl-san/existDB.mk \
+                meryl-san/positionDB.mk \
+                meryl-san/simple-dump.mk \
                 \
                 merTrim/merTrim.mk \
                 \

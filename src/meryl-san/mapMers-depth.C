@@ -38,7 +38,7 @@
 #include "bio++.H"
 #include "seqCache.H"
 #include "merStream.H"
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 #include "existDB.H"
 
 #warning this code might not work due to intervalList changes

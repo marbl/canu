@@ -411,7 +411,7 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "rm -f ./$ofile.WORKING*\n";
     print F "\n";
-    print F "\$bin/meryl \\\n";
+    print F "\$bin/meryl-san \\\n";
     print F "  -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
     print F "  -s ../../$asm.seqStore \\\n";
     print F "  -o ./$ofile.WORKING \\\n";
@@ -427,7 +427,7 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "#  Dump a histogram\n";
     print F "\n";
-    print F "\$bin/meryl \\\n";
+    print F "\$bin/meryl-san \\\n";
     print F "  -Dh -s ./$ofile \\\n";
     print F ">  ./$ofile.histogram.WORKING \\\n";
     print F "2> ./$ofile.histogram.info \\\n";
@@ -560,7 +560,7 @@ sub merylSubtract ($$) {
        # run merge of other haplotypes, to create a single one, update otherHaplotypes to point to that
        caFailure("Error: more than two haplotypes isn't implemented yet!", "$path");
     }
-    if (runCommand($path, "$bin/meryl -M difference -s $asm.ms$merSize $otherHaplotypes -o $asm.ms$merSize.only > $asm.difference.out 2> $asm.difference.err")) {
+    if (runCommand($path, "$bin/meryl-san -M difference -s $asm.ms$merSize $otherHaplotypes -o $asm.ms$merSize.only > $asm.difference.out 2> $asm.difference.err")) {
        caFailure("meryl failed to difference", "$asm.difference.err");
     }
     addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
@@ -713,7 +713,7 @@ sub merylProcess ($$) {
             caFailure("meryl can't dump frequent mers, databases don't exist.  Remove $path/meryl.success to try again.", undef);
         }
 
-        if (runCommand($path, "$bin/meryl -Dt -n $merThresh -s ./$ofile > ./$ffile 2> ./$ffile.err")) {
+        if (runCommand($path, "$bin/meryl-san -Dt -n $merThresh -s ./$ofile > ./$ffile 2> ./$ffile.err")) {
             unlink "$path/$ffile";
             caFailure("meryl failed to dump frequent mers", "$path/$ffile.err");
         }
@@ -788,8 +788,8 @@ sub merylProcess ($$) {
         fetchFile("$path/$ofile.mcdat");
         fetchFile("$path/$ofile.mcidx");
 
-        open(F, "$bin/meryl -Dt -n $minCount -s $path/$ofile | ")    or die "Failed to run meryl to generate frequent mers $!\n";
-        open(O, "| gzip -c > $path/$ofile.frequentMers.ignore.gz")   or die "Failed to open '$path/$ofile.frequentMers.ignore.gz' for writing: $!\n";
+        open(F, "$bin/meryl-san -Dt -n $minCount -s $path/$ofile | ")   or die "Failed to run meryl to generate frequent mers $!\n";
+        open(O, "| gzip -c > $path/$ofile.frequentMers.ignore.gz")      or die "Failed to open '$path/$ofile.frequentMers.ignore.gz' for writing: $!\n";
 
         printf(O "%d\t%d\n", $totalToFilter, $totalToOutput);
 

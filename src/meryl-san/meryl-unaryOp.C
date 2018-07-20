@@ -43,8 +43,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "meryl.H"
-#include "libmeryl.H"
+#include "meryl-san.H"
+#include "libmeryl-san.H"
 
 
 void

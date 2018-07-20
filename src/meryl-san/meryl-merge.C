@@ -44,8 +44,8 @@
  */
 
 #include "AS_global.H"
-#include "meryl.H"
-#include "libmeryl.H"
+#include "meryl-san.H"
+#include "libmeryl-san.H"
 
 
 

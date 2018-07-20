@@ -43,7 +43,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "meryl.H"
+#include "meryl-san.H"
 
 
 //  Some string handling utilities.

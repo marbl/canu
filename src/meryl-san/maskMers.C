@@ -37,7 +37,7 @@
 
 #include "AS_global.H"
 #include "seqStream.H"
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 
 #include "speedCounter.H"
 

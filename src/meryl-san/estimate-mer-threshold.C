@@ -38,7 +38,7 @@
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"
 
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 
 #include "splitToWords.H"
 

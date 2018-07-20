@@ -51,7 +51,7 @@
 #include "existDB.H"
 #include "positionDB.H"
 
-#include "libmeryl.H"
+#include "libmeryl-san.H"
 
 #include "merTrimResult.H"
 
