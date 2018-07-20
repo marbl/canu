@@ -40,7 +40,7 @@
  */
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 #include "tgStore.H"
 
 uint32  MASRmagic   = 0x5253414d;  //  'MASR', as a big endian integer

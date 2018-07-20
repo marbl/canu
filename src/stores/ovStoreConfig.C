@@ -453,7 +453,7 @@ main(int argc, char **argv) {
     }
 
     else if (writeInputs) {
-      for (uint32 ff=0; ff<config->numInputs(writeInputs); ff++) 
+      for (uint32 ff=0; ff<config->numInputs(writeInputs); ff++)
         fprintf(stdout, "%s\n", config->getInput(writeInputs, ff));
     }
 

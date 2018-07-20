@@ -24,9 +24,9 @@
  */
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 
-#include "splitToWords.H"
+#include "strings.H"
 
 #include "edlib.H"
 

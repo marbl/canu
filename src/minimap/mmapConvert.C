@@ -29,7 +29,7 @@
 
 #include "AS_global.H"
 #include "ovStore.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 #include <vector>
 

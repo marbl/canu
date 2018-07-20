@@ -13880,3 +13880,10 @@ D src/stores/sqStoreInfo.C src/stores/gkStoreInfo.C
 D src/stores/sqStorePartition.C src/stores/gkStorePartition.C
 D src/meryl/libleaff/sqStoreFile.C src/meryl/libleaff/gkStoreFile.C
 D src/meryl/libleaff/sqStoreFile.H src/meryl/libleaff/gkStoreFile.H
+D src/utility/strings.H src/utility/splitToWords.H
+D src/utility/stringsTest.C src/utility/splitToWordsTest.C
+D src/utility/types.H src/AS_global.H
+D src/utility/files.H src/utility/AS_UTL_fileIO.H
+D src/utility/files.C src/utility/AS_UTL_fileIO.C
+D src/utility/files.C src/utility/AS_UTL_fasta.C
+D src/utility/files.H src/utility/AS_UTL_fasta.H

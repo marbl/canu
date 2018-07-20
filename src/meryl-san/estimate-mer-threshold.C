@@ -13,34 +13,18 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/AS_MER/estimate-mer-threshold.C
- *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2008-DEC-11 to 2014-APR-11
- *      are Copyright 2008-2010,2012-2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-DEC-05 to 2014-DEC-08
- *      are Copyright 2014 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 
 #include "libmeryl-san.H"
 
-#include "splitToWords.H"
+#include "strings.H"
 
 //  Try to deduce the X coverage we have.  The pattern we should see in mer counts is an initial
 //  spike for unique mers (these contain errors), then a drop into a valley, and a bump at the X

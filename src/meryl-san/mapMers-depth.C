@@ -13,19 +13,7 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    kmer/meryl/mapMers-depth.C
- *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2007-JUN-08 to 2014-APR-11
- *      are Copyright 2007-2008,2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-OCT-07 to 2014-DEC-22
- *      are Copyright 2014 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

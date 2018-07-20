@@ -34,12 +34,11 @@
 #include "tgTig.H"
 #include "sqStore.H"
 
-#include "AS_UTL_fileIO.H"
-#include "AS_UTL_fasta.H"
+#include "files.H"
 
 #include "AS_UTL_reverseComplement.H"
 
-#include "splitToWords.H"
+#include "strings.H"
 #include "intervalList.H"
 
 

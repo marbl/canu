@@ -15,10 +15,6 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz on 2013-OCT-18
- *      are Copyright 2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */

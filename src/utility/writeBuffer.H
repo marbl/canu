@@ -15,14 +15,6 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-NOV-18
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Sergey Koren beginning on 2017-MAY-17
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -31,7 +23,7 @@
 #define WRITE_BUFFER_H
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 
 class writeBuffer {
 public:

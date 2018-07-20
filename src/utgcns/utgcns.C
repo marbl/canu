@@ -354,7 +354,7 @@ main (int argc, char **argv) {
   }
 
   //  Open output files.  If we're creating a package, the usual output files are not opened.
- 
+
   if ((exportName == NULL) && (outResultsName)) {
     fprintf(stderr, "-- Opening output results file '%s'.\n", outResultsName);
     outResultsFile = AS_UTL_openOutputFile(outResultsName);

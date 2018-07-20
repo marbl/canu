@@ -29,7 +29,7 @@
 
 #include "edlib.H"
 
-#include "splitToWords.H"
+#include "strings.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include "gfa.H"

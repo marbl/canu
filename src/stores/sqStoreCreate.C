@@ -38,7 +38,8 @@
 #include "AS_global.H"
 #include "sqStore.H"
 #include "findKeyAndValue.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
+#include "strings.H"
 
 #include "mt19937ar.H"
 

@@ -378,7 +378,7 @@ abColumn::baseCallQuality(void) {
     if ((bReads.size() > 1) /*|| (used_surrogate == true)*/) {
       double dqv =  -10.0 * log10(1.0 - cwMax);
 
-      qual = DBL_TO_INT(dqv);
+      qual = doubletoint32(dqv);
 
       if (dqv - qual >= 0.50)
         qual++;

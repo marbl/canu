@@ -15,10 +15,6 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-APR-30
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -26,7 +22,7 @@
 #include "AS_global.H"
 
 #include "objectStore.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 #include <libgen.h>
 #include <sys/wait.h>
@@ -109,7 +105,7 @@ findOvlStorePath(char *requested) {
   //
   //    requested file F -- '../asm.ovlStore/0001<000>'
   //    current path   P -- '/path/to/assembly/correction/2-correction'
-  //  
+  //
   //  If the first component of F is '..', we drop it and the last component of P.
   //  When there are no more '..'s at the start, we should be left with the
   //  store name in F and the assembly stage in P.

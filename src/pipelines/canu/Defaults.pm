@@ -1362,7 +1362,7 @@ sub checkParameters () {
         }
     }
 
-    if ((getGlobal("unitigger") ne "bogart") && 
+    if ((getGlobal("unitigger") ne "bogart") &&
         (getGlobal("unitigger") ne "wtdbg")) {
         addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'wtdbg' or 'bogart'\n");
     }

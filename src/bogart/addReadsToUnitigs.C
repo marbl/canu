@@ -37,7 +37,7 @@
 
 #include "AS_global.H"
 
-#include "splitToWords.H"
+#include "strings.H"
 
 #include "MultiAlign.H"
 #include "MultiAlignStore.H"

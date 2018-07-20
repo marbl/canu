@@ -32,7 +32,6 @@
 
 #include "AS_UTL_decodeRange.H"
 #include "AS_UTL_reverseComplement.H"
-#include "AS_UTL_fasta.H"
 
 #include "falconConsensus.H"
 
@@ -461,7 +460,7 @@ main(int argc, char **argv) {
 
       if (seqFile)
         layout->dumpFASTQ(seqFile, false);
-     
+
       delete layout;
       layout = new tgTig();    //  Next loop needs an existing empty layout.
     }

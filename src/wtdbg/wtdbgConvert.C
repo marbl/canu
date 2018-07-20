@@ -15,21 +15,13 @@
  *
  *  Modifications by:
  *
- *    Sergey Koren beginning on 2016-FEB-24
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Brian P. Walenz beginning on 2016-OCT-24
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
 #include "AS_global.H"
 #include "ovStore.H"
-#include "splitToWords.H"
+#include "strings.H"
 #include "tgStore.H"
 
 #include <vector>
@@ -77,12 +69,12 @@ void save_tig(sqStore *seqStore, tgStore *tigStore, tgTig *tig,
 
     for (map<uint32, map<uint32, bool> >::iterator it=readToOri.begin(); it != readToOri.end(); ++it) {
       // now we pick the best location
-      uint32 best = 0; 
+      uint32 best = 0;
       uint32 bestCount = 0;
       for (map<uint32, uint32>::iterator chunks=readPieces[it->first].begin(); chunks != readPieces[it->first].end(); ++chunks) {
         if (bestCount < chunks->second) {
           // sanity check the placement
-          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() 
+          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength()
               && readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] > seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() / MAX_READ_STRETCH
               && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
             bestCount = chunks->second;
@@ -222,7 +214,7 @@ main(int argc, char **argv) {
           int32 bgn = 0;
           int32 end = 0;
 
-          if (W[2][0] == '+') { 
+          if (W[2][0] == '+') {
              readToOri[rid][index] = true;
              bgn            = (int)(offset) - W.toint32(3);
              end            = int(offset) + W.toint32(4) + seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W.toint32(3) + W.toint32(4));

@@ -13,26 +13,19 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/utility/AS_UTL_fasta.H
+ *    src/utility/AS_UTL_fileIO.H
+ *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2005-SEP-26 to 2013-SEP-27
- *      are Copyright 2005,2007-2009,2012-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-DEC-05 to 2015-AUG-14
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef AS_UTL_FILEIO_H
-#define AS_UTL_FILEIO_H
+#ifndef FILES_H
+#define FILES_H
 
 #include "AS_global.H"
 
@@ -132,6 +125,27 @@ void    AS_UTL_saveFile(char const *prefix, OBJ *objects, uint64 numberToWrite) 
 
 
 
+//  Writes sequence as fasta, with at most 'bl' letters per line (unlimited if 0).
+void
+AS_UTL_writeFastA(FILE *f,
+                  char *s, int sl, int bl,
+                  char *h, ...);
+
+//  Writes FastQ, with Sanger QVs.
+void
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  char  *q, int ql,   //  As Sanger QV, already encoded
+                  char  *h, ...);
+
+void
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  uint8 *q, int ql,   //  As Sanger QV, from integer values
+                  char  *h, ...);
+
+
+
 
 
 enum cftType {
@@ -188,4 +202,4 @@ private:
   bool   _stdi;
 };
 
-#endif  //  AS_UTL_FILEIO_H
+#endif  //  FILES_H

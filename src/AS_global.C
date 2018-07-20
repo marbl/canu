@@ -39,7 +39,7 @@
 #include "canu_version.H"
 
 #include "AS_UTL_stackTrace.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 
 #include "timeAndSize.H"
 

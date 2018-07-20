@@ -13,31 +13,7 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    kmer/libutil/intervalList.H
- *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2003-AUG-11 to 2003-AUG-13
- *      are Copyright 2003 Applera Corporation, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz on 2004-APR-21
- *      are Copyright 2004 Brian P. Walenz, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2005-JUL-12 to 2014-APR-11
- *      are Copyright 2005-2007,2010,2013-2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-OCT-07 to 2014-DEC-05
- *      are Copyright 2014 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-OCT-30
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

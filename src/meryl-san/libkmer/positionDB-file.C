@@ -15,18 +15,6 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2003-AUG-14 to 2004-APR-01
- *      are Copyright 2003-2004 Applera Corporation, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz on 2004-APR-30
- *      are Copyright 2004 Brian P. Walenz, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2005-MAR-12 to 2014-APR-11
- *      are Copyright 2005,2007-2008,2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */

@@ -15,18 +15,6 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2013-MAR-14 to 2013-AUG-01
- *      are Copyright 2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Sergey Koren beginning on 2016-APR-26
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */

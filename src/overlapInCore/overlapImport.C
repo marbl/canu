@@ -37,7 +37,7 @@
 
 #include "AS_UTL_decodeRange.H"
 
-#include "splitToWords.H"
+#include "strings.H"
 #include "mt19937ar.H"
 
 #include <vector>

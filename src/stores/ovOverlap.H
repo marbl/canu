@@ -38,7 +38,7 @@
 #ifndef AS_OVOVERLAP_H
 #define AS_OVOVERLAP_H
 
-#include "splitToWords.H"
+#include "strings.H"
 
 
 //  Error rates are encoded as a 12-bit fixed-point value.  This gives us up to 40.95% error, with

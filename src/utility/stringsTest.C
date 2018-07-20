@@ -13,17 +13,17 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  Modifications by:
+ *  This file is derived from:
  *
- *    Brian P. Walenz beginning on 2016-MAY-01
- *      are a 'United States Government Work', and
- *      are released in the public domain
+ *    src/utility/splitToWordsTest.C
+ *
+ *  Modifications by:
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#include "splitToWords.H"
+#include "strings.H"
 
 int
 main(int argc, char **argv) {

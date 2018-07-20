@@ -15,14 +15,6 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2012-MAY-08 to 2014-APR-11
- *      are Copyright 2012-2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz on 2014-AUG-31
- *      are Copyright 2014 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */

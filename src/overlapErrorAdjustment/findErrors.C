@@ -114,7 +114,7 @@ extractReads(feParameters *G,
 
   //  Report what we're going to do.
 
-  fprintf(stderr, "extractReads()-- Loading reads " F_U32 " to " F_U32 " (" F_U32 " reads with " F_U64 " bases) overlaps " F_U64 " through " F_U64 ".\n", 
+  fprintf(stderr, "extractReads()-- Loading reads " F_U32 " to " F_U32 " (" F_U32 " reads with " F_U64 " bases) overlaps " F_U64 " through " F_U64 ".\n",
           loID, hiID, fl->readsLen, fl->basesLen, nextOlap, lastOlap);
 
   //  Ensure there is space.

@@ -39,7 +39,7 @@
 #define INCLUDE_AS_BAT_LOGGING
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 
 void    setLogFile(char const *prefix, char const *name);
 char   *getLogFilePrefix(void);

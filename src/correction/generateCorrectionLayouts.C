@@ -38,10 +38,10 @@
 
 #include "stashContains.H"
 
-#include "splitToWords.H"
+#include "strings.H"
+#include "files.H"
 #include "intervalList.H"
 #include "AS_UTL_reverseComplement.H"
-#include "AS_UTL_fasta.H"
 
 #include <set>
 

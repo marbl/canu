@@ -50,7 +50,7 @@
 
 #include "AS_global.H"
 #include "AS_UTL_decodeRange.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 #include "sqStore.H"
 #include "ovStore.H"

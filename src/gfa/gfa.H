@@ -27,7 +27,7 @@
 #define AS_UTL_GFA_H
 
 #include "AS_global.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 
 

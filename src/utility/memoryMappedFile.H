@@ -43,7 +43,7 @@
 #define AS_UTL_MEMORYMAPPEDFILE_H
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 
 #include <fcntl.h>
 #include <sys/mman.h>

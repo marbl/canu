@@ -26,8 +26,7 @@ TARGET       := libcanu.a
 
 SOURCES      := AS_global.C \
                 \
-                utility/AS_UTL_fasta.C \
-                utility/AS_UTL_fileIO.C \
+                utility/files.C \
                 utility/AS_UTL_reverseComplement.C \
                 utility/AS_UTL_stackTrace.C \
                 \

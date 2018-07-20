@@ -13,29 +13,21 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/utility/AS_UTL_fasta.C
+ *    src/utility/AS_UTL_fileIO.C
+ *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2005-SEP-26 to 2013-SEP-27
- *      are Copyright 2005-2009,2011-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Eli Venter on 2007-AUG-27
- *      are Copyright 2007 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2015-MAR-25 to 2015-AUG-14
- *      are Copyright 2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_UTL_fileIO.H"
+#include "files.H"
+#include "strings.H"
+
+#include <stdarg.h>
 
 //  Report ALL attempts to seek somewhere.
 #undef DEBUG_SEEK
@@ -651,6 +643,90 @@ void    AS_UTL_createEmptyFile(char const *prefix, char separator, char const *s
 }
 
 
+
+void
+AS_UTL_writeFastA(FILE  *f,
+                  char  *s, int sl, int bl,
+                  char  *h, ...) {
+  va_list ap;
+  char   *o  = new char [sl + sl / 60 + 2];
+  int     si = 0;
+  int     oi = 0;
+
+  while (si < sl) {
+    o[oi++] = s[si++];
+
+    if (bl != 0 && (si % bl) == 0)
+      o[oi++] = '\n';
+  }
+  if (o[oi-1] != '\n')
+    o[oi++] = '\n';
+  o[oi] = 0;
+
+  va_start(ap, h);
+  vfprintf(f, h, ap);
+  va_end(ap);
+
+  AS_UTL_safeWrite(f, o, "AS_UTL_writeFastA", sizeof(char), oi);
+
+  delete [] o;
+}
+
+
+void
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  char  *q, int ql,
+                  char  *h, ...) {
+  va_list ap;
+  int     qi = 0;
+  int     oi = 0;
+
+  assert(sl == ql);
+
+  va_start(ap, h);
+  vfprintf(f, h, ap);
+  va_end(ap);
+
+  AS_UTL_safeWrite(f, s, "AS_UTL_writeFastQ", sizeof(char), sl);
+  fprintf(f, "\n");
+
+  fprintf(f, "+\n");
+  AS_UTL_safeWrite(f, q, "AS_UTL_writeFastQ", sizeof(char), ql);
+  fprintf(f, "\n");
+}
+
+
+
+void
+AS_UTL_writeFastQ(FILE  *f,
+                  char  *s, int sl,
+                  uint8 *q, int ql,
+                  char  *h, ...) {
+  va_list ap;
+  char   *o  = new char [ql + 1];
+  int     qi = 0;
+  int     oi = 0;
+
+  assert(sl == ql);
+
+  while (qi < ql)              //  Reencode the QV
+    o[oi++] = q[qi++] + '!';   //  to the Sanger spec.
+  o[oi] = 0;
+
+  va_start(ap, h);
+  vfprintf(f, h, ap);
+  va_end(ap);
+
+  AS_UTL_safeWrite(f, s, "AS_UTL_writeFastQ", sizeof(char), sl);
+  fprintf(f, "\n");
+
+  fprintf(f, "+\n");
+  AS_UTL_safeWrite(f, o, "AS_UTL_writeFastQ", sizeof(char), ql);
+  fprintf(f, "\n");
+
+  delete [] o;
+}
 
 
 

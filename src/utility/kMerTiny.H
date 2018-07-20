@@ -13,23 +13,7 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    kmer/libbio/kmertiny.H
- *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2007-SEP-13 to 2014-APR-11
- *      are Copyright 2007-2008,2010,2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz on 2014-DEC-05
- *      are Copyright 2014 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-OCT-29
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

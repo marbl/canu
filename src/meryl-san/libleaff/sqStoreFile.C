@@ -13,19 +13,7 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/meryl/libleaff/gkStoreFile.C
- *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2015-FEB-04 to 2015-AUG-14
- *      are Copyright 2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-DEC-07
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

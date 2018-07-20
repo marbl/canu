@@ -67,7 +67,7 @@
 #include "overlapInCore.H"
 
 #include "AS_UTL_reverseComplement.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 
 //  Add string  s  as an extra hash table string and return

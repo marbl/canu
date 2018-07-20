@@ -41,7 +41,7 @@
 #include <math.h>
 
 #include "AS_global.H"
-#include "AS_UTL_fileIO.H"
+#include "files.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include <vector>

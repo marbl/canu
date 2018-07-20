@@ -37,7 +37,7 @@
 
 #include "AS_global.H"
 #include "AS_PER_seqStore.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 #include "merTrimResult.H"
 

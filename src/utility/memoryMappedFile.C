@@ -13,27 +13,7 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/AS_UTL/memoryMappedFile.H
- *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2012-FEB-16 to 2013-AUG-01
- *      are Copyright 2012-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-NOV-26 to 2015-APR-21
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Sergey Koren beginning on 2015-DEC-15
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

@@ -33,7 +33,7 @@
 
 #include "AS_global.H"
 #include "ovStore.H"
-#include "splitToWords.H"
+#include "strings.H"
 
 #include "AS_UTL_decodeRange.H"
 

@@ -28,11 +28,11 @@
 #include "ovStore.H"
 #include "tgStore.H"
 
-#include "splitToWords.H"
+#include "strings.H"
+#include "files.H"
 
 #include "AS_UTL_decodeRange.H"
 #include "AS_UTL_reverseComplement.H"
-#include "AS_UTL_fasta.H"
 
 #include <map>
 

@@ -15,21 +15,9 @@
  *
  *  This file is derived from:
  *
- *    kmer/libutil/splitToWords.H
+ *    src/utility/splitToWords.H
  *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2005-JUL-12 to 2014-APR-11
- *      are Copyright 2005-2006,2012,2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-DEC-05 to 2015-AUG-11
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2016-FEB-25
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
@@ -39,6 +27,25 @@
 #define SPLITTOWORDS_H
 
 #include "AS_global.H"
+
+
+
+//  perl's chomp is pretty nice
+//  Not a great place to put this, but it's getting used all over.
+#ifndef chomp
+#define chomp(S)  { char *t=(S); while (*t) t++; t--; while (t >= S && isspace(*t)) *t--=0; }
+#endif
+
+#ifndef munch
+#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
+#endif
+
+#ifndef crunch
+#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
+#endif
+
+
+
 
 enum splitType {
   splitWords  = 0,
