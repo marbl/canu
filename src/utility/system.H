@@ -31,6 +31,7 @@
 #define SYSTEM_H
 
 #include "AS_global.H"
+#include <signal.h>
 
 
 
@@ -43,6 +44,12 @@ uint64   getProcessSize(void);
 uint64   getProcessSizeLimit(void);
 
 uint64   getPhysicalMemorySize(void);
+
+
+
+void  AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx);
+
+void  AS_UTL_installCrashCatcher(const char *filename);
 
 
 

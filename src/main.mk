@@ -32,7 +32,9 @@ SOURCES      := AS_global.C \
                 utility/files-memoryMapped.C \
                 \
                 utility/strings.C \
+                \
                 utility/system.C \
+                utility/system-stackTrace.C \
                 \
                 utility/sequence.C \
                 \
@@ -43,8 +45,6 @@ SOURCES      := AS_global.C \
                 utility/kmers-exact.C \
                 \
                 utility/bits.C \
-                \
-                utility/AS_UTL_stackTrace.C \
                 \
                 utility/hexDump.C \
                 utility/md5.C \

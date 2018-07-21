@@ -38,7 +38,6 @@
 #include "AS_global.H"
 #include "canu_version.H"
 
-#include "AS_UTL_stackTrace.H"
 #include "files.H"
 #include "system.H"
 
