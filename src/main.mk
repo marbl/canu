@@ -32,10 +32,6 @@ SOURCES      := AS_global.C \
                 \
                 utility/AS_UTL_alloc.C \
                 \
-                utility/bitEncodings.C \
-                utility/bitPackedFile.C \
-                utility/bitPackedArray.C \
-                utility/dnaAlphabets.C \
                 utility/hexDump.C \
                 utility/md5.C \
                 utility/memoryMappedFile.C \
@@ -45,7 +41,6 @@ SOURCES      := AS_global.C \
                 utility/speedCounter.C \
                 utility/sweatShop.C \
                 utility/timeAndSize.C \
-                utility/kMer.C \
                 \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
@@ -73,8 +68,6 @@ SOURCES      := AS_global.C \
                 stores/libsnappy/snappy-sinksource.cc \
                 stores/libsnappy/snappy-stubs-internal.cc \
                 stores/libsnappy/snappy.cc \
-                \
-                meryl-san/libmeryl-san.C \
                 \
                 overlapInCore/overlapReadCache.C \
                 \
@@ -115,17 +108,6 @@ SOURCES      := AS_global.C \
                 gfa/gfa.C \
                 gfa/bed.C \
                 \
-                meryl-san/libkmer/existDB-create-from-fasta.C \
-                meryl-san/libkmer/existDB-create-from-meryl.C \
-                meryl-san/libkmer/existDB-create-from-sequence.C \
-                meryl-san/libkmer/existDB-state.C \
-                meryl-san/libkmer/existDB.C \
-                meryl-san/libkmer/positionDB-access.C \
-                meryl-san/libkmer/positionDB-dump.C \
-                meryl-san/libkmer/positionDB-file.C \
-                meryl-san/libkmer/positionDB-mismatch.C \
-                meryl-san/libkmer/positionDB-sort.C \
-                meryl-san/libkmer/positionDB.C
 
 
 
@@ -157,7 +139,6 @@ SRC_INCDIRS  := . \
                 utgcns/libpbutgcns \
                 utgcns/libNDFalcon \
                 utgcns/libboost \
-                meryl-san/libleaff \
                 overlapInCore \
                 overlapInCore/libedlib \
                 overlapInCore/liboverlap
@@ -194,7 +175,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 meryl-san/positionDB.mk \
                 meryl-san/simple-dump.mk \
                 \
-                merTrim/merTrim.mk \
                 \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \

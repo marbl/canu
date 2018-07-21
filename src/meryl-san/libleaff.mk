@@ -9,7 +9,8 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := libleaff.a
-SOURCES  := libleaff/fastaFile.C \
+SOURCES  := libleaff/dnaAlphabets.C \
+            libleaff/fastaFile.C \
             libleaff/fastaStdin.C \
             libleaff/fastqFile.C \
             libleaff/fastqStdin.C \
@@ -19,14 +20,30 @@ SOURCES  := libleaff/fastaFile.C \
             libleaff/seqFactory.C \
             libleaff/seqStore.C \
             libleaff/seqStream.C \
-            libleaff/sffFile.C
+            libleaff/sffFile.C \
+            utility/bitEncodings.C \
+            utility/bitPackedFile.C \
+            utility/bitPackedArray.C \
+            utility/kMer.C \
+            libkmer/existDB-create-from-fasta.C \
+            libkmer/existDB-create-from-meryl.C \
+            libkmer/existDB-create-from-sequence.C \
+            libkmer/existDB-state.C \
+            libkmer/existDB.C \
+            libkmer/positionDB-access.C \
+            libkmer/positionDB-dump.C \
+            libkmer/positionDB-file.C \
+            libkmer/positionDB-mismatch.C \
+            libkmer/positionDB-sort.C \
+            libkmer/positionDB.C \
+            libmeryl-san.C
 
 #            libleaff/selftest.C
 #            libleaff/test-merStream.C
 #            libleaff/test-seqCache.C
 #            libleaff/test-seqStream.C
 
-SRC_INCDIRS  := .. ../utility ../stores
+SRC_INCDIRS  := . ./libleaff ./utility ./libkmer .. ../utility ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := 

@@ -11,7 +11,7 @@ endif
 TARGET   := positionDB
 SOURCES  := positionDB.C
 
-SRC_INCDIRS  := .. ../utility libleaff libkmer
+SRC_INCDIRS  := . ./libleaff ./utility ./libkmer .. ../utility libleaff libkmer
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lleaff -lcanu

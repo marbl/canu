@@ -11,7 +11,7 @@ endif
 TARGET   := estimate-mer-threshold
 SOURCES  := estimate-mer-threshold.C
 
-SRC_INCDIRS := .. ../utility libleaff
+SRC_INCDIRS := . ./libleaff ./utility ./libkmer .. ../utility libleaff
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lleaff -lcanu
