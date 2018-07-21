@@ -21,6 +21,9 @@
 
 #include "positionDB.H"
 
+#include <fcntl.h>
+
+
 static
 char     magic[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', '.', 'v', '1', ' ', ' ', ' '  };
 static

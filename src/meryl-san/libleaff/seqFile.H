@@ -25,7 +25,7 @@
 #undef DEBUG
 
 #include "AS_global.H"
-#include "readBuffer.H"
+#include "files.H"
 
 //  General flow of the constructors is:
 //    Clear all data

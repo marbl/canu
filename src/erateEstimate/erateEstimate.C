@@ -35,8 +35,6 @@
 #include "sqStore.H"
 #include "ovStore.H"
 
-#include "memoryMappedFile.H"
-
 #include "intervalList.H"
 
 #include <map>

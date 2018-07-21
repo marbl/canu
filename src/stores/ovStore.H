@@ -35,13 +35,14 @@
 #define AS_OVSTORE_H
 
 #include "AS_global.H"
+#include "files.H"
+
 #include "sqStore.H"
 
 #include "ovOverlap.H"
 #include "ovStoreFile.H"
 #include "ovStoreHistogram.H"
 
-#include "memoryMappedFile.H"
 
 
 const uint64 ovStoreVersion         = 3;

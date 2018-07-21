@@ -15,38 +15,18 @@
  *
  *  This file is derived from:
  *
- *    src/AS_BAT/memoryMappedFile.H
+ *    src/utility/memoryMappedFile.H
  *
  *  Modifications by:
- *
- *    Brian P. Walenz from 2012-FEB-16 to 2013-AUG-01
- *      are Copyright 2012-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-NOV-26 to 2015-APR-21
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Sergey Koren beginning on 2015-DEC-15
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef AS_UTL_MEMORYMAPPEDFILE_H
-#define AS_UTL_MEMORYMAPPEDFILE_H
+#ifndef FILES_MEMORY_MAPPED_H
+#define FILES_MEMORY_MAPPED_H
 
-#include "AS_global.H"
-#include "files.H"
-
-#include <fcntl.h>
-#include <sys/mman.h>
+//  Do not include directly.  Use 'files.H' instead.
 
 
 //  The BSD's are able to map to an arbitrary position in the file, but the Linux's can only map to
@@ -109,4 +89,4 @@ private:
   void                   *_data;
 };
 
-#endif  //  AS_UTL_MEMORYMAPPEDFILE_H
+#endif  //  FILES_MEMORYMAPPED_H

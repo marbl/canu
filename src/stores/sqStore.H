@@ -35,7 +35,7 @@
 #define SQSTORE_H
 
 #include "AS_global.H"
-#include "writeBuffer.H"
+#include "files.H"
 
 #include <vector>
 

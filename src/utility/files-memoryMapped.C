@@ -13,13 +13,20 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/utility/memoryMappedFile.C
+ *
  *  Modifications by:
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#include "memoryMappedFile.H"
+#include "files.H"
+
+#include <fcntl.h>
+#include <sys/mman.h>
 
 
 

@@ -19,11 +19,12 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef READ_BUFFER_H
-#define READ_BUFFER_H
+#ifndef FILES_BUFFERED_H
+#define FILES_BUFFERED_H
 
-#include "AS_global.H"
-#include "memoryMappedFile.H"
+//  Do not include directly.  Use 'files.H' instead.
+
+class memoryMappedFile;
 
 class readBuffer {
 public:
@@ -73,7 +74,33 @@ private:
 };
 
 
-#include "readBuffer-implementation.H"
+
+class writeBuffer {
+public:
+  writeBuffer(const char *filename, const char *filemode, uint64 bufferMax = 1024 * 1024);
+  ~writeBuffer();
+
+  const char          *filename(void) { return(_filename); };
+  uint64               tell(void)     { return(_filePos);  };
+
+  void                 write(void *data, uint64 length);
+
+private:
+  void                 open(void);
+  void                 writeToDisk(void *data, uint64 length);
+  void                 flush(void);
+
+  char                _filename[FILENAME_MAX+1];
+  char                _filemode[17];
+
+  FILE               *_file;
+  uint64              _filePos;
+
+  uint64              _bufferLen;
+  uint64              _bufferMax;
+  char               *_buffer;
+};
 
 
-#endif  //  READ_BUFFER_H
+
+#endif  //  FILES_BUFFERED_H

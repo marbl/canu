@@ -15,38 +15,19 @@
  *
  *  This file is derived from:
  *
- *    kmer/libutil/readBuffer.C
+ *    src/utility/writeBuffer.H
  *
  *  Modifications by:
- *
- *    Brian P. Walenz on 2004-MAY-06
- *      are Copyright 2004 Applera Corporation, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2004-MAY-11 to 2004-OCT-10
- *      are Copyright 2004 Brian P. Walenz, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2005-APR-01 to 2014-APR-11
- *      are Copyright 2005-2010,2014 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-AUG-22 to 2014-DEC-08
- *      are Copyright 2014 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-OCT-29
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#include "readBuffer.H"
-#include "memoryMappedFile.H"
+#include "files.H"
 
 #include <fcntl.h>
+
+
 
 //  If bufferMax is zero, then the file is accessed using memory
 //  mapped I/O.  Otherwise, a small buffer is used.
@@ -103,6 +84,7 @@ readBuffer::readBuffer(const char *filename, uint64 bufferMax) {
 }
 
 
+
 readBuffer::readBuffer(FILE *file, uint64 bufferMax) {
 
   if (bufferMax == 0)
@@ -137,6 +119,7 @@ readBuffer::readBuffer(FILE *file, uint64 bufferMax) {
 }
 
 
+
 readBuffer::~readBuffer() {
 
   delete [] _filename;
@@ -149,6 +132,7 @@ readBuffer::~readBuffer() {
   if (_stdin == false)
     close(_file);
 }
+
 
 
 void
@@ -182,6 +166,7 @@ readBuffer::fillBuffer(void) {
   if (_bufferLen == 0)
     _eof = true;
 }
+
 
 
 void
@@ -221,6 +206,7 @@ readBuffer::seek(uint64 pos) {
 
   _eof       = (_bufferPos >= _bufferLen);
 }
+
 
 
 uint64
@@ -290,6 +276,7 @@ readBuffer::read(void *buf, uint64 len) {
 }
 
 
+
 uint64
 readBuffer::read(void *buf, uint64 maxlen, char stop) {
   char  *bufchar = (char *)buf;
@@ -328,4 +315,91 @@ readBuffer::read(void *buf, uint64 maxlen, char stop) {
   bufchar[c] = 0;
 
   return(c);
+}
+
+
+
+writeBuffer::writeBuffer(const char *filename, const char *filemode, uint64 bufferMax) {
+  strncpy(_filename, filename, FILENAME_MAX);
+  strncpy(_filemode, filemode, 16);
+
+  _file    = NULL;
+  _filePos = 0;
+
+  if      (filemode[0] == 'a')           //  If appending, open the file now
+    open();                              //  so we can set the file position.
+  else if (filemode[0] != 'w')           //  Otherwise, if not writing, fail.
+    fprintf(stderr, "writeBuffer()--  Unknown mode '%s'\n", filemode), exit(1);
+
+  _bufferLen = 0;
+  _bufferMax = bufferMax;
+  _buffer    = new char [_bufferMax];
+}
+
+
+
+writeBuffer::~writeBuffer() {
+  flush();
+  delete [] _buffer;
+  AS_UTL_closeFile(_file, _filename);
+}
+
+
+
+void
+writeBuffer::write(void *data, uint64 length) {
+
+  if (_bufferMax < _bufferLen + length)           //  Flush the buffer if this
+    flush();                                      //  data is too big for it.
+
+  if (_bufferMax < length) {                      //  And if it is still too big
+    assert(_bufferLen == 0);                      //  (ensure the buffer is empty)
+    writeToDisk(data, length);                    //  and just dump it to disk.
+  }
+
+  else {                                          //  Otherwise, copy it to
+    memcpy(_buffer + _bufferLen, data, length);   //  our buffer.
+    _bufferLen += length;
+  }
+
+  assert(_bufferLen <= _bufferMax);
+
+  _filePos += length;
+}
+
+
+
+void
+writeBuffer::open(void) {
+  if (_file != NULL)
+    return;
+
+  errno = 0;
+  _file = fopen(_filename, _filemode);
+  if (errno)
+    fprintf(stderr, "writeBuffer()--  Failed to open file '%s' with mode '%s': %s\n",
+            _filename, _filemode, strerror(errno)), exit(1);
+
+  //  If appending, _filePos is zero, and ftell() is non-zero.
+  //  If writing, _filePos is non-zero, and ftell() is zero.
+  _filePos += AS_UTL_ftell(_file);
+}
+
+
+
+void
+writeBuffer::writeToDisk(void *data, uint64 length) {
+  if (length == 0)
+    return;
+
+  open();
+  AS_UTL_safeWrite(_file, data, "writeBuffer::writeToDisk", 1, length);
+}
+
+
+
+void
+writeBuffer::flush(void) {
+  writeToDisk(_buffer, _bufferLen);
+  _bufferLen = 0;
 }

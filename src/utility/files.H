@@ -145,61 +145,10 @@ AS_UTL_writeFastQ(FILE  *f,
                   char  *h, ...);
 
 
+#include "files-compressed.H"
+#include "files-buffered.H"
+#include "files-buffered-implementation.H"
+#include "files-memoryMapped.H"
 
-
-
-enum cftType {
-  cftNONE  = 0,
-  cftGZ    = 1,
-  cftBZ2   = 2,
-  cftXZ    = 3,
-  cftSTDIN = 4
-};
-
-cftType  compressedFileType(char const *filename);
-
-
-
-class compressedFileReader {
-public:
-  compressedFileReader(char const *filename);
-  ~compressedFileReader();
-
-  FILE *operator*(void)     {  return(_file);              };
-  FILE *file(void)          {  return(_file);              };
-
-  char *filename(void)      {  return(_filename);          };
-
-  bool  isCompressed(void)  {  return(_pipe == true);      };
-  bool  isNormal(void)      {  return((_pipe == false) &&
-                                      (_stdi == false));   };
-
-private:
-  FILE  *_file;
-  char  *_filename;
-  bool   _pipe;
-  bool   _stdi;
-};
-
-
-
-class compressedFileWriter {
-public:
-  compressedFileWriter(char const *filename, int32 level=1);
-  ~compressedFileWriter();
-
-  FILE *operator*(void)     {  return(_file);          };
-  FILE *file(void)          {  return(_file);          };
-
-  char *filename(void)      {  return(_filename);          };
-
-  bool  isCompressed(void)  {  return(_pipe == true);  };
-
-private:
-  FILE  *_file;
-  char  *_filename;
-  bool   _pipe;
-  bool   _stdi;
-};
 
 #endif  //  FILES_H
