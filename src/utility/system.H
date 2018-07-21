@@ -27,7 +27,12 @@
  *  full conditions and disclaimers for each license.
  */
 
+#ifndef SYSTEM_H
+#define SYSTEM_H
+
 #include "AS_global.H"
+
+
 
 double   getTime(void);
 
@@ -38,3 +43,7 @@ uint64   getProcessSize(void);
 uint64   getProcessSizeLimit(void);
 
 uint64   getPhysicalMemorySize(void);
+
+
+
+#endif  //  SYSTEM_H
