@@ -40,10 +40,10 @@
  */
 
 #include "AS_global.H"
+#include "strings.H"
+
 #include "sqStore.H"
 #include "tgStore.H"
-
-#include "AS_UTL_decodeRange.H"
 
 #include "stashContains.H"
 
@@ -137,7 +137,7 @@ main (int argc, char **argv) {
 
     } else if ((strcmp(argv[arg], "-u") == 0) ||
                (strcmp(argv[arg], "-tig") == 0)) {
-      AS_UTL_decodeRange(argv[++arg], tigBgn, tigEnd);
+      decodeRange(argv[++arg], tigBgn, tigEnd);
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigFileName = argv[++arg];

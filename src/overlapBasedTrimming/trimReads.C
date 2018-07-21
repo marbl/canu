@@ -31,7 +31,7 @@
 #include "trimStat.H"
 #include "clearRangeFile.H"
 
-#include "AS_UTL_decodeRange.H"
+#include "strings.H"
 
 
 
@@ -178,7 +178,7 @@ main(int argc, char **argv) {
       outputPrefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      AS_UTL_decodeRange(argv[++arg], idMin, idMax);
+      decodeRange(argv[++arg], idMin, idMax);
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);

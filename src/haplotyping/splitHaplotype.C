@@ -31,7 +31,6 @@
 #include "strings.H"
 #include "files.H"
 
-#include "AS_UTL_decodeRange.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include <map>

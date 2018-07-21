@@ -49,7 +49,6 @@
  */
 
 #include "AS_global.H"
-#include "AS_UTL_decodeRange.H"
 #include "strings.H"
 
 #include "sqStore.H"
@@ -611,7 +610,7 @@ main(int argc, char **argv) {
       asCounts   = false;
       asErateLen = false;
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+        decodeRange(argv[++arg], bgnID, endID);
     }
 
     else if ((strcmp(argv[arg], "-picture") == 0) ||
@@ -622,7 +621,7 @@ main(int argc, char **argv) {
       asCounts   = false;
       asErateLen = false;
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+        decodeRange(argv[++arg], bgnID, endID);
     }
 
     else if (strcmp(argv[arg], "-metadata") == 0) {
@@ -632,7 +631,7 @@ main(int argc, char **argv) {
       asCounts   = false;
       asErateLen = false;
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+        decodeRange(argv[++arg], bgnID, endID);
     }
 
     else if (strcmp(argv[arg], "-counts") == 0) {
@@ -642,7 +641,7 @@ main(int argc, char **argv) {
       asCounts   = true;
       asErateLen = false;
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))        //  NOT CORRECT
-        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+        decodeRange(argv[++arg], bgnID, endID);
     }
 
     else if (strcmp(argv[arg], "-eratelen") == 0) {
@@ -652,7 +651,7 @@ main(int argc, char **argv) {
       asCounts   = false;
       asErateLen = true;
       if ((arg+1 < argc) && (argv[arg+1][0] != '-'))        //  NOT CORRECT
-        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+        decodeRange(argv[++arg], bgnID, endID);
     }
 
 
@@ -727,13 +726,13 @@ main(int argc, char **argv) {
       params.noRedundant = true;
 
     else if (strcmp(argv[arg], "-query") == 0)
-      AS_UTL_decodeRange(argv[++arg], params.queryMin, params.queryMax);
+      decodeRange(argv[++arg], params.queryMin, params.queryMax);
 
     else if (strcmp(argv[arg], "-erate") == 0)
-      AS_UTL_decodeRange(argv[++arg], params.erateMin, params.erateMax);
+      decodeRange(argv[++arg], params.erateMin, params.erateMax);
 
     else if (strcmp(argv[arg], "-length") == 0)
-      AS_UTL_decodeRange(argv[++arg], params.lengthMin, params.lengthMax);
+      decodeRange(argv[++arg], params.lengthMin, params.lengthMax);
 
     else if (strcmp(argv[arg], "-bogart") == 0)
       bogartPath = argv[++arg];

@@ -35,8 +35,6 @@
 #include "sqStore.H"
 #include "ovStore.H"
 
-#include "AS_UTL_decodeRange.H"
-
 #include "strings.H"
 #include "mt19937ar.H"
 
@@ -131,15 +129,15 @@ main(int argc, char **argv) {
       asPAF       = false;
       asRandom    = true;
 
-      AS_UTL_decodeRange(argv[++arg], rmin, rmax);
+      decodeRange(argv[++arg], rmin, rmax);
     }
 
     else if (strcmp(argv[arg], "-a") == 0) {
-      AS_UTL_decodeRange(argv[++arg], abgn, aend);
+      decodeRange(argv[++arg], abgn, aend);
     }
 
     else if (strcmp(argv[arg], "-b") == 0) {
-      AS_UTL_decodeRange(argv[++arg], bbgn, bend);
+      decodeRange(argv[++arg], bbgn, bend);
     }
 
     else if ((strcmp(argv[arg], "-") == 0) ||

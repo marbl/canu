@@ -30,7 +30,6 @@
 
 #include "intervalList.H"
 
-#include "AS_UTL_decodeRange.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include "falconConsensus.H"
@@ -299,7 +298,7 @@ main(int argc, char **argv) {
       readListName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      AS_UTL_decodeRange(argv[++arg], idMin, idMax);
+      decodeRange(argv[++arg], idMin, idMax);
 
 
     } else if (strcmp(argv[arg], "-cc") == 0) {   //  CONSENSUS

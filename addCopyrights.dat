@@ -13888,4 +13888,15 @@ D src/utility/files.C src/utility/AS_UTL_fileIO.C
 D src/utility/files.C src/utility/AS_UTL_fasta.C
 D src/utility/files.H src/utility/AS_UTL_fasta.H
 D src/utility/writeBuffer.C src/utility/writeBuffer.H
-D src/utility/readBuffer-implementation.H src/utility/readBuffer.H
+D src/utility/files-compressed.H src/utility/files.H
+D src/utility/files-compressed.C src/utility/files.C
+D src/utility/files-buffered.H src/utility/readBuffer.H
+D src/utility/files-buffered.H src/utility/writeBuffer.H
+D src/utility/files-buffered-implementation.H src/utility/readBuffer.H
+D src/utility/files-memoryMapped.H src/utility/memoryMappedFile.H
+D src/utility/files-memoryMapped.C src/utility/memoryMappedFile.C
+D src/utility/strings.C src/utility/decodeBooleanString.C
+D src/utility/strings.H src/utility/findKeyAndValue.H
+D src/utility/strings.C src/utility/findKeyAndValue.H
+D src/utility/strings.H src/utility/AS_UTL_decodeRange.H
+D src/utility/strings.C src/utility/splitToWords.H

@@ -23,11 +23,15 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef SPLITTOWORDS_H
-#define SPLITTOWORDS_H
+#ifndef STRINGS_H
+#define STRINGS_H
 
 #include "AS_global.H"
 
+#include <set>
+#include <vector>
+
+using namespace std;
 
 
 //  perl's chomp is pretty nice
@@ -47,6 +51,108 @@
 
 
 
+
+
+template<typename T>
+char *
+decodeRange(char *range, T &lo, T &hi) {
+  char    *ap = range;
+
+  strtonumber(lo, ap, &ap);     //  Grab the first number.
+
+  hi = lo;                      //  Set the second to that.
+
+  if (*ap == '-') {             //  If this is a range,
+    ap++;                       //  grab the second number
+    strtonumber(hi, ap, &ap);
+  }
+
+  if (*ap == ',')               //  If the next letter continues
+    return(ap + 1);             //  move past that and return.
+
+  if (*ap == 0)                 //  If the next letter is the end
+    return(NULL);               //  of the string, return NULL.
+
+  //  Otherwise, we can't decode this range.
+
+  fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+  exit(1);
+
+  return(NULL);
+}
+
+
+
+template<typename T>
+void
+decodeRange(char *range, vector<T> &bgn, vector<T> &end) {
+  char    *ap = range;
+  T        av = 0;
+  T        bv = 0;
+
+  while ((ap != NULL) && (*ap != 0)) {
+    ap = decodeRange(ap, av, bv);
+
+    bgn.push_back(av);
+    end.push_back(bv);
+  }
+}
+
+
+
+template<typename T>
+void
+decodeRange(char *range, set<T> &ranges) {
+  char    *ap = range;
+  T        av = 0;
+  T        bv = 0;
+
+  while ((ap != NULL) && (*ap != 0)) {
+    ap = decodeRange(ap, av, bv);
+
+    for (T xx=av; xx<=bv; xx++)
+      ranges.insert(xx);
+  }
+}
+
+
+
+//  Decodes a string with 0/1, false/true, no/yes into an integer flag.
+bool   decodeBoolean(char *value);
+
+
+
+class KeyAndValue {
+public:
+  KeyAndValue(char *line = NULL)   {  find(line);  };
+  ~KeyAndValue()                   {               };
+
+  bool     find(char *line);
+
+  char    *key(void)           { return(key_); };
+  char    *value(void)         { return(val_); };
+
+  bool     value_bool(void)    { return(decodeBoolean(val_)); };
+
+  int32    value_int32(void)   { return(strtol (val_, NULL, 10)); };
+  int64    value_int64(void)   { return(strtoll(val_, NULL, 10)); };
+
+  uint32   value_uint32(void)  { return(strtoul (val_, NULL, 10)); };
+  uint64   value_uint64(void)  { return(strtoull(val_, NULL, 10)); };
+
+  float    value_float(void)   { return(strtof(val_, NULL)); };
+  double   value_double(void)  { return(strtod(val_, NULL)); };
+
+public:
+  bool    iscomment(char c)    { return((c == '!') || (c == '#') || (c == 0)); };
+  bool    isdelimiter(char c)  { return((c == ':') || (c == '=') || isspace(c)); };
+
+  char   *key_;
+  char   *val_;
+};
+
+
+
 enum splitType {
   splitWords  = 0,
   splitPaths  = 1
@@ -54,23 +160,8 @@ enum splitType {
 
 class splitToWords {
 public:
-  splitToWords(const char *string=NULL, splitType type=splitWords) {
-    _wordsLen  = 0;
-    _wordsMax  = 0;
-    _words     = NULL;
-
-    _charsLen = 0;
-    _charsMax = 0;
-    _chars    = NULL;
-
-    if (string)
-      split(string, type);
-  };
-
-  ~splitToWords() {
-    delete [] _chars;
-    delete [] _words;
-  };
+  splitToWords(const char *string=NULL, splitType type=splitWords);
+  ~splitToWords();
 
 private:
   bool   isPath(char c) {
@@ -90,48 +181,7 @@ private:
   };
 
 public:
-  void   split(const char *line, splitType type=splitWords) {
-
-    _wordsLen = 0;        //  Initialize to no words
-    _charsLen = 0;        //  and no characters.
-
-    if (line == NULL)     //  Bail if there isn't a line to process.
-      return;
-
-    //  Count the number of words and chars in the input line, then make
-    //  sure there is space for us to store them.
-
-    while (line[_charsLen] != 0)
-      if (isSeparator(line[_charsLen++], type))
-        _wordsLen++;
-
-    resizeArray(_words, 0, _wordsMax, _wordsLen + 1, resizeArray_doNothing);
-    resizeArray(_chars, 0, _charsMax, _charsLen + 1, resizeArray_doNothing);
-
-    //  Clear all the words pointers, and copy the input line to our storage.
-    //  This greatly simplifies the loop, as we don't need to worry about
-    //  terminating the final word.
-
-    memset(_words, 0,    sizeof(char *) * (_wordsLen + 1));
-    memcpy(_chars, line, sizeof(char)   * (_charsLen + 1));
-
-    //  Scan the line copy, converting word separators to NUL bytes.
-    //  counting and saving the start of each word in _words.
-
-    _wordsLen = 0;
-
-    for (uint32 st=1, ii=0; ii < _charsLen; ii++) {
-      if (isSeparator(line[ii], type)) {      //  If the character is a word
-        _chars[ii] = 0;                       //  separator, convert to NUL,
-        st         = true;                    //  and flag the next character
-      }                                       //  as the start of a new word.
-
-      else if (st) {                          //  Otherwise, if this is the
-        _words[_wordsLen++] = _chars + ii;    //  start of a word, make
-        st                  = false;          //  a new word.
-      }
-    }
-  };
+  void    split(const char *line, splitType type=splitWords);
 
   uint32  numWords(void)        { return(_wordsLen); };
 
@@ -167,4 +217,10 @@ private:
   char     *_chars;
 };
 
-#endif  //  SPLITTOWORDS_H
+
+
+
+
+
+
+#endif  //  STRINGS_H

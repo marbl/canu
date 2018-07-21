@@ -15,51 +15,44 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2014-NOV-21 to 2015-JAN-30
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *    Brian P. Walenz on 2014-NOV-26
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2016-FEB-22
- *      are a 'United States Government Work', and
- *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-class KeyAndValue {
-public:
+#include "strings.H"
 
-  KeyAndValue(char *line = NULL) {
-    find(line);
-  };
 
-  ~KeyAndValue() {
+
+bool
+decodeBoolean(char *value) {
+  bool ret = false;
+
+  switch (value[0]) {
+    case '0':
+    case 'f':
+    case 'F':
+    case 'n':
+    case 'N':
+      ret = false;
+      break;
+    case '1':
+    case 't':
+    case 'T':
+    case 'y':
+    case 'Y':
+      ret = true;
+      break;
+    default:
+      fprintf(stderr, "decodeBoolean()-- unrecognized value '%s'\n", value);
+      break;
   }
 
-  bool     find(char *line);
-
-  char    *key(void)           { return(key_); };
-  char    *value(void)         { return(val_); };
-
-  bool     value_bool(void)    { return((val_[0] == 't') || (val_[0] == 'T') || (val_[0] == '1')); };
-
-  int32    value_int32(void)   { return(strtol (val_, NULL, 10)); };
-  int64    value_int64(void)   { return(strtoll(val_, NULL, 10)); };
-
-  uint32   value_uint32(void)  { return(strtoul (val_, NULL, 10)); };
-  uint64   value_uint64(void)  { return(strtoull(val_, NULL, 10)); };
-
-  float    value_float(void)   { return(strtof(val_, NULL)); };
-  double   value_double(void)  { return(strtod(val_, NULL)); };
-
-public:
-  bool    iscomment(char c)    { return((c == '!') || (c == '#') || (c == 0)); };
-  bool    isdelimiter(char c)  { return((c == ':') || (c == '=') || isspace(c)); };
-
-  char   *key_;
-  char   *val_;
-};
+  return(ret);
+}
 
 
 
@@ -133,3 +126,74 @@ KeyAndValue::find(char *line) {
 
   return(true);
 }
+
+
+
+splitToWords::splitToWords(const char *string, splitType type) {
+  _wordsLen  = 0;
+  _wordsMax  = 0;
+  _words     = NULL;
+
+  _charsLen = 0;
+  _charsMax = 0;
+  _chars    = NULL;
+
+  if (string)
+    split(string, type);
+}
+
+
+
+splitToWords::~splitToWords() {
+  delete [] _chars;
+  delete [] _words;
+}
+
+
+
+void
+splitToWords::split(const char *line, splitType type) {
+
+  _wordsLen = 0;        //  Initialize to no words
+  _charsLen = 0;        //  and no characters.
+
+  if (line == NULL)     //  Bail if there isn't a line to process.
+    return;
+
+  //  Count the number of words and chars in the input line, then make
+  //  sure there is space for us to store them.
+
+  while (line[_charsLen] != 0)
+    if (isSeparator(line[_charsLen++], type))
+      _wordsLen++;
+
+  resizeArray(_words, 0, _wordsMax, _wordsLen + 1, resizeArray_doNothing);
+  resizeArray(_chars, 0, _charsMax, _charsLen + 1, resizeArray_doNothing);
+
+  //  Clear all the words pointers, and copy the input line to our storage.
+  //  This greatly simplifies the loop, as we don't need to worry about
+  //  terminating the final word.
+
+  memset(_words, 0,    sizeof(char *) * (_wordsLen + 1));
+  memcpy(_chars, line, sizeof(char)   * (_charsLen + 1));
+
+  //  Scan the line copy, converting word separators to NUL bytes.
+  //  counting and saving the start of each word in _words.
+
+  _wordsLen = 0;
+
+  for (uint32 st=1, ii=0; ii < _charsLen; ii++) {
+    if (isSeparator(line[ii], type)) {      //  If the character is a word
+      _chars[ii] = 0;                       //  separator, convert to NUL,
+      st         = true;                    //  and flag the next character
+    }                                       //  as the start of a new word.
+
+    else if (st) {                          //  Otherwise, if this is the
+      _words[_wordsLen++] = _chars + ii;    //  start of a word, make
+      st                  = false;          //  a new word.
+    }
+  }
+}
+
+
+

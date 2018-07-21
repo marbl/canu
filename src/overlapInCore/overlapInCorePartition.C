@@ -41,7 +41,7 @@
 
 #include "AS_global.H"
 #include "sqStore.H"
-#include "AS_UTL_decodeRange.H"
+#include "strings.H"
 
 //  Reads seqStore, outputs three files:
 //    ovlbat - batch names
@@ -352,10 +352,10 @@ main(int argc, char **argv) {
       minOverlapLength   = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
-      AS_UTL_decodeRange(argv[++arg], libToHash);
+      decodeRange(argv[++arg], libToHash);
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      AS_UTL_decodeRange(argv[++arg], libToRef);
+      decodeRange(argv[++arg], libToRef);
 
     } else if (strcmp(argv[arg], "-C") == 0) {
        checkAllLibUsed = false;

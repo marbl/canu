@@ -49,7 +49,7 @@
  */
 
 #include "overlapInCore.H"
-#include "AS_UTL_decodeRange.H"
+#include "strings.H"
 
 oicParameters  G;
 
@@ -316,16 +316,16 @@ main(int argc, char **argv) {
       G.Doing_Partial_Overlaps = true;
 
     } else if (strcmp(argv[arg], "-h") == 0) {
-      AS_UTL_decodeRange(argv[++arg], G.bgnHashID, G.endHashID);
+      decodeRange(argv[++arg], G.bgnHashID, G.endHashID);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
-      AS_UTL_decodeRange(argv[++arg], G.minLibToHash, G.maxLibToHash);
+      decodeRange(argv[++arg], G.minLibToHash, G.maxLibToHash);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      AS_UTL_decodeRange(argv[++arg], G.bgnRefID, G.endRefID);
+      decodeRange(argv[++arg], G.bgnRefID, G.endRefID);
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      AS_UTL_decodeRange(argv[++arg], G.minLibToRef, G.maxLibToRef);
+      decodeRange(argv[++arg], G.minLibToRef, G.maxLibToRef);
 
     } else if (strcmp(argv[arg], "-k") == 0) {
       arg++;

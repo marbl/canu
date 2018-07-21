@@ -31,6 +31,8 @@ SOURCES      := AS_global.C \
                 utility/files-compressed.C \
                 utility/files-memoryMapped.C \
                 \
+                utility/strings.C \
+                \
                 utility/AS_UTL_reverseComplement.C \
                 utility/AS_UTL_stackTrace.C \
                 \

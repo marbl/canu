@@ -49,10 +49,11 @@
 
 #include "AS_global.H"
 
+#include "strings.H"
+
 #include "sqStore.H"
 #include "tgStore.H"
 
-#include "AS_UTL_decodeRange.H"
 #include "intervalList.H"
 
 #include "tgTigSizeAnalysis.H"
@@ -1027,7 +1028,7 @@ main (int argc, char **argv) {
     else if ((strcmp(argv[arg], "-tig") == 0) ||
              (strcmp(argv[arg], "-t") == 0) ||    //  Deprecated!
              (strcmp(argv[arg], "-u") == 0)) {    //  Deprecated too!
-      AS_UTL_decodeRange(argv[++arg], filter.tigIDbgn, filter.tigIDend);
+      decodeRange(argv[++arg], filter.tigIDbgn, filter.tigIDend);
     }
 
     else if (strcmp(argv[arg], "-unassembled") == 0) {

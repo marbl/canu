@@ -35,8 +35,6 @@
 #include "ovStore.H"
 #include "strings.H"
 
-#include "AS_UTL_decodeRange.H"
-
 #include "computeGlobalScore.H"
 
 #include <vector>
@@ -124,7 +122,7 @@ main(int argc, char **argv) {
       minOvlLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      AS_UTL_decodeRange(argv[++arg], minErate, maxErate);
+      decodeRange(argv[++arg], minErate, maxErate);
 
 
     } else if (strcmp(argv[arg], "-nolog") == 0) {

@@ -37,8 +37,8 @@
 
 #include "AS_global.H"
 #include "sqStore.H"
-#include "AS_UTL_decodeRange.H"
 #include "files.H"
+#include "strings.H"
 
 #include "clearRangeFile.H"
 
@@ -227,7 +227,7 @@ main(int argc, char **argv) {
       endID  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+      decodeRange(argv[++arg], bgnID, endID);
 
     } else if (strcmp(argv[arg], "-raw") == 0) {
       dumpRaw = true;
