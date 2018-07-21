@@ -13887,3 +13887,5 @@ D src/utility/files.H src/utility/AS_UTL_fileIO.H
 D src/utility/files.C src/utility/AS_UTL_fileIO.C
 D src/utility/files.C src/utility/AS_UTL_fasta.C
 D src/utility/files.H src/utility/AS_UTL_fasta.H
+D src/utility/writeBuffer.C src/utility/writeBuffer.H
+D src/utility/readBuffer-implementation.H src/utility/readBuffer.H

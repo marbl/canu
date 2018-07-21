@@ -38,6 +38,7 @@ SOURCES      := AS_global.C \
                 utility/mt19937ar.C \
                 utility/objectStore.C \
                 utility/readBuffer.C \
+                utility/writeBuffer.C \
                 utility/speedCounter.C \
                 utility/sweatShop.C \
                 utility/timeAndSize.C \
