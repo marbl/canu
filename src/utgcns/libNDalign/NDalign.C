@@ -33,9 +33,6 @@
 
 #include "NDalign.H"
 
-#include "kMer.H"
-#include "merStream.H"
-
 #include "stddev.H"
 
 #include "Display_Alignment.H"
