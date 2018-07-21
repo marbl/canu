@@ -19,14 +19,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef AS_UTL_ALLOC_H
-#define AS_UTL_ALLOC_H
-
-#include "AS_global.H"
-
-
-uint64    getPhysicalMemorySize(void);
-
+#ifndef ARRAYS_H
+#define ARRAYS_H
 
 
 const uint32  resizeArray_doNothing = 0x00;
@@ -143,4 +137,4 @@ resizeArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, LL newM
 }
 
 
-#endif // AS_UTL_ALLOC_H
+#endif  //  ARRAYS_H

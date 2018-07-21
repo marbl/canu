@@ -32,11 +32,10 @@ SOURCES      := AS_global.C \
                 utility/files-memoryMapped.C \
                 \
                 utility/strings.C \
+                utility/system.C \
                 \
                 utility/AS_UTL_reverseComplement.C \
                 utility/AS_UTL_stackTrace.C \
-                \
-                utility/AS_UTL_alloc.C \
                 \
                 utility/hexDump.C \
                 utility/md5.C \
@@ -44,7 +43,6 @@ SOURCES      := AS_global.C \
                 utility/objectStore.C \
                 utility/speedCounter.C \
                 utility/sweatShop.C \
-                utility/timeAndSize.C \
                 \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \

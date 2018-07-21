@@ -110,7 +110,7 @@ int AS_configure(int argc, char **argv);
 #endif
 
 
-#include "AS_UTL_alloc.H"
+#include "arrays.H"
 
 
 

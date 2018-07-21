@@ -28,6 +28,7 @@
  */
 
 #include "AS_global.H"
+#include "system.H"
 
 #include "sweatShop.H"
 //#include <pthread.h>
@@ -42,8 +43,6 @@
 #include "analyzeAlignment.H"
 
 #include "AS_UTL_reverseComplement.H"
-
-#include "timeAndSize.H" //  getTime();
 
 
 //  This uses the RED/OEA framework to generate corrected reads.  It probably isn't worth keeping.

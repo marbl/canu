@@ -20,7 +20,7 @@
  */
 
 #include "sweatShop.H"
-#include "timeAndSize.H"
+#include "system.H"
 
 #include <sched.h>  //  pthread scheduling stuff
 

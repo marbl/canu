@@ -21,6 +21,7 @@
 
 #include "AS_global.H"
 #include "files.H"
+#include "system.H"
 
 #include "kMer.H"
 #include "bitPackedFile.H"
@@ -31,7 +32,6 @@
 #include "speedCounter.H"
 
 #include "speedCounter.H"
-#include "timeAndSize.H"
 
 #include <algorithm>
 

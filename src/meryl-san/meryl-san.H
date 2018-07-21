@@ -24,13 +24,13 @@
 
 #include "AS_global.H"
 #include "files.H"
+#include "system.H"
 
 #include "kMer.H"
 #include "bitPackedFile.H"
 #include "libmeryl-san.H"
 
 #include "speedCounter.H"
-#include "timeAndSize.H"
 
 #define PERSONALITY_MERGE         0xff
 

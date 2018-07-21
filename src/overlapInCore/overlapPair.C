@@ -32,6 +32,7 @@
  */
 
 #include "AS_global.H"
+#include "system.H"
 
 #include <pthread.h>
 
@@ -43,8 +44,6 @@
 #include "overlapReadCache.H"
 
 #include "AS_UTL_reverseComplement.H"
-
-#include "timeAndSize.H" //  getTime();
 
 //  The process will load BATCH_SIZE overlaps into memory, then load all the reads referenced by
 //  those overlaps.  Once all data is loaded, compute threads are spawned.  Each thread will reserve

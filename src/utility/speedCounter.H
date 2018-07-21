@@ -39,7 +39,7 @@
 #define SPEEDCOUNTER_H
 
 #include "AS_global.H"
-#include "timeAndSize.H"
+#include "system.H"
 
 class speedCounter {
 public:

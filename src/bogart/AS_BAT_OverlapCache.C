@@ -49,6 +49,8 @@
 #include "AS_BAT_Unitig.H"            //  sizeof(ufNode)
 #include "AS_BAT_Logging.H"
 
+#include "system.H"
+
 #include <sys/types.h>
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;

@@ -40,8 +40,7 @@
 
 #include "AS_UTL_stackTrace.H"
 #include "files.H"
-
-#include "timeAndSize.H"
+#include "system.H"
 
 #ifdef X86_GCC_LINUX
 #include <fpu_control.h>
