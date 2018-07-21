@@ -69,7 +69,7 @@
  */
 
 #include "overlapInCore.H"
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 //  Find and output all overlaps between strings in store and those in the global hash table.
 //  This is the entry point for each compute thread.

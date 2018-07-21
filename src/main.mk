@@ -44,7 +44,6 @@ SOURCES      := AS_global.C \
                 \
                 utility/bits.C \
                 \
-                utility/AS_UTL_reverseComplement.C \
                 utility/AS_UTL_stackTrace.C \
                 \
                 utility/hexDump.C \

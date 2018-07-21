@@ -22,9 +22,15 @@
 #include "files.H"
 
 
+void  reverseComplementSequence(char *seq, int len);
+char *reverseComplementCopy(char *seq, int len);
+
+template<typename qvType>
+void  reverseComplement(char *seq, qvType *qlt, int len);
+
+
+
 class dnaSeqIndexEntry;   //  Internal use only, sorry.
-
-
 
 class dnaSeq {
 public:

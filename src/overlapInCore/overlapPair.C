@@ -43,7 +43,7 @@
 
 #include "overlapReadCache.H"
 
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 //  The process will load BATCH_SIZE overlaps into memory, then load all the reads referenced by
 //  those overlaps.  Once all data is loaded, compute threads are spawned.  Each thread will reserve

@@ -34,7 +34,7 @@
 
 #include "aligners.H"
 #include "sqStore.H"  //  For AS_MAX_READLEN
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 
 

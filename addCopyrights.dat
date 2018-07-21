@@ -13903,3 +13903,5 @@ D src/utility/strings.C src/utility/splitToWords.H
 D src/utility/arrays.H src/utility/AS_UTL_alloc.H
 D src/utility/system.C src/utility/timeAndSize.C
 D src/utility/system.H src/utility/timeAndSize.H
+D src/sequence.H src/utility/AS_UTL_reverseComplement.H
+D src/sequence.C src/utility/AS_UTL_reverseComplement.C

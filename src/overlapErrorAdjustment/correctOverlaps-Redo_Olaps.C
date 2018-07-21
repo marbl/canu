@@ -29,7 +29,7 @@
 
 #include "correctOverlaps.H"
 #include "correctionOutput.H"
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 
 

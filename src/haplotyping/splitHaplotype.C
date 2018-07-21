@@ -31,7 +31,7 @@
 #include "strings.H"
 #include "files.H"
 
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 #include <map>
 

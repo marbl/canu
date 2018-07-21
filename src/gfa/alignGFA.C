@@ -30,7 +30,7 @@
 #include "edlib.H"
 
 #include "strings.H"
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 #include "gfa.H"
 #include "bed.H"

@@ -42,7 +42,7 @@
 #include "NDalign.H"
 #include "analyzeAlignment.H"
 
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 
 //  This uses the RED/OEA framework to generate corrected reads.  It probably isn't worth keeping.

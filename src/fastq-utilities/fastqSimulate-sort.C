@@ -42,7 +42,7 @@
 
 #include "AS_global.H"
 #include "files.H"
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 #include <vector>
 #include <algorithm>

@@ -30,7 +30,7 @@
 
 #include "intervalList.H"
 
-#include "AS_UTL_reverseComplement.H"
+#include "sequence.H"
 
 #include "falconConsensus.H"
 
