@@ -47,6 +47,10 @@
  *  full conditions and disclaimers for each license.
  */
 
+#ifndef TYPES_H
+#define TYPES_H
+
+
 #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
 #error I do not support 32-bit off_t.
 #endif
@@ -168,3 +172,5 @@ inline  int64  doubletoint64(double d)   { return((int64) ((1.0 + 16.0 * DBL_EPS
 #define F_OFF_TP    F_S64P
 #define F_OFF_TI    F_S64I
 
+
+#endif  //  TYPES_H
