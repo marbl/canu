@@ -34,6 +34,16 @@ SOURCES      := AS_global.C \
                 utility/strings.C \
                 utility/system.C \
                 \
+                utility/sequence.C \
+                \
+                utility/kmers.C \
+                utility/kmers-reader.C \
+                utility/kmers-writer.C \
+                utility/kmers-statistics.C \
+                utility/kmers-exact.C \
+                \
+                utility/bits.C \
+                \
                 utility/AS_UTL_reverseComplement.C \
                 utility/AS_UTL_stackTrace.C \
                 \
@@ -108,9 +118,7 @@ SOURCES      := AS_global.C \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 \
                 gfa/gfa.C \
-                gfa/bed.C \
-                \
-
+                gfa/bed.C
 
 
 ifeq (${BUILDSTACKTRACE}, 1)
@@ -177,6 +185,9 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 meryl-san/positionDB.mk \
                 meryl-san/simple-dump.mk \
                 \
+                meryl/meryl.mk \
+                \
+                sequence/sequence.mk \
                 \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \

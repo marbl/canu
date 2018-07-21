@@ -1,0 +1,291 @@
+
+/******************************************************************************
+ *
+ *  This file is part of 'sequence' and/or 'meryl', software programs for
+ *  working with DNA sequence files and k-mers contained in them.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2018-FEB-26
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.license' in the root directory of this distribution contains
+ *  full conditions and disclaimers.
+ */
+
+#include "bits.H"
+#include "mt19937ar.H"
+
+char          b1[65];
+char          b2[65];
+char          b3[65];
+
+
+void
+testLogBaseTwo(void) {
+  uint64  val = 0;
+
+  for (uint32 ii=0; ii<64; ii++) {
+    assert(ii == logBaseTwo64(val));
+
+    val <<= 1;
+    //val++;
+
+    if (val == 0)
+      val = 1;
+  }
+}
+
+
+void
+testSaveClear(void) {
+  uint64  bb = 0xffffffffffffffffllu;
+
+  for (uint32 ii=0; ii<65; ii++)
+    fprintf(stderr, "%2u clearLeft %s clearRight %s\n",
+            ii,
+            displayWord(clearLeftBits (bb, ii), b1),
+            displayWord(clearRightBits(bb, ii), b2));
+
+  for (uint32 ii=0; ii<65; ii++)
+    fprintf(stderr, "%2u  saveLeft %s  saveRight %s\n",
+            ii,
+            displayWord(saveLeftBits (bb, ii), b1),
+            displayWord(saveRightBits(bb, ii), b2));
+
+  for (uint32 ii=0; ii<65; ii++)
+    fprintf(stderr, "%2u  saveMid  %s clearMid   %s\n",
+            ii,
+            displayWord(saveMiddleBits (bb, ii, 10), b1),
+            displayWord(clearMiddleBits(bb, ii, 10), b2));
+
+  for (uint32 ii=0; ii<65; ii++)
+    fprintf(stderr, "%2u  saveMid  %s clearMid   %s\n",
+            ii,
+            displayWord(saveMiddleBits (bb, 10, ii), b1),
+            displayWord(clearMiddleBits(bb, 10, ii), b2));
+}
+
+
+
+void
+testBitArray(uint64 maxLength) {
+  bitArray  *ba = new bitArray(maxLength);
+
+  for (uint32 delta=1; delta<3; delta++) {
+    fprintf(stderr, "testBitArray()-- delta %u\n", delta);
+
+    for (uint64 xx=0; xx<maxLength; xx += delta) {
+      ba->setBit(xx, 1);
+    }
+
+    for (uint64 xx=0; xx<maxLength; xx++) {
+      if ((xx % delta) == 0) {
+        //fprintf(stderr, "TOGGLE pos %3" F_U64P " 1->0  ", xx);
+        assert(ba->getBit(xx) == 1);
+        ba->setBit(xx, 0);
+        assert(ba->getBit(xx) == 0);
+      } else {
+        //fprintf(stderr, "TOGGLE pos %3" F_U64P " 0->1  ", xx);
+        assert(ba->getBit(xx) == 0);
+        ba->setBit(xx, 1);
+        assert(ba->getBit(xx) == 1);
+      }
+    }
+
+    ba->clear();
+  }
+
+  delete ba;
+}
+
+
+
+void
+testWordArray(uint64 wordSize) {
+  wordArray  *wa = new wordArray(wordSize, 8 * 64);
+
+  for (uint32 ii=0; ii<1000; ii++)
+    wa->set(ii, 0xffffffff);
+
+  for (uint32 ii=0; ii<1000; ii++)
+    wa->set(ii, ii);
+
+  wa->show();
+
+  for (uint32 ii=0; ii<1000; ii++)
+    assert(wa->get(ii) == (ii & uint64MASK(wordSize)));
+
+  delete wa;
+}
+
+
+
+void
+testUnary(uint32 testSize) {
+  uint32      maxN   = 10000000;
+  uint32     *random = new uint32 [maxN];
+  mtRandom    mt;
+
+  fprintf(stderr, "Creating.\n");
+
+  uint64  total = 0;
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    random[ii]  = mt.mtRandom32() % testSize;
+    total      += random[ii] + 1;
+  }
+
+  fprintf(stderr, "Created " F_U64 " Mbits, " F_U64 " MB needed.\n", total >> 20, (total + maxN * sizeof(uint32) * 8) >> 23);
+
+  total = 0;
+
+  fprintf(stderr, "Setting.\n");
+
+  stuffedBits *bits = new stuffedBits;
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    bits->setUnary(random[ii]);
+    total += random[ii] + 1;
+
+    assert(bits->getPosition() == total);
+  }
+
+  fprintf(stderr, "Testing.\n");
+
+  bits->setPosition(0);
+
+  for (uint32 ii=0; ii<maxN; ii++)
+    assert(random[ii] == bits->getUnary());
+
+  fprintf(stderr, "Tested.\n");
+
+  //while (1)
+  //  ;
+
+  delete    bits;
+  delete [] random;
+}
+
+
+
+
+
+void
+testBinary(uint32 testSize) {
+  uint32      maxN   = 10000000;
+  uint32     *width  = new uint32 [maxN];
+  uint64     *random = new uint64 [maxN];
+  mtRandom    mt;
+
+  fprintf(stderr, "Creating.\n");
+
+  uint64  total = 0;
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    width[ii]   = mt.mtRandom32() % testSize;
+    random[ii]  = mt.mtRandom64() & (((uint64)1 << width[ii]) - 1);
+    total      +=  width[ii];
+  }
+
+  fprintf(stderr, "Created " F_U64 " Mbits, " F_U64 " MB needed.\n", total >> 20, (total + maxN * sizeof(uint32) * 8) >> 23);
+
+  total = 0;
+
+  fprintf(stderr, "Setting.\n");
+
+  stuffedBits *bits = new stuffedBits;
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    bits->setBinary(width[ii], random[ii]);
+    total += width[ii];
+
+    assert(bits->getPosition() == total);
+  }
+
+  fprintf(stderr, "Testing.\n");
+
+  bits->setPosition(0);
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    uint64  b = bits->getBinary(width[ii]);
+    assert(random[ii] == b);
+  }
+
+  fprintf(stderr, "Tested.\n");
+
+  //while (1)
+  //  ;
+
+  delete    bits;
+  delete [] random;
+  delete [] width;
+}
+
+
+
+
+
+int
+main(int argc, char **argv) {
+  int32 arg=1;
+  int32 err=0;
+
+  omp_set_num_threads(1);
+
+  while (arg < argc) {
+    if      (strcmp(argv[arg], "-h") == 0) {
+      err++;
+    }
+
+    else if (strcmp(argv[arg], "-logbasetwo") == 0) {
+      testLogBaseTwo();
+    }
+
+    else if (strcmp(argv[arg], "-clear") == 0) {
+      testSaveClear();
+    }
+
+    else if (strcmp(argv[arg], "-bitarray") == 0) {
+      uint64  maxLength = strtouint64(argv[++arg]);
+
+      testBitArray(maxLength);
+    }
+
+    else if (strcmp(argv[arg], "-wordarray") == 0) {
+      uint64  wordSize = strtouint64(argv[++arg]);
+
+      testWordArray(wordSize);
+    }
+
+    else if (strcmp(argv[arg], "-unary") == 0) {
+      uint32  maxSize = strtouint32(argv[++arg]);
+
+#pragma omp parallel for
+      for (uint32 xx=1; xx<=maxSize; xx++) {
+        fprintf(stderr, "TESTING %u out of %u.\n", xx, maxSize);
+        testUnary(xx);
+      }
+    }
+
+    else if (strcmp(argv[arg], "-binary") == 0) {
+#pragma omp parallel for
+      for (uint32 xx=1; xx<=64; xx++) {
+        fprintf(stderr, "TESTING %u out of %u.\n", xx, 64);
+        testBinary(xx);
+      }
+    }
+
+    else if (strcmp(argv[arg], "") == 0) {
+    }
+
+    else {
+      err++;
+    }
+
+    arg++;
+  }
+
+  exit(0);
+}
