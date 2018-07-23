@@ -579,14 +579,13 @@ endif
 
 #  But, if we we have an old GCC, stack tracing support isn't there.
 
-GCC_45 := $(shell expr `${CC} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
-GCC_VV := $(shell ${CC} -dumpversion)
+GXX_45 := $(shell expr `${CXX} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
 GXX_VV := $(shell ${CXX} -dumpversion)
 
 ifeq (${BUILDSTACKTRACE}, 1)
-ifeq (${GCC_45}, 0)
+ifeq (${GXX_45}, 0)
 $(info WARNING:)
-$(info WARNING: GCC ${GCC_VV} detected, disabling stack trace support.  Please upgrade to GCC 4.7 or higher.)
+$(info WARNING: ${CXX} ${GXX_VV} detected, disabling stack trace support.  Please upgrade to GCC 4.7 or higher.)
 $(info WARNING:)
 BUILDSTACKTRACE = 0
 endif
