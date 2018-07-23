@@ -571,13 +571,17 @@ private:
 
 class kmerCountExactLookup {
 public:
-  kmerCountExactLookup(kmerCountFileReader *input);
+  kmerCountExactLookup(kmerCountFileReader *input,
+                       uint32               minValue = 0,
+                       uint32               maxValue = UINT32_MAX);
   ~kmerCountExactLookup() {
     delete [] _suffixStart;
     delete    _suffixData;
   };
 
-  bool             exists(kmer k) {
+#if 0
+  bool             exists_test(kmer k) {
+
     uint64  kmer   = (uint64)k;
     uint64  prefix = kmer >> _suffixBits;
     uint64  suffix = kmer  & _suffixMask;
@@ -588,31 +592,31 @@ public:
 
     uint64  dat;
 
-    ///
-    ///  Needs to binary search.
-    ///
+    //  Binary search for the matching tag.
 
-#if 1
     while (bgn + 8 < end) {
       mid = bgn + (end - bgn) / 2;
 
       dat = _suffixData->get(mid);
+      tag = dat >> _valueBits;
 
-      if (dat == suffix)
+      if (tag == suffix)
         return(true);
 
-      if (suffix < dat)
+      if (suffix < tag)
         end = mid;
 
       else
         bgn = mid + 1;
     }
-#endif
+
+    //  Switch to linear search when we're down to just a few candidates.
 
     for (mid=bgn; mid < end; mid++) {
       dat = _suffixData->get(mid);
+      tag = dat >> _valueBits;
 
-      if (dat == suffix)
+      if (tag == suffix)
         return(true);
     }
 
@@ -655,11 +659,65 @@ public:
     }
 
     assert(0);
+  };
+#endif
 
-    return(false);
+  //  Returns the value of kmer k, or 0 if not found in the table.
+  //
+private:
+  uint32           value_value(uint64 value) {
+    if (_valueBits == 0)
+      return(1);
+
+    value &= uint32MASK(_valueBits);
+
+    if (value == 0)
+      return(0);
+
+    return(value + _valueOffset);
   };
 
-  uint32           count(kmer k) {
+public:
+  uint32           value(kmer k) {
+    uint64  kmer   = (uint64)k;
+    uint64  prefix = kmer >> _suffixBits;
+    uint64  suffix = kmer  & _suffixMask;
+
+    uint64  bgn = _suffixStart[prefix    ];
+    uint64  mid;
+    uint64  end = _suffixStart[prefix + 1];
+
+    uint64  dat;
+    uint64  tag;
+
+    //  Binary search for the matching tag.
+
+    while (bgn + 8 < end) {
+      mid = bgn + (end - bgn) / 2;
+
+      dat = _suffixData->get(mid);
+      tag = dat >> _valueBits;
+
+      if (tag == suffix)
+        return(value_value(dat));
+
+      if (suffix < tag)
+        end = mid;
+
+      else
+        bgn = mid + 1;
+    }
+
+    //  Switch to linear search when we're down to just a few candidates.
+
+    for (mid=bgn; mid < end; mid++) {
+      dat = _suffixData->get(mid);
+      tag = dat >> _valueBits;
+
+      if (tag == suffix)
+        return(value_value(dat));
+    }
+
     return(0);
   };
 
@@ -669,6 +727,8 @@ private:
   uint32          _prefixBits;  //  How many high-end bits of the kmer is an index into _suffixStart.
   uint32          _suffixBits;  //  How many bits of the kmer are in the suffix table.
   uint32          _valueBits;   //  How many bits of the suffix entry are data.
+
+  uint32          _valueOffset; //  Offset of values stored in the table.
 
   uint64          _suffixMask;
   uint64          _dataMask;

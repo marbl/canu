@@ -36,7 +36,7 @@ main(int argc, char **argv) {
 
     tested++;
 
-    if (ll->exists(k))
+    if (ll->value(k))
       found++;
 
     if ((tested % 100000) == 0)

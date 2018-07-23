@@ -185,6 +185,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 meryl-san/simple-dump.mk \
                 \
                 meryl/meryl.mk \
+                meryl/findSeedThreshold.mk \
                 \
                 sequence/sequence.mk \
                 \

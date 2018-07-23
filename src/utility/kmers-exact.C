@@ -39,7 +39,9 @@ bitsToGB(uint64 bits) {
   //    2^p * log2(nDistinct) + (K - p) * nDistinct
   //
 
-kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input) {
+kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
+                                           uint32               minValue,
+                                           uint32               maxValue) {
 
   _Kbits         = kmer::merSize() * 2;
 
@@ -48,11 +50,32 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input) {
   _suffixBits    = 0;                               //  Width of an entry in the suffix table.
   _valueBits     = 0;                               //  (also in the suffix table)
 
+  if (minValue == 0)                                //  Silently adjust to the legal minValue.
+    minValue = 1;
+
+  _valueOffset   = minValue - 1;                    //  "1" stored in the data is really "minValue" to the user.
+
   _nPrefix       = 0;                               //  Number of entries in pointer table.
   _nSuffix       = input->stats()->numDistinct();   //  Number of entries in suffix dable.
 
   _prePtrBits    = logBaseTwo64(_nSuffix);          //  Width of an entry in the prefix table.
 
+  //  If maxValue isn't set, ask the input what the largest count is.
+  //  Then set the valueBits needed to hold those values.
+
+  if (maxValue == UINT32_MAX) {
+    kmerCountStatistics *hist = input->stats();
+
+    maxValue = hist->numFrequencies() - 1;
+
+    while ((maxValue > 0) && (hist->numKmersAtFrequency(maxValue) == 0))
+      maxValue--;
+
+    fprintf(stderr, "MAX VALUE %u\n", maxValue);
+  }
+
+  if (maxValue > minValue)
+    _valueBits = logBaseTwo32(maxValue + 1 - minValue);
 
   //  First, find the prefixBits that results in the smallest allocated memory size.
 
@@ -202,16 +225,6 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input) {
         uint64   sdata  = 0;
         uint64   prefix = 0;
 
-#if 0
-        assert(bb == block->prefix());
-
-        sdata   = ff;
-        sdata <<= input->numBlocksBits();
-        sdata  |= bb;
-        sdata <<= input->suffixSize();
-        sdata  |= block->suffixes()[ss];
-#endif
-
         sdata   = block->prefix();
         sdata <<= input->suffixSize();
         sdata  |= block->suffixes()[ss];
@@ -220,11 +233,29 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input) {
 
         prefix = sdata >> _suffixBits;
 
-        //  Add in any extra data to be stored here.
+        //  Add in any extra data to be stored here.  Unfortunately,
+        //  we must load the values outside the minValue and maxValue range, otherwise
+        //  we end up with holes in the table.  This also means we need to store kmers
+        //  with value 0, which are treated as if they don't exist later.
 
         if (_valueBits > 0) {
+          uint32 value = block->counts()[ss];
+
+          if ((value < minValue) ||
+              (maxValue < value))
+            value = 0;
+
+          if (value != 0)
+            value -= _valueOffset;
+
+          if (value > maxValue + 1 - minValue) {
+            fprintf(stderr, "minValue %u maxValue %u value %u bits %u\n",
+                    minValue, maxValue, value, _valueBits);
+          }
+          assert(value <= uint64MASK(_valueBits));
+
           sdata <<= _valueBits;
-          sdata  |= 0;
+          sdata  |=  value;
         }
 
         //  And store it!  We let set() mask off the top end of the kmer that we shouldn't
@@ -278,7 +309,7 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input) {
   _suffixStart[0]        = 0;
   _suffixStart[_nPrefix] = _nSuffix;
 
-#if 1
+#if 0
   FILE *F = fopen("suffix-start-table", "w");
   for (uint64 pp=0; pp<_nPrefix; pp++)
     fprintf(F, "%8lu %lu\n", pp, _suffixStart[pp]);
