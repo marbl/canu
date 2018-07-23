@@ -783,8 +783,8 @@ dnanexus:
 
 #  Makefile processed.  Report that we're starting the build.
 
-$(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}')
-$(info CC  ${CC} ${GCC_VV})
-$(info CXX ${CXX} ${GXX_VV})
+$(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
+$(info Using '$(shell which ${CXX})' version '$(shell ${CXX} -dumpversion)'.)
+$(info )
 
 #${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
