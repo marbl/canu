@@ -24,32 +24,84 @@ merylInput::merylInput(merylOperation *o) {
   _operation   = o;
   _stream      = NULL;
   _sequence    = NULL;
+  _store       = NULL;
+
   _count       = 0;
   _valid       = false;
+
+  _sqBgn       = 0;
+  _sqEnd       = 0;
+
+  _read        = NULL;
+  _readData    = NULL;
+  _readID      = 0;
+  _readPos     = UINT32_MAX;
 
   strncpy(_name, toString(_operation->getOperation()), FILENAME_MAX);
 }
 
 
 
-merylInput::merylInput(char *n, kmerCountFileReader *s) {
+merylInput::merylInput(const char *n, kmerCountFileReader *s) {
   _operation   = NULL;
   _stream      = s;
   _sequence    = NULL;
+  _store       = NULL;
+
   _count       = 0;
   _valid       = false;
+
+  _sqBgn       = 0;
+  _sqEnd       = 0;
+
+  _read        = NULL;
+  _readData    = NULL;
+  _readID      = 0;
+  _readPos     = UINT32_MAX;
 
   strncpy(_name, n, FILENAME_MAX);
 }
 
 
 
-merylInput::merylInput(char *n, dnaSeqFile *f) {
+merylInput::merylInput(const char *n, dnaSeqFile *f) {
   _operation   = NULL;
   _stream      = NULL;
   _sequence    = f;
+  _store       = NULL;
+
   _count       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
+
+  _sqBgn       = 0;
+  _sqEnd       = 0;
+
+  _read        = NULL;
+  _readData    = NULL;
+  _readID      = 0;
+  _readPos     = UINT32_MAX;
+
+  strncpy(_name, n, FILENAME_MAX);
+}
+
+
+
+merylInput::merylInput(const char *n, sqStore *s) {
+  _operation   = NULL;
+  _stream      = NULL;
+  _sequence    = NULL;
+  _store       = s;
+
+  _count       = 0;
+  _valid       = true;    //  Trick nextMer into doing something without a valid mer.
+
+  _sqBgn       = 1;
+  _sqEnd       = _store->sqStore_getNumReads() + 1;    //  C-style, not the usual sqStore semantics!
+
+  _read        = NULL;
+  _readData    = new sqReadData;
+  _readID      = _sqBgn - 1;       //  Incremented before loading the first read
+  _readPos     = 0;
 
   strncpy(_name, n, FILENAME_MAX);
 }
@@ -60,8 +112,12 @@ merylInput::~merylInput() {
 #ifdef DEBUG_INPUT
   fprintf(stderr, "Destroy input %s\n", _name);
 #endif
+
   delete _stream;
   delete _operation;
+  delete _sequence;
+
+  _store->sqStore_close();
 }
 
 
@@ -114,5 +170,81 @@ merylInput::nextMer(void) {
   if (_sequence)
     fprintf(stderr, "merylIn::nextMer(%s)--\n", _name);
 #endif
+
+#ifdef DEBUG_INPUT
+  if (_store)
+    fprintf(stderr, "merylIn::nextMer(%s)--\n", _name);
+#endif
 }
 
+
+
+bool
+merylInput::loadBases(char    *seq,
+                      uint64   maxLength,
+                      uint64  &seqLength,
+                      bool    &endOfSequence) {
+
+  if (_stream) {
+    return(false);
+  }
+
+  if (_operation) {
+    return(false);
+  }
+
+  if (_sequence) {
+    return(_sequence->loadBases(seq, maxLength, seqLength, endOfSequence));
+  }
+
+  if (_store) {
+
+    //  If no read currently loaded, load one, or return that we're done.
+
+    if ((_read    == NULL) ||
+        (_readPos >= _read->sqRead_sequenceLength())) {
+      _readID++;
+
+      if (_readID >= _sqEnd)  //  C-style iteration, not usual sqStore semantics.
+        return(false);
+
+      _read    = _store->sqStore_getRead(_readID);
+      _readPos = 0;
+
+      _store->sqStore_loadReadData(_read, _readData);
+    }
+
+    //  How much of the read is left to return?
+
+    uint32  len = _read->sqRead_sequenceLength() - _readPos;
+
+    assert(len > 0);
+
+    //  If the output space is big enough to hold the rest of the read, copy it,
+    //  flagging it as the end of a sequence, and setup to load the next read.
+
+    if (len < maxLength) {
+      memcpy(seq, _readData->sqReadData_getSequence() + _readPos, sizeof(char) * len);
+
+      _read          = NULL;
+
+      seqLength      = len;
+      endOfSequence  = true;
+    }
+
+    //  Otherwise, only part of the data will fit in the output space.
+
+    else {
+      memcpy(seq, _readData->sqReadData_getSequence() + _readPos, sizeof(char) * maxLength);
+
+      _readPos      += maxLength;
+
+      seqLength      = maxLength;
+      endOfSequence  = false;
+    }
+
+    return(true);
+  }
+
+  return(false);
+}

@@ -168,30 +168,38 @@ estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in
 //  Return a complete guess at the number of kmers in the input files.  No
 //  rigorous went into the multipliers, just looked at a few sets of lambda reads.
 uint64
-guesstimateNumberOfkmersInInput(vector<merylInput *>  &inputs) {
-  uint64   numMers = 0;
+guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence) {
+  uint64  numMers = 0;
+  char   *name    = sequence->filename();
+  uint32  len     = strlen(name);
 
-  for (uint32 ii=0; ii<inputs.size(); ii++) {
-    char   *name = inputs[ii]->_name;
-    uint32  len  = strlen(name);
+  if ((name[0] == '-') && (len == 1))
+    return(0);
 
-    if ((name[0] == '-') && (name[1] == 0))
-      continue;
+  uint64  size = AS_UTL_sizeOfFile(name);
 
-    uint64  size = AS_UTL_sizeOfFile(name);
+  if      ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'x') && (name[len-1] == 'z'))
+    numMers += size * 5;
 
-    if      ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'x') && (name[len-1] == 'z'))
-      numMers += size * 5;
+  else if ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'g') && (name[len-1] == 'z'))
+    numMers += size * 4;
 
-    else if ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'g') && (name[len-1] == 'z'))
-      numMers += size * 4;
+  else if ((len > 3) && (name[len-4] == '.') && (name[len-3] == 'b') && (name[len-2] == 'z') && (name[len-1] == '2'))
+    numMers += size * 4;
 
-    else if ((len > 3) && (name[len-4] == '.') && (name[len-3] == 'b') && (name[len-2] == 'z') && (name[len-1] == '2'))
-      numMers += size * 4;
+  else
+    numMers += size;
 
-    else
-      numMers += size;
-  }
+  return(numMers);
+}
+
+
+uint64
+guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 endID) {
+  uint64  numMers = 0;
+
+  for (uint32 ii=bgnID; ii<endID; ii++)
+    numMers += store->sqStore_getRead(ii)->sqRead_sequenceLength();
 
   return(numMers);
 }
@@ -220,8 +228,15 @@ merylOperation::count(void) {
   if (fmer.merSize() == 0)
     fprintf(stderr, "ERROR: Kmer size (-k) not supplied.\n"), exit(1);
 
-  if (_expNumKmers == 0)
-    _expNumKmers = guesstimateNumberOfkmersInInput(_inputs);
+  if (_expNumKmers == 0) {
+    for (uint32 ii=0; ii<_inputs.size(); ii++) {
+      if (_inputs[ii]->isFromSequence())
+        _expNumKmers += guesstimateNumberOfkmersInInput_dnaSeqFile(_inputs[ii]->_sequence);
+
+      if (_inputs[ii]->isFromStore())
+        _expNumKmers += guesstimateNumberOfkmersInInput_sqStore(_inputs[ii]->_store, _inputs[ii]->_sqBgn, _inputs[ii]->_sqEnd);
+    }
+  }
 
   if (_expNumKmers == 0)
     fprintf(stderr, "ERROR: Estimate of number of kmers (-n) not supplied.\n"), exit(1);
@@ -240,7 +255,7 @@ merylOperation::count(void) {
           fmer.merSize(), _inputs.size(), (_inputs.size() == 1) ? "" : "s");
 
   for (uint32 ii=0; ii<_inputs.size(); ii++)
-    fprintf(stderr, "  %s\n", _inputs[ii]->_name);
+    fprintf(stderr, "  %15s %s\n", _inputs[ii]->inputType(), _inputs[ii]->_name);
 
   //  Optimize memory for some expected number of kmers.
 
@@ -290,7 +305,7 @@ merylOperation::count(void) {
   for (uint32 ii=0; ii<_inputs.size(); ii++) {
     fprintf(stderr, "Loading kmers from '%s' into buckets.\n", _inputs[ii]->_name);
 
-    while (_inputs[ii]->_sequence->loadBases(buffer, bufferMax, bufferLen, endOfSeq)) {
+    while (_inputs[ii]->loadBases(buffer, bufferMax, bufferLen, endOfSeq)) {
       //fprintf(stderr, "read " F_U64 " bases from '%s'\n", bufferLen, _inputs[ii]->_name);
 
       //kmersLen = 0;

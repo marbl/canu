@@ -19,6 +19,8 @@
 
 #include "meryl.H"
 
+#include "sqStore.H"
+
 //  These would (maybe) be handy, but they change the order of kmers, so we need
 //  to sort again.
 //
@@ -88,6 +90,7 @@ public:
   void    addInput(merylOperation *operation);
   void    addInput(kmerCountFileReader *reader);
   void    addInput(dnaSeqFile *sequence);
+  void    addInput(sqStore *store);
 
   void    addOutput(kmerCountFileWriter *writer);
   void    addPrinter(FILE *printer);

@@ -84,7 +84,7 @@ merylOperation::countSimple(void) {
   for (uint32 ii=0; ii<_inputs.size(); ii++) {
     fprintf(stderr, "Loading kmers from '%s' into buckets.\n", _inputs[ii]->_name);
 
-    while (_inputs[ii]->_sequence->loadBases(buffer, bufferMax, bufferLen, endOfSeq)) {
+    while (_inputs[ii]->loadBases(buffer, bufferMax, bufferLen, endOfSeq)) {
       //fprintf(stderr, "read %lu bases from '%s'\n", bufferLen, _inputs[ii]->_name);
 
       kmersLen = 0;

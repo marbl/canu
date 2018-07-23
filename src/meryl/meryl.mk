@@ -18,7 +18,7 @@ SOURCES  := meryl.C \
             merylOp-nextMer.C \
             merylOp.C
 
-SRC_INCDIRS  := . .. ../utility
+SRC_INCDIRS  := . .. ../utility ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

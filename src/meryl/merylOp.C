@@ -15,7 +15,7 @@
  */
 
 #include "meryl.H"
-
+#include "sqStore.H"
 
 bool            merylOperation::_showProgress = false;
 merylVerbosity  merylOperation::_verbosity    = sayStandard;
@@ -136,6 +136,22 @@ merylOperation::addInput(dnaSeqFile *sequence) {
 
   if (isCounting() == false)
     fprintf(stderr, "ERROR: operation '%s' cannot use sequence files as inputs.\n", toString(_operation)), exit(1);
+}
+
+
+
+void
+merylOperation::addInput(sqStore *store) {
+
+  if (_verbosity >= sayConstruction)
+    fprintf(stderr, "Adding input from sqStore '%s' to operation '%s'\n",
+            store->sqStore_path(), toString(_operation));
+
+  _inputs.push_back(new merylInput(store->sqStore_path(), store));
+  _actIndex[_actLen++] = _inputs.size() - 1;
+
+  if (isCounting() == false)
+    fprintf(stderr, "ERROR: operation '%s' cannot use sqStore as inputs.\n", toString(_operation)), exit(1);
 }
 
 

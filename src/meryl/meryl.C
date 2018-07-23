@@ -46,6 +46,8 @@ main(int argc, char **argv) {
   char                      optString[FILENAME_MAX+1];
   char                      inoutName[FILENAME_MAX+1];
   char                      indexName[FILENAME_MAX+1];
+  char                      sqInfName[FILENAME_MAX+1];
+  char                      sqRdsName[FILENAME_MAX+1];
 
   stack<merylOperation *>   opStack;
   merylOp                   opName         = opNothing;
@@ -55,6 +57,7 @@ main(int argc, char **argv) {
   FILE                     *printer        = NULL;
   kmerCountFileReader      *reader         = NULL;
   dnaSeqFile               *sequence       = NULL;
+  sqStore                  *store          = NULL;
 
   uint32                    terminating    = 0;
 
@@ -74,8 +77,9 @@ main(int argc, char **argv) {
 
     strncpy(optString, argv[arg], FILENAME_MAX);
     strncpy(inoutName, argv[arg], FILENAME_MAX);
-    strncpy(indexName, argv[arg], FILENAME_MAX);
-    strncat(indexName, "/merylIndex", FILENAME_MAX - optStringLen - 1);
+    snprintf(indexName, FILENAME_MAX, "%s/merylIndex", argv[arg]);
+    snprintf(sqInfName, FILENAME_MAX, "%s/info",       argv[arg]);
+    snprintf(sqRdsName, FILENAME_MAX, "%s/reads",      argv[arg]);
 
     //  Scan for debug options.
 
@@ -271,6 +275,12 @@ main(int argc, char **argv) {
              (fileExists(inoutName)  == true))            //  and the file exists,
       sequence = new dnaSeqFile(inoutName);               //  add a sequence file as input to the current command.
 
+    else if ((opStack.size() > 0) &&                      //  If a command exists,
+             (opStack.top()->isCounting()  == true) &&    //  and it IS for counting,
+             (fileExists(sqInfName)  == true) &&          //  and the 'info' file exists,
+             (fileExists(sqRdsName)  == true))            //  and the 'reads' file exists,
+      store = sqStore::sqStore_open(inoutName);           //  add a sqStore file as input to the current command.
+
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "Don't know what to do with '%s'.", optString);
@@ -324,6 +334,11 @@ main(int argc, char **argv) {
     if (sequence != NULL) {                //  Same story, different object.
       opStack.top()->addInput(sequence);
       sequence = NULL;
+    }
+
+    if (store != NULL) {                   //  Same story, different object.
+      opStack.top()->addInput(store);
+      store = NULL;
     }
 
     //  Finally, if we've been told to terminate the command, do so.
