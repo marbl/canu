@@ -444,9 +444,18 @@ ifeq (${OSTYPE}, Darwin)
   endif
 
   ifneq ($(shell echo `$(CXX) --version 2>&1 | grep -c clang`), 0)
+     CPATH := $(shell echo `which $(CXX)`)
+     CLANG := $(shell echo `$(CXX) --version 2>&1 | grep clang`)
      space := 
+
      $(warning )
-     $(warning Canu cannot be compiled with $(CXX).  Please install GCC and/or)
+     ifeq ($(CXX), $(CPATH))
+       $(warning Compiler '$(CXX)' reports version '$(CLANG)'.)
+     else
+       $(warning Compiler '$(CXX)' at '$(CPATH)' reports version '$(CLANG)'.)
+     endif
+     $(warning )
+     $(warning Canu cannot be compiled with this compiler.  Please install GCC and/or)
      $(warning specify a non-Clang compiler on the command line, e.g.,)   #  Quite the evil trick to get
      $(warning $(space)    make CC=/path/to/gcc CXX=/path/to/g++);        #  this line indented!
      $(warning )
