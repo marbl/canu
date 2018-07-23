@@ -399,19 +399,62 @@ ifeq (${OSTYPE}, Linux)
 endif
 
 
+#  The default MacOS compiler - even as of 10.13 High Sierra - doesn't support OpenMP.
+#  Clang 6.0 installed from MacPorts supports OpenMP, but fails to compile Canu.
+#  So, we require gcc7 (from MacPorts) or gcc8 (from hommebrew).
+#
+#  If from MacPorts:
+#    port install gcc7
+#    port select gcc mp-gcc7
+#
+#  If CC is set to 'cc', the GNU make default, we'll automagically search for other
+#  versions and use those if found, preferring gcc7 over gcc8.
+#
+#  There' definitely a clever way to do this with 'foreach', but my Make is lacking.
+#
 ifeq (${OSTYPE}, Darwin)
-  CC       ?= gcc
-  CXX      ?= g++
+  ifeq ($(CC), cc)
+    CC7    := $(shell echo `which gcc-mp-7`)
+    CXX7   := $(shell echo `which g++-mp-7`)
 
-  CLANG = $(shell echo `${CXX} --version 2>&1 | grep -c clang`)
-
-  ifeq ($(CLANG), 0)
-     CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
-     LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
-  else
-     CXXFLAGS += -DBROKEN_CLANG_OpenMP
-     LDFLAGS  += 
+    ifdef CXX7
+      CC  := $(CC7)
+      CXX := $(CXX7)
+    endif
   endif
+
+  ifeq ($(CC), cc)
+    CC8    := $(shell echo `which gcc-7`)
+	  CXX8   := $(shell echo `which g++-7`)
+
+    ifdef CXX8
+      CC  := $(CC8)
+      CXX := $(CXX8)
+    endif
+  endif
+
+  ifeq ($(CC), cc)
+    CC8    := $(shell echo `which gcc-8`)
+	  CXX8   := $(shell echo `which g++-8`)
+
+    ifdef CXX8
+      CC  := $(CC8)
+      CXX := $(CXX8)
+    endif
+  endif
+
+  ifneq ($(shell echo `$(CXX) --version 2>&1 | grep -c clang`), 0)
+     space := 
+     $(warning )
+     $(warning Canu cannot be compiled with $(CXX).  Please install GCC and/or)
+     $(warning specify a non-Clang compiler on the command line, e.g.,)   #  Quite the evil trick to get
+     $(warning $(space)    make CC=/path/to/gcc CXX=/path/to/g++);        #  this line indented!
+     $(warning )
+     $(error unsupported compiler)
+  endif
+
+  CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
+  LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
 
   CXXFLAGS += -pthread -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
   LDFLAGS  += -pthread -lm
