@@ -347,7 +347,7 @@ main(int argc, char **argv) {
       writeSlices = strtouint32(argv[++arg]);
 
     } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
-               (AS_UTL_fileExists(argv[arg]))) {
+               (fileExists(argv[arg]))) {
       //  Assume it's an input file
       fileList.push_back(argv[arg]);
 

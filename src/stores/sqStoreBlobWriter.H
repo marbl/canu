@@ -48,7 +48,7 @@ public:
 
     //  Fail if it exists already.
 
-    if (AS_UTL_fileExists(_blobName) == true)
+    if (fileExists(_blobName) == true)
       fprintf(stderr, "sqStoreBlobWriter()-- blob file '%s' already exists.\n", _blobName), exit(1);
 
     //  Make a new write buffer;

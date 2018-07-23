@@ -44,7 +44,7 @@ operationBuild(char   *buildName,
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", buildName, strerror(errno)), exit(1);
 
-  if (AS_UTL_fileExists(tigName, true, true)) {
+  if (directoryExists(tigName)) {
     fprintf(stderr, "ERROR: '%s' exists, and I will not clobber an existing store.\n", tigName);
     exit(1);
   }
@@ -109,7 +109,7 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       tigType = tgStoreReadOnly;
 
-    } else if (AS_UTL_fileExists(argv[arg])) {
+    } else if (fileExists(argv[arg])) {
       tigInputs.push_back(argv[arg]);
 
     } else {
@@ -160,7 +160,7 @@ main (int argc, char **argv) {
   }
 
   //  If the store doesn't exist, create one, and make a bunch of versions
-  if (AS_UTL_fileExists(tigName, true, false) == false) {
+  if (directoryExists(tigName) == false) {
     fprintf(stderr, "Creating tig store '%s' version %d\n", tigName, tigVers);
 
     tgStore *tigStore = new tgStore(tigName);

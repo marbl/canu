@@ -253,7 +253,7 @@ main(int argc, char **argv) {
       writer = new kmerCountFileWriter(inoutName);        //  output writer.
 
     else if ((arg == printArg) &&                         //  This this _should_ have been an output name,
-             (AS_UTL_fileExists(inoutName, true))) {      //  but is instead a directory; user is asking for
+             (directoryExists(inoutName))) {              //  but is instead a directory; user is asking for
       printer = stdout;                                   //  the database in the directory to be printed.
       reader  = new kmerCountFileReader(inoutName);
     }
@@ -263,12 +263,12 @@ main(int argc, char **argv) {
 
     else if ((opStack.size() > 0) &&                      //  If a command exists,
              (opStack.top()->isCounting()  == false) &&   //  and it isn't for counting,
-             (AS_UTL_fileExists(indexName) == true))      //  and the meryl index file exists,
+             (fileExists(indexName) == true))             //  and the meryl index file exists,
       reader = new kmerCountFileReader(inoutName);        //  add a kmerCountFile as input to the current command.
 
     else if ((opStack.size() > 0) &&                      //  If a command exists,
              (opStack.top()->isCounting()  == true) &&    //  and it IS for counting,
-             (AS_UTL_fileExists(inoutName)  == true))     //  and the file exists,
+             (fileExists(inoutName)  == true))            //  and the file exists,
       sequence = new dnaSeqFile(inoutName);               //  add a sequence file as input to the current command.
 
     else {

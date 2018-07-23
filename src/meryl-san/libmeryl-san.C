@@ -59,9 +59,9 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
   //  bitPackedFile will create a file if it doesn't exist, so we need to fail ahead
   //  of time.
 
-  bool idxexist = AS_UTL_fileExists(idxname);
-  bool datexist = AS_UTL_fileExists(datname);
-  bool posexist = AS_UTL_fileExists(posname);
+  bool idxexist = fileExists(idxname);
+  bool datexist = fileExists(datname);
+  bool posexist = fileExists(posname);
 
   if ((idxexist == false) ||
       (datexist == false)) {

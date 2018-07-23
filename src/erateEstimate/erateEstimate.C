@@ -671,7 +671,7 @@ main(int argc, char **argv) {
   ESToverlap       *overlaps     = NULL;
   memoryMappedFile *overlapsMMF  = NULL;
 
-  if (AS_UTL_fileExists(ovlCacheName, false, false)) {
+  if (fileExists(ovlCacheName)) {
     fprintf(stderr, "  cache '%s' detected, load averted\n", ovlCacheName);
 
     overlapsMMF = new memoryMappedFile(ovlCacheName);

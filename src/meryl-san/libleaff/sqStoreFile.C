@@ -63,9 +63,9 @@ sqStoreFile::openFile(const char *name) {
   sprintf(infoName, "%s/info",  name);
   sprintf(readName, "%s/reads", name);
 
-  if ((AS_UTL_fileExists(name, true) == false) ||
-      (AS_UTL_fileExists(infoName) == false) ||
-      (AS_UTL_fileExists(readName) == false))
+  if ((directoryExists(name) == false) ||
+      (fileExists(infoName)  == false) ||
+      (fileExists(readName)  == false))
     return(0L);
 
   //  Yup, probably a sqStore.  If it isn't, the sqStore() constructor blows up.

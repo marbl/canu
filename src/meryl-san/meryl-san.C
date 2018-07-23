@@ -594,8 +594,8 @@ main(int argc, char **argv) {
 
     else if (arg == outputArg)                 writer = new merylStreamWriter(opt, merSize, 0, merSize/2, false);
 
-    else if (AS_UTL_fileExists(mcidx) &&
-             AS_UTL_fileExists(mcdat))         reader = new merylStreamReader(opt);
+    else if (fileExists(mcidx) &&
+             fileExists(mcdat))                reader = new merylStreamReader(opt);
 
     else {
       char *s = new char [1024];

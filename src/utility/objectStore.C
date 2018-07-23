@@ -200,7 +200,7 @@ fetchFromObjectStore(char *requested) {
   //  Decide if we even need to bother.  If the file exists locally, or if
   //  one of the environment variables is missing, no, we don't need to bother.
 
-  if (AS_UTL_fileExists(requested))
+  if (fileExists(requested))
     return;
 
   char  *dx = getenv("CANU_OBJECT_STORE_CLIENT");
@@ -260,7 +260,7 @@ fetchFromObjectStore(char *requested) {
   if (err == 127)
     fprintf(stderr, "Failed to execute '%s'.\n", cmd), exit(1);
 
-  if (AS_UTL_fileExists(requested) == false)
+  if (fileExists(requested) == false)
     fprintf(stderr, "Failed to find or fetch file '%s'.\n", requested), exit(1);
 
   delete [] path;

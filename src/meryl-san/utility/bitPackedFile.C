@@ -70,7 +70,7 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
     if (errno)
       fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open and truncate '%s': %s\n",
               _name, strerror(errno)), exit(1);
-  } else if (AS_UTL_fileExists(_name)) {
+  } else if (fileExists(_name)) {
     errno = 0;
     _file = open(_name,
                  O_RDONLY | O_LARGEFILE,

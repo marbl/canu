@@ -141,7 +141,7 @@ main(int argc, char **argv) {
     }
 
     else if ((strcmp(argv[arg], "-") == 0) ||
-               (AS_UTL_fileExists(argv[arg]))) {
+             (fileExists(argv[arg]))) {
       files.push_back(argv[arg]);
     }
 

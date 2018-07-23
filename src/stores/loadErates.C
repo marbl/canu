@@ -96,7 +96,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
     _evalues    = NULL;
   }
 
-  if (AS_UTL_fileExists(evalueName) == true) {
+  if (fileExists(evalueName) == true) {
     fprintf(stderr, "WARNING:\n");
     fprintf(stderr, "WARNING: existing evalue file will be overwritten!\n");
     fprintf(stderr, "WARNING:\n");
@@ -197,7 +197,7 @@ main(int argc, char **argv) {
       AS_UTL_loadFileList(argv[++arg], fileList);
 
     } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
-               (AS_UTL_fileExists(argv[arg]))) {
+               (fileExists(argv[arg]))) {
       fileList.push_back(argv[arg]);        //  Assume it's an input file
 
     } else {

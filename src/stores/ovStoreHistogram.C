@@ -103,8 +103,8 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 
   createDataName(name, path);
 
-  if (AS_UTL_fileExists(name, false, false) == false)    //  If no data, nothing to
-    return;                                              //  load, so leave it empty.
+  if (fileExists(name) == false)    //  If no data, nothing to
+    return;                         //  load, so leave it empty.
 
   //  Load!
 
@@ -154,7 +154,7 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 char *
 ovStoreHistogram::createDataName(char *name, const char *prefix) {
 
-  if (AS_UTL_fileExists(prefix, true, false)) {              //  If name is a directory,
+  if (directoryExists(prefix)) {                             //  If name is a directory,
     snprintf(name, FILENAME_MAX, "%s/statistics", prefix);   //  return a file in the directory.
   }
 

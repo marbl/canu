@@ -47,7 +47,7 @@ public:
 
     strncpy(_fileName, fileName, FILENAME_MAX-1);
 
-    if (AS_UTL_fileExists(_fileName) == false) {
+    if (fileExists(_fileName) == false) {
       _modified = true;   //  Always gets written, regardless of changes
 
       _lastID   = seq->sqStore_getNumReads();

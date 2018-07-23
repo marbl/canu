@@ -285,7 +285,7 @@ public:
     char  cacheName[FILENAME_MAX];
     snprintf(cacheName, FILENAME_MAX, "%s.merTrimDB", merCountsFile);
 
-    if (AS_UTL_fileExists(cacheName, false, false)) {
+    if (fileExists(cacheName)) {
       fprintf(stderr, "loading genome mer database from cache '%s'.\n", cacheName);
       genomicDB = new existDB(cacheName);
 

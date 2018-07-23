@@ -227,7 +227,7 @@ ovStoreSliceWriter::loadBucketSizes(uint64 *bucketSizes) {
 
     //  If no file, there are no overlaps, so nothing to load.
 
-    if (AS_UTL_fileExists(name, false, false) == false)
+    if (fileExists(name) == false)
       continue;
 
     //  Load the slice sizes, and save the number of overlaps in this slice.
@@ -257,7 +257,7 @@ ovStoreSliceWriter::loadOverlapsFromBucket(uint32 bucket, uint64 expectedLen, ov
 
   snprintf(name, FILENAME_MAX, "%s/bucket%04u/slice%04u", _storePath, bucket, _sliceNum);
 
-  if (AS_UTL_fileExists(name, false, false) == false)
+  if (fileExists(name) == false)
     fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
             expectedLen, name), exit(1);
 
@@ -503,8 +503,8 @@ ovStoreSliceWriter::checkSortingIsComplete(void) {
     snprintf(nameF, FILENAME_MAX, "%s/%04u.info",  _storePath, i);
     snprintf(nameI, FILENAME_MAX, "%s/%04u.index", _storePath, i);
 
-    bool existF = AS_UTL_fileExists(nameF, false, false);
-    bool existI = AS_UTL_fileExists(nameI, false, false);
+    bool existF = fileExists(nameF);
+    bool existI = fileExists(nameI);
 
     if (existF && existI)
       continue;
@@ -542,7 +542,7 @@ ovStoreSliceWriter::removeAllIntermediateFiles(void) {
       ovFile::createDataName(name, _storePath, ss, pp);
       ovStoreHistogram::createDataName(nomo, name);
 
-      if (AS_UTL_fileExists(nomo) == false)
+      if (fileExists(nomo) == false)
         break;
 
       AS_UTL_unlink(nomo);

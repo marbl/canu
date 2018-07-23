@@ -146,7 +146,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "invalid tigStore version (-t store version) '-t %s %s'.\n", argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-m") == 0) {
-      while ((argv[arg+1] != NULL) && (AS_UTL_fileExists(argv[arg+1], false, false) == true))
+      while ((argv[arg+1] != NULL) && (fileExists(argv[arg+1]) == true))
         alignMapNames.push_back(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-lookup") == 0) {

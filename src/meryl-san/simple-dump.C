@@ -82,7 +82,7 @@ main(int argc, char **argv) {
 
   //  Load existence mers from the saved existDB, or create a new existDB and maybe save to disk.
 
-  if ((existFile) && (AS_UTL_fileExists(existFile))) {
+  if ((existFile) && (fileExists(existFile))) {
     E = new existDB(existFile);
   }
 

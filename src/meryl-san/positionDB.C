@@ -240,7 +240,7 @@ main(int argc, char **argv) {
 
   //  Exit quickly if the output file exists.
   //
-  if (AS_UTL_fileExists(outputFile)) {
+  if (fileExists(outputFile)) {
     fprintf(stderr, "Output file '%s' exists already!\n", outputFile);
     exit(0);
   }

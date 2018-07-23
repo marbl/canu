@@ -770,7 +770,7 @@ main(int argc, char **argv) {
   ovFile           *ovlFile  = NULL;
   ovFile           *outFile  = NULL;
 
-  if (AS_UTL_fileExists(ovlName, true)) {
+  if (directoryExists(ovlName)) {
     fprintf(stderr, "Reading overlaps from store '%s' and writing to '%s'\n",
             ovlName, outName);
     ovlStore = new ovStore(ovlName, seqStore);

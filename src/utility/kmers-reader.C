@@ -34,7 +34,7 @@ kmerCountFileReader::kmerCountFileReader(const char *inputName,
 
   snprintf(N, FILENAME_MAX, "%s/merylIndex", _inName);
 
-  if (AS_UTL_fileExists(N) == false)
+  if (fileExists(N) == false)
     fprintf(stderr, "ERROR: '%s' doesn't appear to be a meryl input; file '%s' doesn't exist.\n",
             _inName, N), exit(1);
 
@@ -153,7 +153,7 @@ kmerCountFileReader::loadBlockIndex(void) {
 void
 dumpMerylDataFile(char *name) {
 
-  if (AS_UTL_fileExists(name) == false)
+  if (fileExists(name) == false)
     fprintf(stderr, "ERROR: '%s' doesn't exist.  Can't dump it.\n",
             name), exit(1);
 

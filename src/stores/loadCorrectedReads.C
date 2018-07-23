@@ -64,7 +64,7 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-qv") == 0) {
       loadQVs = true;
 
-    } else if (AS_UTL_fileExists(argv[arg])) {
+    } else if (fileExists(argv[arg])) {
       corInputs.push_back(argv[arg]);
 
     } else {

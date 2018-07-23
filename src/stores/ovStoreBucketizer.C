@@ -173,7 +173,7 @@ main(int argc, char **argv) {
   snprintf(sliceSName, FILENAME_MAX, "%s/create%04u/sliceSizes", ovlName, bucketNum);  //  sliceSizes name before rename.
   snprintf(bucketName, FILENAME_MAX, "%s/bucket%04u",            ovlName, bucketNum);
 
-  if (AS_UTL_fileExists(createName, true, false) == true) {
+  if (directoryExists(createName) == true) {
     if (forceOverwrite) {
       fprintf(stderr, "Overwriting incomplete result from presumed crashed job in directory '%s'.\n", createName);
     } else {
@@ -182,7 +182,7 @@ main(int argc, char **argv) {
     }
   }
 
-  if (AS_UTL_fileExists(bucketName, false, false) == true) {
+  if (directoryExists(bucketName) == true) {
     fprintf(stderr, "Job finished; file '%s' exists.\n", sliceSName);
     exit(0);
   }

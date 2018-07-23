@@ -104,7 +104,7 @@ ovStore::ovStore(const char *path, sqStore *seq) {
 
   snprintf(name, FILENAME_MAX, "%s/evalues", _storePath);
 
-  if (AS_UTL_fileExists(name)) {
+  if (fileExists(name)) {
     _evaluesMap  = new memoryMappedFile(name, memoryMappedFile_readOnly);
     _evalues     = (uint16 *)_evaluesMap->get(0);
   }

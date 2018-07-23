@@ -60,7 +60,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-unaligned") == 0) {
       dt = ovOverlapAsUnaligned;
 
-    } else if (AS_UTL_fileExists(argv[arg])) {
+    } else if (fileExists(argv[arg])) {
       files.push_back(argv[arg]);
 
     } else {

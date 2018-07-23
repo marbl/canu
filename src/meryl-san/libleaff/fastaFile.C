@@ -353,7 +353,7 @@ void
 fastaFile::loadIndex(char *indexname) {
   struct stat  fastastat;
 
-  if (AS_UTL_fileExists(indexname) == false)
+  if (fileExists(indexname) == false)
     return;
 
   errno = 0;

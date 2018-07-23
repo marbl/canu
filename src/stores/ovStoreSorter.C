@@ -61,7 +61,7 @@ checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config) {
 
   snprintf(N, FILENAME_MAX, "%s/%04u.started", ovlName, sliceNum);
 
-  if (AS_UTL_fileExists(N, true, false) == true) {
+  if (fileExists(N) == true) {
     fprintf(stderr, "Job (appears to be) in progress; sentinel file '%s' exists.\n", N);
     exit(1);
   }

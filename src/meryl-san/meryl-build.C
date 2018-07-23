@@ -354,7 +354,7 @@ runSegment(merylArgs *args, uint64 segment) {
 
   snprintf(filename, FILENAME_MAX, "%s.batch" F_U64 ".mcdat", args->outputFile, segment);
 
-  if (AS_UTL_fileExists(filename)) {
+  if (fileExists(filename)) {
     if (args->beVerbose)
       fprintf(stderr, "Found result for batch " F_U64 " in %s.\n", segment, filename);
     return;
@@ -690,10 +690,10 @@ build(merylArgs *args) {
 
   sprintf(N, "%s.existenceTest", args->outputFile);
 
-  if (AS_UTL_fileExists(args->outputFile, true) == true)
+  if (directoryExists(args->outputFile) == true)
     fprintf(stderr, "ERROR: output prefix -o cannot be a directory.\n"), exit(1);
 
-  if (AS_UTL_fileExists(N) == false) {
+  if (fileExists(N) == false) {
     errno = 0;
     FILE *F = fopen(N, "w");
     if (errno)

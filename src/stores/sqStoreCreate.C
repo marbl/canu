@@ -630,7 +630,7 @@ createStore(const char *seqStoreName,
       } else if (strcasecmp(keyval.key(), "checkForSubReads") == 0) {
         seqLibrary->sqLibrary_setCheckForSubReads(keyval.value_bool());
 
-      } else if (AS_UTL_fileExists(line, false, false)) {
+      } else if (fileExists(line)) {
         loadReads(seqStore,
                   seqLibrary,
                   seqFileID++,

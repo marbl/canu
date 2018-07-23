@@ -49,7 +49,7 @@ AS_UTL_findBaseFileName(char *basename, const char *filename) {
 
   strcpy(basename, filename);
 
-  if (AS_UTL_fileExists(basename, true, false))
+  if (directoryExists(basename))
     return;
 
   char  *slash = strrchr(basename, '/');
@@ -249,9 +249,7 @@ AS_UTL_mkdir(const char *dirname) {
   //  Stat the file.  Don't fail if the file doesn't exist though.
 
   errno = 0;
-  stat(dirname, &st);
-
-  if ((errno > 0) && (errno != ENOENT))
+  if ((stat(dirname, &st) == -1) && (errno != ENOENT))
     fprintf(stderr, "AS_UTL_mkdir()--  Couldn't stat '%s': %s\n", dirname, strerror(errno)), exit(1);
 
   //  If the file exists, and isn't a directory, fail.
@@ -275,7 +273,7 @@ AS_UTL_mkdir(const char *dirname) {
 void
 AS_UTL_rmdir(const char *dirname) {
 
-  if (AS_UTL_fileExists(dirname, false, false) == false)
+  if (directoryExists(dirname) == false)
     return;
 
   errno = 0;
@@ -291,13 +289,13 @@ AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 
   //  Fail horribly if the file doesn't exist.
 
-  if (AS_UTL_fileExists(pathToFile, false, false) == false)
+  if (pathExists(pathToFile) == false)
     fprintf(stderr, "AS_UTL_symlink()-- Original file '%s' doesn't exist, won't make a link to nothing.\n",
             pathToFile), exit(1);
 
   //  Succeed silently if the link already exists.
 
-  if (AS_UTL_fileExists(pathToLink, false, false) == true)
+  if (pathExists(pathToLink) == true)
     return;
 
   //  Nope?  Make the link.
@@ -315,7 +313,7 @@ AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 void
 AS_UTL_unlink(const char *filename) {
 
-  if (AS_UTL_fileExists(filename, false, false) == false)
+  if (fileExists(filename) == false)
     return;
 
   errno = 0;
@@ -331,7 +329,7 @@ AS_UTL_unlink(const char *filename) {
 void
 AS_UTL_rename(const char *oldname, const char *newname) {
 
-  if (AS_UTL_fileExists(oldname, false, false) == false)
+  if (pathExists(oldname) == false)
     return;
 
   errno = 0;
@@ -344,47 +342,59 @@ AS_UTL_rename(const char *oldname, const char *newname) {
 
 
 
-//  Returns true if the named file/directory exists, and permissions
-//  allow us to read and/or write.
-//
-int
-AS_UTL_fileExists(const char *path,
-                  int directory,
-                  int readwrite) {
+bool
+pathExists(const char *path) {
   struct stat  s;
 
-  errno = 0;
-  stat(path, &s);
-  if (errno)
-    return(0);
+  if (stat(path, &s) == -1)
+    return(false);
 
-  if ((directory == 1) &&
-      (readwrite == 0) &&
-      (s.st_mode & S_IFDIR) &&
-      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
-      (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
-    return(1);
+  return(true);               //  Stat-able?  Something exists there!
+}
 
-  if ((directory == 1) &&
-      (readwrite == 1) &&
-      (s.st_mode & S_IFDIR) &&
+
+
+bool
+fileExists(const char *path,
+           bool        writable) {
+  struct stat  s;
+
+  if (stat(path, &s) == -1)
+    return(false);
+
+  if (s.st_mode & S_IFDIR)    //  Is a directory, not a file.
+    return(false);
+
+  if (writable == false)      //  User doesn't care if it's writable or not.
+    return(true);
+
+  if (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))   //  User cares, and is writable.
+    return(true);
+
+  return(false);
+}
+
+
+
+bool
+directoryExists(const char *path) {
+  struct stat  s;
+
+  if (stat(path, &s) == -1)
+    return(false);
+
+  if ((s.st_mode & S_IFDIR) == 0)     //  Is a file, not a directory.
+    return(false);
+
+#if 0
+  if ((s.st_mode & S_IFDIR) &&
       (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
       (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) &&
       (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
-    return(1);
+    ;
+#endif
 
-  if ((directory == 0) &&
-      (readwrite == 0) &&
-      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)))
-    return(1);
-
-  if ((directory == 0) &&
-      (readwrite == 1) &&
-      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
-      (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)))
-    return(1);
-
-  return(0);
+  return(true);
 }
 
 
@@ -397,11 +407,8 @@ AS_UTL_sizeOfFile(const char *path) {
   off_t        size = 0;
 
   errno = 0;
-  stat(path, &s);
-  if (errno) {
-    fprintf(stderr, "Failed to stat() file '%s': %s\n", path, strerror(errno));
-    exit(1);
-  }
+  if (stat(path, &s) == -1)
+    fprintf(stderr, "Failed to stat() file '%s': %s\n", path, strerror(errno)), exit(1);
 
   //  gzipped files contain a file contents list, which we can
   //  use to get the uncompressed size.
@@ -448,10 +455,7 @@ AS_UTL_sizeOfFile(FILE *file) {
   off_t        size = 0;
 
   errno = 0;
-
-  fstat(fileno(file), &s);
-
-  if (errno)
+  if (fstat(fileno(file), &s) == -1)
     fprintf(stderr, "Failed to stat() FILE*: %s\n", strerror(errno)), exit(1);
 
   return(s.st_size);

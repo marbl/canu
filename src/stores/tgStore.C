@@ -562,7 +562,7 @@ tgStore::numTigsInMASRfile(char *name) {
   uint32        indxLen = 0;
   uint32        masrLen = 0;
 
-  if (AS_UTL_fileExists(name, false, false) == false)
+  if (fileExists(name) == false)
     return(0);
 
   FILE *F = AS_UTL_openInputFile(name);
@@ -636,7 +636,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
   snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
 
-  while ((AS_UTL_fileExists(_name) == false) && (V > 0))  {
+  while ((fileExists(_name) == false) && (V > 0))  {
     V--;
     snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
   }

@@ -62,7 +62,7 @@ compressedFileReader::compressedFileReader(const char *filename) {
 
   cftType   ft = compressedFileType(_filename);
 
-  if ((ft != cftSTDIN) && (AS_UTL_fileExists(_filename, false, false) == false))
+  if ((ft != cftSTDIN) && (fileExists(_filename) == false))
     fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", _filename, strerror(errno)), exit(1);
 
   errno = 0;

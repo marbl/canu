@@ -970,7 +970,7 @@ OverlapCache::load(void) {
   size_t   numRead;
 
   snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
-  if (AS_UTL_fileExists(name, false, false) == false)
+  if (fileExists(name) == false)
     return(false);
 
   writeStatus("OverlapCache()-- Loading graph from '%s'.\n", name);

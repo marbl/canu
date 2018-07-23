@@ -116,7 +116,7 @@ main(int argc, char **argv) {
 
     sprintf(N, "%s/prefixEditDistance-matchLimit-%04d.bin", D, evalue);
 
-    if (AS_UTL_fileExists(N)) {
+    if (fileExists(N)) {
       fprintf(stderr, "eValue %04d -- eRate %6.4f -- %7.4f%% error -- %8d values -- thread %2d - LOAD\n",
               evalue, erate, erate * 100.0, MAX_ERRORS, omp_get_thread_num());
 

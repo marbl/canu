@@ -122,7 +122,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
 
-    } else if (AS_UTL_fileExists(argv[arg])) {
+    } else if (fileExists(argv[arg])) {
       files.push_back(argv[arg]);
 
     } else {

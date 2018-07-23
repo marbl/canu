@@ -1454,7 +1454,7 @@ main(int argc, char **argv) {
 
     //  INPUTS
 
-    else if (AS_UTL_fileExists(argv[arg]) == true) {
+    else if (fileExists(argv[arg]) == true) {
       inputs.push_back(argv[arg]);
     }
 

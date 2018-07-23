@@ -95,7 +95,7 @@ public:
     strncpy(_maskMersName, _merylName, FILENAME_MAX-1);
     strcat(_maskMersName, ".maskMers");
 
-    if (AS_UTL_fileExists(_maskMersName))
+    if (fileExists(_maskMersName))
       loadMasking(onlySeqIID_);
     else
       buildMasking();

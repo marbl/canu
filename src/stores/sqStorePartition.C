@@ -87,12 +87,12 @@ sqStore::sqStore_buildPartitions(uint32 *partitionMap) {
 
   //  Be nice and put all the partitions in a subdirectory.
 
-  if (AS_UTL_fileExists(_clonePath, true, true) == false)
+  if (directoryExists(_clonePath) == false)
     AS_UTL_mkdir(_clonePath);
 
   snprintf(name, FILENAME_MAX, "%s/partitions", _clonePath);
 
-  if (AS_UTL_fileExists(name, true, true) == false)
+  if (directoryExists(name) == false)
     AS_UTL_mkdir(name);
 
   //  Open all the output files -- fail early if we can't open that many files.

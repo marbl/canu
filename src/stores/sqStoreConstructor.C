@@ -108,7 +108,7 @@ sqStore::sqStore(char const    *storePath,
 
   snprintf(nameI, FILENAME_MAX, "%s/info", _storePath);
 
-  if (AS_UTL_fileExists(nameI, false, false) == true)
+  if (fileExists(nameI) == true)
     AS_UTL_loadFile(nameI, &_info, 1);
 
   //  Check sizes are correct.
@@ -127,7 +127,7 @@ sqStore::sqStore(char const    *storePath,
     if (partID != UINT32_MAX)
       fprintf(stderr, "sqStore()-- Illegal combination of sqStore_create with defined partID.\n"), exit(1);
 
-    if (AS_UTL_fileExists(_storePath, true, true) == true)
+    if (directoryExists(_storePath) == true)
       fprintf(stderr, "ERROR:  Can't create store '%s': store already exists.\n", _storePath), exit(1);
 
     AS_UTL_mkdir(_storePath);
@@ -147,7 +147,7 @@ sqStore::sqStore(char const    *storePath,
   //  Not creating, so the store MUST exist.  Check some other conditions too.
   //
 
-  if (AS_UTL_fileExists(_storePath, true, false) == false)
+  if (directoryExists(_storePath) == false)
     fprintf(stderr, "sqStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath), exit(1);
 
   if ((mode == sqStore_extend) &&
@@ -250,7 +250,7 @@ sqStore::~sqStore() {
 
   if (_mode == sqStore_extend) {
     snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
-    while (AS_UTL_fileExists(No) == true) {
+    while (fileExists(No) == true) {
       V++;
       snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
     }
@@ -398,7 +398,7 @@ sqStore::sqStore_deletePartitions(void) {
 
   snprintf(path, FILENAME_MAX, "%s/partitions/map", _storePath);
 
-  if (AS_UTL_fileExists(path, false, false) == false)
+  if (fileExists(path) == false)
     return;
 
   //  How many partitions?

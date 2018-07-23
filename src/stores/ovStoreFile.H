@@ -165,7 +165,7 @@ public:
     //  should have sent in a NULL prefix!) used when constructing the store.
     //  Return with no counts allocated and trust that the user doesn't try to access them.
 
-    if (AS_UTL_fileExists(name) == false)
+    if (fileExists(name) == false)
       return;
 
     //  Otherwise, counts exist, and we load them.

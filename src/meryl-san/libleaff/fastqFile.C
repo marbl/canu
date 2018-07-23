@@ -350,7 +350,7 @@ void
 fastqFile::loadIndex(char *indexname) {
   struct stat  fastqstat;
 
-  if (AS_UTL_fileExists(indexname) == false)
+  if (fileExists(indexname) == false)
     return;
 
   errno = 0;

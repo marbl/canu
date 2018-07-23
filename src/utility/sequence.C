@@ -224,7 +224,7 @@ dnaSeqFile::loadIndex(void) {
 
   snprintf(indexName, FILENAME_MAX, "%s.index", _file->filename());
 
-  if (AS_UTL_fileExists(indexName) == false)
+  if (fileExists(indexName) == false)
     return(false);
 
   FILE   *indexFile = AS_UTL_openInputFile(indexName);
