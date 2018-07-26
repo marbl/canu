@@ -66,7 +66,7 @@ My run of Canu was killed by the sysadmin; the power going out; my cat stepping 
 
     Yes, perfectly safe!  It's actually how Canu runs normally: each time Canu starts, it examines
     the state of the assembly to decide what it should do next.  For example, if six overlap tasks
-    have no reults, it'll run just those six tasks.
+    have no results, it'll run just those six tasks.
 
     This also means that if you want to redo some step, just remove those results from the assembly
     directory.  Some care needs to be taken to make sure results computed after those are also
