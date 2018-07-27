@@ -62,7 +62,8 @@ decodeRange(char *range, T &lo, T &hi) {
 
   hi = lo;                      //  Set the second to that.
 
-  if (*ap == '-') {             //  If this is a range,
+  if ((*ap == '-') ||           //  If this is a range,
+      (*ap == '/')) {           //  or a one-of-many selection,
     ap++;                       //  grab the second number
     strtonumber(hi, ap, &ap);
   }
