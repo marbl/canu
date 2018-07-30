@@ -80,7 +80,7 @@ Add_Extra_Hash_String(const char *s) {
 
   int  len;
 
-  uint32 new_len = Used_Data_Len + G.Kmer_Len;
+  uint64 new_len = Used_Data_Len + G.Kmer_Len;
 
   if (Extra_String_Subcount < MAX_EXTRA_SUBCOUNT) {
     sub = String_Ct + Extra_String_Ct - 1;
@@ -641,7 +641,7 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Extra_Ref_Ct = " F_U64 "  Max_Extra_Ref_Space = " F_U64 "\n", Extra_Ref_Ct, Max_Extra_Ref_Space);
 
   if (Extra_Ref_Ct > Max_Extra_Ref_Space) {
-    int32          newSize  = (Max_Extra_Ref_Space == 0) ? 16 * 1024 : Max_Extra_Ref_Space * 2;
+    int64          newSize  = (Max_Extra_Ref_Space == 0) ? 16 * 1024 : Max_Extra_Ref_Space * 2;
 
     while (newSize < Extra_Ref_Ct)
       newSize *= 2;
