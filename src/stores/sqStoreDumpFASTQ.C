@@ -39,6 +39,7 @@
 #include "sqStore.H"
 #include "files.H"
 #include "strings.H"
+#include "sequence.H"
 
 #include "clearRangeFile.H"
 
@@ -196,6 +197,8 @@ main(int argc, char **argv) {
   bool             withLibName       = true;
   bool             withReadName      = true;
 
+  bool             asReverse         = false;
+
   argc = AS_configure(argc, argv);
 
   int arg = 1;
@@ -263,6 +266,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-noreadname") == 0) {
       withReadName    = false;
 
+    } else if (strcmp(argv[arg], "-reverse") == 0) {
+      asReverse       = true;
+
 
     } else {
       err++;
@@ -290,6 +296,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -noreadname         don't include the read name in the sequence header.  header will be:\n");
     fprintf(stderr, "                        '>original-name id=<seqID> clr=<bgn>,<end>   with names\n");
     fprintf(stderr, "                        '>read<seqID> clr=<bgn>,<end>                without names\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, " -reverse             Dump the reverse-complement of the read.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -l libToDump        output only read in library number libToDump\n");
     fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
@@ -479,6 +487,11 @@ main(int argc, char **argv) {
 
     seq[clen] = 0;
     qlt[clen] = 0;
+
+    //  And maybe reverse complement it.
+
+    if (asReverse)
+      reverseComplement(seq, qlt, clen);
 
     //  Print the read.
 
