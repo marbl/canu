@@ -455,7 +455,7 @@ kmerCountFileWriter::finishIteration(void) {
 void
 kmerCountFileWriter::mergeIterations(uint32 oi) {
   kmerCountFileReaderBlock    inBlocks[_iteration + 1];
-  FILE                       *inFiles [_iteration + 1] = { NULL };
+  FILE                       *inFiles [_iteration + 1];
 
   {
     char  *fileName = constructBlockName(_outName, oi, _numFiles, 0, false);
@@ -467,6 +467,8 @@ kmerCountFileWriter::mergeIterations(uint32 oi) {
   }
 
   //  Open the input files, allocate blocks.
+
+  inFiles[0] = NULL;
 
   for (uint32 ii=1; ii <= _iteration; ii++)
     inFiles[ii]  = openInputBlock(_outName, oi, _numFiles, ii);
@@ -494,10 +496,10 @@ kmerCountFileWriter::mergeIterations(uint32 oi) {
 
   //  Load each block from each file, merge, and write.
 
-  uint32    p[_iteration+1] = {0};  //  Position in s[] and c[]
-  uint64    l[_iteration+1] = {0};  //  Number of entries in s[] and c[]
-  uint64   *s[_iteration+1] = {0};  //  Pointer to the suffixes for piece x
-  uint32   *c[_iteration+1] = {0};  //  Pointer to the counts   for piece x
+  uint32    p[_iteration+1];  //  Position in s[] and c[]
+  uint64    l[_iteration+1];  //  Number of entries in s[] and c[]
+  uint64   *s[_iteration+1];  //  Pointer to the suffixes for piece x
+  uint32   *c[_iteration+1];  //  Pointer to the counts   for piece x
 
   for (uint32 bb=0; bb<_numBlocks; bb++) {
     uint64  totnKmers = 0;
