@@ -63,6 +63,8 @@ enum merylOp {
 
   opHistogram,
 
+  opCompare,
+
   opNothing
 };
 

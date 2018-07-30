@@ -362,6 +362,22 @@ merylOperation::nextMer(bool isRoot) {
         _count = _actCount[0];
       break;
 
+    case opCompare:
+      if       (_actLen == 1) {
+        char  str[33];
+
+        fprintf(stdout, "kmer %s only in input %u\n",
+                _kmer.toString(str), _actIndex[0]);
+      }
+      else if ((_actLen == 2) && (_actCount[0] != _actCount[1])) {
+        char  str[33];
+
+        fprintf(stdout, "kmer %s has value %lu in input 1 != value %lu in input 2\n",
+                _kmer.toString(str), _actCount[0], _actCount[1]);
+      }
+      else {
+      }
+
     case opHistogram:
       break;
 

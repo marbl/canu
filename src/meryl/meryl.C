@@ -247,6 +247,8 @@ main(int argc, char **argv) {
 
     else if (0 == strcmp(optString, "histogram"))              opName = opHistogram;
 
+    else if (0 == strcmp(optString, "compare"))                opName = opCompare;
+
     else if (0 == strcmp(optString, "output"))            //  Flag the next arg as the output name for a database
       outputArg = arg + 1;                                //  if we see 'output'.
 

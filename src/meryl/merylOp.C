@@ -230,6 +230,8 @@ toString(merylOp op) {
 
     case opHistogram:            return("opHistogram");            break;
 
+    case opCompare:              return("opCompare");              break;
+
     case opNothing:              return("opNothing");              break; 
   }
 
