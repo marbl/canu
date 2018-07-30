@@ -15,6 +15,7 @@
  */
 
 #include "meryl.H"
+#include "strings.H"
 #include "system.H"
 
 
@@ -24,14 +25,14 @@ isDigit(char c) {
 }
 
 bool
-isNumber(char *s) {
+isNumber(char *s, char dot='.') {
 
   if (s == NULL)
     return(false);
 
   for (uint32 ii=0; s[ii] != 0; ii++)
     if ((isDigit(s[ii]) == false) &&
-        (s[ii] != '.'))
+        (s[ii] != dot))
       return(false);
 
   return(true);
@@ -67,6 +68,8 @@ main(int argc, char **argv) {
   uint32                    allowedThreads = physThreads;               //  Global limits, if memory= or
   uint64                    allowedMemory  = physMemory;                //  threads= is set before any operation.
 
+  uint32                    segment        = 1;
+  uint32                    segmentMax     = 1;
 
   vector<char *>  err;
   for (int32 arg=1; arg < argc; arg++) {
@@ -163,6 +166,14 @@ main(int argc, char **argv) {
         opStack.top()->setThreadLimit(threads);
       }
 
+      continue;
+    }
+
+    //  Segment of input, for counting from seqStore.
+    else if ((optStringLen > 8) &&
+             (strncmp(optString, "segment=", 8) == 0) &&
+             (isNumber(optString + 8, '/') == true)) {
+      decodeRange(optString + 8, segment, segmentMax);
       continue;
     }
 
@@ -283,6 +294,7 @@ main(int argc, char **argv) {
              (fileExists(sqRdsName)  == true))            //  and the 'reads' file exists,
       store = sqStore::sqStore_open(inoutName);           //  add a sqStore file as input to the current command.
 
+
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "Don't know what to do with '%s'.", optString);
@@ -339,8 +351,11 @@ main(int argc, char **argv) {
     }
 
     if (store != NULL) {                   //  Same story, different object.
-      opStack.top()->addInput(store);
-      store = NULL;
+      opStack.top()->addInput(store, segment, segmentMax);
+
+      store      = NULL;
+      segment    = 1;
+      segmentMax = 1;
     }
 
     //  Finally, if we've been told to terminate the command, do so.

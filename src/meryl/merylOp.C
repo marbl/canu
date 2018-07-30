@@ -141,13 +141,13 @@ merylOperation::addInput(dnaSeqFile *sequence) {
 
 
 void
-merylOperation::addInput(sqStore *store) {
+merylOperation::addInput(sqStore *store, uint32 segment, uint32 segmentMax) {
 
   if (_verbosity >= sayConstruction)
     fprintf(stderr, "Adding input from sqStore '%s' to operation '%s'\n",
             store->sqStore_path(), toString(_operation));
 
-  _inputs.push_back(new merylInput(store->sqStore_path(), store));
+  _inputs.push_back(new merylInput(store->sqStore_path(), store, segment, segmentMax));
   _actIndex[_actLen++] = _inputs.size() - 1;
 
   if (isCounting() == false)

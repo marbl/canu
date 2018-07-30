@@ -92,7 +92,7 @@ public:
   void    addInput(merylOperation *operation);
   void    addInput(kmerCountFileReader *reader);
   void    addInput(dnaSeqFile *sequence);
-  void    addInput(sqStore *store);
+  void    addInput(sqStore *store, uint32 segment, uint32 segmentMax);
 
   void    addOutput(kmerCountFileWriter *writer);
   void    addPrinter(FILE *printer);

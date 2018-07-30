@@ -32,7 +32,7 @@ public:
   merylInput(merylOperation *o);
   merylInput(const char *n, kmerCountFileReader *s);
   merylInput(const char *n, dnaSeqFile *f);
-  merylInput(const char *n, sqStore *s);
+  merylInput(const char *n, sqStore *s, uint32 segment, uint32 segmentMax);
   ~merylInput();
 
   char  *inputType(void) {
