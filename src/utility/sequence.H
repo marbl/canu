@@ -57,12 +57,12 @@ public:
   uint64            length(void)       { return(_seqLen); };
 
 private:
-  uint32            _nameMax = 0;
-  char             *_name    = NULL;
-  uint64            _seqMax  = 0;
-  char             *_seq     = NULL;
-  uint8            *_qlt     = NULL;
-  uint64            _seqLen  = 0;
+  uint32            _nameMax;
+  char             *_name;
+  uint64            _seqMax;
+  char             *_seq;
+  uint8            *_qlt;
+  uint64            _seqLen;
 
   friend class dnaSeqFile;
 };
