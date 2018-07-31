@@ -342,6 +342,10 @@ sub skipStage ($$@) {
 sub getInstallDirectory () {
     my $installDir = $FindBin::RealBin;
 
+    if ($installDir =~ m!^(.*)/\w+-\w+/bin$!) {
+        $installDir = $1;
+    }
+
     return($installDir);
 }
 
