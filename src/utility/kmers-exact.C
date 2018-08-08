@@ -208,7 +208,7 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
   uint32  nf = input->numFiles();     //  OpenMP wants simple variables for the loop tests.
   uint32  nb = input->numBlocks();
 
-  //#pragma omp parallel for schedule(dynamic, 1)
+#pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
     //fprintf(stderr, "STARTING FILE %u with startPos %lu\n", ff, startPos[ff]);
 

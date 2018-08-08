@@ -355,6 +355,20 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--hashload") == 0) {
       G.Max_Hash_Load = atof(argv[++arg]);
 
+#if 0
+    //  This should still work, but not useful unless String_Ref_t is
+    //  changed to uint32.
+    //
+    //fprintf(stderr, "--maxreadlen n     For batches with all short reads, pack bits differently to\n");
+    //fprintf(stderr, "                   process more reads per batch.\n");
+    //fprintf(stderr, "                     all reads must be shorter than n\n");
+    //fprintf(stderr, "                     limited to 2^(30-m) reads\n");
+    //fprintf(stderr, "                   Common values:\n");
+    //fprintf(stderr, "                     maxreadlen 2048->hashstrings  524288 (default)\n");
+    //fprintf(stderr, "                     maxreadlen  512->hashstrings 2097152\n");
+    //fprintf(stderr, "                     maxreadlen  128->hashstrings 8388608\n");
+    //fprintf(stderr, "\n");
+
     } else if (strcmp(argv[arg], "--maxreadlen") == 0) {
       //  Quite the gross way to do this, but simple.
       uint32 desired = strtoul(argv[++arg], NULL, 10);
@@ -368,6 +382,7 @@ main(int argc, char **argv) {
       OFFSET_MASK           = (1 << OFFSET_BITS) - 1;
 
       MAX_STRING_NUM        = STRING_NUM_MASK;
+#endif
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       G.Outfile_Name = argv[++arg];
@@ -441,18 +456,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "--minlength <n>    only output overlaps of <n> or more bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--hashbits n       Use n bits for the hash mask.\n");
-    fprintf(stderr, "--hashstrings n    Load at most n strings into the hash table at one time.\n");
     fprintf(stderr, "--hashdatalen n    Load at most n bytes into the hash table at one time.\n");
     fprintf(stderr, "--hashload f       Load to at most 0.0 < f < 1.0 capacity (default 0.7).\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--maxreadlen n     For batches with all short reads, pack bits differently to\n");
-    fprintf(stderr, "                   process more reads per batch.\n");
-    fprintf(stderr, "                     all reads must be shorter than n\n");
-    fprintf(stderr, "                     --hashstrings limited to 2^(30-m)\n");
-    fprintf(stderr, "                   Common values:\n");
-    fprintf(stderr, "                     maxreadlen 2048->hashstrings  524288 (default)\n");
-    fprintf(stderr, "                     maxreadlen  512->hashstrings 2097152\n");
-    fprintf(stderr, "                     maxreadlen  128->hashstrings 8388608\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--readsperbatch n  Force batch size to n.\n");
     fprintf(stderr, "--readsperthread n Force each thread to process n reads.\n");

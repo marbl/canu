@@ -86,7 +86,7 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
 
 
 
-merylInput::merylInput(const char *n, sqStore *s) {
+merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segmentMax) {
   _operation   = NULL;
   _stream      = NULL;
   _sequence    = NULL;
@@ -95,8 +95,38 @@ merylInput::merylInput(const char *n, sqStore *s) {
   _count       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
 
-  _sqBgn       = 1;
-  _sqEnd       = _store->sqStore_getNumReads() + 1;    //  C-style, not the usual sqStore semantics!
+  _sqBgn       = 1;                                   //  C-style, not the usual
+  _sqEnd       = _store->sqStore_getNumReads() + 1;   //  sqStore semantics!
+
+  if (segmentMax > 1) {
+    uint64  nBases = 0;
+
+    for (uint32 ss=1; ss <= _store->sqStore_getNumReads(); ss++)
+      nBases += _store->sqStore_getRead(ss)->sqRead_sequenceLength();
+
+    uint64  nBasesPerSeg = nBases / segmentMax;
+
+    _sqBgn = 0;
+    _sqEnd = 0;
+
+    nBases = 0;
+
+    for (uint32 ss=1; ss <= _store->sqStore_getNumReads(); ss++) {
+      nBases += _store->sqStore_getRead(ss)->sqRead_sequenceLength();
+
+      if ((_sqBgn == 0) && ((nBases / nBasesPerSeg) == segment - 1))
+        _sqBgn = ss;
+
+      if ((_sqEnd == 0) && ((nBases / nBasesPerSeg) == segment))
+        _sqEnd = ss;
+    }
+
+    if (segment == segmentMax)                      //  Annoying special case; if the last segment,
+      _sqEnd = _store->sqStore_getNumReads() + 1;   //  sqEnd is set to the last read, not N+1.
+
+    fprintf(stderr, "merylInput-- segment %u/%u picked reads %u-%u out of %u\n",
+            segment, segmentMax, _sqBgn, _sqEnd, _store->sqStore_getNumReads());
+  }
 
   _read        = NULL;
   _readData    = new sqReadData;

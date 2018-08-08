@@ -43,7 +43,7 @@ merylOperation::countSimple(void) {
   char            strr[32];
 
   if (fmer.merSize() == 0)
-    fprintf(stderr, "ERROR: Kmer size (-k) not supplied.\n"), exit(1);
+    fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
   if (_output == NULL)
     fprintf(stderr, "ERROR: No output specified for count operation.\n"), exit(1);

@@ -237,7 +237,7 @@ kmerCountFileReader::nextMer(void) {
     goto loadAgain;
   }
 
-  //  Make sure we have space for the decoded data.
+  //  Got a block!  Stash what we loaded.
 
   _prefix = _block->prefix();
   _nKmers = _block->nKmers();
@@ -245,6 +245,8 @@ kmerCountFileReader::nextMer(void) {
 #ifdef SHOW_LOAD
   fprintf(stdout, "LOADED prefix %016lx nKmers %lu\n", _prefix, _nKmers);
 #endif
+
+  //  Make sure we have space for the decoded data
 
   resizeArrayPair(_suffixes, _counts, 0, _nKmersMax, _nKmers, resizeArray_doNothing);
 
@@ -255,6 +257,12 @@ kmerCountFileReader::nextMer(void) {
   //  loaded, and do not load another block in loadBlock().
 
   _block->decodeBlock(_suffixes, _counts);
+
+  //  But if no kmers in this block, load another block.  Sadly, the block must always
+  //  be decoded, otherwise, the load will not load a new block.
+
+  if (_nKmers == 0)
+    goto loadAgain;
 
   //  Reset iteration, and load the first kmer.
 

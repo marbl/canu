@@ -76,6 +76,8 @@
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
 
+static int MAX_OFFSET = 10000;
+
 AlnGraphBoost::AlnGraphBoost(const std::string& backbone) {
     // initialize the graph structure with the backbone length + enter/exit
     // vertex
@@ -140,8 +142,8 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
             _g[_bbMap[currVtx]].base = targetBase;
 
             _g[currVtx].weight++;
-            addEdge(prevVtx, currVtx);
             bbPos++;
+            if (prevVtx != _enterVtx || bbPos <= MAX_OFFSET)             addEdge(prevVtx, currVtx);
             prevVtx = currVtx;
         // query deletion
         } else if (queryBase == '-' && targetBase != '-') {
@@ -160,11 +162,11 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
             _g[newVtx].backbone = false;
             _g[newVtx].deleted = false;
             _bbMap[newVtx] = bbPos;
-            addEdge(prevVtx, newVtx);
+            if (prevVtx != _enterVtx || bbPos <= MAX_OFFSET)             addEdge(prevVtx, currVtx);
             prevVtx = newVtx;
         }
     }
-    addEdge(prevVtx, _exitVtx);
+    if (bbPos >= index[_exitVtx] - MAX_OFFSET) addEdge(prevVtx, _exitVtx);
 }
 
 void AlnGraphBoost::addEdge(VtxDesc u, VtxDesc v) {

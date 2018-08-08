@@ -226,7 +226,7 @@ merylOperation::count(void) {
   char            rstr[65];
 
   if (fmer.merSize() == 0)
-    fprintf(stderr, "ERROR: Kmer size (-k) not supplied.\n"), exit(1);
+    fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
   if (_expNumKmers == 0) {
     for (uint32 ii=0; ii<_inputs.size(); ii++) {

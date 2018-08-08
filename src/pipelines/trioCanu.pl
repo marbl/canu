@@ -319,11 +319,6 @@ configureAssembler();
 
 setWorkDirectory($asm, $rootdir);
 
-if (defined($rootdir)) {
-    make_path($rootdir)  if (! -d $rootdir);
-    chdir($rootdir);
-}
-
 setGlobal("onExitDir", getcwd());
 setGlobal("onExitNam", $asm);
 
@@ -404,9 +399,9 @@ if (checkHaplotypeReads($asm, "haplotype") != 1) {
    setGlobal("minReadLength", 50);
 
    # seqStore for each haplotype and setup meryl
-   createSequenceStore($asm, "hap", @inputFiles);
+   checkSequenceStore($asm, "hap", @inputFiles);
    foreach my $h (keys(%haplotypes)) {
-      createSequenceStore("haplotype$h", "hap", @{ $haplotypes{$h} });
+      checkSequenceStore("haplotype$h", "hap", @{ $haplotypes{$h} });
       merylConfigure("haplotype$h", "hap");
       merylCheck("haplotype$h", "hap")  foreach (1..getGlobal("canuIterationMax") + 1);
    }
