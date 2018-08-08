@@ -996,7 +996,7 @@ sub buildGridJob ($$$$$$$$$) {
     my $jobNameT               = makeUniqueJobName($jobType, $asm);
 
     my ($jobName,  $jobOff)    = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayName"));
-    my ( $arrayOpt, $arrayOff ) = buildGridArray( $jobNameT, $bgnJob, $endJob, getGlobal( "gridEngineArrayOption" ), $thr );
+    my ($arrayOpt, $arrayOff) = buildGridArray( $jobNameT, $bgnJob, $endJob, getGlobal( "gridEngineArrayOption" ), $thr );
 
     my $outputOption           = buildOutputOption($path, $script);
 
