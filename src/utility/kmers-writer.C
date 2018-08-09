@@ -214,11 +214,13 @@ kmerCountFileWriter::addMer(kmer   k,
   bool  dump1 = (_batchNumKmers >= _batchMaxKmers);
   bool  dump2 = (_batchPrefix != prefix) && (_batchNumKmers > 0);
 
-  if (dump1 || dump2)
+  if (dump1 || dump2)     //  addBlock() resets _batchNumKmers to zero.
     addBlock(prefix);
 
+  assert(_batchNumKmers < _batchMaxKmers);
+
   _batchSuffixes[_batchNumKmers] = suffix;
-  _batchCounts[_batchNumKmers] = c;
+  _batchCounts  [_batchNumKmers] = c;
 
   _batchNumKmers++;
 }
