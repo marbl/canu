@@ -681,9 +681,6 @@ private:
   uint64   _dataBlk;         //  Active data block.
   uint64   _dataWrd;         //  Active word in the active data block.
   uint64   _dataBit;         //  Active bit in the active word in the active data block (aka, number of bits left in this word)
-
-
-  FILE    *_inputFile;
 };
 
 

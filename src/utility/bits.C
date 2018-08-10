@@ -44,8 +44,6 @@ stuffedBits::stuffedBits(uint64 nBits) {
   _dataBlk = 0;
   _dataWrd = 0;
   _dataBit = 64;
-
-  _inputFile = NULL;
 };
 
 
