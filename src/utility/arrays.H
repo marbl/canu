@@ -22,6 +22,10 @@
 #ifndef ARRAYS_H
 #define ARRAYS_H
 
+#include <algorithm>
+
+using namespace std;
+
 
 const uint32  resizeArray_doNothing = 0x00;
 const uint32  resizeArray_copyData  = 0x01;
@@ -88,18 +92,19 @@ template<typename TT, typename LL>
 void
 setArraySize(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
 
-  arrayMax = newMax;
+  arrayMax =     newMax;
+  arrayLen = min(newMax, arrayLen);
 
   TT *copy = new TT [arrayMax];
 
-  if (op & resizeArray_copyData)
+  if ((op & resizeArray_copyData) && (array != NULL) && (arrayLen > 0))
     memcpy(copy, array, sizeof(TT) * arrayLen);
 
   delete [] array;
   array = copy;
 
-  if (op & resizeArray_clearNew)
-    memset(array + arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
+  if ((op & resizeArray_clearNew) && (arrayMax > arrayLen))
+    memset(array + arrayLen, 0, sizeof(TT) * (arrayMax - arrayLen));
 }
 
 
