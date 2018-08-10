@@ -62,7 +62,7 @@ public:
   dnaSeqFile            *_sequence;
   sqStore               *_store;
 
-  char                   _name[FILENAME_MAX];
+  char                   _name[FILENAME_MAX+1];
 
   //  For _operation and _stream, a copy of the 'active' kmer
 

@@ -37,6 +37,7 @@ merylInput::merylInput(merylOperation *o) {
   _readID      = 0;
   _readPos     = UINT32_MAX;
 
+  memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, toString(_operation->getOperation()), FILENAME_MAX);
 }
 
@@ -59,6 +60,7 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s) {
   _readID      = 0;
   _readPos     = UINT32_MAX;
 
+  memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
 }
 
@@ -81,6 +83,7 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
   _readID      = 0;
   _readPos     = UINT32_MAX;
 
+  memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
 }
 
@@ -133,6 +136,7 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
   _readID      = _sqBgn - 1;       //  Incremented before loading the first read
   _readPos     = 0;
 
+  memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
 }
 
