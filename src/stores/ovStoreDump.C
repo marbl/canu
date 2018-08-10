@@ -240,7 +240,6 @@ public:
   uint32         lengthMin;
   uint32         lengthMax;
 
-  char          *bogartPath;
   bogartStatus  *status;
 
   //  Counts of what we filtered.
