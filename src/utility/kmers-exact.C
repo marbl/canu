@@ -91,7 +91,7 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
   uint32  pbMin      = 0;
   uint32  pbOpt      = 0;
 
-  for (uint32 pb=0; pb<_Kbits; pb++) {
+  for (uint32 pb=1; pb<_Kbits; pb++) {
     uint64  nprefix = (uint64)1 << pb;
     uint64  space   = nprefix * _prePtrBits + _nSuffix * (_Kbits - pb) + _nSuffix * _valueBits;
 
@@ -114,13 +114,16 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
     }
   }
 
+  assert(_prefixBits > 0);
+  assert(_suffixBits > 0);
+
   //  And do it all again to keep the users entertained.
 
   fprintf(stderr, "\n");
   fprintf(stdout, " p       prefixes             bits gigabytes\n");
   fprintf(stdout, "-- -------------- ---------------- ---------\n");
 
-  uint32  minpb = (pbMin < 4)          ? 0      : pbMin - 4;  //  Show four values before and
+  uint32  minpb = (pbMin < 4)          ? 1      : pbMin - 4;  //  Show four values before and
   uint32  maxpb = (_Kbits < pbOpt + 5) ? _Kbits : pbOpt + 5;  //  four after the smallest.
 
   for (uint32 pb=minpb; pb < maxpb; pb++) {
