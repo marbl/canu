@@ -262,8 +262,12 @@ main(int argc, char **argv) {
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
   for (uint32 fi=0; fi<seqStore->sqStore_getNumReads()+1; fi++) {
-    uint32  overlapsLen = ovlStore->loadOverlapsForRead(fi, overlaps, overlapsMax);
     uint32  readLen     = seqStore->sqStore_getRead(fi)->sqRead_sequenceLength();
+
+    if (readLen == 0)   //  Slight optimization; don't try to load overlaps for
+      continue;         //  reads that cannot have overlaps!
+
+    uint32  overlapsLen = ovlStore->loadOverlapsForRead(fi, overlaps, overlapsMax);
 
     intervalList<uint32>   cov;
     uint32                 covID = 0;
