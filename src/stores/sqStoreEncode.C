@@ -68,10 +68,10 @@ sqReadData::sqReadData_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
     }
 
     else {
-      if (ii < seqLen)  byte |= acgt[seq[ii++]];   byte <<= 2;  //  The if here is redundant, but pretty.
-      if (ii < seqLen)  byte |= acgt[seq[ii++]];   byte <<= 2;  //  Yes, everything shifts, not a mistake to leave out the braces.
-      if (ii < seqLen)  byte |= acgt[seq[ii++]];   byte <<= 2;
-      if (ii < seqLen)  byte |= acgt[seq[ii++]];
+      if (ii < seqLen)  { byte |= acgt[seq[ii++]]; }   byte <<= 2;  //  The if here is redundant, but pretty.
+      if (ii < seqLen)  { byte |= acgt[seq[ii++]]; }   byte <<= 2;  //  Yes, everything shifts, not a mistake to leave out the braces.
+      if (ii < seqLen)  { byte |= acgt[seq[ii++]]; }   byte <<= 2;
+      if (ii < seqLen)  { byte |= acgt[seq[ii++]]; }
     }
 
     chunk[chunkLen++] = byte;
