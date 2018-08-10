@@ -135,15 +135,13 @@ main(int argc, char **argv) {
       uint32  blen = seqStore->sqStore_getRead(ov.b_iid)->sqRead_sequenceLength();
 
       if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
-          (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3)) {
-        fprintf(stderr, "INVALID OVERLAP " F_U32 " (len %6d) " F_U32 " (len %6d) hangs " F_U64 " " F_U64 " - " F_U64 " " F_U64 " flip " F_U64 "\n",
+          (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3))
+        fprintf(stderr, "INVALID OVERLAP " F_U32 " (len %6d) " F_U32 " (len %6d) hangs " F_OV " " F_OV " - " F_OV " " F_OV "%s\n",
                 ov.a_iid, alen,
                 ov.b_iid, blen,
                 ov.dat.ovl.ahg5, ov.dat.ovl.ahg3,
                 ov.dat.ovl.bhg5, ov.dat.ovl.bhg3,
-                ov.dat.ovl.flipped);
-        exit(1);
-      }
+                (ov.dat.ovl.flipped) ? " flipped" : ""), exit(1);
 
       ov.dat.ovl.forUTG = (partialOverlaps == false) && (ov.overlapIsDovetail() == true);;
       ov.dat.ovl.forOBT = partialOverlaps;
