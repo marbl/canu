@@ -562,7 +562,6 @@ createStore(const char *seqStoreName,
   FILE        *loadLog  = AS_UTL_openOutputFile(seqStoreName, '/', "load.dat");
   FILE        *nameMap  = AS_UTL_openOutputFile(seqStoreName, '/', "readNames.txt");
 
-  uint32       nERROR   = 0;  //  There aren't any errors, we just exit fatally if encountered.
   uint32       nWARNS   = 0;
 
   uint32       nLOADED  = 0;  //  Reads loaded
@@ -674,9 +673,6 @@ createStore(const char *seqStoreName,
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
 
-  if (nERROR > 0)
-    fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many errors.\n");
-
   if (bSKIPPED > 0.25 * (bSKIPPED + bLOADED))
     fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many bases skipped.  Check your reads.\n");
 
@@ -686,8 +682,7 @@ createStore(const char *seqStoreName,
   if (nSKIPPED > 0.50 * (nLOADED))
     fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
 
-  if ((nERROR > 0) ||
-      (bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
+  if ((bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
       (nWARNS   > 0.25 * (nSKIPPED + nLOADED)) ||
       (nSKIPPED > 0.50 * (nSKIPPED + nLOADED)))
     exit(0);
