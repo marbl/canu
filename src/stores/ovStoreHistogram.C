@@ -521,6 +521,8 @@ ovStoreHistogram::overlapScoreEstimate(uint32 id, uint32 coverage, FILE *scoreDu
       if (coverage <= _scores[id].points[cp])
         break;
 
+    assert(cp < N_OVL_SCORE);
+
     assert(_scores[id].points[cp-1] <  coverage);        //  'coverage' is now between cp-1 and cp.
     assert(coverage <= _scores[id].points[cp]);          //  Linearly interpolate to find the score.
 
