@@ -85,7 +85,7 @@ main(int argc, char **argv) {
   if (cfgName == NULL)
     err.push_back("ERROR: No config (-C) supplied.\n");
 
-  if (err.size()) {
+  if (err.size() > 0) {
     fprintf(stderr, "usage: %s -O asm.ovlStore -S asm.seqStore -C ovStoreConfig [options]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore    path to overlap store to create\n");
     fprintf(stderr, "  -S asm.seqStore    path to sequence store\n");
