@@ -147,23 +147,27 @@ public:
 class generateParameters {
 public:
   generateParameters() {
-    minLength      = 0;
-    maxLength      = 10000;
+    minLength             = 0;
+    maxLength             = 10000;
 
-    nSeqs          = 0;
-    nBases         = 0;
+    nSeqs                 = 0;
+    nBases                = 0;
 
-    useGaussian    = true;
-    gMean          = 0;
-    gStdDev        = 0;
+    useGaussian           = true;
+    gMean                 = 0;
+    gStdDev               = 0;
 
-    useMirror      = false;
-    mirrorInput    = NULL;
+    useMirror             = false;
+    mirrorInput           = NULL;
+    mirrorDistribution    = 0.0;
+    mirrorDistributionLen = 0;
+    mirrorDistributionMax = 0;
+    mirrorDistributionSum = 0;
 
-    aFreq          = 0.25;
-    cFreq          = 0.25;
-    gFreq          = 0.25;
-    tFreq          = 0.25;
+    aFreq                 = 0.25;
+    cFreq                 = 0.25;
+    gFreq                 = 0.25;
+    tFreq                 = 0.25;
   };
 
   ~generateParameters() {
@@ -297,6 +301,8 @@ doSummarize_loadSequence(dnaSeqFile  *sf,
     return(sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen));
 
   //  Otherwise, piece it together from multiple calls to get bases.
+  //  loadBases() returns true if bases were loaded, and sets endOfSeq
+  //  if the block returned is to the end of a sequence.
 
   uint64   bufferMax = 23;
   uint64   bufferLen = 0;
@@ -324,10 +330,17 @@ doSummarize_loadSequence(dnaSeqFile  *sf,
     seq[seqLen] = 0;
 
     if (endOfSeq)
-      return(true);
+      break;
   }
 
-  return(false);  //  sf->loadBases() returned false, so didn't load anything.
+  //  We get here in two ways:
+  //    loadBases() immediately hit EOF, it will return false and set endOfSeq = false.
+  //    Otherwise, it found a sequence and endOfSeq (here) _must_ be true.
+  //  So, we can just return endOfSeq to mean 'there might be another sequence to load'.
+
+  delete [] buffer;
+
+  return(endOfSeq);
 }
                          
 
@@ -479,7 +492,7 @@ doSummarize(vector<char *>       &inputs,
     nSeqPerLen[r]++;
   }
 
-  uint64  maxCount = 0;
+  uint64  maxCount = 1;                                 //  Avoids divide-by-zero, even if zero can never actually occur.
 
   for (uint32 rr=0; rr<nRows+1; rr++)                   //  Find the maximum number of sequences in a size range.
     if (maxCount < nSeqPerLen[rr])
@@ -538,7 +551,9 @@ doSummarize(vector<char *>       &inputs,
     }
   }
 
-  if (hp <= nRows)
+  if (sumPar.genomeSize == 0)
+    fprintf(stdout, "%07.3fx           %9" F_U64P " %12" F_U64P "  ||  %s\n", 0.0, nSeqs, lSum, histPlot[hp++]);   //  Occurs if only empty sequences in the input!
+  else if (hp <= nRows)
     fprintf(stdout, "%07.3fx           %9" F_U64P " %12" F_U64P "  ||  %s\n", (double)lSum / sumPar.genomeSize, nSeqs, lSum, histPlot[hp++]);
   else
     fprintf(stdout, "%07.3fx           %9" F_U64P " %12" F_U64P "  ||\n",     (double)lSum / sumPar.genomeSize, nSeqs, lSum);
@@ -801,6 +816,9 @@ doGenerate(generateParameters &genPar) {
     nSeqs  += 1;
     nBases += seqLen;
   }
+
+  delete [] seq;
+  delete [] qlt;
 }
 
 
@@ -925,11 +943,10 @@ doSample_paired(vector<char *> &inputs, sampleParameters &samPar) {
     char  *a = strrchr(samPar.output1, '#');
     char  *b = strrchr(samPar.output2, '#');
 
-    if ((a == NULL) &&
-        (b == NULL)) {
-      fprintf(stderr, "ERROR: Failed to find '#' in output name '%s'\n", samPar.output1);
-      exit(1);
-    }
+    if (a == NULL)
+      fprintf(stderr, "ERROR: Failed to find '#' in output name '%s'\n", samPar.output1), exit(1);
+    if (b == NULL)
+      fprintf(stderr, "ERROR: Failed to find '#' in output name '%s'\n", samPar.output2), exit(1);
 
     *a = '1';
     *b = '2';
@@ -1001,6 +1018,9 @@ doSample_paired(vector<char *> &inputs, sampleParameters &samPar) {
     delete sf1;
     delete sf2;
   }
+
+  AS_UTL_closeFile(outFile1, samPar.output1);
+  AS_UTL_closeFile(outFile2, samPar.output2);
 }
 
 
@@ -1069,6 +1089,8 @@ doSample_single(vector<char *> &inputs, sampleParameters &samPar) {
 
     delete sf1;
   }
+
+  AS_UTL_closeFile(outFile1, samPar.output1);
 }
 
 
@@ -1232,6 +1254,8 @@ doShiftRegister(shiftRegisterParameters &srPar) {
     if (sv[1] > 1)  { sv[1] = 0;  sv[0]++; }
     if (sv[0] > 1)  { break; }
   }
+
+  delete [] detect;
 }
 
 
