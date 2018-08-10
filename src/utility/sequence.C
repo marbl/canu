@@ -229,10 +229,11 @@ dnaSeqFile::loadIndex(void) {
 
   FILE   *indexFile = AS_UTL_openInputFile(indexName);
 
-  AS_UTL_safeRead(indexFile, &_indexLen, "indexLen",        1, sizeof(uint64));
+  loadFromFile(_indexLen, "dnaSeqFile::indexLen", indexFile);
 
   _index = new dnaSeqIndexEntry [_indexLen];
-  AS_UTL_safeRead(indexFile,  _index,    "index",   _indexLen, sizeof(dnaSeqIndexEntry));
+
+  loadFromFile(_index, "dnaSeqFile::index", _indexLen, indexFile);
 
   AS_UTL_closeFile(indexFile, indexName);
 
@@ -249,8 +250,8 @@ dnaSeqFile::saveIndex(void) {
 
   FILE   *indexFile = AS_UTL_openOutputFile(indexName);
 
-  AS_UTL_safeWrite(indexFile, &_indexLen, "indexLen",      1, sizeof(uint64));
-  AS_UTL_safeWrite(indexFile,  _index,    "index", _indexLen, sizeof(dnaSeqIndexEntry));
+  writeToFile(_indexLen, "dnaSeqFile::indexLen",            indexFile);
+  writeToFile(_index,    "dnaSeqFile::index",    _indexLen, indexFile);
 
   AS_UTL_closeFile(indexFile, indexName);
 }

@@ -78,9 +78,7 @@ public:
     else
       snprintf(name, FILENAME_MAX, "%s/%04u.info", path, index);
 
-    FILE *F = AS_UTL_openInputFile(name);
-    AS_UTL_safeRead(F, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
-    AS_UTL_closeFile(F, name);
+    AS_UTL_loadFile(name, this, 1);
 
     if (_ovsMagic != ovStoreMagic)
       failed += fprintf(stderr, "ERROR:  directory '%s' is not an ovStore.\n", path);
@@ -124,9 +122,7 @@ public:
     //fprintf(stderr, "ovStoreInfo::save()-- bgnID=%u endID=%u maxID=%u numOlaps=%lu\n",
     //        _bgnID, _endID, _maxID, _numOlaps);
 
-    FILE *F = AS_UTL_openOutputFile(name);
-    AS_UTL_safeWrite(F, this, "ovStore::ovStore::saveinfo", sizeof(ovStoreInfo), 1);
-    AS_UTL_closeFile(F, name);
+    AS_UTL_saveFile(name, this, 1);
   };
 
   uint32     bgnID(void)  { return(_bgnID); };

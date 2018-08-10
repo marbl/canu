@@ -230,7 +230,7 @@ ovFile::writeBuffer(bool force) {
   //  If compressing, compress the block then write compressed length and the block.
 
   if (_useSnappy == true) {
-    size_t   bl = snappy::MaxCompressedLength(_bufferLen * sizeof(uint32));
+    uint64   bl = snappy::MaxCompressedLength(_bufferLen * sizeof(uint32));
 
     if (_snappyLen < bl) {
       delete [] _snappyBuffer;
@@ -240,14 +240,14 @@ ovFile::writeBuffer(bool force) {
 
     snappy::RawCompress((const char *)_buffer, _bufferLen * sizeof(uint32), _snappyBuffer, &bl);
 
-    AS_UTL_safeWrite(_file, &bl,           "ovFile::writeBuffer::bl", sizeof(size_t), 1);
-    AS_UTL_safeWrite(_file, _snappyBuffer, "ovFile::writeBuffer::sb", sizeof(char),   bl);
+    writeToFile(bl,            "ovFile::writeBuffer::bl",     _file);
+    writeToFile(_snappyBuffer, "ovFile::writeBuffer::sb", bl, _file);
   }
 
   //  Otherwise, just dump the block
 
   else
-    AS_UTL_safeWrite(_file, _buffer, "ovFile::writeBuffer", sizeof(uint32), _bufferLen);
+    writeToFile(_buffer, "ovFile::writeBuffer", _bufferLen, _file);
 
   //  Buffer written.  Clear it.
   _bufferLen = 0;
@@ -340,36 +340,38 @@ ovFile::readBuffer(void) {
 
   _bufferPos = 0;
 
-  //  If compressed, we need to decode the block.
+  //  If an uncompressed file, load as much as possible and return.  This is
+  //  allowed and expected to have a short read at the end of the file.
 
-  if (_useSnappy == true) {
-    size_t  cl  = 0;
-    size_t  clc = AS_UTL_safeRead(_file, &cl, "ovFile::readBuffer::cl", sizeof(size_t), 1);
-
-    if (_snappyLen < cl) {
-      delete [] _snappyBuffer;
-      _snappyLen    = cl;
-      _snappyBuffer = new char [cl];
-    }
-
-    size_t  sbc = AS_UTL_safeRead(_file, _snappyBuffer, "ovFile::readBuffer::sb", sizeof(char), cl);
-
-    if (sbc != cl)
-      fprintf(stderr, "ERROR: short read on file '%s': read " F_SIZE_T " bytes, expected " F_SIZE_T ".\n",
-              _prefix, sbc, cl), exit(1);
-
-    size_t  ol = 0;
-
-    snappy::GetUncompressedLength(_snappyBuffer, cl, &ol);
-    snappy::RawUncompress(_snappyBuffer, cl, (char *)_buffer);
-
-    _bufferLen = ol / sizeof(uint32);
+  if (_useSnappy == false) {
+    _bufferLen = loadFromFile(_buffer, "ovFile::readBuffer", _bufferMax, _file, false);
+    return;
   }
 
-  //  But if loading from 'normal' files, just load.  Easy peasy.
+  //  Otherwise, the data is compressed with snappy.
+  //  First, read the length of the snappy buffer (allowing it to return if EOF is encountered),
+  //  then, load the buffer and uncompress it (failing if the read is shorter than it should have been).
 
-  else
-    _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readBuffer", sizeof(uint32), _bufferMax);
+  uint64  cl  = 0;
+  uint64  clc = loadFromFile(cl, "ovFile::readBuffer::cl", _file, false);
+
+  resizeArray(_snappyBuffer, 0, _snappyLen, cl, resizeArray_doNothing);
+
+  uint64  sbc = loadFromFile(_snappyBuffer, "ovFile::readBuffer::sb", cl, _file, false);
+
+  if (sbc != cl)
+    fprintf(stderr, "ERROR: short read on file '%s': read " F_U64 " bytes, expected " F_U64 ".\n",
+            _prefix, sbc, cl), exit(1);
+
+  uint64  ol = 0;
+
+  snappy::GetUncompressedLength(_snappyBuffer, cl, &ol);
+
+  _bufferLen = ol / sizeof(uint32);
+
+  assert(_bufferLen <= _bufferMax);
+
+  snappy::RawUncompress(_snappyBuffer, cl, (char *)_buffer);
 }
 
 

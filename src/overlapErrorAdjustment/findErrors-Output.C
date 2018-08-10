@@ -67,7 +67,7 @@ Output_Corrections(feParameters *G) {
     out.readID      = G->bgnID + i;
 
     //fprintf(stderr, "read %d clear_len %d\n", i, G->reads[i].clear_len);
-    AS_UTL_safeWrite(fp, &out, "correction1", sizeof(Correction_Output_t), 1);
+    writeToFile(out, "correction1", fp);
 
     if (G->reads[i].sequence == NULL)
       // Deleted fragment
@@ -162,7 +162,7 @@ Output_Corrections(feParameters *G) {
 
         //fprintf(stderr, "CORRECT!\n");
 
-        AS_UTL_safeWrite(fp, &out, "correction2", sizeof(Correction_Output_t), 1);
+        writeToFile(out, "correction2", fp);
       }  //  confirmed < 2
 
 
@@ -225,7 +225,7 @@ Output_Corrections(feParameters *G) {
 
         //fprintf(stderr, "INSERT!\n");
 
-        AS_UTL_safeWrite(fp, &out, "correction3", sizeof(Correction_Output_t), 1);
+        writeToFile(out, "correction3", fp);
       }  //  insert < 2
     }
   }

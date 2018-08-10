@@ -981,26 +981,26 @@ OverlapCache::load(void) {
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
   uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
 
-  AS_UTL_safeRead(file, &magic,      "overlapCache_magic",      sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &ovserrbits, "overlapCache_ovserrbits", sizeof(uint32), 1);
-  AS_UTL_safeRead(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
+  loadFromFile(magic,      "overlapCache_magic",      file);
+  loadFromFile(ovserrbits, "overlapCache_ovserrbits", file);
+  loadFromFile(ovshngbits, "overlapCache_ovshngbits", file);
 
   if (magic != ovlCacheMagic)
     writeStatus("OverlapCache()-- ERROR:  File '%s' isn't a bogart ovlCache.\n", name), exit(1);
 
-  AS_UTL_safeRead(file, &_memLimit,    "overlapCache_memLimit",    sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_memReserved, "overlapCache_memReserved", sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_memAvail,    "overlapCache_memAvail",    sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_memStore,    "overlapCache_memStore",    sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_memOlaps,    "overlapCache_memOlaps",    sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_maxPer,      "overlapCache_maxPer",      sizeof(uint32), 1);
+  loadFromFile(_memLimit,    "overlapCache_memLimit",    file);
+  loadFromFile(_memReserved, "overlapCache_memReserved", file);
+  loadFromFile(_memAvail,    "overlapCache_memAvail",    file);
+  loadFromFile(_memStore,    "overlapCache_memStore",    file);
+  loadFromFile(_memOlaps,    "overlapCache_memOlaps",    file);
+  loadFromFile(_maxPer,      "overlapCache_maxPer",      file);
 
   _overlaps   = new BAToverlap * [RI->numReads() + 1];
   _overlapLen = new uint32       [RI->numReads() + 1];
   _overlapMax = new uint32       [RI->numReads() + 1];
 
-  AS_UTL_safeRead(file, _overlapLen, "overlapCache_len", sizeof(uint32), RI->numReads() + 1);
-  AS_UTL_safeRead(file, _overlapMax, "overlapCache_max", sizeof(uint32), RI->numReads() + 1);
+  loadFromFile(_overlapLen, "overlapCache_len", RI->numReads() + 1, file);
+  loadFromFile(_overlapMax, "overlapCache_max", RI->numReads() + 1, file);
 
   for (uint32 rr=0; rr<RI->numReads() + 1; rr++) {
     if (_overlapLen[rr] == 0)
@@ -1009,7 +1009,7 @@ OverlapCache::load(void) {
     _overlaps[rr] = new BAToverlap [ _overlapMax[rr] ];
     memset(_overlaps[rr], 0xff, sizeof(BAToverlap) * _overlapMax[rr]);
 
-    AS_UTL_safeRead(file, _overlaps[rr], "overlapCache_ovl", sizeof(BAToverlap), _overlapLen[rr]);
+    loadFromFile(_overlaps[rr], "overlapCache_ovl", _overlapLen[rr], file);
 
     assert(_overlaps[rr][0].a_iid == rr);
   }
@@ -1038,22 +1038,22 @@ OverlapCache::save(void) {
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
   uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
 
-  AS_UTL_safeWrite(file, &magic,        "overlapCache_magic",       sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &ovserrbits,   "overlapCache_ovserrbits",  sizeof(uint32), 1);
-  AS_UTL_safeWrite(file, &ovshngbits,   "overlapCache_ovshngbits",  sizeof(uint32), 1);
+  writeToFile(magic,        "overlapCache_magic",       file);
+  writeToFile(ovserrbits,   "overlapCache_ovserrbits",  file);
+  writeToFile(ovshngbits,   "overlapCache_ovshngbits",  file);
 
-  AS_UTL_safeWrite(file, &_memLimit,    "overlapCache_memLimit",    sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_memReserved, "overlapCache_memReserved", sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_memAvail,    "overlapCache_memAvail",    sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_memStore,    "overlapCache_memStore",    sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_memOlaps,    "overlapCache_memOlaps",    sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_maxPer,      "overlapCache_maxPer",      sizeof(uint32), 1);
+  writeToFile(_memLimit,    "overlapCache_memLimit",    file);
+  writeToFile(_memReserved, "overlapCache_memReserved", file);
+  writeToFile(_memAvail,    "overlapCache_memAvail",    file);
+  writeToFile(_memStore,    "overlapCache_memStore",    file);
+  writeToFile(_memOlaps,    "overlapCache_memOlaps",    file);
+  writeToFile(_maxPer,      "overlapCache_maxPer",      file);
 
-  AS_UTL_safeWrite(file,  _overlapLen,  "overlapCache_len",         sizeof(uint32), RI->numReads() + 1);
-  AS_UTL_safeWrite(file,  _overlapMax,  "overlapCache_max",         sizeof(uint32), RI->numReads() + 1);
+  writeToFile(_overlapLen,  "overlapCache_len",         RI->numReads() + 1, file);
+  writetoFile(_overlapMax,  "overlapCache_max",         RI->numReads() + 1, file);
 
   for (uint32 rr=0; rr<RI->numReads() + 1; rr++)
-    AS_UTL_safeWrite(file,  _overlaps[rr],   "overlapCache_ovl", sizeof(BAToverlap), _overlapLen[rr]);
+    writeToFile(_overlaps[rr],   "overlapCache_ovl", _overlapLen[rr], file);
 
   AS_UTL_closeFile(file, name);
 #endif

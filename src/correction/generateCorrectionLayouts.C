@@ -65,13 +65,8 @@ loadThresholds(sqStore *seqStore,
   uint32   numReads   = seqStore->sqStore_getNumReads();
   uint16  *olapThresh = new uint16 [numReads + 1];
 
-  if (scoreName != NULL) {
-    FILE *S = AS_UTL_openInputFile(scoreName);
-
-    AS_UTL_safeRead(S, olapThresh, "scores", sizeof(uint16), numReads + 1);
-
-    AS_UTL_closeFile(S, scoreName);
-  }
+  if (scoreName != NULL)
+    AS_UTL_loadFile(scoreName, olapThresh, numReads + 1);
 
   else {
     ovStoreHistogram  *ovlHisto = ovlStore->getHistogram();

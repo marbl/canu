@@ -62,95 +62,94 @@ AS_UTL_findBaseFileName(char *basename, const char *filename) {
 
 
 
-//  Provides a safe and reliable mechanism for reading / writing
-//  binary data.
-//
-//  Split writes/reads into smaller pieces, check the result of each
-//  piece.  Really needed by OSF1 (V5.1), useful on other platforms to
-//  be a little more friendly (big writes are usually not
-//  interruptable).
-
 void
-AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj) {
-  size_t  position = 0;
-  size_t  length   = 32 * 1024 * 1024 / size;
-  size_t  towrite  = 0;
-  size_t  written  = 0;
+writeToFile(void        *objects,
+            const char  *description,
+            uint64       objectSize,
+            uint64       nObjects,
+            FILE        *file) {
 
-#ifdef VERIFY_WRITE_POSITIONS
-  off_t   expectedposition = AS_UTL_ftell(file) + nobj * size;
-  if (errno)
-    //  If we return, and errno is set, the stream isn't seekable.
-    expectedposition = 0;
-#endif
+  uint64  nWritten  = 0;
+  uint64  blockSize = (uint64)32 * 1024 * 1024 / objectSize;
 
-  while (position < nobj) {
-    towrite = length;
-    if (position + towrite > nobj)
-      towrite = nobj - position;
+  //  We previously split the write into 32MB chunks.  Comments indicated this
+  //  was needed for OSF1 (V5.1).  In testing, certainly FreeBSD 11 isn't happy
+  //  writing 16 GB of data at once; it seems to truncate to 32-bit somewhere.
+
+  while (nWritten < nObjects) {
+    uint64  toWrite = min(blockSize, nObjects - nWritten);
 
     errno = 0;
-    written = fwrite(((char *)buffer) + position * size, size, towrite, file);
+    uint64 written = fwrite(((char *)objects) + nWritten * objectSize, objectSize, toWrite, file);
+    nWritten += written;
 
-    if (errno) {
-      fprintf(stderr, "safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
-      fprintf(stderr, "safeWrite()-- Wanted to write " F_SIZE_T " objects (size=" F_SIZE_T "), wrote " F_SIZE_T ".\n",
-              towrite, size, written);
-      assert(errno == 0);
-    }
-
-    position += written;
+    if (errno)
+      fprintf(stderr, "writeToFile()-- After writing %lu out of %lu '%s' objects (%lu bytes each): %s\n",
+              nWritten, nObjects, description, objectSize, strerror(errno)), exit(1);
   }
 
-  //  This catches a bizarre bug on FreeBSD (6.1 for sure, 4.10 too, I
-  //  think) where we write at the wrong location; see fseek below.
-  //
-  //  UNFORTUNATELY, you can't ftell() on stdio.
-  //
-#ifdef VERIFY_WRITE_POSITIONS
-  if ((expectedposition > 0) &&
-      (AS_UTL_ftell(file) != expectedposition)) {
-    fprintf(stderr, "safeWrite()-- EXPECTED " F_OFF_T ", ended up at " F_OFF_T "\n",
-            expectedposition, AS_UTL_ftell(file));
-    assert(AS_UTL_ftell(file) == expectedposition);
-  }
-#endif
+  if (nWritten != nObjects)
+    fprintf(stderr, "writeToFile()-- After writing %lu out of %lu '%s' objects (%lu bytes each): Short write\n",
+            nWritten, nObjects, description, objectSize), exit(1);
 }
 
 
-size_t
-AS_UTL_safeRead(FILE *file, void *buffer, const char *desc, size_t size, size_t nobj) {
-  size_t  position = 0;
-  size_t  length   = 32 * 1024 * 1024 / size;
-  size_t  toread   = 0;
-  size_t  written  = 0;  //  readen?
 
-  while (position < nobj) {
-    toread = length;
-    if (position + toread > nobj)
-      toread = nobj - position;
+uint64
+loadFromFile(void        *objects,
+             const char  *description,
+             uint64       objectSize,
+             uint64       nObjects,
+             FILE        *file,
+             bool         exact) {
+
+  uint64  nLoaded   = 0;
+  uint64  blockSize = (uint64)32 * 1024 * 1024 / objectSize;
+
+  //  Reading doesn't seem to have the same size problem that writing does, but
+  //  we still read in 32 MB chunks.
+
+  while (nLoaded < nObjects) {
+    uint64  toLoad = min(blockSize, nObjects - nLoaded);
 
     errno = 0;
-    written = fread(((char *)buffer) + position * size, size, toread, file);
-    position += written;
+    uint64 loaded = fread(((char *)objects) + nLoaded * objectSize, objectSize, toLoad, file);
+    nLoaded += loaded;
 
-    if (feof(file) || (written == 0))
-      goto finish;
+    //  If we've loaded all requested, return successfully.
 
-    if ((errno) && (errno != EINTR)) {
-      fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
-      fprintf(stderr, "safeRead()-- Wanted to read " F_SIZE_T " objects (size=" F_SIZE_T "), read " F_SIZE_T ".\n",
-              toread, size, written);
-      assert(errno == 0);
+    if (nLoaded == nObjects)
+      return(nLoaded);
+
+    //if (loaded == 0)   //  The original version also returned if nothing was read.  Why?
+    //  return(nLoaded);
+
+    //  If we've hit eof, return the partial load.  Some loads, like reading overlaps, read until
+    //  EOF, others should fail if a short read occurs.
+
+    if (feof(file)) {
+      if (exact == true) {
+        fprintf(stderr, "loadFromFile()-- After loading %lu out of %lu '%s' objects (%lu bytes each): End of file\n",
+                nLoaded, nObjects, description, objectSize);
+        exit(1);
+      }
+
+      return(nLoaded);
     }
+
+    //  If we've been interrupted, try again.
+
+    if (errno == EINTR)
+      continue;
+
+    //  But if we hit an error, fail.
+
+    if (errno)
+      fprintf(stderr, "loadFromFile()-- After loading %lu out of %lu '%s' objects (%lu bytes each): %s\n",
+              nLoaded, nObjects, description, objectSize, strerror(errno)), exit(1);
   }
 
- finish:
-  //  Just annoys developers.  Stop it.
-  //if (position != nobj)
-  //  fprintf(stderr, "AS_UTL_safeRead()--  Short read; wanted " F_SIZE_T " objects, read " F_SIZE_T " instead.\n",
-  //          nobj, position);
-  return(position);
+  return(nLoaded);
 }
 
 
@@ -671,7 +670,7 @@ AS_UTL_writeFastA(FILE  *f,
   vfprintf(f, h, ap);
   va_end(ap);
 
-  AS_UTL_safeWrite(f, o, "AS_UTL_writeFastA", sizeof(char), oi);
+  writeToFile(o, "AS_UTL_writeFastA::seq", oi, f);
 
   delete [] o;
 }
@@ -692,11 +691,11 @@ AS_UTL_writeFastQ(FILE  *f,
   vfprintf(f, h, ap);
   va_end(ap);
 
-  AS_UTL_safeWrite(f, s, "AS_UTL_writeFastQ", sizeof(char), sl);
+  writeToFile(s, "AS_UTL_writeFastQ::seq", sl, f);
   fprintf(f, "\n");
 
   fprintf(f, "+\n");
-  AS_UTL_safeWrite(f, q, "AS_UTL_writeFastQ", sizeof(char), ql);
+  writeToFile(q, "AS_UTL_writeFastQ::qlt", ql, f);
   fprintf(f, "\n");
 }
 
@@ -722,11 +721,11 @@ AS_UTL_writeFastQ(FILE  *f,
   vfprintf(f, h, ap);
   va_end(ap);
 
-  AS_UTL_safeWrite(f, s, "AS_UTL_writeFastQ", sizeof(char), sl);
+  writeToFile(s, "AS_UTL_writeFastQ::seq", sl, f);
   fprintf(f, "\n");
 
   fprintf(f, "+\n");
-  AS_UTL_safeWrite(f, o, "AS_UTL_writeFastQ", sizeof(char), ql);
+  writeToFile(o, "AS_UTL_writeFastQ::qlt", ql, f);
   fprintf(f, "\n");
 
   delete [] o;

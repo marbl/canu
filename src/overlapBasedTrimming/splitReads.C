@@ -346,7 +346,7 @@ main(int argc, char **argv) {
 
     //  Log the solution.
 
-    AS_UTL_safeWrite(reportFile, w->logMsg, "logMsg", sizeof(char), strlen(w->logMsg));
+    writeToFile(w->logMsg, "logMsg", strlen(w->logMsg), reportFile);
 
     //  Save the solution....
 

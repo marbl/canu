@@ -393,7 +393,7 @@ writeBuffer::writeToDisk(void *data, uint64 length) {
     return;
 
   open();
-  AS_UTL_safeWrite(_file, data, "writeBuffer::writeToDisk", 1, length);
+  writeToFile(data, "writeBuffer::writeToDisk", length, _file);
 }
 
 

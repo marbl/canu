@@ -56,15 +56,15 @@ sqStore_loadBlobFromStream(FILE *file) {
   //  Ideally, we'd do one read to get the whole blob.  Without knowing
   //  the length, we're forced to do two.
 
-  AS_UTL_safeRead(file,  tag,  "sqStore::sqStore_loadDataFromFile::blob", sizeof(int8),   4);
-  AS_UTL_safeRead(file, &size, "sqStore::sqStore_loadDataFromFile::size", sizeof(uint32), 1);
+  loadFromFile(tag,  "sqStore::sqStore_loadDataFromFile::blob", 4, file);
+  loadFromFile(size, "sqStore::sqStore_loadDataFromFile::size",    file);
 
   uint8 *blob = new uint8 [8 + size];
 
   memcpy(blob,    tag,  sizeof(uint8)  * 4);
   memcpy(blob+4, &size, sizeof(uint32) * 1);
 
-  AS_UTL_safeRead(file, blob+8, "sqStore::sqStore_loadDataFromFile::blob", sizeof(uint8), size);
+  loadFromFile(blob+8, "sqStore::sqStore_loadDataFromFile::blob", size, file);
 
   return(blob);
 }
@@ -164,7 +164,7 @@ sqStore::sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData)
   //  Mark this as a read.  Needed for tgTig::loadFromStreamOrLayout(), and loading this stuff in
   //  utgcns.
 
-  AS_UTL_safeRead(S, tag, "sqStore::sqStore_loadReadFromStream::tag", sizeof(char), 4);
+  loadFromFile(tag, "sqStore::sqStore_loadReadFromStream::tag", 4, S);
 
   if (strncmp(tag, "READ", 4) != 0)
     fprintf(stderr, "Failed to load sqRead, got tag '%c%c%c%c' (0x%02x 0x%02x 0x%02x 0x%02x), expected 'READ'.\n",
@@ -173,7 +173,7 @@ sqStore::sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData)
 
   //  Load the read metadata
 
-  AS_UTL_safeRead(S, read, "sqStore::sqStore_loadReadFromStream::read", sizeof(sqRead), 1);
+  loadFromFile(read, "sqStore::sqStore_loadReadFromStream::read", S);
 
   //  Load the read data.
   //
@@ -220,8 +220,8 @@ sqStore::sqStore_saveReadToStream(FILE *S, uint32 id) {
   //  Write the blob to the stream
 
   fprintf(S, "READ");
-  AS_UTL_safeWrite(S, read, "sqStore::sqStore_saveReadToStream::read", sizeof(sqRead), 1);
-  AS_UTL_safeWrite(S, blob, "sqStore::sqStore_saveReadToStream::blob", sizeof(uint8),  blobLen);
+  writeToFile(read, "sqStore::sqStore_saveReadToStream::read",          S);
+  writeToFile(blob, "sqStore::sqStore_saveReadToStream::blob", blobLen, S);
 
   //  And cleanup.
 

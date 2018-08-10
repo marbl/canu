@@ -69,14 +69,14 @@ public:
   void   writeResult(FILE *W) {
     if (W == NULL)
       return;
-    AS_UTL_safeWrite(W, this, "merTrimResult", sizeof(mertrimResult), 1);
+    writeToFile(this, "merTrimResult", W);
   };
 
   bool   readResult(FILE *R) {
     if (R == NULL)
       return(false);
     if (!feof(R))
-      AS_UTL_safeRead(R, this, "merTrimResult", sizeof(mertrimResult), 1);
+      loadFromFile(this, "merTrimResult", R);
     return(feof(R) == false);
   };
 

@@ -156,7 +156,7 @@ kmerCountFileWriter::~kmerCountFileWriter() {
     char  *idxname = constructBlockName(_outName, ii, _numFiles, 0, true);
     FILE  *idxfile = AS_UTL_openOutputFile(idxname);
 
-    AS_UTL_safeWrite(idxfile, _datFileIndex[ii], "", sizeof(kmerCountFileIndex), _numBlocks);
+    writeToFile(_datFileIndex[ii], "kmerCountFileWriter::fileIndex", _numBlocks, idxfile);
 
     AS_UTL_closeFile(idxfile, idxname);
 

@@ -203,16 +203,16 @@ sqStore::sqStore(char const    *storePath,
 
   FILE *F = AS_UTL_openInputFile(nameI);
 
-  AS_UTL_safeRead(F, &_numberOfPartitions, "sqStore::_numberOfPartitions", sizeof(uint32), 1);
+  loadFromFile(_numberOfPartitions, "sqStore::_numberOfPartitions", F);
 
   _partitionID            = partID;
   _readsPerPartition      = new uint32 [_numberOfPartitions   + 1];  //  No zeroth element in any of these
   _readIDtoPartitionID    = new uint32 [sqStore_getNumReads() + 1];
   _readIDtoPartitionIdx   = new uint32 [sqStore_getNumReads() + 1];
 
-  AS_UTL_safeRead(F, _readsPerPartition,    "sqStore::_readsPerPartition",    sizeof(uint32), _numberOfPartitions   + 1);
-  AS_UTL_safeRead(F, _readIDtoPartitionID,  "sqStore::_readIDtoPartitionID",  sizeof(uint32), sqStore_getNumReads() + 1);
-  AS_UTL_safeRead(F, _readIDtoPartitionIdx, "sqStore::_readIDtoPartitionIdx", sizeof(uint32), sqStore_getNumReads() + 1);
+  loadFromFile(_readsPerPartition,    "sqStore::_readsPerPartition",    _numberOfPartitions   + 1, F);
+  loadFromFile(_readIDtoPartitionID,  "sqStore::_readIDtoPartitionID",  sqStore_getNumReads() + 1, F);
+  loadFromFile(_readIDtoPartitionIdx, "sqStore::_readIDtoPartitionIdx", sqStore_getNumReads() + 1, F);
 
   AS_UTL_closeFile(F, nameI);
 
@@ -405,7 +405,7 @@ sqStore::sqStore_deletePartitions(void) {
 
   FILE *F = AS_UTL_openInputFile(path);
 
-  AS_UTL_safeRead(F, &_numberOfPartitions, "sqStore_deletePartitions::numberOfPartitions", sizeof(uint32), 1);
+  loadFromFile(_numberOfPartitions, "sqStore_deletePartitions::numberOfPartitions", F);
 
   AS_UTL_closeFile(F, path);
 

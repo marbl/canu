@@ -69,15 +69,15 @@ public:
 
       FILE  *F = AS_UTL_openInputFile(_fileName);
 
-      AS_UTL_safeRead(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
+      loadFromFile(_lastID, "clearRangeFile::lastID", F);
 
       assert(seq->sqStore_getNumReads() == _lastID);  //  Sane?
 
       _bgn = new uint32 [_lastID + 1];
       _end = new uint32 [_lastID + 1];
 
-      AS_UTL_safeRead(F,  _bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
-      AS_UTL_safeRead(F,  _end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
+      loadFromFile(_bgn, "clearRangeFile::bgn", _lastID+1, F);
+      loadFromFile(_end, "clearRangeFile::end", _lastID+1, F);
 
       AS_UTL_closeFile(F, _fileName);
     }
@@ -90,10 +90,10 @@ public:
     if (_modified == true) {
       FILE  *F = AS_UTL_openOutputFile(_fileName);
 
-      AS_UTL_safeWrite(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
+      writeToFile(_lastID, "clearRangeFile::lastID", F);
 
-      AS_UTL_safeWrite(F,  _bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
-      AS_UTL_safeWrite(F,  _end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
+      writeToFile(_bgn, "clearRangeFile::bgn", _lastID + 1, F);
+      writeToFile(_end, "clearRangeFile::end", _lastID + 1, F);
 
       AS_UTL_closeFile(F, _fileName);
     }

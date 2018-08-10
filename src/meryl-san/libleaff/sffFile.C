@@ -134,7 +134,7 @@ sffFile::openFile(const char *name) {
   }
 
   uint32  magic_number = 0;
-  AS_UTL_safeRead(F, &magic_number, "sff magic_number", sizeof(uint32), 1);
+  loadFromFile(magic_number, "sff magic_number", F);
 
   fclose(F);
 

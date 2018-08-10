@@ -96,29 +96,29 @@ public:
   void    loadConfig(const char *configName) {
     FILE *C = AS_UTL_openInputFile(configName);
 
-    AS_UTL_safeRead(C, &_maxID,      "maxID",      sizeof(uint32), 1);
-    AS_UTL_safeRead(C, &_numBuckets, "numBuckets", sizeof(uint32), 1);
-    AS_UTL_safeRead(C, &_numSlices,  "numSlices",  sizeof(uint32), 1);
-    AS_UTL_safeRead(C, &_sortMemory, "sortMemory", sizeof(double), 1);
-    AS_UTL_safeRead(C, &_numInputs,  "numInputs",  sizeof(uint32), 1);
+    loadFromFile(_maxID,      "maxID",      C);
+    loadFromFile(_numBuckets, "numBuckets", C);
+    loadFromFile(_numSlices,  "numSlices",  C);
+    loadFromFile(_sortMemory, "sortMemory", C);
+    loadFromFile(_numInputs,  "numInputs",  C);
 
     _inputNames = new char * [_numInputs];
 
     for (uint32 ii=0; ii<_numInputs; ii++) {
       uint32  nl = 0;
 
-      AS_UTL_safeRead(C, &nl, "nameLen", sizeof(uint32), 1);
+      loadFromFile(nl, "nameLen", C);
 
       _inputNames[ii] = new char [nl+1];
 
-      AS_UTL_safeRead(C, _inputNames[ii], "name", sizeof(char), nl+1);
+      loadFromFile(_inputNames[ii], "name", nl+1, C);
     }
 
     _inputToBucket = new uint32 [_numInputs];
     _readToSlice   = new uint16 [_maxID+1];
 
-    AS_UTL_safeRead(C, _inputToBucket, "inputToBucket", sizeof(uint32), _numInputs);
-    AS_UTL_safeRead(C, _readToSlice,   "readToSlice",   sizeof(uint16), _maxID+1);
+    loadFromFile(_inputToBucket, "inputToBucket", _numInputs, C);
+    loadFromFile(_readToSlice,   "readToSlice",   _maxID+1,   C);
 
     AS_UTL_closeFile(C, configName);
   };
@@ -126,21 +126,21 @@ public:
   void    writeConfig(const char *configName) {
     FILE *C = AS_UTL_openOutputFile(configName);
 
-    AS_UTL_safeWrite(C, &_maxID,      "maxID",      sizeof(uint32), 1);
-    AS_UTL_safeWrite(C, &_numBuckets, "numBuckets", sizeof(uint32), 1);
-    AS_UTL_safeWrite(C, &_numSlices,  "numSlices",  sizeof(uint32), 1);
-    AS_UTL_safeWrite(C, &_sortMemory, "sortMemory", sizeof(double), 1);
-    AS_UTL_safeWrite(C, &_numInputs,  "numInputs",  sizeof(uint32), 1);
+    writeToFile(_maxID,      "maxID",      C);
+    writeToFile(_numBuckets, "numBuckets", C);
+    writeToFile(_numSlices,  "numSlices",  C);
+    writeToFile(_sortMemory, "sortMemory", C);
+    writeToFile(_numInputs,  "numInputs",  C);
 
     for (uint32 ii=0; ii<_numInputs; ii++) {
       uint32 nl = strlen(_inputNames[ii]);
 
-      AS_UTL_safeWrite(C, &nl,             "nameLen", sizeof(uint32), 1);
-      AS_UTL_safeWrite(C, _inputNames[ii], "name",    sizeof(char),   nl+1);
+      writeToFile(nl,              "nameLen",       C);
+      writeToFile(_inputNames[ii], "name",    nl+1, C);
     }
 
-    AS_UTL_safeWrite(C, _inputToBucket, "inputToBucket", sizeof(uint32), _numInputs);
-    AS_UTL_safeWrite(C, _readToSlice,   "readToSlice",   sizeof(uint16), _maxID+1);
+    writeToFile(_inputToBucket, "inputToBucket", _numInputs, C);
+    writeToFile(_readToSlice,   "readToSlice",   _maxID + 1, C);
 
     AS_UTL_closeFile(C, configName);
 

@@ -105,9 +105,9 @@ public:
 
     FILE   *F = AS_UTL_openOutputFile(_name);
 
-    AS_UTL_safeWrite(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint64), 1);
-    AS_UTL_safeWrite(F, &_oprMax, "ovStoreHistogram::nr",  sizeof(uint32), 1);
-    AS_UTL_safeWrite(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprMax);
+    writeToFile(_nOlaps, "ovStoreHistogram::nr",           F);
+    writeToFile(_oprMax, "ovStoreHistogram::nr",           F);
+    writeToFile(_opr,    "ovStoreHistogram::opr", _oprMax, F);
 
     fclose(F);
 
@@ -176,11 +176,11 @@ public:
 
     FILE   *F = AS_UTL_openInputFile(name);
 
-    AS_UTL_safeRead(F, &_nOlaps, "ovStoreHistogram::nr",  sizeof(uint64), 1);
-    AS_UTL_safeRead(F, &_oprMax, "ovStoreHistogram::nr",  sizeof(uint32), 1);
-    AS_UTL_safeRead(F,  _opr,    "ovStoreHistogram::opr", sizeof(uint32), _oprMax);
+    loadFromFile(_nOlaps, "ovStoreHistogram::nr",           F);
+    loadFromFile(_oprMax, "ovStoreHistogram::nr",           F);
+    loadFromFile(_opr,    "ovStoreHistogram::opr", _oprMax, F);
 
-    fclose(F);
+    AS_UTL_closeFile(F, name);
   };
 
   ~ovFileOCR() {
@@ -260,7 +260,7 @@ private:
   uint32                  _bufferMax;    //  allocated size of the buffer
   uint32                 *_buffer;
 
-  size_t                  _snappyLen;
+  uint64                  _snappyLen;
   char                   *_snappyBuffer;
 
   bool                    _isOutput;     //  if true, we can writeOverlap()

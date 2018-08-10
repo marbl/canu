@@ -258,7 +258,7 @@ main(int argc, char **argv) {
   }
 
   if (scoreFile)
-    AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint16), seqStore->sqStore_getNumReads() + 1);
+    writeToFile(scores, "scores", seqStore->sqStore_getNumReads() + 1, scoreFile);
 
   AS_UTL_closeFile(scoreFile, scoreFileName);
   AS_UTL_closeFile(logFile,   logFileName);

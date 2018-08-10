@@ -48,9 +48,6 @@ using namespace std;
 
 void    AS_UTL_findBaseFileName(char *basename, const char *filename);
 
-void    AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj);
-size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_t size, size_t nobj);
-
 bool    AS_UTL_readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F);
 
 void    AS_UTL_mkdir(const char *dirname);
@@ -103,7 +100,7 @@ void    AS_UTL_loadFile(char const *prefix, char separator, char const *suffix, 
     exit(1);
   }
 
-  AS_UTL_safeRead(file, objects, "", sizeof(OBJ), numberToLoad);
+  loadFromFile(objects, "loadFile", numberToLoad, file);
 
   AS_UTL_closeFile(file, prefix, separator, suffix);
 }
@@ -117,7 +114,7 @@ template<typename OBJ>
 void    AS_UTL_saveFile(char const *prefix, char separator, char const *suffix, OBJ *objects, uint64 numberToWrite) {
   FILE    *file = AS_UTL_openOutputFile(prefix, separator, suffix);
 
-  AS_UTL_safeWrite(file, objects, "", sizeof(OBJ), numberToWrite);
+  writeToFile(objects, "saveFile", numberToWrite, file);
 
   AS_UTL_closeFile(file, prefix, separator, suffix);
 }
@@ -126,6 +123,61 @@ template<typename OBJ>
 void    AS_UTL_saveFile(char const *prefix, OBJ *objects, uint64 numberToWrite) {
   AS_UTL_saveFile(prefix, '.', NULL, objects, numberToWrite);
 }
+
+
+
+
+
+
+
+
+uint64
+loadFromFile(void        *objects,
+             const char  *description,
+             uint64       objectSize,
+             uint64       nObjects,
+             FILE        *file,
+             bool         exact=true);
+
+template<typename OBJ>
+uint64
+loadFromFile(OBJ *array, const char *description, uint64 nObjects, FILE *file, bool exact=true) {
+  return(loadFromFile(array, description, sizeof(OBJ), nObjects, file, exact));
+}
+
+template<typename OBJ>
+uint64
+loadFromFile(OBJ &object, const char *description, FILE *file, bool exact=true) {
+  return(loadFromFile(&object, description, sizeof(OBJ), 1, file, exact));
+}
+
+
+
+
+
+void
+writeToFile(void        *objects,
+            const char  *description,
+            uint64       objectSize,
+            uint64       nObjects,
+            FILE        *file);
+
+template<typename OBJ>
+void
+writeToFile(OBJ *array, const char *description, uint64 nObjects, FILE *file) {
+  writeToFile(array, description, sizeof(OBJ), nObjects, file);
+}
+
+template<typename OBJ>
+void
+writeToFile(OBJ &object, const char *description, FILE *file) {
+  writeToFile(&object, description, sizeof(OBJ), 1, file);
+}
+
+
+
+
+
 
 
 

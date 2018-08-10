@@ -139,15 +139,15 @@ sqStore::sqStore_buildPartitions(uint32 *partitionMap) {
 
     FILE *blobFile = _blobsFiles[omp_get_thread_num()].getFile(_storePath, &_reads[fi]);  //  NOTE!  _storePath for original data!
 
-    AS_UTL_safeRead(blobFile,  tag,     "sqStore::sqStore_buildPartitions::tag",     sizeof(int8),   4);
-    AS_UTL_safeRead(blobFile, &blobLen, "sqStore::sqStore_buildPartitions::blobLen", sizeof(uint32), 1);
+    loadFromFile(tag,     "sqStore::sqStore_buildPartitions::tag",     4, blobFile);
+    loadFromFile(blobLen, "sqStore::sqStore_buildPartitions::blobLen",    blobFile);
 
     uint8 *blob     = new uint8 [8 + blobLen];
 
     memcpy(blob,    tag,     sizeof(uint8)  * 4);
     memcpy(blob+4, &blobLen, sizeof(uint32) * 1);
 
-    AS_UTL_safeRead(blobFile, blob+8, "sqStore::sqStore_buildPartitions::blob", sizeof(char), blobLen);
+    loadFromFile(blob+8, "sqStore::sqStore_buildPartitions::blob", blobLen, blobFile);
 
     assert(blob[0] == 'B');
     assert(blob[1] == 'L');
@@ -169,8 +169,8 @@ sqStore::sqStore_buildPartitions(uint32 *partitionMap) {
 
     //  Write the data.
 
-    AS_UTL_safeWrite(partfiles[pi], blob, "sqRead::sqRead_buildPartitions::blob", sizeof(char), blobLen + 8);
-    AS_UTL_safeWrite(readfiles[pi], &partRead, "sqStore::sqStore_buildPartitions::read", sizeof(sqRead), 1);
+    writeToFile(blob,     "sqRead::sqRead_buildPartitions::blob",   blobLen + 8, partfiles[pi]);
+    writeToFile(partRead, "sqStore::sqStore_buildPartitions::read",              readfiles[pi]);
 
     delete [] blob;
 
@@ -184,10 +184,10 @@ sqStore::sqStore_buildPartitions(uint32 *partitionMap) {
 
   //  There isn't a zeroth read.
 
-  AS_UTL_safeWrite(mapFile, &maxPartition,  "sqStore::sqStore_buildPartitions::maxPartition", sizeof(uint32), 1);
-  AS_UTL_safeWrite(mapFile,  readfileslen,  "sqStore::sqStore_buildPartitions::readfileslen", sizeof(uint32), maxPartition + 1);
-  AS_UTL_safeWrite(mapFile,  partitionMap,  "sqStore::sqStore_buildPartitions::partitionMap", sizeof(uint32), sqStore_getNumReads() + 1);
-  AS_UTL_safeWrite(mapFile,  readIDmap,     "sqStore::sqStore_buildPartitions::readIDmap",    sizeof(uint32), sqStore_getNumReads() + 1);
+  writeToFile(maxPartition,  "sqStore::sqStore_buildPartitions::maxPartition",                            mapFile);
+  writeToFile(readfileslen,  "sqStore::sqStore_buildPartitions::readfileslen", maxPartition + 1,          mapFile);
+  writeToFile(partitionMap,  "sqStore::sqStore_buildPartitions::partitionMap", sqStore_getNumReads() + 1, mapFile);
+  writeToFile(readIDmap,     "sqStore::sqStore_buildPartitions::readIDmap",    sqStore_getNumReads() + 1, mapFile);
 
   //  cleanup -- close all the files, delete storage
 

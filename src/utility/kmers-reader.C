@@ -137,7 +137,7 @@ kmerCountFileReader::loadBlockIndex(void) {
     char  *idxname = constructBlockName(_inName, ii, _numFiles, 0, true);
     FILE  *idxfile = AS_UTL_openInputFile(idxname);
 
-    AS_UTL_safeRead(idxfile, _blockIndex + _numBlocks * ii , "", sizeof(kmerCountFileIndex), _numBlocks);
+    loadFromFile(_blockIndex + _numBlocks * ii, "kmerCountFileReader::blockIndex", _numBlocks, idxfile);
 
     AS_UTL_closeFile(idxfile, idxname);
 

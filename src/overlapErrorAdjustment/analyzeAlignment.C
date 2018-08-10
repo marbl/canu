@@ -544,7 +544,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
           skippedInsTooMany);
 
   if (corFile)
-    AS_UTL_safeWrite(corFile, _cor, "corrections", sizeof(Correction_Output_t), _corLen);
+    writeToFile(_cor, "corrections", _corLen, corFile);
 }
 
 

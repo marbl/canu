@@ -117,9 +117,9 @@ ovStore::addEvalues(vector<char *> &fileList) {
 
     FILE *E = AS_UTL_openInputFile(fileList[ii]);
 
-    AS_UTL_safeRead(E, &emap[ii]._bgnID, "bgnID", sizeof(uint32), 1);
-    AS_UTL_safeRead(E, &emap[ii]._endID, "endID", sizeof(uint32), 1);
-    AS_UTL_safeRead(E, &emap[ii]._Nolap, "Nolap", sizeof(uint64), 1);
+    loadFromFile(emap[ii]._bgnID, "bgnID", E);
+    loadFromFile(emap[ii]._endID, "endID", E);
+    loadFromFile(emap[ii]._Nolap, "Nolap", E);
 
     AS_UTL_closeFile(E);
 
@@ -151,7 +151,7 @@ ovStore::addEvalues(vector<char *> &fileList) {
 
     AS_UTL_loadFile(emap[ii]._name, ev, emap[ii]._Nolap + 8);
 
-    AS_UTL_safeWrite(EO, ev + 8, "evalues", sizeof(uint16), emap[ii]._Nolap);
+    writeToFile(ev + 8, "evalues", emap[ii]._Nolap, EO);
 
     delete [] ev;
 

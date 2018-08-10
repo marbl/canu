@@ -567,9 +567,9 @@ tgStore::numTigsInMASRfile(char *name) {
 
   FILE *F = AS_UTL_openInputFile(name);
 
-  AS_UTL_safeRead(F, &MASRmagicInFile,   "MASRmagic",   sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &MASRversionInFile, "MASRversion", sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &MASRtotalInFile,   "MASRtotal",   sizeof(uint32), 1);
+  loadFromFile(MASRmagicInFile,   "MASRmagic",   F);
+  loadFromFile(MASRversionInFile, "MASRversion", F);
+  loadFromFile(MASRtotalInFile,   "MASRtotal",   F);
 
   AS_UTL_closeFile(F, name);
 
@@ -595,9 +595,9 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
 
   FILE *F = AS_UTL_openOutputFile(_name);
 
-  AS_UTL_safeWrite(F, &MASRmagic,   "MASRmagic",   sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &MASRversion, "MASRversion", sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &L,           "MASRtotal",   sizeof(uint32), 1);
+  writeToFile(MASRmagic,   "MASRmagic",   F);
+  writeToFile(MASRversion, "MASRversion", F);
+  writeToFile(L,           "MASRtotal",   F);
 
   uint32  indxLen = 0;
 
@@ -605,9 +605,9 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
 
   //  The max isn't written.  On load, max is set to length.
 
-  AS_UTL_safeWrite(F, &indxLen, "MASRindexLen", sizeof(uint32),       1);
-  AS_UTL_safeWrite(F, &L,       "MASRlen",      sizeof(uint32),       1);
-  AS_UTL_safeWrite(F,  R,       "MASR",         sizeof(tgStoreEntry), L);
+  writeToFile(indxLen, "MASRindexLen",    F);
+  writeToFile(L,       "MASRlen",         F);
+  writeToFile(R,       "MASR",         L, F);
 
   AS_UTL_closeFile(F, _name);
 }
@@ -653,11 +653,11 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
   uint32        indxLen = 0;
   uint32        masrLen = 0;
 
-  AS_UTL_safeRead(F, &MASRmagicInFile,   "MASRmagic",   sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &MASRversionInFile, "MASRversion", sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &MASRtotalInFile,   "MASRtotal",   sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &indxLen,           "MASRindxLen", sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &masrLen,           "MASRmasrLen", sizeof(uint32), 1);
+  loadFromFile(MASRmagicInFile,   "MASRmagic",   F);
+  loadFromFile(MASRversionInFile, "MASRversion", F);
+  loadFromFile(MASRtotalInFile,   "MASRtotal",   F);
+  loadFromFile(indxLen,           "MASRindxLen", F);
+  loadFromFile(masrLen,           "MASRmasrLen", F);
 
   if (MASRmagicInFile != MASRmagic) {
     fprintf(stderr, "tgStore::loadMASR()-- Failed to open '%s': magic number mismatch; file=0x%08x code=0x%08x\n",
@@ -676,7 +676,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
     fprintf(stderr, "tgStore::loadMASR()-- '%s' has more tigs (" F_U32 ") than expected (" F_U32 ").\n",
             _name, MASRtotalInFile, L), exit(1);
 
-  AS_UTL_safeRead(F,  R, "MASR", sizeof(tgStoreEntry), masrLen);
+  loadFromFile(R, "MASR", masrLen, F);
 
   AS_UTL_closeFile(F, _name);
 }

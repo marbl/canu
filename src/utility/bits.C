@@ -110,11 +110,11 @@ stuffedBits::~stuffedBits() {
 void
 stuffedBits::dumpToFile(FILE *F) {
 
-  AS_UTL_safeWrite(F, &_dataBlockLenMax, "dataBlockLenMax", sizeof(uint64), 1);
-  AS_UTL_safeWrite(F, &_dataBlocksLen,   "dataBlocksLen",   sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &_dataBlocksMax,   "dataBlocksMax",   sizeof(uint32), 1);
-  AS_UTL_safeWrite(F,  _dataBlockBgn,    "dataBlockBgn",    sizeof(uint64), _dataBlocksLen);
-  AS_UTL_safeWrite(F,  _dataBlockLen,    "dataBlockLen",    sizeof(uint64), _dataBlocksLen);
+  writeToFile(_dataBlockLenMax, "dataBlockLenMax", F);
+  writeToFile(_dataBlocksLen,   "dataBlocksLen",   F);
+  writeToFile(_dataBlocksMax,   "dataBlocksMax",   F);
+  writeToFile(_dataBlockBgn,    "dataBlockBgn",    _dataBlocksLen, F);
+  writeToFile(_dataBlockLen,    "dataBlockLen",    _dataBlocksLen, F);
 
   for (uint32 ii=0; ii<_dataBlocksLen; ii++) {
     uint64  nWordsToWrite = _dataBlockLen[ii] / 64 + (((_dataBlockLen[ii] % 64) == 0) ? 0 : 1);
@@ -122,7 +122,7 @@ stuffedBits::dumpToFile(FILE *F) {
     
     assert(nWordsToWrite <= nWordsAllocd);
 
-    AS_UTL_safeWrite(F, _dataBlocks[ii], "dataBlocks", sizeof(uint64), nWordsToWrite);
+    writeToFile(_dataBlocks[ii], "dataBlocks", nWordsToWrite, F);
   }
 }
 
@@ -141,9 +141,9 @@ stuffedBits::loadFromFile(FILE *F) {
   //  Try to load the new parameters into temporary storage, so we can
   //  compare against what have already allocated.
 
-  nLoad += AS_UTL_safeRead(F, &inLenMax, "dataBlockLenMax", sizeof(uint64), 1);  //  Max length of each block.
-  nLoad += AS_UTL_safeRead(F, &inLen,    "dataBlocksLen",   sizeof(uint32), 1);  //  Number of blocks stored.
-  nLoad += AS_UTL_safeRead(F, &inMax,    "dataBlocksMax",   sizeof(uint32), 1);  //  Number of blocks allocated.
+  nLoad += ::loadFromFile(inLenMax, "dataBlockLenMax", F, false);  //  Max length of each block.
+  nLoad += ::loadFromFile(inLen,    "dataBlocksLen",   F, false);  //  Number of blocks stored.
+  nLoad += ::loadFromFile(inMax,    "dataBlocksMax",   F, false);  //  Number of blocks allocated.
 
   if (nLoad != 3)
     return(false);
@@ -179,8 +179,8 @@ stuffedBits::loadFromFile(FILE *F) {
 
   //  Load the data.
 
-  AS_UTL_safeRead(F,  _dataBlockBgn,  "dataBlockBgn",  sizeof(uint64), _dataBlocksLen);
-  AS_UTL_safeRead(F,  _dataBlockLen,  "dataBlockLen",  sizeof(uint64), _dataBlocksLen);
+  ::loadFromFile(_dataBlockBgn,  "dataBlockBgn", _dataBlocksLen, F);
+  ::loadFromFile(_dataBlockLen,  "dataBlockLen", _dataBlocksLen, F);
 
   for (uint32 ii=0; ii<_dataBlocksLen; ii++) {
     uint64  nWordsToRead  = _dataBlockLen[ii] / 64 + (((_dataBlockLen[ii] % 64) == 0) ? 0 : 1);
@@ -191,7 +191,7 @@ stuffedBits::loadFromFile(FILE *F) {
     if (_dataBlocks[ii] == NULL)
       _dataBlocks[ii] = new uint64 [nWordsAllocd];
 
-    AS_UTL_safeRead(F, _dataBlocks[ii], "dataBlocks", sizeof(uint64), nWordsToRead);
+    ::loadFromFile(_dataBlocks[ii], "dataBlocks", nWordsToRead, F);
 
     memset(_dataBlocks[ii] + nWordsToRead, 0, sizeof(uint64) * (nWordsAllocd - nWordsToRead));
   }

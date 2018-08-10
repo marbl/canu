@@ -385,21 +385,21 @@ tgTig::saveToStream(FILE *F) {
   tgTigRecord  tr = *this;
   char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
 
-  AS_UTL_safeWrite(F,  tag, "tgTig::saveToStream::tigr", sizeof(char), 4);
-  AS_UTL_safeWrite(F, &tr,  "tgTig::saveToStream::tr",   sizeof(tgTigRecord), 1);
+  writeToFile(tag, "tgTig::saveToStream::tigr", 4, F);
+  writeToFile(tr,  "tgTig::saveToStream::tr",      F);
 
   //  We could save the null byte too, but don't.  It's explicitly added during the load.
 
   if (_gappedLen > 0) {
-    AS_UTL_safeWrite(F, _gappedBases, "tgTig::saveToStream::gappedBases", sizeof(char), _gappedLen);
-    AS_UTL_safeWrite(F, _gappedQuals, "tgTig::saveToStream::gappedQuals", sizeof(char), _gappedLen);
+    writeToFile(_gappedBases, "tgTig::saveToStream::gappedBases", _gappedLen, F);
+    writeToFile(_gappedQuals, "tgTig::saveToStream::gappedQuals", _gappedLen, F);
   }
 
   if (_childrenLen > 0)
-    AS_UTL_safeWrite(F, _children, "tgTig::saveToStream::children", sizeof(tgPosition), _childrenLen);
+    writeToFile(_children, "tgTig::saveToStream::children", _childrenLen, F);
 
   if (_childDeltasLen > 0)
-    AS_UTL_safeWrite(F, _childDeltas, "tgTig::saveToStream::childDeltas", sizeof(int32), _childDeltasLen);
+    writeToFile(_childDeltas, "tgTig::saveToStream::childDeltas", _childDeltasLen, F);
 }
 
 
@@ -416,7 +416,7 @@ tgTig::loadFromStream(FILE *F) {
 
   tgTigRecord  tr;
 
-  if (4 != AS_UTL_safeRead(F, tag, "tgTig::saveToStream::tigr", sizeof(char), 4)) {
+  if (4 != loadFromFile(tag, "tgTig::saveToStream::tigr", 4, F, false)) {
     fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
     return(false);
   }
@@ -431,7 +431,7 @@ tgTig::loadFromStream(FILE *F) {
     return(false);
   }
 
-  if (0 == AS_UTL_safeRead(F, &tr, "tgTig::loadFromStream::tr", sizeof(tgTigRecord), 1)) {
+  if (0 == loadFromFile(tr, "tgTig::loadFromStream::tr", F, false)) {
     fprintf(stderr, "tgTig::loadFromStream()-- failed to read tgTigRecord: %s\n", strerror(errno));
     return(false);
   }
@@ -443,8 +443,8 @@ tgTig::loadFromStream(FILE *F) {
   resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen + 1, resizeArray_doNothing);
 
   if (_gappedLen > 0) {
-    AS_UTL_safeRead(F, _gappedBases, "tgTig::loadFromStream::gappedBases", sizeof(char), _gappedLen);
-    AS_UTL_safeRead(F, _gappedQuals, "tgTig::loadFromStream::gappedQuals", sizeof(char), _gappedLen);
+    loadFromFile(_gappedBases, "tgTig::loadFromStream::gappedBases", _gappedLen, F);
+    loadFromFile(_gappedQuals, "tgTig::loadFromStream::gappedQuals", _gappedLen, F);
 
     _gappedBases[_gappedLen] = 0;
     _gappedQuals[_gappedLen] = 0;
@@ -456,10 +456,10 @@ tgTig::loadFromStream(FILE *F) {
   resizeArray(_childDeltas, 0, _childDeltasMax, _childDeltasLen, resizeArray_doNothing);
 
   if (_childrenLen > 0)
-    AS_UTL_safeRead(F, _children, "tgTig::savetoStream::children", sizeof(tgPosition), _childrenLen);
+    loadFromFile(_children, "tgTig::savetoStream::children", _childrenLen, F);
 
   if (_childDeltasLen > 0)
-    AS_UTL_safeRead(F, _childDeltas, "tgTig::loadFromStream::childDeltas", sizeof(int32), _childDeltasLen);
+    loadFromFile(_childDeltas, "tgTig::loadFromStream::childDeltas", _childDeltasLen, F);
 
   //  Return success.
 

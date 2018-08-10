@@ -110,18 +110,18 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 
   FILE *F = AS_UTL_openInputFile(name);
 
-  AS_UTL_safeRead(F, &_maxID, "ovStoreHistogram::maxID", sizeof(uint32), 1);
+  loadFromFile(_maxID, "ovStoreHistogram::maxID", F);
 
   //  Data for overlapsPerEvalueLength
 
   uint32  nArr = 0;
   uint32 *aArr = new uint32 [AS_MAX_EVALUE + 1];
 
-  AS_UTL_safeRead(F, &_opelLen, "ovStoreHistogram::opelLen", sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &_epb,     "ovStoreHistogram::epb",     sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &_bpb,     "ovStoreHistogram::bpb",     sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &nArr,     "ovStoreHistogram::nArr",    sizeof(uint32), 1);
-  AS_UTL_safeRead(F,  aArr,     "ovStoreHistogram::nArr",    sizeof(uint32), nArr);
+  loadFromFile(_opelLen, "ovStoreHistogram::opelLen",       F);
+  loadFromFile(_epb,     "ovStoreHistogram::epb",           F);
+  loadFromFile(_bpb,     "ovStoreHistogram::bpb",           F);
+  loadFromFile(nArr,     "ovStoreHistogram::nArr",          F);
+  loadFromFile(aArr,     "ovStoreHistogram::nArr",    nArr, F);
 
   allocateArray(_opel, AS_MAX_EVALUE+1, resizeArray_clearNew);
 
@@ -129,21 +129,21 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
     _opel[aArr[ii]] = new uint32 [_opelLen];
 
   for (uint32 ii=0; ii<nArr; ii++ )
-    AS_UTL_safeRead(F, _opel[aArr[ii]], "ovStoreHistogram::evalueLen", sizeof(uint32), _opelLen);
+    loadFromFile(_opel[aArr[ii]], "ovStoreHistogram::evalueLen", _opelLen, F);
 
   delete [] aArr;
 
   //  Data for overlapsScores
 
-  AS_UTL_safeRead(F, &_scoresBaseID, "ovStoreHistogram::scoresBaseID", sizeof(uint32), 1);
-  AS_UTL_safeRead(F, &_scoresLastID, "ovStoreHistogram::scoresBaseID", sizeof(uint32), 1);
+  loadFromFile(_scoresBaseID, "ovStoreHistogram::scoresBaseID", F);
+  loadFromFile(_scoresLastID, "ovStoreHistogram::scoresBaseID", F);
 
   _scoresAlloc = _scoresLastID - _scoresBaseID + 1;
   _scores      = new oSH_ovlSco [_scoresAlloc];
 
-  AS_UTL_safeRead(F,  _scores,       "ovStoreHistogram::scores",       sizeof(oSH_ovlSco), _scoresAlloc);
+  loadFromFile(_scores,       "ovStoreHistogram::scores",       _scoresAlloc, F);
 
-  AS_UTL_closeFile(F);
+  AS_UTL_closeFile(F, name);
 }
 
 
@@ -186,7 +186,7 @@ ovStoreHistogram::saveHistogram(char *prefix) {
 
   //  Save all the parameters.
 
-  AS_UTL_safeWrite(F, &_maxID, "ovStoreHistogram::maxID", sizeof(uint32), 1);
+  writeToFile(_maxID, "ovStoreHistogram::maxID", F);
 
   //  Data for overlapsPerEvalueLength
 
@@ -197,14 +197,14 @@ ovStoreHistogram::saveHistogram(char *prefix) {
     if ((_opel != NULL) && (_opel[ii] != NULL))
       aArr[nArr++] = ii;
 
-  AS_UTL_safeWrite(F, &_opelLen, "ovStoreHistogram::opelLen", sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &_epb,     "ovStoreHistogram::epb",     sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &_bpb,     "ovStoreHistogram::bpb",     sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &nArr,     "ovStoreHistogram::nArr",    sizeof(uint32), 1);
-  AS_UTL_safeWrite(F,  aArr,     "ovStoreHistogram::nArr",    sizeof(uint32), nArr);
+  writeToFile(_opelLen, "ovStoreHistogram::opelLen",       F);
+  writeToFile(_epb,     "ovStoreHistogram::epb",           F);
+  writeToFile(_bpb,     "ovStoreHistogram::bpb",           F);
+  writeToFile(nArr,     "ovStoreHistogram::nArr",          F);
+  writeToFile(aArr,     "ovStoreHistogram::nArr",    nArr, F);
 
   for (uint32 ii=0; ii<nArr; ii++)
-    AS_UTL_safeWrite(F, _opel[aArr[ii]], "ovStoreHistogram::evalueLen", sizeof(uint32), _opelLen);
+    writeToFile(_opel[aArr[ii]], "ovStoreHistogram::evalueLen", _opelLen, F);
 
   delete [] aArr;
 
@@ -213,9 +213,9 @@ ovStoreHistogram::saveHistogram(char *prefix) {
   if (_scores)          //  Process the data for the last read added!
     processScores();
 
-  AS_UTL_safeWrite(F, &_scoresBaseID, "ovStoreHistogram::scoresBaseID", sizeof(uint32), 1);
-  AS_UTL_safeWrite(F, &_scoresLastID, "ovStoreHistogram::scoresLastID", sizeof(uint32), 1);
-  AS_UTL_safeWrite(F,  _scores,       "ovStoreHistogram::scores",       sizeof(oSH_ovlSco), _scoresLastID - _scoresBaseID + 1);
+  writeToFile(_scoresBaseID, "ovStoreHistogram::scoresBaseID", F);
+  writeToFile(_scoresLastID, "ovStoreHistogram::scoresLastID", F);
+  writeToFile(_scores,       "ovStoreHistogram::scores",       _scoresLastID - _scoresBaseID + 1, F);
 
   //  That's it!
 
