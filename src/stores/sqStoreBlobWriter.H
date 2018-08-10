@@ -39,6 +39,9 @@ public:
 
     strncpy(_storePath, storePath, FILENAME_MAX);
 
+    _writtenBC   = blobNumber;
+    _writtenBP   = 0;
+
     _bufferCount = blobNumber;
     _buffer      = NULL;
 
