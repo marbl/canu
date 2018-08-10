@@ -441,7 +441,7 @@ sqReadData::sqReadData_loadFromBlob(uint8 *blob) {
   if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
     fprintf(stderr, "Index error in read " F_U32 " mSegm " F_U64 " mByte " F_U64 " mPart " F_U64 " expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
             _read->sqRead_readID(),
-            _read->_mSegm, _read->_mByte, _read->_mPart,
+            _read->sqRead_mSegm(), _read->sqRead_mByte(), _read->sqRead_mPart(),
             blob[0], blob[1], blob[2], blob[3],
             blob[0], blob[1], blob[2], blob[3]);
   assert(blob[0] == 'B');
