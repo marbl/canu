@@ -46,7 +46,6 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
   _Kbits         = kmer::merSize() * 2;
 
   _prefixBits    = 0;                               //  Bits of the kmer used as an index into the table.
-
   _suffixBits    = 0;                               //  Width of an entry in the suffix table.
   _valueBits     = 0;                               //  (also in the suffix table)
 
@@ -55,10 +54,16 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
 
   _valueOffset   = minValue - 1;                    //  "1" stored in the data is really "minValue" to the user.
 
+  _suffixMask    = 0;
+  _dataMask      = 0;
+
   _nPrefix       = 0;                               //  Number of entries in pointer table.
   _nSuffix       = input->stats()->numDistinct();   //  Number of entries in suffix dable.
 
   _prePtrBits    = logBaseTwo64(_nSuffix);          //  Width of an entry in the prefix table.
+
+  _suffixStart   = NULL;
+  _suffixData    = NULL;
 
   //  If maxValue isn't set, ask the input what the largest count is.
   //  Then set the valueBits needed to hold those values.
