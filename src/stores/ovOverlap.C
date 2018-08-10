@@ -180,6 +180,10 @@ ovOverlap::fromString(splitToWords          &W,
     case ovOverlapAsPaf:
       break;
   }
+
+#warning NEEDS TO RETURN FALSE IF FAILED TO DECODE OVERLAP STRING
+
+  return(true);
 }
 
 
