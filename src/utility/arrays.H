@@ -65,16 +65,20 @@ template<typename TT, typename LL>
 void
 duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax), bool forceAlloc=false) {
 
+  if (fr == NULL)
+    assert(frLen == 0);
+
   if ((toMax < frLen) || (forceAlloc)) {
     delete [] to;
 
-    toLen = frLen;
-    toMax = toLen;
-
-    to = new TT [toMax];
+    toMax = frLen;
+    to    = new TT [toMax];
   }
 
-  memcpy(to, fr, sizeof(TT) * toLen);
+  toLen = frLen;
+
+  if (frLen > 0)
+    memcpy(to, fr, sizeof(TT) * frLen);
 }
 
 
