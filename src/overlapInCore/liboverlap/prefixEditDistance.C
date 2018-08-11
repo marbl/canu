@@ -40,8 +40,11 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   MIN_BRANCH_END_DIST    = 20;
   MIN_BRANCH_TAIL_SLOPE  = ((maxErate > 0.06) ? 1.0 : 0.20);
 
-  Left_Delta  = new int  [MAX_ERRORS];
-  Right_Delta = new int  [MAX_ERRORS];
+  Left_Delta_Len  = 0;
+  Left_Delta      = new int  [MAX_ERRORS];
+
+  Right_Delta_Len = 0;
+  Right_Delta     = new int  [MAX_ERRORS];
 
   allocated  = 3 * MAX_ERRORS * sizeof(int);
 
