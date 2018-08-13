@@ -340,7 +340,7 @@ checkRead(Unitig                    *tgA,
     bool    expected5     = false;
     bool    expected3     = false;
     bool    tooSmall      = false;
-    bool    isContained   = false;
+    bool    isContained   = false;  //  Never used?
     bool    noOverlaps    = false;
     bool    notSimilar    = false;
 
