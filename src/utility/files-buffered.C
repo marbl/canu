@@ -393,7 +393,7 @@ writeBuffer::writeToDisk(void *data, uint64 length) {
     return;
 
   open();
-  writeToFile(data, "writeBuffer::writeToDisk", length, _file);
+  writeToFile((char *)data, "writeBuffer::writeToDisk", length, _file);
 }
 
 
