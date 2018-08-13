@@ -46,7 +46,6 @@ using namespace std;
 int
 main(int argc, char **argv) {
   char                  *seqStoreName = NULL;
-  sqStore               *seqStore = NULL;
 
   char                  *ovlFileName = NULL;
   char                  *ovlStoreName = NULL;
@@ -199,8 +198,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  if (seqStoreName)
-    seqStore = sqStore::sqStore_open(seqStoreName);
+  sqStore       *seqStore = sqStore::sqStore_open(seqStoreName);
 
   char          *S     = new char [1024];
   splitToWords   W;
