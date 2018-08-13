@@ -245,6 +245,8 @@ OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
 
   uint64  totalOlaps = ovlStore->numOverlapsInRange();
 
+  assert(totalOlaps > 0);
+
   uint64  olapLoad   = 0;  //  Total overlaps we would load at this threshold
   uint64  olapMem    = 0;
 
