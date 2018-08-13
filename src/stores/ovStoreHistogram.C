@@ -208,10 +208,15 @@ ovStoreHistogram::saveHistogram(char *prefix) {
 
   delete [] aArr;
 
-  //  Data for overlapsScores
+  //  Data for overlapsScores - there's no apparent guard against getting here with
+  //  _scores == NULL, and, if so, we write one element from the NULL pointer.
+  //  Are _scores always set?  Do we just not saveHistogram() when scores don't exist?
+  //  Not sure.
 
   if (_scores)          //  Process the data for the last read added!
     processScores();
+
+  assert(_scores != NULL);
 
   writeToFile(_scoresBaseID, "ovStoreHistogram::scoresBaseID", F);
   writeToFile(_scoresLastID, "ovStoreHistogram::scoresLastID", F);
