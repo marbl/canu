@@ -27,6 +27,34 @@
 
 
 
+uint64
+scaledNumber(uint64 n, uint32 div) {
+
+  if (n > 9999)   n /= div;
+  if (n > 9999)   n /= div;
+  if (n > 9999)   n /= div;
+  if (n > 9999)   n /= div;
+  if (n > 9999)   n /= div;
+
+  return(n);
+}
+
+
+char
+scaledUnit(uint64 n, uint32 div) {
+  char u = ' ';
+
+  if (n > 9999)  {  n /= div; u = 'k';  }
+  if (n > 9999)  {  n /= div; u = 'M';  }
+  if (n > 9999)  {  n /= div; u = 'G';  }
+  if (n > 9999)  {  n /= div; u = 'T';  }
+  if (n > 9999)  {  n /= div; u = 'P';  }
+
+  return(u);
+}
+
+
+
 bool
 decodeBoolean(char *value) {
   bool ret = false;

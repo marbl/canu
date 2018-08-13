@@ -15,7 +15,7 @@
  */
 
 #include "meryl.H"
-
+#include "strings.H"
 
 //  Define this, for testing, to skip reading input sequence into outpout merylData
 //  files - i.e., only do the merge at the end.  Helps if you also turn off
@@ -29,33 +29,6 @@
 //  The number of bits to use for a merylCountArray segment.
 #define SEGMENT_SIZE  8192 * 64
 
-
-
-uint64
-scaledNumber(uint64 n, uint32 div=1024) {
-
-  if (n > 9999)   n /= div;
-  if (n > 9999)   n /= div;
-  if (n > 9999)   n /= div;
-  if (n > 9999)   n /= div;
-  if (n > 9999)   n /= div;
-
-  return(n);
-}
-
-
-char
-scaledUnit(uint64 n, uint32 div=1024) {
-  char u = ' ';
-
-  if (n > 9999)  {  n /= div; u = 'k';  }
-  if (n > 9999)  {  n /= div; u = 'M';  }
-  if (n > 9999)  {  n /= div; u = 'G';  }
-  if (n > 9999)  {  n /= div; u = 'T';  }
-  if (n > 9999)  {  n /= div; u = 'P';  }
-
-  return(u);
-}
 
 
 uint64                                     //  Output: Estimated memory size in bytes
