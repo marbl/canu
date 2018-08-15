@@ -446,6 +446,8 @@ kmerCountFileWriter::finishIteration(void) {
   else {
     _stats.clear();
 
+    fprintf(stderr, "finishIteration()--  Merging %u blocks.\n", _iteration);
+
 #pragma omp parallel for
     for (uint32 oi=0; oi<_numFiles; oi++)
       mergeIterations(oi);
@@ -459,7 +461,7 @@ kmerCountFileWriter::mergeIterations(uint32 oi) {
   kmerCountFileReaderBlock    inBlocks[_iteration + 1];
   FILE                       *inFiles [_iteration + 1];
 
-  {
+  if (0) {
     char  *fileName = constructBlockName(_outName, oi, _numFiles, 0, false);
 
     fprintf(stderr, "thread %2u merges file %s with prefixes 0x%016lx to 0x%016lx\n",
@@ -621,6 +623,12 @@ kmerCountFileWriter::mergeIterations(uint32 oi) {
   for (uint32 ii=1; ii <= _iteration; ii++)
     removeBlock(_outName, oi, _numFiles, ii);
 
-  fprintf(stderr, "thread %2u merged file %2u with prefixes 0x%016lx to 0x%016lx - %lu input kmers %lu output kmers\n",
-          omp_get_thread_num(), oi, firstPrefixInFile(oi), lastPrefixInFile(oi), kmersIn, kmersOut);
+  if (0) {
+    char  *fileName = constructBlockName(_outName, oi, _numFiles, 0, false);
+
+    fprintf(stderr, "thread %2u merged file %s with prefixes 0x%016lx to 0x%016lx - %lu input kmers %lu output kmers\n",
+            omp_get_thread_num(), fileName, firstPrefixInFile(oi), lastPrefixInFile(oi), kmersIn, kmersOut);
+
+    delete [] fileName;
+  }
 }
