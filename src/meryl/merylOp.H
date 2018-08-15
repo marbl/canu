@@ -88,6 +88,10 @@ private:
   void    clearInputs(void);
   void    checkInputs(const char *name);
 
+  uint64  guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence);
+  uint64  guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 endID);
+  uint64  guesstimateNumberOfkmersInInput(void);
+
 public:
   void    addInput(merylOperation *operation);
   void    addInput(kmerCountFileReader *reader);
@@ -147,6 +151,8 @@ public:
   void    reportHistogram(void);
 
   static
+  void    onlyConfigure(void)               { _onlyConfig   = true;       };
+  static
   void    showProgress(void)                { _showProgress = true;       };
   static
   void    increaseVerbosity(void) {
@@ -188,6 +194,7 @@ private:
   uint64                         _count;
   bool                           _valid;
 
+  static bool                    _onlyConfig;
   static bool                    _showProgress;
   static merylVerbosity          _verbosity;
 };

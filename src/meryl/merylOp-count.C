@@ -16,6 +16,7 @@
 
 #include "meryl.H"
 #include "strings.H"
+#include "system.H"
 
 //  Define this, for testing, to skip reading input sequence into outpout merylData
 //  files - i.e., only do the merge at the end.  Helps if you also turn off
@@ -27,12 +28,12 @@
 
 
 //  The number of bits to use for a merylCountArray segment.
-#define SEGMENT_SIZE  8192 * 64
+#define SEGMENT_SIZE  (64 * 1024 * 8 - 256)
 
 
 
-uint64                                     //  Output: Estimated memory size in bytes
-estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in bytes
+void
+estimateSizes(uint64   memoryAllowed,      //  Input:  Maximum allowed memory in bytes
               uint64   nKmerEstimate,      //  Input:  Estimated number of kmers in the input
               uint32   merSize,            //  Input:  Size of kmer
               uint32  &wPrefix_,           //  Output: Number of bits in the prefix (== bucket address)
@@ -40,7 +41,7 @@ estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in
               uint32  &wData_,             //  Output: Number of bits in kmer data
               uint64  &wDataMask_) {       //  Output: A mask to return just the data of the mer
 
-  uint64   minMemory = UINT64_MAX;
+  uint64   memoryUsed = UINT64_MAX;
   uint32   minPrefix = 0;
 
   //
@@ -58,8 +59,8 @@ estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in
     uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE / 8;
     uint64  totalMemory      = structMemory + dataMemory;
 
-    if ((wp >= 3) && (totalMemory - 16 * 1024 * 1024 < minMemory)) {
-      minMemory  = totalMemory;
+    if ((wp >= 3) && (totalMemory - 16 * 1024 * 1024 < memoryUsed)) {
+      memoryUsed  = totalMemory;
       minPrefix  = wp;
     }
   }
@@ -93,7 +94,6 @@ estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in
             scaledNumber(dataMemory),     scaledUnit(dataMemory),
             scaledNumber(totalMemory),    scaledUnit(totalMemory));
 
-    //if ((wp >= 3) && (totalMemory < minMemory))
     if (wp == minPrefix) {
       fprintf(stderr, "  Best Value!\n");
 
@@ -106,34 +106,62 @@ estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in
       fprintf(stderr, "\n");
     }
 
-    if (totalMemory > 4 * minMemory)
+    if (totalMemory > 4 * memoryUsed)
       break;
   }
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Expecting to use " F_U64 " %cB memory to count " F_U64 " million " F_U32 "-mers.\n",
-          scaledNumber(minMemory), scaledUnit(minMemory),
+          scaledNumber(memoryUsed), scaledUnit(memoryUsed),
           nKmerEstimate / 1000000, merSize);
   fprintf(stderr, "\n");
 
-  uint32  nOutputs = minMemory / maxMemory + 1;
+  //  Oddly named variables.
+  //    memoryAllowed - the maximum amount of memory the user is letting us use
+  //    memoryUsed    - the expected memory needed to count these kmers in one block
+  //
+  //  Thus, we'll need to write 'memoryUsed / memoryAllowed' chunks of output.  But since we're guessing,
+  //  make it a little fuzzy in the log.
 
-  if (nOutputs > 32) {
-    fprintf(stderr, "WARNING:\n");
-    fprintf(stderr, "WARNING: Cannot fit into memory limit %.3f GB.\n", maxMemory / 1024.0 / 1024.0 / 1024.0);
-    fprintf(stderr, "WARNING: Will write %u outputs -- TOO MANY!\n", nOutputs);
-    fprintf(stderr, "WARNING:\n");
-    exit(1);
+  uint32  nOutputsI      = memoryUsed / memoryAllowed + 1;
+  double  nOutputsD      = (double)memoryUsed / memoryAllowed - (nOutputsI - 1);
+  char    batchString[64] = { 0 };
+
+  if      (nOutputsD < 0.2) {
+    nOutputsI += 0;
+    snprintf(batchString, 42, "split into up to %u (possibly %u)", nOutputsI-1, nOutputsI);
   }
 
-  if (nOutputs > 1) {
+  else if (nOutputsD < 0.8) {
+    nOutputsI += 0;
+    snprintf(batchString, 42, "split into up to %u", nOutputsI);
+  }
+
+  else {
+    nOutputsI += 1;
+    snprintf(batchString, 42, "split into up to %u (possibly %u)", nOutputsI, nOutputsI+1);
+  }
+
+
+  if (nOutputsI > 1) {
     fprintf(stderr, "WARNING:\n");
-    fprintf(stderr, "WARNING: Cannot fit into memory limit %.3f GB.\n", maxMemory / 1024.0 / 1024.0 / 1024.0);
-    fprintf(stderr, "WARNING: Will write %u outputs.\n", nOutputs);
+    fprintf(stderr, "WARNING: Cannot fit into " F_U64 " %cB memory limit.\n", scaledNumber(memoryAllowed), scaledUnit(memoryAllowed));
+    fprintf(stderr, "WARNING: Will %s batches, and merge them at the end.\n", batchString);
     fprintf(stderr, "WARNING:\n");
   }
 
-  return(minMemory);
+  if (nOutputsI > 32) {
+    fprintf(stderr, "WARNING: Large number of batches.  Increase memory for better performance.\n");
+    fprintf(stderr, "WARNING:\n");
+  }
+
+
+  //  This is parsed by Canu.  Do not change.
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Configured for %.3f GB memory using up to %u batches.\n",
+          ((memoryUsed < memoryAllowed) ? memoryUsed : memoryAllowed) / 1024.0 / 1024.0 / 1024.0,
+          nOutputsI);
+  fprintf(stderr, "\n");
 }
 
 
@@ -141,7 +169,7 @@ estimateSizes(uint64   maxMemory,          //  Input:  Maximum allowed memory in
 //  Return a complete guess at the number of kmers in the input files.  No
 //  rigorous went into the multipliers, just looked at a few sets of lambda reads.
 uint64
-guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence) {
+merylOperation::guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence) {
   uint64  numMers = 0;
   char   *name    = sequence->filename();
   uint32  len     = strlen(name);
@@ -168,7 +196,7 @@ guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence) {
 
 
 uint64
-guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 endID) {
+merylOperation::guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 endID) {
   uint64  numMers = 0;
 
   for (uint32 ii=bgnID; ii<endID; ii++)
@@ -178,15 +206,29 @@ guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 end
 }
 
 
+uint64
+merylOperation::guesstimateNumberOfkmersInInput(void) {
+  uint64  guess = 0;
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++) {
+    if (_inputs[ii]->isFromSequence())
+      guess += guesstimateNumberOfkmersInInput_dnaSeqFile(_inputs[ii]->_sequence);
+
+    if (_inputs[ii]->isFromStore())
+      guess += guesstimateNumberOfkmersInInput_sqStore(_inputs[ii]->_store, _inputs[ii]->_sqBgn, _inputs[ii]->_sqEnd);
+  }
+
+  return(guess);
+}
+
+
+
 void
 merylOperation::count(void) {
   uint64          bufferMax  = 1300000;
   uint64          bufferLen  = 0;
-  char           *buffer     = new char     [bufferMax];
+  char           *buffer     = new char [bufferMax];
   bool            endOfSeq   = false;
-
-  //uint64          kmersLen   = 0;
-  //kmerTiny       *kmers      = new kmerTiny [bufferMax];
 
   kmerTiny        fmer;
   kmerTiny        rmer;
@@ -198,17 +240,13 @@ merylOperation::count(void) {
   char            fstr[65];
   char            rstr[65];
 
+  memset(buffer, 0, sizeof(char) * bufferMax);
+
   if (fmer.merSize() == 0)
     fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
   if (_expNumKmers == 0) {
-    for (uint32 ii=0; ii<_inputs.size(); ii++) {
-      if (_inputs[ii]->isFromSequence())
-        _expNumKmers += guesstimateNumberOfkmersInInput_dnaSeqFile(_inputs[ii]->_sequence);
-
-      if (_inputs[ii]->isFromStore())
-        _expNumKmers += guesstimateNumberOfkmersInInput_sqStore(_inputs[ii]->_store, _inputs[ii]->_sqBgn, _inputs[ii]->_sqEnd);
-    }
+    _expNumKmers = guesstimateNumberOfkmersInInput();
   }
 
   if (_expNumKmers == 0)
@@ -239,6 +277,11 @@ merylOperation::count(void) {
 
   estimateSizes(_maxMemory, _expNumKmers, kmerSize, wPrefix, nPrefix, wData, wDataMask);
 
+  //  If we're only configuring, stop now.
+
+  if (_onlyConfig)
+    return;
+
   //  Configure the writer for the prefix bits we're counting with.
   //
   //  We split the kmer into wPrefix and wData (bits) pieces.
@@ -263,9 +306,9 @@ merylOperation::count(void) {
 
   //  Load bases, count!
 
-  uint32   memTest     = 0;
-  uint64   memUsed     = 0;
-  uint64   memReported = 0;
+  uint64   memBase     = getProcessSize();   //  Overhead memory.
+  uint64   memUsed     = 0;                  //  Sum of actual memory used.
+  uint64   memReported = 0;                  //  Memory usage at last report.
 
   uint64   kmersAdded  = 0;
 
@@ -280,8 +323,6 @@ merylOperation::count(void) {
 
     while (_inputs[ii]->loadBases(buffer, bufferMax, bufferLen, endOfSeq)) {
       //fprintf(stderr, "read " F_U64 " bases from '%s'\n", bufferLen, _inputs[ii]->_name);
-
-      //kmersLen = 0;
 
       for (uint64 bb=0; bb<bufferLen; bb++) {
         if ((buffer[bb] != 'A') && (buffer[bb] != 'a') &&   //  If not valid DNA, don't
@@ -329,29 +370,28 @@ merylOperation::count(void) {
 
       //  If we're out of space, process the data and dump.
 
-      memUsed = kmersAdded * wData;
+      memUsed = memBase;
+      for (uint32 pp=0; pp<nPrefix; pp++)
+        memUsed += data[pp]->usedSize();
 
-      //for (uint64 pp=0; pp<nPrefix; pp++)
-      //  memUsed += data[pp].numBits();
-
-      if (memUsed - memReported > (uint64)1 * 1024 * 1024 * 1024) {
+      if (memUsed - memReported > (uint64)128 * 1024 * 1024) {
         memReported = memUsed;
 
-        fprintf(stderr, "Used %.3f GB (%lu bits) out of %.3f GB.\n",
-                memUsed    / 8 / 1024.0 / 1024.0 / 1024.0,
-                memUsed,
-                _maxMemory     / 1024.0 / 1024.0 / 1024.0);
+        fprintf(stderr, "Used %3.3f GB out of %3.3f GB to store %12lu kmers.\n",
+                memUsed    / 1024.0 / 1024.0 / 1024.0,
+                _maxMemory / 1024.0 / 1024.0 / 1024.0,
+                kmersAdded);
       }
 
-      if (memUsed > _maxMemory * 8) {
-        fprintf(stderr, "\n");
+      if (memUsed > _maxMemory) {
         fprintf(stderr, "Memory full.  Writing results to '%s', using " F_S32 " threads.\n",
                 _output->filename(), omp_get_max_threads());
+        fprintf(stderr, "\n");
 
 #pragma omp parallel for schedule(dynamic, 1)
         for (uint32 ff=0; ff<_output->numberOfFiles(); ff++) {
-          fprintf(stderr, "thread %2u writes file %2u with prefixes 0x%016lx to 0x%016lx\n",
-                  omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
+          //fprintf(stderr, "thread %2u writes file %2u with prefixes 0x%016lx to 0x%016lx\n",
+          //        omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
 
           for (uint64 pp=_output->firstPrefixInFile(ff); pp <= _output->lastPrefixInFile(ff); pp++) {
             data[pp]->countKmers();                //  Convert the list of kmers into a list of (kmer, count).
@@ -359,7 +399,7 @@ merylOperation::count(void) {
             data[pp]->removeCountedKmers();        //  And remove the in-core data.
           }
         }
-          
+
         _output->incrementIteration();
 
         kmersAdded = 0;
@@ -393,8 +433,8 @@ merylOperation::count(void) {
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<_output->numberOfFiles(); ff++) {
-    fprintf(stderr, "thread %2u writes file %2u with prefixes 0x%016lx to 0x%016lx\n",
-            omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
+    //fprintf(stderr, "thread %2u writes file %2u with prefixes 0x%016lx to 0x%016lx\n",
+    //        omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
 
     for (uint64 pp=_output->firstPrefixInFile(ff); pp <= _output->lastPrefixInFile(ff); pp++) {
       data[pp]->countKmers();                //  Convert the list of kmers into a list of (kmer, count).

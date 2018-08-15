@@ -49,6 +49,7 @@ merylOperation::findSumCount(void) {
 
 bool
 merylOperation::initialize(bool isRoot) {
+  bool  proceed = true;
 
   //  If there is an output associated with this operation, and the operation
   //  isn't for counting (those initialize outputs differently), initialize
@@ -62,14 +63,20 @@ merylOperation::initialize(bool isRoot) {
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->initialize();
 
-  //  Finally, do any counting operations.
+  //  Finally, do any counting operations.  If the counting operation is
+  //  the root node, we don't need to proceed with the usual mer iteration.
 
   if (isCounting() == true)
-    return(nextMer_doCounting(isRoot));
+    proceed = nextMer_doCounting(isRoot);
 
-  //  Return true to start iteration of kmers.
+  //  Return true to start iteration of kmers, unless we're only configuring.
 
-  return(true);
+  if (_onlyConfig) {
+    fprintf(stderr, "Stopping after configuring operation '%s'.\n", toString(_operation));
+    proceed = false;
+  }
+
+  return(proceed);
 }
 
 
@@ -116,6 +123,11 @@ merylOperation::nextMer_doCounting(bool isRoot) {
   _operation = opPassThrough;
 
   addInput(new kmerCountFileReader(dataName));
+
+  //  And return true to start iteration of kmers, unless we're only configuring.
+
+  if (_onlyConfig)
+    return(false);
 
   return(true);
 }

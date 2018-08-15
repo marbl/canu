@@ -71,6 +71,7 @@ main(int argc, char **argv) {
   uint32                    segment        = 1;
   uint32                    segmentMax     = 1;
 
+
   vector<char *>  err;
   for (int32 arg=1; arg < argc; arg++) {
 
@@ -191,6 +192,11 @@ main(int argc, char **argv) {
 
     else if (strcmp(optString, "-P") == 0) {
       merylOperation::showProgress();
+      continue;
+    }
+
+    else if (strcmp(optString, "-C") == 0) {
+      merylOperation::onlyConfigure();
       continue;
     }
 

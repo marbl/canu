@@ -17,6 +17,7 @@
 #include "meryl.H"
 #include "sqStore.H"
 
+bool            merylOperation::_onlyConfig   = false;
 bool            merylOperation::_showProgress = false;
 merylVerbosity  merylOperation::_verbosity    = sayStandard;
 
