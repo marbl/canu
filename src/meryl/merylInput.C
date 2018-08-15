@@ -151,6 +151,8 @@ merylInput::~merylInput() {
   delete _operation;
   delete _sequence;
 
+  delete _readData;
+
   _store->sqStore_close();
 }
 
