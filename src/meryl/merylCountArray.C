@@ -26,7 +26,10 @@ merylCountArray::merylCountArray(uint64 prefix, uint32 width, uint32 segsize) {
 
   _nKmers      = 0;
 
-  _segSize     = segsize;
+  _bitsPerPage = getPageSize() * 8;
+  _nReAlloc    = 0;
+
+  _segSize     = segsize;// + segsize % _bitsPerPage;
   _segAlloc    = 0;
   _segments    = NULL;
 
@@ -56,6 +59,8 @@ merylCountArray::removeSegments(void) {
 
   delete [] _segments;                    //  Release the list of segments...
 
+  _nReAlloc  = 0;
+
   _segAlloc = 0;                          //  Don't forget to
   _segments = NULL;                       //  foret about it.
 
@@ -67,12 +72,14 @@ merylCountArray::removeSegments(void) {
 void
 merylCountArray::addSegment(uint32 seg) {
 
-  if (_segAlloc == 0)
-    resizeArray(_segments, _segAlloc, _segAlloc, 16, resizeArray_copyData | resizeArray_clearNew);
-
-  if (seg >= _segAlloc)
+  if (_segAlloc == 0) {
+    resizeArray(_segments, _segAlloc, _segAlloc, 32, resizeArray_copyData | resizeArray_clearNew);
+    _nReAlloc++;
+  }
+  if (seg >= _segAlloc) {
     resizeArray(_segments, _segAlloc, _segAlloc, 2 * _segAlloc, resizeArray_copyData | resizeArray_clearNew);
-
+    _nReAlloc++;
+  }
   assert(_segments[seg] == NULL);
 
   //if (seg > 0)
