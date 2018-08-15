@@ -45,6 +45,7 @@ uint64   getProcessSizeLimit(void);
 
 uint64   getPhysicalMemorySize(void);
 
+uint64   getPageSize(void);
 
 
 void  AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx);

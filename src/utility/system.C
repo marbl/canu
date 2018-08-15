@@ -132,8 +132,9 @@ getProcessSizeLimit(void) {
 }
 
 
-
 #ifdef HW_PHYSMEM
+
+//  MacOS, FreeBSD
 
 uint64
 getPhysicalMemorySize(void) {
@@ -161,6 +162,8 @@ getPhysicalMemorySize(void) {
 
 #else
 
+//  Linux, FreeBSD
+
 uint64
 getPhysicalMemorySize(void) {
   uint64  physPages  = sysconf(_SC_PHYS_PAGES);
@@ -171,3 +174,14 @@ getPhysicalMemorySize(void) {
 }
 
 #endif
+
+
+
+
+//  Return the size of a page of memory.  Every OS we care about (MacOS, FreeBSD, Linux)
+//  claims to have getpagesize().
+//    
+uint64
+getPageSize(void) {
+  return(getpagesize());
+}
