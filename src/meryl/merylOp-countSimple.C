@@ -69,7 +69,6 @@ merylOperation::countSimple(void) {
   //  count in the dataset.
   //  For 40x corrected human,  with 115 Gbp, the largest count is  25 million, 25 bits, 0.02% of the input.
   //  For 68x raw pacbio human, with 192 Gbp, the largest count is 152 million, 28 bits, 0.08% of the input.
-  //
 
   typedef uint16 lowBits_t;
 
@@ -78,10 +77,10 @@ merylOperation::countSimple(void) {
   uint32        highBitMax  = 0;
 
   uint64        nKmersGuess = guesstimateNumberOfkmersInInput();
-  uint64        expMaxCount = 0.002 * nKmersGuess;
+  uint64        expMaxCount = 0.004 * nKmersGuess;
 
-  uint64        expMemory   = (maxKmer * sizeof(lowBits_t) +                               //  Fixed data,   16-bits wide
-                               maxKmer * (logBaseTwo64(expMaxCount) - lowBitsSize) / 8);   //  Variable data, 1-bit  wide
+  uint64        expMemory   = (maxKmer * sizeof(lowBits_t) +                                   //  Fixed data,   16-bits wide
+                               maxKmer * (logBaseTwo64(expMaxCount) + 1 - lowBitsSize) / 8);   //  Variable data, 1-bit  wide
 
   fprintf(stderr, "\n");
   fprintf(stderr, "lowBitsSize %u\n", lowBitsSize);
@@ -159,7 +158,7 @@ merylOperation::countSimple(void) {
 
         //  If we can add one to the low bits, do it and get outta here.
 
-        if (lowBits[kidx] < 255) {
+        if (lowBits[kidx] < lowBitsMax) {
           lowBits[kidx]++;
           continue;
         }
@@ -175,9 +174,9 @@ merylOperation::countSimple(void) {
             highBits[hib].allocate(maxKmer);
           }
 
-          if (highBits[hib].flipBit(kidx) == 0) {   //  If not set, set it,
-            highBitMax = max(highBitMax, hib);      //  remember the possible maximum bit set,
-            break;                                  //  and stop.
+          if (highBits[hib].flipBit(kidx) == 0) {    //  If not set, set it,
+            highBitMax = max(highBitMax, hib + 1);   //  remember the possible maximum bit set,
+            break;                                   //  and stop.
           }
         }
       }
@@ -204,43 +203,79 @@ merylOperation::countSimple(void) {
 
   uint64                 sMask      = ((uint64)1 << wSuffix) - 1;
 
+  _output->initialize(wPrefix);
+
   fprintf(stderr, "\n");
   fprintf(stderr, "Writing results to '%s', using " F_S32 " threads.\n",
           _output->filename(), omp_get_max_threads());
+  fprintf(stderr, "  wPrefix  %u\n",  wPrefix);
+  fprintf(stderr, "  wSuffix  %u\n",  wSuffix);
+  fprintf(stderr, "  nPrefix  %lu\n", nPrefix);
+  fprintf(stderr, "  nSuffix  %lu\n", nSuffix);
+  fprintf(stderr, "  sMask    0x%016lx\n", sMask);
 
-  _output->initialize(wPrefix);
+#if 0
+  for (uint32 ff=0; ff<_output->numberOfFiles(); ff++) {
+    uint64  kStart   = (_output->firstPrefixInFile(ff) << wSuffix);
+    uint64  kEnd     = (_output->lastPrefixInFile(ff)  << wSuffix) | sMask;
+
+    fprintf(stderr, "file %2u with prefixes 0x%016lx to 0x%016lx for kmers 0x%016lx to 0x%016lx\n",
+            ff,
+            _output->firstPrefixInFile(ff),
+            _output->lastPrefixInFile(ff),
+            kStart,
+            kEnd);
+  }
+#endif
+
+  fprintf(stderr, "\n");
+
 
 #pragma omp parallel for
   for (uint32 ff=0; ff<_output->numberOfFiles(); ff++) {
-    fprintf(stderr, "thread %2u writes file %2u with prefixes 0x%016lx to 0x%016lx\n",
-            omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
+    uint64  bStart = (_output->firstPrefixInFile(ff));
+    uint64  bEnd   = (_output->lastPrefixInFile(ff));
 
-    uint64  bStart   = _output->firstPrefixInFile(ff);
-    uint64  bEnd     = _output->lastPrefixInFile(ff);
+    //fprintf(stderr, "thread %2u writes file %2u with prefixes 0x%016lx to 0x%016lx for kmers 0x%016lx to 0x%016lx\n",
+    //        omp_get_thread_num(), ff, bStart, bEnd,
+    //        (_output->firstPrefixInFile(ff) << wSuffix),
+    //        (_output->lastPrefixInFile(ff)  << wSuffix) | sMask);
 
     uint64  *sBlock  = new uint64 [nSuffix];
     uint32  *cBlock  = new uint32 [nSuffix];
-    uint64   nKmers  = 0;
+
+    //  Iterate over kmers that belong in this data file.  For each kmer, reconstruct the count
+    //  from our bit-sliced array, adding it to the list of kmers to output if it exists.
 
     for (uint64 bp=bStart; bp<=bEnd; bp++) {
-      uint32  count = 0;
+      uint64  kStart = (bp << wSuffix);
+      uint64  kEnd   = (bp << wSuffix) | sMask;
+      uint64  nKmers = 0;
 
-      for (uint32 aa=highBitMax+1; aa-- > 0; ) {    //  Reconstruct the count.
-        count <<= 1;
-        count  |= highBits[aa].getBit(bp);
+      //fprintf(stderr, "thread %2u writes file %2u - prefix 0x%016lx for kmers 0x%016lx to 0x%016lx\n",
+      //        omp_get_thread_num(), ff, bp, kStart, kEnd);
+
+      for (uint64 kk=kStart; kk<=kEnd; kk++) {
+        uint32  count = 0;
+
+        for (uint32 aa=highBitMax; aa-- > 0; ) {    //  Reconstruct the count.
+          count <<= 1;
+          count  |= highBits[aa].getBit(kk);
+        }
+
+        count <<= lowBitsSize;
+        count  |= lowBits[kk];
+
+        if (count > 0) {
+          sBlock[nKmers] = kk & sMask;
+          cBlock[nKmers] = count;
+          nKmers++;
+        }
       }
 
-      count <<= lowBitsSize;
-      count  |= lowBits[bp];
-
-      if (count > 0) {
-        sBlock[nKmers] = bp & sMask;
-        cBlock[nKmers] = count;
-        nKmers++;
-      }
+      //  With the kmers reconstructed, write this block of data to the file.
+      _output->addBlock(bp, nKmers, sBlock, cBlock);
     }
-
-    _output->addBlock(bStart, nKmers, sBlock, cBlock);
 
     delete [] sBlock;
     delete [] cBlock;
