@@ -111,9 +111,10 @@ estimateSizes(uint64   memoryAllowed,      //  Input:  Maximum allowed memory in
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Expecting to use " F_U64 " %cB memory to count " F_U64 " million " F_U32 "-mers.\n",
-          scaledNumber(memoryUsed), scaledUnit(memoryUsed),
-          nKmerEstimate / 1000000, merSize);
+  fprintf(stderr, "Expecting to use " F_U64 " %cB memory to count " F_U64 "%s " F_U32 "-mers.\n",
+          scaledNumber(memoryUsed),          scaledUnit(memoryUsed),
+          scaledNumber(nKmerEstimate, 1000), scaledName(nKmerEstimate, 1000),
+          merSize);
   fprintf(stderr, "\n");
 
   //  Oddly named variables.

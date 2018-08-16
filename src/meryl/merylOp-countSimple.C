@@ -83,18 +83,20 @@ merylOperation::countSimple(void) {
   uint64        expMemory   = (maxKmer * sizeof(lowBits_t) +                               //  Fixed data,   16-bits wide
                                maxKmer * (logBaseTwo64(expMaxCount) - lowBitsSize) / 8);   //  Variable data, 1-bit  wide
 
+  fprintf(stderr, "\n");
   fprintf(stderr, "lowBitsSize %u\n", lowBitsSize);
   fprintf(stderr, "lowBitsMax  %u\n", lowBitsMax);
   fprintf(stderr, "highBitMax  %u\n", highBitMax);
   fprintf(stderr, "nKmersGuess %lu\n", nKmersGuess);
-  fprintf(stderr, "expMaxCount %lu\n", expMaxCount);    //  24 bits needed
+  fprintf(stderr, "expMaxCount %lu\n", expMaxCount);
   fprintf(stderr, "expMemory   %lu\n", expMemory);
   fprintf(stderr, "maxKmer     %lu\n", maxKmer);
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Expecting to use " F_U64 " %cB memory to count " F_U64 " million " F_U32 "-mers.\n",
-          scaledNumber(expMemory), scaledUnit(expMemory),
-          maxKmer / 1000000, kmerSize);
+  fprintf(stderr, "Expecting to use " F_U64 " %cB memory to count " F_U64 "%s " F_U32 "-mers.\n",
+          scaledNumber(expMemory),         scaledUnit(expMemory),
+          scaledNumber(nKmersGuess, 1000), scaledName(nKmersGuess, 1000),
+          kmerSize);
   fprintf(stderr, "\n");
 
   //  If we're only configuring, stop now.
