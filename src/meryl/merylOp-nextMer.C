@@ -93,6 +93,12 @@ merylOperation::nextMer_doCounting(bool isRoot) {
   else
     count();
 
+  //  If we're only configuring, were done.  No need to convert this operation
+  //  to look like an input, etc, etc.
+
+  if (_onlyConfig)
+    return(false);
+
   //  Done with the inputs, so forget about them.
 
   clearInputs();
@@ -124,10 +130,7 @@ merylOperation::nextMer_doCounting(bool isRoot) {
 
   addInput(new kmerCountFileReader(dataName));
 
-  //  And return true to start iteration of kmers, unless we're only configuring.
-
-  if (_onlyConfig)
-    return(false);
+  //  Return true to start iteration of kmers.
 
   return(true);
 }
