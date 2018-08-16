@@ -253,7 +253,7 @@ merylOperation::count(void) {
   if (_expNumKmers == 0)
     fprintf(stderr, "ERROR: Estimate of number of kmers (-n) not supplied.\n"), exit(1);
 
-  if (_output == NULL)
+  if ((_output == NULL) && (_onlyConfig == false))
     fprintf(stderr, "ERROR: No output specified for count operation.\n"), exit(1);
 
   omp_set_num_threads(_maxThreads);

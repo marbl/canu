@@ -45,7 +45,7 @@ merylOperation::countSimple(void) {
   if (kmerSize == 0)
     fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
-  if (_output == NULL)
+  if ((_output == NULL) && (_onlyConfig == false))
     fprintf(stderr, "ERROR: No output specified for count operation.\n"), exit(1);
 
   omp_set_num_threads(_maxThreads);
