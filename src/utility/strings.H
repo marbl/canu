@@ -51,9 +51,9 @@ using namespace std;
 
 
 //  For pretty-printing numbers.  Converts integers to, e.g., 123 k, 123 M, G, T, P.
-uint64   scaledNumber(uint64 n, uint32 div=1024);
-char     scaledUnit  (uint64 n, uint32 div=1024);
-
+uint64      scaledNumber(uint64 n, uint32 div=1024);
+char        scaledUnit  (uint64 n, uint32 div=1024);
+const char *scaledName  (uint64 n, uint32 div=1024);
 
 
 
