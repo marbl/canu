@@ -63,6 +63,84 @@ use canu::Grid_Cloud;
 
 
 
+#  Threshold:  Three methods to pick it.
+#    Threshold  - 'auto', 'auto * X', 'auto / X', or an integer value
+#    Distinct   - by the fraction distinct retained
+#    Total      - by the fraction total retained
+
+
+
+sub merylParameters ($$) {
+    my $asm    = shift @_;
+    my $tag    = shift @_;
+
+    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile);
+
+    #  Find a place to run stuff.
+
+    $base = "haplotype"   if ($tag eq "hap");
+    $base = "correction"  if ($tag eq "cor");
+    $base = "trimming"    if ($tag eq "obt");
+    $base = "unitigging"  if ($tag eq "utg");
+
+    $path = "$base/0-mercounts";
+    $path = "$path-$asm" if ($tag eq "hap");
+
+    #  Decide on which set of parameters we need to be using, and make output file names.
+
+    if (getGlobal("${tag}Overlapper") eq "ovl") {
+        $merSize      = getGlobal("${tag}OvlMerSize");
+        $merThresh    = getGlobal("${tag}OvlMerThreshold");
+        $merScale     = 1.0;
+        $merDistinct  = getGlobal("${tag}OvlMerDistinct");
+        $merTotal     = getGlobal("${tag}OvlMerTotal");
+
+        $ffile = "$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating (ends in FASTA).
+        $ofile = "$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
+
+    } elsif (getGlobal("${tag}Overlapper") eq "mhap") {
+        $merSize      = getGlobal("${tag}mhapMerSize");
+        $merThresh    = undef;
+        $merScale     = 1.0;
+        $merDistinct  = undef;
+        $merTotal     = undef;
+
+        $ffile = "$asm.ms$merSize.frequentMers.ignore.gz";  #  The mhap-specific file we should be creating (ends in IGNORE).
+        $ofile = "$asm.ms$merSize";                         #  The meryl database 'intermediate file'.
+
+    } elsif (getGlobal("${tag}Overlapper") eq "minimap") {
+        $merSize     = 0;
+        $merThresh   = 0;
+        $merScale    = 1.0;
+        $merDistinct = undef;
+        $merTotal    = undef;
+
+        $ffile = undef;
+        $ofile = undef;
+
+    } else {
+        caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
+    }
+
+    #  Decode the threshold.  Auto with modifications ("auto * X") or ("auto / X")?
+
+    if ($merThresh =~ m/auto\s*\*\s*(\S+)/) {
+        $merThresh = "auto";
+        $merScale  = $1;
+    }
+
+    if ($merThresh =~ m/auto\s*\/\s*(\S+)/) {
+        $merThresh = "auto";
+        $merScale  = 1.0 / $1;
+    }
+
+    #  Return all this goodness.
+
+    return($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile);
+}
+
+
+
 sub merylGenerateHistogram ($$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -195,12 +273,6 @@ sub merylGenerateHistogram ($$) {
 
 
 
-
-#  Threshold:  Three methods to pick it.
-#    Threshold  - 'auto', 'auto * X', 'auto / X', or an integer value
-#    Distinct   - by the fraction distinct retained
-#    Total      - by the fraction total retained
-
 sub merylPlotHistogram ($$$$) {
     my $path   = shift @_;
     my $ofile  = shift @_;
@@ -279,77 +351,6 @@ sub merylPlotHistogram ($$$$) {
 
 
 
-sub merylParameters ($$) {
-    my $asm    = shift @_;
-    my $tag    = shift @_;
-
-    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile);
-
-    #  Find a place to run stuff.
-
-    $base = "haplotype"   if ($tag eq "hap");
-    $base = "correction"  if ($tag eq "cor");
-    $base = "trimming"    if ($tag eq "obt");
-    $base = "unitigging"  if ($tag eq "utg");
-
-    $path = "$base/0-mercounts";
-    $path = "$path-$asm" if ($tag eq "hap");
-
-    #  Decide on which set of parameters we need to be using, and make output file names.
-
-    if (getGlobal("${tag}Overlapper") eq "ovl") {
-        $merSize      = getGlobal("${tag}OvlMerSize");
-        $merThresh    = getGlobal("${tag}OvlMerThreshold");
-        $merScale     = 1.0;
-        $merDistinct  = getGlobal("${tag}OvlMerDistinct");
-        $merTotal     = getGlobal("${tag}OvlMerTotal");
-
-        $ffile = "$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating (ends in FASTA).
-        $ofile = "$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
-
-    } elsif (getGlobal("${tag}Overlapper") eq "mhap") {
-        $merSize      = getGlobal("${tag}mhapMerSize");
-        $merThresh    = undef;
-        $merScale     = 1.0;
-        $merDistinct  = undef;
-        $merTotal     = undef;
-
-        $ffile = "$asm.ms$merSize.frequentMers.ignore.gz";  #  The mhap-specific file we should be creating (ends in IGNORE).
-        $ofile = "$asm.ms$merSize";                         #  The meryl database 'intermediate file'.
-
-    } elsif (getGlobal("${tag}Overlapper") eq "minimap") {
-        $merSize     = 0;
-        $merThresh   = 0;
-        $merScale    = 1.0;
-        $merDistinct = undef;
-        $merTotal    = undef;
-
-        $ffile = undef;
-        $ofile = undef;
-
-    } else {
-        caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
-    }
-
-    #  Decode the threshold.  Auto with modifications ("auto * X") or ("auto / X")?
-
-    if ($merThresh =~ m/auto\s*\*\s*(\S+)/) {
-        $merThresh = "auto";
-        $merScale  = $1;
-    }
-
-    if ($merThresh =~ m/auto\s*\/\s*(\S+)/) {
-        $merThresh = "auto";
-        $merScale  = 1.0 / $1;
-    }
-
-    #  Return all this goodness.
-
-    return($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile);
-}
-
-
-
 sub merylConfigure ($$) {
     my $asm    = shift @_;
     my $tag    = shift @_;
@@ -391,7 +392,7 @@ sub merylConfigure ($$) {
 
     #  Nope, build a script for computing kmer counts.
 
-    my $mem = int(getGlobal("merylMemory")  * 1024 * 0.8);   #  Because meryl expects megabytes, not gigabytes.
+    my $mem = getGlobal("merylMemory");
     my $thr = getGlobal("merylThreads");
     my $cov = getExpectedCoverage($tag, $asm);
 
@@ -534,109 +535,7 @@ sub merylCheck ($$) {
   allDone:
 }
 
-sub merylSubtract ($$) {
-    my $asm     = shift @_;
-    my $tag     = shift @_;
 
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
-
-    goto allDone   if (skipStage($asm, "$tag-meryl") == 1);
-    goto allDone   if(fileExists("$path/$asm.ms$merSize.only.mcdat"));
-
-    my $otherHaplotypes = "";
-    my $toMerge = 0;
-
-    my @haplotypes = getHaplotypes($base);
-    foreach my $haplotype (@haplotypes) {
-       if ("$base/0-mercounts-$haplotype" ne $path) {
-          $otherHaplotypes .= "-s ../0-mercounts-$haplotype/$haplotype.ms$merSize";
-          $toMerge++;
-       }
-    }
-    if ($toMerge > 1) {
-       # run merge of other haplotypes, to create a single one, update otherHaplotypes to point to that
-       caFailure("Error: more than two haplotypes isn't implemented yet!", "$path");
-    }
-    if (runCommand($path, "$bin/meryl-san -M difference -s $asm.ms$merSize $otherHaplotypes -o $asm.ms$merSize.only > $asm.difference.out 2> $asm.difference.err")) {
-       caFailure("meryl failed to difference", "$asm.difference.err");
-    }
-    addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
-
-  allDone:
-}
-
-sub merylFinishSubtraction($$) {
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
-
-    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
-    goto allDone      if (fileExists("$path/$ofile.threshold"));
-    goto finishStage  if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
-
-  finishStage:
-
-    # also figure out the histogram info for next step
-    fetchFile("$path/$ofile.histogram");
-
-    my $d = 0;
-    my $prevD = -1;
-    my $prevDPrime = 0;
-    my $dPrime = 0;
-    my $minCount = 0;
-    my $minCov = 0;
-    my $maxCov = 0;
-    my $prevCount = 0;
-
-    open(F, "< $path/$ofile.histogram") or caFailure("failed to read mer histogram from '$path/$ofile.histogram'", undef);
-    while (<F>) {
-       my ($threshold, $num, $distinct, $total) = split '\s+', $_;
-       if ($prevD == -1) {
-          $prevD = $num;
-          $prevCount = $num;
-        } else {
-           $d = $num - $prevCount;
-           $dPrime = $d - $prevD;
-           if ($d * $prevD < 0) {
-              if ($d > $prevD) {
-                 $minCov = $threshold-1 if ($minCov == 0);
-                 $minCount = $prevCount;
-              }
-           }
-           if ($threshold - 5 > $minCov && $num < $minCount*0.75) {
-              $maxCov = $threshold;
-              last;
-           }
-           $prevCount = $num;
-           $prevD = $d;
-           $prevDPrime = $dPrime;
-        }
-    }
-    close(F);
-
-    print STDERR "-- Meryl finished successfully with threshold $minCov to $maxCov for $asm.\n";
-    open(F, "> $path/$ofile.threshold") or caExit("can't open '$path/$ofile.threshold' for writing: $!", undef);
-    printf (F "$minCov\t$maxCov\n");
-    close(F);
-
-    stashFile("$path/$ofile.threshold");
-
-    unlink "$path/$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
-    unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
-
-    generateReport($asm);
-    emitStage($asm, "$tag-meryl");
-
-  allDone:
-     stopAfter("meryl");
-}
 
 sub merylProcess ($$) {
     my $asm     = shift @_;
@@ -870,4 +769,112 @@ sub merylProcess ($$) {
 
   allDone:
     stopAfter("meryl");
+}
+
+
+
+sub merylSubtract ($$) {
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
+
+    goto allDone   if (skipStage($asm, "$tag-meryl") == 1);
+    goto allDone   if(fileExists("$path/$asm.ms$merSize.only.mcdat"));
+
+    my $otherHaplotypes = "";
+    my $toMerge = 0;
+
+    my @haplotypes = getHaplotypes($base);
+    foreach my $haplotype (@haplotypes) {
+       if ("$base/0-mercounts-$haplotype" ne $path) {
+          $otherHaplotypes .= "-s ../0-mercounts-$haplotype/$haplotype.ms$merSize";
+          $toMerge++;
+       }
+    }
+    if ($toMerge > 1) {
+       # run merge of other haplotypes, to create a single one, update otherHaplotypes to point to that
+       caFailure("Error: more than two haplotypes isn't implemented yet!", "$path");
+    }
+    if (runCommand($path, "$bin/meryl-san -M difference -s $asm.ms$merSize $otherHaplotypes -o $asm.ms$merSize.only > $asm.difference.out 2> $asm.difference.err")) {
+       caFailure("meryl failed to difference", "$asm.difference.err");
+    }
+    addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
+
+  allDone:
+}
+
+
+
+sub merylFinishSubtraction($$) {
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    my ($base, $path, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($asm, $tag);
+
+    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
+    goto allDone      if (fileExists("$path/$ofile.threshold"));
+    goto finishStage  if (fileExists("$path/$ofile.mcidx") && fileExists("$path/$ofile.mcdat"));
+
+  finishStage:
+
+    # also figure out the histogram info for next step
+    fetchFile("$path/$ofile.histogram");
+
+    my $d = 0;
+    my $prevD = -1;
+    my $prevDPrime = 0;
+    my $dPrime = 0;
+    my $minCount = 0;
+    my $minCov = 0;
+    my $maxCov = 0;
+    my $prevCount = 0;
+
+    open(F, "< $path/$ofile.histogram") or caFailure("failed to read mer histogram from '$path/$ofile.histogram'", undef);
+    while (<F>) {
+       my ($threshold, $num, $distinct, $total) = split '\s+', $_;
+       if ($prevD == -1) {
+          $prevD = $num;
+          $prevCount = $num;
+        } else {
+           $d = $num - $prevCount;
+           $dPrime = $d - $prevD;
+           if ($d * $prevD < 0) {
+              if ($d > $prevD) {
+                 $minCov = $threshold-1 if ($minCov == 0);
+                 $minCount = $prevCount;
+              }
+           }
+           if ($threshold - 5 > $minCov && $num < $minCount*0.75) {
+              $maxCov = $threshold;
+              last;
+           }
+           $prevCount = $num;
+           $prevD = $d;
+           $prevDPrime = $dPrime;
+        }
+    }
+    close(F);
+
+    print STDERR "-- Meryl finished successfully with threshold $minCov to $maxCov for $asm.\n";
+    open(F, "> $path/$ofile.threshold") or caExit("can't open '$path/$ofile.threshold' for writing: $!", undef);
+    printf (F "$minCov\t$maxCov\n");
+    close(F);
+
+    stashFile("$path/$ofile.threshold");
+
+    unlink "$path/$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
+    unlink "$path/$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
+
+    generateReport($asm);
+    emitStage($asm, "$tag-meryl");
+
+  allDone:
+     stopAfter("meryl");
 }
