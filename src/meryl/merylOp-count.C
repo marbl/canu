@@ -226,29 +226,12 @@ merylOperation::guesstimateNumberOfkmersInInput(void) {
 
 void
 merylOperation::count(void) {
-  uint64          bufferMax  = 1300000;
-  uint64          bufferLen  = 0;
-  char           *buffer     = new char [bufferMax];
-  bool            endOfSeq   = false;
 
-  kmerTiny        fmer;
-  kmerTiny        rmer;
-
-  uint32          kmerLoad   = 0;
-  uint32          kmerValid  = fmer.merSize() - 1;
-  uint32          kmerSize   = fmer.merSize();
-
-  char            fstr[65];
-  char            rstr[65];
-
-  memset(buffer, 0, sizeof(char) * bufferMax);
-
-  if (fmer.merSize() == 0)
+  if (kmerTiny::merSize() == 0)
     fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
-  if (_expNumKmers == 0) {
+  if (_expNumKmers == 0)
     _expNumKmers = guesstimateNumberOfkmersInInput();
-  }
 
   if (_expNumKmers == 0)
     fprintf(stderr, "ERROR: Estimate of number of kmers (-n) not supplied.\n"), exit(1);
@@ -264,7 +247,7 @@ merylOperation::count(void) {
           (_operation == opCount)        ? "canonical" : "",
           (_operation == opCountForward) ? "forward" : "",
           (_operation == opCountReverse) ? "reverse" : "",
-          fmer.merSize(), _inputs.size(), (_inputs.size() == 1) ? "" : "s");
+          kmerTiny::merSize(), _inputs.size(), (_inputs.size() == 1) ? "" : "s");
 
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     fprintf(stderr, "  %15s %s\n", _inputs[ii]->inputType(), _inputs[ii]->_name);
@@ -276,7 +259,7 @@ merylOperation::count(void) {
   uint32    wData     = 0;
   uint64    wDataMask = 0;
 
-  estimateSizes(_maxMemory, _expNumKmers, kmerSize, wPrefix, nPrefix, wData, wDataMask);
+  estimateSizes(_maxMemory, _expNumKmers, kmerTiny::merSize(), wPrefix, nPrefix, wData, wDataMask);
 
   //  If we're only configuring, stop now.
 
@@ -307,17 +290,34 @@ merylOperation::count(void) {
 
   //  Load bases, count!
 
-  uint64   memBase     = getProcessSize();   //  Overhead memory.
-  uint64   memUsed     = 0;                  //  Sum of actual memory used.
-  uint64   memReported = 0;                  //  Memory usage at last report.
-
-  uint64   kmersAdded  = 0;
-
 #ifdef  SKIP_COUNTING
 
   _output->incrementIteration();
 
 #else
+
+  uint64          bufferMax  = 1300000;
+  uint64          bufferLen  = 0;
+  char           *buffer     = new char [bufferMax];
+  bool            endOfSeq   = false;
+
+  memset(buffer, 0, sizeof(char) * bufferMax);
+
+  kmerTiny        fmer;
+  kmerTiny        rmer;
+
+  uint32          kmerLoad   = 0;
+  uint32          kmerValid  = kmerTiny::merSize() - 1;
+  uint32          kmerSize   = kmerTiny::merSize();
+
+  char            fstr[65];
+  char            rstr[65];
+
+  uint64          memBase     = getProcessSize();   //  Overhead memory.
+  uint64          memUsed     = 0;                  //  Sum of actual memory used.
+  uint64          memReported = 0;                  //  Memory usage at last report.
+
+  uint64          kmersAdded  = 0;
 
   for (uint32 ii=0; ii<_inputs.size(); ii++) {
     fprintf(stderr, "Loading kmers from '%s' into buckets.\n", _inputs[ii]->_name);
