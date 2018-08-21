@@ -350,21 +350,23 @@ public:
   };
 
   void     allocate(uint64 nElements) {
-
-    //for (uint64 ee=0; ee<nElements; ee+=_valuesPerSegment) {
-    //  set(ee, 0xffffffffffffffffllu);
-    //  fprintf(stderr, "allocate()-- ee %lu segmentsLen %lu\n", ee, _segmentsLen);
-    //}
-
     uint64 nSegs = nElements / _valuesPerSegment + 1;
+
+    fprintf(stderr, "wordArray::allocate()-- allocating space for %lu elements, in %lu segments.\n",
+            nElements, nSegs);
+
+    assert(_segmentsLen == 0);
 
     resizeArray(_segments, _segmentsLen, _segmentsMax, nSegs, resizeArray_copyData | resizeArray_clearNew);
 
     for (uint32 seg=0; seg<nSegs; seg++) {
-      _segments[_segmentsLen] = new uint64 [_segmentSize / 64];
+      if (_segments[seg] == NULL)
+        _segments[seg] = new uint64 [_segmentSize / 64];
 
-      memset(_segments[_segmentsLen], 0xff, sizeof(uint64) * _segmentSize / 64);
+      memset(_segments[seg], 0xff, sizeof(uint64) * _segmentSize / 64);
     }
+
+    _segmentsLen = nSegs;
   };
 
   uint64   get(uint64 element) {
