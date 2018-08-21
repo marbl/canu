@@ -407,9 +407,18 @@ public:
   void       set(uint64  prefix,
                  FILE   *F,
                  uint64  nKmers) {
-    _blockPrefix   = prefix;
-    _blockPosition = AS_UTL_ftell(F);
-    _numKmers      = nKmers;
+
+    if (_blockPrefix == UINT64_MAX) {
+      _blockPrefix   = prefix;
+      _blockPosition = AS_UTL_ftell(F);
+      _numKmers      = nKmers;
+    }
+
+    else {
+      assert(_blockPrefix   == prefix);
+      assert(_blockPosition <= AS_UTL_ftell(F));
+      _numKmers     += nKmers;
+    }
   };
 
   void       clear(void) {
