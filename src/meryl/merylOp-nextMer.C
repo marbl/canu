@@ -51,17 +51,16 @@ bool
 merylOperation::initialize(bool isRoot) {
   bool  proceed = true;
 
-  //  If there is an output associated with this operation, and the operation
-  //  isn't for counting (those initialize outputs differently), initialize
-  //  the output.
-
-  if ((_output) && (isCounting() == false))
-    _output->initialize();
-
-  //  Then propagate to any children we have.
+  //  Initialize all the inputs this operation might have.
 
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->initialize();
+
+  //  Initialize any output, except if it's for counting.
+  //  Those initialize outputs differently.
+
+  if ((_output) && (isCounting() == false))
+    _output->initialize();
 
   //  Finally, do any counting operations.  If the counting operation is
   //  the root node, we don't need to proceed with the usual mer iteration.
