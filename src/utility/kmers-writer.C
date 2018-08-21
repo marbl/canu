@@ -204,6 +204,7 @@ kmerCountFileWriter::addMer(kmer   k,
   assert(_initialized);
 
   if (_batchSuffixes == NULL) {
+    //fprintf(stderr, "kmerCountFileWriteR::addMer()-- allocate %lu kmers for a batch\n", _batchMaxKmers);
     _batchSuffixes = new uint64 [_batchMaxKmers];
     _batchCounts   = new uint32 [_batchMaxKmers];
   }
@@ -211,11 +212,19 @@ kmerCountFileWriter::addMer(kmer   k,
   uint64  prefix = (uint64)k >> _suffixSize;
   uint64  suffix = (uint64)k  & _suffixMask;
 
+  //  If the batch is full, or we've got a kmer for a different batch, dump the batch
+  //  to disk.  addBlock() resets _batchNumKmers to zero and sets _batchPrefix.
+
   bool  dump1 = (_batchNumKmers >= _batchMaxKmers);
   bool  dump2 = (_batchPrefix != prefix) && (_batchNumKmers > 0);
 
-  if (dump1 || dump2)     //  addBlock() resets _batchNumKmers to zero.
+  if (dump1 || dump2) {
+    //fprintf(stderr, "kmerCountFileWriter::addMer()-- addBlock 0x%016lx with %lu kmers dump1=%c dump2=%c\n",
+    //        _batchPrefix, _batchNumKmers,
+    //        (dump1) ? 'T' : 'F',
+    //        (dump2) ? 'T' : 'F');
     addBlock(prefix);
+  }
 
   assert(_batchNumKmers < _batchMaxKmers);
 
