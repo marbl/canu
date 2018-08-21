@@ -48,7 +48,7 @@ kmerCountFileWriter::initialize(uint32 prefixSize) {
       _prefixSize = prefixSize;
 
     if (_prefixSize == 0)
-      _prefixSize = min((uint32)8, 2 * kmer::merSize() / 3);
+      _prefixSize = max((uint32)8, 2 * kmer::merSize() / 3);
 
     _suffixSize         = 2 * kmer::merSize() - _prefixSize;
     _suffixMask         = uint64MASK(_suffixSize);
