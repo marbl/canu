@@ -303,16 +303,16 @@ public:
     _c2         = _data->getBinary(64);
 
 #ifdef SHOW_LOAD
-    fprintf(stdout, "loadBlock()-- file %u iter %u:\n", activeFile, activeIteration);
-    fprintf(stdout, "    prefix     0x%016lx\n", _prefix);
-    fprintf(stdout, "    nKmers     " F_U64 "\n", _nKmers);
-    fprintf(stdout, "    kCode      " F_U32 "\n", _kCode);
-    fprintf(stdout, "    unaryBits  " F_U32 "\n", _unaryBits);
-    fprintf(stdout, "    binaryBits " F_U32 "\n", _binaryBits);
-    fprintf(stdout, "    k1efix     " F_U64 "\n", _k1);
-    fprintf(stdout, "    cCode      " F_U32 "\n", _cCode);
-    fprintf(stdout, "    c1         " F_U64 "\n", _c1);
-    fprintf(stdout, "    c2         " F_U64 "\n", _c2);
+    fprintf(stderr, "loadBlock()-- file %u iter %u:\n", activeFile, activeIteration);
+    fprintf(stderr, "    prefix     0x%016lx\n", _prefix);
+    fprintf(stderr, "    nKmers     " F_U64 "\n", _nKmers);
+    fprintf(stderr, "    kCode      " F_U32 "\n", _kCode);
+    fprintf(stderr, "    unaryBits  " F_U32 "\n", _unaryBits);
+    fprintf(stderr, "    binaryBits " F_U32 "\n", _binaryBits);
+    fprintf(stderr, "    k1efix     " F_U64 "\n", _k1);
+    fprintf(stderr, "    cCode      " F_U32 "\n", _cCode);
+    fprintf(stderr, "    c1         " F_U64 "\n", _c1);
+    fprintf(stderr, "    c2         " F_U64 "\n", _c2);
 #endif
 
     if ((m1 != 0x7461446c7972656dllu) ||
