@@ -207,37 +207,49 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
 
     if (ff > 0)
       startPos[ff] = startPos[ff-1] + nKmersPerFile[ff-1];
+
+    //  If this fails, we found too many kmers in block files as compared
+    //  to the number of distinct kmers in the database (_nSuffix).
+    assert(startPos[ff] + nKmersPerFile[ff] <= _nSuffix);
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Constructing exact lookup table.\n");
+  fprintf(stderr, "Constructing exact lookup table with %d threads.\n", omp_get_max_threads());
+  fprintf(stderr, "  _suffixBits         %u\n", _suffixBits);
+  fprintf(stderr, " input->suffixSize()  %u\n", input->suffixSize());
   fprintf(stderr, "\n");
 
   uint32  nf = input->numFiles();     //  OpenMP wants simple variables for the loop tests.
   uint32  nb = input->numBlocks();
 
+
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
-    //fprintf(stderr, "STARTING FILE %u with startPos %lu\n", ff, startPos[ff]);
+    //fprintf(stderr, "Thread %d STARTING FILE %u with startPos %lu\n", omp_get_thread_num(), ff, startPos[ff]);
 
     FILE                      *blockFile = input->blockFile(ff);
     kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
 
-    for (uint32 bb=0; bb<nb; bb++) {
-      block->loadBlock(blockFile, ff);  //  Should check for errors!
+    uint64  minPrefix = UINT64_MAX, minSdata = UINT64_MAX;
+    uint64  maxPrefix = 0,          maxSdata = 0;
+
+    //  While there are only 'nb' prefixed, each can be written in multiple blocks.
+
+    while (block->loadBlock(blockFile, ff) == true) {
       block->decodeBlock();
 
-      //fprintf(stderr, "STARTING BLOCK bb %u prefix %lu at suffixData %lu\n", bb, block->prefix(), startPos[ff]);
+      //fprintf(stderr, "STARTING BLOCK prefix %lu at suffixData %lu\n", block->prefix(), startPos[ff]);
 
       for (uint32 ss=0; ss<block->nKmers(); ss++) {
         uint64   sdata  = 0;
         uint64   prefix = 0;
 
+        //  Reconstruct the kmer into sdata.  This is just kmerTiny::setPrefixSuffix().
+        //  From the kmer, generate the prefix we want to save it as.
+
         sdata   = block->prefix();
         sdata <<= input->suffixSize();
         sdata  |= block->suffixes()[ss];
-
-        //  sdata is now the kmer.  Shift it to generate the prefix, and set _suffixStart.
 
         prefix = sdata >> _suffixBits;
 
@@ -271,11 +283,22 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
 
         assert(prefix < _nPrefix);
 
+        minSdata = min(sdata, minSdata);
+        maxSdata = max(sdata, maxSdata);
+
+        minPrefix = min(prefix, minPrefix);
+        maxPrefix = max(prefix, maxPrefix);
+
         _suffixStart[prefix] = startPos[ff] + 1;   //  _suffixStart here is really the start of prefix+1;
         _suffixData->set(startPos[ff], sdata);     //  doing +1 here makes the logic later a bit easier.
 
         startPos[ff]++;
       }
+
+      fprintf(stderr, "ff %2u block %6u nKmers %9lu minPrefix 0x%016lx maxPrefix 0x%016lx minSdata 0x%016lx maxSdata 0x%016lx\n",
+              ff, block->prefix(), block->nKmers(),
+              minPrefix, maxPrefix,
+              minSdata, maxSdata);
     }
 
     delete block;
