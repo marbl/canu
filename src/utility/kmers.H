@@ -92,25 +92,30 @@ public:
   //  the mer, revesing the order of all the bases, then aligning the bases
   //  to the low-order bits of the word.
   //
-  kmerTiny   &reverseComplement(void) {
+  uint64      reverseComplement(uint64 mer) const {
 
     //  Complement the bases
 
-    _mer ^= 0xaaaaaaaaaaaaaaaallu;
+    mer ^= 0xaaaaaaaaaaaaaaaallu;
 
     //  Reverse the mer
 
-    _mer = ((_mer >>  2) & 0x3333333333333333llu) | ((_mer <<  2) & 0xccccccccccccccccllu);
-    _mer = ((_mer >>  4) & 0x0f0f0f0f0f0f0f0fllu) | ((_mer <<  4) & 0xf0f0f0f0f0f0f0f0llu);
-    _mer = ((_mer >>  8) & 0x00ff00ff00ff00ffllu) | ((_mer <<  8) & 0xff00ff00ff00ff00llu);
-    _mer = ((_mer >> 16) & 0x0000ffff0000ffffllu) | ((_mer << 16) & 0xffff0000ffff0000llu);
-    _mer = ((_mer >> 32) & 0x00000000ffffffffllu) | ((_mer << 32) & 0xffffffff00000000llu);
+    mer = ((mer >>  2) & 0x3333333333333333llu) | ((mer <<  2) & 0xccccccccccccccccllu);
+    mer = ((mer >>  4) & 0x0f0f0f0f0f0f0f0fllu) | ((mer <<  4) & 0xf0f0f0f0f0f0f0f0llu);
+    mer = ((mer >>  8) & 0x00ff00ff00ff00ffllu) | ((mer <<  8) & 0xff00ff00ff00ff00llu);
+    mer = ((mer >> 16) & 0x0000ffff0000ffffllu) | ((mer << 16) & 0xffff0000ffff0000llu);
+    mer = ((mer >> 32) & 0x00000000ffffffffllu) | ((mer << 32) & 0xffffffff00000000llu);
 
     //  Shift and mask out the bases not in the mer
 
-    _mer >>= 64 - _merSize * 2;
-    _mer  &= _fullMask;
+    mer >>= 64 - _merSize * 2;
+    mer  &= _fullMask;
 
+    return(mer);
+  };
+
+  kmerTiny   &reverseComplement(void) {
+    _mer = reverseComplement(_mer);
     return(*this);
   };
 
@@ -124,6 +129,9 @@ public:
 
   bool        isFirst(void)                 const { return(_mer == 0);                        };
   bool        isLast(void)                  const { return(_mer == (UINT64_MAX & _fullMask)); };
+
+  bool        isCanonical(void)             const { return(_mer <= reverseComplement(_mer));  };
+  bool        isPalindrome(void)            const { return(_mer == reverseComplement(_mer));  };
 
   kmerTiny   &operator++()                        {                           _mer++;  return(*this);  };
   kmerTiny    operator++(int)                     { kmerTiny before = *this;  _mer++;  return(before); };
