@@ -410,7 +410,19 @@ merylOperation::nextMer(bool isRoot) {
 
   if ((_printer != NULL) &&
       (_count > 0)) {
-    fprintf(stdout, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _actCount[0]);
+    char  flags[4] = { 0 };  //  Default, no flags (and no space) printed.
+
+    if (_kmer.isCanonical()) {
+      flags[0] = '\t';
+      flags[1] = 'C';
+    }
+
+    if (_kmer.isPalindrome()) {
+      flags[0] = '\t';
+      flags[1] = 'P';
+    }
+
+    fprintf(stdout, "%s\t" F_U64 "%s\n", _kmer.toString(kmerString), _actCount[0], flags);
   }
 
   //  
