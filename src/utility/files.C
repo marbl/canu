@@ -32,10 +32,8 @@
 //  Report ALL attempts to seek somewhere.
 #undef DEBUG_SEEK
 
-//  Use ftell() to verify that we wrote the expected number of bytes,
-//  and that we ended up at the expected location.
-#undef VERIFY_WRITE_POSITIONS
-
+//  Report ALL file open/close events.
+#undef SHOW_FILE_OPEN_CLOSE
 
 
 
@@ -567,6 +565,10 @@ AS_UTL_openInputFile(char const *prefix,
   else
     strncpy(filename, prefix, FILENAME_MAX-1);
 
+#ifdef SHOW_FILE_OPEN_CLOSE
+  fprintf(stderr, "AS_UTL_openInputFile()-- Opening '%s'.\n", filename);
+#endif
+
   errno = 0;
 
   FILE *F = fopen(filename, "r");
@@ -596,6 +598,10 @@ AS_UTL_openOutputFile(char const *prefix,
   else
     strncpy(filename, prefix, FILENAME_MAX-1);
 
+#ifdef SHOW_FILE_OPEN_CLOSE
+  fprintf(stderr, "AS_UTL_openOutputFile()-- Creating '%s'.\n", filename);
+#endif
+
   errno = 0;
 
   FILE *F = fopen(filename, "w");
@@ -612,6 +618,15 @@ AS_UTL_closeFile(FILE *&F, const char *prefix, char separator, char const *suffi
 
   if ((F == NULL) || (F == stdout) || (F == stderr))
     return;
+
+#ifdef SHOW_FILE_OPEN_CLOSE
+  if ((prefix) && (suffix))
+    fprintf(stderr, "AS_UTL_closeFile()-- Closing '%s%c%s'.\n", prefix, separator, suffix);
+  else if (prefix)
+    fprintf(stderr, "AS_UTL_closeFile()-- Closing '%s'.\n", prefix);
+  else
+    fprintf(stderr, "AS_UTL_closeFile()-- Closing (anonymous file).\n");
+#endif
 
   errno = 0;
 
