@@ -468,7 +468,7 @@ LOGGING
     --   Minimum                          0             0
     --   Maximum                      50522         10183
 
-  e the reads which were deemed too short to correct. If you increase ``corOutCoverage``, you could get up to 41x more corrected sequence. However, unless the genome is very heterozygous, this does not typically improve the assembly and increases the running time.
+  are the reads which were deemed too short to correct. If you increase ``corOutCoverage``, you could get up to 41x more corrected sequence. However, unless the genome is very heterozygous, this does not typically improve the assembly and increases the running time.
   
   The assembly statistics (NG50, etc) are reported before and after consensus calling.
 
