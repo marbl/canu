@@ -151,7 +151,7 @@ Can I assemble RNA sequence data?
 
 My assembly is running out of space, is too slow?
 -------------------------------------
-    We don't have a good way to estimate of disk space used for the assembly. It varies with genome size, repeat content, and sequencing depth. A human genome sequenced with PacBio or Nanopore at 40-50x typically requires 1-2TB of space at the peak. 
+    We don't have a good way to estimate of disk space used for the assembly. It varies with genome size, repeat content, and sequencing depth. A human genome sequenced with PacBio or Nanopore at 40-50x typically requires 1-2TB of space at the peak. Plants, unfortunately, seem to want a lot of space. 10TB is a reasonable guess. We've seen it as bad as 20TB on some very repetitive genomes.
     
     The most common cause of high disk usage is a very repetitive or large genome. There are some parameters you can tweak to both reduce disk space and speed up the run. Try adding the options ``corMhapFilterThreshold=0.0000000002 corMhapOptions="--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50" mhapMemory=60g mhapBlockSize=500 ovlMerThreshold=500``. This will suppress repeats more than the default settings and speed up both correction and assembly.
     
