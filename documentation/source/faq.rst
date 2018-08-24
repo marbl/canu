@@ -75,6 +75,24 @@ My run of Canu was killed by the sysadmin; the power going out; my cat stepping 
     Short answer: just rerun the _exact_ same command as before.  It'll do the right thing.
 
 
+My genome size and assembly size are different, help!
+-------------------------------------
+    The difference could be due to a heterozygous genome where the assembly separated some loci. It could also be because the previous estimate is incorrect. We typically use two analyses to see what happened. First, a `BUSCO <https://busco.ezlab.org>`_ analysis will indicate duplicated genes. For example this assembly::
+
+      INFO	C:98.5%[S:97.9%,D:0.6%],F:1.0%,M:0.5%,n:2799
+      INFO	2756 Complete BUSCOs (C)
+      INFO	2740 Complete and single-copy BUSCOs (S)
+      INFO	16 Complete and duplicated BUSCOs (D)
+    
+    does not have much duplication but this assembly::
+    
+      INFO	C:97.6%[S:15.8%,D:81.8%],F:0.9%,M:1.5%,n:2799
+      INFO	2732 Complete BUSCOs (C)
+      INFO	443 Complete and single-copy BUSCOs (S)
+      INFO	2289 Complete and duplicated BUSCOs (D)
+    
+    does. We have had some success (in limited testing) using `purge_haplotigs <https://bitbucket.org/mroachawri/purge_haplotigs>`_ to remove duplication. Purge haplotigs will also generate a coverage plot which will usually have two peaks when assemblies have separated some loci. 
+
 What parameters should I use for my reads?
 -------------------------------------
     Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford
@@ -108,8 +126,9 @@ What parameters should I use for my reads?
     **PacBio Sequel**
        Based on an *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
-       and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 6.5% with
-       ``correctedErrorRate=0.065 corMhapSensitivity=normal``.
+       and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 8.5% with
+       ``correctedErrorRate=0.085 corMhapSensitivity=normal``.
+      Only add the second parameter (``corMhapSensivity=normal``) if you have >50x coverage.
 
    **Nanopore R9 large genomes**
        Due to some systematic errors, the identity estimate used by Canu for correction can be an
@@ -130,6 +149,13 @@ Can I assemble RNA sequence data?
     Note that Canu will silently translate 'U' bases to 'T' bases on input, but **NOT** translate
     the output bases back to 'U'.
 
+My assembly is running out of space, is too slow?
+-------------------------------------
+    We don't have a good way to estimate of disk space used for the assembly. It varies with genome size, repeat content, and sequencing depth. A human genome sequenced with PacBio or Nanopore at 40-50x typically requires 1-2TB of space at the peak. 
+    
+    The most common cause of high disk usage is a very repetitive or large genome. There are some parameters you can tweak to both reduce disk space and speed up the run. Try adding the options ``corMhapFilterThreshold=0.0000000002 corMhapOptions="--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50" mhapMemory=60g mhapBlockSize=500 ovlMerThreshold=500``. This will suppress repeats more than the default settings and speed up both correction and assembly.
+    
+    It is also possible to clean up some intermediate outputs before the assembly is complete to save space. If you already have a ```*.ovlStore.BUILDING/1-bucketize.successs`` file in your current step (e.g. ``correct```), you can clean up the files under ``1-overlapper/blocks``. You can also remove the ovlStore for the previous step if you have its output (e.g. if you have ``asm.trimmedReads.fasta.gz``, you can remove ``trimming/asm.ovlStore``). 
 
 My assembly continuity is not good, how can I improve it?
 -------------------------------------
