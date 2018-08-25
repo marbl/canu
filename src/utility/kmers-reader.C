@@ -21,16 +21,11 @@
 
 
 
-
-kmerCountFileReader::kmerCountFileReader(const char *inputName,
-                                         bool        ignoreStats,
-                                         bool        beVerbose) {
+void
+kmerCountFileReader::initializeFromMasterIndex(bool  doInitialize,
+                                               bool  loadStatistics,
+                                               bool  beVerbose) {
   char   N[FILENAME_MAX+1];
-
-  //  Save the input name for later use, but fail if
-  //  the index file isn't found.
-
-  strncpy(_inName, inputName, FILENAME_MAX);
 
   snprintf(N, FILENAME_MAX, "%s/merylIndex", _inName);
 
@@ -50,41 +45,53 @@ kmerCountFileReader::kmerCountFileReader(const char *inputName,
     fprintf(stderr, "ERROR: '%s' doesn't look like a meryl input; file '%s' fails magic number check.\n",
             _inName, N), exit(1);
 
-  _prefixSize    = masterIndex->getBinary(32);
-  _suffixSize    = masterIndex->getBinary(32);
+  if (doInitialize == true) {
+    _prefixSize    = masterIndex->getBinary(32);
+    _suffixSize    = masterIndex->getBinary(32);
 
-  _numFilesBits  = masterIndex->getBinary(32);
-  _numBlocksBits = masterIndex->getBinary(32);
+    _numFilesBits  = masterIndex->getBinary(32);
+    _numBlocksBits = masterIndex->getBinary(32);
 
-  _numFiles      = (uint64)1 << _numFilesBits;
-  _numBlocks     = (uint64)1 << _numBlocksBits;
+    _numFiles      = (uint64)1 << _numFilesBits;
+    _numBlocks     = (uint64)1 << _numBlocksBits;
 
-  _datFile       = NULL;
+    _stats         = NULL;
 
-  _block         = new kmerCountFileReaderBlock();
-  _blockIndex    = NULL;
+    _datFile       = NULL;
 
-  _kmer          = kmer();
-  _count         = 0;
+    _block         = new kmerCountFileReaderBlock();
+    _blockIndex    = NULL;
 
-  _prefix        = 0;
+    _kmer          = kmer();
+    _count         = 0;
 
-  _activeMer     = 0;
-  _activeFile    = 0;
+    _prefix        = 0;
 
-  _nKmers        = 0;
-  _nKmersMax     = 1024;
-  _suffixes      = new uint64 [_nKmersMax];
-  _counts        = new uint32 [_nKmersMax];
+    _activeMer     = 0;
+    _activeFile    = 0;
 
-  if (ignoreStats == false)
-    _stats.load(masterIndex);
+    _threadFile    = UINT32_MAX;
 
-  delete masterIndex;
+    _nKmers        = 0;
+    _nKmersMax     = 1024;
+    _suffixes      = new uint64 [_nKmersMax];
+    _counts        = new uint32 [_nKmersMax];
 
-  //  Check and setup the mer size if needed.
+    uint32  merSize = (_prefixSize + _suffixSize) / 2;
 
-  uint32  merSize = (_prefixSize + _suffixSize) / 2;
+    if (kmer::merSize() == 0)         //  If the global kmer size isn't set yet, set it.
+      kmer::setSize(merSize);         //
+
+    if (kmer::merSize() != merSize)   //  And if set, make sure we're compatible.
+      fprintf(stderr, "mer size mismatch, can't process this set of files.\n"), exit(1);
+  }
+
+  if (loadStatistics == true) {
+    masterIndex->setPosition(64 + 64 + 32 + 32 + 32 + 32);
+
+    _stats = new kmerCountStatistics;
+    _stats->load(masterIndex);
+  }
 
   if (beVerbose) {
     char    m[17] = { 0 };
@@ -102,11 +109,17 @@ kmerCountFileReader::kmerCountFileReader(const char *inputName,
     fprintf(stderr, "  numBlocksBits  %u (%u blocks)\n", _numBlocksBits, _numBlocks);
   }
 
-  if (kmer::merSize() == 0)    //  If the global kmer size isn't set yet, set it.
-    kmer::setSize(merSize);    //  Then make sure all files are the same.
+  delete masterIndex;
+}
 
-  if (kmer::merSize() != merSize)
-    fprintf(stderr, "mer size mismatch, can't process this set of files.\n"), exit(1);
+
+
+kmerCountFileReader::kmerCountFileReader(const char *inputName,
+                                         bool        beVerbose) {
+
+  strncpy(_inName, inputName, FILENAME_MAX);
+
+  initializeFromMasterIndex(true, false, beVerbose);
 }
 
 
@@ -118,9 +131,27 @@ kmerCountFileReader::~kmerCountFileReader() {
   delete [] _suffixes;
   delete [] _counts;
 
+  delete    _stats;
+
   AS_UTL_closeFile(_datFile);
 
   delete    _block;
+}
+
+
+
+void
+kmerCountFileReader::loadStatistics(void) {
+  if (_stats == NULL)
+    initializeFromMasterIndex(false, true, false);
+}
+
+
+
+void
+kmerCountFileReader::enableThreads(uint32 threadFile) {
+  _activeFile = threadFile;
+  _threadFile = threadFile;
 }
 
 
@@ -214,7 +245,9 @@ kmerCountFileReader::nextMer(void) {
     return(true);
   }
 
-  //  Make sure all files are opened.
+  //  If no file, open whatever is 'active'.  In thread mode, the first file
+  //  we open is the 'threadFile'; in normal mode, the first file we open is
+  //  the first file in the database.
 
  loadAgain:
   if (_datFile == NULL)
@@ -228,6 +261,9 @@ kmerCountFileReader::nextMer(void) {
 
   if (loaded == false) {
     AS_UTL_closeFile(_datFile);
+
+    if (_activeFile == _threadFile)   //  Thread mode, if no block was loaded,
+      return(false);                  //  we're done.
 
     _activeFile++;
 

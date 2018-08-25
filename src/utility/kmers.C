@@ -33,18 +33,18 @@ constructBlockName(char   *prefix,
                    uint32  iteration,
                    bool    isIndex) {
   char *name = new char [FILENAME_MAX+1];
-  char  bits[67];
+  char  bits[67] = { 0 };
 
   bits[0] = '0';
   bits[1] = 'x';
 
-  uint32 mask = 1;
-  uint32 bp   = 2;
+  uint32 bp = 2;
 
-  for (; mask < numFiles; mask <<= 1)            //  Technically, writes the reverse of the
-    bits[bp++] = (outIndex & mask) ? '1' : '0';  //  prefix, but who cares?
+  for (uint32 mask=1; mask < numFiles; mask <<= 1)   //  Count the number of digits we need.
+    bp++;
 
-  bits[bp] = 0;
+  for (uint32 mask=1; mask < numFiles; mask <<= 1)   //  Then make the name from right to left.
+    bits[--bp] = (outIndex & mask) ? '1' : '0';
 
   if (iteration == 0)
     snprintf(name, FILENAME_MAX, "%s/%s.%s", prefix, bits, (isIndex == false) ? "merylData" : "merylIndex");
@@ -85,18 +85,3 @@ openInputBlock(char   *prefix,
 
   return(F);
 }
-
-
-
-void
-removeBlock(char   *prefix,
-            uint64  fileIndex,
-            uint32  numFiles,
-            uint32  iteration) {
-  char    *name = constructBlockName(prefix, fileIndex, numFiles, iteration, false);
-
-  AS_UTL_unlink(name);
-
-  delete [] name;
-}
-

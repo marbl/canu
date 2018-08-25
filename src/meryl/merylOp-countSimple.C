@@ -208,6 +208,8 @@ merylOperation::countSimple(void) {
 
   _output->initialize(wPrefix);
 
+  kmerCountBlockWriter  *_writer = _output->getBlockWriter();
+
   fprintf(stderr, "\n");
   fprintf(stderr, "Writing results to '%s', using " F_S32 " threads.\n",
           _output->filename(), omp_get_max_threads());
@@ -277,7 +279,7 @@ merylOperation::countSimple(void) {
       }
 
       //  With the kmers reconstructed, write this block of data to the file.
-      _output->addBlock(bp, nKmers, sBlock, cBlock);
+      _writer->addBlock(bp, nKmers, sBlock, cBlock);
     }
 
     delete [] sBlock;
@@ -286,7 +288,10 @@ merylOperation::countSimple(void) {
 
   //  Even though there are no iterations, we still need to finish.
 
-  _output->finishIteration();
+  _writer->finish();
+
+  delete _writer;
+  _writer = NULL;
 
   //  Cleanup.
 

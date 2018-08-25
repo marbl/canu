@@ -173,7 +173,7 @@ public:
   };
 
   void             countKmers(void);
-  void             dumpCountedKmers(kmerCountFileWriter *out);
+  void             dumpCountedKmers(kmerCountBlockWriter *out);
   void             removeCountedKmers(void);
 
 

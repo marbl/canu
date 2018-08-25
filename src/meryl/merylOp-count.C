@@ -18,15 +18,6 @@
 #include "strings.H"
 #include "system.H"
 
-//  Define this, for testing, to skip reading input sequence into outpout merylData
-//  files - i.e., only do the merge at the end.  Helps if you also turn off
-//  the removeBlock() at the end of libkmer-writer.C.
-//
-//  You'll also need to adjust the number of iterations needed.
-//
-#undef  SKIP_COUNTING
-
-
 //  The number of bits to use for a merylCountArray segment.
 #define SEGMENT_SIZE  (64 * 1024 * 8 - 256)
 
@@ -277,6 +268,8 @@ merylOperation::count(void) {
 
   _output->initialize(wPrefix);
 
+  kmerCountBlockWriter  *_writer = _output->getBlockWriter();
+
   //  Allocate buckets.  The buckets don't allocate space for mers until they're added,
   //  and allocate space for these mers in blocks of 8192 * 64 bits.
   //
@@ -289,12 +282,6 @@ merylOperation::count(void) {
     data[pp] = new merylCountArray(pp, wData, SEGMENT_SIZE);
 
   //  Load bases, count!
-
-#ifdef  SKIP_COUNTING
-
-  _output->incrementIteration();
-
-#else
 
   uint64          bufferMax  = 1300000;
   uint64          bufferLen  = 0;
@@ -399,12 +386,12 @@ merylOperation::count(void) {
 
           for (uint64 pp=_output->firstPrefixInFile(ff); pp <= _output->lastPrefixInFile(ff); pp++) {
             data[pp]->countKmers();                //  Convert the list of kmers into a list of (kmer, count).
-            data[pp]->dumpCountedKmers(_output);   //  Write that list to disk.
+            data[pp]->dumpCountedKmers(_writer);   //  Write that list to disk.
             data[pp]->removeCountedKmers();        //  And remove the in-core data.
           }
         }
 
-        _output->incrementIteration();
+        _writer->finishBatch();
 
         kmersAdded = 0;
       }
@@ -442,17 +429,18 @@ merylOperation::count(void) {
 
     for (uint64 pp=_output->firstPrefixInFile(ff); pp <= _output->lastPrefixInFile(ff); pp++) {
       data[pp]->countKmers();                //  Convert the list of kmers into a list of (kmer, count).
-      data[pp]->dumpCountedKmers(_output);   //  Write that list to disk.
+      data[pp]->dumpCountedKmers(_writer);   //  Write that list to disk.
       data[pp]->removeCountedKmers();        //  And remove the in-core data.
     }
   }
 
-#endif  //  SKIP_COUNTING
-
   //  Merge any iterations into a single file, or just rename
   //  the single file to the final name.
 
-  _output->finishIteration();
+  _writer->finish();
+
+  delete _writer;
+  _writer = NULL;
 
   //  Cleanup.
 

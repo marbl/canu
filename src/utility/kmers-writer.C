@@ -32,9 +32,8 @@ kmerCountFileWriter::initialize(uint32 prefixSize) {
   if (kmer::merSize() == 0)
     fprintf(stderr, "kmerCountFileWriter::initialize()-- asked to initialize, but kmer::merSize() is zero!\n"), exit(1);
 
-  //  The count operations will write data in parallel, and we defer
-  //  initialization until a block of data is actually written.
-  //  Thus, we need to have some concurrecny control.
+  //  The count operations call initialize() exactly once, but nextMer() calls
+  //  it once per file and so we need some kind of concurrency control here.
 
 #pragma omp critical (kmerCountFileWriterInit)
   if (_initialized == false) {
@@ -47,8 +46,9 @@ kmerCountFileWriter::initialize(uint32 prefixSize) {
     if (_prefixSize == 0)
       _prefixSize = prefixSize;
 
+#warning how to set prefix size for streaming operations?
     if (_prefixSize == 0)
-      _prefixSize = max((uint32)8, 2 * kmer::merSize() / 3);
+      _prefixSize = 9;  //max((uint32)8, 2 * kmer::merSize() / 3);
 
     _suffixSize         = 2 * kmer::merSize() - _prefixSize;
     _suffixMask         = uint64MASK(_suffixSize);
@@ -56,22 +56,11 @@ kmerCountFileWriter::initialize(uint32 prefixSize) {
     //  Decide how many files to write.  We can make up to 2^32 files, but will
     //  run out of file handles _well_ before that.  For now, limit to 2^6 = 64 files.
 
-    _numFilesBits       = (_prefixSize < 7) ? _prefixSize : 6;
+    _numFilesBits       = 6;  //(_prefixSize < 7) ? _prefixSize : 6;
     _numBlocksBits      = _prefixSize - _numFilesBits;
 
     _numFiles           = (uint64)1 << _numFilesBits;
     _numBlocks          = (uint64)1 << _numBlocksBits;
-
-    //  Allocate space for data files and indexes; data files are opened
-    //  on demand, but we might as well allocate the indexes right now.
-
-    _datFiles           = new FILE               * [_numFiles];
-    _datFileIndex       = new kmerCountFileIndex * [_numFiles];
-
-    for (uint64 ii=0; ii<_numFiles; ii++) {
-      _datFiles[ii]     = NULL;
-      _datFileIndex[ii] = new kmerCountFileIndex [_numBlocks];
-    }
 
     //  Now we're initialized!
 
@@ -92,22 +81,12 @@ kmerCountFileWriter::kmerCountFileWriter(const char *outputName,
   //  so we don't initialize any of them.
 
   _initialized   = false;
-  _iteration     = 1;
 
   //  Save the output directory name, and try to make it.  If we can't we'll fail quickly.
 
   strncpy(_outName, outputName, FILENAME_MAX);
 
   AS_UTL_mkdir(_outName);
-
-  //  When adding kmers one-by-one, we can add up to _batchMaxKmers then they're
-  //  sorted and dumped to disk.
-
-  _batchPrefix   = 0;
-  _batchNumKmers = 0;
-  _batchMaxKmers = 131072;
-  _batchSuffixes = NULL;
-  _batchCounts   = NULL;
 
   //  Parameters on how the suffixes/counts are encoded are set once we know
   //  the kmer size.  See initialize().
@@ -121,54 +100,13 @@ kmerCountFileWriter::kmerCountFileWriter(const char *outputName,
   _numBlocksBits = 0;
   _numFiles      = 0;
   _numBlocks     = 0;
-
-  _datFiles      = NULL;
-  _datFileIndex  = NULL;
 }
 
 
 
 kmerCountFileWriter::~kmerCountFileWriter() {
 
-  //  All data must have been written, and all output files must have been closed.
-  //  If not, you needed to call finishIteration()!
-
-  if (_batchNumKmers > 0)
-    fprintf(stderr, "ERROR: unwritten kmers exist when destroying writer for '%s'\n", _outName);
-
-  assert(_batchNumKmers == 0);
-
-  delete [] _batchSuffixes;
-  delete [] _batchCounts;
-
-  for (uint32 ii=0; ii<_numFiles; ii++) {
-    if (_datFiles[ii] != NULL)
-      fprintf(stderr, "ERROR: open output file %u exists when destroying writer for '%s'\n",
-              ii, _outName);
-    assert(_datFiles[ii] == NULL);
-  }
-
-  delete [] _datFiles;
-
-  //  Dump all index data, check that all output files have already been closed.
-
-  for (uint32 ii=0; ii<_numFiles; ii++) {
-    char  *idxname = constructBlockName(_outName, ii, _numFiles, 0, true);
-    FILE  *idxfile = AS_UTL_openOutputFile(idxname);
-
-    writeToFile(_datFileIndex[ii], "kmerCountFileWriter::fileIndex", _numBlocks, idxfile);
-
-    AS_UTL_closeFile(idxfile, idxname);
-
-    delete [] idxname;
-  }
-
-  for (uint32 ii=0; ii<_numFiles; ii++)
-    delete [] _datFileIndex[ii];
-
-  delete [] _datFileIndex;
-
-  //  Then create a master index with the parameters.
+  //  Create a master index with the parameters.
 
   stuffedBits  *masterIndex = new stuffedBits;
 
@@ -181,7 +119,7 @@ kmerCountFileWriter::~kmerCountFileWriter() {
 
   _stats.dump(masterIndex);
 
-  //  And store the master index (and stats) to disk.
+  //  Store the master index (and stats) to disk.
 
   char     N[FILENAME_MAX+1];
   FILE    *F;
@@ -193,72 +131,6 @@ kmerCountFileWriter::~kmerCountFileWriter() {
   AS_UTL_closeFile(F);
 
   delete masterIndex;
-}
-
-
-
-void
-kmerCountFileWriter::addMer(kmer   k,
-                            uint32 c) {
-
-  assert(_initialized);
-
-  if (_batchSuffixes == NULL) {
-    //fprintf(stderr, "kmerCountFileWriteR::addMer()-- allocate %lu kmers for a batch\n", _batchMaxKmers);
-    _batchSuffixes = new uint64 [_batchMaxKmers];
-    _batchCounts   = new uint32 [_batchMaxKmers];
-  }
-
-  uint64  prefix = (uint64)k >> _suffixSize;
-  uint64  suffix = (uint64)k  & _suffixMask;
-
-  //  If the batch is full, or we've got a kmer for a different batch, dump the batch
-  //  to disk.  addBlock() resets _batchNumKmers to zero and sets _batchPrefix.
-
-  bool  dump1 = (_batchNumKmers >= _batchMaxKmers);
-  bool  dump2 = (_batchPrefix != prefix) && (_batchNumKmers > 0);
-
-  if (dump1 || dump2) {
-    //fprintf(stderr, "kmerCountFileWriter::addMer()-- addBlock 0x%016lx with %lu kmers dump1=%c dump2=%c\n",
-    //        _batchPrefix, _batchNumKmers,
-    //        (dump1) ? 'T' : 'F',
-    //        (dump2) ? 'T' : 'F');
-    addBlock(prefix);
-  }
-
-  assert(_batchNumKmers < _batchMaxKmers);
-
-  _batchSuffixes[_batchNumKmers] = suffix;
-  _batchCounts  [_batchNumKmers] = c;
-
-  _batchNumKmers++;
-}
-
-
-
-uint64
-kmerCountFileWriter::firstPrefixInFile(uint32 ff) {
-  uint64  pp  = ff;
-
-  assert(_initialized);
-
-  pp <<= _numBlocksBits;      //  The first prefix is just the file number shifted left.
-
-  return(pp);
-}
-
-
-
-uint64
-kmerCountFileWriter::lastPrefixInFile(uint32 ff) {
-  uint64  pp  = ff + 1;
-
-  assert(_initialized);
-
-  pp <<= _numBlocksBits;      //  The first prefix of the _next_ file.
-  pp  -= 1;                   //  Subtract one to get the last valid prefix for file ff.
-
-  return(pp);
 }
 
 
@@ -288,12 +160,20 @@ kmerCountFileWriter::fileNumber(uint64  prefix) {
 
 
 
+//void
+//kmerCountFileWriter::importStatistics(kmerCountStatistics &import) {
+//#warning NOT IMPORTING STATISTICS
+//}
+
+
+
 void
-kmerCountFileWriter::writeBlockToFile(uint32   Fnum,
-                                      uint64   prefix,
-                                      uint64   nKmers,
-                                      uint64  *suffixes,
-                                      uint32  *counts) {
+kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
+                                      kmerCountFileIndex  *datFileIndex,
+                                      uint64               prefix,
+                                      uint64               nKmers,
+                                      uint64              *suffixes,
+                                      uint32              *counts) {
 
   //  Figure out the optimal size of the Elias-Fano prefix.  It's just log2(N)-1.
 
@@ -350,294 +230,13 @@ kmerCountFileWriter::writeBlockToFile(uint32   Fnum,
 
   //  Save the index entry.
 
-  uint64  idxOffset = prefix & uint64MASK(_numBlocksBits);
+  uint64  block = prefix & uint64MASK(_numBlocksBits);
 
-  _datFileIndex[Fnum][idxOffset].set(prefix, _datFiles[Fnum], nKmers);
+  datFileIndex[block].set(prefix, datFile, nKmers);
 
   //  Dump data to disk, cleanup, and done!
 
-  dumpData->dumpToFile(_datFiles[Fnum]);
+  dumpData->dumpToFile(datFile);
 
   delete dumpData;
-}
-
-
-
-void
-kmerCountFileWriter::addBlock(uint64  prefix,
-                              uint64  nKmers,
-                              uint64 *suffixes,
-                              uint32 *counts) {
-
-  //  It is _CRITICAL_ to write the blocks with no kmers.  This adds
-  //  a bit of size to small datasets, but makes merging thing much easier.
-
-  assert(_initialized);
-
-  //  Open a new file, if needed.
-
-  uint32 oi = fileNumber(prefix);
-
-  if (_datFiles[oi] == NULL)
-    _datFiles[oi] = openOutputBlock(_outName, oi, _numFiles, _iteration);
-
-  //  Encode and dump to disk.
-
-  writeBlockToFile(oi, prefix, nKmers, suffixes, counts);
-
-  //  Finally, don't forget to insert the counts into the histogram!
-
-#pragma omp critical (kmerCountFileWriterAddCount)
-  for (uint32 kk=0; kk<nKmers; kk++)
-    _stats.addCount(counts[kk]);
-}
-
-
-
-void
-kmerCountFileWriter::addBlock(uint64 nextPrefix) {
-
-  //  Add the current block of kmers, regardless of how many are present.
-
-  addBlock(_batchPrefix, _batchNumKmers, _batchSuffixes, _batchCounts);
-
-  //  Then set up for the next block of kmers.
-
-  _batchPrefix   = nextPrefix;
-  _batchNumKmers = 0;
-}
-
-
-
-void
-kmerCountFileWriter::incrementIteration(void) {
-
-  for (uint32 ii=0; ii<_numFiles; ii++)        //  Close all the open files
-    AS_UTL_closeFile(_datFiles[ii]);           //  (index data is written later)
-
-  _iteration++;                                //  And move to the next iteration.
-}
-
-
-
-void
-kmerCountFileWriter::finishIteration(void) {
-
-  fprintf(stderr, "finishIteration()--\n");
-
-  //  Write any last bit of data.
-
-  if (_batchNumKmers > 0)
-    addBlock(UINT64_MAX);
-
-  //  Close all data files.
-
-  for (uint32 ii=0; ii<_numFiles; ii++)
-    AS_UTL_closeFile(_datFiles[ii]);
-
-  //  If only one iteration, just rename files to the proper name.
-
-  if (_iteration == 1) {
-    for (uint32 oi=0; oi<_numFiles; oi++) {
-      char    *oldName = constructBlockName(_outName, oi, _numFiles, _iteration, false);
-      char    *newName = constructBlockName(_outName, oi, _numFiles, 0,          false);
-
-      AS_UTL_rename(oldName, newName);
-
-      delete [] newName;
-      delete [] oldName;
-    }
-  }
-
-  //  Otherwise, merge the multiple iterations into a single file (after clearing
-  //  the stats from the last iteration).
-
-  else {
-    _stats.clear();
-
-    fprintf(stderr, "finishIteration()--  Merging %u blocks.\n", _iteration);
-
-#pragma omp parallel for
-    for (uint32 oi=0; oi<_numFiles; oi++)
-      mergeIterations(oi);
-  }
-}
-
-
-
-void
-kmerCountFileWriter::mergeIterations(uint32 oi) {
-  kmerCountFileReaderBlock    inBlocks[_iteration + 1];
-  FILE                       *inFiles [_iteration + 1];
-
-  if (0) {
-    char  *fileName = constructBlockName(_outName, oi, _numFiles, 0, false);
-
-    fprintf(stderr, "thread %2u merges file %s with prefixes 0x%016lx to 0x%016lx\n",
-            omp_get_thread_num(), fileName, firstPrefixInFile(oi), lastPrefixInFile(oi));
-
-    delete [] fileName;
-  }
-
-  //  Open the input files, allocate blocks.
-
-  inFiles[0] = NULL;
-
-  for (uint32 ii=1; ii <= _iteration; ii++)
-    inFiles[ii]  = openInputBlock(_outName, oi, _numFiles, ii);
-
-  //  Open the output file.
-
-  assert(_datFiles[oi] == NULL);
-
-  _datFiles[oi] = openOutputBlock(_outName, oi, _numFiles);
-
-  //  Technically, we should clear the obsolete _datFileIndex.  It isn't strictly
-  //  needed (since every block should be updated), but _could_ prevent an error, maybe.
-
-  for (uint32 bb=0; bb<_numBlocks; bb++)
-    _datFileIndex[oi][bb].clear();
-
-  //  Create space to save out suffixes and counts.
-
-  uint64    nKmersMax = 0;
-  uint64   *suffixes  = NULL;
-  uint32   *counts    = NULL;
-
-  uint64    kmersIn   = 0;
-  uint64    kmersOut  = 0;
-
-  //  Load each block from each file, merge, and write.
-
-  uint32    p[_iteration+1];  //  Position in s[] and c[]
-  uint64    l[_iteration+1];  //  Number of entries in s[] and c[]
-  uint64   *s[_iteration+1];  //  Pointer to the suffixes for piece x
-  uint32   *c[_iteration+1];  //  Pointer to the counts   for piece x
-
-  for (uint32 bb=0; bb<_numBlocks; bb++) {
-    uint64  totnKmers = 0;
-    uint64  savnKmers = 0;
-
-    //  Load and decode each block.  NO ERROR CHECKING.
-
-    for (uint32 ii=1; ii <= _iteration; ii++) {        //  This loop _could_ be threaded, but the
-      inBlocks[ii].loadBlock(inFiles[ii], oi, ii);     //  caller to this function has already
-      inBlocks[ii].decodeBlock();                      //  threaded things, so no real point.
-
-      p[ii] = 0;
-      l[ii] = inBlocks[ii].nKmers();
-      s[ii] = inBlocks[ii].suffixes();
-      c[ii] = inBlocks[ii].counts();
-
-      totnKmers += l[ii];
-    }
-
-    //  Check that everyone has loaded the same prefix.
-
-    uint64  prefix = inBlocks[1].prefix();
-
-    //fprintf(stderr, "MERGE prefix 0x%04lx %8lu kmers and 0x%04lx %8lu kmers.\n",
-    //        prefix, l[1], inBlocks[2].prefix(), l[2]);
-
-    for (uint32 ii=1; ii <= _iteration; ii++) {
-      if (prefix != inBlocks[ii].prefix())
-        fprintf(stderr, "ERROR: File %u segments 1 and %u differ in prefix: 0x%016lx vs 0x%016lx\n",
-                oi, ii, prefix, inBlocks[ii].prefix());
-      assert(prefix == inBlocks[ii].prefix());
-    }
-
-    //  Setup the merge.
-
-    resizeArrayPair(suffixes, counts, 0, nKmersMax, totnKmers, resizeArray_doNothing);
-
-    //  Merge!  We don't know the number of different kmers in the input, and are forced
-    //  to loop infinitely.
- 
-    while (1) {
-      uint64  minSuffix = UINT64_MAX;
-      uint32  sumCount  = 0;
-
-      //  Find the smallest suffix over all the inputs;
-      //  Remember the sum of their counts.
-
-      for (uint32 ii=1; ii <= _iteration; ii++) {
-        if (p[ii] < l[ii]) {
-          if (minSuffix > s[ii][ p[ii] ]) {
-            minSuffix = s[ii][ p[ii] ];
-            sumCount  = c[ii][ p[ii] ];
-          }
-
-          else if (minSuffix == s[ii][ p[ii] ]) {
-            sumCount += c[ii][ p[ii] ];
-          }
-        }
-      }
-
-      //  If no counts, we're done.
-
-      if ((minSuffix == UINT64_MAX) && (sumCount == 0))
-        break;
-
-      //  Set the suffix/count in our merged list, reallocating if needed.
-
-      suffixes[savnKmers] = minSuffix;
-      counts  [savnKmers] = sumCount;
-
-      savnKmers++;
-
-      if (savnKmers > nKmersMax)
-        fprintf(stderr, "savnKmers %lu > nKmersMax %lu\n", savnKmers, nKmersMax);
-      assert(savnKmers <= nKmersMax);
-
-      //  Move to the next element of the lists we pulled data from.  If the list is
-      //  exhausted, mark it as so.
-
-      for (uint32 ii=1; ii <= _iteration; ii++) {
-        if ((p[ii] < l[ii]) &&
-            (minSuffix == s[ii][ p[ii] ]))
-          p[ii]++;
-      }
-    }
-
-    //  Write the merged block of data to the output.
-
-    writeBlockToFile(oi, prefix, savnKmers, suffixes, counts);
-
-    //  Finally, don't forget to insert the counts into the histogram!
-
-#pragma omp critical (kmerCountFileWriterAddCount)
-    for (uint32 kk=0; kk<savnKmers; kk++)
-      _stats.addCount(counts[kk]);
-
-    //  And update our local stats
-
-    kmersIn  += totnKmers;
-    kmersOut += savnKmers;
-  }
-
-  delete [] suffixes;
-  delete [] counts;
-
-  //  Close the input data files.
-
-  for (uint32 ii=1; ii <= _iteration; ii++)
-    AS_UTL_closeFile(inFiles[ii]);
-
-  //  Close the output data file.
-
-  AS_UTL_closeFile(_datFiles[oi]);
-
-  //  Remove the old data files.
-
-  for (uint32 ii=1; ii <= _iteration; ii++)
-    removeBlock(_outName, oi, _numFiles, ii);
-
-  if (0) {
-    char  *fileName = constructBlockName(_outName, oi, _numFiles, 0, false);
-
-    fprintf(stderr, "thread %2u merged file %s with prefixes 0x%016lx to 0x%016lx - %lu input kmers %lu output kmers\n",
-            omp_get_thread_num(), fileName, firstPrefixInFile(oi), lastPrefixInFile(oi), kmersIn, kmersOut);
-
-    delete [] fileName;
-  }
 }

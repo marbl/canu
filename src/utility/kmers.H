@@ -46,13 +46,6 @@ openInputBlock(char   *prefix,
                uint32  numFiles,
                uint32  iteration=0);
 
-void
-removeBlock(char   *prefix,
-            uint64  fileIndex,
-            uint32  numFiles,
-            uint32  iteration);
-
-
 
 
 class  kmerTiny {
@@ -408,6 +401,11 @@ public:
                  FILE   *F,
                  uint64  nKmers) {
 
+    //fprintf(stderr, "set prefix 0x%016lx from [0x%016lx %8lu %8lu] to [%8lu %8lu]\n",
+    //        prefix,
+    //        _blockPrefix, _blockPosition, _numKmers,
+    //        AS_UTL_ftell(F), _numKmers + nKmers);
+
     if (_blockPrefix == UINT64_MAX) {
       _blockPrefix   = prefix;
       _blockPosition = AS_UTL_ftell(F);
@@ -415,10 +413,11 @@ public:
     }
 
     else {
-      assert(_blockPrefix   == prefix);
-      assert(_blockPosition <= AS_UTL_ftell(F));
       _numKmers     += nKmers;
     }
+
+    assert(_blockPrefix   == prefix);
+    assert(_blockPosition <= AS_UTL_ftell(F));
   };
 
   void       clear(void) {
@@ -440,9 +439,21 @@ private:
 
 
 class kmerCountFileReader {
+private:
+  void    initializeFromMasterIndex(bool  doInitialize,
+                                    bool  loadStatistics,
+                                    bool  beVerbose);
+
 public:
-  kmerCountFileReader(const char *inputName, bool ignoreStats=false, bool beVerbose=false);
+  kmerCountFileReader(const char *inputName,
+                      bool        beVerbose=false);
   ~kmerCountFileReader();
+
+public:
+  void    loadStatistics(void);
+
+public:
+  void    enableThreads(uint32 threadFile);
 
 public:
   void    loadBlockIndex(void);
@@ -455,7 +466,7 @@ public:
   char   *filename(void)  { return(_inName);  };
 
   kmerCountStatistics       *stats(void) {
-    return(&_stats);
+    return(_stats);
   }
 
   //  For direct access to the kmer blocks.
@@ -493,7 +504,7 @@ private:
   uint32                     _numFiles;
   uint32                     _numBlocks;
 
-  kmerCountStatistics        _stats;
+  kmerCountStatistics       *_stats;
 
   FILE                      *_datFile;
 
@@ -508,6 +519,8 @@ private:
   uint64                     _activeMer;
   uint32                     _activeFile;
 
+  uint32                     _threadFile;
+
   uint64                     _nKmers;
   uint64                     _nKmersMax;
   uint64                    *_suffixes;
@@ -515,7 +528,11 @@ private:
 };
 
 
+#include "kmers-writer-block.H"
+#include "kmers-writer-stream.H"
 
+
+//  Responsible for actually writing data to a file.
 class kmerCountFileWriter {
 public:
   kmerCountFileWriter(const char *outputName,
@@ -524,49 +541,36 @@ public:
   ~kmerCountFileWriter();
 
 public:
-  void    initialize(uint32 prefixSize = 0);
   char   *filename(void)  { return(_outName);  };
 
 public:
-  void    addMer(kmer k, uint32 c);
+  void    initialize(uint32 prefixSize = 0);
 
-  uint32  numberOfFiles(void)           { return(_numFiles); };
-  uint64  firstPrefixInFile(uint32 ff);
-  uint64  lastPrefixInFile(uint32 ff);
+  kmerCountBlockWriter  *getBlockWriter(void)        { return(new kmerCountBlockWriter (this));      };
+  kmerCountStreamWriter *getStreamWriter(uint32 ff)  { return(new kmerCountStreamWriter(this, ff));  };
+
+public:
+  uint32  numberOfFiles(void)           { return(_numFiles);                      };
+  uint64  firstPrefixInFile(uint32 ff)  { return(((uint64)ff) << _numBlocksBits); };
+  uint64  lastPrefixInFile(uint32 ff)   { return(firstPrefixInFile(ff + 1) - 1);  };
 
   uint32  fileNumber(uint64 prefix);
 
 private:
-  void    writeBlockToFile(uint32   Fnum,
-                           uint64   prefix,
-                           uint64   nKmers,
-                           uint64  *suffixes,
-                           uint32  *counts);
+  //void    importStatistics(kmerCountStatistics &import);
 
-  void    writeIndexToFile(uint32 Fnum);
-
-public:
-  void    addBlock(uint64  prefix,
-                   uint64  nKmers,
-                   uint64 *suffixes,
-                   uint32 *counts);
-  void    addBlock(uint64 nextPrefix);
-
-  void    incrementIteration(void);
-  void    finishIteration(void);
-  void    mergeIterations(uint32 oi);
+private:
+  void    writeBlockToFile(FILE                *datFile,
+                           kmerCountFileIndex  *datFileIndex,
+                           uint64               prefix,
+                           uint64               nKmers,
+                           uint64              *suffixes,
+                           uint32              *counts);
 
 private:
   bool                       _initialized;
-  uint32                     _iteration;
 
   char                       _outName[FILENAME_MAX+1];
-
-  uint64                     _batchPrefix;     //  Temporary data used when adding
-  uint64                     _batchNumKmers;   //  kmers one-at-a-time.
-  uint64                     _batchMaxKmers;
-  uint64                    *_batchSuffixes;
-  uint32                    *_batchCounts;
 
   uint32                     _prefixSize;
 
@@ -578,10 +582,10 @@ private:
   uint64                     _numFiles;
   uint64                     _numBlocks;
 
-  FILE                     **_datFiles;
-  kmerCountFileIndex       **_datFileIndex;
-
   kmerCountStatistics        _stats;
+
+  friend class kmerCountBlockWriter;
+  friend class kmerCountStreamWriter;
 };
 
 

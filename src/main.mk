@@ -41,6 +41,8 @@ SOURCES      := AS_global.C \
                 utility/kmers.C \
                 utility/kmers-reader.C \
                 utility/kmers-writer.C \
+                utility/kmers-writer-block.C \
+                utility/kmers-writer-stream.C \
                 utility/kmers-statistics.C \
                 utility/kmers-exact.C \
                 \

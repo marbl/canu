@@ -40,6 +40,170 @@ isNumber(char *s, char dot='.') {
 
 
 
+class merylOpStack {
+public:
+  merylOpStack(uint32 nFiles) {
+    _nFiles     = nFiles;
+    _stacks     = new stack <merylOperation *> [nFiles];
+    _operations = new vector<merylOperation *> [nFiles];
+  };
+
+  ~merylOpStack() {
+    delete [] _stacks;
+    delete [] _operations;
+  };
+
+  uint32    numberOfOperations(void) {
+    return(_operations[0].size());
+  };
+
+  uint32    numberOfFiles(void) {
+    return(_nFiles);
+  };
+
+  merylOperation *getOp(uint32 file) {
+    return(_stacks[file].top());
+  };
+
+  merylOperation *getOp(uint32 opNum, uint32 fileNum) {
+    assert(fileNum < _nFiles);
+    assert(opNum   < _operations[fileNum].size());
+    return(_operations[fileNum][opNum]);
+  };
+
+  void            pushOp(merylOp opName, uint32 allowedThreads, uint64 allowedMemory) {
+    for (uint32 ff=0; ff<_nFiles; ff++) {
+      merylOperation *newOp = new merylOperation(opName, ff, allowedThreads, allowedMemory);
+
+      if (_stacks[ff].empty() == false)        //  If a command exists, the new command
+        _stacks[ff].top()->addInput(newOp);    //  supplies input to the existing command.
+
+      _stacks[ff].push(newOp);                 //  Make the new command the current command.
+      _operations[ff].push_back(newOp);
+    }
+  };
+
+  void            popOp(void) {
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].pop();
+  };
+
+  //  For input from a database, we need to create new reader objects for
+  //  each thread - for simplicity, we just make a new object for each input
+  //  file.
+  //
+  void    addInput(kmerCountFileReader *reader) {
+
+    //#pragma omp parallel for schedule(dynamic, 1)
+    for (uint32 ff=0; ff<_nFiles; ff++) {
+      kmerCountFileReader  *privatereader = new kmerCountFileReader(reader->filename());
+
+      privatereader->enableThreads(ff);
+
+      _stacks[ff].top()->addInput(privatereader);
+    }
+
+    delete reader;
+  };
+
+  //  dnaSeqFile and sqStore inputs are only used by counting, and that
+  //  doesn't use the threaded merylOperation scheme here.
+  //
+  void    addInput(dnaSeqFile *sequence) {
+    _stacks[0].top()->addInput(sequence);
+  };
+
+  void    addInput(sqStore *store, uint32 segment, uint32 segmentMax) {
+    _stacks[0].top()->addInput(store, segment, segmentMax);
+  };
+
+  //  Counting operations only need the output associated with the first
+  //  file, and associating with other files just makes life difficult and/or
+  //  dangerous, so don't.
+  //
+  void    addOutput(char *writerName) {
+    kmerCountFileWriter   *writer = new kmerCountFileWriter(writerName);
+
+    if (isCounting())
+      _stacks[0].top()->addOutput(writer);
+    else
+      for (uint32 ff=0; ff<_nFiles; ff++)
+        _stacks[ff].top()->addOutput(writer);
+  };
+
+  void    addPrinter(char *printerName) {
+    char  T[FILENAME_MAX+1] = { 0 };
+    char  N[FILENAME_MAX+1] = { 0 };
+
+    if ((printerName == NULL) ||
+        (strcmp(printerName, "-") == 0)) {
+      for (uint32 ff=0; ff<_nFiles; ff++)
+        _stacks[ff].top()->addPrinter(stdout);
+      return;
+    }
+
+    strncpy(T, printerName, FILENAME_MAX);
+
+    char   *pre = T;
+    char   *suf = strchr(T, '#');
+    uint32  len = 0;
+
+    while ((suf) && (*suf == '#')) {
+      *suf = 0;
+      len++;
+      suf++;
+    }
+
+    for (uint32 ff=0; ff<_nFiles; ff++) {
+      if (len == 0)
+        snprintf(N, FILENAME_MAX, "%s.%d", printerName, ff);
+      else
+        snprintf(N, FILENAME_MAX, "%s%0*d%s", pre, len, ff, suf);
+ 
+      _stacks[ff].top()->addPrinter(AS_UTL_openOutputFile(N));
+   }
+  };
+
+
+
+  void       setParameter(uint64 p) {
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setParameter(p);
+  };
+
+  void       setExpectedNumberOfKmers(uint64 n) {
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setExpectedNumberOfKmers(n);
+  };
+
+
+
+
+  void       setMemoryLimit(uint64 m) {
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setMemoryLimit(m);
+  };
+
+  void       setThreadLimit(uint32 t) {
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setThreadLimit(t);
+  };
+
+  uint64     size(void)             { return(_stacks[0].size());                  };
+  bool       empty(void)            { return(_stacks[0].size() == 0);             };
+
+  bool       isCounting(void)       { return(_stacks[0].top()->isCounting());     };
+  bool       isNormal(void)         { return(_stacks[0].top()->isNormal());       };
+  bool       needsParameter(void)   { return(_stacks[0].top()->needsParameter()); };
+
+private:
+  uint32                     _nFiles;
+  stack<merylOperation *>   *_stacks;
+  vector<merylOperation *>  *_operations;
+};
+
+
+
 
 int
 main(int argc, char **argv) {
@@ -50,12 +214,17 @@ main(int argc, char **argv) {
   char                      sqInfName[FILENAME_MAX+1];
   char                      sqRdsName[FILENAME_MAX+1];
 
-  stack<merylOperation *>   opStack;
+#warning HARD CODED NUMBER OF FILES!
+  merylOpStack              opStack(64);
+
   merylOp                   opName         = opNothing;
+
   uint32                    outputArg      = UINT32_MAX;
-  uint32                    printArg       = UINT32_MAX;
-  kmerCountFileWriter      *writer         = NULL;
-  FILE                     *printer        = NULL;
+  uint32                    printerArg     = UINT32_MAX;
+
+  char                     *writerName     = NULL;
+  char                     *printerName    = NULL;
+
   kmerCountFileReader      *reader         = NULL;
   dnaSeqFile               *sequence       = NULL;
   sqStore                  *store          = NULL;
@@ -89,7 +258,7 @@ main(int argc, char **argv) {
 
     if (strcmp(optString, "dumpIndex") == 0) {
       arg++;
-      delete new kmerCountFileReader(argv[arg++], true, true);
+      delete new kmerCountFileReader(argv[arg++], true);
       continue;
     }
 
@@ -120,15 +289,15 @@ main(int argc, char **argv) {
              (optStringLen > 2) &&
              (strncmp(optString, "n=", 2) == 0) &&
              (isNumber(optString + 2) == true)) {
-      opStack.top()->setExpectedNumberOfKmers(strtouint64(optString + 2));
+      opStack.setExpectedNumberOfKmers(strtouint64(optString + 2));
       continue;
     }
 
     //  Threshold values for less-than, greater-than and equal-to are just a number.
     else if ((opStack.size() > 0) &&
-             (opStack.top()->needsParameter() == true) &&
+             (opStack.needsParameter() == true) &&
              (isNumber(optString))) {
-      opStack.top()->setParameter(strtouint64(optString));
+      opStack.setParameter(strtouint64(optString));
       continue;
     }
 
@@ -148,7 +317,7 @@ main(int argc, char **argv) {
       if (opStack.size() == 0)
         allowedMemory = memory;
       else
-        opStack.top()->setMemoryLimit(memory);
+        opStack.setMemoryLimit(memory);
              
       continue;
     }
@@ -164,7 +333,7 @@ main(int argc, char **argv) {
         omp_set_num_threads(allowedThreads);
       }
       else {
-        opStack.top()->setThreadLimit(threads);
+        opStack.setThreadLimit(threads);
       }
 
       continue;
@@ -227,7 +396,9 @@ main(int argc, char **argv) {
       terminating++;
     }
 
-    //  Now, parse this word.  Decide if it's a new operation, or an output name, or an input file.
+    //
+    //  Parse this word.  Decide if it's a new operation, or an output name, or an input file.
+    //
 
     if      (0 == optStringLen)
       ;  //  Got a single bracket, nothing to do here except make it not be an error.
@@ -266,40 +437,45 @@ main(int argc, char **argv) {
 
     else if (0 == strcmp(optString, "compare"))                opName = opCompare;
 
-    else if (0 == strcmp(optString, "output"))            //  Flag the next arg as the output name for a database
+    //  Handle output names.
+
+    else if (0 == strcmp(optString, "output")) {          //  Flag the next arg as the output name for a database
       outputArg = arg + 1;                                //  if we see 'output'.
-
-    else if (0 == strcmp(optString, "print"))             //  Flag the next arg as the output name for printing
-      printArg = arg + 1;                                 //  if we see 'print'.
-
-    else if (arg == outputArg)                            //  If this is the output name, make a new
-      writer = new kmerCountFileWriter(inoutName);        //  output writer.
-
-    else if ((arg == printArg) &&                         //  This this _should_ have been an output name,
-             (directoryExists(inoutName))) {              //  but is instead a directory; user is asking for
-      printer = stdout;                                   //  the database in the directory to be printed.
-      reader  = new kmerCountFileReader(inoutName);
     }
 
-    else if (arg == printArg)                             //  If this is the printer name, make a new file to print
-      printer = AS_UTL_openOutputFile(inoutName);         //  to.  Note: this isn't triggered if the arg is an op.
+    else if (arg == outputArg) {                          //  If this is the output name, make a new
+      writerName = duplicateString(inoutName);            //  output writer.
+    }
 
-    else if ((opStack.size() > 0) &&                      //  If a command exists,
-             (opStack.top()->isCounting()  == false) &&   //  and it isn't for counting,
-             (fileExists(indexName) == true))             //  and the meryl index file exists,
-      reader = new kmerCountFileReader(inoutName);        //  add a kmerCountFile as input to the current command.
+    //  Handle printer names.
 
-    else if ((opStack.size() > 0) &&                      //  If a command exists,
-             (opStack.top()->isCounting()  == true) &&    //  and it IS for counting,
-             (fileExists(inoutName)  == true))            //  and the file exists,
-      sequence = new dnaSeqFile(inoutName);               //  add a sequence file as input to the current command.
+    else if (0 == strcmp(optString, "print")) {           //  Flag the next arg as the output name for printing
+      printerArg = arg + 1;                               //  if we see 'print'.
+    }
 
-    else if ((opStack.size() > 0) &&                      //  If a command exists,
-             (opStack.top()->isCounting()  == true) &&    //  and it IS for counting,
-             (fileExists(sqInfName)  == true) &&          //  and the 'info' file exists,
-             (fileExists(sqRdsName)  == true))            //  and the 'reads' file exists,
-      store = sqStore::sqStore_open(inoutName);           //  add a sqStore file as input to the current command.
+    else if ((arg == printerArg) &&                       //  If this is the printer name, and not a meryl database, make
+             (fileExists(indexName) == false)) {          //  a new file to print to.  Note: this isn't triggered if the
+      printerName = duplicateString(inoutName);           //  arg is an op, the if-cascade stops when the op is parsed.
+    }
 
+    //  Handle inputs.
+
+    else if (fileExists(indexName) == true) {             //  Make a reader if the arg is a meryl database.
+      reader = new kmerCountFileReader(inoutName);
+    }
+
+    else if ((opStack.size() > 0) &&                      //  If a counting command exists, add a sequence file.
+             (opStack.isCounting()   == true) &&
+             (fileExists(inoutName)  == true)) {
+      sequence = new dnaSeqFile(inoutName);
+    }
+
+    else if ((opStack.size() > 0) &&                      //  If a counting command exists, add a Canu seqStore.
+             (opStack.isCounting()   == true) &&
+             (fileExists(sqInfName)  == true) &&
+             (fileExists(sqRdsName)  == true)) {
+      store = sqStore::sqStore_open(inoutName);
+    }
 
     else {
       char *s = new char [1024];
@@ -307,58 +483,62 @@ main(int argc, char **argv) {
       err.push_back(s);
     }
 
-    //  A couple of special cases for printing that can't be handled above.
+    //
+    //  With the argument parsed, do something with it.
+    //  Order is quite important here, as they're all independent tests.
+    //
 
-    if ((printer != NULL) &&       //  A printer and a reader exist but there isn't anything
-        (reader  != NULL) &&       //  on the stack, we've been told to print a meryl database.
-        (opStack.size() == 0))     //  Use the NoOp op opPassThrough just to give the print
-      opName = opPassThrough;      //  something to hang on.
+    if ((arg == printerArg) &&                            //  We wanted to find a printer name here, but found
+        (printerName == NULL)) {                          //  something else; make the print go to stdout.
+      printerName = duplicateString("-");
+    }
 
-    if ((arg == printArg) &&       //  This this _should_ have been an output name,
-        (opName != opNothing))     //  but is instead an operation, send the printer
-      printer = stdout;            //  to stdout.
+    if ((printerName != NULL) &&                          //  If a printer and a reader exist, but no operation,
+        (reader      != NULL) &&                          //  the user asked to just print a database.
+        (opName      == opNothing)) {                     //  Add a pass-through operation to give it
+      opName = opPassThrough;                             //  something to hang on to.
+    }
 
-    //  Now, do something with the parsed word.
-    //    If 'op' is set, make a new command.
-    //    If 'writer' exists, set the output of the top most command to that.
-    //    If 'printer' exists, set the printer of the top most command to that.
-    //    If 'reader' or 'sequence' exist, add it to the inputs of the top most command.
-
-    if (opName != opNothing) {
-      merylOperation *newOp = new merylOperation(opName, allowedThreads, allowedMemory);
-
-      if (opStack.empty() == false)        //  If a command exists, the new command
-        opStack.top()->addInput(newOp);    //  supplies input to the existing command.
-
-      opStack.push(newOp);                 //  Make the new command the current command.
+    if (opName != opNothing) {                            //  Add any just-parsed command to the stack.
+      opStack.pushOp(opName,
+                     allowedThreads, allowedMemory);
       opName = opNothing;
     }
 
-    if ((writer != NULL) &&                //  Add the writer to the top most command, if
-        (opStack.size() > 0)) {            //  one actually exists.  If not, wait until the
-      opStack.top()->addOutput(writer);    //  command is created.
-      writer = NULL;
-    }
+    //
+    //  Attach outputs and inputs to the top operation on the stack.  If the stack is empty,
+    //  do nothing with the output/input this time, wait until the next argument.
+    //
 
-    if ((printer != NULL) &&               //  Same as for writer, except for the printer.
+    if ((writerName != NULL) &&
         (opStack.size() > 0)) {
-      opStack.top()->addPrinter(printer);
-      printer = NULL;
+      opStack.addOutput(writerName);
+      delete [] writerName;
+      writerName = NULL;
     }
 
-    if (reader != NULL) {                  //  Add the reader to the top most command.  The
-      opStack.top()->addInput(reader);     //  top most command always exists (else we'd error out
-      reader = NULL;                       //  when creating the reader object above).
+    if ((printerName != NULL) &&
+        (opStack.size() > 0)) {
+      opStack.addPrinter(printerName);
+      delete [] printerName;
+      printerName = NULL;
     }
 
-    if (sequence != NULL) {                //  Same story, different object.
-      opStack.top()->addInput(sequence);
+    if ((reader != NULL) &&
+        (opStack.size() > 0)) {
+      opStack.addInput(reader);
+      reader = NULL;
+    }
+
+    if ((sequence != NULL) &&
+        (opStack.size() > 0)) {
+      opStack.addInput(sequence);
       sequence = NULL;
     }
 
-    if (store != NULL) {                   //  Same story, different object.
-      opStack.top()->addInput(store, segment, segmentMax);
-
+    if ((store != NULL) &&
+        (opStack.size() > 0)) {
+      opStack.addInput(store, segment, segmentMax);
       store      = NULL;
       segment    = 1;
       segmentMax = 1;
@@ -367,7 +547,7 @@ main(int argc, char **argv) {
     //  Finally, if we've been told to terminate the command, do so.
 
     for (; terminating > 0; terminating--)
-      opStack.pop();
+      opStack.popOp();
   }
 
   //  If any errors, fail.
@@ -459,7 +639,7 @@ main(int argc, char **argv) {
   //  Pop the stack until we get back to the root operation.
 
   while (opStack.size() > 1)
-    opStack.pop();
+    opStack.popOp();
 
   //  opHistogram is limited to showing only histograms already stored in a database.
   //  opHistogram cannot take input from anything but a database.
@@ -471,30 +651,60 @@ main(int argc, char **argv) {
   //
   //  Eventually, maybe, opHistogram will allow input from a kmer stream.
 
-  if (opStack.top()->getOperation() == opHistogram) {
-    opStack.top()->nextMer();          //  To load the file.
-    opStack.top()->reportHistogram();
+  if (opStack.getOp(0)->getOperation() == opHistogram) {
+    opStack.getOp(0)->nextMer();          //  To load the file.
+    opStack.getOp(0)->reportHistogram();
     exit(0);
   }
-   
+
+  //  Counting operations are a big headache.  They don't fit into the
+  //  tree nicely:
+  //   - they do their own threading, so only one thread can start the operation
+  //   - when done, they transform themselves into a pass-through operation that
+  //     simply reads the (just counted) input and passes kmers through.
+  //
+  //  So, we special case them here.  opCounting is a list of the counting
+  //  operations, which we just process in order, counting, writing the output,
+  //  and converting to a pass-through operation.
+
+  for (uint32 opNum=0; opNum<opStack.numberOfOperations(); opNum++) {
+    merylOperation *op = opStack.getOp(opNum, 0);
+    char            name[FILENAME_MAX + 1];
+
+    if (op->isCounting() == true) {
+      strncpy(name, op->getOutputName(), FILENAME_MAX);
+
+      op->doCounting();
+
+      for (uint32 fileNum=0; fileNum<opStack.numberOfFiles(); fileNum++)
+        opStack.getOp(opNum, fileNum)->convertToPassThrough(name);
+    }
+  }
+
   //  If there is an operation (debug operations and -h have no operations)
   //  keep calling nextMer() on that top operation until there are no more mers.
+  //
+  //  op->initialize() returns false if we're only configuring, or if the top
+  //  operation on the stack is a counting operation.
 
-  merylOperation *op = opStack.top();
+#pragma omp parallel for schedule(dynamic, 1)
+  for (uint32 ff=0; ff<opStack.numberOfFiles(); ff++) {
+    merylOperation *op = opStack.getOp(ff);
 
-  //fprintf(stderr, "Detected %u available threads and %.3f GB memory.\n",
-  //        physThreads, physMemory / 1024.0 / 1024.0 / 1024.0);
+    if (op->initialize() == true) {
+      while (op->nextMer() == true)
+        ;
+    }
+  }
 
-  //  Initialization and counting are special cases that we don't want
-  //  to test for over and over and over on every kmer.  If initialize
-  //  returns false, then the first operation was a counting operation,
-  //  and we don't need to run through the kmers.
+  //  Now that everything is done, delete!  Output presents a problem, in that everyone has a copy
+  //  of it, but only one can delete it.
 
-  if (op->initialize(true) == true)
-    while (op->nextMer() == true)
-      ;
+  for (uint32 ff=0; ff<opStack.numberOfFiles(); ff++) {
+    merylOperation *op = opStack.getOp(ff);
 
-  delete op;  //  Deletes all the child operations too.
+    delete op;
+  }
 
   fprintf(stderr, "Bye.\n");
 

@@ -22,7 +22,7 @@ bool            merylOperation::_showProgress = false;
 merylVerbosity  merylOperation::_verbosity    = sayStandard;
 
 
-merylOperation::merylOperation(merylOp op, uint32 threads, uint64 memory) {
+merylOperation::merylOperation(merylOp op, uint32 ff, uint32 threads, uint64 memory) {
   _operation     = op;
 
   _parameter     = UINT64_MAX;
@@ -34,7 +34,11 @@ merylOperation::merylOperation(merylOp op, uint32 threads, uint64 memory) {
   _stats         = NULL;
 
   _output        = NULL;
+  _writer        = NULL;
+
   _printer       = NULL;
+
+  _fileNumber    = ff;
 
   _actLen        = 0;
   _actCount      = new uint64 [1024];
@@ -50,7 +54,11 @@ merylOperation::~merylOperation() {
   clearInputs();
 
   delete    _stats;
-  delete    _output;
+
+  assert(_writer == NULL);
+
+  if (_fileNumber == 0)   //  The output is shared among all operations for this set of files.
+    delete  _output;      //  Only one operation can delete it.
 
   if (_printer != stdout)
     AS_UTL_closeFile(_printer);
@@ -173,6 +181,15 @@ merylOperation::addOutput(kmerCountFileWriter *writer) {
   _output = writer;
 }
 
+
+
+char *
+merylOperation::getOutputName(void) {
+  if (_output)
+    return(_output->filename());
+  else
+    return(NULL);
+}
 
 
 void

@@ -164,7 +164,7 @@ merylCountArray::countKmers(void) {
 
 
 void
-merylCountArray::dumpCountedKmers(kmerCountFileWriter *out) {
+merylCountArray::dumpCountedKmers(kmerCountBlockWriter *out) {
   out->addBlock(_prefix, _nKmers, _suffix, _counts);
 }
 

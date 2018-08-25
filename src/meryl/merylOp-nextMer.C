@@ -48,7 +48,7 @@ merylOperation::findSumCount(void) {
 
 
 bool
-merylOperation::initialize(bool isRoot) {
+merylOperation::initialize(void) {
   bool  proceed = true;
 
   //  Initialize all the inputs this operation might have.
@@ -56,70 +56,66 @@ merylOperation::initialize(bool isRoot) {
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->initialize();
 
-  //  Initialize any output, except if it's for counting.
-  //  Those initialize outputs differently.
+  //  Set up the output for the specific kmer database file we're processing.
+  //  Note that if this _was_ a counting operation, nextMer_doCounting() just
+  //  above will have already created an output for the count, written the
+  //  data, and removed the _output pointer.
 
-  if ((_output) && (isCounting() == false))
+  if (_output) {
     _output->initialize();
-
-  //  Finally, do any counting operations.  If the counting operation is
-  //  the root node, we don't need to proceed with the usual mer iteration.
-
-  if (isCounting() == true)
-    proceed = nextMer_doCounting(isRoot);
-
-  //  Return true to start iteration of kmers, unless we're only configuring.
-
-  if (_onlyConfig) {
-    fprintf(stderr, "Stopping after configuring operation '%s'.\n", toString(_operation));
-    proceed = false;
+    _writer = _output->getStreamWriter(_fileNumber);
   }
+
+  //  If configuring, or if the operation is pass-through with no output,
+  //  don't stream the mers.  This only matters for the root node; the return
+  //  value for all other nodes is ignored (those are called above, when
+  //  initializing the inputs to this node).
+
+  if (_onlyConfig == true)
+    proceed = false;
+
+  if ((_operation == opPassThrough) &&   //  'meryl print DATABASE' uses opPassThrough.
+      (_printer   == NULL))              //  but has _printer set.
+    proceed = false;                     //  Counting operations do not set _printer.
 
   return(proceed);
 }
 
 
 
-bool
-merylOperation::nextMer_doCounting(bool isRoot) {
+//  Perform the counting operation, then close the output.
+//
+void
+merylOperation::doCounting(void) {
 
-  //  This is a bit more complicated than I like.  We need to close
-  //  the output (so all the data gets written and an index created)
-  //  before opening the input, so need to save the name first.
+  for (uint32 ii=0; ii<_inputs.size(); ii++)
+    _inputs[ii]->initialize();
 
   if (_kmer.merSize() <= 16)
     countSimple();
   else
     count();
 
-  //  If we're only configuring, were done.  No need to convert this operation
-  //  to look like an input, etc, etc.
-
-  if (_onlyConfig)
-    return(false);
-
-  //  Done with the inputs, so forget about them.
-
   clearInputs();
-
-  //  Remember the name of the data we just created.
-
-  char  dataName[FILENAME_MAX+1];
-
-  strncpy(dataName, _output->filename(), FILENAME_MAX);
-
-  //  Close the output and forget about it.
 
   delete _output;
   _output = NULL;
+}
 
-  //  If we're the root node, nobody is going to read our kmers,
-  //  and we can just return that there are no kmers.
 
-  if (isRoot)
-    return(false);
 
-  //  Otherwise, add the output we just made as an input.
+//  Convert the presumed counting operation into a pass-through operation.
+//  The merylOpStack (meryl.C) will assign inputs/outputs only to the
+//  first file, and that is handled in doCounting() above.
+//
+//  All we need to do here is reset the operation and add an input to the
+//  freshly constructed meryl database.
+//
+void
+merylOperation::convertToPassThrough(char *inputName) {
+
+  //clearInputs();
+  //clearOutput();
 
   if (_verbosity >= sayConstruction)
     fprintf(stderr, "merylOp::nextMer()-- CONVERTING '%s' to '%s'.\n",
@@ -127,17 +123,13 @@ merylOperation::nextMer_doCounting(bool isRoot) {
 
   _operation = opPassThrough;
 
-  addInput(new kmerCountFileReader(dataName));
-
-  //  Return true to start iteration of kmers.
-
-  return(true);
+  addInput(new kmerCountFileReader(inputName));
 }
 
 
 
 bool
-merylOperation::nextMer(bool isRoot) {
+merylOperation::nextMer(void) {
 
   char  kmerString[256];
 
@@ -238,11 +230,8 @@ merylOperation::nextMer(bool isRoot) {
     if (_operation == opHistogram)
       reportHistogram();
 
-    if (_output)
-      _output->finishIteration();
-
-    delete _output;   //  Not sure if this is really necessary.
-    _output = NULL;   //  It'll get deleted when everything else is done.
+    delete _writer;
+    _writer = NULL;
 
     return(false);
   }
@@ -403,7 +392,7 @@ merylOperation::nextMer(bool isRoot) {
 
   if ((_output != NULL) &&
       (_count  > 0)) {
-    _output->addMer(_kmer, _count);
+    _writer->addMer(_kmer, _count);
   }
 
   //  If flagged for printing, print!
@@ -422,7 +411,8 @@ merylOperation::nextMer(bool isRoot) {
       flags[1] = 'P';
     }
 
-    fprintf(stdout, "%s\t" F_U64 "%s\n", _kmer.toString(kmerString), _actCount[0], flags);
+    //fprintf(_printer, "%s\t" F_U64 "%s\n", _kmer.toString(kmerString), _actCount[0], flags);
+    fprintf(_printer, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _actCount[0]);
   }
 
   //  

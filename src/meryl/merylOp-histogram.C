@@ -28,6 +28,10 @@ merylOperation::reportHistogram(void) {
   if (_inputs[0]->_sequence)
     fprintf(stderr, "ERROR: told to dump a histogram from input '%s'!\n", _inputs[0]->_name), exit(1);
 
+  //  Tell the stream to load the histogram data.
+
+  _inputs[0]->_stream->loadStatistics();
+
   //  Tell the stream to report the histogram.
 
   kmerCountStatistics *stats = _inputs[0]->_stream->stats();

@@ -17,8 +17,6 @@
 #include "meryl.H"
 
 
-#undef DEBUG_INPUT
-
 
 merylInput::merylInput(merylOperation *o) {
   _operation   = o;
@@ -43,11 +41,14 @@ merylInput::merylInput(merylOperation *o) {
 
 
 
-merylInput::merylInput(const char *n, kmerCountFileReader *s) {
+merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile) {
   _operation   = NULL;
   _stream      = s;
   _sequence    = NULL;
   _store       = NULL;
+
+  if (threadFile != UINT32_MAX)
+    _stream->enableThreads(threadFile);
 
   _count       = 0;
   _valid       = false;
@@ -143,9 +144,6 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
 
 
 merylInput::~merylInput() {
-#ifdef DEBUG_INPUT
-  fprintf(stderr, "Destroy input %s\n", _name);
-#endif
 
   delete _stream;
   delete _operation;
@@ -171,46 +169,24 @@ merylInput::nextMer(void) {
   char kmerString[256];
 
   if (_stream) {
-#ifdef DEBUG_INPUT
-    fprintf(stderr, "merylIn::nextMer('%s')--\n", _name);
-#endif
+    //fprintf(stderr, "merylIn::nextMer(%s)-- (stream)\n", _name);
 
     _valid = _stream->nextMer();
     _kmer  = _stream->theFMer();
     _count = _stream->theCount();
-
-#ifdef DEBUG_INPUT
-    fprintf(stderr, "merylIn::nextMer('%s')-- now have valid=" F_U32 " kmer %s count " F_U64 "\n",
-            _name, _valid, _kmer.toString(kmerString), _count);
-    fprintf(stderr, "\n");
-#endif
   }
 
   if (_operation) {
-#ifdef DEBUG_INPUT
-    fprintf(stderr, "merylIn::nextMer(%s)--\n", _name);
-#endif
+    //fprintf(stderr, "merylIn::nextMer(%s)-- (operation)\n", _name);
 
     _valid = _operation->nextMer();
     _kmer  = _operation->theFMer();
     _count = _operation->theCount();
-
-#ifdef DEBUG_INPUT
-    fprintf(stderr, "merylIn::nextMer(%s)-- now have valid=" F_U32 " kmer %s count " F_U64 "\n",
-            _name, _valid, _kmer.toString(kmerString), _count);
-    fprintf(stderr, "\n");
-#endif
   }
 
-#ifdef DEBUG_INPUT
-  if (_sequence)
-    fprintf(stderr, "merylIn::nextMer(%s)--\n", _name);
-#endif
-
-#ifdef DEBUG_INPUT
-  if (_store)
-    fprintf(stderr, "merylIn::nextMer(%s)--\n", _name);
-#endif
+  //fprintf(stderr, "merylIn::nextMer(%s)-- now have valid=" F_U32 " kmer %s count " F_U64 "\n",
+  //        _name, _valid, _kmer.toString(kmerString), _count);
+  //fprintf(stderr, "\n");
 }
 
 

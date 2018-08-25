@@ -81,7 +81,7 @@ enum merylVerbosity {
 
 class merylOperation {
 public:
-  merylOperation(merylOp op=opNothing, uint32 threads=1, uint64 memory=0);
+  merylOperation(merylOp op=opNothing, uint32 ff=UINT32_MAX, uint32 threads=1, uint64 memory=0);
   ~merylOperation();
 
 private:
@@ -99,7 +99,10 @@ public:
   void    addInput(sqStore *store, uint32 segment, uint32 segmentMax);
 
   void    addOutput(kmerCountFileWriter *writer);
+  char   *getOutputName(void);
+
   void    addPrinter(FILE *printer);
+  char   *getPrinterName(void);
 
   void    setOperation(merylOp op) { _operation = op;    };
   merylOp getOperation(void)       { return(_operation); };
@@ -137,12 +140,14 @@ public:
   kmer   &theFMer(void)            { return(_kmer);   };
   uint64  theCount(void)           { return(_count);  };
 
-private:
-  bool    nextMer_doCounting(bool isRoot);
 public:
-  bool    initialize(bool isRoot=false);
+  void    doCounting(void);
+  void    convertToPassThrough(char *inputName);
 
-  bool    nextMer(bool isRoot=false);
+public:
+  bool    initialize(void);
+  bool    nextMer(void);
+
   bool    validMer(void)           { return(_valid);  };
 
   void    count(void);
@@ -184,7 +189,10 @@ private:
   kmerCountStatistics           *_stats;
 
   kmerCountFileWriter           *_output;
+  kmerCountStreamWriter         *_writer;
   FILE                          *_printer;
+
+  uint32                         _fileNumber;
 
   uint32                         _actLen;
   uint64                        *_actCount;

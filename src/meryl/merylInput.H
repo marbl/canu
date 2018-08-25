@@ -30,7 +30,7 @@ class merylOperation;
 class merylInput {
 public:
   merylInput(merylOperation *o);
-  merylInput(const char *n, kmerCountFileReader *s);
+  merylInput(const char *n, kmerCountFileReader *s, uint32 fileNum=UINT32_MAX);
   merylInput(const char *n, dnaSeqFile *f);
   merylInput(const char *n, sqStore *s, uint32 segment, uint32 segmentMax);
   ~merylInput();
@@ -57,28 +57,28 @@ public:
   bool   isFromSequence(void)     { return(_sequence  != NULL); };
   bool   isFromStore(void)        { return(_store     != NULL); };
 
-  merylOperation        *_operation;
-  kmerCountFileReader   *_stream;
-  dnaSeqFile            *_sequence;
-  sqStore               *_store;
+  merylOperation           *_operation;
+  kmerCountFileReader      *_stream;
+  dnaSeqFile               *_sequence;
+  sqStore                  *_store;
 
-  char                   _name[FILENAME_MAX+1];
+  char                      _name[FILENAME_MAX+1];
 
   //  For _operation and _stream, a copy of the 'active' kmer
 
-  kmer                   _kmer;
-  uint64                 _count;
-  bool                   _valid;
+  kmer                      _kmer;
+  uint64                    _count;
+  bool                      _valid;
 
   //  For _store, the position we're at in the store.
 
-  uint32                 _sqBgn;
-  uint32                 _sqEnd;
+  uint32                    _sqBgn;
+  uint32                    _sqEnd;
 
-  sqRead                *_read;
-  sqReadData            *_readData;
-  uint32                 _readID;
-  uint32                 _readPos;
+  sqRead                   *_read;
+  sqReadData               *_readData;
+  uint32                    _readID;
+  uint32                    _readPos;
 };
 
 #endif  //  MERYLINPUT_H
