@@ -356,6 +356,8 @@ my $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads 
 my $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads ready for assembly.
 
 #  If a seqStore was found, scan the reads in it to decide what we're working with.
+#  The sqStoreDumpMetaData here isn't used normally; it's only used when canu runs
+#  on a seqStore created by hand.
 
 if ($nCor + $nOBT + $nAsm > 0) {
     my $numPacBioRaw         = 0;
@@ -363,7 +365,13 @@ if ($nCor + $nOBT + $nAsm > 0) {
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
 
-    open(L, "< $asm.seqStore/libraries.txt") or caExit("can't open '$asm.seqStore/libraries.txt' for reading: $!", undef);
+    if (! -e "./$asm.seqStore/libraries.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
+            caExit("failed to generate list of libraries in store", undef);
+        }
+    }
+
+    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
         $numPacBioRaw++           if (m/pacbio-raw/);
         $numPacBioCorrected++     if (m/pacbio-corrected/);
