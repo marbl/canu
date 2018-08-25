@@ -669,10 +669,11 @@ main(int argc, char **argv) {
 
   for (uint32 opNum=0; opNum<opStack.numberOfOperations(); opNum++) {
     merylOperation *op = opStack.getOp(opNum, 0);
-    char            name[FILENAME_MAX + 1];
+    char            name[FILENAME_MAX + 1] = { 0 };
 
     if (op->isCounting() == true) {
-      strncpy(name, op->getOutputName(), FILENAME_MAX);
+      if (op->getOutputName())
+        strncpy(name, op->getOutputName(), FILENAME_MAX);
 
       op->doCounting();
 

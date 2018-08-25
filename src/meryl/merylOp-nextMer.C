@@ -111,6 +111,8 @@ merylOperation::doCounting(void) {
 //  All we need to do here is reset the operation and add an input to the
 //  freshly constructed meryl database.
 //
+//  If there is no inputName, we're just attempting to configure for Canu.
+//
 void
 merylOperation::convertToPassThrough(char *inputName) {
 
@@ -123,7 +125,8 @@ merylOperation::convertToPassThrough(char *inputName) {
 
   _operation = opPassThrough;
 
-  addInput(new kmerCountFileReader(inputName));
+  if ((inputName != NULL) && (inputName[0] != 0))
+    addInput(new kmerCountFileReader(inputName));
 }
 
 
