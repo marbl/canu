@@ -33,21 +33,60 @@
 
 //  For bases [bgn..end), return a list of the frequencies of the kmer at each position.
 //
-//  profile[0] == kmer at positions[bgn..bgn+K]
+//  profile[0] == frequency of kmer at positions[bgn..bgn+K]
 //  profile[x] == 0 if the kmer at that position is invalid
 //
+//  profile is NOT resized.
+//
+
+class kmerProfile {
+public:
+  kmerProfile() {
+  };
+
+  uint32   position;
+  uint32   value;
+};
+
+class
+sortByPosition {
+public:
+  bool operator()(const kmerProfile &a, const kmerProfile &b) {
+    if (a.position < b.position)  return(true);
+    if (a.position > b.position)  return(false);
+
+    return(a.value < b.value);
+  };
+};
+
+class
+sortByValue {
+public:
+  bool operator()(const kmerProfile &a, const kmerProfile &b) {
+    if (a.value < b.value)  return(true);
+    if (a.value > b.value)  return(false);
+
+    return(a.position < b.position);
+  };
+};
+
+
+
+
 void
-findKmerProfile(uint32 *profile, char *seq, uint32 bgn, uint32 end, kmerCountExactLookup *merylLookup) {
+findKmerProfile(kmerProfile *profile, char *seq, uint32 bgn, uint32 end, kmerCountExactLookup *merylLookup) {
   kmer     fmer;
   kmer     rmer;
 
   uint32   kmerLoad  = 0;
   uint32   kmerValid = fmer.merSize() - 1;
 
-  for (uint32 ss=bgn; ss<end; ss++) {
+  for (uint32 ss=bgn+kmerValid, pp=0; ss<=end; ss++, pp++) {
+    profile[pp].position = ss;
+    profile[pp].value    = 0;
+  }
 
-    profile[ss] = 0;
-
+  for (uint32 ss=bgn, pp=0; ss<end; ss++, pp++) {
     if ((seq[ss] != 'A') && (seq[ss] != 'a') &&   //  If not valid DNA, don't
         (seq[ss] != 'C') && (seq[ss] != 'c') &&   //  make a kmer, and reset
         (seq[ss] != 'G') && (seq[ss] != 'g') &&   //  the count until the next
@@ -64,12 +103,41 @@ findKmerProfile(uint32 *profile, char *seq, uint32 bgn, uint32 end, kmerCountExa
       continue;
     }
 
-    profile[ss - kmerValid] = (fmer < rmer) ? merylLookup->value(fmer) : merylLookup->value(rmer);
+    uint64  fval = merylLookup->value(fmer);
+    uint64  rval = merylLookup->value(rmer);
+
+#if 0
+    if ((fval > 0) ||
+        (rval > 0)) {
+      char  str1[128], str2[128];
+
+      fprintf(stderr, "pos %6u %s %9lu -  %s %9lu\n",
+              ss,
+              fmer.toString(str1), fval,
+              rmer.toString(str2), rval);
+    }
+#endif
+
+    if (fmer != rmer) {
+      if (fmer < rmer)
+        assert(rval == 0);
+      else
+        assert(fval == 0);
+    }
+
+    if (fmer < rmer)
+      profile[pp].value = fval;
+    else
+      profile[pp].value = rval;
   }
 }
 
 
 
+//  For each read bgnID..endID, creates a file with the kmer frequency profile.
+//  Files called 'outputPrefix-######.dat', based on readID.
+//  Lines are 'position \t frequency', frequency is the count of the kmer that begins at position.
+//
 void
 dumpProfile(kmerCountExactLookup  *merylLookup,
             sqStore               *seqStore,
@@ -77,12 +145,13 @@ dumpProfile(kmerCountExactLookup  *merylLookup,
             uint32                 endID,
             char                  *outputPrefix) {
   char          profileName[FILENAME_MAX+1];
-  uint32       *profileData = new uint32 [AS_MAX_READLEN];
+  kmerProfile  *profileData = new kmerProfile [AS_MAX_READLEN];
   sqReadData   *readData    = new sqReadData;
 
   for (uint32 rr=bgnID; rr <= endID; rr++) {
     sqRead  *read  = seqStore->sqStore_getRead(rr);
     uint32   seqLen = read->sqRead_sequenceLength();
+    FILE    *F;
 
     if (seqLen == 0)
       continue;
@@ -95,14 +164,33 @@ dumpProfile(kmerCountExactLookup  *merylLookup,
                     0, seqLen,
                     merylLookup);
 
-    snprintf(profileName, FILENAME_MAX, "%s-%06u.dat", outputPrefix, rr);
+    {
+      snprintf(profileName, FILENAME_MAX, "%s-%06u.dat", outputPrefix, rr);
 
-    FILE *F = AS_UTL_openOutputFile(profileName);
+      F = AS_UTL_openOutputFile(profileName);
 
-    for (uint32 ii=0; ii<seqLen; ii++)
-      fprintf(F, "%u\t%u\n", ii, profileData[ii]);
-      
-    AS_UTL_closeFile(F, profileName);
+      for (uint32 ii=0; ii<seqLen - kmerTiny::merSize(); ii++)
+        fprintf(F, "%u\t%u\n", profileData[ii].position, profileData[ii].value);
+
+      AS_UTL_closeFile(F, profileName);
+    }
+
+    {
+      snprintf(profileName, FILENAME_MAX, "%s-%06u.gp", outputPrefix, rr);
+
+      F = AS_UTL_openOutputFile(profileName);
+
+      fprintf(F, "set logscale y\n");
+      fprintf(F, "set terminal png size 1280,800\n");
+      fprintf(F, "set output '%s-%06u.png'\n", outputPrefix, rr);
+      fprintf(F, "plot '%s-%06u.dat' using 1:2 with lines title 'read %u'\n", outputPrefix, rr, rr);
+
+      AS_UTL_closeFile(F, profileName);
+
+      snprintf(profileName, FILENAME_MAX, "gnuplot %s-%06u.gp > /dev/null 2>&1", outputPrefix, rr);
+
+      system(profileName);
+    }
   }
 
   delete    readData;
@@ -122,15 +210,13 @@ pickOverlapLength(sqStore   *seqStore,
   for (uint32 ii=1; ii <= seqStore->sqStore_getNumReads(); ii++)
     maxReadLen = max(maxReadLen, seqStore->sqStore_getRead(ii)->sqRead_sequenceLength());
 
-  //  Allocate space to count the lengths of each read.
+  //  Generate a histogram of read lengths.
 
   uint32   *lengthHistogram = new uint32 [maxReadLen + 1];
   uint32    nValidReads     = 0;
 
   for (uint32 ii=0; ii<maxReadLen+1; ii++)
     lengthHistogram[ii] = 0;
-
-  //  Count the number of reads at each length.
 
   for (uint32 ii=1; ii <= seqStore->sqStore_getNumReads(); ii++) {
     sqRead   *read    = seqStore->sqStore_getRead(ii);
@@ -193,6 +279,46 @@ pickOverlapLength(sqStore   *seqStore,
 //  mask out 90% of the kmers, so declare that we WOULD NOT FIND the overlap for
 //  thresholds below this, and WOULD FIND the overlap for thresholds above this.
 
+class thrReadData {
+public:
+  thrReadData() {
+    threshold5 = 500000;
+    repeatLen5 = 0;
+
+    threshold3 = 500000;
+    repeatLen3 = 0;
+  };
+
+  uint32   threshold5;
+  uint32   repeatLen5;
+
+  uint32   threshold3;
+  uint32   repeatLen3;
+};
+
+
+
+class pickThreshold_ThreadData {
+public:
+  pickThreshold_ThreadData() {
+    readData    = new sqReadData;
+
+    kmerProfile5 = new kmerProfile [AS_MAX_READLEN];
+    kmerProfile3 = new kmerProfile [AS_MAX_READLEN];
+  };
+  ~pickThreshold_ThreadData() {
+    delete    readData;
+    delete [] kmerProfile5;
+    delete [] kmerProfile3;
+  };
+
+  sqReadData   *readData;
+  kmerProfile  *kmerProfile5;
+  kmerProfile  *kmerProfile3;
+};
+
+
+
 void
 pickThreshold(kmerCountExactLookup  *merylLookup,
               sqStore               *seqStore,
@@ -206,99 +332,143 @@ pickThreshold(kmerCountExactLookup  *merylLookup,
   uint32         nReadsTested  = 0;
   uint32         nReads        = 0;
 
-  uint32  MIN_COUNT_TRUSTED = 2;
+  uint32  MIN_COUNT_TRUSTED = 4;
 
-  double  MIN_FRACTION      = 0.10;
-  uint32  MIN_NUMBER        = 100;
+  double  MIN_FRACTION      = 0.25;
+  uint32  MIN_NUMBER        = 1000;
 
-  uint32  maxValue          = 50000;
+  uint32  maxValue          = 500000;
+  uint32  cutoff;
 
+  pickThreshold_ThreadData  *threads = new pickThreshold_ThreadData [omp_get_max_threads()];
 
-  sqReadData   *readData    = new sqReadData;
+  thrReadData  *readProfile  = new thrReadData [endID - bgnID + 1];
 
-  uint32       *kmerProfile5 = new uint32 [AS_MAX_READLEN];
-  uint32       *kmerProfile3 = new uint32 [AS_MAX_READLEN];
+  //
+  //  For each read, find the threshold where there are at least
+  //  MIN_NUMBER of MIN_FRACTION*seqLen kmers at or below the threshold.
+  //
 
-  uint32       *missedOverlaps = new uint32 [maxValue];
-  memset(missedOverlaps, 0, sizeof(uint32) * maxValue);
-
-
-
-
+#pragma omp parallel for schedule(dynamic, 10000)
   for (uint32 ii=bgnID; ii<endID; ii++) {
+    pickThreshold_ThreadData  *thread = threads + omp_get_thread_num();
+
     sqRead  *read  = seqStore->sqStore_getRead(ii);
 
-    seqStore->sqStore_loadReadData(read, readData);
+    seqStore->sqStore_loadReadData(read, thread->readData);
 
-    char    *seq    = readData->sqReadData_getSequence();
+    char    *seq    = thread->readData->sqReadData_getSequence();
     uint32   seqLen = read->sqRead_sequenceLength();
 
-    if (seqLen == 0) {
-      nReadsZero++;
-      continue;
+    if (seqLen == 0)          {  nReadsZero++;   continue;  }
+    if (seqLen  < olapLength) {  nReadsShort++;  continue;  }
+
+    {
+      findKmerProfile(thread->kmerProfile5, seq, 0, olapLength, merylLookup);               //  5' end
+      sort(thread->kmerProfile5, thread->kmerProfile5 + olapLength, sortByValue());
+
+      uint32 cutoff   = maxValue;
+      uint32 position = olapLength;  //  pos of first kmer below threshold
+
+      for (uint32 pp=0, nn=0; pp<olapLength; pp++) {
+        if (thread->kmerProfile5[pp].value < MIN_COUNT_TRUSTED)
+          continue;
+        nn++;
+        if ((nn < MIN_NUMBER) && (nn < MIN_FRACTION * seqLen))
+          continue;
+        if (thread->kmerProfile5[pp].value < cutoff) {
+          cutoff   =     thread->kmerProfile5[pp].value;
+          position = min(thread->kmerProfile5[pp].position, position);
+        }
+        break;
+      }
+
+      readProfile[ii-bgnID].threshold5 = cutoff;
+      readProfile[ii-bgnID].repeatLen5 = position;
     }
 
-    if (seqLen < olapLength) {
-      nReadsShort++;
-      continue;
+    {
+      findKmerProfile(thread->kmerProfile3, seq, seqLen-olapLength, seqLen, merylLookup);   //  3' end
+      sort(thread->kmerProfile3, thread->kmerProfile3 + olapLength, sortByValue());
+
+      uint32 cutoff   = maxValue;
+      uint32 position = seqLen - olapLength;  //  pos of last kmer below threshold
+
+      for (uint32 pp=0, nn=0; pp<olapLength; pp++) {
+        if (thread->kmerProfile3[pp].value < MIN_COUNT_TRUSTED)
+          continue;
+        nn++;
+        if ((nn < MIN_NUMBER) && (nn < MIN_FRACTION * seqLen))
+          continue;
+        if (thread->kmerProfile5[pp].value < cutoff) {
+          cutoff   =     thread->kmerProfile5[pp].value;
+          position = max(thread->kmerProfile5[pp].position, position);
+        }
+        break;
+      }
+
+      readProfile[ii-bgnID].threshold3 = cutoff;
+      readProfile[ii-bgnID].repeatLen3 = position;
     }
 
-    //
-    //  5' end
-    //
-
-    findKmerProfile(kmerProfile5, seq, 0, olapLength, merylLookup);
-    sort(kmerProfile5, kmerProfile5 + olapLength);
-
-    uint32  cutoff = maxValue;
-
-    for (uint32 pp=0, nn=0; pp<olapLength; pp++) {
-      if (kmerProfile5[pp] < MIN_COUNT_TRUSTED)
-        continue;
-      nn++;
-      if ((nn < MIN_NUMBER) && (nn < MIN_FRACTION * seqLen))
-        continue;
-      cutoff = min(kmerProfile5[pp], cutoff);
-      break;
-    }
-
-    for (uint32 xx=0; xx < cutoff; xx++)
-      missedOverlaps[xx]++;
-
-    //
-    //  3' end
-    //
-
-    findKmerProfile(kmerProfile3, seq, seqLen-olapLength, seqLen, merylLookup);
-    sort(kmerProfile3, kmerProfile3 + olapLength);
-
-    cutoff = maxValue;
-
-    for (uint32 pp=0, nn=0; pp<olapLength; pp++) {
-      if (kmerProfile3[pp] < MIN_COUNT_TRUSTED)
-        continue;
-      nn++;
-      if ((nn < MIN_NUMBER) && (nn < MIN_FRACTION * seqLen))
-        continue;
-      cutoff = min(kmerProfile3[pp], cutoff);
-      break;
-    }
-
-    for (uint32 xx=0; xx < cutoff; xx++)
-      missedOverlaps[xx]++;
-
-    //
-    //  Spurs
-    //
-
-
-
-    nReads += 2;
+    //fprintf(stderr, "readID %9u 5'Thresh %6u 5'Score %6u  3'Thresh %6u 3'Score %6u\n",
+    //        ii,
+    //        readProfile[ii-bgnID].threshold5, readProfile[ii-bgnID].repeatLen5,
+    //        readProfile[ii-bgnID].threshold3, readProfile[ii-bgnID].repeatLen3);
   }
+
+  //
+  //  Now, with those parameters computed, score each threshold with:
+  //    the number of overlaps missed (threshold below read threshold)
+  //    the number of overlaps found  (threshold above read threshold)
+  //    the number of overlaps extra  (threshold above read threshold)
+  //
+
+  for (uint32 threshold=2; threshold<1000000; threshold++) {
+    uint64  olapsMissed = 0;    //  Potential overlaps missed; threshold too low.
+    uint64  olapsFound  = 0;    //  Good!  Threshold found overlaps.
+    uint64  olapsExtra  = 0;    //  Bad!   Threshold too high, found repeats.
+
+    //  Over all reads
+
+    for (uint32 ii=0; ii<endID-bgnID+1; ii++) {
+
+      //  Analyze the 5' end.
+
+      if      (threshold < readProfile[ii].threshold5) {
+        olapsMissed += readProfile[ii].threshold5;
+      }
+      else {
+        olapsFound  +=             readProfile[ii].threshold5;
+        olapsExtra  += threshold - readProfile[ii].threshold5;
+      }
+
+      //  Analyze the 3' end.
+
+      if      (threshold < readProfile[ii].threshold3) {
+        olapsMissed += readProfile[ii].threshold3;
+      }
+      else {
+        olapsFound  +=             readProfile[ii].threshold3;
+        olapsExtra  += threshold - readProfile[ii].threshold3;
+      }
+    }
+  
+    //  Report for this threshold
+
+    fprintf(stdout, "threshold %u missed %lu found %lu extra %lu\n",
+            threshold, olapsMissed, olapsFound, olapsExtra);
+
+    if (olapsMissed == 0)
+      break;
+  }
+
+
 
   //  On output, we can invert the number so it now means 'the fraction of reads number of reads that definitely cannot have an overlap'
   //  at some kmer threshold X.
 
+#if 0
   FILE *F = fopen("profile.out", "w");
   for (uint32 xx=0; xx<maxValue; xx++)
     fprintf(F, "%u\t%7.3f\t%u\n", xx, (double)missedOverlaps[xx] / nReads, missedOverlaps[xx]);
@@ -309,6 +479,7 @@ pickThreshold(kmerCountExactLookup  *merylLookup,
   fprintf(stderr, "Reads < %ubp %u\n",   olapLength, nReadsShort);
   fprintf(stderr, "Reads          %u\n", nReads);
   fprintf(stderr, "Totally Lost   %f\n", (double)missedOverlaps[maxValue-1] / nReads);
+#endif
 }
 
 
@@ -329,6 +500,8 @@ main(int argc, char **argv) {
   uint32   endID            = UINT32_MAX;
 
   double   lengthFraction   = 0.5;
+
+  uint32   numThreads       = 1;
 
 
   argc = AS_configure(argc, argv);
@@ -371,6 +544,12 @@ main(int argc, char **argv) {
     }
 
 
+    else if   (strcmp(argv[arg], "-threads") == 0) {
+      numThreads = strtouint32(argv[++arg]);
+      omp_set_num_threads(numThreads);
+    }
+
+
     else {
     }
 
@@ -389,7 +568,7 @@ main(int argc, char **argv) {
 
   sqStore               *seqStore    = sqStore::sqStore_open(seqStorePath);
 
-  kmerCountFileReader  *merylReader  = new kmerCountFileReader(merylPath, false, true);
+  kmerCountFileReader  *merylReader  = new kmerCountFileReader(merylPath, true);
   kmerCountExactLookup *merylLookup  = new kmerCountExactLookup(merylReader);
 
   bgnID = max(bgnID, (uint32)1);
@@ -400,6 +579,7 @@ main(int argc, char **argv) {
 
   if (doPickThreshold) {
     uint32 olapLength = pickOverlapLength(seqStore, lengthFraction);
+
     pickThreshold(merylLookup, seqStore, bgnID, endID, olapLength, outputPrefix);
   }
 
