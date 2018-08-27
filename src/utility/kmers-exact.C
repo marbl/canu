@@ -57,6 +57,8 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
   _suffixMask    = 0;
   _dataMask      = 0;
 
+  input->loadStatistics();
+
   _nPrefix       = 0;                               //  Number of entries in pointer table.
   _nSuffix       = input->stats()->numDistinct();   //  Number of entries in suffix dable.
 
@@ -295,10 +297,10 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input,
         startPos[ff]++;
       }
 
-      fprintf(stderr, "ff %2u block %6u nKmers %9lu minPrefix 0x%016lx maxPrefix 0x%016lx minSdata 0x%016lx maxSdata 0x%016lx\n",
-              ff, block->prefix(), block->nKmers(),
-              minPrefix, maxPrefix,
-              minSdata, maxSdata);
+      //fprintf(stderr, "ff %2u block %6u nKmers %9lu minPrefix 0x%016lx maxPrefix 0x%016lx minSdata 0x%016lx maxSdata 0x%016lx\n",
+      //        ff, block->prefix(), block->nKmers(),
+      //        minPrefix, maxPrefix,
+      //        minSdata, maxSdata);
     }
 
     delete block;
