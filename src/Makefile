@@ -465,7 +465,7 @@ ifeq (${OSTYPE}, Darwin)
   CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
   LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
 
-  CXXFLAGS += -pthread -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+  CXXFLAGS += -pthread -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wno-format-truncation -Wformat
   LDFLAGS  += -pthread -lm
 
   ifeq ($(BUILDOPTIMIZED), 1)
