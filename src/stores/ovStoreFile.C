@@ -230,7 +230,7 @@ ovFile::writeBuffer(bool force) {
   //  If compressing, compress the block then write compressed length and the block.
 
   if (_useSnappy == true) {
-    uint64   bl = snappy::MaxCompressedLength(_bufferLen * sizeof(uint32));
+    size_t   bl = snappy::MaxCompressedLength(_bufferLen * sizeof(uint32));
 
     if (_snappyLen < bl) {
       delete [] _snappyBuffer;
@@ -240,8 +240,10 @@ ovFile::writeBuffer(bool force) {
 
     snappy::RawCompress((const char *)_buffer, _bufferLen * sizeof(uint32), _snappyBuffer, &bl);
 
-    writeToFile(bl,            "ovFile::writeBuffer::bl",     _file);
-    writeToFile(_snappyBuffer, "ovFile::writeBuffer::sb", bl, _file);
+    uint64 bl64 = bl;
+
+    writeToFile(bl64,          "ovFile::writeBuffer::bl",     _file);  //  Snappy wants to use size_t, we want to use uint64 in files.
+    writeToFile(_snappyBuffer, "ovFile::writeBuffer::sb", bl, _file);  //  MacOS claims size_t != uint64.
   }
 
   //  Otherwise, just dump the block
@@ -352,26 +354,26 @@ ovFile::readBuffer(void) {
   //  First, read the length of the snappy buffer (allowing it to return if EOF is encountered),
   //  then, load the buffer and uncompress it (failing if the read is shorter than it should have been).
 
-  uint64  cl  = 0;
-  uint64  clc = loadFromFile(cl, "ovFile::readBuffer::cl", _file, false);
+  uint64  cl64 = 0;                                                             //  MacOS is claiming size_t is different than uint64,
+  uint64  clc  = loadFromFile(cl64, "ovFile::readBuffer::cl", _file, false);    //  but I want to use uint64 here for portability.
 
-  resizeArray(_snappyBuffer, 0, _snappyLen, cl, resizeArray_doNothing);
+  resizeArray(_snappyBuffer, 0, _snappyLen, cl64, resizeArray_doNothing);
 
-  uint64  sbc = loadFromFile(_snappyBuffer, "ovFile::readBuffer::sb", cl, _file, false);
+  uint64  sbc = loadFromFile(_snappyBuffer, "ovFile::readBuffer::sb", cl64, _file, false);
 
-  if (sbc != cl)
+  if (sbc != cl64)
     fprintf(stderr, "ERROR: short read on file '%s': read " F_U64 " bytes, expected " F_U64 ".\n",
-            _prefix, sbc, cl), exit(1);
+            _prefix, sbc, cl64), exit(1);
 
-  uint64  ol = 0;
+  size_t  ol = 0;
 
-  snappy::GetUncompressedLength(_snappyBuffer, cl, &ol);
+  snappy::GetUncompressedLength(_snappyBuffer, cl64, &ol);
 
   _bufferLen = ol / sizeof(uint32);
 
   assert(_bufferLen <= _bufferMax);
 
-  snappy::RawUncompress(_snappyBuffer, cl, (char *)_buffer);
+  snappy::RawUncompress(_snappyBuffer, cl64, (char *)_buffer);
 }
 
 
