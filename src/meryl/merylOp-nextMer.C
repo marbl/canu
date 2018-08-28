@@ -91,10 +91,34 @@ merylOperation::doCounting(void) {
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->initialize();
 
+  bool    doSimple  = false;
+  uint32  wPrefix   = 0;
+  uint64  nPrefix   = 0;
+  uint32  wData     = 0;
+  uint64  wDataMask = 0;
+
+  configureCounting(_maxMemory,
+                    doSimple,
+                    wPrefix,
+                    nPrefix,
+                    wData,
+                    wDataMask);
+
+  //if (_operation == opCountSimple)
+  //  doSimple = true;
+
   if (_kmer.merSize() <= 16)
+    doSimple = true;
+
+  if (_maxMemory < (uint64)10 * 1024 * 1024 * 1024)
+    doSimple = false;
+
+  omp_set_num_threads(_maxThreads);
+
+  if (doSimple)
     countSimple();
   else
-    count();
+    count(wPrefix, nPrefix, wData, wDataMask);
 
   clearInputs();
 
@@ -125,7 +149,7 @@ merylOperation::convertToPassThrough(char *inputName) {
 
   _operation = opPassThrough;
 
-  if ((inputName != NULL) && (inputName[0] != 0))
+  if ((inputName != NULL) && (inputName[0] != 0) && (_onlyConfig == false))
     addInput(new kmerCountFileReader(inputName));
 }
 

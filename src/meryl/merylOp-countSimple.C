@@ -36,77 +36,28 @@ merylOperation::countSimple(void) {
   uint32          kmerValid  = fmer.merSize() - 1;
   uint32          kmerSize   = fmer.merSize();
 
-  uint64          maxKmer    = (uint64)1 << (2 * kmerSize);
+  uint64          nEntries   = (uint64)1 << (2 * kmerSize);
 
   char            str[32];
   char            strf[32];
   char            strr[32];
 
-  if (kmerSize == 0)
-    fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
-  if ((_output == NULL) && (_onlyConfig == false))
-    fprintf(stderr, "ERROR: No output specified for count operation.\n"), exit(1);
 
-  omp_set_num_threads(_maxThreads);
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Counting %s%s%s " F_U32 "-mers from " F_SIZE_T " input file%s:\n",
-          (_operation == opCount)        ? "canonical" : "",
-          (_operation == opCountForward) ? "forward" : "",
-          (_operation == opCountReverse) ? "reverse" : "",
-          kmerSize, _inputs.size(), (_inputs.size() == 1) ? "" : "s");
-
-  for (uint32 ii=0; ii<_inputs.size(); ii++)
-    fprintf(stderr, "  %s\n", _inputs[ii]->_name);
-
-  //  Allocate memory.
-
-  //  Tiny counter uses a fixed-width array (either 8- or 16-bit counts) and a
-  //  variable-width array to store counts.
-  //
-  //  Estimating how much memory is needed is the same as estimating the highest
-  //  count in the dataset.
-  //  For 40x corrected human,  with 115 Gbp, the largest count is  25 million, 25 bits, 0.02% of the input.
-  //  For 68x raw pacbio human, with 192 Gbp, the largest count is 152 million, 28 bits, 0.08% of the input.
-
-  typedef uint16 lowBits_t;
-
-  uint32        lowBitsSize = sizeof(lowBits_t) * 8;
-  uint32        lowBitsMax  = ((uint32)1 << lowBitsSize) - 1;
-  uint32        highBitMax  = 0;
-
-  uint64        nKmersGuess = guesstimateNumberOfkmersInInput();
-  uint64        expMaxCount = 0.004 * nKmersGuess;
-
-  uint64        expMemory   = (maxKmer * sizeof(lowBits_t) +                                   //  Fixed data,   16-bits wide
-                               maxKmer * (logBaseTwo64(expMaxCount) + 1 - lowBitsSize) / 8);   //  Variable data, 1-bit  wide
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "lowBitsSize %u\n", lowBitsSize);
-  fprintf(stderr, "lowBitsMax  %u\n", lowBitsMax);
-  fprintf(stderr, "highBitMax  %u\n", highBitMax);
-  fprintf(stderr, "nKmersGuess %lu\n", nKmersGuess);
-  fprintf(stderr, "expMaxCount %lu\n", expMaxCount);
-  fprintf(stderr, "expMemory   %lu\n", expMemory);
-  fprintf(stderr, "maxKmer     %lu\n", maxKmer);
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Expecting to use " F_U64 " %cB memory to count " F_U64 "%s " F_U32 "-mers.\n",
-          scaledNumber(expMemory),         scaledUnit(expMemory),
-          scaledNumber(nKmersGuess, 1000), scaledName(nKmersGuess, 1000),
-          kmerSize);
-  fprintf(stderr, "\n");
 
   //  If we're only configuring, stop now.
 
   if (_onlyConfig)
     return;
 
-  lowBits_t    *lowBits     = new lowBits_t    [maxKmer];
-  bitArray     *highBits    = new bitArray [64];
+  uint32          lowBitsSize     = sizeof(lowBits_t) * 8;
+  uint32          lowBitsMax      = ((uint32)1 << lowBitsSize) - 1;   //  Largest value that can be stored in lowBits.
+  lowBits_t      *lowBits         = new lowBits_t    [nEntries];
 
-  memset(lowBits,  0, sizeof(lowBits_t) * maxKmer);
+  uint32          highBitMax      = 0;
+  bitArray       *highBits        = new bitArray [64];
+
+  memset(lowBits,  0, sizeof(lowBits_t) * nEntries);
 
   //  Load bases, count!
 
@@ -157,7 +108,7 @@ merylOperation::countSimple(void) {
         uint64  kidx = (uint64)kmers[kk];
         uint32  hib  = 0;
 
-        assert(kidx < maxKmer);
+        assert(kidx < nEntries);
 
         //  If we can add one to the low bits, do it and get outta here.
 
@@ -174,7 +125,7 @@ merylOperation::countSimple(void) {
           if (highBits[hib].isAllocated() == false) {
             fprintf(stderr, "Increasing to %u-bit storage (for kmer 0x%016lx).\n",
                     lowBitsSize + hib + 1, kidx);
-            highBits[hib].allocate(maxKmer);
+            highBits[hib].allocate(nEntries);
           }
 
           if (highBits[hib].flipBit(kidx) == 0) {    //  If not set, set it,

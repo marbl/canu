@@ -78,6 +78,9 @@ enum merylVerbosity {
 };
 
 
+//  For the simple counting algorithm, how bit of a word to use for initial counts.
+typedef uint16 lowBits_t;
+
 
 class merylOperation {
 public:
@@ -91,6 +94,14 @@ private:
   uint64  guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence);
   uint64  guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 endID);
   uint64  guesstimateNumberOfkmersInInput(void);
+
+  //  Returns true 
+  void    configureCounting(uint64   memoryAllowed,      //  Input:  Maximum allowed memory in bytes
+                            bool    &useSimple_,         //  Output: algorithm to use
+                            uint32  &wPrefix_,           //  Output: Number of bits in the prefix (== bucket address)
+                            uint64  &nPrefix_,           //  Output: Number of prefixes there are (== number of buckets)
+                            uint32  &wData_,             //  Output: Number of bits in kmer data
+                            uint64  &wDataMask_);        //  Output: A mask to return just the data of the mer);
 
 public:
   void    addInput(merylOperation *operation);
@@ -150,8 +161,11 @@ public:
 
   bool    validMer(void)           { return(_valid);  };
 
-  void    count(void);
   void    countSimple(void);
+  void    count(uint32  wPrefix,
+                uint64  nPrefix,
+                uint32  wData,
+                uint64  wDataMask);
 
   void    reportHistogram(void);
 
