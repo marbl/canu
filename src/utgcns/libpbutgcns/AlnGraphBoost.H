@@ -203,6 +203,7 @@ private:
     G _g;
     VtxDesc _enterVtx;
     VtxDesc _exitVtx;
+    size_t _templateLength;
     std::map<VtxDesc, VtxDesc> _bbMap;
     std::vector<VtxDesc> _reaperBag;
 };
