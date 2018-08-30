@@ -454,12 +454,12 @@ if (!defined($type)) {
 
 if ($type eq"nanopore") {
     setGlobalIfUndef("corOvlErrorRate",  0.320);
-    setGlobalIfUndef("obtOvlErrorRate",  0.144);
-    setGlobalIfUndef("utgOvlErrorRate",  0.144);
+    setGlobalIfUndef("obtOvlErrorRate",  0.120);
+    setGlobalIfUndef("utgOvlErrorRate",  0.120);
     setGlobalIfUndef("corErrorRate",     0.500);
-    setGlobalIfUndef("obtErrorRate",     0.144);
-    setGlobalIfUndef("utgErrorRate",     0.144);
-    setGlobalIfUndef("cnsErrorRate",     0.192);
+    setGlobalIfUndef("obtErrorRate",     0.120);
+    setGlobalIfUndef("utgErrorRate",     0.120);
+    setGlobalIfUndef("cnsErrorRate",     0.200);
 }
 
 if ($type eq"pacbio") {
