@@ -112,7 +112,9 @@ getProcessSize(void) {
 
   if (getrusage(ru) == true) {
     sz  = ru.ru_maxrss;
-    sz *= 1024;
+#ifndef __APPLE__     //  Everybody but MacOS returns kilobytes.
+    sz *= 1024;       //  MacOS returns bytes.
+#endif
   }
 
   return(sz);
