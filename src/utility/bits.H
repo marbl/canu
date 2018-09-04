@@ -352,7 +352,7 @@ public:
   void     allocate(uint64 nElements) {
     uint64 nSegs = nElements / _valuesPerSegment + 1;
 
-    fprintf(stderr, "wordArray::allocate()-- allocating space for %lu elements, in %lu segments.\n",
+    fprintf(stderr, "wordArray::allocate()-- allocating space for " F_U64 " elements, in " F_U64 " segments.\n",
             nElements, nSegs);
 
     assert(_segmentsLen == 0);
@@ -467,8 +467,8 @@ public:
   };
 
   void     show(void) {
-    fprintf(stderr, "wordArray:   valueWidth  %2u\n", _valueWidth);
-    fprintf(stderr, "wordArray:   segmentSize %8lu   valuesPerSegment %8lu\n", _segmentSize, _valuesPerSegment);
+    fprintf(stderr, "wordArray:   valueWidth  %2" F_U32P "\n", _valueWidth);
+    fprintf(stderr, "wordArray:   segmentSize %8" F_U64P "   valuesPerSegment %8" F_U64P "\n", _segmentSize, _valuesPerSegment);
     fprintf(stderr, "\n");
 
     uint32  bit  = 64;
