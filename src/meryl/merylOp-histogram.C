@@ -46,9 +46,10 @@ merylOperation::reportHistogram(void) {
   fprintf(stdout, "  present  %20" F_U64P "  (...)\n", stats->numTotal());
   fprintf(stdout, "  missing  %20" F_U64P "  (non-redundant kmer sequences not in the input)\n", nUniverse - stats->numDistinct());
   fprintf(stdout, "\n");
-  fprintf(stdout, "                number fraction fraction\n");
-  fprintf(stdout, "frequency     of kmers distinct    total\n");
-  fprintf(stdout, "--------- ------------ -------- --------\n");
+  fprintf(stdout, "             number of   cumulative   cumulative     presence\n");
+  fprintf(stdout, "              distinct     fraction     fraction   in dataset\n");
+  fprintf(stdout, "frequency        kmers     distinct        total       (1e-6)\n");
+  fprintf(stdout, "--------- ------------ ------------ ------------ ------------\n");
 
   for (uint32 frequency=1; frequency<stats->numFrequencies(); frequency++) {
     uint64 nkmers = stats->numKmersAtFrequency(frequency);
@@ -57,11 +58,12 @@ merylOperation::reportHistogram(void) {
     sTotal     += nkmers * frequency;
 
     if (nkmers > 0)
-      fprintf(stdout, "%9" F_U32P " %12" F_U64P " %8.4f %8.4f\n",
+      fprintf(stdout, "%9" F_U32P " %12" F_U64P " %12.4f %12.4f %12.6f\n",
               frequency,
               nkmers,
               (double)sDistinct / stats->numDistinct(),
-              (double)sTotal    / stats->numTotal());
+              (double)sTotal    / stats->numTotal(),
+              (double)frequency / stats->numTotal() * 1000000.0);
   }
 
   assert(sDistinct == stats->numDistinct());
