@@ -166,9 +166,22 @@ public:
 
 
 
-  void       setParameter(uint64 p) {
+  void       setThreshold(uint64 p) {
+    fprintf(stderr, "threshold=%lu\n", p);
     for (uint32 ff=0; ff<_nFiles; ff++)
-      _stacks[ff].top()->setParameter(p);
+      _stacks[ff].top()->setThreshold(p);
+  };
+
+  void       setFractionDistinct(double p) {
+    fprintf(stderr, "distinct=%f\n", p);
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setFractionDistinct(p);
+  };
+
+  void       setWordFrequency(double p) {
+    fprintf(stderr, "word-frequency=%f\n", p);
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setWordFrequency(p);
   };
 
   void       setExpectedNumberOfKmers(uint64 n) {
@@ -189,12 +202,12 @@ public:
       _stacks[ff].top()->setThreadLimit(t);
   };
 
-  uint64     size(void)             { return(_stacks[0].size());                  };
-  bool       empty(void)            { return(_stacks[0].size() == 0);             };
+  uint64     size(void)                    { return(_stacks[0].size());                  };
+  bool       empty(void)                   { return(_stacks[0].size() == 0);             };
 
-  bool       isCounting(void)       { return(_stacks[0].top()->isCounting());     };
-  bool       isNormal(void)         { return(_stacks[0].top()->isNormal());       };
-  bool       needsParameter(void)   { return(_stacks[0].top()->needsParameter()); };
+  bool       isCounting(void)              { return(_stacks[0].top()->isCounting());     };
+  bool       isNormal(void)                { return(_stacks[0].top()->isNormal());       };
+  bool       needsParameter(void)          { return(_stacks[0].top()->needsParameter()); };
 
 private:
   uint32                     _nFiles;
@@ -293,13 +306,65 @@ main(int argc, char **argv) {
       continue;
     }
 
-    //  Threshold values for less-than, greater-than and equal-to are just a number.
+
+
+    //  Threshold values for less-than, etc, specifed as a fraction
+    //  of the total distinct kmers, or as a word-frequency, or as
+    //  an absolute count.
+
+    else if ((opStack.size() > 0) &&
+             (opStack.needsParameter() == true) &&
+             (strncmp(optString, "d=", 2) == 0) &&
+             (isNumber(optString + 2))) {
+      opStack.setFractionDistinct(strtodouble(optString + 2));
+      continue;
+    }
+    else if ((opStack.size() > 0) &&
+             (opStack.needsParameter() == true) &&
+             (strncmp(optString, "distinct=", 9) == 0) &&
+             (isNumber(optString + 9))) {
+      opStack.setFractionDistinct(strtodouble(optString + 9));
+      continue;
+    }
+
+    else if ((opStack.size() > 0) &&
+             (opStack.needsParameter() == true) &&
+             (strncmp(optString, "f=", 2) == 0) &&
+             (isNumber(optString + 2))) {
+      opStack.setWordFrequency(strtodouble(optString + 2));
+      continue;
+    }
+    else if ((opStack.size() > 0) &&
+             (opStack.needsParameter() == true) &&
+             (strncmp(optString, "word-frequency=", 15) == 0) &&
+             (isNumber(optString + 15))) {
+      opStack.setWordFrequency(strtodouble(optString + 15));
+      continue;
+    }
+
+    else if ((opStack.size() > 0) &&
+             (opStack.needsParameter() == true) &&
+             (strncmp(optString, "t=", 15) == 0) &&
+             (isNumber(optString + 2))) {
+      opStack.setThreshold(strtouint64(optString + 2));
+      continue;
+    }
+    else if ((opStack.size() > 0) &&
+             (opStack.needsParameter() == true) &&
+             (strncmp(optString, "threshold=", 10) == 0) &&
+             (isNumber(optString + 10))) {
+      opStack.setThreshold(strtouint64(optString + 10));
+      continue;
+    }
     else if ((opStack.size() > 0) &&
              (opStack.needsParameter() == true) &&
              (isNumber(optString))) {
-      opStack.setParameter(strtouint64(optString));
+      opStack.setThreshold(strtouint64(optString));
       continue;
     }
+
+
+
 
     //  Memory limit, either global or per-task.
     else if ((optStringLen > 7) &&

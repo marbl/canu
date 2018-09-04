@@ -47,9 +47,84 @@ merylOperation::findSumCount(void) {
 
 
 
+void
+merylOperation::initializeThreshold(void) {
+
+  //  If no thresholds to set, nothing to do.
+
+  if ((_fracDist == DBL_MAX) &&
+      (_wordFreq == DBL_MAX))
+    return;
+
+  //  The problem with using more than one database is that the number of
+  //  distinct kmers is not known.
+
+  if (_inputs.size() != 1) {
+    fprintf(stderr, "ERROR: operation most-frequent can work with only one meryl database.\n");
+    exit(1);
+  }
+
+  //  Later, we could allow streaming operations, and construction of statistics on
+  //  the fly.
+
+  bool    allDatabase = true;
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++) {
+    if (_inputs[ii]->isFromDatabase() == false) {
+      fprintf(stderr, "ERROR: input '%s' to operation most-frequent is not a meryl database.\n",
+              _inputs[ii]->_name);
+      allDatabase = false;
+    }
+  }
+
+  if (allDatabase == false)
+    exit(1);
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++)
+    _inputs[ii]->_stream->loadStatistics();
+
+  kmerCountStatistics  *stats = _inputs[0]->_stream->stats();
+
+
+#warning "need to decide whic direction we're going?"
+
+  if (_fracDist < DBL_MAX) {
+    uint64  nKmers       = 0;
+    uint64  nKmersTarget = _fracDist * stats->numDistinct();
+
+    for (uint32 ii=0; ii<stats->numFrequencies(); ii++) {
+      nKmers += stats->numKmersAtFrequency(ii);
+
+      if (nKmers >= nKmersTarget) {
+        _threshold = ii;
+        break;
+      }
+    }
+
+    fprintf(stderr, "For fraction-distinct %f, found threshold %lu\n", _fracDist, _threshold);
+  }
+
+#warning "rounding issues in word-frequency!"
+
+  if (_wordFreq < DBL_MAX) {
+    _threshold = _wordFreq * stats->numTotal();
+
+    fprintf(stderr, "For word-frequency %f, found threshold %lu\n", _wordFreq, _threshold);
+  }
+
+  //  Cleanup.
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++)
+    _inputs[ii]->_stream->dropStatistics();
+}
+
+
+
 bool
 merylOperation::initialize(void) {
   bool  proceed = true;
+
+  fprintf(stderr, "INITIALIZE\n");
 
   //  Initialize all the inputs this operation might have.
 
@@ -65,6 +140,10 @@ merylOperation::initialize(void) {
     _output->initialize();
     _writer = _output->getStreamWriter(_fileNumber);
   }
+
+  //  The threshold operations need to decide on a threshold based on the histogram.
+
+  initializeThreshold();
 
   //  If configuring, or if the operation is pass-through with no output,
   //  don't stream the mers.  This only matters for the root node; the return
@@ -288,62 +367,62 @@ merylOperation::nextMer(void) {
       break;
 
     case opLessThan:
-      _count = (_actCount[0]  < _parameter) ? _actCount[0] : 0;
+      _count = (_actCount[0]  < _threshold) ? _actCount[0] : 0;
       break;
 
     case opGreaterThan:
-      _count = (_actCount[0]  > _parameter) ? _actCount[0] : 0;
+      _count = (_actCount[0]  > _threshold) ? _actCount[0] : 0;
       break;
 
     case opAtLeast:
-      _count = (_actCount[0] >= _parameter) ? _actCount[0] : 0;
+      _count = (_actCount[0] >= _threshold) ? _actCount[0] : 0;
       break;
 
     case opAtMost:
-      _count = (_actCount[0] <= _parameter) ? _actCount[0] : 0;
+      _count = (_actCount[0] <= _threshold) ? _actCount[0] : 0;
       break;
 
     case opEqualTo:
-      _count = (_actCount[0] == _parameter) ? _actCount[0] : 0;
+      _count = (_actCount[0] == _threshold) ? _actCount[0] : 0;
       break;
 
     case opNotEqualTo:
-      _count = (_actCount[0] != _parameter) ? _actCount[0] : 0;
+      _count = (_actCount[0] != _threshold) ? _actCount[0] : 0;
       break;
 
     case opIncrease:
-      if (UINT64_MAX - _actCount[0] < _parameter)
+      if (UINT64_MAX - _actCount[0] < _mathConstant)
         _count = UINT64_MAX;    //  OVERFLOW!
       else
-        _count = _actCount[0] + _parameter;
+        _count = _actCount[0] + _mathConstant;
       break;
 
     case opDecrease:
-      if (_actCount[0] < _parameter)
+      if (_actCount[0] < _mathConstant)
         _count = 0;             //  UNDERFLOW!
       else
-        _count = _actCount[0] - _parameter;
+        _count = _actCount[0] - _mathConstant;
       break;
 
     case opMultiply:
-      if (UINT64_MAX / _actCount[0] < _parameter)
+      if (UINT64_MAX / _actCount[0] < _mathConstant)
         _count = UINT64_MAX;    //  OVERFLOW!
       else
-        _count = _actCount[0] * _parameter;
+        _count = _actCount[0] * _mathConstant;
       break;
 
     case opDivide:
-      if (_parameter == 0)
+      if (_mathConstant == 0)
         _count = 0;             //  DIVIDE BY ZERO!
       else
-        _count = _actCount[0] / _parameter;
+        _count = _actCount[0] / _mathConstant;
       break;
 
     case opModulo:
-      if (_parameter == 0)
+      if (_mathConstant == 0)
         _count = 0;             //  DIVIDE BY ZERO!
       else
-        _count = _actCount[0] % _parameter;
+        _count = _actCount[0] % _mathConstant;
       break;
 
     case opUnion:                           //  Union

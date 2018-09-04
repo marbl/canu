@@ -25,7 +25,10 @@ merylVerbosity  merylOperation::_verbosity    = sayStandard;
 merylOperation::merylOperation(merylOp op, uint32 ff, uint32 threads, uint64 memory) {
   _operation     = op;
 
-  _parameter     = UINT64_MAX;
+  _threshold     = UINT64_MAX;
+  _fracDist      = DBL_MAX;
+  _wordFreq      = DBL_MAX;
+
   _expNumKmers   = 0;
 
   _maxThreads    = threads;

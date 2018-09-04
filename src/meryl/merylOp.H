@@ -118,11 +118,17 @@ public:
   void    setOperation(merylOp op) { _operation = op;    };
   merylOp getOperation(void)       { return(_operation); };
 
-  void    setParameter(uint64 p)               { _parameter   = p;  };
+  void    setThreshold(uint64 p)               { _threshold   = p;  };
+  void    setFractionDistinct(double p)        { _fracDist    = p;  };
+  void    setWordFrequency(double p)           { _wordFreq    = p;  };
+
+  //void    setIntegerParameter(uint64 p)        { _intParam    = p;  };
+  //void    setRealParameter(double p)           { _realParam   = p;  };
+
   void    setExpectedNumberOfKmers(uint64 n)   { _expNumKmers = n;  };
 
-  void    setMemoryLimit(uint64 m)             { _maxMemory = m;    };
-  void    setThreadLimit(uint32 t)             { _maxThreads = t;   };
+  void    setMemoryLimit(uint64 m)             { _maxMemory   = m;  };
+  void    setThreadLimit(uint32 t)             { _maxThreads  = t;  };
 
   bool    isCounting(void) {
     return((_operation == opCount)        ||
@@ -135,18 +141,22 @@ public:
   };
 
   bool    needsParameter(void) {
-    return((_operation == opLessThan)    ||
-           (_operation == opGreaterThan) ||
-           (_operation == opAtLeast)     ||
-           (_operation == opAtMost)      ||
-           (_operation == opEqualTo)     ||
-           (_operation == opNotEqualTo)  ||
-           (_operation == opIncrease)    ||
-           (_operation == opDecrease)    ||
-           (_operation == opMultiply)    ||
-           (_operation == opDivide)      ||
+    return((_operation == opLessThan)     ||
+           (_operation == opGreaterThan)  ||
+           (_operation == opAtLeast)      ||
+           (_operation == opAtMost)       ||
+           (_operation == opEqualTo)      ||
+           (_operation == opNotEqualTo)   ||
+           (_operation == opIncrease)     ||
+           (_operation == opDecrease)     ||
+           (_operation == opMultiply)     ||
+           (_operation == opDivide)       ||
            (_operation == opModulo));
   };
+
+  //bool    needsRealParameter(void) {
+  //  return((_operation == opMostFrequent));
+  //};
 
   kmer   &theFMer(void)            { return(_kmer);   };
   uint64  theCount(void)           { return(_count);  };
@@ -156,7 +166,9 @@ public:
   void    convertToPassThrough(char *inputName);
 
 public:
+  void    initializeThreshold(void);
   bool    initialize(void);
+
   bool    nextMer(void);
 
   bool    validMer(void)           { return(_valid);  };
@@ -194,7 +206,14 @@ private:
 
   merylOp                        _operation;
 
-  uint64                         _parameter;
+  uint64                         _mathConstant;
+  uint64                         _threshold;
+  double                         _fracDist;
+  double                         _wordFreq;
+
+  //uint64                         _intParam;
+  //double                         _realParam;
+
   uint64                         _expNumKmers;
 
   uint32                         _maxThreads;
