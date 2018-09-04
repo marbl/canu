@@ -207,12 +207,13 @@ public:
   void      load(stuffedBits *bits);
   void      load(FILE        *inFile);
 
-  uint64    numUnique(void)                 { return(_numUnique);   };
-  uint64    numDistinct(void)               { return(_numDistinct); };
-  uint64    numTotal(void)                  { return(_numTotal);    };
+  uint64    numUnique(void)                       { return(_numUnique);   };
+  uint64    numDistinct(void)                     { return(_numDistinct); };
+  uint64    numTotal(void)                        { return(_numTotal);    };
 
-  uint32    numFrequencies(void)            { return(_histMax);     };
-  uint64    numKmersAtFrequency(uint32 ii)  { return(_hist[ii]);    };
+  uint32    numFrequencies(void)                  { return(_histMax);     };
+  uint64    numKmersAtFrequency(uint32 ii)        { return(_hist[ii]);    };
+  double    wordFrequencyAtFrequency(uint32 ii)   { return(_hist[ii] * 1000000.0 / _numTotal);  };
 
 private:
   uint64              _numUnique;
