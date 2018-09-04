@@ -494,7 +494,7 @@ ifeq (${MACHINETYPE}, amd64)
   #LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -lm -lexecinfo -lgomp
 
   #CXXFLAGS  += -Wall -Wextra -Wformat  -Wno-unused   -Wno-parentheses
-  CXXFLAGS  += -Wall -Wextra -Wformat -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-char-subscripts -Wno-write-strings -Wno-sign-compare
+  CXXFLAGS  += -Wall -Wextra -Wformat -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-char-subscripts -Wno-write-strings -Wno-sign-compare -Wno-format-truncation
 
   #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
   #CXXFLAGS  +=
