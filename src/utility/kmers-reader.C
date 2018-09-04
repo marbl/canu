@@ -149,6 +149,14 @@ kmerCountFileReader::loadStatistics(void) {
 
 
 void
+kmerCountFileReader::dropStatistics(void) {
+  delete _stats;
+  _stats = NULL;
+}
+
+
+
+void
 kmerCountFileReader::enableThreads(uint32 threadFile) {
   _activeFile = threadFile;
   _threadFile = threadFile;

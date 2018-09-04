@@ -451,6 +451,7 @@ public:
 
 public:
   void    loadStatistics(void);
+  void    dropStatistics(void);
 
 public:
   void    enableThreads(uint32 threadFile);
