@@ -212,8 +212,10 @@ merylInput::loadBases(char    *seq,
   if (_store) {
 
     //  If no read currently loaded, load one, or return that we're done.
+    //  We need to loop so we can ignore the length zero reads in seqStore
+    //  that exist after correction/trimming.
 
-    if ((_read    == NULL) ||
+    while ((_read    == NULL) ||
         (_readPos >= _read->sqRead_sequenceLength())) {
       _readID++;
 
