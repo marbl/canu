@@ -795,9 +795,6 @@ sub merylProcessCheck ($$) {
     generateReport($asm);
     emitStage($asm, "meryl-process");
 
-    print STDERR "STOP AFTER MERYL_PROCESS\n";
-    exit(1);
-
   allDone:
 }
 
