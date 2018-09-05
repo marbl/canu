@@ -190,7 +190,7 @@ sub getAllowedResources ($$$$$@) {
     my $alg  = shift @_;  #  Algorithm, e.g., "mhap", "ovl"
     my $err  = shift @_;  #  Report of things we can't run.
     my $all  = shift @_;  #  Report of things we can run.
-    my $uni  = shift @_;  #  There's only one task to run (meryl, bogart, gfa)
+    my $uni  = shift @_;  #  There's only one task to run (bogart, gfa)
     my $dbg  = shift @_;  #  Optional, report debugging stuff
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
@@ -724,13 +724,24 @@ sub configureAssembler () {
     #  reported from sqStore.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
-        setGlobalIfUndef("merylMemory", "4-8");     setGlobalIfUndef("merylThreads", "1-4");
+        setGlobalIfUndef("merylMemory", "2-8");        setGlobalIfUndef("merylThreads", "1-4");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("merylMemory", "16-64");    setGlobalIfUndef("merylThreads", "1-16");
+        setGlobalIfUndef("merylMemory", "16-32");       setGlobalIfUndef("merylThreads", "1-8");
 
     } else {
-        setGlobalIfUndef("merylMemory", "64-256");   setGlobalIfUndef("merylThreads", "1-32");
+        setGlobalIfUndef("merylMemory", "24-64");       setGlobalIfUndef("merylThreads", "1-8");
+    }
+
+
+    if (getGlobal("genomeSize") < 10000000) {
+        setGlobal("corOvlMerDistinct",  "0.9950")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
+        setGlobal("obtOvlMerDistinct",  "0.9950")   if (!defined(getGlobal("obtOvlMerThreshold")) && !defined(getGlobal("obtOvlMerDistinct")));
+        setGlobal("utgOvlMerDistinct",  "0.9950")   if (!defined(getGlobal("utgOvlMerThreshold")) && !defined(getGlobal("utgOvlMerDistinct")));
+    } else {
+        setGlobal("corOvlMerDistinct",  "0.9975")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
+        setGlobal("obtOvlMerDistinct",  "0.9975")   if (!defined(getGlobal("obtOvlMerThreshold")) && !defined(getGlobal("obtOvlMerDistinct")));
+        setGlobal("utgOvlMerDistinct",  "0.9975")   if (!defined(getGlobal("utgOvlMerThreshold")) && !defined(getGlobal("utgOvlMerDistinct")));
     }
 
     #  Overlap error adjustment
@@ -819,7 +830,7 @@ sub configureAssembler () {
     my $err;
     my $all;
 
-    ($err, $all) = getAllowedResources("",    "meryl",    $err, $all, 1);
+    ($err, $all) = getAllowedResources("",    "meryl",    $err, $all, 0);
 
     ($err, $all) = getAllowedResources("cor", "mhap",     $err, $all, 0)   if (getGlobal("corOverlapper") eq "mhap");
     ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all, 0)   if (getGlobal("corOverlapper") eq "minimap");

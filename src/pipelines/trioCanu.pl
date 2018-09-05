@@ -343,9 +343,7 @@ $kmer = int(ceil($kmer));
 setGlobal("hapOverlapper", "ovl");
 setGlobal("hapovlmerthreshold", "auto");
 setGlobal("hapovlmerdistinct", undef);
-setGlobal("hapovlmertotal", undef);
 setGlobal("hapovlfrequentmers", undef);
-setGlobal("hapovlmertotal", undef);
 setGlobal("hapovlMerSize", $kmer);
 
 printf STDERR "--\n";

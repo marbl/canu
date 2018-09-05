@@ -747,7 +747,7 @@ sub alignGFA ($) {
 
     #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
     #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
-    #  (meryl and unitig are the same)
+    #  (meryl-process and unitig are the same)
 
     #  If too many attempts, give up.
 

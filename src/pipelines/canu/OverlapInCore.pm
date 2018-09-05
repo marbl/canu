@@ -188,13 +188,13 @@ sub overlapConfigure ($$$) {
         print F "  exit\n";
         print F "fi\n";
         print F "\n";
-        print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.frequentMers.fasta", "");
+        print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.dump", "");
         print F "\n";
         print F "\$bin/overlapInCore \\\n";
         print F "  -partial \\\n"  if ($type eq "partial");
         print F "  -t ", getGlobal("${tag}OvlThreads"), " \\\n";
         print F "  -k $merSize \\\n";
-        print F "  -k ../0-mercounts/$asm.ms$merSize.frequentMers.fasta \\\n";
+        print F "  -k ../0-mercounts/$asm.ms$merSize.dump \\\n";
         print F "  --hashbits $hashBits \\\n";
         print F "  --hashload $hashLoad \\\n";
         print F "  --maxerate  ", getGlobal("corOvlErrorRate"), " \\\n"  if ($tag eq "cor");   #  Explicitly using proper name for grepability.

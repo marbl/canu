@@ -338,7 +338,7 @@ sub unitigCheck ($) {
 
     #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
     #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
-    #  (meryl, unitig, overlapStoreSequential are the same)
+    #  (meryl-process, unitig, overlapStoreSequential are the same)
 
     #  If too many attempts, give up.
 

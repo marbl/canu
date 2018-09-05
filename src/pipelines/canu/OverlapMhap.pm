@@ -358,7 +358,7 @@ sub mhapConfigure ($$$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.frequentMers.ignore.gz", "");
+    print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.ignore.gz", "");
     print F "\n";
     print F "echo \"\"\n";
     print F "echo Starting mhap precompute.\n";
@@ -382,7 +382,7 @@ sub mhapConfigure ($$$) {
     print F "  --min-olap-length ", getGlobal("minOverlapLength"), " \\\n";
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
-    print F "  -f $cygA ../../0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz $cygB \\\n"   if (-e "$base/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
+    print F "  -f $cygA ../../0-mercounts/$asm.ms$merSize.ignore.gz $cygB \\\n"   if (-e "$base/0-mercounts/$asm.ms$merSize.ignore.gz");
     print F "  -p $cygA ./\$job.input.fasta $cygB \\\n";
     print F "  -q $cygA . $cygB \\\n";
     print F "&& \\\n";
