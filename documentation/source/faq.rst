@@ -257,7 +257,7 @@ What parameters can I tweak?
            chromosome (and probably some reads from other chromosomes).  When assembling, overlaps
            well outside the observed error rate distribution are discarded.
            
-         We typically prefer option 2 which will lead to a larger than expected genome size. We have had some success (in limited testing) using `purge_haplotigs <https://bitbucket.org/mroachawri/purge_haplotigs>`_ to remove this duplication.
+         We typically prefer option 1 which will lead to a larger than expected genome size. We have had some success (in limited testing) using `purge_haplotigs <https://bitbucket.org/mroachawri/purge_haplotigs>`_ to remove this duplication.
 
     For metagenomes:
 
