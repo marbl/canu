@@ -474,7 +474,7 @@ main(int argc, char **argv) {
   //
 
   else if (exportFile) {
-    for (uint32 ii=idMin; ii<idMax; ii++) {
+    for (uint32 ii=idMin; ii<=idMax; ii++) {
       if ((readList.size() > 0) &&      //  Skip reads not on the read list,
           (readList.count(ii) == 0))    //  if there actually is a read list.
         continue;
