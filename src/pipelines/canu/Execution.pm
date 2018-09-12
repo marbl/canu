@@ -112,7 +112,7 @@ sub logFinished ($$) {
 
     push @fast, "lickety-split";
     push @fast, "fast as lightning";
-    push @fast, "fuirously fast";
+    push @fast, "furiously fast";
     push @fast, "like a bat out of hell";
     push @fast, "in the blink of an eye";
 
