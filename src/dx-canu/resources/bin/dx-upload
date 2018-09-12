@@ -12,6 +12,6 @@ while [[ $count -lt $NUM_RETRIES ]]; do
        break
     fi
     if [[ "$count" -ge "$NUM_RETRIES" ]]; then
-        echo "FAILED upload, giving up."
+        echo "FAILED dx upload "$@" - giving up."
     fi
 done
