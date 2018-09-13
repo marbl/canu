@@ -215,6 +215,15 @@ public:
   uint64    numKmersAtFrequency(uint32 ii)        { return(_hist[ii]);    };
   double    wordFrequencyAtFrequency(uint32 ii)   { return(_hist[ii] * 1000000.0 / _numTotal);  };
 
+  uint32    maxFrequency(void) {
+    uint32  maxV = _histMax - 1;
+
+    while ((maxV > 0) && (numKmersAtFrequency(maxV) == 0))
+      maxV--;
+
+    return(maxV);
+  };
+
 private:
   uint64              _numUnique;
   uint64              _numDistinct;
