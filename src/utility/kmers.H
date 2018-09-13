@@ -477,6 +477,7 @@ public:
   char   *filename(void)  { return(_inName);  };
 
   kmerCountStatistics       *stats(void) {
+    loadStatistics();
     return(_stats);
   }
 
