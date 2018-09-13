@@ -11,10 +11,10 @@ endif
 TARGET   := lookup
 SOURCES  := lookup.C \
 
-SRC_INCDIRS  := . utility
+SRC_INCDIRS  := . .. ../utility ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
-TGT_LDLIBS  := -lsequence -lbits -lkmer -lmeryl
-TGT_PREREQS := libmeryl.a
+TGT_LDLIBS  := -lcanu
+TGT_PREREQS := libcanu.a
 
 SUBMAKEFILES :=
