@@ -604,121 +604,47 @@ private:
 
 class kmerCountExactLookup {
 public:
-  kmerCountExactLookup(kmerCountFileReader *input,
-                       uint32               minValue = 0,
-                       uint32               maxValue = UINT32_MAX);
+  kmerCountExactLookup(kmerCountFileReader *input_,
+                       uint32               minValue_ = 0,
+                       uint32               maxValue_ = UINT32_MAX);
   ~kmerCountExactLookup() {
-    delete [] _suffixStart;
+    delete [] _suffixBgn;
+    delete [] _suffixEnd;
     delete    _suffixData;
   };
 
-#if 0
-  bool             exists_test(kmer k) {
+private:
+  void     initialize(kmerCountFileReader *input_,
+                      uint32               minValue_,
+                      uint32               maxValue_);
+  void     configure(void);
+  void     allocate(void);
+  uint64  *findArrayStartPositions(kmerCountFileReader *input_);
 
-    uint64  kmer   = (uint64)k;
-    uint64  prefix = kmer >> _suffixBits;
-    uint64  suffix = kmer  & _suffixMask;
-
-    uint64  bgn = _suffixStart[prefix    ];
-    uint64  mid;
-    uint64  end = _suffixStart[prefix + 1];
-
-    uint64  dat;
-
-    //  Binary search for the matching tag.
-
-    while (bgn + 8 < end) {
-      mid = bgn + (end - bgn) / 2;
-
-      dat = _suffixData->get(mid);
-      tag = dat >> _valueBits;
-
-      if (tag == suffix)
-        return(true);
-
-      if (suffix < tag)
-        end = mid;
-
-      else
-        bgn = mid + 1;
-    }
-
-    //  Switch to linear search when we're down to just a few candidates.
-
-    for (mid=bgn; mid < end; mid++) {
-      dat = _suffixData->get(mid);
-      tag = dat >> _valueBits;
-
-      if (tag == suffix)
-        return(true);
-    }
-
-    fprintf(stderr, "\n");
-    fprintf(stderr, "FAILED kmer   0x%016lx\n", kmer);
-    fprintf(stderr, "FAILED prefix 0x%016lx\n", prefix);
-    fprintf(stderr, "FAILED suffix 0x%016lx\n", suffix);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "original  %9lu %9lu\n", _suffixStart[prefix], _suffixStart[prefix + 1]);
-    fprintf(stderr, "final     %9lu %9lu\n", bgn, end);
-    fprintf(stderr, "\n");
-
-    bgn = _suffixStart[prefix    ];
-    end = _suffixStart[prefix + 1];
-
-    while (bgn + 8 < end) {
-      mid = bgn + (end - bgn) / 2;
-
-      dat = _suffixData->get(mid);
-
-      fprintf(stderr, "TEST bgn %8lu %8lu %8lu end -- dat %lu =?= %lu suffix\n", bgn, mid, end, dat, suffix);
-
-      if (dat == suffix)
-        return(true);
-
-      if (suffix < dat)
-        end = mid;
-
-      else
-        bgn = mid + 1;
-    }
-
-    for (mid=bgn; mid < end; mid++) {
-      dat = _suffixData->get(mid);
-
-      fprintf(stderr, "ITER bgn %8lu %8lu %8lu end -- dat %lu =?= %lu suffix\n", bgn, mid, end, dat, suffix);
-
-      if (dat == suffix)
-        return(true);
-    }
-
-    assert(0);
-  };
-#endif
-
-  //  Returns the value of kmer k, or 0 if not found in the table.
-  //
 private:
   uint32           value_value(uint64 value) {
-    if (_valueBits == 0)
-      return(1);
+    if (_valueBits == 0)               //  Return 'true' if no value
+      return(1);                       //  is stored.
 
     value &= uint32MASK(_valueBits);
 
-    if (value == 0)
-      return(0);
+    //if (value == 0)                    //  Return zero if the value
+    //  return(0);                       //  is actually zero.
 
-    return(value + _valueOffset);
+    return(value + _valueOffset);      //  Otherwise, return the value.
   };
 
 public:
+  uint64           nKmers(void)  {  return(_nKmersLoaded);  };
+
   uint32           value(kmer k) {
     uint64  kmer   = (uint64)k;
     uint64  prefix = kmer >> _suffixBits;
     uint64  suffix = kmer  & _suffixMask;
 
-    uint64  bgn = _suffixStart[prefix    ];
+    uint64  bgn = _suffixBgn[prefix];
     uint64  mid;
-    uint64  end = _suffixStart[prefix + 1];
+    uint64  end = _suffixEnd[prefix];
 
     uint64  dat;
     uint64  tag;
@@ -754,24 +680,36 @@ public:
     return(0);
   };
 
+
+  bool             exists_test(kmer k);
+
+
 private:
+  uint32          _minValue;    //  Minimum value stored in the table -| both of these filter the
+  uint32          _maxValue;    //  Maximum value stored in the table -| input kmers.
+  uint32          _valueOffset; //  Offset of values stored in the table.
+
+  uint64          _nKmersLoaded;
+  uint64          _nKmersTooLow;
+  uint64          _nKmersTooHigh;
+
   uint32          _Kbits;
 
-  uint32          _prefixBits;  //  How many high-end bits of the kmer is an index into _suffixStart.
+  uint32          _prefixBits;  //  How many high-end bits of the kmer is an index into _suffixBgn.
   uint32          _suffixBits;  //  How many bits of the kmer are in the suffix table.
   uint32          _valueBits;   //  How many bits of the suffix entry are data.
-
-  uint32          _valueOffset; //  Offset of values stored in the table.
 
   uint64          _suffixMask;
   uint64          _dataMask;
 
-  uint64          _nPrefix;     //  How many entries in _suffixStart == 2 ^ _prefixBits.
-  uint64          _nSuffix;     //  How many entries in _suffixData  == nDistinct in the input database.
+  uint64          _nPrefix;     //  How many entries in _suffixBgn  == 2 ^ _prefixBits.
+  uint64          _nSuffix;     //  How many entries in _suffixData == nDistinct in the input database.
 
-  uint32          _prePtrBits;  //  How many bits wide is _suffixStart (used only if _suffixStart is a wordArray).
+  uint32          _prePtrBits;  //  How many bits wide is _suffixBgn (used only if _suffixBgn is a wordArray).
 
-  uint64         *_suffixStart; //  Pointers into suffixData
+  uint64         *_suffixBgn;   //  The start of a block of data in suffix Data.
+  uint64         *_suffixEnd;   //  The end.
+  //uint64         *_suffixLen;
   wordArray      *_suffixData;  //  Finally, kmer data!
 };
 
