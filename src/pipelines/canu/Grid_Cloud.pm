@@ -269,7 +269,7 @@ sub stashFile ($) {
     print STDERR "stashFile()-- '$file' to '$ns/$file'\n"   if ($showWork);
 
     if    (isOS() eq "DNANEXUS") {
-        runCommandSilently(".", "dx-upload --wait --parents --path \"$pr:$ns/$file\" \"$file\"", 1);
+        runCommandSilently(".", "dx-ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$ns/\" \"$file\"", 1);
     }
 }
 
@@ -295,7 +295,7 @@ sub stashFileShellCode ($$$) {
         $code .= fileExistsShellCode("$path/$file", "$indent  ");
         $code .= "${indent}    $client rm --recursive \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  fi\n";
-        $code .= "${indent}  dx-upload --wait --parents --path \"$pr:$ns/$path/$file\" \"$file\"\n";
+        $code .= "${indent}  dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$path/\" \"$file\"\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}else\n";
         $code .= "${indent}  # Could not find file that we are meant to stash.  We should exit with an error.\n";
@@ -393,7 +393,7 @@ sub stashSeqStore ($) {
         $cmd .= " ./$asm.seqStore/readlengths*";
         $cmd .= " ./$asm.seqStore/reads";
         $cmd .= " ./$asm.seqStore/version*" if (-e "./$asm.seqStore/version.001");
-        $cmd .= " | dx-upload --wait --parents --path $pr:$ns/$asm.seqStore.tar -";
+        $cmd .= " | dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/\" --name \"$asm.seqStore.tar\" --read-from-stdin -";
 
         removeStashedFile("$asm.seqStore.tar");
 
@@ -405,7 +405,7 @@ sub stashSeqStore ($) {
 
         for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
             if (! fileExists("$asm.seqStore/blobs.$bIdx", 1)) {
-                runCommandSilently(".", "dx-upload --wait --parents --path $pr:$ns/$asm.seqStore/blobs.$bIdx $asm.seqStore/blobs.$bIdx", 1);
+                runCommandSilently(".", "dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$asm.seqStore/\" --name \"blobs.$bIdx\" \"$asm.seqStore/blobs.$bIdx\"", 1);
             }
         }
     }
@@ -469,7 +469,7 @@ sub stashSeqStorePartitions ($$$$) {
             $cmd .= " ./$storeName/partitions/map";
             $cmd .= " ./$storeName/partitions/blobs.$jName";
             $cmd .= " ./$storeName/partitions/reads.$jName";
-            $cmd .= " | dx-upload --wait --parents --path $pr:$ns/$storePath.$storeName.$jName.tar -";
+            $cmd .= " | dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/\" --name \"$storePath.$storeName.$jName.tar\" --read-from-stdin -";
 
             removeStashedFile("$storePath.$storeName.$jName.tar");
 
@@ -529,7 +529,7 @@ sub stashOvlStore ($$) {
         $cmd .= " ./$asm.ovlStore/statistics";
         $cmd .= " ./$asm.ovlStore.config";
         $cmd .= " ./$asm.ovlStore.config.txt";
-        $cmd .= " | dx-upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore.tar -";
+        $cmd .= " | dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/\" --name \"$asm.ovlStore.tar\" --read-from-stdin -";
 
         removeStashedFile("$base/$asm.ovlStore.tar");
 
@@ -542,7 +542,7 @@ sub stashOvlStore ($$) {
         for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
         for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
             if (! fileExists("$base/$asm.ovlStore/$bIdx<$sIdx>", 1)) {
-                runCommandSilently(".", "dx-upload --wait --parents --path \"$pr:$ns/$base/$asm.ovlStore/$bIdx<$sIdx>\" \"./$base/$asm.ovlStore/$bIdx<$sIdx>\"", 1);
+                runCommandSilently(".", "dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/$asm.ovlStore/\" --name \"$bIdx<$sIdx>\" \"./$base/$asm.ovlStore/$bIdx<$sIdx>\"", 1);
             }
         }
         }
@@ -580,14 +580,14 @@ sub stashOvlStoreShellCode ($$) {
         $code .= " ./$asm.ovlStore.config \\\n";
         $code .= " ./$asm.ovlStore.config.txt \\\n";
         $code .= "| \\\n";
-        $code .= "dx-upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore.tar -\n";
+        $code .= "dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/\" --name \"$asm.ovlStore.tar" --read-from-stdin -\n";
         $code .= "\n";
         $code .= "#\n";
         $code .= "#  Upload data files.\n";
         $code .= "#\n";
         $code .= "\n";
         $code .= "for ff in `ls $asm.ovlStore/????\\<???\\>` ; do\n";
-        $code .= "  dx-upload --wait --parents --path \"$pr:$ns/$base/\$ff\" \"./\$ff\"\n";
+        $code .= "  dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/\" --name \"\$ff\" \"./\$ff\"\n";
         $code .= "done\n";
         $code .= "\n";
     }

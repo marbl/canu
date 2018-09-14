@@ -1,0 +1,17 @@
+#!/bin/bash
+NUM_RETRIES=5
+SLEEP_TIME=10
+count=0
+while [[ $count -lt $NUM_RETRIES ]]; do
+    fid=$(ua "$@")
+    if [[ "$?" -ne "0" ]]; then
+       ((count++))
+       echo "Retry "$count" of "$NUM_RETRIES"."
+       sleep $SLEEP_TIME
+    else
+       break
+    fi
+    if [[ "$count" -ge "$NUM_RETRIES" ]]; then
+        echo "FAILED ua "$@" - giving up."
+    fi
+done
