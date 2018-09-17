@@ -176,16 +176,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/loadTrimmedReads.mk \
                 stores/loadErates.mk \
                 \
-                meryl-san/libleaff.mk \
-                meryl-san/leaff.mk \
-                meryl-san/meryl-san.mk \
-                meryl-san/maskMers.mk \
-                meryl-san/simple.mk \
-                meryl-san/estimate-mer-threshold.mk \
-                meryl-san/existDB.mk \
-                meryl-san/positionDB.mk \
-                meryl-san/simple-dump.mk \
-                \
                 meryl/meryl.mk \
                 meryl/findSeedThreshold.mk \
                 \

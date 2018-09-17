@@ -10,10 +10,10 @@ endif
 TARGET   := overlapPair
 SOURCES  := overlapPair.C
 
-SRC_INCDIRS  := .. ../utility ../stores ../meryl/libleaff libedlib
+SRC_INCDIRS  := .. ../utility ../stores libedlib
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
-TGT_LDLIBS  := -lleaff -lcanu
-TGT_PREREQS := libleaff.a libcanu.a
+TGT_LDLIBS  := -lcanu
+TGT_PREREQS := libcanu.a
 
 SUBMAKEFILES :=
