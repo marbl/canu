@@ -194,9 +194,6 @@ kmerCountExactLookup::allocate(void) {
 //
 uint64 *
 kmerCountExactLookup::findArrayStartPositions(kmerCountFileReader *input_) {
-
-  input_->loadBlockIndex();
-
   uint64  *nKmersPerFile = new uint64 [input_->numFiles()];    //  number of kmers in file ff
   uint64  *startPos      = new uint64 [input_->numFiles()];    //  position in _suffixData that file ff is at
 
@@ -204,6 +201,8 @@ kmerCountExactLookup::findArrayStartPositions(kmerCountFileReader *input_) {
     nKmersPerFile[ff] = 0;
     startPos[ff]      = 0;
   }
+
+  input_->loadBlockIndex();
 
   for (uint32 ff=0; ff<input_->numFiles(); ff++) {
     for (uint32 bb=ff * input_->numBlocks(); bb<ff * input_->numBlocks() + input_->numBlocks(); bb++)
@@ -332,6 +331,8 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input_,
       _suffixBgn[ii] = 0;
       break;
     }
+
+  delete [] startPos;
 
   fprintf(stderr, "Loaded " F_U64 " kmers.  Skipped " F_U64 " (too low) and " F_U64 " (too high) kmers.\n",
           _nKmersLoaded, _nKmersTooLow, _nKmersTooHigh);
