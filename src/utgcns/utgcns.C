@@ -131,9 +131,9 @@ main (int argc, char **argv) {
         tigPart = UINT32_MAX;
 
       if (tigVers == 0)
-        fprintf(stderr, "invalid tigStore version (-T store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+        fprintf(stderr, "invalid tigStore version (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
       if (tigPart == 0)
-        fprintf(stderr, "invalid tigStore partition (-T store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+        fprintf(stderr, "invalid tigStore partition (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
     } else if ((strcmp(argv[arg], "-u") == 0) ||
                (strcmp(argv[arg], "-tig") == 0)) {
