@@ -127,7 +127,7 @@ private:
 
 public:
   //  Return the next sequence in the file.
-  //  Returns the number of bases loaded; zero if EOF.
+  //  Returns false if EOF, true otherwise, even if the sequence is length zero.
   //
   bool   loadSequence(char   *&name,     uint32   nameMax,
                       char   *&seq,
