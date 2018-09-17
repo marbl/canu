@@ -57,7 +57,7 @@ use canu::Execution;
 use canu::SequenceStore;
 use canu::ErrorEstimate;
 use canu::Report;
-use canu::HaplotypeReads qw(getHaplotypes);
+#use canu::HaplotypeReads qw(getHaplotypes);
 
 use canu::Grid_Cloud;
 
@@ -429,7 +429,7 @@ sub merylConfigure ($$) {
     setGlobal("merylThreads", $thr);    #  Redundant.
 
     #
-    #  Build a script for running meryl.
+    #  Build a script for running meryl.  A similar version is used in HaplotypeReads.pm.
     #
 
     open(F, "> $path/meryl-count.sh") or caExit("can't open '$path/meryl-count.sh' for writing: $!", undef);
@@ -796,118 +796,4 @@ sub merylProcessCheck ($$) {
     emitStage($asm, "meryl-process");
 
   allDone:
-}
-
-
-
-
-
-
-
-
-
-sub merylSubtract ($$) {
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my ($base, $path, $name, $merSize) = merylParameters($asm, $tag);
-
-    goto allDone   if (skipStage($asm, "$tag-meryl") == 1);
-    goto allDone   if(fileExists("$path/$asm.ms$merSize.only.mcdat"));
-
-    my $otherHaplotypes = "";
-    my $toMerge = 0;
-
-    my @haplotypes = getHaplotypes($base);
-    foreach my $haplotype (@haplotypes) {
-       if ("$base/0-mercounts-$haplotype" ne $path) {
-          $otherHaplotypes .= "-s ../0-mercounts-$haplotype/$haplotype.ms$merSize";
-          $toMerge++;
-       }
-    }
-    if ($toMerge > 1) {
-       # run merge of other haplotypes, to create a single one, update otherHaplotypes to point to that
-       caFailure("Error: more than two haplotypes isn't implemented yet!", "$path");
-    }
-    if (runCommand($path, "$bin/meryl-san -M difference -s $asm.ms$merSize $otherHaplotypes -o $asm.ms$merSize.only > $asm.difference.out 2> $asm.difference.err")) {
-       caFailure("meryl failed to difference", "$asm.difference.err");
-    }
-    addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
-
-  allDone:
-}
-
-
-
-sub merylFinishSubtraction($$) {
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my ($base, $path, $name, $merSize) = merylParameters($asm, $tag);
-
-    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
-    goto allDone      if (fileExists("$path/$name.threshold"));
-    goto finishStage  if (fileExists("$path/$name.mcidx") && fileExists("$path/$name.mcdat"));
-
-  finishStage:
-
-    # also figure out the histogram info for next step
-    fetchFile("$path/$name.histogram");
-
-    my $d = 0;
-    my $prevD = -1;
-    my $prevDPrime = 0;
-    my $dPrime = 0;
-    my $minCount = 0;
-    my $minCov = 0;
-    my $maxCov = 0;
-    my $prevCount = 0;
-
-    open(F, "< $path/$name.histogram") or caFailure("failed to read mer histogram from '$path/$name.histogram'", undef);
-    while (<F>) {
-       my ($threshold, $num, $distinct, $total) = split '\s+', $_;
-       if ($prevD == -1) {
-          $prevD = $num;
-          $prevCount = $num;
-        } else {
-           $d = $num - $prevCount;
-           $dPrime = $d - $prevD;
-           if ($d * $prevD < 0) {
-              if ($d > $prevD) {
-                 $minCov = $threshold-1 if ($minCov == 0);
-                 $minCount = $prevCount;
-              }
-           }
-           if ($threshold - 5 > $minCov && $num < $minCount*0.75) {
-              $maxCov = $threshold;
-              last;
-           }
-           $prevCount = $num;
-           $prevD = $d;
-           $prevDPrime = $dPrime;
-        }
-    }
-    close(F);
-
-    print STDERR "-- Meryl finished successfully with threshold $minCov to $maxCov for $asm.\n";
-    open(F, "> $path/$name.threshold") or caExit("can't open '$path/$name.threshold' for writing: $!", undef);
-    printf (F "$minCov\t$maxCov\n");
-    close(F);
-
-    stashFile("$path/$name.threshold");
-
-    unlink "$path/$name.mcidx"   if (getGlobal("saveMerCounts") == 0);
-    unlink "$path/$name.mcdat"   if (getGlobal("saveMerCounts") == 0);
-
-    generateReport($asm);
-    emitStage($asm, "$tag-meryl");
-
-  allDone:
-     stopAfter("meryl");
 }

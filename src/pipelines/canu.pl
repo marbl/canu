@@ -56,6 +56,8 @@ use canu::Execution;
 
 use canu::Configure;
 
+use canu::HaplotypeReads;
+
 use canu::SequenceStore;
 use canu::Meryl;
 use canu::OverlapInCore;
@@ -80,9 +82,12 @@ use canu::Grid_PBSTorque;
 use canu::Grid_LSF;
 use canu::Grid_DNANexus;
 
-my @specFiles;    #  Files of specs
-my @specOpts;     #  Command line specs
-my @inputFiles;   #  Command line inputs, later inputs in spec files are added
+my @specFiles;       #  Files of specs
+my @specOpts;        #  Command line specs
+my @inputFiles;      #  Command line inputs, later inputs in spec files are added
+
+my %haplotypeReads;  #  Inpout reads for haplotypes; each element is a NUL-delimited list of files
+my @haplotypes;      #  List of haplotypes we're trying to process
 
 #  Initialize our defaults.  Must be done before defaults are reported in printOptions() below.
 
@@ -212,6 +217,23 @@ while (scalar(@ARGV)) {
 
         while (defined($fopt)) {
             push @inputFiles, "$arg\0$fopt";
+            addCommandLineOption("$arg '$fopt'");
+
+            shift @ARGV;
+
+            $file = $ARGV[0];
+            $fopt = addSequenceFile($readdir, $file);
+        }
+
+    } elsif ($arg =~ m/^-haplotype(\w+)$/) {
+        my $hapn = $1;
+        my $file = $ARGV[0];
+        my $fopt = addSequenceFile($readdir, $file, 1);
+
+        while (defined($fopt)) {
+            $haplotypeReads{$hapn} .= "$fopt\0";
+            push @haplotypes, $hapn;
+
             addCommandLineOption("$arg '$fopt'");
 
             shift @ARGV;
@@ -547,9 +569,10 @@ sub setOptions ($$) {
 
     #  Create directories for the step, if needed.
 
-    make_path("correction")  if ((! -d "correction") && ($step eq "correct"));
-    make_path("trimming")    if ((! -d "trimming")   && ($step eq "trim"));
-    make_path("unitigging")  if ((! -d "unitigging") && ($step eq "assemble"));
+    make_path("haplotype")    if ((! -d "haplotype")   && ($step eq "haplotype"));
+    make_path("correction")   if ((! -d "correction")  && ($step eq "correct"));
+    make_path("trimming")     if ((! -d "trimming")    && ($step eq "trim"));
+    make_path("unitigging")   if ((! -d "unitigging")  && ($step eq "assemble"));
 
     #  Return that we want to run this step.
 
@@ -587,6 +610,98 @@ sub overlap ($$) {
 #
 #  Begin pipeline
 #
+
+if (setOptions($mode, "haplotype") eq "haplotype") {
+    if ((! -e "./haplotype/haplotyping.success") &&
+        (haplotypeReadsExist($asm, @haplotypes) eq "no")) {
+
+        submitScript($asm, undef);   #  See comments there as to why this is safe.
+
+        print STDERR "--\n";
+        print STDERR "--\n";
+        print STDERR "-- BEGIN HAPLOTYPING\n";
+        print STDERR "--\n";
+
+        haplotypeCountConfigure($asm, %haplotypeReads);
+
+        haplotypeCountCheck($asm)                   foreach (1..getGlobal("canuIterationMax") + 1);
+        haplotypeMergeCheck($asm, @haplotypes)      foreach (1..getGlobal("canuIterationMax") + 1);
+        haplotypeSubtractCheck($asm, @haplotypes)   foreach (1..getGlobal("canuIterationMax") + 1);
+
+        haplotypeReadsConfigure($asm, \@haplotypes, \@inputFiles);
+        haplotypeReadsCheck($asm)                   foreach (1..getGlobal("canuIterationMax") + 1);
+    }
+}
+
+#  If haplotype reads exist, bootstrap the assemblies.
+#
+#  I tried to use submitScript() to launch these, but that didn't work
+#  so nicely - if not on grid, it wouldn't do anything.
+
+if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
+    my $techtype = removeHaplotypeOptions();
+    my @options  = getCommandLineOptions();
+
+    #  Make the output pretty.
+
+    my $displLen = 0;
+
+    foreach my $haplotype (@haplotypes) {
+        my $hapLen = length($haplotype);
+        $displLen = ($displLen < $hapLen) ? $hapLen : $displLen;
+    }
+
+    #  For each haplotype, emit a script to run the assembly.
+
+    print STDERR "--\n";
+
+    foreach my $haplotype (@haplotypes) {
+        my $hs = substr("$haplotype" . " " x $displLen, 0, $displLen);
+
+        print STDERR "-- Found haplotyped reads for $hs - write assembly command to './$asm-haplotype$haplotype.sh'.\n";
+
+        open(F, "> ./$asm-haplotype$haplotype.sh");
+        print F "#!/bin/sh\n";
+        print F "\n";
+        print F "\n";
+        print F "$bin/canu \\\n";
+        print F "  -p $asm-haplotype$haplotype \\\n";
+        print F "  -d $asm-haplotype$haplotype \\\n";
+        print F "  $_ \\\n"   foreach (@options);
+        print F "  $techtype ./haplotype/haplotype-$haplotype.fasta.gz \\\n";
+        print F "> ./$asm-haplotype$haplotype.out 2>&1\n";
+        print F "\n";
+        print F "exit 0\n";
+        print F "\n";
+        close(F);
+
+        makeExecutable("./$asm-haplotype$haplotype.sh");
+    }
+
+    #  Then run the scripts.
+
+    print STDERR "--\n";
+
+    foreach my $haplotype (@haplotypes) {
+        if (getGlobal("useGrid") ne "1") {
+            print STDERR "-- Starting haplotype assembly $haplotype with script '$rootdir/$asm-haplotype$haplotype.sh'.\n";
+        } else {
+            print STDERR "-- Submitting '$rootdir/$asm-haplotype$haplotype.sh' to generate haplotype assembly $haplotype.\n";
+        }
+
+        runCommand(".", "./$asm-haplotype$haplotype.sh");
+    }
+
+    if (getGlobal("useGrid") ne "1") {
+        print STDERR "--\n";
+        print STDERR "-- Haplotype assemblies completed (or failed).\n";
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- Haplotype assemblies submitted.\n";
+    }
+
+    exit(0);
+}
 
 if (setOptions($mode, "correct") eq "correct") {
     if ((getNumberOfBasesInStore($asm, "obt") == 0) &&

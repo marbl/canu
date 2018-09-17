@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkMinimap checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption removeHaplotypeOptions addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkMinimap checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
 
 use strict;
 use warnings "all";
@@ -56,7 +56,7 @@ my %global;    #  Parameter value
 my %synops;    #  Parameter description (for -defaults)
 my %synnam;    #  Parameter name (beacuse the key is lowercase)
 
-my $cLineOpts = undef;
+my @cLineOpts;
 my $specLog   = "";
 
 
@@ -212,7 +212,9 @@ sub setGlobalIfUndef ($$) {
 
 
 sub getCommandLineOptions () {
-    return($cLineOpts);
+    my $cLineOpts = join ' ', @cLineOpts;
+
+    return((wantarray) ? @cLineOpts : $cLineOpts);
 }
 
 
@@ -222,8 +224,47 @@ sub addCommandLineOption ($) {
 
     return   if ($opt =~ m/canuIteration=/);   #  Ignore canu resetting canuIteration
 
-    $cLineOpts .= " "   if (defined($cLineOpts) && ($cLineOpts !~ m/\s$/));
-    $cLineOpts .= $opt;
+    push @cLineOpts, $opt;
+    #$cLineOpts .= " "   if (defined($cLineOpts) && ($cLineOpts !~ m/\s$/));
+    #$cLineOpts .= $opt;
+}
+
+
+
+sub removeHaplotypeOptions () {
+    my @strippedOpts;
+    my $setUpForPacBio    = 0;
+    my $setUpForNanopore  = 0;
+    my $haveRaw           = 0;
+    my $haveCorrected     = 0;
+
+    #  A very specialized function.  Remove all the sequence file options,
+    #  both long reads and short reads used for haplotyping, from the list of
+    #  command line options.  Then return a string appropriate for adding new
+    #  long reads.
+    #
+    #  Note that when this is called a second (third, etc) time, the
+    #  semantics are different (no haplotype options to remove) but the end
+    #  result is the same.
+
+    foreach my $opt (@cLineOpts) {
+        if ($opt =~ m/^-pacbio-raw\s/)          { $setUpForPacBio++;   $haveRaw++;       next; }
+        if ($opt =~ m/^-pacbio-corrected\s/)    { $setUpForPacBio++;   $haveCorrected++; next; }
+        if ($opt =~ m/^-nanopore-raw\s/)        { $setUpForNanopore++; $haveRaw++;       next; }
+        if ($opt =~ m/^-nanopore-corrected\s/)  { $setUpForNanopore++; $haveCorrected++; next; }
+        if ($opt =~ m/^-haplotype/)             {                                        next; }
+        if ($opt =~ m/^-d\s/)                   {                                        next; }
+        if ($opt =~ m/^-p\s/)                   {                                        next; }
+
+        push @strippedOpts, $opt;
+    }
+
+    my $tech = ($setUpForNanopore > 0) ? "-nanopore"  : "-pacbio";
+    my $type = ($haveCorrected    > 0) ? "-corrected" : "-raw";
+
+    @cLineOpts = @strippedOpts;
+
+    return("$tech$type");
 }
 
 
