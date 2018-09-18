@@ -142,7 +142,7 @@ sub haplotypeCountConfigure ($%) {
                 #  If looks like FASTQ quality values, skip them
                 if (m/^\+/) {
                     $_ = <INP>;
-                    continue;
+                    next;
                 }
 
                 #  Otherwise, assume it's sequence to keep, print it
