@@ -670,7 +670,9 @@ sub haplotypeReadsConfigure ($@) {
     close(F);
 
   finishStage:
+    emitStage($asm, "haplotypeReadsConfigure");
   allDone:
+    stopAfter("meryl");
 }
 
 
