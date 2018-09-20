@@ -397,17 +397,19 @@ merylOperation::guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence)
 
   uint64  size = AS_UTL_sizeOfFile(name);
 
-  if      ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'x') && (name[len-1] == 'z'))
-    numMers += size * 5;
+  if      ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'g') && (name[len-1] == 'z'))
+    numMers += size * 3;
 
-  else if ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'g') && (name[len-1] == 'z'))
-    numMers += size * 4;
+  else if ((len > 4) && (name[len-4] == '.') && (name[len-3] == 'b') && (name[len-2] == 'z') && (name[len-1] == '2'))
+    numMers += size * 3.5;
 
-  else if ((len > 3) && (name[len-4] == '.') && (name[len-3] == 'b') && (name[len-2] == 'z') && (name[len-1] == '2'))
-    numMers += size * 4;
+  else if ((len > 3) && (name[len-3] == '.') && (name[len-2] == 'x') && (name[len-1] == 'z'))
+    numMers += size * 4.0;
 
   else
     numMers += size;
+
+  //fprintf(stderr, "%s -> size %lu total %lu\n", name, size, numMers);
 
   return(numMers);
 }
