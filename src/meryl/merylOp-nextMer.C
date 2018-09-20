@@ -124,7 +124,7 @@ bool
 merylOperation::initialize(void) {
   bool  proceed = true;
 
-  fprintf(stderr, "INITIALIZE\n");
+  //fprintf(stderr, "INITIALIZE\n");
 
   //  Initialize all the inputs this operation might have.
 
