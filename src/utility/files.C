@@ -401,47 +401,12 @@ directoryExists(const char *path) {
 off_t
 AS_UTL_sizeOfFile(const char *path) {
   struct stat  s;
-  off_t        size = 0;
 
   errno = 0;
   if (stat(path, &s) == -1)
     fprintf(stderr, "Failed to stat() file '%s': %s\n", path, strerror(errno)), exit(1);
 
-  //  gzipped files contain a file contents list, which we can
-  //  use to get the uncompressed size.
-  //
-  //  gzip -l <file>
-  //  compressed        uncompressed  ratio uncompressed_name
-  //       14444               71680  79.9% up.tar
-  //
-  //  bzipped files have no contents and we just guess.
-
-  if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
-    char   cmd[FILENAME_MAX], *p = cmd;
-
-    snprintf(cmd, FILENAME_MAX, "gzip -l '%s'", path);
-
-    FILE *F = popen(cmd, "r");
-    fgets(cmd, FILENAME_MAX, F);    //   compressed uncompressed  ratio uncompressed_name
-    fgets(cmd, FILENAME_MAX, F);    //     30264891     43640320  30.6% file
-    pclose(F);
-
-    while (isspace(*p) == true)  p++;  //  Skip spaces at the start of the line
-    while (isspace(*p) == false) p++;  //  Skip the compressed size
-    while (isspace(*p) == true)  p++;  //  Skip spaces
-
-    size = strtoull(p, NULL, 10);      //  Retain the uncompresssed size
-  }
-
-  else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
-    size = s.st_size * 14 / 10;
-  }
-
-  else {
-    size = s.st_size;
-  }
-
-  return(size);
+  return(s.st_size);
 }
 
 
