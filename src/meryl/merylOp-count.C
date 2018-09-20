@@ -159,6 +159,9 @@ findBestPrefixSize(uint64  nKmerEstimate,
                    uint64 &memoryUsed_) {
   uint32  merSize    = kmerTiny::merSize();
 
+  bestPrefix_  = 0;
+  memoryUsed_  = UINT64_MAX;
+
   for (uint32 wp=1; wp < 2 * merSize; wp++) {
     uint64  nPrefix          = (uint64)1 << wp;                        //  Number of prefix == number of blocks of data
     uint64  kmersPerPrefix   = nKmerEstimate / nPrefix + 1;            //  Expected number of kmers we need to store per prefix
