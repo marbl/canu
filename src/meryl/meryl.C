@@ -19,6 +19,11 @@
 #include "system.H"
 
 
+//  In meryOp-count.C
+uint64
+findMaxInputSizeForMemorySize(uint32 kMerSize, uint64 memorySize);
+
+
 bool
 isDigit(char c) {
   return(('0' <= c) && (c <= '9'));
@@ -431,6 +436,11 @@ main(int argc, char **argv) {
 
     else if (strcmp(optString, "-C") == 0) {
       merylOperation::onlyConfigure();
+      continue;
+    }
+
+    else if (strcmp(optString, "-E") == 0) {
+      findMaxInputSizeForMemorySize(strtouint32(argv[arg+1]), (uint64)(1000000000 * strtodouble(argv[arg+2])));
       continue;
     }
 
