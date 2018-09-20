@@ -17,23 +17,51 @@
 #include "meryl.H"
 
 
-merylCountArray::merylCountArray(uint64 prefix, uint32 width, uint32 segsize) {
-  _width       = width;
+merylCountArray::merylCountArray(void) {
+  _width        = 0;
 
-  _prefix      = prefix;
-  _suffix      = NULL;
-  _counts      = NULL;
+  _prefix       = 0;
+  _suffix       = NULL;
+  _counts       = NULL;
 
-  _nKmers      = 0;
+  _nKmers       = 0;
 
-  _bitsPerPage = getPageSize() * 8;
-  _nReAlloc    = 0;
+  _bitsPerPage  = 0;
+  _nReAlloc     = 0;
 
-  _segSize     = segsize;// + segsize % _bitsPerPage;
-  _segAlloc    = 0;
-  _segments    = NULL;
+  _segSize      = 0;
+  _segAlloc     = 0;
+  _segments     = NULL;
 
-  _nBits       = 0;
+  _nBits        = 0;
+  _nBitsTrigger = 0;
+  _nBitsOldSize = 0;
+}
+
+
+
+uint64
+merylCountArray::initialize(uint64 prefix, uint32 width, uint32 segsize) {
+  _width        = width;
+
+  _prefix       = prefix;
+  _suffix       = NULL;
+  _counts       = NULL;
+
+  _nKmers       = 0;
+
+  _bitsPerPage  = getPageSize() * 8;
+  _nReAlloc     = 0;
+
+  _segSize      = segsize;
+  _segAlloc     = 0;
+  _segments     = NULL;
+
+  _nBits        = 0;
+  _nBitsTrigger = 0;
+  _nBitsOldSize = usedSize();
+
+  return(_nBitsOldSize);
 }
 
 
@@ -106,6 +134,7 @@ merylCountArray::countKmers(void) {
   uint64   nValues = _nBits / _width;
   uint64  *values  = new uint64 [nValues];
 
+  //fprintf(stderr, "Allocate %lu values, %lu bytes\n", nValues, sizeof(uint64) * nValues);
   //fprintf(stderr, "Sorting prefix 0x%016" F_X64P " with " F_U64 " total kmers\n", _prefix, nValues);
 
   //  Unpack the data into _suffix.

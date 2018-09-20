@@ -173,7 +173,15 @@ findBestPrefixSize(uint64  nKmerEstimate,
     uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE / 8;
     uint64  totalMemory      = structMemory + dataMemory;
 
-    if ((wp >= 3) && (totalMemory - 16 * 1024 * 1024 < memoryUsed_)) {
+    //  Pick a larger prefix if it is dramatically smaller than what we have.
+    //  More prefixes seem to run a bit slower, but also have smaller buckets
+    //  for sorting at the end.
+    //
+    //  IMPORTANT!  Prefixes must be at least six bits - the number of bits
+    //  we use for deciding on a file - and probably need to then leave one
+    //  bit for a block id.  So only save a bestPrefix if it is at least 7.
+
+    if ((wp > 6) && (totalMemory + 16 * wp * 1024 * 1024 < memoryUsed_)) {
       memoryUsed_ = totalMemory;
       bestPrefix_ = wp;
     }
@@ -478,10 +486,7 @@ merylOperation::count(uint32  wPrefix,
   //  Need someway of balancing the number of prefixes we have and the size of each
   //  initial allocation.
 
-  merylCountArray **data = new merylCountArray * [nPrefix];
-
-  for (uint32 pp=0; pp<nPrefix; pp++)
-    data[pp] = new merylCountArray(pp, wData, SEGMENT_SIZE);
+  merylCountArray  *data = new merylCountArray [nPrefix];
 
   //  Load bases, count!
 
@@ -505,6 +510,11 @@ merylOperation::count(uint32  wPrefix,
   uint64          memBase     = getProcessSize();   //  Overhead memory.
   uint64          memUsed     = 0;                  //  Sum of actual memory used.
   uint64          memReported = 0;                  //  Memory usage at last report.
+
+  memUsed = memBase;
+
+  for (uint32 pp=0; pp<nPrefix; pp++)
+    memUsed += data[pp].initialize(pp, wData, SEGMENT_SIZE);
 
   uint64          kmersAdded  = 0;
 
@@ -556,16 +566,12 @@ merylOperation::count(uint32  wPrefix,
         
         assert(pp < nPrefix);
 
-        data[pp]->add(mm);
+        memUsed += data[pp].add(mm);
 
         kmersAdded++;
       }
 
       //  If we're out of space, process the data and dump.
-
-      memUsed = memBase;
-      for (uint32 pp=0; pp<nPrefix; pp++)
-        memUsed += data[pp]->usedSize();
 
       if (memUsed - memReported > (uint64)128 * 1024 * 1024) {
         memReported = memUsed;
@@ -587,15 +593,19 @@ merylOperation::count(uint32  wPrefix,
           //        omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
 
           for (uint64 pp=_output->firstPrefixInFile(ff); pp <= _output->lastPrefixInFile(ff); pp++) {
-            data[pp]->countKmers();                //  Convert the list of kmers into a list of (kmer, count).
-            data[pp]->dumpCountedKmers(_writer);   //  Write that list to disk.
-            data[pp]->removeCountedKmers();        //  And remove the in-core data.
+            data[pp].countKmers();                //  Convert the list of kmers into a list of (kmer, count).
+            data[pp].dumpCountedKmers(_writer);   //  Write that list to disk.
+            data[pp].removeCountedKmers();        //  And remove the in-core data.
           }
         }
 
         _writer->finishBatch();
 
         kmersAdded = 0;
+
+        memUsed = memBase;                        //  Reinitialize or memory used.
+        for (uint32 pp=0; pp<nPrefix; pp++)
+          memUsed += data[pp].usedSize();
       }
 
       if (endOfSeq)                   //  If the end of the sequence, clear
@@ -630,9 +640,9 @@ merylOperation::count(uint32  wPrefix,
     //        omp_get_thread_num(), ff, _output->firstPrefixInFile(ff), _output->lastPrefixInFile(ff));
 
     for (uint64 pp=_output->firstPrefixInFile(ff); pp <= _output->lastPrefixInFile(ff); pp++) {
-      data[pp]->countKmers();                //  Convert the list of kmers into a list of (kmer, count).
-      data[pp]->dumpCountedKmers(_writer);   //  Write that list to disk.
-      data[pp]->removeCountedKmers();        //  And remove the in-core data.
+      data[pp].countKmers();                //  Convert the list of kmers into a list of (kmer, count).
+      data[pp].dumpCountedKmers(_writer);   //  Write that list to disk.
+      data[pp].removeCountedKmers();        //  And remove the in-core data.
     }
   }
 
@@ -645,9 +655,6 @@ merylOperation::count(uint32  wPrefix,
   _writer = NULL;
 
   //  Cleanup.
-
-  for (uint32 pp=0; pp<nPrefix; pp++)
-    delete data[pp];
 
   delete [] data;
 

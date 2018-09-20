@@ -23,8 +23,10 @@
 
 class merylCountArray {
 public:
-  merylCountArray(uint64 prefix, uint32 width, uint32 segsize);
+  merylCountArray();
   ~merylCountArray();
+
+  uint64    initialize(uint64 prefix, uint32 width, uint32 segsize);
 
 private:
   void      removeSegments(void);
@@ -34,7 +36,7 @@ private:
   //
   //  wordPos is 0 for the high bits and 63 for the bit that represents integer 1.
 public:
-  void      add(uint64 value) {
+  uint64    add(uint64 value) {
     uint64  seg       = _nBits / _segSize;   //  Which segment are we in?
     uint64  segPos    = _nBits % _segSize;   //  Bit position in that segment.
 
@@ -53,7 +55,6 @@ public:
     if ((word    == 0) &&
         (wordBgn == 0))
       addSegment(seg);
-
 
     //  If there is enough space in the current word, stash the bits there.
     //  If it's a new word, we need to special case an initialization of the word.
@@ -93,6 +94,8 @@ public:
       _segments[seg+0][W] |= (value >>        extraBits);
       _segments[seg+1][0]  = (value << (64 -  extraBits));
     }
+
+    return(usedSizeDelta());
   };
 
 
@@ -167,10 +170,26 @@ public:
     pagesUsed += fullSegs * (_segSize / _bitsPerPage) + fullSegs * (((_segSize % _bitsPerPage) == 0) ? 0 : 1);
     pagesUsed +=            (partSeg  / _bitsPerPage) +            (((partSeg  % _bitsPerPage) == 0) ? 0 : 1);
     pagesUsed += 1;
+    pagesUsed += 1;  //  Because we're not accounting for partial pages when usedSizeDelta is employed.
     pagesUsed += _nReAlloc;
 
     return(pagesUsed * _bitsPerPage / 8 + _segAlloc * sizeof(uint64 **) + sizeof(merylCountArray));
   };
+
+  uint64           usedSizeDelta(void) {
+
+    if (_nBits < _nBitsTrigger)
+      return(0);
+
+    uint64  newSize   = usedSize();
+    uint64  sizeDelta = newSize - _nBitsOldSize;
+
+    _nBitsTrigger += _bitsPerPage / 16;
+    _nBitsOldSize  = newSize;
+
+    return(sizeDelta);
+  };
+
 
   void             countKmers(void);
   void             dumpCountedKmers(kmerCountBlockWriter *out);
@@ -194,6 +213,8 @@ private:
   uint64         **_segments;     //  An array of blocks of data.
 
   uint64           _nBits;        //  Number of bits stored.
+  uint64           _nBitsTrigger; //  Number of bits we need to store for a size recalculation to occur.
+  uint64           _nBitsOldSize; //  Last computed size.
 };
 
 
