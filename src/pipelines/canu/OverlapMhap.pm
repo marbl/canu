@@ -82,7 +82,6 @@ sub mhapConfigure ($$$) {
 
     caFailure("invalid type '$typ'", undef)  if (($typ ne "partial") && ($typ ne "normal"));
 
-    goto allDone   if (skipStage($asm, "$tag-mhapConfigure") == 1);
     goto allDone   if (fileExists("$path/precompute.sh")) && (fileExists("$path/mhap.sh"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
@@ -569,7 +568,7 @@ sub mhapConfigure ($$$) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "$tag-mhapConfigure");
+    resetIteration("$tag-mhapConfigure");
 
   allDone:
     stopAfter("overlapConfigure");
@@ -593,7 +592,6 @@ sub mhapPrecomputeCheck ($$$) {
 
     $path = "$base/1-overlapper";
 
-    goto allDone   if (skipStage($asm, "$tag-mhapPrecomputeCheck", $attempt) == 1);
     goto allDone   if (fileExists("$path/precompute.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
@@ -646,7 +644,6 @@ sub mhapPrecomputeCheck ($$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-mhapPrecomputeCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "precompute", @failedJobs);
         return;
@@ -662,7 +659,7 @@ sub mhapPrecomputeCheck ($$$) {
     stashFile("$path/precompute.files");
 
     generateReport($asm);
-    emitStage($asm, "$tag-mhapPrecomputeCheck");
+    resetIteration("$tag-mhapPrecomputeCheck");
 
   allDone:
 }
@@ -687,7 +684,6 @@ sub mhapCheck ($$$) {
 
     $path = "$base/1-overlapper";
 
-    goto allDone   if (skipStage($asm, "$tag-mhapCheck", $attempt) == 1);
     goto allDone   if (fileExists("$path/mhap.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
@@ -773,7 +769,6 @@ sub mhapCheck ($$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-mhapCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}mhap", $path, "mhap", @failedJobs);
         return;
@@ -799,7 +794,7 @@ sub mhapCheck ($$$) {
     stashFile("$path/ovljob.more.files");
 
     generateReport($asm);
-    emitStage($asm, "$tag-mhapCheck");
+    resetIteration("$tag-mhapCheck");
 
   allDone:
     stopAfter("overlap");

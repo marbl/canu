@@ -64,7 +64,6 @@ sub trimReads ($) {
     my $cmd;
     my $path   = "trimming/3-overlapbasedtrimming";
 
-    goto allDone   if (skipStage($asm, "obt-trimReads") == 1);
     goto allDone   if (fileExists("trimming/3-overlapbasedtrimming/$asm.1.trimReads.clear"));
 
     make_path($path)  if (! -d $path);
@@ -122,7 +121,7 @@ sub trimReads ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "obt-trimReads");
+    resetIteration("obt-trimReads");
 
   allDone:
 }
@@ -135,7 +134,6 @@ sub splitReads ($) {
     my $cmd;
     my $path   = "trimming/3-overlapbasedtrimming";
 
-    goto allDone   if (skipStage($asm, "obt-splitReads") == 1);
     goto allDone   if (fileExists("trimming/3-overlapbasedtrimming/$asm.2.splitReads.clear"));
 
     make_path($path)  if (! -d $path);
@@ -194,7 +192,7 @@ sub splitReads ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "obt-splitReads");
+    resetIteration("obt-splitReads");
 
   allDone:
 }
@@ -208,7 +206,6 @@ sub loadTrimmedReads ($) {
     my $path   = "trimming/3-overlapbasedtrimming";
     my $inp;
 
-    goto allDone   if (skipStage($asm, "obt-dumpReads") == 1);
     goto allDone   if (getNumberOfBasesInStore($asm, "utg") > 0);
 
     make_path($path)  if (! -d $path);
@@ -254,7 +251,7 @@ sub loadTrimmedReads ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "obt-dumpReads");
+    resetIteration("obt-dumpReads");
 
   allDone:
     stopAfter("readTrimming");
@@ -267,7 +264,6 @@ sub dumpTrimmedReads ($) {
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (skipStage($asm, "obt-dumpTrimmedReads") == 1);
     goto allDone   if (fileExists("$asm.trimmedReads.fasta.gz"));
     goto allDone   if (fileExists("$asm.trimmedReads.fastq.gz"));
     goto allDone   if (getGlobal("saveReads") == 0);
@@ -329,7 +325,7 @@ sub dumpTrimmedReads ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "cor-dumpTrimmedReads");
+    resetIteration("cor-dumpTrimmedReads");
 
   allDone:
     stopAfter("readTrimming");

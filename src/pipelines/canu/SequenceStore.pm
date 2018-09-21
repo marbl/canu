@@ -463,7 +463,6 @@ sub checkSequenceStore ($$@) {
     #  We cannot abort this step anymore.  If trimming is skipped, we need ro promote the corrected
     #  reads to trimmed reads, and also re-stash the store.
     #
-    #goto allDone    if (skipStage($asm, "$tag-sqStoreCreate") == 1);
     #goto allDone    if (getNumberOfReadsInStore($asm, $tag) > 0);
 
     #  Create the store.
@@ -560,8 +559,9 @@ sub checkSequenceStore ($$@) {
   finishStage:
     generateReport($asm);
 
-    #  DO NOT emitStage() here.  It resets canuIteration, and doesn't need to.
-    #emitStage($asm, "$tag-sqStoreCreate");
+    #  DO NOT resetIteration() here.  This function runs to completion on every
+    #  restart, so resetting would obliterate the iteration count.
+    #resetIteration("$tag-sqStoreCreate");
 
   allDone:
     stopAfter("sequenceStore");

@@ -185,7 +185,6 @@ sub overlapStoreCheck ($$$) {
     my $tag        = shift @_;
     my $attempt    = getGlobal("canuIteration");
 
-    goto allDone   if (skipStage($asm, "$tag-overlapStoreCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
 
     fetchFile("scripts/1-bucketize/2-sort.sh");
@@ -213,7 +212,6 @@ sub overlapStoreCheck ($$$) {
     #  Otherwise, run some jobs.
 
     generateReport($asm);
-    emitStage($asm, "$tag-overlapStoreCheck", $attempt);
 
     submitOrRunParallelJob($asm, "ovS", $base, "$asm.ovlStore", (1));
     return;
@@ -222,7 +220,7 @@ sub overlapStoreCheck ($$$) {
     print STDERR "-- Overlap store finished.\n";
 
     generateReport($asm);
-    emitStage($asm, "$tag-overlapStoreCheck");
+    resetIteration("$tag-overlapStoreCheck");
 
   allDone:
 }
@@ -240,7 +238,6 @@ sub createOverlapStoreParallel ($$$$$$) {
     my $cmd;
     my $path       = "$base/$asm.ovlStore.BUILDING";
 
-    goto allDone   if (skipStage($asm, "$tag-overlapStoreConfigure") == 1);
     goto allDone   if ((-e "$path/scripts/1-bucketize.sh") &&
                        (-e "$path/scripts/2-sort.sh"));
     goto allDone   if (-d "$base/$asm.ovlStore");
@@ -415,7 +412,7 @@ sub createOverlapStoreParallel ($$$$$$) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "$tag-overlapStoreConfigure");
+    resetIteration("$tag-overlapStoreConfigure");
 
   allDone:
     stopAfter("overlapStoreConfigure");
@@ -432,7 +429,6 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     my $attempt    = getGlobal("canuIteration");
     my $path       = "$base/$asm.ovlStore.BUILDING";
 
-    goto allDone   if (skipStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
     goto allDone   if (-e "$path/1-bucketize.success");
 
@@ -489,7 +485,6 @@ sub overlapStoreBucketizerCheck ($$$$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-overlapStoreBucketizerCheck", $attempt);
 
         submitOrRunParallelJob($asm, "ovB", $path, "scripts/1-bucketize", @failedJobs);
         return;
@@ -501,7 +496,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     touch("$path/1-bucketize.success");
 
     generateReport($asm);
-    emitStage($asm, "$tag-overlapStoreBucketizerCheck");
+    resetIteration("$tag-overlapStoreBucketizerCheck");
 
   allDone:
 }
@@ -519,7 +514,6 @@ sub overlapStoreSorterCheck ($$$$$) {
     my $attempt    = getGlobal("canuIteration");
     my $path       = "$base/$asm.ovlStore.BUILDING";
 
-    goto allDone   if (skipStage($asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
     goto allDone   if (-d "$base/$asm.ovlStore");
     goto allDone   if (-e "$path/2-sorter.success");
 
@@ -577,7 +571,6 @@ sub overlapStoreSorterCheck ($$$$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-overlapStoreSorterCheck", $attempt);
 
         submitOrRunParallelJob($asm, "ovS", $path, "scripts/2-sort", @failedJobs);
         return;
@@ -589,7 +582,7 @@ sub overlapStoreSorterCheck ($$$$$) {
     touch("$path/2-sorter.success");
 
     generateReport($asm);
-    emitStage($asm, "$tag-overlapStoreSorterCheck");
+    resetIteration("$tag-overlapStoreSorterCheck");
 
   allDone:
 }
@@ -717,7 +710,6 @@ sub createOverlapStore ($$) {
     $base = "trimming"    if ($tag eq "obt");
     $base = "unitigging"  if ($tag eq "utg");
 
-    goto allDone   if (skipStage($asm, "$tag-createOverlapStore") == 1);
     goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar")));
     goto allDone   if ((-d "$base/$asm.ctgStore") || (fileExists("$base/$asm.ctgStore.tar")));
 
@@ -887,7 +879,7 @@ sub createOverlapStore ($$) {
     }
 
     generateReport($asm);
-    emitStage($asm, "$tag-createOverlapStore");
+    resetIteration("$tag-createOverlapStore");
 
   allDone:
     stopAfter("overlapStore");

@@ -132,8 +132,6 @@ sub readErrorDetectionConfigure ($) {
     goto allDone   if (fileExists("$path/red.sh"));    #  Script exists
     goto allDone   if (fileExists("$path/red.red"));   #  Result exists
 
-    goto allDone   if (skipStage($asm, "readErrorDetectionConfigure") == 1);
-
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
 
@@ -293,7 +291,7 @@ sub readErrorDetectionConfigure ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "readErrorDetectionConfigure");
+    resetIteration("readErrorDetectionConfigure");
 
   allDone:
 }
@@ -310,8 +308,6 @@ sub readErrorDetectionCheck ($) {
     return         if (getGlobal("enableOEA") == 0);
 
     goto allDone   if (fileExists("$path/red.red"));       #  Output exists
-
-    goto allDone   if (skipStage($asm, "readErrorDetectionCheck", $attempt) == 1);
 
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
@@ -364,7 +360,6 @@ sub readErrorDetectionCheck ($) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "readErrorDetectionCheck", $attempt);
 
         submitOrRunParallelJob($asm, "red", $path, "red", @failedJobs);
         return;
@@ -408,7 +403,7 @@ sub readErrorDetectionCheck ($) {
     }
 
     generateReport($asm);
-    emitStage($asm, "readErrorDetectionCheck");
+    resetIteration("readErrorDetectionCheck");
 
   allDone:
 }
@@ -425,8 +420,6 @@ sub overlapErrorAdjustmentConfigure ($) {
     return         if (getGlobal("enableOEA") == 0);
 
     goto allDone   if (fileExists("$path/oea.sh"));   #  Script exists
-
-    goto allDone   if (skipStage($asm, "overlapErrorAdjustmentConfigure") == 1);
 
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
@@ -601,7 +594,7 @@ sub overlapErrorAdjustmentConfigure ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "overlapErrorAdjustmentConfigure");
+    resetIteration("overlapErrorAdjustmentConfigure");
 
   allDone:
 }
@@ -618,8 +611,6 @@ sub overlapErrorAdjustmentCheck ($) {
     return         if (getGlobal("enableOEA") == 0);
 
     goto allDone   if (fileExists("$path/oea.files"));   #  Output exists
-
-    goto allDone   if (skipStage($asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
 
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
@@ -677,7 +668,6 @@ sub overlapErrorAdjustmentCheck ($) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "overlapErrorAdjustmentCheck", $attempt);
 
         submitOrRunParallelJob($asm, "oea", $path, "oea", @failedJobs);
         return;
@@ -695,7 +685,7 @@ sub overlapErrorAdjustmentCheck ($) {
     stashFile("$path/oea.files");
 
     generateReport($asm);
-    emitStage($asm, "overlapErrorAdjustmentCheck");
+    resetIteration("overlapErrorAdjustmentCheck");
 
   allDone:
 }
@@ -710,8 +700,6 @@ sub updateOverlapStore ($) {
     my $path    = "unitigging/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
-
-    goto allDone   if (skipStage($asm, "updateOverlapStore") == 1);
 
     goto allDone   if (fileExists("unitigging/$asm.ovlStore/evalues"));   #  Stage entrely finished
     goto allDone   if (-d "unitigging/$asm.ctgStore");                    #  Assembly finished
@@ -753,7 +741,7 @@ sub updateOverlapStore ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "updateOverlapStore");
+    resetIteration("updateOverlapStore");
 
   allDone:
 }

@@ -164,7 +164,6 @@ sub unitig ($) {
     my $asm     = shift @_;
     my $path    = "unitigging/4-unitigger";
 
-    goto allDone    if (skipStage($asm, "unitig") == 1);
     goto allDone    if (fileExists("unitigging/4-unitigger/unitigger.sh"));
     goto allDone    if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
                         fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
@@ -316,7 +315,7 @@ sub unitig ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "unitig");
+    resetIteration("unitig");
 
   allDone:
 }
@@ -329,7 +328,6 @@ sub unitigCheck ($) {
     my $attempt = getGlobal("canuIteration");
     my $path    = "unitigging/4-unitigger";
 
-    goto allDone      if (skipStage($asm, "unitigCheck", $attempt) == 1);
     goto allDone      if (fileExists("$path/unitigger.success"));
     goto finishStage  if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
                           fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
@@ -359,7 +357,6 @@ sub unitigCheck ($) {
     #  Otherwise, run some jobs.
 
     generateReport($asm);
-    emitStage($asm, "unitigCheck", $attempt);
 
     submitOrRunParallelJob($asm, "bat", $path, "unitigger", (1));
     return;
@@ -377,7 +374,7 @@ sub unitigCheck ($) {
     reportUnitigSizes($asm, 1, "after unitig construction");
 
     generateReport($asm);
-    emitStage($asm, "unitigCheck");
+    resetIteration("unitigCheck");
 
   allDone:
     stopAfter("unitig");

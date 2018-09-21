@@ -318,7 +318,6 @@ sub merylConfigure ($$) {
 
     my ($base, $path, $name, $merSize) = merylParameters($asm, $tag);
 
-    goto allDone   if (skipStage($asm, "$tag-merylConfigure") == 1);    #  Configure is marked complete.
     goto allDone   if (fileExists("$path/meryl-count.sh"));             #  Configure 'output' exists.
     goto allDone   if (fileExists("$path/$name.dump") &&                #  Meryl output(s) exist
                        fileExists("$path/$name.ignore.gz"));            #
@@ -617,7 +616,7 @@ sub merylConfigure ($$) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "merylConfigure");
+    resetIteration("merylConfigure");
 
   allDone:
 }
@@ -637,7 +636,6 @@ sub merylCountCheck ($$) {
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
-    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
     goto allDone      if (fileExists("$path/meryl-count.success"));
     goto allDone      if (fileExists("$path/$name.dump") &&
                           fileExists("$path/$name.ignore.gz"));
@@ -704,7 +702,6 @@ sub merylCountCheck ($$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-merylCountCheck", $attempt);
 
         submitOrRunParallelJob($asm, "meryl", $path, "meryl-count", @failedJobs);
         return;
@@ -721,7 +718,7 @@ sub merylCountCheck ($$) {
     stashFile("$path/meryl-count.success");
 
     generateReport($asm);
-    emitStage($asm, "$tag-merylCountCheck");
+    resetIteration("$tag-merylCountCheck");
 
   allDone:
     stopAfter("meryl");
@@ -744,7 +741,6 @@ sub merylProcessCheck ($$) {
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
-    goto allDone      if (skipStage($asm, "$tag-meryl") == 1);
     goto allDone      if (fileExists("$path/meryl-process.success"));
 
     goto finishStage  if (fileExists("$path/$name.dump") &&
@@ -774,7 +770,6 @@ sub merylProcessCheck ($$) {
     #  Otherwise, run some jobs.
 
     generateReport($asm);
-    emitStage($asm, "meryl-process", $attempt);
 
     submitOrRunParallelJob($asm, "meryl", $path, "meryl-process", (1));
     return;
@@ -793,7 +788,7 @@ sub merylProcessCheck ($$) {
     stashFile("$path/meryl-process.success");
 
     generateReport($asm);
-    emitStage($asm, "meryl-process");
+    resetIteration("meryl-process");
 
   allDone:
 }

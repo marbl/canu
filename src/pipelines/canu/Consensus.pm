@@ -210,7 +210,6 @@ sub consensusConfigure ($) {
     my $cmd;
     my $path   = "unitigging/5-consensus";
 
-    goto allDone   if (skipStage($asm, "consensusConfigure") == 1);
     goto allDone   if ((fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig")) &&
                        (fileExists("unitigging/$asm.utgStore/seqDB.v002.tig")));
 
@@ -254,7 +253,7 @@ sub consensusConfigure ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "consensusConfigure")   if ($firstTime);
+    resetIteration("consensusConfigure")   if ($firstTime);
 
   allDone:
     stopAfter("consensusConfigure");
@@ -327,7 +326,6 @@ sub consensusCheck ($) {
     my $attempt = getGlobal("canuIteration");
     my $path    = "unitigging/5-consensus";
 
-    goto allDone  if (skipStage($asm, "consensusCheck", $attempt) == 1);
     goto allDone  if ((fileExists("$path/ctgcns.files")) &&
                       (fileExists("$path/utgcns.files")));
     goto allDone  if (fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig"));
@@ -408,7 +406,6 @@ sub consensusCheck ($) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "consensusCheck", $attempt);
 
         submitOrRunParallelJob($asm, "cns", $path, "consensus", @failedJobs);
         return;
@@ -430,7 +427,7 @@ sub consensusCheck ($) {
     stashFile("$path/utgcns.files");
 
     generateReport($asm);
-    emitStage($asm, "consensusCheck");
+    resetIteration("consensusCheck");
 
   allDone:
 }
@@ -502,7 +499,6 @@ sub consensusLoad ($) {
     my $cmd;
     my $path    = "unitigging/5-consensus";
 
-    goto allDone    if (skipStage($asm, "consensusLoad") == 1);
     goto allDone    if ((fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig")) &&
                         (fileExists("unitigging/$asm.utgStore/seqDB.v002.tig")));
 
@@ -592,7 +588,7 @@ sub consensusLoad ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "consensusLoad");
+    resetIteration("consensusLoad");
 
   allDone:
 }
@@ -605,7 +601,6 @@ sub consensusAnalyze ($) {
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (skipStage($asm, "consensusAnalyze") == 1);
     goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
 
     fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");  #  Shouldn't need this, right?
@@ -632,7 +627,7 @@ sub consensusAnalyze ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "consensusAnalyze");
+    resetIteration("consensusAnalyze");
 
   allDone:
     stopAfter("consensus");
@@ -652,7 +647,6 @@ sub alignGFA ($) {
 
     #  This is just big enough to not fit comfortably in the canu process itself.
 
-    goto allDone   if (skipStage($asm, "alignGFA") == 1);
     goto allDone   if (fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa") &&
                        fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa") &&
                        fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed"));
@@ -767,7 +761,6 @@ sub alignGFA ($) {
     #  Otherwise, run some jobs.
 
     generateReport($asm);
-    emitStage($asm, "alignGFA", $attempt);
 
     if ($runGrid) {
         submitOrRunParallelJob($asm, "gfa", $path, "alignGFA", (1));
@@ -781,7 +774,7 @@ sub alignGFA ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "alignGFA");
+    resetIteration("alignGFA");
 
   allDone:
 }

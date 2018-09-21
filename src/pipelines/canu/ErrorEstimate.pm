@@ -157,7 +157,6 @@ sub estimateRawError($$$) {
 
     return;
 
-    goto allDone   if (skipStage($asm, "errorEstimate") == 1);
     goto allDone   if (-e "$base/$asm.seqStore/raw.estimate.out");
     goto allDone   if (getGlobal("errorrate") > 0);
 
@@ -220,7 +219,6 @@ sub estimateCorrectedError ($$$) {
     my $base = "correction/3-estimator";
 
     # only run if we aren't done and were asked to
-    goto allDone   if (skipStage($asm, "errorEstimate") == 1);
     goto allDone   if (-e "$base/$asm.estimate.out");
     goto allDone   if (getGlobal("errorrate") > 0);
 

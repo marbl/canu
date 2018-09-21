@@ -64,8 +64,6 @@ sub generateOutputs ($) {
 
     my $type    = "fasta";  #  Should probably be an option.
 
-    goto allDone   if (skipStage($asm, "generateOutputs") == 1);
-
     #  Layouts
 
     if (! fileExists("$asm.contigs.layout")) {
@@ -220,7 +218,7 @@ sub generateOutputs ($) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "generateOutputs");
+    resetIteration("generateOutputs");
 
   allDone:
     print STDERR "--\n";
@@ -240,10 +238,4 @@ sub generateOutputs ($) {
     print STDERR "-- Graphs saved:\n";
     print STDERR "--   Contigs       -> '$asm.contigs.gfa'.\n";
     print STDERR "--   Unitigs       -> '$asm.unitigs.gfa'.\n";
-
-  finishStage:
-    generateReport($asm);
-    emitStage($asm, "outputSequence");
-
-  allDone:
 }

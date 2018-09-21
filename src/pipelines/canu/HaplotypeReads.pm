@@ -194,7 +194,6 @@ sub haplotypeCountConfigure ($%) {
 
     my @haplotypes     = keys %haplotypeReads;
 
-    goto allDone   if (skipStage($asm, "haplotypeCountConfigure") == 1);
     goto allDone   if (fileExists("$path/meryl-count.sh") &&
                        fileExists("$path/meryl-merge.sh") &&
                        fileExists("$path/meryl-subtract.sh"));
@@ -492,7 +491,8 @@ sub haplotypeCountConfigure ($%) {
     print F "mv -f ./haplotype-\$haplotype.meryl.WORKING ./haplotype-\$haplotype.meryl\n";
 
   finishStage:
-    emitStage($asm, "haplotypeCountConfigure");
+    resetIteration("haplotypeCountConfigure");
+
   allDone:
     stopAfter("meryl");
 }
@@ -510,7 +510,6 @@ sub haplotypeCountCheck ($) {
 
     #  Check if we're known to be done.
 
-    goto allDone      if (skipStage($asm, "haplotype-meryl") == 1);
     goto allDone      if (fileExists("$path/meryl-count.success"));
 
     #  Scan the script to determine how many jobs there are.
@@ -571,7 +570,6 @@ sub haplotypeCountCheck ($) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "haplotype-merylCountCheck", $attempt);
 
         #  One off hack for setting memory here
         my $mem = 0;
@@ -595,7 +593,7 @@ sub haplotypeCountCheck ($) {
     stashFile("$path/meryl-count.success");
 
     generateReport($asm);
-    emitStage($asm, "haplotype-merylCountCheck");
+    resetIteration("haplotype-merylCountCheck");
 
   allDone:
     stopAfter("meryl");
@@ -615,7 +613,6 @@ sub haplotypeMergeCheck ($@) {
 
     #  Check if we're known to be done.
 
-    goto allDone      if (skipStage($asm, "haplotype-meryl") == 1);
     goto allDone      if (fileExists("$path/meryl-merge.success"));
 
     #  Figure out if all the tasks finished correctly.  Usually we need to scan the script
@@ -663,7 +660,6 @@ sub haplotypeMergeCheck ($@) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "haplotype-merylMergeCheck", $attempt);
 
         submitOrRunParallelJob($asm, "meryl", $path, "meryl-merge", @failedJobs);
         return;
@@ -680,7 +676,7 @@ sub haplotypeMergeCheck ($@) {
     stashFile("$path/meryl-merge.success");
 
     generateReport($asm);
-    emitStage($asm, "haplotype-merylMergeCheck");
+    resetIteration("haplotype-merylMergeCheck");
 
   allDone:
     stopAfter("meryl");
@@ -700,7 +696,6 @@ sub haplotypeSubtractCheck ($@) {
 
     #  Check if we're known to be done.
 
-    goto allDone      if (skipStage($asm, "haplotype-meryl") == 1);
     goto allDone      if (fileExists("$path/meryl-subtract.success"));
 
     #  Figure out if all the tasks finished correctly.  Usually we need to scan the script
@@ -748,7 +743,6 @@ sub haplotypeSubtractCheck ($@) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "haplotype-merylSubtractCheck", $attempt);
 
         submitOrRunParallelJob($asm, "meryl", $path, "meryl-subtract", @failedJobs);
         return;
@@ -765,7 +759,7 @@ sub haplotypeSubtractCheck ($@) {
     stashFile("$path/meryl-subtract.success");
 
     generateReport($asm);
-    emitStage($asm, "haplotype-merylSubtractCheck");
+    resetIteration("haplotype-merylSubtractCheck");
 
   allDone:
     stopAfter("meryl");
@@ -781,7 +775,6 @@ sub haplotypeReadsConfigure ($@) {
     my $cmd;
     my $path           = "haplotype";
 
-    goto allDone   if (skipStage($asm, "splitHaplotypeConfigure") == 1);
     goto allDone   if (fileExists("$path/splitHaploType.sh"));
 
     make_path($path)  if (! -d $path);
@@ -844,7 +837,8 @@ sub haplotypeReadsConfigure ($@) {
     close(F);
 
   finishStage:
-    emitStage($asm, "haplotypeReadsConfigure");
+    resetIteration("haplotypeReadsConfigure");
+
   allDone:
     stopAfter("meryl");
 }
@@ -863,7 +857,6 @@ sub haplotypeReadsCheck ($@) {
 
     #  Check if we're known to be done.
 
-    goto allDone      if (skipStage($asm, "haplotype-meryl") == 1);
     goto allDone      if (fileExists("$path/haplotyping.success"));
 
     #  Determine how many jobs we ran.  Usually we need to scan the script to decide how many jobs,
@@ -918,7 +911,6 @@ sub haplotypeReadsCheck ($@) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "haplotype-merylSubtractCheck", $attempt);
 
         submitOrRunParallelJob($asm, "meryl", $path, "splitHaplotype", @failedJobs);
         return;
@@ -935,7 +927,7 @@ sub haplotypeReadsCheck ($@) {
     stashFile("$path/haplotyping.success");
 
     generateReport($asm);
-    emitStage($asm, "haplotype-merylSubtractCheck");
+    resetIteration("haplotype-merylSubtractCheck");
 
   allDone:
     stopAfter("meryl");

@@ -78,7 +78,6 @@ sub overlapConfigure ($$$) {
     fetchFile("$path/overlap.sh");
     fetchFile("$path/ovljob.files");
 
-    goto allDone   if (skipStage($asm, "$tag-overlapConfigure") == 1);
     goto allDone   if (fileExists("$path/overlap.sh") && fileExists("$path/$asm.partition.ovlbat") && fileExists("$path/$asm.partition.ovljob") && fileExists("$path/$asm.partition.ovlopt"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
@@ -237,7 +236,7 @@ sub overlapConfigure ($$$) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "$tag-overlapConfigure");
+    resetIteration("$tag-overlapConfigure");
 
   allDone:
     stopAfter("overlapConfigure");
@@ -331,7 +330,6 @@ sub overlapCheck ($$$) {
 
     $path = "$base/1-overlapper";
 
-    goto allDone   if (skipStage($asm, "$tag-overlapCheck", $attempt) == 1);
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
@@ -410,7 +408,6 @@ sub overlapCheck ($$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-overlapCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}ovl", $path, "overlap", @failedJobs);
         return;
@@ -433,7 +430,7 @@ sub overlapCheck ($$$) {
     reportOverlapStats($base, $asm, @statsJobs);
 
     generateReport($asm);
-    emitStage($asm, "$tag-overlapCheck");
+    resetIteration("$tag-overlapCheck");
 
   allDone:
     stopAfter("overlap");

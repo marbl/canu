@@ -56,8 +56,7 @@ require Exporter;
 
 @ISA    = qw(Exporter);
 @EXPORT = qw(stopAfter
-             skipStage
-             emitStage
+             resetIteration
              touch
              makeExecutable
              getInstallDirectory
@@ -311,20 +310,12 @@ sub stopAfter ($) {
 }
 
 
-sub emitStage ($$@) {
-    my $asm     = shift @_;
-    my $stage   = shift @_;
-    my $attempt = shift @_;
+sub resetIteration ($) {
+    my $stage = shift @_;
 
-    if (!defined($attempt)) {
-        print STDERR "-- Finished stage '$stage', reset canuIteration.\n";
-        setGlobal("canuIteration", 0);
-    }
-}
+    print STDERR "-- Finished stage '$stage', reset canuIteration.\n"       if (defined($stage));
 
-
-sub skipStage ($$@) {
-    return(0);
+    setGlobal("canuIteration", 0);
 }
 
 

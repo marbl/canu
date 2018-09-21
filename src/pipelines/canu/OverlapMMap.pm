@@ -67,7 +67,6 @@ sub mmapConfigure ($$$) {
 
     caFailure("invalid type '$typ'", undef)  if (($typ ne "partial") && ($typ ne "normal"));
 
-    goto allDone   if (skipStage($asm, "$tag-mmapConfigure") == 1);
     goto allDone   if (fileExists("$path/precompute.sh")) && (fileExists("$path/mmap.sh"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
@@ -462,7 +461,7 @@ sub mmapConfigure ($$$) {
 
   finishStage:
     generateReport($asm);
-    emitStage($asm, "$tag-mmapConfigure");
+    resetIteration("$tag-mmapConfigure");
 
   allDone:
     stopAfter("overlapConfigure");
@@ -484,7 +483,6 @@ sub mmapPrecomputeCheck ($$$) {
 
     $path = "$base/1-overlapper";
 
-    goto allDone   if (skipStage($asm, "$tag-mmapPrecomputeCheck", $attempt) == 1);
     goto allDone   if (fileExists("$path/precompute.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
@@ -537,7 +535,6 @@ sub mmapPrecomputeCheck ($$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-mmapPrecomputeCheck", $attempt);
 
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "precompute", @failedJobs);
         return;
@@ -553,7 +550,7 @@ sub mmapPrecomputeCheck ($$$) {
     stashFile("$path/precompute.files");
 
     generateReport($asm);
-    emitStage($asm, "$tag-mmapPrecomputeCheck");
+    resetIteration("$tag-mmapPrecomputeCheck");
 
   allDone:
 }
@@ -575,7 +572,6 @@ sub mmapCheck ($$$) {
 
     $path = "$base/1-overlapper";
 
-    goto allDone   if (skipStage($asm, "$tag-mmapCheck", $attempt) == 1);
     goto allDone   if (fileExists("$path/mmap.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
@@ -661,7 +657,7 @@ sub mmapCheck ($$$) {
         #  Otherwise, run some jobs.
 
         generateReport($asm);
-        emitStage($asm, "$tag-mmapCheck", $attempt);
+
         submitOrRunParallelJob($asm, "${tag}mmap", $path, "mmap", @failedJobs);
         return;
     }
@@ -686,7 +682,7 @@ sub mmapCheck ($$$) {
     stashFile("$path/ovljob.more.files");
 
     generateReport($asm);
-    emitStage($asm, "$tag-mmapCheck");
+    resetIteration("$tag-mmapCheck");
 
   allDone:
     stopAfter("overlap");
