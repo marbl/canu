@@ -653,65 +653,32 @@ sub makeUniqueJobName ($$) {
 #  The previous version (CA) would use "gridPropagateHold" to reset holds on existing jobs so that
 #  they would also hold on this job.
 #
-sub submitScript ($$@) {
+sub submitScript ($$) {
     my $asm         = shift @_;
     my $jobHold     = shift @_;
-    my $haplotype   = shift @_;
 
     return   if (getGlobal("useGrid")       ne "1");      #  If not requested to run on the grid,
     return   if (getGlobal("gridEngine")    eq undef);    #  or can't run on the grid, don't run on the grid.
 
-    #  If no job hold, and we are already on the grid, do NOT resubmit ourself (unless we're trying
-    #  to submit the initial haplotype assemblies).
+    #  If no job hold, and we are already on the grid, do NOT resubmit ourself.
     #
     #  When the user launches canu on the head node, a call to submitScript() is made to launch canu
     #  under grid control.  That results in a restart of canu, and another call to submitScript(),
     #  but this time, the envorinment variable is set, we we can skip the resubmission, and continue
     #  with canu execution.
 
-    return   if (($haplotype eq undef) && ($jobHold eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
+    return   if (($jobHold eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
 
     #  Figure out the name of the script we want to be making, and a place for it to write output.
-    #
-    #  If $haplotype is defined, we're bootstrapping from a canu process that was splitting reads
-    #  into haplotypes to one that is assembling the haplotype.  To do this, we need to strip out the
-    #  haplotype options from command line options, and call submitScript() with a new assembly name.
 
-    print STDERR "submitScript with name '$asm' jobHold '$jobHold' haplotype '$haplotype'\n";
+    my $idx = "01";
 
-    my $script;
-    my $scriptOut;
-
-    if (defined($haplotype)) {
-        print STDERR "REMOVE OPTIONS\n";
-
-        my $techtype = removeHaplotypeOptions();
-
-        addCommandLineOption("-d haplotype-$haplotype");
-        addCommandLineOption("$techtype haplotype/$asm.haplotype-$haplotype.fasta.gz");
-
-        $asm       = "$asm-haplotype$haplotype";
-
-        $script    = "$asm.sh";
-        $scriptOut = "$asm.out";
-
-        print STDERR "-- Submitting assembly for haplotype $haplotype using script '$script'.\n";
-
-        print STDERR "RUN with options ", getCommandLineOpts(), "\n";
+    while (-e "canu-scripts/canu.$idx.out") {
+        $idx++;
     }
 
-    else {
-        my $idx = "01";
-
-        while (-e "canu-scripts/canu.$idx.out") {
-            $idx++;
-        }
-
-        $script    = "canu-scripts/canu.$idx.sh";
-        $scriptOut = "canu-scripts/canu.$idx.out";
-
-        print STDERR "WRITING '$script' > '$scriptOut'\n";
-    }
+    my $script    = "canu-scripts/canu.$idx.sh";
+    my $scriptOut = "canu-scripts/canu.$idx.out";
 
     #  Make a script for us to submit.
 
@@ -731,9 +698,9 @@ sub submitScript ($$@) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F setWorkDirectoryShellCode(".");
-    print F "\n"                            if (!defined($haplotype));
-    print F "rm -f canu.out\n"              if (!defined($haplotype));
-    print F "ln -s $scriptOut canu.out\n"   if (!defined($haplotype));
+    print F "\n";
+    print F "rm -f canu.out\n";
+    print F "ln -s $scriptOut canu.out\n";
     print F "\n";
     print F "/usr/bin/env perl \\\n";
     print F "\$bin/" . basename($0) . " " . getCommandLineOptions() . " canuIteration=" . getGlobal("canuIteration") . "\n";
