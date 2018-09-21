@@ -161,6 +161,9 @@ public:
   //  be an overestimate of what 'top' is reporting.  Without it,
   //  it underestimates by a significant amount.
 
+  //  This is underestimating the actual resident memory usage.  The constant
+  //  +5 tries to adjust, but still underestimates on large data sets.
+
   uint64           usedSize(void) {
     uint64  fullSegs  = (_nBits / _segSize);        //  Number of fully filled segments
     uint64  partSeg   = (_nBits % _segSize) + 64;   //  Number of bites (rounded to next word) in the last (partially filled) segment
@@ -169,8 +172,7 @@ public:
 
     pagesUsed += fullSegs * (_segSize / _bitsPerPage) + fullSegs * (((_segSize % _bitsPerPage) == 0) ? 0 : 1);
     pagesUsed +=            (partSeg  / _bitsPerPage) +            (((partSeg  % _bitsPerPage) == 0) ? 0 : 1);
-    pagesUsed += 1;
-    pagesUsed += 1;  //  Because we're not accounting for partial pages when usedSizeDelta is employed.
+    pagesUsed += 5;
     pagesUsed += _nReAlloc;
 
     return(pagesUsed * _bitsPerPage / 8 + _segAlloc * sizeof(uint64 **) + sizeof(merylCountArray));
