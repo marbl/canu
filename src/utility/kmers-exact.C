@@ -96,6 +96,7 @@ kmerCountExactLookup::configure(void) {
 
   uint64  extraSpace = (uint64)8 * 1024 * 1024 * 1024;   //  In BITS!
   uint64  minSpace   = UINT64_MAX - extraSpace;
+  uint64  optSpace   = UINT64_MAX;
 
   uint32  pbMin      = 0;
   uint32  pbOpt      = 0;
@@ -111,6 +112,7 @@ kmerCountExactLookup::configure(void) {
 
     if (space < minSpace + extraSpace) {
       pbOpt        = pb;
+      optSpace     = space;
 
       _prefixBits  =          pb;
       _suffixBits  = _Kbits - pb;
@@ -151,7 +153,7 @@ kmerCountExactLookup::configure(void) {
   fprintf(stderr, "-- -------------- ---------------- ---------\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "For %lu distinct %u-mers (with %u bits used for indexing and %u bits for tags):\n", _nSuffix, _Kbits / 2, _prefixBits, _suffixBits);
-  fprintf(stderr, "  %7.3f GB memory\n",                                       bitsToGB(minSpace));
+  fprintf(stderr, "  %7.3f GB memory\n",                                       bitsToGB(optSpace));
   fprintf(stderr, "  %7.3f GB memory for index (%lu elements %u bits wide)\n", bitsToGB(_nPrefix * _prePtrBits), _nPrefix, _prePtrBits);
   fprintf(stderr, "  %7.3f GB memory for tags  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _suffixBits), _nSuffix, _suffixBits);
   fprintf(stderr, "  %7.3f GB memory for data  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _valueBits),  _nSuffix, _valueBits);
