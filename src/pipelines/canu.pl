@@ -87,7 +87,6 @@ my @specOpts;        #  Command line specs
 my @inputFiles;      #  Command line inputs, later inputs in spec files are added
 
 my %haplotypeReads;  #  Inpout reads for haplotypes; each element is a NUL-delimited list of files
-my @haplotypes;      #  List of haplotypes we're trying to process
 
 #  Initialize our defaults.  Must be done before defaults are reported in printOptions() below.
 
@@ -232,7 +231,6 @@ while (scalar(@ARGV)) {
 
         while (defined($fopt)) {
             $haplotypeReads{$hapn} .= "$fopt\0";
-            push @haplotypes, $hapn;
 
             addCommandLineOption("$arg '$fopt'");
 
@@ -610,6 +608,8 @@ sub overlap ($$) {
 #
 #  Begin pipeline
 #
+
+my @haplotypes = keys %haplotypeReads;
 
 if (setOptions($mode, "haplotype") eq "haplotype") {
     if ((! -e "./haplotype/haplotyping.success") &&
