@@ -763,8 +763,10 @@ main(int argc, char **argv) {
   //  op->initialize() returns false if we're only configuring, or if the top
   //  operation on the stack is a counting operation.
 
+  uint32  nf = opStack.numberOfFiles();
+
 #pragma omp parallel for schedule(dynamic, 1)
-  for (uint32 ff=0; ff<opStack.numberOfFiles(); ff++) {
+  for (uint32 ff=0; ff<nf; ff++) {
     merylOperation *op = opStack.getOp(ff);
 
     if (op->initialize() == true) {
@@ -776,7 +778,7 @@ main(int argc, char **argv) {
   //  Now that everything is done, delete!  Output presents a problem, in that everyone has a copy
   //  of it, but only one can delete it.
 
-  for (uint32 ff=0; ff<opStack.numberOfFiles(); ff++) {
+  for (uint32 ff=0; ff<nf; ff++) {
     merylOperation *op = opStack.getOp(ff);
 
     delete op;
