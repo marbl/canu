@@ -48,37 +48,41 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
 
   //  Now initialize filtering!
 
-  _minValue      = minValue_;
-  _maxValue      = maxValue_;
-  _valueOffset   = minValue_ - 1;                   //  "1" stored in the data is really "minValue" to the user.
+  _minValue       = minValue_;
+  _maxValue       = maxValue_;
+  _valueOffset    = minValue_ - 1;                   //  "1" stored in the data is really "minValue" to the user.
 
-  _nKmersLoaded  = 0;
-  _nKmersTooLow  = 0;
-  _nKmersTooHigh = 0;
+  _nKmersLoaded   = 0;
+  _nKmersTooLow   = 0;
+  _nKmersTooHigh  = 0;
 
   //  Now initialize table parameters!
 
-  _Kbits         = kmer::merSize() * 2;
+  _Kbits          = kmer::merSize() * 2;
 
-  _prefixBits    = 0;                               //  Bits of the kmer used as an index into the table.
-  _suffixBits    = 0;                               //  Width of an entry in the suffix table.
-  _valueBits     = 0;                               //  (also in the suffix table)
+  _prefixBits     = 0;                               //  Bits of the kmer used as an index into the table.
+  _suffixBits     = 0;                               //  Width of an entry in the suffix table.
+  _valueBits      = 0;                               //  (also in the suffix table)
 
   if (_maxValue >= _minValue)
     _valueBits = logBaseTwo32(_maxValue + 1 - _minValue);
 
-  _suffixMask    = 0;
-  _dataMask      = 0;
+  _suffixMask     = 0;
+  _dataMask       = 0;
 
-  _nPrefix       = 0;                               //  Number of entries in pointer table.
-  _nSuffix       = input_->stats()->numDistinct();  //  Number of entries in suffix dable.
+  _nPrefix        = 0;                               //  Number of entries in pointer table.
+  _nSuffix        = 0;                               //  Number of entries in suffix dable.
 
-  _prePtrBits    = logBaseTwo64(_nSuffix);          //  Width of an entry in the prefix table.
+  //  Scan the histogram to count the number of kmers in range.
 
-  _suffixBgn     = NULL;
-  _suffixEnd     = NULL;
-  //_suffixLen     = NULL;
-  _suffixData    = NULL;
+  for (uint32 ii=_minValue; ii<=_maxValue; ii++)
+    _nSuffix += input_->stats()->numKmersAtFrequency(ii);
+  
+  _prePtrBits     = logBaseTwo64(_nSuffix);          //  Width of an entry in the prefix table.
+
+  _suffixBgn      = NULL;
+  _suffixEnd      = NULL;
+  _suffixData     = NULL;
 }
 
 
@@ -173,14 +177,6 @@ kmerCountExactLookup::configure(void) {
 void
 kmerCountExactLookup::allocate(void) {
 
-  _suffixBgn = new uint64 [_nPrefix];
-  _suffixEnd = new uint64 [_nPrefix];
-  //_suffixLen = new uint64 [_nPrefix];
-
-  memset(_suffixBgn, 0, sizeof(uint64) * _nPrefix);
-  memset(_suffixEnd, 0, sizeof(uint64) * _nPrefix);
-  //memset(_suffixLen, 0, sizeof(uint64) * _nPrefix);
-
   uint64  arraySize     = _nSuffix * (_suffixBits + _valueBits);
   uint64  arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
 
@@ -190,60 +186,22 @@ kmerCountExactLookup::allocate(void) {
 
 
 
-//  To allow multiple threads to load each kmer file, we need to knw where to start
-//  each file in the _suffixData array.  We can't be precise if we're filtering
-//  kmers, but we can at least make them not collide.
+
+//  Make one pass through the file to count how many kmers per prefix we will end
+//  up with.  This is needed only if kmers are filtered, but does
+//  make the rest of the loading a little easier.
 //
-uint64 *
-kmerCountExactLookup::findArrayStartPositions(kmerCountFileReader *input_) {
-  uint64  *nKmersPerFile = new uint64 [input_->numFiles()];    //  number of kmers in file ff
-  uint64  *startPos      = new uint64 [input_->numFiles()];    //  position in _suffixData that file ff is at
+//  The loop control and kmer loading is the same in the two loops.
+void
+kmerCountExactLookup::count(kmerCountFileReader *input_) {
+  uint64  *kpp = new uint64 [_nPrefix];
 
-  for (uint32 ff=0; ff<input_->numFiles(); ff++) {
-    nKmersPerFile[ff] = 0;
-    startPos[ff]      = 0;
-  }
+  memset(kpp, 0, sizeof(uint64) * _nPrefix);
 
-  input_->loadBlockIndex();
+  //  Scan all kmer files, counting the number of kmers per prefix.
+  //  This is thread safe when _prefixBits is more than 6 (the number of files).
 
-  for (uint32 ff=0; ff<input_->numFiles(); ff++) {
-    for (uint32 bb=ff * input_->numBlocks(); bb<ff * input_->numBlocks() + input_->numBlocks(); bb++)
-      nKmersPerFile[ff] += input_->blockIndex(bb).numKmers();
-
-    if (ff > 0)
-      startPos[ff] = startPos[ff-1] + nKmersPerFile[ff-1];
-
-    //  If this fails, we found too many kmers in block files as compared
-    //  to the number of distinct kmers in the database (_nSuffix).
-    assert(startPos[ff] + nKmersPerFile[ff] <= _nSuffix);
-  }
-
-  delete [] nKmersPerFile;
-
-  return(startPos);
-}
-
-
-
-
-
-
-
-kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input_,
-                                           uint32               minValue_,
-                                           uint32               maxValue_) {
-
-  initialize(input_, minValue_, maxValue_);  //  Do NOT use minValue_ or maxValue_ from now on!
-  configure();
-  allocate();
-
-  uint64 *startPos = findArrayStartPositions(input_);
-  uint32  nf       = input_->numFiles();
-
-  //  Each file can be processed independently IF we know how many kmers are in
-  //  each prefix.  For that, we need to load the kmerCountFileReader index.
-  //  We don't, actually, know that if we're filtering out low/high count kmers.
-  //  In this case, we overallocate, but cannot cleanup at the end.
+  uint32   nf = input_->numFiles();
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
@@ -272,19 +230,75 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input_,
 
         _nKmersLoaded++;
 
-        //  Reconstruct the kmer into sdata.  This is just kmerTiny::setPrefixSuffix().
-        //  From the kmer, generate the prefix we want to save it as.
+        sdata   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
+        sdata <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
+        sdata  |= block->suffixes()[ss];   //  generate the prefix we want to save it as.
 
-        sdata   = block->prefix();
-        sdata <<= input_->suffixSize();
-        sdata  |= block->suffixes()[ss];
-
-        //  Save the prefix we'll be using for storing in our table.  On access, we need
-        //  to search the bucket associated with this prefix.
-
-        prefix = sdata >> _suffixBits;
+        prefix  = sdata >> _suffixBits;
 
         assert(prefix < _nPrefix);
+
+        kpp[prefix]++;                     //  Count the number of kmers per prefix.
+      }
+    }
+
+    delete block;
+
+    AS_UTL_closeFile(blockFile);
+  }
+
+  //  Convert the kmers per prefix into begin coordinate for each prefix.
+  //  The loading loop uses _suffixEnd[] as the position to add the next
+  //  data.
+
+  _suffixBgn = new uint64 [_nPrefix];
+  _suffixEnd = new uint64 [_nPrefix];
+
+  for (uint64 bgn=0, ii=0; ii<_nPrefix; ii++) {
+    _suffixBgn[ii] = bgn;
+    _suffixEnd[ii] = bgn;
+
+    bgn += kpp[ii];
+  }
+
+  delete [] kpp;
+}
+
+
+
+  //  Each file can be processed independently IF we know how many kmers are in
+  //  each prefix.  For that, we need to load the kmerCountFileReader index.
+  //  We don't, actually, know that if we're filtering out low/high count kmers.
+  //  In this case, we overallocate, but cannot cleanup at the end.
+void
+kmerCountExactLookup::load(kmerCountFileReader *input_) {
+
+  uint32   nf = input_->numFiles();
+
+#pragma omp parallel for schedule(dynamic, 1)
+  for (uint32 ff=0; ff<nf; ff++) {
+    FILE                      *blockFile = input_->blockFile(ff);
+    kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
+
+    //  Load blocks until there are no more.
+
+    while (block->loadBlock(blockFile, ff) == true) {
+      block->decodeBlock();
+
+      for (uint32 ss=0; ss<block->nKmers(); ss++) {
+        uint64   sdata  = 0;
+        uint64   prefix = 0;
+        uint64   value  = block->counts()[ss];
+
+        if ((value < _minValue) ||         //  Sanity checking and counting done
+            (_maxValue < value))           //  in count() above.
+          continue;
+
+        sdata   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
+        sdata <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
+        sdata  |= block->suffixes()[ss];   //  generate the prefix we want to save it as.
+
+        prefix  = sdata >> _suffixBits;
 
         //  Add in any extra data to be stored here.
 
@@ -300,24 +314,9 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input_,
           sdata  |=  value;
         }
 
-        //  We need to awkwardly remember the start position of each block in
-        //  real time, since blocks before this one can be less than full (so
-        //  we can't just remember the length of each block and compute
-        //  bgn/end positions after the fact.  One oddity that is cleaned up
-        //  later is the pointer to the first element, which gets set to 1
-        //  instead of 0.
-        //
-        //  set() will chop off any extra bits (i.e., the prefix) from sdata
-        //  before storing it.
-        //
-        //  After storing, update the end position of this block.
+        //  Store the data.
 
-        if (_suffixBgn[prefix] == 0)
-          _suffixBgn[prefix] = startPos[ff];
-
-        _suffixData->set(startPos[ff]++, sdata);
-
-        _suffixEnd[prefix] = startPos[ff];
+        _suffixData->set(_suffixEnd[prefix]++, sdata);
       }
     }
 
@@ -326,15 +325,12 @@ kmerCountExactLookup::kmerCountExactLookup(kmerCountFileReader *input_,
     AS_UTL_closeFile(blockFile);
   }
 
-  //  Fix up the first block pointer.  It's not necessarily the [0]th element in suffixBgn!
+  //  if done properly, all the end points should be the start of the next block.
 
-  for (uint32 ii=0; ii<_nPrefix; ii++)
-    if (_suffixBgn[ii] == 1) {
-      _suffixBgn[ii] = 0;
-      break;
-    }
+  for (uint32 ii=1; ii<_nPrefix; ii++)
+    assert(_suffixBgn[ii] == _suffixEnd[ii-1]);
 
-  delete [] startPos;
+  //  Now just log.
 
   fprintf(stderr, "Loaded " F_U64 " kmers.  Skipped " F_U64 " (too low) and " F_U64 " (too high) kmers.\n",
           _nKmersLoaded, _nKmersTooLow, _nKmersTooHigh);

@@ -606,7 +606,14 @@ class kmerCountExactLookup {
 public:
   kmerCountExactLookup(kmerCountFileReader *input_,
                        uint32               minValue_ = 0,
-                       uint32               maxValue_ = UINT32_MAX);
+                       uint32               maxValue_ = UINT32_MAX) {
+    initialize(input_, minValue_, maxValue_);  //  Do NOT use minValue_ or maxValue_ from now on!
+    configure();
+    count(input_);
+    allocate();
+    load(input_);
+  };
+
   ~kmerCountExactLookup() {
     delete [] _suffixBgn;
     delete [] _suffixEnd;
@@ -614,12 +621,11 @@ public:
   };
 
 private:
-  void     initialize(kmerCountFileReader *input_,
-                      uint32               minValue_,
-                      uint32               maxValue_);
+  void     initialize(kmerCountFileReader *input_, uint32 minValue_, uint32 maxValue_);
   void     configure(void);
+  void     count(kmerCountFileReader *input_);
   void     allocate(void);
-  uint64  *findArrayStartPositions(kmerCountFileReader *input_);
+  void     load(kmerCountFileReader *input_);
 
 private:
   uint32           value_value(uint64 value) {
@@ -709,7 +715,6 @@ private:
 
   uint64         *_suffixBgn;   //  The start of a block of data in suffix Data.
   uint64         *_suffixEnd;   //  The end.
-  //uint64         *_suffixLen;
   wordArray      *_suffixData;  //  Finally, kmer data!
 };
 
