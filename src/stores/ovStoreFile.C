@@ -92,10 +92,13 @@ ovFile::~ovFile() {
 
   writeBuffer(true);
 
-  AS_UTL_closeFile(_file);
+  AS_UTL_closeFile(_file, _name);
 
   if ((_isOutput) && (_histogram))
     _histogram->saveHistogram(_prefix);
+
+  if (_isTemporary)
+    AS_UTL_unlink(_name);
 
   delete    _countsW;
   delete    _countsR;
@@ -140,9 +143,11 @@ ovFile::construct(sqStore     *seq,
 
   //  Create the input/output buffers and files.
 
-  _isOutput   = false;
-  _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
-  _useSnappy  = false;
+  _isOutput    = false;
+  _isNormal    = (type == ovFileNormal) || (type == ovFileNormalWrite);
+  _useSnappy   = false;
+
+  _isTemporary = false;
 
   memset(_prefix, 0, FILENAME_MAX+1);
   memset(_name,   0, FILENAME_MAX+1);
@@ -155,8 +160,8 @@ ovFile::construct(sqStore     *seq,
   //  random access to specific overlaps.
   //
 
-  if (type == ovFileNormal)          //  For store overlaps, fetch from
-    fetchFromObjectStore(_name);     //  the object store if needed.
+  if (type == ovFileNormal)                         //  For store overlaps, fetch from
+    _isTemporary = fetchFromObjectStore(_name);     //  the object store if needed.
 
   if (type == ovFileNormal) {
     _file        = AS_UTL_openInputFile(_name);

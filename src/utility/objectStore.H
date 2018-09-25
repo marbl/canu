@@ -34,5 +34,8 @@
 //  It will ONLY work with seqStore and ovlStore data files:
 //     seqStore/blobs.* 
 //     ovlStore/0000<000>
-
-void   fetchFromObjectStore(char *filename);
+//
+//  Returns false if the file was not fetched (either no object store
+//  in use, or the file existed already), true if it was fetched.
+//
+bool   fetchFromObjectStore(char *filename);

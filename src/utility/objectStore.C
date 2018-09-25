@@ -194,14 +194,14 @@ findOvlStorePath(char *requested) {
 
 
 
-void
+bool
 fetchFromObjectStore(char *requested) {
 
   //  Decide if we even need to bother.  If the file exists locally, or if
   //  one of the environment variables is missing, no, we don't need to bother.
 
   if (fileExists(requested))
-    return;
+    return(false);
 
   char  *dx = getenv("CANU_OBJECT_STORE_CLIENT");
   char  *ns = getenv("CANU_OBJECT_STORE_NAMESPACE");
@@ -210,7 +210,7 @@ fetchFromObjectStore(char *requested) {
   if ((dx == NULL) ||
       (ns == NULL) ||
       (pr == NULL))
-    return;
+    return(false);
 
   //  But now we've got a bit of a problem.  Paths to stores are relative, but we need
   //  them rooted in the assembly root directory:
@@ -265,4 +265,6 @@ fetchFromObjectStore(char *requested) {
 
   delete [] path;
   delete [] cmd;
+
+  return(true);
 }
