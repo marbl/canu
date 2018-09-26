@@ -216,8 +216,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 bogus/bogus.mk \
                 \
-                erateEstimate/erateEstimate.mk \
-                \
                 utgcns/utgcns.mk \
                 \
                 gfa/alignGFA.mk \

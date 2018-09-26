@@ -672,7 +672,6 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/site_perl/canu/HaplotypeReads.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Configure.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Defaults.pm \
-     ${TARGET_DIR}/lib/site_perl/canu/ErrorEstimate.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Execution.pm \
      ${TARGET_DIR}/lib/site_perl/canu/SequenceStore.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid.pm \
