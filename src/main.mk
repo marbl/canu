@@ -177,7 +177,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/loadErates.mk \
                 \
                 meryl/meryl.mk \
-                meryl/findSeedThreshold.mk \
                 \
                 sequence/sequence.mk \
                 \
