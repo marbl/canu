@@ -664,7 +664,6 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 all: UPDATE_VERSION MAKE_DIRS \
      $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/bin/canu \
-     ${TARGET_DIR}/bin/trioCanu \
      ${TARGET_DIR}/bin/canu.defaults \
      ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar \
      ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm \
@@ -737,10 +736,6 @@ MAKE_DIRS:
 ${TARGET_DIR}/bin/canu: pipelines/canu.pl
 	cp -pf pipelines/canu.pl ${TARGET_DIR}/bin/canu
 	chmod +x ${TARGET_DIR}/bin/canu
-
-${TARGET_DIR}/bin/trioCanu: pipelines/trioCanu.pl
-	cp -pf pipelines/trioCanu.pl ${TARGET_DIR}/bin/trioCanu
-	chmod +x ${TARGET_DIR}/bin/trioCanu
 
 ${TARGET_DIR}/bin/canu.defaults:
 	echo > ${TARGET_DIR}/bin/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
