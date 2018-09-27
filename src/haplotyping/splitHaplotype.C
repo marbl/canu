@@ -637,7 +637,8 @@ main(int argc, char **argv) {
       decodeRange(argv[++arg], G->_idMin, G->_idMax);
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      G->_seqs.push(new dnaSeqFile(argv[++arg]));
+      while ((arg < argc) && (fileExists(argv[arg+1])))
+        G->_seqs.push(new dnaSeqFile(argv[++arg]));
 
     } else if (strcmp(argv[arg], "-H") == 0) {   //  HAPLOTYPE SPECIFICATION
       G->_haps.push_back(new hapData(argv[++arg]));
