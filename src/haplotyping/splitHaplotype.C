@@ -39,7 +39,7 @@
 using namespace std;
 
 
-#define BATCH_SIZE      1024
+#define BATCH_SIZE      100
 #define IN_QUEUE_LENGTH 3
 #define OT_QUEUE_LENGTH 3
 
@@ -368,20 +368,23 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
   }
 #endif
 
-  fprintf(stderr, "Use min freq %u sum %lu -- max freq %u sum %lu\n",
-          minFreq, minSum,
-          maxFreq, maxSum);
+  fprintf(stderr, "--  Haplotype '%s':\n", merylName);
 
-  //
+  if (maxFreq < UINT32_MAX)
+    fprintf(stderr, "--   use kmers with frequency between %u and %u, inclusively.\n", minFreq, maxFreq);
+  else
+    fprintf(stderr, "--   use kmers with frequency at least %u.\n", minFreq);
+
   //  With those set, construct an exact lookup table.
-  //
 
   lookup = new kmerCountExactLookup(reader, minFreq, maxFreq);
   nKmers = lookup->nKmers();
 
-  //
-
   delete reader;
+
+  //  And report what we loaded.
+
+  fprintf(stderr, "--   loaded %lu kmers.\n", merylName, nKmers);
 };
 
 
@@ -425,8 +428,14 @@ allData::openOutputs(void) {
 void
 allData::loadHaplotypeData(void) {
 
+  fprintf(stderr, "--\n");
+  fprintf(stderr, "-- Loading haplotype data.\n");
+
   for (uint32 ii=0; ii<_haps.size(); ii++)
     _haps[ii]->initializeKmerTable(_minF, _maxF);
+
+  fprintf(stderr, "-- Data loaded.n");
+  fprintf(stderr, "--\n");
 }
 
 
@@ -737,7 +746,7 @@ main(int argc, char **argv) {
   G->openOutputs();
 
   G->loadHaplotypeData();
-  
+
   thrData   *TD = new thrData [numThreads];
   sweatShop *SS = new sweatShop(loadReadBatch, processReadBatch, outputReadBatch);
 
@@ -751,12 +760,17 @@ main(int argc, char **argv) {
   SS->setWorkerBatchSize(1);
   SS->setWriterQueueSize(numThreads * OT_QUEUE_LENGTH);
 
-  SS->run(G, false);
+  fprintf(stderr, "-- Processing reads in batches of %u reads each.\n", BATCH_SIZE);
+  fprintf(stderr, "--\n");
+
+  SS->run(G, true);
+
+  fprintf(stderr, "--\n");
 
   delete    SS;
   delete [] TD;
   delete    G;
 
-  fprintf(stderr, "Bye.\n");
+  fprintf(stderr, "-- Bye.\n");
   exit(0);
 }
