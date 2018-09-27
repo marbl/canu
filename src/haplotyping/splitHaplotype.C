@@ -255,114 +255,114 @@ public:
 
 
 hapData::hapData(char *name) {
-    strncpy(merylName,  name, FILENAME_MAX);
-    strncpy(outputName, name, FILENAME_MAX);
+  strncpy(merylName,  name, FILENAME_MAX);
+  strncpy(outputName, name, FILENAME_MAX);
 
-    uint32 outputNameLen = strlen(outputName);
+  uint32 outputNameLen = strlen(outputName);
 
-    if ((outputNameLen > 6) &&
-        (strcmp(outputName + outputNameLen - 6, ".meryl") == 0))
-      outputName[outputNameLen-6] = 0;
+  if ((outputNameLen > 6) &&
+      (strcmp(outputName + outputNameLen - 6, ".meryl") == 0))
+    outputName[outputNameLen-6] = 0;
 
-    strcat(outputName, ".fasta.gz");
+  strcat(outputName, ".fasta.gz");
 
-    lookup       = NULL;
-    minCount     = 0;
-    maxCount     = UINT32_MAX;
-    nKmers       = 0;
+  lookup       = NULL;
+  minCount     = 0;
+  maxCount     = UINT32_MAX;
+  nKmers       = 0;
 
-    outputWriter = NULL;
-    outputFile   = NULL;
-  };
+  outputWriter = NULL;
+  outputFile   = NULL;
+};
 
 
 hapData::~hapData() {
-    delete lookup;
-    delete outputWriter;
-  };
+  delete lookup;
+  delete outputWriter;
+};
 
 
-  void
-    hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
-    kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
-    kmerCountStatistics  *stats  = reader->stats();
+void
+hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
+  kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
+  kmerCountStatistics  *stats  = reader->stats();
 
-    //
-    //  Use the reader histogram to decide on min and max frequency thresholds.
-    //  Pick the frequency:
-    //    For min, at the bottom of the trough between the noise and real.
-    //    For max, after the peak, and that has count 75% of the min.
-    //
-    //  *
-    //   *       **
-    //    *     *  *
-    //     *   *    *
-    //      ***      *  +-max
-    //       ^        * v
-    //       +-min     ***
-    //                    **
-    //
-    //  Both are picked using a 9-window rolling average.
-    //
-    //  The maximum cutoff is disabled, based on limited testing and the
-    //  argument that even if they are repeat kmers, they are still unique to
-    //  the haplotype, so are still useful.
+  //
+  //  Use the reader histogram to decide on min and max frequency thresholds.
+  //  Pick the frequency:
+  //    For min, at the bottom of the trough between the noise and real.
+  //    For max, after the peak, and that has count 75% of the min.
+  //
+  //  *
+  //   *       **
+  //    *     *  *
+  //     *   *    *
+  //      ***      *  +-max
+  //       ^        * v
+  //       +-min     ***
+  //                    **
+  //
+  //  Both are picked using a 9-window rolling average.
+  //
+  //  The maximum cutoff is disabled, based on limited testing and the
+  //  argument that even if they are repeat kmers, they are still unique to
+  //  the haplotype, so are still useful.
 
-    uint32  aveSize = 9;
-    uint64  thisSum = 0;
-    uint32  f = 2;
+  uint32  aveSize = 9;
+  uint64  thisSum = 0;
+  uint32  f = 2;
 
-    for (uint32 ii=0; ii<aveSize; ii++)
-      thisSum += stats->numKmersAtFrequency(f++);
+  for (uint32 ii=0; ii<aveSize; ii++)
+    thisSum += stats->numKmersAtFrequency(f++);
 
-    uint32  minFreq = f-1 - aveSize/2, maxFreq = UINT32_MAX;
-    uint64  minSum  = thisSum,         maxSum  = 0;
+  uint32  minFreq = f-1 - aveSize/2, maxFreq = UINT32_MAX;
+  uint64  minSum  = thisSum,         maxSum  = 0;
 
-    //  Scan forward until the rolling average starts to increase, declare the middle
-    //  of the average the minimum.  Keep searching ahead until our current average is
-    //  twice that of the minimum found.
+  //  Scan forward until the rolling average starts to increase, declare the middle
+  //  of the average the minimum.  Keep searching ahead until our current average is
+  //  twice that of the minimum found.
 
-    for (; f < stats->numFrequencies(); f++) {
-      thisSum = (stats->numKmersAtFrequency(f) + thisSum - stats->numKmersAtFrequency(f - aveSize));
+  for (; f < stats->numFrequencies(); f++) {
+    thisSum = (stats->numKmersAtFrequency(f) + thisSum - stats->numKmersAtFrequency(f - aveSize));
 
-      if (thisSum < minSum) {
-        minFreq = f - aveSize/2;
-        minSum  = thisSum;
-      }
-
-      if (2 * minSum < thisSum)
-        break;
+    if (thisSum < minSum) {
+      minFreq = f - aveSize/2;
+      minSum  = thisSum;
     }
 
-    //  Continue scanning until we find the number of kmers falls below 0.75 * min.
+    if (2 * minSum < thisSum)
+      break;
+  }
+
+  //  Continue scanning until we find the number of kmers falls below 0.75 * min.
 #if 0
-    for (; f < stats->numFrequencies(); f++) {
-      thisSum = (stats->numKmersAtFrequency(f) + thisSum - stats->numKmersAtFrequency(f - aveSize));
+  for (; f < stats->numFrequencies(); f++) {
+    thisSum = (stats->numKmersAtFrequency(f) + thisSum - stats->numKmersAtFrequency(f - aveSize));
 
-      if (thisSum < 0.75 * minSum) {
-        maxFreq = f - aveSize/2;
-        maxSum  = thisSum;
+    if (thisSum < 0.75 * minSum) {
+      maxFreq = f - aveSize/2;
+      maxSum  = thisSum;
 
-        break;
-      }
+      break;
     }
+  }
 #endif
 
-    fprintf(stderr, "Use min freq %u sum %lu -- max freq %u sum %lu\n",
-            minFreq, minSum,
-            maxFreq, maxSum);
+  fprintf(stderr, "Use min freq %u sum %lu -- max freq %u sum %lu\n",
+          minFreq, minSum,
+          maxFreq, maxSum);
 
-    //
-    //  With those set, construct an exact lookup table.
-    //
+  //
+  //  With those set, construct an exact lookup table.
+  //
 
-    lookup = new kmerCountExactLookup(reader, minFreq, maxFreq);
-    nKmers = lookup->nKmers();
+  lookup = new kmerCountExactLookup(reader, minFreq, maxFreq);
+  nKmers = lookup->nKmers();
 
-    //
+  //
 
-    delete reader;
-  };
+  delete reader;
+};
 
 
 
