@@ -55,9 +55,7 @@ use canu::Defaults;
 use canu::Execution;
 
 use canu::SequenceStore;
-use canu::ErrorEstimate;
 use canu::Report;
-#use canu::HaplotypeReads qw(getHaplotypes);
 
 use canu::Grid_Cloud;
 
