@@ -607,6 +607,9 @@ public:
   kmerCountExactLookup(kmerCountFileReader *input_,
                        uint32               minValue_ = 0,
                        uint32               maxValue_ = UINT32_MAX) {
+
+    _verbose = false;
+
     initialize(input_, minValue_, maxValue_);  //  Do NOT use minValue_ or maxValue_ from now on!
     configure();
     count(input_);
@@ -650,7 +653,7 @@ public:
 
     uint64  bgn = _suffixBgn[prefix];
     uint64  mid;
-    uint64  end = _suffixEnd[prefix];
+    uint64  end = _suffixBgn[prefix + 1];
 
     uint64  dat;
     uint64  tag;
@@ -691,6 +694,8 @@ public:
 
 
 private:
+  bool            _verbose;
+
   uint32          _minValue;    //  Minimum value stored in the table -| both of these filter the
   uint32          _maxValue;    //  Maximum value stored in the table -| input kmers.
   uint32          _valueOffset; //  Offset of values stored in the table.
@@ -713,8 +718,8 @@ private:
 
   uint32          _prePtrBits;  //  How many bits wide is _suffixBgn (used only if _suffixBgn is a wordArray).
 
-  uint64         *_suffixBgn;   //  The start of a block of data in suffix Data.
-  uint64         *_suffixEnd;   //  The end.
+  uint64         *_suffixBgn;   //  The start of a block of data in suffix Data.  The end is the next start.
+  uint64         *_suffixEnd;   //  The end.  Temporary.
   wordArray      *_suffixData;  //  Finally, kmer data!
 };
 

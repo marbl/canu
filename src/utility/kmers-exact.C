@@ -23,6 +23,15 @@
 using namespace std;
 
 
+//  If set, allocate another (large) array to verify that there are no holes in the
+//  data array.  Holes would lead to false positives.
+//
+#define VERIFY_SUFFIX_END
+
+
+
+
+
 double
 bitsToGB(uint64 bits) {
   return(bits / 8 / 1024.0 / 1024.0 / 1024.0);
@@ -77,8 +86,9 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
 
   for (uint32 ii=_minValue; ii<=_maxValue; ii++)
     _nSuffix += input_->stats()->numKmersAtFrequency(ii);
-  
+
   _prePtrBits     = logBaseTwo64(_nSuffix);          //  Width of an entry in the prefix table.
+  _prePtrBits     = 64;
 
   _suffixBgn      = NULL;
   _suffixEnd      = NULL;
@@ -98,8 +108,7 @@ kmerCountExactLookup::configure(void) {
   //  First, find the prefixBits that results in the smallest allocated memory size.
   //  Due to threading over the files, we cannot use a prefix smaller than 6 bits.
 
-  uint64  extraSpace = (uint64)8 * 1024 * 1024 * 1024;   //  In BITS!
-  uint64  minSpace   = UINT64_MAX - extraSpace;
+  uint64  minSpace   = UINT64_MAX;
   uint64  optSpace   = UINT64_MAX;
 
   uint32  pbMin      = 0;
@@ -114,7 +123,7 @@ kmerCountExactLookup::configure(void) {
       minSpace     = space;
     }
 
-    if (space < minSpace + extraSpace) {
+    if (space < 4 * minSpace) {
       pbOpt        = pb;
       optSpace     = space;
 
@@ -133,37 +142,38 @@ kmerCountExactLookup::configure(void) {
 
   //  And do it all again to keep the users entertained.
 
-  fprintf(stderr, "\n");
-  fprintf(stderr, " p       prefixes             bits gigabytes\n");
-  fprintf(stderr, "-- -------------- ---------------- ---------\n");
+  if (_verbose) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, " p       prefixes             bits gigabytes\n");
+    fprintf(stderr, "-- -------------- ---------------- ---------\n");
 
-  uint32  minpb = (pbMin < 4)          ? 1      : pbMin - 4;  //  Show four values before and
-  uint32  maxpb = (_Kbits < pbOpt + 5) ? _Kbits : pbOpt + 5;  //  four after the smallest.
+    uint32  minpb = (pbMin < 4)          ? 1      : pbMin - 4;  //  Show four values before and
+    uint32  maxpb = (_Kbits < pbOpt + 5) ? _Kbits : pbOpt + 5;  //  four after the smallest.
 
-  for (uint32 pb=minpb; pb < maxpb; pb++) {
-    uint64  nprefix = (uint64)1 << pb;
-    uint64  space   = nprefix * _prePtrBits + _nSuffix * (_Kbits - pb) + _nSuffix * _valueBits;
+    for (uint32 pb=minpb; pb < maxpb; pb++) {
+      uint64  nprefix = (uint64)1 << pb;
+      uint64  space   = nprefix * _prePtrBits + _nSuffix * (_Kbits - pb) + _nSuffix * _valueBits;
 
-    if      (pb == pbMin)
-      fprintf(stderr, "%2u %14lu %16lu %9.3f (smallest)\n", pb, nprefix, space, bitsToGB(space));
+      if      (pb == pbMin)
+        fprintf(stderr, "%2u %14lu %16lu %9.3f (smallest)\n", pb, nprefix, space, bitsToGB(space));
 
-    else if (pb == pbOpt)
-      fprintf(stderr, "%2u %14lu %16lu %9.3f (faster)\n",   pb, nprefix, space, bitsToGB(space));
+      else if (pb == pbOpt)
+        fprintf(stderr, "%2u %14lu %16lu %9.3f (faster)\n",   pb, nprefix, space, bitsToGB(space));
 
-    else
-      fprintf(stderr, "%2u %14lu %16lu %9.3f\n",            pb, nprefix, space, bitsToGB(space));
+      else
+        fprintf(stderr, "%2u %14lu %16lu %9.3f\n",            pb, nprefix, space, bitsToGB(space));
+    }
+
+    fprintf(stderr, "-- -------------- ---------------- ---------\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "For %lu distinct %u-mers (with %u bits used for indexing and %u bits for tags):\n", _nSuffix, _Kbits / 2, _prefixBits, _suffixBits);
+    fprintf(stderr, "  %7.3f GB memory\n",                                       bitsToGB(optSpace));
+    fprintf(stderr, "  %7.3f GB memory for index (%lu elements %u bits wide)\n", bitsToGB(_nPrefix * _prePtrBits), _nPrefix, _prePtrBits);
+    fprintf(stderr, "  %7.3f GB memory for tags  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _suffixBits), _nSuffix, _suffixBits);
+    fprintf(stderr, "  %7.3f GB memory for data  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _valueBits),  _nSuffix, _valueBits);
+    fprintf(stderr, "\n");
   }
-
-  fprintf(stderr, "-- -------------- ---------------- ---------\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "For %lu distinct %u-mers (with %u bits used for indexing and %u bits for tags):\n", _nSuffix, _Kbits / 2, _prefixBits, _suffixBits);
-  fprintf(stderr, "  %7.3f GB memory\n",                                       bitsToGB(optSpace));
-  fprintf(stderr, "  %7.3f GB memory for index (%lu elements %u bits wide)\n", bitsToGB(_nPrefix * _prePtrBits), _nPrefix, _prePtrBits);
-  fprintf(stderr, "  %7.3f GB memory for tags  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _suffixBits), _nSuffix, _suffixBits);
-  fprintf(stderr, "  %7.3f GB memory for data  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _valueBits),  _nSuffix, _valueBits);
-  fprintf(stderr, "\n");
 }
-
 
 
 
@@ -179,6 +189,10 @@ kmerCountExactLookup::allocate(void) {
 
   uint64  arraySize     = _nSuffix * (_suffixBits + _valueBits);
   uint64  arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
+
+  //if (_verbose)
+  //  fprintf(stderr, "Allocating space for %lu suffixes of %u bits each -> %lu bits (%lu bytes) in blocks of %lu bytes\n",
+  //          _nSuffix, _suffixBits + _valueBits, arraySize, arraySize / 8, arrayBlockMin / 8);
 
   _suffixData = new wordArray(_suffixBits + _valueBits, arrayBlockMin);
   _suffixData->allocate(_nSuffix);
@@ -208,6 +222,12 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
     FILE                      *blockFile = input_->blockFile(ff);
     kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
 
+    //  Keep local counters, otherwise, we collide when updating the global counts.
+
+    uint64  tooLow  = 0;
+    uint64  tooHigh = 0;
+    uint64  loaded  = 0;
+
     //  Load blocks until there are no more.
 
     while (block->loadBlock(blockFile, ff) == true) {
@@ -219,16 +239,16 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
         uint64   value  = block->counts()[ss];
 
         if (value < _minValue) {
-          _nKmersTooLow++;
+          tooLow++;
           continue;
         }
 
         if (_maxValue < value) {
-          _nKmersTooHigh++;
+          tooHigh++;
           continue;
         }
 
-        _nKmersLoaded++;
+        loaded++;
 
         sdata   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
         sdata <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
@@ -242,6 +262,13 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
       }
     }
 
+#pragma omp critical (count_stats)
+    {
+      _nKmersTooLow  += tooLow;
+      _nKmersTooHigh += tooHigh;
+      _nKmersLoaded  += loaded;
+    }
+
     delete block;
 
     AS_UTL_closeFile(blockFile);
@@ -251,17 +278,33 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
   //  The loading loop uses _suffixEnd[] as the position to add the next
   //  data.
 
-  _suffixBgn = new uint64 [_nPrefix];
-  _suffixEnd = new uint64 [_nPrefix];
+  _suffixBgn = new uint64 [_nPrefix + 1];
 
-  for (uint64 bgn=0, ii=0; ii<_nPrefix; ii++) {
+  uint64  bgn = 0;
+
+  for (uint64 ii=0; ii<_nPrefix; ii++) {
     _suffixBgn[ii] = bgn;
-    _suffixEnd[ii] = bgn;
 
     bgn += kpp[ii];
   }
 
+  _suffixBgn[_nPrefix] = bgn;
+  assert(bgn == _nKmersLoaded);
+
   delete [] kpp;
+
+#ifdef VERIFY_SUFFIX_END
+  _suffixEnd = new uint64 [_nPrefix];
+
+  for (uint64 ii=0; ii<_nPrefix; ii++)
+    _suffixEnd[ii] = _suffixBgn[ii];
+#endif
+
+  //  Log.
+
+  if (_verbose)
+    fprintf(stderr, "Will load " F_U64 " kmers.  Skipping " F_U64 " (too low) and " F_U64 " (too high) kmers.\n",
+            _nKmersLoaded, _nKmersTooLow, _nKmersTooHigh);
 }
 
 
@@ -316,7 +359,11 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
 
         //  Store the data.
 
-        _suffixData->set(_suffixEnd[prefix]++, sdata);
+        _suffixData->set(_suffixBgn[prefix]++, sdata);
+
+#ifdef VERIFY_SUFFIX_END
+        _suffixEnd[prefix]++;
+#endif
       }
     }
 
@@ -325,15 +372,29 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
     AS_UTL_closeFile(blockFile);
   }
 
-  //  if done properly, all the end points should be the start of the next block.
+  //  suffixBgn[i] is now the start of [i+1]; shift the array by one to
+  //  restore the proper meaning of suffixBgn.
 
+  for (uint32 ii=_nPrefix; ii>0; ii--)
+    _suffixBgn[ii] = _suffixBgn[ii-1];
+
+  _suffixBgn[0] = 0;
+
+  //  Optionally verify that bgn[i] == end[i-1].
+
+#ifdef VERIFY_SUFFIX_END
   for (uint32 ii=1; ii<_nPrefix; ii++)
     assert(_suffixBgn[ii] == _suffixEnd[ii-1]);
 
+  delete [] _suffixEnd;
+  _suffixEnd = NULL;
+#endif
+
   //  Now just log.
 
-  fprintf(stderr, "Loaded " F_U64 " kmers.  Skipped " F_U64 " (too low) and " F_U64 " (too high) kmers.\n",
-          _nKmersLoaded, _nKmersTooLow, _nKmersTooHigh);
+  if (_verbose)
+    fprintf(stderr, "Loaded " F_U64 " kmers.  Skipped " F_U64 " (too low) and " F_U64 " (too high) kmers.\n",
+            _nKmersLoaded, _nKmersTooLow, _nKmersTooHigh);
 }
 
 
@@ -347,7 +408,7 @@ kmerCountExactLookup::exists_test(kmer k) {
 
   uint64  bgn = _suffixBgn[prefix];
   uint64  mid;
-  uint64  end = _suffixEnd[prefix];
+  uint64  end = _suffixBgn[prefix + 1];
 
   uint64  dat;
   uint64  tag;
@@ -385,12 +446,12 @@ kmerCountExactLookup::exists_test(kmer k) {
   fprintf(stderr, "FAILED prefix 0x%016lx\n", prefix);
   fprintf(stderr, "FAILED suffix 0x%016lx\n", suffix);
   fprintf(stderr, "\n");
-  fprintf(stderr, "original  %9lu %9lu\n", _suffixBgn[prefix], _suffixEnd[prefix]);
+  fprintf(stderr, "original  %9lu %9lu\n", _suffixBgn[prefix], _suffixBgn[prefix + 1]);
   fprintf(stderr, "final     %9lu %9lu\n", bgn, end);
   fprintf(stderr, "\n");
 
   bgn = _suffixBgn[prefix];
-  end = _suffixEnd[prefix];
+  end = _suffixBgn[prefix + 1];
 
   while (bgn + 8 < end) {
     mid = bgn + (end - bgn) / 2;

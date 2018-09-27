@@ -384,7 +384,7 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
 
   //  And report what we loaded.
 
-  fprintf(stderr, "--   loaded %lu kmers.\n", merylName, nKmers);
+  fprintf(stderr, "--   loaded %lu kmers.\n", nKmers);
 };
 
 
@@ -434,7 +434,7 @@ allData::loadHaplotypeData(void) {
   for (uint32 ii=0; ii<_haps.size(); ii++)
     _haps[ii]->initializeKmerTable(_minF, _maxF);
 
-  fprintf(stderr, "-- Data loaded.n");
+  fprintf(stderr, "-- Data loaded.\n");
   fprintf(stderr, "--\n");
 }
 
