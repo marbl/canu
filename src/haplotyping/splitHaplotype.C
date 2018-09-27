@@ -308,25 +308,37 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
   //  argument that even if they are repeat kmers, they are still unique to
   //  the haplotype, so are still useful.
 
-  uint32  aveSize = 9;
+  uint32  aveSize = 5;
   uint64  thisSum = 0;
-  uint32  f = 2;
+  uint32  thisLen = 0;
 
-  for (uint32 ii=0; ii<aveSize; ii++)
-    thisSum += stats->numKmersAtFrequency(f++);
+  uint32  f = 1;
 
-  uint32  minFreq = f-1 - aveSize/2, maxFreq = UINT32_MAX;
-  uint64  minSum  = thisSum,         maxSum  = 0;
+  uint32  minFreq = 1,                               maxFreq = UINT32_MAX;
+  uint64  minSum  = stats->numKmersAtFrequency(f++), maxSum  = 0;
+
+  //for (uint32 ii=0; ii<aveSize; ii++) {
+  //  thisSum += stats->numKmersAtFrequency(f++);
+  //  thisLen += 1;
+  //}
 
   //  Scan forward until the rolling average starts to increase, declare the middle
   //  of the average the minimum.  Keep searching ahead until our current average is
   //  twice that of the minimum found.
 
   for (; f < stats->numFrequencies(); f++) {
-    thisSum = (stats->numKmersAtFrequency(f) + thisSum - stats->numKmersAtFrequency(f - aveSize));
+    if (thisLen == aveSize) {
+      thisSum += stats->numKmersAtFrequency(f);
+      thisSum -= stats->numKmersAtFrequency(f - aveSize);
+    }
+
+    else {
+      thisSum += stats->numKmersAtFrequency(f);
+      thisLen++;
+    }
 
     if (thisSum < minSum) {
-      minFreq = f - aveSize/2;
+      minFreq = f - thisLen/2;
       minSum  = thisSum;
     }
 
@@ -337,10 +349,18 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
   //  Continue scanning until we find the number of kmers falls below 0.75 * min.
 #if 0
   for (; f < stats->numFrequencies(); f++) {
-    thisSum = (stats->numKmersAtFrequency(f) + thisSum - stats->numKmersAtFrequency(f - aveSize));
+    if (thisLen == aveSize) {
+      thisSum += stats->numKmersAtFrequency(f);
+      thisSum -= stats->numKmersAtFrequency(f - aveSize);
+    }
+
+    else {
+      thisSum += stats->numKmersAtFrequency(f);
+      thisLen++;
+    }
 
     if (thisSum < 0.75 * minSum) {
-      maxFreq = f - aveSize/2;
+      maxFreq = f - thisLen/2;
       maxSum  = thisSum;
 
       break;
