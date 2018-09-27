@@ -352,8 +352,8 @@ public:
   void     allocate(uint64 nElements) {
     uint64 nSegs = nElements / _valuesPerSegment + 1;
 
-    fprintf(stderr, "wordArray::allocate()-- allocating space for " F_U64 " elements, in " F_U64 " segments.\n",
-            nElements, nSegs);
+    //fprintf(stderr, "wordArray::allocate()-- allocating space for " F_U64 " elements, in " F_U64 " segments.\n",
+    //        nElements, nSegs);
 
     assert(_segmentsLen == 0);
 
