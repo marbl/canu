@@ -1551,6 +1551,9 @@ sub caExit ($$) {
     my  $log     = shift @_;
     my  $version = getGlobal("version");
 
+    $msg = undef   if ($msg eq "");
+    $log = undef   if ($log eq "");
+
     print STDERR "\n";
     print STDERR "ABORT:\n";
     print STDERR "ABORT: $version\n";
