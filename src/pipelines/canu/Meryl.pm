@@ -49,7 +49,7 @@ no  warnings "uninitialized";
 use File::Path 2.08 qw(make_path remove_tree);
 use File::Basename;
 use File::Copy;
-use POSIX qw(ceil);
+use POSIX qw(floor ceil);
 
 use canu::Defaults;
 use canu::Execution;
@@ -340,6 +340,19 @@ sub merylConfigure ($$) {
     }
 
     #
+    #  Based on the number of reads in the store, decide on a preliminary set
+    #  of batch sizes to use.
+    #
+
+    my $nr  = getNumberOfReadsInStore($asm, $tag);
+    my $nb  = getNumberOfBasesInStore($asm, $tag);
+
+    my $maxSplit = int(floor($nb / 100000000));
+
+    $maxSplit = 1    if ($maxSplit == 0);
+    $maxSplit = $nr  if ($nr < $maxSplit);
+
+    #
     #  Let meryl run to decide how much memory it wants to use.
     #
     #  This is a pretty stupid way to do it; this really should be built into meryl itself.
@@ -358,6 +371,8 @@ sub merylConfigure ($$) {
     print F fetchSeqStoreShellCode($asm, $path, "");
 
     foreach my $ss (qw(01 02 04 06 08 12 16 20 24 32 40 48 56 64 96)) {
+        next  if ($ss > $maxSplit);
+
         print F "\n";
         print F "$bin/meryl -C k=$merSize threads=$thr memory=$mem \\\n";
         print F "  count segment=1/$ss ../../$asm.seqStore \\\n";
@@ -390,6 +405,8 @@ sub merylConfigure ($$) {
     printf(STDERR "--  -------- -------- -------\n");
 
     foreach my $ss (qw(01 02 04 06 08 12 16 20 24 32 40 48 56 64 96)) {
+        next  if ($ss > $maxSplit);
+
         my $mem = undef;
         my $bat = undef;
 
@@ -420,6 +437,7 @@ sub merylConfigure ($$) {
     }
 
     print STDERR "--\n";
+    print STDERR "--  For $nr reads with $nb bases, limit to $maxSplit batch", ($maxSplit == 1) ? "" : "es", ".\n";
     print STDERR "--  Will count kmers using $merylSegments jobs, each using $merylMemory GB and $thr threads.\n";
     print STDERR "--\n";
 
