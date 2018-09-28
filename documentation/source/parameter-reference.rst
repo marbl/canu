@@ -68,8 +68,10 @@ minReadLength <integer=1000>
 
   Must be no smaller than minOverlapLength.
 
-  If set high enough, the gatekeeper module will halt as too many of the input reads have been
-  discarded.  Set :ref:`stopOnReadQuality <stopOnReadQuality>` to false to avoid this.
+  If set high enough, the gatekeeper module will claim there are errors in the input reads,
+  as too many of the input reads have been discarded.  As long as there is sufficient coverage,
+  this is not a problem.  See :ref:`stopOnReadQuality <stopOnReadQuality>` and 
+  :ref:`stopOnLowCoverage <stopOnLowCoverage>`
 
 .. _minOverlapLength:
 
@@ -147,7 +149,7 @@ showNext <boolean=false>
 
 .. _stopOnReadQuality:
 
-stopOnReadQuality <string=true>
+stopOnReadQuality <string=false>
   If set, Canu will stop with the following error if there are significantly fewer reads or bases
   loaded into the read store than what is in the input data.
 
@@ -174,6 +176,15 @@ stopOnReadQuality <string=true>
   To proceed, set ``stopOnReadQuality=false`` or rename the directory as shown.
 
   Note that `U` bases are silently translated to `T` bases, to allow assembly of RNA sequences.
+
+.. _stopOnLowCoverage:
+
+stopOnLowCoverage <integer=10>
+  Stop the assembly if read coverage is too low to be useful.  Coverage is
+  checked whene when input sequences are
+  initially loaded into the sequence store, when corrected reads are generated,
+  and when read ends are trimmed off.
+
 
 .. _stopAfter:
 

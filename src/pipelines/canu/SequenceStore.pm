@@ -433,6 +433,24 @@ sub generateReadLengthHistogram ($$) {
         }
     }
 
+    #  Abort if the read coverage is too low.
+
+    my $minCov = getGlobal("stopOnLowCoverage");
+
+    if ($coverage < $minCov) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:  Read coverage ($coverage) is too low to be useful.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  This could be caused by an incorrect genomeSize or poor quality reads that could not\n";
+        print STDERR "-- ERROR:  be sufficiently corrected.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  You can force Canu to continue by decreasing parameter stopOnLowCoverage=$minCov,\n";
+        print STDERR "-- ERROR:  however, the quality of corrected reads and/or contiguity of contigs will be poor.\n";
+        print STDERR "-- \n";
+
+        caExit("", undef);
+    }
+
     #  Return the ASCII histogram.
 
     return($hist);
