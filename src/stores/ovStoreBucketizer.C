@@ -183,7 +183,7 @@ main(int argc, char **argv) {
   }
 
   if (directoryExists(bucketName) == true) {
-    fprintf(stderr, "Job finished; file '%s' exists.\n", sliceSName);
+    fprintf(stderr, "Job finished; directory '%s' exists.\n", bucketName);
     exit(0);
   }
 

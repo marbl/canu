@@ -250,6 +250,11 @@ sub createOverlapStoreParallel ($$$$$$) {
     fetchFile("$path/scripts/1-bucketize.sh");
     fetchFile("$path/scripts/2-sort.sh");
 
+    #  The -f option to bucketizer forces it to overwrite a partial result found
+    #  in any 'create####' directory.
+    #
+    #  Both the binary and the script will stop if the output directory exists.
+
     if (! -e "$path/scripts/1-bucketize.sh") {
         open(F, "> $path/scripts/1-bucketize.sh") or caExit("can't open '$path/scripts/1-bucketize.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
@@ -266,6 +271,13 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "#  to run from $base/ (all the paths in the config are relative to there).\n";
         print F "\n";
         print F "cd ..\n";
+        print F "\n";
+        print F "jobname=`printf %04d \$jobid`\n";
+        print F "\n";
+        print F "if [ -e ./$asm.ovlStore.BUILDING/bucket\$jobname ] ; then\n";
+        print F "  echo \"Bucketizing job finished; directory './$asm.ovlStore.BUILDING/bucket\$jobname' exists.\"\n";
+        print F "  exit\n";
+        print F "fi\n";
         print F "\n";
         print F fetchSeqStoreShellCode($asm, $base, "");
         print F "\n";
@@ -303,8 +315,7 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "#  Stash the outputs.\n";
             print F "#\n";
             print F "\n";
-            print F "jobid=`printf %04d \$jobid`\n";
-            print F "outputs=`ls ./$asm.ovlStore.BUILDING/bucket\$jobid/slice*`\n";
+            print F "outputs=`ls ./$asm.ovlStore.BUILDING/bucket\$jobname/slice*`\n";
             print F "for file in \$outputs ; do\n";
             print F stashFileShellCode($base, "\$file", "  ");
             print F "done\n";
@@ -314,7 +325,11 @@ sub createOverlapStoreParallel ($$$$$$) {
         close(F);
     }
 
-    #  Parallel jobs for sorting each bucket
+    #  The -f option forces sorting to run even if the job appears to be still running.
+    #
+    #  Just after starting, ####.started is created.  This is removed on success.
+    #  When writing, ####<001> exists.
+    #  When finished, ####.started doesn't exist, and ####.info does.
 
     if (! -e "$path/scripts/2-sort.sh") {
         open(F, "> $path/scripts/2-sort.sh") or caExit("can't open '$path/scripts/2-sort.sh' for writing: $!\n", undef);
@@ -333,6 +348,12 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "\n";
         print F "cd ..\n";
         print F "\n";
+        print F "jobname=`printf %04d \$jobid`\n";
+        print F "\n";
+        print F "if [ -e ./$asm.ovlStore.BUILDING/\$jobname.info -a ! -e ./$asm.ovlStore.BUILDING/\$jobname.started ] ; then\n";
+        print F "  echo \"Sorting job finished; info file './$asm.ovlStore.BUILDING/\$jobname.info' exists.\"\n";
+        print F "  exit\n";
+        print F "fi\n";
 
         if (defined(getGlobal("objectStore"))) {
             print F "#\n";
@@ -360,6 +381,7 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "  -O  ./$asm.ovlStore.BUILDING \\\n";
         print F "  -S ../$asm.seqStore \\\n";
         print F "  -C  ./$asm.ovlStore.config \\\n";
+        print F "  -f \\\n";
         print F "  -s \$jobid \\\n";
         print F "  -M $sortMemory \n";
         print F "\n";

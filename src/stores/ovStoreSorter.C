@@ -46,7 +46,7 @@ using namespace std;
 
 
 void
-checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config) {
+checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config, bool forceRun) {
   char   N[FILENAME_MAX+1];
 
   //  Check if the user is a moron.
@@ -61,7 +61,8 @@ checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config) {
 
   snprintf(N, FILENAME_MAX, "%s/%04u.started", ovlName, sliceNum);
 
-  if (fileExists(N) == true) {
+  if ((forceRun == false) &&
+      (fileExists(N) == true)) {
     fprintf(stderr, "Job (appears to be) in progress; sentinel file '%s' exists.\n", N);
     exit(1);
   }
@@ -150,7 +151,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-deletelate") == 0) {
       deleteIntermediateLate  = true;
 
-    } else if (strcmp(argv[arg], "-force") == 0) {
+    } else if (strcmp(argv[arg], "-f") == 0) {
       forceRun = true;
 
     } else {
@@ -183,7 +184,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -deleteearly     remove intermediates as soon as possible (unsafe)\n");
     fprintf(stderr, "  -deletelate      remove intermediates when outputs exist (safe)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -force           force a recompute, even if the output exists\n");
+    fprintf(stderr, "  -f               force a recompute, even if the output exists or appears in progress\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -199,7 +200,7 @@ main(int argc, char **argv) {
 
   //  Check if the sentinel exists (and if the user is a moron).
 
-  checkSentinel(ovlName, sliceNum, config);
+  checkSentinel(ovlName, sliceNum, config, forceRun);
 
   //  Not done.  Let's go!
 
@@ -261,8 +262,6 @@ main(int argc, char **argv) {
   delete [] ovls;
   delete [] bucketSizes;
 
-  removeSentinel(ovlName, sliceNum);
-
   seq->sqStore_close();
 
   if (deleteIntermediateLate) {
@@ -272,6 +271,10 @@ main(int argc, char **argv) {
 
     writer->removeOverlapSlice();
   }
+
+  delete writer;
+
+  removeSentinel(ovlName, sliceNum);
 
   //  Success!
 
