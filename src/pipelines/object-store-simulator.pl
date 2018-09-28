@@ -117,6 +117,9 @@ if ($task eq "upload") {
             $parents = 1;
         }
 
+        elsif ($arg eq "--no-progress") {
+        }
+
         elsif (!defined($file)) {
             $file = $arg;
         }
@@ -153,6 +156,9 @@ if ($task eq "download") {
 
         if      ($arg eq "--output") {
             $file = shift @ARGV;
+        }
+
+        elsif ($arg eq "--no-progress") {
         }
 
         elsif (!defined($path)) {
