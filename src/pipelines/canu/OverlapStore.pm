@@ -826,9 +826,6 @@ sub createOverlapStore ($$) {
         unlink "$base/$asm.ovlStore.BUILDING.index.err";
         rename "$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore";
 
-        print STDERR "FROM: '$base/$asm.ovlStore.BUILDING'\n";
-        print STDERR "TO:   '$base/$asm.ovlStore'\n";
-
         renameStashedFile("$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore");
         stashOvlStore($asm, $base);
     }
