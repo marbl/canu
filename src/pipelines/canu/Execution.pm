@@ -453,7 +453,10 @@ sub getBinDirectoryShellCode () {
         $string .= "\n";
     }
 
-    #  Then, setup paths.
+    #  Then, setup and report paths.
+
+    my $javaPath = getGlobal("java");
+    my $canu     = "\$bin/" . basename($0);
 
     $string .= "\n";
     $string .= "#  Path to Canu.\n";
@@ -466,6 +469,23 @@ sub getBinDirectoryShellCode () {
     $string .= "if [ ! -d \"\$bin\" ] ; then\n";
     $string .= "  bin=\"$installDir\"\n";
     $string .= "fi\n";
+    $string .= "\n";
+    $string .= "#  Report paths.\n";
+    $string .= "\n";
+    $string .= "echo \"\"\n";
+    $string .= "echo \"Found perl:\"\n";
+    $string .= "echo \"  \" `which perl`\n";
+    $string .= "echo \"  \" `perl --version | grep version`\n";
+    $string .= "echo \"\"\n";
+    $string .= "echo \"Found java:\"\n";
+    $string .= "echo \"  \" `which $javaPath`\n";
+    $string .= "echo \"  \" `$javaPath -showversion 2>&1 | head -n 1`\n";
+    $string .= "echo \"\"\n";
+    $string .= "echo \"Found canu:\"\n";
+    $string .= "echo \"  \" $canu\n";
+    $string .= "echo \"  \" `$canu -version`\n";
+    $string .= "echo \"\"\n";
+    $string .= "\n";
     $string .= "\n";
     $string .= "#  Environment for any object storage.\n";
     $string .= "\n";
