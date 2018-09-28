@@ -335,9 +335,6 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
   if (_expNumKmers == 0)
     _expNumKmers = guesstimateNumberOfkmersInInput();
 
-  if (_expNumKmers == 0)
-    fprintf(stderr, "ERROR: Estimate of number of kmers (-n) not supplied.\n"), exit(1);
-
   //
   //  Report what we're trying.
   //
@@ -419,8 +416,6 @@ merylOperation::guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence)
 
   else
     numMers += size;
-
-  //fprintf(stderr, "%s -> size %lu total %lu\n", name, size, numMers);
 
   return(numMers);
 }
