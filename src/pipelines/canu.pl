@@ -369,7 +369,8 @@ my $setUpForNanopore = 0;
 
 fetchSeqStore($asm);
 
-#  Scan for an existing seqStore.
+#  Scan for an existing seqStore and decide what reads and types are in it.  This is
+#  pretty horrible and needs to be consolidated into a single report.
 
 my $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of raw reads ready for correction.
 my $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
@@ -393,10 +394,12 @@ if ($nCor + $nOBT + $nAsm > 0) {
 
     open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
-        $numPacBioRaw++           if (m/pacbio-raw/);
-        $numPacBioCorrected++     if (m/pacbio-corrected/);
-        $numNanoporeRaw++         if (m/nanopore-raw/);
-        $numNanoporeCorrected++   if (m/nanopore-corrected/);
+        my @v = split '\s+', $_;
+
+        $numPacBioRaw++           if ($v[2] eq "pacbio-raw");
+        $numPacBioCorrected++     if ($v[2] eq "pacbio-corrected");
+        $numNanoporeRaw++         if ($v[2] eq "nanopore-raw");
+        $numNanoporeCorrected++   if ($v[2] eq "nanopore-corrected");
     }
     close(L);
 
