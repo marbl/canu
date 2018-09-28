@@ -206,15 +206,14 @@ java <string="java">
   A path to a Java application launcher of at least version 1.8.
 
 gnuplot <string="gnuplot">
-  A path to the gnuplot graphing utility.
+  A path to the gnuplot graphing utility.  Plotting is disabled if this is unset
+  (`gnuplot=` or `gnuplot=undef`), or if gnuplot fails to execute, or if gnuplot
+  cannot generate plots.  The latter two conditions generate warnings in the
+  diagnostic output of Canu.
 
 gnuplotImageFormat <string="png">
-  The type of image to generate in gnuplot.  By default, canu will use png, svg or gif, in that order.
-
-gnuplotTested <boolean=false>
-  If set, skip the tests to determine if gnuplot will run, and to decide the image type to generate.
-  This is used when gnuplot fails to run, or isn't even installed, and allows canu to continue
-  execution without generating graphs.
+  The type of image to generate in gnuplot.  By default, canu will use png,
+  svg or gif, in that order.
 
 preExec <string=undef>
   A single command that will be run before Canu starts in a grid-enabled configuration.

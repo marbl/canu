@@ -353,35 +353,33 @@ sub generateReadLengthHistogram ($$) {
         my $gnuplot = getGlobal("gnuplot");
         my $format  = getGlobal("gnuplotImageFormat");
 
-        open(F, "> ./$asm.seqStore/readlengths-$tag.gp") or caExit("can't open './$asm.seqStore/readlengths-$tag.gp' for writing: $!", undef);
-        print F "set title 'read length'\n";
-        print F "set xlabel 'read length, bin width = 250'\n";
-        print F "set ylabel 'number of reads'\n";
-        print F "\n";
-        print F "binwidth=250\n";
-        print F "set boxwidth binwidth\n";
-        print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
-        print F "\n";
-        print F "set terminal $format size 1024,1024\n";
-        print F "set output './$asm.seqStore/readlengths-$tag.lg.$format'\n";
-        print F "plot [] './$asm.seqStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
-        print F "\n";
-        print F "set terminal $format size 256,256\n";
-        print F "set output './$asm.seqStore/readlengths-$tag.sm.$format'\n";
-        print F "plot [] './$asm.seqStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
-        close(F);
+        if ($gnuplot) {
+            open(F, "> ./$asm.seqStore/readlengths-$tag.gp") or caExit("can't open './$asm.seqStore/readlengths-$tag.gp' for writing: $!", undef);
+            print F "set title 'read length'\n";
+            print F "set xlabel 'read length, bin width = 250'\n";
+            print F "set ylabel 'number of reads'\n";
+            print F "\n";
+            print F "binwidth=250\n";
+            print F "set boxwidth binwidth\n";
+            print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
+            print F "\n";
+            print F "set terminal $format size 1024,1024\n";
+            print F "set output './$asm.seqStore/readlengths-$tag.$format'\n";
+            print F "plot [] './$asm.seqStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+            close(F);
 
-        open(F, "> ./$asm.seqStore/readlengths-$tag.dat") or caExit("can't open './$asm.seqStore/readlengths-$tag.dat' for writing: $!", undef);
-        foreach my $rl (@rl) {
-            print F "$rl\n";
-        }
-        close(F);
+            open(F, "> ./$asm.seqStore/readlengths-$tag.dat") or caExit("can't open './$asm.seqStore/readlengths-$tag.dat' for writing: $!", undef);
+            foreach my $rl (@rl) {
+                print F "$rl\n";
+            }
+            close(F);
 
-        if (runCommandSilently(".", "$gnuplot ./$asm.seqStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
-            print STDERR "--\n";
-            print STDERR "-- WARNING: gnuplot failed.\n";
-            print STDERR "--\n";
-            print STDERR "----------------------------------------\n";
+            if (runCommandSilently(".", "$gnuplot < /dev/null ./$asm.seqStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
+                print STDERR "--\n";
+                print STDERR "-- WARNING: gnuplot failed.\n";
+                print STDERR "--\n";
+                print STDERR "----------------------------------------\n";
+            }
         }
     }
 

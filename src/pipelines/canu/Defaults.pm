@@ -802,11 +802,13 @@ sub setDefaults () {
 
     setDefault("showNext",            undef,     "Don't run any commands, just report what would run");
     setDefault("shell",               "/bin/sh", "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
+
     setDefault("java",                $java,     "Java interpreter to use; at least version 1.8; default 'java'");
     setDefault("javaUse64Bit",        undef,     "Java interpreter supports the -d64 or -d32 flags; default auto");
+
     setDefault("gnuplot",             "gnuplot", "Path to the gnuplot executable");
     setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
-    setDefault("gnuplotTested",       0,         "If set, skip the initial testing of gnuplot");
+
     setDefault("stageDirectory",      undef,     "If set, copy heavily used data to this node-local location");
     setDefault("preExec",             undef,     "A command line to run at the start of Canu execution scripts");
 
@@ -1129,31 +1131,49 @@ sub checkMinimap ($) {
 
 
 sub checkGnuplot () {
-
-    return  if (getGlobal("gnuPlotTested") == 1);
-
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
     my $version = undef;
+
+    if (($gnuplot eq undef) ||
+        ($gnuplot eq "")) {
+        print STDERR "-- No path to gnuplot executable.  Plots disabled.\n";
+        goto cleanupGnuplot;
+    }
 
     if ($gnuplot =~ m/^\./) {
         addCommandLineError("ERROR:  path to gnuplot '$gnuplot' must not be a relative path.\n")
     }
 
+    #  Explicitly set pager to avoid having output corrupted by "Press enter..."
+
+    $ENV{"PAGER"} = "cat";
+
     #  Check for existence of gnuplot.
 
-    open(F, "$gnuplot -V |");
+    open(F, "> /tmp/gnuplot-$$-test.gp");
+    print F "show version long\n";
+    print F "set terminal\n";
+    close(F);
+
+    system("cd /tmp && $gnuplot < /dev/null /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
+
+    open(F, "< /tmp/gnuplot-$$-test.err");
     while (<F>) {
-        chomp;
-        $version = $_;
-        $version = $1  if ($version =~ m/^gnuplot\s+(.*)$/);
+        $version = $1  if ($_ =~ m/^\s*[vV]ersion\s+(.*)/);
+        $version = $1  if ($_ =~ m/^\s*[vV]ersion\s+(.*)\s+last/);
     }
     close(F);
 
     if (!defined($version)) {
-        addCommandLineError("ERROR:  Failed to run gnuplot from '$gnuplot'.");
-        addCommandLineError("ERROR:  Set option gnuplot=<path-to-gnuplot> or gnuplotTested=true to skip this test and not generate plots.\n");
-        return;
+        print STDERR "--\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  Failed to run gnuplot using command '$gnuplot'.\n";
+        print STDERR "-- WARNING:  Plots will be disabled.\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "--\n";
+
+        goto cleanupGnuplot;
     }
 
     #  Check for existence of a decent output format.  Need to redirect in /dev/null to make gnuplot
@@ -1163,14 +1183,6 @@ sub checkGnuplot () {
         my $havePNG = 0;
         my $haveSVG = 0;
         my $haveGIF = 0;
-
-        open(F, "> /tmp/gnuplot-$$-test.gp");
-        print F "set terminal\n";
-        close(F);
-
-        # explicitly set pager to avoid having output corrupted by "Press enter..."
-        $ENV{"PAGER"} = "cat";
-        system("cd /tmp && $gnuplot < /dev/null /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
 
         open(F, "< /tmp/gnuplot-$$-test.err");
         while (<F>) {
@@ -1190,22 +1202,18 @@ sub checkGnuplot () {
         $format = "png"   if ($havePNG);
 
         setGlobal("gnuplotImageFormat", $format);
-
-        unlink "/tmp/gnuplot-$$-test.gp";
-        unlink "/tmp/gnuplot-$$-test.err";
     }
 
     if (!defined($format)) {
-        addCommandLineError("ERROR:  Failed to detect a suitable output format for gnuplot.\n");
-        addCommandLineError("ERROR:  Looked for png, svg and gif, found none of them.\n");
-        addCommandLineError("Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
-        open(F, "< /tmp/gnuplot-$$-test.err");
-        while (<F>) {
-            chomp;
-            addCommandLineError("ERROR:  gnuplot reports:  $_\n");
-        }
-        close(F);
-        return;
+        print STDERR "--\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  Failed to detect a suitable output format for gnuplot.  Looked for png, svg\n";
+        print STDERR "-- WARNING:  and gif; found none of them.  Specify a format with gnuplotImageFormat=<type>,\n";
+        print STDERR "-- WARNING:  or set 'gnuplot=undef' to disable gnuplot entirely.  Plots will be disabled.\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "--\n";
+
+        goto cleanupGnuplot;
     }
 
     #  Test if we can actually make images.
@@ -1226,30 +1234,35 @@ sub checkGnuplot () {
     print F "bogus line\n";
     close(F);
 
-    #  Dang, we don't have runCommandSilently here, so have to do it the hard way.
-
     system("cd /tmp && $gnuplot < /dev/null /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
 
     if ((! -e "/tmp/gnuplot-$$-test.1.$format") ||
         (! -e "/tmp/gnuplot-$$-test.2.$format")) {
-        addCommandLineError("ERROR:  gnuplot failed to generate images.\n");
+
+        print STDERR "--\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  gnuplot failed to generate images.  Specify a format with gnuplotImageFormat=<type>,\n";
+        print STDERR "-- WARNING:  or set 'gnuplot=undef' to disable gnuplot entirely.  Plots will be disabled.\n";
+        print STDERR "-- WARNING:\n";
+        print STDERR "-- WARNING:  gnuplot reports:\n";
 
         open(F, "< /tmp/gnuplot-$$-test.err");
         while (<F>) {
             chomp;
-            addCommandLineError("ERROR:  gnuplot reports:  $_\n");
+            print STDERR "-- WARNING:      $_\n";
         }
         close(F);
 
-        addCommandLineError("ERROR:  Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
-        return;
+        print STDERR "--\n";
+
+        goto cleanupGnuplot;
     }
 
     #  Yay, gnuplot works!
 
     print STDERR "-- Detected gnuplot version '$version' (from '$gnuplot') and image format '$format'.\n";
-    #addCommandLineOption("gnuplotTested=1");
 
+ cleanupGnuplot:
     unlink "/tmp/gnuplot-$$-test.gp";
     unlink "/tmp/gnuplot-$$-test.err";
     unlink "/tmp/gnuplot-$$-test.1.$format";
