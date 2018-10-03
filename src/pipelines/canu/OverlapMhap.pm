@@ -333,7 +333,8 @@ sub mhapConfigure ($$$) {
     print F "  mkdir -p ./blocks\n";
     print F "fi\n";
     print F "\n";
-    print F fileExistsShellCode("./blocks/\$job.dat");
+    print F fileExistsShellCode("exists", "$path", "blocks/\$job.dat");
+    print F "if [ \$exists = true ] ; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";

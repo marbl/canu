@@ -43,7 +43,9 @@ require Exporter;
              fetchOvlStore        fetchOvlStoreShellCode
              stashSeqStore
              stashSeqStorePartitions
-             stashOvlStore        stashOvlStoreShellCode);
+             stashOvlStore        stashOvlStoreShellCode
+             stashMeryl           stashMerylShellCode
+             fetchMeryl           fetchMerylShellCode);
 
 use strict;
 use warnings "all";
@@ -126,7 +128,9 @@ sub fileExists ($@) {
 
 
 
-sub fileExistsShellCode ($@) {
+sub fileExistsShellCode ($$$@) {
+    my $var    = shift @_;
+    my $path   = shift @_;
     my $file   = shift @_;
     my $indent = shift @_;
 
@@ -139,12 +143,20 @@ sub fileExistsShellCode ($@) {
 
     if    (isOS() eq "DNANEXUS") {
         $code .= "${indent}if [ ! -e $file ] ; then\n";
-        $code .= "${indent}  exists=`$client describe --name \"$pr:$ns/$file\"`\n";
+        $code .= "${indent}  $var=`$client describe --name \"$pr:$ns/$path/$file\"`\n";
         $code .= "${indent}fi\n";
-        $code .= "${indent}if [ -e $file -o x\$exists != x ] ; then\n";
+        $code .= "${indent}if [ -e $file -o x\$$var != x ] ; then\n";
+        $code .= "${indent}  $var=true\n";
+        $code .= "${indent}else\n";
+        $code .= "${indent}  $var=false\n";
+        $code .= "${indent}fi\n";
     }
     else {
         $code .= "${indent}if [ -e $file ]; then\n";
+        $code .= "${indent}  $var=true\n";
+        $code .= "${indent}else\n";
+        $code .= "${indent}  $var=false\n";
+        $code .= "${indent}fi\n";
     }
 
     return($code);
@@ -292,7 +304,8 @@ sub stashFileShellCode ($$$) {
     if    (isOS() eq "DNANEXUS") {
         $code .= "${indent}if [ -e \"$dots/$path/$file\" ] ; then\n";
         $code .= "${indent}  cd $dots/$path\n";
-        $code .= fileExistsShellCode("$path/$file", "$indent  ");
+        $code .= fileExistsShellCode("exists", "$path", "$file", "$indent  ");
+        $code .= "${indent}  if [ \$exists = true ] ; then\n";
         $code .= "${indent}    $client rm --recursive \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  fi\n";
         $code .= "${indent}  $client upload --wait --parents --path \"$pr:$ns/$path/$file\" \"$file\"\n";
@@ -621,5 +634,64 @@ sub fetchOvlStoreShellCode ($$$) {
 }
 
 
-1;
 
+sub stashMeryl ($$$) {
+}
+
+
+
+sub fetchMeryl ($$$) {
+}
+
+
+
+sub stashMerylShellCode ($$$) {
+    my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
+    my $name   = shift @_;           #  The name of the meryl directory
+    my $indent = shift @_;           #
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
+    my $code   = "";
+
+    if    (isOS() eq "DNANEXUS") {
+        $code .= "${indent}echo \"Storing '$name.tar' to '$pr:$ns/$path/$name.tar'\"\n";
+        $code .= "${indent}tar -cf - ./$name \\\n";
+        $code .= "${indent}| \\\n";
+        $code .= "${indent}$client upload --wait --parents --path $pr:$ns/$path/$name.tar -\n";
+        $code .= "${indent}\n";
+    }
+
+    return($code);
+}
+
+
+
+sub fetchMerylShellCode ($$$) {
+    my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
+    my $name   = shift @_;           #  The name of the meryl directory
+    my $indent = shift @_;           #
+
+    my $base   = dirname($path);     #  'unitigging'
+    my $root   = pathToDots($path);  #  '../..'
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
+    my $code   = "";
+
+    if    (isOS() eq "DNANEXUS") {
+        $code .= "${indent}\n";
+        $code .= "${indent}if [ ! -e $root/$path/$name/merylIndex ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, fetching $ns/$path/$name.tar, unzipping in '$root/$path'\n";
+        $code .= "${indent}  $client download --output - $pr:$ns/$path/$name.tar | tar -C $root/$path -xf -\n";
+        $code .= "${indent}fi\n";
+    }
+
+    return($code);
+}
+
+
+
+1;

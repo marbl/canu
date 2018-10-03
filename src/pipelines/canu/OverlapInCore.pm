@@ -182,7 +182,8 @@ sub overlapConfigure ($$$) {
         print F "  mkdir ./\$bat\n";
         print F "fi\n";
         print F "\n";
-        print F fileExistsShellCode("./\$job.ovb");
+        print F fileExistsShellCode("exists", $path, "\$job.ovb");
+        print F "if [ \$exists = true ] ; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";

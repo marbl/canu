@@ -260,7 +260,8 @@ sub mmapConfigure ($$$) {
     print F "  mkdir -p ./blocks\n";
     print F "fi\n";
     print F "\n";
-    print F fileExistsShellCode("./blocks/\$job.mmi");
+    print F fileExistsShellCode("exists", $path, "blocks/\$job.mmi");
+    print F "if [ \$exists = true ] ; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";

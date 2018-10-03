@@ -376,7 +376,7 @@ sub merylConfigure ($$) {
         print F "\n";
         print F "$bin/meryl -C k=$merSize threads=$thr memory=$mem \\\n";
         print F "  count segment=1/$ss ../../$asm.seqStore \\\n";
-        print F "> $name.config.$ss.err 2>&1";
+        print F "> $name.config.$ss.out 2>&1";
     }
     print F "\n";
     print F "exit 0\n";
@@ -410,13 +410,13 @@ sub merylConfigure ($$) {
         my $mem = undef;
         my $bat = undef;
 
-        if (! -e "$path/$name.config.$ss.err") {
+        if (! -e "$path/$name.config.$ss.out") {
             next;
         }
 
         #  This message comes from meryl/merylOp-count.C reportNumberOfOutputs().
        
-        open(F, "< $path/$name.config.$ss.err") or caExit("can't open '$path/$name.config.$ss.err' for reading: $!", undef);
+        open(F, "< $path/$name.config.$ss.out") or caExit("can't open '$path/$name.config.$ss.out' for reading: $!", undef);
         while (<F>) {
             if (m/Configured\s+\w+\s+mode\s+for\s+(\d*.\d*)\s+GB\s+memory\s+per\s+batch,\s+and\s+up\s+to\s+(\d+)\s+batch/) {
                 $mem = $1;
@@ -425,7 +425,7 @@ sub merylConfigure ($$) {
         }
         close(F);
 
-        caExit("failed to parse meryl configure output '$path/$name.config.$ss.err'", "$path/$name.config.$ss.err")   if (!defined($mem) || !defined($bat));
+        caExit("failed to parse meryl configure output '$path/$name.config.$ss.out'", "$path/$name.config.$ss.out")   if (!defined($mem) || !defined($bat));
 
         if ($bat < $merylBatches) {
             $merylMemory   = int($mem) + 2;
@@ -464,19 +464,37 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "jobid=`printf %02d \$jobid`\n";
     print F "\n";
-    print F "if [ -e ./$asm.\$jobid.meryl ] ; then\n";
+    print F "#  If the meryl output exists, then we're done.\n";
+    print F "\n";
+    print F "if [ -e ./$asm.\$jobid.meryl/merylIndex ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
+    print F "#  If the meryl output exists in the object store, we're also done.\n";
+    print F "\n";
+    print F fileExistsShellCode("exist1", "$path", "$asm.\$jobid.meryl.tar");
+    print F "if [ \$exist1 = true ] ; then\n";
+    print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F "#  Nope, not done.  Fetch the sequence store.\n";
+    print F "\n";
     print F fetchSeqStoreShellCode($asm, $path, "");
+    print F "\n";
+    print F "#  And compute.\n";
     print F "\n";
     print F "$bin/meryl k=$merSize threads=$thr memory=$merylMemory \\\n";
     print F "  count \\\n";
     print F "    segment=\$jobid/$merylSegments ../../$asm.seqStore \\\n";
     print F "    output ./$asm.\$jobid.meryl.WORKING \\\n";
-    print F "> $asm.\$jobid.meryl.err 2>&1 \\\n";
     print F "&& \\\n";
     print F "mv -f ./$asm.\$jobid.meryl.WORKING ./$asm.\$jobid.meryl\n";
+    print F "\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F stashMerylShellCode($path, "$asm.\$jobid.meryl", "");
+    }
+
     print F "\n";
     print F "exit 0\n";
     close(F);
@@ -508,8 +526,31 @@ sub merylConfigure ($$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
+
+    print F "#  If the meryl ignore files exst, then we're done.\n";
     print F "\n";
-    print F fetchSeqStoreShellCode($asm, $path, "");
+    print F "if [ -e ./$name.histogram -a -e ./$name.dump -a -e ./$name.ignore.gz ] ; then\n";
+    print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F "#  If those exist in the object store, we're also done.\n";
+    print F "\n";
+    print F fileExistsShellCode("exists1", "$path", "$name.histogram");
+    print F fileExistsShellCode("exists2", "$path", "$name.dump");
+    print F fileExistsShellCode("exists3", "$path", "$name.ignore.gz");
+    print F "if [ \$exists1 = true -a \$exists2 = true -a \$exists3 = true ] ; then\n";
+    print F "  echo \"Output files '$name.histogram', '$name.dump' and '$name.ignore.gz' exist in '$path'.\"\n";
+    print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F "\n";
+    print F "#  Nope, not done.  Fetch all the intermediate meryl databases.\n";
+    print F "\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F fetchMerylShellCode($path, "$asm.$_.meryl", "")   foreach (@jobs);   #  One line, yay, but not use of $_.
+    }
+
     print F "\n";
     print F "#\n";
     print F "#  Merge counting jobs, strip out unique kmers.\n";
@@ -520,7 +561,6 @@ sub merylConfigure ($$) {
     print F "    output $name.WORKING \\\n";
     print F "    union-sum  \\\n";
     print F "      ./$asm.$_.meryl \\\n"   foreach (@jobs);   #  One line, yay, but not use of $_.
-    print F "> $name.err 2>&1 \\\n";
     print F "&& \\\n";
     print F "mv -f ./$name.WORKING ./$name\n";
     print F "\n";
@@ -546,7 +586,6 @@ sub merylConfigure ($$) {
     print F "$bin/meryl threads=1 memory=1 \\\n";
     print F "  statistics ./$name \\\n";
     print F "> ./$name.histogram \\\n";
-    print F "2> ./$name.histogram.err\n";
     print F "\n";
     print F "#\n";
     print F "#  Dump frequent mers.\n";
@@ -591,7 +630,38 @@ sub merylConfigure ($$) {
     print F "numKmers=`wc -l < ./$name.dump`\n";
     print F "totKmers=`$bin/meryl statistics ./$name | grep present | awk '{ print \$2 }'`\n";
     print F "\n";
-    print F "./meryl-make-ignore.pl \$numKmers \$totKmers < ./$name.dump | gzip -1vc > ./$name.ignore.gz\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F fetchFileShellCode($path, "meryl-make-ignore.pl", "");
+    }
+
+    print F "\n";
+    print F "./meryl-make-ignore.pl \$numKmers \$totKmers < ./$name.dump | gzip -1c > ./$name.ignore.gz\n";
+    print F "\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Save the final meryl database.\n";
+        print F "\n";
+        print F stashMerylShellCode($path, $name, "");
+
+        print F "\n";
+        print F "#  Save the histogram.\n";
+        print F "\n";
+        print F stashFileShellCode($path, "$name.histogram", "");
+
+        print F "\n";
+        print F "#  Save the overlapInCore ignore file.\n";
+        print F "\n";
+        print F stashFileShellCode($path, "$name.dump", "");
+
+        print F "\n";
+        print F "#  Save the mhap ignore file.\n";
+        print F "\n";
+        print F stashFileShellCode($path, "$name.ignore.gz", "");
+
+    }
+
     print F "\n";
     print F "exit 0\n";
     close(F);
@@ -684,7 +754,8 @@ sub merylCountCheck ($$) {
     my $failureMessage = "";
 
     for (my $job=1; $job <= $jobs; $job++) {
-        if      (fileExists("$path/$asm.$currentJobID.meryl")) {
+        if      ((fileExists("$path/$asm.$currentJobID.meryl")) ||
+                 (fileExists("$path/$asm.$currentJobID.meryl.tar"))) {
             push @successJobs, "$path/$asm.$currentJobID.meryl\n";
 
         } else {
