@@ -159,6 +159,9 @@ if ($task eq "download") {
         elsif ($arg eq "--no-progress") {
         }
 
+        elsif ($arg eq "--overwrite") {
+        }
+
         elsif (!defined($path)) {
             $path = $arg;
         }
