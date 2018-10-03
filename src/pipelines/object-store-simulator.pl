@@ -46,7 +46,7 @@ if ($task eq "describe") {
         }
 
         else {
-            die "Unknown option $arg\n";
+            die "Unknown 'describe' option $arg\n";
         }
     }
 
@@ -123,7 +123,7 @@ if ($task eq "upload") {
         }
 
         else {
-            die "Unknown option $arg\n";
+            die "Unknown 'upload' option $arg\n";
         }
     }
 
@@ -164,7 +164,7 @@ if ($task eq "download") {
         }
 
         else {
-            die "Unknown option $arg\n";
+            die "Unknown 'download' option $arg\n";
         }
     }
 
