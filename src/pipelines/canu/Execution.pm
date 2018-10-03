@@ -526,8 +526,8 @@ sub setWorkDirectory ($$) {
         my $jid = $ENV{'JOB_ID'};
         my $tid = $ENV{'SGE_TASK_ID'};   #  'undefined' since this isn't an array job.
 
-        make_path("/assembly/COMPUTE/job-$jid");
-        chdir    ("/assembly/COMPUTE/job-$jid");
+        make_path("/assembly/objectstore/job-$jid");
+        chdir    ("/assembly/objectstore/job-$jid");
     }
 
     elsif (getGlobal("objectStore") eq "DNANEXUS") {
@@ -561,8 +561,8 @@ sub setWorkDirectoryShellCode ($) {
         $code .= "  jid=\$JOB_ID\n";
         $code .= "  tid=\$SGE_TASK_ID\n";
         $code .= "  if [ x\$tid != xundefined ] ; then\n";
-        $code .= "    mkdir -p /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
-        $code .= "    cd       /assembly/COMPUTE/job-\$jid-\$tid/$path\n";
+        $code .= "    mkdir -p /assembly/objectstore/job-\$jid-\$tid/$path\n";
+        $code .= "    cd       /assembly/objectstore/job-\$jid-\$tid/$path\n";
         $code .= "  fi\n";
         $code .= "fi\n";
     }

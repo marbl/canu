@@ -25,9 +25,7 @@ use File::Basename;
 
 my $STASH;
 
-$STASH = "/assembly/STASH"         if (-d "/assembly/STASH");
-$STASH = "/work/STASH"             if (-d "/work/STASH");
-$STASH = "/Users/walenzbp/STASH"   if (-d "/Users/walenzbp/STASH");
+$STASH = "/assembly/objectstore"    if (-d "/assembly/objectstore");
 
 die "No STASH found\n"  if (!defined($STASH));
 
