@@ -177,6 +177,8 @@ if ($task eq "download") {
     die "dx download - no output file supplied.\n"      if (!defined($file));
     #die "dx download - stash path $path not found.\n"   if (! -e "$STASH/$path");
 
+    print STDERR "FETCH 'cp -fp \"$STASH/$path\" \"$file\" 2> /dev/null'\n";
+
     exit(0)  if (! -e "$STASH/$path");
 
     if ($file eq "-") {
