@@ -212,18 +212,17 @@ fetchFromObjectStore(char *requested) {
       (pr == NULL))
     return(false);
 
-  //  But now we've got a bit of a problem.  Paths to stores are relative, but we need
-  //  them rooted in the assembly root directory:
+  //  Try to figure out the object store path for this object based on the name
+  //  of the requested file.  Paths to stores are relative, but we need them
+  //  rooted in the assembly root directory:
+  //
   //      ../../asm.seqStore -> ./asm.seqStore
   //      ../asm.ovlStore    -> ./correction/asm.ovlStore
   //
   //  For the seqStore, we can just grab the last two components.
-  //
   //  For the ovlStore, we need to parse out the subdirectory the store is in.
 
-  fprintf(stderr, "fetchFromObjectStore()-- requesting file '%s'\n", requested);
-
-  char *path = NULL;
+  char *path   = NULL;
 
   if (path == NULL)
     path = findSeqStorePath(requested);
@@ -234,37 +233,68 @@ fetchFromObjectStore(char *requested) {
   if (path == NULL)
     fprintf(stderr, "fetchFromObjectStore()-- requested file '%s', but don't know where that is.\n", requested), exit(1);
 
-  fprintf(stderr, "fetchFromObjectStore()-- found path '%s'\n", path);
+  //  With the path to the object figured out, finish making the path by appending
+  //  the PROJEXT and NAMESPACE.
 
-  char *cmd = new char [FILENAME_MAX+1];
-  snprintf(cmd, FILENAME_MAX, "%s:%s/%s", pr, ns, path);
-  char *args[8] = {"dx", "download", "--overwrite", "--no-progress", "--output", "", "", (char*)0};
+  char *object = new char [FILENAME_MAX+1];
+
+  snprintf(object, FILENAME_MAX, "%s:%s/%s", pr, ns, path);
+
+  //  Then report what's going on.
+
+  fprintf(stderr, "fetchFromObjectStore()-- fetching '%s' from '%s'\n", requested, object);
+
+  //  Build up a command we can execute after forking.
+
+  char *args[8];
+
+  args[0] = "dx";  //  technically should be the last component of 'dx'
+  args[1] = "download";
+  args[2] = "--overwrite";
+  args[3] = "--no-progress";
+  args[4] = "--output";
   args[5] = requested;
-  args[6] = cmd;
+  args[6] = object;
+  args[7] = NULL;
 
-  fprintf(stderr, "fetchFromObjectStore()-- executing '%s'\n", cmd);
+  //  Fork, run the command or wait for the command to finish.
 
-  int32 err;
   int32 pid = vfork();
-  if ( pid == -1)
-    fprintf(stderr, "vfork failed with error '%s'.\n", strerror(errno));
+  int32 err = 0;
 
-  if ( pid == 0 ) {
+  //  Fail if vfork() fails.
+
+  if (pid == -1)
+    fprintf(stderr, "fetchFromObjectStore()-- vfork() failed with error '%s'.\n", strerror(errno));
+
+  //  Run the child command if we're the child.  Normally, evecve() doesn't
+  //  return (because it obliterated the process it could return to).  If it
+  //  does return, an error occurred, so we just go BOOM too.  As per the
+  //  manpage, _exit() MUST be used instead of exit(), so that stdin/out/err are
+  //  left intact.
+
+  if (pid == 0) {
     execve(dx, args, environ);
-    fprintf(stderr, "execve failed with error '%s'.\n", strerror(errno));
-    _exit(-1);
+    fprintf(stderr, "fetchFromObjectStore()-- execve() failed with error '%s'.\n", strerror(errno));
+    _exit(127);
   }
-  waitpid(-1, (int*)&err, 0);
-  err = WEXITSTATUS(err);
 
-  if (err == 127)
-    fprintf(stderr, "Failed to execute '%s'.\n", cmd), exit(1);
+  //  Otherwise, we're still the parent, so wait for the (-1 == any) child
+  //  process to terminate.
+
+  waitpid(-1, &err, WEXITED);
+
+  if ((WIFEXITED(err)) &&
+      (WEXITSTATUS(err) == 127))
+    fprintf(stderr, "fetchFromObjectStore()-- failed to execve() 'dx'.\n"), exit(1);
+
+  //  Make sure that we actually grabbed the file.  If not, BOOM!
 
   if (fileExists(requested) == false)
-    fprintf(stderr, "Failed to find or fetch file '%s'.\n", requested), exit(1);
+    fprintf(stderr, "fetchFromObjectStore()-- failed to find or fetch file '%s'.\n", requested), exit(1);
 
   delete [] path;
-  delete [] cmd;
+  delete [] object;
 
   return(true);
 }
