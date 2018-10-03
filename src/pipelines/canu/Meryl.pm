@@ -544,7 +544,7 @@ sub merylConfigure ($$) {
     print F "#\n";
     print F "\n";
     print F "$bin/meryl threads=1 memory=1 \\\n";
-    print F "  histogram ./$name \\\n";
+    print F "  statistics ./$name \\\n";
     print F "> ./$name.histogram \\\n";
     print F "2> ./$name.histogram.err\n";
     print F "\n";
@@ -589,7 +589,7 @@ sub merylConfigure ($$) {
     print F "#    totKmers - total number of kmers in the dataset\n";
     print F "\n";
     print F "numKmers=`wc -l < ./$name.dump`\n";
-    print F "totKmers=`$bin/meryl histogram ./$name | grep present | awk '{ print \$2 }'`\n";
+    print F "totKmers=`$bin/meryl statistics ./$name | grep present | awk '{ print \$2 }'`\n";
     print F "\n";
     print F "./meryl-make-ignore.pl \$numKmers \$totKmers < ./$name.dump | gzip -1vc > ./$name.ignore.gz\n";
     print F "\n";

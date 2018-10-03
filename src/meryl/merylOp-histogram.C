@@ -28,13 +28,42 @@ merylOperation::reportHistogram(void) {
   if (_inputs[0]->_sequence)
     fprintf(stderr, "ERROR: told to dump a histogram from input '%s'!\n", _inputs[0]->_name), exit(1);
 
-  //  Tell the stream to load the histogram data.
-
-  _inputs[0]->_stream->loadStatistics();
-
-  //  Tell the stream to report the histogram.
+  //  Tell the stream to load and return the histogram.
 
   kmerCountStatistics *stats = _inputs[0]->_stream->stats();
+
+  //  Now just dump it.
+
+  for (uint32 frequency=1; frequency<stats->numFrequencies(); frequency++) {
+    uint64 nkmers = stats->numKmersAtFrequency(frequency);
+
+    if (nkmers > 0)
+      fprintf(stdout, F_U32 "\t" F_U64 "\n", frequency, nkmers);
+  }
+
+  //for (uint32 ii=0; ii<stats->_hbigLen; ii++) {
+  //}
+}
+
+
+
+void
+merylOperation::reportStatistics(void) {
+
+  if (_inputs.size() > 1)
+    fprintf(stderr, "ERROR: told to dump a histogram for more than one input!\n"), exit(1);
+
+  if (_inputs[0]->_operation)
+    fprintf(stderr, "ERROR: told to dump a histogram from input '%s'!\n", _inputs[0]->_name), exit(1);
+
+  if (_inputs[0]->_sequence)
+    fprintf(stderr, "ERROR: told to dump a histogram from input '%s'!\n", _inputs[0]->_name), exit(1);
+
+  //  Tell the stream to load and return the histogram.
+
+  kmerCountStatistics *stats = _inputs[0]->_stream->stats();
+
+  //  Now just dump it.
 
   uint64  nUniverse = uint64MASK(kmer::merSize() * 2) + 1;
   uint64  sDistinct = 0;

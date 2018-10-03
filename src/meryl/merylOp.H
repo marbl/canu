@@ -62,6 +62,7 @@ enum merylOp {
   opSymmetricDifference,
 
   opHistogram,
+  opStatistics,
 
   opCompare,
 
@@ -180,6 +181,7 @@ public:
                 uint64  wDataMask);
 
   void    reportHistogram(void);
+  void    reportStatistics(void);
 
   static
   void    onlyConfigure(void)               { _onlyConfig   = true;       };

@@ -509,6 +509,7 @@ main(int argc, char **argv) {
     else if (0 == strcmp(optString, "symmetric-difference"))   opName = opSymmetricDifference;
 
     else if (0 == strcmp(optString, "histogram"))              opName = opHistogram;
+    else if (0 == strcmp(optString, "statistics"))              opName = opStatistics;
 
     else if (0 == strcmp(optString, "compare"))                opName = opCompare;
 
@@ -727,8 +728,12 @@ main(int argc, char **argv) {
   //  Eventually, maybe, opHistogram will allow input from a kmer stream.
 
   if (opStack.getOp(0)->getOperation() == opHistogram) {
-    opStack.getOp(0)->nextMer();          //  To load the file.
     opStack.getOp(0)->reportHistogram();
+    exit(0);
+  }
+
+  if (opStack.getOp(0)->getOperation() == opStatistics) {
+    opStack.getOp(0)->reportStatistics();
     exit(0);
   }
 

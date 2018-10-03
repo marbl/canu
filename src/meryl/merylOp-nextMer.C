@@ -336,6 +336,9 @@ merylOperation::nextMer(void) {
     if (_operation == opHistogram)
       reportHistogram();
 
+    if (_operation == opStatistics)
+      reportStatistics();
+
     delete _writer;
     _writer = NULL;
 
@@ -488,6 +491,9 @@ merylOperation::nextMer(void) {
       }
 
     case opHistogram:
+      break;
+
+    case opStatistics:
       break;
 
     case opNothing:
