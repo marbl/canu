@@ -464,9 +464,10 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "jobid=`printf %02d \$jobid`\n";
     print F "\n";
-    print F "#  If the meryl output exists, then we're done.\n";
+    print F "#  If the meryl database exists, we're done.\n";
     print F "\n";
     print F "if [ -e ./$asm.\$jobid.meryl/merylIndex ] ; then\n";
+    print F "  echo Kmers for batch \$jobid exist.\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -474,6 +475,7 @@ sub merylConfigure ($$) {
     print F "\n";
     print F fileExistsShellCode("exist1", "$path", "$asm.\$jobid.meryl.tar");
     print F "if [ \$exist1 = true ] ; then\n";
+    print F "  echo Kmers for batch \$jobid exist in the object store.\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
