@@ -46,7 +46,7 @@ using namespace std;
 
 class hapData {
 public:
-  hapData(char *name);
+  hapData(char *merylname, char *fastaname);
   ~hapData();
 
 public:
@@ -254,17 +254,9 @@ public:
 
 
 
-hapData::hapData(char *name) {
-  strncpy(merylName,  name, FILENAME_MAX);
-  strncpy(outputName, name, FILENAME_MAX);
-
-  uint32 outputNameLen = strlen(outputName);
-
-  if ((outputNameLen > 6) &&
-      (strcmp(outputName + outputNameLen - 6, ".meryl") == 0))
-    outputName[outputNameLen-6] = 0;
-
-  strcat(outputName, ".fasta.gz");
+hapData::hapData(char *merylname, char *fastaname) {
+  strncpy(merylName,  merylname, FILENAME_MAX);
+  strncpy(outputName, fastaname, FILENAME_MAX);
 
   lookup       = NULL;
   minCount     = 0;
@@ -581,33 +573,36 @@ processReadBatch(void *G, void *T, void *S) {
 
     //  Find the haplotype with the most and second most matching kmers.
 
-    uint32  hap1 = UINT32_MAX,   hap2 = UINT32_MAX;
-    double  sco1 = 0.0,          sco2 = 0.0;
+    uint32  hap1st = UINT32_MAX;   //  Index of the best haplotype.
+    double  sco1st = 0.0;          //  Score of the best haplotype.
+
+    uint32  hap2nd = UINT32_MAX;   //  Index of the second best haplotype.
+    double  sco2nd = 0.0;          //  Score of the second best haplotype.
 
     for (uint32 hh=0; hh<nHaps; hh++) {
       double  sco = (double)matches[hh] / g->_haps[hh]->nKmers;
 
-      if      (sco1 <= sco) {
-        hap2 = hap1;    sco2 = sco1;
-        hap1 = hh;      sco1 = sco;
+      if      (sco1st <= sco) {
+        hap2nd = hap1st;    sco2nd = sco1st;
+        hap1st = hh;        sco1st = sco;
       }
-      else if (sco2 <= sco) {
-        hap2 = hh;      sco2 = sco;
+      else if (sco2nd <= sco) {
+        hap2nd = hh;        sco2nd = sco;
       }
 
-      assert(sco2 <= sco1);
+      assert(sco2nd <= sco1st);
     }
 
 #if 0
-    if (((sco2 < DBL_MIN) && (sco1 > DBL_MIN)) ||
-        ((sco2 > DBL_MIN) && (sco1 / sco2 > minRatio)))
-      fprintf(stdout, "hap1 %1u sco1 %9.7f matches %6u   hap2 %1u sco2 %9.7f matches %6u -> %1u\n",
-              hap1, sco1, matches[hap1],
-              hap2, sco2, matches[hap2], hap1);
+    if (((sco2nd < DBL_MIN) && (sco1st > DBL_MIN)) ||
+        ((sco2nd > DBL_MIN) && (sco1st / sco2nd > minRatio)))
+      fprintf(stdout, "hap1st %1u sco1st %9.7f matches %6u   hap2 %1u sco2nd %9.7f matches %6u -> %1u\n",
+              hap1st, sco1st, matches[hap1st],
+              hap2nd, sco2ndnd, matches[hap2], hap1st);
     else
-      fprintf(stdout, "hap1 %1u sco1 %9.7f matches %6u   hap2 %1u sco2 %9.7f matches %6u -> AMBIGUOUS\n",
-              hap1, sco1, matches[hap1],
-              hap2, sco2, matches[hap2]);
+      fprintf(stdout, "hap1st %1u sco1st %9.7f matches %6u   hap2 %1u sco2nd %9.7f matches %6u -> AMBIGUOUS\n",
+              hap1st, sco1st, matches[hap1st],
+              hap2, sco2nd, matches[hap2]);
 #endif
 
     //  Write the read to the 'best' haplotype, unless it's an ambiguous assignment.
@@ -620,9 +615,9 @@ processReadBatch(void *G, void *T, void *S) {
      
     s->_files[ii] = g->_ambiguous;
 
-    if (((sco2 < DBL_MIN) && (sco1 > DBL_MIN)) ||
-        ((sco2 > DBL_MIN) && (sco1 / sco2 > g->_minRatio)))
-      s->_files[ii] = g->_haps[hap1]->outputFile;
+    if (((sco2nd < DBL_MIN) && (sco1st > DBL_MIN)) ||
+        ((sco2nd > DBL_MIN) && (sco1st / sco2nd > g->_minRatio)))
+      s->_files[ii] = g->_haps[hap1st]->outputFile;
   }
 
   delete [] matches;
@@ -670,7 +665,8 @@ main(int argc, char **argv) {
         G->_seqs.push(new dnaSeqFile(argv[++arg]));
 
     } else if (strcmp(argv[arg], "-H") == 0) {   //  HAPLOTYPE SPECIFICATION
-      G->_haps.push_back(new hapData(argv[++arg]));
+      G->_haps.push_back(new hapData(argv[arg+1], argv[arg+2]));
+      arg += 2;
 
     } else if (strcmp(argv[arg], "-A") == 0) {
       G->_ambiguousName = argv[++arg];
@@ -711,18 +707,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "  Expects meryl kmer databases for two or more haplotypes.  The databases should\n");
     fprintf(stderr, "  contain kmers that are only present in that haplotype.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -S seqStore      path to input seqStore of reads to classify.\n");
-    fprintf(stderr, "  -r bgn[-end]     range of reads to operate on.\n");
+    fprintf(stderr, "  -S seqStore                      path to input seqStore of reads to classify.\n");
+    fprintf(stderr, "  -r bgn[-end]                     range of reads to operate on.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -R seq.fasta     path to input FASTA or FASTQ of reads to classify.\n");
+    fprintf(stderr, "  -R reads.fasta                   path to input FASTA or FASTQ of reads to classify.\n");
+    fprintf(stderr, "                                   these may be uncompressed, gzip, bzip2 or xz compressed.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -H haplo.meryl   path to input haplotype-specific kmer database.\n");
+    fprintf(stderr, "  -H haplo.meryl haplo.fasta.gz    path to input haplotype-specific kmer database,\n");
+    fprintf(stderr, "                                   and output gzip-compressed FASTA reads..\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "OUTPUTS:\n");
-    fprintf(stderr, "  Haplotype-specific reads are written to 'haplo.fasta.gz' corresponding to each\n");
-    fprintf(stderr, "  'haplo.meryl' listed in -H options.  Reads not assigned to any haplotype are\n");
-    fprintf(stderr, "  written to the file specified with the -A option, if not specified, they are\n");
-    fprintf(stderr, "  silently discarded.\n");
+    fprintf(stderr, "  Haplotype-specific reads are written to 'haplo.fasta.gz' as specified in each -H\n");
+    fprintf(stderr, "  option.  Reads not assigned to any haplotype are written to the file specified\n");
+    fprintf(stderr, "  in the -A option, if not specified, they are silently discarded.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Output fasta files are 'gzip -1' compressed if they end in '.gz'.\n");
     fprintf(stderr, "\n");

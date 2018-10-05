@@ -612,7 +612,7 @@ sub overlap ($$) {
 #  Begin pipeline
 #
 
-my @haplotypes = keys %haplotypeReads;
+my @haplotypes = sort keys %haplotypeReads;
 
 if (setOptions($mode, "haplotype") eq "haplotype") {
     if ((! -e "./haplotype/haplotyping.success") &&
@@ -645,7 +645,7 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
     my $techtype = removeHaplotypeOptions();
     my @options  = getCommandLineOptions();
 
-    #  Make the output pretty.
+    #  Find the maximum length of haplotype names, to make the output pretty.
 
     my $displLen = 0;
 
@@ -666,6 +666,19 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
         open(F, "> ./$asm-haplotype$haplotype.sh");
         print F "#!/bin/sh\n";
         print F "\n";
+
+        if (defined(getGlobal("objectStore"))) {
+            print F "\n";
+            print F "#  Fetch the haplotyped reads.  This is just a bit weird.\n";
+            print F "#  The fetch (boilerplate) only works from within a subdirectory,\n";
+            print F "#  so we must cd into it first, fetch, the go back to the root.\n";
+            print F "\n";
+            print F "mkdir -p haplotype\n";
+            print F "cd       haplotype\n";
+            print F fetchFileShellCode("haplotype", "haplotype-$haplotype.fasta.gz", "");
+            print F "cd ..\n";
+        }
+
         print F "\n";
         print F "$bin/canu \\\n";
         print F "  -p $asm-haplotype$haplotype \\\n";

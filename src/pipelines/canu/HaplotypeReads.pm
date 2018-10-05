@@ -81,8 +81,10 @@ sub haplotypeReadsExist ($@) {
     #  Check for each file, failing if any one doesn't exist.
 
     foreach my $haplotype (@haplotypes) {
-        return("no")   if (! -e "./haplotype/haplotype-$haplotype.fasta.gz");
+        return("no")   if (! fileExists("./haplotype/haplotype-$haplotype.fasta.gz"));
     }
+
+    #  Yeah!  Reads exist!
 
     return("yes");
 }
@@ -106,7 +108,7 @@ sub haplotypeSplitReads ($$%) {
     my $splitNeeded = 0;
 
     foreach my $haplotype (@haplotypes) {
-        $splitNeeded = 1   if (! -e "$path/reads-$haplotype/reads-$haplotype.success");
+        $splitNeeded = 1   if (! fileExists("$path/reads-$haplotype/reads-$haplotype.success"));
     }
 
     return   if ($splitNeeded == 0);
@@ -123,7 +125,7 @@ sub haplotypeSplitReads ($$%) {
         my $fileLength    = 0;
         my $fileLengthMax = 100000000;
 
-        next  if (-e "$path/reads-$haplotype/reads-$haplotype.success");
+        next  if (fileExists("$path/reads-$haplotype/reads-$haplotype.success"));
 
         make_path("$path/reads-$haplotype")  if (! -d "$path/reads-$haplotype");
 
@@ -162,6 +164,7 @@ sub haplotypeSplitReads ($$%) {
 
                 if ($fileLength > $fileLengthMax) {
                     close(OUT);
+                    stashFile("$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
 
                     $fileNumber++;
                     $fileLength = 0;
@@ -175,11 +178,14 @@ sub haplotypeSplitReads ($$%) {
         }
 
         close(OUT);
+        stashFile("$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
 
         open(OUT, "> $path/reads-$haplotype/reads-$haplotype.success");
         print OUT "$fileLengthMax\n";    #  Not really used
         print OUT "$fileNumber\n";       #
         close(OUT);
+
+        stashFile("$path/reads-$haplotype/reads-$haplotype.success");
     }
 }
 
@@ -192,7 +198,7 @@ sub haplotypeCountConfigure ($%) {
     my $cmd;
     my $path           = "haplotype/0-kmers";
 
-    my @haplotypes     = keys %haplotypeReads;
+    my @haplotypes     = sort keys %haplotypeReads;
 
     goto allDone   if (fileExists("$path/meryl-count.sh") &&
                        fileExists("$path/meryl-merge.sh") &&
@@ -229,7 +235,7 @@ sub haplotypeCountConfigure ($%) {
         my @readFiles  = split '\0', $haplotypeReads{$haplotype};
         my $fileNumber = "001";
 
-        while (-e "$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz") {
+        while (fileExists("$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz")) {
             $merylInputs{$haplotype} .= "$haplotype-$fileNumber\0";
             $merylFiles{$haplotype}++;
 
@@ -293,11 +299,13 @@ sub haplotypeCountConfigure ($%) {
     print STDERR "-- Will use $nJobsMax jobs with up to $nFilesPerJob files each.\n";
 
     #
-    #  Assign read files to jobs.
+    #  Assign read files to jobs.  Divide the files for each haplotype into groups
+    #  of some size, taking care to not mix up files between haplotypes!
     #
 
-    my @merylInputs;
-    my @merylOutputs;
+    my @merylInputs;             #  A list of the inputs to each counting job.
+    my @merylOutputs;            #  The output of each counting job.
+    my %merylJobsPerHaplotype;   #  The number of counting jobs for each haplotype.
 
     my $jid = "001";
 
@@ -320,10 +328,16 @@ sub haplotypeCountConfigure ($%) {
                 shift @files;
             }
 
-            $files =~ s/gz\s\\\n$/gz"/;
+            $files =~ s/gz\s\\\n$/gz"/;   #  Remove the " \" at the end of the string, and add a terminating quote.
 
-            push @merylInputs, $files;
-            push @merylOutputs, "$haplotype-$jid";
+            push @merylInputs, $files;               #  Save the list of inputs.
+            push @merylOutputs, "$haplotype-$jid";   #  Save the output name.
+
+            if (defined($merylJobsPerHaplotype{$haplotype})) {
+                $merylJobsPerHaplotype{$haplotype} .= " $jid";
+            } else {
+                $merylJobsPerHaplotype{$haplotype}  = "$jid";
+            }
 
             $jid++;
         }
@@ -352,11 +366,13 @@ sub haplotypeCountConfigure ($%) {
     open(F, "> $path/meryl-count.memory") or caExit("can't open '$path/meryl-count.memory' for writing: $!", undef);
     print F "$mem\n";
     close(F);
+    stashFile("$path/meryl-count.memory");
 
     $mem = 1.0 + 0.333 * $nFilesPerJob;
 
     #
-    #  Make a script for counting.
+    #  Make a script for counting.  All the counting jobs are the same, no need to
+    #  distinguish between haplotypes here.
     #
 
     setGlobal("merylMemory", $mem);
@@ -381,22 +397,57 @@ sub haplotypeCountConfigure ($%) {
         print F "\n";
     }
 
+    print F "\n";
     print F "if [ \$jobid -gt $nJobs ]; then\n";
     print F "  echo Error: Only $nJobs jobs, you asked for \$jobid.\n";
     print F "  exit 1\n";
     print F "fi\n";
+
     print F "\n";
-    print F "if [ -e ./reads-\$output.meryl ] ; then\n";
+    print F "#  If the meryl database exists, we're done.\n";
+    print F "\n";
+    print F "if [ -e ./reads-\$output.meryl/merylIndex ] ; then\n";
+    print F "  echo Kmers for batch \$output exist.\n";
     print F "  exit 0\n";
     print F "fi\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  If the meryl output exists in the object store, we're also done.\n";
+        print F "\n";
+        print F fileExistsShellCode("exist1", "$path", "reads-\$output.meryl.tar");
+        print F "if [ \$exist1 = true ] ; then\n";
+        print F "  echo Kmers for batch \$output exist in the object store.\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+    }
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Nope, not done.  Fetch input files.\n";
+        print F "\n";
+        print F "for file in \$batch ; do\n";
+        print F fetchFileShellCode($path, "\$file", "  ");
+        print F "done\n";
+    }
+
+    print F "\n";
+    print F "#  And compute.\n";
     print F "\n";
     print F "$bin/meryl k=$merSize threads=$thr memory=$mem \\\n";
     print F "  count \\\n";
     print F "    output ./reads-\$output.meryl.WORKING \\\n";
     print F "    \$batch \\\n";
-    #print F "> ./reads-\$output.err 2>&1 \\\n";
     print F "&& \\\n";
     print F "mv -f ./reads-\$output.meryl.WORKING ./reads-\$output.meryl\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Save those precious results!\n";
+        print F "\n";
+        print F stashMerylShellCode($path, "reads-\$output.meryl", "  ");
+    }
+
     print F "\n";
     print F "exit 0\n";
     close(F);
@@ -405,7 +456,8 @@ sub haplotypeCountConfigure ($%) {
     stashFile("$path/meryl-count.sh");
 
     #
-    #  Emit a script for merging all batches in each haplotype.
+    #  Emit a script for merging all batches in each haplotype.  Unlike counting,
+    #  we definitely need to take the haplotype the job is for into consideration.
     #
 
     open(F, "> $path/meryl-merge.sh") or caExit("can't open '$path/meryl-count.sh' for writing: $!", undef);
@@ -420,16 +472,46 @@ sub haplotypeCountConfigure ($%) {
 
     $nJobs = scalar(@haplotypes);
 
-    for (my $JJ=1; $JJ <= $nJobs; $JJ++) {
+    for (my $JJ=1; $JJ <= $nJobs; $JJ++) {           #  Set the name of the haplotype this job
+        my $hap = $haplotypes[$JJ-1];                #  is merging kmers for.
+
         print F "if [ \$jobid -eq $JJ ] ; then\n";
-        print F "  haplotype=\"$haplotypes[$JJ-1]\"\n";
+        print F "  haplotype=\"$hap\"\n";
+        print F "  batches=\"$merylJobsPerHaplotype{$hap}\"\n";
         print F "fi\n";
         print F "\n";
     }
 
-    print F "if [ -e ./reads-\$haplotype.meryl ] ; then\n";
+    print F "\n";
+    print F "#  If the meryl database exists, we're done.\n";
+    print F "\n";
+    print F "if [ -e ./reads-\$haplotype.meryl/merylindex ] ; then\n";
+    print F "  echo Merged kmers for haplotype \$haplotype exist.\n";
     print F "  exit 0\n";
     print F "fi\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  If the meryl output exists in the object store, we're also done.\n";
+        print F "\n";
+        print F fileExistsShellCode("exist1", "$path", "reads-\$haplotype.meryl.tar");
+        print F "if [ \$exist1 = true ] ; then\n";
+        print F "  echo Merged kmers for haplotype \$haplotype exist in the object store.\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+    }
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Nope, not done.  Fetch the input databases.\n";
+        print F "\n";
+        print F "for batch in \$batches ; do\n";
+        print F fetchMerylShellCode($path, "reads-\$haplotype-\$batch.meryl", "  ");
+        print F "done\n";
+    }
+
+    print F "\n";
+    print F "#  And compute.\n";
     print F "\n";
     print F "$bin/meryl threads=$thr memory=$mem \\\n";
     print F "  union-sum \\\n";
@@ -439,8 +521,20 @@ sub haplotypeCountConfigure ($%) {
     print F "mv -f ./reads-\$haplotype.meryl.WORKING ./reads-\$haplotype.meryl \\\n";
     print F "&& \\\n";
     print F "rm -rf ./reads-\$haplotype-???.meryl\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Save those precious results!\n";
+        print F "\n";
+        print F stashMerylShellCode($path, "reads-\$haplotype.meryl", "");
+    }
+
     print F "\n";
     print F "exit 0\n";
+    close(F);
+
+    makeExecutable("$path/meryl-merge.sh");
+    stashFile("$path/meryl-merge.sh");
 
     #
     #  Emit a script for subtracting haplotypes from each other.
@@ -478,9 +572,34 @@ sub haplotypeCountConfigure ($%) {
         print F "\n";
     }
 
+    print F "\n";
+    print F "#  If the meryl database exists, we're done.\n";
+    print F "\n";
     print F "if [ -e ./haplotype-\$haplotype.meryl ] ; then\n";
+    print F "  echo Kmers for haplotype \$haplotype exist.\n";
     print F "  exit 0\n";
     print F "fi\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  If the meryl output exists in the object store, we're also done.\n";
+        print F "\n";
+        print F fileExistsShellCode("exist1", "$path", "haplotype-\$haplotype.meryl.tar");
+        print F "if [ \$exist1 = true ] ; then\n";
+        print F "  echo Kmers for haplotype \$haplotype exist in the object store.\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+    }
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Fetch _all_ the haplotype kmers.\n";
+        print F "\n";
+        print F fetchMerylShellCode($path, "reads-$_.meryl", "")   foreach (@haplotypes);   #  One line, yay, but not use of $_.
+    }
+
+    print F "\n";
+    print F "#  Subtract all the other haplotypes from ours.\n";
     print F "\n";
     print F "$bin/meryl threads=$thr memory=$mem \\\n";
     print F "  difference \\\n";
@@ -489,6 +608,20 @@ sub haplotypeCountConfigure ($%) {
     print F "    \$otherhaps \\\n";
     print F "&& \\\n";
     print F "mv -f ./haplotype-\$haplotype.meryl.WORKING ./haplotype-\$haplotype.meryl\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Save those precious results!\n";
+        print F "\n";
+        print F stashMerylShellCode($path, "haplotype-\$haplotype.meryl", "");
+    }
+
+    print F "\n";
+    print F "exit 0\n";
+    close(F);
+
+    makeExecutable("$path/meryl-subtract.sh");
+    stashFile("$path/meryl-subtract.sh");
 
   finishStage:
     resetIteration("haplotypeCountConfigure");
@@ -514,6 +647,8 @@ sub haplotypeCountCheck ($) {
 
     #  Scan the script to determine how many jobs there are.
 
+    fetchFile("$path/meryl-count.sh");
+
     my @jobs;
 
     open(F, "< $path/meryl-count.sh") or caExit("can't open '$path/meryl-count.sh' for reading: $!", undef);
@@ -535,7 +670,8 @@ sub haplotypeCountCheck ($) {
     my $failureMessage = "";
 
     foreach my $job (@jobs) {
-        if      (fileExists("$path/reads-$job.meryl")) {
+        if ((fileExists("$path/reads-$job.meryl")) ||
+            (fileExists("$path/reads-$job.meryl.tar"))) {
             push @successJobs, $currentJobID;
 
         } else {
@@ -572,11 +708,17 @@ sub haplotypeCountCheck ($) {
         generateReport($asm);
 
         #  One off hack for setting memory here
+
+        fetchFile("$path/meryl-count.memory");
+
         my $mem = 0;
         open(F, "< $path/meryl-count.memory") or caExit("can't open '$path/meryl-count.memory' for reading: $!", undef);
         $mem = <F>;  chomp $mem;
         close(F);
+
         setGlobal("merylMemory", $mem);
+
+        #  And _now_ run some jobs.
 
         submitOrRunParallelJob($asm, "meryl", $path, "meryl-count", @failedJobs);
         return;
@@ -615,6 +757,8 @@ sub haplotypeMergeCheck ($@) {
 
     goto allDone      if (fileExists("$path/meryl-merge.success"));
 
+    fetchFile("$path/meryl-merge.sh");
+
     #  Figure out if all the tasks finished correctly.  Usually we need to scan the script
     #  to decide how many jobs, but here we just know that there is one job per haplotype.
 
@@ -625,7 +769,8 @@ sub haplotypeMergeCheck ($@) {
     my $failureMessage = "";
 
     foreach my $hap (@haplotypes) {
-        if      (fileExists("$path/reads-$hap.meryl")) {
+        if ((fileExists("$path/reads-$hap.meryl")) ||
+            (fileExists("$path/reads-$hap.meryl.tar"))) {
             push @successJobs, $currentJobID;
 
         } else {
@@ -698,6 +843,8 @@ sub haplotypeSubtractCheck ($@) {
 
     goto allDone      if (fileExists("$path/meryl-subtract.success"));
 
+    fetchFile("$path/meryl-subtract.sh");
+
     #  Figure out if all the tasks finished correctly.  Usually we need to scan the script
     #  to decide how many jobs, but here we just know that there is one job per haplotype.
 
@@ -708,7 +855,8 @@ sub haplotypeSubtractCheck ($@) {
     my $failureMessage = "";
 
     foreach my $hap (@haplotypes) {
-        if      (fileExists("$path/haplotype-$hap.meryl")) {
+        if ((fileExists("$path/haplotype-$hap.meryl")) ||
+            (fileExists("$path/haplotype-$hap.meryl.tar"))) {
             push @successJobs, $currentJobID;
 
         } else {
@@ -793,12 +941,12 @@ sub haplotypeReadsConfigure ($@) {
 
     #  Symlink to the meryl databases.
 
-    foreach my $hap (@$haplotypes) {
-        if (! -e "haplotype/haplotype-$hap.meryl") {
-            symlink("0-kmers/haplotype-$hap.meryl", "haplotype/haplotype-$hap.meryl") or
-                caExit("can't make symlink to '0-kmers/haplotype-$hap.meryl' in 'haplotype/haplotype-$hap.meryl': $!", undef);
-        }
-    }
+    #foreach my $hap (@$haplotypes) {
+    #    if (! -e "haplotype/haplotype-$hap.meryl") {
+    #        symlink("0-kmers/haplotype-$hap.meryl", "haplotype/haplotype-$hap.meryl") or
+    #            caExit("can't make symlink to '0-kmers/haplotype-$hap.meryl' in 'haplotype/haplotype-$hap.meryl': $!", undef);
+    #    }
+    #}
 
     #  Now just dump the script.
 
@@ -819,22 +967,71 @@ sub haplotypeReadsConfigure ($@) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
+    print F "#  If the unknown haplotype assignment exists, we're done.\n";
+    print F "\n";
     print F "if [ -e ./haplotype-unknown.fasta.gz ] ; then\n";
+    print F "  echo Read to haplotype assignment already exists.\n";
     print F "  exit 0\n";
     print F "fi\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  If the unknown haplotype assignment exists in the object store, we're also done.\n";
+        print F "\n";
+        print F fileExistsShellCode("exist1", "$path", "haplotype-unknown.fasta.gz");
+        print F "if [ \$exist1 = true ] ; then\n";
+        print F "  echo Read to haplotype assignment exists in the object store.\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+    }
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Fetch _all_ the haplotype kmers.  These need to be in 0-kmers.\n";
+        print F "\n";
+        print F "mkdir 0-kmers\n";
+        print F "cd    0-kmers\n";
+        print F "\n";
+        print F fetchMerylShellCode("$path/0-kmers", "haplotype-$_.meryl", "")   foreach (@$haplotypes);  #  One line, yay, but not use of $_.
+        print F "\n";
+        print F "cd ..\n";
+    }
+
+    #if (defined(getGlobal("objectStore"))) {
+    #    print F "\n";
+    #    print F "$  Fetch all the unlcassified input reads.\n";
+    #    print F "\n";
+    #    print F fetchFileShellCode("", "", "")   foreach (@inputs);
+    #    print F "\n";
+    #    print F "\n";
+    #    print F "\n";
+    #}
+
     print F "\n";
+    print F "#  Assign reads to haplotypes.\n";
     print F "\n";
     print F "$bin/splitHaplotype \\\n";
     print F "  -threads $thr \\\n";
-    print F "  -R $_ \\\n"                     foreach (@inputs);       #  One line, yay, but not use of $_.
-    print F "  -H ./haplotype-$_.meryl \\\n"   foreach (@$haplotypes);  #  One line, yay, but not use of $_.
+    print F "  -R $_ \\\n"                                                     foreach (@inputs);
+    print F "  -H ./0-kmers/haplotype-$_.meryl ./haplotype-$_.fasta.gz \\\n"   foreach (@$haplotypes);
     print F "  -A ./haplotype-unknown.fasta.WORKING.gz \\\n";
-    print F "> ./splitHaplotype.err 2>&1 \\\n";
     print F "&& \\\n";
     print F "mv -f ./haplotype-unknown.fasta.WORKING.gz ./haplotype-unknown.fasta.gz \\\n";
-    print F "&& \\\n";
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Save those precious results!\n";
+        print F "\n";
+        print F stashFileShellCode($path, "haplotype-$_.fasta.gz", "")   foreach (@$haplotypes);
+        print F stashFileShellCode($path, "haplotype-unknown.fasta.gz", "");
+    }
+
+    print F "\n";
     print F "exit 0\n";
     close(F);
+
+    makeExecutable("$path/splitHaplotype.sh");
+    stashFile("$path/splitHaplotype.sh");
 
   finishStage:
     resetIteration("haplotypeReadsConfigure");
@@ -858,6 +1055,8 @@ sub haplotypeReadsCheck ($@) {
     #  Check if we're known to be done.
 
     goto allDone      if (fileExists("$path/haplotyping.success"));
+
+    fetchFile("$path/splitHaplotypes.sh");
 
     #  Determine how many jobs we ran.  Usually we need to scan the script to decide how many jobs,
     #  but here we just know that there is exatly one job.  We'll still pretend there are multiple
