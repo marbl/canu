@@ -663,11 +663,13 @@ sub stashMerylShellCode ($$$) {
     my $code   = "";
 
     if    (isOS() eq "DNANEXUS") {
-        $code .= "${indent}echo \"Storing '$name.tar' to '$pr:$ns/$path/$name.tar'\"\n";
-        $code .= "${indent}tar -cf - ./$name \\\n";
-        $code .= "${indent}| \\\n";
-        $code .= "${indent}$client upload --wait --parents --path $pr:$ns/$path/$name.tar -\n";
-        $code .= "${indent}\n";
+        $code .= "\n";
+        $code .= "${indent}if [ -e ./$name/merylIndex ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, Storing './$name' to '$pr:$ns/$path/$name.tar'\n";
+        $code .= "${indent}  tar -cf - ./$name \\\n";
+        $code .= "${indent}  | \\\n";
+        $code .= "${indent}  $client upload --wait --parents --path $pr:$ns/$path/$name.tar -\n";
+        $code .= "${indent}fi\n";
     }
 
     return($code);
@@ -680,19 +682,18 @@ sub fetchMerylShellCode ($$$) {
     my $name   = shift @_;           #  The name of the meryl directory
     my $indent = shift @_;           #
 
-    my $base   = dirname($path);     #  'unitigging'
-    my $root   = pathToDots($path);  #  '../..'
-
     my $client = getGlobal("objectStoreClient");
     my $ns     = getGlobal("objectStoreNameSpace");
     my $pr     = getGlobal("objectStoreProject");
     my $code   = "";
 
     if    (isOS() eq "DNANEXUS") {
-        $code .= "${indent}\n";
-        $code .= "${indent}if [ ! -e $root/$path/$name/merylIndex ] ; then\n";
-        $code .= "${indent}  echo In `pwd`, fetching $ns/$path/$name.tar, unzipping in '$root/$path'\n";
-        $code .= "${indent}  $client download --output - $pr:$ns/$path/$name.tar | tar -C $root/$path -xf -\n";
+        $code .= "\n";
+        $code .= "${indent}if [ ! -e ./$name/merylIndex ] ; then\n";
+        $code .= "${indent}  echo In `pwd`, fetching '$pr:$ns/$path/$name.tar', unzipping to './$name'\n";
+        $code .= "${indent}  $client download --output - $pr:$ns/$path/$name.tar \\\n";
+        $code .= "${indent}  | \\\n";
+        $code .= "${indent}  tar -xf -\n";
         $code .= "${indent}fi\n";
     }
 
