@@ -142,6 +142,7 @@ sub fileExistsShellCode ($$$@) {
     #  NOTE that this does NOT emit the closing fi.
 
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
         $code .= "${indent}if [ ! -e $file ] ; then\n";
         $code .= "${indent}  $var=`$client describe --name \"$pr:$ns/$path/$file\"`\n";
         $code .= "${indent}fi\n";
@@ -152,6 +153,7 @@ sub fileExistsShellCode ($$$@) {
         $code .= "${indent}fi\n";
     }
     else {
+        $code .= "\n";
         $code .= "${indent}if [ -e $file ]; then\n";
         $code .= "${indent}  $var=true\n";
         $code .= "${indent}else\n";
@@ -252,6 +254,7 @@ sub fetchFileShellCode ($$$) {
     #    stashFileShellCode("correction/0-mercounts", "whatever", "");
 
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
         $code .= "${indent}if [ ! -e $dots/$path/$file ] ; then\n";
         $code .= "${indent}  mkdir -p $dots/$path\n";
         $code .= "${indent}  cd       $dots/$path\n";
@@ -302,6 +305,7 @@ sub stashFileShellCode ($$$) {
     #  directories (even though that should never happen).
 
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
         $code .= "${indent}if [ -e \"$dots/$path/$file\" ] ; then\n";
         $code .= "${indent}  cd $dots/$path\n";
         $code .= fileExistsShellCode("exists", "$path", "$file", "$indent  ");
@@ -368,6 +372,7 @@ sub fetchSeqStoreShellCode ($$$) {
     my $code   = "";
 
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
         $code .= "${indent}if [ ! -e $root/$asm.seqStore/info ] ; then\n";
         $code .= "${indent}  echo In `pwd`, fetching $ns/$asm.seqStore.tar, unzipping in '$root'\n";
         $code .= "${indent}  $client download --output - $pr:$ns/$asm.seqStore.tar | tar -C $root -xf -\n";
@@ -443,6 +448,7 @@ sub fetchSeqStorePartitionShellCode ($$$) {
     my $storeName = "partitionedReads.seqStore";
 
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
         $code .= "${indent}if [ ! -e $root/$storePath/$storeName/partitions/blobs.\$jobid ] ; then\n";
         $code .= "${indent}  echo In `pwd`, fetching $ns/$storePath.$storeName.\$jobid.tar, unzipping in '$root/$storePath'\n";
         $code .= "${indent}  $client download --output - $pr:$ns/$storePath.$storeName.\$jobid.tar | tar -C $root/$storePath -xf -\n";
@@ -624,6 +630,7 @@ sub fetchOvlStoreShellCode ($$$) {
     my $code   = "";
 
     if    (isOS() eq "DNANEXUS") {
+        $code .= "\n";
         $code .= "${indent}if [ ! -e $root/$base/$asm.ovlStore/index ] ; then\n";
         $code .= "${indent}  echo In `pwd`, fetching $ns/$base/$asm.ovlStore.tar, unzipping in '$root/$base'\n";
         $code .= "${indent}  $client download --output - $pr:$ns/$base/$asm.ovlStore.tar | tar -C $root/$base -xf -\n";
