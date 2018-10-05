@@ -462,7 +462,6 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\n";
 
     print F fetchSeqStoreShellCode($asm, $path, "");
-    print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
     print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.dat", "");
     print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.tig", "");
