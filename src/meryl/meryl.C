@@ -174,8 +174,10 @@ public:
 
 
   void       setThreshold(uint64 p) {
-    for (uint32 ff=0; ff<_nFiles; ff++)
+    for (uint32 ff=0; ff<_nFiles; ff++) {
       _stacks[ff].top()->setThreshold(p);
+      _stacks[ff].top()->setConstant(p);
+    }
   };
 
   void       setFractionDistinct(double p) {
