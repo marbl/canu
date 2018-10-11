@@ -1272,6 +1272,8 @@ main(int argc, char **argv) {
   sampleParameters            samPar;
   shiftRegisterParameters     srPar;
 
+  argc = AS_configure(argc, argv);
+
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {

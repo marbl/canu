@@ -258,6 +258,7 @@ main(int argc, char **argv) {
   uint32                    segment        = 1;
   uint32                    segmentMax     = 1;
 
+  argc = AS_configure(argc, argv);
 
   vector<char *>  err;
   for (int32 arg=1; arg < argc; arg++) {
