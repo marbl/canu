@@ -239,6 +239,8 @@ merylOperation::nextMer(void) {
 
   char  kmerString[256];
 
+ nextMerAgain:
+
   //  Get some logging out of the way.
 
   if (_verbosity >= sayDetails) {
@@ -257,7 +259,7 @@ merylOperation::nextMer(void) {
 
   //  Grab the next mer for every input that was active in the last iteration.
   //  (on the first call, all inputs were 'active' last time)
-  //
+
   for (uint32 ii=0; ii<_actLen; ii++) {
     if (_verbosity >= sayDetails)
       fprintf(stderr, "merylOp::nextMer()-- CALL NEXTMER on input actIndex " F_U32 "\n", _actIndex[ii]);
@@ -266,30 +268,15 @@ merylOperation::nextMer(void) {
 
   _actLen = 0;
 
-  //  Find the smallest kmer in the _inputs, and save their counts in _actCount.
-  //  Mark which input was used in _actIndex.
-
-#if 0
-  if (_verbosity >= sayEverything)
-    for (uint32 ii=0; ii<_inputs.size(); ii++)
-      fprintf(stderr, "merylOp::nextMer()--   BEFORE OPERATION: input %s kmer %s count " F_U64 " %s\n",
-              _inputs[ii]->_name,
-              _inputs[ii]->_kmer.toString(kmerString),
-              _inputs[ii]->_count,
-              _inputs[ii]->_valid ? "valid" : "INVALID");
-#endif
-
-  //  Build a list of the inputs that have the smallest kmer.
+  //  Build a list of the inputs that have the smallest kmer, saving their
+  //  counts in _actCount, and the input that it is from in _actIndex.
 
   for (uint32 ii=0; ii<_inputs.size(); ii++) {
     if (_inputs[ii]->_valid == false)
       continue;
 
-    //  If we have no active kmer, or the input kmer is smaller than the one we
-    //  have, reset the list.
-
-    if ((_actLen == 0) ||
-        (_inputs[ii]->_kmer < _kmer)) {
+    if ((_actLen == 0) ||                            //  If we have no active kmer, or the input kmer is
+        (_inputs[ii]->_kmer < _kmer)) {              //  smaller than the one we have, reset the list.
       _actLen = 0;
       _kmer              = _inputs[ii]->_kmer;
       _actCount[_actLen] = _inputs[ii]->_count;
@@ -300,11 +287,8 @@ merylOperation::nextMer(void) {
         fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
     }
 
-    //  Otherwise, if the input kmer is the one we have, save the count to the list.
-
-    else if (_inputs[ii]->_kmer == _kmer) {
-      //_kmer             = _inputs[ii]->_kmer;
-      _actCount[_actLen] = _inputs[ii]->_count;
+    else if (_inputs[ii]->_kmer == _kmer) {          //  Otherwise, if the input kmer is the one we
+      _actCount[_actLen] = _inputs[ii]->_count;      //  have, save the count and input to the lists.
       _actIndex[_actLen] = ii;
       _actLen++;
 
@@ -312,18 +296,15 @@ merylOperation::nextMer(void) {
         fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s\n", _kmer.toString(kmerString), _inputs[ii]->_name);
     }
 
-    //  Otherwise, the input kmer comes after the one we're examining, ignore it.
-
-    else {
-    }
+    else {                                           //  Otherwise, the input kmer comes after the
+    }                                                //  one we're examining, ignore it.
   }
 
   //  If no active kmers, we're done.  Several bits of housekeeping need to be done:
-  //
-  //  Histogram operations need to finish up and report the histogram now.
-  //  Alternatively, it could be done in the destructor.
-  //
-  //  Any outputs need to call finishIteration() to rename and/or merge their intermediate outputs.
+  //   - Histogram operations need to finish up and report the histogram now.
+  //     Alternatively, it could be done in the destructor.
+  //   - Any outputs need to call finishIteration() to rename and/or merge
+  //     their intermediate outputs.
 
   if (_actLen == 0) {
     if (_verbosity >= sayDetails) {
@@ -366,8 +347,8 @@ merylOperation::nextMer(void) {
       break;
 
     case opPassThrough:                     //  Result of counting kmers.  Guaranteed to have
-      _count = _actCount[0];                //  exactly one input file.
-      break;
+      _count = _actCount[0];                //  exactly one input file.  Also the operation that
+      break;                                //  'print' of a database has.
 
     case opLessThan:
       _count = (_actCount[0]  < _threshold) ? _actCount[0] : 0;
@@ -500,17 +481,28 @@ merylOperation::nextMer(void) {
       break;
   }  
 
+  //  If the count is zero, skip this kmer and get another one.
+
+  if (_count == 0)
+    goto nextMerAgain;
+
+  //  And if not zero, output it, print it, and return it.
+
+  if (_verbosity >= sayDetails) {
+    fprintf(stderr, "merylOp::nextMer()-- FINISHED for operation %s with kmer %s count " F_U64 "%s\n",
+            toString(_operation), _kmer.toString(kmerString), _count, ((_output != NULL) && (_count != 0)) ? " OUTPUT" : "");
+    fprintf(stderr, "\n");
+  }
+
   //  If flagged for output, output!
 
-  if ((_output != NULL) &&
-      (_count  > 0)) {
+  if (_output != NULL) {
     _writer->addMer(_kmer, _count);
   }
 
   //  If flagged for printing, print!
 
-  if ((_printer != NULL) &&
-      (_count > 0)) {
+  if (_printer != NULL) {
     char  flags[4] = { 0 };  //  Default, no flags (and no space) printed.
 
     if (_kmer.isCanonical()) {
@@ -523,17 +515,10 @@ merylOperation::nextMer(void) {
       flags[1] = 'P';
     }
 
-    //fprintf(_printer, "%s\t" F_U64 "%s\n", _kmer.toString(kmerString), _actCount[0], flags);
-    fprintf(_printer, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _actCount[0]);
+    fprintf(_printer, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _count);
   }
 
-  //  
-
-  if (_verbosity >= sayDetails) {
-    fprintf(stderr, "merylOp::nextMer()-- FINISHED for operation %s with kmer %s count " F_U64 "%s\n",
-            toString(_operation), _kmer.toString(kmerString), _count, ((_output != NULL) && (_count != 0)) ? " OUTPUT" : "");
-    fprintf(stderr, "\n");
-  }
+  //  Now just return and let the client query us to get the kmer and value.
 
   return(true);
 }
