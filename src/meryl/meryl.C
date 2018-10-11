@@ -174,19 +174,16 @@ public:
 
 
   void       setThreshold(uint64 p) {
-    fprintf(stderr, "threshold=%lu\n", p);
     for (uint32 ff=0; ff<_nFiles; ff++)
       _stacks[ff].top()->setThreshold(p);
   };
 
   void       setFractionDistinct(double p) {
-    fprintf(stderr, "distinct=%f\n", p);
     for (uint32 ff=0; ff<_nFiles; ff++)
       _stacks[ff].top()->setFractionDistinct(p);
   };
 
   void       setWordFrequency(double p) {
-    fprintf(stderr, "word-frequency=%f\n", p);
     for (uint32 ff=0; ff<_nFiles; ff++)
       _stacks[ff].top()->setWordFrequency(p);
   };
