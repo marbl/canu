@@ -123,8 +123,10 @@ if      (defined($dirty)) {
     print F "#define CANU_VERSION           \"Canu snapshot v$major.$minor +$commits changes (r$revCount $hash1)\\n\"\n";
 } elsif (defined($hash1)) {
     print F "#define CANU_VERSION           \"Canu snapshot ($hash1)\\n\"\n";
-} else {
+} elsif ($label  =~ m/release/) {
     print F "#define CANU_VERSION           \"Canu $major.$minor\\n\"\n";
+} else {
+    print F "#define CANU_VERSION           \"Canu snapshot ($label)\\n\"\n";
 }
 
 close(F);
