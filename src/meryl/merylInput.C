@@ -22,11 +22,14 @@ merylInput::merylInput(merylOperation *o) {
   _operation   = o;
   _stream      = NULL;
   _sequence    = NULL;
+#ifdef CANU
   _store       = NULL;
+#endif
 
   _count       = 0;
   _valid       = false;
 
+#ifdef CANU
   _sqBgn       = 0;
   _sqEnd       = 0;
 
@@ -34,6 +37,7 @@ merylInput::merylInput(merylOperation *o) {
   _readData    = NULL;
   _readID      = 0;
   _readPos     = UINT32_MAX;
+#endif
 
   memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, toString(_operation->getOperation()), FILENAME_MAX);
@@ -45,7 +49,9 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile)
   _operation   = NULL;
   _stream      = s;
   _sequence    = NULL;
+#ifdef CANU
   _store       = NULL;
+#endif
 
   if (threadFile != UINT32_MAX)
     _stream->enableThreads(threadFile);
@@ -53,6 +59,7 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile)
   _count       = 0;
   _valid       = false;
 
+#ifdef CANU
   _sqBgn       = 0;
   _sqEnd       = 0;
 
@@ -60,6 +67,7 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile)
   _readData    = NULL;
   _readID      = 0;
   _readPos     = UINT32_MAX;
+#endif
 
   memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
@@ -71,11 +79,14 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
   _operation   = NULL;
   _stream      = NULL;
   _sequence    = f;
+#ifdef CANU
   _store       = NULL;
+#endif
 
   _count       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
 
+#ifdef CANU
   _sqBgn       = 0;
   _sqEnd       = 0;
 
@@ -83,6 +94,7 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
   _readData    = NULL;
   _readID      = 0;
   _readPos     = UINT32_MAX;
+#endif
 
   memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
@@ -90,6 +102,7 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
 
 
 
+#ifdef CANU
 merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segmentMax) {
   _operation   = NULL;
   _stream      = NULL;
@@ -140,6 +153,7 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
   memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
 }
+#endif
 
 
 
@@ -149,9 +163,11 @@ merylInput::~merylInput() {
   delete _operation;
   delete _sequence;
 
+#ifdef CANU
   delete _readData;
 
   _store->sqStore_close();
+#endif
 }
 
 
@@ -209,6 +225,7 @@ merylInput::loadBases(char    *seq,
     return(_sequence->loadBases(seq, maxLength, seqLength, endOfSequence));
   }
 
+#ifdef CANU
   if (_store) {
 
     //  If no read currently loaded, load one, or return that we're done.
@@ -259,6 +276,7 @@ merylInput::loadBases(char    *seq,
 
     return(true);
   }
+#endif
 
   return(false);
 }

@@ -118,9 +118,11 @@ public:
     _stacks[0].top()->addInput(sequence);
   };
 
+#ifdef CANU
   void    addInput(sqStore *store, uint32 segment, uint32 segmentMax) {
     _stacks[0].top()->addInput(store, segment, segmentMax);
   };
+#endif
 
   //  Counting operations only need the output associated with the first
   //  file, and associating with other files just makes life difficult and/or
@@ -245,7 +247,9 @@ main(int argc, char **argv) {
 
   kmerCountFileReader      *reader         = NULL;
   dnaSeqFile               *sequence       = NULL;
+#ifdef CANU
   sqStore                  *store          = NULL;
+#endif
 
   uint32                    terminating    = 0;
 
@@ -411,13 +415,14 @@ main(int argc, char **argv) {
     }
 
     //  Segment of input, for counting from seqStore.
+#ifdef CANU
     else if ((optStringLen > 8) &&
              (strncmp(optString, "segment=", 8) == 0) &&
              (isNumber(optString + 8, '/') == true)) {
       decodeRange(optString + 8, segment, segmentMax);
       continue;
     }
-
+#endif
 
     else if (strncmp(optString, "-V", 2) == 0) {      //  Anything that starts with -V
       for (uint32 vv=1; vv<strlen(optString); vv++)   //  increases verbosity by the
@@ -547,12 +552,14 @@ main(int argc, char **argv) {
       sequence = new dnaSeqFile(inoutName);
     }
 
+#ifdef CANU
     else if ((opStack.size() > 0) &&                      //  If a counting command exists, add a Canu seqStore.
              (opStack.isCounting()   == true) &&
              (fileExists(sqInfName)  == true) &&
              (fileExists(sqRdsName)  == true)) {
       store = sqStore::sqStore_open(inoutName);
     }
+#endif
 
     else {
       char *s = new char [1024];
@@ -613,6 +620,7 @@ main(int argc, char **argv) {
       sequence = NULL;
     }
 
+#ifdef CANU
     if ((store != NULL) &&
         (opStack.size() > 0)) {
       opStack.addInput(store, segment, segmentMax);
@@ -620,6 +628,7 @@ main(int argc, char **argv) {
       segment    = 1;
       segmentMax = 1;
     }
+#endif
 
     //  Finally, if we've been told to terminate the command, do so.
 

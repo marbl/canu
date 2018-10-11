@@ -21,8 +21,9 @@
 #include "kmers.H"
 #include "sequence.H"
 
+#ifdef CANU
 #include "sqStore.H"
-
+#endif
 
 class merylOperation;
 
@@ -32,14 +33,18 @@ public:
   merylInput(merylOperation *o);
   merylInput(const char *n, kmerCountFileReader *s, uint32 fileNum=UINT32_MAX);
   merylInput(const char *n, dnaSeqFile *f);
+#ifdef CANU
   merylInput(const char *n, sqStore *s, uint32 segment, uint32 segmentMax);
+#endif
   ~merylInput();
 
   char  *inputType(void) {
     if (_operation)   return("meryl-operation");
     if (_stream)      return("meryl-database");
     if (_sequence)    return("sequence-file");
+#ifdef CANU
     if (_store)       return("canu-seqStore");
+#endif
 
     return("invalid-input");
   };
@@ -55,12 +60,18 @@ public:
   bool   isFromOperation(void)    { return(_operation != NULL); };
   bool   isFromDatabase(void)     { return(_stream    != NULL); };
   bool   isFromSequence(void)     { return(_sequence  != NULL); };
+#ifdef CANU
   bool   isFromStore(void)        { return(_store     != NULL); };
+#else
+  bool   isFromStore(void)        { return(false);              };
+#endif
 
   merylOperation           *_operation;
   kmerCountFileReader      *_stream;
   dnaSeqFile               *_sequence;
+#ifdef CANU
   sqStore                  *_store;
+#endif
 
   char                      _name[FILENAME_MAX+1];
 
@@ -72,6 +83,7 @@ public:
 
   //  For _store, the position we're at in the store.
 
+#ifdef CANU
   uint32                    _sqBgn;
   uint32                    _sqEnd;
 
@@ -79,6 +91,7 @@ public:
   sqReadData               *_readData;
   uint32                    _readID;
   uint32                    _readPos;
+#endif
 };
 
 #endif  //  MERYLINPUT_H

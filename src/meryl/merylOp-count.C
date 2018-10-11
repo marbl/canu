@@ -421,6 +421,7 @@ merylOperation::guesstimateNumberOfkmersInInput_dnaSeqFile(dnaSeqFile *sequence)
 }
 
 
+#ifdef CANU
 uint64
 merylOperation::guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 bgnID, uint32 endID) {
   uint64  numMers = 0;
@@ -430,6 +431,7 @@ merylOperation::guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 b
 
   return(numMers);
 }
+#endif
 
 
 uint64
@@ -440,8 +442,10 @@ merylOperation::guesstimateNumberOfkmersInInput(void) {
     if (_inputs[ii]->isFromSequence())
       guess += guesstimateNumberOfkmersInInput_dnaSeqFile(_inputs[ii]->_sequence);
 
+#ifdef CANU
     if (_inputs[ii]->isFromStore())
       guess += guesstimateNumberOfkmersInInput_sqStore(_inputs[ii]->_store, _inputs[ii]->_sqBgn, _inputs[ii]->_sqEnd);
+#endif
   }
 
   return(guess);

@@ -15,7 +15,9 @@
  */
 
 #include "meryl.H"
+#ifdef CANU
 #include "sqStore.H"
+#endif
 
 bool            merylOperation::_onlyConfig   = false;
 bool            merylOperation::_showProgress = false;
@@ -152,6 +154,7 @@ merylOperation::addInput(dnaSeqFile *sequence) {
 
 
 
+#ifdef CANU
 void
 merylOperation::addInput(sqStore *store, uint32 segment, uint32 segmentMax) {
 
@@ -165,6 +168,7 @@ merylOperation::addInput(sqStore *store, uint32 segment, uint32 segmentMax) {
   if (isCounting() == false)
     fprintf(stderr, "ERROR: operation '%s' cannot use sqStore as inputs.\n", toString(_operation)), exit(1);
 }
+#endif
 
 
 
@@ -250,6 +254,7 @@ toString(merylOp op) {
     case opSymmetricDifference:  return("opSymmetricDifference");  break;
 
     case opHistogram:            return("opHistogram");            break;
+    case opStatistics:           return("opStatistics");           break;
 
     case opCompare:              return("opCompare");              break;
 
