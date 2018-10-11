@@ -592,7 +592,12 @@ sub merylConfigure ($$) {
     print F "#\n";
     print F "#  Dump frequent mers.\n";
     print F "#\n";
-    print F "\n";
+    print F "#  The indenting of the at-least options is misleading.  'print'\n";
+    print F "#  takes input from the first 'at-least', which that takes input from\n";
+    print F "#  the second 'at-least'.  The effect is the same as taking the\n";
+    print F "#  'intersection' of all the 'at-least' filters -- logically, it is\n";
+    print F "#  doing 'at-least X AND at-least Y AND at-least Z'.\n";
+    print F "#\n";
 
     my $mthresh   = undef;
     my $mdistinct = undef;
