@@ -318,7 +318,7 @@ sub merylConfigure ($$) {
     my ($base, $path, $name, $merSize) = merylParameters($asm, $tag);
 
     goto allDone   if (fileExists("$path/meryl-count.sh") &&            #  Configure 'output' exists.
-                       fileExists("$path/meryl-process.sh"))            #
+                       fileExists("$path/meryl-process.sh"));           #
     goto allDone   if (fileExists("$path/$name.dump") &&                #  Meryl output(s) exist
                        fileExists("$path/$name.ignore.gz"));            #
 
