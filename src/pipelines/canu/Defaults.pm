@@ -1367,11 +1367,33 @@ sub checkParameters () {
     foreach my $var ("corOvlErrorRate", "obtOvlErrorRate", "utgOvlErrorRate", "corErrorRate", "obtErrorRate", "utgErrorRate", "cnsErrorRate") {
         if    (!defined(getGlobal($var))) {
         }
-        elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
+        elsif (getGlobal($var) !~ m/^[.-0123456789]+$/) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
         }
         elsif ((getGlobal($var) < 0.0) || (getGlobal($var) > 1.0)) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 0.0 and no more than 1.0\n");
+        }
+    }
+
+    foreach my $var ("corOvlMerDistinct", "obtOvlMerDistinct", "utgOvlMerDistinct") {
+        if    (!defined(getGlobal($var))) {
+        }
+        elsif (getGlobal($var) !~ m/^[.-0123456789]+$/) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
+        }
+        elsif ((getGlobal($var) < 0.0) || (getGlobal($var) > 1.0)) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 0.0 and no more than 1.0\n");
+        }
+    }
+
+    foreach my $var ("corOvlMerThreshold", "obtOvlMerThreshold", "utgOvlMerThreshold") {
+        if    (!defined(getGlobal($var))) {
+        }
+        elsif (getGlobal($var) !~ m/^[0123456789]+$/) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be an integer\n");
+        }
+        elsif (getGlobal($var) < 2) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 2\n");
         }
     }
 
@@ -1389,7 +1411,7 @@ sub checkParameters () {
         elsif (getGlobal($var) =~ m/all/i) {
             setGlobal($var, 9999);
         }
-        elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
+        elsif (getGlobal($var) !~ m/^[.-0123456789]+$/) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
         }
         elsif (getGlobal($var) < 1.0) {
@@ -1415,7 +1437,7 @@ sub checkParameters () {
         if (!defined(getGlobal($var))) {
             addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
         }
-        elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
+        elsif (getGlobal($var) !~ m/^[.-0123456789]+$/) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
         }
         elsif (getGlobal($var) < 0.0) {
