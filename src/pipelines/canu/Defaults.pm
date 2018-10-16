@@ -1479,6 +1479,9 @@ sub checkParameters () {
         my $failureString = "ERROR:  Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
 
         my @stopAfter = ("sequenceStore",
+                         "meryl-configure",
+                         "meryl-count",
+                         "meryl-process",
                          "meryl",
                          "overlapConfigure",
                          "overlap",

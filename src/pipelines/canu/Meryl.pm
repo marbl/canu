@@ -713,6 +713,7 @@ sub merylConfigure ($$) {
     resetIteration("merylConfigure");
 
   allDone:
+    stopAfter("meryl-configure");
 }
 
 
@@ -816,9 +817,7 @@ sub merylCountCheck ($$) {
     resetIteration("$tag-merylCountCheck");
 
   allDone:
-    stopAfter("meryl");
-
-  allDone:
+    stopAfter("meryl-count");
 }
 
 
@@ -884,4 +883,6 @@ sub merylProcessCheck ($$) {
     resetIteration("meryl-process");
 
   allDone:
+    stopAfter("meryl-process");
+    stopAfter("meryl");
 }
