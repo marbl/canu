@@ -317,10 +317,10 @@ sub merylConfigure ($$) {
 
     my ($base, $path, $name, $merSize) = merylParameters($asm, $tag);
 
-    goto allDone   if (fileExists("$path/meryl-count.sh"));             #  Configure 'output' exists.
+    goto allDone   if (fileExists("$path/meryl-count.sh") &&            #  Configure 'output' exists.
+                       fileExists("$path/meryl-process.sh"))            #
     goto allDone   if (fileExists("$path/$name.dump") &&                #  Meryl output(s) exist
                        fileExists("$path/$name.ignore.gz"));            #
-    goto allDone   if (fileExists("$path/$name/merylIndex"));           #  Kmer counting database exists.
 
     make_path($path)  if (! -d $path);
 
@@ -837,7 +837,6 @@ sub merylProcessCheck ($$) {
     #  databases.
 
     goto allDone      if (fileExists("$path/meryl-process.success"));
-
     goto finishStage  if (fileExists("$path/$name.dump") &&
                           fileExists("$path/$name.ignore.gz"));
 
