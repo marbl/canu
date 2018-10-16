@@ -135,6 +135,21 @@ sub haplotypeSplitReads ($$%) {
         open(OUT, "| gzip -1c > $path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
 
         foreach my $file (@readFiles) {  
+
+            #  Fetch the reads from the object store.
+            #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
+
+            if (defined(getGlobal("objectStore"))) {
+                my $inPath = $file;
+                my $otPath = $file;
+
+                $otPath = s!/!_!;
+
+                fetchObjectStoreFile($inPath, $otPath);
+
+                $file = $otPath;
+            }
+
             print STDERR "--   <-- '$file'.\n";
             open(INP, "< $file");
             open(INP, "gzip  -dc $file |")   if ($file =~ m/\.gz$/);
@@ -997,15 +1012,27 @@ sub haplotypeReadsConfigure ($@) {
         print F "cd ..\n";
     }
 
-    #if (defined(getGlobal("objectStore"))) {
-    #    print F "\n";
-    #    print F "$  Fetch all the unlcassified input reads.\n";
-    #    print F "\n";
-    #    print F fetchFileShellCode("", "", "")   foreach (@inputs);
-    #    print F "\n";
-    #    print F "\n";
-    #    print F "\n";
-    #}
+    #  Fetch the reads from the object store.
+    #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
+
+    if (defined(getGlobal("objectStore"))) {
+        print F "\n";
+        print F "#  Fetch all the unlcassified input reads.\n";
+        print F "#\n";
+
+        for (my $ff=0; $ff < scalar(@inputs); $ff++) {
+            my $inPath = $inputs[$ff];
+            my $otPath = $inputs[$ff];
+
+            $otPath = s!/!_!;
+
+            print fetchObjectStoreFileShellCode($inPath, $otPath, "");
+
+            $inputs[$ff] = $otPath;
+        }
+
+        print F "\n";
+    }
 
     print F "\n";
     print F "#  Assign reads to haplotypes.\n";

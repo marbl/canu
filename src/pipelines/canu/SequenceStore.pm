@@ -178,29 +178,24 @@ sub createSequenceStore ($$@) {
     #  At the same time, check that all files exist.
 
     if (! -e "./$asm.seqStore.ssi") {
-        my $ff = undef;
 
-        foreach my $iii (@inputs) {
-            my ($type, $file) = split '\0', $iii;
+        #  Fetch the reads from the object store.
+        #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-            #  REMOVE THIS!
-            if (($file =~ m/\.correctedReads\./) ||
-                ($file =~ m/\.trimmedReads\./)) {
-                fetchFile($file);
+        if (defined(getGlobal("objectStore"))) {
+            for (my $ff=0; $ff < scalar(@inputs); $ff++) {
+                my ($inType, $inPath, $otPath) = split '\0', $inputs[$ff];
 
-                chdir($base);                                 #  Move to where we run the command
-                $file = "../$file"      if (-e "../$file");   #  If file exists up one dir, it's our file
-                $iii = "$type\0$file";                        #  Rewrite the option
-                chdir("..");                                  #  ($file is used below too)
+                $otPath =  $inPath;
+                $otPath =~ s!/!_!;
+
+                fetchObjectStoreFile($inPath, $otPath);
+
+                $inputs[$ff] = "$inType\0$otPath";
+
+                print STDERR "$inType -- '$inPath' -> '$otPath'\n";
             }
-
-            chdir($base);
-            $ff .= (defined($ff) ? "\n  " : "") . "reads '$file' not found."  if (! -e $file);
-            chdir("..");
         }
-
-        caExit($ff, undef) if defined($ff);
-
 
         #  Build a ssi file for all the raw sequence inputs.  For simplicity, we just copy in any
         #  ssi files as is.  This documents what the store was built with, etc.

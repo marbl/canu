@@ -562,14 +562,47 @@ sub addSequenceFile ($$@) {
     my $file  = shift @_;
     my $err   = shift @_;
 
-    return(undef)             if (!defined($file));   #  No file name?  Nothing to do.
-    $file = "$dir/$file"      if (defined($dir));     #  If $dir defined, assume file is in there.
-    return($file)             if (substr($file, 0, 1) eq "/");     #  If already a full path, use that.
-    return(abs_path($file))   if (-e $file);          #  If found, return the full path.
+    #  If no file name, nothing to do.
+    if (!defined($file)) {
+        return(undef);
+    }
 
-    #  And if not found, report an error, unless told not to.  This is because on the command
-    #  line, the first word after -pacbio-raw must exist, but all the other words could
-    #  be files or options.
+    #  If this looks like an object store file, blindly accept that it exists.
+    if ($file =~ m/^project-.*:file-\w+/) {
+        return($file);
+    }
+    if ($file =~ m/^\w+:\w+/) {
+        return($file);
+    }
+
+    #  If the file exists in object storage, accept it as is.  Well, except
+    #  we can't test this until we complete setup -- in particular, until we
+    #  setup grids -- but we can't do that until we parse the command line,
+    #  and we can't parse the command line without deciding if a parameter
+    #  is a file or an option!
+    #if (objectStoreFileExists($file)) {
+    #    return($file);
+    #}
+
+    #  If $dir is defined, assume the file is relative to it.
+    if (defined($dir)) {
+        $file = "$dir/$file";
+    }
+
+    #  If the name is already a full path, use that.
+    if (substr($file, 0, 1) eq "/") {
+        return($file);
+    }
+
+    #  If the file exists in a relative path, make it a full path.
+    if (-e $file) {
+        return(abs_path($file));
+    }
+
+    #  Otherwise, not found.  Report an error, unless told not to.  This is
+    #  because on the command line, the first word after -pacbio-raw must
+    #  exist, but all the other words could be files or options (and we use
+    #  this function to test if they're files or options).
 
     addCommandLineError("ERROR: Input read file '$file' not found.\n")  if (defined($err));
 
