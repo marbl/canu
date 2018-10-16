@@ -735,13 +735,13 @@ sub configureAssembler () {
 
 
     if (getGlobal("genomeSize") < 10000000) {
-        setGlobal("corOvlMerDistinct",  "0.9950")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
-        setGlobal("obtOvlMerDistinct",  "0.9950")   if (!defined(getGlobal("obtOvlMerThreshold")) && !defined(getGlobal("obtOvlMerDistinct")));
-        setGlobal("utgOvlMerDistinct",  "0.9950")   if (!defined(getGlobal("utgOvlMerThreshold")) && !defined(getGlobal("utgOvlMerDistinct")));
+        setGlobal("corOvlMerDistinct",  "0.9999")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
+        setGlobal("obtOvlMerDistinct",  "0.9999")   if (!defined(getGlobal("obtOvlMerThreshold")) && !defined(getGlobal("obtOvlMerDistinct")));
+        setGlobal("utgOvlMerDistinct",  "0.9999")   if (!defined(getGlobal("utgOvlMerThreshold")) && !defined(getGlobal("utgOvlMerDistinct")));
     } else {
-        setGlobal("corOvlMerDistinct",  "0.9975")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
-        setGlobal("obtOvlMerDistinct",  "0.9975")   if (!defined(getGlobal("obtOvlMerThreshold")) && !defined(getGlobal("obtOvlMerDistinct")));
-        setGlobal("utgOvlMerDistinct",  "0.9975")   if (!defined(getGlobal("utgOvlMerThreshold")) && !defined(getGlobal("utgOvlMerDistinct")));
+        setGlobal("corOvlMerDistinct",  "0.9990")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
+        setGlobal("obtOvlMerDistinct",  "0.9990")   if (!defined(getGlobal("obtOvlMerThreshold")) && !defined(getGlobal("obtOvlMerDistinct")));
+        setGlobal("utgOvlMerDistinct",  "0.9990")   if (!defined(getGlobal("utgOvlMerThreshold")) && !defined(getGlobal("utgOvlMerDistinct")));
     }
 
     #  Overlap error adjustment
