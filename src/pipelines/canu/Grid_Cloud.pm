@@ -35,9 +35,11 @@ require Exporter;
 @ISA    = qw(Exporter);
 @EXPORT = qw(configureCloud
              fileExists           fileExistsShellCode
+             objectStoreFileExists
              renameStashedFile
              removeStashedFile
              fetchFile            fetchFileShellCode
+             fetchObjectStoreFile fetchObjectStoreFileShellCode
              stashFile            stashFileShellCode
              fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
              fetchOvlStore        fetchOvlStoreShellCode
@@ -118,6 +120,30 @@ sub fileExists ($@) {
 
     if    (isOS() eq "DNANEXUS") {
         $exists = `$client describe --name \"$pr:$ns/$file\"`;
+    }
+
+    $exists =~ s/^\s+//;
+    $exists =~ s/\s+$//;
+
+    return(($exists ne "") ? 1 : undef);
+}
+
+
+
+#  Test if the file exists in object storage.  This is just fileExists(),
+#  removing the canu namespace and path.
+sub objectStoreFileExists ($) {
+    my $path     = shift @_;
+
+    my $exists   = "";
+
+    my $client = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
+
+    if    (isOS() eq "DNANEXUS") {
+        print STDERR "$client describe --name \"$path\"\n";
+        $exists = `$client describe --name \"$path\"`;
     }
 
     $exists =~ s/^\s+//;
@@ -262,7 +288,48 @@ sub fetchFileShellCode ($$$) {
         $code .= "${indent}  $client download --output \"$file\" \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
+    }
+
+    return($code);
+}
+
+
+
+#  Fetch an object store file using a full path name.
+sub fetchObjectStoreFile ($$) {
+    my $path   = shift @_;    #  Path of file to fetch.
+    my $file   = shift @_;    #  Name of file to write in current directory.
+
+    my $client = getGlobal("objectStoreClient");
+
+    my $exists = objectStoreFileExists($path);
+
+    return   if (-e $file);       #  If it exists, we don't need to fetch it.
+    return   if (! $exists);      #  If it doesn't exist in the store, we don't fetch it either.  Because it doesn't exist.
+
+    print STDERR "fetchObjectStoreFile()-- '$file' from '$path'\n"   if ($showWork);
+
+    if    (isOS() eq "DNANEXUS") {
+        runCommandSilently(".", "$client download --output \"$file\" \"$path\"", 1);
+    }
+}
+
+
+
+sub fetchObjectStoreFileShellCode ($$$) {
+    my $path   = shift @_;    #  Path of file to fetch.
+    my $file   = shift @_;    #  Name of file to write in current directory.
+    my $indent = shift @_;
+
+    my $client = getGlobal("objectStoreClient");
+
+    my $code   = "";
+
+    if    (isOS() eq "DNANEXUS") {
         $code .= "\n";
+        $code .= "${indent}if [ ! -e $$file ] ; then\n";
+        $code .= "${indent}  $client download --output \"$file\" \"$path\"\n";
+        $code .= "${indent}fi\n";
     }
 
     return($code);
