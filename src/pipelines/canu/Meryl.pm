@@ -558,46 +558,35 @@ sub merylConfigure ($$) {
     print F "#  Merge counting jobs, strip out unique kmers.\n";
     print F "#\n";
     print F "\n";
-    print F "$bin/meryl threads=$thr memory=$merylMemory \\\n";
-    print F "  greater-than 1 \\\n";
-    print F "    output $name.WORKING \\\n";
-    print F "    union-sum  \\\n";
-    print F "      ./$asm.$_.meryl \\\n"   foreach (@jobs);   #  One line, yay, but not use of $_.
-    print F "&& \\\n";
-    print F "mv -f ./$name.WORKING ./$name\n";
-    print F "\n";
-    print F "#\n";
-    print F "#  Fail if there is no meryl database.\n";
-    print F "#\n";
-    print F "\n";
     print F "if [ ! -e ./$name/merylIndex ] ; then\n";
-    print F "  echo meryl merge failed.\n";
-    print F "  exit 1\n";
+    print F "  $bin/meryl threads=$thr memory=$merylMemory \\\n";
+    print F "    greater-than 1 \\\n";
+    print F "      output $name.WORKING \\\n";
+    print F "      union-sum  \\\n";
+    print F "        ./$asm.$_.meryl \\\n"   foreach (@jobs);   #  One line, yay, but not use of $_.
+    print F "  && \\\n";
+    print F "  mv -f ./$name.WORKING ./$name\n";
+    print F "\n";
+    print F "  #  Fail if there is no meryl database.\n";
+    print F "  if [ ! -e ./$name/merylIndex ] ; then\n";
+    print F "    echo meryl merge failed.\n";
+    print F "    exit 1\n";
+    print F "  fi\n";
+    print F "\n";
+    print F "  #  Remove meryl intermediate files.\n";
+    print F "  rm -rf ./$asm.$_.meryl ./$asm.$_.meryl.err\n"       foreach (@jobs);   #  One line, yay, but not use of $_.
     print F "fi\n";
-    print F "\n";
-    print F "#\n";
-    print F "#  Remove meryl intermediate files.\n";
-    print F "#\n";
-    print F "\n";
-    print F "rm -rf ./$asm.$_.meryl ./$asm.$_.meryl.err\n"       foreach (@jobs);   #  One line, yay, but not use of $_.
     print F "\n";
     print F "#\n";
     print F "#  Dump a histogram, 'cause they're useful.\n";
     print F "#\n";
     print F "\n";
-    print F "$bin/meryl threads=1 memory=1 \\\n";
-    print F "  statistics ./$name \\\n";
-    print F "> ./$name.histogram \\\n";
+    print F "if [ ! -e ./$name.histogram ] ; then\n";
+    print F "  $bin/meryl threads=1 memory=1 \\\n";
+    print F "    statistics ./$name \\\n";
+    print F "  > ./$name.histogram\n";
+    print F "fi\n";
     print F "\n";
-    print F "#\n";
-    print F "#  Dump frequent mers.\n";
-    print F "#\n";
-    print F "#  The indenting of the at-least options is misleading.  'print'\n";
-    print F "#  takes input from the first 'at-least', which that takes input from\n";
-    print F "#  the second 'at-least'.  The effect is the same as taking the\n";
-    print F "#  'intersection' of all the 'at-least' filters -- logically, it is\n";
-    print F "#  doing 'at-least X AND at-least Y AND at-least Z'.\n";
-    print F "#\n";
 
     my $mthresh   = undef;
     my $mdistinct = undef;
@@ -618,15 +607,27 @@ sub merylConfigure ($$) {
     if ("${tag}Overlapper" eq "minimap") {
     }
 
-    print F "$bin/meryl threads=$thr memory=$merylMemory \\\n";
-    print F "  print ./$name.##.dump \\\n";
-    print F "    at-least distinct=$mdistinct \\\n"         if (defined($mdistinct));
-    print F "    at-least threshold=$mthresh \\\n"          if (defined($mthresh));
-    print F "    at-least word-frequency=$mwordfreq \\\n"   if (defined($mwordfreq));
-    print F "      ./$name \\\n";
+    print F "#\n";
+    print F "#  Dump frequent mers.\n";
+    print F "#\n";
+    print F "#  The indenting of the at-least options is misleading.  'print'\n";
+    print F "#  takes input from the first 'at-least', which that takes input from\n";
+    print F "#  the second 'at-least'.  The effect is the same as taking the\n";
+    print F "#  'intersection' of all the 'at-least' filters -- logically, it is\n";
+    print F "#  doing 'at-least X AND at-least Y AND at-least Z'.\n";
+    print F "#\n";
     print F "\n";
-    print F "cat ./$name.??.dump > ./$name.dump\n";
-    print F "rm -f ./$name.??.dump\n";
+    print F "if [ ! -e ./$name.dump ] ; then\n";
+    print F "  $bin/meryl threads=$thr memory=$merylMemory \\\n";
+    print F "    print ./$name.##.dump \\\n";
+    print F "      at-least distinct=$mdistinct \\\n"         if (defined($mdistinct));
+    print F "      at-least threshold=$mthresh \\\n"          if (defined($mthresh));
+    print F "      at-least word-frequency=$mwordfreq \\\n"   if (defined($mwordfreq));
+    print F "        ./$name\n";
+    print F "\n";
+    print F "  cat ./$name.??.dump > ./$name.dump\n";
+    print F "  rm -f ./$name.??.dump\n";
+    print F "fi\n";
     print F "\n";
     print F "#\n";
     print F "#  Convert the dumped kmers into a mhap ignore list.\n";
@@ -634,16 +635,18 @@ sub merylConfigure ($$) {
     print F "#    numKmers - number of kmers we're filtering\n";
     print F "#    totKmers - total number of kmers in the dataset\n";
     print F "\n";
-    print F "numKmers=`wc -l < ./$name.dump`\n";
-    print F "totKmers=`$bin/meryl statistics ./$name | grep present | awk '{ print \$2 }'`\n";
+    print F "if [ ! -e ./$name.ignore.gz ] ; then\n";
+    print F "  numKmers=`wc -l < ./$name.dump`\n";
+    print F "  totKmers=`$bin/meryl statistics ./$name | grep present | awk '{ print \$2 }'`\n";
     print F "\n";
 
     if (defined(getGlobal("objectStore"))) {
-        print F fetchFileShellCode($path, "meryl-make-ignore.pl", "");
+        print F fetchFileShellCode($path, "meryl-make-ignore.pl", "  ");
     }
 
     print F "\n";
-    print F "./meryl-make-ignore.pl \$numKmers \$totKmers < ./$name.dump | gzip -1c > ./$name.ignore.gz\n";
+    print F "  ./meryl-make-ignore.pl \$numKmers \$totKmers < ./$name.dump | gzip -1c > ./$name.ignore.gz\n";
+    print F "fi\n";
     print F "\n";
 
     if (defined(getGlobal("objectStore"))) {
