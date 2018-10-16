@@ -749,7 +749,7 @@ sub setOverlapDefaults ($$$) {
     #  Mhap parameters.  FilterThreshold MUST be a string, otherwise it gets printed in scientific notation (5e-06) which java doesn't understand.
 
     setOverlapDefault($tag, "MhapVersion",         "2.1.3",                   "Version of the MHAP jar file to use");
-    setOverlapDefault($tag, "MhapFilterThreshold", "0.000005",                "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted");
+    setOverlapDefault($tag, "MhapFilterThreshold", "0.0000001",               "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted");
     setOverlapDefault($tag, "MhapFilterUnique",    undef,                     "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.");
     setOverlapDefault($tag, "MhapNoTf",            undef,                     "Expert option: True or false, do not use tf weighting, only idf of tf-idf.");
     setOverlapDefault($tag, "MhapOptions",         undef,                     "Expert option: free-form parameters to pass to MHAP.");
