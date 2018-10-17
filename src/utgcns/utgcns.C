@@ -375,8 +375,6 @@ main (int argc, char **argv) {
     outSeqFileQ    = AS_UTL_openOutputFile(outSeqNameQ);
   }
 
-  fprintf(stderr, "--\n");
-
   //  Open sequence store for read only, and load the partitioned data if tigPart > 0.
   //  Decide on what to compute.  Either all tigs, or a single tig, or a special case test.
 
@@ -393,6 +391,7 @@ main (int argc, char **argv) {
   uint32  nSingletons = 0;
 
   if (exportFile == NULL) {
+    fprintf(stderr, "--\n");
     fprintf(stderr, "-- Computing consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
             tigBgn, tigEnd, errorRate, errorRateMax, minOverlap);
     fprintf(stderr, "--\n");
@@ -455,8 +454,10 @@ main (int argc, char **argv) {
     for (uint32 ti=tigBgn; ti<=tigEnd; ti++) {
       tgTig *tig = tigStore->loadTig(ti);
 
-      if (tig)
+      if (tig) {
+        nTigs++;
         tig->exportData(exportFile, seqStore, false);
+      }
     }
   }
 
@@ -567,7 +568,12 @@ main (int argc, char **argv) {
   AS_UTL_closeFile(exportFile, exportName);
   AS_UTL_closeFile(importFile, importName);
 
-  if (exportFile == NULL) {
+  if (exportName != NULL) {
+    fprintf(stdout, "\n");
+    fprintf(stderr, "Exported %u tig%s to file '%s'.\n", nTigs, (nTigs == 1) ? "" : "s", exportName);
+  }
+
+  if (exportName == NULL) { 
     fprintf(stdout, "\n");
     fprintf(stdout, "Processed %u tig%s and %u singleton%s.\n",
             nTigs, (nTigs == 1)             ? "" : "s",
@@ -579,9 +585,12 @@ main (int argc, char **argv) {
       fprintf(stderr, "\n");
       fprintf(stderr, "Consensus did NOT finish successfully.\n");
     } else {
-      fprintf(stderr, "Consensus finished successfully.  Bye.\n");
+      fprintf(stderr, "Consensus finished successfully.\n");
     }
   }
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Bye.\n");
 
   return(numFailures != 0);
 }
