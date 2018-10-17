@@ -130,7 +130,21 @@ void    AS_UTL_saveFile(char const *prefix, OBJ *objects, uint64 numberToWrite) 
 
 
 
-
+//  Read or write an object from or to a disk file.  Two forms are provided:
+//
+//    loadFromFile(POINTER, description, NUMBER_OF_OBJECTS, file);
+//    loadFileFile(OBJECT,  description,                    file);
+//
+//  The first will load some number of objects into an array, and expects a
+//  pointer.  The second will load one object into an instance, and expects
+//  an actual object.
+//
+//  The second form hsa two implementations, one for OBJECTS and one for
+//  POINTERS.  The OBJECT variant loads into the object directly, while the
+//  POINTER varient loads into the pointed to object.  If you try to write a
+//  pointer itself, you'll get unexpected results (but you shouldn't be
+//  writing pointers to files anyway!).
+//
 uint64
 loadFromFile(void        *objects,
              const char  *description,
@@ -151,6 +165,11 @@ loadFromFile(OBJ &object, const char *description, FILE *file, bool exact=true) 
   return(loadFromFile(&object, description, sizeof(OBJ), 1, file, exact));
 }
 
+template<typename OBJ>
+uint64
+loadFromFile(OBJ *object, const char *description, FILE *file, bool exact=true) {
+  return(loadFromFile(object, description, sizeof(OBJ), 1, file, exact));
+}
 
 
 
@@ -174,6 +193,11 @@ writeToFile(OBJ &object, const char *description, FILE *file) {
   writeToFile(&object, description, sizeof(OBJ), 1, file);
 }
 
+template<typename OBJ>
+void
+writeToFile(OBJ *object, const char *description, FILE *file) {
+  writeToFile(object, description, sizeof(OBJ), 1, file);
+}
 
 
 
