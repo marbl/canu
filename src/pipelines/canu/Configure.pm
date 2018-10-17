@@ -597,7 +597,7 @@ sub configureAssembler () {
     #  little more than the above number of different kmers.  The additional third in the expansion
     #  is to adjust for repeated kmers in the reads.
 
-    my $hx = 1.333 * 1000000;
+    my $hx = 1.25 * 1000000;
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",    64 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",    64 * $hx);
