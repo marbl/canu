@@ -62,7 +62,13 @@ class sqLibrary;
 class sqReadData {
 public:
   sqReadData() {
-    _read      = NULL;   //  Set in stashReadData() and loadFromBlob()
+    //  Set in sqStore_loadReadData()         (when reading from a store)
+    //         sqStore_loadReadFromStream()   (when reading from a file, utgcns import)
+    //         sqStore_addEmptyRead()         (when making a new read)
+    //  The first two then call sqRead_loadDataFromStream() -> sqReadData_loadFromBlob()
+    //
+    //  Possibly set in stashReadData() and loadFromBlob().
+    _read      = NULL;
     _library   = NULL;
 
     _name      = NULL;
