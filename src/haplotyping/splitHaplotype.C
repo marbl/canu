@@ -66,6 +66,9 @@ public:
   uint32                  maxCount;
   uint64                  nKmers;
 
+  uint32                  nReads;
+  uint64                  nBases;
+
   compressedFileWriter   *outputWriter;
   FILE                   *outputFile;
 };
@@ -93,6 +96,8 @@ public:
     _ambiguousName   = NULL;
     _ambiguousWriter = NULL;
     _ambiguous       = NULL;
+    _ambiguousReads  = 0;
+    _ambiguousBases  = 0;
   };
 
   ~allData() {
@@ -134,6 +139,8 @@ public:
   char                  *_ambiguousName;
   compressedFileWriter  *_ambiguousWriter;
   FILE                  *_ambiguous;
+  uint32                 _ambiguousReads;
+  uint64                 _ambiguousBases;
 };
 
 
@@ -220,18 +227,10 @@ public:
 
     _names = new simpleString [_maxReads];
     _bases = new simpleString [_maxReads];
-    _files = new FILE *       [_maxReads];
-
-    //fprintf(stderr, "Alloc names %p\n", _names);
-    //fprintf(stderr, "Alloc bases %p\n", _bases);
-    //fprintf(stderr, "Alloc files %p\n", _files);
+    _files = new uint32       [_maxReads];
   };
 
   ~readBatch() {
-    //fprintf(stderr, "Delet names %p\n", _names);
-    //fprintf(stderr, "Delet bases %p\n", _bases);
-    //fprintf(stderr, "Delet files %p\n", _files);
-
     delete [] _names;
     delete [] _bases;
     delete [] _files;  //  Closed elsewhere!
@@ -242,7 +241,7 @@ public:
 
   simpleString  *_names;       //  Name of each sequence.
   simpleString  *_bases;       //  Bases in each sequence.
-  FILE         **_files;       //  File where each sequence should be output.
+  uint32        *_files;       //  File ID where each sequence should be output.
 };
 
 
@@ -262,6 +261,9 @@ hapData::hapData(char *merylname, char *fastaname) {
   minCount     = 0;
   maxCount     = UINT32_MAX;
   nKmers       = 0;
+
+  nReads       = 0;
+  nBases       = 0;
 
   outputWriter = NULL;
   outputFile   = NULL;
@@ -360,12 +362,12 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
   }
 #endif
 
-  fprintf(stderr, "--  Haplotype '%s':\n", merylName);
+  fprintf(stdout, "--  Haplotype '%s':\n", merylName);
 
   if (maxFreq < UINT32_MAX)
-    fprintf(stderr, "--   use kmers with frequency between %u and %u, inclusively.\n", minFreq, maxFreq);
+    fprintf(stdout, "--   use kmers with frequency between %u and %u, inclusively.\n", minFreq, maxFreq);
   else
-    fprintf(stderr, "--   use kmers with frequency at least %u.\n", minFreq);
+    fprintf(stdout, "--   use kmers with frequency at least %u.\n", minFreq);
 
   //  With those set, construct an exact lookup table.
 
@@ -376,7 +378,7 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
 
   //  And report what we loaded.
 
-  fprintf(stderr, "--   loaded %lu kmers.\n", nKmers);
+  fprintf(stdout, "--   loaded %lu kmers.\n", nKmers);
 };
 
 
@@ -420,14 +422,14 @@ allData::openOutputs(void) {
 void
 allData::loadHaplotypeData(void) {
 
-  fprintf(stderr, "--\n");
-  fprintf(stderr, "-- Loading haplotype data.\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "-- Loading haplotype data.\n");
 
   for (uint32 ii=0; ii<_haps.size(); ii++)
     _haps[ii]->initializeKmerTable(_minF, _maxF);
 
-  fprintf(stderr, "-- Data loaded.\n");
-  fprintf(stderr, "--\n");
+  fprintf(stdout, "-- Data loaded.\n");
+  fprintf(stdout, "--\n");
 }
 
 
@@ -443,10 +445,6 @@ loadReadBatch(void *G) {
 
   s = new readBatch(BATCH_SIZE);   //  We should be using recycled ones.
   //fprintf(stderr, "Alloc  readBatch s %p\n", s);
-
-  //char  *name  = new char [AS_MAX_READLEN + 1];
-  //char  *bases = new char [AS_MAX_READLEN + 1];
-  //char  *quals = new char [AS_MAX_READLEN + 1];
 
   s->_numReads = 0;
 
@@ -466,7 +464,7 @@ loadReadBatch(void *G) {
 
         s->_names[rr].set(g->_readData.sqReadData_getName());
         s->_bases[rr].set(g->_readData.sqReadData_getSequence(), readLen);
-        s->_files[rr] = NULL;
+        s->_files[rr] = UINT32_MAX;
 
         s->_numReads++;
       }
@@ -487,7 +485,7 @@ loadReadBatch(void *G) {
       if (seq.length() >= g->_minOutputLength) {
         s->_names[rr].set(seq.name());
         s->_bases[rr].set(seq.bases(), seq.length());
-        s->_files[rr] = NULL;
+        s->_files[rr] = UINT32_MAX;
 
         s->_numReads++;
       }
@@ -504,10 +502,6 @@ loadReadBatch(void *G) {
     delete s;
     s = NULL;
   }
-
-  //delete [] name;
-  //delete [] bases;
-  //delete [] quals;
 
   //fprintf(stderr, "Return readBatch s %p with %u/%u reads %p %p %p\n", s, s->_numReads, s->_maxReads, s->_names, s->_bases, s->_files);
 
@@ -613,11 +607,11 @@ processReadBatch(void *G, void *T, void *S) {
     //   - there is a non-zero best score and the second best is zero
     //   - the ratio of best to second best is bigger than some threshold
      
-    s->_files[ii] = g->_ambiguous;
+    s->_files[ii] = UINT32_MAX;
 
     if (((sco2nd < DBL_MIN) && (sco1st > DBL_MIN)) ||
         ((sco2nd > DBL_MIN) && (sco1st / sco2nd > g->_minRatio)))
-      s->_files[ii] = g->_haps[hap1st]->outputFile;
+      s->_files[ii] = hap1st;
   }
 
   delete [] matches;
@@ -628,12 +622,27 @@ void
 outputReadBatch(void *G, void *S) {
   allData     *g = (allData   *)G;
   readBatch   *s = (readBatch *)S;
+  FILE        *F = NULL;
 
   for (uint32 ii=0; ii<s->_numReads; ii++) {
-    if (s->_files[ii])
-      AS_UTL_writeFastA(s->_files[ii],
-                        s->_bases[ii].string(), s->_bases[ii].length(), 0,
-                        ">%s\n", s->_names[ii].string());
+    uint32 ff = s->_files[ii];
+
+    if (ff == UINT32_MAX) {
+      F = g->_ambiguous;
+
+      g->_ambiguousReads += 1;
+      g->_ambiguousBases += s->_bases[ii].length();
+
+    } else {
+      F = g->_haps[ff]->outputFile;
+
+      g->_haps[ff]->nReads += 1;
+      g->_haps[ff]->nBases += s->_bases[ii].length();
+    }
+
+    AS_UTL_writeFastA(F,
+                      s->_bases[ii].string(), s->_bases[ii].length(), 0,
+                      ">%s\n", s->_names[ii].string());
   }
 
   delete s;    //  We should recycle this, but hard to do.
@@ -648,6 +657,7 @@ int
 main(int argc, char **argv) {
   allData      *G          = new allData;
   uint32        numThreads = 1;
+  bool          beVerbose  = false;
 
   argc = AS_configure(argc, argv);
 
@@ -679,6 +689,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       numThreads = strtouint32(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
 
 
     } else {
@@ -729,6 +742,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -cr ratio        minimum ratio between best and second best to classify\n");
     fprintf(stderr, "  -cl length       minimum length of output read\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -v               report how many batches per second are being processed\n");
+    fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -757,17 +772,20 @@ main(int argc, char **argv) {
   SS->setWorkerBatchSize(1);
   SS->setWriterQueueSize(numThreads * OT_QUEUE_LENGTH);
 
-  fprintf(stderr, "-- Processing reads in batches of %u reads each.\n", BATCH_SIZE);
-  fprintf(stderr, "--\n");
+  fprintf(stdout, "-- Processing reads in batches of %u reads each.\n", BATCH_SIZE);
+  fprintf(stdout, "--\n");
 
-  SS->run(G, true);
+  SS->run(G, beVerbose);
 
-  fprintf(stderr, "--\n");
+  for (uint32 ii=0; ii<G->_haps.size(); ii++)
+    fprintf(stdout, "-- %8u reads %12lu bases written to haplotype file %s.\n", G->_haps[ii]->nReads, G->_haps[ii]->nBases, G->_haps[ii]->outputName);
+  fprintf(stdout, "-- %8u reads %12lu bases written to haplotype file %s.\n", G->_ambiguousReads, G->_ambiguousBases, G->_ambiguousName);
+  fprintf(stdout, "--\n");
 
   delete    SS;
   delete [] TD;
   delete    G;
 
-  fprintf(stderr, "-- Bye.\n");
+  fprintf(stdout, "-- Bye.\n");
   exit(0);
 }
