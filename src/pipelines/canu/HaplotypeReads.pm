@@ -984,7 +984,7 @@ sub haplotypeReadsConfigure ($@) {
     print F "\n";
     print F "#  If the unknown haplotype assignment exists, we're done.\n";
     print F "\n";
-    print F "if [ -e ./haplotype-unknown.fasta.gz ] ; then\n";
+    print F "if [ -e ./haplotype.log ] ; then\n";
     print F "  echo Read to haplotype assignment already exists.\n";
     print F "  exit 0\n";
     print F "fi\n";
@@ -993,7 +993,7 @@ sub haplotypeReadsConfigure ($@) {
         print F "\n";
         print F "#  If the unknown haplotype assignment exists in the object store, we're also done.\n";
         print F "\n";
-        print F fileExistsShellCode("exist1", "$path", "haplotype-unknown.fasta.gz");
+        print F fileExistsShellCode("exist1", "$path", "haplotype.log");
         print F "if [ \$exist1 = true ] ; then\n";
         print F "  echo Read to haplotype assignment exists in the object store.\n";
         print F "  exit 0\n";
@@ -1041,9 +1041,10 @@ sub haplotypeReadsConfigure ($@) {
     print F "  -threads $thr \\\n";
     print F "  -R $_ \\\n"                                                     foreach (@inputs);
     print F "  -H ./0-kmers/haplotype-$_.meryl ./haplotype-$_.fasta.gz \\\n"   foreach (@$haplotypes);
-    print F "  -A ./haplotype-unknown.fasta.WORKING.gz \\\n";
+    print F "  -A ./haplotype-unknown.fasta.gz \\\n";
+    print F "> haplotype.log.WORKING \\\n";
     print F "&& \\\n";
-    print F "mv -f ./haplotype-unknown.fasta.WORKING.gz ./haplotype-unknown.fasta.gz \\\n";
+    print F "mv -f ./haplotype.log.WORKING ./haplotype.log \\\n";
 
     if (defined(getGlobal("objectStore"))) {
         print F "\n";
@@ -1051,6 +1052,7 @@ sub haplotypeReadsConfigure ($@) {
         print F "\n";
         print F stashFileShellCode($path, "haplotype-$_.fasta.gz", "")   foreach (@$haplotypes);
         print F stashFileShellCode($path, "haplotype-unknown.fasta.gz", "");
+        print F stashFileShellCode($path, "haplotype.log", "");
     }
 
     print F "\n";
@@ -1102,7 +1104,7 @@ sub haplotypeReadsCheck ($@) {
     my $failureMessage = "";
 
     foreach my $job (@jobs) {
-        if      (fileExists("$path/haplotype-unknown.fasta.gz")) {
+        if      (fileExists("$path/haplotype.log")) {
             push @successJobs, $currentJobID;
 
         } else {

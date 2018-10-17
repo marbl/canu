@@ -654,6 +654,42 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
         $displLen = ($displLen < $hapLen) ? $hapLen : $displLen;
     }
 
+    #  Decide if we should use or ignore the unassigned reads, and if we should
+    #  even bother assembling.
+
+    fetchFile("");
+
+    my %hapReads;
+    my %hapBases;
+
+    my $totReads = 0;
+    my $totBases = 0;
+
+    open(F, "< haplotype/haplotype.log") or caExit("can't open 'haplotype/haplotype.log' for reading: $!", undef);
+    while (<F>) {
+        if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+written\s+to\s+haplotype\s+file\s+.*haplotype-(\w+).fasta.gz/) {
+            $hapReads{$3} = $1;     $totReads += $1;
+            $hapBases{$3} = $2;     $totBases += $2;
+        }
+    }
+    close(F);
+
+    print STDERR "--\n";
+    foreach my $haplotype (@haplotypes) {
+        printf STDERR "-- Found %8d reads and %12d bases for haplotype $haplotype.\n", $hapReads{$haplotype}, $hapBases{$haplotype};
+    }
+    printf STDERR "-- Found %8d reads and %12d bases assigned to no haplotype.\n", $hapReads{"unknown"}, $hapBases{"unknown"};
+
+    #  Ignore the unknown reads if there aren't that many.
+
+    my $withUnknown = ($hapBases{"unknown"} / $totBases < 0.02) ? 0 : 1;
+
+    if ($withUnknown == 0) {
+        print STDERR "--\n";
+        print STDERR "-- Too few bases in unassigned reads to care; don't use them in assemblies.\n";
+    }
+
+
     #  For each haplotype, emit a script to run the assembly.
 
     print STDERR "--\n";
@@ -661,7 +697,7 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
     foreach my $haplotype (@haplotypes) {
         my $hs = substr("$haplotype" . " " x $displLen, 0, $displLen);
 
-        print STDERR "-- Found haplotyped reads for $hs - write assembly command to './$asm-haplotype$haplotype.sh'.\n";
+        print STDERR "-- Assemble haplotype $hs with command './$asm-haplotype$haplotype.sh'.\n";
 
         open(F, "> ./$asm-haplotype$haplotype.sh");
         print F "#!/bin/sh\n";
@@ -676,6 +712,7 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
             print F "mkdir -p haplotype\n";
             print F "cd       haplotype\n";
             print F fetchFileShellCode("haplotype", "haplotype-$haplotype.fasta.gz", "");
+            print F fetchFileShellCode("haplotype", "haplotype-unnown.fasta.gz", "")      if ($withUnknown);
             print F "cd ..\n";
         }
 
@@ -685,6 +722,7 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
         print F "  -d $asm-haplotype$haplotype \\\n";
         print F "  $_ \\\n"   foreach (@options);
         print F "  $techtype ./haplotype/haplotype-$haplotype.fasta.gz \\\n";
+        print F "  $techtype ./haplotype/haplotype-unknown.fasta.gz \\\n"     if ($withUnknown);
         print F "> ./$asm-haplotype$haplotype.out 2>&1\n";
         print F "\n";
         print F "exit 0\n";
@@ -694,9 +732,15 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
         makeExecutable("./$asm-haplotype$haplotype.sh");
     }
 
-    #  Then run the scripts.
+    #  Fail if too many unassigned reads.
 
     print STDERR "--\n";
+
+    if ($hapBases{"unknown"} / $totBases > 0.50) {
+        caExit("too many unassigned reads", undef);
+    }
+
+    #  Then run the scripts.
 
     foreach my $haplotype (@haplotypes) {
         if (getGlobal("useGrid") ne "1") {
