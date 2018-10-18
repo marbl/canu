@@ -158,6 +158,9 @@ loadFromFile(void        *objects,
 bool
 readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F) {
 
+  if (F == NULL)
+    return(false);
+
   if ((L == NULL) || (Lmax == 0))
     allocateArray(L, Lmax = 4, resizeArray_clearNew);
 
@@ -203,6 +206,9 @@ readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F) {
 //  Reads a line of text from a file.  Trims off trailing whitespace, including newlines.
 bool
 AS_UTL_readLine(char *&L, uint32 &Llen, uint32 &Lmax, FILE *F) {
+
+  if (F == NULL)
+    return(false);
 
   if ((L == NULL) || (Lmax == 0))
     allocateArray(L, Lmax = 1024, resizeArray_clearNew);
