@@ -50,7 +50,7 @@ public:
   ~hapData();
 
 public:
-  void   initializeKmerTable(uint32 minFrequency, uint32 maxFrequency);
+  void   initializeKmerTable(void);
 
   void   initializeOutput(void) {
     outputWriter = new compressedFileWriter(outputName);
@@ -87,9 +87,6 @@ public:
     _numReads         = 0;
 
     //  _seqs and _haps are assumed to be clear already.
-
-    _minF             = 0;
-    _maxF             = UINT32_MAX;
 
     _minRatio         = 1.0;
     _minOutputLength  = 1000;
@@ -130,9 +127,6 @@ public:
   queue<dnaSeqFile *>    _seqs;      //  Input from FASTA/FASTQ files.
 
   vector<hapData *>      _haps;
-
-  uint32                 _minF;      //  Not actually set by
-  uint32                 _maxF;      //  command line parameters
 
   double                 _minRatio;
   uint32                 _minOutputLength;
@@ -280,17 +274,13 @@ hapData::~hapData() {
 
 
 
-void
-getMinFreqFromHistogram(char *histoName,
-                        uint32 &minFreq,
-                        uint32 &maxFreq) {
+uint32
+getMinFreqFromHistogram(char *histoName) {
 
   //  If the file doesn't exist, assume it's a number and return that.
 
-  if (fileExists(histoName) == false) {
-    minFreq = strtouint32(histoName);
-    return;
-  }
+  if (fileExists(histoName) == false)
+    return(strtouint32(histoName));
 
   //  Otherwise, open the histogram file and load into memory.  This handles
   //  both 'meryl statistics' and 'meryl histogram' outputs.
@@ -356,11 +346,8 @@ getMinFreqFromHistogram(char *histoName,
 
   uint32  f = 1;
 
-  minFreq = 1;
-  maxFreq = UINT32_MAX;
-
-  uint64  minSum  = histo[f++];
-  uint64  maxSum  = 0;
+  uint32  minFreq = 1;
+  uint64  minAve  = histo[f++];
 
   //for (uint32 ii=0; ii<aveSize; ii++) {
   //  thisSum += histo[f++];
@@ -382,38 +369,18 @@ getMinFreqFromHistogram(char *histoName,
       thisLen++;
     }
 
-    if (thisSum < minSum) {
+    if (thisSum / thisLen < minAve) {
       minFreq = f - thisLen/2;
-      minSum  = thisSum;
+      minAve  = thisSum / thisLen;
     }
 
-    if (2 * minSum < thisSum)
-      break;
+    if (2 * minAve * aveSize < thisSum)   //  Over estimates the minimum sum when thisLen < aveSize - i.e., for
+      break;                              //  frequencies 1, 2, 3 and 4.  Probably not an issue.
   }
-
-  //  Continue scanning until we find the number of kmers falls below 0.75 * min.
-#if 0
-  for (; f < histoLen; f++) {
-    if (thisLen == aveSize) {
-      thisSum += histo[f];
-      thisSum -= histo[f - aveSize];
-    }
-
-    else {
-      thisSum += histo[f];
-      thisLen++;
-    }
-
-    if (thisSum < 0.75 * minSum) {
-      maxFreq = f - thisLen/2;
-      maxSum  = thisSum;
-
-      break;
-    }
-  }
-#endif
 
   delete [] histo;
+
+  return(minFreq);
 }
 
 
@@ -422,25 +389,19 @@ getMinFreqFromHistogram(char *histoName,
 
 
 void
-hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
+hapData::initializeKmerTable(void) {
   kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
-  kmerCountStatistics  *stats  = reader->stats();
 
-  uint32  minFreq = 0;
-  uint32  maxFreq = UINT32_MAX;
+  //  Decide on a threshold below which we consider the kmers as useless noise.
 
-  getMinFreqFromHistogram(histoName, minFreq, maxFreq);
+  uint32 minFreq = getMinFreqFromHistogram(histoName);
 
   fprintf(stdout, "--  Haplotype '%s':\n", merylName);
+  fprintf(stdout, "--   use kmers with frequency at least %u.\n", minFreq);
 
-  if (maxFreq < UINT32_MAX)
-    fprintf(stdout, "--   use kmers with frequency between %u and %u, inclusively.\n", minFreq, maxFreq);
-  else
-    fprintf(stdout, "--   use kmers with frequency at least %u.\n", minFreq);
+  //  Construct an exact lookup table.
 
-  //  With those set, construct an exact lookup table.
-
-  lookup = new kmerCountExactLookup(reader, minFreq, maxFreq);
+  lookup = new kmerCountExactLookup(reader, minFreq, UINT32_MAX);
   nKmers = lookup->nKmers();
 
   delete reader;
@@ -495,7 +456,7 @@ allData::loadHaplotypeData(void) {
   fprintf(stdout, "-- Loading haplotype data.\n");
 
   for (uint32 ii=0; ii<_haps.size(); ii++)
-    _haps[ii]->initializeKmerTable(_minF, _maxF);
+    _haps[ii]->initializeKmerTable();
 
   fprintf(stdout, "-- Data loaded.\n");
   fprintf(stdout, "--\n");
