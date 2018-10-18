@@ -536,11 +536,17 @@ sub haplotypeCountConfigure ($%) {
     print F "mv -f ./reads-\$haplotype.meryl.WORKING ./reads-\$haplotype.meryl \\\n";
     print F "&& \\\n";
     print F "rm -rf ./reads-\$haplotype-???.meryl\n";
+    print F "\n";
+    print F "$bin/meryl threads=$thr memory=$mem \\\n";
+    print F "  statistics \\\n";
+    print F "    ./reads-\$haplotype.meryl \\\n";
+    print F "> ./reads-\$haplotype.statistics \\\n";
 
     if (defined(getGlobal("objectStore"))) {
         print F "\n";
         print F "#  Save those precious results!\n";
         print F "\n";
+        print F stashFileShellCode($path, "reads-\$haplotype.statistics", "");
         print F stashMerylShellCode($path, "reads-\$haplotype.meryl", "");
     }
 
@@ -1039,8 +1045,8 @@ sub haplotypeReadsConfigure ($@) {
     print F "\n";
     print F "$bin/splitHaplotype \\\n";
     print F "  -threads $thr \\\n";
-    print F "  -R $_ \\\n"                                                     foreach (@inputs);
-    print F "  -H ./0-kmers/haplotype-$_.meryl ./haplotype-$_.fasta.gz \\\n"   foreach (@$haplotypes);
+    print F "  -R $_ \\\n"                                                                                   foreach (@inputs);
+    print F "  -H ./0-kmers/haplotype-$_.meryl ./0-kmers/reads-$_.statistics ./haplotype-$_.fasta.gz \\\n"   foreach (@$haplotypes);
     print F "  -A ./haplotype-unknown.fasta.gz \\\n";
     print F "> haplotype.log.WORKING \\\n";
     print F "&& \\\n";

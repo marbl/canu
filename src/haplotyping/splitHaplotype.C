@@ -46,7 +46,7 @@ using namespace std;
 
 class hapData {
 public:
-  hapData(char *merylname, char *fastaname);
+  hapData(char *merylname, char *histoname, char *fastaname);
   ~hapData();
 
 public:
@@ -59,6 +59,7 @@ public:
 
 public:
   char                    merylName[FILENAME_MAX+1];
+  char                    histoName[FILENAME_MAX+1];
   char                    outputName[FILENAME_MAX+1];
 
   kmerCountExactLookup   *lookup;
@@ -253,8 +254,9 @@ public:
 
 
 
-hapData::hapData(char *merylname, char *fastaname) {
+hapData::hapData(char *merylname, char *histoname, char *fastaname) {
   strncpy(merylName,  merylname, FILENAME_MAX);
+  strncpy(histoName,  histoname, FILENAME_MAX);
   strncpy(outputName, fastaname, FILENAME_MAX);
 
   lookup       = NULL;
@@ -276,13 +278,59 @@ hapData::~hapData() {
 };
 
 
-void
-hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
-  kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
-  kmerCountStatistics  *stats  = reader->stats();
 
-  //
-  //  Use the reader histogram to decide on min and max frequency thresholds.
+
+void
+getMinFreqFromHistogram(char *histoName,
+                        uint32 &minFreq,
+                        uint32 &maxFreq) {
+
+  //  If the file doesn't exist, assume it's a number and return that.
+
+  if (fileExists(histoName) == false) {
+    minFreq = strtouint32(histoName);
+    return;
+  }
+
+  //  Otherwise, open the histogram file and load into memory.  This handles
+  //  both 'meryl statistics' and 'meryl histogram' outputs.
+
+  splitToWords  S;
+
+  uint32        Llen     = 0;
+  uint32        Lmax     = 0;
+  char         *L        = new char [Lmax];
+
+  uint32        histoLen = 0;
+  uint32        histoMax = 1024;
+  uint32       *histo    = new uint32 [histoMax];
+
+  FILE *H = AS_UTL_openInputFile(histoName);
+  while (AS_UTL_readLine(L, Llen, Lmax, H)) {
+    S.split(L);
+
+    uint32  f = 0;   //  Frequency
+    uint32  v = 0;   //  Number of kmers at that frequency.
+
+    if (S.numWords() >= 2) {  //  First word must be the frequency,
+      f = S.touint32(0);     //  second word must be the number of
+      v = S.touint32(1);     //  kmer that occur exactly f times.
+    }
+
+    if (f == 0)              //  If zero, assume it's a header line
+      continue;              //  or some other such crud.
+
+    if (f >= histoMax)       //  If big, we're done, we don't
+      break;                 //  care about highly common kmers.
+
+    histo[f] = v;
+    histoLen = f + 1;
+  }
+  AS_UTL_closeFile(H, histoName);
+
+  delete [] L;
+
+  //  Use the histogram to decide on min and max frequency thresholds.
   //  Pick the frequency:
   //    For min, at the bottom of the trough between the noise and real.
   //    For max, after the peak, and that has count 75% of the min.
@@ -308,11 +356,14 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
 
   uint32  f = 1;
 
-  uint32  minFreq = 1,                               maxFreq = UINT32_MAX;
-  uint64  minSum  = stats->numKmersAtFrequency(f++), maxSum  = 0;
+  minFreq = 1;
+  maxFreq = UINT32_MAX;
+
+  uint64  minSum  = histo[f++];
+  uint64  maxSum  = 0;
 
   //for (uint32 ii=0; ii<aveSize; ii++) {
-  //  thisSum += stats->numKmersAtFrequency(f++);
+  //  thisSum += histo[f++];
   //  thisLen += 1;
   //}
 
@@ -320,14 +371,14 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
   //  of the average the minimum.  Keep searching ahead until our current average is
   //  twice that of the minimum found.
 
-  for (; f < stats->numFrequencies(); f++) {
+  for (; f < histoLen; f++) {
     if (thisLen == aveSize) {
-      thisSum += stats->numKmersAtFrequency(f);
-      thisSum -= stats->numKmersAtFrequency(f - aveSize);
+      thisSum += histo[f];
+      thisSum -= histo[f - aveSize];
     }
 
     else {
-      thisSum += stats->numKmersAtFrequency(f);
+      thisSum += histo[f];
       thisLen++;
     }
 
@@ -342,14 +393,14 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
 
   //  Continue scanning until we find the number of kmers falls below 0.75 * min.
 #if 0
-  for (; f < stats->numFrequencies(); f++) {
+  for (; f < histoLen; f++) {
     if (thisLen == aveSize) {
-      thisSum += stats->numKmersAtFrequency(f);
-      thisSum -= stats->numKmersAtFrequency(f - aveSize);
+      thisSum += histo[f];
+      thisSum -= histo[f - aveSize];
     }
 
     else {
-      thisSum += stats->numKmersAtFrequency(f);
+      thisSum += histo[f];
       thisLen++;
     }
 
@@ -361,6 +412,24 @@ hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
     }
   }
 #endif
+
+  delete [] histo;
+}
+
+
+
+
+
+
+void
+hapData::initializeKmerTable(uint32 minFrequency, uint32 maxFrequency) {
+  kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
+  kmerCountStatistics  *stats  = reader->stats();
+
+  uint32  minFreq = 0;
+  uint32  maxFreq = UINT32_MAX;
+
+  getMinFreqFromHistogram(histoName, minFreq, maxFreq);
 
   fprintf(stdout, "--  Haplotype '%s':\n", merylName);
 
@@ -675,8 +744,8 @@ main(int argc, char **argv) {
         G->_seqs.push(new dnaSeqFile(argv[++arg]));
 
     } else if (strcmp(argv[arg], "-H") == 0) {   //  HAPLOTYPE SPECIFICATION
-      G->_haps.push_back(new hapData(argv[arg+1], argv[arg+2]));
-      arg += 2;
+      G->_haps.push_back(new hapData(argv[arg+1], argv[arg+2], argv[arg+3]));
+      arg += 3;
 
     } else if (strcmp(argv[arg], "-A") == 0) {
       G->_ambiguousName = argv[++arg];
@@ -713,12 +782,9 @@ main(int argc, char **argv) {
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -S seqStore ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "INPUTS:\n");
+    fprintf(stderr, "READ INPUTS:\n");
     fprintf(stderr, "  Expects PacBio or Nanopore reads in one or more Canu seqStore, FASTA or FASTQ\n");
     fprintf(stderr, "  inputs.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  Expects meryl kmer databases for two or more haplotypes.  The databases should\n");
-    fprintf(stderr, "  contain kmers that are only present in that haplotype.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -S seqStore                      path to input seqStore of reads to classify.\n");
     fprintf(stderr, "  -r bgn[-end]                     range of reads to operate on.\n");
@@ -726,8 +792,18 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -R reads.fasta                   path to input FASTA or FASTQ of reads to classify.\n");
     fprintf(stderr, "                                   these may be uncompressed, gzip, bzip2 or xz compressed.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -H haplo.meryl haplo.fasta.gz    path to input haplotype-specific kmer database,\n");
-    fprintf(stderr, "                                   and output gzip-compressed FASTA reads..\n");
+    fprintf(stderr, "HAPLOTYPE INPUTS AND OUTPUTS\n");
+    fprintf(stderr, "  Each -H option specifies a haplotype using three parameters.\n");
+    fprintf(stderr, "    haplo-kmers.meryl       - haplotype specific kmers contained in a meryl database.\n");
+    fprintf(stderr, "    parent-kmers.histogram  - a histogram of all parent kmers.\n");
+    fprintf(stderr, "    haplo-output.fasta.gz   - output reads assigned to this haplotype.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -H haplo-kmers.meryl parent-kmers.histogram haplo-output.fasta.gz\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  The 'parent-kmers.histgram' is used to determine a noise threshold.  kmers\n");
+    fprintf(stderr, "  that occur fewer than that many times are ignored as being likely noise kmers.\n");
+    fprintf(stderr, "  Instead of a full histogram, a single integer can be supplied to directly\n");
+    fprintf(stderr, "  set the threshold.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "OUTPUTS:\n");
     fprintf(stderr, "  Haplotype-specific reads are written to 'haplo.fasta.gz' as specified in each -H\n");
