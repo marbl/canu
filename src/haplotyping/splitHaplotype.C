@@ -512,8 +512,8 @@ loadReadBatch(void *G) {
         continue;
       }
 
-      if (seq.length() >= g->_minOutputLength) {
-        s->_names[rr].set(seq.name());
+      if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
+        s->_names[rr].set(seq.name());                      //  enough, save it to our list.
         s->_bases[rr].set(seq.bases(), seq.length());
         s->_files[rr] = UINT32_MAX;
 
