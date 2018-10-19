@@ -956,20 +956,7 @@ sub haplotypeReadsConfigure ($@) {
         push @inputs, (split '\0', $in)[1];
     }
 
-    #  splitHaplotype helpfully writes output .fasta.gz where the inpout .meryl files are.
-    #  Since this is a quite simple (and the last) step, we'll run it in the root haplotyping/
-    #  directory instead of the usual #-stage directory.
-
-    #  Symlink to the meryl databases.
-
-    #foreach my $hap (@$haplotypes) {
-    #    if (! -e "haplotype/haplotype-$hap.meryl") {
-    #        symlink("0-kmers/haplotype-$hap.meryl", "haplotype/haplotype-$hap.meryl") or
-    #            caExit("can't make symlink to '0-kmers/haplotype-$hap.meryl' in 'haplotype/haplotype-$hap.meryl': $!", undef);
-    #    }
-    #}
-
-    #  Now just dump the script.
+    #  Dump the script.
 
     my $mem = 48;  #getGlobal("merylMemory");
     my $thr = 16;  #getGlobal("merylThreads");
