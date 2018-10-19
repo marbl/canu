@@ -432,19 +432,20 @@ sub getAllowedResources ($$$$$@) {
 
     my $nam;
 
-    if    ($alg eq "meryl")    {  $nam = "(k-mer counting)"; }
-    elsif ($alg eq "mhap")     {  $nam = "(overlap detection with mhap)"; }
-    elsif ($alg eq "mmap")     {  $nam = "(overlap detection with minimap)"; }
-    elsif ($alg eq "ovl")      {  $nam = "(overlap detection)"; }
-    elsif ($alg eq "cor")      {  $nam = "(read correction)"; }
-    elsif ($alg eq "ovb")      {  $nam = "(overlap store bucketizer)"; }
-    elsif ($alg eq "ovs")      {  $nam = "(overlap store sorting)"; }
-    elsif ($alg eq "red")      {  $nam = "(read error detection)"; }
-    elsif ($alg eq "oea")      {  $nam = "(overlap error adjustment)"; }
-    elsif ($alg eq "bat")      {  $nam = "(contig construction with bogart)"; }
-    elsif ($alg eq "dbg")      {  $nam = "(contig construction with wtdbg)"; }
-    elsif ($alg eq "cns")      {  $nam = "(consensus)"; }
-    elsif ($alg eq "gfa")      {  $nam = "(GFA alignment and processing)"; }
+    if    ($alg eq "meryl")     {  $nam = "(k-mer counting)"; }
+    elsif ($alg eq "haplotype") {  $nam = "(read-to-haplotype assignment)"; }
+    elsif ($alg eq "mhap")      {  $nam = "(overlap detection with mhap)"; }
+    elsif ($alg eq "mmap")      {  $nam = "(overlap detection with minimap)"; }
+    elsif ($alg eq "ovl")       {  $nam = "(overlap detection)"; }
+    elsif ($alg eq "cor")       {  $nam = "(read correction)"; }
+    elsif ($alg eq "ovb")       {  $nam = "(overlap store bucketizer)"; }
+    elsif ($alg eq "ovs")       {  $nam = "(overlap store sorting)"; }
+    elsif ($alg eq "red")       {  $nam = "(read error detection)"; }
+    elsif ($alg eq "oea")       {  $nam = "(overlap error adjustment)"; }
+    elsif ($alg eq "bat")       {  $nam = "(contig construction with bogart)"; }
+    elsif ($alg eq "dbg")       {  $nam = "(contig construction with wtdbg)"; }
+    elsif ($alg eq "cns")       {  $nam = "(consensus)"; }
+    elsif ($alg eq "gfa")       {  $nam = "(GFA alignment and processing)"; }
     else {
         caFailure("unknown task '$alg' in getAllowedResources().", undef);
     }
@@ -733,6 +734,19 @@ sub configureAssembler () {
         setGlobalIfUndef("merylMemory", "24-64");       setGlobalIfUndef("merylThreads", "1-8");
     }
 
+    #  Total guesses on read-to-haplotype assignment.  A well-behaved nanopore human
+    #  was running in 2GB memory.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
+        setGlobalIfUndef("haplotypeMemory", "4-8");     setGlobalIfUndef("haplotypeThreads", "1-4");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
+        setGlobalIfUndef("haplotypeMemory", "6-12");    setGlobalIfUndef("haplotypeThreads", "8-24");
+
+    } else {
+        setGlobalIfUndef("haplotypeMemory", "8-16");    setGlobalIfUndef("haplotypeThreads", "16-64");
+    }
+
 
     if (getGlobal("genomeSize") < 10000000) {
         setGlobal("corOvlMerDistinct",  "0.9999")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
@@ -830,35 +844,37 @@ sub configureAssembler () {
     my $err;
     my $all;
 
-    ($err, $all) = getAllowedResources("",    "meryl",    $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "meryl",     $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("cor", "mhap",     $err, $all, 0)   if (getGlobal("corOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all, 0)   if (getGlobal("corOverlapper") eq "minimap");
-    ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "ovl");
+    ($err, $all) = getAllowedResources("",    "haplotype", $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("obt", "mhap",     $err, $all, 0)   if (getGlobal("obtOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("obt", "mmap",     $err, $all, 0)   if (getGlobal("obtOverlapper") eq "minimap");
-    ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all, 0)   if (getGlobal("obtOverlapper") eq "ovl");
+    ($err, $all) = getAllowedResources("cor", "mhap",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "mhap");
+    ($err, $all) = getAllowedResources("cor", "mmap",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "minimap");
+    ($err, $all) = getAllowedResources("cor", "ovl",       $err, $all, 0)   if (getGlobal("corOverlapper") eq "ovl");
 
-    ($err, $all) = getAllowedResources("utg", "mhap",     $err, $all, 0)   if (getGlobal("utgOverlapper") eq "mhap");
-    ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all, 0)   if (getGlobal("utgOverlapper") eq "minimap");
-    ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all, 0)   if (getGlobal("utgOverlapper") eq "ovl");
+    ($err, $all) = getAllowedResources("obt", "mhap",      $err, $all, 0)   if (getGlobal("obtOverlapper") eq "mhap");
+    ($err, $all) = getAllowedResources("obt", "mmap",      $err, $all, 0)   if (getGlobal("obtOverlapper") eq "minimap");
+    ($err, $all) = getAllowedResources("obt", "ovl",       $err, $all, 0)   if (getGlobal("obtOverlapper") eq "ovl");
+
+    ($err, $all) = getAllowedResources("utg", "mhap",      $err, $all, 0)   if (getGlobal("utgOverlapper") eq "mhap");
+    ($err, $all) = getAllowedResources("utg", "mmap",      $err, $all, 0)   if (getGlobal("utgOverlapper") eq "minimap");
+    ($err, $all) = getAllowedResources("utg", "ovl",       $err, $all, 0)   if (getGlobal("utgOverlapper") eq "ovl");
 
     #  Usually set based on read length in CorrectReads.pm.  If defined by the user, run through configuration.
-    ($err, $all) = getAllowedResources("",    "cor",      $err, $all, 0)   if (getGlobal("corMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cor",       $err, $all, 0)   if (getGlobal("corMemory") ne undef);
 
-    ($err, $all) = getAllowedResources("",    "ovb",      $err, $all, 0);
-    ($err, $all) = getAllowedResources("",    "ovs",      $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "ovb",       $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "ovs",       $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("",    "red",      $err, $all, 0);
-    ($err, $all) = getAllowedResources("",    "oea",      $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "red",       $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "oea",       $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("",    "bat",      $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "BOGART");
-    ($err, $all) = getAllowedResources("",    "dbg",      $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "WTDBG");
+    ($err, $all) = getAllowedResources("",    "bat",       $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "BOGART");
+    ($err, $all) = getAllowedResources("",    "dbg",       $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "WTDBG");
 
-    ($err, $all) = getAllowedResources("",    "cns",      $err, $all, 0)   if (getGlobal("cnsMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cns",       $err, $all, 0)   if (getGlobal("cnsMemory") ne undef);
 
-    ($err, $all) = getAllowedResources("",    "gfa",      $err, $all, 1);
+    ($err, $all) = getAllowedResources("",    "gfa",       $err, $all, 1);
 
     #  Check some minimums.
 

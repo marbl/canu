@@ -911,7 +911,7 @@ sub setDefaults () {
 
     setDefault("useGrid", 1, "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'");
 
-    foreach my $c (qw(BAT GFA CNS COR MERYL CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
+    foreach my $c (qw(BAT GFA CNS COR MERYL HAPLOTYPE CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
         setDefault("useGrid$c", 1, "If 'true', run module $c under grid control; if 'false' run locally.");
     }
 
@@ -923,30 +923,31 @@ sub setDefaults () {
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    setExecDefaults("meryl",   "mer counting");
-    setExecDefaults("cor",     "read correction");
+    setExecDefaults("meryl",     "mer counting");
+    setExecDefaults("haplotype", "haplotype assignment");
+    setExecDefaults("cor",       "read correction");
 
-    setExecDefaults("corovl",  "overlaps for correction");
-    setExecDefaults("obtovl",  "overlaps for trimming");
-    setExecDefaults("utgovl",  "overlaps for unitig construction");
+    setExecDefaults("corovl",    "overlaps for correction");
+    setExecDefaults("obtovl",    "overlaps for trimming");
+    setExecDefaults("utgovl",    "overlaps for unitig construction");
 
-    setExecDefaults("cormhap", "mhap overlaps for correction");
-    setExecDefaults("obtmhap", "mhap overlaps for trimming");
-    setExecDefaults("utgmhap", "mhap overlaps for unitig construction");
+    setExecDefaults("cormhap",   "mhap overlaps for correction");
+    setExecDefaults("obtmhap",   "mhap overlaps for trimming");
+    setExecDefaults("utgmhap",   "mhap overlaps for unitig construction");
 
-    setExecDefaults("cormmap", "mmap overlaps for correction");
-    setExecDefaults("obtmmap", "mmap overlaps for trimming");
-    setExecDefaults("utgmmap", "mmap overlaps for unitig construction");
+    setExecDefaults("cormmap",   "mmap overlaps for correction");
+    setExecDefaults("obtmmap",   "mmap overlaps for trimming");
+    setExecDefaults("utgmmap",   "mmap overlaps for unitig construction");
 
-    setExecDefaults("ovb",     "overlap store bucketizing");
-    setExecDefaults("ovs",     "overlap store sorting");
+    setExecDefaults("ovb",       "overlap store bucketizing");
+    setExecDefaults("ovs",       "overlap store sorting");
 
-    setExecDefaults("red",     "read error detection");
-    setExecDefaults("oea",     "overlap error adjustment");
+    setExecDefaults("red",       "read error detection");
+    setExecDefaults("oea",       "overlap error adjustment");
 
-    setExecDefaults("bat",     "unitig construction");
-    setExecDefaults("cns",     "unitig consensus");
-    setExecDefaults("gfa",     "graph alignment and processing");
+    setExecDefaults("bat",       "unitig construction");
+    setExecDefaults("cns",       "unitig consensus");
+    setExecDefaults("gfa",       "graph alignment and processing");
 
     #####  Object Storage
 
@@ -975,6 +976,12 @@ sub setDefaults () {
     setDefault("merylMemory",      undef,  "Amount of memory, in gigabytes, to use for mer counting");
     setDefault("merylThreads",     undef,  "Number of threads to use for mer counting");
     setDefault("merylConcurrency", undef,  "Unused, there is only one process");
+
+    #####  Haplotyping
+
+    setDefault("haplotypeMemory",      undef,  "Amount of memory, in gigabytes, to use for haplotype assignment");
+    setDefault("haplotypeThreads",     undef,  "Number of threads to use for haplotype assignment");
+    setDefault("haplotypeConcurrency", undef,  "Unused, there is only one process");
 
     #####  Overlap Based Trimming
 

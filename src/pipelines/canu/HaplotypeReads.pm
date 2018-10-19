@@ -958,8 +958,8 @@ sub haplotypeReadsConfigure ($@) {
 
     #  Dump the script.
 
-    my $mem = 48;  #getGlobal("merylMemory");
-    my $thr = 16;  #getGlobal("merylThreads");
+    my $mem = getGlobal("haplotypeMemory");
+    my $thr = getGlobal("haplotypeThreads");
 
     open(F, "> $path/splitHaplotype.sh") or caExit("can't open '$path/splitHaplotype.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
@@ -1133,7 +1133,7 @@ sub haplotypeReadsCheck ($@) {
 
         generateReport($asm);
 
-        submitOrRunParallelJob($asm, "meryl", $path, "splitHaplotype", @failedJobs);
+        submitOrRunParallelJob($asm, "haplotype", $path, "splitHaplotype", @failedJobs);
         return;
     }
 
