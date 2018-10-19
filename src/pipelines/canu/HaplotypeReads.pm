@@ -648,7 +648,7 @@ sub haplotypeCountConfigure ($%) {
     resetIteration("haplotypeCountConfigure");
 
   allDone:
-    stopAfter("meryl");
+    stopAfter("meryl-configure");
 }
 
 
@@ -759,7 +759,7 @@ sub haplotypeCountCheck ($) {
     resetIteration("haplotype-merylCountCheck");
 
   allDone:
-    stopAfter("meryl");
+    stopAfter("meryl-count");
 }
 
 
@@ -845,7 +845,7 @@ sub haplotypeMergeCheck ($@) {
     resetIteration("haplotype-merylMergeCheck");
 
   allDone:
-    stopAfter("meryl");
+    stopAfter("meryl-merge");
 }
 
 
@@ -931,7 +931,7 @@ sub haplotypeSubtractCheck ($@) {
     resetIteration("haplotype-merylSubtractCheck");
 
   allDone:
-    stopAfter("meryl");
+    stopAfter("meryl-subtract");
 }
 
 
@@ -1059,7 +1059,7 @@ sub haplotypeReadsConfigure ($@) {
     resetIteration("haplotypeReadsConfigure");
 
   allDone:
-    stopAfter("meryl");
+    stopAfter("haplotype-configure");
 }
 
 
@@ -1148,8 +1148,8 @@ sub haplotypeReadsCheck ($@) {
     stashFile("$path/haplotyping.success");
 
     generateReport($asm);
-    resetIteration("haplotype-merylSubtractCheck");
+    resetIteration("haplotype-reads");
 
   allDone:
-    stopAfter("meryl");
+    stopAfter("haplotype");
 }
