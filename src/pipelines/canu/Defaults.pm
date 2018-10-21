@@ -567,23 +567,6 @@ sub addSequenceFile ($$@) {
         return(undef);
     }
 
-    #  If this looks like an object store file, blindly accept that it exists.
-    if ($file =~ m/^project-.*:file-\w+/) {
-        return($file);
-    }
-    if ($file =~ m/^\w+:\w+/) {
-        return($file);
-    }
-
-    #  If the file exists in object storage, accept it as is.  Well, except
-    #  we can't test this until we complete setup -- in particular, until we
-    #  setup grids -- but we can't do that until we parse the command line,
-    #  and we can't parse the command line without deciding if a parameter
-    #  is a file or an option!
-    #if (objectStoreFileExists($file)) {
-    #    return($file);
-    #}
-
     #  If $dir is defined, assume the file is relative to it.
     if (defined($dir)) {
         $file = "$dir/$file";
@@ -597,6 +580,28 @@ sub addSequenceFile ($$@) {
     #  If the file exists in a relative path, make it a full path.
     if (-e $file) {
         return(abs_path($file));
+    }
+
+    #  If the file exists in object storage, accept it as is.  Well, except
+    #  we can't test this until we complete setup -- in particular, until we
+    #  setup grids -- but we can't do that until we parse the command line,
+    #  and we can't parse the command line without deciding if a parameter
+    #  is a file or an option!
+    #
+    #  So, the best we can do is test if this file _looks_ like it might
+    #  be a pointer to one in an object store.  This must be done _after_
+    #  we try making relative paths into full paths above, otherwise
+    #  we don't file full paths for files with :'s in the name!
+
+    #if (objectStoreFileExists($file)) {
+    #    return($file);
+    #}
+
+    if ($file =~ m/^project-.*:file-\w+/) {
+        return($file);
+    }
+    if ($file =~ m/^\w+:\w+/) {
+        return($file);
     }
 
     #  Otherwise, not found.  Report an error, unless told not to.  This is
