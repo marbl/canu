@@ -180,8 +180,13 @@ findBestPrefixSize(uint64  nKmerEstimate,
     //  IMPORTANT!  Prefixes must be at least six bits - the number of bits
     //  we use for deciding on a file - and probably need to then leave one
     //  bit for a block id.  So only save a bestPrefix if it is at least 7.
+    //
+    //  IMPORTANT!  Smaller prefixes mean bigger blocks in the output file,
+    //  and any operation on those outputs needs to load all kmers in
+    //  the block into memory, as full kmers.  Only save a bestPrefix
+    //  if it is at least 10 - giving us at least 16 blocks per file.
 
-    if ((wp > 6) && (totalMemory + 16 * wp * 1024 * 1024 < memoryUsed_)) {
+    if ((wp > 9) && (totalMemory + 16 * wp * 1024 * 1024 < memoryUsed_)) {
       memoryUsed_ = totalMemory;
       bestPrefix_ = wp;
     }
