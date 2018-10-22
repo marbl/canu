@@ -13,14 +13,15 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/utility/readBuffer.H
+ *
  *  Modifications by:
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
-
-
-
 
 //  Returns the next letter in the buffer, but DOES NOT advance past
 //  it.  Might have some wierd interaction with EOF -- if you peek()

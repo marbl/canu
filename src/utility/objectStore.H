@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-APR-30
+ *    Brian P. Walenz beginning on 2018-JUL-20
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -32,7 +32,7 @@
 //
 //  NOTE that this function is limited in its ability to fetch files.
 //  It will ONLY work with seqStore and ovlStore data files:
-//     seqStore/blobs.* 
+//     seqStore/blobs.*
 //     ovlStore/0000<000>
 //
 //  Returns false if the file was not fetched (either no object store

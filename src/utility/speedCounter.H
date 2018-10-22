@@ -15,7 +15,7 @@
  *
  *  This file is derived from:
  *
- *    kmer/libutil/speedCounter.H
+ *    src/AS_UTL/speedCounter.H
  *
  *  Modifications by:
  *
@@ -30,6 +30,10 @@
  *    Brian P. Walenz from 2014-DEC-05 to 2014-DEC-08
  *      are Copyright 2014 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2018-JUL-21
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

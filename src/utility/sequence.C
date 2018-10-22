@@ -1,17 +1,30 @@
 
 /******************************************************************************
  *
- *  This file is part of 'sequence' and/or 'meryl', software programs for
- *  working with DNA sequence files and k-mers contained in them.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-FEB-26
+ *    Brian P. Walenz beginning on 2018-JUL-21
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
- *  File 'README.license' in the root directory of this distribution contains
- *  full conditions and disclaimers.
+ *    Sergey Koren beginning on 2018-AUG-30
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
  */
 
 #include "sequence.H"
@@ -356,7 +369,7 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
   uint32  nameLen = 0;
   uint64  seqLen  = 0;
   uint64  qltLen  = 0;
-  char    ch      = _buffer->read();  
+  char    ch      = _buffer->read();
 
   assert(ch == '@');
 
@@ -505,7 +518,7 @@ dnaSeqFile::loadBases(char    *seq,
     _buffer->read();
   }
 
-  //  We hit EOF.  If there are bases loaded, then we're at the end of 
+  //  We hit EOF.  If there are bases loaded, then we're at the end of
   //  a sequence, and should return that we loaded bases.
 
   endOfSequence = (seqLength > 0);

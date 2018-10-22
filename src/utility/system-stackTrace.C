@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/utility/AS_UTL_stackTrace.C
+ *
  *  Modifications by:
  *
  *  File 'README.licenses' in the root directory of this distribution contains

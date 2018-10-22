@@ -13,11 +13,11 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/utility/writeBuffer.H
- *
  *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2018-AUG-10
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

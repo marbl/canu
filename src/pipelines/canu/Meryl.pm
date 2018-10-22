@@ -415,7 +415,7 @@ sub merylConfigure ($$) {
         }
 
         #  This message comes from meryl/merylOp-count.C reportNumberOfOutputs().
-       
+
         open(F, "< $path/$name.config.$ss.out") or caExit("can't open '$path/$name.config.$ss.out' for reading: $!", undef);
         while (<F>) {
             if (m/Configured\s+\w+\s+mode\s+for\s+(\d*.\d*)\s+GB\s+memory\s+per\s+batch,\s+and\s+up\s+to\s+(\d+)\s+batch/) {

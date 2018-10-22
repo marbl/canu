@@ -134,7 +134,7 @@ sub haplotypeSplitReads ($$%) {
         print STDERR "--   --> '$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz'.\n";
         open(OUT, "| gzip -1c > $path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
 
-        foreach my $file (@readFiles) {  
+        foreach my $file (@readFiles) {
 
             #  Fetch the reads from the object store.
             #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
@@ -365,7 +365,7 @@ sub haplotypeCountConfigure ($%) {
     #  Observed memory usage for 19-mers on a 150 Gbp genome:
     #     1 -> 1.0 GB
     #     9 -> 3.4 GB
-    #    15 -> 
+    #    15 ->
     #    23 -> 8.2 GB
     #    28 -> 8.0 GB
     #
@@ -374,7 +374,7 @@ sub haplotypeCountConfigure ($%) {
     #  300 MB per 100 Mb claim, meryl itself will dump partial results and
     #  merge at the end.
     #
-    
+
     my $thr = getGlobal("merylThreads");
     my $mem = 2 + ceil(0.333 * $nFilesPerJob + 0.5);
 

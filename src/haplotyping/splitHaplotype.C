@@ -113,7 +113,7 @@ public:
   void      openInputs(void);
   void      openOutputs(void);
   void      loadHaplotypeData(void);
-  
+
 
 public:
   char                  *_seqName;   //  Input from a Canu seqStore
@@ -485,7 +485,7 @@ loadReadBatch(void *G) {
 
     //  Try to load a sequence from the seqStore.
 
-    if ((g->_seqStore) && 
+    if ((g->_seqStore) &&
         (g->_idCur <= g->_idMax)) {
       uint32  readLen = g->_seqStore->sqStore_getRead(g->_idCur)->sqRead_sequenceLength();
 
@@ -636,7 +636,7 @@ processReadBatch(void *G, void *T, void *S) {
     //  Write to the best file only if
     //   - there is a non-zero best score and the second best is zero
     //   - the ratio of best to second best is bigger than some threshold
-     
+
     s->_files[ii] = UINT32_MAX;
 
     if (((sco2nd < DBL_MIN) && (sco1st > DBL_MIN)) ||

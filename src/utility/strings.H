@@ -15,9 +15,15 @@
  *
  *  This file is derived from:
  *
+ *    src/utility/AS_UTL_decodeRange.H
+ *    src/utility/findKeyAndValue.H
  *    src/utility/splitToWords.H
  *
  *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2018-JUL-20
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

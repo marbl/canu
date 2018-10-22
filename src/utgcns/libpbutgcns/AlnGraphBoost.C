@@ -145,8 +145,8 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
 
             _g[currVtx].weight++;
             if (prevVtx != _enterVtx || bbPos <= MAX_OFFSET || MAX_OFFSET == 0)
-                addEdge(prevVtx, currVtx); 
-            else 
+                addEdge(prevVtx, currVtx);
+            else
                 addEdge(_bbMap[bbPos-1], currVtx);
             bbPos++;
             prevVtx = currVtx;
@@ -168,15 +168,15 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
             _g[newVtx].deleted = false;
             _bbMap[newVtx] = bbPos;
             if (prevVtx != _enterVtx || bbPos <= MAX_OFFSET || MAX_OFFSET == 0)
-               addEdge(prevVtx, newVtx); 
-            else 
+               addEdge(prevVtx, newVtx);
+            else
                addEdge(_bbMap[bbPos-1], newVtx);
             prevVtx = newVtx;
         }
     }
     if (bbPos + MAX_OFFSET >= _templateLength || MAX_OFFSET == 0)
-       addEdge(prevVtx, _exitVtx); 
-    else 
+       addEdge(prevVtx, _exitVtx);
+    else
        addEdge(prevVtx, _bbMap[bbPos]);
 }
 

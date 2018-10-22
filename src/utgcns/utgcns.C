@@ -573,7 +573,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "Exported %u tig%s to file '%s'.\n", nTigs, (nTigs == 1) ? "" : "s", exportName);
   }
 
-  if (exportName == NULL) { 
+  if (exportName == NULL) {
     fprintf(stdout, "\n");
     fprintf(stdout, "Processed %u tig%s and %u singleton%s.\n",
             nTigs, (nTigs == 1)             ? "" : "s",
