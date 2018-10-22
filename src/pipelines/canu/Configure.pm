@@ -725,10 +725,10 @@ sub configureAssembler () {
     #  reported from sqStore.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
-        setGlobalIfUndef("merylMemory", "2-8");        setGlobalIfUndef("merylThreads", "1-4");
+        setGlobalIfUndef("merylMemory", "4-12");        setGlobalIfUndef("merylThreads", "1-4");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("merylMemory", "16-32");       setGlobalIfUndef("merylThreads", "1-8");
+        setGlobalIfUndef("merylMemory", "12-24");       setGlobalIfUndef("merylThreads", "1-8");
 
     } else {
         setGlobalIfUndef("merylMemory", "24-64");       setGlobalIfUndef("merylThreads", "1-8");
