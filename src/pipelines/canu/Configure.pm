@@ -433,7 +433,7 @@ sub getAllowedResources ($$$$$@) {
     my $nam;
 
     if    ($alg eq "meryl")     {  $nam = "(k-mer counting)"; }
-    elsif ($alg eq "haplotype") {  $nam = "(read-to-haplotype assignment)"; }
+    elsif ($alg eq "hap")       {  $nam = "(read-to-haplotype assignment)"; }
     elsif ($alg eq "mhap")      {  $nam = "(overlap detection with mhap)"; }
     elsif ($alg eq "mmap")      {  $nam = "(overlap detection with minimap)"; }
     elsif ($alg eq "ovl")       {  $nam = "(overlap detection)"; }
@@ -738,13 +738,13 @@ sub configureAssembler () {
     #  was running in 2GB memory.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
-        setGlobalIfUndef("haplotypeMemory", "4-8");     setGlobalIfUndef("haplotypeThreads", "1-4");
+        setGlobalIfUndef("hapMemory", "4-8");     setGlobalIfUndef("hapThreads", "1-4");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("haplotypeMemory", "6-12");    setGlobalIfUndef("haplotypeThreads", "8-24");
+        setGlobalIfUndef("hapMemory", "6-12");    setGlobalIfUndef("hapThreads", "8-24");
 
     } else {
-        setGlobalIfUndef("haplotypeMemory", "8-16");    setGlobalIfUndef("haplotypeThreads", "16-64");
+        setGlobalIfUndef("hapMemory", "8-16");    setGlobalIfUndef("hapThreads", "16-64");
     }
 
 
@@ -846,7 +846,7 @@ sub configureAssembler () {
 
     ($err, $all) = getAllowedResources("",    "meryl",     $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("",    "haplotype", $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "hap",       $err, $all, 0);
 
     ($err, $all) = getAllowedResources("cor", "mhap",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "mhap");
     ($err, $all) = getAllowedResources("cor", "mmap",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "minimap");
