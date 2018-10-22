@@ -48,7 +48,7 @@ kmerCountFileWriter::initialize(uint32 prefixSize) {
 
 #warning how to set prefix size for streaming operations?
     if (_prefixSize == 0)
-      _prefixSize = 9;  //max((uint32)8, 2 * kmer::merSize() / 3);
+      _prefixSize = 12;  //max((uint32)8, 2 * kmer::merSize() / 3);
 
     _suffixSize         = 2 * kmer::merSize() - _prefixSize;
     _suffixMask         = uint64MASK(_suffixSize);
