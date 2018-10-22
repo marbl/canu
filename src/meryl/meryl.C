@@ -783,14 +783,18 @@ main(int argc, char **argv) {
   for (uint32 ff=0; ff<nf; ff++) {
     merylOperation *op = opStack.getOp(ff);
 
-    if (op->initialize() == true) {
+    if (op->initialize() == true)
       while (op->nextMer() == true)
         ;
-    }
+
+    op->finalize();
   }
 
-  //  Now that everything is done, delete!  Output presents a problem, in that everyone has a copy
-  //  of it, but only one can delete it.
+  //  Now that everything is done, delete!
+  //  Output presents a problem, in that everyone has a copy
+  //  of it, but only one can delete it.  This is hardcoded
+  //  in merylOperation::~merylOperation() so that only
+  //  the first one (ff==0 here) deletes the output object.
 
   for (uint32 ff=0; ff<nf; ff++) {
     merylOperation *op = opStack.getOp(ff);

@@ -200,6 +200,21 @@ merylOperation::getOutputName(void) {
 }
 
 
+
+//  We're all done processing this operation.  Clean up what we can.
+//  The _output CANNOT be deleted until all operations are done with it.
+//  Yes, I should be pointer counting or something smart like that.
+void
+merylOperation::finalize(void) {
+
+  clearInputs();
+
+  delete [] _actCount;   _actCount = NULL;
+  delete [] _actIndex;   _actIndex = NULL;
+}
+
+
+
 void
 merylOperation::addPrinter(FILE *printer) {
 

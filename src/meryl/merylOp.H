@@ -115,6 +115,8 @@ public:
   void    addOutput(kmerCountFileWriter *writer);
   char   *getOutputName(void);
 
+  void    finalize(void);
+
   void    addPrinter(FILE *printer);
   char   *getPrinterName(void);
 
