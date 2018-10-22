@@ -475,6 +475,11 @@ sub printCitation ($) {
     print STDERR "${prefix}Genome Res. 2017 May;27(5):722-736.\n";
     print STDERR "${prefix}http://doi.org/10.1101/gr.215087.116\n";
     print STDERR "${prefix}\n";
+    print STDERR "${prefix}Koren S, Rhie A, Walenz BP, Dilthey AT, Bickhart DM, Kingan SB, Hiendleder S, Williams JL, Smith TPL, Phillippy AM.\n";
+    print STDERR "${prefix}De novo assembly of haplotype-resolved genomes with trio binning.\n";
+    print STDERR "${prefix}Nat Biotechnol. 2018\n";
+    print STDERR "${prefix}https//doi.org/10.1038/nbt.4277\n";
+    print STDERR "${prefix}\n";
     print STDERR "${prefix}Read and contig alignments during correction, consensus and GFA building use:\n";
     print STDERR "${prefix}  Šošic M, Šikic M.\n";
     print STDERR "${prefix}  Edlib: a C/C ++ library for fast, exact sequence alignment using edit distance.\n";
