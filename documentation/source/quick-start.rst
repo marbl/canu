@@ -175,7 +175,16 @@ Canu has support for using parental short-read sequencing to classify and bin th
   -haplotypeO157 O157.parental.fasta \
   -pacbio-raw F1.fasta
 
-The run will produce two assemblies, ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta and ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta. As comparison, you can try co-assembling the datasets instead::
+The run will first bin the reads into the haplotypes (``ecoliTrio/haplotype/haplotype-*.fasta.gz``) and provide a summary of the classification in ``ecoliTrio/haplotype/haplotype.log``::
+
+  -- Processing reads in batches of 100 reads each.
+  --
+  --   119848 reads    378658103 bases written to haplotype file ./haplotype-K12.fasta.gz.
+  --   308353 reads   1042955878 bases written to haplotype file ./haplotype-O157.fasta.gz.
+  --     4114 reads      6520294 bases written to haplotype file ./haplotype-unknown.fasta.gz.
+
+
+Next, the haplotypes are assembled in ``ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta`` and ``ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta``. As comparison, you can try co-assembling the datasets instead::
 
  canu \
   -p asm -d ecoliHap \
@@ -183,7 +192,7 @@ The run will produce two assemblies, ecoliTrio/asm-haplotypeK12/asm-haplotypeK12
   corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" \
  -pacbio-raw F1.fasta
 
-and compare the contiguity/accuracy. 
+and compare the continuity/accuracy. 
 
 Consensus Accuracy
 -------------------
