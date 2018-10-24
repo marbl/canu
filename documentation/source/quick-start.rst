@@ -175,7 +175,7 @@ Canu has support for using parental short-read sequencing to classify and bin th
   -haplotypeO157 O157.parental.fasta \
   -pacbio-raw F1.fasta
 
-The run will produce two assemblies, ecoliTrio/asm-haplotypeK12/asm.contigs.fasta and ecoliTrio/asm-haplotypeO157/asm.contigs.fasta. As comparison, you can try co-assembling the datasets instead::
+The run will produce two assemblies, ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta and ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta. As comparison, you can try co-assembling the datasets instead::
 
  canu \
   -p asm -d ecoliHap \
