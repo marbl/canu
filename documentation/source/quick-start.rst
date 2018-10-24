@@ -168,14 +168,14 @@ Canu has support for using parental short-read sequencing to classify and bin th
  curl -L -o O157.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/o157.12.fasta
  curl -L -o F1.fasta https://gembox.cbcb.umd.edu/triobinning/example/pacbio.fasta
 
- trioCanu \
+ canu \
   -p asm -d ecoliTrio \
   genomeSize=5m \
   -haplotypeK12 K12.parental.fasta \
   -haplotypeO157 O157.parental.fasta \
   -pacbio-raw F1.fasta
 
-The run will produce two assemblies, ecoliTrio/haplotypeK12/asm.contigs.fasta and ecoliTrio/haplotypeO157/asm.contigs.fasta. As comparison, you can try co-assembling the datasets instead::
+The run will produce two assemblies, ecoliTrio/asm-haplotypeK12/asm.contigs.fasta and ecoliTrio/asm-haplotypeO157/asm.contigs.fasta. As comparison, you can try co-assembling the datasets instead::
 
  canu \
   -p asm -d ecoliHap \
@@ -183,11 +183,7 @@ The run will produce two assemblies, ecoliTrio/haplotypeK12/asm.contigs.fasta an
   corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" \
  -pacbio-raw F1.fasta
 
-and compare the contiguity/accuracy. The current version of trioCanu is not yet optimized for memory use so requires adjusted parameters for large genomes. Adding the options::
-
-  gridOptionsExecutive="--mem=250g" gridOptionsMeryl='--partition=largemem --mem=1000g'
-
-should be sufficient for a mammalian genome.
+and compare the contiguity/accuracy. 
 
 Consensus Accuracy
 -------------------
