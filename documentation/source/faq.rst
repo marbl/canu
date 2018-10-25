@@ -45,6 +45,11 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
     `Issue #756 <https://github.com/marbl/canu/issues/756>`_ for Slurm and SGE examples.
 
 
+My run stopped with the error ``'Mhap precompute jobs failed'``
+-------------------------------------
+
+    Several package managers make a mess of the installation causing this error (conda and ubuntu in particular). Package managers don't add much benefit to a tool like Canu which is distributed as pre-compiled binaries compatible with most systems so our recommended installation method is downloading a binary release. Try running the assembly from scratch using our release distribution and if you continue to encounter errors, submit an issue.
+
 My run stopped with the error ``'Failed to submit batch jobs'``
 -------------------------------------
 
@@ -153,7 +158,7 @@ My assembly is running out of space, is too slow?
 -------------------------------------
     We don't have a good way to estimate of disk space used for the assembly. It varies with genome size, repeat content, and sequencing depth. A human genome sequenced with PacBio or Nanopore at 40-50x typically requires 1-2TB of space at the peak. Plants, unfortunately, seem to want a lot of space. 10TB is a reasonable guess. We've seen it as bad as 20TB on some very repetitive genomes.
     
-    The most common cause of high disk usage is a very repetitive or large genome. There are some parameters you can tweak to both reduce disk space and speed up the run. Try adding the options ``corMhapFilterThreshold=0.0000000002 corMhapOptions="--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50" mhapMemory=60g mhapBlockSize=500 ovlMerThreshold=500``. This will suppress repeats more than the default settings and speed up both correction and assembly.
+    The most common cause of high disk usage is a very repetitive or large genome. There are some parameters you can tweak to both reduce disk space and speed up the run. Try adding the options ``corMhapFilterThreshold=0.0000000002 corMhapOptions="--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50" mhapMemory=60g mhapBlockSize=500``. This will suppress repeats more than the default settings and speed up both correction and assembly.
     
     It is also possible to clean up some intermediate outputs before the assembly is complete to save space. If you already have a ```*.ovlStore.BUILDING/1-bucketize.successs`` file in your current step (e.g. ``correct```), you can clean up the files under ``1-overlapper/blocks``. You can also remove the ovlStore for the previous step if you have its output (e.g. if you have ``asm.trimmedReads.fasta.gz``, you can remove ``trimming/asm.ovlStore``). 
 
