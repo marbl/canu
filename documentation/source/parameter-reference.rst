@@ -107,6 +107,7 @@ genomeSize <float=unset> *required*
 
 .. _fast:
 
+fast <toggle>
    This option uses MHAP overlapping for all steps, not just correction, making assembly significantly faster. It can be used on any genome size but may produce less continuous assemblies on genomes larger than 1 Gbp. It is recommended for nanopore genomes smaller than 1 Gbp or metagenomes.
    
    The fast option will also optionally use `wtdbg <https://github.com/ruanjue/wtdbg2>`_ for unitigging if wtdbg is manually copied to the Canu binary folder. However, this is only tested with very small genomes and is **NOT** recommended.
