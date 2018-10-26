@@ -102,11 +102,6 @@ sub configureLSF () {
 
     close(F);
 
-    if (!defined($memUnits)) {
-        print STDERR "-- Warning: unknown memory units for grid engine LSF assuming KB\n";
-        $memUnits = "k";
-    }
-
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
     #  to figure out what specific settings to use for each algorithm.
@@ -136,6 +131,7 @@ sub configureLSF () {
 
         my $cpus  = $v[$cpuIdx];
         my $mem   = $v[$memIdx];
+        next if ($mem =~ m/-/);
 
         # if we failed to find the units from the configuration, inherit it from the lshosts output
         if (!defined($memUnits)) {
