@@ -8,8 +8,8 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)
 endif
 
-TARGET   := lookup
-SOURCES  := lookup.C \
+TARGET   := meryl-lookup
+SOURCES  := meryl-lookup.C \
 
 SRC_INCDIRS  := . .. ../utility ../stores
 
