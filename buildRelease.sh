@@ -36,6 +36,15 @@ cd canu-$version
 echo Build MacOS.
 cd src
 gmake -j 12 > ../Darwin-amd64.out 2>&1
+
+echo Make static binaries MacOS
+cd ../Darwin-amd64
+if [ ! -e ../statifyOSX.py ]; then
+   curl -L -R -o ../statifyOSX.py https://raw.githubusercontent.com/marbl/canu/master/statifyOSX.py
+fi
+
+python ../statifyOSX.py bin lib true true >> ../Darwin-amd64.out 2>&1
+python ../statifyOSX.py lib lib true true >> ../Darwin-amd64.out 2>&1
 cd ../..
 
 rm -f canu-$version/linux.sh

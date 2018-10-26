@@ -560,40 +560,14 @@ processReadBatch(void *G, void *T, void *S) {
     for (uint32 hh=0; hh<nHaps; hh++)
       matches[hh] = 0;
 
-    kmerTiny   fmer;    //  merSize() is set when the meryl databases are loaded.
-    kmerTiny   rmer;
+    kmerIterator  kiter(s->_bases[ii].string(),
+                        s->_bases[ii].length());
 
-    uint32     kmerLoad   = 0;
-    uint32     kmerValid  = fmer.merSize() - 1;
-    uint32     kmerSize   = fmer.merSize();
-
-    char      *name       = s->_names[ii].string();
-    char      *bases      = s->_bases[ii].string();
-    uint32     basesLen   = s->_bases[ii].length();
-
-    for (uint32 ss=0; ss<basesLen; ss++) {
-      if ((bases[ss] != 'A') && (bases[ss] != 'a') &&   //  If not valid DNA, don't
-          (bases[ss] != 'C') && (bases[ss] != 'c') &&   //  make a kmer, and reset
-          (bases[ss] != 'G') && (bases[ss] != 'g') &&   //  the count until the next
-          (bases[ss] != 'T') && (bases[ss] != 't')) {   //  valid kmer is available.
-        kmerLoad = 0;
-        continue;
-      }
-
-      fmer.addR(bases[ss]);
-      rmer.addL(bases[ss]);
-
-      if (kmerLoad < kmerValid) {   //  If not a full kmer, increase the length we've
-        kmerLoad++;                 //  got loaded, and keep going.
-        continue;
-      }
-
-      for (uint32 hh=0; hh<nHaps; hh++) {
-        if ((g->_haps[hh]->lookup->value(fmer) > 0) ||
-            (g->_haps[hh]->lookup->value(rmer) > 0))
+    while (kiter.nextMer())
+      for (uint32 hh=0; hh<nHaps; hh++)
+        if ((g->_haps[hh]->lookup->value(kiter.fmer()) > 0) ||
+            (g->_haps[hh]->lookup->value(kiter.rmer()) > 0))
           matches[hh]++;
-      }
-    }
 
     //  Find the haplotype with the most and second most matching kmers.
 
