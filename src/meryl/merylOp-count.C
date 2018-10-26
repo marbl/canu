@@ -510,15 +510,8 @@ merylOperation::count(uint32  wPrefix,
 
   memset(buffer, 0, sizeof(char) * bufferMax);
 
-  kmerTiny        fmer;
-  kmerTiny        rmer;
-
-  uint32          kmerLoad   = 0;
-  uint32          kmerValid  = kmerTiny::merSize() - 1;
-  uint32          kmerSize   = kmerTiny::merSize();
-
-  char            fstr[65];
-  char            rstr[65];
+  //char            fstr[65];
+  //char            rstr[65];
 
   uint64          memBase     = getProcessSize();   //  Overhead memory.
   uint64          memUsed     = 0;                  //  Sum of actual memory used.
@@ -540,41 +533,26 @@ merylOperation::count(uint32  wPrefix,
 
       //fprintf(stderr, "read " F_U64 " bases from '%s'\n", bufferLen, _inputs[ii]->_name);
 
-      for (uint64 bb=0; bb<bufferLen; bb++) {
-        if ((buffer[bb] != 'A') && (buffer[bb] != 'a') &&   //  If not valid DNA, don't
-            (buffer[bb] != 'C') && (buffer[bb] != 'c') &&   //  make a kmer, and reset
-            (buffer[bb] != 'G') && (buffer[bb] != 'g') &&   //  the count until the next
-            (buffer[bb] != 'T') && (buffer[bb] != 't')) {   //  valid kmer is available.
-          kmerLoad = 0;
-          continue;
-        }
+      kmerIterator kiter(buffer, bufferLen);
 
-        fmer.addR(buffer[bb]);
-        rmer.addL(buffer[bb]);
-
-        if (kmerLoad < kmerValid) {   //  If not a full kmer, increase the length we've
-          kmerLoad++;                 //  got loaded, and keep going.
-          continue;
-        }
-
+      while (kiter.nextMer()) {
         bool    useF = (_operation == opCountForward);
         uint64  pp   = 0;
         uint64  mm   = 0;
 
         if (_operation == opCount)
-          useF = (fmer < rmer);
-
+          useF = (kiter.fmer() < kiter.rmer());
 
         if (useF == true) {
-          pp = (uint64)fmer >> wData;
-          mm = (uint64)fmer  & wDataMask;
-          //fprintf(stderr, "F %s %s %u pp %lu mm %lu\n", fmer.toString(fstr), rmer.toString(rstr), fmer.merSize(), pp, mm);
+          pp = (uint64)kiter.fmer() >> wData;
+          mm = (uint64)kiter.fmer()  & wDataMask;
+          //fprintf(stderr, "F %s %s %u pp %lu mm %lu\n", kiter.fmer().toString(fstr), kiter.rmer().toString(rstr), kiter.fmer().merSize(), pp, mm);
         }
 
         else {
-          pp = (uint64)rmer >> wData;
-          mm = (uint64)rmer  & wDataMask;
-          //fprintf(stderr, "R %s %s %u pp %lu mm %lu\n", fmer.toString(fstr), rmer.toString(rstr), rmer.merSize(), pp, mm);
+          pp = (uint64)kiter.rmer() >> wData;
+          mm = (uint64)kiter.rmer()  & wDataMask;
+          //fprintf(stderr, "R %s %s %u pp %lu mm %lu\n", kiter.fmer().toString(fstr), kiter.rmer().toString(rstr), kiter.rmer().merSize(), pp, mm);
         }
 
         assert(pp < nPrefix);
@@ -584,7 +562,10 @@ merylOperation::count(uint32  wPrefix,
         kmersAdded++;
       }
 
-      //  If we're out of space, process the data and dump.
+      if (endOfSeq)      //  If the end of the sequence, clear
+        kiter.reset();   //  the running kmer.
+
+      //  Report that we're actually doing something.
 
       if (memUsed - memReported > (uint64)128 * 1024 * 1024) {
         memReported = memUsed;
@@ -594,6 +575,8 @@ merylOperation::count(uint32  wPrefix,
                 _maxMemory / 1024.0 / 1024.0 / 1024.0,
                 kmersAdded);
       }
+
+      //  If we're out of space, process the data and dump.
 
       if (memUsed > _maxMemory) {
         fprintf(stderr, "Memory full.  Writing results to '%s', using " F_S32 " threads.\n",
@@ -621,8 +604,6 @@ merylOperation::count(uint32  wPrefix,
           memUsed += data[pp].usedSize();
       }
 
-      if (endOfSeq)                   //  If the end of the sequence, clear
-        kmerLoad = 0;                 //  the running kmer.
     }
 
     //  Would like some kind of report here on the kmers loaded from this file.
