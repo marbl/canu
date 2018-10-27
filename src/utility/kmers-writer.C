@@ -31,7 +31,7 @@
 
 
 void
-kmerCountFileWriter::initialize(uint32 prefixSize) {
+kmerCountFileWriter::initialize(uint32 prefixSize, bool isMultiSet) {
 
   if (_initialized == true)    //  Nothing to do if we're already done.
     return;
@@ -71,6 +71,8 @@ kmerCountFileWriter::initialize(uint32 prefixSize) {
     _numFiles           = (uint64)1 << _numFilesBits;
     _numBlocks          = (uint64)1 << _numBlocksBits;
 
+    _isMultiSet         = isMultiSet;
+
     //  Now we're initialized!
 
     fprintf(stderr, "kmerCountFileWriter()-- Creating '%s' for %u-mers, with prefixSize %u suffixSize %u numFiles %lu\n",
@@ -109,6 +111,8 @@ kmerCountFileWriter::kmerCountFileWriter(const char *outputName,
   _numBlocksBits = 0;
   _numFiles      = 0;
   _numBlocks     = 0;
+
+  _isMultiSet    = false;
 }
 
 
@@ -119,12 +123,24 @@ kmerCountFileWriter::~kmerCountFileWriter() {
 
   stuffedBits  *masterIndex = new stuffedBits;
 
-  masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  merylInd
-  masterIndex->setBinary(64, 0x31302e765f5f7865llu);  //  ex__v.01
-  masterIndex->setBinary(32, _prefixSize);
-  masterIndex->setBinary(32, _suffixSize);
-  masterIndex->setBinary(32, _numFilesBits);
-  masterIndex->setBinary(32, _numBlocksBits);
+  if (_isMultiSet == false) {
+    masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  merylInd
+    masterIndex->setBinary(64, 0x31302e765f5f7865llu);  //  ex__v.01
+    masterIndex->setBinary(32, _prefixSize);
+    masterIndex->setBinary(32, _suffixSize);
+    masterIndex->setBinary(32, _numFilesBits);
+    masterIndex->setBinary(32, _numBlocksBits);
+  }
+
+  else {
+    masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  merylInd
+    masterIndex->setBinary(64, 0x32302e765f5f7865llu);  //  ex__v.02
+    masterIndex->setBinary(32, _prefixSize);
+    masterIndex->setBinary(32, _suffixSize);
+    masterIndex->setBinary(32, _numFilesBits);
+    masterIndex->setBinary(32, _numBlocksBits);
+    masterIndex->setBinary(32, (uint32)0x0001);   //  MultiSet bit set!
+  }
 
   _stats.dump(masterIndex);
 

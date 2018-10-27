@@ -30,6 +30,104 @@
 
 
 
+//  Clear all members and allocate buffers.
+void
+kmerCountFileReader::initializeFromMasterI_v00(void) {
+
+  _prefixSize    = 0;
+  _suffixSize    = 0;
+
+  _numFilesBits  = 0;
+  _numBlocksBits = 0;
+
+  _numFiles      = 0;
+  _numBlocks     = 0;
+
+  _stats         = NULL;
+
+  _datFile       = NULL;
+
+  _block         = new kmerCountFileReaderBlock();
+  _blockIndex    = NULL;
+
+  _kmer          = kmer();
+  _count         = 0;
+
+  _prefix        = 0;
+
+  _activeMer     = 0;
+  _activeFile    = 0;
+
+  _threadFile    = UINT32_MAX;
+
+  _nKmers        = 0;
+  _nKmersMax     = 1024;
+  _suffixes      = new uint64 [_nKmersMax];
+  _counts        = new uint32 [_nKmersMax];
+}
+
+
+
+//  Initialize for the original.
+void
+kmerCountFileReader::initializeFromMasterI_v01(stuffedBits  *masterIndex,
+                                               bool          doInitialize) {
+
+  if (doInitialize == true) {
+    initializeFromMasterI_v00();
+
+    _prefixSize    = masterIndex->getBinary(32);
+    _suffixSize    = masterIndex->getBinary(32);
+
+    _numFilesBits  = masterIndex->getBinary(32);
+    _numBlocksBits = masterIndex->getBinary(32);
+
+    _numFiles      = (uint64)1 << _numFilesBits;    //  The same for all formats, but
+    _numBlocks     = (uint64)1 << _numBlocksBits;   //  awkward to do outside of here.
+  }
+
+  //  If we didn't initialize, set the file position to the start
+  //  of the statistics.
+  else {
+    masterIndex->setPosition(64 + 64 + 32 + 32 + 32 + 32);
+  }
+}
+
+
+
+//  Initialize for the format that includes multi sets.
+void
+kmerCountFileReader::initializeFromMasterI_v02(stuffedBits  *masterIndex,
+                                               bool          doInitialize) {
+
+  if (doInitialize == true) {
+    initializeFromMasterI_v00();
+
+    _prefixSize    = masterIndex->getBinary(32);
+    _suffixSize    = masterIndex->getBinary(32);
+
+    _numFilesBits  = masterIndex->getBinary(32);
+    _numBlocksBits = masterIndex->getBinary(32);
+
+    uint32 flags   = masterIndex->getBinary(32);
+
+    _isMultiSet    = flags & (uint32)0x0001;        //  This is new in v02.
+
+    _numFiles      = (uint64)1 << _numFilesBits;    //  The same for all formats, but
+    _numBlocks     = (uint64)1 << _numBlocksBits;   //  awkward to do outside of here.
+  }
+
+  //  If we didn't initialize, set the file position to the start
+  //  of the statistics.
+  else {
+    masterIndex->setPosition(64 + 64 + 32 + 32 + 32 + 32 + 32);
+  }
+}
+
+
+
+
+
 void
 kmerCountFileReader::initializeFromMasterIndex(bool  doInitialize,
                                                bool  loadStatistics,
@@ -42,65 +140,47 @@ kmerCountFileReader::initializeFromMasterIndex(bool  doInitialize,
     fprintf(stderr, "ERROR: '%s' doesn't appear to be a meryl input; file '%s' doesn't exist.\n",
             _inName, N), exit(1);
 
-  //  Open the master index and initialize from it.
+  //  Open the master index.
 
   stuffedBits  *masterIndex = new stuffedBits(N);
+
+  //  Based on the magic number, initialzie.
 
   uint64  m1 = masterIndex->getBinary(64);
   uint64  m2 = masterIndex->getBinary(64);
 
-  if ((m1 != 0x646e496c7972656dllu) ||  //  merylInd
-      (m2 != 0x31302e765f5f7865llu))    //  ex__v.01
+  if        ((m1 == 0x646e496c7972656dllu) &&   //  merylInd
+             (m2 == 0x31302e765f5f7865llu)) {   //  ex__v.01
+    initializeFromMasterI_v01(masterIndex, doInitialize);
+
+  } else if ((m1 == 0x646e496c7972656dllu) &&   //  merylInd
+             (m2 == 0x32302e765f5f7865llu)) {   //  ex__v.02
+    initializeFromMasterI_v02(masterIndex, doInitialize);
+
+  } else {
     fprintf(stderr, "ERROR: '%s' doesn't look like a meryl input; file '%s' fails magic number check.\n",
             _inName, N), exit(1);
-
-  if (doInitialize == true) {
-    _prefixSize    = masterIndex->getBinary(32);
-    _suffixSize    = masterIndex->getBinary(32);
-
-    _numFilesBits  = masterIndex->getBinary(32);
-    _numBlocksBits = masterIndex->getBinary(32);
-
-    _numFiles      = (uint64)1 << _numFilesBits;
-    _numBlocks     = (uint64)1 << _numBlocksBits;
-
-    _stats         = NULL;
-
-    _datFile       = NULL;
-
-    _block         = new kmerCountFileReaderBlock();
-    _blockIndex    = NULL;
-
-    _kmer          = kmer();
-    _count         = 0;
-
-    _prefix        = 0;
-
-    _activeMer     = 0;
-    _activeFile    = 0;
-
-    _threadFile    = UINT32_MAX;
-
-    _nKmers        = 0;
-    _nKmersMax     = 1024;
-    _suffixes      = new uint64 [_nKmersMax];
-    _counts        = new uint32 [_nKmersMax];
-
-    uint32  merSize = (_prefixSize + _suffixSize) / 2;
-
-    if (kmer::merSize() == 0)         //  If the global kmer size isn't set yet, set it.
-      kmer::setSize(merSize);         //
-
-    if (kmer::merSize() != merSize)   //  And if set, make sure we're compatible.
-      fprintf(stderr, "mer size mismatch, can't process this set of files.\n"), exit(1);
   }
 
-  if (loadStatistics == true) {
-    masterIndex->setPosition(64 + 64 + 32 + 32 + 32 + 32);
+  //  Check that the mersize is set and valid.
 
+  uint32  merSize = (_prefixSize + _suffixSize) / 2;
+
+  if (kmer::merSize() == 0)         //  If the global kmer size isn't set yet,
+    kmer::setSize(merSize);         //  set it.
+
+  if (kmer::merSize() != merSize)   //  And if set, make sure we're compatible.
+    fprintf(stderr, "mer size mismatch, can't process this set of files.\n"), exit(1);
+
+  //  If loading statistics is enabled, load the stats assuming the file is in
+  //  the proper position.
+
+  if (loadStatistics == true) {
     _stats = new kmerCountStatistics;
     _stats->load(masterIndex);
   }
+
+  //  And report some logging.
 
   if (beVerbose) {
     char    m[17] = { 0 };

@@ -526,9 +526,10 @@ private:
 
 class kmerCountFileReader {
 private:
-  void    initializeFromMasterIndex(bool  doInitialize,
-                                    bool  loadStatistics,
-                                    bool  beVerbose);
+  void    initializeFromMasterI_v00(void);
+  void    initializeFromMasterI_v01(stuffedBits  *masterIndex, bool doInitialize);
+  void    initializeFromMasterI_v02(stuffedBits  *masterIndex, bool doInitialize);
+  void    initializeFromMasterIndex(bool  doInitialize, bool  loadStatistics, bool  beVerbose);
 
 public:
   kmerCountFileReader(const char *inputName,
@@ -592,6 +593,8 @@ private:
   uint32                     _numFiles;
   uint32                     _numBlocks;
 
+  bool                       _isMultiSet;
+
   kmerCountStatistics       *_stats;
 
   FILE                      *_datFile;
@@ -632,7 +635,7 @@ public:
   char   *filename(void)  { return(_outName);  };
 
 public:
-  void    initialize(uint32 prefixSize = 0);
+  void    initialize(uint32 prefixSize = 0, bool isMultiSet = false);
 
   kmerCountBlockWriter  *getBlockWriter(void)        { return(new kmerCountBlockWriter (this));      };
   kmerCountStreamWriter *getStreamWriter(uint32 ff)  { return(new kmerCountStreamWriter(this, ff));  };
@@ -669,6 +672,8 @@ private:
   uint32                     _numBlocksBits;
   uint64                     _numFiles;
   uint64                     _numBlocks;
+
+  bool                       _isMultiSet;
 
   kmerCountStatistics        _stats;
 
