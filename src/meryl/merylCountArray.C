@@ -140,16 +140,16 @@ merylCountArray::countKmers(void) {
 
   assert(_nBits % _width == 0);
 
-  uint64   nValues = _nBits / _width;
-  uint64  *values  = new uint64 [nValues];
+  uint64   nSuffixes = _nBits / _width;
+  uint64  *suffixes  = new uint64 [nSuffixes];
 
-  //fprintf(stderr, "Allocate %lu values, %lu bytes\n", nValues, sizeof(uint64) * nValues);
-  //fprintf(stderr, "Sorting prefix 0x%016" F_X64P " with " F_U64 " total kmers\n", _prefix, nValues);
+  //fprintf(stderr, "Allocate %lu suffixes, %lu bytes\n", nSuffixes, sizeof(uint64) * nSuffixes);
+  //fprintf(stderr, "Sorting prefix 0x%016" F_X64P " with " F_U64 " total kmers\n", _prefix, nSuffixes);
 
   //  Unpack the data into _suffix.
 
-  for (uint64 kk=0; kk<nValues; kk++)
-    values[kk] = get(kk);
+  for (uint64 kk=0; kk<nSuffixes; kk++)
+    suffixes[kk] = get(kk);
 
   //  All done with the raw data, so get rid of it quickly.
 
@@ -162,14 +162,14 @@ merylCountArray::countKmers(void) {
 #else
     std::
 #endif
-    sort(values, values + nValues);
+    sort(suffixes, suffixes + nSuffixes);
 
   //  Count the number of distinct kmers, and allocate space for them.
 
   uint64  nk = 1;
 
-  for (uint64 kk=1; kk<nValues; kk++)
-    if (values[kk-1] != values[kk])
+  for (uint64 kk=1; kk<nSuffixes; kk++)
+    if (suffixes[kk-1] != suffixes[kk])
       nk++;
 
   _suffix = new uint64 [nk];
@@ -180,13 +180,13 @@ merylCountArray::countKmers(void) {
   _nKmers = 0;
 
   _counts[_nKmers] = 1;
-  _suffix[_nKmers] = values[0];
+  _suffix[_nKmers] = suffixes[0];
 
-  for (uint64 kk=1; kk<nValues; kk++) {
-    if (values[kk-1] != values[kk]) {
+  for (uint64 kk=1; kk<nSuffixes; kk++) {
+    if (suffixes[kk-1] != suffixes[kk]) {
       _nKmers++;
       _counts[_nKmers] = 0;
-      _suffix[_nKmers] = values[kk];
+      _suffix[_nKmers] = suffixes[kk];
     }
 
     _counts[_nKmers]++;
@@ -196,7 +196,7 @@ merylCountArray::countKmers(void) {
 
   //  Remove all the temporary data.
 
-  delete [] values;
+  delete [] suffixes;
 };
 
 
