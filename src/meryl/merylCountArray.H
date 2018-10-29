@@ -41,11 +41,11 @@ private:
   void      removeSegments(void);
   void      addSegment(uint32 seg);
 
-  //  Add a value to the table.
+  //  Add a suffix to the table.
   //
   //  wordPos is 0 for the high bits and 63 for the bit that represents integer 1.
 public:
-  uint64    add(uint64 value) {
+  uint64    add(uint64 suffix) {
     uint64  seg       = _nBits / _segSize;   //  Which segment are we in?
     uint64  segPos    = _nBits % _segSize;   //  Bit position in that segment.
 
@@ -69,14 +69,14 @@ public:
     //  If it's a new word, we need to special case an initialization of the word.
 
     if      (wordBgn == 0) {
-      _segments[seg][word]  = (value << (64 - wordEnd));
+      _segments[seg][word]  = (suffix << (64 - wordEnd));
     }
 
     else if (wordEnd <= 64) {
-      _segments[seg][word] |= (value << (64 - wordEnd));
+      _segments[seg][word] |= (suffix << (64 - wordEnd));
     }
 
-    //  Otherwise, the value spans two words.  If these can be in the same block,
+    //  Otherwise, the suffix spans two words.  If these can be in the same block,
     //  stash the bits there.
 
     else if (segPos + _width <= _segSize) {
@@ -84,8 +84,8 @@ public:
 
       assert(wordEnd > 64);
 
-      _segments[seg][word+0] |= (value >>        extraBits);
-      _segments[seg][word+1]  = (value << (64 -  extraBits));
+      _segments[seg][word+0] |= (suffix >>        extraBits);
+      _segments[seg][word+1]  = (suffix << (64 -  extraBits));
     }
 
     //  Otherwise, the word spans two segments.  At least we know it
@@ -100,8 +100,8 @@ public:
 
       addSegment(seg+1);
 
-      _segments[seg+0][W] |= (value >>        extraBits);
-      _segments[seg+1][0]  = (value << (64 -  extraBits));
+      _segments[seg+0][W] |= (suffix >>        extraBits);
+      _segments[seg+1][0]  = (suffix << (64 -  extraBits));
     }
 
     return(usedSizeDelta());
@@ -132,7 +132,7 @@ private:
       bits = (_segments[seg][word] >> (64 - wordEnd)) & uint64MASK(_width);
     }
 
-    //  Otherwise, the value spans two words.  If these are in the same block,
+    //  Otherwise, the suffix spans two words.  If these are in the same block,
     //  grab them.
 
     else if (segPos + _width <= _segSize) {
