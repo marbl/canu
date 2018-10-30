@@ -285,7 +285,7 @@ stuffedBits::getUnary(void) {
 
   //  Decode the last partial word.
 
-  wrd       = 64 - logBaseTwo64(wrd);
+  wrd       = 64 - countNumberOfBits64(wrd);
 
   value    += wrd;
 

@@ -132,7 +132,7 @@ findExpectedSimpleSize(uint64  nKmerEstimate,
   uint64   nEntries        = (uint64)1 << (2 * kmerTiny::merSize());
 
   uint64   expMaxCount     = 0.004 * nKmerEstimate;
-  uint64   expMaxCountBits = logBaseTwo64(expMaxCount) + 1;
+  uint64   expMaxCountBits = countNumberOfBits64(expMaxCount) + 1;
   uint64   extraBits       = (expMaxCountBits < lowBitsSize) ? (0) : (expMaxCountBits - lowBitsSize);
 
   uint64   lowMem          = nEntries * lowBitsSize;

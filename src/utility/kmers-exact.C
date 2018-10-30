@@ -83,7 +83,7 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
   _valueBits      = 0;                               //  (also in the suffix table)
 
   if (_maxValue >= _minValue)
-    _valueBits = logBaseTwo32(_maxValue + 1 - _minValue);
+    _valueBits = countNumberOfBits32(_maxValue + 1 - _minValue);
 
   _suffixMask     = 0;
   _dataMask       = 0;
@@ -96,7 +96,7 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
   for (uint32 ii=_minValue; ii<=_maxValue; ii++)
     _nSuffix += input_->stats()->numKmersAtFrequency(ii);
 
-  _prePtrBits     = logBaseTwo64(_nSuffix);          //  Width of an entry in the prefix table.
+  _prePtrBits     = countNumberOfBits64(_nSuffix);   //  Width of an entry in the prefix table.
   _prePtrBits     = 64;
 
   _suffixBgn      = NULL;

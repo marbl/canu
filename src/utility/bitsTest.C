@@ -36,7 +36,7 @@ testLogBaseTwo(void) {
   uint64  val = 0;
 
   for (uint32 ii=0; ii<64; ii++) {
-    assert(ii == logBaseTwo64(val));
+    assert(ii == countNumberOfBits64(val));
 
     val <<= 1;
     //val++;

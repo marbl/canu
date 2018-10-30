@@ -168,9 +168,13 @@ countNumberOfSetBits64(uint64 x) {
 }
 
 
+//  Return the number of bits needed to represent 'x'.
+//  It's really floor(log_2(x)) + 1.
+//  Note that x=0 returns 0.
+//
 inline
 uint32
-logBaseTwo32(uint32 x) {
+countNumberOfBits32(uint32 x) {
   x |= x >> 1;
   x |= x >> 2;
   x |= x >> 4;
@@ -181,7 +185,7 @@ logBaseTwo32(uint32 x) {
 
 inline
 uint64
-logBaseTwo64(uint64 x) {
+countNumberOfBits64(uint64 x) {
   x |= x >> 1;
   x |= x >> 2;
   x |= x >> 4;
