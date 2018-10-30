@@ -312,7 +312,7 @@ stuffedBits::getUnary(uint64 number, uint64 *values) {
 
 
 
-void
+uint32
 stuffedBits::setUnary(uint64 value) {
 
   ensureSpace(value+1);
@@ -329,7 +329,7 @@ stuffedBits::setUnary(uint64 value) {
 
     updateLen();
 
-    return;
+    return(value + 1);
   }
 
   //  We fit _exactly_ in this word, special again!
@@ -344,7 +344,7 @@ stuffedBits::setUnary(uint64 value) {
 
     updateLen();
 
-    return;
+    return(value + 1);
   }
 
   //  Otherwise, we span at least two words.  First, get us word aligned,
@@ -388,15 +388,20 @@ stuffedBits::setUnary(uint64 value) {
 
   updateLen();
   updateBit();
+
+  return(value + 1);
 }
 
 
 
-void
+uint32
 stuffedBits::setUnary(uint64 number, uint64 *values) {
+  uint32  size = 0;
 
   for (uint64 ii=0; ii<number; ii++)
-    setUnary(values[ii]);
+    size += setUnary(values[ii]);
+
+  return(size);
 }
 
 
@@ -417,14 +422,16 @@ stuffedBits::getGeneralizedUnary(uint64 number, uint64 *values) {
 
 
 
-void
+uint32
 stuffedBits::setGeneralizedUnary(uint64 value) {
+  return(0);
 }
 
 
 
-void
+uint32
 stuffedBits::setGeneralizedUnary(uint64 number, uint64 *values) {
+  return(0);
 }
 
 

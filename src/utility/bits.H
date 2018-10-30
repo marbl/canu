@@ -546,8 +546,8 @@ public:
   uint64   getUnary(void);
   uint64  *getUnary(uint64 number, uint64 *values);
 
-  void     setUnary(uint64 value);
-  void     setUnary(uint64 number, uint64 *values);
+  uint32   setUnary(uint64 value);
+  uint32   setUnary(uint64 number, uint64 *values);
 
   //  BINARY CODED DATA
 
@@ -562,8 +562,8 @@ public:
   uint64   getGeneralizedUnary(void);
   uint64  *getGeneralizedUnary(uint64 number, uint64 *values=NULL);
 
-  void     setGeneralizedUnary(uint64 value);
-  void     setGeneralizedUnary(uint64 number, uint64 *values);
+  uint32   setGeneralizedUnary(uint64 value);
+  uint32   setGeneralizedUnary(uint64 number, uint64 *values);
 
 
 
