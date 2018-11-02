@@ -30,6 +30,8 @@
 #include "bits.H"
 #include "system.H"
 
+
+
 class merylCountArray {
 public:
   merylCountArray();
@@ -51,11 +53,11 @@ public:
 
     uint32  word      = segPos / 64;         //  Which word are we in=?
     uint32  wordBgn   = segPos % 64;         //  Bit position in that word.
-    uint32  wordEnd   = wordBgn + _width;
+    uint32  wordEnd   = wordBgn + _sWidth;
 
     //  Increment the position.
 
-    _nBits += _width;
+    _nBits += _sWidth;
 
     //  If the first word and the first position, we need to allocate a segment.
     //  This catches both the case when _nBits=0 (we've added nothing) and when
@@ -79,7 +81,7 @@ public:
     //  Otherwise, the suffix spans two words.  If these can be in the same block,
     //  stash the bits there.
 
-    else if (segPos + _width <= _segSize) {
+    else if (segPos + _sWidth <= _segSize) {
       uint32   extraBits = wordEnd - 64;
 
       assert(wordEnd > 64);
@@ -115,32 +117,32 @@ private:
   //  be optimized for that case.  I don't expect much of a performance gain.
   //
   uint64    get(uint64 kk) {
-    uint64  bitPos    = kk * _width;
+    uint64  bitPos    = kk * _sWidth;
 
     uint64  seg       = bitPos / _segSize;   //  Which segment are we in?
     uint64  segPos    = bitPos % _segSize;   //  Bit position in that segment.
 
     uint32  word      = segPos / 64;         //  Which word are we in=?
     uint32  wordBgn   = segPos % 64;         //  Bit position in that word.
-    uint32  wordEnd   = wordBgn + _width;
+    uint32  wordEnd   = wordBgn + _sWidth;
 
     uint64  bits      = 0;
 
     //  If the bits are entirely in a single word, copy them out.
 
     if      (wordEnd <= 64) {
-      bits = (_segments[seg][word] >> (64 - wordEnd)) & uint64MASK(_width);
+      bits = (_segments[seg][word] >> (64 - wordEnd)) & uint64MASK(_sWidth);
     }
 
     //  Otherwise, the suffix spans two words.  If these are in the same block,
     //  grab them.
 
-    else if (segPos + _width <= _segSize) {
+    else if (segPos + _sWidth <= _segSize) {
       uint32   extraBits = wordEnd - 64;
 
       assert(wordEnd > 64);
 
-      bits  = (_segments[seg][word+0] & uint64MASK(_width - extraBits)) << extraBits;
+      bits  = (_segments[seg][word+0] & uint64MASK(_sWidth - extraBits)) << extraBits;
       bits |= (_segments[seg][word+1] >> (64 - extraBits) & uint64MASK(extraBits));
     }
 
@@ -154,7 +156,7 @@ private:
       uint32 W         = word;  //  Just to keep things pretty.  I love my optimizer!
       uint32 extraBits = wordEnd - 64;
 
-      bits  = (_segments[seg+0][W] & uint64MASK(_width - extraBits)) << extraBits;
+      bits  = (_segments[seg+0][W] & uint64MASK(_sWidth - extraBits)) << extraBits;
       bits |= (_segments[seg+1][0] >> (64 - extraBits) & uint64MASK(extraBits));
     }
 
@@ -208,7 +210,7 @@ public:
 
 
 private:
-  uint32           _width;        //  Size of the element we're storing
+  uint32           _sWidth;       //  Size of the suffix we're storing
 
   uint64           _prefix;       //  The kmer prefix we're storing data for
   uint64          *_suffix;       //  After sorting, the suffix of each kmer

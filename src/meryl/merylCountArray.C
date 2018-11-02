@@ -27,7 +27,7 @@
 
 
 merylCountArray::merylCountArray(void) {
-  _width        = 0;
+  _sWidth       = 0;
 
   _prefix       = 0;
   _suffix       = NULL;
@@ -51,7 +51,7 @@ merylCountArray::merylCountArray(void) {
 
 uint64
 merylCountArray::initialize(uint64 prefix, uint32 width, uint32 segsize) {
-  _width        = width;
+  _sWidth       = width;
 
   _prefix       = prefix;
   _suffix       = NULL;
@@ -138,9 +138,9 @@ merylCountArray::countKmers(void) {
     return;
   }
 
-  assert(_nBits % _width == 0);
+  assert(_nBits % _sWidth == 0);
 
-  uint64   nSuffixes = _nBits / _width;
+  uint64   nSuffixes = _nBits / _sWidth;
   uint64  *suffixes  = new uint64 [nSuffixes];
 
   //fprintf(stderr, "Allocate %lu suffixes, %lu bytes\n", nSuffixes, sizeof(uint64) * nSuffixes);
