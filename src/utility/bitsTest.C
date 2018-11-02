@@ -236,6 +236,155 @@ testBinary(uint32 testSize) {
 
 
 
+
+
+
+
+void
+testPrefixFree(uint32 type) {
+  uint32      maxN   = 100000000;
+  uint64      length = 0;
+  uint32     *width  = new uint32 [maxN];
+  uint64     *random = new uint64 [maxN];
+  uint64     *histo  = new uint64 [65];
+  mtRandom    mt;
+
+  fprintf(stderr, "Creating.\n");
+
+  //  need to limit the number of bits in each value,
+  //  but not as aggressively as above.
+
+  for (uint32 ii=0; ii<65; ii++)
+    histo[ii] = 0;
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    width[ii]   =  mt.mtRandom32() % 64 + 1;
+
+#if 0
+    double x = mt.mtRandomGaussian(0.0, 1.0) * 27 / 6;
+
+    if (x < 0)
+      x = -x;
+
+    width[ii]   = (uint32)ceil(x);
+
+    if (width[ii] > 27)
+      width[ii] = 27;
+
+    if (width[ii] > 64)
+      width[ii] = 64;
+#endif
+
+    length     += width[ii];
+    histo[width[ii]]++;
+
+    random[ii]  =  mt.mtRandom64() & uint64MASK(width[ii]);
+
+    if (random[ii] == 0)
+      ii--;
+  }
+
+  {
+    FILE *F = fopen("length.histo", "w");
+    for (uint32 ii=0; ii<65; ii++)
+      fprintf(F, "%u\t%lu\n", ii, histo[ii]);
+    fclose(F);
+  }
+
+  if (0) {
+    FILE *F = fopen("length.dat", "w");
+    for (uint32 ii=0; ii<maxN; ii++)
+      fprintf(F, "%u\n", width[ii]);
+    fclose(F);
+  }
+
+  fprintf(stderr, "Created %u numbers with total length %lu bits.\n", maxN, length);
+
+  fprintf(stderr, "Setting.\n");
+
+  stuffedBits *bits = new stuffedBits;
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    switch (type) {
+      case 0:
+        bits->setEliasGamma(random[ii]);
+        break;
+      case 1:
+        bits->setEliasDelta(random[ii]);
+        break;
+      case 2:
+        bits->setZeckendorf(random[ii]);
+        break;
+    }
+
+    //assert(bits->getPosition() == total);
+  }
+
+  fprintf(stderr, "Set %lu bits.\n", bits->getPosition());
+  fprintf(stderr, "Testing.\n");
+
+  bits->setPosition(0);
+
+  for (uint32 ii=0; ii<10; ii++)
+    fprintf(stderr, "value %2u %22lu width %2u\n", ii, random[ii], width[ii]);
+
+  for (uint32 ii=0; ii<5; ii++)
+    fprintf(stderr, "word %2u %s\n", ii, bits->displayWord(ii));
+
+  for (uint32 ii=0; ii<maxN; ii++) {
+    uint64  b = 0;
+
+    switch (type) {
+      case 0:
+        b = bits->getEliasGamma();
+        break;
+      case 1:
+        b = bits->getEliasDelta();
+        break;
+      case 2:
+        b = bits->getZeckendorf();
+        break;
+    }
+
+    if (b != random[ii])
+      fprintf(stderr, "Failed at ii %u expect random=%lu got b=%lu\n",
+              ii, random[ii], b);
+    assert(random[ii] == b);
+  }
+
+  fprintf(stderr, "Tested.\n");
+
+  delete    bits;
+  delete [] random;
+  delete [] width;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int
 main(int argc, char **argv) {
   int32 arg=1;
@@ -284,6 +433,18 @@ main(int argc, char **argv) {
         fprintf(stderr, "TESTING %u out of %u.\n", xx, 64);
         testBinary(xx);
       }
+    }
+
+    else if (strcmp(argv[arg], "-eliasgamma") == 0) {
+      testPrefixFree(0);
+    }
+
+    else if (strcmp(argv[arg], "-eliasdelta") == 0) {
+      testPrefixFree(1);
+    }
+
+    else if (strcmp(argv[arg], "-zeckendorf") == 0) {
+      testPrefixFree(2);
     }
 
     else if (strcmp(argv[arg], "") == 0) {

@@ -531,6 +531,12 @@ public:
   stuffedBits(FILE *inFile);
   ~stuffedBits();
 
+  //  Debugging.
+
+  char    *displayWord(uint64 w) {
+    return(::displayWord(_data[w]));
+  };
+
   //  Files.
 
   void     dumpToFile(FILE *F);
@@ -545,6 +551,12 @@ public:
 
   void     byteAlign(void);
 
+  //  SINGLE BITS
+
+  bool     getBit(void);           //  get a bit.
+  bool     testBit(void);          //  get a bit, but don't move position.
+  void     setBit(bool on=true);   //  set a bit.
+
   //  UNARY CODED DATA
 
   uint64   getUnary(void);
@@ -558,18 +570,74 @@ public:
   uint64   getBinary(uint32 width);
   uint64  *getBinary(uint32 width, uint64 number, uint64 *values=NULL);
 
-  void     setBinary(uint32 width, uint64 value);
-  void     setBinary(uint32 width, uint64 number, uint64 *values);
+  uint32   setBinary(uint32 width, uint64 value);
+  uint32   setBinary(uint32 width, uint64 number, uint64 *values);
 
-  //  GENERALIZED UNARY CODED DATA
+  //  ELIAS GAMMA CODED DATA
 
-  uint64   getGeneralizedUnary(void);
-  uint64  *getGeneralizedUnary(uint64 number, uint64 *values=NULL);
+  uint64   getEliasGamma(void);
+  uint64  *getEliasGamma(uint64 number, uint64 *values=NULL);
 
-  uint32   setGeneralizedUnary(uint64 value);
-  uint32   setGeneralizedUnary(uint64 number, uint64 *values);
+  uint32   setEliasGamma(uint64 value);
+  uint32   setEliasGamma(uint64 number, uint64 *values);
 
+  //  ELIAS DELTA CODED DATA
 
+  uint64   getEliasDelta(void);
+  uint64  *getEliasDelta(uint64 number, uint64 *values=NULL);
+
+  uint32   setEliasDelta(uint64 value);
+  uint32   setEliasDelta(uint64 number, uint64 *values);
+
+  //  ELIAS OMEGA CODED DATA - the omega code looks hard to implement - the
+  //  encoding and decoding streams are backwards from each other.  The idea
+  //  is:
+  //
+  //    push the binary representation of the value onto a stack.
+  //    set value to one less than the number of bits emitted last.
+  //    loop until the value is 1.
+  //
+  //  The stream is constructed by emitting the words on the stack, and
+  //  terminating the stream with an extra '0'.
+  //
+#if 0
+  uint64   getEliasOmega(void);
+  uint64  *getEliasOmega(uint64 number, uint64 *values=NULL);
+
+  uint32   setEliasOmega(uint64 value);
+  uint32   setEliasOmega(uint64 number, uint64 *values);
+#endif
+
+  //  FIBONACCI CODED DATA
+  //
+  //  A Fibonacci number is F(n) = F(n-1) + F(n-2), wher F(0) = F(1) = 1.
+  //
+  //  The Zeckendorf representation of a number encodes it such that no
+  //  two consecurive Fibonacci numbers are used.  From the definition
+  //  of a Fibonacci number, any pattern "100" can be replaced with "011".
+  //  A number encoded after this transofmration is in the Fibonacci
+  //  representation ("Zeckendorf representation" seems to be a real thing,
+  //  I just made up "Fibonacci representation" - the two terms seem to
+  //  be used synonymously in the real world).
+  //
+  //  Once encoded, it's added to the bit stream reversed.
+  //
+  //  For the Zeckendorf representation, a single 1-bit is added, terminating
+  //  the number with the last '1' bit of data, followed immediately by
+  //  another '1' bit.  (Because, by definition, there are no two adjacent
+  //  set bits in the encoded number).
+  //
+  //  For the Fibonacci representation, we need to append two '0' bits.
+  //  (Because, by definition, there are no two adjacent unset bits in the
+  //  representation).  BUT, this representation saves at most one bit
+  //  (replacing 100 at the start of the string by 011), but the savings
+  //  is lost by the extra stop bit we need.
+  //
+  uint64   getZeckendorf(void);
+  uint64  *getZeckendorf(uint64 number, uint64 *values=NULL);
+
+  uint32   setZeckendorf(uint64 value);
+  uint32   setZeckendorf(uint64 number, uint64 *values);
 
   //  Old meryl uses preDecrement() when using compressed bucket counting.
   //  Nothing else in canu uses these, and they're painful, so left unimplemented.
@@ -580,11 +648,6 @@ public:
   uint64   postDecrementBinary(uint64 width, uint64 position);
 #endif
 
-  //  ELIAS GAMMA CODED DATA
-
-  //  ELIAS DELTA CODED DATA
-
-  //  FIBONACCI CODED DATA
 
 private:
 
@@ -631,7 +694,7 @@ private:
     _dataBlk += 1;
 
     if (_dataBlk >= _dataBlocksLen)
-      fprintf(stderr, "ERROR: _dataBlk = %lu  _dataBlocksLen = %lu\n", _dataBlk, _dataBlocksLen);
+      fprintf(stderr, "ERROR: _dataBlk = %lu  _dataBlocksLen = %u\n", _dataBlk, _dataBlocksLen);
     assert(_dataBlk < _dataBlocksLen);
 
     _dataPos  = 0;
@@ -698,6 +761,8 @@ private:
   uint64   _dataBlk;         //  Active data block.
   uint64   _dataWrd;         //  Active word in the active data block.
   uint64   _dataBit;         //  Active bit in the active word in the active data block (aka, number of bits left in this word)
+
+  uint64   _fibData[93];      //  A pile of Fibonacci numbers.
 };
 
 

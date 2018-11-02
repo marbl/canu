@@ -226,3 +226,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 fastq-utilities/fastqSimulate.mk \
                 fastq-utilities/fastqSimulate-sort.mk
 
+ifeq ($(BUILDTESTS), 1)
+SUBMAKEFILES += utility/bitsTest.mk
+endif

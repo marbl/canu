@@ -53,7 +53,23 @@ stuffedBits::stuffedBits(uint64 nBits) {
   _dataBlk = 0;
   _dataWrd = 0;
   _dataBit = 64;
-};
+
+  //  Set up the Fibonacci encoding table.
+  //
+  //  It takes 46 values to saturate a uint32 (fib[47] > uint32).
+  //  It takes 92 values to saturate a uint64 (fib[93] > uint64).
+
+  _fibData[0] = 1;
+  _fibData[1] = 1;
+
+  for (uint32 ii=2; ii<93; ii++)
+    _fibData[ii] = _fibData[ii-1] + _fibData[ii-2];
+
+  assert(_fibData[45] < _fibData[46]);   //  Fails if _fibData is 32-bit signed.
+  assert(_fibData[46] < _fibData[47]);   //  Fails if _fibData is 32-bit unsigned.
+  assert(_fibData[91] < _fibData[92]);   //  Fails if _fibData is 64-bit signed.
+}
+
 
 
 stuffedBits::stuffedBits(char const *inputName) {
@@ -256,6 +272,59 @@ stuffedBits::getLength(void) {
 
 
 
+//  A special case of getBinary().
+bool
+stuffedBits::getBit(void) {
+
+  updateBlk(1);
+
+  bool value = saveRightBits(_data[_dataWrd] >> (_dataBit - 1), 1);
+
+  _dataPos++;
+  _dataBit--;
+
+  updateBit();
+
+  return(value);
+};
+
+
+
+bool
+stuffedBits::testBit(void) {
+
+  updateBlk(1);
+
+  bool value = saveRightBits(_data[_dataWrd] >> (_dataBit - 1), 1);
+
+  return(value);
+};
+
+
+
+//  A special case of setBinary().
+void
+stuffedBits::setBit(bool bit) {
+
+  ensureSpace(1);
+
+  uint64  mask = ((uint64)1 << (_dataBit - 1));
+
+  if (bit)
+    _data[_dataWrd] |=  mask;
+  else
+    _data[_dataWrd] &= ~mask;
+
+  _dataPos++;
+  _dataBit--;
+
+  updateBit();
+  updateLen();
+};
+
+
+
+
 uint64
 stuffedBits::getUnary(void) {
   uint64  value = 0;
@@ -407,35 +476,6 @@ stuffedBits::setUnary(uint64 number, uint64 *values) {
 
 
 
-uint64
-stuffedBits::getGeneralizedUnary(void) {
-  return(0);
-}
-
-
-
-uint64 *
-stuffedBits::getGeneralizedUnary(uint64 number, uint64 *values) {
-  return(values);
-}
-
-
-
-
-uint32
-stuffedBits::setGeneralizedUnary(uint64 value) {
-  return(0);
-}
-
-
-
-uint32
-stuffedBits::setGeneralizedUnary(uint64 number, uint64 *values) {
-  return(0);
-}
-
-
-
 
 uint64
 stuffedBits::getBinary(uint32 width) {
@@ -502,7 +542,7 @@ stuffedBits::getBinary(uint32 width, uint64 number, uint64 *values) {
 
 
 
-void
+uint32
 stuffedBits::setBinary(uint32 width, uint64 value) {
 
   assert(width < 65);
@@ -549,16 +589,313 @@ stuffedBits::setBinary(uint32 width, uint64 value) {
   //  updateBit() isn't needed; it's handled in the special cases.
 
   updateLen();
+
+  return(width);
 }
 
 
 
-void
+uint32
 stuffedBits::setBinary(uint32 width, uint64 number, uint64 *values) {
+  uint32 size = 0;
 
   for (uint64 ii=0; ii<number; ii++)
-    setBinary(width, values[ii]);
+    size += setBinary(width, values[ii]);
+
+  return(size);
 }
 
 
+
+
+
+////////////////////////////////////////
+//  ELIAS GAMMA CODED DATA
+//
+//  Unary coded length of binary data, then binary data of that length.
+//  Works only on positive (non-zero) integers.
+//
+uint64
+stuffedBits::getEliasGamma(void) {
+  uint32  N = getUnary();
+  uint64  V = getBinary(N);
+
+  V |= (uint64)1 << N;
+
+  return(V);
+}
+
+
+
+uint64 *
+stuffedBits::getEliasGamma(uint64 number, uint64 *values) {
+
+  if (values == NULL)
+    values = new uint64 [number];
+
+  for (uint64 ii=0; ii<number; ii++)
+    values[ii] = getEliasGamma();
+
+  return(values);
+}
+
+
+
+uint32
+stuffedBits::setEliasGamma(uint64 value) {
+  uint32 size = 0;
+  uint64 N    = countNumberOfBits64(value) - 1;
+
+  assert(value > 0);
+
+  size += setUnary(N);
+  size += setBinary(N, value);
+
+  return(size);
+}
+
+
+
+uint32
+stuffedBits::setEliasGamma(uint64 number, uint64 *values) {
+  uint32  size = 0;
+
+  for (uint64 ii=0; ii<number; ii++)
+    size += setEliasGamma(values[ii]);
+
+  return(size);
+}
+
+
+
+////////////////////////////////////////
+//  ELIAS DELTA CODED DATA
+//
+//  Similar to the gamma code, except the number of bits itself
+//  is gamma coded.  An optimization can drop the high order bit (it's always 1)
+//  from the binary coded data.  We don't do that.
+//
+uint64
+stuffedBits::getEliasDelta(void) {
+  uint32  N = getEliasGamma() - 1;
+  uint64  V = getBinary(N);
+
+  V |= (uint64)1 << N;
+
+  return(V);
+}
+
+
+
+uint64 *
+stuffedBits::getEliasDelta(uint64 number, uint64 *values) {
+
+  if (values == NULL)
+    values = new uint64 [number];
+
+  for (uint64 ii=0; ii<number; ii++)
+    values[ii] = getEliasDelta();
+
+  return(values);
+}
+
+
+
+
+uint32
+stuffedBits::setEliasDelta(uint64 value) {
+  uint32 size = 0;
+  uint32 N    = countNumberOfBits64(value);
+
+  assert(value > 0);
+
+  size += setEliasGamma(N);
+  size += setBinary(N-1, value);
+
+  return(size);
+}
+
+
+
+uint32
+stuffedBits::setEliasDelta(uint64 number, uint64 *values) {
+  uint32  size = 0;
+
+  for (uint64 ii=0; ii<number; ii++)
+    size += setEliasDelta(values[ii]);
+
+  return(size);
+}
+
+
+
+
+
+////////////////////////////////////////
+//  FIBONACCI CODED DATA
+
+
+uint64
+stuffedBits::getZeckendorf(void) {
+  uint64  value = 0;
+  uint32  ff    = 1;
+
+  //  The first bit in the official representation, representing the
+  //  redundant value 1, is always zero, and we don't save it.  Thus, start
+  //  decoding at ff=1.
+
+  bool tbit = getBit();
+  bool nbit = getBit();
+
+  //fprintf(stderr, "getZeck() %d %d blk %2lu pos %2lu bit %2lu\n", tbit, nbit, _dataBlk, _dataPos, _dataBit);
+
+  while (true) {
+    if (tbit)
+      value += _fibData[ff];
+
+    if (tbit && nbit)
+      break;
+
+    ff++;
+
+    tbit = nbit;
+    nbit = getBit();
+
+    //fprintf(stderr, "getZeck() %d   blk %2lu pos %2lu bit %2lu\n", nbit, _dataBlk, _dataPos, _dataBit);
+  }
+
+  return(value);
+}
+
+
+
+uint64 *
+stuffedBits::getZeckendorf(uint64 number, uint64 *values) {
+
+  if (values == NULL)
+    values = new uint64 [number];
+
+  for (uint64 ii=0; ii<number; ii++)
+    values[ii] = getZeckendorf();
+
+  return(values);
+}
+
+
+
+
+uint32
+stuffedBits::setZeckendorf(uint64 value) {
+  uint32  ff = 0;
+
+  uint64  word1 = 0;   uint32  wlen1 = 0;
+  uint64  word2 = 0;   uint32  wlen2 = 0;
+
+  //  Find the largest Fibonacci number smaller than our value.
+  //  Probably should be binary searching for this.
+
+  //fprintf(stderr, "setZeckendorf() - value %lu\n", value);
+
+  while ((ff < 93) && (_fibData[ff] <= value))
+    ff++;
+
+  //fprintf(stderr, "setZeckendorf() - ff    %lu\n", ff);
+
+  //  For each smaller Fibonacci number:
+  //    If the Fibonacci number is more than the value, it's not used in the
+  //    encoding.  Push on a zero.
+  //
+  //    Otherwise, it is used in the encoding.  Push on a 1, and remove the
+  //    fib number from our value.
+  //
+  while (ff-- > 0) {
+    word2 <<= 1;                       //  Make space for the new bit.
+
+    if (_fibData[ff] <= value) {      //  If used in the encoding,
+      word2 |= 1;                     //  set the bit and remove
+      value -= _fibData[ff];          //  it from the value.
+    }
+
+    if (++wlen2 > 60) {               //  If we're running outta
+      word1 = word2;                  //  bits in the word, save it
+      wlen1 = wlen2;                  //  to the first word to output.
+      wlen2 = 0;                      //
+    }
+  }
+
+  //  Reverse the words so we see the low bit first, then push on a
+  //  terminating 1 so we end the string with a pair of 1 bits.
+  //
+  //  The lower bits, in word2, can have the (post-reverse) left-most bit,
+  //  representing the redundant 1, stripped off.
+  //
+  //  An annoying special case oocurs when there are exactly 60 bits in the
+  //  encoding: word2 is now empty!
+
+  if (wlen1 == 0) {
+    word2 = reverseBits64(word2);
+
+    word2 >>= (64 - wlen2);
+
+    word2 <<= 1;
+    word2  |= 1;
+    wlen2  += 1;
+
+    wlen2  -= 1;  //  Strip off left-most bit.  Go Optimizer, Go!
+
+    setBinary(wlen2, word2);
+
+    //fprintf(stderr, "setZeckendorf() - word2 0x%016lx %2u\n", word2, wlen2);
+  }
+
+  else if (wlen2 == 0) {
+    word1 = reverseBits64(word1);
+
+    word1 >>= (64 - wlen1);
+
+    word1 <<= 1;
+    word1  |= 1;
+    wlen1  += 1;
+
+    wlen1  -= 1;  //  Strip off left-most bit.  Go Optimizer, Go!
+
+    setBinary(wlen1, word1);
+
+    //fprintf(stderr, "setZeckendorf() - word1 0x%016lx %1u\n", word1, wlen1);
+  }
+
+  else {
+    word2 = reverseBits64(word2);
+    word1 = reverseBits64(word1);
+
+    word2 >>= (64 - wlen2);
+    word1 >>= (64 - wlen1);
+
+    word1 <<= 1;
+    word1  |= 1;
+    wlen1  += 1;
+
+    wlen2  -= 1;
+
+    setBinary(wlen2, word2);
+    setBinary(wlen1, word1);
+
+    //fprintf(stderr, "setZeckendorf() - word2 0x%016lx %2u word1 0x%016lx %2u\n", word2, wlen2, word1, wlen1);
+  }
+
+
+  return(wlen1 + wlen2);
+}
+
+
+
+uint32
+stuffedBits::setZeckendorf(uint64 number, uint64 *values) {
+  uint32  size = 0;
+
+  for (uint64 ii=0; ii<number; ii++)
+    size += setZeckendorf(values[ii]);
+
+  return(size);
+}
 
