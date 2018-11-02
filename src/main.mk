@@ -177,6 +177,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/loadErates.mk \
                 \
                 meryl/meryl.mk \
+                meryl/meryl-import.mk \
                 meryl/meryl-lookup.mk \
                 \
                 sequence/sequence.mk \

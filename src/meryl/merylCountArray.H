@@ -37,10 +37,15 @@ public:
   merylCountArray();
   ~merylCountArray();
 
-  uint64    initialize(uint64 prefix, uint32 width, uint32 segsize);
+  uint64    initialize(uint64 prefix, uint32 width, uint32 segsize=64);
+
+  uint64    initializeValues(uint64 maxValue=0);
+
+  void      enableMultiSet(bool enable)    {  _multiSet = enable;  };
 
 private:
   void      removeSegments(void);
+  void      removeValues(void);
   void      addSegment(uint32 seg);
 
   //  Add a suffix to the table.
@@ -109,6 +114,22 @@ public:
     return(usedSizeDelta());
   };
 
+  uint64    addValue(uint64 value) {
+
+    if (_vals == NULL)
+      return(0);
+
+    if (_vWidth == 0)
+      return(_vals->setEliasDelta(value));
+    else
+      return(_vals->setBinary(_vWidth, value));
+  };
+
+private:
+  uint64   *unpackSuffixes(uint64 nSuffixes);
+
+  class
+  swv      *unpackSuffixesAndValues(uint64 nSuffixes);
 
 private:
   //
@@ -204,6 +225,11 @@ public:
   };
 
 
+private:
+  void             countSingleKmers(void);
+  void             countSingleKmersWithValues(void);
+  void             countMultiSetKmers(void);
+public:
   void             countKmers(void);
   void             dumpCountedKmers(kmerCountBlockWriter *out);
   void             removeCountedKmers(void);
@@ -211,6 +237,7 @@ public:
 
 private:
   uint32           _sWidth;       //  Size of the suffix we're storing
+  uint32           _vWidth;       //  Size of the values we're storing
 
   uint64           _prefix;       //  The kmer prefix we're storing data for
   uint64          *_suffix;       //  After sorting, the suffix of each kmer
@@ -225,9 +252,13 @@ private:
   uint32           _segAlloc;     //  Number of segments we're allowed to allocate  (size of the array below).
   uint64         **_segments;     //  An array of blocks of data.
 
+  stuffedBits     *_vals;         //  An array of compressed values.
+
   uint64           _nBits;        //  Number of bits stored.
   uint64           _nBitsTrigger; //  Number of bits we need to store for a size recalculation to occur.
   uint64           _nBitsOldSize; //  Last computed size.
+
+  bool             _multiSet;     //  Treat the input kmers as a multiset.
 };
 
 

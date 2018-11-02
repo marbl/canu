@@ -26,8 +26,49 @@
 #include "meryl.H"
 
 
+
+
+class swv {   //  That's suffix-with-value
+public:
+  void      set(uint64 suffix, uint32 value) {
+    _s1 = suffix >> 32;
+    _s2 = suffix  & uint64MASK(32);
+    _v  = value;
+  };
+
+  uint64    getSuffix(void) {
+    uint64   s;
+
+    s   = _s1;
+    s <<= 32;
+    s  |= _s2;
+
+    return(s);
+  };
+
+  uint32    getValue(void) {
+    return(_v);
+  };
+
+  bool      operator<(swv const that) {
+    return(((_s1  < that._s1)) ||
+           ((_s1 == that._s1) && (_s2  < that._s2)) ||
+           ((_s1 == that._s1) && (_s2 == that._s2) && (_v < that._v)));
+  };
+
+private:
+  uint32   _s1;  //  This bit of ugly is to 
+  uint32   _s2;
+  uint32   _v;
+};
+
+
+
+
+
 merylCountArray::merylCountArray(void) {
   _sWidth       = 0;
+  _vWidth       = 0;
 
   _prefix       = 0;
   _suffix       = NULL;
@@ -42,9 +83,13 @@ merylCountArray::merylCountArray(void) {
   _segAlloc     = 0;
   _segments     = NULL;
 
+  _vals         = NULL;
+
   _nBits        = 0;
   _nBitsTrigger = 0;
   _nBitsOldSize = 0;
+
+  _multiSet     = false;
 }
 
 
@@ -62,9 +107,9 @@ merylCountArray::initialize(uint64 prefix, uint32 width, uint32 segsize) {
   _bitsPerPage  = getPageSize() * 8;
   _nReAlloc     = 0;
 
-  _segSize      = segsize;
-  _segAlloc     = 0;
-  _segments     = NULL;
+  _segSize      = 8 * (segsize * 1024 - 32);   //  Set the segment size to 'segsize' KB,
+  _segAlloc     = 0;                           //  in bits, reserving 32 bytes for
+  _segments     = NULL;                        //  allocator stuff that we don't control.
 
   _nBits        = 0;
   _nBitsTrigger = 0;
@@ -75,9 +120,25 @@ merylCountArray::initialize(uint64 prefix, uint32 width, uint32 segsize) {
 
 
 
+uint64
+merylCountArray::initializeValues(uint64 maxValue) {
+
+  if (maxValue == 0)
+    _vWidth = 0;
+  else
+    _vWidth = countNumberOfBits64(maxValue);
+
+  _vals = new stuffedBits();
+
+  return(_nBitsOldSize);
+}
+
+
+
 merylCountArray::~merylCountArray() {
 
   removeSegments();
+  removeValues();
 
   delete [] _suffix;
   delete [] _counts;
@@ -107,6 +168,14 @@ merylCountArray::removeSegments(void) {
 
 
 void
+merylCountArray::removeValues(void) {
+  delete _vals;
+  _vals  = NULL;
+}
+
+
+
+void
 merylCountArray::addSegment(uint32 seg) {
 
   if (_segAlloc == 0) {
@@ -127,33 +196,59 @@ merylCountArray::addSegment(uint32 seg) {
 
 
 
-//
-//  Converts raw kmers listed in _segments into counted kmers listed in _suffix and _counts.
-//
-void
-merylCountArray::countKmers(void) {
 
-  if (_nBits == 0) {    //  If no kmers stored, nothing to do, so just
-    removeSegments();   //  remove the (unused) storage and return.
-    return;
-  }
-
-  assert(_nBits % _sWidth == 0);
-
-  uint64   nSuffixes = _nBits / _sWidth;
+//  Unpack the suffixes and remove the data.
+uint64 *
+merylCountArray::unpackSuffixes(uint64 nSuffixes) {
   uint64  *suffixes  = new uint64 [nSuffixes];
 
   //fprintf(stderr, "Allocate %lu suffixes, %lu bytes\n", nSuffixes, sizeof(uint64) * nSuffixes);
   //fprintf(stderr, "Sorting prefix 0x%016" F_X64P " with " F_U64 " total kmers\n", _prefix, nSuffixes);
 
-  //  Unpack the data into _suffix.
-
   for (uint64 kk=0; kk<nSuffixes; kk++)
     suffixes[kk] = get(kk);
 
-  //  All done with the raw data, so get rid of it quickly.
+  removeSegments();
+
+  return(suffixes);
+}
+
+
+
+swv *
+merylCountArray::unpackSuffixesAndValues(uint64 nSuffixes) {
+  swv     *suffixes  = new swv [nSuffixes];
+
+  assert(_vals != NULL);
+
+  //fprintf(stderr, "Allocate %lu suffixes, %lu bytes\n", nSuffixes, sizeof(swv) * nSuffixes);
+  //fprintf(stderr, "Sorting prefix 0x%016" F_X64P " with " F_U64 " total kmers\n", _prefix, nSuffixes);
+
+  _vals->setPosition(0);
+
+  if      (_vWidth == 0)
+    for (uint64 kk=0; kk<nSuffixes; kk++)
+      suffixes[kk].set(get(kk), _vals->getEliasDelta());
+  else
+    for (uint64 kk=0; kk<nSuffixes; kk++)
+      suffixes[kk].set(get(kk), _vals->getBinary(_vWidth));
 
   removeSegments();
+  removeValues();
+
+  return(suffixes);
+}
+
+
+
+
+//
+//  Converts raw kmers listed in _segments into counted kmers listed in _suffix and _counts.
+//
+void
+merylCountArray::countSingleKmers(void) {
+  uint64   nSuffixes = _nBits / _sWidth;
+  uint64  *suffixes  = unpackSuffixes(nSuffixes);
 
   //  Sort the data
 
@@ -198,6 +293,119 @@ merylCountArray::countKmers(void) {
 
   delete [] suffixes;
 };
+
+
+
+void
+merylCountArray::countSingleKmersWithValues(void) {
+  uint64   nSuffixes = _nBits / _sWidth;
+  swv     *suffixes  = unpackSuffixesAndValues(nSuffixes);
+
+  //  Sort the data
+
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::
+#else
+    std::
+#endif
+    sort(suffixes, suffixes + nSuffixes);
+
+  //  Count the number of distinct kmers, and allocate space for them.
+
+  uint64  nk = 1;
+
+  for (uint64 kk=1; kk<nSuffixes; kk++)
+    if (suffixes[kk-1].getSuffix() != suffixes[kk].getSuffix())
+      nk++;
+
+  _suffix = new uint64 [nk];
+  _counts = new uint32 [nk];
+
+  //  And generate the counted kmer data.
+
+  _nKmers = 0;
+
+  _counts[_nKmers] = suffixes[0].getValue();
+  _suffix[_nKmers] = suffixes[0].getSuffix();
+
+  for (uint64 kk=1; kk<nSuffixes; kk++) {
+    if (suffixes[kk-1].getSuffix() != suffixes[kk].getSuffix()) {
+      _nKmers++;
+      _counts[_nKmers] = 0;
+      _suffix[_nKmers] = suffixes[kk].getSuffix();
+    }
+
+    _counts[_nKmers] += suffixes[kk].getValue();
+  }
+
+  _nKmers++;
+
+  //  Remove all the temporary data.
+
+  delete [] suffixes;
+};
+
+
+
+void
+merylCountArray::countMultiSetKmers(void) {
+  uint64   nSuffixes = _nBits / _sWidth;
+  swv     *suffixes  = unpackSuffixesAndValues(nSuffixes);
+
+  //  Sort the data
+
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::
+#else
+    std::
+#endif
+    sort(suffixes, suffixes + nSuffixes);
+
+  //  In a multi-set, we dump each and every kmer that is loaded, no merging.
+
+  _suffix = new uint64 [nSuffixes];
+  _counts = new uint32 [nSuffixes];
+
+  //  And generate the counted kmer data.
+
+  _nKmers = nSuffixes;
+
+  for (uint64 kk=0; kk<nSuffixes; kk++) {
+    _counts[kk] = suffixes[kk].getValue();
+    _suffix[kk] = suffixes[kk].getSuffix();
+  }
+
+  //  Remove all the temporary data.
+
+  delete [] suffixes;
+};
+
+
+
+
+
+
+void
+merylCountArray::countKmers(void) {
+
+  //fprintf(stderr, "merylCountArray::countKmers()-- _nBits %lu -- values=%c multi-set=%c\n",
+  //        _nBits, (_vals == NULL) ? 'n' : 'Y', (_multiSet == false) ? 'n' : 'Y');
+
+  if (_nBits == 0) {    //  If no kmers stored, nothing to do, so just
+    removeSegments();   //  remove the (unused) storage and return.
+    return;
+  }
+
+  assert(_nBits % _sWidth == 0);
+
+  if (_vals == NULL)
+    countSingleKmers();
+  else
+    if (_multiSet == false)
+      countSingleKmersWithValues();
+    else
+      countMultiSetKmers();
+}
 
 
 
