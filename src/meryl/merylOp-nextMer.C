@@ -26,6 +26,10 @@
 #include "meryl.H"
 
 
+//  Yuck.
+char  kmerString[256];
+
+
 
 void
 merylOperation::findMinCount(void) {
@@ -140,13 +144,18 @@ merylOperation::initialize(void) {
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->initialize();
 
+  //  Decide if we're processing a multi-set.
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++)
+    _isMultiSet |= _inputs[ii]->isMultiSet();
+
   //  Set up the output for the specific kmer database file we're processing.
   //  Note that if this _was_ a counting operation, nextMer_doCounting() just
   //  above will have already created an output for the count, written the
   //  data, and removed the _output pointer.
 
   if (_output) {
-    _output->initialize();
+    _output->initialize(0, isMultiSet());
     _writer = _output->getStreamWriter(_fileNumber);
   }
 
@@ -243,10 +252,175 @@ merylOperation::convertToPassThrough(char *inputName) {
 
 
 
+//  Build a list of the inputs that have the smallest kmer, saving their
+//  counts in _actCount, and the input that it is from in _actIndex.
+bool
+merylOperation::nextMer_findSmallestNormal(void) {
+
+  _actLen = 0;                                       //  Reset to nothing on the list.
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++) {
+    if (_inputs[ii]->_valid == false)
+      continue;
+
+    if ((_actLen == 0) ||                            //  If we have no active kmer, or the input kmer is
+        (_inputs[ii]->_kmer < _kmer)) {              //  smaller than the one we have, reset the list.
+      _kmer        = _inputs[ii]->_kmer;
+      _actCount[0] = _inputs[ii]->_count;
+      _actIndex[0] = ii;
+      _actLen      = 1;
+
+      if (_verbosity >= sayDetails)
+        fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+    }
+
+    else if (_inputs[ii]->_kmer == _kmer) {          //  Otherwise, if the input kmer is the one we
+      _actCount[_actLen] = _inputs[ii]->_count;      //  have, save the count and input to the lists.
+      _actIndex[_actLen] = ii;
+      _actLen++;
+
+      if (_verbosity >= sayDetails)
+        fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+    }
+
+    else {                                           //  Otherwise, the input kmer comes after the
+    }                                                //  one we're examining, ignore it.
+  }
+}
+
+
+
+//  For multi-set operation, the list we build must have exactly one item in it.
+
+//  THIS IS WRONG, it needs to build a list with all the stuff with the same kmer AND value.
+//  It's up to the operation to decide what to do.
+//  So we probably need a new operation 'merge' or something.
+
+//  The action depends on the operations.
+//    Intersect -- treat non-multiset as wildcard; add to list with same value
+//    Union     -- treat non-multiset as multiset
+
+bool
+merylOperation::nextMer_findSmallestMultiSet(void) {
+
+  _actLen = 0;
+
+  //
+  //  A first pass to handle the inputs that are multi-sets.
+  //    If a union operation, save only the first lowest kmer/value pair.
+  //    Otherwise, add it to the list if it is the same or lower.
+  //
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++) {
+    if ((_inputs[ii]->_valid == false) ||
+        (_inputs[ii]->isMultiSet() == false))
+      continue;
+
+    if ((_operation == opUnion) ||
+        (_operation == opUnionMin) ||
+        (_operation == opUnionMax) ||
+        (_operation == opUnionSum)) {
+      if (((_actLen == 0)) ||
+          ((_inputs[ii]->_kmer  < _kmer)) ||
+          ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+        _kmer        = _inputs[ii]->_kmer;
+        _actCount[0] = _inputs[ii]->_count;
+        _actIndex[0] = ii;
+        _actLen      = 1;
+
+        if (_verbosity >= sayDetails)
+          fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+      }
+    }
+
+    else if (((_actLen == 0)) ||
+             ((_inputs[ii]->_kmer  < _kmer)) ||
+             ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+      _kmer              = _inputs[ii]->_kmer;
+      _actCount[_actLen] = _inputs[ii]->_count;
+      _actIndex[_actLen] = ii;
+      _actLen++;
+    }
+  }
+
+  //
+  //  A second pass to handle the inputs that are not multi-sets.
+  //  - If a union operation, reset the list if anything is strictly smaller.
+  //  - Otherwise, treat as a wildcard and add it to the list if the kmer is equal, resetting the value.
+  //
+  //    In both cases, add if the list is empty.
+  //    - For union:      we want to add these kmers/values to the output.
+  //    - For intersect:  the intersect logic will reject it, and we'll then load a new kmer for this input.
+  //    - For difference: if this is not the first input, it works as expected, no output
+  //                      if this is     the first input, it works as expected, the kmer is output (with original value).
+  //
+
+  for (uint32 ii=0; ii<_inputs.size(); ii++) {
+    if ((_inputs[ii]->_valid == false) ||
+        (_inputs[ii]->isMultiSet() == false))
+      continue;
+
+    if ((_operation == opUnion) ||
+        (_operation == opUnionMin) ||
+        (_operation == opUnionMax) ||
+        (_operation == opUnionSum)) {
+      if (((_actLen == 0)) ||
+          ((_inputs[ii]->_kmer  < _kmer)) ||
+          ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+        _kmer        = _inputs[ii]->_kmer;
+        _actCount[0] = _inputs[ii]->_count;
+        _actIndex[0] = ii;
+        _actLen      = 1;
+
+        if (_verbosity >= sayDetails)
+          fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+      }
+    }
+
+    else if (((_actLen == 0)) ||
+             ((_inputs[ii]->_kmer  < _kmer)) ||
+             ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+      _kmer              = _inputs[ii]->_kmer;
+      _actCount[_actLen] = _inputs[ii]->_count;
+      _actIndex[_actLen] = ii;
+      _actLen++;
+    }
+  }
+}
+
+
+
+//  If no active kmers, we're done.  Several bits of housekeeping need to be done:
+//   - Histogram operations need to finish up and report the histogram now.
+//     Alternatively, it could be done in the destructor.
+//   - Any outputs need to call finishIteration() to rename and/or merge
+//     their intermediate outputs.
+bool
+merylOperation::nextMer_finish(void) {
+
+  if (_verbosity >= sayDetails) {
+    fprintf(stderr, "merylOp::nextMer()-- No inputs found, all done here.\n");
+    fprintf(stderr, "\n");
+  }
+
+  _valid = false;
+
+  if (_operation == opHistogram)
+    reportHistogram();
+
+  if (_operation == opStatistics)
+    reportStatistics();
+
+  delete _writer;
+  _writer = NULL;
+
+  return(false);
+}
+
+
+
 bool
 merylOperation::nextMer(void) {
-
-  char  kmerString[256];
 
  nextMerAgain:
 
@@ -275,65 +449,18 @@ merylOperation::nextMer(void) {
     _inputs[_actIndex[ii]]->nextMer();
   }
 
-  _actLen = 0;
-
   //  Build a list of the inputs that have the smallest kmer, saving their
   //  counts in _actCount, and the input that it is from in _actIndex.
 
-  for (uint32 ii=0; ii<_inputs.size(); ii++) {
-    if (_inputs[ii]->_valid == false)
-      continue;
+  if (isMultiSet() == false)
+    nextMer_findSmallestNormal();
+  else
+    nextMer_findSmallestMultiSet();
 
-    if ((_actLen == 0) ||                            //  If we have no active kmer, or the input kmer is
-        (_inputs[ii]->_kmer < _kmer)) {              //  smaller than the one we have, reset the list.
-      _actLen = 0;
-      _kmer              = _inputs[ii]->_kmer;
-      _actCount[_actLen] = _inputs[ii]->_count;
-      _actIndex[_actLen] = ii;
-      _actLen++;
+  //  If no active kmers, we're done.
 
-      if (_verbosity >= sayDetails)
-        fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
-    }
-
-    else if (_inputs[ii]->_kmer == _kmer) {          //  Otherwise, if the input kmer is the one we
-      _actCount[_actLen] = _inputs[ii]->_count;      //  have, save the count and input to the lists.
-      _actIndex[_actLen] = ii;
-      _actLen++;
-
-      if (_verbosity >= sayDetails)
-        fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s\n", _kmer.toString(kmerString), _inputs[ii]->_name);
-    }
-
-    else {                                           //  Otherwise, the input kmer comes after the
-    }                                                //  one we're examining, ignore it.
-  }
-
-  //  If no active kmers, we're done.  Several bits of housekeeping need to be done:
-  //   - Histogram operations need to finish up and report the histogram now.
-  //     Alternatively, it could be done in the destructor.
-  //   - Any outputs need to call finishIteration() to rename and/or merge
-  //     their intermediate outputs.
-
-  if (_actLen == 0) {
-    if (_verbosity >= sayDetails) {
-      fprintf(stderr, "merylOp::nextMer()-- No inputs found, all done here.\n");
-      fprintf(stderr, "\n");
-    }
-
-    _valid = false;
-
-    if (_operation == opHistogram)
-      reportHistogram();
-
-    if (_operation == opStatistics)
-      reportStatistics();
-
-    delete _writer;
-    _writer = NULL;
-
-    return(false);
-  }
+  if (_actLen == 0)
+    return(nextMer_finish());
 
   //  Otherwise, active kmers!  Figure out what the count should be.
 

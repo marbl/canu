@@ -34,6 +34,9 @@ merylVerbosity  merylOperation::_verbosity    = sayStandard;
 
 
 merylOperation::merylOperation(merylOp op, uint32 ff, uint32 threads, uint64 memory) {
+
+  _isMultiSet    = false;  //  set in initialize().
+
   _operation     = op;
 
   _mathConstant  = 0;

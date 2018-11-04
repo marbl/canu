@@ -548,10 +548,12 @@ public:
 
 public:
   bool    nextMer(void);
-  kmer    theFMer(void)   { return(_kmer);    };
-  uint32  theCount(void)  { return(_count);   };
+  kmer    theFMer(void)        { return(_kmer);        };
+  uint32  theCount(void)       { return(_count);       };
 
-  char   *filename(void)  { return(_inName);  };
+  bool    isMultiSet(void)     { return(_isMultiSet);  };
+
+  char   *filename(void)       { return(_inName);      };
 
   kmerCountStatistics       *stats(void) {
     loadStatistics();

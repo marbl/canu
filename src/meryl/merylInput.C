@@ -35,6 +35,8 @@ merylInput::merylInput(merylOperation *o) {
   _store       = NULL;
 #endif
 
+  _isMultiSet  = false;  //  set in initialize().
+
   _count       = 0;
   _valid       = false;
 
@@ -61,6 +63,8 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile)
 #ifdef CANU
   _store       = NULL;
 #endif
+
+  _isMultiSet  = false;  //  set in initialize().
 
   if (threadFile != UINT32_MAX)
     _stream->enableThreads(threadFile);
@@ -92,6 +96,8 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
   _store       = NULL;
 #endif
 
+  _isMultiSet  = false;
+
   _count       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
 
@@ -117,6 +123,8 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
   _stream      = NULL;
   _sequence    = NULL;
   _store       = s;
+
+  _isMultiSet  = false;
 
   _count       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
@@ -183,8 +191,14 @@ merylInput::~merylInput() {
 
 void
 merylInput::initialize(void) {
-  if (_operation)
+  if (_operation) {
     _operation->initialize();
+    _isMultiSet = _operation->isMultiSet();
+  }
+
+  if (_stream) {
+    _isMultiSet = _stream->isMultiSet();
+  }
 }
 
 

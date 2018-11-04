@@ -75,6 +75,8 @@ public:
   bool   isFromStore(void)        { return(false);              };
 #endif
 
+  bool   isMultiSet(void)         { return(_isMultiSet);        };
+
   merylOperation           *_operation;
   kmerCountFileReader      *_stream;
   dnaSeqFile               *_sequence;
@@ -83,6 +85,7 @@ public:
 #endif
 
   char                      _name[FILENAME_MAX+1];
+  bool                      _isMultiSet;
 
   //  For _operation and _stream, a copy of the 'active' kmer
 

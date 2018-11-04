@@ -118,29 +118,24 @@ kmerCountFileWriter::kmerCountFileWriter(const char *outputName,
 
 
 kmerCountFileWriter::~kmerCountFileWriter() {
+  uint32   flags = (uint32)0x0000;
+
+  //  Set flags.
+
+  if (_isMultiSet)
+    flags |= (uint32)0x0001;
 
   //  Create a master index with the parameters.
 
   stuffedBits  *masterIndex = new stuffedBits;
 
-  if (_isMultiSet == false) {
-    masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  merylInd
-    masterIndex->setBinary(64, 0x31302e765f5f7865llu);  //  ex__v.01
-    masterIndex->setBinary(32, _prefixSize);
-    masterIndex->setBinary(32, _suffixSize);
-    masterIndex->setBinary(32, _numFilesBits);
-    masterIndex->setBinary(32, _numBlocksBits);
-  }
-
-  else {
-    masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  merylInd
-    masterIndex->setBinary(64, 0x32302e765f5f7865llu);  //  ex__v.02
-    masterIndex->setBinary(32, _prefixSize);
-    masterIndex->setBinary(32, _suffixSize);
-    masterIndex->setBinary(32, _numFilesBits);
-    masterIndex->setBinary(32, _numBlocksBits);
-    masterIndex->setBinary(32, (uint32)0x0001);   //  MultiSet bit set!
-  }
+  masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  merylInd
+  masterIndex->setBinary(64, 0x32302e765f5f7865llu);  //  ex__v.02
+  masterIndex->setBinary(32, _prefixSize);
+  masterIndex->setBinary(32, _suffixSize);
+  masterIndex->setBinary(32, _numFilesBits);
+  masterIndex->setBinary(32, _numBlocksBits);
+  masterIndex->setBinary(32, flags);
 
   _stats.dump(masterIndex);
 

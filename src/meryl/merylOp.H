@@ -170,8 +170,10 @@ public:
   //  return((_operation == opMostFrequent));
   //};
 
-  kmer   &theFMer(void)            { return(_kmer);   };
-  uint64  theCount(void)           { return(_count);  };
+  bool    isMultiSet(void)         { return(_isMultiSet); };
+
+  kmer   &theFMer(void)            { return(_kmer);       };
+  uint64  theCount(void)           { return(_count);      };
 
 public:
   void    doCounting(void);
@@ -181,6 +183,12 @@ public:
   void    initializeThreshold(void);
   bool    initialize(void);
 
+private:
+  bool    nextMer_findSmallestNormal(void);
+  bool    nextMer_findSmallestMultiSet(void);
+  bool    nextMer_finish(void);
+
+public:
   bool    nextMer(void);
 
   bool    validMer(void)           { return(_valid);  };
@@ -216,6 +224,7 @@ private:
   void    findSumCount(void);
 
   vector<merylInput *>           _inputs;
+  bool                           _isMultiSet;
 
   merylOp                        _operation;
 
