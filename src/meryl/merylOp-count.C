@@ -140,11 +140,19 @@ findExpectedSimpleSize(uint64  nKmerEstimate,
   uint64   highMem         = nEntries * extraBits;
   uint64   totMem          = (lowMem + highMem) / 8;
 
+  memoryUsed_ = UINT64_MAX;
+
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "SIMPLE MODE\n");
   fprintf(stderr, "-----------\n");
   fprintf(stderr, "\n");
+
+  if (kmerTiny::merSize() > 20) {
+    fprintf(stderr, "  Disabled for mers larger than 20.\n");
+    return;
+  }
+
   fprintf(stderr, "  %2u-mers\n", kmerTiny::merSize());
   fprintf(stderr, "    -> %lu entries for counts up to %u.\n", nEntries, ((uint32)1 << lowBitsSize) - 1);
   fprintf(stderr, "    -> %lu %cbits memory used\n", scaledNumber(lowMem),  scaledUnit(lowMem));
@@ -172,11 +180,26 @@ findBestPrefixSize(uint64  nKmerEstimate,
   bestPrefix_  = 0;
   memoryUsed_  = UINT64_MAX;
 
-  for (uint32 wp=1; wp < 2 * merSize; wp++) {
+  //  IMPORTANT!  Prefixes must be at least six bits - the number of bits
+  //  we use for deciding on a file - and probably need to then leave one
+  //  bit for a block id.  So only save a bestPrefix if it is at least 7.
+
+  //  IMPORTANT!  Smaller prefixes mean bigger blocks in the output file,
+  //  and any operation on those outputs needs to load all kmers in
+  //  the block into memory, as full kmers.  Only save a bestPrefix
+  //  if it is at least 10 - giving us at least 16 blocks per file.
+
+  //  IMPORTANT!  Start searching at 1 and stop at merSize-1, otherwise
+  //  we end up with a prefix or a suffix of size zero.
+
+  for (uint32 wp=1; wp < 2 * merSize - 1; wp++) {
     uint64  nPrefix          = (uint64)1 << wp;                          //  Number of prefix == number of blocks of data
     uint64  kmersPerPrefix   = nKmerEstimate / nPrefix + 1;              //  Expected number of kmers we need to store per prefix
     uint64  kmersPerSeg      = SEGMENT_SIZE_BITS / (2 * merSize - wp);   //  Kmers per segment
     uint64  segsPerPrefix    = kmersPerPrefix / kmersPerSeg + 1;         //
+
+    if (wp + countNumberOfBits64(segsPerPrefix) + countNumberOfBits64(SEGMENT_SIZE) + 10 >= 64)
+      break;   //  Otherwise, dataMemory overflows.
 
     uint64  structMemory     = ((sizeof(merylCountArray) * nPrefix) +                  //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
@@ -186,20 +209,14 @@ findBestPrefixSize(uint64  nKmerEstimate,
     //  Pick a larger prefix if it is dramatically smaller than what we have.
     //  More prefixes seem to run a bit slower, but also have smaller buckets
     //  for sorting at the end.
-    //
-    //  IMPORTANT!  Prefixes must be at least six bits - the number of bits
-    //  we use for deciding on a file - and probably need to then leave one
-    //  bit for a block id.  So only save a bestPrefix if it is at least 7.
-    //
-    //  IMPORTANT!  Smaller prefixes mean bigger blocks in the output file,
-    //  and any operation on those outputs needs to load all kmers in
-    //  the block into memory, as full kmers.  Only save a bestPrefix
-    //  if it is at least 10 - giving us at least 16 blocks per file.
 
     if ((wp > 9) && (totalMemory + 16 * wp * 1024 * 1024 < memoryUsed_)) {
       memoryUsed_ = totalMemory;
       bestPrefix_ = wp;
     }
+
+    if (totalMemory > 16 * memoryUsed_)
+      break;
   }
 }
 
@@ -224,11 +241,14 @@ findBestValues(uint64  nKmerEstimate,
   fprintf(stderr, "  bits   prefix   memory   prefix   prefix   memory   memory\n");
   fprintf(stderr, "------  -------  -------  -------  -------  -------  -------\n");
 
-  for (uint32 wp=1; wp < 2 * merSize; wp++) {
+  for (uint32 wp=1; wp < 2 * merSize - 1; wp++) {
     uint64  nPrefix          = (uint64)1 << wp;                          //  Number of prefix == number of blocks of data
     uint64  kmersPerPrefix   = nKmerEstimate / nPrefix + 1;              //  Expected number of kmers we need to store per prefix
     uint64  kmersPerSeg      = SEGMENT_SIZE_BITS / (2 * merSize - wp);   //  Kmers per segment
     uint64  segsPerPrefix    = kmersPerPrefix / kmersPerSeg + 1;         //
+
+    if (wp + countNumberOfBits64(segsPerPrefix) + countNumberOfBits64(SEGMENT_SIZE) + 10 >= 64)
+      break;   //  Otherwise, dataMemory overflows.
 
     uint64  structMemory     = ((sizeof(merylCountArray) * nPrefix) +                  //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
@@ -256,7 +276,7 @@ findBestValues(uint64  nKmerEstimate,
       fprintf(stderr, "\n");
     }
 
-    if (totalMemory > 4 * memoryUsed)
+    if (totalMemory > 16 * memoryUsed)
       break;
   }
 }
