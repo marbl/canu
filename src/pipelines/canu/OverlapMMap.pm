@@ -55,6 +55,7 @@ sub mmapConfigure ($$$) {
     my $tag     = shift @_;
     my $typ     = shift @_;
     my $bin     = getBinDirectory();
+    my $minimap = getGlobal("minimap");
 
     my $base;                #  e.g., $base/1-overlapper/mhap.sh
     my $path;                #  e.g., $path/mhap.sh
@@ -285,7 +286,7 @@ sub mmapConfigure ($$$) {
     print F "echo Starting minimap precompute.\n";
     print F "echo \"\"\n";
     print F "\n";
-    print F "\$bin/minimap2 \\\n";
+    print F "$minimap \\\n";
     print F "  $parameters -t ", getGlobal("${tag}mmapThreads"), " \\\n";
     print F "  -d ./blocks/\$job.input.mmi\\\n";
     print F "  ./blocks/\$job.fasta \\\n";
@@ -363,7 +364,7 @@ sub mmapConfigure ($$$) {
     print F "if [ x\$slf = x ]; then\n";
     print F "   >  ./results/\$qry.mmap.WORKING\n";
     print F "else\n";
-    print F "  \$bin/minimap2 \\\n";
+    print F "  $minimap \\\n";
     print F "    $parameters -t ", getGlobal("${tag}mmapThreads"), " \\\n";
     print F "    ./blocks/\$blk.mmi \\\n";
     print F "    ./blocks/\$blk.fasta \\\n";
@@ -373,7 +374,7 @@ sub mmapConfigure ($$$) {
     print F "\n";
 
     print F "for file in `ls queries/\$qry/*.fasta`; do\n";
-    print F "  \$bin/minimap2 \\\n";
+    print F "  $minimap \\\n";
     print F "    $parameters -t ", getGlobal("${tag}mmapThreads"), " \\\n";
     print F "    ./blocks/\$blk.mmi \\\n";
     print F "    \$file \\\n";

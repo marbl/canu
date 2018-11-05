@@ -223,6 +223,9 @@ shell <string="/bin/sh">
 java <string="java">
   A path to a Java application launcher of at least version 1.8.
 
+minimap <string="minimap2">
+  A path to the minimap2 versatile pairwise aligner.
+
 gnuplot <string="gnuplot">
   A path to the gnuplot graphing utility.  Plotting is disabled if this is unset
   (`gnuplot=` or `gnuplot=undef`), or if gnuplot fails to execute, or if gnuplot

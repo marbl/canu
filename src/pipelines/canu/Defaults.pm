@@ -843,17 +843,19 @@ sub setDefaults () {
 
     my $java = (exists $ENV{"JAVA_HOME"} && -e "$ENV{'JAVA_HOME'}/bin/java") ? "$ENV{'JAVA_HOME'}/bin/java" : "java";
 
-    setDefault("showNext",            undef,     "Don't run any commands, just report what would run");
-    setDefault("shell",               "/bin/sh", "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
+    setDefault("showNext",            undef,      "Don't run any commands, just report what would run");
+    setDefault("shell",               "/bin/sh",  "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
 
-    setDefault("java",                $java,     "Java interpreter to use; at least version 1.8; default 'java'");
-    setDefault("javaUse64Bit",        undef,     "Java interpreter supports the -d64 or -d32 flags; default auto");
+    setDefault("minimap",             "minimap2", "Path to minimap2; default 'minimap2'");
 
-    setDefault("gnuplot",             "gnuplot", "Path to the gnuplot executable");
-    setDefault("gnuplotImageFormat",  undef,     "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
+    setDefault("java",                $java,      "Java interpreter to use; at least version 1.8; default 'java'");
+    setDefault("javaUse64Bit",        undef,      "Java interpreter supports the -d64 or -d32 flags; default auto");
 
-    setDefault("stageDirectory",      undef,     "If set, copy heavily used data to this node-local location");
-    setDefault("preExec",             undef,     "A command line to run at the start of Canu execution scripts");
+    setDefault("gnuplot",             "gnuplot",  "Path to the gnuplot executable");
+    setDefault("gnuplotImageFormat",  undef,      "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
+
+    setDefault("stageDirectory",      undef,      "If set, copy heavily used data to this node-local location");
+    setDefault("preExec",             undef,      "A command line to run at the start of Canu execution scripts");
 
     #####  Cleanup and Termination options
 
@@ -1154,29 +1156,35 @@ sub checkJava () {
 
 
 sub checkMinimap ($) {
-    my $bin = shift @_;
+    my $minimap = getGlobal("minimap");
+    my $version = undef;
 
     return  if ((getGlobal("corOverlapper") ne "minimap") &&
                 (getGlobal("obtOverlapper") ne "minimap") &&
                 (getGlobal("utgOverlapper") ne "minimap"));
 
-    if (! -e "$bin/minimap2") {
-        addCommandLineError("ERROR:  minimap overlapper requires minimap2 executable installed in Canu binary directory '$bin/'.\n");
+    if ($minimap =~ m/^\./) {
+        addCommandLineError("ERROR:  path to minimap2 '$minimap' must not be a relative path.\n");
+        goto cleanupMinimap;
     }
 
-    else {
-        my $versionStr;
+    system("cd /tmp && $minimap --version > /tmp/minimap2-$$.err 2>&1");
 
-        open(F, "$bin/minimap2 --version |");
-        while (<F>) {
-            $versionStr = $_;
-        }
-        close(F);
-
-        chomp $versionStr;
-
-        print STDERR "-- Detected minimap2 version '$versionStr' using '$bin/minimap2'.\n";
+    open(F, "< /tmp/minimap2-$$.err");
+    while (<F>) {
+        $version = $1  if ($_ =~ m/^(2.*$)/);
     }
+    close(F);
+
+    if (!defined($version)) {
+        addCommandlineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
+        goto cleanupMinimap;
+    }
+
+    print STDERR "-- Detected minimap2 version '$version' (from '$minimap').\n";
+
+ cleanupMinimap:
+    unlink "/tmp/minimap2-$$.err";
 }
 
 
@@ -1193,7 +1201,8 @@ sub checkGnuplot () {
     }
 
     if ($gnuplot =~ m/^\./) {
-        addCommandLineError("ERROR:  path to gnuplot '$gnuplot' must not be a relative path.\n")
+        addCommandLineError("ERROR:  path to gnuplot '$gnuplot' must not be a relative path.\n");
+        goto cleanupGnuplot;
     }
 
     #  Explicitly set pager to avoid having output corrupted by "Press enter..."
