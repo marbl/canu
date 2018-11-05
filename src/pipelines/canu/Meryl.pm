@@ -317,6 +317,8 @@ sub merylConfigure ($$) {
 
     my ($base, $path, $name, $merSize) = merylParameters($asm, $tag);
 
+    goto allDone   if ($merSize == 0);
+
     goto allDone   if (fileExists("$path/meryl-count.sh") &&            #  Configure 'output' exists.
                        fileExists("$path/meryl-process.sh"));           #
     goto allDone   if (fileExists("$path/$name.dump") &&                #  Meryl output(s) exist
@@ -734,6 +736,8 @@ sub merylCountCheck ($$) {
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
+    goto allDone      if ($merSize == 0);
+
     goto allDone      if (fileExists("$path/meryl-count.success"));
     goto allDone      if (fileExists("$path/$name.dump") &&
                           fileExists("$path/$name.ignore.gz"));
@@ -837,6 +841,8 @@ sub merylProcessCheck ($$) {
 
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
+
+    goto allDone      if ($merSize == 0);
 
     goto allDone      if (fileExists("$path/meryl-process.success"));
     goto finishStage  if (fileExists("$path/$name.dump") &&
