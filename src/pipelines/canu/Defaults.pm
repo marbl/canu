@@ -403,6 +403,7 @@ sub printHelp (@) {
     print "               -d <assembly-directory> \\\n";
     print "               genomeSize=<number>[g|m|k] \\\n";
     print "              [other-options] \\\n";
+    print "              [-haplotype{NAME} illumina.fastq.gz] \\\n";
     print "              [-pacbio-raw |\n";
     print "               -pacbio-corrected |\n";
     print "               -nanopore-raw |\n";
@@ -447,6 +448,12 @@ sub printHelp (@) {
     print "      - Ignore read-to-read overlaps shorter than 'number' bases long.  Default: 500.\n";
     print "  A full list of options can be printed with '-options'.  All options can be supplied in\n";
     print "  an optional sepc file with the -s option.\n";
+    print "\n";
+    print "  For TrioCanu, haplotypes are specified with the -haplotype{NAME} option, with any\n";
+    print "  number of haplotype-specific Illumina read files after.  The {NAME} of each haplotype\n";
+    print "  is free text (but only letters and numbers, please).  For example:\n";
+    print "    -haplotypeNANNY nanny/*gz\n";
+    print "    -haplotypeBILLY billy1.fasta.gz billy2.fasta.gz\n";
     print "\n";
     print "  Reads can be either FASTA or FASTQ format, uncompressed, or compressed with gz, bz2 or xz.\n";
     print "  Reads are specified by the technology they were generated with, and any processing performed:\n";
