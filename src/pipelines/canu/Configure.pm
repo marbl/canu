@@ -320,9 +320,9 @@ sub getAllowedResources ($$$$$@) {
             my $cores     = 0;
             my $memory    = 0;
 
-            for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
-                my $np_cpu = $gridNum[$ii] * int($gridCor[$ii] / $t);  #  Each process uses $t cores, node has $gridCor[$ii] cores available.
-                my $np_mem = $gridNum[$ii] * int($gridMem[$ii] / $m);  #  Each process uses $m GBs,   node ame $gridMem[$ii] GBs   available.
+            for (my $ii=0; $ii<scalar(@gridCor); $ii++) {                                 #  Each process uses:
+                my $np_cpu = $gridNum[$ii] * (($t == 0) ? 1 : int($gridCor[$ii] / $t));   #    $t cores, node has $gridCor[$ii] available.
+                my $np_mem = $gridNum[$ii] * (($m == 0) ? 1 : int($gridMem[$ii] / $m));   #    $m GBs,   node ame $gridMem[$ii] available.
 
                 my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;      #  Number of processes we can fit on this machine.
 
@@ -403,8 +403,8 @@ sub getAllowedResources ($$$$$@) {
     my $concurrent = undef;  #  Undef if in grid mode.
 
     if ($class eq "local") {
-        my $nct = int($maxThreads / $taskThreads);
-        my $ncm = int($maxMemory  / $taskMemory);
+        my $nct = ($taskThreads == 0) ? 1 : int($maxThreads / $taskThreads);
+        my $ncm = ($taskMemory  == 0) ? 1 : int($maxMemory  / $taskMemory);
 
         my $nc  = ($nct < $ncm) ? $nct : $ncm;
 
@@ -456,6 +456,13 @@ sub getAllowedResources ($$$$$@) {
 
     my $memt = substr("     " . $taskMemory  * $concurrent, -4) . " GB";
     my $thrt = substr("     " . $taskThreads * $concurrent, -4) . " CPU" . (($taskThreads * $concurrent == 1) ? " " : "s");
+
+    $mem  = " --- GB"     if ($taskMemory  == 0);
+    $thr  =  "--- CPUs"   if ($taskThreads == 0);
+    $job  =  "--- jobs"   if ($concurrent  == 0);
+
+    $memt = " --- GB"     if ($taskMemory  == 0);
+    $thrt =  "--- CPUs"   if ($taskThreads == 0);
 
     my $t = substr("$tag$alg     ", 0, 7);
 
@@ -701,22 +708,23 @@ sub configureAssembler () {
     #  Correction and consensus are somewhat invariant.
     #    Correction memory is set based on read length in CorrectReads.pm.
     #    Consensus memory is set based on tig size in Consensus.pm.
+    #  Both are set to zero here, a special case that will configure only the thread component.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "1-4");
-        setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
+        setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "1-4");
+        setGlobalIfUndef("corMemory",     "0");        setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
+        setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("corMemory",     "0");        setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "10000");
 
     } else {
-        setGlobalIfUndef("cnsMemory",     undef);      setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     undef);      setGlobalIfUndef("corThreads",      "4");
+        setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("corMemory",     "0");        setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "1024");     setGlobalIfUndef("corPartitionMin", "15000");
     }
@@ -860,8 +868,7 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("utg", "mmap",      $err, $all, 0)   if (getGlobal("utgOverlapper") eq "minimap");
     ($err, $all) = getAllowedResources("utg", "ovl",       $err, $all, 0)   if (getGlobal("utgOverlapper") eq "ovl");
 
-    #  Usually set based on read length in CorrectReads.pm.  If defined by the user, run through configuration.
-    ($err, $all) = getAllowedResources("",    "cor",       $err, $all, 0)   if (getGlobal("corMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cor",       $err, $all, 0);
 
     ($err, $all) = getAllowedResources("",    "ovb",       $err, $all, 0);
     ($err, $all) = getAllowedResources("",    "ovs",       $err, $all, 0);
@@ -872,7 +879,7 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("",    "bat",       $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "BOGART");
     ($err, $all) = getAllowedResources("",    "dbg",       $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "WTDBG");
 
-    ($err, $all) = getAllowedResources("",    "cns",       $err, $all, 0)   if (getGlobal("cnsMemory") ne undef);
+    ($err, $all) = getAllowedResources("",    "cns",       $err, $all, 0);
 
     ($err, $all) = getAllowedResources("",    "gfa",       $err, $all, 1);
 

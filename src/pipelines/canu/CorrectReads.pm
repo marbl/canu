@@ -156,7 +156,7 @@ sub estimateMemoryNeededForCorrectionJobs ($) {
     my $alignLen = 0;
     my $memEst   = 0;
 
-    return   if (defined(getGlobal("corMemory")));
+    return   if (defined(getGlobal("corMemory")) && (getGlobal("corMemory") > 0));
 
     fetchFile("$path/$asm.readsToCorrect.stats");
 

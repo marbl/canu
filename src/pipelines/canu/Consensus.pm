@@ -292,7 +292,7 @@ sub estimateMemoryNeededForConsensusJobs ($) {
     my $minMem = int($maxLen / 1000000 + 0.5) + 1;
     my $curMem = getGlobal("cnsMemory");
 
-    if (defined($curMem)) {
+    if (defined($curMem) && ($curMem > 0)) {
         if ($curMem < $minMem) {
             print STDERR "--\n";
             print STDERR "-- WARNING:\n";
