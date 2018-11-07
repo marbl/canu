@@ -204,8 +204,25 @@ sub unitig ($) {
     #  The 'if -e' below does nothing in Cloud mode, but it'd be a pain to support it properly.
 
     if      (getGlobal("unitigger") eq "bogart") {
-        print F "if [ ! -e ../$asm.ctgStore -o \\\n";
-        print F "     ! -e ../$asm.utgStore ] ; then\n";
+
+        print F "#\n";
+        print F "#  Check if the outputs exist.\n";
+        print F "#\n";
+        print F "#  The boilerplate function for doing this fails if the file isn't\n";
+        print F "#  strictly below the current directory, so some gymnastics is needed.\n";
+        print F "#\n";
+        print F "\n";
+        print F "cd ..\n";
+        print F fileExistsShellCode("exists", "unitigging", "$asm.ctgStore/seqDB.v001.tig", "");
+        print F fileExistsShellCode("exists", "unitigging", "$asm.utgStore/seqDB.v001.tig", "");
+        print F "\n";
+        print F "cd 4-unitigger\n";
+        print F "\n";
+        print F "#\n";
+        print F "#  Run if needed.\n";
+        print F "#\n";
+        print F "\n";
+        print F "if [ \$exists = false ] ; then\n";
         print F "  \$bin/bogart \\\n";
         print F "    -S ../../$asm.seqStore \\\n";
         print F "    -O    ../$asm.ovlStore \\\n";
