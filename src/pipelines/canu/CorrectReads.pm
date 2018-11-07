@@ -744,7 +744,6 @@ sub loadCorrectedReads ($) {
     resetIteration("cor-loadCorrectedReads");
 
   allDone:
-    stopAfter("readCorrection");
 }
 
 
@@ -821,5 +820,5 @@ sub dumpCorrectedReads ($) {
     resetIteration("cor-dumpCorrectedReads");
 
   allDone:
-    stopAfter("readCorrection");
+    stopAfter("correction");
 }

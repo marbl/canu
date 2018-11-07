@@ -254,7 +254,6 @@ sub loadTrimmedReads ($) {
     resetIteration("obt-dumpReads");
 
   allDone:
-    stopAfter("readTrimming");
 }
 
 
@@ -328,5 +327,5 @@ sub dumpTrimmedReads ($) {
     resetIteration("cor-dumpTrimmedReads");
 
   allDone:
-    stopAfter("readTrimming");
+    stopAfter("trimming");
 }

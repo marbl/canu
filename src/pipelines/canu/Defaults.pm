@@ -1564,13 +1564,16 @@ sub checkParameters () {
         my $st = getGlobal("stopAfter");
         $st =~ tr/A-Z/a-z/;
 
+        $st = "correctiom"   if ($st eq "readcorrection");    #  Update the string to allow deprecated usage.
+        $st = "trimming"     if ($st eq "readtrimming");
+
         my $failureString = "ERROR:  Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
 
         my @stopAfter = ("sequenceStore",
                          "meryl-configure",
                          "meryl-count",
-                         "meryl-process",
                          "meryl-merge",
+                         "meryl-process",
                          "meryl-subtract",
                          "meryl",
                          "haplotype-configure",
@@ -1579,17 +1582,17 @@ sub checkParameters () {
                          "overlap",
                          "overlapStoreConfigure",
                          "overlapStore",
-                         "readCorrection",
-                         "readTrimming",
+                         "correction",
+                         "trimming",
                          "unitig",
                          "consensusConfigure",
-                         "consensusCheck",
-                         "consensusLoad",
-                         "consensusAnalyze");
+                         "consensus");
 
         foreach my $sa (@stopAfter) {
             $failureString .= "ERROR:      '$sa'\n";
+
             $sa =~ tr/A-Z/a-z/;
+
             if ($st eq $sa) {
                 $ok++;
                 setGlobal('stopAfter', $st);

@@ -196,22 +196,49 @@ stopOnLowCoverage <integer=10>
 .. _stopAfter:
 
 stopAfter <string=undefined>
-  If set, Canu will stop processing after a specific stage in the pipeline finishes.
+  If set, Canu will stop processing after a specific stage in the pipeline finishes.  Valid values are:
 
-  Valid values for ``stopAfter`` are:
+  +-----------------------+-------------------------------------------------------------------+
+  | **stopAfter=**        | **Canu will stop after ....**                                     |
+  +-----------------------+-------------------------------------------------------------------+
+  | sequenceStore         | reads are loaded into the assembler read database.                |
+  +-----------------------+-------------------------------------------------------------------+
+  | meryl-configure       | kmer counting jobs are configured.                                |
+  +-----------------------+-------------------------------------------------------------------+
+  | meryl-count           | kmers are counted, but not processed into one database.           |
+  +-----------------------+-------------------------------------------------------------------+
+  | meryl-merge           | kmers are merged into one database.                               |
+  +-----------------------+-------------------------------------------------------------------+
+  | meryl-process         | frequent kmers are generated.                                     |
+  +-----------------------+-------------------------------------------------------------------+
+  | meryl-subtract        | haplotype specific kmers are generated.                           |
+  +-----------------------+-------------------------------------------------------------------+
+  | meryl                 | all kmer work is complete.                                        |
+  +-----------------------+-------------------------------------------------------------------+
+  | haplotype-configure   | haplotype read separation jobs are configured.                    |
+  +-----------------------+-------------------------------------------------------------------+
+  | haplotype             | haplotype-specific reads are generated.                           |
+  +-----------------------+-------------------------------------------------------------------+
+  | overlapConfigure      | overlap jobs are configured.                                      |
+  +-----------------------+-------------------------------------------------------------------+
+  | overlap               | overlaps are generated, before they are loaded into the database. |
+  +-----------------------+-------------------------------------------------------------------+
+  | overlapStoreConfigure | the jobs for creating the overlap database are configured.        |
+  +-----------------------+-------------------------------------------------------------------+
+  | overlapStore          | overlaps are loaded into the overlap database.                    |
+  +-----------------------+-------------------------------------------------------------------+
+  | correction            | corrected reads are generated.                                    |
+  +-----------------------+-------------------------------------------------------------------+
+  | trimming              | trimmed reads are generated.                                      |
+  +-----------------------+-------------------------------------------------------------------+
+  | unitig                | unitigs and contigs are created.                                  |
+  +-----------------------+-------------------------------------------------------------------+
+  | consensusConfigure    | consensus jobs are configured.                                    |
+  +-----------------------+-------------------------------------------------------------------+
+  | consensus             | consensus sequences are loaded into the databases.                |
+  +-----------------------+-------------------------------------------------------------------+
 
-   - ``gatekeeper`` - stops after the reads are loaded into the assembler read database.
-   - ``meryl`` - stops after frequent kmers are tabulated.
-   - ``overlapConfigure`` - stops after overlap jobs are configured.
-   - ``overlap`` - stops after overlaps are generated, before they are loaded into the overlap database.
-   - ``overlapStoreConfigure`` - stops after the jobs for creating the overlap store are configured.
-   - ``overlapStore`` - stops after overlaps are loaded into the overlap database.
-   - ``readCorrection`` - stops after corrected reads are generated.
-   - ``readTrimming`` - stops after trimmed reads are generated.
-   - ``unitig`` - stops after unitigs and contigs are created.
-   - ``consensusConfigure`` - stops after consensus jobs are configured.
-   - ``consensus`` - stops after consensus sequences are loaded into the databases.
-
+  *readCorrection* and *readTrimming* are deprecated synonyms for *correction* and *trimming*, respectively.
 
 General Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
