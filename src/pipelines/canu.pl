@@ -152,7 +152,7 @@ foreach my $arg (@ARGV) {
 
 my $rootdir       = undef;
 my $readdir       = undef;
-my $mode          = undef;   #  "correct", "trim", "trim-assemble" or "assemble"
+my $mode          = undef;   #  "haplotype", "correct", "trim", "trim-assemble" or "assemble"
 my $type          = undef;   #  "pacbio" or "nanopore"
 my $step          = "run";
 
@@ -185,6 +185,10 @@ while (scalar(@ARGV)) {
         push @specFiles, $spec;
 
         addCommandLineOption("-s '$spec'");
+
+    } elsif ($arg eq "-haplotype") {
+        $mode = $step = "haplotype";
+        addCommandLineOption("-haplotype");
 
     } elsif ($arg eq "-correct") {
         $mode = $step = "correct";
@@ -614,7 +618,8 @@ sub overlap ($$) {
 
 my @haplotypes = sort keys %haplotypeReads;
 
-if (setOptions($mode, "haplotype") eq "haplotype") {
+if ((scalar(@haplotypes) > 0) &&
+    (setOptions($mode, "haplotype") eq "haplotype")) {
     if ((! -e "./haplotype/haplotyping.success") &&
         (haplotypeReadsExist($asm, @haplotypes) eq "no")) {
 
@@ -689,15 +694,15 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
         print STDERR "-- Too few bases in unassigned reads to care; don't use them in assemblies.\n";
     }
 
-
     #  For each haplotype, emit a script to run the assembly.
 
     print STDERR "--\n";
+    print STDERR "-- Haplotype assembly commands:\n";
 
     foreach my $haplotype (@haplotypes) {
         my $hs = substr("$haplotype" . " " x $displLen, 0, $displLen);
 
-        print STDERR "-- Assemble haplotype $hs with command './$asm-haplotype$haplotype.sh'.\n";
+        print STDERR "--   $rootdir/$asm-haplotype$haplotype.sh\n";
 
         open(F, "> ./$asm-haplotype$haplotype.sh");
         print F "#!/bin/sh\n";
@@ -734,31 +739,51 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
 
     #  Fail if too many unassigned reads.
 
-    print STDERR "--\n";
-
     if ($hapBases{"unknown"} / $totBases > 0.50) {
-        caExit("too many unassigned reads", undef);
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Too many bases in unassigned reads.  Assemblies not started.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  If you run them manually, note that the unassigned reads\n";
+        print STDERR "-- ERROR:  are included in ALL assemblies.\n";
+        print STDERR "-- ERROR:\n";
     }
 
-    #  Then run the scripts.
+    #  Or stop if we're not running assemblies.
 
-    foreach my $haplotype (@haplotypes) {
-        if (getGlobal("useGrid") ne "1") {
-            print STDERR "-- Starting haplotype assembly $haplotype with script '$rootdir/$asm-haplotype$haplotype.sh'.\n";
-        } else {
-            print STDERR "-- Submitting '$rootdir/$asm-haplotype$haplotype.sh' to generate haplotype assembly $haplotype.\n";
+    elsif (setOptions($mode, "run") ne "run") {
+        print STDERR "--\n";
+        print STDERR "-- Assemblies not started per '-haplotype' option.\n";
+    }
+
+    #  Or run the assemblies.
+
+    else {
+        print STDERR "--\n";
+
+        foreach my $haplotype (@haplotypes) {
+            if (getGlobal("useGrid") ne "1") {
+                print STDERR "-- Starting haplotype assembly $haplotype.\n";
+            } else {
+                print STDERR "-- Submitting haplotype assembly $haplotype.\n";
+            }
+
+            runCommand(".", "./$asm-haplotype$haplotype.sh");
         }
 
-        runCommand(".", "./$asm-haplotype$haplotype.sh");
+        if (getGlobal("useGrid") ne "1") {
+            print STDERR "--\n";
+            print STDERR "-- Haplotype assemblies completed (or failed).\n";
+        } else {
+            print STDERR "--\n";
+            print STDERR "-- Haplotype assemblies submitted.\n";
+        }
     }
 
-    if (getGlobal("useGrid") ne "1") {
-        print STDERR "--\n";
-        print STDERR "-- Haplotype assemblies completed (or failed).\n";
-    } else {
-        print STDERR "--\n";
-        print STDERR "-- Haplotype assemblies submitted.\n";
-    }
+    #  And now we're done.
+
+    print STDERR "--\n";
+    print STDERR "-- Bye.\n";
 
     exit(0);
 }
