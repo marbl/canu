@@ -365,7 +365,24 @@ testPrefixFree(uint32 type) {
 
 
 
+//  Just a useful report of the fibonacci numbers.
+void
+showFibonacciNumbers(void) {
+  uint64  _fibDataMax = 93;
+  uint64 *_fibData    = new uint64 [_fibDataMax + 1];
 
+  _fibData[0] = 1;
+  _fibData[1] = 1;
+
+  for (uint32 ii=2; ii<_fibDataMax; ii++) {
+    _fibData[ii] = _fibData[ii-1] + _fibData[ii-2];
+
+    fprintf(stderr, "%4u -- %22lu = %22lu + %22lu -- %22lu\n",
+            ii, _fibData[ii], _fibData[ii-1], _fibData[ii-2], UINT64_MAX - _fibData[ii]);
+
+    assert(_fibData[ii] > _fibData[ii-1]);
+  }
+}
 
 
 
@@ -447,6 +464,10 @@ main(int argc, char **argv) {
       testPrefixFree(2);
     }
 
+    else if (strcmp(argv[arg], "-show-fibonacci") == 0) {
+      showFibonacciNumbers();
+    }
+
     else if (strcmp(argv[arg], "") == 0) {
     }
 
@@ -456,6 +477,9 @@ main(int argc, char **argv) {
 
     arg++;
   }
+
+  if (err)
+    fprintf(stderr, "ERROR: didn't parse command line.\n"), exit(1);
 
   exit(0);
 }
