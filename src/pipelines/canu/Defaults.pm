@@ -397,7 +397,7 @@ sub printHelp (@) {
 
     print "\n";
     print "usage:   canu [-version] [-citation] \\\n";
-    print "              [-correct | -trim | -assemble | -trim-assemble] \\\n";
+    print "              [-haplotype | -correct | -trim | -assemble | -trim-assemble] \\\n";
     print "              [-s <assembly-specifications-file>] \\\n";
     print "               -p <assembly-prefix> \\\n";
     print "               -d <assembly-directory> \\\n";
@@ -413,6 +413,7 @@ sub printHelp (@) {
     print "\n";
     print "\n";
     print "  To restrict canu to only a specific stage, use:\n";
+    print "    -haplotype     - generate haplotype-specific reads\n";
     print "    -correct       - generate corrected reads\n";
     print "    -trim          - generate trimmed reads\n";
     print "    -assemble      - generate an assembly\n";
