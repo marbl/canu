@@ -663,7 +663,7 @@ sub alignGFA ($) {
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
-        print F setWorkDirectoryShellCode($path)   if ($runGrid);   #  If not local, need to cd first.
+        print F setWorkDirectoryShellCode($path);
         print F "\n";
         print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
         print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
