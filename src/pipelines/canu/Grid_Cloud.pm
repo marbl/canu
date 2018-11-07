@@ -169,8 +169,6 @@ sub fileExistsShellCode ($$$@) {
     my $pr     = getGlobal("objectStoreProject");
     my $code   = "";
 
-    #  NOTE that this does NOT emit the closing fi.
-
     if    (isOS() eq "DNANEXUS") {
         $code .= "\n";
         $code .= "${indent}if [ ! -e $file ] ; then\n";
