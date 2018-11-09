@@ -323,7 +323,9 @@ public:
                                   bool                        isForCorrection);
   bool                 importData(FILE                       *importDataFile,
                                   map<uint32, sqRead *>      &reads,
-                                  map<uint32, sqReadData *>  &datas);
+                                  map<uint32, sqReadData *>  &datas,
+                                  FILE                       *layoutOutput,
+                                  FILE                       *sequenceOutput);
 
 
   void                 reverseComplement(void);  //  Does NOT update childDeltas

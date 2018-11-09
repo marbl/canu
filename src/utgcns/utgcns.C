@@ -409,8 +409,11 @@ main (int argc, char **argv) {
     map<uint32, sqRead *>      reads;
     map<uint32, sqReadData *>  datas;
 
-    while (((importFile) && (tig->importData(importFile, reads, datas) == true)) ||
-           ((tigFile)       && (tig->loadFromStreamOrLayout(tigFile)         == true))) {
+    FILE  *importedLayouts = AS_UTL_openOutputFile(importName, '.', "layout", (importName != NULL));
+    FILE  *importedReads   = AS_UTL_openOutputFile(importName, '.', "fasta",  (importName != NULL));
+
+    while (((importFile) && (tig->importData(importFile, reads, datas, importedLayouts, importedReads) == true)) ||
+           ((tigFile)    && (tig->loadFromStreamOrLayout(tigFile) == true))) {
 
       //  Stash excess coverage.
 
@@ -444,6 +447,9 @@ main (int argc, char **argv) {
       delete tig;
       tig = new tgTig();    //  Next loop needs an existing empty layout.
     }
+
+    AS_UTL_closeFile(importedReads);
+    AS_UTL_closeFile(importedLayouts);
   }
 
   //

@@ -449,7 +449,10 @@ main(int argc, char **argv) {
   if (importFile) {
     tgTig                     *layout = new tgTig();
 
-    while (layout->importData(importFile, reads, datas) == true) {
+    FILE  *importedLayouts = AS_UTL_openOutputFile(importName, '.', "layout", (importName != NULL));
+    FILE  *importedReads   = AS_UTL_openOutputFile(importName, '.', "fasta",  (importName != NULL));
+
+    while (layout->importData(importFile, reads, datas, NULL, NULL) == true) {
       generateFalconConsensus(fc,
                               layout,
                               seqStore,
@@ -467,6 +470,9 @@ main(int argc, char **argv) {
       delete layout;
       layout = new tgTig();    //  Next loop needs an existing empty layout.
     }
+
+    AS_UTL_closeFile(importedReads);
+    AS_UTL_closeFile(importedLayouts);
 
     //  We properly should clean up the data loaded.
 

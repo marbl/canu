@@ -730,12 +730,17 @@ tgTig::exportData(FILE     *exportDataFile,
 bool
 tgTig::importData(FILE                       *importDataFile,
                   map<uint32, sqRead     *>  &reads,
-                  map<uint32, sqReadData *>  &datas) {
+                  map<uint32, sqReadData *>  &datas,
+                  FILE                       *layoutOutput,
+                  FILE                       *sequenceOutput) {
 
   //  Try to load the metadata.  If nothing there, we're done.
 
   if (loadFromStreamOrLayout(importDataFile) == false)
     return(false);
+
+  if (layoutOutput)
+    dumpLayout(layoutOutput);
 
   //  We stored numberOfChildren() + 1 reads in the export.  The first read is either a redundant
   //  copy of the first read in the layout, or the read we're trying to correct.  If it's redundant,
@@ -753,6 +758,9 @@ tgTig::importData(FILE                       *importDataFile,
     }
 
     else {
+      if (sequenceOutput)
+        fprintf(sequenceOutput, ">read%u\n%s\b", read->sqRead_readID(), data->sqReadData_getSequence());
+
       reads[read->sqRead_readID()] = read;
       datas[read->sqRead_readID()] = data;
     }
