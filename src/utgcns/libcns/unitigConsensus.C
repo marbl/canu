@@ -466,6 +466,16 @@ generateTemplateStitch(abAbacus    *abacus,
     bool   hitTheEnd     = (gotResult) && (result.endLocations[0] + 1 == readEnd - readBgn);
     bool   moreToExtend  = (readEnd < readLen);
 
+    //  Reset if the edit distance is waay more than our error rate allows.  This seems to be a quirk with
+    //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
+
+    if ((double)result.editDistance / result.alignmentLength > errorRate) {
+      noResult    = true;
+      gotResult   = false;
+      hitTheStart = false;
+      hitTheEnd   = false;
+    }
+
     //  HOWEVER, if we get a result and it's near perfect, declare success even if we hit the start.
     //  These are simple repeats that will align with any overlap.  The one BPW debugged was 99+% A.
 
@@ -495,7 +505,7 @@ generateTemplateStitch(abAbacus    *abacus,
               result.startLocations[0], result.endLocations[0]+1,
               result.editDistance,
               result.alignmentLength,
-              (double)result.editDistance / result.alignmentLength);
+              100.0 * result.editDistance / result.alignmentLength);
 
     if ((noResult) || (hitTheStart)) {
       if (verbose)
@@ -513,23 +523,50 @@ generateTemplateStitch(abAbacus    *abacus,
       extensionSize += 0.10;
     }
 
-    if (tryAgain) {
+    if (templateSize < 0.01) {
+      fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!  Fail!\n");
+      tryAgain = false;
+    }
+
+    if (tryAgain && noResult) {
       edlibFreeAlignResult(result);
       goto alignAgain;
     }
 
-    readBgn = result.startLocations[0];     //  Expected to be zero
-    readEnd = result.endLocations[0] + 1;   //  Where we need to start copying the read
+    //  Use the alignment (or the overlap) to figure out what bases in the read
+    //  need to be appended to the template.
+
+    if (noResult == false) {
+      readBgn = result.startLocations[0];     //  Expected to be zero
+      readEnd = result.endLocations[0] + 1;   //  Where we need to start copying the read
+
+      if (verbose)
+        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
+                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+    } else {
+      readBgn = 0;
+      readEnd = olapLen;
+
+      if (verbose)
+        fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
+                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+    }
 
     edlibFreeAlignResult(result);
 
-    if (verbose)
-      fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n", tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
 
     resizeArray(tigseq, tiglen, tigmax, tiglen + readLen - readEnd + 1);
 
+    //  Append the read bases to the template.  If the alignment failed, reset any template bases
+    //  that are N to be the read base.
+
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
+
+    if (noResult == true)
+      for (uint32 ii=0, jj=tiglen-readLen; ii<readLen; ii++)
+        if (tigseq[jj] == 'N')
+          tigseq[jj] = fragment[ii];
 
     tigseq[tiglen] = 0;
 
