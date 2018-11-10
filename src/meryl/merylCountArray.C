@@ -50,7 +50,7 @@ public:
     return(_v);
   };
 
-  bool      operator<(swv const that) {
+  bool      operator<(swv const that) const {
     return(((_s1  < that._s1)) ||
            ((_s1 == that._s1) && (_s2  < that._s2)) ||
            ((_s1 == that._s1) && (_s2 == that._s2) && (_v < that._v)));
