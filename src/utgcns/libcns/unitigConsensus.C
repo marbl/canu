@@ -549,7 +549,7 @@ generateTemplateStitch(abAbacus    *abacus,
 
       if (verbose)
         fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
-                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+                readEnd, readLen);
     }
 
     edlibFreeAlignResult(result);
