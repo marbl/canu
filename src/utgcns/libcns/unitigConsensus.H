@@ -64,10 +64,63 @@
 #include "AS_global.H"
 
 #include "tgStore.H"
-#include "abAbacus.H"
 
 class ALNoverlap;
 class NDalign;
+
+
+#define CNS_MIN_QV 0
+#define CNS_MAX_QV 60
+
+
+class abSequence {
+public:
+  abSequence() {
+    _iid        = 0;
+
+    _is_read    = false;
+    _complement = false;
+
+    _length     = 0;
+    _bases      = NULL;
+    _quals      = NULL;
+  };
+
+  abSequence(uint32  readID,
+             uint32  length,
+             char   *seq,
+             uint8  *qlt,
+             uint32  complemented);
+
+  ~abSequence() {
+    delete [] _bases;
+    delete [] _quals;
+  };
+
+
+  uint32      seqIdent(void)          { return(_iid);        };
+
+  bool        isRead(void)            { return(_is_read);    };
+  bool        isForward(void)         { return(_complement == false); };
+
+  uint32      length(void)            { return(_length);     };
+  char        getBase(uint32 o)       { return(_bases[o]);   };
+  uint8       getQual(uint32 o)       { return(_quals[o]);   };
+
+  char       *getBases(void)          { return(_bases);      };
+
+private:
+  uint32     _iid;            //  external, aka seqStore, ID;
+
+  bool       _is_read;
+  bool       _complement;
+
+  uint32     _length;
+  char      *_bases;
+  uint8     *_quals;
+};
+
+
 
 class unitigConsensus {
 public:
@@ -77,18 +130,18 @@ public:
                   uint32    minOverlap_);
   ~unitigConsensus();
 
-  bool   savePackage(FILE   *outPackageFile,
-                     tgTig  *tig);
-
   bool   generate(tgTig                     *tig,
                   char                       algorithm,
                   char                       aligner,
                   map<uint32, sqRead *>     *reads = NULL,
                   map<uint32, sqReadData *> *datas = NULL);
 
-  bool   generateUTGCNS(tgTig                     *tig,
-                        map<uint32, sqRead *>     *reads = NULL,
-                        map<uint32, sqReadData *> *datas = NULL);
+private:
+  char *
+  generateTemplateStitch(tgPosition  *utgpos,
+                         uint32       numfrags,
+                         double       errorRate,
+                         bool         verbose);
 
   bool   generatePBDAG(tgTig                     *tig,
                        char                       aligner,
@@ -103,36 +156,32 @@ public:
                            map<uint32, sqRead *>     *reads = NULL,
                            map<uint32, sqReadData *> *datas = NULL);
 
+private:
+  void   addRead(sqStore *seqStore,
+                 uint32 readID,
+                 uint32 askip, uint32 bskip,
+                 bool complemented,
+                 map<uint32, sqRead *>     *inPackageRead,
+                 map<uint32, sqReadData *> *inPackageReadData);
+
+public:
   int32  initialize(map<uint32, sqRead *>     *reads,
                     map<uint32, sqReadData *> *datas);
 
+#if 0
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
   void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };
+#endif
 
-  bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing
+  //bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing
   bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };  //  -V -V       displays some details on the algorithm
-  bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays placement info before each read
-  bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };  //
-  bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
-  bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };  //
+  //bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays placement info before each read
+  //bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };  //
+  //bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
+  //bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };  //
 
-  void   reportStartingWork(void);
-  void   reportFailure(void);
-  void   reportSuccess(void);
-
-  int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
-
-  int32  computePositionFromAnchor(void);
-  int32  computePositionFromLayout(void);
-  int32  computePositionFromAlignment(void);
-
-  void   recomputeConsensus(bool display);
-  void   refreshPositions(void);
-
-  bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
-
-  bool   alignFragmentFailure(void);
-  bool   alignFragment(bool forceAlignment=false);
+#warning NEEDS GUARDS
+  abSequence *getSequence(uint32 id) { return(_sequences[id]); };
 
   void   generateConsensus(tgTig *tig);
 
@@ -142,14 +191,9 @@ private:
   tgTig          *tig;
   uint32          numfrags;    //  == tig->numberOfChildren()
 
-  uint32          traceLen;
-  uint32          traceMax;
-  int32          *trace;
-
-  int32           traceABgn;  //  Start of the aligned regions, discovered in alignFragment(),
-  int32           traceBBgn;  //  used in applyAlignment().
-
-  abAbacus       *abacus;
+  uint32          _sequencesMax;
+  uint32          _sequencesLen;
+  abSequence    **_sequences;
 
   //  The two positions below are storing the low/high coords for the read.
   //  They do not encode the orientation in the coordinates.
@@ -157,15 +201,9 @@ private:
   tgPosition     *utgpos;      //  Original unitigger location.
   tgPosition     *cnspos;      //  Actual location in frankenstein.
 
-  int32           tiid;        //  This frag IID
-  int32           piid;        //  Anchor frag IID - if -1, not valid
-
   uint32          minOverlap;
   double          errorRate;
   double          errorRateMax;
-
-  NDalign        *oaPartial;
-  NDalign        *oaFull;
 };
 
 

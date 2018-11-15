@@ -158,8 +158,6 @@ main (int argc, char **argv) {
       algorithm = 'Q';
     } else if (strcmp(argv[arg], "-pbdagcon") == 0) {
       algorithm = 'P';
-    } else if (strcmp(argv[arg], "-utgcns") == 0) {
-      algorithm = 'U';
 
     } else if (strcmp(argv[arg], "-edlib") == 0) {
       aligner = 'E';
@@ -224,7 +222,7 @@ main (int argc, char **argv) {
   if ((tigFileName == NULL) && (tigName == NULL) && (importName == NULL))
     err++;
 
-  if ((algorithm != 'Q') && (algorithm != 'P') && (algorithm != 'U'))
+  if ((algorithm != 'Q') && (algorithm != 'P'))
     err++;
 
   if (err) {
@@ -255,9 +253,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    This is fast and robust.  It is the default algorithm.  It does not\n");
     fprintf(stderr, "                    generate a final multialignment output (the -v option will not show\n");
     fprintf(stderr, "                    anything useful).\n");
-    fprintf(stderr, "    -utgcns         Use utgcns (the original Celera Assembler consensus algorithm)\n");
-    fprintf(stderr, "                    This isn't as fast, isn't as robust, but does generate a final multialign\n");
-    fprintf(stderr, "                    output.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALIGNER\n");
@@ -310,8 +305,8 @@ main (int argc, char **argv) {
     if ((tigFileName == NULL) && (tigName == NULL)  && (importName == NULL))
       fprintf(stderr, "ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p)  supplied.\n");
 
-    if ((algorithm != 'Q') && (algorithm != 'P') && (algorithm != 'U'))
-      fprintf(stderr, "ERROR:  Invalid algorithm '%c' specified; must be one of -quick, -pbdagcon, -utgcns.\n", algorithm);
+    if ((algorithm != 'Q') && (algorithm != 'P'))
+      fprintf(stderr, "ERROR:  Invalid algorithm '%c' specified; must be one of -quick, -pbdagcon.\n", algorithm);
 
     exit(1);
   }

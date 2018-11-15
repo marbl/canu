@@ -105,16 +105,6 @@ SOURCES      := AS_global.C \
                 utgcns/libNDalign/NDalgorithm-forward.C \
                 utgcns/libNDalign/NDalgorithm-reverse.C \
                 \
-                utgcns/libcns/abAbacus-addRead.C \
-                utgcns/libcns/abAbacus-appendBases.C \
-                utgcns/libcns/abAbacus-applyAlignment.C \
-                utgcns/libcns/abAbacus-baseCall.C \
-                utgcns/libcns/abAbacus-mergeRefine.C \
-                utgcns/libcns/abAbacus-refine.C \
-                utgcns/libcns/abAbacus-refreshMultiAlign.C \
-                utgcns/libcns/abAbacus.C \
-                utgcns/libcns/abColumn.C \
-                utgcns/libcns/abMultiAlign.C \
                 utgcns/libcns/unitigConsensus.C \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 \
