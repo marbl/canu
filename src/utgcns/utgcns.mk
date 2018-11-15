@@ -8,9 +8,9 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := utgcns
-SOURCES  := utgcns.C stashContains.C
+SOURCES  := utgcns.C stashContains.C unitigConsensus.C
 
-SRC_INCDIRS  := .. ../utility ../stores libcns libpbutgcns libboost
+SRC_INCDIRS  := .. ../utility ../stores ../overlapInCore/libedlib libpbutgcns libboost
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

@@ -15449,3 +15449,5 @@ A documentation/source/conf.py nihh20180227Brian P. Walenz
 A src/canu_version_update.pl nihh20180227Brian P. Walenz
 A addCopyrights-BuildData.pl nihh20180227Brian P. Walenz
 A addCopyrights.dat nihh20180227Brian P. Walenz
+D	src/utgcns/unitigConsensus.H src/utgcns/libcns/unitigConsensus.H
+D	src/utgcns/unitigConsensus.C src/utgcns/libcns/unitigConsensus.C

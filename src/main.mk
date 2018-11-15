@@ -105,7 +105,6 @@ SOURCES      := AS_global.C \
                 utgcns/libNDalign/NDalgorithm-forward.C \
                 utgcns/libNDalign/NDalgorithm-reverse.C \
                 \
-                utgcns/libcns/unitigConsensus.C \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 \
                 gfa/gfa.C \

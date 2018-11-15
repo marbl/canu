@@ -19,6 +19,7 @@
  *    src/AS_CNS/MultiAlignUnitig.c
  *    src/AS_CNS/MultiAlignment_CNS.c
  *    src/utgcns/libcns/MultiAlignUnitig.C
+ *    src/utgcns/libcns/unitigConsensus.C
  *
  *  Modifications by:
  *
