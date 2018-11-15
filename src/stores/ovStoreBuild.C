@@ -154,13 +154,13 @@ main(int argc, char **argv) {
   //  Figure out how many overlaps there are, quit if too many.
 
   uint32  maxID       = seq->sqStore_getNumReads();
-  uint64  totOverlaps = 0;  //  Total in inputs.
+  uint64  ovlsTotal   = 0;  //  Total in inputs.
   uint32  numInputs   = 0;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "-- SCANNING INPUTS --\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "      Molaps\n");
+  fprintf(stderr, "   Moverlaps\n");
   fprintf(stderr, "------------ ----------------------------------------\n");
 
   for (uint32 bb=1; bb<=config->numBuckets(); bb++) {
@@ -168,8 +168,8 @@ main(int argc, char **argv) {
       char              *inputName = config->getInput(bb, ii);
       ovFile            *inputFile = new ovFile(seq, inputName, ovFileFull);
 
-      totOverlaps += inputFile->getCounts()->numOverlaps() * 2;
-      numInputs   += 1;
+      ovlsTotal += inputFile->getCounts()->numOverlaps() * 2;
+      numInputs += 1;
 
       fprintf(stderr, "%12.3f %40s\n",
               inputFile->getCounts()->numOverlaps() / 1000000.0,
@@ -180,37 +180,39 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "------------ ----------------------------------------\n");
-  fprintf(stderr, "%12.3f overlaps in inputs\n", totOverlaps / 2 / 1000000.0);
-  fprintf(stderr, "%12.3f overlaps to sort\n",   totOverlaps     / 1000000.0);
+  fprintf(stderr, "%12.3f Moverlaps in inputs\n", ovlsTotal / 2 / 1000000.0);
+  fprintf(stderr, "%12.3f Moverlaps to sort\n",   ovlsTotal     / 1000000.0);
   fprintf(stderr, "\n");
 
-  if (totOverlaps == 0)
+  if (ovlsTotal == 0)
     fprintf(stderr, "Found no overlaps to sort.\n");
 
   //  Load overlaps into memory.
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Allocating space for " F_U64 " overlaps.\n", totOverlaps);
+  fprintf(stderr, "Allocating space for " F_U64 " overlaps.\n", ovlsTotal);
   fprintf(stderr, "\n");
 
-  ovOverlap      *ovls    = ovOverlap::allocateOverlaps(seq, totOverlaps);
-  uint64          ovlsLen = 0;
+  ovOverlap      *ovls       = ovOverlap::allocateOverlaps(seq, ovlsTotal);
+  uint64          ovlsInput  = 0;
+  uint64          ovlsLoaded = 0;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "-- LOADING OVERLAPS --\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "       Input       Loaded Percent\n");
-  fprintf(stderr, "      Molaps       Molaps  Loaded\n");
-  fprintf(stderr, "------------ ------------ ------- ----------------------------------------\n");
+  fprintf(stderr, "       Input       Loaded  Percent  Percent\n");
+  fprintf(stderr, "   Moverlaps    Moverlaps   Loaded Complete\n");
+  fprintf(stderr, "------------ ------------ -------- -------- ----------------------------------------\n");
 
   for (uint32 bb=1; bb<=config->numBuckets(); bb++) {
     for (uint32 ii=0; ii<config->numInputs(bb); ii++) {
       char     *inputName = config->getInput(bb, ii);
 
-      fprintf(stderr, "%12.3f %12.3f %6.2f%% %40s\n",
-              totOverlaps / 1000000.0,
-              ovlsLen     / 1000000.0,
-              0.0,
+      fprintf(stderr, "%12.3f %12.3f %7.2f%% %7.2f%% %40s\n",
+              ovlsInput   / 1000000.0,
+              ovlsLoaded  / 1000000.0,
+              100.0 * ovlsInput   / ovlsTotal,
+              (ovlsInput == 0) ? (100.0) : (100.0 * ovlsLoaded / ovlsInput),
               inputName);
 
       ovOverlap foverlap(seq);
@@ -221,41 +223,45 @@ main(int argc, char **argv) {
       while (inputFile->readOverlap(&foverlap)) {
         filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r, and checks IDs
 
+        ovlsInput += 2;
+
         //  Write the overlap if anything requests it.  These can be non-symmetric; e.g., if
         //  we only want to trim reads 1-1000, we'll not output any overlaps for a_iid > 1000.
 
         if ((foverlap.dat.ovl.forUTG == true) ||
             (foverlap.dat.ovl.forOBT == true) ||
             (foverlap.dat.ovl.forDUP == true))
-          ovls[ovlsLen++] = foverlap;
+          ovls[ovlsLoaded++] = foverlap;
 
         if ((roverlap.dat.ovl.forUTG == true) ||
             (roverlap.dat.ovl.forOBT == true) ||
             (roverlap.dat.ovl.forDUP == true))
-          ovls[ovlsLen++] = roverlap;
+          ovls[ovlsLoaded++] = roverlap;
 
         //  Report every 15.5 million overlaps (it's the millionth prime, why not).
 
-        if ((ovlsLen % 15485863) == 0)
-          fprintf(stderr, "%12.3f %12.3f %6.2f%%\n",
-                  totOverlaps / 1000000.0,
-                  ovlsLen     / 1000000.0,
-                  0.0);
+        if ((ovlsLoaded % 15485863) == 0)
+          fprintf(stderr, "%12.3f %12.3f %7.2f%% %7.2f%%\n",
+                  ovlsInput   / 1000000.0,
+                  ovlsLoaded  / 1000000.0,
+                  100.0 * ovlsInput   / ovlsTotal,
+                  (ovlsInput == 0) ? (100.0) : (100.0 * ovlsLoaded / ovlsInput));
 
         //  Make sure we didn't blow our space.
 
-        assert(ovlsLen <= totOverlaps);
+        assert(ovlsLoaded <= ovlsTotal);
       }
 
       delete inputFile;
     }
   }
 
-  fprintf(stderr, "------------ ------------ ------- ----------------------------------------\n");
-  fprintf(stderr, "%12.3f %12.3f %6.2f%%\n",
-          totOverlaps / 1000000.0,
-          ovlsLen     / 1000000.0,
-          0.0);
+  fprintf(stderr, "------------ ------------ -------- -------- ----------------------------------------\n");
+  fprintf(stderr, "%12.3f %12.3f %7.2f%% %7.2f%%\n",
+          ovlsInput   / 1000000.0,
+          ovlsLoaded  / 1000000.0,
+          100.0 * ovlsInput   / ovlsTotal,
+          (ovlsInput == 0) ? (100.0) : (100.0 * ovlsLoaded / ovlsInput));
 
   //  Report what was filtered and loaded.
 
@@ -293,7 +299,7 @@ main(int argc, char **argv) {
   //  If we have the parallel STL, don't use it!  Sort is not inplace!
   __gnu_sequential::
 #endif
-  sort(ovls, ovls + ovlsLen);
+  sort(ovls, ovls + ovlsLoaded);
 
   //  Write.
 
@@ -303,7 +309,7 @@ main(int argc, char **argv) {
 
   ovStoreWriter  *store = new ovStoreWriter(ovlName, seq);
 
-  for (uint64 oo=0; oo<ovlsLen; oo++)
+  for (uint64 oo=0; oo<ovlsLoaded; oo++)
     store->writeOverlap(ovls + oo);
 
   delete    store;

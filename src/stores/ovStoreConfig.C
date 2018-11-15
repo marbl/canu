@@ -55,7 +55,7 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
   fprintf(stderr, "\n");
   fprintf(stderr, "Finding number of overlaps per read and per file.\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "      Molaps\n");
+  fprintf(stderr, "   Moverlaps\n");
   fprintf(stderr, "------------ ----------------------------------------\n");
 
   uint64             *oPF                = new uint64 [_numInputs];
@@ -127,17 +127,23 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
     fprintf(stderr, "\n");
   }
 
-  fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory.  Not to exceed " F_S64 " processes or " F_S64 " open files.\n",
-          minMemory / 1024.0 / 1024.0 / 1024.0,
+  fprintf(stderr, "Configuring for:\n");
+  fprintf(stderr, "  Up to " F_S64 " processes.\n", procMax);
+  fprintf(stderr, "  Up to " F_S64 " open files.\n", openMax);
+
+  if (minMemory < maxMemory)
+    fprintf(stderr, "  At least %5.2f GB memory -> %4" F_U64P " sort processes with %.2f Moverlaps each.\n",
+            minMemory / 1024.0 / 1024.0 / 1024.0,
+            numOverlaps / olapsPerSliceMin + 1,
+            olapsPerSliceMin / 1000000.0);
+
+  fprintf(stderr, "  At most  %5.2f GB memory -> %4" F_U64P " sort processes with %.2f Moverlaps each.\n",
           maxMemory / 1024.0 / 1024.0 / 1024.0,
-          procMax, openMax);
-  fprintf(stderr, "  At minimum memory, %4" F_U64P " sort processes with %.2f Molaps each.\n",
-          numOverlaps / olapsPerSliceMin + 1,
-          olapsPerSliceMin / 1000000.0);
-  fprintf(stderr, "  At maximum memory, %4" F_U64P " sort processes with %.2f Molaps each.\n",
           numOverlaps / olapsPerSliceMax + 1,
           olapsPerSliceMax / 1000000.0);
   fprintf(stderr, "\n");
+
+
 
   //  More processes -> higher bandwidth utilization, but can also thrash the FS
   //  More memory    -> harder to get machines to run on
@@ -214,6 +220,7 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
 
   //  Report ovb to bucket mapping.
 
+  fprintf(stderr, "------------------------------------------------------------\n");
   fprintf(stderr, "Will bucketize using " F_U32 " processes.\n", _numBuckets);
   fprintf(stderr, "\n");
   fprintf(stderr, "         number    number of\n");
@@ -245,6 +252,7 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
   //  Assign reads to slices.
 
   fprintf(stderr, "\n");
+  fprintf(stderr, "------------------------------------------------------------\n");
   fprintf(stderr, "Will sort using " F_U32 " processes.\n",  _numSlices);
   fprintf(stderr, "  Up to %7.2f M overlaps\n", olapsPerSlice / 1000000.0);
   fprintf(stderr, "        %7.2f GB memory\n", _sortMemory);
