@@ -142,62 +142,136 @@ unitigConsensus::unitigConsensus(sqStore  *seqStore_,
                                  double    errorRateMax_,
                                  uint32    minOverlap_) {
 
-  seqStore        = seqStore_;
+  _seqStore        = seqStore_;
 
-  tig             = NULL;
-  numfrags        = 0;
+  _tig             = NULL;
+  _numReads        = 0;
 
   _sequencesMax   = 0;
   _sequencesLen   = 0;
   _sequences      = NULL;
 
-  utgpos          = NULL;
-  cnspos          = NULL;
+  _utgpos          = NULL;
+  _cnspos          = NULL;
 
-  minOverlap      = minOverlap_;
-  errorRate       = errorRate_;
-  errorRateMax    = errorRateMax_;
+  _minOverlap      = minOverlap_;
+  _errorRate       = errorRate_;
+  _errorRateMax    = errorRateMax_;
 }
 
 
 unitigConsensus::~unitigConsensus() {
-  delete [] utgpos;
-  delete [] cnspos;
+  delete [] _utgpos;
+  delete [] _cnspos;
+}
+
+
+
+void
+unitigConsensus::addRead(uint32   readID,
+                         uint32   askip, uint32 bskip,
+                         bool     complemented,
+                         map<uint32, sqRead *>     *inPackageRead,
+                         map<uint32, sqReadData *> *inPackageReadData) {
+
+  //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
+  //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
+  //  otherwise.  Hey, it's used for debugging only...
+
+  sqRead      *read     = NULL;
+  sqReadData  *readData = NULL;
+
+  if (inPackageRead == NULL) {
+    read     = _seqStore->sqStore_getRead(readID);
+    readData = new sqReadData;
+
+    _seqStore->sqStore_loadReadData(read, readData);
+  }
+
+  else {
+    read     = (*inPackageRead)[readID];
+    readData = (*inPackageReadData)[readID];
+  }
+
+  assert(read     != NULL);
+  assert(readData != NULL);
+
+  //  Grab seq/qlt from the read, offset to the proper begin and length.
+
+  uint32  seqLen = read->sqRead_sequenceLength() - askip - bskip;
+  char   *seq    = readData->sqReadData_getSequence()  + ((complemented == false) ? askip : bskip);
+  uint8  *qlt    = readData->sqReadData_getQualities() + ((complemented == false) ? askip : bskip);
+
+  //  Add it to our list.
+
+  increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
+
+  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, qlt, complemented);
+
+  delete readData;
 }
 
 
 
 bool
-unitigConsensus::generate(tgTig                     *tig_,
-                          char                       algorithm_,
-                          char                       aligner_,
-                          map<uint32, sqRead *>     *reads_,
-                          map<uint32, sqReadData *> *datas_) {
+unitigConsensus::initialize(map<uint32, sqRead *>     *reads,
+                            map<uint32, sqReadData *> *datas) {
 
-  if (tig_->numberOfChildren() == 1)
-    return(generateSingleton(tig_, reads_, datas_));
+  if (_numReads == 0) {
+    fprintf(stderr, "utgCns::initialize()-- unitig has no children.\n");
+    return(false);
+  }
 
-  else if (algorithm_ == 'Q')
-    return(generateQuick(tig_, reads_, datas_));
+  _utgpos = new tgPosition [_numReads];
+  _cnspos = new tgPosition [_numReads];
 
-  else if (algorithm_ == 'P')
-    return(generatePBDAG(tig_, aligner_, reads_, datas_));
+  memcpy(_utgpos, _tig->getChild(0), sizeof(tgPosition) * _numReads);
+  memcpy(_cnspos, _tig->getChild(0), sizeof(tgPosition) * _numReads);
 
-  //else if (algorithm_ == 'U')
-  //  return(generateUTGCNS(tig_, reads_, datas_));
+  //  Clear the cnspos position.  We use this to show it's been placed by consensus.
+  //  Guess the number of columns we'll end up with.
+  //  Initialize abacus with the reads.
 
-  fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+  for (int32 i=0; i<_numReads; i++) {
+    _cnspos[i].setMinMax(0, 0);
 
-  return(false);
+    addRead(_utgpos[i].ident(),
+            _utgpos[i]._askip, _utgpos[i]._bskip,
+            _utgpos[i].isReverse(),
+            reads,
+            datas);
+  }
+
+  //  Check for duplicate reads
+
+  {
+    set<uint32>  dupFrag;
+
+    for (uint32 i=0; i<_numReads; i++) {
+      if (_utgpos[i].isRead() == false) {
+        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is not a read.\n",
+                _tig->tigID(), _utgpos[i].ident());
+        return(false);
+      }
+
+      if (dupFrag.find(_utgpos[i].ident()) != dupFrag.end()) {
+        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is a duplicate.\n",
+                _tig->tigID(), _utgpos[i].ident());
+        return(false);
+      }
+
+      dupFrag.insert(_utgpos[i].ident());
+    }
+  }
+
+  return(true);
 }
 
 
 
+
 char *
-unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
-                                        uint32       numfrags,
-                                        double       errorRate,
-                                        bool         verbose) {
+unitigConsensus::generateTemplateStitch(void) {
   int32   minOlap  = 500;
 
   //  Initialize, copy the first read.
@@ -214,10 +288,10 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
 
   allocateArray(tigseq, tigmax, resizeArray_clearNew);
 
-  if (verbose) {
+  if (showAlgorithm()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
-            0, utgpos[0].ident(), readLen, utgpos[0].min(), utgpos[0].max());
+            0, _utgpos[0].ident(), readLen, _utgpos[0].min(), _utgpos[0].max());
   }
 
   for (uint32 ii=0; ii<readLen; ii++)
@@ -225,7 +299,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
 
   tigseq[tiglen] = 0;
 
-  uint32       ePos = utgpos[0].max();   //  Expected end of template, from bogart supplied positions.
+  uint32       ePos = _utgpos[0].max();   //  Expected end of template, from bogart supplied positions.
 
 
   //  Find the next read that has some minimum overlap and a large extension, copy that into the template.
@@ -249,39 +323,39 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
   //        read            (-----------)------
   //
 
-  while (rid < numfrags) {
+  while (rid < _numReads) {
     uint32 nr = 0;  //  Next read
     uint32 nm = 0;  //  Next read maximum position
 
     //  Pick the next read as the one with the longest extension from all with some minimum overlap
     //  to the template
 
-    if (verbose)
+    if (showAlgorithm())
       fprintf(stderr, "\n");
 
-    for (uint32 ii=rid+1; ii < numfrags; ii++) {
+    for (uint32 ii=rid+1; ii < _numReads; ii++) {
 
       //  If contained, move to the next read.  (Not terribly useful to log, so we don't)
 
-      if (utgpos[ii].max() < ePos)
+      if (_utgpos[ii].max() < ePos)
         continue;
 
       //  If a bigger end position, save the overlap.  One quirk: if we've already saved an overlap, and this
       //  overlap is thin, don't save the thin overlap.
 
-      bool   thick = (utgpos[ii].min() + minOlap < ePos);
+      bool   thick = (_utgpos[ii].min() + minOlap < ePos);
       bool   first = (nm == 0);
       bool   save  = false;
 
-      if ((nm < utgpos[ii].max()) && (thick || first)) {
+      if ((nm < _utgpos[ii].max()) && (thick || first)) {
         save = true;
         nr   = ii;
-        nm   = utgpos[ii].max();
+        nm   = _utgpos[ii].max();
       }
 
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d%s%s%s\n",
-                ii, numfrags, utgpos[ii].ident(), utgpos[ii].min(), utgpos[ii].max(),
+                ii, _numReads, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(),
                 (save  == true)  ? " SAVE"  : "",
                 (thick == false) ? " THIN"  : "",
                 (first == true)  ? " FIRST" : "");
@@ -294,7 +368,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
     }
 
     if (nr == 0) {
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- NO MORE READS TO ALIGN\n");
       break;
     }
@@ -316,7 +390,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
     double           templateSize  = 0.80;
     double           extensionSize = 0.20;
 
-    int32            olapLen      = ePos - utgpos[nr].min();  //  The expected size of the overlap
+    int32            olapLen      = ePos - _utgpos[nr].min();  //  The expected size of the overlap
     int32            templateLen  = 0;
     int32            extensionLen = 0;
 
@@ -333,18 +407,18 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
     if (templateLen <= 1)
        templateLen ++;
 
-    if (verbose) {
+    if (showAlgorithm()) {
       fprintf(stderr, "\n");
       fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
               tiglen - templateLen, tiglen, templateLen,
-              nr, utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen,
-              utgpos[nr].min(), utgpos[nr].max(),
+              nr, _utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen,
+              _utgpos[nr].min(), _utgpos[nr].max(),
               olapLen);
     }
 
     result = edlibAlign(tigseq + tiglen - templateLen, templateLen,
                         fragment, readEnd - readBgn,
-                        edlibNewAlignConfig(olapLen * errorRate, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+                        edlibNewAlignConfig(olapLen * _errorRate, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
     //  We're expecting the template to align inside the read.
     //
@@ -370,7 +444,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
     //  Reset if the edit distance is waay more than our error rate allows.  This seems to be a quirk with
     //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
 
-    if ((double)result.editDistance / result.alignmentLength > errorRate) {
+    if ((double)result.editDistance / result.alignmentLength > _errorRate) {
       noResult    = true;
       gotResult   = false;
       hitTheStart = false;
@@ -398,10 +472,10 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
 
     //  Now, report what happened, and maybe try again.
 
-    if ((verbose) && (noResult == true))
+    if ((showAlgorithm()) && (noResult == true))
       fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
 
-    if ((verbose) && (noResult == false))
+    if ((showAlgorithm()) && (noResult == false))
       fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
               result.startLocations[0], result.endLocations[0]+1,
               result.editDistance,
@@ -409,7 +483,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
               100.0 * result.editDistance / result.alignmentLength);
 
     if ((noResult) || (hitTheStart)) {
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - %s - decrease template size by 10%%\n",
                 (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
@@ -417,7 +491,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
     }
 
     if ((noResult) || (hitTheEnd && moreToExtend)) {
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - %s - increase read size by 10%%\n",
                 (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
@@ -441,14 +515,14 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
       readBgn = result.startLocations[0];     //  Expected to be zero
       readEnd = result.endLocations[0] + 1;   //  Where we need to start copying the read
 
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
                 tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
     } else {
       readBgn = 0;
       readEnd = olapLen;
 
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
                 readEnd, readLen);
     }
@@ -473,9 +547,9 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
 
     assert(tiglen < tigmax);
 
-    ePos = utgpos[rid].max();
+    ePos = _utgpos[rid].max();
 
-    if (verbose)
+    if (showAlgorithm())
       fprintf(stderr, "generateTemplateStitch()-- Template now length %d, expected %d, difference %7.4f%%\n",
               tiglen, ePos, 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos));
   }
@@ -484,7 +558,7 @@ unitigConsensus::generateTemplateStitch(tgPosition  *utgpos,
 
   double  pd = 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos);
 
-  if (verbose) {
+  if (showAlgorithm()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "generateTemplateStitch()-- generated template of length %d, expected length %d, %7.4f%% difference.\n",
             tiglen, ePos, pd);
@@ -711,17 +785,17 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
   bool  verbose = (tig_->_utgcns_verboseLevel > 1);
 
-  tig      = tig_;
-  numfrags = tig->numberOfChildren();
+  _tig      = tig_;
+  _numReads = _tig->numberOfChildren();
 
   if (initialize(reads_, datas_) == false) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
     return(false);
   }
 
   //  Build a quick consensus to align to.
 
-  char   *tigseq = generateTemplateStitch(utgpos, numfrags, errorRate, tig->_utgcns_verboseLevel);
+  char   *tigseq = generateTemplateStitch();
   uint32  tiglen = strlen(tigseq);
 
   if (verbose)
@@ -732,28 +806,28 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
   if (verbose)
     fprintf(stderr, "Aligning reads.\n");
 
-  dagAlignment *aligns = new dagAlignment [numfrags];
+  dagAlignment *aligns = new dagAlignment [_numReads];
   uint32        pass = 0;
   uint32        fail = 0;
 
 #pragma omp parallel for schedule(dynamic)
-  for (uint32 ii=0; ii<numfrags; ii++) {
+  for (uint32 ii=0; ii<_numReads; ii++) {
     abSequence  *seq      = getSequence(ii);
     bool         aligned  = false;
 
     assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
 
     aligned = alignEdLib(aligns[ii],
-                         utgpos[ii],
+                         _utgpos[ii],
                          seq->getBases(), seq->length(),
                          tigseq, tiglen,
-                         (double)tiglen / tig->_layoutLen,
-                         errorRate,
+                         (double)tiglen / _tig->_layoutLen,
+                         _errorRate,
                          verbose);
 
     if (aligned == false) {
       if (verbose)
-        fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", utgpos[ii].ident());
+        fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", _utgpos[ii].ident());
 
       fail++;
 
@@ -773,8 +847,8 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
   AlnGraphBoost ag(string(tigseq, tiglen));
 
-  for (uint32 ii=0; ii<numfrags; ii++) {
-    cnspos[ii].setMinMax(aligns[ii].start, aligns[ii].end);
+  for (uint32 ii=0; ii<_numReads; ii++) {
+    _cnspos[ii].setMinMax(aligns[ii].start, aligns[ii].end);
 
     if ((aligns[ii].start == 0) &&
         (aligns[ii].end   == 0))
@@ -806,23 +880,23 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
   //  Save consensus
 
-  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, (uint32) cns.length() + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_gappedBases, _tig->_gappedQuals, 0, _tig->_gappedMax, (uint32) cns.length() + 1, resizeArray_doNothing);
 
   std::string::size_type len = 0;
 
   for (len=0; len<cns.size(); len++) {
-    tig->_gappedBases[len] = cns[len];
-    tig->_gappedQuals[len] = CNS_MIN_QV;
+    _tig->_gappedBases[len] = cns[len];
+    _tig->_gappedQuals[len] = CNS_MIN_QV;
   }
 
   //  Terminate the string.
 
-  tig->_gappedBases[len] = 0;
-  tig->_gappedQuals[len] = 0;
-  tig->_gappedLen        = len;
-  tig->_layoutLen        = len;
+  _tig->_gappedBases[len] = 0;
+  _tig->_gappedQuals[len] = 0;
+  _tig->_gappedLen        = len;
+  _tig->_layoutLen        = len;
 
-  assert(len < tig->_gappedMax);
+  assert(len < _tig->_gappedMax);
 
   return(true);
 }
@@ -833,34 +907,34 @@ bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
                                map<uint32, sqRead *>     *reads_,
                                map<uint32, sqReadData *> *datas_) {
-  tig      = tig_;
-  numfrags = tig->numberOfChildren();
+  _tig      = tig_;
+  _numReads = _tig->numberOfChildren();
 
   if (initialize(reads_, datas_) == false) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
     return(false);
   }
 
   //  Quick is just the template sequence, so one and done!
 
-  char   *tigseq = generateTemplateStitch(utgpos, numfrags, errorRate, showAlgorithm());
+  char   *tigseq = generateTemplateStitch();
   uint32  tiglen = strlen(tigseq);
 
   //  Save consensus
 
-  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, tiglen + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_gappedBases, _tig->_gappedQuals, 0, _tig->_gappedMax, tiglen + 1, resizeArray_doNothing);
 
   for (uint32 ii=0; ii<tiglen; ii++) {
-    tig->_gappedBases[ii] = tigseq[ii];
-    tig->_gappedQuals[ii] = CNS_MIN_QV;
+    _tig->_gappedBases[ii] = tigseq[ii];
+    _tig->_gappedQuals[ii] = CNS_MIN_QV;
   }
 
   //  Terminate the string.
 
-  tig->_gappedBases[tiglen] = 0;
-  tig->_gappedQuals[tiglen] = 0;
-  tig->_gappedLen           = tiglen;
-  tig->_layoutLen           = tiglen;
+  _tig->_gappedBases[tiglen] = 0;
+  _tig->_gappedQuals[tiglen] = 0;
+  _tig->_gappedLen           = tiglen;
+  _tig->_layoutLen           = tiglen;
 
   delete [] tigseq;
 
@@ -873,13 +947,13 @@ bool
 unitigConsensus::generateSingleton(tgTig                     *tig_,
                                    map<uint32, sqRead *>     *reads_,
                                    map<uint32, sqReadData *> *datas_) {
-  tig      = tig_;
-  numfrags = tig->numberOfChildren();
+  _tig      = tig_;
+  _numReads = _tig->numberOfChildren();
 
-  assert(numfrags == 1);
+  assert(_numReads == 1);
 
   if (initialize(reads_, datas_) == false) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
     return(false);
   }
 
@@ -889,19 +963,19 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
-  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, readLen + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_gappedBases, _tig->_gappedQuals, 0, _tig->_gappedMax, readLen + 1, resizeArray_doNothing);
 
   for (uint32 ii=0; ii<readLen; ii++) {
-    tig->_gappedBases[ii] = fragment[ii];
-    tig->_gappedQuals[ii] = CNS_MIN_QV;
+    _tig->_gappedBases[ii] = fragment[ii];
+    _tig->_gappedQuals[ii] = CNS_MIN_QV;
   }
 
   //  Terminate the string.
 
-  tig->_gappedBases[readLen] = 0;
-  tig->_gappedQuals[readLen] = 0;
-  tig->_gappedLen            = readLen;
-  tig->_layoutLen            = readLen;
+  _tig->_gappedBases[readLen] = 0;
+  _tig->_gappedQuals[readLen] = 0;
+  _tig->_gappedLen            = readLen;
+  _tig->_layoutLen            = readLen;
 
   return(true);
 }
@@ -909,110 +983,3 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
 
 
-void
-unitigConsensus::addRead(sqStore *seqStore,
-                  uint32   readID,
-                  uint32   askip, uint32 bskip,
-                  bool     complemented,
-                  map<uint32, sqRead *>     *inPackageRead,
-                  map<uint32, sqReadData *> *inPackageReadData) {
-
-  //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
-  //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
-  //  otherwise.  Hey, it's used for debugging only...
-
-  sqRead      *read     = NULL;
-  sqReadData  *readData = NULL;
-
-  if (inPackageRead == NULL) {
-    read     = seqStore->sqStore_getRead(readID);
-    readData = new sqReadData;
-
-    seqStore->sqStore_loadReadData(read, readData);
-  }
-
-  else {
-    read     = (*inPackageRead)[readID];
-    readData = (*inPackageReadData)[readID];
-  }
-
-  assert(read     != NULL);
-  assert(readData != NULL);
-
-  //  Grab seq/qlt from the read, offset to the proper begin and length.
-
-  uint32  seqLen = read->sqRead_sequenceLength() - askip - bskip;
-  char   *seq    = readData->sqReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-  uint8  *qlt    = readData->sqReadData_getQualities() + ((complemented == false) ? askip : bskip);
-
-  //  Add it to our list.
-
-  increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
-
-  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, qlt, complemented);
-
-  delete readData;
-}
-
-
-
-int
-unitigConsensus::initialize(map<uint32, sqRead *>     *reads,
-                            map<uint32, sqReadData *> *datas) {
-
-  int32 num_columns = 0;
-  //int32 num_bases   = 0;
-
-  if (numfrags == 0) {
-    fprintf(stderr, "utgCns::initialize()-- unitig has no children.\n");
-    return(false);
-  }
-
-  utgpos = new tgPosition [numfrags];
-  cnspos = new tgPosition [numfrags];
-
-  memcpy(utgpos, tig->getChild(0), sizeof(tgPosition) * numfrags);
-  memcpy(cnspos, tig->getChild(0), sizeof(tgPosition) * numfrags);
-
-  //  Clear the cnspos position.  We use this to show it's been placed by consensus.
-  //  Guess the number of columns we'll end up with.
-  //  Initialize abacus with the reads.
-
-  for (int32 i=0; i<numfrags; i++) {
-    cnspos[i].setMinMax(0, 0);
-
-    num_columns  = (utgpos[i].min() > num_columns) ? utgpos[i].min() : num_columns;
-    num_columns  = (utgpos[i].max() > num_columns) ? utgpos[i].max() : num_columns;
-
-    addRead(seqStore,
-            utgpos[i].ident(),
-            utgpos[i]._askip, utgpos[i]._bskip,
-            utgpos[i].isReverse(),
-            reads,
-            datas);
-  }
-
-  //  Check for duplicate reads
-
-  {
-    set<uint32>  dupFrag;
-
-    for (uint32 i=0; i<numfrags; i++) {
-      if (utgpos[i].isRead() == false) {
-        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is not a read.\n",
-                tig->tigID(), utgpos[i].ident());
-        return(false);
-      }
-
-      if (dupFrag.find(utgpos[i].ident()) != dupFrag.end()) {
-        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is a duplicate.\n",
-                tig->tigID(), utgpos[i].ident());
-        return(false);
-      }
-
-      dupFrag.insert(utgpos[i].ident());
-    }
-  }
-
-  return(true);
-}

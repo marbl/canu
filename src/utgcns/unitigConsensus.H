@@ -130,18 +130,33 @@ public:
                   uint32    minOverlap_);
   ~unitigConsensus();
 
-  bool   generate(tgTig                     *tig,
-                  char                       algorithm,
-                  char                       aligner,
-                  map<uint32, sqRead *>     *reads = NULL,
-                  map<uint32, sqReadData *> *datas = NULL);
+private:
+  void   addRead(uint32 readID,
+                 uint32 askip, uint32 bskip,
+                 bool complemented,
+                 map<uint32, sqRead *>     *inPackageRead,
+                 map<uint32, sqReadData *> *inPackageReadData);
+
+  bool   initialize(map<uint32, sqRead *>     *reads,
+                    map<uint32, sqReadData *> *datas);
+
+public:
+  bool   generate(tgTig                     *tig_,
+                  char                       algorithm_,
+                  char                       aligner_,
+                  map<uint32, sqRead *>     *reads_ = NULL,
+                  map<uint32, sqReadData *> *datas_ = NULL) {
+
+    if      (tig_->numberOfChildren() == 1)   return(generateSingleton(tig_, reads_, datas_));
+    else if (algorithm_ == 'Q')               return(generateQuick(tig_, reads_, datas_));
+    else if (algorithm_ == 'P')               return(generatePBDAG(tig_, aligner_, reads_, datas_));
+    else                                      fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+
+    return(false);
+  };
 
 private:
-  char *
-  generateTemplateStitch(tgPosition  *utgpos,
-                         uint32       numfrags,
-                         double       errorRate,
-                         bool         verbose);
+  char  *generateTemplateStitch(void);
 
   bool   generatePBDAG(tgTig                     *tig,
                        char                       aligner,
@@ -156,40 +171,22 @@ private:
                            map<uint32, sqRead *>     *reads = NULL,
                            map<uint32, sqReadData *> *datas = NULL);
 
-private:
-  void   addRead(sqStore *seqStore,
-                 uint32 readID,
-                 uint32 askip, uint32 bskip,
-                 bool complemented,
-                 map<uint32, sqRead *>     *inPackageRead,
-                 map<uint32, sqReadData *> *inPackageReadData);
-
 public:
-  int32  initialize(map<uint32, sqRead *>     *reads,
-                    map<uint32, sqReadData *> *datas);
-
-#if 0
-  void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
-  void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };
-#endif
-
-  //bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing
-  bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };  //  -V -V       displays some details on the algorithm
-  //bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays placement info before each read
-  //bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };  //
-  //bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
-  //bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };  //
+  bool   showProgress(void)         { return(_tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing
+  bool   showAlgorithm(void)        { return(_tig->_utgcns_verboseLevel >= 2); };  //  -V -V       displays some details on the algorithm
+  bool   showPlacementBefore(void)  { return(_tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays placement info before each read
+  bool   showPlacement(void)        { return(_tig->_utgcns_verboseLevel >= 3); };  //
+  bool   showAlignments(void)       { return(_tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
+  bool   showMultiAlignments(void)  { return(_tig->_utgcns_verboseLevel >= 4); };  //
 
 #warning NEEDS GUARDS
   abSequence *getSequence(uint32 id) { return(_sequences[id]); };
 
-  void   generateConsensus(tgTig *tig);
-
 private:
-  sqStore        *seqStore;
+  sqStore        *_seqStore;
 
-  tgTig          *tig;
-  uint32          numfrags;    //  == tig->numberOfChildren()
+  tgTig          *_tig;
+  uint32          _numReads;    //  == tig->numberOfChildren()
 
   uint32          _sequencesMax;
   uint32          _sequencesLen;
@@ -198,12 +195,12 @@ private:
   //  The two positions below are storing the low/high coords for the read.
   //  They do not encode the orientation in the coordinates.
   //
-  tgPosition     *utgpos;      //  Original unitigger location.
-  tgPosition     *cnspos;      //  Actual location in frankenstein.
+  tgPosition     *_utgpos;      //  Original unitigger location.
+  tgPosition     *_cnspos;      //  Actual location in frankenstein.
 
-  uint32          minOverlap;
-  double          errorRate;
-  double          errorRateMax;
+  uint32          _minOverlap;
+  double          _errorRate;
+  double          _errorRateMax;
 };
 
 
