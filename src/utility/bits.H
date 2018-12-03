@@ -608,6 +608,21 @@ public:
   uint32   setEliasOmega(uint64 number, uint64 *values);
 #endif
 
+  //  GOLOMB CODED DATA
+  //
+  //  Pick m.  For m == power_of_two, this is RICE CODED DATA.
+  //
+  //    q = floow(n/m).
+  //    r = n-qm
+  //    c = ceil(log_2 m)
+  //
+  //  Unary encode q, binary encode r.
+  //
+  //  The first 2^c-m values are encoded as c-1 bit values, starting with 00...00,
+  //  The rest as c-bit numbers, ending with 11...11
+  //
+
+
   //  FIBONACCI CODED DATA
   //
   //  A Fibonacci number is F(n) = F(n-1) + F(n-2), wher F(0) = F(1) = 1.
