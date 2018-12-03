@@ -482,12 +482,13 @@ endif
 
 ifeq (${OSTYPE}, FreeBSD)
 ifeq (${MACHINETYPE}, amd64)
-  CC       ?= gcc48
-  CXX      ?= g++48
+  CC       ?= gcc6
+  CXX      ?= g++6
+  CCLIB    ?= -rpath /usr/local/lib/gcc6
 
   #  GCC
   CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp -rpath /usr/local/lib/gcc48 -lm -lexecinfo
+  LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp ${CCLIB} -lm -lexecinfo
 
   #  CLANG
   #CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fPIC
