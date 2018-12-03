@@ -1013,8 +1013,9 @@ main (int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  int arg=1;
-  int err=0;
+  vector<char *>  err;
+  int             arg = 1;
+
   while (arg < argc) {
     if      (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
@@ -1070,8 +1071,9 @@ main (int argc, char **argv) {
       }
 
       else {
-        fprintf(stderr, "ERROR: -coverage needs four values.\n");
-        err++;
+        char *s = new char [1024];
+        snprintf(s, 1024, "ERROR: -coverage needs four values.\n");
+        err.push_back(s);
       }
     }
 
@@ -1129,23 +1131,27 @@ main (int argc, char **argv) {
     //  Errors.
 
     else {
-      fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
 
   if (seqName == NULL)
-    err++;
-  if (tigName == NULL)
-    err++;
-  if ((outPrefix == NULL) && (dumpType == DUMP_COVERAGE))
-    err++;
-  if (dumpType == DUMP_UNSET)
-    err++;
+    err.push_back("No sequence store (-S option) supplied.\n");
 
-  if (err) {
+  if (tigName == NULL)
+    err.push_back("No tig store (-T option) supplied.\n");
+
+  if ((outPrefix == NULL) && (dumpType == DUMP_COVERAGE))
+    err.push_back("-coverage needs and output prefix (-o option).\n");
+
+  if (dumpType == DUMP_UNSET)
+    err.push_back("No DUMP TYPE supplied.\n");
+
+  if (err.size() > 0) {
     fprintf(stderr, "usage: %s -S <seqStore> -T <tigStore> <v> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "STORE SELECTION (mandatory)\n");
@@ -1212,14 +1218,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
 #endif
 
-    if (seqName == NULL)
-      err++;
-    if (tigName == NULL)
-      err++;
-    if ((outPrefix == NULL) && (dumpType == DUMP_COVERAGE))
-      err++;
-    if (dumpType == DUMP_UNSET)
-      err++;
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
