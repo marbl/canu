@@ -244,11 +244,12 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALGORITHM\n");
-    fprintf(stderr, "    -quick          No alignments, just paste read sequence into the tig positions.\n");
-    fprintf(stderr, "                    This is very fast, but the consensus sequence is formed from a mosaic\n");
-    fprintf(stderr, "                    of read sequences, and there can be large indel.  This is useful for\n");
-    fprintf(stderr, "                    checking intermediate assembly structure by mapping to reference, or\n");
-    fprintf(stderr, "                    possibly for use as input to a polishing step.\n");
+    fprintf(stderr, "    -quick          Stitch reads together to cover the contig.  The bases in the contig\n");
+    fprintf(stderr, "                    is formed from exactly one read; no consensus sequence is computed.\n");
+    fprintf(stderr, "                    This is useful for checking intermediate assembly structure by mapping\n");
+    fprintf(stderr, "                    to reference, or as input to a polishing step.  Read positions will be\n");
+    fprintf(stderr, "                    incorrect, and no BAM output is possible.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -pbdagcon       Use pbdagcon (https://github.com/PacificBiosciences/pbdagcon).\n");
     fprintf(stderr, "                    This is fast and robust.  It is the default algorithm.  It does not\n");
     fprintf(stderr, "                    generate a final multialignment output (the -v option will not show\n");
