@@ -78,7 +78,6 @@ public:
   abSequence() {
     _iid        = 0;
 
-    _is_read    = false;
     _complement = false;
 
     _length     = 0;
@@ -100,7 +99,6 @@ public:
 
   uint32      seqIdent(void)          { return(_iid);        };
 
-  bool        isRead(void)            { return(_is_read);    };
   bool        isForward(void)         { return(_complement == false); };
 
   uint32      length(void)            { return(_length);     };
@@ -112,7 +110,6 @@ public:
 private:
   uint32     _iid;            //  external, aka seqStore, ID;
 
-  bool       _is_read;
   bool       _complement;
 
   uint32     _length;
@@ -145,18 +142,15 @@ public:
                   char                       algorithm_,
                   char                       aligner_,
                   map<uint32, sqRead *>     *reads_ = NULL,
-                  map<uint32, sqReadData *> *datas_ = NULL) {
-
-    if      (tig_->numberOfChildren() == 1)   return(generateSingleton(tig_, reads_, datas_));
-    else if (algorithm_ == 'Q')               return(generateQuick(tig_, reads_, datas_));
-    else if (algorithm_ == 'P')               return(generatePBDAG(tig_, aligner_, reads_, datas_));
-    else                                      fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
-
-    return(false);
-  };
+                  map<uint32, sqReadData *> *datas_ = NULL);
 
 private:
   char  *generateTemplateStitch(void);
+
+  bool   initializeGenerate(tgTig                     *tig,
+                            map<uint32, sqRead *>     *reads = NULL,
+                            map<uint32, sqReadData *> *datas = NULL);
+                            
 
   bool   generatePBDAG(tgTig                     *tig,
                        char                       aligner,
@@ -171,13 +165,14 @@ private:
                            map<uint32, sqRead *>     *reads = NULL,
                            map<uint32, sqReadData *> *datas = NULL);
 
+  void   findCoordinates(void);
+  void   findRawAlignments(void);
+
 public:
   bool   showProgress(void)         { return(_tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing
   bool   showAlgorithm(void)        { return(_tig->_utgcns_verboseLevel >= 2); };  //  -V -V       displays some details on the algorithm
-  bool   showPlacementBefore(void)  { return(_tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays placement info before each read
-  bool   showPlacement(void)        { return(_tig->_utgcns_verboseLevel >= 3); };  //
+  bool   showPlacement(void)        { return(_tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays aligns for placement
   bool   showAlignments(void)       { return(_tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
-  bool   showMultiAlignments(void)  { return(_tig->_utgcns_verboseLevel >= 4); };  //
 
 #warning NEEDS GUARDS
   abSequence *getSequence(uint32 id) { return(_sequences[id]); };

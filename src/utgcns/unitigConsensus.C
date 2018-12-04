@@ -89,11 +89,7 @@ abSequence::abSequence(uint32  readID,
                        uint8  *qlt,
                        uint32  complemented) {
   _iid              = readID;
-
-  _is_read          = true;
-
   _length           = length;
-
   _complement       = complemented;
 
   _bases            = new char  [_length + 1];
@@ -731,48 +727,20 @@ alignEdLib(dagAlignment      &aln,
 
 
 
-void
-realignReads() {
+bool
+unitigConsensus::initializeGenerate(tgTig                     *tig_,
+                                    map<uint32, sqRead *>     *reads_,
+                                    map<uint32, sqReadData *> *datas_) {
 
-#ifdef REALIGN
-  // update positions, this requires remapping but this time to the final consensus, turned off for now
-  uint32 minPos = cns.size();
-  uint32 maxPos = 0;
+  _tig      = tig_;
+  _numReads = _tig->numberOfChildren();
 
-#pragma omp parallel for schedule(dynamic)
-  for (uint32 i=0; i<numfrags; i++) {
-    abSequence  *seq     = getSequence(i);
-
-    uint32 bandTolerance = (int32)round((double)(seq->length() * errorRate)) * 2;
-    uint32 maxExtend     = (int32)round((double)seq->length() * 0.01) + 1;
-    int32  padding       = bandTolerance;
-    uint32 start         = max((int32)0, (int32)utgpos[i].min() - padding);
-    uint32 end           = min((int32)cns.size(), (int32)utgpos[i].max() + padding);
-
-    EdlibAlignResult align = edlibAlign(seq->getBases(), seq->length()-1, cns.c_str()+start, end-start+1,  edlibNewAlignConfig(bandTolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
-    if (align.numLocations > 0) {
-      cnspos[i].setMinMax(align.startLocations[0]+start, align.endLocations[0]+start+1);
-      // when we are very close to end extend
-      if (cnspos[i].max() < cns.size() && cns.size() - cnspos[i].max() <= maxExtend && (align.editDistance + cns.size() - cnspos[i].max()) < bandTolerance) {
-        cnspos[i].setMinMax(cnspos[i].min(), cns.size());
-      }
-#pragma omp critical (trackMin)
-      if (cnspos[i].min() < minPos) minPos = cnspos[i].min();
-#pragma omp critical (trackMax)
-      if (cnspos[i].max() > maxPos) maxPos = cnspos[i].max();
-    } else {
-    }
-    edlibFreeAlignResult(align);
+  if (initialize(reads_, datas_) == false) {
+    fprintf(stderr, "Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
+    return(false);
   }
-  memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
 
-  // trim consensus if needed
-  if (maxPos < cns.size())
-    cns = cns.substr(0, maxPos);
-
-  assert(minPos == 0);
-  assert(maxPos == cns.size());
-#endif
+  return(true);
 }
 
 
@@ -783,27 +751,20 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
                                map<uint32, sqRead *>     *reads_,
                                map<uint32, sqReadData *> *datas_) {
 
-  bool  verbose = (tig_->_utgcns_verboseLevel > 1);
-
-  _tig      = tig_;
-  _numReads = _tig->numberOfChildren();
-
-  if (initialize(reads_, datas_) == false) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
+  if (initializeGenerate(tig_, reads_, datas_) == false)
     return(false);
-  }
 
   //  Build a quick consensus to align to.
 
   char   *tigseq = generateTemplateStitch();
   uint32  tiglen = strlen(tigseq);
 
-  if (verbose)
+  if (showAlgorithm())
     fprintf(stderr, "Generated template of length %d\n", tiglen);
 
   //  Compute alignments of each sequence in parallel
 
-  if (verbose)
+  if (showAlgorithm())
     fprintf(stderr, "Aligning reads.\n");
 
   dagAlignment *aligns = new dagAlignment [_numReads];
@@ -823,10 +784,10 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
                          tigseq, tiglen,
                          (double)tiglen / _tig->_layoutLen,
                          _errorRate,
-                         verbose);
+                         showAlgorithm());
 
     if (aligned == false) {
-      if (verbose)
+      if (showAlgorithm())
         fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", _utgpos[ii].ident());
 
       fail++;
@@ -837,12 +798,12 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     pass++;
   }
 
-  if (verbose)
+  if (showAlgorithm())
     fprintf(stderr, "Finished aligning reads.  %d failed, %d passed.\n", fail, pass);
 
   //  Construct the graph from the alignments.  This is not thread safe.
 
-  if (verbose)
+  if (showAlgorithm())
     fprintf(stderr, "Constructing graph\n");
 
   AlnGraphBoost ag(string(tigseq, tiglen));
@@ -861,22 +822,18 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
   delete [] aligns;
 
-  if (verbose)
+  if (showAlgorithm())
     fprintf(stderr, "Merging graph\n");
 
   //  Merge the nodes and call consensus
   ag.mergeNodes();
 
-  if (verbose)
+  if (showAlgorithm())
     fprintf(stderr, "Calling consensus\n");
 
   std::string cns = ag.consensus(1);
 
   delete [] tigseq;
-
-  //  Realign reads to get precise endpoints
-
-  realignReads();
 
   //  Save consensus
 
@@ -907,13 +864,9 @@ bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
                                map<uint32, sqRead *>     *reads_,
                                map<uint32, sqReadData *> *datas_) {
-  _tig      = tig_;
-  _numReads = _tig->numberOfChildren();
 
-  if (initialize(reads_, datas_) == false) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
+  if (initializeGenerate(tig_, reads_, datas_) == false)
     return(false);
-  }
 
   //  Quick is just the template sequence, so one and done!
 
@@ -928,6 +881,11 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     _tig->_gappedBases[ii] = tigseq[ii];
     _tig->_gappedQuals[ii] = CNS_MIN_QV;
   }
+
+  //  Set positions of all the reads.  We don't know anything and default to the incoming positions.
+
+  for (uint32 ii=0; ii<_numReads; ii++)
+    _cnspos[ii] = _utgpos[ii];
 
   //  Terminate the string.
 
@@ -947,15 +905,11 @@ bool
 unitigConsensus::generateSingleton(tgTig                     *tig_,
                                    map<uint32, sqRead *>     *reads_,
                                    map<uint32, sqReadData *> *datas_) {
-  _tig      = tig_;
-  _numReads = _tig->numberOfChildren();
+
+  if (initializeGenerate(tig_, reads_, datas_) == false)
+    return(false);
 
   assert(_numReads == 1);
-
-  if (initialize(reads_, datas_) == false) {
-    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
-    return(false);
-  }
 
   //  Copy the single read to the tig sequence.
 
@@ -970,6 +924,10 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
     _tig->_gappedQuals[ii] = CNS_MIN_QV;
   }
 
+  //  Set positions of all the reads.
+
+  _cnspos[0].setMinMax(0, readLen);
+
   //  Terminate the string.
 
   _tig->_gappedBases[readLen] = 0;
@@ -983,3 +941,171 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
 
 
+
+void
+unitigConsensus::findCoordinates(void) {
+
+  if (showPlacement()) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "TIG %u length %u\n", _tig->tigID(), _tig->length());
+    fprintf(stderr, "\n");
+  }
+
+  //  Align each read to the final consensus.
+
+  for (uint32 ii=0; ii<_numReads; ii++) {
+    abSequence   *read    = getSequence(ii);
+    char         *readSeq = read->getBases();
+    uint32        readLen = read->length();
+
+    if (showPlacement())
+      fprintf(stderr, "\n");
+
+    //  Align to the region of the consensus sequence the read claims to
+    //  align to, extended by 5% of the read length on either end.  If it
+    //  fails to align full length, make the extensions larger.
+
+    int32  ext5 = readLen * 0.05;
+    int32  ext3 = readLen * 0.05;
+    double era  = _errorRate;
+
+    int32  bgn=0, unaligned3=0;
+    int32  end=0, unaligned5=0, len=0;
+
+    while ((ext5 < readLen * 1.5) &&
+           (ext3 < readLen * 1.5) &&
+           (era  < 4 * _errorRate)) {
+      bgn = max(0, _cnspos[ii].min() - ext5);
+      end = min(_cnspos[ii].max() + ext3, (int32)_tig->length());
+      len = end - bgn;   //  WAS: +1
+
+      if (showPlacement())
+        fprintf(stderr, "align read #%u length %u to %u-%u - extension %d %d error rate %.3f\n",
+                ii, readLen, bgn, end, ext5, ext3, era);
+
+      EdlibAlignResult align = edlibAlign(readSeq, readLen,
+                                          _tig->bases() + bgn, len,
+                                          edlibNewAlignConfig(readLen * era * 2, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+
+      //  If nothing aligned, make bigger and more leniant.
+
+      if (align.numLocations == 0) {
+        ext5 += readLen * 0.05;
+        ext3 += readLen * 0.05;
+        era  += 0.025;
+
+        if (showPlacement())
+          fprintf(stderr, "  NO ALIGNMENT - Increase extension to %d / %d and error rate to %.3f\n", ext5, ext3, era);
+
+        edlibFreeAlignResult(align);
+        bgn = end = len = 0;
+        continue;
+      }
+
+      unaligned5 = align.startLocations[0];
+      unaligned3 = len - (align.endLocations[0] + 1);   //  0-based position of last character in alignment.
+
+      if (showPlacement())
+        fprintf(stderr, "               - read %4u original %9u-%9u claimed %9u-%9u aligned %9u-%9u unaligned %d %d\n",
+                ii,
+                _utgpos[ii].min(), _utgpos[ii].max(),
+                _cnspos[ii].min(), _cnspos[ii].max(),
+                bgn, end,
+                unaligned5, unaligned3);
+
+      //  If bump the start, make bigger.
+
+      if ((bgn > 0) && (unaligned5 <= 0)) {
+        ext5 += readLen * 0.05;
+
+        if (showPlacement())
+          fprintf(stderr, "  BUMPED START - unaligned hangs %d %d - increase 5' extension to %d\n",
+                  unaligned5, unaligned3, ext5);
+
+        edlibFreeAlignResult(align);
+        bgn = end = len = 0;
+        continue;
+      }
+
+      //  If bump the end, make bigger.
+
+      if ((end < _tig->length()) && (unaligned3 <= 0)) {
+        ext3 += readLen * 0.05;
+
+        if (showPlacement())
+          fprintf(stderr, "  BUMPED END   - unaligned hangs %d %d - increase 3' extension to %d\n",
+                  unaligned5, unaligned3, ext3);
+
+        edlibFreeAlignResult(align);
+        bgn = end = len = 0;
+        continue;
+      }
+
+      //  Otherwise, SUCCESS!
+
+      end = align.endLocations[0] + bgn + 1;     //  endLocation is 0-based position of last base in alignment.
+      bgn = align.startLocations[0] + bgn;       //  startLocation is 0-based position of first base in alignment.
+
+      edlibFreeAlignResult(align);
+
+      break;   //  Stop looping over ext5, ext3 and era.
+    }
+
+    if ((bgn == 0) &&
+        (end == 0)) {
+      fprintf(stderr, "ERROR: FAILED.\n");
+      exit(1);
+    }
+  }  //  Looping over reads
+
+  //memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
+}
+
+
+
+void
+unitigConsensus::findRawAlignments(void) {
+
+#if 0
+  for (uint32 ii=0; ii<_numReads; ii++) {
+    fprintf(stderr, "read %4u original %9u-%9u aligned %9u-%9u\n",
+            ii,
+            _utgpos[ii].min(), _utgpos[ii].max(),
+            _cnspos[ii].min(), _cnspos[ii].max());
+  }
+#endif
+}
+
+
+
+bool
+unitigConsensus::generate(tgTig                     *tig_,
+                          char                       algorithm_,
+                          char                       aligner_,
+                          map<uint32, sqRead *>     *reads_,
+                          map<uint32, sqReadData *> *datas_) {
+  bool  success = false;
+
+  if      (tig_->numberOfChildren() == 1) {
+    success = generateSingleton(tig_, reads_, datas_);
+  }
+
+  else if (algorithm_ == 'Q') {
+    success = generateQuick(tig_, reads_, datas_);
+  }
+
+  else if (algorithm_ == 'P') {
+    success = generatePBDAG(tig_, aligner_, reads_, datas_);
+
+    if (success) {
+      findCoordinates();
+      findRawAlignments();
+    }
+  }
+
+  else {
+    fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+  }
+
+  return(success);
+}
