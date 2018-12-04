@@ -123,9 +123,9 @@ sub configureSlurm () {
     while (<F>) {
         my @v = split '\s+', $_;
 
-        my $cpus  = $v[$cpuIdx];
-        my $mem   = $v[$memIdx] / 1024;
-        my $nodes = $v[$nodeIdx];
+        my $cpus  = int($v[$cpuIdx]);
+        my $mem   = int($v[$memIdx] / 1024 - 0.5);   #  Round down.
+        my $nodes = int($v[$nodeIdx]);
 
         $hosts{"$cpus-$mem"}+=int($nodes)    if ($cpus gt 0);
     }
