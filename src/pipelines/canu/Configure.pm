@@ -326,15 +326,27 @@ sub getAllowedResources ($$$$$@) {
 
                 my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;      #  Number of processes we can fit on this machine.
 
-                $np = 1  if ($uni);                                    #  But don't care if there is only one process to run!
-
                 if ($dbg) {
                     print STDERR "-- ERROR  for $t threads and $m memory - class$ii can support $np_cpu jobs(cores) and $np_mem jobs(memory), so $np jobs.\n";
                 }
 
-                $processes += $np;        #  Total number of processes running
-                $cores     += $np * $t;   #  Total cores in use
-                $memory    += $np * $m;   #  Total memory in use
+                #  If we only need to run one task, just remember if we can run the task on any machine here.
+
+                if ($uni) {
+                    if ($np > 1) {
+                        $processes  = 1;
+                        $cores      = $t;
+                        $memory     = $m;
+                    }
+                }
+
+                #  Otherwise, sum the number of processes we can run on the entire grid.
+
+                else {
+                    $processes += $np;        #  Total number of processes running
+                    $cores     += $np * $t;   #  Total cores in use
+                    $memory    += $np * $m;   #  Total memory in use
+                }
             }
 
             if ($dbg) {
@@ -408,7 +420,7 @@ sub getAllowedResources ($$$$$@) {
 
         my $nc  = ($nct < $ncm) ? $nct : $ncm;
 
-        $nc = 1  if ($uni);
+        $nc = 1  if (($uni) && ($nc > 0));
 
         #  If already set (on the command line), reset if too big.
 
