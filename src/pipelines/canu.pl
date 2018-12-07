@@ -270,7 +270,9 @@ if (!defined($asm)) {
 
 #  Fail if some obvious things aren't set.
 
-addCommandLineError("ERROR:  Assembly name prefix not supplied with -p.\n")   if (!defined($asm));
+addCommandLineError("ERROR:  Assembly name prefix (-p) not supplied.\n")   if (!defined($asm));
+addCommandLineError("ERROR:  Assembly name prefix (-p) cannot contain the path delimiter '/'.\n")   if ($asm =~ m!/!);
+addCommandLineError("ERROR:  Assembly name prefix (-p) cannot contain spaces.\n")   if ($asm =~ m!\s!);
 
 #  Load paramters from the defaults files
 
