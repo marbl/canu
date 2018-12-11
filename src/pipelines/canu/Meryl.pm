@@ -387,11 +387,20 @@ sub merylConfigure ($$) {
     makeExecutable("$path/meryl-configure.sh");
     stashFile("$path/meryl-configure.sh");
 
-    if (! -e "$path/meryl-configure.err") {   # WRONG
+    my $runConfigure = 1;
+
+    foreach my $ss (qw(01 02 04 06 08 12 16 20 24 32 40 48 56 64 96)) {
+        if (-e "$path/$name.config.$ss.out") {
+            $runConfigure = 0;
+            next;
+        }
+    }
+
+    if ($runConfigure) {
         if (runCommand($path, "./meryl-configure.sh > ./meryl-configure.err 2>&1")) {
-            unlink "$path/meryl-configure.err";
             caFailure("meryl failed to configure", "$path/meryl-configure.err");
         }
+        unlink("$path/meryl-configure.err");
     }
 
     #
