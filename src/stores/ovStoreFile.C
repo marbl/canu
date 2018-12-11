@@ -57,7 +57,18 @@ ovFile::createDataName(char       *name,
                        uint32      sliceNum,
                        uint32      pieceNum) {
 
+  //  Sigh.
+  //
+  //  POSIX.1-2008 defines the Portable Filename Character Set as just
+  //      A-Z  a-z  0-9  .  _  -
+  //  which makes for very boring filenames.  But, lo!  There ARE filesystems
+  //  that require the Portable Filename Character Set.
+
+#ifdef POSIX_FILE_NAMES
+  snprintf(name, FILENAME_MAX, "%s/%04u.%03u", storeName, sliceNum, pieceNum);
+#else
   snprintf(name, FILENAME_MAX, "%s/%04u<%03u>", storeName, sliceNum, pieceNum);
+#endif
 
   return(name);
 }
