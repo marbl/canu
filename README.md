@@ -11,15 +11,15 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
 
 ## Install:
 
-The easiest way to get started is to download a [release](http://github.com/marbl/canu/releases). 
+* The easiest way to get started is to download a [release](http://github.com/marbl/canu/releases).  Installing with a 'package manager' is not encouraged.
 
-Alternatively, you can also build the latest unreleased from github:
+* Alternatively, you can use the latest unreleased version from the source code.  This version has not undergone the same testing as a release and so may have unknown bugs or issues generating sub-optimal assemblies. We recommend the release version for most users.
 
-    git clone https://github.com/marbl/canu.git
-    cd canu/src
-    make -j <number of threads>
+        git clone https://github.com/marbl/canu.git
+        cd canu/src
+        make -j <number of threads>
 
-The unreleased tip has not undergone the same testing as a release and so may have unknown bugs or issues generating sub-optimal assemblies. We recommend the release version for most users.
+ * An *unsupported* Docker image made by Frank Förster is at https://hub.docker.com/r/greatfireball/canu/.
 
 ## Learn:
 
