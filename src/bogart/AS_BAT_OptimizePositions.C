@@ -114,6 +114,31 @@ Unitig::optimize_isCompatible(uint32       ii,
     isOrdered = true;
 #endif
 
+#if 1
+  //  If the positions _roughly_ agree with the positions expected from the overlap, return true.
+  //
+  //  The overlap is from the ii read.  If that's forward, the hangs apply as-is.  If not,
+  //  the hangs are swapped and inverted.
+  //
+  //       --------------> B          -B  <-------------
+  //        A  --------------->     <------------  -A
+  //
+
+  bool  isPositioned = true;
+
+  int32 expJbgn = ip.min() + (ip.isForward() ? olap.a_hang : -olap.b_hang);
+  int32 expJend = ip.max() + (ip.isForward() ? olap.b_hang : -olap.a_hang);
+
+  double  JbgnDiff = fabs(expJbgn - jp.min()) / (double)RI->readLength(jj);
+  double  JendDiff = fabs(expJend - jp.max()) / (double)RI->readLength(jj);
+
+  if ((JbgnDiff > 0.1) ||
+      (JendDiff > 0.1))
+    isPositioned = false;
+#endif
+
+  //  If the reads in the layout are in the same orientation as those in the overlap, return true.
+
   bool  isOriented = true;
 
   if (((ip.isForward() == jp.isForward()) && (olap.flipped == true)) ||
@@ -121,19 +146,23 @@ Unitig::optimize_isCompatible(uint32       ii,
     isOriented = false;
 
   if ((beVerbose) || (secondPass))
-    writeLog("optimize_%s()-- tig %7u read %9u (at %9d %9d) olap to read %9u (at %9d %9d) - hangs %7d %7d - %s %s ovlLo %d ovlHi %d contained %d container %d\n",
+    writeLog("optimize_%s()-- tig %7u read %9u (at %9d %9d) olap to read %9u (at %9d %9d) - hangs %7d %7d - %s %s %s ovlLo %d ovlHi %d position %.4f %.4f contained %d container %d\n",
              (inInit) ? "initPlace" : "recompute",
              id(),
              ufpath[ii].ident, ip.bgn, ip.end,
              ufpath[jj].ident, jp.bgn, jp.end,
              olap.a_hang, olap.b_hang,
-             (isOvl     == true) ? "overlapping" : "not-overlapping",
-             (isOrdered == true) ? "ordered"     : "mis-ordered",
-             isOvlLo, isOvlHi, olap.AisContained(), olap.AisContainer());
+             (isOvl        == true) ? "overlapping" : "not-overlapping",
+             (isOrdered    == true) ? "ordered"     : "mis-ordered",
+             (isPositioned == true) ? "positioned"  : "mis-positioned",
+             isOvlLo, isOvlHi,
+             JbgnDiff, JendDiff,
+             olap.AisContained(), olap.AisContainer());
 
-  return((isOvl      == true) &&
-         (isOrdered  == true) &&
-         (isOriented == true));
+  return((isOvl         == true) &&    //  Good if the reads overlap in the current layout.
+         ((isOrdered    == true) ||    //  Good if the reads are in the order implied by the overlap, OR
+          (isPositioned == true)) &&   //       if the overlapping read is close enough.
+         (isOriented    == true));     //  Good if the reads are in the orientation implied by the overlap.
 }
 
 
