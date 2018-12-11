@@ -429,10 +429,18 @@ sub getAllowedResources ($$$$$@) {
             setGlobal("${tag}${alg}Concurrency", $nc);
         }
 
-        #  If not set, set it.
+        #  If not set, or set but zero, set it.
 
-        if (!defined(getGlobal("${tag}${alg}Concurrency"))) {
+        if (!defined(getGlobal("${tag}${alg}Concurrency")) ||
+            (getGlobal("${tag}${alg}Concurrency") == 0)) {
             setGlobal("${tag}${alg}Concurrency", $nc);
+        }
+
+        #  But if no memory set, set concurrency to zero.
+        #  This is mostly to get the report correct; if set to undef, we think this is a grid job.
+
+        if ($taskMemory == 0) {
+            setGlobal("${tag}${alg}Concurrency", 0);
         }
 
         #  Update the local variable for the report.
@@ -473,8 +481,8 @@ sub getAllowedResources ($$$$$@) {
     $thr  =  "--- CPUs"   if ($taskThreads == 0);
     $job  =  "--- jobs"   if ($concurrent  == 0);
 
-    $memt = " --- GB"     if ($taskMemory  == 0);
-    $thrt =  "--- CPUs"   if ($taskThreads == 0);
+    $memt = " --- GB"     if ($taskMemory  * $concurrent == 0);
+    $thrt = " --- CPUs"   if ($taskThreads * $concurrent == 0);
 
     my $t = substr("$tag$alg     ", 0, 7);
 
