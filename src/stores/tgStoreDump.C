@@ -1018,18 +1018,22 @@ main (int argc, char **argv) {
 
   while (arg < argc) {
     if      (strcmp(argv[arg], "-S") == 0) {
-      seqName = argv[++arg];
+      if (arg + 1 < argc)
+        seqName = argv[++arg];
     }
 
     else if (strcmp(argv[arg], "-T") == 0) {
-      tigName = argv[++arg];
-      tigVers = atoi(argv[++arg]);
+      if (arg + 1 < argc)
+        tigName = argv[++arg];
+      if (arg + 1 < argc)
+        tigVers = atoi(argv[++arg]);
     }
 
     else if ((strcmp(argv[arg], "-tig") == 0) ||
              (strcmp(argv[arg], "-t") == 0) ||    //  Deprecated!
              (strcmp(argv[arg], "-u") == 0)) {    //  Deprecated too!
-      decodeRange(argv[++arg], filter.tigIDbgn, filter.tigIDend);
+      if (arg + 1 < argc)
+        decodeRange(argv[++arg], filter.tigIDbgn, filter.tigIDend);
     }
 
     else if (strcmp(argv[arg], "-unassembled") == 0) {
@@ -1049,13 +1053,17 @@ main (int argc, char **argv) {
 
 
     else if (strcmp(argv[arg], "-nreads") == 0) {
-      filter.minNreads = atoi(argv[++arg]);
-      filter.maxNreads = atoi(argv[++arg]);
+      if (arg + 1 < argc)
+        filter.minNreads = atoi(argv[++arg]);
+      if (arg + 1 < argc)
+        filter.maxNreads = atoi(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-length") == 0) {
-      filter.minLength = atoi(argv[++arg]);
-      filter.maxLength = atoi(argv[++arg]);
+      if (arg + 1 < argc)
+        filter.minLength = atoi(argv[++arg]);
+      if (arg + 1 < argc)
+        filter.maxLength = atoi(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-coverage") == 0) {
@@ -1113,20 +1121,28 @@ main (int argc, char **argv) {
     else if (strcmp(argv[arg], "-fastq") == 0)
       cnsFormat = 'Q';
 
-    else if (strcmp(argv[arg], "-w") == 0)
-      maDisplayWidth = atoi(argv[++arg]);
+    else if (strcmp(argv[arg], "-w") == 0) {
+      if (arg + 1 < argc)
+        maDisplayWidth = atoi(argv[++arg]);
+    }
 
-    else if (strcmp(argv[arg], "-s") == 0)
-      maDisplaySpacing = genomeSize = atol(argv[++arg]);
+    else if (strcmp(argv[arg], "-s") == 0) {
+      if (arg + 1 < argc)
+        maDisplaySpacing = genomeSize = atol(argv[++arg]);
+    }
 
-    else if (strcmp(argv[arg], "-o") == 0)
-      outPrefix = argv[++arg];
+    else if (strcmp(argv[arg], "-o") == 0) {
+      if (arg + 1 < argc)
+        outPrefix = argv[++arg];
+    }
 
     else if (strcmp(argv[arg], "-single") == 0)
       single = true;
 
-    else if (strcmp(argv[arg], "-thin") == 0)
-      minOverlap = atoi(argv[++arg]);
+    else if (strcmp(argv[arg], "-thin") == 0) {
+      if (arg + 1 < argc)
+        minOverlap = atoi(argv[++arg]);
+    }
 
     //  Errors.
 
@@ -1144,6 +1160,9 @@ main (int argc, char **argv) {
 
   if (tigName == NULL)
     err.push_back("No tig store (-T option) supplied.\n");
+
+  if (tigVers == -1)
+    err.push_back("No tig store version (-T option) supplied.\n");
 
   if ((outPrefix == NULL) && (dumpType == DUMP_COVERAGE))
     err.push_back("-coverage needs and output prefix (-o option).\n");
