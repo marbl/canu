@@ -51,6 +51,7 @@ class summarizeParameters {
 public:
   summarizeParameters() {
     genomeSize   = 0;
+    limitTo1x    = false;
     asSequences  = 1;
     asBases      = 0;
   };
@@ -64,6 +65,7 @@ public:
 
 
   uint64    genomeSize;
+  bool      limitTo1x;
   bool      asSequences;
   bool      asBases;
 };
@@ -539,17 +541,22 @@ doSummarize(vector<char *>       &inputs,
   fprintf(stdout,   "NG         length     index       lengths  ||                range    seqs\n");
   fprintf(stdout,   "----- ------------ --------- ------------  ||  ------------------- -------\n");
 
+  //  Write lines if we're showing all data, or if we're below 1x coverage.
+
   for (uint32 ii=0; ii<nSeqs; ii++) {
     lSum += lengths[ii];
 
     while (lSum >= nThr) {
-      if (hp <= nRows)
-        fprintf(stdout, "%05"    F_U32P " %12" F_U64P " %9" F_U32P " %12" F_U64P "  ||  %s\n",
-                nVal, lengths[ii], ii, lSum,
-                histPlot[hp++]);
-      else
-        fprintf(stdout, "%05"    F_U32P " %12" F_U64P " %9" F_U32P " %12" F_U64P "  ||\n",
-                nVal, lengths[ii], ii, lSum);
+      if ((sumPar.limitTo1x == false) ||
+          (nVal <= 100)) {
+        if (hp <= nRows)
+          fprintf(stdout, "%05"    F_U32P " %12" F_U64P " %9" F_U32P " %12" F_U64P "  ||  %s\n",
+                  nVal, lengths[ii], ii, lSum,
+                  histPlot[hp++]);
+        else
+          fprintf(stdout, "%05"    F_U32P " %12" F_U64P " %9" F_U32P " %12" F_U64P "  ||\n",
+                  nVal, lengths[ii], ii, lSum);
+      }
 
       if      (nVal <   200)   nVal += nStep;
       else if (nVal <  2000)   nVal += nStep * 10;
@@ -559,6 +566,24 @@ doSummarize(vector<char *>       &inputs,
       nThr  = sumPar.genomeSize * nVal / 100;
     }
   }
+
+  //  If we're displaying exactly 1x, write empty lines to get to there.
+
+  if (sumPar.limitTo1x == true) {
+    while (nVal <= 100) {
+      if (hp <= nRows)
+        fprintf(stdout, "%05"    F_U32P " %12s %9s %12s  ||  %s\n",
+                nVal, "-", "-", "-",
+                histPlot[hp++]);
+      else
+        fprintf(stdout, "%05"    F_U32P " %12s %9s %12s  ||\n",
+                nVal, "-", "-", "-");
+
+      nVal += nStep;
+    }
+  }
+
+  //  Now the final summary line.
 
   if (sumPar.genomeSize == 0)
     fprintf(stdout, "%07.3fx           %9" F_U64P " %12" F_U64P "  ||  %s\n", 0.0, nSeqs, lSum, histPlot[hp++]);   //  Occurs if only empty sequences in the input!
@@ -1297,6 +1322,10 @@ main(int argc, char **argv) {
       sumPar.genomeSize = strtoull(argv[++arg], NULL, 10);
     }
 
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-1x") == 0)) {
+      sumPar.limitTo1x = true;
+    }
+
     else if ((mode == modeSummarize) && (strcmp(argv[arg], "-assequences") == 0)) {
       sumPar.asSequences = true;
       sumPar.asBases     = false;
@@ -1528,6 +1557,7 @@ main(int argc, char **argv) {
     if ((mode == modeUnset) || (mode == modeSummarize)) {
       fprintf(stderr, "OPTIONS for summarize mode:\n");
       fprintf(stderr, "  -size          base size to use for N50 statistics\n");
+      fprintf(stderr, "  -1x            limit NG table to 1x coverage\n");
       fprintf(stderr, "  -assequences   load data as complete sequences (for testing)\n");
       fprintf(stderr, "  -asbases       load data as blocks of bases    (for testing)\n");
       fprintf(stderr, "\n");
