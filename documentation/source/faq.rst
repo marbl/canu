@@ -135,10 +135,10 @@ What parameters should I use for my reads?
        ``correctedErrorRate=0.085 corMhapSensitivity=normal``.
       Only add the second parameter (``corMhapSensivity=normal``) if you have >50x coverage.
 
-   **PacBio Sequel V3**
-      The defaults for PacBio should work on this data.
+    **PacBio Sequel V3**
+       The defaults for PacBio should work on this data.
 
-   **Nanopore R9 large genomes**
+    **Nanopore R9 large genomes**
        Due to some systematic errors, the identity estimate used by Canu for correction can be an
        over-estimate of true error, inflating runtime and disk usage. The newest releases should automatically adjust for this but if you are using Canu 1.6 or older you can try ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14'``.
 
