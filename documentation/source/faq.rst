@@ -125,22 +125,22 @@ What parameters should I use for my reads?
       contiguous assemblies on large genomes.
 
     **Nanopore R9 2D** and **PacBio P6**
-       Slightly decrease the maximum allowed difference in overlaps from the default of 14.4% to 12.0%
-       with ``correctedErrorRate=0.120``
+       Slightly decrease the maximum allowed difference in overlaps from the default of 12% to 10.5%
+       with ``correctedErrorRate=0.105``
 
-    **PacBio Sequel**
+    **PacBio Sequel V2**
        Based on an *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 8.5% with
        ``correctedErrorRate=0.085 corMhapSensitivity=normal``.
       Only add the second parameter (``corMhapSensivity=normal``) if you have >50x coverage.
 
+   **PacBio Sequel V3**
+      The defaults for PacBio should work on this data.
+
    **Nanopore R9 large genomes**
        Due to some systematic errors, the identity estimate used by Canu for correction can be an
-       over-estimate of true error, inflating runtime. For recent large genomes (>1gbp) with more
-       than 30x coverage, we've used ``'corMhapOptions=--threshold 0.8 --num-hashes
-       512 --ordered-sketch-size 1000 --ordered-kmer-size 14'``. This is not needed for below 30x
-       coverage.
+       over-estimate of true error, inflating runtime and disk usage. The newest releases should automatically adjust for this but if you are using Canu 1.6 or older you can try ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14'``.
 
 
 Can I assemble RNA sequence data?
