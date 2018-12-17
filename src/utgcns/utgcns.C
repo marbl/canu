@@ -116,8 +116,8 @@ main (int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  int arg=1;
-  int err=0;
+  vector<char *>  err;
+  int             arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
@@ -130,10 +130,17 @@ main (int argc, char **argv) {
       if (argv[arg][0] == '.')
         tigPart = UINT32_MAX;
 
-      if (tigVers == 0)
-        fprintf(stderr, "invalid tigStore version (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
-      if (tigPart == 0)
-        fprintf(stderr, "invalid tigStore partition (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+      if (tigVers == 0) {
+        char *s = new char [1024];
+        snprintf(s, 1024, "Invalid tigStore version (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]);
+        err.push_back(s);
+      }
+
+      if (tigPart == 0) {
+        char *s = new char [1024];
+        snprintf(s, 1024, "Invalid tigStore partition (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+        err.push_back(s);
+      }
 
     } else if ((strcmp(argv[arg], "-u") == 0) ||
                (strcmp(argv[arg], "-tig") == 0)) {
@@ -182,8 +189,8 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-v") == 0) {
       showResult = true;
 
-    } else if (strcmp(argv[arg], "-V") == 0) {
-      verbosity++;
+    } else if (strncmp(argv[arg], "-V", 2) == 0) {
+      verbosity += strlen(argv[arg]) - 1;
 
     } else if (strcmp(argv[arg], "-maxcoverage") == 0) {
       maxCov   = atof(argv[++arg]);
@@ -204,8 +211,9 @@ main (int argc, char **argv) {
       noSingleton = true;
 
     } else {
-      fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
@@ -216,16 +224,15 @@ main (int argc, char **argv) {
     snprintf(seqName, FILENAME_MAX, "%s/partitionedReads.seqStore", tigName);
   }
 
+
   if ((seqName == NULL) && (importName == NULL))
-    err++;
+    err.push_back("ERROR:  No seqStore (-S) and no package (-p) supplied.\n");
 
-  if ((tigFileName == NULL) && (tigName == NULL) && (importName == NULL))
-    err++;
+  if ((tigFileName == NULL) && (tigName == NULL)  && (importName == NULL))
+    err.push_back("ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p)  supplied.\n");
 
-  if ((algorithm != 'Q') && (algorithm != 'P'))
-    err++;
 
-  if (err) {
+  if (err.size() > 0) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  INPUT\n");
@@ -299,15 +306,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -V              Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
 
-
-    if ((seqName == NULL) && (importName == NULL))
-      fprintf(stderr, "ERROR:  No seqStore (-S) and no package (-p) supplied.\n");
-
-    if ((tigFileName == NULL) && (tigName == NULL)  && (importName == NULL))
-      fprintf(stderr, "ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p)  supplied.\n");
-
-    if ((algorithm != 'Q') && (algorithm != 'P'))
-      fprintf(stderr, "ERROR:  Invalid algorithm '%c' specified; must be one of -quick, -pbdagcon.\n", algorithm);
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
