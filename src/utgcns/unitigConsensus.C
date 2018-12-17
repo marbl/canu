@@ -1094,18 +1094,18 @@ unitigConsensus::generate(tgTig                     *tig_,
     success = generateQuick(tig_, reads_, datas_);
   }
 
-  else if (algorithm_ == 'P') {
+  else if ((algorithm_ == 'P') ||
+           (algorithm_ == 'p')) {
     success = generatePBDAG(tig_, aligner_, reads_, datas_);
-
-    if (success) {
-      findCoordinates();
-      findRawAlignments();
-    }
   }
 
-  else {
-    fprintf(stderr, "Invalid algorithm.  How'd you do this?\n");
+
+  if ((success) &&
+      (algorithm_ == 'P')) {
+    findCoordinates();
+    findRawAlignments();
   }
+
 
   return(success);
 }

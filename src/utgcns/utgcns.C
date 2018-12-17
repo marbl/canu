@@ -165,6 +165,8 @@ main (int argc, char **argv) {
       algorithm = 'Q';
     } else if (strcmp(argv[arg], "-pbdagcon") == 0) {
       algorithm = 'P';
+    } else if (strcmp(argv[arg], "-norealign") == 0) {
+      algorithm = 'p';
 
     } else if (strcmp(argv[arg], "-edlib") == 0) {
       aligner = 'E';
@@ -261,6 +263,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    This is fast and robust.  It is the default algorithm.  It does not\n");
     fprintf(stderr, "                    generate a final multialignment output (the -v option will not show\n");
     fprintf(stderr, "                    anything useful).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -norealign      Disable alignment of reads back to the final consensus sequence.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALIGNER\n");
