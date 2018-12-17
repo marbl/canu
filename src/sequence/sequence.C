@@ -51,9 +51,12 @@ class summarizeParameters {
 public:
   summarizeParameters() {
     genomeSize   = 0;
+
     limitTo1x    = false;
-    asSequences  = 1;
-    asBases      = 0;
+    breakAtN     = false;
+
+    asSequences  = true;
+    asBases      = false;
   };
 
   ~summarizeParameters() {
@@ -65,7 +68,10 @@ public:
 
 
   uint64    genomeSize;
+
   bool      limitTo1x;
+  bool      breakAtN;
+
   bool      asSequences;
   bool      asBases;
 };
@@ -393,6 +399,7 @@ doSummarize(vector<char *>       &inputs,
 
     while (doSummarize_loadSequence(sf, sumPar.asSequences, name, nameMax, seq, qlt, seqMax, seqLen) == true) {
       uint64  pos = 0;
+      uint64  bgn = 0;
 
       if (pos < seqLen) {
         mer = ((mer << 2) | ((seq[pos++] >> 1) & 0x03)) & 0x3f;
@@ -412,15 +419,48 @@ doSummarize(vector<char *>       &inputs,
         tn[mer & 0x3f]++;
       }
 
-      nmn +=                 (seqLen-0);
+      nmn +=                    (seqLen-0);
       ndn += (seqLen < 2) ? 0 : (seqLen-1);
       ntn += (seqLen < 3) ? 0 : (seqLen-2);
 
-      nSeqs  += 1;
-      nBases += seqLen;
+      //  If we're NOT splitting on N, add one sequence of the given length.
 
-      //fprintf(stderr, "READ seq length %lu total %lu\n", seqLen, nBases);
-      lengths.push_back(seqLen);
+      if (sumPar.breakAtN == false) {
+        nSeqs  += 1;
+        nBases += seqLen;
+
+        lengths.push_back(seqLen);
+        continue;
+      }
+
+      //  But if we ARE splitting on N, add multiple sequences.
+
+      pos = 0;
+      bgn = 0;
+
+      while (pos < seqLen) {
+
+        //  Skip any N's.
+        while ((pos < seqLen) && ((seq[pos] == 'n') ||
+                                  (seq[pos] == 'N')))
+          pos++;
+
+        //  Remember our start position.
+        bgn = pos;
+
+        //  Move ahead until the end of sequence or an N.
+        while ((pos < seqLen) && ((seq[pos] != 'n') &&
+                                  (seq[pos] != 'N')))
+          pos++;
+
+        //  If a sequence, increment stuff.
+        if (pos - bgn > 0) {
+          nSeqs  += 1;
+          nBases += pos - bgn;
+        
+          lengths.push_back(pos - bgn);
+        }
+      }
     }
 
     //  All done!
@@ -1324,6 +1364,10 @@ main(int argc, char **argv) {
 
     else if ((mode == modeSummarize) && (strcmp(argv[arg], "-1x") == 0)) {
       sumPar.limitTo1x = true;
+    }
+
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-split-n") == 0)) {
+      sumPar.breakAtN = true;
     }
 
     else if ((mode == modeSummarize) && (strcmp(argv[arg], "-assequences") == 0)) {
