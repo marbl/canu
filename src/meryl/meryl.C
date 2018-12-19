@@ -295,15 +295,44 @@ main(int argc, char **argv) {
   vector<char *>  err;
   for (int32 arg=1; arg < argc; arg++) {
 
-    //  Save a few copies of the command line word.
+    //  Save a copy of the string.  Ugly code here, but simplifies handling
+    //  of the brackets later (and argv might be read-only).
 
     optStringLen = strlen(argv[arg]);
 
     strncpy(optString, argv[arg], FILENAME_MAX);
-    strncpy(inoutName, argv[arg], FILENAME_MAX);
-    snprintf(indexName, FILENAME_MAX, "%s/merylIndex", argv[arg]);
-    snprintf(sqInfName, FILENAME_MAX, "%s/info",       argv[arg]);
-    snprintf(sqRdsName, FILENAME_MAX, "%s/reads",      argv[arg]);
+
+    //  Ignore '[' at the start of the string.  Their purpose is in the matching ']' which
+    //  tells us to stop adding inputs to the current command.
+    //
+    //  There should only be one opening bracket.
+
+    if (optString[0] == '[') {
+      for (uint32 ii=0; ii<optStringLen; ii++)
+        optString[ii] = optString[ii+1];
+
+      optStringLen--;
+    }
+
+    //  If we have a ] as the last character, strip it off and remember that we need to
+    //  close the command on the stack after we process this arg.
+    //
+    //  We can get any number of closing brackets.
+
+    while ((optStringLen > 0) &&
+           (optString[optStringLen-1] == ']')) {
+      optString[optStringLen-1] = 0;
+      optStringLen--;
+
+      terminating++;
+    }
+
+    //  Save a few copies of the command line word.
+
+    strncpy(inoutName, optString, FILENAME_MAX);
+    snprintf(indexName, FILENAME_MAX, "%s/merylIndex", optString);
+    snprintf(sqInfName, FILENAME_MAX, "%s/info",       optString);
+    snprintf(sqRdsName, FILENAME_MAX, "%s/reads",      optString);
 
     //  Scan for debug options.
 
@@ -479,31 +508,6 @@ main(int argc, char **argv) {
     }
 
 
-
-    //  Ignore '[' at the start of the string.  Their purpose is in the matching ']' which
-    //  tells us to stop adding inputs to the current command.
-    //
-    //  There should only be one opening bracket.
-
-    if (optString[0] == '[') {
-      for (uint32 ii=0; ii<optStringLen; ii++)
-        optString[ii] = optString[ii+1];
-
-      optStringLen--;
-    }
-
-    //  If we have a ] as the last character, strip it off and remember that we need to
-    //  close the command on the stack after we process this arg.
-    //
-    //  We can get any number of closing brackets.
-
-    while ((optStringLen > 0) &&
-           (optString[optStringLen-1] == ']')) {
-      optString[optStringLen-1] = 0;
-      optStringLen--;
-
-      terminating++;
-    }
 
     //
     //  Parse this word.  Decide if it's a new operation, or an output name, or an input file.
