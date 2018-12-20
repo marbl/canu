@@ -102,6 +102,9 @@ kmerCountStreamWriter::~kmerCountStreamWriter() {
 void
 kmerCountStreamWriter::dumpBlock(uint64 nextPrefix) {
 
+  //fprintf(stderr, "kmerCountStreamWriter::dumpBlock()-- write batch for prefix %lu with %lu kmers.\n",
+  //        _batchPrefix, _batchNumKmers);
+
   //  Encode and dump to disk.
 
   _writer->writeBlockToFile(_datFile, _datFileIndex,
@@ -134,7 +137,7 @@ kmerCountStreamWriter::addMer(kmer k, uint32 c) {
   //  Or can we just init to the first prefix we see?
 
   if (_batchSuffixes == NULL) {
-    //fprintf(stderr, "kmerCountFileWriteR::addMer()-- ff %2u allocate %7lu kmers for a batch\n", ff, _batchMaxKmers);
+    //fprintf(stderr, "kmerCountFileWriter::addMer()-- ff %2u allocate %7lu kmers for a batch\n", ff, _batchMaxKmers);
     _batchPrefix   = prefix;
     _batchNumKmers = 0;
     _batchMaxKmers = 16 * 1048576;

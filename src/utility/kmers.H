@@ -487,11 +487,6 @@ public:
                  FILE   *F,
                  uint64  nKmers) {
 
-    //fprintf(stderr, "set prefix 0x%016lx from [0x%016lx %8lu %8lu] to [%8lu %8lu]\n",
-    //        prefix,
-    //        _blockPrefix, _blockPosition, _numKmers,
-    //        AS_UTL_ftell(F), _numKmers + nKmers);
-
     if (_blockPrefix == UINT64_MAX) {
       _blockPrefix   = prefix;
       _blockPosition = AS_UTL_ftell(F);
@@ -502,7 +497,13 @@ public:
       _numKmers     += nKmers;
     }
 
+    if (_blockPrefix != prefix)
+      fprintf(stderr, "set prefix 0x%016lx from [0x%016lx %8lu %8lu] to [%8lu %8lu]\n",
+              prefix,
+              _blockPrefix, _blockPosition, _numKmers,
+              AS_UTL_ftell(F), _numKmers + nKmers);
     assert(_blockPrefix   == prefix);
+
     assert(_blockPosition <= AS_UTL_ftell(F));
   };
 

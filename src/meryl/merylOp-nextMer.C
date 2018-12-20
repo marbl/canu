@@ -137,8 +137,6 @@ bool
 merylOperation::initialize(void) {
   bool  proceed = true;
 
-  //fprintf(stderr, "INITIALIZE\n");
-
   //  Initialize all the inputs this operation might have.
 
   for (uint32 ii=0; ii<_inputs.size(); ii++)
