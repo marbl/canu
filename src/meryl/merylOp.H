@@ -240,8 +240,8 @@ private:
 
   kmerCountStatistics           *_stats;
 
-  kmerCountFileWriter           *_output;
-  kmerCountStreamWriter         *_writer;
+  kmerCountFileWriter           *_output;    //  This is the main output object, but for streaming
+  kmerCountStreamWriter         *_writer;    //  operations, _writer is used.
   FILE                          *_printer;
 
   uint32                         _fileNumber;

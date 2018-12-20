@@ -217,8 +217,8 @@ merylOperation::doCounting(void) {
 
   clearInputs();
 
-  delete _output;
-  _output = NULL;
+  delete _output;   //  Operation has written output, so get rid of it.
+  _output = NULL;   //  Only streaming operations have _writer.
 }
 
 
