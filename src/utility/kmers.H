@@ -535,6 +535,11 @@ private:
 public:
   kmerCountFileReader(const char *inputName,
                       bool        beVerbose=false);
+
+  kmerCountFileReader(const char *inputName,
+                      uint32      threadFile,
+                      bool        beVerbose=false);
+
   ~kmerCountFileReader();
 
 public:

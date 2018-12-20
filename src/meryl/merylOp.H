@@ -177,7 +177,7 @@ public:
 
 public:
   void    doCounting(void);
-  void    convertToPassThrough(char *inputName);
+  void    convertToPassThrough(char *inputName, uint32 threadFile);
 
 public:
   void    initializeThreshold(void);

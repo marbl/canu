@@ -129,13 +129,8 @@ public:
   void    addInput(kmerCountFileReader *reader) {
 
     //#pragma omp parallel for schedule(dynamic, 1)
-    for (uint32 ff=0; ff<_nFiles; ff++) {
-      kmerCountFileReader  *privatereader = new kmerCountFileReader(reader->filename());
-
-      privatereader->enableThreads(ff);
-
-      _stacks[ff].top()->addInput(privatereader);
-    }
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->addInput(new kmerCountFileReader(reader->filename(), ff));
 
     delete reader;
   };
@@ -785,23 +780,25 @@ main(int argc, char **argv) {
   //   - when done, they transform themselves into a pass-through operation that
   //     simply reads the (just counted) input and passes kmers through.
   //
-  //  So, we special case them here.  opCounting is a list of the counting
-  //  operations, which we just process in order, counting, writing the output,
-  //  and converting to a pass-through operation.
+  //  So, we special case them here.  Process in order, counting, writing the
+  //  output, and converting to a pass-through operation.
 
   for (uint32 opNum=0; opNum<opStack.numberOfOperations(); opNum++) {
     merylOperation *op = opStack.getOp(opNum, 0);
     char            name[FILENAME_MAX + 1] = { 0 };
 
-    if (op->isCounting() == true) {
-      if (op->getOutputName())
-        strncpy(name, op->getOutputName(), FILENAME_MAX);
+    if (op->isCounting() == false)                        //  If not a counting operation,
+      continue;                                           //  skip it.
 
-      op->doCounting();
+    if (op->getOutputName())                              //  Save the output name, so we
+      strncpy(name, op->getOutputName(), FILENAME_MAX);   //  know which input to open later.
 
-      for (uint32 fileNum=0; fileNum<opStack.numberOfFiles(); fileNum++)
-        opStack.getOp(opNum, fileNum)->convertToPassThrough(name);
-    }
+    op->doCounting();                                     //  Do the counting.
+
+    for (uint32 fn=0;                                     //  Convert all the files to pass
+         fn < opStack.numberOfFiles();                    //  through operations.
+         fn++)
+      opStack.getOp(opNum, fn)->convertToPassThrough(name, fn);
   }
 
   //  If there is an operation (debug operations and -h have no operations)

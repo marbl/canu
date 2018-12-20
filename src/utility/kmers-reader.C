@@ -205,10 +205,18 @@ kmerCountFileReader::initializeFromMasterIndex(bool  doInitialize,
 
 kmerCountFileReader::kmerCountFileReader(const char *inputName,
                                          bool        beVerbose) {
-
   strncpy(_inName, inputName, FILENAME_MAX);
-
   initializeFromMasterIndex(true, false, beVerbose);
+}
+
+
+
+kmerCountFileReader::kmerCountFileReader(const char *inputName,
+                                         uint32      threadFile,
+                                         bool        beVerbose) {
+  strncpy(_inName, inputName, FILENAME_MAX);
+  initializeFromMasterIndex(true, false, beVerbose);
+  enableThreads(threadFile);
 }
 
 

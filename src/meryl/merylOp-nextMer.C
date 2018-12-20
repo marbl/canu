@@ -233,10 +233,7 @@ merylOperation::doCounting(void) {
 //  If there is no inputName, we're just attempting to configure for Canu.
 //
 void
-merylOperation::convertToPassThrough(char *inputName) {
-
-  //clearInputs();
-  //clearOutput();
+merylOperation::convertToPassThrough(char *inputName, uint32 threadFile) {
 
   if (_verbosity >= sayConstruction)
     fprintf(stderr, "merylOp::nextMer()-- CONVERTING '%s' to '%s'.\n",
