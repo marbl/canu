@@ -184,8 +184,8 @@ public:
   bool    initialize(void);
 
 private:
-  bool    nextMer_findSmallestNormal(void);
-  bool    nextMer_findSmallestMultiSet(void);
+  void    nextMer_findSmallestNormal(void);
+  void    nextMer_findSmallestMultiSet(void);
   bool    nextMer_finish(void);
 
 public:

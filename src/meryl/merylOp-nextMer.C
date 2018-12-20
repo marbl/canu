@@ -244,15 +244,19 @@ merylOperation::convertToPassThrough(char *inputName) {
 
   _operation = opPassThrough;
 
-  if ((inputName != NULL) && (inputName[0] != 0) && (_onlyConfig == false))
-    addInput(new kmerCountFileReader(inputName));
+  if ((inputName    == NULL) ||
+      (inputName[0] == 0) ||
+      (_onlyConfig  == true))
+    return;
+
+  addInput(new kmerCountFileReader(inputName, threadFile));
 }
 
 
 
 //  Build a list of the inputs that have the smallest kmer, saving their
 //  counts in _actCount, and the input that it is from in _actIndex.
-bool
+void
 merylOperation::nextMer_findSmallestNormal(void) {
 
   _actLen = 0;                                       //  Reset to nothing on the list.
@@ -298,7 +302,7 @@ merylOperation::nextMer_findSmallestNormal(void) {
 //    Intersect -- treat non-multiset as wildcard; add to list with same value
 //    Union     -- treat non-multiset as multiset
 
-bool
+void
 merylOperation::nextMer_findSmallestMultiSet(void) {
 
   _actLen = 0;
