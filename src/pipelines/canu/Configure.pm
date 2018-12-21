@@ -333,7 +333,7 @@ sub getAllowedResources ($$$$$@) {
                 #  If we only need to run one task, just remember if we can run the task on any machine here.
 
                 if ($uni) {
-                    if ($np > 1) {
+                    if ($np > 0) {
                         $processes  = 1;
                         $cores      = $t;
                         $memory     = $m;
