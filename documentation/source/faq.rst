@@ -327,8 +327,17 @@ Why do I get less corrected read data than I asked for?
 What is the minimum coverage required to run Canu?
 -------------------------------------
     For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid
-    methods. Below that, you will likely not assemble the full genome.
+    methods.  Below that, you will likely not assemble the full genome.  The following
+    two papers have several examples.
+     * `Koren et al. (2013) Reducing assembly complexity of microbial genomes with single-molecule sequencing <https://www.ncbi.nlm.nih.gov/pubmed/24034426>`_
+     * `Koren and Walenz et al. (2017) Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <https://www.ncbi.nlm.nih.gov/pubmed/28298431>`_
 
+Can I use Illumina data too?
+-------------------------------------
+    No.  We've seen that using short reads for correction will homogenize repeats and
+    mix up haplotypes.  Even though the short reads are very high quality, their length
+    isn't sufficient for the true alignment to be identified, and so reads from other repeat
+    instances are used for correction, resulting in incorrect corrections.
 
 My circular element is duplicated/has overlap?
 -------------------------------------
