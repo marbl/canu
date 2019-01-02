@@ -69,7 +69,7 @@ uint32
 loadFASTA(char                 *L,
           char                 *H,
           char                 *S,
-          uint32               &Slen,
+          int32                &Slen,
           uint8                *Q,
           compressedFileReader *F,
           FILE                 *errorLog,
@@ -188,7 +188,7 @@ uint32
 loadFASTQ(char                 *L,
           char                 *H,
           char                 *S,
-          uint32               &Slen,
+          int32                &Slen,
           uint8                *Q,
           compressedFileReader *F,
           FILE                 *errorLog,
@@ -304,8 +304,8 @@ loadFASTQ(char                 *L,
   //  But if we are storing QVs, check lengths and convert from letters to integers
 
 #ifndef DO_NOT_STORE_QVs
-  uint32   sLen = strlen(S);
-  uint32   qLen = strlen(L);
+  int32    sLen = strlen(S);
+  int32    qLen = strlen(L);
 
   if (sLen < qLen) {
     fprintf(errorLog, "read '%s' sequence length %u quality length %u; quality values trimmed.\n",
@@ -374,7 +374,9 @@ loadReads(sqStore    *seqStore,
   char    *S = new char  [AS_MAX_READLEN + 1];
   uint8   *Q = new uint8 [AS_MAX_READLEN + 1];
 
-  uint32   Slen = 0;
+  int32    Sbgn = 0;
+  int32    Send = 0;
+  int32    Slen = 0;
 
   uint64   lineNumber = 1;
 
@@ -436,10 +438,45 @@ loadReads(sqStore    *seqStore,
       nWARNSlocal++;
     }
 
-    //  If S[0] isn't nul, we loaded a sequence and need to store it.
+    //  Trim N from the ends.
+
+    Sbgn = 0;
+    Send = Slen - 1;
+
+    while ((Sbgn <= Send) && ((S[Sbgn] == 'N') ||
+                              (S[Sbgn] == 'n'))) {
+      S[Sbgn] = 0;
+      Q[Sbgn] = 0;
+      Sbgn++;
+    }
+
+    while ((Sbgn <= Send) && ((S[Send] == 'N') ||
+                              (S[Send] == 'n'))) {
+      S[Send] = 0;
+      Q[Send] = 0;
+      Send--;
+    }
+
+    Send++;
+
+    if ((Sbgn > 0) && (Send < Slen))
+      fprintf(errorLog, "read '%s' of length " F_U32 " in file '%s' at line " F_U64 " - trimmed " F_S32 " non-ACGT bases from the 5' and " F_S32 " non-ACGT bases from the 3' end.\n",
+              H, Slen, fileName, lineNumber, Sbgn, Slen - Send);
+
+    else if (Sbgn > 0)
+      fprintf(errorLog, "read '%s' of length " F_U32 " in file '%s' at line " F_U64 " - trimmed " F_S32 " non-ACGT bases from the 5' end.\n",
+              H, Slen, fileName, lineNumber, Sbgn);
+
+    else if (Send < Slen)
+      fprintf(errorLog, "read '%s' of length " F_U32 " in file '%s' at line " F_U64 " - trimmed " F_S32 " non-ACGT bases from the 3' end.\n",
+              H, Slen, fileName, lineNumber, Slen - Send);
+
+    Slen = Send - Sbgn;
+
+    //  Drop short reads.  "Rick Wakeman, eat your heart out. Here we go!"
 
     if (Slen < minReadLength) {
-      fprintf(errorLog, "read '%s' of length " F_U32 " in file '%s' at line " F_U64 " is too short, skipping.\n",
+      fprintf(errorLog, "read '%s' of length " F_U32 " in file '%s' at line " F_U64 " - too short, skipping.\n",
               H, Slen, fileName, lineNumber);
 
       if (isFASTA) {
@@ -452,15 +489,19 @@ loadReads(sqStore    *seqStore,
         bSKIPPEDQlocal += Slen;
       }
 
+      Slen = 0;
+
       S[0] = 0;
       Q[0] = 0;
     }
 
-    if (S[0] != 0) {
+    //  Otherwise, load it!
+
+    else {
       sqReadData *readData = seqStore->sqStore_addEmptyRead(seqLibrary);
 
       readData->sqReadData_setName(H);
-      readData->sqReadData_setBasesQuals(S, Q);
+      readData->sqReadData_setBasesQuals(S + Sbgn, Q + Sbgn);
 
       seqStore->sqStore_stashReadData(readData);
 
