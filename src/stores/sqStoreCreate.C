@@ -244,16 +244,19 @@ loadFASTQ(char                 *L,
       case 'c':   S[i] = 'C';  break;
       case 'g':   S[i] = 'G';  break;
       case 't':   S[i] = 'T';  break;
+      case 'u':   S[i] = 'T';  break;
 #else
       case 'a':                break;
       case 'c':                break;
       case 'g':                break;
       case 't':                break;
+      case 'u':                break;
 #endif
       case 'A':                break;
       case 'C':                break;
       case 'G':                break;
       case 'T':                break;
+      case 'U':   S[i] = 'T';  break;
       case 'n':   S[i] = 'N';  break;
       case 'N':                break;
       default:
