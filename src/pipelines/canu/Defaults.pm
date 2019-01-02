@@ -1068,14 +1068,6 @@ sub setDefaults () {
         $global{$l} = $global{$k};         #  Otherwise, set the lowercase option and
         delete $global{$k};                #  delete the uppercase version
     }
-
-    #  If this is set, it breaks the consensus.sh and overlap.sh scripts.  Good grief!  Why
-    #  are you running this in a task array!?
-
-    if (exists($ENV{getGlobal("gridEngineTaskID")})) {
-        undef $ENV{getGlobal("gridEngineTaskID")};
-        print STDERR "ENV: ", getGlobal("gridEngineTaskID"), " needs to be unset, done.\n";
-    }
 }
 
 
@@ -1393,6 +1385,25 @@ sub checkParameters () {
                 addCommandLineError("ERROR:  Implausibly small genome size $gs.  Check units!\n");
             }
         }
+    }
+
+    #
+    #  If we're running as a job array, unset the ID of the job array.  This screws
+    #  up our scheduling, as our jobs think they're running in a task array.
+    #
+    #  Silly SGE sets this to 'undefined' for normal jobs.
+    #
+
+    if (exists($ENV{getGlobal("gridEngineTaskID")})) {
+        my $ja = $ENV{getGlobal("gridEngineTaskID")};
+
+        if (($ja ne "undefined") &&
+            ($ja ne "0")) {
+            print STDERR "--\n";
+            print STDERR "-- I appear to be task $ja in a job array, unsetting ", getGlobal("gridEngineTaskID"), ".\n";
+        }
+
+        undef $ENV{getGlobal("gridEngineTaskID")};
     }
 
     #  Undefined error rate are OK; we'll set them to defaults later.
