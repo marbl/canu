@@ -15,6 +15,7 @@
  *
  *  This file is derived from:
  *
+ *    src/AS_GKP/gkpStoreCreate.C
  *    src/stores/gatekeeperCreate.C
  *
  *  Modifications by:

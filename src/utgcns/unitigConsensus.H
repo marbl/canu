@@ -19,6 +19,7 @@
  *    src/AS_CNS/MultiAlignment_CNS_private.H
  *    src/AS_CNS/MultiAlignment_CNS_private.h
  *    src/utgcns/libcns/MultiAlignment_CNS_private.H
+ *    src/utgcns/libcns/unitigConsensus.H
  *
  *  Modifications by:
  *
@@ -150,7 +151,7 @@ private:
   bool   initializeGenerate(tgTig                     *tig,
                             map<uint32, sqRead *>     *reads = NULL,
                             map<uint32, sqReadData *> *datas = NULL);
-                            
+
 
   bool   generatePBDAG(tgTig                     *tig,
                        char                       aligner,

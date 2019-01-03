@@ -15,6 +15,8 @@
  *
  *  This file is derived from:
  *
+ *    src/utility/AS_UTL_fasta.H
+ *    src/utility/AS_UTL_fileIO.H
  *    src/utility/files.H
  *
  *  Modifications by:

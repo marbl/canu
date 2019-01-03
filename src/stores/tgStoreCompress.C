@@ -15,6 +15,7 @@
  *
  *  This file is derived from:
  *
+ *    src/AS_CNS/MultiAlignStore.C
  *    src/stores/tgStore.C
  *
  *  Modifications by:

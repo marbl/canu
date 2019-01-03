@@ -16,6 +16,7 @@
  *  This file is derived from:
  *
  *    src/stores/gkLibrary.H
+ *    src/stores/gkStore.H
  *
  *  Modifications by:
  *

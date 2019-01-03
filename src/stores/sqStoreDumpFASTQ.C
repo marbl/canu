@@ -15,6 +15,7 @@
  *
  *  This file is derived from:
  *
+ *    src/AS_GKP/gkpStoreDumpFASTQ.C
  *    src/stores/gatekeeperDumpFASTQ.C
  *
  *  Modifications by:

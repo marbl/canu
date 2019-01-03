@@ -15,6 +15,7 @@
  *
  *  This file is derived from:
  *
+ *    kmer/libutil/speedCounter.H
  *    src/AS_UTL/speedCounter.H
  *
  *  Modifications by:

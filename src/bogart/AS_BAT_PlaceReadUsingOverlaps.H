@@ -15,6 +15,7 @@
  *
  *  This file is derived from:
  *
+ *    src/AS_BAT/AS_BAT_PlaceFragUsingOverlaps.H
  *    src/bogart/AS_BAT_PlaceFragUsingOverlaps.H
  *
  *  Modifications by:
