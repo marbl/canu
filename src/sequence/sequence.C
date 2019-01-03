@@ -457,7 +457,7 @@ doSummarize(vector<char *>       &inputs,
         if (pos - bgn > 0) {
           nSeqs  += 1;
           nBases += pos - bgn;
-        
+
           lengths.push_back(pos - bgn);
         }
       }
