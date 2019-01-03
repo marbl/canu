@@ -15451,3 +15451,10 @@ A addCopyrights-BuildData.pl nihh20180227Brian P. Walenz
 A addCopyrights.dat nihh20180227Brian P. Walenz
 D	src/utgcns/unitigConsensus.H src/utgcns/libcns/unitigConsensus.H
 D	src/utgcns/unitigConsensus.C src/utgcns/libcns/unitigConsensus.C
+D src/sequence/sequence-extract.C src/sequence/sequence.C
+D src/sequence/sequence-generate.C src/sequence/sequence.C
+D src/sequence/sequence-sample.C src/sequence/sequence.C
+D src/sequence/sequence-shiftregister.C src/sequence/sequence.C
+D src/sequence/sequence-simulate.C src/sequence/sequence.C
+D src/sequence/sequence-summarize.C src/sequence/sequence.C
+D src/sequence/sequence.H src/sequence/sequence.C

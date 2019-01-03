@@ -1,4 +1,4 @@
- 
+
 /******************************************************************************
  *
  *  This file is part of canu, a software program that assembles whole-genome
@@ -12,6 +12,10 @@
  *
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/sequence/sequence.C
  *
  *  Modifications by:
  *
