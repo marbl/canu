@@ -942,6 +942,13 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
 
 
+//  Align each read to the region of the consensus sequence the read claims
+//  to be from, extended by 5% of the read length on either end.  If it fails
+//  to align full length, make the extensions larger and/or error rate more
+//  tolerant until it aligns.
+//
+//  Reads that fail to align have their cnspos set to 0.
+//
 void
 unitigConsensus::findCoordinates(void) {
 
@@ -951,43 +958,62 @@ unitigConsensus::findCoordinates(void) {
     fprintf(stderr, "\n");
   }
 
-  //  Align each read to the final consensus.
+  int32  alignShift = 0;
 
   for (uint32 ii=0; ii<_numReads; ii++) {
     abSequence   *read    = getSequence(ii);
     char         *readSeq = read->getBases();
     uint32        readLen = read->length();
 
-    if (showPlacement())
+    int32         origbgn = _cnspos[ii].min();
+    int32         origend = _cnspos[ii].max();
+
+    int32         ext5    = readLen * 0.05;
+    int32         ext3    = readLen * 0.05;
+    double        era     = _errorRate;
+
+    if (showPlacement()) {
       fprintf(stderr, "\n");
+      fprintf(stderr, "ALIGN read #%d %u length %u\n", ii, read->seqIdent(), readLen);
+    }
 
-    //  Align to the region of the consensus sequence the read claims to
-    //  align to, extended by 5% of the read length on either end.  If it
-    //  fails to align full length, make the extensions larger.
-
-    int32  ext5 = readLen * 0.05;
-    int32  ext3 = readLen * 0.05;
-    double era  = _errorRate;
-
-    int32  bgn=0, unaligned3=0;
-    int32  end=0, unaligned5=0, len=0;
+    _cnspos[ii].setMinMax(0, 0);  //  When the read aligns, we set the true position.
 
     while ((ext5 < readLen * 1.5) &&
            (ext3 < readLen * 1.5) &&
            (era  < 4 * _errorRate)) {
-      bgn = max(0, _cnspos[ii].min() - ext5);
-      end = min(_cnspos[ii].max() + ext3, (int32)_tig->length());
-      len = end - bgn;   //  WAS: +1
+      int32 bgn = max(0, origbgn + alignShift - ext5);                          //  First base in tig we'll align to.
+      int32 end = min(   origend + alignShift + ext3, (int32)_tig->length());   //  Last base
+      int32 len = end - bgn;   //  WAS: +1
+
+      assert(bgn < end);
+
+      //  Some logging.
 
       if (showPlacement())
-        fprintf(stderr, "align read #%u length %u to %u-%u - extension %d %d error rate %.3f\n",
-                ii, readLen, bgn, end, ext5, ext3, era);
+        fprintf(stderr, "align read #%u length %u to %u-%u - shift %d extension %d %d error rate %.3f\n",
+                ii, readLen, bgn, end, alignShift, ext5, ext3, era);
+
+      //  More logging.
+
+      if (showAlignments()) {
+        char  save = _tig->bases()[bgn + len];
+
+        _tig->bases()[bgn + len] = 0;
+
+        fprintf(stderr, "READ: %s\n", readSeq);
+        fprintf(stderr, "TIG:  %s\n", _tig->bases() + bgn);
+
+        _tig->bases()[bgn + len] = save;
+      }
+
+      // Align the entire read into a subsequence of the tig.
 
       EdlibAlignResult align = edlibAlign(readSeq, readLen,
                                           _tig->bases() + bgn, len,
                                           edlibNewAlignConfig(readLen * era * 2, EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
-      //  If nothing aligned, make bigger and more leniant.
+      //  If nothing aligned, make the tig subsequence bigger and allow more errors.
 
       if (align.numLocations == 0) {
         ext5 += readLen * 0.05;
@@ -998,18 +1024,21 @@ unitigConsensus::findCoordinates(void) {
           fprintf(stderr, "  NO ALIGNMENT - Increase extension to %d / %d and error rate to %.3f\n", ext5, ext3, era);
 
         edlibFreeAlignResult(align);
-        bgn = end = len = 0;
+
         continue;
       }
 
-      unaligned5 = align.startLocations[0];
-      unaligned3 = len - (align.endLocations[0] + 1);   //  0-based position of last character in alignment.
+      //  Something aligned.  Find how much of the tig subsequence was not used in the alignment.
+      //  If we hit either end - the unaligned bit is length 0 - increase that extension and retry.
+
+      int32 unaligned5 = align.startLocations[0];
+      int32 unaligned3 = len - (align.endLocations[0] + 1);   //  0-based position of last character in alignment.
 
       if (showPlacement())
         fprintf(stderr, "               - read %4u original %9u-%9u claimed %9u-%9u aligned %9u-%9u unaligned %d %d\n",
                 ii,
                 _utgpos[ii].min(), _utgpos[ii].max(),
-                _cnspos[ii].min(), _cnspos[ii].max(),
+                origbgn, origend,
                 bgn, end,
                 unaligned5, unaligned3);
 
@@ -1023,7 +1052,7 @@ unitigConsensus::findCoordinates(void) {
                   unaligned5, unaligned3, ext5);
 
         edlibFreeAlignResult(align);
-        bgn = end = len = 0;
+
         continue;
       }
 
@@ -1037,28 +1066,32 @@ unitigConsensus::findCoordinates(void) {
                   unaligned5, unaligned3, ext3);
 
         edlibFreeAlignResult(align);
-        bgn = end = len = 0;
+
         continue;
       }
 
       //  Otherwise, SUCCESS!
+      //
+      //  Save, for the next alignment, the difference between where the read though it was placed,
+      //  and where we actually aligned it to.  This will adjust the next subsequence to (hopefully)
+      //  account for any expansion/collapses in the consensus sequence.
 
-      end = align.endLocations[0] + bgn + 1;     //  endLocation is 0-based position of last base in alignment.
-      bgn = align.startLocations[0] + bgn;       //  startLocation is 0-based position of first base in alignment.
+      int32   abgn = bgn + align.startLocations[0];
+      int32   aend = bgn + align.endLocations[0] + 1;
+
+      alignShift = ((abgn - origbgn) +
+                    (aend - origend)) / 2;
+
+      _cnspos[ii].setMinMax(abgn, aend);
+
+      if (showPlacement())
+        fprintf(stderr, "  SUCCESS aligned to %d %d\n", abgn, aend);
 
       edlibFreeAlignResult(align);
 
-      break;   //  Stop looping over ext5, ext3 and era.
-    }
-
-    if ((bgn == 0) &&
-        (end == 0)) {
-      fprintf(stderr, "ERROR: FAILED.\n");
-      exit(1);
-    }
-  }  //  Looping over reads
-
-  //memcpy(tig->getChild(0), cnspos, sizeof(tgPosition) * numfrags);
+      break;   //  Stop looping over extension and error rate.
+    }  //  Looping over extension and error rate.
+  }    //  Looping over reads.
 }
 
 
