@@ -226,7 +226,7 @@ my %derived;
 
         } elsif (m/^D\s+(\S+)\s+(\S+)$/) {
             $authcopy{$1} .= $authcopy{$2};   #  Include all authors of old file in new file.
-            #$derived{$1}  .= $derived{$2};
+            $derived{$1}  .= $derived{$2};
             $derived{$1}  .= "$2\n";
 
         } else {
