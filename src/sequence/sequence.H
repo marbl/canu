@@ -325,6 +325,75 @@ public:
 
 
 
+class mutateParameters {
+public:
+  mutateParameters() {
+    for (uint32 ii=0; ii<256; ii++) {
+      for (uint32 jj=0; jj<256; jj++)
+        pS[ii][jj] = 0.0;
+      pI[ii] = 0.0;
+      pD[ii] = 0.0;
+
+      pSubstitute[ii] = 0.0;
+    }
+
+    pInsert = 0.0;
+  };
+
+  ~mutateParameters() {
+  };
+
+public:
+  void      setProbabilitySubstititue(double p, char baseToReplace, char replacementBase) {
+    fprintf(stderr, "sub %c -> %c %f\n", baseToReplace, replacementBase, p);
+    pS[baseToReplace][replacementBase] = p;
+  };
+
+  void      setProbabilityInsert(double p, char baseToInsert) {
+    fprintf(stderr, "ins %c %f\n", baseToInsert, p);
+    pI[baseToInsert] = p;
+  };
+
+  void      setProbabilityDelete(double p, char baseToDelete) {
+    fprintf(stderr, "del %c %f\n", baseToDelete, p);
+    pD[baseToDelete] = p;
+  };
+
+  void      finalize(void) {
+
+    for (uint32 ii=0; ii<256; ii++)
+      pSubstitute[ii] = 0.0;
+
+    pInsert = 0.0;
+
+    for (uint32 ii=0; ii<256; ii++) {
+      for (uint32 jj=0; jj<256; jj++)
+        pSubstitute[ii] += pS[ii][jj];
+
+      pInsert           += pI[ii];
+      pDelete           += pD[ii];
+    }
+  };
+
+
+  //  probability of substituting base [a] with [b]    (base based)
+  //  probability of inserting    an A, C, G, T, N     (space based)
+  //  probability of deleting     base [a]             (base based)
+  //
+  //  extensions:
+  //  probability of inserting ACGTN between bases a and b.
+  //
+  double  pS[256][256];
+  double  pI[256];
+  double  pD[256];
+
+  double  pSubstitute[256];   //  Probability of substituting 'a' for anything.
+  double  pInsert;            //  Probability of inserting any base.
+  double  pDelete;
+};
+
+
+
 
 void doSummarize    (vector<char *> &inputs, summarizeParameters     &sumPar);
 void doExtract      (vector<char *> &inputs, extractParameters       &extPar);
@@ -332,3 +401,4 @@ void doGenerate     (                        generateParameters      &genPar);
 void doSimulate     (vector<char *> &inputs);
 void doSample       (vector<char *> &inputs, sampleParameters        &samPar);
 void doShiftRegister(                        shiftRegisterParameters &srPar);
+void doMutate       (vector<char *> &inputs, mutateParameters        &mutPar);

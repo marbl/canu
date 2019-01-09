@@ -12,6 +12,7 @@ TARGET   := sequence
 SOURCES  := sequence.C \
             sequence-extract.C \
             sequence-generate.C \
+            sequence-mutate.C \
             sequence-sample.C \
             sequence-shiftregister.C \
             sequence-simulate.C \

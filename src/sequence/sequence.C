@@ -30,13 +30,14 @@
 
 
 enum opMode {
-  modeSummarize,
-  modeExtract,
-  modeGenerate,
-  modeSimulate,
-  modeSample,
-  modeShift,
-  modeUnset
+  modeSummarize,     //  Summarize sequences in FASTA or FASTQ inputs
+  modeExtract,       //  Extract sequences or subsequences from FASTA or FASTQ inputs
+  modeGenerate,      //  Generate random sequences
+  modeSimulate,      //  Simulate reads from FASTA or FASTQ inputs (ontigs/scaffolds/chromosomes)
+  modeSample,        //  Extract random sequences from FASTA or FASTQ inputs
+  modeShift,         //  Generate sequence based on a shift register
+  modeMutate,        //  Randomly mutate bases
+  modeUnset          //  Cause an error
 };
 
 
@@ -52,6 +53,7 @@ main(int argc, char **argv) {
   generateParameters          genPar;
   sampleParameters            samPar;
   shiftRegisterParameters     srPar;
+  mutateParameters            mutPar;
 
   argc = AS_configure(argc, argv);
 
@@ -267,6 +269,40 @@ main(int argc, char **argv) {
     else if ((mode == modeShift) && (strcmp(argv[arg], "") == 0)) {
     }
 
+    //  MUTATE
+
+    else if (strcmp(argv[arg], "mutate") == 0) {
+      mode = modeMutate;
+    }
+
+    else if ((mode == modeMutate) && (strcmp(argv[arg], "-s") == 0)) {
+      double  p = strtodouble(argv[arg+1]);
+      char    a = argv[arg+2][0];
+      char    b = argv[arg+3][0];
+
+      arg += 3;
+
+      mutPar.setProbabilitySubstititue(p, a, b);
+    }
+
+    else if ((mode == modeMutate) && (strcmp(argv[arg], "-i") == 0)) {
+      double  p = strtodouble(argv[arg+1]);
+      char    a = argv[arg+2][0];
+
+      arg += 2;
+
+      mutPar.setProbabilityInsert(p, a);
+    }
+
+    else if ((mode == modeMutate) && (strcmp(argv[arg], "-d") == 0)) {
+      double  p = strtodouble(argv[arg+1]);
+      char    a = argv[arg+2][0];
+
+      arg += 2;
+
+      mutPar.setProbabilityDelete(p, a);
+    }
+
     //  INPUTS
 
     else if (fileExists(argv[arg]) == true) {
@@ -425,6 +461,9 @@ main(int argc, char **argv) {
       break;
     case modeShift:
       doShiftRegister(srPar);
+      break;
+    case modeMutate:
+      doMutate(inputs, mutPar);
       break;
     default:
       break;
