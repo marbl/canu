@@ -576,32 +576,13 @@ commands, they all start with ``gridEngine``.  For each grid, these parameters a
 various ``src/pipeline/Grid_*.pm`` modules.  The parameters are used in
 ``src/pipeline/canu/Execution.pm``.
 
-For SGE grids, two options are sometimes necessary to tell canu about pecularities of your grid:
-``gridEngineThreadsOption`` describes how to request multiple cores, and ``gridEngineMemoryOption``
-describes how to request memory.  Usually, canu can figure out how to do this, but sometimes it
-reports an error such as::
-
- -- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.
- --           Valid choices are (pick one and supply it to canu):
- --             gridEngineThreadsOption="-pe make THREADS"
- --             gridEngineThreadsOption="-pe make-dedicated THREADS"
- --             gridEngineThreadsOption="-pe mpich-rr THREADS"
- --             gridEngineThreadsOption="-pe openmpi-fill THREADS"
- --             gridEngineThreadsOption="-pe smp THREADS"
- --             gridEngineThreadsOption="-pe thread THREADS"
-
-or::
-
- -- WARNING:  Couldn't determine the SGE resource to request memory.
- --           Valid choices are (pick one and supply it to canu):
- --             gridEngineMemoryOption="-l h_vmem=MEMORY"
- --             gridEngineMemoryOption="-l mem_free=MEMORY"
-
-If you get such a message, just add the appropriate line to your canu command line.  Both options
-will replace the uppercase text (THREADS or MEMORY) with the value canu wants when the job is
-submitted.  For ``gridEngineMemoryOption``, any number of ``-l`` options can be supplied; we could
-use ``gridEngineMemoryOption="-l h_vmem=MEMORY -l mem_free=MEMORY"`` to request both ``h_vmem`` and
-``mem_free`` memory.
+In Canu 1.8 and earlier, ``gridEngineMemoryOption`` and ``gridEngineThreadsOption`` are used to tell
+Canu how to request resources from the grid.  Starting with ``snapshot v1.8 +90 changes`` (roughly
+January 11th), those options were merged into ``gridEngineResourceOption``.  These options specify
+the grid options needed to request memory and threads for each job.  For example, the default
+``gridEngineResourceOption`` for PBS/Torque is "-l nodes=1:ppn=THREADS:mem=MEMORY", and for Slurm it
+is "--cpus-per-task=THREADS --mem-per-cpu=MEMORY".  Canu will replace "THREADS" and "MEMORY" with
+the specific values needed for each job.
 
 .. _grid-options:
 

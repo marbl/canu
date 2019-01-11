@@ -725,51 +725,57 @@ sub submitScript ($$) {
 
     #  Construct a submission command line.
 
-    my ($jobName, $memOption, $thrOption, $gridOpts);
-
-    $jobName   = makeUniqueJobName("canu", $asm);
+    my $jobName   = makeUniqueJobName("canu", $asm);
 
     #  The canu.pl script isn't expected to take resources.  We'll default to 4gb and one thread.
 
     my $mem = getGlobal("executiveMemory");
     my $thr = getGlobal("executiveThreads");
 
-    $memOption = buildMemoryOption($mem, $thr);
-    $thrOption = buildThreadOption($thr);
+    my $resOption = buildResourceOption($mem, $thr);
+
+    my $gridOpts;
 
     $gridOpts  = $jobHold;
-    $gridOpts .= " "                                  if (defined($gridOpts));
-    # LSF takes the first argument to specify them in reverse order of preference, otherwise append
-    if (uc(getGlobal("gridEngine")) eq "LSF") {
-       $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
-       $gridOpts .= " "                                  if (defined($gridOpts));
-       $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
-       $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts .= " "                                     if (defined($gridOpts));
+
+    #  LSF ignores all but the first option, so options need to be reversed.
+    #  DNAnexus doesn't use threads, and memory is the instance type.
+
+    if    (uc(getGlobal("gridEngine")) eq "LSF") {
+        $gridOpts .= getGlobal("gridOptionsExecutive")   if (defined(getGlobal("gridOptionsExecutive")));
+        $gridOpts .= " "                                 if (defined($gridOpts));
+        $gridOpts .= getGlobal("gridOptions")            if (defined(getGlobal("gridOptions")));
+        $gridOpts .= " "                                 if (defined($gridOpts));
+        $gridOpts .= $resOption                          if (defined($resOption));
     }
-    # For DNANEXUS, we won't specify memory when resubmitting canu.  It will use the same setup
-    # as was specified when it was first submitted.
-    if (uc(getGlobal("gridEngine")) ne "DNANEXUS") {
-        $gridOpts .= $memOption                           if (defined($memOption));
+
+    elsif (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+        $gridOpts .= getGlobal("gridOptions")            if (defined(getGlobal("gridOptions")));
+        $gridOpts .= " "                                 if (defined($gridOpts));
+        $gridOpts .= getGlobal("gridOptionsExecutive")   if (defined(getGlobal("gridOptionsExecutive")));
     }
-    $gridOpts .= " "                                  if (defined($gridOpts));
-    $gridOpts .= $thrOption                           if (defined($thrOption));
-    if (uc(getGlobal("gridEngine")) ne "LSF") {
-       $gridOpts .= " "                                  if (defined($gridOpts));
-       $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
-       $gridOpts .= " "                                  if (defined($gridOpts));
-       $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
+
+    else {
+        $gridOpts .= $resOption                          if (defined($resOption));
+        $gridOpts .= " "                                 if (defined($gridOpts));
+        $gridOpts .= getGlobal("gridOptions")            if (defined(getGlobal("gridOptions")));
+        $gridOpts .= " "                                 if (defined($gridOpts));
+        $gridOpts .= getGlobal("gridOptionsExecutive")   if (defined(getGlobal("gridOptionsExecutive")));
     }
 
     my $submitCommand        = getGlobal("gridEngineSubmitCommand");
     my $nameOption           = getGlobal("gridEngineNameOption");
     my $outputOption         = getGlobal("gridEngineOutputOption");
 
-    my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName'";
-    $qcmd .= " $outputOption $scriptOut" if defined($outputOption);
+    my $qcmd = "$submitCommand $gridOpts";
+    $qcmd   .= " $nameOption '$jobName'"   if defined($nameOption);
+    $qcmd   .= " $outputOption $scriptOut" if defined($outputOption);
 
     # on dna nexus we don't submit a script and there is no logging
     # any parameters get passed through the -i option
     # the fetch_and_run call is to a function in the app which will downloaded the requested shell script and execute it
+
     if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
         $qcmd .= " -iscript_name:string=\"canu.sh\" -icanu_path:string=\"\" \\\n";
         $qcmd .= " -icanu_iteration:int=" . getGlobal("canuIteration") . " \\\n";
@@ -883,17 +889,18 @@ sub buildStageOption ($$) {
 }
 
 
-sub buildMemoryOption ($$) {
+sub buildResourceOption ($$) {
     my $m = shift @_;
     my $t = shift @_;
-    my $r;
     my $u = "g";
+
+    #  Massage the memory requested into a format the grid is happy with.
 
     if (uc(getGlobal("gridEngine")) eq "SGE") {
         $m /= $t;
     }
 
-    if ((uc(getGlobal("gridEngine")) eq "SLURM") && (getGlobal("gridEngineMemoryOption") =~ m/mem-per-cpu/i)) {
+    if ((uc(getGlobal("gridEngine")) eq "SLURM") && (getGlobal("gridEngineResourceOption") =~ m/mem-per-cpu/i)) {
         $m /= $t;
     }
 
@@ -914,19 +921,11 @@ sub buildMemoryOption ($$) {
        $u = "";
     }
 
+    #  Replace MEMORY and THREADS with actual values.
 
-    $r =  getGlobal("gridEngineMemoryOption");
+    my $r = getGlobal("gridEngineResourceOption");
+
     $r =~ s/MEMORY/${m}${u}/g;
-
-    return($r);
-}
-
-
-sub buildThreadOption ($) {
-    my $t = shift @_;
-    my $r;
-
-    $r =  getGlobal("gridEngineThreadsOption");
     $r =~ s/THREADS/$t/g;
 
     return($r);
@@ -980,16 +979,14 @@ sub buildGridJob ($$$$$$$$$) {
     my $outputOption           = buildOutputOption($path, $script);
 
     my $stageOption            = buildStageOption($jobType, $dsk);
-    my $memOption              = buildMemoryOption($mem, $thr);
-    my $thrOption              = buildThreadOption($thr);
+    my $resOption              = buildResourceOption($mem, $thr);
     my $globalOptions          = getGlobal("gridOptions");
     my $jobOptions             = getGlobal("gridOptions$jobType");
 
     my $opts;
 
     $opts  = "$stageOption "    if (defined($stageOption));
-    $opts .= "$memOption "      if (defined($memOption));
-    $opts .= "$thrOption "      if (defined($thrOption));
+    $opts .= "$resOption "      if (defined($resOption));
     $opts .= "$globalOptions "  if (defined($globalOptions));
     $opts .= "$jobOptions "     if (defined($jobOptions));
     $opts .= "$outputOption "   if (defined($outputOption));

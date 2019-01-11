@@ -916,9 +916,9 @@ sub setDefaults () {
     setDefault("gridEngineArrayName",                 undef, "Grid engine configuration, not documented");
     setDefault("gridEngineArrayMaxJobs",              undef, "Grid engine configuration, not documented");
     setDefault("gridEngineOutputOption",              undef, "Grid engine configuration, not documented");
-    setDefault("gridEnginePropagateCommand",          undef, "Grid engine configuration, not documented");
     setDefault("gridEngineThreadsOption",             undef, "Grid engine configuration, not documented");
     setDefault("gridEngineMemoryOption",              undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineResourceOption",            undef, "Grid engine configuration, not documented");
     setDefault("gridEngineMemoryUnits",               undef, "Grid engine configuration, not documented");
     setDefault("gridEngineNameToJobIDCommand",        undef, "Grid engine configuration, not documented");
     setDefault("gridEngineNameToJobIDCommandNoArray", undef, "Grid engine configuration, not documented");

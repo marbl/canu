@@ -147,9 +147,7 @@ sub configureDNANexus () {
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
     setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               undef);
-    setGlobalIfUndef("gridEnginePropagateCommand",           undef);
-    setGlobalIfUndef("gridEngineThreadsOption",              undef);
-    setGlobalIfUndef("gridEngineMemoryOption",               "--instance-type MEMORY");
+    setGlobalIfUndef("gridEngineResourceOption",             "--instance-type MEMORY");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
     setGlobalIfUndef("gridEngineTaskID",                     "DX_ARRAY_ID");

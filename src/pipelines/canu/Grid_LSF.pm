@@ -68,9 +68,7 @@ sub configureLSF () {
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
     setGlobalIfUndef("gridEngineArrayMaxJobs",               65535);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");
-    setGlobalIfUndef("gridEngineThreadsOption",              "-R span[hosts=1] -n THREADS");
-    setGlobalIfUndef("gridEngineMemoryOption",               "-M MEMORY");
-    setGlobalIfUndef("gridEnginePropagateCommand",           "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
+    setGlobalIfUndef("gridEngineResourceOption",             "-R span[hosts=1] -n THREADS -M MEMORY");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
     setGlobalIfUndef("gridEngineTaskID",                     "LSB_JOBINDEX");
