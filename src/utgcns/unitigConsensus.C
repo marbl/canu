@@ -1089,6 +1089,8 @@ unitigConsensus::findCoordinates(void) {
 
       _cnspos[ii].setMinMax(abgn, aend);
 
+      _tig->_children[ii].setMinMax(abgn, aend);
+
       if (showPlacement())
         fprintf(stderr, "  SUCCESS aligned to %d %d\n", abgn, aend);
 
