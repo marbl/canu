@@ -118,6 +118,44 @@ stuffedBits::stuffedBits(FILE *inFile) {
 };
 
 
+#if 0
+//  This is untested.
+stuffedBits::stuffedBits(stuffedBits &that) {
+
+  _dataBlockLenMax = that._dataBlockLenMax;
+
+  _dataBlocksLen = that._dataBlocksLen;
+  _dataBlocksMax = that._dataBlocksMax;
+
+  _dataBlockBgn = new uint64   [_dataBlocksMax];
+  _dataBlockLen = new uint64   [_dataBlocksMax];
+  _dataBlocks   = new uint64 * [_dataBlocksMax];
+
+  memcpy(_dataBlockBgn, that._dataBlockBgn, sizeof(uint64)   * _dataBlocksMax);
+  memcpy(_dataBlockLen, that._dataBlockLen, sizeof(uint64)   * _dataBlocksMax);
+  memset(_dataBlocks,   0,                  sizeof(uint64 *) * _dataBlocksMax);
+
+  for (uint32 ii=0; ii<_dataBlocksMax; ii++) {
+    if (that._dataBlocks[ii]) {
+      _dataBlocks[ii] = new uint64 [_dataBlockLenMax / 64];
+      memcpy(_dataBlocks[ii], that._dataBlocks[ii], sizeof(uint64) * _dataBlockLenMax / 64);
+    }
+
+    if (that._data == that._dataBlocks[ii])
+      _data = _dataBlocks[ii];
+  }
+
+  _dataPos = that._dataPos;
+
+  _dataBlk = that._dataBlk;
+  _dataWrd = that._dataWrd;
+  _dataBit = that._dataBit;
+
+  memcpy(_fibData, that._fibData, 93 * sizeof(uint64));
+}
+#endif
+
+
 stuffedBits::~stuffedBits() {
 
   for (uint32 ii=0; ii<_dataBlocksLen; ii++)

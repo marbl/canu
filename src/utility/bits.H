@@ -529,6 +529,7 @@ public:
   stuffedBits(uint64 nBits=16 * 1024 * 1024 * 8);
   stuffedBits(const char *inputName);
   stuffedBits(FILE *inFile);
+  //stuffedBits(stuffedBits &that);   //  Untested.
   ~stuffedBits();
 
   //  Debugging.
