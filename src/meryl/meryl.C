@@ -331,13 +331,13 @@ main(int argc, char **argv) {
 
     //  Scan for debug options.
 
-    if (strcmp(optString, "dumpIndex") == 0) {
-      arg++;
+    if (strcmp(optString, "dumpIndex") == 0) {               //  Report the index for the dataset.
+      arg++;                                                 //  It's just the parameters used for encoding.
       delete new kmerCountFileReader(argv[arg++], true);
       continue;
     }
 
-    if (strcmp(optString, "dumpFile") == 0) {
+    if (strcmp(optString, "dumpFile") == 0) {                //  Dump the index for a single data file.
       arg++;
       dumpMerylDataFile(argv[arg++]);
       continue;
