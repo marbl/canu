@@ -33,6 +33,7 @@
 #include "AS_global.H"
 
 #include "sqStore.H"
+#include "bits.H"
 
 #include <map>
 using namespace std;
@@ -247,7 +248,7 @@ public:
   uint32              _layoutLen;
   uint32              _gappedLen;
   uint32              _childrenLen;
-  uint32              _childDeltasLen;
+  uint32              _childDeltaBitsLen;
 };
 
 
@@ -381,9 +382,8 @@ public:
   uint32              _childrenLen;
   uint32              _childrenMax;
 
-  int32              *_childDeltas;       //  deltas for all objects in the _children list
-  uint32              _childDeltasLen;
-  uint32              _childDeltasMax;
+  uint32              _childDeltaBitsLen;
+  stuffedBits        *_childDeltaBits;
 
   //  Flags for computing consensus/multialignments
 

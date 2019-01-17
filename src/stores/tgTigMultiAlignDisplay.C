@@ -43,83 +43,151 @@
 
 #include "sequence.H"
 
+#include <set>
 #include <algorithm>
 
+using namespace std;
 
-class LaneNode {
+//
+//  The original utgcns consensus algorithm generated a gapped consensus sequence, which
+//  made displaying a multialignment of reads The original version only worked with a gapped consensus sequence.
+//
+
+class alignRowEntry {
 public:
-  LaneNode() {
-    read      = NULL;
-    readLen   = 0;
-    bases     = NULL;
-    quals     = NULL;
-    delta     = NULL;
-    next      = NULL;
-  };
+  alignRowEntry(sqStore *seq_, tgTig *tig_, uint32 child_);
 
-  ~LaneNode() {
+  ~alignRowEntry() {
     delete [] bases;
     delete [] quals;
+    delete [] delta;
   };
 
-  tgPosition       *read;
-  int32             readLen;
+  tgPosition     *position;
+  int32           sequenceLength;
 
-  char             *bases;   //  Allocated bases
-  char             *quals;   //  Allocated quals
-  int32            *delta;   //  Pointer to tgTig _childDeltas
+  char           *bases;
+  char           *quals;
 
-  LaneNode         *next;
+  int32          *delta;
+  int32           deltaLength;
+
+  alignRowEntry  *nextEntry;
 };
 
 
 
-class Lane {
+alignRowEntry::alignRowEntry(sqStore     *seq_,
+                             tgTig       *tig_,
+                             uint32       child_) {
+
+  sqRead     *read = seq_->sqStore_getRead(tig_->_children[child_].ident());
+  sqReadData *data = new sqReadData;
+
+  //  Set basic stuff and allocate space.
+
+  position        = &tig_->_children[child_];
+  sequenceLength  = read->sqRead_sequenceLength();
+
+  bases           = new char  [sequenceLength + 1];
+  quals           = new char  [sequenceLength + 1];
+  delta           = new int32 [position->deltaLength()];
+  deltaLength     = position->deltaLength();
+
+  nextEntry       = NULL;
+
+  //  Copy sequence and quals, adjusting quals for display.
+
+  seq_->sqStore_loadReadData(read, data);
+
+  char  *b = data->sqReadData_getSequence();
+  uint8 *q = data->sqReadData_getQualities();
+
+  for (uint32 ii=0; ii<sequenceLength; ii++) {
+    bases[ii] = b[ii];
+    quals[ii] = q[ii] + '!';
+  }
+
+  bases[sequenceLength] = 0;
+  quals[sequenceLength] = 0;
+
+  //  Flip the sequence if needed.  The deltas are relative to this flipped sequence.
+
+  if (position->isReverse())
+    ::reverseComplement(bases, quals, sequenceLength);
+
+  //  Decode deltas.
+
+  tig_->_childDeltaBits->setPosition(position->deltaOffset());
+
+  for (uint32 dd=0; dd<deltaLength; dd++) {
+    delta[dd] = tig_->_childDeltaBits->getEliasDelta();
+
+    if (tig_->_childDeltaBits->getBit() == 0)
+      delta[dd] = -delta[dd];
+  }
+
+  //  Cleanup.
+
+  delete data;
+}
+
+
+
+class alignRow {
 public:
-  Lane() {
-    first   = NULL;
-    last    = NULL;
-    lastcol = 0;
+  alignRow() {
+    firstEntry = NULL;
+    lastEntry  = NULL;
+    lastColumn = 0;
   };
 
-  ~Lane() {
-    LaneNode *node = first;
-    LaneNode *next = NULL;
+  ~alignRow() {
+    alignRowEntry  *e = firstEntry;
+    alignRowEntry  *n = NULL;
 
-    while (node) {
-      next = node->next;
-      delete node;
-      node = next;
+    while (e) {
+      n = e->nextEntry;
+      delete e;
+      e = n;
     }
   };
 
-  //  Add a node to this lane, if possible.
-  bool addNode(LaneNode *node, uint32 displaySpacing) {
-    int32 leftpos = node->read->min();
+  bool    addEntry(alignRowEntry *entry, uint32 spacing);
 
-    if ((lastcol > 0) &&
-        (leftpos < lastcol + displaySpacing))
-      return(false);
+  alignRowEntry   *firstEntry;
+  alignRowEntry   *lastEntry;
 
-    assert(node->next == NULL);
-
-    if (first == NULL) {
-      first      = node;
-      last       = node;
-    } else {
-      last->next = node;
-      last       = node;
-    }
-
-    lastcol = leftpos + node->read->deltaLength() + node->readLen;
-
-    return(true);
-  };
-
-  LaneNode         *first;
-  LaneNode         *last;
-  int32             lastcol;
+  int32            lastColumn;
 };
+
+
+
+bool
+alignRow::addEntry(alignRowEntry *entry, uint32 spacing) {
+  int32 leftPos = entry->position->min();
+
+  if ((lastColumn > 0) &&                  //  If something in this row, fail
+      (leftPos < lastColumn + spacing))    //  if the new entry intersects.
+    return(false);
+
+  assert(entry->nextEntry == NULL);
+
+  if (firstEntry == NULL) {                //  Add the entry to our list
+    firstEntry           = entry;          //  of entries.
+    lastEntry            = entry;
+  } else {
+    lastEntry->nextEntry = entry;
+    lastEntry            = entry;
+    lastEntry->nextEntry = NULL;
+  }
+
+  lastColumn = leftPos + entry->deltaLength + entry->sequenceLength;
+
+  return(true);
+}
+
+
 
 
 
@@ -133,6 +201,9 @@ tgTig::display(FILE     *F,
                bool      withQV,
                bool      withDots)  {
 
+  withQV   = false;
+  withDots = true;
+
   if (gappedLength() == 0) {
     fprintf(F, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", tigID());
     return;
@@ -142,159 +213,129 @@ tgTig::display(FILE     *F,
   fprintf(stderr, "tgTig::display()--  width %u spacing %u\n", displayWidth, displaySpacing);
 
   //
-  //  Convert the children to a list of lines to print
+  //  Convert the children to a list of rows to print.  Worst case is one row per child.
   //
 
-  Lane  *lane     = NULL;
-  Lane  *lanes    = new Lane [_childrenLen];
-  int32  lanesLen = 0;
-  int32  lanesPos = 0;
+  alignRow  *row     = NULL;
+  alignRow  *rows    = new alignRow [_childrenLen];
+  int32      rowsLen = 0;
 
-  // Sort the fragments by leftmost position within tig
+  // Sort the children by leftmost position within tig.
 
   std::sort(_children, _children + _childrenLen);
 
-  //  Load into lanes.
-
-  sqReadData *readData  = new sqReadData;
+  //  Load into rows.
 
   for (int32 i=0; i<_childrenLen; i++) {
-    sqRead     *read      = seq->sqStore_getRead(_children[i].ident());  //  Too many reads in this code.
+    alignRowEntry  *entry = new alignRowEntry(seq, this, i);
+    uint32          rowsPos;
 
-    seq->sqStore_loadReadData(read, readData);
-
-    LaneNode   *node = new LaneNode();
-
-    node->read      = _children + i;
-    node->readLen   = read->sqRead_sequenceLength();
-
-    node->bases     = new char [node->readLen + 1];
-    node->quals     = new char [node->readLen + 1];
-
-    node->delta     = _childDeltas + node->read->deltaOffset();
-
-    memcpy(node->bases, readData->sqReadData_getSequence(),  sizeof(char) * node->readLen);
-    memcpy(node->quals, readData->sqReadData_getQualities(), sizeof(char) * node->readLen);
-
-    node->bases[node->readLen] = 0;
-    node->quals[node->readLen] = 0;
-
-    for (uint32 ii=0; ii<node->readLen; ii++)  //  Adjust QVs for display
-      node->quals[ii] += '!';
-
-    if (node->read->isReverse())
-      ::reverseComplement(node->bases, node->quals, node->readLen);
-
-    //fprintf(stderr, "NODE READ %u at %d %d tigLength %d with %u deltas at offset %u\n",
-    //        i, node->read->bgn(), node->read->end(), gappedLength(), node->read->deltaLength(), node->read->deltaOffset());
-
-    //  Try to add this new node to the lanes.  The last iteration will always succeed, adding the
+    //  Try to add this new node to the rows.  The last iteration will always succeed, adding the
     //  node to a fresh empty lane.
 
-    for (lanesPos=0; lanesPos <= lanesLen; lanesPos++)
-      if (lanes[lanesPos].addNode(node, displaySpacing))
+    for (rowsPos=0; rowsPos <= rowsLen; rowsPos++)
+      if (rows[rowsPos].addEntry(entry, displaySpacing))
         break;
 
-    assert(lanesPos <= lanesLen);
+    assert(rowsPos <= rowsLen);
 
     //  If it is added to the last one, increment our cnsLen.
 
-    if (lanesPos == lanesLen)
-      lanesLen++;
+    if (rowsPos == rowsLen)
+      rowsLen++;
   }
 
-  delete readData;
+  //  Find the list of gaps we need to insert into the reference.
+
+  set<int32>   gapPositions;
+
+#if 0
+  //  This is wrong, each delta is relative to the last one.
+  for (int32 rr=0; rr<rowsLen; rr++)
+    for (alignRowEntry *entry=rows[rr].firstEntry; entry != NULL; entry = entry->nextEntry)
+      for (uint32 dd=0; dd<entry->deltaLength; dd++)
+        if (entry->delta[dd] < 0)
+          gapPositions.insert(entry->position->min() + -entry->delta[dd] - 1);
+#endif
 
   //  Allocate space.
 
-  char  **multia = new char * [2 * lanesLen];
+  char   **displayBases  = new char  * [rowsLen];   //  Bases to print in the current window.
+  char   **displayQuals  = new char  * [rowsLen];   //  Quals to print in the current window.
+  int32  **displayIDs    = new int32 * [rowsLen];   //  The ID present at this position.
+  char   **displayFwd    = new char  * [rowsLen];   //
 
-  for (int32 i=0; i<2*lanesLen; i++) {
-    multia[i]  = new char [gappedLength() + displayWidth + 1];
+  for (uint32 ii=0; ii<rowsLen; ii++) {
+    displayBases[ii] = new char  [gappedLength() + gapPositions.size() + displayWidth + 1];
+    displayQuals[ii] = new char  [gappedLength() + gapPositions.size() + displayWidth + 1];
+    displayIDs[ii]   = new int32 [gappedLength() + gapPositions.size() + 1];
+    displayFwd[ii]   = new char  [gappedLength() + gapPositions.size() + 1];
 
-    memset(multia[i], ' ', gappedLength() + displayWidth);
+    memset(displayBases[ii], ' ', sizeof(char)  * (gappedLength() + gapPositions.size() + displayWidth + 1));
+    memset(displayQuals[ii], ' ', sizeof(char)  * (gappedLength() + gapPositions.size() + displayWidth + 1));
 
-    multia[i][gappedLength() + displayWidth] = 0;
+    memset(displayIDs[ii],    0,  sizeof(int32) * (gappedLength() + gapPositions.size() + 1));
+    memset(displayFwd[ii],    0,  sizeof(char)  * (gappedLength() + gapPositions.size() + 1));
   }
 
-  int32  **idarray  = new int32 * [lanesLen];
-  int32  **oriarray = new int32 * [lanesLen];
+  //  Copy read sequence to the display arrays, ignoring gaps in the tig for now.
+  //
+  //  Set bases.  Three cases.
+  //    No gap      - just copy the base.
+  //    Gap in read - set to 'gap' base/qual
+  //    Gap in tig  - ignore for now
 
-  //  Not sure where the +1 comes from.  The original was using GetNumchars(ma->consensus) which (I
-  //  think) included the terminating NUL, while gappedLength() does not.
+  for (int32 rr=0; rr<rowsLen; rr++) {
+    for (alignRowEntry *entry=rows[rr].firstEntry; entry != NULL; entry = entry->nextEntry) {
+      int32 readPos   = 0;
+      int32 activeCol = entry->position->min();
 
-  for (int32 i=0; i<lanesLen; i++) {
-    idarray[i]  = new int32 [gappedLength() + 1];
-    oriarray[i] = new int32 [gappedLength() + 1];
+      for (int32 j=0; j<entry->deltaLength; j++) {
+        int32 delta  = entry->delta[j];
+        int32 seglen = ((delta > 0) ? delta : -delta) - 1;
 
-    memset(idarray[i],  0, sizeof(int32) * (gappedLength() + 1));
-    memset(oriarray[i], 0, sizeof(int32) * (gappedLength() + 1));
-  }
+        //  Copy bases from the read to the alignment.  We ignore gaps in the tig caused
+        //  by other reads (gapPositions.count(activeCol+cc) > 0) here.
 
-  //  Process.
+        for (int32 cc=0; cc<seglen; cc++) {
+          displayBases[rr][activeCol]   = entry->bases[readPos];
+          displayQuals[rr][activeCol]   = entry->quals[readPos++];
+          displayIDs  [rr][activeCol]   = entry->position->ident();
+          displayFwd  [rr][activeCol++] = entry->position->isForward();
+        }
 
-  for (int32 i=0; i<lanesLen; i++) {
-    char *srow = multia[2*i];
-    char *qrow = multia[2*i+1];
+        //  Add a gap into the read.
 
-    assert(lanes[i].first != NULL);
+        if (delta > 0) {
+          displayBases[rr][activeCol]   = '-';
+          displayQuals[rr][activeCol]   = '-';
+          displayIDs  [rr][activeCol]   = entry->position->ident();
+          displayFwd  [rr][activeCol++] = entry->position->isForward();
+        }
 
-    for (LaneNode *node=lanes[i].first; node != NULL; node = node->next) {
-      int32 firstcol = (node->read->bgn() < node->read->end()) ? node->read->bgn() : node->read->end();
-      int32 lastcol  = (node->read->bgn() < node->read->end()) ? node->read->end() : node->read->bgn();
-      int32 orient   = (node->read->bgn() < node->read->end()) ? 1 : -1;
-
-      if (lastcol > gappedLength())
-        fprintf(stderr, "lastcol too big: %d vs %d\n", lastcol, gappedLength());
-
-      assert(firstcol <= gappedLength());
-      assert(lastcol  <= gappedLength());
-
-      //  Set ID and orientation
-
-      //fprintf(stderr, "READ %d minmax %d %d bgnend %d %d orient %d\n",
-      //        node->read->ident(), node->read->min(), node->read->max(), node->read->bgn(), node->read->end(), orient);
-
-      for (int32 col=firstcol; col<lastcol; col++) {
-        idarray[i][col] = node->read->ident();
-        oriarray[i][col] = orient;
+        //  But ignore gaps into the tig, and skip over the base in the read.
+        else {
+          readPos++;
+        }
       }
 
-      //  Set bases
-
-      int32 col  = firstcol;
-      int32 cols = 0;
-
-      for (int32 j=0; j<node->read->deltaLength(); j++) {
-        int32 seglen = node->delta[j] - ((j > 0) ? node->delta[j-1] : 0);
-
-        if (cols + seglen >= node->readLen)
-          fprintf(stderr, "ERROR:  Clear ranges not correct.\n");
-        assert(cols + seglen < node->readLen);
-
-        //fprintf(stderr, "copy to col=%d from cols=%d seglen=%d -- max %d -- delta %d\n",
-        //        col, cols, seglen, gappedLength() + displayWidth, node->delta[j]);
-
-        memcpy(srow + col, node->bases + cols, seglen);
-        memcpy(qrow + col, node->quals + cols, seglen);
-
-        col += seglen;
-
-        srow[col] = '-';
-        qrow[col] = '-';
-        col++;
-
-        cols += seglen;
+      //  Copy in the rest of the sequence.
+#if 1
+      while (readPos < entry->sequenceLength) {
+        displayBases[rr][activeCol]   = entry->bases[readPos];
+        displayQuals[rr][activeCol]   = entry->quals[readPos++];
+        displayIDs  [rr][activeCol]   = entry->position->ident();
+        displayFwd  [rr][activeCol++] = entry->position->isForward();
       }
-
-      memcpy(srow + col, node->bases + cols, node->readLen - cols);
-      memcpy(qrow + col, node->quals + cols, node->readLen - cols);
+#endif
+      //memcpy(srow + col, entry->bases + cols, entry->readLen - cols);
+      //memcpy(qrow + col, entry->quals + cols, entry->readLen - cols);
     }
   }
 
   //  Cleanup
 
-  delete [] lanes;
+  delete [] rows;
 
 
   //
@@ -313,8 +354,6 @@ tgTig::display(FILE     *F,
   //  The original used 'length = strlen(consensus)' which does NOT include the terminating NUL.
 
   for (uint32 window=0; window < gappedLength(); ) {
-    uint32 row_id  = 0;
-    uint32 orient  = 0;
     uint32 rowlen  = (window + displayWidth < gappedLength()) ? displayWidth : gappedLength() - window;
 
     fprintf(F, "\n");
@@ -379,57 +418,55 @@ tgTig::display(FILE     *F,
 
     //  Display.
 
-    for (uint32 i=0; i<lanesLen; i++) {
-      assert(multia[2*i] != NULL);
+    for (uint32 i=0; i<rowsLen; i++) {
+      int32 row_id = -1;
+      bool  isfwd = false;
 
       //  Change matching bases to '.' or lowercase.
       //  Count the number of non-blank letters.
-
-      int32  nonBlank = 0;
 
       for (int32 j=0; j<displayWidth; j++) {
         if (window + j > gappedLength())
           break;
 
-        if (multia[2*i][window+j] == _gappedBases[window+j]) {
+        if (displayBases[i][window+j] == _gappedBases[window+j]) {
           if (withDots) {
-            multia[2*i]  [window+j] = '.';
-            multia[2*i+1][window+j] = ' ';
+            displayBases[i][window+j] = '.';
+            displayQuals[i][window+j] = ' ';
           } else {
-            multia[2*i][window+j] = tolower(multia[2*i][window+j]);
+            displayBases[i][window+j] = tolower(displayBases[i][window+j]);
           }
         }
 
-        if (multia[2*i][window+j] != ' ')
-          nonBlank++;
-
-        if (idarray[i][window + j] > 0) {
-          row_id = idarray[i][window + j];
-          orient = oriarray[i][window + j];
+        if (displayIDs[i][window + j] > 0) {
+          row_id = displayIDs[i][window + j];
+          isfwd  = displayFwd[i][window + j];
         }
       }
 
-      if (nonBlank == 0)
+      if (row_id == -1)
         continue;
 
-      //  Figure out the ID and orientation for this block
+      //  Display the bases in this row, with orientation and the id.
 
       {
-        char save = multia[2*i][window + displayWidth];
-        multia[2*i][window + displayWidth] = 0;
+        char save = displayBases[i][window + displayWidth];
+        displayBases[i][window + displayWidth] = 0;
 
-        fprintf(F, "%s   %c   (%d)\n", multia[2*i] + window, (orient>0)?'>':'<', row_id);
+        fprintf(F, "%s   %c   (%d)\n", displayBases[i] + window, (isfwd) ? '>' : '<', row_id);
 
-        multia[2*i][window + displayWidth] = save;
+        displayBases[i][window + displayWidth] = save;
       }
 
+      //  Display the quals in this row.
+
       if (withQV) {
-        char save = multia[2*i+1][window + displayWidth];
-        multia[2*i+1][window + displayWidth] = 0;
+        char save = displayQuals[i][window + displayWidth];
+        displayQuals[i][window + displayWidth] = 0;
 
-        fprintf(F, "%s\n", multia[2*i+1] + window);
+        fprintf(F, "%s\n", displayQuals[i] + window);
 
-        multia[2*i+1][window + displayWidth] = save;
+        displayQuals[i][window + displayWidth] = save;
       }
     }
 
@@ -441,18 +478,17 @@ tgTig::display(FILE     *F,
   delete [] uruler;
   delete [] gruler;
 
-  for (uint32 i=0; i < 2 * lanesLen; i++)
-    delete [] multia[i];
-
-  delete [] multia;
-
-  for (uint32 i=0; i < lanesLen; i++) {
-    delete [] idarray[i];
-    delete [] oriarray[i];
+  for (uint32 i=0; i < rowsLen; i++) {
+    delete [] displayBases[i];
+    delete [] displayQuals[i];
+    delete [] displayIDs[i];
+    delete [] displayFwd[i];
   }
 
-  delete [] idarray;
-  delete [] oriarray;
+  delete [] displayBases;
+  delete [] displayQuals;
+  delete [] displayIDs;
+  delete [] displayFwd;
 
   //fprintf(stderr, "Return.\n");
 }

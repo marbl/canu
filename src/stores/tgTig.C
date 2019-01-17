@@ -67,23 +67,23 @@ tgPosition::tgPosition() {
 
 
 tgTigRecord::tgTigRecord() {
-  _tigID           = UINT32_MAX;
+  _tigID             = UINT32_MAX;
 
-  _coverageStat    = 0.0;
+  _coverageStat      = 0.0;
 
-  _sourceID        = 0;
-  _sourceBgn       = 0;
-  _sourceEnd       = 0;
+  _sourceID          = 0;
+  _sourceBgn         = 0;
+  _sourceEnd         = 0;
 
-  _class           = tgTig_noclass;
-  _suggestRepeat   = false;
-  _suggestCircular = false;
-  _spare           = 0;
+  _class             = tgTig_noclass;
+  _suggestRepeat     = false;
+  _suggestCircular   = false;
+  _spare             = 0;
 
-  _layoutLen       = 0;
-  _gappedLen       = 0;
-  _childrenLen     = 0;
-  _childDeltasLen  = 0;
+  _layoutLen         = 0;
+  _gappedLen         = 0;
+  _childrenLen       = 0;
+  _childDeltaBitsLen = 0;
 }
 
 
@@ -123,9 +123,8 @@ tgTig::tgTig() {
   _childrenLen          = 0;
   _childrenMax          = 0;
 
-  _childDeltas          = NULL;
-  _childDeltasLen       = 0;
-  _childDeltasMax       = 0;
+  _childDeltaBitsLen    = 0;
+  _childDeltaBits       = NULL;
 }
 
 tgTig::~tgTig() {
@@ -135,7 +134,7 @@ tgTig::~tgTig() {
   delete [] _ungappedQuals;
   delete [] _gappedToUngapped;
   delete [] _children;
-  delete [] _childDeltas;
+  delete    _childDeltaBits;
 }
 
 
@@ -161,7 +160,7 @@ tgTigRecord::operator=(tgTig & tg) {
 
   _gappedLen           = tg._gappedLen;
   _childrenLen         = tg._childrenLen;
-  _childDeltasLen      = tg._childDeltasLen;
+  _childDeltaBitsLen   = tg._childDeltaBitsLen;
 
   return(*this);
 }
@@ -187,7 +186,7 @@ tgTig::operator=(tgTigRecord & tr) {
   _layoutLen           = tr._layoutLen;
   _gappedLen           = tr._gappedLen;
   _childrenLen         = tr._childrenLen;
-  _childDeltasLen      = tr._childDeltasLen;
+  _childDeltaBitsLen   = tr._childDeltaBitsLen;
 
   return(*this);
 }
@@ -239,8 +238,11 @@ tgTig::operator=(tgTig & tg) {
   _childrenLen = tg._childrenLen;
   duplicateArray(_children, _childrenLen, _childrenMax, tg._children, tg._childrenLen, tg._childrenMax);
 
-  _childDeltasLen = tg._childDeltasLen;
-  duplicateArray(_childDeltas, _childDeltasLen, _childDeltasMax, tg._childDeltas, tg._childDeltasLen, tg._childDeltasMax);
+  _childDeltaBitsLen = tg._childDeltaBitsLen;
+  _childDeltaBits    = NULL;
+
+  if (tg._childDeltaBits)
+    _childDeltaBits = new stuffedBits(*tg._childDeltaBits);
 
   return(*this);
 }
@@ -353,7 +355,11 @@ tgTig::clear(void) {
   _gappedLen            = 0;
   _ungappedLen          = 0;
   _childrenLen          = 0;
-  _childDeltasLen       = 0;
+
+  delete _childDeltaBits;
+
+  _childDeltaBitsLen    = 0;
+  _childDeltaBits       = NULL;
 }
 
 
@@ -398,8 +404,8 @@ tgTig::saveToStream(FILE *F) {
   if (_childrenLen > 0)
     writeToFile(_children, "tgTig::saveToStream::children", _childrenLen, F);
 
-  if (_childDeltasLen > 0)
-    writeToFile(_childDeltas, "tgTig::saveToStream::childDeltas", _childDeltasLen, F);
+  if (_childDeltaBitsLen > 0)
+    _childDeltaBits->dumpToFile(F);
 }
 
 
@@ -453,13 +459,12 @@ tgTig::loadFromStream(FILE *F) {
   //  Allocate space for reads and alignments, and load them.
 
   resizeArray(_children,    0, _childrenMax,    _childrenLen,    resizeArray_doNothing);
-  resizeArray(_childDeltas, 0, _childDeltasMax, _childDeltasLen, resizeArray_doNothing);
 
   if (_childrenLen > 0)
     loadFromFile(_children, "tgTig::savetoStream::children", _childrenLen, F);
 
-  if (_childDeltasLen > 0)
-    loadFromFile(_childDeltas, "tgTig::loadFromStream::childDeltas", _childDeltasLen, F);
+  if (_childDeltaBitsLen > 0)
+    _childDeltaBits = new stuffedBits(F);
 
   //  Return success.
 

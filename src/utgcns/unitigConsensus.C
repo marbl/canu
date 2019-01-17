@@ -73,6 +73,8 @@
 
 #include "unitigConsensus.H"
 
+#include "bits.H"
+
 // for pbdagcon
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
@@ -946,6 +948,73 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
 
 
+//  This has more canu dependency than edlib dependency, so it's here instead of in edlib.c
+//
+uint32
+edlibAlignmentToCanu(stuffedBits *align,
+                     const unsigned char* alignment,
+                     int alignmentLength,
+                     int tgtStart, int tgtEnd,
+                     int qryStart, int qryEnd) {
+  int32  qryPos = qryStart;
+  int32  tgtPos = tgtStart;
+
+  //  Count the length of the alignment.
+
+  int32  nMatch  = 0;   //  Counting the number of match/mismatch in a delta block.
+  int32  nBlocks = 0;   //  Number of blocks in the delta encoding.
+
+  //  Code the alignment.
+
+  for (int32 a=0; a<alignmentLength; a++) {
+    assert(qryPos <= qryEnd);
+    assert(tgtPos <= tgtEnd);
+
+    //  Match or mismatch.
+    if ((alignment[a] == EDLIB_EDOP_MATCH) ||
+        (alignment[a] == EDLIB_EDOP_MISMATCH)) {
+      nMatch++;
+
+      qryPos++;
+      tgtPos++;
+    }
+
+    //  Insertion in target.
+    else if (alignment[a] == EDLIB_EDOP_INSERT) {
+      align->setEliasDelta(nMatch + 1);
+      align->setBit(0);
+
+      nMatch = 0;
+      nBlocks++;
+
+      qryPos++;
+    }
+
+    //  Insertion in query.
+    else if (alignment[a] == EDLIB_EDOP_DELETE) {
+      align->setEliasDelta(nMatch + 1);
+      align->setBit(1);
+
+      nMatch = 0;
+      nBlocks++;
+
+      tgtPos++;
+    }
+  }
+
+  //  Don't forget the last match/mismatch block.
+  //align->setEliasDelta(nMatch + 1);
+  //align->setBit(1);
+
+  //nMatch = 0;
+  //nBlocks++;
+
+  fprintf(stderr, "Align of length %d with %d gaps stored in %lu bits.\n", alignmentLength, nBlocks, align->getLength());
+
+  return(nBlocks);
+}
+
+
 
 //  Align each read to the region of the consensus sequence the read claims
 //  to be from, extended by 5% of the read length on either end.  If it fails
@@ -963,7 +1032,10 @@ unitigConsensus::findCoordinates(void) {
     fprintf(stderr, "\n");
   }
 
-  int32  alignShift = 0;
+  _tig->_childDeltaBitsLen = 1;
+  _tig->_childDeltaBits    = new stuffedBits();
+
+  int32         alignShift = 0;
 
   for (uint32 ii=0; ii<_numReads; ii++) {
     abSequence   *read    = getSequence(ii);
@@ -1016,7 +1088,7 @@ unitigConsensus::findCoordinates(void) {
 
       EdlibAlignResult align = edlibAlign(readSeq, readLen,
                                           _tig->bases() + bgn, len,
-                                          edlibNewAlignConfig(readLen * era * 2, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                                          edlibNewAlignConfig(readLen * era * 2, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
       //  If nothing aligned, make the tig subsequence bigger and allow more errors.
 
@@ -1093,6 +1165,18 @@ unitigConsensus::findCoordinates(void) {
 
       if (showPlacement())
         fprintf(stderr, "  SUCCESS aligned to %d %d\n", abgn, aend);
+
+#pragma omp critical (tgTigLoadAlign)
+      {
+        _tig->_children[ii]._deltaOffset = _tig->_childDeltaBits->getPosition();
+        _tig->_children[ii]._deltaLen    = edlibAlignmentToCanu(_tig->_childDeltaBits,
+                                                                align.alignment,
+                                                                align.alignmentLength,
+                                                                align.startLocations[0],
+                                                                align.endLocations[0] + 1,
+                                                                0,
+                                                                readLen);
+      }
 
       edlibFreeAlignResult(align);
 
