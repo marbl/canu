@@ -379,7 +379,7 @@ sub stashSeqStore ($) {
         my $cmd;
 
         #  Stash the store metadata.
-
+        # DX NOTE: If this fails, then we should remove failed upload file and retry again.
         $cmd  = "tar -cf - ";
         $cmd .= "./$asm.seqStore.err";
         $cmd .= " ./$asm.seqStore.ssi";
@@ -393,7 +393,7 @@ sub stashSeqStore ($) {
         $cmd .= " ./$asm.seqStore/readlengths*";
         $cmd .= " ./$asm.seqStore/reads";
         $cmd .= " ./$asm.seqStore/version*" if (-e "./$asm.seqStore/version.001");
-        $cmd .= " | dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/\" --name \"$asm.seqStore.tar\" --read-from-stdin -";
+        $cmd .= " | $client upload --wait --parents --path $pr:$ns/$asm.seqStore.tar -";
 
         removeStashedFile("$asm.seqStore.tar");
 
@@ -462,6 +462,7 @@ sub stashSeqStorePartitions ($$$$) {
         for (my $job=1; $job <= $nJobs; $job++) {
             my $cmd;
 
+            # DX NOTE: If this fails, then we should remove failed upload file and retry again.
             $cmd  = "tar -cf - ";
             $cmd .= " ./$storeName/info";
             $cmd .= " ./$storeName/info.txt";
@@ -469,7 +470,7 @@ sub stashSeqStorePartitions ($$$$) {
             $cmd .= " ./$storeName/partitions/map";
             $cmd .= " ./$storeName/partitions/blobs.$jName";
             $cmd .= " ./$storeName/partitions/reads.$jName";
-            $cmd .= " | dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/\" --name \"$storePath.$storeName.$jName.tar\" --read-from-stdin -";
+            $cmd .= " | $client upload --wait --parents --path $pr:$ns/$storePath.$storeName.$jName.tar -";
 
             removeStashedFile("$storePath.$storeName.$jName.tar");
 
@@ -522,14 +523,14 @@ sub stashOvlStore ($$) {
         my $cmd;
 
         #  Stash the store metadata.
-
+        # DX NOTE: If this fails, then we should remove failed upload file and retry again.
         $cmd  = "tar -cf - ";
         $cmd .= " ./$asm.ovlStore/info";
         $cmd .= " ./$asm.ovlStore/index";
         $cmd .= " ./$asm.ovlStore/statistics";
         $cmd .= " ./$asm.ovlStore.config";
         $cmd .= " ./$asm.ovlStore.config.txt";
-        $cmd .= " | dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/\" --name \"$asm.ovlStore.tar\" --read-from-stdin -";
+        $cmd .= " | $client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore.tar -";
 
         removeStashedFile("$base/$asm.ovlStore.tar");
 
@@ -573,6 +574,7 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "#  Upload the metadata files.  These shouldn't exist, so we don't bother trying to remove before uploading.\n";
         $code .= "#\n";
         $code .= "\n";
+        # DX NOTE: If this fails, then we should remove failed upload file and retry again.
         $code .= "tar -cf - \\\n";
         $code .= " ./$asm.ovlStore/info \\\n";
         $code .= " ./$asm.ovlStore/index \\\n";
@@ -580,7 +582,7 @@ sub stashOvlStoreShellCode ($$) {
         $code .= " ./$asm.ovlStore.config \\\n";
         $code .= " ./$asm.ovlStore.config.txt \\\n";
         $code .= "| \\\n";
-        $code .= "dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/\" --name \"$asm.ovlStore.tar" --read-from-stdin -\n";
+        $code .= "$client upload --wait --parents --path $pr:$ns/$base/$asm.ovlStore.tar -\n";
         $code .= "\n";
         $code .= "#\n";
         $code .= "#  Upload data files.\n";
