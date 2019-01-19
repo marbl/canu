@@ -269,7 +269,7 @@ sub stashFile ($) {
     print STDERR "stashFile()-- '$file' to '$ns/$file'\n"   if ($showWork);
 
     if    (isOS() eq "DNANEXUS") {
-        runCommandSilently(".", "$client upload --wait --parents --path \"$pr:$ns/$file\" \"$file\"", 1);
+        runCommandSilently(".", "dx-ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$ns/\" \"$file\"", 1);
     }
 }
 
@@ -295,7 +295,7 @@ sub stashFileShellCode ($$$) {
         $code .= fileExistsShellCode("$path/$file", "$indent  ");
         $code .= "${indent}    $client rm --recursive \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}  fi\n";
-        $code .= "${indent}  $client upload --wait --parents --path \"$pr:$ns/$path/$file\" \"$file\"\n";
+        $code .= "${indent}  dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$path/\" \"$file\"\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}else\n";
         $code .= "${indent}  # Could not find file that we are meant to stash.  We should exit with an error.\n";
@@ -379,7 +379,7 @@ sub stashSeqStore ($) {
         my $cmd;
 
         #  Stash the store metadata.
-
+        # DX NOTE: If this fails, then we should remove failed upload file and retry again.
         $cmd  = "tar -cf - ";
         $cmd .= "./$asm.seqStore.err";
         $cmd .= " ./$asm.seqStore.ssi";
@@ -405,7 +405,7 @@ sub stashSeqStore ($) {
 
         for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
             if (! fileExists("$asm.seqStore/blobs.$bIdx", 1)) {
-                runCommandSilently(".", "$client upload --wait --parents --path $pr:$ns/$asm.seqStore/blobs.$bIdx $asm.seqStore/blobs.$bIdx", 1);
+                runCommandSilently(".", "dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$asm.seqStore/\" --name \"blobs.$bIdx\" \"$asm.seqStore/blobs.$bIdx\"", 1);
             }
         }
     }
@@ -462,6 +462,7 @@ sub stashSeqStorePartitions ($$$$) {
         for (my $job=1; $job <= $nJobs; $job++) {
             my $cmd;
 
+            # DX NOTE: If this fails, then we should remove failed upload file and retry again.
             $cmd  = "tar -cf - ";
             $cmd .= " ./$storeName/info";
             $cmd .= " ./$storeName/info.txt";
@@ -522,7 +523,7 @@ sub stashOvlStore ($$) {
         my $cmd;
 
         #  Stash the store metadata.
-
+        # DX NOTE: If this fails, then we should remove failed upload file and retry again.
         $cmd  = "tar -cf - ";
         $cmd .= " ./$asm.ovlStore/info";
         $cmd .= " ./$asm.ovlStore/index";
@@ -542,7 +543,7 @@ sub stashOvlStore ($$) {
         for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
         for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
             if (! fileExists("$base/$asm.ovlStore/$bIdx<$sIdx>", 1)) {
-                runCommandSilently(".", "$client upload --wait --parents --path \"$pr:$ns/$base/$asm.ovlStore/$bIdx<$sIdx>\" \"./$base/$asm.ovlStore/$bIdx<$sIdx>\"", 1);
+                runCommandSilently(".", "dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/$asm.ovlStore/\" --name \"$bIdx<$sIdx>\" \"./$base/$asm.ovlStore/$bIdx<$sIdx>\"", 1);
             }
         }
         }
@@ -573,6 +574,7 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "#  Upload the metadata files.  These shouldn't exist, so we don't bother trying to remove before uploading.\n";
         $code .= "#\n";
         $code .= "\n";
+        # DX NOTE: If this fails, then we should remove failed upload file and retry again.
         $code .= "tar -cf - \\\n";
         $code .= " ./$asm.ovlStore/info \\\n";
         $code .= " ./$asm.ovlStore/index \\\n";
@@ -587,7 +589,7 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "#\n";
         $code .= "\n";
         $code .= "for ff in `ls $asm.ovlStore/????\\<???\\>` ; do\n";
-        $code .= "  $client upload --wait --parents --path \"$pr:$ns/$base/\$ff\" \"./\$ff\"\n";
+        $code .= "  dx-ua --wait-on-close --project \"$pr\" --folder \"$ns/$base/\" --name \"\$ff\" \"./\$ff\"\n";
         $code .= "done\n";
         $code .= "\n";
     }
