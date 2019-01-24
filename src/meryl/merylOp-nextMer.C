@@ -26,10 +26,6 @@
 #include "meryl.H"
 
 
-//  Yuck.
-char  kmerString[256];
-
-
 
 void
 merylOperation::findMinCount(void) {
@@ -269,8 +265,10 @@ merylOperation::nextMer_findSmallestNormal(void) {
       _actIndex[0] = ii;
       _actLen      = 1;
 
-      if (_verbosity >= sayDetails)
+      if (_verbosity >= sayDetails) {
+        char  kmerString[256];
         fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+      }
     }
 
     else if (_inputs[ii]->_kmer == _kmer) {          //  Otherwise, if the input kmer is the one we
@@ -278,8 +276,10 @@ merylOperation::nextMer_findSmallestNormal(void) {
       _actIndex[_actLen] = ii;
       _actLen++;
 
-      if (_verbosity >= sayDetails)
+      if (_verbosity >= sayDetails) {
+        char  kmerString[256];
         fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+      }
     }
 
     else {                                           //  Otherwise, the input kmer comes after the
@@ -327,8 +327,10 @@ merylOperation::nextMer_findSmallestMultiSet(void) {
         _actIndex[0] = ii;
         _actLen      = 1;
 
-        if (_verbosity >= sayDetails)
+        if (_verbosity >= sayDetails) {
+          char  kmerString[256];
           fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+        }
       }
     }
 
@@ -371,8 +373,10 @@ merylOperation::nextMer_findSmallestMultiSet(void) {
         _actIndex[0] = ii;
         _actLen      = 1;
 
-        if (_verbosity >= sayDetails)
+        if (_verbosity >= sayDetails) {
+          char  kmerString[256];
           fprintf(stderr, "merylOp::nextMer()-- Active kmer %s from input %s. reset\n", _kmer.toString(kmerString), _inputs[ii]->_name);
+        }
       }
     }
 
@@ -430,13 +434,16 @@ merylOperation::nextMer(void) {
     fprintf(stderr, "merylOp::nextMer()-- STARTING for operation %s\n",
             toString(_operation));
 
-    if (_verbosity >= sayEverything)
+    if (_verbosity >= sayEverything) {
+      char  kmerString[256];
+
       for (uint32 ii=0; ii<_inputs.size(); ii++)
         fprintf(stderr, "merylOp::nextMer()--   CURRENT STATE: input %s kmer %s count " F_U64 " %s\n",
                 _inputs[ii]->_name,
                 _inputs[ii]->_kmer.toString(kmerString),
                 _inputs[ii]->_count,
                 _inputs[ii]->_valid ? "valid" : "INVALID");
+    }
   }
 
   //  Grab the next mer for every input that was active in the last iteration.
@@ -463,8 +470,10 @@ merylOperation::nextMer(void) {
 
   //  Otherwise, active kmers!  Figure out what the count should be.
 
-  if (_verbosity >= sayDetails)
+  if (_verbosity >= sayDetails) {
+    char  kmerString[256];
     fprintf(stderr, "merylOp::nextMer()-- op %s activeLen " F_U32 " kmer %s\n", toString(_operation), _actLen, _kmer.toString(kmerString));
+  }
 
   //  If math-subtract gets implemented, use negative-zero to mean "don't output" and positive-zero
   //  to mean zero.  For now, count=0 means don't output.
@@ -624,6 +633,7 @@ merylOperation::nextMer(void) {
   //  And if not zero, output it, print it, and return it.
 
   if (_verbosity >= sayDetails) {
+    char  kmerString[256];
     fprintf(stderr, "merylOp::nextMer()-- FINISHED for operation %s with kmer %s count " F_U64 "%s\n",
             toString(_operation), _kmer.toString(kmerString), _count, ((_output != NULL) && (_count != 0)) ? " OUTPUT" : "");
     fprintf(stderr, "\n");
@@ -639,6 +649,7 @@ merylOperation::nextMer(void) {
 
   if (_printer != NULL) {
     char  flags[4] = { 0 };  //  Default, no flags (and no space) printed.
+    char  kmerString[256];
 
     if (_kmer.isCanonical()) {
       flags[0] = '\t';
