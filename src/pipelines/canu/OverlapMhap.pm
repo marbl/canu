@@ -501,7 +501,7 @@ sub mhapConfigure ($$$) {
     print F "fi\n";
     print F "\n";
 
-    if (getGlobal('saveOverlaps') eq "0") {
+    if (getGlobal('saveOverlaps') ne "1") {
         print F "if [   -e ./results/\$qry.mhap -a \\\n";
         print F "       -e ./results/\$qry.mhap.ovb ] ; then\n";
         print F "  rm -f ./results/\$qry.mhap\n";
