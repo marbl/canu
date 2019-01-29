@@ -392,7 +392,7 @@ public:
   };
 
   void               add(uint64 data, uint32 count=1) {
-    while (_histogramAlloc < data)
+    while (_histogramAlloc <= data)
       resizeArray(_histogram, _histogramMax+1, _histogramAlloc, _histogramAlloc * 2, resizeArray_copyData | resizeArray_clearNew);
 
     if (_histogramMax < data)
@@ -477,9 +477,9 @@ public:
         break;
       }
 
-    uint64  *maddata = new uint64 [_histogramAlloc];
+    uint64  *maddata = new uint64 [_histogramMax + 1];
 
-    memset(maddata, 0, sizeof(uint64) * _histogramAlloc);
+    memset(maddata, 0, sizeof(uint64) * _histogramMax + 1);
 
     for (uint64 ii=0; ii <= _histogramMax; ii++) {
       uint64  mad = (ii < _median) ? (_median - ii) : (ii - _median);
