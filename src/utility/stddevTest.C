@@ -24,6 +24,7 @@
  */
 
 #include "stddev.H"
+#include "mt19937ar.H"
 
 //  g++ -Wall -o stddevTest -I. -I.. stddevTest.C
 
@@ -106,11 +107,32 @@ testRemove(void) {
 
 
 
+void
+testBig(void) {
+  histogramStatistics   hist;
+  mtRandom              mt(10);
+
+  for (uint32 ii=0; ii<8 * 1024 * 1024; ii++) {
+    //hist.add( mt.mtRandom32() % 10 );
+    hist.add( ii );
+  }
+
+  hist.finalizeData();
+
+  fprintf(stderr, "size:   %lu\n", hist.numberOfObjects());
+  fprintf(stderr, "mean:   %f +- %f\n", hist.mean(), hist.stddev());
+  fprintf(stderr, "median: %lu +- %lu\n", hist.median(), hist.mad());
+}
+
+
+
 int
 main(int argc, char **argv) {
 
   testInsert();
   testRemove();
+
+  testBig();
 
   exit(0);
 }

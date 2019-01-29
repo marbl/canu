@@ -218,5 +218,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
 
 ifeq ($(BUILDTESTS), 1)
 SUBMAKEFILES += utility/bitsTest.mk \
-                utility/filesTest.mk
+                utility/filesTest.mk \
+                utility/stddevTest.mk
 endif
