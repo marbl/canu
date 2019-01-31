@@ -1051,10 +1051,18 @@ unitigConsensus::findCoordinates(void) {
 
     if (showPlacement()) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "ALIGN read #%d %u length %u\n", ii, read->seqIdent(), readLen);
+      fprintf(stderr, "ALIGN read #%d %u length %u cnspos %d %d\n",
+              ii, read->seqIdent(), readLen, _cnspos[ii].min(), _cnspos[ii].max());
     }
 
     _cnspos[ii].setMinMax(0, 0);  //  When the read aligns, we set the true position.
+
+    if ((origbgn == 0) &&
+        (origend == 0)) {
+      if (showPlacement())
+        fprintf(stderr, "skip, failed to align to template initially.\n");
+      continue;
+    }
 
     while ((ext5 < readLen * 1.5) &&
            (ext3 < readLen * 1.5) &&
@@ -1062,8 +1070,6 @@ unitigConsensus::findCoordinates(void) {
       int32 bgn = max(0, origbgn + alignShift - ext5);                          //  First base in tig we'll align to.
       int32 end = min(   origend + alignShift + ext3, (int32)_tig->length());   //  Last base
       int32 len = end - bgn;   //  WAS: +1
-
-      assert(bgn < end);
 
       //  Some logging.
 
@@ -1085,6 +1091,8 @@ unitigConsensus::findCoordinates(void) {
       }
 
       // Align the entire read into a subsequence of the tig.
+
+      assert(bgn < end);
 
       EdlibAlignResult align = edlibAlign(readSeq, readLen,
                                           _tig->bases() + bgn, len,
