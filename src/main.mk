@@ -26,6 +26,8 @@ TARGET       := libcanu.a
 
 SOURCES      := AS_global.C \
                 \
+                utility/edlib.C \
+                \
                 utility/files.C \
                 utility/files-buffered.C \
                 utility/files-compressed.C \
@@ -94,8 +96,6 @@ SOURCES      := AS_global.C \
                 overlapInCore/liboverlap/prefixEditDistance-forward.C \
                 overlapInCore/liboverlap/prefixEditDistance-reverse.C \
                 \
-                overlapInCore/libedlib/edlib.C \
-                \
                 utgcns/libNDalign/NDalign.C \
                 \
                 utgcns/libNDalign/Binomial_Bound.C \
@@ -140,7 +140,6 @@ SRC_INCDIRS  := . \
                 utgcns/libNDFalcon \
                 utgcns/libboost \
                 overlapInCore \
-                overlapInCore/libedlib \
                 overlapInCore/liboverlap
 
 SUBMAKEFILES := stores/dumpBlob.mk \

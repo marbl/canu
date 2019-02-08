@@ -15458,3 +15458,5 @@ D src/sequence/sequence-shiftregister.C src/sequence/sequence.C
 D src/sequence/sequence-simulate.C src/sequence/sequence.C
 D src/sequence/sequence-summarize.C src/sequence/sequence.C
 D src/sequence/sequence.H src/sequence/sequence.C
+D src/utility/edlib.C src/overlapInCore/libedlib/edlib.C
+D src/utility/edlib.H src/overlapInCore/libedlib/edlib.H
