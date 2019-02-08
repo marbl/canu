@@ -191,7 +191,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 correction/filterCorrectionLayouts.mk \
                 correction/falconsense.mk \
                 \
-                correction/readConsensus.mk \
                 correction/errorEstimate.mk \
                 \
                 haplotyping/splitHaplotype.mk \
