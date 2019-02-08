@@ -1009,7 +1009,7 @@ edlibAlignmentToCanu(stuffedBits *align,
   //nMatch = 0;
   //nBlocks++;
 
-  fprintf(stderr, "Align of length %d with %d gaps stored in %lu bits.\n", alignmentLength, nBlocks, align->getLength());
+  //fprintf(stderr, "Align of length %d with %d gaps stored in %lu bits.\n", alignmentLength, nBlocks, align->getLength());
 
   return(nBlocks);
 }
