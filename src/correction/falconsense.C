@@ -29,6 +29,7 @@
 
 #include "AS_global.H"
 #include "sqStore.H"
+#include "sqCache.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
@@ -98,7 +99,7 @@ loadReadData(uint32                     readID,
 void
 generateFalconConsensus(falconConsensus           *fc,
                         tgTig                     *layout,
-                        sqStore                   *seqStore,
+                        sqCache                   *seqCache,
                         map<uint32, sqRead *>     &reads,
                         map<uint32, sqReadData *> &datas,
                         bool                       trimToAlign,
@@ -117,25 +118,23 @@ generateFalconConsensus(falconConsensus           *fc,
   //  sequence is the read we're trying to correct.
 
   falconInput   *evidence = new falconInput [layout->numberOfChildren() + 1];
-  sqReadData    *readData = loadReadData(layout->tigID(), seqStore, reads, datas);
+
+  uint32         seqLen   = 0;
+  uint32         seqMax   = 1048576;
+  char          *seq      = new char [seqMax];
 
   evidence[0].addInput(layout->tigID(),
-                       readData->sqReadData_getRawSequence(),
-                       readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw),
+                       seqCache->sqCache_getSequence(layout->tigID(), seq, seqLen, seqMax),
+                       seqCache->sqCache_getLength(layout->tigID()),
                        0,
-                       readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw));
+                       seqCache->sqCache_getLength(layout->tigID()));
 
   for (uint32 cc=0; cc<layout->numberOfChildren(); cc++) {
     tgPosition  *child = layout->getChild(cc);
 
-    //  Grab the read data.
+    //  Grab a copy of the sequence.
 
-    readData = loadReadData(child->ident(), seqStore, reads, datas);
-
-    //  Make a copy of the sequence.  Don't modify the original sequence data because it's potentially cached now.
-
-    char    *seq    = duplicateString(readData->sqReadData_getRawSequence());
-    uint32   seqLen = readData->sqReadData_getRead()->sqRead_sequenceLength(sqRead_raw);
+    seqCache->sqCache_getSequence(child->ident(), seq, seqLen, seqMax);
 
     //  Now screw up the sequence by reverse-complementing and trimming it.
 
@@ -156,9 +155,9 @@ generateFalconConsensus(falconConsensus           *fc,
 
     if (minOlapLength <= e - b)
       evidence[cc+1].addInput(child->ident(), seq + b, e - b, child->min(), child->max());
-
-    delete [] seq;
   }
+
+  delete [] seq;
 
   //  Loaded all reads, build consensus.
 
@@ -384,16 +383,21 @@ main(int argc, char **argv) {
 
   omp_set_num_threads(numThreads);
 
+  //  Probably not needed, as sqCache explicitly loads only sqRead_raw, but
+  //  setting the default version guarantees that we access only 'raw' reads.
+
+  sqRead_setDefaultVersion(sqRead_corrected);
+
   //  Open inputs.
 
-  sqRead_setDefaultVersion(sqRead_raw);
-
   sqStore *seqStore = NULL;
+  sqCache *seqCache = NULL;
   tgStore *corStore = NULL;
 
   if (seqName) {
     fprintf(stderr, "-- Opening seqStore '%s'.\n", seqName);
     seqStore = sqStore::sqStore_open(seqName);
+    seqCache = new sqCache(seqStore, sqRead_raw);
   }
 
   if (corName) {
@@ -455,7 +459,7 @@ main(int argc, char **argv) {
     while (layout->importData(importFile, reads, datas, NULL, NULL) == true) {
       generateFalconConsensus(fc,
                               layout,
-                              seqStore,
+                              seqCache,
                               reads,
                               datas,
                               trimToAlign,
@@ -505,8 +509,34 @@ main(int argc, char **argv) {
   //
   //  Otherwise, load and process from a store, the usual processing loop.
   //
-
+  //
   else {
+
+    //  First, scan all tigs we're going to process and count the number
+    //  of times we need each read.  The sqCache can then figure out what
+    //  reads to cache, and what reads to load on demand.
+
+    map<uint32,uint32>   readsToLoad;
+
+    for (uint32 ii=idMin; ii<=idMax; ii++) {
+      if ((readList.size() > 0) &&      //  Skip reads not on the read list,
+          (readList.count(ii) == 0))    //  if there actually is a read list.
+        continue;
+
+      tgTig *layout = corStore->loadTig(ii);
+
+      if (layout) {
+        readsToLoad[ii]++;
+
+        for (uint32 cc=0; cc<layout->numberOfChildren(); cc++)
+          readsToLoad[layout->getChild(cc)->ident()]++;
+      }
+    }
+
+    seqCache->sqCache_loadReads(readsToLoad);
+
+    //  Now, with all (most) of the read sequences loaded, process.
+
     for (uint32 ii=idMin; ii<=idMax; ii++) {
       if ((readList.size() > 0) &&      //  Skip reads not on the read list,
           (readList.count(ii) == 0))    //  if there actually is a read list.
@@ -517,7 +547,7 @@ main(int argc, char **argv) {
       if (layout) {
         generateFalconConsensus(fc,
                                 layout,
-                                seqStore,
+                                seqCache,
                                 reads,
                                 datas,
                                 trimToAlign,
@@ -545,6 +575,8 @@ main(int argc, char **argv) {
 
   delete    fc;
   delete    corStore;
+
+  delete    seqCache;
 
   seqStore->sqStore_close();
 
