@@ -806,7 +806,7 @@ sub createOverlapStore ($$) {
     printf STDERR "--   %4d slice%s\n",  $numSlices,  ($numSlices  == 1) ? "" : "s";
     printf STDERR "--        using at most %d GB memory each\n", $sortMemory;
 
-    setGlobal("ovsMemory", $sortMemory);  #  Actual memory usage of sort jobs (rounded up).
+    setGlobal("ovsMemory", $sortMemory + 2);  #  Actual memory usage of sort jobs (rounded up).
 
     #  If only one slice, do it all in core, otherwise, use the big gun and run it in parallel.
 
