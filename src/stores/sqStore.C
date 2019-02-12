@@ -106,6 +106,27 @@ sqStore::sqStore_getRead(uint32 id) {
 
 
 
+uint8 *
+sqStore::sqStore_loadReadBlob(uint32 readID) {
+
+  //  If partitioned data, copy from the already-in-core data.
+
+  assert(_blobsData == NULL);
+
+  //  Otherwise, read from disk.
+
+  uint32   tnum = omp_get_thread_num();
+
+  assert(tnum < _blobsFilesMax);
+
+  sqRead  *read = sqStore_getRead(readID);
+  FILE    *file = _blobsFiles[tnum].getFile(_storePath, read);
+
+  return(sqStore_loadBlobFromStream(file));
+}
+
+
+
 void
 sqStore::sqStore_loadReadData(sqRead *read, sqReadData *readData) {
 

@@ -61,6 +61,7 @@ SOURCES      := AS_global.C \
                 correction/falconConsensus.C \
                 correction/falconConsensus-alignTag.C \
                 \
+                stores/sqCache.C \
                 stores/sqLibrary.C \
                 stores/sqStore.C \
                 stores/sqStoreConstructor.C \

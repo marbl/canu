@@ -209,6 +209,8 @@ public:
   //    sqStore_loadReadData(sqRead *read)  -- implies sqStore_getRead() was called already.
   //    sqStore_loadReadData(uint32  id)    -- calls sqStore_getRead(), then loadReadData(sqRead).
 
+  uint8       *sqStore_loadReadBlob(uint32 readID);  //  Returns encoded data.
+
   sqRead      *sqStore_getRead(uint32 id);
   void         sqStore_loadReadData(sqRead *read,   sqReadData *readData);
   void         sqStore_loadReadData(uint32  readID, sqReadData *readData);

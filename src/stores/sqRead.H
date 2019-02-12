@@ -72,6 +72,7 @@ toString(sqRead_version v) {
 
 class sqRead;
 class sqLibrary;
+class sqCache;
 
 class sqReadData {
 public:
@@ -212,6 +213,7 @@ private:
 
   friend class sqRead;
   friend class sqStore;
+  friend class sqCache;
 };
 
 
