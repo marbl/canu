@@ -55,6 +55,19 @@ sqRead_setDefaultVersion(sqRead_version v) {
   sqRead_defaultVersion = v;
 };
 
+inline
+const char *
+toString(sqRead_version v) {
+  switch (v) {
+    case sqRead_latest:     return("latest");     break;
+    case sqRead_raw:        return("raw");        break;
+    case sqRead_corrected:  return("corrected");  break;
+    case sqRead_trimmed:    return("trimmed");    break;
+  }
+
+  return("unknown");
+}
+
 
 
 class sqRead;
