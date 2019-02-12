@@ -30,6 +30,11 @@
 #include "files.H"
 #include "bits.H"
 
+#include <map>
+
+using namespace std;
+
+
 //  merSize 1 NOT supported.  Fails _leftShift.
 
 #undef  SHOW_LOAD
@@ -269,10 +274,10 @@ public:
     _numDistinct += 1;
     _numTotal    += count;
 
-    if (count < _histMax) {
+    if (count < _histMax)
       _hist[count]++;
-      return;
-    }
+    else
+      _histBig[count]++;
   };
 
   void      clear(void);
@@ -287,31 +292,23 @@ public:
   uint64    numDistinct(void)                     { return(_numDistinct); };
   uint64    numTotal(void)                        { return(_numTotal);    };
 
-  uint32    numFrequencies(void)                  { return(_histMax);     };
-  uint64    numKmersAtFrequency(uint32 ii)        { return(_hist[ii]);    };
-  double    wordFrequencyAtFrequency(uint32 ii)   { return(_hist[ii] * 1000000.0 / _numTotal);  };
-
-  uint32    maxFrequency(void) {
-    uint32  maxV = _histMax - 1;
-
-    while ((maxV > 0) && (numKmersAtFrequency(maxV) == 0))
-      maxV--;
-
-    return(maxV);
-  };
+  uint32    histogramLength(void)                 { return(_histLen);     };
+  uint32    histogramValue(uint32 i)              { return(_histVs[i]);   };
+  uint64    histogramOccurrences(uint32 i)        { return(_histOs[i]);   };
 
 private:
   uint64              _numUnique;
   uint64              _numDistinct;
   uint64              _numTotal;
 
-  uint32              _histMax;    //  Max count that can be stored in _hist.
+  uint32              _histMax;    //  Max value that can be stored in _hist.
   uint64             *_hist;
+  map<uint64, uint64> _histBig;    //  Values bigger than _histMax; <value,occurrances>
 
-  uint32              _hbigLen;    //  Counts bigger than _histMax are stored
-  uint32              _hbigMax;    //  as unsorted arrays.
-  uint64             *_hbigCount;
-  uint64             *_hbigNumber;
+  uint64              _histLen;    //  If loaded from disk, this is the unpacked histogram.
+  uint32             *_histVs;
+  uint64             *_histOs;
+
 };
 
 

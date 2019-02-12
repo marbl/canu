@@ -43,15 +43,12 @@ merylOperation::reportHistogram(void) {
 
   //  Now just dump it.
 
-  for (uint32 frequency=1; frequency<stats->numFrequencies(); frequency++) {
-    uint64 nkmers = stats->numKmersAtFrequency(frequency);
+  for (uint32 ii=0; ii<stats->histogramLength(); ii++) {
+    uint32  value = stats->histogramValue(ii);
+    uint64  occur = stats->histogramOccurrences(ii);
 
-    if (nkmers > 0)
-      fprintf(stdout, F_U32 "\t" F_U64 "\n", frequency, nkmers);
+    fprintf(stdout, F_U32 "\t" F_U64 "\n", value, occur);
   }
-
-  //for (uint32 ii=0; ii<stats->_hbigLen; ii++) {
-  //}
 }
 
 
@@ -89,24 +86,21 @@ merylOperation::reportStatistics(void) {
   fprintf(stdout, "frequency        kmers     distinct        total       (1e-6)\n");
   fprintf(stdout, "--------- ------------ ------------ ------------ ------------\n");
 
-  for (uint32 frequency=1; frequency<stats->numFrequencies(); frequency++) {
-    uint64 nkmers = stats->numKmersAtFrequency(frequency);
+  for (uint32 ii=0; ii<stats->histogramLength(); ii++) {
+    uint32  value = stats->histogramValue(ii);
+    uint64  occur = stats->histogramOccurrences(ii);
 
-    sDistinct  += nkmers;
-    sTotal     += nkmers * frequency;
+    sDistinct  += occur;
+    sTotal     += occur * value;
 
-    if (nkmers > 0)
-      fprintf(stdout, "%9" F_U32P " %12" F_U64P " %12.4f %12.4f %12.6f\n",
-              frequency,
-              nkmers,
-              (double)sDistinct / stats->numDistinct(),
-              (double)sTotal    / stats->numTotal(),
-              (double)frequency / stats->numTotal() * 1000000.0);
+    fprintf(stdout, "%9" F_U32P " %12" F_U64P " %12.4f %12.4f %12.6f\n",
+            value,
+            occur,
+            (double)sDistinct / stats->numDistinct(),
+            (double)sTotal    / stats->numTotal(),
+            (double)value     / stats->numTotal() * 1000000.0);
   }
 
   assert(sDistinct == stats->numDistinct());
   assert(sTotal    == stats->numTotal());
-
-  //for (uint32 ii=0; ii<stats->_hbigLen; ii++) {
-  //}
 }

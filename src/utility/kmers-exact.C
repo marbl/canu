@@ -61,8 +61,11 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
   if (minValue_ == 0)
     minValue_ = 1;
 
-  if (maxValue_ == UINT32_MAX)
-    maxValue_ = input_->stats()->maxFrequency();
+  if (maxValue_ == UINT32_MAX) {
+    uint32  nV = input_->stats()->histogramLength();
+
+    maxValue_ = input_->stats()->histogramValue(nV - 1);
+  }
 
   //  Now initialize filtering!
 
@@ -93,8 +96,8 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
 
   //  Scan the histogram to count the number of kmers in range.
 
-  for (uint32 ii=_minValue; ii<=_maxValue; ii++)
-    _nSuffix += input_->stats()->numKmersAtFrequency(ii);
+  for (uint32 ii=0; ii<input_->stats()->histogramLength(); ii++)
+    _nSuffix += input_->stats()->histogramOccurrences(ii);
 
   _prePtrBits     = countNumberOfBits64(_nSuffix);   //  Width of an entry in the prefix table.
   _prePtrBits     = 64;

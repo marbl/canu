@@ -101,11 +101,11 @@ merylOperation::initializeThreshold(void) {
     uint64  nKmers       = 0;
     uint64  nKmersTarget = _fracDist * stats->numDistinct();
 
-    for (uint32 ii=0; ii<stats->numFrequencies(); ii++) {
-      nKmers += stats->numKmersAtFrequency(ii);
+    for (uint32 ii=0; ii<stats->histogramLength(); ii++) {
+      nKmers += stats->histogramOccurrences(ii);
 
       if (nKmers >= nKmersTarget) {
-        _threshold = ii;
+        _threshold = stats->histogramValue(ii);
         break;
       }
     }
