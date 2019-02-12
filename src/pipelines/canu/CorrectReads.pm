@@ -160,11 +160,16 @@ sub estimateMemoryNeededForCorrectionJobs ($) {
 
     fetchFile("$path/$asm.readsToCorrect.stats");
 
+    #  This is a vast overestimate of memory.  filterCorrectionLayouts itself overestimates memory
+    #  (allowing 0.5 GB more than what math says it should need), which we then multiply by 4, and
+    #  add another 2.5 GB for caching reads.  The minimum job size is thus 4.5 GB.  Hummingbird,
+    #  pacbio, with 15,000 batch size, used 2.5 GB memory.
+
     if (-e "$path/$asm.readsToCorrect.stats") {
         open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
         while (<F>) {
             if (m/Maximum\s+Memory\s+(\d+)/) {
-                $memEst = int(4 * $1 / 1073741824.0 + 0.5);
+                $memEst = int(4 * $1 / 1073741824.0 + 2.5);
             }
         }
         close(F);
