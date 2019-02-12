@@ -55,7 +55,8 @@ sqReadData::sqReadData_encode2bit(uint8 *&chunk, char *seq, uint32 seqLen) {
 
   uint32 chunkLen = 0;
 
-  chunk    = new uint8 [ seqLen / 4 + 1];
+  if (chunk == NULL)
+    chunk = new uint8 [ seqLen / 4 + 1];
 
   for (uint32 ii=0; ii<seqLen; ) {
     uint8  byte = 0;
