@@ -105,6 +105,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "                        Duplicate kmers will be handled according to the -multiset\n");
     fprintf(stderr, "                        option.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "                        A persistent value can be specified as '#<value>' (e.g., '#3')\n");
+    fprintf(stderr, "                        All kmers with no value after this line will use this value.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -k <size>             The size of a kmer, in bases.  Setting this larger than the\n");
     fprintf(stderr, "                        kmers in the input will probably lead to a crash.  Setting it\n");
     fprintf(stderr, "                        smaller will result in only the left-most bases being used.\n");
@@ -179,6 +182,8 @@ main(int argc, char **argv) {
 
   //  Read each kmer and value, stuff into a merylCountArray, writing when the array is full.
 
+  uint32  persistentValue = 1;
+
   while (AS_UTL_readLine(L, Llen, Lmax, K) == true) {
     W.split(L);
 
@@ -187,13 +192,13 @@ main(int argc, char **argv) {
 
     //  Decode the line, make a kmer.
 
-    char   *kstr  = NULL;
-    uint64  pp = 0;
-    uint64  mm = 0;
-    uint32  vv = 1;
+    char   *kstr = W[0];
+    uint32  vv   = persistentValue;
 
-    if (W.numWords() > 0)
-      kstr  = W[0];
+    if (kstr[0] == '#') {
+      persistentValue = strtouint32(kstr + 1);
+      continue;
+    }
 
     if (W.numWords() > 1)
       vv = W.touint32(1);
@@ -212,15 +217,8 @@ main(int argc, char **argv) {
 
     //  And use it.
 
-    if (useF == true) {
-      pp = (uint64)kmerF >> wData;
-      mm = (uint64)kmerF  & wDataMask;
-    }
-
-    else {
-      pp = (uint64)kmerR >> wData;
-      mm = (uint64)kmerR  & wDataMask;
-    }
+    uint64  pp = (useF == true) ? ((uint64)kmerF >> wData)     : ((uint64)kmerR >> wData);
+    uint64  mm = (useF == true) ? ((uint64)kmerF  & wDataMask) : ((uint64)kmerR  & wDataMask);
 
     assert(pp < nPrefix);
 
