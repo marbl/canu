@@ -107,7 +107,7 @@ kmerCountBlockWriter::~kmerCountBlockWriter() {
 
 
 
-//  We're given a block of kmers with the same prefix, sorted, with counts.
+//  We're given a block of kmers with the same prefix, sorted, with values.
 //  Which is exactly what kmerCountFileWriter wants, so we can just forward
 //  the call to it.
 //
@@ -115,7 +115,7 @@ void
 kmerCountBlockWriter::addBlock(uint64  prefix,
                                uint64  nKmers,
                                uint64 *suffixes,
-                               uint32 *counts) {
+                               uint32 *values) {
 
   //  Open a new file, if needed.
 
@@ -130,13 +130,43 @@ kmerCountBlockWriter::addBlock(uint64  prefix,
                             prefix,
                             nKmers,
                             suffixes,
-                            counts);
+                            values);
 
-  //  Insert counts into the histogram.
+  //  Insert values into the histogram.
 
-#pragma omp critical (kmerCountFileWriterAddCount)
+#pragma omp critical (kmerCountFileWriterAddValue)
   for (uint32 kk=0; kk<nKmers; kk++)
-    _writer->_stats.addCount(counts[kk]);
+    _writer->_stats.addValue(values[kk]);
+}
+
+
+
+void
+kmerCountBlockWriter::addBlock(uint64  prefix,
+                               uint64  nKmers,
+                               uint64 *suffixes,
+                               uint64 *values) {
+
+  //  Open a new file, if needed.
+
+  uint32 oi = _writer->fileNumber(prefix);
+
+  if (_datFiles[oi] == NULL)
+    _datFiles[oi] = openOutputBlock(_outName, oi, _numFiles, _iteration);
+
+  //  Encode and dump to disk.
+
+  _writer->writeBlockToFile(_datFiles[oi], _datFileIndex[oi],
+                            prefix,
+                            nKmers,
+                            suffixes,
+                            values);
+
+  //  Insert values into the histogram.
+
+#pragma omp critical (kmerCountFileWriterAddValue)
+  for (uint32 kk=0; kk<nKmers; kk++)
+    _writer->_stats.addValue(values[kk]);
 }
 
 
@@ -249,21 +279,21 @@ kmerCountBlockWriter::mergeBatches(uint32 oi) {
 
   _datFiles[oi] = openOutputBlock(_outName, oi, _numFiles);
 
-  //  Create space to save out suffixes and counts.
+  //  Create space to save out suffixes and values.
 
   uint64    nKmersMax = 0;
   uint64   *suffixes  = NULL;
-  uint32   *counts    = NULL;
+  uint64   *values    = NULL;
 
   uint64    kmersIn   = 0;
   uint64    kmersOut  = 0;
 
   //  Load each block from each file, merge, and write.
 
-  uint32    p[_iteration+1];  //  Position in s[] and c[]
-  uint64    l[_iteration+1];  //  Number of entries in s[] and c[]
+  uint32    p[_iteration+1];  //  Position in s[] and v[]
+  uint64    l[_iteration+1];  //  Number of entries in s[] and v[]
   uint64   *s[_iteration+1];  //  Pointer to the suffixes for piece x
-  uint32   *c[_iteration+1];  //  Pointer to the counts   for piece x
+  uint64   *v[_iteration+1];  //  Pointer to the values   for piece x
 
   for (uint32 bb=0; bb<_numBlocks; bb++) {
     uint64  totnKmers = 0;
@@ -278,7 +308,7 @@ kmerCountBlockWriter::mergeBatches(uint32 oi) {
       p[ii] = 0;
       l[ii] = inBlocks[ii].nKmers();
       s[ii] = inBlocks[ii].suffixes();
-      c[ii] = inBlocks[ii].counts();
+      v[ii] = inBlocks[ii].values();
 
       totnKmers += l[ii];
     }
@@ -299,40 +329,40 @@ kmerCountBlockWriter::mergeBatches(uint32 oi) {
 
     //  Setup the merge.
 
-    resizeArrayPair(suffixes, counts, 0, nKmersMax, totnKmers, resizeArray_doNothing);
+    resizeArrayPair(suffixes, values, 0, nKmersMax, totnKmers, resizeArray_doNothing);
 
     //  Merge!  We don't know the number of different kmers in the input, and are forced
     //  to loop infinitely.
 
     while (1) {
       uint64  minSuffix = UINT64_MAX;
-      uint32  sumCount  = 0;
+      uint64  sumValue  = 0;
 
       //  Find the smallest suffix over all the inputs;
-      //  Remember the sum of their counts.
+      //  Remember the sum of their values.
 
       for (uint32 ii=1; ii <= _iteration; ii++) {
         if (p[ii] < l[ii]) {
           if (minSuffix > s[ii][ p[ii] ]) {
             minSuffix = s[ii][ p[ii] ];
-            sumCount  = c[ii][ p[ii] ];
+            sumValue  = v[ii][ p[ii] ];
           }
 
           else if (minSuffix == s[ii][ p[ii] ]) {
-            sumCount += c[ii][ p[ii] ];
+            sumValue += v[ii][ p[ii] ];
           }
         }
       }
 
-      //  If no counts, we're done.
+      //  If no values, we're done.
 
-      if ((minSuffix == UINT64_MAX) && (sumCount == 0))
+      if ((minSuffix == UINT64_MAX) && (sumValue == 0))
         break;
 
-      //  Set the suffix/count in our merged list, reallocating if needed.
+      //  Set the suffix/value in our merged list, reallocating if needed.
 
       suffixes[savnKmers] = minSuffix;
-      counts  [savnKmers] = sumCount;
+      values  [savnKmers] = sumValue;
 
       savnKmers++;
 
@@ -356,13 +386,13 @@ kmerCountBlockWriter::mergeBatches(uint32 oi) {
                               prefix,
                               savnKmers,
                               suffixes,
-                              counts);
+                              values);
 
-    //  Finally, don't forget to insert the counts into the histogram!
+    //  Finally, don't forget to insert the values into the histogram!
 
-#pragma omp critical (kmerCountBlockWriterAddCount)
+#pragma omp critical (kmerCountBlockWriterAddValue)
     for (uint32 kk=0; kk<savnKmers; kk++)
-      _writer->_stats.addCount(counts[kk]);
+      _writer->_stats.addValue(values[kk]);
 
     //  And update our local stats
 
@@ -371,7 +401,7 @@ kmerCountBlockWriter::mergeBatches(uint32 oi) {
   }
 
   delete [] suffixes;
-  delete [] counts;
+  delete [] values;
 
   //  Close the input data files.
 

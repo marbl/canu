@@ -62,7 +62,7 @@ kmerCountStreamWriter::kmerCountStreamWriter(kmerCountFileWriter *writer,
   _batchNumKmers = 0;
   _batchMaxKmers = 16 * 1048576;
   _batchSuffixes = NULL;
-  _batchCounts   = NULL;
+  _batchValues   = NULL;
 }
 
 
@@ -75,7 +75,7 @@ kmerCountStreamWriter::~kmerCountStreamWriter() {
     dumpBlock();
 
   delete [] _batchSuffixes;
-  delete [] _batchCounts;
+  delete [] _batchValues;
 
   AS_UTL_closeFile(_datFile);
 
@@ -111,13 +111,13 @@ kmerCountStreamWriter::dumpBlock(uint64 nextPrefix) {
                             _batchPrefix,
                             _batchNumKmers,
                             _batchSuffixes,
-                            _batchCounts);
+                            _batchValues);
 
   //  Insert counts into the histogram.
 
-#pragma omp critical (kmerCountFileWriterAddCount)
+#pragma omp critical (kmerCountFileWriterAddValue)
   for (uint32 kk=0; kk<_batchNumKmers; kk++)
-    _writer->_stats.addCount(_batchCounts[kk]);
+    _writer->_stats.addValue(_batchValues[kk]);
 
   //  Set up for the next block of kmers.
 
@@ -128,7 +128,7 @@ kmerCountStreamWriter::dumpBlock(uint64 nextPrefix) {
 
 
 void
-kmerCountStreamWriter::addMer(kmer k, uint32 c) {
+kmerCountStreamWriter::addMer(kmer k, uint64 c) {
 
   uint64  prefix = (uint64)k >> _suffixSize;
   uint64  suffix = (uint64)k  & _suffixMask;
@@ -142,7 +142,7 @@ kmerCountStreamWriter::addMer(kmer k, uint32 c) {
     _batchNumKmers = 0;
     _batchMaxKmers = 16 * 1048576;
     _batchSuffixes = new uint64 [_batchMaxKmers];
-    _batchCounts   = new uint32 [_batchMaxKmers];
+    _batchValues   = new uint64 [_batchMaxKmers];
   }
 
   //  If the batch is full, or we've got a kmer for a different batch, dump the batch
@@ -165,7 +165,7 @@ kmerCountStreamWriter::addMer(kmer k, uint32 c) {
   assert(_batchNumKmers < _batchMaxKmers);
 
   _batchSuffixes[_batchNumKmers] = suffix;
-  _batchCounts  [_batchNumKmers] = c;
+  _batchValues  [_batchNumKmers] = c;
 
   _batchNumKmers++;
 }

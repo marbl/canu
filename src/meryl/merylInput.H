@@ -90,7 +90,7 @@ public:
   //  For _operation and _stream, a copy of the 'active' kmer
 
   kmer                      _kmer;
-  uint64                    _count;
+  uint64                    _value;
   bool                      _valid;
 
   //  For _store, the position we're at in the store.

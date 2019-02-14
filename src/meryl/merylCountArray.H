@@ -32,6 +32,47 @@
 
 
 
+
+template<typename VALUE>
+class swv {   //  That's suffix-with-value
+public:
+  void      set(uint64 suffix, VALUE value) {
+    _s1 = suffix >> 32;
+    _s2 = suffix  & uint64MASK(32);
+    _v  = value;
+  };
+
+  uint64    getSuffix(void) {
+    uint64   s;
+
+    s   = _s1;
+    s <<= 32;
+    s  |= _s2;
+
+    return(s);
+  };
+
+  VALUE     getValue(void) {
+    return(_v);
+  };
+
+  bool      operator<(swv<VALUE> const that) const {
+    return(((_s1  < that._s1)) ||
+           ((_s1 == that._s1) && (_s2  < that._s2)) ||
+           ((_s1 == that._s1) && (_s2 == that._s2) && (_v < that._v)));
+  };
+
+private:
+  uint32   _s1;  //  This bit of ugly is, splitting the suffix into
+  uint32   _s2;  //  two words, allows an swv to be aligned to
+  VALUE    _v;   //  4-byte boundaries (if VALUE is uint32).
+};
+
+
+
+
+
+template<typename VALUE>
 class merylCountArray {
 public:
   merylCountArray();
@@ -39,7 +80,7 @@ public:
 
   uint64    initialize(uint64 prefix, uint32 width, uint32 segsize=64);
 
-  uint64    initializeValues(uint64 maxValue=0);
+  uint64    initializeValues(VALUE maxValue=0);
 
   void      enableMultiSet(bool enable)    {  _multiSet = enable;  };
 
@@ -114,7 +155,7 @@ public:
     return(usedSizeDelta());
   };
 
-  uint64    addValue(uint64 value) {
+  uint64    addValue(VALUE value) {
 
     if (_vals == NULL)
       return(0);
@@ -126,10 +167,8 @@ public:
   };
 
 private:
-  uint64   *unpackSuffixes(uint64 nSuffixes);
-
-  class
-  swv      *unpackSuffixesAndValues(uint64 nSuffixes);
+  uint64      *unpackSuffixes(uint64 nSuffixes);
+  swv<VALUE>  *unpackSuffixesAndValues(uint64 nSuffixes);
 
 private:
   //
@@ -241,7 +280,7 @@ private:
 
   uint64           _prefix;       //  The kmer prefix we're storing data for
   uint64          *_suffix;       //  After sorting, the suffix of each kmer
-  uint32          *_counts;       //  After sorting, the number of times we've seen this kmer
+  VALUE           *_counts;       //  After sorting, the number of times we've seen this kmer
 
   uint64           _nKmers;       //  Number of kmers.
 

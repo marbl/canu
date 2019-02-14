@@ -34,10 +34,8 @@ public:
   ~kmerCountBlockWriter();
 
 public:
-  void    addBlock(uint64  prefix,
-                   uint64  nKmers,
-                   uint64 *suffixes,
-                   uint32 *counts);
+  void    addBlock(uint64  prefix, uint64  nKmers, uint64 *suffixes, uint32 *values);
+  void    addBlock(uint64  prefix, uint64  nKmers, uint64 *suffixes, uint64 *values);
 
   void    finishBatch(void);
   void    finish(void);

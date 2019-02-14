@@ -62,7 +62,7 @@ merylOperation::merylOperation(merylOp op, uint32 ff, uint32 threads, uint64 mem
   _actCount      = new uint64 [1024];
   _actIndex      = new uint32 [1024];
 
-  _count         = 0;
+  _value         = 0;
   _valid         = true;
 }
 

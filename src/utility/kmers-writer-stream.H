@@ -36,7 +36,7 @@ public:
   ~kmerCountStreamWriter();
 
 public:
-  void    addMer(kmer k, uint32 c);
+  void    addMer(kmer k, uint64 c);
 
 private:
   void    dumpBlock(uint64 nextPrefix=UINT64_MAX);
@@ -70,7 +70,7 @@ private:
   uint64                     _batchNumKmers;
   uint64                     _batchMaxKmers;
   uint64                    *_batchSuffixes;
-  uint32                    *_batchCounts;
+  uint64                    *_batchValues;
 
   //kmerCountStatistics        _stats;
 };

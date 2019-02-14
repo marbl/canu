@@ -60,7 +60,7 @@
 
 uint64
 findMaxInputSizeForMemorySize(uint32 merSize, uint64 memSize) {
-  uint64  mcaSize = sizeof(merylCountArray);
+  uint64  mcaSize = sizeof(merylCountArray<uint32>);
   uint64  ptrSize = sizeof(uint64 *);
   uint64  segSize = SEGMENT_SIZE * 1024;
 
@@ -201,7 +201,7 @@ findBestPrefixSize(uint64  nKmerEstimate,
     if (wp + countNumberOfBits64(segsPerPrefix) + countNumberOfBits64(SEGMENT_SIZE) + 10 >= 64)
       break;   //  Otherwise, dataMemory overflows.
 
-    uint64  structMemory     = ((sizeof(merylCountArray) * nPrefix) +                  //  Basic structs
+    uint64  structMemory     = ((sizeof(merylCountArray<uint32>) * nPrefix) +          //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
     uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;
     uint64  totalMemory      = structMemory + dataMemory;
@@ -250,7 +250,7 @@ findBestValues(uint64  nKmerEstimate,
     if (wp + countNumberOfBits64(segsPerPrefix) + countNumberOfBits64(SEGMENT_SIZE) + 10 >= 64)
       break;   //  Otherwise, dataMemory overflows.
 
-    uint64  structMemory     = ((sizeof(merylCountArray) * nPrefix) +                  //  Basic structs
+    uint64  structMemory     = ((sizeof(merylCountArray<uint32>) * nPrefix) +          //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
     uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;
     uint64  totalMemory      = structMemory + dataMemory;
@@ -520,7 +520,7 @@ merylOperation::count(uint32  wPrefix,
   //  Need someway of balancing the number of prefixes we have and the size of each
   //  initial allocation.
 
-  merylCountArray  *data = new merylCountArray [nPrefix];
+  merylCountArray<uint32>  *data = new merylCountArray<uint32> [nPrefix];
 
   //  Load bases, count!
 

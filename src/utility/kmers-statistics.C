@@ -77,34 +77,41 @@ kmerCountStatistics::clear(void) {
 
 void
 kmerCountStatistics::dump(stuffedBits *bits) {
+
+  //  This only writes the latest version.
+
   bits->setBinary(64, _numUnique);
   bits->setBinary(64, _numDistinct);
   bits->setBinary(64, _numTotal);
 
-  //  Find the last used histogram value.
+  //  Find the maximum value, and count how many values we have
+  //  in the histogram.
 
-  uint32  histLast = _histMax;
+  uint64   numValues = _histBig.size();
 
-  while (histLast-- > 0)
-    if (_hist[histLast] > 0)
-      break;
+  for (uint32 ii=0; ii<_histMax; ii++)
+    if (_hist[ii] > 0)
+      numValues++;
 
-  histLast++;
+  //  
 
-  bits->setBinary(32, histLast);                //  Out of order relative to struct to keep
-  bits->setBinary(32, _histBig.size());         //  the arrays below word-aligned.
+  bits->setBinary(64, numValues);
 
-  bits->setBinary(64, histLast, _hist);         //  Easy one, just dump an array.
+  //  Now the data!
 
-  //  The histBig map is a little trickier.  The original format wrote two arrays,
-  //  _hbigCount then _hbigNumber.  But those were always empty and never used.
-  //  We're therefore free to change the order.
+  for (uint32 ii=0; ii<_histMax; ii++) {
+    if (_hist[ii] > 0) {
+      bits->setBinary(64,       ii);     //  Value
+      bits->setBinary(64, _hist[ii]);    //  Number of occurrences
+    }
+  }
 
   for (map<uint64,uint64>::iterator it=_histBig.begin(); it != _histBig.end(); it++) {
-    bits->setBinary(64, it->first);     //  Value
-    bits->setBinary(64, it->second);    //  Number of occurrences
+    bits->setBinary(64, it->first);      //  Value
+    bits->setBinary(64, it->second);     //  Number of occurrences
   }
 }
+
 
 
 void
@@ -119,53 +126,89 @@ kmerCountStatistics::dump(FILE        *outFile) {
 }
 
 
+
 void
-kmerCountStatistics::load(stuffedBits *bits) {
+kmerCountStatistics::load_v01(stuffedBits *bits) {
   uint32  histLast;
-  uint32  histBigLen;
+  uint32  hbigLen;
 
   _numUnique   = bits->getBinary(64);
   _numDistinct = bits->getBinary(64);
   _numTotal    = bits->getBinary(64);
 
   histLast     = bits->getBinary(32);
-  histBigLen   = bits->getBinary(32);
+  hbigLen      = bits->getBinary(32);
 
-  delete [] _hist;
+  //fprintf(stderr, "kmerCountStatistics::load_v01()-- %lu %lu %lu %u %u\n",
+  //        _numUnique, _numDistinct, _numTotal, histLast, hbigLen);
 
-  _hist        = new uint64 [histLast + 1];
-  _hist        = bits->getBinary(64, histLast, _hist);
+  //  Load the histogram values.
 
-  //  Count how many non-zero histogram values there are.
+  uint64  *hist = new uint64 [histLast + 1];
 
-  _histLen = histBigLen;
+  hist         = bits->getBinary(64, histLast, hist);
 
-  for (uint32 ii=0; ii<histLast; ii++)
-    if (_hist[ii] > 0)
-      _histLen++;
+  //  (over) allocate space for the histogram list.
 
-  //  Allocate space for them.
+  _histVs = new uint64 [histLast + hbigLen + 1];
+  _histOs = new uint64 [histLast + hbigLen + 1];
 
-  _histVs = new uint32 [_histLen];
-  _histOs = new uint64 [_histLen];
-
-  //  Set the ones we've loaded already.
+  //  Convert the loaded hist[] into _histVs and _histOs.
 
   _histLen = 0;
 
-  for (uint32 ii=0; ii<histLast; ii++)
+  for (uint32 ii=0; ii<histLast; ii++) {
     if (_hist[ii] > 0) {
       _histVs[_histLen] = ii;
-      _histOs[_histLen] = _hist[ii];
+      _histOs[_histLen] = hist[ii];
       _histLen++;
     }
+  }
 
-  //  Load the rest from disk.
+  delete [] hist;
 
-  for (uint32 ii=0; ii<histBigLen; ii++) {
-    _histVs[_histLen] = bits->getBinary(64);
-    _histOs[_histLen] = bits->getBinary(64);
-    _histLen++;
+#if 0
+  //  If hbigLen isn't zero, we have the intermediate format, that lived for
+  //  about a day, that stores large values too.
+
+  if (hbigLen > 0) {
+    for (uint64 ii=0; ii<hbigLen; ii++) {
+      _histVs[_histLen] = bits->getBinary(64);
+      _histOs[_histLen] = bits->getBinary(64);
+      _histLen++;
+    }
+  }
+#endif
+
+  //  Delete _hist to indicate we cannot accept new values.
+
+  delete [] _hist;
+  _hist = NULL;
+}
+
+
+
+void
+kmerCountStatistics::load_v03(stuffedBits *bits) {
+
+  _numUnique   = bits->getBinary(64);
+  _numDistinct = bits->getBinary(64);
+  _numTotal    = bits->getBinary(64);
+  _histLen     = bits->getBinary(64);
+
+  //fprintf(stderr, "kmerCountStatistics::load_v03()-- %lu %lu %lu %lu\n",
+  //        _numUnique, _numDistinct, _numTotal, _histLen);
+
+  //  Allocate space.
+
+  _histVs = new uint64 [_histLen];
+  _histOs = new uint64 [_histLen];
+
+  //  Load the values into our list.
+
+  for (uint64 ii=0; ii<_histLen; ii++) {
+    _histVs[ii] = bits->getBinary(64);
+    _histOs[ii] = bits->getBinary(64);
   }
 
   //  Delete _hist to indicate we cannot accept new values.
@@ -175,13 +218,35 @@ kmerCountStatistics::load(stuffedBits *bits) {
 }
 
 
+
 void
-kmerCountStatistics::load(FILE        *inFile) {
+kmerCountStatistics::load(stuffedBits *bits,
+                          uint32       version) {
+
+  switch (version) {
+    case 1:
+    case 2:
+      load_v01(bits);
+      break;
+    case 3:
+      load_v03(bits);
+      break;
+    default:
+      fprintf(stderr, "kmerCountStatistics::load()-- Unknown version %u\n", version), exit(1);
+      break;
+  }
+}
+
+
+
+void
+kmerCountStatistics::load(FILE        *inFile,
+                          uint32       version) {
   stuffedBits  *bits = new stuffedBits;
 
   bits->loadFromFile(inFile);
 
-  load(bits);
+  load(bits, version);
 
   delete bits;
 }

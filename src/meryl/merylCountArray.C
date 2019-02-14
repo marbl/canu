@@ -28,45 +28,9 @@
 
 
 
-class swv {   //  That's suffix-with-value
-public:
-  void      set(uint64 suffix, uint32 value) {
-    _s1 = suffix >> 32;
-    _s2 = suffix  & uint64MASK(32);
-    _v  = value;
-  };
 
-  uint64    getSuffix(void) {
-    uint64   s;
-
-    s   = _s1;
-    s <<= 32;
-    s  |= _s2;
-
-    return(s);
-  };
-
-  uint32    getValue(void) {
-    return(_v);
-  };
-
-  bool      operator<(swv const that) const {
-    return(((_s1  < that._s1)) ||
-           ((_s1 == that._s1) && (_s2  < that._s2)) ||
-           ((_s1 == that._s1) && (_s2 == that._s2) && (_v < that._v)));
-  };
-
-private:
-  uint32   _s1;  //  This bit of ugly is to 
-  uint32   _s2;
-  uint32   _v;
-};
-
-
-
-
-
-merylCountArray::merylCountArray(void) {
+template<typename VALUE>
+merylCountArray<VALUE>::merylCountArray(void) {
   _sWidth       = 0;
   _vWidth       = 0;
 
@@ -94,8 +58,9 @@ merylCountArray::merylCountArray(void) {
 
 
 
+template<typename VALUE>
 uint64
-merylCountArray::initialize(uint64 prefix, uint32 width, uint32 segsize) {
+merylCountArray<VALUE>::initialize(uint64 prefix, uint32 width, uint32 segsize) {
   _sWidth       = width;
 
   _prefix       = prefix;
@@ -120,8 +85,9 @@ merylCountArray::initialize(uint64 prefix, uint32 width, uint32 segsize) {
 
 
 
+template<typename VALUE>
 uint64
-merylCountArray::initializeValues(uint64 maxValue) {
+merylCountArray<VALUE>::initializeValues(VALUE maxValue) {
 
   if (maxValue == 0)
     _vWidth = 0;
@@ -135,7 +101,8 @@ merylCountArray::initializeValues(uint64 maxValue) {
 
 
 
-merylCountArray::~merylCountArray() {
+template<typename VALUE>
+merylCountArray<VALUE>::~merylCountArray() {
 
   removeSegments();
   removeValues();
@@ -146,8 +113,9 @@ merylCountArray::~merylCountArray() {
 
 
 
+template<typename VALUE>
 void
-merylCountArray::removeSegments(void) {
+merylCountArray<VALUE>::removeSegments(void) {
 
   if (_segments == NULL)                  //  If no segments, then
     return;                               //  we've already removed them.
@@ -167,16 +135,18 @@ merylCountArray::removeSegments(void) {
 
 
 
+template<typename VALUE>
 void
-merylCountArray::removeValues(void) {
+merylCountArray<VALUE>::removeValues(void) {
   delete _vals;
   _vals  = NULL;
 }
 
 
 
+template<typename VALUE>
 void
-merylCountArray::addSegment(uint32 seg) {
+merylCountArray<VALUE>::addSegment(uint32 seg) {
 
   if (_segAlloc == 0) {
     resizeArray(_segments, _segAlloc, _segAlloc, 32, resizeArray_copyData | resizeArray_clearNew);
@@ -198,8 +168,9 @@ merylCountArray::addSegment(uint32 seg) {
 
 
 //  Unpack the suffixes and remove the data.
+template<typename VALUE>
 uint64 *
-merylCountArray::unpackSuffixes(uint64 nSuffixes) {
+merylCountArray<VALUE>::unpackSuffixes(uint64 nSuffixes) {
   uint64  *suffixes  = new uint64 [nSuffixes];
 
   //fprintf(stderr, "Allocate %lu suffixes, %lu bytes\n", nSuffixes, sizeof(uint64) * nSuffixes);
@@ -215,9 +186,10 @@ merylCountArray::unpackSuffixes(uint64 nSuffixes) {
 
 
 
-swv *
-merylCountArray::unpackSuffixesAndValues(uint64 nSuffixes) {
-  swv     *suffixes  = new swv [nSuffixes];
+template<typename VALUE>
+swv<VALUE> *
+merylCountArray<VALUE>::unpackSuffixesAndValues(uint64 nSuffixes) {
+  swv<VALUE>  *suffixes  = new swv<VALUE> [nSuffixes];
 
   assert(_vals != NULL);
 
@@ -245,8 +217,9 @@ merylCountArray::unpackSuffixesAndValues(uint64 nSuffixes) {
 //
 //  Converts raw kmers listed in _segments into counted kmers listed in _suffix and _counts.
 //
+template<typename VALUE>
 void
-merylCountArray::countSingleKmers(void) {
+merylCountArray<VALUE>::countSingleKmers(void) {
   uint64   nSuffixes = _nBits / _sWidth;
   uint64  *suffixes  = unpackSuffixes(nSuffixes);
 
@@ -268,7 +241,7 @@ merylCountArray::countSingleKmers(void) {
       nk++;
 
   _suffix = new uint64 [nk];
-  _counts = new uint32 [nk];
+  _counts = new VALUE  [nk];
 
   //  And generate the counted kmer data.
 
@@ -296,10 +269,11 @@ merylCountArray::countSingleKmers(void) {
 
 
 
+template<typename VALUE>
 void
-merylCountArray::countSingleKmersWithValues(void) {
-  uint64   nSuffixes = _nBits / _sWidth;
-  swv     *suffixes  = unpackSuffixesAndValues(nSuffixes);
+merylCountArray<VALUE>::countSingleKmersWithValues(void) {
+  uint64       nSuffixes = _nBits / _sWidth;
+  swv<VALUE>  *suffixes  = unpackSuffixesAndValues(nSuffixes);
 
   //  Sort the data
 
@@ -319,7 +293,7 @@ merylCountArray::countSingleKmersWithValues(void) {
       nk++;
 
   _suffix = new uint64 [nk];
-  _counts = new uint32 [nk];
+  _counts = new VALUE  [nk];
 
   //  And generate the counted kmer data.
 
@@ -347,10 +321,11 @@ merylCountArray::countSingleKmersWithValues(void) {
 
 
 
+template<typename VALUE>
 void
-merylCountArray::countMultiSetKmers(void) {
-  uint64   nSuffixes = _nBits / _sWidth;
-  swv     *suffixes  = unpackSuffixesAndValues(nSuffixes);
+merylCountArray<VALUE>::countMultiSetKmers(void) {
+  uint64      nSuffixes = _nBits / _sWidth;
+  swv<VALUE> *suffixes  = unpackSuffixesAndValues(nSuffixes);
 
   //  Sort the data
 
@@ -364,7 +339,7 @@ merylCountArray::countMultiSetKmers(void) {
   //  In a multi-set, we dump each and every kmer that is loaded, no merging.
 
   _suffix = new uint64 [nSuffixes];
-  _counts = new uint32 [nSuffixes];
+  _counts = new VALUE  [nSuffixes];
 
   //  And generate the counted kmer data.
 
@@ -385,10 +360,11 @@ merylCountArray::countMultiSetKmers(void) {
 
 
 
+template<typename VALUE>
 void
-merylCountArray::countKmers(void) {
+merylCountArray<VALUE>::countKmers(void) {
 
-  //fprintf(stderr, "merylCountArray::countKmers()-- _nBits %lu -- values=%c multi-set=%c\n",
+  //fprintf(stderr, "merylCountArray<VALUE>::countKmers()-- _nBits %lu -- values=%c multi-set=%c\n",
   //        _nBits, (_vals == NULL) ? 'n' : 'Y', (_multiSet == false) ? 'n' : 'Y');
 
   if (_nBits == 0) {    //  If no kmers stored, nothing to do, so just
@@ -409,18 +385,27 @@ merylCountArray::countKmers(void) {
 
 
 
+template<typename VALUE>
 void
-merylCountArray::dumpCountedKmers(kmerCountBlockWriter *out) {
+merylCountArray<VALUE>::dumpCountedKmers(kmerCountBlockWriter *out) {
   out->addBlock(_prefix, _nKmers, _suffix, _counts);
 }
 
 
 
+template<typename VALUE>
 void
-merylCountArray::removeCountedKmers(void) {
+merylCountArray<VALUE>::removeCountedKmers(void) {
 
   delete [] _suffix;   _suffix = NULL;
   delete [] _counts;   _counts = NULL;
 
   _nKmers = 0;
 }
+
+
+
+//  Give the linker something to link to.
+template class merylCountArray<uint32>;
+template class merylCountArray<uint64>;
+

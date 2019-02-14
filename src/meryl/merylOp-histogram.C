@@ -43,12 +43,10 @@ merylOperation::reportHistogram(void) {
 
   //  Now just dump it.
 
-  for (uint32 ii=0; ii<stats->histogramLength(); ii++) {
-    uint32  value = stats->histogramValue(ii);
-    uint64  occur = stats->histogramOccurrences(ii);
-
-    fprintf(stdout, F_U32 "\t" F_U64 "\n", value, occur);
-  }
+  for (uint32 ii=0; ii<stats->histogramLength(); ii++)
+    fprintf(stdout, F_U64 "\t" F_U64 "\n",
+            stats->histogramValue(ii),
+            stats->histogramOccurrences(ii));
 }
 
 
@@ -87,13 +85,13 @@ merylOperation::reportStatistics(void) {
   fprintf(stdout, "--------- ------------ ------------ ------------ ------------\n");
 
   for (uint32 ii=0; ii<stats->histogramLength(); ii++) {
-    uint32  value = stats->histogramValue(ii);
+    uint64  value = stats->histogramValue(ii);
     uint64  occur = stats->histogramOccurrences(ii);
 
     sDistinct  += occur;
     sTotal     += occur * value;
 
-    fprintf(stdout, "%9" F_U32P " %12" F_U64P " %12.4f %12.4f %12.6f\n",
+    fprintf(stdout, "%9" F_U64P " %12" F_U64P " %12.4f %12.4f %12.6f\n",
             value,
             occur,
             (double)sDistinct / stats->numDistinct(),

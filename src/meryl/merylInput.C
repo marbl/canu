@@ -37,7 +37,7 @@ merylInput::merylInput(merylOperation *o) {
 
   _isMultiSet  = false;  //  set in initialize().
 
-  _count       = 0;
+  _value       = 0;
   _valid       = false;
 
 #ifdef CANU
@@ -69,7 +69,7 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile)
   if (threadFile != UINT32_MAX)
     _stream->enableThreads(threadFile);
 
-  _count       = 0;
+  _value       = 0;
   _valid       = false;
 
 #ifdef CANU
@@ -98,7 +98,7 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
 
   _isMultiSet  = false;
 
-  _count       = 0;
+  _value       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
 
 #ifdef CANU
@@ -126,7 +126,7 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
 
   _isMultiSet  = false;
 
-  _count       = 0;
+  _value       = 0;
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
 
   _sqBgn       = 1;                                   //  C-style, not the usual
@@ -212,7 +212,7 @@ merylInput::nextMer(void) {
 
     _valid = _stream->nextMer();
     _kmer  = _stream->theFMer();
-    _count = _stream->theCount();
+    _value = _stream->theValue();
   }
 
   if (_operation) {
@@ -220,11 +220,11 @@ merylInput::nextMer(void) {
 
     _valid = _operation->nextMer();
     _kmer  = _operation->theFMer();
-    _count = _operation->theCount();
+    _value = _operation->theValue();
   }
 
   //fprintf(stderr, "merylIn::nextMer(%s)-- now have valid=" F_U32 " kmer %s count " F_U64 "\n",
-  //        _name, _valid, _kmer.toString(kmerString), _count);
+  //        _name, _valid, _kmer.toString(kmerString), _value);
   //fprintf(stderr, "\n");
 }
 

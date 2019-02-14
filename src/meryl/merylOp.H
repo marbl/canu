@@ -173,7 +173,7 @@ public:
   bool    isMultiSet(void)         { return(_isMultiSet); };
 
   kmer   &theFMer(void)            { return(_kmer);       };
-  uint64  theCount(void)           { return(_count);      };
+  uint64  theValue(void)           { return(_value);      };
 
 public:
   void    doCounting(void);
@@ -251,7 +251,7 @@ private:
   uint32                        *_actIndex;
 
   kmer                           _kmer;
-  uint64                         _count;
+  uint64                         _value;
   bool                           _valid;
 
   static bool                    _onlyConfig;

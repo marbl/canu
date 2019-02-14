@@ -29,29 +29,29 @@
 
 void
 merylOperation::findMinCount(void) {
-  _count = _actCount[0];
+  _value = _actCount[0];
   for (uint32 ii=1; ii<_actLen; ii++)
-    if (_actCount[ii] < _count)
-      _count = _actCount[ii];
+    if (_actCount[ii] < _value)
+      _value = _actCount[ii];
 }
 
 
 
 void
 merylOperation::findMaxCount(void) {
-  _count = _actCount[0];
+  _value = _actCount[0];
   for (uint32 ii=1; ii<_actLen; ii++)
-    if (_count < _actCount[ii])
-      _count = _actCount[ii];
+    if (_value < _actCount[ii])
+      _value = _actCount[ii];
 }
 
 
 
 void
 merylOperation::findSumCount(void) {
-  _count = 0;
+  _value = 0;
   for (uint32 ii=0; ii<_actLen; ii++)
-    _count += _actCount[ii];
+    _value += _actCount[ii];
 }
 
 
@@ -101,7 +101,7 @@ merylOperation::initializeThreshold(void) {
     uint64  nKmers       = 0;
     uint64  nKmersTarget = _fracDist * stats->numDistinct();
 
-    for (uint32 ii=0; ii<stats->histogramLength(); ii++) {
+    for (uint64 ii=0; ii<stats->histogramLength(); ii++) {
       nKmers += stats->histogramOccurrences(ii);
 
       if (nKmers >= nKmersTarget) {
@@ -261,7 +261,7 @@ merylOperation::nextMer_findSmallestNormal(void) {
     if ((_actLen == 0) ||                            //  If we have no active kmer, or the input kmer is
         (_inputs[ii]->_kmer < _kmer)) {              //  smaller than the one we have, reset the list.
       _kmer        = _inputs[ii]->_kmer;
-      _actCount[0] = _inputs[ii]->_count;
+      _actCount[0] = _inputs[ii]->_value;
       _actIndex[0] = ii;
       _actLen      = 1;
 
@@ -272,7 +272,7 @@ merylOperation::nextMer_findSmallestNormal(void) {
     }
 
     else if (_inputs[ii]->_kmer == _kmer) {          //  Otherwise, if the input kmer is the one we
-      _actCount[_actLen] = _inputs[ii]->_count;      //  have, save the count and input to the lists.
+      _actCount[_actLen] = _inputs[ii]->_value;      //  have, save the count and input to the lists.
       _actIndex[_actLen] = ii;
       _actLen++;
 
@@ -321,9 +321,9 @@ merylOperation::nextMer_findSmallestMultiSet(void) {
         (_operation == opUnionSum)) {
       if (((_actLen == 0)) ||
           ((_inputs[ii]->_kmer  < _kmer)) ||
-          ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+          ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_value < _actCount[0]))) {
         _kmer        = _inputs[ii]->_kmer;
-        _actCount[0] = _inputs[ii]->_count;
+        _actCount[0] = _inputs[ii]->_value;
         _actIndex[0] = ii;
         _actLen      = 1;
 
@@ -336,9 +336,9 @@ merylOperation::nextMer_findSmallestMultiSet(void) {
 
     else if (((_actLen == 0)) ||
              ((_inputs[ii]->_kmer  < _kmer)) ||
-             ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+             ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_value < _actCount[0]))) {
       _kmer              = _inputs[ii]->_kmer;
-      _actCount[_actLen] = _inputs[ii]->_count;
+      _actCount[_actLen] = _inputs[ii]->_value;
       _actIndex[_actLen] = ii;
       _actLen++;
     }
@@ -367,9 +367,9 @@ merylOperation::nextMer_findSmallestMultiSet(void) {
         (_operation == opUnionSum)) {
       if (((_actLen == 0)) ||
           ((_inputs[ii]->_kmer  < _kmer)) ||
-          ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+          ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_value < _actCount[0]))) {
         _kmer        = _inputs[ii]->_kmer;
-        _actCount[0] = _inputs[ii]->_count;
+        _actCount[0] = _inputs[ii]->_value;
         _actIndex[0] = ii;
         _actLen      = 1;
 
@@ -382,9 +382,9 @@ merylOperation::nextMer_findSmallestMultiSet(void) {
 
     else if (((_actLen == 0)) ||
              ((_inputs[ii]->_kmer  < _kmer)) ||
-             ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_count < _actCount[0]))) {
+             ((_inputs[ii]->_kmer == _kmer) && (_inputs[ii]->_value < _actCount[0]))) {
       _kmer              = _inputs[ii]->_kmer;
-      _actCount[_actLen] = _inputs[ii]->_count;
+      _actCount[_actLen] = _inputs[ii]->_value;
       _actIndex[_actLen] = ii;
       _actLen++;
     }
@@ -441,7 +441,7 @@ merylOperation::nextMer(void) {
         fprintf(stderr, "merylOp::nextMer()--   CURRENT STATE: input %s kmer %s count " F_U64 " %s\n",
                 _inputs[ii]->_name,
                 _inputs[ii]->_kmer.toString(kmerString),
-                _inputs[ii]->_count,
+                _inputs[ii]->_value,
                 _inputs[ii]->_valid ? "valid" : "INVALID");
     }
   }
@@ -480,7 +480,7 @@ merylOperation::nextMer(void) {
 
   //  Set the count to zero, meaning "don't output the kmer".  Intersect depends on this,
   //  skipping most of it's work if all files don't have the kmer.
-  _count = 0;
+  _value = 0;
 
   switch (_operation) {
     case opCount:
@@ -491,70 +491,70 @@ merylOperation::nextMer(void) {
       break;
 
     case opPassThrough:                     //  Result of counting kmers.  Guaranteed to have
-      _count = _actCount[0];                //  exactly one input file.  Also the operation that
+      _value = _actCount[0];                //  exactly one input file.  Also the operation that
       break;                                //  'print' of a database has.
 
     case opLessThan:
-      _count = (_actCount[0]  < _threshold) ? _actCount[0] : 0;
+      _value = (_actCount[0]  < _threshold) ? _actCount[0] : 0;
       break;
 
     case opGreaterThan:
-      _count = (_actCount[0]  > _threshold) ? _actCount[0] : 0;
+      _value = (_actCount[0]  > _threshold) ? _actCount[0] : 0;
       break;
 
     case opAtLeast:
-      _count = (_actCount[0] >= _threshold) ? _actCount[0] : 0;
+      _value = (_actCount[0] >= _threshold) ? _actCount[0] : 0;
       break;
 
     case opAtMost:
-      _count = (_actCount[0] <= _threshold) ? _actCount[0] : 0;
+      _value = (_actCount[0] <= _threshold) ? _actCount[0] : 0;
       break;
 
     case opEqualTo:
-      _count = (_actCount[0] == _threshold) ? _actCount[0] : 0;
+      _value = (_actCount[0] == _threshold) ? _actCount[0] : 0;
       break;
 
     case opNotEqualTo:
-      _count = (_actCount[0] != _threshold) ? _actCount[0] : 0;
+      _value = (_actCount[0] != _threshold) ? _actCount[0] : 0;
       break;
 
     case opIncrease:
       if (UINT64_MAX - _actCount[0] < _mathConstant)
-        _count = UINT64_MAX;    //  OVERFLOW!
+        _value = UINT64_MAX;    //  OVERFLOW!
       else
-        _count = _actCount[0] + _mathConstant;
+        _value = _actCount[0] + _mathConstant;
       break;
 
     case opDecrease:
       if (_actCount[0] < _mathConstant)
-        _count = 0;             //  UNDERFLOW!
+        _value = 0;             //  UNDERFLOW!
       else
-        _count = _actCount[0] - _mathConstant;
+        _value = _actCount[0] - _mathConstant;
       break;
 
     case opMultiply:
       if (UINT64_MAX / _actCount[0] < _mathConstant)
-        _count = UINT64_MAX;    //  OVERFLOW!
+        _value = UINT64_MAX;    //  OVERFLOW!
       else
-        _count = _actCount[0] * _mathConstant;
+        _value = _actCount[0] * _mathConstant;
       break;
 
     case opDivide:
       if (_mathConstant == 0)
-        _count = 0;             //  DIVIDE BY ZERO!
+        _value = 0;             //  DIVIDE BY ZERO!
       else
-        _count = _actCount[0] / _mathConstant;
+        _value = _actCount[0] / _mathConstant;
       break;
 
     case opModulo:
       if (_mathConstant == 0)
-        _count = 0;             //  DIVIDE BY ZERO!
+        _value = 0;             //  DIVIDE BY ZERO!
       else
-        _count = _actCount[0] % _mathConstant;
+        _value = _actCount[0] % _mathConstant;
       break;
 
     case opUnion:                           //  Union
-      _count = _actLen;
+      _value = _actLen;
       break;
 
     case opUnionMin:                        //  Union, retain smallest count
@@ -571,7 +571,7 @@ merylOperation::nextMer(void) {
 
     case opIntersect:                       //  Intersect
       if (_actLen == _inputs.size())
-        _count = _actCount[0];
+        _value = _actCount[0];
       break;
 
     case opIntersectMin:                    //  Intersect, retain smallest count
@@ -591,12 +591,12 @@ merylOperation::nextMer(void) {
 
     case opDifference:
       if ((_actLen == 1) && (_actIndex[0] == 0))
-        _count = _actCount[0];
+        _value = _actCount[0];
       break;
 
     case opSymmetricDifference:
       if (_actLen == 1)
-        _count = _actCount[0];
+        _value = _actCount[0];
       break;
 
     case opCompare:
@@ -627,7 +627,7 @@ merylOperation::nextMer(void) {
 
   //  If the count is zero, skip this kmer and get another one.
 
-  if (_count == 0)
+  if (_value == 0)
     goto nextMerAgain;
 
   //  And if not zero, output it, print it, and return it.
@@ -635,14 +635,14 @@ merylOperation::nextMer(void) {
   if (_verbosity >= sayDetails) {
     char  kmerString[256];
     fprintf(stderr, "merylOp::nextMer()-- FINISHED for operation %s with kmer %s count " F_U64 "%s\n",
-            toString(_operation), _kmer.toString(kmerString), _count, ((_output != NULL) && (_count != 0)) ? " OUTPUT" : "");
+            toString(_operation), _kmer.toString(kmerString), _value, ((_output != NULL) && (_value != 0)) ? " OUTPUT" : "");
     fprintf(stderr, "\n");
   }
 
   //  If flagged for output, output!
 
   if (_output != NULL) {
-    _writer->addMer(_kmer, _count);
+    _writer->addMer(_kmer, _value);
   }
 
   //  If flagged for printing, print!
@@ -661,7 +661,7 @@ merylOperation::nextMer(void) {
       flags[1] = 'P';
     }
 
-    fprintf(_printer, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _count);
+    fprintf(_printer, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _value);
   }
 
   //  Now just return and let the client query us to get the kmer and value.

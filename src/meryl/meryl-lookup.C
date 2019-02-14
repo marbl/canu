@@ -29,7 +29,43 @@
 
 
 #define OP_NONE       0
-#define OP_EXISTENCE  1
+#define OP_DUMP       1
+#define OP_EXISTENCE  2
+
+
+
+void
+dumpExistence(dnaSeqFile           *sf,
+              kmerCountExactLookup *kl) {
+  uint64   nameMax = 0;
+  char    *name    = NULL;
+  uint64   seqLen  = 0;
+  uint64   seqMax  = 0;
+  char    *seq     = NULL;
+  uint8   *qlt     = NULL;
+
+  char     fString[64];
+  char     rString[64];
+
+  while (sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen)) {
+    kmerIterator  kiter(seq, seqLen);
+
+    while (kiter.nextMer()) {
+      uint64   fValue = kl->value(kiter.fmer());
+      uint64   rValue = kl->value(kiter.rmer());
+
+      fprintf(stdout, "%s\t%s\t%lu\t%s\t%lu\n",
+              name,
+              kiter.fmer().toString(fString), fValue,
+              kiter.rmer().toString(rString), rValue);
+    }
+  }
+
+  delete [] name;
+  delete [] seq;
+  delete [] qlt;
+}
+
 
 
 void
@@ -70,8 +106,8 @@ int
 main(int argc, char **argv) {
   char   *inputSeqName = NULL;
   char   *inputDBname  = NULL;
-  uint32  minV         = 0;
-  uint32  maxV         = UINT32_MAX;
+  uint64  minV         = 0;
+  uint64  maxV         = UINT64_MAX;
   uint32  threads      = 1;
   uint32  reportType   = OP_NONE;
 
@@ -87,13 +123,16 @@ main(int argc, char **argv) {
       inputDBname = argv[++arg];
 
     } else if (strcmp(argv[arg], "-min") == 0) {
-      minV = strtouint32(argv[++arg]);
+      minV = strtouint64(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-max") == 0) {
-      maxV = strtouint32(argv[++arg]);
+      maxV = strtouint64(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       threads = strtouint32(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-dump") == 0) {
+      reportType = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-existence") == 0) {
       reportType = OP_EXISTENCE;
@@ -163,41 +202,20 @@ main(int argc, char **argv) {
 
   dnaSeqFile            *seqFile    = new dnaSeqFile(inputSeqName);
 
-
   //  Do something.
+
+  if (reportType == OP_DUMP) {
+    dumpExistence(seqFile, kmerLookup);
+  }
 
   if (reportType == OP_EXISTENCE) {
     reportExistence(seqFile, kmerLookup);
   }
 
-#if 0
-  rr = new kmerCountFileReader(queryDBname);
-
-  uint64  tested    = 0;
-  uint64  kmerFound = 0;
-  uint64  valuFound = 0;
-
-  while (rr->nextMer()) {
-    kmer    k = rr->theFMer();
-    uint32  c = rr->theCount();
-    uint32  v = ll->value(k);
-
-    tested++;
-
-    if (v > 0)
-      kmerFound++;
-
-    if (c == v)
-      valuFound++;
-  }
-#endif
+  //  Done!
 
   delete seqFile;
   delete kmerLookup;
-
-  //fprintf(stderr, "Tested %12lu kmers.\n", tested);
-  //fprintf(stderr, "Found  %12lu kmers.                     %12lu missed.\n", kmerFound, tested-kmerFound);
-  //fprintf(stderr, "Found  %12lu kmers with correct value.  %12lu missed.\n", valuFound, tested-valuFound);
 
   exit(0);
 }

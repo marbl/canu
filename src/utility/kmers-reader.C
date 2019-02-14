@@ -51,7 +51,7 @@ kmerCountFileReader::initializeFromMasterI_v00(void) {
   _blockIndex    = NULL;
 
   _kmer          = kmer();
-  _count         = 0;
+  _value         = 0;
 
   _prefix        = 0;
 
@@ -63,7 +63,7 @@ kmerCountFileReader::initializeFromMasterI_v00(void) {
   _nKmers        = 0;
   _nKmersMax     = 1024;
   _suffixes      = new uint64 [_nKmersMax];
-  _counts        = new uint32 [_nKmersMax];
+  _values        = new uint64 [_nKmersMax];
 }
 
 
@@ -126,6 +126,12 @@ kmerCountFileReader::initializeFromMasterI_v02(stuffedBits  *masterIndex,
 
 
 
+void
+kmerCountFileReader::initializeFromMasterI_v03(stuffedBits  *masterIndex,
+                                               bool          doInitialize) {
+  initializeFromMasterI_v02(masterIndex, doInitialize);
+}
+
 
 
 void
@@ -148,14 +154,22 @@ kmerCountFileReader::initializeFromMasterIndex(bool  doInitialize,
 
   uint64  m1 = masterIndex->getBinary(64);
   uint64  m2 = masterIndex->getBinary(64);
+  uint32  vv = 1;
 
   if        ((m1 == 0x646e496c7972656dllu) &&   //  merylInd
              (m2 == 0x31302e765f5f7865llu)) {   //  ex__v.01
     initializeFromMasterI_v01(masterIndex, doInitialize);
+    vv = 1;
 
   } else if ((m1 == 0x646e496c7972656dllu) &&   //  merylInd
              (m2 == 0x32302e765f5f7865llu)) {   //  ex__v.02
     initializeFromMasterI_v02(masterIndex, doInitialize);
+    vv = 2;
+
+  } else if ((m1 == 0x646e496c7972656dllu) &&   //  merylInd
+             (m2 == 0x33302e765f5f7865llu)) {   //  ex__v.03
+    initializeFromMasterI_v03(masterIndex, doInitialize);
+    vv = 3;
 
   } else {
     fprintf(stderr, "ERROR: '%s' doesn't look like a meryl input; file '%s' fails magic number check.\n",
@@ -177,7 +191,7 @@ kmerCountFileReader::initializeFromMasterIndex(bool  doInitialize,
 
   if (loadStatistics == true) {
     _stats = new kmerCountStatistics;
-    _stats->load(masterIndex);
+    _stats->load(masterIndex, vv);
   }
 
   //  And report some logging.
@@ -226,7 +240,7 @@ kmerCountFileReader::~kmerCountFileReader() {
   delete [] _blockIndex;
 
   delete [] _suffixes;
-  delete [] _counts;
+  delete [] _values;
 
   delete    _stats;
 
@@ -346,7 +360,7 @@ kmerCountFileReader::nextMer(void) {
 
   if (_activeMer < _nKmers) {
     _kmer.setPrefixSuffix(_prefix, _suffixes[_activeMer], _suffixSize);
-    _count = _counts[_activeMer];
+    _value = _values[_activeMer];
     return(true);
   }
 
@@ -389,7 +403,7 @@ kmerCountFileReader::nextMer(void) {
 
   //  Make sure we have space for the decoded data
 
-  resizeArrayPair(_suffixes, _counts, 0, _nKmersMax, _nKmers, resizeArray_doNothing);
+  resizeArrayPair(_suffixes, _values, 0, _nKmersMax, _nKmers, resizeArray_doNothing);
 
   //  Decode the block into _OUR_ space.
   //
@@ -397,7 +411,7 @@ kmerCountFileReader::nextMer(void) {
   //  read more data from disk.  For blocks that don't get decoded, they retain whatever was
   //  loaded, and do not load another block in loadBlock().
 
-  _block->decodeBlock(_suffixes, _counts);
+  _block->decodeBlock(_suffixes, _values);
 
   //  But if no kmers in this block, load another block.  Sadly, the block must always
   //  be decoded, otherwise, the load will not load a new block.
@@ -410,7 +424,7 @@ kmerCountFileReader::nextMer(void) {
   _activeMer = 0;
 
   _kmer.setPrefixSuffix(_prefix, _suffixes[_activeMer], _suffixSize);
-  _count = _counts[_activeMer];
+  _value = _values[_activeMer];
 
   return(true);
 }

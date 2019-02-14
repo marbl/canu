@@ -53,15 +53,15 @@ bitsToGB(uint64 bits) {
 //
 void
 kmerCountExactLookup::initialize(kmerCountFileReader *input_,
-                                 uint32               minValue_,
-                                 uint32               maxValue_) {
+                                 uint64               minValue_,
+                                 uint64               maxValue_) {
 
   //  Silently make minValue and maxValue be valid values.
 
   if (minValue_ == 0)
     minValue_ = 1;
 
-  if (maxValue_ == UINT32_MAX) {
+  if (maxValue_ == UINT64_MAX) {
     uint32  nV = input_->stats()->histogramLength();
 
     maxValue_ = input_->stats()->histogramValue(nV - 1);
@@ -86,7 +86,7 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
   _valueBits      = 0;                               //  (also in the suffix table)
 
   if (_maxValue >= _minValue)
-    _valueBits = countNumberOfBits32(_maxValue + 1 - _minValue);
+    _valueBits = countNumberOfBits64(_maxValue + 1 - _minValue);
 
   _suffixMask     = 0;
   _dataMask       = 0;
@@ -104,7 +104,8 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
 
   _suffixBgn      = NULL;
   _suffixEnd      = NULL;
-  _suffixData     = NULL;
+  _sufData        = NULL;
+  _valData        = NULL;
 }
 
 
@@ -191,23 +192,36 @@ kmerCountExactLookup::configure(void) {
 
 //  With all parameters known, just grab and clear memory.
 //
-//  The block size used in the wordArray _suffixData is chosen so that large
+//  The block size used in the wordArray _sufData is chosen so that large
 //  arrays have not-that-many allocations.  The array is pre-allocated, to
 //  prevent the need for any locking or coordination when filling out the
 //  array.
 //
 void
 kmerCountExactLookup::allocate(void) {
+  uint64  arraySize, arrayBlockMin;
 
-  uint64  arraySize     = _nSuffix * (_suffixBits + _valueBits);
-  uint64  arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
+  if (_suffixBits > 0) {
+    arraySize     = _nSuffix * _suffixBits;
+    arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
 
-  //if (_verbose)
-  //  fprintf(stderr, "Allocating space for %lu suffixes of %u bits each -> %lu bits (%lu bytes) in blocks of %lu bytes\n",
-  //          _nSuffix, _suffixBits + _valueBits, arraySize, arraySize / 8, arrayBlockMin / 8);
+    fprintf(stderr, "Allocating space for %lu suffixes of %u bits each -> %lu bits (%lu bytes) in blocks of %lu bytes\n",
+            _nSuffix, _suffixBits, arraySize, arraySize / 8, arrayBlockMin / 8);
 
-  _suffixData = new wordArray(_suffixBits + _valueBits, arrayBlockMin);
-  _suffixData->allocate(_nSuffix);
+    _sufData = new wordArray(_suffixBits, arrayBlockMin);
+    _sufData->allocate(_nSuffix);
+  }
+
+  if (_valueBits > 0) {
+    arraySize     = _nSuffix * _valueBits;
+    arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
+
+    fprintf(stderr, "                     %lu values   of %u bits each -> %lu bits (%lu bytes) in blocks of %lu bytes\n",
+            _nSuffix, _valueBits,  arraySize, arraySize / 8, arrayBlockMin / 8);
+
+    _valData = new wordArray(_valueBits, arrayBlockMin);
+    _valData->allocate(_nSuffix);
+  }
 }
 
 
@@ -248,7 +262,7 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
       for (uint32 ss=0; ss<block->nKmers(); ss++) {
         uint64   sdata  = 0;
         uint64   prefix = 0;
-        uint64   value  = block->counts()[ss];
+        uint64   value  = block->values()[ss];
 
         if (value < _minValue) {
           tooLow++;
@@ -330,7 +344,7 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
 
   uint32   nf = input_->numFiles();
 
-#pragma omp parallel for schedule(dynamic, 1)
+  //#pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
     FILE                      *blockFile = input_->blockFile(ff);
     kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
@@ -341,21 +355,26 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
       block->decodeBlock();
 
       for (uint32 ss=0; ss<block->nKmers(); ss++) {
-        uint64   sdata  = 0;
         uint64   prefix = 0;
-        uint64   value  = block->counts()[ss];
+        uint64   suffix = 0;
+        uint64   value  = block->values()[ss];
 
         if ((value < _minValue) ||         //  Sanity checking and counting done
             (_maxValue < value))           //  in count() above.
           continue;
 
-        sdata   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
-        sdata <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
-        sdata  |= block->suffixes()[ss];   //  generate the prefix we want to save it as.
+        //  Compute and store the prefix.
 
-        prefix  = sdata >> _suffixBits;
+        prefix   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
+        prefix <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
+        prefix  |= block->suffixes()[ss];   //  generate the prefix we want to save it as.
 
-        //  Add in any extra data to be stored here.
+        suffix   = prefix & uint64MASK(_suffixBits);
+        prefix >>= _suffixBits;
+
+        _sufData->set(_suffixBgn[prefix], suffix);
+
+        //  Compute and store the value, if requested.
 
         if (_valueBits > 0) {
           value -= _valueOffset;
@@ -365,13 +384,12 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
                     _minValue, _maxValue, value, _valueBits);
           assert(value <= uint64MASK(_valueBits));
 
-          sdata <<= _valueBits;
-          sdata  |=  value;
+          _valData->set(_suffixBgn[prefix], value);
         }
 
-        //  Store the data.
+        //  Move to the next item.
 
-        _suffixData->set(_suffixBgn[prefix]++, sdata);
+        _suffixBgn[prefix]++;
 
 #ifdef VERIFY_SUFFIX_END
         _suffixEnd[prefix]++;
@@ -387,7 +405,7 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
   //  suffixBgn[i] is now the start of [i+1]; shift the array by one to
   //  restore the proper meaning of suffixBgn.
 
-  for (uint32 ii=_nPrefix; ii>0; ii--)
+  for (uint64 ii=_nPrefix; ii>0; ii--)
     _suffixBgn[ii] = _suffixBgn[ii-1];
 
   _suffixBgn[0] = 0;
@@ -395,7 +413,7 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
   //  Optionally verify that bgn[i] == end[i-1].
 
 #ifdef VERIFY_SUFFIX_END
-  for (uint32 ii=1; ii<_nPrefix; ii++)
+  for (uint64 ii=1; ii<_nPrefix; ii++)
     assert(_suffixBgn[ii] == _suffixEnd[ii-1]);
 
   delete [] _suffixEnd;
@@ -422,7 +440,6 @@ kmerCountExactLookup::exists_test(kmer k) {
   uint64  mid;
   uint64  end = _suffixBgn[prefix + 1];
 
-  uint64  dat;
   uint64  tag;
 
   //  Binary search for the matching tag.
@@ -430,8 +447,7 @@ kmerCountExactLookup::exists_test(kmer k) {
   while (bgn + 8 < end) {
     mid = bgn + (end - bgn) / 2;
 
-    dat = _suffixData->get(mid);
-    tag = dat >> _valueBits;
+    tag = _sufData->get(mid);
 
     if (tag == suffix)
       return(true);
@@ -446,8 +462,7 @@ kmerCountExactLookup::exists_test(kmer k) {
   //  Switch to linear search when we're down to just a few candidates.
 
   for (mid=bgn; mid < end; mid++) {
-    dat = _suffixData->get(mid);
-    tag = dat >> _valueBits;
+    tag = _sufData->get(mid);
 
     if (tag == suffix)
       return(true);
@@ -468,14 +483,14 @@ kmerCountExactLookup::exists_test(kmer k) {
   while (bgn + 8 < end) {
     mid = bgn + (end - bgn) / 2;
 
-    dat = _suffixData->get(mid);
+    tag = _sufData->get(mid);
 
-    fprintf(stderr, "TEST bgn %8lu %8lu %8lu end -- dat %lu =?= %lu suffix\n", bgn, mid, end, dat, suffix);
+    fprintf(stderr, "TEST bgn %8lu %8lu %8lu end -- dat %lu =?= %lu suffix\n", bgn, mid, end, tag, suffix);
 
-    if (dat == suffix)
+    if (tag == suffix)
       return(true);
 
-    if (suffix < dat)
+    if (suffix < tag)
       end = mid;
 
     else
@@ -483,11 +498,11 @@ kmerCountExactLookup::exists_test(kmer k) {
   }
 
   for (mid=bgn; mid < end; mid++) {
-    dat = _suffixData->get(mid);
+    tag = _sufData->get(mid);
 
-    fprintf(stderr, "ITER bgn %8lu %8lu %8lu end -- dat %lu =?= %lu suffix\n", bgn, mid, end, dat, suffix);
+    fprintf(stderr, "ITER bgn %8lu %8lu %8lu end -- dat %lu =?= %lu suffix\n", bgn, mid, end, tag, suffix);
 
-    if (dat == suffix)
+    if (tag == suffix)
       return(true);
   }
 

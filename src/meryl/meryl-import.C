@@ -172,7 +172,7 @@ main(int argc, char **argv) {
 
   //  Allocate a bunch of counting arrays.  The naming here follows merylOp-count.C.
 
-  merylCountArray  *data  = new merylCountArray [nPrefix];
+  merylCountArray<uint64>  *data  = new merylCountArray<uint64> [nPrefix];
 
   for (uint32 pp=0; pp<nPrefix; pp++) {
     data[pp].initialize(pp, wData);
@@ -182,7 +182,7 @@ main(int argc, char **argv) {
 
   //  Read each kmer and value, stuff into a merylCountArray, writing when the array is full.
 
-  uint32  persistentValue = 1;
+  uint64  persistentValue = 1;
 
   while (AS_UTL_readLine(L, Llen, Lmax, K) == true) {
     W.split(L);
@@ -193,15 +193,15 @@ main(int argc, char **argv) {
     //  Decode the line, make a kmer.
 
     char   *kstr = W[0];
-    uint32  vv   = persistentValue;
+    uint64  vv   = persistentValue;
 
     if (kstr[0] == '#') {
-      persistentValue = strtouint32(kstr + 1);
+      persistentValue = strtouint64(kstr + 1);
       continue;
     }
 
     if (W.numWords() > 1)
-      vv = W.touint32(1);
+      vv = W.touint64(1);
 
     for (uint32 ii=0; kstr[ii]; ii++)
       kmerF.addL(kstr[ii]);
