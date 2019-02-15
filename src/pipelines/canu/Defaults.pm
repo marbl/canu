@@ -585,12 +585,12 @@ sub addSequenceFile ($$@) {
         $file = "$dir/$file";
     }
 
-    #  If the name is already a full path, use that.
-    if (substr($file, 0, 1) eq "/") {
-        return($file);
+    #  If the file exists, and it looks like it might be a bam, throw an error.
+    if ((-e $file) && ($file =~ m/bam$/)) {
+        addCommandLineError("ERROR: BAM input not supported: file '$file'.\n");
     }
 
-    #  If the file exists in a relative path, make it a full path.
+    #  If the file exists, possibly in a relative path, make it a full path.
     if (-e $file) {
         return(abs_path($file));
     }
@@ -604,7 +604,7 @@ sub addSequenceFile ($$@) {
     #  So, the best we can do is test if this file _looks_ like it might
     #  be a pointer to one in an object store.  This must be done _after_
     #  we try making relative paths into full paths above, otherwise
-    #  we don't file full paths for files with :'s in the name!
+    #  we don't find full paths for files with :'s in the name!
 
     #if (objectStoreFileExists($file)) {
     #    return($file);
