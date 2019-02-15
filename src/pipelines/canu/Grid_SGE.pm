@@ -203,20 +203,12 @@ sub configureSGE () {
         setGlobal("gridEngineResourceOption", "-pe $thr THREADS -l $mem=MEMORY");
     }
 
-    #  Check that the threads and memory options look sane.
+    #  Otherwise, just log what the user requested.
 
     else {
         my $opt = getGlobal("gridEngineResourceOption");
-        my $thr;
-        my $mem;
-
-        if ($opt =~ m/-pe\s+(.*)\s+THREADS/) {
-            $thr = $1;
-        }
-
-        if ($opt =~ m/-l\s+(.*)=MEMORY/) {
-            $mem = $1;
-        }
+        my $thr = $1  if ($opt =~ m/-pe\s+(.*)\s+THREADS/);
+        my $mem = $1  if ($opt =~ m/-l\s+(.*)=MEMORY/);
 
         if (defined($thr)) {
             print STDERR "-- User supplied Parallel Environment '$thr'.\n";
@@ -228,6 +220,47 @@ sub configureSGE () {
             print STDERR "-- User supplied Memory Resource      '$mem'.\n";
         } else {
             print STDERR "-- No Sun Grid Engine memory resource detected in gridEngineResourceOption.\n";
+        }
+    }
+
+    #  Check that the threads and memory options look sane.
+    #  In particular, check that the PE requested is using allocation_rule $pe_slots, and job_is_first_task.
+
+    {
+        my $opt = getGlobal("gridEngineResourceOption");
+        my $thr = $1  if ($opt =~ m/-pe\s+(.*)\s+THREADS/);
+        my $mem = $1  if ($opt =~ m/-l\s+(.*)=MEMORY/);
+
+        if (defined($thr)) {
+            my $ar = 0;
+            my $jf = 0;
+            my @lines;
+
+            open(F, "qconf -sp $thr 2> /dev/null |");
+            while (<F>) {
+                push @lines, $_;
+
+                $ar = 1   if (m/allocation_rule.*pe_slots/);   #  All slots need to be on a single node.
+                $jf = 1   if (m/job_is_first_task.*TRUE/);     #  The fisrt task (slot) does actual work.
+            }
+            close(F);
+
+            if (($ar == 0) || ($jf == 0)) {
+                print STDERR "\n";
+                print STDERR "ERROR:  Sun Grid Engine parallel environment '$thr' is using 'allocation_rule' other than '\$pe_slots'.\n"  if ($ar == 0);
+                print STDERR "ERROR:  Sun Grid Engine parallel environment '$thr' didn't set 'job_is_first_task'.\n"  if ($jf == 0);
+                print STDERR "ERROR:\n";
+
+                if (scalar(@lines) == 0) {
+                    print STDERR "ERROR:    (no output from qconf -sp $thr)\n";
+                } else {
+                    foreach my $l (@lines) {
+                        print STDERR "ERROR:    $l";
+                    }
+                }
+
+                caExit("can't configure for SGE", undef);
+            }
         }
     }
 
