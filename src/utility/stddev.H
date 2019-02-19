@@ -440,6 +440,15 @@ public:
     if (_finalized == true)
       return;
 
+    //  Cheat sheet for this function.
+    //    ii is the value of a sample item
+    //    _histogram[ii] is how many of each item we have
+    //  So:
+    //  a)  Something like '_histogram[ii] * f(ii)' we're just adding
+    //      the contributions of each object.
+    //  b)  Pretend '_histogram[ii]' is 1 and the usual algorithms
+    //      should appear.
+
     clearStatistics();
 
     //  Compute number of objects
@@ -461,38 +470,57 @@ public:
     if (_numObjs > 1)
       _stddev = sqrt(_stddev / (_numObjs - 1));
 
-    //  Compute mode
+    //  Compute mode, pick the highest to break ties
 
     for (uint64 ii=0; ii <= _histogramMax; ii++)
       if (_histogram[ii] > _histogram[_mode])
         _mode = ii;
 
     //  Compute median and mad
-
-    for (uint64 ii=0; ii <= _histogramMax; ii++)
-      if (_median < _numObjs / 2) {
-        _median += _histogram[ii];
-      } else {
-        _median = ii;
-        break;
-      }
-
-    uint64  *maddata = new uint64 [_histogramMax + 1];
-
-    memset(maddata, 0, sizeof(uint64) * _histogramMax + 1);
+    //
+    //  The MAD is the 'median of the absolute deviations from the set median'.
+    //  We can compute this by making another histogram collection of data,
+    //  this time of the absolute deviations.  Then just find the median of
+    //  that, as above.
 
     for (uint64 ii=0; ii <= _histogramMax; ii++) {
-      uint64  mad = (ii < _median) ? (_median - ii) : (ii - _median);
-      maddata[mad] += _histogram[ii];
+      _median += _histogram[ii];       //  Sum the number of objects we've seen.
+
+      if (_median >= _numObjs / 2) {   //  If we've seen half of them, set the
+        _median = ii;                  //  median to the value we're at and
+        break;                         //  stop.
+      }
     }
 
-    for (uint64 ii=0; ii <= _histogramMax; ii++)
-      if (_mad < _numObjs / 2) {
-        _mad += maddata[ii];
-      } else {
+    uint64   maddatamax = _histogramMax + 1;        //  Needs every value.  Consider [0]=big, [n]=1.
+    uint64  *maddata    = new uint64 [maddatamax];  //  Deviation from median will be n - 0.
+
+    for (uint64 ii=0; ii < maddatamax; ii++)
+      maddata[ii] = 0;
+
+    for (uint64 ii=0; ii <= _histogramMax; ii++) {
+      if (_histogram[ii] > 0) {
+        uint64  deviation = (ii < _median) ? (_median - ii) : (ii - _median);
+
+        if (deviation >= maddatamax) {
+          fprintf(stderr, "finalizeData()--  Failed at ii=%lu for _histogramMax=%lu\n", ii, _histogramMax);
+          fprintf(stderr, "finalizeData()--            _median=%lu\n", _median);
+          fprintf(stderr, "finalizeData()--            deviation=%lu\n", deviation);
+        }
+        assert(deviation < maddatamax);
+
+        maddata[deviation] += _histogram[ii];
+      }
+    }
+
+    for (uint64 ii=0; ii <= _histogramMax; ii++) {
+      _mad += maddata[ii];
+
+      if (_mad >= _numObjs / 2) {
         _mad = ii;
         break;
       }
+    }
 
     //  And, done
 

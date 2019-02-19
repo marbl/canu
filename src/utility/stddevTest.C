@@ -108,13 +108,21 @@ testRemove(void) {
 
 
 void
-testBig(void) {
+testBig(uint32 nSamples) {
   histogramStatistics   hist;
-  mtRandom              mt(10);
+  mtRandom              mt(10 + nSamples);
 
-  for (uint32 ii=0; ii<8 * 1024 * 1024; ii++) {
-    //hist.add( mt.mtRandom32() % 10 );
-    hist.add( ii );
+  fprintf(stderr, "\n");
+  fprintf(stderr, "testBig for nSamples %u\n", nSamples);
+  fprintf(stderr, "\n");
+
+  for (uint32 ii=0; ii<nSamples; ii++) {
+    uint32  val = (mt.mtRandom32() % 10);
+    uint32  num = (mt.mtRandom32() % 1000);
+
+    //fprintf(stderr, "INSERT val %u num %u\n", val, num);
+
+    hist.add(val, num);
   }
 
   hist.finalizeData();
@@ -132,7 +140,14 @@ main(int argc, char **argv) {
   testInsert();
   testRemove();
 
-  testBig();
+  testBig(1);
+  testBig(2);
+  testBig(3);
+  testBig(4);
+  testBig(5);
+  testBig(10);
+  testBig(100);
+  testBig(1000);
 
   exit(0);
 }
