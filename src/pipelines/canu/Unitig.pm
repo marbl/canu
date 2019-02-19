@@ -277,6 +277,7 @@ sub unitig ($) {
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
+        print F "if [ -f ./$asm.ctg.lay.gz ]; then gunzip ./$asm.ctg.lay.gz; fi\n"; # unzip wtdbg2 output first
         print F "\n";
         print F "\$bin/wtdbgConvert -o ./$asm -S ../../$asm.seqStore $asm.ctg.lay \\\n";
         print F "&& \\\n";
