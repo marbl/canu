@@ -77,7 +77,7 @@ if (-d "../.git") {
     if ($dirty eq "dirty") {
         $dirty = "ahead of github";
     } else {
-        $dirty = "sync'd with guthub";
+        $dirty = "sync'd with github";
     }
 }
 
