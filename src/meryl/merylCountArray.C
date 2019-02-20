@@ -130,7 +130,9 @@ merylCountArray<VALUE>::removeSegments(void) {
   _segAlloc = 0;                          //  Don't forget to
   _segments = NULL;                       //  foret about it.
 
-  _nBits = 0;                             //  Indicate that we've stored no data.
+  _nBits        = 0;                      //  Indicate that we've stored no data.
+  _nBitsTrigger = 0;
+  _nBitsOldSize = usedSize();
 }
 
 
