@@ -105,9 +105,9 @@ public:
     return(_operations[fileNum][opNum]);
   };
 
-  void            pushOp(merylOp opName, uint32 allowedThreads, uint64 allowedMemory) {
+  void            pushOp(merylOp opName, uint32 threads, uint64 memory) {
     for (uint32 ff=0; ff<_nFiles; ff++) {
-      merylOperation *newOp = new merylOperation(opName, ff, allowedThreads, allowedMemory);
+      merylOperation *newOp = new merylOperation(opName, ff, threads, memory);
 
       if (_stacks[ff].empty() == false)        //  If a command exists, the new command
         _stacks[ff].top()->addInput(newOp);    //  supplies input to the existing command.
@@ -279,8 +279,10 @@ main(int argc, char **argv) {
   uint32                    physThreads    = omp_get_max_threads();     //  Absolute maximum limits on
   uint64                    physMemory     = getPhysicalMemorySize();   //  memory= and threads= values.
 
-  uint32                    allowedThreads = physThreads;               //  Global limits, if memory= or
+  uint32                    allowedThreads = 0;                         //  Global limits, if memory= or
   uint64                    allowedMemory  = physMemory;                //  threads= is set before any operation.
+
+  uint32                    usedThreads    = 0;                         //  The number of threads we need to request.
 
   uint32                    segment        = 1;
   uint32                    segmentMax     = 1;
@@ -455,13 +457,13 @@ main(int argc, char **argv) {
              (isNumber(optString + 8) == true)) {
       uint32 threads = strtouint32(optString + 8);
 
-      if (opStack.size() == 0) {
-        allowedThreads = threads;
-        omp_set_num_threads(allowedThreads);
-      }
-      else {
+      if (threads > usedThreads)          //  Remember the highest thread count requested.
+        usedThreads = threads;
+
+      if (opStack.size() == 0)            //  If nothing on the stack, set the global threads allowed.
+        allowedThreads = threads;         //  Otherwise, set the threads allowed for just this piece.
+      else
         opStack.setThreadLimit(threads);
-      }
 
       continue;
     }
@@ -612,7 +614,8 @@ main(int argc, char **argv) {
 
     if (opName != opNothing) {                            //  Add any just-parsed command to the stack.
       opStack.pushOp(opName,
-                     allowedThreads, allowedMemory);
+                     (allowedThreads == 0) ? physThreads : allowedThreads,
+                     allowedMemory);
       opName = opNothing;
     }
 
@@ -753,6 +756,16 @@ main(int argc, char **argv) {
 
   while (opStack.size() > 1)
     opStack.popOp();
+
+  //  Enable threads.  If usedThreads is non-zero, the user supplied a threads= argument, and
+  //  usedThreads is set to the maximum of those.  Otherwise, allow one thread per CPU.
+
+  {
+    uint32  threads = (usedThreads > 0) ? usedThreads : physThreads;
+
+    fprintf(stderr, "Enabling %u threads.\n", threads);
+    omp_set_num_threads(threads);
+  }
 
   //  opHistogram is limited to showing only histograms already stored in a database.
   //  opHistogram cannot take input from anything but a database.
