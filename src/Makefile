@@ -388,6 +388,22 @@ endif
 #  and remove -fomit-frame-pointer from CXXFLAGS.  It added a bunch of complication and wasn't
 #  really used.
 
+ifeq ($(BUILDOPTIMIZED), 1)
+else
+  CXXFLAGS ?= -g3
+endif
+
+ifeq ($(BUILDDEBUG), 1)
+else
+  ifeq (${OSTYPE}, FreeBSD)
+  ifeq (${MACHINETYPE}, amd64)
+    CXXFLAGS ?= -O3 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+  else
+    CXXFLAGS ?= -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+  endif
+  endif
+endif
+
 ifeq (${OSTYPE}, Linux)
   CC        ?= gcc
   CXX       ?= g++
@@ -398,16 +414,6 @@ ifeq (${OSTYPE}, Linux)
   CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
 
   BUILDSTACKTRACE ?= 1
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 
 
@@ -479,16 +485,6 @@ ifeq (${OSTYPE}, Darwin)
 
   CXXFLAGS += -pthread -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wno-format-truncation -Wformat
   LDFLAGS  += -pthread -lm
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 
 
@@ -519,16 +515,6 @@ ifeq (${MACHINETYPE}, amd64)
 
   #  callgrind
   #CXXFLAGS  += -g3 -Wa,--gstabs -save-temps
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O3 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 endif
 
@@ -544,16 +530,6 @@ ifeq (${MACHINETYPE}, arm)
   CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wno-parentheses
   CXXFLAGS  += -funroll-loops -fomit-frame-pointer
   LDFLAGS   += 
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 endif
 
@@ -566,16 +542,6 @@ ifneq (,$(findstring CYGWIN, ${OSTYPE}))
   LDFLAGS   := -fopenmp -pthread -lm
 
   CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 
 
