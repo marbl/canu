@@ -272,11 +272,12 @@ sub unitig ($) {
         print F " -t "              . getGlobal("dbgThreads") . " \\\n"   if (defined(getGlobal("dbgThreads")));
         print F " "                 . getGlobal("dbgOptions") . " \\\n"   if (defined(getGlobal("dbgOptions")));
         print F " > ./unitigger.err 2>&1 \n";
-        print F "if [ ! -s ./$asm.ctg.lay -o ! -s ./$asm.ctg.lay.gz ]; then \n"; # wtdbg2 outputs gzipped
+        print F "if [ ! -s ./$asm.ctg.lay -a ! -s ./$asm.ctg.lay.gz ]; then \n"; # wtdbg2 outputs gzipped
         print F "  echo Failed to run wtdbg.\n";
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
+        print F "if [ -f ./$asm.ctg.lay.gz ]; then gunzip ./$asm.ctg.lay.gz; fi\n"; # unzip wtdbg2 output first
         print F "\n";
         print F "\$bin/wtdbgConvert -o ./$asm -S ../../$asm.seqStore $asm.ctg.lay \\\n";
         print F "&& \\\n";
