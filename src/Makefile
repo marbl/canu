@@ -388,17 +388,9 @@ endif
 #  and remove -fomit-frame-pointer from CXXFLAGS.  It added a bunch of complication and wasn't
 #  really used.
 
-ifeq (${OSTYPE}, Linux)
-  CC        ?= gcc
-  CXX       ?= g++
 
-  CXXFLAGS  += -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -D_GLIBCXX_PARALLEL -pthread -fopenmp -lm
 
-  CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-
-  BUILDSTACKTRACE ?= 1
-
+ifeq ($(origin CXXFLAGS), undefined)
   ifeq ($(BUILDOPTIMIZED), 1)
   else
     CXXFLAGS += -g3
@@ -408,6 +400,29 @@ ifeq (${OSTYPE}, Linux)
   else
     CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
   endif
+
+  #  Enable some warnings.
+  #     gcc7:  -Wno-format-truncation  - sprintf() into possibly smaller buffer
+  #            -Wno-parentheses
+  CXXFLAGS += -Wall -Wextra -Wformat
+  CXXFLAGS += -Wno-write-strings -Wno-char-subscripts -Wno-sign-compare
+  CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
+  CXXFLAGS += -Wno-deprecated-declarations
+else
+  CXXFLAGSUSER := ${CXXFLAGS}
+endif
+
+
+
+
+ifeq (${OSTYPE}, Linux)
+  CC        ?= gcc
+  CXX       ?= g++
+
+  CXXFLAGS  += -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
+  LDFLAGS   += -D_GLIBCXX_PARALLEL -pthread -fopenmp -lm
+
+  BUILDSTACKTRACE ?= 1
 endif
 
 
@@ -474,21 +489,8 @@ ifeq (${OSTYPE}, Darwin)
      $(error unsupported compiler)
   endif
 
-  CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
-  LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
-
-  CXXFLAGS += -pthread -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wno-format-truncation -Wformat
-  LDFLAGS  += -pthread -lm
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
+  CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -pthread -fPIC -m64 
+  LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp -pthread -lm
 endif
 
 
@@ -506,9 +508,6 @@ ifeq (${MACHINETYPE}, amd64)
   #CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fPIC
   #LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -lm -lexecinfo -lgomp
 
-  #CXXFLAGS  += -Wall -Wextra -Wformat  -Wno-unused   -Wno-parentheses
-  CXXFLAGS  += -Wall -Wextra -Wformat -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-char-subscripts -Wno-write-strings -Wno-sign-compare -Wno-format-truncation
-
   #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
   #CXXFLAGS  +=
   #LDFLAGS   += -ltcmalloc
@@ -519,16 +518,6 @@ ifeq (${MACHINETYPE}, amd64)
 
   #  callgrind
   #CXXFLAGS  += -g3 -Wa,--gstabs -save-temps
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O3 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 endif
 
@@ -540,20 +529,6 @@ ifeq (${MACHINETYPE}, arm)
 
   CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
   LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp -rpath /usr/local/lib/gcc48 -lm
-
-  CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wno-parentheses
-  CXXFLAGS  += -funroll-loops -fomit-frame-pointer
-  LDFLAGS   += 
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 endif
 
@@ -564,18 +539,6 @@ ifneq (,$(findstring CYGWIN, ${OSTYPE}))
 
   CXXFLAGS  := -fopenmp -pthread
   LDFLAGS   := -fopenmp -pthread -lm
-
-  CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-
-  ifeq ($(BUILDOPTIMIZED), 1)
-  else
-    CXXFLAGS += -g3
-  endif
-
-  ifeq ($(BUILDDEBUG), 1)
-  else
-    CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-  endif
 endif
 
 
@@ -843,6 +806,9 @@ dnanexus:
 
 $(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
 $(info Using '$(shell which ${CXX})' version '$(shell ${CXX} -dumpversion)'.)
+ifneq ($(origin CXXFLAGSUSER), undefined)
+$(info Using user-supplied CXXFLAGS '${CXXFLAGSUSER}'.)
+endif
 $(info )
 
 #${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
