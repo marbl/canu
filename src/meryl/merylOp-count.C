@@ -524,7 +524,7 @@ merylOperation::count(uint32  wPrefix,
 
   //  Load bases, count!
 
-  uint64          bufferMax  = 1300000;
+  uint64          bufferMax  = 1024 * 1024;
   uint64          bufferLen  = 0;
   char           *buffer     = new char [bufferMax];
   bool            endOfSeq   = false;
@@ -545,6 +545,8 @@ merylOperation::count(uint32  wPrefix,
 
   uint64          kmersAdded  = 0;
 
+  kmerIterator    kiter;
+
   for (uint32 ii=0; ii<_inputs.size(); ii++) {
     fprintf(stderr, "Loading kmers from '%s' into buckets.\n", _inputs[ii]->_name);
 
@@ -554,7 +556,7 @@ merylOperation::count(uint32  wPrefix,
 
       //fprintf(stderr, "read " F_U64 " bases from '%s'\n", bufferLen, _inputs[ii]->_name);
 
-      kmerIterator kiter(buffer, bufferLen);
+      kiter.addSequence(buffer, bufferLen);
 
       while (kiter.nextMer()) {
         bool    useF = (_operation == opCountForward);
