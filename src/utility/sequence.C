@@ -470,7 +470,7 @@ dnaSeqFile::loadBases(char    *seq,
     while (_buffer->peek() == '\n')    //  Skip whitespace before the first name line.
       _buffer->read();
 
-    _buffer->skipAhead('\n');
+    _buffer->skipAhead('\n', true);
   }
 
   //  Skip whitespace.
@@ -492,15 +492,15 @@ dnaSeqFile::loadBases(char    *seq,
     //  the next name line, set endOfSequence and return.
 
     if (_buffer->peek() == '>') {
-      _buffer->skipAhead('\n');
+      _buffer->skipAhead('\n', true);      //  Skip the name line.
       endOfSequence = true;
       return(true);
     }
 
     if (_buffer->peek() == '+') {
-      _buffer->skipAhead('\n');
-      _buffer->skipAhead('\n');
-      _buffer->skipAhead('\n');
+      _buffer->skipAhead('\n', true);      //  Skip the + line.
+      _buffer->skipAhead('\n', true);      //  Skip the QV line.
+      _buffer->skipAhead('\n', true);      //  Skip the @ line for the next sequence.
       endOfSequence = true;
       return(true);
     }

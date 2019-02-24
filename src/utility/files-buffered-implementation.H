@@ -89,76 +89,53 @@ readBuffer::readuntil(char stop) {
 }
 
 
-
-inline
-void
-readBuffer::skipLine(void) {
-  for (char ch = read(); (ch != '\n') && (ch != 0); ch = read())
-    ;
-}
-
-
-
 //  Advances the file position to the next 'stop' character and returns
 //  'stop', or 0 if eof.
+//
+//  The file is left on the 'stop' character if after == false,
+//  otherwise, the file is positioned after the 'stop' character.
+//
 inline
 void
-readBuffer::skipAhead(char stop) {
-
-#if 0
-  while (_eof == false) {
-    while ((_bufferPos < _bufferLen) &&
-           (_buffer[_bufferPos] != stop)) {
-      _bufferPos++;
-      _filePos++;
-    }
-
-    if ((_bufferPos < _bufferLen) &&
-        (_buffer[_bufferPos] == stop))
-      return;
-
-    //assert(_bufferPos == _bufferLen);
-
-    fillBuffer();
-
-    //if (_eof)
-    //  return;
-  }
-#else
-  //_buffer[_bufferLen] = stop;
-  assert(_buffer[_bufferLen] == stop);
+readBuffer::skipAhead(char stop, bool after) {
 
   while (_eof == false) {
-    //fprintf(stderr, "search for stop starting at %u to len=%u\n", _bufferPos, _bufferLen);
+
+    //  Insert a fake stop at the end of the buffer.
+    _buffer[_bufferLen] = stop;
+
+    //  Scan the buffer for the next real or fake stop.
     while (_buffer[_bufferPos] != stop) {
       _bufferPos++;
       _filePos++;
     }
 
-    //assert(_buffer[_bufferPos] == stop);
-
-    if (_bufferPos < _bufferLen) {
-      //fprintf(stderr, "found at _pos=%u\n", _bufferPos);
-      return;
+    //  If we hit the fake stop, fill the buffer again and continue.
+    if (_bufferPos == _bufferLen) {
+      _filePos--;
+      fillBuffer();
+      continue;
     }
 
-    //fprintf(stderr, "not found at _pos=%u\n", _bufferPos);
-    //assert(_bufferPos == _bufferLen);
+    //  Otherwise, we've found a real stop.  Skip it if desired.
+    if (after) {
+      _bufferPos++;
+      _filePos++;
+    }
 
-    //_bufferPos--;
-    //_filePos--;
+    //  Fill the buffer again, if needed.
+    if (_bufferPos == _bufferLen)
+      fillBuffer();
 
-    fillBuffer();
-
-    //if (_eof)
-    //  return;
+    return;
   }
-#endif
 }
 
 
 //  Advances the file position to the next 'stop' character, copying
 //  the characters into a user buffer.
+//
+//  The file is left on the 'stop' character.
 //
 //  Returns the number of letters copied.
 //

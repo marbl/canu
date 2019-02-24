@@ -46,8 +46,7 @@ public:
   uint64               read(void *buf, uint64 len);
   uint64               read(void *buf, uint64 maxlen, char stop);
 
-  void                 skipLine(void);
-  void                 skipAhead(char stop);
+  void                 skipAhead(char stop, bool after=false);
   uint64               copyUntil(char stop, char *dest, uint64 destLen);
 
   void                 seek(uint64 pos);

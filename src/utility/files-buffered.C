@@ -73,8 +73,6 @@ readBuffer::readBuffer(const char *filename, uint64 bufferMax) {
 
     _bufferMax   = bufferMax;
     _buffer      = new char [_bufferMax + 1];
-
-    _buffer[_bufferMax] = '\n';
   }
 
   fillBuffer();
@@ -100,8 +98,6 @@ readBuffer::readBuffer(FILE *file, uint64 bufferMax) {
   _bufferLen   = 0;
   _bufferMax   = (bufferMax == 0) ? 32 * 1024 : bufferMax;
   _buffer      = new char [_bufferMax + 1];
-
-  _buffer[_bufferMax] = '\n';
 
   strcpy(_filename, "(hidden file)");
 
@@ -154,8 +150,6 @@ readBuffer::fillBuffer(void) {
  again:
   errno = 0;
   _bufferLen = (uint64)::read(_file, _buffer, _bufferMax);
-
-  _buffer[_bufferLen] = '\n';
 
   if (errno == EAGAIN)
     goto again;
