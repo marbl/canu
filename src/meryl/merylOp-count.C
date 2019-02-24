@@ -375,7 +375,7 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
   //
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Counting %lu %s %s%s%s " F_U32 "-mers from " F_SIZE_T " input file%s:\n",
+  fprintf(stderr, "Counting %lu (estimated) %s %s%s%s " F_U32 "-mers from " F_SIZE_T " input file%s:\n",
           scaledNumber(_expNumKmers), scaledName(_expNumKmers),
           (_operation == opCount)        ? "canonical" : "",
           (_operation == opCountForward) ? "forward" : "",
