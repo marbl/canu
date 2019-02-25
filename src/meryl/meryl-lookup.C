@@ -47,22 +47,22 @@ dumpExistence(dnaSeqFile           *sf,
   char     fString[64];
   char     rString[64];
 
-  uint64   pos     = 0;
+  bool     fExists = false, rExists = false;
+  uint64   fValue  = 0,     rValue  = 0;
 
   while (sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen)) {
     kmerIterator  kiter(seq, seqLen);
-    pos = 1;
+
     while (kiter.nextMer()) {
-      uint64   fValue = kl->value(kiter.fmer());
-      uint64   rValue = kl->value(kiter.rmer());
-      if ( fValue + rValue > 0 ) {
-          fprintf(stdout, "%s\t%lu\t%s\t%lu\t%s\t%lu\n",
-                name,
-                pos,
-                kiter.fmer().toString(fString), fValue,
-                kiter.rmer().toString(rString), rValue);
-      }
-      pos++;
+      fExists = kl->exists(kiter.fmer(), fValue);
+      rExists = kl->exists(kiter.rmer(), rValue);
+
+      fprintf(stdout, "%s\t%lu\t%c\t%s\t%lu\t%s\t%lu\n",
+              name,
+              kiter.position(),
+              (fExists || rExists) ? 'T' : 'F',
+              kiter.fmer().toString(fString), fValue,
+              kiter.rmer().toString(rString), rValue);
     }
   }
 
@@ -152,9 +152,9 @@ main(int argc, char **argv) {
   }
 
   if (inputSeqName == NULL)
-    err.push_back("No query meryl database (-mers) supplied.\n");
-  if (inputDBname == NULL)
     err.push_back("No input sequences (-sequence) supplied.\n");
+  if (inputDBname == NULL)
+    err.push_back("No query meryl database (-mers) supplied.\n");
   if (reportType == OP_NONE)
     err.push_back("No report-type (-existence, etc) supplied.\n");
 
@@ -182,19 +182,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "         mersInBoth - number of mers in the sequence that are\n");
     fprintf(stderr, "                      also in the database\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -dump          Report a tab-delimited line for each sequence showing\n");
-    fprintf(stderr, "                 sequence name, the position in the sequence,\n");
-    fprintf(stderr, "                 forward kmer, count(value) in the meryl database,\n");
-    fprintf(stderr, "                 reverse kmer, count(value) in the meryl database.\n");
-    fprintf(stderr, "                 Dumps only when at least 1 forward / reverse kmer exists in the meryl database.\n");
+    fprintf(stderr, "  -dump          Report a tab-delimited line reporting each kmer in the input\n");
+    fprintf(stderr, "                 sequences, in order, annotated with the value of the kmer in\n");
+    fprintf(stderr, "                 the input database.  If the kmer does not exist in the database\n");
+    fprintf(stderr, "                 its value will be reported as zero.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "     output:  seqName <tab> seqPos <tab> kmerFw <tab> mersInDB <tab> kmerRv <tab> mersInDB\n");
-    fprintf(stderr, "         seqName    - name of the sequence\n");
-    fprintf(stderr, "         seqPos     - position in the sequence (1-base)\n");
-    fprintf(stderr, "         kmerFw     - forward mer in the sequence\n");
-    fprintf(stderr, "         mersInDB   - count (value) of kmerFw in the meryl database\n");
-    fprintf(stderr, "         kmerRv     - reverse mer in the sequence\n");
-    fprintf(stderr, "         mersInDB   - count (value) of kmerRv in the meryl database\n");
+    fprintf(stderr, "     output:  seqName <tab> seqPos <tab> exists <tab> fwd-mer <tab> fwd-val <tab> rev-mer <tab> rev-val\n");
+    fprintf(stderr, "         seqName    - name of the sequence this kmer is from\n");
+    fprintf(stderr, "         seqPos     - start position (0-based) of the kmer in the sequence");
+    fprintf(stderr, "         exists     - 'T' if the kmer exists in the database, 'F' if it does not\n");
+    fprintf(stderr, "         fwd-mer    - forward mer sequence\n");
+    fprintf(stderr, "         fwd-val    - value of the forward mer in the database\n");
+    fprintf(stderr, "         rev-mer    - reverse mer sequence\n");
+    fprintf(stderr, "         rev-val    - value of the reverse mer in the database\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
