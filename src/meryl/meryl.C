@@ -61,7 +61,8 @@ isDigit(char c) {
 bool
 isNumber(char *s, char dot='.') {
 
-  if (s == NULL)
+  if ((s    == NULL) ||
+      (s[0] == 0))
     return(false);
 
   for (uint32 ii=0; s[ii] != 0; ii++)
