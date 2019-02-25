@@ -237,8 +237,9 @@ public:
     return(true);                      //  Valid kmer!
   };
 
-  kmerTiny   fmer(void) { return(_fmer); };
-  kmerTiny   rmer(void) { return(_rmer); };
+  kmerTiny   fmer(void)      { return(_fmer);                        };
+  kmerTiny   rmer(void)      { return(_rmer);                        };
+  uint64     position(void)  { return(_bufferPos - _fmer.merSize()); };
 
 private:
   uint32    _kmerLoad;
