@@ -759,6 +759,104 @@ private:
 public:
   uint64           nKmers(void)  {  return(_nKmersLoaded);  };
 
+
+  //  Return true/false if the kmer exists/does not.
+  bool             exists(kmer k) {
+    uint64  kmer   = (uint64)k;
+    uint64  prefix = kmer >> _suffixBits;
+    uint64  suffix = kmer  & _suffixMask;
+
+    uint64  bgn = _suffixBgn[prefix];
+    uint64  mid;
+    uint64  end = _suffixBgn[prefix + 1];
+
+    uint64  tag;
+
+    //  Binary search for the matching tag.
+
+    while (bgn + 8 < end) {
+      mid = bgn + (end - bgn) / 2;
+
+      tag = _sufData->get(mid);
+
+      if (tag == suffix)
+        return(true);
+
+      if (suffix < tag)
+        end = mid;
+
+      else
+        bgn = mid + 1;
+    }
+
+    //  Switch to linear search when we're down to just a few candidates.
+
+    for (mid=bgn; mid < end; mid++) {
+      tag = _sufData->get(mid);
+
+      if (tag == suffix)
+        return(true);
+    }
+
+    return(false);
+  }
+
+
+  //  Return true/false if the kmer exists/does not.
+  //  And populate 'value' with the value of the kmer.
+  bool             exists(kmer k, uint64 &value) {
+    uint64  kmer   = (uint64)k;
+    uint64  prefix = kmer >> _suffixBits;
+    uint64  suffix = kmer  & _suffixMask;
+
+    uint64  bgn = _suffixBgn[prefix];
+    uint64  mid;
+    uint64  end = _suffixBgn[prefix + 1];
+
+    uint64  tag;
+
+    //  Binary search for the matching tag.
+
+    while (bgn + 8 < end) {
+      mid = bgn + (end - bgn) / 2;
+
+      tag = _sufData->get(mid);
+
+      if (tag == suffix) {
+        if (_valueBits == 0)
+          value = 1;
+        else
+          value = _valData->get(mid);
+        return(true);
+      }
+
+      if (suffix < tag)
+        end = mid;
+
+      else
+        bgn = mid + 1;
+    }
+
+    //  Switch to linear search when we're down to just a few candidates.
+
+    for (mid=bgn; mid < end; mid++) {
+      tag = _sufData->get(mid);
+
+      if (tag == suffix) {
+        if (_valueBits == 0)
+          value = 1;
+        else
+          value = _valData->get(mid);
+        return(true);
+      }
+    }
+
+    value = 0;
+    return(false);
+  }
+
+
+  //  Returns the value of the kmer, '0' if it doesn't exist.
   uint64           value(kmer k) {
     uint64  kmer   = (uint64)k;
     uint64  prefix = kmer >> _suffixBits;
