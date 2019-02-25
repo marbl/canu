@@ -560,6 +560,19 @@ public:
   ~kmerCountFileReader();
 
 public:
+  void    rewind(void) {
+    _activeMer  = 0;    //  Position we are at in the block loaded.
+    _activeFile = 0;
+
+    _nKmers     = 0;    //  Kmers in the block we have loaded.
+
+    if (_threadFile != UINT32_MAX)
+      _activeFile = _threadFile;
+
+    AS_UTL_closeFile(_datFile);
+  };
+
+public:
   void    loadStatistics(void);
   void    dropStatistics(void);
 
