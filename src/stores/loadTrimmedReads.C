@@ -86,19 +86,20 @@ main (int argc, char **argv) {
   uint32          numLibs   = seqStore->sqStore_getNumLibraries();
 
   clearRangeFile *clrRange = NULL;
+
   if (clrName != NULL)
-     clrRange = new clearRangeFile(clrName, seqStore);
+    clrRange = new clearRangeFile(clrName, seqStore);
 
-
-  for (uint32 rid=1; rid<=numReads; rid++)
+  for (uint32 rid=1; rid<=numReads; rid++) {
     if (clrRange != NULL) {
-       if (clrRange->isDeleted(rid) == false) {
-          seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
-       }
+      if (clrRange->isDeleted(rid) == false) {
+        seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+      }
     } else {
-       sqRead* read = seqStore->sqStore_getRead(rid);
-       seqStore->sqStore_setClearRange(rid, 0, read->sqRead_sequenceLength());
+      sqRead* read = seqStore->sqStore_getRead(rid);
+      seqStore->sqStore_setClearRange(rid, 0, read->sqRead_sequenceLength());
     }
+  }
 
   delete clrRange;
 
