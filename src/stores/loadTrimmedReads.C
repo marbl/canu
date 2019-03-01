@@ -37,8 +37,13 @@
 
 int
 main (int argc, char **argv) {
-  char            *seqName       = NULL;
-  char            *clrName       = NULL;
+  char            *seqName = NULL;
+  char            *clrName = NULL;
+
+  sqStore_mode     sqMode  = sqStore_extend;
+
+  bool             verbose = false;
+  bool             modify  = true;
 
   argc = AS_configure(argc, argv);
 
@@ -50,6 +55,13 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       clrName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      verbose = true;
+
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      modify = false;
+      sqMode = sqStore_readOnly;
 
     } else {
       char *s = new char [1024];
@@ -71,6 +83,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -S <seqStore>         Path to the sequence store\n");
     fprintf(stderr, "  -c <clearRangeFile>   Path to the file of clear ranges\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -v                    Report clear range changes to stderr\n");
+    fprintf(stderr, "  -n                    Don't apply changes\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  Loads results of read trimming into seqStore.\n");
     fprintf(stderr, "\n");
 
@@ -81,27 +96,43 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  sqStore        *seqStore = sqStore::sqStore_open(seqName, sqStore_extend);
+  sqStore        *seqStore = sqStore::sqStore_open(seqName, sqMode);
   uint32          numReads  = seqStore->sqStore_getNumReads();
   uint32          numLibs   = seqStore->sqStore_getNumLibraries();
 
-  clearRangeFile *clrRange = NULL;
+  //  If no clear range file, set clear range to the entire read.
 
-  if (clrName != NULL)
-    clrRange = new clearRangeFile(clrName, seqStore);
-
-  for (uint32 rid=1; rid<=numReads; rid++) {
-    if (clrRange != NULL) {
-      if (clrRange->isDeleted(rid) == false) {
-        seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
-      }
-    } else {
+  if (clrName == NULL) {
+    for (uint32 rid=1; rid<=numReads; rid++) {
       sqRead* read = seqStore->sqStore_getRead(rid);
+
       seqStore->sqStore_setClearRange(rid, 0, read->sqRead_sequenceLength());
     }
   }
 
-  delete clrRange;
+  //  Otherwise, set to whatever the clear range file says.
+
+  else {
+    clearRangeFile *clrRange = new clearRangeFile(clrName, seqStore);
+
+    for (uint32 rid=1; rid<=numReads; rid++) {
+      sqRead* read = seqStore->sqStore_getRead(rid);
+
+      if (verbose == true)
+        fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
+                rid, 
+                read->sqRead_clearBgn(), read->sqRead_clearEnd(),
+                clrRange->bgn(rid), clrRange->end(rid));
+
+      if (clrRange->isDeleted(rid) == true)
+        continue;
+
+      if (modify == true)
+        seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+    }
+
+    delete clrRange;
+  }
 
   seqStore->sqStore_close();
 
