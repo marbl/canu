@@ -115,6 +115,8 @@ decodeBoolean(char *value) {
 
 
 //  Returns true if a key and value are found.  line is modified.
+//  Returns true, with value == NULL, if no delimiter is found.
+//  Returns false if the line is blank, or is a comment.
 //
 bool
 KeyAndValue::find(char *line) {
@@ -142,6 +144,11 @@ KeyAndValue::find(char *line) {
   while ((*val_ != 0) &&
          (isdelimiter(*val_) == false))  //  The key cannot contain a delimiter.
     val_++;
+
+  if (*val_ == 0) {                      //   If at the end of the string, there isn't a
+    val_ = NULL;                         //   value, but we'll return true and a key anyway.
+    return(true);
+  }
 
   *val_++ = 0;
 
