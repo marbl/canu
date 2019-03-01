@@ -189,7 +189,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "     output:  seqName <tab> seqPos <tab> exists <tab> fwd-mer <tab> fwd-val <tab> rev-mer <tab> rev-val\n");
     fprintf(stderr, "         seqName    - name of the sequence this kmer is from\n");
-    fprintf(stderr, "         seqPos     - start position (0-based) of the kmer in the sequence");
+    fprintf(stderr, "         seqPos     - start position (0-based) of the kmer in the sequence\n");
     fprintf(stderr, "         exists     - 'T' if the kmer exists in the database, 'F' if it does not\n");
     fprintf(stderr, "         fwd-mer    - forward mer sequence\n");
     fprintf(stderr, "         fwd-val    - value of the forward mer in the database\n");
