@@ -317,15 +317,31 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if  (mode == modeUnset)
+  //  Check for required options.
+
+  if (mode == modeUnset) {
     err.push_back("ERROR:  No mode (summarize, extract, generate or simulate) specified.\n");
-  if (inputs.size() == 0)
-    err.push_back("ERROR:  No sequence files supplied.\n");
+  }
+  if  (mode == modeSummarize) {
+    if (inputs.size() == 0)
+      err.push_back("ERROR:  No input sequence files supplied.\n");
+  }
+  if  (mode == modeExtract) {
+    if (inputs.size() == 0)
+      err.push_back("ERROR:  No input sequence files supplied.\n");
+  }
+  if  (mode == modeGenerate) {
+  }
+  if  (mode == modeSimulate) {
+  }
+  if  (mode == modeSample) {
+  }
+  if  (mode == modeShift) {
+  }
+  if  (mode == modeMutate) {
+  }
 
-  if (inputs.size() == 0)
-    err.push_back("ERROR:  No input files supplied.\n");
-
-
+  //  If errors, report usage.
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s [mode] [options] [sequence_file ...]\n", argv[0]);
