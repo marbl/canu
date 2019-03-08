@@ -191,9 +191,6 @@ sub unitig ($) {
     print F fetchOvlStoreShellCode($asm, $path, "");
     print F "\n";
     print F "\n";
-    print F fetchFileShellCode("unitigging/$asm.ovlStore", "evalues", "");
-    print F "\n";
-    print F "\n";
     print F getJobIDShellCode();
     print F "\n";
     print F "if [ -e ../$asm.ctgStore/seqDB.v001.tig -a -e ../$asm.utgStore/seqDB.v001.tig ] ; then\n";
@@ -296,23 +293,6 @@ sub unitig ($) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "\n";
-    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
-    print F "\n";
-    print F stashFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "");
-    print F "\n";
-    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "");
-    print F "\n";
-    print F "\n";
-    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
-    print F "\n";
-    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");
-    print F "\n";
-    print F "\n";
-    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
-    print F "\n";
-    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
-    print F "\n";
     print F "if [ ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
     print F "  \$bin/tgStoreDump \\\n";                     #  Duplicated in reportUnitigSizes()
     print F "    -S ../../$asm.seqStore \\\n";              #  Done here so we don't need another
@@ -321,7 +301,22 @@ sub unitig ($) {
     print F "   > ../$asm.ctgStore/seqDB.v001.sizes.txt\n";
     print F "fi\n";
     print F "\n";
+    print F "\n";
+    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
+    print F stashFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "");
+    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "");
+    print F "\n";
+    print F "cd ../$asm.ctgStore\n";
+    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
+    print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.sizes.txt", "");
+    print F "cd -\n";
+    print F "\n";
+    print F "cd ../$asm.utgStore\n";
+    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
+    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
+    print F "cd -\n";
+    print F "\n";
     print F "\n";
     print F "exit 0\n";
 

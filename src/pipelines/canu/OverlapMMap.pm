@@ -71,7 +71,7 @@ sub mmapConfigure ($$$) {
     goto allDone   if (fileExists("$path/precompute.sh")) && (fileExists("$path/mmap.sh"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     my $numPacBioRaw         = 0;
     my $numPacBioCorrected   = 0;
@@ -487,7 +487,7 @@ sub mmapPrecomputeCheck ($$$) {
 
     goto allDone   if (fileExists("$path/precompute.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     fetchFile("$path/precompute.sh");
 
@@ -576,7 +576,7 @@ sub mmapCheck ($$$) {
 
     goto allDone   if (fileExists("$path/mmap.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     fetchFile("$path/mmap.sh");
 

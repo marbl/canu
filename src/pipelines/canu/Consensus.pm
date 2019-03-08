@@ -100,8 +100,7 @@ sub utgcns ($$$) {
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-    print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.dat", "");
-    print F fetchFileShellCode("unitigging/$asm.\${tag}Store", "seqDB.v001.tig", "");
+    print F fetchTigStoreShellCode("unitigging/5-consensus", $asm, "\${tag}Store", "001", "");
     print F "\n";
     print F fetchSeqStorePartitionShellCode($asm, $path, "");
     print F "\n";
@@ -164,8 +163,7 @@ sub partitionReads ($$) {
     return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
     return  if (fileExists("unitigging/$asm.${tag}Store.partitionedReads.seqStore.0001.tar"));
 
-    fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.dat");
-    fetchFile("unitigging/$asm.${tag}Store/seqDB.v001.tig");
+    fetchTigStore("unitigging", $asm, "${tag}Store", "001");
 
     $cmd  = "$bin/sqStoreCreatePartition \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";
@@ -513,8 +511,7 @@ sub consensusLoad ($) {
     #  Now just load them.
 
     if (! fileExists("unitigging/$asm.ctgStore/seqDB.v002.tig")) {
-        fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");
-        fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");
+        fetchTigStore("unitigging", $asm, "ctgStore", "001");
 
         open(F, "< $path/ctgcns.files");
         while (<F>) {
@@ -539,8 +536,7 @@ sub consensusLoad ($) {
     }
 
     if (! fileExists("unitigging/$asm.utgStore/seqDB.v002.tig")) {
-        fetchFile("unitigging/$asm.utgStore/seqDB.v001.dat");
-        fetchFile("unitigging/$asm.utgStore/seqDB.v001.tig");
+        fetchTigStore("unitigging", $asm, "utgStore", "001");
 
         open(F, "< $path/utgcns.files");
         while (<F>) {
@@ -603,11 +599,8 @@ sub consensusAnalyze ($) {
 
     goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
 
-    fetchFile("unitigging/$asm.ctgStore/seqDB.v001.dat");  #  Shouldn't need this, right?
-    fetchFile("unitigging/$asm.ctgStore/seqDB.v001.tig");  #  So why does it?
-
-    fetchFile("unitigging/$asm.ctgStore/seqDB.v002.dat");
-    fetchFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
+    fetchTigStore("unitigging", $asm, "ctgStore", "001");
+    fetchTigStore("unitigging", $asm, "ctgStore", "002");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";
@@ -665,17 +658,13 @@ sub alignGFA ($) {
         print F "\n";
         print F setWorkDirectoryShellCode($path);
         print F "\n";
-        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
-        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
+        print F fetchTigStoreShellCode("unitigging/4-unitigger", $asm, "utgStore", "001", "");
         print F "\n";
-        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v002.dat", "");
-        print F fetchFileShellCode("unitigging/$asm.utgStore", "seqDB.v002.tig", "");
+        print F fetchTigStoreShellCode("unitigging/4-unitigger", $asm, "utgStore", "002", "");
         print F "\n";
-        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
-        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");
+        print F fetchTigStoreShellCode("unitigging/4-unitigger", $asm, "ctgStore", "001", "");
         print F "\n";
-        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.dat", "");
-        print F fetchFileShellCode("unitigging/$asm.ctgStore", "seqDB.v002.tig", "");
+        print F fetchTigStoreShellCode("unitigging/4-unitigger", $asm, "ctgStore", "002", "");
         print F "\n";
 
         print F "if [ ! -e ./$asm.unitigs.aligned.gfa ] ; then\n";

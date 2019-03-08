@@ -140,16 +140,16 @@ sub haplotypeSplitReads ($$%) {
             #  Fetch the reads from the object store.
             #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-            if (defined(getGlobal("objectStore"))) {
-                my $inPath = $file;
-                my $otPath = $file;
-
-                $otPath = s!/!_!;
-
-                fetchObjectStoreFile($inPath, $otPath);
-
-                $file = $otPath;
-            }
+            #if (defined(getGlobal("objectStore"))) {
+            #    my $inPath = $file;
+            #    my $otPath = $file;
+            #
+            #    $otPath = s!/!_!;
+            #
+            #    fetchObjectStoreFile($inPath, $otPath);
+            #
+            #    $file = $otPath;
+            #}
 
             print STDERR "--   <-- '$file'.\n";
             open(INP, "< $file");
@@ -431,7 +431,7 @@ sub haplotypeCountConfigure ($%) {
         print F "\n";
         print F "#  If the meryl output exists in the object store, we're also done.\n";
         print F "\n";
-        print F fileExistsShellCode("exist1", "$path", "reads-\$output.meryl.tar");
+        print F fileExistsShellCode("exist1", "$path", "reads-\$output.meryl.tar.gz");
         print F "if [ \$exist1 = true ] ; then\n";
         print F "  echo Kmers for batch \$output exist in the object store.\n";
         print F "  exit 0\n";
@@ -510,7 +510,7 @@ sub haplotypeCountConfigure ($%) {
         print F "\n";
         print F "#  If the meryl output exists in the object store, we're also done.\n";
         print F "\n";
-        print F fileExistsShellCode("exist1", "$path", "reads-\$haplotype.meryl.tar");
+        print F fileExistsShellCode("exist1", "$path", "reads-\$haplotype.meryl.tar.gz");
         print F "if [ \$exist1 = true ] ; then\n";
         print F "  echo Merged kmers for haplotype \$haplotype exist in the object store.\n";
         print F "  exit 0\n";
@@ -606,7 +606,7 @@ sub haplotypeCountConfigure ($%) {
         print F "\n";
         print F "#  If the meryl output exists in the object store, we're also done.\n";
         print F "\n";
-        print F fileExistsShellCode("exist1", "$path", "haplotype-\$haplotype.meryl.tar");
+        print F fileExistsShellCode("exist1", "$path", "haplotype-\$haplotype.meryl.tar.gz");
         print F "if [ \$exist1 = true ] ; then\n";
         print F "  echo Kmers for haplotype \$haplotype exist in the object store.\n";
         print F "  exit 0\n";
@@ -693,7 +693,7 @@ sub haplotypeCountCheck ($) {
 
     foreach my $job (@jobs) {
         if ((fileExists("$path/reads-$job.meryl")) ||
-            (fileExists("$path/reads-$job.meryl.tar"))) {
+            (fileExists("$path/reads-$job.meryl.tar.gz"))) {
             push @successJobs, $currentJobID;
 
         } else {
@@ -792,7 +792,7 @@ sub haplotypeMergeCheck ($@) {
 
     foreach my $hap (@haplotypes) {
         if ((fileExists("$path/reads-$hap.meryl")) ||
-            (fileExists("$path/reads-$hap.meryl.tar"))) {
+            (fileExists("$path/reads-$hap.meryl.tar.gz"))) {
             push @successJobs, $currentJobID;
 
         } else {
@@ -878,7 +878,7 @@ sub haplotypeSubtractCheck ($@) {
 
     foreach my $hap (@haplotypes) {
         if ((fileExists("$path/haplotype-$hap.meryl")) ||
-            (fileExists("$path/haplotype-$hap.meryl.tar"))) {
+            (fileExists("$path/haplotype-$hap.meryl.tar.gz"))) {
             push @successJobs, $currentJobID;
 
         } else {

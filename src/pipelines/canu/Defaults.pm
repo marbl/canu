@@ -973,6 +973,8 @@ sub setDefaults () {
 
     setDefault("objectStore",          undef,  "Type of object storage used; not ready for production yet");
     setDefault("objectStoreClient",    undef,  "Path to the command line client used to access the object storage");
+    setDefault("objectStoreClientUA",  undef,  "Path to the command line client used to upload files to object storage");
+    setDefault("objectStoreClientDA",  undef,  "Path to the command line client used to download files from object storage");
     setDefault("objectStoreNameSpace", undef,  "Object store parameters; specific to the type of objectStore used");
     setDefault("objectStoreProject",   undef,  "Object store project; specific to the type of objectStore used");
 
@@ -1564,6 +1566,12 @@ sub checkParameters () {
 
     if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClient")))) {
         addCommandLineError("ERROR:  objectStoreClient must be specified if objectStore is specified\n");
+    }
+    if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClientUA")))) {
+        setGlobal("objectStoreClientUA", getGlobal("objectStoreClient"));
+    }
+    if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClientDA")))) {
+        setGlobal("objectStoreClientDA", getGlobal("objectStoreClient"));
     }
 
     if ((getGlobal("objectStore") eq "DNANEXUS") && (!defined(getGlobal("objectStoreProject")))) {

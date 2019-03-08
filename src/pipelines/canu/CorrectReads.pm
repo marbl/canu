@@ -468,8 +468,7 @@ sub generateCorrectedReadsConfigure ($) {
 
     print F fetchSeqStoreShellCode($asm, $path, "");
     print F "\n";
-    print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.dat", "");
-    print F fetchFileShellCode("$base/$asm.corStore", "seqDB.v001.tig", "");
+    print F fetchTigStoreShellCode("correction/2-correction", $asm, "corStore", "001", "");
     print F "\n";
     print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
     print F "\n";
@@ -515,13 +514,13 @@ sub generateCorrectedReadsConfigure ($) {
     print F "mv ./results/\$jobid.WORKING.cns ./results/\$jobid.cns \\\n";
     print F "\n";
 
+    print F stashFileShellCode("$path", "results/\$jobid.cns", "");
+
     if (defined($stageDir)) {
         print F "rm -rf $stageDir/$asm.seqStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
         print F "rmdir  $stageDir\n";
         print F "\n";
     }
-
-    print F stashFileShellCode("$path", "results/\$jobid.cns", "");
 
     print F "\n";
     print F "exit 0\n";

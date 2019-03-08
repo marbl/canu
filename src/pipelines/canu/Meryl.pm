@@ -484,7 +484,7 @@ sub merylConfigure ($$) {
     print F "\n";
     print F "#  If the meryl output exists in the object store, we're also done.\n";
     print F "\n";
-    print F fileExistsShellCode("exist1", "$path", "$asm.\$jobid.meryl.tar");
+    print F fileExistsShellCode("exist1", "$path", "$asm.\$jobid.meryl.tar.gz");
     print F "if [ \$exist1 = true ] ; then\n";
     print F "  echo Kmers for batch \$jobid exist in the object store.\n";
     print F "  exit 0\n";
@@ -779,7 +779,7 @@ sub merylCountCheck ($$) {
 
     for (my $job=1; $job <= $jobs; $job++) {
         if      ((fileExists("$path/$asm.$currentJobID.meryl")) ||
-                 (fileExists("$path/$asm.$currentJobID.meryl.tar"))) {
+                 (fileExists("$path/$asm.$currentJobID.meryl.tar.gz"))) {
             push @successJobs, "$path/$asm.$currentJobID.meryl\n";
 
         } else {

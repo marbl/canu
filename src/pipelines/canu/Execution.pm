@@ -490,6 +490,8 @@ sub getBinDirectoryShellCode () {
     $string .= "#  Environment for any object storage.\n";
     $string .= "\n";
     $string .= "export CANU_OBJECT_STORE_CLIENT="    . getGlobal("objectStoreClient")    . "\n";
+    $string .= "export CANU_OBJECT_STORE_CLIENT_UA=" . getGlobal("objectStoreClientUA")  . "\n";
+    $string .= "export CANU_OBJECT_STORE_CLIENT_DA=" . getGlobal("objectStoreClientDA")  . "\n";
     $string .= "export CANU_OBJECT_STORE_NAMESPACE=" . getGlobal("objectStoreNameSpace") . "\n";
     $string .= "export CANU_OBJECT_STORE_PROJECT="   . getGlobal("objectStoreProject")   . "\n";
     $string .= "\n";

@@ -33,20 +33,46 @@ $STASH = "/assembly/objectstore"    if (-d "/assembly/objectstore");
 
 die "No STASH found\n"  if (!defined($STASH));
 
-my $task = shift @ARGV;
+
+my $mode = $0;
+
+if    ($mode =~ m/ua$/) {
+    if (rand() < 0.25) {          #  Simulate errors.
+        print STDERR "Fail!\n";
+        exit(1);
+    }
+
+    upload(@ARGV);
+}
+
+elsif ($mode =~ m/dx$/) {
+    my $task = shift @ARGV;
+
+    if      ($task eq "describe") {  describe(@ARGV);
+    } elsif ($task eq "mv")       {  mv(@ARGV);
+    } elsif ($task eq "rm")       {  rm(@ARGV);
+    } elsif ($task eq "upload")   {  upload(@ARGV);
+    } elsif ($task eq "download") {  download(@ARGV);
+    }
+}
+
+else {
+    die "Unknown mode '$mode'.\n";
+}
 
 
 
-if ($task eq "describe") {
+
+sub describe (@) {
+    my @args = @_;
     my $file;
     my $path = "";
-    my $wait = 0;
 
-    while (scalar(@ARGV) > 0) {
-        my $arg = shift @ARGV;
+    while (scalar(@args) > 0) {
+        my $arg = shift @args;
 
         if      ($arg eq "--name") {
-            $path = shift @ARGV;
+            $path = shift @args;
         }
 
         else {
@@ -61,13 +87,13 @@ if ($task eq "describe") {
 
 
 
-if ($task eq "mv") {
+sub mv (@) {
+    my @args = @_;
     my $file;
     my $path = "";
-    my $wait = 0;
 
-    my $oldname = shift @ARGV;
-    my $newname = shift @ARGV;
+    my $oldname = shift @args;
+    my $newname = shift @args;
 
     print STDERR "DX:  STASH '$STASH'\n";
     print STDERR "DX:  oldname '$oldname'\n";
@@ -79,13 +105,14 @@ if ($task eq "mv") {
 
 
 
-if ($task eq "rm") {
+sub rm (@) {
+    my @args = @_;
     my $file;
     my $path = "";
     my $recursive = 0;
 
-    while (scalar(@ARGV) > 0) {
-        my $arg = shift @ARGV;
+    while (scalar(@args) > 0) {
+        my $arg = shift @args;
 
         if      ($arg eq "--recursive") {    #  NOT SUPPORTED!
             $recursive = 1;
@@ -98,28 +125,53 @@ if ($task eq "rm") {
 
 
 
-if ($task eq "upload") {
-    my $file;
+#  Handles two variants.
+#
+#  dx upload  --path PR:NS/NA
+#
+#  dx-ua      --project PR --folder FL --name NA <path-to-file>
+#                PR
+#                FL must begin with a /
+#                NA is just text, any 'directories' implied in it are part of the name
+#
+#  Canu uploads to
+#    --project getGlobal("objectStoreProject");
+#    --folder  getGlobal("objectStoreNameSpace");
+#
+sub upload (@) {
+    my @args = @_;
+
     my $path;
-    my $wait    = 0;
-    my $parents = 0;
 
-    while (scalar(@ARGV) > 0) {
-        my $arg = shift @ARGV;
+    my $project;
+    my $folder;
+    my $name;
 
-        if      ($arg eq "--path") {
-            $path = shift @ARGV;
+    my $file;
+
+    while (scalar(@args) > 0) {
+        my $arg = shift @args;
+
+        if    ($arg eq "--path") {
+            $path = shift @args;
         }
 
-        elsif ($arg eq "--wait") {
-            $wait = 1;
+        elsif ($arg eq "--project") {
+            $project = shift @args;
         }
 
-        elsif ($arg eq "--parents") {
-            $parents = 1;
+        elsif ($arg eq "--folder") {
+            $folder = shift @args;
         }
 
-        elsif ($arg eq "--no-progress") {
+        elsif ($arg eq "--name") {
+            $name = shift @args;
+        }
+
+        elsif (($arg eq "--wait") ||
+               ($arg eq "--wait-on-close") ||
+               ($arg eq "--do-not-compress") ||
+               ($arg eq "--no-progress")) {
         }
 
         elsif (!defined($file)) {
@@ -131,33 +183,41 @@ if ($task eq "upload") {
         }
     }
 
-    #  Copy local file $file, assumed to be in this directory, to the stash as $path.
+    #  Check that the input file exists.
 
-    die "dx upload - no stash path supplied.\n"      if (!defined($path));
     die "dx upload - no input file supplied.\n"      if (!defined($file));
-    die "dx upload - input file $file not found.\n"  if (($file ne "-") && (! -e $file));
+    die "dx upload - input file $file not found.\n"  if (! -e $file);
 
-    system("mkdir -p $STASH/" . dirname($path) . " 2> /dev/null")   if ($parents);
+    #  If path exists, we're pretending to be 'dx upload'.
 
-    if ($file eq "-") {
-        system("dd status=none \"of=$STASH/$path\" 2> /dev/null");
-    } else {
+    if (defined($path)) {
+        exit(1);
+        system("mkdir -p $STASH/" . dirname($path) . " 2> /dev/null");
         system("cp -fp \"$file\" \"$STASH/$path\" 2> /dev/null");
+    }
+
+    #  Otherwise, we're pretending to be 'ua'.
+
+    else {
+        #print STDERR "dx-ua '$file' -> '$STASH' / '$project' : '$folder' / '$name'\n";
+
+        system("mkdir -p $STASH/$project:$folder 2> /dev/null");
+        system("cp -fp \"$file\" \"$STASH/$project:$folder/$name\" 2> /dev/null");
     }
 }
 
 
 
-if ($task eq "download") {
+sub download (@) {
+    my @args = @_;
     my $file;
     my $path;
-    my $wait = 0;
 
-    while (scalar(@ARGV) > 0) {
-        my $arg = shift @ARGV;
+    while (scalar(@args) > 0) {
+        my $arg = shift @args;
 
         if      ($arg eq "--output") {
-            $file = shift @ARGV;
+            $file = shift @args;
         }
 
         elsif ($arg eq "--no-progress") {
@@ -179,17 +239,13 @@ if ($task eq "download") {
 
     die "dx download - no stash path supplied.\n"       if (!defined($path));
     die "dx download - no output file supplied.\n"      if (!defined($file));
-    #die "dx download - stash path $path not found.\n"   if (! -e "$STASH/$path");
-
-    print STDERR "FETCH 'cp -fp \"$STASH/$path\" \"$file\" 2> /dev/null'\n";
+    die "dx download - don't want to use stdout.\n"     if ($file eq "-");
 
     exit(0)  if (! -e "$STASH/$path");
 
-    if ($file eq "-") {
-        system("dd status=none \"if=$STASH/$path\" 2> /dev/null");
-    } else {
-        system("cp -fp \"$STASH/$path\" \"$file\" 2> /dev/null");
-    }
+    print STDERR "dx download '$STASH' / '$path' -> '$file'\n";
+
+    system("cp -fp \"$STASH/$path\" \"$file\" 2> /dev/null");
 }
 
 

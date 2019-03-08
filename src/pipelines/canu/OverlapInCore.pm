@@ -75,13 +75,10 @@ sub overlapConfigure ($$$) {
 
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
-    fetchFile("$path/overlap.sh");
-    fetchFile("$path/ovljob.files");
-
     goto allDone   if (fileExists("$path/overlap.sh") && fileExists("$path/$asm.partition.ovlbat") && fileExists("$path/$asm.partition.ovljob") && fileExists("$path/$asm.partition.ovlopt"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (normal) (correction) erate=", getGlobal("corOvlErrorRate"), "\n"  if ($tag eq "cor");
@@ -95,9 +92,10 @@ sub overlapConfigure ($$$) {
     #  version right before it exits.  All we need to do here is check for existence of
     #  the output, and exit if the command fails.
 
-    fetchFile("$path/$asm.partition.ovlbat");   #  Don't know where to put these.  Before the tests above?
-    fetchFile("$path/$asm.partition.ovljob");   #  Here?  Just before we use them?
+    fetchFile("$path/$asm.partition.ovlbat");
+    fetchFile("$path/$asm.partition.ovljob");
     fetchFile("$path/$asm.partition.ovlopt");
+    fetchFile("$path/overlap.sh");              #  Fetch early, so we can delete if ovlbat etc don't exist.
 
     if ((! -e "$path/$asm.partition.ovlbat") ||
         (! -e "$path/$asm.partition.ovljob") ||
@@ -143,8 +141,6 @@ sub overlapConfigure ($$$) {
     close(JOB);
     close(OPT);
 
-    fetchFile("$path/overlap.sh");
-
     if (! -e "$path/overlap.sh") {
         my $merSize      = getGlobal("${tag}OvlMerSize");
 
@@ -188,7 +184,14 @@ sub overlapConfigure ($$$) {
         print F "  exit\n";
         print F "fi\n";
         print F "\n";
-        print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.dump", "");
+        print F "#  Fetch the frequent kmers, if needed.\n";
+        print F "if [ ! -e ../0-mercounts/$asm.ms$merSize.dump ] ; then\n";
+        print F "  mkdir -p ../0-mercounts\n";
+        print F "  cd ../0-mercounts\n";
+        print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.dump", "  ");
+        print F "  cd -\n";
+        print F "fi\n";
+        print F "\n";
         print F "\n";
         print F "\$bin/overlapInCore \\\n";
         print F "  -partial \\\n"  if ($type eq "partial");
@@ -333,7 +336,7 @@ sub overlapCheck ($$$) {
 
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     #  Figure out if all the tasks finished correctly.
 

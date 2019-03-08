@@ -85,7 +85,7 @@ sub mhapConfigure ($$$) {
     goto allDone   if (fileExists("$path/precompute.sh")) && (fileExists("$path/mhap.sh"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (mhap) (correction)\n"  if ($tag eq "cor");
@@ -396,7 +396,7 @@ sub mhapConfigure ($$$) {
     print F "#  Clean up, remove the fasta input\n";
     print F "rm -f ./\$job.input.fasta\n";
     print F "\n";
-    print F stashFileShellCode("$base/1-overlapper/blocks", "\$job.dat", "");
+    print F stashFileShellCode("$path/blocks", "\$job.dat", "");
     print F "\n";
     print F "exit 0\n";
 
@@ -532,8 +532,8 @@ sub mhapConfigure ($$$) {
     }
 
     print F "\n";
-    print F stashFileShellCode("$path", "results/\$qry.ovb", "");
-    print F stashFileShellCode("$path", "results/\$qry.oc",  "");
+    print F stashFileShellCode($path, "results/\$qry.ovb", "");
+    print F stashFileShellCode($path, "results/\$qry.oc",  "");
     print F "\n";
     print F "exit 0\n";
 
@@ -595,7 +595,7 @@ sub mhapPrecomputeCheck ($$$) {
 
     goto allDone   if (fileExists("$path/precompute.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     fetchFile("$path/precompute.sh");
 
@@ -687,7 +687,7 @@ sub mhapCheck ($$$) {
 
     goto allDone   if (fileExists("$path/mhap.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar"));
+    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
     fetchFile("$path/mhap.sh");
 
@@ -739,12 +739,15 @@ sub mhapCheck ($$$) {
 
     #  Also find the queries symlinks so we can remove those.  And the query directories, because
     #  the last directory can be empty, and so we'd never see it at all if only finding files.
+    #  (In cloud mode, the 'queries' directory probably doesn't exist when this is executed.)
 
-    open(F, "cd $base && find 1-overlapper/queries -print |");
-    while (<F>) {
-        push @mhapJobs, $_;
+    if (-e "$base/1-overlapper/queries") {
+        open(F, "cd $base && find 1-overlapper/queries -print |");
+        while (<F>) {
+            push @mhapJobs, $_;
+        }
+        close(F);
     }
-    close(F);
 
     #  Failed jobs, retry.
 

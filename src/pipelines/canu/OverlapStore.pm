@@ -315,10 +315,14 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "#  Stash the outputs.\n";
             print F "#\n";
             print F "\n";
-            print F "outputs=`ls ./$asm.ovlStore.BUILDING/bucket\$jobname/slice*`\n";
+            print F "cd ./$asm.ovlStore.BUILDING/bucket\$jobname\n";
+            print F "\n";
+            print F "outputs=`ls slice*`\n";
             print F "for file in \$outputs ; do\n";
-            print F stashFileShellCode($base, "\$file", "  ");
+            print F stashFileShellCode("$base/$asm.ovlStore.BUILDING/bucket\$jobname", "\$file", "  ");
             print F "done\n";
+            print F "\n";
+            print F "cd -\n";
             print F "\n";
         }
 
@@ -405,19 +409,19 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "| \\\n";
             print F "gzip -1vc > ./\$jobid.statistics.tar.gz\n";
             print F "\n";
-            print F "cd ..\n";
+            print F stashFileShellCode("$base/$asm.ovlStore.BUILDING", "\$jobid.statistics.tar.gz", "");
             print F "\n";
-            print F stashFileShellCode($base, "./$asm.ovlStore.BUILDING/\$jobid.statistics.tar.gz", "");
+            print F "rm -f ./\$jobid.info \\\n";
+            print F "      ./\$jobid.index \\\n";
+            print F "      ./\$jobid*.statistics \\\n";
+            print F "      ./\$jobid.statistics.tar.gz\n";
             print F "\n";
-            print F "rm -f ./$asm.ovlStore.BUILDING/\$jobid.info \\\n";
-            print F "      ./$asm.ovlStore.BUILDING/\$jobid.index \\\n";
-            print F "      ./$asm.ovlStore.BUILDING/\$jobid*.statistics \\\n";
-            print F "      ./$asm.ovlStore.BUILDING/\$jobid.statistics.tar.gz\n";
-            print F "\n";
-            print F "outputs=`ls ./$asm.ovlStore.BUILDING/\$jobid*`\n";
+            print F "outputs=`ls \$jobid*`\n";
             print F "for file in \$outputs ; do\n";
-            print F stashFileShellCode($base, "\$file", "  ");
+            print F stashFileShellCode("$base/$asm.ovlStore.BUILDING", "\$file", "  ");
             print F "done\n";
+            print F "\n";
+            print F "cd ..\n";
             print F "\n";
         }
 
@@ -732,8 +736,8 @@ sub createOverlapStore ($$) {
     $base = "trimming"    if ($tag eq "obt");
     $base = "unitigging"  if ($tag eq "utg");
 
-    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar")));
-    goto allDone   if ((-d "$base/$asm.ctgStore") || (fileExists("$base/$asm.ctgStore.tar")));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
+    goto allDone   if ((-d "$base/$asm.ctgStore") || (fileExists("$base/$asm.ctgStore.tar.gz")));
 
     #  Did we _really_ complete?
 

@@ -186,20 +186,20 @@ sub createSequenceStore ($$@) {
         #  Fetch the reads from the object store.
         #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-        if (defined(getGlobal("objectStore"))) {
-            for (my $ff=0; $ff < scalar(@inputs); $ff++) {
-                my ($inType, $inPath, $otPath) = split '\0', $inputs[$ff];
-
-                $otPath =  $inPath;
-                $otPath =~ s!/!_!;
-
-                fetchObjectStoreFile($inPath, $otPath);
-
-                $inputs[$ff] = "$inType\0$otPath";
-
-                print STDERR "$inType -- '$inPath' -> '$otPath'\n";
-            }
-        }
+        #if (defined(getGlobal("objectStore"))) {
+        #    for (my $ff=0; $ff < scalar(@inputs); $ff++) {
+        #        my ($inType, $inPath, $otPath) = split '\0', $inputs[$ff];
+        #
+        #        $otPath =  $inPath;
+        #        $otPath =~ s!/!_!;
+        #
+        #        fetchObjectStoreFile($inPath, $otPath);
+        #
+        #        $inputs[$ff] = "$inType\0$otPath";
+        #
+        #        print STDERR "$inType -- '$inPath' -> '$otPath'\n";
+        #    }
+        #}
 
         #  Build a ssi file for all the raw sequence inputs.  For simplicity, we just copy in any
         #  ssi files as is.  This documents what the store was built with, etc.
