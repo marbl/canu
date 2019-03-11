@@ -1046,6 +1046,7 @@ unitigConsensus::findCoordinates(void) {
 
     int32         origbgn = _cnspos[ii].min();
     int32         origend = _cnspos[ii].max();
+    int32         origlen = origend - origbgn;
 
     int32         ext5    = readLen * 0.05;
     int32         ext3    = readLen * 0.05;
@@ -1072,6 +1073,22 @@ unitigConsensus::findCoordinates(void) {
       int32 bgn = max(0, origbgn + alignShift - ext5);                          //  First base in tig we'll align to.
       int32 end = min(   origend + alignShift + ext3, (int32)_tig->length());   //  Last base
       int32 len = end - bgn;   //  WAS: +1
+
+      //  If the length of the region is (wildly) less than expected, reset
+      //  bgn to give the alignment a fighting chance.  BPW has only seen
+      //  this when running consensus on 10% error reads, and only on reads
+      //  near the end of the tig -- that is, when end (above) is reset to
+      //  tig->length().
+
+      if (len < ext5 + origlen + ext3) {
+        int32 bgnnew = _tig->length() - (origend - origbgn) - ext5 - ext3;
+
+        if (showPlacement())
+          fprintf(stderr, "reset bgn from %d to %d\n", bgn, bgnnew);
+
+        bgn = (bgnnew < 0) ? 0 : bgnnew;
+        len = end - bgn;
+      }
 
       //  Some logging.
 
