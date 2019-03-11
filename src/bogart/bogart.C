@@ -425,6 +425,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "buildGreedyOpt");
 
   contigs.optimizePositions(prefix, "buildGreedyOpt");
+  splitDiscontinuous(contigs, minOverlapLen);
 
   //reportOverlaps(contigs, prefix, "buildGreedy");
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
@@ -466,6 +467,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "placeContainsOpt");
 
   contigs.optimizePositions(prefix, "placeContainsOpt");
+  splitDiscontinuous(contigs, minOverlapLen);
 
   //reportOverlaps(contigs, prefix, "placeContains");
   reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
