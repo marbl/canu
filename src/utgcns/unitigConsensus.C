@@ -535,16 +535,18 @@ unitigConsensus::generateTemplateStitch(void) {
 
     resizeArray(tigseq, tiglen, tigmax, tiglen + readLen - readEnd + 1);
 
-    //  Append the read bases to the template.  If the alignment failed, reset any template bases
-    //  that are N to be the read base.
+    //  Append the read bases to the template.
+    //
+    //  When the read fails to align, we used to go back in the overlap region and fill in any N
+    //  bases, expected to be large blocks of Ns from shredded scaffolds, with bases from the read.
+    //  As of March 2019, this isn't really needed, for two reasons: (1) sqStore is trimming N's
+    //  from the end of a read, and (2) edlib is allowing matches to Ns.
+
+    if (showAlgorithm())
+      fprintf(stderr, "generateTemplateStitch()-- Append read from %u to %u, starting at tiglen %u\n", readEnd, readLen, tiglen);
 
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
-
-    if (noResult == true)
-      for (uint32 ii=0, jj=tiglen-readLen; ii<readLen; ii++)
-        if (tigseq[jj] == 'N')
-          tigseq[jj] = fragment[ii];
 
     tigseq[tiglen] = 0;
 
