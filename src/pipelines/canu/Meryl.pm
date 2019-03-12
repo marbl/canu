@@ -235,76 +235,76 @@ sub merylPlotHistogram ($$$$) {
     my $name   = shift @_;
     my $size   = shift @_;  #  Size of image, not merSize!
 
-    return  if (fileExists("$path/$name.histogram.gp"));
-
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
 
-    if ($gnuplot) {
-        fetchFile("$path/$name.histogram");
+    return  if (  fileExists("$path/$name.histogram.gp"));
+    return  if (! defined($gnuplot) || ($gnuplot eq ""));
+    return  if (! fileExists("$path/$name.histogram"));
 
-        open(F, "> $path/$name.histogram.gp");
-        print F "\n";
-        print F "unset multiplot\n";
-        print F "\n";
-        print F "set terminal $format size $size,$size\n";
-        print F "set output '$name.histogram.$format'\n";
-        print F "\n";
-        print F "set multiplot\n";
-        print F "\n";
-        print F "#  Distinct-vs-total full size plot\n";
-        print F "\n";
-        print F "set origin 0.0,0.0\n";
-        print F "set size   1.0,1.0\n";
-        print F "\n";
-        print F "set xrange [0.5:1.0]\n";
-        print F "set yrange [0.0:1.0]\n";
-        print F "\n";
-        print F "unset ytics\n";
-        print F "set y2tics 0.1\n";
-        #print F "set y2tics add ('0.6765' 0.6765)\n";
-        print F "\n";
-        print F "plot [0.5:1.0] '$name.histogram' using 3:4 with lines title 'Distinct-vs-Total'\n";
-        print F "\n";
-        print F "#  Distinct-vs-total zoom in lower left corner\n";
-        print F "\n";
-        print F "set origin 0.05,0.10\n";
-        print F "set size   0.40,0.40\n";
-        print F "\n";
-        print F "set xrange [0.975:1.0]\n";
-        print F "set yrange [0.4:0.80]\n";
-        print F "\n";
-        print F "unset ytics\n";     #  ytics on the left of the plot
-        print F "set y2tics 0.1\n";  #  y2tics on the right of the plot
-        #print F "set y2tics add ('0.6765' 0.6765)\n";
-        print F "\n";
-        print F "plot [0.975:1.0] '$name.histogram' using 3:4 with lines title 'Distinct-vs-Total'\n";
-        print F "\n";
-        print F "#  Histogram in upper left corner\n";
-        print F "\n";
-        print F "set origin 0.05,0.55\n";
-        print F "set size   0.40,0.40\n";
-        print F "\n";
-        print F "set xrange [0:200]\n";
-        print F "set yrange [0:30000000]\n";
-        print F "\n";
-        print F "unset ytics\n";      #  ytics on the left of the plot
-        print F "set y2tics 10e6\n";  #  y2tics on the right of the plot
-        print F "unset mytics\n";
-        print F "\n";
-        print F "plot [0:200] '$name.histogram' using 1:2 with lines title 'Histogram'\n";
-        close(F);
+    fetchFile("$path/$name.histogram");
 
-        if (runCommandSilently($path, "$gnuplot < /dev/null ./$name.histogram.gp > /dev/null 2>&1", 0)) {
-            print STDERR "--\n";
-            print STDERR "-- WARNING: gnuplot failed.\n";
-            print STDERR "--\n";
-            print STDERR "----------------------------------------\n";
-        }
+    open(F, "> $path/$name.histogram.gp");
+    print F "\n";
+    print F "unset multiplot\n";
+    print F "\n";
+    print F "set terminal $format size $size,$size\n";
+    print F "set output '$name.histogram.$format'\n";
+    print F "\n";
+    print F "set multiplot\n";
+    print F "\n";
+    print F "#  Distinct-vs-total full size plot\n";
+    print F "\n";
+    print F "set origin 0.0,0.0\n";
+    print F "set size   1.0,1.0\n";
+    print F "\n";
+    print F "set xrange [0.5:1.0]\n";
+    print F "set yrange [0.0:1.0]\n";
+    print F "\n";
+    print F "unset ytics\n";
+    print F "set y2tics 0.1\n";
+    #print F "set y2tics add ('0.6765' 0.6765)\n";
+    print F "\n";
+    print F "plot [0.5:1.0] '$name.histogram' using 3:4 with lines title 'Distinct-vs-Total'\n";
+    print F "\n";
+    print F "#  Distinct-vs-total zoom in lower left corner\n";
+    print F "\n";
+    print F "set origin 0.05,0.10\n";
+    print F "set size   0.40,0.40\n";
+    print F "\n";
+    print F "set xrange [0.975:1.0]\n";
+    print F "set yrange [0.4:0.80]\n";
+    print F "\n";
+    print F "unset ytics\n";     #  ytics on the left of the plot
+    print F "set y2tics 0.1\n";  #  y2tics on the right of the plot
+    #print F "set y2tics add ('0.6765' 0.6765)\n";
+    print F "\n";
+    print F "plot [0.975:1.0] '$name.histogram' using 3:4 with lines title 'Distinct-vs-Total'\n";
+    print F "\n";
+    print F "#  Histogram in upper left corner\n";
+    print F "\n";
+    print F "set origin 0.05,0.55\n";
+    print F "set size   0.40,0.40\n";
+    print F "\n";
+    print F "set xrange [0:200]\n";
+    print F "set yrange [0:30000000]\n";
+    print F "\n";
+    print F "unset ytics\n";      #  ytics on the left of the plot
+    print F "set y2tics 10e6\n";  #  y2tics on the right of the plot
+    print F "unset mytics\n";
+    print F "\n";
+    print F "plot [0:200] '$name.histogram' using 1:2 with lines title 'Histogram'\n";
+    close(F);
 
-        stashFile("$path/$name.histogram.gp");
-        stashFile("$path/$name.histogram.$format");
+    if (runCommandSilently($path, "$gnuplot < /dev/null ./$name.histogram.gp > /dev/null 2>&1", 0)) {
+        print STDERR "--\n";
+        print STDERR "-- WARNING: gnuplot failed.\n";
+        print STDERR "--\n";
+        print STDERR "----------------------------------------\n";
     }
+
+    stashFile("$path/$name.histogram.gp");
+    stashFile("$path/$name.histogram.$format");
 }
 
 
