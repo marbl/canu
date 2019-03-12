@@ -335,8 +335,18 @@ sub merylConfigure ($$) {
 
         caFailure("${tag}OvlFrequentMers '$merFile' not found", undef)  if (! -e $merFile);
 
-        copy($merFile, "$path/$name.dump");
+        if (${tag} eq "cor") {
+            touch("$path/$name.dump");
+            copy($merFile, "$path/$name.ignore.gz");
+        }
+
+        else {
+            copy($merFile, "$path/$name.dump");
+            touch("$path/$name.ignore.gz");
+        }
+
         stashFile("$path/$name.dump");
+        stashFile("$path/$name.ignore.gz");
 
         goto allDone;
     }

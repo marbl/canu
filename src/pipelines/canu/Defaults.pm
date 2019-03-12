@@ -794,7 +794,7 @@ sub setOverlapDefaults ($$$) {
     setOverlapDefault($tag, "OvlMerSize",          ($tag eq "cor") ? 19 : 22, "K-mer size for seeds in overlaps");
     setOverlapDefault($tag, "OvlMerThreshold",     undef,                     "K-mer frequency threshold; mers more frequent than this count are ignored");
     setOverlapDefault($tag, "OvlMerDistinct",      undef,                     "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps");
-    setOverlapDefault($tag, "OvlFrequentMers",     undef,                     "Do not seed overlaps with these kmers (fasta format)");
+    setOverlapDefault($tag, "OvlFrequentMers",     undef,                     "Do not seed overlaps with these kmers");
     setOverlapDefault($tag, "OvlFilter",           undef,                     "Filter overlaps based on expected kmers vs observed kmers");
 
     #  Mhap parameters.  FilterThreshold MUST be a string, otherwise it gets printed in scientific notation (5e-06) which java doesn't understand.

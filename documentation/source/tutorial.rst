@@ -367,7 +367,7 @@ and 8 'distinct' kmers.
   pick a threshold so as to seed overlaps using this fraction of all kmers in the input.  In the example above,
   fraction 0.667 of the k-mers (8/12) will be at or below threshold 2.
 <tag>FrequentMers
-  don't compute frequent kmers, use those listed in this fasta file
+  don't compute frequent kmers, use those listed in this file
 
 Mhap Overlapper Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

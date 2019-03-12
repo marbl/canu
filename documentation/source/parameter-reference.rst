@@ -393,7 +393,36 @@ Overlapper Configuration, ovl Algorithm
   overlaps with :ref:`mhapReAlign <mhapReAlign>`.
 
 {prefix}OvlFrequentMers <string=undefined>
-  Do not seed overlaps with these kmers (fasta format).
+  Do not seed overlaps with these kmers, or, for mhap, do not seed with these kmers unless necessary (down-weight them).
+
+  For corFrequentMers (mhap), the file must contain a single line header followed by number-of-kmers data lines::
+
+    0 number-of-kmers
+    forward-kmer word-frequency kmer-count total-number-of-kmers
+    reverse-kmer word-frequency kmer-count total-number-of-kmers
+
+  Where `kmer-count` is the number of times this kmer sequence occurs in the reads, 'total-number-of-kmers'
+  is the number of kmers in the reads (including duplicates; rougly the number of bases in the reads),
+  and 'word-frequency' is 'kmer-count' / 'total-number-of-kmers'.
+
+  For example::
+
+    0 4
+    AAAATAATAGACTTATCGAGTC  0.0000382200    52      1360545
+    GACTCGATAAGTCTATTATTTT  0.0000382200    52      1360545
+    AAATAATAGACTTATCGAGTCA  0.0000382200    52      1360545
+    TGACTCGATAAGTCTATTATTT  0.0000382200    52      1360545
+
+  This file must be gzip compressed.
+
+  For obtFrequentMers and ovlFrequentMers, the file must contain a list of the canonical kmers and
+  their count on a single line.  The count value is ignored, but needs to be present.  This file
+  should not be compressed.
+
+  For example::
+
+    AAAATAATAGACTTATCGAGTC  52
+    AAATAATAGACTTATCGAGTCA  52
 
 {prefix}OvlHashBits <integer=unset>
   Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength.
