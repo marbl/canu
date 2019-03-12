@@ -1080,11 +1080,15 @@ unitigConsensus::findCoordinates(void) {
       //  near the end of the tig -- that is, when end (above) is reset to
       //  tig->length().
 
-      if (len < ext5 + origlen + ext3) {
-        int32 bgnnew = _tig->length() - (origend - origbgn) - ext5 - ext3;
+      if ((end == _tig->length()) &&
+          (len < ext5 + origlen + ext3)) {
+        int32 bgnnew = end - (origend - origbgn) - ext5 - ext3;
 
         if (showPlacement())
-          fprintf(stderr, "reset bgn from %d to %d\n", bgn, bgnnew);
+          fprintf(stderr, "reset position from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
+                  bgn,    end,
+                  bgnnew, end,
+                  len, ext5, origlen, ext3);
 
         bgn = (bgnnew < 0) ? 0 : bgnnew;
         len = end - bgn;
