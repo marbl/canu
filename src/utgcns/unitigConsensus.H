@@ -175,8 +175,10 @@ public:
   bool   showPlacement(void)        { return(_tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays aligns for placement
   bool   showAlignments(void)       { return(_tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
 
-#warning NEEDS GUARDS
-  abSequence *getSequence(uint32 id) { return(_sequences[id]); };
+  abSequence *getSequence(uint32 id) {
+    assert(id < _sequencesLen);
+    return(_sequences[id]);
+  };
 
 private:
   sqStore        *_seqStore;
