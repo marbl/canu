@@ -96,6 +96,9 @@ public:
     _ambiguous       = NULL;
     _ambiguousReads  = 0;
     _ambiguousBases  = 0;
+
+    _filteredReads   = 0;
+    _filteredBases   = 0;
   };
 
   ~allData() {
@@ -136,6 +139,9 @@ public:
   FILE                  *_ambiguous;
   uint32                 _ambiguousReads;
   uint64                 _ambiguousBases;
+
+  uint32                 _filteredReads;
+  uint64                 _filteredBases;
 };
 
 
@@ -498,6 +504,10 @@ loadReadBatch(void *G) {
 
         s->_numReads++;
       }
+      else {
+        g->_filteredReads++;
+        g->_filteredBases += readLen;
+      }
 
       g->_idCur++;   //  Loaded a sequence!  (or tried to and failed)
       continue;      //  Continue on to loading the next one.
@@ -518,6 +528,10 @@ loadReadBatch(void *G) {
         s->_files[rr] = UINT32_MAX;
 
         s->_numReads++;
+      }
+      else {
+        g->_filteredReads++;
+        g->_filteredBases += seq.length();
       }
 
       continue;      //  Loaded (or skipped) a sequence.  Thank you, may I have another?
@@ -791,6 +805,8 @@ main(int argc, char **argv) {
   for (uint32 ii=0; ii<G->_haps.size(); ii++)
     fprintf(stdout, "-- %8u reads %12lu bases written to haplotype file %s.\n", G->_haps[ii]->nReads, G->_haps[ii]->nBases, G->_haps[ii]->outputName);
   fprintf(stdout, "-- %8u reads %12lu bases written to haplotype file %s.\n", G->_ambiguousReads, G->_ambiguousBases, G->_ambiguousName);
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "-- %8u reads %12lu bases filtered for being too short.\n", G->_filteredReads, G->_filteredBases);
   fprintf(stdout, "--\n");
 
   delete    SS;

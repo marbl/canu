@@ -675,21 +675,29 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
     open(F, "< haplotype/haplotype.log") or caExit("can't open 'haplotype/haplotype.log' for reading: $!", undef);
     while (<F>) {
         if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+written\s+to\s+haplotype\s+file\s+.*haplotype-(\w+).fasta.gz/) {
-            $hapReads{$3} = $1;     $totReads += $1;
-            $hapBases{$3} = $2;     $totBases += $2;
+            $hapReads{$3} = $1;
+            $hapBases{$3} = $2;
+
+            $totReads += $1   if ($3 ne "unknown");
+            $totBases += $2   if ($3 ne "unknown");
+        }
+        if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+filtered\s+for\s+being\s+too\s+short/) {
+            $hapReads{"short"} = $1;
+            $hapBases{"short"} = $2;
         }
     }
     close(F);
 
     print STDERR "--\n";
     foreach my $haplotype (@haplotypes) {
-        printf STDERR "-- Found %8d reads and %12d bases for haplotype $haplotype.\n", $hapReads{$haplotype}, $hapBases{$haplotype};
+        printf STDERR "-- Found   %8d reads and %12d bases for haplotype $haplotype.\n", $hapReads{$haplotype}, $hapBases{$haplotype};
     }
-    printf STDERR "-- Found %8d reads and %12d bases assigned to no haplotype.\n", $hapReads{"unknown"}, $hapBases{"unknown"};
+    printf STDERR "-- Found   %8d reads and %12d bases assigned to no haplotype.\n", $hapReads{"unknown"}, $hapBases{"unknown"};
+    printf STDERR "-- Ignored %8d reads and %12d bases because they were short.\n",  $hapReads{"short"},   $hapBases{"short"};
 
     #  Ignore the unknown reads if there aren't that many.
 
-    my $withUnknown = ($hapBases{"unknown"} / $totBases < 0.02) ? 0 : 1;
+    my $withUnknown = (($totBases > 0) && ($hapBases{"unknown"} / $totBases < 0.02)) ? 0 : 1;
 
     if ($withUnknown == 0) {
         print STDERR "--\n";
@@ -741,7 +749,14 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
 
     #  Fail if too many unassigned reads.
 
-    if ($hapBases{"unknown"} / $totBases > 0.50) {
+    if ($totBases == 0) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  No reads assigned to haplotypes.  Assemblies not started.\n";
+        print STDERR "-- ERROR:\n";
+    }
+
+    elsif ($hapBases{"unknown"} / $totBases > 0.50) {
         print STDERR "--\n";
         print STDERR "-- ERROR:\n";
         print STDERR "-- ERROR:  Too many bases in unassigned reads.  Assemblies not started.\n";
