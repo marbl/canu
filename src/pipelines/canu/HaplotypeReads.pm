@@ -1028,10 +1028,13 @@ sub haplotypeReadsConfigure ($@) {
         print F "\n";
     }
 
+    my $minReadLength = getGlobal("minReadLength");
+
     print F "\n";
     print F "#  Assign reads to haplotypes.\n";
     print F "\n";
     print F "$bin/splitHaplotype \\\n";
+    print F "  -cl $minReadLength \\\n";
     print F "  -threads $thr \\\n";
     print F "  -R $_ \\\n"                                                                                   foreach (@inputs);
     print F "  -H ./0-kmers/haplotype-$_.meryl ./0-kmers/reads-$_.statistics ./haplotype-$_.fasta.gz \\\n"   foreach (@$haplotypes);
