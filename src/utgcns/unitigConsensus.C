@@ -502,7 +502,8 @@ unitigConsensus::generateTemplateStitch(void) {
     }
 
     if (templateSize < 0.01) {
-      fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!  Fail!\n");
+      if (showAlgorithm())
+        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!  Fail!\n");
       tryAgain = false;
     }
 
@@ -1097,7 +1098,7 @@ unitigConsensus::findCoordinates(void) {
       //  Some logging.
 
       if (showPlacement())
-        fprintf(stderr, "align read #%u length %u to %u-%u - shift %d extension %d %d error rate %.3f\n",
+        fprintf(stderr, "align read #%u length %u to %d-%d - shift %d extension %d %d error rate %.3f\n",
                 ii, readLen, bgn, end, alignShift, ext5, ext3, era);
 
       //  More logging.
