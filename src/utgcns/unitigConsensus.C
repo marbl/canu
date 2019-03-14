@@ -1081,6 +1081,20 @@ unitigConsensus::findCoordinates(void) {
       //  near the end of the tig -- that is, when end (above) is reset to
       //  tig->length().
 
+      if ((bgn == 0) &&
+          (len < ext5 + origlen + ext3)) {
+        int32 endnew = bgn + (origend - origbgn) - ext5 - ext3;
+
+        if (showPlacement())
+          fprintf(stderr, "reset position from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
+                  bgn, end,
+                  bgn, endnew,
+                  len, ext5, origlen, ext3);
+
+        end = (endnew < (int32)_tig->length()) ? _tig->length() : endnew;
+        len = end - bgn;
+      }
+
       if ((end == _tig->length()) &&
           (len < ext5 + origlen + ext3)) {
         int32 bgnnew = end - (origend - origbgn) - ext5 - ext3;
