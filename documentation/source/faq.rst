@@ -138,10 +138,8 @@ What parameters should I use for my reads?
     **PacBio Sequel V3**
        The defaults for PacBio should work on this data.
 
-    **Nanopore R9 large genomes**
-       Due to some systematic errors, the identity estimate used by Canu for correction can be an
-       over-estimate of true error, inflating runtime and disk usage. The newest releases should automatically adjust for this but if you are using Canu 1.6 or older you can try ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14'``.
-
+    **Nanopore flip-flop R9.4**
+       Based on a human dataset, the flip-flop basecaller reduces both the raw read error rate and the residual error rate remaining after Canu read correction. For this reason you can reduce the error tolerated by Canu. If you have over 30x coverage add the options: ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14' correctedErrorRate=0.105``. This is primarily a speed optimization so you can use defaults, especially if your genome's accuracy is not improved by the flip-flop caller.
 
 Can I assemble RNA sequence data?
 -------------------------------------
