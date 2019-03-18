@@ -71,7 +71,9 @@ my $showWork = 1;
 
 #  Convert a/path/to/file to ../../../..
 sub pathToDots ($) {
-    return(join("/", map("..", (1..scalar(split '/', $_[0])))));
+    my $c =  1 + ($_[0] =~ tr!/!/!);        #  Count the number of components in the path.
+
+    return(join("/", map("..", (1..$c))));  #  Return a string with dots for each component.
 }
 
 #  True if we're using an object store.
