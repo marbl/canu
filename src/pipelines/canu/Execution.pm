@@ -909,21 +909,23 @@ sub buildResourceOption ($$) {
         $m /= $t;                                        #  by the number of slots we request.  Default behavior
     }                                                    #  for SGE and slurm when mem-per-cpu is used.
 
-    if (int($m) != $m) {
-        $m = int($m * 1024);
-        $u = "m";
-    }
-
-    if (uc(getGlobal("gridEngine")) eq "LSF") {
-        $m = $m / 1024          if (getGlobal("gridEngineMemoryUnits") eq "t");
-        $m = $m * 1             if (getGlobal("gridEngineMemoryUnits") eq "g");
+    if (uc(getGlobal("gridEngine")) eq "LSF") {                                   #  But then reset for LSF,
+        $m = $m / 1024          if (getGlobal("gridEngineMemoryUnits") eq "t");   #  because LSF wants to
+        $m = $m * 1             if (getGlobal("gridEngineMemoryUnits") eq "g");   #  enforce the units used.
         $m = $m * 1024          if (getGlobal("gridEngineMemoryUnits") eq "m");
         $m = $m * 1024 * 1024   if (getGlobal("gridEngineMemoryUnits") eq "k");
         $u = "";
     }
+
     if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
        $m = canu::Grid_DNANexus::getDNANexusInstance($m, $t);
        $u = "";
+    }
+
+    if (($u eq "g") &&          #  If we're not an integral number of gigabytes,
+        (int($m) != $m)) {      #  switch over to megabytes.
+        $m = int($m * 1024);    #    But only if we're still gigabytes!
+        $u = "m";               #    In particular, both LSF and DNANEXUS set units to "".
     }
 
     #  Replace MEMORY and THREADS with actual values.
