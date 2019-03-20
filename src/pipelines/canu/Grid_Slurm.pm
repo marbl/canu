@@ -93,6 +93,12 @@ sub configureSlurm () {
     setGlobalIfUndef("gridEngineArraySubmitID",              "%A_%a");
     setGlobalIfUndef("gridEngineJobID",                      "SLURM_JOB_ID");
 
+    if (getGlobal("gridEngineResourceOption") !~ m/mem-per-cpu/i) {
+        print STDERR "-- Enable memory-per-job mode.\n";
+        setGlobalIfUndef("gridEngineMemoryPerJob", "1");
+    }
+
+
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this

@@ -920,6 +920,7 @@ sub setDefaults () {
     setDefault("gridEngineMemoryOption",              undef, "Grid engine configuration, not documented");
     setDefault("gridEngineResourceOption",            undef, "Grid engine configuration, not documented");
     setDefault("gridEngineMemoryUnits",               undef, "Grid engine configuration, not documented");
+    setDefault("gridEngineMemoryPerJob",              undef, "Grid engine configuration, not documented");
     setDefault("gridEngineNameToJobIDCommand",        undef, "Grid engine configuration, not documented");
     setDefault("gridEngineNameToJobIDCommandNoArray", undef, "Grid engine configuration, not documented");
     setDefault("gridEngineStageOption",               undef, "Grid engine configuration, not documented");

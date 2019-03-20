@@ -905,13 +905,9 @@ sub buildResourceOption ($$) {
 
     #  Massage the memory requested into a format the grid is happy with.
 
-    if (uc(getGlobal("gridEngine")) eq "SGE") {
-        $m /= $t;
-    }
-
-    if ((uc(getGlobal("gridEngine")) eq "SLURM") && (getGlobal("gridEngineResourceOption") =~ m/mem-per-cpu/i)) {
-        $m /= $t;
-    }
+    if (getGlobal("gridEngineMemoryPerJob") != "1") {    #  If anything but "1", divide the memory request
+        $m /= $t;                                        #  by the number of slots we request.  Default behavior
+    }                                                    #  for SGE and slurm when mem-per-cpu is used.
 
     if (int($m) != $m) {
         $m = int($m * 1024);

@@ -114,10 +114,11 @@ sub discoverMemoryOption () {
     while (<F>) {
         my @vals = split '\s+', $_;
 
-        next  if ($vals[5] ne "YES");        #  Not a consumable resource.
-        next  if ($vals[2] ne "MEMORY");     #  Not a memory resource.
-        next  if ($vals[0] =~ m/swap/);      #  Don't care about swap.
-        next  if ($vals[0] =~ m/virtual/);   #  Don't care about vm space.
+        next  if (($vals[5] ne "YES") &&      #  Not a consumable resource.
+                  ($vals[5] ne "JOB"));       #    ('JOB' is processed later)
+        next  if  ($vals[2] ne "MEMORY");     #  Not a memory resource.
+        next  if  ($vals[0] =~ m/swap/);      #  Don't care about swap.
+        next  if  ($vals[0] =~ m/virtual/);   #  Don't care about vm space.
 
         push @mem, $vals[0];
     }
@@ -261,6 +262,20 @@ sub configureSGE () {
 
                 caExit("can't configure for SGE", undef);
             }
+        }
+
+        if (defined($mem)) {
+            open(F, "qconf -sc |");
+            while (<F>) {
+                my @vals = split '\s+', $_;
+
+                if (($vals[0] eq $mem) &&
+                    ($vals[5] eq "JOB")) {
+                    print STDERR "-- Enable memory-per-job mode.\n";
+                    setGlobalIfUndef("gridEngineMemoryPerJob", "1");
+                }
+            }
+            close(F);
         }
     }
 
