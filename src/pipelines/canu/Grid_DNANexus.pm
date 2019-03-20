@@ -104,7 +104,7 @@ sub getDNANexusInstance($$) {
          }
     }
 
-    die "-- ERROR:    cannot fine a node to satisfy request for CPU=$requestCPU and MEM=${requestMem}G\n" if (! defined($instance));
+    die "-- ERROR:    cannot find a node to satisfy request for CPU=$requestCPU and MEM=${requestMem}G\n" if (! defined($instance));
     print STDERR "-- Selected $instance for request of ${requestMem}G and $requestCPU.\n";
     return $instance;
 }
