@@ -204,7 +204,7 @@ main(int argc, char **argv) {
       vv = W.touint64(1);
 
     for (uint32 ii=0; kstr[ii]; ii++)
-      kmerF.addL(kstr[ii]);
+      kmerF.addR(kstr[ii]);
 
     kmerR = kmerF;
     kmerR.reverseComplement();
