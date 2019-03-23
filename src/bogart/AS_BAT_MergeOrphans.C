@@ -262,6 +262,15 @@ findOrphanReadPlacements(TigVector       &tigs,
         continue;
       }
 
+      //  Ignore the placement if it is to a potential orphan.
+
+      if (potentialOrphans.count(rdBtigID) > 0) {
+        if (logFileFlagSet(LOG_ORPHAN_DETAIL))
+          writeLog("findOrphanReadPlacement()-- tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - INTO POTENTIAL ORPHAN\n",
+                   rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
+        continue;
+      }
+
       //  Ignore the placement if it is too diverged from the destination tig.
 
       if (rdBtig->overlapConsistentWithTig(deviationOrphan, lo, hi, erate) < 0.5) {
@@ -667,7 +676,7 @@ mergeOrphans(TigVector &tigs,
                    targets[tt]->placed[op].frgID,
                    targets[tt]->placed[op].position.bgn, targets[tt]->placed[op].position.end);
 
-      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3" F_U32 " reads, had %3" F_U32 " reads.\n",
+      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3u reads, had %3u reads.\n",
                orphan->id(), orphan->getLength(),
                targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
                orphanSize, targetSize);
@@ -755,8 +764,9 @@ mergeOrphans(TigVector &tigs,
         writeLog("move read %u from tig %u to tig %u %u-%-u\n",
                  frg.ident,
                  orphan->id(),
-                 target->id(), frg.position.bgn, frg.position.end);
+                 placed[rr][bb].tigID, frg.position.bgn, frg.position.end);
 
+        assert(target       != NULL);
         assert(target->id() != orphan->id());
 
         target->addRead(frg, 0, false);
