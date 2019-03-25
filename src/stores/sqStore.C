@@ -168,9 +168,10 @@ sqStore::sqStore_stashReadData(sqReadData *data) {
 
   _blobsWriter->writeData(data->_blob, data->_blobLen);     //  Write the data.
 
-  data->_read->_mSegm = _blobsWriter->writtenIndex();       //  Remember where it was written.
-  data->_read->_mByte = _blobsWriter->writtenPosition();
-  data->_read->_mPart = _partitionID;                       //  (0 if not partitioned)
+  data->_read->_mSegm     = _blobsWriter->writtenIndex();       //  Remember where it was written.
+  data->_read->_mByteHigh = _blobsWriter->writtenPosition() >> 32;
+  data->_read->_mByteLow  = _blobsWriter->writtenPosition() & 0xffffffffllu;
+  data->_read->_mPart     = _partitionID;                       //  (0 if not partitioned)
 }
 
 
@@ -220,7 +221,7 @@ sqStore::sqStore_saveReadToStream(FILE *S, uint32 id) {
   //  we need to load it from dist.
 
   if (_blobsData) {
-    blob = _blobsData + read->_mByte;
+    blob = _blobsData + read->sqRead_mByte();
   }
 
   else {

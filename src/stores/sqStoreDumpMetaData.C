@@ -65,8 +65,8 @@ void
 dumpReads(sqStore *seq, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
-  fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd  segm      byte  part      flags\n");
-  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ----- --------- ----- ----------\n");
+  fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd  segm        byte  part      flags\n");
+  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ----- ----------- ----- ----------\n");
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     sqRead  *read = seq->sqStore_getRead(rid);
@@ -75,7 +75,7 @@ dumpReads(sqStore *seq, uint32 bgnID, uint32 endID) {
         (seq->sqStore_readInPartition(rid) == false))
       continue;
 
-    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %9" F_U64P " %4" F_U64P " %7s%c%c%c\n",
+    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %11" F_U64P " %4" F_U64P " %7s%c%c%c\n",
             read->sqRead_readID(),
             read->sqRead_libraryID(),
             read->sqRead_sequenceLength(),

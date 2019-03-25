@@ -157,16 +157,17 @@ sqStore::sqStore_buildPartitions(uint32 *partitionMap) {
 
     //  Write the data and update pointers and lengths.
 
-    //fprintf(stderr, "READ %7u copy blob of length %8u from position _mPart %4lu _mByte %8lu ---> partition %4u position %8lu\n",
-    //        fi, blobLen, _reads[fi]._mPart, _reads[fi]._mByte, pi, partfileslen[pi]);
+    //fprintf(stderr, "READ %7u copy blob of length %8u from position mPart %4lu mByte %8lu ---> partition %4u position %8lu\n",
+    //        fi, blobLen, _reads[fi].sqRead_mPart(), _reads[fi].sqRead_mByte(), pi, partfileslen[pi]);
 
-    //  Make a copy of the read, then modify it for the partition, then write it to the partition.
+    //  Make a copy of the read, then modify it to point to the new blob, then write it to the partition.
 
     sqRead  partRead = _reads[fi];
 
-    partRead._mSegm = 0;
-    partRead._mByte = partfileslen[pi];   //  Update the read to point to this data
-    partRead._mPart = pi;                 //  in the new blob and partition.
+    partRead._mSegm     = 0;
+    partRead._mByteHigh = partfileslen[pi] >> 32;
+    partRead._mByteLow  = partfileslen[pi]  & 0xffffffffllu;
+    partRead._mPart     = pi;
 
     //  Write the data.
 

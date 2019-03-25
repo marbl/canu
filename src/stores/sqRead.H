@@ -232,17 +232,16 @@ public:
     _clearEnd     = 0;
 
     _blobLen      = 0;
-    _unusedA      = 0;
+    _mByteHigh    = 0;
     _unusedB      = 0;
     _unusedC      = 0;
-
     _ignore       = false;
     _unusedF      = 0;
     _cExists      = false;
     _tExists      = false;
 
     _mSegm        = 0;
-    _mByte        = 0;
+    _mByteLow     = 0;
     _mPart        = 0;
   };
 
@@ -274,14 +273,18 @@ public:
   bool        sqRead_tExists(void)    { return(_tExists);  };
 
   uint64      sqRead_mSegm(void)      { return(_mSegm);    };
-  uint64      sqRead_mByte(void)      { return(_mByte);    };
+  uint64      sqRead_mByte(void)      { return((((uint64)_mByteHigh) << 32) | ((uint64)_mByteLow));    };
   uint64      sqRead_mPart(void)      { return(_mPart);    };
 
 private:
   void        sqRead_loadDataFromStream(sqReadData *readData, FILE *file);  //  'file' MUST be at correct position
 
 private:
-  //  Description of the read.
+  //  Description of the read.  10 32-bit words.
+
+  //  Each sqRead needs to know which read (raw, corrected or trimmed) is to be returned.  In
+  //  particular, if corrections are done, but there is no corrected read for this raw read,
+  //  _cseqLen will be zero, and we need to return zero.  _cExists and _tExists are used for this.
 
   uint32   _readID;
   uint32   _libraryID;
@@ -293,22 +296,23 @@ private:
   uint32   _clearEnd;
 
   uint32   _blobLen;        //  For easier loading of reads.
-  uint32   _unusedA : 8;
-  uint32   _unusedB : 8;    //  Unused, to keep this struct 64-bit aligned.
-  uint32   _unusedC : 8;    //  (It's 5 64-bit words)
-
-  //  Each sqRead needs to know which read (raw, corrected or trimmed) is to be returned.
-  //  In particular, if corrections are done, but there is no corrected read for this raw
-  //  read, _cseqLen will be zero, and we need to return zero.
-
-  uint64   _ignore  : 1;    //  Ignore this read; it's too short for our needs.
-  uint64   _unusedF : 5;
-  uint64   _cExists : 1;    //  Set by sqStore when the sqRead is returned to the user.
-  uint64   _tExists : 1;
+  uint32   _mByteHigh : 8;  //  The 8 high bits of a 40-bit mByte field.
+  uint32   _unusedB   : 8;  //  Unused, to keep this struct 64-bit aligned.
+  uint32   _unusedC   : 8;  //  (It's 5 64-bit words)
+  uint32   _ignore    : 1;  //  Ignore this read; it's too short for our needs.
+  uint32   _unusedF   : 5;
+  uint32   _cExists   : 1;  //  Set by sqStore when the sqRead is returned to the user.
+  uint32   _tExists   : 1;
 
   //  Last but not least, we need to remember where the actual data is stored in the blob.
+  //
+  //  While blobs in an unpartitioned store are limited to 1 GB (AS_BLOBFILE_MAX_SIZE), a blob in a
+  //  partitioned store needs to hold all data for one partition.  Occasionally these have exceeded
+  //  4 GB, and then fail to find the blob data.  Thus, the byte address into a blob has been
+  //  extended to 48 bits, as [_mByteHigh | _mByteLow].  The keep the struct layout the same as
+  //  before, the two values are in different locations.
 
-  uint32   _mByte;          //   4G per file    - Pointer to the blob data in the blobs file.
+  uint32   _mByteLow;       //  (very big)      - Pointer to the blob data in the blobs file.
   uint16   _mSegm;          //  65k files       - Pointer to the blobs file we are in.
   uint16   _mPart;          //  65k partitions  - If partitioned, which partition is it in.
 
