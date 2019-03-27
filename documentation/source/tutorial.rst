@@ -515,7 +515,7 @@ The header line for each sequence provides some metadata on the sequence.::
       If yes, sequence was detected as a repeat based on graph topology or read overlaps to other sequences.
 
    suggestCircular
-      If yes, sequence is likely circular.  Not implemented.
+      If yes, sequence is likely circular.  The GFA file includes the CIGAR sequence for the overlap.
 
 GRAPHS
 
