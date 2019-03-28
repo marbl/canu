@@ -43,6 +43,8 @@ double   getProcessTime(void);
 uint64   getProcessSize(void);
 uint64   getProcessSizeLimit(void);
 
+uint64   getBytesAllocated(void);
+
 uint64   getPhysicalMemorySize(void);
 
 uint64   getPageSize(void);

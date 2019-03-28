@@ -33,6 +33,15 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#if defined(__FreeBSD__)
+#include <stdlib.h>
+#include <malloc_np.h>
+#endif
+
+#if defined(JEMALLOC)
+#include "jemalloc/jemalloc.h"
+#endif
+
 #if !defined(__CYGWIN__) && !defined(_WIN32)
 #include <sys/sysctl.h>
 #endif
@@ -140,6 +149,30 @@ getProcessSizeLimit(void) {
 
   return(sz);
 }
+
+
+
+uint64
+getBytesAllocated(void) {
+  uint64 epoch     = 1;
+  size_t epochLen  = sizeof(uint64);
+  size_t active    = 0;
+  size_t activeLen = sizeof(size_t);
+
+#if defined(__FreeBSD__) || defined(JEMALLOC)
+
+  mallctl("epoch", NULL, NULL, &epoch, epochLen);
+  mallctl("stats.active", &active, &activeLen, NULL, 0);
+
+#else
+
+  active = getProcessSize();
+
+#endif
+
+  return(active);
+}
+
 
 
 #ifdef HW_PHYSMEM
