@@ -40,7 +40,7 @@ package canu::OverlapErrorAdjustment;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(readErrorDetectionConfigure readErrorDetectionCheck overlapErrorAdjustmentConfigure overlapErrorAdjustmentCheck updateOverlapStore);
+@EXPORT = qw(loadReadLengths readErrorDetectionConfigure readErrorDetectionCheck overlapErrorAdjustmentConfigure overlapErrorAdjustmentCheck updateOverlapStore);
 
 use strict;
 use warnings "all";
@@ -59,7 +59,7 @@ use canu::Grid_Cloud;
 #  Hardcoded to use utgOvlErrorRate
 
 
-sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
+sub loadReadLengths ($$$) {
     my $asm     = shift @_;
     my $maxID   = shift @_;
 
@@ -67,14 +67,9 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
     my $rlCnt   = 0;
     my $rlSum   = 0;
 
-    my $noVec   = shift @_;
-    my $noCnt   = 0;
-    my $noSum   = 0;
-
     my $bin     = getBinDirectory();
 
     $$rlVec     = "\xff" x ($maxID * 4 + 4);
-    $$noVec     = "\xff" x ($maxID * 4 + 4);
 
     print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
@@ -97,6 +92,21 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
 
     caExit("Failed to load read lengths from '$asm.seqStore'", undef)   if ($rlCnt == 0);
 
+    return($rlSum);
+}
+
+
+sub loadNumberOfOverlaps ($$$) {
+    my $asm     = shift @_;
+    my $maxID   = shift @_;
+
+    my $noVec   = shift @_;
+    my $noCnt   = 0;
+    my $noSum   = 0;
+
+    my $bin     = getBinDirectory();
+
+    $$noVec     = "\xff" x ($maxID * 4 + 4);
 
     fetchOvlStore($asm, "unitigging");
 
@@ -117,9 +127,16 @@ sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
 
     caExit("Failed to load number of overlaps per read from '$asm.ovlStore'", undef)   if ($noCnt == 0);
 
-    return($rlSum, $noSum);
+    return($noSum);
 }
 
+
+sub loadReadLengthsAndNumberOfOverlaps ($$$$) {
+    my $rlSum = loadReadLengths($_[0], $_[1], $_[2]);
+    my $noSum = loadNumberOfOverlaps($_[0], $_[1], $_[3]);
+
+    return($rlSum, $noSum);
+}
 
 
 sub readErrorDetectionConfigure ($) {
