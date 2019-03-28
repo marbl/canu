@@ -387,7 +387,9 @@ endif
 #  BUILDPROFILE used to add -pg to LDFLAGS, and remove -D_GLIBCXX_PARALLE from CXXFLAGS and LDFLAGS,
 #  and remove -fomit-frame-pointer from CXXFLAGS.  It added a bunch of complication and wasn't
 #  really used.
-
+#
+#  BUILDJEMALLOC will enable jemalloc library support.
+#
 
 
 ifeq ($(origin CXXFLAGS), undefined)
@@ -399,6 +401,11 @@ ifeq ($(origin CXXFLAGS), undefined)
   ifeq ($(BUILDDEBUG), 1)
   else
     CXXFLAGS += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+  endif
+
+  ifeq ($(BUILDJEMALLOC), 1)
+    CXXFLAGS += -DJEMALLOC -I`jemalloc-config --includedir`
+    LDFLAGS  += -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
   endif
 
   #  Enable some warnings.
