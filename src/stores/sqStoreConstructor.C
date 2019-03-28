@@ -251,7 +251,7 @@ sqStore::~sqStore() {
 
   if (_mode == sqStore_extend) {
     snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
-    while (fileExists(No) == true) {
+    while (directoryExists(No) == true) {
       V++;
       snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
     }
