@@ -74,6 +74,9 @@
 #include "falconConsensus-alignTag.H"
 #include "falconConsensus-msa.H"
 
+#include "intervalList.H"
+
+
 #undef DEBUG
 #undef DEBUG_VERBOSE
 
@@ -159,6 +162,8 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       fprintf(stderr, "Updating column from seq %d at position %d in column %d base pos %d base %d to be %c and length is %d\n", i, j, t_pos, base, tag->p_t_pos, tag->p_q_base, msa[t_pos]->deltaLen);
 #endif
     }
+
+    updateRSS();
 
     delete tags[i];
     tags[i] = NULL;
@@ -247,6 +252,8 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
     }
   }
 
+  updateRSS();
+
   //  If there is no best found, then there was no evidence aligned to the template.  Prior versions
   //  used to fail here:
   //    assert(g_best_t_pos   != -1);
@@ -311,6 +318,8 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
   reverse(fd->eqv, fd->eqv + fd->len);
   reverse(fd->pos, fd->pos + fd->len);
 
+  updateRSS();
+
   return(fd);
 }
 
@@ -320,9 +329,13 @@ falconData *
 falconConsensus::generateConsensus(falconInput   *evidence,
                                    uint32         evidenceLen) {
 
-  return(getConsensus(evidenceLen,
-                      alignReadsToTemplate(evidence, evidenceLen, minOlapIdentity, minOlapLength, restrictToOverlap),
-                      evidence[0].readLength));
+  setRSS();
+
+  alignTagList **tags = alignReadsToTemplate(evidence, evidenceLen, minOlapIdentity, minOlapLength, restrictToOverlap);
+
+  updateRSS();
+
+  return(getConsensus(evidenceLen, tags, evidence[0].readLength));
 }
 
 
@@ -356,3 +369,52 @@ falconConsensus::estimateMemoryUsage(uint32 UNUSED(evidenceLen),
 
   return(nBasesInOlaps * perEvidence + templateLen * perTemplate + slush);
 }
+
+
+
+uint64
+falconConsensus::analyzeLength(tgTig            *layout,
+                               uint32           &correctedLength,
+                               uint64           &memoryRequired) {
+
+  //  Estimate the length of the corrected read, using overlap position and depth.
+
+  intervalList<int32>   coverage;
+  uint64                basesInOlaps = 0;
+
+  for (uint32 ii=0; ii<layout->numberOfChildren(); ii++) {
+    tgPosition *pos = layout->getChild(ii);
+
+    coverage.add(pos->_min, pos->_max - pos->_min);
+
+    basesInOlaps += pos->_max - pos->_min;
+  }
+
+  intervalList<int32>   depth(coverage);
+
+  int32    bgn       = INT32_MAX;
+  int32    corLen    = 0;
+
+  for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++) {
+    if (depth.depth(dd) < minOutputCoverage) {
+      bgn = INT32_MAX;
+      continue;
+    }
+
+    if (bgn == INT32_MAX)
+      bgn = depth.lo(dd);
+
+    if (corLen < depth.hi(dd) - bgn)
+      corLen = depth.hi(dd) - bgn;
+  }
+
+  //  Save our results.
+
+  correctedLength = corLen;
+  memoryRequired  = estimateMemoryUsage(layout->numberOfChildren(),
+                                        basesInOlaps,
+                                        layout->length());
+
+  return(memoryRequired);
+}
+

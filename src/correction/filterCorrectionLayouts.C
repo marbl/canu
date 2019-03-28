@@ -67,7 +67,7 @@ public:
   uint32   origLength;
   uint32   corrLength;
 
-  uint32   memoryRequired;
+  uint64   memoryRequired;
 
   bool     usedForEvidence;
   bool     usedForCorrection;
@@ -152,66 +152,6 @@ public:
   uint32   minimum;
   uint32   maximum;
 };
-
-
-
-
-void
-analyzeLength(tgTig            *layout,
-              uint32     UNUSED(minOutputLength),
-              uint32            minOutputCoverage,
-              readStatus       *status,
-              falconConsensus  *fc) {
-
-  //  Estimate the length of the corrected read, using overlap position and depth.
-
-  intervalList<int32>   coverage;
-  uint64                basesInOlaps = 0;
-
-  for (uint32 ii=0; ii<layout->numberOfChildren(); ii++) {
-    tgPosition *pos = layout->getChild(ii);
-
-    coverage.add(pos->_min, pos->_max - pos->_min);
-
-    basesInOlaps += pos->_max - pos->_min;
-  }
-
-  intervalList<int32>   depth(coverage);
-
-  int32    bgn       = INT32_MAX;
-  int32    corLen    = 0;
-
-  for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++) {
-    if (depth.depth(dd) < minOutputCoverage) {
-      bgn = INT32_MAX;
-      continue;
-    }
-
-    if (bgn == INT32_MAX)
-      bgn = depth.lo(dd);
-
-    if (corLen < depth.hi(dd) - bgn)
-      corLen = depth.hi(dd) - bgn;
-  }
-
-  //  Save our results.
-
-  uint32  rid = layout->tigID();
-
-  status[rid].readID         = rid;
-
-  status[rid].numOlaps       = layout->numberOfChildren();
-
-  status[rid].origLength     = layout->length();
-  status[rid].corrLength     = corLen;
-
-  status[rid].memoryRequired = fc->estimateMemoryUsage(layout->numberOfChildren(),
-                                                       basesInOlaps,
-                                                       layout->length());
-
-  //fprintf(stderr, "analyze for readID %u - olaps %u lengths %u %u\n",
-  //        rid, status[rid].numOlaps, status[rid].origLength, status[rid].corrLength);
-}
 
 
 
@@ -372,7 +312,7 @@ dumpLog(FILE *F, readStatus *status, uint32 numReads) {
   fprintf(F, "readID          numOlaps    origLength    corrLength        memory  used\n");
   fprintf(F, "---------- ------------- ------------- ------------- ------------- -----\n");
   for (uint32 ti=1; ti<numReads+1; ti++)
-    fprintf(F, "%-10" F_U32P " " U32FORMAT " " U32FORMAT " " U32FORMAT " " U32FORMAT " %c %c %c\n",
+    fprintf(F, "%-10" F_U32P " " U32FORMAT " " U32FORMAT " " U32FORMAT " " U64FORMAT " %c %c %c\n",
             status[ti].readID,
             status[ti].numOlaps,
             status[ti].origLength,
@@ -507,7 +447,7 @@ main(int argc, char **argv) {
   sqStore          *seqStore = sqStore::sqStore_open(seqStoreName);
   tgStore          *corStore = new tgStore(corStoreName, 1);
 
-  falconConsensus  *fc       = new falconConsensus(0, 0, 0, 0);  //  For memory estimtes
+  falconConsensus  *fc       = new falconConsensus(minOutputCoverage, minOutputLength, 0, 0);  //  For memory estimtes
 
   uint32            numReads = seqStore->sqStore_getNumReads();
 
@@ -529,8 +469,20 @@ main(int argc, char **argv) {
   for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
     tgTig  *layout = corStore->loadTig(ti);
 
-    if (layout)
-      analyzeLength(layout, minOutputLength, minOutputCoverage, status, fc);
+    if (layout) {
+      status[ti].readID         = layout->tigID();
+
+      status[ti].numOlaps       = layout->numberOfChildren();
+
+      status[ti].origLength     = layout->length();
+      status[ti].corrLength     = 0;
+
+      status[ti].memoryRequired = 0;
+
+      fc->analyzeLength(layout,
+                        status[ti].corrLength,         //  output
+                        status[ti].memoryRequired);    //  output
+    }
 
     corStore->unloadTig(ti);
   }

@@ -121,80 +121,6 @@ sub getCorIdentity ($) {
 
 
 
-#  Return the number of correction jobs.
-#
-sub computeNumberOfCorrectionJobs ($) {
-    my $asm     = shift @_;
-    my $nJobs   = 0;
-    my $nPerJob = 0;
-
-    my $nPart    = getGlobal("corPartitions");
-    my $nReads   = getNumberOfReadsInStore($asm, "all");
-
-    $nPerJob     = int($nReads / $nPart + 1);
-    $nPerJob     = getGlobal("corPartitionMin")  if ($nPerJob < getGlobal("corPartitionMin"));
-
-    for (my $j=1; $j<=$nReads; $j += $nPerJob) {  #  We could just divide, except for rounding issues....
-        $nJobs++;
-    }
-
-    return($nJobs, $nPerJob);
-}
-
-
-
-sub estimateMemoryNeededForCorrectionJobs ($) {
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my $path    = "correction/2-correction";
-
-    my $readID   = 0;
-    my $readLen  = 0;
-    my $numOlaps = 0;
-    my $alignLen = 0;
-    my $memEst   = 0;
-
-    return   if (defined(getGlobal("corMemory")) && (getGlobal("corMemory") > 0));
-
-    fetchFile("$path/$asm.readsToCorrect.stats");
-
-    #  This is a vast overestimate of memory.  filterCorrectionLayouts itself overestimates memory
-    #  (allowing 0.5 GB more than what math says it should need), which we then multiply by 4, and
-    #  add another 2.5 GB for caching reads.  The minimum job size is thus 4.5 GB.  Hummingbird,
-    #  pacbio, with 15,000 batch size, used 2.5 GB memory.
-
-    if (-e "$path/$asm.readsToCorrect.stats") {
-        open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
-        while (<F>) {
-            if (m/Maximum\s+Memory\s+(\d+)/) {
-                $memEst = int(4 * $1 / 1073741824.0 + 2.5);
-            }
-        }
-        close(F);
-    }
-
-    if ($memEst == 0) {
-        $memEst = 12;
-    }
-
-    setGlobal("corMemory", $memEst);
-
-    my $err;
-    my $all;
-
-    ($err, $all) = getAllowedResources("", "cor", $err, $all, 0);
-
-    print STDERR "--\n";
-    print STDERR $all;
-    print STDERR "--\n";
-}
-
-
-
-
-
 sub setupCorrectionParameters ($) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
@@ -217,10 +143,6 @@ sub setupCorrectionParameters ($) {
         print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
     }
 }
-
-
-
-
 
 
 
@@ -414,11 +336,93 @@ sub generateCorrectedReadsConfigure ($) {
 
     make_path("$path/results")  if (! -d "$path/results");
 
-    estimateMemoryNeededForCorrectionJobs($asm);
+    #  Figure out the maximum memory needed to correct a read, then configure correction
+    #  jobs so they fit in memory.
 
-    my ($nJobs, $nPerJob)  = computeNumberOfCorrectionJobs($asm);  #  Does math based on number of reads and parameters.
+    my $cnsmem   = 1 * 1024 * 1024 * 1024;
+    my $mem      = getGlobal("corMemory");
+    my $par      = getGlobal("corPartitions");
+    my $rds      = getGlobal("corPartitionMin");
+    my $remain   = 0;
 
-    my $nReads             = getNumberOfReadsInStore($asm, "all");
+    fetchFile("$path/$asm.readsToCorrect.stats");
+
+    if (! -e "$path/$asm.readsToCorrect.stats") {
+        caExit("failed to find `$path/$asm.readsToCorrect.stats` to read maximum estimated memory needed for correction", undef);
+    }
+
+    #  Read the (vast overestimate) of memory needed to compute consensus for each read,
+    #  and return the maximum.  This does not include overhead for opening stores or
+    #  for loading reads into memory.
+
+    open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
+    while (<F>) {
+        if (m/Maximum\s+Memory\s+(\d+)/) {
+            $cnsmem = ($cnsmem < $1) ? $1 : $cnsmem;
+        }
+    }
+    close(F);
+
+    $cnsmem /= 1024.0;
+    $cnsmem /= 1024.0;
+    $cnsmem /= 1024.0;
+
+    $cnsmem = int($cnsmem * 1000) / 1000;
+    $remain = int(($mem - $cnsmem) * 1000) / 1000;
+
+    #  Generate a script to compute the partitioning of correction jobs, given
+    #  the memory allowed per process and memory needed for a correction.
+
+    open(F, "> $path/correctReadsPartition.sh") or caExit("can't open '$path/correctReadsPartition.sh' for writing: $!", undef);
+
+    print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
+    print F "\$bin/falconsense \\\n";
+    print F "  -partition $mem $cnsmem $par $rds \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
+    print F "  -C ../$asm.corStore \\\n";
+    print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
+    print F "  -t  " . getGlobal("corThreads") . " \\\n";
+    print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
+    print F "  -cl " . getGlobal("minReadLength") . " \\\n";
+    print F "  -oi " . getCorIdentity($asm) . " \\\n";
+    print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
+    print F "  -p ./correctReadsPartition.WORKING \\\n";
+    print F "&& \\\n";
+    print F "mv ./correctReadsPartition.WORKING.batches ./correctReadsPartition.batches \\\n";
+    print F "&& \\\n";
+    print F "exit 0\n";
+    print F "\n";
+    print F "exit 1\n";
+
+    close(F);
+
+    makeExecutable("$path/correctReadsPartition.sh");
+    stashFile("$path/correctReadsPartition.sh");
+
+    print STDERR "--\n";
+    print STDERR "-- Configuring correction jobs:\n";
+    print STDERR "--   Jobs limited to $mem GB per job (via option corMemory).\n";
+    print STDERR "--   Reads estimated to need at most $cnsmem GB for computation.\n";
+    print STDERR "--   Leaving $remain GB memory for read data.\n";
+
+    if ($remain < 1.0) {
+        #print STDERR "--\n";
+        #print STDERR "-- ERROR: Not enough memory for correction.  Increase corMemory.\n";
+        caExit("not enough memory for correction; increase corMemory", undef);
+    }
+
+    if (runCommand($path, "./correctReadsPartition.sh > ./correctReadsPartition.err 2>&1")) {
+        caExit("failed to partition reads for correction", "$path/correctReadsPartition.err");
+    }
+
+    stashFile("$path/correctReadsPartition.batches");
+    unlink("$path/correctReadsPartition.err");
+
+    #  Generate a script for computing corrected reads, using the batches file
+    #  as a template.
 
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
 
@@ -430,31 +434,38 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
-    print F "if [ \$jobid -gt $nJobs ]; then\n";
-    print F "  echo Error: Only $nJobs partitions, you asked for \$jobid.\n";
+    print F "bgnid=0\n";
+    print F "endid=0\n";
+    print F "\n";
+
+    my $nJobs = 0;
+
+    open(B, "< $path/correctReadsPartition.batches") or caExit("can't open '$path/correctReadsPartition.batches' for reading: $!", undef);
+    $_ = <B>;    #  Skip header line 1
+    $_ = <B>;    #  Skip header line 2
+    while (<B>) {
+        s/^\s+//;
+        s/\s+$//;
+
+        my ($jobID, $bgnID, $endID, $nReads, $mem) = split '\s+', $_;
+
+        print  F "if [ \$jobid -eq $jobID ] ; then\n";
+        printf F "  jobid=%04d\n", $jobID;   #  Parsed in Check() below.
+        print  F "  bgnid=$bgnID\n";
+        print  F "  endid=$endID\n";
+        print  F "fi\n";
+
+        $nJobs = $jobID;
+    }
+    close(B);
+
+    print F "\n";
+    print F "if [ \$bgnid -eq 0 ]; then\n";
+    print F "  echo Error: Invalid job \$jobid requested, must be between 1 and $nJobs.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
 
-    my  $bgnID   = 1;
-    my  $endID   = $bgnID + $nPerJob - 1;
-    my  $jobID   = 1;
-
-    while ($bgnID < $nReads) {
-        $endID  = $bgnID + $nPerJob - 1;
-        $endID  = $nReads  if ($endID > $nReads);
-
-        print F "if [ \$jobid -eq $jobID ] ; then\n";
-        print F "  bgn=$bgnID\n";
-        print F "  end=$endID\n";
-        print F "fi\n";
-
-        $bgnID = $endID + 1;
-        $jobID++;
-    }
-
-    print F "\n";
-    print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
     print F "if [ -e \"./results/\$jobid.cns\" ] ; then\n";
     print F "  echo Job finished successfully.\n";
@@ -501,7 +512,7 @@ sub generateCorrectedReadsConfigure ($) {
     print F "  -S \$seqStore \\\n";
     print F "  -C ../$asm.corStore \\\n";
     print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
-    print F "  -r \$bgn-\$end \\\n";
+    print F "  -r \$bgnid-\$endid \\\n";
     print F "  -t  " . getGlobal("corThreads") . " \\\n";
     print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
     print F "  -cl " . getGlobal("minReadLength") . " \\\n";
@@ -536,6 +547,7 @@ sub generateCorrectedReadsConfigure ($) {
     resetIteration("cor-generateCorrectedReadsConfigure");
 
   allDone:
+    stopAfter("correctionConfigure");
 }
 
 
@@ -551,32 +563,29 @@ sub generateCorrectedReadsCheck ($) {
 
     setGlobal("corStageSpace", getSizeOfSequenceStore($asm));
 
-    #  Compute expected size of jobs, set if not set already.
-
-    estimateMemoryNeededForCorrectionJobs($asm);
-
     #  Figure out if all the tasks finished correctly.
 
-    fetchFile("$path/correctReads.sh");
-
-    my ($jobs, undef) = computeNumberOfCorrectionJobs($asm);
-
-    my $currentJobID = "0001";
     my @successJobs;
     my @failedJobs;
     my $failureMessage = "";
 
-    for (my $job=1; $job <= $jobs; $job++) {
-        if (fileExists("$path/results/$currentJobID.cns")) {
-            push @successJobs, "2-correction/results/$currentJobID.cns\n";
+    fetchFile("$path/correctReads.sh");
 
-        } else {
-            $failureMessage .= "--   job 2-correction/results/$currentJobID.cns FAILED.\n";
-            push @failedJobs, $job;
+    open(F, "< $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for reading: $!", undef);
+
+    while (<F>) {
+        if (m/^\s+jobid=(\d+)$/) {
+            if (fileExists("$path/results/$1.cns")) {
+                push @successJobs, "2-correction/results/$1.cns\n";
+
+            } else {
+                $failureMessage .= "--   job 2-correction/results/$1.cns FAILED.\n";
+                push @failedJobs, $1;
+            }
         }
-
-        $currentJobID++;
     }
+
+    close(F);
 
     #  Failed jobs, retry.
 

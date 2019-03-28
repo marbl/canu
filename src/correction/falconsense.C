@@ -43,7 +43,10 @@
 
 using namespace std;
 
-
+//  Define this to recreate the falconConsensus object for each read.
+//  This allows the precise memory size needed to process each read to be reported.
+//  Performance degradation is severe.
+//#define CHECK_MEMORY
 
 
 //  Duplicated in generateCorrectionLayouts.C
@@ -53,6 +56,8 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
 
   if (readListName == NULL)
     return;
+
+  fprintf(stderr, "-- Loading list of reads to process from '%s'.\n", readListName);
 
   //  To give the list some size - if the read list has no elements between iidMin and iidMax,
   //  nothing is inserted below, and then we _think_ no read list was supplied, and try to
@@ -167,13 +172,16 @@ generateFalconConsensus(falconConsensus           *fc,
 
   uint32  bgn = 0;
   uint32  end = 0;
+  uint32  nrg = 0;
 
   for (uint32 in=0, bb=0, ee=0; ee<fd->len; ee++) {
     bool   isLower = (('a' <= fd->seq[ee]) && (fd->seq[ee] <= 'z'));
     bool   isLast  = (ee == fd->len - 1);
 
-    if ((in == true) && (isLower || isLast))       //  Report the regions we could be saving.
+    if ((in == true) && (isLower || isLast)) {     //  Report the regions we could be saving.
       fprintf(stdout, " %6u-%-6u", bb, ee + isLast);
+      nrg++;
+    }
 
     if (isLower) {                                 //  If lowercase, declare that we're not in a
       in = 0;                                      //  good region any more.
@@ -190,6 +198,15 @@ generateFalconConsensus(falconConsensus           *fc,
     }
   }
 
+  if (nrg == 0)
+    fprintf(stdout, " %6u-%-6u", 0, 0);
+
+  uint32 len = 0;
+  uint64 mem = 0;
+
+  fc->analyzeLength(layout, len, mem);
+
+  fprintf(stdout, "(%6u) memory act %10lu est %10lu act/est %.2f", len, fc->getRSS(), mem, fc->getRSS() * 100.0 / mem);
   fprintf(stdout, "\n");
 
   //  Update the layout with consensus sequence, positions, et cetera.
@@ -249,6 +266,11 @@ main(int argc, char **argv) {
   bool              outputFASTQ  = false;
   bool              outputLog    = false;
 
+  uint64            memoryLimit = 0;
+  uint64            memPerRead  = 0;
+  uint32            batchLimit  = 0;
+  uint32            readLimit   = 0;
+
   uint32            idMin = 1;
   uint32            idMax = UINT32_MAX;
   char             *readListName = NULL;
@@ -288,9 +310,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-log") == 0) {
       outputLog = true;
 
+    } else if (strcmp(argv[arg], "-partition") == 0) {
+      memoryLimit = (uint64)(strtodouble(argv[++arg]) * 1024 * 1024 * 1024);
+      memPerRead  = (uint64)(strtodouble(argv[++arg]) * 1024 * 1024 * 1024);
+      batchLimit  = strtouint32(argv[++arg]);
+      readLimit   = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-t") == 0) {   //  COMPUTE RESOURCES
-      numThreads = atoi(argv[++arg]);
+      numThreads = strtouint32(argv[++arg]);
 
 
     } else if (strcmp(argv[arg], "-f") == 0) {   //  ALGORITHM OPTIONS
@@ -305,16 +332,16 @@ main(int argc, char **argv) {
 
 
     } else if (strcmp(argv[arg], "-cc") == 0) {   //  CONSENSUS
-      minOutputCoverage = atoi(argv[++arg]);
+      minOutputCoverage = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-cl") == 0) {
-      minOutputLength = atoi(argv[++arg]);
+      minOutputLength = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-oi") == 0) {
-      minOlapIdentity = atof(argv[++arg]);
+      minOlapIdentity = strtodouble(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ol") == 0) {
-      minOlapLength = atof(argv[++arg]);
+      minOlapLength = strtodouble(argv[++arg]);
 
 
     } else if (strcmp(argv[arg], "-export") == 0) {   //  DEBUGGING
@@ -352,23 +379,27 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -fastq             enable fastq output (to 'prefix.fastq')\n");
     fprintf(stderr, "  -log               enable (debug) logging output (to 'prefix.log')\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "RESOURCE PARAMETERS\n");
+    fprintf(stderr, "RESOURCE PARAMETERS:\n");
     fprintf(stderr, "  -t numThreads      number of compute threads to use (default: all)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "ALGORITHM PARAMETERS\n");
+    fprintf(stderr, "ALGORITHM PARAMETERS:\n");
     fprintf(stderr, "  -f                 align evidence to the full read, ignore overlap position\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "READ SELECTION\n");
+    fprintf(stderr, "READ SELECTION:\n");
     fprintf(stderr, "  -R readsToCorrect  only process reads listed in file 'readsToCorrect'\n");
     fprintf(stderr, "  -r bgn[-end]       only process reads from ID 'bgn' to 'end' (inclusive)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "CONSENSUS PARAMETERS\n");
+    fprintf(stderr, "CONSENSUS PARAMETERS:\n");
     fprintf(stderr, "  -cc coverage       output:   minimum consensus coverage needed call a corrected base\n");
     fprintf(stderr, "  -cl length         output:   minimum length of corrected region to output as a corrected read\n");
     fprintf(stderr, "  -oi identity       evidence: minimum identity of an aligned evidence read overlap\n");
     fprintf(stderr, "  -ol length         evidence: minimum length   of an aligned evidence read overlap\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "DEBUGGING SUPPORT\n");
+    fprintf(stderr, "PARTITIONING SUPPORT:\n");
+    fprintf(stderr, "  -partition M m R   configure jobs to fit in M GB memory with not more than R reads per batch,\n");
+    fprintf(stderr, "                     allowing m GB memory for processing.  write output to 'prefix.batches'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "DEBUGGING SUPPORT:\n");
     fprintf(stderr, "  -export name       write the data used for the computation to file 'name'\n");
     fprintf(stderr, "  -import name       compute using the data in file 'name'\n");
     fprintf(stderr, "\n");
@@ -380,13 +411,12 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
   omp_set_num_threads(numThreads);
 
   //  Probably not needed, as sqCache explicitly loads only sqRead_raw, but
   //  setting the default version guarantees that we access only 'raw' reads.
 
-  sqRead_setDefaultVersion(sqRead_corrected);
+  sqRead_setDefaultVersion(sqRead_raw);
 
   //  Open inputs.
 
@@ -411,6 +441,8 @@ main(int argc, char **argv) {
 
   loadReadList(readListName, idMin, idMax, readList);   //  Further limit to a set of good reads.
 
+  //  Open any import or export files.
+
   FILE *exportFile = NULL;
   FILE *importFile = NULL;
 
@@ -429,22 +461,28 @@ main(int argc, char **argv) {
   FILE *logFile = NULL;
   FILE *cnsFile = NULL;
   FILE *seqFile = NULL;
+  FILE *batFile = NULL;
 
-  cnsFile = AS_UTL_openOutputFile(outputPrefix, '.', "cns",   outputCNS);
-  seqFile = AS_UTL_openOutputFile(outputPrefix, '.', "fastq", outputFASTQ);
-  logFile = AS_UTL_openOutputFile(outputPrefix, '.', "log",   outputLog);
+  cnsFile = AS_UTL_openOutputFile(outputPrefix, '.', "cns",     outputCNS);
+  seqFile = AS_UTL_openOutputFile(outputPrefix, '.', "fastq",   outputFASTQ);
+  logFile = AS_UTL_openOutputFile(outputPrefix, '.', "log",     outputLog);
+  batFile = AS_UTL_openOutputFile(outputPrefix, '.', "batches", memoryLimit > 0);
 
   //  Initialize processing.
+  //
+  //  One might be tempted to NOT create a seqCache or a falconConsensus object if we're only
+  //  partitioning, but that would be wrong, because partitioning uses these objects to determine
+  //  the base amount of memory needed.
 
   falconConsensus           *fc = new falconConsensus(minOutputCoverage, minOutputLength, minOlapIdentity, minOlapLength, restrictToOverlap);
   map<uint32, sqRead *>      reads;
   map<uint32, sqReadData *>  datas;
 
-  //  And process.
-
-  fprintf(stdout, "    read    read evidence     corrected\n");
-  fprintf(stdout, "      ID  length    reads       regions\n");
-  fprintf(stdout, "-------- ------- -------- ------------- ...\n");
+  if (memoryLimit == 0) {
+    fprintf(stdout, "    read    read evidence     corrected\n");
+    fprintf(stdout, "      ID  length    reads       regions\n");
+    fprintf(stdout, "-------- ------- -------- ------------- ...\n");
+  }
 
   //
   //  If input from a package file, load and process data until there isn't any more.
@@ -507,9 +545,121 @@ main(int argc, char **argv) {
   }
 
   //
+  //  If a memory limit, set up partitions.
+  //
+  //  This computes spands of reads such that the memory needed to load
+  //  all the overlapping reads is less than some limit.
+  //
+
+  else if (memoryLimit > 0) {
+    uint32   lastID   = seqStore->sqStore_getNumReads();
+    uint32  *readLens = new uint32 [lastID + 1];
+    uint32  *readRefs = new uint32 [lastID + 1];
+
+    //  Load read lengths, convert to an approximate size they'll use when loaded, and initialize references to zero.
+    //
+    //  It's not ideal, since we use lots of insider knowledge.
+    //    12          - chunk header, chunk length, possibly length of data
+    //    Length / 4  - 2-bit encoded bases
+    //    4           - padding on chunk
+    //    cacheEntry  - storage internal to the cache.
+
+    for (uint32 ii=0; ii <= lastID; ii++) {
+      readLens[ii] = 12 + seqStore->sqStore_getRead(ii)->sqRead_sequenceLength(sqRead_raw) / 4 + 4 + sizeof(sqCacheEntry);   //  Round up, and 3 extra uint32.
+      readRefs[ii] = 0;
+    }
+
+    //  The user is requesting batchLimit batches with at least readLimit reads per batch.
+    //  Further, each batch can use no more than memoryLimit GB, assuming memPerRead GB to actually compute the corrected read.
+
+    uint32  readsPerBatch = lastID / batchLimit + 1;
+
+    if (readList.size() > 0)
+      readsPerBatch = readList.size() / batchLimit + 1;
+
+    if (readsPerBatch < readLimit)
+      readsPerBatch = readLimit;
+
+    //  Analyze each layout, remembering how much memory is needed.
+
+    uint64   memUsedBase = getBytesAllocated();  //  For seqCache, falconConsensus and misc gunk.
+    uint64   memUsed     = memUsedBase;
+    uint32   nReads      = 0;
+    uint32   batchNum    = 1;
+    uint32   bgnID       = idMin;
+
+    if (memUsedBase + memPerRead > memoryLimit) {
+      fprintf(stderr, "\n");
+      fprintf(stderr, "ERROR:  Need at least M=%6.3f GB (with m=%6.3f GB) to compute corrections.\n",
+              (memUsedBase + memPerRead) / 1024.0 / 1024.0 / 1024.0,
+              memPerRead  / 1024.0 / 1024.0 / 1024.0);
+      exit(1);
+    }
+
+    fprintf(batFile, "batch     bgnID     endID  nReads  memory (base memory %.3f GB)\n", memUsedBase / 1024.0 / 1024.0 / 1024.0);
+    fprintf(batFile, "----- --------- --------- ------- -------\n");
+
+    for (uint32 ii=idMin; ii<=idMax; ii++) {
+      if ((readList.size() > 0) &&      //  Skip reads not on the read list,
+          (readList.count(ii) == 0))    //  if there actually is a read list.
+        continue;
+
+      tgTig *layout = corStore->loadTig(ii);
+
+      if (layout == NULL)
+        continue;
+
+      //  Compute how much memory this tig needs needs to store it's reads.
+      //  This is an overestimate as it includes singleton reads.  Correctly
+      //  accounting for not loading singleton reads will be tricky because
+      //  removing earlier tigs could turn reads to singletons.
+
+      uint64   memAdded = readLens[ii];
+
+      readRefs[ii]++;
+
+      for (uint32 cc=0; cc<layout->numberOfChildren(); cc++) {
+        tgPosition  *child = layout->getChild(cc);
+        uint32       rdID  = child->ident();
+
+        if (readRefs[rdID] == 0)
+          memAdded += readLens[rdID];
+
+        readRefs[rdID]++;
+      }
+
+      corStore->unloadTig(layout->tigID());
+
+      //  If we're over the limit, report the range and reset.
+
+      if ((memUsed + memAdded > memoryLimit) ||
+          (nReads + 1 > readsPerBatch)) {
+        fprintf(batFile, "%5u %9u %9u %7u %7.3f\n", batchNum, bgnID, ii-1, nReads, memUsed / 1024.0 / 1024.0 / 1024.0);
+        batchNum += 1;
+        bgnID     = ii;
+        memUsed   = memUsedBase;
+        nReads    = 0;
+
+        for (uint32 ii=0; ii <= lastID; ii++)
+          readRefs[ii] = 0;
+      }
+
+      memUsed += memAdded;
+      nReads  += 1;
+    }
+
+    //  And one final report for the last block.
+
+    fprintf(batFile, "%5u %9u %9u %7u %7.3f\n", batchNum, bgnID, idMax, nReads, memUsed / 1024.0 / 1024.0 / 1024.0);
+
+    delete [] readRefs;
+    delete [] readLens;
+  }
+
+  //
   //  Otherwise, load and process from a store, the usual processing loop.
   //
-  //
+
   else {
 
     //  First, scan all tigs we're going to process and count the number
@@ -537,6 +687,11 @@ main(int argc, char **argv) {
 
     //  Now, with all (most) of the read sequences loaded, process.
 
+#ifdef CHECK_MEMORY
+    delete fc;
+    fc = NULL;
+#endif
+
     for (uint32 ii=idMin; ii<=idMax; ii++) {
       if ((readList.size() > 0) &&      //  Skip reads not on the read list,
           (readList.count(ii) == 0))    //  if there actually is a read list.
@@ -545,6 +700,10 @@ main(int argc, char **argv) {
       tgTig *layout = corStore->loadTig(ii);
 
       if (layout) {
+#ifdef CHECK_MEMORY
+        fc = new falconConsensus(minOutputCoverage, minOutputLength, minOlapIdentity, minOlapLength, restrictToOverlap);
+#endif
+
         generateFalconConsensus(fc,
                                 layout,
                                 seqCache,
@@ -552,6 +711,11 @@ main(int argc, char **argv) {
                                 datas,
                                 trimToAlign,
                                 minOlapLength);
+
+#ifdef CHECK_MEMORY
+        delete fc;
+        fc = NULL;
+#endif
 
         if (cnsFile)
           layout->saveToStream(cnsFile);
@@ -569,6 +733,7 @@ main(int argc, char **argv) {
   AS_UTL_closeFile(logFile);
   AS_UTL_closeFile(cnsFile);
   AS_UTL_closeFile(seqFile);
+  AS_UTL_closeFile(batFile);
 
   AS_UTL_closeFile(exportFile);
   AS_UTL_closeFile(importFile);

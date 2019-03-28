@@ -72,6 +72,8 @@
 
 #include "AS_global.H"
 
+#include "tgStore.H"  //  for tgTig
+
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -84,6 +86,8 @@ using namespace std;
 
 #include "falconConsensus-alignTag.H"
 #include "falconConsensus-msa.H"
+
+#include "system.H"
 
 #ifndef FALCONCONSENSUS_H
 #define FALCONCONSENSUS_H
@@ -186,6 +190,8 @@ public:
     minOlapIdentity     = minOlapIdentity_;
     minOlapLength       = minOlapLength_;
     restrictToOverlap   = restrictToOverlap_;
+    minRSS              = 0;
+    maxRSS              = 0;
   };
 
   ~falconConsensus() {
@@ -196,6 +202,35 @@ private:
                            alignTagList **tags,
                            uint32         templateLen);
 
+private:
+  void        setRSS(void) {
+    uint64 active    = getBytesAllocated();
+
+    //fprintf(stderr, "setRSS()-- %lu\n", active);
+
+    minRSS = active;
+    maxRSS = active;
+  };
+
+  void        updateRSS(void) {
+    uint64 active    = getBytesAllocated();
+
+    if (active < minRSS)
+      minRSS = active;
+
+    if (maxRSS < active)
+      maxRSS = active;
+
+    //fprintf(stdout, "updateRSS()-- minRSS %lu maxRSS %lu (delta %lu)\n", minRSS, maxRSS, active - before);
+  };
+
+public:
+  uint64      getRSS(void) {
+    return(maxRSS - minRSS);
+  };
+
+
+
 public:
   falconData *generateConsensus(falconInput         *evidence,
                                 uint32               evidenceLen);
@@ -203,6 +238,10 @@ public:
   uint64      estimateMemoryUsage(uint32 evidenceLen,
                                   uint64 nBasesInOlaps,
                                   uint32 templateLen);
+
+  uint64      analyzeLength(tgTig        *layout,
+                            uint32       &correctedLength,
+                            uint64       &memoryNeeded);
 
 private:
   uint32               minOutputCoverage;
@@ -214,6 +253,9 @@ private:
   bool                 restrictToOverlap;
 
   msa_vector_t         msa;
+
+  uint64               minRSS;
+  uint64               maxRSS;
 };
 
 

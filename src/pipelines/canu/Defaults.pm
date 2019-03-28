@@ -1603,6 +1603,7 @@ sub checkParameters () {
                          "overlap",
                          "overlapStoreConfigure",
                          "overlapStore",
+                         "correctionConfigure",
                          "correction",
                          "trimming",
                          "unitig",
