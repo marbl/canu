@@ -375,7 +375,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "  -rc                 alias for -reverse -complement\n");
       fprintf(stderr, "  -upcase\n");
       fprintf(stderr, "  -downcase\n");
-      fprintf(stderr, "  -length min max     print sequence if it is at least 'min' bases and at most 'max' bases long\n");
+      fprintf(stderr, "  -length min-max     print sequence if it is at least 'min' bases and at most 'max' bases long\n");
       fprintf(stderr, "  \n");
       fprintf(stderr, "                      a 'baselist' is a set of integers formed from any combination\n");
       fprintf(stderr, "                      of the following, seperated by a comma:\n");
