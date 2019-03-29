@@ -286,7 +286,7 @@ loadFASTQ(char                 *L,
   //  As with the base, we need to suck in the rest of the longer-than-allowed QV string.  But we don't need to report it
   //  or do anything fancy, just advance the file pointer.
 
-  if ((Q[AS_MAX_READLEN-1] != 0) && (Q[AS_MAX_READLEN-1] != '\n')) {
+  if ((L[AS_MAX_READLEN-1] != 0) && (L[AS_MAX_READLEN-1] != '\n')) {
     char    *overflow = new char [1048576];
 
     do {
