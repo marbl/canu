@@ -577,9 +577,7 @@ sub setWorkDirectoryShellCode ($) {
     }
 
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
-        my $taskid = getGlobal("gridEngineTaskID");
-
-        $code .= "if [ z\$PBS_O_WORKDIR != z -a z\$$taskid != z ] ; then\n";
+        $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
         $code .= "  cd \$PBS_O_WORKDIR\n";
         $code .= "fi\n";
     }
