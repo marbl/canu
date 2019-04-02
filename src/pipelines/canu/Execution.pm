@@ -1019,7 +1019,7 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $arrayOpt \\\n";
     print F " -- " if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     print F " -iscript_name:string=\"$script.sh\" -icanu_path:string=\"$path\" fetch_and_run \\\n" if (uc(getGlobal("gridEngine")) eq "DNANEXUS");
-    print F "  ./$script.sh $arrayOff \\\n"                                                        if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
+    print F "  `pwd`/$script.sh $arrayOff \\\n"                                                        if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
     print F "> ./$script.jobSubmit-$idx.out 2>&1\n";
     close(F);
 
