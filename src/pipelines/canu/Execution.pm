@@ -820,8 +820,10 @@ sub buildGridArray ($$$$) {
     #  New versions of PBS have this behavior too
 
     if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS") {
-        $opt = ""   if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
-        $off = $bgn if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
+        if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/)) {
+            $opt = "";
+            $off = $bgn;
+        }
     }
     # DNA nexus doesn't have arrays and only supports 1 job, which we use to pass the identifier
     # Set the offset to blank since it is not supported as well
