@@ -656,10 +656,8 @@ sub alignGFA ($) {
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
-        if ($runGrid) {
-            print F setWorkDirectoryShellCode($path);
-            print F "\n";
-        }
+        print F setWorkDirectoryShellCode($path);
+        print F "\n";
         print F fetchTigStoreShellCode("unitigging/4-unitigger", $asm, "utgStore", "001", "");
         print F "\n";
         print F fetchTigStoreShellCode("unitigging/4-unitigger", $asm, "utgStore", "002", "");
