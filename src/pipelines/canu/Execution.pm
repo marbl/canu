@@ -535,6 +535,7 @@ sub setWorkDirectory ($$) {
 
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
         chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
+        delete $ENV{"PBS_O_WORKDIR"}; 
     }
 
     #  Now move into the assembly directory.
