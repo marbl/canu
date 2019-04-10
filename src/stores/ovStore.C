@@ -208,7 +208,7 @@ ovStore::loadBlockOfOverlaps(ovOverlap *ovl,
 
     for (uint32 oo=0; oo<_index[_curID]._numOlaps; oo++) {
       if (_bof->readOverlap(ovl + ovlLen) == false) {
-        fprintf(stderr, "ovStore::loadOverlapsForRead()-- Failed to load overlap %u out of %u for read %u.\n", oo, _index[_curID]._numOlaps, _curID);
+        fprintf(stderr, "ovStore::loadBLockOfOverlaps()-- Failed to load overlap %u out of %u for read %u.\n", oo, _index[_curID]._numOlaps, _curID);
         exit(1);
       }
 
