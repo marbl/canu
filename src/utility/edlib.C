@@ -193,6 +193,11 @@ EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLeng
     result.alignmentLength = 0;
     result.alphabetLength = 0;
 
+    if ((queryLength  <= 0) ||
+        (targetLength <= 0)) {
+      fprintf(stderr, "ERROR:  edlibAlign()  queryLength  = %d\n", queryLength);
+      fprintf(stderr, "ERROR:                targetLength = %d\n", targetLength);
+    }
     assert(queryLength > 0);
     assert(targetLength > 0);
 
