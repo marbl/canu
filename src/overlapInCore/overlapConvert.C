@@ -100,7 +100,7 @@ main(int argc, char **argv) {
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     ovFile      *of = new ovFile(seqStore, files[ff], ovFileFull);
-    ovOverlap   ov(seqStore);
+    ovOverlap   ov;
 
     while (of->readOverlap(&ov))
       fputs(ov.toString(ovStr, dt, true), stdout);

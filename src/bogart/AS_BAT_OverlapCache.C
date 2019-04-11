@@ -540,9 +540,9 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
   for (uint32 rr=0; rr<RI->numReads()+1; rr++)
     _ovsMax = max(_ovsMax, ovlStore->numOverlaps(rr));
 
-  _ovs     = ovOverlap::allocateOverlaps(NULL /* seqStore */, _ovsMax);
-  _ovsSco  = new uint64 [_ovsMax];
-  _ovsTmp  = new uint64 [_ovsMax];
+  _ovs     = new ovOverlap [_ovsMax];
+  _ovsSco  = new uint64    [_ovsMax];
+  _ovsTmp  = new uint64    [_ovsMax];
 
 
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {

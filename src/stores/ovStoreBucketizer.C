@@ -221,8 +221,8 @@ main(int argc, char **argv) {
   memset(sliceSize, 0, sizeof(uint64)   * (config->numSlices() + 1));
 
   ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
-  ovOverlap      foverlap(seq);
-  ovOverlap      roverlap(seq);
+  ovOverlap      foverlap;
+  ovOverlap      roverlap;
 
   //  And process each input!
 

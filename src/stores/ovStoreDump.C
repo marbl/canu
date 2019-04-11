@@ -818,7 +818,7 @@ main(int argc, char **argv) {
 
   uint32     ovlLen   = 0;
   uint32     ovlMax   = 65536;
-  ovOverlap *ovl      = ovOverlap::allocateOverlaps(seqStore, ovlMax);
+  ovOverlap *ovl      = new ovOverlap [ovlMax];
 
   //
   //  Fix up ranges and restrict the overlaps.

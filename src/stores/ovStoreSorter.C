@@ -221,7 +221,7 @@ main(int argc, char **argv) {
 
   //  Allocatge space for overlaps, and load them.
 
-  ovOverlap *ovls   = ovOverlap::allocateOverlaps(seq, totOvl);
+  ovOverlap *ovls    = new ovOverlap [totOvl];
   uint64     ovlsLen = 0;
 
   for (uint32 bb=0; bb<=config->numBuckets(); bb++)

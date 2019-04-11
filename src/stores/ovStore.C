@@ -255,7 +255,7 @@ ovStore::loadOverlapsForRead(uint32       id,
     delete [] ovl;
 
     ovlMax = _index[_curID]._numOlaps * 1.2;
-    ovl    = ovOverlap::allocateOverlaps(_seq, ovlMax);
+    ovl    = new ovOverlap [ovlMax];
   }
 
   //  If we're not in the correct file, open the correct file.

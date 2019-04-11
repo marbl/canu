@@ -83,7 +83,7 @@ main(int argc, char **argv) {
   char       *ovStr = new char [1024];
 
   sqStore    *seqStore = sqStore::sqStore_open(seqName);
-  ovOverlap   ov(seqStore);
+  ovOverlap   ov;
   ovFile     *of = new ovFile(seqStore, outName, ovFileFullWrite);
 
 

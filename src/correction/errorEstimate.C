@@ -88,7 +88,7 @@ main(int argc, char **argv) {
 
   // read the file and store best hits
   char  ovStr[1024];
-  ovOverlap   ov(NULL);
+  ovOverlap   ov;
   map<uint32, uint32> readToLength;
   map<uint32, double> readToIdy;
   double mean, median, stddev, mad;

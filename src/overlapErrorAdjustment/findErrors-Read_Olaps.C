@@ -46,7 +46,7 @@ Read_Olaps(feParameters *G, sqStore *seqStore) {
   G->olaps    = new Olap_Info_t [numolaps];
   G->olapsLen = 0;
 
-  ovOverlap  olap(seqStore);
+  ovOverlap  olap;
 
   while (ovs->readOverlap(&olap)) {
     G->olaps[G->olapsLen].a_iid  =  olap.a_iid;

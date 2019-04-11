@@ -828,12 +828,12 @@ main(int argc, char **argv) {
   //
   //  instead of fixed cutoff on age, use max memory usage and cull the oldest to remain below
 
-  uint32       overlapsMax = BATCH_SIZE;
+  uint32      overlapsMax = BATCH_SIZE;
 
-  uint32       overlapsALen = 0;
-  uint32       overlapsBLen = 0;
-  ovOverlap  *overlapsA    = ovOverlap::allocateOverlaps(seqStore, overlapsMax);
-  ovOverlap  *overlapsB    = ovOverlap::allocateOverlaps(seqStore, overlapsMax);
+  uint32      overlapsALen = 0;
+  uint32      overlapsBLen = 0;
+  ovOverlap  *overlapsA    = new ovOverlap [overlapsMax];
+  ovOverlap  *overlapsB    = new ovOverlap [overlapsMax];
 
   //  Set the globals
 

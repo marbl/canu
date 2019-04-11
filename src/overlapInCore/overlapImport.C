@@ -202,7 +202,7 @@ main(int argc, char **argv) {
 
   char          *S     = new char [1024];
   splitToWords   W;
-  ovOverlap     ov(seqStore);
+  ovOverlap     ov;
 
   ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(seqStore, ovlFileName, ovFileFullWrite);
   ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, seqStore);

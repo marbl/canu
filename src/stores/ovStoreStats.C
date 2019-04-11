@@ -257,7 +257,7 @@ main(int argc, char **argv) {
   //  Compute!
 
   uint32                 overlapsMax = 65536;
-  ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(seqStore, overlapsMax);
+  ovOverlap             *overlaps    = new ovOverlap [overlapsMax];
 
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 

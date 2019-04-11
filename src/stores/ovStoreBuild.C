@@ -193,7 +193,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Allocating space for " F_U64 " overlaps.\n", ovlsTotal);
   fprintf(stderr, "\n");
 
-  ovOverlap      *ovls       = ovOverlap::allocateOverlaps(seq, ovlsTotal);
+  ovOverlap      *ovls       = new ovOverlap [ovlsTotal];
   uint64          ovlsInput  = 0;
   uint64          ovlsLoaded = 0;
 
@@ -215,8 +215,8 @@ main(int argc, char **argv) {
               (ovlsInput == 0) ? (100.0) : (100.0 * ovlsLoaded / ovlsInput),
               inputName);
 
-      ovOverlap foverlap(seq);
-      ovOverlap roverlap(seq);
+      ovOverlap foverlap;
+      ovOverlap roverlap;
 
       ovFile   *inputFile = new ovFile(seq, inputName, ovFileFull);
 

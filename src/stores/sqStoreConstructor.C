@@ -37,6 +37,7 @@
  */
 
 #include "sqStore.H"
+#include "ovOverlap.H"
 
 #include "files.H"
 
@@ -73,6 +74,10 @@ sqStore::sqStore(char const    *storePath,
   char    nameL[FILENAME_MAX+1];
   char    nameR[FILENAME_MAX+1];
   char    nameB[FILENAME_MAX+1];
+
+  //  Set the sqStore pointer in an overlap.
+
+  ovOverlap::sqStoreAttach(this);
 
   //  Clear ourself, to make valgrind happier.
 

@@ -181,29 +181,13 @@ enum ovOverlapDisplayType {
 
 
 class ovOverlap {
-private:
-  ovOverlap() {
-    g = NULL;
-    clear();
-  };
-
 public:
-  ovOverlap(sqStore *seq) {
-    g = seq;
-    clear();
-  };
-
-  ~ovOverlap() {
-  };
+  ovOverlap()    { clear(); };
+  ~ovOverlap()   {          };
 
   static
-  ovOverlap  *allocateOverlaps(sqStore *seq, uint64 num) {
-    ovOverlap *r = new ovOverlap [num];
-
-    for (uint32 ii=0; ii<num; ii++)
-      r[ii].g = seq;
-
-    return(r);
+  void        sqStoreAttach(sqStore *seq) {
+    ovOverlap::g = seq;
   };
 
 

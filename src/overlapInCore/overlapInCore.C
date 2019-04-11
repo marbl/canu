@@ -161,7 +161,7 @@ Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *seqStore) {
 
   WA->overlapsLen = 0;
   WA->overlapsMax = 1024 * 1024 / sizeof(ovOverlap);
-  WA->overlaps    = ovOverlap::allocateOverlaps(WA->seqStore, WA->overlapsMax);
+  WA->overlaps    = new ovOverlap [WA->overlapsMax];
 
   allocated += sizeof(ovOverlap) * WA->overlapsMax;
 
