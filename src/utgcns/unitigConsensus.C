@@ -1083,7 +1083,7 @@ unitigConsensus::findCoordinates(void) {
 
       if ((bgn == 0) &&
           (len < ext5 + origlen + ext3)) {
-        int32 endnew = bgn + (origend - origbgn) - ext5 - ext3;
+        int32 endnew = bgn + (origend - origbgn) + ext5 + ext3;
 
         if (showPlacement())
           fprintf(stderr, "reset position from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
@@ -1091,7 +1091,7 @@ unitigConsensus::findCoordinates(void) {
                   bgn, endnew,
                   len, ext5, origlen, ext3);
 
-        end = (endnew < (int32)_tig->length()) ? _tig->length() : endnew;
+        end = (endnew < (int32)_tig->length()) ? endnew : _tig->length();
         len = end - bgn;
       }
 
