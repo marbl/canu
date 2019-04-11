@@ -1043,12 +1043,12 @@ sub convertToJobRange (@) {
     #  Expand the ranges into a simple list of job ids.
 
     foreach my $j (@_) {
-        if        ($j =~ m/^(\d+)-(\d+)$/) {
+        if        ($j =~ m/^0*(\d+)-0*(\d+)$/) {
             for (my $a=$1; $a<=$2; $a++) {
                 push @jobs, $a;
             }
 
-        } elsif ($j =~ m/^(\d+)$/) {
+        } elsif ($j =~ m/^0*(\d+)$/) {
             push @jobs, $1;
 
         } else {
@@ -1095,7 +1095,7 @@ sub convertToJobRange (@) {
         undef @jobs;
 
         foreach my $j (@jobsA) {
-            if ($j =~ m/^(\d+)-(\d+)$/) {
+            if ($j =~ m/^0*(\d+)-0*(\d+)$/) {
                 my $b = $1;
                 my $e = $2;
 
