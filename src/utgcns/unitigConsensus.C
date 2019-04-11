@@ -1049,9 +1049,9 @@ unitigConsensus::findCoordinates(void) {
     int32         origend = _cnspos[ii].max();
     int32         origlen = origend - origbgn;
 
-    int32         ext5    = readLen * 0.05;
-    int32         ext3    = readLen * 0.05;
-    double        era     = _errorRate;
+    int32         ext5    = readLen * 0.01;  //  Try an initial alignment nice and tight.  This is
+    int32         ext3    = readLen * 0.01;  //  important for the first/last reads so we get them
+    double        era     = _errorRate;      //  aligned at the end of the tig.
 
     if (showPlacement()) {
       fprintf(stderr, "\n");
