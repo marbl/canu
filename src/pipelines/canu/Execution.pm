@@ -357,9 +357,6 @@ sub getJobIDShellCode () {
     $string .= "#  Discover the job ID to run, from either a grid environment variable and a\n";
     $string .= "#  command line offset, or directly from the command line.\n";
     $string .= "#\n";
-    $string .= "if [ x\$PBS_JOBID != x -a x\$$taskenv = x ]; then\n"   if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS");
-    $string .= "  $taskenv=1\n"                                        if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS");
-    $string .= "fi\n"                                                  if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS");
     $string .= "if [ x\$$taskenv = x -o x\$$taskenv = xundefined -o x\$$taskenv = x0 ]; then\n";
     $string .= "  baseid=\$1\n";           #  Off grid
     $string .= "  offset=0\n";
@@ -538,6 +535,7 @@ sub setWorkDirectory ($$) {
 
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
         chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
+        delete $ENV{"PBS_O_WORKDIR"}; 
     }
 
     #  Now move into the assembly directory.
@@ -577,9 +575,7 @@ sub setWorkDirectoryShellCode ($) {
     }
 
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
-        my $taskid = getGlobal("gridEngineTaskID");
-
-        $code .= "if [ z\$PBS_O_WORKDIR != z -a z\$$taskid != z ] ; then\n";
+        $code .= "if [ z\$PBS_O_WORKDIR != z ] ; then\n";
         $code .= "  cd \$PBS_O_WORKDIR\n";
         $code .= "fi\n";
     }
@@ -822,8 +818,10 @@ sub buildGridArray ($$$$) {
     #  New versions of PBS have this behavior too
 
     if (uc(getGlobal("gridEngine")) eq "PBSPRO" || uc(getGlobal("gridEngine")) eq "PBS") {
-        $opt = ""   if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
-        $off = $bgn if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
+        if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/)) {
+            $opt = "";
+            $off = $bgn;
+        }
     }
     # DNA nexus doesn't have arrays and only supports 1 job, which we use to pass the identifier
     # Set the offset to blank since it is not supported as well
@@ -1019,7 +1017,7 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $arrayOpt \\\n";
     print F " -- " if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     print F " -iscript_name:string=\"$script.sh\" -icanu_path:string=\"$path\" fetch_and_run \\\n" if (uc(getGlobal("gridEngine")) eq "DNANEXUS");
-    print F "  ./$script.sh $arrayOff \\\n"                                                        if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
+    print F "  `pwd`/$script.sh $arrayOff \\\n"                                                        if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
     print F "> ./$script.jobSubmit-$idx.out 2>&1\n";
     close(F);
 
