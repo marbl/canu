@@ -905,7 +905,7 @@ sub buildResourceOption ($$) {
 
     if (getGlobal("gridEngineMemoryPerJob") != "1") {    #  If anything but "1", divide the memory request
         $m /= $t;                                        #  by the number of slots we request.  Default behavior
-    }                                                    #  for SGE and slurm when mem-per-cpu is used.
+    }                                                    #  for SGE and Slurm when mem-per-cpu is used.
 
     if (uc(getGlobal("gridEngine")) eq "LSF") {                                   #  But then reset for LSF,
         $m = $m / 1024          if (getGlobal("gridEngineMemoryUnits") eq "t");   #  because LSF wants to

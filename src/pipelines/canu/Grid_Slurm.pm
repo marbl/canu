@@ -87,17 +87,21 @@ sub configureSlurm () {
     setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");                                        ## NB: SLURM default joins STDERR & STDOUT if no -e specified
     setGlobalIfUndef("gridEngineResourceOption",             "--cpus-per-task=THREADS --mem-per-cpu=MEMORY");
+    #setGlobalIfUndef("gridEngineMemoryPerJob",              "0");   #  Do NOT set; default set below
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "squeue -h -o\%F -n \"WAIT_TAG\" | uniq");    ## TODO: manually verify this in all cases
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "squeue -h -o\%i -n \"WAIT_TAG\"");     ## TODO: manually verify this in all cases
     setGlobalIfUndef("gridEngineTaskID",                     "SLURM_ARRAY_TASK_ID");
     setGlobalIfUndef("gridEngineArraySubmitID",              "%A_%a");
     setGlobalIfUndef("gridEngineJobID",                      "SLURM_JOB_ID");
 
-    if (getGlobal("gridEngineResourceOption") !~ m/mem-per-cpu/i) {
-        print STDERR "-- Enable memory-per-job mode.\n";
-        setGlobalIfUndef("gridEngineMemoryPerJob", "1");
+    #  Set memory-per-job if configured and the user hasn't supplied a value.
+    #  Otherwise, leave it in the default off state.
+    if (!defined(getGlobal("gridEngineMemoryPerJob"))) {
+        if (getGlobal("gridEngineResourceOption") !~ m/mem-per-cpu/i) {
+            print STDERR "-- Enable memory-per-job mode.\n";
+            setGlobalfUnset("gridEngineMemoryPerJob", "1");
+        }
     }
-
 
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys

@@ -168,6 +168,7 @@ sub configureSGE () {
     setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-j y -o");
     setGlobalIfUndef("gridEngineResourceOption",             "");     #"-pe threads THREADS -l mem=MEMORY");
+    #setGlobalIfUndef("gridEngineMemoryPerJob",              "0");    #  Do NOT set; default set below
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
     setGlobalIfUndef("gridEngineTaskID",                     "SGE_TASK_ID");
@@ -264,7 +265,9 @@ sub configureSGE () {
             }
         }
 
-        if (defined($mem)) {
+        #  Set memory-per-job if configured and the user hasn't supplied a value.
+        #  Otherwise, leave it in the default off state.
+        if (defined($mem) && !defined(getGlobal("gridEngineMemoryPerJob"))) {
             open(F, "qconf -sc |");
             while (<F>) {
                 my @vals = split '\s+', $_;
