@@ -407,7 +407,14 @@ hapData::initializeKmerTable(void) {
 
   //  Construct an exact lookup table.
 
-  lookup = new kmerCountExactLookup(reader, minFreq, UINT32_MAX);
+  lookup = new kmerCountExactLookup(reader, 0, minFreq, UINT32_MAX);
+
+  if (lookup->configure() == false) {
+    exit(1);
+  }
+
+  lookup->load();
+
   nKmers = lookup->nKmers();
 
   delete reader;

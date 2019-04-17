@@ -27,6 +27,7 @@
 #define LIBKMER_H
 
 #include "AS_global.H"
+#include "system.H"
 #include "files.H"
 #include "bits.H"
 
@@ -418,6 +419,8 @@ public:
     if (_data == NULL)
       return;
 
+    //fprintf(stderr, "decodeBlock() nKmersMax %lu nKmers %lu\n", _nKmersMax, _nKmers);
+
     resizeArrayPair(_suffixes, _values, 0, _nKmersMax, _nKmers, resizeArray_doNothing);
 
     decodeBlock(_suffixes, _values);
@@ -731,16 +734,20 @@ private:
 class kmerCountExactLookup {
 public:
   kmerCountExactLookup(kmerCountFileReader *input_,
-                       uint64               minValue_ = 0,
-                       uint64               maxValue_ = UINT64_MAX) {
+                       uint32               maxMemory_ = 0,
+                       uint64               minValue_  = 0,
+                       uint64               maxValue_  = UINT64_MAX) {
 
-    _verbose = false;
+    _input     = input_;
+    _maxMemory = maxMemory_;   //  maxMemory_ is In GB; _maxMemory should be in BITS!
+    _verbose   = true;
 
-    initialize(input_, minValue_, maxValue_);  //  Do NOT use minValue_ or maxValue_ from now on!
-    configure();
-    count(input_);
-    allocate();
-    load(input_);
+    if (_maxMemory == 0)
+      _maxMemory   = getPhysicalMemorySize() * 8;
+    else
+      _maxMemory <<= 33;
+
+    initialize(minValue_, maxValue_);  //  Do NOT use minValue_ or maxValue_ from now on!
   };
 
   ~kmerCountExactLookup() {
@@ -750,12 +757,21 @@ public:
     delete    _valData;
   };
 
+  //  To use this object:
+  //    lookup = new kmerCountExactLookup(input, 0, 0, UINT32_MAX);
+  //    if (lookup->configure() == true)
+  //      lookup->load()
+  //
+
 private:
-  void     initialize(kmerCountFileReader *input_, uint64 minValue_, uint64 maxValue_);
-  void     configure(void);
-  void     count(kmerCountFileReader *input_);
+  void     initialize(uint64 minValue_, uint64 maxValue_);
+public:
+  bool     configure(void);
+private:
+  void     count(void);
   void     allocate(void);
-  void     load(kmerCountFileReader *input_);
+public:
+  void     load(void);
 
 private:
   uint64           value_value(uint64 value) {
@@ -924,34 +940,37 @@ public:
 
 
 private:
-  bool            _verbose;
+  kmerCountFileReader  *_input;
 
-  uint64          _minValue;    //  Minimum value stored in the table -| both of these filter the
-  uint64          _maxValue;    //  Maximum value stored in the table -| input kmers.
-  uint64          _valueOffset; //  Offset of values stored in the table.
+  uint64                _maxMemory;
+  bool                  _verbose;
 
-  uint64          _nKmersLoaded;
-  uint64          _nKmersTooLow;
-  uint64          _nKmersTooHigh;
+  uint64                _minValue;    //  Minimum value stored in the table -| both of these filter the
+  uint64                _maxValue;    //  Maximum value stored in the table -| input kmers.
+  uint64                _valueOffset; //  Offset of values stored in the table.
 
-  uint32          _Kbits;
+  uint64                _nKmersLoaded;
+  uint64                _nKmersTooLow;
+  uint64                _nKmersTooHigh;
 
-  uint32          _prefixBits;  //  How many high-end bits of the kmer is an index into _suffixBgn.
-  uint32          _suffixBits;  //  How many bits of the kmer are in the suffix table.
-  uint32          _valueBits;   //  How many bits of the suffix entry are data.
+  uint32                _Kbits;
 
-  uint64          _suffixMask;
-  uint64          _dataMask;
+  uint32                _prefixBits;  //  How many high-end bits of the kmer is an index into _suffixBgn.
+  uint32                _suffixBits;  //  How many bits of the kmer are in the suffix table.
+  uint32                _valueBits;   //  How many bits of the suffix entry are data.
 
-  uint64          _nPrefix;     //  How many entries in _suffixBgn  == 2 ^ _prefixBits.
-  uint64          _nSuffix;     //  How many entries in _suffixData == nDistinct in the input database.
+  uint64                _suffixMask;
+  uint64                _dataMask;
 
-  uint32          _prePtrBits;  //  How many bits wide is _suffixBgn (used only if _suffixBgn is a wordArray).
+  uint64                _nPrefix;     //  How many entries in _suffixBgn  == 2 ^ _prefixBits.
+  uint64                _nSuffix;     //  How many entries in _suffixData == nDistinct in the input database.
 
-  uint64         *_suffixBgn;   //  The start of a block of data in suffix Data.  The end is the next start.
-  uint64         *_suffixEnd;   //  The end.  Temporary.
-  wordArray      *_sufData;     //  Finally, kmer suffix data!
-  wordArray      *_valData;     //  Finally, value data!
+  uint32                _prePtrBits;  //  How many bits wide is _suffixBgn (used only if _suffixBgn is a wordArray).
+
+  uint64               *_suffixBgn;   //  The start of a block of data in suffix Data.  The end is the next start.
+  uint64               *_suffixEnd;   //  The end.  Temporary.
+  wordArray            *_sufData;     //  Finally, kmer suffix data!
+  wordArray            *_valData;     //  Finally, value data!
 };
 
 

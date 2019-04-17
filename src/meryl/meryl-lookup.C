@@ -23,7 +23,10 @@
  *  full conditions and disclaimers for each license.
  */
 
+#include "AS_global.H"
+
 #include "kmers.H"
+#include "system.H"
 #include "sequence.H"
 #include "bits.H"
 
@@ -113,7 +116,8 @@ main(int argc, char **argv) {
   char   *inputDBname  = NULL;
   uint64  minV         = 0;
   uint64  maxV         = UINT64_MAX;
-  uint32  threads      = 1;
+  uint32  threads      = omp_get_max_threads();
+  uint32  memory       = 0;
   uint32  reportType   = OP_NONE;
 
   argc = AS_configure(argc, argv);
@@ -135,6 +139,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       threads = strtouint32(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-memory") == 0) {
+      memory = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-dump") == 0) {
       reportType = OP_DUMP;
@@ -168,6 +175,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "    -min   m    Ignore kmers with value below m\n");
     fprintf(stderr, "    -max   m    Ignore kmers with value above m\n");
     fprintf(stderr, "    -threads t  Number of threads to use when constructing lookup table.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Memory usage can be limited, within reason, by sacrificing kmer lookup\n");
+    fprintf(stderr, "  speed.  If the lookup table requires more memory than allowed, the program\n");
+    fprintf(stderr, "  exits with an error.\n");
+    fprintf(stderr, "    -memory m   Don't use more than m GB memory\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Exactly one report type must be specified.\n");
     fprintf(stderr, "\n");
@@ -211,7 +223,13 @@ main(int argc, char **argv) {
   fprintf(stderr, "-- Loading kmers from '%s' into lookup table.\n", inputDBname);
 
   kmerCountFileReader   *merylDB    = new kmerCountFileReader(inputDBname);
-  kmerCountExactLookup  *kmerLookup = new kmerCountExactLookup(merylDB, minV, maxV);
+  kmerCountExactLookup  *kmerLookup = new kmerCountExactLookup(merylDB, memory, minV, maxV);
+
+  if (kmerLookup->configure() == false) {
+    exit(1);
+  }
+
+  kmerLookup->load();
 
   delete merylDB;   //  Not needed anymore.
 

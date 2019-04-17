@@ -35,7 +35,7 @@ using namespace std;
 //  If set, allocate another (large) array to verify that there are no holes in the
 //  data array.  Holes would lead to false positives.
 //
-#define VERIFY_SUFFIX_END
+#undef  VERIFY_SUFFIX_END
 
 
 
@@ -46,14 +46,18 @@ bitsToGB(uint64 bits) {
   return(bits / 8 / 1024.0 / 1024.0 / 1024.0);
 }
 
+double
+bitsToMB(uint64 bits) {
+  return(bits / 8 / 1024.0 / 1024.0);
+}
+
 
 
 
 //  Set some basic boring stuff.
 //
 void
-kmerCountExactLookup::initialize(kmerCountFileReader *input_,
-                                 uint64               minValue_,
+kmerCountExactLookup::initialize(uint64               minValue_,
                                  uint64               maxValue_) {
 
   //  Silently make minValue and maxValue be valid values.
@@ -62,9 +66,9 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
     minValue_ = 1;
 
   if (maxValue_ == UINT64_MAX) {
-    uint32  nV = input_->stats()->histogramLength();
+    uint32  nV = _input->stats()->histogramLength();
 
-    maxValue_ = input_->stats()->histogramValue(nV - 1);
+    maxValue_ = _input->stats()->histogramValue(nV - 1);
   }
 
   //  Now initialize filtering!
@@ -96,12 +100,12 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
 
   //  Scan the histogram to count the number of kmers in range.
 
-  for (uint32 ii=0; ii<input_->stats()->histogramLength(); ii++) {
-    uint64  v = input_->stats()->histogramValue(ii);
+  for (uint32 ii=0; ii<_input->stats()->histogramLength(); ii++) {
+    uint64  v = _input->stats()->histogramValue(ii);
 
     if ((_minValue <= v) &&
         (v <= _maxValue))
-      _nSuffix += input_->stats()->histogramOccurrences(ii);
+      _nSuffix += _input->stats()->histogramOccurrences(ii);
   }
 
   _prePtrBits     = countNumberOfBits64(_nSuffix);   //  Width of an entry in the prefix table.
@@ -120,7 +124,7 @@ kmerCountExactLookup::initialize(kmerCountFileReader *input_,
 //  use for indexing (prefixSize), and how many bits of data we need
 //  to store explicitly (suffixBits and valueBits).
 //
-void
+bool
 kmerCountExactLookup::configure(void) {
 
   //  First, find the prefixBits that results in the smallest allocated memory size.
@@ -141,7 +145,7 @@ kmerCountExactLookup::configure(void) {
       minSpace     = space;
     }
 
-    if (space < 4 * minSpace) {
+    if (space < _maxMemory) {
       pbOpt        = pb;
       optSpace     = space;
 
@@ -155,18 +159,18 @@ kmerCountExactLookup::configure(void) {
     }
   }
 
-  assert(_prefixBits > 0);
-  assert(_suffixBits > 0);
-
   //  And do it all again to keep the users entertained.
 
   if (_verbose) {
     fprintf(stderr, "\n");
-    fprintf(stderr, " p       prefixes             bits gigabytes\n");
+    fprintf(stderr, " p       prefixes             bits gigabytes (allowed: %lu GB)\n", _maxMemory >> 33);
     fprintf(stderr, "-- -------------- ---------------- ---------\n");
 
     uint32  minpb = (pbMin < 4)          ? 1      : pbMin - 4;  //  Show four values before and
     uint32  maxpb = (_Kbits < pbOpt + 5) ? _Kbits : pbOpt + 5;  //  four after the smallest.
+
+    if (pbOpt == 0)
+      maxpb = minpb + 10;
 
     for (uint32 pb=minpb; pb < maxpb; pb++) {
       uint64  nprefix = (uint64)1 << pb;
@@ -176,7 +180,7 @@ kmerCountExactLookup::configure(void) {
         fprintf(stderr, "%2u %14lu %16lu %9.3f (smallest)\n", pb, nprefix, space, bitsToGB(space));
 
       else if (pb == pbOpt)
-        fprintf(stderr, "%2u %14lu %16lu %9.3f (faster)\n",   pb, nprefix, space, bitsToGB(space));
+        fprintf(stderr, "%2u %14lu %16lu %9.3f (used)\n",     pb, nprefix, space, bitsToGB(space));
 
       else
         fprintf(stderr, "%2u %14lu %16lu %9.3f\n",            pb, nprefix, space, bitsToGB(space));
@@ -184,51 +188,27 @@ kmerCountExactLookup::configure(void) {
 
     fprintf(stderr, "-- -------------- ---------------- ---------\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "For %lu distinct %u-mers (with %u bits used for indexing and %u bits for tags):\n", _nSuffix, _Kbits / 2, _prefixBits, _suffixBits);
-    fprintf(stderr, "  %7.3f GB memory\n",                                       bitsToGB(optSpace));
-    fprintf(stderr, "  %7.3f GB memory for index (%lu elements %u bits wide)\n", bitsToGB(_nPrefix * _prePtrBits), _nPrefix, _prePtrBits);
-    fprintf(stderr, "  %7.3f GB memory for tags  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _suffixBits), _nSuffix, _suffixBits);
-    fprintf(stderr, "  %7.3f GB memory for data  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _valueBits),  _nSuffix, _valueBits);
-    fprintf(stderr, "\n");
+
+    if (_prefixBits == 0) {
+      fprintf(stderr, "Not enough memory to load %lu distinct %u-kmers.\n", _nSuffix, _Kbits / 2);
+      fprintf(stderr, "Need at least %.3f GB memory.\n", bitsToGB(minSpace));
+    }
+
+    else {
+      fprintf(stderr, "For %lu distinct %u-mers (with %u bits used for indexing and %u bits for tags):\n", _nSuffix, _Kbits / 2, _prefixBits, _suffixBits);
+      fprintf(stderr, "  %7.3f GB memory\n",                                       bitsToGB(optSpace));
+      fprintf(stderr, "  %7.3f GB memory for index (%lu elements %u bits wide)\n", bitsToGB(_nPrefix * _prePtrBits), _nPrefix, _prePtrBits);
+      fprintf(stderr, "  %7.3f GB memory for tags  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _suffixBits), _nSuffix, _suffixBits);
+      fprintf(stderr, "  %7.3f GB memory for data  (%lu elements %u bits wide)\n", bitsToGB(_nSuffix * _valueBits),  _nSuffix, _valueBits);
+      fprintf(stderr, "\n");
+    }
   }
+
+  if (_prefixBits == 0)
+    return(false);
+
+  return(true);
 }
-
-
-
-//  With all parameters known, just grab and clear memory.
-//
-//  The block size used in the wordArray _sufData is chosen so that large
-//  arrays have not-that-many allocations.  The array is pre-allocated, to
-//  prevent the need for any locking or coordination when filling out the
-//  array.
-//
-void
-kmerCountExactLookup::allocate(void) {
-  uint64  arraySize, arrayBlockMin;
-
-  if (_suffixBits > 0) {
-    arraySize     = _nSuffix * _suffixBits;
-    arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
-
-    fprintf(stderr, "Allocating space for %lu suffixes of %u bits each -> %lu bits (%lu bytes) in blocks of %lu bytes\n",
-            _nSuffix, _suffixBits, arraySize, arraySize / 8, arrayBlockMin / 8);
-
-    _sufData = new wordArray(_suffixBits, arrayBlockMin);
-    _sufData->allocate(_nSuffix);
-  }
-
-  if (_valueBits > 0) {
-    arraySize     = _nSuffix * _valueBits;
-    arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
-
-    fprintf(stderr, "                     %lu values   of %u bits each -> %lu bits (%lu bytes) in blocks of %lu bytes\n",
-            _nSuffix, _valueBits,  arraySize, arraySize / 8, arrayBlockMin / 8);
-
-    _valData = new wordArray(_valueBits, arrayBlockMin);
-    _valData->allocate(_nSuffix);
-  }
-}
-
 
 
 
@@ -238,19 +218,20 @@ kmerCountExactLookup::allocate(void) {
 //
 //  The loop control and kmer loading is the same in the two loops.
 void
-kmerCountExactLookup::count(kmerCountFileReader *input_) {
-  uint64  *kpp = new uint64 [_nPrefix];
+kmerCountExactLookup::count(void) {
 
-  memset(kpp, 0, sizeof(uint64) * _nPrefix);
+  _suffixBgn = new uint64 [_nPrefix + 1];
+
+  memset(_suffixBgn, 0, sizeof(uint64) * (_nPrefix + 1));
 
   //  Scan all kmer files, counting the number of kmers per prefix.
   //  This is thread safe when _prefixBits is more than 6 (the number of files).
 
-  uint32   nf = input_->numFiles();
+  uint32   nf = _input->numFiles();
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
-    FILE                      *blockFile = input_->blockFile(ff);
+    FILE                      *blockFile = _input->blockFile(ff);
     kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
 
     //  Keep local counters, otherwise, we collide when updating the global counts.
@@ -282,14 +263,14 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
         loaded++;
 
         sdata   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
-        sdata <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
+        sdata <<= _input->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
         sdata  |= block->suffixes()[ss];   //  generate the prefix we want to save it as.
 
         prefix  = sdata >> _suffixBits;
 
         assert(prefix < _nPrefix);
 
-        kpp[prefix]++;                     //  Count the number of kmers per prefix.
+        _suffixBgn[prefix]++;              //  Count the number of kmers per prefix.
       }
     }
 
@@ -309,20 +290,17 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
   //  The loading loop uses _suffixEnd[] as the position to add the next
   //  data.
 
-  _suffixBgn = new uint64 [_nPrefix + 1];
-
   uint64  bgn = 0;
+  uint64  nxt = 0;
 
   for (uint64 ii=0; ii<_nPrefix; ii++) {
+    nxt            = _suffixBgn[ii];
     _suffixBgn[ii] = bgn;
-
-    bgn += kpp[ii];
+    bgn           += nxt;
   }
 
-  _suffixBgn[_nPrefix] = bgn;
   assert(bgn == _nKmersLoaded);
-
-  delete [] kpp;
+  _suffixBgn[_nPrefix] = bgn;
 
 #ifdef VERIFY_SUFFIX_END
   _suffixEnd = new uint64 [_nPrefix];
@@ -340,18 +318,59 @@ kmerCountExactLookup::count(kmerCountFileReader *input_) {
 
 
 
-  //  Each file can be processed independently IF we know how many kmers are in
-  //  each prefix.  For that, we need to load the kmerCountFileReader index.
-  //  We don't, actually, know that if we're filtering out low/high count kmers.
-  //  In this case, we overallocate, but cannot cleanup at the end.
+//  With all parameters known, just grab and clear memory.
+//
+//  The block size used in the wordArray _sufData is chosen so that large
+//  arrays have not-that-many allocations.  The array is pre-allocated, to
+//  prevent the need for any locking or coordination when filling out the
+//  array.
+//
 void
-kmerCountExactLookup::load(kmerCountFileReader *input_) {
+kmerCountExactLookup::allocate(void) {
+  uint64  arraySize, arrayBlockMin;
 
-  uint32   nf = input_->numFiles();
+  if (_suffixBits > 0) {
+    arraySize     = _nSuffix * _suffixBits;
+    arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
 
-  //#pragma omp parallel for schedule(dynamic, 1)
+    if (_verbose)
+      fprintf(stderr, "Allocating space for %lu suffixes of %u bits each -> %lu bits (%.3f GB) in blocks of %.3f MB\n",
+              _nSuffix, _suffixBits, arraySize, bitsToGB(arraySize), bitsToMB(arrayBlockMin));
+
+    _sufData = new wordArray(_suffixBits, arrayBlockMin);
+    _sufData->allocate(_nSuffix);
+  }
+
+  if (_valueBits > 0) {
+    arraySize     = _nSuffix * _valueBits;
+    arrayBlockMin = max(arraySize / 1024llu, 268435456llu);   //  In bits, so 32MB per block.
+
+    if (_verbose)
+      fprintf(stderr, "                     %lu values   of %u bits each -> %lu bits (%.3f GB) in blocks of %.3f MB\n",
+              _nSuffix, _valueBits,  arraySize, bitsToGB(arraySize), bitsToMB(arrayBlockMin));
+
+    _valData = new wordArray(_valueBits, arrayBlockMin);
+    _valData->allocate(_nSuffix);
+  }
+}
+
+
+
+//  Each file can be processed independently IF we know how many kmers are in
+//  each prefix.  For that, we need to load the kmerCountFileReader index.
+//  We don't, actually, know that if we're filtering out low/high count kmers.
+//  In this case, we overallocate, but cannot cleanup at the end.
+void
+kmerCountExactLookup::load(void) {
+
+  count();
+  allocate();
+
+  uint32   nf = _input->numFiles();
+
+#pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
-    FILE                      *blockFile = input_->blockFile(ff);
+    FILE                      *blockFile = _input->blockFile(ff);
     kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
 
     //  Load blocks until there are no more.
@@ -371,7 +390,7 @@ kmerCountExactLookup::load(kmerCountFileReader *input_) {
         //  Compute and store the prefix.
 
         prefix   = block->prefix();         //  Reconstruct the kmer into sdata.  This is just
-        prefix <<= input_->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
+        prefix <<= _input->suffixSize();    //  kmerTiny::setPrefixSuffix().  From the kmer,
         prefix  |= block->suffixes()[ss];   //  generate the prefix we want to save it as.
 
         suffix   = prefix & uint64MASK(_suffixBits);
