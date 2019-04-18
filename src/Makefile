@@ -502,7 +502,19 @@ endif
 
 
 ifeq (${OSTYPE}, FreeBSD)
-ifeq (${MACHINETYPE}, amd64)
+ifeq (${CANU_BUILD_ENV}, ports)
+
+  # If building in the FreeBSD ports system, use the architecture as defined
+  # there (technically, -p, not -m) and assume compiler and most options
+  # are already defined correctly.
+
+  MACHINETYPE=${ARCH}
+
+  CXXFLAGS  += -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
+  LDFLAGS   += -D_GLIBCXX_PARALLEL -pthread -fopenmp
+
+else
+
   CC       ?= gcc6
   CXX      ?= g++6
   CCLIB    ?= -rpath /usr/local/lib/gcc6
@@ -525,17 +537,6 @@ ifeq (${MACHINETYPE}, amd64)
 
   #  callgrind
   #CXXFLAGS  += -g3 -Wa,--gstabs -save-temps
-endif
-endif
-
-
-ifeq (${OSTYPE}, FreeBSD)
-ifeq (${MACHINETYPE}, arm)
-  CC       ?= gcc48
-  CXX      ?= g++48
-
-  CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp -rpath /usr/local/lib/gcc48 -lm
 endif
 endif
 
