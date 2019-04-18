@@ -206,6 +206,42 @@ doSummarize(vector<char *>       &inputs,
   if (sumPar.genomeSize == 0)
     sumPar.genomeSize = nBases;
 
+  //  If only a simple histogram of lengths is requested, dump and done.
+
+  if (sumPar.asSimple == true) {
+    uint64  bgn = 0;
+    uint64  end = 0;
+
+    reverse(lengths.begin(), lengths.end());
+
+    while (bgn < lengths.size()) {
+      end = bgn + 1;
+
+      while ((end < lengths.size()) &&
+             (lengths[bgn] == lengths[end]))
+        end++;
+
+      fprintf(stdout, "%lu\t%lu\n", lengths[bgn], end - bgn);
+
+      bgn = end;
+    }
+
+    return;
+  }
+
+  //  If only the read lengths are requested, dump and done.
+
+  if (sumPar.asLength == true) {
+    reverse(lengths.begin(), lengths.end());
+
+    for (uint64 ii=0; ii<lengths.size(); ii++)
+      fprintf(stdout, "%lu\n", lengths[ii]);
+
+    return;
+  }
+
+  //
+
   uint64   lSum  = 0;                                 //  Sum of the lengths we've encountered so far
 
   uint32   nStep = 10;                                //  Step of each N report.
@@ -298,6 +334,11 @@ doSummarize(vector<char *>       &inputs,
 
     histPlot[rr][28 + nn]   = 0;
   }
+
+  //  If exact......
+
+
+
 
   //  Output N table, with length histogram appended at the end of each line.
 

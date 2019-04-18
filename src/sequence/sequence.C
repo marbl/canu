@@ -51,6 +51,7 @@ main(int argc, char **argv) {
   summarizeParameters         sumPar;
   extractParameters           extPar;
   generateParameters          genPar;
+  simulateParameters          simPar;
   sampleParameters            samPar;
   shiftRegisterParameters     srPar;
   mutateParameters            mutPar;
@@ -77,6 +78,14 @@ main(int argc, char **argv) {
 
     else if ((mode == modeSummarize) && (strcmp(argv[arg], "-split-n") == 0)) {
       sumPar.breakAtN = true;
+    }
+
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-simple") == 0)) {
+      sumPar.asSimple = true;
+    }
+
+    else if ((mode == modeSummarize) && (strcmp(argv[arg], "-lengths") == 0)) {
+      sumPar.asLength = true;
     }
 
     else if ((mode == modeSummarize) && (strcmp(argv[arg], "-assequences") == 0)) {
@@ -208,6 +217,43 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "simulate") == 0) {
       mode = modeSimulate;
     }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-genomesize") == 0)) {
+      simPar.genomeSize = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-coverage") == 0)) {
+      simPar.desiredCoverage = strtodouble(argv[++arg]);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-nreads") == 0)) {
+      simPar.desiredNumReads = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-nbases") == 0)) {
+      simPar.desiredNumBases = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-circular") == 0)) {
+      simPar.circular = true;
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-genome") == 0)) {
+      strncpy(simPar.genomeName, argv[++arg], FILENAME_MAX);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-distribution") == 0)) {
+      strncpy(simPar.distribName, argv[++arg], FILENAME_MAX);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-length") == 0)) {
+      decodeRange(argv[++arg], simPar.desiredMinLength, simPar.desiredMaxLength);
+    }
+
+    else if ((mode == modeSimulate) && (strcmp(argv[arg], "-output") == 0)) {
+      strncpy(simPar.outputName, argv[++arg], FILENAME_MAX);
+    }
+
 
     //  SAMPLE
 
@@ -457,6 +503,7 @@ main(int argc, char **argv) {
 
   sumPar.finalize();
   genPar.finalize();
+  simPar.finalize();
   extPar.finalize();
 
   switch (mode) {
@@ -470,7 +517,7 @@ main(int argc, char **argv) {
       doGenerate(genPar);
       break;
     case modeSimulate:
-      doSimulate(inputs);
+      doSimulate(inputs, simPar);
       break;
     case modeSample:
       doSample(inputs, samPar);

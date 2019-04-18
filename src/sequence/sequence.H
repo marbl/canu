@@ -29,6 +29,10 @@
 
 #include "AS_global.H"
 
+#include "strings.H"
+#include "files.H"
+#include "sampledDistribution.H"
+
 #include <vector>
 #include <set>
 #include <algorithm>
@@ -44,6 +48,9 @@ public:
 
     limitTo1x    = false;
     breakAtN     = false;
+
+    asSimple     = false;
+    asLength     = false;
 
     asSequences  = true;
     asBases      = false;
@@ -61,6 +68,9 @@ public:
 
   bool      limitTo1x;
   bool      breakAtN;
+
+  bool      asSimple;
+  bool      asLength;
 
   bool      asSequences;
   bool      asBases;
@@ -249,6 +259,56 @@ public:
 
 
 
+class simulateParameters {
+public:
+  simulateParameters() {
+    genomeSize      = 0;
+    circular        = false;
+
+    desiredCoverage = 0.0;
+    desiredNumReads = 0;
+    desiredNumBases = 0;
+
+    desiredMinLength = 0;
+    desiredMaxLength = UINT32_MAX;
+
+    memset(genomeName,  0, FILENAME_MAX+1);
+    memset(distribName, 0, FILENAME_MAX+1);
+    memset(outputName,  0, FILENAME_MAX+1);
+  }
+
+  ~simulateParameters() {
+  }
+
+
+  void      initialize(void) {
+  };
+
+
+  void      finalize(void) {
+    dist.loadDistribution(distribName);
+  };
+
+
+  uint64  genomeSize;
+  bool    circular;
+
+  double  desiredCoverage;
+  uint64  desiredNumReads;
+  uint64  desiredNumBases;
+
+  uint32  desiredMinLength;
+  uint32  desiredMaxLength;
+
+  sampledDistribution  dist;
+
+  char    genomeName[FILENAME_MAX+1];
+  char    distribName[FILENAME_MAX+1];
+  char    outputName[FILENAME_MAX+1];
+};
+
+
+
 class sampleParameters {
 public:
   sampleParameters() {
@@ -398,7 +458,7 @@ public:
 void doSummarize    (vector<char *> &inputs, summarizeParameters     &sumPar);
 void doExtract      (vector<char *> &inputs, extractParameters       &extPar);
 void doGenerate     (                        generateParameters      &genPar);
-void doSimulate     (vector<char *> &inputs);
+void doSimulate     (vector<char *> &inputs, simulateParameters      &simPar);
 void doSample       (vector<char *> &inputs, sampleParameters        &samPar);
 void doShiftRegister(                        shiftRegisterParameters &srPar);
 void doMutate       (vector<char *> &inputs, mutateParameters        &mutPar);
