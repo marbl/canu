@@ -250,6 +250,10 @@ main(int argc, char **argv) {
       decodeRange(argv[++arg], simPar.desiredMinLength, simPar.desiredMaxLength);
     }
 
+    //else if ((mode == modeSimulate) && (strcmp(argv[arg], "-name") == 0)) {
+    //  strncpy(simPar.sequenceName, argv[++arg], FILENAME_MAX);
+    //}
+
     else if ((mode == modeSimulate) && (strcmp(argv[arg], "-output") == 0)) {
       strncpy(simPar.outputName, argv[++arg], FILENAME_MAX);
     }
@@ -438,6 +442,25 @@ main(int argc, char **argv) {
       fprintf(stderr, "                      sequences are 1-based; -sequences 1,3-5 will print the first, third,\n");
       fprintf(stderr, "                      fourth and fifth sequences.\n");
       fprintf(stderr, "  \n");
+    }
+
+    if ((mode == modeUnset) || (mode == modeSimulate)) {
+      fprintf(stderr, "OPTIONS for simulate mode:\n");
+      fprintf(stderr, "  -genome G           sample reads from these sequences\n");
+      fprintf(stderr, "  -circular           threat the sequences in G as circular\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  -genomesize g       genome size to use for deciding coverage below\n");
+      fprintf(stderr, "  -coverage c         generate approximately c coverage of output\n");
+      fprintf(stderr, "  -nreads n           generate exactly n reads of output\n");
+      fprintf(stderr, "  -nbases n           generate approximately n bases of output\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  -distribution F     generate read length by sampling the distribution in file F\n");
+      fprintf(stderr, "                        one column  - each line is the length of a sequence\n");
+      fprintf(stderr, "                        two columns - each line has the 'length' and 'number of sequences'\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  -length min[-max]   (not implemented)\n");
+      fprintf(stderr, "  -output x.fasta     (not implemented)\n");
+      fprintf(stderr, "\n");
     }
 
     if ((mode == modeUnset) || (mode == modeSample)) {
