@@ -199,6 +199,8 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 overlapBasedTrimming/splitReads.mk \
                 overlapBasedTrimming/mergeRanges.mk \
                 \
+                overlapAlign/overlapAlign.mk \
+                \
                 overlapErrorAdjustment/findErrors.mk \
                 overlapErrorAdjustment/findErrors-Dump.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \
