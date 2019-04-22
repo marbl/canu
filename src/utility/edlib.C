@@ -383,6 +383,47 @@ char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alig
     return cigar_;
 }
 
+
+void
+edlibAlignmentAnalyze(const unsigned char *a,
+                      uint32   aLength,
+                      uint32  &nMatch,
+                      uint32  &nMismatch,
+                      uint32  &nInsertOpen,
+                      uint32  &nInsert,
+                      uint32  &nDeleteOpen,
+                      uint32  &nDelete) {
+
+  nMatch      = 0;
+  nMismatch   = 0;
+  nInsertOpen = 0;
+  nInsert     = 0;
+  nDeleteOpen = 0;
+  nDelete     = 0;
+
+  for (uint32 ii=0; ii<aLength; ii++) {
+    if (((ii == 0) ||
+         (a[ii-1] != EDLIB_EDOP_INSERT)) &&
+        ((a[ii]   == EDLIB_EDOP_INSERT)))
+      nInsertOpen++;
+
+    if (((ii == 0) ||
+         (a[ii-1] != EDLIB_EDOP_DELETE)) &&
+        ((a[ii]   == EDLIB_EDOP_DELETE)))
+      nDeleteOpen++;
+
+    switch (a[ii]) {
+      case EDLIB_EDOP_MATCH:     nMatch++;     break;
+      case EDLIB_EDOP_MISMATCH:  nMismatch++;  break;
+      case EDLIB_EDOP_INSERT:    nInsert++;    break;
+      case EDLIB_EDOP_DELETE:    nDelete++;    break;
+      default:
+        break;
+    }
+  }
+}
+
+
 void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength, int tgtStart, int tgtEnd, int qryStart, int qryEnd, const char *tgt, const char *qry, char *tgt_aln_str, char *qry_aln_str) {
    for (int a = 0, qryPos=qryStart, tgtPos=tgtStart; a < alignmentLength; a++) {
       assert(qryPos <= qryEnd && tgtPos <= tgtEnd);

@@ -48,6 +48,9 @@
 #ifndef EDLIB_H
 #define EDLIB_H
 
+#include "AS_global.H"
+#include "types.H"
+
 /**
  * @file
  * @author Martin Sosic
@@ -256,6 +259,15 @@ EdlibAlignResult edlibAlign(const char* query, const int queryLength,
  */
 char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
                             EdlibCigarFormat cigarFormat);
+
+void edlibAlignmentAnalyze(const unsigned char *alignment,
+                           uint32   alignmentLength,
+                           uint32  &nMatch,
+                           uint32  &nMismatch,
+                           uint32  &nInsertOpen,
+                           uint32  &nInsert,
+                           uint32  &nDeleteOpen,
+                           uint32  &nDelete);
 
 void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength,
                              int tgtStart, int tgtEnd,
