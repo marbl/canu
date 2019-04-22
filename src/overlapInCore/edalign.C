@@ -24,8 +24,9 @@
  */
 
 #include "AS_global.H"
-#include "files.H"
 
+#include "sequence.H"
+#include "files.H"
 #include "strings.H"
 
 #include "edlib.H"
@@ -50,44 +51,8 @@ readLine(FILE *file, char *line, int32 lineMax, int32 &len, splitToWords &s) {
 
 
 
-int
-main(int argc, char **argv) {
-  char    *nameA           = NULL;
-  char    *nameB           = NULL;
-
-  argc = AS_configure(argc, argv);
-
-  int err=0;
-  int arg=1;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-a") == 0) {
-      nameA = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      nameB = argv[++arg];
-
-    } else {
-      err++;
-    }
-
-    arg++;
-  }
-
-  if (nameA == NULL)
-    err++;
-  if (nameB == NULL)
-    err++;
-
-  if (err) {
-    fprintf(stderr, "usage: %s -a fileA -b fileB ...\n", argv[0]);
-    fprintf(stderr, "  -a fileA     Mandatory, path to first input file\n");
-    fprintf(stderr, "  -b fileB     Mandatory, path to second input file\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  Aligns corresponding lines from fileA and B, reporting cigar string.\n");
-    fprintf(stderr, "  Lines are currently limited to 1 Mbp.\n");
-    exit(1);
-  }
-
+void
+pairAlign(char *nameA, char *nameB) {
   FILE *fileA = AS_UTL_openInputFile(nameA);
   FILE *fileB = AS_UTL_openInputFile(nameB);
 
@@ -108,7 +73,7 @@ main(int argc, char **argv) {
 
     EdlibAlignResult result = edlibAlign(sA[0], lenA,
                                          sB[0], lenB,
-                                         edlibNewAlignConfig(lenA + lenB, EDLIB_MODE_NW, EDLIB_TASK_PATH));
+                                         edlibNewAlignConfig(lenA + lenB, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
     assert(result.numLocations > 0);
 
@@ -162,6 +127,111 @@ main(int argc, char **argv) {
 
   AS_UTL_closeFile(fileA, nameA);
   AS_UTL_closeFile(fileB, nameB);
+}
+
+
+
+void
+refAlign(char *nameA, char *nameB) {
+  dnaSeq        seqA;
+  dnaSeqFile   *fileA = new dnaSeqFile(nameA);
+  dnaSeq        seqB;
+  dnaSeqFile   *fileB = new dnaSeqFile(nameB);
+
+  fileB->loadSequence(seqB);
+
+  while (fileA->loadSequence(seqA) == true) {
+    EdlibAlignResult result = edlibAlign(seqA.bases(), seqA.length(),   //  Free end gaps!
+                                         seqB.bases(), seqB.length(),
+                                         edlibNewAlignConfig(0.25 * seqA.length(), EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+    char *cigar = edlibAlignmentToCigar(result.alignment,
+                                        result.alignmentLength, (1) ? EDLIB_CIGAR_STANDARD : EDLIB_CIGAR_EXTENDED);
+
+    if (strlen(cigar) > 50) {
+      cigar[47] = '.';
+      cigar[48] = '.';
+      cigar[49] = '.';
+      cigar[50] = 0;
+    }
+
+    uint32   nMatch, nMismatch, nInsertOpen, nInsert, nDeleteOpen, nDelete;
+
+    edlibAlignmentAnalyze(result.alignment, result.alignmentLength, nMatch, nMismatch, nInsertOpen, nInsert, nDeleteOpen, nDelete);
+
+    if (result.numLocations > 0)
+      fprintf(stdout, "%s %8d-%-8d %6.2f%% %7u %7u ins %7u %7u del %7u %7u cigar %s\n",
+              nameA,
+              result.startLocations[0],
+              result.endLocations[0] + 1,
+              100.0 - 100.0 * result.editDistance / result.alignmentLength,
+              nMatch, nMismatch, nInsertOpen, nInsert, nDeleteOpen, nDelete,
+              cigar);
+    else
+      fprintf(stdout, "%s %8d-%-8d %6.2f%% %7u %7u ins %7u %7u del %7u %7u cigar %s\n",
+              nameA, 0, 0, 0.0, 0, 0, 0, 0, 0, 0, "0M");
+
+    delete [] cigar;
+
+    edlibFreeAlignResult(result);
+  }
+
+  delete fileA;
+  delete fileB;
+}
+
+
+
+int
+main(int argc, char **argv) {
+  char    *nameA           = NULL;
+  char    *nameB           = NULL;
+  bool     reference       = false;
+
+  argc = AS_configure(argc, argv);
+
+  int err=0;
+  int arg=1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-a") == 0) {
+      nameA = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      nameB = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-ref") == 0) {
+      nameB = argv[++arg];
+      reference = true;
+      arg++;
+      break;
+
+    } else {
+      err++;
+    }
+
+    arg++;
+  }
+
+  //if (nameA == NULL)  err++;
+  //if (nameB == NULL)  err++;
+
+  if (err) {
+    fprintf(stderr, "usage: %s -a fileA -b fileB ...\n", argv[0]);
+    fprintf(stderr, "  -a fileA     Mandatory, path to first input file\n");
+    fprintf(stderr, "  -b fileB     Mandatory, path to second input file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -ref R.fasta\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Aligns corresponding lines from fileA and B, reporting cigar string.\n");
+    fprintf(stderr, "  Lines are currently limited to 1 Mbp.\n");
+    exit(1);
+  }
+
+  if (reference == false)
+    pairAlign(nameA, nameB);
+  else
+    while (arg < argc)
+      refAlign(argv[arg++], nameB);
 
   //fprintf(stderr, "\n");
   //fprintf(stderr, "Bye.\n");
