@@ -24,6 +24,30 @@
  */
 
 
+class trReadData {
+public:
+  trReadData() {
+    bgn          = 0;
+    end          = 0;
+
+    isGarbage    = true;
+    isContained  = false;
+    isSuspicious = false;
+  };
+  ~trReadData() {
+  };
+
+
+public:
+  uint32    bgn;
+  uint32    end;
+
+  bool      isGarbage;
+  bool      isContained;
+  bool      isSuspicious;
+};
+
+
 
 class trGlobalData {
 public:
@@ -41,6 +65,8 @@ public:
     minOverlapCoverage  = 2;
 
     debug               = false;
+
+    readData            = NULL;
 
     seqStoreName        = NULL;
     seqStore            = NULL;
@@ -96,6 +122,10 @@ public:
 
     curID = bgnID;
 
+    //  Trimming
+
+    readData = new trReadData [endID - bgnID + 1];
+
     //  Outputs
   };
 
@@ -133,6 +163,10 @@ public:
   //  Statistics
 
   alignStats         globalStats;
+
+  //  Trimming
+
+  trReadData        *readData;
 
   //  Inputs
 

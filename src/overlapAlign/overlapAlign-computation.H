@@ -76,7 +76,7 @@ public:
 
 
 public:
-  //  This is the function that does all the work.
+  void         trimRead(uint32  minOverlapLength, double  maxErate, int32 &aClrBgn, int32 &aClrEnd);
   void         computeAlignments(uint32 minOverlapLength, double maxErate);
 
 private:

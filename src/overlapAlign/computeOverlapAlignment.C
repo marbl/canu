@@ -42,6 +42,51 @@
 #define MAX_REPEAT 2000
 
 
+
+
+bool
+testAlignment(char   *aRead,  int32   abgn,  int32   aend,  int32         alen,   uint32 Aid,
+              char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
+              double  maxAlignErate,
+              double  maxAcceptErate,
+              double &erate) {
+
+  assert(abgn >= 0);
+  assert(aend <= alen);
+  assert(bbgn >= 0);
+  assert(bend <= blen);
+
+  erate = 1.0;   //  Set the default return value, 100% error.
+
+  EdlibAlignResult result = edlibAlign(aRead + abgn, aend - abgn,
+                                       bRead + bbgn, bend - bbgn,
+                                       edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
+                                                           EDLIB_MODE_HW,
+                                                           EDLIB_TASK_LOC));
+
+  //  If there is a result, compute the (approximate) length of the alignment and the error rate.
+  //  Edlib mode TASK_LOC doesn't populate this field.
+
+  if (result.numLocations > 0) {
+    result.alignmentLength = ((aend - abgn) + (result.endLocations[0] + 1 - result.startLocations[0]) + (result.editDistance)) / 2;
+
+    erate = (double)result.editDistance / result.alignmentLength;
+
+    //  Save the result if it is of acceptable quality.
+    if (erate < maxAcceptErate) {
+      bend     = bbgn + result.endLocations[0] + 1;    //  Edlib returns 0-based positions, add one to end to get space-based.
+      bbgn     = bbgn + result.startLocations[0];
+    }
+  }
+
+  edlibFreeAlignResult(result);
+
+  return(erate < maxAcceptErate);
+}
+
+
+
+
 //  Compute an alignment between A and B,
 //    requring all of A to be in the alignment,
 //    returning new end points on B, allowing free gaps on the ends.
