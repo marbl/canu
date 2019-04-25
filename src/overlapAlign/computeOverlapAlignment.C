@@ -103,6 +103,35 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
 
 
 
+
+//  Our goal is to convert an alignment-free overlap with imprecise edges into
+//  an alignment-based overlap with precise edges.
+//
+//  The strategy is to, for each end of the overlap, extend the alignment to the end
+//  of the sequence with the shorter hang, then compute the alignment of
+//  that to the other read allowing free gaps.
+//
+//                { alignment-free overlap }
+//      ---(a5----{-----a3)-----------------}------
+//           (b5--{---b3)-------------------}-------------------
+//
+//  Since the 5' hang on the B read is smaller, we use b5 to compute the other values.
+//    b5 = known from alignment-free overlap
+//    b3 = max(4*b5, 2*maxRepeatLength)
+//    a5 = b5 * (1 + maxErate) + SLOP
+//    a3 = b3 * (1 + maxErate) + SLOP
+//
+//  For b3: this is our anchor in assumed good sequence.  it needs to be larger than
+//          a repeat, and should be larger than the unknown sequence
+//
+//  For a5: we need to allow space for all of b5 to align, plus any errors.  The
+//          SLOP adjustment allows for shifting of the imprecise overlap edge.
+//
+//  Similar for a3.
+//
+//  Output of the alignment will be updated coordinates for a5 and a3,
+//  which we use to update this end of the overlap.
+//
 void
 computeOverlapAlignment(ovOverlap   *ovl,
                         char        *aseq, int32 alen,
@@ -134,39 +163,9 @@ computeOverlapAlignment(ovOverlap   *ovl,
     fprintf(stderr, "B %8u %6d-%-6d %d\n", bID, bbgn, bend, blen);
   }
 
-  //  Our goal is to convert an alignment-free overlap with imprecise edges into
-  //  an alignment-based overlap with precise edges.
-  //
-  //  The strategy is to, for each end of the overlap, extend the alignment to the end
-  //  of the sequence with the shorter hang, then compute the alignment of
-  //  that to the other read allowing free gaps.
-  //
-  //                { alignment-free overlap }
-  //      ---(a5----{-----a3)-----------------}------
-  //           (b5--{---b3)-------------------}-------------------
-  //
-  //  Since the 5' hang on the B read is smaller, we use b5 to compute the other values.
-  //    b5 = known from alignment-free overlap
-  //    b3 = max(4*b5, 2*maxRepeatLength)
-  //    a5 = b5 * (1 + maxErate) + SLOP
-  //    a3 = b3 * (1 + maxErate) + SLOP
-  //
-  //  For b3: this is our anchor in assumed good sequence.  it needs to be larger than
-  //          a repeat, and should be larger than the unknown sequence
-  //
-  //  For a5: we need to allow space for all of b5 to align, plus any errors.  The
-  //          SLOP adjustment allows for shifting of the imprecise overlap edge.
-  //
-  //  Similar for a3.
-  //
-  //  Output of the alignment will be updated coordinates for a5 and a3,
-  //  which we use to update this end of the overlap.
-
-
-
+  //  A    ------------{------...
+  //  B          ------{------...
   if (ovl->dat.ovl.bhg5 < ovl->dat.ovl.ahg5) {
-    //  A    ------------{------...
-    //  B          ------{------...
     int32   ahg5 = ovl->dat.ovl.ahg5;
     int32   ahg3 = ovl->dat.ovl.ahg3;
     int32   bhg5 = ovl->dat.ovl.bhg5;
@@ -209,9 +208,9 @@ computeOverlapAlignment(ovOverlap   *ovl,
     }
   }
 
+  //  A          ------{------...
+  //  B    ------------{------...
   else {
-    //  A          ------{------...
-    //  B    ------------{------...
     int32   ahg5 = ovl->dat.ovl.ahg5;
     int32   ahg3 = ovl->dat.ovl.ahg3;
     int32   bhg5 = ovl->dat.ovl.bhg5;
@@ -257,10 +256,9 @@ computeOverlapAlignment(ovOverlap   *ovl,
 
 
 
-
+  //  A    ...------}------------
+  //  B    ...------}------
   if (ovl->dat.ovl.bhg3 < ovl->dat.ovl.ahg3) {
-    //  A    ...------}------------
-    //  B    ...------}------
     int32   ahg5 = ovl->dat.ovl.ahg5;
     int32   ahg3 = ovl->dat.ovl.ahg3;
     int32   bhg5 = ovl->dat.ovl.bhg5;
@@ -303,9 +301,9 @@ computeOverlapAlignment(ovOverlap   *ovl,
     }
   }
 
+  //  A    ...------}------
+  //  B    ...------}------------
   else {
-    //  A    ...------}------
-    //  B    ...------}------------
     int32   ahg5 = ovl->dat.ovl.ahg5;
     int32   ahg3 = ovl->dat.ovl.ahg3;
     int32   bhg5 = ovl->dat.ovl.bhg5;
