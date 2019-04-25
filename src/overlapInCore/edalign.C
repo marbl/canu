@@ -159,17 +159,23 @@ refAlign(char *nameA, char *nameB) {
 
     edlibAlignmentAnalyze(result.alignment, result.alignmentLength, nMatch, nMismatch, nInsertOpen, nInsert, nDeleteOpen, nDelete);
 
-    if (result.numLocations > 0)
-      fprintf(stdout, "%s %8d-%-8d %6.2f%% %7u %7u ins %7u %7u del %7u %7u cigar %s\n",
+    if (result.numLocations > 0) {
+      fprintf(stdout, "%s %8d-%-8d alignLen %6d %6.2f%% gap %6.2f %6.2f match %7u mismatch %7u ins %7u %7u del %7u %7u cigar %s\n",
               nameA,
               result.startLocations[0],
               result.endLocations[0] + 1,
+              result.alignmentLength,
               100.0 - 100.0 * result.editDistance / result.alignmentLength,
+              100.0 * (nInsertOpen + nDeleteOpen) / result.alignmentLength,
+              100.0 * (nInsert     + nDelete)     / result.alignmentLength,
               nMatch, nMismatch, nInsertOpen, nInsert, nDeleteOpen, nDelete,
               cigar);
-    else
+    }
+
+    else {
       fprintf(stdout, "%s %8d-%-8d %6.2f%% %7u %7u ins %7u %7u del %7u %7u cigar %s\n",
               nameA, 0, 0, 0.0, 0, 0, 0, 0, 0, 0, "0M");
+    }
 
     delete [] cigar;
 
@@ -212,18 +218,20 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  //if (nameA == NULL)  err++;
-  //if (nameB == NULL)  err++;
+  if ((reference == false) && ((nameA == NULL) || (nameB == NULL)))  err++;
+  if ((reference == true)  && (arg == argc))                         err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -a fileA -b fileB ...\n", argv[0]);
-    fprintf(stderr, "  -a fileA     Mandatory, path to first input file\n");
-    fprintf(stderr, "  -b fileB     Mandatory, path to second input file\n");
+    fprintf(stderr, "usage: %s [-a file -b file] [-ref file file ...]\n", argv[0]);
+    fprintf(stderr, "  PAIRWISE MODE:  Align two sequences globally.\n");
+    //fprintf(stderr, "  Aligns corresponding lines from fileA and B, reporting cigar string.\n");
+    //fprintf(stderr, "  Lines are currently limited to 1 Mbp.\n");
+    fprintf(stderr, "    -a fileA     Mandatory, path to first input file\n");
+    fprintf(stderr, "    -b fileB     Mandatory, path to second input file\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  REFERENCE MODE:  Align multiple sequences to reference.\n");
     fprintf(stderr, "  -ref R.fasta\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  Aligns corresponding lines from fileA and B, reporting cigar string.\n");
-    fprintf(stderr, "  Lines are currently limited to 1 Mbp.\n");
     exit(1);
   }
 
