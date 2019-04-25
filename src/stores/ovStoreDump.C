@@ -371,6 +371,9 @@ dumpParameters::drawPicture(uint32         Aid,
   sqRead   *A    = seqStore->sqStore_getRead(Aid);
   uint32    Alen = A->sqRead_sequenceLength();
 
+  if (overlapsLen == 0)
+    return;
+
   for (int32 i=0; i<256; i++)
     line[i] = ' ';
 
@@ -379,6 +382,7 @@ dumpParameters::drawPicture(uint32         Aid,
   line[ 99 + MHS] = '>';
   line[100 + MHS] = 0;
 
+  fprintf(stdout, "\n");
   fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s %s%s\n",
           0, Alen,
           Aid,
