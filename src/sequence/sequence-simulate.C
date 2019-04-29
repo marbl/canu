@@ -67,7 +67,7 @@ doSimulate_loadSequences(simulateParameters  &simPar,
 void
 doSimulate_extract(simulateParameters &simPar,
                    vector<dnaSeq *>   &seqs,
-                   uint64              seqLen,
+                   uint64              seqLen,        //  Total length of all sequences
                    mtRandom           &mt,
                    uint64              nReadsMax,
                    uint64              nBasesMax) {
@@ -88,30 +88,54 @@ doSimulate_extract(simulateParameters &simPar,
 
     resizeArray(r, 0, rMax, readLength+1, resizeArray_doNothing);
 
-    //  For normal non-circular genomes, we cannot start a read in the last
-    //  bases of the sequence.
-    //    normalLenDiff adjusts the total length of the sequences to remove the end bases
-    //    normalSeqDiff adjusts the length of each sequence
+    //  For normal non-circular references, we cannot start a read in the
+    //  last few bases of the sequence.  But we can for circular references.
+    //  normalSeqDiff adjusts the reference length (at certain times) to
+    //  account for this.
     //
-    uint32  normalLenDiff = (simPar.circular == true) ? (0) : (seqs.size() * readLength);
-    uint32  normalSeqDiff = (simPar.circular == true) ? (0) :               (readLength);
+    uint32  normalSeqDiff = (simPar.circular == true) ? (0) : (readLength);
 
-    //  Compute a position in the sequences.  If we're circular, any position is valid.
-    //  If not, we cannot start a new read in the last N bases of the sequence; that's
-    //  what normalLenDiff does.
+    //  Compute a position in the sequences.
     //
-    uint64  position      = mt.mtRandomRealOpen() * (seqLen - normalLenDiff);
+    //  If we're circular, any position is valid.
+    //
+    //  If not, we cannot start a new read in the last N bases of the
+    //  sequence.  And if the read length is longer than the reference
+    //  length, we cannot get any read out of this sequence.  Thus, we need
+    //  to explicitly sum the lengths of sequences for each read length.
+
+    uint64  sl = 0;
+
+    if (simPar.circular == false) {
+      for (uint32 ss=0; ss < seqs.size(); ss++)
+        if (readLength <= seqs[ss]->length())
+          sl += seqs[ss]->length() - readLength + 1;
+    } else {
+      sl = seqLen;
+    }
+
+    uint64  position = (uint64)floor(mt.mtRandomRealOpen() * sl);
 
     //  Search for the sequence that has bases that start at 'position'.
 
     for (uint32 ss=0; ss < seqs.size(); ss++) {
-      if (seqs[ss]->length() - normalSeqDiff < position) {   //  Skip to the next sequence if
-        position -= seqs[ss]->length() - normalSeqDiff;      //  the position is after this sequence
+
+      //  Skip to the next sequence if the desired read length is longer
+      //  than the sequence length.
+      if (seqs[ss]->length() < readLength) {
         continue;
       }
 
-      //  Otherwise, we're in the correct sequence.  But we might need to wrap
-      //  the read around the end of the sequence.
+      //  Skip to the next sequence if the desired start position is after
+      //  this sequence.
+      if (seqs[ss]->length() - normalSeqDiff < position) {
+        position -= seqs[ss]->length() - normalSeqDiff;
+        continue;
+      }
+
+      //  Otherwise, we're in the correct sequence.  If the reference is
+      //  linear, we're guaranteed to have all the bases for the read in a
+      //  contiguous block.  But if circular, we might need to wrap around.
 
       if (position + readLength <= seqs[ss]->length()) {
         memcpy(r, seqs[ss]->bases() + position, sizeof(char) * readLength);
@@ -120,6 +144,10 @@ doSimulate_extract(simulateParameters &simPar,
       else {
         uint32  l1 = seqs[ss]->length() - position;
         uint32  l2 = readLength - l1;
+
+        assert(simPar.circular == true);
+        assert(position < seqs[ss]->length());
+        assert(l2 <= seqs[ss]->length());
 
         memcpy(r,      seqs[ss]->bases() + position, sizeof(char) * l1);
         memcpy(r + l1, seqs[ss]->bases(),            sizeof(char) * l2);
