@@ -93,9 +93,6 @@ public:
     }
 
     AS_UTL_closeFile(D);
-
-    fprintf(stderr, "dataLen %u\n",  _dataLen);
-    fprintf(stderr, "dataSum %lu\n", _dataSum);
   };
 
 
