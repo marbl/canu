@@ -86,6 +86,7 @@ overlapWriter(void *G, void *S) {
 }
 
 
+
 void
 overlapRecompute(void *G, void *T, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
@@ -115,6 +116,7 @@ overlapTrim(void *G, void *T, void *S) {
   s->trimRead(g->minOverlapLength,
               g->maxErate);
 };
+
 
 
 void
