@@ -223,7 +223,12 @@ sweatShop::loader(void) {
     while (_numberLoaded > _numberComputed + _loaderQueueSize)
       nanosleep(&naptime, 0L);
 
-    sweatShopState  *thisState = new sweatShopState((*_userLoader)(_globalUserData));
+    void *object = NULL;
+
+    if (_userLoader)
+      object = (*_userLoader)(_globalUserData);
+
+    sweatShopState  *thisState = new sweatShopState(object);
 
     //  If we actually loaded a new state, add it
     //
@@ -302,7 +307,8 @@ sweatShop::worker(sweatShopWorker *workerData) {
       sweatShopState *ts = workerData->workerQueue[x];
 
       if (ts && ts->_user) {
-        (*_userWorker)(_globalUserData, workerData->threadUserData, ts->_user);
+        if (_userWorker)
+          (*_userWorker)(_globalUserData, workerData->threadUserData, ts->_user);
         ts->_computed = true;
         workerData->numComputed++;
       } else {
@@ -349,7 +355,8 @@ sweatShop::writer(void) {
       //fprintf(stderr, "Writer waits for all threads at " F_U64 ".\n", _numberOutput);
       nanosleep(&naptime, 0L);
     } else {
-      (*_userWriter)(_globalUserData, _writerP->_user);
+      if (_userWriter)
+        (*_userWriter)(_globalUserData, _writerP->_user);
       _numberOutput++;
 
       deleteState = _writerP;
