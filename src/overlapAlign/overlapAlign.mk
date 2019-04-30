@@ -9,7 +9,9 @@ endif
 
 TARGET   := overlapAlign
 SOURCES  := overlapAlign.C \
-            computeOverlapAlignment.C
+            computeOverlapAlignment.C \
+            trimRead.C \
+            computeAlignments.C
 
 SRC_INCDIRS  := .. ../utility ../stores ../overlapInCore/libedlib
 
