@@ -31,7 +31,9 @@
 
 class maComputation {
 public:
-  maComputation(uint32 id, sqCache *seqCache, ovStore *ovlStore) {
+  maComputation(uint32 id, trReadData *readData, sqCache *seqCache, ovStore *ovlStore) {
+
+    _readData    = readData;
 
     _seqCache    = seqCache;
 
@@ -44,8 +46,8 @@ public:
     _aLen  = _bLen  = 0;
     _aMax  = _bMax  = 0;
 
-    _bgn = 0;
-    _end = 0;
+    _clrBgn = 0;
+    _clrEnd = _seqCache->sqCache_getLength(id);
 
     //  Load overlaps.
 
@@ -76,13 +78,20 @@ public:
 
 
 public:
-  void         trimRead(uint32  minOverlapLength, double  maxErate, int32 &aClrBgn, int32 &aClrEnd);
-  void         computeAlignments(uint32 minOverlapLength, double maxErate);
+  void         trimRead(uint32  minOverlapLength,
+                        double  maxErate);
+
+  void         computeAlignments(uint32 minOverlapLength,
+                                 double maxErate);
 
 private:
   sqCache    *_seqCache;
 
 public:
+
+  //  A pointer to the output object.
+
+  trReadData *_readData;
 
   //  Overlaps are loaded by the loader thread during creation
   //  of this object.
@@ -102,12 +111,13 @@ public:
 
   //  Errors, evidence, alignments.
 
-  
+
 
   //  Final trim points.
 
-  uint32      _bgn;
-  uint32      _end;
+
+  uint32      _clrBgn;
+  uint32      _clrEnd;
 };
 
 

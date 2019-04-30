@@ -27,8 +27,8 @@
 class trReadData {
 public:
   trReadData() {
-    bgn          = 0;
-    end          = 0;
+    clrBgn       = 0;
+    clrEnd       = 0;
 
     isGarbage    = true;
     isContained  = false;
@@ -39,8 +39,8 @@ public:
 
 
 public:
-  uint32    bgn;
-  uint32    end;
+  uint32    clrBgn;
+  uint32    clrEnd;
 
   bool      isGarbage;
   bool      isContained;
@@ -132,6 +132,8 @@ public:
 
   ~trGlobalData() {
     seqStore->sqStore_close();
+
+    delete [] readData;
 
     delete seqCache;
     delete ovlStore;

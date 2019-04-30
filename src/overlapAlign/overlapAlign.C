@@ -73,12 +73,17 @@ overlapReader(void *G) {
   maComputation    *s = NULL;
 
   if (g->ovlStore) {
-    while ((g->curID <= g->endID) &&
+    while ((g->curID <= g->endID) &&                    //  Skip any reads with no overlaps.
            (g->ovlStore->numOverlaps(g->curID) == 0))
       g->curID++;
 
-    if (g->curID <= g->endID)
-      s = new maComputation(g->curID++, g->seqCache, g->ovlStore);
+    if (g->curID <= g->endID) {                         //  Make a new computation object,
+      s = new maComputation(g->curID,                   //  and advance to the next read.
+                            g->readData + g->curID,
+                            g->seqCache,
+                            g->ovlStore);
+      g->curID++;
+    }
   }
 
   //if (g->ovlFile) {
@@ -95,36 +100,31 @@ overlapWriter(void *G, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maComputation    *s = (maComputation *)S;
 
-#if 1
   if (g->outStore)
     for (uint64 oo=0; oo<s->_overlapsLen; oo++)
       g->outStore->writeOverlap(s->_overlaps + oo);
 
   if (g->outFile)
     g->outFile->writeOverlaps(s->_overlaps, s->_overlapsLen);
-#endif
 
   delete s;
 }
 
 
 
-#if 1
 //  Align the overlap in small blocks to find the largest region that aligns.
 //
 void
-maComputation::trimRead(uint32  minOverlapLength,
-                        double  maxErate,
-                        int32  &aClrBgn,
-                        int32  &aClrEnd) {
+maComputation::trimRead(uint32   minOverlapLength,
+                        double   maxErate) {
 
   intervalList<int32>   clearRange;
   intervalList<int32>   failedRange;
 
   bool verbose = false;
 
-  aClrBgn = 0;
-  aClrEnd = 0;
+  _readData->clrBgn = 0;
+  _readData->clrEnd = 0;
 
   if (_overlapsLen == 0)
     return;
@@ -379,10 +379,27 @@ maComputation::trimRead(uint32  minOverlapLength,
         fprintf(stderr, "CLR             %7d-%-7d\n", clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
   }
 
-  for (uint32 ii=0; ii<clearRange.numberOfIntervals(); ii++)
-    fprintf(stderr, "CLR %8u   %7d-%-7d\n", _aID, clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
+  //  Pick the largest clear region and save it in the globals.  We could let
+  //  the 'writer' thread do this, but we only care about this in memory at
+  //  the moment, it's small, and it's easier to write in one bug chunk.
+
+  for (uint32 ii=0; ii<clearRange.numberOfIntervals(); ii++) {
+    uint32 bgn = clearRange.lo(ii) - overhang;
+    uint32 end = clearRange.hi(ii) + overhang;
+
+    if (end - bgn > _readData->clrEnd - _readData->clrBgn) {
+      _readData->clrBgn = bgn;
+      _readData->clrEnd = end;
+    }
+
+    //fprintf(stderr, "CLR %8u   %7d-%-7d\n", _aID, clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
+  }
+
+  fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear\n",
+          _aID,
+          _readData->clrBgn, _readData->clrEnd,
+          100.0 * (_readData->clrEnd - _readData->clrBgn) / _aLen);
 }
-#endif
 
 
 
@@ -655,13 +672,76 @@ overlapTrim(void *G, void *T, void *S) {
 
   //fprintf(stderr, "Processing read %u with %u overlaps.\n", s->_aID, s->_overlapsLen);
 
-  int32  aBgn = 0;
-  int32  aEnd = 0;
-
-  s->trimRead(g->minOverlapLength, g->maxErate, aBgn, aEnd);
-
-  //fprintf(stderr, "CLEAR %7d-%-7d\n", aBgn, aEnd);
+  //  Trim the read.
+  //
+  //  Note that output is set directly in the trReadData array in trGlobalData.
+  //  See the _readData member in maComputation, and overlapReader() above.
+  //
+  s->trimRead(g->minOverlapLength,
+              g->maxErate);
 };
+
+
+void
+alignOverlaps(trGlobalData *g, bool isTrimming) {
+
+  //  If only one thread, don't use sweatShop.  Easier to debug
+  //  and works with valgrind.
+
+  if (g->numThreads == 1) {
+    maThreadData  *t = new maThreadData(g, 0);
+
+    while (1) {
+      maComputation *c = (maComputation *)overlapReader(g);
+
+      if (c == NULL)
+        break;
+
+      if (isTrimming) {
+        overlapTrim(g, t, c);
+      }
+
+      else {
+        overlapRecompute(g, t, c);
+        overlapWriter(g, c);
+      }
+    }
+
+    delete t;
+  }
+
+  //  Use all the CPUs!
+
+  else {
+    maThreadData **td = new maThreadData * [g->numThreads];
+    sweatShop     *ss = NULL;
+
+    if (isTrimming) {
+      ss = new sweatShop(overlapReader, overlapTrim, NULL);
+    }
+
+    else {
+      ss = new sweatShop(overlapReader, overlapRecompute, overlapWriter);
+    }
+
+    ss->setLoaderQueueSize(128);
+    ss->setWriterQueueSize(16 * 1024);    //  Otherwise skipped reads hold up the queue.
+
+    ss->setNumberOfWorkers(g->numThreads);
+
+    for (uint32 w=0; w<g->numThreads; w++)
+      ss->setThreadData(w, td[w] = new maThreadData(g, w));
+
+    ss->run(g, false);
+
+    delete ss;
+
+    for (uint32 w=0; w<g->numThreads; w++)
+      delete td[w];
+
+    delete [] td;
+  }
+}
 
 
 
@@ -745,68 +825,8 @@ main(int argc, char **argv) {
 
   g->initialize();
 
-
-
-  //  Trim the reads.
-
-#if 1
-  if (g->numThreads == 1) {
-    maThreadData  *t = new maThreadData(g, 0);
-
-    while (1) {
-      maComputation *c = (maComputation *)overlapReader(g);
-
-      if (c == NULL)
-        break;
-
-      overlapTrim(g, t, c);
-    }
-
-    delete t;
-  }
-#endif
-
-
-  //  If only one thread, don't use sweatShop.  Easier to debug
-  //  and works with valgrind.
-
-  if (g->numThreads == 1) {
-    maThreadData  *t = new maThreadData(g, 0);
-
-    while (1) {
-      maComputation *c = (maComputation *)overlapReader(g);
-
-      if (c == NULL)
-        break;
-
-      overlapRecompute(g, t, c);
-      overlapWriter(g, c);
-    }
-
-    delete t;
-  }
-
-  //  Use all the CPUs!
-
-  else {
-    maThreadData **td = new maThreadData * [g->numThreads];
-    sweatShop     *ss = new sweatShop(overlapReader, overlapRecompute, overlapWriter);
-
-    ss->setLoaderQueueSize(128);
-    ss->setWriterQueueSize(16 * 1024);    //  Otherwise skipped reads hold up the queue.
-
-    ss->setNumberOfWorkers(g->numThreads);
-
-    for (uint32 w=0; w<g->numThreads; w++)
-      ss->setThreadData(w, td[w] = new maThreadData(g, w));  //  these leak
-
-    ss->run(g, false);
-
-    delete ss;
-
-    for (uint32 w=0; w<g->numThreads; w++)
-      delete td[w];
-  }
+  alignOverlaps(g, true);     //  Trim reads.
+  alignOverlaps(g, false);    //  Align overlaps.
 
   //  All done!
 
