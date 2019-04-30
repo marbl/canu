@@ -29,6 +29,11 @@
 //  and a pointer to the cache is saved so we can retrieve the
 //  reads on demand during the compute.
 
+#include <tuple>
+
+using namespace std;
+
+
 class maComputation {
 public:
   maComputation(uint32 id, trReadData *readData, sqCache *seqCache, ovStore *ovlStore) {
@@ -78,11 +83,16 @@ public:
 
 
 public:
-  void         trimRead(uint32  minOverlapLength,
-                        double  maxErate);
+  void                 trimRead(uint32  minOverlapLength,
+                                double  maxErate);
 
-  void         computeAlignments(uint32 minOverlapLength,
-                                 double maxErate);
+private:
+  bool                 isWellContained(int32 maxEdge);
+  tuple<int32, int32>  findMinThickestEdge(double coverage);
+
+public:
+  void                 computeAlignments(uint32 minOverlapLength,
+                                         double maxErate);
 
 private:
   sqCache    *_seqCache;
