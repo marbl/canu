@@ -313,11 +313,11 @@ ovStore::setRange(uint32 bgnID, uint32 endID) {
   delete _bof;
   _bof = NULL;
 
-  //  Set and check ranges.  Well, looks like more setting and less checking....
+  //  Set ranges, limiting them to the last read (possibly last read with overlaps).
 
-  _bgnID = bgnID;
-  _curID = bgnID;
-  _endID = endID;
+  _bgnID = min(bgnID, _info.maxID());
+  _curID = min(bgnID, _info.maxID());
+  _endID = min(endID, _info.maxID());
 
   //  Skip reads with no overlaps.
 
