@@ -47,27 +47,30 @@ public:
     _overlapsMax = 0;
 
     _aID   = id;
-    _aRead = _bRead = NULL;
-    _aLen  = _bLen  = 0;
-    _aMax  = _bMax  = 0;
+    _bID   = UINT32_MAX;
 
-    _clrBgn = 0;
-    _clrEnd = _seqCache->sqCache_getLength(id);
+    _aRead = _bRead = NULL;
+    _aMax  = _bMax  = 0;
 
     //  Load overlaps.
 
     _overlapsLen = ovlStore->loadOverlapsForRead(id, _overlaps, _overlapsMax);
 
+#if 0
+    if (_overlapsLen > 0)
+      fprintf(stderr, "READ %8u found %8u overlaps; first IDs %8u %8u\n",
+              _aID, _overlapsLen, _overlaps[0].a_iid, _overlaps[0].b_iid);
+    else
+      fprintf(stderr, "READ %8u found   NONE   overlaps; first IDs -------- --------\n",
+              _aID);
+#endif
+
     //  Allocate space for the a read.
 
-    _aLen  = 0;
     _aMax  = _seqCache->sqCache_getLength(id) + 1;
     _aRead = new char [_aMax];
 
     //  Find the longest b read and allocate space for b read sequences.
-
-    _bLen  = 0;
-    _bMax  = 0;
 
     for (uint32 ii=0; ii<_overlapsLen; ii++)
       _bMax = max(_bMax, _seqCache->sqCache_getLength(_overlaps[ii].b_iid) + 1);
@@ -89,6 +92,12 @@ public:
 private:
   bool                 isWellContained(int32 maxEdge);
   tuple<int32, int32>  findMinThickestEdge(double coverage);
+
+  void                 fetchUntrimmedRead(uint32 id_, bool isA_=true, bool revComp_=false);
+  void                 fetchTrimmedRead  (uint32 id_, bool isA_=true, bool revComp_=false);
+  bool                 trimOverlap_Normal(ovOverlap *ovl);
+  bool                 trimOverlap_Flipped(ovOverlap *ovl);
+  bool                 trimOverlap(ovOverlap *ovl);
 
 public:
   void                 computeAlignments(uint32 minOverlapLength,
@@ -114,20 +123,9 @@ public:
   //  sequences are cached in core, and that we can get them
   //  on demand, for free, during the computation.
 
-  uint32      _aID;
-  char       *_aRead,   *_bRead;
-  uint32      _aLen,     _bLen;
-  uint32      _aMax,     _bMax;
-
-  //  Errors, evidence, alignments.
-
-
-
-  //  Final trim points.
-
-
-  uint32      _clrBgn;
-  uint32      _clrEnd;
+  uint32      _aID,      _bID;
+  uint32      _aMax,     _bMax;    //  Allocated length of aRead.
+  char       *_aRead,   *_bRead;   //
 };
 
 

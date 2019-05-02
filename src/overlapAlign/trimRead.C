@@ -60,13 +60,13 @@ maComputation::trimRead(uint32   minOverlapLength,
 
   bool verbose = false;
 
-  _readData->clrBgn = 0;
-  _readData->clrEnd = 0;
+  _readData[_aID].clrBgn = 0;  //  Default to fully trimming the read.
+  _readData[_aID].clrEnd = 0;
 
   if (_overlapsLen == 0)
     return;
 
-  _seqCache->sqCache_getSequence(_aID, _aRead, _aLen, _aMax);
+  fetchUntrimmedRead(_aID);
 
   //  PARAMETERS
   //
@@ -92,31 +92,29 @@ maComputation::trimRead(uint32   minOverlapLength,
 
 
 
-
   for (uint32 ii=0; ii<_overlapsLen; ii++) {
     ovOverlap *ov = _overlaps + ii;
+
+    assert(_aID == ov->a_iid);
+    _bID = ov->b_iid;
 
     double  erate     = 0;
 
     int32   a5        = (int32)ov->dat.ovl.ahg5;
     int32   a3        = (int32)ov->dat.ovl.ahg3;
-    uint32  aID       = ov->a_iid;
-    int32   alen      = _seqCache->sqCache_getLength(aID);
-    int32   abgn      =        a5;
-    int32   aend      = alen - a3;
+    int32   abgn      =                             a5;
+    int32   aend      = _readData[_aID].rawLength - a3;
 
     int32   b5        = (int32)ov->dat.ovl.bhg5;
     int32   b3        = (int32)ov->dat.ovl.bhg3;
-    uint32  bID       = ov->b_iid;
-    int32   blen      = _seqCache->sqCache_getLength(bID);
-    int32   bbgn      =        b5;
-    int32   bend      = blen - b3;
+    int32   bbgn      =                             b5;
+    int32   bend      = _readData[_bID].rawLength - b3;
 
     //  Log.
 
     if (verbose) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "olap %8u A %7d-%-7d B %8u %7d-%-7d\n", aID, abgn, aend, bID, bbgn, bend);
+      fprintf(stderr, "olap %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
     }
 
     //
@@ -139,7 +137,7 @@ maComputation::trimRead(uint32   minOverlapLength,
 
     if (useful == false) {
       if (verbose)
-        fprintf(stderr, "notU %8u A %7d-%-7d B %8u %7d-%-7d\n", aID, abgn, aend, bID, bbgn, bend);
+        fprintf(stderr, "notU %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
       continue;
     }
 
@@ -167,18 +165,13 @@ maComputation::trimRead(uint32   minOverlapLength,
 
     if (giveup == true) {
       if (verbose)
-        fprintf(stderr, "BAD  %8u A %7d-%-7d B %8u %7d-%-7d\n", aID, abgn, aend, bID, bbgn, bend);
+        fprintf(stderr, "BAD  %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
       continue;
     }
 
-
-
     //  It's useful!  Grab the sequence and orient it for this overlap.
 
-    _seqCache->sqCache_getSequence(ov->b_iid, _bRead, _bLen, _bMax);
-
-    if (ov->flipped() == true)
-      reverseComplementSequence(_bRead, _bLen);
+    fetchUntrimmedRead(ov->b_iid, false, ov->flipped());
 
     //  Find the expected middle of the alignment in both the A and B reads.
 
@@ -188,27 +181,27 @@ maComputation::trimRead(uint32   minOverlapLength,
     //  Extend the A region on each side, and the B region by a little bit more (since the end gaps are free).
 
     abgn = max(amid - extension / 2, 0);
-    aend = min(amid + extension / 2, alen);
+    aend = min(amid + extension / 2, _readData[_aID].rawLength);
 
     bbgn = max(bmid - extension / 2 - bextra, 0);
-    bend = min(bmid + extension / 2 + bextra, blen);
+    bend = min(bmid + extension / 2 + bextra, _readData[_bID].rawLength);
 
     //  Align to find the precise region we align to in the B read.  If the alignment passes,
     //  bbgn and bend are updated to those coordinates.
 
     //  XXX  if it fails, shift left/right until we find the seed.
-    if (testAlignment(_aRead, abgn, aend, alen, aID,
-                      _bRead, bbgn, bend, blen, bID,
+    if (testAlignment(_aRead, abgn, aend, _readData[_aID].rawLength, _aID,
+                      _bRead, bbgn, bend, _readData[_bID].rawLength, _bID,
                       maxAlignErate,
                       maxAcceptErate,
                       erate) == false) {
       if (verbose)
-        fprintf(stderr, "trim %8u fails.\n", aID);
+        fprintf(stderr, "trim %8u fails.\n", _aID);
       continue;
     }
 
     if (verbose)
-      fprintf(stderr, "init            %7d-%-7d B %8u %7d-%-7d\n", abgn, aend, bID, bbgn, bend);
+      fprintf(stderr, "init            %7d-%-7d B %8u %7d-%-7d\n", abgn, aend, _bID, bbgn, bend);
 
 
     //
@@ -245,20 +238,20 @@ maComputation::trimRead(uint32   minOverlapLength,
       if (bb < 0)   //  B chunk is too small for A chunk, so just stop.
         break;
 
-      if (testAlignment(_aRead, ab, ae, alen, aID,
-                        _bRead, bb, be, blen, bID,
+      if (testAlignment(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
+                        _bRead, bb, be, _readData[_bID].rawLength, _bID,
                         maxAlignErate,
                         maxAcceptErate,
                         erate) == true) {
         if (verbose)
-          fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, bID, bb, be, erate);
+          fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, _bID, bb, be, erate);
         abgn = ab;
         bbgn = bb;
       }
 
       else {
         if (verbose)
-          fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, bID, bb, be, erate);
+          fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
         failedRange.add(abgn, aend - abgn);
       }
     }
@@ -268,31 +261,31 @@ maComputation::trimRead(uint32   minOverlapLength,
     erate = 0.0;
 
     while ((erate < maxAcceptErate) &&
-           (aend < alen) &&
-           (bend < blen)) {
+           (aend < _readData[_aID].rawLength) &&
+           (bend < _readData[_bID].rawLength)) {
       int32   ab = aend - anchor;
-      int32   ae = min(aend + extension, alen);
+      int32   ae = min(aend + extension, _readData[_aID].rawLength);
 
       int32   bb = bend - anchor;
       int32   be = bend + extension + slop;
 
-      if (be > blen)   //  B chunk is too small for A chunk, so just stop.
+      if (be > _readData[_bID].rawLength)   //  B chunk is too small for A chunk, so just stop.
         break;
 
-      if (testAlignment(_aRead, ab, ae, alen, aID,
-                        _bRead, bb, be, blen, bID,
+      if (testAlignment(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
+                        _bRead, bb, be, _readData[_bID].rawLength, _bID,
                         maxAlignErate,
                         maxAcceptErate,
                         erate) == true) {
         if (verbose)
-          fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, bID, bb, be, erate);
+          fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, _bID, bb, be, erate);
         aend = ae;
         bend = be;
       }
 
       else {
         if (verbose)
-          fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, bID, bb, be, erate);
+          fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
         failedRange.add(abgn, aend - abgn);
       }
     }
@@ -304,7 +297,7 @@ maComputation::trimRead(uint32   minOverlapLength,
     aend -= overhang;
 
     if (verbose)
-      fprintf(stderr, "clr  %8u A %7d-%-7d\n", aID, abgn, aend);
+      fprintf(stderr, "clr  %8u A %7d-%-7d\n", _aID, abgn, aend);
 
     //  Unless we sort overlaps by A bgn position, we need an interval list.
 
@@ -324,16 +317,19 @@ maComputation::trimRead(uint32   minOverlapLength,
     uint32 bgn = clearRange.lo(ii) - overhang;
     uint32 end = clearRange.hi(ii) + overhang;
 
-    if (end - bgn > _readData->clrEnd - _readData->clrBgn) {
-      _readData->clrBgn = bgn;
-      _readData->clrEnd = end;
+    if (end - bgn > _readData[_aID].clrEnd - _readData[_aID].clrBgn) {
+      _readData[_aID].clrBgn = bgn;
+      _readData[_aID].clrEnd = end;
+      _readData[_aID].trimmedLength = end - bgn;
     }
 
     //fprintf(stderr, "CLR %8u   %7d-%-7d\n", _aID, clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
   }
 
+#if 1
   fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear\n",
           _aID,
-          _readData->clrBgn, _readData->clrEnd,
-          100.0 * (_readData->clrEnd - _readData->clrBgn) / _aLen);
+          _readData[_aID].clrBgn, _readData[_aID].clrEnd,
+          100.0 * (_readData[_aID].clrEnd - _readData[_aID].clrBgn) / _readData[_aID].rawLength);
+#endif
 }

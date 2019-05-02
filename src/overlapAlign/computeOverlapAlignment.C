@@ -99,12 +99,12 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
                  int32  &editDist,
                  int32  &alignLen) {
   bool  success = false;
-  bool  debug   = false;
+  bool  debug   = true;
 
-  if (debug)
-    fprintf(stderr, "  align %s %6u %6d-%-6d to %s %6u %6d-%-6d",
-            Alabel, Aid, abgn, aend,
-            Blabel, Bid, bbgn, bend);
+  if (debug) {
+    fprintf(stderr, "computeAlignment()--         align %s %6u %6d-%-6d\n", Alabel, Aid, abgn, aend);
+    fprintf(stderr, "computeAlignment()--            vs %s %6u %6d-%-6d\n", Blabel, Bid, bbgn, bend);
+  }
 
   EdlibAlignResult result = edlibAlign(aRead + abgn, aend - abgn,
                                        bRead + bbgn, bend - bbgn,
@@ -130,15 +130,31 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
     editDist = result.editDistance;
     alignLen = result.alignmentLength;
 
-    if (debug)
-      fprintf(stderr, "    aligned to %s at %6d-%-6d editDist %5d alignLen %6d qual %6.4f\n",
-              Blabel, bbgn, bend, editDist, alignLen, 1.0 - editDist / (double)alignLen);
+    if (debug) {
+      fprintf(stderr, "computeAlignment()--         PASS  %s %6u %6d-%-6d editDist %5d alignLen %6d qual %6.4f\n",
+              Blabel, Bid, bbgn, bend,
+              editDist,
+              alignLen,
+              1.0 - editDist / (double)alignLen);
+    }
   }
 
   else {
-    if (debug)
-      fprintf(stderr, "    FAILED  to %s at %6d-%-6d editDist %5d alignLen %6d qual %6.4f\n",
-              Blabel, bbgn, bend, editDist, alignLen, 1.0 - editDist / (double)alignLen);
+    if ((debug) && (result.numLocations > 0)) {
+      fprintf(stderr, "computeAlignment()--         FAIL  %s %6u %6d-%-6d editDist %5d alignLen %6d qual %6.4f\n",
+              Blabel, Bid, bbgn, bend,
+              editDist,
+              alignLen,
+              1.0 - editDist / (double)alignLen);
+    }
+
+    if ((debug) && (result.numLocations == 0)) {
+      fprintf(stderr, "computeAlignment()--         FAIL  %s %6u %6d-%-6d no alignment\n",
+              Blabel, Bid, bbgn, bend,
+              editDist,
+              alignLen,
+              1.0 - editDist / (double)alignLen);
+    }
   }
 
   edlibFreeAlignResult(result);
@@ -185,7 +201,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
                         double       maxErate,
                         bool         partialOverlaps,
                         alignStats  &localStats) {
-  bool    debug     = false;
+  bool    debug     = true;
 
   ovOverlap ori     = *ovl;
 
@@ -204,8 +220,8 @@ computeOverlapAlignment(ovOverlap   *ovl,
 
   if (debug) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "A %8u %6d-%-6d %d\n", aID, abgn, aend, alen);
-    fprintf(stderr, "B %8u %6d-%-6d %d\n", bID, bbgn, bend, blen);
+    fprintf(stderr, "computeOverlapAlignment()-- A %8u %6d-%-6d %d\n", aID, abgn, aend, alen);
+    fprintf(stderr, "computeOverlapAlignment()-- B %8u %6d-%-6d %d\n", bID, bbgn, bend, blen);
   }
 
   //  A    ------------{------...
@@ -229,7 +245,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   aend = min(alen, ahg5 + a3);
 
     if (debug)
-      fprintf(stderr, "bhg5:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
+      fprintf(stderr, "computeOverlapAlignment()-- bhg5:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
     if (computeAlignment(bseq, bbgn, bend, blen, "B", bID,    //  Align all of sequence B into
                          aseq, abgn, aend, alen, "A", aID,    //  sequence A with free ends.
@@ -237,7 +253,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
                          editDist,
                          alignLen) == true) {
       if (debug)
-        fprintf(stderr, "       B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
+        fprintf(stderr, "computeOverlapAlignment()--        B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
       ovl->dat.ovl.ahg5 = abgn;
       ovl->dat.ovl.bhg5 = bbgn;
@@ -274,7 +290,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   aend = min(alen, ahg5 + a3);
 
     if (debug)
-      fprintf(stderr, "ahg5:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
+      fprintf(stderr, "computeOverlapAlignment()-- ahg5:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
     if (computeAlignment(aseq, abgn, aend, alen, "A", aID,    //  Align all of sequence A into
                          bseq, bbgn, bend, blen, "B", bID,    //  sequence B with free ends.
@@ -282,7 +298,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
                          editDist,
                          alignLen) == true) {
       if (debug)
-        fprintf(stderr, "       A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
+        fprintf(stderr, "computeOverlapAlignment()--        A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
       ovl->dat.ovl.ahg5 = abgn;
       ovl->dat.ovl.bhg5 = bbgn;
@@ -322,7 +338,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   aend = min(alen, alen - ahg3 + a3);
 
     if (debug)
-      fprintf(stderr, "bhg3:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
+      fprintf(stderr, "computeOverlapAlignment()-- bhg3:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
     if (computeAlignment(bseq, bbgn, bend, blen, "B", bID,    //  Align all of sequence B into
                          aseq, abgn, aend, alen, "A", aID,    //  sequence A with free ends.
@@ -330,7 +346,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
                          editDist,
                          alignLen) == true) {
       if (debug)
-        fprintf(stderr, "       B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
+        fprintf(stderr, "computeOverlapAlignment()--        B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
       if ((bbgn == 0) ||                  //  Update the other end if the B read is contained, or
           (abgn < ovl->dat.ovl.ahg5)) {   //  if the alignment extends past our existing end.
@@ -367,7 +383,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   aend = min(alen, alen - ahg3 + a3);
 
     if (debug)
-      fprintf(stderr, "ahg3:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
+      fprintf(stderr, "computeOverlapAlignment()-- ahg3:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
     if (computeAlignment(aseq, abgn, aend, alen, "A", aID,    //  Align all of sequence A into
                          bseq, bbgn, bend, blen, "B", bID,    //  sequence B with free ends.
@@ -375,7 +391,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
                          editDist,
                          alignLen) == true) {
       if (debug)
-        fprintf(stderr, "       A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
+        fprintf(stderr, "computeOverlapAlignment()--        A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
       if ((abgn == 0) ||                  //  Update the other end if the A read is contained, or
           (bbgn < ovl->dat.ovl.bhg5)) {   //  if the alignment extends past our existing end.
@@ -402,7 +418,7 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   bend      = (int32)blen - ovl->dat.ovl.bhg3;
 
     if (debug)
-      fprintf(stderr, "final:   A %d-%d vs B %d-%d\n", abgn, aend, bbgn, bend);
+      fprintf(stderr, "computeOverlapAlignment()-- final:   A %d-%d vs B %d-%d\n", abgn, aend, bbgn, bend);
 
     EdlibAlignResult result = edlibAlign(aseq + abgn, aend - abgn,
                                          bseq + bbgn, bend - bbgn,
@@ -442,8 +458,8 @@ computeOverlapAlignment(ovOverlap   *ovl,
   //  More logging.
 
   if (debug) {
-    fprintf(stderr, "A %7u %6d-%-6d -> %6d-%-6d\n",       aID, ori.a_bgn(), ori.a_end(), ovl->a_bgn(), ovl->a_end());
-    fprintf(stderr, "B %7u %6d-%-6d -> %6d-%-6d %5.4f\n", bID, ori.b_bgn(), ori.b_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
+    fprintf(stderr, "computeOverlapAlignment()-- A %7u %6d-%-6d -> %6d-%-6d\n",       aID, ori.a_bgn(), ori.a_end(), ovl->a_bgn(), ovl->a_end());
+    fprintf(stderr, "computeOverlapAlignment()-- B %7u %6d-%-6d -> %6d-%-6d %5.4f\n", bID, ori.b_bgn(), ori.b_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
   }
 }
 

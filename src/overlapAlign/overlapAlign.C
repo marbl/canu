@@ -54,7 +54,7 @@ overlapReader(void *G) {
 
     if (g->curID <= g->endID) {                         //  Make a new computation object,
       s = new maComputation(g->curID,                   //  and advance to the next read.
-                            g->readData + g->curID,
+                            g->readData,
                             g->seqCache,
                             g->ovlStore);
       g->curID++;
@@ -113,14 +113,17 @@ overlapTrim(void *G, void *T, void *S) {
   //  Note that output is set directly in the trReadData array in trGlobalData.
   //  See the _readData member in maComputation, and overlapReader() above.
   //
-  s->trimRead(g->minOverlapLength,
-              g->maxErate);
+  s->trimRead(g->minOverlapLength, g->maxErate);
 };
 
 
 
 void
 alignOverlaps(trGlobalData *g, bool isTrimming) {
+
+  //  Set the range of overlaps to process.
+
+  g->resetOverlapIteration();
 
   //  If only one thread, don't use sweatShop.  Easier to debug
   //  and works with valgrind.
@@ -262,8 +265,13 @@ main(int argc, char **argv) {
 
   g->initialize();
 
-  alignOverlaps(g, true);     //  Trim reads.
-  alignOverlaps(g, false);    //  Align overlaps.
+  //g->numThreads=24;
+  fprintf(stderr, "TRIMMING READS.\n");
+  alignOverlaps(g, true);
+
+  //g->numThreads=1;
+  fprintf(stderr, "ALIGNING OVERLAPS.\n");
+  alignOverlaps(g, false);
 
   //  All done!
 

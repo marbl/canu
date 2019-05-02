@@ -27,20 +27,26 @@
 class trReadData {
 public:
   trReadData() {
-    clrBgn       = 0;
-    clrEnd       = 0;
+    clrBgn         = 0;
+    clrEnd         = 0;
 
-    isGarbage    = true;
-    isContained  = false;
-    isSuspicious = false;
+    rawLength      = 0;
+    trimmedLength  = 0;
+
+    isGarbage      = true;
+    isContained    = false;
+    isSuspicious   = false;
   };
   ~trReadData() {
   };
 
 
 public:
-  uint32    clrBgn;
-  uint32    clrEnd;
+  int32     clrBgn;
+  int32     clrEnd;
+
+  int32     rawLength;
+  int32     trimmedLength;
 
   bool      isGarbage;
   bool      isContained;
@@ -118,17 +124,26 @@ public:
     //  Parameters
 
     if (bgnID == 0)                                bgnID = 1;
-    if (endID  > seqStore->sqStore_getNumReads())  endID = seqStore->sqStore_getNumReads() + 1;
+    if (endID  > seqStore->sqStore_getNumReads())  endID = seqStore->sqStore_getNumReads();
 
     curID = bgnID;
 
-    //  Trimming
+    //  Trimming data.  Initialize clear range and lengths to the full read.
 
-    readData = new trReadData [endID - bgnID + 1];
+    readData = new trReadData [seqStore->sqStore_getNumReads() + 1];
+
+    for (uint32 ii=0; ii<seqStore->sqStore_getNumReads() + 1; ii++) {
+      readData[ii].clrEnd        = seqCache->sqCache_getLength(ii);
+      readData[ii].rawLength     = seqCache->sqCache_getLength(ii);
+      readData[ii].trimmedLength = seqCache->sqCache_getLength(ii);
+    }
 
     //  Outputs
   };
 
+  void    resetOverlapIteration(void) {
+    ovlStore->setRange(curID = bgnID, endID);
+  };
 
   ~trGlobalData() {
     seqStore->sqStore_close();
@@ -153,8 +168,8 @@ public:
   double             maxErate;
   uint64             memLimit;
 
-  uint32             bgnID;
-  uint32             curID;  //  Currently loading id
+  uint32             bgnID;  //  INCLUSIVE range of reads to process.
+  uint32             curID;  //    (currently loading id)
   uint32             endID;
 
   uint32             minOverlapLength;
