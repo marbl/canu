@@ -107,8 +107,6 @@ sub configureLSF () {
     #
     #  The list is saved in global{"availableHosts"}
     #
-    #  !!! UNTESTED !!
-    #
     my %hosts;
 
     open(F, "lshosts |");
@@ -119,10 +117,12 @@ sub configureLSF () {
 
     my $cpuIdx  = 4;
     my $memIdx  = 5;
+    my $srvIdx  = 7;
 
     for (my $ii=0; ($ii < scalar(@h)); $ii++) {
         $cpuIdx  = $ii  if ($h[$ii] eq "ncpus");
         $memIdx  = $ii  if ($h[$ii] eq "maxmem");
+        $srvIdx  = $ii  if ($h[$ii] eq "server");
     }
 
     while (<F>) {
@@ -130,7 +130,10 @@ sub configureLSF () {
 
         my $cpus  = $v[$cpuIdx];
         my $mem   = $v[$memIdx];
+        my $srv   = $v[$srvIdx];
+
         next if ($mem =~ m/-/);
+        next if ($srv !~ m/yes/i);
 
         # if we failed to find the units from the configuration, inherit it from the lshosts output
         if (!defined($memUnits)) {
