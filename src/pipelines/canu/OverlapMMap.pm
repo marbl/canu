@@ -50,6 +50,50 @@ use canu::Grid_Cloud;
 
 #  Map long reads to long reads with minimap.
 
+sub setParameters ($$) {
+    my $asm  = shift @_;
+    my $base = shift @_;
+
+    my $parameters;
+    my $numPacBioRaw         = 0;
+    my $numPacBioCorrected   = 0;
+    my $numNanoporeRaw       = 0;
+    my $numNanoporeCorrected = 0;
+
+    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
+    while (<L>) {
+        $numPacBioRaw++           if (m/pacbio-raw/);
+        $numPacBioCorrected++     if (m/pacbio-corrected/);
+        $numNanoporeRaw++         if (m/nanopore-raw/);
+        $numNanoporeCorrected++   if (m/nanopore-corrected/);
+    }
+    close(L);
+
+    if ($numPacBioRaw > 0) {
+       $parameters = "-x ava-pb";
+    }
+
+    elsif ($numNanoporeRaw > 0) {
+       $parameters = "-x ava-ont";
+    }
+
+    elsif ($numPacBioCorrected > 0) {
+       $parameters = "-x ava-pb"; # -Hk21 -w14"; #tuned to find 1000bp 5% error
+    }
+
+    elsif ($numNanoporeCorrected > 0) {
+       $parameters = "-x ava-ont"; # -k17 -w11"; #tuned to find 1000bp 15% error
+    }
+
+    else {
+       caFailiure("no known read types found in $base/$asm.seqStore/libraries.txt")
+    }
+
+    return($parameters);
+}
+
+
+
 sub mmapConfigure ($$$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -68,36 +112,21 @@ sub mmapConfigure ($$$) {
 
     caFailure("invalid type '$typ'", undef)  if (($typ ne "partial") && ($typ ne "normal"));
 
-    goto allDone   if (fileExists("$path/precompute.sh")) && (fileExists("$path/mmap.sh"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
 
-    my $numPacBioRaw         = 0;
-    my $numPacBioCorrected   = 0;
-    my $numNanoporeRaw       = 0;
-    my $numNanoporeCorrected = 0;
+    if (fileExists("$path/queries.tar")) {
+        print STDERR "--\n";
+        print STDERR "-- OVERLAPPER (mmap) (correction) complete, not rewriting scripts.\n"  if ($tag eq "cor");
+        print STDERR "-- OVERLAPPER (mmap) (trimming) complete, not rewriting scripts.\n"    if ($tag eq "obt");
+        print STDERR "-- OVERLAPPER (mmap) (assembly) complete, not rewriting scripts.\n"    if ($tag eq "utg");
+        print STDERR "--\n";
 
-    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
-    while (<L>) {
-        $numPacBioRaw++           if (m/pacbio-raw/);
-        $numPacBioCorrected++     if (m/pacbio-corrected/);
-        $numNanoporeRaw++         if (m/nanopore-raw/);
-        $numNanoporeCorrected++   if (m/nanopore-corrected/);
+        goto allDone;
     }
-    close(L);
-    my $parameters = "";
-    if ($numPacBioRaw > 0) {
-       $parameters = "-x ava-pb";
-    } elsif ($numNanoporeRaw > 0) {
-       $parameters = "-x ava-ont";
-    } elsif ($numPacBioCorrected > 0) {
-       $parameters = "-x ava-pb"; # -Hk21 -w14"; #tuned to find 1000bp 5% error
-    } elsif ($numNanoporeCorrected > 0) {
-       $parameters = "-x ava-ont"; # -k17 -w11"; #tuned to find 1000bp 15% error
-    } else {
-       caFailiure("--ERROR: no know read types found in $base/$asm.seqStore/libraries.txt")
-    }
+
+    my $parameters = setParameters($asm, $base);
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (mmap) (correction) with $parameters\n"  if ($tag eq "cor");
@@ -220,11 +249,6 @@ sub mmapConfigure ($$$) {
     }
 
     close(L);
-
-    #  Tar up the queries directory.  Only useful for cloud support.
-
-    runCommandSilently($path, "tar -cf queries.tar queries", 1);
-    stashFile("$path/queries.tar");
 
     #  Create a script to generate precomputed blocks, including extracting the reads from seqStore.
 
@@ -455,11 +479,18 @@ sub mmapConfigure ($$$) {
         print STDERR "-- Configured $numJobs mmap overlap jobs.\n";
     }
 
+    #  Tar up the queries directory and save scripts.  The queries.tar is
+    #  useful for cloud support, but we also use it to decide if this step
+    #  has finished.
+
+    runCommandSilently($path, "tar -cf queries.tar queries", 1);
+
     makeExecutable("$path/precompute.sh");
     makeExecutable("$path/mhap.sh");
 
     stashFile("$path/precompute.sh");
     stashFile("$path/mhap.sh");
+    stashFile("$path/queries.tar");
 
   finishStage:
     generateReport($asm);

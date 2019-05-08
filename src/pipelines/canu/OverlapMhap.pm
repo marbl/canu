@@ -82,10 +82,19 @@ sub mhapConfigure ($$$) {
 
     caFailure("invalid type '$typ'", undef)  if (($typ ne "partial") && ($typ ne "normal"));
 
-    goto allDone   if (fileExists("$path/precompute.sh")) && (fileExists("$path/mhap.sh"));
     goto allDone   if (fileExists("$path/ovljob.files"));
     goto allDone   if (-e "$base/$asm.ovlStore");
     goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
+
+    if (fileExists("$path/queries.tar")) {
+        print STDERR "--\n";
+        print STDERR "-- OVERLAPPER (mhap) (correction) complete, not rewriting scripts.\n"  if ($tag eq "cor");
+        print STDERR "-- OVERLAPPER (mhap) (trimming) complete, not rewriting scripts.\n"    if ($tag eq "obt");
+        print STDERR "-- OVERLAPPER (mhap) (assembly) complete, not rewriting scripts.\n"    if ($tag eq "utg");
+        print STDERR "--\n";
+
+        goto allDone;
+    }
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (mhap) (correction)\n"  if ($tag eq "cor");
@@ -289,11 +298,6 @@ sub mhapConfigure ($$$) {
     }
 
     close(L);
-
-    #  Tar up the queries directory.  Only useful for cloud support.
-
-    runCommandSilently($path, "tar -cf queries.tar queries", 1);
-    stashFile("$path/queries.tar");
 
     #  Create a script to generate precomputed blocks, including extracting the reads from seqStore.
 
@@ -561,11 +565,18 @@ sub mhapConfigure ($$$) {
         print STDERR "-- Configured $numJobs mhap overlap jobs.\n";
     }
 
+    #  Tar up the queries directory and save scripts.  The queries.tar is
+    #  useful for cloud support, but we also use it to decide if this step
+    #  has finished.
+
+    runCommandSilently($path, "tar -cf queries.tar queries", 1);
+
     makeExecutable("$path/precompute.sh");
     makeExecutable("$path/mhap.sh");
 
     stashFile("$path/precompute.sh");
     stashFile("$path/mhap.sh");
+    stashFile("$path/queries.tar");
 
   finishStage:
     generateReport($asm);
