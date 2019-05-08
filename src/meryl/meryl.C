@@ -432,17 +432,15 @@ main(int argc, char **argv) {
 
 
     //  Memory limit, either global or per-task.
+    //
+    //  We used to fail if the memory requested was larger than the physical memory
+    //  on the machine.  I removed the check so that 'configureOnly' operations will
+    //  work on any size machine.
+    //
     else if ((optStringLen > 7) &&
              (strncmp(optString, "memory=", 7) == 0) &&
              (isNumber(optString + 7) == true)) {
       uint64 memory = (uint64)(strtodouble(optString + 7) * 1024 * 1024 * 1024);
-
-      if (memory > physMemory) {
-        char *s = new char [1024];
-        snprintf(s, 1024, "Requested memory '%s' (GB) is more than physical memory %.2f GB.",
-                 optString, physMemory / 1024.0 / 1024.0 / 1024.0);
-        err.push_back(s);
-      }
 
       if (opStack.size() == 0)
         allowedMemory = memory;
