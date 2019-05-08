@@ -945,7 +945,7 @@ sub haplotypeReadsConfigure ($@) {
     my $cmd;
     my $path           = "haplotype";
 
-    goto allDone   if (fileExists("$path/splitHaploType.sh"));
+    goto allDone   if (fileExists("$path/splitHaplotype.sh"));
 
     make_path($path)  if (! -d $path);
 
@@ -1082,7 +1082,7 @@ sub haplotypeReadsCheck ($@) {
 
     goto allDone      if (fileExists("$path/haplotyping.success"));
 
-    fetchFile("$path/splitHaplotypes.sh");
+    fetchFile("$path/splitHaplotype.sh");
 
     #  Determine how many jobs we ran.  Usually we need to scan the script to decide how many jobs,
     #  but here we just know that there is exatly one job.  We'll still pretend there are multiple
