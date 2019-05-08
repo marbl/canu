@@ -164,7 +164,6 @@ sub unitig ($) {
     my $asm     = shift @_;
     my $path    = "unitigging/4-unitigger";
 
-    goto allDone    if (fileExists("unitigging/4-unitigger/unitigger.sh"));
     goto allDone    if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
                         fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
 
