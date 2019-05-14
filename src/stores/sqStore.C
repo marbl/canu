@@ -677,6 +677,7 @@ sqStore::sqStore_setClearRange(uint32 id, uint32 bgn, uint32 end) {
 
   read->_clearBgn = bgn;
   read->_clearEnd = end;
+  read->_tExists  = true;
 }
 
 
