@@ -34,6 +34,7 @@
 #include "AS_global.H"
 #include "sqStore.H"
 
+#include "strings.H"
 
 
 void
@@ -211,8 +212,7 @@ main(int argc, char **argv) {
       endID  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      bgnID  = atoi(argv[++arg]);
-      endID  = bgnID;
+      decodeRange(argv[++arg], bgnID, endID);
 
     } else {
       err++;
@@ -235,10 +235,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -stats           dump summary statistics on reads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -b id            output starting at read/library 'id'\n");
-    fprintf(stderr, "  -e id            output stopping after read/library 'id'\n");
+    fprintf(stderr, "  -b id            output starting at read/library 'id'     DEPRECATED\n");
+    fprintf(stderr, "  -e id            output stopping after read/library 'id'  DEPRECATED");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -r id            output only the single read 'id'\n");
+    fprintf(stderr, "  -r bgn[-end]     output reads/libraies from `bgn` to `end`, inclusive\n");
     fprintf(stderr, "\n");
 
     if (seqStoreName == NULL)
