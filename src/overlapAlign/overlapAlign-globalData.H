@@ -70,7 +70,8 @@ public:
     minOverlapLength    = 1000;
     minOverlapCoverage  = 2;
 
-    debug               = false;
+    verboseTrim         = 0;
+    verboseAlign        = 0;
 
     readData            = NULL;
 
@@ -95,14 +96,35 @@ public:
 
   void    initialize(void) {
 
-    sqRead_setDefaultVersion(sqRead_raw);
+    //sqRead_setDefaultVersion(sqRead_raw);
+
+    //  Open the store, assuming the reads are trimmed already.
 
     fprintf(stderr, "Opening seqStore '%s'\n", seqStoreName);
-    seqStore  = sqStore::sqStore_open(seqStoreName);
+    seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_readOnly);
+
+    //  But if no trimmed reads, reopen the store to do trimming.
+
+#if 0
+    if (seqStore->sqStore_getNumTrimmedReads() == 0) {
+      seqStore->sqStore_close();
+
+      //sqRead_setDefaultVersion(sqRead_raw);
+
+      fprintf(stderr, "Opening seqStore '%s' (for trimming)\n", seqStoreName);
+      seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_Extend);
+    }
+#endif
+
+    //  Load all the reads.  Regardless of trim status, we ALWAYS want
+    //  to load raw reads, because we ALWAYS need to adjust overlaps
+    //  from raw reads to trimmed reads.
 
     fprintf(stderr, "Loading all reads.\n");
     seqCache  = new sqCache(seqStore, sqRead_raw, memLimit);
     seqCache->sqCache_loadReads();
+
+    //  Open overlaps.
 
     if (directoryExists(ovlStoreName)) {
       fprintf(stderr, "Reading overlaps from store '%s' and writing to '%s'\n",
@@ -119,7 +141,6 @@ public:
       ovlFile =                  new ovFile(seqStore, ovlStoreName, ovFileFull);
       outFile = (outStoreName) ? new ovFile(seqStore, outStoreName, ovFileFullWrite) : NULL;
     }
-
 
     //  Parameters
 
@@ -175,7 +196,8 @@ public:
   uint32             minOverlapLength;
   uint32             minOverlapCoverage;
 
-  bool               debug;
+  uint32             verboseTrim;
+  uint32             verboseAlign;
 
   //  Statistics
 

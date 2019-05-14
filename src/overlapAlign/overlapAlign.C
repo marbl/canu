@@ -56,7 +56,9 @@ overlapReader(void *G) {
       s = new maComputation(g->curID,                   //  and advance to the next read.
                             g->readData,
                             g->seqCache,
-                            g->ovlStore);
+                            g->ovlStore,
+                            g->verboseTrim,
+                            g->verboseAlign);
       g->curID++;
     }
   }
@@ -172,7 +174,8 @@ alignOverlaps(trGlobalData *g, bool isTrimming) {
     for (uint32 w=0; w<g->numThreads; w++)
       ss->setThreadData(w, td[w] = new maThreadData(g, w));
 
-    ss->run(g, false);
+    //  Turn on progress reports if debugging output is disabled.
+    ss->run(g, (isTrimming == true) ? (g->verboseTrim == 0) : (g->verboseAlign == 0));
 
     delete ss;
 
@@ -218,6 +221,17 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-len") == 0)
       g->minOverlapLength = atoi(argv[++arg]);
 
+    else if (strcmp(argv[arg], "-V") == 0) {
+      g->verboseTrim++;
+      g->verboseAlign++;
+    }
+
+    else if (strcmp(argv[arg], "-Vt") == 0)
+      g->verboseTrim++;
+
+    else if (strcmp(argv[arg], "-Va") == 0)
+      g->verboseAlign++;
+
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
@@ -254,6 +268,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Advanced options:\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -V, -Vt, -Va      Increase debug verbosity. -Vt increases only trimming; -Va increases only alignment.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -265,11 +281,48 @@ main(int argc, char **argv) {
 
   g->initialize();
 
-  //g->numThreads=24;
-  fprintf(stderr, "TRIMMING READS.\n");
-  alignOverlaps(g, true);
 
-  //g->numThreads=1;
+
+  if (fileExists("clear-range")) {
+    fprintf(stderr, "LOADING CLEAR RANGES.\n");
+
+    FILE *clr = AS_UTL_openInputFile("clear-range");
+
+    for (uint32 ii=0; ii<g->seqStore->sqStore_getNumRawReads()+1; ii++) {
+      loadFromFile(g->readData[ii].clrBgn, "", clr);
+      loadFromFile(g->readData[ii].clrEnd, "", clr);
+
+      g->readData[ii].trimmedLength = g->readData[ii].clrEnd - g->readData[ii].clrBgn;
+    }
+
+    AS_UTL_closeFile(clr);
+  }
+
+  else {
+    fprintf(stderr, "TRIMMING READS.\n");
+    alignOverlaps(g, true);
+
+    FILE *clr = AS_UTL_openOutputFile("clear-range");
+
+    for (uint32 ii=0; ii<g->seqStore->sqStore_getNumRawReads()+1; ii++) {
+      writeToFile(g->readData[ii].clrBgn, "", clr);
+      writeToFile(g->readData[ii].clrEnd, "", clr);
+    }
+
+    AS_UTL_closeFile(clr);
+
+    fprintf(stderr, "DONE.\n");
+    exit(0);
+  }
+
+
+
+  //  Set all the clear ranges
+  for (uint32 ii=0; ii<g->seqStore->sqStore_getNumRawReads()+1; ii++)
+    g->seqStore->sqStore_setClearRange(ii, g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+
+  sqRead_setDefaultVersion(sqRead_trimmed);
+
   fprintf(stderr, "ALIGNING OVERLAPS.\n");
   alignOverlaps(g, false);
 

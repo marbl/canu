@@ -58,8 +58,6 @@ maComputation::trimRead(uint32   minOverlapLength,
   intervalList<int32>   clearRange;
   intervalList<int32>   failedRange;
 
-  bool verbose = false;
-
   _readData[_aID].clrBgn = 0;  //  Default to fully trimming the read.
   _readData[_aID].clrEnd = 0;
 
@@ -83,8 +81,8 @@ maComputation::trimRead(uint32   minOverlapLength,
   double   maxAlignErate  = maxErate + 0.2;
   double   maxAcceptErate = maxErate;
 
-  int32    extension      = 1000;
-  int32    anchor         = 50;
+  int32    extension      = 500;
+  int32    anchor         = 500;
   int32    overhang       = 500;
 
   int32    bextra         = maxAcceptErate * extension + 1250;
@@ -112,7 +110,7 @@ maComputation::trimRead(uint32   minOverlapLength,
 
     //  Log.
 
-    if (verbose) {
+    if (_verboseTrim > 1) {
       fprintf(stderr, "\n");
       fprintf(stderr, "olap %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
     }
@@ -127,7 +125,7 @@ maComputation::trimRead(uint32   minOverlapLength,
       int32  lo = clearRange.lo(ii) - overhang;
       int32  hi = clearRange.hi(ii) + overhang;
 
-      if (verbose)
+      if (_verboseTrim > 1)
         fprintf(stderr, "test            %7d-%-7d\n", lo, hi);
 
       if ((lo   < abgn) &&
@@ -136,7 +134,7 @@ maComputation::trimRead(uint32   minOverlapLength,
     }
 
     if (useful == false) {
-      if (verbose)
+      if (_verboseTrim > 1)
         fprintf(stderr, "notU %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
       continue;
     }
@@ -155,7 +153,7 @@ maComputation::trimRead(uint32   minOverlapLength,
       int32  lo = failedRange.lo(ii);
       int32  hi = failedRange.hi(ii);
 
-      if (verbose)
+      if (_verboseTrim > 1)
         fprintf(stderr, "fail            %7d-%-7d\n", lo, hi);
 
       if ((abgn < lo) &&
@@ -164,7 +162,7 @@ maComputation::trimRead(uint32   minOverlapLength,
     }
 
     if (giveup == true) {
-      if (verbose)
+      if (_verboseTrim > 1)
         fprintf(stderr, "BAD  %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
       continue;
     }
@@ -195,12 +193,12 @@ maComputation::trimRead(uint32   minOverlapLength,
                       maxAlignErate,
                       maxAcceptErate,
                       erate) == false) {
-      if (verbose)
+      if (_verboseTrim > 1)
         fprintf(stderr, "trim %8u fails.\n", _aID);
       continue;
     }
 
-    if (verbose)
+    if (_verboseTrim > 1)
       fprintf(stderr, "init            %7d-%-7d B %8u %7d-%-7d\n", abgn, aend, _bID, bbgn, bend);
 
 
@@ -230,12 +228,14 @@ maComputation::trimRead(uint32   minOverlapLength,
            (abgn > 0) &&
            (bbgn > 0)) {
       int32   ab = max(abgn - extension, 0);
-      int32   ae = abgn + anchor;
+      int32   ae = min(abgn + anchor,    _readData[_aID].rawLength);
 
       int32   bb = bbgn - extension - slop;
       int32   be = bbgn + anchor;
 
       if (bb < 0)   //  B chunk is too small for A chunk, so just stop.
+        break;
+      if (be > _readData[_bID].rawLength)
         break;
 
       if (testAlignment(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
@@ -243,14 +243,14 @@ maComputation::trimRead(uint32   minOverlapLength,
                         maxAlignErate,
                         maxAcceptErate,
                         erate) == true) {
-        if (verbose)
+        if (_verboseTrim > 1)
           fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, _bID, bb, be, erate);
         abgn = ab;
         bbgn = bb;
       }
 
       else {
-        if (verbose)
+        if (_verboseTrim > 1)
           fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
         failedRange.add(abgn, aend - abgn);
       }
@@ -263,12 +263,14 @@ maComputation::trimRead(uint32   minOverlapLength,
     while ((erate < maxAcceptErate) &&
            (aend < _readData[_aID].rawLength) &&
            (bend < _readData[_bID].rawLength)) {
-      int32   ab = aend - anchor;
+      int32   ab = max(aend - anchor,    0);
       int32   ae = min(aend + extension, _readData[_aID].rawLength);
 
       int32   bb = bend - anchor;
       int32   be = bend + extension + slop;
 
+      if (bb < 0)
+        break;
       if (be > _readData[_bID].rawLength)   //  B chunk is too small for A chunk, so just stop.
         break;
 
@@ -277,14 +279,14 @@ maComputation::trimRead(uint32   minOverlapLength,
                         maxAlignErate,
                         maxAcceptErate,
                         erate) == true) {
-        if (verbose)
+        if (_verboseTrim > 1)
           fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, _bID, bb, be, erate);
         aend = ae;
         bend = be;
       }
 
       else {
-        if (verbose)
+        if (_verboseTrim > 1)
           fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
         failedRange.add(abgn, aend - abgn);
       }
@@ -296,7 +298,7 @@ maComputation::trimRead(uint32   minOverlapLength,
     abgn += overhang;
     aend -= overhang;
 
-    if (verbose)
+    if (_verboseTrim > 1)
       fprintf(stderr, "clr  %8u A %7d-%-7d\n", _aID, abgn, aend);
 
     //  Unless we sort overlaps by A bgn position, we need an interval list.
@@ -304,7 +306,7 @@ maComputation::trimRead(uint32   minOverlapLength,
     clearRange.add(abgn, aend - abgn);
     clearRange.merge();
 
-    if (verbose)
+    if (_verboseTrim > 1)
       for (uint32 ii=0; ii<clearRange.numberOfIntervals(); ii++)
         fprintf(stderr, "CLR             %7d-%-7d\n", clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
   }
@@ -317,19 +319,22 @@ maComputation::trimRead(uint32   minOverlapLength,
     uint32 bgn = clearRange.lo(ii) - overhang;
     uint32 end = clearRange.hi(ii) + overhang;
 
+    if (_verboseTrim > 0)
+      fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear (piece)\n",
+              _aID,
+              bgn, end,
+              100.0 * (end - bgn) / _readData[_aID].rawLength);
+
     if (end - bgn > _readData[_aID].clrEnd - _readData[_aID].clrBgn) {
       _readData[_aID].clrBgn = bgn;
       _readData[_aID].clrEnd = end;
       _readData[_aID].trimmedLength = end - bgn;
     }
-
-    //fprintf(stderr, "CLR %8u   %7d-%-7d\n", _aID, clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
   }
 
-#if 1
-  fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear\n",
-          _aID,
-          _readData[_aID].clrBgn, _readData[_aID].clrEnd,
-          100.0 * (_readData[_aID].clrEnd - _readData[_aID].clrBgn) / _readData[_aID].rawLength);
-#endif
+  if (_verboseTrim > 0)
+    fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear\n",
+            _aID,
+            _readData[_aID].clrBgn, _readData[_aID].clrEnd,
+            100.0 * (_readData[_aID].clrEnd - _readData[_aID].clrBgn) / _readData[_aID].rawLength);
 }

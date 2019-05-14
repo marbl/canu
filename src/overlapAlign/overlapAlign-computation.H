@@ -36,15 +36,23 @@ using namespace std;
 
 class maComputation {
 public:
-  maComputation(uint32 id, trReadData *readData, sqCache *seqCache, ovStore *ovlStore) {
+  maComputation(uint32      id,
+                trReadData *readData,
+                sqCache    *seqCache,
+                ovStore    *ovlStore,
+                uint32      verboseTrim,
+                uint32      verboseAlign) {
 
-    _readData    = readData;
+    _verboseTrim   = verboseTrim;
+    _verboseAlign  = verboseAlign;
 
-    _seqCache    = seqCache;
+    _readData      = readData;
 
-    _overlaps    = NULL;
-    _overlapsLen = 0;
-    _overlapsMax = 0;
+    _seqCache      = seqCache;
+
+    _overlaps      = NULL;
+    _overlapsLen   = 0;
+    _overlapsMax   = 0;
 
     _aID   = id;
     _bID   = UINT32_MAX;
@@ -84,11 +92,6 @@ public:
     delete [] _bRead;
   };
 
-
-public:
-  void                 trimRead(uint32  minOverlapLength,
-                                double  maxErate);
-
 private:
   bool                 isWellContained(int32 maxEdge);
   tuple<int32, int32>  findMinThickestEdge(double coverage);
@@ -100,6 +103,9 @@ private:
   bool                 trimOverlap(ovOverlap *ovl);
 
 public:
+  void                 trimRead(uint32  minOverlapLength,
+                                double  maxErate);
+
   void                 computeAlignments(uint32 minOverlapLength,
                                          double maxErate);
 
@@ -107,6 +113,8 @@ private:
   sqCache    *_seqCache;
 
 public:
+  uint32      _verboseTrim;
+  uint32      _verboseAlign;
 
   //  A pointer to the output object.
 
