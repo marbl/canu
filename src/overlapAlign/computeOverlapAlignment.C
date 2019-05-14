@@ -29,18 +29,11 @@
 #include "system.H"
 #include "sequence.H"
 
-//#include <pthread.h>
-
 #include "sqStore.H"
 #include "sqCache.H"
 #include "ovStore.H"
 
 #include "edlib.H"
-#include "alignStats.H"
-
-#define SLOP       500
-#define MAX_REPEAT 2000
-
 
 
 
@@ -101,6 +94,9 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
                  uint32  verbose) {
   bool  success = false;
 
+  editDist = 0;
+  alignLen = 0;
+
   if (verbose > 0) {
     fprintf(stderr, "computeAlignment()--         align %s %6u %6d-%-6d  %.2f%% error\n", Alabel, Aid, abgn, aend, 100.0 * maxErate);
     fprintf(stderr, "computeAlignment()--            vs %s %6u %6d-%-6d\n",               Blabel, Bid, bbgn, bend);
@@ -120,6 +116,9 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
 
   //  Save the result if it is of acceptable quality.
 
+  //fprintf(stderr, "XX numLocations %d editDist %d maxErate %f alignLength %d\n",
+  //        result.numLocations, result.editDistance, maxErate, result.alignmentLength);
+
   if ((result.numLocations > 0) &&
       (result.editDistance <= maxErate * result.alignmentLength)) {
     success  = true;
@@ -131,21 +130,21 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
     alignLen = result.alignmentLength;
 
     if (verbose > 0) {
-      fprintf(stderr, "computeAlignment()--         PASS  %s %6u %6d-%-6d editDist %5d alignLen %6d qual %6.4f\n",
+      fprintf(stderr, "computeAlignment()--         PASS  %s %6u %6d-%-6d editDist %5d alignLen %6d error %6.4f\n",
               Blabel, Bid, bbgn, bend,
-              editDist,
-              alignLen,
-              1.0 - editDist / (double)alignLen);
+              result.editDistance,
+              result.alignmentLength,
+              result.editDistance / (double)result.alignmentLength);
     }
   }
 
   else {
     if ((verbose > 0) && (result.numLocations > 0)) {
-      fprintf(stderr, "computeAlignment()--         FAIL  %s %6u %6d-%-6d editDist %5d alignLen %6d qual %6.4f\n",
-              Blabel, Bid, bbgn, bend,
-              editDist,
-              alignLen,
-              1.0 - editDist / (double)alignLen);
+      fprintf(stderr, "computeAlignment()--         FAIL  %s %6u %6d-%-6d editDist %5d alignLen %6d error %6.4f\n",
+              Blabel, Bid, bbgn + result.endLocations[0] + 1, bbgn + result.startLocations[0],
+              result.editDistance,
+              result.alignmentLength,
+              result.editDistance / (double)result.alignmentLength);
     }
 
     if ((verbose > 0) && (result.numLocations == 0)) {
@@ -170,8 +169,8 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
 //  that to the other read allowing free gaps.
 //
 //                { alignment-free overlap }
-//      ---(a5----{-----a3)-----------------}------
-//           (b5--{---b3)-------------------}-------------------
+//      ---(a5----{-----a3)----------------}------
+//           (b5--{---b3)------------------}-------------------
 //
 //  Since the 5' hang on the B read is smaller, we use b5 to compute the other values.
 //    b5 = known from alignment-free overlap
@@ -196,8 +195,8 @@ computeOverlapAlignment(ovOverlap   *ovl,
                         char        *bseq, int32 blen,
                         uint32       minOverlapLength,
                         double       maxErate,
-                        bool         partialOverlaps,
-                        alignStats  &localStats,
+                        uint32       overlapSlop,
+                        uint32       maxRepeat,
                         uint32       verbose) {
   ovOverlap ori     = *ovl;
 
@@ -219,41 +218,6 @@ computeOverlapAlignment(ovOverlap   *ovl,
     fprintf(stderr, "computeOverlapAlignment()-- B %8u %6d-%-6d %d\n", bID, bbgn, bend, blen);
   }
 
-
-#if 0
-  {
-    FILE *F = fopen("72-trimmed.fasta", "w");
-    fprintf(F, ">72_trimmed\n%s\n", aseq);
-    fclose(F);
-  }
-  {
-    FILE *F = fopen("384-trimmed-flipped.fasta", "w");
-    fprintf(F, ">384_trimmed\n%s\n", bseq);
-    fclose(F);
-  }
-#endif
-
-#if 0
-    double erate = 0.0;
-    int32  ab = abgn;
-    int32  ae = aend;
-
-    int32  bb = bbgn;
-    int32  be = bend;
-
-    if (testAlignment(aseq, ab, ae, alen, aID,
-                      bseq, bb, be, blen, bID,
-                      0.50,
-                      0.50,
-                      erate) == true) {
-      fprintf(stderr, "global success at %d-%d error %f\n", bbgn, bend, erate);
-    } else {
-      fprintf(stderr, "global failure\n");
-    }
-  }
-#endif
-
-
   //  A    ------------{------...
   //  B          ------{------...
   if (ovl->dat.ovl.bhg5 < ovl->dat.ovl.ahg5) {
@@ -263,10 +227,10 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
     int32   b5   = bhg5;
-    int32   b3   = max(4 * bhg5, 2 * MAX_REPEAT);
+    int32   b3   = max(4 * bhg5, (int32)(2 * maxRepeat));
 
-    int32   a5   = b5 * (1 + maxErate) + SLOP;
-    int32   a3   = b3 * (1 + maxErate) + SLOP;
+    int32   a5   = b5 * (1 + maxErate) + overlapSlop;
+    int32   a3   = b3 * (1 + maxErate) + overlapSlop;
 
     int32   bbgn = max(0,    bhg5 - b5);    //  Now zero.
     int32   bend = min(blen, bhg5 + b3);
@@ -308,10 +272,10 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
     int32   a5   = ahg5;
-    int32   a3   = max(4 * ahg5, 2 * MAX_REPEAT);
+    int32   a3   = max(4 * ahg5, (int32)(2 * maxRepeat));
 
-    int32   b5   = a5 * (1 + maxErate) + SLOP;
-    int32   b3   = a3 * (1 + maxErate) + SLOP;
+    int32   b5   = a5 * (1 + maxErate) + overlapSlop;
+    int32   b3   = a3 * (1 + maxErate) + overlapSlop;
 
     int32   bbgn = max(0,    bhg5 - b5);
     int32   bend = min(blen, bhg5 + b3);
@@ -355,11 +319,11 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   bhg5 = ovl->dat.ovl.bhg5;
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
-    int32   b5   = max(4 * bhg3, 2 * MAX_REPEAT);
+    int32   b5   = max(4 * bhg3, (int32)(2 * maxRepeat));
     int32   b3   = bhg3;
 
-    int32   a5   = b5 * (1 + maxErate) + SLOP;
-    int32   a3   = b3 * (1 + maxErate) + SLOP;
+    int32   a5   = b5 * (1 + maxErate) + overlapSlop;
+    int32   a3   = b3 * (1 + maxErate) + overlapSlop;
 
     int32   bbgn = max(0,    blen - bhg3 - b5);
     int32   bend = min(blen, blen - bhg3 + b3);    //  Now blen.
@@ -400,11 +364,11 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   bhg5 = ovl->dat.ovl.bhg5;
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
-    int32   a5   = max(4 * ahg3, 2 * MAX_REPEAT);
+    int32   a5   = max(4 * ahg3, (int32)(2 * maxRepeat));
     int32   a3   = ahg3;
 
-    int32   b5   = a5 * (1 + maxErate) + SLOP;
-    int32   b3   = a3 * (1 + maxErate) + SLOP;
+    int32   b5   = a5 * (1 + maxErate) + overlapSlop;
+    int32   b3   = a3 * (1 + maxErate) + overlapSlop;
 
     int32   bbgn = max(0,    blen - bhg3 - b5);
     int32   bend = min(blen, blen - bhg3 + b3);
@@ -463,23 +427,19 @@ computeOverlapAlignment(ovOverlap   *ovl,
 
     if ((result.alignmentLength < minOverlapLength) ||                  //  Alignment is too short, or
         (result.editDistance > maxErate * result.alignmentLength)) {    //               too noisy.
-      localStats.nFailed++;
-
-      ovl->evalue(AS_MAX_EVALUE);
-
       ovl->dat.ovl.forOBT = false;
       ovl->dat.ovl.forDUP = false;
       ovl->dat.ovl.forUTG = false;
+
+      ovl->evalue(AS_MAX_EVALUE);
     }
 
     else {
-      localStats.nPassed++;
+      ovl->dat.ovl.forOBT = false;
+      ovl->dat.ovl.forDUP = false;
+      ovl->dat.ovl.forUTG = (ovl->overlapIsDovetail() == true);
 
       ovl->erate(editDist / (double)alignLen);
-
-      ovl->dat.ovl.forOBT = (partialOverlaps == true);
-      ovl->dat.ovl.forDUP = (partialOverlaps == true);
-      ovl->dat.ovl.forUTG = (partialOverlaps == false) && (ovl->overlapIsDovetail() == true);
     }
 
     edlibFreeAlignResult(result);

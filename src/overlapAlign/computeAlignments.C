@@ -32,12 +32,9 @@
 #include "sqCache.H"
 #include "ovStore.H"
 
-#include "alignStats.H"
 #include "overlapAlign-globalData.H"
 #include "overlapAlign-threadData.H"
 #include "overlapAlign-computation.H"
-
-#include <tuple>
 
 
 
@@ -47,8 +44,8 @@ computeOverlapAlignment(ovOverlap   *ovl,
                         char        *bseq, int32 blen,
                         uint32       minOverlapLength,
                         double       maxErate,
-                        bool         partialOverlaps,
-                        alignStats  &localStats,
+                        uint32       overlapSlop,
+                        uint32       maxRepeat,
                         uint32       verbose);
 
 
@@ -142,6 +139,7 @@ maComputation::trimOverlap_Normal(ovOverlap *ovl) {
   assert(bovlbgn < bovlend);
 
   if (_verboseAlign > 0) {
+    fprintf(stderr, "\n");
     fprintf(stderr, "trimOverlap_Normal()-- ORIG A %8u clear %6d-%-6d length %6u overlap %6d-%-6d\n", ovl->a_iid, aclrbgn, aclrend, _readData[_aID].rawLength, aovlbgn, aovlend);
     fprintf(stderr, "trimOverlap_Normal()--      B %8u clear %6d-%-6d length %6u overlap %6d-%-6d\n", ovl->b_iid, bclrbgn, bclrend, _readData[_bID].rawLength, bovlbgn, bovlend);
   }
@@ -149,7 +147,8 @@ maComputation::trimOverlap_Normal(ovOverlap *ovl) {
   //  If the overlap doesn't intersect the clear range, the overlap disappears.
   if ((aclrend <= aovlbgn) || (aovlend <= aclrbgn) ||
       (bclrend <= bovlbgn) || (bovlend <= bclrbgn)) {
-    //fprintf(stderr, "trimOverlap_Normal()--      No intersection with clear range.\n");
+    if (_verboseAlign > 0)
+      fprintf(stderr, "trimOverlap_Normal()--      No intersection with clear range.\n");
     return(false);
   }
 
@@ -209,7 +208,8 @@ maComputation::trimOverlap_Normal(ovOverlap *ovl) {
 
   if ((aovlend - aovlbgn < 1000) ||
       (bovlend - bovlbgn < 1000)) {
-    //fprintf(stderr, "trimOverlap_Normal()--      Too short after adjusting.\n");
+    if (_verboseAlign > 0)
+      fprintf(stderr, "trimOverlap_Normal()--      Too short after adjusting.\n");
     return(false);
   }
 
@@ -245,6 +245,7 @@ maComputation::trimOverlap_Flipped(ovOverlap *ovl) {
   assert(bovl3 < bovl5);
 
   if (_verboseAlign > 0) {
+    fprintf(stderr, "\n");
     fprintf(stderr, "trimOverlap_Flipped()-- ORIG A %8u clear %6d-%-6d length %6u overlap %6d-%-6d\n", ovl->a_iid, aclrbgn, aclrend, _readData[_aID].rawLength, aovl5, aovl3);
     fprintf(stderr, "trimOverlap_Flipped()--      B %8u clear %6d-%-6d length %6u overlap %6d-%-6d\n", ovl->b_iid, bclrbgn, bclrend, _readData[_bID].rawLength, bovl5, bovl3);
   }
@@ -252,7 +253,8 @@ maComputation::trimOverlap_Flipped(ovOverlap *ovl) {
   //  If the overlap doesn't intersect the clear range, the overlap disappears.
   if ((aclrend <= aovl5) || (aovl3 <= aclrbgn) ||
       (bclrend <= bovl3) || (bovl5 <= bclrbgn)) {
-    //fprintf(stderr, "trimOverlap_Flipped()--      No intersection with clear range.\n");
+    if (_verboseAlign > 0)
+      fprintf(stderr, "trimOverlap_Flipped()--      No intersection with clear range.\n");
     return(false);
   }
 
@@ -329,7 +331,8 @@ maComputation::trimOverlap_Flipped(ovOverlap *ovl) {
 
   if ((aovl3 - aovl5 < 1000) ||
       (bovl5 - bovl3 < 1000)) {
-    //fprintf(stderr, "trimOverlap_Flipped()--      Too short after adjusting.\n");
+    if (_verboseAlign > 0)
+      fprintf(stderr, "trimOverlap_Flipped()--      Too short after adjusting.\n");
     return(false);
   }
 
@@ -350,13 +353,18 @@ bool
 maComputation::trimOverlap(ovOverlap *ovl) {
   bool  success;
 
+  _bID = ovl->b_iid;
+
   assert(_aID == ovl->a_iid);
-  assert(_bID == ovl->b_iid);
+  assert(_bID == ovl->b_iid);    //  Well, duh.
 
   if (ovl->flipped() == true)
     success = trimOverlap_Flipped(ovl);
   else
     success = trimOverlap_Normal(ovl);
+
+  if ((_verboseAlign > 0) && (success == false))
+    fprintf(stderr, "computeAlignments()-- Overlap trimmed out.\n");
 
   return(success);
 }
@@ -373,8 +381,8 @@ maComputation::trimOverlap(ovOverlap *ovl) {
 //            b5                b3
 //
 bool
-maComputation::isWellContained(int32 maxEdge) {
-  bool   wellContained = false;
+maComputation::isWellContained(void) {
+  uint32   wellContained          = 0;
 
   for (uint32 ii=0; ii<_overlapsLen; ii++) {
     ovOverlap *ov = _overlaps + ii;
@@ -385,13 +393,19 @@ maComputation::isWellContained(int32 maxEdge) {
     int32   b5        = (int32)ov->dat.ovl.bhg5;
     int32   b3        = (int32)ov->dat.ovl.bhg3;
 
-    if ((b5 - a5 > maxEdge) && (b3 - a3 > maxEdge)) {
-      //fprintf(stderr, "contained in b %u\n", ov->b_iid);
-      wellContained = true;
+    if ((b5 - a5 > _maxEdge) &&
+        (b3 - a3 > _maxEdge)) {
+      if (_verboseAlign > 0)
+        fprintf(stderr, "isWellContained()-- read %8u well contained in read %8u\n", ov->a_iid, ov->b_iid);
+
+      wellContained++;
     }
   }
 
-  return(wellContained);
+  if ((_verboseAlign > 0) && (wellContained > _wellContainedThreshold))
+    fprintf(stderr, "isWellContained()-- read %8u well contained\n", _aID);
+
+  return(wellContained > _wellContainedThreshold);
 }
 
 
@@ -399,13 +413,17 @@ maComputation::isWellContained(int32 maxEdge) {
 //  Return the length of the shortest overlap we care about
 //  of the 5' and 3' ends.
 //
-tuple<int32, int32>
-maComputation::findMinThickestEdge(double coverage) {
+void
+maComputation::findMinThickestEdge(int32   &thick5,
+                                   int32   &thick3) {
   int32    thick5len = 0,  *thick5arr = new int32 [_overlapsLen];
   int32    thick3len = 0,  *thick3arr = new int32 [_overlapsLen];
 
   for (uint32 ii=0; ii<_overlapsLen; ii++) {
     ovOverlap *ov = _overlaps + ii;
+
+    if (ov->evalue() == AS_MAX_EVALUE)    //  Skip overlaps that are flagged as trimmed out
+      continue;                           //  or otherwise not useful.
 
     int32   alen  = _readData[_aID].trimmedLength;
 
@@ -432,75 +450,70 @@ maComputation::findMinThickestEdge(double coverage) {
   sort(thick5arr, thick5arr + thick5len);
   sort(thick3arr, thick3arr + thick3len);
 
-  int32     novl   = (int32)ceil(0.50 * coverage);
-  uint32    thick3 = 0;
-  uint32    thick5 = 0;
+#if 0
+  for (int32 ii=0; ii<max(thick5len, thick3len); ii++) {
+    if      ((ii < thick5len) && (ii < thick3len))
+      fprintf(stderr, "%5u  %8d  %8d\n", ii, thick5arr[ii], thick3arr[ii]);
+    else if (ii < thick5len)
+      fprintf(stderr, "%5u  %8d  %8d\n", ii, thick5arr[ii], 0);
+    else if (ii < thick3len)
+      fprintf(stderr, "%5u  %8d  %8d\n", ii, 0,             thick3arr[ii]);
+  }
+#endif
 
-  if (novl < thick5len)
-    thick5 = thick5arr[thick5len - 1 - novl];
+  int32     novl   = (int32)ceil(_dovetailFraction * _coverage);
 
-  if (novl < thick3len)
-    thick3 = thick3arr[thick3len - 1 - novl];
+  thick5 = (novl < thick5len) ? thick5arr[thick5len - 1 - novl] : 0;
+  thick3 = (novl < thick3len) ? thick3arr[thick3len - 1 - novl] : 0;
 
   delete [] thick5arr;
   delete [] thick3arr;
 
-  if (_verboseAlign > 1) {
-    fprintf(stderr, "read %8u thick5 %d (out of %d)\n", _aID, thick5, thick5len);
-    fprintf(stderr, "              thick3 %d (out of %d) novl %d\n", thick3, thick3len, novl);
+  if (_verboseAlign > 0) {
+    fprintf(stderr, "findMinThickestEdge()-- read %8u thick5 %d (out of %d)\n", _aID, thick5, thick5len);
+    fprintf(stderr, "findMinThickestEdge()--               thick3 %d (out of %d) novl %d\n", thick3, thick3len, novl);
   }
-
-  return(make_tuple(thick5, thick3));
 }
 
 
 void
 maComputation::computeAlignments(uint32  minOverlapLength,
                                  double  maxErate) {
-  alignStats  localStats;
-
-  //  Set parameters.
-
-#warning hardcoded coverage
-  double   coverage  = 30;
-
-  int32   minLength  = 500;         //  Overlap seeds below this length are discarded.
-  int32   maxEdge    = 2500;        //  Overlap seeds contained by this length on both sides are discarded.
-
-  uint32  nShort     = 0;
-  uint32  nContained = 0;
-  uint32  nUnaligned = 0;
-  uint32  nThin      = 0;
 
   //  If there are no overlaps, there are no overlaps to align and output.
 
   if (_overlapsLen == 0)
     return;
 
+  if (_verboseAlign > 0) {
+    fprintf(stderr, "computeAlignments()-- \n");
+    fprintf(stderr, "computeAlignments()-- ========================================BEGIN read %u\n", _overlaps[0].a_iid);
+  }
+
+  //  Adjust all the overlaps to trimmed reads.  We need to do this before we
+  //  can start filtering weak overlaps.  Any overlap that is trimmed out
+  //  needs to be flagged as bad.
+
+  for (uint32 ii=0; ii<_overlapsLen; ii++)
+    if (trimOverlap(_overlaps + ii) == false)
+      _overlaps[ii].evalue(AS_MAX_EVALUE);
+
   //  If this read is 'well' contained in some other read, assume it's
   //  useless for assembly and throw out all of its overlaps.
 
-  if (isWellContained(maxEdge) == true) {
-    //if (_verboseAlign > 0)
-    //  fprintf(stderr, "computeAlignments()-- read %8u well contained\n", _aID);
-
+  if (isWellContained() == true) {
     for (uint32 ii=0; ii<_overlapsLen; ii++)
       _overlaps[ii].evalue(AS_MAX_EVALUE);
 
     return;
   }
 
-  if (_verboseAlign > 0) {
-    fprintf(stderr, "computeAlignments()-- \n");
-    fprintf(stderr, "computeAlignments()-- ========================================BEGIN\n");
-  }
-
   //  Decide which overlaps to compute alignments for:  only the thickest on each side.
 
-  uint32   thick5;
-  uint32   thick3;
+  int32   thick5;
+  int32   thick3;
 
-  tie(thick5, thick3) = findMinThickestEdge(coverage);
+  findMinThickestEdge(thick5, thick3);
 
   //  Examine each overlap.  Either deicde it isn't useful for assembly, or compute, precisely,
   //  the overlap end points and save the alignment.
@@ -510,22 +523,16 @@ maComputation::computeAlignments(uint32  minOverlapLength,
   for (uint32 ii=0; ii<_overlapsLen; ii++) {
     ovOverlap *ov = _overlaps + ii;
 
+    if (ov->evalue() == AS_MAX_EVALUE)    //  Skip overlaps that are flagged as trimmed out
+      continue;                           //  or otherwise not useful.
+
     if (_verboseAlign > 0) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "computeAlignments()-- ----------------------------------------OVERLAP\n");
+      fprintf(stderr, "computeAlignments()-- ----------------------------------------OVERLAP %u/%u\n", ii, _overlapsLen);
     }
 
     assert(_aID == ov->a_iid);
     _bID = ov->b_iid;
-
-    //  Adjust the overlap for the trimming we have already done.
-
-    if (trimOverlap(ov) == false) { 
-      if (_verboseAlign > 0)
-        fprintf(stderr, "computeAlignments()-- Overlap trimmed out.\n");
-      ov->evalue(AS_MAX_EVALUE);
-      continue;
-    }
 
     //  Harvest overlap parameters.  We do this OUTSIDE of ovOverlap so we
     //  can use the TRIMMED length of each read, which ovOverlap (and
@@ -543,9 +550,8 @@ maComputation::computeAlignments(uint32  minOverlapLength,
 
     //  Discard if the overlap seed is too small, regardless of the implied overlap length.
     //
-    if ((aend - abgn < minLength) ||
-        (bend - bbgn < minLength)) {
-      nShort++;
+    if ((aend - abgn < _minLength) ||
+        (bend - bbgn < _minLength)) {
       if (_verboseAlign > 0)
         fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d short.\n", ii, _aID, abgn, aend, _bID, bbgn, bend);
       ov->evalue(AS_MAX_EVALUE);
@@ -559,8 +565,8 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     //               ----|------|----
     //                b5          b3
     //
-    if ((a5 - b5 > maxEdge) && (a3 - b3 > maxEdge)) {
-      nContained++;
+    if ((a5 - b5 > _maxEdge) &&
+        (a3 - b3 > _maxEdge)) {
       if (_verboseAlign > 0)
         fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d contained.\n", ii, _aID, abgn, aend, _bID, bbgn, bend);
       ov->evalue(AS_MAX_EVALUE);
@@ -575,7 +581,6 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     if ((a5 > b5) &&
         (a3 < b3) &&
         (_readData[_aID].trimmedLength - a5 + b5 < thick3)) {
-      nThin++;
       if (_verboseAlign > 0)
         fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d thick3 %d < %d\n", ii, _aID, abgn, aend, _bID, bbgn, bend, _readData[_aID].trimmedLength - a5 + b5, thick3);
       ov->evalue(AS_MAX_EVALUE);
@@ -590,7 +595,6 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     if ((a5 < b5) &&
         (a3 > b3) &&
         (_readData[_aID].trimmedLength - a3 + b3 < thick5)) {
-      nThin++;
       if (_verboseAlign > 0)
         fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d thick5 %d < %d\n", ii, _aID, abgn, aend, _bID, bbgn, bend, _readData[_aID].trimmedLength - a3 + b3, thick5);
       ov->evalue(AS_MAX_EVALUE);
@@ -610,14 +614,14 @@ maComputation::computeAlignments(uint32  minOverlapLength,
                             _bRead, _readData[_bID].trimmedLength,
                             minOverlapLength,
                             maxErate,
-                            true,
-                            localStats,
+                            _overlapSlop,
+                            _maxRepeatLength,
                             _verboseAlign);
   }
 
-  if (_verboseAlign > 0)
-    fprintf(stderr, "computeAlignments()-- read %8u nShort %5u nContained %5u nUnaligned %5u nThin %5u filtered %.2f%%\n",
-            _aID, nShort, nContained, nUnaligned, nThin, 100.0 * (nShort + nContained + nUnaligned + nThin) / _overlapsLen);
+  //if (_verboseAlign > 0)
+  //  fprintf(stderr, "computeAlignments()-- read %8u nShort %5u nContained %5u nUnaligned %5u nThin %5u filtered %.2f%%\n",
+  //          _aID, nShort, nContained, nUnaligned, nThin, 100.0 * (nShort + nContained + nUnaligned + nThin) / _overlapsLen);
 
 
 

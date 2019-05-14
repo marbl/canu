@@ -43,16 +43,27 @@ public:
                 uint32      verboseTrim,
                 uint32      verboseAlign) {
 
-    _verboseTrim   = verboseTrim;
-    _verboseAlign  = verboseAlign;
+    _verboseTrim             = verboseTrim;
+    _verboseAlign            = verboseAlign;
 
-    _readData      = readData;
+    _dovetailFraction        = 0.5;
+    _coverage                = 30.0;
 
-    _seqCache      = seqCache;
+    _minLength               = 1000;
+    _maxEdge                 = 2500;
 
-    _overlaps      = NULL;
-    _overlapsLen   = 0;
-    _overlapsMax   = 0;
+    _overlapSlop             = 1000;
+    _maxRepeatLength         = 2000;
+
+    _wellContainedThreshold  = 1;
+
+    _readData                = readData;
+
+    _seqCache                = seqCache;
+
+    _overlaps                = NULL;
+    _overlapsLen             = 0;
+    _overlapsMax             = 0;
 
     _aID   = id;
     _bID   = UINT32_MAX;
@@ -93,8 +104,8 @@ public:
   };
 
 private:
-  bool                 isWellContained(int32 maxEdge);
-  tuple<int32, int32>  findMinThickestEdge(double coverage);
+  bool                 isWellContained(void);
+  void                 findMinThickestEdge(int32 &thick5, int32 &thick3);
 
   void                 fetchUntrimmedRead(uint32 id_, bool isA_=true, bool revComp_=false);
   void                 fetchTrimmedRead  (uint32 id_, bool isA_=true, bool revComp_=false);
@@ -115,6 +126,19 @@ private:
 public:
   uint32      _verboseTrim;
   uint32      _verboseAlign;
+
+  //  Parameters, generally copied from the globals.
+
+  double      _dovetailFraction;
+  double      _coverage;
+
+  int32       _minLength;
+  int32       _maxEdge;
+
+  uint32      _overlapSlop;
+  uint32      _maxRepeatLength;
+
+  uint32      _wellContainedThreshold;
 
   //  A pointer to the output object.
 

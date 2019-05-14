@@ -105,14 +105,14 @@ public:
 
     //  But if no trimmed reads, reopen the store to do trimming.
 
-#if 0
+#if 1
     if (seqStore->sqStore_getNumTrimmedReads() == 0) {
       seqStore->sqStore_close();
 
       //sqRead_setDefaultVersion(sqRead_raw);
 
       fprintf(stderr, "Opening seqStore '%s' (for trimming)\n", seqStoreName);
-      seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_Extend);
+      seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_extend);
     }
 #endif
 
@@ -200,8 +200,6 @@ public:
   uint32             verboseAlign;
 
   //  Statistics
-
-  alignStats         globalStats;
 
   //  Trimming
 

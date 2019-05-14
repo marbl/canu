@@ -77,12 +77,18 @@ overlapWriter(void *G, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maComputation    *s = (maComputation *)S;
 
-  if (g->outStore)
-    for (uint64 oo=0; oo<s->_overlapsLen; oo++)
-      g->outStore->writeOverlap(s->_overlaps + oo);
+  for (uint64 oo=0; oo<s->_overlapsLen; oo++) {
+    ovOverlap  *ovl = s->_overlaps + oo;
 
-  if (g->outFile)
-    g->outFile->writeOverlaps(s->_overlaps, s->_overlapsLen);
+    if (ovl->evalue() == AS_MAX_EVALUE)
+      continue;
+
+    if (g->outStore)
+      g->outStore->writeOverlap(ovl);
+
+    if (g->outFile)
+      g->outFile->writeOverlap(ovl);
+  }
 
   delete s;
 }
@@ -322,6 +328,8 @@ main(int argc, char **argv) {
     g->seqStore->sqStore_setClearRange(ii, g->readData[ii].clrBgn, g->readData[ii].clrEnd);
 
   sqRead_setDefaultVersion(sqRead_trimmed);
+
+
 
   fprintf(stderr, "ALIGNING OVERLAPS.\n");
   alignOverlaps(g, false);
