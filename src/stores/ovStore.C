@@ -252,7 +252,8 @@ ovStore::loadOverlapsForRead(uint32       id,
   //  Make more space if needed.
 
   if (ovlMax < _index[_curID]._numOlaps) {
-    delete [] ovl;
+    if (ovlMax > 0)
+      delete [] ovl;
 
     ovlMax = _index[_curID]._numOlaps * 1.2;
     ovl    = new ovOverlap [ovlMax];
