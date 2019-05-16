@@ -39,18 +39,6 @@
 
 
 void
-computeOverlapAlignment(ovOverlap   *ovl,
-                        char        *aseq, int32 alen,
-                        char        *bseq, int32 blen,
-                        uint32       minOverlapLength,
-                        double       maxErate,
-                        uint32       overlapSlop,
-                        uint32       maxRepeat,
-                        uint32       verbose);
-
-
-
-void
 maComputation::fetchUntrimmedRead(uint32 id_,
                                   bool   isA_,
                                   bool   revComp_) {
@@ -520,6 +508,10 @@ maComputation::computeAlignments(uint32  minOverlapLength,
 
   fetchTrimmedRead(_aID);
 
+  //
+  //  Process each overlap.
+  //
+
   for (uint32 ii=0; ii<_overlapsLen; ii++) {
     ovOverlap *ov = _overlaps + ii;
 
@@ -601,8 +593,11 @@ maComputation::computeAlignments(uint32  minOverlapLength,
       continue;
     }
 
+    //
     //  A good overlap to process!
     //
+
+
     //  Find, precisely, the optimal overlap for each read.  No alignments,
     //  just end points.  The ovOverlap is updated with correct end points.
 
@@ -610,13 +605,10 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     fetchTrimmedRead(_bID, false, ov->flipped());
 
     computeOverlapAlignment(ov,
-                            _aRead, _readData[_aID].trimmedLength,
-                            _bRead, _readData[_bID].trimmedLength,
                             minOverlapLength,
                             maxErate,
                             _overlapSlop,
-                            _maxRepeatLength,
-                            _verboseAlign);
+                            _maxRepeatLength);
   }
 
   //if (_verboseAlign > 0)

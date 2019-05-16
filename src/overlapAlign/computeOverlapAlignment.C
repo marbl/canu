@@ -35,6 +35,10 @@
 
 #include "edlib.H"
 
+#include "overlapAlign-globalData.H"
+#include "overlapAlign-threadData.H"
+#include "overlapAlign-computation.H"
+
 
 
 bool
@@ -190,21 +194,18 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
 //  which we use to update this end of the overlap.
 //
 void
-computeOverlapAlignment(ovOverlap   *ovl,
-                        char        *aseq, int32 alen,
-                        char        *bseq, int32 blen,
-                        uint32       minOverlapLength,
-                        double       maxErate,
-                        uint32       overlapSlop,
-                        uint32       maxRepeat,
-                        uint32       verbose) {
+maComputation::computeOverlapAlignment(ovOverlap   *ovl,
+                                       uint32       minOverlapLength,
+                                       double       maxErate,
+                                       uint32       overlapSlop,
+                                       uint32       maxRepeat) {
   ovOverlap ori     = *ovl;
 
-  uint32  aID       = ovl->a_iid;
+  int32   alen      = _readData[_aID].trimmedLength;
   int32   abgn      = (int32)       ovl->dat.ovl.ahg5;
   int32   aend      = (int32)alen - ovl->dat.ovl.ahg3;
 
-  uint32  bID       = ovl->b_iid;
+  int32   blen      = _readData[_bID].trimmedLength;
   int32   bbgn      = (int32)       ovl->dat.ovl.bhg5;
   int32   bend      = (int32)blen - ovl->dat.ovl.bhg3;
 
@@ -213,9 +214,9 @@ computeOverlapAlignment(ovOverlap   *ovl,
 
   EdlibAlignResult  result = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
-  if (verbose > 0) {
-    fprintf(stderr, "computeOverlapAlignment()-- A %8u %6d-%-6d %d\n", aID, abgn, aend, alen);
-    fprintf(stderr, "computeOverlapAlignment()-- B %8u %6d-%-6d %d\n", bID, bbgn, bend, blen);
+  if (_verboseAlign > 0) {
+    fprintf(stderr, "computeOverlapAlignment()-- A %8u %6d-%-6d %d\n", _aID, abgn, aend, alen);
+    fprintf(stderr, "computeOverlapAlignment()-- B %8u %6d-%-6d %d\n", _bID, bbgn, bend, blen);
   }
 
   //  A    ------------{------...
@@ -238,15 +239,15 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   abgn = max(0,    ahg5 - a5);
     int32   aend = min(alen, ahg5 + a3);
 
-    if (verbose > 0)
+    if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- bhg5:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
-    if (computeAlignment(bseq, bbgn, bend, blen, "B", bID,    //  Align all of sequence B into
-                         aseq, abgn, aend, alen, "A", aID,    //  sequence A with free ends.
+    if (computeAlignment(_bRead, bbgn, bend, blen, "B", _bID,    //  Align all of sequence B into
+                         _aRead, abgn, aend, alen, "A", _aID,    //  sequence A with free ends.
                          maxErate,
                          editDist,
-                         alignLen, verbose) == true) {
-      if (verbose > 0)
+                         alignLen, _verboseAlign) == true) {
+      if (_verboseAlign > 0)
         fprintf(stderr, "computeOverlapAlignment()--        B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
       ovl->dat.ovl.ahg5 = abgn;
@@ -283,15 +284,15 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   abgn = max(0,    ahg5 - a5);    //  Now zero.
     int32   aend = min(alen, ahg5 + a3);
 
-    if (verbose > 0)
+    if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- ahg5:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
-    if (computeAlignment(aseq, abgn, aend, alen, "A", aID,    //  Align all of sequence A into
-                         bseq, bbgn, bend, blen, "B", bID,    //  sequence B with free ends.
+    if (computeAlignment(_aRead, abgn, aend, alen, "A", _aID,    //  Align all of sequence A into
+                         _bRead, bbgn, bend, blen, "B", _bID,    //  sequence B with free ends.
                          maxErate,
                          editDist,
-                         alignLen, verbose) == true) {
-      if (verbose > 0)
+                         alignLen, _verboseAlign) == true) {
+      if (_verboseAlign > 0)
         fprintf(stderr, "computeOverlapAlignment()--        A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
       ovl->dat.ovl.ahg5 = abgn;
@@ -331,15 +332,15 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   abgn = max(0,    alen - ahg3 - a5);
     int32   aend = min(alen, alen - ahg3 + a3);
 
-    if (verbose > 0)
+    if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- bhg3:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
-    if (computeAlignment(bseq, bbgn, bend, blen, "B", bID,    //  Align all of sequence B into
-                         aseq, abgn, aend, alen, "A", aID,    //  sequence A with free ends.
+    if (computeAlignment(_bRead, bbgn, bend, blen, "B", _bID,    //  Align all of sequence B into
+                         _aRead, abgn, aend, alen, "A", _aID,    //  sequence A with free ends.
                          maxErate,
                          editDist,
-                         alignLen, verbose) == true) {
-      if (verbose > 0)
+                         alignLen, _verboseAlign) == true) {
+      if (_verboseAlign > 0)
         fprintf(stderr, "computeOverlapAlignment()--        B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
 
       if ((bbgn == 0) ||                  //  Update the other end if the B read is contained, or
@@ -376,15 +377,15 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   abgn = max(0,    alen - ahg3 - a5);    //  Now alen.
     int32   aend = min(alen, alen - ahg3 + a3);
 
-    if (verbose > 0)
+    if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- ahg3:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
-    if (computeAlignment(aseq, abgn, aend, alen, "A", aID,    //  Align all of sequence A into
-                         bseq, bbgn, bend, blen, "B", bID,    //  sequence B with free ends.
+    if (computeAlignment(_aRead, abgn, aend, alen, "A", _aID,    //  Align all of sequence A into
+                         _bRead, bbgn, bend, blen, "B", _bID,    //  sequence B with free ends.
                          maxErate,
                          editDist,
-                         alignLen, verbose) == true) {
-      if (verbose > 0)
+                         alignLen, _verboseAlign) == true) {
+      if (_verboseAlign > 0)
         fprintf(stderr, "computeOverlapAlignment()--        A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
 
       if ((abgn == 0) ||                  //  Update the other end if the A read is contained, or
@@ -401,8 +402,10 @@ computeOverlapAlignment(ovOverlap   *ovl,
     }
   }
 
-
-
+  //
+  //  Compute the final alignment, then copy it to our output buffer if it is
+  //  of good quality.
+  //
 
   if (1) {
     int32   abgn      = (int32)       ovl->dat.ovl.ahg5;
@@ -411,19 +414,17 @@ computeOverlapAlignment(ovOverlap   *ovl,
     int32   bbgn      = (int32)       ovl->dat.ovl.bhg5;
     int32   bend      = (int32)blen - ovl->dat.ovl.bhg3;
 
-    if (verbose > 0)
+    if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- final:   A %d-%d vs B %d-%d\n", abgn, aend, bbgn, bend);
 
-    EdlibAlignResult result = edlibAlign(aseq + abgn, aend - abgn,
-                                         bseq + bbgn, bend - bbgn,
+    EdlibAlignResult result = edlibAlign(_aRead + abgn, aend - abgn,
+                                         _bRead + bbgn, bend - bbgn,
                                          edlibNewAlignConfig((int32)ceil(1.1 * maxErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
                                                              EDLIB_MODE_NW,
                                                              EDLIB_TASK_PATH));
 
-    //  Decide, based on the edit distance and alignment length, if we should retain
-    //  or discard the overlap.
-    //
-    //  If it's saved, flag it as 'not useful for unitigging' if the overlap isn't dovetail.
+    //  Decide, based on the edit distance and alignment length, if we should
+    //  retain or discard the overlap.
 
     if ((result.alignmentLength < minOverlapLength) ||                  //  Alignment is too short, or
         (result.editDistance > maxErate * result.alignmentLength)) {    //               too noisy.
@@ -435,21 +436,91 @@ computeOverlapAlignment(ovOverlap   *ovl,
     }
 
     else {
-      ovl->dat.ovl.forOBT = false;
-      ovl->dat.ovl.forDUP = false;
+      ovl->dat.ovl.forOBT = false;                                //  Flag as useful for contigging
+      ovl->dat.ovl.forDUP = false;                                //  if it is a dovetail overlap.
       ovl->dat.ovl.forUTG = (ovl->overlapIsDovetail() == true);
 
       ovl->erate(editDist / (double)alignLen);
+
+      _alignsOvl[_alignsLen] = ovl;                               //  Allocate space for the alignment output.
+      _alignsA  [_alignsLen] = new char [alen + 1];
+      _alignsB  [_alignsLen] = new char [alen + 1];
+
+      for (uint32 ii=0; ii<alen; ii++) {
+        _alignsA[_alignsLen][ii] = '-';
+        _alignsB[_alignsLen][ii] = '-';
+      }
+
+      _alignsA[_alignsLen][alen] = 0;
+      _alignsB[_alignsLen][alen] = 0;
+
+      char *aaln = new char [result.alignmentLength + 1];         //  Convert the alignment to a string.
+      char *baln = new char [result.alignmentLength + 1];
+
+      memset(aaln, 0, sizeof(char) * (result.alignmentLength + 1));
+      memset(baln, 0, sizeof(char) * (result.alignmentLength + 1));
+
+      edlibAlignmentToStrings(result.alignment,                   //  Alignment
+                              result.alignmentLength,             //    and length
+                              result.startLocations[0],           //  tgtStart (_bRead)
+                              result.endLocations[0]+1,           //  tgtEnd
+                              0,                                  //  qryStart (_aRead)
+                              alen,                               //  qryEnd
+                              _bRead + bbgn,                      //  tgt sequence (_bRead)
+                              _aRead + abgn,                      //  qry sequence (_aRead)
+                              baln,                               //  output tgt alignment string
+                              aaln);                              //  output qry alignment string
+
+      //  Dump
+
+      //fprintf(stdout, "B %u    abgn %d aend %d  ahg5 %d ahg5 %d alen %d\n", _bID, abgn, aend, (int32)ovl->dat.ovl.ahg5, (int32)ovl->dat.ovl.ahg3, alen);
+      //fprintf(stdout, "aaln %s\n", aaln);
+      //fprintf(stdout, "baln %s\n", baln);
+
+      //  Copy it into the output space.
+
+      uint32 pp = 0;   //  Position in the emitted alignment string.
+      uint32 aa = 0;   //  Position in sequence A.
+
+      for (uint32 ii=0; ii<ovl->dat.ovl.ahg5; ii++, pp++) {
+        _alignsA[_alignsLen][pp] = _aRead[aa];
+        _alignsB[_alignsLen][pp] = '-';
+        aa++;
+      }
+
+      for (uint32 ii=0; ii<result.alignmentLength; ii++) {
+        if (aaln[ii] != '-') {
+          _alignsA[_alignsLen][pp] = aaln[ii];
+          _alignsB[_alignsLen][pp] = baln[ii];
+          aa++;
+          pp++;
+        }
+      }
+
+      for (uint32 ii=0; ii<ovl->dat.ovl.ahg3; ii++, pp++) {
+        _alignsA[_alignsLen][pp] = _aRead[aa];
+        _alignsB[_alignsLen][pp] = '-';
+        aa++;
+      }
+
+      fprintf(stderr, "aa=%u pp=%u alen=%u\n", aa, pp, alen);
+
+      _alignsA[_alignsLen][alen] = 0;
+      _alignsB[_alignsLen][alen] = 0;
+
+      _alignsLen++;
     }
+
+    //  Trash the alignment results.
 
     edlibFreeAlignResult(result);
   }
 
   //  More logging.
 
-  if (verbose > 0) {
-    fprintf(stderr, "computeOverlapAlignment()-- A %7u %6d-%-6d -> %6d-%-6d\n",       aID, ori.a_bgn(), ori.a_end(), ovl->a_bgn(), ovl->a_end());
-    fprintf(stderr, "computeOverlapAlignment()-- B %7u %6d-%-6d -> %6d-%-6d %5.4f\n", bID, ori.b_bgn(), ori.b_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
+  if (_verboseAlign > 0) {
+    fprintf(stderr, "computeOverlapAlignment()-- A %7u %6d-%-6d -> %6d-%-6d\n",       _aID, ori.a_bgn(), ori.a_end(), ovl->a_bgn(), ovl->a_end());
+    fprintf(stderr, "computeOverlapAlignment()-- B %7u %6d-%-6d -> %6d-%-6d %5.4f\n", _bID, ori.b_bgn(), ori.b_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
   }
 }
 

@@ -47,7 +47,7 @@ public:
     _verboseAlign            = verboseAlign;
 
     _dovetailFraction        = 0.5;
-    _coverage                = 30.0;
+    _coverage                = 20.0;
 
     _minLength               = 1000;
     _maxEdge                 = 2500;
@@ -61,46 +61,49 @@ public:
 
     _seqCache                = seqCache;
 
-    _overlaps                = NULL;
-    _overlapsLen             = 0;
-    _overlapsMax             = 0;
-
-    _aID   = id;
-    _bID   = UINT32_MAX;
-
-    _aRead = _bRead = NULL;
-    _aMax  = _bMax  = 0;
-
     //  Load overlaps.
 
+    _overlapsMax = 0;
     _overlapsLen = ovlStore->loadOverlapsForRead(id, _overlaps, _overlapsMax);
-
-#if 0
-    if (_overlapsLen > 0)
-      fprintf(stderr, "READ %8u found %8u overlaps; first IDs %8u %8u\n",
-              _aID, _overlapsLen, _overlaps[0].a_iid, _overlaps[0].b_iid);
-    else
-      fprintf(stderr, "READ %8u found   NONE   overlaps; first IDs -------- --------\n",
-              _aID);
-#endif
 
     //  Allocate space for the a read.
 
+    _aID   = id;
     _aMax  = _seqCache->sqCache_getLength(id) + 1;
     _aRead = new char [_aMax];
 
     //  Find the longest b read and allocate space for b read sequences.
 
+    _bID   = UINT32_MAX;
+    _bMax  = 0;
+
     for (uint32 ii=0; ii<_overlapsLen; ii++)
       _bMax = max(_bMax, _seqCache->sqCache_getLength(_overlaps[ii].b_iid) + 1);
 
     _bRead = new char [_bMax];
+
+    //  Allocate space for the outputs.
+
+    _alignsLen = 0;
+    _alignsMax = _overlapsLen + 1;
+    _alignsOvl = new ovOverlap * [_overlapsLen];
+    _alignsA   = new char      * [_overlapsLen];
+    _alignsB   = new char      * [_overlapsLen];
   };
 
   ~maComputation() {
     delete [] _overlaps;
     delete [] _aRead;
     delete [] _bRead;
+
+    for (uint32 ii=0; ii<_alignsLen; ii++) {
+      delete [] _alignsA[ii];
+      delete [] _alignsB[ii];
+    }
+
+    delete [] _alignsOvl;
+    delete [] _alignsA;
+    delete [] _alignsB;
   };
 
 private:
@@ -112,6 +115,12 @@ private:
   bool                 trimOverlap_Normal(ovOverlap *ovl);
   bool                 trimOverlap_Flipped(ovOverlap *ovl);
   bool                 trimOverlap(ovOverlap *ovl);
+
+  void                 computeOverlapAlignment(ovOverlap   *ovl,
+                                               uint32       minOverlapLength,
+                                               double       maxErate,
+                                               uint32       overlapSlop,
+                                               uint32       maxRepeat);
 
 public:
   void                 trimRead(uint32  minOverlapLength,
@@ -147,9 +156,9 @@ public:
   //  Overlaps are loaded by the loader thread during creation
   //  of this object.
 
-  ovOverlap  *_overlaps;
-  uint32      _overlapsLen;
   uint32      _overlapsMax;
+  uint32      _overlapsLen;
+  ovOverlap  *_overlaps;
 
   //  Sequence storage during alignment.  We assume the read
   //  sequences are cached in core, and that we can get them
@@ -158,6 +167,12 @@ public:
   uint32      _aID,      _bID;
   uint32      _aMax,     _bMax;    //  Allocated length of aRead.
   char       *_aRead,   *_bRead;   //
+
+  //  Alignment results.
+
+  uint32      _alignsLen;
+  uint32      _alignsMax;
+  ovOverlap **_alignsOvl;
+  char      **_alignsA;
+  char      **_alignsB;
 };
-
-

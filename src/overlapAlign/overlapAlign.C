@@ -90,6 +90,25 @@ overlapWriter(void *G, void *S) {
       g->outFile->writeOverlap(ovl);
   }
 
+  if (s->_alignsLen > 0) {
+    fprintf(stdout, "<pre>\n");
+    fprintf(stdout, "%6u %6d %6d %s\n", s->_aID, 0, s->_readData[s->_aID].trimmedLength, s->_aRead);
+
+    for (uint32 oo=0; oo<s->_alignsLen; oo++) {
+      //fprintf(stdout, "\n");
+      //fprintf(stdout, "%6u %6d %6d\n", s->_alignsOvl[oo]->b_iid, (int32)s->_alignsOvl[oo]->dat.ovl.ahg5, (int32)s->_alignsOvl[oo]->dat.ovl.ahg3);
+      //fprintf(stdout, "%s\n", s->_alignsA[oo]);
+      //fprintf(stdout, "%s\n", s->_alignsB[oo]);
+      fprintf(stdout, "%6u %6d %6d %s\n",
+              s->_alignsOvl[oo]->b_iid,
+              (int32)s->_alignsOvl[oo]->dat.ovl.ahg5,
+              (int32)s->_alignsOvl[oo]->dat.ovl.ahg3,
+              s->_alignsB[oo]);
+    }
+
+    fprintf(stdout, "<pre>\n");
+  }
+
   delete s;
 }
 
