@@ -503,7 +503,8 @@ maComputation::computeOverlapAlignment(ovOverlap   *ovl,
         aa++;
       }
 
-      fprintf(stderr, "aa=%u pp=%u alen=%u\n", aa, pp, alen);
+      assert(pp == alen);     //  If correct, we should have walked over the
+      assert(aa == alen);     //  full trimmed read with both indices.
 
       _alignsA[_alignsLen][alen] = 0;
       _alignsB[_alignsLen][alen] = 0;
