@@ -302,7 +302,6 @@ sub unitig ($) {
     print F "\n";
     print F "\n";
     print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
-    print F stashFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "");
     print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "");
     print F "\n";
     print F "cd ../$asm.ctgStore\n";

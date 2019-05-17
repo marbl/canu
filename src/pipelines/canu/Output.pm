@@ -173,18 +173,6 @@ sub generateOutputs ($) {
 
     #  Graphs
 
-    if (!fileExists("$asm.contigs.gfa")) {
-        fetchFile("unitigging/4-unitigger/$asm.contigs.aligned.gfa");
-
-        if (-e "unitigging/4-unitigger/$asm.contigs.aligned.gfa") {
-            copy("unitigging/4-unitigger/$asm.contigs.aligned.gfa", "$asm.contigs.gfa");
-        } else {
-            touch("$asm.contigs.gfa");
-        }
-
-        stashFile("$asm.contigs.gfa");
-    }
-
     if (!fileExists("$asm.unitigs.gfa")) {
         fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.gfa");
 
@@ -236,6 +224,5 @@ sub generateOutputs ($) {
     print STDERR "--   Unitigs       -> '$asm.unitigs.layout'.\n";
     print STDERR "--\n";
     print STDERR "-- Graphs saved:\n";
-    print STDERR "--   Contigs       -> '$asm.contigs.gfa'.\n";
     print STDERR "--   Unitigs       -> '$asm.unitigs.gfa'.\n";
 }

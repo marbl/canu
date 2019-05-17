@@ -519,8 +519,10 @@ The header line for each sequence provides some metadata on the sequence.::
 
 GRAPHS
 
-<prefix>.contigs.gfa
-  Unused or ambiguous edges between contig sequences.  The GFA format cannot represent partial overlaps between contigs (that is part of contig A overlaps with part of contig B). For more details see the discussion of general edges on the `GFA2 <https://github.com/GFA-spec/GFA-spec/blob/master/GFA2.md>`_ page.
+Canu versions prior to v1.9 created a GFA of the contig graph.  However, as noted at the time, the
+GFA format cannot represent partial overlaps between contigs (for more details see the discussion of
+general edges on the `GFA2 <https://github.com/GFA-spec/GFA-spec/blob/master/GFA2.md>`_ page).
+Because Canu contigs are not compatible with the GFA format, <prefix>.contigs.gfa has been removed.
 
 <prefix>.unitigs.gfa
   Since the GFA format cannot represent partial overlaps, the contigs are split at all such overlap junctions into unitigs. The unitigs capture non-branching subsequences within the contigs and will break at any ambiguity (e.g. a haplotype switch).

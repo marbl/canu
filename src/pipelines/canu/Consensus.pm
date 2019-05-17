@@ -640,8 +640,7 @@ sub alignGFA ($) {
 
     #  This is just big enough to not fit comfortably in the canu process itself.
 
-    goto allDone   if (fileExists("unitigging/4-unitigger/$asm.contigs.aligned.gfa") &&
-                       fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa") &&
+    goto allDone   if (fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.gfa") &&
                        fileExists("unitigging/4-unitigger/$asm.unitigs.aligned.bed"));
 
     #  If a large genome, run this on the grid, else, run in the canu process itself.
@@ -682,21 +681,6 @@ sub alignGFA ($) {
         print F "\n";
         print F "\n";
 
-        print F "if [ ! -e ./$asm.contigs.aligned.gfa ] ; then\n";
-        print F    fetchFileShellCode("unitigging/4-unitigger", "$asm.contigs.gfa", "  ");
-        print F "\n";
-        print F "  \$bin/alignGFA \\\n";
-        print F "    -T ../$asm.ctgStore 2 \\\n";
-        print F "    -i ./$asm.contigs.gfa \\\n";
-        print F "    -o ./$asm.contigs.aligned.gfa \\\n";
-        print F "    -t " . getGlobal("gfaThreads") . " \\\n";
-        print F "  > ./$asm.contigs.aligned.gfa.err 2>&1";
-        print F "\n";
-        print F    stashFileShellCode("$path", "$asm.contigs.aligned.gfa", "  ");
-        print F "fi\n";
-        print F "\n";
-        print F "\n";
-
         print F "if [ ! -e ./$asm.unitigs.aligned.bed ] ; then\n";
         print F    fetchFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "  ");
         print F "\n";
@@ -714,7 +698,6 @@ sub alignGFA ($) {
         print F "\n";
 
         print F "if [ -e ./$asm.unitigs.aligned.gfa -a \\\n";
-        print F "     -e ./$asm.contigs.aligned.gfa -a \\\n";
         print F "     -e ./$asm.unitigs.aligned.bed ] ; then\n";
         print F "  echo GFA alignments updated.\n";
         print F "  exit 0\n";
@@ -755,7 +738,7 @@ sub alignGFA ($) {
         submitOrRunParallelJob($asm, "gfa", $path, "alignGFA", (1));
     } else {
         if (runCommand($path, "./alignGFA.sh > alignGFA.err 2>&1")) {
-            caExit("failed to align contigs", "./alignGFA.err");
+            caExit("failed to create aligned graphs", "./alignGFA.err");
         }
     }
 

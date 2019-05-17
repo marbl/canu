@@ -81,7 +81,7 @@ For Nanopore::
 Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-nanopore',
 respectively.  Intermediate files are written in directories 'correction', 'trimming' and
 'unitigging' for the respective stages.  Output files are named using the '-p' prefix, such as
-'ecoli.contigs.fasta', 'ecoli.contigs.gfa', etc.  See section :ref:`outputs` for more details on
+'ecoli.contigs.fasta', 'ecoli.unitigs.gfa', etc.  See section :ref:`outputs` for more details on
 outputs (intermediate files aren't documented).
 
 
