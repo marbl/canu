@@ -323,10 +323,6 @@ main (int argc, char **argv) {
 
   //  Open inputs.
 
-  sqRead_setDefaultVersion(sqRead_trimmed);
-
-  //  Open inputs.
-
   if (seqName) {
     fprintf(stderr, "-- Opening seqStore '%s' partition %u.\n", seqName, tigPart);
     seqStore = sqStore::sqStore_open(seqName, sqStore_readOnly, tigPart);
@@ -340,6 +336,18 @@ main (int argc, char **argv) {
   if (tigFileName) {
     fprintf(stderr, "-- Opening tigFile '%s'.\n", tigFileName);
     tigFile = AS_UTL_openInputFile(tigFileName);
+  }
+
+  //  Decide which reads to use.  Usually, we want the trimmed reads, but for HiFi reads, we want to
+  //  use the original non-homopolymer compressed reads.
+
+  if (seqStore) {
+    if (seqStore->sqStore_getLibrary(1)->sqLibrary_readType() == SQ_READTYPE_PACBIO_HIFI) {
+      fprintf(stderr, "HIFI\n");
+      sqRead_setDefaultVersion(sqRead_raw);
+    } else {
+      sqRead_setDefaultVersion(sqRead_trimmed);
+    }
   }
 
   //  Open the import/export files.

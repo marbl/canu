@@ -213,7 +213,8 @@ while (scalar(@ARGV)) {
     } elsif (($arg eq "-pacbio-raw")         ||  #  File handling is also present in Defaults.pm,
              ($arg eq "-pacbio-corrected")   ||  #  look for addSequenceFile().
              ($arg eq "-nanopore-raw")       ||
-             ($arg eq "-nanopore-corrected")) {
+             ($arg eq "-nanopore-corrected") ||
+             ($arg eq "-pacbio-hifi")) {
 
         my $file = $ARGV[0];
         my $fopt = addSequenceFile($readdir, $file, 1);
@@ -367,9 +368,11 @@ setWorkDirectory($asm, $rootdir);
 
 my $haveRaw          = 0;
 my $haveCorrected    = 0;
+my $haveHiFi         = 0;
 
 my $setUpForPacBio   = 0;
 my $setUpForNanopore = 0;
+my $setUpForHiFi     = 0;
 
 #  If we're a cloud run, fetch the store.
 
@@ -391,6 +394,7 @@ if ($nCor + $nOBT + $nAsm > 0) {
     my $numPacBioCorrected   = 0;
     my $numNanoporeRaw       = 0;
     my $numNanoporeCorrected = 0;
+    my $numPacBioHiFi        = 0;
 
     if (! -e "./$asm.seqStore/libraries.txt") {
         if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
@@ -406,27 +410,32 @@ if ($nCor + $nOBT + $nAsm > 0) {
         $numPacBioCorrected++     if ($v[2] eq "pacbio-corrected");
         $numNanoporeRaw++         if ($v[2] eq "nanopore-raw");
         $numNanoporeCorrected++   if ($v[2] eq "nanopore-corrected");
+        $numPacBioHiFi++          if ($v[2] eq "pacbio-hifi");
     }
     close(L);
 
     $setUpForPacBio++      if ($numPacBioRaw       + $numPacBioCorrected   > 0);
     $setUpForNanopore++    if ($numNanoporeRaw     + $numNanoporeCorrected > 0);
+    $setUpForHiFi++        if ($numPacBioHiFi                              > 0);
 
     $haveRaw++             if ($numPacBioRaw       + $numNanoporeRaw       > 0);
     $haveCorrected++       if ($numPacBioCorrected + $numNanoporeCorrected > 0);
+    $haveHiFi++            if ($numPacBioHiFi                              > 0);
 
     my $rt;
 
     $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
     $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
     $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
+    $rt = "PacBio"                      if (($setUpForHiFi    > 0));
 
     #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
     print STDERR "-- In '$asm.seqStore', found $rt reads:\n";
-    print STDERR "--   Raw:        $nCor\n";
-    print STDERR "--   Corrected:  $nOBT\n";
+    print STDERR "--   HiFi:       $nCor\n"   if ($haveHiFi  > 0);
+    print STDERR "--   Raw:        $nCor\n"   if ($haveHiFi == 0);
+    print STDERR "--   Corrected:  $nOBT\n"   if ($haveHiFi == 0);
     print STDERR "--   Trimmed:    $nAsm\n";
 }
 
@@ -436,24 +445,31 @@ elsif (scalar(@inputFiles) > 0) {
     foreach my $typefile (@inputFiles) {
         my ($type, $file) = split '\0', $typefile;
 
-        $haveCorrected++         if ($type =~ m/corrected/);
         $haveRaw++               if ($type =~ m/raw/);
+        $haveCorrected++         if ($type =~ m/corrected/);
+        $haveHiFi++              if ($type =~ m/hifi/);
 
         $setUpForPacBio++        if ($type =~ m/pacbio/);
         $setUpForNanopore++      if ($type =~ m/nanopore/);
+        $setUpForHiFi++          if ($type =~ m/hifi/);
     }
 
-    my $rt;
-    my $ct;
+    my $rt = "";
+    my $ct = "";
 
     $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
     $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
     $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
     $rt = "unknown"                     if (($setUpForPacBio == 0) && ($setUpForNanopore == 0));
 
-    $ct = "uncorrected"                 if (($haveRaw         > 0) && ($haveCorrected    == 0));
-    $ct = "corrected"                   if (($haveRaw        == 0) && ($haveCorrected     > 0));
-    $ct = "uncorrected AND corrected"   if (($haveRaw         > 0) && ($haveCorrected     > 0));
+    $ct .= " AND hifi"          if ((length($ct)  > 0) && ($haveHiFi > 0));
+    $ct .= "hifi"               if ((length($ct) == 0) && ($haveHiFi > 0));
+
+    $ct .= " AND uncorrected"   if ((length($ct)  > 0) && ($haveRaw > 0));
+    $ct .= "uncorrected"        if ((length($ct) == 0) && ($haveRaw > 0));
+
+    $ct .= " AND corrected"     if ((length($ct)  > 0) && ($haveCorrected > 0));
+    $ct .= "corrected"          if ((length($ct) == 0) && ($haveCorrected > 0));
 
     #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
@@ -473,6 +489,7 @@ else {
 if (!defined($mode)) {
     $mode = "run"            if ($haveRaw       > 0);   #  If no seqStore, these are set based
     $mode = "trim-assemble"  if ($haveCorrected > 0);   #  on flags describing the input files.
+    $mode = "trim-assemble"  if ($haveHiFi      > 0);
 
     $mode = "run"            if ($nCor > 0);            #  If a seqStore, these are set based
     $mode = "trim-assemble"  if ($nOBT > 0);            #  on the reads present in the stores.
@@ -485,19 +502,10 @@ if (!defined($mode)) {
 if (!defined($type)) {
     $type = "pacbio"        if ($setUpForPacBio   > 0);
     $type = "nanopore"      if ($setUpForNanopore > 0);
+    $type = "hifi"          if ($setUpForHiFi     > 0);
 }
 
 #  Now set error rates (if not set already) based on the dominant read type.
-
-if ($type eq"nanopore") {
-    setGlobalIfUndef("corOvlErrorRate",  0.320);
-    setGlobalIfUndef("obtOvlErrorRate",  0.120);
-    setGlobalIfUndef("utgOvlErrorRate",  0.120);
-    setGlobalIfUndef("corErrorRate",     0.500);
-    setGlobalIfUndef("obtErrorRate",     0.120);
-    setGlobalIfUndef("utgErrorRate",     0.120);
-    setGlobalIfUndef("cnsErrorRate",     0.200);
-}
 
 if ($type eq"pacbio") {
     setGlobalIfUndef("corOvlErrorRate",  0.240);
@@ -509,13 +517,38 @@ if ($type eq"pacbio") {
     setGlobalIfUndef("cnsErrorRate",     0.075);
 }
 
+if ($type eq"nanopore") {
+    setGlobalIfUndef("corOvlErrorRate",  0.320);
+    setGlobalIfUndef("obtOvlErrorRate",  0.120);
+    setGlobalIfUndef("utgOvlErrorRate",  0.120);
+    setGlobalIfUndef("corErrorRate",     0.500);
+    setGlobalIfUndef("obtErrorRate",     0.120);
+    setGlobalIfUndef("utgErrorRate",     0.120);
+    setGlobalIfUndef("cnsErrorRate",     0.200);
+}
+
+if ($type eq"hifi") {
+    setGlobalIfUndef("corOvlErrorRate",  0.0);
+    setGlobalIfUndef("obtOvlErrorRate",  0.01);
+    setGlobalIfUndef("utgOvlErrorRate",  0.01);
+    setGlobalIfUndef("corErrorRate",     0.0);
+    setGlobalIfUndef("obtErrorRate",     0.01);
+    setGlobalIfUndef("utgErrorRate",     0.0);
+    setGlobalIfUndef("cnsErrorRate",     0.1);
+}
+
+
 #  Check for a few errors:
 #    no mode                -> don't have any reads or any store to run from.
 #    both raw and corrected -> don't know how to process these
 
 caExit("ERROR: No reads supplied, and can't find any reads in any seqStore", undef)   if (!defined($mode));
 caExit("ERROR: Failed to determine the sequencing technology of the reads", undef)    if (!defined($type));
-caExit("ERROR: Can't mix uncorrected and corrected reads", undef)                     if ($haveRaw && $haveCorrected);
+
+caExit("ERROR: Can't mix uncorrected, corrected and hifi reads", undef)               if ($haveRaw  && $haveCorrected && $haveHiFi);
+caExit("ERROR: Can't mix uncorrected and corrected reads", undef)                     if ($haveRaw  && $haveCorrected);
+caExit("ERROR: Can't mix uncorrected and hifi reads", undef)                          if ($haveHiFi && $haveRaw);
+caExit("ERROR: Can't mix corrected and hifi reads", undef)                            if ($haveHiFi && $haveCorrected);
 
 #  Go!
 

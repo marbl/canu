@@ -267,14 +267,30 @@ sqReadData::sqReadData_setName(char *H) {
 void
 sqReadData::sqReadData_setBasesQuals(char  *S,
                                      uint8 *Q) {
-  bool        isRaw = ((_library->sqLibrary_readType() == SQ_READTYPE_PACBIO_RAW) ||
-                       (_library->sqLibrary_readType() == SQ_READTYPE_NANOPORE_RAW));
-
   uint32      Slen  = strlen(S) + 1;
 
-  //  If loading raw reads, and no raw read, save the data there.
+  //  Based on the library type, and presence of read data, either load the
+  //  sequence into the 'raw' storage, or the 'corrected' storage.
+  //
+  //  For PacBio HiHi, our correction amounts to stipping homopolymer runs,
+  //  and we can do that here.
 
-  if ((isRaw == true) && (_rseq == NULL)) {
+  //  If there is a raw read, we're always loading into 'corrected' storage.
+  if (_rseq != NULL) {
+    if (_read->_cExists)
+      fprintf(stderr, "sqReadData_setBasesQuals()- read %u has existing cseq of length %u, replacing with length %u\n",
+              _read->_readID, _read->_cseqLen, (uint32)strlen(S));
+
+    resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);
+    resizeArray(_cqlt, 0, _cqltAlloc, Slen, resizeArray_doNothing);
+
+    memcpy(_cseq, S, sizeof(char)  * Slen);
+    memcpy(_cqlt, Q, sizeof(uint8) * Slen);
+  }
+
+  //  Otherwise, if the library is for noisy long reads, load into 'raw' storage.
+  if ((_library->sqLibrary_readType() == SQ_READTYPE_PACBIO_RAW) ||
+      (_library->sqLibrary_readType() == SQ_READTYPE_NANOPORE_RAW)) {
     resizeArray(_rseq, 0, _rseqAlloc, Slen, resizeArray_doNothing);
     resizeArray(_rqlt, 0, _rqltAlloc, Slen, resizeArray_doNothing);
 
@@ -282,15 +298,34 @@ sqReadData::sqReadData_setBasesQuals(char  *S,
     memcpy(_rqlt, Q, sizeof(uint8) * Slen);
   }
 
-  //  If loading corrected reads, and no corrected read, save the date there.
-
+  //  Otherwise, load into 'raw' storage, and make a homopolymer compressed version
+  //  in 'corrected' storage.
   else {
-    if (_read->_cExists)
-      fprintf(stderr, "sqReadData_setBasesQuals()- read %u has existing cseq of length %u, replacing with length %u\n",
-              _read->_readID, _read->_cseqLen, (uint32)strlen(S));
+    resizeArray(_rseq, 0, _rseqAlloc, Slen, resizeArray_doNothing);    //  Load the raw version.
+    resizeArray(_rqlt, 0, _rqltAlloc, Slen, resizeArray_doNothing);
 
-    resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);
-    resizeArray(_cqlt, 0, _cqltAlloc, Slen, resizeArray_doNothing);
+    memcpy(_rseq, S, sizeof(char)  * Slen);
+    memcpy(_rqlt, Q, sizeof(uint8) * Slen);
+
+    uint32  cc = 0;                  //  NOTE:  Also used in utility/sequence-extract.C
+    uint32  rr = 1;
+
+    while (rr < Slen) {
+      if (S[cc] == S[rr])
+        rr++;
+      else {
+        S[++cc] = S[rr  ];
+        Q[  cc] = S[rr++];
+      }
+    }
+
+    Slen = cc + 1;
+
+    S[Slen] = 0;
+    Q[Slen] = 0;
+
+    resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);   //  Load the corrected
+    resizeArray(_cqlt, 0, _cqltAlloc, Slen, resizeArray_doNothing);   //  version.
 
     memcpy(_cseq, S, sizeof(char)  * Slen);
     memcpy(_cqlt, Q, sizeof(uint8) * Slen);

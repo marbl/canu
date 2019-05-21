@@ -77,6 +77,12 @@ sqLibrary::sqLibrary_parsePreset(char *p) {
     return;
   }
 
+  if (strcasecmp(p, "pacbio-hifi") == 0) {
+    _readCorrection   = SQ_CORRECTION_NONE;
+    _readType         = SQ_READTYPE_PACBIO_HIFI;
+    return;
+  }
+
   fprintf(stderr, "sqLibrary::sqLibrary_parsePreset()--  ERROR: unknown preset '%s'\n", p);
   exit(1);
 }
@@ -103,6 +109,9 @@ sqLibrary::sqLibrary_setReadType(char *t) {
   else if (strcasecmp(t, "nanopore_corrected") == 0)
     _readType = SQ_READTYPE_NANOPORE_CORRECTED;
 
+  else if (strcasecmp(t, "pacbio_hifi") == 0)
+    _readType = SQ_READTYPE_PACBIO_HIFI;
+
   else
     fprintf(stderr, "sqLibrary::sqLibrary_setReadType()--  ERROR: unknown read type '%s'\n",
             t), exit(1);
@@ -118,6 +127,7 @@ sqLibrary::sqLibrary_readTypeString(void) {
     case SQ_READTYPE_PACBIO_CORRECTED:    return("pacbio-corrected");    break;
     case SQ_READTYPE_NANOPORE_RAW:        return("nanopore-raw");        break;
     case SQ_READTYPE_NANOPORE_CORRECTED:  return("nanopore-corrected");  break;
+    case SQ_READTYPE_PACBIO_HIFI:         return("pacbio-hifi");         break;
     default:                              return("invalid");             break;
   }
 }

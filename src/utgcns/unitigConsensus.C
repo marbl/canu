@@ -560,7 +560,9 @@ unitigConsensus::generateTemplateStitch(void) {
               tiglen, ePos, 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos));
   }
 
-  //  Report the expected and final size.  Guard against long tigs getting chopped.
+  //  Report the expected and final size.  We used to guard against long tigs getting chopped, but
+  //  the new template construction (early 2019) will simply append reads that fail to extend the
+  //  template - so long tigs never should get chopped.
 
   double  pd = 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos);
 
@@ -569,10 +571,6 @@ unitigConsensus::generateTemplateStitch(void) {
     fprintf(stderr, "generateTemplateStitch()-- generated template of length %d, expected length %d, %7.4f%% difference.\n",
             tiglen, ePos, pd);
   }
-
-  if ((tiglen >= 100000) && ((pd < -50.0) || (pd > 50.0)))
-    fprintf(stderr, "generateTemplateStitch()-- significant size difference, stopping.\n");
-  assert((tiglen < 100000) || ((-50.0 <= pd) && (pd <= 50.0)));
 
   return(tigseq);
 }

@@ -252,6 +252,7 @@ sub removeHaplotypeOptions () {
         if ($opt =~ m/^-pacbio-corrected\s/)    { $setUpForPacBio++;   $haveCorrected++; next; }
         if ($opt =~ m/^-nanopore-raw\s/)        { $setUpForNanopore++; $haveRaw++;       next; }
         if ($opt =~ m/^-nanopore-corrected\s/)  { $setUpForNanopore++; $haveCorrected++; next; }
+        if ($opt =~ m/^-pacbio-hifi\s/)         { $setUpForPacBio++;   $haveCorrected++; next; }
         if ($opt =~ m/^-haplotype/)             {                                        next; }
         if ($opt =~ m/^-d\s/)                   {                                        next; }
         if ($opt =~ m/^-p\s/)                   {                                        next; }
@@ -407,7 +408,8 @@ sub printHelp (@) {
     print "              [-pacbio-raw |\n";
     print "               -pacbio-corrected |\n";
     print "               -nanopore-raw |\n";
-    print "               -nanopore-corrected] file1 file2 ...\n";
+    print "               -nanopore-corrected |\n";
+    print "               -pacbio-hifi] file1 file2 ...\n";
     print "\n";
     print "example: canu -d run1 -p godzilla genomeSize=1g -nanopore-raw reads/*.fasta.gz \n";
     print "\n";
@@ -462,6 +464,7 @@ sub printHelp (@) {
     print "    -pacbio-corrected   <files>      Reads have been corrected.\n";
     print "    -nanopore-raw       <files>\n";
     print "    -nanopore-corrected <files>\n";
+    print "    -pacbio-hifi        <files>\n";
     print "\n";
     print "Complete documentation at http://canu.readthedocs.org/en/latest/\n";
     print "\n";

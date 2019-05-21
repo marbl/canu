@@ -40,7 +40,7 @@ doExtract_compress(char    *outputString,
   if (outputStringLen == 0)
     return(0);
 
-  uint64  cc = 0;
+  uint64  cc = 0;                  //  NOTE:  Also used in stores/sqStore.C
   uint64  rr = 1;
 
   while (rr < outputStringLen) {
