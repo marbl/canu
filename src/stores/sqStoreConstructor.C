@@ -66,10 +66,10 @@ sqStore::sqStore_loadMetadata(void) {
 
 
 
-sqStore::sqStore(char const    *storePath,
-                 char const    *clonePath,
-                 sqStore_mode   mode,
-                 uint32         partID) {
+sqStore::sqStore(char const    *storePath_,
+                 char const    *clonePath_,
+                 sqStore_mode   mode_,
+                 uint32         partID_) {
   char    nameI[FILENAME_MAX+1];
   char    nameL[FILENAME_MAX+1];
   char    nameR[FILENAME_MAX+1];
@@ -84,7 +84,7 @@ sqStore::sqStore(char const    *storePath,
   memset(_storePath, 0, sizeof(char) * (FILENAME_MAX + 1));
   memset(_clonePath, 0, sizeof(char) * (FILENAME_MAX + 1));
 
-  _mode                   = mode;
+  _mode                   = mode_;
 
   _librariesAlloc         = 0;
   _libraries              = NULL;
@@ -107,8 +107,8 @@ sqStore::sqStore(char const    *storePath,
 
   //  Save the path and name.
 
-  if (storePath)   strncpy(_storePath, storePath, FILENAME_MAX);   //  storePath must always exist though.
-  if (clonePath)   strncpy(_clonePath, clonePath, FILENAME_MAX);   //  clonePath is definitely optional.
+  if (storePath_)   strncpy(_storePath, storePath_, FILENAME_MAX);   //  storePath must always exist though.
+  if (clonePath_)   strncpy(_clonePath, clonePath_, FILENAME_MAX);   //  clonePath is definitely optional.
 
   //  If the info file exists, load it.
 
@@ -129,8 +129,8 @@ sqStore::sqStore(char const    *storePath,
   //  CREATE - allocate some memory for saving libraries and reads, and create a file to dump the data into.
   //
 
-  if (mode == sqStore_create) {
-    if (partID != UINT32_MAX)
+  if (_mode == sqStore_create) {
+    if (partID_ != UINT32_MAX)
       fprintf(stderr, "sqStore()-- Illegal combination of sqStore_create with defined partID.\n"), exit(1);
 
     if (directoryExists(_storePath) == true)
@@ -156,15 +156,15 @@ sqStore::sqStore(char const    *storePath,
   if (directoryExists(_storePath) == false)
     fprintf(stderr, "sqStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath), exit(1);
 
-  if ((mode == sqStore_extend) &&
-      (partID != UINT32_MAX))
+  if ((_mode == sqStore_extend) &&
+      (partID_ != UINT32_MAX))
     fprintf(stderr, "sqStore()-- Illegal combination of sqStore_extend with defined partID.\n"), exit(1);
 
   //
   //  EXTEND - just load the metadata, allocate some stuff, and return.
   //
 
-  if (mode == sqStore_extend) {
+  if (_mode == sqStore_extend) {
     sqStore_loadMetadata();
 
     _blobsFilesMax = omp_get_max_threads();
@@ -179,7 +179,7 @@ sqStore::sqStore(char const    *storePath,
   //  BUILDING PARTITIONS - load metadata and return.
   //
 
-  if (mode == sqStore_buildPart) {
+  if (_mode == sqStore_buildPart) {
     sqStore_loadMetadata();
 
     _blobsFilesMax = omp_get_max_threads();
@@ -192,7 +192,7 @@ sqStore::sqStore(char const    *storePath,
   //  READ ONLY non-partitioned - just load the metadata and return.
   //
 
-  if (partID == UINT32_MAX) {       //  READ ONLY, non-partitioned (also for creating partitions)
+  if (partID_ == UINT32_MAX) {       //  READ ONLY, non-partitioned (also for creating partitions)
     sqStore_loadMetadata();
 
     _blobsFilesMax = omp_get_max_threads();
@@ -211,7 +211,7 @@ sqStore::sqStore(char const    *storePath,
 
   loadFromFile(_numberOfPartitions, "sqStore::_numberOfPartitions", F);
 
-  _partitionID            = partID;
+  _partitionID            = partID_;
   _readsPerPartition      = new uint32 [_numberOfPartitions   + 1];  //  No zeroth element in any of these
   _readIDtoPartitionID    = new uint32 [sqStore_getNumReads() + 1];
   _readIDtoPartitionIdx   = new uint32 [sqStore_getNumReads() + 1];
@@ -225,11 +225,11 @@ sqStore::sqStore(char const    *storePath,
   //  Load the rest of the data, just suck in entire files.
 
   snprintf(nameL, FILENAME_MAX, "%s/libraries", _storePath);
-  snprintf(nameR, FILENAME_MAX, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
-  snprintf(nameB, FILENAME_MAX, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
+  snprintf(nameR, FILENAME_MAX, "%s/partitions/reads.%04" F_U32P, _storePath, _partitionID);
+  snprintf(nameB, FILENAME_MAX, "%s/partitions/blobs.%04" F_U32P, _storePath, _partitionID);
 
   _librariesAlloc = _info.sqInfo_numLibraries() + 1;
-  _readsAlloc     = _readsPerPartition[partID];
+  _readsAlloc     = _readsPerPartition[_partitionID];
 
   uint64 bs       = AS_UTL_sizeOfFile(nameB);
 
