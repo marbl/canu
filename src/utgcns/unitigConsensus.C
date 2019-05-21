@@ -507,7 +507,7 @@ unitigConsensus::generateTemplateStitch(void) {
       tryAgain = false;
     }
 
-    if (tryAgain && noResult) {
+    if (tryAgain) {
       edlibFreeAlignResult(result);
       goto alignAgain;
     }
@@ -519,16 +519,20 @@ unitigConsensus::generateTemplateStitch(void) {
       readBgn = result.startLocations[0];     //  Expected to be zero
       readEnd = result.endLocations[0] + 1;   //  Where we need to start copying the read
 
-      if (showAlgorithm())
+      if (showAlgorithm()) {
+        fprintf(stderr, "generateTemplateStitch()--\n");
         fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
                 tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+      }
     } else {
       readBgn = 0;
       readEnd = olapLen;
 
-      if (showAlgorithm())
+      if (showAlgorithm()) {
+        fprintf(stderr, "generateTemplateStitch()--\n");
         fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
                 readEnd, readLen);
+      }
     }
 
     edlibFreeAlignResult(result);
