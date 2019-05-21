@@ -113,6 +113,16 @@ overlapWriter(void *G, void *S) {
 
 
 void
+trimWriter(void *G, void *S) {
+  trGlobalData     *g = (trGlobalData  *)G;
+  maComputation    *s = (maComputation *)S;
+
+  delete s;
+}
+
+
+
+void
 overlapRecompute(void *G, void *T, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maThreadData     *t = (maThreadData  *)T;
@@ -164,6 +174,7 @@ alignOverlaps(trGlobalData *g, bool isTrimming) {
 
       if (isTrimming) {
         overlapTrim(g, t, c);
+        trimWriter(g, c);
       }
 
       else {
@@ -182,14 +193,14 @@ alignOverlaps(trGlobalData *g, bool isTrimming) {
     sweatShop     *ss = NULL;
 
     if (isTrimming) {
-      ss = new sweatShop(overlapReader, overlapTrim, NULL);
+      ss = new sweatShop(overlapReader, overlapTrim, trimWriter);
     }
 
     else {
       ss = new sweatShop(overlapReader, overlapRecompute, overlapWriter);
     }
 
-    ss->setLoaderQueueSize(128);
+    ss->setLoaderQueueSize(512);
     ss->setWriterQueueSize(16 * 1024);    //  Otherwise skipped reads hold up the queue.
 
     ss->setNumberOfWorkers(g->numThreads);
