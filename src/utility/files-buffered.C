@@ -166,25 +166,43 @@ readBuffer::fillBuffer(void) {
 void
 readBuffer::seek(uint64 pos) {
 
-  if (_stdin == true) {
-    if (_filePos < _bufferLen) {
-      _filePos   = 0;
-      _bufferPos = 0;
-      return;
-    } else {
-      fprintf(stderr, "readBuffer()-- seek() not available for file 'stdin'.\n");
-      exit(1);
-    }
-
+  //  If not really a seek, just return.
+  if (pos == _filePos)
     return;
+
+  //  If stdin, we can't seek.
+  if (_stdin == true) {
+    fprintf(stderr, "readBuffer()-- seek() not available for file 'stdin'.\n");
+    exit(1);
   }
 
-  assert(_stdin == false);
-
-  if (_mmap) {
+  //  If memory mapped, we can jump directly to the location.
+  else if (_mmap) {
     _bufferPos = pos;
     _filePos   = pos;
-  } else {
+  }
+
+  //  If the position is in the buffer, just move there and
+  //  potentially skip any actual file access.
+  else if ((pos < _filePos) && (_filePos - pos < _bufferPos)) {
+    //fprintf(stderr, "readBuffer::seek()-- jump back to position %lu from position %lu (buffer at %lu)\n",
+    //        pos, _filePos, _bufferPos);
+    _bufferPos -= (_filePos - pos);
+    _filePos   -= (_filePos - pos);
+  }
+
+  else if ((pos > _filePos) && (pos - _filePos < _bufferLen - _bufferPos)) {
+    //fprintf(stderr, "readBuffer::seek()-- jump ahead to position %lu from position %lu (buffer at %lu)\n",
+    //        pos, _filePos, _bufferPos);
+    _bufferPos += (pos - _filePos);
+    _filePos   += (pos - _filePos);
+  }
+
+  //  Nope, we need to grab a new block of data.
+  else {
+    //fprintf(stderr, "readBuffer::seek()-- jump directly to position %lu from position %lu (buffer at %lu)\n",
+    //        pos, _filePos, _bufferPos);
+
     errno = 0;
     lseek(_file, pos, SEEK_SET);
     if (errno)
@@ -198,7 +216,7 @@ readBuffer::seek(uint64 pos) {
     fillBuffer();
   }
 
-  _eof       = (_bufferPos >= _bufferLen);
+  _eof = (_bufferPos >= _bufferLen);
 }
 
 
