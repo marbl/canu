@@ -387,8 +387,12 @@ main(int argc, char **argv) {
   if  (mode == modeGenerate) {
   }
   if  (mode == modeSimulate) {
+    if (simPar.genomeName == NULL)
+      err.push_back("ERROR:  No reference genome sequence (-genome) supplied.\n");
   }
   if  (mode == modeSample) {
+    if (inputs.size() == 0)
+      err.push_back("ERROR:  No input sequence files supplied.\n");
   }
   if  (mode == modeShift) {
   }
@@ -518,11 +522,6 @@ main(int argc, char **argv) {
       fprintf(stderr, "             A =         1.00/2 = 0.5\n");
       fprintf(stderr, "             C = G =     0.40/2 = 0.2\n");
       fprintf(stderr, "             T =         0.20/2 = 0.1\n");
-      fprintf(stderr, "\n");
-    }
-
-    if ((mode == modeUnset) || (mode == modeSimulate)) {
-      fprintf(stderr, "OPTIONS for simulate mode:\n");
       fprintf(stderr, "\n");
     }
 
