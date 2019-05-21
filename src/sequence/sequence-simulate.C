@@ -155,7 +155,7 @@ doSimulate_extract(simulateParameters &simPar,
 
       r[readLength] = 0;
 
-      fprintf(stdout, ">read=%u,position=%u,length=%u,%s\n", nReads+1, position, readLength, seqs[ss]->name());
+      fprintf(stdout, ">read=%lu,position=%lu,length=%u,%s\n", nReads+1, position, readLength, seqs[ss]->name());
       fprintf(stdout, "%s\n", r);
 
       break;

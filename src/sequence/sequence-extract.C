@@ -113,12 +113,12 @@ doExtract(vector<char *>    &inputs,
       sbgn = min(sbgn, sf->numberOfSequences());
       send = min(send, sf->numberOfSequences());
 
-      //fprintf(stderr, "sbgn %u send %u\n", sbgn, send);
+      //fprintf(stderr, "sbgn %lu send %lu\n", sbgn, send);
 
       for (uint32 ss=sbgn; ss<send; ss++) {
         uint64  seqLen = sf->sequenceLength(ss);
 
-        //fprintf(stderr, "lens - length %u first %u %u\n", extPar.lensBgn.size(), extPar.lensBgn[0], extPar.lensEnd[0]);
+        //fprintf(stderr, "lens - length %lu first %lu %lu\n", extPar.lensBgn.size(), extPar.lensBgn[0], extPar.lensEnd[0]);
 
         for (uint32 li=0; li<extPar.lensBgn.size(); li++) {
           uint64  lmin = extPar.lensBgn[li];
@@ -142,7 +142,7 @@ doExtract(vector<char *>    &inputs,
           continue;
         }
 
-        //fprintf(stderr, "base - length %u first %u %u\n", extPar.baseBgn.size(), extPar.baseBgn[0], extPar.baseEnd[0]);
+        //fprintf(stderr, "base - length %lu first %lu %lu\n", extPar.baseBgn.size(), extPar.baseBgn[0], extPar.baseEnd[0]);
 
         outputStringLen = 0;
 
@@ -153,7 +153,7 @@ doExtract(vector<char *>    &inputs,
           bbgn = min(bbgn, seqLen);
           bend = min(bend, seqLen);
 
-          //fprintf(stderr, "base - seqLen %u base[%u] %u %u limited %u %u\n", seqLen, bi, extPar.baseBgn[bi], extPar.baseEnd[bi], bbgn, bend);
+          //fprintf(stderr, "base - seqLen %lu base[%u] %lu %lu limited %lu %lu\n", seqLen, bi, extPar.baseBgn[bi], extPar.baseEnd[bi], bbgn, bend);
 
           if (bbgn == bend)
             continue;
