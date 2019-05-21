@@ -133,6 +133,10 @@ main(int argc, char **argv) {
       extPar.asLowerCase = true;
     }
 
+    else if ((mode == modeExtract) && (strcmp(argv[arg], "-compress") == 0)) {
+      extPar.asCompressed = true;
+    }
+
     else if ((mode == modeExtract) && (strcmp(argv[arg], "-length") == 0)) {
       decodeRange(argv[++arg], extPar.lensBgn, extPar.lensEnd);
     }
@@ -420,11 +424,16 @@ main(int argc, char **argv) {
       fprintf(stderr, "OPTIONS for extract mode:\n");
       fprintf(stderr, "  -bases     baselist extract bases as specified in the 'list' from each sequence\n");
       fprintf(stderr, "  -sequences seqlist  extract ordinal sequences as specified in the 'list'\n");
+      fprintf(stderr, "\n");
       fprintf(stderr, "  -reverse            reverse the bases in the sequence\n");
       fprintf(stderr, "  -complement         complement the bases in the sequence\n");
       fprintf(stderr, "  -rc                 alias for -reverse -complement\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  -compress           compress homopolymer runs to one base\n");
+      fprintf(stderr, "\n");
       fprintf(stderr, "  -upcase\n");
       fprintf(stderr, "  -downcase\n");
+      fprintf(stderr, "\n");
       fprintf(stderr, "  -length min-max     print sequence if it is at least 'min' bases and at most 'max' bases long\n");
       fprintf(stderr, "  \n");
       fprintf(stderr, "                      a 'baselist' is a set of integers formed from any combination\n");

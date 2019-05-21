@@ -33,6 +33,30 @@
 
 
 
+uint64
+doExtract_compress(char    *outputString,
+                   uint64   outputStringLen) {
+
+  if (outputStringLen == 0)
+    return(0);
+
+  uint64  cc = 0;
+  uint64  rr = 1;
+
+  while (rr < outputStringLen) {
+    if (outputString[cc] == outputString[rr])
+      rr++;
+    else
+      outputString[++cc] = outputString[rr++];
+  }
+
+  outputString[++cc] = 0;
+
+  return(cc);
+
+}
+
+
 void
 doExtract(vector<char *>    &inputs,
           extractParameters &extPar) {
@@ -155,6 +179,9 @@ doExtract(vector<char *>    &inputs,
         if (extPar.asLowerCase)
           for (uint32 ii=0; ii<outputStringLen; ii++)
             outputString[ii] = L[outputString[ii]];
+
+        if (extPar.asCompressed)
+          outputStringLen = doExtract_compress(outputString, outputStringLen);
 
         fprintf(stdout, ">%s\n%s\n", name, outputString);
       }

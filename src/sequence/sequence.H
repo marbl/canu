@@ -83,9 +83,14 @@ public:
   extractParameters() {
     asReverse      = false;
     asComplement   = false;
+
     asUpperCase    = false;
     asLowerCase    = false;
+
+    asCompressed   = false;
+
     doMasking      = false;
+
     maskWithN      = true;
   };
 
@@ -152,10 +157,14 @@ public:
 
   bool          asReverse;
   bool          asComplement;
+
   bool          asUpperCase;
   bool          asLowerCase;
 
+  bool          asCompressed;
+
   bool          doMasking;    //  Mask out any base not in baseBgn/baseEnd with 'N'
+
   bool          maskWithN;    //  Mask with lowercase sequence instead of 'N'
 };
 
