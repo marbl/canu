@@ -31,8 +31,8 @@ class sampledDistribution {
 public:
   sampledDistribution() {
     _dataLen = 0;
-    _dataMax = 512;
-    _data    = new uint32 [_dataMax];
+    _dataMax = 0;
+    _data    = NULL;
 
     _dataSum = 0;
   };
@@ -44,14 +44,14 @@ public:
 
   void     loadDistribution(char *path) {
 
+    if ((path == NULL) || (path[0] == 0))
+      return;
+
     _dataLen = 0;
     _dataMax = 1048576;
     _data    = new uint32 [_dataMax];
 
     memset(_data, 0, sizeof(uint32) * _dataMax);
-
-    if ((path == NULL) || (path[0] == 0))
-      return;
 
     splitToWords  S;
 
