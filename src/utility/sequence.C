@@ -316,9 +316,9 @@ dnaSeqFile::generateIndex(void) {
 
 
 uint64
-dnaSeqFile::loadFASTA(char   *&name,     uint32   nameMax,
+dnaSeqFile::loadFASTA(char   *&name,     uint32  &nameMax,
                       char   *&seq,
-                      uint8  *&qlt,      uint64   seqMax) {
+                      uint8  *&qlt,      uint64  &seqMax) {
   uint64  nameLen = 0;
   uint64  seqLen  = 0;
   char    ch      = _buffer->read();
@@ -363,9 +363,9 @@ dnaSeqFile::loadFASTA(char   *&name,     uint32   nameMax,
 
 
 uint64
-dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
+dnaSeqFile::loadFASTQ(char   *&name,     uint32  &nameMax,
                       char   *&seq,
-                      uint8  *&qlt,      uint64   seqMax) {
+                      uint8  *&qlt,      uint64  &seqMax) {
   uint32  nameLen = 0;
   uint64  seqLen  = 0;
   uint64  qltLen  = 0;
@@ -420,9 +420,9 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32   nameMax,
 
 
 bool
-dnaSeqFile::loadSequence(char   *&name,     uint32   nameMax,
+dnaSeqFile::loadSequence(char   *&name,     uint32  &nameMax,
                          char   *&seq,
-                         uint8  *&qlt,      uint64   seqMax,
+                         uint8  *&qlt,      uint64  &seqMax,
                          uint64  &seqLen) {
 
   if (nameMax == 0)

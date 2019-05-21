@@ -40,7 +40,7 @@
 void
 dumpExistence(dnaSeqFile           *sf,
               kmerCountExactLookup *kl) {
-  uint64   nameMax = 0;
+  uint32   nameMax = 0;
   char    *name    = NULL;
   uint64   seqLen  = 0;
   uint64   seqMax  = 0;
@@ -79,7 +79,7 @@ dumpExistence(dnaSeqFile           *sf,
 void
 reportExistence(dnaSeqFile           *sf,
                 kmerCountExactLookup *kl) {
-  uint64   nameMax = 0;
+  uint32   nameMax = 0;
   char    *name    = NULL;
   uint64   seqLen  = 0;
   uint64   seqMax  = 0;

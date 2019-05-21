@@ -124,23 +124,23 @@ public:
 
 private:
   uint64
-  loadFASTA(char   *&name,     uint32   nameMax,
+  loadFASTA(char   *&name,     uint32  &nameMax,
             char   *&seq,
-            uint8  *&qlt,      uint64   seqMax);
+            uint8  *&qlt,      uint64  &seqMax);
 
   uint64
-  loadFASTQ(char   *&name,     uint32   nameMax,
+  loadFASTQ(char   *&name,     uint32  &nameMax,
             char   *&seq,
-            uint8  *&qlt,      uint64   seqMax);
+            uint8  *&qlt,      uint64  &seqMax);
 
 
 public:
   //  Return the next sequence in the file.
   //  Returns false if EOF, true otherwise, even if the sequence is length zero.
   //
-  bool   loadSequence(char   *&name,     uint32   nameMax,
+  bool   loadSequence(char   *&name,     uint32  &nameMax,
                       char   *&seq,
-                      uint8  *&qlt,      uint64   seqMax,
+                      uint8  *&qlt,      uint64  &seqMax,
                       uint64  &seqLen);
 
   bool   loadSequence(dnaSeq &seq) {
