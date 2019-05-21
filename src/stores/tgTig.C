@@ -482,9 +482,6 @@ tgTig::dumpLayout(FILE *F) {
   char  deltaString[128] = {0};
   char  trimString[128]  = {0};
 
-  if (_gappedLen > 0)
-    assert(_gappedLen == _layoutLen);
-
   fprintf(F, "tig " F_U32 "\n", _tigID);
   fprintf(F, "len %d\n",      _layoutLen);
 
@@ -548,6 +545,16 @@ tgTig::dumpLayout(FILE *F) {
   }
 
   fprintf(F, "tigend\n");
+
+  //  Fail if it looks weird.
+
+  if (_gappedLen > 0) {
+    if (_gappedLen != _layoutLen) {
+      fprintf(stderr, "ERROR: gappedLen %u differs from layoutLen %u\n", _gappedLen, _layoutLen);
+      fprintf(stderr, "ERROR:   _gappedBases length %ld\n", strlen(_gappedBases));
+    }
+    assert(_gappedLen == _layoutLen);
+  }
 }
 
 

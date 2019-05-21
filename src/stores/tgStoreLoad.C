@@ -35,49 +35,106 @@
 
 
 void
-operationBuild(char   *buildName,
-               char   *tigName,
-               uint32  tigVers) {
+dumpFile(vector<char *>  &tigInputs) {
+  tgTig   *tig      = new tgTig;
 
-  errno = 0;
-  FILE *F = fopen(buildName, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", buildName, strerror(errno)), exit(1);
+  for (uint32 ff=0; ff<tigInputs.size(); ff++) {
+    fprintf(stderr, "Reading layouts from '%s'.\n", tigInputs[ff]);
 
-  if (directoryExists(tigName)) {
-    fprintf(stderr, "ERROR: '%s' exists, and I will not clobber an existing store.\n", tigName);
-    exit(1);
+    FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
+
+    while (tig->loadFromStreamOrLayout(TI) == true)
+      tig->dumpLayout(stdout);
+
+    AS_UTL_closeFile(TI, tigInputs[ff]);
+
+    fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
   }
-
-  tgStore *tigStore = new tgStore(tigName);
-  tgTig    *tig      = new tgTig();
-
-  for (int32 v=1; v<tigVers; v++)
-    tigStore->nextVersion();
-
-  while (tig->loadLayout(F) == true) {
-    if (tig->numberOfChildren() == 0)
-      continue;
-
-    //  The log isn't correct.  For new tigs (all of these are) we don't know the
-    //  id until after it is added.  Further, if these come with id's already set,
-    //  they can't be added to a new store -- they don't exist.
-
-#if 0
-    fprintf(stderr, "INSERTING tig %d (%d children) (originally ID %d)\n",
-            tig->tigID(), tig->numberOfChildren(), oID);
-#endif
-
-    tigStore->insertTig(tig, false);
-  }
-
-  AS_UTL_closeFile(F, buildName);
 
   delete tig;
-  delete tigStore;
 }
 
 
+
+void
+testFile(vector<char *>  &tigInputs) {
+  tgTig   *tig      = new tgTig;
+
+  for (uint32 ff=0; ff<tigInputs.size(); ff++) {
+    FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
+
+    while (tig->loadFromStreamOrLayout(TI) == true) {
+
+      if (tig->gappedLength() != tig->layoutLength())
+        fprintf(stdout, "BAD  %8u  gapped %8u %c layout %8u diff %8d\n",
+                tig->tigID(),
+                tig->gappedLength(),
+                (tig->gappedLength() < tig->layoutLength()) ? '<' : '>',
+                tig->layoutLength(),
+                (int32)tig->layoutLength() - (int32)tig->gappedLength());
+      else
+        fprintf(stdout, "GOOD %8u\n", tig->tigID());
+    }
+
+    AS_UTL_closeFile(TI, tigInputs[ff]);
+  }
+
+  delete tig;
+}
+
+
+
+void                              //  Create a new store if one doesn't exist, then
+createStore(char *tigName,        //  add empty versions until we get to the one
+            int32 tigVers) {      //  we're supposed to load into.
+
+  if (directoryExists(tigName) == false) {
+    fprintf(stderr, "Creating tig store '%s' version %d\n", tigName, tigVers);
+
+    tgStore *tigStore = new tgStore(tigName);
+
+    for (int32 vv=1; vv<tigVers; vv++)
+      tigStore->nextVersion();
+
+    delete tigStore;
+  }
+}
+
+
+
+void
+loadTigs(char            *seqName,
+         char            *tigName,
+         int32            tigVers,
+         tgStoreType      tigType,
+         vector<char *>  &tigInputs) {
+  sqStore *seqStore = sqStore::sqStore_open(seqName);
+  tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
+  tgTig   *tig      = new tgTig;
+
+  for (uint32 ff=0; ff<tigInputs.size(); ff++) {
+    fprintf(stderr, "Reading layouts from '%s'.\n", tigInputs[ff]);
+
+    FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
+
+    while (tig->loadFromStreamOrLayout(TI) == true) {
+      if (tig->numberOfChildren() > 0)                       //  Insert it!
+        tigStore->insertTig(tig, false);
+
+      else if (tigStore->isDeleted(tig->tigID()) == false)   //  Delete it!
+        tigStore->deleteTig(tig->tigID());
+    }
+
+    AS_UTL_closeFile(TI, tigInputs[ff]);
+
+    fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
+  }
+
+  delete tig;
+  delete tigStore;
+
+  seqStore->sqStore_close();
+}
 
 
 
@@ -89,6 +146,8 @@ main (int argc, char **argv) {
   vector<char *>   tigInputs;
   char            *tigInputsFile = NULL;
   tgStoreType      tigType       = tgStoreModify;
+  bool             doDumpFile    = false;
+  bool             doTestFile    = false;
 
   argc = AS_configure(argc, argv);
 
@@ -109,6 +168,12 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       tigType = tgStoreReadOnly;
 
+    } else if (strcmp(argv[arg], "-dump") == 0) {
+      doDumpFile = true;
+
+    } else if (strcmp(argv[arg], "-test") == 0) {
+      doTestFile = true;
+
     } else if (fileExists(argv[arg])) {
       tigInputs.push_back(argv[arg]);
 
@@ -121,12 +186,12 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if (seqName == NULL)
+  if ((doDumpFile == false) && (doTestFile == false) && (seqName == NULL))
     err.push_back("ERROR:  no sequence store (-S) supplied.\n");
-  if (tigName == NULL)
+  if ((doDumpFile == false) && (doTestFile == false) && (tigName == NULL))
     err.push_back("ERROR:  no tig store (-T) supplied.\n");
-  if ((tigInputs.size() == 0) && (tigInputsFile == NULL))
-    err.push_back("ERROR:  no input tigs supplied on command line and no -L file supplied.\n");
+  if (tigInputs.size() == 0)
+    err.push_back("ERROR:  no input tig files supplied on command line or via -L option.\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -S <seqStore> -T <tigStore> <v> [input.cns]\n", argv[0]);
@@ -137,7 +202,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -L <file-of-files>    Load the tig(s) from files listed in 'file-of-files'\n");
     fprintf(stderr, "                        (WARNING: program will succeed if this file is empty)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -n                    Don't replace, just report what would have happened\n");
+    fprintf(stderr, "  -n                    Don't load into store, just report what would have happened\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -dump                 Dump the cns files as ASCII, don't load into store\n");
+    fprintf(stderr, "  -test                 Test the cns files for various errors, don't load into store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  The primary operation is to replace tigs in the store with ones in a set of input files.\n");
     fprintf(stderr, "  The input files can be either supplied directly on the command line or listed in\n");
@@ -159,62 +227,19 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  //  If the store doesn't exist, create one, and make a bunch of versions
-  if (directoryExists(tigName) == false) {
-    fprintf(stderr, "Creating tig store '%s' version %d\n", tigName, tigVers);
 
-    tgStore *tigStore = new tgStore(tigName);
-
-    for (int32 vv=1; vv<tigVers; vv++)
-      tigStore->nextVersion();
-
-    delete tigStore;
+  if (doDumpFile == true) {
+    dumpFile(tigInputs);
   }
 
-  sqStore *seqStore = sqStore::sqStore_open(seqName);
-  tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
-  tgTig   *tig      = new tgTig;
-
-  for (uint32 ff=0; ff<tigInputs.size(); ff++) {
-    errno = 0;
-    FILE *TI = fopen(tigInputs[ff], "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", tigInputs[ff], strerror(errno)), exit(1);
-
-    fprintf(stderr, "Reading layouts from '%s'.\n", tigInputs[ff]);
-
-    while (tig->loadFromStreamOrLayout(TI) == true) {
-
-      //  Handle insertion.
-
-      if (tig->numberOfChildren() > 0) {
-        //fprintf(stderr, "INSERTING tig %d\n", tig->tigID());
-        tigStore->insertTig(tig, false);
-        continue;
-      }
-
-      //  Deleted already?
-
-      if (tigStore->isDeleted(tig->tigID()) == true) {
-        //fprintf(stderr, "DELETING tig %d -- ALREADY DELETED\n", tig->tigID());
-        continue;
-      }
-
-      //  Really delete it then.
-
-      //fprintf(stderr, "DELETING tig %d\n", tig->tigID());
-      tigStore->deleteTig(tig->tigID());
-    }
-
-    AS_UTL_closeFile(TI, tigInputs[ff]);
-
-    fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
+  else if (doTestFile == true) {
+    testFile(tigInputs);
   }
 
-  delete tig;
-  delete tigStore;
-
-  seqStore->sqStore_close();
+  else {
+    createStore(tigName, tigVers);
+    loadTigs(seqName, tigName, tigVers, tigType, tigInputs);
+  }
 
   exit(0);
 }

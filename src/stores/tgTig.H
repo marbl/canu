@@ -273,7 +273,8 @@ public:
 
   double               computeCoverage(bool useGapped=true);
 
-private:
+  //  Should be private, but used in tgStoreLoad.C for testing cns files.
+public:
   uint32               layoutLength(void)                  { return(_layoutLen); };
 
   uint32               gappedLength(void)                  { return(_gappedLen);   };
@@ -286,9 +287,8 @@ private:
   char                *ungappedBases(void)                 { buildUngapped();  return(_ungappedBases); };
   uint8               *ungappedQuals(void)                 { buildUngapped();  return(_ungappedQuals); };
 
+  //  Should be private, but used in tgStoreDump.C
 public:
-
-  //  This function needs to be hidden.  Coordinates in reads need to be transparent.
   uint32               mapGappedToUngapped(uint32 p)       {
     if (consensusExists() == false)
       return(p);
@@ -298,6 +298,7 @@ public:
     return(_gappedToUngapped[p]);
   };
 
+public:
   uint32               numberOfChildren(void)              {                            return(_childrenLen); };
   tgPosition          *getChild(uint32 c)                  { assert(c < _childrenLen);  return(_children + c);  };
   tgPosition          *addChild(void)                      {                            return(_children + _childrenLen++); };
