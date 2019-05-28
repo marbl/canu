@@ -50,7 +50,7 @@ public:
   ~hapData();
 
 public:
-  void   initializeKmerTable(void);
+  void   initializeKmerTable(uint32 maxMemory);
 
   void   initializeOutput(void) {
     outputWriter = new compressedFileWriter(outputName);
@@ -99,6 +99,9 @@ public:
 
     _filteredReads   = 0;
     _filteredBases   = 0;
+
+    _numThreads      = 1;
+    _maxMemory       = 0;
   };
 
   ~allData() {
@@ -142,6 +145,9 @@ public:
 
   uint32                 _filteredReads;
   uint64                 _filteredBases;
+
+  uint32                 _numThreads;
+  uint32                 _maxMemory;
 };
 
 
@@ -395,19 +401,19 @@ getMinFreqFromHistogram(char *histoName) {
 
 
 void
-hapData::initializeKmerTable(void) {
+hapData::initializeKmerTable(uint32 maxMemory) {
   kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
 
   //  Decide on a threshold below which we consider the kmers as useless noise.
 
   uint32 minFreq = getMinFreqFromHistogram(histoName);
 
-  fprintf(stdout, "--  Haplotype '%s':\n", merylName);
-  fprintf(stdout, "--   use kmers with frequency at least %u.\n", minFreq);
+  fprintf(stderr, "--  Haplotype '%s':\n", merylName);
+  fprintf(stderr, "--   use kmers with frequency at least %u.\n", minFreq);
 
   //  Construct an exact lookup table.
 
-  lookup = new kmerCountExactLookup(reader, 0, minFreq, UINT32_MAX);
+  lookup = new kmerCountExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
 
   if (lookup->configure() == false) {
     exit(1);
@@ -421,7 +427,7 @@ hapData::initializeKmerTable(void) {
 
   //  And report what we loaded.
 
-  fprintf(stdout, "--   loaded %lu kmers.\n", nKmers);
+  fprintf(stderr, "--   loaded %lu kmers.\n", nKmers);
 };
 
 
@@ -464,15 +470,20 @@ allData::openOutputs(void) {
 //  Create meryl exact lookup structures for all the haplotypes.
 void
 allData::loadHaplotypeData(void) {
+  uint32 memPerHap = _maxMemory / _haps.size();
 
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "-- Loading haplotype data.\n");
+  if (memPerHap == 0)   //  If zero, it would be allowed
+    memPerHap = 1;      //  to use all available memory!
+
+  fprintf(stderr, "--\n");
+  fprintf(stderr, "-- Loading haplotype data, using up to %u GB memory for each.\n", memPerHap);
+  fprintf(stderr, "--\n");
 
   for (uint32 ii=0; ii<_haps.size(); ii++)
-    _haps[ii]->initializeKmerTable();
+    _haps[ii]->initializeKmerTable(memPerHap);
 
-  fprintf(stdout, "-- Data loaded.\n");
-  fprintf(stdout, "--\n");
+  fprintf(stderr, "-- Data loaded.\n");
+  fprintf(stderr, "--\n");
 }
 
 
@@ -681,7 +692,6 @@ outputReadBatch(void *G, void *S) {
 int
 main(int argc, char **argv) {
   allData      *G          = new allData;
-  uint32        numThreads = 1;
   bool          beVerbose  = false;
 
   argc = AS_configure(argc, argv);
@@ -713,7 +723,10 @@ main(int argc, char **argv) {
       G->_minOutputLength = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
-      numThreads = strtouint32(argv[++arg]);
+      G->_numThreads = strtouint32(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-memory") == 0) {
+      G->_maxMemory  = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
@@ -784,30 +797,32 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  omp_set_num_threads(numThreads);  //  Lets the kmer data be loaded with threads.
+  omp_set_num_threads(G->_numThreads);  //  Lets the kmer data be loaded with threads.
 
   G->openInputs();
   G->openOutputs();
 
   G->loadHaplotypeData();
 
-  thrData   *TD = new thrData [numThreads];
+  thrData   *TD = new thrData [G->_numThreads];
   sweatShop *SS = new sweatShop(loadReadBatch, processReadBatch, outputReadBatch);
 
-  SS->setNumberOfWorkers(numThreads);
+  SS->setNumberOfWorkers(G->_numThreads);
 
-  for (uint32 ii=0; ii<numThreads; ii++)
+  for (uint32 ii=0; ii<G->_numThreads; ii++)
     SS->setThreadData(ii, TD + ii);
 
   SS->setLoaderBatchSize(1);
-  SS->setLoaderQueueSize(numThreads * IN_QUEUE_LENGTH);
+  SS->setLoaderQueueSize(G->_numThreads * IN_QUEUE_LENGTH);
   SS->setWorkerBatchSize(1);
-  SS->setWriterQueueSize(numThreads * OT_QUEUE_LENGTH);
+  SS->setWriterQueueSize(G->_numThreads * OT_QUEUE_LENGTH);
 
-  fprintf(stdout, "-- Processing reads in batches of %u reads each.\n", BATCH_SIZE);
-  fprintf(stdout, "--\n");
+  fprintf(stderr, "-- Processing reads in batches of %u reads each.\n", BATCH_SIZE);
+  fprintf(stderr, "--\n");
 
   SS->run(G, beVerbose);
+
+  //  Write the log to stdout.
 
   for (uint32 ii=0; ii<G->_haps.size(); ii++)
     fprintf(stdout, "-- %8u reads %12lu bases written to haplotype file %s.\n", G->_haps[ii]->nReads, G->_haps[ii]->nBases, G->_haps[ii]->outputName);
@@ -820,6 +835,6 @@ main(int argc, char **argv) {
   delete [] TD;
   delete    G;
 
-  fprintf(stdout, "-- Bye.\n");
+  fprintf(stderr, "-- Bye.\n");
   exit(0);
 }

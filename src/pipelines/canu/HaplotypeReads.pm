@@ -1036,6 +1036,7 @@ sub haplotypeReadsConfigure ($@) {
     print F "$bin/splitHaplotype \\\n";
     print F "  -cl $minReadLength \\\n";
     print F "  -threads $thr \\\n";
+    print F "  -memory  $mem \\\n";
     print F "  -R $_ \\\n"                                                                                   foreach (@inputs);
     print F "  -H ./0-kmers/haplotype-$_.meryl ./0-kmers/reads-$_.statistics ./haplotype-$_.fasta.gz \\\n"   foreach (@$haplotypes);
     print F "  -A ./haplotype-unknown.fasta.gz \\\n";
@@ -1153,6 +1154,8 @@ sub haplotypeReadsCheck ($@) {
 
     generateReport($asm);
     resetIteration("haplotype-reads");
+
+    #remove_tree("$path/$name")   if (getGlobal("saveMerCounts") == 0);
 
   allDone:
     stopAfter("haplotype");
