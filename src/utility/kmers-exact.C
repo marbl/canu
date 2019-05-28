@@ -129,14 +129,19 @@ kmerCountExactLookup::configure(void) {
 
   //  First, find the prefixBits that results in the smallest allocated memory size.
   //  Due to threading over the files, we cannot use a prefix smaller than 6 bits.
+  //
+  //  While it's nice to find the smallest memory size possible, that's also
+  //  about the slowest possible.  Instead, empirically determined on a small
+  //  test, allow a very sparse table of 16 to 32 prefixes per kmer (if possible).
 
   uint64  minSpace   = UINT64_MAX;
   uint64  optSpace   = UINT64_MAX;
 
   uint32  pbMin      = 0;
   uint32  pbOpt      = 0;
+  uint32  pbMax      = countNumberOfBits64(32 * _nSuffix) - 1;
 
-  for (uint32 pb=1; pb<_Kbits; pb++) {
+  for (uint32 pb=1; pb<pbMax; pb++) {
     uint64  nprefix = (uint64)1 << pb;
     uint64  space   = nprefix * _prePtrBits + _nSuffix * (_Kbits - pb) + _nSuffix * _valueBits;
 
