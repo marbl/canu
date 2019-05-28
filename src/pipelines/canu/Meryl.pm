@@ -896,6 +896,8 @@ sub merylProcessCheck ($$) {
     return;
 
   finishStage:
+    print STDERR "-- Meryl finished successfully.  Kmer frequency histogram:\n";
+
     merylPlotHistogram($path, $asm, $name, 1024);
 
     addToReport("${tag}Meryl", merylGenerateHistogram($asm, $tag));
@@ -909,6 +911,15 @@ sub merylProcessCheck ($$) {
 
     generateReport($asm);
     resetIteration("meryl-process");
+
+    if (getGlobal("saveMerCounts") == 0) {
+        print STDERR "--\n";
+        print STDERR "-- Removing meryl database '$path/$name'.\n";
+        remove_tree("$path/$name")   
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- Meryl database '$path/$name' saved because 'saveMerCounts=true'.\n";
+    }
 
   allDone:
     stopAfter("meryl-process");
