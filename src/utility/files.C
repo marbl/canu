@@ -318,7 +318,13 @@ AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 
 //  Remove a file, or do nothing if the file doesn't exist.
 void
-AS_UTL_unlink(const char *filename) {
+AS_UTL_unlink(const char *prefix, char separator, char const *suffix) {
+  char   filename[FILENAME_MAX];
+
+  if (suffix)
+    snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+  else
+    strncpy(filename, prefix, FILENAME_MAX-1);
 
   if (fileExists(filename) == false)
     return;
@@ -345,7 +351,6 @@ AS_UTL_rename(const char *oldname, const char *newname) {
     fprintf(stderr, "AS_UTL_renane()--  Failed to rename file '%s' to '%s': %s\n",
             oldname, newname, strerror(errno)), exit(1);
 }
-
 
 
 

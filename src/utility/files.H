@@ -59,7 +59,7 @@ void    AS_UTL_rmdir(const char *dirname);
 
 void    AS_UTL_symlink(const char *pathToFile, const char *pathToLink);
 
-void    AS_UTL_unlink(const char *filename);
+void    AS_UTL_unlink(const char *prefix, char separator='.', char const *suffix=NULL);
 
 void    AS_UTL_rename(const char *oldname, const char *newname);
 
