@@ -145,13 +145,13 @@ class ovFileOCR {
 public:
   ovFileOCR(sqStore *seq, const char *prefix) {
 
-    //  If no prefix supplied, there just aren't any
-    //  overlap counts expected with this input, so
-    //  leave things empty.
-
     _nOlaps = 0;
     _oprMax = 0;
     _opr    = NULL;
+
+    //  If no prefix supplied, there just aren't any
+    //  overlap counts expected with this input, so
+    //  leave things empty.
 
     if (prefix == NULL)
       return;
