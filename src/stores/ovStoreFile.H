@@ -190,6 +190,11 @@ public:
   uint64        numOverlaps(void)           { return(_nOlaps);      };
   uint32        numOverlaps(uint32 readID)  { return(_opr[readID]); };
 
+  static
+  void          deleteDiskFile(const char *prefix) {
+    AS_UTL_unlink(prefix, '.', "oc");
+  };
+
 private:
   uint64       _nOlaps;   //  Total number of overlaps here.
   uint32       _oprMax;   //  Length of _opr; number of reads + 1.
@@ -247,6 +252,21 @@ public:
   void                    removeHistogram(void);
 
   ovFileOCR              *getCounts(void)        { return(_countsR);   };
+
+  //  Delete the disk files for this overlap file.  Expects the path to the
+  //  ovb file ("results/000001.ovb").  Like in ovFile::construct(), we'll find
+  //  the base name, and request stats be deleted using that.
+  static
+  void    deleteDiskFiles(const char *name) {
+    char  prefix[FILENAME_MAX + 1];
+
+    AS_UTL_unlink(name);
+
+    strncpy(prefix, name, FILENAME_MAX);
+    AS_UTL_findBaseFileName(prefix, name);
+
+    ovFileOCR::deleteDiskFile(prefix);
+  };
 
 private:
   sqStore                *_seq;

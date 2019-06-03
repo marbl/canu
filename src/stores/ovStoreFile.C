@@ -163,7 +163,7 @@ ovFile::construct(sqStore     *seq,
   memset(_prefix, 0, FILENAME_MAX+1);
   memset(_name,   0, FILENAME_MAX+1);
 
-  strncpy(_name, name, FILENAME_MAX);
+  strncpy(_name, name, FILENAME_MAX);        //  Logic also used in ovFile::deleteDiskFiles.
   AS_UTL_findBaseFileName(_prefix, _name);
 
   //
