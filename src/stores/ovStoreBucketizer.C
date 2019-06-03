@@ -89,6 +89,7 @@ main(int argc, char **argv) {
 
   double          maxErrorRate   = 1.0;
 
+  bool            deleteInputs   = false;
   bool            forceOverwrite = false;
   bool            beVerbose      = false;
 
@@ -115,6 +116,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-delete") == 0) {
+      deleteInputs = true;
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       forceOverwrite = true;
@@ -281,6 +285,23 @@ main(int argc, char **argv) {
   //  Rename the bucket to show we're done.
 
   AS_UTL_rename(createName, bucketName);
+
+  //  Delete the inputs, if requested.
+
+  if (deleteInputs) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Deleting inputs.\n");
+    fprintf(stderr, "\n");
+
+    for (uint32 ff=0; ff<config->numInputs(bucketNum); ff++) {
+      fprintf(stderr, "Deleting input %4" F_U32P " out of %4" F_U32P " - '%s'\n",
+              ff+1, config->numInputs(bucketNum), config->getInput(bucketNum, ff));
+
+      ovFile::deleteDiskFiles(config->getInput(bucketNum, ff));
+    }
+
+    fprintf(stderr, "\n");
+  }
 
   //  Then be done.
 
