@@ -300,17 +300,41 @@ Cleanup Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 saveOverlaps <boolean=false>
-  If set to 'false', the raw overlapper outputs are removed as soon as they are loaded into an
-  overlap store.  Also, the correction and trimming overlap stores are removed when they are no
-  longer needed..  This is recommended in nearly every case.
+  If 'true', retain all overlap stores.  If 'false', delete the correction
+  and trimming overlap stores when they are no longer useful.  Overlaps used
+  for contig construction are never deleted.
 
-  If set to 'stores', the raw overlapper outputs are removed, but all of the overlap stores are
-  retained.  The overlap stores capture all the critical information in the raw outputs and the raw
-  outputs are redundant and unwieldy.  Retaining the overlap stores can allow one to 'back up' and
-  redo a step, but this is generally not useful unless one is familiar with the algorithms.
+purgeOverlaps <string=normal>
+  Controls when to remove intermediate overlap results.
 
-  If set to 'true', all overlapper outputs and all stores are retained.  This is useful for
-  debugging potential problems with the overlap store.
+  'never' removes no intermediate overlap results.  This is only useful if
+  you have a desire to exhaust your disk space.
+
+  'normal' removes intermediate overlap results after they are loaded into an
+  overlap store.
+
+  'aggressive' removes intermediate overlap results as soon as possible.  In
+  the event of a corrupt or lost file, this can result in a fair amount of
+  suffering to recompute the data.  In particular, overlapper output is removed
+  as soon as it is loaded into buckets, and buckets are removed once they are
+  rewritten as sorted overlaps.
+
+  'dangerous' removes intermediate results as soon as possible, in some
+  cases, before they are even fully processed.  In addition to corrupt files,
+  jobs killed by out of memory, power outages, stray cosmic rays, et cetera,
+  will result in a fair amount of suffering to recompute the lost data.  This
+  mode can help when creating ginormous overlap stores, by removing the
+  bucketized data immediately after it is loaded into the sorting jobs, thus
+  making space for the output of the sorting jobs.
+
+  Use 'normal' for non-large assemblies, and when disk space is plentiful.
+  Use 'aggressive' on large assemblies when disk space is tight.  Never use
+  'dangerous', unless you know how to recover from an error and you fully
+  trust your compute environment.
+
+  For Mhap and Minimap2, the raw ovelraps (in Mhap and PAF format) are
+  deleted immediately after being converted to Canu ovb format, except when
+  purgeOverlaps=never.
 
 saveReadCorrections <boolean=false>.
   If set, do not remove raw corrected read output from correction/2-correction. Normally, this

@@ -422,7 +422,7 @@ sub mmapConfigure ($$$) {
     print F "fi\n";
     print F "\n";
 
-    if (getGlobal('saveOverlaps') eq "0") {
+    if (getGlobal('purgeOverlaps') ne "never") {
         print F "if [   -e ./results/\$qry.mmap -a \\\n";
         print F "       -e ./results/\$qry.mmap.ovb ] ; then\n";
         print F "  rm -f ./results/\$qry.mmap\n";

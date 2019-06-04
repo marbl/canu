@@ -870,13 +870,14 @@ sub setDefaults () {
 
     #####  Cleanup and Termination options
 
-    setDefault("saveOverlaps",        0,     "Save intermediate overlap files, almost never a good idea");
-    setDefault("saveReadCorrections", 0,     "Save intermediate read correction files, almost never a good idea");
-    setDefault("saveReadHaplotypes",  0,     "Save intermediate read haplotype files, almost never a good idea");
-    setDefault("saveMerCounts",       0,     "Save full mer counting results, sometimes useful");
-    setDefault("saveReads",           1,     "Save intermediate corrected and trimmed reads to asm.correctedReads.fasta.gz and asm.trimmedReads.fasta.gz");
-    setDefault("onSuccess",           undef, "Full path to command to run on successful completion");
-    setDefault("onFailure",           undef, "Full path to command to run on failure");
+    setDefault("saveOverlaps",        0,         "Do not remove the overlap stores.  Default: false = remove overlap stores when they're no longer needed");
+    setDefault("purgeOverlaps",       "normal",  "When to delete intermediate overlap files: never, normal (default), aggressive, dangerous");
+    setDefault("saveReadCorrections", 0,         "Save intermediate read correction files, almost never a good idea");
+    setDefault("saveReadHaplotypes",  0,         "Save intermediate read haplotype files, almost never a good idea");
+    setDefault("saveMerCounts",       0,         "Save full mer counting results, sometimes useful");
+    setDefault("saveReads",           1,         "Save intermediate corrected and trimmed reads to asm.correctedReads.fasta.gz and asm.trimmedReads.fasta.gz");
+    setDefault("onSuccess",           undef,     "Full path to command to run on successful completion");
+    setDefault("onFailure",           undef,     "Full path to command to run on failure");
 
     #####  Error Rates
 
@@ -1543,9 +1544,15 @@ sub checkParameters () {
     }
 
     if ((getGlobal("saveOverlaps") ne "0") &&
-        (getGlobal("saveOverlaps") ne "stores") &&
         (getGlobal("saveOverlaps") ne "1")) {
-        addCommandLineError("ERROR:  Invalid 'saveOverlaps' specified (" . getGlobal("saveOverlaps") . "); must be 'false', 'stores', or 'true'\n");
+        addCommandLineError("ERROR:  Invalid 'saveOverlaps' specified (" . getGlobal("saveOverlaps") . "); must be 'true' or 'false'\n");
+    }
+
+    if ((getGlobal("purgeOverlaps") ne "never") &&
+        (getGlobal("purgeOverlaps") ne "normal") &&
+        (getGlobal("purgeOverlaps") ne "aggressive") &&
+        (getGlobal("purgeOverlaps") ne "dangerous")) {
+        addCommandLineError("ERROR:  Invalid 'purgeOverlaps' specified (" . getGlobal("purgeOverlaps") . "); must be 'never', 'normal', 'aggressive' or 'dangerous'\n");
     }
 
     if ((getGlobal("corFilter") ne "quick") &&

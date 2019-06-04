@@ -303,6 +303,7 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "#\n";
         print F "\n";
         print F "\$bin/ovStoreBucketizer \\\n";
+        print F "  -delete \\\n"    if ((getGlobal("purgeOverlaps") eq "aggressive") || (getGlobal("purgeOverlaps") eq "dangerous"));
         print F "  -O  ./$asm.ovlStore.BUILDING \\\n";
         print F "  -S ../$asm.seqStore \\\n";
         print F "  -C  ./$asm.ovlStore.config \\\n";
@@ -382,6 +383,8 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "#\n";
         print F "\n";
         print F "\$bin/ovStoreSorter \\\n";
+        print F "  -deleteearly \\\n"    if ((getGlobal("purgeOverlaps") eq "dangerous"));
+        print F "  -deletelate \\\n"     if ((getGlobal("purgeOverlaps") eq "normal") || (getGlobal("purgeOverlaps") eq "aggressive"));
         print F "  -O  ./$asm.ovlStore.BUILDING \\\n";
         print F "  -S ../$asm.seqStore \\\n";
         print F "  -C  ./$asm.ovlStore.config \\\n";
@@ -519,7 +522,18 @@ sub overlapStoreBucketizerCheck ($$$$$) {
   finishStage:
     print STDERR "-- Overlap store bucketizer finished.\n";
 
+    #  Note that we're done.
+
     touch("$path/1-bucketize.success");
+
+    #  All overlap inputs are bucketized, so delete them.
+
+    if ((getGlobal("purgeOverlaps") eq "aggressive") ||
+        (getGlobal("purgeOverlaps") eq "dangerous")) {
+        deleteOverlapIntermediateFiles($base, $asm);
+    }
+
+    #  And show a report.
 
     generateReport($asm);
     resetIteration("$tag-overlapStoreBucketizerCheck");
@@ -675,20 +689,33 @@ sub checkOverlapStore ($$) {
 #  Previous (to July 2017) versions tried to gently rmdir things, but it was ugly and didn't
 #  quite work.
 #
-sub deleteOverlapIntermediateFiles ($$) {
+sub deleteOverlapIntermediateFiles ($$@) {
     my $base    = shift @_;
     my $asm     = shift @_;
+    my @what    = @_;        #  types of data to delete
+    my @files;               #  list of files to read
+
+    #  If a list of stuff to delete is supplied, delete only that stuff.  Otherwise,
+    #  delete everything.
+
+    if (scalar(@what) == 0) {
+        #print STDERR "SET what to default list\n";
+        @what = ( "precompute", "mhap", "mmap", "ovljob", "ovljob.more" );
+    }
+
+    foreach my $file (@what) {
+        #print STDERR "ADD $base/1-overlapper/$file.files ?\n";
+        push @files, "$base/1-overlapper/$file.files"   if (-e "$base/1-overlapper/$file.files");
+    }
+
+    #  Now open each file and delete what ever files are listed in there.
 
     my %directories;
     my $bytes = 0;
     my $files = 0;
 
-    foreach my $file ("$base/1-overlapper/ovljob.files",
-                      "$base/1-overlapper/ovljob.more.files",
-                      "$base/1-overlapper/mhap.files",
-                      "$base/1-overlapper/mmap.files",
-                      "$base/1-overlapper/precompute.files") {
-        next  if (! -e $file);
+    foreach my $file (@files) {
+        #print STDERR "UNLINK from $file\n";
 
         open(F, "< $file") or caExit("can't open '$file' for reading: $!\n", undef);
         while (<F>) {
@@ -701,6 +728,7 @@ sub deleteOverlapIntermediateFiles ($$) {
                 $bytes += -s "$base/$_";
                 $files += 1;
 
+                #print STDERR "UNLINK '$base/$_'\n";
                 unlink "$base/$_";
                 rmdir dirname("$base/$_");  #  Try to rmdir the directory the file is in.  If empty, yay!
             }
@@ -709,14 +737,14 @@ sub deleteOverlapIntermediateFiles ($$) {
     }
 
     foreach my $dir (keys %directories) {
+        #print STDERR "RMTREE '$base/$dir'\n";
         remove_tree("$base/$dir");
     }
 
-    unlink "$base/1-overlapper/ovljob.files";
-    unlink "$base/1-overlapper/ovljob.more.files";
-    unlink "$base/1-overlapper/mhap.files";
-    unlink "$base/1-overlapper/mmap.files";
-    unlink "$base/1-overlapper/precompute.files";
+    foreach my $file (@files) {
+        #print STDERR "UNLINK '$file'  SOURCE\n";
+        unlink $file;
+    }
 
     print STDERR "--\n";
     print STDERR "-- Purged ", int(1000 * $bytes / 1024 / 1024 / 1024) / 1000, " GB in $files overlap output files.\n";
@@ -742,6 +770,13 @@ sub createOverlapStore ($$) {
     #  Did we _really_ complete?
 
     caExit("overlapper claims to be finished, but no job list found in '$base/1-overlapper/ovljob.files'", undef)  if (! fileExists("$base/1-overlapper/ovljob.files"));
+
+    #  Apparently so.  Delete the mhap precompute data if we're being aggressive.
+
+    if ((getGlobal("purgeOverlaps") eq "aggressive") ||
+        (getGlobal("purgeOverlaps") eq "dangerous")) {
+        deleteOverlapIntermediateFiles($base, $asm, "precompute");
+    }
 
     #  Figure out how to build the store.
 
@@ -856,15 +891,16 @@ sub createOverlapStore ($$) {
         stashOvlStore($asm, $base);
     }
 
+  finishStage:
     checkOverlapStore($base, $asm);
 
-    goto finishStage  if (getGlobal("saveOverlaps") eq "1");
+    #  The store is fully created and tested, so delete the overlapper outputs.
+    if ((getGlobal("purgeOverlaps") eq "normal") ||
+        (getGlobal("purgeOverlaps") eq "aggressive") ||
+        (getGlobal("purgeOverlaps") eq "dangerous")) {
+        deleteOverlapIntermediateFiles($base, $asm);
+    }
 
-    deleteOverlapIntermediateFiles($base, $asm);
-
-    #  Now all done!
-
-  finishStage:
     if ($tag eq "utg") {
         $cmd  = "$bin/ovStoreStats \\\n";
         $cmd .= " -C " . getExpectedCoverage("utg", $asm). " \\\n";
