@@ -141,8 +141,9 @@ ovFile::construct(sqStore     *seq,
   if (bufferSize < 16 * 1024)
     bufferSize = 16 * 1024;
 
+  _bufferLoc    = UINT64_MAX;
   _bufferLen    = 0;
-  _bufferPos    = (bufferSize / (lcm * sizeof(uint32))) * lcm;  //  Forces reload on next read
+  _bufferPos    = 0;
   _bufferMax    = (bufferSize / (lcm * sizeof(uint32))) * lcm;
   _buffer       = new uint32 [_bufferMax];
 
@@ -176,6 +177,7 @@ ovFile::construct(sqStore     *seq,
 
   if (type == ovFileNormal) {
     _file        = AS_UTL_openInputFile(_name);
+    _bufferLoc   = 0;
     _isOutput    = false;
     _useSnappy   = false;
     _histogram   = new ovStoreHistogram(_prefix);
@@ -349,20 +351,26 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
 
 void
-ovFile::readBuffer(void) {
+ovFile::loadBuffer(void) {
 
   if (_bufferPos < _bufferLen)
     return;
 
-  //  Need to load a new buffer.  Everyone resets bufferPos to the start.
+  //  Need to load a new buffer.
 
-  _bufferPos = 0;
+  //fprintf(stderr, "loadBuffer()-- Buffer contains words %lu - %lu, at word %lu -- reload needed\n",
+  //        _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos);
 
   //  If an uncompressed file, load as much as possible and return.  This is
   //  allowed and expected to have a short read at the end of the file.
 
   if (_useSnappy == false) {
-    _bufferLen = loadFromFile(_buffer, "ovFile::readBuffer", _bufferMax, _file, false);
+    _bufferLoc = AS_UTL_ftell(_file) / sizeof(uint32);
+    _bufferPos = 0;
+    _bufferLen = loadFromFile(_buffer, "ovFile::loadBuffer", _bufferMax, _file, false);
+
+    //fprintf(stderr, "loadBuffer()-- Buffer contains words %lu - %lu, at word %lu\n",
+    //        _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos);
     return;
   }
 
@@ -371,11 +379,11 @@ ovFile::readBuffer(void) {
   //  then, load the buffer and uncompress it (failing if the read is shorter than it should have been).
 
   uint64  cl64 = 0;                                                             //  MacOS is claiming size_t is different than uint64,
-  uint64  clc  = loadFromFile(cl64, "ovFile::readBuffer::cl", _file, false);    //  but I want to use uint64 here for portability.
+  uint64  clc  = loadFromFile(cl64, "ovFile::loadBuffer::cl", _file, false);    //  but I want to use uint64 here for portability.
 
   resizeArray(_snappyBuffer, 0, _snappyLen, cl64, resizeArray_doNothing);
 
-  uint64  sbc = loadFromFile(_snappyBuffer, "ovFile::readBuffer::sb", cl64, _file, false);
+  uint64  sbc = loadFromFile(_snappyBuffer, "ovFile::loadBuffer::sb", cl64, _file, false);
 
   if (sbc != cl64)
     fprintf(stderr, "ERROR: short read on file '%s': read " F_U64 " bytes, expected " F_U64 ".\n",
@@ -385,6 +393,7 @@ ovFile::readBuffer(void) {
 
   snappy::GetUncompressedLength(_snappyBuffer, cl64, &ol);
 
+  _bufferPos = 0;
   _bufferLen = ol / sizeof(uint32);
 
   assert(_bufferLen <= _bufferMax);
@@ -399,7 +408,7 @@ ovFile::readOverlap(ovOverlap *overlap) {
 
   assert(_isOutput == false);
 
-  readBuffer();
+  loadBuffer();
 
   if (_bufferLen == 0)
     return(false);
@@ -437,50 +446,58 @@ ovFile::readOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
   assert(_isOutput == false);
 
-  while (nLoaded < overlapsLen) {
-    readBuffer();
-
-    if (_bufferLen == 0)
-      return(nLoaded);
-
-    assert(_bufferPos < _bufferLen);
-
-    if (_isNormal == false)
-      overlaps[nLoaded].a_iid      = _buffer[_bufferPos++];
-
-    overlaps[nLoaded].b_iid      = _buffer[_bufferPos++];
-
-#if (ovOverlapWORDSZ == 32)
-  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
-    overlaps[nLoaded].dat.dat[ii] = _buffer[_bufferPos++];
-#endif
-
-#if (ovOverlapWORDSZ == 64)
-  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
-    overlaps[nLoaded].dat.dat[ii]   = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[ii] <<= 32;
-    overlaps[nLoaded].dat.dat[ii]  |= _buffer[_bufferPos++];
-  }
-#endif
-
+  while ((nLoaded < overlapsLen) &&
+         (readOverlap(overlaps + nLoaded) == true))
     nLoaded++;
-
-    assert(_bufferPos <= _bufferLen);
-  }
 
   return(nLoaded);
 }
 
 
 
-//  Move to the correct spot, and force a load on the next readOverlap by setting the position to
-//  the end of the buffer.
 void
 ovFile::seekOverlap(off_t overlap) {
+  uint64   seekToByte = overlap * recordSize();
+  uint64   seekToWord = overlap * recordSize() / sizeof(uint32);
 
-  AS_UTL_fseek(_file, overlap * recordSize(), SEEK_SET);
+  assert(_bufferLoc != UINT64_MAX);
 
-  _bufferPos = _bufferLen;  //  We probably need to reload the buffer.
+  //  If already there, return.  Note that if we're at the end of the buffer
+  //  (or if the buffer length is zero) we don't need to seek; even though
+  //  the position is invalid (it's one after the end of the buffer), the
+  //  loadBuffer() call is responsible for filling the buffer.  seekOverlap()
+  //  is only responsible for positioning the disk file in the correct spot.
+
+  if (seekToWord == _bufferLoc + _bufferPos) {
+    //fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- already at word %lu, do nothing\n",
+    //        _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
+    //        seekToWord);
+    return;
+  }
+
+  //  If we can seek inside the existing buffer, just jump there.  Like the
+  //  last case, if we're seeking to one past the currently loaded buffer,
+  //  the file is in the correct spot, and no seek is needed, just a buffer
+  //  reload.
+
+  if ((_bufferLoc <= seekToWord) &&
+      (seekToWord <= _bufferLoc + _bufferLen)) {
+    fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- jump to word %lu\n",
+            _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
+            seekToWord);
+    _bufferPos = seekToWord - _bufferLoc;
+    return;
+  }
+
+  //  Otherwise, we need to load from disk.
+
+  fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- seek to word %lu\n",
+          _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
+          seekToWord);
+
+  AS_UTL_fseek(_file, seekToByte, SEEK_SET);
+
+  _bufferPos = _bufferLen;   //  Force a buffer reload.
 }
 
 

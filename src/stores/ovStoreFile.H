@@ -236,7 +236,9 @@ public:
   bool    fileTooBig(void)    { return(_countsW->numOverlaps() > OVFILE_MAX_OVERLAPS);  };
   uint64  filePosition(void)  { return(_countsW->numOverlaps());                        };
 
-  void    readBuffer(void);
+private:
+  void    loadBuffer(void);
+public:
   bool    readOverlap(ovOverlap *overlap);
   uint64  readOverlaps(ovOverlap *overlaps, uint64 overlapMax);
 
@@ -275,6 +277,7 @@ private:
   ovFileOCR              *_countsR;
   ovStoreHistogram       *_histogram;
 
+  uint64                  _bufferLoc;
   uint32                  _bufferLen;    //  length of valid data in the buffer
   uint32                  _bufferPos;    //  position the read is at in the buffer
   uint32                  _bufferMax;    //  allocated size of the buffer
