@@ -117,11 +117,11 @@ public:
 
 public:
   //  Data loaders.
-  void         sqCache_loadReads(void);
-  void         sqCache_loadReads(set<uint32> reads);
-  void         sqCache_loadReads(map<uint32, uint32> reads);
-  void         sqCache_loadReads(ovOverlap *ovl, uint32 nOvl);
-  void         sqCache_loadReads(tgTig *tig);
+  void         sqCache_loadReads(bool verbose=false);
+  void         sqCache_loadReads(set<uint32> reads, bool verbose=false);
+  void         sqCache_loadReads(map<uint32, uint32> reads, bool verbose=false);
+  void         sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose=false);
+  void         sqCache_loadReads(tgTig *tig, bool verbose=false);
 
   void         sqCache_purgeReads(void);
 

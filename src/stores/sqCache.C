@@ -266,7 +266,7 @@ sqCache::sqCache_getSequence(uint32    id,
 
   else if (((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'R')) ||
            ((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C')))
-    ;
+    assert(0);
 
   //  If a trimmed read, we need to ... trim it.
 
@@ -315,7 +315,7 @@ sqCache::increaseAge(void) {
 
 //  Just load all reads.
 void
-sqCache::sqCache_loadReads(void) {
+sqCache::sqCache_loadReads(bool verbose) {
   uint32  nReads = 0;
   uint64  nBases = 0;
 
@@ -326,8 +326,9 @@ sqCache::sqCache_loadReads(void) {
     }
   }
 
-  fprintf(stderr, "Loading %u reads and %lu bases out of %u reads in the store.\n",
-          nReads, nBases, _nReads);
+  if (verbose)
+    fprintf(stderr, "Loading %u reads and %lu bases out of %u reads in the store.\n",
+            nReads, nBases, _nReads);
 
   //  For 50x human, with N's in the sequence, we need 50 * 3 Gbp / 3 bytes.
   //  We'll allocate that in nice 32 MB chunks, 1490 chunks.
@@ -355,7 +356,7 @@ sqCache::sqCache_loadReads(void) {
   for (uint32 id=0; id <= _nReads; id++) {
     loadRead(id);
 
-    if ((id % 4567) == 0) {
+    if ((verbose) && ((id % 4567) == 0)) {
       double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
 
       fprintf(stderr, " %9u - %7.2f%% reads - %.2f GB\r",
@@ -363,26 +364,24 @@ sqCache::sqCache_loadReads(void) {
     }
   }
 
-  fprintf(stderr, "dataLen %lu\n", _dataLen);
-  fprintf(stderr, "dataMax %lu\n", _dataMax);
-
   assert(_dataLen <= _dataMax);
 
-  double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
+  if (verbose) {
+    double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
 
-  fprintf(stderr, " %9u - %7.2f%% reads - %.2f GB\r",
-          _nReads, 100.0, approxSize);
+    fprintf(stderr, " %9u - %7.2f%% reads - %.2f GB\r",
+            _nReads, 100.0, approxSize);
+  }
 }
 
 
 
 //  Load all the reads in a set of IDs.
 void
-sqCache::sqCache_loadReads(set<uint32> reads) {
+sqCache::sqCache_loadReads(set<uint32> reads, bool verbose) {
   uint32   nToLoad  = reads.size();
   uint32   nLoaded  = 0;
   uint32   nStep    = nToLoad / 100;
-  bool     verbose  = (nStep > 0);
 
   if (verbose)
     fprintf(stderr, "Loading %u reads.\n", nToLoad);
@@ -404,12 +403,11 @@ sqCache::sqCache_loadReads(set<uint32> reads) {
 //  Load all the reads in a set of IDs, setting age to the second
 //  item in the map.
 void
-sqCache::sqCache_loadReads(map<uint32, uint32> reads) {
+sqCache::sqCache_loadReads(map<uint32, uint32> reads, bool verbose) {
   uint32   nToLoad  = reads.size();
   uint32   nLoaded  = 0;
   uint32   nSkipped = 0;
   uint32   nStep    = nToLoad / 100;
-  bool     verbose  = (nStep > 0);
 
   if (verbose)
     fprintf(stderr, "Loading %u reads.\n", nToLoad);
@@ -437,7 +435,7 @@ sqCache::sqCache_loadReads(map<uint32, uint32> reads) {
 
 //  For trimming, load all the reads in a set of overlaps.
 void
-sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl) {
+sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
   set<uint32>     reads;
 
   increaseAge();
@@ -447,14 +445,14 @@ sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl) {
     reads.insert(ovl[oo].b_iid);
   }
 
-  sqCache_loadReads(reads);
+  sqCache_loadReads(reads, verbose);
 }
 
 
 
 //  For correction, load the read the tig represents, and all evidence reads.
 void
-sqCache::sqCache_loadReads(tgTig *tig) {
+sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
   set<uint32>     reads;
 
   increaseAge();
@@ -465,7 +463,7 @@ sqCache::sqCache_loadReads(tgTig *tig) {
     if (tig->getChild(oo)->isRead() == true)
       reads.insert(tig->getChild(oo)->ident());
 
-  sqCache_loadReads(reads);
+  sqCache_loadReads(reads, verbose);
 }
 
 
