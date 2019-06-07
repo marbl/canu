@@ -11,6 +11,7 @@ TARGET   := overlapAlign
 SOURCES  := overlapAlign.C \
             computeOverlapAlignment.C \
             trimRead.C \
+            clearRangeFile.C \
             computeAlignments.C
 
 SRC_INCDIRS  := .. ../utility ../stores ../overlapInCore/libedlib

@@ -325,11 +325,8 @@ maComputation::trimRead(uint32   minOverlapLength,
               bgn, end,
               100.0 * (end - bgn) / _readData[_aID].rawLength);
 
-    if (end - bgn > _readData[_aID].clrEnd - _readData[_aID].clrBgn) {
-      _readData[_aID].clrBgn = bgn;
-      _readData[_aID].clrEnd = end;
-      _readData[_aID].trimmedLength = end - bgn;
-    }
+    if (end - bgn > _readData[_aID].clrEnd - _readData[_aID].clrBgn)
+      _readData[_aID].setClear(bgn, end);
   }
 
   if (_verboseTrim > 0)

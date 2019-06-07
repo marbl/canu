@@ -32,14 +32,15 @@ public:
 
     rawLength      = 0;
     trimmedLength  = 0;
-
-    isGarbage      = true;
-    isContained    = false;
-    isSuspicious   = false;
   };
   ~trReadData() {
   };
 
+  void      setClear(int32 bgn, int32 end) {
+    clrBgn        = bgn;
+    clrEnd        = end;
+    trimmedLength = end - bgn;
+  };
 
 public:
   int32     clrBgn;
@@ -47,10 +48,6 @@ public:
 
   int32     rawLength;
   int32     trimmedLength;
-
-  bool      isGarbage;
-  bool      isContained;
-  bool      isSuspicious;
 };
 
 
@@ -60,12 +57,14 @@ public:
   trGlobalData() {
     numThreads          = 1;
 
-    maxErate            = 0.12;
+    maxErate            = 0.30;
     memLimit            = UINT64_MAX;
 
     bgnID               = 0;
     curID               = 0;
     endID               = UINT32_MAX;
+
+    minReadLength       = 1000;
 
     minOverlapLength    = 1000;
     minOverlapCoverage  = 2;
@@ -81,68 +80,46 @@ public:
 
     ovlStoreName        = NULL;
     ovlStore            = NULL;
-    ovlFile             = NULL;
 
     outStoreName        = NULL;
     outStore            = NULL;
-    outFile             = NULL;
 
-    trimFileName        = NULL;
-    trimFile            = NULL;
-
-    correctionFileName  = NULL;
-    correctionFile      = NULL;
+    clearRangesFileName = NULL;
   };
 
-  void    initialize(void) {
-
-    //sqRead_setDefaultVersion(sqRead_raw);
+  void    initialize(sqStore_mode mode=sqStore_readOnly) {
 
     //  Open the store, assuming the reads are trimmed already.
 
-    fprintf(stderr, "Opening seqStore '%s'\n", seqStoreName);
-    seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_readOnly);
+    fprintf(stderr, "Opening seqStore '%s' in mode '%s'\n", seqStoreName, toString(mode));
 
-    //  But if no trimmed reads, reopen the store to do trimming.
-
-#if 1
-    if (seqStore->sqStore_getNumTrimmedReads() == 0) {
-      seqStore->sqStore_close();
-
-      //sqRead_setDefaultVersion(sqRead_raw);
-
-      fprintf(stderr, "Opening seqStore '%s' (for trimming)\n", seqStoreName);
-      seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_extend);
-    }
-#endif
+    sqRead_setDefaultVersion(sqRead_raw);
+    seqStore  = sqStore::sqStore_open(seqStoreName, mode);
 
     //  Load all the reads.  Regardless of trim status, we ALWAYS want
     //  to load raw reads, because we ALWAYS need to adjust overlaps
     //  from raw reads to trimmed reads.
 
     fprintf(stderr, "Loading all reads.\n");
+
     seqCache  = new sqCache(seqStore, sqRead_raw, memLimit);
     seqCache->sqCache_loadReads();
 
     //  Open overlaps.
 
-    if (directoryExists(ovlStoreName)) {
-      fprintf(stderr, "Reading overlaps from store '%s' and writing to '%s'\n",
-              ovlStoreName, outStoreName);
+    if (ovlStoreName) {
+      fprintf(stderr, "Reading overlaps from store '%s'.\n", ovlStoreName);
 
-      ovlStore =                  new ovStore      (ovlStoreName, seqStore);
-      outStore = (outStoreName) ? new ovStoreWriter(outStoreName, seqStore) : NULL;
+      ovlStore = new ovStore(ovlStoreName, seqStore);
     }
 
-    else {
-      fprintf(stderr, "Reading overlaps from file '%s' and writing to '%s'\n",
-              ovlStoreName, outStoreName);
+    if (outStoreName) {
+      fprintf(stderr, "Writing overlaps to store '%s'.\n", outStoreName);
 
-      ovlFile =                  new ovFile(seqStore, ovlStoreName, ovFileFull);
-      outFile = (outStoreName) ? new ovFile(seqStore, outStoreName, ovFileFullWrite) : NULL;
+      outStore = new ovStoreWriter(outStoreName, seqStore);
     }
 
-    //  Parameters
+    //  Check parameters.
 
     if (bgnID == 0)                                bgnID = 1;
     if (endID  > seqStore->sqStore_getNumReads())  endID = seqStore->sqStore_getNumReads();
@@ -150,16 +127,18 @@ public:
     curID = bgnID;
 
     //  Trimming data.  Initialize clear range and lengths to the full read.
+    //  Data is loaded in main loop.
 
     readData = new trReadData [seqStore->sqStore_getNumReads() + 1];
 
     for (uint32 ii=0; ii<seqStore->sqStore_getNumReads() + 1; ii++) {
-      readData[ii].clrEnd        = seqCache->sqCache_getLength(ii);
-      readData[ii].rawLength     = seqCache->sqCache_getLength(ii);
-      readData[ii].trimmedLength = seqCache->sqCache_getLength(ii);
-    }
+      sqRead  *read = seqStore->sqStore_getRead(ii);
 
-    //  Outputs
+      readData[ii].clrBgn        = read->sqRead_clearBgn();
+      readData[ii].clrEnd        = read->sqRead_clearEnd();
+      readData[ii].rawLength     = read->sqRead_sequenceLength(sqRead_raw);
+      readData[ii].trimmedLength = read->sqRead_sequenceLength(sqRead_trimmed);
+    }
   };
 
   void    resetOverlapIteration(void) {
@@ -173,13 +152,8 @@ public:
 
     delete seqCache;
     delete ovlStore;
-    delete ovlFile;
 
     delete outStore;
-    delete outFile;
-
-    AS_UTL_closeFile(trimFile);
-    AS_UTL_closeFile(correctionFile);
   };
 
   //  Parameters
@@ -193,6 +167,8 @@ public:
   uint32             curID;  //    (currently loading id)
   uint32             endID;
 
+  uint32             minReadLength;
+
   uint32             minOverlapLength;
   uint32             minOverlapCoverage;
 
@@ -203,7 +179,7 @@ public:
 
   //  Trimming
 
-  trReadData        *readData;
+  trReadData        *readData;      //  Data for internal use.
 
   //  Inputs
 
@@ -213,19 +189,13 @@ public:
 
   char              *ovlStoreName;
   ovStore           *ovlStore;
-  ovFile            *ovlFile;
 
   //  Outputs
 
   char              *outStoreName;
   ovStoreWriter     *outStore;
-  ovFile            *outFile;
 
-  char              *trimFileName;
-  FILE              *trimFile;
-
-  char              *correctionFileName;
-  FILE              *correctionFile;
+  char              *clearRangesFileName;
 };
 
 
