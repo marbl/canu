@@ -196,14 +196,6 @@ sub generateOutputs ($) {
         stashFile("$asm.unitigs.bed");
     }
 
-    #  User-supplied termination command.
-
-    if (defined(getGlobal("onSuccess"))) {
-        print STDERR "-- Running user-supplied termination command.\n";
-        runCommand(getGlobal("onExitDir"), getGlobal("onSuccess") . " $asm");
-    }
-
-
   finishStage:
     generateReport($asm);
     resetIteration("generateOutputs");

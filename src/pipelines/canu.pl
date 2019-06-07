@@ -953,6 +953,15 @@ if (setOptions($mode, "assemble") eq "assemble") {
     }
 }
 
+#  User-supplied termination command.
+
+if (defined(getGlobal("onSuccess"))) {
+    print STDERR "--\n";
+    print STDERR "-- Running user-supplied termination command.\n";
+    runCommand(getGlobal("onExitDir"), getGlobal("onSuccess") . " $asm");
+}
+
+
 print STDERR "--\n";
 print STDERR "-- Bye.\n";
 
