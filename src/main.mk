@@ -211,12 +211,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 utgcns/utgcns.mk \
                 \
-                gfa/alignGFA.mk \
-                \
-                fastq-utilities/fastqAnalyze.mk \
-                fastq-utilities/fastqSample.mk \
-                fastq-utilities/fastqSimulate.mk \
-                fastq-utilities/fastqSimulate-sort.mk
+                gfa/alignGFA.mk
 
 ifeq ($(BUILDTESTS), 1)
 SUBMAKEFILES += utility/bitsTest.mk \
