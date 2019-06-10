@@ -29,8 +29,6 @@
 //  and a pointer to the cache is saved so we can retrieve the
 //  reads on demand during the compute.
 
-#include <tuple>
-
 using namespace std;
 
 
