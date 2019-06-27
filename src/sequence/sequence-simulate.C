@@ -155,7 +155,21 @@ doSimulate_extract(simulateParameters &simPar,
 
       r[readLength] = 0;
 
-      fprintf(stdout, ">read=%lu,position=%lu,length=%u,%s\n", nReads+1, position, readLength, seqs[ss]->name());
+      //  Randomly flip it.
+
+      bool flip = (mt.mtRandomRealOpen() < 0.5) ? true : false;
+
+      if (flip)
+        reverseComplementSequence(r, readLength);
+
+      //  And output.
+
+      fprintf(stdout, ">read=%lu,%s,position=%lu,length=%u,%s\n",
+              nReads+1,
+              (flip == false) ? "forward" : "reverse",
+              position,
+              readLength,
+              seqs[ss]->name());
       fprintf(stdout, "%s\n", r);
 
       break;
