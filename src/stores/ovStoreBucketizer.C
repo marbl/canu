@@ -263,24 +263,12 @@ main(int argc, char **argv) {
 
 
 
-  //  Write slice sizes.
-
-  AS_UTL_saveFile(sliceSName, sliceSize, config->numSlices() + 1);
-
-  //  Close the output files.
+  //  Write the outputs.
 
   for (uint32 i=0; i<config->numSlices() + 1; i++)
     delete sliceFile[i];
 
-  //  Cleanup.
-
-  seq->sqStore_close();
-
-  delete [] sliceFile;
-  delete [] sliceSize;
-
-  delete    filter;
-  delete    config;
+  AS_UTL_saveFile(sliceSName, sliceSize, config->numSlices() + 1);
 
   //  Rename the bucket to show we're done.
 
@@ -303,7 +291,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
   }
 
-  //  Then be done.
+  //  Cleanup and be done.
+
+  delete [] sliceFile;
+  delete [] sliceSize;
+
+  seq->sqStore_close();
+
+  delete    filter;
+  delete    config;
 
   fprintf(stderr, "Success!\n");
 
