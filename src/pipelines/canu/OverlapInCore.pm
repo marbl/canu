@@ -77,8 +77,7 @@ sub overlapConfigure ($$$) {
 
     goto allDone   if (fileExists("$path/overlap.sh") && fileExists("$path/$asm.partition.ovlbat") && fileExists("$path/$asm.partition.ovljob") && fileExists("$path/$asm.partition.ovlopt"));
     goto allDone   if (fileExists("$path/ovljob.files"));
-    goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (normal) (correction) erate=", getGlobal("corOvlErrorRate"), "\n"  if ($tag eq "cor");
@@ -335,8 +334,7 @@ sub overlapCheck ($$$) {
     $path = "$base/1-overlapper";
 
     goto allDone   if (fileExists("$path/ovljob.files"));
-    goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     #  Figure out if all the tasks finished correctly.
 

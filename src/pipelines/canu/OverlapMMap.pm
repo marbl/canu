@@ -113,8 +113,7 @@ sub mmapConfigure ($$$) {
     caFailure("invalid type '$typ'", undef)  if (($typ ne "partial") && ($typ ne "normal"));
 
     goto allDone   if (fileExists("$path/ovljob.files"));
-    goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     if (fileExists("$path/queries.tar")) {
         print STDERR "--\n";
@@ -517,8 +516,8 @@ sub mmapPrecomputeCheck ($$$) {
     $path = "$base/1-overlapper";
 
     goto allDone   if (fileExists("$path/precompute.files"));
-    goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
+    goto allDone   if (fileExists("$path/mmap.files"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     fetchFile("$path/precompute.sh");
 
@@ -606,8 +605,7 @@ sub mmapCheck ($$$) {
     $path = "$base/1-overlapper";
 
     goto allDone   if (fileExists("$path/mmap.files"));
-    goto allDone   if (-e "$base/$asm.ovlStore");
-    goto allDone   if (fileExists("$base/$asm.ovlStore.tar.gz"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     fetchFile("$path/mmap.sh");
 

@@ -185,7 +185,7 @@ sub overlapStoreCheck ($$$) {
     my $tag        = shift @_;
     my $attempt    = getGlobal("canuIteration");
 
-    goto allDone   if (-d "$base/$asm.ovlStore");
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     fetchFile("scripts/1-bucketize/2-sort.sh");
 
@@ -238,9 +238,9 @@ sub createOverlapStoreParallel ($$$$$$) {
     my $cmd;
     my $path       = "$base/$asm.ovlStore.BUILDING";
 
-    goto allDone   if ((-e "$path/scripts/1-bucketize.sh") &&
-                       (-e "$path/scripts/2-sort.sh"));
-    goto allDone   if (-d "$base/$asm.ovlStore");
+    goto allDone   if ((fileExists("$path/scripts/1-bucketize.sh")) &&
+                       (fileExists("$path/scripts/2-sort.sh")));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     make_path("$path/scripts");
     make_path("$path/logs");
@@ -255,7 +255,7 @@ sub createOverlapStoreParallel ($$$$$$) {
     #
     #  Both the binary and the script will stop if the output directory exists.
 
-    if (! -e "$path/scripts/1-bucketize.sh") {
+    if (! fileExists("$path/scripts/1-bucketize.sh")) {
         open(F, "> $path/scripts/1-bucketize.sh") or caExit("can't open '$path/scripts/1-bucketize.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
@@ -336,7 +336,7 @@ sub createOverlapStoreParallel ($$$$$$) {
     #  When writing, ####<001> exists.
     #  When finished, ####.started doesn't exist, and ####.info does.
 
-    if (! -e "$path/scripts/2-sort.sh") {
+    if (! fileExists("$path/scripts/2-sort.sh")) {
         open(F, "> $path/scripts/2-sort.sh") or caExit("can't open '$path/scripts/2-sort.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
@@ -458,8 +458,8 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     my $attempt    = getGlobal("canuIteration");
     my $path       = "$base/$asm.ovlStore.BUILDING";
 
-    goto allDone   if (-d "$base/$asm.ovlStore");
-    goto allDone   if (-e "$path/1-bucketize.success");
+    goto allDone   if (fileExists("$path/1-bucketize.success"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     fetchFile("$path/scripts/1-bucketize.sh");
 
@@ -525,6 +525,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     #  Note that we're done.
 
     touch("$path/1-bucketize.success");
+    stashFile("$path/1-bucketize.success");
 
     #  All overlap inputs are bucketized, so delete them.
 
@@ -554,8 +555,8 @@ sub overlapStoreSorterCheck ($$$$$) {
     my $attempt    = getGlobal("canuIteration");
     my $path       = "$base/$asm.ovlStore.BUILDING";
 
-    goto allDone   if (-d "$base/$asm.ovlStore");
-    goto allDone   if (-e "$path/2-sorter.success");
+    goto allDone   if (fileExists("$path/2-sorter.success"));
+    goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
     fetchFile("$path/scripts/2-sort.sh");
 
@@ -620,6 +621,7 @@ sub overlapStoreSorterCheck ($$$$$) {
     print STDERR "-- Overlap store sorter finished.\n";
 
     touch("$path/2-sorter.success");
+    stashFile("$path/2-sorter.success");
 
     generateReport($asm);
     resetIteration("$tag-overlapStoreSorterCheck");
@@ -784,14 +786,6 @@ sub createOverlapStore ($$) {
     fetchFile("$base/$asm.ovlStore.config");
     fetchFile("$base/$asm.ovlStore.config.txt");
 
-    #  We need the .oc files for each overlap job.
-
-    if (! -e "$base/$asm.ovlStore.config") {
-        fetchOverlapData($asm, $base);
-    }
-
-    #  Now we can figure out a configuration.
-
     if (! -e "$base/$asm.ovlStore.config") {
         $cmd  = "$bin/ovStoreConfig \\\n";
         $cmd .= " -S ../$asm.seqStore \\\n";
@@ -800,6 +794,8 @@ sub createOverlapStore ($$) {
         $cmd .= " -create ./$asm.ovlStore.config \\\n";
         $cmd .= " > ./$asm.ovlStore.config.txt \\\n";
         $cmd .= "2> ./$asm.ovlStore.config.err";
+
+        fetchOverlapData($asm, $base);   #  Fetch overlap data, if not here.
 
         if (runCommand($base, $cmd)) {
             caExit("failed to configure the overlap store", "$base/$asm.ovlStore.config.err");
