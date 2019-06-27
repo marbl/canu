@@ -387,7 +387,7 @@ main(int argc, char **argv) {
   if  (mode == modeGenerate) {
   }
   if  (mode == modeSimulate) {
-    if (simPar.genomeName == NULL)
+    if (simPar.genomeName[0] == 0)
       err.push_back("ERROR:  No reference genome sequence (-genome) supplied.\n");
   }
   if  (mode == modeSample) {
