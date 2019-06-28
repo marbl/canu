@@ -743,10 +743,10 @@ sub deleteOverlapIntermediateFiles ($$@) {
         remove_tree("$base/$dir");
     }
 
-    foreach my $file (@files) {
-        #print STDERR "UNLINK '$file'  SOURCE\n";
-        unlink $file;
-    }
+#    foreach my $file (@files) {
+#        #print STDERR "UNLINK '$file'  SOURCE\n";
+#        unlink $file;
+#    }
 
     print STDERR "--\n";
     print STDERR "-- Purged ", int(1000 * $bytes / 1024 / 1024 / 1024) / 1000, " GB in $files overlap output files.\n";
