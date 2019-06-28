@@ -84,15 +84,15 @@ ovOverlap::toString(char                  *str,
     case ovOverlapAsPaf:
       // miniasm/map expects entries to be separated by tabs
       // no padding spaces on names we don't confuse read identifiers
-      sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " %s",
+      sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " \tdv:f:%6.4f%s",
               a_iid,
               (g->sqStore_getRead(a_iid)->sqRead_sequenceLength()), a_bgn(), a_end(),
               flipped() ? '-' : '+',
               b_iid,
               (g->sqStore_getRead(b_iid)->sqRead_sequenceLength()), flipped() ? b_end() : b_bgn(), flipped() ? b_bgn() : b_end(),
-              (uint32)floor(span() == 0 ? (1-erate() * (a_end()-a_bgn())) : (1-erate()) * span()),
+              (uint32)floor(span() == 0 ? ((1-erate()) * (a_end()-a_bgn())) : (1-erate()) * span()),
               span() == 0 ? a_end() - a_bgn() : span(),
-              255,
+              255, erate(),
               (newLine) ? "\n" : "");
       break;
   }
@@ -178,6 +178,39 @@ ovOverlap::fromString(splitToWords          &W,
       break;
 
     case ovOverlapAsPaf:
+      a_iid = W.touint32(0);
+      b_iid = W.touint32(5);
+
+      flipped(W[4][0] == '-');
+
+      dat.ovl.span = W.touint32(3)-W.toint32(2);
+
+      uint32  alen = W.toint32(1);
+      uint32  blen = W.toint32(6);
+
+      uint32  abgn = W.touint32(2);
+      uint32  aend = W.touint32(3);
+
+      // paf looks like our coord format but the start/end aren't decreasing like ours so flip them then we can use the same math below
+      uint32  bbgn = (dat.ovl.flipped) ? W.touint32(8) : W.touint32(7);
+      uint32  bend = (dat.ovl.flipped) ? W.touint32(7) : W.touint32(8);
+
+      dat.ovl.ahg5 = abgn;
+      dat.ovl.ahg3 = alen - aend;
+
+      dat.ovl.bhg5 = (dat.ovl.flipped) ? blen-bbgn : bbgn; 
+      dat.ovl.bhg3 = (dat.ovl.flipped) ?      bend : blen - bend;
+
+      for (int i = 0; i < W.numWords(); i++) {
+         if (W[i][0] == 'd' && W[i][1] == 'v' && W[i][3] == 'f') {
+            erate(strtodouble(W[i]+5));
+            break;
+          }
+      }
+
+      dat.ovl.forUTG = true;
+      dat.ovl.forOBT = true;
+      dat.ovl.forDUP = true;
       break;
   }
 
