@@ -33,6 +33,7 @@
 
 
 static
+const
 char
 inv[256] = {
    0,  0,  0,  0,  0,  0,  0,  0,  //  0x00 -
@@ -68,6 +69,54 @@ inv[256] = {
    0,  0,  0,  0,  0,  0,  0,  0,  //  0xf0 -
    0,  0,  0,  0,  0,  0,  0,  0   //  0xf8 -
 };
+
+static
+const
+char
+Dacgtn[5] = { 'A',
+              'C',
+              'G',
+              'T',
+              'N' };
+
+static
+const
+uint8
+Eacgtn[256] = {
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x00 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x08 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x10 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x18 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x20 -  !"#$%&'
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x28 - ()*+,-./
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x30 - 01234567
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x38 - 89:;<=>?
+   0, 0x00,    0, 0x01,    0,    0,    0, 0x02,    //  0x40 - @ABCDEFG
+   0,    0,    0,    0,    0,    0, 0x04,    0,    //  0x48 - HIJKLMNO
+   0,    0,    0,    0, 0x03,    0,    0,    0,    //  0x50 - PQRSTUVW
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x58 - XYZ[\]^_
+   0, 0x00,    0, 0x01,    0,    0,    0, 0x02,    //  0x60 - `abcdefg
+   0,    0,    0,    0,    0,    0, 0x04,    0,    //  0x68 - hijklmno
+   0,    0,    0,    0, 0x03,    0,    0,    0,    //  0x70 - pqrstuvw
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x78 - xyz{|}~
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x80 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x88 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x90 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0x98 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xa0 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xa8 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xb0 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xb8 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xc0 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xc8 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xd0 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xd8 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xe0 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xe8 -
+   0,    0,    0,    0,    0,    0,    0,    0,    //  0xf0 -
+   0,    0,    0,    0,    0,    0,    0,    0     //  0xf8 -
+};
+
 
 
 
@@ -143,6 +192,247 @@ reverseComplement(char *seq, qvType *qlt, int len) {
 
 template void reverseComplement<char> (char *seq, char  *qlt, int len);   //  Give the linker
 template void reverseComplement<uint8>(char *seq, uint8 *qlt, int len);   //  something to link
+
+
+
+uint32
+homopolyCompress(char *bases, char *compr) {
+  uint32  cc = 0;  //  position of the start of the run
+  uint32  rr = 1;  //  position of the scan head
+  uint32  sl = 0;  //  length of the compressed sequence
+
+  //  Assume bases is never empty.
+
+  if (compr)
+    compr[sl] = bases[cc];
+
+  if (bases[0] == 0)
+    return(0);
+
+  sl += 1;
+
+  while (bases[rr] != 0) {
+    //  In a run, move the scan head one position.
+    if (bases[cc] == bases[rr]) {
+      rr += 1;
+    }
+
+    //  Just ended a run.  Set the start of the (next) run
+    //  to the current position, move the current position
+    //  to the next base, and increase the length of the
+    //  compressed sequence.
+    else {
+      if (compr)
+        compr[sl] = bases[rr];
+      cc  = rr;
+      rr += 1;
+      sl += 1;
+    }
+  }
+
+  if (compr)
+    compr[sl] = 0;
+
+  return(sl);
+}
+
+
+
+void
+decode2bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
+  uint32       chunkPos = 0;
+
+  if (seq == NULL)
+    seq = new char [seqLen + 1];
+
+  for (uint32 ii=0; ii<seqLen; ) {
+    if (chunkPos == chunkLen) {
+      fprintf(stderr, "decode2bit()-- ran out of chunk (length %u) before end of sequence (at %u out of %u)\n",
+              chunkLen, ii, seqLen);
+    }
+    assert(chunkPos < chunkLen);
+
+    uint8  byte = chunk[chunkPos++];
+
+    if (ii + 4 < seqLen) {
+      seq[ii++] = Dacgtn[((byte >> 6) & 0x03)];
+      seq[ii++] = Dacgtn[((byte >> 4) & 0x03)];
+      seq[ii++] = Dacgtn[((byte >> 2) & 0x03)];
+      seq[ii++] = Dacgtn[((byte >> 0) & 0x03)];
+    }
+
+    else {
+      if (ii < seqLen)  seq[ii++] = Dacgtn[((byte >> 6) & 0x03)];  //  This if is redundant,
+      if (ii < seqLen)  seq[ii++] = Dacgtn[((byte >> 4) & 0x03)];  //    but pretty.
+      if (ii < seqLen)  seq[ii++] = Dacgtn[((byte >> 2) & 0x03)];
+      if (ii < seqLen)  seq[ii++] = Dacgtn[((byte >> 0) & 0x03)];
+    }
+  }
+
+  seq[seqLen] = 0;
+}
+
+
+
+uint32
+encode2bitSequence(uint8 *&chunk, char *seq, uint32 seqLen) {
+
+  for (uint32 ii=0; ii<seqLen; ii++) {       //  If non-ACGT present, return
+    char  base = seq[ii];                    //  0 to indicate we can't encode.
+
+    if ((base != 'a') && (base != 'A') &&
+        (base != 'c') && (base != 'C') &&
+        (base != 'g') && (base != 'G') &&
+        (base != 't') && (base != 'T')) {
+      fprintf(stderr, "Invalid base %c detected at position %u\n", base, ii);
+      return(0);
+    }
+  }
+
+  uint32 chunkLen = 0;
+
+  if (chunk == NULL)
+    chunk = new uint8 [ seqLen / 4 + 1];
+
+  for (uint32 ii=0; ii<seqLen; ) {
+    uint8  byte = 0;
+
+    if (ii + 4 < seqLen) {
+      byte  = Eacgtn[seq[ii++]];  byte <<= 2;
+      byte |= Eacgtn[seq[ii++]];  byte <<= 2;
+      byte |= Eacgtn[seq[ii++]];  byte <<= 2;
+      byte |= Eacgtn[seq[ii++]];
+    }
+
+    else {
+      if (ii < seqLen)  { byte |= Eacgtn[seq[ii++]]; }   byte <<= 2;  //  This if is redundant, but pretty.
+      if (ii < seqLen)  { byte |= Eacgtn[seq[ii++]]; }   byte <<= 2;  //  Yes, all three always shift,
+      if (ii < seqLen)  { byte |= Eacgtn[seq[ii++]]; }   byte <<= 2;  //  not conditionally.
+      if (ii < seqLen)  { byte |= Eacgtn[seq[ii++]]; }
+    }
+
+    chunk[chunkLen++] = byte;
+  }
+
+  return(chunkLen);
+}
+
+
+
+void
+decode3bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
+  uint32       chunkPos = 0;
+
+  if (seq == NULL)
+    seq = new char [seqLen + 1];
+
+  for (uint32 ii=0; ii<seqLen; ) {
+    if (chunkPos == chunkLen) {
+      fprintf(stderr, "decode3bit()-- ran out of chunk (length %u) before end of sequence (at %u out of %u)\n",
+              chunkLen, ii, seqLen);
+    }
+    assert(chunkPos < chunkLen);
+
+    uint8  byte = chunk[chunkPos++];
+    uint8  c1   = 0;
+    uint8  c2   = 0;
+    uint8  c3   = 0;
+
+    if (ii + 3 < seqLen) {
+      uint8 c1 = byte / 5 / 5;    byte -= c1 * 5 * 5;
+      uint8 c2 = byte / 5;        byte -= c2 * 5;
+      uint8 c3 = byte;
+
+      seq[ii++] = Dacgtn[c1];
+      seq[ii++] = Dacgtn[c2];
+      seq[ii++] = Dacgtn[c3];
+    }
+
+    else {
+      uint8 c1 = byte / 5 / 5;    byte -= c1 * 5 * 5;
+      uint8 c2 = byte / 5;        byte -= c2 * 5;
+      uint8 c3 = byte;
+
+      if (ii < seqLen)  seq[ii++] = Dacgtn[c1];  //  This if is redundant,
+      if (ii < seqLen)  seq[ii++] = Dacgtn[c2];  //    but pretty.
+      if (ii < seqLen)  seq[ii++] = Dacgtn[c3];
+    }
+  }
+
+  seq[seqLen] = 0;
+}
+
+
+
+uint32
+encode3bitSequence(uint8 *&chunk, char *seq, uint32 seqLen) {
+
+  for (uint32 ii=0; ii<seqLen; ii++) {       //  If non-ACGTN present, return
+    char  base = seq[ii];                    //  0 to indicate we can't encode.
+
+    if ((base != 'a') && (base != 'A') &&
+        (base != 'c') && (base != 'C') &&
+        (base != 'g') && (base != 'G') &&
+        (base != 't') && (base != 'T') &&
+        (base != 'n') && (base != 'N')) {
+      fprintf(stderr, "Invalid base %c detected at position %u\n", base, ii);
+      return(0);
+    }
+  }
+
+  uint32 chunkLen = 0;
+
+  if (chunk == NULL)
+    chunk = new uint8 [ seqLen / 3 + 1];
+
+  for (uint32 ii=0; ii<seqLen; ) {
+    uint8  byte = 0;
+
+    if (ii + 3 < seqLen) {
+      byte += Eacgtn[seq[ii++]] * 5 * 5;
+      byte += Eacgtn[seq[ii++]] * 5;
+      byte += Eacgtn[seq[ii++]];
+    }
+
+    else {
+      if (ii < seqLen)   byte += Eacgtn[seq[ii++]] * 5 * 5;
+      if (ii < seqLen)   byte += Eacgtn[seq[ii++]] * 5;
+      if (ii < seqLen)   byte += Eacgtn[seq[ii++]];
+    }
+
+    chunk[chunkLen++] = byte;
+  }
+
+  return(chunkLen);
+}
+
+
+
+void
+decode8bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
+
+  if (seq == NULL)
+    seq = new char [seqLen + 1];
+
+  for (uint32 ii=0; ii<seqLen; ii++)
+    seq[ii] = chunk[ii];
+
+  seq[seqLen] = 0;
+}
+
+
+
+uint32
+encode8bitSequence(uint8 *&chunk, char *seq, uint32 seqLen) {
+
+  if (chunk == NULL)
+    chunk = new uint8 [ seqLen ];
+
+  for (uint32 ii=0; ii<seqLen; ii++)
+    chunk[ii] = seq[ii];
+
+  return(seqLen);
+}
 
 
 

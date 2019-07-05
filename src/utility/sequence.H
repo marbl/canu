@@ -31,11 +31,31 @@
 #include "files.H"
 
 
-void  reverseComplementSequence(char *seq, int len);
-char *reverseComplementCopy(char *seq, int len);
+void   reverseComplementSequence(char *seq, int len);
+char  *reverseComplementCopy(char *seq, int len);
 
 template<typename qvType>
-void  reverseComplement(char *seq, qvType *qlt, int len);
+void   reverseComplement(char *seq, qvType *qlt, int len);
+
+uint32 homopolyCompress(char *bases, char *compr=NULL);
+
+
+//  Encode a sequence into chunk.  The length of the chunk in bytes is returned.
+//  If the chunk is NULL, it is allocated.  Otherwise, it must be
+//  at least seqLen bytes in length.
+uint32 encode2bitSequence(uint8 *&chunk, char *seq, uint32 seqLen);
+uint32 encode3bitSequence(uint8 *&chunk, char *seq, uint32 seqLen);
+uint32 encode8bitSequence(uint8 *&chunk, char *seq, uint32 seqLen);
+
+
+//  Decode an encoded sequence (in chunk) of length chunkLen.
+//  If seq is NULL, space will be allocated, otherwise, seqLen+1 bytes
+//  must be allocated.
+//  seqLen must be the length of the sequence to decode.
+void   decode2bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
+void   decode3bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
+void   decode8bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
+
 
 
 
