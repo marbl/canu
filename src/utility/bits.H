@@ -28,6 +28,8 @@
 
 #include "AS_global.H"
 
+#include "files.H"
+
 #include <algorithm>
 
 //  Define this to enable testing that the width of the data element is greater than zero.  The
@@ -529,6 +531,7 @@ public:
   stuffedBits(uint64 nBits=16 * 1024 * 1024 * 8);
   stuffedBits(const char *inputName);
   stuffedBits(FILE *inFile);
+  stuffedBits(readBuffer *B);
   //stuffedBits(stuffedBits &that);   //  Untested.
   ~stuffedBits();
 
@@ -539,6 +542,9 @@ public:
   };
 
   //  Files.
+
+  void     dumpToBuffer(writeBuffer *B);
+  bool     loadFromBuffer(readBuffer *B);
 
   void     dumpToFile(FILE *F);
   bool     loadFromFile(FILE *F);

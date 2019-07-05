@@ -118,6 +118,28 @@ stuffedBits::stuffedBits(FILE *inFile) {
 };
 
 
+stuffedBits::stuffedBits(readBuffer *B) {
+
+  _dataBlockLenMax = 0;
+
+  _dataBlocksLen   = 0;
+  _dataBlocksMax   = 0;
+
+  _dataBlockBgn    = NULL;
+  _dataBlockLen    = NULL;
+  _dataBlocks      = NULL;
+
+  _dataPos = 0;
+  _data    = NULL;
+
+  loadFromBuffer(B);
+
+  _dataBlk = 0;
+  _dataWrd = 0;
+  _dataBit = 64;
+};
+
+
 #if 0
 //  This is untested.
 stuffedBits::stuffedBits(stuffedBits &that) {
@@ -165,6 +187,109 @@ stuffedBits::~stuffedBits() {
   delete [] _dataBlockLen;
   delete [] _dataBlocks;
 };
+
+
+
+void
+stuffedBits::dumpToBuffer(writeBuffer *B) {
+
+  B->write(&_dataBlockLenMax, sizeof(uint64));
+  B->write(&_dataBlocksLen,   sizeof(uint32));
+  B->write(&_dataBlocksMax,   sizeof(uint32));
+  B->write( _dataBlockBgn,    sizeof(uint64) * _dataBlocksLen);
+  B->write( _dataBlockLen,    sizeof(uint64) * _dataBlocksLen);
+
+  for (uint32 ii=0; ii<_dataBlocksLen; ii++) {
+    uint64  nWordsToWrite = _dataBlockLen[ii] / 64 + (((_dataBlockLen[ii] % 64) == 0) ? 0 : 1);
+    uint64  nWordsAllocd  = _dataBlockLenMax / 64;
+
+    assert(nWordsToWrite <= nWordsAllocd);
+
+    B->write(_dataBlocks[ii], sizeof(uint64) * nWordsToWrite);
+  }
+}
+
+
+
+bool
+stuffedBits::loadFromBuffer(readBuffer *B) {
+  uint32   nLoad    = 0;
+  uint64   inLenMax = 0;
+  uint32   inLen    = 0;
+  uint32   inMax    = 0;
+
+  if (B == NULL)     //  No buffer,
+    return(false);   //  no load.
+
+  //  Try to load the new parameters into temporary storage, so we can
+  //  compare against what have already allocated.
+
+  nLoad += B->read(&inLenMax, sizeof(uint64));  //  Max length of each block.
+  nLoad += B->read(&inLen,    sizeof(uint32));  //  Number of blocks stored.
+  nLoad += B->read(&inMax,    sizeof(uint32));  //  Number of blocks allocated.
+
+  if (nLoad != 3)
+    return(false);
+
+  //  If the input blocks are not the same size as the blocks we have, remove them.
+
+  if (_dataBlockLenMax != inLenMax) {
+    for (uint32 ii=0; ii<_dataBlocksLen; ii++)
+      delete [] _dataBlocks[ii];
+
+    for (uint32 ii=0; ii<_dataBlocksMax; ii++)
+      _dataBlocks[ii] = NULL;
+
+    _dataBlockLenMax = inLenMax;
+  }
+
+  //  If there are more blocks than we have space for, grab more space.  Bgn and Len can just be
+  //  reallocated.  The pointers need to be extended (to preserve what's already in there).
+
+  if (_dataBlocksMax < inLen) {
+    delete [] _dataBlockBgn;
+    delete [] _dataBlockLen;
+
+    _dataBlockBgn  = new uint64 [inLen];
+    _dataBlockLen  = new uint64 [inLen];
+
+    resizeArray(_dataBlocks, _dataBlocksLen, _dataBlocksMax, inLen, resizeArray_copyData | resizeArray_clearNew);
+  }
+
+  //  Update the parameters.
+
+  _dataBlocksLen = inLen;
+
+  //  Load the data.
+
+  B->read(_dataBlockBgn,  sizeof(uint64) * _dataBlocksLen);
+  B->read(_dataBlockLen,  sizeof(uint64) * _dataBlocksLen);
+
+  for (uint32 ii=0; ii<_dataBlocksLen; ii++) {
+    uint64  nWordsToRead  = _dataBlockLen[ii] / 64 + (((_dataBlockLen[ii] % 64) == 0) ? 0 : 1);
+    uint64  nWordsAllocd  = _dataBlockLenMax / 64;
+
+    assert(nWordsToRead <= nWordsAllocd);
+
+    if (_dataBlocks[ii] == NULL)
+      _dataBlocks[ii] = new uint64 [nWordsAllocd];
+
+    B->read(_dataBlocks[ii], sizeof(uint64) * nWordsToRead);
+
+    memset(_dataBlocks[ii] + nWordsToRead, 0, sizeof(uint64) * (nWordsAllocd - nWordsToRead));
+  }
+
+  //  Set up the read/write head.
+
+  _dataPos = 0;
+  _data    = _dataBlocks[0];
+
+  _dataBlk = 0;
+  _dataWrd = 0;
+  _dataBit = 64;
+
+  return(true);
+}
 
 
 
