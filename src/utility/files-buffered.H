@@ -29,8 +29,6 @@
 
 //  Do not include directly.  Use 'files.H' instead.
 
-class memoryMappedFile;
-
 class readBuffer {
 public:
   readBuffer(const char *filename, uint64 bufferMax = 32 * 1024);
@@ -46,35 +44,38 @@ public:
   uint64               read(void *buf, uint64 len);
   uint64               read(void *buf, uint64 maxlen, char stop);
 
+  bool                 peekIFFchunk(char *name, uint32 &dataLen);
+
+  void                 readIFFchunk(char *name, uint8 *&data, uint32 &dataLen, uint32 &dataMax);
+
   void                 skipAhead(char stop, bool after=false);
   uint64               copyUntil(char stop, char *dest, uint64 destLen);
 
-  void                 seek(uint64 pos);
+  void                 seek(uint64 pos, uint64 extra=0);
   uint64               tell(void) { return(_filePos); };
 
   const char          *filename(void) { return(_filename); };
 
 private:
-  void                 fillBuffer(void);
+  void                 fillBuffer(uint64 extra=0);
   void                 init(int fileptr, const char *filename, uint64 bufferMax);
 
-  char               *_filename;
+  char                _filename[FILENAME_MAX+1];
 
-  int                 _file;
-  uint64              _filePos;
+  int                 _file;        //  
+  uint64              _filePos;     //  Position in the file we're at.
 
-  memoryMappedFile   *_mmap;
   bool                _stdin;
 
   bool                _eof;
 
-  //  If bufferMax is zero, then we are using the mmapped interface, otherwise,
-  //  we are using a open()/read() and a small buffer.
+  uint64              _bufferBgn;   //  File position where this buffer is from.
+  uint64              _bufferLen;   //  Length of the valid data in the buffer.
 
-  uint64              _bufferPos;
-  uint64              _bufferLen;
-  uint64              _bufferMax;
-  char               *_buffer;
+  uint64              _bufferPos;   //  Position in the buffer we're at.
+
+  uint64              _bufferMax;   //  Size of _buffer allocation.
+  char               *_buffer;      //  Data!
 };
 
 
@@ -88,6 +89,22 @@ public:
   uint64               tell(void)     { return(_filePos);  };
 
   void                 write(void *data, uint64 length);
+
+  //  If deata length is zero, this chunk is the start of a recursive record.
+  //  The chunk header is written (NAME<length>) but length is set to zero.
+  //  The position of the length field is is pushed onto an internal stack.
+  //  When the chunk is closed, the length field is updated with
+  //  the size of blocks added to it.
+  //
+  //  To get an empty chunk:
+  //    writeIFFchunk("NAME", NULL, 0);
+  //    closeIFFchunk();
+  //
+private:
+  void   appendIFFdata(void *data, uint32 dataLength);
+public:
+  void   writeIFFchunk(char *name, void *data=NULL, uint32 dataLength=0);
+  void   closeIFFchunk(char *name=NULL);
 
 private:
   void                 open(void);
@@ -103,6 +120,15 @@ private:
   uint64              _bufferLen;
   uint64              _bufferMax;
   char               *_buffer;
+
+  uint64              _chunkBufferLen;         //  For building up recursive chunks,
+  uint64              _chunkBufferMax;         //  another buffer of data.
+  uint8              *_chunkBuffer;
+
+  uint32              _chunkStartsLen;   //  A stack of start positions.
+  uint32              _chunkStartsMax;
+  uint64             *_chunkStarts;
+  uint64             *_chunkSizes;
 };
 
 
