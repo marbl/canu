@@ -10,8 +10,7 @@ endif
 TARGET   := trimReads
 SOURCES  := trimReads.C \
             trimReads-bestEdge.C \
-            trimReads-largestCovered.C \
-            trimReads-quality.C
+            trimReads-largestCovered.C
 
 SRC_INCDIRS  := .. ../utility ../stores
 

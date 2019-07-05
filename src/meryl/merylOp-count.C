@@ -462,7 +462,7 @@ merylOperation::guesstimateNumberOfkmersInInput_sqStore(sqStore *store, uint32 b
   uint64  numMers = 0;
 
   for (uint32 ii=bgnID; ii<endID; ii++)
-    numMers += store->sqStore_getRead(ii)->sqRead_sequenceLength();
+    numMers += store->sqStore_getReadLength(ii);
 
   return(numMers);
 }

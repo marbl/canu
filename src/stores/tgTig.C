@@ -386,6 +386,97 @@ tgTig::loadFromStreamOrLayout(FILE *F) {
 
 
 
+
+
+
+
+
+
+void
+tgTig::saveToBuffer(writeBuffer *B) {
+  tgTigRecord  tr = *this;
+  char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
+
+  B->write( tag, 4);
+  B->write(&tr,  sizeof(tgTigRecord));
+
+  //  We could save the null byte too, but don't.  It's explicitly added during the load.
+
+  if (_gappedLen > 0) {
+    B->write(_gappedBases, _gappedLen);
+    B->write(_gappedQuals, _gappedLen);
+  }
+
+  if (_childrenLen > 0)
+    B->write(_children, sizeof(tgPosition) * _childrenLen);
+
+  if (_childDeltaBitsLen > 0)
+    _childDeltaBits->dumpToBuffer(B);
+}
+
+
+
+bool
+tgTig::loadFromBuffer(readBuffer *B) {
+  char    tag[4];
+
+  clear();
+
+  //  Read the tgTigRecord from disk and copy it into our tgTig.
+
+  tgTigRecord  tr;
+
+  if (4 != B->read(tag, 4)) {
+    fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
+    return(false);
+  }
+
+  if ((tag[0] != 'T') ||
+      (tag[1] != 'I') ||
+      (tag[2] != 'G') ||
+      (tag[3] != 'R')) {
+    fprintf(stderr, "tgTig::loadFromStream()-- not at a tigRecord, got bytes '%c%c%c%c' (0x%02x%02x%02x%02x).\n",
+            tag[0], tag[1], tag[2], tag[3],
+            tag[0], tag[1], tag[2], tag[3]);
+    return(false);
+  }
+
+  if (sizeof(tgTigRecord) != B->read(&tr, sizeof(tgTigRecord))) {
+    fprintf(stderr, "tgTig::loadFromStream()-- failed to read tgTigRecord: %s\n", strerror(errno));
+    return(false);
+  }
+
+  *this = tr;
+
+  //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
+
+  resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen + 1, resizeArray_doNothing);
+
+  if (_gappedLen > 0) {
+    B->read(_gappedBases, _gappedLen);
+    B->read(_gappedQuals, _gappedLen);
+
+    _gappedBases[_gappedLen] = 0;
+    _gappedQuals[_gappedLen] = 0;
+  }
+
+  //  Allocate space for reads and alignments, and load them.
+
+  resizeArray(_children,    0, _childrenMax,    _childrenLen,    resizeArray_doNothing);
+
+  if (_childrenLen > 0)
+    B->read(_children, sizeof(tgPosition) * _childrenLen);
+
+  if (_childDeltaBitsLen > 0)
+    _childDeltaBits = new stuffedBits(B);
+
+  //  Return success.
+
+  return(true);
+}
+
+
+
 void
 tgTig::saveToStream(FILE *F) {
   tgTigRecord  tr = *this;
@@ -407,8 +498,6 @@ tgTig::saveToStream(FILE *F) {
   if (_childDeltaBitsLen > 0)
     _childDeltaBits->dumpToFile(F);
 }
-
-
 
 
 
@@ -710,26 +799,34 @@ tgTig::loadLayout(FILE *F) {
 //  For correction, we also need to dump the read this tig is representing.
 //
 void
-tgTig::exportData(FILE     *exportDataFile,
-                  sqStore  *seqStore,
-                  bool      isForCorrection=false) {
+tgTig::exportData(writeBuffer  *exportDataFile,
+                  sqStore      *seqStore,
+                  bool          isForCorrection=false) {
+  sqRead           *rd = new sqRead;
+  sqReadDataWriter *wr = new sqReadDataWriter;
 
   //  Export the metadata.
 
-  saveToStream(exportDataFile);
+  saveToBuffer(exportDataFile);
 
-  //  Export a read.  This is either the first read in the tig (redundantly stored)
-  //  or the read that this tig is a correction layout for.
+  //  Export a read.
+  //
+  //  This is either the read we're trying to correct, or the first read in
+  //  the tig (redundantly stored).
 
   if (isForCorrection)
-    seqStore->sqStore_saveReadToStream(exportDataFile, tigID());
-  else
-    seqStore->sqStore_saveReadToStream(exportDataFile, getChild(0)->ident());
+    seqStore->sqStore_saveReadToBuffer(exportDataFile, tigID(), rd, wr);
+
+  else 
+    seqStore->sqStore_saveReadToBuffer(exportDataFile, getChild(0)->ident(), rd, wr);
 
   //  Now export all the reads in the layot.
 
   for (uint32 ii=0; ii<numberOfChildren(); ii++)
-    seqStore->sqStore_saveReadToStream(exportDataFile, getChild(ii)->ident());
+    seqStore->sqStore_saveReadToBuffer(exportDataFile, getChild(ii)->ident(), rd, wr);
+
+  delete wr;
+  delete rd;
 }
 
 
@@ -740,15 +837,14 @@ tgTig::exportData(FILE     *exportDataFile,
 //  Returns true if data was loaded, but minimal checking is done.
 //
 bool
-tgTig::importData(FILE                       *importDataFile,
+tgTig::importData(readBuffer                 *importDataFile,
                   map<uint32, sqRead     *>  &reads,
-                  map<uint32, sqReadData *>  &datas,
                   FILE                       *layoutOutput,
                   FILE                       *sequenceOutput) {
 
   //  Try to load the metadata.  If nothing there, we're done.
 
-  if (loadFromStreamOrLayout(importDataFile) == false)
+  if (loadFromBuffer(importDataFile) == false)
     return(false);
 
   if (layoutOutput)
@@ -760,21 +856,17 @@ tgTig::importData(FILE                       *importDataFile,
 
   for (int32 ii=0; ii<numberOfChildren() + 1; ii++) {
     sqRead     *read = new sqRead;
-    sqReadData *data = new sqReadData;
 
-    sqStore::sqStore_loadReadFromStream(importDataFile, read, data);
+    sqStore::sqStore_loadReadFromBuffer(importDataFile, read);
 
-    if (reads[read->sqRead_readID()] != NULL) {   //  If we already have data, just nuke it.  We've
-      delete read;                                //  got to read the data from disk regardless, so
-      delete data;                                //  just reload it instead of special casing a skip.
-    }
+    if (reads[read->sqRead_readID()] != NULL)     //  If we already have data, just nuke it.  We've
+      delete read;                                //  got to read the data from disk regardless.
 
     else {
       if (sequenceOutput)
-        fprintf(sequenceOutput, ">read%u\n%s\b", read->sqRead_readID(), data->sqReadData_getSequence());
+        fprintf(sequenceOutput, ">read%u\n%s\b", read->sqRead_readID(), read->sqRead_sequence());
 
       reads[read->sqRead_readID()] = read;
-      datas[read->sqRead_readID()] = data;
     }
   }
 

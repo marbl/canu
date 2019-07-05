@@ -499,14 +499,14 @@ loadReads(sqStore    *seqStore,
     //  Otherwise, load it!
 
     else {
-      sqReadData *readData = seqStore->sqStore_addEmptyRead(seqLibrary);
+      sqReadDataWriter *rdw = seqStore->sqStore_addEmptyRead(seqLibrary);
 
-      readData->sqReadData_setName(H);
-      readData->sqReadData_setBasesQuals(S + Sbgn, Q + Sbgn);
+      rdw->sqReadDataWriter_setName(H);
+      rdw->sqReadDataWriter_setRawBases(S + Sbgn);
 
-      seqStore->sqStore_stashReadData(readData);
+      seqStore->sqStore_addRead(rdw);
 
-      delete readData;
+      delete rdw;
 
       if (isFASTA) {
         nLOADEDAlocal += 1;
@@ -518,7 +518,7 @@ loadReads(sqStore    *seqStore,
         bLOADEDQlocal += Slen;
       }
 
-      fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_getNumReads(), H);
+      fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_lastReadID(), H);
     }
 
     //  If L[0] is nul, we need to load the next line.  If not, the next line is the header (from
@@ -595,7 +595,7 @@ createStore(const char *seqStoreName,
             uint32      argc,
             uint32      minReadLength) {
 
-  sqStore     *seqStore     = sqStore::sqStore_open(seqStoreName, sqStore_create);   //  sqStore_extend MIGHT work
+  sqStore     *seqStore     = new sqStore(seqStoreName, sqStore_create);   //  sqStore_extend MIGHT work
   sqRead      *seqRead      = NULL;
   sqLibrary   *seqLibrary   = NULL;
   uint32       seqFileID    = 0;      //  Used for HTML output, an ID for each file loaded.
@@ -698,7 +698,7 @@ createStore(const char *seqStoreName,
 
   fprintf(loadLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   AS_UTL_closeFile(nameMap,  seqStoreName, '/', "readNames.txt");
   AS_UTL_closeFile(loadLog,  seqStoreName, '/', "load.dat");
@@ -761,9 +761,9 @@ deleteShortReads(const char *seqStoreName,
   //  Open the store for modification.
   //
 
-  sqStore     *seqStore     = sqStore::sqStore_open(seqStoreName, sqStore_extend);
+  sqStore     *seqStore     = new sqStore(seqStoreName, sqStore_extend);
 
-  uint32       nReads       = seqStore->sqStore_getNumReads();
+  uint32       nReads       = seqStore->sqStore_lastReadID();
   rl_t        *readLen      = new rl_t [nReads + 1];
   uint64       readLenSum   = 0;
 
@@ -778,7 +778,7 @@ deleteShortReads(const char *seqStoreName,
   fprintf(stderr, "\n");
 
   for (uint32 ii=0; ii<nReads+1; ii++) {
-    uint32  len = seqStore->sqStore_getRead(ii)->sqRead_sequenceLength();
+    uint32  len = seqStore->sqStore_getReadLength(ii);
 
     readLen[ii].readID = ii;
     readLen[ii].length = len;
@@ -819,7 +819,7 @@ deleteShortReads(const char *seqStoreName,
     }
 
     else {
-      seqStore->sqStore_setIgnore(readLen[ii].readID);
+      seqStore->sqStore_getReadSeq(readLen[ii].readID)->sqReadSeq_setIgnoreU();
 
       readsLost++;
     }
@@ -827,7 +827,7 @@ deleteShortReads(const char *seqStoreName,
 
   delete [] readLen;
 
-  seqStore->sqStore_close();
+  delete    seqStore;
 
   fprintf(stderr, "Kept  %12" F_U32P " reads of length\n", readsKept);
   fprintf(stderr, "      %12" F_U64P " bases.\n", readLenSum);

@@ -197,7 +197,7 @@ main(int argc, char **argv) {
 
   sqRead_setDefaultVersion(sqRead_raw);
 
-  sqStore           *seqStore    = sqStore::sqStore_open(seqStoreName);
+  sqStore           *seqStore    = new sqStore(seqStoreName);
 
   ovStore           *ovlStore    = new ovStore(ovlStoreName, seqStore);
   ovStoreHistogram  *ovlHisto    = ovlStore->getHistogram();
@@ -208,7 +208,7 @@ main(int argc, char **argv) {
   uint32              ovlMax     = 0;
   ovOverlap          *ovl        = NULL;
 
-  uint16             *scores     = new uint16 [seqStore->sqStore_getNumReads() + 1];
+  uint16             *scores     = new uint16 [seqStore->sqStore_lastReadID() + 1];
   uint16              scoreExact = 0;
   uint16              scoreEstim = 0;
 
@@ -227,7 +227,7 @@ main(int argc, char **argv) {
     //fprintf(stdout, "-------- ------ ------\n");
   }
 
-  for (uint32 id=0; id <= seqStore->sqStore_getNumReads(); id++) {
+  for (uint32 id=0; id <= seqStore->sqStore_lastReadID(); id++) {
     scores[id] = UINT16_MAX;
 
     if (numOlaps[id] == 0) {
@@ -258,7 +258,7 @@ main(int argc, char **argv) {
   }
 
   if (scoreFile)
-    writeToFile(scores, "scores", seqStore->sqStore_getNumReads() + 1, scoreFile);
+    writeToFile(scores, "scores", seqStore->sqStore_lastReadID() + 1, scoreFile);
 
   AS_UTL_closeFile(scoreFile, scoreFileName);
   AS_UTL_closeFile(logFile,   logFileName);
@@ -270,7 +270,7 @@ main(int argc, char **argv) {
   delete    ovlHisto;
   delete    ovlStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   if (noStats == true)
     exit(0);

@@ -433,15 +433,15 @@ main(int argc, char **argv) {
       minMemory  = OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize;
     }
 
-    sqStore        *seq    = sqStore::sqStore_open(seqName);
-    uint32          maxID  = seq->sqStore_getNumReads();
+    sqStore        *seq    = new sqStore(seqName);
+    uint32          maxID  = seq->sqStore_lastReadID();
 
     config = new ovStoreConfig(fileList, maxID);
 
     config->assignReadsToSlices(seq, minMemory, maxMemory);
     config->writeConfig(configOut);
 
-    seq->sqStore_close();
+    delete seq;
   }
 
   //  If we have a config, report parameters.

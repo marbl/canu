@@ -248,7 +248,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  seqStore     = sqStore::sqStore_open(seqName, sqStore_readOnly);
+  seqStore     = new sqStore(seqName, sqStore_readOnly);
   tigStore     = new tgStore(tigName, tigVers, tgStoreReadOnly);
 
   if (endID == 0)
@@ -284,15 +284,12 @@ main(int argc, char **argv) {
 
   double      globalRate     = 0;
 
-  bool       *isNonRandom = new bool   [seqStore->sqStore_getNumReads() + 1];
-  uint32     *fragLength  = new uint32 [seqStore->sqStore_getNumReads() + 1];
+  bool       *isNonRandom = new bool   [seqStore->sqStore_lastReadID() + 1];
+  uint32     *fragLength  = new uint32 [seqStore->sqStore_lastReadID() + 1];
 
-  for (uint32 fi=1; fi <= seqStore->sqStore_getNumReads(); fi++) {
-    sqRead     *read = seqStore->sqStore_getRead(fi);
-    sqLibrary  *libr = seqStore->sqStore_getLibrary(read->sqRead_libraryID());
-
-    isNonRandom[fi] = libr->sqLibrary_isNonRandom();
-    fragLength[fi]  = read->sqRead_sequenceLength();
+  for (uint32 fi=1; fi <= seqStore->sqStore_lastReadID(); fi++) {
+    isNonRandom[fi] = seqStore->sqStore_getLibraryForRead(fi)->sqLibrary_isNonRandom();
+    fragLength[fi]  = seqStore->sqStore_getReadLength(fi);
   }
 
   //
@@ -562,7 +559,7 @@ main(int argc, char **argv) {
   delete [] isNonRandom;
   delete [] fragLength;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   delete tigStore;
 

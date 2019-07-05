@@ -226,11 +226,8 @@ Correct_Frags(coParameters *G,
   G->basesLen   = 0;
   G->adjustsLen = 0;
 
-  for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    sqRead *read = seqStore->sqStore_getRead(curID);
-
-    G->basesLen += read->sqRead_sequenceLength() + 1;
-  }
+  for (uint32 curID=G->bgnID; curID<=G->endID; curID++)
+    G->basesLen += seqStore->sqStore_getReadLength(curID) + 1;
 
   for (uint64 c=0; c<Clen; c++) {
     switch (C[c].type) {
@@ -263,15 +260,9 @@ Correct_Frags(coParameters *G,
 
   //  Load reads and apply corrections for each one.
 
-  sqReadData *readData = new sqReadData;
+  sqRead *read = new sqRead;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    sqRead *read       = seqStore->sqStore_getRead(curID);
-
-    seqStore->sqStore_loadReadData(read, readData);
-
-    uint32  readLength = read->sqRead_sequenceLength();
-    char   *readBases  = readData->sqReadData_getSequence();
 
     //  Save pointers to the bases and adjustments.
 
@@ -303,19 +294,23 @@ Correct_Frags(coParameters *G,
 
     //Cpos++;
 
-    //  Now do the corrections.
+    //  Now actually load the read and do the corrections.
 
-    correctRead(curID,
-                G->reads[G->readsLen].bases,
-                G->reads[G->readsLen].basesLen,
-                G->reads[G->readsLen].adjusts,
-                G->reads[G->readsLen].adjustsLen,
-                readData->sqReadData_getSequence(),
-                read->sqRead_sequenceLength(),
-                C,
-                Cpos,
-                Clen,
-                changes);
+    if (seqStore->sqStore_getReadLength(curID) > 0) {
+      seqStore->sqStore_getRead(curID, read);
+
+      correctRead(curID,
+                  G->reads[G->readsLen].bases,
+                  G->reads[G->readsLen].basesLen,
+                  G->reads[G->readsLen].adjusts,
+                  G->reads[G->readsLen].adjustsLen,
+                  read->sqRead_sequence(),
+                  read->sqRead_length(),
+                  C,
+                  Cpos,
+                  Clen,
+                  changes);
+    }
 
     //  Update the lengths in the globals.
 
@@ -324,7 +319,7 @@ Correct_Frags(coParameters *G,
     G->readsLen   += 1;
   }
 
-  delete readData;
+  delete read;
   delete Cfile;
 
   fprintf(stderr, "Corrected " F_U64 " bases with " F_U64 " substitutions, " F_U64 " deletions and " F_U64 " insertions.\n",

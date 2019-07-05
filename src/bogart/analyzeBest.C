@@ -86,7 +86,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Loading read to library mapping.\n");
 
-  sqStore    *seq = sqStore::sqStore_open(seqName, false, false);
+  sqStore    *seq = new sqStore(seqName, false, false);
   gkStream   *str = new gkStream(seq, 0, 0, GKFRAGMENT_INF);
   sqRead      fr;
 
@@ -193,7 +193,7 @@ main(int argc, char **argv) {
             dovePerLib[i], (dovePerLib[i] == 0) ? 0.0 : 100.0 * dovePerLib[i] / tot);
   }
 
-  seq->sqStore_close();
+  delete seq;
 
   AS_UTL_closeFile(be, bEdge);
   AS_UTL_closeFile(bc, bCont);

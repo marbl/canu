@@ -65,7 +65,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore  *seqStore = sqStore::sqStore_open(seqName);
+  sqStore  *seqStore = new sqStore(seqName);
 
   FILE *F = fopen(tigFileName, "r");
 

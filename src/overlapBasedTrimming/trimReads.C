@@ -55,7 +55,7 @@
 //  the original clear range was completely outside the max range.
 //
 bool
-enforceMaximumClearRange(sqRead          *read,
+enforceMaximumClearRange(uint32           readID,
                          uint32    UNUSED(ibgn),
                          uint32    UNUSED(iend),
                          uint32          &fbgn,
@@ -69,8 +69,8 @@ enforceMaximumClearRange(sqRead          *read,
   if (fbgn == fend)
     return(true);
 
-  uint32 mbgn = maxClr->bgn(read->sqRead_readID());
-  uint32 mend = maxClr->end(read->sqRead_readID());
+  uint32 mbgn = maxClr->bgn(readID);
+  uint32 mend = maxClr->end(readID);
 
   assert(mbgn <  mend);
   assert(fbgn <= fend);
@@ -218,7 +218,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore          *seq = sqStore::sqStore_open(seqName);
+  sqStore          *seq = new sqStore(seqName);
   ovStore          *ovs = new ovStore(ovsName, seq);
 
   clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, seq);
@@ -252,18 +252,17 @@ main(int argc, char **argv) {
 
   if (idMin < 1)
     idMin = 1;
-  if (idMax > seq->sqStore_getNumReads())
-    idMax = seq->sqStore_getNumReads();
+  if (idMax > seq->sqStore_lastReadID())
+    idMax = seq->sqStore_lastReadID();
 
   fprintf(stderr, "Processing from ID " F_U32 " to " F_U32 " out of " F_U32 " reads.\n",
           idMin,
           idMax,
-          seq->sqStore_getNumReads());
+          seq->sqStore_lastReadID());
 
 
   for (uint32 id=idMin; id<=idMax; id++) {
-    sqRead     *read = seq->sqStore_getRead(id);
-    sqLibrary  *libr = seq->sqStore_getLibrary(read->sqRead_libraryID());
+    sqLibrary  *libr = seq->sqStore_getLibraryForRead(id);
 
     logMsg[0] = 0;
 
@@ -272,7 +271,7 @@ main(int argc, char **argv) {
     //  we skip.
     //
     if ((iniClr) && (iniClr->isDeleted(id) == true)) {
-      deletedIn += read->sqRead_sequenceLength();
+      deletedIn += seq->sqStore_getReadLength(id);
       continue;
     }
 
@@ -281,11 +280,11 @@ main(int argc, char **argv) {
     //
     if ((libr->sqLibrary_finalTrim() == SQ_FINALTRIM_LARGEST_COVERED) &&
         (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_BEST_EDGE)) {
-      noTrimIn += read->sqRead_sequenceLength();
+      noTrimIn += seq->sqStore_getReadLength(id);
       continue;
     }
 
-    readsIn += read->sqRead_sequenceLength();
+    readsIn += seq->sqStore_getReadLength(id);
 
 
     //  Decide on the initial trimming.  We copied any iniClr into outClr above, and if there wasn't
@@ -318,7 +317,7 @@ main(int argc, char **argv) {
       assert(id == ovl[0].a_iid);
 
       isGood = largestCovered(ovl, ovlLen,
-                              read,
+                              id, seq->sqStore_getReadLength(id),
                               ibgn, iend, fbgn, fend,
                               logMsg,
                               errorValue,
@@ -335,7 +334,7 @@ main(int argc, char **argv) {
       assert(id == ovl[0].a_iid);
 
       isGood = bestEdge(ovl, ovlLen,
-                        read,
+                        id, seq->sqStore_getReadLength(id),
                         ibgn, iend, fbgn, fend,
                         logMsg,
                         errorValue,
@@ -354,7 +353,7 @@ main(int argc, char **argv) {
     //  Enforce the maximum clear range
 
     if ((isGood) && (maxClr)) {
-      isGood = enforceMaximumClearRange(read,
+      isGood = enforceMaximumClearRange(id,
                                         ibgn, iend, fbgn, fend,
                                         logMsg,
                                         maxClr);
@@ -369,7 +368,7 @@ main(int argc, char **argv) {
     //  If bad trimming or too small, write the log and keep going.
     //
     if (ovlLen == 0) {
-      noOvlOut += read->sqRead_sequenceLength();
+      noOvlOut += seq->sqStore_getReadLength(id);
 
       outClr->setbgn(id) = fbgn;
       outClr->setend(id) = fend;
@@ -383,7 +382,7 @@ main(int argc, char **argv) {
     }
 
     else if ((isGood == false) || (fend - fbgn < minReadLength)) {
-      deletedOut += read->sqRead_sequenceLength();
+      deletedOut += seq->sqStore_getReadLength(id);
 
       outClr->setbgn(id) = fbgn;
       outClr->setend(id) = fend;
@@ -400,7 +399,7 @@ main(int argc, char **argv) {
     //
     else if ((ibgn == fbgn) &&
              (iend == fend)) {
-      noChangeOut += read->sqRead_sequenceLength();
+      noChangeOut += seq->sqStore_getReadLength(id);
 
       fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tNOC%s\n",
               id,
@@ -434,7 +433,7 @@ main(int argc, char **argv) {
 
   //  Clean up.
 
-  seq->sqStore_close();
+  delete seq;
 
   delete [] ovl;
   delete    ovs;

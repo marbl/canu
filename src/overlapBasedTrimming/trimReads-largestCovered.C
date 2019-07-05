@@ -35,7 +35,8 @@
 bool
 largestCovered(ovOverlap    *ovl,
                uint32        ovlLen,
-               sqRead       *read,
+               uint32        readID,
+               uint32 UNUSED(readLen),
                uint32 UNUSED(ibgn),
                uint32        iend,
                uint32       &fbgn,
@@ -48,12 +49,12 @@ largestCovered(ovOverlap    *ovl,
 
   logMsg[0] = 0;
 
-  assert(read->sqRead_readID() == ovl[0].a_iid);
+  assert(readID == ovl[0].a_iid);
   assert(ovlLen > 0);
 
   intervalList<uint32>  IL;
   intervalList<uint32>  ID;
-  int32                 iid = read->sqRead_readID();
+  int32                 iid = readID;
 
   uint32                nSkip = 0;
   uint32                nUsed = 0;
@@ -209,7 +210,7 @@ largestCovered(ovOverlap    *ovl,
 #if 0
   if (IL.numberOfIntervals() > 1)
     for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-      fprintf(stderr, "IL[%02d] - iid %d - " F_S64 " " F_S64 "\n", it, read->sqRead_readID(), IL.lo(it), IL.hi(it));
+      fprintf(stderr, "IL[%02d] - iid %d - " F_S64 " " F_S64 "\n", it, readID, IL.lo(it), IL.hi(it));
 #endif
 
   if (IL.numberOfIntervals() == 0) {

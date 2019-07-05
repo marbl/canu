@@ -78,10 +78,10 @@ void *
 Process_Overlaps(void *ptr){
   Work_Area_t  *WA = (Work_Area_t *)ptr;
 
-  sqReadData   *readData = new sqReadData;
-
-  char         *bases = new char [AS_MAX_READLEN + 1];
-  char         *quals = new char [AS_MAX_READLEN + 1];
+  uint32        seqptrLen = 0;
+  uint32        seqptrMax = AS_MAX_READLEN + 1;
+  char         *seqptr    = new char [seqptrMax];
+  char         *bases     = new char [AS_MAX_READLEN + 1];
 
   while (WA->bgnID < G.endRefID) {
     WA->overlapsLen                = 0;
@@ -99,37 +99,33 @@ Process_Overlaps(void *ptr){
             WA->thread_id, WA->bgnID, WA->endID);
 
     for (uint32 fi=WA->bgnID; fi<=WA->endID; fi++) {
+      uint32  libID   = WA->readStore->sqStore_getLibraryIDForRead(fi);
+      uint32  readLen = WA->readCache->sqCache_getLength(fi);
 
       //  Load sequence/quality data
       //  Duplicated in Build_Hash_Index()
 
-      sqRead   *read = WA->seqStore->sqStore_getRead(fi);
-
-      if ((read->sqRead_libraryID() < G.minLibToRef) ||
-          (read->sqRead_libraryID() > G.maxLibToRef))
+      if ((libID < G.minLibToRef) ||
+          (libID > G.maxLibToRef))
         continue;
 
-      uint32 len = read->sqRead_sequenceLength();
-
-      if (len < G.Min_Olap_Len)
+      if (readLen < G.Min_Olap_Len)
         continue;
 
-      WA->seqStore->sqStore_loadReadData(read, readData);
+      WA->readCache->sqCache_getSequence(fi, seqptr, seqptrLen, seqptrMax);
 
-      char   *seqptr   = readData->sqReadData_getSequence();
-
-      for (uint32 i=0; i<len; i++)
+      for (uint32 i=0; i<readLen; i++)
         bases[i] = tolower(seqptr[i]);
 
-      bases[len] = 0;
+      bases[readLen] = 0;
 
       //  Generate overlaps.
 
-      Find_Overlaps(bases, len, read->sqRead_readID(), FORWARD, WA);
+      Find_Overlaps(bases, readLen, fi, FORWARD, WA);
 
-      reverseComplementSequence(bases, len);
+      reverseComplementSequence(bases, readLen);
 
-      Find_Overlaps(bases, len, read->sqRead_readID(), REVERSE, WA);
+      Find_Overlaps(bases, readLen, fi, REVERSE, WA);
     }
 
     //  Write out this block of overlaps, no need to keep them in core!
@@ -168,10 +164,8 @@ Process_Overlaps(void *ptr){
     }
   }
 
-  delete readData;
-
   delete [] bases;
-  delete [] quals;
+  delete [] seqptr;
 
   return(ptr);
 }

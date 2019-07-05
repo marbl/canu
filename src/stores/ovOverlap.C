@@ -86,10 +86,10 @@ ovOverlap::toString(char                  *str,
       // no padding spaces on names we don't confuse read identifiers
       sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " \tdv:f:%6.4f%s",
               a_iid,
-              (g->sqStore_getRead(a_iid)->sqRead_sequenceLength()), a_bgn(), a_end(),
+              g->sqStore_getReadLength(a_iid), a_bgn(), a_end(),
               flipped() ? '-' : '+',
               b_iid,
-              (g->sqStore_getRead(b_iid)->sqRead_sequenceLength()), flipped() ? b_end() : b_bgn(), flipped() ? b_bgn() : b_end(),
+              g->sqStore_getReadLength(b_iid), flipped() ? b_end() : b_bgn(), flipped() ? b_bgn() : b_end(),
               (uint32)floor(span() == 0 ? ((1-erate()) * (a_end()-a_bgn())) : (1-erate()) * span()),
               span() == 0 ? a_end() - a_bgn() : span(),
               255, erate(),
@@ -131,8 +131,8 @@ ovOverlap::fromString(splitToWords          &W,
       span(W.touint32(3));
 
       {
-        uint32  alen = g->sqStore_getRead(a_iid)->sqRead_sequenceLength();
-        uint32  blen = g->sqStore_getRead(b_iid)->sqRead_sequenceLength();
+        uint32  alen = g->sqStore_getReadLength(a_iid);
+        uint32  blen = g->sqStore_getReadLength(b_iid);
 
         uint32  abgn = W.touint32(4);
         uint32  aend = W.touint32(5);

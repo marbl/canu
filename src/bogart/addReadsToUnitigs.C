@@ -386,7 +386,7 @@ main(int argc, char **argv) {
   //
 
   fprintf(stderr, "Processing mate pairs, updating seqStore.\n");
-  seqStore = sqStore::sqStore_open(seqName, false, true);  //  last arg - TRUE - writable
+  seqStore = new sqStore(seqName, false, true);  //  last arg - TRUE - writable
 
   uint32   unpaired    = 0;
   uint32   multiple    = 0;
@@ -458,7 +458,7 @@ main(int argc, char **argv) {
       pairsToDiff++;
   }
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   fprintf(stderr, "Will NOT add %u pairs - one read failed to map.\n", unpaired);
   fprintf(stderr, "Will NOT add %u pairs - multiple mappings.\n", multiple);
@@ -469,7 +469,7 @@ main(int argc, char **argv) {
   //  Open stores.  seqStore cannot be opened for writing, because then we can't loadall.
   //
 
-  seqStore = sqStore::sqStore_open(seqName, false, false);                              //  last arg - false - not writable
+  seqStore = new sqStore(seqName, false, false);                              //  last arg - false - not writable
   tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, true, true, false);  //  Write back to the same version
 
   if (loadall) {

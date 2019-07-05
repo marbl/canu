@@ -45,7 +45,6 @@ merylInput::merylInput(merylOperation *o) {
   _sqEnd       = 0;
 
   _read        = NULL;
-  _readData    = NULL;
   _readID      = 0;
   _readPos     = UINT32_MAX;
 #endif
@@ -77,7 +76,6 @@ merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile)
   _sqEnd       = 0;
 
   _read        = NULL;
-  _readData    = NULL;
   _readID      = 0;
   _readPos     = UINT32_MAX;
 #endif
@@ -106,7 +104,6 @@ merylInput::merylInput(const char *n, dnaSeqFile *f) {
   _sqEnd       = 0;
 
   _read        = NULL;
-  _readData    = NULL;
   _readID      = 0;
   _readPos     = UINT32_MAX;
 #endif
@@ -130,13 +127,13 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
   _valid       = true;    //  Trick nextMer into doing something without a valid mer.
 
   _sqBgn       = 1;                                   //  C-style, not the usual
-  _sqEnd       = _store->sqStore_getNumReads() + 1;   //  sqStore semantics!
+  _sqEnd       = _store->sqStore_lastReadID() + 1;   //  sqStore semantics!
 
   if (segmentMax > 1) {
     uint64  nBases = 0;
 
-    for (uint32 ss=1; ss <= _store->sqStore_getNumReads(); ss++)
-      nBases += _store->sqStore_getRead(ss)->sqRead_sequenceLength();
+    for (uint32 ss=1; ss <= _store->sqStore_lastReadID(); ss++)
+      nBases += _store->sqStore_getReadLength(ss);
 
     uint64  nBasesPerSeg = nBases / segmentMax;
 
@@ -145,8 +142,8 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
 
     nBases = 0;
 
-    for (uint32 ss=1; ss <= _store->sqStore_getNumReads(); ss++) {
-      nBases += _store->sqStore_getRead(ss)->sqRead_sequenceLength();
+    for (uint32 ss=1; ss <= _store->sqStore_lastReadID(); ss++) {
+      nBases += _store->sqStore_getReadLength(ss);
 
       if ((_sqBgn == 0) && ((nBases / nBasesPerSeg) == segment - 1))
         _sqBgn = ss;
@@ -156,16 +153,15 @@ merylInput::merylInput(const char *n, sqStore *s, uint32 segment, uint32 segment
     }
 
     if (segment == segmentMax)                      //  Annoying special case; if the last segment,
-      _sqEnd = _store->sqStore_getNumReads() + 1;   //  sqEnd is set to the last read, not N+1.
+      _sqEnd = _store->sqStore_lastReadID() + 1;   //  sqEnd is set to the last read, not N+1.
 
     fprintf(stderr, "merylInput-- segment %u/%u picked reads %u-%u out of %u\n",
-            segment, segmentMax, _sqBgn, _sqEnd, _store->sqStore_getNumReads());
+            segment, segmentMax, _sqBgn, _sqEnd, _store->sqStore_lastReadID());
   }
 
-  _read        = NULL;
-  _readData    = new sqReadData;
+  _read        = new sqRead;
   _readID      = _sqBgn - 1;       //  Incremented before loading the first read
-  _readPos     = 0;
+  _readPos     = UINT32_MAX;
 
   memset(_name, 0, FILENAME_MAX+1);
   strncpy(_name, n, FILENAME_MAX);
@@ -181,9 +177,9 @@ merylInput::~merylInput() {
   delete _sequence;
 
 #ifdef CANU
-  delete _readData;
+  delete _read;
 
-  _store->sqStore_close();
+  delete _store;
 #endif
 }
 
@@ -255,22 +251,19 @@ merylInput::loadBases(char    *seq,
     //  We need to loop so we can ignore the length zero reads in seqStore
     //  that exist after correction/trimming.
 
-    while ((_read    == NULL) ||
-        (_readPos >= _read->sqRead_sequenceLength())) {
+    while (_readPos >= _read->sqRead_length()) {
       _readID++;
 
       if (_readID >= _sqEnd)  //  C-style iteration, not usual sqStore semantics.
         return(false);
 
-      _read    = _store->sqStore_getRead(_readID);
+      _store->sqStore_getRead(_readID, _read);
       _readPos = 0;
-
-      _store->sqStore_loadReadData(_read, _readData);
     }
 
     //  How much of the read is left to return?
 
-    uint32  len = _read->sqRead_sequenceLength() - _readPos;
+    uint32  len = _read->sqRead_length() - _readPos;
 
     assert(len > 0);
 
@@ -278,9 +271,9 @@ merylInput::loadBases(char    *seq,
     //  flagging it as the end of a sequence, and setup to load the next read.
 
     if (len < maxLength) {
-      memcpy(seq, _readData->sqReadData_getSequence() + _readPos, sizeof(char) * len);
+      memcpy(seq, _read->sqRead_sequence() + _readPos, sizeof(char) * len);
 
-      _read          = NULL;
+      _readPos       = _read->sqRead_length();
 
       seqLength      = len;
       endOfSequence  = true;
@@ -289,7 +282,7 @@ merylInput::loadBases(char    *seq,
     //  Otherwise, only part of the data will fit in the output space.
 
     else {
-      memcpy(seq, _readData->sqReadData_getSequence() + _readPos, sizeof(char) * maxLength);
+      memcpy(seq, _read->sqRead_sequence() + _readPos, sizeof(char) * maxLength);
 
       _readPos      += maxLength;
 

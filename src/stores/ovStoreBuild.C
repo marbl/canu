@@ -148,12 +148,12 @@ main(int argc, char **argv) {
   //  Load the config, open the store, create a filter.
 
   ovStoreConfig    *config = new ovStoreConfig(cfgName);
-  sqStore          *seq    = sqStore::sqStore_open(seqName);
+  sqStore          *seq    = new sqStore(seqName);
   ovStoreFilter    *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
 
   //  Figure out how many overlaps there are, quit if too many.
 
-  uint32  maxID       = seq->sqStore_getNumReads();
+  uint32  maxID       = seq->sqStore_lastReadID();
   uint64  ovlsTotal   = 0;  //  Total in inputs.
   uint32  numInputs   = 0;
 
@@ -315,7 +315,7 @@ main(int argc, char **argv) {
   delete    store;
   delete [] ovls;
 
-  seq->sqStore_close();
+  delete seq;
 
   //  And we have a store.
 

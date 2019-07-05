@@ -96,10 +96,8 @@ extractReads(feParameters *G,
          (lastOlap     < G->olapsLen)) {
     hiID = G->olaps[lastOlap].b_iid;                        //  Grab the ID of the overlap we're at.
 
-    sqRead *read = seqStore->sqStore_getRead(hiID);         //  Grab that read.
-
     fl->readsLen += 1;                                      //  Add the read to our set.
-    fl->basesLen += read->sqRead_sequenceLength() + 1;
+    fl->basesLen += seqStore->sqStore_getReadLength(hiID) + 1;
 
     lastOlap++;                                             //  Advance to the next overlap
     while ((lastOlap < G->olapsLen) &&                      //
@@ -137,29 +135,27 @@ extractReads(feParameters *G,
 
   //  Load the sequence data for reads loID to hiID, as long as the read has an overlap.
 
-  sqReadData *readData = new sqReadData;
+  sqRead *read = new sqRead;
 
   fl->readsLen = 0;
   fl->basesLen = 0;
 
   while ((loID <= hiID) &&
          (nextOlap < G->olapsLen)) {
-    sqRead *read       = seqStore->sqStore_getRead(loID);
+    seqStore->sqStore_getRead(loID, read);
 
     fl->readIDs[fl->readsLen]   = loID;                          //  Save the ID of _this_ read.
     fl->readBases[fl->readsLen] = fl->bases + fl->basesLen;      //  Set the data pointer to where this read should start.
 
-    seqStore->sqStore_loadReadData(read, readData);
-
-    uint32  readLen    = read->sqRead_sequenceLength();
-    char   *readBases  = readData->sqReadData_getSequence();
+    uint32  readLen    = read->sqRead_length();
+    char   *readBases  = read->sqRead_sequence();
 
     for (uint32 bb=0; bb<readLen; bb++)
       fl->readBases[fl->readsLen][bb] = filter[readBases[bb]];
 
     fl->readBases[fl->readsLen][readLen] = 0;                    //  All good reads end.
 
-    fl->basesLen += read->sqRead_sequenceLength() + 1;           //  Update basesLen to account for this read.
+    fl->basesLen += read->sqRead_length() + 1;                   //  Update basesLen to account for this read.
     fl->readsLen += 1;                                           //  And note that we loaded a read.
 
     nextOlap++;                                                  //  Advance past all the overlaps for this read.
@@ -171,7 +167,7 @@ extractReads(feParameters *G,
       loID = G->olaps[nextOlap].b_iid;                           //  If we don't have a valid overlap, the loop will stop.
   }
 
-  delete readData;
+  delete read;
 
 
   fprintf(stderr, "extractReads()-- Loaded.\n");
@@ -447,13 +443,13 @@ main(int argc, char **argv) {
 
   //  Load data.
 
-  sqStore *seqStore = sqStore::sqStore_open(G->seqStorePath);
+  sqStore *seqStore = new sqStore(G->seqStorePath);
 
   if (G->bgnID < 1)
     G->bgnID = 1;
 
-  if (seqStore->sqStore_getNumReads() < G->endID)
-    G->endID = seqStore->sqStore_getNumReads();
+  if (seqStore->sqStore_lastReadID() < G->endID)
+    G->endID = seqStore->sqStore_lastReadID();
 
   Read_Frags(G, seqStore);
   Read_Olaps(G, seqStore);
@@ -480,7 +476,7 @@ main(int argc, char **argv) {
 
   //  Cleanup and exit!
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   delete G;
 

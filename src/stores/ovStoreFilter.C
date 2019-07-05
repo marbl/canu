@@ -64,7 +64,7 @@
 
 ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate_, bool beVerbose_) {
   seq             = seq_;
-  maxID           = seq->sqStore_getNumReads();
+  maxID           = seq->sqStore_lastReadID();
   maxEvalue       = AS_OVS_encodeEvalue(maxErate_);
 
   beVerbose       = beVerbose_;
@@ -78,8 +78,7 @@ ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate_, bool beVerbose_) {
   uint32  numSkipDUP = 0;
 
   for (uint64 iid=0; iid<=maxID; iid++) {
-    uint32     Lid = seq->sqStore_getRead(iid)->sqRead_libraryID();
-    sqLibrary *L   = seq->sqStore_getLibrary(Lid);
+    sqLibrary *L = seq->sqStore_getLibraryForRead(iid);
 
     skipReadOBT[iid] = false;
     skipReadDUP[iid] = false;
@@ -288,7 +287,7 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
 
   if (((foverlap.dat.ovl.forDUP == true) ||
        (roverlap.dat.ovl.forDUP == true)) &&
-      (seq->sqStore_getRead(foverlap.a_iid)->sqRead_libraryID() != seq->sqStore_getRead(foverlap.b_iid)->sqRead_libraryID())) {
+      (seq->sqStore_getLibraryForRead(foverlap.a_iid) != seq->sqStore_getLibraryForRead(foverlap.b_iid))) {
 
     if ((foverlap.dat.ovl.forDUP == true)) {
       foverlap.dat.ovl.forDUP = false;

@@ -368,8 +368,7 @@ dumpParameters::drawPicture(uint32         Aid,
 
   uint32   MHS   = 9;  //  Max Hang Size, amount of padding for "+### "
 
-  sqRead   *A    = seqStore->sqStore_getRead(Aid);
-  uint32    Alen = A->sqRead_sequenceLength();
+  uint32    Alen = seqStore->sqStore_getReadLength(Aid);
 
   if (overlapsLen == 0)
     return;
@@ -397,8 +396,7 @@ dumpParameters::drawPicture(uint32         Aid,
 
   for (uint32 o=0; o<overlapsLen; o++) {
     uint32    Bid  = overlaps[o].b_iid;
-    sqRead   *B    = seqStore->sqStore_getRead(Bid);
-    uint32    Blen = B->sqRead_sequenceLength();
+    uint32    Blen = seqStore->sqStore_getReadLength(Bid);
 
     //  Find bgn/end points on each read.  If the overlap is reverse complement,
     //  the B coords are flipped so that bgn > end.
@@ -817,7 +815,7 @@ main(int argc, char **argv) {
   //  Open stores, allocate space to store overlaps.
   //
 
-  sqStore   *seqStore = sqStore::sqStore_open(seqName);
+  sqStore   *seqStore = new sqStore(seqName);
   ovStore   *ovlStore = new ovStore(ovlName, seqStore);
 
   uint32     ovlLen   = 0;
@@ -828,11 +826,11 @@ main(int argc, char **argv) {
   //  Fix up ranges and restrict the overlaps.
   //
 
-  if (endID > seqStore->sqStore_getNumReads())
-    endID = seqStore->sqStore_getNumReads();
+  if (endID > seqStore->sqStore_lastReadID())
+    endID = seqStore->sqStore_lastReadID();
 
   if (endID < bgnID)
-    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, seqStore->sqStore_getNumReads()), exit(1);
+    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, seqStore->sqStore_lastReadID()), exit(1);
 
   ovlStore->setRange(bgnID, endID);
 
@@ -840,7 +838,7 @@ main(int argc, char **argv) {
   //  Load bogart status.
   //
 
-  params.loadBogartStatus(bogartPath, seqStore->sqStore_getNumReads());
+  params.loadBogartStatus(bogartPath, seqStore->sqStore_lastReadID());
 
 
   //
@@ -865,7 +863,7 @@ main(int argc, char **argv) {
   }
 
   if ((asCounts) && (params.parametersAreDefaults() == false)) {
-    uint32   *nopr = new uint32 [seqStore->sqStore_getNumReads() + 1];
+    uint32   *nopr = new uint32 [seqStore->sqStore_lastReadID() + 1];
 
     ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
@@ -1080,7 +1078,7 @@ main(int argc, char **argv) {
   delete [] ovl;
   delete    ovlStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

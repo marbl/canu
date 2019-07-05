@@ -88,7 +88,7 @@ public:
     if (prefix != NULL) {
       snprintf(_name, FILENAME_MAX, "%s.oc", prefix);
 
-      _oprMax = seq->sqStore_getNumReads() + 1;
+      _oprMax = seq->sqStore_lastReadID() + 1;
 
       allocateArray(_opr, _oprMax, resizeArray_clearNew);
     }
@@ -170,7 +170,7 @@ public:
 
     //  Otherwise, counts exist, and we load them.
 
-    _oprMax = seq->sqStore_getNumReads() + 1;
+    _oprMax = seq->sqStore_lastReadID() + 1;
 
     allocateArray(_opr, _oprMax, resizeArray_clearNew);
 

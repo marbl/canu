@@ -482,25 +482,22 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Opening seqStore '%s'\n", seqName);
 
-  sqStore *seqStore = sqStore::sqStore_open(seqName, sqStore_readOnly);
+  sqStore *seqStore = new sqStore(seqName, sqStore_readOnly);
 
   fprintf(stderr, "Reading read lengths and randomness for %u reads.\n",
-          seqStore->sqStore_getNumReads());
+          seqStore->sqStore_lastReadID());
 
-  isNonRandom = new bool   [seqStore->sqStore_getNumReads() + 1];
-  readLength  = new uint32 [seqStore->sqStore_getNumReads() + 1];
+  isNonRandom = new bool   [seqStore->sqStore_lastReadID() + 1];
+  readLength  = new uint32 [seqStore->sqStore_lastReadID() + 1];
 
-  for (uint32 ii=0; ii<=seqStore->sqStore_getNumReads(); ii++) {
-    sqRead      *read = seqStore->sqStore_getRead(ii);
-    sqLibrary   *libr = seqStore->sqStore_getLibrary(read->sqRead_libraryID());
-
-    isNonRandom[ii] = libr->sqLibrary_isNonRandom();
-    readLength[ii]  = read->sqRead_sequenceLength();
+  for (uint32 ii=0; ii<=seqStore->sqStore_lastReadID(); ii++) {
+    isNonRandom[ii] = seqStore->sqStore_getLibraryForRead(ii)->sqLibrary_isNonRandom();
+    readLength[ii]  = seqStore->sqStore_getReadLength(ii);
   }
 
   fprintf(stderr, "Closing seqStore.\n");
 
-  seqStore->sqStore_close();
+  delete seqStore;
   seqStore = NULL;
 
   //

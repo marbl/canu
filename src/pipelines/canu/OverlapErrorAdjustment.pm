@@ -69,7 +69,7 @@ sub loadReadLengths ($$$) {
 
     my $bin     = getBinDirectory();
 
-    $$rlVec     = "\xff" x ($maxID * 4 + 4);
+    $$rlVec     = "\x00" x ($maxID * 4 + 4);
 
     print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
@@ -84,9 +84,12 @@ sub loadReadLengths ($$$) {
 
         my @v = split '\s+', $_;
 
-        vec($$rlVec, $v[0], 32) = $v[2];
+        next  if ($v[8] eq "-");
+        next  if ($v[8] eq "ignored");
+
+        vec($$rlVec, $v[0], 32) = $v[10] - $v[9];
         $rlCnt                 += 1;
-        $rlSum                 += $v[2];
+        $rlSum                 += $v[10] - $v[9];
     }
     close(F);
 
@@ -155,6 +158,8 @@ sub readErrorDetectionConfigure ($) {
     make_path("$path")  if (! -d "$path");
 
     my $maxID = getNumberOfReadsInStore($asm, "all");
+
+    print "maxID $maxID\n";
 
     my ($rlVec, $noVec);
     my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);

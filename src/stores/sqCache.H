@@ -92,7 +92,7 @@ public:
 
 class sqCache {
 public:
-  sqCache(sqStore *seqStore, sqRead_version version=sqRead_latest, uint64 memoryLimit=0);
+  sqCache(sqStore *seqStore, sqRead_which version=sqRead_defaultVersion, uint64 memoryLimit=0);
   ~sqCache();
 
 private:
@@ -118,6 +118,7 @@ public:
 public:
   //  Data loaders.
   void         sqCache_loadReads(bool verbose=false);
+  void         sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose=false);
   void         sqCache_loadReads(set<uint32> reads, bool verbose=false);
   void         sqCache_loadReads(map<uint32, uint32> reads, bool verbose=false);
   void         sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose=false);
@@ -133,7 +134,7 @@ private:
   bool             _trackAge;
   bool             _trackExpiration;
 
-  sqRead_version   _version;
+  sqRead_which     _version;
 
   uint64           _memoryLimit;
 
@@ -154,8 +155,6 @@ private:
   uint64           _dataMax;         //  and maximum length.
   uint8           *_data;
 
-  sqReadData       _readData;
+  sqRead           _read;            //  Used mostly as a buffer for blob data.
 };
-
-
 

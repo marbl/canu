@@ -46,6 +46,7 @@
 
 #include "ovStore.H"
 #include "snappy.h"
+#include "objectStore.H"
 
 //  The histogram associated with this is written to files with any suffices stripped off.
 

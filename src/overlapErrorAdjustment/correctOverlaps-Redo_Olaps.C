@@ -317,7 +317,7 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
   uint32         fadjLen  = 0;  //  radj is the same length
 
   fprintf(stderr, "--Allocate " F_SIZE_T " MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
-  sqReadData    *readData = new sqReadData;
+  sqRead        *read     = new sqRead;
   pedWorkArea_t *ped      = new pedWorkArea_t;
 
   uint64         Total_Alignments_Ct           = 0;
@@ -346,9 +346,7 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
     if (curID < G->olaps[thisOvl].b_iid)
       continue;
 
-    sqRead *read = seqStore->sqStore_getRead(curID);
-
-    seqStore->sqStore_loadReadData(read, readData);
+    seqStore->sqStore_getRead(curID, read);
 
     //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
@@ -359,8 +357,8 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
 
     correctRead(curID,
                 fseq, fseqLen, fadj, fadjLen,
-                readData->sqReadData_getSequence(),
-                read->sqRead_sequenceLength(),
+                read->sqRead_sequence(),
+                read->sqRead_length(),
                 C, Cpos, Clen);
 
     //fprintf(stderr, "Finished   B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
@@ -541,7 +539,7 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
   fprintf(stderr, "\n");
 
   delete    ped;
-  delete    readData;
+  delete    read;
   delete [] radj;
   delete [] fadj;
   delete [] rseq;

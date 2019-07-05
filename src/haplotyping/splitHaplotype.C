@@ -107,7 +107,7 @@ public:
   ~allData() {
 
     if (_seqStore)
-      _seqStore->sqStore_close();
+      delete _seqStore;
 
     for (uint32 ii=0; ii<_haps.size(); ii++)
       delete _haps[ii];
@@ -127,7 +127,7 @@ public:
   uint32                 _idCur;
   uint32                 _idMax;
   sqStore               *_seqStore;
-  sqReadData             _readData;
+  sqRead                 _read;
   uint32                 _numReads;
 
   queue<dnaSeqFile *>    _seqs;      //  Input from FASTA/FASTQ files.
@@ -439,8 +439,8 @@ allData::openInputs(void) {
   //  Open sqStore, remember the number of reads.
 
   if (_seqName) {
-    _seqStore = sqStore::sqStore_open(_seqName);
-    _numReads = _seqStore->sqStore_getNumReads();
+    _seqStore = new sqStore(_seqName);
+    _numReads = _seqStore->sqStore_lastReadID();
 
     if (_numReads < _idMax)
       _idMax = _numReads;
@@ -511,13 +511,13 @@ loadReadBatch(void *G) {
 
     if ((g->_seqStore) &&
         (g->_idCur <= g->_idMax)) {
-      uint32  readLen = g->_seqStore->sqStore_getRead(g->_idCur)->sqRead_sequenceLength();
+      uint32  readLen = g->_seqStore->sqStore_getReadLength(g->_idCur);
 
       if (readLen >= g->_minOutputLength) {
-        g->_seqStore->sqStore_loadReadData(g->_idCur, &g->_readData);
+        g->_seqStore->sqStore_getRead(g->_idCur, &g->_read);
 
-        s->_names[rr].set(g->_readData.sqReadData_getName());
-        s->_bases[rr].set(g->_readData.sqReadData_getSequence(), readLen);
+        s->_names[rr].set(g->_read.sqRead_name());
+        s->_bases[rr].set(g->_read.sqRead_sequence(), readLen);
         s->_files[rr] = UINT32_MAX;
 
         s->_numReads++;

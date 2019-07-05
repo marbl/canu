@@ -73,12 +73,17 @@ sub getNumberOfReadsInStore ($$) {
 
     open(F, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        $nr = $1    if ((m/numReads\s+=\s+(\d+)/)          && ($tag eq "all"));
-        $nr = $1    if ((m/numRawReads\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
-        $nr = $1    if ((m/numCorrectedReads\s+=\s+(\d+)/) && ($tag eq "obt"));
-        $nr = $1    if ((m/numTrimmedReads\s+=\s+(\d+)/)   && ($tag eq "utg"));
+        if (m/^\s*(\d+)\s+([0123456789-]+)\s+(.*)\s*$/) {
+            $nr = $1 if (($3 eq "total-reads")       && ($tag eq "all"));
+            $nr = $1 if (($3 eq "raw")               && ($tag eq "cor"));
+            $nr = $1 if (($3 eq "raw")               && ($tag eq "hap"));
+            $nr = $1 if (($3 eq "corrected")         && ($tag eq "obt"));
+            $nr = $1 if (($3 eq "corrected-trimmed") && ($tag eq "utg"));
+        }
     }
     close(F);
+
+    #print STDERR "-- Found $nr reads in '$asm.seqStore', for tag '$tag'\n";
 
     return($nr);
 }
@@ -100,9 +105,12 @@ sub getNumberOfBasesInStore ($$) {
 
     open(F, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
     while (<F>) {
-        $nb = $1    if ((m/numRawBases\s+=\s+(\d+)/)       && ($tag eq "cor" || $tag eq "hap"));
-        $nb = $1    if ((m/numCorrectedBases\s+=\s+(\d+)/) && ($tag eq "obt"));
-        $nb = $1    if ((m/numTrimmedBases\s+=\s+(\d+)/)   && ($tag eq "utg"));
+        if (m/^\s*(\d+)\s+(\d+)\s+(.*)\s*$/) {
+            $nb = $2 if (($3 eq "raw")               && ($tag eq "cor"));
+            $nb = $2 if (($3 eq "raw")               && ($tag eq "hap"));
+            $nb = $2 if (($3 eq "corrected")         && ($tag eq "obt"));
+            $nb = $2 if (($3 eq "corrected-trimmed") && ($tag eq "utg"));
+        }
     }
     close(F);
 
@@ -327,7 +335,7 @@ sub generateReadLengthHistogram ($$) {
 
     open(F, "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -reads |") or caExit("can't dump meta data from './$asm.seqStore': $!", undef);
     while (<F>) {
-        next  if (m/readID/);             #  Skip the header.
+        next  if (m/readID/);             #  Skip the header lines.
         next  if (m/------/);
 
         s/^\s+//;
@@ -336,11 +344,11 @@ sub generateReadLengthHistogram ($$) {
         my @v = split '\s+', $_;
         my $l = 0;
 
-        $l = $v[3]          if (($tag eq "cor") || ($tag eq "hap"));
-        $l = $v[4]          if (($tag eq "obt"));
-        $l = $v[6] - $v[5]  if (($tag eq "utg"));
+        $l = $v[2]          if (($tag eq "cor") || ($tag eq "hap"));
+        $l = $v[8]          if (($tag eq "obt"));
+        $l = $v[10]-$v[9]   if (($tag eq "utg") && ($v[10] ne "-") && ($v[9] ne "-"));
 
-        push @rl, $l   if ($l > 0);
+        push @rl, $l        if (($l ne "-") && ($l > 0));
     }
     close(F);
 

@@ -183,7 +183,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore         *seq = sqStore::sqStore_open(seqName);
+  sqStore         *seq = new sqStore(seqName);
   ovStore         *ovs = new ovStore(ovsName, seq);
 
   clearRangeFile  *finClr = new clearRangeFile(finClrName, seq);
@@ -222,22 +222,21 @@ main(int argc, char **argv) {
 
   if (idMin < 1)
     idMin = 1;
-  if (idMax > seq->sqStore_getNumReads())
-    idMax = seq->sqStore_getNumReads();
+  if (idMax > seq->sqStore_lastReadID())
+    idMax = seq->sqStore_lastReadID();
 
   fprintf(stderr, "Processing from ID " F_U32 " to " F_U32 " out of " F_U32 " reads, using errorRate = %.2f\n",
           idMin,
           idMax,
-          seq->sqStore_getNumReads(),
+          seq->sqStore_lastReadID(),
           errorRate);
 
   for (uint32 id=idMin; id<=idMax; id++) {
-    sqRead     *read = seq->sqStore_getRead(id);
-    sqLibrary  *libr = seq->sqStore_getLibrary(read->sqRead_libraryID());
+    sqLibrary  *libr = seq->sqStore_getLibraryForRead(id);
 
     if (finClr->isDeleted(id)) {
       //  Read already trashed.
-      deletedIn += read->sqRead_sequenceLength();
+      deletedIn += seq->sqStore_getReadLength(id);
       continue;
     }
 
@@ -245,11 +244,11 @@ main(int argc, char **argv) {
         (libr->sqLibrary_removeChimericReads() == false) &&
         (libr->sqLibrary_checkForSubReads()    == false)) {
       //  Nothing to do.
-      noTrimIn += read->sqRead_sequenceLength();
+      noTrimIn += seq->sqStore_getReadLength(id);
       continue;
     }
 
-    readsIn += read->sqRead_sequenceLength();
+    readsIn += seq->sqStore_getReadLength(id);
 
 
     ovlLen = ovs->loadOverlapsForRead(id, ovl, ovlMax);
@@ -258,7 +257,7 @@ main(int argc, char **argv) {
 
     if (ovlLen == 0) {
       //  No overlaps, nothing to check!
-      noOverlaps += read->sqRead_sequenceLength();
+      noOverlaps += seq->sqStore_getReadLength(id);
       continue;
     }
 
@@ -267,7 +266,7 @@ main(int argc, char **argv) {
 
     if (w->adjLen == 0) {
       //  All overlaps trimmed out!
-      noCoverage += read->sqRead_sequenceLength();
+      noCoverage += seq->sqStore_getReadLength(id);
       continue;
     }
 
@@ -280,19 +279,19 @@ main(int argc, char **argv) {
     //  markBad(seq, w, subreadFile, doSubreadLoggingVerbose);
 
     //if (libr->sqLibrary_removeSpurReads() == true) {
-    //  readsProcSpur += read->sqRead_sequenceLength();
+    //  readsProcSpur += seq->sqStore_getReadLength(id);
     //  detectSpur(seq, w, subreadFile, doSubreadLoggingVerbose);
     //  Get stats on spur region detected - save the length of each region to the trimStats object.
     //}
 
     //if (libr->sqLibrary_removeChimericReads() == true) {
-    //  readsProcChimera += read->sqRead_sequenceLength();
+    //  readsProcChimera += seq->sqStore_getReadLength(id);
     //  detectChimer(seq, w, subreadFile, doSubreadLoggingVerbose);
     //  Get stats on chimera region detected - save the length of each region to the trimStats object.
     //}
 
     if (libr->sqLibrary_checkForSubReads() == true) {
-      readsProcSubRead += read->sqRead_sequenceLength();
+      readsProcSubRead += seq->sqStore_getReadLength(id);
       detectSubReads(seq, w, subreadFile, doSubreadLoggingVerbose);
     }
 
@@ -300,7 +299,7 @@ main(int argc, char **argv) {
     //  I don't want to pass all the stats objects into there.
 
     if (w->blist.size() == 0) {
-      readsNoChange += read->sqRead_sequenceLength();
+      readsNoChange += seq->sqStore_getReadLength(id);
     }
 
     else {
@@ -356,7 +355,7 @@ main(int argc, char **argv) {
     //  And maybe delete the read.
 
     if (w->isOK == false) {
-      deletedOut += read->sqRead_sequenceLength();
+      deletedOut += seq->sqStore_getReadLength(id);
 
       outClr->setDeleted(w->id);
     }
@@ -379,7 +378,7 @@ main(int argc, char **argv) {
 
   delete    w;
 
-  seq->sqStore_close();
+  delete seq;
 
   delete    finClr;
   delete    outClr;

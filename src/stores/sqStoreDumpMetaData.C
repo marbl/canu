@@ -33,13 +33,15 @@
 
 #include "AS_global.H"
 #include "sqStore.H"
-
 #include "strings.H"
+
+#include <map>
+
+using namespace std;
 
 
 void
 dumpLibs(sqStore *seq, uint32 bgnID, uint32 endID) {
-  //fprintf(stderr, "Dumping libraries from %u to %u (inclusive).\n", bgnID, endID);
 
   fprintf(stdout, "libID\tnonRandom\treadType\tcorrectBases\tfinalTrim\tremoveDupe\tremoveSpur\tremoveChimer\tcheckSubRead\tdefaultQV\tlibName\n");
 
@@ -63,114 +65,89 @@ dumpLibs(sqStore *seq, uint32 bgnID, uint32 endID) {
 
 
 void
-dumpReads(sqStore *seq, uint32 bgnID, uint32 endID) {
-  //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
+dumpReads_setClearString(sqStore *seqs, uint32 rid, char *len, char *bgn, char *end, sqRead_which w) {
 
-  fprintf(stdout, "    readID  libraryID     seqLen     rawLen     corLen   clearBgn   clearEnd  segm        byte  part      flags\n");
-  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ----- ----------- ----- ----------\n");
+  if (seqs->sqStore_isValidRead(rid, w) == false)
+    memcpy(len, "         -", sizeof(char) * 10);
 
-  for (uint32 rid=bgnID; rid<=endID; rid++) {
-    sqRead  *read = seq->sqStore_getRead(rid);
+  else if (seqs->sqStore_isIgnoredRead(rid, w) == true)
+    memcpy(len, "   ignored", sizeof(char) * 10);
 
-    if ((read == NULL) ||
-        (seq->sqStore_readInPartition(rid) == false))
-      continue;
+  else
+    snprintf(len, 11, "%10" F_U32P, seqs->sqStore_getReadLength(rid, w));
 
-    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %10" F_U32P " %5" F_U64P " %11" F_U64P " %4" F_U64P " %7s%c%c%c\n",
-            read->sqRead_readID(),
-            read->sqRead_libraryID(),
-            read->sqRead_sequenceLength(),
-            read->sqRead_sequenceLength(sqRead_raw),
-            read->sqRead_sequenceLength(sqRead_corrected),
-            read->sqRead_clearBgn(),
-            read->sqRead_clearEnd(),
-            read->sqRead_mSegm(),
-            read->sqRead_mByte(),
-            read->sqRead_mPart(),
-            "",
-            read->sqRead_ignore()  ? 'I' : '-',
-            read->sqRead_cExists() ? 'C' : '-',
-            read->sqRead_tExists() ? 'T' : '-');
+  assert((w & sqRead_trimmed) == sqRead_unset);   //  Otherwise, length above is trimmed length!
+
+  if (seqs->sqStore_isTrimmedRead(rid, w) == true) {
+    snprintf(bgn, 11, "%10" F_U32P, seqs->sqStore_getClearBgn(rid, w));
+    snprintf(end, 11, "%10" F_U32P, seqs->sqStore_getClearEnd(rid, w));
+  } else {
+    memcpy(bgn, "         -", sizeof(char) * 10);
+    memcpy(end, "         -", sizeof(char) * 10);
   }
+
+  len[10] = 0;
+  bgn[10] = 0;
+  end[10] = 0;
 }
-
-
-class readStats {
-public:
-  readStats() {
-    _nBases   = 0;
-    _minBases = UINT32_MAX;
-    _maxBases = 0;
-  };
-
-  ~readStats() {
-  };
-
-  void     addRead(sqRead *read) {
-    uint32 l = read->sqRead_sequenceLength();
-
-    _readLengths.push_back(l);
-
-    _nBases += l;
-
-    if (l < _minBases)  _minBases = l;
-    if (_maxBases < l)  _maxBases = l;
-  };
-
-  uint32   numberOfReads(void)  { return(_readLengths.size());  };
-  uint64   numberOfBases(void)  { return(_nBases);              };
-  uint64   minBases(void)       { return(_minBases);            };
-  uint64   maxBases(void)       { return(_maxBases);            };
-
-
-private:
-  vector<uint32>  _readLengths;
-
-  uint64          _nBases;
-  uint32          _minBases;
-  uint32          _maxBases;
-};
 
 
 
 void
-dumpStats(sqStore *seq, uint32 bgnID, uint32 endID) {
-  //fprintf(stderr, "Dumping read statistics from %u to %u (inclusive).\n", bgnID, endID);
+dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID) {
+  char   s1len[16] = {0}, s1bgn[16] = {0}, s1end[16] = {0};
+  char   s2len[16] = {0}, s2bgn[16] = {0}, s2end[16] = {0};
+  char   s3len[16] = {0}, s3bgn[16] = {0}, s3end[16] = {0};
+  char   s4len[16] = {0}, s4bgn[16] = {0}, s4end[16] = {0};
 
-  readStats  *rs = new readStats [seq->sqStore_getNumLibraries() + 1];
+  fprintf(stdout, "                      --------NORMAL RAW READS-------- ------COMPRESSED RAW READS------ -----NORMAL CORRECTED READS----- ---COMPRESSED CORRECTED READS--- \n");
+  fprintf(stdout, "    readID  libraryID     seqLen   clearBgn   clearEnd     seqLen   clearBgn   clearEnd     seqLen   clearBgn   clearEnd     seqLen   clearBgn   clearEnd blobFile    blobPos\n");
+  fprintf(stdout, "---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- -------- ----------\n");
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    sqRead  *read = seq->sqStore_getRead(rid);
+    dumpReads_setClearString(seqs, rid, s1len, s1bgn, s1end, sqRead_raw);
+    dumpReads_setClearString(seqs, rid, s2len, s2bgn, s2end, sqRead_raw       | sqRead_compressed);
+    dumpReads_setClearString(seqs, rid, s3len, s3bgn, s3end, sqRead_corrected);
+    dumpReads_setClearString(seqs, rid, s4len, s4bgn, s4end, sqRead_corrected | sqRead_compressed);
 
-    if ((read == NULL) ||
-        (seq->sqStore_readInPartition(rid) == false))
-      continue;
+    fprintf(stdout, "%10" F_U32P " %10" F_U32P " %s %s %s %s %s %s %s %s %s %s %s %s %8" F_U64P " %10" F_U64P "\n",
+            rid,
+            seqs->sqStore_getLibraryIDForRead(rid),
+            s1len, s1bgn, s1end,
+            s2len, s2bgn, s2end,
+            s3len, s3bgn, s3end,
+            s4len, s4bgn, s4end,
+            seqs->sqStore_getMeta(rid)->sqRead_mSegm(),
+            seqs->sqStore_getMeta(rid)->sqRead_mByte());
+  }
+}
 
-    uint32   l = read->sqRead_libraryID();
 
-    rs[0].addRead(read);
-    rs[l].addRead(read);
+
+void
+dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
+  sqStoreInfo    info;
+  sqRead_which   w1 = sqRead_raw;
+  sqRead_which   w2 = sqRead_raw       | sqRead_compressed;
+  sqRead_which   w3 = sqRead_corrected;
+  sqRead_which   w4 = sqRead_corrected | sqRead_compressed;
+
+  for (uint32 rid=bgnID; rid<=endID; rid++) {
+    info.examineRead(seqs->sqStore_getReadSeq(rid, w1), w1);
+    info.examineRead(seqs->sqStore_getReadSeq(rid, w2), w2);
+    info.examineRead(seqs->sqStore_getReadSeq(rid, w3), w3);
+    info.examineRead(seqs->sqStore_getReadSeq(rid, w4), w4);
   }
 
-  //  Stats per library (this mode when -libs -stats is selected?) and global.
-  //  Stats include:
-  //    number of reads
-  //    total bases
-  //    min, mean, stddev, max base per read
-  //    length histogram plot
-
-  for (uint32 l=0; l<seq->sqStore_getNumLibraries() + 1; l++)
-    fprintf(stdout, "library " F_U32 "  reads " F_U32 " bases: total " F_U64 " ave " F_U64 " min " F_U64 " max " F_U64 "\n",
-            l, rs[l].numberOfReads(), rs[l].numberOfBases(), rs[l].numberOfBases() / rs[l].numberOfReads(), rs[l].minBases(), rs[l].maxBases());
-
-  delete [] rs;
+  info.writeInfoAsText(stdout);
 }
+
+
 
 
 int
 main(int argc, char **argv) {
   char            *seqStoreName      = NULL;
-  uint32           seqStorePart      = UINT32_MAX;
 
   bool             wantLibs          = false;
   bool             wantReads         = true;
@@ -186,9 +163,6 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqStoreName = argv[++arg];
-
-      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        seqStorePart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-libs") == 0) {
       wantLibs  = true;
@@ -227,8 +201,7 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -S seqStore [p] [...]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -S seqStore [p]  dump reads from 'seqStore', restricted to\n");
-    fprintf(stderr, "                   partition 'p', if supplied.\n");
+    fprintf(stderr, "  -S seqStore      dump reads from 'seqStore'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libs            dump information about libraries\n");
     fprintf(stderr, "  -reads           dump information about reads\n");
@@ -247,9 +220,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore    *seqStore  = sqStore::sqStore_open(seqStoreName, sqStore_readOnly, seqStorePart);
-  uint32      numReads  = seqStore->sqStore_getNumReads();
-  uint32      numLibs   = seqStore->sqStore_getNumLibraries();
+  sqStore    *seqStore  = new sqStore(seqStoreName, sqStore_readOnly);
+  uint32      numReads  = seqStore->sqStore_lastReadID();
+  uint32      numLibs   = seqStore->sqStore_lastLibraryID();
 
 
   if (wantLibs) {
@@ -276,7 +249,7 @@ main(int argc, char **argv) {
     dumpStats(seqStore, bgnID, endID);
 
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

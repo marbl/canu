@@ -96,17 +96,30 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  sqStore        *seqStore = sqStore::sqStore_open(seqName, sqMode);
-  uint32          numReads  = seqStore->sqStore_getNumReads();
-  uint32          numLibs   = seqStore->sqStore_getNumLibraries();
+  sqStore        *seqStore = new sqStore(seqName, sqMode);
+  uint32          numReads = seqStore->sqStore_lastReadID();
+  uint32          numLibs  = seqStore->sqStore_lastLibraryID();
+
+  //  Reset the default version to the non-trimmed version of the read.
+
+  sqRead_setDefaultVersion(sqRead_defaultVersion & ~sqRead_trimmed);
 
   //  If no clear range file, set clear range to the entire read.
 
+  if (verbose == true) {
+    fprintf(stderr, "   readID   readLen  clearBgn  clearEnd    status\n");
+    fprintf(stderr, "--------- --------- --------- --------- ---------\n");
+  }
+
+
   if (clrName == NULL) {
     for (uint32 rid=1; rid<=numReads; rid++) {
-      sqRead* read = seqStore->sqStore_getRead(rid);
+      sqReadSeq  *rseq = seqStore->sqStore_getReadSeq(rid);
 
-      seqStore->sqStore_setClearRange(rid, 0, read->sqRead_sequenceLength());
+      if (rseq == NULL)
+        continue;
+
+      rseq->sqReadSeq_setClearRange(0, seqStore->sqStore_getReadLength(rid));
     }
   }
 
@@ -116,25 +129,49 @@ main (int argc, char **argv) {
     clearRangeFile *clrRange = new clearRangeFile(clrName, seqStore);
 
     for (uint32 rid=1; rid<=numReads; rid++) {
-      sqRead* read = seqStore->sqStore_getRead(rid);
+      sqReadSeq  *rseq = seqStore->sqStore_getReadSeq(rid);
+      uint32      rlen = seqStore->sqStore_getReadLength(rid);
 
-      if (verbose == true)
-        fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
-                rid, 
-                read->sqRead_clearBgn(), read->sqRead_clearEnd(),
-                clrRange->bgn(rid), clrRange->end(rid));
+      uint32      nbgn  = clrRange->bgn(rid);
+      uint32      nend  = clrRange->end(rid);
+      uint32      nlen  = nend - nbgn;
 
-      if (clrRange->isDeleted(rid) == true)
+      if ((rseq == NULL) ||
+          (seqStore->sqStore_isValidRead(rid) == false))
         continue;
 
-      if (modify == true)
-        seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+      //  If a bogus clear range, reset to 0,0 and ensure it is flagged for
+      //  deletion.  Overlap based trimming is using UINT32_MAX as a sentinel
+      //  to say 'deleted', which is gross.
+
+      if (modify == true) {
+        if ((nbgn <= rlen) &&
+            (nend <= rlen) &&
+            (nbgn <= nend))
+          rseq->sqReadSeq_setClearRange(nbgn, nend);
+        else {
+          nbgn = 0;  //  For display.
+          nend = 0;
+          assert(clrRange->isDeleted(rid) == true);
+        }
+
+        if (clrRange->isDeleted(rid) == true)
+          rseq->sqReadSeq_setIgnoreT();
+      }
+
+      if (verbose == true) {
+        fprintf(stderr, "%9u %9u %9u %9u%s\n",
+                rid,
+                rlen,
+                nbgn, nend,
+                clrRange->isDeleted(rid) ? "   deleted" : "");
+      }
     }
 
     delete clrRange;
   }
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

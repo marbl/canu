@@ -134,13 +134,13 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Opening seqStore '%s'.\n", G->seqStorePath);
 
-  sqStore *seqStore = sqStore::sqStore_open(G->seqStorePath);
+  sqStore *seqStore = new sqStore(G->seqStorePath);
 
   if (G->bgnID < 1)
     G->bgnID = 1;
 
-  if (seqStore->sqStore_getNumReads() < G->endID)
-    G->endID = seqStore->sqStore_getNumReads();
+  if (seqStore->sqStore_lastReadID() < G->endID)
+    G->endID = seqStore->sqStore_lastReadID();
 
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
 
@@ -170,7 +170,7 @@ main(int argc, char **argv) {
 
   Redo_Olaps(G, seqStore);
 
-  seqStore->sqStore_close();
+  delete seqStore;
   seqStore = NULL;
 
   //  Sort the overlaps back into the original order

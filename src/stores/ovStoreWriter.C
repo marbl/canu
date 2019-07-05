@@ -76,7 +76,7 @@ ovStoreWriter::ovStoreWriter(const char *path, sqStore *seq) {
 
   AS_UTL_mkdir(_storePath);
 
-  _info.clear(seq->sqStore_getNumReads());
+  _info.clear(seq->sqStore_lastReadID());
   //_info.save(_storePath);   Used to save this as a sentinel, but now fails asserts I like
 
   _seq       = seq;
@@ -283,7 +283,7 @@ ovStoreSliceWriter::loadOverlapsFromBucket(uint32 bucket, uint64 expectedLen, ov
 void
 ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
                                   uint64      ovlsLen) {
-  ovStoreInfo    info(_seq->sqStore_getNumReads());
+  ovStoreInfo    info(_seq->sqStore_lastReadID());
 
   //  Probably wouldn't be too hard to make this take all overlaps for one read.
   //  But would need to track the open files in the class, not only in this function.
@@ -304,7 +304,7 @@ ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
 
   //  Create the index and overlaps files
 
-  ovStoreOfft  *index     = new ovStoreOfft [_seq->sqStore_getNumReads() + 1];
+  ovStoreOfft  *index     = new ovStoreOfft [_seq->sqStore_lastReadID() + 1];
   ovFile       *olapFile  = new ovFile(_seq, _storePath, _sliceNum, _pieceNum, ovFileNormalWrite);
 
   //  Dump the overlaps

@@ -194,14 +194,14 @@ main(int argc, char **argv) {
 
   //  Open inputs, find limits.
 
-  sqStore    *seqStore = sqStore::sqStore_open(seqName);
+  sqStore    *seqStore = new sqStore(seqName);
   ovStore    *ovlStore = new ovStore(ovlName, seqStore);
 
-  if (endID > seqStore->sqStore_getNumReads())
-    endID = seqStore->sqStore_getNumReads();
+  if (endID > seqStore->sqStore_lastReadID())
+    endID = seqStore->sqStore_lastReadID();
 
   if (endID < bgnID)
-    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, seqStore->sqStore_getNumReads()), exit(1);
+    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, seqStore->sqStore_lastReadID()), exit(1);
 
   ovlStore->setRange(bgnID, endID);
 
@@ -261,8 +261,8 @@ main(int argc, char **argv) {
 
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
-  for (uint32 fi=0; fi<seqStore->sqStore_getNumReads()+1; fi++) {
-    uint32  readLen     = seqStore->sqStore_getRead(fi)->sqRead_sequenceLength();
+  for (uint32 fi=0; fi<seqStore->sqStore_lastReadID()+1; fi++) {
+    uint32  readLen     = seqStore->sqStore_getReadLength(fi);
 
     if (readLen == 0)   //  Slight optimization; don't try to load overlaps for
       continue;         //  reads that cannot have overlaps!
@@ -573,9 +573,10 @@ main(int argc, char **argv) {
 
   double  nReads = 0;
 
-  if (nReads < 1)  nReads = seqStore->sqStore_getNumTrimmedReads()   / 100.0;
-  if (nReads < 1)  nReads = seqStore->sqStore_getNumCorrectedReads() / 100.0;
-  if (nReads < 1)  nReads = seqStore->sqStore_getNumRawReads()       / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumReads(sqRead_corrected | sqRead_trimmed) / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumReads(sqRead_corrected)                  / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumReads(sqRead_raw | sqRead_trimmed)       / 100.0;
+  if (nReads < 1)  nReads = seqStore->sqStore_getNumReads(sqRead_raw)                        / 100.0;
 
   //  Write the report to somewhere.
 
@@ -648,7 +649,7 @@ main(int argc, char **argv) {
 
   delete ovlStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

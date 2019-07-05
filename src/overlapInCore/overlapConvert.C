@@ -94,7 +94,7 @@ main(int argc, char **argv) {
   }
 
   if (seqStoreName)
-    seqStore = sqStore::sqStore_open(seqStoreName);
+    seqStore = new sqStore(seqStoreName);
 
   char  *ovStr = new char [1024];
 
@@ -110,7 +110,7 @@ main(int argc, char **argv) {
 
   delete [] ovStr;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

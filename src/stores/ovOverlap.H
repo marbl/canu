@@ -225,14 +225,14 @@ public:
 
   //  These return the actual coordinates on the read.  For reverse B reads, the coordinates are in the reverse-complemented
   //  sequence, and are returned as bgn > end to show this.
-  uint32     a_bgn(sqRead_version v=sqRead_defaultVersion) const          { return(dat.ovl.ahg5); };
-  uint32     a_end(sqRead_version v=sqRead_defaultVersion) const          { return(g->sqStore_getRead(a_iid)->sqRead_sequenceLength(v) - dat.ovl.ahg3); };
+  uint32     a_bgn(sqRead_which v=sqRead_defaultVersion) const          { return(dat.ovl.ahg5); };
+  uint32     a_end(sqRead_which v=sqRead_defaultVersion) const          { return(g->sqStore_getReadLength(a_iid, v) - dat.ovl.ahg3); };
 
-  uint32     b_bgn(sqRead_version v=sqRead_defaultVersion) const          { return((dat.ovl.flipped) ? (g->sqStore_getRead(b_iid)->sqRead_sequenceLength(v) - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
-  uint32     b_end(sqRead_version v=sqRead_defaultVersion) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->sqStore_getRead(b_iid)->sqRead_sequenceLength(v) - dat.ovl.bhg3)); };
+  uint32     b_bgn(sqRead_which v=sqRead_defaultVersion) const          { return((dat.ovl.flipped) ? (g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
+  uint32     b_end(sqRead_which v=sqRead_defaultVersion) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg3)); };
 
-  uint32     a_len(sqRead_version v=sqRead_defaultVersion) const          { return(g->sqStore_getRead(a_iid)->sqRead_sequenceLength(v) - dat.ovl.ahg3 - dat.ovl.ahg5); };
-  uint32     b_len(sqRead_version v=sqRead_defaultVersion) const          { return(g->sqStore_getRead(b_iid)->sqRead_sequenceLength(v) - dat.ovl.bhg3 - dat.ovl.bhg5); };
+  uint32     a_len(sqRead_which v=sqRead_defaultVersion) const          { return(g->sqStore_getReadLength(a_iid, v) - dat.ovl.ahg3 - dat.ovl.ahg5); };
+  uint32     b_len(sqRead_which v=sqRead_defaultVersion) const          { return(g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg3 - dat.ovl.bhg5); };
 
   uint32     span(void) const           { return(dat.ovl.span); };
   void       span(uint32 s)             { dat.ovl.span = s; };
@@ -296,10 +296,10 @@ public:
   //  implicit conversion to floating point; lengths over 131072 will overflow a 32-bit signed
   //  integer before the division.
 
-  uint16     overlapScore(bool forB=false, sqRead_version v=sqRead_defaultVersion) const {
+  uint16     overlapScore(bool forB=false, sqRead_which v=sqRead_defaultVersion) const {
     return((forB == false) ?
-           (uint16)floor(16384.0 * identity() * a_len() / g->sqStore_getRead(a_iid)->sqRead_sequenceLength(v)) :
-           (uint16)floor(16384.0 * identity() * b_len() / g->sqStore_getRead(b_iid)->sqRead_sequenceLength(v)));
+           (uint16)floor(16384.0 * identity() * a_len() / g->sqStore_getReadLength(a_iid, v)) :
+           (uint16)floor(16384.0 * identity() * b_len() / g->sqStore_getReadLength(b_iid, v)));
   };
 
   char      *toString(char *str, ovOverlapDisplayType type, bool newLine);

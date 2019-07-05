@@ -763,7 +763,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore          *seqStore = sqStore::sqStore_open(seqName);
+  sqStore          *seqStore = new sqStore(seqName);
 
   ovStore          *ovlStore = NULL;
   ovStoreWriter    *outStore = NULL;
@@ -778,8 +778,8 @@ main(int argc, char **argv) {
 
     if (bgnID < 1)
       bgnID = 1;
-    if (endID > seqStore->sqStore_getNumReads())
-      endID = seqStore->sqStore_getNumReads();
+    if (endID > seqStore->sqStore_lastReadID())
+      endID = seqStore->sqStore_lastReadID();
 
     ovlStore->setRange(bgnID, endID);
 
@@ -940,7 +940,7 @@ main(int argc, char **argv) {
 
   delete    rcache;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   delete    ovlStore;
   delete    outStore;

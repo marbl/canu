@@ -73,14 +73,10 @@ overlapWriter(void *G, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maComputation    *s = (maComputation *)S;
 
-  for (uint64 oo=0; oo<s->_overlapsLen; oo++) {
-    ovOverlap  *ovl = s->_overlaps + oo;
-
-    if (ovl->evalue() == AS_MAX_EVALUE)
-      continue;
-
-    g->outStore->writeOverlap(ovl);
-  }
+  for (uint64 oo=0; oo<s->_overlapsLen; oo++)
+    if (s->_overlaps[oo].evalue() != AS_MAX_EVALUE)
+      //g->outStore->writeOverlap(ovl);
+      g->outFile->writeOverlap(&s->_overlaps[oo]);
 
   if (s->_alignsLen > 0) {
     fprintf(stdout, "\n");
@@ -199,10 +195,10 @@ loadClearRanges(trGlobalData *g, vector<char *> &trimFiles) {
 void
 setClearRanges(trGlobalData *g) {
 
-  for (uint32 ii=0; ii<g->seqStore->sqStore_getNumRawReads()+1; ii++)
-    g->seqStore->sqStore_setClearRange(ii, g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+  for (uint32 ii=0; ii<g->seqStore->sqStore_lastReadID()+1; ii++)
+    g->seqStore->sqStore_getReadSeq(ii)->sqReadSeq_setClearRange(g->readData[ii].clrBgn, g->readData[ii].clrEnd);
 
-  sqRead_setDefaultVersion(sqRead_trimmed);
+  sqRead_setDefaultVersion(sqRead_raw | sqRead_trimmed);
 }
 
 
