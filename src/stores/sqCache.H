@@ -133,6 +133,7 @@ private:
 
   bool             _trackAge;
   bool             _trackExpiration;
+  bool             _noMoreLoads;
 
   sqRead_which     _version;
 
@@ -141,6 +142,10 @@ private:
   sqCacheEntry    *_reads;
 
   void            allocateNewBlock(void) {
+    increaseArray(_dataBlocks, _dataBlocksLen, _dataBlocksMax, 16);
+
+    assert(_dataBlocksLen < _dataBlocksMax);
+
     _dataBlocks[_dataBlocksLen++] = new uint8 [_dataMax];
 
     _dataLen = 0;

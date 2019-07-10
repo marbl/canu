@@ -45,6 +45,7 @@ sqCache::sqCache(sqStore *seqStore, sqRead_which version,  uint64 memoryLimit) {
 
   _trackAge        = true;
   _trackExpiration = false;
+  _noMoreLoads     = false;
 
   _version         =  version;
 
@@ -141,6 +142,8 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
 
   //fprintf(stderr, "Loading read %u of length %u with expiration %u\n",
   //        id, _reads[id]._readLength, expiration);
+
+  assert(_noMoreLoads == false);
 
   //  Load the encoded blob, without decoding it.
 
@@ -287,8 +290,6 @@ sqCache::sqCache_getSequence(uint32    id,
 
 
 
-
-
 void
 sqCache::increaseAge(void) {
   if (_trackAge == false)
@@ -305,6 +306,8 @@ sqCache::increaseAge(void) {
 void
 sqCache::sqCache_loadReads(bool verbose) {
   sqCache_loadReads((uint32)0, _nReads, verbose);
+
+  _noMoreLoads = true;
 }
 
 
@@ -328,33 +331,31 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
   //  For 50x human, with N's in the sequence, we need 50 * 3 Gbp / 3 bytes.
   //  We'll allocate that in nice 32 MB chunks, 1490 chunks.
   //
-  //  We expect to need 'nBases / 4 + nReads' bytes (2-bit) or 'nBases / 3 + nReads'
-  //  (3-bit) bytes, which will let us, at least, pre-allocate the pointers to blocks.
+  //  Don't bother pre-allocation dataBlocks; easy enough to do that on the
+  //  fly.
 
   _dataMax       = 32 * 1024 * 1024;
   _dataLen       = 0;
   _data          = NULL;
 
   _dataBlocksLen = 0;
-  _dataBlocksMax = (nBases / 3 + nReads) / _dataMax + 1;
-  _dataBlocks    = new uint8 * [_dataBlocksMax];
+  _dataBlocksMax = 0;
+  _dataBlocks    = NULL;
 
-  for (uint32 ii=0; ii<_dataBlocksMax; ii++)
-    _dataBlocks[ii] = NULL;
-
-  //  Allocate another block.
+  //  Allocate a block.
 
   allocateNewBlock();
 
   //
 
-  for (uint32 id=0; id <= endID; id++) {
+  for (uint32 id=bgnID; id <= endID; id++) {
     loadRead(id);
 
     if ((verbose) && ((id % 4567) == 0)) {
       double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
 
-      fprintf(stderr, " %7.2f%% - %.2f GB\r",
+      fprintf(stderr, "Loading %8u < %8u < %8u - %7.2f%% - %.2f GB\r",
+              bgnID, id, endID,
               100.0 * (id - bgnID) / (endID - bgnID), approxSize);
     }
   }
@@ -364,9 +365,12 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
   if (verbose) {
     double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
 
-    fprintf(stderr, " %7.2f%% - %.2f GB\r",
+    fprintf(stderr, "Loading %8u < %8u < %8u - %7.2f%% - %.2f GB\n",
+            bgnID, endID, endID,
             100.0, approxSize);
   }
+
+  _noMoreLoads = true;
 }
 
 
@@ -391,6 +395,8 @@ sqCache::sqCache_loadReads(set<uint32> reads, bool verbose) {
 
   if (verbose)
     fprintf(stderr, "\nLoaded " F_SIZE_T " reads.\n", reads.size());
+
+  _noMoreLoads = true;
 }
 
 
@@ -424,6 +430,8 @@ sqCache::sqCache_loadReads(map<uint32, uint32> reads, bool verbose) {
 
   if (verbose)
     fprintf(stderr, "\nLoaded %u reads; skipped %u singleton reads.\n", nLoaded, nSkipped);
+
+  _noMoreLoads = true;
 }
 
 
@@ -441,6 +449,8 @@ sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
   }
 
   sqCache_loadReads(reads, verbose);
+
+  _noMoreLoads = true;
 }
 
 
@@ -459,6 +469,8 @@ sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
       reads.insert(tig->getChild(oo)->ident());
 
   sqCache_loadReads(reads, verbose);
+
+  _noMoreLoads = true;
 }
 
 
