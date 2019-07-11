@@ -1006,9 +1006,10 @@ sub setDefaults () {
 
     #####  Haplotyping
 
-    setDefault("hapMemory",      undef,  "Amount of memory, in gigabytes, to use for haplotype assignment");
-    setDefault("hapThreads",     undef,  "Number of threads to use for haplotype assignment");
-    setDefault("hapConcurrency", undef,  "Unused, there is only one process");
+    setDefault("hapUnknownFraction", 0.05,   "Fraction of allowed unknown bases before they are included in the assembly, between 0-1; default 0.05");
+    setDefault("hapMemory",          undef,  "Amount of memory, in gigabytes, to use for haplotype assignment");
+    setDefault("hapThreads",         undef,  "Number of threads to use for haplotype assignment");
+    setDefault("hapConcurrency",     undef,  "Unused, there is only one process");
 
     #####  Overlap Based Trimming
 

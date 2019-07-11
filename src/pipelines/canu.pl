@@ -730,11 +730,15 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
 
     #  Ignore the unknown reads if there aren't that many.
 
-    my $withUnknown = (($totBases > 0) && ($hapBases{"unknown"} / $totBases < 0.02)) ? 0 : 1;
+    my $unknownFraction =  getGlobal("hapUnknownFraction");
+    my $withUnknown = (($totBases > 0) && ($hapBases{"unknown"} / $totBases < $unknownFraction)) ? 0 : 1;
 
     if ($withUnknown == 0) {
         print STDERR "--\n";
-        print STDERR "-- Too few bases in unassigned reads to care; don't use them in assemblies.\n";
+        print STDERR "-- Fewer than " . $unknownFraction*100 . " % of bases in unassigned reads; don't use them in assemblies.\n";
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- More than " .  $unknownFraction*100 . " % of bases in unassigned reads; including them in assemblies.\n";
     }
 
     #  For each haplotype, emit a script to run the assembly.
