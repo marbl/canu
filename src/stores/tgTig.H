@@ -233,8 +233,6 @@ private:
 public:
   uint32              _tigID;
 
-  double              _coverageStat;
-
   uint32              _sourceID;
   uint32              _sourceBgn;
   uint32              _sourceEnd;
@@ -348,10 +346,6 @@ public:
 private:
 public:
   uint32              _tigID;             //  ID in the store, or UINT32_MAX if not set
-
-  double              coverageStat(void)  { return(_coverageStat); };
-
-  double              _coverageStat;
 
   uint32              _sourceID;          //  Object we are placed in.
   uint32              _sourceBgn;         //  Position of object in source - for a corrected read

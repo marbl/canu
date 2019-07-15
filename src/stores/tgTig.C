@@ -69,8 +69,6 @@ tgPosition::tgPosition() {
 tgTigRecord::tgTigRecord() {
   _tigID             = UINT32_MAX;
 
-  _coverageStat      = 0.0;
-
   _sourceID          = 0;
   _sourceBgn         = 0;
   _sourceEnd         = 0;
@@ -91,8 +89,6 @@ tgTigRecord::tgTigRecord() {
 
 tgTig::tgTig() {
   _tigID                = UINT32_MAX;
-
-  _coverageStat         = 0;
 
   _sourceID             = 0;
   _sourceBgn            = 0;
@@ -145,8 +141,6 @@ tgTigRecord &
 tgTigRecord::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
 
-  _coverageStat        = tg._coverageStat;
-
   _sourceID            = tg._sourceID;
   _sourceBgn           = tg._sourceBgn;
   _sourceEnd           = tg._sourceEnd;
@@ -171,8 +165,6 @@ tgTigRecord::operator=(tgTig & tg) {
 tgTig &
 tgTig::operator=(tgTigRecord & tr) {
   _tigID               = tr._tigID;
-
-  _coverageStat        = tr._coverageStat;
 
   _sourceID            = tr._sourceID;
   _sourceBgn           = tr._sourceBgn;
@@ -199,8 +191,6 @@ tgTig::operator=(tgTigRecord & tr) {
 tgTig &
 tgTig::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
-
-  _coverageStat        = tg._coverageStat;
 
   _sourceID            = tg._sourceID;
   _sourceBgn           = tg._sourceBgn;
@@ -339,8 +329,6 @@ tgTig::buildUngapped(void) {
 void
 tgTig::clear(void) {
   _tigID                = UINT32_MAX;
-
-  _coverageStat         = 0;
 
   _sourceID             = 0;
   _sourceBgn            = 0;
@@ -507,7 +495,6 @@ tgTig::dumpLayout(FILE *F) {
 
   //  Properties.
 
-  fprintf(F, "coverageStat    %f\n", _coverageStat);
   fprintf(F, "sourceID        %u\n", _sourceID);
   fprintf(F, "sourceBgn       %u\n", _sourceBgn);
   fprintf(F, "sourceEnd       %u\n", _sourceEnd);
@@ -821,11 +808,10 @@ tgTig::dumpFASTA(FILE *F, bool useGapped) {
 
   AS_UTL_writeFastA(F,
                     bases(useGapped), length(useGapped), 100,
-                    ">tig%08u len=" F_U32 " reads=" F_U32 " covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    ">tig%08u len=" F_U32 " reads=" F_U32 " gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),
-                    _coverageStat,
                     (useGapped) ? "yes" : "no",
                     toString(_class),
                     _suggestRepeat ? "yes" : "no",
@@ -842,11 +828,10 @@ tgTig::dumpFASTQ(FILE *F, bool useGapped) {
   AS_UTL_writeFastQ(F,
                     bases(useGapped), length(useGapped),
                     quals(useGapped), length(useGapped),
-                    "@tig%08u len=" F_U32 " reads=" F_U32 " covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    "@tig%08u len=" F_U32 " reads=" F_U32 " gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),
-                    _coverageStat,
                     (useGapped) ? "yes" : "no",
                     toString(_class),
                     _suggestRepeat ? "yes" : "no",

@@ -159,7 +159,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/tgStoreDump.mk \
                 stores/tgStoreLoad.mk \
                 stores/tgStoreFilter.mk \
-                stores/tgStoreCoverageStat.mk \
                 stores/tgTigDisplay.mk \
                 stores/loadCorrectedReads.mk \
                 stores/loadTrimmedReads.mk \

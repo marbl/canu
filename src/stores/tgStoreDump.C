@@ -282,7 +282,7 @@ dumpRead(FILE *out, tgTig *tig, tgPosition *read, bool useGapped) {
 void
 dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped) {
 
-  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
+  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -367,7 +367,7 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool 
     reads  = AS_UTL_openOutputFile(R);
     layout = AS_UTL_openOutputFile(L);
 
-    fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
+    fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
     fprintf(reads, "#readID\ttigID\tcoordType\tbgn\tend\n");
   }
 

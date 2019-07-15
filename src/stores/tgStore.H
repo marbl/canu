@@ -106,8 +106,6 @@ public:
 
   bool           isDeleted(uint32 tigID);
 
-  double         getCoverageStat(uint32 tigID);
-
   uint32         getSourceID(uint32 tigID);
   uint32         getSourceBgn(uint32 tigID);
   uint32         getSourceEnd(uint32 tigID);
@@ -117,8 +115,6 @@ public:
   bool           getSuggestCircular(uint32 tigID);
 
   uint32         getNumChildren(uint32 tigID);
-
-  void           setCoverageStat(uint32 tigID, double cs);
 
   void           setSourceID(uint32 tigID, uint32 id);
   void           setSourceBgn(uint32 tigID, uint32 bgn);
@@ -185,13 +181,6 @@ tgStore::isDeleted(uint32 tigID) {
 }
 
 inline
-double
-tgStore::getCoverageStat(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._coverageStat);
-}
-
-inline
 uint32
 tgStore::getSourceID(uint32 tigID) {
   assert(tigID < _tigLen);
@@ -240,15 +229,6 @@ tgStore::getNumChildren(uint32 tigID) {
 }
 
 
-
-inline
-void
-tgStore::setCoverageStat(uint32 tigID, double cs) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._coverageStat = cs;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_coverageStat = cs;
-}
 
 inline
 void
