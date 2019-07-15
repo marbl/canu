@@ -81,8 +81,8 @@ public:
     ovlStoreName        = NULL;
     ovlStore            = NULL;
 
-    outStoreName        = NULL;
-    outStore            = NULL;
+    outFileName         = NULL;
+    outFile             = NULL;
 
     clearRangesFileName = NULL;
   };
@@ -113,10 +113,10 @@ public:
       ovlStore = new ovStore(ovlStoreName, seqStore);
     }
 
-    if (outStoreName) {
-      fprintf(stderr, "Writing overlaps to store '%s'.\n", outStoreName);
+    if (outFileName) {
+      fprintf(stderr, "Writing overlaps to file '%s'.\n", outFileName);
 
-      outStore = new ovStoreWriter(outStoreName, seqStore);
+      outFile = new ovFile(seqStore, outFileName, ovFileFullWrite);
     }
 
     //  Check parameters.
@@ -153,7 +153,7 @@ public:
     delete seqCache;
     delete ovlStore;
 
-    delete outStore;
+    delete outFile;
   };
 
   //  Parameters
@@ -192,8 +192,8 @@ public:
 
   //  Outputs
 
-  char              *outStoreName;
-  ovStoreWriter     *outStore;
+  char              *outFileName;
+  ovFile            *outFile;
 
   char              *clearRangesFileName;
 };

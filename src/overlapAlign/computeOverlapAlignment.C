@@ -194,12 +194,13 @@ computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen
 //  which we use to update this end of the overlap.
 //
 void
-maComputation::computeOverlapAlignment(ovOverlap   *ovl,
+maComputation::computeOverlapAlignment(uint32       ovlid,
                                        uint32       minOverlapLength,
                                        double       maxErate,
                                        uint32       overlapSlop,
                                        uint32       maxRepeat) {
-  ovOverlap ori     = *ovl;
+  ovOverlap *ovl    = &_overlaps[ovlid];   //  Convenience pointer to the overlap.
+  ovOverlap  ori    =  _overlaps[ovlid];   //  Copy of the original overlap.
 
   int32   alen      = _readData[_aID].trimmedLength;
   int32   abgn      = (int32)       ovl->dat.ovl.ahg5;
@@ -442,17 +443,16 @@ maComputation::computeOverlapAlignment(ovOverlap   *ovl,
 
       ovl->erate(editDist / (double)alignLen);
 
-      _alignsOvl[_alignsLen] = ovl;                               //  Allocate space for the alignment output.
-      _alignsA  [_alignsLen] = new char [alen + 1];
-      _alignsB  [_alignsLen] = new char [alen + 1];
+      _alignsA  [ovlid] = new char [alen + 1];                    //  Allocate space for the alignment output.
+      _alignsB  [ovlid] = new char [alen + 1];
 
       for (uint32 ii=0; ii<alen; ii++) {
-        _alignsA[_alignsLen][ii] = '-';
-        _alignsB[_alignsLen][ii] = '-';
+        _alignsA[ovlid][ii] = '-';
+        _alignsB[ovlid][ii] = '-';
       }
 
-      _alignsA[_alignsLen][alen] = 0;
-      _alignsB[_alignsLen][alen] = 0;
+      _alignsA[ovlid][alen] = 0;
+      _alignsB[ovlid][alen] = 0;
 
       char *aaln = new char [result.alignmentLength + 1];         //  Convert the alignment to a string.
       char *baln = new char [result.alignmentLength + 1];
@@ -483,23 +483,23 @@ maComputation::computeOverlapAlignment(ovOverlap   *ovl,
       uint32 aa = 0;   //  Position in sequence A.
 
       for (uint32 ii=0; ii<ovl->dat.ovl.ahg5; ii++, pp++) {
-        _alignsA[_alignsLen][pp] = _aRead[aa];
-        _alignsB[_alignsLen][pp] = '-';
+        _alignsA[ovlid][pp] = _aRead[aa];
+        _alignsB[ovlid][pp] = '-';
         aa++;
       }
 
       for (uint32 ii=0; ii<result.alignmentLength; ii++) {
         if (aaln[ii] != '-') {
-          _alignsA[_alignsLen][pp] = aaln[ii];
-          _alignsB[_alignsLen][pp] = baln[ii];
+          _alignsA[ovlid][pp] = aaln[ii];
+          _alignsB[ovlid][pp] = baln[ii];
           aa++;
           pp++;
         }
       }
 
       for (uint32 ii=0; ii<ovl->dat.ovl.ahg3; ii++, pp++) {
-        _alignsA[_alignsLen][pp] = _aRead[aa];
-        _alignsB[_alignsLen][pp] = '-';
+        _alignsA[ovlid][pp] = _aRead[aa];
+        _alignsB[ovlid][pp] = '-';
         aa++;
       }
 
@@ -509,10 +509,8 @@ maComputation::computeOverlapAlignment(ovOverlap   *ovl,
       delete [] aaln;
       delete [] baln;
 
-      _alignsA[_alignsLen][alen] = 0;
-      _alignsB[_alignsLen][alen] = 0;
-
-      _alignsLen++;
+      _alignsA[ovlid][alen] = 0;
+      _alignsB[ovlid][alen] = 0;
     }
 
     //  Trash the alignment results.

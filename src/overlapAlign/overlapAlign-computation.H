@@ -82,11 +82,13 @@ public:
 
     //  Allocate space for the outputs.
 
-    _alignsLen = 0;
-    _alignsMax = _overlapsLen + 1;
-    _alignsOvl = new ovOverlap * [_overlapsLen];
     _alignsA   = new char      * [_overlapsLen];
     _alignsB   = new char      * [_overlapsLen];
+
+    for (uint32 ii=0; ii<_overlapsLen; ii++) {
+      _alignsA[ii]   = NULL;
+      _alignsB[ii]   = NULL;
+    }
   };
 
   ~maComputation() {
@@ -94,12 +96,11 @@ public:
     delete [] _aRead;
     delete [] _bRead;
 
-    for (uint32 ii=0; ii<_alignsLen; ii++) {
+    for (uint32 ii=0; ii<_overlapsLen; ii++) {
       delete [] _alignsA[ii];
       delete [] _alignsB[ii];
     }
 
-    delete [] _alignsOvl;
     delete [] _alignsA;
     delete [] _alignsB;
   };
@@ -114,7 +115,7 @@ private:
   bool                 trimOverlap_Flipped(ovOverlap *ovl);
   bool                 trimOverlap(ovOverlap *ovl);
 
-  void                 computeOverlapAlignment(ovOverlap   *ovl,
+  void                 computeOverlapAlignment(uint32       ovlid,
                                                uint32       minOverlapLength,
                                                double       maxErate,
                                                uint32       overlapSlop,
@@ -168,9 +169,6 @@ public:
 
   //  Alignment results.
 
-  uint32      _alignsLen;
-  uint32      _alignsMax;
-  ovOverlap **_alignsOvl;
   char      **_alignsA;
   char      **_alignsB;
 };
