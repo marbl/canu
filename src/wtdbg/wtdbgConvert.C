@@ -193,7 +193,6 @@ main(int argc, char **argv) {
           readToEnd.clear();
           tig->clear();
           tig->_tigID = atoi(W[0]+4);
-          tig->_coverageStat    = 1.0;  //  Default to just barely unique
 
           //  Set the class and some flags.
 

@@ -73,19 +73,6 @@
 #define DUMP_OVERLAP_HISTOGRAM  10
 
 
-//  positions can be
-//     layout (if no consensusExists()
-//     gapped
-//     ungapped
-//
-//
-//  MISSING
-//    masking and splitting consensus based on (low) coverage
-//    coverage
-//      single unitig coverage plot and dump of low coverage regions
-//      all unitig histogram of coverage
-//    reporting gc content (need to do this after consensus, while sequence is still in memory, then save in the tig itself)
-
 class tgFilter {
 public:
   tgFilter() {
@@ -118,12 +105,12 @@ public:
     delete ID;
   };
 
-  bool          ignore(tgTig *tig, bool useGapped) {
+  bool          ignore(tgTig *tig) {
 #ifdef DEBUG_IGNORE
     bool   iI = ignoreID(tig);
     bool   iN = ignoreNreads(tig);
-    bool   iL = ignoreLength(tig, useGapped);
-    bool   iC = ignoreCoverage(tig, useGapped);
+    bool   iL = ignoreLength(tig);
+    bool   iC = ignoreCoverage(tig);
     bool   iS = ignoreClass(tig);
 
     fprintf(stderr, "ignore()--  tig %u - ignore id %s Nreads %s length %s coverage %s class %s\n",
@@ -137,8 +124,8 @@ public:
 
     return(ignoreID(tig) ||
            ignoreNreads(tig) ||
-           ignoreLength(tig, useGapped) ||
-           ignoreCoverage(tig, useGapped) ||
+           ignoreLength(tig) ||
+           ignoreCoverage(tig) ||
            ignoreClass(tig));
   };
 
@@ -162,19 +149,16 @@ public:
            (maxNreads < tig->numberOfChildren()));
   };
 
-  bool          ignoreLength(tgTig *tig, bool useGapped) {
-    uint32  length = tig->length(useGapped);
+  bool          ignoreLength(tgTig *tig) {
+    uint32  length = tig->length();
 
     return((length < minLength) ||
            (maxLength < length));
   };
 
-  bool          ignoreCoverage(tgTig *tig, bool useGapped) {
+  bool          ignoreCoverage(tgTig *tig) {
     if ((minCoverage == 0) && (maxCoverage == UINT32_MAX))
       return(false);
-
-    if (tig->consensusExists() == false)
-      useGapped = true;
 
     delete IL;
     IL = new intervalList<int32>;
@@ -182,8 +166,8 @@ public:
     for (uint32 i=0; i<tig->numberOfChildren(); i++) {
       tgPosition *pos = tig->getChild(i);
 
-      int32  bgn = (useGapped) ? pos->min() : tig->mapGappedToUngapped(pos->min());
-      int32  end = (useGapped) ? pos->max() : tig->mapGappedToUngapped(pos->max());
+      int32  bgn = pos->min();
+      int32  end = pos->max();
 
       IL->add(bgn, end - bgn);
     }
@@ -252,13 +236,11 @@ dumpStatus(sqStore *UNUSED(seqStore), tgStore *tigStore) {
 
 
 void
-dumpTig(FILE *out, tgTig *tig, bool useGapped) {
-  fprintf(out, F_U32"\t" F_U32 "\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t" F_U32 "\n",
+dumpTig(FILE *out, tgTig *tig) {
+  fprintf(out, F_U32"\t" F_U32 "\t%.2f\t%s\t%s\t%s\t" F_U32 "\n",
           tig->tigID(),
-          tig->length(useGapped),
-          tig->coordinateType(useGapped),
-          tig->_coverageStat,
-          tig->computeCoverage(useGapped),
+          tig->length(),
+          tig->computeCoverage(),
           toString(tig->_class),
           tig->_suggestRepeat ? "yes" : "no",
           tig->_suggestCircular ? "yes" : "no",
@@ -268,21 +250,20 @@ dumpTig(FILE *out, tgTig *tig, bool useGapped) {
 
 
 void
-dumpRead(FILE *out, tgTig *tig, tgPosition *read, bool useGapped) {
-  fprintf(out, F_U32"\t" F_U32 "\t%s\t" F_U32 "\t" F_U32 "\n",
+dumpRead(FILE *out, tgTig *tig, tgPosition *read) {
+  fprintf(out, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\n",
           read->ident(),
           tig->tigID(),
-          tig->coordinateType(useGapped),
-          (useGapped) ? read->bgn() : tig->mapGappedToUngapped(read->bgn()),
-          (useGapped) ? read->end() : tig->mapGappedToUngapped(read->end()));
+          read->bgn(),
+          read->end());
 }
 
 
 
 void
-dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped) {
+dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter) {
 
-  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
+  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -290,15 +271,12 @@ dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool us
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, useGapped) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
 
-    dumpTig(stdout, tig, useGapped);
+    dumpTig(stdout, tig);
 
     tigStore->unloadTig(ti);
   }
@@ -307,7 +285,7 @@ dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool us
 
 
 void
-dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool useReverse, char cnsFormat) {
+dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useReverse, char cnsFormat) {
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -321,7 +299,7 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
       continue;
     }
 
-    if (filter.ignore(tig, useGapped) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
@@ -331,11 +309,11 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
 
     switch (cnsFormat) {
       case 'A':
-        tig->dumpFASTA(stdout, useGapped);
+        tig->dumpFASTA(stdout);
         break;
 
       case 'Q':
-        tig->dumpFASTQ(stdout, useGapped);
+        tig->dumpFASTQ(stdout);
         break;
 
       default:
@@ -349,7 +327,7 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
 
 
 void
-dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *outPrefix) {
   char T[FILENAME_MAX+1];
   char R[FILENAME_MAX+1];
   char L[FILENAME_MAX+1];
@@ -367,7 +345,7 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool 
     reads  = AS_UTL_openOutputFile(R);
     layout = AS_UTL_openOutputFile(L);
 
-    fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
+    fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
     fprintf(reads, "#readID\ttigID\tcoordType\tbgn\tend\n");
   }
 
@@ -377,20 +355,17 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool 
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, useGapped) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
 
     if (tigs)
-      dumpTig(tigs, tig, useGapped);
+      dumpTig(tigs, tig);
 
     if (reads)
       for (uint32 ci=0; ci<tig->numberOfChildren(); ci++)
-        dumpRead(reads, tig, tig->getChild(ci), useGapped);
+        dumpRead(reads, tig, tig->getChild(ci));
 
     if (layout)
       tig->dumpLayout(layout);
@@ -414,7 +389,7 @@ dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWi
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (filter.ignore(tig, true) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
@@ -428,7 +403,7 @@ dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWi
 
 
 void
-dumpSizes(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint64 genomeSize) {
+dumpSizes(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, uint64 genomeSize) {
 
   tgTigSizeAnalysis *siz = new tgTigSizeAnalysis(genomeSize);
 
@@ -438,15 +413,12 @@ dumpSizes(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool u
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, useGapped) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
 
-    siz->evaluateTig(tig, useGapped);
+    siz->evaluateTig(tig);
 
     tigStore->unloadTig(ti);
   }
@@ -541,7 +513,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
 
 void
-dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, bool single, char *outPrefix) {
+dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool single, char *outPrefix) {
   char                  N[FILENAME_MAX];
   intervalList<uint32>  IL;
 
@@ -556,10 +528,7 @@ dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filte
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, useGapped) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
@@ -570,8 +539,8 @@ dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filte
 
     for (uint32 ci=0; ci<tig->numberOfChildren(); ci++) {
       tgPosition *read = tig->getChild(ci);
-      uint32      bgn  = (useGapped) ? read->min() : tig->mapGappedToUngapped(read->min());
-      uint32      end  = (useGapped) ? read->max() : tig->mapGappedToUngapped(read->max());
+      uint32      bgn  = read->min();
+      uint32      end  = read->max();
 
       IL.add(bgn, end - bgn);
     }
@@ -610,7 +579,7 @@ dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filte
 
 
 void
-dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *outPrefix) {
   uint32   covMax = 1024;
   uint64  *cov    = new uint64 [covMax];
 
@@ -619,12 +588,9 @@ dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, boo
       continue;
 
     tgTig    *tig    = tigStore->loadTig(ti);
-    uint32    tigLen = tig->length(useGapped);
+    uint32    tigLen = tig->length();
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, true) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
@@ -640,8 +606,8 @@ dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, boo
 
     for (uint32 ci=0; ci<tig->numberOfChildren(); ci++) {
       tgPosition *read = tig->getChild(ci);
-      uint32      bgn  = (useGapped) ? read->min() : tig->mapGappedToUngapped(read->min());
-      uint32      end  = (useGapped) ? read->max() : tig->mapGappedToUngapped(read->max());
+      uint32      bgn  = read->min();
+      uint32      end  = read->max();
 
       allL.add(bgn, end - bgn);
     }
@@ -773,7 +739,7 @@ dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, boo
 
 
 void
-dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint32 minOverlap) {
+dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, uint32 minOverlap) {
 
   fprintf(stderr, "reporting overlaps of at most %u bases\n", minOverlap);
 
@@ -783,10 +749,7 @@ dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, 
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, true) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
@@ -799,8 +762,8 @@ dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, 
 
     for (uint32 ri=0; ri<tig->numberOfChildren(); ri++) {
       tgPosition *read = tig->getChild(ri);
-      uint32      bgn  = (useGapped) ? read->min() : tig->mapGappedToUngapped(read->min());
-      uint32      end  = (useGapped) ? read->max() : tig->mapGappedToUngapped(read->max());
+      uint32      bgn  = read->min();
+      uint32      end  = read->max();
 
       allL.add(bgn, end - bgn);
       ovlL.add(bgn, end - bgn);
@@ -826,8 +789,8 @@ dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, 
 
     for (uint32 ri=0; ri<tig->numberOfChildren(); ri++) {
       tgPosition *read   = tig->getChild(ri);
-      uint32      bgn    = (useGapped) ? read->min() : tig->mapGappedToUngapped(read->min());
-      uint32      end    = (useGapped) ? read->max() : tig->mapGappedToUngapped(read->max());
+      uint32      bgn    = read->min();
+      uint32      end    = read->max();
       bool        report = false;
 
       for (uint32 oo=0; oo<badL.numberOfIntervals(); oo++)
@@ -841,13 +804,13 @@ dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, 
         fprintf(stderr, "tig %d read %u at %u %u\n",
                 tig->tigID(),
                 read->ident(),
-                (useGapped) ? read->min() : tig->mapGappedToUngapped(read->min()),
-                (useGapped) ? read->max() : tig->mapGappedToUngapped(read->max()));
+                read->min(),
+                read->max());
     }
 
     if ((allL.numberOfIntervals() != 1) || (ovlL.numberOfIntervals() != 1))
-      fprintf(stderr, "tig %d %s length %u has %u interval%s and %u interval%s after enforcing minimum overlap of %u\n",
-              tig->tigID(), tig->coordinateType(useGapped), tig->length(),
+      fprintf(stderr, "tig %d length %u has %u interval%s and %u interval%s after enforcing minimum overlap of %u\n",
+              tig->tigID(), tig->length(),
               allL.numberOfIntervals(), (allL.numberOfIntervals() == 1) ? "" : "s",
               ovlL.numberOfIntervals(), (ovlL.numberOfIntervals() == 1) ? "" : "s",
               minOverlap);
@@ -861,7 +824,7 @@ dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, 
 
 
 void
-dumpOverlapHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool useGapped, char *outPrefix) {
+dumpOverlapHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *outPrefix) {
   uint32     histMax = AS_MAX_READLEN;
   uint64    *hist    = new uint64 [histMax];
 
@@ -874,10 +837,7 @@ dumpOverlapHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &fil
     tgTig  *tig = tigStore->loadTig(ti);
     int32   tn  = tig->numberOfChildren();
 
-    if (tig->consensusExists() == false)
-      useGapped = true;
-
-    if (filter.ignore(tig, true) == true) {
+    if (filter.ignore(tig) == true) {
       tigStore->unloadTig(ti);
       continue;
     }
@@ -892,8 +852,8 @@ dumpOverlapHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &fil
     for (uint32 ri=0; ri<tn; ri++) {
       tgPosition *read = tig->getChild(ri);
 
-      bgn[ri] = (useGapped) ? read->min() : tig->mapGappedToUngapped(read->min());
-      end[ri] = (useGapped) ? read->max() : tig->mapGappedToUngapped(read->max());
+      bgn[ri] = read->min();
+      end[ri] = read->max();
     }
 
     //  Scan these, marking contained reads.
@@ -992,7 +952,6 @@ main (int argc, char **argv) {
 
   uint32        dumpType          = DUMP_UNSET;
 
-  bool          useGapped         = false;
   bool          useReverse        = false;
 
   char          cnsFormat         = 'A';  //  Or 'Q' for FASTQ
@@ -1110,9 +1069,6 @@ main (int argc, char **argv) {
 
     //  Options.
 
-    else if (strcmp(argv[arg], "-gapped") == 0)
-      useGapped = true;
-
     else if (strcmp(argv[arg], "-reverse") == 0)
       useReverse = true;
 
@@ -1198,13 +1154,11 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -tigs                   a list of tigs, and some information about them\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -consensus [opts]       the consensus sequence, with options:\n");
-    fprintf(stderr, "                            -gapped           report the gapped (multialignment) consensus sequence\n");
     fprintf(stderr, "                            -reverse          reverse complement the sequence\n");
     fprintf(stderr, "                            -fasta            report sequences in FASTA format (the default)\n");
     fprintf(stderr, "                            -fastq            report sequences in FASTQ format\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -layout [opts]          the layout of reads in each tig.  if '-o' is supplied, three files are created.\n");
-    fprintf(stderr, "                            -gapped           report the gapped (multialignment) positions\n");
     fprintf(stderr, "                            -o name           write data to 'name.*' files in the current directory\n");
     fprintf(stderr, "                                                name.layout           - layout of reads\n");
     fprintf(stderr, "                                                name.layout.readToTig - read to tig position\n");
@@ -1283,31 +1237,31 @@ main (int argc, char **argv) {
       dumpStatus(seqStore, tigStore);
       break;
     case DUMP_TIGS:
-      dumpTigs(seqStore, tigStore, filter, useGapped);
+      dumpTigs(seqStore, tigStore, filter);
       break;
     case DUMP_CONSENSUS:
-      dumpConsensus(seqStore, tigStore, filter, useGapped, useReverse, cnsFormat);
+      dumpConsensus(seqStore, tigStore, filter, useReverse, cnsFormat);
       break;
     case DUMP_LAYOUT:
-      dumpLayout(seqStore, tigStore, filter, useGapped, outPrefix);
+      dumpLayout(seqStore, tigStore, filter, outPrefix);
       break;
     case DUMP_MULTIALIGN:
       dumpMultialign(seqStore, tigStore, filter, maWithQV, maWithDots, maDisplayWidth, maDisplaySpacing);
       break;
     case DUMP_SIZES:
-      dumpSizes(seqStore, tigStore, filter, useGapped, genomeSize);
+      dumpSizes(seqStore, tigStore, filter, genomeSize);
       break;
     case DUMP_COVERAGE:
-      dumpCoverage(seqStore, tigStore, filter, useGapped, outPrefix);
+      dumpCoverage(seqStore, tigStore, filter, outPrefix);
       break;
     case DUMP_DEPTH_HISTOGRAM:
-      dumpDepthHistogram(seqStore, tigStore, filter, useGapped, single, outPrefix);
+      dumpDepthHistogram(seqStore, tigStore, filter, single, outPrefix);
       break;
     case DUMP_THIN_OVERLAP:
-      dumpThinOverlap(seqStore, tigStore, filter, useGapped, minOverlap);
+      dumpThinOverlap(seqStore, tigStore, filter, minOverlap);
       break;
     case DUMP_OVERLAP_HISTOGRAM:
-      dumpOverlapHistogram(seqStore, tigStore, filter, useGapped, outPrefix);
+      dumpOverlapHistogram(seqStore, tigStore, filter, outPrefix);
       break;
     default:
       break;

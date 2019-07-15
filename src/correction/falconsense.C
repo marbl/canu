@@ -214,17 +214,18 @@ generateFalconConsensus(falconConsensus           *fc,
   layout->_sourceBgn   = (end == 0) ? (0) : (fd->pos[bgn]);            //  Space based (probably).
   layout->_sourceEnd   = (end == 0) ? (0) : (fd->pos[end - 1] + 1);    //  Space based.
 
-  resizeArrayPair(layout->_gappedBases, layout->_gappedQuals, layout->_gappedLen, layout->_gappedMax, end - bgn + 1, resizeArray_doNothing);
+  resizeArrayPair(layout->_bases, layout->_quals, layout->_basesLen, layout->_basesMax, end - bgn + 1, resizeArray_doNothing);
 
   for (uint32 ii=bgn; ii<end; ii++) {
-    layout->_gappedBases[ii-bgn] = fd->seq[ii];
-    layout->_gappedQuals[ii-bgn] = fd->eqv[ii];
+    layout->_bases[ii-bgn] = fd->seq[ii];
+    layout->_quals[ii-bgn] = fd->eqv[ii];
   }
 
-  layout->_gappedLen = end - bgn;
+  layout->_layoutLen = end - bgn;
+  layout->_basesLen  = end - bgn;
 
-  layout->_gappedBases[layout->_gappedLen] = 0;
-  layout->_gappedQuals[layout->_gappedLen] = 0;
+  layout->_bases[layout->_basesLen] = 0;
+  layout->_quals[layout->_basesLen] = 0;
 
   //  One could dump bases and quals here, if so desired.
 
@@ -499,7 +500,7 @@ main(int argc, char **argv) {
         layout->saveToStream(cnsFile);
 
       if (seqFile)
-        layout->dumpFASTQ(seqFile, false);
+        layout->dumpFASTQ(seqFile);
 
       delete layout;
       layout = new tgTig();    //  Next loop needs an existing empty layout.
@@ -715,7 +716,7 @@ main(int argc, char **argv) {
           layout->saveToStream(cnsFile);
 
         if (seqFile)
-          layout->dumpFASTQ(seqFile, false);
+          layout->dumpFASTQ(seqFile);
 
         corStore->unloadTig(layout->tigID());
       }

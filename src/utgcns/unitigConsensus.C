@@ -832,23 +832,23 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
   //  Save consensus
 
-  resizeArrayPair(_tig->_gappedBases, _tig->_gappedQuals, 0, _tig->_gappedMax, (uint32) cns.length() + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, (uint32) cns.length() + 1, resizeArray_doNothing);
 
   std::string::size_type len = 0;
 
   for (len=0; len<cns.size(); len++) {
-    _tig->_gappedBases[len] = cns[len];
-    _tig->_gappedQuals[len] = CNS_MIN_QV;
+    _tig->_bases[len] = cns[len];
+    _tig->_quals[len] = CNS_MIN_QV;
   }
 
   //  Terminate the string.
 
-  _tig->_gappedBases[len] = 0;
-  _tig->_gappedQuals[len] = 0;
-  _tig->_gappedLen        = len;
-  _tig->_layoutLen        = len;
+  _tig->_bases[len] = 0;
+  _tig->_quals[len] = 0;
+  _tig->_basesLen   = len;
+  _tig->_layoutLen  = len;
 
-  assert(len < _tig->_gappedMax);
+  assert(len < _tig->_basesMax);
 
   return(true);
 }
@@ -869,11 +869,11 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
   //  Save consensus
 
-  resizeArrayPair(_tig->_gappedBases, _tig->_gappedQuals, 0, _tig->_gappedMax, tiglen + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, tiglen + 1, resizeArray_doNothing);
 
   for (uint32 ii=0; ii<tiglen; ii++) {
-    _tig->_gappedBases[ii] = tigseq[ii];
-    _tig->_gappedQuals[ii] = CNS_MIN_QV;
+    _tig->_bases[ii] = tigseq[ii];
+    _tig->_quals[ii] = CNS_MIN_QV;
   }
 
   //  Set positions of all the reads.  We don't know anything and default to the incoming positions.
@@ -883,10 +883,10 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
   //  Terminate the string.
 
-  _tig->_gappedBases[tiglen] = 0;
-  _tig->_gappedQuals[tiglen] = 0;
-  _tig->_gappedLen           = tiglen;
-  _tig->_layoutLen           = tiglen;
+  _tig->_bases[tiglen] = 0;
+  _tig->_quals[tiglen] = 0;
+  _tig->_basesLen      = tiglen;
+  _tig->_layoutLen     = tiglen;
 
   delete [] tigseq;
 
@@ -910,11 +910,11 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
-  resizeArrayPair(_tig->_gappedBases, _tig->_gappedQuals, 0, _tig->_gappedMax, readLen + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, readLen + 1, resizeArray_doNothing);
 
   for (uint32 ii=0; ii<readLen; ii++) {
-    _tig->_gappedBases[ii] = fragment[ii];
-    _tig->_gappedQuals[ii] = CNS_MIN_QV;
+    _tig->_bases[ii] = fragment[ii];
+    _tig->_quals[ii] = CNS_MIN_QV;
   }
 
   //  Set positions of all the reads.
@@ -923,10 +923,10 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
 
   //  Terminate the string.
 
-  _tig->_gappedBases[readLen] = 0;
-  _tig->_gappedQuals[readLen] = 0;
-  _tig->_gappedLen            = readLen;
-  _tig->_layoutLen            = readLen;
+  _tig->_bases[readLen] = 0;
+  _tig->_quals[readLen] = 0;
+  _tig->_basesLen       = readLen;
+  _tig->_layoutLen      = readLen;
 
   return(true);
 }

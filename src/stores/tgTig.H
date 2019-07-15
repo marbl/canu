@@ -83,8 +83,6 @@ toClass(char const *c) {
 //  Info about the placement of an object in a tig.  For unitigs, this
 //  will be just reads.  For contigs, this could be unitigs and reads.
 //
-//  These coordinates are ALWAYS gapped coordinates.
-//
 class tgPosition {
 public:
   tgPosition();
@@ -206,10 +204,6 @@ public:
   int32               _bskip;            //
 
   //  Must be signed, utgcns can push reads negative.
-  //int32               _bgn;              //  Coords in the parent object we are part of
-  //int32               _end;              //  (for a read, this will be the position in the unitig)
-
-  //  Must be signed, utgcns can push reads negative.
   int32               _min;
   int32               _max;
 
@@ -233,8 +227,6 @@ private:
 public:
   uint32              _tigID;
 
-  double              _coverageStat;
-
   uint32              _sourceID;
   uint32              _sourceBgn;
   uint32              _sourceEnd;
@@ -242,11 +234,10 @@ public:
   tgTig_class         _class           : 2;
   uint32              _suggestRepeat   : 1;
   uint32              _suggestCircular : 1;
-
-  uint32              _spare           : 32 - 2 - 2;
+  uint32              _spare           : 28;
 
   uint32              _layoutLen;
-  uint32              _gappedLen;
+  uint32              _basesLen;
   uint32              _childrenLen;
   uint32              _childDeltaBitsLen;
 };
@@ -261,47 +252,21 @@ public:
 
   //  Accessors
 
-  uint32               tigID(void)                         { return(_tigID); };
+  uint32               tigID(void)                 { return(_tigID); };
 
-  char const          *coordinateType(bool useGapped=true) { return( (consensusExists() == false) ? ("layout")       : ((useGapped == true) ? "gapped"       : "ungapped")       ); };
-  uint32               length(bool useGapped=true)         { return( (consensusExists() == false) ? (layoutLength()) : ((useGapped == true) ? gappedLength() : ungappedLength()) ); };
-
-  bool                 consensusExists(void)               { return(_gappedLen > 0); };
-
-  char                *bases(bool useGapped=true)          { return( (useGapped == true) ? gappedBases() : ungappedBases() ); };
-  uint8               *quals(bool useGapped=true)          { return( (useGapped == true) ? gappedQuals() : ungappedQuals() ); };
-
-  double               computeCoverage(bool useGapped=true);
+  bool                 consensusExists(void)       { return(_basesLen > 0); };
+  double               computeCoverage(void);
 
   //  Should be private, but used in tgStoreLoad.C for testing cns files.
 public:
-  uint32               layoutLength(void)                  { return(_layoutLen); };
-
-  uint32               gappedLength(void)                  { return(_gappedLen);   };
-  char                *gappedBases(void)                   { return(_gappedBases); };
-  uint8               *gappedQuals(void)                   { return(_gappedQuals); };
-
-  void                 buildUngapped(void);
-
-  uint32               ungappedLength(void)                { buildUngapped();  return(_ungappedLen);   };
-  char                *ungappedBases(void)                 { buildUngapped();  return(_ungappedBases); };
-  uint8               *ungappedQuals(void)                 { buildUngapped();  return(_ungappedQuals); };
-
-  //  Should be private, but used in tgStoreDump.C
-public:
-  uint32               mapGappedToUngapped(uint32 p)       {
-    if (consensusExists() == false)
-      return(p);
-
-    buildUngapped();
-
-    return(_gappedToUngapped[p]);
-  };
+  uint32               length(void)                { return(_layoutLen); };
+  char                *bases(void)                 { return(_bases);     };
+  uint8               *quals(void)                 { return(_quals);     };
 
 public:
-  uint32               numberOfChildren(void)              {                            return(_childrenLen); };
-  tgPosition          *getChild(uint32 c)                  { assert(c < _childrenLen);  return(_children + c);  };
-  tgPosition          *addChild(void)                      {                            return(_children + _childrenLen++); };
+  uint32               numberOfChildren(void)      {                            return(_childrenLen); };
+  tgPosition          *getChild(uint32 c)          { assert(c < _childrenLen);  return(_children + c);  };
+  tgPosition          *addChild(void)              {                            return(_children + _childrenLen++); };
 
   //  Operators
 
@@ -335,8 +300,8 @@ public:
 
   void                 reverseComplement(void);  //  Does NOT update childDeltas
 
-  void                 dumpFASTA(FILE *F, bool useGapped);
-  void                 dumpFASTQ(FILE *F, bool useGapped);
+  void                 dumpFASTA(FILE *F);
+  void                 dumpFASTQ(FILE *F);
 
   //  There are two multiAlign displays; this one, and one in abMultiAlign.
   void                 display(FILE     *F,
@@ -352,10 +317,6 @@ private:
 public:
   uint32              _tigID;             //  ID in the store, or UINT32_MAX if not set
 
-  double              coverageStat(void)  { return(_coverageStat); };
-
-  double              _coverageStat;
-
   uint32              _sourceID;          //  Object we are placed in.
   uint32              _sourceBgn;         //  Position of object in source - for a corrected read
   uint32              _sourceEnd;         //  this is the (approximate) position in the raw read.
@@ -368,19 +329,12 @@ public:
 
   uint32              _spare           : 32 - 2 - 2;
 
-  uint32              _layoutLen;         //  The max coord in the layout.  Same as gappedLen if it exists.
+  uint32              _layoutLen;         //  The max coord in the layout.  Same as _basesLen if _bases exists.
 
-  char               *_gappedBases;       //  Gapped consensus - used by the multialignment.  NUL terminated.
-  uint8              *_gappedQuals;
-  uint32              _gappedLen;         //  Doesn't include the NUL.
-  uint32              _gappedMax;         //  Does    include the NUL.
-
-  char               *_ungappedBases;     //  Ungapped consensus - not used by the assember, only output.
-  uint8              *_ungappedQuals;
-  uint32              _ungappedLen;
-  uint32              _ungappedMax;
-
-  uint32             *_gappedToUngapped;  //  Map a gapped position to an ungapped posision, only output.
+  uint32              _basesLen;          //  Doesn't include the NUL.
+  uint32              _basesMax;          //  Does    include the NUL.
+  char               *_bases;             //  Linear consensus sequence.
+  uint8              *_quals;             //
 
   tgPosition         *_children;          //  positions of objects that make up this tig
   uint32              _childrenLen;

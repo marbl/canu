@@ -77,8 +77,6 @@ writeTigsToStore(TigVector     &tigs,
 
     tig->_tigID           = utg->id();
 
-    tig->_coverageStat    = 1.0;  //  Default to just barely unique
-
     //  Set the class and some flags.
 
     tig->_class           = (utg->_isUnassembled == true) ? tgTig_unassembled : tgTig_contig;

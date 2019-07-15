@@ -71,7 +71,6 @@ public:
 };
 
 ruLabelStat  repeat_LowReads;
-ruLabelStat  repeat_LowCovStat;
 ruLabelStat  repeat_Short;
 ruLabelStat  repeat_SingleSpan;
 ruLabelStat  repeat_LowCov;
@@ -119,12 +118,6 @@ main(int argc, char **argv) {
   FILE             *outLOG = NULL;
   FILE             *outSTA = NULL;
 
-  //  From the original description of these values (CGB_UNIQUE_CUTOFF):
-  //    A threshold value for Gene's coverage statistic.  Values above this value have never been
-  //    known to associated with unitigs with fragments that are not contiguous in the genome.
-  double            cgbUniqueCutoff           = 10.0;
-  double            cgbDefinitelyUniqueCutoff = 10.0;
-
   double            singleReadMaxCoverage     = 1.0;    //  Reads covering more than this will demote the unitig
   uint32            lowCovDepth               = 2;
   double            lowCovFractionAllowed     = 1.0;
@@ -162,13 +155,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-n") == 0) {
       tigMode  = tgStoreReadOnly;
-
-
-    } else if (strcmp(argv[arg], "-j") == 0) {
-      cgbUniqueCutoff = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-k") == 0) {
-      cgbDefinitelyUniqueCutoff = atof(argv[++arg]);
 
 
     } else if (strcmp(argv[arg], "-span") == 0) {
@@ -210,9 +196,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -S <S>       Mandatory, path S to a seqStore directory.\n");
     fprintf(stderr, "  -T <T> <v>   Mandatory, path T to a tigStore, and version V.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -j J         Unitig is not unique if astat is below J (cgbUniqueCutoff)\n");
-    fprintf(stderr, "  -k K         (unused) (cgbDefinitelyUniqueCutoff)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -span F      Unitig is not unique if a single read spans more than fraction F (default 1.0) of unitig\n");
     fprintf(stderr, "  -lowcov D F  Unitig is not unique if fraction F (default 1.0) of unitig is below read depth D (default 2)\n");
@@ -264,7 +247,7 @@ main(int argc, char **argv) {
   outLOG = AS_UTL_openOutputFile(outLOGname);
   outSTA = AS_UTL_openOutputFile(outSTAname);
 
-  fprintf(outLOG, "tigID\trho\tcovStat\tarrDist\n");
+  fprintf(outLOG, "tigID\trho\tarrDist\n");
 
   fprintf(stderr, "Command Line options:\n");
   fprintf(stderr, "  singleReadMaxCoverage    %f\n", singleReadMaxCoverage);
@@ -298,7 +281,6 @@ main(int argc, char **argv) {
   //    global single-read fraction covered - number of bases in unitigs with specific fraction covered
   //    global number of reads per unitig
   //
-  //  This is using GAPPED lengths, because they're faster, and we don't need the actual ungapped positions.
 
   fprintf(stderr, "Generating statistics.\n");
 
@@ -349,7 +331,7 @@ main(int argc, char **argv) {
 
     //  Single read max fraction covered.
 
-    uint32  tigLen = tig->length(true);
+    uint32  tigLen = tig->length();
     uint32  covMax = 0;
     uint32  cov;
 
@@ -442,9 +424,7 @@ main(int argc, char **argv) {
       continue;
     }
 
-    //  This uses UNGAPPED lengths, because they make more sense to humans.
-
-    uint32        tigLen = tig->length(false);
+    uint32        tigLen = tig->length();
 
     uint32  lowCovBases = 0;
     for (uint32 ll=0; ll<lowCovDepth; ll++)
@@ -484,13 +464,6 @@ main(int argc, char **argv) {
       isUnique = true;
     }
 
-    else if (tigStore->getCoverageStat(tig->tigID()) < cgbUniqueCutoff) {
-      fprintf(outLOG, "unitig %d not unique -- coverage stat %f, needs to be at least %f\n",
-              tig->tigID(), tigStore->getCoverageStat(tig->tigID()), cgbUniqueCutoff);
-      repeat_LowCovStat += tigLen;
-      isUnique = false;
-    }
-
     else if ((double)lowCovBases / tigLen > lowCovFractionAllowed) {
       fprintf(outLOG, "unitig %d not unique -- too many low coverage bases, %u out of %u bases, fraction %f > allowed %f\n",
               tig->tigID(),
@@ -499,20 +472,6 @@ main(int argc, char **argv) {
       repeat_LowCov += tigLen;
       isUnique = false;
     }
-
-    //  This was an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
-    //  well in initial limited testing.  The threshold is arbitrary; older versions used
-    //  cgbDefinitelyUniqueCutoff.  If used, be sure to disable the real check after this!
-#if 0
-    else if ((tigStore->getCoverageStat(tig->tigID()) < cgbUniqueCutoff * 10) &&
-             (tigLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
-      fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d AND coverage stat %d must be larger than %d\n",
-              tig->tigID(), tigLen, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH,
-              tigStore->getCoverageStat(tig->tigID()), cgbUniqueCutoff * 10);
-      repeat_Short += tigLen;
-      isUnique = false;
-    }
-#endif
 
     else if (tigLen < tooShort) {
       fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d\n",
@@ -548,7 +507,6 @@ main(int argc, char **argv) {
   fprintf(outSTA, "  singleton:       %17" F_U32P "  %14" F_U64P "\n", repeat_IsSingleton.num,  repeat_IsSingleton.len);
   fprintf(outSTA, "  repeat:          %17" F_U32P "  %14" F_U64P "\n", repeat_IsRepeat.num,     repeat_IsRepeat.len);
   fprintf(outSTA, "    too few reads: %17" F_U32P "  %14" F_U64P "\n", repeat_LowReads.num,     repeat_LowReads.len);
-  fprintf(outSTA, "    low cov stat:  %17" F_U32P "  %14" F_U64P "\n", repeat_LowCovStat.num,   repeat_LowCovStat.len);
   fprintf(outSTA, "    too short:     %17" F_U32P "  %14" F_U64P "\n", repeat_Short.num,        repeat_Short.len);
   fprintf(outSTA, "    spanning read: %17" F_U32P "  %14" F_U64P "\n", repeat_SingleSpan.num,   repeat_SingleSpan.len);
   fprintf(outSTA, "    low coverage:  %17" F_U32P "  %14" F_U64P "\n", repeat_LowCov.num,       repeat_LowCov.len);

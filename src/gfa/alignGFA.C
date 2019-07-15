@@ -51,10 +51,10 @@ public:
   };
 
   void  set(tgTig *tig) {
-    len = tig->length(false);
+    len = tig->length();
     seq = new char [len + 1];
 
-    memcpy(seq, tig->bases(false), len);
+    memcpy(seq, tig->bases(), len);
 
     seq[len] = 0;
   };

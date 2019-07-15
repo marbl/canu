@@ -577,26 +577,28 @@ sub consensusAnalyze ($) {
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
+    #  Left in as a template for any future analysis.
 
-    fetchTigStore("unitigging", $asm, "ctgStore", "001");
-    fetchTigStore("unitigging", $asm, "ctgStore", "002");
-
-    $cmd  = "$bin/tgStoreCoverageStat \\\n";
-    $cmd .= "  -S ../$asm.seqStore \\\n";
-    $cmd .= "  -T  ./$asm.ctgStore 2 \\\n";
-    $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
-    $cmd .= "  -o ./$asm.ctgStore.coverageStat \\\n";
-    $cmd .= "> ./$asm.ctgStore.coverageStat.err 2>&1";
-
-    if (runCommand("unitigging", $cmd)) {
-        caExit("failed to compute coverage statistics", "unitigging/$asm.ctgStore.coverageStat.err");
-    }
-
-    unlink "unitigging/$asm.ctgStore.coverageStat.err";
-
-    stashFile("unitigging/$asm.ctgStore.coverageStat.stats");
-    stashFile("unitigging/$asm.ctgStore.coverageStat.log");
+    #goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
+    #
+    #fetchTigStore("unitigging", $asm, "ctgStore", "001");
+    #fetchTigStore("unitigging", $asm, "ctgStore", "002");
+    #
+    #$cmd  = "$bin/tgStoreCoverageStat \\\n";
+    #$cmd .= "  -S ../$asm.seqStore \\\n";
+    #$cmd .= "  -T  ./$asm.ctgStore 2 \\\n";
+    #$cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
+    #$cmd .= "  -o ./$asm.ctgStore.coverageStat \\\n";
+    #$cmd .= "> ./$asm.ctgStore.coverageStat.err 2>&1";
+    #
+    #if (runCommand("unitigging", $cmd)) {
+    #    caExit("failed to compute coverage statistics", "unitigging/$asm.ctgStore.coverageStat.err");
+    #}
+    #
+    #unlink "unitigging/$asm.ctgStore.coverageStat.err";
+    #
+    #stashFile("unitigging/$asm.ctgStore.coverageStat.stats");
+    #stashFile("unitigging/$asm.ctgStore.coverageStat.log");
 
   finishStage:
     generateReport($asm);

@@ -64,14 +64,18 @@ testFile(vector<char *>  &tigInputs) {
     FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
 
     while (tig->loadFromStreamOrLayout(TI) == true) {
+      int32  minP = INT32_MAX;
+      int32  maxP = 0;
 
-      if (tig->gappedLength() != tig->layoutLength())
-        fprintf(stdout, "BAD  %8u  gapped %8u %c layout %8u diff %8d\n",
-                tig->tigID(),
-                tig->gappedLength(),
-                (tig->gappedLength() < tig->layoutLength()) ? '<' : '>',
-                tig->layoutLength(),
-                (int32)tig->layoutLength() - (int32)tig->gappedLength());
+      for (uint32 ii=0; ii<tig->numberOfChildren(); ii++) {
+        minP = min(minP, tig->getChild(ii)->min());
+        maxP = min(maxP, tig->getChild(ii)->max());
+      }
+
+      if ((minP != 0) ||
+          (maxP != tig->length()))
+        fprintf(stdout, "BAD  %8u  layout %8d %8d length %8u\n",
+                tig->tigID(), minP, maxP, tig->length());
       else
         fprintf(stdout, "GOOD %8u\n", tig->tigID());
     }

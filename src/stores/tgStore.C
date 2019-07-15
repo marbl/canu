@@ -276,8 +276,8 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
 
   //  Check that the components do not exceed the bound.
   //
-  if (tig->_gappedLen > 0) {
-    uint32  len = tig->_gappedLen;
+  if (tig->_basesLen > 0) {
+    uint32  len = tig->_basesLen;
     uint32  swp = 0;
     uint32  neg = 0;
     uint32  pos = 0;
