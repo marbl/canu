@@ -512,15 +512,15 @@ maComputation::computeAlignments(uint32  minOverlapLength,
   //  Process each overlap.
   //
 
-  for (uint32 ii=0; ii<_overlapsLen; ii++) {
-    ovOverlap *ov = _overlaps + ii;
+  for (uint32 ovlid=0; ovlid<_overlapsLen; ovlid++) {
+    ovOverlap *ov = _overlaps + ovlid;
 
     if (ov->evalue() == AS_MAX_EVALUE)    //  Skip overlaps that are flagged as trimmed out
       continue;                           //  or otherwise not useful.
 
     if (_verboseAlign > 0) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "computeAlignments()-- ----------------------------------------OVERLAP %u/%u\n", ii, _overlapsLen);
+      fprintf(stderr, "computeAlignments()-- ----------------------------------------OVERLAP %u/%u\n", ovlid, _overlapsLen);
     }
 
     assert(_aID == ov->a_iid);
@@ -545,7 +545,7 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     if ((aend - abgn < _minLength) ||
         (bend - bbgn < _minLength)) {
       if (_verboseAlign > 0)
-        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d short.\n", ii, _aID, abgn, aend, _bID, bbgn, bend);
+        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d short.\n", ovlid, _aID, abgn, aend, _bID, bbgn, bend);
       ov->evalue(AS_MAX_EVALUE);
       continue;
     }
@@ -560,7 +560,7 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     if ((a5 - b5 > _maxEdge) &&
         (a3 - b3 > _maxEdge)) {
       if (_verboseAlign > 0)
-        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d contained.\n", ii, _aID, abgn, aend, _bID, bbgn, bend);
+        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d contained.\n", ovlid, _aID, abgn, aend, _bID, bbgn, bend);
       ov->evalue(AS_MAX_EVALUE);
       continue;
     }
@@ -574,7 +574,7 @@ maComputation::computeAlignments(uint32  minOverlapLength,
         (a3 < b3) &&
         (_readData[_aID].trimmedLength - a5 + b5 < thick3)) {
       if (_verboseAlign > 0)
-        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d thick3 %d < %d\n", ii, _aID, abgn, aend, _bID, bbgn, bend, _readData[_aID].trimmedLength - a5 + b5, thick3);
+        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d thick3 %d < %d\n", ovlid, _aID, abgn, aend, _bID, bbgn, bend, _readData[_aID].trimmedLength - a5 + b5, thick3);
       ov->evalue(AS_MAX_EVALUE);
       continue;
     }
@@ -588,7 +588,7 @@ maComputation::computeAlignments(uint32  minOverlapLength,
         (a3 > b3) &&
         (_readData[_aID].trimmedLength - a3 + b3 < thick5)) {
       if (_verboseAlign > 0)
-        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d thick5 %d < %d\n", ii, _aID, abgn, aend, _bID, bbgn, bend, _readData[_aID].trimmedLength - a3 + b3, thick5);
+        fprintf(stderr, "computeAlignments()-- overlap %4u a=%8u %6d-%-6d b=%8u %6d-%-6d thick5 %d < %d\n", ovlid, _aID, abgn, aend, _bID, bbgn, bend, _readData[_aID].trimmedLength - a3 + b3, thick5);
       ov->evalue(AS_MAX_EVALUE);
       continue;
     }
@@ -604,7 +604,7 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     //  Load the b read and compute the alignment.
     fetchTrimmedRead(_bID, false, ov->flipped());
 
-    computeOverlapAlignment(ov,
+    computeOverlapAlignment(ovlid,
                             minOverlapLength,
                             maxErate,
                             _overlapSlop,

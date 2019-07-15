@@ -73,26 +73,25 @@ overlapWriter(void *G, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maComputation    *s = (maComputation *)S;
 
-  for (uint64 oo=0; oo<s->_overlapsLen; oo++)
-    if (s->_overlaps[oo].evalue() != AS_MAX_EVALUE)
-      //g->outStore->writeOverlap(ovl);
-      g->outFile->writeOverlap(&s->_overlaps[oo]);
+  //  Write the header for our big-pile-o-alignments output.
 
-  if (s->_alignsLen > 0) {
-    fprintf(stdout, "\n");
-    fprintf(stdout, "%6u %6d %6d %s\n", s->_aID, 0, s->_readData[s->_aID].trimmedLength, s->_aRead);
+  fprintf(stdout, "\n");
+  fprintf(stdout, "%6u %6d %6d %s\n", s->_aID, 0, s->_readData[s->_aID].trimmedLength, s->_aRead);
 
-    for (uint32 oo=0; oo<s->_alignsLen; oo++) {
-      //fprintf(stdout, "\n");
-      //fprintf(stdout, "%6u %6d %6d\n", s->_alignsOvl[oo]->b_iid, (int32)s->_alignsOvl[oo]->dat.ovl.ahg5, (int32)s->_alignsOvl[oo]->dat.ovl.ahg3);
-      //fprintf(stdout, "%s\n", s->_alignsA[oo]);
-      //fprintf(stdout, "%s\n", s->_alignsB[oo]);
-      fprintf(stdout, "%6u %6d %6d %s\n",
-              s->_alignsOvl[oo]->b_iid,
-              (int32)s->_alignsOvl[oo]->dat.ovl.ahg5,
-              (int32)s->_alignsOvl[oo]->dat.ovl.ahg3,
-              s->_alignsB[oo]);
-    }
+  //  For each overlap, write the overlap and the alignment string (unless
+  //  it's a garbage overlap).
+
+  for (uint64 oo=0; oo<s->_overlapsLen; oo++) {
+    if (s->_overlaps[oo].evalue() == AS_MAX_EVALUE)
+      continue;
+
+    g->outFile->writeOverlap(&s->_overlaps[oo]);
+
+    fprintf(stdout, "%6u %6d %6d %s\n",
+            s->_overlaps[oo].b_iid,
+            (int32)s->_overlaps[oo].dat.ovl.ahg5,
+            (int32)s->_overlaps[oo].dat.ovl.ahg3,
+            s->_alignsB[oo]);
   }
 
   delete s;
@@ -324,7 +323,7 @@ main(int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-align") == 0) {
-      g->outStoreName = argv[++arg];
+      g->outFileName = argv[++arg];
     }
 
 
@@ -353,7 +352,7 @@ main(int argc, char **argv) {
   if (g->seqStoreName == NULL)   err.push_back("No sequence store (-S option) supplied.\n");
   if (g->ovlStoreName == NULL)   err.push_back("No overlap store (-O option) supplied.\n");
 
-  if ((g->outStoreName        == NULL) &&
+  if ((g->outFileName         == NULL) &&
       (g->clearRangesFileName == NULL))
     err.push_back("At least one of -trim and -align must be supplied.\n");
 #endif
@@ -416,7 +415,7 @@ main(int argc, char **argv) {
   }
 
   else if ((g->clearRangesFileName != NULL) &&
-           (g->outStoreName        == NULL)) {
+           (g->outFileName         == NULL)) {
     g->initialize();
 
     fprintf(stderr, "COMPUTE TRIMMING and STOP.\n");
@@ -426,7 +425,7 @@ main(int argc, char **argv) {
   }
 
   else if ((g->clearRangesFileName == NULL) &&
-           (g->outStoreName        != NULL)) {
+           (g->outFileName         != NULL)) {
     g->initialize();
 
     fprintf(stderr, "ALIGNING OVERLAPS.\n");
@@ -434,7 +433,7 @@ main(int argc, char **argv) {
   }
 
   else if ((g->clearRangesFileName != NULL) &&
-           (g->outStoreName        != NULL)) {
+           (g->outFileName         != NULL)) {
     g->initialize(sqStore_extend);
 
     fprintf(stderr, "COMPUTE TRIMMING.\n");
