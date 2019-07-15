@@ -36,7 +36,7 @@ my $cwd = getcwd();
 
 my $label    = "snapshot";     #  Automagically set to 'release' for releases.
 my $major    = "1";            #  Bump before release.
-my $minor    = "8";            #  Bump before release.
+my $minor    = "9";            #  Bump before release.
 
 my $commits  = "0";
 my $hash1    = undef;          #  This from 'git describe'
