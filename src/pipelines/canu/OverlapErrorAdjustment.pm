@@ -74,22 +74,31 @@ sub loadReadLengths ($$$) {
     print STDERR "--\n";
     print STDERR "-- Loading read lengths.\n";
 
-    open(F, "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -reads 2> /dev/null |");
+    #  Dump corrected read lengths and trimming.  Load the length into
+    #  an array for later use.
+
+    open(F, "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -corrected -reads 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
 
         next if (m/^readID/);   #  Header line
-        next if (m/^------/);   #  ------ ----
+        next if (m/^----/);     #  ------ ----
 
         my @v = split '\s+', $_;
+        my $l = 0;
 
-        next  if ($v[8] eq "-");
-        next  if ($v[8] eq "ignored");
+        if ($v[5] =~ m/CC--/) {   #  Corrected available, but no trimmed.
+            $l = $v[2];
+        }
 
-        vec($$rlVec, $v[0], 32) = $v[10] - $v[9];
+        if ($v[5] =~ m/CCTT/) {   #  Corrected and trimmed.
+            $l = $v[4] - $v[3];
+        }
+
+        vec($$rlVec, $v[0], 32) = $l;
         $rlCnt                 += 1;
-        $rlSum                 += $v[10] - $v[9];
+        $rlSum                 += $l;
     }
     close(F);
 

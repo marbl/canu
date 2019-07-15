@@ -331,32 +331,27 @@ sub generateReadLengthHistogram ($$) {
     my @rl;
     my @hi;
 
-    #  Load the read lengths, find min and max lengths.
+    #  Generate a lovely PNG histogram.
 
-    open(F, "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -reads |") or caExit("can't dump meta data from './$asm.seqStore': $!", undef);
-    while (<F>) {
-        next  if (m/readID/);             #  Skip the header lines.
-        next  if (m/------/);
+    if (! -e "./$asm.seqStore/readlengths-$tag.dat") {
+        my $cmd;
 
-        s/^\s+//;
-        s/\s+$//;
+        $cmd  = "$bin/sqStoreDumpMetaData \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
+        $cmd .= "  -raw \\\n"                  if ($tag eq "cor");
+        $cmd .= "  -corrected \\\n"            if ($tag eq "obt");
+        $cmd .= "  -corrected -trimmed \\\n"   if ($tag eq "utg");
+        $cmd .= "  -histogram " . getGlobal("genomeSize") . " \\\n";
+        $cmd .= "  -lengths \\\n";
+        $cmd .= "> ./$asm.seqStore/readlengths-$tag.dat \\\n";
+        $cmd .= "2> ./$asm.seqStore/readlengths-$tag.err \n";
 
-        my @v = split '\s+', $_;
-        my $l = 0;
+        if (runCommand(".", $cmd) > 0) {
+            caExit("sqStoreDumpMetaData failed", "./$asm.seqStore/readlengths-$tag.err");
+        }
 
-        $l = $v[2]          if (($tag eq "cor") || ($tag eq "hap"));
-        $l = $v[8]          if (($tag eq "obt"));
-        $l = $v[10]-$v[9]   if (($tag eq "utg") && ($v[10] ne "-") && ($v[9] ne "-"));
+        unlink "./$asm.seqStore/readlengths-$tag.err";
 
-        push @rl, $l        if (($l ne "-") && ($l > 0));
-    }
-    close(F);
-
-    @rl = sort { $a <=> $b } @rl;
-
-    #  Generate PNG histograms if there are any reads.
-
-    if ($reads > 0) {
         my $gnuplot = getGlobal("gnuplot");
         my $format  = getGlobal("gnuplotImageFormat");
 
@@ -375,12 +370,6 @@ sub generateReadLengthHistogram ($$) {
             print F "plot [] './$asm.seqStore/readlengths-$tag.dat' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
             close(F);
 
-            open(F, "> ./$asm.seqStore/readlengths-$tag.dat") or caExit("can't open './$asm.seqStore/readlengths-$tag.dat' for writing: $!", undef);
-            foreach my $rl (@rl) {
-                print F "$rl\n";
-            }
-            close(F);
-
             if (runCommandSilently(".", "$gnuplot < /dev/null ./$asm.seqStore/readlengths-$tag.gp > /dev/null 2>&1", 0)) {
                 print STDERR "--\n";
                 print STDERR "-- WARNING: gnuplot failed.\n";
@@ -390,54 +379,43 @@ sub generateReadLengthHistogram ($$) {
         }
     }
 
-    #  Generate the ASCII histogram.
+    #  Generate a lovely ASCII histogram.
+
+    if (! -e "./$asm.seqStore/readlengths-$tag.txt") {
+        my $cmd;
+
+        $cmd  = "$bin/sqStoreDumpMetaData \\\n";
+        $cmd .= "  -S ./$asm.seqStore \\\n";
+        $cmd .= "  -raw \\\n"                  if ($tag eq "cor");
+        $cmd .= "  -corrected \\\n"            if ($tag eq "obt");
+        $cmd .= "  -corrected -trimmed \\\n"   if ($tag eq "utg");
+        $cmd .= "  -histogram " . getGlobal("genomeSize") . " \\\n";
+        $cmd .= "> ./$asm.seqStore/readlengths-$tag.txt \\\n";
+        $cmd .= "2> ./$asm.seqStore/readlengths-$tag.err \n";
+
+        if (runCommand(".", $cmd) > 0) {
+            caExit("sqStoreDumpMetaData failed", "./$asm.seqStore/readlengths-$tag.err");
+        }
+
+        unlink "./$asm.seqStore/readlengths-$tag.err";
+    }
+
+    #  Read the ASCII histogram, append to report.
 
     $hist  = "--\n";
     $hist .= "-- In sequence store './$asm.seqStore':\n";
     $hist .= "--   Found $reads reads.\n";
     $hist .= "--   Found $bases bases ($coverage times coverage).\n";
 
-    if ($reads > 0) {
-        my $minLen     = $rl[ 0];
-        my $maxLen     = $rl[-1];
-        my $scale      = 0;
-        my $bucketSize = 0;
+    if (-e "./$asm.seqStore/readlengths-$tag.txt") {
+        #$hist .= "--\n";
+        #$hist .= "--   Read length histogram (one '*' equals " . int(100 * $scale) / 100 . " reads):\n";
 
-        #  Buckets of size 1000 are easy to interpret, but sometimes not ideal.
-
-        $bucketSize = 10000;
-        $bucketSize = 5000    if ($maxLen - $minLen < 1000000);
-        $bucketSize = 1000    if ($maxLen - $minLen < 100000);
-        $bucketSize = 100     if ($maxLen - $minLen < 10000);
-
-        #  Generate the histogram (int truncates)
-
-        my $mBgn = int($minLen / $bucketSize);
-        my $mEnd = int($maxLen / $bucketSize);
-
-        foreach my $rl (@rl) {
-            my $b = int($rl / $bucketSize);
-
-            $hi[$b]++;
+        open(F, "< ./$asm.seqStore/readlengths-$tag.txt") or caExit("can't open './$asm.seqStore/readlengths-$tag.txt' for reading: $!", undef);
+        while (<F>) {
+            $hist .= "--    $_";
         }
-
-        for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {                           #  Scale the *'s so that the longest has 70 of 'em
-            $scale = $hi[$ii] / 70   if ($scale < $hi[$ii] / 70);
-        }
-
-        #  Draw the histogram.
-
-        $hist .= "--\n";
-        $hist .= "--   Read length histogram (one '*' equals " . int(100 * $scale) / 100 . " reads):\n";
-
-        for (my $ii=$mBgn; $ii<=$mEnd; $ii++) {
-            my $s = $ii * $bucketSize;
-            my $e = $ii * $bucketSize + $bucketSize - 1;
-
-            $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
-
-            $hist .= sprintf("--   %6d %6d %6d %s\n", $s, $e, $hi[$ii], "*" x int($hi[$ii] / $scale));
-        }
+        close(F);
     }
 
     #  Abort if the read coverage is too low.
