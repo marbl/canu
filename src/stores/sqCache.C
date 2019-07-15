@@ -343,11 +343,8 @@ sqCache::sqCache_loadReads(bool verbose) {
   _data          = new uint8 [_dataMax];
 
   _dataBlocksLen = 0;
-  _dataBlocksMax = (nBases / 3 + nReads) / _dataMax + 1;
-  _dataBlocks    = new uint8 * [_dataBlocksMax];
-
-  for (uint32 ii=0; ii<_dataBlocksMax; ii++)
-    _dataBlocks[ii] = NULL;
+  _dataBlocksMax = 0;
+  _dataBlocks    = NULL;
 
   //  Allocate another block.
 
