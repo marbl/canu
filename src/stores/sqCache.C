@@ -160,10 +160,12 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
     uint32  cLen  = *(uint32 *)(_read._blob + blobPos + 4);
 
     if (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+        ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
         ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')))
       rptr = _read._blob + blobPos;
 
     if (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')) ||
+        ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')) ||
         ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
       cptr = _read._blob + blobPos;
 
@@ -255,6 +257,10 @@ sqCache::sqCache_getSequence(uint32    id,
   if      (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
     decode2bitSequence(chunk, cLen, seq, seqLen);
+
+  else if (((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+           ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
+    decode3bitSequence(chunk, cLen, seq, seqLen);
 
   else if (((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
