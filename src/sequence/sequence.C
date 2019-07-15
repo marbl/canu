@@ -359,6 +359,10 @@ main(int argc, char **argv) {
 
     //  INPUTS
 
+    else if (strcmp(argv[arg], "-") == 0) {
+      inputs.push_back(argv[arg]);
+    }
+
     else if (fileExists(argv[arg]) == true) {
       inputs.push_back(argv[arg]);
     }
