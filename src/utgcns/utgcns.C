@@ -215,7 +215,7 @@ createPartitions(cnsParameters  &params) {
     tgTig  *tig = params.tigStore->loadTig(ti);
 
     tigs[ti].tigID           = ti;
-    tigs[ti].tigLength       = tig->layoutLength();
+    tigs[ti].tigLength       = tig->length();
     tigs[ti].tigChildren     = tig->numberOfChildren();
 
     tigs[ti].consensusArea   = tigs[ti].tigLength * tigs[ti].tigChildren;
@@ -366,8 +366,8 @@ processImportedTigs(cnsParameters  &params) {
 
     if (params.outResultsFile)   tig->saveToStream(params.outResultsFile);
     if (params.outLayoutsFile)   tig->dumpLayout(params.outLayoutsFile);
-    if (params.outSeqFileA)      tig->dumpFASTA(params.outSeqFileA, true);
-    if (params.outSeqFileQ)      tig->dumpFASTQ(params.outSeqFileQ, true);
+    if (params.outSeqFileA)      tig->dumpFASTA(params.outSeqFileA);
+    if (params.outSeqFileQ)      tig->dumpFASTQ(params.outSeqFileQ);
 
     //  Tidy up for the next tig.
 
@@ -470,13 +470,13 @@ processTigs(cnsParameters  &params) {
         ((params.onlyContig  == true) && (tig->_class != tgTig_contig)) ||
         ((params.onlyBubble  == true) && (tig->_class != tgTig_bubble)) ||
         ((params.noSingleton == true) && (tig->numberOfChildren() == 1)) ||
-        (tig->length(true) > params.maxLen))
+        (tig->length() > params.maxLen))
       continue;
 
     //  Log that we're processing.
 
     if (tig->numberOfChildren() > 1) {
-      fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(true), tig->numberOfChildren());
+      fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
     //  Stash excess coverage.
@@ -513,8 +513,8 @@ processTigs(cnsParameters  &params) {
 
     if (params.outResultsFile)   tig->saveToStream(params.outResultsFile);
     if (params.outLayoutsFile)   tig->dumpLayout(params.outLayoutsFile);
-    if (params.outSeqFileA)      tig->dumpFASTA(params.outSeqFileA, true);
-    if (params.outSeqFileQ)      tig->dumpFASTQ(params.outSeqFileQ, true);
+    if (params.outSeqFileA)      tig->dumpFASTA(params.outSeqFileA);
+    if (params.outSeqFileQ)      tig->dumpFASTQ(params.outSeqFileQ);
 
     //  Count failure.
 

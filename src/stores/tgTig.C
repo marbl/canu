@@ -301,9 +301,9 @@ tgTig::saveToBuffer(writeBuffer *B) {
 
   //  We could save the null byte too, but don't.  It's explicitly added during the load.
 
-  if (_gappedLen > 0) {
-    B->write(_gappedBases, _gappedLen);
-    B->write(_gappedQuals, _gappedLen);
+  if (_basesLen > 0) {
+    B->write(_bases, _basesLen);
+    B->write(_quals, _basesLen);
   }
 
   if (_childrenLen > 0)
@@ -349,14 +349,14 @@ tgTig::loadFromBuffer(readBuffer *B) {
 
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
-  resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen + 1, resizeArray_doNothing);
+  resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
 
-  if (_gappedLen > 0) {
-    B->read(_gappedBases, _gappedLen);
-    B->read(_gappedQuals, _gappedLen);
+  if (_basesLen > 0) {
+    B->read(_bases, _basesLen);
+    B->read(_quals, _basesLen);
 
-    _gappedBases[_gappedLen] = 0;
-    _gappedQuals[_gappedLen] = 0;
+    _bases[_basesLen] = 0;
+    _quals[_basesLen] = 0;
   }
 
   //  Allocate space for reads and alignments, and load them.
