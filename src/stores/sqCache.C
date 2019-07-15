@@ -265,8 +265,10 @@ sqCache::sqCache_getSequence(uint32    id,
     _readData.sqReadData_decode2bit(_reads[id]._data + 8, chunkLen, seq, seqLen);
 
   else if (((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'R')) ||
-           ((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C')))
-    assert(0);
+           ((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C'))) {
+    memcpy(seq, _reads[id]._data + 8, seqLen);
+    seq[seqLen] = 0;
+  }
 
   //  If a trimmed read, we need to ... trim it.
 
