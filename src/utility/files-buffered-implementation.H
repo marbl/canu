@@ -112,7 +112,6 @@ readBuffer::skipAhead(char stop, bool after) {
 
     //  If we hit the fake stop, fill the buffer again and continue.
     if (_bufferPos == _bufferLen) {
-      _filePos--;
       fillBuffer();
       continue;
     }

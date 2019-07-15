@@ -184,7 +184,9 @@ The run will first bin the reads into the haplotypes (``ecoliTrio/haplotype/hapl
   --     4114 reads      6520294 bases written to haplotype file ./haplotype-unknown.fasta.gz.
 
 
-Next, the haplotypes are assembled in ``ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta`` and ``ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta``. As comparison, you can try co-assembling the datasets instead::
+Next, the haplotypes are assembled in ``ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta`` and ``ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta``. By default, if the unassigned bases are > 5% of the total, they are included in both haplotypes. This can be controlled with the :ref:`hapUnknownFraction <hapUnknownFraction>` option. 
+
+As comparison, you can try co-assembling the datasets instead::
 
  canu \
   -p asm -d ecoliHap \

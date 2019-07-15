@@ -574,6 +574,12 @@ trimReadsCoverage <integer=1>
   Minimum depth of evidence to retain bases.
 
 
+Trio binning Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _hapUnknownFraction:
+hapUnknownFraction <float=0.05>
+   Fraction of unclassified bases to ignore for haplotype assemblies. If there are more than this fraction of unclassified bases, they are included in both haplotype assemblies.
 
 .. _grid-engine:
 
