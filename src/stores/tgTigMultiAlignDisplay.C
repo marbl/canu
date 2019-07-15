@@ -204,7 +204,7 @@ tgTig::display(FILE     *F,
   withQV   = false;
   withDots = true;
 
-  if (gappedLength() == 0) {
+  if (consensusExists() == 0) {
     fprintf(F, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", tigID());
     return;
   }
@@ -266,16 +266,16 @@ tgTig::display(FILE     *F,
   char   **displayFwd    = new char  * [rowsLen];   //
 
   for (uint32 ii=0; ii<rowsLen; ii++) {
-    displayBases[ii] = new char  [gappedLength() + gapPositions.size() + displayWidth + 1];
-    displayQuals[ii] = new char  [gappedLength() + gapPositions.size() + displayWidth + 1];
-    displayIDs[ii]   = new int32 [gappedLength() + gapPositions.size() + 1];
-    displayFwd[ii]   = new char  [gappedLength() + gapPositions.size() + 1];
+    displayBases[ii] = new char  [length() + gapPositions.size() + displayWidth + 1];
+    displayQuals[ii] = new char  [length() + gapPositions.size() + displayWidth + 1];
+    displayIDs[ii]   = new int32 [length() + gapPositions.size() + 1];
+    displayFwd[ii]   = new char  [length() + gapPositions.size() + 1];
 
-    memset(displayBases[ii], ' ', sizeof(char)  * (gappedLength() + gapPositions.size() + displayWidth + 1));
-    memset(displayQuals[ii], ' ', sizeof(char)  * (gappedLength() + gapPositions.size() + displayWidth + 1));
+    memset(displayBases[ii], ' ', sizeof(char)  * (length() + gapPositions.size() + displayWidth + 1));
+    memset(displayQuals[ii], ' ', sizeof(char)  * (length() + gapPositions.size() + displayWidth + 1));
 
-    memset(displayIDs[ii],    0,  sizeof(int32) * (gappedLength() + gapPositions.size() + 1));
-    memset(displayFwd[ii],    0,  sizeof(char)  * (gappedLength() + gapPositions.size() + 1));
+    memset(displayIDs[ii],    0,  sizeof(int32) * (length() + gapPositions.size() + 1));
+    memset(displayFwd[ii],    0,  sizeof(char)  * (length() + gapPositions.size() + 1));
   }
 
   //  Copy read sequence to the display arrays, ignoring gaps in the tig for now.
@@ -353,12 +353,12 @@ tgTig::display(FILE     *F,
 
   //  The original used 'length = strlen(consensus)' which does NOT include the terminating NUL.
 
-  for (uint32 window=0; window < gappedLength(); ) {
-    uint32 rowlen  = (window + displayWidth < gappedLength()) ? displayWidth : gappedLength() - window;
+  for (uint32 window=0; window < length(); ) {
+    uint32 rowlen  = (window + displayWidth < length()) ? displayWidth : length() - window;
 
     fprintf(F, "\n");
     fprintf(F, "\n");
-    fprintf(F, "<<<  tig %d, gapped length: %d  >>>\n", tigID(), gappedLength());
+    fprintf(F, "<<<  tig %d, gapped length: %d  >>>\n", tigID(), length());
 
     {
       memset(gruler, 0, displayWidth + 200);
@@ -371,7 +371,7 @@ tgTig::display(FILE     *F,
         if ((ungapped % 25) == 0)
           snprintf(uruler + rowind, lruler, "| UNG=%d", ungapped);
 
-        if (_gappedBases[window + rowind] != '-')
+        if (_bases[window + rowind] != '-')
           ungapped++;
       }
 
@@ -393,27 +393,27 @@ tgTig::display(FILE     *F,
 
 
     {
-      char save = _gappedBases[window + rowlen];
-      _gappedBases[window + rowlen] = 0;
+      char save = _bases[window + rowlen];
+      _bases[window + rowlen] = 0;
 
-      fprintf(F, "%s  cns  (iid) type\n", _gappedBases + window);
+      fprintf(F, "%s  cns  (iid) type\n", _bases + window);
 
-      _gappedBases[window + rowlen] = save;
+      _bases[window + rowlen] = save;
     }
 
     {
       for (uint32 ii=0; ii<rowlen; ii++)   //  Adjust QV for display.
-        _gappedQuals[window+ii] += '!';
+        _quals[window+ii] += '!';
 
-      char save = _gappedQuals[window + rowlen];
-      _gappedQuals[window+rowlen] = 0;     //  Terminate the substring.
+      char save = _quals[window + rowlen];
+      _quals[window+rowlen] = 0;     //  Terminate the substring.
 
-      fprintf(F, "%s  qlt\n", _gappedQuals + window);
+      fprintf(F, "%s  qlt\n", _quals + window);
 
-      _gappedQuals[window+rowlen] = save;  //  Unterminate.
+      _quals[window+rowlen] = save;  //  Unterminate.
 
       for (uint32 ii=0; ii<rowlen; ii++)   //  Unadjust.
-        _gappedQuals[window+ii] -= '!';
+        _quals[window+ii] -= '!';
     }
 
     //  Display.
@@ -426,10 +426,10 @@ tgTig::display(FILE     *F,
       //  Count the number of non-blank letters.
 
       for (int32 j=0; j<displayWidth; j++) {
-        if (window + j > gappedLength())
+        if (window + j > length())
           break;
 
-        if (displayBases[i][window+j] == _gappedBases[window+j]) {
+        if (displayBases[i][window+j] == _bases[window+j]) {
           if (withDots) {
             displayBases[i][window+j] = '.';
             displayQuals[i][window+j] = ' ';

@@ -448,8 +448,8 @@ main (int argc, char **argv) {
 
       if (outResultsFile)   tig->saveToStream(outResultsFile);
       if (outLayoutsFile)   tig->dumpLayout(outLayoutsFile);
-      if (outSeqFileA)      tig->dumpFASTA(outSeqFileA, true);
-      if (outSeqFileQ)      tig->dumpFASTQ(outSeqFileQ, true);
+      if (outSeqFileA)      tig->dumpFASTA(outSeqFileA);
+      if (outSeqFileQ)      tig->dumpFASTQ(outSeqFileQ);
 
       //  Tidy up for the next tig.
 
@@ -493,7 +493,7 @@ main (int argc, char **argv) {
           ((onlyContig  == true) && (tig->_class != tgTig_contig)) ||
           ((onlyBubble  == true) && (tig->_class != tgTig_bubble)) ||
           ((noSingleton == true) && (tig->numberOfChildren() == 1)) ||
-          (tig->length(true) > maxLen))
+          (tig->length() > maxLen))
         continue;
 
       //  If partitioned, skip this tig if all the reads aren't in this partition.
@@ -512,7 +512,7 @@ main (int argc, char **argv) {
       //  Log that we're processing.
 
       if (tig->numberOfChildren() > 1) {
-        fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(true), tig->numberOfChildren());
+        fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
       }
 
       //  Stash excess coverage.
@@ -549,8 +549,8 @@ main (int argc, char **argv) {
 
       if (outResultsFile)   tig->saveToStream(outResultsFile);
       if (outLayoutsFile)   tig->dumpLayout(outLayoutsFile);
-      if (outSeqFileA)      tig->dumpFASTA(outSeqFileA, true);
-      if (outSeqFileQ)      tig->dumpFASTQ(outSeqFileQ, true);
+      if (outSeqFileA)      tig->dumpFASTA(outSeqFileA);
+      if (outSeqFileQ)      tig->dumpFASTQ(outSeqFileQ);
 
       //  Count failure.
 

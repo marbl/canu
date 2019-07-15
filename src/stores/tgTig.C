@@ -79,7 +79,7 @@ tgTigRecord::tgTigRecord() {
   _spare             = 0;
 
   _layoutLen         = 0;
-  _gappedLen         = 0;
+  _basesLen          = 0;
   _childrenLen       = 0;
   _childDeltaBitsLen = 0;
 }
@@ -103,17 +103,10 @@ tgTig::tgTig() {
 
   _layoutLen            = 0;
 
-  _gappedBases          = NULL;
-  _gappedQuals          = NULL;
-  _gappedLen            = 0;
-  _gappedMax            = 0;
-
-  _ungappedBases        = NULL;
-  _ungappedQuals        = NULL;
-  _ungappedLen          = 0;
-  _ungappedMax          = 0;
-
-  _gappedToUngapped     = NULL;
+  _basesLen             = 0;
+  _basesMax             = 0;
+  _bases                = NULL;
+  _quals                = NULL;
 
   _children             = NULL;
   _childrenLen          = 0;
@@ -124,11 +117,8 @@ tgTig::tgTig() {
 }
 
 tgTig::~tgTig() {
-  delete [] _gappedBases;
-  delete [] _gappedQuals;
-  delete [] _ungappedBases;
-  delete [] _ungappedQuals;
-  delete [] _gappedToUngapped;
+  delete [] _bases;
+  delete [] _quals;
   delete [] _children;
   delete    _childDeltaBits;
 }
@@ -151,8 +141,7 @@ tgTigRecord::operator=(tgTig & tg) {
   _spare               = tg._spare;
 
   _layoutLen           = tg._layoutLen;
-
-  _gappedLen           = tg._gappedLen;
+  _basesLen            = tg._basesLen;
   _childrenLen         = tg._childrenLen;
   _childDeltaBitsLen   = tg._childDeltaBitsLen;
 
@@ -176,7 +165,7 @@ tgTig::operator=(tgTigRecord & tr) {
   _spare               = tr._spare;
 
   _layoutLen           = tr._layoutLen;
-  _gappedLen           = tr._gappedLen;
+  _basesLen            = tr._basesLen;
   _childrenLen         = tr._childrenLen;
   _childDeltaBitsLen   = tr._childDeltaBitsLen;
 
@@ -201,38 +190,20 @@ tgTig::operator=(tgTig & tg) {
   _suggestCircular     = tg._suggestCircular;
   _spare               = tg._spare;
 
-  _layoutLen = tg._layoutLen;
+  _layoutLen           = tg._layoutLen;
 
-  _gappedLen = tg._gappedLen;
-  duplicateArray(_gappedBases, _gappedLen, _gappedMax, tg._gappedBases, tg._gappedLen, tg._gappedMax);
-  duplicateArray(_gappedQuals, _gappedLen, _gappedMax, tg._gappedQuals, tg._gappedLen, tg._gappedMax, true);
+  _basesLen            = tg._basesLen;
+  duplicateArray(_bases, _basesLen, _basesMax, tg._bases, tg._basesLen, tg._basesMax);
+  duplicateArray(_quals, _basesLen, _basesMax, tg._quals, tg._basesLen, tg._basesMax, true);
 
-  if (_gappedLen > 0) {
-    assert(_gappedMax > _gappedLen);
-    _gappedBases[_gappedLen] = 0;
-    _gappedQuals[_gappedLen] = 0;
+  if (_basesLen > 0) {
+    assert(_basesMax > _basesLen);
+    _bases[_basesLen] = 0;
+    _quals[_basesLen] = 0;
   }
-
-  _ungappedLen = tg._ungappedLen;
-  duplicateArray(_ungappedBases, _ungappedLen, _ungappedMax, tg._ungappedBases, tg._ungappedLen, tg._ungappedMax);
-  duplicateArray(_ungappedQuals, _ungappedLen, _ungappedMax, tg._ungappedQuals, tg._ungappedLen, tg._ungappedMax, true);
-
-  if (_ungappedLen > 0) {
-    assert(_ungappedMax > _ungappedLen);
-    _ungappedBases[_ungappedLen] = 0;
-    _ungappedQuals[_ungappedLen] = 0;
-  }
-
-  duplicateArray(_gappedToUngapped, _gappedLen, _gappedMax, tg._gappedToUngapped, tg._gappedLen, tg._gappedMax, true);
 
   _childrenLen = tg._childrenLen;
   duplicateArray(_children, _childrenLen, _childrenMax, tg._children, tg._childrenLen, tg._childrenMax);
-
-  _childDeltaBitsLen = tg._childDeltaBitsLen;
-  _childDeltaBits    = NULL;
-
-  if (tg._childDeltaBits)
-    _childDeltaBits = new stuffedBits(*tg._childDeltaBits);
 
   return(*this);
 }
@@ -240,13 +211,13 @@ tgTig::operator=(tgTig & tg) {
 
 
 double
-tgTig::computeCoverage(bool useGapped) {
+tgTig::computeCoverage(void) {
   intervalList<int32>  allL;
 
   for (uint32 ci=0; ci<numberOfChildren(); ci++) {
     tgPosition *read = getChild(ci);
-    uint32      bgn  = (useGapped) ? read->min() : mapGappedToUngapped(read->min());
-    uint32      end  = (useGapped) ? read->max() : mapGappedToUngapped(read->max());
+    uint32      bgn  = read->min();
+    uint32      end  = read->max();
 
     allL.add(bgn, end - bgn);
   }
@@ -258,70 +229,11 @@ tgTig::computeCoverage(bool useGapped) {
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
     aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.depth(ii);
 
-  if (length(useGapped) == 0)
+  if (length() == 0)
     return(0);
 
-  return(aveDepth / length(useGapped));
+  return(aveDepth / length());
 }
-
-
-
-void
-tgTig::buildUngapped(void) {
-
-  if (_ungappedLen > 0)
-    //  Already computed.  Return what is here.
-    return;
-
-  if (_gappedLen == 0) {
-    //  No gapped sequence to convert to ungapped.
-    fprintf(stderr, "tgTig::buildUngapped()--  WARNING: tried to build ungapped sequence for tigID %u before consensus exists.\n", tigID());
-    return;
-  }
-
-  //  Allocate more space, if needed.  We'll need no more than gappedMax.  We need to stash away the
-  //  max size so we can call two resizeArray() functions.
-
-  uint64  ugMax = _ungappedMax;
-
-  resizeArrayPair(_ungappedBases, _ungappedQuals, 0, _ungappedMax, _gappedMax, resizeArray_doNothing);
-  resizeArray(_gappedToUngapped, 0, ugMax, _gappedMax, resizeArray_doNothing);
-
-  //  gappedLen doesn't include the terminating null, but gappedMax does.
-  //  See abMultiAlign.C, among other places.
-
-  if (_gappedLen >= _gappedMax)
-    fprintf(stderr, "ERROR: gappedLen = %u >= gappedMax = %u\n",
-            _gappedLen+1, _gappedMax);
-  assert(_gappedLen < _gappedMax);
-
-  //  Copy all but the gaps.
-
-  _ungappedLen = 0;
-
-  for (uint32 gp=0; gp<_gappedLen; gp++) {
-    _gappedToUngapped[gp] = _ungappedLen;
-
-    if (_gappedBases[gp] == '-')
-      continue;
-
-    _ungappedBases[_ungappedLen] = _gappedBases[gp];
-    _ungappedQuals[_ungappedLen] = _gappedQuals[gp];
-
-    _ungappedLen++;
-  }
-
-  assert(_ungappedLen < _ungappedMax);
-
-  //  Terminate it.  Lots of work just for printf...and getting rid of gaps.
-
-  _gappedToUngapped[_gappedLen] = _ungappedLen;
-
-  _ungappedBases[_ungappedLen] = 0;
-  _ungappedQuals[_ungappedLen] = 0;
-}
-
-
 
 
 
@@ -340,8 +252,7 @@ tgTig::clear(void) {
   _spare                = 0;
 
   _layoutLen            = 0;
-  _gappedLen            = 0;
-  _ungappedLen          = 0;
+  _basesLen             = 0;
   _childrenLen          = 0;
 
   delete _childDeltaBits;
@@ -384,9 +295,9 @@ tgTig::saveToStream(FILE *F) {
 
   //  We could save the null byte too, but don't.  It's explicitly added during the load.
 
-  if (_gappedLen > 0) {
-    writeToFile(_gappedBases, "tgTig::saveToStream::gappedBases", _gappedLen, F);
-    writeToFile(_gappedQuals, "tgTig::saveToStream::gappedQuals", _gappedLen, F);
+  if (_basesLen > 0) {
+    writeToFile(_bases, "tgTig::saveToStream::bases", _basesLen, F);
+    writeToFile(_quals, "tgTig::saveToStream::quals", _basesLen, F);
   }
 
   if (_childrenLen > 0)
@@ -434,14 +345,14 @@ tgTig::loadFromStream(FILE *F) {
 
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
-  resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen + 1, resizeArray_doNothing);
+  resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
 
-  if (_gappedLen > 0) {
-    loadFromFile(_gappedBases, "tgTig::loadFromStream::gappedBases", _gappedLen, F);
-    loadFromFile(_gappedQuals, "tgTig::loadFromStream::gappedQuals", _gappedLen, F);
+  if (_basesLen > 0) {
+    loadFromFile(_bases, "tgTig::loadFromStream::bases", _basesLen, F);
+    loadFromFile(_quals, "tgTig::loadFromStream::quals", _basesLen, F);
 
-    _gappedBases[_gappedLen] = 0;
-    _gappedQuals[_gappedLen] = 0;
+    _bases[_basesLen] = 0;
+    _quals[_basesLen] = 0;
   }
 
   //  Allocate space for reads and alignments, and load them.
@@ -475,19 +386,19 @@ tgTig::dumpLayout(FILE *F) {
 
   //  Dump the sequence and quality
 
-  if (_gappedLen == 0) {
+  if (_basesLen == 0) {
     fputs("cns\n", F);
     fputs("qlt\n", F);
 
   } else {
-    char  *qvString = new char [_gappedLen + 1];
+    char  *qvString = new char [_basesLen + 1];
 
-    for (uint32 ii=0; ii<_gappedLen; ii++)     //  Adjust QV's to Sanger encoding (and make it
-      qvString[ii] = _gappedQuals[ii] + '!';   //  a character string so we can actually print it).
+    for (uint32 ii=0; ii<_basesLen; ii++)     //  Adjust QV's to Sanger encoding (and make it
+      qvString[ii] = _quals[ii] + '!';   //  a character string so we can actually print it).
 
-    qvString[_gappedLen] = 0;
+    qvString[_basesLen] = 0;
 
-    fputs("cns ", F);  fputs(_gappedBases, F);  fputs("\n", F);
+    fputs("cns ", F);  fputs(_bases, F);        fputs("\n", F);
     fputs("qlt ", F);  fputs(qvString,     F);  fputs("\n", F);
 
     delete [] qvString;
@@ -535,12 +446,12 @@ tgTig::dumpLayout(FILE *F) {
 
   //  Fail if it looks weird.
 
-  if (_gappedLen > 0) {
-    if (_gappedLen != _layoutLen) {
-      fprintf(stderr, "ERROR: gappedLen %u differs from layoutLen %u\n", _gappedLen, _layoutLen);
-      fprintf(stderr, "ERROR:   _gappedBases length %ld\n", strlen(_gappedBases));
+  if (_basesLen > 0) {
+    if (_basesLen != _layoutLen) {
+      fprintf(stderr, "ERROR: basesLen %u differs from layoutLen %u\n", _basesLen, _layoutLen);
+      fprintf(stderr, "ERROR:   _bases length %ld\n", strlen(_bases));
     }
-    assert(_gappedLen == _layoutLen);
+    assert(_basesLen == _layoutLen);
   }
 }
 
@@ -579,21 +490,18 @@ tgTig::loadLayout(FILE *F) {
       resizeArray(LINE, LINElen, LINEmax, _layoutLen + 1, resizeArray_doNothing);
 
     } else if (((strcmp(W[0], "cns") == 0) || (strcmp(W[0], "qlt") == 0)) && (W.numWords() == 1)) {
-      _gappedLen = 0;
+      _basesLen = 0;
 
     } else if (((strcmp(W[0], "cns") == 0) || (strcmp(W[0], "qlt") == 0)) && (W.numWords() == 2)) {
-      _gappedLen = strlen(W[1]);
-      _layoutLen = _gappedLen;    //  Must be enforced, probably should be an explicit error.
+      _basesLen  = strlen(W[1]);
+      _layoutLen = _basesLen;    //  Must be enforced, probably should be an explicit error.
 
-      resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen+1, resizeArray_doNothing);
+      resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
 
       if (W[0][0] == 'c')
-        memcpy(_gappedBases, W[1], sizeof(char) * (_gappedLen + 1));  //  W[1] is null terminated, and we just copy it in
+        memcpy(_bases, W[1], sizeof(char) * (_basesLen + 1));  //  W[1] is null terminated, and we just copy it in
       else
-        memcpy(_gappedQuals, W[1], sizeof(char) * (_gappedLen + 1));
-
-    } else if (strcmp(W[0], "coverageStat") == 0) {
-      _coverageStat = strtodouble(W[1]);
+        memcpy(_quals, W[1], sizeof(char) * (_basesLen + 1));
 
     } else if (strcmp(W[0], "sourceID") == 0) {
       _sourceID = strtouint32(W[1]);
@@ -773,25 +681,13 @@ tgTig::importData(FILE                       *importDataFile,
 void
 tgTig::reverseComplement(void) {
 
-  //  Primary data is in _gapped and _children.
+  //  Note that _anchor and the hangs are now invalid.
 
-  ::reverseComplement(_gappedBases, _gappedQuals, _gappedLen);
-
-  //  Remove _ungapped and _gappedToUngapped, let it be rebuilt if needed.
-
-  delete [] _ungappedBases;   _ungappedBases = NULL;
-  delete [] _ungappedQuals;   _ungappedQuals = NULL;
-
-  _ungappedLen = 0;
-  _ungappedMax = 0;
-
-  delete [] _gappedToUngapped;  _gappedToUngapped = NULL;
-
-  //  _anchor, and the hangs, are now invalid.
+  ::reverseComplement(_bases, _quals, _basesLen);
 
   for (uint32 ii=0; ii<_childrenLen; ii++) {
-    int32  bgn = _gappedLen - _children[ii].bgn();
-    int32  end = _gappedLen - _children[ii].end();
+    int32  bgn = _basesLen - _children[ii].bgn();
+    int32  end = _basesLen - _children[ii].end();
 
     _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end);
   }
@@ -801,18 +697,17 @@ tgTig::reverseComplement(void) {
 
 
 void
-tgTig::dumpFASTA(FILE *F, bool useGapped) {
+tgTig::dumpFASTA(FILE *F) {
 
   if (consensusExists() == false)
     return;
 
   AS_UTL_writeFastA(F,
-                    bases(useGapped), length(useGapped), 100,
-                    ">tig%08u len=" F_U32 " reads=" F_U32 " gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    bases(), length(), 100,
+                    ">tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
-                    length(useGapped),
+                    length(),
                     numberOfChildren(),
-                    (useGapped) ? "yes" : "no",
                     toString(_class),
                     _suggestRepeat ? "yes" : "no",
                     _suggestCircular ? "yes" : "no");
@@ -820,19 +715,18 @@ tgTig::dumpFASTA(FILE *F, bool useGapped) {
 
 
 void
-tgTig::dumpFASTQ(FILE *F, bool useGapped) {
+tgTig::dumpFASTQ(FILE *F) {
 
   if (consensusExists() == false)
     return;
 
   AS_UTL_writeFastQ(F,
-                    bases(useGapped), length(useGapped),
-                    quals(useGapped), length(useGapped),
-                    "@tig%08u len=" F_U32 " reads=" F_U32 " gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    bases(), length(),
+                    quals(), length(),
+                    "@tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
-                    length(useGapped),
+                    length(),
                     numberOfChildren(),
-                    (useGapped) ? "yes" : "no",
                     toString(_class),
                     _suggestRepeat ? "yes" : "no",
                     _suggestCircular ? "yes" : "no");

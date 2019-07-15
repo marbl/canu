@@ -284,7 +284,6 @@ main(int argc, char **argv) {
   //    global single-read fraction covered - number of bases in unitigs with specific fraction covered
   //    global number of reads per unitig
   //
-  //  This is using GAPPED lengths, because they're faster, and we don't need the actual ungapped positions.
 
   fprintf(stderr, "Generating statistics.\n");
 
@@ -335,7 +334,7 @@ main(int argc, char **argv) {
 
     //  Single read max fraction covered.
 
-    uint32  tigLen = tig->length(true);
+    uint32  tigLen = tig->length();
     uint32  covMax = 0;
     uint32  cov;
 
@@ -428,9 +427,7 @@ main(int argc, char **argv) {
       continue;
     }
 
-    //  This uses UNGAPPED lengths, because they make more sense to humans.
-
-    uint32        tigLen = tig->length(false);
+    uint32        tigLen = tig->length();
 
     uint32  lowCovBases = 0;
     for (uint32 ll=0; ll<lowCovDepth; ll++)
