@@ -210,6 +210,9 @@ loadFASTQ(char                 *L,
   Q[AS_MAX_READLEN+1-2] = 0;  //  This too.
   Q[AS_MAX_READLEN+1-1] = 0;
 
+  L[AS_MAX_READLEN+1-2] = 0;  //  This too.
+  L[AS_MAX_READLEN+1-1] = 0;
+
   fgets(S, AS_MAX_READLEN+1, F->file());
   chomp(S);
 
@@ -286,7 +289,7 @@ loadFASTQ(char                 *L,
   //  As with the base, we need to suck in the rest of the longer-than-allowed QV string.  But we don't need to report it
   //  or do anything fancy, just advance the file pointer.
 
-  if ((L[AS_MAX_READLEN-1] != 0) && (L[AS_MAX_READLEN-1] != '\n')) {
+  if ((L[AS_MAX_READLEN+1-2] != 0) && (L[AS_MAX_READLEN+1-2] != '\n')) {
     char    *overflow = new char [1048576];
 
     do {
