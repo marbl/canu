@@ -727,8 +727,7 @@ createStore(const char *seqStoreName,
   if (nWARNS > 0.25 * (nLOADED))
     fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many warnings.  Check your reads.\n");
 
-  if (nSKIPPED > 0.50 * (nLOADED))
-    fprintf(stderr, "sqStoreCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
+  // do not output an error for too many short reads
 
   if ((bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
       (nWARNS   > 0.25 * (nSKIPPED + nLOADED)) ||
