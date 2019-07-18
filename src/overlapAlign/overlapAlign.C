@@ -73,6 +73,10 @@ overlapWriter(void *G, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maComputation    *s = (maComputation *)S;
 
+  // if we have nothing to output, just skip this read
+  if (s->_overlapsLen == 0)
+     return;
+
   //  Write the header for our big-pile-o-alignments output.
 
   fprintf(stdout, "\n");

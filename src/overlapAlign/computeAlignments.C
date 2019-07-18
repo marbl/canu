@@ -493,6 +493,7 @@ maComputation::computeAlignments(uint32  minOverlapLength,
     for (uint32 ii=0; ii<_overlapsLen; ii++)
       _overlaps[ii].evalue(AS_MAX_EVALUE);
 
+    _overlapsLen=0;
     return;
   }
 
