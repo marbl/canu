@@ -264,43 +264,18 @@ sqReadData::sqReadData_setName(char *H) {
 
 
 
+//  Based on the library type, and presence of read data, either load the
+//  sequence into the 'raw' storage, the 'corrected' storage, or maybe both.
+//
 void
 sqReadData::sqReadData_setBasesQuals(char  *S,
                                      uint8 *Q) {
   uint32      Slen  = strlen(S) + 1;
 
-  //  Based on the library type, and presence of read data, either load the
-  //  sequence into the 'raw' storage, or the 'corrected' storage.
-  //
-  //  For PacBio HiHi, our correction amounts to stipping homopolymer runs,
+  //  For PacBio HiFi, our correction amounts to stipping homopolymer runs,
   //  and we can do that here.
 
-  //  If there is a raw read, we're always loading into 'corrected' storage.
-  if (_rseq != NULL) {
-    if (_read->_cExists)
-      fprintf(stderr, "sqReadData_setBasesQuals()- read %u has existing cseq of length %u, replacing with length %u\n",
-              _read->_readID, _read->_cseqLen, (uint32)strlen(S));
-
-    resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);
-    resizeArray(_cqlt, 0, _cqltAlloc, Slen, resizeArray_doNothing);
-
-    memcpy(_cseq, S, sizeof(char)  * Slen);
-    memcpy(_cqlt, Q, sizeof(uint8) * Slen);
-  }
-
-  //  Otherwise, if the library is for noisy long reads, load into 'raw' storage.
-  if ((_library->sqLibrary_readType() == SQ_READTYPE_PACBIO_RAW) ||
-      (_library->sqLibrary_readType() == SQ_READTYPE_NANOPORE_RAW)) {
-    resizeArray(_rseq, 0, _rseqAlloc, Slen, resizeArray_doNothing);
-    resizeArray(_rqlt, 0, _rqltAlloc, Slen, resizeArray_doNothing);
-
-    memcpy(_rseq, S, sizeof(char)  * Slen);
-    memcpy(_rqlt, Q, sizeof(uint8) * Slen);
-  }
-
-  //  Otherwise, load into 'raw' storage, and make a homopolymer compressed version
-  //  in 'corrected' storage.
-  else {
+  if (_library->sqLibrary_readType() == SQ_READTYPE_PACBIO_HIFI) {
     resizeArray(_rseq, 0, _rseqAlloc, Slen, resizeArray_doNothing);    //  Load the raw version.
     resizeArray(_rqlt, 0, _rqltAlloc, Slen, resizeArray_doNothing);
 
@@ -326,6 +301,40 @@ sqReadData::sqReadData_setBasesQuals(char  *S,
 
     resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);   //  Load the corrected
     resizeArray(_cqlt, 0, _cqltAlloc, Slen, resizeArray_doNothing);   //  version.
+
+    memcpy(_cseq, S, sizeof(char)  * Slen);
+    memcpy(_cqlt, Q, sizeof(uint8) * Slen);
+
+    return;
+  }
+
+  //  Just gross.  sqLibrary_readType() is incorrect.  It's the type of the
+  //  read initially loaded into the store, not the type we're currently
+  //  loading (a remnant of having one store for raw, corrected and trimmed
+  //  reads).
+  //
+  //  Instead, we need to check both the original type loaded and the
+  //  presence of that data to decide what to do.
+  //
+  //  So, if the library is a 'raw' type but there is no rseq, load as raw.
+  //  Otherwise, load as corrected.
+
+  if ((_rseq == NULL) && ((_library->sqLibrary_readType() == SQ_READTYPE_PACBIO_RAW) ||
+                          (_library->sqLibrary_readType() == SQ_READTYPE_NANOPORE_RAW))) {
+    resizeArray(_rseq, 0, _rseqAlloc, Slen, resizeArray_doNothing);
+    resizeArray(_rqlt, 0, _rqltAlloc, Slen, resizeArray_doNothing);
+
+    memcpy(_rseq, S, sizeof(char)  * Slen);
+    memcpy(_rqlt, Q, sizeof(uint8) * Slen);
+  }
+
+  else {
+    if (_read->_cExists)
+      fprintf(stderr, "sqReadData_setBasesQuals()- read %u has existing cseq of length %u, replacing with length %u\n",
+              _read->_readID, _read->_cseqLen, (uint32)strlen(S));
+
+    resizeArray(_cseq, 0, _cseqAlloc, Slen, resizeArray_doNothing);
+    resizeArray(_cqlt, 0, _cqltAlloc, Slen, resizeArray_doNothing);
 
     memcpy(_cseq, S, sizeof(char)  * Slen);
     memcpy(_cqlt, Q, sizeof(uint8) * Slen);
