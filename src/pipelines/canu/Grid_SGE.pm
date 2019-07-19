@@ -56,27 +56,28 @@ sub detectSGE () {
 
 
 sub discoverThreadsOption () {
-    my @env = `qconf -spl`;  chomp @env;
+    my @env = `qconf -spl 2> /dev/null`;  chomp @env;
     my @thr;
     my $bestThr   = undef;
     my $bestSlots = 0;
 
+    my @peErrorList;
+
     foreach my $env (@env) {
         my $ns = 0;
-        my $ar = 0;
-        my $jf = 0;
+        my $ar = "unknown";
 
-        open(F, "qconf -sp $env |");
+        open(F, "qconf -sp $env 2> /dev/null |");
         while (<F>) {
-            $ns = $1  if (m/slots\s+(\d+)/);               #  How many slots can we use?
-            $ar = 1   if (m/allocation_rule.*pe_slots/);   #  All slots need to be on a single node.
-            #$cs = 1   if (m/control_slaves.*FALSE/);      #  Doesn't apply to pe_slots.
-            $jf = 1   if (m/job_is_first_task.*TRUE/);     #  The fisrt task (slot) does actual work.
+            $ns = $1   if (m/slots\s+(\d+)/);               #  How many slots can we use?
+            $ar = $1   if (m/allocation_rule\s+(.*)/);
         }
         close(F);
 
-        next  if ($ar == 0);
-        next  if ($jf == 0);
+        if ($ar ne "\$pe_slots") {
+            push @peErrorList, "-- WARNING: Parallel Environment '$env' ignored; uses allocation_rule '$ar'\n";
+            next;
+        }
 
         push @thr, $env;
 
@@ -86,31 +87,44 @@ sub discoverThreadsOption () {
         }
     }
 
-    if (scalar(@thr) == 1) {
+    if (scalar(@thr) == 0) {
+        print STDERR "--\n";
+
+        foreach my $err (@peErrorList) {
+            print STDERR $err;
+        }
+
+        print STDERR "--\n";
+        print STDERR "-- ERROR:  No Sun Grid Engine Parallel Environment is using allocation rule '\$pe_threads'.\n";
+        print STDERR "-- ERROR:  Multi-thread execution not supported on this grid.\n";
+        print STDERR "--\n";
+
+        caExit("can't configure for SGE", undef);
+    }
+
+    elsif (scalar(@thr) == 1) {
         print STDERR "-- Detected Sun Grid Engine parallel environment '$thr[0]'.\n";
         return($thr[0]);
     }
 
-    if (scalar(@thr) > 1) {
+    else {
         print STDERR "--\n";
-        print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
+        print STDERR "-- WARNING:  Multiple Sun Grid Engine Parallel Environments can run multi-threaded codes.\n";
         print STDERR "-- WARNING:  Valid choices are:\n";
         print STDERR "-- WARNING:    $_\n"   foreach (@thr);
         print STDERR "-- WARNING:\n";
-        print STDERR "-- WARNING:  Using SGE parallel environment '$bestThr'.\n";
+        print STDERR "-- WARNING:  Using Parallel Environment '$bestThr'.\n";
         print STDERR "--\n";
 
         return($bestThr);
     }
-
-    return(undef);
 }
 
 
 sub discoverMemoryOption () {
     my @mem;
 
-    open(F, "qconf -sc |");
+    open(F, "qconf -sc 2> /dev/null |");
     while (<F>) {
         my @vals = split '\s+', $_;
 
@@ -152,7 +166,7 @@ sub configureSGE () {
     if (!defined($maxArraySize)) {
         $maxArraySize = 65535;
 
-        open(F, "qconf -sconf |") or caExit("can't run 'qconf' to get SGE config", undef);
+        open(F, "qconf -sconf 2> /dev/null |") or caExit("can't run 'qconf' to get SGE config", undef);
         while (<F>) {
             if (m/max_aj_tasks\s+(\d+)/) {
                 $maxArraySize = $1;
@@ -179,8 +193,6 @@ sub configureSGE () {
     #  (it's the one with allocation_rule of $pe_slots),
     #  Try to figure out the name of the memory resource.
 
-    my $configError = 0;
-
     if (!defined(getGlobal("gridEngineResourceOption"))) {
         my $thr = discoverThreadsOption();
         my $mem = discoverMemoryOption();
@@ -199,7 +211,7 @@ sub configureSGE () {
             print STDERR "-- ERROR:  substitute the correct values for THREADS and MEMORY.\n";
             print STDERR "--\n";
 
-            caExit("can't configure for SGE", undef)  if ($configError);
+            caExit("can't configure for SGE", undef);
         }
 
         setGlobal("gridEngineResourceOption", "-pe $thr THREADS -l $mem=MEMORY");
@@ -226,7 +238,6 @@ sub configureSGE () {
     }
 
     #  Check that the threads and memory options look sane.
-    #  In particular, check that the PE requested is using allocation_rule $pe_slots, and job_is_first_task.
 
     {
         my $opt = getGlobal("gridEngineResourceOption");
@@ -234,23 +245,20 @@ sub configureSGE () {
         my $mem = $1  if ($opt =~ m/-l\s+(.*)=MEMORY/);
 
         if (defined($thr)) {
-            my $ar = 0;
-            my $jf = 0;
+            my $ar = "\$pe_slots";   #  Default to $pe_slots state for Mick's busted grid config.
             my @lines;
 
             open(F, "qconf -sp $thr 2> /dev/null |");
             while (<F>) {
                 push @lines, $_;
 
-                $ar = 1   if (m/allocation_rule.*pe_slots/);   #  All slots need to be on a single node.
-                $jf = 1   if (m/job_is_first_task.*TRUE/);     #  The fisrt task (slot) does actual work.
+                $ar = $1  if (m/^allocation_rule\s+(.*)$/);
             }
             close(F);
 
-            if (($ar == 0) || ($jf == 0)) {
+            if ($ar ne "\$pe_slots") {
                 print STDERR "\n";
                 print STDERR "ERROR:  Sun Grid Engine parallel environment '$thr' is using 'allocation_rule' other than '\$pe_slots'.\n"  if ($ar == 0);
-                print STDERR "ERROR:  Sun Grid Engine parallel environment '$thr' didn't set 'job_is_first_task'.\n"  if ($jf == 0);
                 print STDERR "ERROR:\n";
 
                 if (scalar(@lines) == 0) {
@@ -268,7 +276,7 @@ sub configureSGE () {
         #  Set memory-per-job if configured and the user hasn't supplied a value.
         #  Otherwise, leave it in the default off state.
         if (defined($mem) && !defined(getGlobal("gridEngineMemoryPerJob"))) {
-            open(F, "qconf -sc |");
+            open(F, "qconf -sc 2> /dev/null |");
             while (<F>) {
                 my @vals = split '\s+', $_;
 
@@ -288,7 +296,7 @@ sub configureSGE () {
     my %start_shell;
 
     if (getGlobal('gridOptions') !~ m/-S/) {
-        open(Q, "qconf -sql |");
+        open(Q, "qconf -sql 2> /dev/null |");
         while (<Q>) {
             chomp;
             my $q = $_;
@@ -296,7 +304,7 @@ sub configureSGE () {
             $start_mode{$q}  = "na";
             $start_shell{$q} = "na";
 
-            open(F, "qconf -sq $q |");
+            open(F, "qconf -sq $q 2> /dev/null |");
             while (<F>) {
                 $start_mode{$q}  = $1   if (m/shell_start_mode\s+(\S+)/);
                 $start_shell{$q} = $1   if (m/shell\s+(\S+)/);
