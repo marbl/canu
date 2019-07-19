@@ -72,27 +72,35 @@ void
 overlapWriter(void *G, void *S) {
   trGlobalData     *g = (trGlobalData  *)G;
   maComputation    *s = (maComputation *)S;
+  uint32            n = 0;
 
-  //  Write the header for our big-pile-o-alignments output.
+  //  Count the number of overlaps to output.
 
-  fprintf(stdout, "\n");
-  fprintf(stdout, "%6u %6d %6d %s\n", s->_aID, 0, s->_readData[s->_aID].trimmedLength, s->_aRead);
+  for (uint64 oo=0; oo<s->_overlapsLen; oo++)
+    if (s->_overlaps[oo].evalue() < AS_MAX_EVALUE)
+      n++;
 
-  //  For each overlap, write the overlap and the alignment string (unless
-  //  it's a garbage overlap).
+  //  If there are overlaps, output them.
 
-  for (uint64 oo=0; oo<s->_overlapsLen; oo++) {
-    if (s->_overlaps[oo].evalue() == AS_MAX_EVALUE)
-      continue;
+  if (n > 0) {
+    fprintf(stdout, "\n");
+    fprintf(stdout, "%6u %6d %6d %s\n", s->_aID, 0, s->_readData[s->_aID].trimmedLength, s->_aRead);
 
-    g->outFile->writeOverlap(&s->_overlaps[oo]);
+    for (uint64 oo=0; oo<s->_overlapsLen; oo++) {
+      if (s->_overlaps[oo].evalue() == AS_MAX_EVALUE)    //  Skip garbage.
+        continue;
 
-    fprintf(stdout, "%6u %6d %6d %s\n",
-            s->_overlaps[oo].b_iid,
-            (int32)s->_overlaps[oo].dat.ovl.ahg5,
-            (int32)s->_overlaps[oo].dat.ovl.ahg3,
-            s->_alignsB[oo]);
+      g->outFile->writeOverlap(&s->_overlaps[oo]);
+
+      fprintf(stdout, "%6u %6d %6d %s\n",
+              s->_overlaps[oo].b_iid,
+              (int32)s->_overlaps[oo].dat.ovl.ahg5,
+              (int32)s->_overlaps[oo].dat.ovl.ahg3,
+              s->_alignsB[oo]);
+    }
   }
+
+  //  Cleanup after the compute.
 
   delete s;
 }
