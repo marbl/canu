@@ -529,10 +529,10 @@ if ($type eq"nanopore") {
 
 if ($type eq"hifi") {
     setGlobalIfUndef("corOvlErrorRate",  0.0);
-    setGlobalIfUndef("obtOvlErrorRate",  0.01);
-    setGlobalIfUndef("utgOvlErrorRate",  0.01);
+    setGlobalIfUndef("obtOvlErrorRate",  0.0);
+    setGlobalIfUndef("utgOvlErrorRate",  0.0);
     setGlobalIfUndef("corErrorRate",     0.0);
-    setGlobalIfUndef("obtErrorRate",     0.01);
+    setGlobalIfUndef("obtErrorRate",     0.0);
     setGlobalIfUndef("utgErrorRate",     0.0);
     setGlobalIfUndef("cnsErrorRate",     0.1);
 }
