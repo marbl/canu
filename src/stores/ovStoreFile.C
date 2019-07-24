@@ -482,18 +482,18 @@ ovFile::seekOverlap(off_t overlap) {
 
   if ((_bufferLoc <= seekToWord) &&
       (seekToWord <= _bufferLoc + _bufferLen)) {
-    fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- jump to word %lu\n",
-            _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
-            seekToWord);
+    //fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- jump to word %lu\n",
+    //        _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
+    //        seekToWord);
     _bufferPos = seekToWord - _bufferLoc;
     return;
   }
 
   //  Otherwise, we need to load from disk.
 
-  fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- seek to word %lu\n",
-          _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
-          seekToWord);
+  //fprintf(stderr, "seekOverlap()-- Buffer contains words %lu - %lu, at word %lu -- seek to word %lu\n",
+  //        _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
+  //        seekToWord);
 
   AS_UTL_fseek(_file, seekToByte, SEEK_SET);
 
