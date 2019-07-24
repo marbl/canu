@@ -1549,6 +1549,15 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'saveOverlaps' specified (" . getGlobal("saveOverlaps") . "); must be 'true' or 'false'\n");
     }
 
+
+    if (getGlobal("purgeOverlaps") eq "0") {
+        setGlobal("purgeOverlaps", "never");
+    }
+
+    if (getGlobal("purgeOverlaps") eq "1") {
+        setGlobal("purgeOverlaps", "normal");
+    }
+
     if ((getGlobal("purgeOverlaps") ne "never") &&
         (getGlobal("purgeOverlaps") ne "normal") &&
         (getGlobal("purgeOverlaps") ne "aggressive") &&

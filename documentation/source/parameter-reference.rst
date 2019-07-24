@@ -310,8 +310,12 @@ purgeOverlaps <string=normal>
   'never' removes no intermediate overlap results.  This is only useful if
   you have a desire to exhaust your disk space.
 
+  'false' is the same as 'never'.
+
   'normal' removes intermediate overlap results after they are loaded into an
   overlap store.
+
+  'true' is the same as 'normal'.
 
   'aggressive' removes intermediate overlap results as soon as possible.  In
   the event of a corrupt or lost file, this can result in a fair amount of
