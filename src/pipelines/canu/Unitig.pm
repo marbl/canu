@@ -160,6 +160,96 @@ sub reportUnitigSizes ($$$) {
 
 
 
+sub unitig_bogart ($) {
+    my $asm  = shift @_;
+
+    print F "#\n";
+    print F "#  Check if the outputs exist.\n";
+    print F "#\n";
+    print F "#  The boilerplate function for doing this fails if the file isn't\n";
+    print F "#  strictly below the current directory, so some gymnastics is needed.\n";
+    print F "#\n";
+    print F "\n";
+    print F "cd ..\n";
+    print F fileExistsShellCode("exists", "unitigging", "$asm.ctgStore/seqDB.v001.tig", "");
+    print F fileExistsShellCode("exists", "unitigging", "$asm.utgStore/seqDB.v001.tig", "");
+    print F "\n";
+    print F "cd 4-unitigger\n";
+    print F "\n";
+    print F "#\n";
+    print F "#  Run if needed.\n";
+    print F "#\n";
+    print F "\n";
+    print F "if [ \$exists = false ] ; then\n";
+    print F "  \$bin/bogart \\\n";
+    print F "    -S ../../$asm.seqStore \\\n";
+    print F "    -O    ../$asm.ovlStore \\\n";
+    print F "    -o     ./$asm \\\n";
+    print F "    -gs "          . getGlobal("genomeSize")         . " \\\n";
+    print F "    -eg "          . getGlobal("utgErrorRate")       . " \\\n";
+    print F "    -eM "          . getGlobal("utgErrorRate")       . " \\\n";
+    print F "    -mo "          . getGlobal("minOverlapLength")   . " \\\n";
+    print F "    -dg "          . getGlobal("utgGraphDeviation")  . " \\\n";
+    print F "    -db "          . getGlobal("utgGraphDeviation")  . " \\\n";
+    print F "    -dr "          . getGlobal("utgRepeatDeviation") . " \\\n";
+    print F "    -ca "          . getGlobal("utgRepeatConfusedBP"). " \\\n";
+    print F "    -cp "          . "200"                           . " \\\n";
+    print F "    -threads "     . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
+    print F "    -M "           . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
+    print F "    -unassembled " . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));
+    print F "    "              . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
+    print F "    > ./unitigger.err 2>&1 \\\n";
+    print F "  && \\\n";
+    print F "  mv ./$asm.ctgStore ../$asm.ctgStore \\\n";
+    print F "  && \\\n";
+    print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
+    print F "fi\n";
+}
+
+
+
+sub unitig_wtdbg ($) {
+    my $asm  = shift @_;
+
+    print F "\$bin/sqStoreDumpFASTQ \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
+    print F "  -nolibname \\\n";
+    print F "  -noreadname \\\n";
+    print F "  -fasta \\\n";
+    print F "  -o $asm.input.gz \\\n";
+    print F "&& \\\n";
+    print F "mv -f $asm.input.fasta.gz $asm.fasta.gz\n";
+    print F "if [ ! -e ./$asm.fasta.gz ] ; then\n";
+    print F "  echo Failed to extract fasta.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "\n";
+    print F "\$bin/wtdbg-1.2.8 \\\n";
+    print F " -i $asm.fasta.gz \\\n";
+    print F " -fo ./$asm \\\n";
+    print F " -S "              . "2"                           . " \\\n";
+    print F " --edge-min "      . "2"                           . " \\\n";
+    print F " -l "              . getGlobal("minOverlapLength") . " \\\n";
+    print F " -t "              . getGlobal("dbgThreads")       . " \\\n"   if (defined(getGlobal("dbgThreads")));
+    print F " "                 . getGlobal("dbgOptions")       . " \\\n"   if (defined(getGlobal("dbgOptions")));
+    print F " > ./unitigger.err 2>&1 \n";
+    print F "if [ ! -s ./$asm.ctg.lay -a ! -s ./$asm.ctg.lay.gz ]; then \n"; # wtdbg2 outputs gzipped
+    print F "  echo Failed to run wtdbg.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "if [ -f ./$asm.ctg.lay.gz ]; then gunzip ./$asm.ctg.lay.gz; fi\n"; # unzip wtdbg2 output first
+    print F "\n";
+    print F "\$bin/wtdbgConvert -o ./$asm -S ../../$asm.seqStore $asm.ctg.lay \\\n";
+    print F "&& \\\n";
+    print F "cp -r ./$asm.ctgStore ../$asm.utgStore \\\n";
+    print F "&& \\\n";
+    print F "mv ./$asm.ctgStore ../$asm.ctgStore\n";
+}
+
+
+
 sub unitig ($) {
     my $asm     = shift @_;
     my $path    = "unitigging/4-unitigger";
@@ -168,10 +258,6 @@ sub unitig ($) {
                         fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
 
     make_path($path)  if (! -d $path);
-
-    #  How many reads per partition?  This will change - it'll move to be after unitigs are constructed.
-
-    my $overlapLength = getGlobal("minOverlapLength");
 
     #  Dump a script to run the unitigger.
 
@@ -197,91 +283,15 @@ sub unitig ($) {
     print F "fi\n";
     print F "\n";
 
-    #  The 'if -e' below does nothing in Cloud mode, but it'd be a pain to support it properly.
-
     if      (getGlobal("unitigger") eq "bogart") {
-
-        print F "#\n";
-        print F "#  Check if the outputs exist.\n";
-        print F "#\n";
-        print F "#  The boilerplate function for doing this fails if the file isn't\n";
-        print F "#  strictly below the current directory, so some gymnastics is needed.\n";
-        print F "#\n";
-        print F "\n";
-        print F "cd ..\n";
-        print F fileExistsShellCode("exists", "unitigging", "$asm.ctgStore/seqDB.v001.tig", "");
-        print F fileExistsShellCode("exists", "unitigging", "$asm.utgStore/seqDB.v001.tig", "");
-        print F "\n";
-        print F "cd 4-unitigger\n";
-        print F "\n";
-        print F "#\n";
-        print F "#  Run if needed.\n";
-        print F "#\n";
-        print F "\n";
-        print F "if [ \$exists = false ] ; then\n";
-        print F "  \$bin/bogart \\\n";
-        print F "    -S ../../$asm.seqStore \\\n";
-        print F "    -O    ../$asm.ovlStore \\\n";
-        print F "    -o     ./$asm \\\n";
-        print F "    -gs "          . getGlobal("genomeSize")         . " \\\n";
-        print F "    -eg "          . getGlobal("utgErrorRate")       . " \\\n";
-        print F "    -eM "          . getGlobal("utgErrorRate")       . " \\\n";
-        print F "    -mo "          . $overlapLength                  . " \\\n";
-        print F "    -dg "          . getGlobal("utgGraphDeviation")  . " \\\n";
-        print F "    -db "          . getGlobal("utgGraphDeviation")  . " \\\n";
-        print F "    -dr "          . getGlobal("utgRepeatDeviation") . " \\\n";
-        print F "    -ca "          . getGlobal("utgRepeatConfusedBP"). " \\\n";
-        print F "    -cp "          . "200"                           . " \\\n";
-        print F "    -threads "     . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
-        print F "    -M "           . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
-        print F "    -unassembled " . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));
-        print F "    "              . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
-        print F "    > ./unitigger.err 2>&1 \\\n";
-        print F "  && \\\n";
-        print F "  mv ./$asm.ctgStore ../$asm.ctgStore \\\n";
-        print F "  && \\\n";
-        print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
-        print F "fi\n";
+        unitig_bogart($asm);
     }
 
     elsif (getGlobal("unitigger") eq "wtdbg") {
-        print F "\$bin/sqStoreDumpFASTQ \\\n";
-        print F "  -S ../../$asm.seqStore \\\n";
-        print F "  -nolibname \\\n";
-        print F "  -noreadname \\\n";
-        print F "  -fasta \\\n";
-        print F "  -o $asm.input.gz \\\n";
-        print F "&& \\\n";
-        print F "mv -f $asm.input.fasta.gz $asm.fasta.gz\n";
-        print F "if [ ! -e ./$asm.fasta.gz ] ; then\n";
-        print F "  echo Failed to extract fasta.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
-        print F "\n";
-        print F "\n";
-        print F "\$bin/wtdbg-1.2.8 \\\n";
-        print F " -i $asm.fasta.gz \\\n";
-        print F " -fo ./$asm \\\n";
-        print F " -S "              . "2"                     . " \\\n";
-        print F " --edge-min "      . "2"                     . " \\\n";
-        print F " -l "             . $overlapLength           . " \\\n";
-        print F " -t "              . getGlobal("dbgThreads") . " \\\n"   if (defined(getGlobal("dbgThreads")));
-        print F " "                 . getGlobal("dbgOptions") . " \\\n"   if (defined(getGlobal("dbgOptions")));
-        print F " > ./unitigger.err 2>&1 \n";
-        print F "if [ ! -s ./$asm.ctg.lay -a ! -s ./$asm.ctg.lay.gz ]; then \n"; # wtdbg2 outputs gzipped
-        print F "  echo Failed to run wtdbg.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
-        print F "\n";
-        print F "if [ -f ./$asm.ctg.lay.gz ]; then gunzip ./$asm.ctg.lay.gz; fi\n"; # unzip wtdbg2 output first
-        print F "\n";
-        print F "\$bin/wtdbgConvert -o ./$asm -S ../../$asm.seqStore $asm.ctg.lay \\\n";
-        print F "&& \\\n";
-        print F "cp -r ./$asm.ctgStore ../$asm.utgStore \\\n";
-        print F "&& \\\n";
-        print F "mv ./$asm.ctgStore ../$asm.ctgStore\n";
+        unitig_wtdbg($asm);
+    }
 
-    } else {
+    else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
 
