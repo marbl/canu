@@ -582,6 +582,18 @@ AS_UTL_openOutputFile(char const *prefix,
   fprintf(stderr, "AS_UTL_openOutputFile()-- Creating '%s'.\n", filename);
 #endif
 
+  //  Unlink the file before opening for writes.  This prevents race
+  //  conditions when two processes open the same file: the first process
+  //  will create a new file, but the second process will simply reset the
+  //  file to the start.  Both processes seem to keep their own file pointer,
+  //  and eof seems to be (incorrectly) the larger of the two.  In effect,
+  //  the second process is simply overwriting the first process (unless the
+  //  second process writes data first, then the first process overwrites).
+  //
+  //  Very confusing.
+  //
+  AS_UTL_unlink(filename);
+
   errno = 0;
 
   FILE *F = fopen(filename, "w");
