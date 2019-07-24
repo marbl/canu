@@ -259,6 +259,18 @@ sub unitig ($) {
 
     make_path($path)  if (! -d $path);
 
+    #  If this is the first time here, reset the iteration count.  If the
+    #  script exists already, we're doing a retry and so don't want to reset
+    #  the iteration.
+    #
+    #  Parameter changes will still work, since Canu must be restarted
+    #  manually to change the parameters, and that resets the iteration count
+    #  implicitly.
+
+    if (!fileExists("$path/unitigger.sh")) {
+        resetIteration("unitig");
+    }
+
     #  Dump a script to run the unitigger.
 
     open(F, "> $path/unitigger.sh") or caExit("can't open '$path/unitigger.sh' for writing: $!\n", undef);
@@ -335,7 +347,7 @@ sub unitig ($) {
 
   finishStage:
     generateReport($asm);
-    resetIteration("unitig");
+    #resetIteration("unitig");   #  Do not reset iteration here as this function is called every loop.
 
   allDone:
 }
