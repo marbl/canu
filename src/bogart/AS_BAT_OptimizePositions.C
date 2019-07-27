@@ -77,31 +77,59 @@ Unitig::optimize_isCompatible(uint32       ii,
                               uint32       jj,
                               BAToverlap  &olap,
                               bool         inInit,
-                              bool         secondPass,
+                              bool         firstPass,
                               bool         beVerbose) {
 
-  SeqInterval  &ip = ufpath[ii].position;
-  SeqInterval  &jp = ufpath[jj].position;
+  SeqInterval  &ip  = ufpath[ii].position;   //  We're testing the ii'th read, to see if the
+  SeqInterval  &jp  = ufpath[jj].position;   //  overlap to the jj'th is valid for this tig.
 
+  uint32        iiid = ufpath[ii].ident;
+  uint32        jjid = ufpath[jj].ident;
 
-  bool  isOvl = isOverlapping(ufpath[ii].position, ufpath[jj].position);
+  assert(olap.a_iid == iiid);                //    The overlap has a_iid == ii.
+  assert(olap.b_iid == jjid);
+
+  assert(RI->readLength(iiid) > 0);
+  assert(RI->readLength(jjid) > 0);
+
+  if (firstPass == true)                     //  In the first pass, we're guaranteed that ii < jj.
+    assert(ii < jj);                         //  In the second pass, any jj read can be used.
+
+  //  We test four things:
+  //
+  //    Are the two reads overlapping in the current layout?  If not, then
+  //    this overlap isn't correct for this positioning.  This can happen
+  //    if the overlap orientation is flipped.
+  //
+  //    Does this overlap preserve the relative order of the two reads, e.g.,
+  //    that read A starts before read B.  If not, the overlap is likely
+  //    to reads at different loactions in the tig.
+  //
+  //    Does this overlap keep the read at _roughly_ the same location in
+  //    the layout?  If not, it is definitely not the correct overlap.
+  //
+  //    Does the overlap keep the read in the same orientation?
+  //
+  bool  isOvl        = isOverlapping(ufpath[ii].position, ufpath[jj].position);
+  bool  isOrdered    = true;
+  bool  isPositioned = true;
+  bool  isOriented   = true;
 
   //  Decide if the overlap preserves the ordering in the tig.
   //
-  //  This is of questionable value, and might be incorrect.  We can have two overlaps between
-  //  a pair of reads iff the orientation differs - the flipped flag.  That gets tested elsewhere.
-
-  bool  isOrdered = true;
-
+  //  This is of questionable value, and might be incorrect.  We can have two
+  //  overlaps between a pair of reads iff the orientation differs - the
+  //  flipped flag.  That gets tested elsewhere.
+  //
+  //  isOvl tells the end of the read that should have the overlap (according
+  //  to the tig layout), so check if the overlap actually is on that end.
+  //  If not, flag this as 'mis-ordered'.
+  //
+  //  But if in a containment relationship, it cannot be mis-ordered.
+  //
 #if 1
   bool  isOvlLo = ((jp.min() <= ip.min()) && (ip.min() <= jp.max()) && (jp.max() <= ip.max()));
   bool  isOvlHi = ((ip.min() <= jp.min()) && (jp.min() <= ip.max()) && (ip.max() <= jp.max()));
-
-  //bool  isOvlLo = jp.min() < ip.min();   //  Is the above too rigorous?
-  //bool  isOvlHi = ip.min() < jp.min();
-
-  //  isOvl tells the end of the read that should have the overlap (according to the tig layout),
-  //  so check if the overlap actually is on that end.  If not, flag this as 'mis ordered'.
 
   if (((isOvlLo == true) && (ip.isForward()) && (olap.AEndIs5prime() == false)) ||
       ((isOvlLo == true) && (ip.isReverse()) && (olap.AEndIs3prime() == false)) ||
@@ -109,45 +137,44 @@ Unitig::optimize_isCompatible(uint32       ii,
       ((isOvlHi == true) && (ip.isReverse()) && (olap.AEndIs5prime() == false)))
     isOrdered = false;
 
-  //  But if in a containment relationship, it cannot be mis ordered.
   if ((olap.AisContained() == true) ||
       (olap.AisContainer() == true))
     isOrdered = true;
 #endif
 
-#if 1
-  //  If the positions _roughly_ agree with the positions expected from the overlap, return true.
+  //  If the positions _roughly_ agree with the positions expected from the
+  //  overlap, return true.
   //
-  //  The overlap is from the ii read.  If that's forward, the hangs apply as-is.  If not,
-  //  the hangs are swapped and inverted.
+  //  The overlap is from the ii read.  If that's forward, the hangs apply
+  //  as-is.  If not, the hangs are swapped and inverted.
   //
   //       --------------> B          -B  <-------------
   //        A  --------------->     <------------  -A
   //
-
-  bool  isPositioned = true;
-
+#if 1
   int32 expJbgn = ip.min() + (ip.isForward() ? olap.a_hang : -olap.b_hang);
   int32 expJend = ip.max() + (ip.isForward() ? olap.b_hang : -olap.a_hang);
 
-  double  JbgnDiff = fabs(expJbgn - jp.min()) / (double)RI->readLength(jj);
-  double  JendDiff = fabs(expJend - jp.max()) / (double)RI->readLength(jj);
+  double  JbgnDiff = fabs(expJbgn - jp.min()) / (double)RI->readLength(jjid);
+  double  JendDiff = fabs(expJend - jp.max()) / (double)RI->readLength(jjid);
 
   if ((JbgnDiff > 0.1) ||
       (JendDiff > 0.1))
     isPositioned = false;
 #endif
 
-  //  If the reads in the layout are in the same orientation as those in the overlap, return true.
-
-  bool  isOriented = true;
-
+  //  Are the reads in the layout in the same orientation as implied by the overlap?
+  //
   if (((ip.isForward() == jp.isForward()) && (olap.flipped == true)) ||
       ((ip.isForward() != jp.isForward()) && (olap.flipped == false)))
     isOriented = false;
 
-  if ((beVerbose) || (secondPass))
-    writeLog("optimize_%s()-- tig %7u read %9u (at %9d %9d) olap to read %9u (at %9d %9d) - hangs %7d %7d - %s %s %s ovlLo %d ovlHi %d position %.4f %.4f contained %d container %d\n",
+
+  //  Finally, dump some logging if in verbose mode or if in the second pass.
+  //
+  if ((beVerbose == true) ||
+      (firstPass == false))
+    writeLog("optimize_%s()-- tig %7u read %9u (at %9d %9d) olap to read %9u (at %9d %9d) - hangs %7d %7d - %s %s %s ovlLo %d ovlHi %d position %.4f %.4f flags %d%d%d%d%d\n",
              (inInit) ? "initPlace" : "recompute",
              id(),
              ufpath[ii].ident, ip.bgn, ip.end,
@@ -158,7 +185,7 @@ Unitig::optimize_isCompatible(uint32       ii,
              (isPositioned == true) ? "positioned"  : "mis-positioned",
              isOvlLo, isOvlHi,
              JbgnDiff, JendDiff,
-             olap.AisContained(), olap.AisContainer());
+             ip.isForward(), olap.AisContained(), olap.AisContainer(), olap.AEndIs5prime(), olap.AEndIs3prime());
 
   return((isOvl         == true) &&    //  Good if the reads overlap in the current layout.
          ((isOrdered    == true) ||    //  Good if the reads are in the order implied by the overlap, OR
@@ -196,15 +223,18 @@ Unitig::optimize_initPlace(uint32        ii,
       uint32  uu  = inUnitig (jid);
       uint32  jj  = ufpathIdx(jid);
 
-      if (uu != id())   //  Skip if to a different tig.
-        continue;       //  (otherwise, ufpath[jj] is invalid below)
-
       //  Skip if:
-      //    this is the first pass, but the overlap is to a read after us.
-      //    the overlap isn't compatible with the layout.
+      //    the overlap is to a read in a different tig (note ufpath[jj] is invalid).
+      //    the overlap is to a read after us in the layout, and we're in the first pass.
+      //    the overlap isn't compatible with the current layout.
 
-      if (((firstPass) && (ii < jj)) ||
-          (optimize_isCompatible(ii, jj, ovl[oo], true, !firstPass, beVerbose) == false))
+      if (uu != id())
+        continue;
+
+      if ((firstPass == true) && (ii < jj))
+        continue;
+
+      if (optimize_isCompatible(ii, jj, ovl[oo], true, !firstPass, beVerbose) == false)
         continue;
 
       //  Compute the position of the read using the overlap and the other read.
@@ -217,15 +247,15 @@ Unitig::optimize_initPlace(uint32        ii,
     //  not much we can do.
 
     if ((firstPass == true) && (cnt == 0)) {
-      writeLog("optimize_initPlace()-- Failed to find overlaps for read %u in tig %u at %d-%d (first pass)\n",
-               iid, id(), ufpath[ii].position.bgn, ufpath[ii].position.end);
+      writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (first pass)\n",
+               id(), iid);
       failed.insert(iid);
       return;
     }
 
     if ((firstPass == false) && (cnt == 0)) {
-      writeLog("optimize_initPlace()-- Failed to find overlaps for read %u in tig %u at %d-%d (second pass)\n",
-               iid, id(), ufpath[ii].position.bgn, ufpath[ii].position.end);
+      writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (second pass)\n",
+               id(), iid);
       flushLog();
     }
 
