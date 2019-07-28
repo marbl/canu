@@ -70,7 +70,8 @@ public:
 
 //  Decide if two reads in a tig are compatible with an overlap.
 //
-//  Returns true if the reads are overlapping in the tig, and are oriented consistent with the overlap.
+//  Returns true if the reads are overlapping in the tig, and are oriented
+//  consistent with the overlap.
 //
 bool
 Unitig::optimize_isCompatible(uint32       ii,
@@ -91,9 +92,6 @@ Unitig::optimize_isCompatible(uint32       ii,
 
   assert(RI->readLength(iiid) > 0);
   assert(RI->readLength(jjid) > 0);
-
-  if (firstPass == true)                     //  In the first pass, we're guaranteed that ii < jj.
-    assert(ii < jj);                         //  In the second pass, any jj read can be used.
 
   //  We test four things:
   //
