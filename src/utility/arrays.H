@@ -75,7 +75,7 @@ duplicateString(TT const *fr) {
 
 template<typename TT, typename LL>
 void
-duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL frMax=0, bool forceAlloc=false) {
+duplicateArray(TT*& to, LL &toLen, LL &toMax, TT const *fr, LL frLen, LL frMax=0, bool forceAlloc=false) {
 
   if (fr == NULL)
     assert(frLen == 0);
