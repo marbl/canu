@@ -887,7 +887,7 @@ sub buildStageOption ($$) {
     my $d = shift @_;
     my $r;
 
-    if ($t eq "cor") {
+    if ($t eq "cor" || $t eq "cormhap" || $t eq "obtmhap" || $t eq "utgmhap") {
         $r =  getGlobal("gridEngineStageOption");
         $r =~ s/DISK_SPACE/${d}/g;
     }

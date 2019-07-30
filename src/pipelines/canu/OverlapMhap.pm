@@ -446,13 +446,24 @@ sub mhapConfigure ($$$) {
     print F "fi\n";
     print F "\n";
 
-    print F "if [ ! -d ./results ]; then\n";
-    print F "  mkdir -p ./results\n";
-    print F "fi\n";
+    my $stageDir = getGlobal("stageDirectory");
+
+    if (defined($stageDir)) {
+        print F "#  Output staging enabled, write outputs in scratch space!\n";
+        print F "outPath=\"$stageDir\"\n";
+        print F "\n";
+    }
+
+    else {
+        print F "#  Output staging disabled, write all outputs in assembly directory.\n";
+        print F "outPath=\"./results\"\n";
+        print F "\n";
+    }
+
+    print F "if [ ! -d ./results ]; then  mkdir -p ./results;  fi\n";
+    print F "if [ ! -d ./blocks  ]; then  mkdir -p ./blocks;   fi\n";
+    print F "if [ ! -d \$outPath ]; then  mkdir -p \$outPath;  fi\n";
     print F "\n";
-    print F "if [ ! -d ./blocks ] ; then\n";
-    print F "  mkdir -p ./blocks\n";
-    print F "fi\n";
 
     print F fetchFileShellCode("$path", "blocks/\$blk.dat", "");
 
@@ -465,11 +476,12 @@ sub mhapConfigure ($$$) {
     print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.frequentMers.ignore.gz", "");
     print F "\n";
 
+
     print F "echo \"\"\n";
     print F "echo Running block \$blk in query \$qry\n";
     print F "echo \"\"\n";
     print F "\n";
-    print F "if [ ! -e ./results/\$qry.mhap ] ; then\n";
+    print F "if [ ! -e \$outPath/\$qry.mhap ] ; then\n";
     print F "  $javaPath $javaOpt -XX:ParallelGCThreads=",  getGlobal("${tag}mhapThreads"), " -server -Xms", $javaMemory, "m -Xmx", $javaMemory, "m \\\n";
     print F "    -jar $cygA \$bin/../share/java/classes/mhap-" . getGlobal("${tag}MhapVersion") . ".jar $cygB \\\n";
     print F "    --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
@@ -487,27 +499,27 @@ sub mhapConfigure ($$$) {
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "    -s $cygA ./blocks/\$blk.dat \$slf $cygB \\\n";
     print F "    -q $cygA queries/\$qry $cygB \\\n";
-    print F "  > ./results/\$qry.mhap.WORKING \\\n";
+    print F "  > \$outPath/\$qry.mhap.WORKING \\\n";
     print F "  && \\\n";
-    print F "  mv -f ./results/\$qry.mhap.WORKING ./results/\$qry.mhap\n";
+    print F "  mv -f \$outPath/\$qry.mhap.WORKING \$outPath/\$qry.mhap\n";
     print F "fi\n";
     print F "\n";
 
-    print F "if [   -e ./results/\$qry.mhap -a \\\n";
+    print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
     print F "     ! -e ./results/\$qry.ovb ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
     print F "    -S ../../$asm.seqStore \\\n";
     print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
-    print F "    ./results/\$qry.mhap \\\n";
+    print F "    \$outPath/\$qry.mhap \\\n";
     print F "  && \\\n";
     print F "  mv ./results/\$qry.mhap.ovb.WORKING ./results/\$qry.mhap.ovb\n";
     print F "fi\n";
     print F "\n";
 
     if (getGlobal('purgeOverlaps') ne "never") {
-        print F "if [   -e ./results/\$qry.mhap -a \\\n";
+        print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
         print F "       -e ./results/\$qry.mhap.ovb ] ; then\n";
-        print F "  rm -f ./results/\$qry.mhap\n";
+        print F "  rm -f \$outPath/\$qry.mhap\n";
         print F "fi\n";
         print F "\n";
     }
