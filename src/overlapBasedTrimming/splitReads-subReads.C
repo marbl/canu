@@ -54,7 +54,8 @@ bool
 doCheckSubRead(sqStore *seq, uint32 id) {
   sqLibrary  *libr = seq->sqStore_getLibraryForRead(id);
 
-  return(libr->sqLibrary_checkForSubReads() == true);
+  return(true);
+  //return(libr->sqLibrary_checkForSubReads() == true);
 }
 
 

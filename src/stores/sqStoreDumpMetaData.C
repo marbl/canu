@@ -43,22 +43,15 @@ using namespace std;
 void
 dumpLibs(sqStore *seq, uint32 bgnID, uint32 endID) {
 
-  fprintf(stdout, "libID\tnonRandom\treadType\tcorrectBases\tfinalTrim\tremoveDupe\tremoveSpur\tremoveChimer\tcheckSubRead\tdefaultQV\tlibName\n");
+  fprintf(stdout, "ID         technology  name\n");
+  fprintf(stdout, "---- ----------------  ------------------------------\n");
 
   for (uint32 lid=bgnID; lid<=endID; lid++) {
     sqLibrary  *library = seq->sqStore_getLibrary(lid);
 
-    fprintf(stdout, F_U32"\t" F_U32 "\t%s\t%s\t%s\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t%s\n",
+    fprintf(stdout, "%-4" F_U32P " %16s  %s\n",
             library->sqLibrary_libraryID(),
-            library->sqLibrary_isNonRandom(),
-            library->sqLibrary_readTypeString(),
-            library->sqLibrary_readCorrectionString(),
-            library->sqLibrary_finalTrimString(),
-            library->sqLibrary_removeDuplicateReads(),
-            library->sqLibrary_removeSpurReads(),
-            library->sqLibrary_removeChimericReads(),
-            library->sqLibrary_checkForSubReads(),
-            library->sqLibrary_defaultQV(),
+            library->sqLibrary_techTypeString(),
             library->sqLibrary_libraryName());
   }
 }
@@ -290,10 +283,15 @@ dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
   sqRead_which   w4 = sqRead_corrected | sqRead_compressed;
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    info.examineRead(seqs->sqStore_getReadSeq(rid, w1), w1);
-    info.examineRead(seqs->sqStore_getReadSeq(rid, w2), w2);
-    info.examineRead(seqs->sqStore_getReadSeq(rid, w3), w3);
-    info.examineRead(seqs->sqStore_getReadSeq(rid, w4), w4);
+    bool  exists = false;
+
+    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w1), w1);
+    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w2), w2);
+    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w3), w3);
+    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w4), w4);
+
+    if (exists)
+      info.sqInfo_addRead();
   }
 
   info.writeInfoAsText(stdout);

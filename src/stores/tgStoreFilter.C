@@ -267,11 +267,9 @@ main(int argc, char **argv) {
 
   double      globalRate     = 0;
 
-  bool       *isNonRandom = new bool   [seqStore->sqStore_lastReadID() + 1];
   uint32     *fragLength  = new uint32 [seqStore->sqStore_lastReadID() + 1];
 
   for (uint32 fi=1; fi <= seqStore->sqStore_lastReadID(); fi++) {
-    isNonRandom[fi] = seqStore->sqStore_getLibraryForRead(fi)->sqLibrary_isNonRandom();
     fragLength[fi]  = seqStore->sqStore_getReadLength(fi);
   }
 
@@ -514,7 +512,6 @@ main(int argc, char **argv) {
   AS_UTL_closeFile(outLOG, outLOGname);
   AS_UTL_closeFile(outSTA, outSTAname);
 
-  delete [] isNonRandom;
   delete [] fragLength;
 
   delete seqStore;

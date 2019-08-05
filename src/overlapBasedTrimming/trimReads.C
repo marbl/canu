@@ -278,11 +278,14 @@ main(int argc, char **argv) {
     //  If it did not request trimming, do nothing.  Similar to the above, we'll get overlaps to
     //  fragments we skip.
     //
+#if 0
+    //  (yes, this is nonsense)
     if ((libr->sqLibrary_finalTrim() == SQ_FINALTRIM_LARGEST_COVERED) &&
         (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_BEST_EDGE)) {
       noTrimIn += seq->sqStore_getReadLength(id);
       continue;
     }
+#endif
 
     readsIn += seq->sqStore_getReadLength(id);
 
@@ -305,13 +308,13 @@ main(int argc, char **argv) {
 
     //  Trim!
 
+    //  No overlaps, so mark it as junk.
     if (ovlLen == 0) {
-      //  No overlaps, so mark it as junk.
       isGood = false;
     }
 
-    else if (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_LARGEST_COVERED) {
-      //  Use the largest region covered by overlaps as the trim
+    //  Use the largest region covered by overlaps as the trim
+    else {
 
       assert(ovlLen > 0);
       assert(id == ovl[0].a_iid);
@@ -327,8 +330,9 @@ main(int argc, char **argv) {
       assert(fbgn <= fend);
     }
 
+#if 0
+    //  Use the largest region covered by overlaps as the trim
     else if (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_BEST_EDGE) {
-      //  Use the largest region covered by overlaps as the trim
 
       assert(ovlLen > 0);
       assert(id == ovl[0].a_iid);
@@ -344,11 +348,12 @@ main(int argc, char **argv) {
       assert(fbgn <= fend);
     }
 
+    //  Do nothing.  Really shouldn't get here.
     else {
-      //  Do nothing.  Really shouldn't get here.
       assert(0);
       continue;
     }
+#endif
 
     //  Enforce the maximum clear range
 

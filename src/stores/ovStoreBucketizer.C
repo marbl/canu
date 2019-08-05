@@ -224,7 +224,7 @@ main(int argc, char **argv) {
   memset(sliceFile, 0, sizeof(ovFile *) * (config->numSlices() + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (config->numSlices() + 1));
 
-  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
+  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate);
   ovOverlap      foverlap;
   ovOverlap      roverlap;
 

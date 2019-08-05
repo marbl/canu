@@ -146,7 +146,8 @@ main (int argc, char **argv) {
       seqStore->sqStore_getRead(rID, read);                      //  Load old data for the read.
 
       rdw->sqReadDataWriter_importData(read);                    //  Import it into the writer.
-      rdw->sqReadDataWriter_setCorrectedBases(tig->bases());     //  Add the corrected read.
+      rdw->sqReadDataWriter_setCorrectedBases(tig->bases(),
+                                              tig->length());    //  Add the corrected read.
 
       seqStore->sqStore_addRead(rdw);                            //  Write combined data.
 

@@ -153,66 +153,51 @@ sub createSequenceStore ($$@) {
     my $bin    = getBinDirectory();
     my @inputs = @_;
 
-    #  If the store failed to build because of input errors and warnings, rename the store and continue.
-    #  Not sure how to support this in DNANexus.
-
-    if (-e "./$asm.seqStore.ACCEPTED") {
-        rename("./$asm.seqStore.ACCEPTED",          "./$asm.seqStore");
-        rename("./$asm.seqStore.BUILDING.err",      "./$asm.seqStore.err");
-        return;
-    }
-
-    #  If the store failed to build and the user just reruns canu, this will be triggered.  We'll
-    #  skip rebuilding the store again, and report the original error message.
-
-    if (-e "./$asm.seqStore.BUILDING") {
-        print STDERR "-- WARNING:\n";
-        print STDERR "-- WARNING:  Previously failed seqStore detected.\n";
-        print STDERR "-- WARNING:\n";
-    }
-
-    #  Not sure how this can occur.  Possibly the user just deleted seqStore.BUILDING and restarted?
-
-    if ((! -e "./$asm.seqStore.BUILDING") && (-e "./$asm.seqStore.ssi")) {
-        print STDERR "-- WARNING:\n";
-        print STDERR "-- WARNING:  Existing sequence inputs used.\n";
-        print STDERR "-- WARNING:\n";
-    }
-
     #  Fail if there are no inputs.
 
     caExit("no input files specified, and store not already created, I have nothing to work on!", undef)
         if (scalar(@inputs) == 0);
 
-    #  Convert the canu-supplied reads into correct relative paths.  This is made complicated by
-    #  sqStoreCreate being run in a directory one below where we are now.
 
-    #  At the same time, check that all files exist.
+    #  Fetch the reads from the object store.
+    #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-    if (! -e "./$asm.seqStore.ssi") {
+    #if (defined(getGlobal("objectStore"))) {
+    #    for (my $ff=0; $ff < scalar(@inputs); $ff++) {
+    #        my ($inType, $inPath, $otPath) = split '\0', $inputs[$ff];
+    #
+    #        $otPath =  $inPath;
+    #        $otPath =~ s!/!_!;
+    #
+    #        fetchObjectStoreFile($inPath, $otPath);
+    #
+    #        $inputs[$ff] = "$inType\0$otPath";
+    #
+    #        print STDERR "$inType -- '$inPath' -> '$otPath'\n";
+    #    }
+    #}
 
-        #  Fetch the reads from the object store.
-        #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-        #if (defined(getGlobal("objectStore"))) {
-        #    for (my $ff=0; $ff < scalar(@inputs); $ff++) {
-        #        my ($inType, $inPath, $otPath) = split '\0', $inputs[$ff];
-        #
-        #        $otPath =  $inPath;
-        #        $otPath =~ s!/!_!;
-        #
-        #        fetchObjectStoreFile($inPath, $otPath);
-        #
-        #        $inputs[$ff] = "$inType\0$otPath";
-        #
-        #        print STDERR "$inType -- '$inPath' -> '$otPath'\n";
-        #    }
-        #}
+    if (! -e "./$asm.seqStore.sh") {
+        open(F, "> ./$asm.seqStore.sh") or caExit("cant' open './$asm.seqStore.sh' for writing: $0", undef);
 
-        #  Build a ssi file for all the raw sequence inputs.  For simplicity, we just copy in any
-        #  ssi files as is.  This documents what the store was built with, etc.
+        print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
+        print F setWorkDirectoryShellCode(".");
+        print F "\n";
 
-        open(F, "> ./$asm.seqStore.ssi") or caExit("cant' open './$asm.seqStore.ssi' for writing: $0", undef);
+        print F "\n";
+        print F "$bin/sqStoreCreate \\\n";
+        print F "  -o ./$asm.seqStore.BUILDING \\\n";
+        print F "  -minlength "  . getGlobal("minReadLength")        . " \\\n";
+
+        if (getGlobal("readSamplingCoverage") > 0) {
+            print F "  -genomesize " . getGlobal("genomeSize")           . " \\\n";
+            print F "  -coverage   " . getGlobal("readSamplingCoverage") . " \\\n";
+            print F "  -bias       " . getGlobal("readSamplingBias")     . " \\\n";
+        }
 
         foreach my $iii (@inputs) {
             if ($iii =~ m/^-(.*)\0(.*)$/) {
@@ -225,95 +210,35 @@ sub createSequenceStore ($$@) {
                 $name = $1   if ($name =~ m/(.*).fast[aq]$/i);
                 $name = $1   if ($name =~ m/(.*).f[aq]$/i);
 
-                print F "########################################\n";
-                print F "#  $tech: $file\n";
-                print F "#\n";
-                print F "name   $name\n";
-                print F "preset $tech\n";
-                print F "$file\n";
-                print F "\n";
-
-            } elsif (-e $iii) {
-                print F "########################################\n";
-                print F "#  $iii\n";
-                print F "#\n";
-                open(I, "< $iii") or caExit("can't open sqStoreCreate input '$iii' for reading: $0", undef);
-                while (<I>) {
-                    print F $_;
-                }
-                close(I);
-                print F "\n";
+                print F "  -$tech $name $file \\\n";
 
             } else {
                 caExit("unrecognized sqStoreCreate input file '$iii'", undef);
             }
         }
 
+        print F "&& \\\n";
+        print F "mv ./$asm.seqStore.BUILDING ./$asm.seqStore \\\n";
+        print F "&& \\\n";
+        print F "exit 0\n";
+        print F "\n";
+        print F "exit 1\n";
+
         close(F);
+
+        makeExecutable("./$asm.seqStore.sh");
+        stashFile("./$asm.seqStore.sh");
     }
 
     #  Load the store.
 
-    if (! -e "./$asm.seqStore.BUILDING") {
-        my $cmd;
-        $cmd .= "$bin/sqStoreCreate \\\n";
-        $cmd .= "  -o ./$asm.seqStore.BUILDING \\\n";
-        $cmd .= "  -minlength "  . getGlobal("minReadLength")        . " \\\n";
-        if (getGlobal("readSamplingCoverage") > 0) {
-            $cmd .= "  -genomesize " . getGlobal("genomeSize")           . " \\\n";
-            $cmd .= "  -coverage   " . getGlobal("readSamplingCoverage") . " \\\n";
-            $cmd .= "  -bias       " . getGlobal("readSamplingBias")     . " \\\n";
-        }
-        $cmd .= "  ./$asm.seqStore.ssi \\\n";
-        $cmd .= "> ./$asm.seqStore.BUILDING.err 2>&1";
-
-        if (runCommand(".", $cmd) > 0) {
-            caExit("sqStoreCreate failed", "./$asm.seqStore.BUILDING.err");
-        }
+    if (runCommand(".", "./$asm.seqStore.sh > ./$asm.seqStore.err 2>&1") > 0) {
+        caExit("sqStoreCreate failed; boom!", "./$asm.seqStore.err");
     }
 
-    #  Check for quality issues.
-
-    if (-e "./$asm.seqStore.BUILDING.err") {
-        my $nProblems = 0;
-
-        open(F, "< ./$asm.seqStore.BUILDING.err");
-        while (<F>) {
-            $nProblems++   if (m/Check\syour\sreads/);
-        }
-        close(F);
-
-        if ($nProblems > 0) {
-            if (getGlobal("stopOnReadQuality")) {
-                print STDERR "\n";
-                print STDERR "Potential problems with your input reads were detected.\n";
-                print STDERR "\n";
-                print STDERR "Please review the logging in files:\n";
-                print STDERR "  ", getcwd(), "/$asm.seqStore.BUILDING.err\n";
-                print STDERR "  ", getcwd(), "/$asm.seqStore.BUILDING/errorLog\n";
-                print STDERR "\n";
-                print STDERR "If you wish to proceed, rename the store with the following command and restart canu.\n";
-                print STDERR "\n";
-                print STDERR "  mv ", getcwd(), "/$asm.seqStore.BUILDING \\\n";
-                print STDERR "     ", getcwd(), "/$asm.seqStore.ACCEPTED\n";
-                print STDERR "\n";
-                print STDERR "Option stopOnReadQuality=false skips these checks.\n";
-                exit(1);
-            } else {
-                print STDERR "--\n";
-                print STDERR "-- WARNING:  Potential problems with your input reads were detected.\n";
-                print STDERR "-- WARNING:\n";
-                print STDERR "-- WARNING:  Please review the logging in files:\n";
-                print STDERR "-- WARNING:    ", getcwd(), "/$asm.seqStore.BUILDING.err\n";
-                print STDERR "-- WARNING:    ", getcwd(), "/$asm.seqStore.BUILDING/errorLog\n";
-                print STDERR "-- \n";
-                print STDERR "-- Proceeding with assembly because stopOnReadQuality=false.\n";
-            }
-        }
+    if (! -e "./$asm.seqStore/info.txt") {
+        caExit("sqStoreCreate failed; no info file", "./$asm.seqStore.err");
     }
-
-    rename "./$asm.seqStore.BUILDING",             "./$asm.seqStore";
-    rename "./$asm.seqStore.BUILDING.err",         "./$asm.seqStore.err";
 }
 
 
@@ -467,12 +392,6 @@ sub checkSequenceStore ($$@) {
     #goto allDone    if (getNumberOfReadsInStore($asm, $tag) > 0);
 
     #  Create the store.
-    #
-    #  If all goes well, we get asm.seqStore.
-    #
-    #  If not, we could end up with asm.seqStore.BUILDING and ask the user to examine it and rename
-    #  it to asm.seqStore.ACCEPTED and restart.  On the restart, sqStoreCreateStore() detects the
-    #  'ACCPETED' store and renames to asm.seqStore.
 
     my $histAndStash = 0;
 
@@ -506,29 +425,6 @@ sub checkSequenceStore ($$@) {
         print STDERR "-- Unable to assemble uncorrected reads.\n";
 
         caExit("unable to assemble uncorrected reads", undef);
-    }
-
-    #  Promote corrected reads to trimmed reads, if needed.
-
-    if (($tag eq "utg") &&    #  Assembling.
-        ($nOBT > 0) &&        #  Corrected reads exist.
-        ($nAsm == 0)) {       #  But no trimmed reads exist.
-
-        print STDERR "--\n";
-        print STDERR "-- WARNING:  No trimmed reads found for assembly, but untrimmed reads exist.\n";
-        print STDERR "-- WARNING:  Upgrading untrimmed reads to trimmed reads for assembly.\n";
-
-        if (runCommandSilently(".", "$bin/loadTrimmedReads -S ./$asm.seqStore > ./$asm.seqStore.upgrade.err 2>&1", 1)) {
-            caExit("initializing clear ranges failed", "./$asm.seqStore.upgrade.err");
-        }
-
-        unlink "./$asm.seqStore.upgrade.err";
-
-        $nCor = getNumberOfReadsInStore($asm, "cor");   #  Number of corrected reads ready for OBT.
-        $nOBT = getNumberOfReadsInStore($asm, "obt");   #  Number of corrected reads ready for OBT.
-        $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads ready for assembly.
-
-        $histAndStash = 1;
     }
 
     #  Make a histogram and stash the (updated) store.

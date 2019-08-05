@@ -125,7 +125,7 @@ public:
   uint32    sqInfo_numReads(sqRead_which w)     { return(_reads[w]);     };
 
 public:
-  void      examineRead(sqReadSeq *seq, sqRead_which w);
+  bool      examineRead(sqReadSeq *seq, sqRead_which w);
 
 private:
   bool      checkInfo(void);
@@ -134,7 +134,13 @@ private:
                    sqReadSeq  *corU,
                    sqReadSeq  *corC);
 
-private:
+public:
+  //  For info in the store, these control the number of objects
+  //  that are allocated in the metadata arrays.
+  //
+  //  For info in dumpMetaData, these are used to count the number
+  //  of objects seen in the scan.
+  //
   void      sqInfo_addLibrary(void)             { _numLibraries++;       };
   void      sqInfo_addRead(void)                { _numReads++;           };
 
@@ -340,8 +346,8 @@ public:
 
 
 public:
-  sqLibrary         *sqStore_addEmptyLibrary(char const *name);
-  sqReadDataWriter  *sqStore_addEmptyRead(sqLibrary *lib);
+  sqLibrary         *sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType);
+  sqReadDataWriter  *sqStore_addEmptyRead(sqLibrary *lib, const char *name);
 
   void               sqStore_addRead(sqReadDataWriter *rdw) {
     _blobWriter->writeData(rdw);

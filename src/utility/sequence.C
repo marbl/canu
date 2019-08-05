@@ -170,6 +170,8 @@ reverseComplement(char *seq, qvType *qlt, int len) {
     return;
   }
 
+  assert(len > 0);
+
   if (len == 0) {
     len = strlen(seq);
     S = seq + len - 1;
@@ -196,22 +198,20 @@ template void reverseComplement<uint8>(char *seq, uint8 *qlt, int len);   //  so
 
 
 uint32
-homopolyCompress(char *bases, char *compr) {
+homopolyCompress(char *bases, uint32 basesLen, char *compr) {
   uint32  cc = 0;  //  position of the start of the run
   uint32  rr = 1;  //  position of the scan head
   uint32  sl = 0;  //  length of the compressed sequence
 
-  //  Assume bases is never empty.
+  if (compr)                 //  Either the first base, or
+    compr[sl] = bases[cc];   //  the terminating NUL.
 
-  if (compr)
-    compr[sl] = bases[cc];
-
-  if (bases[0] == 0)
+  if (basesLen == 0)
     return(0);
 
   sl += 1;
 
-  while (bases[rr] != 0) {
+  while (rr < basesLen) {
     //  In a run, move the scan head one position.
     if (bases[cc] == bases[rr]) {
       rr += 1;

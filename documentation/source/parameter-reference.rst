@@ -68,7 +68,7 @@ minReadLength <integer=1000>
 
   Must be no smaller than minOverlapLength.
 
-  If set high enough, the gatekeeper module will claim there are errors in the input reads,
+  [In Canu v1.9 and earlier] If set high enough, the gatekeeper module will claim there are errors in the input reads,
   as too many of the input reads have been discarded.  As long as there is sufficient coverage,
   this is not a problem.  See :ref:`stopOnReadQuality <stopOnReadQuality>` and 
   :ref:`stopOnLowCoverage <stopOnLowCoverage>`
@@ -157,7 +157,7 @@ showNext <boolean=false>
 .. _stopOnReadQuality:
 
 stopOnReadQuality <string=false>
-  If set, Canu will stop with the following error if there are significantly fewer reads or bases
+  [In Canu v1.9 and earlier] If set, Canu will stop with the following error if there are significantly fewer reads or bases
   loaded into the read store than what is in the input data.
 
   ::

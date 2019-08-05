@@ -173,13 +173,15 @@ private:
   //  The only caller should be sqReadDataWriter::sqReadDataWriter_writeBlob().
   //  If you're thinking you want to call this, think again.
 private:
-  void        sqReadSeq_setLength(char *bases, bool doCompress) {
+  void        sqReadSeq_setLength(char *bases, uint32 basesLen, bool doCompress) {
     uint32  sl = 0;
 
+    assert(bases[basesLen] == 0);
+
     if (doCompress == false)
-      sl = strlen(bases);
+      sl = basesLen;
     else
-      sl = homopolyCompress(bases);
+      sl = homopolyCompress(bases, basesLen);
 
     assert(_seqValid == 0);
 
@@ -447,7 +449,7 @@ public:
              (trim == false)) {
       resizeArray(_retBases, 0, _retBasesAlloc, length + 1, resizeArray_doNothing);
 
-      homopolyCompress(bases, _retBases);
+      homopolyCompress(bases, length, _retBases);
 
       ret = _retBases;
     }
@@ -460,7 +462,7 @@ public:
 
       resizeArray(_retBases, 0, _retBasesAlloc, length + 1, resizeArray_doNothing);
 
-      homopolyCompress(bases, _retBases);
+      homopolyCompress(bases, length, _retBases);
 
       memmove(_retBases, _retBases + bgn, end - bgn);
       _retBases[end-bgn] = 0;
@@ -569,9 +571,30 @@ public:
 public:
   void        sqReadDataWriter_importData(sqRead *read);
 
-  void        sqReadDataWriter_setName(char *N)             { duplicateArray(_name,     _nameLen,     _nameAlloc,     N, (uint32)strlen(N)+1); };
-  void        sqReadDataWriter_setRawBases(char *S)         { duplicateArray(_rawBases, _rawBasesLen, _rawBasesAlloc, S, (uint32)strlen(S)+1); };
-  void        sqReadDataWriter_setCorrectedBases(char *S)   { duplicateArray(_corBases, _corBasesLen, _corBasesAlloc, S, (uint32)strlen(S)+1); };
+  void        sqReadDataWriter_setName(const char *N) {
+    duplicateArray(_name, _nameLen, _nameAlloc, N, (uint32)strlen(N) + 1);
+  };
+
+  //  _setBases() doesn't need NUL terminated strings on input, but always
+  //  makes NUL terminated strings for itself.
+
+  void        sqReadDataWriter_setRawBases(const char *S, uint32 Slen) {
+    setArraySize(_rawBases, _rawBasesLen, _rawBasesAlloc, Slen+1, resizeArray_doNothing);
+
+    memcpy(_rawBases, S, sizeof(char) * Slen);
+    _rawBases[Slen] = 0;
+
+    _rawBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
+  };
+
+  void        sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen) {
+    setArraySize(_corBases, _corBasesLen, _corBasesAlloc, Slen+1, resizeArray_doNothing);
+
+    memcpy(_corBases, S, sizeof(char) * Slen);
+    _corBases[Slen] = 0;
+
+    _corBasesLen = Slen + 1;
+  };
 
   void        sqReadDataWriter_writeBlob(writeBuffer *buffer);
 
@@ -587,11 +610,11 @@ private:
   char        *_name;
 
   uint32       _rawBasesAlloc;    //  The raw sequence.
-  uint32       _rawBasesLen;
+  uint32       _rawBasesLen;      //  Length of string, INCLUDING terminating NUL byte.
   char        *_rawBases;
 
   uint32       _corBasesAlloc;    //  The corrected sequence.
-  uint32       _corBasesLen;
+  uint32       _corBasesLen;      //  Length of string, INCLUDING terminating NUL byte.
   char        *_corBases;
 
   friend class sqStore;

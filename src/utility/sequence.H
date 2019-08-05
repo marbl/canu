@@ -34,10 +34,11 @@
 void   reverseComplementSequence(char *seq, int len);
 char  *reverseComplementCopy(char *seq, int len);
 
+//  Used in tgTig still.
 template<typename qvType>
 void   reverseComplement(char *seq, qvType *qlt, int len);
 
-uint32 homopolyCompress(char *bases, char *compr=NULL);
+uint32 homopolyCompress(char *bases, uint32 basesLen, char *compr=NULL);
 
 
 //  Encode a sequence into chunk.  The length of the chunk in bytes is returned.
@@ -171,7 +172,7 @@ public:
   };
 
   //  Returns a chunk of sequence from the file, up to 'maxLength' bases or
-  //  the end of the current sequence.
+  //  the end of the current sequence.  This is NOT NUL terminated!
   //
   //  Returns false if EOF is hit and no bases were loaded.
   //

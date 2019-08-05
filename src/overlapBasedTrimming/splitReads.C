@@ -240,6 +240,7 @@ main(int argc, char **argv) {
       continue;
     }
 
+#if 0
     if ((libr->sqLibrary_removeSpurReads()     == false) &&
         (libr->sqLibrary_removeChimericReads() == false) &&
         (libr->sqLibrary_checkForSubReads()    == false)) {
@@ -247,6 +248,7 @@ main(int argc, char **argv) {
       noTrimIn += seq->sqStore_getReadLength(id);
       continue;
     }
+#endif
 
     readsIn += seq->sqStore_getReadLength(id);
 
@@ -290,10 +292,10 @@ main(int argc, char **argv) {
     //  Get stats on chimera region detected - save the length of each region to the trimStats object.
     //}
 
-    if (libr->sqLibrary_checkForSubReads() == true) {
+    //if (libr->sqLibrary_checkForSubReads() == true) {
       readsProcSubRead += seq->sqStore_getReadLength(id);
       detectSubReads(seq, w, subreadFile, doSubreadLoggingVerbose);
-    }
+    //}
 
     //  Get stats on the bad regions found.  This kind of duplicates code in trimBadInterval(), but
     //  I don't want to pass all the stats objects into there.

@@ -51,8 +51,8 @@ sqReadDataWriter::sqReadDataWriter_importData(sqRead *read) {
   _corC = read->_corC;
 
   sqReadDataWriter_setName          (read->_name);
-  sqReadDataWriter_setRawBases      (read->_rawBases);
-  sqReadDataWriter_setCorrectedBases(read->_corBases);
+  sqReadDataWriter_setRawBases      (read->_rawBases, read->sqRead_length(sqRead_raw));
+  sqReadDataWriter_setCorrectedBases(read->_corBases, read->sqRead_length(sqRead_corrected));
 }
 
 
@@ -93,8 +93,10 @@ sqReadDataWriter::sqReadDataWriter_writeBlob(writeBuffer *buffer) {
     assert((_rawU == NULL) && (_rawC == NULL) && (_corU == NULL) && (_corC == NULL));
 
   if ((_rawBases != NULL) && (_rawBases[0] != 0)) {
-    if ((_rawU) && (_rawU->sqReadSeq_valid() == false))   _rawU->sqReadSeq_setLength(_rawBases, false);
-    if ((_rawC) && (_rawC->sqReadSeq_valid() == false))   _rawC->sqReadSeq_setLength(_rawBases, true);
+    assert(_rawBasesLen > 0);
+
+    if ((_rawU) && (_rawU->sqReadSeq_valid() == false))   _rawU->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, false);
+    if ((_rawC) && (_rawC->sqReadSeq_valid() == false))   _rawC->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, true);
 
     rseq     = NULL;
     rseq2Len =                                      encode2bitSequence(rseq, _rawBases, _rawU->sqReadSeq_length());
@@ -103,8 +105,10 @@ sqReadDataWriter::sqReadDataWriter_writeBlob(writeBuffer *buffer) {
   }
 
   if ((_corBases != NULL) && (_corBases[0] != 0)) {
-    if ((_corU) && (_corU->sqReadSeq_valid() == false))   _corU->sqReadSeq_setLength(_corBases, false);
-    if ((_corC) && (_corC->sqReadSeq_valid() == false))   _corC->sqReadSeq_setLength(_corBases, true);
+    assert(_corBasesLen > 0);
+
+    if ((_corU) && (_corU->sqReadSeq_valid() == false))   _corU->sqReadSeq_setLength(_corBases, _corBasesLen-1, false);
+    if ((_corC) && (_corC->sqReadSeq_valid() == false))   _corC->sqReadSeq_setLength(_corBases, _corBasesLen-1, true);
 
     cseq     = NULL;
     cseq2Len =                                      encode2bitSequence(cseq, _corBases, _corU->sqReadSeq_length());

@@ -907,7 +907,6 @@ sub setDefaults () {
 
     #####  Stopping conditions
 
-    setDefault("stopOnReadQuality", 1,     "Stop if a significant portion of the input data has quality value or base composition errors");
     setDefault("stopOnLowCoverage", 10,    "Stop if raw, corrected or trimmed read coverage is low");
     setDefault("stopAfter",         undef, "Stop after a specific algorithm step is completed");
 

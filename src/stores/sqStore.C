@@ -164,7 +164,7 @@ sqStore::sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
 
 
 sqLibrary *
-sqStore::sqStore_addEmptyLibrary(char const *name) {
+sqStore::sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType) {
 
   assert(_info.sqInfo_lastLibraryID() <= _librariesAlloc);
 
@@ -176,8 +176,9 @@ sqStore::sqStore_addEmptyLibrary(char const *name) {
 
   //  Initialize the new library.
 
-  _libraries[_info.sqInfo_lastLibraryID()] = sqLibrary();
+  _libraries[_info.sqInfo_lastLibraryID()]            = sqLibrary();
   _libraries[_info.sqInfo_lastLibraryID()]._libraryID = _info.sqInfo_lastLibraryID();
+  _libraries[_info.sqInfo_lastLibraryID()]._techType  = techType;
 
   //  Bullet proof the library name - so we can make files with this prefix.
 
@@ -210,7 +211,7 @@ sqStore::sqStore_addEmptyLibrary(char const *name) {
 
 
 sqReadDataWriter *
-sqStore::sqStore_addEmptyRead(sqLibrary *lib) {
+sqStore::sqStore_addEmptyRead(sqLibrary *lib, const char *name) {
 
   assert(_info.sqInfo_lastReadID() < _readsAlloc);
   assert(_mode != sqStore_readOnly);
@@ -240,9 +241,13 @@ sqStore::sqStore_addEmptyRead(sqLibrary *lib) {
 
   //  With the read set up, set pointers in the readData.  Whatever data is in there can stay.
 
-  return(new sqReadDataWriter(&_meta[rID],
-                              &_rawU[rID],
-                              &_rawC[rID],
-                              &_corU[rID],
-                              &_corC[rID]));
+  sqReadDataWriter  *rdw = new sqReadDataWriter(&_meta[rID],
+                                                &_rawU[rID],
+                                                &_rawC[rID],
+                                                &_corU[rID],
+                                                &_corC[rID]);
+
+  rdw->sqReadDataWriter_setName(name);
+
+  return(rdw);
 }

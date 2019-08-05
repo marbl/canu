@@ -56,99 +56,51 @@
 #include "ovStore.H"
 
 
-#define OBT_FAR5PRIME        (29)
-#define OBT_MIN_LENGTH       (75)
 
-
-
-
-ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate_, bool beVerbose_) {
+ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate_) {
   seq             = seq_;
   maxID           = seq->sqStore_lastReadID();
   maxEvalue       = AS_OVS_encodeEvalue(maxErate_);
 
-  beVerbose       = beVerbose_;
-
   resetCounters();
 
   skipReadOBT     = new char [maxID + 1];
-  skipReadDUP     = new char [maxID + 1];
+
+  for (uint64 iid=0; iid<=maxID; iid++)
+    skipReadOBT[iid] = false;
 
   uint32  numSkipOBT = 0;
-  uint32  numSkipDUP = 0;
 
+  //  Query the library to decide if this overlap should be filtered out
+  //  because it won't be used by the algorithms processing this data.
+  //
+  //  Example: if these are overlaps for trimming, but we're not trimming
+  //  this read, drop all it's overlaps.
+  //
+  //  But since this isn't implemented yet, emit all overlaps all the time.
+  //
+#if 0 
   for (uint64 iid=0; iid<=maxID; iid++) {
     sqLibrary *L = seq->sqStore_getLibraryForRead(iid);
 
-    skipReadOBT[iid] = false;
-    skipReadDUP[iid] = false;
-
-    if ((L->sqLibrary_removeDuplicateReads()     == false) &&
-        (L->sqLibrary_finalTrim()                == SQ_FINALTRIM_NONE) &&
+    if ((L->sqLibrary_finalTrim()                == SQ_FINALTRIM_NONE) &&
         (L->sqLibrary_removeSpurReads()          == false) &&
         (L->sqLibrary_removeChimericReads()      == false) &&
         (L->sqLibrary_checkForSubReads()         == false)) {
       numSkipOBT++;
       skipReadOBT[iid] = true;
     }
-
-    if (L->sqLibrary_removeDuplicateReads() == false) {
-      numSkipDUP++;
-      skipReadDUP[iid] = true;
-    }
   }
+#endif
 
   if (numSkipOBT > 0)
     fprintf(stderr, "-  Marked " F_U32 " reads to skip trimming.\n", numSkipOBT);
-
-  if (numSkipDUP > 0)
-    fprintf(stderr, "-  Marked " F_U32 " reads to skip deduplication.\n", numSkipDUP);
 }
 
 
 
 ovStoreFilter::~ovStoreFilter() {
   delete [] skipReadOBT;
-  delete [] skipReadDUP;
-}
-
-
-
-
-
-//  Are the 5' end points very different?  If the overlap is flipped, then, yes, they are.
-static
-bool
-isOverlapDifferent(ovOverlap &ol) {
-  bool   isDiff = true;
-
-  if (ol.flipped() == false) {
-    if (ol.a_bgn() > ol.b_bgn())
-      isDiff = ((ol.a_bgn() - ol.b_bgn()) > OBT_FAR5PRIME) ? (true) : (false);
-    else
-      isDiff = ((ol.b_bgn() - ol.a_bgn()) > OBT_FAR5PRIME) ? (true) : (false);
-  }
-
-  return(isDiff);
-}
-
-
-//  Is the overlap long?
-static
-bool
-isOverlapLong(ovOverlap &ol) {
-  int32 ab    = ol.a_bgn();
-  int32 ae    = ol.a_end();
-  int32 bb    = ol.b_bgn();
-  int32 be    = ol.b_end();
-
-  int32 Alength = ae - ab;
-  int32 Blength = be - bb;
-
-  if (be < bb)
-    Blength = bb - be;
-
-  return(((Alength > OBT_MIN_LENGTH) && (Blength > OBT_MIN_LENGTH)) ? (true) : (false));
 }
 
 
@@ -156,14 +108,6 @@ isOverlapLong(ovOverlap &ol) {
 void
 ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
                              ovOverlap       &roverlap) {
-
-  //  GREATLY annoy the poor user that asked for 'overly verbose' mode.
-
-  if (beVerbose) {
-    char ovlstr[256];
-
-    fprintf(stderr, "%s\n", foverlap.toString(ovlstr, ovOverlapAsUnaligned, false));
-  }
 
   //  Quick sanity check on IIDs.
 
@@ -179,22 +123,28 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
     exit(1);
   }
 
-  //  Make the reverse overlap (important, AFTER resetting the erate-based 'for' flags).
+  //  Do NOT initialize the 'for' flags; overlapper is already flagging
+  //  overlaps as bad for unitigging if they aren't dovetail.
+
+  //foverlap.dat.ovl.forUTG = true;
+  //foverlap.dat.ovl.forOBT = true;
+  //foverlap.dat.ovl.forDUP = true;
+
+  //  Make the reverse overlap.
 
   roverlap.swapIDs(foverlap);
 
-  //  Ignore high error overlaps
+  //  Ignore high error overlaps.
 
   if ((foverlap.evalue() > maxEvalue)) {
     foverlap.dat.ovl.forUTG = false;
     foverlap.dat.ovl.forOBT = false;
     foverlap.dat.ovl.forDUP = false;
+    skipERATE++;
 
     roverlap.dat.ovl.forUTG = false;
     roverlap.dat.ovl.forOBT = false;
     roverlap.dat.ovl.forDUP = false;
-
-    skipERATE++;
     skipERATE++;
   }
 
@@ -204,17 +154,18 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
     foverlap.dat.ovl.forUTG = false;
     foverlap.dat.ovl.forOBT = false;
     foverlap.dat.ovl.forDUP = false;
+    skipFLIPPED++;
 
     roverlap.dat.ovl.forUTG = false;
     roverlap.dat.ovl.forOBT = false;
     roverlap.dat.ovl.forDUP = false;
-
-    skipFLIPPED++;
     skipFLIPPED++;
   }
 #endif
 
-  //  Don't OBT if not requested.
+  //  Don't OBT if not requested.  We allow non-OBT-able reads to be used as
+  //  evidence, but if the read isn't eligible for trimming, we can discard
+  //  all of its overlaps.
 
   if ((foverlap.dat.ovl.forOBT == false) && (skipReadOBT[foverlap.a_iid] == true)) {
     foverlap.dat.ovl.forOBT = false;
@@ -226,89 +177,15 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
     skipOBT++;
   }
 
-  //  If either overlap is good for either obt or dup, compute if it is different and long.  These
-  //  are the same for both foverlap and roverlap.
-
-  bool  isDiff = isOverlapDifferent(foverlap);
-  bool  isLong = isOverlapLong(foverlap);
-
-  //  Remove the bad-for-OBT overlaps.
-
-  if ((isDiff == false) && (foverlap.dat.ovl.forOBT == true)) {
-    foverlap.dat.ovl.forOBT = false;
-    skipOBTbad++;
-  }
-
-  if ((isDiff == false) && (roverlap.dat.ovl.forOBT == true)) {
-    roverlap.dat.ovl.forOBT = false;
-    skipOBTbad++;
-  }
-
-  //  Remove the too-short-for-OBT overlaps.
-
-  if ((isLong == false) && (foverlap.dat.ovl.forOBT == true)) {
-    foverlap.dat.ovl.forOBT = false;
-    skipOBTshort++;
-  }
-
-  if ((isLong == false) && (roverlap.dat.ovl.forOBT == true)) {
-    roverlap.dat.ovl.forOBT = false;
-    skipOBTshort++;
-  }
-
-  //  Don't dedupe if not requested.
-
-  if ((foverlap.dat.ovl.forDUP == true) && (skipReadDUP[foverlap.a_iid] == true)) {
-    foverlap.dat.ovl.forDUP = false;
-    skipDUP++;
-  }
-
-  if ((roverlap.dat.ovl.forDUP == true) && (skipReadDUP[roverlap.b_iid] == true)) {
-    roverlap.dat.ovl.forDUP = false;
-    skipDUP++;
-  }
-
-  //  Remove the bad-for-DUP overlaps.
-
-#if 0
-  //  Nah, do this in dedupe, since parameters can change.
-  if ((isDiff == true) && (foverlap.dat.ovl.forDUP == true)) {
-    foverlap.dat.ovl.forDUP = false;
-    skipDUPdiff++;
-  }
-
-  if ((isDiff == true) && (roverlap.dat.ovl.forDUP == true)) {
-    roverlap.dat.ovl.forDUP = false;
-    skipDUPdiff++;
-  }
-#endif
-
-  //  Can't have duplicates between libraries.
-
-  if (((foverlap.dat.ovl.forDUP == true) ||
-       (roverlap.dat.ovl.forDUP == true)) &&
-      (seq->sqStore_getLibraryForRead(foverlap.a_iid) != seq->sqStore_getLibraryForRead(foverlap.b_iid))) {
-
-    if ((foverlap.dat.ovl.forDUP == true)) {
-      foverlap.dat.ovl.forDUP = false;
-      skipDUPlib++;
-    }
-
-    if ((roverlap.dat.ovl.forDUP == true)) {
-      roverlap.dat.ovl.forDUP = false;
-      skipDUPlib++;
-    }
-  }
-
   //  All done with the filtering, record some counts.
 
   if (foverlap.dat.ovl.forUTG == true)  saveUTG++;
   if (foverlap.dat.ovl.forOBT == true)  saveOBT++;
-  if (foverlap.dat.ovl.forDUP == true)  saveDUP++;
+  //if (foverlap.dat.ovl.forDUP == true)  not-used;
 
   if (roverlap.dat.ovl.forUTG == true)  saveUTG++;
   if (roverlap.dat.ovl.forOBT == true)  saveOBT++;
-  if (roverlap.dat.ovl.forDUP == true)  saveDUP++;
+  //if (roverlap.dat.ovl.forDUP == true)  not-used;
 }
 
 
@@ -317,17 +194,8 @@ void
 ovStoreFilter::resetCounters(void) {
   saveUTG         = 0;
   saveOBT         = 0;
-  saveDUP         = 0;
 
   skipERATE       = 0;
-
   skipFLIPPED     = 0;
-
   skipOBT         = 0;
-  skipOBTbad      = 0;
-  skipOBTshort    = 0;
-
-  skipDUP         = 0;
-  skipDUPdiff     = 0;
-  skipDUPlib      = 0;
 }

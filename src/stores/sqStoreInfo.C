@@ -124,13 +124,15 @@ sqStoreInfo::checkInfo(void) {
 
 
 
-void
+bool
 sqStoreInfo::examineRead(sqReadSeq     *seq,
                          sqRead_which   w) {
   sqRead_which  t = w | sqRead_trimmed;
 
   uint32      length  = (seq->sqReadSeq_valid()   == false) ? 0 : seq->sqReadSeq_length();
   uint32      trimmed = (seq->sqReadSeq_trimmed() == false) ? 0 : seq->sqReadSeq_clearEnd() - seq->sqReadSeq_clearBgn();
+
+  bool        exists  = false;
 
   if (seq->sqReadSeq_ignoreU() == true)   { length  = 0; }
   if (seq->sqReadSeq_ignoreT() == true)   { trimmed = 0; }
@@ -141,14 +143,18 @@ sqStoreInfo::examineRead(sqReadSeq     *seq,
     assert(seq->sqReadSeq_ignoreT());  //  If untrimmed ignored, trimmed must be ignored too.
 
   if (length > 0) {
+    exists     = true;
     _reads[w] += 1;
     _bases[w] += length;
   }
 
   if (trimmed > 0) {
+    exists     = true;
     _reads[t] += 1;
     _bases[t] += trimmed;
   }
+
+  return(exists);
 }
 
 
@@ -200,7 +206,7 @@ sqStoreInfo::writeInfoAsText(FILE *F) {
   fprintf(F, "     Reads        Bases Read Type\n");
   fprintf(F, "---------- ------------ ----------------------------------------\n");
 
-  x = sqRead_unset;      fprintf(F, "%10" F_U64P "            - total-reads\n", _reads[x]);
+  ;                      fprintf(F, "%10" F_U32P "            - total-reads\n", _numReads);
 
   x = raw;               fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
   x = raw | tri;         fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));

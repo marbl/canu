@@ -149,7 +149,7 @@ main(int argc, char **argv) {
 
   ovStoreConfig    *config = new ovStoreConfig(cfgName);
   sqStore          *seq    = new sqStore(seqName);
-  ovStoreFilter    *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
+  ovStoreFilter    *filter = new ovStoreFilter(seq, maxErrorRate);
 
   //  Figure out how many overlaps there are, quit if too many.
 
@@ -268,17 +268,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(stderr, "-- OVERLAP FILTERING --\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "DEDUPE OVERLAPS\n");
-  fprintf(stderr, "Saved      " F_U64 " dedupe overlaps\n",          filter->savedDedupe());
-  fprintf(stderr, "Discarded  " F_U64 " don't care\n",               filter->filteredNoDedupe());
-  fprintf(stderr, "Discarded  " F_U64 " different library\n",        filter->filteredNotDupe());
-  fprintf(stderr, "Discarded  " F_U64 " obviously not duplicates\n", filter->filteredDiffLib());
-  fprintf(stderr, "\n");
   fprintf(stderr, "TRIMMING OVERLAPS\n");
   fprintf(stderr, "Saved      " F_U64 " trimming overlaps\n", filter->savedTrimming());
   fprintf(stderr, "Discarded  " F_U64 " don't care\n",        filter->filteredNoTrim());
-  fprintf(stderr, "Discarded  " F_U64 " too similar\n",       filter->filteredBadTrim());
-  fprintf(stderr, "Discarded  " F_U64 " too short\n",         filter->filteredShortTrim());
   fprintf(stderr, "\n");
   fprintf(stderr, "UNITIGGING OVERLAPS\n");
   fprintf(stderr, "Saved      " F_U64 " unitigging overlaps\n", filter->savedUnitigging());

@@ -390,11 +390,9 @@ my $nAsm = getNumberOfReadsInStore($asm, "utg");   #  Number of trimmed reads re
 #  on a seqStore created by hand.
 
 if ($nCor + $nOBT + $nAsm > 0) {
-    my $numPacBioRaw         = 0;
-    my $numPacBioCorrected   = 0;
-    my $numNanoporeRaw       = 0;
-    my $numNanoporeCorrected = 0;
-    my $numPacBioHiFi        = 0;
+    my $numPacBio     = 0;
+    my $numNanopore   = 0;
+    my $numPacBioHiFi = 0;
 
     if (! -e "./$asm.seqStore/libraries.txt") {
         if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
@@ -406,28 +404,34 @@ if ($nCor + $nOBT + $nAsm > 0) {
     while (<L>) {
         my @v = split '\s+', $_;
 
-        $numPacBioRaw++           if ($v[2] eq "pacbio-raw");
-        $numPacBioCorrected++     if ($v[2] eq "pacbio-corrected");
-        $numNanoporeRaw++         if ($v[2] eq "nanopore-raw");
-        $numNanoporeCorrected++   if ($v[2] eq "nanopore-corrected");
-        $numPacBioHiFi++          if ($v[2] eq "pacbio-hifi");
+        print "$v[0] -- $v[1] -- $v[2]\n";
+
+        $numPacBio++       if ($v[1] eq "PacBio");
+        $numNanopore++     if ($v[1] eq "Nanopore");
+        $numPacBioHiFi++   if ($v[1] eq "PacBioHiFi");
     }
     close(L);
 
-    $setUpForPacBio++      if ($numPacBioRaw       + $numPacBioCorrected   > 0);
-    $setUpForNanopore++    if ($numNanoporeRaw     + $numNanoporeCorrected > 0);
-    $setUpForHiFi++        if ($numPacBioHiFi                              > 0);
+    open(L, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
+    while (<L>) {
+        my @v = split '\s+', $_;
 
-    $haveRaw++             if ($numPacBioRaw       + $numNanoporeRaw       > 0);
-    $haveCorrected++       if ($numPacBioCorrected + $numNanoporeCorrected > 0);
-    $haveHiFi++            if ($numPacBioHiFi                              > 0);
+        $haveRaw++         if (($v[2] eq "raw")               && ($v[1] > 0));
+        $haveCorrected++   if (($v[2] eq "corrected")         && ($v[1] > 0));
+        $haveHiFi++        if (($v[2] eq "corrected-trimmed") && ($v[1] > 0));
+    }
+    close(L);
+
+    $setUpForPacBio++      if ($numPacBio     > 0);
+    $setUpForNanopore++    if ($numNanopore   > 0);
+    $setUpForHiFi++        if ($numPacBioHiFi > 0);
 
     my $rt;
 
     $rt = "both PacBio and Nanopore"    if (($setUpForPacBio  > 0) && ($setUpForNanopore  > 0));
     $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
     $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
-    $rt = "PacBio"                      if (($setUpForHiFi    > 0));
+    $rt = "PacBio HiFi"                 if (($setUpForHiFi    > 0));
 
     #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
