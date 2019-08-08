@@ -224,7 +224,7 @@ private:
   //  The data are logically out of order, so we can fit things into three 32-bit words.
 
   uint32  _seqValid  : 1;      //  The sequence for this record is present in the blob.
-  uint32  _unused1 :  1;      //  (unused)
+  uint32  _unused1   : 1;      //  (unused)
   uint32  _seqLength : 30;     //  The length of the sequence stored in the blob.
 
   uint32  _ignoreU   : 1;      //  Ignore both the untrimmed and trimmed versions.
@@ -407,70 +407,72 @@ public:
   };
 
   char       *sqRead_sequence(sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq   *seq    = sqRead_getSeq(w);
-    char        *bases  = NULL;
-    uint32       length = seq->sqReadSeq_length();
-
-    //  Figure out which bases to return.
-
-    if (w & sqRead_raw)         bases  = _rawBases;
-    if (w & sqRead_corrected)   bases  = _corBases;
-
-    assert(bases != NULL);      // How to check we have the blob data loaded?
-
-    //  Construct the output sequence.
-
     bool  comp = ((w & sqRead_compressed) == sqRead_unset) ? false : true;
     bool  trim = ((w & sqRead_trimmed)    == sqRead_unset) ? false : true;
-    char *ret  = NULL;
 
-    //  If neither compressed or trimmed, just return the sequence we already have.
-    if      ((comp == false) &&
-             (trim == false)) {
-      ret = bases;
+    //  Figure out which bases to return, either raw or corrected, and the
+    //  length -- INCLUDING the terminating NUL byte -- of that sequence.
+
+    sqReadSeq   *seq      = sqRead_getSeq(w);
+    char        *bases    = NULL;
+    uint32       basesLen = 0;
+
+    if (w & sqRead_raw) {
+      bases    = _rawBases;
+      basesLen = _rawU->sqReadSeq_length();
     }
 
-    //  If trimmed, copy the bases we have into temporary space and return that.
-    else if ((comp == false) &&
-             (trim == true)) {
+    if (w & sqRead_corrected) {
+      bases    = _corBases;
+      basesLen = _corU->sqReadSeq_length();
+    }
+
+    assert(bases    != NULL);      // How to check we have the blob data loaded?
+    assert(basesLen > 0);
+
+    //  If neither compressed or trimmed, just return the sequence we already have.
+    //
+    if ((comp == false) &&
+        (trim == false)) {
+      return(bases);
+    }
+
+    //  If not compressed but trimmed, copy the trimmed bases into
+    //  temporary space and return that.
+    //
+    if ((comp == false) &&
+        (trim == true)) {
       uint32  bgn = seq->sqReadSeq_clearBgn();   //  Only valid if trimmed, do not make global!
       uint32  end = seq->sqReadSeq_clearEnd();
 
-      resizeArray(_retBases, 0, _retBasesAlloc, length + 1, resizeArray_doNothing);
+      resizeArray(_retBases, 0, _retBasesAlloc, end - bgn + 1, resizeArray_doNothing);
 
       memmove(_retBases, bases + bgn, end - bgn);
       _retBases[end-bgn] = 0;
 
-      ret = _retBases;
+      return(_retBases);
     }
 
-    //  Homopolymer compress the sequence and return that.
-    else if ((comp == true) &&
-             (trim == false)) {
-      resizeArray(_retBases, 0, _retBasesAlloc, length + 1, resizeArray_doNothing);
+    //  Otherwise, we need to homopolymer compress the sequence.  It'll be no
+    //  longer than the uncompressed sequence, so we can allocate that much,
+    //  instead of tracking down the actual length.
 
-      homopolyCompress(bases, length, _retBases);
+    resizeArray(_retBases, 0, _retBasesAlloc, basesLen + 1, resizeArray_doNothing);
 
-      ret = _retBases;
-    }
+    homopolyCompress(bases, basesLen, _retBases);
 
-    //  You get the idea, probably.
-    else if ((comp == true) &&
-             (trim == true)) {
+    //  Trim the read if needed.
+    //
+    if (trim == true) {
       uint32  bgn = seq->sqReadSeq_clearBgn();   //  Only valid if trimmed, do not make global!
       uint32  end = seq->sqReadSeq_clearEnd();
 
-      resizeArray(_retBases, 0, _retBasesAlloc, length + 1, resizeArray_doNothing);
-
-      homopolyCompress(bases, length, _retBases);
-
       memmove(_retBases, _retBases + bgn, end - bgn);
       _retBases[end-bgn] = 0;
-
-      ret = _retBases;
     }
 
-    return(ret);
+    //  But either way, we return the same thing.
+    return(_retBases);
   };
 
 private:

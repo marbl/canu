@@ -109,8 +109,8 @@ dumpReads_setClearString(sqStore *seqs, uint32 rid, char *len, char *bgn, char *
   assert((w & sqRead_trimmed) == sqRead_unset);   //  Otherwise, length above is trimmed length!
 
   if (seqs->sqStore_isTrimmedRead(rid, w) == true) {
-    snprintf(bgn, 12, " %10" F_U32P, seqs->sqStore_getClearBgn(rid, w));
-    snprintf(end, 12, " %10" F_U32P, seqs->sqStore_getClearEnd(rid, w));
+    snprintf(bgn, 12, " %10" F_U32P, seqs->sqStore_getClearBgn(rid, w | sqRead_trimmed));
+    snprintf(end, 12, " %10" F_U32P, seqs->sqStore_getClearEnd(rid, w | sqRead_trimmed));
   } else {
     memcpy(bgn, "          -", sizeof(char) * 11);
     memcpy(end, "          -", sizeof(char) * 11);
@@ -224,8 +224,8 @@ dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w) {
               seqs->sqStore_getLibraryIDForRead(rid),
               l1,
               flags,
-              seqs->sqStore_getMeta(rid)->sqRead_mSegm(),
-              seqs->sqStore_getMeta(rid)->sqRead_mByte());
+              seqs->sqStore_getReadSegm(rid),
+              seqs->sqStore_getReadByte(rid));
   }
 }
 
@@ -408,6 +408,20 @@ main(int argc, char **argv) {
     fprintf(stderr, "OUTPUT FORMAT:\n");
     fprintf(stderr, "  -libs            dump information about libraries\n");
     fprintf(stderr, "  -reads           dump information about reads\n");
+    fprintf(stderr, "                     There are four pairs of flags, one for raw, raw-trimmed,\n");
+    fprintf(stderr, "                     corrected and corrected-trimmed.  Each pair tells if\n");
+    fprintf(stderr, "                     the sequence is valid and if it is ignored.\n");
+    fprintf(stderr, "                       1st letter - valid (uppercase) or invalid (lowercase).\n");
+    fprintf(stderr, "                       2nd letter - used  (uppercase) or ignored (lowercase).\n");
+    fprintf(stderr, "                       1st pair   - raw sequence.\n");
+    fprintf(stderr, "                       2nd pair   - raw sequence, trimmed.\n");
+    fprintf(stderr, "                       3rd pair   - corrected sequence.\n");
+    fprintf(stderr, "                       4th pair   - corrected sequence, trimmed.\n");
+    fprintf(stderr, "                     Example:\n");
+    fprintf(stderr, "                       RR--c--- - Raw version exists and is used.  Corrected\n");
+    fprintf(stderr, "                                  version doesn't exist.\n");
+    fprintf(stderr, "                       RR--CCTt - Both raw and corrected versions exist and are used.\n");
+    fprintf(stderr, "                                  Corrected trimmed version exists, but is ignored.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -stats           dump summary statistics on reads\n");
     fprintf(stderr, "\n");

@@ -229,7 +229,6 @@ public:
   uint32       sqStore_getLibraryIDForRead(uint32 id) { return(_meta[id].sqRead_libraryID()); };
   sqLibrary   *sqStore_getLibraryForRead(uint32 id)   { return(&_libraries[_meta[id].sqRead_libraryID()]); };
 
-
 public:
   readBuffer  *sqStore_getReadBuffer(uint32 readID);
   sqRead      *sqStore_getRead(uint32 readID, sqRead *read);
@@ -239,11 +238,8 @@ public:
   void         sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read);
   void         sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *read=NULL, sqReadDataWriter *wr=NULL);
 
-
-
-
 private:
-  sqReadSeq  *sqStore_getSeq(sqRead_which w) {
+  sqReadSeq   *sqStore_getSeq(sqRead_which w) {
     bool  isRaw = ((w & sqRead_raw)        == sqRead_raw);
     bool  isCor = ((w & sqRead_corrected)  == sqRead_corrected);
     bool  isTrm = ((w & sqRead_trimmed)    == sqRead_trimmed);
@@ -261,90 +257,34 @@ private:
     return(NULL);
   };
 
+  //  Accessors to read data.
 public:
-  sqReadMeta   *sqStore_getMeta(uint32 id) {    //  Only useful for sqStoreDumpMetaData,
-    return(_meta + id);                         //  to get the blob pointers.
-  };
+  uint64             sqStore_getReadSegm(uint32 id);
+  uint64             sqStore_getReadByte(uint32 id);
 
-  sqReadSeq   *sqStore_getReadSeq(uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
-
-    return((seq == NULL) ? NULL : &seq[id]);
-  };
+  sqReadSeq         *sqStore_getReadSeq(uint32 id, sqRead_which w=sqRead_defaultVersion);
 
   //  Read length is zero if the read isn't present, isn't valid, is ignored,
   //  or is trimmed out.  Ideally, those cases should generate an error -- we
   //  should be testing for those cases before deciding to use a read -- but
   //  too many places are expecting length==0 in thse cases.
   //
-  uint32       sqStore_getReadLength(uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
-
-    if (w & sqRead_trimmed)
-      return(((seq == NULL) ||
-              (seq[id].sqReadSeq_trimmed() == false) ||
-              (seq[id].sqReadSeq_valid()   == false) ||
-              (seq[id].sqReadSeq_ignoreT() == true)) ? 0 : (seq[id].sqReadSeq_clearEnd() - seq[id].sqReadSeq_clearBgn()));
-
-    else
-      return(((seq == NULL) ||
-              (seq[id].sqReadSeq_valid()   == false) ||
-              (seq[id].sqReadSeq_ignoreU() == true)) ? 0 : (seq[id].sqReadSeq_length()));
-  };
+  uint32             sqStore_getReadLength(uint32 id, sqRead_which w=sqRead_defaultVersion);
 
   //  Unlike read length, we'll insist that accessing clear ranges only occur
   //  for trimmed reads (enforced by sqReadSeq).
   //
-  uint32       sqStore_getClearBgn  (uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
+  uint32             sqStore_getClearBgn  (uint32 id, sqRead_which w=sqRead_defaultVersion);
+  uint32             sqStore_getClearEnd  (uint32 id, sqRead_which w=sqRead_defaultVersion);
 
-    if (seq == NULL)
-      return(0);
+  bool               sqStore_isValidRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
+  bool               sqStore_isIgnoredRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
+  bool               sqStore_isTrimmedRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
 
-    if (w & sqRead_trimmed)
-      return(seq[id].sqReadSeq_clearBgn());
-    else
-      return(0);
-  };
-
-  uint32       sqStore_getClearEnd  (uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
-
-    if (seq == NULL)
-      return(0);
-
-    if (w & sqRead_trimmed)
-      return(seq[id].sqReadSeq_clearEnd());
-    else
-      return(seq[id].sqReadSeq_length());
-  };
-
-  bool         sqStore_isValidRead(uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
-
-    return((seq == NULL) ? false : seq[id].sqReadSeq_valid());
-  }
-
-  bool         sqStore_isIgnoredRead(uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
-
-    if (seq == NULL)
-      return(false);
-
-    if (w & sqRead_trimmed)
-      return(seq[id].sqReadSeq_ignoreT());
-    else
-      return(seq[id].sqReadSeq_ignoreU());
-  }
-
-  bool         sqStore_isTrimmedRead(uint32 id, sqRead_which w=sqRead_defaultVersion) {
-    sqReadSeq  *seq = sqStore_getSeq(w);
-
-    return((seq == NULL) ? false : seq[id].sqReadSeq_trimmed());
-  }
-
-
-
+  //  For use ONLY by sqStoreCreate, to add new libraries and reads to a
+  //  store.  The first two allocate a new metadata object in the store,
+  //  while the last loads read sequence data.
+  //
 public:
   sqLibrary         *sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType);
   sqReadDataWriter  *sqStore_addEmptyRead(sqLibrary *lib, const char *name);
@@ -353,6 +293,13 @@ public:
     _blobWriter->writeData(rdw);
   };
 
+  //  Currently defined only in loadTrimmedReads.C.  This loads a read,
+  //  computes the compressed sequence, and sets both the normal and
+  //  compressed clear ranges.
+public:
+  void               sqStore_setClearRange(uint32 id,
+                                           uint32 bgn, uint32 end, bool bogus,
+                                           sqRead_which w=sqRead_defaultVersion);
 
 private:
   sqStoreInfo          _info;  //  All the stuff stored on disk.
@@ -360,7 +307,6 @@ private:
   char                 _storePath[FILENAME_MAX+1];    //  Needed to create files
 
   sqStore_mode         _mode;  //  What mode this store is opened as, sanity checking
-
 
   uint32               _librariesAlloc;  //  Size of allocation
   sqLibrary           *_libraries;       //  In core data
@@ -375,5 +321,134 @@ private:
   sqStoreBlobReader   *_blobReader;
   sqStoreBlobWriter   *_blobWriter;
 };
+
+
+
+
+//  The rest are just accessors to reads.
+
+
+inline
+uint64
+sqStore::sqStore_getReadSegm(uint32 id) {
+  return(_meta[id].sqRead_mSegm());
+}
+
+
+inline
+uint64
+sqStore::sqStore_getReadByte(uint32 id) {
+  return(_meta[id].sqRead_mByte());
+}
+
+
+inline
+sqReadSeq *
+sqStore::sqStore_getReadSeq(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  return((seq == NULL) ? NULL : &seq[id]);
+}
+
+
+//  Read length is zero if the read isn't present, isn't valid, is ignored,
+//  or is trimmed out.  Ideally, those cases should generate an error -- we
+//  should be testing for those cases before deciding to use a read -- but
+//  too many places are expecting length==0 in thse cases.
+//
+inline
+uint32
+sqStore::sqStore_getReadLength(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  if (w & sqRead_trimmed)
+    return(((seq == NULL) ||
+            (seq[id].sqReadSeq_trimmed() == false) ||
+            (seq[id].sqReadSeq_valid()   == false) ||
+            (seq[id].sqReadSeq_ignoreT() == true)) ? 0 : (seq[id].sqReadSeq_clearEnd() - seq[id].sqReadSeq_clearBgn()));
+
+  else
+    return(((seq == NULL) ||
+            (seq[id].sqReadSeq_valid()   == false) ||
+            (seq[id].sqReadSeq_ignoreU() == true)) ? 0 : (seq[id].sqReadSeq_length()));
+}
+
+
+//  Unlike read length, we'll insist that accessing clear ranges only occur
+//  for trimmed reads (enforced by sqReadSeq).
+//
+inline
+uint32
+sqStore::sqStore_getClearBgn  (uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  if (seq == NULL)
+    return(0);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_clearBgn());
+  else
+    return(0);
+}
+
+
+inline
+uint32
+sqStore::sqStore_getClearEnd  (uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  if (seq == NULL)
+    return(0);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_clearEnd());
+  else
+    return(seq[id].sqReadSeq_length());
+}
+
+
+inline
+bool
+sqStore::sqStore_isValidRead(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  if (seq == NULL)
+    return(false);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_valid() && seq[id].sqReadSeq_trimmed());
+  else
+    return(seq[id].sqReadSeq_valid());
+}
+
+
+inline
+bool
+sqStore::sqStore_isIgnoredRead(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  if (seq == NULL)
+    return(false);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_ignoreT());
+  else
+    return(seq[id].sqReadSeq_ignoreU());
+}
+
+
+inline
+bool
+sqStore::sqStore_isTrimmedRead(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  return((seq == NULL) ? false : seq[id].sqReadSeq_trimmed());
+}
+
+
+
+
+
+
 
 #endif  //  SQSTORE_H
