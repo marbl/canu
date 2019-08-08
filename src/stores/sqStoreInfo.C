@@ -170,19 +170,19 @@ sqStoreInfo::update(sqReadSeq  *rawU,
   }
 
   if (rawU)
-    for (uint32 ii=0; ii<_numReads + 1; ii++)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
       examineRead(&rawU[ii], sqRead_raw);
 
   if (rawC)
-    for (uint32 ii=0; ii<_numReads + 1; ii++)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
       examineRead(&rawC[ii], sqRead_raw | sqRead_compressed);
 
   if (corU)
-    for (uint32 ii=0; ii<_numReads + 1; ii++)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
       examineRead(&corU[ii], sqRead_corrected);
 
   if (corC)
-    for (uint32 ii=0; ii<_numReads + 1; ii++)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
       examineRead(&corC[ii], sqRead_corrected | sqRead_compressed);
 
   //  For convenience, we store the total number of reads
