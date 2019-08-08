@@ -326,13 +326,15 @@ main(int argc, char **argv) {
   if (outPrefix == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s [...] -o fastq-prefix -g seqStore\n", argv[0]);
+    fprintf(stderr, "usage: %s [...] -o out-prefix -g seqStore\n", argv[0]);
     fprintf(stderr, "  -S seqStore\n");
-    fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.(libname).fastq, ...\n");
-    fprintf(stderr, "                      if fastq-prefix is '-', all sequences output to stdout\n");
-    fprintf(stderr, "                      if fastq-prefix ends in .gz, .bz2 or .xz, output is compressed\n");
+    fprintf(stderr, "  -o out-prefix       write files out-prefix.(libname).fastq, ...\n");
+    fprintf(stderr, "                      if out-prefix is '-', all sequences output to stdout\n");
+    fprintf(stderr, "                      if out-prefix ends in .gz, .bz2 or .xz, output is compressed\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -fastq              output is FASTQ format (with extension .fastq, default)\n");
+    fprintf(stderr, "                      (note that QVs are not stored, and are invalid)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -fasta              output is FASTA format (with extension .fasta)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nolibname          don't include the library name in the output file name\n");
@@ -343,7 +345,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, " -reverse             Dump the reverse-complement of the read.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -l libToDump        output only read in library number libToDump\n");
+    fprintf(stderr, "  -l id               output only read in library number 'id'\n");
     fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
     fprintf(stderr, "\n");
     fprintf(stderr, " The default is to dump the latest version of each read.  You can force it to dump:\n");
@@ -388,7 +390,9 @@ main(int argc, char **argv) {
   if (endID < bgnID)
     fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID), exit(1);
 
-  fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
+
+  fprintf(stderr, "Dumping %s reads from %u to %u (inclusive).\n",
+          toString(sqRead_defaultVersion), bgnID, endID);
 
 
   //  Allocate outputs.  If withLibName == false, all reads will artificially be in lib zero, the
