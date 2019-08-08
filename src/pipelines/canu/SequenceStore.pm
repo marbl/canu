@@ -403,9 +403,15 @@ sub checkSequenceStore ($$@) {
 
     #  Dump the list of libraries.  Various parts use this for various stuff.
 
+    if (! -e "./$asm.seqStore/info.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -stats > ./$asm.seqStore/info.txt 2> /dev/null", 1)) {
+            caExit("failed to generate $asm.seqStore/info.txt", undef);
+        }
+    }
+
     if (! -e "./$asm.seqStore/libraries.txt") {
         if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
-            caExit("failed to generate list of libraries in store", undef);
+            caExit("failed to generate $asm.seqStore/libraries.txt", undef);
         }
     }
 

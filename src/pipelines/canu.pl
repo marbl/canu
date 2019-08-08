@@ -394,11 +394,31 @@ if ($nCor + $nOBT + $nAsm > 0) {
     my $numNanopore   = 0;
     my $numPacBioHiFi = 0;
 
-    if (! -e "./$asm.seqStore/libraries.txt") {
-        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
-            caExit("failed to generate list of libraries in store", undef);
+    #  Recreate our metadata dumps, if needed.
+
+    if (! -e "./$asm.seqStore/info.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -stats > ./$asm.seqStore/info.txt 2> /dev/null", 1)) {
+            caExit("failed to generate $asm.seqStore/info.txt", undef);
         }
     }
+
+    if (! -e "./$asm.seqStore/libraries.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
+            caExit("failed to generate $asm.seqStore/libraries.txt", undef);
+        }
+    }
+
+    #  Parse the metadata dumps to determine what is in the store.
+
+    open(L, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
+    while (<L>) {
+        my @v = split '\s+', $_;
+
+        $haveRaw++         if (($v[2] eq "raw")               && ($v[1] > 0));
+        $haveCorrected++   if (($v[2] eq "corrected")         && ($v[1] > 0));
+        $haveHiFi++        if (($v[2] eq "corrected-trimmed") && ($v[1] > 0));
+    }
+    close(L);
 
     open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
     while (<L>) {
@@ -412,15 +432,7 @@ if ($nCor + $nOBT + $nAsm > 0) {
     }
     close(L);
 
-    open(L, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
-    while (<L>) {
-        my @v = split '\s+', $_;
-
-        $haveRaw++         if (($v[2] eq "raw")               && ($v[1] > 0));
-        $haveCorrected++   if (($v[2] eq "corrected")         && ($v[1] > 0));
-        $haveHiFi++        if (($v[2] eq "corrected-trimmed") && ($v[1] > 0));
-    }
-    close(L);
+    #  And make sense of all that.
 
     $setUpForPacBio++      if ($numPacBio     > 0);
     $setUpForNanopore++    if ($numNanopore   > 0);
@@ -432,8 +444,6 @@ if ($nCor + $nOBT + $nAsm > 0) {
     $rt = "PacBio"                      if (($setUpForPacBio  > 0) && ($setUpForNanopore == 0));
     $rt = "Nanopore"                    if (($setUpForPacBio == 0) && ($setUpForNanopore  > 0));
     $rt = "PacBio HiFi"                 if (($setUpForHiFi    > 0));
-
-    #my $rtct = reportReadsFound($setUpForPacBio, $setUpForNanopore, $haveRaw, $haveCorrected);
 
     print STDERR "--\n";
     print STDERR "-- In '$asm.seqStore', found $rt reads:\n";
