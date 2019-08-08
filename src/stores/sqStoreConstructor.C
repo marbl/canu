@@ -83,7 +83,7 @@ sqStore::sqStore_loadMetadata(void) {
 
   assert(sqRead_defaultVersion != sqRead_unset);
 
-  fprintf(stderr, "sqStore_loadMetadata()-- Using '%s' 0x%02u reads.\n", toString(sqRead_defaultVersion), sqRead_defaultVersion);
+  //fprintf(stderr, "sqStore_loadMetadata()-- Using '%s' 0x%02u reads.\n", toString(sqRead_defaultVersion), sqRead_defaultVersion);
 
   //  Now load the metadata for that version.
 
