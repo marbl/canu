@@ -113,7 +113,7 @@ while (scalar(@jobNames) > 0) {
 
     if      ($gridEngine eq "SGE") {
         ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd) = getTimeSGE($jobID);
-    } elsif ($gridEngine eq "Slurm") {
+    } elsif ($gridEngine eq "SLURM") {
         ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd) = getTimeSlurm($jobID);
     } else {
         die "Unknown grid engine '$gridEngine'.\n";
