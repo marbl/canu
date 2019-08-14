@@ -145,6 +145,7 @@ readBuffer::copyUntil(char stop, char *dest, uint64 destLen) {
 
   while (_eof == false) {
     while ((_buffer[_bufferPos] != stop) &&
+           (_bufferPos < _bufferLen) &&
            (copied < destLen)) {
       dest[copied] = _buffer[_bufferPos];
 
