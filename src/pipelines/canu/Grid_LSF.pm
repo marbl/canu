@@ -62,11 +62,21 @@ sub configureLSF () {
 
     return   if (uc(getGlobal("gridEngine")) ne "LSF");
 
+    my $maxArraySize = getGlobal("gridEngineArrayMaxJobs");
+
+    if (!defined($maxArraySize)) {
+        $maxArraySize = 65535;
+
+        if (defined($ENV{"MAX_JOB_ARRAY_SIZE"})) {
+            $maxArraySize = $ENV{"MAX_JOB_ARRAY_SIZE"};
+        }
+    }
+
     setGlobalIfUndef("gridEngineSubmitCommand",              "bsub");
     setGlobalIfUndef("gridEngineNameOption",                 "-J");
     setGlobalIfUndef("gridEngineArrayOption",                "");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
-    setGlobalIfUndef("gridEngineArrayMaxJobs",               65535);
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");
     setGlobalIfUndef("gridEngineResourceOption",             "-R span[hosts=1] -n THREADS -M MEMORY");
     setGlobalIfUndef("gridEngineMemoryPerJob",               "1");
