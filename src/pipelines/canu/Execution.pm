@@ -686,7 +686,8 @@ sub submitScript ($$) {
 
     my $idx = "01";
 
-    while (-e "canu-scripts/canu.$idx.out") {
+    while ((-e "canu-scripts/canu.$idx.sh") ||
+           (-e "canu-scripts/canu.$idx.out")) {
         $idx++;
     }
 
