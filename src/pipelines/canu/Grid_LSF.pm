@@ -82,24 +82,26 @@ sub configureLSF () {
     #  Poll and see if we can find it
     #
 
-    my $memUnits = undef;
+    my $memUnits = getGlobal("gridEngineMemoryUnits");
 
-    open(F, "lsadmin showconf lim |");
+    if (!defined($memUnits)) {
+        open(F, "lsadmin showconf lim |");
 
-    my $s = <F>;  #  cluster name
-    my $d = <F>;  #  dat/time
+        my $s = <F>;  #  cluster name
+        my $d = <F>;  #  dat/time
 
-    while (<F>) {
-        my @v = split '=', $_;
-        if ($v[0] =~ m/LSF_UNIT_FOR_LIMITS/) {
-            $memUnits = "t" if ($v[1] =~ m/[tT]/);
-            $memUnits = "g" if ($v[1] =~ m/[gG]/);
-            $memUnits = "m" if ($v[1] =~ m/[mM]/);
-            $memUnits = "k" if ($v[1] =~ m/[kK]/);
+        while (<F>) {
+            my @v = split '=', $_;
+            if ($v[0] =~ m/LSF_UNIT_FOR_LIMITS/) {
+                $memUnits = "t" if ($v[1] =~ m/[tT]/);
+                $memUnits = "g" if ($v[1] =~ m/[gG]/);
+                $memUnits = "m" if ($v[1] =~ m/[mM]/);
+                $memUnits = "k" if ($v[1] =~ m/[kK]/);
+            }
         }
-    }
 
-    close(F);
+        close(F);
+    }
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
