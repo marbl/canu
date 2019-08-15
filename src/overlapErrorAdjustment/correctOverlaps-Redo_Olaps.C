@@ -333,6 +333,9 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
   uint64         olapsFwd = 0;
   uint64         olapsRev = 0;
 
+  uint64         nBetter = 0;
+  uint64         nWorse  = 0;
+  uint64         nSame   = 0;
 
 
   ped->initialize(G, G->errorRate);
@@ -530,6 +533,14 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
       if (rha)
         rhaPass++;
 
+      if        ((double)errors / olapLen < G->olaps[thisOvl].evalue)
+        nBetter++;
+      else if ((double)errors / olapLen > G->olaps[thisOvl].evalue)
+        nWorse++;
+      else
+        nSame++;
+      }
+
       G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue((double)errors / olapLen);
 
       //fprintf(stderr, "REDO - errors = %u / olapLep = %u -- %f\n", errors, olapLen, AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
@@ -562,4 +573,9 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
   fprintf(stderr, "Failed: " F_U64 " (negative length)\n", Failed_Alignments_Length_Ct);
 
   fprintf(stderr, "rhaFail %u rhaPass %u\n", rhaFail, rhaPass);
+
+  fprintf(stderr, "Changed %lu overlaps.\n", nBetter + nWorse + nSame);
+  fprintf(stderr, "Better: %lu overlaps.\n", nBetter);
+  fprintf(stderr, "Worse:  %lu overlaps.\n", nWorse);
+  fprintf(stderr, "Same:   %lu overlaps.\n", nSame);
 }
