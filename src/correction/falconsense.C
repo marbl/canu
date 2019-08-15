@@ -116,6 +116,7 @@ generateFalconConsensus(falconConsensus           *fc,
   //  It's log, log, log!
 
   fprintf(stdout, "%8u %7u %8u", layout->tigID(), layout->length(), layout->numberOfChildren());
+  fflush(stdout);
 
   //  Parse the layout and push all the sequences onto our seqs vector.  The first 'evidence'
   //  sequence is the read we're trying to correct.
