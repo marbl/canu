@@ -388,7 +388,6 @@ else
   $(shell rm -f "non-<posix>-name")
 endif
 
-
 #  Set compiler and flags based on discovered hardware
 #
 #  By default, debug symbols are included in all builds (even optimized).
@@ -429,6 +428,7 @@ ifeq ($(origin CXXFLAGS), undefined)
   CXXFLAGS += -Wno-write-strings -Wno-char-subscripts -Wno-sign-compare
   CXXFLAGS += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
   CXXFLAGS += -Wno-deprecated-declarations
+  CXXFLAGS += -std=c++11
 else
   CXXFLAGSUSER := ${CXXFLAGS}
 endif

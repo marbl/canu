@@ -40,7 +40,7 @@ Prefix_Edit_Dist(char   *A, int m,
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
-                  char   *b_part, int32 b_len,
+                  char   *b_part, //int32 b_len,
                   int32   sub);
 
 
@@ -62,8 +62,8 @@ Process_Olap(Olap_Info_t        *olap,
              bool                shredded,
              Thread_Work_Area_t *wa) {
 
-#if 0
-  fprintf(stderr, "Process_Olap:  %8d %8d %5d %5d  %c\n",
+#if 1
+  fprintf(stderr, "Process_Olap:  %8d %8d %5ld %5ld  %c\n",
           olap->a_iid, olap->b_iid,
           olap->a_hang, olap->b_hang,
           olap->innie == true ? 'I' : 'N');
@@ -71,8 +71,11 @@ Process_Olap(Olap_Info_t        *olap,
 
   int32  ri = olap->a_iid - wa->G->bgnID;
 
-  if ((shredded == true) && (wa->G->reads[ri].shredded == true))
+  if ((shredded == true) && (wa->G->reads[ri].shredded == true)) {
+    fprintf(stderr, "%8d %8d shredded\n", olap->a_iid, olap->b_iid);
     return;
+  }
+  fprintf(stderr, "%8d %8d not shredded\n", olap->a_iid, olap->b_iid);
 
   char  *a_part   = wa->G->reads[ri].sequence;
   int32  a_offset = 0;
@@ -152,13 +155,18 @@ Process_Olap(Olap_Info_t        *olap,
   }
 
 
+  //FIXME == true LOL
   if ((errors <= wa->G->Error_Bound[olap_len]) && (match_to_end == true)) {
     wa->passedOlaps++;
+    fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
     Analyze_Alignment(wa,
                       a_part, a_end, a_offset,
-                      b_part, b_end,
+                      b_part, //b_end,
                       ri);
   } else {
     wa->failedOlaps++;
+    fprintf(stderr, "%8d %8d failed overlap\n", olap->a_iid, olap->b_iid);
+    fprintf(stderr, "%8d %8d match to end %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
+    fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (errors > wa->G->Error_Bound[olap_len]) ? 'T' : 'F');
   }
 }

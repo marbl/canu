@@ -93,17 +93,22 @@ Matching_Vote(char ch) {
 //   a_len  and  b_len  are the lengths of the prefixes of  a_part  and
 //   b_part , resp., that align.
 
+//b read should be the "primary" overlaps for which are being analyzed
+//BUT the votes are cast for the "a" read, with a shifted id == sub"
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
-                  char   *b_part, int32 b_len,
+                  char   *b_part, //int32 b_len,
                   int32   sub) {
 
   assert(a_len >= 0);
-  assert(b_len >= 0);
+  //assert(b_len >= 0);
 
+  //  Counter. Position within the overlap (immediately set to 1)?
+  //  Used to cast votes (FIXME check) after applying the a_offset
   int32  ct = 0;
 
+  //FIXME WAT?!
   //  Necessary??
   //memset(wa->globalvote, 0, sizeof(Vote_t) * AS_MAX_READLEN);
 
@@ -119,7 +124,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   for (int32 k=0; k<wa->ped.deltaLen; k++) {
     //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
-    //  Add delta[k] matches or mismatches
+    //  Add delta[k] - 1 matches or mismatches; +-1 encodes the 'continuation' of the insertion/deletion
 
     for (int32 m=1; m<abs(wa->ped.delta[k]); m++) {
       if (a_part[i] != b_part[j]) {
@@ -168,7 +173,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       p++;
     }
 
-    //  If a positive deta, delete the base.
+    //  If a positive delta, delete the base.
 
     if (wa->ped.delta[k] > 0) {
       wa->globalvote[ct].frag_sub  = i;
@@ -232,8 +237,11 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   //                    votes         votes
   //
 
+  assert(ct >= 1);
+  //fprintf(stdout, "wa->G->Kmer_Len %d\n", wa->G->Kmer_Len);
   for (int32 i=1; i<=ct; i++) {
     int32  prev_match = wa->globalvote[i].align_sub - wa->globalvote[i - 1].align_sub - 1;
+    //What are those? Why don't they depend on i?
     int32  p_lo = (i == 1 ? 0 : wa->G->End_Exclude_Len);
     int32  p_hi = (i == ct ? prev_match : prev_match - wa->G->End_Exclude_Len);
 

@@ -83,7 +83,7 @@ using namespace std;
 #define  MAX_DEGREE                  32767
 
 //  Highest number of votes before overflow
-#define  MAX_VOTE                    255
+#define  MAX_VOTE                    65535
 
 //  Branch points must be at least this many bases from the
 //  end of the fragment to be reported
@@ -100,24 +100,54 @@ using namespace std;
 //  The amount of memory to allocate for the stack of each thread
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
-
-
-
-
 struct Vote_Tally_t {
-  uint32  confirmed : 8;
-  uint32  deletes   : 8;
-  uint32  a_subst   : 8;
-  uint32  c_subst   : 8;
+  uint32  confirmed : 16;
+  uint32  deletes   : 16;
+  uint32  a_subst   : 16;
+  uint32  c_subst   : 16;
 
-  uint32  g_subst   : 8;
-  uint32  t_subst   : 8;
-  uint32  no_insert : 8;
-  uint32  a_insert  : 8;
+  uint32  g_subst   : 16;
+  uint32  t_subst   : 16;
+  uint32  no_insert : 16;
+  uint32  a_insert  : 16;
 
-  uint32  c_insert  : 8;
-  uint32  g_insert  : 8;
-  uint32  t_insert  : 8;
+  uint32  c_insert  : 16;
+  uint32  g_insert  : 16;
+  uint32  t_insert  : 16;
+
+  //FIXME total somehow does not consider insertions
+  uint32 total() const {
+    return deletes + a_subst + c_subst + g_subst + t_subst;
+  }
+
+  //FIXME here we somehow do not consider all other events 
+  uint32 ins_total() const {
+    return a_insert + c_insert + g_insert + t_insert;
+  }
+
+  uint32 all() const {
+    return total() + ins_total();
+  }
+
+  uint32 subst(char bp) const {
+    switch (bp) {
+      case 'a':
+        return a_subst;
+      case 'c':
+        return c_subst;
+      case 'g':
+        return g_subst;
+      case 't':
+        return t_subst;
+      default:
+        assert(false);
+    }
+    return 0;
+  }
+
+  uint32 all_but(char bp) const {
+    return all() - subst(bp);
+  }
 };
 
 
