@@ -33,7 +33,7 @@
 
 #include "findErrors.H"
 
-
+#include "edlib.H"
 
 
 
@@ -95,12 +95,10 @@ Matching_Vote(char ch) {
 
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
-                  char   *a_part, int32 a_len, int32 a_offset,
-                  char   *b_part, int32 b_len,
+                  EdlibAlignResult   &result,
+                  char *aseq, int32 abgn, int32 aend,
+                  char *bseq, int32 bbgn, int32 bend,
                   int32   sub) {
-
-  assert(a_len >= 0);
-  assert(b_len >= 0);
 
   int32  ct = 0;
 
@@ -112,108 +110,94 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   wa->globalvote[ct].vote_val  = A_SUBST;   // Dummy value
   ct++;
 
-  int32  i = 0;
-  int32  j = 0;
-  int32  p = 0;
+  int32  aPos = 0;
+  int32  bPos = 0;
+  int32  p    = 0;
 
-  for (int32 k=0; k<wa->ped.deltaLen; k++) {
-    //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
+  for (int32 kk=0; kk<result.alignmentLength; kk++) {
 
-    //  Add delta[k] matches or mismatches
+    //  Add matches.
 
-    for (int32 m=1; m<abs(wa->ped.delta[k]); m++) {
-      if (a_part[i] != b_part[j]) {
-        wa->globalvote[ct].frag_sub  = i;
-        wa->globalvote[ct].align_sub = p;
+    if (result.alignment[kk] == EDLIB_EDOP_MATCH) {
+      //a_aln_str[kk] = aseq[abgn + aPos];
+      //b_aln_str[kk] = bseq[bbgn + bPos];
 
-        switch (b_part[j]) {
-          case 'a':  wa->globalvote[ct].vote_val = A_SUBST;  break;
-          case 'c':  wa->globalvote[ct].vote_val = C_SUBST;  break;
-          case 'g':  wa->globalvote[ct].vote_val = G_SUBST;  break;
-          case 't':  wa->globalvote[ct].vote_val = T_SUBST;  break;
-          default :
-            fprintf(stderr, "ERROR:[1] Bad sequence '%c' 0x%02x)\n", b_part[j], b_part[j]);
-            assert(0);
-        }
-
-        ct++;
-      }
-
-      i++;  //assert(i <= a_len);
-      j++;  //assert(j <= b_len);
+      aPos++;
+      bPos++;
       p++;
     }
 
-    //  If a negative delta, insert a base.
+    //  Add mismatches.
 
-    if (wa->ped.delta[k] < 0) {
-      wa->globalvote[ct].frag_sub  = i - 1;
+    else if (result.alignment[kk] == EDLIB_EDOP_MISMATCH) {
+      //a_aln_str[kk] = aseq[abgn + aPos];
+      //b_aln_str[kk] = bseq[bbgn + bPos];
+
+      wa->globalvote[ct].frag_sub  = aPos;
       wa->globalvote[ct].align_sub = p;
-
-      //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-
-      switch (b_part[j]) {
-        case 'a':  wa->globalvote[ct].vote_val = A_INSERT;  break;
-        case 'c':  wa->globalvote[ct].vote_val = C_INSERT;  break;
-        case 'g':  wa->globalvote[ct].vote_val = G_INSERT;  break;
-        case 't':  wa->globalvote[ct].vote_val = T_INSERT;  break;
-        default :
-          fprintf(stderr, "ERROR:[2] Bad sequence '%c' 0x%02x)\n", b_part[j], b_part[j]);
-          assert(0);
-      }
-
-      ct++;
-
-      j++;  //assert(j <= b_len);
-      p++;
-    }
-
-    //  If a positive deta, delete the base.
-
-    if (wa->ped.delta[k] > 0) {
-      wa->globalvote[ct].frag_sub  = i;
-      wa->globalvote[ct].align_sub = p;
-      wa->globalvote[ct].vote_val  = DELETE;
-
-      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
-
-      ct++;
-
-      i++;  assert(i <= a_len);
-      p++;
-    }
-  }
-
-  // No more deltas.  While there is still sequence, add matches or mismatches.
-
-  //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, a_len, j, b_len);
-
-  while (i < a_len) {
-    //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, a_len, j, b_len);
-
-    if (a_part[i] != b_part[j]) {
-      wa->globalvote[ct].frag_sub  = i;
-      wa->globalvote[ct].align_sub = p;
-
-      switch (b_part[j]) {
+      
+      switch (bseq[bPos]) {
         case 'a':  wa->globalvote[ct].vote_val = A_SUBST;  break;
         case 'c':  wa->globalvote[ct].vote_val = C_SUBST;  break;
         case 'g':  wa->globalvote[ct].vote_val = G_SUBST;  break;
         case 't':  wa->globalvote[ct].vote_val = T_SUBST;  break;
         default :
-          fprintf(stderr, "ERROR:[3] Bad sequence '%c' 0x%02x)\n", b_part[j], b_part[j]);
+          fprintf(stderr, "ERROR:[1] Bad sequence '%c' 0x%02x)\n",  bseq[bPos], bseq[bPos]);
           assert(0);
       }
 
       ct++;
+
+      aPos++;
+      bPos++;
+      p++;
     }
 
-    i++;  //assert(i <= a_len);  //  Guaranteed, we're looping on this
-    j++;  //assert(j <= b_len);
-    p++;
+    //  Add insertion in query (== A).
+
+    else if (result.alignment[kk] == EDLIB_EDOP_DELETE) {
+      //a_aln_str[kk] = '-';
+      //b_aln_str[kk] = bseq[bbgn + bPos];
+
+      wa->globalvote[ct].frag_sub  = aPos - 1;
+      wa->globalvote[ct].align_sub = p;
+
+      //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
+
+      switch (bseq[bPos]) {
+        case 'a':  wa->globalvote[ct].vote_val = A_INSERT;  break;
+        case 'c':  wa->globalvote[ct].vote_val = C_INSERT;  break;
+        case 'g':  wa->globalvote[ct].vote_val = G_INSERT;  break;
+        case 't':  wa->globalvote[ct].vote_val = T_INSERT;  break;
+        default :
+          fprintf(stderr, "ERROR:[2] Bad sequence '%c' 0x%02x)\n", bseq[bPos], bseq[bPos]);
+          assert(0);
+      }
+
+      ct++;
+
+      bPos++;
+      p++;
+    }
+
+    //  Add insertion in target (== B).
+
+    else if (result.alignment[kk] == EDLIB_EDOP_INSERT) {
+      //a_aln_str[kk] = aseq[abgn + aPos];
+      //b_aln_str[kk] = '-';
+
+      wa->globalvote[ct].frag_sub  = aPos;
+      wa->globalvote[ct].align_sub = p;
+      wa->globalvote[ct].vote_val  = DELETE;
+
+      ct++;
+
+      aPos++;
+      p++;
+    }
   }
 
-  wa->globalvote[ct].frag_sub  = i;
+  wa->globalvote[ct].frag_sub  = aPos;
   wa->globalvote[ct].align_sub = p;
 
 
@@ -242,13 +226,13 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     if (prev_match >= wa->G->Kmer_Len) {
       for (int32 p=0;  p<p_lo;  p++)
         Cast_Vote(wa->G,
-                  Matching_Vote(a_part[wa->globalvote[i-1].frag_sub + p + 1]),
-                            a_offset + wa->globalvote[i-1].frag_sub + p + 1,
+                  Matching_Vote(aseq[abgn + wa->globalvote[i-1].frag_sub + p + 1]),
+                                     abgn + wa->globalvote[i-1].frag_sub + p + 1,
                   sub);
 
 
       for (int32 p=p_lo;  p<p_hi;  p++) {
-        int32 k = a_offset + wa->globalvote[i-1].frag_sub + p + 1;
+        int32 k = abgn + wa->globalvote[i-1].frag_sub + p + 1;
 
         if (wa->G->reads[sub].vote[k].confirmed < MAX_VOTE)
           wa->G->reads[sub].vote[k].confirmed++;
@@ -260,8 +244,8 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
       for (int32 p=p_hi; p<prev_match; p++)
         Cast_Vote(wa->G,
-                  Matching_Vote(a_part[wa->globalvote[i-1].frag_sub + p + 1]),
-                            a_offset + wa->globalvote[i-1].frag_sub + p + 1,
+                  Matching_Vote(aseq[abgn + wa->globalvote[i-1].frag_sub + p + 1]),
+                                     abgn + wa->globalvote[i-1].frag_sub + p + 1,
                   sub);
     }
 
@@ -275,18 +259,15 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       int32 next_match = wa->globalvote[i + 1].align_sub - wa->globalvote[i].align_sub - 1;
 
       // if our vote is outside of the bounds (meaning we have gaps at the start or end of the alignment), skip the vote
-      if (a_offset + wa->globalvote[i].frag_sub < 0 || a_offset + wa->globalvote[i].frag_sub >= a_len) {
+      if (abgn + wa->globalvote[i].frag_sub < 0 || abgn + wa->globalvote[i].frag_sub >= aend) {
          continue;
       }
 
       if (prev_match + next_match >= wa->G->Vote_Qualify_Len)
         Cast_Vote(wa->G,
-                             wa->globalvote[i].vote_val,
-                  a_offset + wa->globalvote[i].frag_sub,
+                         wa->globalvote[i].vote_val,
+                  abgn + wa->globalvote[i].frag_sub,
                   sub);
     }
   }
 }
-
-
-

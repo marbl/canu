@@ -26,22 +26,16 @@
 #include "findErrors.H"
 
 #include "sequence.H"
+#include "edlib.H"
 
-
-int32
-Prefix_Edit_Dist(char   *A, int m,
-                 char   *T, int n,
-                 int     Error_Limit,
-                 int32  &A_End,
-                 int32  &T_End,
-                 bool   &Match_To_End,
-                 pedWorkArea_t * wa);
 
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
-                  char   *a_part, int32 a_len, int32 a_offset,
-                  char   *b_part, int32 b_len,
+                  EdlibAlignResult   &result,
+                  char *aseq, int32 abgn, int32 aend,
+                  char *bseq, int32 bbgn, int32 bend,
                   int32   sub);
+
 
 
 //  Find the alignment referred to in  olap , where the  a_iid
@@ -58,7 +52,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
 void
 Process_Olap(Olap_Info_t        *olap,
-             char               *b_seq,
+             char               *b_seq_in,
              bool                shredded,
              Thread_Work_Area_t *wa) {
 
@@ -70,34 +64,20 @@ Process_Olap(Olap_Info_t        *olap,
 #endif
 
   int32  ri = olap->a_iid - wa->G->bgnID;
+  int32  rj = olap->b_iid - wa->G->bgnID;
 
   if ((shredded == true) && (wa->G->reads[ri].shredded == true))
     return;
 
-  char  *a_part   = wa->G->reads[ri].sequence;
-  int32  a_offset = 0;
-
-  char  *b_part   = (olap->normal == true) ? b_seq : wa->rev_seq;
-  int32  b_offset = 0;
+  char  *a_seq   = wa->G->reads[ri].sequence;
+  char  *b_seq   = (olap->normal == true) ? b_seq_in : wa->rev_seq;
 
   //  If innie, reverse-complement the B sequence.
 
   if ((olap->innie == true) && (wa->rev_id != olap->b_iid)) {
-    strcpy(b_part, b_seq);
-    reverseComplementSequence(b_part, 0);
+    strcpy(b_seq, b_seq_in);
+    reverseComplementSequence(b_seq, 0);
     wa->rev_id = olap->b_iid;
-  }
-
-  //  Adjust for hangs.
-
-  if (olap->a_hang > 0) {
-    a_offset  = olap->a_hang;
-    a_part   += a_offset;
-  }
-
-  if (olap->a_hang < 0) {
-    b_offset  = -olap->a_hang;
-    b_part   +=  b_offset;
   }
 
   //  Count degree - just how many times we cover the end of the read?
@@ -108,57 +88,56 @@ Process_Olap(Olap_Info_t        *olap,
   if ((olap->b_hang >= 0) && (wa->G->reads[ri].right_degree < MAX_DEGREE))
     wa->G->reads[ri].right_degree++;
 
-  // Get the alignment
+  //  Extract the read
 
-  uint32   a_part_len = strlen(a_part);
-  uint32   b_part_len = strlen(b_part);
+  int32    abgn = 0;
+  int32    aend = wa->G->reads[ri].clear_len;
 
-  int32    a_end = 0;
-  int32    b_end = 0;
-
-  uint32   olap_len = min(a_part_len, b_part_len);
-
-  bool     match_to_end = false;
-
-  //fprintf(stderr, "A: offset %d length %d\n", a_offset, a_part_len);
-  //fprintf(stderr, "B: offset %d length %d\n", b_offset, b_part_len);
-
-  int32    errors = Prefix_Edit_Dist(a_part, a_part_len,
-                                     b_part, b_part_len,
-                                     wa->G->Error_Bound[olap_len],
-                                     a_end,
-                                     b_end,
-                                     match_to_end,
-                                     &wa->ped);
-
-  if ((a_end < 0) || (a_end > a_part_len) || (b_end < 0) || (b_end > b_part_len)) {
-    fprintf (stderr, "ERROR:  Bad edit distance.\n");
-    fprintf (stderr, "  errors = %d  a_end = %d  b_end = %d\n", errors, a_end, b_end);
-    fprintf (stderr, "  a_part_len = %d  b_part_len = %d\n", a_part_len, b_part_len);
-    fprintf (stderr, "  a_iid = %d  b_iid = %d  match_to_end = %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
-  }
-  assert(a_end >= 0);
-  assert(a_end <= a_part_len);
-  assert(b_end >= 0);
-  assert(b_end <= b_part_len);
-
-  //printf("  errors = %d  delta_len = %d\n", errors, wa->ped.deltaLen);
-  //printf("  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
-  //Display_Alignment(a_part, a_end, b_part, b_end, wa->delta, wa->deltaLen, wa->G->reads[ri].clear_len - a_offset);
-
-  if ((match_to_end == false) && (a_end + a_offset >= wa->G->reads[ri].clear_len - 1)) {
-    olap_len = min(a_end, b_end);
-    match_to_end = true;
-  }
+  int32    bbgn = 0;
+  int32    bend = wa->G->reads[rj].clear_len;
 
 
-  if ((errors <= wa->G->Error_Bound[olap_len]) && (match_to_end == true)) {
+  if (olap->a_hang > 0)   abgn +=  olap->a_hang;
+  if (olap->a_hang < 0)   bbgn += -olap->a_hang;
+
+  if (olap->b_hang > 0)   bend -=  olap->b_hang;
+  if (olap->b_hang < 0)   aend -= -olap->b_hang;
+
+  double maxAlignErate = 0.06;   //  6% is a good default for corrected reads, probably too high.
+
+  EdlibAlignResult result = edlibAlign(a_seq + abgn, aend - abgn,
+                                       b_seq + bbgn, bend - bbgn,
+                                       edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
+                                                           EDLIB_MODE_NW,
+                                                           EDLIB_TASK_PATH));
+
+  //  The original code was testing only if (errors <= wa->G->Error_Bound[olap_len]) to decide
+  //  if the alignment was any good.  It'd be nice to get rid of that array.
+
+  int32 olap_len = min(aend - abgn, bend - bbgn);
+
+  if ((result.numLocations > 0) &&
+      (result.editDistance < wa->G->Error_Bound[olap_len])) {
     wa->passedOlaps++;
+
+    //fprintf(stderr, "numLocations %d editDistance %d limit %d\n",
+    //        result.numLocations, result.editDistance, wa->G->Error_Bound[olap_len]);
+
+    char  *aaln = new char [result.alignmentLength + 1];
+    char  *baln = new char [result.alignmentLength + 1];
+
     Analyze_Alignment(wa,
-                      a_part, a_end, a_offset,
-                      b_part, b_end,
+                      result,
+                      a_seq, abgn, aend,
+                      b_seq, bbgn, bend,
                       ri);
-  } else {
+  }
+
+  else {
+    //fprintf(stderr, "numLocations %d editDistance %d limit %d\n",
+    //        result.numLocations, result.editDistance, wa->G->Error_Bound[olap_len]);
     wa->failedOlaps++;
   }
+
+  edlibFreeAlignResult(result);
 }
