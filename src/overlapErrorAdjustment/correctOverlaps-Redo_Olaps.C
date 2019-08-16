@@ -539,7 +539,6 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
         nWorse++;
       else
         nSame++;
-      }
 
       G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue((double)errors / olapLen);
 
