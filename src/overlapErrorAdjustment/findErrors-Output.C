@@ -202,7 +202,7 @@ Output_Corrections(feParameters *G) {
           continue;
         }
 
-        if (2 * ins_max <= ins_total) {
+        if (2 * ins_max >= ins_total) {
           //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
           continue;
         }
