@@ -29,8 +29,9 @@
 
 #include "correctOverlaps.H"
 #include "correctionOutput.H"
-#include "sequence.H"
 
+#include "sequence.H"
+#include "edlib.H"
 
 
 
@@ -43,15 +44,6 @@ correctRead(uint32 curID,
             uint64                Clen,
             uint64               *changes=NULL);
 
-
-int32
-Prefix_Edit_Dist(char    *A,  int32 m,
-                 char    *T,  int32 n,
-                 int32    Error_Limit,
-                 int32   &A_End,
-                 int32   &T_End,
-                 bool    &Match_To_End,
-                 pedWorkArea_t *ped);
 
 
 
@@ -346,14 +338,18 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
     if (((curID - loBid) % 1024) == 0)
       fprintf(stderr, "Recomputing overlaps - %9u - %9u - %9u\r", loBid, curID, hiBid);
 
+    //  Overlaps are sorted on the B iid.  If the current B iid isn't used in
+    //  an overlap, skip the loop.
+
     if (curID < G->olaps[thisOvl].b_iid)
       continue;
 
-    seqStore->sqStore_getRead(curID, read);
-
-    //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
+    //  Fetch the B read and apply corrections to it (also convert to lower
+    //  case, reverse, etc).
 
     //fprintf(stderr, "Correcting B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
+
+    seqStore->sqStore_getRead(curID, read);
 
     fseqLen = 0;
     fadjLen = 0;
@@ -365,9 +361,6 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
                 C, Cpos, Clen);
 
     //fprintf(stderr, "Finished   B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
-
-    //  Create copies of the sequence for forward and reverse.  There isn't a need for the forward copy (except that
-    //  we mutate it with corrections), and the reverse copy could be deferred until it is needed.
 
     memcpy(rseq, fseq, sizeof(char) * (fseqLen + 1));
 
@@ -385,162 +378,82 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
 
       //  Find the A segment.  It's always forward.  It's already been corrected.
 
-      char *a_part = G->reads[olap->a_iid - G->bgnID].bases;
+      char    *a_seq = G->reads[olap->a_iid - G->bgnID].bases;
+      char    *b_seq = (olap->normal == true) ? fseq : rseq;
 
-      if (olap->a_hang > 0) {
-        int32 ha = Hang_Adjust(olap->a_hang,
-                               G->reads[olap->a_iid - G->bgnID].adjusts,
-                               G->reads[olap->a_iid - G->bgnID].adjustsLen);
-        a_part += ha;
-        //fprintf(stderr, "offset a_part by ha=%d\n", ha);
-      }
+      int32    abgn = 0;
+      int32    aend = G->reads[ olap->a_iid - G->bgnID ].basesLen;
 
-      //  Find the B segment.
+      int32    bbgn = 0;
+      int32    bend = fseqLen;
 
-      char *b_part = (olap->normal == true) ? fseq : rseq;
+      //  Adjust the bgn/end points based on corrections made to the read.
+      //
+      //  EXCEPT we can't adjust the B read because we don't have those corrections
+      //  anymore.
+      //
+      //  rha was set if olap->a_hang < 0 -- if we adjusted the begin of the B read
+      //  from zero to something else.
 
-      //if (olap->normal == true)
-      //  fprintf(stderr, "b_part = fseq %40.40s\n", fseq);
-      //else
-      //  fprintf(stderr, "b_part = rseq %40.40s\n", rseq);
+#if 0
+      if (olap->a_hang > 0)   abgn +=Hang_Adjust(olap->a_hang,
+                                                 G->reads[olap->a_iid - G->bgnID].adjusts,
+                                                 G->reads[olap->a_iid - G->bgnID].adjustsLen);
+      if (olap->a_hang < 0)   bbgn += ((olap->normal == true) ? Hang_Adjust(-olap->a_hang, fadj, fadjLen) :
+                                                                Hang_Adjust(-olap->a_hang, radj, fadjLen));
+
+      if (olap->b_hang > 0)   bend -=  olap->b_hang;
+      if (olap->b_hang < 0)   aend -= -olap->b_hang;
+#endif
+
+      if (olap->a_hang > 0)   abgn +=  olap->a_hang;
+      if (olap->a_hang < 0)   bbgn += -olap->a_hang;
+
+      if (olap->b_hang > 0)   bend -=  olap->b_hang;
+      if (olap->b_hang < 0)   aend -= -olap->b_hang;
+
 
       if (olap->normal == true)
         olapsFwd++;
       else
         olapsRev++;
 
-      bool rha=false;
-      if (olap->a_hang < 0) {
-        int32 ha = (olap->normal == true) ? Hang_Adjust(-olap->a_hang, fadj, fadjLen) :
-                                            Hang_Adjust(-olap->a_hang, radj, fadjLen);
-        b_part += ha;
-        //fprintf(stderr, "offset b_part by ha=%d normal=%d\n", ha, olap->normal);
-        rha=true;
-      }
-
-      //  Compute the alignment.
-
-      int32   a_part_len  = strlen(a_part);
-      int32   b_part_len  = strlen(b_part);
-      int32   olap_len    = min(a_part_len, b_part_len);
-
-      int32   a_end        = 0;
-      int32   b_end        = 0;
-      bool    match_to_end = false;
-
-      //fprintf(stderr, ">A\n%s\n", a_part);
-      //fprintf(stderr, ">B\n%s\n", b_part);
-
-      int32 errors = Prefix_Edit_Dist(a_part, a_part_len,
-                                      b_part, b_part_len,
-                                      G->Error_Bound[olap_len],
-                                      a_end,
-                                      b_end,
-                                      match_to_end,
-                                      ped);
-
-      //  ped->delta isn't used.
-
-      //  ??  These both occur, but the first is much much more common.
-
-      if ((ped->deltaLen > 0) && (ped->delta[0] == 1) && (0 < G->olaps[thisOvl].a_hang)) {
-        int32  stop = min(ped->deltaLen, (int32)G->olaps[thisOvl].a_hang);  //  a_hang is int32:31!
-        int32  i = 0;
-
-        for  (i=0; (i < stop) && (ped->delta[i] == 1); i++)
-          ;
-
-        //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped->delta[i]);
-        assert((i == stop) || (ped->delta[i] != -1));
-
-        ped->deltaLen -= i;
-
-        memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
-
-        a_part     += i;
-        a_end      -= i;
-        a_part_len -= i;
-        errors     -= i;
-
-      } else if ((ped->deltaLen > 0) && (ped->delta[0] == -1) && (G->olaps[thisOvl].a_hang < 0)) {
-        int32  stop = min(ped->deltaLen, - G->olaps[thisOvl].a_hang);
-        int32  i = 0;
-
-        for  (i=0; (i < stop) && (ped->delta[i] == -1); i++)
-          ;
-
-        //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped->delta[i]);
-        assert((i == stop) || (ped->delta[i] != 1));
-
-        ped->deltaLen -= i;
-
-        memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
-
-        b_part     += i;
-        b_end      -= i;
-        b_part_len -= i;
-        errors     -= i;
-      }
-
-
       Total_Alignments_Ct++;
 
 
-      int32  olapLen = min(a_end, b_end);
+      double maxAlignErate = 0.06;   //  6% is a good default for corrected reads, probably too high.
 
-      if ((match_to_end == false) && (olapLen <= 0))
-        Failed_Alignments_Both_Ct++;
+      EdlibAlignResult result = edlibAlign(a_seq + abgn, aend - abgn,
+                                           b_seq + bbgn, bend - bbgn,
+                                           edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
+                                                               EDLIB_MODE_NW,
+                                                               EDLIB_TASK_PATH));
 
-      if (match_to_end == false)
-        Failed_Alignments_End_Ct++;
 
-      if (olapLen <= 0)
-        Failed_Alignments_Length_Ct++;
-
-      if ((match_to_end == false) || (olapLen <= 0)) {
-        Failed_Alignments_Ct++;
+      int32 olap_len = min(aend - abgn, bend - bbgn);
 
 #if 0
-        //  I can't find any patterns in these errors.  I thought that it was caused by the corrections, but I
-        //  found a case where no corrections were made and the alignment still failed.  Perhaps it is differences
-        //  in the alignment code (the forward vs reverse prefix distance in overlapper vs only the forward here)?
+      if ((result.numLocations > 0) &&
+          (result.editDistance < wa->G->Error_Bound[olap_len])) {
+        wa->passedOlaps++;
 
-        fprintf(stderr, "Redo_Olaps()--\n");
-        fprintf(stderr, "Redo_Olaps()--\n");
-        fprintf(stderr, "Redo_Olaps()--  Bad alignment  errors %d  a_end %d  b_end %d  match_to_end %d  olapLen %d\n",
-                errors, a_end, b_end, match_to_end, olapLen);
-        fprintf(stderr, "Redo_Olaps()--  Overlap        a_hang %d b_hang %d innie %d\n",
-                olap->a_hang, olap->b_hang, olap->innie);
-        fprintf(stderr, "Redo_Olaps()--  Reads          a_id %u a_length %d b_id %u b_length %d\n",
-                G->olaps[thisOvl].a_iid,
-                G->reads[ G->olaps[thisOvl].a_iid ].basesLen,
-                G->olaps[thisOvl].b_iid,
-                G->reads[ G->olaps[thisOvl].b_iid ].basesLen);
-        fprintf(stderr, "Redo_Olaps()--  A %s\n", a_part);
-        fprintf(stderr, "Redo_Olaps()--  B %s\n", b_part);
-
-        Display_Alignment(a_part, a_part_len, b_part, b_part_len, ped->delta, ped->deltaLen);
-
-        fprintf(stderr, "\n");
-#endif
-
-        if (rha)
-          rhaFail++;
-
-        continue;
       }
 
-      if (rha)
-        rhaPass++;
+      else {
+#endif
 
-      if        ((double)errors / olapLen < G->olaps[thisOvl].evalue)
+
+      if        ((double)result.editDistance / olap_len < G->olaps[thisOvl].evalue)
         nBetter++;
-      else if ((double)errors / olapLen > G->olaps[thisOvl].evalue)
+      else if ((double)result.editDistance / olap_len > G->olaps[thisOvl].evalue)
         nWorse++;
       else
         nSame++;
 
-      G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue((double)errors / olapLen);
+
+      G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue((double)result.editDistance / olap_len);
+
+      edlibFreeAlignResult(result);
 
       //fprintf(stderr, "REDO - errors = %u / olapLep = %u -- %f\n", errors, olapLen, AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
     }
