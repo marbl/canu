@@ -45,14 +45,6 @@ typedef enum {
   sqTechType_pacbio_hifi  = 0x0004,
 } sqLibrary_tech;
 
-typedef enum {
-  sqReadStat_unknown      = 0x0000,
-  sqReadStat_raw          = 0x0001,
-  sqReadStat_corrected    = 0x0002,
-  sqReadStat_trimmed      = 0x0003,
-} sqLibrary_status;
-
-
 static
 char const *
 toString(sqLibrary_tech t) {
@@ -68,20 +60,6 @@ toString(sqLibrary_tech t) {
   return(NULL);
 }
 
-
-static
-char const *
-toString(sqLibrary_status s) {
-  switch (s) {
-    case sqReadStat_unknown:       return("generic");     break;
-    case sqReadStat_raw:           return("raw");         break;
-    case sqReadStat_corrected:     return("corrected");   break;
-    case sqReadStat_trimmed:       return("trimmed");     break;
-    default:                       assert(0);             break;
-  }
-
-  return(NULL);
-}
 
 
 class sqLibrary {

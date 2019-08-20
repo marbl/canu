@@ -200,7 +200,7 @@ sub createSequenceStore ($$@) {
         }
 
         foreach my $iii (@inputs) {
-            if ($iii =~ m/^-(.*)\0(.*)$/) {
+            if ($iii =~ m/^(.*)\0(.*)$/) {
                 my $tech = $1;
                 my $file = $2;
                 my @name = split '/', $2;
@@ -210,7 +210,7 @@ sub createSequenceStore ($$@) {
                 $name = $1   if ($name =~ m/(.*).fast[aq]$/i);
                 $name = $1   if ($name =~ m/(.*).f[aq]$/i);
 
-                print F "  -$tech $name $file \\\n";
+                print F "  $tech $name $file \\\n";
 
             } else {
                 caExit("unrecognized sqStoreCreate input file '$iii'", undef);

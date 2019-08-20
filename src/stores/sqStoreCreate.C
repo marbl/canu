@@ -53,7 +53,7 @@ uint32  validSeq[256] = {0};
 //  A list of files that should be loaded into one library.
 class seqLib {
 public:
-  seqLib(char *name, sqLibrary_tech tech, sqLibrary_status stat) {
+  seqLib(char *name, sqLibrary_tech tech, sqRead_which stat) {
     _name = name;
     _tech = tech;
     _stat = stat;
@@ -68,7 +68,7 @@ public:
 public:
   char              *_name;
   sqLibrary_tech     _tech;
-  sqLibrary_status   _stat;
+  sqRead_which       _stat;
 
   vector<char *>     _files;
 };
@@ -196,7 +196,7 @@ checkInvalid(dnaSeq &sq, uint64 bgn, uint64 end) {
 void
 loadReads(sqStore          *seqStore,
           sqLibrary        *seqLibrary,
-          sqLibrary_status  readStat,
+          sqRead_which      readStat,
           uint32            minReadLength,
           FILE             *nameMap,
           FILE             *errorLog,
@@ -270,18 +270,10 @@ loadReads(sqStore          *seqStore,
 
     sqReadDataWriter *rdw = seqStore->sqStore_addEmptyRead(seqLibrary, sq.name());
 
-    switch (readStat) {
-      case sqReadStat_raw:
-        rdw->sqReadDataWriter_setRawBases(sq.bases() + bgn, end - bgn);
-        break;
-      case sqReadStat_corrected:
-        rdw->sqReadDataWriter_setCorrectedBases(sq.bases() + bgn, end - bgn);
-        break;
-      case sqReadStat_trimmed:
-        rdw->sqReadDataWriter_setCorrectedBases(sq.bases() + bgn, end - bgn);
-        break;
-      default:
-        break;
+    if (readStat & sqRead_raw) {
+      rdw->sqReadDataWriter_setRawBases(sq.bases() + bgn, end - bgn);
+    } else {
+      rdw->sqReadDataWriter_setCorrectedBases(sq.bases() + bgn, end - bgn);
     }
 
     seqStore->sqStore_addRead(rdw);
@@ -292,7 +284,7 @@ loadReads(sqStore          *seqStore,
     //  Presently, trimming only occurs on corrected reads, but later we
     //  need to allow trimmed raw reads.
 
-    if (readStat == sqReadStat_trimmed) {
+    if (readStat & sqRead_trimmed) {
       sqReadSeq  *rseq = seqStore->sqStore_getReadSeq(seqStore->sqStore_lastReadID(), sqRead_corrected);
 
       rseq->sqReadSeq_setClearRange(0, end - bgn);
@@ -338,6 +330,12 @@ createStore(const char       *seqStoreName,
             libraries[ll]._name,
             toString(libraries[ll]._tech),
             toString(libraries[ll]._stat));
+
+    if ((libraries[ll]._tech == sqTechType_pacbio_hifi) &&
+        (libraries[ll]._stat  & sqRead_corrected)) {
+      fprintf(stderr, "ERROR: HiFi reads must be loaded as 'raw'.\n");
+      exit(1);
+    }
 
     stats.displayTableHeader(stderr);
 
@@ -527,6 +525,8 @@ main(int argc, char **argv) {
 
   vector<seqLib>   libraries;
 
+  sqRead_which     readStatus        = sqRead_raw;
+
   //  Initialize the global.
 
   validSeq['a'] = validSeq['c'] = validSeq['g'] = validSeq['t'] = validSeq['n'] = 1;
@@ -559,44 +559,39 @@ main(int argc, char **argv) {
       lengthBias = atof(argv[++arg]);
     }
 
-    else if (strcmp(argv[arg], "-pacbio-raw") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_pacbio, sqReadStat_raw);
+    else if (strcmp(argv[arg], "-raw") == 0) {
+      readStatus &= ~sqRead_corrected;
+      readStatus |=  sqRead_raw;
+    }
+
+    else if (strcmp(argv[arg], "-corrected") == 0) {
+      readStatus &= ~sqRead_raw;
+      readStatus |=  sqRead_corrected;
+    }
+
+    else if (strcmp(argv[arg], "-untrimmed") == 0) {
+      readStatus &= ~sqRead_trimmed;
+    }
+
+    else if (strcmp(argv[arg], "-trimmed") == 0) {
+      readStatus |=  sqRead_trimmed;
+    }
+
+
+    else if (strcmp(argv[arg], "-pacbio") == 0) {
+      seqLib  lib(argv[arg+1], sqTechType_pacbio, readStatus);
       arg = addFiles(argv, arg, argc, err, lib);
       libraries.push_back(lib);
     }
 
-    else if (strcmp(argv[arg], "-pacbio-corrected") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_pacbio, sqReadStat_corrected);
-      arg = addFiles(argv, arg, argc, err, lib);
-      libraries.push_back(lib);
-    }
-
-    else if (strcmp(argv[arg], "-pacbio-trimmed") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_pacbio, sqReadStat_trimmed);
-      arg = addFiles(argv, arg, argc, err, lib);
-      libraries.push_back(lib);
-    }
-
-    else if (strcmp(argv[arg], "-nanopore-raw") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_nanopore, sqReadStat_raw);
-      arg = addFiles(argv, arg, argc, err, lib);
-      libraries.push_back(lib);
-    }
-
-    else if (strcmp(argv[arg], "-nanopore-corrected") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_nanopore, sqReadStat_corrected);
-      arg = addFiles(argv, arg, argc, err, lib);
-      libraries.push_back(lib);
-    }
-
-    else if (strcmp(argv[arg], "-nanopore-trimmed") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_nanopore, sqReadStat_trimmed);
+    else if (strcmp(argv[arg], "-nanopore") == 0) {
+      seqLib  lib(argv[arg+1], sqTechType_nanopore, readStatus);
       arg = addFiles(argv, arg, argc, err, lib);
       libraries.push_back(lib);
     }
 
     else if (strcmp(argv[arg], "-pacbio-hifi") == 0) {
-      seqLib  lib(argv[arg+1], sqTechType_pacbio_hifi, sqReadStat_raw);
+      seqLib  lib(argv[arg+1], sqTechType_pacbio_hifi, readStatus);
       arg = addFiles(argv, arg, argc, err, lib);
       libraries.push_back(lib);
     }

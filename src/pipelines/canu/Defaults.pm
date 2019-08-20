@@ -666,6 +666,8 @@ sub setParametersFromFile ($$@) {
         my $two;
         my $opt;
 
+        #  COMPATIBILITY MODE!
+
         if (m/^-(pacbio|nanopore)-(corrected|raw)\s+(.*)\s*$/) {   #  Comments not allowed, because then we can't decide
             $one  = "-$1-$2";                                      #  if the # is a comment, or part of the file!
             $two = $3;                                             #  e.g.,   this_is_file_#1   vs
