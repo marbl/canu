@@ -168,8 +168,6 @@ sub readErrorDetectionConfigure ($) {
 
     my $maxID = getNumberOfReadsInStore($asm, "all");
 
-    print "maxID $maxID\n";
-
     my ($rlVec, $noVec);
     my ($rlSum, $noSum) = loadReadLengthsAndNumberOfOverlaps($asm, $maxID, \$rlVec, \$noVec);
 
