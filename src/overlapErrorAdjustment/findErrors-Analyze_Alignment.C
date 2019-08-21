@@ -94,7 +94,7 @@ Matching_Vote(char ch) {
 //   b_part , resp., that align.
 
 //b read should be the "primary" overlaps for which are being analyzed
-//BUT the votes are cast for the "a" read, with a shifted id == sub"
+//BUT the votes are cast for the "a" read, with a "shifted" id == sub
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
@@ -104,8 +104,8 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   assert(a_len >= 0);
   //assert(b_len >= 0);
 
-  //  Counter. Position within the overlap (immediately set to 1)?
-  //  Used to cast votes (FIXME check) after applying the a_offset
+  // ===== COLLECTING EVENTS =====
+  //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
   int32  ct = 0;
 
   //FIXME WAT?!
@@ -117,15 +117,17 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   wa->globalvote[ct].vote_val  = A_SUBST;   // Dummy value
   ct++;
 
+  //position in a_part
   int32  i = 0;
+  //position in b_part
   int32  j = 0;
+  //position in "alignment" of a_part and b_part
   int32  p = 0;
 
   for (int32 k=0; k<wa->ped.deltaLen; k++) {
     //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
     //  Add delta[k] - 1 matches or mismatches; +-1 encodes the 'continuation' of the insertion/deletion
-
     for (int32 m=1; m<abs(wa->ped.delta[k]); m++) {
       if (a_part[i] != b_part[j]) {
         wa->globalvote[ct].frag_sub  = i;
@@ -237,11 +239,13 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   //                    votes         votes
   //
 
+  // ===== PROCESSING COLLECTED EVENTS =====
   assert(ct >= 1);
   //fprintf(stdout, "wa->G->Kmer_Len %d\n", wa->G->Kmer_Len);
   for (int32 i=1; i<=ct; i++) {
+    // ===== CASTING MATCH/CONFIRMED/NO_INSERT VOTES BETWEEN EVENTS i AND i-1 =====
+    // TODO refactor later
     int32  prev_match = wa->globalvote[i].align_sub - wa->globalvote[i - 1].align_sub - 1;
-    //What are those? Why don't they depend on i?
     int32  p_lo = (i == 1 ? 0 : wa->G->End_Exclude_Len);
     int32  p_hi = (i == ct ? prev_match : prev_match - wa->G->End_Exclude_Len);
 
@@ -273,9 +277,12 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
                   sub);
     }
 
+    // ===== ENDED CASTING MATCH/CONFIRMED/NO_INSERT VOTES =====
+
     //  Don't allow consecutive inserts.  If we aren't the last change, and there is non-adjacent
     //  previous (or this and the previous votes are not insertions), do another vote.
 
+    // ===== CASTING EVENT i =====
     if ((i < ct) &&
         ((prev_match > 0) ||
          (wa->globalvote[i-1].vote_val <= T_SUBST) ||
@@ -287,6 +294,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
          continue;
       }
 
+      //Checking that sum of distances to the previous/next event is >= 9
       if (prev_match + next_match >= wa->G->Vote_Qualify_Len)
         Cast_Vote(wa->G,
                              wa->globalvote[i].vote_val,
