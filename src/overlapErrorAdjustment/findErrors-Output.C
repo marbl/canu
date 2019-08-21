@@ -47,10 +47,6 @@ Output_Details(feParameters *G, uint32 i) {
             G->reads[i].vote[j].t_insert);
 }
 
-enum class VoteCheckRes {
-  NO_VARIANT, UNPROCESSED, FILTERED, CORRECTED_SD, CORRECTED_I
-};
-
 void
 FPrint_Vote(FILE *fp, char base, const Vote_Tally_t &vote) {
   if (vote.all_but(base) == 0)
@@ -259,8 +255,9 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 }
 
 //TODO special case of two reads voting for different bases
-VoteCheckRes 
-Check_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correction_Output_t *out) {
+// return false if nothing happened on the position and true otherwise
+bool 
+Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correction_Output_t out, FILE *fp) {
   Vote_Tally_t vote = read.vote[j];
   char base = read.sequence[j];
 
@@ -269,8 +266,8 @@ Check_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correct
   //FIXME understand why it can fail on a fully confirmed base
   //assert(vote.no_insert >= vote.confirmed);
 
-  if (vote.all() == 0)
-    return VoteCheckRes::NO_VARIANT;
+  if (vote.all_but(base) == 0)
+    return false;
 
   if (vote.no_insert < vote.confirmed) {
     fprintf(stderr, "WARN: no_insert %d ; confirmed %d \n", vote.no_insert, vote.confirmed);
@@ -279,36 +276,40 @@ Check_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correct
 
   FPrint_Votes(stderr, read, j, /*locality radius*/5);
 
-  VoteCheckRes code = VoteCheckRes::UNPROCESSED;
+  bool corrected = false;
 
   if (vote.confirmed < STRONG_CONFIRMATION_READ_CNT) {
+    fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, j);
     Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Use_Haplo_Ct);
     if (vote_t == NO_VOTE) {
-      code = VoteCheckRes::FILTERED;
+      fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, j);
     } else {
       //fprintf(stderr, "CORRECT!\n");
-      out->type       = vote_t;
-      out->pos        = j;
-      return VoteCheckRes::CORRECTED_SD;
+      out.type       = vote_t;
+      out.pos        = j;
+      fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, j);
+      writeToFile(out, "correction2", fp);
+      corrected = true;
     }
   }  
 
   if  (vote.no_insert < STRONG_CONFIRMATION_READ_CNT) {
+    fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, j);
     Vote_Value_t vote_t = Check_Insert(vote, base, G->Use_Haplo_Ct);
     if (vote_t == NO_VOTE) {
-      code = VoteCheckRes::FILTERED;
+      fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, j);
     } else {
     //fprintf(stderr, "INSERT!\n");
       //fprintf(stderr, "CORRECT!\n");
-      out->type       = vote_t;
-      out->pos        = j;
-      return VoteCheckRes::CORRECTED_I;
+      out.type       = vote_t;
+      out.pos        = j;
+      fprintf(stderr, "Read:pos %d:%d -- corrected insertion\n", out.readID, j);
+      writeToFile(out, "correction3", fp);
+      corrected = true;
     }
   }
-
-  return code;
+  return corrected;
 }
-
 
 void
 Output_Corrections(feParameters *G) {
@@ -342,29 +343,7 @@ Output_Corrections(feParameters *G) {
     }
 
     for (uint32 j=0; j<read.clear_len; j++) {
-      VoteCheckRes res = Check_Position(G, read, j, &out);
-      switch (res) { 
-        case VoteCheckRes::NO_VARIANT:
-          break;
-        case VoteCheckRes::CORRECTED_SD:
-          writeToFile(out, "correction2", fp);
-          fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, j);
-          break;
-        case VoteCheckRes::CORRECTED_I:
-          fprintf(stderr, "Read:pos %d:%d -- corrected insertion\n", out.readID, j);
-          writeToFile(out, "correction3", fp);
-          break;
-        case VoteCheckRes::FILTERED:
-          fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, j);
-          //writeToFile(out, "correction4", fp);
-          break;
-        case VoteCheckRes::UNPROCESSED:
-          fprintf(stderr, "Read:pos %d:%d -- unprocessed\n", out.readID, j);
-          //writeToFile(out, "correction5", fp);
-          break;
-        default:
-          assert(false);
-      }
+      Report_Position(G, read, j, out, fp);
     }
   }
 
