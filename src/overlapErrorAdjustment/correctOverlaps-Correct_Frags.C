@@ -73,30 +73,34 @@ correctRead(uint32 curID,
   //fprintf(stderr, "Start at Cpos=%d position=%d type=%d id=%d\n", Cpos, C[Cpos].pos, C[Cpos].type, C[Cpos].readID);
 
   int32   adjVal = 0;
+  //need it to insert the identical base before the first insertion if needed
+  //NB: 1-based! If change happends at position i -> assign i + 1
+  uint32 last_change_pos = 0;
 
-  for (uint32 i=0; i<oseqLen; i++) {
+  //FIXME would probably be much easier to introduce all substitutions first!
+  for (uint32 i=0; i<oseqLen;) {
 
-    //  No more corrections, or no more corrections for this read -- just copy bases till the end.
-    if ((Cpos == Clen) || (C[Cpos].readID != curID)) {
+    //  No more corrections, or no more corrections for this read or not a correction -- just copy base
+    if (Cpos == Clen || C[Cpos].readID != curID || i < C[Cpos].pos) {
       //fprintf(stderr, "no more corrections at i=%u, copy rest of read as is\n", i);
-      while (i < oseqLen)
-        fseq[fseqLen++] = filter[oseq[i++]];
-      break;
+      
+      //if we have not done anything at this position -- output it
+      if (last_change_pos < i + 1)
+        fseq[fseqLen++] = filter[oseq[i]];
+
+      i++;
+
+      continue;
     }
 
     assert(Cpos < Clen);
 
-    //  Not at a correction -- copy the base.
-    if (i < C[Cpos].pos) {
-      fseq[fseqLen++] = filter[oseq[i]];
-      continue;
-    }
-
-    if ((i != C[Cpos].pos) &&
-        (i != C[Cpos].pos + 1))
-      fprintf(stderr, "i=" F_U32 " Cpos=" F_U64 " C[Cpos].pos=" F_U32 "\n", i, Cpos, C[Cpos].pos);
-    assert((i == C[Cpos].pos) ||
-           (i == C[Cpos].pos + 1));
+    //if ((i != C[Cpos].pos) &&
+    //    (i != C[Cpos].pos + 1))
+    //  fprintf(stderr, "i=" F_U32 " Cpos=" F_U64 " C[Cpos].pos=" F_U32 "\n", i, Cpos, C[Cpos].pos);
+    //assert((i == C[Cpos].pos) ||
+    //       (i == C[Cpos].pos + 1));
+    assert(i == C[Cpos].pos);
 
     if (changes)
       changes[C[Cpos].type]++;
@@ -109,61 +113,28 @@ correctRead(uint32 curID,
         fadjLen++;
         break;
 
-      case A_SUBST:  fseq[fseqLen++] = 'a';  break;
-      case C_SUBST:  fseq[fseqLen++] = 'c';  break;
-      case G_SUBST:  fseq[fseqLen++] = 'g';  break;
-      case T_SUBST:  fseq[fseqLen++] = 't';  break;
+      case A_SUBST:
+      case C_SUBST:
+      case G_SUBST:
+      case T_SUBST:
+        fseq[fseqLen++] = VoteChar(C[Cpos].type);
+        last_change_pos = i + 1;
+        break;
 
       case A_INSERT:
-        if (i != C[Cpos].pos + 1) {                // Insert not immediately after subst
-          //fprintf(stderr, "A i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 'a';
-
-        fadj[fadjLen].adjpos = i + 1;
-        fadj[fadjLen].adjust = ++adjVal;
-        fadjLen++;
-        i--;  //  Undo the automagic loop increment
-        break;
-
       case C_INSERT:
-        if (i != C[Cpos].pos + 1) {
-          //fprintf(stderr, "C i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 'c';
-
-        fadj[fadjLen].adjpos = i + 1;
-        fadj[fadjLen].adjust = ++adjVal;
-        fadjLen++;
-        i--;
-        break;
-
       case G_INSERT:
-        if (i != C[Cpos].pos + 1) {
-          //fprintf(stderr, "G i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 'g';
-
-        fadj[fadjLen].adjpos = i + 1;
-        fadj[fadjLen].adjust = ++adjVal;
-        fadjLen++;
-        i--;
-        break;
-
       case T_INSERT:
-        if (i != C[Cpos].pos + 1) {
-          //fprintf(stderr, "T i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 't';
+        //if we have not done anything at this position yet
+        if (last_change_pos < i + 1)
+          fseq[fseqLen++] = filter[oseq[i]];
+
+        fseq[fseqLen++] = VoteChar(C[Cpos].type);
+        last_change_pos = i + 1;
 
         fadj[fadjLen].adjpos = i + 1;
         fadj[fadjLen].adjust = ++adjVal;
         fadjLen++;
-        i--;
         break;
 
       default:
@@ -171,6 +142,7 @@ correctRead(uint32 curID,
         break;
     }
 
+    last_change_pos = i + 1;
     Cpos++;
   }
 
@@ -241,6 +213,7 @@ Correct_Frags(coParameters *G,
       case T_INSERT:
         G->adjustsLen++;
         break;
+      default: {}
     }
   }
 
