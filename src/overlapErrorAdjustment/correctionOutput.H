@@ -18,11 +18,16 @@
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
+#pragma once
+
+#include <string>
+#include <iostream>
 
 //  Definitions for our exportable data.
 
+//TODO add #pragma once
 enum Vote_Value_t {
-  IDENT,    //  Just an iid in this record.
+  IDENT = 0,    //  Just an iid in this record.
   DELETE,
   A_SUBST,
   C_SUBST,
@@ -36,13 +41,36 @@ enum Vote_Value_t {
   EXTENSION
 };
 
-
+//TODO fix types
 struct Correction_Output_t {
-  uint32  keep_left   :  1;    //  set true if left overlap degree is low
-  uint32  keep_right  :  1;    //  set true if right overlap degree is low
-  uint32  type        :  4;    //  Vote_Value_t
-  uint32  pos         :  26;   //
+  bool  keep_left;   //:  1;    //  set true if left overlap degree is low
+  bool  keep_right;  //:  1;    //  set true if right overlap degree is low
+  uint32  type;        //:  4;    //  Vote_Value_t
+  uint32  pos;         //:  26;   //
   uint32  readID;
+  std::string insertion_str;
 };
 
+namespace std {
+  static std::ostream & operator<<(std::ostream &os, const Correction_Output_t &corr_out) {
+    os << corr_out.keep_left << ' ' << corr_out.keep_right << ' ';
+    os << corr_out.type << ' ' << corr_out.pos << ' ';
+    os << corr_out.readID;
+    if (corr_out.type == EXTENSION) {
+      assert(!corr_out.insertion_str.empty());
+      os << ' ' << corr_out.insertion_str;
+    }
+    return os;
+  }
+
+  static std::istream & operator>>(std::istream &is, Correction_Output_t &corr_out) {
+    is >> corr_out.keep_left >> corr_out.keep_right;
+    is >> corr_out.type >> corr_out.pos;
+    is >> corr_out.readID;
+    if (corr_out.type == EXTENSION) {
+      is >> corr_out.insertion_str;
+    }
+    return is;
+  }
+}
 

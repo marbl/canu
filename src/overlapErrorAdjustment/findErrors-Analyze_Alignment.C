@@ -78,8 +78,8 @@ Cast_Vote(feParameters *G,
     //case C_INSERT:  if (vote.c_insert < MAX_VOTE)  vote.c_insert++;  break;
     //case G_INSERT:  if (vote.g_insert < MAX_VOTE)  vote.g_insert++;  break;
     //case T_INSERT:  if (vote.t_insert < MAX_VOTE)  vote.t_insert++;  break;
-    case NO_VOTE:
-      break;
+    //case NO_VOTE:
+    //  break;
     default :
       fprintf(stderr, "ERROR:  Illegal vote type\n");
       assert(false);

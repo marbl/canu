@@ -25,6 +25,7 @@
 
 #include "findErrors.H"
 #include <map>
+#include <fstream>
 
 void
 Output_Details(feParameters *G, uint32 i) {
@@ -255,7 +256,9 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 // TODO haplo count is giving a headeache in the trivial DNA regions. So far disabled from command line.
 // return false if nothing happened on the position and true otherwise
 bool 
-Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correction_Output_t out, FILE *fp) {
+Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, 
+    Correction_Output_t out, std::ostream &os) {
+   // Correction_Output_t out, FILE *fp) {
   Vote_Tally_t vote = read.vote[j];
   char base = read.sequence[j];
 
@@ -286,7 +289,8 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correc
       out.type       = vote_t;
       out.pos        = j;
       fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, j);
-      writeToFile(out, "correction2", fp);
+      os << out << '\n';
+      //writeToFile(out, "correction2", fp);
       corrected = true;
     }
   }  
@@ -299,12 +303,12 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correc
     } else {
     //fprintf(stderr, "INSERT!\n");
       //fprintf(stderr, "CORRECT!\n");
-			//FIXME USE voted string!
-      out.type       = A_INSERT;
+      out.type       = EXTENSION;
       out.pos        = j;
-      fprintf(stderr, "Read:pos %d:%d -- corrected insertion\n", out.readID, j);
-			//FIXME What format should be used?
-      writeToFile(out, "correction3", fp);
+      out.insertion_str = ins_str;
+      fprintf(stderr, "Read:pos %d:%d -- corrected insertion. Insertion string ='%s'\n", out.readID, j, ins_str.c_str());
+      os << out << '\n';
+      //writeToFile(out, "correction3", fp);
       corrected = true;
     }
   }
@@ -313,9 +317,8 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correc
 
 void
 Output_Corrections(feParameters *G) {
-  Correction_Output_t  out;
-
-  FILE *fp = AS_UTL_openOutputFile(G->outputFileName);
+  //FILE *fp = AS_UTL_openOutputFile(G->outputFileName);
+  std::ofstream os(G->outputFileName);
   fprintf(stderr, "Output file: %s\n", G->outputFileName);
 
   for (uint32 i=0; i<G->readsLen; i++) {
@@ -324,6 +327,7 @@ Output_Corrections(feParameters *G) {
     //Output_Details(G, i);
     const Frag_Info_t &read = G->reads[i];
 
+    Correction_Output_t  out;
     out.keep_left   = (read.left_degree  < G->Degree_Threshold);
     out.keep_right  = (read.right_degree < G->Degree_Threshold);
     out.type        = IDENT;
@@ -331,7 +335,8 @@ Output_Corrections(feParameters *G) {
     out.readID      = G->bgnID + i;
 
     fprintf(stderr, "read %d clear_len %lu\n", out.readID, G->reads[i].clear_len);
-    writeToFile(out, "correction1", fp);
+    os << out << '\n';
+    //writeToFile(out, "correction1", fp);
     fprintf(stderr, "written");
 
     if (G->reads[i].sequence == NULL) {
@@ -343,9 +348,9 @@ Output_Corrections(feParameters *G) {
     }
 
     for (uint32 j=0; j<read.clear_len; j++) {
-      Report_Position(G, read, j, out, fp);
+      Report_Position(G, read, j, out, os);
     }
   }
 
-  AS_UTL_closeFile(fp, G->outputFileName);
+  //AS_UTL_closeFile(fp, G->outputFileName);
 }
