@@ -101,7 +101,7 @@ SubstVote(char c) {
 struct Correction_Output_t {
   bool  keep_left   :  1;    //  set true if left overlap degree is low
   bool  keep_right  :  1;    //  set true if right overlap degree is low
-  uint32  type        :  4;    //  Vote_Value_t
+  Vote_Value_t  type        :  4;    //  Vote_Value_t
   uint32  pos         :  26;   //
   uint32  readID;
   //std::string insertion_str;
