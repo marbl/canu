@@ -24,6 +24,7 @@
  */
 
 #include "findErrors.H"
+#include <map>
 
 void
 Output_Details(feParameters *G, uint32 i) {
@@ -31,7 +32,7 @@ Output_Details(feParameters *G, uint32 i) {
   fprintf(stderr, ">%d\n", G->bgnID + i);
 
   for  (uint32 j=0;  G->reads[i].sequence[j] != '\0';  j++)
-    fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d %3d %3d %3d\n",
+    fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d sequences %s\n",
             j,
             j >= G->reads[i].clear_len ? toupper (G->reads[i].sequence[j]) : G->reads[i].sequence[j],
             G->reads[i].vote[j].confirmed,
@@ -41,10 +42,8 @@ Output_Details(feParameters *G, uint32 i) {
             G->reads[i].vote[j].g_subst,
             G->reads[i].vote[j].t_subst,
             G->reads[i].vote[j].no_insert,
-            G->reads[i].vote[j].a_insert,
-            G->reads[i].vote[j].c_insert,
-            G->reads[i].vote[j].g_insert,
-            G->reads[i].vote[j].t_insert);
+            G->reads[i].vote[j].insertion_cnt,
+            G->reads[i].vote[j].insertions.c_str());
 }
 
 void
@@ -52,13 +51,13 @@ FPrint_Vote(FILE *fp, char base, const Vote_Tally_t &vote) {
   if (vote.all_but(base) == 0)
     fprintf(fp, "%c", base);
   else
-    fprintf(fp, "[%c conf:no_ins %d:%d | del %d | subst %d:%d:%d:%d | ins %d %d %d %d]",
+    fprintf(fp, "[%c conf:no_ins %d:%d | del %d | subst %d:%d:%d:%d | ins %d sequences %s]",
             base,
             vote.confirmed,
             vote.no_insert,
             vote.deletes,
             vote.a_subst, vote.c_subst, vote.g_subst, vote.t_subst,
-            vote.a_insert, vote.c_insert, vote.g_insert, vote.t_insert);
+            vote.insertion_cnt, vote.insertions.c_str());
 }
 
 void
@@ -194,67 +193,66 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   return vote_t;
 }
 
-Vote_Value_t 
+std::string 
 Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
-    Vote_Value_t  ins_vote_t = A_INSERT;
-    int32         ins_max  = vote.a_insert;
 
-    if  (ins_max < vote.c_insert) {
-      ins_vote_t = C_INSERT;
-      ins_max  = vote.c_insert;
+  std::map<std::string, uint32> insert_cnts;
+  for (const auto &ins : vote.insertions_list()) {
+    assert(!ins.empty());
+    insert_cnts[ins] += 1;
+  }
+
+  int32 ins_haplo_ct = 0;
+
+  int32 ins_max = 0;
+  std::string ins_vote;
+  for (const auto &ins_cnt : insert_cnts) {
+    if (ins_cnt.second >= MIN_HAPLO_OCCURS) {
+      ins_haplo_ct++;
     }
-
-    if  (ins_max < vote.g_insert) {
-      ins_vote_t = G_INSERT;
-      ins_max  = vote.g_insert;
+    if (ins_cnt.second > ins_max) {
+      ins_max = ins_cnt.second;
+      ins_vote = ins_cnt.first;
     }
+  }
 
-    if  (ins_max < vote.t_insert) {
-      ins_vote_t = T_INSERT;
-      ins_max  = vote.t_insert;
-    }
+  //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
 
-    int32 ins_haplo_ct = ((vote.a_insert >= MIN_HAPLO_OCCURS) +
-                          (vote.c_insert >= MIN_HAPLO_OCCURS) +
-                          (vote.g_insert >= MIN_HAPLO_OCCURS) +
-                          (vote.t_insert >= MIN_HAPLO_OCCURS));
+  if (vote.ins_total() <= 1) {
+    //fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
+    fprintf(stderr, "OPPA1\n");
+    return "";
+  }
 
-    //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
+  if (2 * ins_max <= vote.ins_total()) {
+    //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
+    fprintf(stderr, "OPPA2\n");
+    return "";
+  }
 
-    if (vote.ins_total() <= 1) {
-      //fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
-      fprintf(stderr, "OPPA1\n");
-      return NO_VOTE;
-    }
+  if ((ins_haplo_ct >= 2) && use_haplo_cnt) {
+    //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, G->Use_Haplo_Ct);
+    fprintf(stderr, "OPPA3\n");
+    return "";
+  }
 
-    if (2 * ins_max <= vote.ins_total()) {
-      //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
-      fprintf(stderr, "OPPA2\n");
-      return NO_VOTE;
-    }
+  if (vote.no_insert >= 2) {
+    //fprintf(stderr, "INDEL no_insert = %d\n", vote.no_insert);
+    fprintf(stderr, "OPPA4\n");
+    return "";
+  }
 
-    if ((ins_haplo_ct >= 2) && use_haplo_cnt) {
-      //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, G->Use_Haplo_Ct);
-      fprintf(stderr, "OPPA3\n");
-      return NO_VOTE;
-    }
+  if (vote.no_insert == 1 && ins_max <= 6) {
+    //fprintf(stderr, "INDEL no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
+    fprintf(stderr, "OPPA5\n");
+    return "";
+  }
 
-    if (vote.no_insert >= 2) {
-      //fprintf(stderr, "INDEL no_insert = %d\n", vote.no_insert);
-      fprintf(stderr, "OPPA4\n");
-      return NO_VOTE;
-    }
-
-    if (vote.no_insert == 1 && ins_max <= 6) {
-      //fprintf(stderr, "INDEL no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
-      fprintf(stderr, "OPPA5\n");
-      return NO_VOTE;
-    }
-
-    return ins_vote_t;
+  return ins_vote;
 }
 
 //TODO special case of two reads voting for different bases
+// TODO haplo count is giving a headeache in the trivial DNA regions. So far disabled from command line.
 // return false if nothing happened on the position and true otherwise
 bool 
 Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correction_Output_t out, FILE *fp) {
@@ -295,15 +293,17 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, Correc
 
   if  (vote.no_insert < STRONG_CONFIRMATION_READ_CNT) {
     fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, j);
-    Vote_Value_t vote_t = Check_Insert(vote, base, G->Use_Haplo_Ct);
-    if (vote_t == NO_VOTE) {
+    std::string ins_str = Check_Insert(vote, base, G->Use_Haplo_Ct);
+    if (ins_str.empty()) {
       fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, j);
     } else {
     //fprintf(stderr, "INSERT!\n");
       //fprintf(stderr, "CORRECT!\n");
-      out.type       = vote_t;
+			//FIXME USE voted string!
+      out.type       = A_INSERT;
       out.pos        = j;
       fprintf(stderr, "Read:pos %d:%d -- corrected insertion\n", out.readID, j);
+			//FIXME What format should be used?
       writeToFile(out, "correction3", fp);
       corrected = true;
     }

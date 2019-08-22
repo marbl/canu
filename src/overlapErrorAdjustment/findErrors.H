@@ -33,6 +33,8 @@
 #include "correctionOutput.H"
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -101,6 +103,8 @@ using namespace std;
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
 struct Vote_Tally_t {
+  static const char INSERTIONS_DELIM = '$';
+
   uint32  confirmed : 16;
   uint32  deletes   : 16;
   uint32  a_subst   : 16;
@@ -109,11 +113,25 @@ struct Vote_Tally_t {
   uint32  g_subst   : 16;
   uint32  t_subst   : 16;
   uint32  no_insert : 16;
-  uint32  a_insert  : 16;
 
-  uint32  c_insert  : 16;
-  uint32  g_insert  : 16;
-  uint32  t_insert  : 16;
+  uint32 insertion_cnt;
+  std::string insertions;
+  //uint32  a_insert  : 16;
+  //uint32  c_insert  : 16;
+  //uint32  g_insert  : 16;
+  //uint32  t_insert  : 16;
+  
+	std::vector<std::string> insertions_list() const {
+		std::vector<std::string> answer;
+		std::size_t start;
+		std::size_t end = 0;
+
+		while ((start = insertions.find_first_not_of(INSERTIONS_DELIM, end)) != std::string::npos) {
+			end = insertions.find(INSERTIONS_DELIM, start);
+			answer.push_back(insertions.substr(start, end - start));
+		}
+		return answer;
+	}
 
   //FIXME total somehow does not consider insertions
   uint32 total() const {
@@ -122,7 +140,7 @@ struct Vote_Tally_t {
 
   //FIXME here we somehow do not consider all other events 
   uint32 ins_total() const {
-    return a_insert + c_insert + g_insert + t_insert;
+    return insertion_cnt;//a_insert + c_insert + g_insert + t_insert;
   }
 
   uint32 all() const {

@@ -32,35 +32,57 @@
  */
 
 #include "findErrors.H"
+#include <string>
+#include <vector>
 
-
-
-
-
+static char
+Ins_Vote_Char(Vote_Value_t val) {
+  switch (val) {
+    case A_INSERT:
+      return 'a';
+    case C_INSERT:
+      return 'c';
+    case G_INSERT:
+      return 'g';
+    case T_INSERT:
+      return 't';
+    default:
+      assert(false);
+  }
+  return 0;
+}
 
 //  Add vote val to G.reads[sub] at sequence position  p
-static
-void
+static void
 Cast_Vote(feParameters *G,
           Vote_Value_t val,
           int32        pos,
           int32        sub) {
-
+  Vote_Tally_t &vote = G->reads[sub].vote[pos];
   switch (val) {
-    case DELETE:    if (G->reads[sub].vote[pos].deletes  < MAX_VOTE)  G->reads[sub].vote[pos].deletes++;   break;
-    case A_SUBST:   if (G->reads[sub].vote[pos].a_subst  < MAX_VOTE)  G->reads[sub].vote[pos].a_subst++;   break;
-    case C_SUBST:   if (G->reads[sub].vote[pos].c_subst  < MAX_VOTE)  G->reads[sub].vote[pos].c_subst++;   break;
-    case G_SUBST:   if (G->reads[sub].vote[pos].g_subst  < MAX_VOTE)  G->reads[sub].vote[pos].g_subst++;   break;
-    case T_SUBST:   if (G->reads[sub].vote[pos].t_subst  < MAX_VOTE)  G->reads[sub].vote[pos].t_subst++;   break;
-    case A_INSERT:  if (G->reads[sub].vote[pos].a_insert < MAX_VOTE)  G->reads[sub].vote[pos].a_insert++;  break;
-    case C_INSERT:  if (G->reads[sub].vote[pos].c_insert < MAX_VOTE)  G->reads[sub].vote[pos].c_insert++;  break;
-    case G_INSERT:  if (G->reads[sub].vote[pos].g_insert < MAX_VOTE)  G->reads[sub].vote[pos].g_insert++;  break;
-    case T_INSERT:  if (G->reads[sub].vote[pos].t_insert < MAX_VOTE)  G->reads[sub].vote[pos].t_insert++;  break;
+    case DELETE:    if (vote.deletes  < MAX_VOTE)  vote.deletes++;   break;
+    case A_SUBST:   if (vote.a_subst  < MAX_VOTE)  vote.a_subst++;   break;
+    case C_SUBST:   if (vote.c_subst  < MAX_VOTE)  vote.c_subst++;   break;
+    case G_SUBST:   if (vote.g_subst  < MAX_VOTE)  vote.g_subst++;   break;
+    case T_SUBST:   if (vote.t_subst  < MAX_VOTE)  vote.t_subst++;   break;
+    case A_INSERT: //fallthrough 
+    case C_INSERT: //fallthrough
+    case G_INSERT: //fallthrough
+    case T_INSERT: //fallthrough
+      if (vote.insertion_cnt < MAX_VOTE) {
+        vote.insertion_cnt++;  
+        vote.insertions += Ins_Vote_Char(val);
+      }
+      break;
+    //case A_INSERT:  if (vote.a_insert < MAX_VOTE)  vote.a_insert++;  break;
+    //case C_INSERT:  if (vote.c_insert < MAX_VOTE)  vote.c_insert++;  break;
+    //case G_INSERT:  if (vote.g_insert < MAX_VOTE)  vote.g_insert++;  break;
+    //case T_INSERT:  if (vote.t_insert < MAX_VOTE)  vote.t_insert++;  break;
     case NO_VOTE:
       break;
     default :
       fprintf(stderr, "ERROR:  Illegal vote type\n");
-      break;
+      assert(false);
   }
 }
 
@@ -95,6 +117,7 @@ Matching_Vote(char ch) {
 
 //b read should be the "primary" overlaps for which are being analyzed
 //BUT the votes are cast for the "a" read, with a "shifted" id == sub
+//TODO make globalvote a local variable
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
@@ -220,9 +243,9 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     p++;
   }
 
+  assert(i <= a_len);
   wa->globalvote[ct].frag_sub  = i;
   wa->globalvote[ct].align_sub = p;
-
 
   //  For each identified change, add votes for some region around the change.
   //
@@ -242,6 +265,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   // ===== PROCESSING COLLECTED EVENTS =====
   assert(ct >= 1);
   //fprintf(stdout, "wa->G->Kmer_Len %d\n", wa->G->Kmer_Len);
+
   for (int32 i=1; i<=ct; i++) {
     // ===== CASTING MATCH/CONFIRMED/NO_INSERT VOTES BETWEEN EVENTS i AND i-1 =====
     // TODO refactor later
@@ -283,10 +307,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     //  previous (or this and the previous votes are not insertions), do another vote.
 
     // ===== CASTING EVENT i =====
-    if ((i < ct) &&
-        ((prev_match > 0) ||
-         (wa->globalvote[i-1].vote_val <= T_SUBST) ||
-         (wa->globalvote[i  ].vote_val <= T_SUBST))) {
+    if ((i < ct)) { // && ((prev_match > 0) || (wa->globalvote[i-1].vote_val <= T_SUBST) || (wa->globalvote[i].vote_val <= T_SUBST)))
       int32 next_match = wa->globalvote[i + 1].align_sub - wa->globalvote[i].align_sub - 1;
 
       // if our vote is outside of the bounds (meaning we have gaps at the start or end of the alignment), skip the vote
@@ -294,15 +315,18 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
          continue;
       }
 
+      //TODO probably re-enable in some form
       //Checking that sum of distances to the previous/next event is >= 9
-      if (prev_match + next_match >= wa->G->Vote_Qualify_Len)
-        Cast_Vote(wa->G,
-                             wa->globalvote[i].vote_val,
-                  a_offset + wa->globalvote[i].frag_sub,
-                  sub);
+      //if (prev_match + next_match >= wa->G->Vote_Qualify_Len)
+      Cast_Vote(wa->G, wa->globalvote[i].vote_val, a_offset + wa->globalvote[i].frag_sub, sub);
+    }
+  }
+
+  // ===== Finalizing cast insertions =====
+  for (int32 i = 0; i < a_len ; ++i) {
+    auto &insertions_str = wa->G->reads[sub].vote[a_offset + i].insertions;
+    if (insertions_str.size() > 0 && insertions_str.back() != Vote_Tally_t::INSERTIONS_DELIM) {
+      insertions_str += Vote_Tally_t::INSERTIONS_DELIM;
     }
   }
 }
-
-
-
