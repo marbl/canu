@@ -35,23 +35,6 @@
 #include <string>
 #include <vector>
 
-static char
-Ins_Vote_Char(Vote_Value_t val) {
-  switch (val) {
-    case A_INSERT:
-      return 'a';
-    case C_INSERT:
-      return 'c';
-    case G_INSERT:
-      return 'g';
-    case T_INSERT:
-      return 't';
-    default:
-      assert(false);
-  }
-  return 0;
-}
-
 //  Add vote val to G.reads[sub] at sequence position  p
 static void
 Cast_Vote(feParameters *G,
@@ -71,7 +54,7 @@ Cast_Vote(feParameters *G,
     case T_INSERT: //fallthrough
       if (vote.insertion_cnt < MAX_VOTE) {
         vote.insertion_cnt++;  
-        vote.insertions += Ins_Vote_Char(val);
+        vote.insertions += VoteChar(val);
       }
       break;
     //case A_INSERT:  if (vote.a_insert < MAX_VOTE)  vote.a_insert++;  break;

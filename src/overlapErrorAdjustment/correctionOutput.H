@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include <string>
-#include <iostream>
+//#include <string>
+//#include <iostream>
 
 //  Definitions for our exportable data.
 
@@ -41,36 +41,92 @@ enum Vote_Value_t {
   EXTENSION
 };
 
+static char
+VoteChar(Vote_Value_t val) {
+  switch (val) {
+    case A_INSERT:
+    case A_SUBST:
+      return 'a';
+    case C_INSERT:
+    case C_SUBST:
+      return 'c';
+    case G_INSERT:
+    case G_SUBST:
+      return 'g';
+    case T_INSERT:
+    case T_SUBST:
+      return 't';
+    default:
+      assert(false);
+  }
+  return 'a';
+}
+
+static Vote_Value_t
+InsVote(char c) {
+  switch (c) {
+    case 'a':
+      return A_INSERT;
+    case 'c':
+      return C_INSERT;
+    case 'g':
+      return G_INSERT;
+    case 't':
+      return T_INSERT;
+    default:
+      assert(false);
+  }
+  return NO_VOTE;
+}
+
+static Vote_Value_t
+SubstVote(char c) {
+  switch (c) {
+    case 'a':
+      return A_SUBST;
+    case 'c':
+      return C_SUBST;
+    case 'g':
+      return G_SUBST;
+    case 't':
+      return T_SUBST;
+    default:
+      assert(false);
+  }
+  return NO_VOTE;
+}
+
+
 //TODO fix types
 struct Correction_Output_t {
-  bool  keep_left;   //:  1;    //  set true if left overlap degree is low
-  bool  keep_right;  //:  1;    //  set true if right overlap degree is low
-  uint32  type;        //:  4;    //  Vote_Value_t
-  uint32  pos;         //:  26;   //
+  bool  keep_left   :  1;    //  set true if left overlap degree is low
+  bool  keep_right  :  1;    //  set true if right overlap degree is low
+  uint32  type        :  4;    //  Vote_Value_t
+  uint32  pos         :  26;   //
   uint32  readID;
-  std::string insertion_str;
+  //std::string insertion_str;
 };
 
-namespace std {
-  static std::ostream & operator<<(std::ostream &os, const Correction_Output_t &corr_out) {
-    os << corr_out.keep_left << ' ' << corr_out.keep_right << ' ';
-    os << corr_out.type << ' ' << corr_out.pos << ' ';
-    os << corr_out.readID;
-    if (corr_out.type == EXTENSION) {
-      assert(!corr_out.insertion_str.empty());
-      os << ' ' << corr_out.insertion_str;
-    }
-    return os;
-  }
-
-  static std::istream & operator>>(std::istream &is, Correction_Output_t &corr_out) {
-    is >> corr_out.keep_left >> corr_out.keep_right;
-    is >> corr_out.type >> corr_out.pos;
-    is >> corr_out.readID;
-    if (corr_out.type == EXTENSION) {
-      is >> corr_out.insertion_str;
-    }
-    return is;
-  }
-}
+//namespace std {
+//  static std::ostream & operator<<(std::ostream &os, const Correction_Output_t &corr_out) {
+//    os << corr_out.keep_left << ' ' << corr_out.keep_right << ' ';
+//    os << corr_out.type << ' ' << corr_out.pos << ' ';
+//    os << corr_out.readID;
+//    if (corr_out.type == EXTENSION) {
+//      assert(!corr_out.insertion_str.empty());
+//      os << ' ' << corr_out.insertion_str;
+//    }
+//    return os;
+//  }
+//
+//  static std::istream & operator>>(std::istream &is, Correction_Output_t &corr_out) {
+//    is >> corr_out.keep_left >> corr_out.keep_right;
+//    is >> corr_out.type >> corr_out.pos;
+//    is >> corr_out.readID;
+//    if (corr_out.type == EXTENSION) {
+//      is >> corr_out.insertion_str;
+//    }
+//    return is;
+//  }
+//}
 

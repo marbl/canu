@@ -25,7 +25,7 @@
 
 #include "findErrors.H"
 #include <map>
-#include <fstream>
+//#include <fstream>
 
 void
 Output_Details(feParameters *G, uint32 i) {
@@ -226,7 +226,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   }
 
   if (2 * ins_max <= vote.ins_total()) {
-    //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
+    fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, vote.ins_total());
     fprintf(stderr, "OPPA2\n");
     return "";
   }
@@ -257,8 +257,8 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 // return false if nothing happened on the position and true otherwise
 bool 
 Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j, 
-    Correction_Output_t out, std::ostream &os) {
-   // Correction_Output_t out, FILE *fp) {
+    //Correction_Output_t out, std::ostream &os) {
+    Correction_Output_t out, FILE *fp) {
   Vote_Tally_t vote = read.vote[j];
   char base = read.sequence[j];
 
@@ -289,8 +289,8 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j,
       out.type       = vote_t;
       out.pos        = j;
       fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, j);
-      os << out << '\n';
-      //writeToFile(out, "correction2", fp);
+      //os << out << '\n';
+      writeToFile(out, "correction2", fp);
       corrected = true;
     }
   }  
@@ -303,12 +303,14 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j,
     } else {
     //fprintf(stderr, "INSERT!\n");
       //fprintf(stderr, "CORRECT!\n");
-      out.type       = EXTENSION;
-      out.pos        = j;
-      out.insertion_str = ins_str;
       fprintf(stderr, "Read:pos %d:%d -- corrected insertion. Insertion string ='%s'\n", out.readID, j, ins_str.c_str());
-      os << out << '\n';
-      //writeToFile(out, "correction3", fp);
+      for (char c : ins_str) {
+        out.type       = InsVote(c);
+        out.pos        = j;
+        writeToFile(out, "correction3", fp);
+      }
+      //out.insertion_str = ins_str;
+      //os << out << '\n';
       corrected = true;
     }
   }
@@ -317,8 +319,8 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j,
 
 void
 Output_Corrections(feParameters *G) {
-  //FILE *fp = AS_UTL_openOutputFile(G->outputFileName);
-  std::ofstream os(G->outputFileName);
+  FILE *fp = AS_UTL_openOutputFile(G->outputFileName);
+  //std::ofstream os(G->outputFileName);
   fprintf(stderr, "Output file: %s\n", G->outputFileName);
 
   for (uint32 i=0; i<G->readsLen; i++) {
@@ -335,8 +337,8 @@ Output_Corrections(feParameters *G) {
     out.readID      = G->bgnID + i;
 
     fprintf(stderr, "read %d clear_len %lu\n", out.readID, G->reads[i].clear_len);
-    os << out << '\n';
-    //writeToFile(out, "correction1", fp);
+    //os << out << '\n';
+    writeToFile(out, "correction1", fp);
     fprintf(stderr, "written");
 
     if (G->reads[i].sequence == NULL) {
@@ -348,9 +350,9 @@ Output_Corrections(feParameters *G) {
     }
 
     for (uint32 j=0; j<read.clear_len; j++) {
-      Report_Position(G, read, j, out, os);
+      Report_Position(G, read, j, out, fp);
     }
   }
 
-  //AS_UTL_closeFile(fp, G->outputFileName);
+  AS_UTL_closeFile(fp, G->outputFileName);
 }
