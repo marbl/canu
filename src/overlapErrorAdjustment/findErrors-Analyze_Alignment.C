@@ -52,10 +52,8 @@ Cast_Vote(feParameters *G,
     case C_INSERT: //fallthrough
     case G_INSERT: //fallthrough
     case T_INSERT: //fallthrough
-      if (vote.insertion_cnt < MAX_VOTE) {
-        vote.insertion_cnt++;  
-        vote.insertions += VoteChar(val);
-      }
+      //FIXME add check of MAX_VOTE somehow?
+      vote.insertions += VoteChar(val);
       break;
     //case A_INSERT:  if (vote.a_insert < MAX_VOTE)  vote.a_insert++;  break;
     //case C_INSERT:  if (vote.c_insert < MAX_VOTE)  vote.c_insert++;  break;
@@ -310,6 +308,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     auto &insertions_str = wa->G->reads[sub].vote[a_offset + i].insertions;
     if (insertions_str.size() > 0 && insertions_str.back() != Vote_Tally_t::INSERTIONS_DELIM) {
       insertions_str += Vote_Tally_t::INSERTIONS_DELIM;
+      wa->G->reads[sub].vote[a_offset + i].insertion_cnt++;
     }
   }
 }
