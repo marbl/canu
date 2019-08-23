@@ -27,38 +27,41 @@
 #include <map>
 //#include <fstream>
 
-void
-Output_Details(feParameters *G, uint32 i) {
-
-  fprintf(stderr, ">%d\n", G->bgnID + i);
-
-  for  (uint32 j=0;  G->reads[i].sequence[j] != '\0';  j++)
-    fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d sequences %s\n",
-            j,
-            j >= G->reads[i].clear_len ? toupper (G->reads[i].sequence[j]) : G->reads[i].sequence[j],
-            G->reads[i].vote[j].confirmed,
-            G->reads[i].vote[j].deletes,
-            G->reads[i].vote[j].a_subst,
-            G->reads[i].vote[j].c_subst,
-            G->reads[i].vote[j].g_subst,
-            G->reads[i].vote[j].t_subst,
-            G->reads[i].vote[j].no_insert,
-            G->reads[i].vote[j].insertion_cnt,
-            G->reads[i].vote[j].insertions.c_str());
-}
+//void
+//Output_Details(feParameters *G, uint32 i) {
+//
+//  fprintf(stderr, ">%d\n", G->bgnID + i);
+//
+//  for  (uint32 j=0;  G->reads[i].sequence[j] != '\0';  j++) {
+//    const Vote_Tally_t &vote = G->reads[i].vote[j];
+//    fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d sequences %s\n",
+//            j,
+//            j >= G->reads[i].clear_len ? toupper (G->reads[i].sequence[j]) : G->reads[i].sequence[j],
+//            vote.confirmed,
+//            vote.deletes,
+//            vote.a_subst,
+//            vote.c_subst,
+//            vote.g_subst,
+//            vote.t_subst,
+//            vote.no_insert,
+//            vote.insertion_cnt,
+//            vote.insertions.empty() ? "" : vote.insertions.c_str());
+//  }
+//}
 
 void
 FPrint_Vote(FILE *fp, char base, const Vote_Tally_t &vote) {
   if (vote.all_but(base) == 0)
     fprintf(fp, "%c", base);
   else
-    fprintf(fp, "[%c conf:no_ins %d:%d | del %d | subst %d:%d:%d:%d | ins %d sequences %s]",
+    fprintf(fp, "[%c conf:no_ins %d:%d | del %d | subst %d:%d:%d:%d | ins %d sequences '%s']",
             base,
             vote.confirmed,
             vote.no_insert,
             vote.deletes,
             vote.a_subst, vote.c_subst, vote.g_subst, vote.t_subst,
-            vote.insertion_cnt, vote.insertions.c_str());
+            vote.insertion_cnt, 
+            vote.insertions.empty() ? "" : vote.insertions.c_str());
 }
 
 void
@@ -115,25 +118,21 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   if  (vote.a_subst > max) {
     vote_t    = A_SUBST;
     max       = vote.a_subst;
-    is_change = (base != 'a');
   }
 
   if  (vote.c_subst > max) {
     vote_t    = C_SUBST;
     max       = vote.c_subst;
-    is_change = (base != 'c');
   }
 
   if  (vote.g_subst > max) {
     vote_t    = G_SUBST;
     max       = vote.g_subst;
-    is_change = (base != 'g');
   }
 
   if  (vote.t_subst > max) {
     vote_t    = T_SUBST;
     max       = vote.t_subst;
-    is_change = (base != 't');
   }
 
   int32 haplo_ct  =  ((vote.deletes >= MIN_HAPLO_OCCURS) +
@@ -142,52 +141,35 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
       (vote.g_subst >= MIN_HAPLO_OCCURS) +
       (vote.t_subst >= MIN_HAPLO_OCCURS));
 
-  //  The original had a gargantuajn if test (five clauses, all had to be true) to decide if a record should be output.
-  //  It was negated into many small tests if we should skip the output.
-  //  A side effect is that we can abort a little earlier in two cases (and we don't even bother).
+  if (base == VoteChar(vote_t)) {
+    fprintf(stderr, "SAME  base = %c, vote = %c\n", base, VoteChar(vote_t));
+    return NO_VOTE;
+  }
 
-
-  //fprintf(stderr, "TEST   read %d position %d type %d -- ", i, j, vote);
-
-  //  (total > 1)
   if (vote.total() <= 1) {
-    //fprintf(stderr, "FEW   total = %d <= 1\n", total);
-    fprintf(stderr, "HERE1\n");
+    fprintf(stderr, "FEW   total = %d <= 1\n", vote.total());
     return NO_VOTE;
   }
 
-  //  (2 * max > total)
   if (2 * max <= vote.total()) {
-    //fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, total);
-    fprintf(stderr, "HERE2\n");
+    fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, vote.total());
     return NO_VOTE;
   }
 
-  //  (is_change == true)
-  if (is_change == false) {
-    //fprintf(stderr, "SAME  is_change = %d\n", is_change);
-    fprintf(stderr, "HERE3\n");
-    return NO_VOTE;
-  }
-
-  //  ((haplo_ct < 2) || (G->Use_Haplo_Ct == false))
   if ((haplo_ct >= 2) && use_haplo_cnt) {
-    //fprintf(stderr, "HAPLO haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", haplo_ct, G->Use_Haplo_Ct);
-    fprintf(stderr, "HERE4\n");
+    fprintf(stderr, "HAPLO haplo_ct=%d >= 2\n", haplo_ct);
     return NO_VOTE;
   }
 
-  //  ((vote.confirmed == 0) ||
-  //   ((vote.confirmed == 1) && (max > 6)))
   if (vote.confirmed > 2) {
-    //fprintf(stderr, "INDEL confirmed = %d", vote.confirmed);
-    fprintf(stderr, "HERE5\n");
+    fprintf(stderr, "Support for no correction: confirmed = %d\n", vote.confirmed);
+    //Can not be triggered because confirmed < STRONG_CONFIRMATION_READ_CNT = 2
+    assert(false);
     return NO_VOTE;
   }
 
   if (vote.confirmed == 1 && max <= 6) {
-    //fprintf(stderr, "INDEL confirmed = %d max = %d\n", vote.confirmed, max);
-    fprintf(stderr, "HERE6\n");
+    fprintf(stderr, "No correction was supported & small weight of vote: confirmed = %d ins_max = %d\n", vote.confirmed, max);
     return NO_VOTE;
   }
 
@@ -220,32 +202,29 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
 
   if (vote.ins_total() <= 1) {
-    //fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
-    fprintf(stderr, "OPPA1\n");
+    fprintf(stderr, "FEW   ins_total = %d <= 1\n", vote.ins_total());
     return "";
   }
 
   if (2 * ins_max <= vote.ins_total()) {
     fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, vote.ins_total());
-    fprintf(stderr, "OPPA2\n");
     return "";
   }
 
   if ((ins_haplo_ct >= 2) && use_haplo_cnt) {
-    //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, G->Use_Haplo_Ct);
-    fprintf(stderr, "OPPA3\n");
+    fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2\n", ins_haplo_ct);
     return "";
   }
 
   if (vote.no_insert >= 2) {
-    //fprintf(stderr, "INDEL no_insert = %d\n", vote.no_insert);
-    fprintf(stderr, "OPPA4\n");
+    //Can not be triggered because no_insert < STRONG_CONFIRMATION_READ_CNT = 2
+    assert(false);
+    fprintf(stderr, "Support for no insert: no_insert = %d\n", vote.no_insert);
     return "";
   }
 
   if (vote.no_insert == 1 && ins_max <= 6) {
-    //fprintf(stderr, "INDEL no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
-    fprintf(stderr, "OPPA5\n");
+    fprintf(stderr, "No insert was supported & small weight of vote: no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
     return "";
   }
 
