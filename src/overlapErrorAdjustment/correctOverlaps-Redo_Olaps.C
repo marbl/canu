@@ -341,7 +341,7 @@ Redo_Olaps(coParameters *G, sqStore *seqStore) {
 
   for (uint32 curID=loBid; curID<=hiBid; curID++) {
     if (((curID - loBid) % 1024) == 0)
-      fprintf(stderr, "Recomputing overlaps - %9u - %9u - %9u\r", loBid, curID, hiBid);
+      fprintf(stderr, "Recomputing overlaps - %9u - %9u - %9u\n", loBid, curID, hiBid);
 
     if (curID < G->olaps[thisOvl].b_iid)
       continue;

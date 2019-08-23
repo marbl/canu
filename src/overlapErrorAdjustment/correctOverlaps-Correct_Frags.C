@@ -108,6 +108,7 @@ correctRead(uint32 curID,
     switch (C[Cpos].type) {
       case DELETE:  //  Delete base
         //fprintf(stderr, "DELETE %u pos %u adjust %d\n", fadjLen, i+1, adjVal-1);
+        fprintf(stderr, "Introducing DELETION read=%u i=%u \n", C[Cpos].readID, i);
         fadj[fadjLen].adjpos = i + 1;
         fadj[fadjLen].adjust = --adjVal;
         fadjLen++;
@@ -117,6 +118,7 @@ correctRead(uint32 curID,
       case C_SUBST:
       case G_SUBST:
       case T_SUBST:
+        fprintf(stderr, "Introducing SUBST '%c' -> '%c' read=%u i=%u \n", filter[oseq[i]], VoteChar(C[Cpos].type), C[Cpos].readID, i);
         fseq[fseqLen++] = VoteChar(C[Cpos].type);
         last_change_pos = i + 1;
         break;
@@ -125,10 +127,12 @@ correctRead(uint32 curID,
       case C_INSERT:
       case G_INSERT:
       case T_INSERT:
+        fprintf(stderr, "Introducing IDENT before insertion '%c' read=%u i=%u \n", filter[oseq[i]], C[Cpos].readID, i);
         //if we have not done anything at this position yet
         if (last_change_pos < i + 1)
           fseq[fseqLen++] = filter[oseq[i]];
 
+        fprintf(stderr, "Introducing INSERTION '%c' read=%u i=%u \n", VoteChar(C[Cpos].type), C[Cpos].readID, i);
         fseq[fseqLen++] = VoteChar(C[Cpos].type);
         last_change_pos = i + 1;
 
