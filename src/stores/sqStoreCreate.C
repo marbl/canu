@@ -332,8 +332,8 @@ createStore(const char       *seqStoreName,
             toString(libraries[ll]._stat));
 
     if ((libraries[ll]._tech == sqTechType_pacbio_hifi) &&
-        (libraries[ll]._stat  & sqRead_corrected)) {
-      fprintf(stderr, "ERROR: HiFi reads must be loaded as 'raw'.\n");
+        (libraries[ll]._stat  & sqRead_raw)) {
+      fprintf(stderr, "ERROR: HiFi reads must be loaded as 'corrected'.\n");
       exit(1);
     }
 
@@ -591,9 +591,16 @@ main(int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-pacbio-hifi") == 0) {
+      sqRead_which   rs = readStatus;
+
+      readStatus &= ~sqRead_raw;         //  HiFi MUST be loaded as corrected.
+      readStatus |=  sqRead_corrected;   //
+
       seqLib  lib(argv[arg+1], sqTechType_pacbio_hifi, readStatus);
       arg = addFiles(argv, arg, argc, err, lib);
       libraries.push_back(lib);
+
+      readStatus = rs;
     }
 
 
