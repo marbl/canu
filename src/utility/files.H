@@ -74,6 +74,8 @@ off_t   AS_UTL_sizeOfFile(FILE *file);
 off_t   AS_UTL_ftell(FILE *stream);
 void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
 
+//  Search CANU_INSTALL_PATH, MERYL_INSTALL_PATH and PATH for a data file.
+char   *findSharedFile(char *relpath, char *filename);
 
 //  Read a file-of-files into a vector
 void    AS_UTL_loadFileList(char *fileName, vector<char *> &FILE);
