@@ -276,6 +276,7 @@ while (scalar(@ARGV)) {
     }
 
     elsif ($arg eq "-assemble") {
+        $readsAreTrimmed = 1;
         $mode = $step = "assemble";
         addCommandLineOption("-assemble");
     }
