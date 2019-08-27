@@ -294,9 +294,7 @@ public:
   };
 
 
-  void      finalize(void) {
-    dist.loadDistribution(distribName);
-  };
+  void      finalize(void);
 
 
   uint64  genomeSize;
