@@ -180,6 +180,8 @@ doSimulate_extract(simulateParameters &simPar,
     nReads += 1;
     nBases += readLength;
   }
+
+  delete [] r;
 }
 
 
@@ -219,4 +221,9 @@ doSimulate(vector<char *>     &inputs,
   //
 
   doSimulate_extract(simPar, seqs, seqLen, mt, nReadsMax, nBasesMax);
+
+  //  Clean up the reference sequences we loaded.
+
+  for (uint32 ii=0; ii<seqs.size(); ii++)
+    delete seqs[ii];
 }
