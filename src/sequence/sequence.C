@@ -423,6 +423,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "OPTIONS for summarize mode:\n");
       fprintf(stderr, "  -size          base size to use for N50 statistics\n");
       fprintf(stderr, "  -1x            limit NG table to 1x coverage\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  -split-n       split sequences at N bases before computing length\n");
+      fprintf(stderr, "  -simple        output a simple 'length numSequences' histogram\n");
+      fprintf(stderr, "  -lengths       output a list of the sequence lengths\n");
+      fprintf(stderr, "\n");
       fprintf(stderr, "  -assequences   load data as complete sequences (for testing)\n");
       fprintf(stderr, "  -asbases       load data as blocks of bases    (for testing)\n");
       fprintf(stderr, "\n");
@@ -464,7 +469,7 @@ main(int argc, char **argv) {
     if ((mode == modeUnset) || (mode == modeSimulate)) {
       fprintf(stderr, "OPTIONS for simulate mode:\n");
       fprintf(stderr, "  -genome G           sample reads from these sequences\n");
-      fprintf(stderr, "  -circular           threat the sequences in G as circular\n");
+      fprintf(stderr, "  -circular           treat the sequences in G as circular\n");
       fprintf(stderr, "\n");
       fprintf(stderr, "  -genomesize g       genome size to use for deciding coverage below\n");
       fprintf(stderr, "  -coverage c         generate approximately c coverage of output\n");
@@ -474,6 +479,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "  -distribution F     generate read length by sampling the distribution in file F\n");
       fprintf(stderr, "                        one column  - each line is the length of a sequence\n");
       fprintf(stderr, "                        two columns - each line has the 'length' and 'number of sequences'\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "                      if file F doesn't exist, use a built-in distribution\n");
+      fprintf(stderr, "                        ultra-long-nanopore\n");
+      fprintf(stderr, "                        pacbio\n");
+      fprintf(stderr, "                        pacbio-hifi\n");
       fprintf(stderr, "\n");
       fprintf(stderr, "  -length min[-max]   (not implemented)\n");
       fprintf(stderr, "  -output x.fasta     (not implemented)\n");
