@@ -355,8 +355,14 @@ AS_UTL_rename(const char *oldname, const char *newname) {
 
 
 bool
-pathExists(const char *path) {
+pathExists(const char *prefix, char separator, const char *suffix) {
   struct stat  s;
+  char   path[FILENAME_MAX];
+
+  if (suffix)
+    snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+  else
+    strncpy(path, prefix, FILENAME_MAX-1);
 
   if (stat(path, &s) == -1)
     return(false);
@@ -367,9 +373,15 @@ pathExists(const char *path) {
 
 
 bool
-fileExists(const char *path,
+fileExists(const char *prefix, char separator, const char *suffix,
            bool        writable) {
   struct stat  s;
+  char   path[FILENAME_MAX];
+
+  if (suffix)
+    snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+  else
+    strncpy(path, prefix, FILENAME_MAX-1);
 
   if (stat(path, &s) == -1)
     return(false);
@@ -389,8 +401,14 @@ fileExists(const char *path,
 
 
 bool
-directoryExists(const char *path) {
+directoryExists(const char *prefix, char separator, const char *suffix) {
   struct stat  s;
+  char   path[FILENAME_MAX];
+
+  if (suffix)
+    snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+  else
+    strncpy(path, prefix, FILENAME_MAX-1);
 
   if (stat(path, &s) == -1)
     return(false);

@@ -64,9 +64,9 @@ void    AS_UTL_unlink(const char *prefix, char separator='.', char const *suffix
 void    AS_UTL_rename(const char *oldname, const char *newname);
 
 //  Tests on existence of paths, files and directories.
-bool    pathExists     (const char *path);                        //  true if file or dir 'path' exists
-bool    fileExists     (const char *path, bool writable=false);   //  true if file        'path' exists (and is writable)
-bool    directoryExists(const char *path);                        //  true if         dir 'path' exists
+bool    pathExists     (const char *prefix, char separator='.', const char *suffix=NULL);                        //  true if file or dir 'path' exists
+bool    fileExists     (const char *prefix, char separator='.', const char *suffix=NULL, bool writable=false);   //  true if file        'path' exists (and is writable)
+bool    directoryExists(const char *prefix, char separator='.', const char *suffix=NULL);                        //  true if         dir 'path' exists
 
 off_t   AS_UTL_sizeOfFile(const char *path);
 off_t   AS_UTL_sizeOfFile(FILE *file);
