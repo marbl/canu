@@ -25,7 +25,6 @@
 
 #include "findErrors.H"
 #include <map>
-//#include <fstream>
 
 //void
 //Output_Details(feParameters *G, uint32 i) {
@@ -141,7 +140,7 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
       (vote.g_subst >= MIN_HAPLO_OCCURS) +
       (vote.t_subst >= MIN_HAPLO_OCCURS));
 
-  if (base == VoteChar(vote_t)) {
+  if (vote_t != DELETE && base == VoteChar(vote_t)) {
     fprintf(stderr, "SAME  base = %c, vote = %c\n", base, VoteChar(vote_t));
     return NO_VOTE;
   }
