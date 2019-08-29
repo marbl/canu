@@ -87,30 +87,44 @@ sub configureLSF () {
     setGlobalIfUndef("gridEngineJobID",                      "LSB_JOBID");
 
     #
-    #  LSF has variation in the units used to request memory
-    #  They are defined by the LSF_UNIT_FOR_LIMITS variable in lsf.conf
-    #  Poll and see if we can find it
+    #  LSF has variation in the units used to request memory.
+    #  They are defined by the LSF_UNIT_FOR_LIMITS variable in lsf.conf.
+    #
+    #  Expecting lines like 'LSF_UNIT_FOR_LIMITS=MB'.
+    #
+    #  Docs say:
+    #    Set to MB at time of installation. If LSF_UNIT_FOR_LIMITS
+    #    is not defined in lsf.conf, then the default setting is
+    #    in KB, and for RUSAGE it is MB.
     #
 
     my $memUnits = getGlobal("gridEngineMemoryUnits");
 
     if (!defined($memUnits)) {
-        open(F, "lsadmin showconf lim |");
+        my $lsfroot = $ENV{"LSF_ENVDIR"};
 
-        my $s = <F>;  #  cluster name
-        my $d = <F>;  #  dat/time
+        if (-e "$lsfroot/lsf.conf") {
+            open(F, "< $lsfroot/lsf.conf") or caExit("can't open '$lsfroot/lsf.conf' for reading: $!", undef);
 
-        while (<F>) {
-            my @v = split '=', $_;
-            if ($v[0] =~ m/LSF_UNIT_FOR_LIMITS/) {
-                $memUnits = "t" if ($v[1] =~ m/[tT]/);
-                $memUnits = "g" if ($v[1] =~ m/[gG]/);
-                $memUnits = "m" if ($v[1] =~ m/[mM]/);
-                $memUnits = "k" if ($v[1] =~ m/[kK]/);
+            while (<F>) {
+                if (m/^\s*LSF_UNIT_FOR_LIMITS\s*=\s*(.*)\s*/i) {
+                    $memUnits = $1
+                }
             }
+
+            close(F);
+
+            print STDERR "-- Discovered LSF_UNIT_FOR_LIMITS of '$memUnits' from '$lsfroot/lsf.conf'.\n";
         }
 
-        close(F);
+        else {
+            print STDERR "--\n";
+            print STDERR "-- ERROR:  Can't find '\$LSF_ENVDIR/lsf.conf' to determine the unit to use for memory\n";
+            print STDERR "-- ERROR:  sizes.  Set gridEngineMemoryUnits to one of 'k', 'm', 'g', or 't'.\n";
+            print STDERR "--\n";
+
+            caExit("can't configure for LSF", undef);
+        }
     }
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
