@@ -648,6 +648,7 @@ if (($numPacBio   == 0) &&
     setGlobalIfUndef("obtErrorRate",     0.0);
     setGlobalIfUndef("utgErrorRate",     0.0);
     setGlobalIfUndef("cnsErrorRate",     0.1);
+    setGlobalIfUndef("homoPolyCompress", 1);
 }
 
 #  Set an initial run mode based on what we discovered above.

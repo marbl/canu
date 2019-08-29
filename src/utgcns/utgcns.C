@@ -782,10 +782,20 @@ main (int argc, char **argv) {
 
 
   //  Open inputs.
+  //
+  //  We want to use corrected and trimmed reads, but definitely not
+  //  homopolymer compressed reads, regardless of what the store says is the
+  //  default.
 
   if (params.seqName) {
+    fprintf(stderr, "DEFAULT %s\n", toString(sqRead_defaultVersion));
     fprintf(stderr, "-- Opening seqStore '%s'.\n", params.seqName);
     params.seqStore = new sqStore(params.seqName, sqStore_readOnly);
+    fprintf(stderr, "DEFAULT %s\n", toString(sqRead_defaultVersion));
+
+    sqRead_setDefaultVersion(sqRead_defaultVersion & ~sqRead_compressed);
+
+    fprintf(stderr, "DEFAULT %s\n", toString(sqRead_defaultVersion));
   }
 
   if (params.tigName) {
@@ -795,20 +805,6 @@ main (int argc, char **argv) {
     if (params.tigEnd > params.tigStore->numTigs() - 1)
       params.tigEnd = params.tigStore->numTigs() - 1;
   }
-
-  //  Decide which reads to use.  Usually, we want the trimmed reads, but for HiFi reads, we want to
-  //  use the original non-homopolymer compressed reads.
-
-#warning HIFI and DEFAULT VERSION
-#if 0
-  if (params.seqStore) {
-    if (params.seqStore->sqStore_getLibrary(1)->sqLibrary_readType() == SQ_READTYPE_PACBIO_HIFI) {
-      sqRead_setDefaultVersion(sqRead_raw);
-    } else {
-      sqRead_setDefaultVersion(sqRead_trimmed);
-    }
-  }
-#endif
 
   //  Open output files.  If we're creating a package, the usual output files are not opened.
 

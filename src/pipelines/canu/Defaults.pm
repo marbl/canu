@@ -1064,6 +1064,8 @@ sub setDefaults () {
     setDefault("corFilter",                    "expensive",  "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'");
     setDefault("corConsensus",                 "falcon",     "Which consensus algorithm to use; only 'falcon' is supported; default 'falcon'");
 
+    setDefault("homoPolyCompress",             undef,        "Compute everything but consensus sequences using homopolymer compressed reads");
+
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 
     foreach my $k (keys %synops) {

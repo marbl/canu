@@ -60,11 +60,10 @@ sqStore::sqStore_loadMetadata(void) {
   AS_UTL_loadFile(_storePath, '/', "libraries", _libraries, _librariesAlloc);
   AS_UTL_loadFile(_storePath, '/', "reads",     _meta,      _readsAlloc);
 
-  //  Set the default read version to return, unless it's been set already.
-  //  We must have exactly one of 'raw' or 'corrected' selected.  The
-  //  rest ('trimmed', 'compressed') are options.
+  //  If the user hasn't set a default version (via sqRead_setDefaultVersion()
+  //  before a sqStore object is constructed), pick the plausible most recent
+  //  version.
 
-  //  If nothing is set, pick the plausible last computed result.
   if (sqRead_defaultVersion == sqRead_unset) {
     if (sqStore_getNumReads(sqRead_raw)                        > 0)   sqRead_defaultVersion = sqRead_raw;
     if (sqStore_getNumReads(sqRead_raw | sqRead_trimmed)       > 0)   sqRead_defaultVersion = sqRead_raw       | sqRead_trimmed;
@@ -72,35 +71,33 @@ sqStore::sqStore_loadMetadata(void) {
     if (sqStore_getNumReads(sqRead_corrected | sqRead_trimmed) > 0)   sqRead_defaultVersion = sqRead_corrected | sqRead_trimmed;
   }
 
-  //  Otherwise, decide if 'corrected' or 'raw' reads are the last loaded.
+  //  Otherwise, if neither raw or corrected reads were specified, decide
+  //  which one is the most recent.  This is for when the user only asks
+  //  for 'trimmed' reads, not caring if they are raw or corrected.
+
   else if (((sqRead_defaultVersion & sqRead_raw)       == sqRead_unset) &&
            ((sqRead_defaultVersion & sqRead_corrected) == sqRead_unset)) {
     if      (sqStore_getNumReads(sqRead_corrected) > 0)   sqRead_defaultVersion |= sqRead_corrected;
     else if (sqStore_getNumReads(sqRead_raw)       > 0)   sqRead_defaultVersion |= sqRead_raw;
   }
 
+  //  The store itself can now insist that 'compressed' reads be used by default.
+
+  if (fileExists(sqStore_path(), '/', "homopolymerCompression") == true)
+    sqRead_defaultVersion |= sqRead_compressed;
+
   //  Default version MUST be set now.
 
   assert(sqRead_defaultVersion != sqRead_unset);
 
-  //fprintf(stderr, "sqStore_loadMetadata()-- Using '%s' 0x%02u reads.\n", toString(sqRead_defaultVersion), sqRead_defaultVersion);
+  fprintf(stderr, "sqStore_loadMetadata()-- Using '%s' 0x%02u reads.\n", toString(sqRead_defaultVersion), sqRead_defaultVersion);
 
-  //  Now load the metadata for that version.
+  //  We can maybe, eventually, be clever and load these on-demand.
+  //  For now, load all the metadata.
 
-  bool   raw = ((sqRead_defaultVersion & sqRead_raw)        != 0) ? true : false;
-  bool   cor = ((sqRead_defaultVersion & sqRead_corrected)  != 0) ? true : false;
-  bool   cmp = ((sqRead_defaultVersion & sqRead_compressed) != 0) ? true : false;
-
-  //if ((raw == true) && (cmp == false))
   AS_UTL_loadFile(_storePath, '/', "reads-rawu", _rawU = new sqReadSeq[_readsAlloc], _readsAlloc);
-
-  //if ((raw == true) && (cmp == true))
   AS_UTL_loadFile(_storePath, '/', "reads-rawc", _rawC = new sqReadSeq[_readsAlloc], _readsAlloc);
-
-  //if ((cor == true) && (cmp == false))
   AS_UTL_loadFile(_storePath, '/', "reads-coru", _corU = new sqReadSeq[_readsAlloc], _readsAlloc);
-
-  //if ((cor == true) && (cmp == true))
   AS_UTL_loadFile(_storePath, '/', "reads-corc", _corC = new sqReadSeq[_readsAlloc], _readsAlloc);
 }
 

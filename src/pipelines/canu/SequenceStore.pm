@@ -433,6 +433,14 @@ sub checkSequenceStore ($$@) {
         caExit("unable to assemble uncorrected reads", undef);
     }
 
+    #  Set or unset the homopolymer compression flag.
+
+    if (defined(getGlobal("homoPolyCompress"))) {
+        touch("./$asm.seqStore/homopolymerCompression");
+    } else {
+        unlink("./$asm.seqStore/homopolymerCompression");
+    }
+
     #  Make a histogram and stash the (updated) store.
 
     if ($histAndStash) {
