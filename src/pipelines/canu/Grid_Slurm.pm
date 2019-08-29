@@ -62,23 +62,31 @@ sub configureSlurm () {
 
     return   if (uc(getGlobal("gridEngine")) ne "SLURM");
 
-    my $maxArraySize = 65535;
+    my $maxArraySize  = 65535;
+    my $maxArrayTasks = 65535;
 
-    #  From the docs (http://slurm.schedmd.com/job_array.html):
-    #
-    #  Note that the minimum index value is zero and the maximum value is a Slurm configuration
-    #  parameter (MaxArraySize minus one).
-    #
-    #  Which is a totally stupid name for the parameter, and a totally stupid interpretation.
+    #  Slurm has one or two configuration variables we need to check.                                                                                         
+    #    MaxArraySize    is (one more than) the maximum index value of any array task.                                                                        
+    #    max_array_tasks is the maximum number of array tasks per array job.                                                                                  
+    #                                                                                                                                                         
+    #  Usually they're the same value.  We just need to pick the smaller of the two.                                                                          
 
     open(F, "scontrol show config |") or caExit("can't run 'scontrol' to get SLURM config", undef);
     while (<F>) {
-        if (m/MaxArraySize\s+=\s+(\d+)/) {
-            $maxArraySize = $1 - 1;
-            print STDERR "-- Detected Slurm with 'MaxArraySize' limited to $maxArraySize jobs.\n";
+        if (m/MaxArraySize\s*=\s*(\d+)/) {
+            $maxArraySize  = $1 - 1;
+            print STDERR "-- Detected Slurm with task IDs up to $maxArraySize allowed.\n";
+        }
+        if (m/max_array_tasks\s*=\s*(\d+)/) {
+            $maxArrayTasks = $1 - 1;
+            print STDERR "-- Detected Slurm with up to $maxArrayTasks tasks per job.\n";
         }
     }
     close(F);
+
+    if ($maxArraySize > $maxArrayTasks) {   #  Now just pick the smaller.                                                                                     
+        $maxArraySize = $maxArrayTasks;
+    }
 
     setGlobalIfUndef("gridEngineSubmitCommand",              "sbatch");
     setGlobalIfUndef("gridEngineNameOption",                 "-D `pwd` -J");
