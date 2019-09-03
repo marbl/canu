@@ -599,8 +599,8 @@ sub consensusAnalyze ($) {
 
     #  Left in as a template for any future analysis.
 
-    #goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
-    #
+    goto allDone;   #if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
+
     #fetchTigStore("unitigging", $asm, "ctgStore", "001");
     #fetchTigStore("unitigging", $asm, "ctgStore", "002");
     #
