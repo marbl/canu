@@ -36,13 +36,18 @@ my $cwd = getcwd();
 
 my $label    = "snapshot";     #  Automagically set to 'release' for releases.
 my $major    = "1";            #  Bump before release.
-my $minor    = "8";            #  Bump before release.
+my $minor    = "9";            #  Bump before release.
+
+my $branch   = "master";
+my $version  = "";
 
 my $commits  = "0";
 my $hash1    = undef;          #  This from 'git describe'
 my $hash2    = undef;          #  This from 'git rev-list'
 my $revCount = 0;
 my $dirty    = undef;
+my $dirtya   = undef;
+my $dirtyc   = undef;
 
 
 #  If in a git repo, we can get the actual values.
@@ -50,6 +55,7 @@ my $dirty    = undef;
 if (-d "../.git") {
     $label = "snapshot";
 
+    #  Count the number of changes since the last release.
     open(F, "git rev-list HEAD |") or die "Failed to run 'git rev-list'.\n";
     while (<F>) {
         chomp;
@@ -59,25 +65,64 @@ if (-d "../.git") {
     }
     close(F);
 
-    open(F, "git describe --tags --long --dirty --always --abbrev=40 |") or die "Failed to run 'git describe'.\n";
+    #  Find the commit and version we're at.
+    open(F, "git describe --tags --long --always --abbrev=40 |") or die "Failed to run 'git describe'.\n";
     while (<F>) {
         chomp;
-        if (m/^v(\d+)\.(\d+.*)-(\d+)-g(.{40})-*(.*)$/) {
+        if (m/^v(\d+)\.(\d+.*)-(\d+)-g(.{40})$/) {
             $major   = $1;
             $minor   = $2;
             $commits = $3;
             $hash1   = $4;
-            $dirty   = $5;
+
+            $version = "v$major.$minor";
         } else {
             die "Failed to parse describe string '$_'.\n";
         }
     }
     close(F);
 
-    if ($dirty eq "dirty") {
+    #  Decide if we've got locally committed changes.
+    open(F, "git status |");
+    while (<F>) {
+        if (m/is\s+ahead\s/) {
+            $dirtya = "ahead of github";
+        }
+        if (m/not\s+staged\s+for\s+commit/) {
+            $dirtyc = "uncommitted changes";
+        }
+    }
+    close(F);
+
+    if    (defined($dirtya) && defined($dirtyc)) {
+        $dirty = "ahead of github w/changes";
+    }
+    elsif (defined($dirtya)) {
         $dirty = "ahead of github";
-    } else {
+    }
+    elsif (defined($dirtyc)) {
+        $dirty = "w/changes";
+    }
+    else {
         $dirty = "sync'd with github";
+    }
+
+
+    #  But if we're on a branch, replace the version with the name of the branch.
+    open(F, "git rev-parse --abbrev-ref HEAD |");
+    while (<F>) {
+        chomp;
+        $branch  = $_;
+    }
+
+    if ($branch ne "master") {
+        if ($branch =~ m/v(\d+)\.(\d+)/) {
+            $major = $1;
+            $minor = $2;
+        }
+
+        $label   = "branch";
+        $version = $branch;
     }
 }
 
@@ -85,19 +130,20 @@ if (-d "../.git") {
 #  If not in a git repo, we might be able to figure things out based on the directory name.
 
 elsif ($cwd =~ m/canu-(.{40})\/src/) {
-    $label    = "snapshot";
-    $hash1    = $1;
-    $hash2    = $1;
+    $label   = "snapshot";
+    $hash1   = $1;
+    $hash2   = $1;
 }
 
 elsif ($cwd =~ m/canu-master\/src/) {
-    $label    = "master-snapshot";
+    $label   = "master-snapshot";
 }
 
 elsif ($cwd =~ m/canu-(\d).(\d)\/src/) {
-    $label    = "release";
-    $major    = $1;
-    $minor    = $2;
+    $label   = "release";
+    $major   = $1;
+    $minor   = $2;
+    $version = "v$major.$minor";
 }
 
 
@@ -105,10 +151,10 @@ elsif ($cwd =~ m/canu-(\d).(\d)\/src/) {
 #  Report what we found.  This is really for the gmake output.
 
 if ($commits > 0) {
-    print STDERR "Building snapshot v$major.$minor +$commits changes (r$revCount $hash1) ($dirty)\n";
+    print STDERR "Building $label $version +$commits changes (r$revCount $hash1) ($dirty)\n";
     print STDERR "\n";
 } else {
-    print STDERR "Building $label v$major.$minor\n";
+    print STDERR "Building $label $version\n";
     print STDERR "\n";
 }
 
@@ -123,14 +169,14 @@ print F "#define CANU_VERSION_COMMITS   \"$commits\"\n";
 print F "#define CANU_VERSION_REVISION  \"$revCount\"\n";
 print F "#define CANU_VERSION_HASH      \"$hash1\"\n";
 
-if      (defined($dirty)) {
-    print F "#define CANU_VERSION           \"Canu snapshot v$major.$minor +$commits changes (r$revCount $hash1)\\n\"\n";
+if      ($commits > 0) {
+    print F "#define CANU_VERSION           \"Canu $label $version +$commits changes (r$revCount $hash1)\\n\"\n";
 } elsif (defined($hash1)) {
     print F "#define CANU_VERSION           \"Canu snapshot ($hash1)\\n\"\n";
 } elsif ($label  =~ m/release/) {
     print F "#define CANU_VERSION           \"Canu $major.$minor\\n\"\n";
 } else {
-    print F "#define CANU_VERSION           \"Canu snapshot ($label)\\n\"\n";
+    print F "#define CANU_VERSION           \"Canu $label ($version)\\n\"\n";
 }
 
 close(F);
