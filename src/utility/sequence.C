@@ -218,7 +218,7 @@ homopolyCompress(char *bases, uint32 basesLen, char *compr, uint32 *ntoc) {
 
     //  In a run, move the scan head one position, and set the
     //  mapping to the last compressed base.
-    if (bases[cc] == bases[rr]) {
+    if ((bases[cc] | 0x20) == (bases[rr] | 0x20)) {
       if (ntoc)
         ntoc[rr] = sl - 1;
       rr++;
