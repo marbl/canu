@@ -97,6 +97,8 @@ dumpReads_printHeader(sqRead_which w) {
 bool
 dumpReads_setClearString(sqStore *seqs, uint32 rid, char *len, char *bgn, char *end, sqRead_which w) {
 
+  //  Set the length of the read.
+
   if (seqs->sqStore_isValidRead(rid, w) == false)
     memcpy(len, "          -", sizeof(char) * 11);
 
@@ -107,6 +109,8 @@ dumpReads_setClearString(sqStore *seqs, uint32 rid, char *len, char *bgn, char *
     snprintf(len, 12, " %10" F_U32P, seqs->sqStore_getReadLength(rid, w));
 
   assert((w & sqRead_trimmed) == sqRead_unset);   //  Otherwise, length above is trimmed length!
+
+  //  Set the clear range.
 
   if (seqs->sqStore_isTrimmedRead(rid, w) == true) {
     snprintf(bgn, 12, " %10" F_U32P, seqs->sqStore_getClearBgn(rid, w | sqRead_trimmed));
