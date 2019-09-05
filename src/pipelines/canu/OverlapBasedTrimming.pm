@@ -221,13 +221,13 @@ sub loadTrimmedReads ($) {
     $cmd  = "$bin/loadTrimmedReads \\\n";
     $cmd .= "  -S ../../$asm.seqStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "> ./$asm.loadtrimmedReads.err 2>&1";
+    $cmd .= "> ./$asm.loadTrimmedReads.err 2>&1";
 
     if (runCommand($path, $cmd)) {
         caFailure("loading clear ranges failed", "$path/$asm.loadTrimmedReads.err");
     }
 
-    unlink("$path/$asm.trimmedReads.err");
+    unlink("$path/$asm.loadTrimmedReads.err");
 
     #  Save results.
 
