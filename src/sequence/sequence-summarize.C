@@ -156,6 +156,9 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
     }
   }
 
+  if (lengths.size() == 0)
+    return;
+
   uint64   minLength = lengths[lengths.size()-1];
   uint64   maxLength = lengths[0];
 
