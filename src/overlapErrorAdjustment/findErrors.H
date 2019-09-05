@@ -269,8 +269,7 @@ public:
 class feParameters;
 
 
-class pedWorkArea_t {
-public:
+struct pedWorkArea_t {
   pedWorkArea_t() {
     G        = NULL;
 
@@ -300,7 +299,6 @@ public:
     memset(Edit_Array_Lazy, 0, sizeof(int32 *) * Edit_Array_Max);
   };
 
-public:
   feParameters *G;
 
   int32              delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN

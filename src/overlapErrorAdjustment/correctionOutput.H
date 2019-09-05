@@ -74,6 +74,7 @@ InsVote(char c) {
     case 't':
       return T_INSERT;
     default:
+      fprintf(stderr, "ERROR: Bad sequence '%c' 0x%02x)\n", c, c);
       assert(false);
   }
   return NO_VOTE;
@@ -91,6 +92,7 @@ SubstVote(char c) {
     case 't':
       return T_SUBST;
     default:
+      fprintf(stderr, "ERROR: Bad sequence '%c' 0x%02x)\n", c, c);
       assert(false);
   }
   return NO_VOTE;

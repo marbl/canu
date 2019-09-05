@@ -136,17 +136,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       if (a_part[i] != b_part[j]) {
         wa->globalvote[ct].frag_sub  = i;
         wa->globalvote[ct].align_sub = p;
-
-        switch (b_part[j]) {
-          case 'a':  wa->globalvote[ct].vote_val = A_SUBST;  break;
-          case 'c':  wa->globalvote[ct].vote_val = C_SUBST;  break;
-          case 'g':  wa->globalvote[ct].vote_val = G_SUBST;  break;
-          case 't':  wa->globalvote[ct].vote_val = T_SUBST;  break;
-          default :
-            fprintf(stderr, "ERROR:[1] Bad sequence '%c' 0x%02x)\n", b_part[j], b_part[j]);
-            assert(0);
-        }
-
+        wa->globalvote[ct].vote_val = SubstVote(b_part[j]);
         ct++;
       }
 
@@ -158,21 +148,10 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     //  If a negative delta, insert a base.
 
     if (wa->ped.delta[k] < 0) {
+      //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
       wa->globalvote[ct].frag_sub  = i - 1;
       wa->globalvote[ct].align_sub = p;
-
-      //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-
-      switch (b_part[j]) {
-        case 'a':  wa->globalvote[ct].vote_val = A_INSERT;  break;
-        case 'c':  wa->globalvote[ct].vote_val = C_INSERT;  break;
-        case 'g':  wa->globalvote[ct].vote_val = G_INSERT;  break;
-        case 't':  wa->globalvote[ct].vote_val = T_INSERT;  break;
-        default :
-          fprintf(stderr, "ERROR:[2] Bad sequence '%c' 0x%02x)\n", b_part[j], b_part[j]);
-          assert(0);
-      }
-
+      wa->globalvote[ct].vote_val = InsVote(b_part[j]);
       ct++;
 
       j++;  //assert(j <= b_len);
@@ -182,12 +161,10 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     //  If a positive delta, delete the base.
 
     if (wa->ped.delta[k] > 0) {
+      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
       wa->globalvote[ct].frag_sub  = i;
       wa->globalvote[ct].align_sub = p;
       wa->globalvote[ct].vote_val  = DELETE;
-
-      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
-
       ct++;
 
       i++;  assert(i <= a_len);
@@ -205,17 +182,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     if (a_part[i] != b_part[j]) {
       wa->globalvote[ct].frag_sub  = i;
       wa->globalvote[ct].align_sub = p;
-
-      switch (b_part[j]) {
-        case 'a':  wa->globalvote[ct].vote_val = A_SUBST;  break;
-        case 'c':  wa->globalvote[ct].vote_val = C_SUBST;  break;
-        case 'g':  wa->globalvote[ct].vote_val = G_SUBST;  break;
-        case 't':  wa->globalvote[ct].vote_val = T_SUBST;  break;
-        default :
-          fprintf(stderr, "ERROR:[3] Bad sequence '%c' 0x%02x)\n", b_part[j], b_part[j]);
-          assert(0);
-      }
-
+      wa->globalvote[ct].vote_val = SubstVote(b_part[j]);
       ct++;
     }
 
