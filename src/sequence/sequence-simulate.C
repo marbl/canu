@@ -39,23 +39,26 @@ using namespace std;
 
 void
 simulateParameters::finalize() {
-  char *path = findSharedFile("share/sequence", distribName);
 
-  if (path == NULL) {
-    fprintf(stderr, "ERROR: File '%s' doesn't exist, and not in any data directory I know about.\n", distribName);
-    exit(1);
-  }
+  if (distribName[0]) {
+    char *path = findSharedFile("share/sequence", distribName);
 
-  //  If the path is a file -- which it should be -- load it.  Else, fail.
+    if (path == NULL) {
+      fprintf(stderr, "ERROR: File '%s' doesn't exist, and not in any data directory I know about.\n", distribName);
+      exit(1);
+    }
 
-  if (fileExists(path) == true) {
-    fprintf(stderr, "load '%s'\n", path);
-    dist.loadDistribution(path);
-  }
+    //  If the path is a file -- which it should be -- load it.  Else, fail.
 
-  else {
-    fprintf(stderr, "ERROR: File '%s' doesn't exist, and not in any data directory I know about.\n", distribName);
-    exit(1);
+    if (fileExists(path) == true) {
+      fprintf(stderr, "load '%s'\n", path);
+      dist.loadDistribution(path);
+    }
+
+    else {
+      fprintf(stderr, "ERROR: File '%s' doesn't exist, and not in any data directory I know about.\n", distribName);
+      exit(1);
+    }
   }
 }
 
