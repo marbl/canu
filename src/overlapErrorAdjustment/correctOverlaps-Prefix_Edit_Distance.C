@@ -207,8 +207,8 @@ Prefix_Edit_Dist(const char    *A,  int32 m,
   int32  Max_Score_Best_d = 0;
   int32  Max_Score_Best_e = 0;
 
-  int32 e=1;
-  for (; e<=Error_Limit; e++) {
+  int32 e;
+  for (e = 1; e <= Error_Limit; e++) {
     if (WA->Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space(WA);
 
@@ -312,7 +312,9 @@ Prefix_Edit_Dist(const char    *A,  int32 m,
   //FIXME this might be not true!!!
   //  if (Left > Right)
   //    break;
-  assert(e == Error_Limit + 1);
-  return(Error_Limit + 1);
+  //assert(e == Error_Limit + 1);
+  assert(e == Max_Score_Best_e);
+  //fprintf(stderr, "e=%d Max_Score_Best_e=%d", e, Max_Score_Best_e);
+  return e;
 }
 
