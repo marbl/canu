@@ -397,7 +397,10 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
   int32 alignment_len;
   std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, a_end);
 
-  assert(all_errors == events);
+  if (*match_to_end && all_errors != events) {
+      fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
+  }
+  assert(!*match_to_end || all_errors == events);
 
   //  FIXME??? ped->delta isn't used
 

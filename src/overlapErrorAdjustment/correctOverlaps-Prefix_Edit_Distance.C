@@ -305,15 +305,7 @@ Prefix_Edit_Dist(const char    *A,  int32 m,
   T_End        = Max_Score_Len + Max_Score_Best_d;
   Match_To_End = false;
 
-  //  findErrors is returning Max_Score_Best_e.  So does overlapper.
-  //  The original return was just e, but the only way we get here is if the e loop
-  //  exits with e = Error_Limit+1.
-  
-  //FIXME this might be not true!!!
-  //  if (Left > Right)
-  //    break;
-  //assert(e == Error_Limit + 1);
-  assert(e == Max_Score_Best_e);
+  //assert(e == Max_Score_Best_e);
   //fprintf(stderr, "e=%d Max_Score_Best_e=%d", e, Max_Score_Best_e);
   return e;
 }
