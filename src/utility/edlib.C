@@ -424,6 +424,47 @@ edlibAlignmentAnalyze(const unsigned char *a,
 }
 
 
+
+void
+edlibAlignmentToDelta(const unsigned char *a,
+                      uint32   aLength,
+                      int32   *&delta,
+                      uint32   &deltaLen,
+                      uint32   &deltaMax) {
+
+  if (deltaMax < aLength)
+    resizeArray(delta, deltaLen, deltaMax, aLength + 1, resizeArray_doNothing);
+
+  int32  nAlign = 0;
+
+  for (uint32 ii=0; ii<aLength; ii++) {
+    switch (a[ii]) {
+      case EDLIB_EDOP_MATCH:
+      case EDLIB_EDOP_MISMATCH:
+        nAlign++;
+        break;
+
+      case EDLIB_EDOP_INSERT:
+        delta[deltaLen++] =  nAlign;
+        nAlign = 0;
+        break;
+
+      case EDLIB_EDOP_DELETE:
+        delta[deltaLen++] = -nAlign;
+        nAlign=0;
+        break;
+
+      default:
+        assert(0);
+        break;
+    }
+
+    assert(deltaLen <= deltaMax);
+  }
+}
+
+
+
 void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength, int tgtStart, int tgtEnd, int qryStart, int qryEnd, const char *tgt, const char *qry, char *tgt_aln_str, char *qry_aln_str) {
    for (int a = 0, qryPos=qryStart, tgtPos=tgtStart; a < alignmentLength; a++) {
       assert(qryPos <= qryEnd && tgtPos <= tgtEnd);

@@ -269,6 +269,12 @@ void edlibAlignmentAnalyze(const unsigned char *alignment,
                            uint32  &nDeleteOpen,
                            uint32  &nDelete);
 
+void edlibAlignmentToDelta(const unsigned char *a,
+                           uint32   aLength,
+                           int32   *&delta,
+                           uint32   &deltaLen,
+                           uint32   &deltaMax);
+
 void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength,
                              int tgtStart, int tgtEnd,
                              int qryStart, int qryEnd,

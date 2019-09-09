@@ -29,11 +29,19 @@
 #include "edlib.H"
 
 
+//  EDLIB
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   EdlibAlignResult   &result,
                   char *aseq, int32 abgn, int32 aend,
                   char *bseq, int32 bbgn, int32 bend,
+                  int32   sub);
+
+//  ORIGINAL
+void
+Analyze_Alignment(Thread_Work_Area_t *wa,
+                  char   *a_part, int32 a_len, int32 a_offset,
+                  char   *b_part, int32 b_len,
                   int32   sub);
 
 
@@ -111,6 +119,17 @@ Process_Olap(Olap_Info_t        *olap,
                                                            EDLIB_MODE_NW,
                                                            EDLIB_TASK_PATH));
 
+#define WITH_DELTA
+
+#ifdef WITH_DELTA
+  int32   *delta    = NULL;
+  uint32   deltaLen = 0;
+  uint32   deltaMax = 0;
+
+  edlibAlignmentToDelta(result.alignment, result.alignmentLength,
+                        delta, deltaLen, deltaMax);
+#endif
+
   //  The original code was testing only if (errors <= wa->G->Error_Bound[olap_len]) to decide
   //  if the alignment was any good.  It'd be nice to get rid of that array.
 
@@ -123,14 +142,18 @@ Process_Olap(Olap_Info_t        *olap,
     //fprintf(stderr, "numLocations %d editDistance %d limit %d\n",
     //        result.numLocations, result.editDistance, wa->G->Error_Bound[olap_len]);
 
-    char  *aaln = new char [result.alignmentLength + 1];
-    char  *baln = new char [result.alignmentLength + 1];
-
     Analyze_Alignment(wa,
                       result,
                       a_seq, abgn, aend,
                       b_seq, bbgn, bend,
                       ri);
+
+#ifdef WITH_DELTA
+    Analyze_Alignment(wa,
+                      a_seq, aend - abgn, abgn,
+                      b_seq, bend - bbgn,
+                      ri);
+#endif
   }
 
   else {
@@ -138,6 +161,10 @@ Process_Olap(Olap_Info_t        *olap,
     //        result.numLocations, result.editDistance, wa->G->Error_Bound[olap_len]);
     wa->failedOlaps++;
   }
+
+#ifdef WITH_DELTA
+  delete [] delta;
+#endif
 
   edlibFreeAlignResult(result);
 }
