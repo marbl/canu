@@ -119,6 +119,8 @@ Process_Overlaps(void *ptr){
 
       bases[readLen] = 0;
 
+      assert(strlen(bases) == readLen);
+
       //  Generate overlaps.
 
       Find_Overlaps(bases, readLen, fi, FORWARD, WA);
