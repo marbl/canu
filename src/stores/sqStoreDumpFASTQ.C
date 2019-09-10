@@ -280,6 +280,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-compressed") == 0) {
       readType |=  sqRead_compressed;
 
+    } else if (strcmp(argv[arg], "-normal") == 0) {
+      readType |=  sqRead_normal;
 
 #if 0
     } else if (strcmp(argv[arg], "-c") == 0) {
@@ -354,6 +356,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -trimmed            Dump the trimmed version of the raw/corrected read.\n");
     fprintf(stderr, "  -compressed         Dump the compressed version of the raw/corrected read.\n");
+    fprintf(stderr, "  -normal             Dump the uncompressed version of the raw/corrected read.\n");
+    fprintf(stderr, "                        (for stores that are by default compressing homopolymers)\n");
     fprintf(stderr, "\n");
 #if 0
     fprintf(stderr, " An Overlap Based Trimming clear range file can be supplied (BUT NOT WIDELY TESTED):\n");
