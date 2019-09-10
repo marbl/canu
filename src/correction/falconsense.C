@@ -557,7 +557,7 @@ main(int argc, char **argv) {
     //    4           - padding on chunk
     //    cacheEntry  - storage internal to the cache.
 
-    for (uint32 ii=0; ii <= lastID; ii++) {
+    for (uint32 ii=1; ii <= lastID; ii++) {
       readLens[ii] = 12 + seqStore->sqStore_getReadLength(ii, sqRead_raw) / 4 + 4 + sizeof(sqCacheEntry);   //  Round up, and 3 extra uint32.
       readRefs[ii] = 0;
     }

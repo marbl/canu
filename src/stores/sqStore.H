@@ -347,6 +347,8 @@ sqReadSeq *
 sqStore::sqStore_getReadSeq(uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
 
+  assert(id > 0);
+
   return((seq == NULL) ? NULL : &seq[id]);
 }
 
@@ -360,6 +362,8 @@ inline
 uint32
 sqStore::sqStore_getReadLength(uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
 
   if (w & sqRead_trimmed)
     return(((seq == NULL) ||
@@ -382,6 +386,8 @@ uint32
 sqStore::sqStore_getClearBgn  (uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
 
+  assert(id > 0);
+
   if (seq == NULL)
     return(0);
 
@@ -396,6 +402,8 @@ inline
 uint32
 sqStore::sqStore_getClearEnd  (uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
 
   if (seq == NULL)
     return(0);
@@ -412,6 +420,8 @@ bool
 sqStore::sqStore_isValidRead(uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
 
+  assert(id > 0);
+
   if (seq == NULL)
     return(false);
 
@@ -427,6 +437,8 @@ bool
 sqStore::sqStore_isIgnoredRead(uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
 
+  assert(id > 0);
+
   if (seq == NULL)
     return(false);
 
@@ -441,6 +453,8 @@ inline
 bool
 sqStore::sqStore_isTrimmedRead(uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
 
   return((seq == NULL) ? false : seq[id].sqReadSeq_trimmed());
 }
