@@ -62,8 +62,10 @@ sqStore::sqStore_setClearRange(uint32 id,
 
   uint32    clen  = homopolyCompress(read->sqRead_sequence(norm), nlen, NULL, ntoc);
 
-  uint32    nbgn, nend;   //  Clear range in normal sequence
-  uint32    cbgn, cend;   //  Clear range in compressed sequence
+  assert(clen == sqStore_getReadLength(id, sqRead_corrected | sqRead_compressed));
+
+  uint32    nbgn=0, nend=0;   //  Clear range in normal sequence
+  uint32    cbgn=0, cend=0;   //  Clear range in compressed sequence
 
   //  Short clear ranges should be handled outside this function - by
   //  flagging the read to be ignored.  'end' == 0 when compressed is true
