@@ -71,14 +71,21 @@ const uint64 AS_BLOBFILE_MAX_SIZE  = 1024 * 1024 * 1024;
 //    cor | compressed             -- nonsense?
 //    cor | compressed | trimmed   -- nonsense?
 //
+//  The need for sqRead_normal arises when the store is set to return
+//  homopoly compressed reads by default (if file 'homopolymerCompression'
+//  exists).  sqRead_normal prevents sqStore_loadMetadata from enabling
+//  homopoly compression.  It is otherwise not used (and so gets a quite
+//  bogus value).
+
 typedef uint32  sqRead_which;
 
-const sqRead_which sqRead_unset      = 0x0000;
-const sqRead_which sqRead_raw        = 0x0001;
-const sqRead_which sqRead_corrected  = 0x0002;
-const sqRead_which sqRead_compressed = 0x0004;
-const sqRead_which sqRead_trimmed    = 0x0008;
-const sqRead_which sqRead_allset     = 0x0010;   //  Used to size an array.
+const sqRead_which sqRead_unset      = 0x0000;   //  Nothing specified, query the store to decide what to return.
+const sqRead_which sqRead_raw        = 0x0001;   //  Use noisy sequence.
+const sqRead_which sqRead_corrected  = 0x0002;   //  Use corrected sequence.
+const sqRead_which sqRead_normal     = 0x0080;   //  Return normal uncompressed bases.
+const sqRead_which sqRead_compressed = 0x0004;   //  Return compressed bases.
+const sqRead_which sqRead_trimmed    = 0x0008;   //  Return trimmed bases.
+const sqRead_which sqRead_largest    = 0x0010;   //  Used to size an array.
 
 extern
 sqRead_which  sqRead_defaultVersion;
@@ -109,6 +116,9 @@ toString(sqRead_which w) {
     case sqRead_corrected | c:    return("corrected-compressed");            break;
     case sqRead_corrected | t:    return("corrected-trimmed");               break;
     case sqRead_corrected | ct:   return("corrected-compressed-trimmed");    break;
+
+    case sqRead_compressed:       return("compressed");
+    case sqRead_trimmed:          return("trimmed");
 
     default:                      return("undefined-mode");                  break;
   }

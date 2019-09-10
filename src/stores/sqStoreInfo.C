@@ -53,7 +53,7 @@ sqStoreInfo::sqStoreInfo() {
   _numLibraries       = 0;
   _numReads           = 0;
 
-  for (uint32 ii=0; ii<sqRead_allset; ii++) {
+  for (uint32 ii=0; ii<sqRead_largest; ii++) {
     _reads[ii] = 0;
     _bases[ii] = 0;
   }
@@ -164,7 +164,7 @@ sqStoreInfo::update(sqReadSeq  *rawU,
                     sqReadSeq  *corU,
                     sqReadSeq  *corC) {
 
-  for (sqRead_which ii=0; ii<sqRead_allset; ii++) {
+  for (sqRead_which ii=0; ii<sqRead_largest; ii++) {
     _reads[ii] = 0;
     _bases[ii] = 0;
   }

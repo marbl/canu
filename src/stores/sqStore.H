@@ -158,8 +158,8 @@ private:
   uint32    _numLibraries;       //  Counts of types of things we have loaded (next
   uint32    _numReads;           //    available index into _libraries and _reads in sqStore)
 
-  uint64    _reads[sqRead_allset];
-  uint64    _bases[sqRead_allset];
+  uint64    _reads[sqRead_largest];
+  uint64    _bases[sqRead_largest];
 
   friend class sqStore;
 };

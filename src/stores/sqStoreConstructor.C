@@ -60,9 +60,9 @@ sqStore::sqStore_loadMetadata(void) {
   AS_UTL_loadFile(_storePath, '/', "libraries", _libraries, _librariesAlloc);
   AS_UTL_loadFile(_storePath, '/', "reads",     _meta,      _readsAlloc);
 
-  //  If the user hasn't set a default version (via sqRead_setDefaultVersion()
-  //  before a sqStore object is constructed), pick the plausible most recent
-  //  version.
+  //  If the user hasn't set a default version (by calling
+  //  sqRead_setDefaultVersion() before a sqStore object is constructed),
+  //  pick the plausible most recent version.
 
   if (sqRead_defaultVersion == sqRead_unset) {
     if (sqStore_getNumReads(sqRead_raw)                        > 0)   sqRead_defaultVersion = sqRead_raw;
@@ -83,8 +83,11 @@ sqStore::sqStore_loadMetadata(void) {
 
   //  The store itself can now insist that 'compressed' reads be used by default.
 
-  if (fileExists(sqStore_path(), '/', "homopolymerCompression") == true)
-    sqRead_defaultVersion |= sqRead_compressed;
+  if (((sqRead_defaultVersion & sqRead_normal) == sqRead_unset) &&
+      (fileExists(sqStore_path(), '/', "homopolymerCompression") == true)) {
+    sqRead_defaultVersion &= ~sqRead_normal;
+    sqRead_defaultVersion |=  sqRead_compressed;
+  }
 
   //  Default version MUST be set now.
 
