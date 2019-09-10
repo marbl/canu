@@ -137,9 +137,16 @@ kmerCountExactLookup::configure(void) {
   uint64  minSpace   = UINT64_MAX;
   uint64  optSpace   = UINT64_MAX;
 
+  //  _nSuffix here is just the number of distinct kmers in the input.  We'll
+  //  search for prefix sizes up to that size plus a bit more to show that
+  //  what we pick really is the best size.
+
   uint32  pbMin      = 0;
   uint32  pbOpt      = 0;
-  uint32  pbMax      = countNumberOfBits64(32 * _nSuffix) - 1;
+  uint32  pbMax      = countNumberOfBits64(_nSuffix) + 4;
+
+  if (pbMax > kmer::merSize() * 2)
+    pbMax = kmer::merSize() * 2;
 
   for (uint32 pb=1; pb<pbMax; pb++) {
     uint64  nprefix = (uint64)1 << pb;
