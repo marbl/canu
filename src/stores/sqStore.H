@@ -442,6 +442,9 @@ sqStore::sqStore_isIgnoredRead(uint32 id, sqRead_which w) {
   if (seq == NULL)
     return(false);
 
+  if (sqStore_isValidRead(id, w) == false)
+    return(true);
+
   if (w & sqRead_trimmed)
     return(seq[id].sqReadSeq_ignoreT());
   else
