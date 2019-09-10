@@ -38,7 +38,7 @@ using namespace std;
 
 
 
-sqCache::sqCache(sqStore *seqStore, sqRead_which version,  uint64 memoryLimit) {
+sqCache::sqCache(sqStore *seqStore, sqRead_which which,  uint64 memoryLimit) {
 
   _seqStore        =  seqStore;
   _nReads          = _seqStore->sqStore_lastReadID();
@@ -47,7 +47,9 @@ sqCache::sqCache(sqStore *seqStore, sqRead_which version,  uint64 memoryLimit) {
   _trackExpiration = false;
   _noMoreLoads     = false;
 
-  _version         =  version;
+  _which           = which;
+  _compressed      = ((_which & sqRead_compressed) == sqRead_unset) ? false : true;
+  _trimmed         = ((_which & sqRead_trimmed)    == sqRead_unset) ? false : true;
 
   _memoryLimit   = memoryLimit * 1024 * 1024 * 1024;
 
@@ -69,28 +71,45 @@ sqCache::sqCache(sqStore *seqStore, sqRead_which version,  uint64 memoryLimit) {
   uint32  nReads = 0;
   uint64  nBases = 0;
 
-  for (uint32 id=0; id <= _nReads; id++) {
-    if (_version != sqRead_trimmed) {
-      _reads[id]._readLength = _seqStore->sqStore_getReadLength(id, _version);
-      _reads[id]._bgn        = 0;
-      _reads[id]._end        = _reads[id]._readLength;
-    } else {
-      _reads[id]._readLength = _seqStore->sqStore_getReadLength(id, _version);
-      _reads[id]._bgn        = _seqStore->sqStore_getClearBgn  (id, _version);
-      _reads[id]._end        = _seqStore->sqStore_getClearEnd  (id, _version);
+  for (uint32 id=1; id <= _nReads; id++) {
+    if (_seqStore->sqStore_isIgnoredRead(id, _which) == true) {
+      _reads[id]._basesLength    = 0;
+      _reads[id]._bgn            = 0;
+      _reads[id]._end            = 0;
+      _reads[id]._dataExpiration = UINT32_MAX;
+      _reads[id]._data           = NULL;
+      continue;
     }
+
+    //  _basesLength is the length of the sequence encoded in _data.  It is NOT
+    //  the length of the read we will be returning.
+
+    if (_which & sqRead_raw)
+      _reads[id]._basesLength = _seqStore->sqStore_getReadLength(id, sqRead_raw);
+
+    if (_which & sqRead_corrected)
+      _reads[id]._basesLength = _seqStore->sqStore_getReadLength(id, sqRead_corrected);
+
+    //  Set bgn and end based on trimming status.
+
+    _reads[id]._bgn = (_trimmed == true) ? _seqStore->sqStore_getClearBgn(id, _which) : 0;
+    _reads[id]._end = (_trimmed == true) ? _seqStore->sqStore_getClearEnd(id, _which) : _seqStore->sqStore_getReadLength(id, _which);
+
+    //  Set the age, expiration and clear the data pointer.
 
     //_reads[id]._dataAge        = 0;
     _reads[id]._dataExpiration = UINT32_MAX;
     _reads[id]._data           = NULL;
 
+    //  Do some accounting.
+
     if (sqCache_getLength(id) > 0) {
       nReads += 1;
-      nBases += _reads[id]._readLength;
+      nBases += _reads[id]._end - _reads[id]._bgn;
     }
   }
 
-  fprintf(stderr, "sqCache: found %u %s reads with %lu bases.\n", nReads, toString(_version), nBases);
+  fprintf(stderr, "sqCache: found %u %s reads with %lu bases.\n", nReads, toString(_which), nBases);
 }
 
 
@@ -137,11 +156,11 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
 
   //  If no read to load, don't load it.
 
-  if (_reads[id]._readLength == 0)
+  if (_reads[id]._basesLength == 0)
     return;
 
   //fprintf(stderr, "Loading read %u of length %u with expiration %u\n",
-  //        id, _reads[id]._readLength, expiration);
+  //        id, _reads[id]._basesLength, expiration);
 
   assert(_noMoreLoads == false);
 
@@ -174,7 +193,7 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
 
   //  Save either the raw or corrected sequence.
 
-  uint8   *bptr = (_version & sqRead_raw) ? rptr : cptr;
+  uint8   *bptr = (_which & sqRead_raw) ? rptr : cptr;
   uint32   blen = *(uint32 *)(bptr + 4) + 8;
 
   //  If we have a gigantic storage space for read data, use that, otherwise,
@@ -244,9 +263,7 @@ sqCache::sqCache_getSequence(uint32    id,
   //  Decide how many bases are encoded in the encoding and make space to
   //  decode the entire sequence (that is, the untrimmed sequence).
 
-  seqLen = _reads[id]._readLength;
-
-  resizeArray(seq, 0, seqMax, seqLen + 1, resizeArray_doNothing);
+  resizeArray(seq, 0, seqMax, _reads[id]._basesLength + 1, resizeArray_doNothing);
 
   //  Decode it.
 
@@ -256,20 +273,29 @@ sqCache::sqCache_getSequence(uint32    id,
 
   if      (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
-    decode2bitSequence(chunk, cLen, seq, seqLen);
+    decode2bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
 
   else if (((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
-    decode3bitSequence(chunk, cLen, seq, seqLen);
+    decode3bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
 
   else if (((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
-    decode8bitSequence(chunk, cLen, seq, seqLen);
+    decode8bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
+
+  //  If a compressed read, we need to ... compress it.
+  //  If not compressed, the (untrimmed) length is exactly basesLen.
+
+  if (_compressed)
+    seqLen = homopolyCompress(seq, _reads[id]._basesLength, seq);
+  else
+    seqLen = _reads[id]._basesLength;
 
   //  If a trimmed read, we need to ... trim it.
+  //  If not trimmed, seqLen is already set, as is seq, so we're done.
 
-  if (_version == sqRead_trimmed) {
-    seqLen = sqCache_getLength(id);
+  if (_trimmed) {
+    seqLen = _reads[id]._end - _reads[id]._bgn;
 
     if (_reads[id]._bgn > 0)
       memmove(seq, seq + _reads[id]._bgn, sizeof(char) * seqLen);
@@ -324,9 +350,9 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
   uint64  nBases = 0;
 
   for (uint32 id=bgnID; id <= endID; id++) {
-    if (_reads[id]._readLength > 0) {
+    if (_reads[id]._basesLength > 0) {
       nReads += 1;
-      nBases += _reads[id]._readLength;
+      nBases += _reads[id]._end - _reads[id]._bgn;
     }
   }
 
