@@ -50,8 +50,7 @@ uint32 encode8bitSequence(uint8 *&chunk, char *seq, uint32 seqLen);
 
 
 //  Decode an encoded sequence (in chunk) of length chunkLen.
-//  If seq is NULL, space will be allocated, otherwise, seqLen+1 bytes
-//  must be allocated.
+//  seq must be allocated to have seqLen+1 bytes.
 //  seqLen must be the length of the sequence to decode.
 void   decode2bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
 void   decode3bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen);

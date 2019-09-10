@@ -257,8 +257,7 @@ void
 decode2bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
   uint32       chunkPos = 0;
 
-  if (seq == NULL)
-    seq = new char [seqLen + 1];
+  assert(seq != NULL);
 
   for (uint32 ii=0; ii<seqLen; ) {
     if (chunkPos == chunkLen) {
@@ -338,8 +337,7 @@ void
 decode3bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
   uint32       chunkPos = 0;
 
-  if (seq == NULL)
-    seq = new char [seqLen + 1];
+  assert(seq != NULL);
 
   for (uint32 ii=0; ii<seqLen; ) {
     if (chunkPos == chunkLen) {
@@ -426,8 +424,7 @@ encode3bitSequence(uint8 *&chunk, char *seq, uint32 seqLen) {
 void
 decode8bitSequence(uint8 *chunk, uint32 chunkLen, char *seq, uint32 seqLen) {
 
-  if (seq == NULL)
-    seq = new char [seqLen + 1];
+  assert(seq != NULL);
 
   for (uint32 ii=0; ii<seqLen; ii++)
     seq[ii] = chunk[ii];
