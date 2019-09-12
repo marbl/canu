@@ -341,7 +341,7 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
     //exploring sequence to the right
     for (int32 shift = 0; shift < k; ++shift) {
       if (reg_len + shift > remaining)
-        continue;
+        break;
       std::vector<int32> stats = CollectKmerStat(seq + shift, reg_len, k);
       if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
         return true;
@@ -351,7 +351,7 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
     //exploring sequence to the left
     for (int32 shift = 0; shift < k; ++shift) {
       if (reg_len + shift > offset)
-        continue;
+        break;
       std::vector<int32> stats = CollectKmerStat(seq - shift - 1, -reg_len, k);
       if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
         return true;
