@@ -276,13 +276,13 @@ static
 int32
 Nucl2Int(char nucl) {
   switch (nucl) {
-    case 'A':
+    case 'a':
       return 0; 
-    case 'C':
+    case 'c':
       return 1; 
-    case 'G':
+    case 'g':
       return 2; 
-    case 'T':
+    case 't':
       return 3; 
     default:
       assert(false);
@@ -344,6 +344,11 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
         break;
       std::vector<int32> stats = CollectKmerStat(seq + shift, reg_len, k);
       if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
+        char subbuff[reg_len + 1];
+        memcpy(subbuff, seq + shift, reg_len);
+        subbuff[reg_len] = '\0';
+        fprintf(stderr, "Trivial DNA (k=%d) upstream\n", k);
+        fprintf(stderr, "%s\n", subbuff);
         return true;
       }
     }
@@ -354,6 +359,11 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
         break;
       std::vector<int32> stats = CollectKmerStat(seq - shift - 1, -reg_len, k);
       if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
+        char subbuff[reg_len + 1];
+        memcpy(subbuff, seq - shift - reg_len, reg_len);
+        subbuff[reg_len] = '\0';
+        fprintf(stderr, "Trivial DNA (k=%d) downstream\n", k);
+        fprintf(stderr, "%s\n", subbuff);
         return true;
       }
     }
@@ -385,14 +395,17 @@ ComputeErrors(const char* a_part, const char* b_part,
     for (int32 m=1; m<abs(deltas[k]); m++) {
       if (a_part[i] != b_part[j]) {
         //Substitution at i in a_part (p in "alignment")
+        fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
 
-        if (check_trivial_dna && 
-            (CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num) ||
-             CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num))) {
-          //Do not report as error
-        } else {
-          ct++;
+        bool report = true;
+        if (check_trivial_dna) {
+          fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+          report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
+          fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+          report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
         }
+        if (report)
+          ct++;
       }
     
       i++;  //assert(i <= a_len);
@@ -404,14 +417,16 @@ ComputeErrors(const char* a_part, const char* b_part,
 
     if (deltas[k] < 0) {
       //Insertion at i - 1 in a_part (p in "alignment")
-      //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      if (check_trivial_dna && 
-          (CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num) ||
-           CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num))) {
-        //Do not report as error
-      } else {
-        ct++;
+      fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
+      bool report = true;
+      if (check_trivial_dna) {
+        fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+        report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
+        fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+        report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
+      if (report)
+        ct++;
       j++;  //assert(j <= b_len);
       p++;
     }
@@ -419,21 +434,21 @@ ComputeErrors(const char* a_part, const char* b_part,
     //  If a positive delta, delete the base.
 
     if (deltas[k] > 0) {
-      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
+      fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
       //Deletion at i in a_part (p in "alignment")
-      if (check_trivial_dna && 
-          (CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num) ||
-           CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num))) {
-        //Do not report as error
-      } else {
-        ct++;
+      bool report = true;
+      if (check_trivial_dna) {
+        fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+        report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
+        fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+        report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
+      if (report)
+        ct++;
       i++;  //assert(i <= a_len);
       p++;
     }
   }
-
-  assert(i <= a_len);
 
   // No more deltas.  While there is still sequence, add matches or mismatches.
   while (i < a_len) {
@@ -447,6 +462,9 @@ ComputeErrors(const char* a_part, const char* b_part,
     p++;
   }
   
+  assert(i <= a_len);
+  assert(j <= b_len);
+
   return std::make_pair(ct, p);
 }
 
@@ -509,12 +527,22 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
   int32 events;
   int32 alignment_len;
 
-  static const bool check_trivial_dna = false;
+  char subbuff_a[a_end + 1];
+  memcpy(subbuff_a, a_part, a_end);
+  subbuff_a[a_end] = '\0';
+  char subbuff_b[b_end + 1];
+  memcpy(subbuff_b, b_part, b_end);
+  subbuff_b[b_end] = '\0';
+  fprintf(stderr, "Processing alignment of:\n");
+  fprintf(stderr, "%s\n", subbuff_a);
+  fprintf(stderr, "%s\n", subbuff_b);
+
+  static const bool check_trivial_dna = true;
   std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, 
                                                   a_end, b_end, check_trivial_dna);
 
   if (!check_trivial_dna && *match_to_end && all_errors != events) {
-      fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
+    fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
   }
   assert(check_trivial_dna || !*match_to_end || all_errors == events);
 
@@ -655,7 +683,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
     for (; thisOvl <= lastOvl && G->olaps[thisOvl].b_iid == curID; thisOvl++) {
       //FIXME isn't it the same as G->olaps[thisOvl]
       const Olap_Info_t  &olap = *(G->olaps + thisOvl);
-      //fprintf(stderr, "processing overlap %u - %u\n", olap->a_iid, olap->b_iid);
+      fprintf(stderr, "processing overlap %u - %u\n", olap.a_iid, olap.b_iid);
 
       if (olap.normal) {
       //  fprintf(stderr, "b_part = fseq %40.40s\n", fseq);
