@@ -272,12 +272,101 @@ Hang_Adjust(int32     hang,
   return(hang + delta);
 }
 
+static
+int32
+Nucl2Int(char nucl) {
+  switch (nucl) {
+    case 'A':
+      return 0; 
+    case 'C':
+      return 1; 
+    case 'G':
+      return 2; 
+    case 'T':
+      return 3; 
+    default:
+      assert(false);
+  }
+}
 
+//If prefix_len is negative -- go back in the string
+static
+int32
+Convert2Int(const char* seq, int32 prefix_len) {
+  assert(prefix_len != 0 && std::abs(prefix_len) < 16);
+  if (prefix_len > 0) {
+    int32 ans = 0;
+    for (int32 i = 0; i < prefix_len; ++i) {
+      assert(seq[i] != '\0');
+      ans = (ans << 2) | Nucl2Int(seq[i]);
+    }
+    return ans;
+  } else {
+    int32 ans = 0;
+    for (int32 i = 0; i < -prefix_len; ++i) {
+      ans |= Nucl2Int(*(seq - i)) << (2 * i);
+    }
+    return ans;
+  }
+}
 
-//  int32              delta[AS_MAX_READLEN];
-//  int32              deltaLen;
+//Collects kmer stats for the region of length |reg_len|
+//If reg_len is negative -- go back in the string
+static
+std::vector<int32>
+CollectKmerStat(const char* seq, int32 reg_len, int32 kmer_len) {
+  assert(kmer_len > 0);
+  assert(reg_len != 0);
+  std::vector<int32> stats(1 << (2 * kmer_len), 0);
+  if (reg_len > 0) {
+    for (int32 i = 0; (i + kmer_len) <= reg_len; i = i + kmer_len) {
+      stats[Convert2Int(seq + i, kmer_len)]++;
+    }
+  } else {
+    for (int32 i = 0; (i + kmer_len) <= -reg_len; i = i + kmer_len) {
+      stats[Convert2Int(seq - i, -kmer_len)]++;
+    }
+  }
+  return stats;
+}
+
+static
+bool
+CheckTrivialDNA(const char* seq, int32 remaining, int32 offset, 
+    int32 size_factor, int32 repeat_num,
+    int32 min_k = 2, int32 max_k = 5) {
+  for (int32 k = min_k; k <= max_k; ++k) {
+    int32 reg_len = k * size_factor;
+
+    //exploring sequence to the right
+    for (int32 shift = 0; shift < k; ++shift) {
+      if (reg_len + shift > remaining)
+        continue;
+      std::vector<int32> stats = CollectKmerStat(seq + shift, reg_len, k);
+      if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
+        return true;
+      }
+    }
+
+    //exploring sequence to the left
+    for (int32 shift = 0; shift < k; ++shift) {
+      if (reg_len + shift > offset)
+        continue;
+      std::vector<int32> stats = CollectKmerStat(seq - shift - 1, -reg_len, k);
+      if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+static
 std::pair<size_t, size_t>
-ComputeErrors(const char* a_part, const char* b_part, int32 delta_len, int32 *deltas, int32 a_len) {
+ComputeErrors(const char* a_part, const char* b_part, 
+    int32 delta_len, int32 *deltas, 
+    int32 a_len, int32 b_len,
+    bool check_trivial_dna = false) {
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
   int32  ct = 0;
   //position in a_part
@@ -287,15 +376,25 @@ ComputeErrors(const char* a_part, const char* b_part, int32 delta_len, int32 *de
   //position in "alignment" of a_part and b_part
   int32  p = 0;
 
+  const int32 size_factor = 6;
+  const int32 repeat_num = 6;
   for (int32 k=0; k < delta_len; k++) {
     //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
     //  Add delta[k] - 1 matches or mismatches; +-1 encodes the 'continuation' of the insertion/deletion
     for (int32 m=1; m<abs(deltas[k]); m++) {
       if (a_part[i] != b_part[j]) {
-        //TODO substitution at i in a_part (p in "alignment")
-        ct++;
+        //Substitution at i in a_part (p in "alignment")
+
+        if (check_trivial_dna && 
+            (CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num) ||
+             CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num))) {
+          //Do not report as error
+        } else {
+          ct++;
+        }
       }
+    
       i++;  //assert(i <= a_len);
       j++;  //assert(j <= b_len);
       p++;
@@ -304,9 +403,15 @@ ComputeErrors(const char* a_part, const char* b_part, int32 delta_len, int32 *de
     //  If a negative delta, insert a base.
 
     if (deltas[k] < 0) {
-      //TODO insertion at i - 1 in a_part (p in "alignment")
+      //Insertion at i - 1 in a_part (p in "alignment")
       //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      ct++;
+      if (check_trivial_dna && 
+          (CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num) ||
+           CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num))) {
+        //Do not report as error
+      } else {
+        ct++;
+      }
       j++;  //assert(j <= b_len);
       p++;
     }
@@ -315,8 +420,14 @@ ComputeErrors(const char* a_part, const char* b_part, int32 delta_len, int32 *de
 
     if (deltas[k] > 0) {
       //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
-      //TODO deletion at i in a_part (p in "alignment")
-      ct++;
+      //Deletion at i in a_part (p in "alignment")
+      if (check_trivial_dna && 
+          (CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num) ||
+           CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num))) {
+        //Do not report as error
+      } else {
+        ct++;
+      }
       i++;  //assert(i <= a_len);
       p++;
     }
@@ -339,6 +450,7 @@ ComputeErrors(const char* a_part, const char* b_part, int32 delta_len, int32 *de
   return std::make_pair(ct, p);
 }
 
+static
 void
 PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData, 
             uint32 &fseqLen, char *fseq, char *rseq, 
@@ -375,6 +487,7 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
 }
 
 //returns error rate of the alignment or -1. if (!match_to_end || invalid_olap)
+static
 double
 ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_part_len, const char *b_part, int32 error_bound, 
                  pedWorkArea_t *ped, bool *match_to_end, bool *invalid_olap) {
@@ -395,12 +508,15 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
   //Currently always adding indel events in the delta prefix for the potential future subtraction to work correctly
   int32 events;
   int32 alignment_len;
-  std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, a_end);
 
-  if (*match_to_end && all_errors != events) {
+  static const bool check_trivial_dna = false;
+  std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, 
+                                                  a_end, b_end, check_trivial_dna);
+
+  if (!check_trivial_dna && *match_to_end && all_errors != events) {
       fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
   }
-  assert(!*match_to_end || all_errors == events);
+  assert(check_trivial_dna || !*match_to_end || all_errors == events);
 
   //  FIXME??? ped->delta isn't used
 
