@@ -206,10 +206,12 @@ while (scalar(@ARGV)) {
 
     elsif ($arg eq "-corrected") {
         $readsAreRaw     = 0;
+        addCommandLineOption($arg);
     }
 
     elsif ($arg eq "-trimmed") {
         $readsAreTrimmed = 1;
+        addCommandLineOption($arg);
     }
 
     #  Remember the read files we're given.
