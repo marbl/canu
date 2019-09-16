@@ -277,13 +277,13 @@ int32
 Nucl2Int(char nucl) {
   switch (nucl) {
     case 'a':
-      return 0; 
+      return 0;
     case 'c':
-      return 1; 
+      return 1;
     case 'g':
-      return 2; 
+      return 2;
     case 't':
-      return 3; 
+      return 3;
     default:
       assert(false);
   }
@@ -378,6 +378,8 @@ ComputeErrors(const char* a_part, const char* b_part,
     int32 a_len, int32 b_len,
     bool check_trivial_dna = false) {
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
+  int32  all_ct = 0;
+  //  Processed event counter
   int32  ct = 0;
   //position in a_part
   int32  i = 0;
@@ -404,10 +406,11 @@ ComputeErrors(const char* a_part, const char* b_part,
           fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
           report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
         }
+        all_ct++;
         if (report)
           ct++;
       }
-    
+
       i++;  //assert(i <= a_len);
       j++;  //assert(j <= b_len);
       p++;
@@ -425,6 +428,7 @@ ComputeErrors(const char* a_part, const char* b_part,
         fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
         report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
+      all_ct++;
       if (report)
         ct++;
       j++;  //assert(j <= b_len);
@@ -443,6 +447,7 @@ ComputeErrors(const char* a_part, const char* b_part,
         fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
         report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
+      all_ct++;
       if (report)
         ct++;
       i++;  //assert(i <= a_len);
@@ -453,15 +458,38 @@ ComputeErrors(const char* a_part, const char* b_part,
   // No more deltas.  While there is still sequence, add matches or mismatches.
   while (i < a_len) {
     if (a_part[i] != b_part[j]) {
+      fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
       //TODO substitution at i in a_part (p in "alignment")
-      ct++;
+      bool report = true;
+      if (check_trivial_dna) {
+        fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+        report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
+        fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+        report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
+      }
+      all_ct++;
+      if (report)
+        ct++;
     }
 
     i++;  //assert(i <= a_len);  //  Guaranteed, we're looping on this
     j++;  //assert(j <= b_len);
     p++;
   }
-  
+
+  if (all_ct > 0) {
+    char subbuff_a[a_len + 1];
+    memcpy(subbuff_a, a_part, a_len);
+    subbuff_a[a_len] = '\0';
+    char subbuff_b[b_len + 1];
+    memcpy(subbuff_b, b_part, b_len);
+    subbuff_b[b_len] = '\0';
+    fprintf(stderr, "Was processing alignment of:\n");
+    fprintf(stderr, "A: %s\n", subbuff_a);
+    fprintf(stderr, "B: %s\n", subbuff_b);
+    fprintf(stderr, "Reported %d out of %d\n", ct, all_ct);
+  }
+
   assert(i <= a_len);
   assert(j <= b_len);
 
@@ -470,8 +498,8 @@ ComputeErrors(const char* a_part, const char* b_part,
 
 static
 void
-PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData, 
-            uint32 &fseqLen, char *fseq, char *rseq, 
+PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
+            uint32 &fseqLen, char *fseq, char *rseq,
             uint32 &fadjLen, Adjust_t *fadj, Adjust_t *radj,
             Correction_Output_t  *C, uint64 &Cpos, uint64 Clen) {
   /*const*/ sqRead *read = seqStore->sqStore_getRead(curID);
@@ -523,35 +551,11 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
                                       *match_to_end,
                                       ped);
 
-  //Currently always adding indel events in the delta prefix for the potential future subtraction to work correctly
-  int32 events;
-  int32 alignment_len;
-
-  char subbuff_a[a_end + 1];
-  memcpy(subbuff_a, a_part, a_end);
-  subbuff_a[a_end] = '\0';
-  char subbuff_b[b_end + 1];
-  memcpy(subbuff_b, b_part, b_end);
-  subbuff_b[b_end] = '\0';
-  fprintf(stderr, "Processing alignment of:\n");
-  fprintf(stderr, "%s\n", subbuff_a);
-  fprintf(stderr, "%s\n", subbuff_b);
-
-  static const bool check_trivial_dna = true;
-  std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, 
-                                                  a_end, b_end, check_trivial_dna);
-
-  if (!check_trivial_dna && *match_to_end && all_errors != events) {
-    fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
-  }
-  assert(check_trivial_dna || !*match_to_end || all_errors == events);
-
-  //  FIXME??? ped->delta isn't used
-
   //  ??  These both occur, but the first is much much more common.
   //FIXME Q: why do we need to handle both insertions and deletions here?
 
   //TODO refactor out the code duplication
+  //Adjusting the extremities
   if (ped->deltaLen > 0 && ped->delta[0] == 1 && a_hang > 0) {
     int32  stop = min(ped->deltaLen, (int32) a_hang);  // a_hang is int32:31! FIXME NO it's int64:31
     int32  i = 0;
@@ -571,9 +575,8 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
     a_part     += i;
     a_end      -= i;
     a_part_len -= i;
-    events     -= i;
-    alignment_len -= i;
-
+    all_errors     -= i;
+    //alignment_len -= i;
   } else if (ped->deltaLen > 0 && ped->delta[0] == -1 && a_hang < 0) {
     int32  stop = min(ped->deltaLen, (int32) -a_hang);
     int32  i = 0;
@@ -591,8 +594,8 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
     b_part     += i;
     b_end      -= i;
     b_part_len -= i;
-    events     -= i;
-    alignment_len -= i;
+    all_errors     -= i;
+    //alignment_len -= i;
   }
 
   *invalid_olap = (min(a_end, b_end) <= 0);
@@ -600,6 +603,19 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
   if (!*match_to_end || *invalid_olap) {
     return -1.;
   }
+
+  int32 events;
+  int32 alignment_len;
+
+  static const bool check_trivial_dna = true;
+  //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
+  std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, 
+                                                  a_end, b_end, check_trivial_dna);
+
+  if (!check_trivial_dna && all_errors != events) {
+    fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
+  }
+  assert(check_trivial_dna || all_errors == events);
 
   assert(events >= 0 && alignment_len > 0);
   return (double) events / alignment_len;
@@ -683,7 +699,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
     for (; thisOvl <= lastOvl && G->olaps[thisOvl].b_iid == curID; thisOvl++) {
       //FIXME isn't it the same as G->olaps[thisOvl]
       const Olap_Info_t  &olap = *(G->olaps + thisOvl);
-      fprintf(stderr, "processing overlap %u - %u\n", olap.a_iid, olap.b_iid);
 
       if (olap.normal) {
       //  fprintf(stderr, "b_part = fseq %40.40s\n", fseq);
@@ -722,17 +737,22 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
       bool    match_to_end = false;
       bool    invalid_olap = false;
-      double err_rate = ProcessAlignment(a_part_len, a_part, G->olaps[thisOvl].a_hang, 
+      double err_rate = ProcessAlignment(a_part_len, a_part, olap.a_hang, 
                                          b_part_len, b_part, 
                                          G->Error_Bound[min(a_part_len, b_part_len)], 
                                          ped, &match_to_end, &invalid_olap);
 
+      static const double report_threshold = 0.;
       if (err_rate >= 0.) {
         G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue(err_rate);
         //fprintf(stderr, "REDO - errors = %u / olapLep = %u -- %f\n", errors, olapLen, AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
 
         if (rha)
           rhaPass++;
+
+        if (err_rate > report_threshold) {
+          fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
+        }
       } else {
         Failed_Alignments_Ct++;
 
