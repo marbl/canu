@@ -1188,7 +1188,7 @@ sub checkMinimap ($) {
     close(F);
 
     if (!defined($version)) {
-        addCommandlineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
+        addCommandLineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
         goto cleanupMinimap;
     }
 
