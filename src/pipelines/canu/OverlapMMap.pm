@@ -54,39 +54,34 @@ sub setParameters ($$) {
     my $asm  = shift @_;
     my $base = shift @_;
 
+    my ($numRaw,
+        $numRawTri,
+        $numCor,
+        $numCorTri,
+        $numPacBio,
+        $numNanopore,
+        $numHiFi) = getSequenceStoreStats($asm);
+
     my $parameters;
-    my $numPacBioRaw         = 0;
-    my $numPacBioCorrected   = 0;
-    my $numNanoporeRaw       = 0;
-    my $numNanoporeCorrected = 0;
 
-    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
-    while (<L>) {
-        $numPacBioRaw++           if (m/pacbio-raw/);
-        $numPacBioCorrected++     if (m/pacbio-corrected/);
-        $numNanoporeRaw++         if (m/nanopore-raw/);
-        $numNanoporeCorrected++   if (m/nanopore-corrected/);
-    }
-    close(L);
-
-    if ($numPacBioRaw > 0) {
+    if    (($numRaw > 0) && ($numCor == 0) && ($numPacBio > 0)) {
        $parameters = "-x ava-pb";
     }
 
-    elsif ($numNanoporeRaw > 0) {
+    elsif (($numRaw > 0) && ($numCor == 0) && ($numNanopore > 0)) {
        $parameters = "-x ava-ont";
     }
 
-    elsif ($numPacBioCorrected > 0) {
+    elsif (($numCor > 0) && ($numPacBio > 0)) {
        $parameters = "-x ava-pb"; # -Hk21 -w14"; #tuned to find 1000bp 5% error
     }
 
-    elsif ($numNanoporeCorrected > 0) {
+    elsif (($numCor > 0) && ($numNanopore > 0)) {
        $parameters = "-x ava-ont"; # -k17 -w11"; #tuned to find 1000bp 15% error
     }
 
     else {
-       caFailiure("no known read types found in $base/$asm.seqStore/libraries.txt")
+       caFailure("no known read types found in $base/$asm.seqStore/libraries.txt", undef)
     }
 
     return($parameters);

@@ -30,6 +30,7 @@ require Exporter;
 @ISA    = qw(Exporter);
 @EXPORT = qw(getNumberOfReadsInStore
              getNumberOfBasesInStore
+             getSequenceStoreStats
              getSizeOfSequenceStore
              getExpectedCoverage
              generateReadLengthHistogram
@@ -115,6 +116,65 @@ sub getNumberOfBasesInStore ($$) {
     close(F);
 
     return($nb);
+}
+
+
+
+sub getSequenceStoreStats ($) {
+    my $asm    = shift @_;
+    my $bin    = getBinDirectory();
+
+    my ($numRaw, $numRawTri, $numCor, $numCorTri) = (0, 0, 0, 0);
+    my ($numPacBio, $numNanopore, $numHiFi)       = (0, 0, 0);
+
+    #  Recreate our metadata dumps, if needed.
+
+    if (! -d "./$asm.seqStore") {
+        return(0, 0, 0, 0, 0, 0, 0);
+    }
+
+    if (! -e "./$asm.seqStore/info.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -stats > ./$asm.seqStore/info.txt 2> /dev/null", 1)) {
+            caExit("failed to generate $asm.seqStore/info.txt", undef);
+        }
+    }
+
+    if (! -e "./$asm.seqStore/libraries.txt") {
+        if (runCommandSilently(".", "$bin/sqStoreDumpMetaData -S ./$asm.seqStore -libs > ./$asm.seqStore/libraries.txt 2> /dev/null", 1)) {
+            caExit("failed to generate $asm.seqStore/libraries.txt", undef);
+        }
+    }
+
+    #  Count the number of reads or each type.
+
+    open(L, "< ./$asm.seqStore/info.txt") or caExit("can't open './$asm.seqStore/info.txt' for reading: $!", undef);
+    while (<L>) {
+        s/^\s+//;
+        s/\s+$//;
+
+        my @v = split '\s+', $_;
+
+        $numRaw++         if (($v[2] eq "raw")               && ($v[1] > 0));
+        $numRawTri++      if (($v[2] eq "raw-trimmed")       && ($v[1] > 0));
+        $numCor++         if (($v[2] eq "corrected")         && ($v[1] > 0));
+        $numCorTri++      if (($v[2] eq "corrected-trimmed") && ($v[1] > 0));
+    }
+    close(L);
+
+    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
+    while (<L>) {
+        s/^\s+//;
+        s/\s+$//;
+
+        my @v = split '\s+', $_;
+
+        $numPacBio++       if ($v[1] eq "PacBio");
+        $numNanopore++     if ($v[1] eq "Nanopore");
+        $numHiFi++         if ($v[1] eq "PacBioHiFi");
+    }
+    close(L);
+
+    return($numRaw, $numRawTri, $numCor, $numCorTri, $numPacBio, $numNanopore, $numHiFi);
 }
 
 
