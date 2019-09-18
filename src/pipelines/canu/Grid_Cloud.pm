@@ -1,4 +1,4 @@
-
+     
 ###############################################################################
  #
  #  This file is part of canu, a software program that assembles whole-genome
@@ -67,7 +67,10 @@ use canu::Execution;
 
 #use canu::Grid "formatAllowedResources";
 
-my $showWork = 1;
+my $showWork   = 1;
+
+my $retryCount = 5;    #  Try a few times to upload the file.
+my $retryDelay = 10;   #  Wait a little bit before retrying.
 
 
 #  Convert a/path/to/file to ../../../..
@@ -321,10 +324,10 @@ sub stashFile ($) {
         $path = sanitizeName("$ns/$path");
     }
 
-    my $retries  = 5;    #  Try a few times to upload the file.   (also set in stashFileShellCode())
-    my $delay    = 10;   #  Wait a little bit before retrying.
-
     return   if (! -e $pathname);
+
+    my $retries  = $retryCount;    #  Try a few times to upload the file.
+    my $delay    = $retryDelay;    #  Wait a little bit before retrying.
 
     if (isOS() eq "DNANEXUS") {
         print STDERR "-- Store '$pathname' to storage object '$link'.\n"   if ($showWork);
@@ -340,7 +343,9 @@ sub stashFile ($) {
         while (($retries > 0) &&
                (runCommandSilently(".", "$ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$path/\" --name \"$name\" \"$pathname\"", 0))) { 
             $retries--;
-            print STDERR "stashFile()-- Failed to stash file '$pathname', wait $delay seconds and try again ($retries times left).\n";
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  Failed to store '$pathname'.  Wait $delay seconds and try again ($retries times left).\n";
+            print STDERR "-- WARNING:\n";
             sleep($delay);
         }
 
@@ -452,17 +457,19 @@ sub stashFileShellCode ($$$) {
         $code .= "${indent}  fold=`dirname \"$path/$file\"`\n";
         $code .= "${indent}  name=`basename \"$file\"`\n";
         $code .= "${indent}\n";
-        $code .= "${indent}  $dx rm --recursive \"$pr:$ns/$path/$file\"\n";
+        $code .= "${indent}  if $dx describe --name \"$pr:$ns/$path/$file\" > /dev/null 2>&1 ; then\n";
+        $code .= "${indent}    $dx rm --recursive \"$pr:$ns/$path/$file\"\n";
+        $code .= "${indent}  fi\n";
         $code .= "${indent}\n";
-        $code .= "${indent}  retries=$retries\n";
+        $code .= "${indent}  retries=$retryCount\n";
         $code .= "${indent}  while [ \$retries -gt 0 ] && \\\n";
         $code .= "${indent}        ! $ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$ns/\$fold/\" --name \"\$name\" \"./$file\" ; do\n";
         $code .= "${indent}    retries=`expr \$retries - 1`\n";
-        $code .= "${indent}    echo \"Failed to stash file '$file', wait $delay seconds and try again ($retries times left).\"\n";
-        $code .= "${indent}    sleep $delay\n";
+        $code .= "${indent}    echo \"Failed to stash file '$file', wait $retryDelay seconds and try again (\$retries times left).\"\n";
+        $code .= "${indent}    sleep $retryDelay\n";
         $code .= "${indent}  done\n";
         $code .= "${indent}  if [ \$retries -eq 0 ] ; then\n";
-        $code .= "${indent}    echo Failed to stash file '$file', removing incomplete copy.\n";
+        $code .= "${indent}    echo \"Failed to stash file '$file', removing incomplete copy in '$pr:$ns/$path/$file'.\"\n";
         $code .= "${indent}    $dx rm --recursive \"$pr:$ns/$path/$file\"\n";
         $code .= "${indent}    exit 1\n";
         $code .= "${indent}  fi\n";
@@ -615,7 +622,17 @@ sub stashSeqStore ($) {
     return   if (! -e "$asm.seqStore/info");
 
     if (defined(isOS())) {
-        #  Tar up the store metadata, then upload.
+
+        #  Stash the individual data files.  If they exist in the store, don't restash.
+
+        for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
+            if (! fileExists("$asm.seqStore/blobs.$bIdx", 1)) {
+                stashFile("$asm.seqStore/blobs.$bIdx");
+            }
+        }
+
+        #  Tar up the store metadata, then upload.  If we failed to upload any blob file,
+        #  we won't upload the metadata, and the store will need to be regenerated.
 
         $files  = "./$asm.seqStore.err ";
         $files .= "./$asm.seqStore.ssi ";
@@ -637,14 +654,6 @@ sub stashSeqStore ($) {
         stashFile("$asm.seqStore.tar.gz");
 
         unlink "./$asm.seqStore.tar.gz";
-
-        #  Now stash the individual data files.  If they exist in the store, don't restash.
-
-        for (my $bIdx="0000"; (-e "./$asm.seqStore/blobs.$bIdx"); $bIdx++) {
-            if (! fileExists("$asm.seqStore/blobs.$bIdx", 1)) {
-                stashFile("$asm.seqStore/blobs.$bIdx");
-            }
-        }
     }
 }
 
@@ -656,9 +665,9 @@ sub fetchSeqStore ($) {
     return   if (! fileExists("$asm.seqStore.tar.gz", 1));
 
     if (defined(isOS())) {
-        print STDERR "\n"                                                  if ($showWork);
-        print STDERR "fetchStore()-- Retrieving store '$asm.seqStore'\n"   if ($showWork);
-        print STDERR "\n"                                                  if ($showWork);
+        print STDERR "--\n"                                                   if ($showWork);
+        print STDERR "-- Retrieving '$asm.seqStore' from object storage.\n"   if ($showWork);
+        print STDERR "--\n"                                                   if ($showWork);
 
         fetchFile("$asm.seqStore.tar.gz");
 
@@ -683,7 +692,7 @@ sub fetchSeqStoreShellCode ($$$) {
         $code .= "\n";
         $code .= "${indent}if [ ! -e $root/$asm.seqStore/info ] ; then\n";
         $code .= "${indent}  echo \"\"\n";
-        $code .= "${indent}  echo In '`pwd`', fetching '$asm.seqStore' into '$root'.\n";
+        $code .= "${indent}  echo \"In '`pwd`', fetching '$asm.seqStore' into '$root'.\"\n";
         $code .= "${indent}  echo \"\"\n";
         $code .= "${indent}  cd $root\n";
         $code .= fetchFileShellCode(".", "$asm.seqStore.tar.gz", "${indent}  ");
@@ -777,7 +786,19 @@ sub stashOvlStore ($$) {
     return   if (! -e "./$base/$asm.ovlStore/index");
 
     if (defined(isOS())) {
-        print STDERR "stashOvlStore()-- Saving overlap store '$base/$asm.ovlStore'\n"   if ($showWork);
+        print STDERR "--\n"                                                   if ($showWork);
+        print STDERR "-- Saving '$base/$asm.ovlStore' to object storage.\n"   if ($showWork);
+        print STDERR "--\n"                                                   if ($showWork);
+
+        #  Stash data files.
+
+        for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
+        for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
+            if (! fileExists("$base/$asm.ovlStore/$bIdx<$sIdx>", 1)) {
+                stashFile("$base/$asm.ovlStore/$bIdx<$sIdx>");
+            }
+        }
+        }
 
         #  Stash the store metadata.
 
@@ -794,16 +815,6 @@ sub stashOvlStore ($$) {
 
         stashFile("$base/$asm.ovlStore.tar.gz");
         unlink "$base/$asm.ovlStore.tar.gz";
-
-        #  Stash data files.
-
-        for (my $bIdx="0001"; (-e "./$base/$asm.ovlStore/$bIdx<001>");   $bIdx++) {
-        for (my $sIdx="001";  (-e "./$base/$asm.ovlStore/$bIdx<$sIdx>"); $sIdx++) {
-            if (! fileExists("$base/$asm.ovlStore/$bIdx<$sIdx>", 1)) {
-                stashFile("$base/$asm.ovlStore/$bIdx<$sIdx>");
-            }
-        }
-        }
     }
 }
 
@@ -845,13 +856,6 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "gzip -1c > $base/$asm.ovlStore.tar.gz\n";
         $code .= "\n";
         $code .= stashFileShellCode("$base", "$asm.ovlStore.tar.gz", "");
-        $code .= "#\n";
-        $code .= "#  Upload data files.\n";
-        $code .= "#\n";
-        $code .= "\n";
-        $code .= "for ff in `ls $asm.ovlStore/????\\<???\\>` ; do\n";
-        $code .= stashFileShellCode("$base", "\$ff", "  ");
-        $code .= "done\n";
         $code .= "\n";
     }
 
@@ -868,7 +872,8 @@ sub fetchOvlStore ($$) {
     return   if (! fileExists("$base/$asm.ovlStore.tar.gz"));
 
     if (defined(isOS())) {
-        print STDERR "fetchStore()-- Retrieving store '$base/$asm.ovlStore'\n"   if ($showWork);
+        print STDERR "--\n"                                                         if ($showWork);
+        print STDERR "-- Retrieving '$base/$asm.ovlStore' from object storage.\n"   if ($showWork);
 
         fetchFile("$base/$asm.ovlStore.tar.gz");
 
@@ -877,6 +882,8 @@ sub fetchOvlStore ($$) {
         }
 
         unlink "$base/$asm.ovlStore.tar.gz";
+
+        print STDERR "--\n"                                                         if ($showWork);
     }
 }
 
@@ -892,7 +899,7 @@ sub fetchOvlStoreShellCode ($$$) {
     if (defined(isOS())) {
         $code .= "\n";
         $code .= "${indent}if [ ! -e $root/$base/$asm.ovlStore/index ] ; then\n";
-        $code .= "${indent}  echo In `pwd`, fetching '$base' / '$asm.ovlStore.tar.gz', unzipping in '$root/$base'\n";
+        $code .= "${indent}  echo \"In `pwd`, fetching '$base' / '$asm.ovlStore.tar.gz', unzipping in '$root/$base'.\"\n";
         $code .= fetchFileShellCode($base, "$asm.ovlStore.tar.gz", "${indent}  ");
         $code .= "${indent}  gzip -dc $asm.ovlStore.tar.gz | tar -C $root/$base -xf -\n";
         $code .= "${indent}  rm -f $asm.ovlStore.tar.gz\n";
@@ -944,7 +951,7 @@ sub fetchTigStoreShellCode ($$$$$) {
     if (defined(isOS())) {
         $code .= "\n";
         $code .= "${indent}if [ ! -e $root/$base/$asm.$type/seqDB.v$vers.dat ] ; then\n";
-        $code .= "${indent}  echo In `pwd`, fetching '$base' / '$asm.$type/seqDBv$vers'\n";
+        $code .= "${indent}  echo \"In `pwd`, fetching '$base' / '$asm.$type/seqDBv$vers'/\"\n";
         $code .= "${indent}  mkdir -p $root/$base/$asm.$type\n";
         $code .= "${indent}  cd $root/$base/$asm.$type\n";
         $code .= fetchFileShellCode("$base/$asm.$type", "seqDB.v$vers.dat", "${indent}  ");
@@ -977,17 +984,17 @@ sub stashMerylShellCode ($$$) {
     if (defined(isOS())) {
         $code .= "\n";
         $code .= "${indent}if [ -e ./$name/merylIndex ] ; then\n";
-        $code .= "${indent}  echo In `pwd`, Storing '$path' '$name'\n";
-        $code .= "\n";
-        $code .= "${indent}  tar -cf - ./$name/*Index | gzip -1c > ./$name.tar.gz\n";
-        $code .= stashFileShellCode($path, "$name.tar.gz", "${indent}  ");
-        $code .= "${indent}  rm -f ./$name.tar.gz\n";
+        $code .= "${indent}  echo \"In `pwd`, storing '$path' '$name'.\"\n";
         $code .= "\n";
         $code .= "${indent}  cd $name\n";
         $code .= "\n";
         $code .= stashFilesShellCode("$path/$name", "0x??????.merylData", "${indent}  ");
         $code .= "\n";
         $code .= "${indent}  cd -\n";
+        $code .= "\n";
+        $code .= "${indent}  tar -cf - ./$name/*Index | gzip -1c > ./$name.tar.gz\n";
+        $code .= stashFileShellCode($path, "$name.tar.gz", "${indent}  ");
+        $code .= "${indent}  rm -f ./$name.tar.gz\n";
         $code .= "${indent}fi\n";
     }
 
@@ -1005,7 +1012,7 @@ sub fetchMerylShellCode ($$$) {
     if (defined(isOS())) {
         $code .= "\n";
         $code .= "${indent}if [ ! -e ./$name/merylIndex ] ; then\n";
-        $code .= "${indent}  echo In `pwd`, fetching '$path' '$name.tar.gz'\n";
+        $code .= "${indent}  echo \"In `pwd`, fetching '$path' '$name.tar.gz'.\"\n";
         $code .= "\n";
         $code .= fetchFileShellCode($path, "$name.tar.gz", "${indent}  ");
         $code .= "${indent}  gzip -dc ./$name.tar.gz | tar -xf -\n";
