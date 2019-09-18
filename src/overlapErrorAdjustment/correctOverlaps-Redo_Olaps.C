@@ -750,10 +750,12 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
         if (rha)
           rhaPass++;
 
-        if (err_rate > report_threshold) {
-          fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
-        }
+        //if (err_rate > report_threshold) {
+        //fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
+        //}
       } else {
+        //fprintf(stderr, "Err rate of overlap %u - %u failed\n", olap.a_iid, olap.b_iid);
+
         Failed_Alignments_Ct++;
 
         if (!match_to_end && invalid_olap)

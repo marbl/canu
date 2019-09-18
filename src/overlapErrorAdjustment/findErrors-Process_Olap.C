@@ -27,6 +27,97 @@
 
 #include "sequence.H"
 
+#define  DISPLAY_WIDTH   250
+
+//  Show (to  stdout ) the alignment encoded in  delta [0 .. (deltaLen - 1)]
+//  between strings  a [0 .. (a_len - 1)]  and  b [0 .. (b_len - 1)] .
+
+static
+void
+Display_Alignment(char    *a,   int32 aLen,
+                  char    *b,   int32 bLen,
+                  int32   *delta,
+                  int32    deltaLen) {
+
+  int32  i = 0;
+  int32  j = 0;
+
+  char  *top    = new char [32 * 1024];
+  int32  topLen = 0;
+
+  char  *bot    = new char [32 * 1024];
+  int32  botLen = 0;
+
+  for (int32 k = 0;  k < deltaLen;  k++) {
+    for (int32 m = 1;  m < abs(delta[k]);  m++) {
+      top[topLen++] = a[i++];
+      j++;
+    }
+
+    if (delta[k] < 0) {
+      top[topLen++] = '-';
+      j++;
+    } else {
+      top[topLen++] = a[i++];
+    }
+  }
+
+  while (i < aLen && j < bLen) {
+    top[topLen++] = a[i++];
+    j++;
+  }
+  top[topLen] = '\0';
+
+
+  i = j = 0;
+
+  for (int32 k = 0;  k < deltaLen;  k++) {
+    for (int32 m = 1;  m < abs(delta[k]);  m++) {
+      bot[botLen++] = b[j++];
+      i++;
+    }
+
+    if (delta[k] > 0) {
+      bot[botLen++] = '-';
+      i++;
+    } else {
+      bot[botLen++] = b[j++];
+    }
+  }
+
+  while (j < bLen && i < aLen) {
+    bot[botLen++] = b[j++];
+    i++;
+  }
+  bot[botLen] = '\0';
+
+
+  for (i = 0;  i < topLen || i < botLen;  i += DISPLAY_WIDTH) {
+    putc('\n', stderr);
+
+    fprintf(stderr, "A: ");
+    for (j = 0;  j < DISPLAY_WIDTH && i + j < topLen;  j++)
+      putc(top[i + j], stderr);
+    putc('\n', stderr);
+
+    fprintf(stderr, "B: ");
+    for (j = 0;  j < DISPLAY_WIDTH && i + j < botLen;  j++)
+      putc(bot[i + j], stderr);
+    putc('\n', stderr);
+
+    fprintf(stderr, "   ");
+    for (j = 0;  j < DISPLAY_WIDTH && i + j < botLen && i + j < topLen; j++)
+      if (top[i + j] != ' ' && bot[i + j] != ' ' && top[i + j] != bot[i + j])
+        putc('^', stderr);
+      else
+        putc(' ', stderr);
+    putc('\n', stderr);
+  }
+
+  delete [] top;
+  delete [] bot;
+}
+
 
 int32
 Prefix_Edit_Dist(char   *A, int m,
@@ -67,6 +158,9 @@ Process_Olap(Olap_Info_t        *olap,
           olap->a_iid, olap->b_iid,
           olap->a_hang, olap->b_hang,
           olap->innie == true ? 'I' : 'N');
+
+  //if (olap->a_iid != 83159) 
+  //  return;
 #endif
 
   int32  ri = olap->a_iid - wa->G->bgnID;
@@ -145,20 +239,18 @@ Process_Olap(Olap_Info_t        *olap,
   assert(b_end >= 0);
   assert(b_end <= b_part_len);
 
-  //printf("  errors = %d  delta_len = %d\n", errors, wa->ped.deltaLen);
-  //printf("  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
-  //Display_Alignment(a_part, a_end, b_part, b_end, wa->delta, wa->deltaLen, wa->G->reads[ri].clear_len - a_offset);
+  //fprintf(stderr, "  errors = %d  delta_len = %d\n", errors, wa->ped.deltaLen);
+  //fprintf(stderr, "  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
+  //Display_Alignment(a_part, a_end, b_part, b_end, wa->ped.delta, wa->ped.deltaLen);//, wa->G->reads[ri].clear_len - a_offset);
 
   if ((match_to_end == false) && (a_end + a_offset >= wa->G->reads[ri].clear_len - 1)) {
     olap_len = min(a_end, b_end);
     match_to_end = true;
   }
 
-
-  //FIXME == true LOL
-  if ((errors <= wa->G->Error_Bound[olap_len]) && (match_to_end == true)) {
+  if (match_to_end && errors <= wa->G->Error_Bound[olap_len]) {
     wa->passedOlaps++;
-    fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
+    //fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
     Analyze_Alignment(wa,
                       a_part, a_end, a_offset,
                       b_part, //b_end,
