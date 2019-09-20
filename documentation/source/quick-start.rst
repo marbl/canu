@@ -196,6 +196,10 @@ As comparison, you can try co-assembling the datasets instead::
 
 and compare the continuity/accuracy. 
 
+Please note, trio binning is designed to work with raw sequences prior to correction. Do not correct the reads together and then run trio-binning, this will not work and Canu will give an error.
+
+Trio binning does not yet support inputting PacBio HiFi reads for binning as they get flagged as "corrected" and the same error as above is given. As a workaround, run ``canu -haplotype`` specifying the HiFi reads as -pacbio-raw. This will bin the data and create shell scripts to start the assembly. Edit the shell scripts to replace -pacbio-raw with -pacbio-corrected or -pacbio-hifi and run the assemblies manually.
+
 Consensus Accuracy
 -------------------
 
