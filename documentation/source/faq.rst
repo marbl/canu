@@ -147,6 +147,10 @@ Can I assemble RNA sequence data?
 
     Note that Canu will silently translate 'U' bases to 'T' bases on input, but **NOT** translate
     the output bases back to 'U'.
+    
+Can I assemble amplicon sequence data?
+-------------------------------------   
+    In short, yes. Typically these have very high coverage so we recommend randomly downsampling (``'readSamplingCoverage=100'``) and turning off filtering of short contigs ``contigFilter="2 0 1.0 0.5 0"``.
 
 My assembly is running out of space, is too slow?
 -------------------------------------
