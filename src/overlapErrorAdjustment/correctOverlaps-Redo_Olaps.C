@@ -70,8 +70,8 @@ Prefix_Edit_Dist(const char    *A,  int32 m,
 
 static
 void
-Display_Alignment(char    *a,   int32 aLen,
-                  char    *b,   int32 bLen,
+Display_Alignment(const char    *a,   int32 aLen,
+                  const char    *b,   int32 bLen,
                   int32   *delta,
                   int32    deltaLen) {
 
@@ -294,30 +294,29 @@ static
 int32
 Convert2Int(const char* seq, int32 prefix_len) {
   assert(prefix_len != 0 && std::abs(prefix_len) < 16);
+  int32 ans = 0;
   if (prefix_len > 0) {
-    int32 ans = 0;
     for (int32 i = 0; i < prefix_len; ++i) {
       assert(seq[i] != '\0');
       ans = (ans << 2) | Nucl2Int(seq[i]);
     }
-    return ans;
   } else {
-    int32 ans = 0;
     for (int32 i = 0; i < -prefix_len; ++i) {
       ans |= Nucl2Int(*(seq - i)) << (2 * i);
     }
-    return ans;
   }
+  assert(ans < (1 << (2 * prefix_len)));
+  return ans;
 }
 
 //Collects kmer stats for the region of length |reg_len|
 //If reg_len is negative -- go back in the string
 static
-std::vector<int32>
-CollectKmerStat(const char* seq, int32 reg_len, int32 kmer_len) {
+void
+CollectKmerStat(const char* seq, int32 reg_len, int32 kmer_len, int32 *stats) {
   assert(kmer_len > 0);
   assert(reg_len != 0);
-  std::vector<int32> stats(1 << (2 * kmer_len), 0);
+  memset(stats, 0, sizeof(int32) * (1 << (2 * kmer_len)));
   if (reg_len > 0) {
     for (int32 i = 0; (i + kmer_len) <= reg_len; i = i + kmer_len) {
       stats[Convert2Int(seq + i, kmer_len)]++;
@@ -327,28 +326,29 @@ CollectKmerStat(const char* seq, int32 reg_len, int32 kmer_len) {
       stats[Convert2Int(seq - i, -kmer_len)]++;
     }
   }
-  return stats;
 }
 
 static
 bool
-CheckTrivialDNA(const char* seq, int32 remaining, int32 offset, 
+CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
     int32 size_factor, int32 repeat_num,
     int32 min_k = 2, int32 max_k = 5) {
+  int32 stats_buff[1 << (2 * max_k)];
   for (int32 k = min_k; k <= max_k; ++k) {
+    const int32 possible_kmer_cnt = 1 << (2 * k);
     int32 reg_len = k * size_factor;
 
     //exploring sequence to the right
     for (int32 shift = 0; shift < k; ++shift) {
       if (reg_len + shift > remaining)
         break;
-      std::vector<int32> stats = CollectKmerStat(seq + shift, reg_len, k);
-      if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
-        char subbuff[reg_len + 1];
-        memcpy(subbuff, seq + shift, reg_len);
-        subbuff[reg_len] = '\0';
-        fprintf(stderr, "Trivial DNA (k=%d) upstream\n", k);
-        fprintf(stderr, "%s\n", subbuff);
+      CollectKmerStat(seq + shift, reg_len, k, stats_buff);
+      if (*std::max_element(stats_buff, stats_buff + possible_kmer_cnt) >= repeat_num) {
+        //char subbuff[reg_len + 1];
+        //memcpy(subbuff, seq + shift, reg_len);
+        //subbuff[reg_len] = '\0';
+        //fprintf(stderr, "Trivial DNA (k=%d) upstream\n", k);
+        //fprintf(stderr, "%s\n", subbuff);
         return true;
       }
     }
@@ -357,13 +357,13 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
     for (int32 shift = 0; shift < k; ++shift) {
       if (reg_len + shift > offset)
         break;
-      std::vector<int32> stats = CollectKmerStat(seq - shift - 1, -reg_len, k);
-      if (*std::max_element(stats.begin(), stats.end()) >= repeat_num) {
-        char subbuff[reg_len + 1];
-        memcpy(subbuff, seq - shift - reg_len, reg_len);
-        subbuff[reg_len] = '\0';
-        fprintf(stderr, "Trivial DNA (k=%d) downstream\n", k);
-        fprintf(stderr, "%s\n", subbuff);
+      CollectKmerStat(seq - shift - 1, -reg_len, k, stats_buff);
+      if (*std::max_element(stats_buff, stats_buff + possible_kmer_cnt) >= repeat_num) {
+        //char subbuff[reg_len + 1];
+        //memcpy(subbuff, seq - shift - reg_len, reg_len);
+        //subbuff[reg_len] = '\0';
+        //fprintf(stderr, "Trivial DNA (k=%d) downstream\n", k);
+        //fprintf(stderr, "%s\n", subbuff);
         return true;
       }
     }
@@ -373,8 +373,8 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
 
 static
 std::pair<size_t, size_t>
-ComputeErrors(const char* a_part, const char* b_part, 
-    int32 delta_len, int32 *deltas, 
+ComputeErrors(const char* a_part, const char* b_part,
+    int32 delta_len, int32 *deltas,
     int32 a_len, int32 b_len,
     bool check_trivial_dna = false) {
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
@@ -388,8 +388,9 @@ ComputeErrors(const char* a_part, const char* b_part,
   //position in "alignment" of a_part and b_part
   int32  p = 0;
 
-  const int32 size_factor = 6;
-  const int32 repeat_num = 6;
+  //FIXME magic constants
+  static const int32 size_factor = 6;
+  static const int32 repeat_num = 5;
   for (int32 k=0; k < delta_len; k++) {
     //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
@@ -397,13 +398,13 @@ ComputeErrors(const char* a_part, const char* b_part,
     for (int32 m=1; m<abs(deltas[k]); m++) {
       if (a_part[i] != b_part[j]) {
         //Substitution at i in a_part (p in "alignment")
-        fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
+        //fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
 
         bool report = true;
         if (check_trivial_dna) {
-          fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+          //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
           report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-          fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+          //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
           report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
         }
         all_ct++;
@@ -420,12 +421,12 @@ ComputeErrors(const char* a_part, const char* b_part,
 
     if (deltas[k] < 0) {
       //Insertion at i - 1 in a_part (p in "alignment")
-      fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
+      //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
       bool report = true;
       if (check_trivial_dna) {
-        fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+        //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
         report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-        fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+        //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
         report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
       all_ct++;
@@ -438,13 +439,13 @@ ComputeErrors(const char* a_part, const char* b_part,
     //  If a positive delta, delete the base.
 
     if (deltas[k] > 0) {
-      fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
+      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
       //Deletion at i in a_part (p in "alignment")
       bool report = true;
       if (check_trivial_dna) {
-        fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+        //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
         report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-        fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+        //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
         report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
       all_ct++;
@@ -458,13 +459,13 @@ ComputeErrors(const char* a_part, const char* b_part,
   // No more deltas.  While there is still sequence, add matches or mismatches.
   while (i < a_len) {
     if (a_part[i] != b_part[j]) {
-      fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
+      //fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
       //TODO substitution at i in a_part (p in "alignment")
       bool report = true;
       if (check_trivial_dna) {
-        fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+        //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
         report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-        fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+        //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
         report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
       }
       all_ct++;
@@ -478,16 +479,17 @@ ComputeErrors(const char* a_part, const char* b_part,
   }
 
   if (all_ct > 0) {
-    char subbuff_a[a_len + 1];
-    memcpy(subbuff_a, a_part, a_len);
-    subbuff_a[a_len] = '\0';
-    char subbuff_b[b_len + 1];
-    memcpy(subbuff_b, b_part, b_len);
-    subbuff_b[b_len] = '\0';
-    fprintf(stderr, "Was processing alignment of:\n");
-    fprintf(stderr, "A: %s\n", subbuff_a);
-    fprintf(stderr, "B: %s\n", subbuff_b);
-    fprintf(stderr, "Reported %d out of %d\n", ct, all_ct);
+    //char subbuff_a[a_len + 1];
+    //memcpy(subbuff_a, a_part, a_len);
+    //subbuff_a[a_len] = '\0';
+    //char subbuff_b[b_len + 1];
+    //memcpy(subbuff_b, b_part, b_len);
+    //subbuff_b[b_len] = '\0';
+    //fprintf(stderr, "Was processing alignment of:\n");
+    //fprintf(stderr, "A: %s\n", subbuff_a);
+    //fprintf(stderr, "B: %s\n", subbuff_b);
+
+    //fprintf(stderr, "Reported %d out of %d\n", ct, all_ct);
   }
 
   assert(i <= a_len);
@@ -598,6 +600,8 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
     //alignment_len -= i;
   }
 
+  //Display_Alignment(a_part, a_end, b_part, b_end, ped->delta, ped->deltaLen);
+
   *invalid_olap = (min(a_end, b_end) <= 0);
 
   if (!*match_to_end || *invalid_olap) {
@@ -697,8 +701,10 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
     //  Recompute alignments for ALL overlaps involving the B read
     for (; thisOvl <= lastOvl && G->olaps[thisOvl].b_iid == curID; thisOvl++) {
-      //FIXME isn't it the same as G->olaps[thisOvl]
-      const Olap_Info_t  &olap = *(G->olaps + thisOvl);
+      const Olap_Info_t &olap = G->olaps[thisOvl];
+
+      //if (olap.b_iid != 39861)
+      //  continue;
 
       if (olap.normal) {
       //  fprintf(stderr, "b_part = fseq %40.40s\n", fseq);
@@ -732,6 +738,8 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
       //  Compute and process the alignment
       Total_Alignments_Ct++;
+      //TODO think why in the find errors this code is different.
+      //There one of the sequences is the (almost) entire read and the length is the length of its prefix
       int32   a_part_len  = strlen(a_part);
       int32   b_part_len  = strlen(b_part);
 
@@ -750,9 +758,9 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
         if (rha)
           rhaPass++;
 
-        //if (err_rate > report_threshold) {
-        //fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
-        //}
+        if (err_rate > report_threshold) {
+          //fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
+        }
       } else {
         //fprintf(stderr, "Err rate of overlap %u - %u failed\n", olap.a_iid, olap.b_iid);
 

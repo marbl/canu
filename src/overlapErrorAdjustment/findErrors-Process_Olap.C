@@ -153,23 +153,23 @@ Process_Olap(Olap_Info_t        *olap,
              bool                shredded,
              Thread_Work_Area_t *wa) {
 
-#if 1
+#if 0
   fprintf(stderr, "Process_Olap:  %8d %8d %5ld %5ld  %c\n",
           olap->a_iid, olap->b_iid,
           olap->a_hang, olap->b_hang,
           olap->innie == true ? 'I' : 'N');
 
-  //if (olap->a_iid != 83159) 
+  //if (olap->a_iid != 39861 && olap->b_iid != 39861 && olap->a_iid != 2283 && olap->b_iid != 2283)
   //  return;
 #endif
 
   int32  ri = olap->a_iid - wa->G->bgnID;
 
   if ((shredded == true) && (wa->G->reads[ri].shredded == true)) {
-    fprintf(stderr, "%8d %8d shredded\n", olap->a_iid, olap->b_iid);
+    //fprintf(stderr, "%8d %8d shredded\n", olap->a_iid, olap->b_iid);
     return;
   }
-  fprintf(stderr, "%8d %8d not shredded\n", olap->a_iid, olap->b_iid);
+  //fprintf(stderr, "%8d %8d not shredded\n", olap->a_iid, olap->b_iid);
 
   char  *a_part   = wa->G->reads[ri].sequence;
   int32  a_offset = 0;
@@ -257,8 +257,8 @@ Process_Olap(Olap_Info_t        *olap,
                       ri);
   } else {
     wa->failedOlaps++;
-    fprintf(stderr, "%8d %8d failed overlap\n", olap->a_iid, olap->b_iid);
-    fprintf(stderr, "%8d %8d match to end %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
-    fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (errors > wa->G->Error_Bound[olap_len]) ? 'T' : 'F');
+    //fprintf(stderr, "%8d %8d failed overlap\n", olap->a_iid, olap->b_iid);
+    //fprintf(stderr, "%8d %8d match to end %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
+    //fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (errors > wa->G->Error_Bound[olap_len]) ? 'T' : 'F');
   }
 }
