@@ -234,11 +234,11 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 // TODO haplo count is giving a headeache in the trivial DNA regions. So far disabled from command line.
 // return false if nothing happened on the position and true otherwise
 bool
-Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j,
+Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
     //Correction_Output_t out, std::ostream &os) {
     Correction_Output_t out, FILE *fp) {
-  Vote_Tally_t vote = read.vote[j];
-  char base = read.sequence[j];
+  Vote_Tally_t vote = read.vote[pos];
+  char base = read.sequence[pos];
 
   static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
 
@@ -250,22 +250,22 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j,
 
   //if (vote.no_insert < vote.confirmed) {
   //  fprintf(stderr, "WARN: no_insert %d ; confirmed %d \n", vote.no_insert, vote.confirmed);
-  //  FPrint_Vote(stderr, read.sequence[j], vote);
+  //  FPrint_Vote(stderr, read.sequence[pos], vote);
   //}
-
-  //FPrint_Votes(stderr, read, j, /*locality radius*/5);
+  //
+  //FPrint_Votes(stderr, read, pos, /*locality radius*/5);
 
   bool corrected = false;
 
   if (vote.confirmed < STRONG_CONFIRMATION_READ_CNT) {
-    //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, j);
+    //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, pos);
     Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Use_Haplo_Ct);
     if (vote_t == NO_VOTE) {
-      //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, j);
+      //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
     } else {
       out.type       = vote_t;
-      out.pos        = j;
-      //fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, j);
+      out.pos        = pos;
+      //fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, pos);
       //os << out << '\n';
       writeToFile(out, "correction2", fp);
       corrected = true;
@@ -273,15 +273,15 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 j,
   }
 
   if  (vote.no_insert < STRONG_CONFIRMATION_READ_CNT) {
-    //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, j);
+    //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, pos);
     std::string ins_str = Check_Insert(vote, base, G->Use_Haplo_Ct);
     if (ins_str.empty()) {
-      //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, j);
+      //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
     } else {
-      //fprintf(stderr, "Read:pos %d:%d -- corrected insertion. Insertion string ='%s'\n", out.readID, j, ins_str.c_str());
+      //fprintf(stderr, "Read:pos %d:%d -- corrected insertion. Insertion string ='%s'\n", out.readID, pos, ins_str.c_str());
       for (char c : ins_str) {
         out.type       = InsVote(c);
-        out.pos        = j;
+        out.pos        = pos;
         writeToFile(out, "correction3", fp);
       }
       corrected = true;
@@ -296,32 +296,33 @@ Output_Corrections(feParameters *G) {
   //std::ofstream os(G->outputFileName);
   fprintf(stderr, "Output file: %s\n", G->outputFileName);
 
-  for (uint32 i=0; i<G->readsLen; i++) {
+  for (uint32 read_idx = 0; read_idx < G->readsLen; ++read_idx) {
     //More debug ouptput
-    //if (i == 0)
-    //Output_Details(G, i);
-    const Frag_Info_t &read = G->reads[i];
+    //if (read_idx == 0)
+    //Output_Details(G, read_idx);
+    const Frag_Info_t &read = G->reads[read_idx];
 
     Correction_Output_t  out;
     out.keep_left   = (read.left_degree  < G->Degree_Threshold);
     out.keep_right  = (read.right_degree < G->Degree_Threshold);
     out.type        = IDENT;
     out.pos         = 0;
-    out.readID      = G->bgnID + i;
+    out.readID      = G->bgnID + read_idx;
 
-    //fprintf(stderr, "read %d clear_len %lu\n", out.readID, G->reads[i].clear_len);
+    //fprintf(stderr, "read %d clear_len %lu\n", out.readID, G->reads[read_idx].clear_len);
+    //Writing stub event for the read
     writeToFile(out, "correction1", fp);
 
-    if (G->reads[i].sequence == NULL) {
+    if (read.sequence == NULL) {
       //fprintf(stderr, "Deleted fragment");
       // Deleted fragment
       continue;
-    } else {
-      //fprintf(stderr, "Checking positions\n");
     }
 
-    for (uint32 j=0; j<read.clear_len; j++) {
-      Report_Position(G, read, j, out, fp);
+    //fprintf(stderr, "Checking positions\n");
+
+    for (uint32 pos = 0; pos < read.clear_len; pos++) {
+      Report_Position(G, read, pos, out, fp);
     }
   }
 
