@@ -158,7 +158,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
     if (wa->ped.delta[k] < 0) {
       //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      wa->globalvote[ct].frag_sub  = i - 1;
+      wa->globalvote[ct].frag_sub  = i;
       wa->globalvote[ct].align_sub = p;
       wa->globalvote[ct].vote_val = InsVote(b_part[j]);
       //fprintf(stderr, "Vote ins %c at %d\n", b_part[j], i);

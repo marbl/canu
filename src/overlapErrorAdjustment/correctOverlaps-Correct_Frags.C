@@ -73,33 +73,18 @@ correctRead(uint32 curID,
   //fprintf(stderr, "Start at Cpos=%d position=%d type=%d id=%d\n", Cpos, C[Cpos].pos, C[Cpos].type, C[Cpos].readID);
 
   int32   adjVal = 0;
-  //need it to insert the identical base before the first insertion if needed
-  //NB: 1-based! If change happends at position i -> assign i + 1
-  uint32 last_change_pos = 0;
 
-  //FIXME would probably be much easier to introduce all substitutions first!
-  for (uint32 i=0; i<oseqLen;) {
+  //TODO would probably be much easier to introduce all substitutions first?
+  for (uint32 i = 0; i < oseqLen; ) {
 
-    //  No more corrections, or no more corrections for this read or not a correction -- just copy base
+    //  No more corrections OR no more corrections for this read OR no correction at position -- just copy base
     if (Cpos == Clen || C[Cpos].readID != curID || i < C[Cpos].pos) {
-      //fprintf(stderr, "no more corrections at i=%u, copy rest of read as is\n", i);
-      
-      //if we have not done anything at this position -- output it
-      if (last_change_pos < i + 1)
-        fseq[fseqLen++] = filter[oseq[i]];
 
-      i++;
-
+      fseq[fseqLen++] = filter[oseq[i++]];
       continue;
     }
 
     assert(Cpos < Clen);
-
-    //if ((i != C[Cpos].pos) &&
-    //    (i != C[Cpos].pos + 1))
-    //  fprintf(stderr, "i=" F_U32 " Cpos=" F_U64 " C[Cpos].pos=" F_U32 "\n", i, Cpos, C[Cpos].pos);
-    //assert((i == C[Cpos].pos) ||
-    //       (i == C[Cpos].pos + 1));
     assert(i == C[Cpos].pos);
 
     if (changes)
@@ -112,6 +97,7 @@ correctRead(uint32 curID,
         fadj[fadjLen].adjpos = i + 1;
         fadj[fadjLen].adjust = --adjVal;
         fadjLen++;
+        i++;
         break;
 
       case A_SUBST:
@@ -120,22 +106,15 @@ correctRead(uint32 curID,
       case T_SUBST:
         //fprintf(stderr, "Introducing SUBST '%c' -> '%c' read=%u i=%u \n", filter[oseq[i]], VoteChar(C[Cpos].type), C[Cpos].readID, i);
         fseq[fseqLen++] = VoteChar(C[Cpos].type);
-        last_change_pos = i + 1;
+        i++;
         break;
 
       case A_INSERT:
       case C_INSERT:
       case G_INSERT:
       case T_INSERT:
-        //if we have not done anything at this position yet
-        if (last_change_pos < i + 1) {
-          //fprintf(stderr, "Introducing IDENT before insertion '%c' read=%u i=%u \n", filter[oseq[i]], C[Cpos].readID, i);
-          fseq[fseqLen++] = filter[oseq[i]];
-        }
-
         //fprintf(stderr, "Introducing INSERTION '%c' read=%u i=%u \n", VoteChar(C[Cpos].type), C[Cpos].readID, i);
         fseq[fseqLen++] = VoteChar(C[Cpos].type);
-        last_change_pos = i + 1;
 
         fadj[fadjLen].adjpos = i + 1;
         fadj[fadjLen].adjust = ++adjVal;
@@ -147,7 +126,6 @@ correctRead(uint32 curID,
         break;
     }
 
-    last_change_pos = i + 1;
     Cpos++;
   }
 
