@@ -186,18 +186,25 @@ Correct_Frags(coParameters *G,
     G->basesLen += read->sqRead_sequenceLength() + 1;
   }
 
+  uint64 del_cnt = 0;
+  uint64 ins_cnt = 0;
   for (uint64 c = 0; c < Clen; c++) {
     switch (C[c].type) {
       case DELETE:
+        del_cnt++;
+        G->adjustsLen++;
+        break;
       case A_INSERT:
       case C_INSERT:
       case G_INSERT:
       case T_INSERT:
+        ins_cnt++;
         G->adjustsLen++;
         break;
       default: {}
     }
   }
+  G->basesLen += ins_cnt - del_cnt;
 
   fprintf(stderr, "Correcting " F_U64 " bases with " F_U64 " indel adjustments.\n", G->basesLen, G->adjustsLen);
 
