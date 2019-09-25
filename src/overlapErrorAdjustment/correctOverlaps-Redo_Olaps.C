@@ -38,7 +38,7 @@
 void
 correctRead(uint32 curID,
             char *fseq, uint32 &fseqLen, Adjust_t *fadj, uint32 &fadjLen,
-            char *oseq, uint32  oseqLen,
+            const char *oseq, uint32  oseqLen,
             Correction_Output_t  *C,
             uint64               &Cpos,
             uint64                Clen,

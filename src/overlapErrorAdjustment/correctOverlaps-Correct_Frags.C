@@ -38,7 +38,7 @@ char  filter[256];
 void
 correctRead(uint32 curID,
             char *fseq, uint32 &fseqLen, Adjust_t *fadj, uint32 &fadjLen,
-            char *oseq, uint32  oseqLen,
+            const char *oseq, uint32  oseqLen,
             Correction_Output_t  *C,
             uint64               &Cpos,
             uint64                Clen,
@@ -79,7 +79,7 @@ correctRead(uint32 curID,
 
     //  No more corrections OR no more corrections for this read OR no correction at position -- just copy base
     if (Cpos == Clen || C[Cpos].readID != curID || i < C[Cpos].pos) {
-
+      //fprintf(stderr, "Introducing IDENT '%c' read=%u i=%u \n", filter[oseq[i]], C[Cpos].readID, i);
       fseq[fseqLen++] = filter[oseq[i++]];
       continue;
     }
@@ -130,7 +130,6 @@ correctRead(uint32 curID,
   }
 
   //  Terminate the sequence.
-
   fseq[fseqLen] = 0;
 
   //fprintf(stdout, ">%u\n%s\n", curID, fseq);
@@ -181,13 +180,13 @@ Correct_Frags(coParameters *G,
   G->basesLen   = 0;
   G->adjustsLen = 0;
 
-  for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
+  for (uint32 curID = G->bgnID; curID <= G->endID; curID++) {
     sqRead *read = seqStore->sqStore_getRead(curID);
 
     G->basesLen += read->sqRead_sequenceLength() + 1;
   }
 
-  for (uint64 c=0; c<Clen; c++) {
+  for (uint64 c = 0; c < Clen; c++) {
     switch (C[c].type) {
       case DELETE:
       case A_INSERT:
