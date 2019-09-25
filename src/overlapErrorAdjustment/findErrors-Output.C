@@ -257,22 +257,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
 
   bool corrected = false;
 
-  if (vote.confirmed < STRONG_CONFIRMATION_READ_CNT) {
-    //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, pos);
-    Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Use_Haplo_Ct);
-    if (vote_t == NO_VOTE) {
-      //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
-    } else {
-      out.type       = vote_t;
-      out.pos        = pos;
-      //fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, pos);
-      //os << out << '\n';
-      writeToFile(out, "correction2", fp);
-      corrected = true;
-    }
-  }
-
-  if  (vote.no_insert < STRONG_CONFIRMATION_READ_CNT) {
+  if (vote.no_insert < STRONG_CONFIRMATION_READ_CNT) {
     //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, pos);
     std::string ins_str = Check_Insert(vote, base, G->Use_Haplo_Ct);
     if (ins_str.empty()) {
@@ -282,11 +267,28 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
       for (char c : ins_str) {
         out.type       = InsVote(c);
         out.pos        = pos;
+        //FIXME rename
         writeToFile(out, "correction3", fp);
       }
       corrected = true;
     }
   }
+
+  if (vote.confirmed < STRONG_CONFIRMATION_READ_CNT) {
+    //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, pos);
+    Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Use_Haplo_Ct);
+    if (vote_t == NO_VOTE) {
+      //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
+    } else {
+      out.type       = vote_t;
+      out.pos        = pos;
+      //fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, pos);
+      //FIXME rename
+      writeToFile(out, "correction2", fp);
+      corrected = true;
+    }
+  }
+
   return corrected;
 }
 
