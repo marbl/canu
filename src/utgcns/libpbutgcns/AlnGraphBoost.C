@@ -62,8 +62,6 @@
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 
-
-#include <cfloat>
 #include <cassert>
 #include <string>
 #include <queue>
@@ -95,7 +93,7 @@ AlnGraphBoost::AlnGraphBoost(const std::string& backbone) {
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
         _g[v].backbone = true;
-        _g[v].weight = 1;
+        _g[v].weight = 0;
         _g[v].base = backbone[i];
         _bbMap[v] = v;
     }
@@ -118,7 +116,7 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
         _g[v].backbone = true;
-        _g[v].weight = 1;
+        _g[v].weight = 0;
         _g[v].deleted = false;
         _g[v].base = 'N';
         _bbMap[v] = v;
@@ -167,6 +165,7 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
             _g[newVtx].backbone = false;
             _g[newVtx].deleted = false;
             _bbMap[newVtx] = bbPos;
+
             if (prevVtx != _enterVtx || bbPos <= MAX_OFFSET || MAX_OFFSET == 0)
                addEdge(prevVtx, newVtx);
             else
@@ -452,12 +451,12 @@ const std::vector<AlnNode> AlnGraphBoost::bestPath() {
         _g[*ei].visited = false;
 
     std::map<VtxDesc, EdgeDesc> bestNodeScoreEdge;
-    std::map<VtxDesc, float> nodeScore;
+    std::map<VtxDesc, uint64_t> nodeScore;
     std::queue<VtxDesc> seedNodes;
 
     // start at the end and make our way backwards
     seedNodes.push(_exitVtx);
-    nodeScore[_exitVtx] = 0.0f;
+    nodeScore[_exitVtx] = 0;
 
     while (true) {
         if (seedNodes.size() == 0)
@@ -467,20 +466,15 @@ const std::vector<AlnNode> AlnGraphBoost::bestPath() {
         seedNodes.pop();
 
         bool bestEdgeFound = false;
-        float bestScore = -FLT_MAX;
+        uint64_t bestScore = 0;
         EdgeDesc bestEdgeD = boost::initialized_value;
         OutEdgeIter oi, oe;
         for(boost::tie(oi, oe) = boost::out_edges(n, _g); oi != oe; ++oi) {
             EdgeDesc outEdgeD = *oi;
             VtxDesc outNodeD = boost::target(outEdgeD, _g);
-            AlnNode outNode = _g[outNodeD];
-            float newScore, score = nodeScore[outNodeD];
-            if (outNode.backbone && outNode.weight == 1) {
-                newScore = score - 10.0f;
-            } else {
-                AlnNode bbNode = _g[_bbMap[outNodeD]];
-                newScore = _g[outEdgeD].count - bbNode.coverage*0.5f + score;
-            }
+            int64_t newScore, score = nodeScore[outNodeD];
+            AlnNode bbNode = _g[_bbMap[outNodeD]];
+            newScore = _g[outEdgeD].count - round(bbNode.coverage*0.5f) + score;
 
             if (newScore > bestScore) {
                 bestScore = newScore;
