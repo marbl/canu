@@ -103,6 +103,20 @@ using namespace std;
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
 struct Vote_Tally_t {
+  Vote_Tally_t() {
+     confirmed = 0;
+     deletes   = 0;
+     a_subst   = 0;
+     c_subst   = 0;
+     g_subst   = 0;
+     t_subst   = 0;
+     no_insert = 0;
+
+     insertion_cnt = 0;
+  };
+  ~Vote_Tally_t() {
+  };
+
   static const char INSERTIONS_DELIM = '$';
 
   uint32  confirmed : 16;

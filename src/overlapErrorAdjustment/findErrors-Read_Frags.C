@@ -75,12 +75,11 @@ Read_Frags(feParameters   *G,
   fprintf(stderr, "Read_Frags()-- Loading target reads " F_U32 " through " F_U32 " with " F_U64 " bases.\n", G->bgnID, G->endID, basesLength);
 
   G->readBases = new char          [basesLength];
-  G->readVotes = new Vote_Tally_t  [votesLength];             //  NO constructor, MUST INIT
+  G->readVotes = new Vote_Tally_t  [votesLength];             //  Has constructor, no need to init
   G->readsLen  = G->endID - G->bgnID + 1;
   G->reads     = new Frag_Info_t   [G->readsLen];             //  Has constructor, no need to init
 
   memset(G->readBases, 0, sizeof(char)         * basesLength);
-  memset(G->readVotes, 0, sizeof(Vote_Tally_t) * votesLength);
 
   basesLength = 0;
   votesLength = 0;
