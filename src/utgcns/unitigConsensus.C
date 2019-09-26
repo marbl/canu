@@ -594,7 +594,7 @@ alignEdLib(dagAlignment      &aln,
 
   EdlibAlignResult align;
 
-  int32   padding        = (int32)ceil(fragmentLength * 0.10);
+  int32   padding        = (int32)ceil(fragmentLength * 0.15);
   double  bandErrRate    = errorRate / 2;
   bool    aligned        = false;
   double  alignedErrRate = 0.0;
@@ -641,9 +641,16 @@ alignEdLib(dagAlignment      &aln,
       fprintf(stderr, "\n");
   }
 
-  for (uint32 ii=0; ((ii < 4) && (aligned == false)); ii++) {
-    tigbgn = max((int32)0,      tigbgn - 2 * padding);
-    tigend = min((int32)tiglen, tigend + 2 * padding);
+  uint32 MAX_RETRIES=5;
+
+  for (uint32 ii=0; ((ii < MAX_RETRIES) && (aligned == false)); ii++) {
+    tigbgn = max((int32)0,      tigbgn - 3 * padding);
+    tigend = min((int32)tiglen, tigend + 3 * padding);
+    // last attempt make a very wide band
+    if (ii == MAX_RETRIES - 1) {
+    tigbgn = max((int32)0,      tigbgn - 10 * padding);
+    tigend = min((int32)tiglen, tigend + 10 * padding);
+    }
 
     bandErrRate += errorRate / 2;
 
