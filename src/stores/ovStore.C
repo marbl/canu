@@ -161,6 +161,9 @@ ovStore::readOverlap(ovOverlap *overlap) {
     overlap->a_iid = _curID;
     overlap->g     = _seq;
 
+    if (_evalues)
+      overlap->evalue(_evalues[_index[_curID]._overlapID++]);
+
     _curOlap++;
 
     return(1);
@@ -214,6 +217,9 @@ ovStore::loadBlockOfOverlaps(ovOverlap *ovl,
 
       ovl[ovlLen].a_iid = _curID;
       ovl[ovlLen].g     = _seq;
+
+      if (_evalues)
+        ovl[ovlLen].evalue(_evalues[_index[_curID]._overlapID++]);
 
       ovlLen++;
     }
@@ -293,6 +299,9 @@ ovStore::loadOverlapsForRead(uint32       id,
 
     ovl[oo].a_iid = _curID;
     ovl[oo].g     = _seq;
+
+    if (_evalues)
+      ovl[oo].evalue(_evalues[_index[_curID]._overlapID++]);
   }
 
   _curID   += 1;     //  Advance to the next read.
