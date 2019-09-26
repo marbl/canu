@@ -451,7 +451,7 @@ const std::vector<AlnNode> AlnGraphBoost::bestPath() {
         _g[*ei].visited = false;
 
     std::map<VtxDesc, EdgeDesc> bestNodeScoreEdge;
-    std::map<VtxDesc, uint64_t> nodeScore;
+    std::map<VtxDesc, int64_t> nodeScore;
     std::queue<VtxDesc> seedNodes;
 
     // start at the end and make our way backwards
@@ -466,7 +466,7 @@ const std::vector<AlnNode> AlnGraphBoost::bestPath() {
         seedNodes.pop();
 
         bool bestEdgeFound = false;
-        uint64_t bestScore = 0;
+        int64_t bestScore = INT64_MIN;
         EdgeDesc bestEdgeD = boost::initialized_value;
         OutEdgeIter oi, oe;
         for(boost::tie(oi, oe) = boost::out_edges(n, _g); oi != oe; ++oi) {
