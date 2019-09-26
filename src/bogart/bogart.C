@@ -53,6 +53,8 @@
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
 
+#include "AS_BAT_DetectSpurs.H"
+
 #include "AS_BAT_MergeOrphans.H"
 #include "AS_BAT_MarkRepeatReads.H"
 
@@ -417,18 +419,27 @@ main (int argc, char * argv []) {
 
   breakSingletonTigs(contigs);
 
-  //  populateUnitig() uses only one hang from one overlap to compute the positions of reads.
-  //  Once all reads are (approximately) placed, compute positions using all overlaps.
-
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+
+  //  populateUnitig() uses only one hang from one overlap to compute the
+  //  positions of reads.  Once all reads are (approximately) placed, compute
+  //  positions using all overlaps.
 
   setLogFile(prefix, "buildGreedyOpt");
-
   contigs.optimizePositions(prefix, "buildGreedyOpt");
-  splitDiscontinuous(contigs, minOverlapLen);
 
-  //reportOverlaps(contigs, prefix, "buildGreedy");
-  reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+  //  Break any tigs that aren't contiguous.
+
+  setLogFile(prefix, "splitDiscontinuous");
+  splitDiscontinuous(contigs, minOverlapLen);
+  //reportOverlaps(contigs, prefix, "splitDiscontinuous");
+  reportTigs(contigs, prefix, "splitDiscontinuous", genomeSize);
+
+  //  Detect and fix spurs.
+
+  setLogFile(prefix, "detectSpurs");
+  detectSpurs(contigs);
+  reportTigs(contigs, prefix, "detectSpurs", genomeSize);
 
   //
   //  For future use, remember the reads in contigs.  When we make unitigs, we'll
