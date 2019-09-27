@@ -850,7 +850,8 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
   if (showAlgorithm())
     fprintf(stderr, "Calling consensus\n");
 
-  std::string cns = ag.consensus(1);
+  //FIXME why do we have 0weight nodes (template seq w/o support even from the read that generated them)?
+  std::string cns = ag.consensus(0);
 
   delete [] tigseq;
 
