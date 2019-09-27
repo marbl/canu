@@ -232,14 +232,16 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
   for (int32 event_idx = 1; event_idx <= ct; event_idx++) {
     // ===== CASTING MATCH/CONFIRMED/NO_INSERT VOTES BETWEEN EVENTS event_idx AND event_idx-1 =====
-    const int32 prev_event_dist = wa->globalvote[event_idx].align_sub - wa->globalvote[event_idx - 1].align_sub - 1;
+    const auto &prev_event = wa->globalvote[event_idx - 1];
+    const int32 prev_event_end = prev_event.frag_sub + (prev_event.vote_val < A_INSERT ? 1 : 0);
+    const int32 prev_event_dist = wa->globalvote[event_idx].frag_sub - prev_event_end;
     const int32 p_lo = (event_idx == 1) ? 0 : wa->G->End_Exclude_Len;
     const int32 p_hi = (event_idx == ct) ? prev_event_dist : prev_event_dist - wa->G->End_Exclude_Len;
 
     //  If distance to previous match is bigger than 'kmer' size cast flanking matching votes & mark confirmed positions
     if (prev_event_dist >= wa->G->Kmer_Len) {
       for (int32 p = 0; p < prev_event_dist; ++p) {
-        const int32 part_pos = p + wa->globalvote[event_idx - 1].frag_sub + 1;
+        const int32 part_pos = prev_event_end + p;
         const int32 a_pos = a_offset + part_pos;
 
         if (p < p_lo) {
