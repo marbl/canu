@@ -178,7 +178,6 @@ Correct_Frags(coParameters *G,
   //  Adjustments are always less than the number of corrections; we could also count exactly.
 
   G->basesLen   = 0;
-  G->adjustsLen = 0;
 
   for (uint32 curID = G->bgnID; curID <= G->endID; curID++) {
     sqRead *read = seqStore->sqStore_getRead(curID);
@@ -192,19 +191,18 @@ Correct_Frags(coParameters *G,
     switch (C[c].type) {
       case DELETE:
         del_cnt++;
-        G->adjustsLen++;
         break;
       case A_INSERT:
       case C_INSERT:
       case G_INSERT:
       case T_INSERT:
         ins_cnt++;
-        G->adjustsLen++;
         break;
       default: {}
     }
   }
   G->basesLen += ins_cnt - del_cnt;
+  G->adjustsLen = ins_cnt + del_cnt;
 
   fprintf(stderr, "Correcting " F_U64 " bases with " F_U64 " indel adjustments.\n", G->basesLen, G->adjustsLen);
 
