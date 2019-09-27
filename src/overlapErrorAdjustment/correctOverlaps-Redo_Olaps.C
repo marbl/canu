@@ -558,15 +558,17 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
 
   //TODO refactor out the code duplication
   //Adjusting the extremities
-  if (ped->deltaLen > 0 && ped->delta[0] == 1 && a_hang > 0) {
-    int32  stop = min(ped->deltaLen, (int32) a_hang);  // a_hang is int32:31! FIXME NO it's int64:31
+  if (ped->deltaLen > 0 && ped->delta[0] == 1) {// && a_hang > 0) {
+    //int32  stop = min(ped->deltaLen, (int32) a_hang);  // a_hang is int32:31! FIXME NO it's int64:31
     int32  i = 0;
 
-    while (i < stop && ped->delta[i] == 1)
+    //while (i < stop && ped->delta[i] == 1)
+    while (i < ped->deltaLen && ped->delta[i] == 1)
       i++;
 
     //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped->delta[i]);
-    assert(i == stop || ped->delta[i] != -1);
+    //FIXME return assert?
+    //assert(i == stop || ped->delta[i] != -1);
 
     ped->deltaLen -= i;
 
@@ -579,18 +581,21 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
     a_part_len -= i;
     all_errors     -= i;
     //alignment_len -= i;
-  } else if (ped->deltaLen > 0 && ped->delta[0] == -1 && a_hang < 0) {
-    int32  stop = min(ped->deltaLen, (int32) -a_hang);
+  } else if (ped->deltaLen > 0 && ped->delta[0] == -1) {// && a_hang < 0) {
+    //int32  stop = min(ped->deltaLen, (int32) -a_hang);
     int32  i = 0;
 
-    while (i < stop && ped->delta[i] == -1)
+    //while (i < stop && ped->delta[i] == -1)
+    while (i < ped->deltaLen && ped->delta[i] == -1)
       i++;
 
     //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped->delta[i]);
-    assert((i == stop) || (ped->delta[i] != 1));
+    //FIXME return assert?
+    //assert((i == stop) || (ped->delta[i] != 1));
 
     ped->deltaLen -= i;
 
+    //FIXME int->int32
     memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
 
     b_part     += i;
