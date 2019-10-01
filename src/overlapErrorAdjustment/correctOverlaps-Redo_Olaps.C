@@ -330,20 +330,24 @@ CollectKmerStat(const char* seq, int32 reg_len, int32 kmer_len, int32 *stats) {
 
 static
 bool
-CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
-    int32 size_factor, int32 repeat_num,
-    int32 min_k = 2, int32 max_k = 5) {
-  int32 stats_buff[1 << (2 * max_k)];
-  for (int32 k = min_k; k <= max_k; ++k) {
+CheckTrivialDNA(const char* seq, int32 remaining, int32 offset) {
+  //TODO configure trivial DNA analysis
+  static const int32 SIZE_FACTOR = 6;
+  static const int32 REPEAT_NUM = 5;
+  static const int32 MIN_K = 2;
+  static const int32 MAX_K = 5;
+
+  int32 stats_buff[1 << (2 * MAX_K)];
+  for (int32 k = MIN_K; k <= MAX_K; ++k) {
     const int32 possible_kmer_cnt = 1 << (2 * k);
-    int32 reg_len = k * size_factor;
+    int32 reg_len = k * SIZE_FACTOR;
 
     //exploring sequence to the right
     for (int32 shift = 0; shift < k; ++shift) {
       if (reg_len + shift > remaining)
         break;
       CollectKmerStat(seq + shift, reg_len, k, stats_buff);
-      if (*std::max_element(stats_buff, stats_buff + possible_kmer_cnt) >= repeat_num) {
+      if (*std::max_element(stats_buff, stats_buff + possible_kmer_cnt) >= REPEAT_NUM) {
         //char subbuff[reg_len + 1];
         //memcpy(subbuff, seq + shift, reg_len);
         //subbuff[reg_len] = '\0';
@@ -358,7 +362,7 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
       if (reg_len + shift > offset)
         break;
       CollectKmerStat(seq - shift - 1, -reg_len, k, stats_buff);
-      if (*std::max_element(stats_buff, stats_buff + possible_kmer_cnt) >= repeat_num) {
+      if (*std::max_element(stats_buff, stats_buff + possible_kmer_cnt) >= REPEAT_NUM) {
         //char subbuff[reg_len + 1];
         //memcpy(subbuff, seq - shift - reg_len, reg_len);
         //subbuff[reg_len] = '\0';
@@ -372,11 +376,25 @@ CheckTrivialDNA(const char* seq, int32 remaining, int32 offset,
 }
 
 static
+bool
+CheckNonTrivialDNA(const char* a_part, const char* b_part,
+                int32 a_len, int32 b_len,
+                int32 a_pos, int32 b_pos) {
+  //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
+  if (CheckTrivialDNA(a_part + a_pos, /*remaining*/a_len - a_pos, /*offset*/a_pos))
+    return false;
+  //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
+  if (CheckTrivialDNA(b_part + b_pos, /*remaining*/b_len - b_pos, /*offset*/b_pos))
+    return false;
+  return true;
+}
+
+static
 std::pair<size_t, size_t>
 ComputeErrors(const char* a_part, const char* b_part,
     int32 delta_len, int32 *deltas,
     int32 a_len, int32 b_len,
-    bool check_trivial_dna = false) {
+    bool check_trivial_dna) {
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
   int32  all_ct = 0;
   //  Processed event counter
@@ -388,9 +406,6 @@ ComputeErrors(const char* a_part, const char* b_part,
   //position in "alignment" of a_part and b_part
   int32  p = 0;
 
-  //FIXME magic constants
-  static const int32 size_factor = 6;
-  static const int32 repeat_num = 5;
   for (int32 k=0; k < delta_len; k++) {
     //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
@@ -400,15 +415,8 @@ ComputeErrors(const char* a_part, const char* b_part,
         //Substitution at i in a_part (p in "alignment")
         //fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
 
-        bool report = true;
-        if (check_trivial_dna) {
-          //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
-          report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-          //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
-          report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
-        }
         all_ct++;
-        if (report)
+        if (!check_trivial_dna || CheckNonTrivialDNA(a_part, b_part, a_len, b_len, i, j))
           ct++;
       }
 
@@ -422,16 +430,10 @@ ComputeErrors(const char* a_part, const char* b_part,
     if (deltas[k] < 0) {
       //Insertion at i - 1 in a_part (p in "alignment")
       //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      bool report = true;
-      if (check_trivial_dna) {
-        //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
-        report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-        //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
-        report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
-      }
       all_ct++;
-      if (report)
+      if (!check_trivial_dna || CheckNonTrivialDNA(a_part, b_part, a_len, b_len, i, j))
         ct++;
+
       j++;  //assert(j <= b_len);
       p++;
     }
@@ -439,18 +441,12 @@ ComputeErrors(const char* a_part, const char* b_part,
     //  If a positive delta, delete the base.
 
     if (deltas[k] > 0) {
-      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
       //Deletion at i in a_part (p in "alignment")
-      bool report = true;
-      if (check_trivial_dna) {
-        //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
-        report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-        //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
-        report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
-      }
+      //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
       all_ct++;
-      if (report)
+      if (!check_trivial_dna || CheckNonTrivialDNA(a_part, b_part, a_len, b_len, i, j))
         ct++;
+
       i++;  //assert(i <= a_len);
       p++;
     }
@@ -460,16 +456,9 @@ ComputeErrors(const char* a_part, const char* b_part,
   while (i < a_len) {
     if (a_part[i] != b_part[j]) {
       //fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
-      //TODO substitution at i in a_part (p in "alignment")
-      bool report = true;
-      if (check_trivial_dna) {
-        //fprintf(stderr, "Checking for trivial DNA in A around position %d\n", i);
-        report &= !CheckTrivialDNA(a_part + i, /*remaining*/a_len - i, /*offset*/i, size_factor, repeat_num);
-        //fprintf(stderr, "Checking for trivial DNA in B around position %d\n", j);
-        report &= !CheckTrivialDNA(b_part + j, /*remaining*/b_len - j, /*offset*/j, size_factor, repeat_num);
-      }
+      //Substitution at i in a_part (p in "alignment")
       all_ct++;
-      if (report)
+      if (!check_trivial_dna || CheckNonTrivialDNA(a_part, b_part, a_len, b_len, i, j))
         ct++;
     }
 
@@ -478,19 +467,9 @@ ComputeErrors(const char* a_part, const char* b_part,
     p++;
   }
 
-  if (all_ct > 0) {
-    //char subbuff_a[a_len + 1];
-    //memcpy(subbuff_a, a_part, a_len);
-    //subbuff_a[a_len] = '\0';
-    //char subbuff_b[b_len + 1];
-    //memcpy(subbuff_b, b_part, b_len);
-    //subbuff_b[b_len] = '\0';
-    //fprintf(stderr, "Was processing alignment of:\n");
-    //fprintf(stderr, "A: %s\n", subbuff_a);
-    //fprintf(stderr, "B: %s\n", subbuff_b);
-
-    //fprintf(stderr, "Reported %d out of %d\n", ct, all_ct);
-  }
+  //if (all_ct > 0) {
+  //  fprintf(stderr, "Reported %d out of %d\n", ct, all_ct);
+  //}
 
   assert(i <= a_len);
   assert(j <= b_len);
@@ -537,7 +516,8 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
 //returns error rate of the alignment or -1. if (!match_to_end || invalid_olap)
 static
 double
-ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_part_len, const char *b_part, int32 error_bound, 
+ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_part_len, const char *b_part, 
+                 int32 error_bound, bool check_trivial_dna,
                  pedWorkArea_t *ped, bool *match_to_end, bool *invalid_olap) {
   int32   a_end        = 0;
   int32   b_end        = 0;
@@ -553,13 +533,11 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
                                       *match_to_end,
                                       ped);
 
-  //  ??  These both occur, but the first is much much more common.
-  //FIXME Q: why do we need to handle both insertions and deletions here?
-
-  //TODO refactor out the code duplication
   //Adjusting the extremities
+  //TODO discuss the logic!
+  //TODO refactor out the code duplication
   if (ped->deltaLen > 0 && ped->delta[0] == 1) {// && a_hang > 0) {
-    //int32  stop = min(ped->deltaLen, (int32) a_hang);  // a_hang is int32:31! FIXME NO it's int64:31
+    //int32  stop = min(ped->deltaLen, (int32) a_hang);
     int32  i = 0;
 
     //while (i < stop && ped->delta[i] == 1)
@@ -567,20 +545,16 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
       i++;
 
     //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped->delta[i]);
-    //FIXME return assert?
+    //TODO return assert?
     //assert(i == stop || ped->delta[i] != -1);
 
     ped->deltaLen -= i;
-
-    //FIXME this is error-prone! Furthermore delta is int32[]. Is int32 guaranteed to be int?
-    //TODO consider using int32_t from standard
-    memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
+    memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof(int32));
 
     a_part     += i;
     a_end      -= i;
     a_part_len -= i;
     all_errors     -= i;
-    //alignment_len -= i;
   } else if (ped->deltaLen > 0 && ped->delta[0] == -1) {// && a_hang < 0) {
     //int32  stop = min(ped->deltaLen, (int32) -a_hang);
     int32  i = 0;
@@ -590,19 +564,16 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
       i++;
 
     //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped->delta[i]);
-    //FIXME return assert?
+    //TODO return assert?
     //assert((i == stop) || (ped->delta[i] != 1));
 
     ped->deltaLen -= i;
-
-    //FIXME int->int32
-    memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
+    memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof(int32));
 
     b_part     += i;
     b_end      -= i;
     b_part_len -= i;
     all_errors     -= i;
-    //alignment_len -= i;
   }
 
   //Display_Alignment(a_part, a_end, b_part, b_end, ped->delta, ped->deltaLen);
@@ -616,9 +587,8 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
   int32 events;
   int32 alignment_len;
 
-  static const bool check_trivial_dna = true;
   //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
-  std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta, 
+  std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta,
                                                   a_end, b_end, check_trivial_dna);
 
   if (!check_trivial_dna && all_errors != events) {
@@ -743,16 +713,17 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
       //  Compute and process the alignment
       Total_Alignments_Ct++;
-      //TODO think why in the find errors this code is different.
+      //TODO review differences with the code in errors finding
       //There one of the sequences is the (almost) entire read and the length is the length of its prefix
       int32   a_part_len  = strlen(a_part);
       int32   b_part_len  = strlen(b_part);
 
       bool    match_to_end = false;
       bool    invalid_olap = false;
-      double err_rate = ProcessAlignment(a_part_len, a_part, olap.a_hang, 
-                                         b_part_len, b_part, 
-                                         G->Error_Bound[min(a_part_len, b_part_len)], 
+      double err_rate = ProcessAlignment(a_part_len, a_part, olap.a_hang,
+                                         b_part_len, b_part,
+                                         G->Error_Bound[min(a_part_len, b_part_len)],
+                                         /*check trivial DNA*/true,
                                          ped, &match_to_end, &invalid_olap);
 
       static const double report_threshold = 0.;
