@@ -87,8 +87,6 @@ SOURCES      := AS_global.C \
                 \
                 overlapInCore/overlapReadCache.C \
                 \
-                overlapErrorAdjustment/analyzeAlignment.C \
-                \
                 overlapInCore/liboverlap/Binomial_Bound.C \
                 overlapInCore/liboverlap/Display_Alignment.C \
                 overlapInCore/liboverlap/prefixEditDistance.C \
