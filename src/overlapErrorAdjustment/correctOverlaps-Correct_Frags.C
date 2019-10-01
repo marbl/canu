@@ -201,7 +201,7 @@ Correct_Frags(coParameters *G,
       default: {}
     }
   }
-  G->basesLen += ins_cnt - del_cnt;
+  G->basesLen += ins_cnt; // allow extra space for insertions in case reads get longer
   G->adjustsLen = ins_cnt + del_cnt;
 
   fprintf(stderr, "Correcting " F_U64 " bases with " F_U64 " indel adjustments.\n", G->basesLen, G->adjustsLen);
