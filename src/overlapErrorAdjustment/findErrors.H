@@ -114,8 +114,6 @@ struct Vote_Tally_t {
 
      insertion_cnt = 0;
   };
-  ~Vote_Tally_t() {
-  };
 
   static const char INSERTIONS_DELIM = '$';
 
@@ -130,31 +128,26 @@ struct Vote_Tally_t {
 
   uint32 insertion_cnt;
   std::string insertions;
-  //uint32  a_insert  : 16;
-  //uint32  c_insert  : 16;
-  //uint32  g_insert  : 16;
-  //uint32  t_insert  : 16;
-  
-	std::vector<std::string> insertions_list() const {
-		std::vector<std::string> answer;
-		std::size_t start;
-		std::size_t end = 0;
 
-		while ((start = insertions.find_first_not_of(INSERTIONS_DELIM, end)) != std::string::npos) {
-			end = insertions.find(INSERTIONS_DELIM, start);
-			answer.push_back(insertions.substr(start, end - start));
-		}
-		return answer;
-	}
+  std::vector<std::string> insertions_list() const {
+    std::vector<std::string> answer;
+    std::size_t start;
+    std::size_t end = 0;
 
-  //FIXME total somehow does not consider insertions
+    while ((start = insertions.find_first_not_of(INSERTIONS_DELIM, end)) != std::string::npos) {
+      end = insertions.find(INSERTIONS_DELIM, start);
+      answer.push_back(insertions.substr(start, end - start));
+    }
+    return answer;
+  }
+
+  //NB: total does not consider insertions
   uint32 total() const {
     return deletes + a_subst + c_subst + g_subst + t_subst;
   }
 
-  //FIXME here we somehow do not consider all other events 
   uint32 ins_total() const {
-    return insertion_cnt;//a_insert + c_insert + g_insert + t_insert;
+    return insertion_cnt;
   }
 
   uint32 all() const {
@@ -191,8 +184,7 @@ struct Vote_t {
 
 
 
-class Frag_Info_t {
-public:
+struct Frag_Info_t {
   Frag_Info_t() {
     sequence     = NULL;
     vote         = NULL;
@@ -201,8 +193,6 @@ public:
     right_degree = 0;
     shredded     = false;
     unused       = false;
-  };
-  ~Frag_Info_t() {
   };
 
   char          *sequence;
@@ -214,8 +204,7 @@ public:
   uint64         unused        : 1;
 };
 
-class Olap_Info_t {
-public:
+struct Olap_Info_t {
   Olap_Info_t() {
     a_iid   = 0;
     b_iid   = 0;
@@ -224,7 +213,6 @@ public:
     innie   = false;
     normal  = false;
   };
-  ~Olap_Info_t() {};
 
   uint32      a_iid;
   uint32      b_iid;
@@ -250,8 +238,7 @@ public:
 
 
 
-class Frag_List_t {
-public:
+struct Frag_List_t {
   Frag_List_t() {
     readsMax    = 0;
     readsLen    = 0;
@@ -280,7 +267,7 @@ public:
 
 
 
-class feParameters;
+struct feParameters;
 
 
 struct pedWorkArea_t {
@@ -355,8 +342,7 @@ struct Thread_Work_Area_t {
 
 
 
-class feParameters {
-public:
+struct feParameters {
   feParameters() {
     seqStorePath   = NULL;
     ovlStorePath   = NULL;

@@ -44,25 +44,38 @@ Cast_Vote(feParameters *G,
   Vote_Tally_t &vote = G->reads[sub].vote[pos];
   //fprintf(stderr, "Casting vote val %d at pos %d\n", val, pos);
   switch (val) {
-    case DELETE:    /*fprintf(stderr, "Casting deletion\n");*/ if (vote.deletes  < MAX_VOTE)  vote.deletes++;   break;
-    case A_SUBST:   /*fprintf(stderr, "Casting A_SUBST\n");*/ if (vote.a_subst  < MAX_VOTE)  vote.a_subst++;   break;
-    case C_SUBST:   /*fprintf(stderr, "Casting C_SUBST\n");*/ if (vote.c_subst  < MAX_VOTE)  vote.c_subst++;   break;
-    case G_SUBST:   /*fprintf(stderr, "Casting G_SUBST\n");*/ if (vote.g_subst  < MAX_VOTE)  vote.g_subst++;   break;
-    case T_SUBST:   /*fprintf(stderr, "Casting T_SUBST\n");*/ if (vote.t_subst  < MAX_VOTE)  vote.t_subst++;   break;
+    case DELETE:
+      //fprintf(stderr, "Casting deletion\n");
+      if (vote.deletes < MAX_VOTE)
+        vote.deletes++;
+      break;
+    case A_SUBST:
+      //fprintf(stderr, "Casting A_SUBST\n");
+      if (vote.a_subst < MAX_VOTE)
+        vote.a_subst++;
+      break;
+    case C_SUBST:
+      //fprintf(stderr, "Casting C_SUBST\n");
+      if (vote.c_subst < MAX_VOTE)
+        vote.c_subst++;
+      break;
+    case G_SUBST:
+      //fprintf(stderr, "Casting G_SUBST\n");
+      if (vote.g_subst < MAX_VOTE)
+        vote.g_subst++;
+      break;
+    case T_SUBST:
+      //fprintf(stderr, "Casting T_SUBST\n");
+      if (vote.t_subst < MAX_VOTE)
+        vote.t_subst++;
+      break;
     case A_INSERT: //fallthrough
     case C_INSERT: //fallthrough
     case G_INSERT: //fallthrough
     case T_INSERT: //fallthrough
-      //FIXME add check of MAX_VOTE somehow?
       //fprintf(stderr, "Casting insertion of char %c\n", VoteChar(val));
       vote.insertions += VoteChar(val);
       break;
-    //case A_INSERT:  if (vote.a_insert < MAX_VOTE)  vote.a_insert++;  break;
-    //case C_INSERT:  if (vote.c_insert < MAX_VOTE)  vote.c_insert++;  break;
-    //case G_INSERT:  if (vote.g_insert < MAX_VOTE)  vote.g_insert++;  break;
-    //case T_INSERT:  if (vote.t_insert < MAX_VOTE)  vote.t_insert++;  break;
-    //case NO_VOTE:
-    //  break;
     default :
       fprintf(stderr, "ERROR:  Illegal vote type\n");
       assert(false);
@@ -113,10 +126,6 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   // ===== COLLECTING EVENTS =====
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
   int32  ct = 0;
-
-  //FIXME WAT?!
-  //  Necessary??
-  //memset(wa->globalvote, 0, sizeof(Vote_t) * AS_MAX_READLEN);
 
   wa->globalvote[ct].frag_sub  = -1;
   wa->globalvote[ct].align_sub = -1;

@@ -295,14 +295,12 @@ ovStore::loadOverlapsForRead(uint32       id,
       exit(1);
     }
 
-    //FIXME WHY?!
     ovl[oo].a_iid = _curID;
     ovl[oo].g     = _seq;
 
     if (_evalues) {
       ovl[oo].evalue(_evalues[_index[_curID]._overlapID++]);
     }
-    //fprintf(stderr, "Loaded overlap between read %d and %d of erate %f\n", ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].erate());
   }
 
   _curID   += 1;     //  Advance to the next read.

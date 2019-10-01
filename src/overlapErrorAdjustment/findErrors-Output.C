@@ -230,8 +230,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   return ins_vote;
 }
 
-//TODO special case of two reads voting for different bases
-// TODO haplo count is giving a headeache in the trivial DNA regions. So far disabled from command line.
+//TODO consider special case of two reads voting for different bases
 // return false if nothing happened on the position and true otherwise
 bool
 Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
@@ -242,17 +241,17 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
 
   static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
 
-  //FIXME understand why it can fail on a fully confirmed base
+  //TODO review situations when it fails on a fully confirmed base
   //assert(vote.no_insert >= vote.confirmed);
-
-  if (vote.all_but(base) == 0)
-    return false;
-
   //if (vote.no_insert < vote.confirmed) {
   //  fprintf(stderr, "WARN: no_insert %d ; confirmed %d \n", vote.no_insert, vote.confirmed);
   //  FPrint_Vote(stderr, read.sequence[pos], vote);
   //}
-  //
+
+  if (vote.all_but(base) == 0)
+    return false;
+
+  //Printing votes around position
   //FPrint_Votes(stderr, read, pos, /*locality radius*/5);
 
   bool corrected = false;
@@ -267,8 +266,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
       for (char c : ins_str) {
         out.type       = InsVote(c);
         out.pos        = pos;
-        //FIXME rename
-        writeToFile(out, "correction3", fp);
+        writeToFile(out, "correction2", fp);
       }
       corrected = true;
     }
@@ -283,8 +281,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
       out.type       = vote_t;
       out.pos        = pos;
       //fprintf(stderr, "Read:pos %d:%d -- corrected substitution/deletion\n", out.readID, pos);
-      //FIXME rename
-      writeToFile(out, "correction2", fp);
+      writeToFile(out, "correction3", fp);
       corrected = true;
     }
   }
