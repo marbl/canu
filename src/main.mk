@@ -63,11 +63,12 @@ SOURCES      := AS_global.C \
                 \
                 stores/sqCache.C \
                 stores/sqLibrary.C \
+                stores/sqReadData.C \
+                stores/sqReadDataWriter.C \
                 stores/sqStore.C \
+                stores/sqStoreBlob.C \
                 stores/sqStoreConstructor.C \
                 stores/sqStoreInfo.C \
-                stores/sqStoreEncode.C \
-                stores/sqStorePartition.C \
                 \
                 stores/ovOverlap.C \
                 stores/ovStore.C \
@@ -150,7 +151,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/ovStoreDump.mk \
                 stores/ovStoreStats.mk \
                 stores/sqStoreCreate.mk \
-                stores/sqStoreCreatePartition.mk \
                 stores/sqStoreDumpFASTQ.mk \
                 stores/sqStoreDumpMetaData.mk \
                 stores/tgStoreCompress.mk \

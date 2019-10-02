@@ -479,14 +479,13 @@ ComputeErrors(const char* a_part, const char* b_part,
 
 static
 void
-PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
+PrepareRead(/*const*/ sqStore *seqStore, uint32 curID,
             uint32 &fseqLen, char *fseq, char *rseq,
             uint32 &fadjLen, Adjust_t *fadj, Adjust_t *radj,
             Correction_Output_t  *C, uint64 &Cpos, uint64 Clen) {
-  /*const*/ sqRead *read = seqStore->sqStore_getRead(curID);
-
-  seqStore->sqStore_loadReadData(read, readData);
-
+  //FIXME while do we allocate it in the heap?
+  sqRead        *read     = new sqRead;
+  seqStore->sqStore_getRead(curID, read);
   //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
   //fprintf(stderr, "Correcting B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
@@ -497,8 +496,8 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
   //Correcting "b" read. "a" reads were corrected beforehand.
   correctRead(curID,
               fseq, fseqLen, fadj, fadjLen,
-              readData->sqReadData_getSequence(),
-              read->sqRead_sequenceLength(),
+              read->sqRead_sequence(),
+              read->sqRead_length(),
               C, Cpos, Clen);
 
   //fprintf(stderr, "Finished   B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
@@ -511,6 +510,7 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
   reverseComplementSequence(rseq, fseqLen);
 
   Make_Rev_Adjust(radj, fadj, fadjLen, fseqLen);
+  delete    read;
 }
 
 //returns error rate of the alignment or -1. if (!match_to_end || invalid_olap)
@@ -634,7 +634,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   uint32         fadjLen  = 0;  //  radj is the same length
 
   fprintf(stderr, "--Allocate " F_SIZE_T " MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
-  sqReadData    *readData = new sqReadData;
+  //FIXME while do we allocate it in the heap?
   pedWorkArea_t *ped      = new pedWorkArea_t;
 
   uint64         Total_Alignments_Ct           = 0;
@@ -650,6 +650,9 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   uint64         olapsFwd = 0;
   uint64         olapsRev = 0;
 
+  uint64         nBetter = 0;
+  uint64         nWorse  = 0;
+  uint64         nSame   = 0;
 
 
   ped->initialize(G, G->errorRate);
@@ -666,10 +669,10 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
     assert(curID == G->olaps[thisOvl].b_iid);
 
-    //  Load and correct the B read 
-    PrepareRead(seqStore, curID, readData, 
-                fseqLen, fseq, rseq, 
-                fadjLen, fadj, radj, 
+    //  Load and correct the B read
+    PrepareRead(seqStore, curID,
+                fseqLen, fseq, rseq,
+                fadjLen, fadj, radj,
                 C, Cpos, Clen);
 
     //  Recompute alignments for ALL overlaps involving the B read
@@ -727,7 +730,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
       static const double report_threshold = 0.;
       if (err_rate >= 0.) {
         G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue(err_rate);
-        //fprintf(stderr, "REDO - errors = %u / olapLep = %u -- %f\n", errors, olapLen, AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
+        //fprintf(stderr, "REDO - err rate = %f\n", AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
 
         if (rha)
           rhaPass++;
@@ -735,6 +738,15 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
         if (err_rate > report_threshold) {
           //fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
         }
+
+        //FIXME direct comparison of doubles
+        //TODO why do we have this code?
+        if (err_rate < G->olaps[thisOvl].evalue)
+          nBetter++;
+        else if (err_rate > G->olaps[thisOvl].evalue)
+          nWorse++;
+        else
+          nSame++;
       } else {
         //fprintf(stderr, "Err rate of overlap %u - %u failed\n", olap.a_iid, olap.b_iid);
 
@@ -782,7 +794,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   fprintf(stderr, "\n");
 
   delete    ped;
-  delete    readData;
   delete [] radj;
   delete [] fadj;
   delete [] rseq;
@@ -805,4 +816,9 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   fprintf(stderr, "Failed: " F_U64 " (negative length)\n", Failed_Alignments_Length_Ct);
 
   fprintf(stderr, "rhaFail %u rhaPass %u\n", rhaFail, rhaPass);
+
+  fprintf(stderr, "Changed %lu overlaps.\n", nBetter + nWorse + nSame);
+  fprintf(stderr, "Better: %lu overlaps.\n", nBetter);
+  fprintf(stderr, "Worse:  %lu overlaps.\n", nWorse);
+  fprintf(stderr, "Same:   %lu overlaps.\n", nSame);
 }

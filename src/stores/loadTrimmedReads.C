@@ -35,6 +35,172 @@
 
 
 
+void
+sqStore::sqStore_setClearRange(uint32 id,
+                               uint32 bgn, uint32 end, bool bogus,
+                               sqRead_which w) {
+  sqRead_which   norm = w & ~sqRead_compressed;
+  sqRead_which   comp = w |  sqRead_compressed;
+
+  //  If we are bogus, just mark the normal and compressed sequences
+  //  for ignore.
+
+  if (bogus == true) {
+    sqStore_getReadSeq(id, norm)->sqReadSeq_setIgnoreT(true);
+    sqStore_getReadSeq(id, comp)->sqReadSeq_setIgnoreT(true);
+    return;
+  }
+
+  //  Grab the uncompressed sequence, build a map between that and the compressed
+  //  sequence, then use the map to set clear ranges for both
+  //  the normal and compressed.
+
+  uint32    nlen  = sqStore_getReadLength(id, norm);
+
+  sqRead   *read  = sqStore_getRead(id, new sqRead());
+  uint32   *ntoc  = new uint32 [ nlen + 1 ];
+
+  uint32    clen  = homopolyCompress(read->sqRead_sequence(norm), nlen, NULL, ntoc);
+
+  assert(clen == sqStore_getReadLength(id, sqRead_corrected | sqRead_compressed));
+
+  uint32    nbgn=0, nend=0;   //  Clear range in normal sequence
+  uint32    cbgn=0, cend=0;   //  Clear range in compressed sequence
+
+  //  Short clear ranges should be handled outside this function - by
+  //  flagging the read to be ignored.  'end' == 0 when compressed is true
+  //  causes an overflow in ntoc[nend].  Rather than clutter up the code with
+  //  more special cases, we just require non-zero clear ranges.
+  //
+  assert(bgn < end);
+
+  //  If we've got clear ranges for the normal version, we can directly
+  //  map to the compressed version.
+  //
+  if ((w & sqRead_compressed) == sqRead_unset) {
+    assert(end <= nlen);
+
+    nbgn = bgn;
+    nend = end;
+
+    cbgn = ntoc[nbgn];
+    cend = ntoc[nend];
+  }
+
+  //  But if we've got clear ranges for the compressed version, we need
+  //  to invert the map before we can find the corresponding coordinates.
+  //
+  else {
+    assert(end <= clen);
+
+    cbgn = bgn;
+    cend = end;
+
+    nbgn = 0;
+    while ((nbgn < nend) && (ntoc[nbgn] < cbgn))
+      nbgn++;
+
+    nend = nlen;
+    while ((nbgn < nend) && (cend < ntoc[nend]))
+      nend--;
+  }
+
+  //  Probably need real bounds checking.
+
+  assert(nbgn <= nend);
+  assert(nend <= nlen);
+
+  assert(cbgn <= cend);
+  assert(cend <= clen);
+
+  sqStore_getReadSeq(id, norm)->sqReadSeq_setClearRange(nbgn, nend);
+  sqStore_getReadSeq(id, comp)->sqReadSeq_setClearRange(cbgn, cend);
+
+  fprintf(stderr, "id %5u length %7u %7u clear  norm %8u-%-8u  compressed %8u-%-8u\n",
+          id, nlen, clen, nbgn, nend, cbgn, cend);
+
+  delete [] ntoc;
+  delete    read;
+}
+
+
+void
+doTest(uint32 bgn, uint32 end, char *bases, bool norm) {
+
+  uint32   nlen = strlen(bases);
+
+  char     *bcomp = new char   [ nlen + 1 ];
+  uint32   *ntoc  = new uint32 [ nlen + 1 ];
+
+  uint32    clen  = homopolyCompress(bases, nlen, bcomp, ntoc);
+
+  uint32    nbgn, nend;
+  uint32    cbgn, cend;
+
+  assert(bgn < end);
+
+  if (norm) {
+    assert(end <= nlen);
+
+    nbgn = bgn;
+    nend = end;
+
+    cbgn = ntoc[nbgn];
+    cend = ntoc[nend];
+  }
+
+  else {
+    assert(end <= clen);
+
+    cbgn = bgn;
+    cend = end;
+
+    nbgn = 0;
+    while (ntoc[nbgn] <= cbgn)
+      nbgn++;
+    nbgn--;
+
+    nend = nlen;
+    while (cend <= ntoc[nend])
+      nend--;
+    nend++;
+  }
+
+  //  Probably need real bounds checking.
+
+  assert(nbgn <= nend);
+  assert(nend <= nlen);
+
+  assert(cbgn <= cend);
+  assert(cend <= clen);
+
+  fprintf(stderr, "  normal   compressed\n");
+  fprintf(stderr, "--------   ----------\n");
+
+  for (uint32 ii=0; ii<=nlen; ii++) {
+    uint32 jj = ntoc[ii];
+
+    fprintf(stderr, "%c %4u %c %s %c %4u %c\n",
+            ((ii == nbgn) || (ii == nend)) ? '-' : ' ',
+            ii,
+            (bases[ii] != 0) ? bases[ii] : '.',
+            (bases[ii] == bcomp[jj]) ? "==" : "!!",
+            (bcomp[jj] != 0) ? bcomp[jj] : '.',
+            jj,
+            ((jj == cbgn) || (jj == cend)) ? '-' : ' ');
+  }
+
+  fprintf(stderr, "\n");
+
+  fprintf(stderr, "bgn %4u %4u\n", nbgn, cbgn);
+  fprintf(stderr, "end %4u %4u\n", nend, cend);
+
+  delete [] ntoc;
+  delete [] bcomp;
+}
+
+
+
 int
 main (int argc, char **argv) {
   char            *seqName = NULL;
@@ -44,6 +210,12 @@ main (int argc, char **argv) {
 
   bool             verbose = false;
   bool             modify  = true;
+
+  bool             testnorm  = false;
+  bool             testcomp  = false;
+  char            *testbases = NULL;
+  uint32           testbgn   = 0;
+  uint32           testend   = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -63,6 +235,18 @@ main (int argc, char **argv) {
       modify = false;
       sqMode = sqStore_readOnly;
 
+    } else if (strcmp(argv[arg], "-testnorm") == 0) {
+      testnorm  = true;
+      testbgn   = strtouint32(argv[++arg]);
+      testend   = strtouint32(argv[++arg]);
+      testbases =             argv[++arg];
+
+    } else if (strcmp(argv[arg], "-testcomp") == 0) {
+      testcomp  = true;
+      testbgn   = strtouint32(argv[++arg]);
+      testend   = strtouint32(argv[++arg]);
+      testbases =             argv[++arg];
+
     } else {
       char *s = new char [1024];
       snprintf(s, 1024, "ERROR:  Unknown option '%s'.\n", argv[arg]);
@@ -70,6 +254,15 @@ main (int argc, char **argv) {
     }
 
     arg++;
+  }
+
+  if ((testnorm) || (testcomp)) {
+    if (testbgn < testend) {
+      doTest(testbgn, testend, testbases, testnorm);
+    } else {
+      fprintf(stderr, "Invalid clear range %u-%d\n", testbgn, testend);
+    }
+    exit(0);
   }
 
   if (seqName == NULL)
@@ -86,6 +279,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -v                    Report clear range changes to stderr\n");
     fprintf(stderr, "  -n                    Don't apply changes\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -testnorm b e s       Test translating trim points between\n");
+    fprintf(stderr, "  -testcomp b e s       normal and compressed sequences.  's' must\n");
+    fprintf(stderr, "                        be normal (uncompressed) sequence.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  Loads results of read trimming into seqStore.\n");
     fprintf(stderr, "\n");
 
@@ -96,17 +293,30 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  sqStore        *seqStore = sqStore::sqStore_open(seqName, sqMode);
-  uint32          numReads  = seqStore->sqStore_getNumReads();
-  uint32          numLibs   = seqStore->sqStore_getNumLibraries();
+  sqStore        *seqStore = new sqStore(seqName, sqMode);
+  uint32          numReads = seqStore->sqStore_lastReadID();
+  uint32          numLibs  = seqStore->sqStore_lastLibraryID();
+
+  //  Reset the default version to the non-trimmed version of the read.
+
+  sqRead_setDefaultVersion(sqRead_defaultVersion & ~sqRead_trimmed);
 
   //  If no clear range file, set clear range to the entire read.
 
+  if (verbose == true) {
+    fprintf(stderr, "   readID   readLen  clearBgn  clearEnd    status\n");
+    fprintf(stderr, "--------- --------- --------- --------- ---------\n");
+  }
+
+
   if (clrName == NULL) {
     for (uint32 rid=1; rid<=numReads; rid++) {
-      sqRead* read = seqStore->sqStore_getRead(rid);
+      sqReadSeq  *rseq = seqStore->sqStore_getReadSeq(rid);
 
-      seqStore->sqStore_setClearRange(rid, 0, read->sqRead_sequenceLength());
+      if (rseq == NULL)
+        continue;
+
+      rseq->sqReadSeq_setClearRange(0, seqStore->sqStore_getReadLength(rid));
     }
   }
 
@@ -116,25 +326,57 @@ main (int argc, char **argv) {
     clearRangeFile *clrRange = new clearRangeFile(clrName, seqStore);
 
     for (uint32 rid=1; rid<=numReads; rid++) {
-      sqRead* read = seqStore->sqStore_getRead(rid);
+      uint32      rlen  = seqStore->sqStore_getReadLength(rid);
+      uint32      nbgn  = clrRange->bgn(rid);
+      uint32      nend  = clrRange->end(rid);
+      bool        bogus = false;
 
-      if (verbose == true)
-        fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
-                rid, 
-                read->sqRead_clearBgn(), read->sqRead_clearEnd(),
-                clrRange->bgn(rid), clrRange->end(rid));
+      //  If not a valid read, do nothing.
 
-      if (clrRange->isDeleted(rid) == true)
+      if (seqStore->sqStore_isValidRead(rid) == false)
         continue;
 
+      //  If a bogus clear range, reset to 0,0 (for logging) and ensure it is
+      //  flagged for deletion.  Overlap based trimming is using UINT32_MAX
+      //  as a sentinel to say 'deleted', which is gross.
+
+      if ((nbgn >  rlen) ||
+          (nend >  rlen) ||
+          (nbgn >= nend)) {
+        assert(clrRange->isDeleted(rid) == true);
+
+        bogus = true;
+        nbgn  = 0;
+        nend  = 0;
+      }
+
+      //  If already flagged as deleted, keep the clear ranges (also for
+      //  logging).
+
+      if (clrRange->isDeleted(rid) == true)
+        bogus = true;
+
+      //  Set clear ranges for both normal and compressed versions of the read.
+      //  But if bogus, flag both normal and compressed versions
+      //  as ignored.
+
       if (modify == true)
-        seqStore->sqStore_setClearRange(rid, clrRange->bgn(rid), clrRange->end(rid));
+        seqStore->sqStore_setClearRange(rid, nbgn, nend, bogus);
+
+      //  Log the new clear range.
+
+      if (verbose == true)
+        fprintf(stderr, "%9u %9u %9u %9u%s\n",
+                rid,
+                rlen,
+                nbgn, nend,
+                bogus ? "   deleted" : "");
     }
 
     delete clrRange;
   }
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

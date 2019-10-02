@@ -83,20 +83,19 @@ loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &read
 
 
 
-sqReadData *
+sqRead *
 loadReadData(uint32                     readID,
              sqStore                   *seqStore,
-             map<uint32, sqRead *>     &reads,
-             map<uint32, sqReadData *> &datas) {
+             map<uint32, sqRead *>     &reads) {
 
-  if (datas.count(readID) == 0) {
-    datas[readID] = new sqReadData;
-    seqStore->sqStore_loadReadData(readID, datas[readID]);
+  if (reads.count(readID) == 0) {
+    reads[readID] = new sqRead;
+    seqStore->sqStore_getRead(readID, reads[readID]);
   }
 
-  assert(datas[readID] != NULL);
+  assert(reads[readID] != NULL);
 
-  return(datas[readID]);
+  return(reads[readID]);
 }
 
 
@@ -106,7 +105,6 @@ generateFalconConsensus(falconConsensus           *fc,
                         tgTig                     *layout,
                         sqCache                   *seqCache,
                         map<uint32, sqRead *>     &reads,
-                        map<uint32, sqReadData *> &datas,
                         bool                       trimToAlign,
                         uint32                     minOlapLength) {
 
@@ -233,16 +231,12 @@ generateFalconConsensus(falconConsensus           *fc,
 
   ;
 
-  //  Clean up.  Remvoe all the reads[] and datas[] we've loaded.
+  //  Clean up.  Remvoe all the reads[] we've loaded.
 
   for (map<uint32, sqRead     *>::iterator it=reads.begin(); it != reads.end(); ++it)
     delete it->second;
 
-  for (map<uint32, sqReadData *>::iterator it=datas.begin(); it != datas.end(); ++it)
-    delete it->second;
-
   reads.clear();
-  datas.clear();
 
   delete    fd;
   delete [] evidence;
@@ -427,7 +421,7 @@ main(int argc, char **argv) {
 
   if (seqName) {
     fprintf(stderr, "-- Opening seqStore '%s'.\n", seqName);
-    seqStore = sqStore::sqStore_open(seqName);
+    seqStore = new sqStore(seqName);
     seqCache = new sqCache(seqStore, sqRead_raw);
   }
 
@@ -437,24 +431,24 @@ main(int argc, char **argv) {
   }
 
   if ((seqStore) &&
-      (seqStore->sqStore_getNumReads() < idMax))        //  Limit the range of processing to the
-    idMax = seqStore->sqStore_getNumReads();            //  number of reads in the store.
+      (seqStore->sqStore_lastReadID() < idMax))        //  Limit the range of processing to the
+    idMax = seqStore->sqStore_lastReadID();            //  number of reads in the store.
 
   loadReadList(readListName, idMin, idMax, readList);   //  Further limit to a set of good reads.
 
   //  Open any import or export files.
 
-  FILE *exportFile = NULL;
-  FILE *importFile = NULL;
+  writeBuffer *exportFile = NULL;
+  readBuffer  *importFile = NULL;
 
   if (exportName) {
     fprintf(stderr, "-- Opening export file '%s'.\n", exportName);
-    exportFile = AS_UTL_openOutputFile(exportName);
+    exportFile = new writeBuffer(exportName, "w");
   }
 
   if (importName) {
     fprintf(stderr, "-- Opening import file '%s'.\n", importName);
-    importFile  = AS_UTL_openInputFile(importName);
+    importFile  = new readBuffer(importName);
   }
 
   //  Open logging and summary files
@@ -477,7 +471,6 @@ main(int argc, char **argv) {
 
   falconConsensus           *fc = new falconConsensus(minOutputCoverage, minOutputLength, minOlapIdentity, minOlapLength, restrictToOverlap);
   map<uint32, sqRead *>      reads;
-  map<uint32, sqReadData *>  datas;
 
   if (memoryLimit == 0) {
     fprintf(stdout, "    read    read evidence     corrected\n");
@@ -495,12 +488,11 @@ main(int argc, char **argv) {
     FILE  *importedLayouts = AS_UTL_openOutputFile(importName, '.', "layout", (importName != NULL));
     FILE  *importedReads   = AS_UTL_openOutputFile(importName, '.', "fasta",  (importName != NULL));
 
-    while (layout->importData(importFile, reads, datas, NULL, NULL) == true) {
+    while (layout->importData(importFile, reads, NULL, NULL) == true) {
       generateFalconConsensus(fc,
                               layout,
                               seqCache,
                               reads,
-                              datas,
                               trimToAlign,
                               minOlapLength);
 
@@ -553,7 +545,7 @@ main(int argc, char **argv) {
   //
 
   else if (memoryLimit > 0) {
-    uint32   lastID   = seqStore->sqStore_getNumReads();
+    uint32   lastID   = seqStore->sqStore_lastReadID();
     uint32  *readLens = new uint32 [lastID + 1];
     uint32  *readRefs = new uint32 [lastID + 1];
 
@@ -565,8 +557,8 @@ main(int argc, char **argv) {
     //    4           - padding on chunk
     //    cacheEntry  - storage internal to the cache.
 
-    for (uint32 ii=0; ii <= lastID; ii++) {
-      readLens[ii] = 12 + seqStore->sqStore_getRead(ii)->sqRead_sequenceLength(sqRead_raw) / 4 + 4 + sizeof(sqCacheEntry);   //  Round up, and 3 extra uint32.
+    for (uint32 ii=1; ii <= lastID; ii++) {
+      readLens[ii] = 12 + seqStore->sqStore_getReadLength(ii, sqRead_raw) / 4 + 4 + sizeof(sqCacheEntry);   //  Round up, and 3 extra uint32.
       readRefs[ii] = 0;
     }
 
@@ -596,6 +588,9 @@ main(int argc, char **argv) {
               memPerRead  / 1024.0 / 1024.0 / 1024.0);
       exit(1);
     }
+
+    //fprintf(stderr, "readsPerBatch %u\n", readsPerBatch);
+    //fprintf(stderr, "memoryLimit   %f GB\n", memoryLimit / 1024.0 / 1024.0 / 1024.0);
 
     fprintf(batFile, "batch     bgnID     endID  nReads  memory (base memory %.3f GB)\n", memUsedBase / 1024.0 / 1024.0 / 1024.0);
     fprintf(batFile, "----- --------- --------- ------- -------\n");
@@ -709,7 +704,6 @@ main(int argc, char **argv) {
                                 layout,
                                 seqCache,
                                 reads,
-                                datas,
                                 trimToAlign,
                                 minOlapLength);
 
@@ -736,15 +730,15 @@ main(int argc, char **argv) {
   AS_UTL_closeFile(seqFile);
   AS_UTL_closeFile(batFile);
 
-  AS_UTL_closeFile(exportFile);
-  AS_UTL_closeFile(importFile);
+  delete    exportFile;
+  delete    importFile;
 
   delete    fc;
   delete    corStore;
 
   delete    seqCache;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Bye.\n");

@@ -666,6 +666,8 @@ sub setParametersFromFile ($$@) {
         my $two;
         my $opt;
 
+        #  COMPATIBILITY MODE!
+
         if (m/^-(pacbio|nanopore)-(corrected|raw)\s+(.*)\s*$/) {   #  Comments not allowed, because then we can't decide
             $one  = "-$1-$2";                                      #  if the # is a comment, or part of the file!
             $two = $3;                                             #  e.g.,   this_is_file_#1   vs
@@ -907,7 +909,6 @@ sub setDefaults () {
 
     #####  Stopping conditions
 
-    setDefault("stopOnReadQuality", 1,     "Stop if a significant portion of the input data has quality value or base composition errors");
     setDefault("stopOnLowCoverage", 10,    "Stop if raw, corrected or trimmed read coverage is low");
     setDefault("stopAfter",         undef, "Stop after a specific algorithm step is completed");
 
@@ -1063,6 +1064,8 @@ sub setDefaults () {
     setDefault("corFilter",                    "expensive",  "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'");
     setDefault("corConsensus",                 "falcon",     "Which consensus algorithm to use; only 'falcon' is supported; default 'falcon'");
 
+    setDefault("homoPolyCompress",             undef,        "Compute everything but consensus sequences using homopolymer compressed reads");
+
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 
     foreach my $k (keys %synops) {
@@ -1185,7 +1188,7 @@ sub checkMinimap ($) {
     close(F);
 
     if (!defined($version)) {
-        addCommandlineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
+        addCommandLineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
         goto cleanupMinimap;
     }
 

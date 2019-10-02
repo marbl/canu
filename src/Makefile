@@ -665,6 +665,9 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/bin/canu-time \
      ${TARGET_DIR}/bin/canu.defaults \
      ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar \
+     ${TARGET_DIR}/share/sequence/ultra-long-nanopore \
+     ${TARGET_DIR}/share/sequence/pacbio \
+     ${TARGET_DIR}/share/sequence/pacbio-hifi\
      ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm \
      ${TARGET_DIR}/lib/site_perl/canu/CorrectReads.pm \
      ${TARGET_DIR}/lib/site_perl/canu/HaplotypeReads.pm \
@@ -730,6 +733,7 @@ AS_global.C: UPDATE_VERSION
 MAKE_DIRS:
 	@if [ ! -e ${TARGET_DIR}/lib/site_perl/canu ] ; then mkdir -p ${TARGET_DIR}/lib/site_perl/canu ; fi
 	@if [ ! -e ${TARGET_DIR}/share/java/classes ] ; then mkdir -p ${TARGET_DIR}/share/java/classes ; fi
+	@if [ ! -e ${TARGET_DIR}/share/sequence ]     ; then mkdir -p ${TARGET_DIR}/share/sequence     ; fi
 	@if [ ! -e ${TARGET_DIR}/bin ]                ; then mkdir -p ${TARGET_DIR}/bin                ; fi
 
 ${TARGET_DIR}/bin/canu: pipelines/canu.pl
@@ -746,6 +750,17 @@ ${TARGET_DIR}/bin/canu.defaults:
 
 ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar: mhap/mhap-2.1.3.jar
 	cp -pf mhap/mhap-2.1.3.jar ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar
+
+
+${TARGET_DIR}/share/sequence/ultra-long-nanopore: sequence/share/ultra-long-nanopore
+	cp -pf sequence/share/ultra-long-nanopore ${TARGET_DIR}/share/sequence/ultra-long-nanopore
+
+${TARGET_DIR}/share/sequence/pacbio: sequence/share/pacbio
+	cp -pf sequence/share/pacbio ${TARGET_DIR}/share/sequence/pacbio
+
+${TARGET_DIR}/share/sequence/pacbio-hifi: sequence/share/pacbio-hifi
+	cp -pf sequence/share/pacbio-hifi ${TARGET_DIR}/share/sequence/pacbio-hifi
+
 
 ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm: pipelines/canu/Consensus.pm
 	cp -pf pipelines/canu/Consensus.pm ${TARGET_DIR}/lib/site_perl/canu/

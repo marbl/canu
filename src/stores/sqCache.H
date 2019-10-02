@@ -53,7 +53,7 @@ using namespace std;
 class sqCacheEntry {
 public:
   sqCacheEntry() {
-    _readLength     = 0;
+    _basesLength    = 0;
     _bgn            = 0;
     _end            = 0;
     //_dataAge        = 0;
@@ -68,10 +68,18 @@ public:
     delete [] _data;
   };
 
-  uint32  _readLength;   //  Length of the untrimmed read.
+  //  _sequenceLength is the length of the sequence stored in the blob.  It
+  //  is NOT the length of the read we will eventually return.
+  //
+  //  _bgn and _end tell what bases we will be returning, _end - _bgn is the
+  //  length of the read we are storing.
+  //    If not trimmed, these must be 0 and the actual length of the read.
+  //    If homopoly compressed, this will be the compressed length of the read.
 
-  uint32  _bgn;          //  Trim points.  If not trimmed, set
-  uint32  _end;          //  to 0 and _readLength.
+  uint32  _basesLength;
+
+  uint32  _bgn;
+  uint32  _end;
 
   //  For expiring data from the cache, two possibilities:
   //   - We know ahead of time how many times we're going to request
@@ -92,7 +100,7 @@ public:
 
 class sqCache {
 public:
-  sqCache(sqStore *seqStore, sqRead_version version=sqRead_latest, uint64 memoryLimit=0);
+  sqCache(sqStore *seqStore, sqRead_which which=sqRead_defaultVersion, uint64 memoryLimit=0);
   ~sqCache();
 
 private:
@@ -118,6 +126,7 @@ public:
 public:
   //  Data loaders.
   void         sqCache_loadReads(bool verbose=false);
+  void         sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose=false);
   void         sqCache_loadReads(set<uint32> reads, bool verbose=false);
   void         sqCache_loadReads(map<uint32, uint32> reads, bool verbose=false);
   void         sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose=false);
@@ -132,8 +141,11 @@ private:
 
   bool             _trackAge;
   bool             _trackExpiration;
+  bool             _noMoreLoads;
 
-  sqRead_version   _version;
+  sqRead_which     _which;
+  bool             _compressed;
+  bool             _trimmed;
 
   uint64           _memoryLimit;
 
@@ -158,8 +170,6 @@ private:
   uint64           _dataMax;         //  and maximum length.
   uint8           *_data;
 
-  sqReadData       _readData;
+  sqRead           _read;            //  Used mostly as a buffer for blob data.
 };
-
-
 

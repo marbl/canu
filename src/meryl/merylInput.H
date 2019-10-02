@@ -100,7 +100,6 @@ public:
   uint32                    _sqEnd;
 
   sqRead                   *_read;
-  sqReadData               *_readData;
   uint32                    _readID;
   uint32                    _readPos;
 #endif

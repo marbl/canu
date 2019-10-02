@@ -585,7 +585,7 @@ main(int argc, char **argv) {
              (opStack.isCounting()   == true) &&
              (fileExists(sqInfName)  == true) &&
              (fileExists(sqRdsName)  == true)) {
-      store = sqStore::sqStore_open(inoutName);
+      store = new sqStore(inoutName);
     }
 #endif
 

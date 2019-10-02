@@ -204,7 +204,7 @@ sub mhapConfigure ($$$) {
 
         #print STDERR "BLOCK ", scalar(@blocks), " reads from $bgn through $end\n";
 
-        push @blocks, "-b $bgn -e $end";
+        push @blocks, "-r $bgn-$end";
 
         push @blockBgn, $bgn;
         push @blockLen, $end - $bgn + 1;

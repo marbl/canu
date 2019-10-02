@@ -34,6 +34,7 @@
 #define OP_NONE       0
 #define OP_DUMP       1
 #define OP_EXISTENCE  2
+#define OP_SUBSET     3
 
 
 
@@ -108,7 +109,40 @@ reportExistence(dnaSeqFile           *sf,
   delete [] qlt;
 }
 
+void
+subsetInput(dnaSeqFile           *sf,
+            kmerCountExactLookup *kl) {
+  uint32   nameMax = 0;
+  char    *name    = NULL;
+  uint64   seqLen  = 0;
+  uint64   seqMax  = 0;
+  char    *seq     = NULL;
+  uint8   *qlt     = NULL;
 
+  while (sf->loadSequence(name, nameMax, seq, qlt, seqMax, seqLen)) {
+    kmerIterator  kiter(seq, seqLen);
+
+    uint64   nKmer      = 0;
+    uint64   nKmerFound = 0;
+
+    while (kiter.nextMer()) {
+      nKmer++;
+
+      if ((kl->value(kiter.fmer()) > 0) ||
+          (kl->value(kiter.rmer()) > 0))
+        nKmerFound++;
+    }
+
+    if (nKmerFound > 0) {
+       fprintf(stdout, ">%s %lu\n%s\n", name, nKmerFound, seq);
+    }
+  }
+
+  delete [] name;
+  delete [] seq;
+  delete [] qlt;
+
+}
 
 int
 main(int argc, char **argv) {
@@ -148,6 +182,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-existence") == 0) {
       reportType = OP_EXISTENCE;
+
+    } else if (strcmp(argv[arg], "-subset") == 0) {
+      reportType = OP_SUBSET;
 
     } else {
       char *s = new char [1024];
@@ -208,6 +245,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "         rev-mer    - reverse mer sequence\n");
     fprintf(stderr, "         rev-val    - value of the reverse mer in the database\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -subset        Extract sequences containing kmers in <input.meryl>.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "     output:  sequence in fasta format with the number of overlapping kmers appended\n");
+    fprintf(stderr, "         seqName    - name of the sequence this kmer is from\n");
+    fprintf(stderr, "         mersInBoth - number of mers in both sequence and in the database\n");
+    fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -247,6 +290,10 @@ main(int argc, char **argv) {
 
   if (reportType == OP_EXISTENCE) {
     reportExistence(seqFile, kmerLookup);
+  }
+
+  if (reportType == OP_SUBSET) {
+    subsetInput(seqFile, kmerLookup);
   }
 
   //  Done!

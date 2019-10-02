@@ -486,14 +486,14 @@ Process_Matches (int * Start,
                    && b_hang <= 0));
 
     if  (! hit_limit) {
-      //fprintf(stderr, "Extend_Alignment()- start %d len %d offset %d diag %d - S ID %u %d-%d - T ID %u %d-%d\n",
+      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_ID, S_Len, T, T_ID, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
+
+      //fprintf(stderr, "Extend_Alignment()- start %4d len %4d offset %5d diag %5d - S ID %5u %6d-%6d - T ID %5u %6d-%6d\n",
       //        Longest_Match->Start,
       //        Longest_Match->Len,
       //        Longest_Match->Offset,
       //        Longest_Match->Start - Longest_Match->Offset,
       //        S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
-      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_ID, S_Len, T, T_ID, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
-
 
       if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
         if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len

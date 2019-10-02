@@ -45,7 +45,8 @@ using namespace std;
 bool
 bestEdge(ovOverlap  *ovl,
          uint32       ovlLen,
-         sqRead      *read,
+         uint32       readID,
+         uint32       readLen,
          uint32       ibgn,
          uint32       iend,
          uint32      &fbgn,
@@ -60,7 +61,7 @@ bestEdge(ovOverlap  *ovl,
   fend      = iend;
   logMsg[0] = 0;
 
-  assert(read->sqRead_readID() == ovl[0].a_iid);
+  assert(readID == ovl[0].a_iid);
   assert(ovlLen > 0);
 
   //
@@ -71,15 +72,12 @@ bestEdge(ovOverlap  *ovl,
   uint32  lbgn = 0;
   uint32  lend = 0;
 
-  if (largestCovered(ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorValue, minOverlap, minCoverage, minReadLength) == false)
+  if (largestCovered(ovl, ovlLen, readID, readLen, ibgn, iend, lbgn, lend, logMsg, errorValue, minOverlap, minCoverage, minReadLength) == false)
     return(false);
 
   //
   //  Trim again, to maximize overlap length.
   //
-
-  int32             iid = read->sqRead_readID();
-  uint32            len = read->sqRead_sequenceLength();
 
   vector<uint32>    trim5;
   vector<uint32>    trim3;
@@ -107,7 +105,7 @@ bestEdge(ovOverlap  *ovl,
     assert(ibgn <= tbgn);
     assert(tend <= iend);
 
-    assert(iid == ovl[i].a_iid);
+    assert(readID == ovl[i].a_iid);
 
     if (ovl[i].evalue() > errorValue)
       //  Overlap is crappy.
@@ -197,7 +195,7 @@ bestEdge(ovOverlap  *ovl,
     uint32   sciid    = 0;
     uint32   scend    = 0;
 
-    if (best5score >= len - triml)
+    if (best5score >= readLen - triml)
       //  Not possible to get a higher score by trimming more.
       break;
 
@@ -221,7 +219,7 @@ bestEdge(ovOverlap  *ovl,
 
       uint32 tlen = tend - triml;
 
-      assert(tlen <= len);
+      assert(tlen <= readLen);
 
       //  Save the best score.  Break ties by favoring the current best.
 
@@ -294,7 +292,7 @@ bestEdge(ovOverlap  *ovl,
 
       uint32 tlen = trimr - tbgn;
 
-      assert(tlen <= len);
+      assert(tlen <= readLen);
 
       if (((score  < tlen)) ||
           ((score == tlen) && (ovl[i].b_iid == best3iid))) {
@@ -330,9 +328,9 @@ bestEdge(ovOverlap  *ovl,
 
     FILE *F;
 
-    snprintf(D, FILENAME_MAX, "trim-%08d.dat", read->sqRead_readID());
-    snprintf(G, FILENAME_MAX, "trim-%08d.gp",  read->sqRead_readID());
-    snprintf(S, FILENAME_MAX, "gnuplot < trim-%08d.gp", read->sqRead_readID());
+    snprintf(D, FILENAME_MAX, "trim-%08d.dat", readID);
+    snprintf(G, FILENAME_MAX, "trim-%08d.gp",  readID);
+    snprintf(S, FILENAME_MAX, "gnuplot < trim-%08d.gp", readID);
 
     F = fopen(D, "w");
     for (uint32 i=0; i<MAX(trim5.size(), trim3.size()); i++) {
@@ -358,10 +356,10 @@ bestEdge(ovOverlap  *ovl,
     F = fopen(G, "w");
     fprintf(F, "set terminal png\n");
     fprintf(F, "set output \"trim-%08d.png\"\n",
-            read->sqRead_readIID());
+            readID);
     fprintf(F, "plot \"trim-%08d.dat\" using 3:5 with linespoints, \"trim-%08d.dat\" using 10:12 with linespoints\n",
-            read->sqRead_readIID(),
-            read->sqRead_readIID());
+            readID,
+            readID);
     AS_UTL_closeFile(F, G);
 
 
@@ -393,7 +391,7 @@ bestEdge(ovOverlap  *ovl,
 
 #if 1
   if (fend < fbgn) {
-    fprintf(stderr, "iid = %u\n", read->sqRead_readID());
+    fprintf(stderr, "iid = %u\n", readID);
     fbgn = lbgn;
     fend = lend;
   }

@@ -62,7 +62,7 @@ loadThresholds(sqStore *seqStore,
                char    *scoreName,
                uint32   expectedCoverage,
                FILE    *scoFile) {
-  uint32   numReads   = seqStore->sqStore_getNumReads();
+  uint32   numReads   = seqStore->sqStore_lastReadID();
   uint16  *olapThresh = new uint16 [numReads + 1];
 
   if (scoreName != NULL)
@@ -303,11 +303,11 @@ main(int argc, char **argv) {
 
   sqRead_setDefaultVersion(sqRead_raw);
 
-  sqStore  *seqStore = sqStore::sqStore_open(seqName);
+  sqStore  *seqStore = new sqStore(seqName);
   ovStore  *ovlStore = new ovStore(ovlName, seqStore);
   tgStore  *corStore = new tgStore(corName);
 
-  uint32    numReads = seqStore->sqStore_getNumReads();
+  uint32    numReads = seqStore->sqStore_lastReadID();
 
   //  Threshold the range of reads to operate on.
 
@@ -346,7 +346,7 @@ main(int argc, char **argv) {
       tgTig   *layout = new tgTig;
 
       layout->_tigID     = rr;
-      layout->_layoutLen = seqStore->sqStore_getRead(rr)->sqRead_sequenceLength(sqRead_raw);
+      layout->_layoutLen = seqStore->sqStore_getReadLength(rr, sqRead_raw);
 
       generateLayout(layout,
                      olapThresh,
@@ -369,7 +369,7 @@ main(int argc, char **argv) {
   delete    corStore;
   delete    ovlStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   fprintf(stderr, "Bye.\n");
 

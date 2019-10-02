@@ -88,14 +88,12 @@ using namespace std;
 abSequence::abSequence(uint32  readID,
                        uint32  length,
                        char   *seq,
-                       uint8  *qlt,
                        uint32  complemented) {
   _iid              = readID;
   _length           = length;
   _complement       = complemented;
 
   _bases            = new char  [_length + 1];
-  _quals            = new uint8 [_length + 1];
 
   //  Make a complement table
 
@@ -118,19 +116,14 @@ abSequence::abSequence(uint32  readID,
            (seq[ii] == 'N'));
 
   if (complemented == false)
-    for (uint32 ii=0, pp=0; ii<_length; ii++, pp++) {
+    for (uint32 ii=0, pp=0; ii<_length; ii++, pp++)
       _bases[pp] = seq[ii];
-      _quals[pp] = qlt[ii];
-    }
 
   else
-    for (uint32 ii=_length, pp=0; ii-->0; pp++) {
+    for (uint32 ii=_length, pp=0; ii-->0; pp++)
       _bases[pp] = inv[ seq[ii] ];
-      _quals[pp] =      qlt[ii];
-    }
 
   _bases[_length] = 0;  //  NUL terminate the strings so we can use them in aligners.
-  _quals[_length] = 0;  //  Not actually a string, the 0 is just another QV=0 entry.
 };
 
 
@@ -174,51 +167,44 @@ void
 unitigConsensus::addRead(uint32   readID,
                          uint32   askip, uint32 bskip,
                          bool     complemented,
-                         map<uint32, sqRead *>     *inPackageRead,
-                         map<uint32, sqReadData *> *inPackageReadData) {
+                         map<uint32, sqRead *>     *inPackageRead) {
 
   //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
   //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
   //  otherwise.  Hey, it's used for debugging only...
 
-  sqRead      *read     = NULL;
-  sqReadData  *readData = NULL;
+  sqRead      *readToDelete = NULL;
+  sqRead      *read         = NULL;
 
   if (inPackageRead == NULL) {
-    read     = _seqStore->sqStore_getRead(readID);
-    readData = new sqReadData;
-
-    _seqStore->sqStore_loadReadData(read, readData);
+    readToDelete = new sqRead;
+    read         = _seqStore->sqStore_getRead(readID, readToDelete);
   }
 
   else {
-    read     = (*inPackageRead)[readID];
-    readData = (*inPackageReadData)[readID];
+    read         = (*inPackageRead)[readID];
   }
 
-  assert(read     != NULL);
-  assert(readData != NULL);
+  assert(read != NULL);
 
   //  Grab seq/qlt from the read, offset to the proper begin and length.
 
-  uint32  seqLen = read->sqRead_sequenceLength() - askip - bskip;
-  char   *seq    = readData->sqReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-  uint8  *qlt    = readData->sqReadData_getQualities() + ((complemented == false) ? askip : bskip);
+  uint32  seqLen = read->sqRead_length() - askip - bskip;
+  char   *seq    = read->sqRead_sequence()  + ((complemented == false) ? askip : bskip);
 
   //  Add it to our list.
 
   increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
 
-  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, qlt, complemented);
+  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, complemented);
 
-  delete readData;
+  delete readToDelete;
 }
 
 
 
 bool
-unitigConsensus::initialize(map<uint32, sqRead *>     *reads,
-                            map<uint32, sqReadData *> *datas) {
+unitigConsensus::initialize(map<uint32, sqRead *>     *reads) {
 
   if (_numReads == 0) {
     fprintf(stderr, "utgCns::initialize()-- unitig has no children.\n");
@@ -241,8 +227,7 @@ unitigConsensus::initialize(map<uint32, sqRead *>     *reads,
     addRead(_utgpos[i].ident(),
             _utgpos[i]._askip, _utgpos[i]._bskip,
             _utgpos[i].isReverse(),
-            reads,
-            datas);
+            reads);
   }
 
   //  Check for duplicate reads
@@ -748,13 +733,12 @@ alignEdLib(dagAlignment      &aln,
 
 bool
 unitigConsensus::initializeGenerate(tgTig                     *tig_,
-                                    map<uint32, sqRead *>     *reads_,
-                                    map<uint32, sqReadData *> *datas_) {
+                                    map<uint32, sqRead *>     *reads_) {
 
   _tig      = tig_;
   _numReads = _tig->numberOfChildren();
 
-  if (initialize(reads_, datas_) == false) {
+  if (initialize(reads_) == false) {
     fprintf(stderr, "Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
     return(false);
   }
@@ -767,10 +751,9 @@ unitigConsensus::initializeGenerate(tgTig                     *tig_,
 bool
 unitigConsensus::generatePBDAG(tgTig                     *tig_,
                                char                       aligner_,
-                               map<uint32, sqRead *>     *reads_,
-                               map<uint32, sqReadData *> *datas_) {
+                               map<uint32, sqRead *>     *reads_) {
 
-  if (initializeGenerate(tig_, reads_, datas_) == false)
+  if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
   //  Build a quick consensus to align to.
@@ -882,10 +865,9 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
 bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
-                               map<uint32, sqRead *>     *reads_,
-                               map<uint32, sqReadData *> *datas_) {
+                               map<uint32, sqRead *>     *reads_) {
 
-  if (initializeGenerate(tig_, reads_, datas_) == false)
+  if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
   //  Quick is just the template sequence, so one and done!
@@ -923,10 +905,9 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
 bool
 unitigConsensus::generateSingleton(tgTig                     *tig_,
-                                   map<uint32, sqRead *>     *reads_,
-                                   map<uint32, sqReadData *> *datas_) {
+                                   map<uint32, sqRead *>     *reads_) {
 
-  if (initializeGenerate(tig_, reads_, datas_) == false)
+  if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
   assert(_numReads == 1);
@@ -1262,21 +1243,20 @@ bool
 unitigConsensus::generate(tgTig                     *tig_,
                           char                       algorithm_,
                           char                       aligner_,
-                          map<uint32, sqRead *>     *reads_,
-                          map<uint32, sqReadData *> *datas_) {
+                          map<uint32, sqRead *>     *reads_) {
   bool  success = false;
 
   if      (tig_->numberOfChildren() == 1) {
-    success = generateSingleton(tig_, reads_, datas_);
+    success = generateSingleton(tig_, reads_);
   }
 
   else if (algorithm_ == 'Q') {
-    success = generateQuick(tig_, reads_, datas_);
+    success = generateQuick(tig_, reads_);
   }
 
   else if ((algorithm_ == 'P') ||
            (algorithm_ == 'p')) {
-    success = generatePBDAG(tig_, aligner_, reads_, datas_);
+    success = generatePBDAG(tig_, aligner_, reads_);
   }
 
 

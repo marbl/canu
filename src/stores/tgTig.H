@@ -277,6 +277,9 @@ public:
 
   bool                 loadFromStreamOrLayout(FILE *F);
 
+  void                 saveToBuffer(writeBuffer *B);
+  bool                 loadFromBuffer(readBuffer *B);
+
   void                 saveToStream(FILE *F);
   bool                 loadFromStream(FILE *F);
 
@@ -285,12 +288,12 @@ public:
 
   //  Save and load a package of data needed to process this tig.
 
-  void                 exportData(FILE                       *exportDataFile,
+  void                 exportData(writeBuffer                *exportDataFile,
                                   sqStore                    *seqStore,
                                   bool                        isForCorrection);
-  bool                 importData(FILE                       *importDataFile,
+
+  bool                 importData(readBuffer                 *importDataFile,
                                   map<uint32, sqRead *>      &reads,
-                                  map<uint32, sqReadData *>  &datas,
                                   FILE                       *layoutOutput,
                                   FILE                       *sequenceOutput);
 

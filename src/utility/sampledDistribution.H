@@ -93,6 +93,8 @@ public:
     }
 
     AS_UTL_closeFile(D);
+
+    delete [] L;
   };
 
 

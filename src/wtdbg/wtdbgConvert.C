@@ -62,7 +62,7 @@ void save_tig(sqStore *seqStore, tgStore *tigStore, tgTig *tig,
       for (map<uint32, uint32>::iterator chunks=readPieces[it->first].begin(); chunks != readPieces[it->first].end(); ++chunks) {
         if (bestCount < chunks->second) {
           // sanity check the placement
-          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
+          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_length() && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
             bestCount = chunks->second;
             best = chunks->first;
           }
@@ -82,8 +82,8 @@ void save_tig(sqStore *seqStore, tgStore *tigStore, tgTig *tig,
       for (map<uint32, uint32>::iterator chunks=readPieces[it->first].begin(); chunks != readPieces[it->first].end(); ++chunks) {
         if (bestCount < chunks->second) {
           // sanity check the placement
-          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength()
-              && readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] > seqStore->sqStore_getRead(it->first)->sqRead_sequenceLength() / MAX_READ_STRETCH
+          if (readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] < MAX_READ_STRETCH*seqStore->sqStore_getReadLength(it->first)
+              && readToEnd[it->first][chunks->first] - readToStart[it->first][chunks->first] > seqStore->sqStore_getReadLength(it->first) / MAX_READ_STRETCH
               && readFraction[it->first][chunks->first] > MIN_READ_FRACTION) {
             bestCount = chunks->second;
             best = chunks->first;
@@ -159,7 +159,7 @@ main(int argc, char **argv) {
 
   char        *ovStr = new char [1024*1024];
 
-  sqStore    *seqStore = sqStore::sqStore_open(seqName);
+  sqStore    *seqStore = new sqStore(seqName);
   char        filename[FILENAME_MAX] = {0};
   snprintf(filename, FILENAME_MAX, "%s.%sStore", outName, "ctg");
   tgStore     *tigStore = new tgStore(filename);
@@ -224,24 +224,24 @@ main(int argc, char **argv) {
           if (W[2][0] == '+') {
              readToOri[rid][index] = true;
              bgn            = (int)(offset) - W.toint32(3);
-             end            = int(offset) + W.toint32(4) + seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W.toint32(3) + W.toint32(4));
+             end            = int(offset) + W.toint32(4) + seqStore->sqStore_getReadLength(rid) - (W.toint32(3) + W.toint32(4));
           } else if (W[2][0] == '-') {
              readToOri[rid][index] = false;
-             bgn            = int(offset) - (seqStore->sqStore_getRead(rid)->sqRead_sequenceLength() - (W.toint32(3) + W.toint32(4)));
+             bgn            = int(offset) - (seqStore->sqStore_getReadLength(rid) - (W.toint32(3) + W.toint32(4)));
              end            = int(offset) + W.toint32(4);
           }
          if (readToStart.find(rid) == readToStart.end() || readToStart[rid].find(index) == readToStart[rid].end()) {
              readToStart[rid][index] = max(0, bgn);
              readToEnd[rid][index] = end;
              readPieces[rid][index] = 1;
-             readFraction[rid][index] = W.todouble(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
-             fprintf(stderr, "Initialized read %d at index %d of length %d at offset %f to %d-%d\n", rid, index, seqStore->sqStore_getRead(rid)->sqRead_sequenceLength(), offset, bgn, end);
+             readFraction[rid][index] = W.todouble(4) / seqStore->sqStore_getReadLength(rid);
+             fprintf(stderr, "Initialized read %d at index %d of length %d at offset %f to %d-%d\n", rid, index, seqStore->sqStore_getReadLength(rid), offset, bgn, end);
           }
           if (readToEnd[rid][index] < end) {
              readToEnd[rid][index] = end;
              ++readPieces[rid][index];
-             readFraction[rid][index] += W.todouble(4) / seqStore->sqStore_getRead(rid)->sqRead_sequenceLength();
-             fprintf(stderr, "Updated read %d at index %d to %d-%d based on %d and %d of length %d\n", rid, index, readToStart[rid][index], end, W.toint32(3), W.toint32(4), seqStore->sqStore_getRead(rid)->sqRead_sequenceLength());
+             readFraction[rid][index] += W.todouble(4) / seqStore->sqStore_getReadLength(rid);
+             fprintf(stderr, "Updated read %d at index %d to %d-%d based on %d and %d of length %d\n", rid, index, readToStart[rid][index], end, W.toint32(3), W.toint32(4), seqStore->sqStore_getReadLength(rid));
           }
        }
     }
@@ -251,7 +251,7 @@ main(int argc, char **argv) {
   delete tig;
   delete tigStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

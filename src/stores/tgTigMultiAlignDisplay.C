@@ -81,13 +81,12 @@ alignRowEntry::alignRowEntry(sqStore     *seq_,
                              tgTig       *tig_,
                              uint32       child_) {
 
-  sqRead     *read = seq_->sqStore_getRead(tig_->_children[child_].ident());
-  sqReadData *data = new sqReadData;
+  sqRead     *read = seq_->sqStore_getRead(tig_->_children[child_].ident(), new sqRead());
 
   //  Set basic stuff and allocate space.
 
   position        = &tig_->_children[child_];
-  sequenceLength  = read->sqRead_sequenceLength();
+  sequenceLength  = read->sqRead_length();
 
   bases           = new char  [sequenceLength + 1];
   quals           = new char  [sequenceLength + 1];
@@ -96,16 +95,13 @@ alignRowEntry::alignRowEntry(sqStore     *seq_,
 
   nextEntry       = NULL;
 
-  //  Copy sequence and quals, adjusting quals for display.
+  //  Copy sequence and create empty quals.
 
-  seq_->sqStore_loadReadData(read, data);
-
-  char  *b = data->sqReadData_getSequence();
-  uint8 *q = data->sqReadData_getQualities();
+  char  *b = read->sqRead_sequence();
 
   for (uint32 ii=0; ii<sequenceLength; ii++) {
     bases[ii] = b[ii];
-    quals[ii] = q[ii] + '!';
+    quals[ii] = '!';
   }
 
   bases[sequenceLength] = 0;
@@ -129,7 +125,7 @@ alignRowEntry::alignRowEntry(sqStore     *seq_,
 
   //  Cleanup.
 
-  delete data;
+  delete read;
 }
 
 

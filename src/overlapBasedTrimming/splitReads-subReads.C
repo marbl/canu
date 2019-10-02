@@ -52,10 +52,10 @@ intervalOverlap(uint32 b1, uint32 e1, uint32 b2, uint32 e2) {
 
 bool
 doCheckSubRead(sqStore *seq, uint32 id) {
-  sqRead     *read = seq->sqStore_getRead(id);
-  sqLibrary  *libr = seq->sqStore_getLibrary(read->sqRead_libraryID());
+  sqLibrary  *libr = seq->sqStore_getLibraryForRead(id);
 
-  return(libr->sqLibrary_checkForSubReads() == true);
+  return(true);
+  //return(libr->sqLibrary_checkForSubReads() == true);
 }
 
 

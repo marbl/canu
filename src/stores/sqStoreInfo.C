@@ -52,15 +52,11 @@ sqStoreInfo::sqStoreInfo() {
 
   _numLibraries       = 0;
   _numReads           = 0;
-  _numBlobs           = 0;
 
-  _numRawReads        = 0;
-  _numCorrectedReads  = 0;
-  _numTrimmedReads    = 0;
-
-  _numRawBases        = 0;
-  _numCorrectedBases  = 0;
-  _numTrimmedBases    = 0;
+  for (uint32 ii=0; ii<sqRead_largest; ii++) {
+    _reads[ii] = 0;
+    _bases[ii] = 0;
+  }
 }
 
 
@@ -106,70 +102,119 @@ sqStoreInfo::checkInfo(void) {
     failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
                       _sqMaxReadLenBits, AS_MAX_READLEN_BITS);
 
+  if (failed) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "sqMagic            = 0x" F_X64 "\n", _sqMagic);
+    fprintf(stderr, "sqVersion          = 0x" F_X64 "\n", _sqVersion);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "sqLibrarySize      = " F_U32 "\n", _sqLibrarySize);
+    fprintf(stderr, "sqReadSize         = " F_U32 "\n", _sqReadSize);
+    fprintf(stderr, "sqMaxLibrariesBits = " F_U32 "\n", _sqMaxLibrariesBits);
+    fprintf(stderr, "sqLibraryNameSize  = " F_U32 "\n", _sqLibraryNameSize);
+    fprintf(stderr, "sqMaxReadBits      = " F_U32 "\n", _sqMaxReadBits);
+    fprintf(stderr, "sqMaxReadLenBits   = " F_U32 "\n", _sqMaxReadLenBits);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "numLibraries       = " F_U32 "\n", _numLibraries);
+    fprintf(stderr, "numReads           = " F_U32 "\n", _numReads);
+    fprintf(stderr, "\n");
+  }
+
   return(failed == 0);
 }
 
 
 
-void
-sqStoreInfo::recountReads(sqRead *reads) {
+bool
+sqStoreInfo::examineRead(sqReadSeq     *seq,
+                         sqRead_which   w) {
+  sqRead_which  t = w | sqRead_trimmed;
 
-  _numRawReads = _numCorrectedReads = _numTrimmedReads = 0;
-  _numRawBases = _numCorrectedBases = _numTrimmedBases = 0;
+  uint32      length  = (seq->sqReadSeq_valid()   == false) ? 0 : seq->sqReadSeq_length();
+  uint32      trimmed = (seq->sqReadSeq_trimmed() == false) ? 0 : seq->sqReadSeq_clearEnd() - seq->sqReadSeq_clearBgn();
 
-  for (uint32 ii=0; ii<_numReads + 1; ii++) {
-    uint32 rr = reads[ii].sqRead_sequenceLength(sqRead_raw);
-    uint32 rc = reads[ii].sqRead_sequenceLength(sqRead_corrected);
-    uint32 rt = reads[ii].sqRead_sequenceLength(sqRead_trimmed);
+  bool        exists  = false;
 
-    if (rr > 0) {
-      _numRawReads++;
-      _numRawBases += rr;
-    }
+  if (seq->sqReadSeq_ignoreU() == true)   { length  = 0; }
+  if (seq->sqReadSeq_ignoreT() == true)   { trimmed = 0; }
 
-    if (rc > 0) {
-      _numCorrectedReads++;
-      _numCorrectedBases += rc;
-    }
+  assert(trimmed <= length);
 
-    if (rt > 0) {
-      _numTrimmedReads++;
-      _numTrimmedBases += rt;
-    }
+  if (seq->sqReadSeq_ignoreU())
+    assert(seq->sqReadSeq_ignoreT());  //  If untrimmed ignored, trimmed must be ignored too.
+
+  if (length > 0) {
+    exists     = true;
+    _reads[w] += 1;
+    _bases[w] += length;
   }
+
+  if (trimmed > 0) {
+    exists     = true;
+    _reads[t] += 1;
+    _bases[t] += trimmed;
+  }
+
+  return(exists);
 }
 
 
-
 void
-sqStoreInfo::setLastBlob(sqStoreBlobWriter *writer) {
-  if (writer)
-    _numBlobs = writer->writtenBlob();
+sqStoreInfo::update(sqReadSeq  *rawU,
+                    sqReadSeq  *rawC,
+                    sqReadSeq  *corU,
+                    sqReadSeq  *corC) {
+
+  for (sqRead_which ii=0; ii<sqRead_largest; ii++) {
+    _reads[ii] = 0;
+    _bases[ii] = 0;
+  }
+
+  if (rawU)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
+      examineRead(&rawU[ii], sqRead_raw);
+
+  if (rawC)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
+      examineRead(&rawC[ii], sqRead_raw | sqRead_compressed);
+
+  if (corU)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
+      examineRead(&corU[ii], sqRead_corrected);
+
+  if (corC)
+    for (uint32 ii=1; ii<_numReads + 1; ii++)
+      examineRead(&corC[ii], sqRead_corrected | sqRead_compressed);
+
+  //  For convenience, we store the total number of reads
+  //  in the sqRead_unset space.  There's no comparable
+  //  meaning for _bases[sqRead_unset] though.
+
+  _reads[sqRead_unset] = _numReads;
+  _bases[sqRead_unset] = 0;
 }
 
 
 
 void
 sqStoreInfo::writeInfoAsText(FILE *F) {
-  fprintf(F, "sqMagic            = 0x" F_X64 "\n", _sqMagic);
-  fprintf(F, "sqVersion          = 0x" F_X64 "\n", _sqVersion);
-  fprintf(F, "\n");
-  fprintf(F, "sqLibrarySize      = " F_U32 "\n", _sqLibrarySize);
-  fprintf(F, "sqReadSize         = " F_U32 "\n", _sqReadSize);
-  fprintf(F, "sqMaxLibrariesBits = " F_U32 "\n", _sqMaxLibrariesBits);
-  fprintf(F, "sqLibraryNameSize  = " F_U32 "\n", _sqLibraryNameSize);
-  fprintf(F, "sqMaxReadBits      = " F_U32 "\n", _sqMaxReadBits);
-  fprintf(F, "sqMaxReadLenBits   = " F_U32 "\n", _sqMaxReadLenBits);
-  fprintf(F, "\n");
-  fprintf(F, "numLibraries       = " F_U32 "\n", _numLibraries);
-  fprintf(F, "numReads           = " F_U32 "\n", _numReads);
-  fprintf(F, "numBlobs           = " F_U32 "\n", _numBlobs);
-  fprintf(F, "\n");
-  fprintf(F, "numRawReads        = " F_U32 "\n", _numRawReads);
-  fprintf(F, "numCorrectedReads  = " F_U32 "\n", _numCorrectedReads);
-  fprintf(F, "numTrimmedReads    = " F_U32 "\n", _numTrimmedReads);
-  fprintf(F, "\n");
-  fprintf(F, "numRawBases        = " F_U64 "\n", _numRawBases);
-  fprintf(F, "numCorrectedBases  = " F_U64 "\n", _numCorrectedBases);
-  fprintf(F, "numTrimmedBases    = " F_U64 "\n", _numTrimmedBases);
+  sqRead_which  raw = sqRead_raw;
+  sqRead_which  cor = sqRead_corrected;
+  sqRead_which  cmp = sqRead_compressed;
+  sqRead_which  tri = sqRead_trimmed;
+  sqRead_which  x   = sqRead_unset;
+
+  fprintf(F, "     Reads        Bases Read Type\n");
+  fprintf(F, "---------- ------------ ----------------------------------------\n");
+
+  ;                      fprintf(F, "%10" F_U32P "            - total-reads\n", _numReads);
+
+  x = raw;               fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+  x = raw | tri;         fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+  x = raw | cmp;         fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+  x = raw | cmp | tri;   fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+
+  x = cor;               fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+  x = cor | tri;         fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+  x = cor | cmp;         fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
+  x = cor | cmp | tri;   fprintf(F, "%10" F_U64P " %12" F_U64P " %s\n", _reads[x], _bases[x], toString(x));
 }

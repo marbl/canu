@@ -38,7 +38,7 @@ using namespace std;
 
 overlapReadCache::overlapReadCache(sqStore *seqStore_, uint64 memLimit) {
   seqStore    = seqStore_;
-  nReads      = seqStore->sqStore_getNumReads();
+  nReads      = seqStore->sqStore_lastReadID();
 
   readAge     = new uint32 [nReads + 1];
   readLen     = new uint32 [nReads + 1];
@@ -69,15 +69,13 @@ overlapReadCache::~overlapReadCache() {
 
 void
 overlapReadCache::loadRead(uint32 id) {
-  sqRead *read = seqStore->sqStore_getRead(id);
+  seqStore->sqStore_getRead(id, &read);
 
-  seqStore->sqStore_loadReadData(read, &readdata);
-
-  readLen[id] = read->sqRead_sequenceLength();
+  readLen[id] = read.sqRead_length();
 
   readSeqFwd[id] = new char [readLen[id] + 1];
 
-  memcpy(readSeqFwd[id], readdata.sqReadData_getSequence(), sizeof(char) * readLen[id]);
+  memcpy(readSeqFwd[id], read.sqRead_sequence(), sizeof(char) * readLen[id]);
 
   readSeqFwd[id][readLen[id]] = 0;
 }

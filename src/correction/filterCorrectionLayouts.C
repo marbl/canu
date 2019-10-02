@@ -444,12 +444,12 @@ main(int argc, char **argv) {
 
   sqRead_setDefaultVersion(sqRead_raw);
 
-  sqStore          *seqStore = sqStore::sqStore_open(seqStoreName);
+  sqStore          *seqStore = new sqStore(seqStoreName);
   tgStore          *corStore = new tgStore(corStoreName, 1);
 
   falconConsensus  *fc       = new falconConsensus(minOutputCoverage, minOutputLength, 0, 0);  //  For memory estimtes
 
-  uint32            numReads = seqStore->sqStore_getNumReads();
+  uint32            numReads = seqStore->sqStore_lastReadID();
 
   readStatus       *status   = new readStatus [numReads + 1];
 

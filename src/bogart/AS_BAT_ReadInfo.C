@@ -32,11 +32,11 @@ ReadInfo::ReadInfo(const char *seqStorePath,
                    const char *prefix,
                    uint32      minReadLen) {
 
-  sqStore  *seqStore = sqStore::sqStore_open(seqStorePath);
+  sqStore  *seqStore = new sqStore(seqStorePath);
 
   _numBases     = 0;
-  _numReads     = seqStore->sqStore_getNumReads();
-  _numLibraries = seqStore->sqStore_getNumLibraries();
+  _numReads     = seqStore->sqStore_lastReadID();
+  _numLibraries = seqStore->sqStore_lastLibraryID();
 
   _readStatus    = new ReadStatus [_numReads + 1];
 
@@ -53,24 +53,23 @@ ReadInfo::ReadInfo(const char *seqStorePath,
   uint32 numLoaded  = 0;
 
   for (uint32 fi=1; fi<=_numReads; fi++) {
-    sqRead  *read = seqStore->sqStore_getRead(fi);
-    uint32   iid  = read->sqRead_readID();
-    uint32   len  = read->sqRead_sequenceLength();
+    uint32   len  = seqStore->sqStore_getReadLength(fi);
 
-    if (len < minReadLen) {
+    if ((len < minReadLen) ||
+        (seqStore->sqStore_isIgnoredRead(fi))) {
       numSkipped++;
       continue;
     }
 
     _numBases += len;
 
-    _readStatus[iid].readLength = len;
-    _readStatus[iid].libraryID  = read->sqRead_libraryID();
+    _readStatus[fi].readLength = len;
+    _readStatus[fi].libraryID  = seqStore->sqStore_getLibraryIDForRead(fi);
 
     numLoaded++;
   }
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   if (minReadLen > 0)
     writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than " F_U32 " bp long.\n",

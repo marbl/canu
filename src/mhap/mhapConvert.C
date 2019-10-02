@@ -82,7 +82,7 @@ main(int argc, char **argv) {
 
   char       *ovStr = new char [1024];
 
-  sqStore    *seqStore = sqStore::sqStore_open(seqName);
+  sqStore    *seqStore = new sqStore(seqName);
   ovOverlap   ov;
   ovFile     *of = new ovFile(seqStore, outName, ovFileFullWrite);
 
@@ -142,8 +142,8 @@ main(int argc, char **argv) {
 
       //  Check the overlap - the hangs must be less than the read length.
 
-      uint32  alen = seqStore->sqStore_getRead( ov.a_iid )->sqRead_sequenceLength();
-      uint32  blen = seqStore->sqStore_getRead( ov.b_iid )->sqRead_sequenceLength();
+      uint32  alen = seqStore->sqStore_getReadLength(ov.a_iid);
+      uint32  blen = seqStore->sqStore_getReadLength(ov.b_iid);
 
       if ((alen != W.toint32(7)) ||
           (blen != W.toint32(11)))
@@ -176,7 +176,7 @@ main(int argc, char **argv) {
   delete    of;
   delete [] ovStr;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

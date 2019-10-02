@@ -45,7 +45,7 @@ adjustFlipped(clearRangeFile  *iniClr,
 
   assert(ovl->flipped() == true);
 
-  uint32  bLen = seq->sqStore_getRead(ovl->b_iid)->sqRead_sequenceLength();
+  uint32  bLen = seq->sqStore_getReadLength(ovl->b_iid);
 
   aovlbgn =        ovl->a_bgn();
   bovlbgn = bLen - ovl->b_bgn();  //  bgn(), because this is the higher coord

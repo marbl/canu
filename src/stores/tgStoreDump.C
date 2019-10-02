@@ -1200,7 +1200,7 @@ main (int argc, char **argv) {
 
   //  Open stores.
 
-  sqStore *seqStore = sqStore::sqStore_open(seqName);
+  sqStore *seqStore = new sqStore(seqName);
   tgStore *tigStore = new tgStore(tigName, tigVers);
 
   //  Check that the tig ID range is valid, and fix it if possible.
@@ -1271,7 +1271,7 @@ main (int argc, char **argv) {
 
   delete tigStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   //  Bye.
 

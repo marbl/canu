@@ -317,7 +317,7 @@ private:
 
 class ovStoreFilter {
 public:
-  ovStoreFilter(sqStore *seq_, double maxErate, bool beVerbose = false);
+  ovStoreFilter(sqStore *seq_, double maxErate);
   ~ovStoreFilter();
 
   void     filterOverlap(ovOverlap     &foverlap,
@@ -327,19 +327,10 @@ public:
 
   uint64   savedUnitigging(void)    { return(saveUTG);      };
   uint64   savedTrimming(void)      { return(saveOBT);      };
-  uint64   savedDedupe(void)        { return(saveDUP);      };
-
-  uint64   filteredErate(void)      { return(skipERATE);    };
-
-  uint64   filteredFlipped(void)    { return(skipFLIPPED);  };
 
   uint64   filteredNoTrim(void)     { return(skipOBT);      };
-  uint64   filteredBadTrim(void)    { return(skipOBTbad);   };
-  uint64   filteredShortTrim(void)  { return(skipOBTshort); };
-
-  uint64   filteredNoDedupe(void)   { return(skipDUP);      };
-  uint64   filteredNotDupe(void)    { return(skipDUPdiff);  };
-  uint64   filteredDiffLib(void)    { return(skipDUPlib);   };
+  uint64   filteredErate(void)      { return(skipERATE);    };
+  uint64   filteredFlipped(void)    { return(skipFLIPPED);  };
 
 public:
   sqStore *seq;
@@ -347,26 +338,15 @@ public:
   uint32   maxID;
   uint32   maxEvalue;
 
-  bool     beVerbose;
-
   uint64   saveUTG;
   uint64   saveOBT;
-  uint64   saveDUP;
-
-  uint64   skipERATE;
-
-  uint64   skipFLIPPED;
 
   uint64   skipOBT;        //  OBT not requested for the A read
-  uint64   skipOBTbad;     //  Overlap too similiar
-  uint64   skipOBTshort;   //  Overlap is too short
+  uint64   skipERATE;
+  uint64   skipFLIPPED;
 
-  uint64   skipDUP;        //  DUP not requested for the A read
-  uint64   skipDUPdiff;    //  Overlap isn't remotely similar
-  uint64   skipDUPlib;
-
+private:
   char    *skipReadOBT;    //  State of the filter.
-  char    *skipReadDUP;
 };
 
 

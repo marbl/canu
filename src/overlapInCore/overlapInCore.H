@@ -63,6 +63,7 @@
 #include "AS_global.H"
 
 #include "sqStore.H"
+#include "sqCache.H"
 #include "ovStore.H"
 
 #include "prefixEditDistance.H"
@@ -280,7 +281,8 @@ typedef  struct Work_Area {
   int32  A_Olaps_For_Frag;
   int32  B_Olaps_For_Frag;
 
-  sqStore  *seqStore;
+  sqStore  *readStore;
+  sqCache  *readCache;
 
   int    left_end_screened;
   int    right_end_screened;

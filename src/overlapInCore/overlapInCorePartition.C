@@ -58,8 +58,8 @@ uint32 *
 loadReadLengths(sqStore *seq,
                 set<uint32> &libToHash, uint32 &hashMin, uint32 &hashMax,
                 set<uint32> &libToRef,  uint32 &refMin,  uint32 &refMax) {
-  uint32     numReads = seq->sqStore_getNumReads();
-  uint32     numLibs  = seq->sqStore_getNumLibraries();
+  uint32     numReads = seq->sqStore_lastReadID();
+  uint32     numLibs  = seq->sqStore_lastLibraryID();
   uint32    *readLen  = new uint32 [numReads + 1];
 
   bool testHash = false;
@@ -102,16 +102,10 @@ loadReadLengths(sqStore *seq,
   uint32  reportInterval = numReads / 39 + 1;
 
   for (uint32 ii=1; ii<=numReads; ii++) {
-    sqRead  *read = seq->sqStore_getRead(ii);
-
-    if (read->sqRead_readID() != ii)
-      fprintf(stderr, "ERROR: readID=%u != ii=%u\n",
-              read->sqRead_readID(), ii);
-    assert(read->sqRead_readID() == ii);
-
-    uint32 rr = read->sqRead_sequenceLength(sqRead_raw);
-    uint32 rc = read->sqRead_sequenceLength(sqRead_corrected);
-    uint32 rt = read->sqRead_sequenceLength(sqRead_trimmed);
+    uint32 rr = seq->sqStore_getReadLength(ii, sqRead_raw);
+    uint32 rc = seq->sqStore_getReadLength(ii, sqRead_corrected);
+    uint32 rt = seq->sqStore_getClearEnd(ii, sqRead_corrected) - seq->sqStore_getClearBgn(ii, sqRead_corrected);
+    uint32 li = seq->sqStore_getLibraryIDForRead(ii);
 
     if (rr > 0) {
       rawReads += 1;
@@ -128,14 +122,14 @@ loadReadLengths(sqStore *seq,
       triBases += rt;
     }
 
-    readLen[ii] = read->sqRead_sequenceLength();
+    readLen[ii] = seq->sqStore_getReadLength(ii);
 
-    if ((testHash == true) && (doHash[read->sqRead_libraryID()] == true)) {
+    if ((testHash == true) && (doHash[li] == true)) {
       hashMin = min(hashMin, ii);
       hashMax = max(hashMax, ii);
     }
 
-    if ((testRef == true) && (doRef[read->sqRead_libraryID()] == true)) {
+    if ((testRef == true) && (doRef[li] == true)) {
       refMin = min(refMin, ii);
       refMax = max(refMax, ii);
     }
@@ -187,7 +181,7 @@ partitionLength(sqStore      *seq,
   uint32  batchName = 1;    //  Name of the directory
   uint32  jobName   = 1;    //  Name of the job
 
-  uint32  numReads = seq->sqStore_getNumReads();
+  uint32  numReads = seq->sqStore_lastReadID();
 
   if (hashMax > numReads)
     hashMax = numReads;
@@ -393,8 +387,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "  read stream:  %12" F_U64P " bases.\n",  ovlRefBlockLength);
   fprintf(stderr, "\n");
 
-  sqStore   *seq         = sqStore::sqStore_open(seqStoreName);
-  uint32     numLibs     = seq->sqStore_getNumLibraries();
+  sqStore   *seq         = new sqStore(seqStoreName);
+  uint32     numLibs     = seq->sqStore_lastLibraryID();
   uint32     invalidLibs = 0;
 
   for (set<uint32>::iterator it=libToHash.begin(); it != libToHash.end(); it++)
@@ -452,7 +446,7 @@ main(int argc, char **argv) {
   renameToFinal(outputPrefix, "ovljob");
   renameToFinal(outputPrefix, "ovlopt");
 
-  seq->sqStore_close();
+  delete seq;
 
   exit(0);
 }

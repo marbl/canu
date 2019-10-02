@@ -65,12 +65,8 @@ public:
     fprintf(F, "bin(x,width) = width*floor(x/width) + binwidth/2.0\n");
     fprintf(F, "\n");
     fprintf(F, "set terminal png size 1024,1024\n");
-    fprintf(F, "set output '%s.%s.lg.png'\n", outputPrefix, outputName);
+    fprintf(F, "set output '%s.%s.png'\n", outputPrefix, outputName);
     fprintf(F, "plot [] [0:] '%s.%s.dat' using (bin($1,binwidth)):(1.0) smooth freq with boxes title ''\n", outputPrefix, outputName);
-    fprintf(F, "\n");
-    fprintf(F, "set terminal png size 256,256\n");
-    fprintf(F, "set output '%s.%s.sm.png'\n", outputPrefix, outputName);
-    fprintf(F, "replot\n");
     AS_UTL_closeFile(F, N);
 
     snprintf(N, FILENAME_MAX, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);

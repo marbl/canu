@@ -198,7 +198,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore       *seqStore = sqStore::sqStore_open(seqStoreName);
+  sqStore       *seqStore = new sqStore(seqStoreName);
 
   char          *S     = new char [1024];
   splitToWords   W;
@@ -212,8 +212,8 @@ main(int argc, char **argv) {
   if (asRandom == true) {
     mtRandom  mt;
 
-    if (aend == 0)   aend = seqStore->sqStore_getNumReads();
-    if (bend == 0)   bend = seqStore->sqStore_getNumReads();
+    if (aend == 0)   aend = seqStore->sqStore_lastReadID();
+    if (bend == 0)   bend = seqStore->sqStore_lastReadID();
 
     uint64  numRandom = rmin + floor(mt.mtRandomRealOpen() * (rmax - rmin));
 
@@ -236,8 +236,8 @@ main(int argc, char **argv) {
       if (bID == 0)   bID = 1;
 #endif
 
-      uint32   aLen     = seqStore->sqStore_getRead(aID)->sqRead_sequenceLength();
-      uint32   bLen     = seqStore->sqStore_getRead(bID)->sqRead_sequenceLength();
+      uint32   aLen     = seqStore->sqStore_getReadLength(aID);
+      uint32   bLen     = seqStore->sqStore_getReadLength(bID);
 
       bool     olapFlip = mt.mtRandom32() % 2;
 
@@ -312,7 +312,7 @@ main(int argc, char **argv) {
 
   delete [] S;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

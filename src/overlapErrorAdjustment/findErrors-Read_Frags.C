@@ -62,10 +62,8 @@ Read_Frags(feParameters   *G,
 
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    sqRead *read = seqStore->sqStore_getRead(curID);
-
-    basesLength += read->sqRead_sequenceLength() + 1;
-    votesLength += read->sqRead_sequenceLength();
+    basesLength += seqStore->sqStore_getReadLength(curID) + 1;
+    votesLength += seqStore->sqStore_getReadLength(curID);
   }
 
   uint64  totAlloc = (sizeof(char)         * basesLength +
@@ -84,15 +82,12 @@ Read_Frags(feParameters   *G,
   basesLength = 0;
   votesLength = 0;
 
-  sqReadData  *readData = new sqReadData;
+  sqRead  *read = new sqRead;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
-    sqRead *read       = seqStore->sqStore_getRead(curID);
+    seqStore->sqStore_getRead(curID, read);
 
-    seqStore->sqStore_loadReadData(read, readData);
-
-    uint32  readLength = read->sqRead_sequenceLength();
-    char   *readBases  = readData->sqReadData_getSequence();
+    uint32  readLength = read->sqRead_length();
 
     G->reads[curID - G->bgnID].sequence = G->readBases + basesLength;
     G->reads[curID - G->bgnID].vote     = G->readVotes + votesLength;
@@ -101,8 +96,12 @@ Read_Frags(feParameters   *G,
     votesLength += readLength;
     readsLoaded += 1;
 
-    for (uint32 bb=0; bb<readLength; bb++)
-      G->reads[curID - G->bgnID].sequence[bb] = filter[readBases[bb]];
+    if (readLength > 0) {
+      char   *readBases  = read->sqRead_sequence();
+
+      for (uint32 bb=0; bb<readLength; bb++)
+        G->reads[curID - G->bgnID].sequence[bb] = filter[readBases[bb]];
+    }
 
     G->reads[curID - G->bgnID].sequence[readLength] = 0;  //  All good reads end.
 
@@ -113,7 +112,7 @@ Read_Frags(feParameters   *G,
     G->reads[curID - G->bgnID].right_degree = 0;
   }
 
-  delete readData;
+  delete read;
 
   fprintf(stderr, "Read_Frags()-- %.3f GB for bases, votes and info.\n", totAlloc / 1024.0 / 1024.0 / 1024.0);
   fprintf(stderr, "\n");

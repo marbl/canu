@@ -38,6 +38,33 @@ using namespace std;
 
 
 void
+simulateParameters::finalize() {
+
+  if (distribName[0]) {
+    char *path = findSharedFile("share/sequence", distribName);
+
+    if (path == NULL) {
+      fprintf(stderr, "ERROR: File '%s' doesn't exist, and not in any data directory I know about.\n", distribName);
+      exit(1);
+    }
+
+    //  If the path is a file -- which it should be -- load it.  Else, fail.
+
+    if (fileExists(path) == true) {
+      fprintf(stderr, "load '%s'\n", path);
+      dist.loadDistribution(path);
+    }
+
+    else {
+      fprintf(stderr, "ERROR: File '%s' doesn't exist, and not in any data directory I know about.\n", distribName);
+      exit(1);
+    }
+  }
+}
+
+
+
+void
 doSimulate_loadSequences(simulateParameters  &simPar,
                          vector<dnaSeq *>    &seqs,
                          uint64              &seqLen) {
@@ -180,6 +207,8 @@ doSimulate_extract(simulateParameters &simPar,
     nReads += 1;
     nBases += readLength;
   }
+
+  delete [] r;
 }
 
 
@@ -219,4 +248,9 @@ doSimulate(vector<char *>     &inputs,
   //
 
   doSimulate_extract(simPar, seqs, seqLen, mt, nReadsMax, nBasesMax);
+
+  //  Clean up the reference sequences we loaded.
+
+  for (uint32 ii=0; ii<seqs.size(); ii++)
+    delete seqs[ii];
 }

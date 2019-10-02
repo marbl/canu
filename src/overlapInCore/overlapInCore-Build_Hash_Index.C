@@ -506,22 +506,23 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
 
   for (curID=bgnID; ((total_len <  G.Max_Hash_Data_Len) &&
                      (curID     <= endID)); curID++) {
-    sqRead *read = seqStore->sqStore_getRead(curID);
+    uint32  libID   = seqStore->sqStore_getLibraryIDForRead(curID);
+    uint32  readLen = seqStore->sqStore_getReadLength(curID);
 
-    if ((read->sqRead_libraryID() < G.minLibToHash) ||
-        (read->sqRead_libraryID() > G.maxLibToHash)) {
+    if ((libID < G.minLibToHash) ||
+        (libID > G.maxLibToHash)) {
       nSkipped++;
       continue;
     }
 
-    if (read->sqRead_sequenceLength() < G.Min_Olap_Len) {
+    if (readLen < G.Min_Olap_Len) {
       nShort++;
       continue;
     }
 
     nLoadable++;
 
-    maxAlloc += read->sqRead_sequenceLength() + 1;
+    maxAlloc += readLen + 1;
   }
 
   fprintf(stderr, "\n");
@@ -544,7 +545,7 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
 
   memset(nextRef, 0xff, sizeof(String_Ref_t) * nextRef_Len);
 
-  sqReadData   *readData = new sqReadData;
+  sqRead   *read = new sqRead;
 
   //  Every read must have an entry in the table, otherwise
 
@@ -561,21 +562,18 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
     String_Info[String_Ct].lfrag_end_screened  = true;
     String_Info[String_Ct].rfrag_end_screened  = true;
 
-    sqRead  *read = seqStore->sqStore_getRead(curID);
+    seqStore->sqStore_getRead(curID, read);
 
     if ((read->sqRead_libraryID() < G.minLibToHash) ||
         (read->sqRead_libraryID() > G.maxLibToHash))
       continue;
 
-    uint32 len = read->sqRead_sequenceLength();
+    uint32 len = read->sqRead_length();
 
     if (len < G.Min_Olap_Len)
       continue;
 
-    seqStore->sqStore_loadReadData(read, readData);
-
-    char   *seqptr   = readData->sqReadData_getSequence();
-    uint8  *qltptr   = readData->sqReadData_getQualities();
+    char   *seqptr   = read->sqRead_sequence();
 
     //  Note where we are going to store the string, and how long it is
 
@@ -624,7 +622,7 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
                100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
   }
 
-  delete readData;
+  delete read;
 
   fprintf(stderr, "HASH LOADING STOPPED: curID    %12" F_U32P " out of %12" F_U32P "\n", curID-1, G.endHashID);
   fprintf(stderr, "HASH LOADING STOPPED: length   %12" F_U64P " out of %12" F_U64P " max.\n", total_len, G.Max_Hash_Data_Len);

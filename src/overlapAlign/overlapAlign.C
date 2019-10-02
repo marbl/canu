@@ -202,10 +202,10 @@ loadClearRanges(trGlobalData *g, vector<char *> &trimFiles) {
 void
 setClearRanges(trGlobalData *g) {
 
-  for (uint32 ii=0; ii<g->seqStore->sqStore_getNumRawReads()+1; ii++)
-    g->seqStore->sqStore_setClearRange(ii, g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+  for (uint32 ii=0; ii<g->seqStore->sqStore_lastReadID()+1; ii++)
+    g->seqStore->sqStore_getReadSeq(ii)->sqReadSeq_setClearRange(g->readData[ii].clrBgn, g->readData[ii].clrEnd);
 
-  sqRead_setDefaultVersion(sqRead_trimmed);
+  sqRead_setDefaultVersion(sqRead_raw | sqRead_trimmed);
 }
 
 

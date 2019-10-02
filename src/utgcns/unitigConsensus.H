@@ -83,18 +83,15 @@ public:
 
     _length     = 0;
     _bases      = NULL;
-    _quals      = NULL;
   };
 
   abSequence(uint32  readID,
              uint32  length,
              char   *seq,
-             uint8  *qlt,
              uint32  complemented);
 
   ~abSequence() {
     delete [] _bases;
-    delete [] _quals;
   };
 
 
@@ -104,7 +101,6 @@ public:
 
   uint32      length(void)            { return(_length);     };
   char        getBase(uint32 o)       { return(_bases[o]);   };
-  uint8       getQual(uint32 o)       { return(_quals[o]);   };
 
   char       *getBases(void)          { return(_bases);      };
 
@@ -115,7 +111,6 @@ private:
 
   uint32     _length;
   char      *_bases;
-  uint8     *_quals;
 };
 
 
@@ -132,39 +127,32 @@ private:
   void   addRead(uint32 readID,
                  uint32 askip, uint32 bskip,
                  bool complemented,
-                 map<uint32, sqRead *>     *inPackageRead,
-                 map<uint32, sqReadData *> *inPackageReadData);
+                 map<uint32, sqRead *>     *inPackageRead);
 
-  bool   initialize(map<uint32, sqRead *>     *reads,
-                    map<uint32, sqReadData *> *datas);
+  bool   initialize(map<uint32, sqRead *>     *reads);
 
 public:
   bool   generate(tgTig                     *tig_,
                   char                       algorithm_,
                   char                       aligner_,
-                  map<uint32, sqRead *>     *reads_ = NULL,
-                  map<uint32, sqReadData *> *datas_ = NULL);
+                  map<uint32, sqRead *>     *reads_ = NULL);
 
 private:
   char  *generateTemplateStitch(void);
 
   bool   initializeGenerate(tgTig                     *tig,
-                            map<uint32, sqRead *>     *reads = NULL,
-                            map<uint32, sqReadData *> *datas = NULL);
+                            map<uint32, sqRead *>     *reads = NULL);
 
 
   bool   generatePBDAG(tgTig                     *tig,
                        char                       aligner,
-                       map<uint32, sqRead *>     *reads = NULL,
-                       map<uint32, sqReadData *> *datas = NULL);
+                       map<uint32, sqRead *>     *reads = NULL);
 
   bool   generateQuick(tgTig                     *tig,
-                       map<uint32, sqRead *>     *reads = NULL,
-                       map<uint32, sqReadData *> *datas = NULL);
+                       map<uint32, sqRead *>     *reads = NULL);
 
   bool   generateSingleton(tgTig                     *tig,
-                           map<uint32, sqRead *>     *reads = NULL,
-                           map<uint32, sqReadData *> *datas = NULL);
+                           map<uint32, sqRead *>     *reads = NULL);
 
   void   findCoordinates(void);
   void   findRawAlignments(void);

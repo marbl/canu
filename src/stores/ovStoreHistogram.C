@@ -56,7 +56,7 @@ ovStoreHistogram::ovStoreHistogram(sqStore *seq) {
     fprintf(stderr, "ovStoreHistogram()-- ERROR: I need a valid seqStore.\n"), exit(1);
 
   _seq           = seq;
-  _maxID         = seq->sqStore_getNumReads();
+  _maxID         = seq->sqStore_lastReadID();
 
   _epb           = 1;     //  Evalues per bucket
   _bpb           = 250;   //  Bases per bucket
@@ -367,8 +367,8 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
   //  Allocate space for the overlaps-per-evalue-len data.
 
   if (_opelLen == 0) {
-    for (uint32 ii=1; ii<_seq->sqStore_getNumReads(); ii++)
-      _opelLen = max(_opelLen, _seq->sqStore_getRead(ii)->sqRead_sequenceLength());
+    for (uint32 ii=1; ii<_seq->sqStore_lastReadID(); ii++)
+      _opelLen = max(_opelLen, _seq->sqStore_getReadLength(ii));
 
     _opelLen = _opelLen * 1.40 / _bpb + 1;  //  the overlap could have 40% insertions.
   }
@@ -379,8 +379,8 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
 
   //  Add one to the appropriate entry.
 
-  int32  alen = _seq->sqStore_getRead(overlap->a_iid)->sqRead_sequenceLength();
-  int32  blen = _seq->sqStore_getRead(overlap->b_iid)->sqRead_sequenceLength();
+  int32  alen = _seq->sqStore_getReadLength(overlap->a_iid);
+  int32  blen = _seq->sqStore_getReadLength(overlap->b_iid);
 
   uint32 ev   = overlap->evalue();
   uint32 len  = (alen - overlap->dat.ovl.ahg5 - overlap->dat.ovl.ahg3 +

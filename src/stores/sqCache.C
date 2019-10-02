@@ -28,6 +28,7 @@
  */
 
 #include "sqCache.H"
+#include "sequence.H"
 
 #include <set>
 #include <vector>
@@ -37,21 +38,18 @@ using namespace std;
 
 
 
-sqCache::sqCache(sqStore *seqStore, sqRead_version version,  uint64 memoryLimit) {
+sqCache::sqCache(sqStore *seqStore, sqRead_which which,  uint64 memoryLimit) {
 
   _seqStore        =  seqStore;
-  _nReads          = _seqStore->sqStore_getNumReads();
+  _nReads          = _seqStore->sqStore_lastReadID();
 
   _trackAge        = true;
   _trackExpiration = false;
+  _noMoreLoads     = false;
 
-  _version         =  version;
-
-  if (_version == sqRead_latest) {
-    if (_seqStore->sqStore_getNumRawReads()       > 0)   _version = sqRead_raw;
-    if (_seqStore->sqStore_getNumCorrectedReads() > 0)   _version = sqRead_corrected;
-    if (_seqStore->sqStore_getNumTrimmedReads()   > 0)   _version = sqRead_trimmed;
-  }
+  _which           = which;
+  _compressed      = ((_which & sqRead_compressed) == sqRead_unset) ? false : true;
+  _trimmed         = ((_which & sqRead_trimmed)    == sqRead_unset) ? false : true;
 
   _memoryLimit   = memoryLimit * 1024 * 1024 * 1024;
 
@@ -73,30 +71,45 @@ sqCache::sqCache(sqStore *seqStore, sqRead_version version,  uint64 memoryLimit)
   uint32  nReads = 0;
   uint64  nBases = 0;
 
-  for (uint32 id=0; id <= _nReads; id++) {
-    sqRead  *read = _seqStore->sqStore_getRead(id);
-
-    if (_version != sqRead_trimmed) {
-      _reads[id]._readLength = read->sqRead_sequenceLength(_version);
-      _reads[id]._bgn        = 0;
-      _reads[id]._end        = _reads[id]._readLength;
-    } else {
-      _reads[id]._readLength = read->sqRead_sequenceLength(sqRead_corrected);
-      _reads[id]._bgn        = read->sqRead_clearBgn();
-      _reads[id]._end        = read->sqRead_clearEnd();
+  for (uint32 id=1; id <= _nReads; id++) {
+    if (_seqStore->sqStore_isIgnoredRead(id, _which) == true) {
+      _reads[id]._basesLength    = 0;
+      _reads[id]._bgn            = 0;
+      _reads[id]._end            = 0;
+      _reads[id]._dataExpiration = UINT32_MAX;
+      _reads[id]._data           = NULL;
+      continue;
     }
+
+    //  _basesLength is the length of the sequence encoded in _data.  It is NOT
+    //  the length of the read we will be returning.
+
+    if (_which & sqRead_raw)
+      _reads[id]._basesLength = _seqStore->sqStore_getReadLength(id, sqRead_raw);
+
+    if (_which & sqRead_corrected)
+      _reads[id]._basesLength = _seqStore->sqStore_getReadLength(id, sqRead_corrected);
+
+    //  Set bgn and end based on trimming status.
+
+    _reads[id]._bgn = (_trimmed == true) ? _seqStore->sqStore_getClearBgn(id, _which) : 0;
+    _reads[id]._end = (_trimmed == true) ? _seqStore->sqStore_getClearEnd(id, _which) : _seqStore->sqStore_getReadLength(id, _which);
+
+    //  Set the age, expiration and clear the data pointer.
 
     //_reads[id]._dataAge        = 0;
     _reads[id]._dataExpiration = UINT32_MAX;
     _reads[id]._data           = NULL;
 
+    //  Do some accounting.
+
     if (sqCache_getLength(id) > 0) {
       nReads += 1;
-      nBases += _reads[id]._readLength;
+      nBases += _reads[id]._end - _reads[id]._bgn;
     }
   }
 
-  fprintf(stderr, "sqCache: found %u %s reads with %lu bases.\n", nReads, toString(_version), nBases);
+  fprintf(stderr, "sqCache: found %u %s reads with %lu bases.\n", nReads, toString(_which), nBases);
 }
 
 
@@ -111,10 +124,14 @@ sqCache::~sqCache() {
     for (uint32 ii=0; ii <= _nReads; ii++)
       _reads[ii]._data = NULL;
 
+  delete [] _reads;
+
   //  Now just delete!
 
-  delete [] _reads;
-  delete [] _data;
+  for (uint32 ii=0; ii<_dataBlocksLen; ii++)
+    delete [] _dataBlocks[ii];
+
+  delete [] _dataBlocks;
 }
 
 
@@ -139,58 +156,55 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
 
   //  If no read to load, don't load it.
 
-  if (_reads[id]._readLength == 0)
+  if (_reads[id]._basesLength == 0)
     return;
 
   //fprintf(stderr, "Loading read %u of length %u with expiration %u\n",
-  //        id, _reads[id]._readLength, expiration);
+  //        id, _reads[id]._basesLength, expiration);
 
-  //  Load the encoded blob.
+  assert(_noMoreLoads == false);
 
-  uint8   *blob     = _seqStore->sqStore_loadReadBlob(id);
-  uint8   *bptr     = blob + 8;
+  //  Load the encoded blob, without decoding it.
+
+  _read.sqRead_fetchBlob(_seqStore->sqStore_getReadBuffer(id));
+
+  //  Find the encoded read data.  This mirrors sqRead_loadFromBuffer.
+
+  uint32   blobPos  = 0;
   uint8   *rptr     = NULL;
   uint8   *cptr     = NULL;
 
-  //  Find the encoded read data.
+  while (blobPos < _read._blobLen) {
+    char   *cName =  (char *)  (_read._blob + blobPos + 0);
+    uint32  cLen  = *(uint32 *)(_read._blob + blobPos + 4);
 
-  while ((bptr[0] != 'S') ||
-         (bptr[1] != 'T') ||
-         (bptr[2] != 'O') ||
-         (bptr[3] != 'P')) {
-    uint32  chunkLen = 4 + 4 + *((uint32 *)bptr + 1);
+    if (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+        ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+        ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')))
+      rptr = _read._blob + blobPos;
 
-    if (((bptr[0] == '2') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'R')) ||
-        ((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'R')))
-      rptr = bptr;
+    if (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')) ||
+        ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')) ||
+        ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
+      cptr = _read._blob + blobPos;
 
-    if (((bptr[0] == '2') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C')) ||
-        ((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C')))
-      cptr = bptr;
-
-    bptr += chunkLen;
+    blobPos += 8 + cLen;
   }
 
-  //  Decide which read to save.  Raw?  Corrected?  Trimmed?
+  //  Save either the raw or corrected sequence.
 
-  if (_version == sqRead_raw)
-    bptr = rptr;
-  else
-    bptr = cptr;
-
-  //  Decode how much data we need to save.
-
-  uint32  chunkLen = 4 + 4 + *((uint32 *)bptr + 1);
+  uint8   *bptr = (_which & sqRead_raw) ? rptr : cptr;
+  uint32   blen = *(uint32 *)(bptr + 4) + 8;
 
   //  If we have a gigantic storage space for read data, use that, otherwise,
   //  allocate space for this data.
 
   if (_data == NULL) {
-    _reads[id]._data = new uint8 [chunkLen];
+    _reads[id]._data = new uint8 [blen];
   }
 
   else {
-    if (_dataLen + chunkLen > _dataMax)
+    if (_dataLen + blen > _dataMax)
       allocateNewBlock();
 
     _reads[id]._data = _data + _dataLen;
@@ -198,14 +212,12 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
 
   //  Copy the data and release the blob.
 
-  memcpy(_reads[id]._data, bptr, chunkLen);
-
-  delete [] blob;
+  memcpy(_reads[id]._data, bptr, blen);
 
   //  Update the pointer to the next free chunk of storage.
 
   if (_data != NULL) {
-    _dataLen += chunkLen;
+    _dataLen += blen;
 
     assert(_dataLen <= _dataMax);
   }
@@ -251,29 +263,39 @@ sqCache::sqCache_getSequence(uint32    id,
   //  Decide how many bases are encoded in the encoding and make space to
   //  decode the entire sequence (that is, the untrimmed sequence).
 
-  seqLen = _reads[id]._readLength;
-
-  resizeArray(seq, 0, seqMax, seqLen + 1, resizeArray_doNothing);
+  resizeArray(seq, 0, seqMax, _reads[id]._basesLength + 1, resizeArray_doNothing);
 
   //  Decode it.
 
-  uint8  *bptr     = _reads[id]._data;
-  uint32  chunkLen = *((uint32 *)bptr + 1);
+  char   *cName =  (char *)  (_reads[id]._data + 0);
+  uint32  cLen  = *(uint32 *)(_reads[id]._data + 4);
+  uint8  *chunk     =        (_reads[id]._data + 8);
 
-  if      (((bptr[0] == '2') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'R')) ||
-           ((bptr[0] == '2') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C')))
-    _readData.sqReadData_decode2bit(_reads[id]._data + 8, chunkLen, seq, seqLen);
+  if      (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+           ((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
+    decode2bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
 
-  else if (((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'R')) ||
-           ((bptr[0] == 'U') && (bptr[1] == 'S') && (bptr[2] == 'Q') && (bptr[3] == 'C'))) {
-    memcpy(seq, _reads[id]._data + 8, seqLen);
-    seq[seqLen] = 0;
-  }
+  else if (((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+           ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
+    decode3bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
+
+  else if (((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
+           ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
+    decode8bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
+
+  //  If a compressed read, we need to ... compress it.
+  //  If not compressed, the (untrimmed) length is exactly basesLen.
+
+  if (_compressed)
+    seqLen = homopolyCompress(seq, _reads[id]._basesLength, seq);
+  else
+    seqLen = _reads[id]._basesLength;
 
   //  If a trimmed read, we need to ... trim it.
+  //  If not trimmed, seqLen is already set, as is seq, so we're done.
 
-  if (_version == sqRead_trimmed) {
-    seqLen = sqCache_getLength(id);
+  if (_trimmed) {
+    seqLen = _reads[id]._end - _reads[id]._bgn;
 
     if (_reads[id]._bgn > 0)
       memmove(seq, seq + _reads[id]._bgn, sizeof(char) * seqLen);
@@ -300,8 +322,6 @@ sqCache::sqCache_getSequence(uint32    id,
 
 
 
-
-
 void
 sqCache::increaseAge(void) {
   if (_trackAge == false)
@@ -314,52 +334,61 @@ sqCache::increaseAge(void) {
 
 
 
-
 //  Just load all reads.
 void
 sqCache::sqCache_loadReads(bool verbose) {
+  sqCache_loadReads((uint32)0, _nReads, verbose);
+
+  _noMoreLoads = true;
+}
+
+
+
+void
+sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
   uint32  nReads = 0;
   uint64  nBases = 0;
 
-  for (uint32 id=0; id <= _nReads; id++) {
-    if (_reads[id]._readLength > 0) {
+  for (uint32 id=bgnID; id <= endID; id++) {
+    if (_reads[id]._basesLength > 0) {
       nReads += 1;
-      nBases += _reads[id]._readLength;
+      nBases += _reads[id]._end - _reads[id]._bgn;
     }
   }
 
   if (verbose)
-    fprintf(stderr, "Loading %u reads and %lu bases out of %u reads in the store.\n",
-            nReads, nBases, _nReads);
+    fprintf(stderr, "Loading %u reads and %lu bases from range %u-%u inclusive.\n",
+            nReads, nBases, bgnID, endID);
 
   //  For 50x human, with N's in the sequence, we need 50 * 3 Gbp / 3 bytes.
   //  We'll allocate that in nice 32 MB chunks, 1490 chunks.
   //
-  //  We expect to need 'nBases / 4 + nReads' bytes (2-bit) or 'nBases / 3 + nReads'
-  //  (3-bit) bytes, which will let us, at least, pre-allocate the pointers to blocks.
+  //  Don't bother pre-allocation dataBlocks; easy enough to do that on the
+  //  fly.
 
   _dataMax       = 32 * 1024 * 1024;
   _dataLen       = 0;
-  _data          = new uint8 [_dataMax];
+  _data          = NULL;
 
   _dataBlocksLen = 0;
   _dataBlocksMax = 0;
   _dataBlocks    = NULL;
 
-  //  Allocate another block.
+  //  Allocate a block.
 
   allocateNewBlock();
 
   //
 
-  for (uint32 id=0; id <= _nReads; id++) {
+  for (uint32 id=bgnID; id <= endID; id++) {
     loadRead(id);
 
     if ((verbose) && ((id % 4567) == 0)) {
       double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
 
-      fprintf(stderr, " %9u - %7.2f%% reads - %.2f GB\r",
-              id, 100.0 * id / _nReads, approxSize);
+      fprintf(stderr, "Loading %8u < %8u < %8u - %7.2f%% - %.2f GB\r",
+              bgnID, id, endID,
+              100.0 * (id - bgnID) / (endID - bgnID), approxSize);
     }
   }
 
@@ -368,9 +397,12 @@ sqCache::sqCache_loadReads(bool verbose) {
   if (verbose) {
     double  approxSize = ((_dataBlocksLen-1) * _dataMax + _dataLen) / 1024.0 / 1024.0 / 1024.0;
 
-    fprintf(stderr, " %9u - %7.2f%% reads - %.2f GB\r",
-            _nReads, 100.0, approxSize);
+    fprintf(stderr, "Loading %8u < %8u < %8u - %7.2f%% - %.2f GB\n",
+            bgnID, endID, endID,
+            100.0, approxSize);
   }
+
+  _noMoreLoads = true;
 }
 
 
@@ -395,6 +427,8 @@ sqCache::sqCache_loadReads(set<uint32> reads, bool verbose) {
 
   if (verbose)
     fprintf(stderr, "\nLoaded " F_SIZE_T " reads.\n", reads.size());
+
+  _noMoreLoads = true;
 }
 
 
@@ -428,6 +462,8 @@ sqCache::sqCache_loadReads(map<uint32, uint32> reads, bool verbose) {
 
   if (verbose)
     fprintf(stderr, "\nLoaded %u reads; skipped %u singleton reads.\n", nLoaded, nSkipped);
+
+  _noMoreLoads = true;
 }
 
 
@@ -445,6 +481,8 @@ sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
   }
 
   sqCache_loadReads(reads, verbose);
+
+  _noMoreLoads = true;
 }
 
 
@@ -463,6 +501,8 @@ sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
       reads.insert(tig->getChild(oo)->ident());
 
   sqCache_loadReads(reads, verbose);
+
+  _noMoreLoads = true;
 }
 
 

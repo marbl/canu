@@ -199,10 +199,10 @@ main(int argc, char **argv) {
 
   //  Open inputs.
 
-  sqStore        *seq    = sqStore::sqStore_open(seqName);
+  sqStore        *seq    = new sqStore(seqName);
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Opened '%s' with %u reads.\n", seqName, seq->sqStore_getNumReads());
+  fprintf(stderr, "Opened '%s' with %u reads.\n", seqName, seq->sqStore_lastReadID());
   fprintf(stderr, "\n");
 
   //  Report options.
@@ -224,7 +224,7 @@ main(int argc, char **argv) {
   memset(sliceFile, 0, sizeof(ovFile *) * (config->numSlices() + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (config->numSlices() + 1));
 
-  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate, beVerbose);
+  ovStoreFilter *filter = new ovStoreFilter(seq, maxErrorRate);
   ovOverlap      foverlap;
   ovOverlap      roverlap;
 
@@ -296,7 +296,7 @@ main(int argc, char **argv) {
   delete [] sliceFile;
   delete [] sliceSize;
 
-  seq->sqStore_close();
+  delete seq;
 
   delete    filter;
   delete    config;

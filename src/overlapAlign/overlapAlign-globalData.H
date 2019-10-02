@@ -94,7 +94,7 @@ public:
     fprintf(stderr, "Opening seqStore '%s' in mode '%s'\n", seqStoreName, toString(mode));
 
     sqRead_setDefaultVersion(sqRead_raw);
-    seqStore  = sqStore::sqStore_open(seqStoreName, mode);
+    seqStore  = new sqStore(seqStoreName, mode);
 
     //  Load all the reads.  Regardless of trim status, we ALWAYS want
     //  to load raw reads, because we ALWAYS need to adjust overlaps
@@ -122,22 +122,20 @@ public:
     //  Check parameters.
 
     if (bgnID == 0)                                bgnID = 1;
-    if (endID  > seqStore->sqStore_getNumReads())  endID = seqStore->sqStore_getNumReads();
+    if (endID  > seqStore->sqStore_lastReadID())   endID = seqStore->sqStore_lastReadID();
 
     curID = bgnID;
 
     //  Trimming data.  Initialize clear range and lengths to the full read.
     //  Data is loaded in main loop.
 
-    readData = new trReadData [seqStore->sqStore_getNumReads() + 1];
+    readData = new trReadData [seqStore->sqStore_lastReadID() + 1];
 
-    for (uint32 ii=0; ii<seqStore->sqStore_getNumReads() + 1; ii++) {
-      sqRead  *read = seqStore->sqStore_getRead(ii);
-
-      readData[ii].clrBgn        = read->sqRead_clearBgn();
-      readData[ii].clrEnd        = read->sqRead_clearEnd();
-      readData[ii].rawLength     = read->sqRead_sequenceLength(sqRead_raw);
-      readData[ii].trimmedLength = read->sqRead_sequenceLength(sqRead_trimmed);
+    for (uint32 ii=0; ii<seqStore->sqStore_lastReadID() + 1; ii++) {
+      readData[ii].clrBgn        = seqStore->sqStore_getClearBgn(ii);
+      readData[ii].clrEnd        = seqStore->sqStore_getClearEnd(ii);
+      readData[ii].rawLength     = seqStore->sqStore_getReadLength(ii, sqRead_raw);
+      readData[ii].trimmedLength = seqStore->sqStore_getReadLength(ii, sqRead_trimmed);
     }
   };
 
@@ -146,7 +144,7 @@ public:
   };
 
   ~trGlobalData() {
-    seqStore->sqStore_close();
+    delete seqStore;
 
     delete [] readData;
 

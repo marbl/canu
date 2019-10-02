@@ -105,8 +105,9 @@ sub utgcns ($$$) {
     print F fetchSeqStorePartitionShellCode($asm, $path, "");
     print F "\n";
     print F "\$bin/utgcns \\\n";
-    print F "  -S ../$asm.\${tag}Store/partitionedReads.seqStore \\\n";      #  Optional; utgcns will default to this
-    print F "  -T ../$asm.\${tag}Store 1 \$jobid \\\n";
+    print F "  -S ../../$asm.seqStore \\\n";
+    print F "  -T ../$asm.\${tag}Store 1 \\\n";
+    print F "  -P \$jobid \\\n";
     print F "  -O ./\${tag}cns/\$jobid.cns.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
     print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
@@ -136,49 +137,29 @@ sub utgcns ($$$) {
 
 
 
-sub cleanupPartitions ($$) {
-    my $asm    = shift @_;
-    my $tag    = shift @_;
-
-    return  if (! -e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
-
-    my $seqTime = -M "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map";
-    my $tigTime = -M "unitigging/$asm.ctgStore/seqDB.v001.tig";
-
-    return  if ($seqTime <= $tigTime);
-
-    print STDERR "-- Partitioned seqStore is older than tigs, rebuild partitioning (seqStore $seqTime days old; ctgStore $tigTime days old).\n";
-
-    remove_tree("unitigging/$asm.${tag}Store/partitionedReads.seqStore");
-}
-
-
-
-sub partitionReads ($$) {
+sub partitionTigs ($$) {
     my $asm    = shift @_;
     my $tag    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
 
-    return  if (-e "unitigging/$asm.${tag}Store/partitionedReads.seqStore/partitions/map");
-    return  if (fileExists("unitigging/$asm.${tag}Store.partitionedReads.seqStore.0001.tar"));
+    return  if (fileExists("unitigging/$asm.${tag}Store/partitioning"));
 
     fetchTigStore("unitigging", $asm, "${tag}Store", "001");
 
-    $cmd  = "$bin/sqStoreCreatePartition \\\n";
+    $cmd  = "$bin/utgcns \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -T  ./$asm.${tag}Store 1 \\\n";
-    $cmd .= "  -b " . getGlobal("cnsPartitionMin") . " \\\n"   if (defined(getGlobal("cnsPartitionMin")));
-    $cmd .= "  -p " . getGlobal("cnsPartitions")   . " \\\n"   if (defined(getGlobal("cnsPartitions")));
-    $cmd .= "> ./$asm.${tag}Store/partitionedReads.log 2>&1";
+    #$cmd .= "  -partition " . getGlobal("cnsPartitionSize") . " \\\n"   if (defined(getGlobal("cnsPartitionSize")));
+    $cmd .= "  -partition 0.9 \\\n";
+    $cmd .= "> ./$asm.${tag}Store/partitioning.log 2>&1";
 
     if (runCommand("unitigging", $cmd)) {
-        caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitionedReads.log");
+        caExit("failed to partition the reads", "unitigging/$asm.${tag}Store/partitioning.log");
     }
 
-    stashFile("unitigging/$asm.${tag}Store/partitionedReads.log");
-
-    stashSeqStorePartitions($asm, "unitigging", $tag, computeNumberOfConsensusJobs($asm, $tag));
+    stashFile("unitigging/$asm.${tag}Store/partitioning.log");
+    stashFile("unitigging/$asm.${tag}Store/partitioning");
 }
 
 
@@ -186,19 +167,91 @@ sub partitionReads ($$) {
 sub computeNumberOfConsensusJobs ($$) {
     my $asm    = shift @_;
     my $tag    = shift @_;
-    my $jobs   = "0001";
+    my $jobs   = 0;
     my $bin    = getBinDirectory();
 
-    fetchFile("unitigging/$asm.${tag}Store/partitionedReads.log");
+    fetchFile("unitigging/$asm.${tag}Store/partitioning");
 
-    open(F, "< unitigging/$asm.${tag}Store/partitionedReads.log") or caExit("can't open 'unitigging/$asm.${tag}Store/partitionedReads.log' for reading: $!", undef);
+    open(F, "< unitigging/$asm.${tag}Store/partitioning") or caExit("can't open 'unitigging/$asm.${tag}Store/partitioning' for reading: $!", undef);
+    $_ = <F>;
+    $_ = <F>;
     while(<F>) {
-        $jobs = $1   if (m/^Creating (\d+) partitions with/);
+        s/^\s+//;
+        s/\s+$//;
+
+        my @v = split '\s+', $_;
+
+        $jobs = $v[5]   if ($jobs < $v[5]);
     }
     close(F);
 
     return($jobs);
 }
+
+
+
+sub estimateMemoryNeededForConsensusJobs ($) {
+    my $asm    = shift @_;
+    my $minMem = 0;
+
+    fetchFile("unitigging/$asm.ctgStore/partitioning");
+    fetchFile("unitigging/$asm.utgStore/partitioning");
+
+    open(F, "< unitigging/$asm.ctgStore/partitioning") or caExit("can't open 'unitigging/$asm.ctgStore/partitioning' for reading: $!", undef);
+    $_ = <F>;
+    $_ = <F>;
+    while(<F>) {
+        s/^\s+//;
+        s/\s+$//;
+
+        my @v = split '\s+', $_;
+
+        $minMem = $v[4]   if ($minMem < $v[4]);
+    }
+    close(F);
+
+    open(F, "< unitigging/$asm.utgStore/partitioning") or caExit("can't open 'unitigging/$asm.utgStore/partitioning' for reading: $!", undef);
+    $_ = <F>;
+    $_ = <F>;
+    while(<F>) {
+        s/^\s+//;
+        s/\s+$//;
+
+        my @v = split '\s+', $_;
+
+        $minMem = $v[4]   if ($minMem < $v[4]);
+    }
+    close(F);
+
+    #  Warn if the user has overridden our selection.
+
+    my $curMem = getGlobal("cnsMemory");
+
+    if (defined($curMem) && ($curMem > 0)) {
+        if ($curMem < $minMem) {
+            print STDERR "--\n";
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  cnsMemory set to $curMem GB, but expected usage is $minMem GB.\n";
+            print STDERR "-- WARNING:  Jobs may fail.\n";
+            print STDERR "-- WARNING:\n";
+        }
+
+    } else {
+        setGlobal("cnsMemory", $minMem);
+
+        my $err;
+        my $all;
+
+        ($err, $all) = getAllowedResources("", "cns", $err, $all, 0);
+
+        print STDERR "--\n";
+        print STDERR $all;
+        print STDERR "--\n";
+    }
+
+    return($minMem);
+}
+
 
 
 
@@ -213,21 +266,12 @@ sub consensusConfigure ($) {
 
     make_path($path)  if (! -d $path);
 
-    #  If the seqStore partitions are older than the ctgStore unitig output, assume the unitigs have
-    #  changed and remove the seqStore partition.  -M is (annoyingly) 'file age', so we need to
-    #  rebuild if seq is older (larger) than tig.
+    #  Assign tigs to jobs.
 
-    cleanupPartitions($asm, "ctg");
-    cleanupPartitions($asm, "utg");
+    partitionTigs($asm, "ctg");
+    partitionTigs($asm, "utg");
 
-    #  Partition seqStore if needed.  Yeah, we could create both at the same time, with significant
-    #  effort in coding it up.
-
-    partitionReads($asm, "ctg");
-    partitionReads($asm, "utg");
-
-    #  Set up the consensus compute.  It's in a useless if chain because there used to be
-    #  different executables; now they're all rolled into utgcns itself.
+    #  Figure out how many jobs.
 
     my $ctgjobs = computeNumberOfConsensusJobs($asm, "ctg");
     my $utgjobs = computeNumberOfConsensusJobs($asm, "utg");
@@ -255,64 +299,6 @@ sub consensusConfigure ($) {
 
   allDone:
     stopAfter("consensusConfigure");
-}
-
-
-
-sub largestTigLength ($$) {
-    my $asm    = shift @_;
-    my $tag    = shift @_;
-    my $length = 0;
-
-    fetchFile("unitigging/$asm.${tag}Store/partitionedReads.log");
-
-    open(F, "< unitigging/$asm.${tag}Store/partitionedReads.log") or caExit("can't open 'unitigging/$asm.${tag}Store/partitionedReads.log' for reading: $!", undef);
-    while(<F>) {
-        $length = $1   if (m/^\s+\d+\s+\d+\s+(\d+)\s+\(partitioned\)$/)
-    }
-    close(F);
-
-    return($length);
-}
-
-
-
-sub estimateMemoryNeededForConsensusJobs ($) {
-    my $asm    = shift @_;
-
-    my $ctgLen = largestTigLength($asm, "ctg");
-    my $utgLen = largestTigLength($asm, "utg");
-
-    my $maxLen = ($ctgLen < $utgLen) ? $utgLen : $ctgLen;
-
-    #  Expect to use 1GB memory for every 1Mbp of sequence.
-
-    my $minMem = int($maxLen / 1000000 + 0.5) + 1;
-    my $curMem = getGlobal("cnsMemory");
-
-    if (defined($curMem) && ($curMem > 0)) {
-        if ($curMem < $minMem) {
-            print STDERR "--\n";
-            print STDERR "-- WARNING:\n";
-            print STDERR "-- WARNING:  cnsMemory set to $curMem GB, but expected usage is $minMem GB.\n";
-            print STDERR "-- WARNING:  Jobs may fail.\n";
-            print STDERR "-- WARNING:\n";
-        }
-
-    } else {
-        setGlobal("cnsMemory", $minMem);
-
-        my $err;
-        my $all;
-
-        ($err, $all) = getAllowedResources("", "cns", $err, $all, 0);
-
-        print STDERR "--\n";
-        print STDERR $all;
-        print STDERR "--\n";
-    }
-
-    return($minMem);
 }
 
 
@@ -439,12 +425,6 @@ sub purgeFiles ($$$$$$) {
     my $Nfastq  = shift @_;
     my $Nlayout = shift @_;
     my $Nlog    = shift @_;
-
-    remove_tree("unitigging/$asm.ctgStore/partitionedReads.seqStore");  #  The partitioned seqStores
-    remove_tree("unitigging/$asm.utgStore/partitionedReads.seqStore");  #  are useless now.  Bye bye!
-
-    unlink "unitigging/$asm.ctgStore/partitionedReads.log";
-    unlink "unitigging/$asm.utgStore/partitionedReads.log";
 
     my $path = "unitigging/5-consensus";
 
@@ -599,8 +579,8 @@ sub consensusAnalyze ($) {
 
     #  Left in as a template for any future analysis.
 
-    #goto allDone   if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
-    #
+    goto allDone;   #if (fileExists("unitigging/$asm.ctgStore.coverageStat.log"));
+
     #fetchTigStore("unitigging", $asm, "ctgStore", "001");
     #fetchTigStore("unitigging", $asm, "ctgStore", "002");
     #

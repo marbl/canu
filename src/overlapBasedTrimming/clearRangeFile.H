@@ -56,7 +56,7 @@ public:
     memset(_fileName, 0, sizeof(char) * (FILENAME_MAX+1));
     strncpy(_fileName, fileName, FILENAME_MAX);
 
-    _lastID   = seq->sqStore_getNumReads();
+    _lastID   = seq->sqStore_lastReadID();
     _bgn      = new uint32 [_lastID + 1];
     _end      = new uint32 [_lastID + 1];
 
@@ -81,7 +81,7 @@ public:
 
       AS_UTL_closeFile(F, _fileName);
 
-      assert(seq->sqStore_getNumReads() == _lastID);  //  Sane?  And if wrong, we've overwritten _bgn and _end, and crash anyway.
+      assert(seq->sqStore_lastReadID() == _lastID);  //  Sane?  And if wrong, we've overwritten _bgn and _end, and crash anyway.
     }
   };
 
@@ -105,7 +105,7 @@ public:
   void      reset(sqStore *seq) {
     for (uint32 fi=1; fi <= _lastID; fi++) {
       _bgn[fi] = 0;
-      _end[fi] = seq->sqStore_getRead(fi)->sqRead_sequenceLength();
+      _end[fi] = seq->sqStore_getReadLength(fi);
     }
   };
 

@@ -121,22 +121,18 @@ What parameters should I use for my reads?
     **Nanopore R7 2D** and **Nanopore R9 1D**
       The defaults were designed with these datasets in mind so they should work. Having very high
       coverage or very long Nanopore reads can slow down the assembly significantly. You can try the
-      ``overlapper=mhap utgReAlign=true`` option which is much faster but may produce less
+      ``-fast`` option which is much faster but may produce less
       contiguous assemblies on large genomes.
 
-    **Nanopore R9 2D** and **PacBio P6**
-       Slightly decrease the maximum allowed difference in overlaps from the default of 12% to 10.5%
-       with ``correctedErrorRate=0.105``
-
-    **PacBio Sequel V2**
+    **PacBio Sequel**
        Based on an *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 8.5% with
        ``correctedErrorRate=0.085 corMhapSensitivity=normal``.
       Only add the second parameter (``corMhapSensivity=normal``) if you have >50x coverage.
 
-    **PacBio Sequel V3**
-       The defaults for PacBio should work on this data.
+    **PacBio Sequel II**
+       The defaults for PacBio should work on this data. You could speed up the assembly by decreasing the error rate from the default, especially if you have high (>50x) coverage via ``correctedErrorRate=0.035 utgOvlErrorRate=0.065 trimReadsCoverage=2 trimReadsOverlap=500``
 
     **Nanopore flip-flop R9.4**
        Based on a human dataset, the flip-flop basecaller reduces both the raw read error rate and the residual error rate remaining after Canu read correction. For this reason you can reduce the error tolerated by Canu. If you have over 30x coverage add the options: ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14' correctedErrorRate=0.105``. This is primarily a speed optimization so you can use defaults, especially if your genome's accuracy is not improved by the flip-flop caller.
@@ -151,6 +147,10 @@ Can I assemble RNA sequence data?
 
     Note that Canu will silently translate 'U' bases to 'T' bases on input, but **NOT** translate
     the output bases back to 'U'.
+    
+Can I assemble amplicon sequence data?
+-------------------------------------   
+    In short, yes. Typically these have very high coverage so we recommend randomly downsampling (``'readSamplingCoverage=100'``) and turning off filtering of short contigs ``contigFilter="2 0 1.0 0.5 0"``.
 
 My assembly is running out of space, is too slow?
 -------------------------------------

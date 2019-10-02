@@ -35,290 +35,17 @@
 #ifndef SQREAD_H
 #define SQREAD_H
 
-
 //  DO NOT INCLUDE THIS FILE DIRECTLY, include sqStore.H.
 
-
-typedef enum {
-  sqRead_latest    = 0x00,  //  Return the latest version, default mode for most functions
-  sqRead_raw       = 0x01,  //  Return the raw read
-  sqRead_corrected = 0x02,  //  Return the corrected read
-  sqRead_trimmed   = 0x03,  //  Return the trimmed read
-} sqRead_version;
-
-extern
-sqRead_version  sqRead_defaultVersion;
-
-inline
-void
-sqRead_setDefaultVersion(sqRead_version v) {
-  sqRead_defaultVersion = v;
-};
-
-inline
-const char *
-toString(sqRead_version v) {
-  switch (v) {
-    case sqRead_latest:     return("latest");     break;
-    case sqRead_raw:        return("raw");        break;
-    case sqRead_corrected:  return("corrected");  break;
-    case sqRead_trimmed:    return("trimmed");    break;
-  }
-
-  return("unknown");
-}
-
-
+#include "sequence.H"
 
 class sqRead;
 class sqLibrary;
+
+class sqStore;
+class sqStoreBlobWriter;
+
 class sqCache;
-
-class sqReadData {
-public:
-  sqReadData() {
-    //  Set in sqStore_loadReadData()         (when reading from a store)
-    //         sqStore_loadReadFromStream()   (when reading from a file, utgcns import)
-    //         sqStore_addEmptyRead()         (when making a new read)
-    //  The first two then call sqRead_loadDataFromStream() -> sqReadData_loadFromBlob()
-    //
-    //  Possibly set in stashReadData() and loadFromBlob().
-    _read      = NULL;
-    _library   = NULL;
-
-    _name      = NULL;
-    _nameAlloc = 0;
-
-    _aseq      = NULL;
-    _aqlt      = NULL;
-
-    _rseq      = NULL;   //  Raw read sequence and quality.
-    _rqlt      = NULL;
-    _rseqAlloc = 0;
-    _rqltAlloc = 0;
-
-    _cseq      = NULL;   //  Corrected read sequence and quality.
-    _cqlt      = NULL;
-    _cseqAlloc = 0;
-    _cqltAlloc = 0;
-
-    _tseq      = NULL;   //  Trimmed read sequence and quality.
-    _tqlt      = NULL;
-
-    _blobLen   = 0;
-    _blobMax   = 0;
-    _blob      = NULL;
-  };
-
-  ~sqReadData() {
-    delete [] _name;
-
-    delete [] _rseq;
-    delete [] _rqlt;
-
-    delete [] _cseq;
-    delete [] _cqlt;
-
-    //delete [] _tseq;  //  The trimmed read is just a
-    //delete [] _tqlt;  //  pointer into the corrected read.
-
-    delete [] _blob;
-  };
-
-  sqRead     *sqReadData_getRead(void)                { return(_read); };
-  sqLibrary  *sqReadData_getLibrary(void)             { return(_library); };
-
-  char       *sqReadData_getName(void)                { return(_name); };
-
-  char       *sqReadData_getRawSequence(void)         { return(_rseq);  };
-  char       *sqReadData_getCorrectedSequence(void)   { return(_cseq);  };
-  char       *sqReadData_getTrimmedSequence(void)     { return(_tseq);  };
-
-  char       *sqReadData_getSequence(sqRead_version vers = sqRead_defaultVersion) {
-    if      (vers == sqRead_raw)          return(_rseq);
-    else if (vers == sqRead_corrected)    return(_cseq);
-    else if (vers == sqRead_trimmed)      return(_tseq);
-    else                                  return(_aseq);
-  };
-
-  uint8      *sqReadData_getRawQualities(void)        { return(_rqlt);  };
-  uint8      *sqReadData_getCorrectedQualities(void)  { return(_cqlt);  };
-  uint8      *sqReadData_getTrimmedQualities(void)    { return(_tqlt);  };
-
-  uint8      *sqReadData_getQualities(sqRead_version vers = sqRead_defaultVersion) {
-    if      (vers == sqRead_raw)          return(_rqlt);
-    else if (vers == sqRead_corrected)    return(_cqlt);
-    else if (vers == sqRead_trimmed)      return(_tqlt);
-    else                                  return(_aqlt);
-  };
-
-public:
-  //  Set the name of the read.
-  //
-  //  Set the sequence and quality values of the read.  S and Q must be
-  //  the same length.  S is a character string, NUL terminated.  Q is
-  //  8-byte integers, also NUL terminated.
-  //
-  //  If Q[0] == 255, then no QVs exists, and the library
-  //  default is used instead.
-
-  void        sqReadData_setName(char *H);
-  void        sqReadData_setBasesQuals(char *S, uint8 *Q);
-
-private:
-  uint32      sqReadData_encode2bit(uint8  *&chunk, char  *seq, uint32 seqLen);
-  uint32      sqReadData_encode3bit(uint8  *&chunk, char  *seq, uint32 seqLen);
-  uint32      sqReadData_encode4bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
-  uint32      sqReadData_encode5bit(uint8  *&chunk, uint8 *qlt, uint32 qltLen);
-
-  uint32      sqReadData_encodeConstantQV(uint8 *qlt, uint32 qltLen, uint32 defaultQV);
-
-  void        sqReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
-  void        sqReadData_encodeBlob(void);
-
-
-  bool        sqReadData_decode2bit(uint8  *chunk, uint32 chunkLen, char  *seq, uint32 seqLen);
-  bool        sqReadData_decode3bit(uint8  *chunk, uint32 chunkLen, char  *seq, uint32 seqLen);
-  bool        sqReadData_decode4bit(uint8  *chunk, uint32 chunkLen, uint8 *qlt, uint32 qltLen);
-  bool        sqReadData_decode5bit(uint8  *chunk, uint32 chunkLen, uint8 *qlt, uint32 qltLen);
-
-  void        sqReadData_loadFromBlob(uint8 *blob);
-
-private:
-  sqRead            *_read;     //  Pointer to the read         set in sqStore_addEmptyRead() and
-  sqLibrary         *_library;  //  Pointer to the library             sqStore_loadReadData().
-
-  char              *_name;
-  uint32             _nameAlloc;
-
-  char              *_aseq;       //  Pointer to 'active' data.  If trimmed, this will point
-  uint8             *_aqlt;       //  to the middle of _cseq (which will be terminated early).
-
-  char              *_rseq;
-  uint8             *_rqlt;
-  uint32             _rseqAlloc;
-  uint32             _rqltAlloc;
-
-  char              *_cseq;
-  uint8             *_cqlt;
-  uint32             _cseqAlloc;
-  uint32             _cqltAlloc;
-
-  char              *_tseq;
-  uint8             *_tqlt;
-
-  uint32             _blobLen;
-  uint32             _blobMax;
-  uint8             *_blob;     //  And maybe even an encoded blob of data from the store.
-
-  friend class sqRead;
-  friend class sqStore;
-  friend class sqCache;
-};
-
-
-
-
-class sqRead {
-public:
-  sqRead() {
-    _readID       = 0;            //  Must be zero so first read (id 0) is
-    _libraryID    = 0;            //  initialized correctly.
-
-    _rseqLen      = 0;
-    _cseqLen      = 0;
-
-    _clearBgn     = 0;
-    _clearEnd     = 0;
-
-    _blobLen      = 0;
-    _mByteHigh    = 0;
-    _unusedB      = 0;
-    _unusedC      = 0;
-    _ignore       = false;
-    _unusedF      = 0;
-    _cExists      = false;
-    _tExists      = false;
-
-    _mSegm        = 0;
-    _mByteLow     = 0;
-    _mPart        = 0;
-  };
-
-  ~sqRead() {
-  };
-
-  uint32      sqRead_readID(void)     { return(_readID);    };
-  uint32      sqRead_libraryID(void)  { return(_libraryID); };
-
-  uint32      sqRead_sequenceLength(sqRead_version vers = sqRead_defaultVersion) {
-    if      (_ignore)
-      return(0);
-
-    if      (vers == sqRead_raw)          return(_rseqLen);
-    else if (vers == sqRead_corrected)    return(_cseqLen);
-    else if (vers == sqRead_trimmed)      return(_clearEnd - _clearBgn);
-    else {
-      if      (_tExists)   return(_clearEnd - _clearBgn);
-      else if (_cExists)   return(_cseqLen);
-      else                 return(_rseqLen);
-    }
-  };
-
-  uint32      sqRead_clearBgn(void)   { return(_clearBgn); };
-  uint32      sqRead_clearEnd(void)   { return(_clearEnd); };
-
-  bool        sqRead_ignore(void)     { return(_ignore);   };
-  bool        sqRead_cExists(void)    { return(_cExists);  };
-  bool        sqRead_tExists(void)    { return(_tExists);  };
-
-  uint64      sqRead_mSegm(void)      { return(_mSegm);    };
-  uint64      sqRead_mByte(void)      { return((((uint64)_mByteHigh) << 32) | ((uint64)_mByteLow));    };
-  uint64      sqRead_mPart(void)      { return(_mPart);    };
-
-private:
-  void        sqRead_loadDataFromStream(sqReadData *readData, FILE *file);  //  'file' MUST be at correct position
-
-private:
-  //  Description of the read.  10 32-bit words.
-
-  //  Each sqRead needs to know which read (raw, corrected or trimmed) is to be returned.  In
-  //  particular, if corrections are done, but there is no corrected read for this raw read,
-  //  _cseqLen will be zero, and we need to return zero.  _cExists and _tExists are used for this.
-
-  uint32   _readID;
-  uint32   _libraryID;
-
-  uint32   _rseqLen;        //  Length of raw read stored.
-  uint32   _cseqLen;        //  Length of corrected read stored.
-
-  uint32   _clearBgn;       //  Trim points in corrected read.
-  uint32   _clearEnd;
-
-  uint32   _blobLen;        //  For easier loading of reads.
-  uint32   _mByteHigh : 8;  //  The 8 high bits of a 40-bit mByte field.
-  uint32   _unusedB   : 8;  //  Unused, to keep this struct 64-bit aligned.
-  uint32   _unusedC   : 8;  //  (It's 5 64-bit words)
-  uint32   _ignore    : 1;  //  Ignore this read; it's too short for our needs.
-  uint32   _unusedF   : 5;
-  uint32   _cExists   : 1;  //  Set by sqStore when the sqRead is returned to the user.
-  uint32   _tExists   : 1;
-
-  //  Last but not least, we need to remember where the actual data is stored in the blob.
-  //
-  //  While blobs in an unpartitioned store are limited to 1 GB (AS_BLOBFILE_MAX_SIZE), a blob in a
-  //  partitioned store needs to hold all data for one partition.  Occasionally these have exceeded
-  //  4 GB, and then fail to find the blob data.  Thus, the byte address into a blob has been
-  //  extended to 48 bits, as [_mByteHigh | _mByteLow].  The keep the struct layout the same as
-  //  before, the two values are in different locations.
-
-  uint32   _mByteLow;       //  (very big)      - Pointer to the blob data in the blobs file.
-  uint16   _mSegm;          //  65k files       - Pointer to the blobs file we are in.
-  uint16   _mPart;          //  65k partitions  - If partitioned, which partition is it in.
-
-  friend class sqReadData;
-  friend class sqStore;
-};
 
 //  Even though we can store up to 4GB blob files, we artificially limit it to 1 GB
 //  for (presumed) better caching on object storage systems.  Though there are
@@ -326,5 +53,586 @@ private:
 //  run out of file handles well before that.
 
 const uint64 AS_BLOBFILE_MAX_SIZE  = 1024 * 1024 * 1024;
+
+
+
+//  Default version is set either by the user explicitly,
+//  or by the store when it is opened.  It should never
+//  be unset.
+//
+//  Need to track what the 'latest' is:
+//    raw
+//    raw              | trimmed
+//    raw | compressed             -- equivalent, just homopoly compressed
+//    raw | compressed | trimmed   -- equivalent, just homopoly compressed
+//
+//    cor
+//    cor              | trimmed
+//    cor | compressed             -- nonsense?
+//    cor | compressed | trimmed   -- nonsense?
+//
+//  The need for sqRead_normal arises when the store is set to return
+//  homopoly compressed reads by default (if file 'homopolymerCompression'
+//  exists).  sqRead_normal prevents sqStore_loadMetadata from enabling
+//  homopoly compression.  It is otherwise not used (and so gets a quite
+//  bogus value).
+
+typedef uint32  sqRead_which;
+
+const sqRead_which sqRead_unset      = 0x0000;   //  Nothing specified, query the store to decide what to return.
+const sqRead_which sqRead_raw        = 0x0001;   //  Use noisy sequence.
+const sqRead_which sqRead_corrected  = 0x0002;   //  Use corrected sequence.
+const sqRead_which sqRead_normal     = 0x0080;   //  Return normal uncompressed bases.
+const sqRead_which sqRead_compressed = 0x0004;   //  Return compressed bases.
+const sqRead_which sqRead_trimmed    = 0x0008;   //  Return trimmed bases.
+const sqRead_which sqRead_largest    = 0x0010;   //  Used to size an array.
+
+extern
+sqRead_which  sqRead_defaultVersion;
+
+static
+void
+sqRead_setDefaultVersion(sqRead_which v) {
+  sqRead_defaultVersion = v;
+}
+
+static
+const
+char *
+toString(sqRead_which w) {
+  const sqRead_which  c  = sqRead_compressed;
+  const sqRead_which  t  = sqRead_trimmed;
+  const sqRead_which  ct = sqRead_compressed | sqRead_trimmed;
+
+  switch (w) {
+    case sqRead_unset:            return("unset");                           break;
+
+    case sqRead_raw:              return("raw");                             break;
+    case sqRead_raw | c:          return("raw-compressed");                  break;
+    case sqRead_raw | t:          return("raw-trimmed");                     break;
+    case sqRead_raw | ct:         return("raw-compressed-trimmed");          break;
+
+    case sqRead_corrected:        return("corrected");                       break;
+    case sqRead_corrected | c:    return("corrected-compressed");            break;
+    case sqRead_corrected | t:    return("corrected-trimmed");               break;
+    case sqRead_corrected | ct:   return("corrected-compressed-trimmed");    break;
+
+    case sqRead_compressed:       return("compressed");
+    case sqRead_trimmed:          return("trimmed");
+
+    default:                      return("undefined-mode");                  break;
+  }
+
+  return("undefined-mode");
+}
+
+
+
+
+
+
+
+//  On disk sequence metadata.  Sequence data itself is in the blobs.
+//
+//  In general, you should not be directly using this class:
+//    sqReadSeq_length() ALWAYS returns the untrimmed length of the read.
+//
+//    sqReadSeq_clearBgn() and sqReadSeq_clearEnd() will both return zero for
+//    a read with no clear range set.
+//
+//  There are too many places where encapsulation needs to be broken to
+//  make it truly private.  For example:
+//    Marking reads as ignore in sqStoreCreate (to get rid of extra coverage).
+//    Loading clear ranges.
+//    
+class sqReadSeq {
+public:
+  sqReadSeq() {
+    _seqValid  = 0;
+    _unused1   = 0;
+    _seqLength = 0;
+
+    _ignoreU   = 0;
+    _ignoreT   = 0;
+    _clearBgn  = 0;
+
+    _trimmed   = 0;
+    _unused2   = 0;
+    _clearEnd  = 0;
+  };
+
+  ~sqReadSeq() {
+  };
+
+private:
+  uint32      sqReadSeq_length(void)          { return(_seqLength);  };   //  ALWAYS untrimmed length.
+
+  uint32      sqReadSeq_clearBgn(void)        { assert(_trimmed);  return(_clearBgn);   };   //  NOT valid unless trimmed.
+  uint32      sqReadSeq_clearEnd(void)        { assert(_trimmed);  return(_clearEnd);   };
+
+private:
+  bool        sqReadSeq_valid(void)           { return(_seqValid);   };   //  True if there is data.
+  bool        sqReadSeq_trimmed(void)         { return(_trimmed);    };   //  True if the clear range is set.
+
+  bool        sqReadSeq_ignoreU(void)         { return(_ignoreU);               };   //  True if this read should be ignored.
+  bool        sqReadSeq_ignoreT(void)         { return(_ignoreU | _ignoreT);    };   //  True if the trimmed version should be ignored.
+
+
+  //  Call ONLY for initializing with a newly added sequence.
+  //  Do NOT call for trimmed reads.
+  //  The only caller should be sqReadDataWriter::sqReadDataWriter_writeBlob().
+  //  If you're thinking you want to call this, think again.
+private:
+  void        sqReadSeq_setLength(char *bases, uint32 basesLen, bool doCompress) {
+    uint32  sl = 0;
+
+    assert(bases[basesLen] == 0);
+
+    if (doCompress == false)
+      sl = basesLen;
+    else
+      sl = homopolyCompress(bases, basesLen);
+
+    assert(_seqValid == 0);
+
+    _seqValid  = 1;
+    _unused1   = 0;
+    _seqLength = sl;
+
+    _ignoreU   = 0;
+    _ignoreT   = 0;
+    _clearBgn  = 0;
+
+    _trimmed   = 0;
+    _unused2   = 0;
+    _clearEnd  = sl;
+  };
+
+
+  //  These are public, but unless the store is opened for appending, changes
+  //  will be lost.
+public:
+  void        sqReadSeq_setClearRange(uint32 bgn, uint32 end, bool set=true) {
+    _clearBgn = bgn;
+    _clearEnd = end;
+    _trimmed  = set;
+
+    _ignoreT |= _ignoreU;   //  If the untrimmed is ignored, ignore the trimmed too.
+  };
+
+  void        sqReadSeq_setIgnoreU(bool ignore=true) {
+    _ignoreU  = ignore;
+    _ignoreT |= ignore;   //  Also set ignoreT if untrimmed is ignored.
+  };
+
+  void        sqReadSeq_setIgnoreT(bool ignore=true) {
+    _ignoreT = ignore;
+  };
+
+
+private:
+  //  The data are logically out of order, so we can fit things into three 32-bit words.
+
+  uint32  _seqValid  : 1;      //  The sequence for this record is present in the blob.
+  uint32  _unused1   : 1;      //  (unused)
+  uint32  _seqLength : 30;     //  The length of the sequence stored in the blob.
+
+  uint32  _ignoreU   : 1;      //  Ignore both the untrimmed and trimmed versions.
+  uint32  _ignoreT   : 1;      //  Ignore only the trimmed version.
+  uint32  _clearBgn  : 30;     //
+
+  uint32  _trimmed   : 1;      //  The trim points are valid.
+  uint32  _unused2   : 1;      //  (unused)
+  uint32  _clearEnd  : 30;     //
+
+  //  Friends are only allowed to access the methods, not directly the data!
+
+  friend class sqRead;
+  friend class sqStore;
+  friend class sqStoreInfo;
+  friend class sqReadDataWriter;
+};
+
+
+
+//  On disk read metadata, in particular, the pointer to the blob data.
+class sqReadMeta {
+public:
+  sqReadMeta() {
+    _readID            = 0;  //  Must be zero so first read (id 0) is
+    _libraryID         = 0;  //  initialized correctly.
+    _assignment        = 0;
+    _assignmentScore   = 0;
+
+    _unused            = 0;
+    _mSegm             = 0;
+    _mByte             = 0;
+  };
+
+  sqReadMeta(uint32 readID, uint32 libraryID) {
+    _readID            = readID;      assert(_readID == readID);
+    _libraryID         = libraryID;   assert(_libraryID == libraryID);
+    _assignment        = 0;
+    _assignmentScore   = 0;
+
+    _unused            = 0;
+    _mSegm             = 0;
+    _mByte             = 0;
+  };
+
+  ~sqReadMeta() {
+  };
+
+  uint32      sqRead_readID(void)           { return(_readID);          };
+  uint32      sqRead_libraryID(void)        { return(_libraryID);       };
+
+  uint32      sqRead_assignment(void)       { return(_assignment);      };
+  uint32      sqRead_assignmentScore(void)  { return(_assignmentScore); };
+
+  uint64      sqRead_mSegm(void)            { return(_mSegm);           };
+  uint64      sqRead_mByte(void)            { return(_mByte);           };
+
+  void        sqRead_setPosition(uint64  mSegm,
+                                 uint64  mByte) {
+    _mSegm = mSegm;   assert(_mSegm == mSegm);   //  Check that mSegm and mByte are in
+    _mByte = mByte;   assert(_mByte == mByte);   //  the range that can be stored.
+  };
+
+private:
+  uint64           _readID          : 30;   //    1 billion
+  uint64           _libraryID       : 12;   //    4 thousand
+  uint64           _assignment      : 15;   //   32 thousand
+  uint64           _assignmentScore : 7;    //  128
+#if 30 + 12 + 15 + 7 != 64
+#error sqReadMeta bits #1 are the wrong size.
+#endif
+
+  uint64           _unused          :  8;   //   -- FOR FUTURE USE
+  uint64           _mSegm           : 16;   //  64 thousand files       - Pointer to the blobs file we are in.
+  uint64           _mByte           : 40;   //    1 TB                  - Pointer to the blob data in the blobs file.
+#if 8 + 16 + 40 != 64
+#error sqReadMeta bits #2 are the wrong size.
+#endif
+};
+
+
+
+//  In core read representation.  Only instantiated as needed, and sequence data is only loaded
+//  as requested.
+//
+//  This is really the old sqReadData structure.  It just got promoted.
+//
+class sqRead {
+public:
+  sqRead() {
+    _meta          = NULL;
+    _rawU          = NULL;
+    _rawC          = NULL;
+    _corU          = NULL;
+    _corC          = NULL;
+
+    _metaA         = NULL;
+    _rseqA         = NULL;
+
+    _library       = NULL;
+
+    _blobLoaded    = false;
+
+    _blobName[0]   = 0;
+    _blobName[1]   = 0;
+    _blobName[2]   = 0;
+    _blobName[3]   = 0;
+    _blobLen       = 0;
+    _blobMax       = 0;
+    _blob          = NULL;
+
+    _nameAlloc     = 0;
+    _name          = NULL;
+
+    _rawBasesAlloc = 0;
+    _rawBases      = NULL;
+
+    _corBasesAlloc = 0;
+    _corBases      = NULL;
+
+    _retFlags      = 0;
+    _retBasesAlloc = 0;
+    _retBases      = NULL;
+  }
+  ~sqRead() {
+    delete [] _metaA;
+    delete [] _rseqA;
+
+    delete [] _blob;
+
+    delete [] _name;
+    delete [] _rawBases;
+    delete [] _corBases;
+    delete [] _retBases;
+  };
+
+  uint32      sqRead_readID(void)       { return(_meta->sqRead_readID());    };
+  uint32      sqRead_libraryID(void)    { return(_meta->sqRead_libraryID()); };
+  sqLibrary  *sqRead_library(void)      { return(_library);                  };
+  char       *sqRead_name(void)         { return(_name);                     };
+
+  //  Like sqStore, return 0 for reads we shouldn't use.
+  uint32      sqRead_length  (sqRead_which w=sqRead_defaultVersion) {
+    sqReadSeq  *seq = sqRead_getSeq(w);
+
+    if (w & sqRead_trimmed)
+      return(((seq == NULL) ||
+              (seq->sqReadSeq_trimmed() == false) ||
+              (seq->sqReadSeq_valid()   == false) ||
+              (seq->sqReadSeq_ignoreT() == true)) ? 0 : (seq->sqReadSeq_clearEnd() - seq->sqReadSeq_clearBgn()));
+
+    else
+      return(((seq == NULL) ||
+              (seq->sqReadSeq_valid()   == false) ||
+              (seq->sqReadSeq_ignoreU() == true)) ? 0 : (seq->sqReadSeq_length()));
+  };
+
+  uint32      sqRead_clearBgn(sqRead_which w=sqRead_defaultVersion) {
+    sqReadSeq  *seq = sqRead_getSeq(w);
+
+    if (seq == NULL)
+      return(0);
+
+    if (w & sqRead_trimmed)
+      return(seq->sqReadSeq_clearBgn());
+    else
+      return(0);
+  };
+
+  uint32      sqRead_clearEnd(sqRead_which w=sqRead_defaultVersion) {
+    sqReadSeq  *seq = sqRead_getSeq(w);
+
+    if (seq == NULL)
+      return(0);
+
+    if (w & sqRead_trimmed)
+      return(seq->sqReadSeq_clearBgn());
+    else
+      return(seq->sqReadSeq_length());
+  };
+
+  char       *sqRead_sequence(sqRead_which w=sqRead_defaultVersion) {
+    bool  comp = ((w & sqRead_compressed) == sqRead_unset) ? false : true;
+    bool  trim = ((w & sqRead_trimmed)    == sqRead_unset) ? false : true;
+
+    //  Figure out which bases to return, either raw or corrected, and the
+    //  length -- INCLUDING the terminating NUL byte -- of that sequence.
+
+    sqReadSeq   *seq      = sqRead_getSeq(w);
+    char        *bases    = NULL;
+    uint32       basesLen = 0;
+
+    if (w & sqRead_raw) {
+      bases    = _rawBases;
+      basesLen = _rawU->sqReadSeq_length();
+    }
+
+    if (w & sqRead_corrected) {
+      bases    = _corBases;
+      basesLen = _corU->sqReadSeq_length();
+    }
+
+    assert(bases    != NULL);      // How to check we have the blob data loaded?
+    assert(basesLen > 0);
+
+    //  If neither compressed or trimmed, just return the sequence we already have.
+    //
+    if ((comp == false) &&
+        (trim == false)) {
+      return(bases);
+    }
+
+    //  If not compressed but trimmed, copy the trimmed bases into
+    //  temporary space and return that.
+    //
+    if ((comp == false) &&
+        (trim == true)) {
+      uint32  bgn = seq->sqReadSeq_clearBgn();   //  Only valid if trimmed, do not make global!
+      uint32  end = seq->sqReadSeq_clearEnd();
+
+      resizeArray(_retBases, 0, _retBasesAlloc, end - bgn + 1, resizeArray_doNothing);
+
+      memmove(_retBases, bases + bgn, end - bgn);
+      _retBases[end-bgn] = 0;
+
+      return(_retBases);
+    }
+
+    //  Otherwise, we need to homopolymer compress the sequence.  It'll be no
+    //  longer than the uncompressed sequence, so we can allocate that much,
+    //  instead of tracking down the actual length.
+
+    resizeArray(_retBases, 0, _retBasesAlloc, basesLen + 1, resizeArray_doNothing);
+
+    homopolyCompress(bases, basesLen, _retBases);
+
+    //  Trim the read if needed.
+    //
+    if (trim == true) {
+      uint32  bgn = seq->sqReadSeq_clearBgn();   //  Only valid if trimmed, do not make global!
+      uint32  end = seq->sqReadSeq_clearEnd();
+
+      memmove(_retBases, _retBases + bgn, end - bgn);
+      _retBases[end-bgn] = 0;
+    }
+
+    //  But either way, we return the same thing.
+    return(_retBases);
+  };
+
+private:
+  void        sqRead_fetchBlob(readBuffer *B);
+  void        sqRead_decodeBlob(void);
+
+private:
+  sqReadSeq  *sqRead_getSeq(sqRead_which w) {
+    bool  isRaw = ((w & sqRead_raw)        == sqRead_raw);         //  Return the sqReadSeq object
+    bool  isCor = ((w & sqRead_corrected)  == sqRead_corrected);   //  appropriate for the supplied
+    bool  isTrm = ((w & sqRead_trimmed)    == sqRead_trimmed);     //  sqRead_which.
+    bool  isCmp = ((w & sqRead_compressed) == sqRead_compressed);
+
+    if ((isRaw == true) && (isCmp == false))   { return(_rawU); };
+    if ((isRaw == true) && (isCmp == true))    { return(_rawC); };
+
+    if ((isCor == true) && (isCmp == false))   { return(_corU); };
+    if ((isCor == true) && (isCmp == true))    { return(_corC); };
+
+    fprintf(stderr, "sqRead_getSeq()-- Unknown which '%s'\n", toString(w));
+
+    assert(0);
+    return(NULL);
+  };
+
+private:
+  sqReadMeta   *_meta;      //  Pointers to arrays owned by sqStore.
+  sqReadSeq    *_rawU;
+  sqReadSeq    *_rawC;
+  sqReadSeq    *_corU;
+  sqReadSeq    *_corC;
+
+  sqReadMeta   *_metaA;  //  When loading without a store, these hold the
+  sqReadSeq    *_rseqA;  //  data for the above pointers.
+
+  sqLibrary    *_library;  //  Pointer to the library             sqStore_loadReadData().
+
+  bool          _blobLoaded;
+
+  char          _blobName[4];
+  uint32        _blobLen;
+  uint32        _blobMax;
+  uint8        *_blob;
+
+  uint32        _nameAlloc;
+  char         *_name;
+
+  uint32        _rawBasesAlloc;    //  The raw sequence, as loaded from disk.
+  char         *_rawBases;
+
+  uint32        _corBasesAlloc;    //  The corrected sequence, as loaded from disk.
+  char         *_corBases;
+
+  sqRead_which  _retFlags;         //  Remember what the returned sequence is.
+  uint32        _retBasesAlloc;    //  Scratch space for computing trimmed and compressed
+  char         *_retBases;         //  sequences to return to the user.
+
+  friend class sqStore;
+  friend class sqCache;
+  friend class sqReadDataWriter;
+};
+
+
+
+
+class sqReadDataWriter {
+public:
+  sqReadDataWriter(sqReadMeta *meta=NULL,
+                   sqReadSeq  *rawu=NULL,
+                   sqReadSeq  *rawc=NULL,
+                   sqReadSeq  *coru=NULL,
+                   sqReadSeq  *corc=NULL) {
+    _meta          = meta;
+    _rawU          = rawu;
+    _rawC          = rawc;
+    _corU          = coru;
+    _corC          = corc;
+
+    _nameAlloc     = 0;
+    _nameLen       = 0;
+    _name          = NULL;
+
+    _rawBasesAlloc = 0;
+    _rawBasesLen   = 0;
+    _rawBases      = NULL;
+
+    _corBasesAlloc = 0;
+    _corBasesLen   = 0;
+    _corBases      = NULL;
+  };
+
+  ~sqReadDataWriter() {
+    delete [] _name;
+    delete [] _rawBases;
+    delete [] _corBases;
+  };
+
+public:
+  void        sqReadDataWriter_importData(sqRead *read);
+
+  void        sqReadDataWriter_setName(const char *N) {
+    duplicateArray(_name, _nameLen, _nameAlloc, N, (uint32)strlen(N) + 1);
+  };
+
+  //  _setBases() doesn't need NUL terminated strings on input, but always
+  //  makes NUL terminated strings for itself.
+
+  void        sqReadDataWriter_setRawBases(const char *S, uint32 Slen) {
+    setArraySize(_rawBases, _rawBasesLen, _rawBasesAlloc, Slen+1, resizeArray_doNothing);
+
+    memcpy(_rawBases, S, sizeof(char) * Slen);
+    _rawBases[Slen] = 0;
+
+    _rawBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
+  };
+
+  void        sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen) {
+    setArraySize(_corBases, _corBasesLen, _corBasesAlloc, Slen+1, resizeArray_doNothing);
+
+    memcpy(_corBases, S, sizeof(char) * Slen);
+    _corBases[Slen] = 0;
+
+    _corBasesLen = Slen + 1;
+  };
+
+  void        sqReadDataWriter_writeBlob(writeBuffer *buffer);
+
+private:
+  sqReadMeta  *_meta;             //  Pointer to the read metadata.
+  sqReadSeq   *_rawU;
+  sqReadSeq   *_rawC;
+  sqReadSeq   *_corU;
+  sqReadSeq   *_corC;
+
+  uint32       _nameAlloc;
+  uint32       _nameLen;
+  char        *_name;
+
+  uint32       _rawBasesAlloc;    //  The raw sequence.
+  uint32       _rawBasesLen;      //  Length of string, INCLUDING terminating NUL byte.
+  char        *_rawBases;
+
+  uint32       _corBasesAlloc;    //  The corrected sequence.
+  uint32       _corBasesLen;      //  Length of string, INCLUDING terminating NUL byte.
+  char        *_corBases;
+
+  friend class sqStore;
+  friend class sqStoreBlobWriter;
+};
+
+
 
 #endif  //  SQREAD_H

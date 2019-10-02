@@ -73,7 +73,7 @@ private:
   uint32      *readLen;
   char       **readSeqFwd;
 
-  sqReadData   readdata;
+  sqRead       read;
 
   uint64       memoryLimit;
 };

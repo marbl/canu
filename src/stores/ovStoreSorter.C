@@ -204,7 +204,7 @@ main(int argc, char **argv) {
 
   //  Not done.  Let's go!
 
-  sqStore             *seq    = sqStore::sqStore_open(seqName);
+  sqStore             *seq    = new sqStore(seqName);
   ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, seq, sliceNum, config->numSlices(), config->numBuckets());
 
   //  Get the number of overlaps in each bucket slice.
@@ -262,7 +262,7 @@ main(int argc, char **argv) {
   delete [] ovls;
   delete [] bucketSizes;
 
-  seq->sqStore_close();
+  delete seq;
 
   if (deleteIntermediateLate) {
     fprintf(stderr, "\n");

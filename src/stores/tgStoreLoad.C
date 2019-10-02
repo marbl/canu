@@ -112,7 +112,7 @@ loadTigs(char            *seqName,
          int32            tigVers,
          tgStoreType      tigType,
          vector<char *>  &tigInputs) {
-  sqStore *seqStore = sqStore::sqStore_open(seqName);
+  sqStore *seqStore = new sqStore(seqName);
   tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
   tgTig   *tig      = new tgTig;
 
@@ -137,7 +137,7 @@ loadTigs(char            *seqName,
   delete tig;
   delete tigStore;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 }
 
 

@@ -40,7 +40,6 @@ main (int argc, char **argv) {
   char            *corInputsFile  = NULL;
 
   bool             updateCorStore = false;
-  bool             loadQVs        = false;
 
   argc = AS_configure(argc, argv);
 
@@ -60,9 +59,6 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       updateCorStore = true;
-
-    } else if (strcmp(argv[arg], "-qv") == 0) {
-      loadQVs = true;
 
     } else if (fileExists(argv[arg])) {
       corInputs.push_back(argv[arg]);
@@ -96,8 +92,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -u                    Also load the populated tig layout into version 2 of the corStore.\n");
     fprintf(stderr, "                        (WARNING: not rigorously tested)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -qv                   Also load the QVs into the sequence store.\n");
-    fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -106,16 +100,17 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  sqStore     *seqStore = sqStore::sqStore_open(seqName, sqStore_extend);
-  sqReadData  *readData = new sqReadData;
-  tgStore     *corStore = new tgStore(corName, corVers, tgStoreModify);
-  tgTig       *tig      = new tgTig;
+  sqStore          *seqStore = new sqStore(seqName, sqStore_extend);
+  sqRead           *read     = new sqRead;
+  sqReadDataWriter *rdw      = new sqReadDataWriter(NULL);
+  tgStore          *corStore = new tgStore(corName, corVers, tgStoreModify);
+  tgTig            *tig      = new tgTig;
 
-  uint64       nSkip    = 0;
-  uint64       nSkipTot = 0;
+  uint64            nSkip    = 0;
+  uint64            nSkipTot = 0;
 
-  uint64       nLoad    = 0;
-  uint64       nLoadTot = 0;
+  uint64            nLoad    = 0;
+  uint64            nLoadTot = 0;
 
   fprintf(stdout, "     read       raw corrected\n");
   fprintf(stdout, "       id    length    length\n");
@@ -133,7 +128,6 @@ main (int argc, char **argv) {
 
     while (tig->loadFromStreamOrLayout(TI) == true) {
       uint32  rID  = tig->tigID();
-      sqRead *read = seqStore->sqStore_getRead(rID);
 
       if (tig->consensusExists() == false) {
         nSkip++;
@@ -149,18 +143,27 @@ main (int argc, char **argv) {
 
       //  Load the data into seqStore.
 
-      if (loadQVs == false)
-        tig->quals()[0] = 255;
+      seqStore->sqStore_getRead(rID, read);                      //  Load old data for the read.
 
-      seqStore->sqStore_loadReadData(tig->tigID(), readData);            //  Load old data into the read.
-      readData->sqReadData_setBasesQuals(tig->bases(), tig->quals());    //  Insert new data.
-      seqStore->sqStore_stashReadData(readData);                         //  Write combined data.
+      rdw->sqReadDataWriter_importData(read);                    //  Import it into the writer.
+      rdw->sqReadDataWriter_setCorrectedBases(tig->bases(),
+                                              tig->length());    //  Add the corrected read.
+
+      seqStore->sqStore_addRead(rdw);                            //  Write combined data.
 
       //  Log it.
 
-      fprintf(stdout, "%9u %9u %9u\n", rID, read->sqRead_sequenceLength(sqRead_raw), read->sqRead_sequenceLength(sqRead_corrected));
+      fprintf(stdout, "%9u %9u %9u %9u\n",
+              rID,
+              seqStore->sqStore_getReadLength(rID, sqRead_raw),
+              seqStore->sqStore_getReadLength(rID, sqRead_corrected),
+              tig->length());
 
-      assert(read->sqRead_sequenceLength(sqRead_corrected) == tig->length());
+      if (seqStore->sqStore_getReadLength(rID, sqRead_corrected) != tig->length())
+        fprintf(stderr, "Read length %u differs from tig length %u\n",
+                seqStore->sqStore_getReadLength(rID, sqRead_corrected),
+                tig->length());
+      assert(seqStore->sqStore_getReadLength(rID, sqRead_corrected) == tig->length());
     }
 
     AS_UTL_closeFile(TI, corInputs[ff]);
@@ -174,9 +177,9 @@ main (int argc, char **argv) {
   delete tig;
   delete corStore;
 
-  delete readData;
+  delete read;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   fprintf(stderr, "--------- --------- -----------------------------------\n");
   fprintf(stderr, "%9" F_U64P " %9" F_U64P " %35" F_U64P "\n", nLoadTot, nSkipTot, corInputs.size());

@@ -43,7 +43,7 @@ using namespace std;
 
 
 #define SQ_MAGIC   0x504b473a756e6162lu      //  canu:GKP
-#define SQ_VERSION 0x0000000000000006lu
+#define SQ_VERSION 0x0000000000000008lu
 
 
 //  The number of library IIDs we can handle.
@@ -85,8 +85,6 @@ using namespace std;
 
 #include "sqLibrary.H"
 #include "sqRead.H"
-#include "sqStoreBlobReader.H"
-#include "sqStoreBlobWriter.H"
 
 
 //  The default behavior is to open the store for read only, and to load
@@ -96,7 +94,6 @@ typedef enum {
   sqStore_create      = 0x00,  //  Open for creating, will fail if files exist already
   sqStore_extend      = 0x01,  //  Open for modification and appending new reads/libraries
   sqStore_readOnly    = 0x02,  //  Open read only
-  sqStore_buildPart   = 0x03   //  For building the partitions
 } sqStore_mode;
 
 
@@ -108,7 +105,6 @@ toString(sqStore_mode m) {
     case sqStore_create:       return("sqStore_create");       break;
     case sqStore_extend:       return("sqStore_extend");       break;
     case sqStore_readOnly:     return("sqStore_readOnly");     break;
-    case sqStore_buildPart:    return("sqStore_buildPart");    break;
   }
 
   return("undefined-mode");
@@ -121,24 +117,32 @@ public:
   sqStoreInfo();
   ~sqStoreInfo();
 
-  bool      checkInfo(void);
-
-  void      recountReads(sqRead *reads);
-  void      setLastBlob(sqStoreBlobWriter *writer);
-
   void      writeInfoAsText(FILE *F);
 
-  uint64    sqInfo_numLibraries(void)        { return(_numLibraries);      };
-  uint64    sqInfo_numReads(void)            { return(_numReads);          };
-  uint32    sqInfo_numBlobs(void)            { return(_numBlobs);          };
+  uint32    sqInfo_lastLibraryID(void)          { return(_numLibraries); };
+  uint32    sqInfo_lastReadID(void)             { return(_numReads);     };
 
-  uint64    sqInfo_numRawReads(void)         { return(_numRawReads);       };
-  uint64    sqInfo_numCorrectedReads(void)   { return(_numCorrectedReads); };
-  uint64    sqInfo_numTrimmedReads(void)     { return(_numTrimmedReads);   };
+  uint32    sqInfo_numReads(sqRead_which w)     { return(_reads[w]);     };
 
-  void      sqInfo_addLibrary(void)          { _numLibraries++; };
-  void      sqInfo_addRead(void)             { _numReads++;     };
-  void      sqInfo_addBlob(void)             { _numBlobs++;     };
+public:
+  bool      examineRead(sqReadSeq *seq, sqRead_which w);
+
+private:
+  bool      checkInfo(void);
+  void      update(sqReadSeq  *rawU,
+                   sqReadSeq  *rawC,
+                   sqReadSeq  *corU,
+                   sqReadSeq  *corC);
+
+public:
+  //  For info in the store, these control the number of objects
+  //  that are allocated in the metadata arrays.
+  //
+  //  For info in dumpMetaData, these are used to count the number
+  //  of objects seen in the scan.
+  //
+  void      sqInfo_addLibrary(void)             { _numLibraries++;       };
+  void      sqInfo_addRead(void)                { _numReads++;           };
 
 private:
   uint64    _sqMagic;
@@ -152,119 +156,316 @@ private:
   uint32    _sqMaxReadLenBits;
 
   uint32    _numLibraries;       //  Counts of types of things we have loaded (next
-  uint32    _numReads;           //  available index into _libraries and _reads in sqStore)
-  uint32    _numBlobs;
+  uint32    _numReads;           //    available index into _libraries and _reads in sqStore)
 
-  uint32    _numRawReads;        //  If any corrected reads exist, the store will return
-  uint32    _numCorrectedReads;  //  only corrected reads by default.
-  uint32    _numTrimmedReads;
+  uint64    _reads[sqRead_largest];
+  uint64    _bases[sqRead_largest];
 
-  uint64    _numRawBases;
-  uint64    _numCorrectedBases;
-  uint64    _numTrimmedBases;
+  friend class sqStore;
 };
 
+
+
+
+
+class sqStoreBlobWriter {
+public:
+  sqStoreBlobWriter(const char *storePath);
+  ~sqStoreBlobWriter();
+
+  void           writeData(sqReadDataWriter *readData);
+
+private:
+  char          _storePath[FILENAME_MAX+1];        //  Path to the seqStore.
+  char          _blobName[FILENAME_MAX+1];         //  A temporary to make life easier.
+
+  uint32        _blobNumber;
+  writeBuffer  *_buffer;
+};
+
+
+
+//  Manages access to blob data.  You need one of these per thread.
+//
+class sqStoreBlobReader {
+public:
+  sqStoreBlobReader(const char *storePath);
+  ~sqStoreBlobReader();
+
+  readBuffer    *getBuffer(sqReadMeta *meta);
+  readBuffer    *getBuffer(sqReadMeta &meta)   { return(getBuffer(&meta)); };
+
+private:
+  char          _storePath[FILENAME_MAX+1];        //  Path to the seqStore.
+  char          _blobName[FILENAME_MAX+1];         //  A temporary to make life easier.
+
+  uint32        _buffersMax;
+  readBuffer  **_buffers;   //  One per blob file.
+};
 
 
 
 
 
 class sqStore {
-
-private:
-  sqStore(char const *storePath, char const *clonePath, sqStore_mode mode, uint32 partID);
-  ~sqStore();
-
-  void         sqStore_loadMetadata(void);
-  void         sqStore_checkInfo(void);
-
 public:
-  static
-  sqStore     *sqStore_open(char const *path, sqStore_mode mode=sqStore_readOnly, uint32 partID=UINT32_MAX);
-
-  static
-  sqStore     *sqStore_open(char const *storePath, char const *clonePath);
-
-  void         sqStore_close(void);
+  sqStore(char const *storePath, sqStore_mode mode=sqStore_readOnly);
+  ~sqStore();
+private:
+  void         sqStore_loadMetadata(void);
 
 public:
   const char  *sqStore_path(void) { return(_storePath); };  //  Returns the path to the store
 
-  void         sqStore_buildPartitions(uint32 *partitionMap);
-
   void         sqStore_delete(void);             //  Deletes the files in the store.
-  void         sqStore_deletePartitions(void);   //  Deletes the files for a partition.
 
-  uint32       sqStore_getNumLibraries(void)       { return(_info.sqInfo_numLibraries()); };
+  uint32       sqStore_lastLibraryID(void)            { return(_info.sqInfo_lastLibraryID()); };
+  uint32       sqStore_lastReadID(void)               { return(_info.sqInfo_lastReadID());    };
 
-  uint32       sqStore_getNumReads(void)           { return(_info.sqInfo_numReads()); };
-  uint32       sqStore_getNumRawReads(void)        { return(_info.sqInfo_numRawReads()); };
-  uint32       sqStore_getNumCorrectedReads(void)  { return(_info.sqInfo_numCorrectedReads()); };
-  uint32       sqStore_getNumTrimmedReads(void)    { return(_info.sqInfo_numTrimmedReads()); };
+  uint32       sqStore_getNumReads(sqRead_which w)    { return(_info.sqInfo_numReads(w));     };
 
-  sqLibrary   *sqStore_getLibrary(uint32 id)       { return(&_libraries[id]); };
+  sqLibrary   *sqStore_getLibrary(uint32 id)          { return(&_libraries[id]); };
 
-  //  The ONLY two approved methods for getting a read and data are:
-  //    sqStore_getRead(uint32 id)
-  //    sqStore_loadReadData(sqRead *read)  -- implies sqStore_getRead() was called already.
-  //    sqStore_loadReadData(uint32  id)    -- calls sqStore_getRead(), then loadReadData(sqRead).
+  uint32       sqStore_getLibraryIDForRead(uint32 id) { return(_meta[id].sqRead_libraryID()); };
+  sqLibrary   *sqStore_getLibraryForRead(uint32 id)   { return(&_libraries[_meta[id].sqRead_libraryID()]); };
 
-  uint8       *sqStore_loadReadBlob(uint32 readID);  //  Returns encoded data.
+public:
+  readBuffer  *sqStore_getReadBuffer(uint32 readID);
+  sqRead      *sqStore_getRead(uint32 readID, sqRead *read);
 
-  sqRead      *sqStore_getRead(uint32 id);
-  void         sqStore_loadReadData(sqRead *read,   sqReadData *readData);
-  void         sqStore_loadReadData(uint32  readID, sqReadData *readData);
-
-  void         sqStore_stashReadData(sqReadData *data);
-
-  bool         sqStore_readInPartition(uint32 id) {        //  True if read is in this partition.
-    return((_readIDtoPartitionID     == NULL) ||           //    Not partitioned, read in partition!
-           (_readIDtoPartitionID[id] == _partitionID));    //    Partitioned, and in this one!
-  };
-
-  sqLibrary   *sqStore_addEmptyLibrary(char const *name);
-  sqReadData  *sqStore_addEmptyRead(sqLibrary *lib);
-
-  void         sqStore_setClearRange(uint32 id, uint32 bgn, uint32 end);
-  void         sqStore_setIgnore(uint32 id);
-
-  //  Used in utgcns, for the package format.  Needs to be static for use in tgTig::importData().
+public:
   static
-  void         sqStore_loadReadFromStream(FILE *S, sqRead *read, sqReadData *readData);
-  void         sqStore_saveReadToStream(FILE *S, uint32 id);
+  void         sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read);
+  void         sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *read=NULL, sqReadDataWriter *wr=NULL);
 
 private:
-  static sqStore      *_instance;
-  static uint32        _instanceCount;
+  sqReadSeq   *sqStore_getSeq(sqRead_which w) {
+    bool  isRaw = ((w & sqRead_raw)        == sqRead_raw);
+    bool  isCor = ((w & sqRead_corrected)  == sqRead_corrected);
+    bool  isTrm = ((w & sqRead_trimmed)    == sqRead_trimmed);
+    bool  isCmp = ((w & sqRead_compressed) == sqRead_compressed);
 
+    if ((isRaw == true) && (isCmp == false))          { return(_rawU); };
+    if ((isRaw == true) && (isCmp == true))           { return(_rawC); };
+
+    if ((isCor == true) && (isCmp == false))          { return(_corU); };
+    if ((isCor == true) && (isCmp == true))           { return(_corC); };
+
+    fprintf(stderr, "sqStore_getSeq()-- Unknown which '%s'\n", toString(w));
+
+    assert(0);
+    return(NULL);
+  };
+
+  //  Accessors to read data.
+public:
+  uint64             sqStore_getReadSegm(uint32 id);
+  uint64             sqStore_getReadByte(uint32 id);
+
+  sqReadSeq         *sqStore_getReadSeq(uint32 id, sqRead_which w=sqRead_defaultVersion);
+
+  //  Read length is zero if the read isn't present, isn't valid, is ignored,
+  //  or is trimmed out.  Ideally, those cases should generate an error -- we
+  //  should be testing for those cases before deciding to use a read -- but
+  //  too many places are expecting length==0 in thse cases.
+  //
+  uint32             sqStore_getReadLength(uint32 id, sqRead_which w=sqRead_defaultVersion);
+
+  //  Unlike read length, we'll insist that accessing clear ranges only occur
+  //  for trimmed reads (enforced by sqReadSeq).
+  //
+  uint32             sqStore_getClearBgn  (uint32 id, sqRead_which w=sqRead_defaultVersion);
+  uint32             sqStore_getClearEnd  (uint32 id, sqRead_which w=sqRead_defaultVersion);
+
+  bool               sqStore_isValidRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
+  bool               sqStore_isIgnoredRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
+  bool               sqStore_isTrimmedRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
+
+  //  For use ONLY by sqStoreCreate, to add new libraries and reads to a
+  //  store.  The first two allocate a new metadata object in the store,
+  //  while the last loads read sequence data.
+  //
+public:
+  sqLibrary         *sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType);
+  sqReadDataWriter  *sqStore_addEmptyRead(sqLibrary *lib, const char *name);
+
+  void               sqStore_addRead(sqReadDataWriter *rdw) {
+    _blobWriter->writeData(rdw);
+  };
+
+  //  Currently defined only in loadTrimmedReads.C.  This loads a read,
+  //  computes the compressed sequence, and sets both the normal and
+  //  compressed clear ranges.
+public:
+  void               sqStore_setClearRange(uint32 id,
+                                           uint32 bgn, uint32 end, bool bogus,
+                                           sqRead_which w=sqRead_defaultVersion);
+
+private:
   sqStoreInfo          _info;  //  All the stuff stored on disk.
 
   char                 _storePath[FILENAME_MAX+1];    //  Needed to create files
-  char                 _clonePath[FILENAME_MAX+1];    //  Path to the partitioned store data, for when building the partitions
 
   sqStore_mode         _mode;  //  What mode this store is opened as, sanity checking
-
 
   uint32               _librariesAlloc;  //  Size of allocation
   sqLibrary           *_libraries;       //  In core data
 
   uint32               _readsAlloc;      //  Size of allocation
-  sqRead              *_reads;           //  In core data
+  sqReadMeta          *_meta;            //  In core data
+  sqReadSeq           *_rawU;            //  Metadata for raw sequence
+  sqReadSeq           *_rawC;            //  Metadata for raw compressed sequence
+  sqReadSeq           *_corU;
+  sqReadSeq           *_corC;
 
-  uint8               *_blobsData;       //  For partitioned data, in-core data.
-
-  uint32               _blobsFilesMax;   //  For normal store, loading reads
-  sqStoreBlobReader   *_blobsFiles;      //  directly, one per thread.
-
-  sqStoreBlobWriter   *_blobsWriter;
-
-  //  If the store is openend partitioned, this data is loaded from disk
-
-  uint32               _numberOfPartitions;     //  Total number of partitions that exist
-  uint32               _partitionID;            //  Which partition this is
-  uint32              *_readsPerPartition;      //  Number of reads in each partition, mostly sanity checking
-  uint32              *_readIDtoPartitionIdx;   //  Map from global ID to local partition index
-  uint32              *_readIDtoPartitionID;    //  Map from global ID to partition ID
+  sqStoreBlobReader   *_blobReader;
+  sqStoreBlobWriter   *_blobWriter;
 };
+
+
+
+
+//  The rest are just accessors to reads.
+
+
+inline
+uint64
+sqStore::sqStore_getReadSegm(uint32 id) {
+  return(_meta[id].sqRead_mSegm());
+}
+
+
+inline
+uint64
+sqStore::sqStore_getReadByte(uint32 id) {
+  return(_meta[id].sqRead_mByte());
+}
+
+
+inline
+sqReadSeq *
+sqStore::sqStore_getReadSeq(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  return((seq == NULL) ? NULL : &seq[id]);
+}
+
+
+//  Read length is zero if the read isn't present, isn't valid, is ignored,
+//  or is trimmed out.  Ideally, those cases should generate an error -- we
+//  should be testing for those cases before deciding to use a read -- but
+//  too many places are expecting length==0 in thse cases.
+//
+inline
+uint32
+sqStore::sqStore_getReadLength(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  if (w & sqRead_trimmed)
+    return(((seq == NULL) ||
+            (seq[id].sqReadSeq_trimmed() == false) ||
+            (seq[id].sqReadSeq_valid()   == false) ||
+            (seq[id].sqReadSeq_ignoreT() == true)) ? 0 : (seq[id].sqReadSeq_clearEnd() - seq[id].sqReadSeq_clearBgn()));
+
+  else
+    return(((seq == NULL) ||
+            (seq[id].sqReadSeq_valid()   == false) ||
+            (seq[id].sqReadSeq_ignoreU() == true)) ? 0 : (seq[id].sqReadSeq_length()));
+}
+
+
+//  Unlike read length, we'll insist that accessing clear ranges only occur
+//  for trimmed reads (enforced by sqReadSeq).
+//
+inline
+uint32
+sqStore::sqStore_getClearBgn  (uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  if (seq == NULL)
+    return(0);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_clearBgn());
+  else
+    return(0);
+}
+
+
+inline
+uint32
+sqStore::sqStore_getClearEnd  (uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  if (seq == NULL)
+    return(0);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_clearEnd());
+  else
+    return(seq[id].sqReadSeq_length());
+}
+
+
+inline
+bool
+sqStore::sqStore_isValidRead(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  if (seq == NULL)
+    return(false);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_valid() && seq[id].sqReadSeq_trimmed());
+  else
+    return(seq[id].sqReadSeq_valid());
+}
+
+
+inline
+bool
+sqStore::sqStore_isIgnoredRead(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  if (seq == NULL)
+    return(false);
+
+  if (sqStore_isValidRead(id, w) == false)
+    return(true);
+
+  if (w & sqRead_trimmed)
+    return(seq[id].sqReadSeq_ignoreT());
+  else
+    return(seq[id].sqReadSeq_ignoreU());
+}
+
+
+inline
+bool
+sqStore::sqStore_isTrimmedRead(uint32 id, sqRead_which w) {
+  sqReadSeq  *seq = sqStore_getSeq(w);
+
+  assert(id > 0);
+
+  return((seq == NULL) ? false : seq[id].sqReadSeq_trimmed());
+}
+
+
+
+
+
+
 
 #endif  //  SQSTORE_H

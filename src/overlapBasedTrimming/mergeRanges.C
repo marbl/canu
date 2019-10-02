@@ -101,9 +101,9 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  sqStore        *seqStore = sqStore::sqStore_open(seqName, sqStore_extend);
-  uint32          numReads  = seqStore->sqStore_getNumReads();
-  uint32          numLibs   = seqStore->sqStore_getNumLibraries();
+  sqStore        *seqStore = new sqStore(seqName, sqStore_extend);
+  uint32          numReads  = seqStore->sqStore_lastReadID();
+  uint32          numLibs   = seqStore->sqStore_lastLibraryID();
 
   clearRangeFile *outRange = new clearRangeFile(outName, seqStore);
 
@@ -111,12 +111,10 @@ main (int argc, char **argv) {
     clearRangeFile *clrRange = new clearRangeFile(clrName[ii], seqStore);
 
     for (uint32 rid=bgnID[ii]; rid<=endID[ii]; rid++) {
-      sqRead* read = seqStore->sqStore_getRead(rid);
-
       if (verbose == true)
         fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
                 rid, 
-                read->sqRead_clearBgn(), read->sqRead_clearEnd(),
+                seqStore->sqStore_getClearBgn(rid), seqStore->sqStore_getClearEnd(rid),
                 clrRange->bgn(rid), clrRange->end(rid));
 
       outRange->setbgn(rid) = clrRange->bgn(rid);
@@ -128,7 +126,7 @@ main (int argc, char **argv) {
 
   delete outRange;
 
-  seqStore->sqStore_close();
+  delete seqStore;
 
   exit(0);
 }

@@ -142,7 +142,7 @@ ovFile  *Out_BOF = NULL;
 //  Allocate memory for  (* WA)  and set initial values.
 //  Set  thread_id  field to  id .
 void
-Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *seqStore) {
+Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *readStore, sqCache *readCache) {
   uint64  allocated = 0;
 
   WA->String_Olap_Size  = INIT_STRING_OLAP_SIZE;
@@ -157,7 +157,8 @@ Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *seqStore) {
   WA->status     = 0;
   WA->thread_id  = id;
 
-  WA->seqStore = seqStore;
+  WA->readStore = readStore;
+  WA->readCache = readCache;
 
   WA->overlapsLen = 0;
   WA->overlapsMax = 1024 * 1024 / sizeof(ovOverlap);
@@ -191,25 +192,36 @@ OverlapDriver(void) {
 
   Work_Area_t    *thread_wa = new Work_Area_t [G.Num_PThreads];
 
-  sqStore        *seqStore  = sqStore::sqStore_open(G.Frag_Store_Path);
+  sqStore        *readStore = new sqStore(G.Frag_Store_Path);
+  sqCache        *readCache = new sqCache(readStore);
 
-  Out_BOF = new ovFile(seqStore, G.Outfile_Name, ovFileFullWrite);
+  Out_BOF = new ovFile(readStore, G.Outfile_Name, ovFileFullWrite);
 
   fprintf(stderr, "Initializing %u work areas.\n", G.Num_PThreads);
 
 #pragma omp parallel for
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
-    Initialize_Work_Area(thread_wa+i, i, seqStore);
+    Initialize_Work_Area(thread_wa+i, i, readStore, readCache);
 
-  //  Command line options are Lo_Hash_Frag and Hi_Hash_Frag
-  //  Command line options are Lo_Old_Frag and Hi_Old_Frag
+  //  Make sure both the hash and reference ranges are valid.
 
   if (G.bgnHashID < 1)
     G.bgnHashID = 1;
 
-  if (seqStore->sqStore_getNumReads() < G.endHashID)
-    G.endHashID = seqStore->sqStore_getNumReads();
+  if (readStore->sqStore_lastReadID() < G.endHashID)
+    G.endHashID = readStore->sqStore_lastReadID();
 
+  if (G.bgnRefID < 1)
+    G.bgnRefID = 1;
+
+  if (G.endRefID > readStore->sqStore_lastReadID())
+    G.endRefID = readStore->sqStore_lastReadID();
+
+  //  Load the reference range into the cache
+
+  fprintf(stderr, "Loading reference reads %u-%u inclusive.\n", G.bgnRefID, G.endRefID);
+
+  readCache->sqCache_loadReads(G.bgnRefID, G.endRefID, true);
 
   //  Note distinction between the local bgn/end and the global G.bgn/G.end.
 
@@ -224,20 +236,14 @@ OverlapDriver(void) {
 
     assert(0          <  bgnHashID);
     assert(bgnHashID  <= endHashID);
-    assert(endHashID  <= seqStore->sqStore_getNumReads());
+    assert(endHashID  <= readStore->sqStore_lastReadID());
 
     //  Load as much as we can.  If we load less than expected, the endHashID is updated to reflect
     //  the last read loaded.
 
-    endHashID = Build_Hash_Index(seqStore, bgnHashID, endHashID);
+    endHashID = Build_Hash_Index(readStore, bgnHashID, endHashID);
 
     //  Decide the range of reads to process.  No more than what is loaded in the table.
-
-    if (G.bgnRefID < 1)
-      G.bgnRefID = 1;
-
-    if (G.endRefID > seqStore->sqStore_getNumReads())
-      G.endRefID = seqStore->sqStore_getNumReads();
 
     G.curRefID = G.bgnRefID;
 
@@ -249,7 +255,7 @@ OverlapDriver(void) {
 
     fprintf(stderr, "\n");
     fprintf(stderr, "Range: %u-%u.  Store has %u reads.\n",
-            G.bgnRefID, G.endRefID, seqStore->sqStore_getNumReads());
+            G.bgnRefID, G.endRefID, readStore->sqStore_lastReadID());
     fprintf(stderr, "Chunk: " F_U32 " reads/thread -- (G.endRefID=" F_U32 " - G.bgnRefID=" F_U32 ") / G.Num_PThreads=" F_U32 " / 8\n",
             G.perThread, G.endRefID, G.bgnRefID, G.Num_PThreads);
 
@@ -287,7 +293,9 @@ OverlapDriver(void) {
 
   delete Out_BOF;
 
-  seqStore->sqStore_close();
+  delete readCache;
+
+  delete readStore;
 
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
     Delete_Work_Area(thread_wa + i);

@@ -102,7 +102,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore             *seq    = sqStore::sqStore_open(seqName);
+  sqStore             *seq    = new sqStore(seqName);
   ovStoreConfig       *config = new ovStoreConfig(cfgName);
   ovStoreSliceWriter  *writer = new ovStoreSliceWriter(ovlName, seq, 0, config->numSlices(), config->numBuckets());
 
@@ -116,7 +116,7 @@ main(int argc, char **argv) {
   delete writer;
   delete config;
 
-  seq->sqStore_close();
+  delete seq;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Success!\n");
