@@ -479,18 +479,20 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix) {
       BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
       BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi,  true);
 
-      //  If I'm completely outside of a spurpath, then the edges out of this
-      //  read can be used to remove the spur flag from the read ends they point
-      //  to.
+      //  If I'm not a spur, and there is a good path out of me, then the
+      //  opposite-end edges out of this read can be used to remove the spur
+      //  flag from the read ends they point to.
 
-      if ((spur.count(fi)      == 0) &&
-          (spurpath5.count(fi) == 0) &&
-          (spurpath3.count(fi) == 0)) {
-        if (edge5->read3p() == false)   spurpath5.erase(edge5->readId());
-        else                            spurpath3.erase(edge5->readId());
+      if (spur.count(fi) == 0) {
+        if (spurpath5.count(fi) == 0) {
+          if (edge3->read3p() == false)   spurpath5.erase(edge3->readId());
+          else                            spurpath3.erase(edge3->readId());
+        }
 
-        if (edge3->read3p() == false)   spurpath5.erase(edge3->readId());
-        else                            spurpath3.erase(edge3->readId());
+        if (spurpath3.count(fi) == 0) {
+          if (edge5->read3p() == false)   spurpath5.erase(edge5->readId());
+          else                            spurpath3.erase(edge5->readId());
+        }
       }
     }
 
