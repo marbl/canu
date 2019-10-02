@@ -124,6 +124,21 @@ public:
     _evalue = evalue;
   };
 
+  void    setReverse(BestEdgeOverlap *that, uint32 readId, bool read3p) {
+    _id     =  readId;
+    _e3p    =  read3p;
+
+    if (that->read3p() != read3p) {   //  Set hangs based on agreement of ends.
+      _ahang  = -that->_ahang;        //    that->read3p() is the end this edge is coming out of
+      _bhang  = -that->_bhang;        //    read3p         is the end this edge is going into
+    } else {                          //  if they disagree, this is a 'normal' overlap (both reads
+      _ahang  =  that->_bhang;        //  are the same orientation) and hangs negate.
+      _bhang  =  that->_ahang;
+    }
+
+    _evalue =  that->_evalue;
+  };
+
 
   uint32  readId(void)  const { return(_id); };
   bool    read3p(void)  const { return(_e3p == true);  };
@@ -181,7 +196,9 @@ public:
 class BestOverlapGraph {
 private:
   void   removeSuspicious(const char *prefix);
-  void   removeSpurs(const char *prefix);
+  uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
+  void   removeSimpleSpurs(const char *prefix);
+  void   removeSpannedSpurs(const char *prefix);
   void   removeLopsidedEdges(const char *prefix);
   void   findZombies(const char *prefix);
 
@@ -237,6 +254,10 @@ public:
     return(_bestM[readid]._isC);
   };
 
+  bool isSpur(const uint32 readid) {
+    return(_spur.count(readid) > 0);
+  };
+
   bool isSuspicious(const uint32 readid) {
     return(_suspicious.count(readid) > 0);
   };
@@ -254,7 +275,7 @@ private:
   uint64   scoreOverlap(BAToverlap& olap);
 
 private:
-  void     scoreContainment(BAToverlap& olap);
+  void     markContainment(BAToverlap& olap);
   void     scoreEdge(BAToverlap& olap);
 
 private:
@@ -286,7 +307,6 @@ private:
   uint32                     _n2EdgeIncompatible;
 
   set<uint32>                _suspicious;
-  set<uint32>                _singleton;
   set<uint32>                _spur;
   set<uint32>                _zombie;
 

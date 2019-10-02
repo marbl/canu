@@ -52,11 +52,19 @@ ReadInfo::ReadInfo(const char *seqStorePath,
   uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
 
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "ignored.reads");
+
   for (uint32 fi=1; fi<=_numReads; fi++) {
     uint32   len  = seqStore->sqStore_getReadLength(fi);
 
-    if ((len < minReadLen) ||
-        (seqStore->sqStore_isIgnoredRead(fi))) {
+    if (seqStore->sqStore_isIgnoredRead(fi)) {
+      fprintf(F, "%u ignored\n", fi);
+      numSkipped++;
+      continue;
+    }
+
+    if (len < minReadLen) {
+      fprintf(F, "%u length %u too short\n", fi, len);
       numSkipped++;
       continue;
     }
@@ -68,6 +76,8 @@ ReadInfo::ReadInfo(const char *seqStorePath,
 
     numLoaded++;
   }
+
+  fclose(F);
 
   delete seqStore;
 
