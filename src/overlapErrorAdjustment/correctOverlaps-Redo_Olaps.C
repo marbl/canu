@@ -801,8 +801,8 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   fprintf(stderr, "Failed: " F_U64 " (match to end)\n", Failed_Alignments_End_Ct);
   fprintf(stderr, "Failed: " F_U64 " (negative length)\n", Failed_Alignments_Length_Ct);
 
-  fprintf(stderr, "Changed %lu overlaps.\n", nBetter + nWorse + nSame);
-  fprintf(stderr, "Better: %lu overlaps.\n", nBetter);
-  fprintf(stderr, "Worse:  %lu overlaps.\n", nWorse);
-  fprintf(stderr, "Same:   %lu overlaps.\n", nSame);
+  fprintf(stderr, "Changed " F_U64 " overlaps.\n", nBetter + nWorse + nSame);
+  fprintf(stderr, "Better: " F_U64 " overlaps.\n", nBetter);
+  fprintf(stderr, "Worse:  " F_U64 " overlaps.\n", nWorse);
+  fprintf(stderr, "Same:   " F_U64 " overlaps.\n", nSame);
 }
