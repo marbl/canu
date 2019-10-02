@@ -727,26 +727,26 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
                                          /*check trivial DNA*/true,
                                          ped, &match_to_end, &invalid_olap);
 
-      static const double report_threshold = 0.;
       if (err_rate >= 0.) {
-        G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue(err_rate);
-        //fprintf(stderr, "REDO - err rate = %f\n", AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
-
         if (rha)
           rhaPass++;
 
-        if (err_rate > report_threshold) {
-          //fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
-        }
+        //if (err_rate > /*report_threshold*/ 0.) {
+        //  fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
+        //}
 
-        //FIXME direct comparison of doubles
-        //TODO why do we have this code?
-        if (err_rate < G->olaps[thisOvl].evalue)
+        const uint32 err_encoded = AS_OVS_encodeEvalue(err_rate);
+
+        const uint32 base_encoded = G->olaps[thisOvl].evalue;
+        if (err_encoded < base_encoded)
           nBetter++;
-        else if (err_rate > G->olaps[thisOvl].evalue)
+        else if (err_encoded > base_encoded)
           nWorse++;
         else
           nSame++;
+
+        G->olaps[thisOvl].evalue = err_encoded;
+        //fprintf(stderr, "REDO - err rate = %f\n", AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
       } else {
         //fprintf(stderr, "Err rate of overlap %u - %u failed\n", olap.a_iid, olap.b_iid);
 

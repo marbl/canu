@@ -52,7 +52,7 @@
 #define AS_MAX_EVALUE              ((1 << AS_MAX_EVALUE_BITS) - 1)
 
 #define AS_OVS_decodeEvalue(E)   ((E) / 10000.0)
-#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? (int)(10000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
+#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? uint32(10000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
 
 #define AS_MAX_ERATE               AS_OVS_decodeEvalue(AS_MAX_EVALUE)
 
