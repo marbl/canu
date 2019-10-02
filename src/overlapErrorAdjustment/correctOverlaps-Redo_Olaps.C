@@ -644,9 +644,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   uint64         Failed_Alignments_End_Ct      = 0;
   uint64         Failed_Alignments_Length_Ct   = 0;
 
-  uint32         rhaFail = 0;
-  uint32         rhaPass = 0;
-
   uint64         olapsFwd = 0;
   uint64         olapsRev = 0;
 
@@ -703,13 +700,11 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
       //  Find the B segment.
       char *b_part = (olap.normal == true) ? fseq : rseq;
 
-      bool rha=false;
       if (olap.a_hang < 0) {
         int32 ha = olap.normal ? Hang_Adjust(-olap.a_hang, fadj, fadjLen) :
                                             Hang_Adjust(-olap.a_hang, radj, fadjLen);
         b_part += ha;
         //fprintf(stderr, "offset b_part by ha=%d normal=%d\n", ha, olap.normal);
-        rha=true;
       }
 
       //  Compute and process the alignment
@@ -728,9 +723,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
                                          ped, &match_to_end, &invalid_olap);
 
       if (err_rate >= 0.) {
-        if (rha)
-          rhaPass++;
-
         //if (err_rate > /*report_threshold*/ 0.) {
         //  fprintf(stderr, "Err rate of overlap %u - %u is %f\n", olap.a_iid, olap.b_iid, err_rate);
         //}
@@ -784,9 +776,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
       
         fprintf(stderr, "\n");
       #endif
-
-        if (rha)
-          rhaFail++;
       }
     }
   }
@@ -814,8 +803,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   fprintf(stderr, "Failed: " F_U64 " (either)\n", Failed_Alignments_Ct);
   fprintf(stderr, "Failed: " F_U64 " (match to end)\n", Failed_Alignments_End_Ct);
   fprintf(stderr, "Failed: " F_U64 " (negative length)\n", Failed_Alignments_Length_Ct);
-
-  fprintf(stderr, "rhaFail %u rhaPass %u\n", rhaFail, rhaPass);
 
   fprintf(stderr, "Changed %lu overlaps.\n", nBetter + nWorse + nSame);
   fprintf(stderr, "Better: %lu overlaps.\n", nBetter);
