@@ -483,9 +483,8 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID,
             uint32 &fseqLen, char *fseq, char *rseq,
             uint32 &fadjLen, Adjust_t *fadj, Adjust_t *radj,
             Correction_Output_t  *C, uint64 &Cpos, uint64 Clen) {
-  //FIXME while do we allocate it in the heap?
-  sqRead        *read     = new sqRead;
-  seqStore->sqStore_getRead(curID, read);
+  sqRead read;
+  seqStore->sqStore_getRead(curID, &read);
   //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
   //fprintf(stderr, "Correcting B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
@@ -496,8 +495,8 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID,
   //Correcting "b" read. "a" reads were corrected beforehand.
   correctRead(curID,
               fseq, fseqLen, fadj, fadjLen,
-              read->sqRead_sequence(),
-              read->sqRead_length(),
+              read.sqRead_sequence(),
+              read.sqRead_length(),
               C, Cpos, Clen);
 
   //fprintf(stderr, "Finished   B read %u at Cpos=%u Clen=%u\n", curID, Cpos, Clen);
@@ -510,7 +509,6 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID,
   reverseComplementSequence(rseq, fseqLen);
 
   Make_Rev_Adjust(radj, fadj, fadjLen, fseqLen);
-  delete    read;
 }
 
 //returns error rate of the alignment or -1. if (!match_to_end || invalid_olap)
@@ -634,7 +632,6 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
   uint32         fadjLen  = 0;  //  radj is the same length
 
   fprintf(stderr, "--Allocate " F_SIZE_T " MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
-  //FIXME while do we allocate it in the heap?
   pedWorkArea_t *ped      = new pedWorkArea_t;
 
   uint64         Total_Alignments_Ct           = 0;
