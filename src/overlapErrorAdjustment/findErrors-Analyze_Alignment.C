@@ -295,7 +295,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       //  continue;
       //}
 
-      //TODO probably re-enable in some form
+      //TODO re-enable in some form?
       //Checking that sum of distances to the previous/next event is >= 9
       //if (prev_match + next_match >= wa->G->Vote_Qualify_Len)
       Cast_Vote(wa->G, wa->globalvote[event_idx].vote_val, a_offset + wa->globalvote[event_idx].frag_sub, sub);

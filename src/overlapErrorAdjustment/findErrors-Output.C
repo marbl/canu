@@ -241,13 +241,6 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
 
   static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
 
-  //TODO review situations when it fails on a fully confirmed base
-  //assert(vote.no_insert >= vote.confirmed);
-  //if (vote.no_insert < vote.confirmed) {
-  //  fprintf(stderr, "WARN: no_insert %d ; confirmed %d \n", vote.no_insert, vote.confirmed);
-  //  FPrint_Vote(stderr, read.sequence[pos], vote);
-  //}
-
   if (vote.all_but(base) == 0)
     return false;
 

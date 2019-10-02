@@ -74,7 +74,6 @@ correctRead(uint32 curID,
 
   int32   adjVal = 0;
 
-  //TODO would probably be much easier to introduce all substitutions first?
   for (uint32 i = 0; i < oseqLen; ) {
 
     //  No more corrections OR no more corrections for this read OR no correction at position -- just copy base

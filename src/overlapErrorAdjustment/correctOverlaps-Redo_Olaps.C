@@ -545,7 +545,6 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
       i++;
 
     //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped->delta[i]);
-    //TODO return assert?
     //assert(i == stop || ped->delta[i] != -1);
 
     ped->deltaLen -= i;
@@ -564,7 +563,6 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
       i++;
 
     //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped->delta[i]);
-    //TODO return assert?
     //assert((i == stop) || (ped->delta[i] != 1));
 
     ped->deltaLen -= i;
@@ -713,8 +711,8 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
       //  Compute and process the alignment
       Total_Alignments_Ct++;
-      //TODO review differences with the code in errors finding
-      //There one of the sequences is the (almost) entire read and the length is the length of its prefix
+      //TODO discuss difference with error finding code
+      //In errors finding one of the sequences is the (almost) entire read and the length of its prefix is passed
       int32   a_part_len  = strlen(a_part);
       int32   b_part_len  = strlen(b_part);
 
