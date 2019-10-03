@@ -221,7 +221,7 @@ sub readErrorDetectionConfigure ($) {
         #
         #  Per base/vote:
         #    1 byte  for sequence
-        #   12 bytes for Vote_Tally_t
+        #   32 bytes for Vote_Tally_t // why 32 made up number, why random 4 gb padding?
         #
         #  Per read:
         #   32 bytes for Frag_Info_t
@@ -237,7 +237,7 @@ sub readErrorDetectionConfigure ($) {
         #
         #  Throw in another 2 GB for unknown overheads (seqStore, ovlStore) and alignment generation.
 
-        my $memory = (12 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize) + 2 * 1024 * 1024 * 1024;
+        my $memory = (32 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize) + 4 * 1024 * 1024 * 1024;
 
         if ((($maxMem   > 0) && ($memory >= $maxMem))    ||
             (($maxReads > 0) && ($reads  >= $maxReads))  ||
