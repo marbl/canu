@@ -163,8 +163,8 @@ Allocate_More_Edit_Space(pedWorkArea_t *WA) {
 //  a branch point.
 
 int32
-Prefix_Edit_Dist(char    *A,  int32 m,
-                 char    *T,  int32 n,
+Prefix_Edit_Dist(const char    *A,  int32 m,
+                 const char    *T,  int32 n,
                  int32    Error_Limit,
                  int32   &A_End,
                  int32   &T_End,
@@ -207,7 +207,8 @@ Prefix_Edit_Dist(char    *A,  int32 m,
   int32  Max_Score_Best_d = 0;
   int32  Max_Score_Best_e = 0;
 
-  for (int32 e=1; e<=Error_Limit; e++) {
+  int32 e;
+  for (e = 1; e <= Error_Limit; e++) {
     if (WA->Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space(WA);
 
@@ -298,16 +299,14 @@ Prefix_Edit_Dist(char    *A,  int32 m,
   }
 
   //  findErrors does this call.  Overlapper doesn't.
-  //Compute_Delta(WA, Max_Score_Best_e, Max_Score_Best_d, Max_Score_Len);
+  Compute_Delta(WA, Max_Score_Best_e, Max_Score_Best_d, Max_Score_Len);
 
   A_End        = Max_Score_Len;
   T_End        = Max_Score_Len + Max_Score_Best_d;
   Match_To_End = false;
 
-  //  findErrors is returning Max_Score_Best_e.  So does overlapper.
-  //  The original return was just e, but the only way we get here is if the e loop
-  //  exits with e = Error_Limit+1.
-
-  return(Error_Limit + 1);
+  //assert(e == Max_Score_Best_e);
+  //fprintf(stderr, "e=%d Max_Score_Best_e=%d", e, Max_Score_Best_e);
+  return e;
 }
 

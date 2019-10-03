@@ -33,6 +33,8 @@
 #include "correctionOutput.H"
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -83,7 +85,7 @@ using namespace std;
 #define  MAX_DEGREE                  32767
 
 //  Highest number of votes before overflow
-#define  MAX_VOTE                    255
+#define  MAX_VOTE                    65535
 
 //  Branch points must be at least this many bases from the
 //  end of the fragment to be reported
@@ -100,24 +102,77 @@ using namespace std;
 //  The amount of memory to allocate for the stack of each thread
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
-
-
-
-
 struct Vote_Tally_t {
-  uint32  confirmed : 8;
-  uint32  deletes   : 8;
-  uint32  a_subst   : 8;
-  uint32  c_subst   : 8;
+  Vote_Tally_t() {
+     confirmed = 0;
+     deletes   = 0;
+     a_subst   = 0;
+     c_subst   = 0;
+     g_subst   = 0;
+     t_subst   = 0;
+     no_insert = 0;
 
-  uint32  g_subst   : 8;
-  uint32  t_subst   : 8;
-  uint32  no_insert : 8;
-  uint32  a_insert  : 8;
+     insertion_cnt = 0;
+  };
 
-  uint32  c_insert  : 8;
-  uint32  g_insert  : 8;
-  uint32  t_insert  : 8;
+  static const char INSERTIONS_DELIM = '$';
+
+  uint32  confirmed : 16;
+  uint32  deletes   : 16;
+  uint32  a_subst   : 16;
+  uint32  c_subst   : 16;
+
+  uint32  g_subst   : 16;
+  uint32  t_subst   : 16;
+  uint32  no_insert : 16;
+
+  uint32 insertion_cnt;
+  std::string insertions;
+
+  std::vector<std::string> insertions_list() const {
+    std::vector<std::string> answer;
+    std::size_t start;
+    std::size_t end = 0;
+
+    while ((start = insertions.find_first_not_of(INSERTIONS_DELIM, end)) != std::string::npos) {
+      end = insertions.find(INSERTIONS_DELIM, start);
+      answer.push_back(insertions.substr(start, end - start));
+    }
+    return answer;
+  }
+
+  //NB: total does not consider insertions
+  uint32 total() const {
+    return deletes + a_subst + c_subst + g_subst + t_subst;
+  }
+
+  uint32 ins_total() const {
+    return insertion_cnt;
+  }
+
+  uint32 all() const {
+    return total() + ins_total();
+  }
+
+  uint32 subst(char bp) const {
+    switch (bp) {
+      case 'a':
+        return a_subst;
+      case 'c':
+        return c_subst;
+      case 'g':
+        return g_subst;
+      case 't':
+        return t_subst;
+      default:
+        assert(false);
+    }
+    return 0;
+  }
+
+  uint32 all_but(char bp) const {
+    return all() - subst(bp);
+  }
 };
 
 
@@ -129,8 +184,7 @@ struct Vote_t {
 
 
 
-class Frag_Info_t {
-public:
+struct Frag_Info_t {
   Frag_Info_t() {
     sequence     = NULL;
     vote         = NULL;
@@ -139,8 +193,6 @@ public:
     right_degree = 0;
     shredded     = false;
     unused       = false;
-  };
-  ~Frag_Info_t() {
   };
 
   char          *sequence;
@@ -152,8 +204,7 @@ public:
   uint64         unused        : 1;
 };
 
-class Olap_Info_t {
-public:
+struct Olap_Info_t {
   Olap_Info_t() {
     a_iid   = 0;
     b_iid   = 0;
@@ -162,7 +213,6 @@ public:
     innie   = false;
     normal  = false;
   };
-  ~Olap_Info_t() {};
 
   uint32      a_iid;
   uint32      b_iid;
@@ -188,8 +238,7 @@ public:
 
 
 
-class Frag_List_t {
-public:
+struct Frag_List_t {
   Frag_List_t() {
     readsMax    = 0;
     readsLen    = 0;
@@ -218,11 +267,10 @@ public:
 
 
 
-class feParameters;
+struct feParameters;
 
 
-class pedWorkArea_t {
-public:
+struct pedWorkArea_t {
   pedWorkArea_t() {
     G        = NULL;
 
@@ -252,7 +300,6 @@ public:
     memset(Edit_Array_Lazy, 0, sizeof(int32 *) * Edit_Array_Max);
   };
 
-public:
   feParameters *G;
 
   int32              delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
@@ -295,8 +342,7 @@ struct Thread_Work_Area_t {
 
 
 
-class feParameters {
-public:
+struct feParameters {
   feParameters() {
     seqStorePath   = NULL;
     ovlStorePath   = NULL;
@@ -322,7 +368,7 @@ public:
 
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
-    Use_Haplo_Ct     = true;
+    Use_Haplo_Ct     = false;
 
     //  Analyze_Alignment
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;

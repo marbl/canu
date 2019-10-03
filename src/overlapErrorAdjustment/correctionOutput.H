@@ -18,11 +18,12 @@
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
+#pragma once
 
 //  Definitions for our exportable data.
 
 enum Vote_Value_t {
-  IDENT,    //  Just an iid in this record.
+  IDENT = 0,    //  Just an iid in this record.
   DELETE,
   A_SUBST,
   C_SUBST,
@@ -36,13 +37,68 @@ enum Vote_Value_t {
   EXTENSION
 };
 
+static char
+VoteChar(Vote_Value_t val) {
+  switch (val) {
+    case A_INSERT:
+    case A_SUBST:
+      return 'a';
+    case C_INSERT:
+    case C_SUBST:
+      return 'c';
+    case G_INSERT:
+    case G_SUBST:
+      return 'g';
+    case T_INSERT:
+    case T_SUBST:
+      return 't';
+    default:
+      assert(false);
+  }
+  return 'a';
+}
+
+static Vote_Value_t
+InsVote(char c) {
+  switch (c) {
+    case 'a':
+      return A_INSERT;
+    case 'c':
+      return C_INSERT;
+    case 'g':
+      return G_INSERT;
+    case 't':
+      return T_INSERT;
+    default:
+      fprintf(stderr, "ERROR: Bad sequence '%c' 0x%02x)\n", c, c);
+      assert(false);
+  }
+  return NO_VOTE;
+}
+
+static Vote_Value_t
+SubstVote(char c) {
+  switch (c) {
+    case 'a':
+      return A_SUBST;
+    case 'c':
+      return C_SUBST;
+    case 'g':
+      return G_SUBST;
+    case 't':
+      return T_SUBST;
+    default:
+      fprintf(stderr, "ERROR: Bad sequence '%c' 0x%02x)\n", c, c);
+      assert(false);
+  }
+  return NO_VOTE;
+}
+
 
 struct Correction_Output_t {
-  uint32  keep_left   :  1;    //  set true if left overlap degree is low
-  uint32  keep_right  :  1;    //  set true if right overlap degree is low
-  uint32  type        :  4;    //  Vote_Value_t
+  bool  keep_left   :  1;    //  set true if left overlap degree is low
+  bool  keep_right  :  1;    //  set true if right overlap degree is low
+  Vote_Value_t  type        :  4;    //  Vote_Value_t
   uint32  pos         :  26;   //
   uint32  readID;
 };
-
-

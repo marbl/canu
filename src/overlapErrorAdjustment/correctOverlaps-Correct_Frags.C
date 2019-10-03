@@ -38,7 +38,7 @@ char  filter[256];
 void
 correctRead(uint32 curID,
             char *fseq, uint32 &fseqLen, Adjust_t *fadj, uint32 &fadjLen,
-            char *oseq, uint32  oseqLen,
+            const char *oseq, uint32  oseqLen,
             Correction_Output_t  *C,
             uint64               &Cpos,
             uint64                Clen,
@@ -74,29 +74,17 @@ correctRead(uint32 curID,
 
   int32   adjVal = 0;
 
-  for (uint32 i=0; i<oseqLen; i++) {
+  for (uint32 i = 0; i < oseqLen; ) {
 
-    //  No more corrections, or no more corrections for this read -- just copy bases till the end.
-    if ((Cpos == Clen) || (C[Cpos].readID != curID)) {
-      //fprintf(stderr, "no more corrections at i=%u, copy rest of read as is\n", i);
-      while (i < oseqLen)
-        fseq[fseqLen++] = filter[oseq[i++]];
-      break;
-    }
-
-    assert(Cpos < Clen);
-
-    //  Not at a correction -- copy the base.
-    if (i < C[Cpos].pos) {
-      fseq[fseqLen++] = filter[oseq[i]];
+    //  No more corrections OR no more corrections for this read OR no correction at position -- just copy base
+    if (Cpos == Clen || C[Cpos].readID != curID || i < C[Cpos].pos) {
+      //fprintf(stderr, "Introducing IDENT '%c' read=%u i=%u \n", filter[oseq[i]], C[Cpos].readID, i);
+      fseq[fseqLen++] = filter[oseq[i++]];
       continue;
     }
 
-    if ((i != C[Cpos].pos) &&
-        (i != C[Cpos].pos + 1))
-      fprintf(stderr, "i=" F_U32 " Cpos=" F_U64 " C[Cpos].pos=" F_U32 "\n", i, Cpos, C[Cpos].pos);
-    assert((i == C[Cpos].pos) ||
-           (i == C[Cpos].pos + 1));
+    assert(Cpos < Clen);
+    assert(i == C[Cpos].pos);
 
     if (changes)
       changes[C[Cpos].type]++;
@@ -104,66 +92,32 @@ correctRead(uint32 curID,
     switch (C[Cpos].type) {
       case DELETE:  //  Delete base
         //fprintf(stderr, "DELETE %u pos %u adjust %d\n", fadjLen, i+1, adjVal-1);
+        //fprintf(stderr, "Introducing DELETION read=%u i=%u \n", C[Cpos].readID, i);
         fadj[fadjLen].adjpos = i + 1;
         fadj[fadjLen].adjust = --adjVal;
         fadjLen++;
+        i++;
         break;
 
-      case A_SUBST:  fseq[fseqLen++] = 'a';  break;
-      case C_SUBST:  fseq[fseqLen++] = 'c';  break;
-      case G_SUBST:  fseq[fseqLen++] = 'g';  break;
-      case T_SUBST:  fseq[fseqLen++] = 't';  break;
+      case A_SUBST:
+      case C_SUBST:
+      case G_SUBST:
+      case T_SUBST:
+        //fprintf(stderr, "Introducing SUBST '%c' -> '%c' read=%u i=%u \n", filter[oseq[i]], VoteChar(C[Cpos].type), C[Cpos].readID, i);
+        fseq[fseqLen++] = VoteChar(C[Cpos].type);
+        i++;
+        break;
 
       case A_INSERT:
-        if (i != C[Cpos].pos + 1) {                // Insert not immediately after subst
-          //fprintf(stderr, "A i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 'a';
-
-        fadj[fadjLen].adjpos = i + 1;
-        fadj[fadjLen].adjust = ++adjVal;
-        fadjLen++;
-        i--;  //  Undo the automagic loop increment
-        break;
-
       case C_INSERT:
-        if (i != C[Cpos].pos + 1) {
-          //fprintf(stderr, "C i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 'c';
-
-        fadj[fadjLen].adjpos = i + 1;
-        fadj[fadjLen].adjust = ++adjVal;
-        fadjLen++;
-        i--;
-        break;
-
       case G_INSERT:
-        if (i != C[Cpos].pos + 1) {
-          //fprintf(stderr, "G i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 'g';
-
-        fadj[fadjLen].adjpos = i + 1;
-        fadj[fadjLen].adjust = ++adjVal;
-        fadjLen++;
-        i--;
-        break;
-
       case T_INSERT:
-        if (i != C[Cpos].pos + 1) {
-          //fprintf(stderr, "T i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
-          fseq[fseqLen++] = filter[oseq[i++]];
-        }
-        fseq[fseqLen++] = 't';
+        //fprintf(stderr, "Introducing INSERTION '%c' read=%u i=%u \n", VoteChar(C[Cpos].type), C[Cpos].readID, i);
+        fseq[fseqLen++] = VoteChar(C[Cpos].type);
 
         fadj[fadjLen].adjpos = i + 1;
         fadj[fadjLen].adjust = ++adjVal;
         fadjLen++;
-        i--;
         break;
 
       default:
@@ -175,7 +129,6 @@ correctRead(uint32 curID,
   }
 
   //  Terminate the sequence.
-
   fseq[fseqLen] = 0;
 
   //fprintf(stdout, ">%u\n%s\n", curID, fseq);
@@ -224,25 +177,31 @@ Correct_Frags(coParameters *G,
   //  Adjustments are always less than the number of corrections; we could also count exactly.
 
   G->basesLen   = 0;
-  G->adjustsLen = 0;
 
-  for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
+  for (uint32 curID = G->bgnID; curID <= G->endID; curID++) {
     sqRead *read = seqStore->sqStore_getRead(curID);
 
     G->basesLen += read->sqRead_sequenceLength() + 1;
   }
 
-  for (uint64 c=0; c<Clen; c++) {
+  uint64 del_cnt = 0;
+  uint64 ins_cnt = 0;
+  for (uint64 c = 0; c < Clen; c++) {
     switch (C[c].type) {
       case DELETE:
+        del_cnt++;
+        break;
       case A_INSERT:
       case C_INSERT:
       case G_INSERT:
       case T_INSERT:
-        G->adjustsLen++;
+        ins_cnt++;
         break;
+      default: {}
     }
   }
+  G->basesLen += ins_cnt; // allow extra space for insertions in case reads get longer
+  G->adjustsLen = ins_cnt + del_cnt;
 
   fprintf(stderr, "Correcting " F_U64 " bases with " F_U64 " indel adjustments.\n", G->basesLen, G->adjustsLen);
 
