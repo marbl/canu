@@ -49,6 +49,8 @@
 #include "AS_BAT_PlaceReadUsingOverlaps.H"
 
 #include "tgStore.H"
+#include <string>
+#include <sstream>
 
 
 
@@ -63,7 +65,9 @@ writeTigsToStore(TigVector     &tigs,
   tgStore     *tigStore = new tgStore(filename);
   tgTig       *tig      = new tgTig;
 
-  for (uint32 ti=0; ti<tigs.size(); ti++) {
+  snprintf(filename, FILENAME_MAX, "%s.%s.paths.gfa", filePrefix, storeName);
+  FILE *gfa_paths = fopen(filename, "w");
+  for (uint32 ti = 0; ti < tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];
 
     if ((utg == NULL) || (utg->getNumReads() == 0))
@@ -89,18 +93,28 @@ writeTigsToStore(TigVector     &tigs,
 
     resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
 
+    std::string delim = "";
+    std::stringstream segment_names;
+    std::stringstream overlap_descs;
+
     for (uint32 ti=0; ti<utg->ufpath.size(); ti++) {
       ufNode        *frg   = &utg->ufpath[ti];
 
       tig->addChild()->set(frg->ident,
                            frg->parent, frg->ahang, frg->bhang,
                            frg->position.bgn, frg->position.end);
+      segment_names << delim << frg->ident << (frg->position.bgn <= frg->position.end ? '+' : '-');
+      overlap_descs << delim << '*';
     }
+
+    fprintf(gfa_paths, "P\t%d\t%s\t%s\n", tig->_tigID, segment_names.str().c_str(), overlap_descs.str().c_str());
 
     //  And write to the store
 
     tigStore->insertTig(tig, false);
   }
+
+  fclose(gfa_paths);
 
   delete    tig;
   delete    tigStore;
