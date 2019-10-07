@@ -252,6 +252,8 @@ public:
     correctionsName = NULL;
     eratesName      = NULL;
 
+    correctedName      = NULL;
+
     // Range of IDs to process
     bgnID = 0;
     endID = UINT32_MAX;
@@ -288,6 +290,9 @@ public:
   //  Input read corrections, output overlap corrections
   char         *correctionsName;
   char         *eratesName;
+
+  //  Corrected reads
+  char         *correctedName;
 
   //  Range of IDs to process
   uint32        bgnID;

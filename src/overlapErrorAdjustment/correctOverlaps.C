@@ -42,7 +42,7 @@ void
 Read_Olaps(coParameters *G, sqStore *seqStore);
 
 void
-Correct_Frags(coParameters *G, sqStore *seqStore);
+Correct_Frags(coParameters *G, sqStore *seqStore, FILE *correctedReads = NULL);
 
 void
 Redo_Olaps(coParameters *G, sqStore *seqStore);
@@ -79,6 +79,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file input
       G->correctionsName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-C") == 0) {  //  Corrected reads file
+      G->correctedName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {  //  For 'erates' output
       G->eratesName = argv[++arg];
@@ -155,7 +158,10 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Correcting reads " F_U32 " to " F_U32 ".\n", G->bgnID, G->endID);
 
-  Correct_Frags(G, seqStore);
+  FILE *correctedReads = G->correctedName == NULL ? NULL : fopen(G->correctedName, "w");
+  Correct_Frags(G, seqStore, correctedReads);
+  if (correctedReads != NULL)
+    fclose(correctedReads);
 
   //  Load overlaps we're going to correct
 
