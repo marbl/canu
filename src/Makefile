@@ -628,9 +628,15 @@ endif
 #CXXFLAGS   += -DNOBACKTRACE
 
 #  But, if we we have an old GCC, stack tracing support isn't there.
+#  The second test is because gcc7 (and only gcc7) reports '7' for -dumpversion.
 
-GXX_45 := $(shell expr `${CXX} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
+GXX_45 := $(shell expr `${CXX} -dumpversion     | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
 GXX_VV := $(shell ${CXX} -dumpversion)
+
+ifeq (${GXX_VV}, 7)
+GXX_45 := $(shell expr `${CXX} -dumpfullversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
+GXX_VV := $(shell ${CXX} -dumpfullversion)
+endif
 
 ifeq (${BUILDSTACKTRACE}, 1)
 ifeq (${GXX_45}, 0)
@@ -847,7 +853,7 @@ dnanexus:
 #  Makefile processed.  Report that we're starting the build.
 
 $(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
-$(info Using '$(shell which ${CXX})' version '$(shell ${CXX} -dumpversion)'.)
+$(info Using '$(shell which ${CXX})' version '${GXX_VV}'.)
 ifneq ($(origin CXXFLAGSUSER), undefined)
 $(info Using user-supplied CXXFLAGS '${CXXFLAGSUSER}'.)
 endif
