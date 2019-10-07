@@ -285,9 +285,12 @@ loadReads(sqStore          *seqStore,
     //  need to allow trimmed raw reads.
 
     if (readStat & sqRead_trimmed) {
-      sqReadSeq  *rseq = seqStore->sqStore_getReadSeq(seqStore->sqStore_lastReadID(), sqRead_corrected);
+      uint32      rid  = seqStore->sqStore_lastReadID();
+      sqReadSeq  *nseq = seqStore->sqStore_getReadSeq(rid, sqRead_corrected);
+      sqReadSeq  *cseq = seqStore->sqStore_getReadSeq(rid, sqRead_corrected | sqRead_compressed);
 
-      rseq->sqReadSeq_setClearRange(0, end - bgn);
+      nseq->sqReadSeq_setAllClear();
+      cseq->sqReadSeq_setAllClear();
     }
 
     filestats.nLOADED += 1;
