@@ -672,11 +672,11 @@ sub loadCorrectedReads ($) {
     $cmd .= ">  ./$asm.loadCorrectedReads.log \\\n";
     $cmd .= "2> ./$asm.loadCorrectedReads.err";
 
-    if (runCommand("correction", $cmd)) {
-        caExit("failed to load corrected reads into store", "$path/$asm.loadCorrectedReads.err");
+    if (runCommand($base, $cmd)) {
+        caExit("failed to load corrected reads into store", "$base/$asm.loadCorrectedReads.err");
     }
 
-    unlink("$path/$asm.loadCorrectedReads.err");
+    unlink("$base/$asm.loadCorrectedReads.err");
 
     #  Save updated stores.
 
