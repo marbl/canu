@@ -36,12 +36,16 @@ die "No STASH found\n"  if (!defined($STASH));
 
 my $mode = $0;
 
-if    ($mode =~ m/ua$/) {
-    if (rand() < 0.25) {          #  Simulate errors.
-        print STDERR "Fail!\n";
-        exit(1);
-    }
 
+
+#  Simulate errors in uploading files.
+#if (($mode =~ m/ua$/) && (rand() < 0.05)) {
+#    print STDERR "      ua failed randomly.\n";
+#    exit(1);
+#}
+
+
+if    ($mode =~ m/ua$/) {
     upload(@ARGV);
 }
 
@@ -53,6 +57,8 @@ elsif ($mode =~ m/dx$/) {
     } elsif ($task eq "rm")       {  rm(@ARGV);
     } elsif ($task eq "upload")   {  upload(@ARGV);
     } elsif ($task eq "download") {  download(@ARGV);
+    } else {
+        die "Unknown mode '$mode'.\n";
     }
 }
 
@@ -60,6 +66,18 @@ else {
     die "Unknown mode '$mode'.\n";
 }
 
+exit(0);
+
+
+
+sub checkPath ($) {
+    my $path = shift @_;
+
+    if ($path =~ m!/\./!) {
+        print STDERR "INVALID PATH: '$path'\n";
+        die;
+    }
+}
 
 
 
@@ -80,9 +98,14 @@ sub describe (@) {
         }
     }
 
-    if (-e "$STASH/$path") {
+    checkPath($path);
+
+    if (-e "$STASH/$path") { 
         print "$path\n";
+        exit(0);
     }
+
+    exit(1);
 }
 
 
@@ -95,12 +118,14 @@ sub mv (@) {
     my $oldname = shift @args;
     my $newname = shift @args;
 
-    print STDERR "DX:  STASH '$STASH'\n";
-    print STDERR "DX:  oldname '$oldname'\n";
-    print STDERR "DX:  newname '$newname'\n";
-    print STDERR "DX: '$STASH/$oldname' -> '$STASH/$newname'\n";
+    print STDERR "      DX: in stash '$STASH' rename '$oldname' -> '$newname'\n";
+
+    checkPath($oldname);
+    checkPath($newname);
 
     rename("$STASH/$oldname", "$STASH/$newname");
+
+    exit(0);
 }
 
 
@@ -119,8 +144,19 @@ sub rm (@) {
             next;
         }
 
+        print STDERR "      DX: in stash '$STASH' remove '$arg'\n";
+
+        if (! -e "$STASH/$arg") {
+            print STDERR "      DX: file '$STASH/$arg' not found.\n";
+            exit(1);
+        }
+
+        checkPath($arg);
+
         unlink("$STASH/$arg");
     }
+
+    exit(0);
 }
 
 
@@ -147,25 +183,29 @@ sub upload (@) {
     my $folder;
     my $name;
 
-    my $file;
+    my @files;
 
     while (scalar(@args) > 0) {
         my $arg = shift @args;
 
         if    ($arg eq "--path") {
             $path = shift @args;
+            print STDERR "      UA: path    '$path'\n";
         }
 
         elsif ($arg eq "--project") {
             $project = shift @args;
+            print STDERR "      UA: project '$project'\n";
         }
 
         elsif ($arg eq "--folder") {
             $folder = shift @args;
+            print STDERR "      UA: folder  '$folder'\n";
         }
 
         elsif ($arg eq "--name") {
             $name = shift @args;
+            print STDERR "      UA: name    '$name'\n";
         }
 
         elsif (($arg eq "--wait") ||
@@ -174,8 +214,8 @@ sub upload (@) {
                ($arg eq "--no-progress")) {
         }
 
-        elsif (!defined($file)) {
-            $file = $arg;
+        elsif (-e $arg) {
+            push @files, $arg;
         }
 
         else {
@@ -183,26 +223,36 @@ sub upload (@) {
         }
     }
 
-    #  Check that the input file exists.
-
-    die "dx upload - no input file supplied.\n"      if (!defined($file));
-    die "dx upload - input file $file not found.\n"  if (! -e $file);
-
     #  If path exists, we're pretending to be 'dx upload'.
 
     if (defined($path)) {
+        checkPath($path);
         exit(1);
-        system("mkdir -p $STASH/" . dirname($path) . " 2> /dev/null");
-        system("cp -fp \"$file\" \"$STASH/$path\" 2> /dev/null");
+        #system("mkdir -p $STASH/" . dirname($path) . " 2> /dev/null");
+        #system("cp -fp \"$file\" \"$STASH/$path\" 2> /dev/null");
     }
 
     #  Otherwise, we're pretending to be 'ua'.
 
-    else {
-        #print STDERR "dx-ua '$file' -> '$STASH' / '$project' : '$folder' / '$name'\n";
+    elsif (defined($name)) {
+        my $file = shift @files;
+
+        print STDERR "      UA: in stash '$STASH' upload '$file' -> '$project' : '$folder' / '$name'\n";
+
+        checkPath("$project:$folder/$name");
 
         system("mkdir -p $STASH/$project:$folder 2> /dev/null");
         system("cp -fp \"$file\" \"$STASH/$project:$folder/$name\" 2> /dev/null");
+
+    } else {
+        foreach my $file (@files) {
+            print STDERR "      UA: in stash '$STASH' upload '$file' -> '$project' : '$folder'\n";
+
+            checkPath("$project:$folder/$file");
+
+            system("mkdir -p $STASH/$project:$folder 2> /dev/null");
+            system("cp -fp \"$file\" \"$STASH/$project:$folder/$file\" 2> /dev/null");
+        }
     }
 }
 
@@ -241,9 +291,14 @@ sub download (@) {
     die "dx download - no output file supplied.\n"      if (!defined($file));
     die "dx download - don't want to use stdout.\n"     if ($file eq "-");
 
-    exit(0)  if (! -e "$STASH/$path");
+    if (! -e "$STASH/$path") {
+        print STDERR "      DX: in stash '$STASH' download '$path' -> '$file'  NOT IN STORE!\n";
+        exit(0);
+    }
 
-    print STDERR "dx download '$STASH' / '$path' -> '$file'\n";
+    print STDERR "      DX: in stash '$STASH' download '$path' -> '$file'\n";
+
+    checkPath($path);
 
     system("cp -fp \"$STASH/$path\" \"$file\" 2> /dev/null");
 }
