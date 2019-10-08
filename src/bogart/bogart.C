@@ -53,6 +53,8 @@
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
 
+#include "AS_BAT_DetectSpurs.H"
+
 #include "AS_BAT_MergeOrphans.H"
 #include "AS_BAT_MarkRepeatReads.H"
 
@@ -87,6 +89,7 @@ main (int argc, char * argv []) {
   bool      filterHighError          = true;
   bool      filterLopsided           = true;
   bool      filterSpur               = true;
+  uint32    spurDepth                = 3;
   bool      filterDeadEnds           = true;
 
   uint64    genomeSize               = 0;
@@ -207,6 +210,9 @@ main (int argc, char * argv []) {
       deviationBubble = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-dr") == 0) {  //  Deviations, repeat
       deviationRepeat = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-sd") == 0) {  //  Depth to look for spurs
+      spurDepth = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-nofilter") == 0) {
       ++arg;
@@ -391,7 +397,7 @@ main (int argc, char * argv []) {
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen);
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
-  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur);
+  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur, spurDepth);
   CG = new ChunkGraph(prefix);
 
   //
@@ -417,18 +423,27 @@ main (int argc, char * argv []) {
 
   breakSingletonTigs(contigs);
 
-  //  populateUnitig() uses only one hang from one overlap to compute the positions of reads.
-  //  Once all reads are (approximately) placed, compute positions using all overlaps.
-
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+
+  //  populateUnitig() uses only one hang from one overlap to compute the
+  //  positions of reads.  Once all reads are (approximately) placed, compute
+  //  positions using all overlaps.
 
   setLogFile(prefix, "buildGreedyOpt");
-
   contigs.optimizePositions(prefix, "buildGreedyOpt");
-  splitDiscontinuous(contigs, minOverlapLen);
 
-  //reportOverlaps(contigs, prefix, "buildGreedy");
-  reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+  //  Break any tigs that aren't contiguous.
+
+  setLogFile(prefix, "splitDiscontinuous");
+  splitDiscontinuous(contigs, minOverlapLen);
+  //reportOverlaps(contigs, prefix, "splitDiscontinuous");
+  reportTigs(contigs, prefix, "splitDiscontinuous", genomeSize);
+
+  //  Detect and fix spurs.
+
+  setLogFile(prefix, "detectSpurs");
+  detectSpurs(contigs);
+  reportTigs(contigs, prefix, "detectSpurs", genomeSize);
 
   //
   //  For future use, remember the reads in contigs.  When we make unitigs, we'll
