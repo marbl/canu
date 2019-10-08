@@ -212,6 +212,14 @@ private:
   //  These are public, but unless the store is opened for appending, changes
   //  will be lost.
 public:
+  void        sqReadSeq_setAllClear(void) {
+    _clearBgn = 0;
+    _clearEnd = _seqLength;
+    _trimmed  = true;
+
+    _ignoreT |= _ignoreU;   //  If the untrimmed is ignored, ignore the trimmed too.
+  };
+
   void        sqReadSeq_setClearRange(uint32 bgn, uint32 end, bool set=true) {
     _clearBgn = bgn;
     _clearEnd = end;
