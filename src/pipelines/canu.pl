@@ -612,10 +612,10 @@ if (($numPacBio   == 0) &&
     ($numNanopore == 0) &&
     ($numHiFi      > 0)) {
     setGlobalIfUndef("corOvlErrorRate",  0.0);
-    setGlobalIfUndef("obtOvlErrorRate",  0.0);
-    setGlobalIfUndef("utgOvlErrorRate",  0.0);
+    setGlobalIfUndef("obtOvlErrorRate",  0.015);
+    setGlobalIfUndef("utgOvlErrorRate",  0.015);
     setGlobalIfUndef("corErrorRate",     0.0);
-    setGlobalIfUndef("obtErrorRate",     0.0);
+    setGlobalIfUndef("obtErrorRate",     0.015);
     setGlobalIfUndef("utgErrorRate",     0.0);
     setGlobalIfUndef("cnsErrorRate",     0.1);
     setGlobalIfUndef("homoPolyCompress", 1);
