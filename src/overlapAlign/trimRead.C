@@ -41,12 +41,25 @@
 
 
 bool
-testAlignment(char   *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen),  uint32 Aid,
+testAlignment(char   *aRead,  int32  &abgn,  int32  &aend,  int32  UNUSED(alen),  uint32 Aid,
               char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
               double  maxAlignErate,
               double  maxAcceptErate,
               double &erate);
 
+int32
+extend5(char   *aRead,  int32  &abgn,  int32  &aend,  int32         alen,   uint32 Aid,
+        char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
+        double  maxAlignErate,
+        double  maxAcceptErate,
+        double &erate);
+
+int32
+extend3(char   *aRead,  int32  &abgn,  int32  &aend,  int32         alen,   uint32 Aid,
+        char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
+        double  maxAlignErate,
+        double  maxAcceptErate,
+        double &erate);
 
 
 //  Align the overlap in small blocks to find the largest region that aligns.
@@ -89,6 +102,10 @@ maComputation::trimRead(uint32   minOverlapLength,
   int32    slop           = maxAcceptErate * extension;
 
 
+  if (_verboseTrim > 1) {
+    fprintf(stderr, "--------------------------------------------------------------------------------\n");
+    fprintf(stderr, "BEGIN trimming for read %u\n", _aID);
+  }
 
   for (uint32 ii=0; ii<_overlapsLen; ii++) {
     ovOverlap *ov = _overlaps + ii;
@@ -110,13 +127,9 @@ maComputation::trimRead(uint32   minOverlapLength,
 
     //  Log.
 
-    if (_verboseTrim > 1) {
-      fprintf(stderr, "\n");
-      fprintf(stderr, "olap %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
-    }
-
     //
-    //  Decide if this overlap will help us validate the A read.
+    //  Decide if this overlap will help us validate the A read.  If it's contained in
+    //  any range, it's not useful.
     //
 
     bool  useful = true;
@@ -125,25 +138,29 @@ maComputation::trimRead(uint32   minOverlapLength,
       int32  lo = clearRange.lo(ii) - overhang;
       int32  hi = clearRange.hi(ii) + overhang;
 
-      if (_verboseTrim > 1)
-        fprintf(stderr, "test            %7d-%-7d\n", lo, hi);
+      if ((abgn < lo) ||   //  Useful, extends this range.
+          (hi < aend))
+        continue;
 
-      if ((lo   < abgn) &&
-          (aend < hi))
-        useful = false;
+      useful = false;      //  Not useful.  Contained in lo .. hi.
+
+      if (_verboseTrim > 1) {
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  notU A %8u %7d-%-7d   B %8u %7d-%-7d (contained in range %d-%d)\n",
+                _aID, abgn, aend, _bID, bbgn, bend, lo, hi);
+      }
+
+      break;
     }
 
-    if (useful == false) {
-      if (_verboseTrim > 1)
-        fprintf(stderr, "notU %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
+    if (useful == false)
       continue;
-    }
 
     //
     //  Decide if this overlap is spanning a known to be bad region.  If many
     //  other overlaps have failed through here, just give up.
     //
-    //  This isn't perfect, since this oevrlap could be spanning a bad region
+    //  This isn't perfect, since this overlap could be spanning a bad region
     //  AND extending into good sequence.
     //
 
@@ -153,8 +170,10 @@ maComputation::trimRead(uint32   minOverlapLength,
       int32  lo = failedRange.lo(ii);
       int32  hi = failedRange.hi(ii);
 
-      if (_verboseTrim > 1)
-        fprintf(stderr, "fail            %7d-%-7d\n", lo, hi);
+      if (_verboseTrim > 1) {
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  ALIGN FAIL          %7d-%-7d\n", lo, hi);
+      }
 
       if ((abgn < lo) &&
           (hi   < aend))
@@ -162,12 +181,21 @@ maComputation::trimRead(uint32   minOverlapLength,
     }
 
     if (giveup == true) {
-      if (_verboseTrim > 1)
-        fprintf(stderr, "BAD  %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
+      if (_verboseTrim > 1) {
+      fprintf(stderr, "\n");
+        fprintf(stderr, "  BAD  %8u A %7d-%-7d B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
+      }
       continue;
     }
 
-    //  It's useful!  Grab the sequence and orient it for this overlap.
+    //  It's useful!
+
+    if (_verboseTrim > 1) {
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  OLAP A %8u %7d-%-7d   B %8u %7d-%-7d\n", _aID, abgn, aend, _bID, bbgn, bend);
+    }
+
+    //  Grab the sequence and orient it for this overlap.
 
     fetchUntrimmedRead(ov->b_iid, false, ov->flipped());
 
@@ -187,20 +215,24 @@ maComputation::trimRead(uint32   minOverlapLength,
     //  Align to find the precise region we align to in the B read.  If the alignment passes,
     //  bbgn and bend are updated to those coordinates.
 
+    if (_verboseTrim > 1) {
+      fprintf(stderr, "  test align      %7d-%-7d   B %8u %7d-%-7d\n", abgn, aend, _bID, bbgn, bend);
+    }
+
     //  XXX  if it fails, shift left/right until we find the seed.
     if (testAlignment(_aRead, abgn, aend, _readData[_aID].rawLength, _aID,
                       _bRead, bbgn, bend, _readData[_bID].rawLength, _bID,
                       maxAlignErate,
                       maxAcceptErate,
-                      erate) == false) {
+                      erate) == 0) {
       if (_verboseTrim > 1)
-        fprintf(stderr, "trim %8u fails.\n", _aID);
+        fprintf(stderr, "  trim %8u fails.\n", _aID);
       continue;
     }
 
-    if (_verboseTrim > 1)
-      fprintf(stderr, "init            %7d-%-7d B %8u %7d-%-7d\n", abgn, aend, _bID, bbgn, bend);
-
+    if (_verboseTrim > 1) {
+      fprintf(stderr, "  INIT align      %7d-%-7d   B %8u %7d-%-7d\n", abgn, aend, _bID, bbgn, bend);
+    }
 
     //
     //
@@ -231,30 +263,62 @@ maComputation::trimRead(uint32   minOverlapLength,
       int32   ae = min(abgn + anchor,    _readData[_aID].rawLength);
 
       int32   bb = bbgn - extension - slop;
-      int32   be = bbgn + anchor;
+      int32   be = bbgn + anchor    + slop;
 
-      if (bb < 0)   //  B chunk is too small for A chunk, so just stop.
-        break;
-      if (be > _readData[_bID].rawLength)
-        break;
+      //  If the B chunk is too small for the A chunk, stop.  We should align
+      //  B into A, but that's a lot of work.
 
-      if (testAlignment(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
-                        _bRead, bb, be, _readData[_bID].rawLength, _bID,
-                        maxAlignErate,
-                        maxAcceptErate,
-                        erate) == true) {
+      if ((bb < 0) ||
+          (be > _readData[_bID].rawLength)) {
         if (_verboseTrim > 1)
-          fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, _bID, bb, be, erate);
+          fprintf(stderr, "    ext5 test     %7d-%-7d   B %8u %7d-%-7d    too-small STOP\n", ab, ae, _bID, bb, be);
+        break;
+      }
+
+      if (_verboseTrim > 1)
+        fprintf(stderr, "    ext5 test     %7d-%-7d   B %8u %7d-%-7d\n", ab, ae, _bID, bb, be);
+
+      //  Returns -1 if the whole alignment is crap
+      //  Returns  0 if some was good
+      //  Returns  1 if all was good
+
+      int32  ext = extend5(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
+                           _bRead, bb, be, _readData[_bID].rawLength, _bID,
+                           maxAlignErate,
+                           maxAcceptErate,
+                           erate);
+
+      if (ext == -1) {
+        if (_verboseTrim > 1)
+          fprintf(stderr, "    ext5          %7d-%-7d   B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
+        failedRange.add(abgn, aend - abgn);
+      }
+
+      if (ext == 0) {
+        if (_verboseTrim > 1)
+          fprintf(stderr, "    ext5          %7d-%-7d   B %8u %7d-%-7d error %6.2f GOOD\n", ab, ae, _bID, bb, be, erate);
         abgn = ab;
         bbgn = bb;
       }
 
-      else {
+      if (ext == 1) {
         if (_verboseTrim > 1)
-          fprintf(stderr, "ext5            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
-        failedRange.add(abgn, aend - abgn);
+          fprintf(stderr, "    ext5          %7d-%-7d   B %8u %7d-%-7d error %6.2f STOP\n", ab, ae, _bID, bb, be, erate);
+        abgn = ab;
+        bbgn = bb;
+        break;
       }
+
+      assert(0 <= ab);
+      assert(0 <= bb);
+
+      assert(ab <= _readData[_aID].rawLength);
+      assert(bb <= _readData[_bID].rawLength);
     }
+
+    //if (_verboseTrim > 1)
+    //  fprintf(stderr, "    ext5          %7d-%-7d\n", abgn, aend);
+
 
 
     //  Extend toward the 3' end.
@@ -266,49 +330,80 @@ maComputation::trimRead(uint32   minOverlapLength,
       int32   ab = max(aend - anchor,    0);
       int32   ae = min(aend + extension, _readData[_aID].rawLength);
 
-      int32   bb = bend - anchor;
+      int32   bb = bend - anchor    - slop;
       int32   be = bend + extension + slop;
 
-      if (bb < 0)
-        break;
-      if (be > _readData[_bID].rawLength)   //  B chunk is too small for A chunk, so just stop.
-        break;
-
-      if (testAlignment(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
-                        _bRead, bb, be, _readData[_bID].rawLength, _bID,
-                        maxAlignErate,
-                        maxAcceptErate,
-                        erate) == true) {
+      if ((bb < 0) ||
+          (be > _readData[_bID].rawLength)) {
         if (_verboseTrim > 1)
-          fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f\n", ab, ae, _bID, bb, be, erate);
+          fprintf(stderr, "    ext3 test     %7d-%-7d   B %8u %7d-%-7d    too-small STOP\n", ab, ae, _bID, bb, be);
+        break;
+      }
+
+      if (_verboseTrim > 1)
+        fprintf(stderr, "    ext3 test     %7d-%-7d   B %8u %7d-%-7d\n", ab, ae, _bID, bb, be);
+
+      int32  ext = extend3(_aRead, ab, ae, _readData[_aID].rawLength, _aID,
+                           _bRead, bb, be, _readData[_bID].rawLength, _bID,
+                           maxAlignErate,
+                           maxAcceptErate,
+                           erate);
+
+      if (ext == -1) {
+        if (_verboseTrim > 1)
+          fprintf(stderr, "    ext3          %7d-%-7d   B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
+        failedRange.add(abgn, aend - abgn);
+      }
+
+      if (ext == 0) {
+        if (_verboseTrim > 1)
+          fprintf(stderr, "    ext3          %7d-%-7d   B %8u %7d-%-7d error %6.2f GOOD\n", ab, ae, _bID, bb, be, erate);
         aend = ae;
         bend = be;
       }
 
-      else {
+      if (ext == 1) {
         if (_verboseTrim > 1)
-          fprintf(stderr, "ext3            %7d-%-7d B %8u %7d-%-7d error %6.2f FAIL\n", ab, ae, _bID, bb, be, erate);
-        failedRange.add(abgn, aend - abgn);
+          fprintf(stderr, "    ext3          %7d-%-7d   B %8u %7d-%-7d error %6.2f STOP\n", ab, ae, _bID, bb, be, erate);
+        aend = ae;
+        bend = be;
+        break;
       }
+
+      assert(0 <= ae);
+      assert(0 <= be);
+
+      assert(ae <= _readData[_aID].rawLength);
+      assert(be <= _readData[_bID].rawLength);
     }
 
-    //  Extend the saved A clear range based on this overlap.  We can't use the B read alignment
-    //  without storing a set of disjoint clear ranges for each read.
+    //if (_verboseTrim > 1)
+    //  fprintf(stderr, "    ext3          %7d-%-7d\n", abgn, aend);
+
+
+    //  Extend the saved A clear range based on this overlap.  We can't use
+    //  the B read alignment (for trimming the B read) without storing a set
+    //  of disjoint clear ranges for each read.
 
     abgn += overhang;
     aend -= overhang;
 
-    if (_verboseTrim > 1)
-      fprintf(stderr, "clr  %8u A %7d-%-7d\n", _aID, abgn, aend);
+    if (abgn < aend) {
+      if (_verboseTrim > 1)
+        fprintf(stderr, "  clr  %8u A %7d-%-7d (excluding overhang requirement)\n", _aID, abgn, aend);
 
-    //  Unless we sort overlaps by A bgn position, we need an interval list.
+      clearRange.add(abgn, aend - abgn);
+      clearRange.merge();
 
-    clearRange.add(abgn, aend - abgn);
-    clearRange.merge();
+      if (_verboseTrim > 1)
+        for (uint32 ii=0; ii<clearRange.numberOfIntervals(); ii++)
+          fprintf(stderr, "  CLR             %7d-%-7d\n", clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
+    }
 
-    if (_verboseTrim > 1)
-      for (uint32 ii=0; ii<clearRange.numberOfIntervals(); ii++)
-        fprintf(stderr, "CLR             %7d-%-7d\n", clearRange.lo(ii) - overhang, clearRange.hi(ii) + overhang);
+    else {
+      if (_verboseTrim > 1)
+        fprintf(stderr, "  clr  %8u A %7d-%-7d  TOO SMALL!\n", _aID, abgn, aend);
+    }
   }
 
   //  Pick the largest clear region and save it in the globals.  We could let
@@ -319,8 +414,8 @@ maComputation::trimRead(uint32   minOverlapLength,
     uint32 bgn = clearRange.lo(ii) - overhang;
     uint32 end = clearRange.hi(ii) + overhang;
 
-    if (_verboseTrim > 0)
-      fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear (piece)\n",
+    if ((_verboseTrim > 0) && (clearRange.numberOfIntervals() > 1))
+      fprintf(stderr, "  CLR %8u   %7d-%-7d - %6.2f%% clear\n",
               _aID,
               bgn, end,
               100.0 * (end - bgn) / _readData[_aID].rawLength);
@@ -330,7 +425,7 @@ maComputation::trimRead(uint32   minOverlapLength,
   }
 
   if (_verboseTrim > 0)
-    fprintf(stderr, "CLR %8u   %7d-%-7d - %6.2f%% clear\n",
+    fprintf(stderr, "  CLR %8u   %7d-%-7d - %6.2f%% clear (final)\n",
             _aID,
             _readData[_aID].clrBgn, _readData[_aID].clrEnd,
             100.0 * (_readData[_aID].clrEnd - _readData[_aID].clrBgn) / _readData[_aID].rawLength);

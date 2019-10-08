@@ -93,7 +93,6 @@ public:
 
     fprintf(stderr, "Opening seqStore '%s' in mode '%s'\n", seqStoreName, toString(mode));
 
-    sqRead_setDefaultVersion(sqRead_raw);
     seqStore  = new sqStore(seqStoreName, mode);
 
     //  Load all the reads.  Regardless of trim status, we ALWAYS want
@@ -102,7 +101,7 @@ public:
 
     fprintf(stderr, "Loading all reads.\n");
 
-    seqCache  = new sqCache(seqStore, sqRead_raw, memLimit);
+    seqCache  = new sqCache(seqStore, sqRead_defaultVersion, memLimit);
     seqCache->sqCache_loadReads();
 
     //  Open overlaps.
@@ -131,11 +130,26 @@ public:
 
     readData = new trReadData [seqStore->sqStore_lastReadID() + 1];
 
-    for (uint32 ii=0; ii<seqStore->sqStore_lastReadID() + 1; ii++) {
-      readData[ii].clrBgn        = seqStore->sqStore_getClearBgn(ii);
-      readData[ii].clrEnd        = seqStore->sqStore_getClearEnd(ii);
-      readData[ii].rawLength     = seqStore->sqStore_getReadLength(ii, sqRead_raw);
-      readData[ii].trimmedLength = seqStore->sqStore_getReadLength(ii, sqRead_trimmed);
+    for (uint32 ii=1; ii<seqStore->sqStore_lastReadID() + 1; ii++) {
+      readData[ii].clrBgn        = 0;
+      readData[ii].clrEnd        = 0;
+      readData[ii].rawLength     = 0;
+      readData[ii].trimmedLength = 0;
+
+      if (seqStore->sqStore_isIgnoredRead(ii) == true)
+        continue;
+
+      if (seqStore->sqStore_isTrimmedRead(ii) == false) {
+        readData[ii].clrBgn        = 0;
+        readData[ii].clrEnd        = seqStore->sqStore_getReadLength(ii);
+        readData[ii].rawLength     = seqStore->sqStore_getReadLength(ii);
+        readData[ii].trimmedLength = seqStore->sqStore_getReadLength(ii);
+      } else {
+        readData[ii].clrBgn        = seqStore->sqStore_getClearBgn(ii);
+        readData[ii].clrEnd        = seqStore->sqStore_getClearEnd(ii);
+        readData[ii].rawLength     = seqStore->sqStore_getReadLength(ii, sqRead_defaultVersion & ~sqRead_trimmed);
+        readData[ii].trimmedLength = seqStore->sqStore_getReadLength(ii, sqRead_defaultVersion);
+      }
     }
   };
 

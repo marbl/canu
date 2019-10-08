@@ -202,8 +202,30 @@ loadClearRanges(trGlobalData *g, vector<char *> &trimFiles) {
 void
 setClearRanges(trGlobalData *g) {
 
-  for (uint32 ii=0; ii<g->seqStore->sqStore_lastReadID()+1; ii++)
-    g->seqStore->sqStore_getReadSeq(ii)->sqReadSeq_setClearRange(g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+  for (uint32 ii=1; ii<g->seqStore->sqStore_lastReadID()+1; ii++) {
+    sqReadSeq  *rs  = g->seqStore->sqStore_getReadSeq(ii);
+    int32       bgn = g->readData[ii].clrBgn;
+    int32       end = g->readData[ii].clrEnd;
+
+    if (end - bgn < 1000) {
+      fprintf(stderr, "read %6u length %6u clear %6u %6u -- DELETE\n",
+              ii,
+              g->seqStore->sqStore_getReadLength(ii),
+              g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+      rs->sqReadSeq_setIgnoreT(true);
+      continue;
+    }
+
+    fprintf(stderr, "read %6u length %6u clear %6u %6u\n",
+            ii,
+            g->seqStore->sqStore_getReadLength(ii),
+            g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+
+    assert(g->readData[ii].clrBgn <  g->readData[ii].clrEnd);
+    assert(g->readData[ii].clrEnd <= g->seqStore->sqStore_getReadLength(ii));
+
+    rs->sqReadSeq_setClearRange(g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+  }
 
   sqRead_setDefaultVersion(sqRead_raw | sqRead_trimmed);
 }
@@ -375,7 +397,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -trim <outputName>\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Apply trimming to the store.\n");
-    fprintf(stderr, "  -apply <frimFile> <trimFile>\n");
+    fprintf(stderr, "  -apply <trimFile> <...>\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Compute alignments for a subset of reads.  All reads must be trimmed prior.\n");
     fprintf(stderr, "  -trim <inputName>\n");
@@ -388,7 +410,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -erate e          Overlaps are computed at 'e' fraction error; must be larger than the original erate\n");
     fprintf(stderr, "  -partial          Overlaps are 'overlapInCore -S' partial overlaps\n");
     fprintf(stderr, "  -memory m         Use up to 'm' GB of memory\n");
-    fprintf(stderr, "  -t n              Use up to 'n' cores\n");
+    fprintf(stderr, "  -threads n        Use up to 'n' cores\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Advanced options:\n");
     fprintf(stderr, "\n");

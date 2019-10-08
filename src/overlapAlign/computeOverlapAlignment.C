@@ -41,8 +41,29 @@
 
 
 
+double   localMatch     =  1;
+double   localMismatch  = -1;
+double   localGap       = -1;
+
+double
+getScore(EdlibAlignResult result, int32 pp) {
+
+  if ((pp < 0) ||
+      (pp >= result.alignmentLength))
+    return(localMatch);
+
+  switch (result.alignment[pp]) {
+    case EDLIB_EDOP_MATCH:     return(localMatch);     break;
+    case EDLIB_EDOP_INSERT:    return(localGap);       break;
+    case EDLIB_EDOP_DELETE:    return(localGap);       break;
+    case EDLIB_EDOP_MISMATCH:  return(localMismatch);  break;
+    default:                   return(0);              break;
+  }
+}
+
+
 bool
-testAlignment(char   *aRead,  int32   abgn,  int32   aend,  int32         alen,   uint32 Aid,
+testAlignment(char   *aRead,  int32  &abgn,  int32  &aend,  int32         alen,   uint32 Aid,
               char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
               double  maxAlignErate,
               double  maxAcceptErate,
@@ -55,31 +76,346 @@ testAlignment(char   *aRead,  int32   abgn,  int32   aend,  int32         alen, 
 
   erate = 1.0;   //  Set the default return value, 100% error.
 
+  //  Compute an alignment with the alignment path.
+
   EdlibAlignResult result = edlibAlign(aRead + abgn, aend - abgn,
                                        bRead + bbgn, bend - bbgn,
                                        edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
                                                            EDLIB_MODE_HW,
-                                                           EDLIB_TASK_LOC));
+                                                           EDLIB_TASK_PATH));
 
-  //  If there is a result, compute the (approximate) length of the alignment and the error rate.
-  //  Edlib mode TASK_LOC doesn't populate this field.
+  //  If no result, free it and return that the alignment failed.
 
-  if (result.numLocations > 0) {
-    result.alignmentLength = ((aend - abgn) + (result.endLocations[0] + 1 - result.startLocations[0]) + (result.editDistance)) / 2;
-
-    erate = (double)result.editDistance / result.alignmentLength;
-
-    //  Save the result if it is of acceptable quality.
-    if (erate < maxAcceptErate) {
-      bend     = bbgn + result.endLocations[0] + 1;    //  Edlib returns 0-based positions, add one to end to get space-based.
-      bbgn     = bbgn + result.startLocations[0];
-    }
+  if (result.numLocations == 0) {
+    edlibFreeAlignResult(result);
+    return(false);
   }
+
+  //  Compute the (approximate) length of the alignment, for EDLIB_TASK_LOC
+  //result.alignmentLength = ((aend - abgn) + (result.endLocations[0] + 1 - result.startLocations[0]) + (result.editDistance)) / 2;
+
+  //  Compute the global error rate.  If it's terrible, return that the alignment failed.
+
+  erate = (double)result.editDistance / result.alignmentLength;
+
+  if (erate > maxAcceptErate) {
+    edlibFreeAlignResult(result);
+    return(false);
+  }
+
+  //  Good quality.  Save the positions.
+  //  The A positions don't change (yet).
+
+  bend = bbgn + result.endLocations[0] + 1;    //  Edlib returns 0-based positions, add one to end to get space-based.
+  bbgn = bbgn + result.startLocations[0];
 
   edlibFreeAlignResult(result);
 
-  return(erate < maxAcceptErate);
+  return(true);
 }
+
+
+
+
+
+
+
+int32
+extend5(char   *aRead,  int32  &abgn,  int32  &aend,  int32         alen,   uint32 Aid,
+        char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
+        double  maxAlignErate,
+        double  maxAcceptErate,
+        double &erate) {
+
+  assert(abgn >= 0);
+  assert(aend <= alen);
+  assert(bbgn >= 0);
+  assert(bend <= blen);
+
+  erate = 1.0;   //  Set the default return value, 100% error.
+
+  //  Compute an alignment with the alignment path.
+
+  EdlibAlignResult result = edlibAlign(aRead + abgn, aend - abgn,   //  Query
+                                       bRead + bbgn, bend - bbgn,   //  Target
+                                       edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
+                                                           EDLIB_MODE_HW,
+                                                           EDLIB_TASK_PATH));
+
+  //  If no result, free it and return that the alignment failed.
+
+  if (result.numLocations == 0) {
+    edlibFreeAlignResult(result);
+    return(-1);
+  }
+
+#if 0
+  char *aAln = new char [result.alignmentLength + 1];
+  char *bAln = new char [result.alignmentLength + 1];
+
+  edlibAlignmentToStrings(result,
+                          aRead + abgn, aend - abgn,   //  Query
+                          bRead + bbgn, bend - bbgn,   //  Target
+                          aAln,
+                          bAln);
+
+  fprintf(stderr, "A %s\n", aAln);
+  fprintf(stderr, "B %s\n", bAln);
+
+  delete [] aAln;
+  delete [] bAln;
+#endif
+
+
+  //  Compute the (approximate) length of the alignment, for EDLIB_TASK_LOC
+  //result.alignmentLength = ((aend - abgn) + (result.endLocations[0] + 1 - result.startLocations[0]) + (result.editDistance)) / 2;
+
+  //  Compute the global error rate.  If it's terrible, return that the alignment failed.
+
+  erate = (double)result.editDistance / result.alignmentLength;
+
+  //if (erate > maxAcceptErate) {
+  //  edlibFreeAlignResult(result);
+  //  return(-1);
+  //}
+
+  //  Good quality.  Save the positions.
+  //  The A positions don't change (yet).
+
+  bend = bbgn + result.endLocations[0] + 1;    //  Edlib returns 0-based positions, add one to end to get space-based.
+  bbgn = bbgn + result.startLocations[0];
+
+  //  Analyze the alignment in detail.  Trim back bad ends.
+  //
+  //  We're trying to extend the 5' end of the A sequence.
+  //  Scan the alignment backwards to check if we enter a region of bad alignment.
+
+  int32    localWindow    = 50;
+  double   localScore     = localMatch * localWindow;
+
+  double   localThreshold = 0.50;
+
+  int32  abgnN = aend;
+  int32  bbgnN = bend;
+  int32  ii    = result.alignmentLength - 1;   //  Window start (left most position of window)
+
+  //  Scan towards the 5' end until we hit a region of local garbage.
+
+  for (; ii >= 0; ii--) {
+    localScore += getScore(result, ii);
+    localScore -= getScore(result, ii + localWindow);
+
+    abgnN -= (result.alignment[ii] != EDLIB_EDOP_DELETE);   //  Move left if not gap in B (delete in B)?
+    bbgnN -= (result.alignment[ii] != EDLIB_EDOP_INSERT);   //  Move left if not gap in A (insert in B)?
+
+    assert(abgnN >= 0);
+    assert(bbgnN >= 0);
+    //fprintf(stderr, "NEW %d %d after align %d\n", abgnN, bbgnN, result.alignment[ii]);
+
+    //fprintf(stderr, "extend5      at ii %d = %f   A %d-%d  B %d-%d\n",
+    //        ii, localScore / localWindow, abgnN, aend, bbgnN, bend);
+
+    if (localScore / localWindow < localThreshold) {
+      //fprintf(stderr, "extend5 fail at ii %d = %f   A %d-%d  B %d-%d\n",
+      //        ii, localScore / localWindow, abgnN, aend, bbgnN, bend);
+      break;
+    }
+  }
+
+  //  If the score is good, the whole extension is good.
+
+  if (localScore / localWindow >= localThreshold) {
+    edlibFreeAlignResult(result);
+    return(0);
+  }
+
+  //  Otherwise, scan the window to find the maximal score and trim to there.
+
+  double  maxWindowScore = localScore;
+  int32   ww             = ii;
+
+  for (int32 kk=0; kk<localWindow; kk++) {
+    localScore -= getScore(result, ii + kk);
+    localScore += getScore(result, ii + kk + localWindow);
+
+    if (maxWindowScore < localScore) {
+      maxWindowScore = localScore;
+      ww             = ii + kk;
+    }
+  }
+
+  //  Now that we know where we should terminate the alignment, back up to that spot,
+  //  adjusting the coordinates.
+
+  for (int32 kk=ii; kk<=ww; kk++) {
+    abgnN += (result.alignment[kk] != EDLIB_EDOP_DELETE);   //  Delete in B?
+    bbgnN += (result.alignment[kk] != EDLIB_EDOP_INSERT);   //  Insert in B?
+  }
+
+  //fprintf(stderr, "extend5 fail at ii %d = %f   abgn %d  bbgn %d\n",
+  //        ii, localScore / localWindow, abgnN, bbgnN);
+
+  abgn = abgnN;
+  bbgn = bbgnN;
+
+  edlibFreeAlignResult(result);
+  return(1);
+}
+
+
+
+
+
+
+
+
+
+
+
+int32
+extend3(char   *aRead,  int32  &abgn,  int32  &aend,  int32         alen,   uint32 Aid,
+        char   *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   uint32 Bid,
+        double  maxAlignErate,
+        double  maxAcceptErate,
+        double &erate) {
+
+  assert(abgn >= 0);
+  assert(aend <= alen);
+  assert(bbgn >= 0);
+  assert(bend <= blen);
+
+  erate = 1.0;   //  Set the default return value, 100% error.
+
+  //  Compute an alignment with the alignment path.
+
+  EdlibAlignResult result = edlibAlign(aRead + abgn, aend - abgn,
+                                       bRead + bbgn, bend - bbgn,
+                                       edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
+                                                           EDLIB_MODE_HW,
+                                                           EDLIB_TASK_PATH));
+
+  //  If no result, free it and return that the alignment failed.
+
+  if (result.numLocations == 0) {
+    edlibFreeAlignResult(result);
+    return(-1);
+  }
+
+#if 0
+  char *aAln = new char [result.alignmentLength + 1];
+  char *bAln = new char [result.alignmentLength + 1];
+
+  edlibAlignmentToStrings(result,
+                          aRead + abgn, aend - abgn,   //  Query
+                          bRead + bbgn, bend - bbgn,   //  Target
+                          aAln,
+                          bAln);
+
+  fprintf(stderr, "A %s\n", aAln);
+  fprintf(stderr, "B %s\n", bAln);
+
+  delete [] aAln;
+  delete [] bAln;
+#endif
+
+  //  Compute the (approximate) length of the alignment, for EDLIB_TASK_LOC
+  //result.alignmentLength = ((aend - abgn) + (result.endLocations[0] + 1 - result.startLocations[0]) + (result.editDistance)) / 2;
+
+  //  Compute the global error rate.  If it's terrible, return that the alignment failed.
+
+  erate = (double)result.editDistance / result.alignmentLength;
+
+  //if (erate > maxAcceptErate) {
+  //  edlibFreeAlignResult(result);
+  //  return(-1);
+  //}
+
+  //  Good quality.  Save the positions.
+  //  The A positions don't change (yet).
+
+  bend = bbgn + result.endLocations[0] + 1;    //  Edlib returns 0-based positions, add one to end to get space-based.
+  bbgn = bbgn + result.startLocations[0];
+
+  //  Analyze the alignment in detail.  Trim back bad ends.
+  //
+  //  We're trying to extend the 5' end of the A sequence.
+  //  Scan the alignment backwards to check if we enter a region of bad alignment.
+
+  int32    localWindow    = 50;
+  double   localScore     = localMatch * localWindow;
+
+  double   localThreshold = 0.50;
+
+  int32  aendN = abgn;
+  int32  bendN = bbgn;
+  int32  ii    = 0;        //  Window end (right most position of window)
+
+  //  Scan towards the 3' end until we hit a region of local garbage.
+
+  for (; ii < result.alignmentLength; ii++) {
+    localScore += getScore(result, ii);
+    localScore -= getScore(result, ii - localWindow);
+
+    aendN += (result.alignment[ii] != EDLIB_EDOP_DELETE);   //  Delete in B?
+    bendN += (result.alignment[ii] != EDLIB_EDOP_INSERT);   //  Insert in B?
+
+    assert(aendN <= alen);
+    assert(bendN <= blen);
+
+    if (localScore / localWindow < localThreshold) {
+      //fprintf(stderr, "extend3 fail at ii %d = %f\n", ii, localScore / localWindow);
+      break;
+    }
+  }
+
+  //  If the score is good, the whole extension is good.
+
+  if (localScore / localWindow >= localThreshold) {
+    edlibFreeAlignResult(result);
+    //fprintf(stderr, "extend3 all good!\n");
+    return(0);
+  }
+
+  //  Otherwise, scan the window to find the maximal score and trim to there.
+
+  double  maxWindowScore = localScore;
+  int32   ww             = ii;
+
+  for (int32 kk=0; kk<localWindow; kk++) {
+    localScore -= getScore(result, ii - kk);
+    localScore += getScore(result, ii - kk - localWindow);
+
+    if (maxWindowScore < localScore) {
+      maxWindowScore = localScore;
+      ww             = ii - kk;
+    }
+  }
+
+  //  Now that we know where we should terminate the alignment, back up to that spot,
+  //  adjusting the coordinates.
+
+  for (int32 kk=ii; kk > ww; kk--) {
+    aendN -= (result.alignment[kk] != EDLIB_EDOP_DELETE);   //  Delete in B?
+    bendN -= (result.alignment[kk] != EDLIB_EDOP_INSERT);   //  Insert in B?
+  }
+
+  aend = aendN;
+  bend = bendN;
+
+  edlibFreeAlignResult(result);
+  return(1);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
