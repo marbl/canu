@@ -47,6 +47,8 @@ largestCovered(ovOverlap    *ovl,
                uint32        minCoverage,
                uint32        minReadLength) {
 
+  bool verbose = false;
+
   logMsg[0] = 0;
 
   assert(readID == ovl[0].a_iid);
@@ -79,13 +81,9 @@ largestCovered(ovOverlap    *ovl,
     IL.add(tbgn, tend - tbgn);
   }
 
-#if 0
-  for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-    fprintf(stderr, "IL - %d - " F_S64 " " F_S64 " " F_S64 "\n", fr.sqRead_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
-
-  for (uint32 it=0; it<ID.numberOfIntervals(); it++)
-    fprintf(stderr, "ID - %d - " F_S64 " " F_S64 " " F_S64 "\n", fr.sqRead_getReadIID(), ID.lo(it), ID.hi(it), ID.de(it));
-#endif
+  if (verbose)
+    for (uint32 it=0; it<IL.numberOfIntervals(); it++)
+      fprintf(stderr, "IL - %3u - %5u %5u\n", readID, IL.lo(it), IL.hi(it));
 
   //  I thought I'd allow low coverage at the end of the read, but not internally, but that is hard,
   //  and largely unnecessary.  We'll just not be assembling at low coverage joins, which is
@@ -99,7 +97,8 @@ largestCovered(ovOverlap    *ovl,
     uint32  ie = 0;
 
     while (it < DE.numberOfIntervals()) {
-      //fprintf(stderr, "DE - %d - " F_S64 " " F_S64 " " F_U32 "\n", fr.sqRead_getReadIID(), DE.lo(it), DE.hi(it), DE.depth(it));
+      if (verbose)
+        fprintf(stderr, "DE - %3u - %5u %5u depth %u\n", readID, DE.lo(it), DE.hi(it), DE.depth(it));
 
       if (DE.depth(it) < minCoverage) {
         //  Dropped below good coverage depth.  If we have an interval, save it.  Reset.
@@ -206,27 +205,29 @@ largestCovered(ovOverlap    *ovl,
 
   ////////////////////////////////////////
 
-  //  The IL.ct(it) is always 1 if we filter low coverage.  It is no longer reported.
-#if 0
-  if (IL.numberOfIntervals() > 1)
-    for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-      fprintf(stderr, "IL[%02d] - iid %d - " F_S64 " " F_S64 "\n", it, readID, IL.lo(it), IL.hi(it));
-#endif
-
   if (IL.numberOfIntervals() == 0) {
+    if (verbose)
+      fprintf(stderr, "no high quality overlaps\n");
     strcpy(logMsg, "\tno high quality overlaps");
     return(false);
   }
 
-  fbgn = IL.lo(0);
-  fend = IL.hi(0);
-
   sprintf(logMsg, "\tskipped %u overlaps; used %u overlaps", nSkip, nUsed);
 
-  for (uint32 it=0; it<IL.numberOfIntervals(); it++) {
+  fbgn = IL.lo(0);
+  fend = IL.hi(0);
+  if (verbose)
+    fprintf(stderr, "IL - %3u - %5u %5u  SAVE\n", readID, fbgn, fend);
+
+  for (uint32 it=1; it<IL.numberOfIntervals(); it++) {
     if (IL.hi(it) - IL.lo(it) > fend - fbgn) {
       fbgn = IL.lo(it);
       fend = IL.hi(it);
+      if (verbose)
+        fprintf(stderr, "IL - %3u - %5u %5u  SAVE\n", readID, IL.lo(it), IL.hi(it));
+    } else {
+      if (verbose)
+        fprintf(stderr, "IL - %3u - %5u %5u\n", readID, IL.lo(it), IL.hi(it));
     }
   }
 
