@@ -125,7 +125,8 @@ sqStoreInfo::checkInfo(void) {
 
 
 bool
-sqStoreInfo::examineRead(sqReadSeq     *seq,
+sqStoreInfo::examineRead(uint32         ii,
+                         sqReadSeq     *seq,
                          sqRead_which   w) {
   sqRead_which  t = w | sqRead_trimmed;
 
@@ -137,6 +138,15 @@ sqStoreInfo::examineRead(sqReadSeq     *seq,
   if (seq->sqReadSeq_ignoreU() == true)   { length  = 0; }
   if (seq->sqReadSeq_ignoreT() == true)   { trimmed = 0; }
 
+  if (trimmed > length) {
+    fprintf(stderr, "sqStoreInfo::examineRead()-- %s read %u length %u (%s) < trimmed %u - %u = %u (%s)\n",
+            toString(w),
+            ii,
+            length,  (seq->sqReadSeq_ignoreU() == true) ? "ignored" : "used",
+            seq->sqReadSeq_clearEnd(),
+            seq->sqReadSeq_clearBgn(),
+            trimmed, (seq->sqReadSeq_ignoreT() == true) ? "ignored" : "used");
+  }
   assert(trimmed <= length);
 
   if (seq->sqReadSeq_ignoreU())
@@ -171,19 +181,19 @@ sqStoreInfo::update(sqReadSeq  *rawU,
 
   if (rawU)
     for (uint32 ii=1; ii<_numReads + 1; ii++)
-      examineRead(&rawU[ii], sqRead_raw);
+      examineRead(ii, &rawU[ii], sqRead_raw);
 
   if (rawC)
     for (uint32 ii=1; ii<_numReads + 1; ii++)
-      examineRead(&rawC[ii], sqRead_raw | sqRead_compressed);
+      examineRead(ii, &rawC[ii], sqRead_raw | sqRead_compressed);
 
   if (corU)
     for (uint32 ii=1; ii<_numReads + 1; ii++)
-      examineRead(&corU[ii], sqRead_corrected);
+      examineRead(ii, &corU[ii], sqRead_corrected);
 
   if (corC)
     for (uint32 ii=1; ii<_numReads + 1; ii++)
-      examineRead(&corC[ii], sqRead_corrected | sqRead_compressed);
+      examineRead(ii, &corC[ii], sqRead_corrected | sqRead_compressed);
 
   //  For convenience, we store the total number of reads
   //  in the sqRead_unset space.  There's no comparable

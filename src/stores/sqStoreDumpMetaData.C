@@ -289,10 +289,10 @@ dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     bool  exists = false;
 
-    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w1), w1);
-    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w2), w2);
-    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w3), w3);
-    exists |= info.examineRead(seqs->sqStore_getReadSeq(rid, w4), w4);
+    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w1), w1);
+    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w2), w2);
+    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w3), w3);
+    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w4), w4);
 
     if (exists)
       info.sqInfo_addRead();

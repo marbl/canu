@@ -125,7 +125,7 @@ public:
   uint32    sqInfo_numReads(sqRead_which w)     { return(_reads[w]);     };
 
 public:
-  bool      examineRead(sqReadSeq *seq, sqRead_which w);
+  bool      examineRead(uint32 ii, sqReadSeq *seq, sqRead_which w);
 
 private:
   bool      checkInfo(void);
