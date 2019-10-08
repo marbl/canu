@@ -446,6 +446,54 @@ void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength
    assert(strlen(qry_aln_str) == alignmentLength && strlen(tgt_aln_str) == alignmentLength);
 }
 
+void
+edlibAlignmentToStrings(EdlibAlignResult result,
+                        const char *qry, const int qryLength,
+                        const char *tgt, const int tgtLength,
+                        char *qryAln,
+                        char *tgtAln) {
+  int32  qryPos = 0;
+  int32  tgtPos = result.startLocations[0];
+
+  for (int32 aa=0; aa < result.alignmentLength; aa++) {
+    assert(qryPos <= qryLength);
+    assert(tgtPos <= tgtLength);
+
+    if (result.alignment[aa] == EDLIB_EDOP_MATCH) {
+      qryAln[aa] = tolower(qry[qryPos]);
+      tgtAln[aa] = tolower(tgt[tgtPos]);
+      qryPos++;
+      tgtPos++;
+    }
+
+    else if (result.alignment[aa] == EDLIB_EDOP_MISMATCH) {
+      qryAln[aa] = toupper(qry[qryPos]);
+      tgtAln[aa] = toupper(tgt[tgtPos]);
+      qryPos++;
+      tgtPos++;
+    }
+
+    else if (result.alignment[aa] == EDLIB_EDOP_INSERT) {   //  Insert in target
+      tgtAln[aa] = '-';
+      qryAln[aa] = toupper(qry[qryPos]);
+      qryPos++;
+    }
+
+    else if (result.alignment[aa] == EDLIB_EDOP_DELETE) {   // Insert in query
+      tgtAln[aa] = toupper(tgt[tgtPos]);
+      qryAln[aa] = '-';
+      tgtPos++;
+    }
+  }
+
+  qryAln[result.alignmentLength] = 0;
+  tgtAln[result.alignmentLength] = 0;
+
+  assert(strlen(qryAln) == result.alignmentLength);
+  assert(strlen(tgtAln) == result.alignmentLength);
+}
+
+
 /**
  * Build Peq table for given query and alphabet.
  * Peq is table of dimensions alphabetLength+1 x maxNumBlocks.

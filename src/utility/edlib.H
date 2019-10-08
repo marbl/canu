@@ -277,5 +277,10 @@ void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength
                              char *tgt_aln_str,
                              char *qry_aln_str);
 
+void edlibAlignmentToStrings(EdlibAlignResult result,
+                             const char *qry, const int qryLength,
+                             const char *tgt, const int tgtLength,
+                             char *qryAln,
+                             char *tgtAln);
 
 #endif // EDLIB_H
