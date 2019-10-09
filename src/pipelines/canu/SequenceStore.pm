@@ -326,7 +326,7 @@ sub generateReadLengthHistogram ($$) {
         $cmd .= "  -raw \\\n"                  if ($tag eq "cor");
         $cmd .= "  -corrected \\\n"            if ($tag eq "obt");
         $cmd .= "  -corrected -trimmed \\\n"   if ($tag eq "utg");
-        $cmd .= "  -histogram " . getGlobal("genomeSize") . " \\\n";
+        $cmd .= "  -histogram \\\n";
         $cmd .= "  -lengths \\\n";
         $cmd .= "> ./$asm.seqStore/readlengths-$tag.dat \\\n";
         $cmd .= "2> ./$asm.seqStore/readlengths-$tag.err \n";
@@ -374,7 +374,7 @@ sub generateReadLengthHistogram ($$) {
         $cmd .= "  -raw \\\n"                  if ($tag eq "cor");
         $cmd .= "  -corrected \\\n"            if ($tag eq "obt");
         $cmd .= "  -corrected -trimmed \\\n"   if ($tag eq "utg");
-        $cmd .= "  -histogram " . getGlobal("genomeSize") . " \\\n";
+        $cmd .= "  -histogram \\\n";
         $cmd .= "> ./$asm.seqStore/readlengths-$tag.txt \\\n";
         $cmd .= "2> ./$asm.seqStore/readlengths-$tag.err \n";
 

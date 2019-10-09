@@ -129,6 +129,8 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
 
   sort(lengths.begin(), lengths.end(), greater<uint64>());
 
+  uint32   nLines   = 0;                      //  Number of lines in the NG table.
+
   uint32   nCols    = 63;                     //  Magic number to make the histogram the same width as the trinucleotide list
   uint32   nRows    = 0;                      //  Height of the histogram; dynamically set.
   uint32   nRowsMin = 50;                     //  Nothing really magic, just fits on the screen.
@@ -145,12 +147,13 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
     lSum += lengths[ii];
 
     while (lSum >= nThr) {
-      nRows++;
+      nLines++;
 
-      if      (nVal  <   200)  nVal += nStep;
-      else if (nVal  <  2000)  nVal += nStep * 10;
-      else if (nVal  < 20000)  nVal += nStep * 100;
-      else                     nVal += nStep * 1000;
+      if      (nVal <    200)  nVal += nStep;
+      else if (nVal <   2000)  nVal += nStep * 10;
+      else if (nVal <  20000)  nVal += nStep * 100;
+      else if (nVal < 200000)  nVal += nStep * 1000;
+      else                     nVal += nStep * 10000;
 
       nThr  = genomeSize * nVal / 100;
     }
@@ -162,19 +165,24 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
   uint64   minLength = lengths[lengths.size()-1];
   uint64   maxLength = lengths[0];
 
-  if (nRows < nRowsMin)                    //  If there are too few lines, make it some minimum value,
-    nRows = nRowsMin;                      //  otherwise, make the length histogram plot the same size.
+  if (nLines < nRowsMin)                                //  If there are too few lines in the NG table, make the
+    nRows = nRowsMin;                                   //  histogram plot some minimal size, otherwise, make it
+  else                                                  //  the same size as the NG table.
+    nRows = nLines;
 
   double   bucketSized = (double)(maxLength - minLength) / nRows;
   uint32   bucketSize  = (uint32)ceil(bucketSized);
 
-  if (bucketSize == 0)
+  if (bucketSize == 0)                                  //  Happens when all data is the same length.
     bucketSize = 1;
 
-  nRows = (maxLength - minLength) / bucketSize;
+  nRows = (maxLength - minLength) / bucketSize;         //  With new bucketSize set, compute number of rows.
 
-  if (nRows > nRowsMin)
-    nRows = nRowsMin;
+  if (nRows > nRowsMin) {                               //  But if we get WAY too many rows, reset.
+    nRows       = nRowsMin;
+    bucketSized = (double)(maxLength - minLength) / nRows;
+    bucketSize  = (uint32)ceil(bucketSized);
+  }
 
   lSum  = 0;                                            //  Reset for actually generating the length histogram.
   nStep = 10;
@@ -191,6 +199,7 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
   for (uint32 ii=0; ii<lengths.size(); ii++) {          //  Count number of sequences per size range.
     uint32 r = (lengths[ii] - minLength) / bucketSize;
 
+    assert(r < nRows+1);
     nSeqPerLen[r]++;
   }
 
@@ -249,10 +258,11 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
                   nVal, lengths[ii], ii, lSum);
       }
 
-      if      (nVal <   200)   nVal += nStep;
-      else if (nVal <  2000)   nVal += nStep * 10;
-      else if (nVal < 20000)   nVal += nStep * 100;
-      else                     nVal += nStep * 1000;
+      if      (nVal <    200)   nVal += nStep;
+      else if (nVal <   2000)   nVal += nStep * 10;
+      else if (nVal <  20000)   nVal += nStep * 100;
+      else if (nVal < 200000)   nVal += nStep * 1000;
+      else                      nVal += nStep * 10000;
 
       nThr  = genomeSize * nVal / 100;
     }

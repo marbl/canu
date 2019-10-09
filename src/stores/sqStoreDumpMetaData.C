@@ -241,16 +241,16 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
 
 
 void
-dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, uint64 genomeSize, bool wantLengths) {
+dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool wantLengths) {
   vector<uint64>  lengths;
-
-  uint64          nSeqs  = 0;
   uint64          nBases = 0;
 
   //  Build a vector of sequence lengths, pass that to 'sequence' to
   //  generate a pretty picture.
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
+    uint32  len = seqs->sqStore_getReadLength(rid, w);
+
     if (seqs->sqStore_isValidRead(rid, w) == false)     //  Skip invalid reads.
       continue;
 
@@ -261,11 +261,13 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, uint64 
       if (w & sqRead_trimmed)                           //  if we want trimmed reads.
         continue;
 
-    lengths.push_back(seqs->sqStore_getReadLength(rid, w));
+    lengths.push_back(len);
+
+    nBases += len;
   }
 
   if (wantLengths == false) {
-    doSummarize_lengthHistogram(lengths, genomeSize, false);
+    doSummarize_lengthHistogram(lengths, nBases, false);
   }
 
   else {
@@ -360,7 +362,6 @@ main(int argc, char **argv) {
       wantStats     = false;
       wantHistogram = true;
       wantLengths   = false;
-      genomeSize    = strtouint64(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-lengths") == 0) {
@@ -429,7 +430,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -stats           dump summary statistics on reads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -histogram G     dump a length histogram using genome size G\n");
+    fprintf(stderr, "  -histogram       dump a length histogram\n");
     fprintf(stderr, "  -lengths         dump just the (sorted) read lengths\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "READ SELECTION:\n");
@@ -477,7 +478,7 @@ main(int argc, char **argv) {
     dumpStats(seqStore, bgnID, endID);
 
   if (wantHistogram)
-    dumpHistogram(seqStore, bgnID, endID, which, genomeSize, wantLengths);
+    dumpHistogram(seqStore, bgnID, endID, which, wantLengths);
 
   delete seqStore;
 
