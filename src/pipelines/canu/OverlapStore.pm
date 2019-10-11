@@ -187,8 +187,6 @@ sub overlapStoreCheck ($$$) {
 
     goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
 
-    fetchFile("scripts/1-bucketize/2-sort.sh");
-
     #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
     #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
     #  (meryl, unitig, overlapStoreSequential are the same)
@@ -291,9 +289,8 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "\n";
             print F "inputs=`\$bin/ovStoreConfig -describe ./$asm.ovlStore.config -listinputs \$jobid`\n";
             print F "\n";
-            print F "for file in \$inputs ; do\n";                 #  The oc file diesn't appear
-            print F "  mkdir -p `dirname \$file`\n";               #  to be needed for bucketizing.
-            print F fetchFileShellCode($base, "\$file", "  ");
+            print F "for file in \$inputs ; do\n";                 #  The oc file doesn't appear
+            print F fetchFileShellCode($base, "\$file", "  ");     #  to be needed for bucketizing.
             print F "done\n";
             print F "\n";
         }
@@ -371,9 +368,8 @@ sub createOverlapStoreParallel ($$$$$$) {
             print F "\n";
             print F "inputs=`\$bin/ovStoreConfig -describe ./$asm.ovlStore.config -listslices \$jobid`\n";
             print F "\n";
-            print F "for file in \$inputs ; do\n";                               #  $inputs is relative to
-            print F "  mkdir -p ./$asm.ovlStore.BUILDING/`dirname \$file`\n";    #  ovStore.BUILDING!
-            print F fetchFileShellCode($base, "./$asm.ovlStore.BUILDING/\$file", "  ");
+            print F "for file in \$inputs ; do\n";                                        #  $inputs is relative to
+            print F fetchFileShellCode($base, "./$asm.ovlStore.BUILDING/\$file", "  ");   #  ovStore.BUILDING!
             print F "done\n";
             print F "\n";
         }
@@ -394,9 +390,6 @@ sub createOverlapStoreParallel ($$$$$$) {
         print F "\n";
 
         if (defined(getGlobal("objectStore"))) {
-            my $client = getGlobal("objectStoreClient");     #  To rename the data file in the object store, we call
-            my $ns     = getGlobal("objectStoreNameSpace");  #  the client directly, instead of stashFileShellCode().
-
             print F "#\n";
             print F "#  Stash the outputs.\n";
             print F "#\n";
@@ -460,6 +453,9 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     goto allDone   if (fileExists("$path/1-bucketize.success"));
     goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
+
+    make_path("$path/scripts");
+    make_path("$path/logs");
 
     fetchFile("$path/scripts/1-bucketize.sh");
 
@@ -557,6 +553,9 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     goto allDone   if (fileExists("$path/2-sorter.success"));
     goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
+
+    make_path("$path/scripts");
+    make_path("$path/logs");
 
     fetchFile("$path/scripts/2-sort.sh");
 

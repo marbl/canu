@@ -771,29 +771,40 @@ sub submitScript ($$) {
     $qcmd   .= " $nameOption '$jobName'"   if defined($nameOption);
     $qcmd   .= " $outputOption $scriptOut" if defined($outputOption);
 
-    # on dna nexus we don't submit a script and there is no logging
-    # any parameters get passed through the -i option
-    # the fetch_and_run call is to a function in the app which will downloaded the requested shell script and execute it
+    #  DNAnexus doesn't submit scripts; all parameters are passed through
+    #  '-i' options.  The 'fetch_and_run' magic is in dx-canu/src/canu-job-launcher.sh.
+    #  It will download the requested shell script and execute said function
+    #  in it.
 
     if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
-        $qcmd .= " -iscript_name:string=\"canu.sh\" -icanu_path:string=\"\" \\\n";
-        $qcmd .= " -icanu_iteration:int=" . getGlobal("canuIteration") . " \\\n";
-        $qcmd .= " -icanu_iteration_max:int=" . getGlobal("canuIterationMax") . " \\\n";
+        $qcmd .= " \\\n";
+        $qcmd .= " -ioutput_folder:string=\"" . getGlobal("objectStoreNamespace") . "\" \\\n";
+        $qcmd .= " -iscript_path:string=\"\" \\\n";
+        $qcmd .= " -iscript_name:string=\"canu-executive.sh\" \\\n";
+        $qcmd .= " -icanu_iteration:int="     . getGlobal("canuIteration")        .   " \\\n";
+        $qcmd .= " -icanu_iteration_max:int=" . getGlobal("canuIterationMax")     .   " \\\n";
         $qcmd .= " fetch_and_run \\\n";
-    } else {
+    }
+
+    else {
         $qcmd .= "  $script";
     }
 
-    if (runCommand(getcwd(), $qcmd)) {
-        print STDERR "-- Failed to submit Canu executive.  Delay 10 seconds and try again.\n";
-        sleep(10);
-
-        runCommand(getcwd(), $qcmd) and caFailure("Failed to submit Canu executive", undef);
+    if (runCommand(getcwd(), $qcmd) == 0) {      #  Exit sucessfully if we've submitted
+        exit(0);                                 #  the next part successfully.
     }
 
-    #runCommand(getcwd(), $qcmd) and caFailure("Failed to submit script", undef);
+    print STDERR "-- Failed to submit Canu executive.  Delay 10 seconds and try again.\n";
 
-    exit(0);
+    sleep(10);
+    
+    if (runCommand(getcwd(), $qcmd) == 0) {
+        exit(0);
+    }
+
+    print STDERR "-- Failed to submit Canu executive.  Giving up after two tries.\n";
+
+    exit(1);
 }
 
 
@@ -1016,9 +1027,24 @@ sub buildGridJob ($$$$$$$$$) {
     print F "  $opts \\\n"  if (defined($opts));
     print F "  $nameOption \"$jobName\" \\\n";
     print F "  $arrayOpt \\\n";
-    print F " -- " if (uc(getGlobal("gridEngine")) eq "PBSPRO");
-    print F " -iscript_name:string=\"$script.sh\" -icanu_path:string=\"$path\" fetch_and_run \\\n" if (uc(getGlobal("gridEngine")) eq "DNANEXUS");
-    print F "  `pwd`/$script.sh $arrayOff \\\n"                                                        if (uc(getGlobal("gridEngine")) ne "DNANEXUS");
+
+
+    if (uc(getGlobal("gridEngine")) eq "PBSPRO") {    #  PBSpro needs '--' to tell it to
+        print F " -- ";                               #  stop parsing the command line.
+    }
+
+    #  DNAnexus wants job parameters via options to the submit command;
+    #  everyone else wants the script itself.
+
+    if (uc(getGlobal("gridEngine")) eq "DNANEXUS") {
+        print F "  -ioutput_folder:string=\"" . getGlobal("objectStoreNamespace") . "\" \\\n";
+        print F "  -iscript_path:string=\"$path\" \\\n";
+        print F "  -iscript_name:string=\"$script.sh\" \\\n";
+        print F "  fetch_and_run \\\n";
+    } else {
+        print F "  `pwd`/$script.sh $arrayOff \\\n";
+    }
+
     print F "> ./$script.jobSubmit-$idx.out 2>&1\n";
     close(F);
 
@@ -1472,7 +1498,7 @@ sub runCommand ($$) {
     my $cmd = shift @_;
     my $dis = prettifyCommand($cmd);
 
-    return  if ($cmd eq "");
+    return(0)  if ($cmd eq "");
 
     #  Check if the directory exists.
 
@@ -1638,7 +1664,7 @@ sub caFailure ($$) {
     print STDERR "CRASH:\n";
     print STDERR "CRASH: $version\n";
     print STDERR "CRASH: Please panic, this is abnormal.\n";
-    print STDERR "ABORT:\n";
+    print STDERR "CRASH:\n";
     print STDERR "CRASH:   $msg.\n";
     print STDERR "CRASH:\n";
     print STDERR "CRASH: $trace\n";

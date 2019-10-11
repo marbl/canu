@@ -183,23 +183,25 @@ sub createSequenceStore ($$@) {
 
     if (! -e "./$asm.seqStore.ssi") {
 
-        #  Fetch the reads from the object store.
+        #  If any of the files are links to objects, fetch the object
+        #  to local disk and update the name.
+        #
         #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-        #if (defined(getGlobal("objectStore"))) {
-        #    for (my $ff=0; $ff < scalar(@inputs); $ff++) {
-        #        my ($inType, $inPath, $otPath) = split '\0', $inputs[$ff];
-        #
-        #        $otPath =  $inPath;
-        #        $otPath =~ s!/!_!;
-        #
-        #        fetchObjectStoreFile($inPath, $otPath);
-        #
-        #        $inputs[$ff] = "$inType\0$otPath";
-        #
-        #        print STDERR "$inType -- '$inPath' -> '$otPath'\n";
-        #    }
-        #}
+        for (my $ff=0; $ff < scalar(@inputs); $ff++) {
+            my ($inType, $inPath) = split '\0', $inputs[$ff];
+
+            if ($inPath =~ m/dnanexus:(.*)=(.*)/) {
+                my $link = $1;
+                my $name = $2;
+
+                print STDERR "-- Fetch input file './$name' from object '$link'\n";
+
+                fetchFileFromLink($link, $name);
+
+                $inputs[$ff] = "$inType\0./$name";
+            }
+        }
 
         #  Build a ssi file for all the raw sequence inputs.  For simplicity, we just copy in any
         #  ssi files as is.  This documents what the store was built with, etc.

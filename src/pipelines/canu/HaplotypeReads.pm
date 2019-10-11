@@ -137,19 +137,21 @@ sub haplotypeSplitReads ($$%) {
 
         foreach my $file (@readFiles) {
 
-            #  Fetch the reads from the object store.
+            #  If any of the files are links to objects, fetch the object
+            #  to local disk and update the name.
+            #
             #  A similar blcok is used in SequenceStore.pm and HaplotypeReads.pm (twice).
 
-            #if (defined(getGlobal("objectStore"))) {
-            #    my $inPath = $file;
-            #    my $otPath = $file;
-            #
-            #    $otPath = s!/!_!;
-            #
-            #    fetchObjectStoreFile($inPath, $otPath);
-            #
-            #    $file = $otPath;
-            #}
+            if ($file =~ m/dnanexus:(.*)=(.*)/) {
+                my $link = $1;
+                my $name = $2;
+
+                print STDERR "-- Fetch input file './$name' from object '$link'\n";
+
+                fetchFileFromLink($link, $name);
+
+                $file = "./$name";
+            }
 
             print STDERR "--   <-- '$file'.\n";
             open(INP, "< $file");
