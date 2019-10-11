@@ -485,10 +485,10 @@ sub mmapConfigure ($$$) {
     runCommandSilently($path, "tar -cf queries.tar queries", 1);
 
     makeExecutable("$path/precompute.sh");
-    makeExecutable("$path/mhap.sh");
+    makeExecutable("$path/mmap.sh");
 
     stashFile("$path/precompute.sh");
-    stashFile("$path/mhap.sh");
+    stashFile("$path/mmap.sh");
     stashFile("$path/queries.tar");
 
   finishStage:
