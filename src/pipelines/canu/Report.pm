@@ -120,7 +120,7 @@ sub saveReport ($) {
     my $asm = shift @_;
     my $tag;
 
-    open(F, "> $asm.report") or caExit("can't open '$asm.report' for writing: $!", undef);
+    open(F, "> $asm.report.new") or caExit("can't open '$asm.report.new' for writing: $!", undef);
 
     saveReportItem("CORRECTION/READS",       $report{"corSeqStore"});
     saveReportItem("CORRECTION/MERS",        $report{"corMeryl"});
@@ -143,7 +143,49 @@ sub saveReport ($) {
 
     close(F);
 
-    stashFile("$asm.report");
+    my $diff = -1;
+
+    if (-e "$asm.report") {
+        open(OLD, "< $asm.report");
+        open(NEW, "< $asm.report.new");
+
+        $diff = 0;
+
+        while (!eof(OLD) || !eof(NEW)) {
+            my $old = <OLD>;
+            my $new = <NEW>;
+
+            if ($old ne $new) {
+                $diff++;
+            }
+        }
+
+        close(OLD);
+        close(NEW);
+    }
+
+
+    if ($diff < 0) {
+        print STDERR "-- New report created.\n";
+
+        rename "$asm.report.new", "$asm.report";
+        stashFile("$asm.report");
+    }
+
+    elsif ($diff == 0) {
+        print STDERR "-- No change in report.\n";
+
+        unlink "$asm.report.new";
+    }
+
+    else {
+        print STDERR "-- Report changed.\n";
+
+        unlink "$asm.report";
+        rename "$asm.report.new", "$asm.report";
+
+        stashFile("$asm.report");
+    }
 }
 
 

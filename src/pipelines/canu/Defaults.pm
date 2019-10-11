@@ -588,6 +588,13 @@ sub addSequenceFile ($$@) {
         return(undef);
     }
 
+    #  If a DNAnexus link, as created by dx-canu/src/canu-job-launcher.sh, accept the file.
+    #  We'll grab the file when it's needed.
+    #     dnanexus:file-Ac36P534JbZvV2Gd1979x5Qv=reads.fasta.gz
+    if ($file =~ m/^dnanexus:.*=.*$/) {
+        return($file);
+    }
+
     #  If $dir is defined, assume the file is relative to it.
     if (defined($dir)) {
         $file = "$dir/$file";
@@ -601,28 +608,6 @@ sub addSequenceFile ($$@) {
     #  If the file exists, possibly in a relative path, make it a full path.
     if (-e $file) {
         return(abs_path($file));
-    }
-
-    #  If the file exists in object storage, accept it as is.  Well, except
-    #  we can't test this until we complete setup -- in particular, until we
-    #  setup grids -- but we can't do that until we parse the command line,
-    #  and we can't parse the command line without deciding if a parameter
-    #  is a file or an option!
-    #
-    #  So, the best we can do is test if this file _looks_ like it might
-    #  be a pointer to one in an object store.  This must be done _after_
-    #  we try making relative paths into full paths above, otherwise
-    #  we don't find full paths for files with :'s in the name!
-
-    #if (objectStoreFileExists($file)) {
-    #    return($file);
-    #}
-
-    if ($file =~ m/^project-.*:file-\w+/) {
-        return($file);
-    }
-    if ($file =~ m/^\w+:\w+/) {
-        return($file);
     }
 
     #  Otherwise, not found.  Report an error, unless told not to.  This is
@@ -1584,27 +1569,6 @@ sub checkParameters () {
         (getGlobal("useGrid") ne "1") &&
         (getGlobal("useGrid") ne "remote")) {
         addCommandLineError("ERROR:  Invalid 'useGrid' specified (" . getGlobal("useGrid") . "); must be 'true', 'false' or 'remote'\n");
-    }
-
-
-    if ((getGlobal("objectStore") ne "") &&
-        (getGlobal("objectStore") ne "TEST") &&
-        (getGlobal("objectStore") ne "DNANEXUS")) {
-        addCommandLineError("ERROR:  Invalid 'objectStore' specified (" . getGlobal("objectStore") . "); must be unset or 'DNANEXUS'\n");
-    }
-
-    if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClient")))) {
-        addCommandLineError("ERROR:  objectStoreClient must be specified if objectStore is specified\n");
-    }
-    if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClientUA")))) {
-        setGlobal("objectStoreClientUA", getGlobal("objectStoreClient"));
-    }
-    if ((defined(getGlobal("objectStore"))) && (!defined(getGlobal("objectStoreClientDA")))) {
-        setGlobal("objectStoreClientDA", getGlobal("objectStoreClient"));
-    }
-
-    if ((getGlobal("objectStore") eq "DNANEXUS") && (!defined(getGlobal("objectStoreProject")))) {
-        addCommandLineError("ERROR:  objectStoreProject must be specified if objectStore=DNANEXUS is specified\n");
     }
 
 

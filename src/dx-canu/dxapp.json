@@ -1,13 +1,28 @@
 {
-  "name": "canu",
-  "title": "canu",
+  "name": "dx-canu",
+  "title": "Canu",
   "summary": "A single molecule sequence assembler for genomes large and small (http://canu.readthedocs.io/)",
   "dxapi": "1.0.0",
   "version": "1.0.0",
   "inputSpec": [
     {
-      "name": "input_files",
-      "label": "input sequences to assemble (fasta or fastq) (gz/bz2/xz are ok)",
+      "name": "genome_size",
+      "label": "Approximate size of genome (suffixes 'k' (kilobases) 'm' (megabases) and 'g' (gigabases) are supported",
+      "class": "string",
+      "optional": false,
+      "help": ""
+    },
+    {
+      "name": "read_type",
+      "label": "Type of read data",
+      "class": "string",
+      "optional": false,
+      "choices": ["-pacbio-raw", "-pacbio-corrected", "-nanopore-raw", "-nanopore-corrected"],
+      "help": ""
+    },
+    {
+      "name": "read_files",
+      "label": "Reads to assemble(fasta or fastq) (uncompressed, gz, bz2 or xz)",
       "class": "array:file",
       "optional": false,
       "patterns": [
@@ -16,18 +31,14 @@
       "help": ""
     },
     {
-      "name": "input_type",
-      "label": "input type to assemble, only one type is supported",
+      "name": "output_folder",
+      "label": "Folder to use for intermediate and output files, must start with /",
       "class": "string",
+      "default": "/assembly",
       "optional": false,
-      "choices": ["-pacbio-raw", "-pacbio-corrected", "-nanopore-raw", "-nanopore-corrected"],
-      "help": ""
-    },
-    {
-      "name": "genome_size",
-      "label": "Approximate size of genome, suffixes like k/m/g are supported",
-      "class": "string",
-      "optional": false,
+      "patterns": [
+        "/*"
+      ],
       "help": ""
     },
     {
@@ -55,15 +66,15 @@
     ],
     "timeoutPolicy": {
       "*": {
-        "hours": 72
+        "hours": 120
       }
     },
     "restartableEntryPoints": "all", 
     "interpreter": "bash",
-    "file": "src/canu.sh",
+    "file": "src/canu-job-launcher.sh",
     "executionPolicy": {"restartOn": {"*": 2}},
     "distribution": "Ubuntu",
-    "release": "14.04"
+    "release": "16.04"
   },
   "access": {
     "project": "CONTRIBUTE",
@@ -82,7 +93,7 @@
     "aws:us-east-1": {
       "systemRequirements": {
         "*": {
-          "instanceType": "mem1_ssd2_x36"
+          "instanceType": "mem1_ssd1_x8"
         }
       }
     }

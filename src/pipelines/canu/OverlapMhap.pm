@@ -332,9 +332,13 @@ sub mhapConfigure ($$$) {
     print F "  exit\n";
     print F "fi\n";
     print F "\n";
-    print F "#  Remove any previous result.\n";
-    print F "rm -f ./blocks/\$job.input.dat\n";
+    print F "#  Grab the kmers.ignore.gz file.\n";
+    print F "mkdir -p ../0-mercounts/\n";
+    print F "cd       ../0-mercounts/\n";
+    print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.ignore.gz", "");
+    print F "cd -\n";
     print F "\n";
+    print F "#  Extract the sequences we want to compute on.\n";
     print F "\$bin/sqStoreDumpFASTQ \\\n";
     print F "  -S ../../$asm.seqStore \\\n";
     print F "  \$rge \\\n";
@@ -345,17 +349,17 @@ sub mhapConfigure ($$$) {
     print F "|| \\\n";
     print F "mv -f ./blocks/\$job.input.fasta ./blocks/\$job.input.fasta.FAILED\n";
     print F "\n";
-    print F "\n";
     print F "if [ ! -e ./blocks/\$job.input.fasta ] ; then\n";
     print F "  echo Failed to extract fasta.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.ignore.gz", "");
-    print F "\n";
     print F "echo \"\"\n";
     print F "echo Starting mhap precompute.\n";
     print F "echo \"\"\n";
+    print F "\n";
+    print F "#  Remove any previous result.\n";
+    print F "rm -f ./blocks/\$job.input.dat\n";
     print F "\n";
     print F "#  So mhap writes its output in the correct spot.\n";
     print F "cd ./blocks\n";
@@ -375,7 +379,7 @@ sub mhapConfigure ($$$) {
     print F "  --min-olap-length ", getGlobal("minOverlapLength"), " \\\n";
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
-    print F "  -f $cygA ../../0-mercounts/$asm.ms$merSize.ignore.gz $cygB \\\n"   if (-e "$base/0-mercounts/$asm.ms$merSize.ignore.gz");
+    print F "  -f $cygA ../../0-mercounts/$asm.ms$merSize.ignore.gz $cygB \\\n"   if (fileExists("$base/0-mercounts/$asm.ms$merSize.ignore.gz"));
     print F "  -p $cygA ./\$job.input.fasta $cygB \\\n";
     print F "  -q $cygA . $cygB \\\n";
     print F "&& \\\n";
@@ -462,10 +466,6 @@ sub mhapConfigure ($$$) {
     print F    fetchFileShellCode("$path", "blocks/\$ii", "  ");
     print F "done\n";
     print F "\n";
-
-    print F fetchFileShellCode("$base/0-mercounts", "$asm.ms$merSize.frequentMers.ignore.gz", "");
-    print F "\n";
-
 
     print F "echo \"\"\n";
     print F "echo Running block \$blk in query \$qry\n";

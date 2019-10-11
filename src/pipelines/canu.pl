@@ -396,7 +396,7 @@ configureSlurm();
 configurePBSTorque();
 configureLSF();
 configureRemote();
-configureCloud($asm);
+configureCloud($asm, $rootdir);
 configureDNANexus();
 
 #  Set jobs sizes based on genomeSize and available hosts;

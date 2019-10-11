@@ -38,21 +38,22 @@ require Exporter;
 
 @ISA    = qw(Exporter);
 @EXPORT = qw(configureCloud
-    fileExists           fileExistsShellCode
-    objectStoreFileExists
-    renameStashedFile
-    removeStashedFile
-    fetchFile            fetchFileShellCode
-    fetchObjectStoreFile fetchObjectStoreFileShellCode
-    stashFile            stashFileShellCode
-    fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
-    fetchOvlStore        fetchOvlStoreShellCode
-    fetchTigStore        fetchTigStoreShellCode
-    stashSeqStore
-    stashSeqStorePartitions
-    stashOvlStore        stashOvlStoreShellCode
-    stashMeryl           stashMerylShellCode
-    fetchMeryl           fetchMerylShellCode);
+             fileExists           fileExistsShellCode
+             objectStoreFileExists
+             renameStashedFile
+             removeStashedFile
+             fetchFile            fetchFileShellCode
+             fetchFileFromLink
+             stashFile            stashFileShellCode
+                                  stashFilesShellCode         
+             fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
+             fetchOvlStore        fetchOvlStoreShellCode
+             fetchTigStore        fetchTigStoreShellCode
+             stashSeqStore
+             stashSeqStorePartitions
+             stashOvlStore        stashOvlStoreShellCode
+             stashMeryl           stashMerylShellCode
+             fetchMeryl           fetchMerylShellCode);
 
 use strict;
 use warnings "all";
@@ -86,12 +87,69 @@ sub isOS () {
     return($os);
 }
 
+sub sanitizeName ($) {
+    my $name = shift @_;
+
+    $name =~ s!/\./!/!g;
+    $name =~ s!//!/!g;
+
+    return($name);
+}
 
 
-sub configureCloud ($) {
+
+sub configureCloud ($$) {
     my $asm = shift @_;
+    my $dir = shift @_;
 
-    setGlobalIfUndef("objectStoreNameSpace", $asm);
+    #  If no object store defined, nothing to do here.
+
+    if (!defined(getGlobal("objectStore"))) {
+        return;
+    }
+
+    #  The 'namespace' is just our output directory.
+
+    setGlobalIfUndef("objectStoreNameSpace", $dir);
+
+    #  Pull any object store environment out of the environment.  These
+    #  explicitly overwrite any current setting as its what the last
+    #  execution of canu said they were.
+    #
+    #  These are set in canu-scripts/canu.##.sh.
+
+    if (defined($ENV{"CANU_OBJECT_STORE_CLIENT"}))      { setGlobal("objectStoreClient",    $ENV{"CANU_OBJECT_STORE_CLIENT"});    }
+    if (defined($ENV{"CANU_OBJECT_STORE_CLIENT_UA"}))   { setGlobal("objectStoreClientUA",  $ENV{"CANU_OBJECT_STORE_CLIENT_UA"}); }
+    if (defined($ENV{"CANU_OBJECT_STORE_CLIENT_DA"}))   { setGlobal("objectStoreClientDA",  $ENV{"CANU_OBJECT_STORE_CLIENT_DA"}); }
+    if (defined($ENV{"CANU_OBJECT_STORE_PROJECT"}))     { setGlobal("objectStoreProject",   $ENV{"CANU_OBJECT_STORE_PROJECT"});   }
+    if (defined($ENV{"CANU_OBJECT_STORE_NAMESPACE"}))   { setGlobal("objectStoreNameSpace", $ENV{"CANU_OBJECT_STORE_NAMESPACE"}); }
+
+    #  Fix up parameters, check for missing and/or invalid settings.
+
+    if ((getGlobal("objectStore") ne "TEST") &&
+        (getGlobal("objectStore") ne "DNANEXUS")) {
+        addCommandLineError("ERROR:  Invalid 'objectStore' specified (" . getGlobal("objectStore") . "); must be unset or 'DNANEXUS'\n");
+    }
+
+    if (!defined(getGlobal("objectStoreClient"))) {
+        addCommandLineError("ERROR:  objectStoreClient must be specified if objectStore is specified\n");
+    }
+
+    #  If no upload or download agents, default to the client.
+
+    if (!defined(getGlobal("objectStoreClientUA"))) {
+        setGlobal("objectStoreClientUA", getGlobal("objectStoreClient"));
+    }
+    if (!defined(getGlobal("objectStoreClientDA"))) {
+        setGlobal("objectStoreClientDA", getGlobal("objectStoreClient"));
+    }
+
+    #  DNAnexus needs a project too.
+
+    if (( getGlobal("objectStore") eq "DNANEXUS") &&
+        (!defined(getGlobal("objectStoreProject")))) {
+        addCommandLineError("ERROR:  objectStoreProject must be specified if objectStore=DNANEXUS is specified\n");
+    }
 
     #  The seqStore and ovlStore use these to pull data files directly
     #  from cloud storage.  Right now, it's hard coded to use a 'dx' like
@@ -101,8 +159,16 @@ sub configureCloud ($) {
     $ENV{"CANU_OBJECT_STORE_CLIENT"}    = getGlobal("objectStoreClient");
     $ENV{"CANU_OBJECT_STORE_CLIENT_UA"} = getGlobal("objectStoreClientUA");
     $ENV{"CANU_OBJECT_STORE_CLIENT_DA"} = getGlobal("objectStoreClientDA");
-    $ENV{"CANU_OBJECT_STORE_NAMESPACE"} = getGlobal("objectStoreNameSpace");
     $ENV{"CANU_OBJECT_STORE_PROJECT"}   = getGlobal("objectStoreProject");
+    $ENV{"CANU_OBJECT_STORE_NAMESPACE"} = getGlobal("objectStoreNameSpace");
+
+    print STDERR "--\n";
+    print STDERR "-- Object storage enabled!  Using:\n";
+    print STDERR "--   CANU_OBJECT_STORE_CLIENT     = '", getGlobal("objectStoreClient"),    "'\n";
+    print STDERR "--   CANU_OBJECT_STORE_CLIENT_UA  = '", getGlobal("objectStoreClientUA"),  "'\n";
+    print STDERR "--   CANU_OBJECT_STORE_CLIENT_DA  = '", getGlobal("objectStoreClientDA"),  "'\n";
+    print STDERR "--   CANU_OBJECT_STORE_PROJECT    = '", getGlobal("objectStoreProject"),   "'\n";
+    print STDERR "--   CANU_OBJECT_STORE_NAMESPACE  = '", getGlobal("objectStoreNameSpace"), "'\n";
 }
 
 
@@ -116,18 +182,19 @@ sub configureCloud ($) {
 #
 
 sub fileExists ($@) {
-    my $file     = shift @_;
-    my $nonLocal = shift @_;
     my $dx       = getGlobal("objectStoreClient");
     my $ns       = getGlobal("objectStoreNameSpace");
     my $pr       = getGlobal("objectStoreProject");
+    my $file     = shift @_;
+    my $link     = sanitizeName("$pr:$ns/$file");
+    my $nonLocal = shift @_;
 
     return(1)   if ((-e $file) && (!defined($nonLocal)));   #  If file exists, it exists.
 
     my $exists = "";
 
     if (isOS() eq "DNANEXUS") {
-        $exists = `$dx describe --name \"$pr:$ns/$file\"`;
+        $exists = `$dx describe --name \"$link\" 2> /dev/null`;
     }
 
     $exists =~ s/^\s+//;
@@ -141,15 +208,15 @@ sub fileExists ($@) {
 #  Test if the file exists in object storage.  This is just fileExists(),
 #  removing the canu namespace and path.
 sub objectStoreFileExists ($) {
-    my $path     = shift @_;
     my $dx       = getGlobal("objectStoreClient");
     my $ns       = getGlobal("objectStoreNameSpace");
     my $pr       = getGlobal("objectStoreProject");
+    my $path     = santizeName(shift @_);
 
     my $exists   = "";
 
     if (isOS() eq "DNANEXUS") {
-        $exists = `$dx describe --name \"$path\"`;
+        $exists = `$dx describe --name \"$path\" 2> /dev/null`;
     }
 
     $exists =~ s/^\s+//;
@@ -161,19 +228,19 @@ sub objectStoreFileExists ($) {
 
 
 sub fileExistsShellCode ($$$@) {
+    my $dx     = getGlobal("objectStoreClient");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
     my $var    = shift @_;
     my $path   = shift @_;
     my $file   = shift @_;
     my $indent = shift @_;
-    my $dx     = getGlobal("objectStoreClient");
-    my $ns     = getGlobal("objectStoreNameSpace");
-    my $pr     = getGlobal("objectStoreProject");
     my $code   = "";
 
     if (isOS() eq "DNANEXUS") {
         $code .= "\n";
         $code .= "${indent}if [ ! -e $file ] ; then\n";
-        $code .= "${indent}  $var=`$dx describe --name \"$pr:$ns/$path/$file\"`\n";
+        $code .= "${indent}  $var=`$dx describe --name \"$pr:$ns/$path/$file\" 2> /dev/null`\n";
         $code .= "${indent}fi\n";
         $code .= "${indent}if [ -e $file -o x\$$var != x ] ; then\n";
         $code .= "${indent}  $var=true\n";
@@ -196,16 +263,18 @@ sub fileExistsShellCode ($$$@) {
 
 
 sub renameStashedFile ($$) {
-    my $oldname = shift @_;
-    my $newname = shift @_;
     my $dx      = getGlobal("objectStoreClient");
     my $ns      = getGlobal("objectStoreNameSpace");
     my $pr      = getGlobal("objectStoreProject");
+    my $oldname = shift @_;
+    my $newname = shift @_;
+    my $oldlink = sanitizeName("$pr:$ns/$oldname");
+    my $newlink = sanitizeName("$pr:$ns/$newname");
 
     if (isOS() eq "DNANEXUS") {
-        print STDERR "renameStashedFile()-- \"$ns/$oldname\" -> \"$ns/$newname\"\n"   if ($showWork);
+        print STDERR "-- Rename storage object '$oldlink' -> '$newlink'\n"   if ($showWork);
 
-        if (runCommandSilently(".", "$dx mv \"$pr:$ns/$oldname\" \"$pr:$ns/$newname\"", 1)) {
+        if (runCommandSilently(".", "$dx mv \"$oldlink\" \"$newlink\"", 1)) {
             caExit("failed to rename object store file", undef);
         }
     }
@@ -214,17 +283,18 @@ sub renameStashedFile ($$) {
 
 
 sub removeStashedFile ($) {
-    my $name    = shift @_;
     my $dx      = getGlobal("objectStoreClient");
     my $ns      = getGlobal("objectStoreNameSpace");
     my $pr      = getGlobal("objectStoreProject");
+    my $name    = shift @_;
+    my $link    = sanitizeName("$pr:$ns/$name");
 
     return   if (! fileExists("$name", 1));
 
     if (isOS() eq "DNANEXUS") {
-        print STDERR "removeStashedFile()-- $ns/$name'\n"   if ($showWork);
+        print STDERR "-- Remove storage object '$link'\n"   if ($showWork);
 
-        if (runCommandSilently(".", "$dx rm --recursive \"$pr:$ns/$name\"", 1)) {
+        if (runCommandSilently(".", "$dx rm --recursive \"$link\"", 1)) {
             caExit("failed to remove object store file", undef);
         }
     }
@@ -234,13 +304,22 @@ sub removeStashedFile ($) {
 
 #  Runs from the assembly root directory.
 sub stashFile ($) {
-    my $pathname = shift @_;
-    my $path     = dirname($pathname);
-    my $name     = basename($pathname);
     my $dx       = getGlobal("objectStoreClient");
     my $ua       = getGlobal("objectStoreClientUA");
     my $ns       = getGlobal("objectStoreNameSpace");
     my $pr       = getGlobal("objectStoreProject");
+    my $pathname = shift @_;
+    my $path     = dirname($pathname);
+    my $name     = basename($pathname);
+    my $link;
+
+    if ($path eq ".") {
+        $link = sanitizeName("$pr:$ns/$name");
+        $path = sanitizeName("$ns");
+    } else { 
+        $link = sanitizeName("$pr:$ns/$path/$name");
+        $path = sanitizeName("$ns/$path");
+    }
 
     my $retries  = 5;    #  Try a few times to upload the file.   (also set in stashFileShellCode())
     my $delay    = 10;   #  Wait a little bit before retrying.
@@ -248,45 +327,93 @@ sub stashFile ($) {
     return   if (! -e $pathname);
 
     if (isOS() eq "DNANEXUS") {
-        print STDERR "stashFile()-- '$pathname' to project '$pr' namespace '$ns' path '$path' name '$name'.\n"   if ($showWork);
+        print STDERR "-- Store '$pathname' to storage object '$link'.\n"   if ($showWork);
 
-        if (runCommandSilently(".", "$dx rm --recursive \"$pr:$ns/$path/$name\"", 1)) {
-            caExit("failed to remove object store file", undef);
+        #  If the filename exists, remove it before uploading.
+        if (fileExists($pathname, 1)) {
+            if (runCommandSilently(".", "$dx rm --recursive \"$link\"", 1)) {
+                caExit("failed to remove object store file", undef);
+            }
         }
 
         #  Try a couple of times to upload the file.  If the UA fails, delay a bit and retry.
         while (($retries > 0) &&
-               (runCommandSilently(".", "$ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$ns/$path/\" --name \"$name\" \"$pathname\"", 0))) { 
+               (runCommandSilently(".", "$ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$path/\" --name \"$name\" \"$pathname\"", 0))) { 
             $retries--;
             print STDERR "stashFile()-- Failed to stash file '$pathname', wait $delay seconds and try again ($retries times left).\n";
             sleep($delay);
         }
 
         if ($retries == 0) {
-            caExit("failed to upload file '$pathname' to object store '$pr:$ns/$path/$name'", undef);
+            caExit("failed to upload file '$pathname' to object store '$link'", undef);
         }
     }
 }
 
 
-#  Runs from the assembly root directory.
+#  Fetches a file from object storage with '$pathname' relative to the
+#  assembly root directory.  Expects to be called from that same directory -
+#  no big deal, since most of not all of Canu is run from that directory.
+#
+#  This function only fails if the download fails.
+#
+#  It succeeds if the file does not exist in object storage.  Client code can
+#  therefore attempt to fetch a file from the store, and create/compute it if
+#  it then still doesn't exist locally.
+#
 sub fetchFile ($) {
-    my $pathname = shift @_;
-    my $path     = dirname($pathname);
-    my $name     = basename($pathname);
     my $dx       = getGlobal("objectStoreClient");
     my $da       = getGlobal("objectStoreClientDA");
     my $ns       = getGlobal("objectStoreNameSpace");
     my $pr       = getGlobal("objectStoreProject");
+    my $pathname = shift @_;
+    my $path     = dirname($pathname);
+    my $name     = basename($pathname);
+    my $link;
+
+    if ($path eq ".") {
+        $link = sanitizeName("$pr:$ns/$name");
+    } else { 
+        $link = sanitizeName("$pr:$ns/$path/$name");
+    }
 
     return   if (-e $pathname);                 #  If it exists, we don't need to fetch it.
     return   if (! fileExists($pathname, 1));   #  If it doesn't exist in the store, we don't fetch it either.  Because it doesn't exist.
 
     if (isOS() eq "DNANEXUS") {
-        print STDERR "fetchFile()-- from project '$pr' path '$path' name '$name' -> '$pathname'\n"   if ($showWork);
+        print STDERR "-- Fetch '$pathname' from storage object '$link'.\n"   if ($showWork);
+
+        if (! -d "$path") {
+            print STDERR "--   Make path '$path'\n";
+            make_path($path);
+        }
+
+        if (runCommandSilently(".", "$da download --output \"$pathname\" \"$link\"", 1)) {
+            caExit("failed to download file from object store", undef);
+        }
+    }
+}
+
+#  Runs from the assembly root directory.
+sub fetchFileFromLink ($$) {
+    my $dx       = getGlobal("objectStoreClient");
+    my $da       = getGlobal("objectStoreClientDA");
+    my $ns       = getGlobal("objectStoreNameSpace");
+    my $pr       = getGlobal("objectStoreProject");
+    my $link     = shift @_;
+    my $file     = shift @_;
+    my $path     = dirname($file);
+
+    return   if (-e $file);                 #  If it exists, we don't need to fetch it.
+    return   if (! fileExists($link, 1));   #  If it doesn't exist in the store, we don't fetch it either.  Because it doesn't exist.
+
+    #  'dx describe --name file-Ff12PPQ0JbZVfKvK98zYKX17' will return the name too.
+
+    if (isOS() eq "DNANEXUS") {
+        print STDERR "-- Fetch '$file' from storage object '$link'.\n"   if ($showWork);
         make_path($path);
 
-        if (runCommandSilently(".", "$da download --output \"$pathname\" \"$pr:$ns/$path/$name\"", 1)) {
+        if (runCommandSilently(".", "$da download --output \"$file\" \"$link\"", 1)) {
             caExit("failed to download file from object store", undef);
         }
     }
@@ -299,17 +426,24 @@ sub fetchFile ($) {
 #  $path is the path to the file in object storage.
 #
 sub stashFileShellCode ($$$) {
-    my $path   = shift @_;     #  Path, relative to assembly root, of where we are called from.
-    my $file   = shift @_;     #  Name of the file to stash, in current directory.
-    my $indent = shift @_;
     my $dx     = getGlobal("objectStoreClient");
     my $ua     = getGlobal("objectStoreClientUA");
     my $ns     = getGlobal("objectStoreNameSpace");
     my $pr     = getGlobal("objectStoreProject");
+    my $path   = shift @_;     #  Path, relative to assembly root, of where we are called from.
+    my $file   = shift @_;     #  Name of the file to stash, in current directory.
+    my $indent = shift @_;
     my $code   = "";
 
-    my $retries  = 5;    #  Try a few times to upload the file.   (also set in stashFile())
-    my $delay    = 10;   #  Wait a little bit before retrying.
+    #  Not currently used by grid jobs, untested.
+    #
+    #if ($path eq ".") {
+    #    $link = sanitizeName("$pr:$ns/$name");
+    #    $path = sanitizeName("$ns");
+    #} else { 
+    #    $link = sanitizeName("$pr:$ns/$path/$name");
+    #    $path = sanitizeName("$ns/$path");
+    #}
 
     if (isOS() eq "DNANEXUS") {
         $code .= "\n";
@@ -343,21 +477,89 @@ sub stashFileShellCode ($$$) {
 }
 
 
-#  Runs from the directory where 'file' exists; $file CANNOT have path components.
-sub fetchFileShellCode ($$$) {
-    my $path   = shift @_;     #  Path, relative to assembly root, of where we are called from.
-    my $name   = shift @_;     #  Name of the file to stash, in current directory.
+sub stashFilesShellCode ($$$) {
+    my $dx     = getGlobal("objectStoreClient");
+    my $ua     = getGlobal("objectStoreClientUA");
+    my $ns     = getGlobal("objectStoreNameSpace");
+    my $pr     = getGlobal("objectStoreProject");
+    my $folder = shift @_;     #  Path to store files in.
+    my $files  = shift @_;     #  Glob of files to store, in current directory.
     my $indent = shift @_;
+    my $code   = "";
+
+    #  Upload a set of files to a directory.  The directory, and all files in
+    #  it, is ALWAYS REMOVED from the object store before new files are
+    #  uploaded.
+
+    #  DO NOT quote "$files" below.  It could be a glob, or a list of
+    #  multiple files.  If a glob, the quotes will prevent it from expanding.
+    #  If multiple files, the quotes will make it one string.
+
+    if (isOS() eq "DNANEXUS") {
+        $code .= "\n";
+        $code .= "${indent}  $dx rm --recursive \"$pr:$ns/$folder/\"\n";
+        $code .= "\n";
+        $code .= "${indent}retries=$retryCount\n";
+        $code .= "${indent}while [ \$retries -gt 0 ] && \\\n";
+        $code .= "${indent}      ! $ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$ns/$folder/\" $files ; do\n";
+        $code .= "${indent}  retries=`expr \$retries - 1`\n";
+        $code .= "${indent}  echo \"Failed to stash files '$files', wait $retryDelay seconds and try again (\$retries times left).\"\n";
+        $code .= "${indent}  sleep $retryDelay\n";
+        $code .= "${indent}done\n";
+        $code .= "${indent}if [ \$retries -eq 0 ] ; then\n";
+        $code .= "${indent}  echo \"Failed to stash files '$files', removing incomplete copy in '$pr:$ns/$folder/'.\"\n";
+        $code .= "${indent}  $dx rm --recursive \"$pr:$ns/$folder/\"\n";
+        $code .= "${indent}  exit 1\n";
+        $code .= "${indent}fi\n";
+        $code .= "\n";
+    }
+
+    return($code);
+}
+
+
+#  Fetch an objet store file '$path/$name' and place it at './$name'.
+#
+#  It is up to the caller to set the working directory BEFORE calling this
+#  function.  Usually, the current directory is correctly set as is.
+#
+#  Occasionally, for example in overlapper, the native directory is
+#  'trimming/1-overlapper/` but we need to fetch file
+#  `trimming/0-mercounts/assembly.ms22.ignore.gz`:
+#    cd ../0-mercounts
+#    fetchFileShellCode("trimming/0-mercounts", "assembly.ms22.ignore.gz")
+#    cd -
+#
+#  Or we can fetch files in subdirectories.  The 'blocks/' directory will be
+#  created if needed.
+#    fetchFileShellCode("correction/1-overlapper", "blocks/0001.dat")
+#
+#  Not that this DOES NOT fail if the file doesn't exist in object storage.
+#  It is therefore possible to blindly fetch a file, then do something
+#  depending on if the file now exists or not.
+#
+sub fetchFileShellCode ($$$) {
     my $dx     = getGlobal("objectStoreClient");
     my $da     = getGlobal("objectStoreClientDA");
     my $ns     = getGlobal("objectStoreNameSpace");
     my $pr     = getGlobal("objectStoreProject");
+    my $path   = shift @_;     #  Path, relative to assembly root, of where we are called from.
+    my $name   = shift @_;     #  Name of the file to fetch, in current directory.
+    my $link;
+    my $indent = shift @_;
     my $code   = "";
+
+    if ($path eq ".") {
+        $link = sanitizeName("$pr:$ns/$name");
+    } else { 
+        $link = sanitizeName("$pr:$ns/$path/$name");
+    }
 
     if (isOS() eq "DNANEXUS") {
         $code .= "\n";
         $code .= "${indent}if [ ! -e \"./$name\" ] ; then\n";
-        $code .= "${indent}  $da download --output \"./$name\" \"$pr:$ns/$path/$name\"\n";
+        $code .= "${indent}  mkdir -p `dirname \"./$name\"`\n";
+        $code .= "${indent}  $da download --output \"./$name\" \"$link\"\n";
         $code .= "${indent}fi\n";
     }
 
@@ -604,6 +806,16 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "fi\n";
         $code .= "\n";
         $code .= "#\n";
+        $code .= "#  Upload data files.\n";
+        $code .= "#\n";
+        $code .= "\n";
+        $code .= "cd $asm.ovlStore\n";
+        $code .= "\n";
+        $code .= stashFilesShellCode("$base/$asm.ovlStore", "????\\<???\\>", "");
+        $code .= "\n";
+        $code .= "cd ..\n";
+        $code .= "\n";
+        $code .= "#\n";
         $code .= "#  Upload the metadata files.  These shouldn't exist, so we don't bother trying to remove before uploading.\n";
         $code .= "#\n";
         $code .= "\n";
@@ -757,16 +969,8 @@ sub stashMerylShellCode ($$$) {
         $code .= "\n";
         $code .= "${indent}  cd $name\n";
         $code .= "\n";
-        $code .= "${indent}  for ff in 0x000000 0x000001 0x000010 0x000011 0x000100 0x000101 0x000110 0x000111 \\\n";
-        $code .= "${indent}            0x001000 0x001001 0x001010 0x001011 0x001100 0x001101 0x001110 0x001111 \\\n";
-        $code .= "${indent}            0x010000 0x010001 0x010010 0x010011 0x010100 0x010101 0x010110 0x010111 \\\n";
-        $code .= "${indent}            0x011000 0x011001 0x011010 0x011011 0x011100 0x011101 0x011110 0x011111 \\\n";
-        $code .= "${indent}            0x100000 0x100001 0x100010 0x100011 0x100100 0x100101 0x100110 0x100111 \\\n";
-        $code .= "${indent}            0x101000 0x101001 0x101010 0x101011 0x101100 0x101101 0x101110 0x101111 \\\n";
-        $code .= "${indent}            0x110000 0x110001 0x110010 0x110011 0x110100 0x110101 0x110110 0x110111 \\\n";
-        $code .= "${indent}            0x111000 0x111001 0x111010 0x111011 0x111100 0x111101 0x111110 0x111111 ; do\n";
-        $code .= stashFileShellCode("$path/$name", "\$ff.merylData", "${indent}    ");
-        $code .= "${indent}  done\n";
+        $code .= stashFilesShellCode("$path/$name", "0x??????.merylData", "${indent}  ");
+        $code .= "\n";
         $code .= "${indent}  cd -\n";
         $code .= "${indent}fi\n";
     }
