@@ -246,13 +246,14 @@ fetchFromObjectStore(char *requested) {
 
   //  Then report what's going on.
 
-  fprintf(stderr, "fetchFromObjectStore()-- fetching '%s' from '%s'\n", requested, object);
+  fprintf(stderr, "fetchFromObjectStore()-- fetching file '%s'\n", requested);
+  fprintf(stderr, "fetchFromObjectStore()--   from object '%s'\n", object);
 
   //  Build up a command we can execute after forking.
 
-  char *args[8];
+  char  *args[8];
 
-  args[0] = "da";  //  technically should be the last component of 'da'
+  args[0] = basename(da);
   args[1] = "download";
   args[2] = "--overwrite";
   args[3] = "--no-progress";
@@ -261,21 +262,16 @@ fetchFromObjectStore(char *requested) {
   args[6] = object;
   args[7] = NULL;
 
-  //  Fork, run the command or wait for the command to finish.
+  //  Fork and run the child command if we're the child.  Normally, evecve()
+  //  doesn't return (because it obliterated the process it could return to).
+  //  If it does return, an error occurred, so we just go BOOM too.  As per
+  //  the manpage, _exit() MUST be used instead of exit(), so that
+  //  stdin/out/err are left intact.
+  //
+  //  vfork() is dangerous.  If we're the child, all we're allowed to do
+  //  after the call is execve() or _exit().  Absolutely nothing else.
 
-  int32 pid = vfork();
-  int32 err = 0;
-
-  //  Fail if vfork() fails.
-
-  if (pid == -1)
-    fprintf(stderr, "fetchFromObjectStore()-- vfork() failed with error '%s'.\n", strerror(errno));
-
-  //  Run the child command if we're the child.  Normally, evecve() doesn't
-  //  return (because it obliterated the process it could return to).  If it
-  //  does return, an error occurred, so we just go BOOM too.  As per the
-  //  manpage, _exit() MUST be used instead of exit(), so that stdin/out/err are
-  //  left intact.
+  pid_t pid = vfork();
 
   if (pid == 0) {
     execve(da, args, environ);
@@ -283,19 +279,25 @@ fetchFromObjectStore(char *requested) {
     _exit(127);
   }
 
-  //  Otherwise, we're still the parent, so wait for the (-1 == any) child
-  //  process to terminate.
+  if (pid == -1)
+    fprintf(stderr, "fetchFromObjectStore()-- vfork() failed with error '%s'.\n", strerror(errno)), exit(1);
 
-  waitpid(-1, &err, WEXITED);
+  //  Otherwise, we're still the parent; wait for the child process to
+  //  terminate.
 
-  if ((WIFEXITED(err)) &&
-      (WEXITSTATUS(err) == 127))
-    fprintf(stderr, "fetchFromObjectStore()-- failed to execve() 'da'.\n"), exit(1);
+  int   status = 0;
+  pid_t wid    = waitpid(pid, &status, 0);
 
-  //  Make sure that we actually grabbed the file.  If not, BOOM!
+  if (wid == -1)
+    fprintf(stderr, "fetchFromObjectStore()-- waitpid() failed with error '%s'.\n", strerror(errno)), exit(1);
 
+  if ((WIFEXITED(status)) &&
+      (WEXITSTATUS(status) == 127))
+    fprintf(stderr, "fetchFromObjectStore()-- execve() failed to run the command.\n"), exit(1);
+
+  //  If no file, it's fatal.
   if (fileExists(requested) == false)
-    fprintf(stderr, "fetchFromObjectStore()-- failed to find or fetch file '%s'.\n", requested), exit(1);
+    fprintf(stderr, "fetchFromObjectStore()-- failed fetch file '%s'.\n", requested), exit(1);
 
   delete [] path;
   delete [] object;
