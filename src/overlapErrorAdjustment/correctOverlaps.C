@@ -73,6 +73,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-l") == 0) {
       G->minOverlap = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      G->checkTrivialDNA = true;
+
     } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file input
       G->correctionsName = argv[++arg];
 
@@ -110,6 +113,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o   output-name        write updated error rates to 'output-name'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -t   num-threads        not used; only one thread used\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -l   min-len            ignore overlaps shorter than this\n");
+    fprintf(stderr, "  -e   max-erate s        ignore overlaps higher than this error\n");
+    fprintf(stderr, "  -s   check trival dna   ignore alignment errors in simple sequence\n");
     exit(1);
   }
 
@@ -142,6 +149,13 @@ main(int argc, char **argv) {
   if (seqStore->sqStore_lastReadID() < G->endID)
     G->endID = seqStore->sqStore_lastReadID();
 
+  // Check if we're hifi and enable simple sequence checks
+  if (seqStore->sqStore_getLibrary(1)->sqLibrary_readType() == SQ_READTYPE_PACBIO_HIFI) {
+     G->checkTrivialDNA = true;
+     fprintf(stderr, "Correcting HIFI reads\n");
+  }
+
+  //
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
 
   fprintf(stderr, "Correcting reads " F_U32 " to " F_U32 ".\n", G->bgnID, G->endID);

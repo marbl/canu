@@ -271,6 +271,7 @@ public:
     numThreads = 1;
     errorRate  = 0.06;
     minOverlap = 0;
+    checkTrivialDNA = false;
   };
   ~coParameters() {
     delete [] bases;
@@ -308,6 +309,7 @@ public:
 
   double        errorRate;
   uint32        minOverlap;
+  bool		checkTrivialDNA;
 
   pedWorkArea_t ped;
 
