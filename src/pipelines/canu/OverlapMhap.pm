@@ -128,8 +128,8 @@ sub mhapConfigure ($$$) {
         $numHashes     =  512;
         $minNumMatches =    3;
         $threshold     =    0.78;
-        $ordSketch     = 1536;
-        $ordSketchMer  = getGlobal("${tag}MhapOrderedMerSize");
+        $ordSketch     = 1000;
+        $ordSketchMer  = getGlobal("${tag}MhapOrderedMerSize") + 2;
 
     } elsif (getGlobal("${tag}MhapSensitivity") eq "high") {
         $numHashes     =  768;
@@ -149,16 +149,6 @@ sub mhapConfigure ($$$) {
        $ordSketch      = 1000;
        $threshold      = 1-getGlobal("${tag}OvlErrorRate");
     }
-
-    # due to systematic bias in nanopore data, adjust threshold up by 5%
-    my $numNanoporeRaw = 0;
-    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
-    while (<L>) {
-        $numNanoporeRaw++         if (m/nanopore-raw/);
-    }
-    close(L);
-
-    $threshold += 0.05   if ($numNanoporeRaw > 0);
 
     my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
 

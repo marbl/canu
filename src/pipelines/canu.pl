@@ -489,7 +489,7 @@ else {
 if (!defined($mode)) {
     $mode = "run"            if ($haveRaw       > 0);   #  If no seqStore, these are set based
     $mode = "trim-assemble"  if ($haveCorrected > 0);   #  on flags describing the input files.
-    $mode = "trim-assemble"  if ($haveHiFi      > 0);
+    $mode = "assemble"       if ($haveHiFi      > 0);
 
     $mode = "run"            if ($nCor > 0);            #  If a seqStore, these are set based
     $mode = "trim-assemble"  if ($nOBT > 0);            #  on the reads present in the stores.
@@ -528,13 +528,14 @@ if ($type eq"nanopore") {
 }
 
 if ($type eq"hifi") {
-    setGlobalIfUndef("corOvlErrorRate",  0.0);
-    setGlobalIfUndef("obtOvlErrorRate",  0.0);
-    setGlobalIfUndef("utgOvlErrorRate",  0.0);
-    setGlobalIfUndef("corErrorRate",     0.0);
-    setGlobalIfUndef("obtErrorRate",     0.0);
-    setGlobalIfUndef("utgErrorRate",     0.0);
-    setGlobalIfUndef("cnsErrorRate",     0.1);
+    setGlobalIfUndef("corOvlErrorRate",  0.000);
+    setGlobalIfUndef("obtOvlErrorRate",  0.000);
+    setGlobalIfUndef("utgOvlErrorRate",  0.025);
+    setGlobalIfUndef("corErrorRate",     0.000);
+    setGlobalIfUndef("obtErrorRate",     0.000);
+    setGlobalIfUndef("utgErrorRate",     0.025);
+    setGlobalIfUndef("cnsErrorRate",     0.050);
+    setGlobalIfUndef("batOptions",       "-eg 0.0003 -dg 3 -db 3 -dr 1 -ca 50 -cp 5");
 }
 
 

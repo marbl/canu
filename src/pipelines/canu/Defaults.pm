@@ -870,8 +870,8 @@ sub setDefaults () {
     setDefault("obtOvlErrorRate",     undef, "Overlaps at or below this error rate are used to trim reads");
     setDefault("utgOvlErrorRate",     undef, "Overlaps at or below this error rate are used to trim reads");
     setDefault("utgErrorRate",        undef, "Overlaps at or below this error rate are used to construct contigs");
-    setDefault("utgGraphDeviation",   6,     "Overlaps this much above median will not be used for initial graph construction");
-    setDefault("utgRepeatDeviation",  3,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
+    setDefault("utgGraphDeviation",   12,     "Overlaps this much above median will not be used for initial graph construction");
+    setDefault("utgRepeatDeviation",  6,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
     setDefault("utgRepeatConfusedBP", 2100,  "Repeats where the next best edge is at least this many bp shorter will not be split");
     setDefault("corErrorRate",        undef, "Only use raw alignments below this error rate to construct corrected reads");
     setDefault("cnsErrorRate",        undef, "Consensus expects alignments at about this error rate");
@@ -999,8 +999,8 @@ sub setDefaults () {
     #####  Overlap Based Trimming
 
     setDefault("obtErrorRate",       undef, "Stringency of overlaps to use for trimming");
-    setDefault("trimReadsOverlap",   1,     "Minimum overlap between evidence to make contiguous trim; default '1'");
-    setDefault("trimReadsCoverage",  1,     "Minimum depth of evidence to retain bases; default '1'");
+    setDefault("trimReadsOverlap",   500,   "Minimum overlap between evidence to make contiguous trim; default '500'");
+    setDefault("trimReadsCoverage",  2,     "Minimum depth of evidence to retain bases; default '2");
 
     #$global{"splitReads..."}               = 1;
     #$synops{"splitReads..."}               = "";
@@ -1170,7 +1170,7 @@ sub checkMinimap ($) {
     close(F);
 
     if (!defined($version)) {
-        addCommandlineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
+        addCommandLineError("ERROR:  failed to run minimap2 using command '$minimap'.\n");
         goto cleanupMinimap;
     }
 
