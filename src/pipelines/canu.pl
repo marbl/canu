@@ -611,14 +611,15 @@ if (($numPacBio   == 0) &&
 if (($numPacBio   == 0) &&
     ($numNanopore == 0) &&
     ($numHiFi      > 0)) {
-    setGlobalIfUndef("corOvlErrorRate",  0.0);
-    setGlobalIfUndef("obtOvlErrorRate",  0.015);
-    setGlobalIfUndef("utgOvlErrorRate",  0.015);
-    setGlobalIfUndef("corErrorRate",     0.0);
-    setGlobalIfUndef("obtErrorRate",     0.015);
-    setGlobalIfUndef("utgErrorRate",     0.0);
-    setGlobalIfUndef("cnsErrorRate",     0.1);
+    setGlobalIfUndef("corOvlErrorRate",  0.000);
+    setGlobalIfUndef("obtOvlErrorRate",  0.000);
+    setGlobalIfUndef("utgOvlErrorRate",  0.025);
+    setGlobalIfUndef("corErrorRate",     0.000);
+    setGlobalIfUndef("obtErrorRate",     0.000);
+    setGlobalIfUndef("utgErrorRate",     0.025);
+    setGlobalIfUndef("cnsErrorRate",     0.050);
     setGlobalIfUndef("homoPolyCompress", 1);
+    setGlobalIfUndef("batOptions",       "-eg 0.0003 -dg 3 -db 3 -dr 1 -ca 50 -cp 5");
 }
 
 #  Set an initial run mode based on what we discovered above.
@@ -626,7 +627,7 @@ if (($numPacBio   == 0) &&
 if (!defined($mode)) {
     $mode = "run"            if ($numRaw    > 0);
     $mode = "trim-assemble"  if ($numCor    > 0);
-    $mode = "trim-assemble"  if ($numHiFi   > 0);
+    $mode = "assemble"       if ($numHiFi   > 0);
     $mode = "assemble"       if ($numCorTri > 0);
 }
 
