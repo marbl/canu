@@ -721,7 +721,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
       double err_rate = ProcessAlignment(a_part_len, a_part, olap.a_hang,
                                          b_part_len, b_part,
                                          G->Error_Bound[min(a_part_len, b_part_len)],
-                                         /*check trivial DNA*/true,
+                                         /*check trivial DNA*/G->checkTrivialDNA,
                                          ped, &match_to_end, &invalid_olap);
 
       static const double report_threshold = 0.;
