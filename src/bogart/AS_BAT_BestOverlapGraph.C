@@ -194,7 +194,7 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
   double   Tmean = _mean   + _deviationGraph * _stddev;
   double   Tmad  = _median + _deviationGraph * 1.4826 * _mad;
 
-  _errorLimit = (_median > 1e-10) ? Tmad : Tmean;
+  _errorLimit = min(_errorLimit, (_median > 1e-10) ? Tmad : Tmean);
 
   //  The real filtering is done on the next pass through findEdges().  Here, we're just collecting statistics.
 
