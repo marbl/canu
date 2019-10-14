@@ -237,7 +237,7 @@ sub readErrorDetectionConfigure ($) {
         #
         #  Throw in another 2 GB for unknown overheads (seqStore, ovlStore) and alignment generation.
 
-        my $memory = (32 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize) + 4 * 1024 * 1024 * 1024;
+        my $memory = (128 * $bases) + (33 * $reads) + (12 * $olaps) + (2 * $maxBlockSize) + 2 * 1024 * 1024 * 1024;
 
         if ((($maxMem   > 0) && ($memory >= $maxMem))    ||
             (($maxReads > 0) && ($reads  >= $maxReads))  ||
@@ -250,7 +250,7 @@ sub readErrorDetectionConfigure ($) {
                    $memory / 1024 / 1024,
                    $bgn[$nj], $end[$nj],
                    $reads,
-                   $bases,               (12 * $bases + 33 * $reads)  / 1024 / 1024,
+                   $bases,               (128 * $bases + 33 * $reads)  / 1024 / 1024,
                    $olaps,               (12 * $olaps)                / 1024 / 1024,
                    2 * $maxBlockSize / 1024 / 1024);
 

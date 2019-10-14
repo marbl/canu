@@ -805,7 +805,7 @@ sub configureAssembler () {
     setGlobalIfUndef("oeaBatchLength", "300000000");
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("redMemory", "4-8");         setGlobalIfUndef("redThreads", "2-4");
+        setGlobalIfUndef("redMemory", "4-16");        setGlobalIfUndef("redThreads", "2-4");
         setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
