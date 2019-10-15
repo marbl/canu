@@ -843,13 +843,6 @@ ${TARGET_DIR}/lib/site_perl/canu/Report.pm: pipelines/canu/Report.pm
 ${TARGET_DIR}/lib/site_perl/canu/Unitig.pm: pipelines/canu/Unitig.pm
 	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-.PHONY: dnanexus
-dnanexus:
-	mkdir -p dx-canu/resources
-	rm -rf dx-canu/resources/usr
-	cp -rp ${TARGET_DIR} dx-canu/resources/usr
-	dx build dx-canu -f
-
 #  Makefile processed.  Report that we're starting the build.
 
 $(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
