@@ -1026,18 +1026,19 @@ sub haplotypeReadsConfigure ($@) {
 
     if (defined(getGlobal("objectStore"))) {
         print F "\n";
+        print F "#\n";
         print F "#  Fetch all the unlcassified input reads.\n";
         print F "#\n";
 
         for (my $ff=0; $ff < scalar(@inputs); $ff++) {
-            my $inPath = $inputs[$ff];
-            my $otPath = $inputs[$ff];
+            if ($inputs[$ff] =~ m/dnanexus:(.*)=(.*)/) {
+                my $link = $1;
+                my $name = $2;
 
-            $otPath = s!/!_!;
+                print F fetchFileFromLinkShellCode($link, $name, "");
 
-            print fetchObjectStoreFileShellCode($inPath, $otPath, "");
-
-            $inputs[$ff] = $otPath;
+                $inputs[$ff] = $name;
+            }
         }
 
         print F "\n";
