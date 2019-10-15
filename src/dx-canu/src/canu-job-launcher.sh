@@ -158,16 +158,19 @@ main() {
     echo "."
     echo "PARAMETERS"
     echo "."
-    echo "read_files_path     '${read_files_path[@]}'"
-    echo "read_files_name     '${read_files_name[@]}'"
-    echo "read_files_prefix   '${read_files_prefix[@]}'"
-    echo "read_files          '${read_files[@]}'"
-    echo "."
-    echo "read_file_types     '${read_type}'"
+    #echo "read_files_path     '${read_files_path[@]}'"
+    #echo "read_files_name     '${read_files_name[@]}'"
+    #echo "read_files_prefix   '${read_files_prefix[@]}'"
+    #echo "read_files          '${read_files[@]}'"
+    #echo "."
+    echo "read_type           '${read_type}'"
     echo "output_folder       '${output_folder}'"
     echo "output_prefix       '${output_prefix}'"
     echo "genome size         '${genome_size}'"
     echo "parameters          '${parameters}'"
+    echo "."
+    echo "hapa_name           '${hapa_name}'"
+    echo "hapb_name           '${hapb_name}'"
     echo "."
     echo "project             '$DX_PROJECT_CONTEXT_ID'"
     echo "."
@@ -198,7 +201,35 @@ main() {
       read_file_list="$read_file_list \"dnanexus:$rl=$rn\""
     done
 
-    #echo $read_file_list
+    #  Parse hapa_files into objects we can give canu.
+
+    for ll in ${!hapa_files[@]} ; do
+      rf=${hapa_files[$ll]}
+      rn=${hapa_files_name[$ll]}
+      rl=`dx-jobutil-parse-link "$rf"`
+
+      echo "File $ll is '$rf' -> '$rl' = '$rn'."
+      hapa_file_list="$hapa_file_list \"dnanexus:$rl=$rn\""
+    done
+
+    if [ x$hapa_name != x ] ; then
+        hapa_option="-haplotype${hapa_name} $hapa_file_list"
+    fi
+
+    #  Parse hapb_files into objects we can give canu.
+
+    for ll in ${!hapb_files[@]} ; do
+      rf=${hapb_files[$ll]}
+      rn=${hapb_files_name[$ll]}
+      rl=`dx-jobutil-parse-link "$rf"`
+
+      echo "File $ll is '$rf' -> '$rl' = '$rn'."
+      hapb_file_list="$hapb_file_list \"dnanexus:$rl=$rn\""
+    done
+
+    if [ x$hapb_name != x ] ; then
+        hapb_option="-haplotype${hapb_name} $hapb_file_list"
+    fi
 
     #  Build a nice script to run canu.
 
@@ -215,6 +246,8 @@ main() {
     echo >> canu-executive.sh "     objectStoreProject=$DX_PROJECT_CONTEXT_ID \\"
     echo >> canu-executive.sh "     genomeSize=${genome_size} \\"
     echo >> canu-executive.sh "     $parameters \\"
+    echo >> canu-executive.sh "     $hapa_option \\"
+    echo >> canu-executive.sh "     $hapb_option \\"
     echo >> canu-executive.sh "     ${read_type} ${read_file_list}"
     echo >> canu-executive.sh ""
     echo >> canu-executive.sh "exit \$?"

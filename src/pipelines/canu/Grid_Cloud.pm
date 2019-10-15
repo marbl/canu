@@ -43,7 +43,7 @@ require Exporter;
              renameStashedFile
              removeStashedFile
              fetchFile            fetchFileShellCode
-             fetchFileFromLink
+             fetchFileFromLink    fetchFileFromLinkShellCode
              stashFile            stashFileShellCode
                                   stashFilesShellCode         
              fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
@@ -420,6 +420,7 @@ sub fetchFileFromLink ($$) {
 }
 
 
+
 #  Runs from the directory where $file exists.  $file shouldn't have any directory components,
 #  but if it does, they're moved to $path.
 #
@@ -547,13 +548,38 @@ sub fetchFileShellCode ($$$) {
     my $name   = shift @_;     #  Name of the file to fetch, in current directory.
     my $link;
     my $indent = shift @_;
-    my $code   = "";
+    #my $code   = "";
 
     if ($path eq ".") {
         $link = sanitizeName("$pr:$ns/$name");
     } else { 
         $link = sanitizeName("$pr:$ns/$path/$name");
     }
+
+    return(fetchFileFromLinkShellCode($link, $name, $indent));
+
+    #if (isOS() eq "DNANEXUS") {
+    #    $code .= "\n";
+    #    $code .= "${indent}if [ ! -e \"./$name\" ] ; then\n";
+    #    $code .= "${indent}  mkdir -p `dirname \"./$name\"`\n";
+    #    $code .= "${indent}  $da download --output \"./$name\" \"$link\"\n";
+    #    $code .= "${indent}fi\n";
+    #}
+
+    #return($code);
+}
+
+
+
+sub fetchFileFromLinkShellCode ($$$) {
+    my $dx       = getGlobal("objectStoreClient");
+    my $da       = getGlobal("objectStoreClientDA");
+    my $ns       = getGlobal("objectStoreNameSpace");
+    my $pr       = getGlobal("objectStoreProject");
+    my $link     = shift @_;
+    my $name     = shift @_;
+    my $indent   = shift @_;
+    my $code     = "";
 
     if (isOS() eq "DNANEXUS") {
         $code .= "\n";
@@ -565,16 +591,6 @@ sub fetchFileShellCode ($$$) {
 
     return($code);
 }
-
-
-
-
-
-
-
-
-
-
 
 
 
