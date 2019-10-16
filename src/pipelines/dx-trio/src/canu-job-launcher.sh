@@ -164,6 +164,9 @@ main() {
     echo "genome size         '${genome_size}'"
     echo "parameters          '${parameters}'"
     echo "."
+    echo "hapa_name           '${hapa_name}'"
+    echo "hapb_name           '${hapb_name}'"
+    echo "."
     echo "project             '$DX_PROJECT_CONTEXT_ID'"
     echo "."
 
@@ -193,11 +196,41 @@ main() {
       read_file_list="$read_file_list \"dnanexus:$rl=$rn\""
     done
 
+    #  Parse hapa_files into objects we can give canu.
+
+    for ll in ${!hapa_files[@]} ; do
+      rf=${hapa_files[$ll]}
+      rn=${hapa_files_name[$ll]}
+      rl=`dx-jobutil-parse-link "$rf"`
+
+      echo "File $ll is '$rf' -> '$rl' = '$rn'."
+      hapa_file_list="$hapa_file_list \"dnanexus:$rl=$rn\""
+    done
+
+    if [ x$hapa_name != x ] ; then
+        hapa_option="-haplotype${hapa_name} $hapa_file_list"
+    fi
+
+    #  Parse hapb_files into objects we can give canu.
+
+    for ll in ${!hapb_files[@]} ; do
+      rf=${hapb_files[$ll]}
+      rn=${hapb_files_name[$ll]}
+      rl=`dx-jobutil-parse-link "$rf"`
+
+      echo "File $ll is '$rf' -> '$rl' = '$rn'."
+      hapb_file_list="$hapb_file_list \"dnanexus:$rl=$rn\""
+    done
+
+    if [ x$hapb_name != x ] ; then
+        hapb_option="-haplotype${hapb_name} $hapb_file_list"
+    fi
+
     #  Build a nice script to run canu.
 
     echo  > canu-executive.sh "#!/bin/sh" 
     echo >> canu-executive.sh ""
-    echo >> canu-executive.sh "canu -p ${output_prefix} -d . \\"
+    echo >> canu-executive.sh "canu -haplotype -p ${output_prefix} -d . \\"
     echo >> canu-executive.sh "     executiveMemory=14 \\"             #  Linked to instanceType in
     echo >> canu-executive.sh "     executiveThreads=8 \\"             #  dxapp.json (14 and 8)
     echo >> canu-executive.sh "     objectStore=DNANEXUS \\"
@@ -208,6 +241,8 @@ main() {
     echo >> canu-executive.sh "     objectStoreProject=$DX_PROJECT_CONTEXT_ID \\"
     echo >> canu-executive.sh "     genomeSize=${genome_size} \\"
     echo >> canu-executive.sh "     $parameters \\"
+    echo >> canu-executive.sh "     $hapa_option \\"
+    echo >> canu-executive.sh "     $hapb_option \\"
     echo >> canu-executive.sh "     ${read_type} ${read_file_list}"
     echo >> canu-executive.sh ""
     echo >> canu-executive.sh "exit \$?"
