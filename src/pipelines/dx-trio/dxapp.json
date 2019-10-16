@@ -1,6 +1,6 @@
 {
-  "name": "dx-canu",
-  "title": "Canu",
+  "name": "dx-trio",
+  "title": "TrioCanu",
   "summary": "A single molecule sequence assembler for genomes large and small (http://canu.readthedocs.io/)",
   "dxapi": "1.0.0",
   "version": "1.0.0",
@@ -30,6 +30,46 @@
       ],
       "help": ""
     },
+
+
+    {
+      "name": "hapa_name",
+      "label": "Name of first haplotype (for trio mode)",
+      "class": "string",
+      "optional": false,
+      "help": ""
+    },
+    {
+      "name": "hapa_files",
+      "label": "High-quality reads from first haplotype (fasta or fastq) (uncompressed, gz, bz2 or xz)",
+      "class": "array:file",
+      "optional": false,
+      "patterns": [
+        "*.fa", "*.fa.gz", "*.fa.bz2", "*.fa.xz", "*.fasta", "*.fasta.gz", "*.fasta.bz2", "*.fasta.xz", "*.fq", "*.fq.gz", "*.fq.bz2", "*.fq.xz", "*.fastq", "*.fastq.gz", "*.fastq.bz2", "*.fastq.xz"
+      ],
+      "help": ""
+    },
+
+
+    {
+      "name": "hapb_name",
+      "label": "Name of second haplotype (for trio mode)",
+      "class": "string",
+      "optional": false,
+      "help": ""
+    },
+    {
+      "name": "hapb_files",
+      "label": "High-quality reads from second haplotype (fasta or fastq) (uncompressed, gz, bz2 or xz)",
+      "class": "array:file",
+      "optional": false,
+      "patterns": [
+        "*.fa", "*.fa.gz", "*.fa.bz2", "*.fa.xz", "*.fasta", "*.fasta.gz", "*.fasta.bz2", "*.fasta.xz", "*.fq", "*.fq.gz", "*.fq.bz2", "*.fq.xz", "*.fastq", "*.fastq.gz", "*.fastq.bz2", "*.fastq.xz"
+      ],
+      "help": ""
+    },
+
+
 
     {
       "name": "output_folder",

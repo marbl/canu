@@ -45,7 +45,8 @@ if [ ! -e src/pipelines/dx-canu/resources/bin/ua ] ; then
 
   tar zxf dnanexus-upload-agent-1.5.31-linux.tar.gz
 
-  mv dnanexus-upload-agent-1.5.31-linux/ua src/pipelines/dx-canu/resources/bin/
+  cp -p dnanexus-upload-agent-1.5.31-linux/ua src/pipelines/dx-canu/resources/bin/
+  cp -p dnanexus-upload-agent-1.5.31-linux/ua src/pipelines/dx-trio/resources/bin/
 
   #rm -rf dnanexus-upload-agent-1.5.31-linux.tar.gz
   rm -rf dnanexus-upload-agent-1.5.31-linux
@@ -54,38 +55,21 @@ fi
 #   Remove the old app.
 
 echo ""
-echo "-- Purge previous dx-canu build."
+echo "-- Purge previous dx-canu and dx-trio builds."
 echo ""
 
-echo "% rm -rf dx-canu/"
-rm -rf   dx-canu/
-mkdir -p dx-canu/
-mkdir -p dx-canu/resources/bin/
-mkdir -p dx-canu/resources/usr/bin/
-mkdir -p dx-canu/resources/usr/lib/
-mkdir -p dx-canu/resources/usr/share/
-
-#rm -rf dx-canu/resources/usr/bin/
-#rm -rf dx-canu/resources/usr/lib/
-#rm -rf dx-canu/resources/usr/share/
-
-#mkdir -p dx-canu/src
-
-#rm  -f dx-canu/dxapp.json
-#rm  -f dx-canu/
-
-#cp -p src/pipelines/dx-canu/dxapp.json                             dx-canu/dxapp.json
-#cp -p src/pipelines/dx-canu/src/canu-job-launcher.sh               dx-canu/src/canu-job-launcher.sh
-#cp -p src/pipelines/dx-canu/resources/bin/dx-get-instance-info.py  dx-canu/src/resources/bin/dx-get-instance-info.py
-
-#if [ ! -e dx-canu/resources/bin/ua ] ; then
-#  cp -p src/pipelines/dx-canu/resources/bin/ua dx-canu/resources/bin/ua
-#fi
+echo "% rm -rf dx-canu/ dx-trio/"
+rm -rf   dx-canu/ dx-trio/
+mkdir -p dx-canu/ dx-trio/
+mkdir -p dx-canu/resources/bin/       dx-trio/resources/bin/
+mkdir -p dx-canu/resources/usr/bin/   dx-trio/resources/usr/bin/
+mkdir -p dx-canu/resources/usr/lib/   dx-trio/resources/usr/lib/
+mkdir -p dx-canu/resources/usr/share/ dx-trio/resources/usr/share/
 
 #  Package all that up into dx-canu.
 
 echo ""
-echo "-- Package new bits into dx-canu build."
+echo "-- Package new bits into dx-canu and dx-trio builds."
 echo ""
 
 echo "% rsync ..."
@@ -94,6 +78,11 @@ rsync -a Linux-amd64/bin/        dx-canu/resources/usr/bin/
 rsync -a Linux-amd64/lib/        dx-canu/resources/usr/lib/
 rsync -a Linux-amd64/share/      dx-canu/resources/usr/share/
 
+rsync -a src/pipelines/dx-trio/  dx-trio/
+rsync -a Linux-amd64/bin/        dx-trio/resources/usr/bin/
+rsync -a Linux-amd64/lib/        dx-trio/resources/usr/lib/
+rsync -a Linux-amd64/share/      dx-trio/resources/usr/share/
+
 #rm -fr Linux-amd64/obj Linux-amd64.tar Linux-amd64.tar.gz
 #tar -cf Linux-amd64.tar Linux-amd64
 #gzip -1v Linux-amd64.tar
@@ -101,10 +90,13 @@ rsync -a Linux-amd64/share/      dx-canu/resources/usr/share/
 #dx upload Linux-amd64.tar.gz
 
 echo ""
-echo "-- Build the DNAnexus app."
+echo "-- Build the DNAnexus apps."
 echo ""
 
 echo "% dx build -f dx-canu"
 dx build -f dx-canu
+
+echo "% dx build -f dx-trio"
+dx build -f dx-trio
 
 exit 0
