@@ -608,6 +608,7 @@ sub overlapErrorAdjustmentConfigure ($) {
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
     print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
+    print F "  -s \\\n"                                   if (defined(getGlobal("homoPolyCompress")));
     print F "  -c ./red.red \\\n";
     print F "  -o ./\$jobid.oea.WORKING \\\n";
     print F "&& \\\n";
