@@ -510,7 +510,7 @@ ifeq (${OSTYPE}, Darwin)
      $(error unsupported compiler)
   endif
 
-  CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -pthread -fPIC -m64 
+  CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -pthread -fPIC -m64 -Wno-format
   LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp -pthread -lm
 endif
 
