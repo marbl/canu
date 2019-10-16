@@ -240,6 +240,7 @@ main (int argc, char * argv []) {
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "overlapScoring") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "errorProfiles") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "optimizePositions") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "chunkGraph") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "setParentAndHang") != 0))
             logFileFlags |= flg;

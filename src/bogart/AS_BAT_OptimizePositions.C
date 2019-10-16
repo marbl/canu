@@ -170,8 +170,8 @@ Unitig::optimize_isCompatible(uint32       ii,
 
   //  Finally, dump some logging if in verbose mode or if in the second pass.
   //
-  if ((beVerbose == true) ||
-      (firstPass == false))
+  if (((beVerbose == true) || (firstPass == false)) &&
+      (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
     writeLog("optimize_%s()-- tig %7u read %9u (at %9d %9d) olap to read %9u (at %9d %9d) - hangs %7d %7d - %s %s %s ovlLo %d ovlHi %d position %.4f %.4f flags %d%d%d%d%d\n",
              (inInit) ? "initPlace" : "recompute",
              id(),
@@ -207,7 +207,7 @@ Unitig::optimize_initPlace(uint32        ii,
   if ((firstPass == false) && (failed.count(iid) == 0))  //  If the second pass and not
     return;                                              //  failed, do nothing.
 
-  if (firstPass == false)
+  if ((firstPass == false) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
     writeLog("optimize_initPlace()-- Second pass begins.\n");
 
   //  Then process all overlaps.
@@ -244,14 +244,14 @@ Unitig::optimize_initPlace(uint32        ii,
     //  If no overlaps found, flag this read for a second pass.  If in the second pass,
     //  not much we can do.
 
-    if ((firstPass == true) && (cnt == 0)) {
+    if ((firstPass == true) && (cnt == 0) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
       writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (first pass)\n",
                id(), iid);
       failed.insert(iid);
       return;
     }
 
-    if ((firstPass == false) && (cnt == 0)) {
+    if ((firstPass == false) && (cnt == 0) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
       writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (second pass)\n",
                id(), iid);
       flushLog();
@@ -270,7 +270,7 @@ Unitig::optimize_initPlace(uint32        ii,
   np[iid].min = 0;
   np[iid].max = 0;
 
-  if (beVerbose)
+  if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
     writeLog("optimize_initPlace()-- tig %7u read %9u initialized to position %9.2f %9.2f%s\n",
              id(), op[iid].ident, op[iid].min, op[iid].max, (firstPass == true) ? "" : " SECONDPASS");
 }
@@ -293,7 +293,7 @@ Unitig::optimize_recompute(uint32        iid,
   double       nmax = 0.0;
   uint32       cnt  = 0;
 
-  if (beVerbose) {
+  if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
     writeLog("optimize()--\n");
     writeLog("optimize()-- tig %8u read %9u previous  - %9.2f-%-9.2f\n", id(), iid, op[iid].min,           op[iid].max);
     writeLog("optimize()-- tig %8u read %9u length    - %9.2f-%-9.2f\n", id(), iid, op[iid].max - readLen, op[iid].min + readLen);
@@ -314,7 +314,7 @@ Unitig::optimize_recompute(uint32        iid,
     double tmin = (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang);
     double tmax = (op[iid].fwd) ? (op[jid].max - ovl[oo].b_hang) : (op[jid].max + ovl[oo].a_hang);
 
-    if (beVerbose)
+    if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
       writeLog("optimize()-- tig %8u read %9u olap %4u - %9.2f-%-9.2f\n", id(), iid, oo, tmin, tmax);
 
     //  Skip if the overlap isn't compatible with the layout.
@@ -348,7 +348,7 @@ Unitig::optimize_recompute(uint32        iid,
   np[iid].min = nmin / cnt;
   np[iid].max = nmax / cnt;
 
-  if (beVerbose) {
+  if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
     double dmin = 2 * (op[iid].min - np[iid].min) / (op[iid].min + np[iid].min);
     double dmax = 2 * (op[iid].max - np[iid].max) / (op[iid].max + np[iid].max);
     double npll = np[iid].max - np[iid].min;
@@ -424,7 +424,7 @@ Unitig::optimize_setPositions(optPos  *op,
     double  opdd    = 200.0 * (opll - readLen) / (opll + readLen);
 
     if (op[iid].fwd) {
-      if (beVerbose)
+      if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
         writeLog("optimize()-- read %9u -> from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n",
                  iid,
                  ufpath[ii].position.bgn,
@@ -439,7 +439,7 @@ Unitig::optimize_setPositions(optPos  *op,
       ufpath[ii].position.bgn = (int32)op[iid].min;
       ufpath[ii].position.end = (int32)op[iid].max;
     } else {
-      if (beVerbose)
+      if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
         writeLog("optimize()-- read %9u <- from %9d,%-9d %7d to %9d,%-9d %7d readLen %7d diff %7.4f%%\n",
                  iid,
                  ufpath[ii].position.bgn,
