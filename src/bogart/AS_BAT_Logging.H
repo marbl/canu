@@ -57,6 +57,7 @@ extern uint32  logFileOrder;  //  Used debug tigStore dumps, etc
 extern uint64 LOG_OVERLAP_SCORING;
 extern uint64 LOG_ALL_BEST_EDGES;
 extern uint64 LOG_ERROR_PROFILES;
+extern uint64 LOG_OPTIMIZE_POSITIONS;
 extern uint64 LOG_CHUNK_GRAPH;
 extern uint64 LOG_BUILD_UNITIG;
 extern uint64 LOG_PLACE_UNPLACED;
