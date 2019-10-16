@@ -195,7 +195,7 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
     setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");
-    setGlobalIfUndef("gridEngineResourceOption",             "-l nodes=1:ppn=THREADS:mem=MEMORY")      if ($isPro == 0);
+    setGlobalIfUndef("gridEngineResourceOption",             "-l nodes=1:ppn=THREADS,mem=MEMORY")      if ($isPro == 0);
     setGlobalIfUndef("gridEngineResourceOption",             "-l select=1:ncpus=THREADS:mem=MEMORY")   if ($isPro == 1);
     setGlobalIfUndef("gridEngineMemoryPerJob",               "1");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
