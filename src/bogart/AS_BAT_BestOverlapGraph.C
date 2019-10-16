@@ -1274,7 +1274,7 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap) {
   //  We shold only be getting good clean dovetail overlaps here.  Except we don't.
 
   if (olap.isDovetail() == false) {
-    //fprintf(stderr, "scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs " F_S32 " " F_S32 " err %.3f -- not a dovetail\n",
+    //fprintf(stderr, "scoreEdge()-- OVERLAP CONT:     %6d %6d %c  hangs %6d %6d err %.3f -- not a dovetail\n",
     //        olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
@@ -1290,14 +1290,14 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap) {
 
   if (isOverlapBadQuality(olap)) {
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
-      writeLog("scoreEdge()-- OVERLAP BADQ:     %d %d %c  hangs " F_S32 " " F_S32 " err %.3f -- bad quality\n",
+      writeLog("scoreEdge()-- %6d %6d %c  hangs %6d %6d err %.3f -- bad quality\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
   if (isOverlapRestricted(olap)) {
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
-      writeLog("scoreEdge()-- OVERLAP RESTRICT: %d %d %c  hangs " F_S32 " " F_S32 " err %.3f -- restricted\n",
+      writeLog("scoreEdge()-- %6d %6d %c  hangs %6d %6d err %.3f -- restricted\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
@@ -1314,8 +1314,8 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap) {
 
   if (newScr <= score) {
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
-      writeLog("scoreEdge()-- OVERLAP GOOD:     %d %d %c  hangs " F_S32 " " F_S32 " err %.3f -- no better than best\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
+      writeLog("scoreEdge()-- %6d %6d %c  hangs %6d %6d err %.3f --      %c'\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate(), (a3p) ? '3' : '5');
     return;
   }
 
@@ -1324,8 +1324,8 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap) {
   score = newScr;
 
   if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
-    writeLog("scoreEdge()-- OVERLAP BEST:     %d %d %c  hangs " F_S32 " " F_S32 " err %.3f -- NOW BEST\n",
-             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
+    writeLog("scoreEdge()-- %6d %6d %c  hangs %6d %6d err %.3f -- BEST %c'\n",
+             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate(), (a3p) ? '3' : '5');
 }
 
 
@@ -1352,7 +1352,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
 
   if (olap.erate() <= _errorLimit) {
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
-      writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs " F_S32 " " F_S32 " err %.3f\n",
+      writeLog("isOverlapBadQuality()-- %6d %6d %c  hangs %6d %6d err %.3f -- good quality\n",
                olap.a_iid, olap.b_iid,
                olap.flipped ? 'A' : 'N',
                olap.a_hang,
@@ -1367,7 +1367,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
   //  error rate above a few percent.  canu doesn't do short overlaps.
 
   if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
-    writeLog("isOverlapBadQuality()-- OVERLAP REJECTED: %d %d %c  hangs " F_S32 " " F_S32 " err %.3f\n",
+    writeLog("isOverlapBadQuality()-- %6d %6d %c  hangs %6d %6d err %.3f -- REJECT!\n",
              olap.a_iid, olap.b_iid,
              olap.flipped ? 'A' : 'N',
              olap.a_hang,
