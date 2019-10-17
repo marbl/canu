@@ -1123,7 +1123,8 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     }
 
     for (set<uint32>::iterator it=used.begin(); it != used.end(); it++)
-      fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", *it, RI->readLength(*it));
+      if (*it != 0)
+        fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", *it, RI->readLength(*it));
 
     //  Now, report edges.  GFA wants edges in exactly this format:
     //
