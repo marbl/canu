@@ -763,29 +763,30 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   if (BEG) {
     fprintf(BEG, "H\tVN:Z:1.0\n");
 
-    //  First, write the sequences used.
+    //  First, write the sequences used.  The sequence can be used as either
+    //  a source node or a destination node (or both).
+
+    set<uint32>  used;
 
     for (uint32 id=1; id<RI->numReads() + 1; id++) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if ((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) {
-        //  Do nothing, a singleton.
-      }
+      //  Ignore singletons, contained and suspicious reads.
+      if (((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) ||
+          (isContained(id) == true) ||
+          (isSuspicious(id) == true))
+        continue;
 
-      else if (isContained(id) == true) {
-        //  Do nothing, a contained read.
-      }
-
-      else if (_suspicious.count(id) > 0) {
-        //  Do nothing, a suspicious read.
-      }
-
-      else {
-        //  Report the read, it has best edges - including contained reads.
-        fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", id, RI->readLength(id));
-      }
+      //  Remember the source and destination of this edge.
+      used.insert(id);
+      used.insert(bestedge5->readId());
+      used.insert(bestedge3->readId());
     }
+
+    for (set<uint32>::iterator it=used.begin(); it != used.end(); it++)
+      if (*it != 0)
+        fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", *it, RI->readLength(*it));
 
     //  Now, report edges.  GFA wants edges in exactly this format:
     //
@@ -798,44 +799,48 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if ((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) {
-        //  Do nothing, a singleton.
-      }
+      //  Ignore singletons, contained and suspicious reads.
+      if (((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) ||
+          (isContained(id) == true) ||
+          (isSuspicious(id) == true))
+        continue;
 
-      else if (isContained(id) == true) {
-        //  Do nothing, a contained read.
-      }
+      if (bestedge5->readId() != 0) {
+        int32  ahang   = bestedge5->ahang();
+        int32  bhang   = bestedge5->bhang();
+        int32  olaplen = RI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang());
 
-      else if (_suspicious.count(id) > 0) {
-        //  Do nothing, a suspicious read.
-      }
-
-      else {
-        if (bestedge5->readId() != 0) {
-          int32  ahang   = bestedge5->ahang();
-          int32  bhang   = bestedge5->bhang();
-          int32  olaplen = RI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang());
-
-          assert((ahang <= 0) && (bhang <= 0));  //  ALL 5' edges should be this.
-
-          fprintf(BEG, "L\tread%08u\t-\tread%08u\t%c\t%uM\n",
+        if ((ahang > 0) || (bhang > 0))
+          fprintf(stderr, "BAD 5' overlap from read %u to read %u %c': hangs %d %d\n",
                   id,
-                  bestedge5->readId(), bestedge5->read3p() ? '-' : '+',
-                  olaplen);
-        }
+                  bestedge3->readId(),
+                  bestedge3->read3p() ? '3' : '5',
+                  bestedge3->ahang(), bestedge3->bhang());
+        assert((ahang <= 0) && (bhang <= 0));  //  ALL 5' edges should be this.
 
-        if (bestedge3->readId() != 0) {
-          int32  ahang   = bestedge3->ahang();
-          int32  bhang   = bestedge3->bhang();
-          int32  olaplen = RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang());
+        fprintf(BEG, "L\tread%08u\t-\tread%08u\t%c\t%uM\n",
+                id,
+                bestedge5->readId(), bestedge5->read3p() ? '-' : '+',
+                olaplen);
+      }
 
-          assert((ahang >= 0) && (bhang >= 0));  //  ALL 3' edges should be this.
+      if (bestedge3->readId() != 0) {
+        int32  ahang   = bestedge3->ahang();
+        int32  bhang   = bestedge3->bhang();
+        int32  olaplen = RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang());
 
-          fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
+        if ((ahang < 0) || (bhang < 0))
+          fprintf(stderr, "BAD 3' overlap from read %u to read %u %c': hangs %d %d\n",
                   id,
-                  bestedge3->readId(), bestedge3->read3p() ? '-' : '+',
-                  RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang()));
-        }
+                  bestedge3->readId(),
+                  bestedge3->read3p() ? '3' : '5',
+                  bestedge3->ahang(), bestedge3->bhang());
+        assert((ahang >= 0) && (bhang >= 0));  //  ALL 3' edges should be this.
+
+        fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
+                id,
+                bestedge3->readId(), bestedge3->read3p() ? '-' : '+',
+                RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang()));
       }
     }
   }
