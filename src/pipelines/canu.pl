@@ -638,7 +638,37 @@ if (!defined($mode)) {
 #  Go!
 
 printf STDERR "--\n";
-printf STDERR "-- Generating assembly '$asm' in '" . getcwd() . "'\n";
+printf STDERR "-- Generating assembly '$asm' in '" . getcwd() . "':\n";
+
+if ($mode eq "run") {
+    print STDERR "--    - separate reads into haplotypes.\n"   if (scalar(keys %haplotypeReads) > 0);
+    print STDERR "--    - correct raw reads.\n";
+    print STDERR "--    - trim corrected reads.\n";
+    print STDERR "--    - assemble corrected and trimmed reads.\n";
+}
+
+if ($mode eq "haplotype") {
+    print STDERR "--    - only separate reads into haplotypes.\n";
+}
+
+if ($mode eq "correct") {
+    print STDERR "--    - only correct raw reads.\n";
+}
+
+if ($mode eq "trim") {
+    print STDERR "--    - only trim corrected reads.\n";
+}
+
+if ($mode eq "trim-assemble") {
+    print STDERR "--    - trim corrected reads.\n";
+    print STDERR "--    - assemble corrected and trimmed reads.\n";
+}
+
+if ($mode eq "assemble") {
+    print STDERR "--    - assemble untrimmed HiFi reads.\n"          if ($numHiFi  > 0);
+    print STDERR "--    - assemble corrected and trimmed reads.\n"    if ($numHiFi == 0);
+}
+
 printf STDERR "--\n";
 printf STDERR "-- Parameters:\n";
 printf STDERR "--\n";
