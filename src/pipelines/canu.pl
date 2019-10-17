@@ -629,6 +629,8 @@ if (!defined($mode)) {
     $mode = "trim-assemble"  if ($numCor    > 0);
     $mode = "assemble"       if ($numHiFi   > 0);
     $mode = "assemble"       if ($numCorTri > 0);
+
+    $readsAreTrimmed = 1     if ($numHiFi   > 0);
 }
 
 ################################################################################
