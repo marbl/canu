@@ -398,7 +398,7 @@ writeBuffer::~writeBuffer() {
 
 
 void
-writeBuffer::write(void *data, uint64 length) {
+writeBuffer::write(void const *data, uint64 length) {
 
   if (_bufferMax < _bufferLen + length)           //  Flush the buffer if this
     flush();                                      //  data is too big for it.
@@ -590,7 +590,7 @@ writeBuffer::open(void) {
 
 
 void
-writeBuffer::writeToDisk(void *data, uint64 length) {
+writeBuffer::writeToDisk(void const *data, uint64 length) {
   if (length == 0)
     return;
 
