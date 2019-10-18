@@ -244,9 +244,10 @@ Unitig::optimize_initPlace(uint32        ii,
     //  If no overlaps found, flag this read for a second pass.  If in the second pass,
     //  not much we can do.
 
-    if ((firstPass == true) && (cnt == 0) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
-      writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (first pass)\n",
-               id(), iid);
+    if ((firstPass == true) && (cnt == 0)) {
+      if (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))
+        writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (first pass)\n",
+                 id(), iid);
       failed.insert(iid);
       return;
     }
