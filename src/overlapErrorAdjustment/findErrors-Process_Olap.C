@@ -113,21 +113,52 @@ Process_Olap(Olap_Info_t        *olap,
 
   double maxAlignErate = 0.06;   //  6% is a good default for corrected reads, probably too high.
 
-  EdlibAlignResult result = edlibAlign(a_seq + abgn, aend - abgn,
-                                       b_seq + bbgn, bend - bbgn,
+  EdlibAlignResult result = edlibAlign(a_seq + abgn, aend - abgn,   //  Query
+                                       b_seq + bbgn, bend - bbgn,   //  Target
                                        edlibNewAlignConfig((int32)ceil(1.1 * maxAlignErate * ((aend - abgn) + (bend - bbgn)) / 2.0),
                                                            EDLIB_MODE_NW,
                                                            EDLIB_TASK_PATH));
 
-#define WITH_DELTA
+  //  NOTE!  There are significant differences between WITH_DELTA and parsing edlib alignment
+  //  directly.  There are differences, but only a few, between edlib and 1.9.
+  //
+  //  In ecoli:
+  //
+  //time /work/canu/FreeBSD-amd64/bin/findErrors -S ../../test.seqStore -O ../test.ovlStore -R 1 11186 -e 0.045 -l 500 -o ./1.master.red -t 24
+  //
+  //time /work/canu-edlib/FreeBSD-amd64/bin/findErrors -S ../../test.seqStore -O ../test.ovlStore -R 1 11186 -e 0.045 -l 500 -o ./1.delta.red -t 24
+  //time /work/canu-edlib/FreeBSD-amd64/bin/findErrors -S ../../test.seqStore -O ../test.ovlStore -R 1 11186 -e 0.045 -l 500 -o ./1.edlib.red -t 24
+
+#undef WITH_DELTA
+
+#if 0
+  char  *aaln = new char [result.alignmentLength + 1];
+  char  *baln = new char [result.alignmentLength + 1];
+
+  edlibAlignmentToStrings(result.alignment, result.alignmentLength,
+                          result.startLocations[0],       //  tgtStart
+                          result.endLocations[0]+1,       //  tgtEnd
+                          0,                              //  qryStart
+                          aend - abgn,                    //  qryEnd
+                          b_seq + bbgn,                   //  tgt sequence
+                          a_seq + abgn,                   //  qry sequence
+                          baln,                           //  output tgt alignment string
+                          aaln);                          //  output qry alignment string
+
+  fprintf(stderr, "AALN '%s'\n", aaln);
+  fprintf(stderr, "BALN '%s'\n", baln);
+
+  delete [] aaln;
+  delete [] baln;
+#endif
 
 #ifdef WITH_DELTA
   int32   *delta    = NULL;
   uint32   deltaLen = 0;
-  uint32   deltaMax = 0;
+  uint32   deltaMax = AS_MAX_READLEN;    //  BIG HACK to skip realloc in alignToDelta below
 
   edlibAlignmentToDelta(result.alignment, result.alignmentLength,
-                        delta, deltaLen, deltaMax);
+                        wa->ped.delta, wa->ped.deltaLen, deltaMax);
 #endif
 
   //  The original code was testing only if (errors <= wa->G->Error_Bound[olap_len]) to decide
@@ -150,8 +181,8 @@ Process_Olap(Olap_Info_t        *olap,
 
 #ifdef WITH_DELTA
     Analyze_Alignment(wa,
-                      a_seq, aend - abgn, abgn,
-                      b_seq, bend - bbgn,
+                      a_seq + abgn, aend - abgn, abgn,
+                      b_seq + bbgn, bend - bbgn,
                       ri);
 #endif
   }

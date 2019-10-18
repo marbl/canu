@@ -306,7 +306,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   int32  p = 0;
 
   for (int32 k=0; k<wa->ped.deltaLen; k++) {
-    //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
+    //fprintf(stderr, "k=%d deltalen=%d  i=%d out of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
     //  Add delta[k] matches or mismatches
 
@@ -375,10 +375,10 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
   // No more deltas.  While there is still sequence, add matches or mismatches.
 
-  //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, a_len, j, b_len);
+  //fprintf(stderr, "k=done   i=%d out of %d   j=%d out of %d\n", i, a_len, j, b_len);
 
   while (i < a_len) {
-    //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, a_len, j, b_len);
+    //fprintf(stderr, "k=done   i=%d out of %d   j=%d out of %d\n", i, a_len, j, b_len);
 
     if (a_part[i] != b_part[j]) {
       wa->globalvote[ct].frag_sub  = i;

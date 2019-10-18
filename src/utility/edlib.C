@@ -428,14 +428,18 @@ edlibAlignmentAnalyze(const unsigned char *a,
 void
 edlibAlignmentToDelta(const unsigned char *a,
                       uint32   aLength,
-                      int32   *&delta,
-                      uint32   &deltaLen,
-                      uint32   &deltaMax) {
+                      int32    *delta,
+                      int32   &deltaLen,
+                      uint32    deltaMax) {
 
+  deltaLen = 0;
+
+#if 0
   if (deltaMax < aLength)
     resizeArray(delta, deltaLen, deltaMax, aLength + 1, resizeArray_doNothing);
+#endif
 
-  int32  nAlign = 0;
+  int32  nAlign = 1;
 
   for (uint32 ii=0; ii<aLength; ii++) {
     switch (a[ii]) {
@@ -444,14 +448,16 @@ edlibAlignmentToDelta(const unsigned char *a,
         nAlign++;
         break;
 
-      case EDLIB_EDOP_INSERT:
-        delta[deltaLen++] =  nAlign;
-        nAlign = 0;
-        break;
-
+      //  Insert a gap in query (== A)
       case EDLIB_EDOP_DELETE:
         delta[deltaLen++] = -nAlign;
-        nAlign=0;
+        nAlign = 1;
+        break;
+
+      //  Insert a gap in target (== B)
+      case EDLIB_EDOP_INSERT:
+        delta[deltaLen++] =  nAlign;
+        nAlign = 1;
         break;
 
       default:
@@ -461,30 +467,46 @@ edlibAlignmentToDelta(const unsigned char *a,
 
     assert(deltaLen <= deltaMax);
   }
+
+#if 0
+  for (uint32 ii=0; ii<deltaLen; ii++)
+    fprintf(stderr, "delta[%2u] %d\n", ii, delta[ii]);
+
+  fprintf(stderr, "DELTA length %u max %u\n", deltaLen, deltaMax);
+#endif
 }
 
 
 
 void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength, int tgtStart, int tgtEnd, int qryStart, int qryEnd, const char *tgt, const char *qry, char *tgt_aln_str, char *qry_aln_str) {
-   for (int a = 0, qryPos=qryStart, tgtPos=tgtStart; a < alignmentLength; a++) {
-      assert(qryPos <= qryEnd && tgtPos <= tgtEnd);
-      if (alignment[a] == EDLIB_EDOP_MATCH || alignment[a] == EDLIB_EDOP_MISMATCH) {  // match or mismatch
-         qry_aln_str[a] = qry[qryPos];
-         tgt_aln_str[a] = tgt[tgtPos];
-         qryPos++;
-         tgtPos++;
-      } else if (alignment[a] == EDLIB_EDOP_INSERT) { // insertion in target
-         tgt_aln_str[a] = '-';
-         qry_aln_str[a] = qry[qryPos];
-         qryPos++;
-      } else if (alignment[a] == EDLIB_EDOP_DELETE) { // insertion in query
-         tgt_aln_str[a] = tgt[tgtPos];
-         qry_aln_str[a] = '-';
-         tgtPos++;
-      }
-   }
-   qry_aln_str[alignmentLength] = tgt_aln_str[alignmentLength] = '\0';
-   assert(strlen(qry_aln_str) == alignmentLength && strlen(tgt_aln_str) == alignmentLength);
+  uint32  nMatch = 0;
+
+  for (int a = 0, qryPos=qryStart, tgtPos=tgtStart; a < alignmentLength; a++) {
+    assert(qryPos <= qryEnd && tgtPos <= tgtEnd);
+    if (alignment[a] == EDLIB_EDOP_MATCH || alignment[a] == EDLIB_EDOP_MISMATCH) {  // match or mismatch
+      qry_aln_str[a] = qry[qryPos];
+      tgt_aln_str[a] = tgt[tgtPos];
+      qryPos++;
+      tgtPos++;
+      nMatch++;
+    }
+
+    else if (alignment[a] == EDLIB_EDOP_INSERT) { // insertion in target
+      fprintf(stderr, "insertTarget after %u aligns\n", nMatch);  nMatch = 0;
+      tgt_aln_str[a] = '-';
+      qry_aln_str[a] = qry[qryPos];
+      qryPos++;
+    }
+
+    else if (alignment[a] == EDLIB_EDOP_DELETE) { // insertion in query
+      fprintf(stderr, "insertQuery  after %u aligns\n", nMatch);  nMatch = 0;
+      tgt_aln_str[a] = tgt[tgtPos];
+      qry_aln_str[a] = '-';
+      tgtPos++;
+    }
+  }
+  qry_aln_str[alignmentLength] = tgt_aln_str[alignmentLength] = '\0';
+  assert(strlen(qry_aln_str) == alignmentLength && strlen(tgt_aln_str) == alignmentLength);
 }
 
 /**
