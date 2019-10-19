@@ -805,16 +805,16 @@ sub configureAssembler () {
     setGlobalIfUndef("oeaBatchLength", "300000000");
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("redMemory", "4-16");        setGlobalIfUndef("redThreads", "2-4");
-        setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
+        setGlobalIfUndef("redMemory", "8-16");        setGlobalIfUndef("redThreads", "2-4");
+        setGlobalIfUndef("oeaMemory", "8");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("redMemory", "8-16");        setGlobalIfUndef("redThreads", "4-6");
-        setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
+        setGlobalIfUndef("oeaMemory", "8");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("redMemory", "16-32");        setGlobalIfUndef("redThreads", "4-8");
-        setGlobalIfUndef("oeaMemory", "4");           setGlobalIfUndef("oeaThreads", "1");
+        setGlobalIfUndef("redMemory", "16-32");       setGlobalIfUndef("redThreads", "4-8");
+        setGlobalIfUndef("oeaMemory", "8");           setGlobalIfUndef("oeaThreads", "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("redMemory", "32-48");       setGlobalIfUndef("redThreads", "4-8");
