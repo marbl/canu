@@ -111,7 +111,6 @@ sqStore::sqStore_loadMetadata(void) {
 
 sqStore::sqStore(char const    *storePath_,
                  sqStore_mode   mode_) {
-  char    nameI[FILENAME_MAX+1];
   char    nameL[FILENAME_MAX+1];
   char    nameR[FILENAME_MAX+1];
   char    nameB[FILENAME_MAX+1];
@@ -143,20 +142,9 @@ sqStore::sqStore(char const    *storePath_,
 
   if (storePath_)   strncpy(_storePath, storePath_, FILENAME_MAX);   //  storePath must always exist though.
 
-  //  If the info file exists, load it.
+  //  Load the info file, if it exists.  And if not, do nothing.
 
-  snprintf(nameI, FILENAME_MAX, "%s/info", _storePath);
-
-  if (fileExists(nameI) == true)
-    AS_UTL_loadFile(nameI, &_info, 1);
-
-  //  Check sizes are correct.
-
-  if (_info.checkInfo() == false) {
-    fprintf(stderr, "\n");
-    fprintf(stderr, "ERROR:  Can't open store '%s': parameters in sqStore.H and sqRead.H are incompatible with the store.\n", _storePath);
-    exit(1);
-  }
+  _info.readInfo(_storePath);
 
   //
   //  CREATE - allocate some memory for saving libraries and reads, and create a file to dump the data into.
@@ -178,7 +166,7 @@ sqStore::sqStore(char const    *storePath_,
     _corU           = new sqReadSeq  [_readsAlloc];
     _corC           = new sqReadSeq  [_readsAlloc];
 
-    _blobWriter     = new sqStoreBlobWriter(_storePath);
+    _blobWriter     = new sqStoreBlobWriter(_storePath, &_info);
 
     return;
   }
@@ -195,7 +183,7 @@ sqStore::sqStore(char const    *storePath_,
   sqStore_loadMetadata();
 
   if (_mode == sqStore_extend)
-    _blobWriter = new sqStoreBlobWriter(_storePath);
+    _blobWriter = new sqStoreBlobWriter(_storePath, &_info);
 
   _blobReader = new sqStoreBlobReader(_storePath);
 }
@@ -271,7 +259,8 @@ sqStore::~sqStore() {
     AS_UTL_saveFile(_storePath, '/', "reads-rawc",  _rawC,      sqStore_lastReadID()    + 1);
     AS_UTL_saveFile(_storePath, '/', "reads-coru",  _corU,      sqStore_lastReadID()    + 1);
     AS_UTL_saveFile(_storePath, '/', "reads-corc",  _corC,      sqStore_lastReadID()    + 1);
-    AS_UTL_saveFile(_storePath, '/', "info",       &_info,                                1);
+
+    _info.writeInfo(_storePath);
 
     FILE *F = AS_UTL_openOutputFile(_storePath, '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
     _info.writeInfoAsText(F);                                       //  Do not remove!

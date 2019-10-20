@@ -32,36 +32,25 @@
 #include "objectStore.H"
 
 
-static
-void
-makeBlobName(char *storePath, uint32 blobNumber, char *blobName) {
-  snprintf(blobName, FILENAME_MAX, "%s/blobs.%04" F_U32P , storePath, blobNumber);
-}
-
-
 
 
 //  Scan the 'storePath' for the next free blob number, and set up
 //  to write new data there.
 //
-sqStoreBlobWriter::sqStoreBlobWriter(const char *storePath) {
+sqStoreBlobWriter::sqStoreBlobWriter(const char *storePath, sqStoreInfo *info) {
 
-  memset(_storePath, 0, sizeof(char) * FILENAME_MAX);
-  memset(_blobName,  0, sizeof(char) * FILENAME_MAX);
+  memset(_storePath, 0, sizeof(char) * FILENAME_MAX);    //  Clear the path.
+  memset(_blobName,  0, sizeof(char) * FILENAME_MAX);    //  Clear the name.
 
-  strncpy(_storePath, storePath, FILENAME_MAX);
+  strncpy(_storePath, storePath, FILENAME_MAX);          //  Copy path to our path.
 
-  _blobNumber = 0;
-  _buffer      = NULL;
+  _info       =  info;                                   //  Remember the info!
+  _blobNumber = _info->_numBlobs++;                      //  Set up for the next avail blob.
 
-  makeBlobName(_storePath, _blobNumber, _blobName);
+  makeBlobName(_storePath, _blobNumber, _blobName);      //  Construct the name of the blob file.
 
-  while (fileExists(_blobName) == true)
-    makeBlobName(_storePath, ++_blobNumber, _blobName);
-
-  _buffer = new writeBuffer(_blobName, "w");
+  _buffer     = new writeBuffer(_blobName, "w");         //  And open it.
 }
-
 
 
 sqStoreBlobWriter::~sqStoreBlobWriter() {

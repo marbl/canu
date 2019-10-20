@@ -37,6 +37,7 @@
  */
 
 #include "sqStore.H"
+#include "files.H"
 
 
 sqStoreInfo::sqStoreInfo() {
@@ -52,11 +53,14 @@ sqStoreInfo::sqStoreInfo() {
 
   _numLibraries       = 0;
   _numReads           = 0;
+  _numBlobs           = 0;
 
   for (uint32 ii=0; ii<sqRead_largest; ii++) {
     _reads[ii] = 0;
     _bases[ii] = 0;
   }
+
+  checkInfo();
 }
 
 
@@ -116,6 +120,7 @@ sqStoreInfo::checkInfo(void) {
     fprintf(stderr, "\n");
     fprintf(stderr, "numLibraries       = " F_U32 "\n", _numLibraries);
     fprintf(stderr, "numReads           = " F_U32 "\n", _numReads);
+    fprintf(stderr, "numBlobs           = " F_U32 "\n", _numBlobs);
     fprintf(stderr, "\n");
   }
 
@@ -201,6 +206,148 @@ sqStoreInfo::update(sqReadSeq  *rawU,
 
   _reads[sqRead_unset] = _numReads;
   _bases[sqRead_unset] = 0;
+}
+
+
+
+bool
+sqStoreInfo::readInfo8(char *storeName) {
+  uint64  magic;
+  uint64  version;
+
+  FILE  *I = AS_UTL_openInputFile(storeName, '/', "info");
+
+  loadFromFile(&_sqMagic,            "sqInfo_sqMagic", I);
+  loadFromFile(&_sqVersion,          "sqInfo_sqVersion", I);
+
+  if (_sqMagic != SQ_MAGIC8) {   //  The magic number changed at version 9, to fix a type,
+    AS_UTL_closeFile(I);         //  and to get rid of GKP.
+    return(false);
+  }
+
+  if (_sqVersion < 8) {
+    fprintf(stderr, "sqStore_loadInfo()-- Error: Unsupported historical version %lu detected.\n", _sqVersion);
+    AS_UTL_closeFile(I);
+    exit(1);
+  }
+
+  if (_sqVersion == 8) {
+    fprintf(stderr, "sqStore_loadInfo()-- Warning: obsolete version 8 detected; adjusting.\n");
+
+    loadFromFile(&_sqLibrarySize,      "sqInfo_sqLibrarySize", I);
+    loadFromFile(&_sqReadSize,         "sqInfo_sqReadSize", I);
+    loadFromFile(&_sqMaxLibrariesBits, "sqInfo_sqMaxLibrariesBits", I);
+    loadFromFile(&_sqLibraryNameSize,  "sqInfo_sqLibraryNameSize", I);
+    loadFromFile(&_sqMaxReadBits,      "sqInfo_sqMaxReadBits", I);
+    loadFromFile(&_sqMaxReadLenBits,   "sqInfo_sqMaxReadLenBits", I);
+
+    loadFromFile(&_numLibraries,     "sqInfo_numLibraries", I);
+    loadFromFile(&_numReads,         "sqInfo_numReads", I);
+
+    loadFromFile(_reads, "sqInfo_reads", sqRead_largest, I);
+    loadFromFile(_bases, "sqInfo_bases", sqRead_largest, I);
+
+    //  Figure out how many blobs files there are in the store.
+
+    {
+      char    bName[FILENAME_MAX + 1] = {0};
+      uint32  bNum = 0;
+
+      makeBlobName(storeName, bNum, bName);
+
+      while (fileExists(bName) == true)
+        makeBlobName(storeName, ++bNum, bName);
+
+      _numBlobs  = bNum;
+
+      fprintf(stderr, "sqStore_loadInfo()-- Warning: found numBlobs %u\n", _numBlobs);
+    }
+
+    //  "Upgrade" this to version 9 data.
+
+    _sqMagic   = SQ_MAGIC;
+    _sqVersion = 9;
+
+    AS_UTL_closeFile(I);
+    return(true);
+  }
+
+  if (_sqVersion > 8) {
+    AS_UTL_closeFile(I);
+    return(false);
+  }
+
+  assert(0);
+  return(false);
+}
+
+
+
+void
+sqStoreInfo::readInfo(char *storePath) {
+
+  //  If no file, don't read it.
+
+  if (fileExists(storePath, '/', "info") == false)
+    return;
+
+  //  Try to read a v8 info file.  If that fails, read the current version.
+
+  if (readInfo8(storePath) == false) {
+    readBuffer  *B = new readBuffer(storePath, '/', "info");
+
+    B->readIFFobject("MAGC", _sqMagic);
+    B->readIFFobject("VERS", _sqVersion);
+
+    B->readIFFobject("LSIZ", _sqLibrarySize);
+    B->readIFFobject("RSIZ", _sqReadSize);
+    B->readIFFobject("MLB ", _sqMaxLibrariesBits);
+    B->readIFFobject("LNS ", _sqLibraryNameSize);
+    B->readIFFobject("MRB ", _sqMaxReadBits);
+    B->readIFFobject("MRLB", _sqMaxReadLenBits);
+
+    B->readIFFobject("NLIB", _numLibraries);
+    B->readIFFobject("NREA", _numReads);
+    B->readIFFobject("NBLO", _numBlobs);
+
+    B->readIFFarray("READ", _reads, sqRead_largest);
+    B->readIFFarray("BASE", _bases, sqRead_largest);
+
+    delete B;
+  }
+
+  //  Check that the info is compatible with our code.
+
+  if (checkInfo() == false) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "ERROR:  Can't open store '%s': parameters in sqStore.H and sqRead.H are incompatible with the store.\n", storePath);
+    exit(1);
+  }
+}
+
+
+void
+sqStoreInfo::writeInfo(char *storePath) {
+  writeBuffer   *B = new writeBuffer(storePath, '/', "info", "w", 16384);
+
+  B->writeIFFobject("MAGC", _sqMagic);
+  B->writeIFFobject("VERS", _sqVersion);
+
+  B->writeIFFobject("LSIZ", _sqLibrarySize);
+  B->writeIFFobject("RSIZ", _sqReadSize);
+  B->writeIFFobject("MLB ", _sqMaxLibrariesBits);
+  B->writeIFFobject("LNS ", _sqLibraryNameSize);
+  B->writeIFFobject("MRB ", _sqMaxReadBits);
+  B->writeIFFobject("MRLB", _sqMaxReadLenBits);
+
+  B->writeIFFobject("NLIB", _numLibraries);
+  B->writeIFFobject("NREA", _numReads);
+  B->writeIFFobject("NBLO", _numBlobs);
+
+  B->writeIFFarray("READ", _reads, sqRead_largest);
+  B->writeIFFarray("BASE", _bases, sqRead_largest);
+
+  delete B;
 }
 
 

@@ -41,9 +41,18 @@
 
 using namespace std;
 
+//  Versions:
+//
+//   4 - first to be called seqStore.               18 APR 2018.  01d182304a951846677a641197bb761674a5e662
+//   5 - tracking of the last blob used.            01 MAY 2018.  1e1ca668fbe16763ef22d7d69a04413cc2b95fb1
+//   6 - unlimited blobs, segs and parts.           04 MAY 2018.  5654d275dfe096465eedd36d0dc316a6c79c59ec
+//   7 - skipped, used during development.
+//   8 - allow clear/compr for any sequence type.   05 JUL 2019.  40763d8b21bfc7f65530c8d768abffbc64e777c3
+//   9 - add, again, numBlobs.                      18 OCT 2019.  (unknown)
 
-#define SQ_MAGIC   0x504b473a756e6162lu      //  canu:GKP
-#define SQ_VERSION 0x0000000000000008lu
+#define SQ_MAGIC8  0x504b473a756e6162lu      //  banu:GKP (for versions before 9)
+#define SQ_MAGIC   0x5145533a756e6163lu      //  canu:SEQ
+#define SQ_VERSION 0x0000000000000009lu
 
 
 //  The number of library IIDs we can handle.
@@ -111,11 +120,23 @@ toString(sqStore_mode m) {
 }
 
 
+static
+void
+makeBlobName(char *storePath, uint32 blobNumber, char *blobName) {
+  snprintf(blobName, FILENAME_MAX, "%s/blobs.%04" F_U32P , storePath, blobNumber);
+}
+
 
 class sqStoreInfo {
 public:
   sqStoreInfo();
   ~sqStoreInfo();
+
+private:
+  bool      readInfo8(char *storePath);
+public:
+  void      readInfo(char *storePath);
+  void      writeInfo(char *storePath);
 
   void      writeInfoAsText(FILE *F);
 
@@ -157,11 +178,13 @@ private:
 
   uint32    _numLibraries;       //  Counts of types of things we have loaded (next
   uint32    _numReads;           //    available index into _libraries and _reads in sqStore)
+  uint32    _numBlobs;
 
   uint64    _reads[sqRead_largest];
   uint64    _bases[sqRead_largest];
 
   friend class sqStore;
+  friend class sqStoreBlobWriter;
 };
 
 
@@ -170,7 +193,7 @@ private:
 
 class sqStoreBlobWriter {
 public:
-  sqStoreBlobWriter(const char *storePath);
+  sqStoreBlobWriter(const char *storePath, sqStoreInfo *info);
   ~sqStoreBlobWriter();
 
   void           writeData(sqReadDataWriter *readData);
@@ -178,6 +201,8 @@ public:
 private:
   char          _storePath[FILENAME_MAX+1];        //  Path to the seqStore.
   char          _blobName[FILENAME_MAX+1];         //  A temporary to make life easier.
+
+  sqStoreInfo  *_info;
 
   uint32        _blobNumber;
   writeBuffer  *_buffer;
