@@ -1,4 +1,4 @@
-     
+
 ###############################################################################
  #
  #  This file is part of canu, a software program that assembles whole-genome
@@ -67,7 +67,7 @@ use canu::Execution;
 
 #use canu::Grid "formatAllowedResources";
 
-my $showWork   = 1;
+my $showWork = 1;
 
 my $retryCount = 5;    #  Try a few times to upload the file.
 my $retryDelay = 10;   #  Wait a little bit before retrying.
@@ -635,16 +635,19 @@ sub stashSeqStore ($) {
         #  we won't upload the metadata, and the store will need to be regenerated.
 
         $files  = "./$asm.seqStore.err ";
-        $files .= "./$asm.seqStore.ssi ";
+        $files .= "./$asm.seqStore.sh ";
         $files .= "./$asm.seqStore/errorLog ";
         $files .= "./$asm.seqStore/info ";
         $files .= "./$asm.seqStore/info.txt ";
         $files .= "./$asm.seqStore/libraries ";
         $files .= "./$asm.seqStore/libraries.txt ";
-        $files .= "./$asm.seqStore/load.dat ";
         $files .= "./$asm.seqStore/readNames.txt ";
         $files .= "./$asm.seqStore/readlengths* ";
         $files .= "./$asm.seqStore/reads ";
+        $files .= "./$asm.seqStore/reads-corc ";
+        $files .= "./$asm.seqStore/reads-coru ";
+        $files .= "./$asm.seqStore/reads-rawc ";
+        $files .= "./$asm.seqStore/reads-rawu ";
         $files .= "./$asm.seqStore/version*"      if (-e "./$asm.seqStore/version.001");
 
         if (runCommandSilently(".", "tar -cf - $files | gzip -1c > ./$asm.seqStore.tar.gz", 1)) {
