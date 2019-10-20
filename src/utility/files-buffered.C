@@ -32,7 +32,28 @@
 //  If bufferMax is zero, then the file is accessed using memory
 //  mapped I/O.  Otherwise, a small buffer is used.
 //
-readBuffer::readBuffer(const char *filename, uint64 bufferMax) {
+
+
+readBuffer::readBuffer(const char *prefix, char separator, const char *suffix,
+                       uint64      bufferMax) {
+  char  filename[FILENAME_MAX+1];
+
+  snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+
+  initialize(filename, bufferMax);
+}
+
+
+
+readBuffer::readBuffer(const char *filename,
+                       uint64      bufferMax) {
+  initialize(filename, bufferMax);
+}
+
+
+
+void
+readBuffer::initialize(const char *filename, uint64 bufferMax) {
 
   memset(_filename, 0, sizeof(char) * (FILENAME_MAX + 1));
 
@@ -332,10 +353,37 @@ readBuffer::peekIFFchunk(char name[4], uint32 &dataLen) {
 
 
 
+//  Read a specific chunk from the buffer.
+//  Return false if the chunk isn't named 'name' and of length 'dataLen'.
+//
+bool
+readBuffer::readIFFchunk(char const *name,
+                         void       *data,
+                         uint32      dataLen) {
+  char    dtag[4] = {0};
+  uint32  dlen    =  0;
+
+  if (peekIFFchunk(dtag, dlen) == false)
+    return(false);
+
+  if ((dtag[0] != name[0]) ||
+      (dtag[1] != name[1]) ||
+      (dtag[2] != name[2]) ||
+      (dtag[3] != name[3]) ||
+      (dlen    != dataLen))
+    return(false);
+
+  //  It's the one we want, so read the data for real.
+
+  read( dtag, 4);
+  read(&dlen, sizeof(uint32));
+  read( data, dataLen);
+}
+
 
 
 void
-readBuffer::readIFFchunk(char*name, uint8 *&data, uint32 &dataLen,  uint32 &dataMax) {
+readBuffer::readIFFchunk(char*name, uint8 *&data, uint32 &dataLen, uint32 &dataMax) {
 
   //  Read the name and data length.
 
@@ -353,8 +401,30 @@ readBuffer::readIFFchunk(char*name, uint8 *&data, uint32 &dataLen,  uint32 &data
 
 
 
+writeBuffer::writeBuffer(const char *prefix, char separator, const char *suffix,
+                         const char *filemode,
+                         uint64      bufferMax) {
+  char  filename[FILENAME_MAX+1];
 
-writeBuffer::writeBuffer(const char *filename, const char *filemode, uint64 bufferMax) {
+  snprintf(filename, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+
+  initialize(filename, filemode, bufferMax);
+}
+
+
+
+writeBuffer::writeBuffer(const char *filename,
+                         const char *filemode,
+                         uint64      bufferMax) {
+  initialize(filename, filemode, bufferMax);
+}
+
+
+
+void
+writeBuffer::initialize(const char *filename,
+                        const char *filemode,
+                        uint64      bufferMax) {
   strncpy(_filename, filename, FILENAME_MAX);
   strncpy(_filemode, filemode, 16);
 
