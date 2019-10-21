@@ -43,6 +43,10 @@ private:
   void                 initialize(const char *filename,
                                   uint64      bufferMax);
 public:
+  //  Returns true if the buffer is at the end.
+  //
+  //  Note that if the last read was successful, but we're now at the end of
+  //  file, this is true.
   bool                 eof(void) { return(_eof); };
 
   char                 peek(void);

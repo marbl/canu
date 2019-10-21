@@ -375,9 +375,13 @@ readBuffer::readIFFchunk(char const *name,
 
   //  It's the one we want, so read the data for real.
 
-  read( dtag, 4);
-  read(&dlen, sizeof(uint32));
-  read( data, dataLen);
+  uint32   rl = 0;
+
+  rl += read( dtag, 4);
+  rl += read(&dlen, sizeof(uint32));
+  rl += read( data, dataLen);
+
+  return(rl == 4 + sizeof(uint32) + dataLen);
 }
 
 
