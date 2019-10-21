@@ -617,7 +617,7 @@ if (($numPacBio   == 0) &&
     setGlobalIfUndef("corErrorRate",     0.000);
     setGlobalIfUndef("obtErrorRate",     0.000);
     setGlobalIfUndef("utgErrorRate",     0.025);
-    setGlobalIfUndef("cnsErrorRate",     0.050);
+    setGlobalIfUndef("cnsErrorRate",     0.150);
     setGlobalIfUndef("homoPolyCompress", 1);
     setGlobalIfUndef("batOptions",       "-eg 0.0003 -dg 3 -db 3 -dr 1 -ca 50 -cp 5");
 }

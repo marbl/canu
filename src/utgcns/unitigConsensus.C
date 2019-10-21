@@ -632,9 +632,9 @@ alignEdLib(dagAlignment      &aln,
     tigbgn = max((int32)0,      tigbgn - 3 * padding);
     tigend = min((int32)tiglen, tigend + 3 * padding);
     // last attempt make a very wide band
-    if (ii == MAX_RETRIES - 1) {
-    tigbgn = max((int32)0,      tigbgn - 10 * padding);
-    tigend = min((int32)tiglen, tigend + 10 * padding);
+    if (ii == (MAX_RETRIES - 1)) {
+       tigbgn = max((int32)0,      tigbgn - 100 * padding);
+       tigend = min((int32)tiglen, tigend + 100 * padding);
     }
 
     bandErrRate += errorRate / 2;
