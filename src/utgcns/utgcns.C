@@ -61,6 +61,7 @@ class cnsParameters {
 public:
   cnsParameters(uint32 numThreads_) {
     seqName          = NULL;
+    seqFile          = NULL;
 
     tigName          = NULL;
     tigVers          = UINT32_MAX;
@@ -105,6 +106,7 @@ public:
     verbosity        = 0;
 
     seqStore         = NULL;
+    seqReads         = NULL;
     tigStore         = NULL;
 
     outResultsFile   = NULL;
@@ -113,57 +115,81 @@ public:
     outSeqFileQ      = NULL;
   }
 
-  char     *seqName;
+  ~cnsParameters() {
+  }
 
-  char     *tigName;
-  uint32    tigVers;
-  uint32    tigPart;
+  void                    closeAndCleanup(void) {
+    delete seqStore;   seqStore = NULL;
+    delete tigStore;   tigStore = NULL;
 
-  uint32    tigBgn;
-  uint32    tigEnd;
+    if (seqReads)
+      for (auto it=seqReads->begin(); it != seqReads->end(); it++) {
+        fprintf(stderr, "delete read %u\n", it->second->sqRead_readID());
+        delete it->second;
+      }
 
-  char     *outResultsName;
-  char     *outLayoutsName;
-  char     *outSeqNameA;
-  char     *outSeqNameQ;
+    delete seqReads;
 
-  char     *exportName;
-  char     *importName;
+    AS_UTL_closeFile(outResultsFile, outResultsName);
+    AS_UTL_closeFile(outLayoutsFile, outLayoutsName);
 
-  char      algorithm;
-  char      aligner;
+    AS_UTL_closeFile(outSeqFileA, outSeqNameA);
+    AS_UTL_closeFile(outSeqFileQ, outSeqNameQ);
+  };
 
-  bool      createPartitions;
-  double    partitionSize;
+  char                   *seqName;
+  char                   *seqFile;
 
-  uint32    numThreads;
+  char                   *tigName;
+  uint32                  tigVers;
+  uint32                  tigPart;
 
-  double    errorRate;
-  double    errorRateMax;
-  uint32    minOverlap;
+  uint32                  tigBgn;
+  uint32                  tigEnd;
 
-  uint32    numFailures;
+  char                   *outResultsName;
+  char                   *outLayoutsName;
+  char                   *outSeqNameA;
+  char                   *outSeqNameQ;
 
-  bool      showResult;
+  char                   *exportName;
+  char                   *importName;
 
-  double    maxCov;
-  uint32    maxLen;
+  char                    algorithm;
+  char                    aligner;
 
-  bool      onlyUnassem;
-  bool      onlyBubble;
-  bool      onlyContig;
+  bool                    createPartitions;
+  double                  partitionSize;
 
-  bool      noSingleton;
+  uint32                  numThreads;
 
-  uint32    verbosity;
+  double                  errorRate;
+  double                  errorRateMax;
+  uint32                  minOverlap;
 
-  sqStore  *seqStore;
-  tgStore  *tigStore;
+  uint32                  numFailures;
 
-  FILE     *outResultsFile;
-  FILE     *outLayoutsFile;
-  FILE     *outSeqFileA;
-  FILE     *outSeqFileQ;
+  bool                    showResult;
+
+  double                  maxCov;
+  uint32                  maxLen;
+
+  bool                    onlyUnassem;
+  bool                    onlyBubble;
+  bool                    onlyContig;
+
+  bool                    noSingleton;
+
+  uint32                  verbosity;
+
+  sqStore                *seqStore;
+  map<uint32, sqRead *>  *seqReads;
+  tgStore                *tigStore;
+
+  FILE                   *outResultsFile;
+  FILE                   *outLayoutsFile;
+  FILE                   *outSeqFileA;
+  FILE                   *outSeqFileQ;
 };
 
 
@@ -198,15 +224,7 @@ public:
 
 
 void
-createPartitions(cnsParameters  &params) {
-
-  //  Scan the tigs to compute expected consensus effort.
-  //
-  //  The memory estimate is _very_ simple, just 1 GB memory for each 1 Mbp
-  //  of sequence (which is, of course, 1 KB memory for every base).
-
-  uint32   tigsLen = params.tigStore->numTigs();
-  tigInfo *tigs    = new tigInfo [tigsLen];
+createPartitions_loadTigInfo(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
 
   for (uint32 ti=0; ti<tigsLen; ti++) {
     if (params.tigStore->isDeleted(ti))
@@ -225,22 +243,16 @@ createPartitions(cnsParameters  &params) {
   }
 
   sort(tigs, tigs + tigsLen, greater<tigInfo>());
+}
 
-  fprintf(stderr, "tig %u size %lu bp children %lu is the largest area.\n",
-          tigs[0].tigID,
-          tigs[0].tigLength,
-          tigs[0].tigChildren);
 
-  uint64   maxArea = tigs[0].consensusArea * params.partitionSize;
 
-  fprintf(stderr, "partition size %f maxArea %lu\n", params.partitionSize, maxArea);
-
-  //  Greedily assign tigs to partitions.
-
+uint32
+createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
+  uint64   maxArea     = tigs[0].consensusArea * params.partitionSize;
   uint32   currentPart = 1;
   uint64   currentArea = 0;
   uint32   currentTigs = 0;
-
   bool     stillMore   = true;
 
   if (params.verbosity > 0) {
@@ -292,9 +304,76 @@ createPartitions(cnsParameters  &params) {
     currentTigs  = 0;
   }
 
-  //  Report partitioning
-
   sort(tigs, tigs + tigsLen, less<tigInfo>());
+
+  return(currentPart);
+}
+
+
+
+void
+createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 tigsLen, uint32 nParts) {
+  map<uint32, uint32>   readToPart;
+  sqRead               *rd    = new sqRead;
+  sqReadDataWriter     *wr    = new sqReadDataWriter;
+  writeBuffer         **parts = new writeBuffer * [nParts];
+  char                  partName[FILENAME_MAX+1];
+
+  //  Build a mapping from readID to partitionID.
+
+  for (uint32 ti=0; ti<tigsLen; ti++) {
+    if (tigs[ti].partition > 0) {
+      tgTig  *tig = params.tigStore->loadTig(tigs[ti].tigID);
+
+      for (uint32 fi=0; fi<tig->numberOfChildren(); fi++)
+        readToPart[tig->getChild(fi)->ident()] = tigs[ti].partition;
+
+      params.tigStore->unloadTig(tigs[ti].tigID);
+    }
+  }
+
+  //  Create output files for each partition.
+
+  for (uint32 pi=0; pi<nParts; pi++) {
+    snprintf(partName, FILENAME_MAX, "%s/partition.%03u", params.tigName, pi);
+
+    parts[pi] = new writeBuffer(partName, "w");
+  }
+
+  //  Scan the store, copying read data to partition files.
+
+  for (uint32 fi=1; fi<params.seqStore->sqStore_lastReadID()+1; fi++)
+    if (readToPart.count(fi) > 0)
+      params.seqStore->sqStore_saveReadToBuffer(parts[readToPart[fi]], fi, rd, wr);
+
+  //  All done!  Cleanup.
+
+  for (uint32 pi=0; pi<nParts; pi++)
+    delete parts[pi];
+
+  delete [] parts;
+  delete    wr;
+  delete    rd;
+}
+
+
+
+//  Scan the tigs to compute expected consensus effort.
+//
+//  The memory estimate is _very_ simple, just 1 GB memory for each 1 Mbp
+//  of sequence (which is, of course, 1 KB memory for every base).
+void
+createPartitions(cnsParameters  &params) {
+  uint32   tigsLen = params.tigStore->numTigs();
+  tigInfo *tigs    = new tigInfo [tigsLen];
+
+  createPartitions_loadTigInfo(params, tigs, tigsLen);
+
+  //  Greedily assign tigs to partitions.
+
+  uint32 nParts = createPartitions_greedilyPartition(params, tigs, tigsLen);
+
+  //  Report partitioning
 
   FILE   *partFile = AS_UTL_openOutputFile(params.tigName, '/', "partitioning");
 
@@ -312,6 +391,14 @@ createPartitions(cnsParameters  &params) {
               tigs[ti].partition);
 
   AS_UTL_closeFile(partFile);
+
+  //  Scan the store, saving reads into partition files.
+
+  createPartitions_outputPartitions(params, tigs, tigsLen, nParts);
+
+  //  Clean up.
+
+  delete [] tigs;
 }
 
 
@@ -424,10 +511,8 @@ loadProcessList(char *prefix, uint32 tigPart) {
     while (AS_UTL_readLine(L, Llen, Lmax, F)) {
       splitToWords S(L);
 
-      if (S.touint32(5) == tigPart) {
-        fprintf(stderr, "will process tig %u\n", S.touint32(0));
+      if (S.touint32(5) == tigPart)
         processList.insert(S.touint32(0));
-      }
     }
 
     AS_UTL_closeFile(F, N);
@@ -440,6 +525,31 @@ loadProcessList(char *prefix, uint32 tigPart) {
 }
 
 
+
+map<uint32, sqRead *> *
+loadPartitionedReads(sqStore *seqStore, char *seqFile) {
+
+  if (seqFile == NULL)
+    return(NULL);
+
+  map<uint32, sqRead *>  *reads = new map<uint32, sqRead *>;
+  readBuffer             *rb    = new readBuffer(seqFile);
+  sqRead                 *rd    = new sqRead;
+
+  while (seqStore->sqStore_loadReadFromBuffer(rb, rd) == true) {
+    (*reads)[rd->sqRead_readID()] = rd;
+
+    rd = new sqRead;
+  }
+
+  delete rd;
+  delete rb;
+
+  return(reads);
+}
+
+
+
 void
 processTigs(cnsParameters  &params) {
   uint32   nTigs       = 0;
@@ -449,6 +559,10 @@ processTigs(cnsParameters  &params) {
   //  Load the partition file, if it exists.
 
   set<uint32>   processList = loadProcessList(params.tigName, params.tigPart);
+
+  //  Load the partitioned reads, if they exist.
+
+  params.seqReads = loadPartitionedReads(params.seqStore, params.seqFile);
 
   //  Loop over all tigs, loading each one and processing if requested.
 
@@ -498,7 +612,7 @@ processTigs(cnsParameters  &params) {
     tig->_utgcns_verboseLevel = params.verbosity;
 
     unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap);
-    bool              success = utgcns->generate(tig, params.algorithm, params.aligner);
+    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
 
     //  Show the result, if requested.
 
@@ -561,6 +675,10 @@ main (int argc, char **argv) {
       params.seqName = argv[++arg];
     }
 
+    else if (strcmp(argv[arg], "-R") == 0) {
+      params.seqFile = argv[++arg];
+    }
+
     else if (strcmp(argv[arg], "-T") == 0) {
       params.tigName = argv[++arg];
       params.tigVers = atoi(argv[++arg]);
@@ -608,10 +726,12 @@ main (int argc, char **argv) {
     //  Algorithm options
 
     else if (strcmp(argv[arg], "-quick") == 0) {
-      params.algorithm = 'Q';    }
+      params.algorithm = 'Q';
+    }
 
     else if (strcmp(argv[arg], "-pbdagcon") == 0) {
-      params.algorithm = 'P';    }
+      params.algorithm = 'P';
+    }
 
     else if (strcmp(argv[arg], "-norealign") == 0) {
       params.algorithm = 'p';
@@ -699,6 +819,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  INPUT\n");
     fprintf(stderr, "    -S g            Load reads from sqStore 'g'\n");
+    fprintf(stderr, "    -R f            Load reads from partition file 'f'\n");
     fprintf(stderr, "    -T t v p        Load tig from tgStore 't', version 'v', partition 'p'.\n");
     fprintf(stderr, "                      Expects reads will be in sqStore partition 'p' as well\n");
     fprintf(stderr, "                      Use p='.' to specify no partition\n");
@@ -788,14 +909,10 @@ main (int argc, char **argv) {
   //  default.
 
   if (params.seqName) {
-    fprintf(stderr, "DEFAULT %s\n", toString(sqRead_defaultVersion));
     fprintf(stderr, "-- Opening seqStore '%s'.\n", params.seqName);
     params.seqStore = new sqStore(params.seqName, sqStore_readOnly);
-    fprintf(stderr, "DEFAULT %s\n", toString(sqRead_defaultVersion));
 
     sqRead_setDefaultVersion(sqRead_defaultVersion & ~sqRead_compressed);
-
-    fprintf(stderr, "DEFAULT %s\n", toString(sqRead_defaultVersion));
   }
 
   if (params.tigName) {
@@ -828,50 +945,39 @@ main (int argc, char **argv) {
     params.outSeqFileQ    = AS_UTL_openOutputFile(params.outSeqNameQ);
   }
 
-
-
   //
   //  Process!
   //
 
   if      (params.createPartitions) {
-    fprintf(stderr, "PARTITION\n");
     createPartitions(params);
   }
 
   else if (params.importName) {
-    fprintf(stderr, "IMPORT\n");
     printHeader(params);
     processImportedTigs(params);
   }
 
   else if (params.exportName) {
-    fprintf(stderr, "EXPORT\n");
     exportTigs(params);
   }
 
-  else {
-    fprintf(stderr, "COMPUTE\n");
+  else if ((params.seqFile) ||
+           (params.seqName)) {
     printHeader(params);
     processTigs(params);
+  }
+
+  else {
+    fprintf(stderr, "How'd you do this?  I don't know what to do.  Oops.\n");
+    exit(1);
   }
 
   //
   //  Cleanup!
   //
 
-  delete params.tigStore;
-  delete params.seqStore;
-
-
-
-  AS_UTL_closeFile(params.outResultsFile, params.outResultsName);
-  AS_UTL_closeFile(params.outLayoutsFile, params.outLayoutsName);
-
-  AS_UTL_closeFile(params.outSeqFileA, params.outSeqNameA);
-  AS_UTL_closeFile(params.outSeqFileQ, params.outSeqNameQ);
-
-
+  params.closeAndCleanup();
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Bye.\n");
