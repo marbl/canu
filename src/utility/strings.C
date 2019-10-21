@@ -71,14 +71,14 @@ const char *
 scaledName(uint64 n, uint32 div) {
   const char *s = "";
 
-  if (n > 9999)  {  n /= div; s = " thousand";  }
-  if (n > 9999)  {  n /= div; s = " million";  }
-  if (n > 9999)  {  n /= div; s = " billion";  }
-  if (n > 9999)  {  n /= div; s = " trillion";  }
+  if (n > 9999)  {  n /= div; s = " thousand";     }
+  if (n > 9999)  {  n /= div; s = " million";      }
+  if (n > 9999)  {  n /= div; s = " billion";      }
+  if (n > 9999)  {  n /= div; s = " trillion";     }
   if (n > 9999)  {  n /= div; s = " quadrillion";  }
   if (n > 9999)  {  n /= div; s = " quintillion";  }
-  if (n > 9999)  {  n /= div; s = " sextillion";  }
-  if (n > 9999)  {  n /= div; s = " septillion";  }
+  if (n > 9999)  {  n /= div; s = " sextillion";   }
+  if (n > 9999)  {  n /= div; s = " septillion";   }
 
   return(s);
 }
