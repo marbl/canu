@@ -173,6 +173,7 @@ findExpectedSimpleSize(uint64  nKmerEstimate,
 
 void
 findBestPrefixSize(uint64  nKmerEstimate,
+                   uint64  memoryAllowed,
                    uint32 &bestPrefix_,
                    uint64 &memoryUsed_) {
   uint32  merSize    = kmerTiny::merSize();
@@ -203,12 +204,16 @@ findBestPrefixSize(uint64  nKmerEstimate,
 
     uint64  structMemory     = ((sizeof(merylCountArray<uint32>) * nPrefix) +          //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
-    uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;
+    uint64  dataMemoryMin    = nPrefix *                 SEGMENT_SIZE * 1024;          //  Minimum memory needed for this size.
+    uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;          //  Expected memory for full batch.
     uint64  totalMemory      = structMemory + dataMemory;
 
     //  Pick a larger prefix if it is dramatically smaller than what we have.
     //  More prefixes seem to run a bit slower, but also have smaller buckets
     //  for sorting at the end.
+
+    if (structMemory + dataMemoryMin > memoryAllowed)
+      break;
 
     if ((wp > 9) && (totalMemory + 16 * wp * 1024 * 1024 < memoryUsed_)) {
       memoryUsed_ = totalMemory;
@@ -237,9 +242,9 @@ findBestValues(uint64  nKmerEstimate,
   fprintf(stderr, "COMPLEX MODE\n");
   fprintf(stderr, "------------\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "prefix     # of   struct   kmers/    segs/     data    total\n");
-  fprintf(stderr, "  bits   prefix   memory   prefix   prefix   memory   memory\n");
-  fprintf(stderr, "------  -------  -------  -------  -------  -------  -------\n");
+  fprintf(stderr, "prefix     # of   struct   kmers/    segs/      min     data    total\n");
+  fprintf(stderr, "  bits   prefix   memory   prefix   prefix   memory   memory   memory\n");
+  fprintf(stderr, "------  -------  -------  -------  -------  -------  -------  -------\n");
 
   for (uint32 wp=1; wp < 2 * merSize - 1; wp++) {
     uint64  nPrefix          = (uint64)1 << wp;                          //  Number of prefix == number of blocks of data
@@ -252,15 +257,17 @@ findBestValues(uint64  nKmerEstimate,
 
     uint64  structMemory     = ((sizeof(merylCountArray<uint32>) * nPrefix) +          //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
-    uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;
+    uint64  dataMemoryMin    = nPrefix *                 SEGMENT_SIZE * 1024;          //  Minimum memory needed for this size.
+    uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;          //  Expected memory for full batch.
     uint64  totalMemory      = structMemory + dataMemory;
 
-    fprintf(stderr, "%6" F_U32P "  %4" F_U64P " %cP  %4" F_U64P " %cB  %4" F_U64P " %cM  %4" F_U64P " %cS  %4" F_U64P " %cB  %4" F_U64P " %cB",
+    fprintf(stderr, "%6" F_U32P "  %4" F_U64P " %cP  %4" F_U64P " %cB  %4" F_U64P " %cM  %4" F_U64P " %cS  %4" F_U64P " %cB  %4" F_U64P " %cB  %4" F_U64P " %cB",
             wp,
             scaledNumber(nPrefix),        scaledUnit(nPrefix),
             scaledNumber(structMemory),   scaledUnit(structMemory),
             scaledNumber(kmersPerPrefix), scaledUnit(kmersPerPrefix),
             scaledNumber(segsPerPrefix),  scaledUnit(segsPerPrefix),
+            scaledNumber(dataMemoryMin),  scaledUnit(dataMemoryMin),
             scaledNumber(dataMemory),     scaledUnit(dataMemory),
             scaledNumber(totalMemory),    scaledUnit(totalMemory));
 
@@ -375,7 +382,7 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
   //
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Counting %lu (estimated) %s %s%s%s " F_U32 "-mers from " F_SIZE_T " input file%s:\n",
+  fprintf(stderr, "Counting %lu (estimated)%s %s%s%s " F_U32 "-mers from " F_SIZE_T " input file%s:\n",
           scaledNumber(_expNumKmers), scaledName(_expNumKmers),
           (_operation == opCount)        ? "canonical" : "",
           (_operation == opCountForward) ? "forward" : "",
@@ -400,7 +407,7 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
   uint64   memoryUsedComplex = UINT64_MAX;
   uint32   bestPrefix        = 0;
 
-  findBestPrefixSize(_expNumKmers, bestPrefix, memoryUsedComplex);
+  findBestPrefixSize(_expNumKmers, memoryAllowed, bestPrefix, memoryUsedComplex);
   findBestValues(_expNumKmers, bestPrefix, memoryUsedComplex, wPrefix_, nPrefix_, wData_, wDataMask_);
 
   //
