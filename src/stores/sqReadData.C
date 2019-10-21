@@ -54,6 +54,8 @@ sqRead::sqRead_decodeBlob(void) {
   if (_rawU)   rawLength = _rawU->sqReadSeq_length();
   if (_corU)   corLength = _corU->sqReadSeq_length();
 
+  assert((_rawU != NULL) || (_corU != NULL));
+
   resizeArray(_rawBases, 0, _rawBasesAlloc, rawLength+1, resizeArray_doNothing);
   resizeArray(_corBases, 0, _corBasesAlloc, corLength+1, resizeArray_doNothing);
 
@@ -87,7 +89,6 @@ sqRead::sqRead_decodeBlob(void) {
     else if ((rawLength > 0) && (strncmp(chunkName, "USQR", 4) == 0))
       decode8bitSequence(chunk, chunkLen, _rawBases, rawLength);
 
-
     //  Decode the corrected bases
 
     else if ((corLength > 0) && (strncmp(chunkName, "2SQC", 4) == 0))
@@ -99,13 +100,16 @@ sqRead::sqRead_decodeBlob(void) {
     else if ((corLength > 0) && (strncmp(chunkName, "USQC", 4) == 0))
       decode8bitSequence(chunk, chunkLen, _corBases, corLength);
 
-
     //  No idea what this is then.
 
-    else
-      fprintf(stderr, "sqRead::sqRead_loadDataFromBlob()--  unknown chunk type %02x %02x %02x %02x '%c%c%c%c' skipped\n",
+    else {
+      fprintf(stderr, "sqRead::sqRead_loadDataFromBlob()--  unknown chunk type 0x%02x%02x%02x%02x '%c%c%c%c' skipped (lengths %u %u)\n",
               chunkName[0], chunkName[1], chunkName[2], chunkName[3],
-              chunkName[0], chunkName[1], chunkName[2], chunkName[3]);
+              chunkName[0], chunkName[1], chunkName[2], chunkName[3],
+              rawLength,
+              corLength);
+      assert(0);
+    }
 
     //  All done.  Move to the next block.
 
