@@ -525,6 +525,15 @@ elsif (scalar(@inputFiles) > 0) {
     my $rt;
     my $st;
 
+    #  If no mode set, default -pacbio-hifi to trimmed status.
+
+    if (($mode eq "") && ($numHiFi > 0)) {
+        $readsAreTrimmed = 1;
+    }
+
+    #  Figure out a human description of the reads, and set
+    #  flags to pass to sqStoreCreate.
+
     if      (($readsAreRaw == 0) && ($readsAreTrimmed == 0)) {
         $numCor = 1;
         $ct = "untrimmed corrected";
@@ -629,8 +638,6 @@ if (!defined($mode)) {
     $mode = "trim-assemble"  if ($numCor    > 0);
     $mode = "assemble"       if ($numHiFi   > 0);
     $mode = "assemble"       if ($numCorTri > 0);
-
-    $readsAreTrimmed = 1     if ($numHiFi   > 0);
 }
 
 ################################################################################
