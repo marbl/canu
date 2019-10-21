@@ -261,7 +261,7 @@ main(int argc, char **argv) {
 
   speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
-  for (uint32 fi=0; fi<seqStore->sqStore_lastReadID()+1; fi++) {
+  for (uint32 fi=1; fi<seqStore->sqStore_lastReadID()+1; fi++) {
     uint32  readLen     = seqStore->sqStore_getReadLength(fi);
 
     if (readLen == 0)   //  Slight optimization; don't try to load overlaps for
