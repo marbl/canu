@@ -185,6 +185,8 @@ unitigConsensus::addRead(uint32   readID,
     read         = (*inPackageRead)[readID];
   }
 
+  if (read == NULL)
+    fprintf(stderr, "Failed to load read %u\n", readID);
   assert(read != NULL);
 
   //  Grab seq/qlt from the read, offset to the proper begin and length.
