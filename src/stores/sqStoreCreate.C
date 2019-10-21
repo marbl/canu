@@ -293,6 +293,12 @@ loadReads(sqStore          *seqStore,
       cseq->sqReadSeq_setAllClear();
     }
 
+    //  And also update our nameMap.
+
+    fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_lastReadID(), sq.name());
+
+    //  Save some silly statistics.
+
     filestats.nLOADED += 1;
     filestats.bLOADED += end - bgn;
   }
