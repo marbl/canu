@@ -103,8 +103,14 @@ sqStore::sqStore_getRead(uint32 readID, sqRead *read) {
 
 //  Load read metadata and data from a stream.
 //
-void
+bool
 sqStore::sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read) {
+
+  //  If no buffer, or it's at the end, stop.
+
+  if ((B == NULL) ||
+      (B->eof() == true))
+    return(false);
 
   //  Load the read and sequence metadata.
 
@@ -131,11 +137,15 @@ sqStore::sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read) {
 
   read->sqRead_fetchBlob(B);
   read->sqRead_decodeBlob();
+
+  return(true);
 }
 
 
 
 //  Dump the read metadata and read data to a stream.
+//    rd must be allocated.  it is overwritten with read 'id's data.
+//    wr must be allocated and uninitialized.
 //
 void
 sqStore::sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadDataWriter *wr) {
@@ -153,6 +163,8 @@ sqStore::sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
   B->write((_corC) ? (&_corC[id]) : (&emptySeq), sizeof(sqReadSeq));
 
   //  Load (or reload) the sequence data, then write it out.
+
+  sqStore_getRead(id, rd);
 
   rd->sqRead_fetchBlob(sqStore_getReadBuffer(id));
   rd->sqRead_decodeBlob();

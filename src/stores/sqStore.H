@@ -247,6 +247,7 @@ public:
   uint32       sqStore_lastLibraryID(void)            { return(_info.sqInfo_lastLibraryID()); };
   uint32       sqStore_lastReadID(void)               { return(_info.sqInfo_lastReadID());    };
 
+  //  If iterating over reads, use sqStore_lastReadID(), not sqStore_getNumReads().
   uint32       sqStore_getNumReads(sqRead_which w)    { return(_info.sqInfo_numReads(w));     };
 
   sqLibrary   *sqStore_getLibrary(uint32 id)          { return(&_libraries[id]); };
@@ -260,8 +261,8 @@ public:
 
 public:
   static
-  void         sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read);
-  void         sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *read=NULL, sqReadDataWriter *wr=NULL);
+  bool         sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read);
+  void         sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadDataWriter *wr);
 
 private:
   sqReadSeq   *sqStore_getSeq(sqRead_which w) {
