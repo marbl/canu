@@ -490,7 +490,7 @@ deleteShortReads(const char *seqStoreName,
 
 
 int
-addFiles(char **argv, int arg, int argc, vector<char *> &err, seqLib &lib) {
+addFiles(char **argv, int arg, int argc, vector<char const *> &err, seqLib &lib) {
   char  *opt = argv[arg++];   //  e.g., -pacbio-raw
   char  *nam = argv[arg++];   //  e.g., LIB_NAME
 
@@ -545,8 +545,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-o") == 0) {
       seqStoreName = argv[++arg];
