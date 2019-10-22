@@ -540,6 +540,20 @@ contig and positions. It also includes the consensus sequence for each contig.
 
 <prefix>.contigs.layout.readToTig, <prefix>.unitigs.layout.readToTig
   The position of each read in a contig (unitig).
+  
+  The file looks like::
+  
+    #readID	tigID	coordType	bgn	end
+    677083	4	ungapped	0	23436
+    2343812	4	ungapped	12469	1223
+
+  In this case read ids 677083 and 2343812 ended up in tig00000004 and the coordinates are listed at the end (read 2343812 is reverse-complemented). 
+  
+  You need to do a bit of work to get the original id of 2343812, look in the gkpStore/readNames.txt file, there you should find::
+
+   2343812	m54033_180126_223601/39780749/39781_51526 id=4778961_0 id=2354708 clr=181,11399
+
+  which gives you the original read (PacBio in this case) id.
 
 <prefix>.contigs.layout.tigInfo, <prefix>.unitigs.layout.tigInfo
   A list of the contigs (unitigs), lengths, coverage, number of reads and other metadata.
