@@ -938,6 +938,12 @@ sub buildResourceOption ($$) {
         $u = "m";               #    In particular, both LSF and DNANEXUS set units to "".
     }
 
+    #  Increase memory slightly if this is a retry.
+
+    if (getGlobal("canuIteration") > 0) {
+        $m *= 1.25 ** getGlobal("canuIteration");
+    }
+
     #  Replace MEMORY and THREADS with actual values.
 
     my $r = getGlobal("gridEngineResourceOption");
