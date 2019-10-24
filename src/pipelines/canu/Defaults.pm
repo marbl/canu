@@ -1577,7 +1577,7 @@ sub checkParameters () {
         my $st = getGlobal("stopAfter");
         $st =~ tr/A-Z/a-z/;
 
-        $st = "correctiom"   if ($st eq "readcorrection");    #  Update the string to allow deprecated usage.
+        $st = "correction"   if ($st eq "readcorrection");    #  Update the string to allow deprecated usage.
         $st = "trimming"     if ($st eq "readtrimming");
 
         my $failureString = "ERROR:  Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
