@@ -802,8 +802,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     pass++;
   }
 
-  if (showAlgorithm())
-    fprintf(stderr, "Finished aligning reads.  %d failed, %d passed.\n", fail, pass);
+  fprintf(stderr, "For tig %d finished aligning reads.  %d failed, %d passed.\n", _tig->tigID(), fail, pass);
 
   //  Construct the graph from the alignments.  This is not thread safe.
 
