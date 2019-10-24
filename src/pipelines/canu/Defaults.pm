@@ -183,10 +183,6 @@ sub setGlobal ($$) {
 
     return  if ($set > 0);
 
-    #if ($var eq "canuiteration") {
-    #    print STDERR "-- WARNING: set canuIteration to $val\n";
-    #}
-
     #  If we get a parameter we don't understand, we should be parsing command line options or
     #  reading spec files, and we can let the usual error handling handle it.
 
