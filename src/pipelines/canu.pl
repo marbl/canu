@@ -378,14 +378,17 @@ detectLSF();
 detectDNANexus();
 
 #  Report if no grid engine found, or if the user has disabled grid support.
-
+#    If we're off grid (disabled by user, ignore stage directory
+#    for remote, we leave it alone since we still want the user-submitted jobs to use staging
 if (!defined(getGlobal("gridEngine"))) {
-    print STDERR "-- No grid engine detected, grid disabled.\n";
+    print STDERR "-- No grid engine detected, grid and staging disabled.\n";
+    setGlobal("stageDirectory", undef);
 }
 
 if ((getGlobal("useGrid") eq "0") && (defined(getGlobal("gridEngine")))) {
-    print STDERR "-- Grid engine disabled per useGrid=false option.\n";
+    print STDERR "-- Grid engine and staging disabled per useGrid=false option.\n";
     setGlobal("gridEngine", undef);
+    setGlobal("stageDirectory", undef);
 }
 
 #  Finish setting up the grid.  This is done AFTER parameters are set from the command line, to
