@@ -432,6 +432,7 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "buildGreedyOpt");
   contigs.optimizePositions(prefix, "buildGreedyOpt");
+  reportTigs(contigs, prefix, "buildGreedyOpt", genomeSize);
 
   //  Break any tigs that aren't contiguous.
 
@@ -481,12 +482,13 @@ main (int argc, char * argv []) {
   reportTigs(contigs, prefix, "placeContains", genomeSize);
 
   setLogFile(prefix, "placeContainsOpt");
-
   contigs.optimizePositions(prefix, "placeContainsOpt");
-  splitDiscontinuous(contigs, minOverlapLen);
-
-  //reportOverlaps(contigs, prefix, "placeContains");
   reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
+
+  setLogFile(prefix, "splitDiscontinuous");
+  splitDiscontinuous(contigs, minOverlapLen);
+  //reportOverlaps(contigs, prefix, "placeContains");
+  reportTigs(contigs, prefix, "splitDiscontinuous", genomeSize);
 
   //
   //  Merge orphans.
