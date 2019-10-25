@@ -624,7 +624,7 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
 
 
 //  Binary search a list of overlaps for one matching bID and flipped.
-bool
+uint32
 searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID, bool flipped) {
   int32  F = 0;
   int32  L = ovlLen - 1;
@@ -646,11 +646,10 @@ searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID, bool flipped) {
 
     if ((ovl[M].b_iid   == bID) &&
         (ovl[M].flipped == flipped)) {
-      ovl[M].symmetric = true;
 #ifdef TEST_LINEAR_SEARCH
       assert(linearSearchFound == true);
 #endif
-      return(true);
+      return(M);
     }
 
     if (((ovl[M].b_iid  < bID)) ||
@@ -664,7 +663,7 @@ searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID, bool flipped) {
   assert(linearSearchFound == false);
 #endif
 
-  return(false);
+  return(UINT32_MAX);
 }
 
 
@@ -679,6 +678,11 @@ OverlapCache::symmetrizeOverlaps(void) {
   if (_checkSymmetry == false)
     return;
 
+  uint64  nNonSymErr = 0;
+  uint64  nOverlaps  = 0;
+  uint64  nOnly      = 0;
+  uint64  nCritical  = 0;
+
   uint32   *nonsymPerRead = new uint32 [RI->numReads() + 1];  //  Overlap in this read is missing it's twin
 
   //  For each overlap, see if the twin overlap exists.  It is tempting to skip searching if the
@@ -689,32 +693,57 @@ OverlapCache::symmetrizeOverlaps(void) {
   writeStatus("OverlapCache()-- Symmetrizing overlaps.\n");
   writeStatus("OverlapCache()--   Finding missing twins.\n");
 
+  FILE *NSE = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-error-rates");
+
+  if (NSE) {
+    fprintf(NSE, "     aID      bID  a error b error\n");
+    fprintf(NSE, "-------- --------  ------- -------\n");
+  }
+
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    nonsymPerRead[rr] = 0;
+  for (uint32 ra=0; ra<RI->numReads()+1; ra++) {
+    nonsymPerRead[ra] = 0;
 
-    for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
-      uint32  rb = _overlaps[rr][oo].b_iid;
+    for (uint32 oa=0; oa<_overlapLen[ra]; oa++) {
+      uint32  rb = _overlaps[ra][oa].b_iid;
 
-      if (_overlaps[rr][oo].symmetric == true)   //  If already marked, we're done.
+      if (_overlaps[ra][oa].symmetric == true)   //  If already marked, we're done.
         continue;
 
       //  Search for the twin overlap, and if found, we're done.  The twin is marked as symmetric in the function.
 
-      if (searchForOverlap(_overlaps[rb], _overlapLen[rb], rr, _overlaps[rr][oo].flipped)) {
-        _overlaps[rr][oo].symmetric = true;
+      uint32 ob = searchForOverlap(_overlaps[rb], _overlapLen[rb], ra, _overlaps[ra][oa].flipped);
+
+      if (ob < UINT32_MAX) {
+        _overlaps[ra][oa].symmetric = true;   //  I have a twin!
+        _overlaps[rb][ob].symmetric = true;   //  My twin has a twin, me!
+
+        //fprintf(stderr, "TWIN %6u %5.3f vs %6u %5.3f\n",
+        //        ra, _overlaps[ra][oa].erate(),
+        //        rb, _overlaps[rb][ob].erate());
+
+        if (_overlaps[ra][oa].evalue != _overlaps[rb][ob].evalue) {
+          if (NSE)
+            fprintf(NSE, "%8u %8u  %7.3f %7.3f\n",
+                     ra, rb,
+                     _overlaps[ra][oa].erate() * 100.0,
+                     _overlaps[rb][ob].erate() * 100.0);
+          nNonSymErr++;
+        }
+
         continue;
       }
 
       //  Didn't find a twin.  Count how many overlaps we need to create duplicates of.
 
-      nonsymPerRead[rr]++;
+      fprintf(stderr, "NO TWIN for %6u vs %6u\n",
+              ra, _overlaps[ra][oa].b_iid);
+
+      nonsymPerRead[ra]++;
     }
   }
 
-  uint64  nOverlaps = 0;
-  uint64  nOnly     = 0;
-  uint64  nCritical   = 0;
+  AS_UTL_closeFile(NSE);
 
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
     nOverlaps += _overlapLen[rr];
@@ -724,6 +753,7 @@ OverlapCache::symmetrizeOverlaps(void) {
       nCritical += nonsymPerRead[rr];
   }
 
+  writeStatus("OverlapCache()--   Found %llu overlaps with non-symmetric error rates.\n", nNonSymErr);
   writeStatus("OverlapCache()--   Found %llu missing twins in %llu overlaps, %llu are strong.\n", nOnly, nOverlaps, nCritical);
 
   //  Score all the overlaps (again) and drop the lower quality ones.  We need to drop half of the
