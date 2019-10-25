@@ -913,6 +913,12 @@ sub buildResourceOption ($$) {
     my $t = shift @_;
     my $u = "g";
 
+    #  Increase memory slightly if this is a retry.
+
+    if (getGlobal("canuIteration") > 0) {
+        $m *= 1.25 ** getGlobal("canuIteration");
+    }
+
     #  Massage the memory requested into a format the grid is happy with.
 
     if (getGlobal("gridEngineMemoryPerJob") != "1") {    #  If anything but "1", divide the memory request
@@ -936,12 +942,6 @@ sub buildResourceOption ($$) {
         (int($m) != $m)) {      #  switch over to megabytes.
         $m = int($m * 1024);    #    But only if we're still gigabytes!
         $u = "m";               #    In particular, both LSF and DNANEXUS set units to "".
-    }
-
-    #  Increase memory slightly if this is a retry.
-
-    if (getGlobal("canuIteration") > 0) {
-        $m *= 1.25 ** getGlobal("canuIteration");
     }
 
     #  Replace MEMORY and THREADS with actual values.
