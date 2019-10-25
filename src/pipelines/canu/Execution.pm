@@ -916,7 +916,7 @@ sub buildResourceOption ($$) {
     #  Increase memory slightly if this is a retry.
 
     if (getGlobal("canuIteration") > 0) {
-        $m *= 1.25 ** getGlobal("canuIteration");
+        $m *= 1.25 ** (getGlobal("canuIteration")-1);
     }
 
     #  Massage the memory requested into a format the grid is happy with.
