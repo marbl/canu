@@ -154,6 +154,9 @@ sub configureDNANexus () {
     setGlobalIfUndef("gridEngineArraySubmitID",              undef);
     setGlobalIfUndef("gridEngineJobID",                      "DX_JOB_ID");
 
+    #  Force this to be enabled, regardless of what the user thinks it should
+    #  be.  We always need to have memory per job.
+    setGlobal("gridEngineMemoryPerJob", 1);
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys of
     #  "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
