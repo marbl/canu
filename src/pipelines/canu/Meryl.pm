@@ -146,6 +146,10 @@ sub merylGenerateHistogram ($$) {
     }
     close(F);
 
+    if ($numTotal == 0) {
+        caExit("meryl histogram '$path/$name.histogram' shows no kmers", undef);
+    }
+
     #  Find blocks for the histogram.
 
     my @TD;  #  Total number of distinct kmers in the i'th histogram block.
@@ -605,7 +609,9 @@ sub merylConfigure ($$) {
     print F "if [ ! -e ./$name.histogram ] ; then\n";
     print F "  $bin/meryl threads=1 memory=1 \\\n";
     print F "    statistics ./$name \\\n";
-    print F "  > ./$name.histogram\n";
+    print F "  > ./$name.histogram.WORKING \\\n";
+    print F "  && \\\n";
+    print F "  mv ./$name.histogram.WORKING ./$name.histogram\n";
     print F "fi\n";
     print F "\n";
 
@@ -864,7 +870,9 @@ sub merylProcessCheck ($$) {
     goto allDone      if ($merSize == 0);
 
     goto allDone      if (fileExists("$path/meryl-process.success"));
-    goto finishStage  if (fileExists("$path/$name.dump") &&
+
+    goto finishStage  if (fileExists("$path/$name.histogram") &&
+                          fileExists("$path/$name.dump") &&
                           fileExists("$path/$name.ignore.gz"));
 
     fetchFile("$path/meryl-process.sh");
