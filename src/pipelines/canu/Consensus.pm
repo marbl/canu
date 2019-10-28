@@ -105,7 +105,7 @@ sub utgcns ($$$) {
     print F fetchSeqStorePartitionShellCode($asm, $path, "");
     print F "\n";
     print F "\$bin/utgcns \\\n";
-    print F "  -S ../../$asm.seqStore \\\n";
+    print F "  -R ../$asm.\${tag}Store/partition.\$jobid \\\n";
     print F "  -T ../$asm.\${tag}Store 1 \\\n";
     print F "  -P \$jobid \\\n";
     print F "  -O ./\${tag}cns/\$jobid.cns.WORKING \\\n";

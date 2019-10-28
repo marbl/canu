@@ -123,10 +123,8 @@ public:
     delete tigStore;   tigStore = NULL;
 
     if (seqReads)
-      for (auto it=seqReads->begin(); it != seqReads->end(); it++) {
-        fprintf(stderr, "delete read %u\n", it->second->sqRead_readID());
+      for (auto it=seqReads->begin(); it != seqReads->end(); it++)
         delete it->second;
-      }
 
     delete seqReads;
 
@@ -332,12 +330,23 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
     }
   }
 
-  //  Create output files for each partition.
+  //  Create output files for each partition and write a small header.
 
-  for (uint32 pi=0; pi<nParts; pi++) {
-    snprintf(partName, FILENAME_MAX, "%s/partition.%03u", params.tigName, pi);
+  for (uint32 pi=0; pi<nParts; pi++)
+    parts[pi] = NULL;
+
+  for (uint32 pi=1; pi<nParts; pi++) {
+    snprintf(partName, FILENAME_MAX, "%s/partition.%04u", params.tigName, pi);
 
     parts[pi] = new writeBuffer(partName, "w");
+
+    uint64  magc = (uint64)0x5f5f656c69467173llu;   //  'sqFile__'
+    uint64  vers = (uint64)0x0000000000000001llu;
+    uint64  defv = (uint64)sqRead_defaultVersion;
+
+    parts[pi]->writeIFFobject("MAGC", magc);
+    parts[pi]->writeIFFobject("VERS", vers);
+    parts[pi]->writeIFFobject("DEFV", defv);
   }
 
   //  Scan the store, copying read data to partition files.
@@ -348,7 +357,7 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
 
   //  All done!  Cleanup.
 
-  for (uint32 pi=0; pi<nParts; pi++)
+  for (uint32 pi=1; pi<nParts; pi++)
     delete parts[pi];
 
   delete [] parts;
@@ -527,16 +536,45 @@ loadProcessList(char *prefix, uint32 tigPart) {
 
 
 map<uint32, sqRead *> *
-loadPartitionedReads(sqStore *seqStore, char *seqFile) {
+loadPartitionedReads(char *seqFile) {
 
   if (seqFile == NULL)
     return(NULL);
+
+  //  Allocate space for the reads, and buffers to load them.
 
   map<uint32, sqRead *>  *reads = new map<uint32, sqRead *>;
   readBuffer             *rb    = new readBuffer(seqFile);
   sqRead                 *rd    = new sqRead;
 
-  while (seqStore->sqStore_loadReadFromBuffer(rb, rd) == true) {
+  uint64 magc;
+  uint64 vers;
+  uint64 defv;
+
+  //  Read the header.
+
+  if (rb->readIFFobject("MAGC", magc) == false)
+    fprintf(stderr, "File '%s' isn't a utgcns seqFile: no magic number found.\n", seqFile), exit(1);
+
+  if (magc != 0x5f5f656c69467173llu)
+    fprintf(stderr, "File '%s' isn't a utgcns seqFile: found magic 0x%016lx.\n", seqFile, magc), exit(1);
+
+  if (rb->readIFFobject("VERS", vers) == false)
+    fprintf(stderr, "File '%s' isn't a utgcns seqFile: no file version found.\n", seqFile), exit(1);
+
+  if (vers != 0x0000000000000001llu)
+    fprintf(stderr, "File '%s' is a utgcns seqFile, but an unsupported version %lu.\n", seqFile, vers), exit(1);
+
+  if (rb->readIFFobject("DEFV", defv) == false)
+    fprintf(stderr, "File '%s' isn't a utgcns seqFile: no default version found.\n", seqFile), exit(1);
+
+  sqRead_defaultVersion = (sqRead_which)defv;
+
+  fprintf(stderr, "Loading %s reads from seqFile '%s'\n", toString(sqRead_defaultVersion), seqFile);
+
+  //  Read the reads.
+
+  while (sqStore::sqStore_loadReadFromBuffer(rb, rd) == true) {
     (*reads)[rd->sqRead_readID()] = rd;
 
     rd = new sqRead;
@@ -544,6 +582,8 @@ loadPartitionedReads(sqStore *seqStore, char *seqFile) {
 
   delete rd;
   delete rb;
+
+  //  Return the reads.
 
   return(reads);
 }
@@ -562,7 +602,7 @@ processTigs(cnsParameters  &params) {
 
   //  Load the partitioned reads, if they exist.
 
-  params.seqReads = loadPartitionedReads(params.seqStore, params.seqFile);
+  params.seqReads = loadPartitionedReads(params.seqFile);
 
   //  Loop over all tigs, loading each one and processing if requested.
 
@@ -807,8 +847,8 @@ main (int argc, char **argv) {
   }
 
 
-  if ((params.seqName == NULL) && (params.importName == NULL))
-    err.push_back("ERROR:  No seqStore (-S) and no package (-p) supplied.\n");
+  if ((params.seqName == NULL) && (params.importName == NULL) && (params.seqFile == NULL))
+    err.push_back("ERROR:  No sequence data!  Need one of seqStore (-S), read file (-R) or package (-p).\n");
 
   if ((params.tigName == NULL)  && (params.importName == NULL))
     err.push_back("ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p) supplied.\n");
@@ -913,6 +953,14 @@ main (int argc, char **argv) {
     params.seqStore = new sqStore(params.seqName, sqStore_readOnly);
 
     sqRead_setDefaultVersion(sqRead_defaultVersion & ~sqRead_compressed);
+    fprintf(stderr, "-- Using %s reads.\n", toString(sqRead_defaultVersion));
+  }
+
+  if (params.seqFile) {
+    fprintf(stderr, "-- Using seqFile '%s'.\n", params.seqFile);
+
+    delete params.seqStore;    //  That was a lot of work just to get sqRead_defaultVersion!
+    params.seqStore = NULL;
   }
 
   if (params.tigName) {
