@@ -47,67 +47,112 @@ use canu::Grid "formatAllowedResources";
 
 sub buildAvailableNodeList() {
     my %hosts;
+    my $nameIdx = 0;
+    my $memIdx  = 0;
+    my $stoIdx  = 0;
+    my $cpuIdx  = 0;
+
+    #  Get all instances valid for this project (-p) that
+    #  have at least 128 GB storage.
 
     open(F, "dx-get-instance-info.py -p -s 128 | iconv -c -f UTF-8 -t ASCII//TRANSLIT | ");
-
-    my $cpuIdx = 0;
-    my $memIdx = 0;
-    my $nameIdx = 0;
-
     while (<F>) {
-       if (m/Name\s+|\s+Memory_GB/) {
-          my @h = split '\t';
+        s/^\s+//;
+        s/\s+$//;
 
-          for (my $ii=0; ($ii < scalar(@h)); $ii++) {
-             $cpuIdx  = $ii  if ($h[$ii] eq "CPU_Cores\n");
-             $memIdx  = $ii  if ($h[$ii] eq "Memory_GB");
-             $nameIdx = $ii  if ($h[$ii] =~ m/Name/);
-          }
-          last;
-       }
+        my @v = split '\s+', $_;
+
+        #  Parse the header to figure out which columns have which data.
+        #    'Name	Memory_GB	Storage_GB	CPU_Cores'
+        if (m/Memory_GB/) {
+            for (my $ii=0; ($ii < scalar(@v)); $ii++) {
+                $nameIdx = $ii  if ($v[$ii] eq "Name");
+                $memIdx  = $ii  if ($v[$ii] eq "Memory_GB");
+                $stoIdx  = $ii  if ($v[$ii] eq "Storage_GB");
+                $cpuIdx  = $ii  if ($v[$ii] eq "CPU_Cores");
+            }
+        }
+
+        #  Parse a line for data, then save it if valid.
+        else {
+            my $name =     $v[$nameIdx];
+            my $mem  = int($v[$memIdx] * 0.85);   #  No swap; leave space for the OS
+            my $sto  =     $v[$stoIdx];
+            my $cpus =     $v[$cpuIdx];
+
+            if (($mem > 0) && ($cpus > 0)) {
+                $hosts{"$cpus-$mem-$sto-$name"}++;
+            }
+        }
     }
+    close(F);
 
-    while (<F>) {
-        my @v = split '\t', $_;
-
-        my $cpus = $v[$cpuIdx];
-        my $mem  = $v[$memIdx] * 0.85; # the machines don't have swap so save some space for OS overhead
-        my $name = $v[$nameIdx];
-
-        $mem  = int($mem);
-        $hosts{"$cpus-$mem-$name"}++ if ($mem > 0 && $cpus > 0);
-     }
-     close(F);
-
-     return %hosts;
+    return %hosts;
 }
 
+
+
 sub getDNANexusInstance($$) {
-    my $requestMem       = shift @_;
-    my $requestCPU       = shift @_;
-    my $instance         = "";
-    my $currCPU          = 99999;
-    my $currMem          = 99999;
+    my $reqMem = shift @_;
+    my $reqCPU = shift @_;
+    my $sel   = undef;
+    my $selCPU;
+    my $selMem;
+    my $selSto;
 
     my %hosts = buildAvailableNodeList();
 
     foreach my $host (keys %hosts) {
-        my @v = split '-', $host;
+        my ($cpu, $mem, $sto, $name) = split '-', $host;
 
-        my $cpus = $v[0];
-        my $mem  = $v[1];
+        if (($cpu < $reqCPU) ||     #  Instance doesn't have enough
+            ($mem < $reqMem)) {     #  CPUs or memory.
+            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; too small.\n";
+            next;
+        }
 
-        if ($mem >= $requestMem && $cpus >= $requestCPU && $mem <= $currMem) {
-            $instance = $v[2];
-            $currCPU = $cpus;
-            $currMem = $mem;
-         }
+        #  If nothing defined yet, accept the first valid instance.
+
+        if (!defined($sel)) {
+            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs accepted.\n";
+            ($sel, $selCPU, $selMem, $selSto) = ($name, $cpu, $mem, $sto);
+            next;
+        }
+
+        #  If the instance is bigger than the selected, skip it.
+
+        if (($cpu > $selCPU) ||
+            ($mem > $selMem)) {
+            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; extra CPU or memory.\n";
+            next;
+        }
+
+        if (($cpu == $selCPU) &&
+            ($mem == $selMem) &&
+            ($sto  > $selSto)) {
+            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; extra storage.\n";
+            next;
+        }
+
+        #  Otherwise, use this instance.
+
+        print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs accepted.\n";
+        ($sel, $selCPU, $selMem, $selSto) = ($name, $cpu, $mem, $sto);
     }
 
-    die "-- ERROR:    cannot find a node to satisfy request for CPU=$requestCPU and MEM=${requestMem}G\n" if (! defined($instance));
-    print STDERR "-- Selected $instance for request of ${requestMem}G and $requestCPU.\n";
-    return $instance;
+    if (!defined($sel)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR: Cannot find an instance to satisfy request for $reqMem GB and $reqCPU CPUs.\n";
+        print STDERR "--\n";
+
+        caExit("no appropriate instance found", undef);
+    }
+
+    print STDERR "-- Selected $sel ($selMem GB and $selCPU CPUs) for request of $reqMem GB and $reqCPU CPUs.\n";
+
+    return($sel);
 }
+
 
 
 sub detectDNANexus () {
@@ -131,6 +176,7 @@ sub detectDNANexus () {
 
     setGlobal("stopOnReadQuality", 0);
 }
+
 
 
 sub configureDNANexus () {
@@ -164,32 +210,14 @@ sub configureDNANexus () {
     #
     #  The list is saved in global{"availableHosts"}
 
-
     my %hosts = buildAvailableNodeList();
 
-
-    foreach my $host (keys %hosts) {
-        my @v = split '-', $host;
-
-        my $cpus = $v[0];
-        my $mem  = $v[1];
-
-        $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
-    }
-
     if (scalar(keys(%hosts)) == 0) {
-        my $mm = getGlobal("maxMemory");
-        my $mt = getGlobal("maxThreads");
-
         print STDERR "--\n";
-        print STDERR "-- WARNING:  No hosts found in 'instance' report.\n";
-        print STDERR "-- WARNING:  Will use maxMemory=$mm and maxThreads=$mt instead.\n";
-        print STDERR "-- ERROR:    maxMemory not defined!\n"   if (!defined($mm));
-        print STDERR "-- ERROR:    maxThreads not defined!\n"  if (!defined($mt));
+        print STDERR "-- ERROR:  No instances found in output of 'dx-get-instance-info.py -p -s 128'.\n";
+        print STDERR "--\n";
 
-        caExit("maxMemory or maxThreads not defined", undef)  if (!defined($mm) || !defined($mt));
-
-        $hosts{"$mt-$mm"}++;
+        caExit("no instances found", undef);
     }
 
     setGlobal("availableHosts", formatAllowedResources(%hosts, "DNA Nexus"));
