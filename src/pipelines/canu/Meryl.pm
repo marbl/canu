@@ -40,7 +40,7 @@ package canu::Meryl;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(merylConfigure merylCountCheck merylProcessCheck merylSubtract merylFinishSubtraction);
+@EXPORT = qw(merylConfigure merylCountCheck merylProcessCheck);
 
 use strict;
 use warnings "all";
