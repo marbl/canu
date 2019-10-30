@@ -1062,10 +1062,10 @@ sub buildGridJob ($$$$$$$$$) {
 
 
 
-#  Convert @jobs to a list of ranges, a-b, c, d-e, etc.  These will be directly submitted to the
+#  Convert @jobs to a list of ranges, 1-4, 5, 10-20, etc.  These will be directly submitted to the
 #  grid, or run one-by-one locally.
 #
-#  If we're SGE, we can combine everything to one job range: a-b,c,d,e-f.  Except that
+#  If we're SGE, we can combine everything to one job range: 1-4, 5, 10-20.  Except that
 #  buildGridJob() doesn't know how to handle that.
 
 sub convertToJobRange (@) {
