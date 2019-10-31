@@ -41,8 +41,8 @@
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
-
-
+#include "stddev.H"
+#include <vector>
 
 class optPos {
 public:
@@ -61,8 +61,8 @@ public:
   };
 
   uint32  ident;
-  double  min;
-  double  max;
+  int32   min;
+  int32   max;
   bool    fwd;
 };
 
@@ -202,8 +202,7 @@ Unitig::optimize_initPlace(uint32        ii,
                            set<uint32>  &failed,
                            bool          beVerbose) {
   uint32   iid  = ufpath[ii].ident;
-  double   nmin = 0;
-  int32    cnt  = 0;
+  vector<int32> hs;
 
   if ((firstPass == false) && (failed.count(iid) == 0))  //  If the second pass and not
     return;                                              //  failed, do nothing.
@@ -237,15 +236,17 @@ Unitig::optimize_initPlace(uint32        ii,
         continue;
 
       //  Compute the position of the read using the overlap and the other read.
+      int32 tmin = max(0, (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang));
 
-      nmin += (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang);
-      cnt  += 1;
+      if ((logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
+         writeLog("optimize_initPlace()-- tig %7u read %9u placed at %d with overlap to %d\n", id(), iid, tmin, jid);
+      hs.push_back(tmin);
     }  //  over all overlaps
 
     //  If no overlaps found, flag this read for a second pass.  If in the second pass,
     //  not much we can do.
 
-    if ((firstPass == true) && (cnt == 0)) {
+    if ((firstPass == true) && (hs.size() == 0)) {
       if (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))
         writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (first pass)\n",
                  id(), iid);
@@ -253,27 +254,29 @@ Unitig::optimize_initPlace(uint32        ii,
       return;
     }
 
-    if ((firstPass == false) && (cnt == 0) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
+    if ((firstPass == false) && (hs.size() == 0) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
       writeLog("optimize_initPlace()-- tig %7u read %9u FAILED TO FIND OVERLAPS (second pass)\n",
                id(), iid);
       flushLog();
     }
 
-    assert(cnt > 0);
+    assert(hs.size() > 0);
   }
 
   //  The initialization above does very little to enforce read lengths, and the optimization
   //  doesn't put enough weight in the read length to make it stable.  We simply force
   //  the correct read length here.
 
-  op[iid].min = (cnt == 0) ? 0 : (nmin / cnt);
+  op[iid].min = 0;
+  if (hs.size() != 0) 
+     computeMedian(hs, op[iid].min);
   op[iid].max = op[iid].min + RI->readLength(ufpath[ii].ident);
 
   np[iid].min = 0;
   np[iid].max = 0;
 
   if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
-    writeLog("optimize_initPlace()-- tig %7u read %9u initialized to position %9.2f %9.2f%s\n",
+    writeLog("optimize_initPlace()-- tig %7u read %9u initialized to position %7u %7u %s\n",
              id(), op[iid].ident, op[iid].min, op[iid].max, (firstPass == true) ? "" : " SECONDPASS");
 }
 
@@ -291,14 +294,13 @@ Unitig::optimize_recompute(uint32        iid,
   uint32       ovlLen  = 0;
   BAToverlap  *ovl     = OC->getOverlaps(iid, ovlLen);
 
-  double       nmin = 0.0;
-  double       nmax = 0.0;
-  uint32       cnt  = 0;
+  vector<int32> hsmin;
+  vector<int32> hsmax;
 
   if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
     writeLog("optimize()--\n");
-    writeLog("optimize()-- tig %8u read %9u previous  - %9.2f-%-9.2f\n", id(), iid, op[iid].min,           op[iid].max);
-    writeLog("optimize()-- tig %8u read %9u length    - %9.2f-%-9.2f\n", id(), iid, op[iid].max - readLen, op[iid].min + readLen);
+    writeLog("optimize()-- tig %8u read %9u previous  - %9u-%-9u\n", id(), iid, op[iid].min,           op[iid].max);
+    writeLog("optimize()-- tig %8u read %9u length    - %9u-%-9u\n", id(), iid, op[iid].max - readLen, op[iid].min + readLen);
   }
 
   //  Process all overlaps.
@@ -313,49 +315,48 @@ Unitig::optimize_recompute(uint32        iid,
 
     //  Compute the position of the read using the overlap and the other read.
 
-    double tmin = (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang);
-    double tmax = (op[iid].fwd) ? (op[jid].max - ovl[oo].b_hang) : (op[jid].max + ovl[oo].a_hang);
-
-    if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
-      writeLog("optimize()-- tig %8u read %9u olap %4u - %9.2f-%-9.2f\n", id(), iid, oo, tmin, tmax);
+    int32 tmin = max(0, (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang));
+    int32 tmax = max(0, (op[iid].fwd) ? (op[jid].max - ovl[oo].b_hang) : (op[jid].max + ovl[oo].a_hang));
 
     //  Skip if the overlap isn't compatible with the layout.
-
     if (optimize_isCompatible(ii, jj, ovl[oo], false, false, beVerbose) == false)
       continue;
 
+    if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
+      writeLog("optimize()-- tig %8u read %9u olap %4u - %9u-%9u\n", id(), iid, oo, tmin, tmax);
+
     //  Update estimate.
 
-    nmin += tmin;
-    nmax += tmax;
-    cnt  += 1;
+    assert(tmin >= 0);
+    assert(tmax >= 0);
+    hsmin.push_back(tmin);
+    hsmax.push_back(tmax);
   }
 
-  if (cnt == 0) {
+  if (hsmin.size() == 0) {
     writeLog("Failed to optimize read %u in tig %u\n", iid, id());
     fprintf(stderr, "Failed to optimize read %u in tig %u\n", iid, id());
     flushLog();
   }
-  assert(cnt > 0);
+  assert(hsmin.size() > 0);
 
   //  Add in some evidence for the bases in the read.  We want higher weight than the overlaps,
   //  but not enough to swamp the hangs.
 
-  nmin   += cnt/4 * (op[iid].max - readLen);
-  nmax   += cnt/4 * (op[iid].min + readLen);
-  cnt    += cnt/4;
+  hsmin.push_back(max(0, op[iid].max - readLen)); hsmin.push_back(max(0, op[iid].max - readLen));
+  hsmax.push_back(op[iid].min + readLen); hsmax.push_back(op[iid].min + readLen);
 
   //  Find the average and save.
 
-  np[iid].min = nmin / cnt;
-  np[iid].max = nmax / cnt;
+  computeMedian(hsmin, np[iid].min); 
+  computeMedian(hsmax, np[iid].max);
 
   if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
-    double dmin = 2 * (op[iid].min - np[iid].min) / (op[iid].min + np[iid].min);
-    double dmax = 2 * (op[iid].max - np[iid].max) / (op[iid].max + np[iid].max);
-    double npll = np[iid].max - np[iid].min;
+    double dmin = 2.0 * (op[iid].min - np[iid].min) / (op[iid].min + np[iid].min);
+    double dmax = 2.0 * (op[iid].max - np[iid].max) / (op[iid].max + np[iid].max);
+    double npll = (double)np[iid].max - np[iid].min;
 
-    writeLog("optimize()-- tig %8u read %9u           - %9.2f-%-9.2f length %9.2f/%-6d %7.2f%% posChange %+6.4f %+6.4f\n",
+    writeLog("optimize()-- tig %8u read %9u           - %9u-%-9u length %9.2f/%-6d %7.2f%% posChange %+6.4f %+6.4f\n",
              id(), iid,
              np[iid].min, np[iid].max,
              npll, readLen,
@@ -374,15 +375,15 @@ Unitig::optimize_expand(optPos  *op) {
 
     int32        readLen = RI->readLength(iid);
 
-    double       opiimin = op[iid].min;             //  New start of this read, same as the old start
-    double       opiimax = op[iid].min + readLen;   //  New end of this read
-    double       opiilen = op[iid].max - op[iid].min;
+    int32       opiimin = op[iid].min;             //  New start of this read, same as the old start
+    int32       opiimax = op[iid].min + readLen;   //  New end of this read
+    int32       opiilen = op[iid].max - op[iid].min;
 
     if (readLen <= opiilen)   //  This read is sufficiently long,
       continue;               //  do nothing.
 
-    double       scale   = readLen / opiilen;
-    double       expand  = opiimax - op[iid].max;   //  Amount we changed this read, bases
+    double       scale   = (double)readLen / opiilen;
+    int32        expand  = opiimax - op[iid].max;   //  Amount we changed this read, bases
 
     //  For each read, adjust positions based on how much they overlap with this read.
 
@@ -392,7 +393,7 @@ Unitig::optimize_expand(optPos  *op) {
       if      (op[jid].min < op[iid].min)
         ;
       else if (op[jid].min < op[iid].max)
-        op[jid].min  = opiimin + (op[jid].min - op[iid].min) * scale;
+        op[jid].min  = opiimin + (int32)(ceil((op[jid].min - op[iid].min) * scale));
       else
         op[jid].min += expand;
 
@@ -400,7 +401,7 @@ Unitig::optimize_expand(optPos  *op) {
       if      (op[jid].max < op[iid].min)
         ;
       else if (op[jid].max < op[iid].max)
-        op[jid].max  = opiimin + (op[jid].max - op[iid].min) * scale;
+        op[jid].max  = opiimin + (int32)(ceil((op[jid].max - op[iid].min) * scale));
       else
         op[jid].max += expand;
     }
@@ -518,7 +519,7 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
       tig->optimize_initPlace(ii, op, np, true,  failed, beVerbose);
 
     for (uint32 ii=0; ii<tig->ufpath.size(); ii++)
-      tig->optimize_initPlace(ii, op, np, false, failed, true);
+      tig->optimize_initPlace(ii, op, np, false, failed, beVerbose);
   }
 
   //
@@ -572,8 +573,8 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
     uint32  nChanged   = 0;
 
     for (uint32 fi=0; fi<fiLimit; fi++) {
-      double  minp = 2 * (op[fi].min - np[fi].min) / (RI->readLength(fi));
-      double  maxp = 2 * (op[fi].max - np[fi].max) / (RI->readLength(fi));
+      double  minp = 2.0 * (op[fi].min - np[fi].min) / (RI->readLength(fi));
+      double  maxp = 2.0 * (op[fi].max - np[fi].max) / (RI->readLength(fi));
 
       if (minp < 0)  minp = -minp;
       if (maxp < 0)  maxp = -maxp;
