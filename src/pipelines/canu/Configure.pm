@@ -470,19 +470,19 @@ sub getAllowedResources ($$$$$@) {
         caFailure("unknown task '$alg' in getAllowedResources().", undef);
     }
 
-    my $mem  = substr("    $taskMemory",  -4) . " GB";
-    my $thr  = substr("    $taskThreads", -3) . " CPU" . (($taskThreads == 1) ? " " : "s");
-    my $job  = substr("    $concurrent",  -3) . " job" . (($concurrent == 1) ? " " : "s");
+    my $mem  = sprintf("%7.3f GB",  $taskMemory);
+    my $thr  = sprintf("%3d CPU%s", $taskThreads, (($taskThreads == 1) ? " " : "s"));
+    my $job  = sprintf("%3d job%s", $concurrent,  (($concurrent  == 1) ? " " : "s"));
 
-    my $memt = substr("     " . $taskMemory  * $concurrent, -4) . " GB";
-    my $thrt = substr("     " . $taskThreads * $concurrent, -4) . " CPU" . (($taskThreads * $concurrent == 1) ? " " : "s");
+    my $memt = sprintf("%8.3f GB",  $taskMemory  * $concurrent);
+    my $thrt = sprintf("%3d CPU%s", $taskThreads * $concurrent, (($taskThreads * $concurrent == 1) ? " " : "s"));
 
-    $mem  = " --- GB"     if ($taskMemory  == 0);
-    $thr  =  "--- CPUs"   if ($taskThreads == 0);
-    $job  =  "--- jobs"   if ($concurrent  == 0);
+    $mem  = "  -.--- GB"    if ($taskMemory  == 0);
+    $thr  = "  - CPUs"      if ($taskThreads == 0);
+    $job  = "  - jobs"      if ($concurrent  == 0);
 
-    $memt = " --- GB"     if ($taskMemory  * $concurrent == 0);
-    $thrt = " --- CPUs"   if ($taskThreads * $concurrent == 0);
+    $memt = "   -.--- GB"   if ($taskMemory  * $concurrent == 0);
+    $thrt = "  - CPUs"      if ($taskThreads * $concurrent == 0);
 
     my $t = substr("$tag$alg     ", 0, 7);
 
@@ -491,20 +491,20 @@ sub getAllowedResources ($$$$$@) {
         #$all .= "-- Memory and Threads configuration:\n"               if (!defined($concurrent));
 
         if (defined($concurrent)) {
-            $all .= "--                            (tag)Concurrency\n";
-            $all .= "--                     (tag)Threads          |\n";
-            $all .= "--            (tag)Memory         |          |\n";
-            $all .= "--        (tag)         |         |          |     total usage     algorithm\n";
-            $all .= "--        -------  ------  --------   --------  -----------------  -----------------------------\n";
+            $all .= "--                                (tag)Concurrency\n";
+            $all .= "--                         (tag)Threads          |\n";
+            $all .= "--                (tag)Memory         |          |\n";
+            $all .= "--        (tag)             |         |          |       total usage      algorithm\n";
+            $all .= "--        -------  ----------  --------   --------  --------------------  -----------------------------\n";
         } else {
-            $all .= "--                     (tag)Threads\n";
-            $all .= "--            (tag)Memory         |\n";
-            $all .= "--        (tag)         |         |  algorithm\n";
-            $all .= "--        -------  ------  --------  -----------------------------\n";
+            $all .= "--                         (tag)Threads\n";
+            $all .= "--                (tag)Memory         |\n";
+            $all .= "--        (tag)             |         |  algorithm\n";
+            $all .= "--        -------  ----------  --------  -----------------------------\n";
         }
     }
-    $all .= "-- Local: $t $mem  $thr x $job  $memt $thrt  $nam\n"      if ( defined($concurrent));
-    $all .= "-- Grid:  $t $mem  $thr  $nam\n"                          if (!defined($concurrent));
+    $all .= "-- Local: $t  $mem  $thr x $job  $memt $thrt  $nam\n"      if ( defined($concurrent));
+    $all .= "-- Grid:  $t  $mem  $thr  $nam\n"                          if (!defined($concurrent));
 
     return($err, $all);
 }
