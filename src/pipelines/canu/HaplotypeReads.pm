@@ -75,7 +75,7 @@ sub haplotypeReadsExist ($@) {
     #  If no haplotypes, no haplotype reads exist.  Of note, this string causes the canu
     #  main to skip all haplotype processing.
 
-    if (scalar(@haplotypes) == 0){
+    if (scalar(@haplotypes) == 0) {
         return("no-haplotypes");
     }
 
@@ -84,6 +84,8 @@ sub haplotypeReadsExist ($@) {
     foreach my $haplotype (@haplotypes) {
         return("no")   if (! fileExists("./haplotype/haplotype-$haplotype.fasta.gz"));
     }
+
+    return("no")       if (! fileExists("./haplotype/haplotyping.success"));
 
     #  Yeah!  Reads exist!
 
@@ -196,6 +198,7 @@ sub haplotypeSplitReads ($$%) {
         }
 
         close(OUT);
+
         stashFile("$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
 
         open(OUT, "> $path/reads-$haplotype/reads-$haplotype.success");
@@ -1058,7 +1061,7 @@ sub haplotypeReadsConfigure ($@) {
     print F "  -A ./haplotype-unknown.fasta.gz \\\n";
     print F "> haplotype.log.WORKING \\\n";
     print F "&& \\\n";
-    print F "mv -f ./haplotype.log.WORKING ./haplotype.log \\\n";
+    print F "mv -f ./haplotype.log.WORKING ./haplotype.log\n";
 
     if (defined(getGlobal("objectStore"))) {
         print F "\n";
@@ -1085,6 +1088,11 @@ sub haplotypeReadsConfigure ($@) {
 
 
 
+#  Checks for presence of haplotype.log, and if that exists,
+#  declares the haplotyping stage done and creates haplotping.success.
+#
+#  If haplotyping failed, the (partial) log will be in haplotype.log.WORKING.
+#
 sub haplotypeReadsCheck ($@) {
     my $asm        = shift @_;
     my @haplotypes =       @_;
