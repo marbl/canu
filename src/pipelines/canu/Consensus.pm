@@ -211,15 +211,20 @@ sub estimateMemoryNeededForConsensusJobs ($) {
     close(F);
 
     open(F, "< unitigging/$asm.utgStore/partitioning") or caExit("can't open 'unitigging/$asm.utgStore/partitioning' for reading: $!", undef);
-    $_ = <F>;
-    $_ = <F>;
+    $_ = <F>;   #  Header
+    $_ = <F>;   #  Header
     while(<F>) {
         s/^\s+//;
         s/\s+$//;
 
+        #  Compute memory needed as 'memory for this tig' + 'memory for read data' + 0.5 GB, then round to eighths of a GB.
+        #  Execution.pm will massage this into a format acceptable to the scheduler.
+
         my @v = split '\s+', $_;
 
-        $minMem = $v[4]   if ($minMem < $v[4]);
+        my $thisMem = int(8 * ($v[4] + $v[6] + 0.5)) / 8;
+
+        $minMem = $thisMem   if ($minMem < $thisMem);
     }
     close(F);
 

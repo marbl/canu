@@ -309,7 +309,7 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
 
 
 
-void
+uint64 *
 createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 tigsLen, uint32 nParts) {
   map<uint32, uint32>   readToPart;
   sqRead               *rd    = new sqRead;
@@ -332,8 +332,12 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
 
   //  Create output files for each partition and write a small header.
 
-  for (uint32 pi=0; pi<nParts; pi++)
+  uint64  *pSize = new uint64 [nParts];
+
+  for (uint32 pi=0; pi<nParts; pi++) {
     parts[pi] = NULL;
+    pSize[pi] = 0;
+  }
 
   for (uint32 pi=1; pi<nParts; pi++) {
     snprintf(partName, FILENAME_MAX, "%s/partition.%04u", params.tigName, pi);
@@ -355,6 +359,11 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
     if (readToPart.count(fi) > 0)
       params.seqStore->sqStore_saveReadToBuffer(parts[readToPart[fi]], fi, rd, wr);
 
+  //  Return the size, in bytes, of each partition.
+
+  for (uint32 pi=1; pi<nParts; pi++)
+    pSize[pi] = parts[pi]->tell();
+
   //  All done!  Cleanup.
 
   for (uint32 pi=1; pi<nParts; pi++)
@@ -363,6 +372,8 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
   delete [] parts;
   delete    wr;
   delete    rd;
+
+  return(pSize);
 }
 
 
@@ -378,32 +389,31 @@ createPartitions(cnsParameters  &params) {
 
   createPartitions_loadTigInfo(params, tigs, tigsLen);
 
-  //  Greedily assign tigs to partitions.
+  //  Greedily assign tigs to partitions, then save reads into
+  //  partition files.
 
   uint32 nParts = createPartitions_greedilyPartition(params, tigs, tigsLen);
+  uint64 *pSize = createPartitions_outputPartitions(params, tigs, tigsLen, nParts);
 
   //  Report partitioning
 
   FILE   *partFile = AS_UTL_openOutputFile(params.tigName, '/', "partitioning");
 
-  fprintf(partFile, "      Tig     Reads    Length         Area  Memory GB  Partition\n");
-  fprintf(partFile, "--------- --------- --------- ------------  ---------  ---------\n");
+  fprintf(partFile, "      Tig     Reads    Length         Area  Memory GB  Partition    Data GB\n");
+  fprintf(partFile, "--------- --------- --------- ------------  ---------  ---------  ---------\n");
 
   for (uint32 ti=0; ti<tigsLen; ti++)
     if (tigs[ti].partition != 0)
-      fprintf(partFile, "%9u %9lu %9lu %12lu  %9.3f  %9u\n",
+      fprintf(partFile, "%9u %9lu %9lu %12lu  %9.3f  %9u  %9.3f\n",
               tigs[ti].tigID,
               tigs[ti].tigChildren,
               tigs[ti].tigLength,
               tigs[ti].consensusArea,
               tigs[ti].consensusMemory / 1024.0 / 1024.0 / 1024.0,
-              tigs[ti].partition);
+              tigs[ti].partition,
+              pSize[tigs[ti].partition] / 1024.0 / 1024.0 / 1024.0);
 
   AS_UTL_closeFile(partFile);
-
-  //  Scan the store, saving reads into partition files.
-
-  createPartitions_outputPartitions(params, tigs, tigsLen, nParts);
 
   //  Clean up.
 
