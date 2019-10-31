@@ -224,9 +224,24 @@ computeMode(vector<TT> dist, TT &mode, bool isSorted=false) {
   mode = modeVal;
 }
 
+template<typename TT>
+void
+computeMedian(vector<TT> dist, TT &median, bool isSorted=false) {
+  median = 0;
 
+  if (dist.size() == 0)
+    return;
 
-//  Comptue the median and median absolute deviation.  Sort the values to find the median, then
+  if (isSorted == false)
+    sort(dist.begin(), dist.end());
+
+  if (dist.size() % 2 == 0)
+     median = (dist[dist.size() / 2 - 1] + dist[dist.size() / 2]) / 2;
+  else 
+     median = dist[dist.size() / 2];
+}
+
+//  Compute the median and median absolute deviation.  Sort the values to find the median, then
 //  build a new vector of |median - x| and find the median of that.
 //
 template<typename TT>
@@ -241,10 +256,7 @@ computeMedianAbsoluteDeviation(vector<TT> dist, TT &median, TT &mad, bool isSort
   if (isSorted == false)
     sort(dist.begin(), dist.end());
 
-  //  Technically, if there are an even number of values, the median should be the average of the two
-  //  in the middle.
-
-  median = dist[ dist.size()/2 ];
+  computeMedian(dist, median, true);
 
   vector<TT>  m;
 
