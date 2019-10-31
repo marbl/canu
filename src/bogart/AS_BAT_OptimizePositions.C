@@ -123,7 +123,7 @@ Unitig::optimize_isCompatible(uint32       ii,
   //  to the tig layout), so check if the overlap actually is on that end.
   //  If not, flag this as 'mis-ordered'.
   //
-  //  But if in a containment relationship, it cannot be mis-ordered.
+  //  But if in a containment relationship, it cannot be mis-ordered but we rely on the next check instead.
   //
 #if 1
   bool  isOvlLo = ((jp.min() <= ip.min()) && (ip.min() <= jp.max()) && (jp.max() <= ip.max()));
@@ -137,7 +137,8 @@ Unitig::optimize_isCompatible(uint32       ii,
 
   if ((olap.AisContained() == true) ||
       (olap.AisContainer() == true))
-    isOrdered = true;
+    isOrdered = false;
+
 #endif
 
   //  If the positions _roughly_ agree with the positions expected from the
