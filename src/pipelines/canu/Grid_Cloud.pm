@@ -485,7 +485,7 @@ sub stashFileShellCode ($$$) {
 }
 
 
-sub stashFilesShellCode ($$$) {
+sub stashFilesShellCode ($$$$) {
     my $dx     = getGlobal("objectStoreClient");
     my $ua     = getGlobal("objectStoreClientUA");
     my $ns     = getGlobal("objectStoreNameSpace");
@@ -493,19 +493,24 @@ sub stashFilesShellCode ($$$) {
     my $folder = shift @_;     #  Path to store files in.
     my $files  = shift @_;     #  Glob of files to store, in current directory.
     my $indent = shift @_;
+    my $purge  = shift @_;
     my $code   = "";
 
-    #  Upload a set of files to a directory.  The directory, and all files in
-    #  it, is ALWAYS REMOVED from the object store before new files are
-    #  uploaded.
+    #  Upload a set of files to a directory.
+    #
+    #  If the fourth argument is "purge", The directory, and all files in it,
+    #  is REMOVED from the object store before new files are uploaded.
 
     #  DO NOT quote "$files" below.  It could be a glob, or a list of
     #  multiple files.  If a glob, the quotes will prevent it from expanding.
     #  If multiple files, the quotes will make it one string.
 
     if (isOS() eq "DNANEXUS") {
-        $code .= "\n";
-        $code .= "${indent}  $dx rm --recursive \"$pr:$ns/$folder/\"\n";
+        if ($purge eq "purge") {
+            $code .= "\n";
+            $code .= "${indent}  $dx rm --recursive \"$pr:$ns/$folder/\"\n";
+            $code .= "${indent}  $dx mkdir          \"$pr:$ns/$folder/\"\n";
+        }
         $code .= "\n";
         $code .= "${indent}retries=$retryCount\n";
         $code .= "${indent}while [ \$retries -gt 0 ] && \\\n";
@@ -838,7 +843,7 @@ sub stashOvlStoreShellCode ($$) {
         $code .= "\n";
         $code .= "cd $asm.ovlStore\n";
         $code .= "\n";
-        $code .= stashFilesShellCode("$base/$asm.ovlStore", "????\\<???\\>", "");
+        $code .= stashFilesShellCode("$base/$asm.ovlStore", "????\\<???\\>", "", "purge");
         $code .= "\n";
         $code .= "cd ..\n";
         $code .= "\n";
@@ -988,7 +993,7 @@ sub stashMerylShellCode ($$$) {
         $code .= "\n";
         $code .= "${indent}  cd $name\n";
         $code .= "\n";
-        $code .= stashFilesShellCode("$path/$name", "0x??????.merylData", "${indent}  ");
+        $code .= stashFilesShellCode("$path/$name", "0x??????.merylData", "${indent}  ", "purge");
         $code .= "\n";
         $code .= "${indent}  cd -\n";
         $code .= "\n";
