@@ -728,6 +728,12 @@ OverlapCache::symmetrizeOverlaps(void) {
                      ra, rb,
                      _overlaps[ra][oa].erate() * 100.0,
                      _overlaps[rb][ob].erate() * 100.0);
+
+          uint64 ev = min(_overlaps[ra][oa].evalue, _overlaps[rb][ob].evalue);
+
+          _overlaps[ra][oa].evalue = ev;
+          _overlaps[rb][ob].evalue = ev;
+
           nNonSymErr++;
         }
 
