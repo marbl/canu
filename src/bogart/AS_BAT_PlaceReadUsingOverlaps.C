@@ -182,7 +182,7 @@ placeRead_fromOverlaps(TigVector          &tigs,
         disallow = true;
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("pRUO()-- bases %5d-%-5d to tig %5d %8ubp at %8d-%-8d olap %8d-%-8d via read %7d at %8d-%-8d hang %6d %6d %s%s\n",
+      writeLog("pRUO()-- bases %5d-%-5d to tig %5d %8ubp at %8d-%-8d olap %8d-%-8d via read %7d at %8d-%-8d hang %6d %6d erate %.4f %s%s\n",
                op.covered.bgn, op.covered.end,
                btig->id(),
                btig->getLength(),
@@ -192,6 +192,7 @@ placeRead_fromOverlaps(TigVector          &tigs,
                bread.position.bgn,
                bread.position.end,
                ovl[oo].a_hang, ovl[oo].b_hang,
+               ovl[oo].erate(),
                (ovl[oo].flipped == true) ? "I" : "N",
                (disallow) ? " DISALLOW" : "");
 
