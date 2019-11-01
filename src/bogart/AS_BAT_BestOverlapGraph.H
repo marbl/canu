@@ -150,6 +150,9 @@ public:
   uint32  evalue(void)  const { return(_evalue); };
   double  erate(void)   const { return(AS_OVS_decodeEvalue(_evalue)); };
 
+  bool    operator==(BestEdgeOverlap const that) const { return((_id == that._id) && (_e3p == that._e3p)); };
+  bool    operator!=(BestEdgeOverlap const that) const { return((_id != that._id) || (_e3p != that._e3p)); };
+
 private:
   uint32            _id;
   uint64            _e3p    : 1;    //  Overlap with the 3' end of that read, or flipped contain

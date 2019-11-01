@@ -423,12 +423,16 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  uint32  nSpur = 0;
-  uint32  nSing = 0;
-
-  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.spannedSpurs");
-
+  //
   //  Find reads that terminate at a spur after some short traversal.
+  //
+  //    A read is marked SPUR if there is no edge out of it on either end.
+  //
+  //    A read is marked SPURPATH if the path out of the read on that end
+  //    terminates (after some distance) at a spur read.
+  //
+  //  Note that SPUR reads have at least one SPURPATH end flagged.
+  //
 
   set<uint32>  spurpath5;   //  spurpath is true if the edge out of this end
   set<uint32>  spurpath3;   //           leads to a dead-end spur.
@@ -442,214 +446,231 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     uint32  dist5 = spurDistance(getBestEdgeOverlap(fi, false), spurDepth);
     uint32  dist3 = spurDistance(getBestEdgeOverlap(fi,  true), spurDepth);
 
-    if ((dist5 == 0) ||
-        (dist3 == 0)) {
-      writeLog("SPUR read %u\n", fi);
-      spur.insert(fi);
-    }
-
-    if (dist5 < spurDepth) {
-      writeLog("SPUR path from read %u 5'\n", fi);
-      spurpath5.insert(fi);
-    }
-
-    if (dist3 < spurDepth) {
-      writeLog("SPUR path from read %u 3'\n", fi);
-      spurpath3.insert(fi);
-    }
+    if (dist5 == 0)           {  writeLog("read %u 5' is a terminal spur\n", fi);  spur.insert(fi);       }
+    if (dist3 == 0)           {  writeLog("read %u 3' is a termainl spur\n", fi);  spur.insert(fi);       }
+    if (dist5  < spurDepth)   {  writeLog("read %u 5' is a spur path\n", fi);      spurpath5.insert(fi);  }
+    if (dist3  < spurDepth)   {  writeLog("read %u 3' is a spur path\n", fi);      spurpath3.insert(fi);  }
   }
 
-  writeStatus("Iter 0 - %d reads are spur.\n", spur.size());
-  writeStatus("Iter 0 - %d 5' and %d 3' read ends leading to a spur.\n", spurpath5.size(), spurpath3.size());
+  //
+  //  Do several iterations of spur path mark removal.
+  //
 
-  //  If any non-spur read has an edge to a spur flagged end,
-  //  remove the flag on that end.
+  writeStatus("BestOverlapGraph()--   After initial scan, found:\n");
+  writeStatus("BestOverlapGraph()--     %5u spur reads.\n", spur.size());
+  writeStatus("BestOverlapGraph()--     %5u 5' spur paths.\n", spurpath5.size());
+  writeStatus("BestOverlapGraph()--     %5u 3' spur paths.\n", spurpath3.size());
 
-  for (uint32 iter=1; iter <= 2 * spurDepth; iter++) {
+  uint32  n5pChanged = 1;
+  uint32  n3pChanged = 1;
+
+  for (uint32 iter=1; ((n5pChanged + n3pChanged > 0) && (iter <= 2 * spurDepth)); iter++) {
+    writeLog("\n");
+    writeLog("SPUR path removal iteration %u\n", iter);
+    writeLog("\n");
+
+    n5pChanged = 0;
+    n3pChanged = 0;
+
+    //
+    //  For any read that can get out on a non-spur-path end, mark the
+    //  incoming edge as not a spur path:
+    //
+    //    If the 5' path out of me is not a spur path, then the
+    //    edge INTO my 3' end is not a spur path.
+    //
+
     for (uint32 fi=1; fi <= fiLimit; fi++) {
       if ((isContained(fi)  == true) ||   //  Skip contains (which should have no best edges anyway)
-          (isSuspicious(fi) == true) ||   //  and suspicious (which DO have best edges).
-          (isSpur(fi)       == true))
-        continue;
-
-      if (spur.count(fi) > 0)
+          (isSuspicious(fi) == true))     //  and suspicious (which DO have best edges).
         continue;
 
       BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
       BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi,  true);
 
-#if 1
+      bool              sp5  = (spurpath5.count(fi) > 0);
+      bool              sp3  = (spurpath3.count(fi) > 0);
 
-      //  If I'm not a spur, and there is a good path out of me, then the
-      //  opposite-end edges out of this read can be used to remove the spur
-      //  flag from the read ends they point to.
+      bool              sp53 = (spurpath5.count(edge3->readId()) > 0);
+      bool              sp33 = (spurpath3.count(edge3->readId()) > 0);
+      bool              sp55 = (spurpath5.count(edge5->readId()) > 0);
+      bool              sp35 = (spurpath3.count(edge5->readId()) > 0);
 
-      if (spur.count(fi) == 0) {
-        if (spurpath5.count(fi) == 0) {
-          if (edge3->read3p() == false)   spurpath5.erase(edge3->readId());
-          else                            spurpath3.erase(edge3->readId());
-        }
+      //  Logging, only if enabled, and only if the spur path is actually removed.
 
-        if (spurpath3.count(fi) == 0) {
-          if (edge5->read3p() == false)   spurpath5.erase(edge5->readId());
-          else                            spurpath3.erase(edge5->readId());
-        }
-      }
+      if ((sp5 == false) && (edge3->read3p() == false) && (sp53 == true))   writeLog("SPUR path from read %u 5' removed\n", edge3->readId());
+      if ((sp5 == false) && (edge3->read3p() ==  true) && (sp33 == true))   writeLog("SPUR path from read %u 3' removed\n", edge3->readId());
+      if ((sp3 == false) && (edge5->read3p() == false) && (sp55 == true))   writeLog("SPUR path from read %u 5' removed\n", edge5->readId());
+      if ((sp3 == false) && (edge5->read3p() ==  true) && (sp35 == true))   writeLog("SPUR path from read %u 3' removed\n", edge5->readId());
 
-#else
+      //  Remove spur-path marks.
 
-      //  If I'm completely outside of a spurpath, then the edges out of this
-      //  read can be used to remove the spur flag from the read ends they point
-      //  to.
-
-      if ((spur.count(fi)      == 0) &&
-          (spurpath5.count(fi) == 0) &&
-          (spurpath3.count(fi) == 0)) {
-        if (edge5->read3p() == false)   spurpath5.erase(edge5->readId());
-        else                            spurpath3.erase(edge5->readId());
-
-        if (edge3->read3p() == false)   spurpath5.erase(edge3->readId());
-        else                            spurpath3.erase(edge3->readId());
-      }
-
-#endif
-
+      if ((sp5 == false) && (edge3->read3p() == false) && (sp53 == true))   spurpath5.erase(edge3->readId());
+      if ((sp5 == false) && (edge3->read3p() ==  true) && (sp33 == true))   spurpath3.erase(edge3->readId());
+      if ((sp3 == false) && (edge5->read3p() == false) && (sp55 == true))   spurpath5.erase(edge5->readId());
+      if ((sp3 == false) && (edge5->read3p() ==  true) && (sp35 == true))   spurpath3.erase(edge5->readId());
     }
 
     //
     //  Compute new edges that don't point to a spur or spurpath, unless
     //  those are the only edges it has.
     //
+    //  1) Over all overlaps for this read,
+    //     ignore crappy edges, and edges to
+    //     contains, etc.                        --------->
+    //                                                  |
+    //  2) Score the edge if the exit from the          v         (score this edge if
+    //     read it points to is not a spur path.      -------->    this end isn't a spur-path) 
+    //
+    //     Note that spur reads are also spur-path reads.
+    //
+    //
+    //  3) After all overlaps are processed, if
+    //     a read still has no best edge, restore
+    //     the previous best edge -- this will be
+    //     an edge to a spur or spur-path read, but
+    //     it's the ONLY path we have.
+    //
 
-    //  Reset just the scores.  Containment flags and best edges are not reset.
-    memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
+    memset(_scorA, 0, sizeof(BestScores) * (fiLimit + 1));     //  Clear all edge scores.
 
     for (uint32 fi=1; fi <= fiLimit; fi++) {
-      if ((isContained(fi)  == true) ||   //  Skip contains (which should have no best edges anyway)
-          (isSuspicious(fi) == true) ||   //  and suspicious (which DO have best edges).
-          (isSpur(fi)       == true))
+      if ((isContained(fi)  == true) ||                        //  Skip contains (which should have
+          (isSuspicious(fi) == true) ||                        //  no best edges anyway) and suspicious
+          (isSpur(fi)       == true))                          //  (which DO have best edges).
         continue;
 
       uint32      no  = 0;
       BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-      BestEdgeOverlap  orig5 = *getBestEdgeOverlap(fi, false);
+      BestEdgeOverlap  orig5 = *getBestEdgeOverlap(fi, false);    //  Remember the previous best edges.
       BestEdgeOverlap  orig3 = *getBestEdgeOverlap(fi,  true);
 
-      getBestEdgeOverlap(fi, false)->clear();
+      getBestEdgeOverlap(fi, false)->clear();                     //  Then clear them.
       getBestEdgeOverlap(fi,  true)->clear();
 
-      //  Compute best edge, ignoring edges to spurs and to things that lead to spurs.
-
-      for (uint32 ii=0; ii<no; ii++) {
-        uint32  bid = ovl[ii].b_iid;
-
-        if (ovl[ii].isDovetail() == false)
+      for (uint32 ii=0; ii<no; ii++) {                  //  Over all overlaps for this read,
+        if ((ovl[ii].isDovetail() == false) ||          //    Ignore non-dovetail and crappy overlaps.
+            (isOverlapBadQuality(ovl[ii]) == true))     //    They can't form best edges.
           continue;
 
-        if (isOverlapBadQuality(ovl[ii]) == true)
+        if ((isContained(ovl[ii].b_iid) == true) ||     //    Ignore overlaps to contained and suspicious reads.
+            (isSuspicious(ovl[ii].b_iid) == true))      //    We don't want best edges to these reads.
           continue;
 
-        if (isContained(ovl[ii].b_iid) == true)
-          continue;
+        bool   Aend5 = ovl[ii].AEndIs5prime();
+        bool   Aend3 = ovl[ii].AEndIs3prime();
 
-        if (isSuspicious(ovl[ii].b_iid) == true)
-          continue;
+        bool   Bend5 = ovl[ii].BEndIs5prime();
+        bool   Bend3 = ovl[ii].BEndIs3prime();
 
-        if (spur.count(ovl[ii].b_iid) != 0)
-          continue;
+        bool   sp5c  = (spurpath5.count(ovl[ii].b_iid) > 0);
+        bool   sp3c  = (spurpath3.count(ovl[ii].b_iid) > 0);
 
-        if (ovl[ii].AEndIs5prime()) {
-          if (ovl[ii].BEndIs5prime() == true) {
-            if (spurpath3.count(ovl[ii].b_iid) == 0)
-              scoreEdge(ovl[ii]);
-          } else {
-            if (spurpath5.count(ovl[ii].b_iid) == 0)
-              scoreEdge(ovl[ii]);
-          }
+        //  Log the edges we are skipping, if enabled.  This isn't as useful
+        //  as you'd think, since it catches EVERY edge in the path to a
+        //  spur, not just the best.
+
+        if (0) {
+          if ((Aend5 == true) && (Bend5 ==  true) && (sp3c == true))   writeLog("edge from %u 5' to %u 5' ignored; outgoing 3' edge leads to a spur\n", ovl[ii].a_iid, ovl[ii].b_iid);
+          if ((Aend5 == true) && (Bend5 == false) && (sp5c == true))   writeLog("edge from %u 5' to %u 3' ignored; outgoing 5' edge leads to a spur\n", ovl[ii].a_iid, ovl[ii].b_iid);
+
+          if ((Aend3 == true) && (Bend5 ==  true) && (sp3c == true))   writeLog("edge from %u 3' to %u 5' ignored; outgoing 3' edge leads to a spur\n", ovl[ii].a_iid, ovl[ii].b_iid);
+          if ((Aend3 == true) && (Bend5 == false) && (sp5c == true))   writeLog("edge from %u 3' to %u 3' ignored; outgoing 5' edge leads to a spur\n", ovl[ii].a_iid, ovl[ii].b_iid);
         }
 
-        if (ovl[ii].AEndIs3prime()) {
-          if (ovl[ii].BEndIs5prime() == true) {
-            if (spurpath3.count(ovl[ii].b_iid) == 0)
-              scoreEdge(ovl[ii]);
-          } else {
-            if (spurpath5.count(ovl[ii].b_iid) == 0)
-              scoreEdge(ovl[ii]);
-          }
-        }
+        //  Score the edge.
+
+        if ((Aend5 == true) && (Bend5 ==  true) && (sp3c == false))   scoreEdge(ovl[ii]);
+        if ((Aend5 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii]);
+
+        if ((Aend3 == true) && (Bend5 ==  true) && (sp3c == false))   scoreEdge(ovl[ii]);
+        if ((Aend3 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii]);
       }
 
-      //  If no edge found, reset to the previous edge.
+      //  All edges scored.  If no best edge found, log and reset to whatever
+      //  previous edge was there.
+
+      if (getBestEdgeOverlap(fi, false)->readId() == 0)   writeLog("restore edge out of %u 5' to previous best %u %c'\n", fi, orig5.readId(), orig5.read3p() ? '3' : '5');
+      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   writeLog("restore edge out of %u 3' to previous best %u %c'\n", fi, orig3.readId(), orig3.read3p() ? '3' : '5');
 
       if (getBestEdgeOverlap(fi, false)->readId() == 0)   *getBestEdgeOverlap(fi, false) = orig5;
       if (getBestEdgeOverlap(fi,  true)->readId() == 0)   *getBestEdgeOverlap(fi,  true) = orig3;
+
+      //  Count the number of edges we switched from following a spur path to a normal path.
+      //  These are just the edges that are different than their original version.
+
+      if (*getBestEdgeOverlap(fi, false) != orig5)  n5pChanged++;
+      if (*getBestEdgeOverlap(fi,  true) != orig3)  n3pChanged++;
     }
 
-    writeStatus("Iter %u - %d 5' and %d 3' read ends leading to a spur.\n", iter, spurpath5.size(), spurpath3.size());
+    //
+    //  Done with an interation.  Report a bit of status.
+    //
+
+    writeStatus("BestOverlapGraph()--   After iteration %u, found:\n", iter);
+    writeStatus("BestOverlapGraph()--     %5u spur reads.\n", spur.size());
+    writeStatus("BestOverlapGraph()--     %5u 5' spur paths;  %5u 5' edges changed to avoid a spur path.\n", spurpath5.size(), n5pChanged);
+    writeStatus("BestOverlapGraph()--     %5u 3' spur paths;  %5u 5' edges changed to avoid a spur path.\n", spurpath3.size(), n3pChanged);
   }
 
-  //  Now just flag any read with marks as a spur.
+  //
+  //  Now just flag any read with marks as a spur, and log to a file.
+  //
+
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.spannedSpurs");
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     bool s5 = (spurpath5.count(fi) > 0);
     bool s3 = (spurpath3.count(fi) > 0);
 
-    if ((isContained(fi)  == true) ||   //  Skip contains (which should have no best edges anyway)
-        (isSuspicious(fi) == true) ||   //  and suspicious (which DO have best edges).
-        (isSpur(fi)       == true))
+    if ((isContained(fi)  == true)  ||   //  Skip contains (which should have no best edges anyway)
+        (isSuspicious(fi) == true))      //  and suspicious (which DO have best edges).
       continue;
 
-    if (spur.count(fi) > 0) {
-      fprintf(F, "%u 5' is simple spur\n", fi);
-      _spur.insert(fi);
+    if ((s5 == false) && (s3 == false))  //  No spur mark, so not a spur.
       continue;
-    }
 
-    if ((s5 == true) && (s3 == true)) {
-      fprintf(F, "%u    is non-spanned spur read\n", fi);
-      _spur.insert(fi);
-    }
+    //  Otherwise, this is a spur read we want to flag.
 
-    if ((s5 == true)  && (s3 == false)) {
-      fprintf(F, "%u 5' is non-spanned spur end\n", fi);
-      _spur.insert(fi);
-    }
+    _spur.insert(fi);
 
-    if ((s5 == false) && (s3 == true))  {
-      fprintf(F, "%u 3' is non-spanned spur end\n", fi);
-      _spur.insert(fi);
-    }
+    //  Log it.  It's 'terminal' if there is no edge out of that end.
+
+    bool t5 = (getBestEdgeOverlap(fi, false)->readId() == 0);
+    bool t3 = (getBestEdgeOverlap(fi,  true)->readId() == 0);
+
+    if (s5 == true)
+      fprintf(F, "%u 5' is a %s spur end\n", fi, (t5) ? "terminal" : "non-terminal");
+
+    if (s3 == true)
+      fprintf(F, "%u 3' is a %s spur end\n", fi, (t3) ? "terminal" : "non-terminal");
   }
 
   fclose(F);
 
 
-  //  Remove edges that involve spurs.
+  //  Remove edges from spur reads to good reads.
+  //  This prevents spurs from breaking contigs.
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
-    BestEdgeOverlap  *orig5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap  *orig3 = getBestEdgeOverlap(fi,  true);
+    BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
+    BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi,  true);
 
-    //  Remove edges from spur to good reads.  Essentially, don't let spurs
-    //  break contigs.
+    if (_spur.count(fi) == 0)   //  If not a spur read, do nothing.
+      continue;
 
-    if (_spur.count(fi) > 0) {
-      if (_spur.count(orig5->readId()) == 0)   orig5->clear();
-      if (_spur.count(orig3->readId()) == 0)   orig3->clear();
+    //  Read fi is either a spur or a spur-path read.  Remove edges from this
+    //  read to any NON-spur read.
 
-      orig5->clear();
-      orig3->clear();
-    }
+    if ((edge5->readId() != 0) && (_spur.count(edge5->readId()) == 0))
+      writeLog("DELETE edge from spur %u 5' to non-spur %u %c'\n", fi, edge5->readId(), edge5->read3p() ? '3' : '5');
 
-    //  Remove edges from good to spurs.
-#if 0
-    if (_spur.count(orig5->readId()) > 0)
-      orig5->clear();
+    if ((edge3->readId() != 0) && (_spur.count(edge3->readId()) == 0))
+      writeLog("DELETE edge from spur %u 3' to non-spur %u %c'\n", fi, edge3->readId(), edge3->read3p() ? '3' : '5');
 
-    if (_spur.count(orig3->readId()) > 0)
-      orig3->clear();
-#endif
+    if (_spur.count(edge5->readId()) == 0)    edge5->clear();
+    if (_spur.count(edge3->readId()) == 0)    edge3->clear();
   }
 }
 
