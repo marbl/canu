@@ -107,14 +107,14 @@ sub getDNANexusInstance($$) {
 
         if (($cpu < $reqCPU) ||     #  Instance doesn't have enough
             ($mem < $reqMem)) {     #  CPUs or memory.
-            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; too small.\n";
+            #print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; too small.\n";
             next;
         }
 
         #  If nothing defined yet, accept the first valid instance.
 
         if (!defined($sel)) {
-            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs accepted.\n";
+            #print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs accepted.\n";
             ($sel, $selCPU, $selMem, $selSto) = ($name, $cpu, $mem, $sto);
             next;
         }
@@ -123,7 +123,7 @@ sub getDNANexusInstance($$) {
 
         if (($cpu > $selCPU) ||
             ($mem > $selMem)) {
-            print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; extra CPU or memory.\n";
+            #print STDERR "-- Instance '$name' with $mem GB and $cpu CPUs rejected; extra CPU or memory.\n";
             next;
         }
 
