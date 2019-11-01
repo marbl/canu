@@ -42,8 +42,10 @@
 
 void breakSingletonTigs(TigVector &tigs);
 
-void placeUnplacedUsingAllOverlaps(TigVector  &tigs,
-                                   const char *prefix);
+void placeUnplacedUsingAllOverlaps(TigVector   &tigs,
+                                   double       deviation,
+                                   const char  *prefix,
+                                   set<uint32> &placedReads);
 
 
 

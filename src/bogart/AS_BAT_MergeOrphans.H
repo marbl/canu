@@ -35,8 +35,9 @@
 #include "AS_BAT_Unitig.H"
 
 void
-mergeOrphans(TigVector &tigs,
-             double     deviationBubble);
+mergeOrphans(TigVector    &tigs,
+             double        deviationBubble,
+             set<uint32>  &bubbleReads);
 
 
 #endif  //  INCLUDE_AS_BAT_MERGEORPHANS

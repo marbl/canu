@@ -471,7 +471,9 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "initial");
   contigs.reportErrorProfiles(prefix, "initial");
 
-  placeUnplacedUsingAllOverlaps(contigs, prefix);
+  set<uint32>   placedReads;
+
+  placeUnplacedUsingAllOverlaps(contigs, deviationBubble, prefix, placedReads);
 
   //  Compute positions again.  This fixes issues with contains-in-contains that
   //  tend to excessively shrink reads.  The one case debugged placed contains in
@@ -503,7 +505,60 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "unplaced");
   contigs.reportErrorProfiles(prefix, "unplaced");
 
-  mergeOrphans(contigs, deviationBubble);
+  set<uint32>   bubbleReads;
+
+  mergeOrphans(contigs, deviationBubble, bubbleReads);
+
+#if 1
+  {
+    setLogFile(prefix, "reducedGraph");
+
+    //  Remember the original length of each read, then set the
+    //  length of any bubble read to zero (effectively deleting it).
+
+    uint32   *origLength = new uint32 [RI->numReads() + 1];
+
+    for (uint32 ii=1; ii<=RI->numReads(); ii++) {
+      origLength[ii] = RI->readLength(ii);
+
+      if ((placedReads.count(ii) > 0) ||
+          (bubbleReads.count(ii) > 0))
+        RI->deleteRead(ii);
+    }
+
+    //  Build a new BestOverlapGraph, let it dump logs to 'reduced',
+    //  then destroy the graph.
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "----------------------------------------\n");
+    fprintf(stderr, "Building new graph after removing %u placed reads and %u bubble reads.\n",
+            placedReads.size(), bubbleReads.size());
+
+    BestOverlapGraph *OGbf = new BestOverlapGraph(erateGraph,
+                                                  deviationGraph,
+                                                  "reduced",
+                                                  filterSuspicious,
+                                                  filterHighError,
+                                                  filterLopsided,
+                                                  filterSpur,
+                                                  spurDepth);
+    delete OGbf;
+
+    //  Restore read lengths to continue as before.
+
+    for (uint32 ii=1; ii<=RI->numReads(); ii++)
+      if ((placedReads.count(ii) > 0) ||
+          (bubbleReads.count(ii) > 0))
+        RI->deleteRead(ii, origLength[ii]);
+
+    delete [] origLength;
+
+    //fprintf(stderr, "STOP after emitting OGbf.\n");
+    //return(1);
+    //exit(1);
+  }
+#endif
+
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "mergeOrphans");

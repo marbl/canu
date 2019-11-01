@@ -84,7 +84,9 @@ breakSingletonTigs(TigVector &tigs) {
 
 void
 placeUnplacedUsingAllOverlaps(TigVector           &tigs,
-                              const char   *UNUSED(prefix)) {
+                              double               deviation,
+                              const char   *UNUSED(prefix),
+                              set<uint32>         &placedReads) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -158,17 +160,19 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
       uint32  end   = placements[i].position.max();
 
       double  erate = placements[i].errors / placements[i].aligned;
+      double  fGood = tig->overlapConsistentWithTig(deviation, bgn, end, erate);
 
-      if (tig->overlapConsistentWithTig(5.0, bgn, end, erate) < 0.5) {
+#warning HARD CODED ERATE CUTOFF
+      if ((erate > 0.001) && (fGood < 0.5)) {
         if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-          writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
-                   fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
+          writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) fGood %6.2f - HIGH ERROR\n",
+                   fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate, fGood);
         continue;
       }
 
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-        writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
-                 fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
+        writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) fGood %6.2f\n",
+                 fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate, fGood);
 
       if ((b == UINT32_MAX) ||
           (placements[i].errors / placements[i].aligned < placements[b].errors / placements[b].aligned))
@@ -238,6 +242,8 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
       frg.position          = placedPos[fid];
 
       tig->addRead(frg, 0, false);
+
+      placedReads.insert(fid);
     }
 
     //  Update status.
