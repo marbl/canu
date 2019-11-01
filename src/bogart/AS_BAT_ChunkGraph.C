@@ -67,9 +67,15 @@ ChunkGraph::ChunkGraph(const char *prefix) {
       continue;
     }
 
-    if (OG->isSuspicious(fid)) {
+    if (OG->isCoverageGap(fid)) {
       if (_chunkLog)
-        fprintf(_chunkLog, "read %u suspicious\n", fid);
+        fprintf(_chunkLog, "read %u has a coverage gap\n", fid);
+      continue;
+    }
+
+    if (OG->isLopsided(fid)) {
+      if (_chunkLog)
+        fprintf(_chunkLog, "read %u has lopsided best edges\n", fid);
       continue;
     }
 

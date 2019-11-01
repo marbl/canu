@@ -198,7 +198,7 @@ public:
 
 class BestOverlapGraph {
 private:
-  void   removeSuspicious(const char *prefix);
+  void   removeReadsWithCoverageGap(const char *prefix);
   uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
   void   removeLopsidedEdges(const char *prefix);
@@ -214,7 +214,7 @@ public:
   BestOverlapGraph(double        erateGraph,
                    double        deviationGraph,
                    const char   *prefix,
-                   bool          filterSuspicious,
+                   bool          filterNoCoverage,
                    bool          filterHighError,
                    bool          filterLopsided,
                    bool          filterSpur,
@@ -257,12 +257,16 @@ public:
     return(_bestM[readid]._isC);
   };
 
-  bool isSpur(const uint32 readid) {
-    return(_spur.count(readid) > 0);
+  bool isIgnored(const uint32 readid) {
+    return(_ignored.count(readid) > 0);
   };
 
-  bool isSuspicious(const uint32 readid) {
-    return(_suspicious.count(readid) > 0);
+  bool isCoverageGap(const uint32 readid) {
+    return(_coverageGap.count(readid) > 0);
+  };
+
+  bool isLopsided(const uint32 readid) {
+    return(_lopsided.count(readid) > 0);
   };
 
   bool isZombie(const uint32 readid) {
@@ -309,8 +313,9 @@ private:
   uint32                     _n1EdgeIncompatible;
   uint32                     _n2EdgeIncompatible;
 
-  set<uint32>                _suspicious;
-  set<uint32>                _spur;
+  set<uint32>                _ignored;
+  set<uint32>                _coverageGap;
+  set<uint32>                _lopsided;
   set<uint32>                _zombie;
 
   map<uint32, BestOverlaps>  _bestM;

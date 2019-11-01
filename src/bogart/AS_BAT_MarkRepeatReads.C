@@ -557,8 +557,8 @@ findConfusedEdges(TigVector            &tigs,
 
     double      sc        = (rdAhi - rdAlo) / (double)RI->readLength(rdAid);
 
-    if ((OG->isContained(rdAid)  == true) ||    //  Don't care about contained or suspicious
-        (OG->isSuspicious(rdAid) == true))      //  reads; we'll use the container instead.
+    if ((OG->isContained(rdAid)  == true) ||    //  Don't care about contained or chimeric
+        (OG->isCoverageGap(rdAid) == true))     //  reads; we'll use the container instead.
       continue;
 
     for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
@@ -719,9 +719,9 @@ findConfusedEdges(TigVector            &tigs,
         if (OG->isOverlapBadQuality(ovl[oo]))
           continue;
 
-        //  Skip if the read is contained or suspicious.
+        //  Skip if the read is contained or chimeric.
         if ((OG->isContained(rdBid)  == true) ||
-            (OG->isSuspicious(rdBid) == true))
+            (OG->isCoverageGap(rdBid) == true))
           continue;
 
         //  Skip if the overlap isn't dovetail.

@@ -147,8 +147,14 @@ populateUnitig(TigVector &tigs,
   //  case, we don't want to extend, and in the latter case, there isn't anything
   //  to extend.
 
-  if (OG->isSuspicious(fi)) {
-    writeLog("Stopping unitig construction of suspicious read %d in unitig %d\n",
+  if (OG->isCoverageGap(fi)) {
+    writeLog("Stopping unitig construction of coverage gap read %d in unitig %d\n",
+            utg->ufpath.back().ident, utg->id());
+    return;
+  }
+
+  if (OG->isLopsided(fi)) {
+    writeLog("Stopping unitig construction of lopsided read %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
     return;
   }
