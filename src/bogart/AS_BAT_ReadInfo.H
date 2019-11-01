@@ -61,11 +61,20 @@ public:
   uint32  readLength(uint32 iid)     { return(_readStatus[iid].readLength); };
   uint32  libraryIID(uint32 iid)     { return(_readStatus[iid].libraryID);  };
 
+  //  DO NOT USE THIS.  By setting a read length to zero, the read
+  //  can be effectively removed from the assembly.  There are probably
+  //  Bad Things waiting to happen.  This was used to remove reads
+  //  from BestOverlapGraph, to output a 'cleaner' version.
+  void    deleteRead(uint32 iid, uint32 len=0) { _readStatus[iid].readLength = len; };
+
   uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
     int32  alen = readLength(a_iid);
     int32  blen = readLength(b_iid);
     int32  aovl = 0;
     int32  bovl = 0;
+
+    if ((alen == 0) || (blen == 0))   //  If either read is 'deleted', then
+      return(0);                      //  the overlap is of length zero.
 
     assert(alen > 0);
     assert(blen > 0);
