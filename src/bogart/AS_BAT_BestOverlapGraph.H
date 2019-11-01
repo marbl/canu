@@ -200,7 +200,6 @@ class BestOverlapGraph {
 private:
   void   removeSuspicious(const char *prefix);
   uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
-  void   removeSimpleSpurs(const char *prefix);
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
   void   removeLopsidedEdges(const char *prefix);
   void   findZombies(const char *prefix);

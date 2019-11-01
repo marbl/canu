@@ -340,58 +340,6 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 
 
 
-void
-BestOverlapGraph::removeSimpleSpurs(const char *prefix) {
-  uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
-
-  uint32  nSpur = 0;
-  uint32  nSing = 0;
-
-  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.simpleSpurs");
-
-  for (uint32 fi=1; fi <= fiLimit; fi++) {
-    BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi, true);
-
-    if (RI->readLength(fi) == 0)   //  Unused read, ignore.
-      continue;
-
-    //  Edge to a suspicious read makes us a spur!
-
-    assert(isSuspicious(edge5->readId()) == false);
-    assert(isSuspicious(edge3->readId()) == false);
-
-    bool              spur5 = (edge5->readId() == 0);
-    bool              spur3 = (edge3->readId() == 0);
-
-    if (isContained(fi))      //  Contained, not a spur or singleton.
-      continue;
-
-    if ((spur5 == false) &&   //  Edges off of both ends.  Not a spur.
-        (spur3 == false))
-      continue;
-
-    if ((spur5 == true) &&
-        (spur3 == true)) {
-      fprintf(F, F_U32" singleton\n", fi);
-      nSing++;
-    }
-
-    else {
-      fprintf(F, F_U32" %c' simle spur\n", fi, (spur5) ? '5' : '3');
-      nSpur++;
-
-      _spur.insert(fi);
-    }
-  }
-
-  writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " singleton reads.\n", nSing);
-  writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " spur reads.\n", nSpur);
-
-  fclose(F);
-}
 
 
 
@@ -915,25 +863,18 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
   //  Now that we know the max difference allowed in overlaps, mark reads as
   //  spurs if they're spurs.  Then don't find best edges to them.
   //
+  //  Spanned spurs searches the graph for dead ends, then backs up to a
+  //  previous branch.  It (supposedly) does this such that the spur path is
+  //  preserved unless a branch is found.
+  //
+  //  Do NOT call findEdges() after this.  It will RESET all the work done by
+  //  removeSpannedSpurs().
+  //
 
   if (filterSpur) {
     writeStatus("BestOverlapGraph()-- Filtering spur reads.\n");
 
-    //  Simple spurs are essentially what was here before October 2019:
-    //  flag any read with no overlaps on on end as a spur, and disallow
-    //  best edges to them.
-    //removeSimpleSpurs(prefix);
-    //findEdges();
-
-    //  Spanned spurs searches the graph for dead ends, then backs up
-    //  to a previous branch.  It (supposedly) does this such that
-    //  the spur path is preserved unless a branch is found.
     removeSpannedSpurs(prefix, spurDepth);
-
-    //  This findEdges() should be redundant, and is probably harmful.
-    //  It will reset our carefully adjusted branch edges back to paths
-    //  into dead ends.
-    //findEdges();
   }
 
   else {
