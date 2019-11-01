@@ -562,35 +562,55 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     bool s5 = (spurpath5.count(fi) > 0);
     bool s3 = (spurpath3.count(fi) > 0);
 
-    if ((ss == false) &&   //  Read isn't a spur, and both
+    if ((ss == false) &&   //  Read fi isn't a spur, and both
         (s5 == false) &&   //  ends aren't leading to a spur;
         (s3 == false))     //  keep all edges intact.
       continue;
 
     //  Read fi is either a spur or a spur-path read.
-    //  Remove edges from this read to any NON-spur read.
+    //
+    //  Remove edges from this read to any non-spur read, unless that
+    //  non-spur read itself has an edge back to us.  If it does, then, by
+    //  construction, this is the only place that read can go, and so our
+    //  edge to it is valid.
 
-    BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi,  true);
+    //  If our 5' edge points to a non-spur read, delete the edge unless it
+    //  points back to us.
+    {
+      BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
+      uint32            read5 = edge5->readId();
+      bool              spur5 = ((spur.count(read5) + spurpath5.count(read5) + spurpath3.count(read5)) > 0);
 
-    uint32  read5 = edge5->readId();
-    uint32  read3 = edge3->readId();
+      if (spur5 == false) {
+        BestEdgeOverlap  *backedge = getBestEdgeOverlap(read5, edge5->read3p());
 
-    bool    spur5 = ((spur.count(read5) + spurpath5.count(read5) + spurpath3.count(read5)) > 0);
-    bool    spur3 = ((spur.count(read3) + spurpath5.count(read3) + spurpath3.count(read3)) > 0);
+        if ((backedge->readId() != fi) ||
+            (backedge->read3p() != false)) {
+          if (read5 != 0)
+            writeLog("DELETE edge from spur %u 5' to non-spur %u %c'\n", fi, read5, edge5->read3p() ? '3' : '5');
+          edge5->clear();
+        }
+      }
+    }
 
-    //  If our 5' edge points to a non-spur read, and that read exists, log something.
+    //  If our 3' edge points to a non-spur read, delete the edge unless it
+    //  points back to us.
+    {
+      BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi, true);
+      uint32            read3 = edge3->readId();
+      bool              spur3 = ((spur.count(read3) + spurpath5.count(read3) + spurpath3.count(read3)) > 0);
 
-    if ((spur5 == false) && (read5 != 0))
-      writeLog("DELETE edge from spur %u 5' to non-spur %u %c'\n", fi, read5, edge5->read3p() ? '3' : '5');
+      if (spur3 == false) {
+        BestEdgeOverlap  *backedge = getBestEdgeOverlap(read3, edge3->read3p());
 
-    if ((spur3 == false) && (read3 != 0))
-      writeLog("DELETE edge from spur %u 3' to non-spur %u %c'\n", fi, read3, edge3->read3p() ? '3' : '5');
-
-    //  If our 5' edge points to a non-spur read, clear the edge.
-
-    if (spur5 == false)   edge5->clear();
-    if (spur3 == false)   edge3->clear();
+        if ((backedge->readId() != fi) ||
+            (backedge->read3p() != true)) {
+          if (read3 != 0)
+            writeLog("DELETE edge from spur %u 3' to non-spur %u %c'\n", fi, read3, edge3->read3p() ? '3' : '5');
+          edge3->clear();
+        }
+      }
+    }
   }
 }
 
