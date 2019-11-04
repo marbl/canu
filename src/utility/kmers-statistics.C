@@ -93,7 +93,7 @@ kmerCountStatistics::dump(stuffedBits *bits) {
     if (_hist[ii] > 0)
       numValues++;
 
-  //  
+  //
 
   bits->setBinary(64, numValues);
 

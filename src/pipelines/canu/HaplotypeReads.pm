@@ -940,7 +940,7 @@ sub haplotypeSubtractCheck ($@) {
     foreach my $hap (@haplotypes) {
         if (getGlobal("saveMerCounts") == 0) {
             print STDERR "-- Removing meryl database '$path/reads-$hap.meryl'.\n";
-            remove_tree("$path/reads-$hap.meryl")   
+            remove_tree("$path/reads-$hap.meryl")
         } else {
             print STDERR "-- Meryl database '$path/reads-$hap.meryl' saved because 'saveMerCounts=true'.\n";
         }

@@ -923,7 +923,7 @@ sub merylProcessCheck ($$) {
     if (getGlobal("saveMerCounts") == 0) {
         print STDERR "--\n";
         print STDERR "-- Removing meryl database '$path/$name'.\n";
-        remove_tree("$path/$name")   
+        remove_tree("$path/$name")
     } else {
         print STDERR "--\n";
         print STDERR "-- Meryl database '$path/$name' saved because 'saveMerCounts=true'.\n";

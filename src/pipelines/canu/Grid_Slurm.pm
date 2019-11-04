@@ -65,11 +65,11 @@ sub configureSlurm () {
     my $maxArraySize  = 65535;
     my $maxArrayTasks = 65535;
 
-    #  Slurm has one or two configuration variables we need to check.                                                                                         
-    #    MaxArraySize    is (one more than) the maximum index value of any array task.                                                                        
-    #    max_array_tasks is the maximum number of array tasks per array job.                                                                                  
-    #                                                                                                                                                         
-    #  Usually they're the same value.  We just need to pick the smaller of the two.                                                                          
+    #  Slurm has one or two configuration variables we need to check.
+    #    MaxArraySize    is (one more than) the maximum index value of any array task.
+    #    max_array_tasks is the maximum number of array tasks per array job.
+    #
+    #  Usually they're the same value.  We just need to pick the smaller of the two.
 
     open(F, "scontrol show config |") or caExit("can't run 'scontrol' to get SLURM config", undef);
     while (<F>) {
@@ -84,7 +84,7 @@ sub configureSlurm () {
     }
     close(F);
 
-    if ($maxArraySize > $maxArrayTasks) {   #  Now just pick the smaller.                                                                                     
+    if ($maxArraySize > $maxArrayTasks) {   #  Now just pick the smaller.
         $maxArraySize = $maxArrayTasks;
     }
 

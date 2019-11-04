@@ -198,7 +198,7 @@ ovOverlap::fromString(splitToWords          &W,
       dat.ovl.ahg5 = abgn;
       dat.ovl.ahg3 = alen - aend;
 
-      dat.ovl.bhg5 = (dat.ovl.flipped) ? blen-bbgn : bbgn; 
+      dat.ovl.bhg5 = (dat.ovl.flipped) ? blen-bbgn : bbgn;
       dat.ovl.bhg3 = (dat.ovl.flipped) ?      bend : blen - bend;
 
       for (int i = 0; i < W.numWords(); i++) {

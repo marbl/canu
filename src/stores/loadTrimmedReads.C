@@ -120,7 +120,7 @@ main (int argc, char **argv) {
 
       if (verbose == true)
         fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
-                rid, 
+                rid,
                 read->sqRead_clearBgn(), read->sqRead_clearEnd(),
                 clrRange->bgn(rid), clrRange->end(rid));
 

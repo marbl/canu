@@ -100,7 +100,7 @@ sub describe (@) {
 
     checkPath($path);
 
-    if (-e "$STASH/$path") { 
+    if (-e "$STASH/$path") {
         print "$path\n";
         exit(0);
     }
