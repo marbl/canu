@@ -15,7 +15,11 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-JUL-21
+ *    Brian P. Walenz beginning on 2018-OCT-26
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Arang Rhie beginning on 2019-FEB-25
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -99,7 +103,7 @@ reportExistence(dnaSeqFile           *sf,
           (kl->value(kiter.rmer()) > 0))
         nKmerFound++;
     }
-      
+
     fprintf(stdout, "%s\t%lu\t%lu\t%lu\n", name, nKmer, kl->nKmers(), nKmerFound);
   }
 

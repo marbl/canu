@@ -13,17 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/overlapInCore/overlapPair-readCache.H
- *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2015-JUN-16 to 2015-JUN-23
- *      are Copyright 2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2017-SEP-26
+ *    Brian P. Walenz beginning on 2019-FEB-12
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2019-APR-22
+ *    Brian P. Walenz beginning on 2019-APR-29
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -76,7 +76,7 @@ maComputation::trimRead(uint32   minOverlapLength,
   //  overhang       -- require overlaps to overlap by this much before merging regions.
   //
   //  bextra         -- for the initial alignment, extend the B region by this amount on each end
-  //  slop           -- 
+  //  slop           --
 
   double   maxAlignErate  = maxErate + 0.2;
   double   maxAcceptErate = maxErate;

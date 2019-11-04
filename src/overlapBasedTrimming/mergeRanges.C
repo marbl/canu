@@ -15,11 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2017-OCT-03
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Sergey Koren beginning on 2017-OCT-18
+ *    Brian P. Walenz beginning on 2019-MAR-01
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -115,7 +111,7 @@ main (int argc, char **argv) {
 
       if (verbose == true)
         fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
-                rid, 
+                rid,
                 read->sqRead_clearBgn(), read->sqRead_clearEnd(),
                 clrRange->bgn(rid), clrRange->end(rid));
 

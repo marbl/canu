@@ -13,9 +13,17 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/overlapInCore/libedlib/edlib.H
+ *
  *  Modifications by:
  *
  *    Sergey Koren beginning on 2016-AUG-30
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Brian P. Walenz beginning on 2017-MAR-10
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

@@ -23,6 +23,14 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Nurk beginning on 2019-AUG-23
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2019-OCT-14
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -516,7 +524,7 @@ PrepareRead(/*const*/ sqStore *seqStore, uint32 curID, sqReadData *readData,
 //returns error rate of the alignment or -1. if (!match_to_end || invalid_olap)
 static
 double
-ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_part_len, const char *b_part, 
+ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_part_len, const char *b_part,
                  int32 error_bound, bool check_trivial_dna,
                  pedWorkArea_t *ped, bool *match_to_end, bool *invalid_olap) {
   int32   a_end        = 0;
@@ -666,10 +674,10 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
 
     assert(curID == G->olaps[thisOvl].b_iid);
 
-    //  Load and correct the B read 
-    PrepareRead(seqStore, curID, readData, 
-                fseqLen, fseq, rseq, 
-                fadjLen, fadj, radj, 
+    //  Load and correct the B read
+    PrepareRead(seqStore, curID, readData,
+                fseqLen, fseq, rseq,
+                fadjLen, fadj, radj,
                 C, Cpos, Clen);
 
     //  Recompute alignments for ALL overlaps involving the B read
@@ -753,7 +761,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
         //  I can't find any patterns in these errors.  I thought that it was caused by the corrections, but I
         //  found a case where no corrections were made and the alignment still failed.  Perhaps it is differences
         //  in the alignment code (the forward vs reverse prefix distance in overlapper vs only the forward here)?
-      
+
         fprintf(stderr, "Redo_Olaps()--\n");
         fprintf(stderr, "Redo_Olaps()--\n");
         fprintf(stderr, "Redo_Olaps()--  Bad alignment  errors %d  a_end %d  b_end %d  match_to_end %d  olapLen %d\n",
@@ -767,9 +775,9 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
                 G->reads[ G->olaps[thisOvl].b_iid ].basesLen);
         fprintf(stderr, "Redo_Olaps()--  A %s\n", a_part);
         fprintf(stderr, "Redo_Olaps()--  B %s\n", b_part);
-      
+
         Display_Alignment(a_part, a_part_len, b_part, b_part_len, ped->delta, ped->deltaLen);
-      
+
         fprintf(stderr, "\n");
       #endif
 

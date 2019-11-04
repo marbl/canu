@@ -15,7 +15,11 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2019-APR-22
+ *    Brian P. Walenz beginning on 2019-APR-29
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2019-JUL-18
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -153,7 +157,7 @@ maComputation::trimOverlap_Normal(ovOverlap *ovl) {
   assert(bshift5 >= 0);
   assert(bshift3 >= 0);
 
-  //  But the reads can contain different gappiness, so we need to scale the shift differently for each read.  
+  //  But the reads can contain different gappiness, so we need to scale the shift differently for each read.
 
   double abscale   = (double)(aovlend - aovlbgn) / (bovlend - bovlbgn);   //  One base in B is this many bases in A.
   double bascale   = (double)(bovlend - bovlbgn) / (aovlend - aovlbgn);   //  One base in B is this many bases in A.
@@ -274,7 +278,7 @@ maComputation::trimOverlap_Flipped(ovOverlap *ovl) {
   assert(bshift5 >= 0);
   assert(bshift3 >= 0);
 
-  //  But the reads can contain different gappiness, so we need to scale the shift differently for each read.  
+  //  But the reads can contain different gappiness, so we need to scale the shift differently for each read.
 
   double abscale   = (double)(aovl3 - aovl5) / (bovl5 - bovl3);   //  One base in B is this many bases in A.
   double bascale   = (double)(bovl5 - bovl3) / (aovl3 - aovl5);   //  One base in B is this many bases in A.
@@ -622,6 +626,6 @@ maComputation::computeAlignments(uint32  minOverlapLength,
   //  Step 3:  Align all reads in tig to tig sequence.  Save alignments
   //  in conveninent multialign structure.  This should be part of tgTig.
 
-  //  Step 4:  
+  //  Step 4:
 
 }

@@ -1,4 +1,4 @@
- 
+
 /******************************************************************************
  *
  *  This file is part of canu, a software program that assembles whole-genome
@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-JUL-21
+ *    Brian P. Walenz beginning on 2019-JAN-09
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -157,7 +157,7 @@ doMutate(vector<char *> &inputs, mutateParameters &mutPar) {
 
       //  All done changing.  Output the modified read.
 
-      AS_UTL_writeFastA(stdout, nBases, oLen, 0, ">%s\n", seq.name()); 
+      AS_UTL_writeFastA(stdout, nBases, oLen, 0, ">%s\n", seq.name());
     }
 
     delete sf;
