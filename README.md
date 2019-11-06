@@ -11,7 +11,11 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
 
 ## Install:
 
-* The easiest way to get started is to download a [release](http://github.com/marbl/canu/releases).  Installing with a 'package manager' is not encouraged.
+* The easiest way to get started is to download a binary [release](http://github.com/marbl/canu/releases).  
+
+* Installing with a 'package manager' is not encouraged, but if you have no other choice:
+  * Conda: `conda install -c conda-forge -c bioconda -c defaults canu`
+  * Homebrew: `brew install brewsci/bio/canu`
 
 * Alternatively, you can use the latest unreleased version from the source code.  This version has not undergone the same testing as a release and so may have unknown bugs or issues generating sub-optimal assemblies. We recommend the release version for most users.
 
@@ -36,4 +40,4 @@ Full list of parameters:
     ../<architecture>/bin/canu -options
 
 ## Citation:
- - Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. [Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation](https://doi.org/10.1101/gr.215087.116). Genome Research. (2017).
+ - Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. [Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation](https://doi.org/10.1101/gr.215087.116). Genome Research. (2017). `doi:10.1101/gr.215087.116`
