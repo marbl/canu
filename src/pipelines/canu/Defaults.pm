@@ -473,9 +473,10 @@ sub printHelp (@) {
     if (defined($global{'errors'})) {
         print "$global{'errors'}";
         print "\n";
-    }
-
-    exit(1);
+        exit(1);
+    } else {
+       exit(0);
+   }
 }
 
 
