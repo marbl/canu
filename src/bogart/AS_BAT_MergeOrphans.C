@@ -180,7 +180,8 @@ findPotentialOrphans(TigVector       &tigs,
 vector<overlapPlacement>  *
 findOrphanReadPlacements(TigVector       &tigs,
                          BubTargetList   &potentialOrphans,
-                         double           deviationOrphan) {
+                         double           deviation,
+                         double           similarity) {
   uint32  fiLimit      = RI->numReads();
   uint32  fiNumThreads = omp_get_max_threads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
@@ -263,10 +264,9 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       //  Ignore the placement if it is too diverged from the destination tig.
 
-      double fGood = rdBtig->overlapConsistentWithTig(deviationOrphan, lo, hi, erate);
+      double fGood = rdBtig->overlapConsistentWithTig(deviation, lo, hi, erate);
 
-#warning HARD CODED ERATE CUTOFF
-      if ((erate > 0.001) && (fGood < 0.5)) {
+      if ((erate > similarity) && (fGood < 0.5)) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
           writeLog("findOrphanReadPlacement()-- tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
@@ -558,7 +558,8 @@ assignReadsToTargets(Unitig                     *orphan,
 
 void
 mergeOrphans(TigVector    &tigs,
-             double        deviationOrphan,
+             double        deviation,
+             double        similarity,
              set<uint32>  &bubbleReads) {
 
   //  Find, for each tig, the list of other tigs that it could potentially be placed into.
@@ -591,7 +592,7 @@ mergeOrphans(TigVector    &tigs,
 
   //  For any tig that is a potential orphan, find all read placements.
 
-  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs, potentialOrphans, deviationOrphan);
+  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs, potentialOrphans, deviation, similarity);
 
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each orphan to be popped.

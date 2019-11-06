@@ -36,7 +36,8 @@
 
 void
 mergeOrphans(TigVector    &tigs,
-             double        deviationBubble,
+             double        deviation,
+             double        similarity,
              set<uint32>  &bubbleReads);
 
 

@@ -100,9 +100,9 @@ main (int argc, char * argv []) {
   double    lowcovFraction           = 0.5;
   uint32    lowcovDepth              = 3;
 
-  double    deviationGraph           = 6.0;
-  double    deviationBubble          = 6.0;
-  double    deviationRepeat          = 3.0;
+  double    deviationGraph           = 6.0,    similarityGraph  = 0.0;
+  double    deviationBubble          = 6.0,    similarityBubble = 0.1;
+  double    deviationRepeat          = 3.0,    similarityRepeat = 0.1;
 
   uint32    confusedAbsolute         = 2100;
   double    confusedPercent          = 200.0;
@@ -210,6 +210,13 @@ main (int argc, char * argv []) {
       deviationBubble = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-dr") == 0) {  //  Deviations, repeat
       deviationRepeat = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-sg") == 0) {  //  Similarity threshold, graph, UNUSED
+      similarityGraph = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-sb") == 0) {  //  Similarity threshold, bubble
+      similarityBubble = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-sr") == 0) {  //  Similarity threshold, repeat, UNUSED
+      similarityRepeat = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-sd") == 0) {  //  Depth to look for spurs
       spurDepth = atoi(argv[++arg]);
@@ -373,6 +380,11 @@ main (int argc, char * argv []) {
   fprintf(stderr, "  Bubble                %.3f\n", deviationBubble);
   fprintf(stderr, "  Repeat                %.3f\n", deviationRepeat);
   fprintf(stderr, "\n");
+  fprintf(stderr, "Similarity Thresholds:\n");
+  fprintf(stderr, "  Graph                 %.3f\n", similarityGraph);
+  fprintf(stderr, "  Bubble                %.3f\n", similarityBubble);
+  fprintf(stderr, "  Repeat                %.3f\n", similarityRepeat);
+  fprintf(stderr, "\n");
   fprintf(stderr, "Edge Confusion:\n");
   fprintf(stderr, "  Absolute              %d\n",   confusedAbsolute);
   fprintf(stderr, "  Percent               %.4f\n", confusedPercent);
@@ -400,6 +412,19 @@ main (int argc, char * argv []) {
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur, spurDepth);
   CG = new ChunkGraph(prefix);
+
+  //
+  //  OG is used:
+  //    in breakSingletonTigs to decide if a read is zombie or not.
+  //    in AssemblyGraph.C to decide if contained
+  //    in DetectSpurs.C to find spurs
+  //    in Instrumentation
+  //    in MarkRepeatReads - contained, coverageGap, bestedges too
+  //    in MergeOrphans to find contains
+  //    in PlaceContains to find contains
+  //    in PopulateUnitig
+  //
+
 
   //
   //  Build the initial unitig path from non-contained reads.  The first pass is usually the
@@ -473,7 +498,7 @@ main (int argc, char * argv []) {
 
   set<uint32>   placedReads;
 
-  placeUnplacedUsingAllOverlaps(contigs, deviationBubble, prefix, placedReads);
+  placeUnplacedUsingAllOverlaps(contigs, deviationBubble, similarityBubble, prefix, placedReads);
 
   //  Compute positions again.  This fixes issues with contains-in-contains that
   //  tend to excessively shrink reads.  The one case debugged placed contains in
@@ -507,7 +532,7 @@ main (int argc, char * argv []) {
 
   set<uint32>   bubbleReads;
 
-  mergeOrphans(contigs, deviationBubble, bubbleReads);
+  mergeOrphans(contigs, deviationBubble, similarityBubble, bubbleReads);
 
 #if 1
   {
