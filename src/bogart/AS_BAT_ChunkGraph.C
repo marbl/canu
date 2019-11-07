@@ -43,6 +43,21 @@
 
 #include <algorithm>
 
+
+//  Return the ReadEnd we'd get by following the edge out of the supplied
+//  ReadEnd.
+//
+//  If there is no edge, a ReadEnd with readId == 0 is returned.
+//
+ReadEnd
+followOverlap(ReadEnd end) {
+  BestEdgeOverlap *edge = OG->getBestEdgeOverlap(end);
+
+  return(ReadEnd(edge->readId(), !edge->read3p()));
+}
+
+
+
 ChunkGraph::ChunkGraph(const char *prefix) {
   char N[FILENAME_MAX];
 
@@ -175,7 +190,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
 
     //  Follow the path of lastEnd
 
-    lastEnd = OG->followOverlap(lastEnd);
+    lastEnd = followOverlap(lastEnd);
     lastIdx = getIndex(lastEnd);
   }
 
@@ -203,7 +218,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
 
     do {
       _pathLen[currIdx] = cycleLen;
-      currEnd = OG->followOverlap(currEnd);
+      currEnd = followOverlap(currEnd);
       currIdx = getIndex(currEnd);
     } while (lastEnd != currEnd);
 
@@ -224,7 +239,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
 
   while (currEnd != lastEnd) {
     _pathLen[currIdx] = length--;
-    currEnd = OG->followOverlap(currEnd);
+    currEnd = followOverlap(currEnd);
     currIdx = getIndex(currEnd);
   }
 
@@ -262,7 +277,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
                 (currEnd.read3p()) ? 3 : 5,
                 _pathLen[currIdx]);
 
-      currEnd = OG->followOverlap(currEnd);
+      currEnd = followOverlap(currEnd);
       currIdx = getIndex(currEnd);
     }
 

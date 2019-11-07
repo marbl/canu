@@ -233,17 +233,6 @@ public:
     return((threePrime) ? (&_bestM[readid]._best3) : (&_bestM[readid]._best5));
   };
 
-  // given a ReadEnd sets it to the next ReadEnd after following the
-  // best edge
-  ReadEnd   followOverlap(ReadEnd end) {
-    if (end.readId() == 0)
-      return(ReadEnd());
-
-    BestEdgeOverlap *edge = getBestEdgeOverlap(end.readId(), end.read3p());
-
-    return(ReadEnd(edge->readId(), !edge->read3p()));
-  };
-
   void setContained(const uint32 readid) {
     if (_bestA)
       _bestA[readid]._isC = true;
