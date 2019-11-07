@@ -51,8 +51,18 @@
 #define AS_MAX_EVALUE_BITS         12
 #define AS_MAX_EVALUE              ((1 << AS_MAX_EVALUE_BITS) - 1)
 
+#undef HIGH_PRECISION
+#ifdef HIGH_PRECISION
+
+#define AS_OVS_decodeEvalue(E)   ((E) / 200000.0)
+#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? uint32(200000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
+
+#else
+
 #define AS_OVS_decodeEvalue(E)   ((E) / 10000.0)
 #define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? uint32(10000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
+
+#endif
 
 #define AS_MAX_ERATE               AS_OVS_decodeEvalue(AS_MAX_EVALUE)
 
