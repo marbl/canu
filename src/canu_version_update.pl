@@ -69,7 +69,7 @@ if (-d "../.git") {
     open(F, "git describe --tags --long --always --abbrev=40 |") or die "Failed to run 'git describe'.\n";
     while (<F>) {
         chomp;
-        if (m/^v(\d+)\.(\d+.*)-(\d+)-g(.{40})$/) {
+        if (m/^v(\d+)\.(.+)-(\d+)-g(.{40})$/) {
             $major   = $1;
             $minor   = $2;
             $commits = $3;
