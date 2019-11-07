@@ -719,10 +719,6 @@ OverlapCache::symmetrizeOverlaps(void) {
         _overlaps[ra][oa].symmetric = true;   //  I have a twin!
         _overlaps[rb][ob].symmetric = true;   //  My twin has a twin, me!
 
-        //fprintf(stderr, "TWIN %6u %5.3f vs %6u %5.3f\n",
-        //        ra, _overlaps[ra][oa].erate(),
-        //        rb, _overlaps[rb][ob].erate());
-
         if (_overlaps[ra][oa].evalue != _overlaps[rb][ob].evalue) {
           if (NSE)
             fprintf(NSE, "%8u %8u  %7.3f %7.3f\n",
