@@ -125,26 +125,26 @@ private:
 //
 template<typename TT>
 void
-computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false) {
+computeStdDev(TT *dist, uint64 distLen, double &mean, double &stddev, bool isSorted=false) {
   mean   = 0;
   stddev = 0;
 
-  if (dist.size() == 0)
+  if (distLen == 0)
     return;
 
   //  Sort the values.  Lets us approximate the stddev for filtering out outliers.
 
   if (isSorted == false)
-    sort(dist.begin(), dist.end());
+    sort(dist, dist + distLen);
 
   //  Approximate the stddev to filter out outliers.  This is done by assuming we're normally
   //  distributed, finding the values that would represent 1 standard deviation (about 68.27% of the
   //  data), and using that to find the 5 std.dev. limits.
 
-  TT median     = dist[1 * dist.size() / 2];
+  TT median     = dist[1 * distLen / 2];
 
-  TT oneThird   = dist[1 * dist.size() / 3];
-  TT twoThird   = dist[2 * dist.size() / 3];
+  TT oneThird   = dist[1 * distLen / 3];
+  TT twoThird   = dist[2 * distLen / 3];
 
   TT approxStd  = max(median - oneThird, twoThird - median);
 
@@ -157,7 +157,7 @@ computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false
 
   size_t  numSamples = 0;
 
-  for (size_t x=0; x<dist.size(); x++)
+  for (size_t x=0; x<distLen; x++)
     if ((smallest  <= dist[x]) &&
         (dist[x]   <= biggest)) {
       numSamples += 1;
@@ -171,7 +171,7 @@ computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false
 
   //  Use the standard std.dev. algorithm, tossing out the outliers.
 
-  for (uint64 x=0; x<dist.size(); x++)
+  for (uint64 x=0; x<distLen; x++)
     if ((smallest  <= dist[x]) &&
         (dist[x]   <= biggest))
       stddev += (dist[x] - mean) * (dist[x] - mean);
@@ -180,6 +180,12 @@ computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false
     stddev = sqrt(stddev / (numSamples - 1));
 };
 
+template<typename TT>
+void
+computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false) {
+  computeStdDev(dist.data(), dist.size(), mean, stddev, isSorted);
+}
+
 
 
 //  Compute the mode.  Once the values are sorted, we just need to scan the list and remember the
@@ -187,14 +193,14 @@ computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false
 //
 template<typename TT>
 void
-computeMode(vector<TT> dist, TT &mode, bool isSorted=false) {
+computeMode(TT *dist, uint64 distLen, TT &mode, bool isSorted=false) {
   mode = 0;
 
-  if (dist.size() == 0)
+  if (distLen == 0)
     return;
 
   if (isSorted == false)
-    sort(dist.begin(), dist.end());
+    sort(dist, dist + distLen);
 
   uint32  modeCnt = 0;
   TT      modeVal = 0;
@@ -202,7 +208,7 @@ computeMode(vector<TT> dist, TT &mode, bool isSorted=false) {
   uint32  modeTmpCnt = 0;
   TT      modeTmpVal = 0;
 
-  for (uint64 x=0; x<dist.size(); x++) {
+  for (uint64 x=0; x<distLen; x++) {
     if (dist[x] != modeTmpVal) {
       if (modeCnt < modeTmpCnt) {
         modeCnt = modeTmpCnt;
@@ -226,19 +232,33 @@ computeMode(vector<TT> dist, TT &mode, bool isSorted=false) {
 
 template<typename TT>
 void
-computeMedian(vector<TT> dist, TT &median, bool isSorted=false) {
+computeMode(vector<TT> dist, TT &mode, bool isSorted=false) {
+  computeMode(dist.data(), dist.size(), mode, isSorted);
+}
+
+
+
+template<typename TT>
+void
+computeMedian(TT *dist, uint64 distLen, TT &median, bool isSorted=false) {
   median = 0;
 
-  if (dist.size() == 0)
+  if (distLen == 0)
     return;
 
   if (isSorted == false)
-    sort(dist.begin(), dist.end());
+    sort(dist, dist + distLen);
 
-  if (dist.size() % 2 == 0)
-     median = (dist[dist.size() / 2 - 1] + dist[dist.size() / 2]) / 2;
+  if (distLen % 2 == 0)
+     median = (dist[distLen / 2 - 1] + dist[distLen / 2]) / 2;
   else 
-     median = dist[dist.size() / 2];
+     median = dist[distLen / 2];
+}
+
+template<typename TT>
+void
+computeMedian(vector<TT> dist, TT &median, bool isSorted=false) {
+  computeMedian(dist.data(), dist.size(), median, isSorted);
 }
 
 //  Compute the median and median absolute deviation.  Sort the values to find the median, then
@@ -246,21 +266,21 @@ computeMedian(vector<TT> dist, TT &median, bool isSorted=false) {
 //
 template<typename TT>
 void
-computeMedianAbsoluteDeviation(vector<TT> dist, TT &median, TT &mad, bool isSorted=false) {
+computeMedianAbsoluteDeviation(TT *dist, uint64 distLen, TT &median, TT &mad, bool isSorted=false) {
   median = 0;
   mad    = 0;
 
-  if (dist.size() == 0)
+  if (distLen == 0)
     return;
 
   if (isSorted == false)
-    sort(dist.begin(), dist.end());
+    sort(dist, dist + distLen);
 
-  computeMedian(dist, median, true);
+  computeMedian(dist, distLen, median, true);
 
   vector<TT>  m;
 
-  for (uint64 ii=0; ii<dist.size(); ii++) {
+  for (uint64 ii=0; ii<distLen; ii++) {
     if (dist[ii] < median)
       m.push_back(median - dist[ii]);
     else
@@ -271,6 +291,12 @@ computeMedianAbsoluteDeviation(vector<TT> dist, TT &median, TT &mad, bool isSort
 
   mad = m[ m.size()/2 ];
 };
+
+template<typename TT>
+void
+computeMedianAbsoluteDeviation(vector<TT> dist, TT &median, TT &mad, bool isSorted=false) {
+  computeMedianAbsoluteDeviation(dist.data(), dist.size(), median, mad, isSorted);
+}
 
 
 
