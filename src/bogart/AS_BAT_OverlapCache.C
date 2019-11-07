@@ -694,6 +694,7 @@ OverlapCache::symmetrizeOverlaps(void) {
   writeStatus("OverlapCache()--   Finding missing twins.\n");
 
   FILE *NSE = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-error-rates");
+  FILE *NTW = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-overlaps");
 
   if (NSE) {
     fprintf(NSE, "     aID      bID  a error b error\n");
@@ -742,13 +743,15 @@ OverlapCache::symmetrizeOverlaps(void) {
 
       //  Didn't find a twin.  Count how many overlaps we need to create duplicates of.
 
-      fprintf(stderr, "NO TWIN for %6u vs %6u\n",
-              ra, _overlaps[ra][oa].b_iid);
+      if (NTW)
+        fprintf(NTW, "NO TWIN for %6u vs %6u\n",
+                ra, _overlaps[ra][oa].b_iid);
 
       nonsymPerRead[ra]++;
     }
   }
 
+  AS_UTL_closeFile(NTW);
   AS_UTL_closeFile(NSE);
 
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
