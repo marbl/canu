@@ -39,22 +39,24 @@
 //
 sqStoreBlobWriter::sqStoreBlobWriter(const char *storePath, sqStoreInfo *info) {
 
-  memset(_storePath, 0, sizeof(char) * FILENAME_MAX);    //  Clear the path.
-  memset(_blobName,  0, sizeof(char) * FILENAME_MAX);    //  Clear the name.
+  memset(_storePath, 0, sizeof(char) * FILENAME_MAX);      //  Clear the path.
+  memset(_blobName,  0, sizeof(char) * FILENAME_MAX);      //  Clear the name.
 
-  strncpy(_storePath, storePath, FILENAME_MAX);          //  Copy path to our path.
+  strncpy(_storePath, storePath, FILENAME_MAX);            //  Copy path to our path.
 
-  _info       =  info;                                   //  Remember the info!
-  _blobNumber = _info->_numBlobs++;                      //  Set up for the next avail blob.
+  _info = info;                                            //  Remember the info!
+  _info->_numBlobs++;                                      //  Set up for the next avail blob.
 
-  makeBlobName(_storePath, _blobNumber, _blobName);      //  Construct the name of the blob file.
+  makeBlobName(_storePath, _info->_numBlobs, _blobName);   //  Construct the name of the blob file.
 
-  _buffer     = new writeBuffer(_blobName, "w");         //  And open it.
+  _buffer = new writeBuffer(_blobName, "w");               //  And open it.
 }
 
 
 sqStoreBlobWriter::~sqStoreBlobWriter() {
   delete _buffer;
+
+  AS_UTL_makeReadOnly(_blobName);
 }
 
 
@@ -68,7 +70,11 @@ sqStoreBlobWriter::writeData(sqReadDataWriter *rdw) {
   if (_buffer->tell() > AS_BLOBFILE_MAX_SIZE) {
     delete _buffer;
 
-    makeBlobName(_storePath, ++_blobNumber, _blobName);
+    AS_UTL_makeReadOnly(_blobName);
+
+    _info->_numBlobs++;
+
+    makeBlobName(_storePath, _info->_numBlobs, _blobName);
 
     _buffer = new writeBuffer(_blobName, "w");
   }
@@ -76,7 +82,7 @@ sqStoreBlobWriter::writeData(sqReadDataWriter *rdw) {
   //  Save the current position in the blob file in the sqStore
   //  metadata, then tell the rdw to dump data.
 
-  rdw->_meta->sqRead_setPosition(_blobNumber, _buffer->tell());
+  rdw->_meta->sqRead_setPosition(_info->_numBlobs, _buffer->tell());
   rdw->sqReadDataWriter_writeBlob(_buffer);
 }
 

@@ -203,8 +203,6 @@ private:
   char          _blobName[FILENAME_MAX+1];         //  A temporary to make life easier.
 
   sqStoreInfo  *_info;
-
-  uint32        _blobNumber;
   writeBuffer  *_buffer;
 };
 
