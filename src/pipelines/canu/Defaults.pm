@@ -229,39 +229,64 @@ sub addCommandLineOption ($) {
 
 sub removeHaplotypeOptions () {
     my @strippedOpts;
-    my $setUpForPacBio    = 0;
-    my $setUpForNanopore  = 0;
+
     my $haveRaw           = 0;
     my $haveCorrected     = 0;
 
+    my $haveTrimmed       = 0;
+
+    my $setUpForPacBio    = 0;
+    my $setUpForNanopore  = 0;
+    my $setUpForHiFi      = 0;
+
     #  A very specialized function.  Remove all the sequence file options,
     #  both long reads and short reads used for haplotyping, from the list of
-    #  command line options.  Then return a string appropriate for adding new
-    #  long reads.
+    #  command line options.  Then return a string appropriate for assembling
+    #  the haplotyped reads.
     #
     #  Note that when this is called a second (third, etc) time, the
     #  semantics are different (no haplotype options to remove) but the end
     #  result is the same.
 
     foreach my $opt (@cLineOpts) {
-        if ($opt =~ m/^-pacbio-raw\s/)          { $setUpForPacBio++;   $haveRaw++;       next; }
-        if ($opt =~ m/^-pacbio-corrected\s/)    { $setUpForPacBio++;   $haveCorrected++; next; }
-        if ($opt =~ m/^-nanopore-raw\s/)        { $setUpForNanopore++; $haveRaw++;       next; }
-        if ($opt =~ m/^-nanopore-corrected\s/)  { $setUpForNanopore++; $haveCorrected++; next; }
-        if ($opt =~ m/^-pacbio-hifi\s/)         { $setUpForPacBio++;   $haveCorrected++; next; }
-        if ($opt =~ m/^-haplotype/)             {                                        next; }
-        if ($opt =~ m/^-d\s/)                   {                                        next; }
-        if ($opt =~ m/^-p\s/)                   {                                        next; }
+        if ($opt =~ m/^-raw\s/)                 { $haveRaw++;          next; }
+        if ($opt =~ m/^-corrected\s/)           { $haveCorrected++;    next; }
+
+        if ($opt =~ m/^-trimmed\s/)             { $haveTrimmed++;      next; }
+
+        if ($opt =~ m/^-pacbio\s/)              { $setUpForPacBio++;   next; }
+        if ($opt =~ m/^-nanopore\s/)            { $setUpForNanopore++; next; }
+        if ($opt =~ m/^-pacbio-hifi\s/)         { $setUpForHiFi++;     next; }
+
+        if ($opt =~ m/^-haplotype/)             {                      next; }
+        if ($opt =~ m/^-d\s/)                   {                      next; }
+        if ($opt =~ m/^-p\s/)                   {                      next; }
 
         push @strippedOpts, $opt;
     }
 
-    my $tech = ($setUpForNanopore > 0) ? "-nanopore"  : "-pacbio";
-    my $type = ($haveCorrected    > 0) ? "-corrected" : "-raw";
-
     @cLineOpts = @strippedOpts;
 
-    return("$tech$type");
+    #  Now figure out what to load the haplotyped reads as.
+
+    my $tech = "";
+
+    #  Either raw or corrected (or hifi).
+
+    if    ($haveRaw)           {  $tech .= "-raw ";         }
+    elsif ($haveCorrected)     {  $tech .= "-corrected ";   }
+
+    #  And they can be trimmed or not.
+
+    if    ($haveTrimmed)       {  $tech .= "-trimmed ";     }
+
+    #  Only one tech is allowed.
+
+    if    ($setUpForHiFi)      {  $tech .= "-pacbio-hifi";  }
+    elsif ($setUpForNanopore)  {  $tech .= "-nanopore";     }
+    elsif ($setUpForPacBio)    {  $tech .= "-pacbio";       }
+
+    return($tech);
 }
 
 
