@@ -95,7 +95,7 @@ public:
 
   void         displayTableHeader(FILE *F) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "                  reads               bases\n");
+    fprintf(stderr, "               reads               bases\n");
     fprintf(stderr, "---------- --------- ------ ------------ ------\n");
   };
 
