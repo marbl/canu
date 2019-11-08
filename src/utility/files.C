@@ -354,6 +354,64 @@ AS_UTL_rename(const char *oldname, const char *newname) {
 
 
 
+//  Remove ALL write bits from a given path.
+bool
+AS_UTL_makeReadOnly(const char *prefix, char separator, const char *suffix) {
+  char         path[FILENAME_MAX];
+  struct stat  s;
+
+  if (suffix)
+    snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+  else
+    strncpy(path, prefix, FILENAME_MAX-1);
+
+  if (stat(path, &s) == -1)
+    return(false);
+
+  mode_t m = (s.st_mode) & ~((mode_t)(S_IWUSR | S_IWGRP | S_IWOTH));
+
+  errno = 0;
+  if (chmod(path, m) == -1) {
+    fprintf(stderr, "WARNING: Failed to remove write permission from file '%s': %s\n", path, strerror(errno));
+    return(false);
+  }
+
+  return(true);
+}
+
+
+
+//  Set write bits on a given path, relative to what is allowed in the umask.
+bool
+AS_UTL_makeWritable(const char *prefix, char separator, const char *suffix) {
+  char         path[FILENAME_MAX];
+  struct stat  s;
+
+  if (suffix)
+    snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
+  else
+    strncpy(path, prefix, FILENAME_MAX-1);
+
+  if (stat(path, &s) == -1)
+    return(false);
+
+  mode_t u = umask(0);                      //  Destructively read the umask.
+  mode_t w = S_IWUSR | S_IWGRP | S_IWOTH;   //  Create a mask for the write bits.
+
+  umask(u);                                 //  Restore umask.
+
+  errno = 0;                                //  Add allowed write bits to the file.
+  if (chmod(path, s.st_mode | (w & u)) == -1) {
+    fprintf(stderr, "WARNING: Failed to add write permission to file '%s': %s\n", path, strerror(errno));
+    return(false);
+  }
+
+  return(true);
+}
+
+
+
+
 bool
 pathExists(const char *prefix, char separator, const char *suffix) {
   struct stat  s;

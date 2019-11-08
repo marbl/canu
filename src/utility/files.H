@@ -63,6 +63,9 @@ void    AS_UTL_unlink(const char *prefix, char separator='.', char const *suffix
 
 void    AS_UTL_rename(const char *oldname, const char *newname);
 
+bool    AS_UTL_makeReadOnly(const char *prefix, char separator='.', const char *suffix=NULL);
+bool    AS_UTL_makeWritable(const char *prefix, char separator='.', const char *suffix=NULL);
+
 //  Tests on existence of paths, files and directories.
 bool    pathExists     (const char *prefix, char separator='.', const char *suffix=NULL);                        //  true if file or dir 'path' exists
 bool    fileExists     (const char *prefix, char separator='.', const char *suffix=NULL, bool writable=false);   //  true if file        'path' exists (and is writable)
