@@ -720,6 +720,7 @@ mergeOrphans(TigVector    &tigs,
 
         writeLog("tig %u read %u is a validated bubble read\n", orphan->id(), rid);
 
+        OG->setBubble(rid);
         bubbleReads.insert(rid);
       }
     }
@@ -748,6 +749,7 @@ mergeOrphans(TigVector    &tigs,
 
         targets[tt]->target->addRead(frg, 0, false);
 
+        OG->setOrphan(frg.ident);
         bubbleReads.insert(frg.ident);
       }
 
@@ -807,6 +809,7 @@ mergeOrphans(TigVector    &tigs,
 
         target->addRead(frg, 0, false);
 
+        OG->setOrphan(frg.ident);
         bubbleReads.insert(frg.ident);
       }
 

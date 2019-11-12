@@ -480,7 +480,7 @@ main (int argc, char * argv []) {
 
   for (uint32 fid=1; fid<RI->numReads()+1; fid++)    //  This really should be incorporated
     if (contigs.inUnitig(fid) != 0)                  //  into populateUnitig()
-      RI->setBackbone(fid);
+      OG->setBackbone(fid);
 
   //
   //  Place contained reads.
@@ -541,6 +541,7 @@ main (int argc, char * argv []) {
     //  Remember the original length of each read, then set the
     //  length of any bubble read to zero (effectively deleting it).
 
+#if 0
     uint32   *origLength = new uint32 [RI->numReads() + 1];
 
     for (uint32 ii=1; ii<=RI->numReads(); ii++) {
@@ -550,6 +551,7 @@ main (int argc, char * argv []) {
           (bubbleReads.count(ii) > 0))
         RI->deleteRead(ii);
     }
+#endif
 
     //  Build a new BestOverlapGraph, let it dump logs to 'reduced',
     //  then destroy the graph.
@@ -557,7 +559,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "----------------------------------------\n");
     fprintf(stderr, "Building new graph after removing %u placed reads and %u bubble reads.\n",
-            placedReads.size(), bubbleReads.size());
+            OG->numOrphan(),
+            OG->numBubble());
 
     BestOverlapGraph *OGbf = new BestOverlapGraph(erateGraph,
                                                   deviationGraph,
@@ -566,17 +569,20 @@ main (int argc, char * argv []) {
                                                   filterHighError,
                                                   filterLopsided,
                                                   filterSpur,
-                                                  spurDepth);
+                                                  spurDepth,
+                                                  OG);
     delete OGbf;
 
     //  Restore read lengths to continue as before.
 
+#if 0
     for (uint32 ii=1; ii<=RI->numReads(); ii++)
       if ((placedReads.count(ii) > 0) ||
           (bubbleReads.count(ii) > 0))
         RI->deleteRead(ii, origLength[ii]);
 
     delete [] origLength;
+#endif
 
     //fprintf(stderr, "STOP after emitting OGbf.\n");
     //return(1);

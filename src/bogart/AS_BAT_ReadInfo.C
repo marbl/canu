@@ -32,7 +32,10 @@ ReadInfo::ReadInfo(const char *seqStorePath,
                    const char *prefix,
                    uint32      minReadLen) {
 
-  sqStore  *seqStore = new sqStore(seqStorePath);
+  sqStore  *seqStore      = new sqStore(seqStorePath);
+  uint32    numNotPresent = 0;
+  uint32    numShort      = 0;
+  uint32    numLoaded     = 0;
 
   _numBases     = 0;
   _numReads     = seqStore->sqStore_lastReadID();
@@ -40,50 +43,50 @@ ReadInfo::ReadInfo(const char *seqStorePath,
 
   _readStatus    = new ReadStatus [_numReads + 1];
 
-  for (uint32 i=0; i<_numReads + 1; i++) {
-    _readStatus[i].readLength = 0;
-    _readStatus[i].libraryID  = 0;
-    _readStatus[i].isBackbone = false;
-    _readStatus[i].isUnplaced = false;
-    _readStatus[i].isLeftover = false;
-    _readStatus[i].unused     = 0;
+  //  Initialize to indicate a read that isn't valid.
+
+  for (uint32 fi=0; fi <= _numReads; fi++) {
+    _readStatus[fi].readLength = 0;
+    _readStatus[fi].libraryID  = 0;
+    _readStatus[fi].isPresent  = false;
+    _readStatus[fi].isIgnored  = false;
+    _readStatus[fi].unused     = 0;
   }
 
-  uint32 numSkipped = 0;
-  uint32 numLoaded  = 0;
+  //  Scan the store.
+  //    Flag any read 'ignored' in the store as 'not present' in the assembly.
+  //    Flag any read too short              as 'not present' in the assembly.
+  //    
 
-  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "ignored.reads");
-
-  for (uint32 fi=1; fi<=_numReads; fi++) {
+  for (uint32 fi=1; fi <= _numReads; fi++) {
     uint32   len  = seqStore->sqStore_getReadLength(fi);
 
     if (seqStore->sqStore_isIgnoredRead(fi)) {
-      fprintf(F, "%u ignored\n", fi);
-      numSkipped++;
-      continue;
+      numNotPresent++;
     }
 
-    if (len < minReadLen) {
-      fprintf(F, "%u length %u too short\n", fi, len);
-      numSkipped++;
-      continue;
+    else if (len < minReadLen) {
+      numShort++;
     }
 
-    _numBases += len;
+    else {
+      _readStatus[fi].readLength = len;
+      _readStatus[fi].libraryID  = seqStore->sqStore_getLibraryIDForRead(fi);
+      _readStatus[fi].isPresent  = true;
+      _readStatus[fi].isIgnored  = false;
 
-    _readStatus[fi].readLength = len;
-    _readStatus[fi].libraryID  = seqStore->sqStore_getLibraryIDForRead(fi);
+      _numBases += len;
 
-    numLoaded++;
+      numLoaded++;
+    }
   }
-
-  fclose(F);
 
   delete seqStore;
 
   if (minReadLen > 0)
     writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than " F_U32 " bp long.\n",
-                numLoaded, numSkipped, minReadLen);
+                numLoaded, numShort, minReadLen);
+
   else
     writeStatus("ReadInfo()-- Using %d reads, no minimum read length used.\n",
                 numLoaded);

@@ -555,7 +555,7 @@ stripNonBackboneFromStart(TigVector &unitigs, Unitig *tig, bool isFirst) {
   vector<ufNode>   ufpath;
   uint32           ii = 0;
 
-  while (RI->isBackbone(tig->ufpath[ii].ident) == false) { //  Find the first backbone read,
+  while (OG->isBackbone(tig->ufpath[ii].ident) == false) { //  Find the first backbone read,
     unitigs.registerRead(tig->ufpath[ii].ident);
     writeLog("WARNING: unitig %u %s read %8u %9u-%9u is not backbone, removing.\n",
              tig->id(),
@@ -829,7 +829,7 @@ createUnitigs(TigVector             &contigs,
     uint32  nbReads = 0;
 
     for (uint32 li=0; li<tig->ufpath.size(); li++) {
-      if (RI->isBackbone(tig->ufpath[li].ident) == true)
+      if (OG->isBackbone(tig->ufpath[li].ident) == true)
         bbReads++;
       else
         nbReads++;

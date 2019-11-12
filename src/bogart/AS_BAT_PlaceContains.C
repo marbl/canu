@@ -249,9 +249,9 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
     //  Update status.
 
     if (tig)
-      RI->setUnplaced(fid);
+      OG->setOrphan(fid);
     else
-      RI->setLeftover(fid);
+      OG->setDelinquent(fid);
   }
 
   //  Cleanup.

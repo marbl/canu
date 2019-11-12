@@ -115,7 +115,7 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   //  and a little buffer in case we're too big.
 
   uint64 memFI = RI->memoryUsage();
-  uint64 memBE = RI->numReads() * sizeof(BestOverlaps);
+  uint64 memBE = RI->numReads() * sizeof(BestEdgeOverlap) * 2;
   uint64 memUT = RI->numReads() * sizeof(Unitig) + RI->numReads() * sizeof(uint32) * 2;
   uint64 memUL = RI->numReads() * sizeof(ufNode);
 

@@ -43,41 +43,28 @@
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
 #include "AS_global.H"
+
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 
 #include <set>
 #include <map>
 using namespace std;
 
+
+
+
 class ReadEnd {
 public:
-  ReadEnd() {
-    _id  = 0;
-    _e3p = false;
-  };
-  ReadEnd(uint32 id, bool e3p) {
-    _id  = id;
-    _e3p = e3p;
-  };
+  ReadEnd(uint32 id=0, bool e3p=false) : _id(id), _e3p(e3p) {};
 
   uint32  readId(void)  const { return(_id); };
   bool    read3p(void)  const { return(_e3p == true);  };
   bool    read5p(void)  const { return(_e3p == false); };
 
-  bool operator==(ReadEnd const that) const {
-    return((readId() == that.readId()) && (read3p() == that.read3p()));
-  };
-
-  bool operator!=(ReadEnd const that) const {
-    return((readId() != that.readId()) || (read3p() != that.read3p()));
-  };
-
-  bool operator<(ReadEnd const that) const {
-    if (readId() != that.readId())
-      return readId() < that.readId();
-    else
-      return read3p() < that.read3p();
-  };
+  bool operator==(ReadEnd const that) const;
+  bool operator!=(ReadEnd const that) const;
+  bool operator< (ReadEnd const that) const;
 
 private:
   uint32   _id:31;
@@ -91,54 +78,17 @@ private:
 //
 class BestEdgeOverlap {
 public:
-  BestEdgeOverlap()                          { clear();  };
-  BestEdgeOverlap(BAToverlap const &ovl)     { set(ovl); };
-  ~BestEdgeOverlap()                         {           };
+  BestEdgeOverlap() : _id(0), _e3p(false), _ahang(0), _bhang(0), _evalue(0)   {};
 
-  void    clear(void) {
-    _id     = 0;
-    _e3p    = 0;
-    _ahang  = 0;
-    _bhang  = 0;
-    _evalue = 0;
+  BestEdgeOverlap(BAToverlap const &ovl) {
+    set(ovl);
   };
 
-  void    set(BAToverlap const &olap) {
-    _id     = olap.b_iid;
-    if (((olap.a_hang <= 0) && (olap.b_hang >= 0)) ||    //  If contained, _e3p just means
-        ((olap.a_hang >= 0) && (olap.b_hang <= 0)))      //  the other read is flipped
-      _e3p  = olap.flipped;
-    else                                                 //  Otherwise, means the
-      _e3p    = olap.BEndIs3prime();                     //    olap is to the 3' end
+  void    clear(void);
 
-    _ahang  = olap.a_hang;
-    _bhang  = olap.b_hang;
-    _evalue = olap.evalue;
-  };
-
-  void    set(uint32 id, bool e3p, int32 ahang, int32 bhang, uint32 evalue) {
-    _id     = id;
-    _e3p    = e3p;
-    _ahang  = ahang;
-    _bhang  = bhang;
-    _evalue = evalue;
-  };
-
-  void    setReverse(BestEdgeOverlap *that, uint32 readId, bool read3p) {
-    _id     =  readId;
-    _e3p    =  read3p;
-
-    if (that->read3p() != read3p) {   //  Set hangs based on agreement of ends.
-      _ahang  = -that->_ahang;        //    that->read3p() is the end this edge is coming out of
-      _bhang  = -that->_bhang;        //    read3p         is the end this edge is going into
-    } else {                          //  if they disagree, this is a 'normal' overlap (both reads
-      _ahang  =  that->_bhang;        //  are the same orientation) and hangs negate.
-      _bhang  =  that->_ahang;
-    }
-
-    _evalue =  that->_evalue;
-  };
-
+  void    set(BAToverlap const &olap);
+  void    set(uint32 id, bool e3p, int32 ahang, int32 bhang, uint32 evalue);
+  void    setReverse(BestEdgeOverlap *that, uint32 readId, bool read3p);
 
   uint32  readId(void)  const { return(_id); };
   bool    read3p(void)  const { return(_e3p == true);  };
@@ -155,7 +105,7 @@ public:
 
 private:
   uint32            _id;
-  uint64            _e3p    : 1;    //  Overlap with the 3' end of that read, or flipped contain
+  uint64            _e3p    : 1;
   int64             _ahang  : AS_MAX_READLEN_BITS+1;
   int64             _bhang  : AS_MAX_READLEN_BITS+1;
   uint64            _evalue : AS_MAX_EVALUE_BITS;
@@ -167,32 +117,45 @@ private:
 
 
 
-
-
-
-
-
-
-class BestOverlaps {
+//  A node in the BestOverlapGraph is just a read
+//  with two edges out of it, and some flags
+//  indicating status of the read.
+//
+class BestEdgeRead {
 public:
-  BestEdgeOverlap     _best5;
-  BestEdgeOverlap     _best3;
-  uint32              _isC;
-};
+  BestEdgeRead() {
+    _contained   = false;
+    _ignored     = false;
+    _coverageGap = false;
+    _lopsided5   = false;
+    _lopsided3   = false;
+    _zombie      = false;
 
-
-class BestScores {
-public:
-  BestScores() {
-    _best5score = 0;
-    _best3score = 0;
-    _isC        = 0;
+    _backbone    = false;
+    _bubble      = false;
+    _orphan      = false;
+    _delinquent  = false;
   };
 
-  uint64  _best5score;
-  uint64  _best3score;
-  uint32  _isC;
+private:
+  BestEdgeOverlap   _best5;
+  BestEdgeOverlap   _best3;
+
+  uint32            _contained   : 1;
+  uint32            _ignored     : 1;
+  uint32            _coverageGap : 1;
+  uint32            _lopsided5   : 1;
+  uint32            _lopsided3   : 1;
+  uint32            _zombie      : 1;
+
+  uint32            _backbone    : 1;   //  Read was placed as part of the backbone.
+  uint32            _bubble      : 1;   //  Read i spart of a bubble.
+  uint32            _orphan      : 1;   //  Read was placed as an orphan.
+  uint32            _delinquent  : 1;   //  unable to plae the read as an orphan.
+
+  friend class BestOverlapGraph;
 };
+
 
 
 
@@ -206,90 +169,85 @@ private:
 
   void   findEdges(void);
 
-  void   removeHighErrorBestEdges(void);
+  void   findErrorRateThreshold(void);
 
   void   removeContainedDovetails(void);
 
 public:
-  BestOverlapGraph(double        erateGraph,
-                   double        deviationGraph,
-                   const char   *prefix,
-                   bool          filterNoCoverage,
-                   bool          filterHighError,
-                   bool          filterLopsided,
-                   bool          filterSpur,
-                   uint32        spurDepth);
+  BestOverlapGraph(double            erateGraph,
+                   double            deviationGraph,
+                   const char       *prefix,
+                   bool              filterNoCoverage,
+                   bool              filterHighError,
+                   bool              filterLopsided,
+                   bool              filterSpur,
+                   uint32            spurDepth,
+                   BestOverlapGraph *BOG = NULL);
 
   ~BestOverlapGraph() {
-    delete [] _bestA;
-    delete [] _scorA;
+    delete [] _reads;
+    delete [] _best5score;
+    delete [] _best3score;
   };
 
-  //  Given a read UINT32 and which end, returns pointer to
-  //  BestOverlap node.
   BestEdgeOverlap *getBestEdgeOverlap(uint32 readid, bool threePrime) {
-    if (_bestA)
-      return((threePrime) ? (&_bestA[readid]._best3) : (&_bestA[readid]._best5));
-    return((threePrime) ? (&_bestM[readid]._best3) : (&_bestM[readid]._best5));
+    return((threePrime) ? (&_reads[readid]._best3) : (&_reads[readid]._best5));
   };
 
-  void setContained(const uint32 readid) {
-    if (_bestA)
-      _bestA[readid]._isC = true;
-    else
-      _bestM[readid]._isC = true;
+  BestEdgeOverlap *getBestEdgeOverlap(ReadEnd re) {
+    return((re.read3p()) ? (&_reads[re.readId()]._best3) : (&_reads[re.readId()]._best5));
   };
 
-  bool isContained(const uint32 readid) {
-    if (_bestA)
-      return(_bestA[readid]._isC);
-    return(_bestM[readid]._isC);
-  };
 
-  bool isIgnored(const uint32 readid) {
-    return(_ignored.count(readid) > 0);
-  };
+  bool      isContained  (const uint32 r) { return( _reads[r]._contained   == 1); };
+  bool      isIgnored    (const uint32 r) { return( _reads[r]._ignored     == 1); };
+  bool      isCoverageGap(const uint32 r) { return( _reads[r]._coverageGap == 1); };
+  bool      isLopsided   (const uint32 r) { return((_reads[r]._lopsided5   == 1) || (_reads[r]._lopsided3 == 1)); };
+  bool      isLopsided2  (const uint32 r) { return((_reads[r]._lopsided5   == 1) && (_reads[r]._lopsided3 == 1)); };
+  bool      isZombie     (const uint32 r) { return( _reads[r]._zombie      == 1); };
+  bool      isBackbone   (const uint32 r) { return( _reads[r]._backbone    == 1); };
+  bool      isBubble     (const uint32 r) { return( _reads[r]._bubble      == 1); };
+  bool      isOrphan     (const uint32 r) { return( _reads[r]._orphan      == 1); };
+  bool      isDelinquent (const uint32 r) { return( _reads[r]._delinquent  == 1); };
 
-  bool isCoverageGap(const uint32 readid) {
-    return(_coverageGap.count(readid) > 0);
-  };
+  void      setContained  (const uint32 r, bool t=true) { _reads[r]._contained   = t; };
+  void      setIgnored    (const uint32 r, bool t=true) { _reads[r]._ignored     = t; };
+  void      setCoverageGap(const uint32 r, bool t=true) { _reads[r]._coverageGap = t; };
+  void      setLopsided5  (const uint32 r, bool t=true) { _reads[r]._lopsided5   = t; };
+  void      setLopsided3  (const uint32 r, bool t=true) { _reads[r]._lopsided3   = t; };
+  void      setZombie     (const uint32 r, bool t=true) { _reads[r]._zombie      = t; };
+  void      setBackbone   (const uint32 r, bool t=true) { _reads[r]._backbone    = t; };
+  void      setBubble     (const uint32 r, bool t=true) { _reads[r]._bubble      = t; };
+  void      setOrphan     (const uint32 r, bool t=true) { _reads[r]._orphan      = t; };
+  void      setDelinquent (const uint32 r, bool t=true) { _reads[r]._delinquent  = t; };
 
-  bool isLopsided(const uint32 readid) {
-    return(_lopsided.count(readid) > 0);
-  };
-
-  bool isZombie(const uint32 readid) {
-    return(_zombie.count(readid) > 0);
-  };
+  uint32    numContained  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isContained(fi))   n++;  return(n); };
+  uint32    numIgnored    (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isIgnored(fi))     n++;  return(n); };
+  uint32    numCoverageGap(void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isCoverageGap(fi)) n++;  return(n); };
+  uint32    numLopsided   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided(fi))    n++;  return(n); };
+  uint32    numLopsided2  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided2(fi))   n++;  return(n); };
+  uint32    numZombie     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isZombie(fi))      n++;  return(n); };
+  uint32    numBackbone   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBackbone(fi))    n++;  return(n); };
+  uint32    numBubble     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBubble(fi))      n++;  return(n); };
+  uint32    numOrphan     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isOrphan(fi))      n++;  return(n); };
+  uint32    numDelinquent (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isDelinquent(fi))  n++;  return(n); };
 
   void      reportEdgeStatistics(const char *prefix, const char *label);
   void      reportBestEdges(const char *prefix, const char *label);
 
 public:
-  bool     isOverlapBadQuality(BAToverlap& olap);  //  Used in repeat detection
+  bool      isOverlapBadQuality(BAToverlap& olap);  //  Used in repeat detection
 private:
-  uint64   scoreOverlap(BAToverlap& olap);
+  uint64    scoreOverlap(BAToverlap& olap);
 
 private:
-  void     markContainment(BAToverlap& olap);
-  void     scoreEdge(BAToverlap& olap);
+  void      scoreEdge(BAToverlap& olap);
 
 private:
-  uint64  &best5score(uint32 id) {
-    if (_restrictEnabled == false)
-      return(_scorA[id]._best5score);
-    return(_scorM[id]._best5score);
-  };
+  BestEdgeRead              *_reads;        //  Nodes in the graph.
 
-  uint64  &best3score(uint32 id) {
-    if (_restrictEnabled == false)
-      return(_scorA[id]._best3score);
-    return(_scorM[id]._best3score);
-  };
-
-private:
-  BestOverlaps              *_bestA;
-  BestScores                *_scorA;
+  uint64                    *_best5score;   //  Temporary data for computing
+  uint64                    *_best3score;   //  best edges.
 
   double                     _mean;
   double                     _stddev;
@@ -297,35 +255,16 @@ private:
   double                     _median;
   double                     _mad;
 
-  uint32                     _n1EdgeFiltered;       //  Stats for output
-  uint32                     _n2EdgeFiltered;
-  uint32                     _n1EdgeIncompatible;
-  uint32                     _n2EdgeIncompatible;
-
-  set<uint32>                _ignored;
-  set<uint32>                _coverageGap;
-  set<uint32>                _lopsided;
-  set<uint32>                _zombie;
-
-  map<uint32, BestOverlaps>  _bestM;
-  map<uint32, BestScores>    _scorM;
-
-  //  These restrict the best overlap graph to a set of reads, instead of all reads.
-  //  Currently (Aug 2016) unused.  There used to be a constructor that would take
-  //  a set(uint32) of reads we cared about, but it was quite stale and was removed.
-private:
-  bool     isOverlapRestricted(const BAToverlap &olap);
-private:
-  set<uint32>               *_restrict;
-  bool                       _restrictEnabled;
-
-
 public:
   double                     _erateGraph;
   double                     _deviationGraph;
 private:
   double                     _errorLimit;
-}; //BestOverlapGraph
+};
+
+
+
+#include "AS_BAT_BestOverlapGraph_implementation.H"
 
 
 
