@@ -380,6 +380,7 @@ sub merylConfigure ($$) {
 
     open(F, "> $path/meryl-configure.sh");
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -475,6 +476,7 @@ sub merylConfigure ($$) {
 
     open(F, "> $path/meryl-count.sh") or caExit("can't open '$path/meryl-count.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -541,6 +543,7 @@ sub merylConfigure ($$) {
 
     open(F, "> $path/meryl-process.sh") or caExit("can't open '$path/meryl-process.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -923,7 +926,7 @@ sub merylProcessCheck ($$) {
     if (getGlobal("saveMerCounts") == 0) {
         print STDERR "--\n";
         print STDERR "-- Removing meryl database '$path/$name'.\n";
-        remove_tree("$path/$name")   
+        remove_tree("$path/$name")
     } else {
         print STDERR "--\n";
         print STDERR "-- Meryl database '$path/$name' saved because 'saveMerCounts=true'.\n";

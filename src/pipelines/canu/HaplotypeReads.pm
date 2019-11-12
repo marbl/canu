@@ -400,6 +400,7 @@ sub haplotypeCountConfigure ($%) {
 
     open(F, "> $path/meryl-count.sh") or caExit("can't open '$path/meryl-count.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -483,6 +484,7 @@ sub haplotypeCountConfigure ($%) {
 
     open(F, "> $path/meryl-merge.sh") or caExit("can't open '$path/meryl-count.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -569,6 +571,7 @@ sub haplotypeCountConfigure ($%) {
 
     open(F, "> $path/meryl-subtract.sh") or caExit("can't open '$path/meryl-count.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -943,7 +946,7 @@ sub haplotypeSubtractCheck ($@) {
     foreach my $hap (@haplotypes) {
         if (getGlobal("saveMerCounts") == 0) {
             print STDERR "-- Removing meryl database '$path/reads-$hap.meryl'.\n";
-            remove_tree("$path/reads-$hap.meryl")   
+            remove_tree("$path/reads-$hap.meryl")
         } else {
             print STDERR "-- Meryl database '$path/reads-$hap.meryl' saved because 'saveMerCounts=true'.\n";
         }
@@ -982,6 +985,7 @@ sub haplotypeReadsConfigure ($@) {
 
     open(F, "> $path/splitHaplotype.sh") or caExit("can't open '$path/splitHaplotype.sh' for writing: $!", undef);
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";

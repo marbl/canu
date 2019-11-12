@@ -376,6 +376,7 @@ sub generateCorrectedReadsConfigure ($) {
     open(F, "> $path/correctReadsPartition.sh") or caExit("can't open '$path/correctReadsPartition.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -427,6 +428,7 @@ sub generateCorrectedReadsConfigure ($) {
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";

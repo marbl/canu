@@ -71,6 +71,7 @@ sub utgcns ($$$) {
     open(F, "> $path/consensus.sh") or caExit("can't open '$path/consensus.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -639,6 +640,7 @@ sub alignGFA ($) {
     if (! -e "$path/alignGFA.sh") {
         open(F, "> $path/alignGFA.sh") or caExit("can't open '$path/alignGFA.sh' for writing: $!\n", undef);
         print F "#!" . getGlobal("shell") . "\n";
+        print F "set -eu\n";
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";

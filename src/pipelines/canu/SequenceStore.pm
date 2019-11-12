@@ -242,6 +242,7 @@ sub createSequenceStore ($$@) {
         open(F, "> ./$asm.seqStore.sh") or caExit("cant' open './$asm.seqStore.sh' for writing: $0", undef);
 
         print F "#!" . getGlobal("shell") . "\n";
+        print F "set -eu\n";
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";

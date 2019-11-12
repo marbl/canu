@@ -301,6 +301,7 @@ sub mhapConfigure ($$$) {
     open(F, "> $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -404,6 +405,7 @@ sub mhapConfigure ($$$) {
     open(F, "> $path/mhap.sh") or caFailure("can't open '$path/mhap.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
+    print F "set -eu\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
@@ -814,4 +816,3 @@ sub mhapCheck ($$$) {
   allDone:
     stopAfter("overlap");
 }
-
