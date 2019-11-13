@@ -235,14 +235,16 @@ public:
 
   //  These return the actual coordinates on the read.  For reverse B reads, the coordinates are in the reverse-complemented
   //  sequence, and are returned as bgn > end to show this.
-  uint32     a_bgn(sqRead_which v=sqRead_defaultVersion) const          { return(dat.ovl.ahg5); };
-  uint32     a_end(sqRead_which v=sqRead_defaultVersion) const          { return(g->sqStore_getReadLength(a_iid, v) - dat.ovl.ahg3); };
+  uint32     a_bgn(sqRead_which v=sqRead_defaultVersion) const  { return(dat.ovl.ahg5); };
+  uint32     a_end(sqRead_which v=sqRead_defaultVersion) const  { return(g->sqStore_getReadLength(a_iid, v) - dat.ovl.ahg3); };
 
-  uint32     b_bgn(sqRead_which v=sqRead_defaultVersion) const          { return((dat.ovl.flipped) ? (g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
-  uint32     b_end(sqRead_which v=sqRead_defaultVersion) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg3)); };
+  uint32     b_bgn(sqRead_which v=sqRead_defaultVersion) const  { return((dat.ovl.flipped) ? (g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
+  uint32     b_end(sqRead_which v=sqRead_defaultVersion) const  { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg3)); };
 
-  uint32     a_len(sqRead_which v=sqRead_defaultVersion) const          { return(g->sqStore_getReadLength(a_iid, v) - dat.ovl.ahg3 - dat.ovl.ahg5); };
-  uint32     b_len(sqRead_which v=sqRead_defaultVersion) const          { return(g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg3 - dat.ovl.bhg5); };
+  uint32     a_len(sqRead_which v=sqRead_defaultVersion) const  { return(g->sqStore_getReadLength(a_iid, v) - dat.ovl.ahg3 - dat.ovl.ahg5); };
+  uint32     b_len(sqRead_which v=sqRead_defaultVersion) const  { return(g->sqStore_getReadLength(b_iid, v) - dat.ovl.bhg3 - dat.ovl.bhg5); };
+
+  uint32     length(sqRead_which v=sqRead_defaultVersion) const { return((a_len() + b_len()) / 2); };
 
   uint32     span(void) const           { return(dat.ovl.span); };
   void       span(uint32 s)             { dat.ovl.span = s; };
