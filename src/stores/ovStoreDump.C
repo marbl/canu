@@ -149,7 +149,7 @@ public:
 
   bool        filterOverlap(ovOverlap *overlap) {
     double erate    = overlap->erate();
-    uint32 length   = (lengthMax - lengthMin) / 2;   //  until we compute it
+    uint32 length   = overlap->length();
     int32  ahang    = overlap->a_hang();
     int32  bhang    = overlap->b_hang();
     bool   filtered = false;
