@@ -305,18 +305,18 @@ getMinFreqFromHistogram(char *histoName) {
 
   uint32        histoLen = 0;
   uint32        histoMax = 1024;
-  uint32       *histo    = new uint32 [histoMax];
+  uint64       *histo    = new uint64 [histoMax];
 
   FILE *H = AS_UTL_openInputFile(histoName);
   while (AS_UTL_readLine(L, Llen, Lmax, H)) {
     S.split(L);
 
     uint32  f = 0;   //  Frequency
-    uint32  v = 0;   //  Number of kmers at that frequency.
+    uint64  v = 0;   //  Number of kmers at that frequency.
 
     if (S.numWords() >= 2) {  //  First word must be the frequency,
       f = S.touint32(0);     //  second word must be the number of
-      v = S.touint32(1);     //  kmer that occur exactly f times.
+      v = S.touint64(1);     //  kmer that occur exactly f times.
     }
 
     if (f == 0)              //  If zero, assume it's a header line
