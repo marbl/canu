@@ -793,15 +793,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "OVERLAP FILTERING\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -no5p               \n");
-    fprintf(stderr, "  -no3p               \n");
-    fprintf(stderr, "  -nocontainer        \n");
-    fprintf(stderr, "  -nocontained        \n");
-    fprintf(stderr, "  -noreduntant        \n");
-    fprintf(stderr, "  -query              \n");
-    fprintf(stderr, "  -erate              \n");
-    fprintf(stderr, "  -length             \n");
-    fprintf(stderr, "  -bogart             \n");
+    fprintf(stderr, "  -no5p               do not show oevrlaps off the 5' end of the A read\n");
+    fprintf(stderr, "  -no3p               do not show overlaps off the 3' end of the A read\n");
+    fprintf(stderr, "  -nocontainer        do not show overlaps that contain some other B read\n");
+    fprintf(stderr, "  -nocontained        do not show overlaps that are contained in some other B read\n");
+    fprintf(stderr, "  -noreduntant        do not show overlaps where the A read ID is more than the B read ID\n");
+    fprintf(stderr, "  -query a[-b]        display only overlaps that are to these other B read IDs\n");
+    fprintf(stderr, "  -erate f            display only overlaps less than f fraction error\n");
+    fprintf(stderr, "  -length min[-max]   display only overlaps between min and max bases long\n");
+    fprintf(stderr, "  -bogart asm.best    annotate a picture with labels from bogart asm.best.edges output\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
