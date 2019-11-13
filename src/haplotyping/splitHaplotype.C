@@ -402,7 +402,6 @@ getMinFreqFromHistogram(char *histoName) {
 
 void
 hapData::initializeKmerTable(uint32 maxMemory) {
-  kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
 
   //  Decide on a threshold below which we consider the kmers as useless noise.
 
@@ -412,18 +411,27 @@ hapData::initializeKmerTable(uint32 maxMemory) {
   fprintf(stderr, "--   use kmers with frequency at least %u.\n", minFreq);
 
   //  Construct an exact lookup table.
+  //
+  //  If there is not valid merylName, do not load data.  This is only useful
+  //  for testing getMinFreqFromHistogram() above.
+  //
+  //  Get this behavior with option '-H "" histo out.fasta',
 
-  lookup = new kmerCountExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
+  if (merylName[0]) {
+    kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
 
-  if (lookup->configure() == false) {
-    exit(1);
+    lookup = new kmerCountExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
+
+    if (lookup->configure() == false) {
+      exit(1);
+    }
+
+    lookup->load();
+
+    nKmers = lookup->nKmers();
+
+    delete reader;
   }
-
-  lookup->load();
-
-  nKmers = lookup->nKmers();
-
-  delete reader;
 
   //  And report what we loaded.
 
