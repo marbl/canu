@@ -19,7 +19,7 @@ if [ ! -e canu-$version.tar.gz ] ; then
   echo Fetch.
   curl -L -R -o canu-$version.tar.gz https://github.com/marbl/canu/archive/v$version.tar.gz
 fi
-if [ ! -d canu-$versioin ] ; then
+if [ ! -d canu-$version ] ; then
   echo Unpack.
   gzip -dc canu-$version.tar.gz | tar -xf -
 fi
