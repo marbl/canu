@@ -586,6 +586,7 @@ main(int argc, char **argv) {
   bool                  asHangs     = false;
   bool                  asUnaligned = false;
   bool                  asPAF       = false;
+  bool                  asGFA       = false;
   bool                  asBinary    = false;
   bool                  withScores  = false;
 
@@ -675,6 +676,7 @@ main(int argc, char **argv) {
       asHangs     = false;
       asUnaligned = false;
       asPAF       = false;
+      asGFA       = false;
       asBinary    = false;
     }
 
@@ -683,6 +685,7 @@ main(int argc, char **argv) {
       asHangs     = true;
       asUnaligned = false;
       asPAF       = false;
+      asGFA       = false;
       asBinary    = false;
     }
 
@@ -691,6 +694,7 @@ main(int argc, char **argv) {
       asHangs     = false;
       asUnaligned = true;
       asPAF       = false;
+      asGFA       = false;
       asBinary    = false;
     }
 
@@ -699,6 +703,16 @@ main(int argc, char **argv) {
       asHangs     = false;
       asUnaligned = false;
       asPAF       = true;
+      asGFA       = false;
+      asBinary    = false;
+    }
+
+    else if (strcmp(argv[arg], "-gfa") == 0) {
+      asCoords    = false;
+      asHangs     = false;
+      asUnaligned = false;
+      asPAF       = false;
+      asGFA       = true;
       asBinary    = false;
     }
 
@@ -707,6 +721,7 @@ main(int argc, char **argv) {
       asHangs     = false;
       asUnaligned = false;
       asPAF       = false;
+      asGFA       = false;
       asBinary    = true;
     }
 
@@ -789,6 +804,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -hangs              as dovetail hangs\n");
     fprintf(stderr, "  -unaligned          as unaligned regions on each read\n");
     fprintf(stderr, "  -paf                as miniasm Pairwise mApping Format\n");
+    fprintf(stderr, "  -gfa                as Graphical Fragment Assembly format\n");
     fprintf(stderr, "  -binary             as an overlapper output file (needs -prefix)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "OVERLAP FILTERING\n");
@@ -1004,10 +1020,22 @@ main(int argc, char **argv) {
   //
 
   if (asOverlaps) {
-    char     binaryName[FILENAME_MAX + 1];
     ovFile  *binaryFile = NULL;
 
+    uint32  *gfaReads  = NULL;
+    FILE    *gfaLinks  = NULL;
+    FILE    *gfaFile   = NULL;
+
+    if (asGFA) {
+      allocateArray(gfaReads, seqStore->sqStore_lastReadID() + 1);
+
+      gfaLinks  = AS_UTL_openOutputFile(outPrefix, '.', "gfalinks");
+      gfaFile   = AS_UTL_openOutputFile(outPrefix, '.', "gfa");
+    }
+
     if (asBinary) {
+      char     binaryName[FILENAME_MAX + 1];
+
       snprintf(binaryName, FILENAME_MAX, "%s.ovb", outPrefix);
 
       binaryFile = new ovFile(seqStore, binaryName, ovFileFullWrite);
@@ -1036,6 +1064,13 @@ main(int argc, char **argv) {
           fputs(ovl[oo].toString(ovlString, ovOverlapAsPaf, true), stdout);
         }
 
+        else if (asGFA) {
+          fprintf(gfaLinks, "L\tread%08u\t+\tread08%u\t%c\t%uM\n",
+                  ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].flipped() ? '-' : '+', ovl[oo].length());
+          gfaReads[ovl[oo].a_iid]++;
+          gfaReads[ovl[oo].b_iid]++;
+        }
+
         else if (asBinary) {
           binaryFile->writeOverlap(&ovl[oo]);
         }
@@ -1047,8 +1082,42 @@ main(int argc, char **argv) {
       ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
     }
 
-    if (asBinary)
+    //  If writing a GFA output, now that we've output the links we know what
+    //  sequences are used and we can write the header block.  Then, the
+    //  links are copied to the output.
+
+    if (asGFA) {
+      uint32  bufferLen = 0;
+      uint32  bufferMax = 1048576;
+      char   *buffer = new char [bufferMax];
+
+      //  Close the links file.
+      AS_UTL_closeFile(gfaLinks);
+
+      //  Write the header to the actual output file.
+      fprintf(gfaFile, "H\tVN:Z:1.0\n");
+      for (uint32 ii=1; ii<seqStore->sqStore_lastReadID() + 1; ii++)
+        if (gfaReads[ii] > 0)
+          fprintf(gfaFile, "S\tread%08u\t*\tLN:i:%u\n", ii, seqStore->sqStore_getReadLength(ii));
+
+      //  Reopen the links file, and copy all data to the output file.
+      gfaLinks  = AS_UTL_openInputFile(outPrefix, '.', "gfalinks");
+      while (!feof(gfaLinks)) {
+        bufferLen = loadFromFile(buffer, "copybuffer", sizeof(char), bufferMax, gfaLinks, false);
+        writeToFile(buffer, "copybuffer", sizeof(char), bufferLen, gfaFile);
+      }
+      AS_UTL_closeFile(gfaFile);
+
+      //  Delete the links.
+      AS_UTL_unlink(outPrefix, '.', "gfalinks");
+
+      delete [] gfaReads;
+      delete [] buffer;
+    }
+
+    if (asBinary) {
       delete binaryFile;
+    }
   }
 
   //
