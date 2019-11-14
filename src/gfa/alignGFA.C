@@ -38,7 +38,7 @@
 #define IS_GFA   1
 #define IS_BED   2
 
-
+#define STEP_BP        500
 
 class sequence {
 public:
@@ -205,39 +205,46 @@ checkLink(gfaLink   *link,
   //   -------(---------]     v--??
   //             [------------)------
   //
+  // if we fail to find the specified link, we will shrink A to see if we can find it that way and B will be trimmed to the right point
+  // no need to retry on the second time because we'll have the right location of B and will trim A to it
 
   Abgn = max(Alen - AalignLen, 0);
   Aend =     Alen;
 
   Bbgn = 0;
-  Bend = min(Blen, (int32)(1.10 * ratio * BalignLen));  //  Allow 25% gaps over what the GFA said?
+  Bend = min(Blen, (int32)(1.10 * ratio * BalignLen));  //  Expand by whatever factor the contig grew during consensus plus 10%
 
   maxEdit = (int32)ceil(alignLen * erate);
 
-  if (beVerbose)
-    fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u\n",
-            link->_Aid, (link->_Afwd) ? '+' : '-', "",
-            link->_Bid, (link->_Bfwd) ? '+' : '-', "",
-            AalignLen, BalignLen, alignLen);
-
-  if (beVerbose)
-    fprintf(stderr, "TEST tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend B)",
-            link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
-            link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
-            maxEdit);
-
-  result = edlibAlign(Aseq + Abgn, Aend-Abgn,  //  The 'query'
-                      Bseq + Bbgn, Bend-Bbgn,  //  The 'target'
-                      edlibNewAlignConfig(maxEdit, EDLIB_MODE_HW, EDLIB_TASK_LOC));
-
-  if (result.numLocations > 0) {
+  while (result.numLocations == 0) {
     if (beVerbose)
-      fprintf(stderr, "\n");
-    Bend = Bbgn + result.endLocations[0] + 1;  // 0-based to space-based
-    edlibFreeAlignResult(result);
-  } else {
+      fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u\n",
+              link->_Aid, (link->_Afwd) ? '+' : '-', "",
+              link->_Bid, (link->_Bfwd) ? '+' : '-', "",
+              AalignLen, BalignLen, alignLen);
+
     if (beVerbose)
-      fprintf(stderr, " - FAILED\n");
+      fprintf(stderr, "TEST tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend B)",
+              link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
+              link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
+              maxEdit);
+
+    result = edlibAlign(Aseq + Abgn, Aend-Abgn,  //  The 'query'
+                        Bseq + Bbgn, Bend-Bbgn,  //  The 'target'
+                        edlibNewAlignConfig(maxEdit, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+
+    if (result.numLocations > 0) {
+      if (beVerbose)
+        fprintf(stderr, "\n");
+      Bend = Bbgn + result.endLocations[0] + 1;  // 0-based to space-based
+      edlibFreeAlignResult(result);
+      break; // found it, stop
+    } else {
+      if (beVerbose)
+        fprintf(stderr, " - FAILED\n");
+      if (Abgn + STEP_BP >= Alen) break; // we ran out of sequence, stop
+      Abgn += STEP_BP;
+    }
   }
 
   //  Do the same for A.  Aend and Bbgn never change; Bend was set above.
@@ -246,7 +253,9 @@ checkLink(gfaLink   *link,
   //         ^--??  [-------]-----------
   //
 
-  Abgn = max(Alen - (int32)(1.10 * ratio * AalignLen), 0);  //  Allow 25% gaps over what the GFA said?
+  Abgn = max(Alen - (int32)(1.10 * ratio * AalignLen), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
+  // update max edit by new length
+  maxEdit = (int32)ceil((Bend-Bbgn+1) * erate);
 
   if (beVerbose)
     fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend A)",
