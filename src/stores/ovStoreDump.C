@@ -1065,7 +1065,7 @@ main(int argc, char **argv) {
         }
 
         else if (asGFA) {
-          fprintf(gfaLinks, "L\tread%08u\t+\tread08%u\t%c\t%uM\n",
+          fprintf(gfaLinks, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
                   ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].flipped() ? '-' : '+', ovl[oo].length());
           gfaReads[ovl[oo].a_iid]++;
           gfaReads[ovl[oo].b_iid]++;
