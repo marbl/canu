@@ -476,18 +476,22 @@ checkRecord_align(char *label,
 bool
 checkRecord(bedRecord   *record,
             sequences   &ctgs,
+            sequences   &ctgs_orig,
             sequences   &utgs,
+            sequences   &utgs_orig,
             bool         beVerbose,
             bool         UNUSED(doPlot)) {
 
   char   *Aseq = ctgs[record->_Aid].seq;
   char   *Bseq = utgs[record->_Bid].seq, *Brev = NULL;
 
-  int32  Abgn  = record->_bgn;
-  int32  Aend  = record->_end;
-
   int32  Alen = ctgs[record->_Aid].len;
   int32  Blen = utgs[record->_Bid].len;
+
+  double ratio = max((double)Alen/ctgs_orig[record->_Aid].len, (double)Blen/utgs_orig[record->_Bid].len);
+
+  int32  Abgn  = (int32)(ceil(record->_bgn*ratio));
+  int32  Aend  = (int32)(ceil(record->_end*ratio));
 
   bool   success    = true;
   int32  alignScore = 0;
@@ -688,10 +692,20 @@ processBED(char   *tigName,
 
   bedFile   *bed  = new bedFile(inBED);
 
+  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
+
+  sequences *utgs_origp = new sequences(tigName, tigVers-1);
+  sequences &utgs_orig  = *utgs_origp;
+
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
   sequences *utgsp = new sequences(tigName, tigVers);
   sequences &utgs  = *utgsp;
+
+  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", seqName, seqVers-1);
+
+  sequences *ctgs_origp = new sequences(seqName, seqVers-1);
+  sequences &ctgs_orig  = *ctgs_origp;
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", seqName, seqVers);
 
@@ -713,7 +727,7 @@ processBED(char   *tigName,
   for (uint32 ii=0; ii<iiLimit; ii++) {
     bedRecord *record = bed->_records[ii];
 
-    if (checkRecord(record, ctgs, utgs, (verbosity > 0), false)) {
+    if (checkRecord(record, ctgs, ctgs_orig, utgs, utgs_orig, (verbosity > 0), false)) {
       pass++;
     } else {
       delete bed->_records[ii];
