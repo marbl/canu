@@ -1065,10 +1065,32 @@ main(int argc, char **argv) {
         }
 
         else if (asGFA) {
-          fprintf(gfaLinks, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
-                  ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].flipped() ? '-' : '+', ovl[oo].length());
-          gfaReads[ovl[oo].a_iid]++;
-          gfaReads[ovl[oo].b_iid]++;
+          if ((ovl[oo].overlapAIsContained() == true) ||
+              (ovl[oo].overlapBIsContained() == true))
+            continue;
+
+          //  If the overlap is off our left end, emit reverse A and (flipped) reverse B.
+          if      (ovl[oo].overlapAEndIs5prime()) {
+            fprintf(gfaLinks, "L\tread%08u\t-\tread%08u\t%c\t%uM\n",
+                    ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].flipped() ? '+' : '-', ovl[oo].length());
+            gfaReads[ovl[oo].a_iid]++;
+            gfaReads[ovl[oo].b_iid]++;
+          }
+
+          //  If the overlap is off our right end, emit forward A and (flipped?) B.
+          else if (ovl[oo].overlapAEndIs3prime()) {
+            fprintf(gfaLinks, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
+                    ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].flipped() ? '-' : '+', ovl[oo].length());
+            gfaReads[ovl[oo].a_iid]++;
+            gfaReads[ovl[oo].b_iid]++;
+          }
+
+          //  And if neither, we shouldn't get here.
+          else {
+            fputs(ovl[oo].toString(ovlString, ovOverlapAsUnaligned, true), stderr);
+            assert(0);
+          }
+
         }
 
         else if (asBinary) {
