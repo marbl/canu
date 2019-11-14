@@ -659,6 +659,7 @@ sub alignGFA ($) {
         print F "  \$bin/alignGFA \\\n";
         print F "    -T ../$asm.utgStore 2 \\\n";
         print F "    -i ./$asm.unitigs.gfa \\\n";
+        print F "    -e " . getGlobal("cnsErrorRate") . " \\\n";
         print F "    -o ./$asm.unitigs.aligned.gfa \\\n";
         print F "    -t " . getGlobal("gfaThreads") . " \\\n";
         print F "  > ./$asm.unitigs.aligned.gfa.err 2>&1";
@@ -675,6 +676,7 @@ sub alignGFA ($) {
         print F "    -T ../$asm.utgStore 2 \\\n";
         print F "    -C ../$asm.ctgStore 2 \\\n";
         print F "    -i ./$asm.unitigs.bed \\\n";
+        print F "    -e " . getGlobal("cnsErrorRate") . " \\\n";
         print F "    -o ./$asm.unitigs.aligned.bed \\\n";
         print F "    -t " . getGlobal("gfaThreads") . " \\\n";
         print F "  > ./$asm.unitigs.aligned.bed.err 2>&1";

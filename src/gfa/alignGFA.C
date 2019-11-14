@@ -54,7 +54,10 @@ public:
     len = tig->length();
     seq = new char [len + 1];
 
-    memcpy(seq, tig->bases(), len);
+    if (tig->bases() != NULL) 
+       memcpy(seq, tig->bases(), len);
+    else
+       memset(seq, 0, len);
 
     seq[len] = 0;
   };
@@ -68,6 +71,10 @@ public:
 class sequences {
 public:
   sequences(char *tigName, uint32 tigVers) {
+    if (tigVers <= 0)
+       fprintf(stderr, "Error: invalid version of tigstore: %d, not supported\n", tigVers);
+    assert(tigVers > 0);
+
     tgStore *tigStore = new tgStore(tigName, tigVers);
 
     b    = 0;
@@ -156,6 +163,8 @@ dotplot(uint32 Aid, bool Afwd, char *Aseq,
 bool
 checkLink(gfaLink   *link,
           sequences &seqs,
+          sequences &seqs_orig,
+          double     erate,
           bool       beVerbose,
           bool       doPlot) {
 
@@ -164,6 +173,8 @@ checkLink(gfaLink   *link,
 
   int32  Abgn, Aend, Alen = seqs[link->_Aid].len;
   int32  Bbgn, Bend, Blen = seqs[link->_Bid].len;
+
+  double ratio = max((double)Alen/seqs_orig[link->_Aid].len, (double)Blen/seqs_orig[link->_Bid].len);
 
   EdlibAlignResult  result  = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
@@ -199,9 +210,9 @@ checkLink(gfaLink   *link,
   Aend =     Alen;
 
   Bbgn = 0;
-  Bend = min(Blen, (int32)(1.10 * BalignLen));  //  Allow 25% gaps over what the GFA said?
+  Bend = min(Blen, (int32)(1.10 * ratio * BalignLen));  //  Allow 25% gaps over what the GFA said?
 
-  maxEdit = (int32)ceil(alignLen * 0.12);
+  maxEdit = (int32)ceil(alignLen * erate);
 
   if (beVerbose)
     fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u\n",
@@ -235,7 +246,7 @@ checkLink(gfaLink   *link,
   //         ^--??  [-------]-----------
   //
 
-  Abgn = max(Alen - (int32)(1.10 * AalignLen), 0);  //  Allow 25% gaps over what the GFA said?
+  Abgn = max(Alen - (int32)(1.10 * ratio * AalignLen), 0);  //  Allow 25% gaps over what the GFA said?
 
   if (beVerbose)
     fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend A)",
@@ -547,6 +558,7 @@ processGFA(char     *tigName,
            uint32    tigVers,
            char     *inGFA,
            char     *otGFA,
+           double    erate,
            uint32    verbosity) {
 
   //  Load the GFA file.
@@ -554,6 +566,11 @@ processGFA(char     *tigName,
   fprintf(stderr, "-- Reading GFA '%s'.\n", inGFA);
 
   gfaFile   *gfa  = new gfaFile(inGFA);
+
+  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
+
+  sequences *seqs_origp = new sequences(tigName, tigVers-1);
+  sequences &seqs_orig  = *seqs_origp;
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
@@ -579,7 +596,7 @@ processGFA(char     *tigName,
   uint32  iiNumThreads = omp_get_max_threads();
   uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
-  fprintf(stderr, "-- Aligning " F_U32 " links using " F_U32 " threads.\n", iiLimit, iiNumThreads);
+  fprintf(stderr, "-- Aligning " F_U32 " links using " F_U32 " threads and %.2f error rate.\n", iiLimit, iiNumThreads, erate*100);
 
 #pragma omp parallel for schedule(dynamic, iiBlockSize)
   for (uint32 ii=0; ii<iiLimit; ii++) {
@@ -594,7 +611,7 @@ processGFA(char     *tigName,
                 link->_Aname, link->_Afwd ? '+' : '-',
                 link->_Bname, link->_Bfwd ? '+' : '-');
 
-      bool  pN = checkLink(link, seqs, (verbosity > 0), false);
+      bool  pN = checkLink(link, seqs, seqs_orig, erate, (verbosity > 0), false);
 
       if (pN == true)
         passCircular++;
@@ -610,7 +627,7 @@ processGFA(char     *tigName,
                 link->_Aid, link->_Afwd ? "-->" : "<--",
                 link->_Bid, link->_Bfwd ? "-->" : "<--");
 
-      bool  pN = checkLink(link, seqs, (verbosity > 0), false);
+      bool  pN = checkLink(link, seqs, seqs_orig, erate, (verbosity > 0), false);
 
       if (pN == true)
         passNormal++;
@@ -720,12 +737,17 @@ processBEDtoGFA(char   *tigName,
                 uint32  tigVers,
                 char   *inBED,
                 char   *otGFA,
+                double  erate,
                 uint32  verbosity) {
 
   int32  minOlap = 100;
 
   //  We only really need the sequence lengths here, but eventually, we'll want to generate
   //  alignments for all the overlaps, and so we'll need the sequences too.
+  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
+
+  sequences *seqs_origp = new sequences(tigName, tigVers-1);
+  sequences &seqs_orig  = *seqs_origp;
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
@@ -782,7 +804,7 @@ processBEDtoGFA(char   *tigName,
                                   bed->_records[jj]->_Bname, bed->_records[jj]->_Bid, true,
                                   cigar);
 
-      bool  pN = checkLink(link, seqs, (verbosity > 0), false);
+      bool  pN = checkLink(link, seqs, seqs_orig, erate, (verbosity > 0), false);
 
 #pragma omp critical
       {
@@ -837,6 +859,8 @@ main (int argc, char **argv) {
 
   uint32    verbosity      = 0;
 
+  double    erate          = 0;
+
   argc = AS_configure(argc, argv);
 
   int arg=1;
@@ -865,6 +889,9 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       omp_set_num_threads(atoi(argv[++arg]));
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      erate = atof(argv[++arg]);
 
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
@@ -926,13 +953,13 @@ main (int argc, char **argv) {
   }
 
   if (graphType == IS_GFA)
-    processGFA(tigName, tigVers, inGraph, otGraph, verbosity);
+    processGFA(tigName, tigVers, inGraph, otGraph, erate, verbosity);
 
   if ((graphType == IS_BED) && (seqName != NULL))
     processBED(tigName, tigVers, seqName, seqVers, inGraph, otGraph, verbosity);
 
   if ((graphType == IS_BED) && (seqName == NULL))
-    processBEDtoGFA(tigName, tigVers, inGraph, otGraph, verbosity);
+    processBEDtoGFA(tigName, tigVers, inGraph, otGraph, erate, verbosity);
 
   fprintf(stderr, "Bye.\n");
 
