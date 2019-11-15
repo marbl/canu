@@ -284,15 +284,22 @@ classifyTigsAsUnassembled(TigVector    &tigs,
     //  Check the tig.
 
     bool  rr = (utg->_isRepeat == true);
+    bool  bb = false;
     bool  rs = classifyRuleS(utg, F, nSingleton,  bSingleton);
     bool  r1 = classifyRule1(utg, F, nTooFew,     bTooFew,      fewReadsNumber);
     bool  r2 = classifyRule2(utg, F, nShort,      bShort,       tooShortLength);
     bool  r3 = classifyRule3(utg, F, nSingleSpan, bSingleSpan,  spanFraction);
     bool  r4 = classifyRule4(utg, F, nCoverage,   bCoverage,    lowcovFraction, lowcovDepth);
 
+    //  If either first or last read is flagged as a bubble, it's not unassembled.
+
+    if ((OG->isBubble(utg->firstRead()->ident) == true) ||
+        (OG->isBubble(utg-> lastRead()->ident) == true))
+      bb = true;
+
     //  If flagged, we're done, just move on.
 
-    if ((rr == false) && (rs || r1 || r2 || r3 || r4))
+    if ((bb == false) && (rr == false) && (rs || r1 || r2 || r3 || r4))
       continue;
 
     //  Otherwise, unitig is assembled!

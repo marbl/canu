@@ -27,7 +27,7 @@
 #define INCLUDE_AS_BAT_MARKREPEATREADS
 
 #include "AS_BAT_TigVector.H"
-
+#include "AS_BAT_AssemblyGraph.H"
 
 
 class confusedEdge {

@@ -538,21 +538,6 @@ main (int argc, char * argv []) {
   {
     setLogFile(prefix, "reducedGraph");
 
-    //  Remember the original length of each read, then set the
-    //  length of any bubble read to zero (effectively deleting it).
-
-#if 0
-    uint32   *origLength = new uint32 [RI->numReads() + 1];
-
-    for (uint32 ii=1; ii<=RI->numReads(); ii++) {
-      origLength[ii] = RI->readLength(ii);
-
-      if ((placedReads.count(ii) > 0) ||
-          (bubbleReads.count(ii) > 0))
-        RI->deleteRead(ii);
-    }
-#endif
-
     //  Build a new BestOverlapGraph, let it dump logs to 'reduced',
     //  then destroy the graph.
 
@@ -572,17 +557,6 @@ main (int argc, char * argv []) {
                                                   spurDepth,
                                                   OG);
     delete OGbf;
-
-    //  Restore read lengths to continue as before.
-
-#if 0
-    for (uint32 ii=1; ii<=RI->numReads(); ii++)
-      if ((placedReads.count(ii) > 0) ||
-          (bubbleReads.count(ii) > 0))
-        RI->deleteRead(ii, origLength[ii]);
-
-    delete [] origLength;
-#endif
 
     //fprintf(stderr, "STOP after emitting OGbf.\n");
     //return(1);
@@ -622,7 +596,7 @@ main (int argc, char * argv []) {
                                         deviationRepeat,
                                         contigs);
 
-  AG->reportReadGraph(contigs, prefix, "initial");
+  //AG->reportReadGraph(contigs, prefix, "initial");
 
   //
   //  Detect and break repeats.  Annotate each read with overlaps to reads not overlapping in the tig,
@@ -641,6 +615,9 @@ main (int argc, char * argv []) {
   vector<confusedEdge>  confusedEdges;
 
   markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent, confusedEdges);
+
+  delete AG;
+  AG = NULL;
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "markRepeatReads");
@@ -661,7 +638,6 @@ main (int argc, char * argv []) {
   promoteToSingleton(contigs);
 
   if (filterDeadEnds) {
-    dropDeadEnds(AG, contigs);
     splitDiscontinuous(contigs, minOverlapLen);
     promoteToSingleton(contigs);
   }
@@ -669,9 +645,6 @@ main (int argc, char * argv []) {
   writeStatus("\n");
   writeStatus("==> CLEANUP GRAPH.\n");
   writeStatus("\n");
-
-  AG->rebuildGraph(contigs);
-  AG->filterEdges(contigs);
 
   writeStatus("\n");
   writeStatus("==> GENERATE OUTPUTS.\n");
@@ -682,11 +655,6 @@ main (int argc, char * argv []) {
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "final");
   reportTigs(contigs, prefix, "final", genomeSize);
-
-  AG->reportReadGraph(contigs, prefix, "final");
-
-  delete AG;
-  AG = NULL;
 
   //
   //  unitigSource:

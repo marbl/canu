@@ -33,6 +33,13 @@
 #include "AS_BAT_TigVector.H"
 
 
+#undef IGNORE_BUBBLE
+#ifdef IGNORE_BUBBLE
+#warning IGNORE_BUBBLE ENABLED
+#else
+#warning IGNORE_BUBBLE NOT ENABLED
+#endif
+
 class BestPlacement {
 public:
   BestPlacement() {
@@ -95,9 +102,8 @@ class AssemblyGraph {
 public:
   AssemblyGraph(const char   *prefix,
                 double        deviationRepeat,
-                TigVector    &tigs,
-                bool          tigEndsOnly = false) {
-    buildGraph(prefix, deviationRepeat, tigs, tigEndsOnly);
+                TigVector    &tigs) {
+    buildGraph(prefix, deviationRepeat, tigs);
   }
 
   ~AssemblyGraph() {
@@ -112,15 +118,11 @@ public:
 
 
 public:
-  void                      buildReverseEdges(void);
   void                      buildGraph(const char   *prefix,
                                        double        deviationRepeat,
-                                       TigVector    &tigs,
-                                       bool          tigEndsOnly);
+                                       TigVector    &tigs);
 
-  void                      rebuildGraph(TigVector     &tigs);
-  void                      filterEdges(TigVector     &tigs);
-  void                      reportReadGraph(TigVector &tigs, const char *prefix, const char *label);
+  //void                      reportReadGraph(TigVector &tigs, const char *prefix, const char *label);
 
 private:
   vector<BestPlacement>  *_pForward;   //  Where each read is placed in other tigs
