@@ -452,15 +452,16 @@ checkRecord_align(char *label,
   //  and therefore higher error.  It's more likely they are misplaced.
 
 
-  if ((Aend - Abgn < 4 * Blen) &&
-      (maxEdit < Blen * 0.25)) {
+  if ((Aend - Abgn < 5 * Blen) &&
+      Aend < Alen && Abgn > 0) {
     if (beVerbose)
       fprintf(stderr, " - FAILED, RELAX\n");
 
     Abgn = max(Abgn - step, 0);
     Aend = min(Aend + step, Alen);
 
-    maxEdit *= 1.2;
+    if (maxEdit < Blen * 0.25)
+       maxEdit *= 1.2;
 
     goto tryAgain;
   }
@@ -478,7 +479,6 @@ checkRecord(bedRecord   *record,
             sequences   &ctgs,
             sequences   &ctgs_orig,
             sequences   &utgs,
-            sequences   &utgs_orig,
             bool         beVerbose,
             bool         UNUSED(doPlot)) {
 
@@ -488,10 +488,10 @@ checkRecord(bedRecord   *record,
   int32  Alen = ctgs[record->_Aid].len;
   int32  Blen = utgs[record->_Bid].len;
 
-  double ratio = max((double)Alen/ctgs_orig[record->_Aid].len, (double)Blen/utgs_orig[record->_Bid].len);
+  double ratio = (double)Alen/ctgs_orig[record->_Aid].len;
 
-  int32  Abgn  = (int32)(ceil(record->_bgn*ratio));
-  int32  Aend  = (int32)(ceil(record->_end*ratio));
+  int32  Abgn  = max(0,    (int32)(floor(record->_bgn*ratio)));
+  int32  Aend  = min(Alen, (int32)(ceil (record->_end*ratio)));
 
   bool   success    = true;
   int32  alignScore = 0;
@@ -692,11 +692,6 @@ processBED(char   *tigName,
 
   bedFile   *bed  = new bedFile(inBED);
 
-  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
-
-  sequences *utgs_origp = new sequences(tigName, tigVers-1);
-  sequences &utgs_orig  = *utgs_origp;
-
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
   sequences *utgsp = new sequences(tigName, tigVers);
@@ -727,7 +722,7 @@ processBED(char   *tigName,
   for (uint32 ii=0; ii<iiLimit; ii++) {
     bedRecord *record = bed->_records[ii];
 
-    if (checkRecord(record, ctgs, ctgs_orig, utgs, utgs_orig, (verbosity > 0), false)) {
+    if (checkRecord(record, ctgs, ctgs_orig, utgs, (verbosity > 0), false)) {
       pass++;
     } else {
       delete bed->_records[ii];
@@ -882,7 +877,8 @@ main (int argc, char **argv) {
 
   uint32    verbosity      = 0;
 
-  double    erate          = 0;
+  // not used for bed alignments, that is fixed at a lower value
+  double    erate          = 0.10;
 
   argc = AS_configure(argc, argv);
 
