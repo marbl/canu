@@ -452,16 +452,14 @@ checkRecord_align(char *label,
   //  and therefore higher error.  It's more likely they are misplaced.
 
 
-  if ((Aend - Abgn < 5 * Blen) &&
-      Aend < Alen && Abgn > 0) {
+  if ((Aend - Abgn < 10 * Blen) &&
+      (maxEdit < Blen * 0.35)) {
     if (beVerbose)
       fprintf(stderr, " - FAILED, RELAX\n");
 
     Abgn = max(Abgn - step, 0);
     Aend = min(Aend + step, Alen);
-
-    if (maxEdit < Blen * 0.25)
-       maxEdit *= 1.2;
+    maxEdit *= 1.2;
 
     goto tryAgain;
   }
