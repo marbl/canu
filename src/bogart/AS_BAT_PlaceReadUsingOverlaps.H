@@ -97,6 +97,10 @@ public:
   ~overlapPlacement() {
   };
 
+  double            erate(void) {
+    return((double)errors / aligned);
+  };
+
 
 public:
   uint32            frgID;      //  Read ID of the read this position is for.
