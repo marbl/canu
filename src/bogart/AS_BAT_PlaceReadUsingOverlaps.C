@@ -539,6 +539,9 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
   //verboseEnable.insert(fid);  //  enable for all
 
+  //for (uint32 fi=0; fi<tigs[306]->ufpath.size(); fi++)   //  or enable for a specific tig
+  //  verboseEnable.insert(tigs[306]->ufpath[fi].ident);
+
   if (verboseEnable.count(fid) > 0)
     logFileFlags |= LOG_PLACE_READ;
 
@@ -670,20 +673,33 @@ placeReadUsingOverlaps(TigVector                &tigs,
            (op.position.max() > tigs[op.tigID]->getLength())))
         noExtend = false;
 
-      if ((fullMatch == true) && (noExtend == true))
+      if ((fullMatch == true) &&
+          (noExtend  == true)) {
         placements.push_back(op);
 
-      if (logFileFlagSet(LOG_PLACE_READ))
-        writeLog("pRUO()--   placements[%u] - PLACE READ %d in tig %d at %d,%d -- verified %d,%d -- covered %d,%d %4.1f%% -- errors %.2f aligned %d novl %d%s\n",
-                 placements.size() - 1,
-                 op.frgID, op.tigID,
-                 op.position.bgn, op.position.end,
-                 op.verified.bgn, op.verified.end,
-                 op.covered.bgn, op.covered.end,
-                 op.fCoverage * 100.0,
-                 op.errors, op.aligned, oe - os,
-                 (fullMatch == false) ? " -- PARTIAL"  : "",
-                 (noExtend  == false) ? " -- EXTENDS"  : "");
+        if (logFileFlagSet(LOG_PLACE_READ))
+          writeLog("pRUO()--   placements[%u] - PLACE READ %d in tig %d at %d,%d -- verified %d,%d -- covered %d,%d %4.1f%% -- errors %.2f aligned %d novl %d\n",
+                   placements.size() - 1,
+                   op.frgID, op.tigID,
+                   op.position.bgn, op.position.end,
+                   op.verified.bgn, op.verified.end,
+                   op.covered.bgn, op.covered.end,
+                   op.fCoverage * 100.0,
+                   op.errors, op.aligned, oe - os);
+      } else {
+        if (logFileFlagSet(LOG_PLACE_READ))
+          writeLog("pRUO()--   placements[%u] - DO NOT PLACE READ %d in tig %d at %d,%d -- verified %d,%d -- covered %d,%d %4.1f%% -- errors %.2f aligned %d novl %d%s%s\n",
+                   placements.size() - 1,
+                   op.frgID, op.tigID,
+                   op.position.bgn, op.position.end,
+                   op.verified.bgn, op.verified.end,
+                   op.covered.bgn, op.covered.end,
+                   op.fCoverage * 100.0,
+                   op.errors, op.aligned, oe - os,
+                   (fullMatch == false) ? " -- PARTIAL"  : "",
+                   (noExtend  == false) ? " -- EXTENDS"  : "");
+      }
+
 
       os = oe;
     }  //  End of segregating overlaps by placement
