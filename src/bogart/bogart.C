@@ -534,6 +534,10 @@ main (int argc, char * argv []) {
 
   mergeOrphans(contigs, deviationBubble, similarityBubble, bubbleReads);
 
+  //checkUnitigMembership(contigs);
+  //reportOverlaps(contigs, prefix, "mergeOrphans");
+  reportTigs(contigs, prefix, "mergeOrphans", genomeSize);
+
 #if 1
   {
     setLogFile(prefix, "reducedGraph");
@@ -563,11 +567,6 @@ main (int argc, char * argv []) {
     //exit(1);
   }
 #endif
-
-
-  //checkUnitigMembership(contigs);
-  //reportOverlaps(contigs, prefix, "mergeOrphans");
-  reportTigs(contigs, prefix, "mergeOrphans", genomeSize);
 
   //
   //  Initial construction done.  Classify what we have as assembled or unassembled.
