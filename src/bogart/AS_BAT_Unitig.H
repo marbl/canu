@@ -154,6 +154,28 @@ public:
   bool   isForward(void) const   {  return(position.isForward());  };
   bool   isReverse(void) const   {  return(position.isReverse());  };
 
+  //  These two functions return the coordinates of an overlap on this read.
+  //  The hangs are as they are from the overlap; do not do anything fancy to
+  //  them.
+  //              MinCoord   MaxCoord
+  //                  v         v
+  //           -----------A----->    bhang
+  //           ahang  ----B---------------
+  //
+  int32  hangToMinCoord(int32 ahang, int32 bhang) {
+    if (position.isForward())
+      return(position.bgn + max(0, ahang));
+    else
+      return(position.end - min(0, ahang));
+  };
+
+  int32  hangToMaxCoord(int32 ahang, int32 bhang) {
+    if (position.isForward())
+      return(position.end + min(0, bhang));
+    else
+      return(position.bgn - max(0, bhang));
+  };
+
   bool  operator<(ufNode const &that) const {
     int32 abgn = (position.bgn < position.end) ? position.bgn : position.end;
     int32 aend = (position.bgn < position.end) ? position.end : position.bgn;
