@@ -33,7 +33,7 @@
 #include "AS_BAT_TigVector.H"
 
 
-#undef IGNORE_BUBBLE
+#define IGNORE_BUBBLE
 #ifdef IGNORE_BUBBLE
 #warning IGNORE_BUBBLE ENABLED
 #else
