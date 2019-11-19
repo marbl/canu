@@ -92,25 +92,24 @@ findPotentialOrphans(TigVector       &tigs,
   writeStatus("findPotentialOrphans()-- working on " F_U32 " tigs.\n", tigs.size());
 
   for (uint32 ti=0; ti<tigs.size(); ti++) {
-    Unitig  *tig = tigs[ti];
+    Unitig               *tig = tigs[ti];
 
     if ((tig == NULL) ||               //  Not a tig, ignore it.
         (tig->ufpath.size() == 1))     //  Singleton, handled elsewhere.
       continue;
 
-    writeLog("findPotentialOrphans()--\n");
-
     //  Count the number of reads that have an overlap to some other tig.  tigOlapsTo[otherTig] = count.
 
+    intervalList<int32> tigCoverage;
     map<uint32,uint32>  tigOlapsTo;
-    uint32              nonContainedReads    = 0;
-    bool                validOrphan          = true;
+    uint32              nonContainedReads = 0;
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      uint32      rid = tig->ufpath[fi].ident;
+      ufNode     *rdA   = &tig->ufpath[fi];
+      uint32      rdAid =  tig->ufpath[fi].ident;
 
-      if (OG->isContained(rid) == true)  //  Don't need to check contained reads.  If their container
-        continue;                        //  passes the tests below, the contained read will too.
+      if (OG->isContained(rdAid) == true)  //  Don't need to check contained reads.  If their container
+        continue;                          //  passes the tests below, the contained read will too.
 
       nonContainedReads++;
 
@@ -119,7 +118,7 @@ findPotentialOrphans(TigVector       &tigs,
       set<uint32>  readOlapsTo;
 
       uint32      ovlLen   = 0;
-      BAToverlap *ovl      = OC->getOverlaps(rid, ovlLen);
+      BAToverlap *ovl      = OC->getOverlaps(rdAid, ovlLen);
 
       for (uint32 oi=0; oi<ovlLen; oi++) {
         uint32  ovlTigID = tigs.inUnitig(ovl[oi].b_iid);
@@ -133,6 +132,15 @@ findPotentialOrphans(TigVector       &tigs,
           continue;
 
         readOlapsTo.insert(ovlTigID);                   //  Otherwise, remember that we had an overlap to ovlTig.
+
+        int32  mincoord = rdA->hangToMinCoord(ovl[oi].a_hang, ovl[oi].b_hang);
+        int32  maxcoord = rdA->hangToMaxCoord(ovl[oi].a_hang, ovl[oi].b_hang);
+
+        tigCoverage.add(mincoord, maxcoord - mincoord);
+
+        //if (ti == 306)
+        //  writeLog("tig %4u read %6u overlap to %6u results in covered position %6u-%6u pos %6d-%6d fwd %d hang %d,%d\n",
+        //           ti, rdAid, ovl[oi].b_iid, mincoord, maxcoord, rdA->position.bgn, rdA->position.end, rdA->position.isForward(), ovl[oi].a_hang, ovl[oi].b_hang);
       }
 
       //  With the list of tigs that this read has an overlap to, add one to
@@ -142,29 +150,57 @@ findPotentialOrphans(TigVector       &tigs,
         tigOlapsTo[*it]++;
     }
 
-    //  Forget about any bigger tigs that we don't have enough reads overlapping to.
+    //  Squash the tigcoverage down to intervals and decide if enough of this
+    //  tig is overlapping anywhere else to consider this an orphan or
+    //  bubble.
 
-    writeLog("findPotentialOrphans()-- potential orphan tig %8u length %9u nReads %7u to %3u tigs (INITIAL)\n",
-             tig->id(), tig->getLength(), tig->ufpath.size(), tigOlapsTo.size());
+    tigCoverage.merge();
 
-    for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it)
-      if (it->second < 0.1 * nonContainedReads)
-        tigOlapsTo.erase(it);
+    uint32   spannedBases = 0;
+    uint32   maxUncovered = 0;
+    uint32   bgnUncovered = 0;
+    uint32   endUncovered = 0;
 
-    //  Did we remove all potential placements?
+    for (uint32 ii=0; ii<tigCoverage.numberOfIntervals(); ii++)
+      spannedBases += tigCoverage.hi(ii) - tigCoverage.lo(ii);
 
-    if (tigOlapsTo.size() == 0)
+    for (uint32 ii=1; ii<tigCoverage.numberOfIntervals(); ii++) {
+      uint32   uncovered = tigCoverage.lo(ii) - tigCoverage.hi(ii-1);
+
+      if (maxUncovered < uncovered)
+        maxUncovered = uncovered;
+    }
+
+    if (tigCoverage.numberOfIntervals() > 0) {
+      bgnUncovered =                    tigCoverage.lo(0);
+      endUncovered = tig->getLength() - tigCoverage.hi( tigCoverage.numberOfIntervals()-1 );
+    }
+
+    writeLog("findPotentialOrphans()-- potential orphan tig %8u length %9u nReads %7u/%7u %3u regions covering %6.2f uncovered %5u/%6u/%5u\n",
+             tig->id(), tig->getLength(), nonContainedReads, tig->ufpath.size(),
+             tigCoverage.numberOfIntervals(),
+             100.0 * spannedBases / tig->getLength(),
+             bgnUncovered, maxUncovered, endUncovered);
+
+    //  Reject this tig as a potential bubble if
+    //    there are more than 10 coverage intervals
+    //    both bgn and end uncovered are non-zero
+    //    the largest uncovered region ... ??
+
+    if (tigCoverage.numberOfIntervals() > 10)
+      continue;
+
+    if ((bgnUncovered > 0) &&
+        (endUncovered > 0))
       continue;
 
     //  Log the places where this orphan can go, and remember those places.
 
-    writeLog("findPotentialOrphans()-- potential orphan tig %8u length %9u nReads %7u to %3u tigs:\n",
-             tig->id(), tig->getLength(), tig->ufpath.size(), tigOlapsTo.size());
-
     for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
       Unitig  *dest = tigs[it->first];
 
-      writeLog("findPotentialOrphans()--                  tig %8u length %9u nReads %7u\n", dest->id(), dest->getLength(), dest->ufpath.size());
+      writeLog("findPotentialOrphans()--                  tig %8u length %9u nReads %7u   %5u reads with overlaps\n",
+               dest->id(), dest->getLength(), dest->ufpath.size(), it->second);
 
       potentialOrphans[ti].push_back(dest->id());
     }
@@ -213,11 +249,12 @@ findOrphanReadPlacements(TigVector       &tigs,
 
     bool        isEnd    = (rdAlo == 0) || (rdAhi == rdAtig->getLength());
 
-    //  Compute all placements for this read.  We ask for only fully placed reads.
+    //  Compute all placements for this read.  It is critical to search for partial
+    //  placements, otherwise we'll generally find no bubbles (only orphans).
 
     vector<overlapPlacement>   placements;
 
-    placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_fullMatch);
+    placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_noExtend);
 
     //  Weed out placements that aren't for orphans, or that are for orphans but are poor quality.  Or are to ourself!
 
@@ -234,8 +271,10 @@ findOrphanReadPlacements(TigVector       &tigs,
           (rdBtigID == 0) ||                           //  To a singleton read.
           (rdBtig   == NULL) ||                        //  To a singleton read.
           (rdBtig->ufpath.size() == 1) ||              //  To a singleton tig.
-          (potentialOrphans.count((rdBtigID) > 0)))    //  To a potential orphan tig
+          (potentialOrphans.count((rdBtigID) > 0))) {    //  To a potential orphan tig
+        //writeLog("read %u in tig %u placement %u placed in useless tig %u\n", fi, rdAtigID, pi, rdBtigID);
         continue;
+      }
 
       //  Ignore the placement if it isn't to one of our orphan-popping candidate tigs.
 
@@ -302,7 +341,7 @@ placeAnchor(Unitig                     *orphan,
   uint32   fReadIdx = orphan->ufpathIdx(orphan->firstRead()->ident);
   uint32   lReadIdx = orphan->ufpathIdx(orphan->lastRead()->ident);
   uint32   fRead    = orphan->ufpath[fReadIdx].ident;
-  uint32   lRead    = orphan->ufpath[fReadIdx].ident;
+  uint32   lRead    = orphan->ufpath[lReadIdx].ident;
 
   assert(nReads > 0);
 
@@ -344,9 +383,9 @@ static
 void
 addInitialIntervals(Unitig                               *orphan,
                     vector<overlapPlacement>             *placed,
-                    uint32                                fReadID,
-                    uint32                                lReadID,
-                    map<uint32, intervalList<uint32> *>  &targetIntervals) {
+                    ufNode                               *fRead,
+                    ufNode                               *lRead,
+                    map<uint32, intervalList<int32> *>   &targetIntervals) {
   uint32   orphanLen  = orphan->getLength();
 
   //  Add extended intervals for the first read.
@@ -355,14 +394,22 @@ addInitialIntervals(Unitig                               *orphan,
   //    read        -------
   //    orphan      -------------------------
 
-  for (uint32 pp=0; pp<placed[fReadID].size(); pp++) {
-    uint32  tid = placed[fReadID][pp].tigID;
-    uint32  bgn = placed[fReadID][pp].position.min();
+  for (uint32 pp=0; pp<placed[fRead->ident].size(); pp++) {
+    uint32  tid = placed[fRead->ident][pp].tigID;
+    uint32  bgn = placed[fRead->ident][pp].position.min();
+    uint32  end = placed[fRead->ident][pp].position.max();
 
     if (targetIntervals[tid] == NULL)
-      targetIntervals[tid] = new intervalList<uint32>;
+      targetIntervals[tid] = new intervalList<int32>;
 
-    targetIntervals[tid]->add(bgn, orphanLen);  //  Don't care if it goes off the high end of the tig.
+    //  If placed in the same orientation as in the tig, the orphan extends
+    //  to the right of the min coordinate.
+    //
+    //  Otherwise, the the orphan extends to the left of the max coordinate.
+    if (placed[fRead->ident][pp].position.isForward() == fRead->position.isForward())
+      targetIntervals[tid]->add(bgn, orphanLen);
+    else
+      targetIntervals[tid]->add(end - orphanLen, orphanLen);
   }
 
   //  Add extended intervals for the last read.
@@ -371,17 +418,21 @@ addInitialIntervals(Unitig                               *orphan,
   //    read                          -------
   //    orphan      -------------------------
 
-  for (uint32 pp=0; pp<placed[lReadID].size(); pp++) {
-    uint32  tid = placed[lReadID][pp].tigID;
-    uint32  end = placed[lReadID][pp].position.max();
+  for (uint32 pp=0; pp<placed[lRead->ident].size(); pp++) {
+    uint32  tid = placed[lRead->ident][pp].tigID;
+    bool    fwd = placed[lRead->ident][pp].position.isForward();
+    uint32  bgn = placed[lRead->ident][pp].position.min();
+    uint32  end = placed[lRead->ident][pp].position.max();
 
     if (targetIntervals[tid] == NULL)
-      targetIntervals[tid] = new intervalList<uint32>;
+      targetIntervals[tid] = new intervalList<int32>;
 
-    if (end < orphanLen)
-      targetIntervals[tid]->add(0, end);  //  Careful!  Negative will underflow!
-    else
+    //  Same as above, just backwards.
+
+    if (placed[lRead->ident][pp].position.isForward() == lRead->position.isForward())
       targetIntervals[tid]->add(end - orphanLen, orphanLen);
+    else
+      targetIntervals[tid]->add(bgn, orphanLen);
   }
 }
 
@@ -391,11 +442,12 @@ static
 void
 saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
                                    Unitig                    *target,
-                                   intervalList<uint32>      *IL,
+                                   intervalList<int32>       *IL,
                                    uint32                     fReadID,
                                    uint32                     lReadID,
                                    vector<overlapPlacement>  *placed,
                                    vector<candidatePop *>    &targets) {
+  uint32   orphanLen  = orphan->getLength();
 
   IL->merge();  // Merge overlapping initial intervals created above.
 
@@ -403,8 +455,8 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
     bool    noFirst = true;
     bool    noLast  = true;
 
-    uint32  intBgn   = IL->lo(ii);
-    uint32  intEnd   = IL->hi(ii);
+    int32  intBgn   = IL->lo(ii) - 0.25 * orphanLen;   //  Extend the region by 50% of the
+    int32  intEnd   = IL->hi(ii) + 0.25 * orphanLen;   //  orphan length.
 
     SeqInterval    fPos;
     SeqInterval    lPos;
@@ -579,7 +631,8 @@ mergeOrphans(TigVector    &tigs,
       writeLog("tig %u read %u is a potential bubble read\n", tid, rid);
 
       //  If you enable this, all reads with any overlap will get removed from the 'reduced' graph.
-      //bubbleReads.insert(rid);
+      bubbleReads.insert(rid);
+      OG->setBubble(rid);
     }
   }
 #endif
@@ -597,6 +650,7 @@ mergeOrphans(TigVector    &tigs,
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each orphan to be popped.
 
+  uint32        nUniqBubble = 0, nUniqBubbleReads = 0;
   uint32        nUniqOrphan = 0, nUniqOrphanReads = 0;
   uint32        nReptOrphan = 0, nReptOrphanReads = 0;
 
@@ -621,27 +675,27 @@ mergeOrphans(TigVector    &tigs,
     //    read        -------
     //    orphan      -------------------------
 
-    uint32   fReadID = orphan->firstRead()->ident;
-    uint32   lReadID = orphan->lastRead()->ident;
+    ufNode  *fRead = orphan->firstRead();
+    ufNode  *lRead = orphan->lastRead();
 
-    map<uint32, intervalList<uint32> *>   targetIntervals;
+    map<uint32, intervalList<int32> *>   targetIntervals;
 
-    addInitialIntervals(orphan, placed, fReadID, lReadID, targetIntervals);
+    addInitialIntervals(orphan, placed, fRead, lRead, targetIntervals);
 
     //  Figure out if each interval has both the first and last read of some orphan, and if those
     //  are properly sized.  If so, save a candidatePop.
 
     vector<candidatePop *>    targets;
 
-    for (map<uint32, intervalList<uint32> *>::iterator it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
+    for (auto it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
       if (tigs[it->first] == NULL)
         writeLog("mergeOrphans()-- orphan %u wants to go into nonexistent tig %u!\n", ti, it->first);
       else
         saveCorrectlySizedInitialIntervals(orphan,
                                            tigs[it->first],     //  The targetID      in targetIntervals
                                            it->second,          //  The interval list in targetIntervals
-                                           fReadID,
-                                           lReadID,
+                                           fRead->ident,
+                                           lRead->ident,
                                            placed,
                                            targets);
 
@@ -673,8 +727,8 @@ mergeOrphans(TigVector    &tigs,
       //  are in the list, so need to check every read.
 
       for (uint32 op=0; op<targets[tt]->placed.size(); op++) {
-        if (targets[tt]->placed[op].frgID == fReadID)    terminalSize++;
-        if (targets[tt]->placed[op].frgID == lReadID)    terminalSize++;
+        if (targets[tt]->placed[op].frgID == fRead->ident)    terminalSize++;
+        if (targets[tt]->placed[op].frgID == lRead->ident)    terminalSize++;
       }
 
       //  Report now, before we nuke targets[tt] for being not a orphan!
@@ -714,16 +768,18 @@ mergeOrphans(TigVector    &tigs,
 
     if ((nOrphan == 0) && (nBubble > 0)) {
       writeLog("mergeOrphans()-- tig %8u length %8u reads %6u - bubble\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      nUniqBubble++;
 
       orphan->_isBubble = true;
 
       for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {
         uint32      rid = orphan->ufpath[fi].ident;
 
-        writeLog("tig %u read %u is a validated bubble read\n", orphan->id(), rid);
+        //writeLog("tig %u read %u is a validated bubble read\n", orphan->id(), rid);
 
         OG->setBubble(rid);
         bubbleReads.insert(rid);
+        nUniqBubbleReads++;
       }
     }
 
@@ -744,15 +800,16 @@ mergeOrphans(TigVector    &tigs,
         frg.position.bgn = targets[tt]->placed[op].position.bgn;
         frg.position.end = targets[tt]->placed[op].position.end;
 
-        writeLog("mergeOrphans()-- move read %u from tig %u to tig %u %u-%-u\n",
-                 frg.ident,
-                 orphan->id(),
-                 targets[tt]->target->id(), frg.position.bgn, frg.position.end);
+        //writeLog("mergeOrphans()-- move read %u from tig %u to tig %u %u-%-u\n",
+        //         frg.ident,
+        //         orphan->id(),
+        //         targets[tt]->target->id(), frg.position.bgn, frg.position.end);
 
         targets[tt]->target->addRead(frg, 0, false);
 
         OG->setOrphan(frg.ident);
         bubbleReads.insert(frg.ident);
+        nUniqOrphanReads++;
       }
 
       writeLog("\n");
@@ -813,6 +870,7 @@ mergeOrphans(TigVector    &tigs,
 
         OG->setOrphan(frg.ident);
         bubbleReads.insert(frg.ident);
+        nReptOrphanReads++;
       }
 
       writeLog("\n");
@@ -834,6 +892,7 @@ mergeOrphans(TigVector    &tigs,
 
   writeLog("\n");   //  Needed if no orphans are popped.
 
+  writeStatus("mergeOrphans()-- flagged   %5u        bubble tigs with %u reads\n", nUniqBubble, nUniqBubbleReads);
   writeStatus("mergeOrphans()-- placed    %5u unique orphan tigs with %u reads\n", nUniqOrphan, nUniqOrphanReads);
   writeStatus("mergeOrphans()-- shattered %5u repeat orphan tigs with %u reads\n", nReptOrphan, nReptOrphanReads);
   writeStatus("mergeOrphans()--\n");
