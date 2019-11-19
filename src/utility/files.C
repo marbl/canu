@@ -360,6 +360,9 @@ AS_UTL_makeReadOnly(const char *prefix, char separator, const char *suffix) {
   char         path[FILENAME_MAX];
   struct stat  s;
 
+  if (prefix == NULL)
+    return(false);
+
   if (suffix)
     snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
   else
@@ -386,6 +389,9 @@ bool
 AS_UTL_makeWritable(const char *prefix, char separator, const char *suffix) {
   char         path[FILENAME_MAX];
   struct stat  s;
+
+  if (prefix == NULL)
+    return(false);
 
   if (suffix)
     snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
@@ -417,6 +423,9 @@ pathExists(const char *prefix, char separator, const char *suffix) {
   struct stat  s;
   char   path[FILENAME_MAX];
 
+  if (prefix == NULL)
+    return(false);
+
   if (suffix)
     snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
   else
@@ -435,6 +444,9 @@ fileExists(const char *prefix, char separator, const char *suffix,
            bool        writable) {
   struct stat  s;
   char   path[FILENAME_MAX];
+
+  if (prefix == NULL)
+    return(false);
 
   if (suffix)
     snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
@@ -462,6 +474,9 @@ bool
 directoryExists(const char *prefix, char separator, const char *suffix) {
   struct stat  s;
   char   path[FILENAME_MAX];
+
+  if (prefix == NULL)
+    return(false);
 
   if (suffix)
     snprintf(path, FILENAME_MAX, "%s%c%s", prefix, separator, suffix);
