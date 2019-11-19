@@ -715,6 +715,8 @@ mergeOrphans(TigVector    &tigs,
     if ((nOrphan == 0) && (nBubble > 0)) {
       writeLog("mergeOrphans()-- tig %8u length %8u reads %6u - bubble\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
 
+      orphan->_isBubble = true;
+
       for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {
         uint32      rid = orphan->ufpath[fi].ident;
 

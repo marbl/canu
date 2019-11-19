@@ -82,6 +82,7 @@ writeTigsToStore(TigVector     &tigs,
     tig->_class           = (utg->_isUnassembled == true) ? tgTig_unassembled : tgTig_contig;
     tig->_suggestRepeat   = utg->_isRepeat;
     tig->_suggestCircular = utg->_isCircular;
+    tig->_suggestBubble   = utg->_isBubble;
 
     tig->_layoutLen       = utg->getLength();
 

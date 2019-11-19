@@ -81,8 +81,11 @@ public:
 
     dumpAllClasses  = true;
     dumpUnassembled = false;
-    dumpBubbles     = false;
     dumpContigs     = false;
+
+    dumpRepeats     = false;
+    dumpBubbles     = false;
+    dumpCircular    = false;
 
     minNreads       = 0;
     maxNreads       = UINT32_MAX;
@@ -121,7 +124,6 @@ public:
   bool          ignoreClass(tgTig *tig) {
     if ((dumpAllClasses == true) ||
         ((tig->_class == tgTig_unassembled) && (dumpUnassembled == true)) ||
-        ((tig->_class == tgTig_bubble)      && (dumpBubbles == true)) ||
         ((tig->_class == tgTig_contig)      && (dumpContigs == true)))
       return(false);
 
@@ -191,8 +193,11 @@ public:
 
   bool          dumpAllClasses;
   bool          dumpUnassembled;
-  bool          dumpBubbles;
   bool          dumpContigs;
+
+  bool          dumpRepeats;
+  bool          dumpBubbles;
+  bool          dumpCircular;
 
   uint32        minNreads;
   uint32        maxNreads;
@@ -221,12 +226,13 @@ dumpStatus(sqStore *UNUSED(seqStore), tgStore *tigStore) {
 
 void
 dumpTig(FILE *out, tgTig *tig) {
-  fprintf(out, F_U32"\t" F_U32 "\t%.2f\t%s\t%s\t%s\t" F_U32 "\n",
+  fprintf(out, F_U32"\t" F_U32 "\t%.2f\t%s\t%s\t%s\t%s\t" F_U32 "\n",
           tig->tigID(),
           tig->length(),
           tig->computeCoverage(),
           toString(tig->_class),
           tig->_suggestRepeat ? "yes" : "no",
+          tig->_suggestBubble ? "yes" : "no",
           tig->_suggestCircular ? "yes" : "no",
           tig->numberOfChildren());
 }
@@ -247,7 +253,7 @@ dumpRead(FILE *out, tgTig *tig, tgPosition *read) {
 void
 dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter) {
 
-  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
+  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugBubb\tsugCirc\tnumChildren\n");
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -984,14 +990,22 @@ main (int argc, char **argv) {
       filter.dumpUnassembled = true;
     }
 
-    else if (strcmp(argv[arg], "-bubbles") == 0) {
-      filter.dumpAllClasses  = false;
-      filter.dumpBubbles     = true;
-    }
-
     else if (strcmp(argv[arg], "-contigs") == 0) {
       filter.dumpAllClasses  = false;
       filter.dumpContigs     = true;
+    }
+
+
+    else if (strcmp(argv[arg], "-repeats") == 0) {
+      filter.dumpRepeats     = true;
+    }
+
+    else if (strcmp(argv[arg], "-bubbles") == 0) {
+      filter.dumpBubbles     = true;
+    }
+
+    else if (strcmp(argv[arg], "-circular") == 0) {
+      filter.dumpCircular    = true;
     }
 
 
@@ -1123,8 +1137,12 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -tig A[-B]              only dump tigs between ids A and B\n");
     fprintf(stderr, "  -unassembled            only dump tigs that are 'unassembled'\n");
-    fprintf(stderr, "  -bubbles                only dump tigs that are 'bubbles'\n");
     fprintf(stderr, "  -contigs                only dump tigs that are 'contigs'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -repeats                only dump tigs that are (probably) repeats\n");
+    fprintf(stderr, "  -bubbles                only dump tigs that are (probably) bubbles\n");
+    fprintf(stderr, "  -circular               only dump tigs that are (probably) circular\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -nreads min max         only dump tigs with between min and max reads\n");
     fprintf(stderr, "  -length min max         only dump tigs with length between 'min' and 'max' bases\n");
     fprintf(stderr, "  -coverage c C g G       only dump tigs with between fraction g and G at coverage between c and C\n");

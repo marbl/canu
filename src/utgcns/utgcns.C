@@ -98,9 +98,10 @@ public:
     maxLen           = UINT32_MAX;
 
     onlyUnassem      = false;
-    onlyBubble       = false;
     onlyContig       = false;
 
+    noRepeat         = false;
+    noBubble         = false;
     noSingleton      = false;
 
     verbosity        = 0;
@@ -173,9 +174,10 @@ public:
   uint32                  maxLen;
 
   bool                    onlyUnassem;
-  bool                    onlyBubble;
   bool                    onlyContig;
 
+  bool                    noBubble;
+  bool                    noRepeat;
   bool                    noSingleton;
 
   uint32                  verbosity;
@@ -632,9 +634,14 @@ processTigs(cnsParameters  &params) {
 
     if (((params.onlyUnassem == true) && (tig->_class != tgTig_unassembled)) ||
         ((params.onlyContig  == true) && (tig->_class != tgTig_contig)) ||
-        ((params.onlyBubble  == true) && (tig->_class != tgTig_bubble)) ||
         ((params.noSingleton == true) && (tig->numberOfChildren() == 1)) ||
         (tig->length() > params.maxLen))
+      continue;
+
+    //  Skip repeats and bubbles.
+
+    if (((params.noRepeat == true) && (tig->_suggestRepeat == true)) ||
+        ((params.noBubble == true) && (tig->_suggestBubble == true)))
       continue;
 
     //  Log that we're processing.
@@ -835,14 +842,16 @@ main (int argc, char **argv) {
       params.onlyUnassem = true;
     }
 
-    else if (strcmp(argv[arg], "-onlybubble") == 0) {
-      params.onlyBubble = true;
-    }
-
     else if (strcmp(argv[arg], "-onlycontig") == 0) {
       params.onlyContig = true;
     }
 
+    else if (strcmp(argv[arg], "-norepeat") == 0) {
+      params.noSingleton = true;
+    }
+    else if (strcmp(argv[arg], "-nobubble") == 0) {
+      params.noSingleton = true;
+    }
     else if (strcmp(argv[arg], "-nosingleton") == 0) {
       params.noSingleton = true;
     }
@@ -920,9 +929,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -maxlength l    Do not compute consensus for tigs longer than l bases.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -onlyunassem    Only compute consensus for unassembled tigs.\n");
-    fprintf(stderr, "    -onlybubble     Only compute consensus for bubble tigs (there are no bubbles).\n");
     fprintf(stderr, "    -onlycontig     Only compute consensus for real unitigs/contigs.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -norepeat       Do not compute consensus for repeat tigs.\n");
+    fprintf(stderr, "    -nobubble       Do not compute consensus for bubble tigs.\n");
     fprintf(stderr, "    -nosingleton    Do not compute consensus for singleton (single-read) tigs.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  PARAMETERS\n");

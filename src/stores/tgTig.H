@@ -40,10 +40,9 @@ using namespace std;
 
 
 typedef enum {
-  tgTig_noclass      = 0x00,    //  Could use a tgTig_read for corrections
-  tgTig_unassembled  = 0x01,
-  tgTig_bubble       = 0x02,
-  tgTig_contig       = 0x03
+  tgTig_noclass      = 0x00,    //  0x02 was for bubbles, but that was moved
+  tgTig_unassembled  = 0x01,    //  to be only a suggestion.
+  tgTig_contig       = 0x03     //  tgTig_contig MUST be 3 for compatibility.
 } tgTig_class;
 
 static
@@ -53,7 +52,6 @@ toString(tgTig_class c) {
   switch (c) {
     case tgTig_noclass:      return("unsetc");  break;
     case tgTig_unassembled:  return("unassm");  break;
-    case tgTig_bubble:       return("bubble");  break;
     case tgTig_contig:       return("contig");  break;
   }
 
@@ -67,8 +65,6 @@ toClass(char const *c) {
     return(tgTig_noclass);
   if (strcmp(c, "unassm") == 0)
     return(tgTig_unassembled);
-  if (strcmp(c, "bubble") == 0)
-    return(tgTig_bubble);
   if (strcmp(c, "contig") == 0)
     return(tgTig_contig);
 
@@ -234,7 +230,8 @@ public:
   tgTig_class         _class           : 2;
   uint32              _suggestRepeat   : 1;
   uint32              _suggestCircular : 1;
-  uint32              _spare           : 28;
+  uint32              _suggestBubble   : 1;
+  uint32              _spare           : 27;
 
   uint32              _layoutLen;
   uint32              _basesLen;
@@ -326,8 +323,9 @@ public:
   tgTig_class         _class           : 2;    //  Output classification: unassembled, bubble, contig
   uint32              _suggestRepeat   : 1;    //  Bogart made this from detected repeat.
   uint32              _suggestCircular : 1;    //  Bogart found overlaps making a circle.
+  uint32              _suggestBubble   : 1;    //  Bogart thinks this is a bubble.
 
-  uint32              _spare           : 32 - 2 - 2;
+  uint32              _spare           : 32 - 2 - 3;
 
   uint32              _layoutLen;         //  The max coord in the layout.  Same as _basesLen if _bases exists.
 

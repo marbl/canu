@@ -372,6 +372,7 @@ reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)
 
   vector<uint32>   unassembledLength;
   vector<uint32>   repeatLength;
+  vector<uint32>   bubbleLength;
   vector<uint32>   contigLength;
 
   for (uint32  ti=0; ti<tigs.size(); ti++) {
@@ -388,6 +389,10 @@ reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)
       repeatLength.push_back(utg->getLength());
     }
 
+    else if (utg->_isBubble) {
+      bubbleLength.push_back(utg->getLength());
+    }
+
     else {
       contigLength.push_back(utg->getLength());
     }
@@ -400,7 +405,8 @@ reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)
   FILE *F = AS_UTL_openOutputFile(N);
 
   reportN50(F, unassembledLength, "UNASSEMBLED", genomeSize);
-  reportN50(F, repeatLength,      "REPEAT",      genomeSize);
+  reportN50(F, repeatLength,      "REPEATS",     genomeSize);
+  reportN50(F, bubbleLength,      "BUBBLES",     genomeSize);
   reportN50(F, contigLength,      "CONTIGS",     genomeSize);
 
   AS_UTL_closeFile(F, N);

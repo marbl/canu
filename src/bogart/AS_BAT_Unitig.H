@@ -205,6 +205,7 @@ private:
     _isUnassembled = false;
     _isRepeat      = false;
     _isCircular    = false;
+    _isBubble      = false;
   };
 
 public:
@@ -369,6 +370,7 @@ public:
   bool              _isUnassembled;  //  Is a single read or a pseudo singleton.
   bool              _isRepeat;       //  Is from an identified repeat region.
   bool              _isCircular;     //  Is (probably) a circular tig.
+  bool              _isBubble;       //  Is (probably) a bubble.
 };
 
 

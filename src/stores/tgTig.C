@@ -75,6 +75,7 @@ tgTigRecord::tgTigRecord() {
 
   _class             = tgTig_noclass;
   _suggestRepeat     = false;
+  _suggestBubble     = false;
   _suggestCircular   = false;
   _spare             = 0;
 
@@ -98,6 +99,7 @@ tgTig::tgTig() {
 
   _class                = tgTig_noclass;
   _suggestRepeat        = 0;
+  _suggestBubble        = 0;
   _suggestCircular      = 0;
   _spare                = 0;
 
@@ -137,6 +139,7 @@ tgTigRecord::operator=(tgTig & tg) {
 
   _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
+  _suggestBubble       = tg._suggestBubble;
   _suggestCircular     = tg._suggestCircular;
   _spare               = tg._spare;
 
@@ -161,6 +164,7 @@ tgTig::operator=(tgTigRecord & tr) {
 
   _class               = tr._class;
   _suggestRepeat       = tr._suggestRepeat;
+  _suggestBubble       = tr._suggestBubble;
   _suggestCircular     = tr._suggestCircular;
   _spare               = tr._spare;
 
@@ -187,6 +191,7 @@ tgTig::operator=(tgTig & tg) {
 
   _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
+  _suggestBubble       = tg._suggestBubble;
   _suggestCircular     = tg._suggestCircular;
   _spare               = tg._spare;
 
@@ -248,6 +253,7 @@ tgTig::clear(void) {
 
   _class                = tgTig_noclass;
   _suggestRepeat        = 0;
+  _suggestBubble        = 0;
   _suggestCircular      = 0;
   _spare                = 0;
 
@@ -500,6 +506,7 @@ tgTig::dumpLayout(FILE *F) {
   fprintf(F, "sourceEnd       %u\n", _sourceEnd);
   fprintf(F, "class           %s\n", toString(_class));
   fprintf(F, "suggestRepeat   %c\n", _suggestRepeat   ? 'T' : 'F');
+  fprintf(F, "suggestBubble   %c\n", _suggestBubble   ? 'T' : 'F');
   fprintf(F, "suggestCircular %c\n", _suggestCircular ? 'T' : 'F');
   fprintf(F, "numChildren     " F_U32 "\n", _childrenLen);
 
@@ -602,8 +609,6 @@ tgTig::loadLayout(FILE *F) {
     } else if (strcmp(W[0], "class") == 0) {
       if      (strcmp(W[1], "unassembled") == 0)
         _class = tgTig_unassembled;
-      else if (strcmp(W[1], "bubble") == 0)
-        _class = tgTig_bubble;
       else if (strcmp(W[1], "contig") == 0)
         _class = tgTig_contig;
       else
@@ -611,6 +616,9 @@ tgTig::loadLayout(FILE *F) {
 
     } else if (strcmp(W[0], "suggestRepeat") == 0) {
       _suggestRepeat = strtouint32(W[1]);
+
+    } else if (strcmp(W[0], "suggestBubble") == 0) {
+      _suggestBubble = strtouint32(W[1]);
 
     } else if (strcmp(W[0], "suggestCircular") == 0) {
       _suggestCircular = strtouint32(W[1]);
@@ -796,12 +804,13 @@ tgTig::dumpFASTA(FILE *F) {
 
   AS_UTL_writeFastA(F,
                     bases(), length(), 100,
-                    ">tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    ">tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestBubble=%s suggestCircular=%s\n",
                     tigID(),
                     length(),
                     numberOfChildren(),
                     toString(_class),
                     _suggestRepeat ? "yes" : "no",
+                    _suggestBubble ? "yes" : "no",
                     _suggestCircular ? "yes" : "no");
 }
 
@@ -815,11 +824,12 @@ tgTig::dumpFASTQ(FILE *F) {
   AS_UTL_writeFastQ(F,
                     bases(), length(),
                     quals(), length(),
-                    "@tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    "@tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestBubble=%s suggestCircular=%s\n",
                     tigID(),
                     length(),
                     numberOfChildren(),
                     toString(_class),
                     _suggestRepeat ? "yes" : "no",
+                    _suggestBubble ? "yes" : "no",
                     _suggestCircular ? "yes" : "no");
 }
