@@ -17,8 +17,8 @@ def getGCCVersion():
       try:
          GCC_VERSION=(getCommandOutput("gcc --version|grep gcc|awk '{print $3}' |awk -F \".\" '{print $1$2}'", False))
       except:
-         print "Warning: cannot determine GCC version"
-   GCC_VERSION = "gcc" + GCC_VERSION
+         print ("Warning: cannot determine GCC version")
+   GCC_VERSION = "gcc" + GCC_VERSION.decode("utf-8")
 
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
@@ -39,24 +39,24 @@ def getMachineType():
 
    p = subprocess.Popen("echo `uname`", shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
    (checkStdout, checkStderr) = p.communicate()
-   if checkStderr != "":
-      print "Warning: Cannot determine OS, defaulting to %s"%(OSTYPE)
+   if checkStderr.decode("utf-8") != "":
+      print ("Warning: Cannot determine OS, defaulting to %s"%(OSTYPE))
    else:
-      OSTYPE = checkStdout.strip()
+      OSTYPE = checkStdout.decode("utf-8").strip()
 
    p = subprocess.Popen("echo `uname -r`", shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
    (checkStdout, checkStderr) = p.communicate()
-   if checkStderr != "":
-      print "Warning: Cannot determine OS version, defaulting to %s"%(OSVERSION)
+   if checkStderr.decode("utf-8") != "":
+      print ("Warning: Cannot determine OS version, defaulting to %s"%(OSVERSION))
    else:
-      OSVERSION = checkStdout.strip()
+      OSVERSION = checkStdout.decode("utf-8").strip()
 
    p = subprocess.Popen("echo `uname -m`", shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
    (checkStdout, checkStderr) = p.communicate()
-   if checkStderr != "":
-      print "Warning: Cannot determine system type, defaulting to %s"%(MACHINETYPE)
+   if checkStderr.decode("utf-8") != "":
+      print ("Warning: Cannot determine system type, defaulting to %s"%(MACHINETYPE))
    else:
-      MACHINETYPE = checkStdout.strip()
+      MACHINETYPE = checkStdout.decode("utf-8").strip()
 
 def is_binary(filename):
    fin = open(filename, 'rb')
@@ -64,7 +64,7 @@ def is_binary(filename):
        CHUNKSIZE = 1024
        while 1:
            chunk = fin.read(CHUNKSIZE)
-           if '\0' in chunk: # found null byte
+           if b'\0' in chunk: # found null byte
                return True
            if len(chunk) < CHUNKSIZE:
                break # done
@@ -77,7 +77,7 @@ def statifyBin(binName, relativePath):
    global updateFiles
    global libsRequired
 
-   print "Processing bin %s with relative path %s"%(binName, relativePath)
+   print ("Processing bin %s with relative path %s"%(binName, relativePath))
 
    cmdOut = ""
    if OSTYPE == "Darwin":
@@ -85,7 +85,7 @@ def statifyBin(binName, relativePath):
    elif OSTYPE == "Linux":
       cmdOut = getCommandOutput("ldd %s"%(binName), False)
    else:
-      print "Unknown OS TYPE"
+      print ("Unknown OS TYPE")
       return
 
    if binName.endswith("dylib") and not processLibs:
@@ -94,13 +94,13 @@ def statifyBin(binName, relativePath):
    binDir = os.path.dirname(binName)
    libDir = os.path.abspath(binDir + os.sep + relativePath)
    isNotStatic = False
-   print "For bin %s in lib %s processing %s"%(binName, libDir, cmdOut)
-   for line in cmdOut.split("\n"):
+   print ("For bin %s in lib %s processing %s"%(binName, libDir, cmdOut))
+   for line in cmdOut.decode("utf-8").split("\n"):
       if "compatibility" in line:
          if "@executable_path" in line:
             fileToCheck = os.path.abspath(binDir + os.sep + line.replace("@executable_path", "").split()[0].strip())
             if not os.path.exists(fileToCheck):
-               print "Error file %s doesnt exist for %s"%(fileToCheck, binName)
+               print ("Error file %s doesnt exist for %s"%(fileToCheck, binName))
                sys.exit(1) 
             continue
          if "System/Library/" in line:
@@ -114,11 +114,11 @@ def statifyBin(binName, relativePath):
          libName = line.strip().split()[0]
          libFile = os.path.basename(libName)
          if "/gcc" in libName and GCC_VERSION not in libName:
-            print "Warning: skipped adding dependency for %s (%s) due to version conflict with current gcc %s"%(binName, libName, GCC_VERSION)
+            print ("Warning: skipped adding dependency for %s (%s) due to version conflict with current gcc %s"%(binName, libName, GCC_VERSION))
          else:
             libsRequired.add(os.path.abspath(libName))
          if updateFiles and OSTYPE == "Darwin":
-            print "Running command install_name_tool -change %s @executable_path%s%s%s%s %s"%(libName, os.sep, relativePath,os.sep, libFile, binName)
+            print ("Running command install_name_tool -change %s @executable_path%s%s%s%s %s"%(libName, os.sep, relativePath,os.sep, libFile, binName))
             os.system("install_name_tool -change %s @executable_path%s%s%s%s %s"%(libName, os.sep, relativePath,os.sep, libFile, binName))
          isNotStatic = True
       elif "=>" in line and "(0x0" in line and libDir not in line:
@@ -129,7 +129,7 @@ def statifyBin(binName, relativePath):
          libsRequired.add(os.path.abspath(libName))
 
    if isNotStatic:
-       print "File %s is not statically compiled!"%(binName)
+       print ("File %s is not statically compiled!"%(binName))
 
 # traverse root directory, and list directories as dirs and files as files
 def walkdir(dirname, libDir):
@@ -168,14 +168,14 @@ def main():
 
    os.system("mkdir -p %s"%(libs))
    walkdir(dirName, libs)
-   print "Dependencies found:\n%s"%(libsRequired)
+   print ("Dependencies found:\n%s"%(libsRequired))
 
    for lib in libsRequired:
       fileName = os.path.basename(lib)
       if not os.path.exists("%s%s%s"%(libs, os.sep, fileName)):
          os.system("cp %s %s/"%(lib, libs))
       else:
-         print "Warning: did not copy %s because same file name already exists"%(lib)
+         print ("Warning: did not copy %s because same file name already exists"%(lib))
 
 if __name__ == '__main__':
     main()
