@@ -141,6 +141,65 @@ private:
   BestEdgeOverlap   _best5;
   BestEdgeOverlap   _best3;
 
+  //
+  //////////
+  //  Contained
+  //   - the read has at least one overlap showing it is contained
+  //     in some other read.
+  //   - contained reads have chnk graph length of zero.
+  //   - ignored during spur path detection
+  //   - used all over the place to exclude useless reads from various
+  //     bits.  should be converted to use backbone instead.
+  //
+  //////////
+  //  Ignored
+  //   - the read is flagged as an orphan or a bubble.  ONLY applies
+  //     to a BestOverlapGraph constructed from the initial BOG.
+  //   - used only to ignore reads when computing a second BOG.  This BOG
+  //     is used only for generating a bubble-removed GFA output.
+  //
+  //////////
+  //  CoverageGap
+  //   - (formerly called suspicious)
+  //   - overlaps indicate this read is possibly chimeric.
+  //   - coverage gap reads have chunk graph length of zero.
+  //      - explicitly cannot seed a contig
+  //   - terminates initial contig construction if encountered
+  //   - treated as a spur when finding spur paths
+  //   - not used as evidence of a non-spur-path
+  //   - cannot have best edges TO them
+  //   - can have best edges OUT of them
+  //   - cannot be a confused edge
+  //   - not explicitly prevented from making an edge confused, but can
+  //     only happen if the read is initially in a contig
+  //
+  //////////
+  //  Lopsided
+  //   - Overlaps indicate a possible problem at one end of the read
+  //   - lopsided reads have chnk graph length of zero.
+  //      - explicitly cannot seed a contig
+  //   - terminates initial contig construction if encountered
+  //   - no other mentions
+  //
+  //   - DISPOSITION: remove?  this was added for canu 1.6, but I
+  //     don't remember the motivation.  it's easy to find false positives.
+  //     but it does seem to make bigger initial contigs.
+  //
+  //////////
+  //  Zombie     - Read is in a containment loop.
+  //      - explicitly cannot seed a contig
+  //   - terminates initial contig construction if encountered
+  //
+  //   - DISPOSITION: remove.  it makes no sense anymore.  it was
+  //     used when contains were placed with their best container.
+  //
+  //////////
+  //  Backbone   - Read was placed as part of the backbone of a contig.
+  //  Orphan     - Read was placed into a contig as an orphan.
+  //  Bubble     - Read can be placed into a contig as a bubble.
+  //  Delinquint - Read cannot be plaed either as an orphan or a bubble.
+  //
+
   uint32            _contained   : 1;
   uint32            _ignored     : 1;
   uint32            _coverageGap : 1;
