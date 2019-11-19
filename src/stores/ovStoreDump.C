@@ -53,6 +53,7 @@
 
 #include "sqStore.H"
 #include "ovStore.H"
+#include "tgStore.H"
 
 #include <algorithm>
 using namespace std;
@@ -61,16 +62,18 @@ using namespace std;
 
 class bogartStatus {
 public:
-  uint64  best5id      : 29;
-  uint64  best53p      : 1;  // Unwieldy - best edge from my 5' is to the 3' of 'best5id'.
+  uint32  best5id;
+  uint32  best3id;
 
-  uint64  best3id      : 29;
-  uint64  best33p      : 1;
+  uint32  tigId;
 
-  uint64  unused       : 1;
-  uint64  isSingleton  : 1;
-  uint64  isContained  : 1;
-  uint64  isSuspicious : 1;
+  uint32  isContained  : 1;
+  uint32  isIgnored    : 1;
+  uint32  isCovGap     : 1;
+  uint32  isLopsided   : 1;
+  uint32  isZombie     : 1;
+
+  uint32  isSingleton  : 1;
 };
 
 
@@ -96,6 +99,9 @@ public:
 
     queryMin           = 0;
     queryMax           = UINT32_MAX;
+
+    withStatus         = false;
+    withTigID          = false;
 
     status             = NULL;
 
@@ -139,6 +145,7 @@ public:
   };
 
   void        loadBogartStatus(const char *prefix, uint32 nReads);
+  void        loadBogartTigs(const char *tigname);
 
   void        drawPicture(uint32         Aid,
                           ovOverlap     *overlaps,
@@ -179,15 +186,18 @@ public:
       filtered = true;
     }
 
-    if ((noBogartContained) && (status) && (status[overlap->b_iid].isContained == true)) {
+    if ((noBogartContained) && (withStatus) && (status[overlap->b_iid].isContained == true)) {
       filtered = true;
     }
 
-    if ((noBogartSuspicious) && (status) && (status[overlap->b_iid].isSuspicious == true)) {
+    if ((noBogartSuspicious) && (withStatus) && (status[overlap->b_iid].isCovGap == true)) {
+      filtered = true;
+    }
+    if ((noBogartSuspicious) && (withStatus) && (status[overlap->b_iid].isLopsided == true)) {
       filtered = true;
     }
 
-    if ((noBogartSingleton) && (status) && (status[overlap->b_iid].isSingleton == true)) {
+    if ((noBogartSingleton) && (withStatus) && (status[overlap->b_iid].isSingleton == true)) {
       filtered = true;
     }
 
@@ -240,6 +250,9 @@ public:
   uint32         lengthMin;
   uint32         lengthMax;
 
+  bool           withStatus;
+  bool           withTigID;
+
   bogartStatus  *status;
 
   //  Counts of what we filtered.
@@ -264,86 +277,100 @@ public:
 
 void
 dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
-  char          EN[FILENAME_MAX+1];
-  char          SN[FILENAME_MAX+1];
-  char          GN[FILENAME_MAX+1];
-  char          NN[FILENAME_MAX+1];
-  splitToWords  W;
+  FILE         *E    = NULL;
 
   if (prefix == NULL)
     return;
 
-  snprintf(EN, FILENAME_MAX, "%s.edges", prefix);
-  snprintf(SN, FILENAME_MAX, "%s.edges.suspicious", prefix);
-  snprintf(GN, FILENAME_MAX, "%s.singletons", prefix);
+  withStatus = true;
+
+  if (fileExists(prefix) == true)
+    E = AS_UTL_openInputFile(prefix);
+
+  if (fileExists(prefix, '.', "edges") == true)
+    E = AS_UTL_openInputFile(prefix, '.', "edges");
+
+  if (fileExists(prefix, '.', "best.edges") == true)
+    E = AS_UTL_openInputFile(prefix, '.', "best.edges");
+
+  if (E == NULL) {
+    fprintf(stderr, "Failed to find bogart best edges in either '%s', '%s.edges', or '%s.best.edges'.\n",
+            prefix, prefix, prefix);
+    exit(1);
+  }
+
 
   allocateArray(status, nReads+1, resizeArray_clearNew);
 
-  FILE *E = AS_UTL_openInputFile(EN);
-  fgets(NN, FILENAME_MAX, E);
-  while (!feof(E)) {
-    W.split(NN);
 
-    uint32  id = W.touint32(0);
+  uint32        Llen = 0;
+  uint32        Lmax = 0;
+  char         *L    = NULL;
+  splitToWords  W;
 
-    status[id].best5id = W.touint64(2);
-    status[id].best53p = (W[3][0] == '3');
+  while (AS_UTL_readLine(L, Llen, Lmax, E)) {
+    W.split(L);
 
-    status[id].best3id = W.touint64(4);
-    status[id].best33p = (W[5][0] == '3');
+    if (W.numWords() == 0)
+      continue;
 
-    status[id].isSingleton  = false;
-    status[id].isContained  = ((W.numWords() > 10) && (W[10][0] == 'c'));
-    status[id].isSuspicious = false;
+    uint32  rid = W.touint32(0);
 
-    fgets(NN, FILENAME_MAX, E);
+    uint32  p5 = 3;
+    uint32  p3 = 8;
+
+    if ((W[5][0] != 'M') &&   //  The 'M' mutual best flag is optional in columne 5.
+        (W[5][0] != '-'))     //  If there is a space there, decrement the
+      p3--;                   //   location of the 3' id.
+
+    status[rid].best5id     = W.touint32(p5);
+    status[rid].best3id     = W.touint32(p3);
+
+    status[rid].tigId       = UINT32_MAX;
+
+    status[rid].isContained = (W[2][0] == 'C');
+    status[rid].isIgnored   = (W[2][0] == 'I');
+    status[rid].isCovGap    = (W[2][0] == 'G');
+    status[rid].isLopsided  = (W[2][0] == 'L');
+    status[rid].isZombie    = (W[2][0] == 'Z');
+
+    status[rid].isSingleton = ((status[rid].isContained == false) &&
+                               (status[rid].best5id == 0) &&
+                               (status[rid].best3id == 0));
   }
-  AS_UTL_closeFile(E, EN);
 
+  AS_UTL_closeFile(E);
 
-  FILE *S = AS_UTL_openInputFile(SN);
-  fgets(NN, FILENAME_MAX, S);
-  while (!feof(S)) {
-    W.split(NN);
-
-    uint32  id = W.touint32(0);
-
-    status[id].best5id = W.touint64(2);
-    status[id].best53p = (W[3][0] == '3');
-
-    status[id].best3id = W.touint64(4);
-    status[id].best33p = (W[5][0] == '3');
-
-    status[id].isSingleton  = false;
-    status[id].isContained  = ((W.numWords() > 10) && (W[10][0] == 'c'));
-    status[id].isSuspicious = true;
-
-    fgets(NN, FILENAME_MAX, S);
-  }
-  AS_UTL_closeFile(S, SN);
-
-
-  FILE *G = AS_UTL_openInputFile(GN);
-  fgets(NN, FILENAME_MAX, G);
-  while (!feof(G)) {
-    W.split(NN);
-
-    uint32  id = W.touint32(0);
-
-    status[id].best5id = 0;
-    status[id].best53p = 0;
-
-    status[id].best3id = 0;
-    status[id].best33p = 0;
-
-    status[id].isSingleton  = true;
-    status[id].isContained  = false;
-    status[id].isSuspicious = false;
-
-    fgets(NN, FILENAME_MAX, G);
-  }
-  AS_UTL_closeFile(G, GN);
+  delete [] L;
 }
+
+
+
+void
+dumpParameters::loadBogartTigs(const char *tigpath) {
+
+  if (directoryExists(tigpath) == false)
+    return;
+
+  withTigID = true;
+
+  fprintf(stderr, "loading read to tig mapping from '%s'\n", tigpath);
+
+  tgStore  *tigs = new tgStore(tigpath, 1);
+
+  for (uint32 tt=0; tt<tigs->numTigs(); tt++) {
+    tgTig *tig = tigs->loadTig(tt);
+
+    if (tig != NULL) {
+      for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
+        status[ tig->getChild(ii)->ident() ].tigId = tt;
+    }
+
+    tigs->unloadTig(tt);
+  }
+  delete tigs;
+}
+
 
 
 class sortByPosition {
@@ -381,14 +408,46 @@ dumpParameters::drawPicture(uint32         Aid,
   line[ 99 + MHS] = '>';
   line[100 + MHS] = 0;
 
-  fprintf(stdout, "\n");
-  fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s %s%s\n",
-          0, Alen,
-          Aid,
-          0, Alen, Alen,
-          line,
-          ((status) && (status[Aid].isContained))  ? "contained"  : "",
-          ((status) && (status[Aid].isSuspicious)) ? "suspicious" : "");
+  //  Draw the read we're showing overlaps for.
+  //  Annotate it as either 'contained' or 'suspicious' as needed.
+
+  if (withScores) {
+  }
+
+  else if (withTigID) {
+    fprintf(stdout, "\n");
+    if (status[Aid].tigId < UINT32_MAX)
+      fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d tig=%-5u         %s %s%s%s\n",
+              0, Alen,
+              Aid,
+              0, Alen, Alen,
+              status[Aid].tigId,
+              line,
+              ((withStatus) && (status[Aid].isContained))  ? "contained"    : "",
+              ((withStatus) && (status[Aid].isCovGap))     ? "coverage-gap" : "",
+              ((withStatus) && (status[Aid].isLopsided))   ? "lopsided"     : "");
+      else
+        fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d tig=---           %s %s%s%s\n",
+                0, Alen,
+                Aid,
+                0, Alen, Alen,
+                line,
+                ((withStatus) && (status[Aid].isContained))  ? "contained"    : "",
+                ((withStatus) && (status[Aid].isCovGap))     ? "coverage-gap" : "",
+                ((withStatus) && (status[Aid].isLopsided))   ? "lopsided"     : "");
+  }
+
+  else {
+    fprintf(stdout, "\n");
+    fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s %s%s%s\n",
+            0, Alen,
+            Aid,
+            0, Alen, Alen,
+            line,
+            ((withStatus) && (status[Aid].isContained))  ? "contained"    : "",
+            ((withStatus) && (status[Aid].isCovGap))     ? "coverage-gap" : "",
+            ((withStatus) && (status[Aid].isLopsided))   ? "lopsided"     : "");
+  }
 
   sort(overlaps, overlaps + overlapsLen, sortByPosition());
 
@@ -419,44 +478,23 @@ dumpParameters::drawPicture(uint32         Aid,
     uint32 ovlStrBgn = (int32)floor(ovlBgnA * 100.0 / Alen + MHS);
     uint32 ovlStrEnd = (int32)ceil (ovlEndA * 100.0 / Alen + MHS);
 
+      assert(ovlStrBgn >= MHS);
+      assert(ovlStrEnd <= MHS + 100);
+
     //  Fill the string representation with spaces, then fill the string with dashes where the read
     //  is, add an arrow, and terminate the string.
 
     for (int32 i=0; i<256; i++)
       line[i] = ' ';
 
-    //  Decide how to draw this overlap.
-    //    For best edges, use '='.
-    //    For contained,  use '-', alternating with spaces.
-    //    For suspicious, use '*', alternating with dashes.
-    //    For edges,      use '-', solid.
+    //  Draw the basic overlap.  Use light lines '-' for non-best overlaps, and '=' for best overlaps.
 
-    bool  isBest = ((status) && (((status[Aid].best5id == Bid) && (overlaps[o].overlapAEndIs5prime() == true)) ||
-                                 ((status[Aid].best3id == Bid) && (overlaps[o].overlapAEndIs3prime() == true))));
-    bool  isCont = ((status) && (status[Bid].isContained));
-    bool  isSusp = ((status) && (status[Bid].isSuspicious));
+    bool  isBest  = ((withStatus) && (((status[Aid].best5id == Bid) && (overlaps[o].overlapAEndIs5prime() == true)) ||
+                                      ((status[Aid].best3id == Bid) && (overlaps[o].overlapAEndIs3prime() == true))));
+    char  isBestC = (isBest == false) ? '-' : '=';
 
-    //  This bit of confusion makes sure that the alternating overlap lines (especially '- - - -')
-    //  end with a dash.
-
-    bool  oddEven = (overlaps[o].flipped() == false) ? (false) : (((ovlStrEnd - ovlStrBgn) % 2) == false);
-
-    if      (isCont == true) {
-      for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
-        line[i] = (oddEven = !oddEven) ? '-' : ' ';
-    }
-
-    else if (isSusp == true) {
-      for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
-        line[i] = (oddEven = !oddEven) ? '-' : '*';
-    }
-
-    else {
-      char  c = (isBest) ? '=' : '-';
-
-      for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
-        line[i] = c;
-    }
+    for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
+      line[i] = isBestC;
 
     if (overlaps[o].flipped() == true)
       line[ovlStrBgn] = '<';
@@ -467,6 +505,74 @@ dumpParameters::drawPicture(uint32         Aid,
     assert(line[ovlStrEnd-1] != ' ');
 
     line[ovlStrEnd] = 0;
+
+    //  If we have annotations, annotate the overlap line itself (if it is long enough)
+    //  or in the space just before or after it.
+    //
+    //  Some of these flags can be combined.
+    //    CovGap and Lopsided
+    //    Contained and Zombie
+    //
+    if (withStatus) {
+      //  Overlaps are annotated with up to 16 letters.
+      //                      ----------------                            ----------------                            ----------------
+      const char *annoCbgn = "      contained ";  const char *annoCmid = "---contained----";  const char *annoCend = " contained";
+      const char *annoIbgn = "        ignored ";  const char *annoImid = "----ignored-----";  const char *annoIend = " ignored";
+      const char *annoGbgn = "   coverage-gap ";  const char *annoGmid = "--coverage-gap--";  const char *annoGend = " coverage-gap";
+      const char *annoLbgn = "       lopsided ";  const char *annoLmid = "----lopsided----";  const char *annoLend = " lopsided";
+      const char *annoZbgn = "         zombie ";  const char *annoZmid = "----zombie------";  const char *annoZend = " zombie";
+      const char *annoDbgn = "       dovetail ";  const char *annoDmid = "---dovetail-----";  const char *annoDend = " dovetail";
+
+      uint32  bSpace = ovlStrBgn - MHS;
+      uint32  eSpace = MHS + 100 - ovlStrEnd;
+
+      if (status[Bid].isContained == true) {
+        if (overlaps[o].flipped() == true) {
+          line[ovlStrBgn + 1] = '[';
+          line[ovlStrEnd - 1] = ']';
+        } else {
+          line[ovlStrBgn + 0] = '[';
+          line[ovlStrEnd - 2] = ']';
+        }
+      }
+
+
+      //  If space at the end of the overlap, write the annotation there.
+      if      ((eSpace > 16) && (eSpace > bSpace)) {
+        uint32 lp = ovlStrEnd;
+
+        if      (status[Bid].isContained == true)   ;//strncpy(line + lp, annoCend, 16);
+        else if (status[Bid].isIgnored   == true)   strncpy(line + lp, annoIend, 16);
+        else if (status[Bid].isCovGap    == true)   strncpy(line + lp, annoGend, 16);
+        else if (status[Bid].isLopsided  == true)   strncpy(line + lp, annoLend, 16);
+        else if (status[Bid].isZombie    == true)   strncpy(line + lp, annoZend, 16);
+        else                                        ;//strncpy(line + lp, annoDend, 16);
+      }
+
+      else if (bSpace > 16) {
+        uint32 lp = ovlStrBgn - 16;
+
+        if      (status[Bid].isContained == true)   ;//strncpy(line + lp, annoCbgn, 16);
+        else if (status[Bid].isIgnored   == true)   strncpy(line + lp, annoIbgn, 16);
+        else if (status[Bid].isCovGap    == true)   strncpy(line + lp, annoGbgn, 16);
+        else if (status[Bid].isLopsided  == true)   strncpy(line + lp, annoLbgn, 16);
+        else if (status[Bid].isZombie    == true)   strncpy(line + lp, annoZbgn, 16);
+        else                                        ;//strncpy(line + lp, annoDbgn, 16);
+      }
+
+      else {
+        uint32 lp = ovlStrBgn + (ovlStrEnd - ovlStrBgn) / 2 - 8;
+
+        if      (status[Bid].isContained == true)   ;//strncpy(line + lp, annoCmid, 16);
+        else if (status[Bid].isIgnored   == true)   strncpy(line + lp, annoImid, 16);
+        else if (status[Bid].isCovGap    == true)   strncpy(line + lp, annoGmid, 16);
+        else if (status[Bid].isLopsided  == true)   strncpy(line + lp, annoLmid, 16);
+        else if (status[Bid].isZombie    == true)   strncpy(line + lp, annoZmid, 16);
+        else                                        ;//strncpy(line + lp, annoDmid, 16);
+      }
+    }
+
+
 
     //  For the B read, find how much is unaliged on each end.  Though the store directly keeps this information,
     //  we can't get to it, and have to reverse the compuitation.
@@ -499,46 +605,16 @@ dumpParameters::drawPicture(uint32         Aid,
       snprintf(line + ovlStrEnd, 256 - ovlStrEnd, " +%d", ovlEndHang);
     }
 
-    //  Set flags for best edge and singleton/contained/suspicious.
-
-    char  olapClass[4] = { 0 };
-
-    if ((status) && (status[Aid].best5id == Bid) && (overlaps[o].overlapAEndIs5prime() == true)) {
-      olapClass[0] = ' ';
-      olapClass[1] = ' ';
-      olapClass[2] = 'B';
-    }
-
-    if ((status) && (status[Aid].best3id == Bid) && (overlaps[o].overlapAEndIs3prime() == true)) {
-      olapClass[0] = ' ';
-      olapClass[1] = ' ';
-      olapClass[2] = 'B';
-    }
-
-    if (olapClass[2] == 'B')
-      for (uint32 ii=0; line[ii]; ii++)
-        if (line[ii] == '-')
-          line[ii] = '=';
-
-    if ((status) && (status[Bid].isSingleton)) {
-      olapClass[0] = ' ';
-      olapClass[1] = 'S';
-    }
-
-    if ((status) && (status[Bid].isContained)) {
-      olapClass[0] = ' ';
-      olapClass[1] = 'C';
-    }
-
-    if ((status) && (status[Bid].isSuspicious)) {
-      olapClass[0] = ' ';
-      olapClass[1] = '!';
-    }
-
     //  Report!
+    //
+    //  Variations:
+    //      plain
+    //      with scores
+    //      with tigid
+    //
 
-    if (withScores)
-      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d %7hu %5.2f%%  %s%s\n",
+    if (withScores) {
+      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d %7hu %5.2f%%  %s\n",
               ovlBgnA,
               ovlEndA,
               Bid,
@@ -547,10 +623,35 @@ dumpParameters::drawPicture(uint32         Aid,
               Blen,
               overlaps[o].overlapScore(),
               overlaps[o].erate() * 100.0,
-              line,
-              olapClass);
-    else
-      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s%s\n",
+              line);
+    }
+
+    else if (withTigID) {
+      if (status[Bid].tigId < UINT32_MAX)
+        fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d tig:%-5u %5.2f%%  %s\n",
+                ovlBgnA,
+                ovlEndA,
+                Bid,
+                min(ovlBgnB, ovlEndB),
+                max(ovlBgnB, ovlEndB),
+                Blen,
+                status[Bid].tigId,
+                overlaps[o].erate() * 100.0,
+                line);
+      else
+        fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d tig:---   %5.2f%%  %s\n",
+                ovlBgnA,
+                ovlEndA,
+                Bid,
+                min(ovlBgnB, ovlEndB),
+                max(ovlBgnB, ovlEndB),
+                Blen,
+                overlaps[o].erate() * 100.0,
+                line);
+    }
+
+    else {
+      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s\n",
               ovlBgnA,
               ovlEndA,
               Bid,
@@ -558,8 +659,8 @@ dumpParameters::drawPicture(uint32         Aid,
               max(ovlBgnB, ovlEndB),
               Blen,
               overlaps[o].erate() * 100.0,
-              line,
-              olapClass);
+              line);
+    }
   }
 }
 
@@ -571,6 +672,7 @@ main(int argc, char **argv) {
   char                 *ovlName     = NULL;
   char                 *outPrefix   = NULL;
   char                 *bogartPath  = NULL;
+  char                 *bogTigPath  = NULL;
 
   dumpParameters        params;
 
@@ -752,7 +854,8 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-bogart") == 0)
       bogartPath = argv[++arg];
-
+    else if (strcmp(argv[arg], "-bogarttigs") == 0)
+      bogTigPath = argv[++arg];
 
     else {
       char *s = new char [1024];
@@ -855,7 +958,7 @@ main(int argc, char **argv) {
   //
 
   params.loadBogartStatus(bogartPath, seqStore->sqStore_lastReadID());
-
+  params.loadBogartTigs(bogTigPath);
 
   //
   //  If dumping metadata, no filtering is needed, just tell the store to dump.
