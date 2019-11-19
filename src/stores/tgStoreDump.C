@@ -106,22 +106,6 @@ public:
   };
 
   bool          ignore(tgTig *tig) {
-#ifdef DEBUG_IGNORE
-    bool   iI = ignoreID(tig);
-    bool   iN = ignoreNreads(tig);
-    bool   iL = ignoreLength(tig);
-    bool   iC = ignoreCoverage(tig);
-    bool   iS = ignoreClass(tig);
-
-    fprintf(stderr, "ignore()--  tig %u - ignore id %s Nreads %s length %s coverage %s class %s\n",
-            tig->tigID(),
-            (iI) ? "true" : "false",
-            (iN) ? "true" : "false",
-            (iL) ? "true" : "false",
-            (iC) ? "true" : "false",
-            (iS) ? "true" : "false");
-#endif
-
     return(ignoreID(tig) ||
            ignoreNreads(tig) ||
            ignoreLength(tig) ||
