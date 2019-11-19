@@ -397,6 +397,7 @@ Unitig::optimize_expand(optPos  *op,
 
     for (uint32 jj=0; jj<ufpath.size(); jj++) {
       uint32 jid = ufpath[jj].ident;
+      if (jid == iid) continue;		// don't update ourselves in the middle of the run, that happens at the end
 
       if      (op[jid].min < op[iid].min)
         ;
