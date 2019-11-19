@@ -245,7 +245,7 @@ public:
                           optPos       *op,
                           optPos       *np,
                           bool          beVerbose);
-  void optimize_expand(optPos       *op);
+  void optimize_expand(optPos       *op, bool beVerbose);
   void optimize_setPositions(optPos       *op,
                              bool          beVerbose);
   void optimize(const char *prefix, const char *label);
