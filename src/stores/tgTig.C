@@ -440,9 +440,8 @@ tgTig::loadFromStream(FILE *F) {
 
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
-  resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
-
   if (_basesLen > 0) {
+    resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
     loadFromFile(_bases, "tgTig::loadFromStream::bases", _basesLen, F);
     loadFromFile(_quals, "tgTig::loadFromStream::quals", _basesLen, F);
 
