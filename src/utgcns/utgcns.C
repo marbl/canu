@@ -735,7 +735,7 @@ main (int argc, char **argv) {
 
       if (params.tigVers == 0) {
         char *s = new char [1024];
-        snprintf(s, 1024, "Invalid tigStore version (-T store version partition) '-T %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]);
+        snprintf(s, 1024, "Invalid tigStore version (-T store v) '-T %s %s'.\n", argv[arg-1], argv[arg]);
         err.push_back(s);
       }
     }
@@ -870,9 +870,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "  INPUT\n");
     fprintf(stderr, "    -S g            Load reads from sqStore 'g'\n");
     fprintf(stderr, "    -R f            Load reads from partition file 'f'\n");
-    fprintf(stderr, "    -T t v p        Load tig from tgStore 't', version 'v', partition 'p'.\n");
-    fprintf(stderr, "                      Expects reads will be in sqStore partition 'p' as well\n");
-    fprintf(stderr, "                      Use p='.' to specify no partition\n");
+    fprintf(stderr, "    -T t v          Load tig from tgStore 't'.\n");
     fprintf(stderr, "    -t file         Test the computation of the tig layout in 'file'\n");
     fprintf(stderr, "                      'file' can be from:\n");
     fprintf(stderr, "                        'tgStoreDump -d layout' (human readable layout format)\n");
