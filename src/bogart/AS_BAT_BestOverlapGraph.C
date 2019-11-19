@@ -837,22 +837,6 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     }
   }
 
-#if 0
-  //
-  //  A little precompute that doesn't quite fit anywhere else.  Flag
-  //  any read with read length of zero as ignored if it also has overlaps.
-  //  These reads are, in effect, being deleted from the assembly.
-  //
-
-  for (uint32 fi=1; fi <= RI->numReads(); fi++) {
-    uint32               no   = 0;
-    BAToverlap          *ovl  = OC->getOverlaps(fi, no);
-
-    if ((RI->readLength(fi) == 0) && (no > 0))
-      setIgnored(fi);
-  }
-#endif
-
   //
   //  Find initial edges, report an initial graph, then analyze those edges
   //  to set a cutoff on overlap quality used for graph building.  Once we
@@ -1073,9 +1057,6 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   //  Write best edges, singletons and suspicious edges.
 
   if (BE) {
-    fprintf(BE, "#readId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");
-    fprintf(BE, "\n");
-    fprintf(BE, "\n");
     fprintf(BE, "readID   libID flags      5' edge M   length    eRate      5' edge M   length    eRate\n");
     fprintf(BE, "-------- ----- -----  ----------- - -------- --------  ----------- - -------- --------\n");
 
@@ -1169,11 +1150,16 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      //  Ignore singletons, contained and suspicious reads.
-      if (((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) ||
-          (isContained(id) == true) ||
-          (isLopsided(id) == true))
+      if ((bestedge5->readId() == 0) &&   //  Ignore singletons.
+          (bestedge3->readId() == 0) &&
+          (isContained(id) == false))
         continue;
+
+      if (isContained(id) == true)        //  Ignore contained reads.
+        continue;
+
+      //if (isLopsided(id) == true)         //  Ignore lopsided.
+      //  continue;
 
       //  Remember the source and destination of this edge.
       used.insert(id);
@@ -1196,11 +1182,16 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      //  Ignore singletons, contained and suspicious reads.
-      if (((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) ||
-          (isContained(id) == true) ||
-          (isLopsided(id) == true))
+      if ((bestedge5->readId() == 0) &&   //  Ignore singletons.
+          (bestedge3->readId() == 0) &&
+          (isContained(id) == false))
         continue;
+
+      if (isContained(id) == true)        //  Ignore contained reads.
+        continue;
+
+      //if (isLopsided(id) == true)         //  Ignore lopsided.
+      //  continue;
 
       if (bestedge5->readId() != 0) {
         int32  ahang   = bestedge5->ahang();
