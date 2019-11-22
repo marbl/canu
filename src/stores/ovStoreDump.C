@@ -71,9 +71,7 @@ public:
   uint32  isIgnored    : 1;
   uint32  isCovGap     : 1;
   uint32  isLopsided   : 1;
-  uint32  isZombie     : 1;
-
-  uint32  isSingleton  : 1;
+  uint32  isSpur       : 1;
 };
 
 
@@ -89,7 +87,7 @@ public:
 
     noBogartContained  = false;
     noBogartSuspicious = false;
-    noBogartSingleton  = false;
+    noBogartSpur       = false;
 
     erateMin           = 0.0;
     erateMax           = 1.0;
@@ -135,7 +133,7 @@ public:
            (noRedundant        == false) &&       //  was set.  I'd need to make setter
            (noBogartContained  == false) &&       //  functions for everything, make the
            (noBogartSuspicious == false) &&       //  setter set a 'isChanged' flag, and
-           (noBogartSingleton  == false) &&       //  then update command line parsing.
+           (noBogartSpur       == false) &&       //  then update command line parsing.
            (erateMin           == 0.0) &&         //
            (erateMax           == 1.0) &&         //  It took longer to write this comment
            (lengthMin          == 0) &&           //  than to write this function.
@@ -186,18 +184,31 @@ public:
       filtered = true;
     }
 
-    if ((noBogartContained) && (withStatus) && (status[overlap->b_iid].isContained == true)) {
+    if ((noBogartContained) &&
+        (withStatus) &&
+        ((status[overlap->a_iid].isContained == true) ||
+         (status[overlap->b_iid].isContained == true))) {
       filtered = true;
     }
 
-    if ((noBogartSuspicious) && (withStatus) && (status[overlap->b_iid].isCovGap == true)) {
-      filtered = true;
-    }
-    if ((noBogartSuspicious) && (withStatus) && (status[overlap->b_iid].isLopsided == true)) {
+    if ((noBogartSuspicious) &&
+        (withStatus) &&
+        ((status[overlap->a_iid].isCovGap == true) ||
+         (status[overlap->b_iid].isCovGap == true))) {
       filtered = true;
     }
 
-    if ((noBogartSingleton) && (withStatus) && (status[overlap->b_iid].isSingleton == true)) {
+    if ((noBogartSuspicious) &&
+        (withStatus) &&
+        ((status[overlap->a_iid].isLopsided == true) ||
+         (status[overlap->b_iid].isLopsided == true))) {
+      filtered = true;
+    }
+
+    if ((noBogartSpur) &&
+        (withStatus) &&
+        ((status[overlap->a_iid].isSpur == true) ||
+         (status[overlap->b_iid].isSpur == true))) {
       filtered = true;
     }
 
@@ -239,7 +250,7 @@ public:
 
   bool           noBogartContained;
   bool           noBogartSuspicious;
-  bool           noBogartSingleton;
+  bool           noBogartSpur;
 
   uint32         queryMin;
   uint32         queryMax;
@@ -329,14 +340,10 @@ dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
     status[rid].tigId       = UINT32_MAX;
 
     status[rid].isContained = (W[2][0] == 'C');
-    status[rid].isIgnored   = (W[2][0] == 'I');
-    status[rid].isCovGap    = (W[2][0] == 'G');
-    status[rid].isLopsided  = (W[2][0] == 'L');
-    status[rid].isZombie    = (W[2][0] == 'Z');
-
-    status[rid].isSingleton = ((status[rid].isContained == false) &&
-                               (status[rid].best5id == 0) &&
-                               (status[rid].best3id == 0));
+    status[rid].isIgnored   = (W[2][1] == 'I');
+    status[rid].isCovGap    = (W[2][2] == 'G');
+    status[rid].isLopsided  = (W[2][3] == 'L');
+    status[rid].isSpur      = (W[2][4] == 'S');
   }
 
   AS_UTL_closeFile(E);
@@ -405,49 +412,20 @@ dumpParameters::drawPicture(uint32         Aid,
 
   for (int32 i=0; i<100; i++)
     line[i + MHS] = '-';
-  line[ 99 + MHS] = '>';
-  line[100 + MHS] = 0;
+
+  line[MHS]            = '|';
+  line[MHS + 1 +  99] = '>';
+  line[MHS + 1 + 100] = '|';
+  line[MHS + 1 + 101] = 0;
 
   //  Draw the read we're showing overlaps for.
   //  Annotate it as either 'contained' or 'suspicious' as needed.
 
-  if (withScores) {
-  }
-
-  else if (withTigID) {
-    fprintf(stdout, "\n");
-    if (status[Aid].tigId < UINT32_MAX)
-      fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d tig=%-5u         %s %s%s%s\n",
-              0, Alen,
-              Aid,
-              0, Alen, Alen,
-              status[Aid].tigId,
-              line,
-              ((withStatus) && (status[Aid].isContained))  ? "contained"    : "",
-              ((withStatus) && (status[Aid].isCovGap))     ? "coverage-gap" : "",
-              ((withStatus) && (status[Aid].isLopsided))   ? "lopsided"     : "");
-      else
-        fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d tig=---           %s %s%s%s\n",
-                0, Alen,
-                Aid,
-                0, Alen, Alen,
-                line,
-                ((withStatus) && (status[Aid].isContained))  ? "contained"    : "",
-                ((withStatus) && (status[Aid].isCovGap))     ? "coverage-gap" : "",
-                ((withStatus) && (status[Aid].isLopsided))   ? "lopsided"     : "");
-  }
-
-  else {
-    fprintf(stdout, "\n");
-    fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s %s%s%s\n",
-            0, Alen,
-            Aid,
-            0, Alen, Alen,
-            line,
-            ((withStatus) && (status[Aid].isContained))  ? "contained"    : "",
-            ((withStatus) && (status[Aid].isCovGap))     ? "coverage-gap" : "",
-            ((withStatus) && (status[Aid].isLopsided))   ? "lopsided"     : "");
-  }
+  fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s\n",
+          0, Alen,
+          Aid,
+          0, Alen, Alen,
+          line);
 
   sort(overlaps, overlaps + overlapsLen, sortByPosition());
 
@@ -455,7 +433,6 @@ dumpParameters::drawPicture(uint32         Aid,
 
   for (uint32 o=0; o<overlapsLen; o++) {
     uint32    Bid  = overlaps[o].b_iid;
-    uint32    Blen = seqStore->sqStore_getReadLength(Bid);
 
     //  Find bgn/end points on each read.  If the overlap is reverse complement,
     //  the B coords are flipped so that bgn > end.
@@ -466,6 +443,20 @@ dumpParameters::drawPicture(uint32         Aid,
     uint32   ovlBgnB = overlaps[o].b_bgn();
     uint32   ovlEndB = overlaps[o].b_end();
 
+    //  For the A read, find the points in our string representation where the overlap ends.
+
+    uint32 ovlStrBgn = (int32)floor(ovlBgnA * 100.0 / Alen + MHS + 1);
+    uint32 ovlStrEnd = (int32)ceil (ovlEndA * 100.0 / Alen + MHS + 1);
+
+    //  For the B read, find how much is unaliged on each end.  Though the
+    //  store directly keeps this information, we can't get to it, and have
+    //  to reverse the compuitation.
+
+    uint32  ovlBgnHang = overlaps[o].dat.ovl.bhg5;
+    uint32  ovlEndHang = overlaps[o].dat.ovl.bhg3;
+
+    //  Just some checking on the overlap.
+
     assert(ovlBgnA < ovlEndA);  //  The A coordiantes are always forward
 
     if (overlaps[o].flipped() == false)
@@ -473,25 +464,59 @@ dumpParameters::drawPicture(uint32         Aid,
     else
       assert(ovlEndB < ovlBgnB);  //  Flipped overlaps are reversed
 
-    //  For the A read, find the points in our string representation where the overlap ends.
+    assert(ovlStrBgn >= MHS + 1);
+    assert(ovlStrEnd <= MHS + 1 + 100);
 
-    uint32 ovlStrBgn = (int32)floor(ovlBgnA * 100.0 / Alen + MHS);
-    uint32 ovlStrEnd = (int32)ceil (ovlEndA * 100.0 / Alen + MHS);
 
-      assert(ovlStrBgn >= MHS);
-      assert(ovlStrEnd <= MHS + 100);
+    //
+    //  DRAW!
+    //
 
-    //  Fill the string representation with spaces, then fill the string with dashes where the read
-    //  is, add an arrow, and terminate the string.
+
+    //  Clear the string and add borders for the source read.
 
     for (int32 i=0; i<256; i++)
       line[i] = ' ';
+
+    line[MHS]               = '|';
+    line[MHS + 1 + 100]     = '|';
+
+    //  Write in the unaligned sequence at the 5' end.
+
+    if (ovlBgnHang > 0) {
+      char  str[256];
+      int32 len = snprintf(str, 256, "+%d", ovlBgnHang);
+
+      for (int32 i=0; i<len; i++)
+        line[ovlStrBgn - len - 2 + i] = str[i];
+    }
 
     //  Draw the basic overlap.  Use light lines '-' for non-best overlaps, and '=' for best overlaps.
 
     bool  isBest  = ((withStatus) && (((status[Aid].best5id == Bid) && (overlaps[o].overlapAEndIs5prime() == true)) ||
                                       ((status[Aid].best3id == Bid) && (overlaps[o].overlapAEndIs3prime() == true))));
-    char  isBestC = (isBest == false) ? '-' : '=';
+
+#define NARROW_CHARS
+#ifdef NARROW_CHARS
+    char   c = '-';
+
+    if ((withStatus) && (status[Bid].isContained == true))   c = 'c';   //  Draw special reads specially.
+    if ((withStatus) && (status[Bid].isIgnored   == true))   c = 'i';
+    if ((withStatus) && (status[Bid].isCovGap    == true))   c = 'g';
+    if ((withStatus) && (status[Bid].isLopsided  == true))   c = 'l';
+    if ((withStatus) && (status[Bid].isSpur      == true))   c = 's';
+
+    if (isBest == true)                                      c = '=';   //  But always draw best as best.
+
+    for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
+      line[i] = c;
+
+    if (overlaps[o].flipped() == true)
+      line[ovlStrBgn] = '<';
+    else
+      line[ovlStrEnd-1] = '>';
+
+#else
 
     for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
       line[i] = isBestC;
@@ -501,166 +526,91 @@ dumpParameters::drawPicture(uint32         Aid,
     else
       line[ovlStrEnd-1] = '>';
 
+#endif
+
+
+
     assert(line[ovlStrBgn]   != ' ');
     assert(line[ovlStrEnd-1] != ' ');
 
-    line[ovlStrEnd] = 0;
+    //  Write in the unaligned sequence at the 3' end.  The NUL from the borders
+    //  is overwritten, and a new one added at the end of our string.
 
-    //  If we have annotations, annotate the overlap line itself (if it is long enough)
-    //  or in the space just before or after it.
-    //
-    //  Some of these flags can be combined.
-    //    CovGap and Lopsided
-    //    Contained and Zombie
-    //
-    if (withStatus) {
-      //  Overlaps are annotated with up to 16 letters.
-      //                      ----------------                            ----------------                            ----------------
-      const char *annoCbgn = "      contained ";  const char *annoCmid = "---contained----";  const char *annoCend = " contained";
-      const char *annoIbgn = "        ignored ";  const char *annoImid = "----ignored-----";  const char *annoIend = " ignored";
-      const char *annoGbgn = "   coverage-gap ";  const char *annoGmid = "--coverage-gap--";  const char *annoGend = " coverage-gap";
-      const char *annoLbgn = "       lopsided ";  const char *annoLmid = "----lopsided----";  const char *annoLend = " lopsided";
-      const char *annoZbgn = "         zombie ";  const char *annoZmid = "----zombie------";  const char *annoZend = " zombie";
-      const char *annoDbgn = "       dovetail ";  const char *annoDmid = "---dovetail-----";  const char *annoDend = " dovetail";
+    if (ovlEndHang > 0) {
+      char  str[256];
+      int32 len = snprintf(str, 256, " +%d", ovlEndHang);
 
-      uint32  bSpace = ovlStrBgn - MHS;
-      uint32  eSpace = MHS + 100 - ovlStrEnd;
-
-      if (status[Bid].isContained == true) {
-        if (overlaps[o].flipped() == true) {
-          line[ovlStrBgn + 1] = '[';
-          line[ovlStrEnd - 1] = ']';
-        } else {
-          line[ovlStrBgn + 0] = '[';
-          line[ovlStrEnd - 2] = ']';
-        }
-      }
-
-
-      //  If space at the end of the overlap, write the annotation there.
-      if      ((eSpace > 16) && (eSpace > bSpace)) {
-        uint32 lp = ovlStrEnd;
-
-        if      (status[Bid].isContained == true)   ;//strncpy(line + lp, annoCend, 16);
-        else if (status[Bid].isIgnored   == true)   strncpy(line + lp, annoIend, 16);
-        else if (status[Bid].isCovGap    == true)   strncpy(line + lp, annoGend, 16);
-        else if (status[Bid].isLopsided  == true)   strncpy(line + lp, annoLend, 16);
-        else if (status[Bid].isZombie    == true)   strncpy(line + lp, annoZend, 16);
-        else                                        ;//strncpy(line + lp, annoDend, 16);
-      }
-
-      else if (bSpace > 16) {
-        uint32 lp = ovlStrBgn - 16;
-
-        if      (status[Bid].isContained == true)   ;//strncpy(line + lp, annoCbgn, 16);
-        else if (status[Bid].isIgnored   == true)   strncpy(line + lp, annoIbgn, 16);
-        else if (status[Bid].isCovGap    == true)   strncpy(line + lp, annoGbgn, 16);
-        else if (status[Bid].isLopsided  == true)   strncpy(line + lp, annoLbgn, 16);
-        else if (status[Bid].isZombie    == true)   strncpy(line + lp, annoZbgn, 16);
-        else                                        ;//strncpy(line + lp, annoDbgn, 16);
+      if (ovlStrEnd == MHS + 1 + 100) {
+        for (int32 i=0; i<len; i++)
+          line[ovlStrEnd + 1 + i] = str[i];
       }
 
       else {
-        uint32 lp = ovlStrBgn + (ovlStrEnd - ovlStrBgn) / 2 - 8;
-
-        if      (status[Bid].isContained == true)   ;//strncpy(line + lp, annoCmid, 16);
-        else if (status[Bid].isIgnored   == true)   strncpy(line + lp, annoImid, 16);
-        else if (status[Bid].isCovGap    == true)   strncpy(line + lp, annoGmid, 16);
-        else if (status[Bid].isLopsided  == true)   strncpy(line + lp, annoLmid, 16);
-        else if (status[Bid].isZombie    == true)   strncpy(line + lp, annoZmid, 16);
-        else                                        ;//strncpy(line + lp, annoDmid, 16);
+        for (int32 i=0; i<len; i++)
+          line[ovlStrEnd + 2 + i] = str[i];
       }
     }
 
+    //  Write in any annotation(s)
 
+    uint32 annotation = MHS + 1+ 100 + 1 + MHS + 1;
 
-    //  For the B read, find how much is unaliged on each end.  Though the store directly keeps this information,
-    //  we can't get to it, and have to reverse the compuitation.
+    if (withStatus) {                                                                  //  "1234567890123456"
+      if      (status[Bid].isContained == true)   strncpy(line + annotation, (const char *)"contained   ", 12);
+      else if (status[Bid].isIgnored   == true)   strncpy(line + annotation, (const char *)"ignored     ", 12);
+      else if (status[Bid].isCovGap    == true)   strncpy(line + annotation, (const char *)"coverage-gap", 12);
+      else if (status[Bid].isLopsided  == true)   strncpy(line + annotation, (const char *)"lopsided    ", 12);
+      else if (status[Bid].isSpur      == true)   strncpy(line + annotation, (const char *)"spur        ", 12);
+      else                                        strncpy(line + annotation, (const char *)"dovetail    ", 12);
 
-    uint32  ovlBgnHang = 0;
-    uint32  ovlEndHang = 0;
-
-    if (overlaps[o].flipped() == false) {
-      ovlBgnHang = ovlBgnB;
-      ovlEndHang = Blen - ovlEndB;
-    } else {
-      ovlBgnHang = Blen - ovlBgnB;
-      ovlEndHang = ovlEndB;
+      annotation += 13;
     }
 
-    //  Paste the bgn hang into the overlap string.
-    if (ovlBgnHang > 0) {
-      char  str[256];
-      int32 len;
+    //  Write in any tigID
 
-      snprintf(str, 256, "+%d", ovlBgnHang);
-      len = strlen(str);
+    if (withTigID) {
+      char    annoStr[16];
+      uint32  annoLen = 0;
 
-      for (int32 i=0; i<len; i++)
-        line[ovlStrBgn - len - 1 + i] = str[i];
+      if (status[Bid].tigId < UINT32_MAX)
+        annoLen = sprintf(annoStr, "tig=%u", status[Bid].tigId);
+      else
+        annoLen = sprintf(annoStr, "tig=---");
+
+      for (uint32 ii=0; ii<annoLen; ii++)
+        line[annotation + ii] = annoStr[ii];
+
+      annotation += 13;
     }
 
-    //  Append the end hang.
-    if (ovlEndHang > 0) {
-      snprintf(line + ovlStrEnd, 256 - ovlStrEnd, " +%d", ovlEndHang);
-    }
-
-    //  Report!
-    //
-    //  Variations:
-    //      plain
-    //      with scores
-    //      with tigid
-    //
+    //  Write in any overlap score.
 
     if (withScores) {
-      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d %7hu %5.2f%%  %s\n",
-              ovlBgnA,
-              ovlEndA,
-              Bid,
-              min(ovlBgnB, ovlEndB),
-              max(ovlBgnB, ovlEndB),
-              Blen,
-              overlaps[o].overlapScore(),
-              overlaps[o].erate() * 100.0,
-              line);
+      char    annoStr[16];
+      uint32  annoLen = sprintf(annoStr, "score=%u", overlaps[o].overlapScore());
+
+      for (uint32 ii=0; ii<annoLen; ii++)
+        line[annotation + ii] = annoStr[ii];
+
+      annotation += 13;
     }
 
-    else if (withTigID) {
-      if (status[Bid].tigId < UINT32_MAX)
-        fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d tig:%-5u %5.2f%%  %s\n",
-                ovlBgnA,
-                ovlEndA,
-                Bid,
-                min(ovlBgnB, ovlEndB),
-                max(ovlBgnB, ovlEndB),
-                Blen,
-                status[Bid].tigId,
-                overlaps[o].erate() * 100.0,
-                line);
-      else
-        fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d tig:---   %5.2f%%  %s\n",
-                ovlBgnA,
-                ovlEndA,
-                Bid,
-                min(ovlBgnB, ovlEndB),
-                max(ovlBgnB, ovlEndB),
-                Blen,
-                overlaps[o].erate() * 100.0,
-                line);
-    }
+    //  Search backwards for the first non-space, and make it the end of string.
 
-    else {
-      fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s\n",
-              ovlBgnA,
-              ovlEndA,
-              Bid,
-              min(ovlBgnB, ovlEndB),
-              max(ovlBgnB, ovlEndB),
-              Blen,
-              overlaps[o].erate() * 100.0,
-              line);
-    }
+    for (int32 ii=254; ((ii >= 0) && (line[ii] == ' ')); ii--)
+      line[ii] = 0;
+
+    //  Report!
+
+    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s\n",
+            ovlBgnA,
+            ovlEndA,
+            Bid,
+            min(ovlBgnB, ovlEndB),
+            max(ovlBgnB, ovlEndB),
+            seqStore->sqStore_getReadLength(Bid),
+            overlaps[o].erate() * 100.0,
+            line);
   }
 }
 
@@ -690,7 +640,7 @@ main(int argc, char **argv) {
   bool                  asPAF       = false;
   bool                  asGFA       = false;
   bool                  asBinary    = false;
-  bool                  withScores  = false;
+  bool                  withScores  = true;
 
   uint32                bgnID       = 1;
   uint32                endID       = UINT32_MAX;
@@ -857,6 +807,13 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-bogarttigs") == 0)
       bogTigPath = argv[++arg];
 
+    else if (strcmp(argv[arg], "-nobogartcontained") == 0)
+      params.noBogartContained = true;
+    else if (strcmp(argv[arg], "-nobogartsuspicious") == 0)
+      params.noBogartSuspicious = true;
+    else if (strcmp(argv[arg], "-nobogartspur") == 0)
+      params.noBogartSpur = true;
+
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
@@ -920,7 +877,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -query a[-b]        display only overlaps that are to these other B read IDs\n");
     fprintf(stderr, "  -erate f            display only overlaps less than f fraction error\n");
     fprintf(stderr, "  -length min[-max]   display only overlaps between min and max bases long\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -bogart asm.best    annotate a picture with labels from bogart asm.best.edges output\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nobogartcontained  do not show overlaps involving contained reads\n");
+    fprintf(stderr, "  -nobogartsuspicious do not show overlaps involving suspicious reads (coverage gap or lopsided edges)\n");
+    fprintf(stderr, "  -nobogartspur       do not show iverlaps involving spur reads\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
