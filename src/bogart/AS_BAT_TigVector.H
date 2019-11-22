@@ -35,7 +35,7 @@ public:
   TigVector(uint32 nReads);
   ~TigVector();
 
-  Unitig   *newUnitig(bool verbose);
+  Unitig   *newUnitig(bool verbose=false);
   void      deleteUnitig(uint32 i);
 
   size_t    size(void)            {  return(_totalTigs);  };

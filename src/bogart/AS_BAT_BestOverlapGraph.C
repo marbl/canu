@@ -362,8 +362,6 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   set<uint32>  spurpath3;   //           leads to a dead-end spur.
   set<uint32>  spur;        //  spur     is true if this read is a spur.
 
-  FILE *SL = AS_UTL_openOutputFile(prefix, '.', "spurs");
-
   //  Compute the distance to a dead end.
   //    If zero, flag the read as a spur.
   //    If small, flag that read end as leading to a spur end.
@@ -562,7 +560,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   }
 
   //
-  //  Log the spur and spur-path reads.
+  //  Set the spur flag for any spur reads, and log the result.
   //
 
   FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.spurs");
@@ -573,6 +571,10 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
     if ((s5 == false) && (s3 == false))  //  No spur mark, so not a spur.
       continue;
+
+    //  Set the spur flag for this read.
+
+    setSpur(fi);
 
     //  Log it.  It's 'terminal' if there is no edge out of that end.
 
@@ -604,7 +606,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       continue;
 
     //  Read fi is either a spur or a spur-path read.
-    //
+
     //  Remove edges from this read to any non-spur read, unless that
     //  non-spur read itself has an edge back to us.  If it does, then, by
     //  construction, this is the only place that read can go, and so our
@@ -648,8 +650,6 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       }
     }
   }
-
-  AS_UTL_closeFile(SL);
 }
 
 
@@ -1045,7 +1045,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (0)                 ? 'Z' : '-');
+                (isSpur(id))        ? 'S' : '-');
       }
 
       else if ((e5e == false) && (e3e ==  true)) {
@@ -1056,7 +1056,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (0)                 ? 'Z' : '-',
+                (isSpur(id))        ? 'S' : '-',
                 e3->readId(), e3->read3p() ? '3' : '5', e3mutual, e3len, e3err);
       }
 
@@ -1068,7 +1068,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (0)                 ? 'Z' : '-',
+                (isSpur(id))        ? 'S' : '-',
                 e5->readId(), e5->read3p() ? '3' : '5', e5mutual, e5len, e5err);
       }
 
@@ -1080,7 +1080,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (0)                 ? 'Z' : '-',
+                (isSpur(id))        ? 'S' : '-',
                 e5->readId(), e5->read3p() ? '3' : '5', e5mutual, e5len, e5err,
                 e3->readId(), e3->read3p() ? '3' : '5', e3mutual, e3len, e3err);
       }

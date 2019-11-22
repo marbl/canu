@@ -231,14 +231,15 @@ annotateRepeatsOnRead(AssemblyGraph   *AG,
       uint32          pID    = rPlace[rr].placeID;
       BestPlacement  &fPlace = AG->getForward(rID)[pID];
 
-      if ((fPlace.isUnitig == true) ||    //  Ignore if this is a self placement.
-          (fPlace.isContig == true))
-        continue;
-
       //  Also in AS_BAT_AssemblyGraph.C
 #ifdef IGNORE_BUBBLE
 #warning BUBBLE IGNORE ENABLED 2
       if (OG->isBubble(rID))              //  Ignore if the incoming overlap is from a bubble.
+        continue;
+#endif
+#ifdef IGNORE_SPUR
+#warning SPUR IGNORE ENABLED 2
+      if (OG->isSpur(rID))               //  Ignore if the incoming overlap is from a spur.
         continue;
 #endif
 
@@ -838,6 +839,11 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
 #ifdef IGNORE_BUBBLE
 #warning BUBBLE IGNORE ENABLED 3
     if (OG->isBubble(oBid) == true)             //  Skip overlaps to bubble tigs.
+      continue;
+#endif
+#ifdef IGNORE_SPUR
+#warning SPUR IGNORE ENABLED 3
+    if (OG->isSpur(oBid) == true)               //  Skip overlaps to spur tigs.
       continue;
 #endif
 

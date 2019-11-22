@@ -47,8 +47,6 @@
 
 using namespace std;
 
-#undef  SHOW_MULTIPLE_PLACEMENTS  //  Reports reads that are placed multiple times in a single target region
-
 
 class candidatePop {
 public:
@@ -91,12 +89,30 @@ findPotentialOrphans(TigVector       &tigs,
   writeStatus("\n");
   writeStatus("findPotentialOrphans()-- working on " F_U32 " tigs.\n", tigs.size());
 
+  writeLog("\n");
+  writeLog("== Finding Potential Orphans ==\n");
+  writeLog("\n");
+
   for (uint32 ti=0; ti<tigs.size(); ti++) {
     Unitig               *tig = tigs[ti];
 
     if ((tig == NULL) ||               //  Not a tig, ignore it.
         (tig->ufpath.size() == 1))     //  Singleton, handled elsewhere.
       continue;
+
+    //  If the first or last read has no best edge, that's it, we're done.
+
+    ufNode   *fRead = tig->firstRead();
+    ufNode   *lRead = tig->lastRead();
+
+    bool      fEdgeExists = (fRead->isForward() == true) ? (OG->bestEdgeExists(fRead->ident, false)) : (OG->bestEdgeExists(fRead->ident,  true));
+    bool      lEdgeExists = (lRead->isForward() == true) ? (OG->bestEdgeExists(lRead->ident,  true)) : (OG->bestEdgeExists(lRead->ident, false));
+
+#if 0
+    if ((fEdgeExists == false) ||
+        (lEdgeExists == false))
+      continue;
+#endif
 
     //  Count the number of reads that have an overlap to some other tig.  tigOlapsTo[otherTig] = count.
 
@@ -137,10 +153,6 @@ findPotentialOrphans(TigVector       &tigs,
         int32  maxcoord = rdA->hangToMaxCoord(ovl[oi].a_hang, ovl[oi].b_hang);
 
         tigCoverage.add(mincoord, maxcoord - mincoord);
-
-        //if (ti == 306)
-        //  writeLog("tig %4u read %6u overlap to %6u results in covered position %6u-%6u pos %6d-%6d fwd %d hang %d,%d\n",
-        //           ti, rdAid, ovl[oi].b_iid, mincoord, maxcoord, rdA->position.bgn, rdA->position.end, rdA->position.isForward(), ovl[oi].a_hang, ovl[oi].b_hang);
       }
 
       //  With the list of tigs that this read has an overlap to, add one to
@@ -176,11 +188,12 @@ findPotentialOrphans(TigVector       &tigs,
       endUncovered = tig->getLength() - tigCoverage.hi( tigCoverage.numberOfIntervals()-1 );
     }
 
-    writeLog("findPotentialOrphans()-- potential orphan tig %8u length %9u nReads %7u/%7u %3u regions covering %6.2f uncovered %5u/%6u/%5u\n",
+    writeLog("potential orphan %8u length %9u nReads %7u/%7u - %3u regions covering %6.2f uncovered %5u/%6u/%5u edges %d %d\n",
              tig->id(), tig->getLength(), nonContainedReads, tig->ufpath.size(),
              tigCoverage.numberOfIntervals(),
              100.0 * spannedBases / tig->getLength(),
-             bgnUncovered, maxUncovered, endUncovered);
+             bgnUncovered, maxUncovered, endUncovered,
+             fEdgeExists, lEdgeExists);
 
     //  Reject this tig as a potential bubble if
     //    there are more than 10 coverage intervals
@@ -199,12 +212,18 @@ findPotentialOrphans(TigVector       &tigs,
     for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
       Unitig  *dest = tigs[it->first];
 
-      writeLog("findPotentialOrphans()--                  tig %8u length %9u nReads %7u   %5u reads with overlaps\n",
+      writeLog("             tig %8u length %9u nReads %7u   %5u reads with overlaps\n",
                dest->id(), dest->getLength(), dest->ufpath.size(), it->second);
 
       potentialOrphans[ti].push_back(dest->id());
     }
   }  //  Over all tigs.
+
+  writeStatus("findPotentialOrphans()-- found " F_SIZE_T " potential orphans.\n", potentialOrphans.size());
+
+  writeLog("\n");
+  writeLog("== Found %u Potential Orphans ==\n", potentialOrphans.size());
+  writeLog("\n");
 
   flushLog();
 }
@@ -222,12 +241,11 @@ findOrphanReadPlacements(TigVector       &tigs,
   uint32  fiNumThreads = omp_get_max_threads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
 
-  uint64  nReads       = 0;
-  uint64  nPlaces      = 0;
-
   vector<overlapPlacement>   *placed = new vector<overlapPlacement> [fiLimit + 1];
 
-  writeLog("findOrphanReadPlacement()--\n");
+  writeLog("\n");
+  writeLog("== Finding Read Placements for Potential Orphans ==\n");
+  writeLog("\n");
 
 #pragma omp parallel for schedule(dynamic, fiBlockSize)
   for (uint32 fi=0; fi<fiLimit; fi++) {
@@ -238,14 +256,10 @@ findOrphanReadPlacements(TigVector       &tigs,
         (potentialOrphans.count(rdAtigID) == 0))     //  Read isn't in a potential orphan, ignore it.
       continue;
 
-#pragma omp atomic
-    nReads++;
-
     Unitig     *rdAtig   = tigs[rdAtigID];
     ufNode     *rdA      = &rdAtig->ufpath[ tigs.ufpathIdx(fi) ];
-    bool        rdAfwd   = (rdA->position.bgn < rdA->position.end);
-    int32       rdAlo    = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
-    int32       rdAhi    = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
+    int32       rdAlo    = rdA->position.min();
+    int32       rdAhi    = rdA->position.max();
 
     bool        isEnd    = (rdAlo == 0) || (rdAhi == rdAtig->getLength());
 
@@ -265,16 +279,14 @@ findOrphanReadPlacements(TigVector       &tigs,
       uint32    lo       = placements[pi].position.min();
       uint32    hi       = placements[pi].position.max();
 
-      double    erate    = placements[pi].errors / placements[pi].aligned;
+      double    erate    = placements[pi].erate();
 
-      if ((rdAtigID == rdBtigID) ||                    //  To ourself.
-          (rdBtigID == 0) ||                           //  To a singleton read.
-          (rdBtig   == NULL) ||                        //  To a singleton read.
-          (rdBtig->ufpath.size() == 1) ||              //  To a singleton tig.
-          (potentialOrphans.count((rdBtigID) > 0))) {    //  To a potential orphan tig
-        //writeLog("read %u in tig %u placement %u placed in useless tig %u\n", fi, rdAtigID, pi, rdBtigID);
+      if ((rdAtigID == rdBtigID) ||                     //  To ourself.
+          (rdBtigID == 0) ||                            //  To a singleton read.
+          (rdBtig   == NULL) ||                         //  To a singleton read.
+          (rdBtig->ufpath.size() == 1) ||               //  To a singleton tig.
+          (potentialOrphans.count((rdBtigID) > 0)))     //  To a potential orphan tig
         continue;
-      }
 
       //  Ignore the placement if it isn't to one of our orphan-popping candidate tigs.
 
@@ -287,7 +299,7 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       if (dontcare) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("findOrphanReadPlacement()-- tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - NOT CANDIDATE TIG\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - NOT CANDIDATE TIG\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -296,7 +308,7 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       if (potentialOrphans.count(rdBtigID) > 0) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("findOrphanReadPlacement()-- tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - INTO POTENTIAL ORPHAN\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - INTO POTENTIAL ORPHAN\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -307,7 +319,7 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       if ((erate > similarity) && (fGood < 0.5)) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("findOrphanReadPlacement()-- tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -315,17 +327,35 @@ findOrphanReadPlacements(TigVector       &tigs,
       //  Good placement!
 
       if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-        writeLog("findOrphanReadPlacement()-- tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f)\n",
+        writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f)\n",
                  rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
-
-#pragma omp atomic
-      nPlaces++;
 
       placed[fi].push_back(placements[pi]);
     }
   }
 
-  writeLog("findOrphanReadPlacement()--  placed %u reads into %u locations\n", nReads, nPlaces);
+  //  Done with the parallel.  Count things.
+
+  uint32  nReads  = 0;
+  uint32  nPlaces = 0;
+
+  for (uint32 fi=0; fi<fiLimit; fi++) {
+    uint32     rdAtigID = tigs.inUnitig(fi);
+
+    if ((rdAtigID == 0) ||                           //  Read not placed in a tig, ignore it.
+        (OG->isContained(fi)) ||                     //  Read is contained, ignore it.
+        (potentialOrphans.count(rdAtigID) == 0))     //  Read isn't in a potential orphan, ignore it.
+      continue;
+
+    nReads  += 1;
+    nPlaces += placed[fi].size();
+  }
+
+  //  And report what we did.
+
+  writeLog("\n");
+  writeLog("== Found %u placements for %u reads. ==\n", nPlaces, nReads);
+  writeLog("\n");
 
   return(placed);
 }
@@ -337,43 +367,58 @@ static
 bool
 placeAnchor(Unitig                     *orphan,
             vector<overlapPlacement>   *placed) {
-  uint32   nReads   = orphan->ufpath.size();
-  uint32   fReadIdx = orphan->ufpathIdx(orphan->firstRead()->ident);
-  uint32   lReadIdx = orphan->ufpathIdx(orphan->lastRead()->ident);
-  uint32   fRead    = orphan->ufpath[fReadIdx].ident;
-  uint32   lRead    = orphan->ufpath[lReadIdx].ident;
+  uint32   nReads = orphan->ufpath.size();
+  ufNode  *fRead  = orphan->firstRead();
+  ufNode  *lRead  = orphan->lastRead();
 
   assert(nReads > 0);
 
-  char     fPlaced = (placed[fRead].size() > 0) ? 't' : '-';
-  char     lPlaced = (placed[lRead].size() > 0) ? 't' : '-';
-
-  char     placedS[128];
-  uint32   placedN = 0;
-
-  bool     failed  = false;
-
   //  Count the number of reads in the middle that are placed.
 
-  for (uint32 fi=0; fi<nReads; fi++)
-    if ((fi != fReadIdx) &&
-        (fi != lReadIdx) &&
-        (placed[orphan->ufpath[fi].ident].size() > 0))
-      placedN++;
+  uint32   placedD = 0, totalD = 0;
+  uint32   placedC = 0, totalC = 0;
+
+  for (uint32 fi=0; fi<nReads; fi++) {
+    ufNode *rd   = &orphan->ufpath[fi];
+    uint32  rdId = rd->ident;
+
+    if ((rd == fRead) ||
+        (rd == lRead))
+      continue;
+
+    if (OG->isContained(rdId)) {
+      totalC++;
+
+      if (placed[rdId].size() > 0)
+        placedC++;
+    }
+
+    else {
+      totalD++;
+
+      if (placed[rdId].size() > 0)
+        placedD++;
+    }
+  }
 
   //  The anchor isn't placed if either terminal read isn't placed.
 
-  failed = ((fPlaced != 't') || (lPlaced != 't'));
+  uint32   fPlaced = placed[fRead->ident].size();
+  uint32   lPlaced = placed[lRead->ident].size();
 
-  writeLog("placeAnchor()-- potential orphan tig %8u - fRead %7u %s lRead %7u - %c %5u %c - %s\n",
-           orphan->id(),
-           fRead,
-           (fRead == lRead) ? "==" : "--",
-           lRead,
-           fPlaced, placedN, lPlaced,
-           failed ? "FAILED" : "SUCCESS");
+  writeLog("Find anchors for orphan %u:\n", orphan->id());
 
-  return(failed == false);
+  if (fPlaced == 0)   writeLog("  First read %6u - unplaced\n",         fRead->ident);
+  else                writeLog("  First read %6u - placed %u time%s\n", fRead->ident, fPlaced, (fPlaced == 1) ? "" : "s");
+
+  if (lPlaced == 0)   writeLog("   Last read %6u - unplaced\n",         lRead->ident);
+  else                writeLog("   Last read %6u - placed %u time%s\n", lRead->ident, lPlaced, (lPlaced == 1) ? "" : "s");
+
+  writeLog("     Internal reads - placed %6u/%-6u dovetail reads\n",  placedD, totalD);
+  writeLog("                    - placed %6u/%-6u contained reads\n", placedC, totalC);
+
+  return((fPlaced > 0) &&
+         (lPlaced > 0));
 }
 
 
@@ -420,7 +465,6 @@ addInitialIntervals(Unitig                               *orphan,
 
   for (uint32 pp=0; pp<placed[lRead->ident].size(); pp++) {
     uint32  tid = placed[lRead->ident][pp].tigID;
-    bool    fwd = placed[lRead->ident][pp].position.isForward();
     uint32  bgn = placed[lRead->ident][pp].position.min();
     uint32  end = placed[lRead->ident][pp].position.max();
 
@@ -438,6 +482,27 @@ addInitialIntervals(Unitig                               *orphan,
 
 
 
+bool
+findPlacementInInterval(int32 intBgn, int32 intEnd,
+                        uint32 targetID,
+                        vector<overlapPlacement> &places,
+                        SeqInterval &pos) {
+
+  for (uint32 pp=0; pp<places.size(); pp++) {
+    pos = places[pp].position;
+
+    if ((targetID  == places[pp].tigID) &&   //  If a good placement,
+        (intBgn    <= pos.min()) &&          //  (in the correct tig,
+        (pos.max() <= intEnd)) {             //  fully in the region)
+      return(true);                          //  return success.
+    }
+  }
+
+  return(false);
+}
+
+
+
 static
 void
 saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
@@ -449,78 +514,90 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
                                    vector<candidatePop *>    &targets) {
   uint32   orphanLen  = orphan->getLength();
 
-  IL->merge();  // Merge overlapping initial intervals created above.
+  IL->merge();  // Merge overlapping initial intervals.
 
+  writeLog("\n");
+  writeLog("Finding intervals for orphan %u placed in tig %u.\n", orphan->id(), target->id());
+
+  //  Search all the intervals we think an orphan/bubble can go, and decide
+  //  if both the first and last read in the orphan are:
+  //    placed in the interval
+  //    oriented
+  //    the correct size
+  //
+  //    ----------------[----------------]--------------   //  initial interval size
+  //    -----------[--------------------------]---------   //  interval extended by 50% of the orphan size
+  //                   -->                <--              //  reads placed
+  //                    --------------------               //  compared to orpan itself
+  //
   for (uint32 ii=0; ii<IL->numberOfIntervals(); ii++) {
-    bool    noFirst = true;
-    bool    noLast  = true;
-
     int32  intBgn   = IL->lo(ii) - 0.25 * orphanLen;   //  Extend the region by 50% of the
     int32  intEnd   = IL->hi(ii) + 0.25 * orphanLen;   //  orphan length.
+
+    intBgn = max(intBgn, 0);
+    intEnd = min(intEnd, target->getLength());
 
     SeqInterval    fPos;
     SeqInterval    lPos;
 
-    //  Find the read placement in this interval, if it exists.
+    //  Search all the placements for the first/last read and find a placement that is inside this interval.
 
-    for (uint32 pp=0; pp<placed[fReadID].size(); pp++) {
-      fPos = placed[fReadID][pp].position;
+    bool  fGood = findPlacementInInterval(intBgn, intEnd, target->id(), placed[fReadID], fPos);
+    bool  lGood = findPlacementInInterval(intBgn, intEnd, target->id(), placed[lReadID], lPos);
 
-      if ((target->id() == placed[fReadID][pp].tigID) &&
-          (intBgn <= fPos.min()) && (fPos.max() <= intEnd)) {
-        noFirst = false;
-        break;
-      }
-    }
+    //  Log.
 
-    for (uint32 pp=0; pp<placed[lReadID].size(); pp++) {
-      lPos = placed[lReadID][pp].position;
+    if ((fGood == false) &&
+        (lGood == false))
+      writeLog("  %9d-%-9d %7.1f%% of orphan length - first read at          -          last read at          -\n",
+               intBgn, intEnd, 100.0 * (intEnd - intBgn) / orphan->getLength());
 
-      if ((target->id() == placed[lReadID][pp].tigID) &&
-          (intBgn <= lPos.min()) && (lPos.max() <= intEnd)) {
-        noLast = false;
-        break;
-      }
-    }
+    if ((fGood == false) &&
+        (lGood == true))
+      writeLog("  %9d-%-9d %7.1f%% of orphan length - first read at          -          last read at %9d-%-9d\n",
+               intBgn, intEnd, 100.0 * (intEnd - intBgn) / orphan->getLength(),
+               lPos.min(), lPos.max());
 
-    //  Ignore if missing either read.
+    if ((fGood == true) &&
+        (lGood == false))
+      writeLog("  %9d-%-9d %7.1f%% of orphan length - first read at %9d-%-9d last read at          -\n",
+               intBgn, intEnd, 100.0 * (intEnd - intBgn) / orphan->getLength(),
+               fPos.min(), fPos.max());
 
-    if ((noFirst == true) ||
-        (noLast  == true)) {
-      writeLog("saveCorrectlySizedInitialIntervals()-- potential orphan tig %8u (length %8u) - target %8u %8u-%-8u (length %8u) - MISSING %s%s%s READ%s\n",
-               orphan->id(), orphan->getLength(),
-               target->id(), intBgn, intEnd, intEnd - intBgn,
-               (noFirst) ? "FIRST" : "",
-               (noFirst && noLast) ? " and " : "",
-               (noLast)  ? "LAST"  : "",
-               (noFirst && noLast) ? "S" : "");
+    if ((fGood == true) &&
+        (lGood == true))
+      writeLog("  %9d-%-9d %7.1f%% of orphan length - first read at %9d-%-9d last read at %9d-%-9d  SUCCESS!\n",
+               intBgn, intEnd, 100.0 * (intEnd - intBgn) / orphan->getLength(),
+               fPos.min(), fPos.max(),
+               lPos.min(), lPos.max());
+
+    //  Save the target unless
+    //    either terminal reads are missing
+    //    the region we identified to put the orphan/bubble in is the wrong size
+
+    if ((fGood == false) ||
+        (lGood == false))
       continue;
-    }
 
-    writeLog("saveCorrectlySizedInitialIntervals()-- potential orphan tig %8u (length %8u) - target %8u %8u-%-8u (length %8u) - %8u-%-8u %8u-%-8u\n",
-             orphan->id(), orphan->getLength(),
-             target->id(), intBgn, intEnd, intEnd - intBgn,
-             fPos.min(), fPos.max(),
-             lPos.min(), lPos.max());
+    //  Ignore if the placement of the orphan (via the first and last reads)
+    //  is too small or big for the orphan itself.
 
-    //  Ignore if the region is too small or too big.
-
-    uint32  regionMin = min(fPos.min(), lPos.min());
-    uint32  regionMax = max(fPos.max(), lPos.max());
+    int32  regionMin = min(fPos.min(), lPos.min());
+    int32  regionMax = max(fPos.max(), lPos.max());
 
     if ((regionMax - regionMin < 0.75 * orphan->getLength()) ||
         (regionMax - regionMin > 1.25 * orphan->getLength()))
       continue;
 
+
     //  We probably should be checking orientation.  Maybe tomorrow.
+
 
     //  Both reads placed, and at about the right size.  Save the candidate position - we can
     //  possibly place 'orphan' in 'tigs[target->id()' at position regionMin-regionMax.
 
     targets.push_back(new candidatePop(orphan, target, regionMin, regionMax));
-  }  //  Over all intervals for this target
-
-  //  We're done with this intervalList, clean it up.  This does leave a dangling pointer in the map<> though.
+  }
 
   delete IL;
 }
@@ -533,6 +610,14 @@ void
 assignReadsToTargets(Unitig                     *orphan,
                      vector<overlapPlacement>   *placed,
                      vector<candidatePop *>     targets) {
+
+  //  For each read in the orphan, 
+  //  For each placement of the read,
+  //  For each target location
+  //    If the target tig is the same as the placement tig
+  //    and the placement of the read is contained in the target region
+  //      save the placement to a list of placements for this target
+
 
   for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {
     uint32  readID  = orphan->ufpath[fi].ident;
@@ -558,6 +643,9 @@ assignReadsToTargets(Unitig                     *orphan,
   uint32  save;
   uint32  remo;
 
+  writeLog("\n");
+  writeLog("Removing duplicate placements.\n");
+
   for (uint32 tt=0; tt<targets.size(); tt++) {
     candidatePop *t = targets[tt];
 
@@ -571,7 +659,7 @@ assignReadsToTargets(Unitig                     *orphan,
 
         nDup++;
 
-        if (t->placed[aa].errors / t->placed[aa].aligned < t->placed[bb].errors / t->placed[bb].aligned) {
+        if (t->placed[aa].erate() < t->placed[bb].erate()) {
           save = aa;
           remo = bb;
         } else {
@@ -579,12 +667,10 @@ assignReadsToTargets(Unitig                     *orphan,
           remo = aa;
         }
 
-#ifdef SHOW_MULTIPLE_PLACEMENTS
-        writeLog("assignReadsToTargets()-- duplicate read alignment for tig %u read %u - better %u-%-u %.4f - worse %u-%-u %.4f\n",
+        writeLog("  duplicate read alignment for tig %u read %u - better %u-%-u %.4f - worse %u-%-u %.4f\n",
                  t->placed[save].tigID, t->placed[save].frgID,
-                 t->placed[save].position.bgn, t->placed[save].position.end, t->placed[save].errors / t->placed[save].aligned,
-                 t->placed[remo].position.bgn, t->placed[remo].position.end, t->placed[remo].errors / t->placed[remo].aligned);
-#endif
+                 t->placed[save].position.bgn, t->placed[save].position.end, t->placed[save].erate(),
+                 t->placed[remo].position.bgn, t->placed[remo].position.end, t->placed[remo].erate());
 
         t->placed[remo] = overlapPlacement();
       }
@@ -600,19 +686,18 @@ assignReadsToTargets(Unitig                     *orphan,
     }
   }
 
-  writeLog("assignReadsToTargets()-- Removed %u duplicate placements.\n", nDup);
+  if (nDup > 0) {
+    writeLog("\n");
+    writeLog("Removed %u duplicate placement%s.\n", nDup, (nDup == 1) ? "" : "s");
+  }
 }
-
-
-
 
 
 
 void
 mergeOrphans(TigVector    &tigs,
              double        deviation,
-             double        similarity,
-             set<uint32>  &bubbleReads) {
+             double        similarity) {
 
   //  Find, for each tig, the list of other tigs that it could potentially be placed into.
 
@@ -620,28 +705,16 @@ mergeOrphans(TigVector    &tigs,
 
   findPotentialOrphans(tigs, potentialOrphans);
 
+  //  If you enable this, all reads with any overlap will get removed from the 'reduced' graph.
 #if 0
   for (auto it = potentialOrphans.begin(); it != potentialOrphans.end(); it++) {
     uint32   tid = it->first;
     Unitig  *tig = tigs[tid];
 
-    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      uint32      rid = tig->ufpath[fi].ident;
-
-      writeLog("tig %u read %u is a potential bubble read\n", tid, rid);
-
-      //  If you enable this, all reads with any overlap will get removed from the 'reduced' graph.
-      bubbleReads.insert(rid);
-      OG->setBubble(rid);
-    }
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++)
+      OG->setBubble(tig->ufpath[fi].ident);
   }
 #endif
-
-  writeStatus("mergeOrphans()-- Found " F_SIZE_T " potential orphans.\n", potentialOrphans.size());
-
-  writeLog("\n");
-  writeLog("mergeOrphans()-- Found " F_SIZE_T " potential orphans.\n", potentialOrphans.size());
-  writeLog("\n");
 
   //  For any tig that is a potential orphan, find all read placements.
 
@@ -650,6 +723,7 @@ mergeOrphans(TigVector    &tigs,
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each orphan to be popped.
 
+  uint32        nNeither    = 0, nNeitherReads    = 0;
   uint32        nUniqBubble = 0, nUniqBubbleReads = 0;
   uint32        nUniqOrphan = 0, nUniqOrphanReads = 0;
   uint32        nReptOrphan = 0, nReptOrphanReads = 0;
@@ -661,13 +735,17 @@ mergeOrphans(TigVector    &tigs,
       continue;
 
     writeLog("\n");
+    writeLog("========================================\n");
+    writeLog("Processing potential orphan %u of length %u bp with %u reads\n", ti, orphan->getLength(), orphan->ufpath.size());
     writeLog("\n");
-    writeLog("mergeOrphans()-- Processing orphan %u - %u bp %u reads\n", ti, orphan->getLength(), orphan->ufpath.size());
 
     //  Scan the orphan, decide if there are _ANY_ read placements.  Log appropriately.
 
-    if (placeAnchor(orphan, placed) == false)
+    if (placeAnchor(orphan, placed) == false) {
+      writeLog("\n");
+      writeLog("ANCHOR READS FAILED TO PLACE.\n");
       continue;
+    }
 
     //  Create intervals for each placed read.
     //
@@ -689,7 +767,7 @@ mergeOrphans(TigVector    &tigs,
 
     for (auto it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
       if (tigs[it->first] == NULL)
-        writeLog("mergeOrphans()-- orphan %u wants to go into nonexistent tig %u!\n", ti, it->first);
+        writeLog("WARNING: Orphan %u wants to go into nonexistent tig %u!\n", ti, it->first);
       else
         saveCorrectlySizedInitialIntervals(orphan,
                                            tigs[it->first],     //  The targetID      in targetIntervals
@@ -701,9 +779,10 @@ mergeOrphans(TigVector    &tigs,
 
     targetIntervals.clear();   //  intervalList already freed.
 
-    //  If no targets, nothing to do.
+    writeLog("\n");
+    writeLog("Found %u target location%s\n", targets.size(), (targets.size() == 1) ? "" : "s");
 
-    writeLog("mergeOrphans()-- found %u target location%s\n", targets.size(), (targets.size() == 1) ? "" : "s");
+    //  If no targets, nothing to do.
 
     if (targets.size() == 0)
       continue;
@@ -717,6 +796,7 @@ mergeOrphans(TigVector    &tigs,
     uint32   nOrphan      = 0;   //  Number of targets that have all the reads.
     uint32   nBubble      = 0;   //  Number of targets that have some reads placed.
     uint32   orphanTarget = 0;   //  If nOrphan == 1, the target we're popping into.
+
 
     for (uint32 tt=0; tt<targets.size(); tt++) {
       uint32  orphanSize   = orphan->ufpath.size();        //  Size of the orphan tig
@@ -733,144 +813,123 @@ mergeOrphans(TigVector    &tigs,
 
       //  Report now, before we nuke targets[tt] for being not a orphan!
 
-      if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-        for (uint32 op=0; op<targets[tt]->placed.size(); op++)
-          writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - read %7u at %9u-%-9u\n",
-                   orphan->id(), orphan->getLength(),
-                   targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
-                   targets[tt]->placed[op].frgID,
-                   targets[tt]->placed[op].position.bgn, targets[tt]->placed[op].position.end);
-
-      writeLog("mergeOrphans()-- tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3u reads, had %3u reads and %1u terminal reads placed.\n",
+      writeLog("\n");
+      writeLog("Placing orphan %u (length %u) into tig %u at position %u-%u (length %u):\n",
                orphan->id(), orphan->getLength(),
-               targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
-               orphanSize, targetSize, terminalSize);
+               targets[tt]->target->id(), targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn);
+
+      for (uint32 op=0; op<targets[tt]->placed.size(); op++)
+        writeLog("    read %7u at %9u-%-9u\n",
+                 targets[tt]->placed[op].frgID,
+                 targets[tt]->placed[op].position.bgn, targets[tt]->placed[op].position.end);
+
+      writeLog("  out of %u reads, found %u reads placed, %u terminal reads\n", orphanSize, targetSize, terminalSize);
 
       //  If all reads placed, we can merge this orphan into the target.  But
       //  if this happens more than once, we just split the orphan and merge
       //  reads at their best location.
-      //
-      //  If only some of the reads are placed, declare this a bubble and
-      //  ignore the reads from future processing.
 
       if (orphanSize == targetSize) {
         nOrphan++;
         orphanTarget = tt;
       }
 
-      else if ((terminalSize == 2) ||
-               (targetSize >= 0.5 * orphanSize)) {
+      //  If only some of the reads are placed, declare this a bubble so we
+      //  can ignore reads when finding repeats.
+
+      else if (terminalSize == 2) {
         nBubble++;
       }
     }
 
-    //  If not an orphan, but still a bubble, flag all reads as being popped.
+
+    //
+    //  If neither, be obnoxious.
+    //
+
+    if ((nOrphan == 0) && (nBubble == 0)) {
+      writeLog("\n");
+      writeLog("Result:\n");
+      writeLog("  tig %8u of length %8u with %6u reads %6u - NO GOOD PLACEMENTS\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+
+      nNeither      += 1;
+      nNeitherReads += orphan->ufpath.size();
+    }
+
+    //
+    //  If not an orphan, but a bubble, flag the tig and all reads as a bubble.
+    //
 
     if ((nOrphan == 0) && (nBubble > 0)) {
-      writeLog("mergeOrphans()-- tig %8u length %8u reads %6u - bubble\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
-      nUniqBubble++;
+      writeLog("\n");
+      writeLog("Result:\n");
+      writeLog("  tig %8u of length %8u with %6u reads %6u - BUBBLE\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+
+      nUniqBubble      += 1;
+      nUniqBubbleReads += orphan->ufpath.size();
 
       orphan->_isBubble = true;
 
-      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {
-        uint32      rid = orphan->ufpath[fi].ident;
-
-        //writeLog("tig %u read %u is a validated bubble read\n", orphan->id(), rid);
-
-        OG->setBubble(rid);
-        bubbleReads.insert(rid);
-        nUniqBubbleReads++;
-      }
+      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)
+        OG->setBubble(orphan->ufpath[fi].ident);
     }
 
+    //
     //  If a unique orphan placement, place it there.
+    //
 
     if (nOrphan == 1) {
-      writeLog("mergeOrphans()-- tig %8u length %8u reads %6u - orphan\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
-      nUniqOrphan++;
-
-      for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++) {
-        ufNode  frg;
-
-        frg.ident        = targets[tt]->placed[op].frgID;
-        frg.contained    = 0;
-        frg.parent       = 0;
-        frg.ahang        = 0;
-        frg.bhang        = 0;
-        frg.position.bgn = targets[tt]->placed[op].position.bgn;
-        frg.position.end = targets[tt]->placed[op].position.end;
-
-        //writeLog("mergeOrphans()-- move read %u from tig %u to tig %u %u-%-u\n",
-        //         frg.ident,
-        //         orphan->id(),
-        //         targets[tt]->target->id(), frg.position.bgn, frg.position.end);
-
-        targets[tt]->target->addRead(frg, 0, false);
-
-        OG->setOrphan(frg.ident);
-        bubbleReads.insert(frg.ident);
-        nUniqOrphanReads++;
-      }
-
       writeLog("\n");
+      writeLog("Result:\n");
+      writeLog("  tig %8u of length %8u with %6u reads %6u - UNIQUELY PLACED ORPHAN\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
 
-      tigs[orphan->id()] = NULL;
+      nUniqOrphan      += 1;
+      nUniqOrphanReads += orphan->ufpath.size();
+
+      for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++)     //  Move all the reads to
+        targets[tt]->target->addRead(ufNode(targets[tt]->placed[op].frgID,        //  their placed position.
+                                            targets[tt]->placed[op].position));
+
+      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)                           //  Flag them as being an orphan.
+        OG->setOrphan(orphan->ufpath[fi].ident);
+
+      tigs[orphan->id()] = NULL;                                                  //  Delete the original tig.
       delete orphan;
     }
 
+    //
     //  If multiply placed, we can't distinguish between them, and
     //  instead just place reads where they individually decide to go.
+    //
 
     if (nOrphan > 1) {
-      writeLog("tig %8u length %8u reads %6u - orphan with multiple placements\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
-      nReptOrphan++;
+      writeLog("\n");
+      writeLog("Result:\n");
+      writeLog("  tig %8u of length %8u with %6u reads %6u - MULTIPLY PLACED ORPHAN\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+
+      nReptOrphan      += 1;
+      nReptOrphanReads += orphan->ufpath.size();
 
       for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {
         uint32  rr = orphan->ufpath[fi].ident;
-        double  er = 1.00;
         uint32  bb = 0;
 
-        //  Over all placements for this read, pick the one with lowest error, as long as it isn't
-        //  to the orphan.
-
-        for (uint32 pp=0; pp<placed[rr].size(); pp++) {
-          double erate = placed[rr][pp].errors / placed[rr][pp].aligned;
-
-          if ((er < erate) ||                           //  Worse placement.
-              (placed[rr][pp].tigID == orphan->id()))   //  Self placement.
-            continue;
-
-          er = erate;
-          bb = pp;
-        }
+        for (uint32 pp=0; pp<placed[rr].size(); pp++)                //  Over all placements for this read, pick
+          if ((placed[rr][pp].erate() < placed[rr][bb].erate()) &&   //  the lowest error one, that isn't in
+              (placed[rr][pp].tigID  != orphan->id()))               //  the orphan tig.
+            bb = pp;
 
         assert(rr == placed[rr][bb].frgID);
 
-        ufNode  frg;
-
-        frg.ident        = placed[rr][bb].frgID;
-        frg.contained    = 0;
-        frg.parent       = 0;
-        frg.ahang        = 0;
-        frg.bhang        = 0;
-        frg.position.bgn = placed[rr][bb].position.bgn;
-        frg.position.end = placed[rr][bb].position.end;
-
-        Unitig  *target  = tigs[placed[rr][bb].tigID];
-
-        writeLog("move read %u from tig %u to tig %u %u-%-u\n",
-                 frg.ident,
-                 orphan->id(),
-                 placed[rr][bb].tigID, frg.position.bgn, frg.position.end);
+        Unitig  *target = tigs[placed[rr][bb].tigID];
 
         assert(target       != NULL);
         assert(target->id() != orphan->id());
 
-        target->addRead(frg, 0, false);
+        target->addRead(ufNode(placed[rr][bb].frgID,
+                               placed[rr][bb].position));
 
-        OG->setOrphan(frg.ident);
-        bubbleReads.insert(frg.ident);
-        nReptOrphanReads++;
+        OG->setOrphan(placed[rr][bb].frgID);
       }
 
       writeLog("\n");
@@ -879,7 +938,9 @@ mergeOrphans(TigVector    &tigs,
       delete orphan;
     }
 
-    //  Clean up the targets list.
+    //
+    //  All done with this orphan.  Clean up the targets list.
+    //
 
     for (uint32 tt=0; tt<targets.size(); tt++) {
       delete targets[tt];
@@ -895,6 +956,7 @@ mergeOrphans(TigVector    &tigs,
   writeStatus("mergeOrphans()-- flagged   %5u        bubble tigs with %u reads\n", nUniqBubble, nUniqBubbleReads);
   writeStatus("mergeOrphans()-- placed    %5u unique orphan tigs with %u reads\n", nUniqOrphan, nUniqOrphanReads);
   writeStatus("mergeOrphans()-- shattered %5u repeat orphan tigs with %u reads\n", nReptOrphan, nReptOrphanReads);
+  writeStatus("mergeOrphans()-- ignored   %5u               tigs with %u reads; failed to place\n", nNeither, nNeitherReads);
   writeStatus("mergeOrphans()--\n");
 
   delete [] placed;

@@ -37,8 +37,7 @@
 void
 mergeOrphans(TigVector    &tigs,
              double        deviation,
-             double        similarity,
-             set<uint32>  &bubbleReads);
+             double        similarity);
 
 
 #endif  //  INCLUDE_AS_BAT_MERGEORPHANS

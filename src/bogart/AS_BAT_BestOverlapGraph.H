@@ -131,6 +131,7 @@ public:
     _lopsided3   = false;
 
     _backbone    = false;
+    _spur        = false;
     _bubble      = false;
     _orphan      = false;
     _delinquent  = false;
@@ -198,7 +199,8 @@ private:
   uint32            _lopsided3   : 1;
 
   uint32            _backbone    : 1;   //  Read was placed as part of the backbone.
-  uint32            _bubble      : 1;   //  Read i spart of a bubble.
+  uint32            _spur        : 1;   //  Read is part of a spur path.
+  uint32            _bubble      : 1;   //  Read is part of a bubble.
   uint32            _orphan      : 1;   //  Read was placed as an orphan.
   uint32            _delinquent  : 1;   //  unable to plae the read as an orphan.
 
@@ -238,6 +240,10 @@ public:
     delete [] _best3score;
   };
 
+  bool             bestEdgeExists(uint32 readid, bool threePrime) {
+    return((threePrime) ? (_reads[readid]._best3.readId() != 0) : (_reads[readid]._best5.readId() != 0));
+  };
+
   BestEdgeOverlap *getBestEdgeOverlap(uint32 readid, bool threePrime) {
     return((threePrime) ? (&_reads[readid]._best3) : (&_reads[readid]._best5));
   };
@@ -253,6 +259,7 @@ public:
   bool      isLopsided   (const uint32 r) { return((_reads[r]._lopsided5   == 1) || (_reads[r]._lopsided3 == 1)); };
   bool      isLopsided2  (const uint32 r) { return((_reads[r]._lopsided5   == 1) && (_reads[r]._lopsided3 == 1)); };
   bool      isBackbone   (const uint32 r) { return( _reads[r]._backbone    == 1); };
+  bool      isSpur       (const uint32 r) { return( _reads[r]._spur        == 1); };
   bool      isBubble     (const uint32 r) { return( _reads[r]._bubble      == 1); };
   bool      isOrphan     (const uint32 r) { return( _reads[r]._orphan      == 1); };
   bool      isDelinquent (const uint32 r) { return( _reads[r]._delinquent  == 1); };
@@ -263,6 +270,7 @@ public:
   void      setLopsided5  (const uint32 r, bool t=true) { _reads[r]._lopsided5   = t; };
   void      setLopsided3  (const uint32 r, bool t=true) { _reads[r]._lopsided3   = t; };
   void      setBackbone   (const uint32 r, bool t=true) { _reads[r]._backbone    = t; };
+  void      setSpur       (const uint32 r, bool t=true) { _reads[r]._spur        = t; };
   void      setBubble     (const uint32 r, bool t=true) { _reads[r]._bubble      = t; };
   void      setOrphan     (const uint32 r, bool t=true) { _reads[r]._orphan      = t; };
   void      setDelinquent (const uint32 r, bool t=true) { _reads[r]._delinquent  = t; };
@@ -273,6 +281,7 @@ public:
   uint32    numLopsided   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided(fi))    n++;  return(n); };
   uint32    numLopsided2  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided2(fi))   n++;  return(n); };
   uint32    numBackbone   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBackbone(fi))    n++;  return(n); };
+  uint32    numSpur       (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isSpur(fi))        n++;  return(n); };
   uint32    numBubble     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBubble(fi))      n++;  return(n); };
   uint32    numOrphan     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isOrphan(fi))      n++;  return(n); };
   uint32    numDelinquent (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isDelinquent(fi))  n++;  return(n); };

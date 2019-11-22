@@ -44,19 +44,23 @@
 #include "AS_BAT_PopulateUnitig.H"
 
 
+static
 void
 populateUnitig(Unitig           *unitig,
                BestEdgeOverlap  *bestnext) {
 
   assert(unitig->getLength() > 0);
 
-  if ((bestnext == NULL) || (bestnext->readId() == 0))
-    //  Nothing to add!
+  if ((bestnext == NULL) || (bestnext->readId() == 0)) {
+    if (logFileFlagSet(LOG_BUILD_UNITIG)) {
+      writeLog("                nothing\n");
+      writeLog("\n");
+    }
     return;
-
-  ufNode  read    = unitig->ufpath.back();
+  }
 
   //  The ID of the last read in the unitig, and the end we should walk off of it.
+  ufNode  read    = unitig->ufpath.back();
   int32   lastID  = read.ident;
   bool    last3p  = (read.position.bgn < read.position.end);
 
@@ -69,24 +73,38 @@ populateUnitig(Unitig           *unitig,
          (unitig->inUnitig(bestnext->readId()) == 0)) {
     BestEdgeOverlap  bestprev;
 
-    //  Reverse nextedge (points from the unitig to the next read to add) so that it points from
-    //  the next read to add back to something in the unitig.  If the reads are
-    //  innie/outtie, we need to reverse the overlap to maintain that the A read is forward.
+    //  Reverse nextedge (points from the unitig to the next read to add) so
+    //  that it points from the next read to add back to something in the
+    //  unitig.  If the reads are innie/outtie, we need to reverse the
+    //  overlap to maintain that the A read is forward.
 
     if (last3p == bestnext->read3p())
-      bestprev.set(lastID, last3p, bestnext->bhang(), bestnext->ahang(), bestnext->evalue());
+      bestprev.set(lastID, last3p,  bestnext->bhang(),  bestnext->ahang(), bestnext->evalue());
     else
       bestprev.set(lastID, last3p, -bestnext->ahang(), -bestnext->bhang(), bestnext->evalue());
 
-    //  We just made 'bestprev' pointing from read 'bestnext->readId()' end 'bestnext->read3p()'
-    //  back to read 'lastID' end 'last3p'.  Compute the placement.
+    //  'bestprev' points from read 'bestnext->readId()' end 'bestnext->read3p()'
+    //                      to read 'lastID' end 'last3p'.
+    //
+    //  Compute the placement of the 'bestnext' read using the 'bestprev'
+    //  edge (because that's how placeRead() wants to work).
 
     if (unitig->placeRead(read, bestnext->readId(), bestnext->read3p(), &bestprev)) {
-      unitig->addRead(read, 0, false);
-      nAdded++;
+      unitig->addRead(read);
 
-    } else {
-      writeLog("ERROR:  Failed to place read %d into BOG path.\n", read.ident);
+      if (logFileFlagSet(LOG_BUILD_UNITIG))
+        writeLog("                %s %7u; %c' ->\n",
+                 (OG->isSpur(bestnext->readId()) == true) ? "spur" : "read",
+                 bestnext->readId(),
+                 bestnext->read3p() ? '5' : '3');
+
+
+      nAdded++;
+    }
+
+    else {
+      fprintf(stderr, "ERROR:  Failed to place read %d into BOG path.\n", read.ident);
+      flushLog();
       assert(0);
     }
 
@@ -98,19 +116,18 @@ populateUnitig(Unitig           *unitig,
     bestnext = OG->getBestEdgeOverlap(lastID, last3p);
   }
 
-  if (logFileFlagSet(LOG_BUILD_UNITIG))
+  if (logFileFlagSet(LOG_BUILD_UNITIG)) {
     if (bestnext->readId() == 0)
-      writeLog("Stopped adding at read %u/%c' because no next best edge.  Added %u reads.\n",
-               lastID, (last3p) ? '3' : '5',
-               nAdded);
+      writeLog("                nothing\n");
     else
-      writeLog("Stopped adding at read %u/%c' beacuse next best read %u/%c' is in unitig %u.  Added %u reads.\n",
-               lastID, (last3p) ? '3' : '5',
-               bestnext->readId(), bestnext->read3p() ? '3' : '5',
-               unitig->inUnitig(bestnext->readId()),
-               nAdded);
-}
+      writeLog("                read %7u in tig %u\n",
+               bestnext->readId(),
+               unitig->inUnitig(bestnext->readId()));
 
+    writeLog("tig %6u STOP after adding %u reads.\n", unitig->id(), nAdded);
+    writeLog("\n");
+  }
+}
 
 
 
@@ -118,45 +135,24 @@ void
 populateUnitig(TigVector &tigs,
                int32      fi) {
 
+  //  Don't bother making tigs for deleted, contained, zombies, coverage gap,
+  //  lopsided, et cetera, reads.
+
   if ((RI->readLength(fi) == 0) ||      //  Skip deleted
       (tigs.inUnitig(fi) != 0))         //  Skip placed
     return;
 
-  if (OG->isContained(fi) == true)      //  Skip contained
+  if ((OG->isContained(fi)   == true) ||
+      (OG->isCoverageGap(fi) == true) ||
+      (OG->isLopsided(fi)    == true))
     return;
 
-  Unitig *utg = tigs.newUnitig(logFileFlagSet(LOG_BUILD_UNITIG));
+  Unitig *utg = tigs.newUnitig();
 
   //  Add a first read -- to be 'compatable' with the old code, the first read is added
   //  reversed, we walk off of its 5' end, flip it, and add the 3' walk.
 
-  ufNode  read;
-
-  read.ident             = fi;
-  read.contained         = 0;
-  read.parent            = 0;
-  read.ahang             = 0;
-  read.bhang             = 0;
-  read.position.bgn      = RI->readLength(fi);
-  read.position.end      = 0;
-
-  utg->addRead(read, 0, logFileFlagSet(LOG_BUILD_UNITIG));
-
-  //  If suspicious, don't bother trying to extend.  In the former
-  //  case, we don't want to extend, and in the latter case, there isn't anything
-  //  to extend.
-
-  if (OG->isCoverageGap(fi)) {
-    writeLog("Stopping unitig construction of coverage gap read %d in unitig %d\n",
-            utg->ufpath.back().ident, utg->id());
-    return;
-  }
-
-  if (OG->isLopsided(fi)) {
-    writeLog("Stopping unitig construction of lopsided read %d in unitig %d\n",
-            utg->ufpath.back().ident, utg->id());
-    return;
-  }
+  utg->addRead(ufNode(fi, RI->readLength(fi), 0));
 
   //  Add reads as long as there is a path to follow...from the 3' end of the first read.
 
@@ -168,21 +164,33 @@ populateUnitig(TigVector &tigs,
   assert(bestedge3->ahang() >= 0);
   assert(bestedge3->bhang() >= 0);
 
-  if (logFileFlagSet(LOG_BUILD_UNITIG))
-    writeLog("Adding 5' edges off of read %d in unitig %d\n",
-            utg->ufpath.back().ident, utg->id());
+  //  Stick on reads on the beginning of the tig.
 
-  if (bestedge5->readId())
+  if (bestedge3->readId()) {
+    uint32  rid = utg->ufpath.back().ident;
+
+    if (logFileFlagSet(LOG_BUILD_UNITIG))
+      writeLog("tig %6u seed %s %7u; 5' ->\n",
+               utg->id(), OG->isSpur(rid) ? "spur" : "read", rid);
+
     populateUnitig(utg, bestedge5);
+  }
+
+  //  Flip the tig around (and don't sort coordinates).
 
   utg->reverseComplement(false);
 
-  if (logFileFlagSet(LOG_BUILD_UNITIG))
-    writeLog("Adding 3' edges off of read %d in unitig %d\n",
-            utg->ufpath.back().ident, utg->id());
+  //  Stick on reads on the beginning of the tig (that used to be the end).
 
-  if (bestedge3->readId())
+  if (bestedge3->readId()) {
+    uint32  rid = utg->ufpath.back().ident;
+
+    if (logFileFlagSet(LOG_BUILD_UNITIG))
+      writeLog("tig %6u seed %s %7u; 3' ->\n",
+               utg->id(), OG->isSpur(rid) ? "spur" : "read", rid);
+
     populateUnitig(utg, bestedge3);
+  }
 
   //  Enabling this reverse complement is known to degrade the assembly.  It is not known WHY it
   //  degrades the assembly.

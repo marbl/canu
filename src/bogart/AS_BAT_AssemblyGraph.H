@@ -34,11 +34,7 @@
 
 
 #define IGNORE_BUBBLE
-#ifdef IGNORE_BUBBLE
-#warning IGNORE_BUBBLE ENABLED
-#else
-#warning IGNORE_BUBBLE NOT ENABLED
-#endif
+#define IGNORE_SPUR
 
 class BestPlacement {
 public:
@@ -50,11 +46,6 @@ public:
 
     olapBgn     = INT32_MIN;
     olapEnd     = INT32_MAX;
-
-    isContig    = false;
-    isUnitig    = false;
-    isBubble    = false;
-    isRepeat    = false;
   };
   ~BestPlacement() {
   };
@@ -66,11 +57,6 @@ public:
 
   int32             olapBgn;      //  Position in the tig covered by overlaps.
   int32             olapEnd;      //
-
-  bool              isContig;     //  This placement is in a contig
-  bool              isUnitig;     //  This placement is in a unitig
-  bool              isBubble;     //  This placement is to an unambiguous region in a contig
-  bool              isRepeat;     //  This placement is to an ambiguous region in a contig that was split
 
   BAToverlap        bestC;
   BAToverlap        best5;
@@ -111,18 +97,14 @@ public:
     delete [] _pReverse;
   };
 
-
 public:
   vector<BestPlacement>    &getForward(uint32 fi)  { return(_pForward[fi]); };
   vector<BestReverse>      &getReverse(uint32 fi)  { return(_pReverse[fi]); };
-
 
 public:
   void                      buildGraph(const char   *prefix,
                                        double        deviationRepeat,
                                        TigVector    &tigs);
-
-  //void                      reportReadGraph(TigVector &tigs, const char *prefix, const char *label);
 
 private:
   vector<BestPlacement>  *_pForward;   //  Where each read is placed in other tigs

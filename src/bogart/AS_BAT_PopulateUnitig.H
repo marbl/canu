@@ -38,9 +38,6 @@
 #ifndef INCLUDE_AS_BAT_POPULATEUNITIG
 #define INCLUDE_AS_BAT_POPULATEUNITIG
 
-void populateUnitig(Unitig             *unitig,
-                    BestEdgeOverlap    *nextedge);
-
 void populateUnitig(TigVector          &tigs,
                     int32               readID);
 

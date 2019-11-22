@@ -142,15 +142,31 @@ isOverlapping(SeqInterval &A, SeqInterval &B) {
 //
 class ufNode {
 public:
-  uint32           ident;
-  uint32           contained;
-  uint32           parent;     //  IID of the read we align to
+  ufNode(uint32 fi, SeqInterval pos) {
+    ident        = fi;
+    contained    = 0;
+    parent       = 0;
 
-  int32            ahang;       //  If parent defined, these are relative
-  int32            bhang;       //  that read
+    ahang        = 0;
+    bhang        = 0;
 
-  SeqInterval      position;
+    position     = pos;
+  };
+  ufNode(uint32 fi=0, uint32 bgn=0, uint32 end=0) {
+    ident        = fi;
+    contained    = 0;
+    parent       = 0;
 
+    ahang        = 0;
+    bhang        = 0;
+
+    position.bgn = bgn;
+    position.end = end;
+  };
+  ~ufNode() {
+  };
+
+public:
   bool   isForward(void) const   {  return(position.isForward());  };
   bool   isReverse(void) const   {  return(position.isReverse());  };
 
@@ -191,6 +207,16 @@ public:
 
     return(false);                    //  Equality, not less than.
   };
+
+public:
+  uint32           ident;
+  uint32           contained;
+  uint32           parent;     //  IID of the read we align to
+
+  int32            ahang;       //  If parent defined, these are relative
+  int32            bhang;       //  that read
+
+  SeqInterval      position;
 };
 
 

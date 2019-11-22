@@ -529,9 +529,7 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "unplaced");
   contigs.reportErrorProfiles(prefix, "unplaced");
 
-  set<uint32>   bubbleReads;
-
-  mergeOrphans(contigs, deviationBubble, similarityBubble, bubbleReads);
+  mergeOrphans(contigs, deviationBubble, similarityBubble);
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "mergeOrphans");
