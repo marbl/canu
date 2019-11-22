@@ -654,48 +654,6 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
 
 
-//  Mark zombie masters.  Any read that has only contained overlaps (it is the container) and is the
-//  smallest ID of those with no hangs, is a master.  These get promoted to unitigs.
-//
-void
-BestOverlapGraph::findZombies(const char *prefix) {
-  uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
-
-#pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 fi=1; fi <= fiLimit; fi++) {
-    uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
-    uint32      nc = 0;
-
-    if (no == 0)
-      continue;
-
-    for (uint32 ii=0; ii<no; ii++, nc++)       //  If any overlap makes A not
-      if (ovl[ii].AisContainer() == false)     //  a container, it's not a zombie
-        break;
-
-    if (nc < no)
-      continue;
-
-    nc = UINT32_MAX;
-
-    for (uint32 ii=0; ii<no; ii++)             //  Find the smallest ID
-      if ((ovl[ii].a_hang == 0) &&             //  with no hangs.
-          (ovl[ii].b_hang == 0) &&
-          (ovl[ii].b_iid < nc))
-        nc = ovl[ii].b_iid;
-
-    if (fi < nc)                               //  If we're smaller, we're a
-      setZombie(fi);                           //  Zombie Master!
-  }
-
-  writeStatus("BestOverlapGraph()-- detected " F_SIZE_T " zombie reads.\n", numZombie());
-}
-
-
-
 void
 BestOverlapGraph::findEdges(void) {
   uint32  fiLimit    = RI->numReads();
@@ -932,11 +890,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
   //
   //  Do some final boring cleanup:
-  //    flag zombie reads.
   //    remove best edges associated with contained reads.
   //
 
-  findZombies(prefix);
   removeContainedDovetails();
 
   //
@@ -947,7 +903,6 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   writeLog("EDGE FILTERING\n");
   writeLog("-------- ------------------------------------------\n");
   writeLog("%8u reads are ignored\n",  numIgnored());
-  writeLog("%8u reads are a zombie\n", numZombie());
   writeLog("%8u reads have a gap in overlap coverage\n", numCoverageGap());
   writeLog("%8u reads have lopsided best edges\n", numLopsided());
 
@@ -1090,7 +1045,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (isZombie(id))      ? 'Z' : '-');
+                (0)                 ? 'Z' : '-');
       }
 
       else if ((e5e == false) && (e3e ==  true)) {
@@ -1101,7 +1056,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (isZombie(id))      ? 'Z' : '-',
+                (0)                 ? 'Z' : '-',
                 e3->readId(), e3->read3p() ? '3' : '5', e3mutual, e3len, e3err);
       }
 
@@ -1113,7 +1068,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (isZombie(id))      ? 'Z' : '-',
+                (0)                 ? 'Z' : '-',
                 e5->readId(), e5->read3p() ? '3' : '5', e5mutual, e5len, e5err);
       }
 
@@ -1125,7 +1080,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 (isIgnored(id))     ? 'I' : '-',
                 (isCoverageGap(id)) ? 'G' : '-',
                 (isLopsided(id))    ? 'L' : '-',
-                (isZombie(id))      ? 'Z' : '-',
+                (0)                 ? 'Z' : '-',
                 e5->readId(), e5->read3p() ? '3' : '5', e5mutual, e5len, e5err,
                 e3->readId(), e3->read3p() ? '3' : '5', e3mutual, e3len, e3err);
       }

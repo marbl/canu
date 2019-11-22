@@ -65,11 +65,6 @@ breakSingletonTigs(TigVector &tigs) {
     if (utg->ufpath.size() > 1)
       continue;
 
-    if (OG->isZombie(utg->ufpath[0].ident) == true) {
-      writeLog("Not breaking sinleton zombie tig %u with read %u\n", ti, utg->ufpath[0].ident);
-      continue;
-    }
-
     tigs[ti] = NULL;                           //  Remove the tig from the list
     tigs.registerRead(utg->ufpath[0].ident);   //  Eject the read
     delete utg;                                //  Reclaim space

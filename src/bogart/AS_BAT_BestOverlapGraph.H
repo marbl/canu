@@ -129,7 +129,6 @@ public:
     _coverageGap = false;
     _lopsided5   = false;
     _lopsided3   = false;
-    _zombie      = false;
 
     _backbone    = false;
     _bubble      = false;
@@ -186,14 +185,6 @@ private:
   //     but it does seem to make bigger initial contigs.
   //
   //////////
-  //  Zombie     - Read is in a containment loop.
-  //      - explicitly cannot seed a contig
-  //   - terminates initial contig construction if encountered
-  //
-  //   - DISPOSITION: remove.  it makes no sense anymore.  it was
-  //     used when contains were placed with their best container.
-  //
-  //////////
   //  Backbone   - Read was placed as part of the backbone of a contig.
   //  Orphan     - Read was placed into a contig as an orphan.
   //  Bubble     - Read can be placed into a contig as a bubble.
@@ -205,7 +196,6 @@ private:
   uint32            _coverageGap : 1;
   uint32            _lopsided5   : 1;
   uint32            _lopsided3   : 1;
-  uint32            _zombie      : 1;
 
   uint32            _backbone    : 1;   //  Read was placed as part of the backbone.
   uint32            _bubble      : 1;   //  Read i spart of a bubble.
@@ -224,7 +214,6 @@ private:
   uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
   void   removeLopsidedEdges(const char *prefix);
-  void   findZombies(const char *prefix);
 
   void   findEdges(void);
 
@@ -263,7 +252,6 @@ public:
   bool      isCoverageGap(const uint32 r) { return( _reads[r]._coverageGap == 1); };
   bool      isLopsided   (const uint32 r) { return((_reads[r]._lopsided5   == 1) || (_reads[r]._lopsided3 == 1)); };
   bool      isLopsided2  (const uint32 r) { return((_reads[r]._lopsided5   == 1) && (_reads[r]._lopsided3 == 1)); };
-  bool      isZombie     (const uint32 r) { return( _reads[r]._zombie      == 1); };
   bool      isBackbone   (const uint32 r) { return( _reads[r]._backbone    == 1); };
   bool      isBubble     (const uint32 r) { return( _reads[r]._bubble      == 1); };
   bool      isOrphan     (const uint32 r) { return( _reads[r]._orphan      == 1); };
@@ -274,7 +262,6 @@ public:
   void      setCoverageGap(const uint32 r, bool t=true) { _reads[r]._coverageGap = t; };
   void      setLopsided5  (const uint32 r, bool t=true) { _reads[r]._lopsided5   = t; };
   void      setLopsided3  (const uint32 r, bool t=true) { _reads[r]._lopsided3   = t; };
-  void      setZombie     (const uint32 r, bool t=true) { _reads[r]._zombie      = t; };
   void      setBackbone   (const uint32 r, bool t=true) { _reads[r]._backbone    = t; };
   void      setBubble     (const uint32 r, bool t=true) { _reads[r]._bubble      = t; };
   void      setOrphan     (const uint32 r, bool t=true) { _reads[r]._orphan      = t; };
@@ -285,7 +272,6 @@ public:
   uint32    numCoverageGap(void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isCoverageGap(fi)) n++;  return(n); };
   uint32    numLopsided   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided(fi))    n++;  return(n); };
   uint32    numLopsided2  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided2(fi))   n++;  return(n); };
-  uint32    numZombie     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isZombie(fi))      n++;  return(n); };
   uint32    numBackbone   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBackbone(fi))    n++;  return(n); };
   uint32    numBubble     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBubble(fi))      n++;  return(n); };
   uint32    numOrphan     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isOrphan(fi))      n++;  return(n); };

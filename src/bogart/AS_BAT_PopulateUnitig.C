@@ -122,8 +122,7 @@ populateUnitig(TigVector &tigs,
       (tigs.inUnitig(fi) != 0))         //  Skip placed
     return;
 
-  if ((OG->isContained(fi) == true) &&  //  Skip contained...
-      (OG->isZombie(fi) == false))      //  that aren't zombies.
+  if (OG->isContained(fi) == true)      //  Skip contained
     return;
 
   Unitig *utg = tigs.newUnitig(logFileFlagSet(LOG_BUILD_UNITIG));
@@ -143,7 +142,7 @@ populateUnitig(TigVector &tigs,
 
   utg->addRead(read, 0, logFileFlagSet(LOG_BUILD_UNITIG));
 
-  //  If suspicious or a zombie, don't bother trying to extend.  In the former
+  //  If suspicious, don't bother trying to extend.  In the former
   //  case, we don't want to extend, and in the latter case, there isn't anything
   //  to extend.
 
@@ -155,12 +154,6 @@ populateUnitig(TigVector &tigs,
 
   if (OG->isLopsided(fi)) {
     writeLog("Stopping unitig construction of lopsided read %d in unitig %d\n",
-            utg->ufpath.back().ident, utg->id());
-    return;
-  }
-
-  if (OG->isZombie(fi)) {
-    writeLog("Stopping unitig construction of zombie read %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
     return;
   }

@@ -415,7 +415,6 @@ main (int argc, char * argv []) {
 
   //
   //  OG is used:
-  //    in breakSingletonTigs to decide if a read is zombie or not.
   //    in AssemblyGraph.C to decide if contained
   //    in DetectSpurs.C to find spurs
   //    in Instrumentation
