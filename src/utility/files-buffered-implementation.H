@@ -48,6 +48,7 @@ inline
 char
 readBuffer::read(void) {
 
+ readAgain:
   if ((_eof == false) && (_bufferPos >= _bufferLen))
     fillBuffer();
 
@@ -56,6 +57,9 @@ readBuffer::read(void) {
 
   _bufferPos++;
   _filePos++;
+
+  if ((_ignoreCR) && (_buffer[_bufferPos-1] == '\r'))
+    goto readAgain;
 
   return(_buffer[_bufferPos-1]);
 }
@@ -71,6 +75,7 @@ char
 readBuffer::readuntil(char stop) {
   char  ch;
 
+ readuntilAgain:
   if ((_eof == false) && (_bufferPos >= _bufferLen))
     fillBuffer();
 
@@ -84,6 +89,9 @@ readBuffer::readuntil(char stop) {
 
   _bufferPos++;
   _filePos++;
+
+  if ((_ignoreCR) && (ch == '\r'))
+    goto readuntilAgain;
 
   return(ch);
 }

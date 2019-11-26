@@ -106,6 +106,8 @@ private:
 
   bool                _eof;
 
+  bool                _ignoreCR;    //  Ignore blasted DOS CR letters in read() and readuntil().
+
   uint64              _bufferBgn;   //  File position where this buffer is from.
   uint64              _bufferLen;   //  Length of the valid data in the buffer.
 

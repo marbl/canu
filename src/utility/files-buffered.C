@@ -73,6 +73,8 @@ readBuffer::initialize(const char *filename, uint64 bufferMax) {
 
   _eof         = false;
 
+  _ignoreCR    = true;
+
   _bufferBgn   = 0;
   _bufferLen   = 0;
 
@@ -111,6 +113,7 @@ readBuffer::readBuffer(FILE *file, uint64 bufferMax) {
 
   _eof         = false;
   _stdin       = false;
+  _ignoreCR    = true;
 
   _bufferBgn   = 0;
   _bufferLen   = 0;
