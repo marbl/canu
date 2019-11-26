@@ -321,6 +321,8 @@ public:
   sampleParameters() {
     isPaired        = false;
 
+    numCopies       = 1;
+
     desiredCoverage = 0.0;
     genomeSize      = 0;
 
@@ -346,6 +348,8 @@ public:
 
 
   bool    isPaired;
+
+  uint32  numCopies;
 
   double  desiredCoverage;
   uint64  genomeSize;

@@ -273,6 +273,10 @@ main(int argc, char **argv) {
       samPar.isPaired = true;
     }
 
+    else if ((mode == modeSample) && (strcmp(argv[arg], "-copies") == 0)) {
+      samPar.numCopies = strtouint32(argv[++arg]);
+    }
+
     else if ((mode == modeSample) && (strcmp(argv[arg], "-output") == 0)) {
       strncpy(samPar.output1, argv[++arg], FILENAME_MAX);  //  #'s in the name will be replaced
       strncpy(samPar.output2, argv[  arg], FILENAME_MAX);  //  by '1' or '2' later.
@@ -495,6 +499,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "  -paired             treat inputs as paired sequences; the first two files form the\n");
       fprintf(stderr, "                      first pair, and so on.\n");
       fprintf(stderr, "\n");
+      fprintf(stderr, "  -copies C           write C different copies of the sampling (without replacement).\n");
       fprintf(stderr, "  -output O           write output sequences to file O.  If paired, two files must be supplied.\n");
       fprintf(stderr, "\n");
       fprintf(stderr, "  -coverage C         output C coverage of sequences, based on genome size G.\n");
