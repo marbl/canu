@@ -132,10 +132,6 @@ foreach my $arg (@ARGV) {
         setGlobal("obtOverlapper",  "mhap");
         setGlobal("utgOverlapper",  "mhap");
         setGlobal("utgReAlign",     "true");
-
-        if (-e "$bin/wtdbg-1.2.8") {
-           setGlobal("unitigger",   "wtdbg");
-        }
     }
 
     if ($arg eq "-accurate") {
@@ -1003,8 +999,7 @@ if (setOptions($mode, "correct") eq "correct") {
 
 dumpCorrectedReads($asm);
 
-if ((setOptions($mode, "trim") eq "trim") &&
-    (getGlobal("unitigger") ne "wtdbg")) {
+if (setOptions($mode, "trim") eq "trim") {
     if ((getNumberOfBasesInStore($asm, "utg") == 0) &&
         (! fileExists("$asm.trimmedReads.fasta.gz")) &&
         (! fileExists("$asm.trimmedReads.fastq.gz"))) {
@@ -1045,23 +1040,21 @@ if (setOptions($mode, "assemble") eq "assemble") {
         print STDERR "--\n";
 
         if (checkSequenceStore($asm, "utg", @inputFiles)) {
-            if (getGlobal("unitigger") ne "wtdbg") {
-                merylConfigure($asm, "utg");
-                merylCountCheck($asm, "utg")       foreach (1..getGlobal("canuIterationMax") + 1);
-                merylProcessCheck($asm, "utg")     foreach (1..getGlobal("canuIterationMax") + 1);
+            merylConfigure($asm, "utg");
+            merylCountCheck($asm, "utg")       foreach (1..getGlobal("canuIterationMax") + 1);
+            merylProcessCheck($asm, "utg")     foreach (1..getGlobal("canuIterationMax") + 1);
 
-                overlap($asm, "utg");
+            overlap($asm, "utg");
 
-                #readErrorDetection($asm);
+            #readErrorDetection($asm);
 
-                readErrorDetectionConfigure($asm);
-                readErrorDetectionCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
+            readErrorDetectionConfigure($asm);
+            readErrorDetectionCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
 
-                overlapErrorAdjustmentConfigure($asm);
-                overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+            overlapErrorAdjustmentConfigure($asm);
+            overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-                updateOverlapStore($asm);
-            }
+            updateOverlapStore($asm);
 
             unitig($asm);
             unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
@@ -1074,9 +1067,8 @@ if (setOptions($mode, "assemble") eq "assemble") {
             consensusLoad($asm);
             consensusAnalyze($asm);
 
-            if (getGlobal("unitigger") ne "wtdbg") {
-                alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-            }
+            alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+
             generateOutputs($asm);
         }
     }

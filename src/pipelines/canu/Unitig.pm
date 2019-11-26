@@ -208,48 +208,6 @@ sub unitig_bogart ($) {
 
 
 
-sub unitig_wtdbg ($) {
-    my $asm  = shift @_;
-
-    print F "\$bin/sqStoreDumpFASTQ \\\n";
-    print F "  -S ../../$asm.seqStore \\\n";
-    print F "  -nolibname \\\n";
-    print F "  -noreadname \\\n";
-    print F "  -fasta \\\n";
-    print F "  -o $asm.input.gz \\\n";
-    print F "&& \\\n";
-    print F "mv -f $asm.input.fasta.gz $asm.fasta.gz\n";
-    print F "if [ ! -e ./$asm.fasta.gz ] ; then\n";
-    print F "  echo Failed to extract fasta.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
-    print F "\n";
-    print F "\n";
-    print F "\$bin/wtdbg-1.2.8 \\\n";
-    print F " -i $asm.fasta.gz \\\n";
-    print F " -fo ./$asm \\\n";
-    print F " -S "              . "2"                           . " \\\n";
-    print F " --edge-min "      . "2"                           . " \\\n";
-    print F " -l "              . getGlobal("minOverlapLength") . " \\\n";
-    print F " -t "              . getGlobal("dbgThreads")       . " \\\n"   if (defined(getGlobal("dbgThreads")));
-    print F " "                 . getGlobal("dbgOptions")       . " \\\n"   if (defined(getGlobal("dbgOptions")));
-    print F " > ./unitigger.err 2>&1 \n";
-    print F "if [ ! -s ./$asm.ctg.lay -a ! -s ./$asm.ctg.lay.gz ]; then \n"; # wtdbg2 outputs gzipped
-    print F "  echo Failed to run wtdbg.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
-    print F "\n";
-    print F "if [ -f ./$asm.ctg.lay.gz ]; then gunzip ./$asm.ctg.lay.gz; fi\n"; # unzip wtdbg2 output first
-    print F "\n";
-    print F "\$bin/wtdbgConvert -o ./$asm -S ../../$asm.seqStore $asm.ctg.lay \\\n";
-    print F "&& \\\n";
-    print F "cp -r ./$asm.ctgStore ../$asm.utgStore \\\n";
-    print F "&& \\\n";
-    print F "mv ./$asm.ctgStore ../$asm.ctgStore\n";
-}
-
-
-
 sub unitig ($) {
     my $asm     = shift @_;
     my $path    = "unitigging/4-unitigger";
@@ -297,10 +255,6 @@ sub unitig ($) {
 
     if      (getGlobal("unitigger") eq "bogart") {
         unitig_bogart($asm);
-    }
-
-    elsif (getGlobal("unitigger") eq "wtdbg") {
-        unitig_wtdbg($asm);
     }
 
     else {
