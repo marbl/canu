@@ -45,7 +45,7 @@
 
 
 
-const uint64 ovStoreVersion         = 3;
+const uint64 ovStoreVersion         = 4;
 const uint64 ovStoreMagic           = 0x53564f3a756e6163;   //  == "canu:OVS - store complete
 //const uint64 ovStoreMagicIncomplete = 0x50564f3a756e6163;   //  == "canu:OVP - store under construction
 
