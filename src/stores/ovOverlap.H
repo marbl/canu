@@ -41,28 +41,18 @@
 #include "strings.H"
 
 
-//  Error rates are encoded as a 12-bit fixed-point value.  This gives us up to 40.95% error, with
-//  0.01% resolution.  Changing the number of bits WILL break the carefully structured
+//  Error rates are encoded as a 16-bit fixed-point value.  This gives us up to 65.5% error, with
+//  0.001% resolution.  Changing the number of bits WILL break the carefully structured
 //  ovOverlapDAT.
 //
 //  The decoded value is a double representing fraction error -- between 0.0000 and 1.0000.
 //  The encoded value is an integer type (see the ovsOvelrapDAT below).
 
-#define AS_MAX_EVALUE_BITS         12
+#define AS_MAX_EVALUE_BITS         16
 #define AS_MAX_EVALUE              ((1 << AS_MAX_EVALUE_BITS) - 1)
 
-#undef HIGH_PRECISION
-#ifdef HIGH_PRECISION
-
-#define AS_OVS_decodeEvalue(E)   ((E) / 200000.0)
-#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? uint32(200000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
-
-#else
-
-#define AS_OVS_decodeEvalue(E)   ((E) / 10000.0)
-#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? uint32(10000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
-
-#endif
+#define AS_OVS_decodeEvalue(E)   ((E) / 100000.0)
+#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? uint32(100000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
 
 #define AS_MAX_ERATE               AS_OVS_decodeEvalue(AS_MAX_EVALUE)
 
@@ -76,41 +66,7 @@
 #define DO_NOT_STORE_ALIGN_PTR
 
 
-#if AS_MAX_READLEN_BITS < 17
-
-#define        ovOverlapNWORDS  3
-#define        ovOverlapWORDSZ  32
-typedef uint32 ovOverlapWORD;
-#define        F_OV   F_U32
-#define        F_OVP  F_U32P
-
-class ovOverlapDAT {
-public:
-  ovOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  16
-  ovOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  16
-
-  ovOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  16
-  ovOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  16
-
-  ovOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  16
-  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
-  ovOverlapWORD  flipped        : 1;                     //  1
-
-  ovOverlapWORD  forOBT         : 1;                     //  1
-  ovOverlapWORD  forDUP         : 1;                     //  1
-  ovOverlapWORD  forUTG         : 1;                     //  1
-
-#ifndef DO_NOT_STORE_ALIGN_PTR
-#undef  ovOverlapNWORDS
-#define ovOverlapNWORDS 5
-  ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
-  ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
-  ovOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
-  ovOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
-#endif
-};
-
-#elif AS_MAX_READLEN_BITS < 22
+#if AS_MAX_READLEN_BITS < 22
 
 #define        ovOverlapNWORDS  2
 #define        ovOverlapWORDSZ  64
@@ -122,7 +78,7 @@ class ovOverlapDAT {
 public:
   ovOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
-  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
+  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  16
   ovOverlapWORD  flipped        : 1;                     //  1
   ovOverlapWORD  forOBT         : 1;                     //  1
   ovOverlapWORD  forDUP         : 1;                     //  1
@@ -159,7 +115,7 @@ public:
   ovOverlapWORD  bhg3;
   ovOverlapWORD  span;
 
-  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
+  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  16
   ovOverlapWORD  flipped        : 1;                     //  1
   ovOverlapWORD  forOBT         : 1;                     //  1
   ovOverlapWORD  forDUP         : 1;                     //  1
