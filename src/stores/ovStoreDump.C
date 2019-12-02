@@ -967,36 +967,26 @@ main(int argc, char **argv) {
   }
 
   //
-  //  If as erate-v-length, again, maybe, maybe not.
+  //  If as erate-v-length, again, maybe, maybe not.  This must ALWAYS be
+  //  recomputed.  Prior to Dec 2019 the store saved a copy of the histogram
+  //  in the metadata, but we realized that the histogram is no longer valid
+  //  -- and impossible to update -- after OEA runs.  So it was removed.
   //
 
   if (asErateLen) {
-    ovStoreHistogram *hist;
+    ovErateLengthHistogram *hist = new ovErateLengthHistogram(seqStore);
 
-    //  If all defaults, load the histogram from disk.  Otherwise,
-    //  read all the overlaps and generate a new histogram.
+    ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
 
-    if (params.parametersAreDefaults() == true) {
-      hist = ovlStore->getHistogram();
-    }
+    while (ovlLen > 0) {
+      for (uint32 oo=0; oo<ovlLen; oo++) {
+        if (params.filterOverlap(ovl + oo) == true)
+          continue;
 
-    else {
-      hist = new ovStoreHistogram(seqStore);
-
-      ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
-
-      while (ovlLen > 0) {
-        for (uint32 oo=0; oo<ovlLen; oo++) {
-          if (params.filterOverlap(ovl + oo) == true)
-            continue;
-
-          hist->addOverlap(ovl + oo);
-        }
-
-        ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
+        hist->addOverlap(ovl + oo);
       }
 
-      hist->dumpEvalueLength(stdout);
+      ovlLen = ovlStore->loadBlockOfOverlaps(ovl, ovlMax);
     }
 
     //  If no outPrefix, dump the histogram to stdout.

@@ -58,6 +58,49 @@ public:
 
 
 
+class ovErateLengthHistogram {
+public:
+  ovErateLengthHistogram(sqStore *seq);
+  ~ovErateLengthHistogram();
+
+public:
+  void      addOverlap(ovOverlap *overlap);
+
+public:
+  uint32    numEvalueBuckets(void)     {  return(AS_MAX_EVALUE + 1);  };
+  uint32    numLengthBuckets(void)     {  return(_opelLen);           };
+
+  uint32    evaluePerBucket(void)      {  return(_epb);  };
+  uint32    basesPerBucket(void)       {  return(_bpb);  };
+
+  uint32    numOverlaps(uint32 eb, uint32 lb) {
+    assert(eb < numEvalueBuckets());
+    assert(lb < numLengthBuckets());
+
+    return((_opel[eb] == NULL) ? 0 : _opel[eb][lb]);
+  };
+
+  uint32    maxEvalue(void);
+  double    maxErate(void);
+  uint32    maxLength(void);
+
+  void      dumpEvalueLength(FILE *out);  //  gnuplot-friendly dump of the evalues-length.
+
+private:
+  sqStore     *_seq;
+  uint32       _maxID;          //  Highest read ID in this assembly.
+
+  uint32       _epb;            //  Evalues per bucket
+  uint32       _bpb;            //  Bases per bucket
+
+  uint32       _opelLen;        //  Length of the data vector for one evalue
+  uint32     **_opel;           //  Overlaps per evalue-length
+};
+
+
+
+
+
 //  There are two types of histograms.
 //
 //  For ovFileFullWrite   - overlapper output
@@ -87,11 +130,9 @@ public:
   //
 
 private:
-  void      mergeOPEL(ovStoreHistogram *other);
   void      mergeScores(ovStoreHistogram *other);
 public:
   void      mergeHistogram(ovStoreHistogram *other) {
-    mergeOPEL(other);
     mergeScores(other);
   };
 
@@ -106,29 +147,6 @@ public:
   void      addOverlap(ovOverlap *overlap);
 
   //
-  //  For erate X length histogram.
-  //
-
-  uint32    numEvalueBuckets(void)     {  return(AS_MAX_EVALUE + 1);  };
-  uint32    numLengthBuckets(void)     {  return(_opelLen);           };
-
-  uint32    evaluePerBucket(void)      {  return(_epb);  };
-  uint32    basesPerBucket(void)       {  return(_bpb);  };
-
-  uint32    numOverlaps(uint32 eb, uint32 lb) {
-    assert(eb < numEvalueBuckets());
-    assert(lb < numLengthBuckets());
-
-    return((_opel[eb] == NULL) ? 0 : _opel[eb][lb]);
-  };
-
-  uint32    maxEvalue(void);
-  double    maxErate(void);
-  uint32    maxLength(void);
-
-  void      dumpEvalueLength(FILE *out);  //  gnuplot-friendly dump of the evalues-length.
-
-  //
   //  For score data.
   //
 
@@ -140,14 +158,6 @@ public:
 private:
   sqStore     *_seq;
   uint32       _maxID;          //  Highest read ID in this assembly.
-
-  //  Overlaps per evalue-length, for overlaps in the store.
-
-  uint32       _epb;            //  Evalues per bucket
-  uint32       _bpb;            //  Bases per bucket
-
-  uint32       _opelLen;        //  Length of the data vector for one evalue
-  uint32     **_opel;           //  Overlaps per evalue-length
 
   //  Overlap score for the top overlaps.  Used during correction.
   //  Want to store ~11 values per read, 16 bits each, so 22 bytes.

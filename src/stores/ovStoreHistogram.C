@@ -36,17 +36,33 @@ using namespace std;
 
 
 
-ovStoreHistogram::~ovStoreHistogram() {
-
+ovErateLengthHistogram::~ovErateLengthHistogram() {
   if (_opel)
     for (uint32 ii=0; ii<AS_MAX_EVALUE + 1; ii++)
       delete [] _opel[ii];
 
   delete [] _opel;
+}
+
+
+ovStoreHistogram::~ovStoreHistogram() {
   delete [] _scoresList;
   delete [] _scores;
 }
 
+
+
+//  For use in ovStoreDump, computing a length-x-erate histogram.
+ovErateLengthHistogram::ovErateLengthHistogram(sqStore *seq) {
+  _seq           = seq;
+  _maxID         = seq->sqStore_lastReadID();
+
+  _epb           = 1;     //  Evalues per bucket
+  _bpb           = 250;   //  Bases per bucket
+
+  _opelLen       = 0;
+  _opel          = NULL;
+}
 
 
 //  For use when writing ovStore files.  Data allocated as needed.
@@ -57,12 +73,6 @@ ovStoreHistogram::ovStoreHistogram(sqStore *seq) {
 
   _seq           = seq;
   _maxID         = seq->sqStore_lastReadID();
-
-  _epb           = 1;     //  Evalues per bucket
-  _bpb           = 250;   //  Bases per bucket
-
-  _opelLen       = 0;
-  _opel          = NULL;
 
   _scoresListLen = 0;
   _scoresListMax = 0;
@@ -82,12 +92,6 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 
   _seq           = NULL;
   _maxID         = 0;
-
-  _epb           = 0;
-  _bpb           = 0;
-
-  _opelLen       = 0;
-  _opel          = NULL;
 
   _scoresListLen = 0;
   _scoresListMax = 0;
@@ -111,29 +115,6 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
   FILE *F = AS_UTL_openInputFile(name);
 
   loadFromFile(_maxID, "ovStoreHistogram::maxID", F);
-
-  //  Data for overlapsPerEvalueLength
-
-  uint32  nArr = 0;
-  uint32 *aArr = new uint32 [AS_MAX_EVALUE + 1];
-
-  loadFromFile(_opelLen, "ovStoreHistogram::opelLen",       F);
-  loadFromFile(_epb,     "ovStoreHistogram::epb",           F);
-  loadFromFile(_bpb,     "ovStoreHistogram::bpb",           F);
-  loadFromFile(nArr,     "ovStoreHistogram::nArr",          F);
-  loadFromFile(aArr,     "ovStoreHistogram::nArr",    nArr, F);
-
-  allocateArray(_opel, AS_MAX_EVALUE+1, resizeArray_clearNew);
-
-  for (uint32 ii=0; ii<nArr; ii++)
-    _opel[aArr[ii]] = new uint32 [_opelLen];
-
-  for (uint32 ii=0; ii<nArr; ii++ )
-    loadFromFile(_opel[aArr[ii]], "ovStoreHistogram::evalueLen", _opelLen, F);
-
-  delete [] aArr;
-
-  //  Data for overlapsScores
 
   loadFromFile(_scoresBaseID, "ovStoreHistogram::scoresBaseID", F);
   loadFromFile(_scoresLastID, "ovStoreHistogram::scoresBaseID", F);
@@ -174,8 +155,7 @@ ovStoreHistogram::saveHistogram(char *prefix) {
 
   //  If no data, don't make any file.
 
-  if ((_opel   == NULL) &&
-      (_scores == NULL))
+  if (_scores == NULL)
     return;
 
   //  Otherwise, make an output file.
@@ -188,30 +168,10 @@ ovStoreHistogram::saveHistogram(char *prefix) {
 
   writeToFile(_maxID, "ovStoreHistogram::maxID", F);
 
-  //  Data for overlapsPerEvalueLength
-
-  uint32  nArr = 0;
-  uint32 *aArr = new uint32 [AS_MAX_EVALUE + 1];
-
-  for (uint32 ii=0; ii<AS_MAX_EVALUE + 1; ii++)
-    if ((_opel != NULL) && (_opel[ii] != NULL))
-      aArr[nArr++] = ii;
-
-  writeToFile(_opelLen, "ovStoreHistogram::opelLen",       F);
-  writeToFile(_epb,     "ovStoreHistogram::epb",           F);
-  writeToFile(_bpb,     "ovStoreHistogram::bpb",           F);
-  writeToFile(nArr,     "ovStoreHistogram::nArr",          F);
-  writeToFile(aArr,     "ovStoreHistogram::nArr",    nArr, F);
-
-  for (uint32 ii=0; ii<nArr; ii++)
-    writeToFile(_opel[aArr[ii]], "ovStoreHistogram::evalueLen", _opelLen, F);
-
-  delete [] aArr;
-
-  //  Data for overlapsScores - there's no apparent guard against getting here with
-  //  _scores == NULL, and, if so, we write one element from the NULL pointer.
-  //  Are _scores always set?  Do we just not saveHistogram() when scores don't exist?
-  //  Not sure.
+  //  And the data.  There's no apparent guard against getting here with
+  //  _scores == NULL, and, if so, we write one element from the NULL
+  //  pointer.  Are _scores always set?  Do we just not saveHistogram() when
+  //  scores don't exist?  Not sure.
 
   if (_scores)          //  Process the data for the last read added!
     processScores();
@@ -225,43 +185,6 @@ ovStoreHistogram::saveHistogram(char *prefix) {
   //  That's it!
 
   AS_UTL_closeFile(F, name);
-}
-
-
-
-void
-ovStoreHistogram::mergeOPEL(ovStoreHistogram *other) {
-
-  if (other->_opel == NULL)
-    return;
-
-  if (_opel == NULL) {
-    _epb        = other->_epb;
-    _bpb        = other->_bpb;
-    _opelLen    = other->_opelLen;
-    allocateArray(_opel, AS_MAX_EVALUE+1, resizeArray_clearNew);
-  }
-
-  if ((_epb     != other->_epb) ||
-      (_bpb     != other->_bpb) ||
-      (_opelLen != other->_opelLen)) {
-    fprintf(stderr, "ERROR: can't merge histogram; parameters differ.\n");
-    fprintf(stderr, "ERROR:   opelLen = %7u vs %7u\n", _opelLen, other->_opelLen);
-    fprintf(stderr, "ERROR:   opelLen = %7u vs %7u\n", _epb,     other->_epb);
-    fprintf(stderr, "ERROR:   opelLen = %7u vs %7u\n", _bpb,     other->_bpb);
-    exit(1);
-  }
-
-  for (uint32 ev=0; ev<AS_MAX_EVALUE+1; ev++) {
-    if (other->_opel[ev] == NULL)
-      continue;
-
-    if (_opel[ev] == NULL)
-      allocateArray(_opel[ev], _opelLen, resizeArray_clearNew);
-
-    for (uint32 kk=0; kk<_opelLen; kk++)
-      _opel[ev][kk] += other->_opel[ev][kk];
-  }
 }
 
 
@@ -364,6 +287,43 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
 
   assert(_seq != NULL);                  //  Must have a valid seqStore so we can get read lengths.
 
+  //  Allocate space for the scores data.
+
+  if (_scores == NULL) {
+    _scoresListLen = 0;
+    _scoresListMax = 16384;
+    _scoresListAid = overlap->a_iid;
+
+    allocateArray(_scoresList, _scoresListMax);
+
+    _scoresAlloc = 65535;
+
+    allocateArray(_scores, _scoresAlloc);
+  }
+
+  //  And save the overlap, maybe processing the last batch.
+
+  if (_scoresBaseID != UINT32_MAX)                     //  If we've seen an overlap, all remaining overlaps
+    assert(_scoresBaseID <= overlap->a_iid);           //  must be larger than the first ID seen.
+
+  _scoresBaseID = min(_scoresBaseID, overlap->a_iid);  //  Save the min/max ID of the overlaps we've seen.
+  _scoresLastID = max(_scoresLastID, overlap->a_iid);
+
+  if (_scoresListAid != overlap->a_iid)                //  Process existing overlaps if we
+    processScores(overlap->a_iid);                     //  have an overlap for a different ID.
+
+  increaseArray(_scoresList,                           //  Ensure there is space for
+                _scoresListLen,                        //  one more overlap.
+                _scoresListMax, 32768);
+
+  _scoresList[_scoresListLen++] = overlap->overlapScore();
+}
+
+
+
+void
+ovErateLengthHistogram::addOverlap(ovOverlap *overlap) {
+
   //  Allocate space for the overlaps-per-evalue-len data.
 
   if (_opelLen == 0) {
@@ -404,43 +364,12 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
             overlap->b_iid, blen, overlap->dat.ovl.bhg5, overlap->dat.ovl.bhg3,
             overlap->dat.ovl.flipped ? " flipped" : "");
   }
-
-  //  Allocate space for the scores data.
-
-  if (_scores == NULL) {
-    _scoresListLen = 0;
-    _scoresListMax = 16384;
-    _scoresListAid = overlap->a_iid;
-
-    allocateArray(_scoresList, _scoresListMax);
-
-    _scoresAlloc = 65535;
-
-    allocateArray(_scores, _scoresAlloc);
-  }
-
-  //  And save the overlap, maybe processing the last batch.
-
-  if (_scoresBaseID != UINT32_MAX)                     //  If we've seen an overlap, all remaining overlaps
-    assert(_scoresBaseID <= overlap->a_iid);           //  must be larger than the first ID seen.
-
-  _scoresBaseID = min(_scoresBaseID, overlap->a_iid);  //  Save the min/max ID of the overlaps we've seen.
-  _scoresLastID = max(_scoresLastID, overlap->a_iid);
-
-  if (_scoresListAid != overlap->a_iid)                //  Process existing overlaps if we
-    processScores(overlap->a_iid);                     //  have an overlap for a different ID.
-
-  increaseArray(_scoresList,                           //  Ensure there is space for
-                _scoresListLen,                        //  one more overlap.
-                _scoresListMax, 32768);
-
-  _scoresList[_scoresListLen++] = overlap->overlapScore();
 }
 
 
 
 uint32
-ovStoreHistogram::maxEvalue(void) {
+ovErateLengthHistogram::maxEvalue(void) {
   uint32  maxE = 0;
 
   for (uint32 ee=0; ee<AS_MAX_EVALUE + 1; ee++) {
@@ -456,14 +385,14 @@ ovStoreHistogram::maxEvalue(void) {
 
 
 double
-ovStoreHistogram::maxErate(void) {
+ovErateLengthHistogram::maxErate(void) {
   return(AS_OVS_decodeEvalue(maxEvalue()));
 }
 
 
 
 uint32
-ovStoreHistogram::maxLength(void) {
+ovErateLengthHistogram::maxLength(void) {
   uint32  maxL = 0;
 
   for (uint32 ee=0; ee<AS_MAX_EVALUE + 1; ee++) {
@@ -481,7 +410,7 @@ ovStoreHistogram::maxLength(void) {
 
 
 void
-ovStoreHistogram::dumpEvalueLength(FILE *out) {
+ovErateLengthHistogram::dumpEvalueLength(FILE *out) {
   uint32  maxE = maxEvalue();
   uint32  maxL = maxLength() / _bpb;
 
