@@ -102,7 +102,7 @@ sub utgcns ($$$) {
     print F "\n";
     print F fetchTigStoreShellCode("unitigging/5-consensus", $asm, "\${tag}Store", "001", "");
     print F "\n";
-    print F fetchSeqStorePartitionShellCode($asm, $path, "");
+    print F fetchFileShellCode("unitigging/5-consensus", "../$asm.\${tag}Store/partition.\$jobid", "");
     print F "\n";
     print F "\$bin/utgcns \\\n";
     print F "  -R ../$asm.\${tag}Store/partition.\$jobid \\\n";

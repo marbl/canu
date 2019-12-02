@@ -46,7 +46,7 @@ require Exporter;
              fetchFileFromLink    fetchFileFromLinkShellCode
              stashFile            stashFileShellCode
                                   stashFilesShellCode         
-             fetchSeqStore        fetchSeqStoreShellCode   fetchSeqStorePartitionShellCode
+             fetchSeqStore        fetchSeqStoreShellCode
              fetchOvlStore        fetchOvlStoreShellCode
              fetchTigStore        fetchTigStoreShellCode
              stashSeqStore
@@ -755,35 +755,6 @@ sub stashSeqStorePartitions ($$$$) {
         }
     }
 }
-
-
-sub fetchSeqStorePartitionShellCode ($$$) {
-    my $asm    = shift @_;           #  The name of the assembly.
-    my $path   = shift @_;           #  The subdir we're running in; 'unitigging/4-unitigger', etc.
-    my $indent = shift @_;           #
-    my $base   = dirname($path);     #  'unitigging'
-    my $root   = pathToDots($path);  #  '../..'
-    my $code   = "";
-
-    my $storePath = "$base/$asm.\${tag}Store";
-    my $storeName = "partitionedReads.seqStore";
-
-    if (defined(isOS())) {
-        $code .= "\n";
-        $code .= "${indent}if [ ! -e $root/$storePath/$storeName/partitions/blobs.\$jobid ] ; then\n";
-        $code .= "${indent}  cd $root/$storePath\n";
-        $code .= fetchFileShellCode($storePath, "$storeName.\$jobid.tar.gz", "${indent}  ");
-        $code .= "${indent}  gzip -dc ./$storeName.\$jobid.tar.gz | tar -xf -\n";
-        $code .= "${indent}  rm -f ./$storeName.\$jobid.tar.gz\n";
-        $code .= "${indent}  cd -\n";
-        $code .= "${indent}fi\n";
-    }
-
-    return($code);
-}
-
-
-
 
 
 
