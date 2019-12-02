@@ -638,7 +638,7 @@ dnaSeqFile::loadFASTA(char   *&name,     uint32  &nameMax,
   //  Read sequence, skipping whitespace, until we hit a new sequence (or eof).
 
   for (ch=_buffer->readuntil('>'); (ch != '>') && (ch != 0); ch=_buffer->readuntil('>')) {
-    if (ch == '\n')
+    if ((ch == '\n') || (ch == '\r') || (ch == '\t') || (ch == ' '))
       continue;
 
     assert(_buffer->eof() == false);
@@ -686,6 +686,8 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32  &nameMax,
   //  Read sequence.
 
   for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
+    if ((ch == '\n') || (ch == '\r') || (ch == '\t') || (ch == ' '))
+      continue;
     if (seqLen+1 >= seqMax)
       resizeArrayPair(seq, qlt, seqLen, seqMax, 3 * seqMax / 2);
     seq[seqLen++] = ch;
@@ -700,6 +702,8 @@ dnaSeqFile::loadFASTQ(char   *&name,     uint32  &nameMax,
   //  Read qualities.
 
   for (ch=_buffer->read(); (ch != '\n') && (ch != 0); ch=_buffer->read()) {
+    if ((ch == '\n') || (ch == '\r') || (ch == '\t') || (ch == ' '))
+      continue;
     if (qltLen+1 >= seqMax)
       resizeArrayPair(seq, qlt, qltLen, seqMax, 3 * seqMax / 2);
     qlt[qltLen++] = ch;
