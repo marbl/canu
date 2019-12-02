@@ -225,6 +225,11 @@ dumpStatus(sqStore *UNUSED(seqStore), tgStore *tigStore) {
 
 
 void
+dumpTigHeader(FILE *out) {
+  fprintf(out, "#tigID\ttigLen\tcoverage\ttigClass\tsugRept\tsugBubb\tsugCirc\tnumChildren\n");
+}
+
+void
 dumpTig(FILE *out, tgTig *tig) {
   fprintf(out, F_U32"\t" F_U32 "\t%.2f\t%s\t%s\t%s\t%s\t" F_U32 "\n",
           tig->tigID(),
@@ -240,6 +245,11 @@ dumpTig(FILE *out, tgTig *tig) {
 
 
 void
+dumpReadHeader(FILE *out) {
+  fprintf(out, "#readID\ttigID\tbgn\tend\n");
+}
+
+void
 dumpRead(FILE *out, tgTig *tig, tgPosition *read) {
   fprintf(out, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\n",
           read->ident(),
@@ -253,7 +263,7 @@ dumpRead(FILE *out, tgTig *tig, tgPosition *read) {
 void
 dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter) {
 
-  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugBubb\tsugCirc\tnumChildren\n");
+  dumpTigHeader(stdout);
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -335,8 +345,8 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char 
     reads  = AS_UTL_openOutputFile(R);
     layout = AS_UTL_openOutputFile(L);
 
-    fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
-    fprintf(reads, "#readID\ttigID\tcoordType\tbgn\tend\n");
+    dumpTigHeader(tigs);
+    dumpReadHeader(reads);
   }
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
