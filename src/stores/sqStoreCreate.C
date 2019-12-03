@@ -416,73 +416,81 @@ deleteShortReads(const char *seqStoreName,
 
   uint32       nReads       = seqStore->sqStore_lastReadID();
   rl_t        *readLen      = new rl_t [nReads + 1];
-  uint64       readLenSum   = 0;
+
+  uint32       readsInpt = 0, readsKept = 0,  readsRmvd = 0;
+  uint64       basesInpt = 0, basesKept = 0,  basesRmvd = 0;
 
   //
   //  Initialize our list of read scores, and report a summary.
   //
 
-  fprintf(stderr, "Analyzing read lengths in store '%s'\n", seqStoreName);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "For genome size of " F_U64 " bases, at coverage %.2f, want to keep " F_U64 " bases.\n",
-          genomeSize, desiredCoverage, desiredBases);
-  fprintf(stderr, "\n");
+  readLen[0].readID = UINT32_MAX;    //  Initialize the non-existent
+  readLen[0].length = UINT32_MAX;    //  zeroth read.
+  readLen[0].score  = 0;
 
-  for (uint32 ii=0; ii<nReads+1; ii++) {
+  for (uint32 ii=1; ii<nReads+1; ii++) {
     uint32  len = seqStore->sqStore_getReadLength(ii);
 
     readLen[ii].readID = ii;
     readLen[ii].length = len;
     readLen[ii].score  = mtctx.mtRandomRealOpen() * pow(len, lengthBias);
 
-    readLenSum  += len;
+    basesInpt += len;
+    readsInpt += 1;
   }
 
-  fprintf(stderr, "Found %12" F_U32P " reads of length\n", nReads);
-  fprintf(stderr, "      %12" F_U64P " bases.\n", readLenSum);
-  fprintf(stderr, "\n");
+  //
+  //  Sample reads if we have more than the desired coverage.
+  //
 
-  //
-  //  Sort the array by length, keep only the longest reads up to coverage * genomeSize.
-  //
+  if (desiredBases < basesInpt) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "EXCESSIVE COVERAGE DETECTED.  Sampling reads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "For genome size of %12" F_U64P " bases,\n", genomeSize);
+    fprintf(stderr, "            retain %12" F_U64P " bases (%.2fX coverage).\n", desiredBases, desiredCoverage);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Found    %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsInpt, basesInpt, (double)basesInpt / genomeSize);
+
+    //
+    //  Sort the array by score, and keep only the longest reads
+    //  up to coverage * genomeSize.
+    //
 
 #ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::
+    __gnu_sequential::
 #endif
-  sort(readLen, readLen + nReads+1, byScore);
+    sort(readLen, readLen + nReads+1, byScore);
 
-  readLenSum = 0;
+    fprintf(stdout, "readID    length        score\n");
+    fprintf(stdout, "------- -------- ------------\n");
 
-  uint32   readsKept = 0;
-  uint32   readsLost = 0;
+    for (uint32 ii=0; ii<nReads; ii++) {         //  Start at ii=0.  The zeroth read has
+      fprintf(stdout, "%-7u %8u %12.4f%s\n",     //  min score, and is now at position
+              readLen[ii].readID,                //  [nReads], while the longest read is
+              readLen[ii].length,                //  at position [0].
+              readLen[ii].score,
+              (basesKept < desiredBases) ? "" : " REMOVED");
 
-  for (uint32 ii=0; ii<nReads+1; ii++) {
-    fprintf(stdout, "%7u %8u %12.4f%s\n",
-            readLen[ii].readID,
-            readLen[ii].length,
-            readLen[ii].score,
-            (readLenSum < desiredBases) ? "" : " REMOVED");
+      if (basesKept < desiredBases) {
+        basesKept += readLen[ii].length;
+        readsKept += 1;
+      }
 
-    if (readLenSum < desiredBases) {
-      readLenSum  += readLen[ii].length;
+      else {
+        seqStore->sqStore_getReadSeq(readLen[ii].readID)->sqReadSeq_setIgnoreU();
 
-      readsKept++;
+        basesRmvd += readLen[ii].length;
+        readsRmvd += 1;
+      }
     }
 
-    else {
-      seqStore->sqStore_getReadSeq(readLen[ii].readID)->sqReadSeq_setIgnoreU();
-
-      readsLost++;
-    }
+    fprintf(stderr, "Dropped  %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsRmvd, basesRmvd, (double)basesRmvd / genomeSize);
+    fprintf(stderr, "Retained %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsKept, basesKept, (double)basesKept / genomeSize);
   }
 
   delete [] readLen;
-
   delete    seqStore;
-
-  fprintf(stderr, "Kept  %12" F_U32P " reads of length\n", readsKept);
-  fprintf(stderr, "      %12" F_U64P " bases.\n", readLenSum);
-  fprintf(stderr, "\n");
 
   return(true);
 }
