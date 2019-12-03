@@ -241,9 +241,21 @@ ovStore::readOverlap(ovOverlap *overlap) {
 //  Doesn't split overlaps for a single read across multiple blocks.
 //
 uint32
-ovStore::loadBlockOfOverlaps(ovOverlap *ovl,
-                             uint32     ovlMax) {
+ovStore::loadBlockOfOverlaps(ovOverlap *&ovl,
+                             uint32     &ovlMax) {
   uint32  ovlLen = 0;
+
+  //  If we don't have space for the overlaps from the next read,
+  //  reallocate space for just those.
+
+  if (ovlMax < _index[_curID]._numOlaps) {
+    delete [] ovl;
+
+    ovlMax = _index[_curID]._numOlaps;
+    ovl    = new ovOverlap [ovlMax];
+  }
+
+  //  Now load overlaps for reads until we run out of space.
 
   while ((ovlLen + _index[_curID]._numOlaps < ovlMax) &&
          (_curID <= _endID)) {

@@ -828,39 +828,43 @@ main(int argc, char **argv) {
   //
   //  instead of fixed cutoff on age, use max memory usage and cull the oldest to remain below
 
-  uint32      overlapsMax = BATCH_SIZE;
+  class overlapBlock {
+  public:
+    overlapBlock() {
+      _len = 0;
+      _max = BATCH_SIZE;
+      _ovl = new ovOverlap[BATCH_SIZE];
+    }
+    ~overlapBlock() {
+      delete [] _ovl;
+    };
+    uint32      _len;
+    uint32      _max;
+    ovOverlap  *_ovl;
+  };
 
-  uint32      overlapsALen = 0;
-  uint32      overlapsBLen = 0;
-  ovOverlap  *overlapsA    = new ovOverlap [overlapsMax];
-  ovOverlap  *overlapsB    = new ovOverlap [overlapsMax];
+  overlapBlock  overlapsA;
+  overlapBlock  overlapsB;
 
-  //  Set the globals
-
-  uint32      *overlapsLen  = &overlapsALen;
-  ovOverlap  *overlaps      =  overlapsA;
+  overlapBlock *overlaps  = &overlapsA;
 
   rcache = new overlapReadCache(seqStore, memLimit);
 
-  //  Load the first batch of overlaps and reads.  Purposely loading only 1/8th the normal batch size, to
-  //  get computes computing while the next full batch is loaded.
-
-  overlapsMax /= 8;
+  //  Load the first batch of overlaps and reads.
 
   if (ovlStore)
-    *overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
+    overlaps->_len = ovlStore->loadBlockOfOverlaps(overlaps->_ovl, overlaps->_max);
+
   if (ovlFile)
-    *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
+    overlaps->_len = ovlFile->readOverlaps(overlaps->_ovl, overlaps->_max);
 
-  overlapsMax *= 8;  //  Back to the normal batch size.
+  fprintf(stderr, "Loaded %u overlaps.\n", overlaps->_len);
 
-  fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
-
-  rcache->loadReads(overlaps, *overlapsLen);
+  rcache->loadReads(overlaps->_ovl, overlaps->_len);
 
   //  Loop over all the overlaps.
 
-  while (overlapsALen + overlapsBLen > 0) {
+  while (overlapsA._len + overlapsB._len > 0) {
 
     //  Launch next batch of threads
     //fprintf(stderr, "LAUNCH THREADS\n");
@@ -871,11 +875,11 @@ main(int argc, char **argv) {
 
     batchPrtID =  0;
     batchPosID =  0;
-    batchEndID = *overlapsLen;
+    batchEndID = overlaps->_len;
 
     for (uint32 tt=0; tt<numThreads; tt++) {
-      WA[tt].overlapsLen = *overlapsLen;
-      WA[tt].overlaps    =  overlaps;
+      WA[tt].overlapsLen = overlaps->_len;
+      WA[tt].overlaps    = overlaps->_ovl;
 
       int32 status = pthread_create(tID + tt, &attr, recomputeOverlaps, WA + tt);
 
@@ -885,14 +889,10 @@ main(int argc, char **argv) {
 
     //  Flip back to the now computed overlaps
 
-    if (overlaps == overlapsA) {
-      overlapsLen = &overlapsBLen;
-      overlaps    =  overlapsB;
-
-    } else {
-      overlapsLen = &overlapsALen;
-      overlaps    =  overlapsA;
-    }
+    if (overlaps == &overlapsA)
+      overlaps = &overlapsB;
+    else
+      overlaps = &overlapsA;
 
     //  Write recomputed overlaps - if this is the first pass through the loop,
     //  then overlapsLen will be zero
@@ -900,21 +900,21 @@ main(int argc, char **argv) {
     //  Should we output overlaps that failed to recompute?
 
     if (ovlStore)
-      for (uint64 oo=0; oo<*overlapsLen; oo++)
-        outStore->writeOverlap(overlaps + oo);
+      for (uint64 oo=0; oo<overlaps->_len; oo++)
+        outStore->writeOverlap(overlaps->_ovl + oo);
     if (ovlFile)
-      outFile->writeOverlaps(overlaps, *overlapsLen);
+      outFile->writeOverlaps(overlaps->_ovl, overlaps->_len);
 
     //  Load more overlaps
 
     if (ovlStore)
-      *overlapsLen = ovlStore->loadBlockOfOverlaps(overlaps, overlapsMax);
+      overlaps->_len = ovlStore->loadBlockOfOverlaps(overlaps->_ovl, overlaps->_max);
     if (ovlFile)
-      *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
+      overlaps->_len = ovlFile->readOverlaps(overlaps->_ovl, overlaps->_max);
 
-    fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
+    fprintf(stderr, "Loaded %u overlaps.\n", overlaps->_len);
 
-    rcache->loadReads(overlaps, *overlapsLen);
+    rcache->loadReads(overlaps->_ovl, overlaps->_len);
 
     //  Wait for threads to finish
 
@@ -947,9 +947,6 @@ main(int argc, char **argv) {
 
   delete    ovlFile;
   delete    outFile;
-
-  delete [] overlapsA;
-  delete [] overlapsB;
 
   delete [] WA;
   delete [] tID;

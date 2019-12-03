@@ -265,8 +265,12 @@ public:
                                          ovOverlap  *&ovl,
                                          uint32      &ovlMax);
 
-  uint32             loadBlockOfOverlaps(ovOverlap *ovl,
-                                         uint32     ovlMax);
+  //  Try not to use this interface.  It's gross.  Then again, so is the
+  //  previous one.  The intent was to load exactly ovlMax overlaps, but the
+  //  implementation requires all overlaps for a read to be loaded, so we end
+  //  up with fewer than ovlMax overlaps.
+  uint32             loadBlockOfOverlaps(ovOverlap *&ovl,
+                                         uint32     &ovlMax);
 
   void               setRange(uint32 bgnID, uint32 endID);
 
