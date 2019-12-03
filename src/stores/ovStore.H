@@ -253,6 +253,10 @@ public:
   ovStore(const char *name, sqStore *seq);
   ~ovStore();
 
+public:
+  void               testStore(bool verbose=true);
+
+public:
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
   uint32             readOverlap(ovOverlap *overlap);
 

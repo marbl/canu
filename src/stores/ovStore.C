@@ -121,6 +121,66 @@ ovStore::~ovStore() {
 
 
 
+//  Test that the store can be accessed.  This is not testing the implementation
+//  of ovStore, just that the data on disk can be accessed successfully.
+void
+ovStore::testStore(bool verbose) {
+  uint32    lid   = _seq->sqStore_lastReadID();
+
+  //  Step 1: load the number of overlaps per read.
+
+  uint32   *nopr  = numOverlapsPerRead();
+  uint32    nrds  = 0;
+  uint64    novl  = 0;
+
+  for (uint32 xx=0; xx <= lid; xx++)
+    if (nopr[xx] > 0) {
+      nrds += 1;
+      novl += nopr[xx];
+    }
+
+  //  Step 2: load overlaps for some reads.
+
+  uint32      t[5];
+  uint32      ovlLen = 0;
+  uint32      ovlMax = 0;
+  ovOverlap  *ovl    = NULL;
+
+  for (uint32 ii=0; ii<5; ii++) {
+    uint32 tid = ii * lid / 4;
+
+    while ((nopr[tid] == 0) && (tid < lid))   //  Search forward for the next
+      tid++;                                  //  read with overlaps.
+
+    while ((nopr[tid] == 0) && (tid > 1))     //  Search backward.
+      tid--;
+
+    if (nopr[tid] > 0) {
+      ovlLen = loadOverlapsForRead(tid, ovl, ovlMax);
+
+      if (ovlLen != nopr[tid]) {
+        fprintf(stderr, "ERRROR:  Failed loading overlaps for read %u: expected %u overlaps, loaded %u.\n",
+                tid, nopr[tid], ovlLen);
+        exit(1);
+      }
+
+      if (verbose)
+        fprintf(stderr, "Loaded %6u overlaps for read %6u\n", ovlLen, tid);
+    }
+  }
+
+  //  Passed!  Cleanup and celebrate.
+
+  delete [] nopr;
+  delete [] ovl;
+
+  if (verbose)
+    fprintf(stderr, "Success!  Found %u reads with %lu overlaps out of %u reads total.\n",
+            nrds, novl, lid);
+}
+
+
+
 uint32
 ovStore::readOverlap(ovOverlap *overlap) {
 

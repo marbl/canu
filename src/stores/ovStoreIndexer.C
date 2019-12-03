@@ -116,11 +116,18 @@ main(int argc, char **argv) {
   delete writer;
   delete config;
 
+  //  Test.  Open the store and get the number of overlaps per read.
+
+  ovStore *tester = new ovStore(ovlName, seq);
+  tester->testStore();
+  delete    tester;
+
+  //  And we have a store.  Cleanup and success!
+
   delete seq;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Success!\n");
-  fprintf(stderr, "\n");
 
   exit(0);
 }

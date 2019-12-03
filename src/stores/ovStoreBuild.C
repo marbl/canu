@@ -299,18 +299,29 @@ main(int argc, char **argv) {
   fprintf(stderr, "-- OUTPUT OVERLAPS --\n");
   fprintf(stderr, "\n");
 
-  ovStoreWriter  *store = new ovStoreWriter(ovlName, seq);
+  ovStoreWriter  *writer = new ovStoreWriter(ovlName, seq);
 
   for (uint64 oo=0; oo<ovlsLoaded; oo++)
-    store->writeOverlap(ovls + oo);
+    writer->writeOverlap(ovls + oo);
 
-  delete    store;
+  delete    writer;
   delete [] ovls;
+
+  //  Test.  Open the store and get the number of overlaps per read.
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-- TEST STORE --\n");
+  fprintf(stderr, "\n");
+
+  ovStore *tester = new ovStore(ovlName, seq);
+  tester->testStore();
+  delete    tester;
+
+  //  And we have a store.  Cleanup and success!
 
   delete seq;
 
-  //  And we have a store.
-
+  fprintf(stderr, "\n");
   fprintf(stderr, "Bye.\n");
 
   exit(0);
