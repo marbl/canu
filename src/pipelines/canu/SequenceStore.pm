@@ -253,10 +253,10 @@ sub createSequenceStore ($$@) {
         print F "  -o ./$asm.seqStore.BUILDING \\\n";
         print F "  -minlength "  . getGlobal("minReadLength")        . " \\\n";
 
-        if (getGlobal("readSamplingCoverage") > 0) {
-            print F "  -genomesize " . getGlobal("genomeSize")           . " \\\n";
-            print F "  -coverage   " . getGlobal("readSamplingCoverage") . " \\\n";
-            print F "  -bias       " . getGlobal("readSamplingBias")     . " \\\n";
+        if (getGlobal("maxInputCoverage") > 0) {
+            print F "  -genomesize " . getGlobal("genomeSize")       . " \\\n";
+            print F "  -coverage   " . getGlobal("maxInputCoverage") . " \\\n";
+            print F "  -bias       " . getGlobal("readSamplingBias") . " \\\n";
         }
 
         foreach my $iii (@inputs) {
@@ -403,24 +403,6 @@ sub generateReadLengthHistogram ($$) {
         close(F);
     }
 
-    #  Abort if the read coverage is too low.
-
-    my $minCov = getGlobal("stopOnLowCoverage");
-
-    if ($coverage < $minCov) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR:  Read coverage ($coverage) is too low to be useful.\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  This could be caused by an incorrect genomeSize or poor quality reads that could not\n";
-        print STDERR "-- ERROR:  be sufficiently corrected.\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  You can force Canu to continue by decreasing parameter stopOnLowCoverage=$minCov,\n";
-        print STDERR "-- ERROR:  however, the quality of corrected reads and/or contiguity of contigs will be poor.\n";
-        print STDERR "-- \n";
-
-        caExit("", undef);
-    }
-
     #  Return the ASCII histogram.
 
     return($hist);
@@ -453,11 +435,13 @@ sub checkSequenceStore ($$@) {
 
     #  Create the store.
 
+    my $storeCreated = 0;
     my $histAndStash = 0;
 
     if (! -e "./$asm.seqStore") {
         createSequenceStore($base, $asm, @inputs);
 
+        $storeCreated = 1;
         $histAndStash = 1;
     }
 
@@ -525,6 +509,31 @@ sub checkSequenceStore ($$@) {
         generateOutputs($asm);
 
         return(0);
+    }
+
+    #  Stop if there isn't enough coverage.
+
+    my $minInputCov = getGlobal("minInputCoverage");
+    my $minStoreCov = getGlobal("stopOnLowCoverage");
+
+    my $coverage = int(100 * getNumberOfBasesInStore($asm, $tag) / getGlobal("genomeSize")) / 100;
+
+    if ((($coverage < $minInputCov) && ($storeCreated)) ||
+        (($coverage < $minStoreCov))) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:  Read coverage ($coverage) lower than allowed.\n";
+        print STDERR "-- ERROR:    minInputCoverage  = $minInputCov\n";
+        print STDERR "-- ERROR:    stopOnLowCoverage = $minStoreCov\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  This could be caused by an incorrect genomeSize or poor quality\n";
+        print STDERR "-- ERROR:  reads that cound not be sufficiently corrected.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  You can force Canu to continue by decreasing parameters\n";
+        print STDERR "-- ERROR:  minInputCoverage and/or stopOnLowCoverage.  Be warned that the\n";
+        print STDERR "-- ERROR:  quality of corrected reads and/or contiguity of contigs will be poor.\n";
+        print STDERR "-- \n";
+
+        caExit("", undef);
     }
 
   finishStage:

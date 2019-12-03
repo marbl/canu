@@ -904,7 +904,8 @@ sub setDefaults () {
     setDefault("minOverlapLength",     500,       "Overlaps shorter than this length are not computed; default 500");
 
     setDefault("readSamplingBias",     0.0,       "Score reads as 'random * length^bias', keep the highest scoring reads");
-    setDefault("readSamplingCoverage", undef,     "Discard reads to make the input be of this size");
+    setDefault("readSamplingCoverage", undef,     "DEPRECATED; use maxInputCoverage.  Discard reads to make the input be of this size");
+    #  DEPRECATED - use minInputCoverage and maxInputCoverage instead
 
     setDefault("minMemory",            undef,     "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
     setDefault("maxMemory",            undef,     "Maximum memory to use by any component of the assembler");
@@ -912,10 +913,13 @@ sub setDefaults () {
     setDefault("minThreads",           undef,     "Minimum number of compute threads suggested to compute the assembly");
     setDefault("maxThreads",           undef,     "Maximum number of compute threads to use by any component of the assembler");
 
+    setDefault("minInputCoverage",     10,        "Stop if input coverage is too low; default 10");
+    setDefault("maxInputCoverage",     200,       "If input coverage is high, downsample to something reasonable; default 200");
+
     #####  Stopping conditions
 
-    setDefault("stopOnLowCoverage", 10,    "Stop if raw, corrected or trimmed read coverage is low");
-    setDefault("stopAfter",         undef, "Stop after a specific algorithm step is completed");
+    setDefault("stopOnLowCoverage",    10,        "Stop if raw, corrected or trimmed read coverage is low");
+    setDefault("stopAfter",            undef,     "Stop after a specific algorithm step is completed");
 
     #####  Grid Engine configuration, internal parameters.  These are filled out in canu.pl, right after this function returns.
 
@@ -1541,11 +1545,31 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'\n");
     }
 
+    if (defined(getGlobal("readSamplingCoverage"))) {
+        print STDERR "--\n";
+        print STDERR "--  WARNING:  Deprecated option 'readSamplingCoverage' supplied.\n";
+        print STDERR "--  WARNING:  Use 'maxInputCoverage' instead.\n";
+        print STDERR "--  WARNING:  'readSamplingCoverage' will be removed in the next release.\n";
+        print STDERR "--\n";
 
-    if ((!defined("lowCoverageAllowed") &&  defined("lowCoverageDepth")) ||
-        ( defined("lowCoverageAllowed") && !defined("lowCoverageDepth"))) {
-        addCommandLineError("ERROR:  Invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set\n");
+        setGlobal("maxInputCoverage", getGlobal("readSamplingBias"));
     }
+    if (getGlobal("maxInputCoverage") eq "all") {
+        setGlobal("maxInputCoverage", 0);
+    }
+    if ((getGlobal("maxInputCoverage") > 0) && (getGlobal("maxInputCoverage") < getGlobal("minInputCoverage"))) {
+        my $minc = getGlobal("minInputCoverage");
+        my $maxc = getGlobal("maxInputCoverage");
+
+        addCommandLineError("ERROR:  minInputCoverage ($minc) must be less than maxInputCoverage ($maxc).\n");
+    }
+    if ((getGlobal("maxInputCoverage") > 0) && (getGlobal("maxInputCoverage") < getGlobal("stopOnLowCoverage"))) {
+        my $minc = getGlobal("stopOnLowCoverage");
+        my $maxc = getGlobal("maxInputCoverage");
+
+        addCommandLineError("ERROR:  stopOnLowCoverage ($minc) must be less than maxInputCoverage ($maxc).\n");
+    }
+
 
     if ((getGlobal("saveOverlaps") ne "0") &&
         (getGlobal("saveOverlaps") ne "1")) {
