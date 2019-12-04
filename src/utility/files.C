@@ -823,7 +823,7 @@ AS_UTL_writeFastA(FILE  *f,
                   char  *s, int sl, int bl,
                   char  *h, ...) {
   va_list ap;
-  char   *o  = new char [sl + sl / 60 + 2];
+  char   *o  = new char [sl + sl / ((bl == 0) ? sl : bl) + 2];
   int     si = 0;
   int     oi = 0;
 
