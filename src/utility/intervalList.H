@@ -30,46 +30,8 @@
 
 #include <algorithm>
 
-//  iNum   - lo, hi - coordinates of the interval
-//  iVal   - va     - data stored at each interval
-//  uint32 - ct     - number of elements in this interval
-//                  - when merged, needs function that converts multiple iVal and a uint32 into a single iVal
 
-template <class iNum, class iVal=int32>
-class  _intervalPair {
-public:
-  iNum      lo;
-  iNum      hi;
-  uint32    ct;  //  Number of source intervals
-  iVal      va;  //  Value at this interval; default is 1
-
-  bool  operator<(const _intervalPair &that) const {
-    if (lo != that.lo)
-      return(lo < that.lo);
-    return(hi < that.hi);
-  };
-};
-
-
-template <class iNum, class iVal=int32>
-class  intervalDepthRegions {
-public:
-  iNum      pos;     //  Position of the change in depth
-  iVal      change;  //  The value associated with this object; added or subtracted from 'va'.
-  bool      open;    //  If true, the start of a new interval
-
-  bool  operator<(const intervalDepthRegions &that) const {
-    if (pos != that.pos)
-      return(pos < that.pos);
-    return(open > that.open);
-  };
-};
-
-
-
-
-
-template <class iNum, class iVal=int32>
+template <class iNum>
 class intervalList {
 public:
   intervalList(uint32 initialSize=32) {
@@ -77,47 +39,15 @@ public:
     _isMerged = true;
     _listLen  = 0;
     _listMax  = initialSize;
-    _list     = new _intervalPair<iNum, iVal> [_listMax];
-  };
-
-  //  Takes as input an unmerged intervalList, returns to a new set of intervals, one
-  //  for each 'depth'.  Two intervals, (1,4) and (2,6) would return 'depths':
-  //    1,2,1  bgn=1, end=2, depth=1
-  //    2,4,2
-  //    4,6,1
-  //
-  intervalList(intervalList<iNum, iVal> &IL) {
-    _isSorted = false;
-    _isMerged = false;
-    _listLen  = 0;
-    _listMax  = 0;
-    _list     = 0L;
-
-    depth(IL);
-  };
-
-  intervalList(intervalDepthRegions<iNum, iVal> *id, uint32 idlen) {
-    _isSorted = false;
-    _isMerged = false;
-    _listLen  = 0;
-    _listMax  = 0;
-    _list     = 0L;
-
-#ifdef _GLIBCXX_PARALLEL
-    //  Don't use the parallel sort, not with the expense of starting threads.
-    __gnu_sequential::sort(id, id + idlen);
-#else
-    std::sort(id, id + idlen);
-#endif
-
-    computeDepth(id, idlen);
+    _list     = new _ip [_listMax];
   };
 
   ~intervalList() {
     delete [] _list;
   };
 
-  intervalList<iNum, iVal> &operator=(intervalList<iNum, iVal> &src);
+  //  Used in OBT
+  intervalList<iNum> &operator=(intervalList<iNum> &src);
 
   void      clear(void) {
     _isSorted = true;
@@ -125,597 +55,334 @@ public:
     _listLen  = 0;
   }
 
-  void      add(iNum position, iNum length, iVal value=0);
+  void      add(iNum position, iNum length);
   void      sort(void);
   void      merge(iNum minOverlap=0);                 //  Merge overlapping regions
-  void      merge(intervalList<iNum, iVal> *IL);      //  Insert IL into this list
 
   void      filterShort(iNum minLength);
 
-  void      intersect(intervalList<iNum, iVal> &A,
-                      intervalList<iNum, iVal> &B);
-
-  uint32    overlapping(iNum      lo,
-                        iNum      hi,
-                        uint32  *&intervals,
-                        uint32   &intervalsLen,
-                        uint32   &intervalsMax);
-
-  //  Populates this intervalList with regions in A that are completely
-  //  contained in a region in B.
-  //
-  //  Both A and B call merge().
-  //
-  void      contained(intervalList<iNum, iVal> &A,
-                      intervalList<iNum, iVal> &B);
-
   void      invert(iNum lo, iNum hi);
-
-  void      depth(intervalList<iNum, iVal> &A);
 
   uint32    numberOfIntervals(void)   { return(_listLen); };
 
-  iNum      sumOfLengths(void) {
-    iNum len = 0;
-    uint32         i   = numberOfIntervals();
+  iNum     &lo(uint32 i)    { return(_list[i]._bgn); };
+  iNum     &hi(uint32 i)    { return(_list[i]._end); };
 
-    if (i > 0)
-      while (i--)
-        len += _list[i].hi - _list[i].lo;
-
-    return(len);
-  };
-
-  iNum     &lo(uint32 i)    { return(_list[i].lo); };
-  iNum     &hi(uint32 i)    { return(_list[i].hi); };
-
-  uint32   &count(uint32 i) { return(_list[i].ct); };  //  Number of source intervals.
-  uint32   &depth(uint32 i) { return(_list[i].ct); };  //  Depth, if converted.
-  iVal     &value(uint32 i) { return(_list[i].va); };  //  Value or sum of values.
+  //  Used in OBT
+  uint32   &count(uint32 i) { return(_list[i]._cnt); };  //  Number of source intervals.
 
 private:
-  void     computeDepth(intervalDepthRegions<iNum, iVal> *id, uint32 idlen);
+  struct _ip {
+    iNum      _bgn;
+    iNum      _end;
+    uint32    _cnt;  //  Number of source intervals
+  };
 
+  bool        _isSorted;
+  bool        _isMerged;
 
-  bool                         _isSorted;
-  bool                         _isMerged;
-
-  uint32                       _listMax;
-  uint32                       _listLen;
-  _intervalPair<iNum, iVal>   *_list;
+  uint32      _listMax;
+  uint32      _listLen;
+  _ip        *_list;
 };
 
 
 
 
-
-
-template <class iNum, class iVal>
-intervalList<iNum, iVal> &
-intervalList<iNum, iVal>::operator=(intervalList &src) {
+template <class iNum>
+intervalList<iNum> &
+intervalList<iNum>::operator=(intervalList &src) {
   _isSorted = src._isSorted;
   _isMerged = src._isMerged;
 
-
-  if (_listMax < src._listMax) {
-    delete [] _list;
-    _listMax = src._listMax;
-    _list    = new _intervalPair<iNum, iVal> [_listMax];
-  }
-
-  _listLen  = src._listLen;
-
-  memcpy(_list, src._list, _listLen * sizeof(_intervalPair<iNum, iVal>));
+  duplicateArray(_list, _listLen, _listMax, src._list, src._listLen, src._listMax);
 
   return(*this);
 }
 
 
-template <class iNum, class iVal>
+
+template <class iNum>
 void
-intervalList<iNum, iVal>::add(iNum position, iNum length, iVal val) {
+intervalList<iNum>::add(iNum position, iNum length) {
 
-  if (_listLen >= _listMax) {
-    _listMax *= 2;
-    _intervalPair<iNum, iVal> *l = new _intervalPair<iNum, iVal> [_listMax];
-    memcpy(l, _list, sizeof(_intervalPair<iNum, iVal>) * _listLen);
-    delete [] _list;
-    _list = l;
-  }
+  increaseArray(_list, _listLen, _listMax, _listMax / 4);
 
-  _list[_listLen].lo   = position;
-  _list[_listLen].hi   = position + length;
-  _list[_listLen].ct   = 1;
-  _list[_listLen].va   = val;
+  _list[_listLen++] = { position, position + length, 1 };
 
-  //  Could optimize, and search the list to see if these are false,
-  //  but that's rather expensive.
   _isSorted = false;
   _isMerged = false;
 
-  _listLen++;
 }
 
 
 
-template <class iNum, class iVal>
+template <class iNum>
 void
-intervalList<iNum, iVal>::sort(void) {
+intervalList<iNum>::sort(void) {
 
-  if (_isSorted)
-    return;
-
-  if (_listLen > 1)
-#ifdef _GLIBCXX_PARALLEL
-    //  Don't use the parallel sort, not with the expense of starting threads.
-    __gnu_sequential::sort(_list, _list + _listLen);
-#else
-    std::sort(_list, _list + _listLen);
-#endif
-
+  if ((_isSorted == false) && (_listLen > 1))
+    std::sort(_list, _list + _listLen, [](_ip const &a, _ip const &b) {
+                                         return((a._bgn < b._bgn) || ((a._bgn == b._bgn) && (a._end < b._end))); } );
   _isSorted = true;
 }
 
 
-template <class iNum, class iVal>
+template <class iNum>
 void
-intervalList<iNum, iVal>::merge(iNum minOverlap) {
-  uint32  thisInterval = 0;
-  uint32  nextInterval = 1;
+intervalList<iNum>::merge(iNum minOverlap) {
 
   if (_isMerged)
     return;
 
   sort();
 
-  while (nextInterval < _listLen) {
+  uint32  thisI = 0;  //  Interval we're merging into.
+  uint32  nextI = 1;  //  Interval we're merging from.
 
-    if ((_list[thisInterval].lo == 0) &&
-        (_list[thisInterval].hi == 0)) {
+  while (nextI < _listLen) {
+    assert(_list[thisI]._bgn <  _list[thisI]._end);   //  Basic checks.
+    assert(_list[nextI]._bgn <  _list[nextI]._end);   //  Both intervals cannot be empty,
+    assert(_list[thisI]._bgn <= _list[nextI]._bgn);   //  and thisI must be before nextI.
 
-      //  Our interval is empty.  Copy in the interval we are
-      //  examining and move to the next.
+    //  If the nextI intersects with thisI -- either contained in thisI, or
+    //  has a thick overlap to thisI -- merge it in.  We're guaranteed that
+    //  this.bgn is before next.bgn, so all we need to do is extend this.end
+    //  to cover the next interval.
 
-      //  XXX This is probably useless, thisInterval should always be
-      //  valid.
+    if ((_list[thisI]._end >= _list[nextI]._end) ||
+        (_list[thisI]._end >= _list[nextI]._bgn + minOverlap)) {
+      _list[thisI]._end  = max(_list[nextI]._end, _list[thisI]._end);
+      _list[thisI]._cnt +=     _list[nextI]._cnt;
+      nextI++;
+    }
 
-      _list[thisInterval].lo = _list[nextInterval].lo;
-      _list[thisInterval].hi = _list[nextInterval].hi;
-      _list[thisInterval].ct = _list[nextInterval].ct;
-      _list[thisInterval].va = _list[nextInterval].va;
+    //  Otherwise, move to the next thisI, copy the current nextI to it, and
+    //  then move to the next nextI.  We should, to be pedantic, check that
+    //  thisI != nextI before the copy, but no harm if we don't.
 
-      _list[nextInterval].lo = 0;
-      _list[nextInterval].hi = 0;
-
-      nextInterval++;
-    } else {
-
-      //  This interval is valid.  See if it overlaps with the next
-      //  interval.
-
-      bool  intersects = false;
-
-      if ((_list[thisInterval].lo <= _list[nextInterval].lo) &&
-          (_list[nextInterval].hi <= _list[thisInterval].hi))
-        //  next is contained in this
-        intersects = true;
-
-      if (_list[thisInterval].hi - minOverlap >= _list[nextInterval].lo)
-        //  next has thick overlap to this
-        intersects = true;
-
-
-      if (intersects) {
-
-        //  Got an intersection.
-
-        //  Merge nextInterval into thisInterval -- the hi range
-        //  is extended if the nextInterval range is larger.
-        //
-        if (_list[thisInterval].hi < _list[nextInterval].hi)
-          _list[thisInterval].hi = _list[nextInterval].hi;
-
-        _list[thisInterval].ct += _list[nextInterval].ct;
-        _list[thisInterval].va += _list[nextInterval].va;
-
-        //  Clear the just merged nextInterval and move to the next one.
-        //
-        _list[nextInterval].lo = 0;
-        _list[nextInterval].hi = 0;
-        _list[nextInterval].ct = 0;
-        _list[nextInterval].va = 0;
-
-        nextInterval++;
-      } else {
-
-        //  No intersection.  Move along.  Nothing to see here.
-
-        //  If there is a gap between the target and the examine (we
-        //  must have merged sometime in the past), copy examine to
-        //  the next target.
-
-        thisInterval++;
-
-        if (thisInterval != nextInterval) {
-          _list[thisInterval].lo = _list[nextInterval].lo;
-          _list[thisInterval].hi = _list[nextInterval].hi;
-          _list[thisInterval].ct = _list[nextInterval].ct;
-          _list[thisInterval].va = _list[nextInterval].va;
-        }
-
-        nextInterval++;
-      }
+    else {
+      _list[++thisI] = _list[nextI++];
     }
   }
 
-  if (thisInterval+1 < _listLen)
-    _listLen = thisInterval + 1;
-
-  _isMerged = true;
+  _listLen  = thisI + 1;   //  Update the length of the list,
+  _isMerged = true;        //  and note that it's now merged.
 }
 
 
 
-template <class iNum, class iVal>
+
+//  Filter intervals shorter than 'minLength'.
+
+template <class iNum>
 void
-intervalList<iNum, iVal>::merge(intervalList<iNum, iVal> *IL) {
-  for (uint32 i=0; i<IL->_listLen; i++)
-    add(IL->_list[i].lo, IL->_list[i].hi - IL->_list[i].lo);
-}
+intervalList<iNum>::filterShort(iNum minLength) {
+  uint32  to = 0;
 
-
-
-template <class iNum, class iVal>
-void
-intervalList<iNum, iVal>::filterShort(iNum minLength) {
-  uint32   fr = 0;
-  uint32   to = 0;
-
-  for (; fr < _listLen; fr++) {
-    if (hi(fr) - lo(fr) <= minLength)
-      continue;
-
-    if (to != fr)
-      _list[to] = _list[fr];
-
-    to++;
-  }
+  for (uint32 fr=0; fr < _listLen; fr++)                //  Over every interval,
+    if (_list[fr]._bgn + minLength <= _list[fr]._end)   //  If long enough, copy it
+      _list[to++] = _list[fr];                          //  onto the 'new' list.
 
   _listLen = to;
 }
 
 
 
-template <class iNum, class iVal>
+
+
+template <class iNum>
 void
-intervalList<iNum, iVal>::invert(iNum invlo, iNum invhi) {
+intervalList<iNum>::invert(iNum invlo, iNum invhi) {
 
   merge();
 
-  //  Create a new list to store the inversion
-  //
-  uint32                         invLen = 0;
-  uint32                         invMax = _listLen + 2;
-  _intervalPair<iNum, iVal>     *inv    = new _intervalPair<iNum, iVal> [invMax];
+  uint32   invLen = 0;                  //  Create a new list to store the
+  uint32   invMax = _listLen + 1;       //  inversion.  We need at most one
+  _ip     *inv    = new _ip [invMax];   //  more interval than the original.
 
-  //  Add the zeroth and only?
+  //  If no existing list, just add a single interval covering the universe.
+  //  If the inversion range falls entirely inside a gap in the original list
+  //  (which would also result in the inverted list having one interval
+  //  covering the whole range) we'll catch it in the loop below.
+
   if (_listLen == 0) {
-    inv[invLen].lo = invlo;
-    inv[invLen].hi = invhi;
-    inv[invLen].ct = 1;
-    inv[invLen].va = 0;
-    invLen++;
+    inv[invLen++] = { invlo, invhi, 1 };
+    return;
   }
 
-  //  Add the first, then the pieces, then the last
-  //
-  else {
-    if (invlo < _list[0].lo) {
-      inv[invLen].lo = invlo;
-      inv[invLen].hi = _list[0].lo;
-      inv[invLen].ct = 1;
-      inv[invLen].va = 0;
-      invLen++;
-    }
+  //  Add an interval for the first gap, if it's inside the inersion range.
 
-    for (uint32 i=1; i<_listLen; i++) {
-      if (_list[i-1].hi < _list[i].lo) {
-        inv[invLen].lo = _list[i-1].hi;
-        inv[invLen].hi = _list[i].lo;
-        inv[invLen].ct = 1;
-        inv[invLen].va = 0;
-        invLen++;
-      }
-    }
+  if (invlo < _list[0]._bgn)
+    inv[invLen++] = { invlo, _list[0]._bgn, 1 };
 
-    if (_list[_listLen-1].hi < invhi) {
-      inv[invLen].lo = _list[_listLen-1].hi;
-      inv[invLen].hi = invhi;
-      inv[invLen].ct = 1;
-      inv[invLen].va = 0;
-      invLen++;
-    }
+  //  Add intervals covering the middle gaps.  Threshold each endpoint by the
+  //  inversion range, and only add a new interval if it is of positive
+  //  length.
+
+  for (uint32 i=1; i<_listLen; i++) {
+    iNum  bgn = max(invlo,         _list[i-1]._end);
+    iNum  end = min(_list[i]._bgn, invhi);
+
+    if (bgn < end)
+      inv[invLen++] = { bgn, end, 1 };
   }
 
-  assert(invLen <= invMax);
+  //  Add an interval for the last gap, if it's inside the inversion range.
 
-  //  Nuke the old list, swap in the new one
+  if (_list[_listLen-1]._end < invhi)
+    inv[invLen++] = { _list[_listLen-1]._end, invhi, 1 };
+
+  //  If there is no inverted list here, then the inversion range was
+  //  entirely inside an original interval, i.e., no gaps in the orignal
+  //  list.
+
   delete [] _list;
 
   _list    = inv;
   _listLen = invLen;
   _listMax = invMax;
+
+  assert(invLen <= invMax);
 }
 
 
 
-template <class iNum, class iVal>
-void
-intervalList<iNum, iVal>::intersect(intervalList<iNum, iVal> &A,
-                                    intervalList<iNum, iVal> &B) {
-  A.merge();
-  B.merge();
-
-  uint32  ai = 0;
-  uint32  bi = 0;
-
-  while ((ai < A.numberOfIntervals()) &&
-         (bi < B.numberOfIntervals())) {
-    uint32   al = A.lo(ai);
-    uint32   ah = A.hi(ai);
-    uint32   bl = B.lo(bi);
-    uint32   bh = B.hi(bi);
-    uint32   nl = 0;
-    uint32   nh = 0;
-
-    //  If they intersect, make a new region
-    //
-    if ((al <= bl) && (bl < ah)) {
-      nl = bl;
-      nh = (ah < bh) ? ah : bh;
-    }
-
-    if ((bl <= al) && (al < bh)) {
-      nl = al;
-      nh = (ah < bh) ? ah : bh;
-    }
-
-    if (nl < nh)
-      add(nl, nh - nl);
-
-    //  Advance the list with the earlier region.
-    //
-    if        (ah < bh) {
-      //  A ends before B
-      ai++;
-    } else if (ah > bh) {
-      //  B ends before A
-      bi++;
-    } else {
-      //  Exactly the same ending!
-      ai++;
-      bi++;
-    }
-  }
-}
 
 
 
-//  Populates an array with the intervals that are within the supplied interval.
+
 //
-//  Naive implementation that is easy to verify (and that works on an unsorted list).
+//  Takes as input an unmerged intervalList, returns to a new set of intervals, one
+//  for each 'depth'.  Two intervals, (1,4) and (2,6) would return 'depths':
+//    1,2,1  bgn=1, end=2, depth=1
+//    2,4,2
+//    4,6,1
 //
-template <class iNum, class iVal>
-uint32
-intervalList<iNum, iVal>::overlapping(iNum      rangelo,
-                                      iNum      rangehi,
-                                      uint32  *&intervals,
-                                      uint32   &intervalsLen,
-                                      uint32   &intervalsMax) {
 
-  if (intervals == 0L) {
-    intervalsMax = 256;
-    intervals    = new uint32 [intervalsMax];
-  }
 
-  intervalsLen = 0;
+template <class iNum>
+class intervalDepth {
+public:
+  intervalDepth(intervalList<iNum> &IL) {
+    uint32    idlen = IL.numberOfIntervals() * 2;
+    _idp     *id    = new _idp [idlen];
 
-  for (uint32 i=0; i<_listLen; i++) {
-    if ((rangelo <= _list[i].hi) &&
-        (rangehi >= _list[i].lo)) {
-      if (intervalsLen >= intervalsMax) {
-        intervalsMax *= 2;
-        uint32 *X = new uint32 [intervalsMax];
-        memcpy(X, intervals, sizeof(uint32) * intervalsLen);
-        delete [] intervals;
-        intervals = X;
-      }
+    for (uint32 i=0; i<IL.numberOfIntervals(); i++) {
+      id[2*i  ].pos = IL.lo(i);     //  Enter into an inteval, change
+      id[2*i  ].dlt = 1;            //  depth by +1.
 
-      intervals[intervalsLen++] = i;
+      id[2*i+1].pos = IL.hi(i);     //  Leave an interval, change
+      id[2*i+1].dlt = -1;           //  depth by -1.
     }
-  }
 
-  return(intervalsLen);
-}
+    _listLen  = 0;
+    _listMax  = 0;
+    _list     = NULL;
 
+    if (idlen > 0)
+      computeDepth(id, idlen);
 
+    delete [] id;
+  };
 
-template <class iNum, class iVal>
-void
-intervalList<iNum, iVal>::contained(intervalList<iNum, iVal> &A,
-                                    intervalList<iNum, iVal> &B) {
-  A.merge();
-  B.merge();
-
-  uint32  ai = 0;
-  uint32  bi = 0;
-
-  while ((ai < A.numberOfIntervals()) &&
-         (bi < B.numberOfIntervals())) {
-    uint32   al = A.lo(ai);
-    uint32   ah = A.hi(ai);
-    uint32   bl = B.lo(bi);
-    uint32   bh = B.hi(bi);
-
-    //  If A is contained in B, make a new region.
-    //
-    if ((bl <= al) && (ah <= bh))
-      add(bl, bh - bl);
-
-#if 0
-    if ((al <= bl) && (bh <= ah))
-      add(al, ah - al);
-#endif
-
-    //  Advance the list with the earlier region.
-    //
-    if        (ah < bh) {
-      //  A ends before B
-      ai++;
-    } else if (ah > bh) {
-      //  B ends before A
-      bi++;
-    } else {
-      //  Exactly the same ending!
-      ai++;
-      bi++;
-    }
-  }
-}
-
-
-
-
-
-
-
-template <class iNum, class iVal>
-void
-intervalList<iNum, iVal>::depth(intervalList<iNum, iVal> &IL) {
-  uint32                             idlen = IL.numberOfIntervals() * 2;
-  intervalDepthRegions<iNum, iVal>  *id    = new intervalDepthRegions<iNum, iVal> [idlen];
-
-  for (uint32 i=0; i<IL.numberOfIntervals(); i++) {
-    id[2*i  ].pos    = IL.lo(i);
-    id[2*i  ].change = IL.value(i);
-    id[2*i  ].open   = true;
-
-    id[2*i+1].pos    = IL.hi(i);
-    id[2*i+1].change = IL.value(i);
-    id[2*i+1].open   = false;
-  }
-
-  computeDepth(id, idlen);
-
-  delete [] id;
-}
-
-
-
-template <class iNum, class iVal>
-void
-intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uint32 idlen) {
-
-  //  No intervals input?  No intervals output.
-
-  _listLen = 0;
-
-  if (idlen == 0)
-    return;
-
-  //  Sort by coordinate.
-
-#ifdef _GLIBCXX_PARALLEL
-  //  Don't use the parallel sort, not with the expense of starting threads.
-  __gnu_sequential::sort(id, id + idlen);
-#else
-  std::sort(id, id + idlen);
-#endif
-
-  //  Allocate the (maximum possible) depth of coverage intervals
-
-  if (_listMax < idlen) {
+  ~intervalDepth() {
     delete [] _list;
+  };
 
-    _listMax = idlen;
-    _list    = new _intervalPair<iNum, iVal> [_listMax];
-  }
+  uint32    numberOfIntervals(void)   { return(_listLen); };
 
-  //  The first thing must be an 'open' event.  If not, someone supplied a negative length to the
-  //  original intervalList.  Or, possibly, two zero-length intervals.
+  iNum     &lo(uint32 i)    { return(_list[i]._bgn); };
+  iNum     &hi(uint32 i)    { return(_list[i]._end); };
+  uint32   &depth(uint32 i) { return(_list[i]._dpt); };
 
-  if (id[0].open == false)
+private:
+  struct _idp {        //  An intervalDepthPosition stores the position
+    iNum      pos;     //  of a change in depth, and the delta of that
+    int32     dlt;     //  change (which is either +1 or -1).
+  };
+
+  struct _idr {
+    iNum      _bgn;
+    iNum      _end;
+    uint32    _dpt;
+  };
+
+private:
+  void     computeDepth(_idp *id, uint32 idlen);
+
+  uint32     _listMax;
+  uint32     _listLen;
+  _idr      *_list;
+};
+
+
+
+template <class iNum>
+void
+intervalDepth<iNum>::computeDepth(_idp *id, uint32 idlen) {
+
+  //  Sort regions so that earlier positions are first, and so that depth
+  //  increases (+1) are before decreases (-1).
+
+  std::sort(id, id + idlen, [](_idp const &a, _idp const &b) {
+                              return((a.pos < b.pos) || ((a.pos == b.pos) && (a.dlt > b.dlt))); } );
+
+  //  The first thing must be an 'open' event.  If not, someone supplied a
+  //  negative length to the original intervalList.  Or, possibly, two
+  //  zero-length intervals.
+
+  if (id[0].dlt == -1)
     for (uint32 ii=0; ii<idlen; ii++)
-      fprintf(stderr, "id[%d] pos %d open %d\n", ii, id[ii].pos, id[ii].open);
-  assert(id[0].open == true);
+      fprintf(stderr, "id[%u] pos %d dlt %d\n", ii, id[ii].pos, id[ii].dlt);
+
+  assert(id[0].dlt == 1);
 
   //  Init first interval.
 
-  assert(_list != NULL);  //  Coverity claimed this could happen, but only if _listLen != numberOfIntervals()
+  _listLen  = 0;
+  _listMax  = idlen + 1;
+  _list     = new _idr [_listMax];
 
-  _list[_listLen].lo = id[0].pos;
-  _list[_listLen].hi = id[0].pos;
-  _list[_listLen].ct = 1;
-  _list[_listLen].va = id[0].change;
-
-  uint32  nct;
-  iVal    nva;
+  _list[_listLen]._bgn = id[0].pos;
+  _list[_listLen]._end = id[0].pos;
+  _list[_listLen]._dpt = 1;
 
   for (uint32 i=1; i<idlen; i++) {
-    //  Update the end of the current interval.
-    _list[_listLen].hi = id[i].pos;
 
-    //  Compute the count and value of the next interval.
-    if (id[i].open == true) {
-      nct = _list[_listLen].ct + 1;
-      nva = _list[_listLen].va + id[i].change;
-    } else {
-      nct = _list[_listLen].ct - 1;
-      nva = _list[_listLen].va - id[i].change;
-    }
+    //  Update the end of the current interval to this position.
 
-    //  If the position or value is different, make a new interval,
-    //  But only if this interval is not null length.
-    if (((id[i-1].pos        != id[i].pos) ||
-         (_list[_listLen].va != nva)) &&
-        (_list[_listLen].lo  != _list[_listLen].hi)) {
+    _list[_listLen]._end = id[i].pos;
+
+    //  If this position is different than the last position, make
+    //  a new depth interval.
+
+    if (id[i-1].pos != id[i].pos) {
       _listLen++;
 
-      _list[_listLen].lo = id[i].pos;
-      _list[_listLen].ct = _list[_listLen-1].ct;
-      _list[_listLen].va = _list[_listLen-1].va;
+      _list[_listLen]._bgn = id[i].pos;
+      _list[_listLen]._end = id[i].pos;
+      _list[_listLen]._dpt = _list[_listLen-1]._dpt;
     }
 
-    //  Finally, update whatver interval is current.
-    _list[_listLen].hi  = id[i].pos;
-    _list[_listLen].ct  = nct;
-    _list[_listLen].va  = nva;
+    //  Process any depth change associated with this position.
 
-    //  Now, if this interval's begin is the same as the last interval's end,
-    //  we need to merge.
-    if ((_listLen > 1) &&
-        (_list[_listLen-1].hi == _list[_listLen].lo) &&
-        (_list[_listLen-1].ct == _list[_listLen].ct) &&
-        (_list[_listLen-1].va == _list[_listLen].va)) {
-      _list[_listLen-1].hi = _list[_listLen].hi;
-      _listLen--;
-    }
+    _list[_listLen]._dpt += id[i].dlt;
 
-#if 0
-    fprintf(stderr, "id[%2d] - list[%u] = lo=%u hi=%u ct=%u va=%d\n",
-            i,
-            _listLen,
-            _list[_listLen].lo,
-            _list[_listLen].hi,
-            _list[_listLen].ct,
-            _list[_listLen].va);
-#endif
+    //  Is it safe to blindly change the depth of this region?  Yes.  If the
+    //  position is different than the last, we've already made a new depth
+    //  region.  And if it wasn't different, one of the previous positions
+    //  must have made a new depth region.  In any case, the depth region
+    //  we're currently at must always be length 0 -- we're never able to
+    //  change the depth of a region when we're at the end coordinate.
+
+    assert(_list[_listLen]._bgn == _list[_listLen]._end);
   }
 
-  assert(_listLen >  0);
-  assert(_listLen <= _listMax);
+  assert(_listLen < _listMax);
+  assert(_list[_listLen]._bgn == _list[_listLen]._end);
+  assert(_list[_listLen]._dpt == 0);
 }
-
 
 
 #endif  //  INTERVALLIST_H

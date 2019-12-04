@@ -318,7 +318,7 @@ main(int argc, char **argv) {
 
     //  Generate a depth-of-coverage map, then merge intervals
 
-    intervalList<uint32>  depth(cov);
+    intervalDepth<uint32> depth(cov);
 
     cov.merge();
 

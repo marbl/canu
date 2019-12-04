@@ -90,7 +90,7 @@ largestCovered(ovOverlap    *ovl,
   //  acceptable.
 
   if (minCoverage > 0) {
-    intervalList<uint32>  DE(IL);
+    intervalDepth<uint32>  DE(IL);
 
     uint32  it = 0;
     uint32  ib = 0;

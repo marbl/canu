@@ -212,7 +212,7 @@ classifyRule4(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double lowcovFract
     IL.add(frgbgn, frgend - frgbgn);
   }
 
-  intervalList<int32>  ID(IL);
+  intervalDepth<int32>  ID(IL);
 
   uint32  basesLow  = 0;
   uint32  basesHigh = 0;

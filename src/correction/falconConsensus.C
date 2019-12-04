@@ -390,7 +390,7 @@ falconConsensus::analyzeLength(tgTig            *layout,
     basesInOlaps += pos->_max - pos->_min;
   }
 
-  intervalList<int32>   depth(coverage);
+  intervalDepth<int32>  depth(coverage);
 
   int32    bgn       = INT32_MAX;
   int32    corLen    = 0;

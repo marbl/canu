@@ -159,7 +159,7 @@ public:
     }
 
     delete ID;
-    ID = new intervalList<int32>(*IL);
+    ID = new intervalDepth<int32>(*IL);
 
     uint32  goodCov  = 0;
     uint32  badCov   = 0;
@@ -212,7 +212,7 @@ public:
   double        maxGoodCov;
 
   intervalList<int32>  *IL;
-  intervalList<int32>  *ID;
+  intervalDepth<int32> *ID;
 };
 
 
@@ -547,7 +547,7 @@ dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filte
 
     //  Convert to depths.
 
-    intervalList<uint32>  ID(IL);
+    intervalDepth<uint32> ID(IL);
 
     //  Add the depths to the histogram.
 
@@ -612,7 +612,7 @@ dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, cha
       allL.add(bgn, end - bgn);
     }
 
-    intervalList<int32>   ID(allL);
+    intervalDepth<int32>  ID(allL);
 
     uint32  maxDepth    = 0;
     double  aveDepth    = 0;

@@ -227,7 +227,7 @@ tgTig::computeCoverage(void) {
     allL.add(bgn, end - bgn);
   }
 
-  intervalList<int32>   ID(allL);
+  intervalDepth<int32>  ID(allL);
 
   double  aveDepth    = 0;
 

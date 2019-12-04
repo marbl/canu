@@ -83,7 +83,7 @@ ruLabelStat  repeat_IsRepeat;
 
 
 
-intervalList<int32> *
+intervalDepth<int32> *
 computeCoverage(tgTig *tig) {
   intervalList<int32>    IL;
 
@@ -93,7 +93,7 @@ computeCoverage(tgTig *tig) {
     IL.add(pos->min(), pos->max() - pos->min());
   }
 
-  return(new intervalList<int32>(IL));
+  return(new intervalDepth<int32>(IL));
 }
 
 
@@ -315,7 +315,7 @@ main(int argc, char **argv) {
 
     //  Global coverage histogram.
 
-    intervalList<int32>  *ID = computeCoverage(tig);
+    intervalDepth<int32>  *ID = computeCoverage(tig);
 
     for (uint32 ii=0; ii<ID->numberOfIntervals(); ii++) {
       if (ID->depth(ii) < lowCovDepth)
