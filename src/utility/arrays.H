@@ -124,7 +124,7 @@ setArraySize(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op
 template<typename TT, typename LL>
 void
 increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 moreSpace) {
-  uint64  newMax = arrayMax + moreSpace;
+  uint64  newMax = arrayMax + ((moreSpace == 0) ? 1 : moreSpace);
 
   if (arrayLen < arrayMax)
     return;
@@ -136,7 +136,7 @@ increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 moreSpace) {
 template<typename T1, typename T2, typename LL>
 void
 increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint64 moreSpace) {
-  uint64  newMax = arrayMax + moreSpace;
+  uint64  newMax = arrayMax + ((moreSpace == 0) ? 1 : moreSpace);
 
   if (arrayLen < arrayMax)
     return;
