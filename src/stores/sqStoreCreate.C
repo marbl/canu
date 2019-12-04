@@ -457,9 +457,6 @@ deleteShortReads(const char *seqStoreName,
     //  up to coverage * genomeSize.
     //
 
-#ifdef _GLIBCXX_PARALLEL
-    __gnu_sequential::
-#endif
     sort(readLen, readLen + nReads+1, byScore);
 
     fprintf(stdout, "readID    length        score\n");

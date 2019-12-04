@@ -69,9 +69,6 @@ globalScore::compute(uint32             ovlLen,
 
   //  Sort, reversely.
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::
-#endif
   sort(hist, hist + histLen, std::greater<uint64>());
 
   //  Figure out our threshold score.  Any overlap with score below this should be filtered.

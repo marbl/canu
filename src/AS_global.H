@@ -60,17 +60,9 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
-//  Check for GCC parallel STL support.  This appeared in version 4.3, but the lowest we've tested
-//  with is 4.6.
-//
-#if ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 2)))
-//  Not by default!
-//#ifndef _GLIBCXX_PARALLEL
-//#define _GLIBCXX_PARALLEL
-//#endif
-#else
+//  Do NOT enable _GLIBCXX_PARALLEL.  Performance is atrocious, and it will
+//  not sort in-place, so memory will blow up.  More comments in AS_global.C.
 #undef  _GLIBCXX_PARALLEL
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>

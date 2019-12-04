@@ -242,9 +242,6 @@ ovStoreHistogram::processScores(uint32 Aid) {
 
   //  Sort the scores in decreasing order.
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::
-#endif
   sort(_scoresList, _scoresList + _scoresListLen, greater<uint16>());
 
   //  Decide on a set of points to save.  Eventually, maybe, we'll analyze the plot

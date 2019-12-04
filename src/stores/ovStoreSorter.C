@@ -244,11 +244,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Sorting.\n");
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::sort(ovls, ovls + ovlsLen);
-#else
   sort(ovls, ovls + ovlsLen);
-#endif
 
   //  Output to the store.
 

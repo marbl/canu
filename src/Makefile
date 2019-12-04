@@ -440,8 +440,8 @@ ifeq (${OSTYPE}, Linux)
   CC        ?= gcc
   CXX       ?= g++
 
-  CXXFLAGS  += -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -D_GLIBCXX_PARALLEL -pthread -fopenmp -lm
+  CXXFLAGS  += -pthread -fopenmp -fPIC
+  LDFLAGS   += -pthread -fopenmp -lm
 
   BUILDSTACKTRACE ?= 1
 endif
@@ -510,8 +510,8 @@ ifeq (${OSTYPE}, Darwin)
      $(error unsupported compiler)
   endif
 
-  CXXFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -pthread -fPIC -m64 -Wno-format
-  LDFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp -pthread -lm
+  CXXFLAGS += -fopenmp -pthread -fPIC -m64 -Wno-format
+  LDFLAGS  += -fopenmp -pthread -lm
 endif
 
 
@@ -524,8 +524,8 @@ ifeq (${CANU_BUILD_ENV}, ports)
 
   MACHINETYPE=${ARCH}
 
-  CXXFLAGS  += -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -D_GLIBCXX_PARALLEL -pthread -fopenmp
+  CXXFLAGS  += -pthread -fopenmp -fPIC
+  LDFLAGS   += -pthread -fopenmp
 
 else
 
@@ -534,12 +534,12 @@ else
   CCLIB    ?= -rpath /usr/local/lib/gcc6
 
   #  GCC
-  CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp ${CCLIB} -lm -lexecinfo
+  CXXFLAGS  += -I/usr/local/include -pthread -fopenmp -fPIC
+  LDFLAGS   += -L/usr/local/lib     -pthread -fopenmp ${CCLIB} -lm -lexecinfo
 
   #  CLANG
-  #CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fPIC
-  #LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -lm -lexecinfo -lgomp
+  #CXXFLAGS  += -I/usr/local/include -pthread -fPIC
+  #LDFLAGS   += -L/usr/local/lib     -pthread -lm -lexecinfo -lgomp
 
   #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
   #CXXFLAGS  +=

@@ -75,20 +75,19 @@ AS_configure(int argc, char **argv) {
 #ifdef _GLIBCXX_PARALLEL_SETTINGS_H
   __gnu_parallel::_Settings s = __gnu_parallel::_Settings::get();
 
-  //  Force all algorithms to be parallel.
-  //  Force some algs to be sequential by using a tag, eg:
-  //    sort(a, a+end, __gnu_parallel::sequential_tag());
+  //  The sizes that GNU decides to enable parallelization for are
+  //  ludicrously small.  A benchmark (Dec 2019, gcc6) showed that a
+  //  sort-heavy code was a whopping 10% faster (wall clock 61 vs 69 seconds)
+  //  but used 10x the CPU time (707 vs 69 seconds).
   //
-  //s.algorithm_strategy = __gnu_parallel::force_parallel;
-
-  //  The default seems to be 1000, way too small for us.
-  s.sort_minimal_n = 128 * 1024;
-
-  //  The default is MWMS, which, at least on FreeBSD 8.2 w/gcc46, is NOT inplace.
-  //  Then again, the others also appear to be NOT inplace as well.
-  //s.sort_algorithm = __gnu_parallel::MWMS;
-  //s.sort_algorithm = __gnu_parallel::QS_BALANCED;
-  //s.sort_algorithm = __gnu_parallel::QS;
+  //  Further, the sort is no longer in-place.  This matters, significantly,
+  //  for our overlap sorting, since we fill memory with as many overlaps as
+  //  possible, and if we don't sort in-place, we run out of memory.
+  //
+  //  So, if the silly user has enabled parallelization, turn it off for
+  //  sorting by setting the minimal size to something large.
+  //
+  s.sort_minimal_n = UINT64_MAX;
 
   __gnu_parallel::_Settings::set(s);
 #endif

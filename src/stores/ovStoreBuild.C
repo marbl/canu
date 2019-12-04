@@ -287,10 +287,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "-- SORT OVERLAPS --\n");
   fprintf(stderr, "\n");
 
-#ifdef _GLIBCXX_PARALLEL
-  //  If we have the parallel STL, don't use it!  Sort is not inplace!
-  __gnu_sequential::
-#endif
   sort(ovls, ovls + ovlsLoaded);
 
   //  Write.

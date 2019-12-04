@@ -280,11 +280,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
   //  Sort.
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::sort(olaps, olaps + olapsLen);
-#else
   std::sort(olaps, olaps + olapsLen);
-#endif
 
   //  Convert coordinates into intervals.  Conceptually, squish out the duplicate numbers, then
   //  create an interval for every adjacent pair.  We need to add intervals for the first and last

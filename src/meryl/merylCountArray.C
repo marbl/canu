@@ -227,12 +227,7 @@ merylCountArray<VALUE>::countSingleKmers(void) {
 
   //  Sort the data
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::
-#else
-    std::
-#endif
-    sort(suffixes, suffixes + nSuffixes);
+  std::sort(suffixes, suffixes + nSuffixes);
 
   //  Count the number of distinct kmers, and allocate space for them.
 
@@ -279,12 +274,7 @@ merylCountArray<VALUE>::countSingleKmersWithValues(void) {
 
   //  Sort the data
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::
-#else
-    std::
-#endif
-    sort(suffixes, suffixes + nSuffixes);
+  std::sort(suffixes, suffixes + nSuffixes);
 
   //  Count the number of distinct kmers, and allocate space for them.
 
@@ -331,12 +321,7 @@ merylCountArray<VALUE>::countMultiSetKmers(void) {
 
   //  Sort the data
 
-#ifdef _GLIBCXX_PARALLEL
-  __gnu_sequential::
-#else
-    std::
-#endif
-    sort(suffixes, suffixes + nSuffixes);
+  std::sort(suffixes, suffixes + nSuffixes);
 
   //  In a multi-set, we dump each and every kmer that is loaded, no merging.
 
