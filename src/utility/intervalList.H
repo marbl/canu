@@ -106,6 +106,17 @@ template <class iNum>
 void
 intervalList<iNum>::add(iNum position, iNum length) {
 
+  if (length < 0) {
+    fprintf(stderr, "NEGATIVE length suplied to intervalList::add(), adjusting to positive length.\n");
+    length    = -length;
+    position -=  length;
+  }
+  if (length == 0) {
+    fprintf(stderr, "ZERO length suplied to intervalList::add(), ignoring interval.\n");
+    return;
+  }
+  assert(length > 0);
+
   increaseArray(_list, _listLen, _listMax, _listMax / 4);
 
   _list[_listLen++] = { position, position + length, 1 };
