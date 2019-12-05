@@ -170,16 +170,11 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       continue;
 
     //  Also in AS_BAT_MarkRepeatReads.C
-#ifdef IGNORE_BUBBLE
-    #warning BUBBLE IGNORE ENABLED 1
     if (OG->isBubble(fi))                          //  Ignore bubble reads.
       continue;
-#endif
-#ifdef IGNORE_SPUR
-    #warning SPUR IGNORE ENABLED 1
+
     if (OG->isSpur(fi))                            //  Ignore spur reads.
       continue;
-#endif
 
     //  Find ALL potential placements, regardless of error rate.
 
@@ -345,11 +340,8 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       bp.tigID     = placements[pp].tigID;
 
-      bp.placedBgn = placements[pp].position.bgn;
-      bp.placedEnd = placements[pp].position.end;
-
-      bp.olapBgn   = placements[pp].verified.bgn;
-      bp.olapEnd   = placements[pp].verified.end;
+      bp.olapMin   = placements[pp].verified.min();
+      bp.olapMax   = placements[pp].verified.max();
 
       if (thickestC < no)   bp.bestC = ovl[thickestC];
       if (thickest5 < no)   bp.best5 = ovl[thickest5];

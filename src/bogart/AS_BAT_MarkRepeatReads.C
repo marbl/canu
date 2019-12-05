@@ -48,7 +48,6 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 #define REPEAT_FRACTION   0.5
 
-#undef  OLD_ANNOTATE
 #undef  SHOW_ANNOTATE
 #undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
 #undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
@@ -168,7 +167,7 @@ splitTig(TigVector                &tigs,
     }
 
     if (rid == UINT32_MAX) {
-      fprintf(stderr, "Failed to place read %u at %d-%d\n", frg.ident, frgbgn, frgend);
+      fprintf(stderr, "Failed to place read %u at %d-%d with %u BPs:\n", frg.ident, frgbgn, frgend, BP.size());
       for (uint32 ii=0; ii<BP.size(); ii++)
         fprintf(stderr, "BP[%3u] at %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._rpt);
       flushLog();
@@ -232,26 +231,20 @@ annotateRepeatsOnRead(AssemblyGraph   *AG,
       BestPlacement  &fPlace = AG->getForward(rID)[pID];
 
       //  Also in AS_BAT_AssemblyGraph.C
-#ifdef IGNORE_BUBBLE
-#warning BUBBLE IGNORE ENABLED 2
       if (OG->isBubble(rID))              //  Ignore if the incoming overlap is from a bubble.
         continue;
-#endif
-#ifdef IGNORE_SPUR
-#warning SPUR IGNORE ENABLED 2
+
       if (OG->isSpur(rID))               //  Ignore if the incoming overlap is from a spur.
         continue;
-#endif
 
-      //writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u place %u reverse read %u in tig %u placed %d-%d olap %d-%d%s\n",
+      //writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u place %u reverse read %u in tig %u olap %d-%d%s\n",
       //         tig->id(), ii, read->ident, rr,
       //         rID,
       //         tig->inUnitig(rID),
-      //         fPlace.placedBgn, fPlace.placedEnd,
-      //         fPlace.olapBgn,   fPlace.olapEnd,
+      //         fPlace.olapMin,   fPlace.olapMax,
       //         (fPlace.isUnitig) ? " IN_UNITIG" : "");
 
-      repeats.push_back(olapDat(fPlace.olapBgn, fPlace.olapEnd, rID, pID));
+      repeats.push_back(olapDat(fPlace.olapMin, fPlace.olapMax, rID, pID));
     }
   }
 
@@ -836,16 +829,11 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
       continue;
 
     //  Also in AS_BAT_AssemblyGraph.C
-#ifdef IGNORE_BUBBLE
-#warning BUBBLE IGNORE ENABLED 3
     if (OG->isBubble(oBid) == true)             //  Skip overlaps to bubble tigs.
       continue;
-#endif
-#ifdef IGNORE_SPUR
-#warning SPUR IGNORE ENABLED 3
+
     if (OG->isSpur(oBid) == true)               //  Skip overlaps to spur tigs.
       continue;
-#endif
 
     if (OG->isBackbone(oBid) == false)          //  Skip overlaps to non-backbone reads.
       continue;
@@ -1250,6 +1238,13 @@ markRepeatReads(AssemblyGraph         *AG,
     tigMarksU = tigMarksR;
     tigMarksU.invert(0, tig->getLength());
 
+#if 0
+    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
+      writeLog("tigMarksR[%2u] = %d %d\n", ii, tigMarksR.lo(ii), tigMarksR.hi(ii));
+    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
+      writeLog("tigMarksU[%2u] = %d %d\n", ii, tigMarksU.lo(ii), tigMarksU.hi(ii));
+#endif
+    
     //  Create the list of intervals we'll use to make new tigs.
 
     vector<breakPointCoords>   BP;

@@ -33,33 +33,24 @@
 #include "AS_BAT_TigVector.H"
 
 
-#define IGNORE_BUBBLE
-#define IGNORE_SPUR
-
 class BestPlacement {
 public:
   BestPlacement() {
     tigID       = UINT32_MAX;
 
-    placedBgn   = INT32_MIN;
-    placedEnd   = INT32_MAX;
-
-    olapBgn     = INT32_MIN;
-    olapEnd     = INT32_MAX;
+    olapMin     = INT32_MIN;
+    olapMax     = INT32_MAX;
   };
   ~BestPlacement() {
   };
 
   uint32            tigID;        //  Which tig this is placed in.
 
-  int32             placedBgn;    //  Position in the tig.  Can extend negative.
-  int32             placedEnd;    //
+  int32             olapMin;      //  Position in the tig covered by overlaps.
+  int32             olapMax;      //
 
-  int32             olapBgn;      //  Position in the tig covered by overlaps.
-  int32             olapEnd;      //
-
-  BAToverlap        bestC;
-  BAToverlap        best5;
+  BAToverlap        bestC;        //  Used internally to generate back edges,
+  BAToverlap        best5;        //  and in AS_BAT_DropDeadEnds.C
   BAToverlap        best3;
 };
 
