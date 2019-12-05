@@ -219,34 +219,41 @@ intervalList<iNum>::invert(iNum invlo, iNum invhi) {
 
   if (_listLen == 0) {
     inv[invLen++] = { invlo, invhi, 1 };
-    return;
   }
 
-  //  Add an interval for the first gap, if it's inside the inersion range.
+  //  But if an existing list:
+  //
+  //    1) Add an interval for the first gap, if it's inside the inersion
+  //       range.
+  //
+  //    2) Add intervals covering the middle gaps.  Threshold each endpoint
+  //       by the inversion range, and only add a new interval if it is of
+  //       positive length.
+  //
+  //    3) Add an interval for the last gap, if it's inside the inversion
+  //       range.
+  //
+  //    4) If there is no inverted list here, then the inversion range was
+  //       entirely inside an original interval, i.e., no gaps in the orignal
+  //       list.
+  //
+  else {
+    if (invlo < _list[0]._bgn)
+      inv[invLen++] = { invlo, _list[0]._bgn, 1 };
 
-  if (invlo < _list[0]._bgn)
-    inv[invLen++] = { invlo, _list[0]._bgn, 1 };
+    for (uint32 i=1; i<_listLen; i++) {
+      iNum  bgn = max(invlo,         _list[i-1]._end);
+      iNum  end = min(_list[i]._bgn, invhi);
 
-  //  Add intervals covering the middle gaps.  Threshold each endpoint by the
-  //  inversion range, and only add a new interval if it is of positive
-  //  length.
+      if (bgn < end)
+        inv[invLen++] = { bgn, end, 1 };
+    }
 
-  for (uint32 i=1; i<_listLen; i++) {
-    iNum  bgn = max(invlo,         _list[i-1]._end);
-    iNum  end = min(_list[i]._bgn, invhi);
-
-    if (bgn < end)
-      inv[invLen++] = { bgn, end, 1 };
+    if (_list[_listLen-1]._end < invhi)
+      inv[invLen++] = { _list[_listLen-1]._end, invhi, 1 };
   }
 
-  //  Add an interval for the last gap, if it's inside the inversion range.
-
-  if (_list[_listLen-1]._end < invhi)
-    inv[invLen++] = { _list[_listLen-1]._end, invhi, 1 };
-
-  //  If there is no inverted list here, then the inversion range was
-  //  entirely inside an original interval, i.e., no gaps in the orignal
-  //  list.
+  //  Replace the list with our inverted list.
 
   delete [] _list;
 
