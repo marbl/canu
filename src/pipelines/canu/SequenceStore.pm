@@ -498,7 +498,7 @@ sub checkSequenceStore ($$@) {
         (($tag eq "obt") && ($nOBT == 0)) ||
         (($tag eq "utg") && ($nAsm == 0))) {
 
-        print STDERR "--\n";
+        print STDERR "--\n";              #  Nothing clever here, just keeping text aligned.
         print STDERR "-- WARNING:\n";
         print STDERR "-- WARNING:  No raw ",       "reads detected.  Cannot proceed; empty outputs generated.\n"  if ($tag eq "cor");
         print STDERR "-- WARNING:  No corrected ", "reads detected.  Cannot proceed; empty outputs generated.\n"  if ($tag eq "obt");
