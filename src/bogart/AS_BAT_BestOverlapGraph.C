@@ -76,7 +76,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *UNUSED(prefix)) {
       if (isOverlapBadQuality(ovl[ii]) == false) {
         if      ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang <= 0))   //  Left side dovetail
           IL.add(0,
-                 fLen + ovl[ii].b_hang);
+                 fLen - -ovl[ii].b_hang);
 
         else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang >= 0))   //  Right side dovetail
           IL.add(ovl[ii].a_hang,
@@ -84,7 +84,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *UNUSED(prefix)) {
 
         else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang <= 0))   //  I contain the other
           IL.add(ovl[ii].a_hang,
-                 fLen - ovl[ii].a_hang - ovl[ii].b_hang);
+                 fLen - ovl[ii].a_hang - -ovl[ii].b_hang);
 
         else if ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang >= 0))   //  I am contained and thus now perfectly good!
           verified = true;
