@@ -65,12 +65,13 @@
 #define DUMP_TIGS                2
 #define DUMP_CONSENSUS           3
 #define DUMP_LAYOUT              4
-#define DUMP_MULTIALIGN          5
-#define DUMP_SIZES               6
-#define DUMP_COVERAGE            7
-#define DUMP_DEPTH_HISTOGRAM     8
-#define DUMP_THIN_OVERLAP        9
-#define DUMP_OVERLAP_HISTOGRAM  10
+#define DUMP_LAYOUT_VERBOSE      5
+#define DUMP_MULTIALIGN          6
+#define DUMP_SIZES               7
+#define DUMP_COVERAGE            8
+#define DUMP_DEPTH_HISTOGRAM     9
+#define DUMP_THIN_OVERLAP       10 
+#define DUMP_OVERLAP_HISTOGRAM  11
 
 
 class tgFilter {
@@ -327,14 +328,14 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
 
 
 void
-dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *outPrefix) {
+dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool dumpRawLayout, char *outPrefix) {
   char T[FILENAME_MAX+1];
   char R[FILENAME_MAX+1];
   char L[FILENAME_MAX+1];
 
   FILE *tigs   = NULL;    //  Length and flags of tigs, same as dumpTigs()
   FILE *reads  = NULL;    //  Length and flags of reads, mapping of read to tig
-  FILE *layout = stdout;  //  Standard layout file
+  FILE *layout = (dumpRawLayout ? stdout : NULL);  //  Standard layout file
 
   if (outPrefix) {
     snprintf(T, FILENAME_MAX, "%s.layout.tigInfo",   outPrefix);
@@ -343,7 +344,7 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char 
 
     tigs   = AS_UTL_openOutputFile(T);
     reads  = AS_UTL_openOutputFile(R);
-    layout = AS_UTL_openOutputFile(L);
+    if (dumpRawLayout) layout = AS_UTL_openOutputFile(L);
 
     dumpTigHeader(tigs);
     dumpReadHeader(reads);
@@ -1062,6 +1063,8 @@ main (int argc, char **argv) {
       dumpType = DUMP_CONSENSUS;
     else if (strcmp(argv[arg], "-layout") == 0)
       dumpType = DUMP_LAYOUT;
+    else if (strcmp(argv[arg], "-layout-verbose") == 0)
+      dumpType = DUMP_LAYOUT_VERBOSE;
     else if (strcmp(argv[arg], "-multialign") == 0)
       dumpType = DUMP_MULTIALIGN;
     else if (strcmp(argv[arg], "-sizes") == 0)
@@ -1255,7 +1258,10 @@ main (int argc, char **argv) {
       dumpConsensus(seqStore, tigStore, filter, useReverse, cnsFormat);
       break;
     case DUMP_LAYOUT:
-      dumpLayout(seqStore, tigStore, filter, outPrefix);
+      dumpLayout(seqStore, tigStore, filter, false, outPrefix);
+      break;
+    case DUMP_LAYOUT_VERBOSE:
+      dumpLayout(seqStore, tigStore, filter, true, outPrefix);
       break;
     case DUMP_MULTIALIGN:
       dumpMultialign(seqStore, tigStore, filter, maWithQV, maWithDots, maDisplayWidth, maDisplaySpacing);
