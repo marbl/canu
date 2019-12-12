@@ -65,9 +65,17 @@ tgTigSizeAnalysis::evaluateTig(tgTig *tig) {
     lenSuggestCircular.push_back(length);
 
   switch (tig->_class) {
-    case tgTig_unassembled:   lenUnassembled.push_back(length);  break;
-    case tgTig_contig:        lenContig.push_back(length);       break;
-    default:                                                     break;
+    case tgTig_unassembled:
+      lenUnassembled.push_back(length);
+      break;
+    case tgTig_contig:
+      if (tig->_suggestBubble)
+         lenBubble.push_back(length);
+      else 
+         lenContig.push_back(length);
+      break;
+    default:
+      break;
   }
 }
 
