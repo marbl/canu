@@ -1051,8 +1051,6 @@ sub setDefaults () {
 
     #####  Consensus Options
 
-    setDefault("cnsPartitions",   undef,       "Partition consensus into N jobs");
-    setDefault("cnsPartitionMin", undef,       "Don't make a consensus partition with fewer than N reads");
     setDefault("cnsMaxCoverage",  40,          "Limit unitig consensus to at most this coverage; default '40' = unlimited");
     setDefault("cnsConsensus",    "pbdagcon",  "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'");
 

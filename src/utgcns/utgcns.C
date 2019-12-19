@@ -82,7 +82,9 @@ public:
     aligner          = 'E';
 
     createPartitions = false;
-    partitionSize    = 1.0;
+    partitionSize    = 1.00;
+    partitionScaling = 1.00;
+    partitionTigs    = 0.05;
 
     numThreads 	     = numThreads_;
 
@@ -159,6 +161,8 @@ public:
 
   bool                    createPartitions;
   double                  partitionSize;
+  double                  partitionScaling;
+  double                  partitionTigs;
 
   uint32                  numThreads;
 
@@ -233,7 +237,7 @@ createPartitions_loadTigInfo(cnsParameters &params, tigInfo *tigs, uint32 tigsLe
     tgTig  *tig = params.tigStore->loadTig(ti);
 
     tigs[ti].tigID           = ti;
-    tigs[ti].tigLength       = tig->length();
+    tigs[ti].tigLength       = tig->length() * params.partitionScaling;
     tigs[ti].tigChildren     = tig->numberOfChildren();
 
     tigs[ti].consensusArea   = tigs[ti].tigLength * tigs[ti].tigChildren;
@@ -250,9 +254,11 @@ createPartitions_loadTigInfo(cnsParameters &params, tigInfo *tigs, uint32 tigsLe
 uint32
 createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
   uint64   maxArea     = tigs[0].consensusArea * params.partitionSize;
+  uint32   maxReads    = uint32((params.seqStore->sqStore_lastReadID()+1) * params.partitionTigs + 0.5);
   uint32   currentPart = 1;
   uint64   currentArea = 0;
   uint32   currentTigs = 0;
+  uint32   currentChildren = 0;
   bool     stillMore   = true;
 
   if (params.verbosity > 0) {
@@ -273,13 +279,14 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
       //  If nothing in the current partition, or still space in the
       //  partition, add this tig to the current partition.  In particular,
       //  this allows partitions of a single tig to be larger than the
-      //  maximum (e.g., a partitionSize < 1.0).
+      //  maximum (e.g., a partitionSize < 1.0). Also ensure we don't assign too many reads to a partition.
       else if ((currentTigs == 0) ||
-               (currentArea + tigs[ti].consensusArea < maxArea)) {
+               (currentArea + tigs[ti].consensusArea < maxArea && (currentChildren + tigs[ti].tigChildren) < maxReads)) {
         tigs[ti].partition = currentPart;
 
         currentArea += tigs[ti].consensusArea;
         currentTigs += 1;
+        currentChildren += tigs[ti].tigChildren;
 
         if (params.verbosity > 0)
           fprintf(stderr, "%9u %9lu %9lu %12lu  %9.3f  %9u\n",
@@ -302,6 +309,7 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
     currentPart += 1;
     currentArea  = 0;
     currentTigs  = 0;
+    currentChildren = 0;
   }
 
   sort(tigs, tigs + tigsLen, less<tigInfo>());
@@ -778,6 +786,8 @@ main (int argc, char **argv) {
     else if (strcmp(argv[arg], "-partition") == 0) {
       params.createPartitions = true;
       params.partitionSize    = atof(argv[++arg]);
+      params.partitionScaling = atof(argv[++arg]);
+      params.partitionTigs    = atof(argv[++arg]);
     }
 
     //  Algorithm options

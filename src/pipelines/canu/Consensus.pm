@@ -147,11 +147,14 @@ sub partitionTigs ($$) {
 
     fetchTigStore("unitigging", $asm, "${tag}Store", "001");
 
+    # adjust for the fact that compressed contigs will likely expand and thus take more memory/more space
+    my $partitionScaling = (defined(getGlobal("homoPolyCompress"))) ? 1.5 : 1.0;
+
     $cmd  = "$bin/utgcns \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -T  ./$asm.${tag}Store 1 \\\n";
     #$cmd .= "  -partition " . getGlobal("cnsPartitionSize") . " \\\n"   if (defined(getGlobal("cnsPartitionSize")));
-    $cmd .= "  -partition 0.9 \\\n";
+    $cmd .= "  -partition 0.8 $partitionScaling 0.1 \\\n";
     $cmd .= "> ./$asm.${tag}Store/partitioning.log 2>&1";
 
     if (runCommand("unitigging", $cmd)) {
