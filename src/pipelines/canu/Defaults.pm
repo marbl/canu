@@ -249,6 +249,12 @@ sub removeHaplotypeOptions () {
     #  result is the same.
 
     foreach my $opt (@cLineOpts) {
+        # for v1.*
+        if ($opt =~ m/^-pacbio-raw\s/)          { $haveRaw++;          $setUpForPacBio++;     next; }
+        if ($opt =~ m/^-pacbio-corrected\s/)    { $haveCorrected++;    $setUpForPacBio++;     next; }
+        if ($opt =~ m/^-nanopore-raw\s/)        { $haveRaw++;          $setUpForNanopore++;   next; }
+        if ($opt =~ m/^-nanopore-corrected\s/)  { $haveCorrected++;    $setUpForNanopore++;   next; }
+
         if ($opt =~ m/^-raw\s/)                 { $haveRaw++;          next; }
         if ($opt =~ m/^-corrected\s/)           { $haveCorrected++;    next; }
 
@@ -273,7 +279,7 @@ sub removeHaplotypeOptions () {
 
     #  Either raw or corrected (or hifi).
 
-    if    ($haveRaw)           {  $tech .= "-raw ";         }
+    if    ($haveRaw)           {  $tech .= " ";             }    # implicit
     elsif ($haveCorrected)     {  $tech .= "-corrected ";   }
 
     #  And they can be trimmed or not.

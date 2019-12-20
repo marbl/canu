@@ -408,8 +408,8 @@ hapData::initializeKmerTable(uint32 maxMemory) {
 
   uint32 minFreq = getMinFreqFromHistogram(histoName);
 
-  fprintf(stderr, "--  Haplotype '%s':\n", merylName);
-  fprintf(stderr, "--   use kmers with frequency at least %u.\n", minFreq);
+  fprintf(stdout, "--  Haplotype '%s':\n", merylName);
+  fprintf(stdout, "--   use kmers with frequency at least %u.\n", minFreq);
 
   //  Construct an exact lookup table.
   //
@@ -548,6 +548,7 @@ loadReadBatch(void *G) {
             fprintf(stdout, "--\n");
             fprintf(stdout, "-- ERROR:   loaded no reads from file %s, are you sure it is a valid fastq/fasta file?\n", g->_seqs.front()->filename());
             fprintf(stdout, "--\n");
+            fflush(stdout);
             exit(1);
         }
         fprintf(stdout, "-- Finished processing file %s with %d records\n", g->_seqs.front()->filename(), g->_seqCounts);
