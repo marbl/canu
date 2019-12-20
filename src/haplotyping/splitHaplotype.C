@@ -545,22 +545,20 @@ loadReadBatch(void *G) {
     if (g->_seqs.empty() == false) {
       if (g->_seqs.front()->loadSequence(seq) == false) {   //  Failed to load a sequence, hit EOF.
         if (g->_seqCounts == 0) {
-            fprintf(stderr, "--\n");
-            fprintf(stderr, "-- ERROR: loaded no reads from file %s, are you sure it is a valid fastq/fasta file?\n", g->_seqs.front()->filename());
-            fprintf(stderr, "--\n");
+            fprintf(stdout, "--\n");
+            fprintf(stdout, "-- ERROR:   loaded no reads from file %s, are you sure it is a valid fastq/fasta file?\n", g->_seqs.front()->filename());
+            fprintf(stdout, "--\n");
             exit(1);
         }
-        fprintf(stderr, "-- Finished processing file %s with %d records\n", g->_seqs.front()->filename(), g->_seqCounts);
-        fprintf(stderr, "--\n");
+        fprintf(stdout, "-- Finished processing file %s with %d records\n", g->_seqs.front()->filename(), g->_seqCounts);
+        fprintf(stdout, "--\n");
         g->_seqCounts = 0;
         delete g->_seqs.front();                            //  Discard the file and try the next.
         g->_seqs.pop();
         continue;
       }
-      if (g->_seqCounts == 0) { 
-         fprintf(stderr, "--\n");
-         fprintf(stderr, "-- Begin processing file %s\n", g->_seqs.front()->filename());
-      }
+      if (g->_seqCounts == 0) 
+         fprintf(stdout, "-- Begin    processing file %s\n", g->_seqs.front()->filename());
 
       if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
         s->_names[rr].set(seq.name());                      //  enough, save it to our list.
