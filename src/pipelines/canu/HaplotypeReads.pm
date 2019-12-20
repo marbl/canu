@@ -455,7 +455,7 @@ sub haplotypeCountConfigure ($%) {
     print F "\n";
     print F "#  And compute.\n";
     print F "\n";
-    print F "$bin/meryl k=$merSize threads=$thr memory=$mem \\\n";
+    print F "\$bin/meryl k=$merSize threads=$thr memory=$mem \\\n";
     print F "  count \\\n";
     print F "    output ./reads-\$output.meryl.WORKING \\\n";
     print F "    \$batch \\\n";
@@ -534,7 +534,7 @@ sub haplotypeCountConfigure ($%) {
     print F "\n";
     print F "#  And compute.\n";
     print F "\n";
-    print F "$bin/meryl threads=$thr memory=$mem \\\n";
+    print F "\$bin/meryl threads=$thr memory=$mem \\\n";
     print F "  union-sum \\\n";
     print F "    output ./reads-\$haplotype.meryl.WORKING \\\n";
     print F "    ./reads-\$haplotype-???.meryl \\\n";
@@ -543,7 +543,7 @@ sub haplotypeCountConfigure ($%) {
     print F "&& \\\n";
     print F "rm -rf ./reads-\$haplotype-???.meryl\n";
     print F "\n";
-    print F "$bin/meryl threads=$thr memory=$mem \\\n";
+    print F "\$bin/meryl threads=$thr memory=$mem \\\n";
     print F "  statistics \\\n";
     print F "    ./reads-\$haplotype.meryl \\\n";
     print F "> ./reads-\$haplotype.statistics \\\n";
@@ -628,7 +628,7 @@ sub haplotypeCountConfigure ($%) {
     print F "\n";
     print F "#  Subtract all the other haplotypes from ours.\n";
     print F "\n";
-    print F "$bin/meryl threads=$thr memory=$mem \\\n";
+    print F "\$bin/meryl threads=$thr memory=$mem \\\n";
     print F "  difference \\\n";
     print F "    output ./haplotype-\$haplotype.meryl.WORKING \\\n";
     print F "    ./reads-\$haplotype.meryl \\\n";
@@ -1052,7 +1052,7 @@ sub haplotypeReadsConfigure ($@) {
     print F "\n";
     print F "#  Assign reads to haplotypes.\n";
     print F "\n";
-    print F "$bin/splitHaplotype \\\n";
+    print F "\$bin/splitHaplotype \\\n";
     print F "  -cl $minReadLength \\\n";
     print F "  -threads $thr \\\n";
     print F "  -memory  $mem \\\n";
@@ -1148,7 +1148,7 @@ sub haplotypeReadsCheck ($@) {
             print STDERR "-- Haplotyping jobs failed, tried $attempt times, giving up.\n";
             print STDERR $failureMessage;
             print STDERR "--\n";
-            caExit(undef, undef);
+            caExit(undef, "$path/haplotype.log.WORKING");
         }
 
         if ($attempt > 0) {

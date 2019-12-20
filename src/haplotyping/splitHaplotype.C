@@ -131,6 +131,7 @@ public:
   uint32                 _numReads;
 
   queue<dnaSeqFile *>    _seqs;      //  Input from FASTA/FASTQ files.
+  uint32                 _seqCounts; // read counts for current file
 
   vector<hapData *>      _haps;
 
@@ -543,9 +544,22 @@ loadReadBatch(void *G) {
 
     if (g->_seqs.empty() == false) {
       if (g->_seqs.front()->loadSequence(seq) == false) {   //  Failed to load a sequence, hit EOF.
+        if (g->_seqCounts == 0) {
+            fprintf(stderr, "--\n");
+            fprintf(stderr, "-- ERROR: loaded no reads from file %s, are you sure it is a valid fastq/fasta file?\n", g->_seqs.front()->filename());
+            fprintf(stderr, "--\n");
+            exit(1);
+        }
+        fprintf(stderr, "-- Finished processing file %s with %d records\n", g->_seqs.front()->filename(), g->_seqCounts);
+        fprintf(stderr, "--\n");
+        g->_seqCounts = 0;
         delete g->_seqs.front();                            //  Discard the file and try the next.
         g->_seqs.pop();
         continue;
+      }
+      if (g->_seqCounts == 0) { 
+         fprintf(stderr, "--\n");
+         fprintf(stderr, "-- Begin processing file %s\n", g->_seqs.front()->filename());
       }
 
       if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
@@ -560,6 +574,7 @@ loadReadBatch(void *G) {
         g->_filteredBases += seq.length();
       }
 
+      g->_seqCounts++; 
       continue;      //  Loaded (or skipped) a sequence.  Thank you, may I have another?
     }
 
