@@ -524,12 +524,6 @@ elsif (scalar(@inputFiles) > 0) {
     my $rt;
     my $st;
 
-    #  If no mode set, default -pacbio-hifi to trimmed status.
-
-    if (($mode eq "") && ($numHiFi > 0)) {
-        $readsAreTrimmed = 1;
-    }
-
     #  Figure out a human description of the reads, and set
     #  flags to pass to sqStoreCreate.
 
@@ -620,14 +614,14 @@ if (($numPacBio   == 0) &&
     ($numNanopore == 0) &&
     ($numHiFi      > 0)) {
     setGlobalIfUndef("corOvlErrorRate",  0.000);
-    setGlobalIfUndef("obtOvlErrorRate",  0.000);
-    setGlobalIfUndef("utgOvlErrorRate",  0.025);
+    setGlobalIfUndef("obtOvlErrorRate",  0.025);
+    setGlobalIfUndef("utgOvlErrorRate",  0.010);
     setGlobalIfUndef("corErrorRate",     0.000);
-    setGlobalIfUndef("obtErrorRate",     0.000);
-    setGlobalIfUndef("utgErrorRate",     0.025);
-    setGlobalIfUndef("cnsErrorRate",     0.150);
+    setGlobalIfUndef("obtErrorRate",     0.025);
+    setGlobalIfUndef("utgErrorRate",     0.010);
+    setGlobalIfUndef("cnsErrorRate",     0.030);
     setGlobalIfUndef("homoPolyCompress", 1);
-    setGlobalIfUndef("batOptions",       "-eg 0.0003 -dg 3 -db 3 -dr 1 -ca 50 -cp 5");
+    setGlobalIfUndef("batOptions",       "-eg 0.0003 -sb 0.01 -dg 0 -db 3 -dr 0 -ca 50 -cp 5");
 }
 
 #  Set an initial run mode based on what we discovered above.
@@ -635,7 +629,7 @@ if (($numPacBio   == 0) &&
 if (!defined($mode)) {
     $mode = "run"            if ($numRaw    > 0);
     $mode = "trim-assemble"  if ($numCor    > 0);
-    $mode = "assemble"       if ($numHiFi   > 0);
+    $mode = "trim-assemble"  if ($numHiFi   > 0);
     $mode = "assemble"       if ($numCorTri > 0);
 }
 
@@ -666,12 +660,16 @@ if ($mode eq "trim") {
 }
 
 if ($mode eq "trim-assemble") {
-    print STDERR "--    - trim corrected reads.\n";
-    print STDERR "--    - assemble corrected and trimmed reads.\n";
+    if ($numHiFi  > 0) {
+       print STDERR "--    - trim HiFi reads.\n";
+       print STDERR "--    - assemble trimmed HiFi reads.\n";
+    } else {
+       print STDERR "--    - trim corrected reads.\n";
+       print STDERR "--    - assemble corrected and trimmed reads.\n";
+   }
 }
 
 if ($mode eq "assemble") {
-    print STDERR "--    - assemble untrimmed HiFi reads.\n"          if ($numHiFi  > 0);
     print STDERR "--    - assemble corrected and trimmed reads.\n"    if ($numHiFi == 0);
 }
 
