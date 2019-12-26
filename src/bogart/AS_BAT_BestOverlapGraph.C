@@ -169,9 +169,10 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   //  Find the median and absolute deviations.
 
   computeMedianAbsoluteDeviation(erates, _median, _mad, true);
-  
-  //  Compute an error limit based on the median or absolute deviation.
-  //    Use median+mad is the median isn't zero.
+  uint32   pos = (uint32)((erates.size()+1)*0.90);
+
+  //  Compute an error limit based on the median or absolute deviation or quantile
+  //    Use quantile is the median isn't zero.
   //    Use mean+stddev otherwise.
   //
   //    But either way, let the user lower this via the command line.
@@ -179,7 +180,8 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   double   Tinput  = _errorLimit;
   double   Tmean   = _mean   + _deviationGraph          * _stddev;
   double   Tmad    = _median + _deviationGraph * 1.4826 * _mad;
-  double   Tpicked = (_median > 1e-10) ? Tmad : Tmean;
+  double   Tperct  = erates[pos];
+  double   Tpicked = (_median > 1e-10) ? Tmad : Tperct;
 
   if (Tinput < Tpicked)
     _errorLimit = Tinput;
@@ -215,6 +217,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   writeLog("command line                             ->   %6.2f       %8.4f%%%s\n",                                                1e5 * Tinput, 100.0 * Tinput, (_errorLimit == Tinput) ? "  (enabled)" : "");
   writeLog("mean + std.dev   %6.2f +- %3.0f * %6.2f  ->   %6.2f       %8.4f%%%s\n", 1e5 * _mean,   _deviationGraph, 1e5 * _stddev, 1e5 * Tmean,  100.0 * Tmean,  (_errorLimit == Tmean)  ? "  (enabled)" : "");
   writeLog("median + mad     %6.2f +- %3.0f * %6.2f  ->   %6.2f       %8.4f%%%s\n", 1e5 * _median, _deviationGraph, 1e5 * _mad,    1e5 * Tmad,   100.0 * Tmad,   (_errorLimit == Tmad)   ? "  (enabled)" : "");
+  writeLog("90th percentile                          ->   %6.2f       %8.4f%%%s\n",                                                1e5 * Tperct, 100.0 * Tperct, (_errorLimit == Tperct) ? "  (enabled)" : "");
   writeLog("\n");
   writeLog("\n");
   writeLog("BEST EDGE FILTERING\n");
