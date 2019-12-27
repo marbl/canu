@@ -97,10 +97,11 @@ sqStore::sqStore_setClearRange(uint32 id,
     cend = end;
 
     nbgn = 0;
+    nend = nlen;
+
     while ((nbgn < nend) && (ntoc[nbgn] < cbgn))
       nbgn++;
 
-    nend = nlen;
     while ((nbgn < nend) && (cend < ntoc[nend]))
       nend--;
   }
