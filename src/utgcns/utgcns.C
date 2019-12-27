@@ -658,21 +658,6 @@ processTigs(cnsParameters  &params) {
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
-    // update coordinates of the tig when needed (when it was assembled in compressed space, in normal space this will do nothing)
-
-    double ratio = 0;
-    double total = 0;
-    uint32 layoutLen = 0;
-    for (uint32 child = 0; child < tig->numberOfChildren(); child++) {
-      total += (*params.seqReads)[tig->getChild(child)->ident()]->sqRead_length() / (double)(tig->getChild(child)->max() - tig->getChild(child)->min());
-      ratio = total / (child+1);
-
-      tig->getChild(child)->setMinMax(uint32(tig->getChild(child)->min()*ratio), uint32(tig->getChild(child)->max()*ratio));
-      if (tig->getChild(child)->max() > layoutLen)
-        layoutLen = tig->getChild(child)->max();
-    }
-    tig->_layoutLen = layoutLen;
-
     //  Stash excess coverage.
 
     savedChildren *origChildren = stashContains(tig, params.maxCov, true);

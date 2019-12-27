@@ -257,8 +257,66 @@ unitigConsensus::initialize(map<uint32, sqRead *>     *reads) {
   return(true);
 }
 
+void unitigConsensus::switchToUncompressedCoordinates(void) {
+    // update coordinates of the tig when needed (when it was assembled in compressed space, in normal space this will be skiped)
+    // we do this by tracking the read reaching furthest to the right and keeping its offset + homopolymer coordinate translation
+    // the read that overlaps it is then updated to start at that reads uncompressed offset + uncompressed bases based on the overlapping coordinate positions
+    //
+    
+    // check that we need to do something first
+    // just rely on first read
+    if ((double)getSequence(0)->length() / (_utgpos[0].max()-_utgpos[0].min()) <= 1.2) 
+       return;
 
+    uint32 compressedOffset   = 0;
+    uint32 uncompressedOffset = 0;
+    uint32 currentEnd         = _utgpos[0].max();
+    uint32 layoutLen          = 0;
+    uint32 nlen               = 0;
+    uint32* ntoc              = NULL;
 
+    for (uint32 child = 0; child < _numReads; child++) {
+      if (compressedOffset > _utgpos[child].min())
+         fprintf(stderr, "switchToUncompressedCoordinates()-- Error: there is a gap in positioning, the last read I have ended at %d and the next starts at %d\n", compressedOffset, _utgpos[child].min());
+      assert(_utgpos[child].min() >= compressedOffset);
+
+      uint32 readCompressedPosition = _utgpos[child].min() - compressedOffset;
+      uint32 compressedEnd   = _utgpos[child].max();
+      uint32 compressedStart = _utgpos[child].min();
+
+      // find the start position in normal read based on position in compressed read
+      uint32 i = 0;
+      while (i < nlen && (ntoc[i] < readCompressedPosition))
+         i++;
+
+      if (showAlgorithm())
+          fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), _utgpos[child].min(), readCompressedPosition, i);
+
+      _utgpos[child].setMinMax(i+uncompressedOffset, i+uncompressedOffset+getSequence(child)->length());
+      if (showAlgorithm())
+           fprintf(stderr, "switchToUncompressedCoordinates() --Updated read %d which has length %d to be from %d - %d\n", _utgpos[child].ident(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+
+       // update best end if needed
+       if (ntoc == NULL || compressedEnd > currentEnd) {
+          nlen  = getSequence(child)->length();
+          delete[] ntoc;
+          ntoc  = new uint32 [ nlen + 1 ];
+          uint32 clen  = homopolyCompress(getSequence(child)->getBases(), nlen, NULL, ntoc);
+
+          currentEnd         = compressedEnd;
+          compressedOffset   = compressedStart;
+          uncompressedOffset = _utgpos[child].min();
+
+          if (showAlgorithm())
+             fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
+       }
+
+      if (_utgpos[child].max() > layoutLen)
+        layoutLen = _utgpos[child].max();
+    }
+    delete[] ntoc;
+    _tig->_layoutLen = layoutLen;
+}
 
 char *
 unitigConsensus::generateTemplateStitch(void) {
@@ -744,6 +802,8 @@ unitigConsensus::initializeGenerate(tgTig                     *tig_,
     fprintf(stderr, "Failed to initialize for tig %u with %u children\n", _tig->tigID(), _tig->numberOfChildren());
     return(false);
   }
+
+  switchToUncompressedCoordinates();
 
   return(true);
 }

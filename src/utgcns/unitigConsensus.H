@@ -138,6 +138,8 @@ public:
                   map<uint32, sqRead *>     *reads_ = NULL);
 
 private:
+  void   switchToUncompressedCoordinates(void);
+
   char  *generateTemplateStitch(void);
 
   bool   initializeGenerate(tgTig                     *tig,
