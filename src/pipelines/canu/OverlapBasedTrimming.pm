@@ -285,7 +285,7 @@ sub dumpTrimmedReads ($) {
         $cmd .= "  -S ./$asm.seqStore \\\n";
         $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
         $cmd .= "  -fasta \\\n";
-        $cmd .= "  -nolibname \\\n";
+        $cmd .= "  -trimmed -normal -nolibname \\\n";
         $cmd .= "> ./$asm.trimmedReads.fasta.err 2>&1";
 
         if (runCommand(".", $cmd)) {
