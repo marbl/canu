@@ -130,8 +130,14 @@ BestOverlapGraph::findErrorRateThreshold(void) {
     if (isIgnored(fi) == true)
       continue;
 
+    //  If best edges, save the error rate of them.
+
     if (b5->readId() != 0)   erates.push_back(b5->erate());
     if (b3->readId() != 0)   erates.push_back(b3->erate());
+
+    //  If no best edges, search for the overlap with the highest number of
+    //  matches and use that.  Only filtering on error rate, because that's
+    //  all we have computed so far.
 
     if ((b5->readId() == 0) &&
         (b3->readId() == 0)) {
@@ -141,6 +147,9 @@ BestOverlapGraph::findErrorRateThreshold(void) {
       double      bestE = 0.0;
 
       for (uint32 oo=0; oo<no; oo++) {
+        if (isOverlapBadQuality(ovl[oo]) == true)
+          continue;
+
         double  matches = (1 - ovl[oo].erate()) * RI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
 
         if (bestM < matches) {
@@ -149,7 +158,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
         }
       }
 
-      if (no > 0)
+      if (bestM > 0)
         erates.push_back(bestE);
     }
   }
