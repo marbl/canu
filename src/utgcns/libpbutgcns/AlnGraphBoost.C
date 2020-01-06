@@ -67,7 +67,6 @@
 #include <queue>
 #include <map>
 #include <vector>
-#include <boost/format.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/utility/value_init.hpp>
