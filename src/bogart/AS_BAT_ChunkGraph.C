@@ -41,7 +41,73 @@
 
 #include "AS_BAT_Logging.H"
 
+#include <set>
 #include <algorithm>
+
+
+
+ChunkGraph::ChunkGraph(const char *prefix) {
+  uint32   maxID    = RI->numReads();
+
+  //  Allocate space for storing the full path length from each read.  There
+  //  is no zeroth read, and this path length will always be zero.  When
+  //  _chunkLength is sorted, this zeroth read will be at the end of the
+  //  list, which is used to stop the iteration in nextReadByChunkLength().
+  //
+  _chunkLength     = new ChunkLength [maxID + 1];
+  _chunkLengthIter = 0;
+
+  for (uint32 fid=0; fid <= maxID; fid++) {
+    _chunkLength[fid].readId  = fid;
+    _chunkLength[fid].pathLen = 0;
+  }
+
+  //  Temporary storage of the path length from each read end.  Initialize to
+  //  bogus value so we can use '0' as a valid path length.
+
+  uint32  *endPathLen = new uint32 [maxID * 2 + 2];
+
+  endPathLen[0] = 0;   //  But the zeroth read must have a zero length path.
+  endPathLen[1] = 0;   //  It _shouldn't_ be used, but not verified.
+
+  for (uint32 epl=2; epl < maxID * 2 + 2; epl++)
+    endPathLen[epl] = 0;
+
+  //  For each actual read, compute both end path lengths, and save the
+  //  total path length in _chunkLength.
+
+  FILE *chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? AS_UTL_openOutputFile(prefix, '.', "chunkGraph.log") : NULL;
+
+  for (uint32 fid=1; fid <= maxID; fid++) {
+    if ((RI->isValid(fid)       == false) ||     //  Read just doesn't exist.
+        (OG->isContained(fid)   == true)  ||     //  Read is contained, not in a path.
+        (OG->isCoverageGap(fid) == true)  ||     //  Read is probably chimeric, poison.
+        (OG->isLopsided(fid)    == true))        //  Read is possibly chimeric, poison.
+      continue;
+
+    _chunkLength[fid].pathLen = (countFullWidth(ReadEnd(fid, false), endPathLen, chunkLog) +
+                                 countFullWidth(ReadEnd(fid, true),  endPathLen, chunkLog));
+  }
+
+  AS_UTL_closeFile(chunkLog, prefix, '.', "chunkGraph.log");
+
+  delete [] endPathLen;
+
+  //  Sort by decreasing path length.
+
+  auto decreasingReadCount = [](ChunkLength const &a, ChunkLength const &b) {
+                               return((a.pathLen > b.pathLen) || ((a.pathLen == b.pathLen) && (a.readId < b.readId)));
+                             };
+
+  std::sort(_chunkLength, _chunkLength + maxID + 1, decreasingReadCount);
+}
+
+
+
+ChunkGraph::~ChunkGraph(void) {
+  delete [] _chunkLength;
+};
+
 
 
 //  Return the ReadEnd we'd get by following the edge out of the supplied
@@ -57,120 +123,25 @@ followOverlap(ReadEnd end) {
 }
 
 
-
-ChunkGraph::ChunkGraph(const char *prefix) {
-  char N[FILENAME_MAX];
-
-  snprintf(N, FILENAME_MAX, "%s.chunkGraph.log", prefix);
-
-  _chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? AS_UTL_openOutputFile(N) : NULL;
-
-  _maxRead = RI->numReads();
-  _restrict    = NULL;
-
-  _pathLen         = new uint32      [_maxRead * 2 + 2];
-  _chunkLength     = new ChunkLength [_maxRead];
-  _chunkLengthIter = 0;
-
-  memset(_pathLen,     0, sizeof(uint32)      * (_maxRead * 2 + 2));
-  memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxRead));
-
-  for (uint32 fid=1; fid <= _maxRead; fid++) {
-    if (OG->isContained(fid)) {
-      if (_chunkLog)
-        fprintf(_chunkLog, "read %u contained\n", fid);
-      continue;
-    }
-
-    if (OG->isCoverageGap(fid)) {
-      if (_chunkLog)
-        fprintf(_chunkLog, "read %u has a coverage gap\n", fid);
-      continue;
-    }
-
-    if (OG->isLopsided(fid)) {
-      if (_chunkLog)
-        fprintf(_chunkLog, "read %u has lopsided best edges\n", fid);
-      continue;
-    }
-
-    uint32  l5 = countFullWidth(ReadEnd(fid, false));
-    uint32  l3 = countFullWidth(ReadEnd(fid, true));
-
-    _chunkLength[fid-1].readId = fid;
-    _chunkLength[fid-1].cnt    = l5 + l3;
-  }
-
-  AS_UTL_closeFile(_chunkLog, N);
-
-  delete [] _pathLen;
-  _pathLen = NULL;
-
-  std::sort(_chunkLength, _chunkLength + _maxRead);
-}
-
-
-
-ChunkGraph::ChunkGraph(set<uint32> *restrict) {
-
-  _chunkLog    = NULL;
-
-  _maxRead     = 0;
-  _restrict    = restrict;
-
-  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++)
-    _idMap[*it] = _maxRead++;
-
-  _pathLen         = new uint32      [_maxRead * 2 + 2];
-  _chunkLength     = new ChunkLength [_maxRead];
-  _chunkLengthIter = 0;
-
-  memset(_pathLen,     0, sizeof(uint32)      * (_maxRead * 2 + 2));
-  memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxRead));
-
-  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
-    uint32  fid = *it;          //  Actual read ID
-    uint32  fit = _idMap[fid];  //  Local array index
-
-    if (OG->isContained(fid))
-      continue;
-
-    _chunkLength[fit].readId = fid;
-    _chunkLength[fit].cnt    = (countFullWidth(ReadEnd(fid, false)) +
-                                countFullWidth(ReadEnd(fid, true)));
-  }
-
-  delete [] _pathLen;
-  _pathLen = NULL;
-
-  std::sort(_chunkLength, _chunkLength + _maxRead);
-}
-
-
-
-
 uint64
-ChunkGraph::getIndex(ReadEnd e) {
-  if (_restrict == NULL)
-    return(e.readId() * 2 + e.read3p());
-
-  return(_idMap[e.readId()] * 2 + e.read3p());
+getIndex(ReadEnd e) {
+  return(e.readId() * 2 + e.read3p());
 }
 
 
 uint32
-ChunkGraph::countFullWidth(ReadEnd firstEnd) {
+ChunkGraph::countFullWidth(ReadEnd firstEnd, uint32 *endPathLen, FILE *chunkLog) {
   uint64   firstIdx = getIndex(firstEnd);
 
-  assert(firstIdx < _maxRead * 2 + 2);
+  assert(firstEnd.readId() != 0);
 
-  if (_pathLen[firstIdx] > 0) {
-    if (_chunkLog)
-      fprintf(_chunkLog, "path from %d,%d'(length=%d)\n",
+  if (endPathLen[firstIdx] != 0) {
+    if (chunkLog)
+      fprintf(chunkLog, "path from %d,%d'(length=%u)\n",
               firstEnd.readId(),
               (firstEnd.read3p()) ? 3 : 5,
-              _pathLen[firstIdx]);
-    return _pathLen[firstIdx];
+              endPathLen[firstIdx]);
+    return(endPathLen[firstIdx]);
   }
 
   uint32                length = 0;
@@ -178,17 +149,18 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
   ReadEnd               lastEnd = firstEnd;
   uint64                lastIdx = firstIdx;
 
-  //  Until we run off the chain, or we hit a read with a known length, compute the length FROM
-  //  THE START.
-  //
-  while ((lastIdx != 0) &&
-         (_pathLen[lastIdx] == 0)) {
+  //  Until we run off the chain, or we hit an end with a known length,
+  //  compute the length of the path.
 
+  while ((lastEnd.readId() != 0) &&
+         (endPathLen[lastIdx] == 0)) {
     seen.insert(lastEnd);
 
-    _pathLen[lastIdx] = ++length;
+    //  Definitely seeing lopsided reads here.
+    assert(OG->isCoverageGap(lastEnd.readId()) == false);
+    //assert(OG->isLopsided   (lastEnd.readId()) == false);
 
-    //  Follow the path of lastEnd
+    endPathLen[lastIdx] = ++length;
 
     lastEnd = followOverlap(lastEnd);
     lastIdx = getIndex(lastEnd);
@@ -196,61 +168,56 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
 
   //  Check why we stopped.  Three cases:
   //
-  //  1)  We ran out of best edges to follow -- lastEnd.readId() == 0
-  //  2)  We encountered a read with known length -- _pathLen[lastEnd.index()] > 0
-  //  3)  We encountered a self-loop (same condition as case 2)
-  //
-  //  To distinguish case 2 and 3, we keep a set<> of the reads we've seen in this construction.
-  //  If 'lastEnd' is in that set, then we're case 3.  If so, adjust every node in the cycle to have
-  //  the same length, the length of the cycle itself.
-  //
-  //  'lastEnd' and 'index' are the first read in the cycle; we've seen this one before.
-  //
+  //  Case 1.  We just ran out of overlaps.  Do nothing.
   if (lastEnd.readId() == 0) {
-    //  Case 1.  Do nothing.
     ;
+  }
 
-  } else if (seen.find(lastEnd) != seen.end()) {
-    //  Case 3, a cycle.
-    uint32      cycleLen = length - _pathLen[lastIdx] + 1;
-    ReadEnd currEnd  = lastEnd;
+  //  Case 2.  We encountered a read with a path length already set, and this
+  //  read is not in our path.
+  else if (seen.find(lastEnd) == seen.end()) {
+    length += endPathLen[lastIdx];
+  }
+
+  //  Case 3.  Same as 2, but this read IS in our path, thus, we're in a loop.
+  //  Set the length of all reads in the loop to be the size of the loop.
+  //
+  //  'lastEnd' and 'lastIdx' are the read we've seen before, aka, the first
+  //  read in the loop.  So, starting from the first read in the loop, set
+  //  the path length to the cycle length until we get back to that same
+  //  first read.
+  else {
+    uint32      cycleLen = length - endPathLen[lastIdx] + 1;
+    ReadEnd     currEnd  = lastEnd;
     uint64      currIdx  = lastIdx;
 
     do {
-      _pathLen[currIdx] = cycleLen;
+      endPathLen[currIdx] = cycleLen;
+
       currEnd = followOverlap(currEnd);
       currIdx = getIndex(currEnd);
     } while (lastEnd != currEnd);
-
-  } else {
-    //  Case 2, an existing path.
-    length += _pathLen[lastIdx];
   }
 
-  //  Our return value is now whatever count we're at.
-  uint32      lengthMax = length;
-
-  //  Traverse again, converting "path length from the start" into "path length from the end".  Any
-  //  cycle has had its length set correctly already, and we stop at either the start of the cycle,
-  //  or at the start of any existing path.
+  //  Traverse again, converting "path length from the start" into "path
+  //  length from the end".
   //
+  //  For case 3 above, the reads in the loop have had their path lengths set
+  //  already, and 'lastEnd' is the first read in the loop.
+
   ReadEnd     currEnd = firstEnd;
   uint64      currIdx = firstIdx;
 
   while (currEnd != lastEnd) {
-    _pathLen[currIdx] = length--;
+    endPathLen[currIdx] = length--;
+
+    assert(endPathLen[currIdx] > 0);
+
     currEnd = followOverlap(currEnd);
     currIdx = getIndex(currEnd);
   }
 
-
-  if (lengthMax != _pathLen[firstIdx]) {
-    writeStatus("chunkGraph()-- ERROR: lengthMax %d _pathLen[] %d\n",
-                lengthMax, _pathLen[firstIdx]);
-    flushLog();
-  }
-  assert(lengthMax == _pathLen[firstIdx]);
-
+  //  Now just do some logging.
 
   if (logFileFlagSet(LOG_CHUNK_GRAPH)) {
     seen.clear();
@@ -258,39 +225,42 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
     currEnd = firstEnd;
     currIdx = firstIdx;
 
-    if (_chunkLog)
-      fprintf(_chunkLog, "path from %d,%d'(length=%d):",
+    if (chunkLog)
+      fprintf(chunkLog, "path from %d,%d'(length=%u):",
               firstEnd.readId(),
               (firstEnd.read3p()) ? 3 : 5,
-              _pathLen[firstIdx]);
+              endPathLen[firstIdx]);
 
     while ((currEnd.readId() != 0) &&
            (seen.find(currEnd) == seen.end())) {
       seen.insert(currEnd);
 
-      if ((_chunkLog) && (currEnd == lastEnd))
-        fprintf(_chunkLog, " LAST");
+      if ((chunkLog) && (currEnd == lastEnd))
+        fprintf(chunkLog, " LAST");
 
-      if (_chunkLog)
-        fprintf(_chunkLog, " %d,%d'(%d)",
+      if (chunkLog)
+        fprintf(chunkLog, " %d,%d'(%u)",
                 currEnd.readId(),
                 (currEnd.read3p()) ? 3 : 5,
-                _pathLen[currIdx]);
+                endPathLen[currIdx]);
 
       currEnd = followOverlap(currEnd);
       currIdx = getIndex(currEnd);
     }
 
-    if ((_chunkLog) && (seen.find(currEnd) != seen.end()))
-      fprintf(_chunkLog, " CYCLE %d,%d'(%d)",
+    if ((chunkLog) && (seen.find(currEnd) != seen.end()))
+      fprintf(chunkLog, " CYCLE %d,%d'(%u)",
               currEnd.readId(),
               (currEnd.read3p()) ? 3 : 5,
-              _pathLen[currIdx]);
+              endPathLen[currIdx]);
 
-    if (_chunkLog)
-      fprintf(_chunkLog, "\n");
+    if (chunkLog)
+      fprintf(chunkLog, "\n");
   }
 
+  //  And return the path length from this read end.
 
-  return(_pathLen[firstIdx]);
+  assert(endPathLen[firstIdx] > 0);
+
+  return(endPathLen[firstIdx]);
 }

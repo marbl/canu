@@ -40,61 +40,32 @@
 
 #include "AS_global.H"
 
-#include <set>
-#include <map>
-
-using namespace std;
-
-
-class BestOverlapGraph;
-
-class ChunkLength {
-public:
-  uint32 readId;
-  uint32 cnt;
-
-  bool operator<(ChunkLength const that) const {
-    if (cnt == that.cnt)
-      return(readId < that.readId);
-    return(cnt > that.cnt);
-  };
-};
-
+//  Returns a list of read IDs sorted by the number of reads in a BOG path
+//  seeded by that read.
 
 class ChunkGraph {
 public:
   ChunkGraph(const char *prefix);
-  ChunkGraph(set<uint32> *restrict);
-  ~ChunkGraph(void) {
-    delete [] _chunkLength;
-  };
+  ~ChunkGraph(void);
 
   uint32 nextReadByChunkLength(void) {
-    if (_chunkLengthIter >= _maxRead)
-      return(0);
+    if (_chunkLength[_chunkLengthIter].pathLen == 0)   //  By construction, the array
+      return(0);                                       //  always ends with pathLen == 0.
+
     return(_chunkLength[_chunkLengthIter++].readId);
   };
 
 private:
-  uint64 getIndex(ReadEnd e);
-  uint32 countFullWidth(ReadEnd firstEnd);
+  uint32 countFullWidth(ReadEnd firstEnd, uint32 *pathLen, FILE *chunkLog);
 
-  FILE               *_chunkLog;
+  struct ChunkLength {
+    uint32 readId;
+    uint32 pathLen;
+  };
 
-  uint64              _maxRead;
-
-  //  The usual case, for a chunk graph of all reads.
   ChunkLength        *_chunkLength;
   uint32              _chunkLengthIter;
-  uint32             *_pathLen;
-
-  //  For a chunk graph of a single unitig plus some extra reads.
-  //  This maps the uint32 to an index in the arrays above.
-  map<uint32,uint32>  _idMap;
-  set<uint32>        *_restrict;
 };
-
-
 
 extern ChunkGraph       *CG;
 
