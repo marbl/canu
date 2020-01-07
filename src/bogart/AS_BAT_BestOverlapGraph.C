@@ -51,10 +51,12 @@
 
 
 void
-BestOverlapGraph::removeReadsWithCoverageGap(const char *UNUSED(prefix)) {
+BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.coverageGap");
 
   //  Search for reads that have an internal region with no coverage.
   //  If found, flag these as _coverageGap.
@@ -71,6 +73,8 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *UNUSED(prefix)) {
 
     if (isIgnored(fi) == true)
       continue;
+
+    //  Note that we only filter on overlap quality here.
 
     for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
       if (isOverlapBadQuality(ovl[ii]) == false) {
@@ -103,8 +107,42 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *UNUSED(prefix)) {
     if (IL.numberOfIntervals() == 1)     //  One interval, so it's good.
       continue;
 
+    switch (IL.numberOfIntervals()) {
+      case 2:
+        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                 IL.lo(0), IL.hi(0),
+                 IL.lo(1), IL.hi(1));
+        break;
+      case 3:
+        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                 IL.lo(0), IL.hi(0),
+                 IL.lo(1), IL.hi(1),
+                 IL.lo(2), IL.hi(2));
+        break;
+      case 4:
+        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                 IL.lo(0), IL.hi(0),
+                 IL.lo(1), IL.hi(1),
+                 IL.lo(2), IL.hi(2),
+                 IL.lo(3), IL.hi(3));
+        break;
+      case 5:
+        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                 IL.lo(0), IL.hi(0),
+                 IL.lo(1), IL.hi(1),
+                 IL.lo(2), IL.hi(2),
+                 IL.lo(3), IL.hi(3),
+                 IL.lo(4), IL.hi(4));
+        break;
+      default:
+        fprintf(F, "coverageGap %u -- %u regions\n", fi, IL.numberOfIntervals());
+        break;
+    }
+
     setCoverageGap(fi);                  //  Bad regions detected!  Possible chimeric read.
   }
+
+  AS_UTL_closeFile(F, prefix, '.', "best.coverageGap");
 }
 
 
