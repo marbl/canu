@@ -80,10 +80,11 @@ ChunkGraph::ChunkGraph(const char *prefix) {
 
   for (uint32 fid=1; fid <= maxID; fid++) {
     if ((RI->isValid(fid)       == false) ||     //  Read just doesn't exist.
-        (OG->isContained(fid)   == true)  ||     //  Read is contained, not in a path.
-        (OG->isCoverageGap(fid) == true)  ||     //  Read is probably chimeric, poison.
-        (OG->isLopsided(fid)    == true))        //  Read is possibly chimeric, poison.
+        (OG->isContained(fid)   == true))        //  Read is contained, not in a path.
       continue;
+
+    if (OG->isCoverageGap(fid)  == true)         //  Read is chimeric.  Explicitly skip, otherwise
+      continue;                                  //  assert in countFillWidth() fails.
 
     _chunkLength[fid].pathLen = (countFullWidth(ReadEnd(fid, false), endPathLen, chunkLog) +
                                  countFullWidth(ReadEnd(fid, true),  endPathLen, chunkLog));
@@ -156,9 +157,9 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd, uint32 *endPathLen, FILE *chunkLog)
          (endPathLen[lastIdx] == 0)) {
     seen.insert(lastEnd);
 
-    //  Definitely seeing lopsided reads here.
+    //  Should never get to a covergeGap read in a path
+    //  (but we can get to lopsided).
     assert(OG->isCoverageGap(lastEnd.readId()) == false);
-    //assert(OG->isLopsided   (lastEnd.readId()) == false);
 
     endPathLen[lastIdx] = ++length;
 

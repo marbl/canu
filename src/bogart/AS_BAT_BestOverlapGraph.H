@@ -160,30 +160,19 @@ private:
   //
   //////////
   //  CoverageGap
-  //   - (formerly called suspicious)
-  //   - overlaps indicate this read is possibly chimeric.
-  //   - coverage gap reads have chunk graph length of zero.
-  //      - explicitly cannot seed a contig
-  //   - terminates initial contig construction if encountered
-  //   - treated as a spur when finding spur paths
-  //   - not used as evidence of a non-spur-path
-  //   - cannot have best edges TO them
-  //   - can have best edges OUT of them
-  //   - cannot be a confused edge
-  //   - not explicitly prevented from making an edge confused, but can
-  //     only happen if the read is initially in a contig
+  //   - Probably a chimeric read, but could be a low coverage variant.
+  //   - Generally excluded from the assembly, but edges from them are allowed
+  //     so they can be possibly popped as bubbles.
+  //   - Treated as terminal spur reads when finding spur paths.
+  //   - Edges to these should not exist, they cannot seed unitigs, and
+  //     will assert() if they're encountered when a unitig is constructed.
   //
   //////////
   //  Lopsided
-  //   - Overlaps indicate a possible problem at one end of the read
-  //   - lopsided reads have chnk graph length of zero.
-  //      - explicitly cannot seed a contig
-  //   - terminates initial contig construction if encountered
-  //   - no other mentions
-  //
-  //   - DISPOSITION: remove?  this was added for canu 1.6, but I
-  //     don't remember the motivation.  it's easy to find false positives.
-  //     but it does seem to make bigger initial contigs.
+  //   - Suspected bubble near the end of a read that disrupts all but
+  //     short overlaps.  Could also be caused by repeats and low coverage.
+  //   - Treated like a normal read, except they cannot seed unitigs.
+  //   - 
   //
   //////////
   //  Backbone   - Read was placed as part of the backbone of a contig.

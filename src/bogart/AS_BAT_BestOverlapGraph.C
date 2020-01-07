@@ -109,25 +109,25 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
 
     switch (IL.numberOfIntervals()) {
       case 2:
-        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+        fprintf(F, "read %u -- %u regions %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
                  IL.lo(0), IL.hi(0),
                  IL.lo(1), IL.hi(1));
         break;
       case 3:
-        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+        fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
                  IL.lo(0), IL.hi(0),
                  IL.lo(1), IL.hi(1),
                  IL.lo(2), IL.hi(2));
         break;
       case 4:
-        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+        fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
                  IL.lo(0), IL.hi(0),
                  IL.lo(1), IL.hi(1),
                  IL.lo(2), IL.hi(2),
                  IL.lo(3), IL.hi(3));
         break;
       case 5:
-        fprintf(F, "coverageGap %u -- %u regions %d-%d %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+        fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
                  IL.lo(0), IL.hi(0),
                  IL.lo(1), IL.hi(1),
                  IL.lo(2), IL.hi(2),
@@ -135,7 +135,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
                  IL.lo(4), IL.hi(4));
         break;
       default:
-        fprintf(F, "coverageGap %u -- %u regions\n", fi, IL.numberOfIntervals());
+        fprintf(F, "read %u -- %u regions\n", fi, IL.numberOfIntervals());
         break;
     }
 
@@ -278,6 +278,10 @@ BestOverlapGraph::findErrorRateThreshold(void) {
 
 
 
+//  Jan 2020:
+//    This makes slight improvements to HiFi assemblies if it is enabled,
+//    But slight improvements to Sequel assemblies if it is disabled.
+//
 void
 BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
   uint32  fiLimit    = RI->numReads();
@@ -375,6 +379,7 @@ BestOverlapGraph::spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 dista
   bool    ot3p = (in3p == false) ? true : false;
 
   assert(isIgnored(inid) == false);   //  Edge to ignored read, ERROR!
+  assert(isCoverageGap(inid) == false);
 
   if (isCoverageGap(inid) == true)    //  Edge to a probably chimeric read?
     return(distance);                 //  Call it a spur.
@@ -469,9 +474,14 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     for (uint32 fi=1; fi <= fiLimit; fi++) {
       if ((isIgnored(fi)     == true) ||   //  Ignored read, ignore.
           (isContained(fi)   == true) ||   //  Contained read, ignore.
-          (isCoverageGap(fi) == true) ||   //  Suspected chimeric read, ignore.
           (RI->isValid(fi)   == false))    //  Unused read, ignore.
         continue;
+
+      if (isCoverageGap(fi)  == true)      //  Treat covGap reads as if they
+        continue;                          //  are terminal spur reads.
+
+      //if (isLopsided(fi)     == true)    //  Explicitly allow bubble reads
+      //  continue;                        //  to save spurs.
 
       BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
       BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi,  true);
@@ -547,9 +557,14 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
         if ((isIgnored(ovl[ii].b_iid)     == true) ||             //    Ignore overlaps to ignored reads.
             (isContained(ovl[ii].b_iid)   == true) ||             //    Ignore overlaps to contained and chimeric reads.
-            (isCoverageGap(ovl[ii].b_iid) == true) ||             //    We don't want best edges to these reads.
             (RI->isValid(fi)              == false))              //    Ignore overlaps to reads that don't exist.
           continue;
+
+        if (isCoverageGap(ovl[ii].b_iid)  == true)                //    No edges to coverage gap reads are allowed.
+          continue;
+
+        //if (isLopsided(ovl[ii].b_iid)     == true)              //    Allow edges to bubble reads.
+        //  continue;
 
         bool   Aend5 = ovl[ii].AEndIs5prime();
         bool   Aend3 = ovl[ii].AEndIs3prime();
@@ -1163,9 +1178,6 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       if (isContained(id) == true)        //  Ignore contained reads.
         continue;
 
-      //if (isLopsided(id) == true)         //  Ignore lopsided.
-      //  continue;
-
       //  Remember the source and destination of this edge.
       used.insert(id);
       used.insert(bestedge5->readId());
@@ -1194,9 +1206,6 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
       if (isContained(id) == true)        //  Ignore contained reads.
         continue;
-
-      //if (isLopsided(id) == true)         //  Ignore lopsided.
-      //  continue;
 
       if (bestedge5->readId() != 0) {
         int32  ahang   = bestedge5->ahang();
@@ -1267,16 +1276,18 @@ logEdgeScore(BAToverlap   &olap,
 void
 BestOverlapGraph::scoreEdge(BAToverlap& olap) {
 
+  assert(isIgnored(olap.a_iid)   == false);     //  It's an error to call this function
+  assert(isContained(olap.a_iid) == false);     //  on ignored or contained reads.
+
   if ((olap.isDovetail()         == false) ||   //  Ignore non-dovetail overlaps.
-      (isContained(olap.b_iid)   == true) ||    //  Ignore edges into contained.
-      (isCoverageGap(olap.b_iid) == true))      //  Ignore edges into coverage gap reads.
+      (isContained(olap.b_iid)   == true))      //  Ignore edges into contained.
     return;
 
-  if (isIgnored(olap.a_iid) == true) {          //  Ignore ignored reads.  This should
-    assert(0);                                  //  never actually happen.
-    logEdgeScore(olap, "ignored");
-    return;
-  }
+  if (isCoverageGap(olap.b_iid)  == true)       //  Ignore edges into coverage gap reads.
+    return;                                     //  Suspected to be bad, why go there?
+
+  //if (isLopsided(olap.b_iid)     == true)     //  Explicitly do NOT ignore edges into lopsided.
+  //  return;                                   //  Known to be very bad if we do.
 
   if (isIgnored(olap.b_iid) == true) {          //  Ignore ignored reads.  This could
     logEdgeScore(olap, "ignored");              //  happen; it's just easier to filter
