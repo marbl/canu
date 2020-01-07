@@ -499,7 +499,7 @@ sub generateCorrectedReadsConfigure ($) {
         print F "echo Start copy at `date`\n";
         print F "cp -p \$seqStore/info      $stageDir/$asm.seqStore/info\n";
         print F "cp -p \$seqStore/libraries $stageDir/$asm.seqStore/libraries\n";
-        print F "cp -p \$seqStore/reads     $stageDir/$asm.seqStore/reads\n";
+        print F "cp -p \$seqStore/reads*    $stageDir/$asm.seqStore/\n";
         print F "cp -p \$seqStore/blobs.*   $stageDir/$asm.seqStore/\n";
         print F "echo Finished   at `date`\n";
         print F "\n";
