@@ -180,7 +180,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   double   Tinput  = _errorLimit;
   double   Tmean   = _mean   + _deviationGraph          * _stddev;
   double   Tmad    = _median + _deviationGraph * 1.4826 * _mad;
-  double   Tperct  = erates[pos];
+  double   Tperct  = erates[pos] + 1e-5;
   double   Tpicked = (_median > 1e-10) ? Tmad : Tperct;
 
   if (Tinput < Tpicked)
