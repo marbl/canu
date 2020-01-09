@@ -32,6 +32,11 @@ main(int32 argc, char **argv) {
   TYPE    *array = new TYPE [nObj];
   TYPE     value = 0;
 
+  if (1) {
+    compressedFileWriter *out = new compressedFileWriter("test.gz");
+
+    delete out;
+  }
 
   if (1) {
     fprintf(stderr, "Initializing.\n");
