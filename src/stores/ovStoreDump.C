@@ -79,45 +79,46 @@ public:
 class dumpParameters {
 public:
   dumpParameters() {
-    no5p               = false;
-    no3p               = false;
-    noContainer        = false;
-    noContained        = false;
-    noRedundant        = false;
+    no5p                = false;
+    no3p                = false;
+    noContainer         = false;
+    noContained         = false;
+    noRedundant         = false;
 
-    noBogartContained  = false;
-    noBogartSuspicious = false;
-    noBogartSpur       = false;
+    noBogartContained   = false;
+    noBogartCoverageGap = false;
+    noBogartLopsided    = false;
+    noBogartSpur        = false;
 
-    erateMin           = 0.0;
-    erateMax           = 1.0;
+    erateMin            = 0.0;
+    erateMax            = 1.0;
 
-    lengthMin          = 0;
-    lengthMax          = UINT32_MAX;
+    lengthMin           = 0;
+    lengthMax           = UINT32_MAX;
 
-    queryMin           = 0;
-    queryMax           = UINT32_MAX;
+    queryMin            = 0;
+    queryMax            = UINT32_MAX;
 
-    withStatus         = false;
-    withTigID          = false;
+    withStatus          = false;
+    withTigID           = false;
 
-    status             = NULL;
+    status              = NULL;
 
 
-    ovlKept            = 0;
-    ovlFiltered        = 0;
+    ovlKept             = 0;
+    ovlFiltered         = 0;
 
-    ovl5p              = 0;
-    ovl3p              = 0;
-    ovlContainer       = 0;
-    ovlContained       = 0;
-    ovlRedundant       = 0;
+    ovl5p               = 0;
+    ovl3p               = 0;
+    ovlContainer        = 0;
+    ovlContained        = 0;
+    ovlRedundant        = 0;
 
-    ovlErateLo         = 0;
-    ovlErateHi         = 0;
+    ovlErateLo          = 0;
+    ovlErateHi          = 0;
 
-    ovlLengthLo        = 0;
-    ovlLengthHi        = 0;
+    ovlLengthLo         = 0;
+    ovlLengthHi         = 0;
   };
 
   ~dumpParameters() {
@@ -126,20 +127,21 @@ public:
 
 
   bool        parametersAreDefaults(void) {       //  Returns true if all the parameters
-    return((no5p               == false) &&       //  are the default setting.
-           (no3p               == false) &&       //
-           (noContainer        == false) &&       //  This looks horrid, but it was easier
-           (noContained        == false) &&       //  and simpler than tracking what
-           (noRedundant        == false) &&       //  was set.  I'd need to make setter
-           (noBogartContained  == false) &&       //  functions for everything, make the
-           (noBogartSuspicious == false) &&       //  setter set a 'isChanged' flag, and
-           (noBogartSpur       == false) &&       //  then update command line parsing.
-           (erateMin           == 0.0) &&         //
-           (erateMax           == 1.0) &&         //  It took longer to write this comment
-           (lengthMin          == 0) &&           //  than to write this function.
-           (lengthMax          == UINT32_MAX) &&  //
-           (queryMin           == 0) &&           //  So there.
-           (queryMax           == UINT32_MAX));
+    return((no5p                == false) &&       //  are the default setting.
+           (no3p                == false) &&       //
+           (noContainer         == false) &&       //  This looks horrid, but it was easier
+           (noContained         == false) &&       //  and simpler than tracking what
+           (noRedundant         == false) &&       //  was set.  I'd need to make setter
+           (noBogartContained   == false) &&       //  functions for everything, make the
+           (noBogartCoverageGap == false) &&       //  setter set a 'isChanged' flag, and
+           (noBogartLopsided    == false) &&       //  then update command line parsing.
+           (noBogartSpur        == false) &&       //  
+           (erateMin            == 0.0) &&         //
+           (erateMax            == 1.0) &&         //  It took longer to write this comment
+           (lengthMin           == 0) &&           //  than to write this function.
+           (lengthMax           == UINT32_MAX) &&  //
+           (queryMin            == 0) &&           //  So there.
+           (queryMax            == UINT32_MAX));
   };
 
   void        loadBogartStatus(const char *prefix, uint32 nReads);
@@ -191,14 +193,14 @@ public:
       filtered = true;
     }
 
-    if ((noBogartSuspicious) &&
+    if ((noBogartCoverageGap) &&
         (withStatus) &&
         ((status[overlap->a_iid].isCovGap == true) ||
          (status[overlap->b_iid].isCovGap == true))) {
       filtered = true;
     }
 
-    if ((noBogartSuspicious) &&
+    if ((noBogartLopsided) &&
         (withStatus) &&
         ((status[overlap->a_iid].isLopsided == true) ||
          (status[overlap->b_iid].isLopsided == true))) {
@@ -249,7 +251,8 @@ public:
   bool           noRedundant;
 
   bool           noBogartContained;
-  bool           noBogartSuspicious;
+  bool           noBogartCoverageGap;
+  bool           noBogartLopsided;
   bool           noBogartSpur;
 
   uint32         queryMin;
@@ -419,7 +422,7 @@ dumpParameters::drawPicture(uint32         Aid,
   line[MHS + 1 + 101] = 0;
 
   //  Draw the read we're showing overlaps for.
-  //  Annotate it as either 'contained' or 'suspicious' as needed.
+  //  Annotate it as either 'contained', 'covGap', etc as needed.
 
   fprintf(stdout, "A %7d:%-7d A %9d %7d:%-7d %7d          %s\n",
           0, Alen,
@@ -809,8 +812,10 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-nobogartcontained") == 0)
       params.noBogartContained = true;
-    else if (strcmp(argv[arg], "-nobogartsuspicious") == 0)
-      params.noBogartSuspicious = true;
+    else if (strcmp(argv[arg], "-nobogartcoveragegap") == 0)
+      params.noBogartCoverageGap = true;
+    else if (strcmp(argv[arg], "-nobogartlopsided") == 0)
+      params.noBogartLopsided = true;
     else if (strcmp(argv[arg], "-nobogartspur") == 0)
       params.noBogartSpur = true;
 
@@ -834,55 +839,56 @@ main(int argc, char **argv) {
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -S seqStore -O ovlStore ...\n", argv[0]);
-    fprintf(stderr, "  -S seqStore         mandatory path to a sequence store\n");
-    fprintf(stderr, "  -O ovlStore         mandatory path to an overlap store\n");
+    fprintf(stderr, "  -S seqStore          mandatory path to a sequence store\n");
+    fprintf(stderr, "  -O ovlStore          mandatory path to an overlap store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "WHAT TO DUMP:\n");
     fprintf(stderr, "  Select what data to dump.  All take an optional read ID, or inclusive\n");
     fprintf(stderr, "  range of read IDs, to dump.  Dumps are to stdout.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -overlaps [b[-e]]   dump overlaps (default)\n");
-    fprintf(stderr, "  -picture  [b[-e]]   dump an ASCII picture of the overlaps relative to a read\n");
-    fprintf(stderr, "  -metadata [b[-3]]   tabular metadata, including the number of overlaps per read\n");
-    fprintf(stderr, "  -counts   [b[-e]]   the number of overlaps per read\n");
-    fprintf(stderr, "  -eratelen [b[-e]]   a histogram of overlap length vs error rate\n");
+    fprintf(stderr, "  -overlaps [b[-e]]    dump overlaps (default)\n");
+    fprintf(stderr, "  -picture  [b[-e]]    dump an ASCII picture of the overlaps relative to a read\n");
+    fprintf(stderr, "  -metadata [b[-3]]    tabular metadata, including the number of overlaps per read\n");
+    fprintf(stderr, "  -counts   [b[-e]]    the number of overlaps per read\n");
+    fprintf(stderr, "  -eratelen [b[-e]]    a histogram of overlap length vs error rate\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -prefix name        * for -eratelen, write histogram to name.dat\n");
-    fprintf(stderr, "                        and also output a gnuplot script to name.gp\n");
-    fprintf(stderr, "                      * for -binary, mandatory, write overlaps to name.ovb\n");
+    fprintf(stderr, "  -prefix name         * for -eratelen, write histogram to name.dat\n");
+    fprintf(stderr, "                         and also output a gnuplot script to name.gp\n");
+    fprintf(stderr, "                       * for -binary, mandatory, write overlaps to name.ovb\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "WHICH READ VERSION TO USE:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -raw                uncorrected raw reads\n");
-    fprintf(stderr, "  -obt                corrected reads\n");
-    fprintf(stderr, "  -utg                trimmed reads\n");
+    fprintf(stderr, "  -raw                 uncorrected raw reads\n");
+    fprintf(stderr, "  -obt                 corrected reads\n");
+    fprintf(stderr, "  -utg                 trimmed reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "FORMAT OF -overlaps OUTPUT\n");
     fprintf(stderr, "  NOTE!  Overlap type flags are only reported with -unaligned.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -coords             as coordinates on each read (default)\n");
-    fprintf(stderr, "  -hangs              as dovetail hangs\n");
-    fprintf(stderr, "  -unaligned          as unaligned regions on each read\n");
-    fprintf(stderr, "  -paf                as miniasm Pairwise mApping Format\n");
-    fprintf(stderr, "  -gfa                as Graphical Fragment Assembly format\n");
-    fprintf(stderr, "  -binary             as an overlapper output file (needs -prefix)\n");
+    fprintf(stderr, "  -coords              as coordinates on each read (default)\n");
+    fprintf(stderr, "  -hangs               as dovetail hangs\n");
+    fprintf(stderr, "  -unaligned           as unaligned regions on each read\n");
+    fprintf(stderr, "  -paf                 as miniasm Pairwise mApping Format\n");
+    fprintf(stderr, "  -gfa                 as Graphical Fragment Assembly format\n");
+    fprintf(stderr, "  -binary              as an overlapper output file (needs -prefix)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "OVERLAP FILTERING\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -no5p               do not show oevrlaps off the 5' end of the A read\n");
-    fprintf(stderr, "  -no3p               do not show overlaps off the 3' end of the A read\n");
-    fprintf(stderr, "  -nocontainer        do not show overlaps that contain some other B read\n");
-    fprintf(stderr, "  -nocontained        do not show overlaps that are contained in some other B read\n");
-    fprintf(stderr, "  -noreduntant        do not show overlaps where the A read ID is more than the B read ID\n");
-    fprintf(stderr, "  -query a[-b]        display only overlaps that are to these other B read IDs\n");
-    fprintf(stderr, "  -erate f            display only overlaps less than f fraction error\n");
-    fprintf(stderr, "  -length min[-max]   display only overlaps between min and max bases long\n");
+    fprintf(stderr, "  -no5p                do not show oevrlaps off the 5' end of the A read\n");
+    fprintf(stderr, "  -no3p                do not show overlaps off the 3' end of the A read\n");
+    fprintf(stderr, "  -nocontainer         do not show overlaps that contain some other B read\n");
+    fprintf(stderr, "  -nocontained         do not show overlaps that are contained in some other B read\n");
+    fprintf(stderr, "  -noreduntant         do not show overlaps where the A read ID is more than the B read ID\n");
+    fprintf(stderr, "  -query a[-b]         display only overlaps that are to these other B read IDs\n");
+    fprintf(stderr, "  -erate min[-max]     display only overlaps less than f fraction error\n");
+    fprintf(stderr, "  -length min[-max]    display only overlaps between min and max bases long\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -bogart asm.best    annotate a picture with labels from bogart asm.best.edges output\n");
+    fprintf(stderr, "  -bogart asm.best     annotate a picture with labels from bogart asm.best.edges output\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -nobogartcontained  do not show overlaps involving contained reads\n");
-    fprintf(stderr, "  -nobogartsuspicious do not show overlaps involving suspicious reads (coverage gap or lopsided edges)\n");
-    fprintf(stderr, "  -nobogartspur       do not show iverlaps involving spur reads\n");
+    fprintf(stderr, "  -nobogartcontained   do not show overlaps involving contained reads\n");
+    fprintf(stderr, "  -nobogartcoveragegap do not show overlaps involving coverage gap edges\n");
+    fprintf(stderr, "  -nobogartlopsided    do not show overlaps involving lopsided edges\n");
+    fprintf(stderr, "  -nobogartspur        do not show iverlaps involving spur reads\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)

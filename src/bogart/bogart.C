@@ -85,7 +85,7 @@ main (int argc, char * argv []) {
   double    erateGraph               = 0.075;
   double    erateMax                 = 0.100;
 
-  bool      filterSuspicious         = true;
+  bool      filterCoverageGap        = true;
   bool      filterHighError          = true;
   bool      filterLopsided           = true;
   bool      filterSpur               = true;
@@ -223,11 +223,12 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-nofilter") == 0) {
       ++arg;
-      filterSuspicious = ((arg >= argc) || (strcasestr(argv[arg], "suspicious") == NULL));
-      filterHighError  = ((arg >= argc) || (strcasestr(argv[arg], "higherror")  == NULL));
-      filterLopsided   = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")   == NULL));
-      filterSpur       = ((arg >= argc) || (strcasestr(argv[arg], "spur")       == NULL));
-      filterDeadEnds   = ((arg >= argc) || (strcasestr(argv[arg], "deadends")   == NULL));
+      filterCoverageGap = ((arg >= argc) || (strcasestr(argv[arg], "coverageGap") == NULL));
+      filterCoverageGap = ((arg >= argc) || (strcasestr(argv[arg], "suspicious")  == NULL));   //  Deprecated!
+      filterHighError   = ((arg >= argc) || (strcasestr(argv[arg], "higherror")   == NULL));
+      filterLopsided    = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")    == NULL));
+      filterSpur        = ((arg >= argc) || (strcasestr(argv[arg], "spur")        == NULL));
+      filterDeadEnds    = ((arg >= argc) || (strcasestr(argv[arg], "deadends")    == NULL));
 
 
     } else if (strcmp(argv[arg], "-D") == 0) {
@@ -321,16 +322,16 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -mi len        Create unitigs from contig intersections of at least 'len' bases.\n");
     fprintf(stderr, "  -mp num        Create unitigs from contig intersections with at most 'num' placements.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -nofilter [suspicious],[higherror],[lopsided],[spur]\n");
+    fprintf(stderr, "  -nofilter [coverageGap],[highError],[lopsided],[spur]\n");
     fprintf(stderr, "                 Disable filtering of:\n");
-    fprintf(stderr, "                   suspicious - reads that have a suspicious lack of overlaps\n");
-    fprintf(stderr, "                   higherror  - overlaps that have error rates well outside the observed\n");
-    fprintf(stderr, "                   lopsided   - reads that have unusually asymmetric best overlaps\n");
-    fprintf(stderr, "                   spur       - reads that have no overlaps on one end\n");
-    fprintf(stderr, "                 The value supplied to -nofilter must be one word, order and punctuation\n");
+    fprintf(stderr, "                   coverageGap - reads that have a suspicious lack of overlaps in the middle\n");
+    fprintf(stderr, "                   highError   - overlaps that have error rates well outside the observed\n");
+    fprintf(stderr, "                   lopsided    - reads that have unusually asymmetric best overlaps\n");
+    fprintf(stderr, "                   spur        - reads that have no overlaps on one end\n");
+    fprintf(stderr, "                 The value supplied to -nofilter must be one word, case, order and punctuation\n");
     fprintf(stderr, "                 do not matter.  The following examples behave the same:\n");
-    fprintf(stderr, "                    '-nofilter suspicious,higherror'\n");
-    fprintf(stderr, "                    '-nofilter suspicious-and-higherror'\n");
+    fprintf(stderr, "                    '-nofilter coverageGap,higherror'\n");
+    fprintf(stderr, "                    '-nofilter coveragegap-and-HIGHERROR'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -eg F          Do not use overlaps more than F fraction error when when finding initial best edges.\n");
     fprintf(stderr, "  -eM F          Do not load overlaps more then F fraction error (useful only for -save).\n");
@@ -410,7 +411,7 @@ main (int argc, char * argv []) {
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen);
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
-  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur, spurDepth);
+  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterCoverageGap, filterHighError, filterLopsided, filterSpur, spurDepth);
   CG = new ChunkGraph(prefix);
 
   //
@@ -551,7 +552,7 @@ main (int argc, char * argv []) {
     BestOverlapGraph *OGbf = new BestOverlapGraph(erateGraph,
                                                   deviationGraph,
                                                   "reduced",
-                                                  filterSuspicious,
+                                                  filterCoverageGap,
                                                   filterHighError,
                                                   filterLopsided,
                                                   filterSpur,

@@ -813,7 +813,7 @@ BestOverlapGraph::removeContainedDovetails(void) {
 BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    double            deviationGraph,
                                    const char       *prefix,
-                                   bool              filterSuspicious,
+                                   bool              filterCoverageGap,
                                    bool              filterHighError,
                                    bool              filterLopsided,
                                    bool              filterSpur,
@@ -865,10 +865,10 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  to set a cutoff on overlap quality used for graph building.  Once we
   //  have the magic error rate limit, recompute best edges.
   //
-  //  This should be done before removing suspicious reads, so we can skip
+  //  This should be done before removing coverageGap reads, so we can skip
   //  high-error overlaps (that would otherwise mask a problematic read).
   //  On one hifi set, there was no difference between doing it as here,
-  //  and removing suspicious reads first.
+  //  and removing coverageGap reads first.
   //
 
   findEdges();
@@ -888,10 +888,10 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   }
 
   //
-  //  Mark reads as suspicious if they are not fully covered by (good) overlaps.
+  //  Mark reads as coverageGap if they are not fully covered by (good) overlaps.
   //
 
-  if (filterSuspicious) {
+  if (filterCoverageGap) {
     writeStatus("BestOverlapGraph()-- Filtering reads with a gap in overlap coverage.\n");
 
     removeReadsWithCoverageGap(prefix);
@@ -901,7 +901,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   }
 
   else {
-    writeStatus("BestOverlapGraph()-- NOT filtering reads with suspicious overlap patterns.\n");
+    writeStatus("BestOverlapGraph()-- NOT filtering reads with a gap in overlap coverage.\n");
   }
 
   //
@@ -911,7 +911,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   reportEdgeStatistics(prefix, "INITIAL");
 
   //
-  //  Mark reads as suspicious if the length of the best edge out is very
+  //  Mark reads as lopsided if the length of the best edge out is very
   //  different than the length of the best edge that should be back to us.
   //  E.g., if readA has best edge to readB (of length lenAB), but readB has
   //  best edge to readC (of length lenBC), and lenAB is much shorter than
@@ -1074,7 +1074,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   snprintf(N, FILENAME_MAX, "%s.%s.edges",     prefix, label);   FILE *BE = AS_UTL_openOutputFile(N);
   snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa", prefix, label);   FILE *BG = AS_UTL_openOutputFile(N);
 
-  //  Write best edges, singletons and suspicious edges.
+  //  Write best edges, flagging singleton, coverageGap, lopsided, etc.
 
   if (BE) {
     fprintf(BE, "readID   libID flags      5' edge M   length    eRate      5' edge M   length    eRate\n");
@@ -1096,8 +1096,8 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       uint32 e5len = RI->overlapLength(id, e5->readId(), e5->ahang(), e5->bhang());
       uint32 e3len = RI->overlapLength(id, e3->readId(), e3->ahang(), e3->bhang());
 
-      char  e5mutual = ((e5back->readId() == id) && (e5back->read3p() == false)) ? 'M' : ' ';
-      char  e3mutual = ((e3back->readId() == id) && (e3back->read3p() ==  true)) ? 'M' : ' ';
+      char  e5mutual = ((e5back->readId() == id) && (e5back->read3p() == false)) ? 'M' : '-';
+      char  e3mutual = ((e3back->readId() == id) && (e3back->read3p() ==  true)) ? 'M' : '-';
 
       if (RI->readLength(id) == 0)
         continue;
