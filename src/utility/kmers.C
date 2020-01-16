@@ -30,13 +30,14 @@
 
 
 uint32 kmerTiny::_merSize   = 0;
-uint64 kmerTiny::_fullMask  = 0;
-uint64 kmerTiny::_leftMask  = 0;
+kmdata kmerTiny::_fullMask  = 0;
+kmdata kmerTiny::_leftMask  = 0;
 uint32 kmerTiny::_leftShift = 0;
 
 
+
 char *
-constructBlockName(char   *prefix,
+constructBlockName(char   *nameprefix,
                    uint64  outIndex,
                    uint32  numFiles,
                    uint32  iteration,
@@ -56,9 +57,9 @@ constructBlockName(char   *prefix,
     bits[--bp] = (outIndex & mask) ? '1' : '0';
 
   if (iteration == 0)
-    snprintf(name, FILENAME_MAX, "%s/%s.%s", prefix, bits, (isIndex == false) ? "merylData" : "merylIndex");
+    snprintf(name, FILENAME_MAX, "%s/%s.%s", nameprefix, bits, (isIndex == false) ? "merylData" : "merylIndex");
   else
-    snprintf(name, FILENAME_MAX, "%s/%s[%03u].%s", prefix, bits, iteration, (isIndex == false) ? "merylData" : "merylIndex");
+    snprintf(name, FILENAME_MAX, "%s/%s[%03u].%s", nameprefix, bits, iteration, (isIndex == false) ? "merylData" : "merylIndex");
 
   return(name);
 }
@@ -66,11 +67,11 @@ constructBlockName(char   *prefix,
 
 
 FILE *
-openOutputBlock(char   *prefix,
+openOutputBlock(char   *nameprefix,
                 uint64  fileIndex,
                 uint32  numFiles,
                 uint32  iteration) {
-  char    *name = constructBlockName(prefix, fileIndex, numFiles, iteration, false);
+  char    *name = constructBlockName(nameprefix, fileIndex, numFiles, iteration, false);
 
   FILE *F = AS_UTL_openOutputFile(name);
 
@@ -82,11 +83,11 @@ openOutputBlock(char   *prefix,
 
 
 FILE *
-openInputBlock(char   *prefix,
+openInputBlock(char   *nameprefix,
                uint64  fileIndex,
                uint32  numFiles,
                uint32  iteration) {
-  char    *name = constructBlockName(prefix, fileIndex, numFiles, iteration, false);
+  char    *name = constructBlockName(nameprefix, fileIndex, numFiles, iteration, false);
 
   FILE *F = AS_UTL_openInputFile(name);
 

@@ -127,11 +127,11 @@ public:
   //  each thread - for simplicity, we just make a new object for each input
   //  file.
   //
-  void    addInput(kmerCountFileReader *reader) {
+  void    addInput(merylFileReader *reader) {
 
     //#pragma omp parallel for schedule(dynamic, 1)
     for (uint32 ff=0; ff<_nFiles; ff++)
-      _stacks[ff].top()->addInput(new kmerCountFileReader(reader->filename(), ff));
+      _stacks[ff].top()->addInput(new merylFileReader(reader->filename(), ff));
 
     delete reader;
   };
@@ -154,7 +154,7 @@ public:
   //  dangerous, so don't.
   //
   void    addOutput(char *writerName) {
-    kmerCountFileWriter   *writer = new kmerCountFileWriter(writerName);
+    merylFileWriter   *writer = new merylFileWriter(writerName);
 
     if (isCounting())
       _stacks[0].top()->addOutput(writer);
@@ -269,7 +269,7 @@ main(int argc, char **argv) {
   char                     *writerName     = NULL;
   char                     *printerName    = NULL;
 
-  kmerCountFileReader      *reader         = NULL;
+  merylFileReader          *reader         = NULL;
   dnaSeqFile               *sequence       = NULL;
 #ifdef CANU
   sqStore                  *store          = NULL;
@@ -336,7 +336,7 @@ main(int argc, char **argv) {
 
     if (strcmp(optString, "dumpIndex") == 0) {               //  Report the index for the dataset.
       arg++;                                                 //  It's just the parameters used for encoding.
-      delete new kmerCountFileReader(argv[arg++], true);
+      delete new merylFileReader(argv[arg++], true);
       continue;
     }
 
@@ -571,7 +571,7 @@ main(int argc, char **argv) {
     //  Handle inputs.
 
     else if (fileExists(indexName) == true) {             //  Make a reader if the arg is a meryl database.
-      reader = new kmerCountFileReader(inoutName);
+      reader = new merylFileReader(inoutName);
     }
 
     else if ((opStack.size() > 0) &&                      //  If a counting command exists, add a sequence file.

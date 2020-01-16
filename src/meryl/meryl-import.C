@@ -172,7 +172,7 @@ main(int argc, char **argv) {
 
   //  Allocate a bunch of counting arrays.  The naming here follows merylOp-count.C.
 
-  merylCountArray<uint64>  *data  = new merylCountArray<uint64> [nPrefix];
+  merylCountArray  *data  = new merylCountArray [nPrefix];
 
   for (uint32 pp=0; pp<nPrefix; pp++) {
     data[pp].initialize(pp, wData);
@@ -236,11 +236,11 @@ main(int argc, char **argv) {
 
   //  And dump to the output.
 
-  kmerCountFileWriter   *output = new kmerCountFileWriter(outputDBname);
+  merylFileWriter   *output = new merylFileWriter(outputDBname);
 
   output->initialize(wPrefix);
 
-  kmerCountBlockWriter  *writer = output->getBlockWriter();
+  merylBlockWriter  *writer = output->getBlockWriter();
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<output->numberOfFiles(); ff++) {

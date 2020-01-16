@@ -55,7 +55,7 @@ merylInput::merylInput(merylOperation *o) {
 
 
 
-merylInput::merylInput(const char *n, kmerCountFileReader *s, uint32 threadFile) {
+merylInput::merylInput(const char *n, merylFileReader *s, uint32 threadFile) {
   _operation   = NULL;
   _stream      = s;
   _sequence    = NULL;

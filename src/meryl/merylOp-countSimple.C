@@ -140,7 +140,7 @@ merylOperation::countSimple(void) {
 
   _output->initialize(wPrefix);
 
-  kmerCountBlockWriter  *_writer = _output->getBlockWriter();
+  merylBlockWriter  *_writer = _output->getBlockWriter();
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Writing results to '%s', using " F_S32 " threads.\n",
@@ -178,8 +178,8 @@ merylOperation::countSimple(void) {
     //        (_output->firstPrefixInFile(ff) << wSuffix),
     //        (_output->lastPrefixInFile(ff)  << wSuffix) | sMask);
 
-    uint64  *sBlock  = new uint64 [nSuffix];
-    uint32  *cBlock  = new uint32 [nSuffix];
+    kmdata  *sBlock  = new kmdata [nSuffix];   //  Suffixes
+    kmvalu  *cBlock  = new kmvalu [nSuffix];   //  Counts
 
     //  Iterate over kmers that belong in this data file.  For each kmer, reconstruct the count
     //  from our bit-sliced array, adding it to the list of kmers to output if it exists.
@@ -191,6 +191,9 @@ merylOperation::countSimple(void) {
 
       //fprintf(stderr, "thread %2u writes file %2u - prefix 0x%016lx for kmers 0x%016lx to 0x%016lx\n",
       //        omp_get_thread_num(), ff, bp, kStart, kEnd);
+
+      //  kk and sMask should properly be kmdata, but we're guaranteed to have
+      //  kmers no bigger than 16 here, so no point.
 
       for (uint64 kk=kStart; kk<=kEnd; kk++) {
         uint32  count = 0;

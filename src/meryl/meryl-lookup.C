@@ -40,8 +40,8 @@
 
 
 void
-dumpExistence(dnaSeqFile           *sf,
-              kmerCountExactLookup *kl) {
+dumpExistence(dnaSeqFile       *sf,
+              merylExactLookup *kl) {
   uint32   nameMax = 0;
   char    *name    = NULL;
   uint64   seqLen  = 0;
@@ -49,8 +49,8 @@ dumpExistence(dnaSeqFile           *sf,
   char    *seq     = NULL;
   uint8   *qlt     = NULL;
 
-  char     fString[64];
-  char     rString[64];
+  char     fString[65];
+  char     rString[65];
 
   bool     fExists = false, rExists = false;
   uint64   fValue  = 0,     rValue  = 0;
@@ -79,8 +79,8 @@ dumpExistence(dnaSeqFile           *sf,
 
 
 void
-reportExistence(dnaSeqFile           *sf,
-                kmerCountExactLookup *kl) {
+reportExistence(dnaSeqFile       *sf,
+                merylExactLookup *kl) {
   uint32   nameMax = 0;
   char    *name    = NULL;
   uint64   seqLen  = 0;
@@ -111,10 +111,10 @@ reportExistence(dnaSeqFile           *sf,
 }
 
 void
-include( dnaSeqFile           *sf,
-         dnaSeqFile           *sf2,
-         kmerCountExactLookup *kl,
-         const char           *r2name) {
+include( dnaSeqFile       *sf,
+         dnaSeqFile       *sf2,
+         merylExactLookup *kl,
+         const char       *r2name) {
   uint32   nameMax  = 0;
   uint32   nameMax2 = 0;
   char    *name     = NULL;
@@ -193,10 +193,10 @@ include( dnaSeqFile           *sf,
 }
 
 void
-exclude(dnaSeqFile           *sf,
-        dnaSeqFile           *sf2,
-        kmerCountExactLookup *kl,
-        const char*           r2name) {
+exclude(dnaSeqFile       *sf,
+        dnaSeqFile       *sf2,
+        merylExactLookup *kl,
+        const char*       r2name) {
 
   uint32   nameMax = 0;
   uint32   nameMax2= 0;
@@ -414,8 +414,8 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "-- Loading kmers from '%s' into lookup table.\n", inputDBname);
 
-  kmerCountFileReader   *merylDB    = new kmerCountFileReader(inputDBname);
-  kmerCountExactLookup  *kmerLookup = new kmerCountExactLookup(merylDB, memory, minV, maxV);
+  merylFileReader   *merylDB    = new merylFileReader(inputDBname);
+  merylExactLookup  *kmerLookup = new merylExactLookup(merylDB, memory, minV, maxV);
 
   if (kmerLookup->configure() == false) {
     exit(1);

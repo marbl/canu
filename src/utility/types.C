@@ -23,25 +23,74 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef LIBKMER_H
-#define LIBKMER_H
-
 #include "AS_global.H"
-#include "system.H"
-#include "files.H"
-#include "bits.H"
 
-//  merSize 1 NOT supported.  Fails _leftShift.
+#include "types.H"
 
-#undef  SHOW_LOAD
+char   hex[16]     = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+char   str[16][33] = { 0 };
+uint32 pos         =   0;
 
-#include "kmers-tiny.H"
+char const *
+toHex(uint128 v) {
+  char *ret = str[pos++];
 
-#include "kmers-files-writer.H"
-#include "kmers-files-reader.H"
+  if (pos >= 16)
+    pos = 0;
 
-#include "kmers-iterator.H"
-#include "kmers-lookup.H"
+  uint32  p = 32;
+  uint32  s = 0;
 
+  while (p > 0) {
+    p -= 1;
+    ret[p] = hex[ (v >> s) & 0xf ];
+    s += 4;
+  }
 
-#endif  //  LIBKMER
+  ret[32] = 0;
+
+  return(ret);
+}
+
+char const *
+toHex(uint64  v) {
+  char *ret = str[pos++];
+
+  if (pos >= 16)
+    pos = 0;
+
+  uint32  p = 16;
+  uint32  s = 0;
+
+  while (p > 0) {
+    p -= 1;
+    ret[p] = hex[ (v >> s) & 0xf ];
+    s += 4;
+  }
+
+  ret[16] = 0;
+
+  return(ret);
+}
+
+char const *
+toHex(uint32  v) {
+  char *ret = str[pos++];
+
+  if (pos >= 16)
+    pos = 0;
+
+  uint32  p = 8;
+  uint32  s = 0;
+
+  while (p > 0) {
+    p -= 1;
+    ret[p] = hex[ (v >> s) & 0xf ];
+    s += 4;
+  }
+
+  ret[8] = 0;
+
+  return(ret);
+}
+

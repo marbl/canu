@@ -138,7 +138,7 @@ merylOperation::addInput(merylOperation *operation) {
 
 
 void
-merylOperation::addInput(kmerCountFileReader *reader) {
+merylOperation::addInput(merylFileReader *reader) {
 
   if (_verbosity >= sayConstruction)
     fprintf(stderr, "Adding input from file '%s' to operation '%s'\n",
@@ -186,7 +186,7 @@ merylOperation::addInput(sqStore *store, uint32 segment, uint32 segmentMax) {
 
 
 void
-merylOperation::addOutput(kmerCountFileWriter *writer) {
+merylOperation::addOutput(merylFileWriter *writer) {
 
   if (_verbosity >= sayConstruction)
     fprintf(stderr, "Adding output to file '%s' from operation '%s'\n",

@@ -26,53 +26,49 @@
 //  Responsible for taking one kmer at a time and writing
 //  it to
 
-class kmerCountFileWriter;
+class merylFileWriter;
 
-class kmerCountStreamWriter {
+class merylStreamWriter {
 public:
-  kmerCountStreamWriter(kmerCountFileWriter *writer,
-                        uint32               fileNumber);
-
-  ~kmerCountStreamWriter();
+  merylStreamWriter(merylFileWriter *writer, uint32 fileNumber);
+  ~merylStreamWriter();
 
 public:
-  void    addMer(kmer k, uint64 c);
+  void    addMer(kmer k, kmvalu c);
 
 private:
-  void    dumpBlock(uint64 nextPrefix=UINT64_MAX);
+  void    dumpBlock(kmpref nextPrefix=~((kmpref)0));
 
 private:
-  kmerCountFileWriter       *_writer;
-  char                       _outName[FILENAME_MAX+1];
+  merylFileWriter       *_writer;
+  char                   _outName[FILENAME_MAX+1];
 
-  //  Encoding data
+  //  Encoding data (copied from the input merylFileWriter).
 
-  uint32                     _prefixSize;
+  uint32                 _prefixSize;
 
-  uint32                     _suffixSize;
-  uint64                     _suffixMask;
+  uint32                 _suffixSize;
+  kmdata                 _suffixMask;
 
-  uint32                     _numFilesBits;
-  uint32                     _numBlocksBits;
-  uint64                     _numFiles;
-  uint64                     _numBlocks;
+  uint32                 _numFilesBits;
+  uint32                 _numBlocksBits;
+  uint64                 _numFiles;
+  uint64                 _numBlocks;
 
-  //  File data
+  //  File data.
 
-  uint32                     _filePrefix;
+  uint32                 _filePrefix;
 
-  FILE                      *_datFile;
-  kmerCountFileIndex        *_datFileIndex;
+  FILE                  *_datFile;
+  merylFileIndex        *_datFileIndex;
 
   //  Kmer data and etc for writing the stream.
 
-  uint64                     _batchPrefix;
-  uint64                     _batchNumKmers;
-  uint64                     _batchMaxKmers;
-  uint64                    *_batchSuffixes;
-  uint64                    *_batchValues;
-
-  //kmerCountStatistics        _stats;
+  kmpref                 _batchPrefix;
+  uint64                 _batchNumKmers;
+  uint64                 _batchMaxKmers;
+  kmdata                *_batchSuffixes;
+  kmvalu                *_batchValues;
 };
 
 

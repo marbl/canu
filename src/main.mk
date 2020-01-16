@@ -28,6 +28,8 @@ SOURCES      := AS_global.C \
                 \
                 utility/edlib.C \
                 \
+                utility/types.C \
+                \
                 utility/files.C \
                 utility/files-buffered.C \
                 utility/files-compressed.C \
@@ -40,13 +42,14 @@ SOURCES      := AS_global.C \
                 \
                 utility/sequence.C \
                 \
-                utility/kmers.C \
+                utility/kmers-exact.C \
+                utility/kmers-files.C \
+                utility/kmers-histogram.C \
                 utility/kmers-reader.C \
-                utility/kmers-writer.C \
                 utility/kmers-writer-block.C \
                 utility/kmers-writer-stream.C \
-                utility/kmers-statistics.C \
-                utility/kmers-exact.C \
+                utility/kmers-writer.C \
+                utility/kmers.C \
                 \
                 utility/bits.C \
                 \
@@ -165,6 +168,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 meryl/meryl.mk \
                 meryl/meryl-import.mk \
                 meryl/meryl-lookup.mk \
+                meryl/merylCountArrayTest.mk \
                 \
                 sequence/sequence.mk \
                 \

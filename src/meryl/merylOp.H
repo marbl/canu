@@ -115,13 +115,13 @@ private:
 
 public:
   void    addInput(merylOperation *operation);
-  void    addInput(kmerCountFileReader *reader);
+  void    addInput(merylFileReader *reader);
   void    addInput(dnaSeqFile *sequence);
 #ifdef CANU
   void    addInput(sqStore *store, uint32 segment, uint32 segmentMax);
 #endif
 
-  void    addOutput(kmerCountFileWriter *writer);
+  void    addOutput(merylFileWriter *writer);
   char   *getOutputName(void);
 
   void    finalize(void);
@@ -238,10 +238,10 @@ private:
   uint32                         _maxThreads;
   uint64                         _maxMemory;
 
-  kmerCountStatistics           *_stats;
+  merylHistogram                *_stats;
 
-  kmerCountFileWriter           *_output;    //  This is the main output object, but for streaming
-  kmerCountStreamWriter         *_writer;    //  operations, _writer is used.
+  merylFileWriter               *_output;    //  This is the main output object, but for streaming
+  merylStreamWriter             *_writer;    //  operations, _writer is used.
   FILE                          *_printer;
 
   uint32                         _fileNumber;
@@ -251,7 +251,7 @@ private:
   uint32                        *_actIndex;
 
   kmer                           _kmer;
-  uint64                         _value;
+  kmvalu                         _value;
   bool                           _valid;
 
   static bool                    _onlyConfig;

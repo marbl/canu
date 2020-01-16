@@ -40,7 +40,7 @@ class merylOperation;
 class merylInput {
 public:
   merylInput(merylOperation *o);
-  merylInput(const char *n, kmerCountFileReader *s, uint32 fileNum=UINT32_MAX);
+  merylInput(const char *n, merylFileReader *s, uint32 fileNum=UINT32_MAX);
   merylInput(const char *n, dnaSeqFile *f);
 #ifdef CANU
   merylInput(const char *n, sqStore *s, uint32 segment, uint32 segmentMax);
@@ -78,7 +78,7 @@ public:
   bool   isMultiSet(void)         { return(_isMultiSet);        };
 
   merylOperation           *_operation;
-  kmerCountFileReader      *_stream;
+  merylFileReader          *_stream;
   dnaSeqFile               *_sequence;
 #ifdef CANU
   sqStore                  *_store;

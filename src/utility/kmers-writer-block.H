@@ -26,16 +26,15 @@
 //  Responsible for taking a block of sorted kmers
 //  and writing them to the appropriate file.
 
-class kmerCountFileWriter;
+class merylFileWriter;
 
-class kmerCountBlockWriter {
+class merylBlockWriter {
 public:
-  kmerCountBlockWriter(kmerCountFileWriter *writer);
-  ~kmerCountBlockWriter();
+  merylBlockWriter(merylFileWriter *writer);
+  ~merylBlockWriter();
 
 public:
-  void    addBlock(uint64  prefix, uint64  nKmers, uint64 *suffixes, uint32 *values);
-  void    addBlock(uint64  prefix, uint64  nKmers, uint64 *suffixes, uint64 *values);
+  void    addBlock(kmpref prefix, uint64 nKmers, kmdata *suffixes, kmvalu *values);
 
   void    finishBatch(void);
   void    finish(void);
@@ -45,29 +44,29 @@ private:
   void    mergeBatches(uint32 oi);
 
 private:
-  kmerCountFileWriter       *_writer;
-  char                       _outName[FILENAME_MAX+1];
+  merylFileWriter       *_writer;
+  char                   _outName[FILENAME_MAX+1];
 
-  //  Encoding data
+  //  Encoding data (copied from the input merylFileWriter).
 
-  uint32                     _prefixSize;
+  uint32                 _prefixSize;
 
-  uint32                     _suffixSize;
-  uint64                     _suffixMask;
+  uint32                 _suffixSize;
+  kmdata                 _suffixMask;
 
-  uint32                     _numFilesBits;
-  uint32                     _numBlocksBits;
-  uint64                     _numFiles;
-  uint64                     _numBlocks;
+  uint32                 _numFilesBits;
+  uint32                 _numBlocksBits;
+  uint64                 _numFiles;
+  uint64                 _numBlocks;
 
-  //  File data
+  //  File data.
 
-  FILE                     **_datFiles;
-  kmerCountFileIndex       **_datFileIndex;
+  FILE                 **_datFiles;
+  merylFileIndex       **_datFileIndex;
 
-  //  Kmer data and etc
+  //  Kmer data and etc.
 
-  uint32                     _iteration;
+  uint32                 _iteration;
 };
 
 

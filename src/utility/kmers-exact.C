@@ -57,8 +57,8 @@ bitsToMB(uint64 bits) {
 //  Set some basic boring stuff.
 //
 void
-kmerCountExactLookup::initialize(uint64               minValue_,
-                                 uint64               maxValue_) {
+merylExactLookup::initialize(uint64               minValue_,
+                             uint64               maxValue_) {
 
   //  Silently make minValue and maxValue be valid values.
 
@@ -125,7 +125,7 @@ kmerCountExactLookup::initialize(uint64               minValue_,
 //  to store explicitly (suffixBits and valueBits).
 //
 bool
-kmerCountExactLookup::configure(void) {
+merylExactLookup::configure(void) {
 
   //  First, find the prefixBits that results in the smallest allocated memory size.
   //  Due to threading over the files, we cannot use a prefix smaller than 6 bits.
@@ -230,7 +230,7 @@ kmerCountExactLookup::configure(void) {
 //
 //  The loop control and kmer loading is the same in the two loops.
 void
-kmerCountExactLookup::count(void) {
+merylExactLookup::count(void) {
 
   _suffixBgn = new uint64 [_nPrefix + 1];
 
@@ -243,8 +243,8 @@ kmerCountExactLookup::count(void) {
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
-    FILE                      *blockFile = _input->blockFile(ff);
-    kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
+    FILE                  *blockFile = _input->blockFile(ff);
+    merylFileBlockReader  *block     = new merylFileBlockReader;
 
     //  Keep local counters, otherwise, we collide when updating the global counts.
 
@@ -338,7 +338,7 @@ kmerCountExactLookup::count(void) {
 //  array.
 //
 void
-kmerCountExactLookup::allocate(void) {
+merylExactLookup::allocate(void) {
   uint64  arraySize, arrayBlockMin;
 
   if (_suffixBits > 0) {
@@ -369,11 +369,11 @@ kmerCountExactLookup::allocate(void) {
 
 
 //  Each file can be processed independently IF we know how many kmers are in
-//  each prefix.  For that, we need to load the kmerCountFileReader index.
+//  each prefix.  For that, we need to load the merylFileReader index.
 //  We don't, actually, know that if we're filtering out low/high count kmers.
 //  In this case, we overallocate, but cannot cleanup at the end.
 void
-kmerCountExactLookup::load(void) {
+merylExactLookup::load(void) {
 
   count();
   allocate();
@@ -382,8 +382,8 @@ kmerCountExactLookup::load(void) {
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (uint32 ff=0; ff<nf; ff++) {
-    FILE                      *blockFile = _input->blockFile(ff);
-    kmerCountFileReaderBlock  *block     = new kmerCountFileReaderBlock;
+    FILE                  *blockFile = _input->blockFile(ff);
+    merylFileBlockReader  *block     = new merylFileBlockReader;
 
     //  Load blocks until there are no more.
 
@@ -466,7 +466,7 @@ kmerCountExactLookup::load(void) {
 
 
 bool
-kmerCountExactLookup::exists_test(kmer k) {
+merylExactLookup::exists_test(kmer k) {
 
   uint64  kmer   = (uint64)k;
   uint64  prefix = kmer >> _suffixBits;

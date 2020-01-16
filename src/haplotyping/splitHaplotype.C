@@ -62,7 +62,7 @@ public:
   char                    histoName[FILENAME_MAX+1];
   char                    outputName[FILENAME_MAX+1];
 
-  kmerCountExactLookup   *lookup;
+  merylExactLookup       *lookup;
   uint32                  minCount;
   uint32                  maxCount;
   uint64                  nKmers;
@@ -419,9 +419,9 @@ hapData::initializeKmerTable(uint32 maxMemory) {
   //  Get this behavior with option '-H "" histo out.fasta',
 
   if (merylName[0]) {
-    kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
+    merylFileReader  *reader = new merylFileReader(merylName);
 
-    lookup = new kmerCountExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
+    lookup = new merylExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
 
     if (lookup->configure() == false) {
       exit(1);

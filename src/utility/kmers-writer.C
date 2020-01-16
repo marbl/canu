@@ -31,7 +31,7 @@
 
 
 void
-kmerCountFileWriter::initialize(uint32 prefixSize, bool isMultiSet) {
+merylFileWriter::initialize(uint32 prefixSize, bool isMultiSet) {
 
   if (_initialized == true)    //  Nothing to do if we're already done.
     return;
@@ -39,12 +39,12 @@ kmerCountFileWriter::initialize(uint32 prefixSize, bool isMultiSet) {
   //  If the global mersize isn't set, we're hosed.
 
   if (kmer::merSize() == 0)
-    fprintf(stderr, "kmerCountFileWriter::initialize()-- asked to initialize, but kmer::merSize() is zero!\n"), exit(1);
+    fprintf(stderr, "merylFileWriter::initialize()-- asked to initialize, but kmer::merSize() is zero!\n"), exit(1);
 
   //  The count operations call initialize() exactly once, but nextMer() calls
   //  it once per file and so we need some kind of concurrency control here.
 
-#pragma omp critical (kmerCountFileWriterInit)
+#pragma omp critical (merylFileWriterInit)
   if (_initialized == false) {
 
     //  If the prefixSize is zero, set it to (arbitrary) 1/4 the kmer size.
@@ -75,7 +75,7 @@ kmerCountFileWriter::initialize(uint32 prefixSize, bool isMultiSet) {
 
     //  Now we're initialized!
 
-    fprintf(stderr, "kmerCountFileWriter()-- Creating '%s' for %u-mers, with prefixSize %u suffixSize %u numFiles %lu\n",
+    fprintf(stderr, "merylFileWriter()-- Creating '%s' for %u-mers, with prefixSize %u suffixSize %u numFiles %lu\n",
             _outName, (_prefixSize + _suffixSize) / 2, _prefixSize, _suffixSize, _numFiles);
 
     _initialized = true;
@@ -84,7 +84,7 @@ kmerCountFileWriter::initialize(uint32 prefixSize, bool isMultiSet) {
 
 
 
-kmerCountFileWriter::kmerCountFileWriter(const char *outputName,
+merylFileWriter::merylFileWriter(const char *outputName,
                                          uint32      prefixSize) {
 
   //  Note that we're not really initialized yet.  We could call initialize() in some cases,
@@ -117,7 +117,7 @@ kmerCountFileWriter::kmerCountFileWriter(const char *outputName,
 
 
 
-kmerCountFileWriter::~kmerCountFileWriter() {
+merylFileWriter::~merylFileWriter() {
   uint32   flags = (uint32)0x0000;
 
   //  Set flags.
@@ -156,22 +156,23 @@ kmerCountFileWriter::~kmerCountFileWriter() {
 
 
 uint32
-kmerCountFileWriter::fileNumber(uint64  prefix) {
+merylFileWriter::fileNumber(uint64  prefix) {
 
   assert(_initialized);
 
   //  Based on the prefix, decide what output file to write to.
-  //  The prefix has _prefixSize bits.  We want to save the highest _numFiles bits.
+  //  The prefix has _prefixSize = _numFilesBits + _numBlocksBits.
+  //  We want to save the highest _numFilesBits.
 
   uint64  oi  = prefix >> _numBlocksBits;
 
   if (oi >= _numFiles) {
-    fprintf(stderr, "kmerCountFileWriter()-- Formed invalid file number %lu >= number of files %lu:\n", oi, _numFiles);
-    fprintf(stderr, "kmerCountFileWriter()--   prefix          0x%016lx\n", prefix);
-    fprintf(stderr, "kmerCountFileWriter()--   prefixSize      %u\n", _prefixSize);
-    fprintf(stderr, "kmerCountFileWriter()--   suffixSize      %u\n", _suffixSize);
-    fprintf(stderr, "kmerCountFileWriter()--   numFilesBits    %u\n", _numFilesBits);
-    fprintf(stderr, "kmerCountFileWriter()--   numBlocksBits   %u\n", _numBlocksBits);
+    fprintf(stderr, "merylFileWriter()-- Formed invalid file number %lu >= number of files %lu:\n", oi, _numFiles);
+    fprintf(stderr, "merylFileWriter()--   prefix          0x%016lx\n", prefix);
+    fprintf(stderr, "merylFileWriter()--   prefixSize      %u\n", _prefixSize);
+    fprintf(stderr, "merylFileWriter()--   suffixSize      %u\n", _suffixSize);
+    fprintf(stderr, "merylFileWriter()--   numFilesBits    %u\n", _numFilesBits);
+    fprintf(stderr, "merylFileWriter()--   numBlocksBits   %u\n", _numBlocksBits);
   }
   assert(oi < _numFiles);
 
@@ -180,20 +181,13 @@ kmerCountFileWriter::fileNumber(uint64  prefix) {
 
 
 
-//void
-//kmerCountFileWriter::importStatistics(kmerCountStatistics &import) {
-//#warning NOT IMPORTING STATISTICS
-//}
-
-
-
 void
-kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
-                                      kmerCountFileIndex  *datFileIndex,
-                                      uint64               prefix,
-                                      uint64               nKmers,
-                                      uint64              *suffixes,
-                                      uint32              *values) {
+merylFileWriter::writeBlockToFile(FILE            *datFile,
+                                  merylFileIndex  *datFileIndex,
+                                  kmpref           blockPrefix,
+                                  uint64           nKmers,
+                                  kmdata          *suffixes,
+                                  uint32          *values) {
 
   //  Figure out the optimal size of the Elias-Fano prefix.  It's just log2(N)-1.
 
@@ -213,7 +207,7 @@ kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
   dumpData->setBinary(64, 0x7461446c7972656dllu);    //  Magic number, part 1.
   dumpData->setBinary(64, 0x0a3030656c694661llu);    //  Magic number, part 2.
 
-  dumpData->setBinary(64, prefix);
+  dumpData->setBinary(64, blockPrefix);
   dumpData->setBinary(64, nKmers);
 
   dumpData->setBinary(8,  1);                        //  Kmer coding type
@@ -250,9 +244,9 @@ kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
 
   //  Save the index entry.
 
-  uint64  block = prefix & uint64MASK(_numBlocksBits);
+  uint64  block = blockPrefix & uint64MASK(_numBlocksBits);
 
-  datFileIndex[block].set(prefix, datFile, nKmers);
+  datFileIndex[block].set(blockPrefix, datFile, nKmers);
 
   //  Dump data to disk, cleanup, and done!
 
@@ -264,12 +258,12 @@ kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
 
 
 void
-kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
-                                      kmerCountFileIndex  *datFileIndex,
-                                      uint64               prefix,
-                                      uint64               nKmers,
-                                      uint64              *suffixes,
-                                      uint64              *values) {
+merylFileWriter::writeBlockToFile(FILE            *datFile,
+                                  merylFileIndex  *datFileIndex,
+                                  kmpref           blockPrefix,
+                                  uint64           nKmers,
+                                  kmdata          *suffixes,
+                                  uint64          *values) {
 
   //  Figure out the optimal size of the Elias-Fano prefix.  It's just log2(N)-1.
 
@@ -289,7 +283,7 @@ kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
   dumpData->setBinary(64, 0x7461446c7972656dllu);    //  Magic number, part 1.
   dumpData->setBinary(64, 0x0a3030656c694661llu);    //  Magic number, part 2.
 
-  dumpData->setBinary(64, prefix);
+  dumpData->setBinary(64, blockPrefix);
   dumpData->setBinary(64, nKmers);
 
   dumpData->setBinary(8,  1);                        //  Kmer coding type
@@ -326,9 +320,9 @@ kmerCountFileWriter::writeBlockToFile(FILE                *datFile,
 
   //  Save the index entry.
 
-  uint64  block = prefix & uint64MASK(_numBlocksBits);
+  uint64  block = blockPrefix & uint64MASK(_numBlocksBits);
 
-  datFileIndex[block].set(prefix, datFile, nKmers);
+  datFileIndex[block].set(blockPrefix, datFile, nKmers);
 
   //  Dump data to disk, cleanup, and done!
 

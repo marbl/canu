@@ -92,7 +92,7 @@ merylOperation::initializeThreshold(void) {
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->_stream->loadStatistics();
 
-  kmerCountStatistics  *stats = _inputs[0]->_stream->stats();
+  merylHistogram  *stats = _inputs[0]->_stream->stats();
 
 
 #warning "need to decide whic direction we're going?"
@@ -242,7 +242,7 @@ merylOperation::convertToPassThrough(char *inputName, uint32 threadFile) {
       (_onlyConfig  == true))
     return;
 
-  addInput(new kmerCountFileReader(inputName, threadFile));
+  addInput(new merylFileReader(inputName, threadFile));
 }
 
 

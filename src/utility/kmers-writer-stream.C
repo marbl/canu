@@ -30,8 +30,7 @@
 
 
 
-kmerCountStreamWriter::kmerCountStreamWriter(kmerCountFileWriter *writer,
-                                             uint32               fileNumber) {
+merylStreamWriter::merylStreamWriter(merylFileWriter *writer, uint32 fileNumber) {
 
   _writer = writer;
 
@@ -54,7 +53,7 @@ kmerCountStreamWriter::kmerCountStreamWriter(kmerCountFileWriter *writer,
   _filePrefix    = fileNumber;
 
   _datFile       = openOutputBlock(_outName, _filePrefix, _numFiles, 0);
-  _datFileIndex  = new kmerCountFileIndex [_numBlocks];
+  _datFileIndex  = new merylFileIndex [_numBlocks];
 
   //  Kmer data
 
@@ -67,7 +66,7 @@ kmerCountStreamWriter::kmerCountStreamWriter(kmerCountFileWriter *writer,
 
 
 
-kmerCountStreamWriter::~kmerCountStreamWriter() {
+merylStreamWriter::~merylStreamWriter() {
 
   //  If data in the batch, dump it.  Cleanup and close the data file.
 
@@ -84,25 +83,21 @@ kmerCountStreamWriter::~kmerCountStreamWriter() {
   char  *idxname = constructBlockName(_outName, _filePrefix, _numFiles, 0, true);
   FILE  *idxfile = AS_UTL_openOutputFile(idxname);
 
-  writeToFile(_datFileIndex, "kmerCountStreamWriter::fileIndex", _numBlocks, idxfile);
+  writeToFile(_datFileIndex, "merylStreamWriter::fileIndex", _numBlocks, idxfile);
 
   AS_UTL_closeFile(idxfile, idxname);
 
   delete [] idxname;
 
   delete [] _datFileIndex;
-
-  //  Tell the master that we're done.
-
-  //_writer->_stats.import(_stats)
 }
 
 
 
 void
-kmerCountStreamWriter::dumpBlock(uint64 nextPrefix) {
+merylStreamWriter::dumpBlock(kmpref nextPrefix) {
 
-  //fprintf(stderr, "kmerCountStreamWriter::dumpBlock()-- write batch for prefix %lu with %lu kmers.\n",
+  //fprintf(stderr, "merylStreamWriter::dumpBlock()-- write batch for prefix %lu with %lu kmers.\n",
   //        _batchPrefix, _batchNumKmers);
 
   //  Encode and dump to disk.
@@ -115,7 +110,7 @@ kmerCountStreamWriter::dumpBlock(uint64 nextPrefix) {
 
   //  Insert counts into the histogram.
 
-#pragma omp critical (kmerCountFileWriterAddValue)
+#pragma omp critical (merylFileWriterAddValue)
   for (uint32 kk=0; kk<_batchNumKmers; kk++)
     _writer->_stats.addValue(_batchValues[kk]);
 
@@ -128,21 +123,21 @@ kmerCountStreamWriter::dumpBlock(uint64 nextPrefix) {
 
 
 void
-kmerCountStreamWriter::addMer(kmer k, uint64 c) {
+merylStreamWriter::addMer(kmer k, kmvalu c) {
 
-  uint64  prefix = (uint64)k >> _suffixSize;
-  uint64  suffix = (uint64)k  & _suffixMask;
+  kmpref  prefix = (kmdata)k >> _suffixSize;
+  kmdata  suffix = (kmdata)k  & _suffixMask;
 
   //  Do we need to initialize to firstPrefixInFile(ff) and also write empty prefixes?
   //  Or can we just init to the first prefix we see?
 
   if (_batchSuffixes == NULL) {
-    //fprintf(stderr, "kmerCountFileWriter::addMer()-- ff %2u allocate %7lu kmers for a batch\n", ff, _batchMaxKmers);
+    //fprintf(stderr, "merylFileWriter::addMer()-- ff %2u allocate %7lu kmers for a batch\n", ff, _batchMaxKmers);
     _batchPrefix   = prefix;
     _batchNumKmers = 0;
     _batchMaxKmers = 16 * 1048576;
-    _batchSuffixes = new uint64 [_batchMaxKmers];
-    _batchValues   = new uint64 [_batchMaxKmers];
+    _batchSuffixes = new kmdata [_batchMaxKmers];
+    _batchValues   = new kmvalu [_batchMaxKmers];
   }
 
   //  If the batch is full, or we've got a kmer for a different batch, dump the batch
@@ -152,7 +147,7 @@ kmerCountStreamWriter::addMer(kmer k, uint64 c) {
   bool  dump2 = (_batchPrefix != prefix) && (_batchNumKmers > 0);
 
   //if (dump1 || dump2)
-  //  fprintf(stderr, "kmerCountStreamWriter::addMer()-- ff %u addBlock 0x%016lx with %lu kmers dump1=%c dump2=%c\n",
+  //  fprintf(stderr, "merylStreamWriter::addMer()-- ff %u addBlock 0x%016lx with %lu kmers dump1=%c dump2=%c\n",
   //          ff, _batchPrefix, _batchNumKmers,
   //          (dump1) ? 'T' : 'F',
   //          (dump2) ? 'T' : 'F');

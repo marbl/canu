@@ -50,12 +50,11 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include "AS_global.H"
 
 #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
 #error I do not support 32-bit off_t.
 #endif
-
-
 
 typedef int8_t  int8;
 typedef int16_t int16;
@@ -66,6 +65,11 @@ typedef uint8_t  uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+
+#ifdef __SIZEOF_INT128__
+typedef __int128            int128;
+typedef unsigned __int128  uint128;
+#endif
 
 //  Correct?  Or should it be LLU and LU?
 #define  uint64NUMBER(X) X ## LU
@@ -106,6 +110,10 @@ inline void    strtonumber(double &num, char *str, char **rem)  {  num = (double
 
 inline  int32  doubletoint32(double d)   { return((int32) ((1.0 + 16.0 * DBL_EPSILON) * d));  };
 inline  int64  doubletoint64(double d)   { return((int64) ((1.0 + 16.0 * DBL_EPSILON) * d));  };
+
+char const *toHex(uint128 v);
+char const *toHex(uint64  v);
+char const *toHex(uint32  v);
 
 // These macros are use to eliminate inter-platform differnces between
 // calculated results

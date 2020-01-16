@@ -60,7 +60,7 @@
 
 uint64
 findMaxInputSizeForMemorySize(uint32 merSize, uint64 memSize) {
-  uint64  mcaSize = sizeof(merylCountArray<uint32>);
+  uint64  mcaSize = sizeof(merylCountArray);
   uint64  ptrSize = sizeof(uint64 *);
   uint64  segSize = SEGMENT_SIZE * 1024;
 
@@ -202,7 +202,7 @@ findBestPrefixSize(uint64  nKmerEstimate,
     if (wp + countNumberOfBits64(segsPerPrefix) + countNumberOfBits64(SEGMENT_SIZE) + 10 >= 64)
       break;   //  Otherwise, dataMemory overflows.
 
-    uint64  structMemory     = ((sizeof(merylCountArray<uint32>) * nPrefix) +          //  Basic structs
+    uint64  structMemory     = ((sizeof(merylCountArray) * nPrefix) +                  //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
     uint64  dataMemoryMin    = nPrefix *                 SEGMENT_SIZE * 1024;          //  Minimum memory needed for this size.
     uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;          //  Expected memory for full batch.
@@ -255,7 +255,7 @@ findBestValues(uint64  nKmerEstimate,
     if (wp + countNumberOfBits64(segsPerPrefix) + countNumberOfBits64(SEGMENT_SIZE) + 10 >= 64)
       break;   //  Otherwise, dataMemory overflows.
 
-    uint64  structMemory     = ((sizeof(merylCountArray<uint32>) * nPrefix) +          //  Basic structs
+    uint64  structMemory     = ((sizeof(merylCountArray) * nPrefix) +                  //  Basic structs
                                 (sizeof(uint64 *)        * nPrefix * segsPerPrefix));  //  Pointers to segments
     uint64  dataMemoryMin    = nPrefix *                 SEGMENT_SIZE * 1024;          //  Minimum memory needed for this size.
     uint64  dataMemory       = nPrefix * segsPerPrefix * SEGMENT_SIZE * 1024;          //  Expected memory for full batch.
@@ -519,7 +519,7 @@ merylOperation::count(uint32  wPrefix,
 
   _output->initialize(wPrefix);
 
-  kmerCountBlockWriter  *_writer = _output->getBlockWriter();
+  merylBlockWriter  *_writer = _output->getBlockWriter();
 
   //  Allocate buckets.  The buckets don't allocate space for mers until they're added,
   //  and allocate space for these mers in blocks of 8192 * 64 bits.
@@ -527,7 +527,7 @@ merylOperation::count(uint32  wPrefix,
   //  Need someway of balancing the number of prefixes we have and the size of each
   //  initial allocation.
 
-  merylCountArray<uint32>  *data = new merylCountArray<uint32> [nPrefix];
+  merylCountArray  *data = new merylCountArray [nPrefix];
 
   //  Load bases, count!
 

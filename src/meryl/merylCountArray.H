@@ -32,47 +32,28 @@
 
 
 
-
-template<typename VALUE>
-class swv {   //  That's suffix-with-value
-public:
-  void      set(uint64 suffix, VALUE value) {
-    _s1 = suffix >> 32;
-    _s2 = suffix  & uint64MASK(32);
-    _v  = value;
-  };
-
-  uint64    getSuffix(void) {
-    uint64   s;
-
-    s   = _s1;
-    s <<= 32;
-    s  |= _s2;
-
-    return(s);
-  };
-
-  VALUE     getValue(void) {
-    return(_v);
-  };
-
-  bool      operator<(swv<VALUE> const that) const {
-    return(((_s1  < that._s1)) ||
-           ((_s1 == that._s1) && (_s2  < that._s2)) ||
-           ((_s1 == that._s1) && (_s2 == that._s2) && (_v < that._v)));
-  };
-
-private:
-  uint32   _s1;  //  This bit of ugly is, splitting the suffix into
-  uint32   _s2;  //  two words, allows an swv to be aligned to
-  VALUE    _v;   //  4-byte boundaries (if VALUE is uint32).
-};
+class swv;   //  Defined and only used in merylCountArray.C
 
 
+//  The basic meryl counting object.  It collects a list of kmers from the
+//  input, sorts them, the returns a list of distinct kmers with the number
+//  of times each occurs in the list.
+//
+//  A kmer is split into a prefix and a suffix.  All kmers in one
+//  merylCountArray object will share the same prefix (the client needs to do
+//  this for us).  The merylCountArray will save the lower _sWidth bits of
+//  each input kmer.
+//
+//  If the kmer comes with a count or color, those are saved too.  Otherwise,
+//  only the kmer suffix bits are saved.
+//
+//  Since we don't know how many kmers will be input to us, and don't want to
+//  keep reallocating data, our list is grown in segments of size _segSize
+//  (segsize in initialize()) kilo bytes.
 
+#undef ADD_VERBOSE
+#define ADD_INSTRUMENT
 
-
-template<typename VALUE>
 class merylCountArray {
 public:
   merylCountArray();
@@ -80,148 +61,47 @@ public:
 
   uint64    initialize(uint64 prefix, uint32 width, uint32 segsize=64);
 
-  uint64    initializeValues(VALUE maxValue=0);
+  uint64    initializeValues(kmvalu maxValue=0);
 
   void      enableMultiSet(bool enable)    {  _multiSet = enable;  };
+
+public:
+  void      initializeForTesting(uint32 width, uint32 nwords);
+  void      dumpData(void);
 
 private:
   void      removeSegments(void);
   void      removeValues(void);
   void      addSegment(uint32 seg);
 
+  //  Count the number of times we hit each case, and where the word starts in that case
+public:
+  void      clearStats(void);
+  void      dumpStats(void);
+
+#ifdef ADD_INSTRUMENT
+  uint64    nTests[6];
+  uint64    nStart[6][64];
+#endif
+
   //  Add a suffix to the table.
   //
-  //  wordPos is 0 for the high bits and 63 for the bit that represents integer 1.
 public:
-  uint64    add(uint64 suffix) {
-    uint64  seg       = _nBits / _segSize;   //  Which segment are we in?
-    uint64  segPos    = _nBits % _segSize;   //  Bit position in that segment.
-
-    uint32  word      = segPos / 64;         //  Which word are we in=?
-    uint32  wordBgn   = segPos % 64;         //  Bit position in that word.
-    uint32  wordEnd   = wordBgn + _sWidth;
-
-    //  Increment the position.
-
-    _nBits += _sWidth;
-
-    //  If the first word and the first position, we need to allocate a segment.
-    //  This catches both the case when _nBits=0 (we've added nothing) and when
-    //  _nBits=_segSize (we've added exactly one segment worth of kmers).
-
-    if ((word    == 0) &&
-        (wordBgn == 0))
-      addSegment(seg);
-
-    //  If there is enough space in the current word, stash the bits there.
-    //  If it's a new word, we need to special case an initialization of the word.
-
-    if      (wordBgn == 0) {
-      _segments[seg][word]  = (suffix << (64 - wordEnd));
-    }
-
-    else if (wordEnd <= 64) {
-      _segments[seg][word] |= (suffix << (64 - wordEnd));
-    }
-
-    //  Otherwise, the suffix spans two words.  If these can be in the same block,
-    //  stash the bits there.
-
-    else if (segPos + _sWidth <= _segSize) {
-      uint32   extraBits = wordEnd - 64;
-
-      assert(wordEnd > 64);
-
-      _segments[seg][word+0] |= (suffix >>        extraBits);
-      _segments[seg][word+1]  = (suffix << (64 -  extraBits));
-    }
-
-    //  Otherwise, the word spans two segments.  At least we know it
-    //  hits the last word in the first segment and the first word in
-    //  the second segment.  And that the second segment hasn't been
-    //  allocated yet.  And that it's just the same math as the previous
-    //  case, just in different segments instead of words.
-
-    else {
-      uint32 W         = word;  //  Just to keep things pretty.  I love my optimizer!
-      uint32 extraBits = wordEnd - 64;
-
-      addSegment(seg+1);
-
-      _segments[seg+0][W] |= (suffix >>        extraBits);
-      _segments[seg+1][0]  = (suffix << (64 -  extraBits));
-    }
-
-    return(usedSizeDelta());
-  };
-
-  uint64    addValue(VALUE value) {
-
-    if (_vals == NULL)
-      return(0);
-
-    if (_vWidth == 0)
-      return(_vals->setEliasDelta(value));
-    else
-      return(_vals->setBinary(_vWidth, value));
-  };
+  uint64    add(kmdata suffix);
+  uint64    addValue(kmvalu value);
 
 private:
-  uint64      *unpackSuffixes(uint64 nSuffixes);
-  swv<VALUE>  *unpackSuffixesAndValues(uint64 nSuffixes);
+  kmdata      *unpackSuffixes(uint64 nSuffixes);
+  swv         *unpackSuffixesAndValues(uint64 nSuffixes);
 
-private:
   //
   //  Return the kkth kmer suffix stored in the array.  This is only used in sort(),
   //  and only to convert the bit-packed _seg data into unpacked words, so could
   //  be optimized for that case.  I don't expect much of a performance gain.
   //
-  uint64    get(uint64 kk) {
-    uint64  bitPos    = kk * _sWidth;
-
-    uint64  seg       = bitPos / _segSize;   //  Which segment are we in?
-    uint64  segPos    = bitPos % _segSize;   //  Bit position in that segment.
-
-    uint32  word      = segPos / 64;         //  Which word are we in=?
-    uint32  wordBgn   = segPos % 64;         //  Bit position in that word.
-    uint32  wordEnd   = wordBgn + _sWidth;
-
-    uint64  bits      = 0;
-
-    //  If the bits are entirely in a single word, copy them out.
-
-    if      (wordEnd <= 64) {
-      bits = (_segments[seg][word] >> (64 - wordEnd)) & uint64MASK(_sWidth);
-    }
-
-    //  Otherwise, the suffix spans two words.  If these are in the same block,
-    //  grab them.
-
-    else if (segPos + _sWidth <= _segSize) {
-      uint32   extraBits = wordEnd - 64;
-
-      assert(wordEnd > 64);
-
-      bits  = (_segments[seg][word+0] & uint64MASK(_sWidth - extraBits)) << extraBits;
-      bits |= (_segments[seg][word+1] >> (64 - extraBits) & uint64MASK(extraBits));
-    }
-
-    //  Otherwise, the word spans two segments.  At least we know it
-    //  hits the last word in the first segment and the first word in
-    //  the second segment.  And that the second segment hasn't been
-    //  allocated yet.  And that it's just the same math as the previous
-    //  case, just in different segments instead of words.
-
-    else {
-      uint32 W         = word;  //  Just to keep things pretty.  I love my optimizer!
-      uint32 extraBits = wordEnd - 64;
-
-      bits  = (_segments[seg+0][W] & uint64MASK(_sWidth - extraBits)) << extraBits;
-      bits |= (_segments[seg+1][0] >> (64 - extraBits) & uint64MASK(extraBits));
-    }
-
-    return(bits);
-  };
+public:
+  kmdata    get(uint64 kk);
+  kmdata    getSimple(uint64 kk);
 
 
 public:
@@ -270,7 +150,7 @@ private:
   void             countMultiSetKmers(void);
 public:
   void             countKmers(void);
-  void             dumpCountedKmers(kmerCountBlockWriter *out);
+  void             dumpCountedKmers(merylBlockWriter *out);
   void             removeCountedKmers(void);
 
 
@@ -279,8 +159,8 @@ private:
   uint32           _vWidth;       //  Size of the values we're storing
 
   uint64           _prefix;       //  The kmer prefix we're storing data for
-  uint64          *_suffix;       //  After sorting, the suffix of each kmer
-  VALUE           *_counts;       //  After sorting, the number of times we've seen this kmer
+  kmdata          *_suffix;       //  After sorting, the suffix of each kmer
+  kmvalu          *_counts;       //  After sorting, the number of times we've seen this kmer
 
   uint64           _nKmers;       //  Number of kmers.
 
