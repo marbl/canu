@@ -926,10 +926,11 @@ sub buildResourceOption ($$) {
     }                                                    #  for SGE and Slurm when mem-per-cpu is used.
 
     if (uc(getGlobal("gridEngine")) eq "LSF") {                                     #  But then reset for LSF,
-        $m = $m / 1024          if (getGlobal("gridEngineMemoryUnits") =~ m/t/i);   #  because LSF wants to
-        $m = $m * 1             if (getGlobal("gridEngineMemoryUnits") =~ m/g/i);   #  enforce the units used.
-        $m = $m * 1024          if (getGlobal("gridEngineMemoryUnits") =~ m/m/i);
-        $m = $m * 1024 * 1024   if (getGlobal("gridEngineMemoryUnits") =~ m/k/i);
+        # always round up
+        $m = int($m / 1024 + 0.5)          if (getGlobal("gridEngineMemoryUnits") =~ m/t/i);   #  because LSF wants to
+        $m = int($m * 1 + 0.5)             if (getGlobal("gridEngineMemoryUnits") =~ m/g/i);   #  enforce the units used.
+        $m = int($m * 1024 + 0.5)          if (getGlobal("gridEngineMemoryUnits") =~ m/m/i);
+        $m = int($m * 1024 * 1024 + 0.5)   if (getGlobal("gridEngineMemoryUnits") =~ m/k/i);
         $u = "";
     }
 
