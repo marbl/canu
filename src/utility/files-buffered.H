@@ -139,6 +139,7 @@ public:
   uint64               tell(void)     { return(_filePos);  };
 
   void                 write(void const *data, uint64 length);
+  void                 flush(void);
 
   //  If deata length is zero, this chunk is the start of a recursive record.
   //  The chunk header is written (NAME<length>) but length is set to zero.
@@ -176,7 +177,6 @@ public:
 private:
   void                 open(void);
   void                 writeToDisk(void const *data, uint64 length);
-  void                 flush(void);
 
   char                _filename[FILENAME_MAX+1];
   char                _filemode[17];
