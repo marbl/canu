@@ -33,6 +33,8 @@ SOURCES      := AS_global.C \
                 utility/files-compressed.C \
                 utility/files-memoryMapped.C \
                 \
+                utility/logging.C \
+                \
                 utility/strings.C \
                 \
                 utility/system.C \
@@ -214,5 +216,6 @@ ifeq ($(BUILDTESTS), 1)
 SUBMAKEFILES += utility/bitsTest.mk \
                 utility/filesTest.mk \
                 utility/intervalListTest.mk \
+                utility/loggingTest.mk \
                 utility/stddevTest.mk
 endif
