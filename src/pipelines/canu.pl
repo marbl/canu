@@ -586,19 +586,7 @@ if (($numPacBio   == 0) &&
     caExit("ERROR: Failed to determine the sequencing technology of the reads", undef);
 }
 
-if (($numPacBio    > 0) &&
-    ($numNanopore == 0) &&
-    ($numHiFi     == 0)) {
-    setGlobalIfUndef("corOvlErrorRate",  0.240);
-    setGlobalIfUndef("obtOvlErrorRate",  0.045);
-    setGlobalIfUndef("utgOvlErrorRate",  0.045);
-    setGlobalIfUndef("corErrorRate",     0.300);
-    setGlobalIfUndef("obtErrorRate",     0.045);
-    setGlobalIfUndef("utgErrorRate",     0.045);
-    setGlobalIfUndef("cnsErrorRate",     0.075);
-}
-
-if (($numPacBio   == 0) &&
+if (($numPacBio   >= 0) &&
     ($numNanopore  > 0) &&
     ($numHiFi     == 0)) {
     setGlobalIfUndef("corOvlErrorRate",  0.320);
@@ -608,6 +596,18 @@ if (($numPacBio   == 0) &&
     setGlobalIfUndef("obtErrorRate",     0.120);
     setGlobalIfUndef("utgErrorRate",     0.120);
     setGlobalIfUndef("cnsErrorRate",     0.200);
+}
+
+if (($numPacBio    > 0) &&
+    ($numNanopore >= 0) &&
+    ($numHiFi     == 0)) {
+    setGlobalIfUndef("corOvlErrorRate",  0.240);
+    setGlobalIfUndef("obtOvlErrorRate",  0.045);
+    setGlobalIfUndef("utgOvlErrorRate",  0.045);
+    setGlobalIfUndef("corErrorRate",     0.300);
+    setGlobalIfUndef("obtErrorRate",     0.045);
+    setGlobalIfUndef("utgErrorRate",     0.045);
+    setGlobalIfUndef("cnsErrorRate",     0.075);
 }
 
 if (($numPacBio   == 0) &&

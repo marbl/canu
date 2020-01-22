@@ -94,26 +94,7 @@ sub getCorIdentity ($) {
         return(1 - $erate);
     }
 
-    my $numPacBioRaw         = 0;
-    my $numPacBioCorrected   = 0;
-    my $numNanoporeRaw       = 0;
-    my $numNanoporeCorrected = 0;
-
-    open(L, "< ./$asm.seqStore/libraries.txt") or caExit("can't open './$asm.seqStore/libraries.txt' for reading: $!", undef);
-    while (<L>) {
-        $numPacBioRaw++           if (m/pacbio-raw/);
-        $numPacBioCorrected++     if (m/pacbio-corrected/);
-        $numNanoporeRaw++         if (m/nanopore-raw/);
-        $numNanoporeCorrected++   if (m/nanopore-corrected/);
-    }
-    close(L);
-
-    $erate = 0.10;                              #  Default; user is stupid and forced correction of corrected reads.
-    $erate = 0.30   if ($numPacBioRaw   > 0);
-    $erate = 0.50   if ($numNanoporeRaw > 0);
-
-    print STDERR "-- Found $numPacBioRaw raw and $numPacBioCorrected corrected PacBio libraries.\n";
-    print STDERR "-- Found $numNanoporeRaw raw and $numNanoporeCorrected corrected Nanopore libraries.\n";
+    $erate = 0.30;
     print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads.\n";
 
     return(1 - $erate);
