@@ -227,8 +227,15 @@ merylFileWriter::writeBlockToFile(FILE            *datFile,
   for (uint32 kk=0; kk<nKmers; kk++) {
     thisPrefix = suffixes[kk] >> binaryBits;
 
+    uint64  l = suffixes[kk] >> 64;
+    uint64  r = suffixes[kk];
+
+    uint32 ls = (binaryBits <= 64) ? (0)          : (binaryBits - 64);
+    uint32 rs = (binaryBits <= 64) ? (binaryBits) : (64);
+
     dumpData->setUnary(thisPrefix - lastPrefix);
-    dumpData->setBinary(binaryBits, suffixes[kk]);
+    dumpData->setBinary(ls, l);
+    dumpData->setBinary(rs, r);
 
     lastPrefix = thisPrefix;
   }
@@ -303,8 +310,15 @@ merylFileWriter::writeBlockToFile(FILE            *datFile,
   for (uint32 kk=0; kk<nKmers; kk++) {
     thisPrefix = suffixes[kk] >> binaryBits;
 
+    uint64  l = suffixes[kk] >> 64;
+    uint64  r = suffixes[kk];
+
+    uint32 ls = (binaryBits <= 64) ? (0)          : (binaryBits - 64);
+    uint32 rs = (binaryBits <= 64) ? (binaryBits) : (64);
+
     dumpData->setUnary(thisPrefix - lastPrefix);
-    dumpData->setBinary(binaryBits, suffixes[kk]);
+    dumpData->setBinary(ls, l);
+    dumpData->setBinary(rs, r);
 
     lastPrefix = thisPrefix;
   }

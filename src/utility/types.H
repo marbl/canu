@@ -71,6 +71,8 @@ typedef __int128            int128;
 typedef unsigned __int128  uint128;
 #endif
 
+#define  uint128NUMBER(A,B)   ((((uint128)A) << 64) | ((uint128)B))
+
 //  Correct?  Or should it be LLU and LU?
 #define  uint64NUMBER(X) X ## LU
 #define  uint32NUMBER(X) X ## U

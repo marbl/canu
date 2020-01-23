@@ -154,7 +154,14 @@ merylFileBlockReader::decodeBlock(kmdata *suffixes, uint64 *values) {
     for (uint32 kk=0; kk<_nKmers; kk++) {
       thisPrefix += (kmdata)_data->getUnary();
 
-      suffixes[kk] = (thisPrefix << _binaryBits) | (_data->getBinary(_binaryBits));
+      uint32 ls = (_binaryBits <= 64) ? (0)           : (_binaryBits - 64);
+      uint32 rs = (_binaryBits <= 64) ? (_binaryBits) : (64);
+
+      suffixes[kk]   = thisPrefix;
+      suffixes[kk] <<= ls;
+      suffixes[kk]  |= _data->getBinary(ls);
+      suffixes[kk] <<= rs;
+      suffixes[kk]  |= _data->getBinary(rs);
     }
   }
 

@@ -111,7 +111,7 @@ private:
                             uint32  &wPrefix_,           //  Output: Number of bits in the prefix (== bucket address)
                             uint64  &nPrefix_,           //  Output: Number of prefixes there are (== number of buckets)
                             uint32  &wData_,             //  Output: Number of bits in kmer data
-                            uint64  &wDataMask_);        //  Output: A mask to return just the data of the mer);
+                            kmdata  &wDataMask_);        //  Output: A mask to return just the data of the mer);
 
 public:
   void    addInput(merylOperation *operation);
@@ -197,7 +197,7 @@ public:
   void    count(uint32  wPrefix,
                 uint64  nPrefix,
                 uint32  wData,
-                uint64  wDataMask);
+                kmdata  wDataMask);
 
   void    reportHistogram(void);
   void    reportStatistics(void);

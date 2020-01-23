@@ -186,7 +186,7 @@ merylOperation::doCounting(void) {
   uint32  wPrefix   = 0;
   uint64  nPrefix   = 0;
   uint32  wData     = 0;
-  uint64  wDataMask = 0;
+  kmdata  wDataMask = 0;
 
   configureCounting(_maxMemory,
                     doSimple,
@@ -601,13 +601,13 @@ merylOperation::nextMer(void) {
 
     case opCompare:
       if       (_actLen == 1) {
-        char  str[33];
+        char  str[65];
 
         fprintf(stdout, "kmer %s only in input %u\n",
                 _kmer.toString(str), _actIndex[0]);
       }
       else if ((_actLen == 2) && (_actCount[0] != _actCount[1])) {
-        char  str[33];
+        char  str[65];
 
         fprintf(stdout, "kmer %s has value %lu in input 1 != value %lu in input 2\n",
                 _kmer.toString(str), _actCount[0], _actCount[1]);

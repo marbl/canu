@@ -133,7 +133,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  mt = new mtRandom(strtouint32(argv[2]));
+  mt = new mtRandom(seed);
 
   for (uint32 w=widthMin; w<=widthMax; w++) {
     merylCountArray   *A = new merylCountArray;

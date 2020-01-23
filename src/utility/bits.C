@@ -644,6 +644,9 @@ uint64
 stuffedBits::getBinary(uint32 width) {
   uint64  value = 0;
 
+  if (width == 0)
+    return(0);
+
   assert(width < 65);
 
   //  Ensure we're in valid data.
@@ -708,6 +711,9 @@ stuffedBits::getBinary(uint32 width, uint64 number, uint64 *values) {
 uint32
 stuffedBits::setBinary(uint32 width, uint64 value) {
 
+  if (width == 0)
+    return(0);
+
   assert(width < 65);
 
   ensureSpace(width);
@@ -761,6 +767,9 @@ stuffedBits::setBinary(uint32 width, uint64 value) {
 uint32
 stuffedBits::setBinary(uint32 width, uint64 number, uint64 *values) {
   uint32 size = 0;
+
+  if (width == 0)
+    return(0);
 
   for (uint64 ii=0; ii<number; ii++)
     size += setBinary(width, values[ii]);

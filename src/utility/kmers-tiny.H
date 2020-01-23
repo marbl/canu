@@ -91,8 +91,8 @@ public:
   //  to make space for the new base.  Unlike the 'standard' two-bit encoding,
   //  these encode bases as A=00, C=01, G=11, T=10.
   //
-  void        addR(char base)       { _mer  = (((_mer << 2) & _fullMask) | (((base >> 1) & 0x03llu)          )              );  };
-  void        addL(char base)       { _mer  = (((_mer >> 2) & _leftMask) | (((base >> 1) & 0x03llu) ^ 0x02llu) << _leftShift);  };
+  void        addR(kmdata base)       { _mer  = (((_mer << 2) & _fullMask) | (((base >> 1) & 0x03llu)          )              );  };
+  void        addL(kmdata base)       { _mer  = (((_mer >> 2) & _leftMask) | (((base >> 1) & 0x03llu) ^ 0x02llu) << _leftShift);  };
 
   //  Reverse-complementation of a kmer involves complementing the bases in
   //  the mer, revesing the order of all the bases, then aligning the bases
@@ -102,19 +102,20 @@ public:
 
     //  Complement the bases
 
-    mer ^= 0xaaaaaaaaaaaaaaaallu;
+    mer ^= uint128NUMBER(0xaaaaaaaaaaaaaaaallu, 0xaaaaaaaaaaaaaaaallu);
 
     //  Reverse the mer
 
-    mer = ((mer >>  2) & 0x3333333333333333llu) | ((mer <<  2) & 0xccccccccccccccccllu);
-    mer = ((mer >>  4) & 0x0f0f0f0f0f0f0f0fllu) | ((mer <<  4) & 0xf0f0f0f0f0f0f0f0llu);
-    mer = ((mer >>  8) & 0x00ff00ff00ff00ffllu) | ((mer <<  8) & 0xff00ff00ff00ff00llu);
-    mer = ((mer >> 16) & 0x0000ffff0000ffffllu) | ((mer << 16) & 0xffff0000ffff0000llu);
-    mer = ((mer >> 32) & 0x00000000ffffffffllu) | ((mer << 32) & 0xffffffff00000000llu);
+    mer = ((mer >>  2) & uint128NUMBER(0x3333333333333333llu, 0x3333333333333333llu)) | ((mer <<  2) & uint128NUMBER(0xccccccccccccccccllu, 0xccccccccccccccccllu));
+    mer = ((mer >>  4) & uint128NUMBER(0x0f0f0f0f0f0f0f0fllu, 0x0f0f0f0f0f0f0f0fllu)) | ((mer <<  4) & uint128NUMBER(0xf0f0f0f0f0f0f0f0llu, 0xf0f0f0f0f0f0f0f0llu));
+    mer = ((mer >>  8) & uint128NUMBER(0x00ff00ff00ff00ffllu, 0x00ff00ff00ff00ffllu)) | ((mer <<  8) & uint128NUMBER(0xff00ff00ff00ff00llu, 0xff00ff00ff00ff00llu));
+    mer = ((mer >> 16) & uint128NUMBER(0x0000ffff0000ffffllu, 0x0000ffff0000ffffllu)) | ((mer << 16) & uint128NUMBER(0xffff0000ffff0000llu, 0xffff0000ffff0000llu));
+    mer = ((mer >> 32) & uint128NUMBER(0x00000000ffffffffllu, 0x00000000ffffffffllu)) | ((mer << 32) & uint128NUMBER(0xffffffff00000000llu, 0xffffffff00000000llu));
+    mer = ((mer >> 64) & uint128NUMBER(0x0000000000000000llu, 0xffffffffffffffffllu)) | ((mer << 64) & uint128NUMBER(0xffffffffffffffffllu, 0x0000000000000000llu));
 
     //  Shift and mask out the bases not in the mer
 
-    mer >>= 64 - _merSize * 2;
+    mer >>= 8 * sizeof(kmdata) - _merSize * 2;
     mer  &= _fullMask;
 
     return(mer);
@@ -156,6 +157,11 @@ public:
   };
 
   operator kmdata () const {
+    return(_mer);
+  };
+
+  operator uint64 () const {
+    assert(0);
     return(_mer);
   };
 
