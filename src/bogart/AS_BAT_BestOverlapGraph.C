@@ -1338,6 +1338,19 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
       (isIgnored(olap.b_iid) == true))           //  the overlap is also bad.
     isIgn = true;
 
+#if 0
+  uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the
+  uint32  lenB = RI->readLength(olap.b_iid);     //  length of the overlap relative
+  uint32  oLen = RI->overlapLength(olap.a_iid,   //  to the reads involved is
+                                   olap.b_iid,   //  short.  These shouldn't be best
+                                   olap.a_hang,  //  but do show up as false best in
+                                   olap.b_hang); //  lopsided reads.
+
+  if ((oLen < lenA * 0.333) ||
+      (oLen < lenB * 0.333))
+    isBad = true;
+#endif
+
   olap.filtered = ((isBad == true) ||            //  The overlap is filtered out ("bad")
                    (isIgn == true));             //  if it's either Bad or Ignored.
 
