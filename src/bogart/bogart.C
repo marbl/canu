@@ -77,6 +77,13 @@ OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 
+//  Temporary
+uint32 covGapOlap = 0;            //  Require overlap of x bp when detecting coverage gaps.
+uint32 lopsidedDiff = 0;          //  Call reads lopsided if diff between is more than x percent.
+bool   lopsidedNoSeed = false;    //  Don't seed tigs with lopsided reads.
+bool   lopsidedNoBest = false;    //  Don't find edges to/from lopsided reads.
+double minOlapPercent = 0.0;
+
 int
 main (int argc, char * argv []) {
   char      *seqStorePath            = NULL;
@@ -231,6 +238,44 @@ main (int argc, char * argv []) {
       filterDeadEnds    = ((arg >= argc) || (strcasestr(argv[arg], "deadends")    == NULL));
 
 
+
+      //  Temporary
+    } else if (strcmp(argv[arg], "-minolappercent") == 0) {
+      minOlapPercent = strtodouble(argv[++arg]);
+      fprintf(stderr, "MINOLAPPERCENT %f\n", minOlapPercent);
+
+      //  Temporary
+    } else if (strcmp(argv[arg], "-covgapolap") == 0) {
+      covGapOlap = strtouint32(argv[++arg]);
+      fprintf(stderr, "COVGAPOLAP %d\n", covGapOlap);
+
+      //  Temporary
+    } else if (strcmp(argv[arg], "-lopsided") == 0) {
+      ++arg;
+
+      if (strcmp(argv[arg], "off") == 0) {
+        lopsidedDiff   = 0;
+        fprintf(stderr, "LOPSIDED OFF %d\n", lopsidedDiff);
+      }
+
+      else if (strcmp(argv[arg], "noseed") == 0) {
+        lopsidedDiff   = strtouint32(argv[++arg]);
+        lopsidedNoSeed = true;
+        lopsidedNoBest = false;
+        fprintf(stderr, "LOPSIDED NOSEED %d\n", lopsidedDiff);
+      }
+
+      else if (strcmp(argv[arg], "nobest") == 0) {
+        lopsidedDiff   = strtouint32(argv[++arg]);
+        lopsidedNoSeed = false;
+        lopsidedNoBest = true;
+        fprintf(stderr, "LOPSIDED NOBEST %d\n", lopsidedDiff);
+      }
+    
+      else {
+        assert(0);
+      }
+
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
       uint64  flg = 1;
@@ -345,6 +390,15 @@ main (int argc, char * argv []) {
     fprintf(stderr, "                 overlap graph.  Default 6.0.\n");
     fprintf(stderr, "  -db D          Like -dg, but for merging bubbles into primary contigs.  Default 6.0.\n");
     fprintf(stderr, "  -dr D          Like -dg, but for breaking repeats.  Default 3.0.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Secret Algorithmic Options:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -covgapolap n      Require overlaps to overlap by at least n bases.\n");
+    fprintf(stderr, "  -lopsided m n      Set how lopsided reads are detected and/or treated.\n");
+    fprintf(stderr, "                       m = off        - don't detect at all (omit n parameter)\n");
+    fprintf(stderr, "                       m = noseed n   - detect, n%% difference, allow edges to but don't seed overlaps with them\n");
+    fprintf(stderr, "                       m = nobest n   - detect, n%% difference, exclude from bog graph completely\n");
+    fprintf(stderr, "  -minolappercent f  Set a minimum overlap length, per overlap, as f*min(readAlen, readBlen)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");

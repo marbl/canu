@@ -48,7 +48,12 @@
 #include "intervalList.H"
 #include "stddev.H"
 
-
+//  Temporary.
+extern uint32 covGapOlap;        //  Require overlap of x bp when detecting coverage gaps.
+extern uint32 lopsidedDiff;      //  Call reads lopsided if diff between is more than x percent.
+extern bool   lopsidedNoSeed;    //  Don't seed tigs with lopsided reads.
+extern bool   lopsidedNoBest;    //  Don't find edges to/from lopsided reads.
+extern double minOlapPercent;    //  Don't use overlaps less than minOlapPercent * min(lenA,lenB) length
 
 void
 BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
@@ -102,7 +107,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
         (IL.numberOfIntervals() == 0))   //  If no intervals, it's a singleton.  Do nothing.
       continue;
 
-    IL.merge();                          //  Merge the overlapping intervals.
+    IL.merge(covGapOlap);                //  Merge the overlapping intervals.
 
     if (IL.numberOfIntervals() == 1)     //  One interval, so it's good.
       continue;
@@ -349,8 +354,8 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
     double  percDiff5 = 200.0 * abs(this5ovlLen - back5ovlLen) / (this5ovlLen + back5ovlLen);
     double  percDiff3 = 200.0 * abs(this3ovlLen - back3ovlLen) / (this3ovlLen + back3ovlLen);
 
-    setLopsided5(fi, (percDiff5 > 5.0));
-    setLopsided3(fi, (percDiff3 > 5.0));
+    setLopsided5(fi, (percDiff5 > lopsidedDiff));
+    setLopsided3(fi, (percDiff3 > lopsidedDiff));
 
 #if 0
     if (isLopsided(fi) == false)
@@ -562,6 +567,13 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
         if (isCoverageGap(ovl[ii].b_iid)  == true)                //    No edges to coverage gap reads are allowed.
           continue;
+
+        if ((lopsidedNoBest == true) &&
+            ((isLopsided(ovl[ii].a_iid)   == true) ||             //    No edges to or from lopsided reads.
+             (isLopsided(ovl[ii].b_iid)   == true))) {
+          assert(0);
+          continue;
+        }
 
         //if (isLopsided(ovl[ii].b_iid)     == true)              //    Allow edges to bubble reads.
         //  continue;
@@ -918,8 +930,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  lenBC, then something is wrong with readA.
   //
 
-  if (filterLopsided) {
-    writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges.\n");
+  if (lopsidedDiff > 0) {
+    writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
     removeLopsidedEdges(prefix);
     findEdges();
@@ -1338,18 +1350,23 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
       (isIgnored(olap.b_iid) == true))           //  the overlap is also bad.
     isIgn = true;
 
-#if 0
-  uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the
-  uint32  lenB = RI->readLength(olap.b_iid);     //  length of the overlap relative
-  uint32  oLen = RI->overlapLength(olap.a_iid,   //  to the reads involved is
-                                   olap.b_iid,   //  short.  These shouldn't be best
-                                   olap.a_hang,  //  but do show up as false best in
-                                   olap.b_hang); //  lopsided reads.
-
-  if ((oLen < lenA * 0.333) ||
-      (oLen < lenB * 0.333))
+  if ((lopsidedNoBest == true) &&
+      ((isLopsided(olap.a_iid) == true) ||
+       (isLopsided(olap.b_iid) == true)))
     isBad = true;
-#endif
+
+  if (minOlapPercent > 0.0) {
+    uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the
+    uint32  lenB = RI->readLength(olap.b_iid);     //  length of the overlap relative
+    uint32  oLen = RI->overlapLength(olap.a_iid,   //  to the reads involved is
+                                     olap.b_iid,   //  short.  These shouldn't be best
+                                     olap.a_hang,  //  but do show up as false best in
+                                     olap.b_hang); //  lopsided reads.
+
+    if ((oLen < lenA * minOlapPercent) ||
+        (oLen < lenB * minOlapPercent))
+      isBad = true;
+  }
 
   olap.filtered = ((isBad == true) ||            //  The overlap is filtered out ("bad")
                    (isIgn == true));             //  if it's either Bad or Ignored.
