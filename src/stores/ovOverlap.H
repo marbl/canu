@@ -300,7 +300,7 @@ public:
     return(false);
   };
 
-public:
+private:
   static
   sqStore             *g;
 
