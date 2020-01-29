@@ -126,7 +126,7 @@ uint32             logFileOrder  = 0;
 uint64             logFileFlags  = 0;
 
 uint64 LOG_OVERLAP_SCORING             = 0x0000000000000001;  //  Debug, scoring of overlaps
-uint64 LOG_ALL_BEST_EDGES              = 0x0000000000000002;
+uint64 LOG_BEST_OVERLAPS               = 0x0000000000000002;
 uint64 LOG_ERROR_PROFILES              = 0x0000000000000004;
 uint64 LOG_OPTIMIZE_POSITIONS          = 0x0000000000000008;
 uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000010;  //  Report the chunk graph as we build it
@@ -141,7 +141,7 @@ uint64 LOG_STDERR                      = 0x0000000000000800;  //  Write ALL logg
 uint64 LOG_PLACE_READ                  = 0x8000000000000000;  //  Internal use only.
 
 char const *logFileFlagNames[64] = { "overlapScoring",
-                                     "allBestEdges",
+                                     "bestOverlaps",
                                      "errorProfiles",
                                      "optimizePositions",
                                      "chunkGraph",

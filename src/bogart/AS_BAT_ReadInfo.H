@@ -37,6 +37,9 @@ public:
   ReadInfo(const char *seqStorePath, const char *prefix, uint32 minReadLen);
   ~ReadInfo();
 
+  //  Needed for writing overlaps in BestOverlapGraph.  Do not use for anything else.
+  sqStore *seqStore(void) { return(_seqStore); };
+
   uint64  memoryUsage(void) {
     return(sizeof(uint64) + sizeof(uint32) + sizeof(uint32) + sizeof(ReadStatus) * (_numReads + 1));
   };
@@ -74,6 +77,8 @@ private:
 #if AS_MAX_READLEN_BITS + AS_MAX_LIBRARIES_BITS + 1 > 64
 #error Not enough space in struct ReadStatus.
 #endif
+
+  sqStore     *_seqStore;       //  Needed for dumping overlaps.
 
   uint64       _numBases;       //  The actual number of bases we can assemble.
   uint32       _numReads;       //  The total number of reads in the store.

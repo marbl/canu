@@ -883,6 +883,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  and removing coverageGap reads first.
   //
 
+  if (logFileFlagSet(LOG_BEST_OVERLAPS))
+    emitGoodOverlaps(prefix, "0.all");
+
   findEdges();
   reportBestEdges(prefix, "initial");
 
@@ -891,6 +894,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
     findErrorRateThreshold();
     findEdges();
+
+    if (logFileFlagSet(LOG_BEST_OVERLAPS))
+      emitGoodOverlaps(prefix, "1.filtered");
 
     writeStatus("BestOverlapGraph()--   Ignore overlaps with more than %.6f%% error.\n", 100.0 * _errorLimit);
   }
@@ -908,6 +914,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
     removeReadsWithCoverageGap(prefix);
     findEdges();
+
+    if (logFileFlagSet(LOG_BEST_OVERLAPS))
+      emitGoodOverlaps(prefix, "2.covGap");
 
     writeStatus("BestOverlapGraph()--   %u reads removed.\n", numCoverageGap());
   }
@@ -935,6 +944,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
     removeLopsidedEdges(prefix);
     findEdges();
+
+    if (logFileFlagSet(LOG_BEST_OVERLAPS))
+      emitGoodOverlaps(prefix, "3.lopsided");
 
     writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
   }
@@ -964,6 +976,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   else {
     writeStatus("BestOverlapGraph()-- NOT filtering spur reads.\n");
   }
+
+  if (logFileFlagSet(LOG_BEST_OVERLAPS))
+    emitGoodOverlaps(prefix, "4.final");
 
   //
   //  Do some final boring cleanup:
@@ -1435,4 +1450,41 @@ BestOverlapGraph::scoreOverlap(BAToverlap& olap) {
   leng <<= AS_MAX_EVALUE_BITS;
 
   return(leng | rate);
+}
+
+
+
+
+void
+BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
+  char            ovlName[FILENAME_MAX+1];
+
+  snprintf(ovlName, FILENAME_MAX, "%s.%s.ovlStore", prefix, label);
+  ovStoreWriter  *writer = new ovStoreWriter(ovlName, RI->seqStore());
+
+  //  The overlap needs a pointer to the seqStore.  Normally this is set
+  //  when the ovlStore is opened, 
+
+  ovOverlap       ovl;
+
+  //  Iterate over all reads.  If an overlap is good quality, save it to the store.
+
+  for (uint32 fi=1; fi <= RI->numReads(); fi++) {
+    uint32      no   = 0;
+    BAToverlap *ovls = OC->getOverlaps(fi, no);
+
+    if (isIgnored(fi) == true)
+      continue;
+
+    for (uint32 ii=0; ii<no; ii++) {
+      if (isOverlapBadQuality(ovls[ii]) == false) {
+        ovls[ii].convert(ovl);
+
+        writer->writeOverlap(&ovl);
+      }
+    }
+  }
+
+
+  delete writer;
 }

@@ -212,6 +212,8 @@ private:
 
   void   removeContainedDovetails(void);
 
+  void   emitGoodOverlaps(const char *prefix, const char *label);
+
 public:
   BestOverlapGraph(double            erateGraph,
                    double            deviationGraph,

@@ -119,6 +119,20 @@ public:
     return(AS_OVS_decodeEvalue(evalue));
   }
 
+  void
+  convert(ovOverlap &olap) {
+    olap.clear();
+
+    olap.a_iid = a_iid;
+    olap.b_iid = b_iid;
+
+    olap.evalue(evalue);
+
+    olap.flipped(flipped);
+    olap.a_hang(a_hang);
+    olap.b_hang(b_hang);
+  }
+
 #if AS_MAX_READLEN_BITS < 24
   uint64      evalue    : AS_MAX_EVALUE_BITS;     //  12
   int64       a_hang    : AS_MAX_READLEN_BITS+1;  //  21+1

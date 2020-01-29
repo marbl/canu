@@ -295,6 +295,7 @@ main (int argc, char * argv []) {
       if (strcasecmp("most", argv[arg]) == 0) {
         for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "bestOverlaps") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "overlapScoring") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "errorProfiles") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "optimizePositions") != 0) &&
