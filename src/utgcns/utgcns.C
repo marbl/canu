@@ -97,6 +97,7 @@ public:
     showResult       = false;
 
     maxCov           = 0.0;
+    minLen           = 0;
     maxLen           = UINT32_MAX;
 
     onlyUnassem      = false;
@@ -175,6 +176,7 @@ public:
   bool                    showResult;
 
   double                  maxCov;
+  uint32                  minLen;
   uint32                  maxLen;
 
   bool                    onlyUnassem;
@@ -643,6 +645,7 @@ processTigs(cnsParameters  &params) {
     if (((params.onlyUnassem == true) && (tig->_class != tgTig_unassembled)) ||
         ((params.onlyContig  == true) && (tig->_class != tgTig_contig)) ||
         ((params.noSingleton == true) && (tig->numberOfChildren() == 1)) ||
+        (tig->length() < params.minLen) ||
         (tig->length() > params.maxLen))
       continue;
 
@@ -844,6 +847,10 @@ main (int argc, char **argv) {
       params.maxCov   = atof(argv[++arg]);
     }
 
+    else if (strcmp(argv[arg], "-minlength") == 0) {
+      params.minLen   = atof(argv[++arg]);
+    }
+
     else if (strcmp(argv[arg], "-maxlength") == 0) {
       params.maxLen   = atof(argv[++arg]);
     }
@@ -936,6 +943,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -tig b          Compute only tig ID 'b' (must be in the correct partition!)\n");
     fprintf(stderr, "    -tig b-e        Compute only tigs from ID 'b' to ID 'e'\n");
     fprintf(stderr, "    -u              Alias for -tig\n");
+    fprintf(stderr, "    -minlength l    Do not compute consensus for tigs shorter than l bases.\n");
     fprintf(stderr, "    -maxlength l    Do not compute consensus for tigs longer than l bases.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -onlyunassem    Only compute consensus for unassembled tigs.\n");
