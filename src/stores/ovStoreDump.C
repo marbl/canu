@@ -605,7 +605,7 @@ dumpParameters::drawPicture(uint32         Aid,
 
     //  Report!
 
-    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.2f%%  %s\n",
+    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.3f%% %s\n",
             ovlBgnA,
             ovlEndA,
             Bid,
@@ -878,7 +878,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -no3p                do not show overlaps off the 3' end of the A read\n");
     fprintf(stderr, "  -nocontainer         do not show overlaps that contain some other B read\n");
     fprintf(stderr, "  -nocontained         do not show overlaps that are contained in some other B read\n");
-    fprintf(stderr, "  -noreduntant         do not show overlaps where the A read ID is more than the B read ID\n");
+    fprintf(stderr, "  -noredundant         do not show overlaps where the A read ID is more than the B read ID\n");
     fprintf(stderr, "  -query a[-b]         display only overlaps that are to these other B read IDs\n");
     fprintf(stderr, "  -erate min[-max]     display only overlaps less than f fraction error\n");
     fprintf(stderr, "  -length min[-max]    display only overlaps between min and max bases long\n");
