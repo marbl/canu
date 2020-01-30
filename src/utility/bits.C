@@ -45,7 +45,7 @@ stuffedBits::stuffedBits(uint64 nBits) {
   _dataPos = 0;
   _data    = _dataBlocks[0] = new uint64 [_dataBlockLenMax / 64];
 
-  memset(_data, 0, sizeof(uint64) * _dataBlockLenMax / 64);
+  clearBlock();
 
   _dataBlockBgn[0] = 0;
   _dataBlockLen[0] = 0;
@@ -179,6 +179,8 @@ stuffedBits::stuffedBits(stuffedBits &that) {
 
 
 stuffedBits::~stuffedBits() {
+
+  //fprintf(stderr, "Deleted stuffedBits with %u blocks and %lu bits in it.\n", _dataBlocksLen, _dataBlockLenMax * _dataBlocksLen + _dataPos);
 
   for (uint32 ii=0; ii<_dataBlocksLen; ii++)
     delete [] _dataBlocks[ii];

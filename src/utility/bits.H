@@ -726,6 +726,10 @@ private:
     _dataBit  = 64;
   }
 
+  void     clearBlock(void) {
+    memset(_data, 0, sizeof(uint64) * _dataBlockLenMax / 64);
+  };
+  
   //  For writing operations, make sure there is enough space for the write in this block.
   //
   void     ensureSpace(uint64 spaceNeeded) {
@@ -757,7 +761,7 @@ private:
     _dataPos = 0;
     _data    = _dataBlocks[_dataBlocksLen - 1] = new uint64 [_dataBlockLenMax / sizeof(uint64)];
 
-    memset(_data, 0, sizeof(uint64) * _dataBlockLenMax / 64);
+    clearBlock();
 
     _dataBlockBgn[_dataBlocksLen - 1] = _dataBlockBgn[_dataBlocksLen - 2] + _dataBlockLen[_dataBlocksLen - 2];
     _dataBlockLen[_dataBlocksLen - 1] = 0;
