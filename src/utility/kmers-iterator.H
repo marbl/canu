@@ -65,7 +65,7 @@ public:
         (_buffer[_bufferPos] != 'C') && (_buffer[_bufferPos] != 'c') &&
         (_buffer[_bufferPos] != 'G') && (_buffer[_bufferPos] != 'g') &&
         (_buffer[_bufferPos] != 'T') && (_buffer[_bufferPos] != 't')) {
-      _kmerLoad = 0;                   //  Not a valis base.  Clear the current
+      _kmerLoad = 0;                   //  Not a valid base.  Clear the current
       _bufferPos++;                    //  kmer and move to the next base.
       goto nextMer_anotherBase;
     }
