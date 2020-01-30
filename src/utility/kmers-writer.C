@@ -127,7 +127,7 @@ merylFileWriter::~merylFileWriter() {
 
   //  Create a master index with the parameters.
 
-  stuffedBits  *masterIndex = new stuffedBits;
+  stuffedBits  *masterIndex = new stuffedBits(32 * 1024);
 
   masterIndex->setBinary(64, 0x646e496c7972656dllu);  //  HEX: ........  ONDISK: merylInd
   masterIndex->setBinary(64, 0x33302e765f5f7865llu);  //       30.v__xe          ex__v.03
@@ -202,7 +202,7 @@ merylFileWriter::writeBlockToFile(FILE            *datFile,
 
   //  Dump data.
 
-  stuffedBits   *dumpData = new stuffedBits;
+  stuffedBits   *dumpData = new stuffedBits(8 * 64 * 1024);   //  64 KB
 
   dumpData->setBinary(64, 0x7461446c7972656dllu);    //  Magic number, part 1.
   dumpData->setBinary(64, 0x0a3030656c694661llu);    //  Magic number, part 2.
@@ -285,7 +285,7 @@ merylFileWriter::writeBlockToFile(FILE            *datFile,
 
   //  Dump data.
 
-  stuffedBits   *dumpData = new stuffedBits;
+  stuffedBits   *dumpData = new stuffedBits(8 * 64 * 1024);   //  64 KB
 
   dumpData->setBinary(64, 0x7461446c7972656dllu);    //  Magic number, part 1.
   dumpData->setBinary(64, 0x0a3030656c694661llu);    //  Magic number, part 2.
