@@ -29,22 +29,11 @@
 
 #include "sweatShop.H"
 
+#include <atomic>
+
 //  The number of KB to use for a merylCountArray segment.
 #define SEGMENT_SIZE       64
 #define SEGMENT_SIZE_BITS  (SEGMENT_SIZE * 1024 * 8)
-
-
-
-#if 0
-class mcTheadData {
-public:
-  mcThreadData() {
-  };
-  ~mcThreadData() {
-  };
-};
-#endif
-
 
 
 
@@ -62,7 +51,10 @@ public:
     _wData          = wData;
     _wDataMask      = wDataMask;
 
-    _data           = new merylCountArray [_nPrefix];
+    _dumping        = false;
+
+    _lock           = new std::atomic_flag [_nPrefix];
+    _data           = new merylCountArray  [_nPrefix];
     _output         = output;
     _writer         = output->getBlockWriter();
 
@@ -81,11 +73,14 @@ public:
     _computeWait    = 0;
     _numComputing   = 0;
 
-    for (uint32 pp=0; pp<nPrefix; pp++)       //  Initialize each bucket.
+    for (uint32 pp=0; pp<_nPrefix; pp++) {      //  Initialize each bucket.
+      _lock[pp].clear();
       _memUsed += _data[pp].initialize(pp, wData, SEGMENT_SIZE);
+    }
   };
 
   ~mcGlobalData() {
+    delete [] _lock;
     delete [] _data;
     delete [] _writer;
   };
@@ -95,6 +90,9 @@ public:
   uint32                 _wData;
   kmdata                 _wDataMask;
 
+  bool                   _dumping;
+
+  std::atomic_flag      *_lock;
   merylCountArray       *_data;             //  Data for counting.
   merylFileWriter       *_output;
   merylBlockWriter      *_writer;           //  Data for writing.
@@ -117,27 +115,25 @@ public:
 
 
 
+#define BUF_MAX  (1 * 1024 * 1024)
+
 class mcComputation {
 public:
   mcComputation() {
-    _bufferMax  = 1024 * 1024;
+    _bufferMax  = BUF_MAX;
     _bufferLen  = 0;
-    _buffer     = new char [_bufferMax];
-
-    memset(_buffer, 0, sizeof(char) * _bufferMax);
 
     _memUsed    = 0;
     _kmersAdded = 0;
   };
 
   ~mcComputation() {
-    delete [] _buffer;
   };
 
   //  Data for input sequences.
   uint64        _bufferMax;
   uint64        _bufferLen;
-  char         *_buffer;
+  char          _buffer[BUF_MAX];
 
   //  Data for converting sequence to kmers.
   kmerIterator  _kiter;
@@ -159,55 +155,75 @@ loadBases(void *G) {
   mcComputation    *s  = new mcComputation();
   uint32            kl = kmerTiny::merSize() - 1;
 
-  //  Where to put this?  Is it even useful?
-  //fprintf(stderr, "Loading kmers from '%s' into buckets.\n", _inputs[ii]->_name);
-
-  //  If no more inputs, we're done.
- loadBasesAgain:
-  if (g->_inputPos >= g->_inputs.size())
-    return(NULL);
-
   //  Copy the end of the last block into our buffer.
 
   if (g->_lastBuffer[0] != 0) {
     memcpy(s->_buffer, g->_lastBuffer, sizeof(char) * kl);
+
     s->_bufferLen += kl;
+
+    g->_lastBuffer[0] = 0;
   }
 
-  //  Try to load bases
+  //  If no more inputs, we're done.
 
-  uint64  bMax     = s->_bufferMax - s->_bufferLen;
-  uint64  bLen     = 0;
-  bool    endOfSeq = false;
+  if (g->_inputPos >= g->_inputs.size())
+    return(NULL);
 
-  g->_inputs[g->_inputPos]->loadBases(s->_buffer + s->_bufferLen,
-                                      bMax,
-                                      bLen, endOfSeq);
+  //  Try to load bases.  Keep loading until the buffer is filled
+  //  or we exhaust the file.
 
-  //  If nothing loaded, move to the next file and try again.  If
-  //  no more files, we're done.
+  while (1) {
+    uint64  bMax     = s->_bufferMax - 2 - s->_bufferLen;
+    uint64  bLen     = 0;
+    bool    endOfSeq = false;
 
-  if (bLen == 0) {
-    delete g->_inputs[g->_inputPos]->_sequence;
-    g->_inputs[g->_inputPos]->_sequence = NULL;
+    if (bMax < 512)   //  If the buffer is full enough,
+      break;          //  stop loading.
 
-    g->_inputPos++;
+    bool success = g->_inputs[g->_inputPos]->loadBases(s->_buffer + s->_bufferLen,
+                                                       bMax,
+                                                       bLen, endOfSeq);
 
-    goto loadBasesAgain;
+    //  If no bases loaded, we've exhausted the file.  Close it,
+    //  and move to the next one.  Bail on loading more bases;
+    //  let the test above figure out if we're all done on
+    //  the next call to loadBases().
+
+    if (success == false) {
+      assert(bLen == 0);
+
+      delete g->_inputs[g->_inputPos]->_sequence;
+      g->_inputs[g->_inputPos]->_sequence = NULL;
+
+      g->_inputPos++;
+
+      break;
+    }
+
+    //  Account for whatever we just loaded.
+
+    s->_bufferLen += bLen;
+
+    //  If we loaded the maximum, we're done.
+
+    if (bLen == bMax)
+      break;
+
+    //  Otherwise, we must be at the end of a sequence.  Add a
+    //  mer breaking letter to the buffer and load more stuff.
+
+    assert(endOfSeq == true);
+    assert(s->_bufferLen+1 < s->_bufferMax);
+
+    s->_buffer[s->_bufferLen++] = '.';
   }
-
-  //fprintf(stderr, "read " F_U64 " bases from '%s'\n", bufferLen, _inputs[ii]->_name);
 
   //  With bases loaded, we need to save the last few bases for the next buffer,
   //  and tell the kmerIterator about the bases we loaded.
 
-  if (endOfSeq == false) {
+  if (s->_buffer[s->_bufferLen-1] != '.')
     memcpy(g->_lastBuffer, s->_buffer + s->_bufferLen - kl, sizeof(char) * kl);
-  }
-
-  else {
-    g->_lastBuffer[0] = 0;
-  }
 
   //  Now just tell the iterator about the buffer.
 
@@ -215,6 +231,7 @@ loadBases(void *G) {
 
   //  That's it.
 
+  //fprintf(stderr, "return buffer of length %lu\n", s->_bufferLen);
   return(s);
 }
 
@@ -223,8 +240,14 @@ loadBases(void *G) {
 void
 insertKmers(void *G, void *T, void *S) {
   mcGlobalData     *g = (mcGlobalData  *)G;
-  //mcThreadData     *t = (mcThreadData  *)T;
   mcComputation    *s = (mcComputation *)S;
+
+  //  If we're out of space, block until the data is written out.
+
+  while (g->_memUsed >= g->_maxMemory)
+    usleep(1000);
+
+  //  Now just zip down the kmerIterator and add kmers to the merylCountArray.
 
   uint64  memUsed    = 0;
   uint64  kmersAdded = 0;
@@ -251,8 +274,22 @@ insertKmers(void *G, void *T, void *S) {
 
     assert(pp < g->_nPrefix);
 
+    //  If we're out of memory, stop immediately so the writeBatch() can dump
+    //  data.
+
+    while (g->_dumping == true)
+      usleep(1000);
+
+    //  We need exclusive access to this specific merylCountArray, so busy
+    //  wait on a lock until we get it.
+
+    while (g->_lock[pp].test_and_set(std::memory_order_relaxed) == true)
+      ;
+
     s->_memUsed    += g->_data[pp].add(mm);
     s->_kmersAdded += 1;
+
+    g->_lock[pp].clear(std::memory_order_relaxed);
   }
 }
 
@@ -286,33 +323,19 @@ writeBatch(void *G, void *S) {
   delete s;
 
   //  If we haven't hit the memory limit yet, just return.
+  //  Otherwise, dump data.
 
   if (g->_memUsed < g->_maxMemory)
     return;
 
-  //  Otherwise, we're out of space and need to dump the data.  But first,
-  //  we need to wait for all compute threads to finish.
+  //  Tell all the threads to pause, then grab all the locks to ensure nobody
+  //  is still writing.
 
-  //  Do we need someway of knowing how many compute threads are actually computing?
-  //  Or can we just wait until all the expectd number of threads finishes?
+  g->_dumping = true;
 
-
-  //  If not the first one to wait, signal that we're waiting too,
-  //  then wait for the first one to write the data out.
-
-  if (g->_computeWait > 0) {
-    g->_computeWait++;
-
-    while (g->_computeWait > 0)
-      usleep(100);
-
-    return;
-  }
-
-  //  We're the first one to wait.  Wait for all threads to finish.
-
-  while (g->_computeWait < g->_numComputing)
-    usleep(100);
+  for (uint32 pp=0; pp<g->_nPrefix; pp++)
+    while (g->_lock[pp].test_and_set(std::memory_order_relaxed) == true)
+      ;
 
   //  Write data!
 
@@ -345,7 +368,10 @@ writeBatch(void *G, void *S) {
 
   //  Signal that threads can proceeed.
 
-  g->_computeWait = 0;
+  for (uint32 pp=0; pp<g->_nPrefix; pp++)
+    g->_lock[pp].clear(std::memory_order_relaxed);
+
+  g->_dumping = false;
 }
 
 
@@ -381,21 +407,14 @@ merylOperation::countThreads(uint32  wPrefix,
   sweatShop    *ss = new sweatShop(loadBases, insertKmers, writeBatch);
   uint32        nt = omp_get_max_threads();
 
-  ss->setLoaderQueueSize(4 * nt);
+  ss->setLoaderBatchSize(1 * nt);
+  ss->setLoaderQueueSize(2 * nt);
   ss->setWriterQueueSize(1 * nt);
-
   ss->setNumberOfWorkers(1 * nt);
 
-  //for (uint32 w=0; w<nt; w++)
-  //  ss->setThreadData(w, td[w] = new mcThreadData(g, w));
-
-  ss->run(g, true);
+  ss->run(g, false);
 
   delete ss;
-
-  //for (uint32 w=0; w<nt; w++)
-  //  delete td[w];
-  //delete [] td;
 
   //  All data loaded.  Write the output.
 
