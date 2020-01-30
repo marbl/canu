@@ -182,11 +182,12 @@ merylOperation::doCounting(void) {
   for (uint32 ii=0; ii<_inputs.size(); ii++)
     _inputs[ii]->initialize();
 
-  bool    doSimple  = false;
-  uint32  wPrefix   = 0;
-  uint64  nPrefix   = 0;
-  uint32  wData     = 0;
-  kmdata  wDataMask = 0;
+  bool    doSimple   = false;
+  bool    doThreaded = true;
+  uint32  wPrefix    = 0;
+  uint64  nPrefix    = 0;
+  uint32  wData      = 0;
+  kmdata  wDataMask  = 0;
 
   configureCounting(_maxMemory,
                     doSimple,
@@ -208,6 +209,8 @@ merylOperation::doCounting(void) {
 
   if (doSimple)
     countSimple();
+  else if (doThreaded)
+    countThreads(wPrefix, nPrefix, wData, wDataMask);
   else
     count(wPrefix, nPrefix, wData, wDataMask);
 

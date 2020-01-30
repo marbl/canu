@@ -194,6 +194,10 @@ public:
   bool    validMer(void)           { return(_valid);  };
 
   void    countSimple(void);
+  void    countThreads(uint32  wPrefix,
+                       uint64  nPrefix,
+                       uint32  wData,
+                       kmdata  wDataMask);
   void    count(uint32  wPrefix,
                 uint64  nPrefix,
                 uint32  wData,
