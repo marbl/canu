@@ -321,7 +321,7 @@ merylBlockWriter::mergeBatches(uint32 oi) {
 
       //  If no values, we're done.
 
-      if ((minSuffix == UINT64_MAX) && (sumValue == 0))
+      if ((minSuffix == ~((kmdata)0)) && (sumValue == 0))
         break;
 
       //  Set the suffix/value in our merged list, reallocating if needed.
