@@ -71,14 +71,7 @@ private:
                            kmpref           blockPrefix,
                            uint64           nKmers,
                            kmdata          *suffixes,
-                           uint32          *values);
-
-  void    writeBlockToFile(FILE            *datFile,
-                           merylFileIndex  *datFileIndex,
-                           kmpref           blockPrefix,
-                           uint64           nKmers,
-                           kmdata          *suffixes,
-                           uint64          *values);
+                           kmvalu          *values);
 
 private:
   bool                       _initialized;

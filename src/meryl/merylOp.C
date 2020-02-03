@@ -59,7 +59,7 @@ merylOperation::merylOperation(merylOp op, uint32 ff, uint32 threads, uint64 mem
   _fileNumber    = ff;
 
   _actLen        = 0;
-  _actCount      = new uint64 [1024];
+  _actCount      = new kmvalu [1024];
   _actIndex      = new uint32 [1024];
 
   _value         = 0;

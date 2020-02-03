@@ -63,7 +63,7 @@ merylFileReader::initializeFromMasterI_v00(void) {
   _nKmers        = 0;
   _nKmersMax     = 1024;
   _suffixes      = new kmdata [_nKmersMax];
-  _values        = new uint64 [_nKmersMax];
+  _values        = new kmvalu [_nKmersMax];
 }
 
 
@@ -71,7 +71,7 @@ merylFileReader::initializeFromMasterI_v00(void) {
 //  Initialize for the original.
 void
 merylFileReader::initializeFromMasterI_v01(stuffedBits  *masterIndex,
-                                               bool          doInitialize) {
+                                           bool          doInitialize) {
 
   if (doInitialize == true) {
     initializeFromMasterI_v00();
@@ -98,7 +98,7 @@ merylFileReader::initializeFromMasterI_v01(stuffedBits  *masterIndex,
 //  Initialize for the format that includes multi sets.
 void
 merylFileReader::initializeFromMasterI_v02(stuffedBits  *masterIndex,
-                                               bool          doInitialize) {
+                                           bool          doInitialize) {
 
   if (doInitialize == true) {
     initializeFromMasterI_v00();
@@ -128,7 +128,7 @@ merylFileReader::initializeFromMasterI_v02(stuffedBits  *masterIndex,
 
 void
 merylFileReader::initializeFromMasterI_v03(stuffedBits  *masterIndex,
-                                               bool          doInitialize) {
+                                           bool          doInitialize) {
   initializeFromMasterI_v02(masterIndex, doInitialize);
 }
 
@@ -136,8 +136,8 @@ merylFileReader::initializeFromMasterI_v03(stuffedBits  *masterIndex,
 
 void
 merylFileReader::initializeFromMasterIndex(bool  doInitialize,
-                                               bool  loadStatistics,
-                                               bool  beVerbose) {
+                                           bool  loadStatistics,
+                                           bool  beVerbose) {
   char   N[FILENAME_MAX+1];
 
   snprintf(N, FILENAME_MAX, "%s/merylIndex", _inName);

@@ -173,7 +173,7 @@ public:
   bool    isMultiSet(void)         { return(_isMultiSet); };
 
   kmer   &theFMer(void)            { return(_kmer);       };
-  uint64  theValue(void)           { return(_value);      };
+  kmvalu  theValue(void)           { return(_value);      };
 
 public:
   void    doCounting(void);
@@ -251,7 +251,7 @@ private:
   uint32                         _fileNumber;
 
   uint32                         _actLen;
-  uint64                        *_actCount;
+  kmvalu                        *_actCount;
   uint32                        *_actIndex;
 
   kmer                           _kmer;

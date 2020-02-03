@@ -141,7 +141,7 @@ merylFileBlockReader::decodeBlock(void) {
 
 
 void
-merylFileBlockReader::decodeBlock(kmdata *suffixes, uint64 *values) {
+merylFileBlockReader::decodeBlock(kmdata *suffixes, kmvalu *values) {
 
   if (_data == NULL)
     return;

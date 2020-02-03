@@ -75,7 +75,7 @@ public:
 public:
   bool    nextMer(void);
   kmer    theFMer(void)        { return(_kmer);        };
-  uint64  theValue(void)       { return(_value);       };
+  kmvalu  theValue(void)       { return(_value);       };
 
   bool    isMultiSet(void)     { return(_isMultiSet);  };
 
@@ -131,7 +131,7 @@ private:
   merylFileIndex            *_blockIndex;
 
   kmer                       _kmer;
-  uint64                     _value;
+  kmvalu                     _value;
 
   uint64                     _prefix;
 
@@ -143,7 +143,7 @@ private:
   uint64                     _nKmers;
   uint64                     _nKmersMax;
   kmdata                    *_suffixes;
-  uint64                    *_values;
+  kmvalu                    *_values;
 };
 
 

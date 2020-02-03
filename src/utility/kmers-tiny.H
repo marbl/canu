@@ -34,26 +34,8 @@
 
 typedef uint128    kmdata;   //  128 bits of kmer data
 typedef uint32     kmpref;   //   32 bits of kmer prefix == 6 bits file prefix, 6 (default) suffix prefix
-typedef uint64     kmvalu;   //   64 bits of kmer count
+typedef uint32     kmvalu;   //   64 bits of kmer count
 typedef uint64     kmcolo;   //   64 bits of kmer color
-
-#if 0
-class kmdata {
-private:
-  uint128   _data;
-};
-
-class kmpref {
-  uint64    _data;
-};
-
-class kmvalu {
-  uint64    _data;
-};
-
-class kmcolo {
-};
-#endif
 
 
 class  kmerTiny {

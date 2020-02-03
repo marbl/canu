@@ -248,7 +248,7 @@ merylBlockWriter::mergeBatches(uint32 oi) {
 
   uint64    nKmersMax = 0;
   kmdata   *suffixes  = NULL;
-  uint64   *values    = NULL;
+  kmvalu   *values    = NULL;
 
   uint64    kmersIn   = 0;
   uint64    kmersOut  = 0;
@@ -258,7 +258,7 @@ merylBlockWriter::mergeBatches(uint32 oi) {
   uint32    p[_iteration+1];  //  Position in s[] and v[]
   uint64    l[_iteration+1];  //  Number of entries in s[] and v[]
   kmdata   *s[_iteration+1];  //  Pointer to the suffixes for piece x
-  uint64   *v[_iteration+1];  //  Pointer to the values   for piece x
+  kmvalu   *v[_iteration+1];  //  Pointer to the values   for piece x
 
   for (uint32 bb=0; bb<_numBlocks; bb++) {
     uint64  totnKmers = 0;
@@ -280,15 +280,15 @@ merylBlockWriter::mergeBatches(uint32 oi) {
 
     //  Check that everyone has loaded the same prefix.
 
-    uint64  prefix = inBlocks[1].prefix();
+    kmpref  prefix = inBlocks[1].prefix();
 
     //fprintf(stderr, "MERGE prefix 0x%04lx %8lu kmers and 0x%04lx %8lu kmers.\n",
     //        prefix, l[1], inBlocks[2].prefix(), l[2]);
 
     for (uint32 ii=1; ii <= _iteration; ii++) {
       if (prefix != inBlocks[ii].prefix())
-        fprintf(stderr, "ERROR: File %u segments 1 and %u differ in prefix: 0x%016lx vs 0x%016lx\n",
-                oi, ii, prefix, inBlocks[ii].prefix());
+        fprintf(stderr, "ERROR: File %u segments 1 and %u differ in prefix: 0x%s vs 0x%s\n",
+                oi, ii, toHex(prefix), toHex(inBlocks[ii].prefix()));
       assert(prefix == inBlocks[ii].prefix());
     }
 
@@ -301,7 +301,7 @@ merylBlockWriter::mergeBatches(uint32 oi) {
 
     while (1) {
       kmdata  minSuffix = ~((kmdata)0);
-      uint64  sumValue  = 0;
+      kmvalu  sumValue  = 0;
 
       //  Find the smallest suffix over all the inputs;
       //  Remember the sum of their values.
@@ -335,7 +335,7 @@ merylBlockWriter::mergeBatches(uint32 oi) {
       savnKmers++;
 
       if (savnKmers > nKmersMax)
-        fprintf(stderr, "savnKmers %lu > nKmersMax %lu\n", savnKmers, nKmersMax);
+        fprintf(stderr, "savnKmers %lu > nKmersMax %lu minSuffix 0x%s\n", savnKmers, nKmersMax, toHex(minSuffix));
       assert(savnKmers <= nKmersMax);
 
       //  Move to the next element of the lists we pulled data from.  If the list is

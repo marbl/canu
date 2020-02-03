@@ -71,13 +71,13 @@ public:
   bool      loadBlock(FILE *inFile, uint32 activeFile, uint32 activeIteration=0);
 
   void      decodeBlock(void);                               //  to our own storage
-  void      decodeBlock(kmdata *suffixes, uint64 *values);   //  to external storage
+  void      decodeBlock(kmdata *suffixes, kmvalu *values);   //  to external storage
 
   kmpref    prefix(void)   { return(_blockPrefix); };        //  kmer prefix of this block
   uint64    nKmers(void)   { return(_nKmers);      };        //  number of kmers in this block
 
   kmdata   *suffixes(void) { return(_suffixes); };           //  direct access to decoded data
-  uint64   *values(void)   { return(_values);   };
+  kmvalu   *values(void)   { return(_values);   };
 
 private:
   stuffedBits  *_data;
