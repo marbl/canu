@@ -315,6 +315,9 @@ merylBlockWriter::mergeBatches(uint32 oi) {
 
           else if (minSuffix == s[ii][ p[ii] ]) {
             sumValue += v[ii][ p[ii] ];
+
+            if (sumValue < v[ii][ p[ii] ])   //  Check for overflow.
+              sumValue = ~((kmvalu)0);
           }
         }
       }
