@@ -492,24 +492,16 @@ merylCountArray::removeCountedKmers(void) {
 
 
 
-
-
-
-
-
-
-
-
-
-
 uint64
 merylCountArray::add(kmdata suffix) {
 
-#warning ATOMICALLY retrieve _nBits and add _sWidth to it.
-  uint64  nBits     = _nBits;   _nBits += _sWidth;
+  //  Compute current position, the advance pointer to next available spot.
 
+  uint64  nBits     = _nBits;
   uint64  seg       = nBits / _segSize;    //  Which segment are we in?
   uint64  segPos    = nBits % _segSize;    //  Bit position in that segment.
+
+   _nBits += _sWidth;
 
   //  word position counts from high to low; 0 for the high bit and 63 for
   //  the bit that represents integer 1.
@@ -527,8 +519,6 @@ merylCountArray::add(kmdata suffix) {
   //  If the first word and the first position, we need to allocate a segment.
   //  This catches both the case when nBits=0 (we've added nothing) and when
   //  nBits=_segSize (we've added exactly one segment worth of kmers).
-
-#warning ATOMICALLY addSegment() reallocating master array -- how
 
   if ((word    == 0) &&
       (wordBgn == 0))
