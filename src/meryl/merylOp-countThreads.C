@@ -242,16 +242,6 @@ insertKmers(void *G, void *T, void *S) {
   mcGlobalData     *g = (mcGlobalData  *)G;
   mcComputation    *s = (mcComputation *)S;
 
-  //  If we're out of space, block until the data is written out.
-
-  while (g->_memUsed >= g->_maxMemory)
-    usleep(1000);
-
-  //  Now just zip down the kmerIterator and add kmers to the merylCountArray.
-
-  uint64  memUsed    = 0;
-  uint64  kmersAdded = 0;
-
   while (s->_kiter.nextMer()) {
     bool    useF = (g->_operation == opCountForward);
     kmdata  pp   = 0;
@@ -274,8 +264,8 @@ insertKmers(void *G, void *T, void *S) {
 
     assert(pp < g->_nPrefix);
 
-    //  If we're out of memory, stop immediately so the writeBatch() can dump
-    //  data.
+    //  If we're dumping data, stop immediately and sleep until dumping is
+    //  finished.
 
     while (g->_dumping == true)
       usleep(1000);
@@ -386,6 +376,8 @@ merylOperation::countThreads(uint32  wPrefix,
 
   if (_onlyConfig)
     return;
+
+  fprintf(stderr, "THREADED VERSION\n");
 
   //  Configure the writer for the prefix bits we're counting with.
   //

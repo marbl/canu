@@ -511,6 +511,8 @@ merylOperation::count(uint32  wPrefix,
   if (_onlyConfig)
     return;
 
+  fprintf(stderr, "SEQUENTIAL VERSION\n");
+
   //  Configure the writer for the prefix bits we're counting with.
   //
   //  We split the kmer into wPrefix and wData (bits) pieces.
