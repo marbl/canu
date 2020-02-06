@@ -85,7 +85,7 @@ writeToFile(void        *objects,
     uint64 written = fwrite(((char *)objects) + nWritten * objectSize, objectSize, toWrite, file);
     nWritten += written;
 
-    if (errno)
+    if (written != toWrite)
       fprintf(stderr, "writeToFile()-- After writing %lu out of %lu '%s' objects (%lu bytes each): %s\n",
               nWritten, nObjects, description, objectSize, strerror(errno)), exit(1);
   }
