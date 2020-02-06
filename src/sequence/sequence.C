@@ -314,14 +314,15 @@ main(int argc, char **argv) {
     }
 
     else if ((mode == modeShift) && (strcmp(argv[arg], "-len") == 0)) {
+      srPar.len = strtouint64(argv[++arg]);
     }
 
-    else if ((mode == modeShift) && (strcmp(argv[arg], "-init") == 0)) {
-      strcpy(srPar.sr, argv[++arg]);
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-init") == 0)) {   //  Initial sequence
+      strcpy(srPar.sr, argv[++arg]);                                       //  ACGTGGTAA
     }
 
-    else if ((mode == modeShift) && (strcmp(argv[arg], "-map") == 0)) {
-      strcpy(srPar.sv, argv[++arg]);
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-map") == 0)) {    //  SR control bits
+      strcpy(srPar.sv, argv[++arg]);                                       //  011010011
     }
 
     else if ((mode == modeShift) && (strcmp(argv[arg], "") == 0)) {

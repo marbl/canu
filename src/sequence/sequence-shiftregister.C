@@ -30,125 +30,196 @@
 #include "sequence/sequence.H"
 
 
+uint32  gf4mult[4][4] = { { 0, 0, 0, 0 },
+                          { 0, 1, 2, 3 },
+                          { 0, 2, 3, 1 },
+                          { 0, 3, 1, 2 } };
+
+uint32  gf4add[4][4] =  { { 0, 1, 2, 3 },
+                          { 1, 0, 3, 2 },
+                          { 2, 3, 0, 1 },
+                          { 3, 2, 1, 0 } };
+
+char  srprint[17];
+char  svprint[17];
+
+char
+printBase(uint32 sr) {
+
+  sr = (sr << 1) + 'A';
+
+  if (sr == 'E')
+    sr = 'T';
+
+  return(sr);
+}
+
+char *
+printSR(uint32 len, uint32 *sr) {
+
+  for (uint32 ii=0; ii<len; ii++) {
+    srprint[ii] = (sr[ii] << 1) + 'A';
+
+    if (sr[ii] == 'E')
+      sr[ii] = 'T';
+  }
+
+  srprint[len] = 0;
+
+  return(srprint);
+}
+
+char *
+printSV(uint32 len, uint32 *sv) {
+  for (uint32 ii=0; ii<len; ii++)
+    svprint[ii] = sv[ii] + '0';
+
+  svprint[len] = 0;
+
+  return(svprint);
+}
+
+
+
+
+
+void
+incrementSV(uint32 len, uint32 maxv, uint32 *sv) {
+
+  sv[--len]++;
+
+  while (len > 0) {
+    if (sv[len] > maxv) {
+      sv[len] = 0;
+      sv[len-1]++;
+    } else {
+      break;
+    }
+
+    len--;
+  }
+}
+
+#if 0
+    sv[7]++;
+
+    if (sv[7] > maxv)  { sv[7] = 0;  sv[6]++; }
+    if (sv[6] > maxv)  { sv[6] = 0;  sv[5]++; }
+    if (sv[5] > maxv)  { sv[5] = 0;  sv[4]++; }
+    if (sv[4] > maxv)  { sv[4] = 0;  sv[3]++; }
+    if (sv[3] > maxv)  { sv[3] = 0;  sv[2]++; }
+    if (sv[2] > maxv)  { sv[2] = 0;  sv[1]++; }
+    if (sv[1] > maxv)  { sv[1] = 0;  sv[0]++; }
+#endif
+
+
+
 
 void
 doShiftRegister(shiftRegisterParameters &srPar) {
-  uint32 len = 0;
-  char   sr[17];
-  uint8  sv[17];
 
   srPar.initialize();
 
-  len = srPar.len;
-  len = 8;
+  fprintf(stderr, "VERSION 2\n");
 
-  for (uint32 ii=0; ii<srPar.len; ii++) {
-    sr[ii] =  srPar.sr[ii];
-    sv[ii] = (srPar.sv[ii] == '1') ? 1 : 0;
-  }
-
-  sr[0] = 'A';  sv[0] = 1;   //  Oldest value
-  sr[1] = 'A';  sv[1] = 0;
-  sr[2] = 'A';  sv[2] = 0;
-  sr[3] = 'A';  sv[3] = 0;
-  sr[4] = 'A';  sv[4] = 0;
-  sr[5] = 'A';  sv[5] = 0;
-  sr[6] = 'A';  sv[6] = 0;
-  sr[7] = 'G';  sv[7] = 0;  //  Newest value
-
-  sr[srPar.len] = 0;
-  sv[srPar.len] = 0;
-
-  uint32   kmer   = 0;
+  //  Allocate space for the loop detector, set local variables.
   uint32  *detect = new uint32 [65536];
 
-  while ((sv[7] != 0) ||
-         (sv[6] != 0) ||
-         (sv[5] != 0) ||
-         (sv[4] != 0) ||
-         (sv[3] != 0) ||
-         (sv[2] != 0) ||
-         (sv[1] != 0) ||
-         (sv[0] != 0)) {
+  uint64   kmer  = 0;
+  uint32  len    = srPar.len;
+  uint32  SR[17] = {0};
+  uint32  sr[17] = {0};
+  uint32  sv[17] = {0};
 
-    sr[0] = 'A';
-    sr[1] = 'A';
-    sr[2] = 'A';
-    sr[3] = 'A';
-    sr[4] = 'A';
-    sr[5] = 'A';
-    sr[6] = 'A';
-    sr[7] = 'G';
+  uint32  shift  = 0;
+  uint64  kmask  = 0;
+  uint32  mask   = 0;
+  uint32  maxv   = 0;
 
-    kmer = 0x0003;
-
-#define STRING
-#undef  KMER
-
-#ifdef STRING
-      fprintf(stdout, "%s", sr);
+#if 0
+  shift  = 1;
+  mask   = 0x0001;
+  maxv   = 1;
+#else
+  shift  = 2;
+  mask   = 0x0003;
+  maxv   = 3;
 #endif
 
-    memset(detect, 0, sizeof(uint32) * 65536);
-    detect[kmer] = 1;
+  for (uint32 ii=0; ii<len; ii++) {
+    SR[ii] = srPar.sr[ii] - '0';
+    sr[ii] = srPar.sr[ii] - '0';
+    sv[ii] = srPar.sv[ii] - '0';
 
-    for (uint32 ii=0; ii<65536; ii++) {
-#ifdef KMER
-      fprintf(stdout, "%06u %s 0x%04x %u\n", ii, sr, kmer, detect[kmer]);
+    kmask <<= shift;
+    kmask  |= maxv;
+  }
+
+#if 1
+  while (sv[0] <= maxv) {
 #endif
 
-      uint32  next = 0;
+    for (uint32 ii=0; ii<len; ii++) {    //  RESET the string, rebuild the kmer
+      sr[ii] =  SR[ii];
 
-      for (uint32 kk=0; kk<len; kk++)
-        if (sv[kk])
-          next += (sr[kk] >> 1) & 0x03;
+      kmer <<= shift;
+      kmer  |= sr[ii];
+      kmer  &= kmask;
+    }
 
-      if      ((next & 0x03) == 0x00)  next = 'A';
-      else if ((next & 0x03) == 0x01)  next = 'C';
-      else if ((next & 0x03) == 0x03)  next = 'G';
-      else if ((next & 0x03) == 0x02)  next = 'T';
+    memset(detect, 0, sizeof(uint32) * 65536);   //  RESET detect
 
-      for (uint32 kk=0; kk<len-1; kk++)
-        sr[kk] = sr[kk+1];
+    fprintf(stdout, ">%s_%s\n", printSR(len, sr), printSV(len, sv));
 
-      sr[len-1] = next;
 
-#ifdef STRING
-      fprintf(stdout, "%c", next);
+    //  Loop until we hit a cycle.
+
+    uint32  cycleLen = 1;
+
+    while (detect[kmer] == 0) {
+      assert(kmer < 65536);
+
+#if 0
+      fprintf(stderr, "%05u %c%c%c%c%c%c%c%c 0x%04lx\n",
+              cycleLen, printSR(len, sr), kmer);
 #endif
 
-      kmer <<= 2;
-      kmer  |= ((sr[len-1] >> 1) & 0x3);
-      kmer &= 0xffff;
+      //  Mark we've been here.
+      detect[kmer] = cycleLen++;
 
-      detect[kmer]++;
+      //  Save the output letter
+      uint32  out = sr[0];
 
-      if (detect[kmer] == 2) {
-        if (ii > 0) {
-#ifdef KMER
-          fprintf(stdout, "%06u %s 0x%04x %u\n", ii, sr, kmer, detect[kmer]);
-#endif
-#ifdef STRING
-          fprintf(stdout, "\n");
-#endif
-          fprintf(stderr, "cycle at ii=%5u  %d%d%d%d%d%d%d%d\n",
-                  ii, sv[0], sv[1], sv[2], sv[3], sv[4], sv[5], sv[6], sv[7]);
-        }
-        break;
+      fprintf(stdout, "%c", printBase(out));
+
+      //  left circular shift, adding to the taps
+      //  the non-tap cells get just the cell before
+      //  the tap cells get the sum of the cell before it and the output
+      for (uint32 kk=0; kk<len; kk++) {   //  REQUIRES sr[len] = 0
+        sr[kk]  = sr[kk+1];
+        sr[kk] += gf4mult[sv[kk]][out];
+        sr[kk] &= mask;
+      }
+
+      //  Rebuild the kmer
+      for (uint32 kk=0; kk<len; kk++) {
+        kmer <<= shift;
+        kmer  |= sr[kk];
+        kmer  &= kmask;
       }
     }
 
-    sv[7]++;
+    //  report the cycle.
+    if (cycleLen >= kmask - 2)
+      fprintf(stderr, "%05u %s 0x%04lx %5u - cycle for vector %s\n",
+              cycleLen, printSR(len, sr), kmer, detect[kmer], printSV(len, sv));
 
-    if (sv[7] > 1)  { sv[7] = 0;  sv[6]++; }
-    if (sv[6] > 1)  { sv[6] = 0;  sv[5]++; }
-    if (sv[5] > 1)  { sv[5] = 0;  sv[4]++; }
-    if (sv[4] > 1)  { sv[4] = 0;  sv[3]++; }
-    if (sv[3] > 1)  { sv[3] = 0;  sv[2]++; }
-    if (sv[2] > 1)  { sv[2] = 0;  sv[1]++; }
-    if (sv[1] > 1)  { sv[1] = 0;  sv[0]++; }
-    if (sv[0] > 1)  { break; }
+    fprintf(stdout, "\n");
+
+#if 1
+    incrementSV(len, maxv, sv);
   }
+#endif
 
   delete [] detect;
 }
