@@ -307,6 +307,8 @@ Unitig::optimize_recompute(uint32        iid,
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
     uint32  jid = ovl[oo].b_iid;
+    assert(RI->readLength(jid) > 0);
+    double  jratio = (double)(op[jid].max-op[jid].min) / RI->readLength(jid);
     uint32  uu  = inUnitig (jid);
     uint32  jj  = ufpathIdx(jid);
 
@@ -315,12 +317,19 @@ Unitig::optimize_recompute(uint32        iid,
 
     //  Compute the position of the read using the overlap and the other read.
 
-    int32 tmin = (op[iid].fwd) ? (op[jid].min - ovl[oo].a_hang) : (op[jid].min + ovl[oo].b_hang);
-    int32 tmax = (op[iid].fwd) ? (op[jid].max - ovl[oo].b_hang) : (op[jid].max + ovl[oo].a_hang);
+    int32 tmin = (op[iid].fwd) ? (op[jid].min - (int32)(floor(ovl[oo].a_hang*jratio))) : (op[jid].min + (int32)(floor(ovl[oo].b_hang*jratio)));
+    int32 tmax = (op[iid].fwd) ? (op[jid].max - (int32)(floor(ovl[oo].b_hang*jratio))) : (op[jid].max + (int32)(floor(ovl[oo].a_hang*jratio)));
 
     //  Skip if the overlap isn't compatible with the layout.
     if (optimize_isCompatible(ii, jj, ovl[oo], false, false, beVerbose) == false)
       continue;
+
+   // if someone tried to position me to be negative vote for staying alone
+   if (tmax - tmin <= 0) {
+      writeLog("optimize()-- tig %8u read %9u to %d olap with hangs %d and %d currently at position %d %d set me to %d %d\n", id(), iid, jid, ovl[oo].a_hang, ovl[oo].b_hang, op[jid].min, op[jid].max, tmin, tmax);
+      tmax=tmin+readLen;
+    }
+    assert(tmax - tmin >= 0);
 
     if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS)))
       writeLog("optimize()-- tig %8u read %9u to %d olap %4u - %9d-%9d\n", id(), iid, jid, oo, tmin, tmax);
