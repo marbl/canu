@@ -173,23 +173,27 @@ public:
   //  These two functions return the coordinates of an overlap on this read.
   //  The hangs are as they are from the overlap; do not do anything fancy to
   //  them.
-  //              MinCoord   MaxCoord
-  //                  v         v
-  //           -----------A----->    bhang
-  //           ahang  ----B---------------
+  //              MinCoord   MaxCoord                    min       max
+  //                  v         v                         v         v
+  //           -----------A----->    bhang          "end" <-----A------------ "bgn"
+  //           ahang  ----B---------------       ---------------B----   ahang
+  //                                             bhang
+  //         "end"            "bgn"
+  //           <----------A------   -ahang  <-- minCoord isReverse(), add -(-bhang)
+  //           -bhang  ---B---------------      or zero (picture above)
   //
   int32  hangToMinCoord(int32 ahang, int32 bhang) {
     if (position.isForward())
       return(position.bgn + max(0, ahang));
     else
-      return(position.end - min(0, ahang));
+      return(position.end - min(0, bhang));
   };
 
   int32  hangToMaxCoord(int32 ahang, int32 bhang) {
     if (position.isForward())
       return(position.end + min(0, bhang));
     else
-      return(position.bgn - max(0, bhang));
+      return(position.bgn - max(0, ahang));
   };
 
   bool  operator<(ufNode const &that) const {

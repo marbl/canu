@@ -152,6 +152,13 @@ findPotentialOrphans(TigVector       &tigs,
         int32  mincoord = rdA->hangToMinCoord(ovl[oi].a_hang, ovl[oi].b_hang);
         int32  maxcoord = rdA->hangToMaxCoord(ovl[oi].a_hang, ovl[oi].b_hang);
 
+        if (mincoord >= maxcoord)
+          fprintf(stderr, "read %u at %u %u olap to read %u hangs %ld %ld -> coords %d %d\n",
+                  ovl[oi].a_iid, rdA->position.bgn, rdA->position.end,
+                  ovl[oi].b_iid, ovl[oi].a_hang, ovl[oi].b_hang,
+                  mincoord, maxcoord);
+        assert(mincoord < maxcoord);
+
         tigCoverage.add(mincoord, maxcoord - mincoord);
       }
 
