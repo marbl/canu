@@ -232,6 +232,21 @@ findPotentialOrphans(TigVector       &tigs,
   writeLog("== Found %u Potential Orphans ==\n", potentialOrphans.size());
   writeLog("\n");
 
+  //  Write non-orphan tigs.
+
+#if 0
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig               *tig = tigs[ti];
+
+    if ((tig == NULL) ||               //  Not a tig, ignore it.
+        (tig->ufpath.size() == 1))     //  Singleton, handled elsewhere.
+      continue;
+
+    if (potentialOrphans.count(ti) == 0)
+      writeLog("tig %u of length %u with %u reads is NOT an orphan.\n", ti, tig->getLength(), tig->ufpath.size());
+  }
+#endif
+
   flushLog();
 }
 
@@ -288,6 +303,23 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       double    erate    = placements[pi].erate();
 
+#if 0
+      if (rdAtigID == rdBtigID)
+        writeLog("tig %6u read %8u -> placed in source tig\n", rdAtigID, placements[pi].frgID);
+
+      if (rdBtigID == 0)
+        writeLog("tig %6u read %8u -> placed in singleton read (id == 0)\n", rdAtigID, placements[pi].frgID);
+
+      if (rdBtig   == NULL)
+        writeLog("tig %6u read %8u -> placed in singleton read (null ptr)\n", rdAtigID, placements[pi].frgID);
+
+      if (rdBtig->ufpath.size() == 1)
+        writeLog("tig %6u read %8u -> placed in singleton tig\n", rdAtigID, placements[pi].frgID);
+
+      if ((potentialOrphans.count((rdBtigID) > 0)) && (rdAtigID != rdBtigID))
+        writeLog("tig %6u read %8u -> placed in orphan tig %u\n", rdAtigID, placements[pi].frgID, rdBtigID);
+#endif
+
       if ((rdAtigID == rdBtigID) ||                     //  To ourself.
           (rdBtigID == 0) ||                            //  To a singleton read.
           (rdBtig   == NULL) ||                         //  To a singleton read.
@@ -296,6 +328,8 @@ findOrphanReadPlacements(TigVector       &tigs,
         continue;
 
       //  Ignore the placement if it isn't to one of our orphan-popping candidate tigs.
+
+      assert(potentialOrphans.count(rdAtigID) == 1);
 
       bool             dontcare = true;
       vector<uint32>  &porphans = potentialOrphans[rdAtigID];
@@ -343,11 +377,24 @@ findOrphanReadPlacements(TigVector       &tigs,
 
   //  Done with the parallel.  Count things.
 
+  uint32  nZeroTig   = 0;
+  uint32  nContain   = 0;
+  uint32  nNotOrphan = 0;
+
   uint32  nReads  = 0;
   uint32  nPlaces = 0;
 
   for (uint32 fi=0; fi<fiLimit; fi++) {
     uint32     rdAtigID = tigs.inUnitig(fi);
+
+    if (rdAtigID == 0)
+      nZeroTig++;
+
+    if (OG->isContained(fi))
+      nContain++;
+
+    if (potentialOrphans.count(rdAtigID) == 0)
+      nNotOrphan++;
 
     if ((rdAtigID == 0) ||                           //  Read not placed in a tig, ignore it.
         (OG->isContained(fi)) ||                     //  Read is contained, ignore it.
@@ -362,6 +409,9 @@ findOrphanReadPlacements(TigVector       &tigs,
 
   writeLog("\n");
   writeLog("== Found %u placements for %u reads. ==\n", nPlaces, nReads);
+  writeLog("     %8u reads not placed: not in a tig\n",     nZeroTig);
+  writeLog("     %8u reads not placed: contained\n",        nContain);
+  writeLog("     %8u reads not placed: not in an orhpan\n", nNotOrphan);
   writeLog("\n");
 
   return(placed);
