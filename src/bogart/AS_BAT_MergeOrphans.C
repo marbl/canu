@@ -270,7 +270,7 @@ findOrphanReadPlacements(TigVector       &tigs,
   writeLog("\n");
 
 #pragma omp parallel for schedule(dynamic, fiBlockSize)
-  for (uint32 fi=0; fi<fiLimit; fi++) {
+  for (uint32 fi=1; fi<fiLimit; fi++) {
     uint32     rdAtigID = tigs.inUnitig(fi);
 
     if ((rdAtigID == 0) ||                           //  Read not placed in a tig, ignore it.
@@ -384,7 +384,7 @@ findOrphanReadPlacements(TigVector       &tigs,
   uint32  nReads  = 0;
   uint32  nPlaces = 0;
 
-  for (uint32 fi=0; fi<fiLimit; fi++) {
+  for (uint32 fi=1; fi<fiLimit; fi++) {
     uint32     rdAtigID = tigs.inUnitig(fi);
 
     if (rdAtigID == 0)
