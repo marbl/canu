@@ -368,30 +368,44 @@ public:
 class shiftRegisterParameters {
 public:
   shiftRegisterParameters() {
-    len   = 0;
-    sr[0] = 0;
-    sv[0] = 0;
+    search = false;
+    fast   = false;
+
+    len    = 0;
+
+    memset(sr,    0, sizeof(char) * 65);
+    memset(svmin, 0, sizeof(char) * 65);
+    memset(svmax, 0, sizeof(char) * 65);
   };
   ~shiftRegisterParameters() {
   };
 
-  void    initialize(void) {
-    uint32 srLen = strlen(sr);
-    uint32 svLen = strlen(sv);
+  void    initialize(void);
 
-    if (srLen != svLen)
-      fprintf(stderr, "ERROR: srLen %u (%s) svLen %u (%s)\n",
-              srLen, sr,
-              svLen, sv);
-    assert(srLen == svLen);
+  uint64   getEncodedSR(void);
+  uint64   getCycleLen(void);
+  uint64   getCycleMax(void);
+  uint64   getEncodedSVmin(void);
+  uint64   getEncodedSVmax(void);
+  uint64   getEncodedSVmask(void);
 
-    len = srLen;
+  char     numberToBase(uint32 number) {
+    number = (number << 1) + 'A';
+
+    if (number == 'E')
+      number == 'T';
+
+    return(number);
   };
+
+  bool    search;
+  bool    fast;
 
   uint32  len;
 
-  char    sr[17];
-  char    sv[17];
+  char    sr[65];
+  char    svmin[65];
+  char    svmax[65];
 };
 
 
