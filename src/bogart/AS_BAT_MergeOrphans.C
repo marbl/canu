@@ -47,6 +47,46 @@
 
 using namespace std;
 
+//
+//
+//  Candidate bubble tigs are found by annotating regions on each tig that
+//  are covered by read-level overlaps to some other larger tig.  After
+//  merging all overlapping regions, if a tig has ten or fewer regions, and
+//  at least one end of the tig is covered, the tig will be considered for
+//  bubble popping.  Additionally, a list of the tigs with overlapping reads
+//  is kept for each candidate bubble tig.
+//
+//  Every read in a bubble tig is 'placed', using read-level overlaps, in all
+//  other tigs.  A read can be 'placed' at a specific location in a tig if
+//  the overlaps between it and the reads at that location are of similar
+//  quality to the overlaps between just the reads at that location.
+//  Additionally, a read can only be placed in a tig previously identified as
+//  a potential location for the bubble.
+//
+//  Each placement of the first and last read in a tig is extended by the
+//  length of the candidate bubble tig.  Overlapping placements are merged,
+//  and the merged regions are exteded by 25% on each end.  Any region that
+//  contains a placement for both the first and last read, correctly oriented
+//  and sized, is retained.
+//
+//  Four outcomes are possible:
+//
+//  1) A single region is indentified, and every read in the bubble tig has
+//     been "placed" in the region.  The candidate tig is merged into the
+//     larger tig.
+//
+//  2) Multiple regions are identified, and every read in the candidate tig
+//     are placed in every regoion.  The reads in the candidate tig are
+//     individually placed at their best location.
+//
+//  3) Any number of regions are identified, and both the first and last read
+//     in the candidate tig are placed.  The candidate tig is flagged as a
+//     "bubble", and excluded from later repeat detection.
+//
+//  4) None of the above.  The candidate tig remains as is.
+//
+//
+
 
 class candidatePop {
 public:
