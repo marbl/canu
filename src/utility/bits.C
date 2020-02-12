@@ -38,9 +38,11 @@ stuffedBits::stuffedBits(uint64 nBits) {
   _dataBlockLen    = new uint64   [_dataBlocksMax];
   _dataBlocks      = new uint64 * [_dataBlocksMax];
 
-  memset(_dataBlockBgn, 0, sizeof(uint64)   * _dataBlocksMax);
-  memset(_dataBlockLen, 0, sizeof(uint64)   * _dataBlocksMax);
-  memset(_dataBlocks,   0, sizeof(uint64 *) * _dataBlocksMax);
+  for (uint32 ii=0; ii<_dataBlocksMax; ii++) {
+    _dataBlockBgn[ii] = 0;
+    _dataBlockLen[ii] = 0;
+    _dataBlocks[ii]   = NULL;
+  }
 
   _dataPos = 0;
   _data    = _dataBlocks[0] = new uint64 [_dataBlockLenMax / 64];
