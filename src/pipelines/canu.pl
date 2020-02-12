@@ -524,6 +524,12 @@ elsif (scalar(@inputFiles) > 0) {
     my $rt;
     my $st;
 
+    #  If no mode set, default -pacbio-hifi to trimmed status.
+    
+    if (($mode eq "") && ($numHiFi > 0)) {
+        $readsAreTrimmed = 1;
+    }
+
     #  Figure out a human description of the reads, and set
     #  flags to pass to sqStoreCreate.
 
@@ -629,7 +635,7 @@ if (($numPacBio   == 0) &&
 if (!defined($mode)) {
     $mode = "run"            if ($numRaw    > 0);
     $mode = "trim-assemble"  if ($numCor    > 0);
-    $mode = "trim-assemble"  if ($numHiFi   > 0);
+    $mode = "assemble"       if ($numHiFi   > 0);
     $mode = "assemble"       if ($numCorTri > 0);
 }
 
@@ -660,17 +666,16 @@ if ($mode eq "trim") {
 }
 
 if ($mode eq "trim-assemble") {
-    if ($numHiFi  > 0) {
-       print STDERR "--    - trim HiFi reads.\n";
-       print STDERR "--    - assemble trimmed HiFi reads.\n";
-    } else {
-       print STDERR "--    - trim corrected reads.\n";
-       print STDERR "--    - assemble corrected and trimmed reads.\n";
-   }
+   print STDERR "--    - trim corrected reads.\n";
+   print STDERR "--    - assemble corrected and trimmed reads.\n";
 }
 
 if ($mode eq "assemble") {
-    print STDERR "--    - assemble corrected and trimmed reads.\n"    if ($numHiFi == 0);
+    if ($numHiFi  > 0) {
+       print STDERR "--    - assemble HiFi reads.\n";
+    } else {
+       print STDERR "--    - assemble corrected and trimmed reads.\n"    if ($numHiFi == 0);
+   }
 }
 
 printf STDERR "--\n";
