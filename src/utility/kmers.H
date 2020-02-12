@@ -201,6 +201,7 @@ public:
   };
 
   void       reset(void) {
+    _kmerSize   = _fmer.merSize();
     _kmerLoad   = 0;
     _kmerValid  = _fmer.merSize() - 1;
   };
@@ -211,16 +212,16 @@ public:
     _bufferPos = 0;
   };
 
+  //  The primary interface.  Iterate over all valid mers, silently skipping over
+  //  any invalid ones.
+  //
   bool       nextMer(void) {
   nextMer_anotherBase:
     if (_bufferPos >= _bufferLen)      //  No more sequence, and not a valid kmer.
       return(false);
 
-    if ((_buffer[_bufferPos] != 'A') && (_buffer[_bufferPos] != 'a') &&
-        (_buffer[_bufferPos] != 'C') && (_buffer[_bufferPos] != 'c') &&
-        (_buffer[_bufferPos] != 'G') && (_buffer[_bufferPos] != 'g') &&
-        (_buffer[_bufferPos] != 'T') && (_buffer[_bufferPos] != 't')) {
-      _kmerLoad = 0;                   //  Not a valis base.  Clear the current
+    if (isACGT(_bufferPos) == false) {
+      _kmerLoad = 0;                   //  Not a valid base.  Clear the current
       _bufferPos++;                    //  kmer and move to the next base.
       goto nextMer_anotherBase;
     }
@@ -238,11 +239,84 @@ public:
     return(true);                      //  Valid kmer!
   };
 
+  //  Alternate interface.  Iterate over all bases.  Use isValid() to test if the kmer
+  //  ending at this base is valid.  Use isValidBgn() and isValidEnd() to decide if the
+  //  base at the start/end of the kmer is ACGT.
+  //
+  bool       isValid(void) {
+    return(_kmerLoad == _kmerSize);
+  }
+
+  bool       isACGT(uint64 pos) {
+    return((_buffer[pos] == 'A') || (_buffer[pos] == 'a') ||
+           (_buffer[pos] == 'C') || (_buffer[pos] == 'c') ||
+           (_buffer[pos] == 'G') || (_buffer[pos] == 'g') ||
+           (_buffer[pos] == 'T') || (_buffer[pos] == 't'));
+  }
+
+  bool       isACGTbgn(void) {
+    return(isACGT(_bufferPos - _kmerSize));
+  }
+
+  bool       isACGTend(void) {
+    return(isACGT(_bufferPos - 1));
+  }
+
+  char       getBaseBgn(void) {return(_buffer[_bufferPos - _kmerSize]);}
+  char       getBaseEnd(void) {return(_buffer[_bufferPos - 1]);}
+
+  bool       nextBase(void) {
+
+    //  Preload the first kmerSize-1 bases.
+
+    while ((_bufferPos < _kmerSize - 1) &&
+           (_bufferPos < _bufferLen)) {
+      if (isACGT(_bufferPos) == false) {   //  Not a valid base, reset the counter.
+        _kmerLoad = 0;
+      } else {
+        _fmer.addR(_buffer[_bufferPos]);   //  A valid base, so push it onto
+        _rmer.addL(_buffer[_bufferPos]);   //  the kmer.
+
+        _kmerLoad++;
+      }
+
+      _bufferPos++;
+    }
+
+    //  Stop if we're out of sequence.
+
+    if (_bufferPos >= _bufferLen)        //  No more sequence, stop.
+      return(false);
+
+    //  Load another base.
+
+    if (isACGT(_bufferPos) == false) {   //  Not a valid base, reset the counter.
+      _kmerLoad = 0;
+    }
+
+    else {
+      _fmer.addR(_buffer[_bufferPos]);   //  A valid base, so push it onto
+      _rmer.addL(_buffer[_bufferPos]);   //  the kmer.
+
+      if (_kmerLoad < _kmerSize)         //  Increment the loaded size,
+        _kmerLoad++;                     //  if not full already.
+    }
+
+    _bufferPos++;
+
+    return(true);                        //  A base was consumed.
+  }
+
+
   kmerTiny   fmer(void)      { return(_fmer);                        };
   kmerTiny   rmer(void)      { return(_rmer);                        };
-  uint64     position(void)  { return(_bufferPos - _fmer.merSize()); };
+  uint64     position(void)  { return(_bufferPos - _kmerSize); };
+
+  uint64     bgnPosition(void)  { return(_bufferPos - _kmerSize); };
+  uint64     endPosition(void)  { return(_bufferPos);                   };
 
 private:
+  uint32    _kmerSize;
   uint32    _kmerLoad;
   uint32    _kmerValid;
 

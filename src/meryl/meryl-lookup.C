@@ -78,21 +78,31 @@ dumpExistence(dnaSeqFile                      *sfile,
   for (uint32 seqId=0; sfile->loadSequence(seq); seqId++) {
     kmerIterator  kiter(seq.bases(), seq.length());
 
-    while (kiter.nextMer()) {
-      for (uint32 dd=0; dd<klookup.size(); dd++) {
-        uint64  fValue = 0;
-        uint64  rValue = 0;
-        bool    fExists = klookup[dd]->exists(kiter.fmer(), fValue);
-        bool    rExists = klookup[dd]->exists(kiter.rmer(), rValue);
-
-        fprintf(ofile->file(), "%s\t%u\t%lu\t%c\t%s\t%lu\t%s\t%lu\t%s\n",
+    while (kiter.nextBase()) {
+      if (kiter.isValid() == false) {
+        fprintf(ofile->file(), "%s\t%u\t%lu\t%c\n",
                 seq.name(),
                 seqId,
                 kiter.position(),
-                (fExists || rExists) ? 'T' : 'F',
-                kiter.fmer().toString(fString), fValue,
-                kiter.rmer().toString(rString), rValue,
-                klabel[dd]);
+                kiter.isACGTbgn() ? 'n' : 'N');
+      }
+
+      else {
+        for (uint32 dd=0; dd<klookup.size(); dd++) {
+          uint64  fValue = 0;
+          uint64  rValue = 0;
+          bool    fExists = klookup[dd]->exists(kiter.fmer(), fValue);
+          bool    rExists = klookup[dd]->exists(kiter.rmer(), rValue);
+
+          fprintf(ofile->file(), "%s\t%u\t%lu\t%c\t%s\t%lu\t%s\t%lu\t%s\n",
+                  seq.name(),
+                  seqId,
+                  kiter.position(),
+                  (fExists || rExists) ? 'T' : 'F',
+                  kiter.fmer().toString(fString), fValue,
+                  kiter.rmer().toString(rString), rValue,
+                  labels[dd]);
+        }
       }
     }
   }
@@ -228,7 +238,7 @@ main(int argc, char **argv) {
       while ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
         inputDBname.push_back(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-label") == 0) {
+    } else if (strcmp(argv[arg], "-labels") == 0) {
       while ((arg + 1 < argc) && (argv[arg + 1][0] != '-'))
         inputDBlabel.push_back(argv[++arg]);
 
@@ -281,12 +291,15 @@ main(int argc, char **argv) {
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s <report-type> \\\n", argv[0]);
     fprintf(stderr, "         -sequence <input1.fasta> [<input2.fasta>] \\\n");
+    fprintf(stderr, "         -output   <output1>      [<output2>]\n");
     fprintf(stderr, "         -mers     <input1.meryl> [<input2.meryl>] [...] \\\n");
-    fprintf(stderr, "         -output   <output1> [<output2>]\n");
+    fprintf(stderr, "         -labels   <input1name>   [<input2name>]   [...]\n");
     fprintf(stderr, "  Query the kmers in meryl database(s) <input.meryl> with the sequences\n");
     fprintf(stderr, "  in <input.fasta>.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  Multiple databases and multiple input files are supported.\n");
+    fprintf(stderr, "  Multiple databases are supported.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Up to two inptu sequences are supported (only for -include / -exclude).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Input files can be FASTA or FASTQ; uncompressed, gz, bz2 or xz compressed\n");
     fprintf(stderr, "\n");
