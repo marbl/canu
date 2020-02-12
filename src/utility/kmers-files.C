@@ -70,12 +70,12 @@ merylFileBlockReader::loadBlock(FILE *inFile, uint32 activeFile, uint32 activeIt
   //  Otherwise, allocate _data, read the block from disk.  If nothing loaded,
   //  return false.
 
-  _data = new stuffedBits();
+  _data = new stuffedBits(inFile);
 
   _blockPrefix = 0;
   _nKmers      = 0;
 
-  if (_data->loadFromFile(inFile) == false) {
+  if (_data->getLength() == 0) {
     delete _data;
     _data = NULL;
 
@@ -84,7 +84,6 @@ merylFileBlockReader::loadBlock(FILE *inFile, uint32 activeFile, uint32 activeIt
 
   //  Decode the header of _data, but don't process the kmers yet.
 
-  uint64 pos   = _data->getPosition();
   uint64 m1    = _data->getBinary(64);
   uint64 m2    = _data->getBinary(64);
 
@@ -115,7 +114,7 @@ merylFileBlockReader::loadBlock(FILE *inFile, uint32 activeFile, uint32 activeIt
 
   if ((m1 != 0x7461446c7972656dllu) ||
       (m2 != 0x0a3030656c694661llu)) {
-    fprintf(stderr, "merylFileReader::nextMer()-- Magic number mismatch in activeFile " F_U32 " activeIteration " F_U32 " position " F_U64 ".\n", activeFile, activeIteration, pos);
+    fprintf(stderr, "merylFileReader::nextMer()-- Magic number mismatch in activeFile " F_U32 " activeIteration " F_U32 ".\n", activeFile, activeIteration);
     fprintf(stderr, "merylFileReader::nextMer()-- Expected 0x7461446c7972656d got 0x%016" F_X64P "\n", m1);
     fprintf(stderr, "merylFileReader::nextMer()-- Expected 0x0a3030656c694661 got 0x%016" F_X64P "\n", m2);
     exit(1);
