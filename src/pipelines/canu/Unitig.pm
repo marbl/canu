@@ -189,6 +189,9 @@ sub unitig_bogart ($) {
     print F "    -eg "          . getGlobal("utgErrorRate")       . " \\\n";
     print F "    -eM "          . getGlobal("utgErrorRate")       . " \\\n";
     print F "    -mo "          . getGlobal("minOverlapLength")   . " \\\n";
+    print F "    -covgapolap "  . getGlobal("minOverlapLength")   . " \\\n";
+    print F "    -lopsided nobest 50 "                            . " \\\n";
+    print F "    -minolappercent   0.0 "                          . " \\\n";
     print F "    -dg "          . getGlobal("utgGraphDeviation")  . " \\\n";
     print F "    -db "          . getGlobal("utgGraphDeviation")  . " \\\n";
     print F "    -dr "          . getGlobal("utgRepeatDeviation") . " \\\n";
