@@ -117,6 +117,10 @@ char const *toHex(uint128 v);
 char const *toHex(uint64  v);
 char const *toHex(uint32  v);
 
+char const *toDec(uint128 v);
+char const *toDec(uint64  v);
+char const *toDec(uint32  v);
+
 // These macros are use to eliminate inter-platform differnces between
 // calculated results
 //#define DBL_TO_INT(X)   ((int)((1.0+16.0*DBL_EPSILON)*(X)))

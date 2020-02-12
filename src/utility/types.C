@@ -27,8 +27,16 @@
 
 #include "types.H"
 
+//  In hex, a 128-bit integer needs 32 digits.
+//  In dec, a 128-bit integer needs 39 digits.  (it is 340,282,366,920,938,463,463,374,607,431,768,211,456)
+//
+//  We'll just allocate 64 digits and be done with it.  Until we want to
+//  print that 128-bit integer as binary.  (that we overallocate space makes
+//  conversion to decimal a little bit easier)
+
+char   dec[10]     = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 char   hex[16]     = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-char   str[16][33] = { 0 };
+char   str[16][64] = { 0 };
 uint32 pos         =   0;
 
 char const *
@@ -90,6 +98,80 @@ toHex(uint32  v) {
   }
 
   ret[8] = 0;
+
+  return(ret);
+}
+
+
+
+
+
+
+
+//  These are all the same.
+
+char const *
+toDec(uint128 v) {
+  char *ret = str[pos++];
+
+  if (pos >= 16)
+    pos = 0;
+
+  uint32  p = 64;
+
+  while (v > 0) {
+    p -= 1;
+    ret[p] = dec[ v % 10 ];
+    v /= 10;
+  }
+
+  for (uint32 xx=0; p<64; xx++, p++) {
+    ret[xx] = ret[p];
+  }
+
+  return(ret);
+}
+
+char const *
+toDec(uint64  v) {
+  char *ret = str[pos++];
+
+  if (pos >= 16)
+    pos = 0;
+
+  uint32  p = 64;
+
+  while (v > 0) {
+    p -= 1;
+    ret[p] = dec[ v % 10 ];
+    v /= 10;
+  }
+
+  for (uint32 xx=0; p<64; xx++, p++) {
+    ret[xx] = ret[p];
+  }
+
+  return(ret);
+}
+
+char const *
+toDec(uint32  v) {
+  char *ret = str[pos++];
+
+  if (pos >= 16)
+    pos = 0;
+
+  uint32  p = 64;
+
+  while (v > 0) {
+    p -= 1;
+    ret[p] = dec[ v % 10 ];
+    v /= 10;
+  }
+
+  for (uint32 xx=0; p<64; xx++, p++) {
+    ret[xx] = ret[p];
+  }
 
   return(ret);
 }
