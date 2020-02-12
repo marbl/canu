@@ -325,8 +325,8 @@ stuffedBits::loadFromFile(FILE *F) {
   uint32   inLen    = 0;
   uint32   inMax    = 0;
 
-  if (F == NULL)     //  No file,
-    return(false);   //  no load.
+  if (F == NULL)        //  No file,
+    return(false);      //  no load.
 
   //  Try to load the new parameters into temporary storage, so we can
   //  compare against what have already allocated.
@@ -341,10 +341,10 @@ stuffedBits::loadFromFile(FILE *F) {
   //  If the input blocks are not the same size as the blocks we have, remove them.
 
   if (_dataBlockLenMax != inLenMax) {
-    for (uint32 ii=0; ii<_dataBlocksLen; ii++)
+    for (uint32 ii=0; ii<_dataBlocksLen; ii++)    //  Delete all allocated blocks.
       delete [] _dataBlocks[ii];
 
-    for (uint32 ii=0; ii<_dataBlocksMax; ii++)
+    for (uint32 ii=0; ii<_dataBlocksMax; ii++)    //  Wipe all pointers.
       _dataBlocks[ii] = NULL;
 
     _dataBlockLenMax = inLenMax;
