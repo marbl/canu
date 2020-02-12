@@ -651,20 +651,10 @@ merylOperation::nextMer(void) {
   //  If flagged for printing, print!
 
   if (_printer != NULL) {
-    char  flags[4] = { 0 };  //  Default, no flags (and no space) printed.
-    char  kmerString[256];
-
-    if (_kmer.isCanonical()) {
-      flags[0] = '\t';
-      flags[1] = 'C';
-    }
-
-    if (_kmer.isPalindrome()) {
-      flags[0] = '\t';
-      flags[1] = 'P';
-    }
-
-    fprintf(_printer, "%s\t" F_U64 "\n", _kmer.toString(kmerString), _value);
+    fputs(_kmer.toString(_kmerString), _printer);
+    fputc('\t', _printer);
+    fputs(toDec(_value), _printer);
+    fputc('\n', _printer);
   }
 
   //  Now just return and let the client query us to get the kmer and value.

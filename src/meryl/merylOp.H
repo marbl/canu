@@ -248,6 +248,8 @@ private:
   merylStreamWriter             *_writer;    //  operations, _writer is used.
   FILE                          *_printer;
 
+  char                           _kmerString[65];
+
   uint32                         _fileNumber;
 
   uint32                         _actLen;
