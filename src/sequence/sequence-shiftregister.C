@@ -39,18 +39,18 @@ shiftRegisterParameters::initialize(void) {
   uint32 sxLen = strlen(svmax);
   bool   fail  = false;
 
-  fail |=  (len == 0);
+  fail |=  (order == 0);
 
   fail |= ((srLen > 0) && (snLen > 0) && (srLen != snLen));
   fail |= ((srLen > 0) && (sxLen > 0) && (srLen != sxLen));
   fail |= ((snLen > 0) && (sxLen > 0) && (snLen != sxLen));
 
-  fail |= ((srLen > 0) && (srLen != len));
-  fail |= ((snLen > 0) && (snLen != len));
-  fail |= ((sxLen > 0) && (snLen != len));
+  fail |= ((srLen > 0) && (srLen != order));
+  fail |= ((snLen > 0) && (snLen != order));
+  fail |= ((sxLen > 0) && (snLen != order));
 
   if (fail == true) {
-    fprintf(stderr, "ERROR: len   %u\n", len);
+    fprintf(stderr, "ERROR: order %u\n", order);
     fprintf(stderr, "ERROR: sr    %s len %u\n", sr,    srLen);
     fprintf(stderr, "ERROR: svmin %s len %u\n", svmin, snLen);
     fprintf(stderr, "ERROR: svmax %s len %u\n", svmax, sxLen);
@@ -74,9 +74,9 @@ shiftRegisterParameters::getEncodedSR(void) {
   }
 
   else {
-    for (uint32 ii=0; ii<len; ii++) {
+    for (uint32 ii=0; ii<order; ii++) {
       r <<= 2;
-      r  |= sr[len-1-ii] - '0';
+      r  |= sr[order-1-ii] - '0';
     }
   }
 
@@ -94,7 +94,7 @@ shiftRegisterParameters::getCycleLen(void) {
 
 uint64
 shiftRegisterParameters::getCycleMax(void) {
-  return(1llu << (2 * len));
+  return(1llu << (2 * order));
 }
 
 
@@ -105,13 +105,13 @@ shiftRegisterParameters::getEncodedSVmin(void) {
 
   if (svmin[0] == 0) {
     r   = 1llu;
-    r <<= 2 * len - 2;
+    r <<= 2 * order - 2;
   }
 
   else {
-    for (uint32 ii=0; ii<len; ii++) {
+    for (uint32 ii=0; ii<order; ii++) {
       r <<= 2;
-      r  |= svmin[len-1-ii] - '0';
+      r  |= svmin[order-1-ii] - '0';
     }
   }
 
@@ -126,14 +126,14 @@ shiftRegisterParameters::getEncodedSVmax(void) {
 
   if (svmax[0] == 0) {
     r   = 1llu;
-    r <<= 2 * len;
+    r <<= 2 * order;
     r  -= 1;
   }
 
   else {
-    for (uint32 ii=0; ii<len; ii++) {
+    for (uint32 ii=0; ii<order; ii++) {
       r <<= 2;
-      r  |= svmax[len-1-ii] - '0';
+      r  |= svmax[order-1-ii] - '0';
     }
   }
 
@@ -144,24 +144,17 @@ shiftRegisterParameters::getEncodedSVmax(void) {
 
 uint64
 shiftRegisterParameters::getEncodedSVmask(void) {
-  return((1llu << (2 * len)) - 1);
+  return((1llu << (2 * order)) - 1);
 }
 
 
 
 
-void
-searchShiftRegisterFast(shiftRegisterParameters &srPar);
+void  searchShiftRegisterFast(shiftRegisterParameters &srPar);
+void  searchShiftRegisterSlow(shiftRegisterParameters &srPar);
+void  emitShiftRegisterFast(shiftRegisterParameters &srPar);
 
-void
-searchShiftRegisterSlow(shiftRegisterParameters &srPar);
-
-void
-emitShiftRegisterFast(shiftRegisterParameters &srPar) {
-}
-
-void
-emitShiftRegisterSlow(shiftRegisterParameters &srPar) {
+void  emitShiftRegisterSlow(shiftRegisterParameters &srPar) {
 }
 
 

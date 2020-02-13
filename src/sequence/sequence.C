@@ -313,14 +313,24 @@ main(int argc, char **argv) {
       mode = modeShift;
     }
 
-    else if ((mode == modeShift) && (strcmp(argv[arg], "-len") == 0)) {
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-order") == 0)) {
+      srPar.order  = strtouint32(argv[++arg]);
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-emit") == 0)) {
       srPar.search = false;
-      srPar.len    = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-length") == 0)) {
+      srPar.length = strtouint64(argv[++arg]);
     }
 
     else if ((mode == modeShift) && (strcmp(argv[arg], "-search") == 0)) {
       srPar.search = true;
-      srPar.len    = strtouint64(argv[++arg]);
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-report") == 0)) {
+      srPar.report = strtodouble(argv[++arg]);
     }
 
     else if ((mode == modeShift) && (strcmp(argv[arg], "-fast") == 0)) {
@@ -329,6 +339,10 @@ main(int argc, char **argv) {
 
     else if ((mode == modeShift) && (strcmp(argv[arg], "-state") == 0)) {   //  Initial sequence
       strcpy(srPar.sr, argv[++arg]);                                        //  ACGTGGTAA
+    }
+
+    else if ((mode == modeShift) && (strcmp(argv[arg], "-tap") == 0)) {       //  SR control bits
+      strcpy(srPar.svmin, argv[++arg]);                                       //  011010011
     }
 
     else if ((mode == modeShift) && (strcmp(argv[arg], "-tapmin") == 0)) {    //  SR control bits

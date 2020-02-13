@@ -18,6 +18,7 @@ SOURCES  := sequence.C \
             sequence-mutate.C \
             sequence-sample.C \
             sequence-shiftregister.C \
+            sequence-shiftregister-emit-fast.C \
             sequence-shiftregister-search-fast.C \
             sequence-shiftregister-search-slow.C \
             sequence-simulate.C \

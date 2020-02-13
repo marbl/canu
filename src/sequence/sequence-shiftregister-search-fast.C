@@ -47,13 +47,13 @@ searchShiftRegisterFast(shiftRegisterParameters &srPar) {
 
   //  Log.
 
-  fprintf(stderr, "Finding cycles for length %u bases.\n", srPar.len);
-  fprintf(stderr, "  sr     %022lo\n", expandTo3(sr));
-  fprintf(stderr, "  cyclen %lu\n", cyclen);
-  fprintf(stderr, "  cycmax %lu\n", cycmax);
-  fprintf(stderr, "  sv     %022lo\n", expandTo3(sv));
-  fprintf(stderr, "  svmax  %022lo\n", expandTo3(svmax));
-  fprintf(stderr, "  svmask %022lo\n", expandTo3(svmask));
+  fprintf(stderr, "Finding cycles for length %u bases.\n", srPar.order);
+  fprintf(stderr, "  sr     %0*lo\n",  srPar.order, expandTo3(sr));
+  fprintf(stderr, "  cyclen %lu\n",    cyclen);
+  fprintf(stderr, "  cycmax %lu\n",    cycmax);
+  fprintf(stderr, "  sv     %0*lo\n", srPar.order, expandTo3(sv));
+  fprintf(stderr, "  svmax  %0*lo\n", srPar.order, expandTo3(svmax));
+  fprintf(stderr, "  svmask %0*lo\n", srPar.order, expandTo3(svmask));
   fprintf(stderr, "\n");
 
   //  We can precompute the result of gf4mult[sv[kk]][out] used in the addition.
@@ -99,7 +99,7 @@ searchShiftRegisterFast(shiftRegisterParameters &srPar) {
       mult &= svmask;
 
 #ifdef DEBUG
-      fprintf(stderr, "widemult[%022lo][%02x] %022lo\n", expandTo3(sv), out, expandTo3(mult));
+      fprintf(stderr, "widemult[%0*lo][%02x] %0*lo\n", srPar.order, expandTo3(sv), out, srPar.order, expandTo3(mult));
 #endif
 
       gf4widemult[out] = mult;
@@ -116,14 +116,14 @@ searchShiftRegisterFast(shiftRegisterParameters &srPar) {
 
     detect->clear();                     //  Reset the cycle detector.
 
-    for (cyclen=0; (detect->flipBit(sr) == false); cyclen++) {
+    for (cyclen=1; (detect->flipBit(sr) == false); cyclen++) {
       uint64  out = sr & 0x03;           //  Save the output value
       uint64  mul = gf4widemult[out];    //  Compute the multiplier
 
 #ifdef DEBUG
-      fprintf(stderr, "cycle %8lu out %02lx sr %022lo\n", cyclen, out, expandTo3(sr >> 2));
-      fprintf(stderr, "                     add %022lo\n", expandTo3(mul));
-      fprintf(stderr, "                   final %022lo\n", expandTo3((sr >> 2) ^ mul));
+      fprintf(stderr, "cycle %8lu out %02lx sr %0*lo\n", cyclen, out, srPar.order, expandTo3(sr >> 2));
+      fprintf(stderr, "                     add %0*lo\n", srPar.order, expandTo3(mul));
+      fprintf(stderr, "                   final %0*lo\n", srPar.order, expandTo3((sr >> 2) ^ mul));
 #endif
 
       sr = (sr >> 2) ^ mul;
@@ -131,14 +131,13 @@ searchShiftRegisterFast(shiftRegisterParameters &srPar) {
 
     //  Report the cycle if it's sufficiently large.
 
-#if 1
-    if (cyclen + 1 >= 1.00 * cycmax)
-      fprintf(stdout, "%12lu/%12lu %7.3f%% for vector %022lo\n",
+    if (cyclen + 1 >= srPar.report * cycmax)
+      fprintf(stdout, "%14lu/%14lu %7.3f%% for vector %0*lo\n",
               cyclen,
               cycmax,
               100.0 * cyclen / cycmax,
+              srPar.order,
               expandTo3(sv));
-#endif
 
     //  And move the next SV.
 

@@ -371,7 +371,10 @@ public:
     search = false;
     fast   = false;
 
-    len    = 0;
+    report = 1.0;
+
+    order  = 0;
+    length = 0;
 
     memset(sr,    0, sizeof(char) * 65);
     memset(svmin, 0, sizeof(char) * 65);
@@ -393,7 +396,7 @@ public:
     number = (number << 1) + 'A';
 
     if (number == 'E')
-      number == 'T';
+      number = 'T';
 
     return(number);
   };
@@ -401,7 +404,10 @@ public:
   bool    search;
   bool    fast;
 
-  uint32  len;
+  double  report;
+
+  uint32  order;
+  uint64  length;
 
   char    sr[65];
   char    svmin[65];

@@ -122,28 +122,28 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
   //  Make the tap vector a monic polynomial, else we're guaranteed to 
   //  never find a maximal size cycle.
 
-  cycmax             = ((uint64)1) << (2 * srPar.len);
+  cycmax             = ((uint64)1) << (2 * srPar.order);
   SR[0]              = 1;
   sr[0]              = 1;
-  sv[srPar.len-1]    = 1;
+  sv[srPar.order-1]  = 1;
 
-  for (uint32 ii=0; ii<srPar.len; ii++)
+  for (uint32 ii=0; ii<srPar.order; ii++)
     svmax[ii] = 3;
 
   //  If we're given intiial values, use those.
 
   if (srPar.sr[0] != 0) { 
-    for (uint32 ii=0; ii<srPar.len; ii++)
+    for (uint32 ii=0; ii<srPar.order; ii++)
       SR[ii] = sr[ii] = srPar.sr[ii] - '0';
   }
 
   if (srPar.svmin[0] != 0) {
-    for (uint32 ii=0; ii<srPar.len; ii++)
+    for (uint32 ii=0; ii<srPar.order; ii++)
       sv[ii] = srPar.svmin[ii] - '0';
   }
 
   if (srPar.svmax[0] != 0) {
-    for (uint32 ii=0; ii<srPar.len; ii++)
+    for (uint32 ii=0; ii<srPar.order; ii++)
       svmax[ii] = srPar.svmax[ii] - '0';
   }
 
@@ -153,12 +153,12 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
 
   //  Log.
 
-  fprintf(stderr, "Finding cycles for length %u bases (slow method).\n", srPar.len);
-  fprintf(stderr, "  sr     %s\n", printSV(srPar.len, sr));
+  fprintf(stderr, "Finding cycles for length %u bases (slow method).\n", srPar.order);
+  fprintf(stderr, "  sr     %s\n", printSV(srPar.order, sr));
   fprintf(stderr, "  cyclen %lu\n", cyclen);
   fprintf(stderr, "  cycmax %lu\n", cycmax);
-  fprintf(stderr, "  sv     %s\n", printSV(srPar.len, sv));
-  fprintf(stderr, "  svmax  %s\n", printSV(srPar.len, svmax));
+  fprintf(stderr, "  sv     %s\n", printSV(srPar.order, sv));
+  fprintf(stderr, "  svmax  %s\n", printSV(srPar.order, svmax));
   fprintf(stderr, "\n");
 
   //
@@ -166,14 +166,14 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
   bitArray  *detect = new bitArray(cycmax);
   uint64     kmer   = 0;
 
-  while (lessThanEqual(srPar.len, sv, svmax) == true) {
-    //fprintf(stderr, "SV %s\r", printSV(srPar.len, sv));
+  while (lessThanEqual(srPar.order, sv, svmax) == true) {
+    //fprintf(stderr, "SV %s\r", printSV(srPar.order, sv));
 
     //  Reset the shift register, rebuild the kmer.
 
     kmer = 0;
 
-    for (uint32 ii=0; ii<srPar.len; ii++) {
+    for (uint32 ii=0; ii<srPar.order; ii++) {
       sr[ii] =  SR[ii];
 
       kmer <<= 2;
@@ -184,19 +184,19 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
 
     detect->clear();
 
-    for (cyclen=0; (detect->flipBit(kmer) == false); cyclen++) {
+    for (cyclen=1; (detect->flipBit(kmer) == false); cyclen++) {
       uint32  out = sr[0];
 
 #ifdef DEBUG
-      fprintf(stderr, "cycle %8lu out %c sr %s\n", cyclen, out + '0', printSV(srPar.len, sr + 1));
-      fprintf(stderr, "                    add %s\n", printMult(srPar.len, sv, out));
+      fprintf(stderr, "cycle %8lu out %c sr %s\n", cyclen, out + '0', printSV(srPar.order, sr + 1));
+      fprintf(stderr, "                    add %s\n", printMult(srPar.order, sv, out));
 #endif
 
       //  Shift, add in the taps, and rebuild the kmer
 
       kmer = 0;
 
-      for (uint32 kk=0; kk<srPar.len; kk++) {
+      for (uint32 kk=0; kk<srPar.order; kk++) {
         sr[kk] = sr[kk+1] ^ gf4mult[sv[kk]][out];
 
         kmer <<= 2;
@@ -204,22 +204,22 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
       }
 
 #ifdef DEBUG
-      fprintf(stderr, "                  final %s\n", printSV(srPar.len, sr));
+      fprintf(stderr, "                  final %s\n", printSV(srPar.order, sr));
 #endif
     }
 
     //  report the cycle.
-    if (cyclen + 1 >= 1.00 * cycmax)
-      fprintf(stdout, "%12lu/%12lu %7.3f%% for vector %s\n",
+    if (cyclen + 1 >= srPar.report * cycmax)
+      fprintf(stdout, "%14lu/%14lu %7.3f%% for vector %s\n",
               cyclen,
               cycmax,
               100.0 * cyclen / cycmax,
-              printSV(srPar.len, sv));
+              printSV(srPar.order, sv));
 
-    incrementSV(srPar.len, sv);
+    incrementSV(srPar.order, sv);
   }
 
-  fprintf(stderr, "SV %s\n", printSV(srPar.len, sv));
+  fprintf(stderr, "SV %s\n", printSV(srPar.order, sv));
 
   delete detect;
 }
