@@ -317,9 +317,18 @@ public:
     _blobWriter->writeData(rdw);
   };
 
-  //  Currently defined only in loadTrimmedReads.C.  This loads a read,
-  //  computes the compressed sequence, and sets both the normal and
-  //  compressed clear ranges.
+  //  Used when initially loading reads into seqStore, and when loading
+  //  trimmed reads.  It sets the ignore flag in both the normal and
+  //  compressed metadata for a given read.  Select 'raw' or 'corrected' with
+  //  aqRead_which, then select untrimmed or trimmed with the flags.
+public:
+  void               sqStore_setIgnored(uint32       id,
+                                        bool         untrimmed,
+                                        bool         trimmed,
+                                        sqRead_which w=sqRead_defaultVersion);
+
+  //  This loads a read, computes the compressed sequence, and sets both the
+  //  normal and compressed clear ranges.
 public:
   void               sqStore_setClearRange(uint32 id,
                                            uint32 bgn, uint32 end, bool bogus,

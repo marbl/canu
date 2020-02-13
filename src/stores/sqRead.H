@@ -228,13 +228,15 @@ public:
     _ignoreT |= _ignoreU;   //  If the untrimmed is ignored, ignore the trimmed too.
   };
 
-  void        sqReadSeq_setIgnoreU(bool ignore=true) {
-    _ignoreU  = ignore;
-    _ignoreT |= ignore;   //  Also set ignoreT if untrimmed is ignored.
+private:
+  //  Only access from sqStore_setIgnored().
+  void        sqReadSeq_setIgnoreU(void) {
+    _ignoreU  = true;
+    _ignoreT |= true;   //  Also set ignoreT if untrimmed is ignored.
   };
 
-  void        sqReadSeq_setIgnoreT(bool ignore=true) {
-    _ignoreT = ignore;
+  void        sqReadSeq_setIgnoreT(void) {
+    _ignoreT = true;
   };
 
 

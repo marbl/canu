@@ -263,3 +263,113 @@ sqStore::sqStore_addEmptyRead(sqLibrary *lib, const char *name) {
 
   return(rdw);
 }
+
+
+
+
+void
+sqStore::sqStore_setIgnored(uint32       id,
+                            bool         untrimmed,
+                            bool         trimmed,
+                            sqRead_which w) {
+
+  if (untrimmed) {
+    sqStore_getReadSeq(id, w & ~sqRead_compressed)->sqReadSeq_setIgnoreU();
+    sqStore_getReadSeq(id, w |  sqRead_compressed)->sqReadSeq_setIgnoreU();
+  }
+
+  if (trimmed) {
+    sqStore_getReadSeq(id, w & ~sqRead_compressed)->sqReadSeq_setIgnoreT();
+    sqStore_getReadSeq(id, w |  sqRead_compressed)->sqReadSeq_setIgnoreT();
+  }
+}
+
+
+
+void
+sqStore::sqStore_setClearRange(uint32 id,
+                               uint32 bgn, uint32 end, bool bogus,
+                               sqRead_which w) {
+  sqRead_which   norm = w & ~sqRead_compressed;
+  sqRead_which   comp = w |  sqRead_compressed;
+
+  //  If we are bogus, just mark the normal and compressed sequences
+  //  for ignore.
+
+  if (bogus == true) {
+    sqStore_setIgnored(id, false, true, w);
+    return;
+  }
+
+  //  Grab the uncompressed sequence, build a map between that and the compressed
+  //  sequence, then use the map to set clear ranges for both
+  //  the normal and compressed.
+
+  uint32    nlen  = sqStore_getReadLength(id, norm);
+
+  sqRead   *read  = sqStore_getRead(id, new sqRead());
+  uint32   *ntoc  = new uint32 [ nlen + 1 ];
+
+  uint32    clen  = homopolyCompress(read->sqRead_sequence(norm), nlen, NULL, ntoc);
+
+  assert(clen == sqStore_getReadLength(id, sqRead_corrected | sqRead_compressed));
+
+  uint32    nbgn=0, nend=0;   //  Clear range in normal sequence
+  uint32    cbgn=0, cend=0;   //  Clear range in compressed sequence
+
+  //  Short clear ranges should be handled outside this function - by
+  //  flagging the read to be ignored.  'end' == 0 when compressed is true
+  //  causes an overflow in ntoc[nend].  Rather than clutter up the code with
+  //  more special cases, we just require non-zero clear ranges.
+  //
+  assert(bgn < end);
+
+  //  If we've got clear ranges for the normal version, we can directly
+  //  map to the compressed version.
+  //
+  if ((w & sqRead_compressed) == sqRead_unset) {
+    assert(end <= nlen);
+
+    nbgn = bgn;
+    nend = end;
+
+    cbgn = ntoc[nbgn];
+    cend = ntoc[nend];
+  }
+
+  //  But if we've got clear ranges for the compressed version, we need
+  //  to invert the map before we can find the corresponding coordinates.
+  //
+  else {
+    assert(end <= clen);
+
+    cbgn = bgn;
+    cend = end;
+
+    nbgn = 0;
+    nend = nlen;
+
+    while ((nbgn < nend) && (ntoc[nbgn] < cbgn))
+      nbgn++;
+
+    while ((nbgn < nend) && (cend < ntoc[nend]))
+      nend--;
+  }
+
+  //  Probably need real bounds checking.
+
+  assert(nbgn <= nend);
+  assert(nend <= nlen);
+
+  assert(cbgn <= cend);
+  assert(cend <= clen);
+
+  sqStore_getReadSeq(id, norm)->sqReadSeq_setClearRange(nbgn, nend);
+  sqStore_getReadSeq(id, comp)->sqReadSeq_setClearRange(cbgn, cend);
+
+  fprintf(stderr, "id %5u length %7u %7u clear  norm %8u-%-8u  compressed %8u-%-8u\n",
+          id, nlen, clen, nbgn, nend, cbgn, cend);
+
+  delete [] ntoc;
+  delete    read;
+}

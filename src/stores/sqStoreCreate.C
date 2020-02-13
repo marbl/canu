@@ -475,7 +475,7 @@ deleteShortReads(const char *seqStoreName,
       }
 
       else {
-        seqStore->sqStore_getReadSeq(readLen[ii].readID)->sqReadSeq_setIgnoreU();
+        seqStore->sqStore_setIgnored(readLen[ii].readID, true, true);
 
         basesRmvd += readLen[ii].length;
         readsRmvd += 1;

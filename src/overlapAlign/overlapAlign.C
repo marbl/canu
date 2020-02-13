@@ -203,7 +203,6 @@ void
 setClearRanges(trGlobalData *g) {
 
   for (uint32 ii=1; ii<g->seqStore->sqStore_lastReadID()+1; ii++) {
-    sqReadSeq  *rs  = g->seqStore->sqStore_getReadSeq(ii);
     int32       bgn = g->readData[ii].clrBgn;
     int32       end = g->readData[ii].clrEnd;
 
@@ -212,7 +211,7 @@ setClearRanges(trGlobalData *g) {
               ii,
               g->seqStore->sqStore_getReadLength(ii),
               g->readData[ii].clrBgn, g->readData[ii].clrEnd);
-      rs->sqReadSeq_setIgnoreT(true);
+      g->seqStore->sqStore_setIgnored(ii, false, true);
       continue;
     }
 
@@ -224,7 +223,7 @@ setClearRanges(trGlobalData *g) {
     assert(g->readData[ii].clrBgn <  g->readData[ii].clrEnd);
     assert(g->readData[ii].clrEnd <= g->seqStore->sqStore_getReadLength(ii));
 
-    rs->sqReadSeq_setClearRange(g->readData[ii].clrBgn, g->readData[ii].clrEnd);
+    g->seqStore->sqStore_setClearRange(ii, g->readData[ii].clrBgn, g->readData[ii].clrEnd, false);
   }
 
   sqRead_setDefaultVersion(sqRead_raw | sqRead_trimmed);
