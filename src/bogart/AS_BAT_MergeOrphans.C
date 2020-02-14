@@ -235,7 +235,7 @@ findPotentialOrphans(TigVector       &tigs,
       endUncovered = tig->getLength() - tigCoverage.hi( tigCoverage.numberOfIntervals()-1 );
     }
 
-    writeLog("potential orphan %8u length %9u nReads %7u/%7u - %3u regions covering %6.2f uncovered %5u/%6u/%5u edges %d %d\n",
+    writeLog("tig %8u length %9u nReads %7u/%7u - %3u regions covering %6.2f uncovered %5u/%6u/%5u edges %d %d -- ",
              tig->id(), tig->getLength(), nonContainedReads, tig->ufpath.size(),
              tigCoverage.numberOfIntervals(),
              100.0 * spannedBases / tig->getLength(),
@@ -247,14 +247,20 @@ findPotentialOrphans(TigVector       &tigs,
     //    both bgn and end uncovered are non-zero
     //    the largest uncovered region ... ??
 
-    if (tigCoverage.numberOfIntervals() > 10)
+    if (tigCoverage.numberOfIntervals() > 10) {
+      writeLog("too many intervals: is not orphan\n");
       continue;
+    }
 
     if ((bgnUncovered > 0) &&
-        (endUncovered > 0))
+        (endUncovered > 0)) {
+      writeLog("ends uncovered: is not orphan\n");
       continue;
+    }
 
     //  Log the places where this orphan can go, and remember those places.
+
+    writeLog("potential orphan\n");
 
     for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
       Unitig  *dest = tigs[it->first];
