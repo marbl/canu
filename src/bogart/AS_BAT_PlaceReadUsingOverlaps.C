@@ -537,10 +537,13 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
   set<uint32>  verboseEnable;
 
-  //verboseEnable.insert(fid);  //  enable for all
-
-  //for (uint32 fi=0; fi<tigs[306]->ufpath.size(); fi++)   //  or enable for a specific tig
-  //  verboseEnable.insert(tigs[306]->ufpath[fi].ident);
+  //  Enable logging for all reads, or specific tigs, or not at all.
+  //verboseEnable.insert(fid);
+  //
+  //for (uint32 fi=0; (tigs[   2]) && (fi<tigs[   2]->ufpath.size()); fi++)   verboseEnable.insert(tigs[   2]->ufpath[fi].ident);
+  //for (uint32 fi=0; (tigs[   3]) && (fi<tigs[   3]->ufpath.size()); fi++)   verboseEnable.insert(tigs[   3]->ufpath[fi].ident);
+  //for (uint32 fi=0; (tigs[   4]) && (fi<tigs[   4]->ufpath.size()); fi++)   verboseEnable.insert(tigs[   4]->ufpath[fi].ident);
+  //for (uint32 fi=0; (tigs[ 255]) && (fi<tigs[ 255]->ufpath.size()); fi++)   verboseEnable.insert(tigs[ 255]->ufpath[fi].ident);
 
   if (verboseEnable.count(fid) > 0)
     logFileFlags |= LOG_PLACE_READ;
