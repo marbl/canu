@@ -252,7 +252,7 @@ findPotentialOrphans(TigVector       &tigs,
       continue;
     }
 
-    if ((bgnUncovered > 0) &&
+    if ((bgnUncovered > 0) ||
         (endUncovered > 0)) {
       writeLog("ends uncovered: is not orphan\n");
       continue;
