@@ -630,6 +630,10 @@ if (($numPacBio   == 0) &&
     setGlobalIfUndef("batOptions",       "-eg 0.0003 -sb 0.01 -dg 0 -db 3 -dr 0 -ca 50 -cp 5");
 }
 
+if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
+   caExit("ERROR: HiFi data cannot currently be combined with another read type", undef);
+}
+
 #  Set an initial run mode based on what we discovered above.
 
 if (!defined($mode)) {
