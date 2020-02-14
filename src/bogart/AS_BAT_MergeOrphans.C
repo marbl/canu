@@ -362,7 +362,7 @@ findOrphanReadPlacements(TigVector       &tigs,
       if (rdBtig->ufpath.size() == 1)
         writeLog("tig %6u read %8u -> placed in singleton tig\n", rdAtigID, placements[pi].frgID);
 
-      if ((potentialOrphans.count((rdBtigID) > 0)) && (rdAtigID != rdBtigID))
+      if ((potentialOrphans.count(rdBtigID) > 0) && (rdAtigID != rdBtigID))
         writeLog("tig %6u read %8u -> placed in orphan tig %u\n", rdAtigID, placements[pi].frgID, rdBtigID);
 #endif
 
@@ -370,7 +370,7 @@ findOrphanReadPlacements(TigVector       &tigs,
           (rdBtigID == 0) ||                            //  To a singleton read.
           (rdBtig   == NULL) ||                         //  To a singleton read.
           (rdBtig->ufpath.size() == 1) ||               //  To a singleton tig.
-          (potentialOrphans.count((rdBtigID) > 0)))     //  To a potential orphan tig
+          (potentialOrphans.count(rdBtigID) > 0))       //  To a potential orphan tig
         continue;
 
       //  Ignore the placement if it isn't to one of our orphan-popping candidate tigs.
