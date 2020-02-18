@@ -132,15 +132,25 @@ public:
   void    setOperation(merylOp op) { _operation = op;    };
   merylOp getOperation(void)       { return(_operation); };
 
-  void    setConstant(uint64 p)                { _mathConstant = p;  };
-  void    setThreshold(uint64 p)               { _threshold    = p;  };
-  void    setFractionDistinct(double p)        { _fracDist     = p;  };
-  void    setWordFrequency(double p)           { _wordFreq     = p;  };
+  void    setConstant(uint64 p)                { _mathConstant      = p; };
+  void    setThreshold(uint64 p)               { _threshold         = p; };
+  void    setFractionDistinct(double p)        { _fracDist          = p; };
+  void    setWordFrequency(double p)           { _wordFreq          = p; };
 
-  void    setExpectedNumberOfKmers(uint64 n)   { _expNumKmers  = n;  };
+  void    setExpectedNumberOfKmers(uint64 n)   { _expNumKmers       = n; };
 
-  void    setMemoryLimit(uint64 m)             { _maxMemory    = m;  };
-  void    setThreadLimit(uint32 t)             { _maxThreads   = t;  };
+  void    setCountSuffix(char *s)              {
+    _countSuffixLength = strlen(s);
+
+    for (uint32 ii=0; ii<_countSuffixLength; ii++) {
+      _countSuffixString[ii] = s[ii];
+
+      _countSuffix.addR(s[ii]);
+    }
+  };
+
+  void    setMemoryLimit(uint64 m)             { _maxMemory         = m; };
+  void    setThreadLimit(uint32 t)             { _maxThreads        = t; };
 
   bool    isCounting(void) {
     return((_operation == opCount)        ||
@@ -236,6 +246,10 @@ private:
   uint64                         _threshold;
   double                         _fracDist;
   double                         _wordFreq;
+
+  char                           _countSuffixString[65];
+  uint32                         _countSuffixLength;
+  kmer                           _countSuffix;
 
   uint64                         _expNumKmers;
 

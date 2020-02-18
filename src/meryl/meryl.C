@@ -220,6 +220,11 @@ public:
       _stacks[ff].top()->setExpectedNumberOfKmers(n);
   };
 
+  void       setCountSuffix(char *s) {
+    for (uint32 ff=0; ff<_nFiles; ff++)
+      _stacks[ff].top()->setCountSuffix(s);
+  };
+
 
 
 
@@ -371,6 +376,13 @@ main(int argc, char **argv) {
       continue;
     }
 
+    //  A suffix to filter kmers by when counting.
+    else if ((optStringLen > 13) &&
+             (strncmp(optString, "count-suffix=", 13) == 0)) {
+      fprintf(stderr, "COUNT SUFFIX '%s'\n", optString + 12);
+      opStack.setCountSuffix(optString + 13);
+      continue;
+    }
 
 
     //  Threshold values for less-than, etc, specifed as a fraction

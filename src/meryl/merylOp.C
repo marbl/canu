@@ -44,6 +44,10 @@ merylOperation::merylOperation(merylOp op, uint32 ff, uint32 threads, uint64 mem
   _fracDist      = DBL_MAX;
   _wordFreq      = DBL_MAX;
 
+  memset(_countSuffixString, 0, sizeof(char) * 65);
+  _countSuffixLength = 0;
+  //_countSuffix.clear();   //  No clear?
+
   _expNumKmers   = 0;
 
   _maxThreads    = threads;

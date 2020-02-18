@@ -128,9 +128,11 @@ findMaxInputSizeForMemorySize(uint32 merSize, uint64 memSize) {
 //
 void
 findExpectedSimpleSize(uint64  nKmerEstimate,
+                       char   *countSuffixString,
+                       uint32  countSuffixLength,
                        uint64 &memoryUsed_) {
   uint32   lowBitsSize     = sizeof(lowBits_t) * 8;
-  uint64   nEntries        = (uint64)1 << (2 * kmerTiny::merSize());
+  uint64   nEntries        = (uint64)1 << (2 * kmerTiny::merSize() - 2 * countSuffixLength);
 
   uint64   expMaxCount     = 0.004 * nKmerEstimate;
   uint64   expMaxCountBits = countNumberOfBits64(expMaxCount) + 1;
@@ -148,12 +150,11 @@ findExpectedSimpleSize(uint64  nKmerEstimate,
   fprintf(stderr, "-----------\n");
   fprintf(stderr, "\n");
 
-  if (kmerTiny::merSize() > 20) {
-    fprintf(stderr, "  Disabled for mers larger than 20.\n");
-    return;
-  }
+  if (countSuffixLength == 0)
+    fprintf(stderr, "  %u-mers\n", kmerTiny::merSize());
+  else
+    fprintf(stderr, "  %u-mers with constant %u-mer suffix '%s'\n", kmerTiny::merSize(), countSuffixLength, countSuffixString);
 
-  fprintf(stderr, "  %2u-mers\n", kmerTiny::merSize());
   fprintf(stderr, "    -> %lu entries for counts up to %u.\n", nEntries, ((uint32)1 << lowBitsSize) - 1);
   fprintf(stderr, "    -> %lu %cbits memory used\n", scaledNumber(lowMem),  scaledUnit(lowMem));
   fprintf(stderr, "\n");
@@ -369,8 +370,6 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
   //  Check kmer size, presence of output, and guess how many bases are in the inputs.
   //
 
-  uint32  merSize = kmerTiny::merSize();
-
   if (kmerTiny::merSize() == 0)
     fprintf(stderr, "ERROR: Kmer size not supplied with modifier k=<kmer-size>.\n"), exit(1);
 
@@ -401,7 +400,7 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
 
   uint64  memoryUsedSimple = UINT64_MAX;
 
-  findExpectedSimpleSize(_expNumKmers, memoryUsedSimple);
+  findExpectedSimpleSize(_expNumKmers, _countSuffixString, _countSuffixLength, memoryUsedSimple);
 
   //
   //  Set up to use the complex algorithm.
@@ -414,25 +413,33 @@ merylOperation::configureCounting(uint64   memoryAllowed,      //  Input:  Maxim
   findBestValues(_expNumKmers, bestPrefix, memoryUsedComplex, wPrefix_, nPrefix_, wData_, wDataMask_);
 
   //
-  //  Decide simple or complex.
+  //  Decide simple or complex.  useSimple_ is an output.
+  //  If a count-suffix, we must use simple mode.
   //
 
-  bool    useSimple  = false;
   uint64  memoryUsed = 0;
-
 
   if ((memoryUsedSimple < memoryUsedComplex) &&
       (memoryUsedSimple < memoryAllowed)) {
-    useSimple  = true;
-    memoryUsed = memoryUsedSimple;
+    useSimple_ = true;
+    memoryUsed  = memoryUsedSimple;
   }
 
   else {
-    useSimple  = false;
+    useSimple_ = false;
     memoryUsed = memoryUsedComplex;
   }
 
-  reportNumberOfOutputs(_expNumKmers, memoryUsed, memoryAllowed, useSimple);
+  if (_countSuffixLength > 0) {
+    useSimple_  = true;
+    memoryUsed  = memoryUsedSimple;
+  }
+
+  //
+  //  Output the configuration.
+  //
+
+  reportNumberOfOutputs(_expNumKmers, memoryUsed, memoryAllowed, useSimple_);
 }
 
 

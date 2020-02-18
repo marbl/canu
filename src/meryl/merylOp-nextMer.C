@@ -196,23 +196,22 @@ merylOperation::doCounting(void) {
                     wData,
                     wDataMask);
 
-  //if (_operation == opCountSimple)
-  //  doSimple = true;
-
-  if (_kmer.merSize() <= 16)
-    doSimple = true;
-
-  if (_maxMemory < (uint64)10 * 1024 * 1024 * 1024)
-    doSimple = false;
-
   omp_set_num_threads(_maxThreads);
 
-  if (doSimple)
+  if (doSimple) {
+    fprintf(stderr, "SIMPLE\n");
     countSimple();
-  else if (doThreaded)
+  }
+
+  else if (doThreaded) {
+    fprintf(stderr, "COMPLEX THREADED\n");
     countThreads(wPrefix, nPrefix, wData, wDataMask);
-  else
+  }
+
+  else {
+    fprintf(stderr, "COMPLEX SINGLE\n");
     count(wPrefix, nPrefix, wData, wDataMask);
+  }
 
   clearInputs();
 
