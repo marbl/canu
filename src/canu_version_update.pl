@@ -34,12 +34,16 @@ use Cwd qw(getcwd);
 
 my $cwd = getcwd();
 
-my $label    = "snapshot";     #  Automagically set to 'release' for releases.
-my $major    = "1";            #  Bump before release.
-my $minor    = "9";            #  Bump before release.
+#  On release change $label to 'release', update $major and $minor.  Make the
+#  release, then change label back to 'snapshot'.  This will result in the
+#  released code having a version string of "Canu 1.9".
+
+my $label    = "snapshot";      #  If not 'release' print this in the version output.
+my $major    = "1";             #  Bump before release.
+my $minor    = "9";             #  Bump before release.
 
 my $branch   = "master";
-my $version  = "";
+my $version  = "v$major.$minor";
 
 my $commits  = "0";
 my $hash1    = undef;          #  This from 'git describe'
@@ -138,14 +142,6 @@ elsif ($cwd =~ m/canu-(.{40})\/src/) {
 elsif ($cwd =~ m/canu-master\/src/) {
     $label   = "master-snapshot";
 }
-
-elsif ($cwd =~ m/canu-(\d).(\d)\/src/) {
-    $label   = "release";
-    $major   = $1;
-    $minor   = $2;
-    $version = "v$major.$minor";
-}
-
 
 
 #  Report what we found.  This is really for the gmake output.
