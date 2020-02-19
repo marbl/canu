@@ -68,7 +68,8 @@ public:
     _inputPos       = 0;
     //_inputs         = inputs;
 
-    _lastBuffer[0]  = 0;
+    for (uint32 ii=0; ii<65; ii++)
+      _lastBuffer[ii] = 0;
 
     _computeWait    = 0;
     _numComputing   = 0;
@@ -107,7 +108,7 @@ public:
   uint32                 _inputPos;         //  Input files.
   vector<merylInput *>  &_inputs;
 
-  char                   _lastBuffer[64];   //  Wrap-around from the last buffer.
+  char                   _lastBuffer[65];   //  Wrap-around from the last buffer.
 
   uint32                 _computeWait;
   uint32                 _numComputing;
@@ -157,6 +158,8 @@ loadBases(void *G) {
 
   //  Copy the end of the last block into our buffer.
 
+  assert(s->_bufferLen == 0);
+
   if (g->_lastBuffer[0] != 0) {
     memcpy(s->_buffer, g->_lastBuffer, sizeof(char) * kl);
 
@@ -174,15 +177,18 @@ loadBases(void *G) {
   //  or we exhaust the file.
 
   while (1) {
-    uint64  bMax     = s->_bufferMax - 2 - s->_bufferLen;
+    uint64  bMax     = s->_bufferMax - s->_bufferLen;
     uint64  bLen     = 0;
     bool    endOfSeq = false;
 
     if (bMax < 512)   //  If the buffer is full enough,
       break;          //  stop loading.
 
+    //  Load bases, but reserve 2 characters in the buffer for a
+    //  sequence terminating ','.
+
     bool success = g->_inputs[g->_inputPos]->loadBases(s->_buffer + s->_bufferLen,
-                                                       bMax,
+                                                       bMax - 2,
                                                        bLen, endOfSeq);
 
     //  If no bases loaded, we've exhausted the file.  Close it,
@@ -192,6 +198,8 @@ loadBases(void *G) {
 
     if (success == false) {
       assert(bLen == 0);
+
+      s->_buffer[s->_bufferLen++] = '.';   //  Insert a mer-breaker, just to be safe.
 
       delete g->_inputs[g->_inputPos]->_sequence;
       g->_inputs[g->_inputPos]->_sequence = NULL;
@@ -205,18 +213,12 @@ loadBases(void *G) {
 
     s->_bufferLen += bLen;
 
-    //  If we loaded the maximum, we're done.
+    assert(s->_bufferLen+1 <= s->_bufferMax);
 
-    if (bLen == bMax)
-      break;
+    //  If we're at the end of a sequence, append a mer-breaker.
 
-    //  Otherwise, we must be at the end of a sequence.  Add a
-    //  mer breaking letter to the buffer and load more stuff.
-
-    assert(endOfSeq == true);
-    assert(s->_bufferLen+1 < s->_bufferMax);
-
-    s->_buffer[s->_bufferLen++] = '.';
+    if (endOfSeq == true)
+      s->_buffer[s->_bufferLen++] = '.';
   }
 
   //  With bases loaded, we need to save the last few bases for the next buffer,
@@ -231,7 +233,6 @@ loadBases(void *G) {
 
   //  That's it.
 
-  //fprintf(stderr, "return buffer of length %lu\n", s->_bufferLen);
   return(s);
 }
 
