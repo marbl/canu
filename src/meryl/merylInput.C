@@ -270,7 +270,7 @@ merylInput::loadBases(char    *seq,
     //  If the output space is big enough to hold the rest of the read, copy it,
     //  flagging it as the end of a sequence, and setup to load the next read.
 
-    if (len < maxLength) {
+    if (len <= maxLength) {
       memcpy(seq, _read->sqRead_sequence() + _readPos, sizeof(char) * len);
 
       _readPos       = _read->sqRead_length();
