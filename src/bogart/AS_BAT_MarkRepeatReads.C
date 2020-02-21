@@ -167,7 +167,7 @@ splitTig(TigVector                &tigs,
     }
 
     if (rid == UINT32_MAX) {
-      fprintf(stderr, "Failed to place read %u at %d-%d with %u BPs:\n", frg.ident, frgbgn, frgend, BP.size());
+      fprintf(stderr, "Failed to place read %u at %d-%d with %lu BPs:\n", frg.ident, frgbgn, frgend, BP.size());
       for (uint32 ii=0; ii<BP.size(); ii++)
         fprintf(stderr, "BP[%3u] at %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._rpt);
       flushLog();
@@ -968,8 +968,18 @@ findConfusedEdges(TigVector            &tigs,
         double  ad5 =         fabs(internal5sco.score - external5sco.score);   //  Absolute difference.
         double  pd5 = 200 * ad5 / (internal5sco.score + external5sco.score);   //  Percent diffference.
 
-        if ((ad5 <= confusedAbsolute) &&
-            (pd5 <  confusedPercent)) {
+        //  This read end is confused if the internal edge is worse than the
+        //  external, or if the differences are small.  The first condition hasn't
+        //  been tested much (21 Feb 2020) and is left disabled.
+
+        bool   isC = false;    //  Argh, isConfused is already used.
+
+        //isC |= (internal5sco.score < external5sco.score);
+
+        isC |= ((ad5 <= confusedAbsolute) &&
+                (pd5 <  confusedPercent));
+        
+        if (isC == true) {
           writeLog("tig %7u read %8u pos %7u-%-7u 5' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external5sco.tigId, external5sco.readId,
