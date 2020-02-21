@@ -53,55 +53,46 @@ readLine(FILE *file, char *line, int32 lineMax, int32 &len, splitToWords &s) {
 
 void
 pairAlign(char *nameA, char *nameB) {
-  FILE *fileA = AS_UTL_openInputFile(nameA);
-  FILE *fileB = AS_UTL_openInputFile(nameB);
+  dnaSeqFile  *fileA = new dnaSeqFile(nameA);
+  dnaSeqFile  *fileB = new dnaSeqFile(nameB);
+  dnaSeq       seqA;
+  dnaSeq       seqB;
 
-  int32 lineMax = 1024 * 1024;
-  int32 lenA    = 0;
-  int32 lenB    = 0;
+  while (fileA->loadSequence(seqA) &&
+         fileB->loadSequence(seqB)) {
 
-  char *lineA = new char [lineMax + 1];
-  char *lineB = new char [lineMax + 1];
-
-  splitToWords  sA;
-  splitToWords  sB;
-
-  readLine(fileA, lineA, lineMax, lenA, sA);
-  readLine(fileB, lineB, lineMax, lenB, sB);
-
-  while (1) {
-
-    EdlibAlignResult result = edlibAlign(sA[0], lenA,
-                                         sB[0], lenB,
-                                         edlibNewAlignConfig(lenA + lenB, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+    EdlibAlignResult result = edlibAlign(seqA.bases(), seqA.length(),
+                                         seqB.bases(), seqB.length(),
+                                         edlibNewAlignConfig(0.001 * (seqA.length() + seqB.length()), EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
     assert(result.numLocations > 0);
 
-    if (strcmp(sA[0], sB[0]) != 0)
-      fprintf(stdout, "lost sync A %s B %s\n", sA[0], sB[0]), exit(1);
+    //if (strcmp(sA[0], sB[0]) != 0)
+    //  fprintf(stdout, "lost sync A %s B %s\n", sA[0], sB[0]), exit(1);
 
     char *cigar = edlibAlignmentToCigar(result.alignment,
                                         result.alignmentLength, (1) ? EDLIB_CIGAR_STANDARD : EDLIB_CIGAR_EXTENDED);
 
     edlibFreeAlignResult(result);
 
-    if (strlen(cigar) > 50) {
-      cigar[47] = '.';
-      cigar[48] = '.';
-      cigar[49] = '.';
-      cigar[50] = 0;
-    }
+    //if (strlen(cigar) > 50) {
+    //  cigar[47] = '.';
+    //  cigar[48] = '.';
+    //  cigar[49] = '.';
+    //  cigar[50] = 0;
+    //}
 
     fprintf(stdout, "%s ident %6.2f len(a-b) %6d cigar %s\n",
-            sA[0],
+            seqA.name(),
             100.0 - 100.0 * result.editDistance / result.alignmentLength,
-            lenA - lenB,
+            (int32)seqA.length() - (int32)seqB.length(),
             cigar);
 
     delete [] cigar;
 
     //  The B file is allowed to have duplicate sequences.
 
+#if 0
     if (readLine(fileB, lineB, lineMax, lenB, sB) == false)
       break;
 
@@ -120,13 +111,11 @@ pairAlign(char *nameA, char *nameB) {
       if (readLine(fileB, lineB, lineMax, lenB, sB) == false)
         break;
     }
+#endif
   }
 
-  delete [] lineA;
-  delete [] lineB;
-
-  AS_UTL_closeFile(fileA, nameA);
-  AS_UTL_closeFile(fileB, nameB);
+  delete fileA;
+  delete fileB;
 }
 
 
