@@ -204,7 +204,7 @@ private:
   void   removeReadsWithCoverageGap(const char *prefix);
   uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
-  void   removeLopsidedEdges(const char *prefix);
+  void   removeLopsidedEdges(const char *prefix, const char *label);
 
   void   findEdges(void);
 

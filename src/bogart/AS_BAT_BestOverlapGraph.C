@@ -288,10 +288,12 @@ BestOverlapGraph::findErrorRateThreshold(void) {
 //    But slight improvements to Sequel assemblies if it is disabled.
 //
 void
-BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
+BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+  FILE  *LOP = AS_UTL_openOutputFile(prefix, '.', label);
 
   //  Compare the size of our edges (this5 and this3) against the edges back
   //  from the reads those point to.
@@ -308,9 +310,15 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
 
-    if ((isIgnored(fi)   == true) ||
-        (isContained(fi) == true))
+    if ((isIgnored(fi)   == true) ||   //  Skip ignored and contain, because we don't care
+        (isContained(fi) == true))     //  about best edges to/from these.
       continue;
+
+    if (isLopsided(fi) == true)        //  In the second pass, skip lopsided.  They're already
+      continue;                        //  flagged, and we won't undo it.
+
+    if (isSpur(fi) == true)            //  In the second pass, skip spurs.  We don't care
+      continue;                        //  if they're lopsided.
 
     BestEdgeOverlap *this5 = getBestEdgeOverlap(fi, false);
     BestEdgeOverlap *this3 = getBestEdgeOverlap(fi, true);
@@ -334,8 +342,10 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
         (back3->readId() == fi) && (back3->read3p() == true))
       continue;
 
-    //  Complain loudly if we have a best overlap to a spur.
+    //  Complain loudly if we have a best overlap to a spur.  Why doesn't the
+    //  read we have an edge to have a edge out of it?!
 
+#if 0
     if ((this5->readId() != 0) && (back5->readId() == 0))
       writeLog("WARNING: read %u 5' has overlap to spur read %u %c'!\n",
                fi, this5->readId(), this5->read3p() ? '3' : '5');
@@ -343,6 +353,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
     if ((this3->readId() != 0) && (back3->readId() == 0))
       writeLog("WARNING: read %u 3' has overlap to spur read %u %c'!\n",
                fi, this3->readId(), this3->read3p() ? '3' : '5');
+#endif
 
     //  Compute the length of those best overlaps...
 
@@ -359,17 +370,54 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 
 #if 0
     if (isLopsided(fi) == false)
-      writeLog("fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
+      fprintf(LOP, "fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
                fi,
                this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5,
                this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
 #endif
 
-    if (isLopsided(fi) == true)
-      writeLog("lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
-               fi,
-               this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5,
-               this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
+    if (isLopsided(fi) == true) {
+      if     ((this5->readId() > 0) &&
+              (this3->readId() > 0))
+#pragma omp critical (fprintf_LOP)
+        fprintf(LOP, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
+                 fi,
+                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5,
+                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
+
+      else if (this5->readId() > 0)
+#pragma omp critical (fprintf_LOP)
+        fprintf(LOP, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% --\n",
+                 fi,
+                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5);
+
+      else if (this3->readId() > 0)
+#pragma omp critical (fprintf_LOP)
+        fprintf(LOP, "lopsidedBest %8u --                                                            -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
+                 fi,
+                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
+    }
+  }
+
+  AS_UTL_closeFile(LOP);
+
+  //  Remove overlaps to or from lopsided reads.
+  //
+  //  Ideally, we'd find new edges for the stuff with edges to lopsided
+  //  reads, but that is a bit of work, and would result in us needing to
+  //  remove lopsided again.
+
+  if (lopsidedNoBest == true) {
+    for (uint32 fi=1; fi <= fiLimit; fi++) {
+      BestEdgeOverlap *this5 = getBestEdgeOverlap(fi, false);
+      BestEdgeOverlap *this3 = getBestEdgeOverlap(fi, true);
+
+      if ((isLopsided(fi) == true) || (isLopsided(this5->readId()) == true))
+        *this5 = BestEdgeOverlap();
+
+      if ((isLopsided(fi) == true) || (isLopsided(this3->readId()) == true))
+        *this3 = BestEdgeOverlap();
+    }
   }
 }
 
@@ -942,7 +990,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (lopsidedDiff > 0) {
     writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
-    removeLopsidedEdges(prefix);
+    removeLopsidedEdges(prefix, "lopsided.pass1");
     findEdges();
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
@@ -978,7 +1026,29 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   }
 
   if (logFileFlagSet(LOG_BEST_OVERLAPS))
-    emitGoodOverlaps(prefix, "4.final");
+    emitGoodOverlaps(prefix, "4.spur-removal");
+
+  //
+  //  Check for lopsided reads again.  DO NOT findEdges() after this; it
+  //  undoes what spur removal did, and removeLopsidedEdges() does remove the
+  //  edges anyway (we just don't get a second chance to find a better edge).
+  //
+
+  if (lopsidedDiff > 0) {
+    writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
+
+    removeLopsidedEdges(prefix, "lopsided.pass2");
+    //findEdges();
+
+    if (logFileFlagSet(LOG_BEST_OVERLAPS))
+      emitGoodOverlaps(prefix, "5.lopsided");
+
+    writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
+  }
+
+  else {
+    writeStatus("BestOverlapGraph()-- NOT filtering reads with lopsided best edges.\n");
+  }
 
   //
   //  Do some final boring cleanup:
