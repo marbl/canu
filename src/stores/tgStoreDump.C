@@ -65,7 +65,7 @@
 #define DUMP_TIGS                2
 #define DUMP_CONSENSUS           3
 #define DUMP_LAYOUT              4
-#define DUMP_LAYOUT_VERBOSE      5
+#define DUMP_INFO                5
 #define DUMP_MULTIALIGN          6
 #define DUMP_SIZES               7
 #define DUMP_COVERAGE            8
@@ -109,17 +109,21 @@ public:
     delete ID;
   };
 
+  bool          ignore(uint32 id) {
+    return(ignoreID(id));
+  };
+
   bool          ignore(tgTig *tig) {
-    return(ignoreID(tig) ||
-           ignoreNreads(tig) ||
-           ignoreLength(tig) ||
-           ignoreCoverage(tig) ||
+    return(ignoreID(tig->tigID()) ||
+           ignoreNreads(tig)      ||
+           ignoreLength(tig)      ||
+           ignoreCoverage(tig)    ||
            ignoreClass(tig));
   };
 
-  bool          ignoreID(tgTig *tig) {
-    return((tig->tigID() < tigIDbgn) ||
-           (tigIDend < tig->tigID()));
+  bool          ignoreID(uint32 id) {
+    return((id < tigIDbgn) ||
+           (tigIDend < id));
   };
 
   bool          ignoreClass(tgTig *tig) {
@@ -270,6 +274,9 @@ dumpTigs(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter) {
     if (tigStore->isDeleted(ti))
       continue;
 
+    if (filter.ignore(ti) == true)
+      continue;
+
     tgTig  *tig = tigStore->loadTig(ti);
 
     if (filter.ignore(tig) == true) {
@@ -290,6 +297,9 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
       continue;
 
     tgTig  *tig = tigStore->loadTig(ti);
@@ -328,30 +338,18 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
 
 
 void
-dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool dumpRawLayout, char *outPrefix) {
-  char T[FILENAME_MAX+1];
-  char R[FILENAME_MAX+1];
-  char L[FILENAME_MAX+1];
+dumpInfo(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *outPrefix) {
+  FILE *tigs   = AS_UTL_openOutputFile(outPrefix, '.', "layout.tigInfo");
+  FILE *reads  = AS_UTL_openOutputFile(outPrefix, '.', "layout.readToTig");
 
-  FILE *tigs   = NULL;    //  Length and flags of tigs, same as dumpTigs()
-  FILE *reads  = NULL;    //  Length and flags of reads, mapping of read to tig
-  FILE *layout = (dumpRawLayout ? stdout : NULL);  //  Standard layout file
-
-  if (outPrefix) {
-    snprintf(T, FILENAME_MAX, "%s.layout.tigInfo",   outPrefix);
-    snprintf(R, FILENAME_MAX, "%s.layout.readToTig", outPrefix);
-    snprintf(L, FILENAME_MAX, "%s.layout",           outPrefix);
-
-    tigs   = AS_UTL_openOutputFile(T);
-    reads  = AS_UTL_openOutputFile(R);
-    if (dumpRawLayout) layout = AS_UTL_openOutputFile(L);
-
-    dumpTigHeader(tigs);
-    dumpReadHeader(reads);
-  }
+  dumpTigHeader(tigs);
+  dumpReadHeader(reads);
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
       continue;
 
     tgTig  *tig = tigStore->loadTig(ti);
@@ -368,15 +366,36 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool 
       for (uint32 ci=0; ci<tig->numberOfChildren(); ci++)
         dumpRead(reads, tig, tig->getChild(ci));
 
-    if (layout)
-      tig->dumpLayout(layout);
-
     tigStore->unloadTig(ti);
   }
 
-  AS_UTL_closeFile(tigs,   T);
-  AS_UTL_closeFile(reads,  R);
-  AS_UTL_closeFile(layout, L);
+  AS_UTL_closeFile(tigs,  outPrefix, '.', "layout.tigInfo");
+  AS_UTL_closeFile(reads, outPrefix, '.', "layout.readToTig");
+}
+
+
+
+void
+dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool withSequence) {
+
+  for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
+    if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
+      continue;
+
+    tgTig  *tig = tigStore->loadTig(ti);
+
+    if (filter.ignore(tig) == true) {
+      tigStore->unloadTig(ti);
+      continue;
+    }
+
+    tig->dumpLayout(stdout, withSequence);
+
+    tigStore->unloadTig(ti);
+  }
 }
 
 
@@ -386,6 +405,9 @@ dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWi
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
       continue;
 
     tgTig  *tig = tigStore->loadTig(ti);
@@ -410,6 +432,9 @@ dumpSizes(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, uint64
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
       continue;
 
     tgTig  *tig = tigStore->loadTig(ti);
@@ -527,6 +552,9 @@ dumpDepthHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filte
     if (tigStore->isDeleted(ti))
       continue;
 
+    if (filter.ignore(ti) == true)
+      continue;
+
     tgTig  *tig = tigStore->loadTig(ti);
 
     if (filter.ignore(tig) == true) {
@@ -586,6 +614,9 @@ dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, cha
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
       continue;
 
     tgTig    *tig    = tigStore->loadTig(ti);
@@ -748,6 +779,9 @@ dumpThinOverlap(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, 
     if (tigStore->isDeleted(ti))
       continue;
 
+    if (filter.ignore(ti) == true)
+      continue;
+
     tgTig  *tig = tigStore->loadTig(ti);
 
     if (filter.ignore(tig) == true) {
@@ -833,6 +867,9 @@ dumpOverlapHistogram(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &fil
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
+      continue;
+
+    if (filter.ignore(ti) == true)
       continue;
 
     tgTig  *tig = tigStore->loadTig(ti);
@@ -962,6 +999,8 @@ main (int argc, char **argv) {
   uint32        maDisplayWidth    = 100;
   uint32        maDisplaySpacing  = 3;
 
+  bool          layWithSequence   = false;
+
   uint64        genomeSize        = 0;
 
   char         *outPrefix         = NULL;
@@ -1062,9 +1101,7 @@ main (int argc, char **argv) {
     else if (strcmp(argv[arg], "-consensus") == 0)
       dumpType = DUMP_CONSENSUS;
     else if (strcmp(argv[arg], "-layout") == 0)
-      dumpType = DUMP_LAYOUT;
-    else if (strcmp(argv[arg], "-layout-verbose") == 0)
-      dumpType = DUMP_LAYOUT_VERBOSE;
+      dumpType = DUMP_INFO;
     else if (strcmp(argv[arg], "-multialign") == 0)
       dumpType = DUMP_MULTIALIGN;
     else if (strcmp(argv[arg], "-sizes") == 0)
@@ -1110,6 +1147,9 @@ main (int argc, char **argv) {
       if (arg + 1 < argc)
         minOverlap = atoi(argv[++arg]);
     }
+
+    else if (strcmp(argv[arg], "-sequence") == 0)
+      layWithSequence = true;
 
     //  Errors.
 
@@ -1173,11 +1213,15 @@ main (int argc, char **argv) {
     fprintf(stderr, "                            -fasta            report sequences in FASTA format (the default)\n");
     fprintf(stderr, "                            -fastq            report sequences in FASTQ format\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -layout [opts]          the layout of reads in each tig.  if '-o' is supplied, three files are created.\n");
-    fprintf(stderr, "                            -o name           write data to 'name.*' files in the current directory\n");
-    fprintf(stderr, "                                                name.layout           - layout of reads\n");
-    fprintf(stderr, "                                                name.layout.readToTig - read to tig position\n");
-    fprintf(stderr, "                                                name.layout.tigInfo   - metadata for each tig\n");
+    fprintf(stderr, "  -layout -o name         metadata and read-to-tig position mapping.  -o is mandatory.\n");
+    fprintf(stderr, "                          creates two files:\n");
+    fprintf(stderr, "                            name.layout.readToTig - read to tig position\n");
+    fprintf(stderr, "                            name.layout.tigInfo   - metadata for each tig\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -layout [opts]          the layout of reads in each tig and the consensus sequence if available\n");
+    fprintf(stderr, "                          and enabled with option:\n");
+    fprintf(stderr, "                            -sequence         also include consensus sequence and quality\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -multialign [opts]      the full multialignment, output is to stdout\n");
     fprintf(stderr, "                            -w width          width of the page\n");
@@ -1257,11 +1301,11 @@ main (int argc, char **argv) {
     case DUMP_CONSENSUS:
       dumpConsensus(seqStore, tigStore, filter, useReverse, cnsFormat);
       break;
-    case DUMP_LAYOUT:
-      dumpLayout(seqStore, tigStore, filter, false, outPrefix);
-      break;
-    case DUMP_LAYOUT_VERBOSE:
-      dumpLayout(seqStore, tigStore, filter, true, outPrefix);
+    case DUMP_INFO:
+      if (outPrefix)
+        dumpInfo(seqStore, tigStore, filter, outPrefix);
+      else
+        dumpLayout(seqStore, tigStore, filter, layWithSequence);
       break;
     case DUMP_MULTIALIGN:
       dumpMultialign(seqStore, tigStore, filter, maWithQV, maWithDots, maDisplayWidth, maDisplaySpacing);

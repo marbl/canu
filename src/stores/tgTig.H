@@ -280,7 +280,7 @@ public:
   void                 saveToStream(FILE *F);
   bool                 loadFromStream(FILE *F);
 
-  void                 dumpLayout(FILE *F);
+  void                 dumpLayout(FILE *F, bool withSequence=true);
   bool                 loadLayout(FILE *F);
 
   //  Save and load a package of data needed to process this tig.

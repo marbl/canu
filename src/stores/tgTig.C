@@ -471,7 +471,7 @@ tgTig::loadFromStream(FILE *F) {
 
 
 void
-tgTig::dumpLayout(FILE *F) {
+tgTig::dumpLayout(FILE *F, bool withSequence) {
   char  deltaString[128] = {0};
   char  trimString[128]  = {0};
 
@@ -480,7 +480,7 @@ tgTig::dumpLayout(FILE *F) {
 
   //  Dump the sequence and quality
 
-  if (_basesLen == 0) {
+  if ((_basesLen == 0) || (withSequence == false)) {
     fputs("cns\n", F);
     fputs("qlt\n", F);
 
