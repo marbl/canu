@@ -450,6 +450,31 @@ BestOverlapGraph::spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 dista
 
 
 
+
+
+static
+double
+overlapScore(uint32 aid, uint32 bid) {
+
+  if ((aid == 0) || (bid == 0))
+    return(0);
+
+  uint32        ovlLen = 0;
+  BAToverlap   *ovl    = OC->getOverlaps(aid, ovlLen);
+
+  for (uint32 oo=0; oo<ovlLen; oo++) {
+    BAToverlap *o      = ovl + oo;
+
+    if (o->b_iid != bid)
+      continue;
+
+    return((1 - o->erate()) * RI->overlapLength(o->a_iid, o->b_iid, o->a_hang, o->b_hang));
+  }
+
+  return(0);
+}
+
+
 //
 //  Find reads that terminate at a spur after some short traversal.
 //
@@ -508,6 +533,19 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   uint32  n5pChanged = 1;
   uint32  n3pChanged = 1;
 
+#if 1
+  //  Save all the original overlaps.  We'll use this to decide if a new best overlap
+  //  is of sufficient quality to warrant ignoring the spur overlap.
+
+  BestEdgeOverlap    *orig5all = new BestEdgeOverlap [ fiLimit+1 ];
+  BestEdgeOverlap    *orig3all = new BestEdgeOverlap [ fiLimit+1 ];
+
+  for (uint32 fi=0; fi<=fiLimit; fi++) {
+    orig5all[fi] = *getBestEdgeOverlap(fi, false);
+    orig3all[fi] = *getBestEdgeOverlap(fi,  true);
+  }
+#endif
+
   for (uint32 iter=1; ((n5pChanged + n3pChanged > 0) && (iter <= 2 * spurDepth)); iter++) {
     //writeLog("\n");
     //writeLog("SPUR path removal iteration %u\n", iter);
@@ -515,6 +553,10 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
     n5pChanged = 0;
     n3pChanged = 0;
+
+    char  N[FILENAME_MAX+1];
+    sprintf(N, "%s.spur-scores-iter-%u", prefix, iter);
+    FILE *SS = AS_UTL_openOutputFile(N);
 
     //
     //  For any read that can get out on a non-spur-path end, mark the
@@ -597,8 +639,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       uint32      no  = 0;
       BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-      BestEdgeOverlap  orig5 = *getBestEdgeOverlap(fi, false);    //  Remember the previous best edges.
-      BestEdgeOverlap  orig3 = *getBestEdgeOverlap(fi,  true);
+      BestEdgeOverlap  prev5 = *getBestEdgeOverlap(fi, false);    //  Remember the previous best edges.
+      BestEdgeOverlap  prev3 = *getBestEdgeOverlap(fi,  true);
 
       getBestEdgeOverlap(fi, false)->clear();                     //  Then clear them.
       getBestEdgeOverlap(fi,  true)->clear();
@@ -626,10 +668,13 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
         //if (isLopsided(ovl[ii].b_iid)     == true)              //    Allow edges to bubble reads.
         //  continue;
 
-        bool   Aend5 = ovl[ii].AEndIs5prime();
-        bool   Aend3 = ovl[ii].AEndIs3prime();
+        bool   Aend5 = ovl[ii].AEndIs5prime();   //  The overlap must extend off either the 5' or 3' end for it to be
+        bool   Aend3 = ovl[ii].AEndIs3prime();   //  a valid BestEdge.  We're not contained, so only one can be true
 
-        bool   Bend5 = ovl[ii].BEndIs5prime();
+        if (Aend5 == true)   assert(Aend3 == false);
+        if (Aend3 == true)   assert(Aend5 == false);
+
+        bool   Bend5 = ovl[ii].BEndIs5prime();   //  The overlap can go into either end of the B read.
         bool   Bend3 = ovl[ii].BEndIs3prime();
 
         bool   sp5c  = (spurpath5.count(ovl[ii].b_iid) > 0);
@@ -656,33 +701,79 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
         if ((Aend3 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii]);
       }
 
+      //  All edges scored.  If the new edge is significantly worse than the
+      //  spur edge, reset to the spur edge.  But there is no clear signal here,
+      //  so all we do is log stuff.
+
+#if 1
+      BestEdgeOverlap  *new5 = getBestEdgeOverlap(fi, false);
+      BestEdgeOverlap  *new3 = getBestEdgeOverlap(fi,  true);
+
+      if ((orig5all[fi].readId() != 0) &&
+          (new5->readId() != 0) &&
+          (orig5all[fi].readId() != new5->readId())) {
+        double orig5sco = overlapScore(fi, orig5all[fi].readId());
+        double prev5sco = overlapScore(fi, prev5.readId());
+        double new5sco  = overlapScore(fi, new5->readId());
+
+        fprintf(SS, "%-7u 5'  orig %7u %10.2f  prev %7u %10.2f  new %7u %10.2f   delta %10.2f %10.2f%%\n",
+                fi,
+                orig5all[fi].readId(), orig5sco,
+                prev5.readId(), prev5sco,
+                new5->readId(), new5sco,
+                (new5sco - orig5sco),
+                100.0 * (new5sco - orig5sco) / orig5sco);
+      }
+
+      if ((orig3all[fi].readId() != 0) &&
+          (new3->readId() != 0) &&
+          (orig3all[fi].readId() != new3->readId())) {
+        double orig3sco = overlapScore(fi, orig3all[fi].readId());
+        double prev3sco = overlapScore(fi, prev3.readId());
+        double new3sco  = overlapScore(fi, new3->readId());
+
+        fprintf(SS, "%-7u 3'  orig %7u %10.2f  prev %7u %10.2f  new %7u %10.2f   delta %10.2f %10.2f%%\n",
+                fi,
+                orig3all[fi].readId(), orig3sco,
+                prev3.readId(), prev3sco,
+                new3->readId(), new3sco,
+                (new3sco - orig3sco),
+                100.0 * (new3sco - orig3sco) / orig3sco);
+      }
+#endif
+
       //  All edges scored.  If no best edge found, log and reset to whatever
       //  previous edge was there.
 
 #if 0
-      if (getBestEdgeOverlap(fi, false)->readId() == 0)   writeLog("restore edge out of %u 5' to previous best %u %c'\n", fi, orig5.readId(), orig5.read3p() ? '3' : '5');
-      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   writeLog("restore edge out of %u 3' to previous best %u %c'\n", fi, orig3.readId(), orig3.read3p() ? '3' : '5');
+      if (getBestEdgeOverlap(fi, false)->readId() == 0)   writeLog("restore edge out of %u 5' to previous best %u %c'\n", fi, prev5.readId(), prev5.read3p() ? '3' : '5');
+      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   writeLog("restore edge out of %u 3' to previous best %u %c'\n", fi, prev3.readId(), prev3.read3p() ? '3' : '5');
 #endif
 
-      if (getBestEdgeOverlap(fi, false)->readId() == 0)   *getBestEdgeOverlap(fi, false) = orig5;
-      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   *getBestEdgeOverlap(fi,  true) = orig3;
+      if (getBestEdgeOverlap(fi, false)->readId() == 0)   *getBestEdgeOverlap(fi, false) = prev5;
+      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   *getBestEdgeOverlap(fi,  true) = prev3;
 
       //  Count the number of edges we switched from following a spur path to a normal path.
-      //  These are just the edges that are different than their original version.
+      //  These are just the edges that are different than their previous version.
 
-      if (*getBestEdgeOverlap(fi, false) != orig5)  n5pChanged++;
-      if (*getBestEdgeOverlap(fi,  true) != orig3)  n3pChanged++;
+      if (*getBestEdgeOverlap(fi, false) != prev5)  n5pChanged++;
+      if (*getBestEdgeOverlap(fi,  true) != prev3)  n3pChanged++;
     }
 
     //
     //  Done with an interation.  Report a bit of status.
     //
 
+    fclose(SS);
+
     writeStatus("BestOverlapGraph()--   After iteration %u, found:\n", iter);
     writeStatus("BestOverlapGraph()--     %5u spur reads.\n", spur.size());
     writeStatus("BestOverlapGraph()--     %5u 5' spur paths;  %5u 5' edges changed to avoid a spur path.\n", spurpath5.size(), n5pChanged);
     writeStatus("BestOverlapGraph()--     %5u 3' spur paths;  %5u 5' edges changed to avoid a spur path.\n", spurpath3.size(), n3pChanged);
   }
+
+  delete [] orig5all;
+  delete [] orig3all;
 
   //
   //  Set the spur flag for any spur reads, and log the result.
