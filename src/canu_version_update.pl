@@ -39,8 +39,8 @@ my $cwd = getcwd();
 #  released code having a version string of "Canu 1.9".
 
 my $label    = "snapshot";      #  If not 'release' print this in the version output.
-my $major    = "1";             #  Bump before release.
-my $minor    = "9";             #  Bump before release.
+my $major    = "2";             #  Bump before release.
+my $minor    = "0";             #  Bump before release.
 
 my $branch   = "master";
 my $version  = "v$major.$minor";
