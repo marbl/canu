@@ -19,6 +19,10 @@
  *
  *  Modifications by:
  *
+ *    Brian P. Walenz beginning on 2019-FEB-23
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */

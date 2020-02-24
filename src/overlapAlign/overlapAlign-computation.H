@@ -23,7 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-
 //  This object is created by the loader thread, overlapReader().
 //  During construction of this object, overlaps are loaded,
 //  and a pointer to the cache is saved so we can retrieve the

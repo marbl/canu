@@ -14,13 +14,9 @@
  #  Canu branched from Celera Assembler at its revision 4587.
  #  Canu branched from the kmer project at its revision 1994.
  #
- #  This file is derived from:
- #
- #    src/pipelines/ca3g.pl
- #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2019-MAR-29
+ #    Brian P. Walenz beginning on 2019-APR-01
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #

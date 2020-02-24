@@ -23,7 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-
 class trReadData {
 public:
   trReadData() {

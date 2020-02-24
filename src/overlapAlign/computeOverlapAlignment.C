@@ -23,7 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-
 #include "AS_global.H"
 
 #include "system.H"

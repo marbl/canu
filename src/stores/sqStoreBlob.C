@@ -13,13 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/stores/gkStoreBlobWriter.H
- *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2018-MAR-13
+ *    Brian P. Walenz beginning on 2019-JUL-05
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

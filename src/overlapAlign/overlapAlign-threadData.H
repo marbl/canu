@@ -23,7 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-
 class maThreadData {
 public:
   maThreadData(trGlobalData *g, uint32 tid) {

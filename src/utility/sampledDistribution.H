@@ -13,13 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/sequence/sequence.C
- *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2019APR-18
+ *    Brian P. Walenz beginning on 2019-APR-18
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

@@ -15,7 +15,11 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2019-APR-22
+ *    Brian P. Walenz beginning on 2019-APR-29
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2019-JUL-18
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
