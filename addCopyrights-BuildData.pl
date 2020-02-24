@@ -68,6 +68,8 @@ while (!eof(F)) {
         $author = "Brian P. Walenz";
     } elsif (m/koren/i) {
         $author = "Sergey Koren";
+    } elsif (m/sergey.*nurk/i) {
+        $author = "Sergey Nurk";
     } else {
         print STDERR "Skipping commit from '$_'\n";
         $author = undef;
