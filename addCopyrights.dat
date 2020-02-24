@@ -15460,3 +15460,1333 @@ D src/sequence/sequence-summarize.C src/sequence/sequence.C
 D src/sequence/sequence.H src/sequence/sequence.C
 D src/utility/edlib.C src/overlapInCore/libedlib/edlib.C
 D src/utility/edlib.H src/overlapInCore/libedlib/edlib.H
+A src/bogart/AS_BAT_OptimizePositions.C nihh20200224Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200224Brian P. Walenz
+A src/overlapInCore/edalign.C nihh20200221Brian P. Walenz
+A src/bogart/bogart.C nihh20200221Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20200221Brian P. Walenz
+A src/stores/tgTig.C nihh20200221Brian P. Walenz
+A src/stores/tgTig.H nihh20200221Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200221Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200221Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20200221Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.C nihh20200221Brian P. Walenz
+A src/canu_version_update.pl nihh20200218Brian P. Walenz
+A src/pipelines/canu.pl nihh20200214Sergey Koren
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200213Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200213Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200213Brian P. Walenz
+A src/bogart/AS_BAT_PlaceReadUsingOverlaps.C nihh20200213Brian P. Walenz
+A src/sequence/sequence-shiftregister-emit-fast.C nihh20200213Brian P. Walenz
+A src/sequence/sequence-shiftregister-search-fast.C nihh20200213Brian P. Walenz
+A src/sequence/sequence-shiftregister-search-slow.C nihh20200213Brian P. Walenz
+A src/sequence/sequence-shiftregister.C nihh20200213Brian P. Walenz
+A src/sequence/sequence.C nihh20200213Brian P. Walenz
+A src/sequence/sequence.H nihh20200213Brian P. Walenz
+A src/sequence/sequence.mk nihh20200213Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20200213Brian P. Walenz
+A src/stores/loadTrimmedReads.C nihh20200213Brian P. Walenz
+A src/stores/sqRead.H nihh20200213Brian P. Walenz
+A src/stores/sqStore.C nihh20200213Brian P. Walenz
+A src/stores/sqStore.H nihh20200213Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20200213Brian P. Walenz
+A src/pipelines/canu.pl nihh20200212Sergey Koren
+A src/pipelines/canu/Unitig.pm nihh20200212Sergey Koren
+A src/meryl/meryl-lookup.C nihh20200212Brian P. Walenz
+A src/utility/kmers.H nihh20200212Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20200211Brian P. Walenz
+A src/bogart/bogart.C nihh20200211Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200211Brian P. Walenz
+A src/sequence/sequence-shiftregister-gf4.H nihh20200210Brian P. Walenz
+A src/sequence/sequence-shiftregister-search-fast.C nihh20200210Brian P. Walenz
+A src/sequence/sequence-shiftregister-search-slow.C nihh20200210Brian P. Walenz
+A src/sequence/sequence-shiftregister.C nihh20200210Brian P. Walenz
+A src/sequence/sequence.C nihh20200210Brian P. Walenz
+A src/sequence/sequence.H nihh20200210Brian P. Walenz
+A src/sequence/sequence.mk nihh20200210Brian P. Walenz
+A src/utility/bits.H nihh20200210Brian P. Walenz
+A src/sequence/sequence-shiftregister.C nihh20200209Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200210Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200210Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20200210Brian P. Walenz
+A src/bogart/AS_BAT_Unitig.H nihh20200210Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20200207Sergey Koren
+A src/utility/files.C nihh20200206Brian P. Walenz
+A src/sequence/sequence-shiftregister.C nihh20200206Brian P. Walenz
+A src/sequence/sequence.C nihh20200206Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_Logging.C nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_Logging.H nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.H nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.C nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.H nihh20200129Brian P. Walenz
+A src/bogart/bogart.C nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_PopulateUnitig.C nihh20200129Brian P. Walenz
+A src/bogart/bogart.C nihh20200129Brian P. Walenz
+A src/stores/ovOverlap.H nihh20200129Brian P. Walenz
+A src/stores/ovStore.C nihh20200129Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20200129Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20200129Brian P. Walenz
+A src/utgcns/utgcns.C nihh20200129Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200123Brian P. Walenz
+A src/pipelines/canu.pl nihh20200122Sergey Koren
+A src/pipelines/canu/CorrectReads.pm nihh20200122Sergey Koren
+A src/main.mk nihh20200121Brian P. Walenz
+A src/utility/logging.C nihh20200121Brian P. Walenz
+A src/utility/logging.H nihh20200121Brian P. Walenz
+A src/utility/loggingTest.C nihh20200121Brian P. Walenz
+A src/utility/loggingTest.mk nihh20200121Brian P. Walenz
+A src/utility/files-buffered.H nihh20200121Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20200115Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200113Brian P. Walenz
+A src/bogart/bogart.C nihh20200113Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20200113Brian P. Walenz
+A src/utility/files-compressed.C nihh20200109Brian P. Walenz
+A src/utility/filesTest.C nihh20200109Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200107Sergey Koren
+A src/pipelines/canu.pl nihh20200107Sergey Koren
+A src/pipelines/canu/CorrectReads.pm nihh20200107Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200107Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20200107Brian P. Walenz
+A src/bogart/AS_BAT_ChunkGraph.C nihh20200107Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200107Brian P. Walenz
+A src/bogart/AS_BAT_ChunkGraph.C nihh20200106Brian P. Walenz
+A src/bogart/AS_BAT_ChunkGraph.H nihh20200106Brian P. Walenz
+A src/bogart/AS_BAT_PopulateUnitig.C nihh20200106Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20200106Brian P. Walenz
+A src/utgcns/libpbutgcns/AlnGraphBoost.C nihh20200106Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20191210Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20191227Sergey Koren
+A src/utgcns/unitigConsensus.H nihh20191227Sergey Koren
+A src/utgcns/utgcns.C nihh20191227Sergey Koren
+A src/pipelines/canu/OverlapBasedTrimming.pm nihh20191227Sergey Koren
+A src/stores/loadTrimmedReads.C nihh20191227Sergey Koren
+A src/pipelines/canu.pl nihh20191226Sergey Koren
+A src/utgcns/unitigConsensus.C nihh20191226Sergey Koren
+A src/utgcns/utgcns.C nihh20191226Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191226Sergey Koren
+A src/haplotyping/splitHaplotype.C nihh20191220Sergey Koren
+A src/pipelines/canu/Defaults.pm nihh20191220Sergey Koren
+A src/haplotyping/splitHaplotype.C nihh20191220Sergey Koren
+A src/haplotyping/splitHaplotype.C nihh20191220Sergey Koren
+A src/pipelines/canu/HaplotypeReads.pm nihh20191220Sergey Koren
+A src/pipelines/canu/Configure.pm nihh20191220Sergey Koren
+A src/pipelines/canu/Configure.pm nihh20191219Sergey Koren
+A src/pipelines/canu/Consensus.pm nihh20191219Sergey Koren
+A src/pipelines/canu/Defaults.pm nihh20191219Sergey Koren
+A src/utgcns/utgcns.C nihh20191219Sergey Koren
+A src/stores/tgStoreDump.C nihh20191212Sergey Koren
+A src/stores/tgTigSizeAnalysis.C nihh20191212Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191211Brian P. Walenz
+A src/bogart/AS_BAT_AssemblyGraph.C nihh20191205Brian P. Walenz
+A src/bogart/AS_BAT_AssemblyGraph.H nihh20191205Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.C nihh20191205Brian P. Walenz
+A src/utility/intervalList.H nihh20191205Brian P. Walenz
+A src/utility/intervalList.H nihh20191205Brian P. Walenz
+A src/bogart/AS_BAT_Instrumentation.C nihh20191204Brian P. Walenz
+A src/correction/falconConsensus.C nihh20191204Brian P. Walenz
+A src/main.mk nihh20191204Brian P. Walenz
+A src/overlapBasedTrimming/trimReads-largestCovered.C nihh20191204Brian P. Walenz
+A src/stores/ovStoreStats.C nihh20191204Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20191204Brian P. Walenz
+A src/stores/tgStoreFilter.C nihh20191204Brian P. Walenz
+A src/stores/tgTig.C nihh20191204Brian P. Walenz
+A src/utility/intervalList.H nihh20191204Brian P. Walenz
+A src/utility/intervalListTest.C nihh20191204Brian P. Walenz
+A src/utility/intervalListTest.mk nihh20191204Brian P. Walenz
+A src/utility/arrays.H nihh20191204Brian P. Walenz
+A src/utility/files.C nihh20191204Brian P. Walenz
+A src/AS_global.C nihh20191204Brian P. Walenz
+A src/AS_global.H nihh20191204Brian P. Walenz
+A src/Makefile nihh20191204Brian P. Walenz
+A src/bogart/AS_BAT_Unitig.C nihh20191204Brian P. Walenz
+A src/correction/computeGlobalScore.C nihh20191204Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20191204Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps.C nihh20191204Brian P. Walenz
+A src/stores/ovStoreBuild.C nihh20191204Brian P. Walenz
+A src/stores/ovStoreHistogram.C nihh20191204Brian P. Walenz
+A src/stores/ovStoreSorter.C nihh20191204Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20191204Brian P. Walenz
+A src/overlapInCore/overlapPair.C nihh20191203Brian P. Walenz
+A src/stores/ovStore.C nihh20191203Brian P. Walenz
+A src/stores/ovStore.H nihh20191203Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191203Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20191203Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20191203Brian P. Walenz
+A src/stores/ovStore.C nihh20191202Brian P. Walenz
+A src/stores/ovStore.H nihh20191202Brian P. Walenz
+A src/stores/ovStoreBuild.C nihh20191202Brian P. Walenz
+A src/stores/ovStoreIndexer.C nihh20191202Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20191202Brian P. Walenz
+A src/utility/sequence.C nihh20191202Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191202Brian P. Walenz
+A src/stores/ovStoreHistogram.C nihh20191202Brian P. Walenz
+A src/stores/ovStoreHistogram.H nihh20191202Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20191202Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20191202Brian P. Walenz
+A src/stores/ovStore.H nihh20191127Sergey Koren
+A src/stores/ovOverlap.H nihh20191127Sergey Koren
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20191007Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps.C nihh20191007Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps.H nihh20191007Sergey Nurk
+A src/pipelines/canu.pl nihh20191126Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191126Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20191126Brian P. Walenz
+A src/sequence/sequence-sample.C nihh20191126Brian P. Walenz
+A src/sequence/sequence.C nihh20191126Brian P. Walenz
+A src/sequence/sequence.H nihh20191126Brian P. Walenz
+A src/utility/files-buffered-implementation.H nihh20191126Brian P. Walenz
+A src/utility/files-buffered.C nihh20191126Brian P. Walenz
+A src/utility/files-buffered.H nihh20191126Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_AssemblyGraph.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_AssemblyGraph.H nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.H nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_PopulateUnitig.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_PopulateUnitig.H nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_TigVector.H nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_Unitig.H nihh20191122Brian P. Walenz
+A src/bogart/bogart.C nihh20191122Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191121Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191121Brian P. Walenz
+A src/bogart/AS_BAT_PlaceContains.C nihh20191121Brian P. Walenz
+A src/bogart/AS_BAT_PopulateUnitig.C nihh20191121Brian P. Walenz
+A src/bogart/bogart.C nihh20191121Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191120Sergey Koren
+A src/utility/files.C nihh20191119Brian P. Walenz
+A statifyOSX.py nihh20191119Sergey Koren
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191119Sergey Koren
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191119Sergey Koren
+A src/bogart/AS_BAT_Unitig.H nihh20191119Sergey Koren
+A src/gfa/alignGFA.C nihh20191119Sergey Koren
+A src/stores/tgTig.C nihh20191119Sergey Koren
+A src/bogart/AS_BAT_MergeOrphans.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_AssemblyGraph.H nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_Instrumentation.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_Outputs.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_Unitig.H nihh20191119Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20191119Brian P. Walenz
+A src/stores/tgTig.C nihh20191119Brian P. Walenz
+A src/stores/tgTig.H nihh20191119Brian P. Walenz
+A src/stores/tgTigSizeAnalysis.C nihh20191119Brian P. Walenz
+A src/utgcns/utgcns.C nihh20191119Brian P. Walenz
+A src/utgcns/utgcns.C nihh20191119Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_PlaceReadUsingOverlaps.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191119Brian P. Walenz
+A src/bogart/AS_BAT_Unitig.H nihh20191119Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191119Brian P. Walenz
+A src/bogart/bogart.C nihh20191119Brian P. Walenz
+A src/gfa/alignGFA.C nihh20191115Sergey Koren
+A src/gfa/alignGFA.C nihh20191115Sergey Koren
+A src/pipelines/canu/Consensus.pm nihh20191115Sergey Koren
+A src/bogart/AS_BAT_AssemblyGraph.C nihh20191115Brian P. Walenz
+A src/bogart/AS_BAT_AssemblyGraph.H nihh20191115Brian P. Walenz
+A src/bogart/AS_BAT_Instrumentation.C nihh20191115Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.C nihh20191115Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.H nihh20191115Brian P. Walenz
+A src/bogart/bogart.C nihh20191115Brian P. Walenz
+A src/bogart/AS_BAT_PlaceReadUsingOverlaps.H nihh20191115Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191115Brian P. Walenz
+A src/gfa/alignGFA.C nihh20191114Sergey Koren
+A src/gfa/alignGFA.C nihh20191114Sergey Koren
+A src/gfa/alignGFA.C nihh20191114Sergey Koren
+A src/pipelines/canu/Consensus.pm nihh20191114Sergey Koren
+A src/stores/ovStoreDump.C nihh20191113Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191113Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191113Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191113Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20191113Brian P. Walenz
+A src/stores/ovOverlap.H nihh20191113Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20191113Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20191113Brian P. Walenz
+A buildRelease.sh nihh20191113Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph_implementation.H nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_CreateUnitigs.C nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.C nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_PlaceContains.C nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.C nihh20191112Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.H nihh20191112Brian P. Walenz
+A src/bogart/bogart.C nihh20191112Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191108Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20191108Brian P. Walenz
+A src/stores/sqStore.H nihh20191108Brian P. Walenz
+A src/stores/sqStoreBlob.C nihh20191108Brian P. Walenz
+A src/utility/files.C nihh20191108Brian P. Walenz
+A src/utility/files.H nihh20191108Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191107Brian P. Walenz
+A src/bogart/AS_BAT_ChunkGraph.C nihh20191107Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.C nihh20191107Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.C nihh20191107Brian P. Walenz
+A src/canu_version_update.pl nihh20191107Brian P. Walenz
+A src/stores/ovOverlap.H nihh20191107Brian P. Walenz
+A src/utility/stddev.H nihh20191107Brian P. Walenz
+A src/utility/stddev.H nihh20191107Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20191106Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.H nihh20191106Brian P. Walenz
+A src/bogart/AS_BAT_PlaceContains.C nihh20191106Brian P. Walenz
+A src/bogart/AS_BAT_PlaceContains.H nihh20191106Brian P. Walenz
+A src/bogart/bogart.C nihh20191106Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191105Sergey Koren
+A src/pipelines/canu/Grid_Cloud.pm nihh20191101Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20191101Brian P. Walenz
+A src/pipelines/canu/Grid_DNANexus.pm nihh20191101Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191024Brian P. Walenz
+A src/pipelines/canu/Grid_DNANexus.pm nihh20191027Brian P. Walenz
+A src/pipelines/canu/Grid_DNANexus.pm nihh20191027Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.H nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_PlaceContains.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_PlaceContains.H nihh20191101Brian P. Walenz
+A src/bogart/bogart.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_PlaceReadUsingOverlaps.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_ChunkGraph.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_MarkRepeatReads.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_PopulateUnitig.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.H nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191101Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191031Sergey Koren
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191031Sergey Koren
+A src/utility/stddev.H nihh20191031Sergey Koren
+A src/pipelines/canu/HaplotypeReads.pm nihh20191031Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20191031Brian P. Walenz
+A src/utgcns/utgcns.C nihh20191031Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20191031Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20191028Brian P. Walenz
+A src/utgcns/utgcns.C nihh20191028Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20191028Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.C nihh20191025Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20191025Sergey Koren
+A src/pipelines/canu/Execution.pm nihh20191025Sergey Koren
+A src/bogart/bogart.C nihh20191024Sergey Koren
+A src/utgcns/unitigConsensus.C nihh20191024Sergey Koren
+A src/pipelines/canu.pl nihh20191024Sergey Koren
+A src/pipelines/canu/Execution.pm nihh20191023Brian P. Walenz
+A documentation/source/tutorial.rst nihh20191022Sergey Koren
+A src/stores/ovStoreStats.C nihh20191021Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20191021Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20191021Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20191021Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20191021Brian P. Walenz
+A src/utility/strings.C nihh20191021Brian P. Walenz
+A src/utgcns/utgcns.C nihh20191021Brian P. Walenz
+A src/stores/sqStore.C nihh20191021Brian P. Walenz
+A src/stores/sqStore.H nihh20191021Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20191021Brian P. Walenz
+A src/stores/sqReadData.C nihh20191021Brian P. Walenz
+A src/utility/files-buffered.C nihh20191021Brian P. Walenz
+A src/utility/files-buffered.H nihh20191021Brian P. Walenz
+A src/pipelines/canu.pl nihh20191021Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20191020Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20190918Brian P. Walenz
+A src/stores/sqStore.H nihh20191020Brian P. Walenz
+A src/stores/sqStoreBlob.C nihh20191020Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20191020Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20191020Brian P. Walenz
+A src/utility/files-buffered.C nihh20191020Brian P. Walenz
+A src/utility/files-buffered.H nihh20191020Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20191019Brian P. Walenz
+A src/pipelines/canu.pl nihh20191021Sergey Koren
+A src/utgcns/unitigConsensus.C nihh20191021Sergey Koren
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191018Brian P. Walenz
+A buildRelease-DNAnexus.sh nihh20191016Brian P. Walenz
+A src/pipelines/dx-canu/dxapp.json nihh20191016Brian P. Walenz
+A src/pipelines/dx-canu/src/canu-job-launcher.sh nihh20191016Brian P. Walenz
+A src/pipelines/dx-trio/.gitignore nihh20191016Brian P. Walenz
+A src/pipelines/dx-trio/dxapp.json nihh20191016Brian P. Walenz
+A src/pipelines/dx-trio/resources/bin/dx-get-instance-info.py nihh20191016Brian P. Walenz
+A src/pipelines/dx-trio/src/canu-job-launcher.sh nihh20191016Brian P. Walenz
+A buildRelease-DNAnexus.sh nihh20191015Brian P. Walenz
+A src/Makefile nihh20191015Brian P. Walenz
+A src/dx-canu/dxapp.json nihh20191015Brian P. Walenz
+A src/dx-canu/src/canu-job-launcher.sh nihh20191015Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20191015Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20191015Brian P. Walenz
+A buildRelease-DNAnexus.sh nihh20191011Brian P. Walenz
+A src/dx-canu/dxapp.json nihh20191011Brian P. Walenz
+A src/dx-canu/src/canu-job-launcher.sh nihh20191011Brian P. Walenz
+A src/pipelines/canu.pl nihh20191011Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/Report.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20191011Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20191011Brian P. Walenz
+A src/utility/objectStore.C nihh20191011Brian P. Walenz
+A src/utility/files-buffered.C nihh20191017Brian P. Walenz
+A src/utility/files-buffered.H nihh20191017Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191017Brian P. Walenz
+A src/pipelines/canu.pl nihh20191017Brian P. Walenz
+A src/pipelines/canu.pl nihh20191017Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20191017Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps.C nihh20191016Sergey Koren
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20191016Sergey Koren
+A src/pipelines/canu.pl nihh20191014Sergey Koren
+A src/pipelines/canu/Defaults.pm nihh20191014Sergey Koren
+A src/pipelines/canu/OverlapMhap.pm nihh20191014Sergey Koren
+A src/pipelines/canu/Configure.pm nihh20191014Sergey Koren
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20191014Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191014Sergey Koren
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191014Sergey Koren
+A src/overlapErrorAdjustment/correctOverlaps.C nihh20191014Sergey Koren
+A src/overlapErrorAdjustment/correctOverlaps.H nihh20191014Sergey Koren
+A src/pipelines/canu/Grid_PBSTorque.pm nihh20191016Sergey Koren
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191016Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191016Brian P. Walenz
+A src/Makefile nihh20191016Brian P. Walenz
+A src/bogart/AS_BAT_Logging.C nihh20191016Brian P. Walenz
+A src/bogart/AS_BAT_Logging.H nihh20191016Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20191016Brian P. Walenz
+A src/bogart/bogart.C nihh20191016Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20191009Brian P. Walenz
+A src/sequence/sequence-summarize.C nihh20191009Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20191009Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.C nihh20191008Brian P. Walenz
+A src/bogart/AS_BAT_BestOverlapGraph.H nihh20191008Brian P. Walenz
+A src/bogart/AS_BAT_DetectSpurs.C nihh20191008Brian P. Walenz
+A src/bogart/AS_BAT_DetectSpurs.H nihh20191008Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.C nihh20191008Brian P. Walenz
+A src/bogart/bogart.C nihh20191008Brian P. Walenz
+A src/bogart/bogart.mk nihh20191008Brian P. Walenz
+A src/pipelines/canu.pl nihh20191008Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20191008Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20191008Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20191008Brian P. Walenz
+A src/overlapAlign/trimRead.C nihh20191008Brian P. Walenz
+A src/stores/sqStore.H nihh20191008Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20191008Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20191008Brian P. Walenz
+A src/stores/sqRead.H nihh20191008Brian P. Walenz
+A src/overlapBasedTrimming/trimReads-largestCovered.C nihh20191008Brian P. Walenz
+A src/pipelines/object-store-simulator.pl nihh20191008Brian P. Walenz
+A src/utility/edlib.C nihh20191008Brian P. Walenz
+A src/utility/edlib.H nihh20191008Brian P. Walenz
+A src/pipelines/canu/CorrectReads.pm nihh20191007Brian P. Walenz
+A src/Makefile nihh20191007Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20191007Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20191003Sergey Koren
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20191003Sergey Koren
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191002Sergey Nurk
+A src/stores/ovOverlap.H nihh20191002Sergey Nurk
+A src/stores/ovStore.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctionOutput.H nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/findErrors.H nihh20191002Sergey Nurk
+A src/stores/ovStore.C nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20191002Sergey Nurk
+A src/main.mk nihh20191002Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20191001Sergey Koren
+A src/utgcns/unitigConsensus.C nihh20190927Sergey Koren
+A src/overlapErrorAdjustment/findErrors.H nihh20190927Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190927Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190927Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190927Sergey Nurk
+A src/utgcns/libpbutgcns/AlnGraphBoost.C nihh20190926Sergey Koren
+A src/utgcns/libpbutgcns/AlnGraphBoost.C nihh20190925Sergey Koren
+A src/utgcns/unitigConsensus.C nihh20190925Sergey Koren
+A src/overlapErrorAdjustment/findErrors-Read_Frags.C nihh20190926Sergey Koren
+A src/overlapErrorAdjustment/findErrors.H nihh20190926Sergey Koren
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190926Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190926Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190926Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190925Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190924Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190924Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190924Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190923Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190923Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190923Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Process_Olap.C nihh20190923Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190918Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190918Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Process_Olap.C nihh20190918Sergey Nurk
+A src/stores/ovStore.C nihh20190918Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190916Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190913Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190912Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190911Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Prefix_Edit_Distance.C nihh20190909Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190909Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Prefix_Edit_Distance.C nihh20190906Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Prefix_Edit_Distance.C nihh20190905Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190905Sergey Nurk
+A src/overlapErrorAdjustment/correctionOutput.H nihh20190905Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190905Sergey Nurk
+A src/overlapErrorAdjustment/findErrors.H nihh20190905Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190828Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/correctionOutput.H nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/correctionOutput.H nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190823Sergey Nurk
+A src/overlapErrorAdjustment/correctionOutput.H nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors.H nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190822Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190822Sergey Nurk
+A src/Makefile nihh20190815Sergey Nurk
+A src/overlapErrorAdjustment/analyzeAlignment.C nihh20190815Sergey Nurk
+A src/overlapErrorAdjustment/analyzeAlignment.H nihh20190815Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Analyze_Alignment.C nihh20190815Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190815Sergey Nurk
+A src/overlapErrorAdjustment/findErrors-Process_Olap.C nihh20190815Sergey Nurk
+A src/overlapErrorAdjustment/findErrors.H nihh20190815Sergey Nurk
+A documentation/source/quick-start.rst nihh20190920Sergey Koren
+A documentation/source/faq.rst nihh20190920Sergey Koren
+A src/pipelines/canu.pl nihh20190916Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20190916Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190916Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190916Brian P. Walenz
+A src/pipelines/canu.pl nihh20190916Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20190909Brian P. Walenz
+A src/utility/kmers-exact.C nihh20190909Brian P. Walenz
+A src/stores/sqCache.C nihh20190909Brian P. Walenz
+A src/stores/sqCache.H nihh20190909Brian P. Walenz
+A src/stores/sqStoreDumpFASTQ.C nihh20190909Brian P. Walenz
+A src/stores/sqRead.H nihh20190909Brian P. Walenz
+A src/stores/sqStore.H nihh20190909Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190909Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20190909Brian P. Walenz
+A src/stores/sqStore.H nihh20190909Brian P. Walenz
+A src/utility/sequence.C nihh20190909Brian P. Walenz
+A src/utility/sequence.H nihh20190909Brian P. Walenz
+A src/stores/loadTrimmedReads.C nihh20190909Brian P. Walenz
+A src/overlapInCore/overlapInCore-Process_String_Overlaps.C nihh20190909Brian P. Walenz
+A src/overlapInCore/overlapInCore-Process_Overlaps.C nihh20190909Brian P. Walenz
+A src/correction/falconsense.C nihh20190909Brian P. Walenz
+A src/stores/sqStore.H nihh20190909Brian P. Walenz
+A src/utility/sequence.C nihh20190905Brian P. Walenz
+A src/pipelines/canu/OverlapBasedTrimming.pm nihh20190905Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190905Brian P. Walenz
+A src/overlapBasedTrimming/trimStat.H nihh20190905Brian P. Walenz
+A src/sequence/sequence-summarize.C nihh20190905Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190905Brian P. Walenz
+A src/canu_version_update.pl nihh20190903Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20190903Brian P. Walenz
+A src/pipelines/canu/Grid_LSF.pm nihh20190829Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190829Brian P. Walenz
+A src/pipelines/canu/Grid_Slurm.pm nihh20190829Brian P. Walenz
+A src/pipelines/canu.pl nihh20190829Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190829Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190829Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190829Brian P. Walenz
+A src/utgcns/utgcns.C nihh20190829Brian P. Walenz
+A src/utility/files.C nihh20190828Brian P. Walenz
+A src/utility/files.H nihh20190828Brian P. Walenz
+A src/Makefile nihh20190827Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190827Brian P. Walenz
+A src/sequence/sequence.C nihh20190827Brian P. Walenz
+A src/sequence/sequence.H nihh20190827Brian P. Walenz
+A src/sequence/share/pacbio nihh20190827Brian P. Walenz
+A src/sequence/share/pacbio-hifi nihh20190827Brian P. Walenz
+A src/sequence/share/ultra-long-nanopore nihh20190827Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190827Brian P. Walenz
+A src/utility/files.C nihh20190827Brian P. Walenz
+A src/utility/files.H nihh20190827Brian P. Walenz
+A src/utility/sampledDistribution.H nihh20190827Brian P. Walenz
+A src/pipelines/canu.pl nihh20190827Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190825Brian P. Walenz
+A src/pipelines/canu.pl nihh20190819Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190819Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190819Brian P. Walenz
+A src/stores/sqLibrary.H nihh20190819Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190819Brian P. Walenz
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20190819Brian P. Walenz
+A documentation/source/faq.rst nihh20190822Sergey Koren
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190816Sergey Nurk
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190816Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190815Brian P. Walenz
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190815Brian P. Walenz
+A src/overlapErrorAdjustment/findErrors-Output.C nihh20190815Sergey Nurk
+A src/pipelines/canu/Grid_LSF.pm nihh20190814Brian P. Walenz
+A src/pipelines/canu/Grid_LSF.pm nihh20190814Brian P. Walenz
+A src/pipelines/canu/Grid_LSF.pm nihh20190814Brian P. Walenz
+A src/pipelines/canu-time.pl nihh20190814Brian P. Walenz
+A src/pipelines/canu-time.pl nihh20190814Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190814Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190814Brian P. Walenz
+A src/utility/files-buffered-implementation.H nihh20190814Brian P. Walenz
+A src/utility/files-buffered-implementation.H nihh20190814Brian P. Walenz
+A src/pipelines/canu.pl nihh20190808Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190808Brian P. Walenz
+A src/stores/loadTrimmedReads.C nihh20190808Brian P. Walenz
+A src/stores/sqRead.H nihh20190808Brian P. Walenz
+A src/stores/sqStore.H nihh20190808Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190808Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20190808Brian P. Walenz
+A src/stores/sqStoreDumpFASTQ.C nihh20190808Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190808Brian P. Walenz
+A src/utility/sequence.C nihh20190808Brian P. Walenz
+A src/utility/sequence.H nihh20190808Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190805Brian P. Walenz
+A src/overlapBasedTrimming/splitReads-subReads.C nihh20190805Brian P. Walenz
+A src/overlapBasedTrimming/splitReads.C nihh20190805Brian P. Walenz
+A src/overlapBasedTrimming/trimReads.C nihh20190805Brian P. Walenz
+A src/pipelines/canu.pl nihh20190805Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190805Brian P. Walenz
+A src/pipelines/canu/Grid_DNANexus.pm nihh20190805Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190805Brian P. Walenz
+A src/stores/loadCorrectedReads.C nihh20190805Brian P. Walenz
+A src/stores/ovStore.H nihh20190805Brian P. Walenz
+A src/stores/ovStoreBucketizer.C nihh20190805Brian P. Walenz
+A src/stores/ovStoreBuild.C nihh20190805Brian P. Walenz
+A src/stores/ovStoreFilter.C nihh20190805Brian P. Walenz
+A src/stores/sqLibrary.C nihh20190805Brian P. Walenz
+A src/stores/sqLibrary.H nihh20190805Brian P. Walenz
+A src/stores/sqRead.H nihh20190805Brian P. Walenz
+A src/stores/sqReadDataWriter.C nihh20190805Brian P. Walenz
+A src/stores/sqStore.C nihh20190805Brian P. Walenz
+A src/stores/sqStore.H nihh20190805Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190805Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190805Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20190805Brian P. Walenz
+A src/stores/tgStoreFilter.C nihh20190805Brian P. Walenz
+A src/utility/sequence.C nihh20190805Brian P. Walenz
+A src/utility/sequence.H nihh20190805Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190730Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190730Brian P. Walenz
+A src/utility/arrays.H nihh20190730Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190730Sergey Koren
+A src/pipelines/canu/OverlapMhap.pm nihh20190730Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20190727Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20190727Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20190727Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20190727Brian P. Walenz
+A src/pipelines/canu.pl nihh20190724Sergey Koren
+A src/pipelines/canu.pl nihh20190724Sergey Koren
+A src/pipelines/canu/Unitig.pm nihh20190724Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20190724Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20190724Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20190724Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190724Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190724Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190724Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190724Brian P. Walenz
+A src/utility/files.C nihh20190723Brian P. Walenz
+A src/stores/ovStoreFile.C nihh20190723Brian P. Walenz
+A src/utility/files.C nihh20190723Brian P. Walenz
+A src/stores/ovStoreFile.C nihh20190723Brian P. Walenz
+A src/stores/sqStore.C nihh20190719Brian P. Walenz
+A src/pipelines/canu/Grid_SGE.pm nihh20190719Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190719Brian P. Walenz
+A src/pipelines/canu/Grid_SGE.pm nihh20190719Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190719Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190719Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190718Sergey Koren
+A src/overlapAlign/overlapAlign.C nihh20190718Sergey Koren
+A src/pipelines/canu/Grid_LSF.pm nihh20190717Sergey Koren
+A src/pipelines/canu/Defaults.pm nihh20190717Sergey Koren
+A src/stores/sqStoreCreate.C nihh20190717Sergey Koren
+A src/stores/sqStoreCreate.C nihh20190717Sergey Koren
+A src/pipelines/canu/Defaults.pm nihh20190717Sergey Koren
+A src/stores/sqStoreCreate.C nihh20190717Sergey Koren
+A src/stores/sqStoreCreate.C nihh20190717Sergey Koren
+A documentation/source/conf.py nihh20190715Brian P. Walenz
+A src/canu_version_update.pl nihh20190715Brian P. Walenz
+A src/stores/tgTig.C nihh20190715Brian P. Walenz
+A src/utgcns/utgcns.C nihh20190715Brian P. Walenz
+A src/correction/falconsense.C nihh20190715Brian P. Walenz
+A src/gfa/alignGFA.C nihh20190715Brian P. Walenz
+A src/stores/tgStore.C nihh20190715Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20190715Brian P. Walenz
+A src/stores/tgStoreFilter.C nihh20190715Brian P. Walenz
+A src/stores/tgStoreLoad.C nihh20190715Brian P. Walenz
+A src/stores/tgTig.C nihh20190715Brian P. Walenz
+A src/stores/tgTig.H nihh20190715Brian P. Walenz
+A src/stores/tgTigMultiAlignDisplay.C nihh20190715Brian P. Walenz
+A src/stores/tgTigSizeAnalysis.C nihh20190715Brian P. Walenz
+A src/stores/tgTigSizeAnalysis.H nihh20190715Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190715Brian P. Walenz
+A src/utgcns/utgcns.C nihh20190715Brian P. Walenz
+A src/bogart/AS_BAT_Outputs.C nihh20190715Brian P. Walenz
+A src/main.mk nihh20190715Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20190715Brian P. Walenz
+A src/stores/tgStore.H nihh20190715Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20190715Brian P. Walenz
+A src/stores/tgStoreFilter.C nihh20190715Brian P. Walenz
+A src/stores/tgTig.C nihh20190715Brian P. Walenz
+A src/stores/tgTig.H nihh20190715Brian P. Walenz
+A src/wtdbg/wtdbgConvert.C nihh20190715Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190715Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190715Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190715Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190715Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190715Brian P. Walenz
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20190714Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190714Brian P. Walenz
+A src/sequence/sequence-summarize.C nihh20190714Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190714Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.mk nihh20190714Brian P. Walenz
+A src/sequence/sequence.C nihh20190714Brian P. Walenz
+A src/stores/sqCache.C nihh20190714Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190714Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190714Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190714Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190714Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190714Brian P. Walenz
+A src/stores/sqCache.C nihh20190714Brian P. Walenz
+A src/stores/sqCache.H nihh20190714Brian P. Walenz
+A src/stores/sqCache.C nihh20190714Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190711Sergey Koren
+A documentation/source/quick-start.rst nihh20190711Sergey Koren
+A src/pipelines/canu.pl nihh20190711Sergey Koren
+A src/pipelines/canu/Defaults.pm nihh20190711Sergey Koren
+A src/stores/sqCache.C nihh20190710Brian P. Walenz
+A src/stores/sqCache.H nihh20190710Brian P. Walenz
+A src/utility/files-buffered-implementation.H nihh20190708Brian P. Walenz
+A src/bogart/AS_BAT_ReadInfo.C nihh20190705Brian P. Walenz
+A src/bogart/addReadsToUnitigs.C nihh20190705Brian P. Walenz
+A src/bogart/analyzeBest.C nihh20190705Brian P. Walenz
+A src/correction/falconsense.C nihh20190705Brian P. Walenz
+A src/correction/filterCorrectionLayouts.C nihh20190705Brian P. Walenz
+A src/correction/filterCorrectionOverlaps.C nihh20190705Brian P. Walenz
+A src/correction/generateCorrectionLayouts.C nihh20190705Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20190705Brian P. Walenz
+A src/main.mk nihh20190705Brian P. Walenz
+A src/meryl/meryl.C nihh20190705Brian P. Walenz
+A src/meryl/merylInput.C nihh20190705Brian P. Walenz
+A src/meryl/merylInput.H nihh20190705Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20190705Brian P. Walenz
+A src/mhap/mhapConvert.C nihh20190705Brian P. Walenz
+A src/minimap/mmapConvert.C nihh20190705Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190705Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/adjustFlipped.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/clearRangeFile.H nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/mergeRanges.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/splitReads-subReads.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/splitReads.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/trimReads-bestEdge.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/trimReads-largestCovered.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/trimReads.C nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/trimReads.H nihh20190705Brian P. Walenz
+A src/overlapBasedTrimming/trimReads.mk nihh20190705Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps-Correct_Frags.C nihh20190705Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps-Redo_Olaps.C nihh20190705Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps.C nihh20190705Brian P. Walenz
+A src/overlapErrorAdjustment/findErrors-Read_Frags.C nihh20190705Brian P. Walenz
+A src/overlapErrorAdjustment/findErrors.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapConvert.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapImport.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapInCore-Build_Hash_Index.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapInCore-Process_Overlaps.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapInCore.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapInCore.H nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapInCorePartition.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapPair.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapReadCache.C nihh20190705Brian P. Walenz
+A src/overlapInCore/overlapReadCache.H nihh20190705Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20190705Brian P. Walenz
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20190705Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20190705Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190705Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190705Brian P. Walenz
+A src/stores/loadCorrectedReads.C nihh20190705Brian P. Walenz
+A src/stores/loadTrimmedReads.C nihh20190705Brian P. Walenz
+A src/stores/ovOverlap.C nihh20190705Brian P. Walenz
+A src/stores/ovOverlap.H nihh20190705Brian P. Walenz
+A src/stores/ovStoreBucketizer.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreBuild.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreConfig.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreFile.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreFile.H nihh20190705Brian P. Walenz
+A src/stores/ovStoreFilter.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreHistogram.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreIndexer.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreSorter.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreStats.C nihh20190705Brian P. Walenz
+A src/stores/ovStoreWriter.C nihh20190705Brian P. Walenz
+A src/stores/sqCache.C nihh20190705Brian P. Walenz
+A src/stores/sqCache.H nihh20190705Brian P. Walenz
+A src/stores/sqRead.H nihh20190705Brian P. Walenz
+A src/stores/sqReadData.C nihh20190705Brian P. Walenz
+A src/stores/sqReadDataWriter.C nihh20190705Brian P. Walenz
+A src/stores/sqStore.C nihh20190705Brian P. Walenz
+A src/stores/sqStore.H nihh20190705Brian P. Walenz
+A src/stores/sqStoreBlob.C nihh20190705Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190705Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190705Brian P. Walenz
+A src/stores/sqStoreDumpFASTQ.C nihh20190705Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190705Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20190705Brian P. Walenz
+A src/stores/tgStoreCoverageStat.C nihh20190705Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20190705Brian P. Walenz
+A src/stores/tgStoreFilter.C nihh20190705Brian P. Walenz
+A src/stores/tgStoreLoad.C nihh20190705Brian P. Walenz
+A src/stores/tgTig.C nihh20190705Brian P. Walenz
+A src/stores/tgTig.H nihh20190705Brian P. Walenz
+A src/stores/tgTigDisplay.C nihh20190705Brian P. Walenz
+A src/stores/tgTigMultiAlignDisplay.C nihh20190705Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190705Brian P. Walenz
+A src/utgcns/unitigConsensus.H nihh20190705Brian P. Walenz
+A src/utgcns/utgcns.C nihh20190705Brian P. Walenz
+A src/wtdbg/wtdbgConvert.C nihh20190705Brian P. Walenz
+A src/utility/sequence.C nihh20190705Brian P. Walenz
+A src/utility/sequence.H nihh20190705Brian P. Walenz
+A src/utility/files-buffered.C nihh20190705Brian P. Walenz
+A src/utility/files-buffered.H nihh20190705Brian P. Walenz
+A src/utility/bits.C nihh20190705Brian P. Walenz
+A src/utility/bits.H nihh20190705Brian P. Walenz
+A src/utility/arrays.H nihh20190705Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20190628Sergey Koren
+A src/overlapInCore/overlapImport.C nihh20190628Sergey Koren
+A src/stores/ovOverlap.C nihh20190628Sergey Koren
+A src/utility/sampledDistribution.H nihh20190627Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190627Brian P. Walenz
+A src/sequence/sequence.C nihh20190627Brian P. Walenz
+A src/pipelines/canu/OverlapInCore.pm nihh20190627Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20190627Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190627Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20190627Brian P. Walenz
+A src/stores/ovStoreBucketizer.C nihh20190627Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190610Brian P. Walenz
+A src/main.mk nihh20190610Brian P. Walenz
+A src/fastq-utilities/README nihh20190610Brian P. Walenz
+A src/overlapAlign/clearRangeFile.C nihh20190607Brian P. Walenz
+A src/overlapAlign/clearRangeFile.H nihh20190607Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190607Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190607Brian P. Walenz
+A src/overlapAlign/overlapAlign.mk nihh20190607Brian P. Walenz
+A src/overlapAlign/trimRead.C nihh20190607Brian P. Walenz
+A src/stores/sqCache.C nihh20190607Brian P. Walenz
+A src/stores/sqCache.H nihh20190607Brian P. Walenz
+A src/pipelines/canu.pl nihh20190607Brian P. Walenz
+A src/pipelines/canu/Output.pm nihh20190607Brian P. Walenz
+A src/stores/ovStoreFile.C nihh20190605Brian P. Walenz
+A src/stores/ovStoreFile.H nihh20190605Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190604Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190604Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20190604Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190604Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20190604Brian P. Walenz
+A src/stores/ovStoreFile.C nihh20190603Brian P. Walenz
+A src/stores/ovStoreFile.H nihh20190603Brian P. Walenz
+A src/stores/ovStoreFile.H nihh20190603Brian P. Walenz
+A src/stores/ovStoreBucketizer.C nihh20190603Brian P. Walenz
+A src/utility/files.C nihh20190531Brian P. Walenz
+A src/utility/files.H nihh20190531Brian P. Walenz
+A src/pipelines/canu/Grid_PBSTorque.pm nihh20190531Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20190528Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20190528Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20190528Brian P. Walenz
+A src/utility/kmers-exact.C nihh20190528Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20190528Brian P. Walenz
+A src/Makefile nihh20190530Brian P. Walenz
+A src/sequence/sequence.C nihh20190521Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190521Brian P. Walenz
+A src/pipelines/canu.pl nihh20190521Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190521Brian P. Walenz
+A src/sequence/sequence-extract.C nihh20190521Brian P. Walenz
+A src/stores/sqLibrary.C nihh20190521Brian P. Walenz
+A src/stores/sqLibrary.H nihh20190521Brian P. Walenz
+A src/stores/sqStore.C nihh20190521Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190521Brian P. Walenz
+A src/utgcns/utgcns.C nihh20190521Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190521Brian P. Walenz
+A src/utility/files-buffered.C nihh20190520Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190520Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190520Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20190520Brian P. Walenz
+A src/utility/sequence.C nihh20190520Brian P. Walenz
+A src/utility/sequence.H nihh20190520Brian P. Walenz
+A src/sequence/sequence-extract.C nihh20190520Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190520Brian P. Walenz
+A src/sequence/sequence-extract.C nihh20190520Brian P. Walenz
+A src/sequence/sequence.C nihh20190520Brian P. Walenz
+A src/sequence/sequence.H nihh20190520Brian P. Walenz
+A src/stores/tgStoreLoad.C nihh20190520Brian P. Walenz
+A src/stores/tgTig.C nihh20190520Brian P. Walenz
+A src/stores/tgTig.H nihh20190520Brian P. Walenz
+A src/utility/sampledDistribution.H nihh20190520Brian P. Walenz
+A documentation/source/quick-start.rst nihh20190517Brian P. Walenz
+A documentation/source/tutorial.rst nihh20190517Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20190517Brian P. Walenz
+A src/pipelines/canu/Output.pm nihh20190517Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20190517Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190517Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190517Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190516Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190516Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190516Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190516Brian P. Walenz
+A src/stores/ovStore.C nihh20190515Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190514Brian P. Walenz
+A src/stores/sqStore.C nihh20190514Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190514Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190514Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190514Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190514Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190514Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190514Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190514Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190514Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190514Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190514Brian P. Walenz
+A src/overlapAlign/trimRead.C nihh20190514Brian P. Walenz
+A src/meryl/meryl.C nihh20190508Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20190508Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20190508Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190508Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20190508Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190502Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190502Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190502Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190502Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190502Brian P. Walenz
+A src/overlapAlign/trimRead.C nihh20190502Brian P. Walenz
+A src/stores/ovStore.C nihh20190502Brian P. Walenz
+A src/pipelines/canu/Grid_LSF.pm nihh20190502Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190430Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190430Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190429Brian P. Walenz
+A src/overlapAlign/computeAlignments.C nihh20190429Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190429Brian P. Walenz
+A src/overlapAlign/overlapAlign.mk nihh20190429Brian P. Walenz
+A src/overlapAlign/trimRead.C nihh20190429Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190429Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190429Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190429Brian P. Walenz
+A src/utility/sweatShop.C nihh20190429Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190429Brian P. Walenz
+A src/utility/sampledDistribution.H nihh20190429Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190425Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190425Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190425Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190425Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190425Brian P. Walenz
+A src/overlapInCore/edalign.C nihh20190425Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20190425Brian P. Walenz
+A src/main.mk nihh20190422Brian P. Walenz
+A src/overlapAlign/alignStats.H nihh20190422Brian P. Walenz
+A src/overlapAlign/computeOverlapAlignment.C nihh20190422Brian P. Walenz
+A src/overlapAlign/overlapAlign-computation.H nihh20190422Brian P. Walenz
+A src/overlapAlign/overlapAlign-globalData.H nihh20190422Brian P. Walenz
+A src/overlapAlign/overlapAlign-threadData.H nihh20190422Brian P. Walenz
+A src/overlapAlign/overlapAlign.C nihh20190422Brian P. Walenz
+A src/overlapAlign/overlapAlign.mk nihh20190422Brian P. Walenz
+A src/overlapInCore/edalign.C nihh20190422Brian P. Walenz
+A src/utility/edlib.C nihh20190422Brian P. Walenz
+A src/utility/edlib.H nihh20190422Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20190420Sergey Koren
+A src/sequence/sequence-simulate.C nihh20190419Brian P. Walenz
+A src/sequence/sequence.C nihh20190419Brian P. Walenz
+A src/Makefile nihh20190418Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190418Brian P. Walenz
+A src/sequence/sequence-summarize.C nihh20190418Brian P. Walenz
+A src/sequence/sequence.C nihh20190418Brian P. Walenz
+A src/sequence/sequence.H nihh20190418Brian P. Walenz
+A src/utility/sampledDistribution.H nihh20190418Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20190417Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20190417Brian P. Walenz
+A src/utility/kmers-exact.C nihh20190417Brian P. Walenz
+A src/utility/kmers.H nihh20190417Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190416Brian P. Walenz
+A src/pipelines/canu/Grid_LSF.pm nihh20190416Brian P. Walenz
+A src/pipelines/canu/Grid_PBSTorque.pm nihh20190416Brian P. Walenz
+A src/pipelines/canu/Grid_SGE.pm nihh20190416Brian P. Walenz
+A src/pipelines/canu/Grid_Slurm.pm nihh20190416Brian P. Walenz
+A src/bogart/AS_BAT_OverlapCache.C nihh20190410Brian P. Walenz
+A src/correction/errorEstimate.C nihh20190410Brian P. Walenz
+A src/mhap/mhapConvert.C nihh20190410Brian P. Walenz
+A src/minimap/mmapConvert.C nihh20190410Brian P. Walenz
+A src/overlapErrorAdjustment/correctOverlaps-Read_Olaps.C nihh20190410Brian P. Walenz
+A src/overlapErrorAdjustment/findErrors-Read_Olaps.C nihh20190410Brian P. Walenz
+A src/overlapInCore/overlapConvert.C nihh20190410Brian P. Walenz
+A src/overlapInCore/overlapImport.C nihh20190410Brian P. Walenz
+A src/overlapInCore/overlapInCore.C nihh20190410Brian P. Walenz
+A src/overlapInCore/overlapPair.C nihh20190410Brian P. Walenz
+A src/stores/ovOverlap.H nihh20190410Brian P. Walenz
+A src/stores/ovStore.C nihh20190410Brian P. Walenz
+A src/stores/ovStoreBucketizer.C nihh20190410Brian P. Walenz
+A src/stores/ovStoreBuild.C nihh20190410Brian P. Walenz
+A src/stores/ovStoreDump.C nihh20190410Brian P. Walenz
+A src/stores/ovStoreSorter.C nihh20190410Brian P. Walenz
+A src/stores/ovStoreStats.C nihh20190410Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190410Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190410Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190410Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190410Brian P. Walenz
+A src/utility/edlib.C nihh20190410Brian P. Walenz
+A src/stores/ovStore.C nihh20190410Brian P. Walenz
+A src/Makefile nihh20190401Brian P. Walenz
+A src/pipelines/canu-time.pl nihh20190401Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190329Brian P. Walenz
+A src/sequence/sequence.C nihh20190329Brian P. Walenz
+A src/correction/falconConsensus.C nihh20190328Brian P. Walenz
+A src/correction/falconConsensus.H nihh20190328Brian P. Walenz
+A src/correction/falconsense.C nihh20190328Brian P. Walenz
+A src/correction/filterCorrectionLayouts.C nihh20190328Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20190328Brian P. Walenz
+A src/pipelines/canu/CorrectReads.pm nihh20190328Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190328Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190328Brian P. Walenz
+A src/utility/system.C nihh20190328Brian P. Walenz
+A src/utility/system.H nihh20190328Brian P. Walenz
+A src/pipelines/canu/OverlapErrorAdjustment.pm nihh20190328Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190328Brian P. Walenz
+A src/Makefile nihh20190328Brian P. Walenz
+A src/utility/kmers-exact.C nihh20190327Brian P. Walenz
+A documentation/source/tutorial.rst nihh20190327Sergey Koren
+A src/stores/sqRead.H nihh20190325Brian P. Walenz
+A src/stores/sqStore.C nihh20190325Brian P. Walenz
+A src/stores/sqStoreDumpMetaData.C nihh20190325Brian P. Walenz
+A src/stores/sqStorePartition.C nihh20190325Brian P. Walenz
+A src/bogart/AS_BAT_MergeOrphans.C nihh20190322Brian P. Walenz
+A src/meryl/meryl-import.C nihh20190321Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190319Brian P. Walenz
+A src/pipelines/canu/Grid_DNANexus.pm nihh20190319Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190319Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190319Brian P. Walenz
+A src/pipelines/canu/Grid_SGE.pm nihh20190319Brian P. Walenz
+A src/pipelines/canu/Grid_Slurm.pm nihh20190319Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20190318Brian P. Walenz
+A documentation/source/faq.rst nihh20190315Sergey Koren
+A src/utgcns/unitigConsensus.C nihh20190314Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190314Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20190312Brian P. Walenz
+A src/pipelines/canu.pl nihh20190312Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20190312Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190312Brian P. Walenz
+A documentation/source/tutorial.rst nihh20190312Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190312Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20190312Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20190312Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190312Brian P. Walenz
+A src/utgcns/unitigConsensus.H nihh20190312Brian P. Walenz
+A src/bogart/bogart.C nihh20190311Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190311Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190311Brian P. Walenz
+A src/dx-canu/src/canu.sh nihh20190308Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/CorrectReads.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/OverlapInCore.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/SequenceStore.pm nihh20190308Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20190308Brian P. Walenz
+A src/pipelines/object-store-simulator.pl nihh20190308Brian P. Walenz
+A src/utility/objectStore.C nihh20190308Brian P. Walenz
+A src/sequence/sequence.C nihh20190307Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20190301Brian P. Walenz
+A src/main.mk nihh20190301Brian P. Walenz
+A src/overlapBasedTrimming/mergeRanges.C nihh20190301Brian P. Walenz
+A src/overlapBasedTrimming/mergeRanges.mk nihh20190301Brian P. Walenz
+A src/stores/loadTrimmedReads.C nihh20190228Brian P. Walenz
+A src/utility/strings.C nihh20190228Brian P. Walenz
+A src/stores/loadTrimmedReads.C nihh20190228Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20190225Brian P. Walenz
+A src/utility/kmers.H nihh20190225Brian P. Walenz
+A src/utility/kmers.H nihh20190225Brian P. Walenz
+A src/utility/kmers.H nihh20190225Brian P. Walenz
+A src/meryl/meryl.C nihh20190225Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20190223Brian P. Walenz
+A src/utility/files-buffered-implementation.H nihh20190223Brian P. Walenz
+A src/utility/files-buffered.C nihh20190223Brian P. Walenz
+A src/utility/files-buffered.H nihh20190223Brian P. Walenz
+A src/utility/sequence.C nihh20190223Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20190222Brian P. Walenz
+A src/Makefile nihh20190221Brian P. Walenz
+A src/meryl/meryl.C nihh20190220Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20190220Brian P. Walenz
+A src/canu_version_update.pl nihh20190219Brian P. Walenz
+A src/utility/stddev.H nihh20190219Brian P. Walenz
+A src/utility/stddevTest.C nihh20190219Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190216Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190215Brian P. Walenz
+A src/pipelines/canu/Grid_SGE.pm nihh20190215Brian P. Walenz
+A src/meryl/meryl-import.C nihh20190214Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20190214Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20190214Brian P. Walenz
+A src/meryl/merylCountArray.H nihh20190214Brian P. Walenz
+A src/meryl/merylInput.C nihh20190214Brian P. Walenz
+A src/meryl/merylInput.H nihh20190214Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20190214Brian P. Walenz
+A src/meryl/merylOp-histogram.C nihh20190214Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20190214Brian P. Walenz
+A src/meryl/merylOp.C nihh20190214Brian P. Walenz
+A src/meryl/merylOp.H nihh20190214Brian P. Walenz
+A src/utility/kmers-exact.C nihh20190214Brian P. Walenz
+A src/utility/kmers-reader.C nihh20190214Brian P. Walenz
+A src/utility/kmers-statistics.C nihh20190214Brian P. Walenz
+A src/utility/kmers-writer-block.C nihh20190214Brian P. Walenz
+A src/utility/kmers-writer-block.H nihh20190214Brian P. Walenz
+A src/utility/kmers-writer-stream.C nihh20190214Brian P. Walenz
+A src/utility/kmers-writer-stream.H nihh20190214Brian P. Walenz
+A src/utility/kmers-writer.C nihh20190214Brian P. Walenz
+A src/utility/kmers.H nihh20190214Brian P. Walenz
+A src/meryl/meryl-import.C nihh20190212Brian P. Walenz
+A src/meryl/merylOp-histogram.C nihh20190212Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20190212Brian P. Walenz
+A src/utility/kmers-exact.C nihh20190212Brian P. Walenz
+A src/utility/kmers-statistics.C nihh20190212Brian P. Walenz
+A src/utility/kmers.H nihh20190212Brian P. Walenz
+A src/pipelines/canu/OverlapStore.pm nihh20190212Brian P. Walenz
+A src/correction/falconsense.C nihh20190212Brian P. Walenz
+A src/pipelines/canu/CorrectReads.pm nihh20190212Brian P. Walenz
+A src/main.mk nihh20190212Brian P. Walenz
+A src/stores/sqCache.C nihh20190212Brian P. Walenz
+A src/stores/sqCache.H nihh20190212Brian P. Walenz
+A src/stores/sqRead.H nihh20190212Brian P. Walenz
+A src/stores/sqStore.C nihh20190212Brian P. Walenz
+A src/stores/sqStore.H nihh20190212Brian P. Walenz
+A src/stores/sqStoreEncode.C nihh20190212Brian P. Walenz
+A src/stores/sqRead.H nihh20190212Brian P. Walenz
+A addCopyrights.dat nihh20190207Brian P. Walenz
+A src/main.mk nihh20190207Brian P. Walenz
+A src/main.mk nihh20190207Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190207Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190131Brian P. Walenz
+A src/main.mk nihh20190129Brian P. Walenz
+A src/utility/stddevTest.C nihh20190129Brian P. Walenz
+A src/utility/stddevTest.mk nihh20190129Brian P. Walenz
+A src/utility/stddev.H nihh20190129Brian P. Walenz
+A src/pipelines/canu/OverlapMhap.pm nihh20190124Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20190124Brian P. Walenz
+A src/meryl/meryl.C nihh20190117Brian P. Walenz
+A src/stores/tgTig.C nihh20190117Brian P. Walenz
+A src/stores/tgTig.H nihh20190117Brian P. Walenz
+A src/stores/tgTigMultiAlignDisplay.C nihh20190117Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190117Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190117Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190117Brian P. Walenz
+A src/utility/bits.C nihh20190117Brian P. Walenz
+A src/utility/bits.H nihh20190117Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20190111Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190111Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20190111Brian P. Walenz
+A src/pipelines/canu/Grid_DNANexus.pm nihh20190111Brian P. Walenz
+A src/pipelines/canu/Grid_LSF.pm nihh20190111Brian P. Walenz
+A src/pipelines/canu/Grid_PBSTorque.pm nihh20190111Brian P. Walenz
+A src/pipelines/canu/Grid_SGE.pm nihh20190111Brian P. Walenz
+A src/pipelines/canu/Grid_Slurm.pm nihh20190111Brian P. Walenz
+A src/overlapInCore/libedlib/edlib.C nihh20190110Brian P. Walenz
+A src/sequence/sequence-mutate.C nihh20190109Brian P. Walenz
+A src/sequence/sequence.C nihh20190109Brian P. Walenz
+A src/sequence/sequence.H nihh20190109Brian P. Walenz
+A src/sequence/sequence.mk nihh20190109Brian P. Walenz
+A addCopyrights.dat nihh20190103Brian P. Walenz
+A src/sequence/sequence-extract.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-generate.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-sample.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-shiftregister.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-summarize.C nihh20190103Brian P. Walenz
+A src/sequence/sequence.C nihh20190103Brian P. Walenz
+A src/sequence/sequence.H nihh20190103Brian P. Walenz
+A src/sequence/sequence-extract.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-generate.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-sample.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-shiftregister.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-simulate.C nihh20190103Brian P. Walenz
+A src/sequence/sequence-summarize.C nihh20190103Brian P. Walenz
+A src/sequence/sequence.C nihh20190103Brian P. Walenz
+A src/sequence/sequence.H nihh20190103Brian P. Walenz
+A src/sequence/sequence.mk nihh20190103Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20190102Brian P. Walenz
+A src/bogart/AS_BAT_PlaceReadUsingOverlaps.C nihh20190102Brian P. Walenz
+A src/bogart/AS_BAT_PlaceReadUsingOverlaps.H nihh20190102Brian P. Walenz
+A src/bogart/AS_BAT_Unitig_AddRead.C nihh20190102Brian P. Walenz
+A src/bogart/AS_BAT_Unitig_PlaceReadUsingEdges.C nihh20190102Brian P. Walenz
+A src/pipelines/canu/HaplotypeReads.pm nihh20190102Brian P. Walenz
+A src/stores/loadErates.C nihh20190102Brian P. Walenz
+A src/stores/ovStoreFilter.C nihh20190102Brian P. Walenz
+A src/stores/ovStoreWriter.C nihh20190102Brian P. Walenz
+A src/stores/sqLibrary.C nihh20190102Brian P. Walenz
+A src/stores/sqLibrary.H nihh20190102Brian P. Walenz
+A src/stores/sqRead.H nihh20190102Brian P. Walenz
+A src/stores/sqStoreConstructor.C nihh20190102Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190102Brian P. Walenz
+A src/stores/sqStoreDumpFASTQ.C nihh20190102Brian P. Walenz
+A src/stores/sqStoreInfo.C nihh20190102Brian P. Walenz
+A src/stores/sqStorePartition.C nihh20190102Brian P. Walenz
+A src/stores/tgStoreCompress.C nihh20190102Brian P. Walenz
+A src/utgcns/unitigConsensus.H nihh20190102Brian P. Walenz
+A src/utility/files-compressed.C nihh20190102Brian P. Walenz
+A src/utility/files-compressed.H nihh20190102Brian P. Walenz
+A src/utility/speedCounter.H nihh20190102Brian P. Walenz
+A src/sequence/sequence.C nihh20190102Brian P. Walenz
+A addCopyrights.pl nihh20190102Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20190102Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190102Brian P. Walenz
+A src/stores/sqStoreCreate.C nihh20190102Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20190102Brian P. Walenz
+A documentation/source/faq.rst nihh20181220Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20181220Brian P. Walenz
+A src/meryl/meryl.C nihh20181220Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20181220Brian P. Walenz
+A src/meryl/merylOp.H nihh20181220Brian P. Walenz
+A src/utility/kmers-reader.C nihh20181220Brian P. Walenz
+A src/utility/kmers.H nihh20181220Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20181220Brian P. Walenz
+A src/meryl/merylOp.H nihh20181220Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20181220Brian P. Walenz
+A src/meryl/merylOp.H nihh20181220Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20181220Brian P. Walenz
+A src/utility/kmers-writer-stream.C nihh20181220Brian P. Walenz
+A src/utility/kmers.H nihh20181220Brian P. Walenz
+A src/meryl/meryl.C nihh20181219Brian P. Walenz
+A src/sequence/sequence.C nihh20181217Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20181217Brian P. Walenz
+A src/utgcns/utgcns.C nihh20181217Brian P. Walenz
+A src/utgcns/utgcns.C nihh20181217Brian P. Walenz
+A documentation/source/faq.rst nihh20181216Sergey Koren
+A documentation/source/faq.rst nihh20181216Sergey Koren
+A src/sequence/sequence.C nihh20181212Brian P. Walenz
+A src/Makefile nihh20181211Brian P. Walenz
+A src/stores/ovStoreFile.C nihh20181211Brian P. Walenz
+A README.md nihh20181211Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20181210Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20181210Brian P. Walenz
+A src/bogart/AS_BAT_OptimizePositions.C nihh20181210Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20181210Brian P. Walenz
+A src/pipelines/canu.pl nihh20181207Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20181204Brian P. Walenz
+A src/utgcns/unitigConsensus.H nihh20181204Brian P. Walenz
+A src/utgcns/utgcns.C nihh20181204Brian P. Walenz
+A src/pipelines/canu/Grid_Slurm.pm nihh20181204Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20181204Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20181204Brian P. Walenz
+A src/stores/tgStoreDump.C nihh20181203Brian P. Walenz
+A src/utility/bits.H nihh20181203Brian P. Walenz
+A src/Makefile nihh20181203Brian P. Walenz
+A src/utgcns/unitigConsensus.C nihh20181115Brian P. Walenz
+A src/utgcns/unitigConsensus.H nihh20181115Brian P. Walenz
+A addCopyrights.dat nihh20181115Brian P. Walenz
+A src/main.mk nihh20181115Brian P. Walenz
+A src/utgcns/utgcns.mk nihh20181115Brian P. Walenz
+A src/main.mk nihh20181115Brian P. Walenz
+A src/utgcns/libcns/unitigConsensus.C nihh20181115Brian P. Walenz
+A src/utgcns/libcns/unitigConsensus.H nihh20181115Brian P. Walenz
+A src/utgcns/utgcns.C nihh20181115Brian P. Walenz
+A src/utgcns/utgcns.mk nihh20181115Brian P. Walenz
+A src/utgcns/libcns/unitigConsensus.C nihh20181115Brian P. Walenz
+A src/stores/ovStoreBuild.C nihh20181115Brian P. Walenz
+A src/stores/ovStoreConfig.C nihh20181115Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20181110Brian P. Walenz
+A src/utgcns/libcns/unitigConsensus.C nihh20181109Brian P. Walenz
+A src/correction/falconsense.C nihh20181109Brian P. Walenz
+A src/stores/tgTig.C nihh20181109Brian P. Walenz
+A src/stores/tgTig.H nihh20181109Brian P. Walenz
+A src/utgcns/utgcns.C nihh20181109Brian P. Walenz
+A src/main.mk nihh20181107Brian P. Walenz
+A src/utility/filesTest.C nihh20181107Brian P. Walenz
+A src/utility/filesTest.mk nihh20181107Brian P. Walenz
+A src/utility/bitsTest.C nihh20181107Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20181107Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20181107Brian P. Walenz
+A src/pipelines/canu.pl nihh20181107Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20181107Brian P. Walenz
+A src/pipelines/canu/CorrectReads.pm nihh20181107Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20181107Brian P. Walenz
+A src/pipelines/canu/OverlapBasedTrimming.pm nihh20181107Brian P. Walenz
+A src/pipelines/canu/Unitig.pm nihh20181106Brian P. Walenz
+A src/pipelines/canu/Grid_Cloud.pm nihh20181106Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20181106Brian P. Walenz
+A src/pipelines/canu/Configure.pm nihh20181106Brian P. Walenz
+A src/pipelines/canu/Consensus.pm nihh20181106Brian P. Walenz
+A src/pipelines/canu/CorrectReads.pm nihh20181106Brian P. Walenz
+A documentation/source/parameter-reference.rst nihh20181105Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20181105Brian P. Walenz
+A src/pipelines/canu/OverlapMMap.pm nihh20181105Brian P. Walenz
+A src/pipelines/canu/Meryl.pm nihh20181105Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20181105Brian P. Walenz
+A src/pipelines/canu/Execution.pm nihh20181105Brian P. Walenz
+A src/meryl/merylInput.C nihh20181104Brian P. Walenz
+A src/meryl/merylInput.H nihh20181104Brian P. Walenz
+A src/meryl/merylOp-nextMer.C nihh20181104Brian P. Walenz
+A src/meryl/merylOp.C nihh20181104Brian P. Walenz
+A src/meryl/merylOp.H nihh20181104Brian P. Walenz
+A src/utility/kmers-writer.C nihh20181104Brian P. Walenz
+A src/utility/kmers.H nihh20181104Brian P. Walenz
+A src/main.mk nihh20181102Brian P. Walenz
+A src/meryl/meryl-import.C nihh20181102Brian P. Walenz
+A src/meryl/meryl-import.mk nihh20181102Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20181102Brian P. Walenz
+A src/meryl/merylCountArray.H nihh20181102Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20181102Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20181102Brian P. Walenz
+A src/meryl/merylCountArray.H nihh20181102Brian P. Walenz
+A src/main.mk nihh20181101Brian P. Walenz
+A src/utility/bits.C nihh20181101Brian P. Walenz
+A src/utility/bits.H nihh20181101Brian P. Walenz
+A src/utility/bitsTest.C nihh20181101Brian P. Walenz
+A src/utility/bitsTest.mk nihh20181101Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20181030Brian P. Walenz
+A src/utility/bits.C nihh20181030Brian P. Walenz
+A src/utility/bits.H nihh20181030Brian P. Walenz
+A src/utility/bitsTest.C nihh20181030Brian P. Walenz
+A src/utility/kmers-exact.C nihh20181030Brian P. Walenz
+A src/utility/bits.C nihh20181030Brian P. Walenz
+A src/utility/bits.H nihh20181030Brian P. Walenz
+A src/utility/bits.H nihh20181030Brian P. Walenz
+A src/meryl/merylCountArray.C nihh20181029Brian P. Walenz
+A src/meryl/merylCountArray.H nihh20181029Brian P. Walenz
+A src/utility/kmers-reader.C nihh20181026Brian P. Walenz
+A src/utility/kmers-writer.C nihh20181026Brian P. Walenz
+A src/utility/kmers.H nihh20181026Brian P. Walenz
+A documentation/source/faq.rst nihh20181026Sergey Koren
+A src/pipelines/canu/Grid_LSF.pm nihh20181026Sergey Koren
+A src/main.mk nihh20181026Brian P. Walenz
+A src/meryl/meryl-lookup.C nihh20181026Brian P. Walenz
+A src/haplotyping/splitHaplotype.C nihh20181026Brian P. Walenz
+A src/meryl/merylOp-count.C nihh20181026Brian P. Walenz
+A src/meryl/merylOp-countSimple.C nihh20181026Brian P. Walenz
+A src/utility/kmers.H nihh20181026Brian P. Walenz
+A buildRelease.sh nihh20181025Sergey Koren
+A statifyOSX.py nihh20181025Sergey Koren
+A documentation/source/parameter-reference.rst nihh20181025Sergey Koren
+A documentation/source/parameter-reference.rst nihh20181025Sergey Koren
+A documentation/source/faq.rst nihh20181025Sergey Koren
+A documentation/source/tutorial.rst nihh20181025Sergey Koren
+A documentation/source/quick-start.rst nihh20181024Sergey Koren
+A documentation/source/quick-start.rst nihh20181024Sergey Koren
+A documentation/source/quick-start.rst nihh20181024Sergey Koren
+A documentation/source/conf.py nihh20181022Brian P. Walenz
+A src/canu_version_update.pl nihh20181022Brian P. Walenz
+A src/pipelines/canu/Defaults.pm nihh20181022Brian P. Walenz
+A addCopyrights-BuildData.pl nihh20181022Brian P. Walenz
+A addCopyrights.dat nihh20181022Brian P. Walenz

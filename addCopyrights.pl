@@ -36,7 +36,7 @@ if ($ARGV[0] eq "-test") {   #  If test mode, make new <file>.MODIFIED with chan
 #
 #  The 'D' lines DO NOT map existing A lines.  They just emit 'this file derived from' lines in the
 #  copyright text.
-#  
+#
 #  When a file is added to the repo, nothing special needs to be done; an 'A' line
 #  is emitted for the new file.  If a file comes about because of a copy (of an existing file),
 #  a 'D' line needs to be added.
@@ -348,7 +348,7 @@ foreach my $file (@filesToProcess) {
 
     push @lines, "#!/usr/bin/env perl\n"  if ($file =~ m/\.pl$/);
     push @lines, "\n";
-    push @lines, "$cb" . $cc x 78 . "\n"; 
+    push @lines, "$cb" . $cc x 78 . "\n";
     push @lines, " $cc\n";
     push @lines, " $cc  This file is part of canu, a software program that assembles whole-genome\n";
     push @lines, " $cc  sequencing reads into contigs.\n";
@@ -420,7 +420,7 @@ foreach my $file (@filesToProcess) {
         close(F);
 
         system("chmod $perms $file");
-        
+
     } else {
         open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
         print F @lines;
