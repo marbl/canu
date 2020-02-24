@@ -535,7 +535,7 @@ sub setWorkDirectory ($$) {
 
     elsif (getGlobal("gridEngine") eq "PBSPRO") {
         chdir($ENV{"PBS_O_WORKDIR"})   if (exists($ENV{"PBS_O_WORKDIR"}));
-        delete $ENV{"PBS_O_WORKDIR"}; 
+        delete $ENV{"PBS_O_WORKDIR"};
     }
 
     #  Now move into the assembly directory.
@@ -797,7 +797,7 @@ sub submitScript ($$) {
     print STDERR "-- Failed to submit Canu executive.  Delay 10 seconds and try again.\n";
 
     sleep(10);
-    
+
     if (runCommand(getcwd(), $qcmd) == 0) {
         exit(0);
     }

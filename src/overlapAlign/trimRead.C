@@ -89,7 +89,7 @@ maComputation::trimRead(uint32   minOverlapLength,
   //  overhang       -- require overlaps to overlap by this much before merging regions.
   //
   //  bextra         -- for the initial alignment, extend the B region by this amount on each end
-  //  slop           -- 
+  //  slop           --
 
   double   maxAlignErate  = maxErate + 0.2;
   double   maxAcceptErate = maxErate;

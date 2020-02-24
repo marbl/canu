@@ -79,7 +79,7 @@ ovStoreFilter::ovStoreFilter(sqStore *seq_, double maxErate_) {
   //
   //  But since this isn't implemented yet, emit all overlaps all the time.
   //
-#if 0 
+#if 0
   for (uint64 iid=0; iid<=maxID; iid++) {
     sqLibrary *L = seq->sqStore_getLibraryForRead(iid);
 

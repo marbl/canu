@@ -101,7 +101,7 @@ def statifyBin(binName, relativePath):
             fileToCheck = os.path.abspath(binDir + os.sep + line.replace("@executable_path", "").split()[0].strip())
             if not os.path.exists(fileToCheck):
                print ("Error file %s doesnt exist for %s"%(fileToCheck, binName))
-               sys.exit(1) 
+               sys.exit(1)
             continue
          if "System/Library/" in line:
             continue
@@ -147,12 +147,12 @@ def walkdir(dirname, libDir):
              continue
           if is_binary(fullPath):
              statifyBin(fullPath, relativePath + os.sep + libDir)
-    return 
+    return
 
 def main():
    global updateFiles
    global processLibs
-   global libsRequired 
+   global libsRequired
    libs = "lib"
    dirName = "."
 

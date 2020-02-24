@@ -54,7 +54,7 @@ public:
     len = tig->length();
     seq = new char [len + 1];
 
-    if (tig->consensusExists()) 
+    if (tig->consensusExists())
        memcpy(seq, tig->bases(), len);
     else
        memset(seq, 0, len);

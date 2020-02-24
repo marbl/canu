@@ -70,7 +70,7 @@
         "hours": 120
       }
     },
-    "restartableEntryPoints": "all", 
+    "restartableEntryPoints": "all",
     "interpreter": "bash",
     "file": "src/canu-job-launcher.sh",
     "executionPolicy": {"restartOn": {"*": 2}},

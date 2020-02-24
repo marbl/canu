@@ -130,7 +130,7 @@ reportExistence(dnaSeqFile                      *sfile,
           (klookup[0]->value(kiter.rmer()) > 0))
         nKmerFound++;
     }
-      
+
     fprintf(ofile->file(), "%s\t%lu\t%lu\t%lu\n", seq.name(), nKmer, klookup[0]->nKmers(), nKmerFound);
   }
 }

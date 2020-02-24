@@ -38,14 +38,14 @@ def parse_args():
 
 def make_instance_type_to_resources():
     """ Returns a dictionary of keys-instance type and values-resource dictionary """
-    instance_type_to_resources = {it.Name: {'memory_gb': it.Memory_GB, 'storage_gb': it.Storage_GB, 'cores': it.CPU_Cores} 
+    instance_type_to_resources = {it.Name: {'memory_gb': it.Memory_GB, 'storage_gb': it.Storage_GB, 'cores': it.CPU_Cores}
         for it in InstanceTypesCompleter.instance_types.values()}
 
     return instance_type_to_resources
 
 
 def filter_instances(instance_type_to_resources, region):
-    """ filters the instance dictionary to the available instances on a given cloud service """ 
+    """ filters the instance dictionary to the available instances on a given cloud service """
 
     if 'azure' in region:
         filtered_dict = {k: v for k, v in instance_type_to_resources.iteritems() if 'azure' in k}
@@ -81,7 +81,7 @@ def main(min_memory, min_cores, min_storage, restrict_to_current_project):
     # If we are in a job, then filter the instances to only those available in
     # the region for the given job.
     if restrict_to_current_project:
-        instance_type_to_resources = filter_instances(instance_type_to_resources, 
+        instance_type_to_resources = filter_instances(instance_type_to_resources,
             dxpy.api.job_describe(dxpy.PROJECT_CONTEXT_ID)['region'])
 
     if min_memory is not None:

@@ -71,7 +71,7 @@ tgTigSizeAnalysis::evaluateTig(tgTig *tig) {
     case tgTig_contig:
       if (tig->_suggestBubble)
          lenBubble.push_back(length);
-      else 
+      else
          lenContig.push_back(length);
       break;
     default:

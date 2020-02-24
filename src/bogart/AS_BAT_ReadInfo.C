@@ -57,7 +57,7 @@ ReadInfo::ReadInfo(const char *seqStorePath,
   //  Scan the store.
   //    Flag any read 'ignored' in the store as 'not present' in the assembly.
   //    Flag any read too short              as 'not present' in the assembly.
-  //    
+  //
 
   for (uint32 fi=1; fi <= _numReads; fi++) {
     uint32   len  = _seqStore->sqStore_getReadLength(fi);

@@ -172,7 +172,7 @@ private:
   //   - Suspected bubble near the end of a read that disrupts all but
   //     short overlaps.  Could also be caused by repeats and low coverage.
   //   - Treated like a normal read, except they cannot seed unitigs.
-  //   - 
+  //   -
   //
   //////////
   //  Backbone   - Read was placed as part of the backbone of a contig.

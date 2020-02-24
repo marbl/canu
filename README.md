@@ -11,7 +11,7 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
 
 ## Install:
 
-* The easiest way to get started is to download a binary [release](http://github.com/marbl/canu/releases).  
+* The easiest way to get started is to download a binary [release](http://github.com/marbl/canu/releases).
 
 * Installing with a 'package manager' is not encouraged, but if you have no other choice:
   * Conda: `conda install -c conda-forge -c bioconda -c defaults canu`

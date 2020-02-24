@@ -45,7 +45,7 @@ require Exporter;
              fetchFile            fetchFileShellCode
              fetchFileFromLink    fetchFileFromLinkShellCode
              stashFile            stashFileShellCode
-                                  stashFilesShellCode         
+                                  stashFilesShellCode
              fetchSeqStore        fetchSeqStoreShellCode
              fetchOvlStore        fetchOvlStoreShellCode
              fetchTigStore        fetchTigStoreShellCode
@@ -319,7 +319,7 @@ sub stashFile ($) {
     if ($path eq ".") {
         $link = sanitizeName("$pr:$ns/$name");
         $path = sanitizeName("$ns");
-    } else { 
+    } else {
         $link = sanitizeName("$pr:$ns/$path/$name");
         $path = sanitizeName("$ns/$path");
     }
@@ -341,7 +341,7 @@ sub stashFile ($) {
 
         #  Try a couple of times to upload the file.  If the UA fails, delay a bit and retry.
         while (($retries > 0) &&
-               (runCommandSilently(".", "$ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$path/\" --name \"$name\" \"$pathname\"", 0))) { 
+               (runCommandSilently(".", "$ua --do-not-compress --wait-on-close --project \"$pr\" --folder \"$path/\" --name \"$name\" \"$pathname\"", 0))) {
             $retries--;
             print STDERR "-- WARNING:\n";
             print STDERR "-- WARNING:  Failed to store '$pathname'.  Wait $delay seconds and try again ($retries times left).\n";
@@ -378,7 +378,7 @@ sub fetchFile ($) {
 
     if ($path eq ".") {
         $link = sanitizeName("$pr:$ns/$name");
-    } else { 
+    } else {
         $link = sanitizeName("$pr:$ns/$path/$name");
     }
 
@@ -446,7 +446,7 @@ sub stashFileShellCode ($$$) {
     #if ($path eq ".") {
     #    $link = sanitizeName("$pr:$ns/$name");
     #    $path = sanitizeName("$ns");
-    #} else { 
+    #} else {
     #    $link = sanitizeName("$pr:$ns/$path/$name");
     #    $path = sanitizeName("$ns/$path");
     #}
@@ -564,7 +564,7 @@ sub fetchFileShellCode ($$$) {
 
     if ($path eq ".") {
         $link = sanitizeName("$pr:$ns/$name");
-    } else { 
+    } else {
         $link = sanitizeName("$pr:$ns/$path/$name");
     }
 

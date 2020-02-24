@@ -1,12 +1,12 @@
-/* 
+/*
    A C-program for MT19937, with initialization improved 2002/1/26.
    Coded by Takuji Nishimura and Makoto Matsumoto.
 
-   Before using, initialize the state by using init_genrand(seed)  
+   Before using, initialize the state by using init_genrand(seed)
    or init_by_array(init_key, key_length).
 
    Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
-   All rights reserved.                          
+   All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -19,8 +19,8 @@
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-   3. The names of its contributors may not be used to endorse or promote 
-   products derived from this software without specific prior written 
+   3. The names of its contributors may not be used to endorse or promote
+   products derived from this software without specific prior written
    permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -58,7 +58,7 @@ mtRandom::construct(uint32 s) {
   // 2002/01/09 modified by Makoto Matsumoto
 
   for (mti=1; mti<MT_N; mti++)
-    mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti); 
+    mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
 
   mag01[0] = uint32ZERO;
   mag01[1] = MT_MATRIX_A;
@@ -100,7 +100,7 @@ mtRandom::mtRandom(uint32 *init_key, uint32 key_length) {
     }
   }
 
-  mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */ 
+  mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
 }
 
 

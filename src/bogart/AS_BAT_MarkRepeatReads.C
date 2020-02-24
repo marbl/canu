@@ -978,7 +978,7 @@ findConfusedEdges(TigVector            &tigs,
 
         isC |= ((ad5 <= confusedAbsolute) &&
                 (pd5 <  confusedPercent));
-        
+
         if (isC == true) {
           writeLog("tig %7u read %8u pos %7u-%-7u 5' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
@@ -1254,7 +1254,7 @@ markRepeatReads(AssemblyGraph         *AG,
     for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
       writeLog("tigMarksU[%2u] = %d %d\n", ii, tigMarksU.lo(ii), tigMarksU.hi(ii));
 #endif
-    
+
     //  Create the list of intervals we'll use to make new tigs.
 
     vector<breakPointCoords>   BP;

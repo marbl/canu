@@ -277,7 +277,7 @@ logFile::setPrefix(char const *prefix) {
 
 char const *
 logFile::getPrefix(void) {
-  return(_mainI->_prefix); 
+  return(_mainI->_prefix);
 }
 
 

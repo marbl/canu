@@ -119,7 +119,7 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
   uint32  sv[65]    = { 0 };
   uint32  svmax[65] = { 0 };
 
-  //  Make the tap vector a monic polynomial, else we're guaranteed to 
+  //  Make the tap vector a monic polynomial, else we're guaranteed to
   //  never find a maximal size cycle.
 
   cycmax             = ((uint64)1) << (2 * srPar.order);
@@ -132,7 +132,7 @@ searchShiftRegisterSlow(shiftRegisterParameters &srPar) {
 
   //  If we're given intiial values, use those.
 
-  if (srPar.sr[0] != 0) { 
+  if (srPar.sr[0] != 0) {
     for (uint32 ii=0; ii<srPar.order; ii++)
       SR[ii] = sr[ii] = srPar.sr[ii] - '0';
   }

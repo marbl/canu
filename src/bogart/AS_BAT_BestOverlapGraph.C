@@ -615,7 +615,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     //     contains, etc.                        --------->
     //                                                  |
     //  2) Score the edge if the exit from the          v         (score this edge if
-    //     read it points to is not a spur path.      -------->    this end isn't a spur-path) 
+    //     read it points to is not a spur path.      -------->    this end isn't a spur-path)
     //
     //     Note that spur reads are also spur-path reads.
     //
@@ -1628,7 +1628,7 @@ BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
   ovStoreWriter  *writer = new ovStoreWriter(ovlName, RI->seqStore());
 
   //  The overlap needs a pointer to the seqStore.  Normally this is set
-  //  when the ovlStore is opened, 
+  //  when the ovlStore is opened,
 
   ovOverlap       ovl;
 

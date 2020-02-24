@@ -719,7 +719,7 @@ tgTig::exportData(writeBuffer  *exportDataFile,
   if (isForCorrection)
     seqStore->sqStore_saveReadToBuffer(exportDataFile, tigID(), rd, wr);
 
-  else 
+  else
     seqStore->sqStore_saveReadToBuffer(exportDataFile, getChild(0)->ident(), rd, wr);
 
   //  Now export all the reads in the layot.

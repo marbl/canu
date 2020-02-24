@@ -714,7 +714,7 @@ assignReadsToTargets(Unitig                     *orphan,
                      vector<overlapPlacement>   *placed,
                      vector<candidatePop *>     targets) {
 
-  //  For each read in the orphan, 
+  //  For each read in the orphan,
   //  For each placement of the read,
   //  For each target location
   //    If the target tig is the same as the placement tig

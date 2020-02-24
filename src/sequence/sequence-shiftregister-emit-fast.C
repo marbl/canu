@@ -37,7 +37,7 @@ void
 emitShiftRegisterFast(shiftRegisterParameters &srPar) {
  //  Allocate space for the loop detector, set local variables.
 
-  uint64  sr     = srPar.getEncodedSR();      //  The shift register state 
+  uint64  sr     = srPar.getEncodedSR();      //  The shift register state
   uint64  cyclen = srPar.getCycleLen();       //
   uint64  cycmax = srPar.getCycleMax();       //  The length of the maximum cycle
   uint64  sv     = srPar.getEncodedSVmin();   //  The tap vector

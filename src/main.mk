@@ -3,7 +3,7 @@
 #  point to the upper level build directory.
 
 ifeq "$(strip ${DESTDIR})" ""
-  DESTDIR      := 
+  DESTDIR      :=
 endif
 
 ifeq "$(strip ${PREFIX})" ""

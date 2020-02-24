@@ -113,7 +113,7 @@ main (int argc, char **argv) {
     for (uint32 rid=bgnID[ii]; rid<=endID[ii]; rid++) {
       if (verbose == true)
         fprintf(stderr, "%u\t%7u-%-7u\t%7u-%-7u\n",
-                rid, 
+                rid,
                 seqStore->sqStore_getClearBgn(rid), seqStore->sqStore_getClearEnd(rid),
                 clrRange->bgn(rid), clrRange->end(rid));
 

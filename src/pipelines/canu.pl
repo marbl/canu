@@ -525,7 +525,7 @@ elsif (scalar(@inputFiles) > 0) {
     my $st;
 
     #  If no mode set, default -pacbio-hifi to trimmed status.
-    
+
     if (($mode eq "") && ($numHiFi > 0)) {
         $readsAreTrimmed = 1;
     }

@@ -174,7 +174,7 @@ dumpReads_setFlagsString(sqStore *seqs, uint32 rid, char *flags) {
 void
 dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w) {
   char   l1[1024] = {0};
-  
+
   char   s1len[16] = {0}, s1bgn[16] = {0}, s1end[16] = {0};
   char   s2len[16] = {0}, s2bgn[16] = {0}, s2end[16] = {0};
   char   s3len[16] = {0}, s3bgn[16] = {0}, s3end[16] = {0};

@@ -135,7 +135,7 @@ public:
            (noBogartContained   == false) &&       //  functions for everything, make the
            (noBogartCoverageGap == false) &&       //  setter set a 'isChanged' flag, and
            (noBogartLopsided    == false) &&       //  then update command line parsing.
-           (noBogartSpur        == false) &&       //  
+           (noBogartSpur        == false) &&       //
            (erateMin            == 0.0) &&         //
            (erateMax            == 1.0) &&         //  It took longer to write this comment
            (lengthMin           == 0) &&           //  than to write this function.

@@ -195,7 +195,7 @@ main() {
 
     #  Build a nice script to run canu.
 
-    echo  > canu-executive.sh "#!/bin/sh" 
+    echo  > canu-executive.sh "#!/bin/sh"
     echo >> canu-executive.sh ""
     echo >> canu-executive.sh "canu -p ${output_prefix} -d . \\"
     echo >> canu-executive.sh "     executiveMemory=14 \\"             #  Linked to instanceType in

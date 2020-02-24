@@ -298,7 +298,7 @@ Unitig::optimize_initPlace(uint32        ii,
   //  the correct read length here.
 
   op[iid].min = 0;
-  if (hs.size() != 0) 
+  if (hs.size() != 0)
      computeMedian(hs, op[iid].min);
   op[iid].max = op[iid].min + RI->readLength(ufpath[ii].ident);
 
@@ -385,7 +385,7 @@ Unitig::optimize_recompute(uint32        iid,
 
   //  Find the average and save.
 
-  computeMedian(hsmin, np[iid].min); 
+  computeMedian(hsmin, np[iid].min);
   computeMedian(hsmax, np[iid].max);
 
   if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {

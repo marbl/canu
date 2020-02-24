@@ -262,10 +262,10 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
     // we do this by tracking the read reaching furthest to the right and keeping its offset + homopolymer coordinate translation
     // the read that overlaps it is then updated to start at that reads uncompressed offset + uncompressed bases based on the overlapping coordinate positions
     //
-    
+
     // check that we need to do something first
     // just rely on first read
-    if ((double)getSequence(0)->length() / (_utgpos[0].max()-_utgpos[0].min()) <= 1.2) 
+    if ((double)getSequence(0)->length() / (_utgpos[0].max()-_utgpos[0].min()) <= 1.2)
        return;
 
     uint32 compressedOffset   = 0;

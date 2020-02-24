@@ -55,7 +55,7 @@ shiftRegisterParameters::initialize(void) {
     fprintf(stderr, "ERROR: svmin %s len %u\n", svmin, snLen);
     fprintf(stderr, "ERROR: svmax %s len %u\n", svmax, sxLen);
   }
-    
+
   assert(fail == false);
 
   if (srLen > 0)   std::reverse(sr,    sr    + srLen);

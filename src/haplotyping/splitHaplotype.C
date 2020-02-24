@@ -558,7 +558,7 @@ loadReadBatch(void *G) {
         g->_seqs.pop();
         continue;
       }
-      if (g->_seqCounts == 0) 
+      if (g->_seqCounts == 0)
          fprintf(stdout, "-- Begin    processing file %s\n", g->_seqs.front()->filename());
 
       if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
@@ -573,7 +573,7 @@ loadReadBatch(void *G) {
         g->_filteredBases += seq.length();
       }
 
-      g->_seqCounts++; 
+      g->_seqCounts++;
       continue;      //  Loaded (or skipped) a sequence.  Thank you, may I have another?
     }
 

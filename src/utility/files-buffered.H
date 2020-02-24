@@ -99,7 +99,7 @@ private:
 
   char                _filename[FILENAME_MAX+1];
 
-  int                 _file;        //  
+  int                 _file;        //
   uint64              _filePos;     //  Position in the file we're at.
 
   bool                _stdin;

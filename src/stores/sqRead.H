@@ -144,7 +144,7 @@ toString(sqRead_which w) {
 //  make it truly private.  For example:
 //    Marking reads as ignore in sqStoreCreate (to get rid of extra coverage).
 //    Loading clear ranges.
-//    
+//
 class sqReadSeq {
 public:
   sqReadSeq() {

@@ -70,7 +70,7 @@
 #define DUMP_SIZES               7
 #define DUMP_COVERAGE            8
 #define DUMP_DEPTH_HISTOGRAM     9
-#define DUMP_THIN_OVERLAP       10 
+#define DUMP_THIN_OVERLAP       10
 #define DUMP_OVERLAP_HISTOGRAM  11
 
 

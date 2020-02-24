@@ -271,7 +271,7 @@ main (int argc, char * argv []) {
         lopsidedNoBest = true;
         fprintf(stderr, "LOPSIDED NOBEST %d\n", lopsidedDiff);
       }
-    
+
       else {
         assert(0);
       }

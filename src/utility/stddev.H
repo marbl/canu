@@ -251,7 +251,7 @@ computeMedian(TT *dist, uint64 distLen, TT &median, bool isSorted=false) {
 
   if (distLen % 2 == 0)
      median = (dist[distLen / 2 - 1] + dist[distLen / 2]) / 2;
-  else 
+  else
      median = dist[distLen / 2];
 }
 

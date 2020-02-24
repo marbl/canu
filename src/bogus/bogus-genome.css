@@ -620,7 +620,7 @@ div.transcript-hist {
 
 .plus-transcript-exon,
 .minus-transcript-exon,
-.plus-transcript-UTR, 
+.plus-transcript-UTR,
 .minus-transcript-UTR,
 .plus-transcript-five_prime_UTR,
 .minus-transcript-five_prime_UTR,
@@ -726,7 +726,7 @@ div.generic_parent-hist {
     z-index: 6;
     min-width: 1px;
     cursor: pointer;
-    background-color: #2AEB2A; 
+    background-color: #2AEB2A;
 }
 div.frag_align-hist {
     position: absolute;

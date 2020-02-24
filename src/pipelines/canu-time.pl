@@ -292,7 +292,7 @@ sub parseTime ($) {
 #  Slurm returns YYYY-MM-DDTHH:MM:SS
 #                %Y-%m-%dT%H:%M:%S
 sub parseDate ($) {
-    my $d = $_[0];                     
+    my $d = $_[0];
     my $t;
 
     if ($d =~ m/^\d+-\d+-\d/) {
