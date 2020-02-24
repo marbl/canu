@@ -44,6 +44,36 @@
 #include "stddev.H"
 #include <vector>
 
+//  History of this, as "remembered" by BPW in Feb 2020.
+//
+//  This was added 21 June 2017.  One week before this, I was working on GFA
+//  and unitig creation, a pretty strong hint I was finding inconsistencies
+//  in the layout when trying to split tigs.  After optimize was added,
+//  mostly minor bug fixes, but overlap symmetry was added (meaning that A->B
+//  was loaded but B->A was not).  So it's not terribly clear what propted
+//  this to be added.
+//
+//  The original commit also only optimized after initial tigs were created
+//  (step 003), not after contained reads are added.  Optimize after
+//  contained reads are placed was added very quickly after this.  Most
+//  of our failures are now after contained reads are placed.
+//
+//  My guess is that I was finding inconsistent locations to split a contig
+//  into unitigs based on read-to-read overlaps, and that adding optimize was
+//  enough to make contig-to-unitig work without additional changes.
+//
+//  Some commits
+//    5ea89885c6e56db006ff3ae7154207c957ffc761 21 Jun 2017
+//      Optimize read layout after creating initial contigs.
+//    2077807173394cef13dbf8650ad9c58a1d915ea4  3 Jul 2017
+//      Add a second pass for optimize() to place reads with missing overlaps.
+//    47baa1d48e785d39ba0ef78ede0a8038314a2e97  7 Jul 2017
+//      Drop optimize() iterations from 25 to 5, expand tigs so that short
+//      reads aren't short any more.
+//    f8bb08d9141f3a5c8b96c0ecac32507ad60919ef 17 Jul 2017
+//      Move optimize() to own file.  (it was in AS_BAT_Unitig.C)
+//    (I stopped here)
+
 class optPos {
 public:
   optPos() {
