@@ -20,16 +20,12 @@ use strict;
 #  commit hash and commit those changes (both the dat and pl).
 #
 
-#
-#  If set, rename original files to name.ORIG, rewrite files with updated copyright text.
-#  If not, create new name.MODIFIED files with updated copyright text.
-#
 
 my $doForReal = 1;
 
-if ($ARGV[0] eq "-test") {
-    shift @ARGV;
-    $doForReal = 0;
+if ($ARGV[0] eq "-test") {   #  If test mode, make new <file>.MODIFIED with changes.
+    shift @ARGV;             #  Otherwise, files are rewritten in place.
+    $doForReal = 0;          #
 }
 
 #
