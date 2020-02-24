@@ -241,7 +241,7 @@ my %derived;
 my @filesToProcess = @ARGV;
 
 if (scalar(@filesToProcess) == 0) {
-    open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
+    open(FIN, "find src -type f -print |") or die "Failed to launch 'find'\n";
     while (<FIN>) {
         chomp;
         s/^\.\/(.*)$//;  #  Remove leading ./ added by find.
@@ -296,19 +296,6 @@ foreach my $file (@filesToProcess) {
         $cb = "#";
         $cc = "#";
         $ce = "#";
-    }
-
-    my $iskmer   = 0;
-
-    $iskmer = 1    if ($file =~ m/^kmer/);
-    #$iskmer = 1    if ($file =~ m/libmeryl/);
-    $iskmer = 1    if ($file =~ m/src\/meryl\/libkmer/);
-    $iskmer = 1    if ($file =~ m/src\/meryl\/existDB.C/);
-    $iskmer = 1    if ($file =~ m/src\/meryl\/positionDB.C/);
-
-    if ($iskmer) {
-        print STDERR "Won't process:      '$file' - kmer copyrights screwed up\n";
-        next;
     }
 
     if (($file !~ m/\.[CHch]$/) && ($file !~ m/\.p[lm]/)) {
