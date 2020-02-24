@@ -920,7 +920,7 @@ sub setDefaults () {
     setDefault("maxThreads",           undef,     "Maximum number of compute threads to use by any component of the assembler");
 
     setDefault("minInputCoverage",     10,        "Stop if input coverage is too low; default 10");
-    setDefault("maxInputCoverage",     200,       "If input coverage is high, downsample to something reasonable; default 200");
+    setDefault("maxInputCoverage",     undef,     "If input coverage is high, downsample to something reasonable; default 200");
 
     #####  Stopping conditions
 
@@ -1556,7 +1556,10 @@ sub checkParameters () {
         print STDERR "--  WARNING:  'readSamplingCoverage' will be removed in the next release.\n";
         print STDERR "--\n";
 
-        setGlobal("maxInputCoverage", getGlobal("readSamplingBias"));
+        setGlobal("maxInputCoverage", getGlobal("readSamplingCoverage"));
+    }
+    if (!defined(getGlobal("maxInputCoverage"))) {
+       setGlobal("maxInputCoverage", 200);
     }
     if (getGlobal("maxInputCoverage") eq "all") {
         setGlobal("maxInputCoverage", 0);
@@ -1573,7 +1576,6 @@ sub checkParameters () {
 
         addCommandLineError("ERROR:  stopOnLowCoverage ($minc) must be less than maxInputCoverage ($maxc).\n");
     }
-
 
     if ((getGlobal("saveOverlaps") ne "0") &&
         (getGlobal("saveOverlaps") ne "1")) {

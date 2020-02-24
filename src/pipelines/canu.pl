@@ -403,8 +403,6 @@ configureDNANexus();
 #  Fail if any thing flagged an error condition;
 
 configureAssembler();  #  Set job sizes and etc bases on genomeSize and hosts available.
-checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
-printHelp();           #  And one final last chance to fail.
 
 #  Make space for us to work in, and move there.
 
@@ -627,6 +625,7 @@ if (($numPacBio   == 0) &&
     setGlobalIfUndef("utgErrorRate",     0.010);
     setGlobalIfUndef("cnsErrorRate",     0.050);
     setGlobalIfUndef("homoPolyCompress", 1);
+    setGlobalIfUndef("maxInputCoverage", 50);
     setGlobalIfUndef("batOptions",       "-eg 0.0003 -sb 0.01 -dg 0 -db 3 -dr 0 -ca 50 -cp 5");
 }
 
@@ -642,6 +641,9 @@ if (!defined($mode)) {
     $mode = "assemble"       if ($numHiFi   > 0);
     $mode = "assemble"       if ($numCorTri > 0);
 }
+
+checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
+printHelp();           #  And one final last chance to fail.
 
 ################################################################################
 
