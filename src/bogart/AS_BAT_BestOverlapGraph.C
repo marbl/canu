@@ -1124,7 +1124,10 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  undoes what spur removal did, and removeLopsidedEdges() does remove the
   //  edges anyway (we just don't get a second chance to find a better edge).
   //
-
+#if 0
+  //  Damages humans.  HiFi affected worse than normal.  chm12 20kb library
+  //  is now worse than the 10kb library.  Almost all assemblies are down to
+  //  15 Mbp N50s.  BAC resolution is worse.
   if (lopsidedDiff > 0) {
     writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
@@ -1140,6 +1143,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   else {
     writeStatus("BestOverlapGraph()-- NOT filtering reads with lopsided best edges.\n");
   }
+#endif
 
   //
   //  Do some final boring cleanup:
