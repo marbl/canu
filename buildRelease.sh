@@ -5,6 +5,9 @@
 #    Update copyrights
 #    Increase version in documentation/source/conf.py
 #    Increase version in src/canu_version_update.pl
+#    Make a branch:  git checkout -b v2.0-maintenance
+#    Switch "snapshot" to "release" in src/canu_version_update.pl IN THE BANCH
+#    Make a 'v2.0' release.
 
 version=$1
 
