@@ -27,6 +27,12 @@
 #       instances of "$" within them need to be escaped with a second "$" to
 #       accomodate the double expansion that occurs when eval is invoked.
 
+#  Before doing ANYTHING, initialize submodules.
+ifneq ($(shell test -e utility/src/Makefile && echo found), found)
+  $(info $(shell git submodule update --init))
+  $(info $(space))
+endif
+
 # ADD_CLEAN_RULE - Parameterized "function" that adds a new rule and phony
 #   target for cleaning the specified target (removing its build-generated
 #   files).
