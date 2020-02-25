@@ -70,7 +70,7 @@
  * SUCH DAMAGE.
  */
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "tgStore.H"  //  for tgTig
 

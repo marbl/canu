@@ -730,9 +730,7 @@ $(foreach TGT,${ALL_TGTS},\
 #  A fake target, to regenerate the canu_version.H file on every build.
 .PHONY: UPDATE_VERSION
 UPDATE_VERSION:
-	@./canu_version_update.pl
-
-AS_global.C: UPDATE_VERSION
+	@../scripts/version_update.pl canu utility/src/utility/version.H
 
 #  A fake target, to make the directory for the canu perl modules.
 .PHONY: MAKE_DIRS

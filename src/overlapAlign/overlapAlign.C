@@ -27,7 +27,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "sweatShop.H"
 #include "system.H"

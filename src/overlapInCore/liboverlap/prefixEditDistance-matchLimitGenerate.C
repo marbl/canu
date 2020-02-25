@@ -31,7 +31,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_global.H"
+#include "types.H"
 #include "sqStore.H"
 
 #include "Binomial_Bound.H"

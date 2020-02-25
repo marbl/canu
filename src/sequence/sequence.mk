@@ -24,7 +24,7 @@ SOURCES  := sequence.C \
             sequence-simulate.C \
             sequence-summarize.C
 
-SRC_INCDIRS  := . .. ../utility
+SRC_INCDIRS  := . .. ../utility/src/utility
 
 #  If we're part of Canu, build with canu support.
 #  Otherwise, don't.

@@ -34,7 +34,7 @@
 #ifndef NDALIGN_H
 #define NDALIGN_H
 
-#include "AS_global.H"
+#include "types.H"
 
 #include "ovStore.H"
 

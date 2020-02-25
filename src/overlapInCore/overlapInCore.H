@@ -60,7 +60,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "sqCache.H"

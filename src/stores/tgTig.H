@@ -30,7 +30,7 @@
 #ifndef TG_TIG_H
 #define TG_TIG_H
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "bits.H"

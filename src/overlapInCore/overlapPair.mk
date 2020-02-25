@@ -10,7 +10,7 @@ endif
 TARGET   := overlapPair
 SOURCES  := overlapPair.C
 
-SRC_INCDIRS  := .. ../utility ../stores libedlib
+SRC_INCDIRS  := .. ../utility/src/utility ../stores libedlib
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

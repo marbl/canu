@@ -26,8 +26,10 @@
 #ifndef CLEAR_RANGE_FILE_H
 #define CLEAR_RANGE_FILE_H
 
-#include "AS_global.H"
-#include "clearRangeFile.H"
+#include "runtime.H"
+#include "arrays.H"
+
+#include <algorithm>
 
 //  Store a set of clear ranges on disk.
 
@@ -64,8 +66,8 @@ public:
     if (deleted)            //  Valid, but deleted.
       _flags[id] |= 0x02;
 
-    _minSet = min(_minSet, id);
-    _maxSet = max(id, _maxSet);
+    _minSet = std::min(_minSet, id);
+    _maxSet = std::max(id, _maxSet);
   };
 
 private:

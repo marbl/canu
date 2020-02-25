@@ -39,7 +39,7 @@
 #ifndef INCLUDE_BOGUSUTIL
 #define INCLUDE_BOGUSUTIL
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "files.H"
 

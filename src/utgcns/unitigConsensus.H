@@ -62,7 +62,7 @@
 #ifndef UNITIGCONSENSUS_H
 #define UNITIGCONSENSUS_H
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "tgStore.H"
 

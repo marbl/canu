@@ -26,7 +26,7 @@
 #ifndef INCLUDE_AS_BAT_TIGGRAPH
 #define INCLUDE_AS_BAT_TIGGRAPH
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_TigVector.H"

@@ -26,7 +26,7 @@
 #ifndef INCLUDE_AS_BAT_TIGVECTOR
 #define INCLUDE_AS_BAT_TIGVECTOR
 
-#include "AS_global.H"
+#include "runtime.H"
 
 class Unitig;
 

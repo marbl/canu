@@ -37,6 +37,7 @@
 
 //  DO NOT INCLUDE THIS FILE DIRECTLY, include sqStore.H.
 
+#include "arrays.H"
 #include "sequence.H"
 
 class sqRead;

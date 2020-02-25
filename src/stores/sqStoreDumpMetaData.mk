@@ -11,7 +11,7 @@ endif
 TARGET   := sqStoreDumpMetaData
 SOURCES  := sqStoreDumpMetaData.C ../sequence/sequence-summarize.C
 
-SRC_INCDIRS := .. ../utility ../sequence
+SRC_INCDIRS := .. ../utility/src/utility ../sequence
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

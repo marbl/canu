@@ -24,40 +24,40 @@ endif
 
 TARGET       := libcanu.a
 
-SOURCES      := AS_global.C \
+SOURCES      := utility/src/utility/runtime.C \
                 \
-                utility/edlib.C \
+                utility/src/utility/edlib.C \
                 \
-                utility/files.C \
-                utility/files-buffered.C \
-                utility/files-compressed.C \
-                utility/files-memoryMapped.C \
+                utility/src/utility/files.C \
+                utility/src/utility/files-buffered.C \
+                utility/src/utility/files-compressed.C \
+                utility/src/utility/files-memoryMapped.C \
                 \
-                utility/logging.C \
+                utility/src/utility/logging.C \
                 \
-                utility/strings.C \
+                utility/src/utility/strings.C \
                 \
-                utility/system.C \
-                utility/system-stackTrace.C \
+                utility/src/utility/system.C \
+                utility/src/utility/system-stackTrace.C \
                 \
-                utility/sequence.C \
+                utility/src/utility/sequence.C \
                 \
-                utility/kmers.C \
-                utility/kmers-reader.C \
-                utility/kmers-writer.C \
-                utility/kmers-writer-block.C \
-                utility/kmers-writer-stream.C \
-                utility/kmers-statistics.C \
-                utility/kmers-exact.C \
+                utility/src/utility/kmers.C \
+                utility/src/utility/kmers-reader.C \
+                utility/src/utility/kmers-writer.C \
+                utility/src/utility/kmers-writer-block.C \
+                utility/src/utility/kmers-writer-stream.C \
+                utility/src/utility/kmers-statistics.C \
+                utility/src/utility/kmers-exact.C \
                 \
-                utility/bits.C \
+                utility/src/utility/bits.C \
                 \
-                utility/hexDump.C \
-                utility/md5.C \
-                utility/mt19937ar.C \
-                utility/objectStore.C \
-                utility/speedCounter.C \
-                utility/sweatShop.C \
+                utility/src/utility/hexDump.C \
+                utility/src/utility/md5.C \
+                utility/src/utility/mt19937ar.C \
+                utility/src/utility/objectStore.C \
+                utility/src/utility/speedCounter.C \
+                utility/src/utility/sweatShop.C \
                 \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
@@ -114,25 +114,25 @@ SOURCES      := AS_global.C \
 
 
 ifeq (${BUILDSTACKTRACE}, 1)
-SOURCES      += utility/libbacktrace/atomic.c \
-                utility/libbacktrace/backtrace.c \
-                utility/libbacktrace/dwarf.c \
-                utility/libbacktrace/elf.c \
-                utility/libbacktrace/fileline.c \
-                utility/libbacktrace/mmap.c \
-                utility/libbacktrace/mmapio.c \
-                utility/libbacktrace/posix.c \
-                utility/libbacktrace/print.c \
-                utility/libbacktrace/simple.c \
-                utility/libbacktrace/sort.c \
-                utility/libbacktrace/state.c \
-                utility/libbacktrace/unknown.c
+SOURCES      += utility/src/utility/libbacktrace/atomic.c \
+                utility/src/utility/libbacktrace/backtrace.c \
+                utility/src/utility/libbacktrace/dwarf.c \
+                utility/src/utility/libbacktrace/elf.c \
+                utility/src/utility/libbacktrace/fileline.c \
+                utility/src/utility/libbacktrace/mmap.c \
+                utility/src/utility/libbacktrace/mmapio.c \
+                utility/src/utility/libbacktrace/posix.c \
+                utility/src/utility/libbacktrace/print.c \
+                utility/src/utility/libbacktrace/simple.c \
+                utility/src/utility/libbacktrace/sort.c \
+                utility/src/utility/libbacktrace/state.c \
+                utility/src/utility/libbacktrace/unknown.c
 endif
 
 
 
 SRC_INCDIRS  := . \
-                utility \
+                utility/src/utility \
                 stores \
                 stores/libsnappy \
                 alignment \
@@ -164,11 +164,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/loadTrimmedReads.mk \
                 stores/loadErates.mk \
                 \
-                meryl/meryl.mk \
-                meryl/meryl-import.mk \
-                meryl/meryl-lookup.mk \
-                \
-                sequence/sequence.mk \
+                meryl/src/meryl/meryl.mk \
                 \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
@@ -211,11 +207,3 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 utgcns/utgcns.mk \
                 \
                 gfa/alignGFA.mk
-
-ifeq ($(BUILDTESTS), 1)
-SUBMAKEFILES += utility/bitsTest.mk \
-                utility/filesTest.mk \
-                utility/intervalListTest.mk \
-                utility/loggingTest.mk \
-                utility/stddevTest.mk
-endif

@@ -10,7 +10,7 @@ endif
 TARGET   := generateCorrectionLayouts
 SOURCES  := generateCorrectionLayouts.C ../utgcns/stashContains.C
 
-SRC_INCDIRS  := .. ../utility ../stores ../utgcns
+SRC_INCDIRS  := .. ../utility/src/utility ../stores ../utgcns
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

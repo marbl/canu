@@ -26,7 +26,7 @@
 #ifndef INCLUDE_AS_BAT_READ_INFO
 #define INCLUDE_AS_BAT_READ_INFO
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "ovStore.H"
 #include "sqStore.H"
 

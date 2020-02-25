@@ -35,7 +35,7 @@ SOURCES  := bogart.C \
             AS_BAT_Unitig_AddRead.C \
             AS_BAT_Unitig_PlaceReadUsingEdges.C
 
-SRC_INCDIRS  := .. ../utility ../stores
+SRC_INCDIRS  := .. ../utility/src/utility ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

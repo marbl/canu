@@ -38,7 +38,7 @@
 #ifndef INCLUDE_AS_BAT_CHUNKGRAPH
 #define INCLUDE_AS_BAT_CHUNKGRAPH
 
-#include "AS_global.H"
+#include "runtime.H"
 
 //  Returns a list of read IDs sorted by the number of reads in a BOG path
 //  seeded by that read.

@@ -27,7 +27,7 @@
 #define OVSTORECONFIG_H
 
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include <vector>
 using namespace std;

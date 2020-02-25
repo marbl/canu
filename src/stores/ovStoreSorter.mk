@@ -11,7 +11,7 @@ endif
 TARGET   := ovStoreSorter
 SOURCES  := ovStoreSorter.C
 
-SRC_INCDIRS := .. ../utility
+SRC_INCDIRS := .. ../utility/src/utility
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

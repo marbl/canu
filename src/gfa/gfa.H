@@ -26,7 +26,7 @@
 #ifndef AS_UTL_GFA_H
 #define AS_UTL_GFA_H
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "strings.H"
 
 

@@ -30,7 +30,7 @@
 #ifndef SPLIT_READS_H
 #define SPLIT_READS_H
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "ovStore.H"

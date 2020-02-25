@@ -26,7 +26,7 @@
 #ifndef TRIM_STAT_H
 #define TRIM_STAT_H
 
-#include "AS_global.H"
+#include "runtime.H"
 
 class trimStat {
 public:

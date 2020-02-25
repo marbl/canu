@@ -38,7 +38,7 @@
 #ifndef AS_OVSTOREFILE_H
 #define AS_OVSTOREFILE_H
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "sqStore.H"
 
 #include "ovOverlap.H"

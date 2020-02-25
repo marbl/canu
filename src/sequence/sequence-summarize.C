@@ -28,8 +28,7 @@
  */
 
 #include "sequence/sequence.H"
-
-#include "utility/sequence.H"
+#include "utility/src/utility/sequence.H"
 
 
 

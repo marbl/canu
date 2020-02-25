@@ -30,7 +30,7 @@
 #ifndef STASH_CONTAINS_H
 #define STASH_CONTAINS_H
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "sqStore.H"
 #include "tgStore.H"
 

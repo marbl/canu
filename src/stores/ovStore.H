@@ -34,7 +34,7 @@
 #ifndef AS_OVSTORE_H
 #define AS_OVSTORE_H
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "files.H"
 
 #include "sqStore.H"

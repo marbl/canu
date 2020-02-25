@@ -42,7 +42,7 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"

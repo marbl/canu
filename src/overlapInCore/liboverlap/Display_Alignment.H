@@ -26,7 +26,7 @@
 #ifndef DISPLAY_ALIGNMENT_H
 #define DISPLAY_ALIGNMENT_H
 
-#include "AS_global.H"
+#include "types.H"
 
 void
 Display_Alignment(char  *a,    int32   a_len,

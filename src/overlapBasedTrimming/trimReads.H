@@ -30,7 +30,7 @@
 #ifndef TRIM_READS_H
 #define TRIM_READS_H
 
-#include "AS_global.H"
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "ovStore.H"

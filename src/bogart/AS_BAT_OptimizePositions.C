@@ -40,7 +40,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"

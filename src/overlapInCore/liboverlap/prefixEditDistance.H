@@ -35,7 +35,7 @@
 #define PREFIX_EDIT_DISTANCE_H
 
 
-#include "AS_global.H"
+#include "types.H"
 #include "sqStore.H"  //  For AS_MAX_READLEN
 
 

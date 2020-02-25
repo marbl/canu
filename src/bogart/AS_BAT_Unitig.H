@@ -42,7 +42,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "AS_BAT_TigVector.H"
 #include "AS_BAT_OverlapCache.H"
 

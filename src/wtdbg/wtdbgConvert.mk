@@ -10,7 +10,7 @@ endif
 TARGET   := wtdbgConvert
 SOURCES  := wtdbgConvert.C
 
-SRC_INCDIRS  := .. ../utility ../stores liboverlap
+SRC_INCDIRS  := .. ../utility/src/utility ../stores liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

@@ -26,7 +26,7 @@
 #ifndef INCLUDE_AS_BAT_ASSEMBLYGRAPH
 #define INCLUDE_AS_BAT_ASSEMBLYGRAPH
 
-#include "AS_global.H"
+#include "runtime.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"  //  For ReadEnd
 #include "AS_BAT_Unitig.H"            //  For SeqInterval
