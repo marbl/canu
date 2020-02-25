@@ -28,8 +28,12 @@
 #       accomodate the double expansion that occurs when eval is invoked.
 
 #  Before doing ANYTHING, initialize submodules.
-ifneq ($(shell test -e utility/src/Makefile && echo found), found)
-  $(info $(shell git submodule update --init))
+ifeq ($(wildcard utility/src/Makefile), )
+  $(info $(shell git submodule update --init utility))
+  $(info $(space))
+endif
+ifeq ($(wildcard meryl/src/Makefile), )
+  $(info $(shell git submodule update --init meryl))
   $(info $(space))
 endif
 
