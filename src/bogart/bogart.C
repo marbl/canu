@@ -78,10 +78,10 @@ BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 
 //  Temporary
-uint32 covGapOlap     = 0;     //  Require overlap of x bp when detecting coverage gaps.
-uint32 lopsidedDiff   = 0;      //  Call reads lopsided if diff between is more than x percent.
+uint32 covGapOlap     = 500;     //  Require overlap of x bp when detecting coverage gaps.
+uint32 lopsidedDiff   = 25;      //  Call reads lopsided if diff between is more than x percent.
 bool   lopsidedNoSeed = false;   //  Don't seed tigs with lopsided reads.
-bool   lopsidedNoBest = false;    //  Don't find edges to/from lopsided reads.
+bool   lopsidedNoBest = true;    //  Don't find edges to/from lopsided reads.
 double minOlapPercent = 0.0;
 
 int
