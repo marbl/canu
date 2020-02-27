@@ -701,11 +701,11 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
         //  Score the edge.
 
-        if ((Aend5 == true) && (Bend5 ==  true) && (sp3c == false))   scoreEdge(ovl[ii]);
-        if ((Aend5 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii]);
+        if ((Aend5 == true) && (Bend5 ==  true) && (sp3c == false))   scoreEdge(ovl[ii], true, true);
+        if ((Aend5 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii], true, true);
 
-        if ((Aend3 == true) && (Bend5 ==  true) && (sp3c == false))   scoreEdge(ovl[ii]);
-        if ((Aend3 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii]);
+        if ((Aend3 == true) && (Bend5 ==  true) && (sp3c == false))   scoreEdge(ovl[ii], true, true);
+        if ((Aend3 == true) && (Bend5 == false) && (sp5c == false))   scoreEdge(ovl[ii], true, true);
       }
 
       //  All edges scored.  If the new edge is significantly worse than the
@@ -878,22 +878,17 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
 
 void
-BestOverlapGraph::findEdges(void) {
+BestOverlapGraph::findContains(void) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  //  Reset our scores.
-
-  memset(_best5score, 0, sizeof(uint64) * (fiLimit + 1));
-  memset(_best3score, 0, sizeof(uint64) * (fiLimit + 1));
-
-  //  Remove containment flags so we can recompute them.
+  //  Remove containment flags.
 
   for (uint32 fi=1; fi <= fiLimit; fi++)
     setContained(fi, false);
 
-  //  One pass through all reads to flag any that are in a containment
+  //  Check all overlaps and flag any reads that are in a containment
   //  relationship.
 
 #pragma omp parallel for schedule(dynamic, blockSize)
@@ -901,7 +896,7 @@ BestOverlapGraph::findEdges(void) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    if (isIgnored(fi) == true)
+    if (isIgnored(fi)  == true)
       continue;
 
     for (uint32 ii=0; ii<no; ii++) {
@@ -920,26 +915,48 @@ BestOverlapGraph::findEdges(void) {
       setContained(ovl[ii].a_iid);
     }
   }
+}
 
-  //  A second pass to score and find the best edge for each end.
+
+
+void
+BestOverlapGraph::findEdges(bool redoAll) {
+  uint32  fiLimit    = RI->numReads();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+  //  Reset our scores.
+
+  memset(_best5score, 0, sizeof(uint64) * (fiLimit + 1));
+  memset(_best3score, 0, sizeof(uint64) * (fiLimit + 1));
+
+  //  For each read, score every overlap, remembering which is the best for each end.
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
+
+    //  Skip reads that cannot have a best edge, that we don't want to have
+    //  edges from, or that we don't want to change.
+    if ((isIgnored(fi)   == true) ||         //  Ignore ignored reads.
+        (isContained(fi) == true) ||         //  Ignore contained reads.
+        (isSpur(fi)      == true) ||         //  Ignore spur reads; they have carefully set edges.
+        (isLopsided(fi)  == true))           //  Ignore lopsided; they have no edges, period.
+      continue;
+
+    //  Compute edges from an end if we're either requested to recompute all
+    //  edges, or if there is no edge.
+    bool  c5 = ((redoAll == true) || (_reads[fi]._best5.readId() == 0));
+    bool  c3 = ((redoAll == true) || (_reads[fi]._best3.readId() == 0));
+
+    //  Clear the edge if we're computing it.
+    if (c5 == true)  _reads[fi]._best5.clear();
+    if (c3 == true)  _reads[fi]._best3.clear();
+
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    _best5score[fi] = 0;                     //  Reset scores.
-    _best3score[fi] = 0;                     //
-
-    _reads[fi]._best5.clear();               //  Clear existing
-    _reads[fi]._best3.clear();               //  best edges.
-
-    if ((isIgnored(fi)   == true) ||         //  Ignore ignored reads.
-        (isContained(fi) == true))           //  Ignore contained reads.
-      continue;
-
     for (uint32 ii=0; ii<no; ii++)           //  Compute scores for all overlaps
-      scoreEdge(ovl[ii]);                    //  and remember the best.
+      scoreEdge(ovl[ii], c5, c3);            //  and remember the best.
   }
 }
 
@@ -1004,12 +1021,16 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  This sets the status of orphans and bubbles.  Then we'll further flag
   //  those as ignored.
   //
-  //  Edges will be recomputed on the first findEdges() call below.
+  //  Edges will be recomputed on the first findEdges() call below, but we still need
+  //  to clear all of them here.
 
   if (BOG) {
     memcpy(_reads, BOG->_reads, sizeof(BestEdgeRead) * (RI->numReads() + 1));
 
     for (uint32 fi=1; fi <= RI->numReads(); fi++) {
+      _reads[fi]._best5.clear();
+      _reads[fi]._best3.clear();
+
       if ((isOrphan(fi) == true) ||
           (isBubble(fi) == true)) {
         writeLog("IGNORE read %u %s %s\n", fi, isOrphan(fi) ? "orphan" : "", isBubble(fi) ? "bubble" : "");
@@ -1032,14 +1053,16 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (logFileFlagSet(LOG_BEST_OVERLAPS))
     emitGoodOverlaps(prefix, "0.all");
 
-  findEdges();
+  findContains();
+  findEdges(true);
   reportBestEdges(prefix, "initial");
 
   if (filterHighError) {
     writeStatus("BestOverlapGraph()-- Filtering high error edges.\n");
 
-    findErrorRateThreshold();
-    findEdges();
+    findErrorRateThreshold();   //  Set the threshold.
+    findContains();             //  Recompute contained reads; remove those contained in high-error parents.
+    findEdges(true);            //  Recompute best edges.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "1.filtered");
@@ -1058,8 +1081,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (filterCoverageGap) {
     writeStatus("BestOverlapGraph()-- Filtering reads with a gap in overlap coverage.\n");
 
-    removeReadsWithCoverageGap(prefix);
-    findEdges();
+    removeReadsWithCoverageGap(prefix);   //  Remove crappy reads.
+    findContains();                       //  Recompute contained reads; remove those contained in covGap reads.
+    findEdges(true);                      //  Recompute best edges.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "2.covGap");
@@ -1088,8 +1112,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (lopsidedDiff > 0) {
     writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
-    removeLopsidedEdges(prefix, "lopsided.pass1");
-    findEdges();
+    removeLopsidedEdges(prefix, "lopsided.pass1");   //  Remove reads that look weird.  (not that we discriminate against weirdness)
+    //findContains();                                //  DO NOT recompute contained reads.
+    findEdges(false);                                //  Recompute best edges that have no existing eddge.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "3.lopsided");
@@ -1126,20 +1151,33 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (logFileFlagSet(LOG_BEST_OVERLAPS))
     emitGoodOverlaps(prefix, "4.spur-removal");
 
+  //  This will let you verify that findEdges(false) does not change any of
+  //  the spur removal results.
+#if 0
+  reportBestEdges(prefix, "9.beforeFindEdges");
+  findEdges(false);
+  reportBestEdges(prefix, "9.afterFindEdges");
+#endif
+
+
   //
   //  Check for lopsided reads again.  DO NOT findEdges() after this; it
   //  undoes what spur removal did, and removeLopsidedEdges() does remove the
   //  edges anyway (we just don't get a second chance to find a better edge).
   //
-#if 0
+#if 1
   //  Damages humans.  HiFi affected worse than normal.  chm12 20kb library
   //  is now worse than the 10kb library.  Almost all assemblies are down to
   //  15 Mbp N50s.  BAC resolution is worse.
   if (lopsidedDiff > 0) {
     writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
-    removeLopsidedEdges(prefix, "lopsided.pass2");
-    //findEdges();
+  reportBestEdges(prefix, "9.beforeLopsided");
+    removeLopsidedEdges(prefix, "lopsided.pass2");   //  Remove reads that look weird.  (not that we discriminate against weirdness)
+    //findContains();                                //  DO NOT recompute contained reads.
+  reportBestEdges(prefix, "9.beforeFindEdges");
+    findEdges(false);                                //  Recompute best edges that have no existing eddge.
+  reportBestEdges(prefix, "9.afterFindEdges");
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "5.lopsided");
@@ -1473,7 +1511,7 @@ logEdgeScore(BAToverlap   &olap,
 
 
 void
-BestOverlapGraph::scoreEdge(BAToverlap& olap) {
+BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
 
   assert(isIgnored(olap.a_iid)   == false);     //  It's an error to call this function
   assert(isContained(olap.a_iid) == false);     //  on ignored or contained reads.
@@ -1507,6 +1545,13 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap) {
   uint64          &score  = (a3p) ? (_best3score[olap.a_iid]) : (_best5score[olap.a_iid]);
 
   assert(newScr > 0);
+
+  //  Skip scoring if we're not scoring this end.
+
+  if ((c5 == false) && (a3p == false))   return;
+  if ((c3 == false) && (a3p ==  true))   return;
+
+  //  Otherwise, finally, update the best edge if this one is better.  And log.
 
   if (newScr <= score) {
     logEdgeScore(olap, "worse");

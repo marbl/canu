@@ -206,7 +206,8 @@ private:
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
   void   removeLopsidedEdges(const char *prefix, const char *label);
 
-  void   findEdges(void);
+  void   findContains(void);
+  void   findEdges(bool redoAll);
 
   void   findErrorRateThreshold(void);
 
@@ -286,7 +287,7 @@ private:
   uint64    scoreOverlap(BAToverlap& olap);
 
 private:
-  void      scoreEdge(BAToverlap& olap);
+  void      scoreEdge(BAToverlap& olap, bool c5, bool c3);
 
 private:
   BestEdgeRead              *_reads;        //  Nodes in the graph.
