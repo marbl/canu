@@ -360,20 +360,30 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
     int32  back5ovlLen = RI->overlapLength(this5->readId(), back5->readId(), back5->ahang(), back5->bhang());
     int32  back3ovlLen = RI->overlapLength(this3->readId(), back3->readId(), back3->ahang(), back3->bhang());
 
-    //  ...and compare.
+    //  ...and compare.  The read will be lopsided if the edge out of us is
+    //  less than 25% of the length of the comparable edge out of our
+    //  neighbor.
 
-    double  percDiff5 = 200.0 * abs(this5ovlLen - back5ovlLen) / (this5ovlLen + back5ovlLen);
-    double  percDiff3 = 200.0 * abs(this3ovlLen - back3ovlLen) / (this3ovlLen + back3ovlLen);
+    double  score5 = (back5ovlLen == 0) ? (100.0) : (100.0 * this5ovlLen / back5ovlLen);
+    double  score3 = (back3ovlLen == 0) ? (100.0) : (100.0 * this3ovlLen / back3ovlLen);
 
-    setLopsided5(fi, (percDiff5 > lopsidedDiff));
-    setLopsided3(fi, (percDiff3 > lopsidedDiff));
+    //  Not lopsided if the overlap is thick relative to the length of this read.
+#if 1
+    if (this5ovlLen >= 0.333 * RI->readLength(fi))   score5 = 100.0;
+    if (this3ovlLen >= 0.333 * RI->readLength(fi))   score3 = 100.0;
+#endif
+
+    //  Declare lopsided if the score is low.
+
+    setLopsided5(fi, (score5 < lopsidedDiff));
+    setLopsided3(fi, (score3 < lopsidedDiff));
 
 #if 0
     if (isLopsided(fi) == false)
       fprintf(LOP, "fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
                fi,
-               this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5,
-               this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
+               this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
+               this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
 #endif
 
     if (isLopsided(fi) == true) {
@@ -382,30 +392,27 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
 #pragma omp critical (fprintf_LOP)
         fprintf(LOP, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
                  fi,
-                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5,
-                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
+                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
+                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
 
       else if (this5->readId() > 0)
 #pragma omp critical (fprintf_LOP)
         fprintf(LOP, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% --\n",
                  fi,
-                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, percDiff5);
+                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5);
 
       else if (this3->readId() > 0)
 #pragma omp critical (fprintf_LOP)
         fprintf(LOP, "lopsidedBest %8u --                                                            -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
                  fi,
-                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, percDiff3);
+                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
     }
   }
 
   AS_UTL_closeFile(LOP);
 
-  //  Remove overlaps to or from lopsided reads.
-  //
-  //  Ideally, we'd find new edges for the stuff with edges to lopsided
-  //  reads, but that is a bit of work, and would result in us needing to
-  //  remove lopsided again.
+  //  Remove overlaps to or from lopsided reads.  We'll let the parent find
+  //  new edges, as needed.
 
   if (lopsidedNoBest == true) {
     for (uint32 fi=1; fi <= fiLimit; fi++) {
