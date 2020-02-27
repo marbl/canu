@@ -431,17 +431,17 @@ BestOverlapGraph::spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 dista
   bool    in3p = edge->read3p();
   bool    ot3p = (in3p == false) ? true : false;
 
-  assert(isIgnored(inid) == false);   //  Edge to ignored read, ERROR!
+  assert(isIgnored(inid)     == false);   //  Edge to ignored read, ERROR!
   assert(isCoverageGap(inid) == false);
 
-  if (isCoverageGap(inid) == true)    //  Edge to a probably chimeric read?
-    return(distance);                 //  Call it a spur.
+  if (isCoverageGap(inid) == true)        //  Edge to a probably chimeric read?
+    return(distance);                     //  Call it a spur.
 
-  if (inid == 0)                      //  If no edge, we've terminated early,
-    return(distance);                 //  so we've followed a path to a spur.
+  if (inid == 0)                          //  If no edge, we've terminated early,
+    return(distance);                     //  so we've followed a path to a spur.
 
-  if (distance == limit)              //  If we've hit the limit, not a spur,
-    return(UINT32_MAX);               //  return infinity.
+  if (distance == limit)                  //  If we've hit the limit, not a spur,
+    return(UINT32_MAX);                   //  return infinity.
 
   //  Otherwise, follow the path.
 
