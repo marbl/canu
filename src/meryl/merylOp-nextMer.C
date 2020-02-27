@@ -650,7 +650,12 @@ merylOperation::nextMer(void) {
   //  If flagged for printing, print!
 
   if (_printer != NULL) {
-    fputs(_kmer.toString(_kmerString), _printer);
+    kmer  pk = _kmer;
+
+    if (_printACGTorder == true)
+      pk.recanonicalize();
+
+    fputs(pk.toString(_kmerString), _printer);
     fputc('\t', _printer);
     fputs(toDec(_value), _printer);
     fputc('\n', _printer);

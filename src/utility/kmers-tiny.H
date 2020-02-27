@@ -138,6 +138,25 @@ public:
     return(str);
   };
 
+  void     recanonicalize(void) {
+    kmdata  fmer = _mer;
+    kmdata  rmer = reverseComplement(_mer);
+    kmdata  mask = _mer;
+
+    mask >>= 1;
+    mask  &= uint128NUMBER(0x5555555555555555llu, 0x5555555555555555llu);
+
+    fmer ^= mask;      //  Convert from ACTG ordering to ACGT ordering.
+    rmer ^= mask;
+
+    if (fmer < rmer)   //  Recompute canonical based on ACGT ordering.
+      _mer = fmer;
+    else
+      _mer = rmer;
+
+    _mer ^= mask;      //  Convert back to ACTG ordering for printing.
+  };
+
   operator kmdata () const {
     return(_mer);
   };

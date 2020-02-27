@@ -126,7 +126,7 @@ public:
 
   void    finalize(void);
 
-  void    addPrinter(FILE *printer);
+  void    addPrinter(FILE *printer, bool ACGTorder);
   char   *getPrinterName(void);
 
   void    setOperation(merylOp op) { _operation = op;    };
@@ -261,6 +261,8 @@ private:
   merylFileWriter               *_output;    //  This is the main output object, but for streaming
   merylStreamWriter             *_writer;    //  operations, _writer is used.
   FILE                          *_printer;
+
+  bool                           _printACGTorder;
 
   char                           _kmerString[65];
 
