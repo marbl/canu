@@ -368,7 +368,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
     double  score3 = (back3ovlLen == 0) ? (100.0) : (100.0 * this3ovlLen / back3ovlLen);
 
     //  Not lopsided if the overlap is thick relative to the length of this read.
-#if 1
+#if 0
     if (this5ovlLen >= 0.333 * RI->readLength(fi))   score5 = 100.0;
     if (this3ovlLen >= 0.333 * RI->readLength(fi))   score3 = 100.0;
 #endif
