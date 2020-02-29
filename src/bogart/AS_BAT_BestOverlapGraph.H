@@ -245,16 +245,15 @@ public:
   };
 
 
-  bool      isContained  (const uint32 r) { return( _reads[r]._contained   == 1); };
-  bool      isIgnored    (const uint32 r) { return( _reads[r]._ignored     == 1); };
-  bool      isCoverageGap(const uint32 r) { return( _reads[r]._coverageGap == 1); };
-  bool      isLopsided   (const uint32 r) { return((_reads[r]._lopsided5   == 1) || (_reads[r]._lopsided3 == 1)); };
-  bool      isLopsided2  (const uint32 r) { return((_reads[r]._lopsided5   == 1) && (_reads[r]._lopsided3 == 1)); };
-  bool      isBackbone   (const uint32 r) { return( _reads[r]._backbone    == 1); };
-  bool      isSpur       (const uint32 r) { return( _reads[r]._spur        == 1); };
-  bool      isBubble     (const uint32 r) { return( _reads[r]._bubble      == 1); };
-  bool      isOrphan     (const uint32 r) { return( _reads[r]._orphan      == 1); };
-  bool      isDelinquent (const uint32 r) { return( _reads[r]._delinquent  == 1); };
+  bool      isContained  (const uint32 r)           { return( _reads[r]._contained   == 1); };
+  bool      isIgnored    (const uint32 r)           { return( _reads[r]._ignored     == 1); };
+  bool      isCoverageGap(const uint32 r)           { return( _reads[r]._coverageGap == 1); };
+  bool      isLopsidedEnd(const uint32 r, bool r3p) { return((r3p == false) ? (_reads[r]._lopsided5 == 1) : (_reads[r]._lopsided3 == 1)); };
+  bool      isBackbone   (const uint32 r)           { return( _reads[r]._backbone    == 1); };
+  bool      isSpur       (const uint32 r)           { return( _reads[r]._spur        == 1); };
+  bool      isBubble     (const uint32 r)           { return( _reads[r]._bubble      == 1); };
+  bool      isOrphan     (const uint32 r)           { return( _reads[r]._orphan      == 1); };
+  bool      isDelinquent (const uint32 r)           { return( _reads[r]._delinquent  == 1); };
 
   void      setContained  (const uint32 r, bool t=true) { _reads[r]._contained   = t; };
   void      setIgnored    (const uint32 r, bool t=true) { _reads[r]._ignored     = t; };
@@ -267,16 +266,16 @@ public:
   void      setOrphan     (const uint32 r, bool t=true) { _reads[r]._orphan      = t; };
   void      setDelinquent (const uint32 r, bool t=true) { _reads[r]._delinquent  = t; };
 
-  uint32    numContained  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isContained(fi))   n++;  return(n); };
-  uint32    numIgnored    (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isIgnored(fi))     n++;  return(n); };
-  uint32    numCoverageGap(void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isCoverageGap(fi)) n++;  return(n); };
-  uint32    numLopsided   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided(fi))    n++;  return(n); };
-  uint32    numLopsided2  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsided2(fi))   n++;  return(n); };
-  uint32    numBackbone   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBackbone(fi))    n++;  return(n); };
-  uint32    numSpur       (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isSpur(fi))        n++;  return(n); };
-  uint32    numBubble     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBubble(fi))      n++;  return(n); };
-  uint32    numOrphan     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isOrphan(fi))      n++;  return(n); };
-  uint32    numDelinquent (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isDelinquent(fi))  n++;  return(n); };
+  uint32    numContained  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isContained(fi))            n++;  return(n); };
+  uint32    numIgnored    (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isIgnored(fi))              n++;  return(n); };
+  uint32    numCoverageGap(void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isCoverageGap(fi))          n++;  return(n); };
+  uint32    numLopsided5  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsidedEnd(fi, false))   n++;  return(n); };
+  uint32    numLopsided3  (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isLopsidedEnd(fi,  true))   n++;  return(n); };
+  uint32    numBackbone   (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBackbone(fi))             n++;  return(n); };
+  uint32    numSpur       (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isSpur(fi))                 n++;  return(n); };
+  uint32    numBubble     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isBubble(fi))               n++;  return(n); };
+  uint32    numOrphan     (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isOrphan(fi))               n++;  return(n); };
+  uint32    numDelinquent (void) { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isDelinquent(fi))           n++;  return(n); };
 
   void      reportEdgeStatistics(const char *prefix, const char *label);
   void      reportBestEdges(const char *prefix, const char *label);

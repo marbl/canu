@@ -314,9 +314,6 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
         (isContained(fi) == true))     //  about best edges to/from these.
       continue;
 
-    if (isLopsided(fi) == true)        //  In the second pass, skip lopsided.  They're already
-      continue;                        //  flagged, and we won't undo it.
-
     if (isSpur(fi) == true)            //  In the second pass, skip spurs.  We don't care
       continue;                        //  if they're lopsided.
 
@@ -379,14 +376,16 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
     setLopsided3(fi, (score3 < lopsidedDiff));
 
 #if 0
-    if (isLopsided(fi) == false)
+    if ((isLopsidedEnd(fi, false) == false) &&
+        (isLopsidedEnd(fi,  true) == false)) {
       fprintf(LOP, "fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
                fi,
                this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
                this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
 #endif
 
-    if (isLopsided(fi) == true) {
+    if ((isLopsidedEnd(fi, false) == true) ||    //  If either end is lopsided, report something.
+        (isLopsidedEnd(fi,  true) == true)) {
       if     ((this5->readId() > 0) &&
               (this3->readId() > 0))
 #pragma omp critical (fprintf_LOP)
@@ -419,11 +418,13 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *this5 = getBestEdgeOverlap(fi, false);
       BestEdgeOverlap *this3 = getBestEdgeOverlap(fi, true);
 
-      if ((isLopsided(fi) == true) || (isLopsided(this5->readId()) == true))
-        *this5 = BestEdgeOverlap();
-
-      if ((isLopsided(fi) == true) || (isLopsided(this3->readId()) == true))
-        *this3 = BestEdgeOverlap();
+      //  Remove our edge if our end is lopsided.
+      if (isLopsidedEnd(fi, false) == true)   *this5 = BestEdgeOverlap();
+      if (isLopsidedEnd(fi,  true) == true)   *this3 = BestEdgeOverlap();
+        
+      //  Remove our efge if the read-end we have an edge to is lopsided.
+      if (isLopsidedEnd(this5->readId(), this5->read3p()) == true)   *this5 = BestEdgeOverlap();
+      if (isLopsidedEnd(this3->readId(), this3->read3p()) == true)   *this3 = BestEdgeOverlap();
     }
   }
 }
@@ -665,24 +666,21 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
         if (isCoverageGap(ovl[ii].b_iid)  == true)                //    No edges to coverage gap reads are allowed.
           continue;
 
-        if ((lopsidedNoBest == true) &&
-            ((isLopsided(ovl[ii].a_iid)   == true) ||             //    No edges to or from lopsided reads.
-             (isLopsided(ovl[ii].b_iid)   == true))) {
-          assert(0);
-          continue;
-        }
-
         //if (isLopsided(ovl[ii].b_iid)     == true)              //    Allow edges to bubble reads.
         //  continue;
 
         bool   Aend5 = ovl[ii].AEndIs5prime();   //  The overlap must extend off either the 5' or 3' end for it to be
         bool   Aend3 = ovl[ii].AEndIs3prime();   //  a valid BestEdge.  We're not contained, so only one can be true
 
-        if (Aend5 == true)   assert(Aend3 == false);
-        if (Aend3 == true)   assert(Aend5 == false);
-
         bool   Bend5 = ovl[ii].BEndIs5prime();   //  The overlap can go into either end of the B read.
         bool   Bend3 = ovl[ii].BEndIs3prime();
+
+        assert(Aend5 ^ Aend3);
+        assert(Bend5 ^ Bend3);
+
+        if ((isLopsidedEnd(ovl[ii].a_iid, Aend3) == true) ||   //  Ignore the overlap if it is to a lopsided end.
+            (isLopsidedEnd(ovl[ii].b_iid, Bend3) == true))
+          continue;
 
         bool   sp5c  = (spurpath5.count(ovl[ii].b_iid) > 0);
         bool   sp3c  = (spurpath3.count(ovl[ii].b_iid) > 0);
@@ -939,8 +937,7 @@ BestOverlapGraph::findEdges(bool redoAll) {
     //  edges from, or that we don't want to change.
     if ((isIgnored(fi)   == true) ||         //  Ignore ignored reads.
         (isContained(fi) == true) ||         //  Ignore contained reads.
-        (isSpur(fi)      == true) ||         //  Ignore spur reads; they have carefully set edges.
-        (isLopsided(fi)  == true))           //  Ignore lopsided; they have no edges, period.
+        (isSpur(fi)      == true))           //  Ignore spur reads; they have carefully set edges.
       continue;
 
     //  Compute edges from an end if we're either requested to recompute all
@@ -1119,7 +1116,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "3.lopsided");
 
-    writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
+    writeStatus("BestOverlapGraph()--   Detected %8u lopsided 5' ends.\n", numLopsided5());
+    writeStatus("BestOverlapGraph()--            %8u lopsided 3' ends.\n", numLopsided3());
   }
 
   else {
@@ -1182,7 +1180,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "5.lopsided");
 
-    writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
+    writeStatus("BestOverlapGraph()--   Detected %8u lopsided 5' ends.\n", numLopsided5());
+    writeStatus("BestOverlapGraph()--            %8u lopsided 3' ends.\n", numLopsided3());
   }
 
   else {
@@ -1206,7 +1205,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   writeLog("-------- ------------------------------------------\n");
   writeLog("%8u reads are ignored\n",  numIgnored());
   writeLog("%8u reads have a gap in overlap coverage\n", numCoverageGap());
-  writeLog("%8u reads have lopsided best edges\n", numLopsided());
+  writeLog("%8u reads have lopsided 5' best edges\n", numLopsided5());
+  writeLog("%8u reads have lopsided 3' best edges\n", numLopsided3());
 
   reportBestEdges(prefix, "best");
 
@@ -1339,50 +1339,39 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       if (RI->readLength(id) == 0)
         continue;
 
+      char isC = (isContained(id))          ?  'C'        : '-';
+      char isI = (isIgnored(id))            ?  'I'        : '-';
+      char isG = (isCoverageGap(id))        ?  'G'        : '-';
+      char is5 = (isLopsidedEnd(id, false)) ? ('5' - '-') :  0;
+      char is3 = (isLopsidedEnd(id,  true)) ? ('3' - '-') :  0;
+      char isS = (isSpur(id))               ?  'S'        : '-';
+
+      char isL = (is5 && is3) ? 'L' : (is5 + is3 + '-');
+
+      //if      ((is5 == '5') && (is3 == '3'))    isL = 'L';
+      //else if  (is5 == '5')                     lsL = '5';
+      //else if  (is5 == '3')                     lsL = '3';
+
       if      ((e5e == false) && (e3e == false)) {
         fprintf(BE, "%-8u %5u %c%c%c%c%c  -------- -- - -------- --------  -------- -- - -------- --------\n",
-                id,
-                RI->libraryIID(id),
-                (isContained(id))   ? 'C' : '-',
-                (isIgnored(id))     ? 'I' : '-',
-                (isCoverageGap(id)) ? 'G' : '-',
-                (isLopsided(id))    ? 'L' : '-',
-                (isSpur(id))        ? 'S' : '-');
+                id, RI->libraryIID(id), isC, isI, isG, isL, isS);
       }
 
       else if ((e5e == false) && (e3e ==  true)) {
         fprintf(BE, "%-8u %5u %c%c%c%c%c  -------- -- - -------- --------  %8u %c' %c %8u %8.6f\n",
-                id,
-                RI->libraryIID(id),
-                (isContained(id))   ? 'C' : '-',
-                (isIgnored(id))     ? 'I' : '-',
-                (isCoverageGap(id)) ? 'G' : '-',
-                (isLopsided(id))    ? 'L' : '-',
-                (isSpur(id))        ? 'S' : '-',
+                id, RI->libraryIID(id), isC, isI, isG, isL, isS,
                 e3->readId(), e3->read3p() ? '3' : '5', e3mutual, e3len, e3err);
       }
 
       else if ((e5e ==  true) && (e3e == false)) {
         fprintf(BE, "%-8u %5u %c%c%c%c%c  %8u %c' %c %8u %8.6f  -------- -- - -------- --------\n",
-                id,
-                RI->libraryIID(id),
-                (isContained(id))   ? 'C' : '-',
-                (isIgnored(id))     ? 'I' : '-',
-                (isCoverageGap(id)) ? 'G' : '-',
-                (isLopsided(id))    ? 'L' : '-',
-                (isSpur(id))        ? 'S' : '-',
+                id, RI->libraryIID(id), isC, isI, isG, isL, isS,
                 e5->readId(), e5->read3p() ? '3' : '5', e5mutual, e5len, e5err);
       }
 
       else if ((e5e ==  true) && (e3e ==  true)) {
         fprintf(BE, "%-8u %5u %c%c%c%c%c  %8u %c' %c %8u %8.6f  %8u %c' %c %8u %8.6f\n",
-                id,
-                RI->libraryIID(id),
-                (isContained(id))   ? 'C' : '-',
-                (isIgnored(id))     ? 'I' : '-',
-                (isCoverageGap(id)) ? 'G' : '-',
-                (isLopsided(id))    ? 'L' : '-',
-                (isSpur(id))        ? 'S' : '-',
+                id, RI->libraryIID(id), isC, isI, isG, isL, isS,
                 e5->readId(), e5->read3p() ? '3' : '5', e5mutual, e5len, e5err,
                 e3->readId(), e3->read3p() ? '3' : '5', e3mutual, e3len, e3err);
       }
@@ -1523,9 +1512,6 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
   if (isCoverageGap(olap.b_iid)  == true)       //  Ignore edges into coverage gap reads.
     return;                                     //  Suspected to be bad, why go there?
 
-  //if (isLopsided(olap.b_iid)     == true)     //  Explicitly do NOT ignore edges into lopsided.
-  //  return;                                   //  Known to be very bad if we do.
-
   if (isIgnored(olap.b_iid) == true) {          //  Ignore ignored reads.  This could
     logEdgeScore(olap, "ignored");              //  happen; it's just easier to filter
     return;                                     //  them out here.
@@ -1541,6 +1527,7 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
 
   uint64           newScr = scoreOverlap(olap);
   bool             a3p    = olap.AEndIs3prime();
+  bool             b3p    = olap.BEndIs3prime();
   BestEdgeOverlap *best   = getBestEdgeOverlap(olap.a_iid, a3p);
   uint64          &score  = (a3p) ? (_best3score[olap.a_iid]) : (_best5score[olap.a_iid]);
 
@@ -1550,6 +1537,13 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
 
   if ((c5 == false) && (a3p == false))   return;
   if ((c3 == false) && (a3p ==  true))   return;
+
+  //  Skip scoring if either read-end in the overlap is lopsided.
+
+  if (lopsidedNoBest == true) {
+    if (isLopsidedEnd(olap.a_iid, a3p) == true)   return;
+    if (isLopsidedEnd(olap.b_iid, b3p) == true)   return;
+  }
 
   //  Otherwise, finally, update the best edge if this one is better.  And log.
 
@@ -1582,10 +1576,21 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
       (isIgnored(olap.b_iid) == true))           //  the overlap is also bad.
     isIgn = true;
 
-  if ((lopsidedNoBest == true) &&
-      ((isLopsided(olap.a_iid) == true) ||
-       (isLopsided(olap.b_iid) == true)))
-    isBad = true;
+  if (olap.isDovetail() == true) {               //  If dovetail, and to a lopsided end
+    bool   Aend5 = olap.AEndIs5prime();          //  it's bad.
+    bool   Aend3 = olap.AEndIs3prime();
+
+    bool   Bend5 = olap.BEndIs5prime();
+    bool   Bend3 = olap.BEndIs3prime();
+
+    assert(Aend5 ^ Aend3);
+    assert(Bend5 ^ Bend3);
+
+    if ((isLopsidedEnd(olap.a_iid, Aend3) == true) ||
+        (isLopsidedEnd(olap.b_iid, Bend3) == true))
+      isBad = true;
+  }
+
 
   if (minOlapPercent > 0.0) {
     uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the

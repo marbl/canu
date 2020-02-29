@@ -131,25 +131,16 @@ populateUnitig(Unitig           *unitig,
 
 
 
-extern bool lopsidedNoSeed;
-
 void
 populateUnitig(TigVector &tigs,
                int32      fi) {
-
-  //  Don't bother making tigs for deleted, contained, zombies, coverage gap,
-  //  lopsided, et cetera, reads.
 
   if ((RI->readLength(fi) == 0) ||        //  Skip deleted
       (tigs.inUnitig(fi) != 0))           //  Skip placed
     return;
 
-  if ((OG->isContained(fi)   == true) ||  //  Don't start a unitig if contained,
-      (OG->isCoverageGap(fi) == true))    //  coverage gap, or lopsided.
-    return;
-
-  if ((lopsidedNoSeed     == true) &&
-      (OG->isLopsided(fi) == true))
+  if ((OG->isContained(fi)   == true) ||  //  Don't start a unitig if contained
+      (OG->isCoverageGap(fi) == true))    //  or coverage gap.
     return;
 
   Unitig *utg = tigs.newUnitig();
