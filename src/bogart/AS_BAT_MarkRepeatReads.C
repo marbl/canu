@@ -929,11 +929,11 @@ findConfusedEdges(TigVector            &tigs,
       //  This read intersects this repeat region.  Find the
       //  reads we used to construct the tig originally.
 
-      //uint32  best5idx = findThickestPrevRead(tig, fi, rMin, rMax);
-      //uint32  best3idx = findThickestNextRead(tig, fi, rMin, rMax);
+      uint32  best5idx = findThickestPrevRead(tig, fi, rMin, rMax);
+      uint32  best3idx = findThickestNextRead(tig, fi, rMin, rMax);
 
-      uint32  best5idx = findPrevBestRead(tig, fi, rMin, rMax);
-      uint32  best3idx = findNextBestRead(tig, fi, rMin, rMax);
+      //uint32  best5idx = findPrevBestRead(tig, fi, rMin, rMax);
+      //uint32  best3idx = findNextBestRead(tig, fi, rMin, rMax);
 
       ufNode *rdB5 = (best5idx < tig->ufpath.size()) ? &tig->ufpath[best5idx] : NULL;
       ufNode *rdB3 = (best3idx < tig->ufpath.size()) ? &tig->ufpath[best3idx] : NULL;
@@ -974,7 +974,7 @@ findConfusedEdges(TigVector            &tigs,
 
         bool   isC = false;    //  Argh, isConfused is already used.
 
-        //isC |= (internal5sco.score < external5sco.score);
+        isC |= (internal5sco.score < external5sco.score);
 
         isC |= ((ad5 <= confusedAbsolute) &&
                 (pd5 <  confusedPercent));
