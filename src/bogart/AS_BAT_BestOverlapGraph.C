@@ -342,6 +342,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
         (back3->readId() == fi) && (back3->read3p() == true))
       continue;
 
+    //FIXME Why disabled?
     //  Complain loudly if we have a best overlap to a spur.  Why doesn't the
     //  read we have an edge to have a edge out of it?!
 
@@ -1172,11 +1173,12 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (lopsidedDiff > 0) {
     writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
+    //FIXME reduce logging?
   reportBestEdges(prefix, "9.beforeLopsided");
     removeLopsidedEdges(prefix, "lopsided.pass2");   //  Remove reads that look weird.  (not that we discriminate against weirdness)
     //findContains();                                //  DO NOT recompute contained reads.
   reportBestEdges(prefix, "9.beforeFindEdges");
-    findEdges(false);                                //  Recompute best edges that have no existing eddge.
+    //findEdges(false);                                //  DO NOT recompute best edges that have no existing eddge.
   reportBestEdges(prefix, "9.afterFindEdges");
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
