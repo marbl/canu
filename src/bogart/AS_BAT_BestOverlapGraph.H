@@ -283,8 +283,6 @@ public:
 
 public:
   bool      isOverlapBadQuality(BAToverlap& olap);  //  Used in repeat detection
-private:
-  uint64    scoreOverlap(BAToverlap& olap);
 
 private:
   void      scoreEdge(BAToverlap& olap, bool c5, bool c3);
