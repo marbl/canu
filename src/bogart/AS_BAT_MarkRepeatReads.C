@@ -1010,8 +1010,14 @@ findConfusedEdges(TigVector            &tigs,
         double  ad3 =         fabs(internal3sco.score - external3sco.score);   //  Absolute difference.
         double  pd3 = 200 * ad3 / (internal3sco.score + external3sco.score);   //  Percent diffference.
 
-        if ((ad3 <= confusedAbsolute) &&
-            (pd3 <  confusedPercent)) {
+        bool   isC = false;    //  Argh, isConfused is already used.
+
+        isC |= (internal3sco.score < external3sco.score);
+
+        isC |= ((ad3 <= confusedAbsolute) &&
+                (pd3 <  confusedPercent));
+
+        if (isC == true) {
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external3sco.tigId, external3sco.readId,
