@@ -131,8 +131,6 @@ populateUnitig(Unitig           *unitig,
 
 
 
-extern bool lopsidedNoSeed;
-
 void
 populateUnitig(TigVector &tigs,
                int32      fi) {
@@ -146,10 +144,6 @@ populateUnitig(TigVector &tigs,
 
   if ((OG->isContained(fi)   == true) ||  //  Don't start a unitig if contained,
       (OG->isCoverageGap(fi) == true))    //  coverage gap, or lopsided.
-    return;
-
-  if ((lopsidedNoSeed     == true) &&
-      (OG->isLopsided(fi) == true))
     return;
 
   Unitig *utg = tigs.newUnitig();

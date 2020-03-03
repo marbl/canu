@@ -48,12 +48,6 @@
 #include "intervalList.H"
 #include "stddev.H"
 
-//  Temporary.
-extern uint32 covGapOlap;        //  Require overlap of x bp when detecting coverage gaps.
-extern uint32 lopsidedDiff;      //  Call reads lopsided if diff between is more than x percent.
-extern bool   lopsidedNoSeed;    //  Don't seed tigs with lopsided reads.
-extern bool   lopsidedNoBest;    //  Don't find edges to/from lopsided reads.
-extern double minOlapPercent;    //  Don't use overlaps less than minOlapPercent * min(lenA,lenB) length
 
 
 //
@@ -262,7 +256,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
 
 
 void
-BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
+BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOlap) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -379,7 +373,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix) {
 
 
 void
-BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
+BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, double lopsidedDiff) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -389,8 +383,9 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
 
-    if ((isIgnored(fi)   == true) ||   //  Skip ignored and contain, because we don't care
-        (isContained(fi) == true))     //  about best edges to/from these.
+    if ((isIgnored(fi)     == true) ||   //  Skip ignored and contain, because we don't care
+        (isContained(fi)   == true) ||   //  about best edges to/from these.  And skip covGap
+        (isCoverageGap(fi) == true))     //  because they're already flagged as crap.
       continue;
 
     if (isLopsided(fi) == true)        //  In the second pass, skip lopsided.  They're already
@@ -423,15 +418,20 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
 
     //  Complain loudly if we have a best overlap to a spur.  Why doesn't the
     //  read we have an edge to have a edge out of it?!
+    //
+    //  Unfortunately, this fails on the reduced graph.
 
-#if 0
+#if 1
     if ((this5->readId() != 0) && (back5->readId() == 0))
-      writeLog("WARNING: read %u 5' has overlap to spur read %u %c'!\n",
+      writeStatus("WARNING: read %u 5' has overlap to spur read %u %c'!\n",
                fi, this5->readId(), this5->read3p() ? '3' : '5');
 
     if ((this3->readId() != 0) && (back3->readId() == 0))
-      writeLog("WARNING: read %u 3' has overlap to spur read %u %c'!\n",
+      writeStatus("WARNING: read %u 3' has overlap to spur read %u %c'!\n",
                fi, this3->readId(), this3->read3p() ? '3' : '5');
+
+    assert((this5->readId() == 0) || (back5->readId() != 0));
+    assert((this3->readId() == 0) || (back3->readId() != 0));
 #endif
 
     //  Compute the length of those best overlaps...
@@ -493,17 +493,15 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label) {
   //  Remove overlaps to or from lopsided reads.  We'll let the parent find
   //  new edges, as needed.
 
-  if (lopsidedNoBest == true) {
-    for (uint32 fi=1; fi <= fiLimit; fi++) {
-      BestEdgeOverlap *this5 = getBestEdgeOverlap(fi, false);
-      BestEdgeOverlap *this3 = getBestEdgeOverlap(fi, true);
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    BestEdgeOverlap *this5 = getBestEdgeOverlap(fi, false);
+    BestEdgeOverlap *this3 = getBestEdgeOverlap(fi, true);
 
-      if ((isLopsided(fi) == true) || (isLopsided(this5->readId()) == true))
-        *this5 = BestEdgeOverlap();
+    if ((isLopsided(fi) == true) || (isLopsided(this5->readId()) == true))
+      *this5 = BestEdgeOverlap();
 
-      if ((isLopsided(fi) == true) || (isLopsided(this3->readId()) == true))
-        *this3 = BestEdgeOverlap();
-    }
+    if ((isLopsided(fi) == true) || (isLopsided(this3->readId()) == true))
+      *this3 = BestEdgeOverlap();
   }
 }
 
@@ -566,9 +564,11 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   //    If small, flag that read end as leading to a spur end.
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
-    if ((isIgnored(fi)   == true) ||   //  Ignored read, ignore.
-        (isContained(fi) == true) ||   //  Contained read, ignore.
-        (RI->isValid(fi) == false))    //  Unused read, ignore.
+    if ((RI->isValid(fi)   == false) ||   //  Unused read, ignore.
+        (isIgnored(fi)     == true)  ||   //  Ignored read, ignore.
+        (isContained(fi)   == true)  ||   //  Contained read, ignore.
+        (isCoverageGap(fi) == true)  ||   //  Chimeric covGap read, ignore.
+        (isLopsided(fi)    == true))      //  Lopsided read, ignore.
       continue;
 
     uint32  dist5 = spurDistance(getBestEdgeOverlap(fi, false), spurDepth);
@@ -591,10 +591,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   //  Do several iterations of spur path mark removal.
   //
 
-  writeStatus("BestOverlapGraph()--   After initial scan, found:\n");
-  writeStatus("BestOverlapGraph()--     %5u spur reads.\n", spur.size());
-  writeStatus("BestOverlapGraph()--     %5u 5' spur paths.\n", spurpath5.size());
-  writeStatus("BestOverlapGraph()--     %5u 3' spur paths.\n", spurpath3.size());
+  writeStatus("BestOverlapGraph()--   Initial       %8u terminal  spur reads - %8u/%-8u 5'/3' spur path reads.\n",
+              spur.size(), spurpath5.size(), spurpath3.size());
 
   uint32  n5pChanged = 1;
   uint32  n3pChanged = 1;
@@ -633,13 +631,11 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     //
 
     for (uint32 fi=1; fi <= fiLimit; fi++) {
-      if ((isIgnored(fi)     == true) ||   //  Ignored read, ignore.
-          (isContained(fi)   == true) ||   //  Contained read, ignore.
-          (RI->isValid(fi)   == false))    //  Unused read, ignore.
+      if ((RI->isValid(fi)   == false) ||   //  Unused read, ignore.
+          (isIgnored(fi)     == true)  ||   //  Ignored read, ignore.
+          (isContained(fi)   == true)  ||   //  Contained read, ignore.
+          (isCoverageGap(fi) == true))      //  Chimeric covGap read, ignore.
         continue;
-
-      if (isCoverageGap(fi)  == true)      //  Treat covGap reads as if they
-        continue;                          //  are terminal spur reads.
 
       //if (isLopsided(fi)     == true)    //  Explicitly allow bubble reads
       //  continue;                        //  to save spurs.
@@ -697,9 +693,10 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     memset(_best3score, 0, sizeof(uint64) * (fiLimit + 1));     //  Clear all edge scores.
 
     for (uint32 fi=1; fi <= fiLimit; fi++) {
-      if ((isIgnored(fi)   == true) ||   //  Ignored read, ignore.
-          (isContained(fi) == true) ||   //  Contained read, ignore.
-          (RI->isValid(fi) == false))    //  Unused read, ignore.
+      if ((RI->isValid(fi)   == false) ||   //  Unused read, ignore.
+          (isIgnored(fi)     == true)  ||   //  Ignored read, ignore.
+          (isContained(fi)   == true)  ||   //  Contained read, ignore.
+          (isCoverageGap(fi) == true))      //  Chimeric covGap read, ignore.
         continue;
 
       uint32      no  = 0;
@@ -724,9 +721,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
         if (isCoverageGap(ovl[ii].b_iid)  == true)                //    No edges to coverage gap reads are allowed.
           continue;
 
-        if ((lopsidedNoBest == true) &&
-            ((isLopsided(ovl[ii].a_iid)   == true) ||             //    No edges to or from lopsided reads.
-             (isLopsided(ovl[ii].b_iid)   == true))) {
+        if ((isLopsided(ovl[ii].a_iid)   == true) ||              //    No edges to or from lopsided reads.
+            (isLopsided(ovl[ii].b_iid)   == true)) {
           assert(0);
           continue;
         }
@@ -832,10 +828,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
     fclose(SS);
 
-    writeStatus("BestOverlapGraph()--   After iteration %u, found:\n", iter);
-    writeStatus("BestOverlapGraph()--     %5u spur reads.\n", spur.size());
-    writeStatus("BestOverlapGraph()--     %5u 5' spur paths;  %5u 5' edges changed to avoid a spur path.\n", spurpath5.size(), n5pChanged);
-    writeStatus("BestOverlapGraph()--     %5u 3' spur paths;  %5u 5' edges changed to avoid a spur path.\n", spurpath3.size(), n3pChanged);
+    writeStatus("BestOverlapGraph()--   Iteration %1u - %8u terminal  spur reads - %8u/%-8u 5'/3' spur path reads - %8u/%-8u edges changed to avoid spur path.\n",
+                iter, spur.size(), spurpath5.size(), spurpath3.size(), n5pChanged, n3pChanged);
   }
 
   delete [] orig5all;
@@ -871,6 +865,9 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   }
 
   fclose(F);
+
+  writeStatus("BestOverlapGraph()--   Final         %8u confirmed spur reads - %8u/%-8u 5'/3' spur path reads.\n",
+              numSpur(), spurpath5.size(), spurpath3.size());
 
   //
   //  Remove edges from spur reads to good reads.
@@ -947,23 +944,26 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
   bool   isBad = true;
   bool   isIgn = false;
 
-  if (olap.erate() <= _errorLimit)               //  Our only real test is on
-    isBad = false;                               //  overlap error rate.
+  if (olap.erate() <= _errorLimit)                 //  Our only real test is on
+    isBad = false;                                 //  overlap error rate.
 
-  if ((RI->isValid(olap.a_iid) == false) ||      //  But if either read is not valid,
-      (RI->isValid(olap.b_iid) == false))        //  the overlap is bad.  This should
-    isIgn = true;                                //  never occur.
+  if ((RI->isValid(olap.a_iid) == false) ||        //  But if either read is not valid,
+      (RI->isValid(olap.b_iid) == false))          //  the overlap is bad.  This should
+    isIgn = true;                                  //  never occur.
 
-  if ((isIgnored(olap.a_iid) == true) ||         //  But if either read is ignored,
-      (isIgnored(olap.b_iid) == true))           //  the overlap is also bad.
+  if ((isIgnored(olap.a_iid) == true) ||           //  But if either read is ignored,
+      (isIgnored(olap.b_iid) == true))             //  the overlap is also bad.
     isIgn = true;
 
-  if ((lopsidedNoBest == true) &&
-      ((isLopsided(olap.a_iid) == true) ||
-       (isLopsided(olap.b_iid) == true)))
+  if ((isIgnored(olap.a_iid) == true) ||           //  But if either read is ignored,
+      (isIgnored(olap.b_iid) == true))             //  the overlap is also bad.
+    isIgn = true;
+
+  if ((isLopsided(olap.a_iid) == true) ||          //  Bad if the edge touches a
+      (isLopsided(olap.b_iid) == true))            //  lopsided read.
     isBad = true;
 
-  if (minOlapPercent > 0.0) {
+  if (_minOlapPercent > 0.0) {
     uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the
     uint32  lenB = RI->readLength(olap.b_iid);     //  length of the overlap relative
     uint32  oLen = RI->overlapLength(olap.a_iid,   //  to the reads involved is
@@ -971,8 +971,8 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
                                      olap.a_hang,  //  but do show up as false best in
                                      olap.b_hang); //  lopsided reads.
 
-    if ((oLen < lenA * minOlapPercent) ||
-        (oLen < lenB * minOlapPercent))
+    if ((oLen < lenA * _minOlapPercent) ||
+        (oLen < lenB * _minOlapPercent))
       isBad = true;
   }
 
@@ -1094,7 +1094,8 @@ BestOverlapGraph::findContains(void) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    if (isIgnored(fi)  == true)
+    if ((isIgnored(fi)     == true) ||
+        (isCoverageGap(fi) == true))
       continue;
 
     for (uint32 ii=0; ii<no; ii++) {
@@ -1128,27 +1129,30 @@ BestOverlapGraph::findEdges(bool redoAll) {
   memset(_best5score, 0, sizeof(uint64) * (fiLimit + 1));
   memset(_best3score, 0, sizeof(uint64) * (fiLimit + 1));
 
+  //  Clear all edges if we're recomputing all.
+
+  if (redoAll == true) {
+    for (uint32 fi=1; fi <= fiLimit; fi++) {
+      _reads[fi]._best5.clear();
+      _reads[fi]._best3.clear();
+    }
+  }
+
   //  For each read, score every overlap, remembering which is the best for each end.
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
-
-    //  Skip reads that cannot have a best edge, that we don't want to have
-    //  edges from, or that we don't want to change.
-    if ((isIgnored(fi)   == true) ||         //  Ignore ignored reads.
-        (isContained(fi) == true) ||         //  Ignore contained reads.
-        (isSpur(fi)      == true) ||         //  Ignore spur reads; they have carefully set edges.
-        (isLopsided(fi)  == true))           //  Ignore lopsided; they have no edges, period.
+    if ((isIgnored(fi)     == true) ||         //  Ignore ignored reads.
+        (isContained(fi)   == true) ||         //  Ignore contained reads.
+        (isCoverageGap(fi) == true) ||         //  Ignore covGap reads; they're just garbage.
+        (isSpur(fi)        == true) ||         //  Ignore spur reads; they have carefully set edges.
+        (isLopsided(fi)    == true))           //  Ignore lopsided; they have no edges, period.
       continue;
 
     //  Compute edges from an end if we're either requested to recompute all
     //  edges, or if there is no edge.
     bool  c5 = ((redoAll == true) || (_reads[fi]._best5.readId() == 0));
     bool  c3 = ((redoAll == true) || (_reads[fi]._best3.readId() == 0));
-
-    //  Clear the edge if we're computing it.
-    if (c5 == true)  _reads[fi]._best5.clear();
-    if (c3 == true)  _reads[fi]._best3.clear();
 
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
@@ -1484,19 +1488,43 @@ BestOverlapGraph::removeContainedDovetails(void) {
     }
   }
 
-  fprintf(stderr, "Cleared %u 5' and %u 3' best edges on contained reads.\n", fix5, fix3);
+  assert(fix5 == 0);
+  assert(fix3 == 0);
+}
+
+
+
+void
+BestOverlapGraph::removeCovGapEdges(void) {
+  uint32  fiLimit = RI->numReads();
+  uint32  fix5    = 0;
+  uint32  fix3    = 0;
+
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    if (isCoverageGap(fi) == true) {
+      if (getBestEdgeOverlap(fi, false)->readId() != 0)
+        fix5++;
+      if (getBestEdgeOverlap(fi, true)->readId() != 0)
+        fix3++;
+
+      getBestEdgeOverlap(fi, false)->clear();
+      getBestEdgeOverlap(fi, true) ->clear();
+    }
+  }
+
+  assert(fix5 == 0);
+  assert(fix3 == 0);
 }
 
 
 
 BestOverlapGraph::BestOverlapGraph(double            erateGraph,
-                                   double            deviationGraph,
+                                   double            deviationGraph,    double  minOlapPercent,
                                    const char       *prefix,
-                                   bool              filterCoverageGap,
+                                   bool              filterCoverageGap, uint32  covGapOlap,
                                    bool              filterHighError,
-                                   bool              filterLopsided,
-                                   bool              filterSpur,
-                                   uint32            spurDepth,
+                                   bool              filterLopsided,    double  lopsidedDiff,
+                                   bool              filterSpur,        uint32  spurDepth,
                                    BestOverlapGraph *BOG) {
 
   writeStatus("\n");
@@ -1516,6 +1544,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   _mad                 = 0.0;
 
   _errorLimit          = erateGraph;
+  _minOlapPercent      = minOlapPercent;
 
   _erateGraph          = erateGraph;
   _deviationGraph      = deviationGraph;
@@ -1572,6 +1601,11 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
       emitGoodOverlaps(prefix, "1.filtered");
 
     writeStatus("BestOverlapGraph()--   Ignore overlaps with more than %.6f%% error.\n", 100.0 * _errorLimit);
+
+    //reportBestEdges(prefix, "1.filtered");
+
+    removeContainedDovetails();
+    removeCovGapEdges();
   }
 
   else {
@@ -1585,14 +1619,19 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (filterCoverageGap) {
     writeStatus("BestOverlapGraph()-- Filtering reads with a gap in overlap coverage.\n");
 
-    removeReadsWithCoverageGap(prefix);   //  Remove crappy reads.
-    findContains();                       //  Recompute contained reads; remove those contained in covGap reads.
-    findEdges(true);                      //  Recompute best edges.
+    removeReadsWithCoverageGap(prefix, covGapOlap);   //  Remove crappy reads.
+    findContains();                                   //  Recompute contained reads; remove those contained in covGap reads.
+    findEdges(true);                                  //  Recompute best edges.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "2.covGap");
 
     writeStatus("BestOverlapGraph()--   %u reads removed.\n", numCoverageGap());
+
+    //reportBestEdges(prefix, "2.covGap");
+
+    removeContainedDovetails();
+    removeCovGapEdges();
   }
 
   else {
@@ -1614,16 +1653,21 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //
 
   if (lopsidedDiff > 0) {
-    writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
+    writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %.2f%% different).\n", lopsidedDiff);
 
-    removeLopsidedEdges(prefix, "lopsided");   //  Remove reads that look weird.  (note that we discriminate against weirdness)
-    //findContains();                                //  DO NOT recompute contained reads.
-    findEdges(false);                                //  Recompute best edges that have no existing eddge.
+    removeLopsidedEdges(prefix, "lopsided", lopsidedDiff);   //  Remove reads that look weird (not that we discriminate against weirdness!)
+    //findContains();                                        //  DO NOT recompute contained reads.
+    findEdges(false);                                        //  Recompute best edges that have no existing eddge.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "3.lopsided");
 
     writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
+
+    //reportBestEdges(prefix, "3.lopsided");
+
+    removeContainedDovetails();
+    removeCovGapEdges();
   }
 
   else {
@@ -1646,64 +1690,43 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     writeStatus("BestOverlapGraph()-- Filtering spur reads.\n");
 
     removeSpannedSpurs(prefix, spurDepth);
+
+    //  Verify, manually, that findEdges(false) does not change any of
+    //  the spur removal results.
+    //reportBestEdges(prefix, "9.beforeFindEdges");
+    //findEdges(false);
+    //reportBestEdges(prefix, "9.afterFindEdges");
+
+    reportBestEdges(prefix, "4.spurs");
+
+    removeContainedDovetails();
+    removeCovGapEdges();
   }
 
   else {
     writeStatus("BestOverlapGraph()-- NOT filtering spur reads.\n");
   }
 
+  //
+  //  We tried a second pass of lopsided end removal here, but didn't like
+  //  it.  It significantly affected HiFi humans; chm13 20kb library
+  //  assembled worse than the 10kb library.  Almost all assemblies are down
+  //  to 15 Mbp N50s.  BAC resolution is worse.
+  //
+
+  //
+  //  All done!  Do some final checks and cleanup, dump various logs and reports.
+  //
+
   if (logFileFlagSet(LOG_BEST_OVERLAPS))
     emitGoodOverlaps(prefix, "4.spur-removal");
 
-  //  This will let you verify that findEdges(false) does not change any of
-  //  the spur removal results.
-#if 0
-  reportBestEdges(prefix, "9.beforeFindEdges");
-  findEdges(false);
-  reportBestEdges(prefix, "9.afterFindEdges");
-#endif
+  reportBestEdges(prefix, "best");
 
-//TODO remove
-//In case you find a case where enabling it could help -- talk to Sergey!
-#if 0
-  //  Check for lopsided reads again.  DO NOT findEdges() after this; it
-  //  undoes what spur removal did, and removeLopsidedEdges() does remove the
-  //  edges anyway (we just don't get a second chance to find a better edge).
-  //
-  //  Damages humans.  HiFi affected worse than normal.  chm12 20kb library
-  //  is now worse than the 10kb library.  Almost all assemblies are down to
-  //  15 Mbp N50s.  BAC resolution is worse.
-  if (lopsidedDiff > 0) {
-    writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
-
-    reportBestEdges(prefix, "9.beforeLopsided");
-    removeLopsidedEdges(prefix, "lopsided.pass2");
-    //findContains();
-    reportBestEdges(prefix, "9.beforeFindEdges");
-    findEdges(false);
-    reportBestEdges(prefix, "9.afterFindEdges");
-
-    if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "5.lopsided");
-
-    writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
-  }
-
-  else {
-    writeStatus("BestOverlapGraph()-- NOT filtering reads with lopsided best edges.\n");
-  }
-#endif
-
-  //
-  //  Do some final boring cleanup:
-  //    remove best edges associated with contained reads.
-  //
+  reportEdgeStatistics(prefix, "FINAL");
 
   removeContainedDovetails();
-
-  //
-  //  Report filtering and final statistics.
-  //
+  removeCovGapEdges();
 
   writeLog("\n");
   writeLog("EDGE FILTERING\n");
@@ -1711,10 +1734,6 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   writeLog("%8u reads are ignored\n",  numIgnored());
   writeLog("%8u reads have a gap in overlap coverage\n", numCoverageGap());
   writeLog("%8u reads have lopsided best edges\n", numLopsided());
-
-  reportBestEdges(prefix, "best");
-
-  reportEdgeStatistics(prefix, "FINAL");
 
   //  Done with scoring data.
 

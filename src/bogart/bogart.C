@@ -77,12 +77,6 @@ OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 
-//  Temporary
-uint32 covGapOlap     = 500;     //  Require overlap of x bp when detecting coverage gaps.
-uint32 lopsidedDiff   = 25;      //  Call reads lopsided if diff between is more than x percent.
-bool   lopsidedNoSeed = false;   //  Don't seed tigs with lopsided reads.
-bool   lopsidedNoBest = true;    //  Don't find edges to/from lopsided reads.
-double minOlapPercent = 0.0;
 
 int
 main (int argc, char * argv []) {
@@ -98,6 +92,10 @@ main (int argc, char * argv []) {
   bool      filterSpur               = true;
   uint32    spurDepth                = 3;
   bool      filterDeadEnds           = true;
+
+  uint32    covGapOlap               = 500;     //  Require overlap of x bp when detecting coverage gaps.
+  double    lopsidedDiff             = 25.0;    //  Call reads lopsided if diff between is more than x percent.
+  double    minOlapPercent           =  0.0;
 
   uint64    genomeSize               = 0;
 
@@ -237,44 +235,14 @@ main (int argc, char * argv []) {
       filterSpur        = ((arg >= argc) || (strcasestr(argv[arg], "spur")        == NULL));
       filterDeadEnds    = ((arg >= argc) || (strcasestr(argv[arg], "deadends")    == NULL));
 
-
-
-      //  Temporary
     } else if (strcmp(argv[arg], "-minolappercent") == 0) {
       minOlapPercent = strtodouble(argv[++arg]);
-      fprintf(stderr, "MINOLAPPERCENT %f\n", minOlapPercent);
 
-      //  Temporary
     } else if (strcmp(argv[arg], "-covgapolap") == 0) {
       covGapOlap = strtouint32(argv[++arg]);
-      fprintf(stderr, "COVGAPOLAP %d\n", covGapOlap);
 
-      //  Temporary
     } else if (strcmp(argv[arg], "-lopsided") == 0) {
-      ++arg;
-
-      if (strcmp(argv[arg], "off") == 0) {
-        lopsidedDiff   = 0;
-        fprintf(stderr, "LOPSIDED OFF %d\n", lopsidedDiff);
-      }
-
-      else if (strcmp(argv[arg], "noseed") == 0) {
-        lopsidedDiff   = strtouint32(argv[++arg]);
-        lopsidedNoSeed = true;
-        lopsidedNoBest = false;
-        fprintf(stderr, "LOPSIDED NOSEED %d\n", lopsidedDiff);
-      }
-
-      else if (strcmp(argv[arg], "nobest") == 0) {
-        lopsidedDiff   = strtouint32(argv[++arg]);
-        lopsidedNoSeed = false;
-        lopsidedNoBest = true;
-        fprintf(stderr, "LOPSIDED NOBEST %d\n", lopsidedDiff);
-      }
-
-      else {
-        assert(0);
-      }
+      lopsidedDiff = strtodouble(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
@@ -466,7 +434,13 @@ main (int argc, char * argv []) {
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen);
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
-  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterCoverageGap, filterHighError, filterLopsided, filterSpur, spurDepth);
+  OG = new BestOverlapGraph(erateGraph,
+                            deviationGraph, minOlapPercent,
+                            prefix,
+                            filterCoverageGap, covGapOlap,
+                            filterHighError,
+                            filterLopsided, lopsidedDiff,
+                            filterSpur, spurDepth);
   CG = new ChunkGraph(prefix);
 
   //
@@ -591,12 +565,15 @@ main (int argc, char * argv []) {
   //reportOverlaps(contigs, prefix, "mergeOrphans");
   reportTigs(contigs, prefix, "mergeOrphans", genomeSize);
 
-#if 1
+#if 0
   {
     setLogFile(prefix, "reducedGraph");
 
     //  Build a new BestOverlapGraph, let it dump logs to 'reduced',
     //  then destroy the graph.
+    //
+    //  Note that this will fail an assert in BestOverlapGraph::removeLopsidedEdges(),
+    //  and you'll need to disable it manually.
 
     fprintf(stderr, "\n");
     fprintf(stderr, "----------------------------------------\n");
@@ -605,13 +582,12 @@ main (int argc, char * argv []) {
             OG->numBubble());
 
     BestOverlapGraph *OGbf = new BestOverlapGraph(erateGraph,
-                                                  deviationGraph,
+                                                  deviationGraph, minOlapPercent,
                                                   "reduced",
-                                                  filterCoverageGap,
+                                                  filterCoverageGap, covGapOlap,
                                                   filterHighError,
-                                                  filterLopsided,
-                                                  filterSpur,
-                                                  spurDepth,
+                                                  filterLopsided, lopsidedDiff,
+                                                  filterSpur, spurDepth,
                                                   OG);
     delete OGbf;
 

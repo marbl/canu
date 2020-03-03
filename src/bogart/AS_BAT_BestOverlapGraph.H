@@ -201,10 +201,10 @@ private:
 
 class BestOverlapGraph {
 private:
-  void   removeReadsWithCoverageGap(const char *prefix);
+  void   removeReadsWithCoverageGap(const char *prefix, uint32 covGapOlap);
+  void   removeLopsidedEdges(const char *prefix, const char *label, double lopsidedDiff);
   uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
-  void   removeLopsidedEdges(const char *prefix, const char *label);
 
   void   findContains(void);
   void   findEdges(bool redoAll);
@@ -212,18 +212,18 @@ private:
   void   findErrorRateThreshold(void);
 
   void   removeContainedDovetails(void);
+  void   removeCovGapEdges(void);
 
   void   emitGoodOverlaps(const char *prefix, const char *label);
 
 public:
   BestOverlapGraph(double            erateGraph,
-                   double            deviationGraph,
+                   double            deviationGraph,    double  minOlapPercent,
                    const char       *prefix,
-                   bool              filterNoCoverage,
+                   bool              filterCoverageGap, uint32  covGapOlap,
                    bool              filterHighError,
-                   bool              filterLopsided,
-                   bool              filterSpur,
-                   uint32            spurDepth,
+                   bool              filterLopsided,    double  lopsidedDiff,
+                   bool              filterSpur,        uint32  spurDepth,
                    BestOverlapGraph *BOG = NULL);
 
   ~BestOverlapGraph() {
@@ -304,6 +304,7 @@ public:
   double                     _deviationGraph;
 private:
   double                     _errorLimit;
+  double                     _minOlapPercent;
 };
 
 
