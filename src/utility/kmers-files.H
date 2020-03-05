@@ -144,14 +144,14 @@ public:
     _numKmers      = 0;
   }
 
-  kmpref     blockPrefix(void)     { return(_blockPrefix);   };
-  uint64     blockPosition(void)   { return(_blockPosition); };
-  uint64     numKmers(void)        { return(_numKmers);      };
+  kmpref     blockPrefix(void)     { return((kmpref)_blockPrefix);   };
+  uint64     blockPosition(void)   { return(        _blockPosition); };
+  uint64     numKmers(void)        { return(        _numKmers);      };
 
 private:
-  kmpref    _blockPrefix;
-  uint64    _blockPosition;
-  uint64    _numKmers;
+  uint64    _blockPrefix;     //  For compatibility, and alignment, _blockPrefix
+  uint64    _blockPosition;   //  needs to be uint64 instead of the more correct
+  uint64    _numKmers;        //  kmpref.
 };
 
 
