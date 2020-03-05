@@ -62,20 +62,20 @@ public:
   };
 
 public:
-  char                    merylName[FILENAME_MAX+1];
-  char                    histoName[FILENAME_MAX+1];
-  char                    outputName[FILENAME_MAX+1];
+  char                  merylName[FILENAME_MAX+1];
+  char                  histoName[FILENAME_MAX+1];
+  char                  outputName[FILENAME_MAX+1];
 
-  kmerCountExactLookup   *lookup;
-  uint32                  minCount;
-  uint32                  maxCount;
-  uint64                  nKmers;
+  merylExactLookup     *lookup;
+  uint32                minCount;
+  uint32                maxCount;
+  uint64                nKmers;
 
-  uint32                  nReads;
-  uint64                  nBases;
+  uint32                nReads;
+  uint64                nBases;
 
-  compressedFileWriter   *outputWriter;
-  FILE                   *outputFile;
+  compressedFileWriter *outputWriter;
+  FILE                 *outputFile;
 };
 
 
@@ -423,9 +423,9 @@ hapData::initializeKmerTable(uint32 maxMemory) {
   //  Get this behavior with option '-H "" histo out.fasta',
 
   if (merylName[0]) {
-    kmerCountFileReader  *reader = new kmerCountFileReader(merylName);
+    merylFileReader  *reader = new merylFileReader(merylName);
 
-    lookup = new kmerCountExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
+    lookup = new merylExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
 
     if (lookup->configure() == false) {
       exit(1);
