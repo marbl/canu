@@ -1512,6 +1512,9 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
   if (isCoverageGap(olap.b_iid)  == true)       //  Ignore edges into coverage gap reads.
     return;                                     //  Suspected to be bad, why go there?
 
+  if (isSpur(olap.b_iid)  == true)              //  Ignore edges into spur reads.
+    return;                                     //  Suspected to be bad, why go there?
+
   if (isIgnored(olap.b_iid) == true) {          //  Ignore ignored reads.  This could
     logEdgeScore(olap, "ignored");              //  happen; it's just easier to filter
     return;                                     //  them out here.
