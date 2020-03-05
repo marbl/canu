@@ -1170,12 +1170,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (lopsidedDiff > 0) {
     writeStatus("BestOverlapGraph()-- Filtering reads with lopsided best edges (more than %u%% different).\n", lopsidedDiff);
 
-  reportBestEdges(prefix, "9.beforeLopsided");
     removeLopsidedEdges(prefix, "lopsided.pass2");   //  Remove reads that look weird.  (not that we discriminate against weirdness)
     //findContains();                                //  DO NOT recompute contained reads.
-  reportBestEdges(prefix, "9.beforeFindEdges");
     findEdges(false);                                //  Recompute best edges that have no existing eddge.
-  reportBestEdges(prefix, "9.afterFindEdges");
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "5.lopsided");
@@ -1347,6 +1344,9 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       char isS = (isSpur(id))               ?  'S'        : '-';
 
       char isL = (is5 && is3) ? 'L' : (is5 + is3 + '-');
+
+      //  Temporary...
+      isL = (is5 || is3) ? 'L' : '-';
 
       //if      ((is5 == '5') && (is3 == '3'))    isL = 'L';
       //else if  (is5 == '5')                     lsL = '5';
