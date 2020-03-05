@@ -113,13 +113,8 @@ inline void    strtonumber(double &num, char *str, char **rem)  {  num = (double
 inline  int32  doubletoint32(double d)   { return((int32) ((1.0 + 16.0 * DBL_EPSILON) * d));  };
 inline  int64  doubletoint64(double d)   { return((int64) ((1.0 + 16.0 * DBL_EPSILON) * d));  };
 
-char const *toHex(uint128 v);
-char const *toHex(uint64  v);
-char const *toHex(uint32  v);
-
-char const *toDec(uint128 v);
-char const *toDec(uint64  v);
-char const *toDec(uint32  v);
+template<typename uintType> char const *toHex(uintType v);
+template<typename uintType> char const *toDec(uintType v);
 
 // These macros are use to eliminate inter-platform differnces between
 // calculated results
