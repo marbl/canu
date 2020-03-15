@@ -84,11 +84,11 @@ respectively.  Intermediate files are written in directories 'correction', 'trim
 'ecoli.contigs.fasta', 'ecoli.unitigs.gfa', etc.  See section :ref:`outputs` for more details on
 outputs (intermediate files aren't documented).
 
-Assembling PacBio HiFi
+Assembling PacBio HiFi with HiCanu
 ----------------------
 
-Canu has support for PacBio HiFi data by compressing homopolymers, correcting isolated errors, and masking systematic errors. We will now assemble and `E. coli K12
-<https://sra-pub-src-1.s3.amazonaws.com/SRR10971019/m54316_180808_005743.fastq.1>`_ HiFi dataset released by `PacBio <https://trace.ncbi.nlm.nih.gov/Traces/sra/?run=SRR10971019>`_ (3 GB).  When assembling, we
+HiCanu has support for PacBio HiFi data by compressing homopolymers, correcting isolated errors, and masking systematic errors. We will now assemble and `E. coli K12
+<https://sra-pub-src-1.s3.amazonaws.com/SRR10971019/m54316_180808_005743.fastq.1>`_ HiFi dataset sequenced by PacBio available at `NCBI SRA <https://trace.ncbi.nlm.nih.gov/Traces/sra/?run=SRR10971019>`_ (3 GB).  When assembling, we
 use `-pacbio-hifi` to specify the input reads::
 
  curl -L -o ecoli.fastq https://sra-pub-src-1.s3.amazonaws.com/SRR10971019/m54316_180808_005743.fastq.1
