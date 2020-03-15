@@ -37,7 +37,7 @@ See section :ref:`execution` for more details.
 The :ref:`tutorial` has more background, and the :ref:`faq` has a wealth of practical advice.
 
 
-Assembling PacBio or Nanopore data
+Assembling PacBio CLR or Nanopore data
 ----------------------
 
 Pacific Biosciences released P6-C4 chemistry reads for Escherichia coli K12.  You can `download them
@@ -84,12 +84,66 @@ respectively.  Intermediate files are written in directories 'correction', 'trim
 'ecoli.contigs.fasta', 'ecoli.unitigs.gfa', etc.  See section :ref:`outputs` for more details on
 outputs (intermediate files aren't documented).
 
+Assembling PacBio HiFi
+----------------------
+
+Canu has support for PacBio HiFi data by compressing homopolymers, correcting isolated errors, and masking systematic errors. We will now assemble and `E. coli K12
+<https://sra-pub-src-1.s3.amazonaws.com/SRR10971019/m54316_180808_005743.fastq.1>`_ HiFi dataset released by `PacBio <https://trace.ncbi.nlm.nih.gov/Traces/sra/?run=SRR10971019>`_ (3 GB).  When assembling, we
+use `-pacbio-hifi` to specify the input reads::
+
+ curl -L -o ecoli.fastq https://sra-pub-src-1.s3.amazonaws.com/SRR10971019/m54316_180808_005743.fastq.1
+
+ canu \
+  -p asm -d ecoli_hifi \
+  genomeSize=4.8m \
+  -pacbio-hifi ecoli.fastq
+  
+Trio Binning Assembly
+----------------------------------
+
+Canu has support for using parental short-read sequencing to classify and bin the F1 reads (see `Trio Binning manuscript
+<https://www.biorxiv.org/content/early/2018/02/26/271486>`_ for details). This example demonstrates the functionality using a synthetic mix of two Escherichia coli datasets.  First download the data::
+
+ curl -L -o K12.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/k12.12.fasta
+ curl -L -o O157.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/o157.12.fasta
+ curl -L -o F1.fasta https://gembox.cbcb.umd.edu/triobinning/example/pacbio.fasta
+
+ canu \
+  -p asm -d ecoliTrio \
+  genomeSize=5m \
+  -haplotypeK12 K12.parental.fasta \
+  -haplotypeO157 O157.parental.fasta \
+  -pacbio-raw F1.fasta
+
+The run will first bin the reads into the haplotypes (``ecoliTrio/haplotype/haplotype-*.fasta.gz``) and provide a summary of the classification in ``ecoliTrio/haplotype/haplotype.log``::
+
+  -- Processing reads in batches of 100 reads each.
+  --
+  --   119848 reads    378658103 bases written to haplotype file ./haplotype-K12.fasta.gz.
+  --   308353 reads   1042955878 bases written to haplotype file ./haplotype-O157.fasta.gz.
+  --     4114 reads      6520294 bases written to haplotype file ./haplotype-unknown.fasta.gz.
+
+
+Next, the haplotypes are assembled in ``ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta`` and ``ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta``. By default, if the unassigned bases are > 5% of the total, they are included in both haplotypes. This can be controlled with the :ref:`hapUnknownFraction <hapUnknownFraction>` option. 
+
+As comparison, you can try co-assembling the datasets instead::
+
+ canu \
+  -p asm -d ecoliHap \
+  genomeSize=5m \
+  corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" \
+ -pacbio-raw F1.fasta
+
+and compare the continuity/accuracy. 
+
+Please note, trio binning is designed to work with raw sequences prior to correction. Do not correct the reads together and then run trio-binning, this will not work and Canu will give an error.
+
+Trio binning does not yet support inputting PacBio HiFi reads for binning as they get flagged as "corrected" and the same error as above is given. As a workaround, run ``canu -haplotype`` specifying the HiFi reads as -pacbio-raw. This will bin the data and create shell scripts to start the assembly. Edit the shell scripts to replace -pacbio-raw with -pacbio-corrected or -pacbio-hifi and run the assemblies manually.
 
 Assembling With Multiple Technologies and Multiple Files
 -------------------------------------------
 
-Canu can use reads from any number of input files, which can be a mix of formats and technologies.
-We'll assemble a mix of 10X PacBio reads in two FASTQ files and 10X of Nanopore reads in one FASTA
+Canu can use reads from any number of input files, which can be a mix of formats and technologies. Note that current combining PacBio HiFi data with other datatypes it not supported. We'll assemble a mix of 10X PacBio CLR reads in two FASTQ files and 10X of Nanopore reads in one FASTA
 file::
 
  curl -L -o mix.tar.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz
@@ -141,7 +195,6 @@ use (see :ref:`correctedErrorRate <correctedErrorRate>`)::
 Note that the assembly stages use different '-d' directories.  It is not possible to run multiple
 copies of canu with the same work directory.
 
-
 Assembling Low Coverage Datasets
 ----------------------------------
 
@@ -158,54 +211,14 @@ quality corrected reads::
   correctedErrorRate=0.105 \
   -pacbio-raw yeast.20x.fastq.gz
 
-Trio Binning Assembly
-----------------------------------
-
-Canu has support for using parental short-read sequencing to classify and bin the F1 reads (see `Trio Binning manuscript
-<https://www.biorxiv.org/content/early/2018/02/26/271486>`_ for details). This example demonstrates the functionality using a synthetic mix of two Escherichia coli datasets.  First download the data::
-
- curl -L -o K12.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/k12.12.fasta
- curl -L -o O157.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/o157.12.fasta
- curl -L -o F1.fasta https://gembox.cbcb.umd.edu/triobinning/example/pacbio.fasta
-
- canu \
-  -p asm -d ecoliTrio \
-  genomeSize=5m \
-  -haplotypeK12 K12.parental.fasta \
-  -haplotypeO157 O157.parental.fasta \
-  -pacbio-raw F1.fasta
-
-The run will first bin the reads into the haplotypes (``ecoliTrio/haplotype/haplotype-*.fasta.gz``) and provide a summary of the classification in ``ecoliTrio/haplotype/haplotype.log``::
-
-  -- Processing reads in batches of 100 reads each.
-  --
-  --   119848 reads    378658103 bases written to haplotype file ./haplotype-K12.fasta.gz.
-  --   308353 reads   1042955878 bases written to haplotype file ./haplotype-O157.fasta.gz.
-  --     4114 reads      6520294 bases written to haplotype file ./haplotype-unknown.fasta.gz.
-
-
-Next, the haplotypes are assembled in ``ecoliTrio/asm-haplotypeK12/asm-haplotypeK12.contigs.fasta`` and ``ecoliTrio/asm-haplotypeO157/asm-haplotypeO157.contigs.fasta``. By default, if the unassigned bases are > 5% of the total, they are included in both haplotypes. This can be controlled with the :ref:`hapUnknownFraction <hapUnknownFraction>` option. 
-
-As comparison, you can try co-assembling the datasets instead::
-
- canu \
-  -p asm -d ecoliHap \
-  genomeSize=5m \
-  corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" \
- -pacbio-raw F1.fasta
-
-and compare the continuity/accuracy. 
-
-Please note, trio binning is designed to work with raw sequences prior to correction. Do not correct the reads together and then run trio-binning, this will not work and Canu will give an error.
-
-Trio binning does not yet support inputting PacBio HiFi reads for binning as they get flagged as "corrected" and the same error as above is given. As a workaround, run ``canu -haplotype`` specifying the HiFi reads as -pacbio-raw. This will bin the data and create shell scripts to start the assembly. Edit the shell scripts to replace -pacbio-raw with -pacbio-corrected or -pacbio-hifi and run the assemblies manually.
-
 Consensus Accuracy
 -------------------
 
-Canu consensus sequences are typically well above 99% identity for PacBio datasets.  Nanopore accuracy varies depending on pore and basecaller version, but is typically above 98% for recent data. Accuracy can be improved by
-polishing the contigs with tools developed specifically for that task.  We recommend `Quiver
+HiCanu consensus sequences using PacBio HiFi data are typically well above 99.99% We discourage any post-processing/polishing of these assemblies as mis-mapping within repeats can introduce errors.
+
+Canu consensus sequences are typically well above 99% identity for PacBio datasets.  Nanopore accuracy varies depending on pore and basecaller version, but is typically above 99% for recent data. Accuracy can be improved by
+polishing the contigs with tools developed specifically for that task.  We recommend `Arrow
 <http://github.com/PacificBiosciences/GenomicConsensus>`_ for PacBio and `Nanopolish
-<http://github.com/jts/nanopolish>`_ for Oxford Nanpore data.
-When Illumina reads are available, `Pilon <http://www.broadinstitute.org/software/pilon/>`_
+<http://github.com/jts/nanopolish>`_ or `Medaka <https://github.com/nanoporetech/medaka>`_ for Oxford Nanpore data.
+When Illumina reads are available, `FreeBayes <https://github.com/VGP/vgp-assembly/tree/master/pipeline/freebayes-polish>`_
 can be used to polish either PacBio or Oxford Nanopore assemblies.
