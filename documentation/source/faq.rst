@@ -138,7 +138,7 @@ What parameters should I use for my reads?
        The defaults for PacBio should work on this data. You could speed up the assembly by decreasing the error rate from the default, especially if you have high (>50x) coverage via ``correctedErrorRate=0.035 utgOvlErrorRate=0.065 trimReadsCoverage=2 trimReadsOverlap=500``
 
     **PacBio HiFi**
-       The defaults for -pacbio-hifi should work on this data. There is still some variation in data quality between samples. If you have poor continuity, it may be because the data is lower quality than expected. Try running the assembly with ``-trim-assemble``` or with ``batOptions="-eg 0.01 -sb 0.01 -dg 6 -db 6 -dr 1 -ca 50 -cp 5”``. You will likely get a genome size larger than you expect, due to separation of alleles. See `My genome size and assembly size are different, help!`_ for details on how to remove this duplication.
+       The defaults for -pacbio-hifi should work on this data. There is still some variation in data quality between samples. If you have poor continuity, it may be because the data is lower quality than expected. Try running the assembly with ``-trim-assemble`` or with ``batOptions="-eg 0.01 -sb 0.01 -dg 6 -db 6 -dr 1 -ca 50 -cp 5”``. You will likely get a genome size larger than you expect, due to separation of alleles. See `My genome size and assembly size are different, help!`_ for details on how to remove this duplication.
 
 
 Can I assemble RNA sequence data?
