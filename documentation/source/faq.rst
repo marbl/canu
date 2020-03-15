@@ -20,9 +20,9 @@ What resources does Canu require for a bacterial genome assembly? A mammalian as
     on 8 cores.  It is possible, but not allowed by default, to run with only 4GB memory.
 
     A well-behaved large genome, such as human or other mammals, can be assembled in 10,000 to
-    25,000 CPU hours, depending on coverage.  A grid environment is strongly recommended, with at
+    25,000 CPU hours, depending on coverage from raw data.  A well-behaved large genome, such as human or other mammals with HiFi data can be assembled in 1,000 to 2,000 CPU hours. A grid environment is strongly recommended, with at
     least 16GB available on each compute node, and one node with at least 64GB memory.  You should
-    plan on having 3TB free disk space, much more for highly repetitive genomes.
+    plan on having 3TB free disk space (200 GB for HiFi), much more for highly repetitive genomes.
 
     Our compute nodes have 48 compute threads and 128GB memory, with a few larger nodes with up to
     1TB memory.  We develop and test (mostly bacteria, yeast and drosophila) on laptops and desktops
@@ -96,12 +96,12 @@ My genome size and assembly size are different, help!
       INFO	443 Complete and single-copy BUSCOs (S)
       INFO	2289 Complete and duplicated BUSCOs (D)
     
-    does. We have had some success (in limited testing) using `purge_haplotigs <https://bitbucket.org/mroachawri/purge_haplotigs>`_ to remove duplication. Purge haplotigs will also generate a coverage plot which will usually have two peaks when assemblies have separated some loci. 
+    does. We have had success using `purge_dups <https://github.com/dfguan/purge_dups>`_ to remove duplication. Purge dups will also generate a coverage histogram which will usually have two peaks when assemblies have separated some loci, make sure to inspect it to make sure the cutoffs selected are reasonable. 
 
 What parameters should I use for my reads?
 -------------------------------------
-    Canu is designed to be universal on a large range of PacBio (C2, P4-C2, P5-C3, P6-C4) and Oxford
-    Nanopore (R6 through R9) data.  Assembly quality and/or efficiency can be enhanced for specific
+    Canu is designed to be universal on a large range of PacBio CLR, PacBio HiFi, Oxford
+    Nanopore (R6 through R10) data.  Assembly quality and/or efficiency can be enhanced for specific
     datatypes:
 
     **Nanopore R7 1D** and **Low Identity Reads**
@@ -124,6 +124,9 @@ What parameters should I use for my reads?
       ``-fast`` option which is much faster but may produce less
       contiguous assemblies on large genomes.
 
+    **Nanopore flip-flop R9.4 or R10.3**
+       Based on a human dataset, the flip-flop basecaller reduces both the raw read error rate and the residual error rate remaining after Canu read correction. For this reason you can reduce the error tolerated by Canu. If you have over 30x coverage add the options: ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14' correctedErrorRate=0.105``. This is primarily a speed optimization so you can use defaults, especially if your genome's accuracy is not improved by the flip-flop caller.
+
     **PacBio Sequel**
        Based on an *A. thaliana* `dataset
        <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
@@ -134,8 +137,9 @@ What parameters should I use for my reads?
     **PacBio Sequel II**
        The defaults for PacBio should work on this data. You could speed up the assembly by decreasing the error rate from the default, especially if you have high (>50x) coverage via ``correctedErrorRate=0.035 utgOvlErrorRate=0.065 trimReadsCoverage=2 trimReadsOverlap=500``
 
-    **Nanopore flip-flop R9.4**
-       Based on a human dataset, the flip-flop basecaller reduces both the raw read error rate and the residual error rate remaining after Canu read correction. For this reason you can reduce the error tolerated by Canu. If you have over 30x coverage add the options: ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14' correctedErrorRate=0.105``. This is primarily a speed optimization so you can use defaults, especially if your genome's accuracy is not improved by the flip-flop caller.
+    **PacBio HiFi**
+       The defaults for -pacbio-hifi should work on this data. There is still some variation in data quality between samples. If you have poor continuity, it may be because the data is lower quality than expected. Try running the assembly with ``-trim-assemble``` or with ``batOptions="-eg 0.01 -sb 0.01 -dg 6 -db 6 -dr 1 -ca 50 -cp 5”``. You will likely get a genome size larger than you expect, due to separation of alleles. See `My genome size and assembly size are different, help!`_ for details on how to remove this duplication.
+
 
 Can I assemble RNA sequence data?
 -------------------------------------
@@ -260,7 +264,7 @@ What parameters can I tweak?
            chromosome (and probably some reads from other chromosomes).  When assembling, overlaps
            well outside the observed error rate distribution are discarded.
            
-         We typically prefer option 1 which will lead to a larger than expected genome size. We have had some success (in limited testing) using `purge_haplotigs <https://bitbucket.org/mroachawri/purge_haplotigs>`_ to remove this duplication.
+         We strongly recommend option 1 which will lead to a larger than expected genome size. See `My genome size and assembly size are different, help!`_ for details on how to remove this duplication.
 
     For metagenomes:
 
@@ -324,7 +328,8 @@ Why do I get less corrected read data than I asked for?
 
 What is the minimum coverage required to run Canu?
 -------------------------------------
-    For eukaryotic genomes, coverage more than 20X is enough to outperform current hybrid
+    For HiFi data, we recommend 20-25x or higher. 
+    For raw data, coverage more than 20X is typically enough to outperform current hybrid
     methods.  Below that, you will likely not assemble the full genome.  The following
     two papers have several examples.
      * `Koren et al. (2013) Reducing assembly complexity of microbial genomes with single-molecule sequencing <https://www.ncbi.nlm.nih.gov/pubmed/24034426>`_
