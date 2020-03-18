@@ -38,7 +38,7 @@ my $cwd = getcwd();
 #  release, then change label back to 'snapshot'.  This will result in the
 #  released code having a version string of "Canu 1.9".
 
-my $label    = "snapshot";      #  If not 'release' print this in the version output.
+my $label    = "release";       #  If not 'release' print this in the version output.
 my $major    = "2";             #  Bump before release.
 my $minor    = "0";             #  Bump before release.
 
