@@ -799,8 +799,19 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-query") == 0)
       decodeRange(argv[++arg], params.queryMin, params.queryMax);
 
-    else if (strcmp(argv[arg], "-erate") == 0)
+    else if (strcmp(argv[arg], "-erate") == 0) {
       decodeRange(argv[++arg], params.erateMin, params.erateMax);
+
+      if (params.erateMin == params.erateMax)
+        params.erateMin = 0.0;
+
+      if ((params.erateMin > 1.0) ||
+          (params.erateMax > 1.0)) {
+        char *s = new char [1024];
+        snprintf(s, 1024, "invalid -erate specification '%s', must be between 0.0 and 1.0 (e.g., 0.02 == 2%%).\n", argv[arg-1]);
+        err.push_back(s);
+      }
+    }
 
     else if (strcmp(argv[arg], "-length") == 0)
       decodeRange(argv[++arg], params.lengthMin, params.lengthMax);
@@ -821,7 +832,7 @@ main(int argc, char **argv) {
 
     else {
       char *s = new char [1024];
-      snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      snprintf(s, 1024, "unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
 
