@@ -151,6 +151,7 @@ public:
                           ovOverlap     *overlaps,
                           uint64         overlapsLen,
                           sqStore       *seqStore,
+                          uint32         picWidth,
                           bool           withScores);
 
 
@@ -400,12 +401,14 @@ dumpParameters::drawPicture(uint32         Aid,
                             ovOverlap     *overlaps,
                             uint64         overlapsLen,
                             sqStore       *seqStore,
+                            uint32         picWidth,
                             bool           withScores) {
   char     line[256] = {0};
 
-  uint32   MHS   = 9;  //  Max Hang Size, amount of padding for "+### "
+  uint32   MHS   =        9;  //  Max Hang Size, amount of padding for "+### "
+  uint32   OLW   = picWidth;  //  Overlap Line Width, width of the 'picture' part.
 
-  uint32    Alen = seqStore->sqStore_getReadLength(Aid);
+  uint32   Alen = seqStore->sqStore_getReadLength(Aid);
 
   if (overlapsLen == 0)
     return;
@@ -413,13 +416,13 @@ dumpParameters::drawPicture(uint32         Aid,
   for (int32 i=0; i<256; i++)
     line[i] = ' ';
 
-  for (int32 i=0; i<100; i++)
+  for (int32 i=0; i<OLW; i++)
     line[i + MHS] = '-';
 
-  line[MHS]            = '|';
-  line[MHS + 1 +  99] = '>';
-  line[MHS + 1 + 100] = '|';
-  line[MHS + 1 + 101] = 0;
+  line[MHS]             = '|';
+  line[MHS + 1 + OLW-1] = '>';
+  line[MHS + 1 + OLW]   = '|';
+  line[MHS + 1 + OLW+1] = 0;
 
   //  Draw the read we're showing overlaps for.
   //  Annotate it as either 'contained', 'covGap', etc as needed.
@@ -448,8 +451,8 @@ dumpParameters::drawPicture(uint32         Aid,
 
     //  For the A read, find the points in our string representation where the overlap ends.
 
-    uint32 ovlStrBgn = (int32)floor(ovlBgnA * 100.0 / Alen + MHS + 1);
-    uint32 ovlStrEnd = (int32)ceil (ovlEndA * 100.0 / Alen + MHS + 1);
+    uint32 ovlStrBgn = (int32)floor((double)ovlBgnA * OLW / Alen + MHS + 1);
+    uint32 ovlStrEnd = (int32)ceil ((double)ovlEndA * OLW / Alen + MHS + 1);
 
     //  For the B read, find how much is unaliged on each end.  Though the
     //  store directly keeps this information, we can't get to it, and have
@@ -468,7 +471,7 @@ dumpParameters::drawPicture(uint32         Aid,
       assert(ovlEndB < ovlBgnB);  //  Flipped overlaps are reversed
 
     assert(ovlStrBgn >= MHS + 1);
-    assert(ovlStrEnd <= MHS + 1 + 100);
+    assert(ovlStrEnd <= MHS + 1 + OLW);
 
 
     //
@@ -482,7 +485,7 @@ dumpParameters::drawPicture(uint32         Aid,
       line[i] = ' ';
 
     line[MHS]               = '|';
-    line[MHS + 1 + 100]     = '|';
+    line[MHS + 1 + OLW]     = '|';
 
     //  Write in the unaligned sequence at the 5' end.
 
@@ -543,7 +546,7 @@ dumpParameters::drawPicture(uint32         Aid,
       char  str[256];
       int32 len = snprintf(str, 256, " +%d", ovlEndHang);
 
-      if (ovlStrEnd == MHS + 1 + 100) {
+      if (ovlStrEnd == MHS + 1 + OLW) {
         for (int32 i=0; i<len; i++)
           line[ovlStrEnd + 1 + i] = str[i];
       }
@@ -556,7 +559,7 @@ dumpParameters::drawPicture(uint32         Aid,
 
     //  Write in any annotation(s)
 
-    uint32 annotation = MHS + 1+ 100 + 1 + MHS + 1;
+    uint32 annotation = MHS + 1+ OLW + 1 + MHS + 1;
 
     if (withStatus) {                                                                  //  "1234567890123456"
       if      (status[Bid].isContained == true)   strncpy(line + annotation, (const char *)"contained   ", 12);
@@ -605,7 +608,7 @@ dumpParameters::drawPicture(uint32         Aid,
 
     //  Report!
 
-    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %5.3f%% %s\n",
+    fprintf(stdout, "A %7d:%-7d B %9d %7d:%-7d %7d  %6.3f%% %s\n",
             ovlBgnA,
             ovlEndA,
             Bid,
@@ -647,6 +650,8 @@ main(int argc, char **argv) {
 
   uint32                bgnID       = 1;
   uint32                endID       = UINT32_MAX;
+
+  uint32                picWidth    = 100;
 
   argc = AS_configure(argc, argv);
 
@@ -714,6 +719,10 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-prefix") == 0)
       outPrefix = argv[++arg];
+
+
+    else if (strcmp(argv[arg], "-width") == 0)
+      picWidth = strtouint32(argv[++arg]);
 
 
     else if (strcmp(argv[arg], "-raw") == 0)
@@ -866,6 +875,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -prefix name         * for -eratelen, write histogram to name.dat\n");
     fprintf(stderr, "                         and also output a gnuplot script to name.gp\n");
     fprintf(stderr, "                       * for -binary, mandatory, write overlaps to name.ovb\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -width w             * for -picture, the width of the overlaps picture\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "WHICH READ VERSION TO USE:\n");
     fprintf(stderr, "\n");
@@ -1230,7 +1241,7 @@ main(int argc, char **argv) {
           ovl[ovlSav++] = ovl[oo];                     //  save the overlap for drawing
 
       if (ovlSav > 0)
-        params.drawPicture(rr, ovl, ovlSav, seqStore, withScores);
+        params.drawPicture(rr, ovl, ovlSav, seqStore, picWidth, withScores);
     }
   }
 
