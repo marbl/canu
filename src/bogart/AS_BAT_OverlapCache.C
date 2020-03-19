@@ -70,8 +70,7 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
                            double maxErate,
                            uint32 minOverlap,
                            uint64 memlimit,
-                           uint64 genomeSize,
-                           bool doSave) {
+                           uint64 genomeSize) {
 
   _prefix = prefix;
 
@@ -182,7 +181,7 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   //  Load overlaps!
 
   computeOverlapLimit(ovlStore, genomeSize);
-  loadOverlaps(ovlStore, doSave);
+  loadOverlaps(ovlStore);
 
   delete [] _ovs;       _ovs      = NULL;   //  There is a small cost with these arrays that we'd
   delete [] _ovsSco;    _ovsSco   = NULL;   //  like to not have, and a big cost with ovlStore (in that
@@ -508,10 +507,7 @@ OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
 
 
 void
-OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
-
-  if (load() == true)
-    return;
+OverlapCache::loadOverlaps(ovStore *ovlStore) {
 
   writeStatus("OverlapCache()--\n");
   writeStatus("OverlapCache()-- Loading overlaps.\n");
@@ -616,9 +612,6 @@ OverlapCache::loadOverlaps(ovStore *ovlStore, bool doSave) {
 
   writeStatus("OverlapCache()--\n");
   writeStatus("OverlapCache()-- Ignored %lu duplicate overlaps.\n", numDups);
-
-  if (doSave == true)
-    save();
 }
 
 
@@ -1000,101 +993,4 @@ OverlapCache::symmetrizeOverlaps(void) {
   writeStatus("OverlapCache()--   Finished.\n");
 }
 
-
-
-bool
-OverlapCache::load(void) {
-#if 0
-  char     name[FILENAME_MAX];
-  size_t   numRead;
-
-  snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
-  if (fileExists(name) == false)
-    return(false);
-
-  writeStatus("OverlapCache()-- Loading graph from '%s'.\n", name);
-
-  FILE *file = AS_UTL_openInputFile(name);
-
-  uint64   magic      = ovlCacheMagic;
-  uint32   ovserrbits = AS_MAX_EVALUE_BITS;
-  uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
-
-  loadFromFile(magic,      "overlapCache_magic",      file);
-  loadFromFile(ovserrbits, "overlapCache_ovserrbits", file);
-  loadFromFile(ovshngbits, "overlapCache_ovshngbits", file);
-
-  if (magic != ovlCacheMagic)
-    writeStatus("OverlapCache()-- ERROR:  File '%s' isn't a bogart ovlCache.\n", name), exit(1);
-
-  loadFromFile(_memLimit,    "overlapCache_memLimit",    file);
-  loadFromFile(_memReserved, "overlapCache_memReserved", file);
-  loadFromFile(_memAvail,    "overlapCache_memAvail",    file);
-  loadFromFile(_memStore,    "overlapCache_memStore",    file);
-  loadFromFile(_memOlaps,    "overlapCache_memOlaps",    file);
-  loadFromFile(_maxPer,      "overlapCache_maxPer",      file);
-
-  _overlaps   = new BAToverlap * [RI->numReads() + 1];
-  _overlapLen = new uint32       [RI->numReads() + 1];
-  _overlapMax = new uint32       [RI->numReads() + 1];
-
-  loadFromFile(_overlapLen, "overlapCache_len", RI->numReads() + 1, file);
-  loadFromFile(_overlapMax, "overlapCache_max", RI->numReads() + 1, file);
-
-  for (uint32 rr=0; rr<RI->numReads() + 1; rr++) {
-    if (_overlapLen[rr] == 0)
-      continue;
-
-    _overlaps[rr] = new BAToverlap [ _overlapMax[rr] ];
-    memset(_overlaps[rr], 0xff, sizeof(BAToverlap) * _overlapMax[rr]);
-
-    loadFromFile(_overlaps[rr], "overlapCache_ovl", _overlapLen[rr], file);
-
-    assert(_overlaps[rr][0].a_iid == rr);
-  }
-
-  AS_UTL_closeFile(file, name);
-
-  return(true);
-#endif
-  return(false);
-}
-
-
-
-void
-OverlapCache::save(void) {
-#if 0
-  char  name[FILENAME_MAX];
-
-  snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
-
-  writeStatus("OverlapCache()-- Saving graph to '%s'.\n", name);
-
-  FILE *file = AS_UTL_openOutputFile(name);
-
-  uint64   magic      = ovlCacheMagic;
-  uint32   ovserrbits = AS_MAX_EVALUE_BITS;
-  uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
-
-  writeToFile(magic,        "overlapCache_magic",       file);
-  writeToFile(ovserrbits,   "overlapCache_ovserrbits",  file);
-  writeToFile(ovshngbits,   "overlapCache_ovshngbits",  file);
-
-  writeToFile(_memLimit,    "overlapCache_memLimit",    file);
-  writeToFile(_memReserved, "overlapCache_memReserved", file);
-  writeToFile(_memAvail,    "overlapCache_memAvail",    file);
-  writeToFile(_memStore,    "overlapCache_memStore",    file);
-  writeToFile(_memOlaps,    "overlapCache_memOlaps",    file);
-  writeToFile(_maxPer,      "overlapCache_maxPer",      file);
-
-  writeToFile(_overlapLen,  "overlapCache_len",         RI->numReads() + 1, file);
-  writetoFile(_overlapMax,  "overlapCache_max",         RI->numReads() + 1, file);
-
-  for (uint32 rr=0; rr<RI->numReads() + 1; rr++)
-    writeToFile(_overlaps[rr],   "overlapCache_ovl", _overlapLen[rr], file);
-
-  AS_UTL_closeFile(file, name);
-#endif
-}
 

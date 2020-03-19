@@ -266,8 +266,7 @@ public:
                double maxErate,
                uint32 minOverlap,
                uint64 maxMemory,
-               uint64 genomeSize,
-               bool dosave);
+               uint64 genomeSize);
   ~OverlapCache();
 
 private:
@@ -275,7 +274,7 @@ private:
   uint32       filterDuplicates(uint32 &no);
 
   void         computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize);
-  void         loadOverlaps(ovStore *ovlStore, bool doSave);
+  void         loadOverlaps(ovStore *ovlStore);
   void         symmetrizeOverlaps(void);
 
 public:
@@ -283,10 +282,6 @@ public:
     numOverlaps = _overlapLen[readIID];
     return(_overlaps[readIID]);
   }
-
-private:
-  bool         load(void);
-  void         save(void);
 
 private:
   const char             *_prefix;

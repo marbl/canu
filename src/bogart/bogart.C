@@ -116,8 +116,6 @@ main (int argc, char * argv []) {
 
   uint64    ovlCacheMemory           = UINT64_MAX;
 
-  bool      doSave                   = false;
-
   char     *prefix                   = NULL;
 
   uint32    minReadLen               = 0;
@@ -146,9 +144,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
-
-    } else if (strcmp(argv[arg], "-save") == 0) {
-      doSave = true;
 
 
     } else if (strcmp(argv[arg], "-gs") == 0) {
@@ -324,8 +319,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -threads T     Use at most T compute threads.\n");
     fprintf(stderr, "  -M gb          Use at most 'gb' gigabytes of memory.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -save          Save the overlap graph to disk, and continue (not implemented).\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -gs            Genome size in bases.\n");
@@ -433,7 +426,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "filterOverlaps");
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen);
-  OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSave);
+  OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
   OG = new BestOverlapGraph(erateGraph,
                             deviationGraph, minOlapPercent,
                             prefix,
