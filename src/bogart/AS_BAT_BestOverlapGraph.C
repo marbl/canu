@@ -1588,7 +1588,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
   findContains();
   findEdges(true);
-  reportBestEdges(prefix, "initial");
+
+  if (logFileFlagSet(LOG_BEST_EDGES))
+    reportBestEdges(prefix, "0.initial");
 
   if (filterHighError) {
     writeStatus("BestOverlapGraph()-- Filtering high error edges.\n");
@@ -1602,7 +1604,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
     writeStatus("BestOverlapGraph()--   Ignore overlaps with more than %.6f%% error.\n", 100.0 * _errorLimit);
 
-    //reportBestEdges(prefix, "1.filtered");
+    if (logFileFlagSet(LOG_BEST_EDGES))
+      reportBestEdges(prefix, "1.filtered");
 
     removeContainedDovetails();
     removeCovGapEdges();
@@ -1628,7 +1631,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
     writeStatus("BestOverlapGraph()--   %u reads removed.\n", numCoverageGap());
 
-    //reportBestEdges(prefix, "2.covGap");
+    if (logFileFlagSet(LOG_BEST_EDGES))
+      reportBestEdges(prefix, "2.covGap");
 
     removeContainedDovetails();
     removeCovGapEdges();
@@ -1664,7 +1668,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
     writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
 
-    //reportBestEdges(prefix, "3.lopsided");
+    if (logFileFlagSet(LOG_BEST_EDGES))
+      reportBestEdges(prefix, "3.lopsided");
 
     removeContainedDovetails();
     removeCovGapEdges();
@@ -1697,7 +1702,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     //findEdges(false);
     //reportBestEdges(prefix, "9.afterFindEdges");
 
-    reportBestEdges(prefix, "4.spurs");
+    if (logFileFlagSet(LOG_BEST_EDGES))
+      reportBestEdges(prefix, "4.spurs");
 
     removeContainedDovetails();
     removeCovGapEdges();
