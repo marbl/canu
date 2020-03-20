@@ -676,10 +676,16 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
     int32  regionMin = min(fPos.min(), lPos.min());
     int32  regionMax = max(fPos.max(), lPos.max());
 
-    if ((regionMax - regionMin < 0.75 * orphan->getLength()) ||
-        (regionMax - regionMin > 1.25 * orphan->getLength()))
-      continue;
-
+    // give more tolerance for shorter stuff
+    if (orphan->getLength() <= 50000) {
+       if ((regionMax - regionMin < 0.5 * orphan->getLength()) ||
+           (regionMax - regionMin > 1.5 * orphan->getLength()))
+         continue;
+    } else {
+       if ((regionMax - regionMin < 0.75 * orphan->getLength()) ||
+           (regionMax - regionMin > 1.25 * orphan->getLength()))
+         continue;
+    }
 
     //  We probably should be checking orientation.  Maybe tomorrow.
 
