@@ -927,8 +927,9 @@ mergeOrphans(TigVector    &tigs,
       //  reads at their best location.
 
       if (orphanSize == targetSize) {
-        nOrphan++;
-        orphanTarget = tt;
+        //nOrphan++;
+        //orphanTarget = tt;
+        nBubble++;
       }
 
       //  If only some of the reads are placed, declare this a bubble so we
