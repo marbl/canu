@@ -439,6 +439,12 @@ unitigConsensus::generateTemplateStitch(void) {
     double           extensionSize = 0.20;
 
     int32            olapLen      = ePos - _utgpos[nr].min();  //  The expected size of the overlap
+    if (olapLen < minOlap) {
+       if (showAlgorithm())
+          fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %d for read %d (%d - %d\n"), olapLen, readLen, nr, readLen, _utgpos[nr].min(), _utgpos[nr].max();
+       olapLen=readLen; 
+    }
+
     int32            templateLen  = 0;
     int32            extensionLen = 0;
 
