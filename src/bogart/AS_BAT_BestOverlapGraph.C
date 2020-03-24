@@ -941,27 +941,26 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
 bool
 BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
-  bool   isBad = true;
-  bool   isIgn = false;
+  bool   isBadE = false;
+  bool   isIgnV = false;
+  bool   isIgnI = false;
+  bool   isBadL = false;
+  bool   isBadO = false;
 
-  if (olap.erate() <= _errorLimit)                 //  Our only real test is on
-    isBad = false;                                 //  overlap error rate.
+  if (olap.erate() > _errorLimit)                  //  Our only real test is on
+    isBadE = true;                                 //  overlap error rate.
 
   if ((RI->isValid(olap.a_iid) == false) ||        //  But if either read is not valid,
       (RI->isValid(olap.b_iid) == false))          //  the overlap is bad.  This should
-    isIgn = true;                                  //  never occur.
+    isIgnV = true;                                 //  never occur.
 
   if ((isIgnored(olap.a_iid) == true) ||           //  But if either read is ignored,
       (isIgnored(olap.b_iid) == true))             //  the overlap is also bad.
-    isIgn = true;
-
-  if ((isIgnored(olap.a_iid) == true) ||           //  But if either read is ignored,
-      (isIgnored(olap.b_iid) == true))             //  the overlap is also bad.
-    isIgn = true;
+    isIgnI = true;
 
   if ((isLopsided(olap.a_iid) == true) ||          //  Bad if the edge touches a
       (isLopsided(olap.b_iid) == true))            //  lopsided read.
-    isBad = true;
+    isBadL = true;
 
   if (_minOlapPercent > 0.0) {
     uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the
@@ -973,11 +972,14 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
 
     if ((oLen < lenA * _minOlapPercent) ||
         (oLen < lenB * _minOlapPercent))
-      isBad = true;
+      isBadO = true;
   }
 
-  olap.filtered = ((isBad == true) ||            //  The overlap is filtered out ("bad")
-                   (isIgn == true));             //  if it's either Bad or Ignored.
+  olap.filtered = ((isBadE == true) ||           //  The overlap is filtered out ("bad")
+                   (isIgnV == true) ||
+                   (isIgnI == true) ||
+                   (isBadL == true) ||
+                   (isBadO == true));
 
   //  Now just a bunch of logging.
 
@@ -985,15 +987,17 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
       ((olap.a_iid != 0) ||                      //  is specifically annoying (the default is to
        (olap.a_iid == 0) ||                      //  log for all reads (!= 0).
        (olap.a_iid == 0)))
-    writeLog("isOverlapBadQuality()-- %6d %6d %c  hangs %6d %6d err %.3f -- %s\n",
+    writeLog("isOverlapBadQuality()-- %6d %6d %c  hangs %6d %6d err %.5f -- %c%c%c%c%c\n",
              olap.a_iid, olap.b_iid,
              olap.flipped ? 'A' : 'N',
              olap.a_hang,
              olap.b_hang,
              olap.erate(),
-             (isBad == true) ? ("REJECT!")
-                             : ((isIgn == true) ? "good quality, but ignored"
-                                                : "good quality"));
+             (isBadE) ? 't' : 'f',
+             (isIgnV) ? 't' : 'f',
+             (isIgnI) ? 't' : 'f',
+             (isBadL) ? 't' : 'f',
+             (isBadO) ? 't' : 'f');
 
   return(olap.filtered);
 }
