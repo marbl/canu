@@ -678,8 +678,8 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
 
     // give more tolerance for shorter stuff
     if (orphan->getLength() <= 50000) {
-       if ((regionMax - regionMin < 0.5 * orphan->getLength()) ||
-           (regionMax - regionMin > 1.5 * orphan->getLength()))
+       if ((regionMax - regionMin < 0.30 * orphan->getLength()) ||
+           (regionMax - regionMin > 1.70 * orphan->getLength()))
          continue;
     } else {
        if ((regionMax - regionMin < 0.75 * orphan->getLength()) ||
@@ -687,8 +687,12 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
          continue;
     }
 
-    //  We probably should be checking orientation.  Maybe tomorrow.
-
+    //  Check orientation, two cases the orientations match then forward should come first, orientations don't match then last should come first
+    if ((orphan->firstRead()->isForward() == fPos.isForward() && orphan->lastRead()->isForward() == lPos.isForward() && fPos.min() <= lPos.max()) ||
+        (orphan->firstRead()->isForward() != fPos.isForward() && orphan->lastRead()->isForward() != lPos.isForward() && lPos.min() <= fPos.max())) {
+      // orientation is OK do nothing
+    } else
+      continue;
 
     //  Both reads placed, and at about the right size.  Save the candidate position - we can
     //  possibly place 'orphan' in 'tigs[target->id()' at position regionMin-regionMax.
