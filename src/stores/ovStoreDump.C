@@ -646,7 +646,7 @@ main(int argc, char **argv) {
   bool                  asPAF       = false;
   bool                  asGFA       = false;
   bool                  asBinary    = false;
-  bool                  withScores  = true;
+  bool                  withScores  = false;
 
   uint32                bgnID       = 1;
   uint32                endID       = UINT32_MAX;
@@ -723,6 +723,8 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-width") == 0)
       picWidth = strtouint32(argv[++arg]);
+    else if (strcmp(argv[arg], "-scores") == 0)
+      withScores = true;
 
 
     else if (strcmp(argv[arg], "-raw") == 0)
@@ -877,6 +879,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "                       * for -binary, mandatory, write overlaps to name.ovb\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -width w             * for -picture, the width of the overlaps picture\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -scores              * for -picture, also report the score used for correction\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "WHICH READ VERSION TO USE:\n");
     fprintf(stderr, "\n");
