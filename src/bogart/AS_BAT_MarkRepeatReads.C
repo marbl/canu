@@ -769,6 +769,10 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
 
   bestSco       bestScore;
 
+  // if we are searching for an internal read and have been given no id to search for, it means we're not confused so return score of 0 to signal that
+  if (internal == true && rdB == NULL)
+     return bestScore;
+
   //  is3p on input is telling us if we want overlaps on the low (false) or
   //  high (true) coordinate of rdA.  If the read is in the tig flipped, we
   //  need to flip this flag so it correctly refers to the 3' end of the
@@ -968,7 +972,7 @@ findConfusedEdges(TigVector            &tigs,
 
         isC |= (internal5sco.score < external5sco.score);
 
-        isC |= ((ad5 <= confusedAbsolute) &&
+        isC |= ((ad5 < confusedAbsolute) &&
                 (pd5 <  confusedPercent));
 
         if (isC == true) {
