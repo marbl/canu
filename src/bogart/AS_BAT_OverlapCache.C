@@ -189,6 +189,8 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   delete     ovlStore;   ovlStore = NULL;   //  these before symmetrizing overlaps.
 
   symmetrizeOverlaps();
+
+  delete [] _minSco;    _minSco   = NULL;
 }
 
 
@@ -342,7 +344,7 @@ uint32
 OverlapCache::filterDuplicates(uint32 &no) {
   uint32   nFiltered = 0;
 
-  for (uint32 ii=0, jj=1, dd=0; jj<no; ii++, jj++) {
+  for (uint32 ii=0, jj=1; jj<no; ii++, jj++) {
     if (_ovs[ii].b_iid != _ovs[jj].b_iid)
       continue;
 
@@ -350,7 +352,18 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
     nFiltered++;
 
-    //  Drop the weaker overlap.  If a tie, drop the flipped one.
+    //  Drop the weaker overlap.  If a tie, drop the flipped one.  Use the
+    //  min overlap length here, so that when we get to the B read we compute
+    //  the same scores.  Here's a real example from ecoli when min isn't
+    //  used - we throw out the opposite overlap!
+    //
+    //  Dropping overlap A:     10447 B:     28159 - score     7.94 - 0.0048% -  -5834  -6359 - flipped
+    //  Saving   overlap A:     10447 B:     28159 - score     7.98 - 0.0031% -  -4905  -5413 - 
+    //
+    //  Dropping overlap A:     28159 B:     10447 - score     8.00 - 0.0031% -   4905   5413 - 
+    //  Saving   overlap A:     28159 B:     10447 - score     8.05 - 0.0048% -  -6359  -5834 - flipped
+    //
+    //  It's still possible that assymetric error rates could cause us to throw out the wrong overlap, though.
 
     double iiSco = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang()) * _ovs[ii].erate();
     double jjSco = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang()) * _ovs[jj].erate();
@@ -362,19 +375,17 @@ OverlapCache::filterDuplicates(uint32 &no) {
         jjSco = 0;                    //  You're welcome.
     }
 
-    if (iiSco < jjSco)
-      dd = ii;
-    else
-      dd = jj;
+    uint32 dd = (iiSco < jjSco) ? ii : jj;
+    uint32 ss = (iiSco < jjSco) ? jj : ii;
+
+    double dds = (iiSco < jjSco) ? iiSco : jjSco;
+    double sss = (iiSco < jjSco) ? jjSco : iiSco;
 
 #if 0
-    writeLog("OverlapCache::filterDuplicates()-- Dropping overlap A: %9" F_U64P " B: %9" F_U64P " - %6.4f%% - %6" F_S32P " %6" F_S32P " - %s\n",
-             _ovs[dd].a_iid,
-             _ovs[dd].b_iid,
-             _ovs[dd].a_hang(),
-             _ovs[dd].b_hang(),
-             _ovs[dd].erate(),
-             _ovs[dd].flipped() ? "flipped" : "");
+    writeLog("OverlapCache::filterDuplicates()-- Dropping overlap A: %9" F_U64P " B: %9" F_U64P " - score %8.2f - %6.4f%% - %6" F_S32P " %6" F_S32P " - %s\n",
+             _ovs[dd].a_iid, _ovs[dd].b_iid, dds, _ovs[dd].erate(), iiSco, _ovs[dd].a_hang(), _ovs[dd].b_hang(), _ovs[dd].flipped() ? "flipped" : "");
+    writeLog("OverlapCache::filterDuplicates()-- Saving   overlap A: %9" F_U64P " B: %9" F_U64P " - score %8.2f - %6.4f%% - %6" F_S32P " %6" F_S32P " - %s\n",
+             _ovs[ss].a_iid, _ovs[ss].b_iid, sss, _ovs[ss].erate(), iiSco, _ovs[ss].a_hang(), _ovs[ss].b_hang(), _ovs[ss].flipped() ? "flipped" : "");
 #endif
 
     _ovs[dd].a_iid = 0;
@@ -386,12 +397,7 @@ OverlapCache::filterDuplicates(uint32 &no) {
   if (nFiltered == 0)
     return(0);
 
-  //  Squeeze out the filtered overlaps.  We used to just copy the last element over any deleted
-  //  ones, leaving the list unsorted, but we're now (Nov 2016) binary searching on it, so can't do
-  //  that.
-
-  //  Needs to have it's own log.  Lots of stuff here.
-  //writeLog("OverlapCache()-- read %u filtered %u overlaps to the same read pair\n", _ovs[0].a_iid, nFiltered);
+  //  Squeeze out the filtered overlaps.  Preserve order so we can binary search later.
 
   for (uint32 ii=0, jj=0; jj<no; ) {
     if (_ovs[jj].a_iid == 0) {
@@ -433,8 +439,30 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
 
 
+inline
+uint64
+ovlSco(uint64 olen, uint64 evalue, uint64 ii) {
+  uint64  os;
+
+  os   = olen;
+  os <<= AS_MAX_EVALUE_BITS;
+  os  |= (~evalue) & ERR_MASK;
+  os <<= SALT_BITS;
+  os  |= ii & SALT_MASK;
+
+  return(os);
+}
+
+inline
+uint64
+ovlScoToLength(uint64 score) {
+  return(score >> (AS_MAX_EVALUE_BITS + SALT_BITS));
+}
+
+
+
 uint32
-OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
+OverlapCache::filterOverlaps(uint32 aid, uint32 maxEvalue, uint32 minOverlap, uint32 no) {
   uint32 ns        = 0;
   bool   beVerbose = false;
 
@@ -442,11 +470,12 @@ OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
 
   for (uint32 ii=0; ii<no; ii++) {
     _ovsSco[ii] = 0;                                //  Overlaps 'continue'd below will be filtered, even if 'no filtering' is needed.
+    _ovsTmp[ii] = 0;
 
     if ((RI->readLength(_ovs[ii].a_iid) == 0) ||    //  At least one read in the overlap is deleted
         (RI->readLength(_ovs[ii].b_iid) == 0)) {
       if (beVerbose)
-        fprintf(stderr, "olap %d involves deleted reads - %u %s - %u %s\n",
+        writeLog("olap %d involves deleted reads - %u %s - %u %s\n",
                 ii,
                 _ovs[ii].a_iid, (RI->readLength(_ovs[ii].a_iid) == 0) ? "deleted" : "active",
                 _ovs[ii].b_iid, (RI->readLength(_ovs[ii].b_iid) == 0) ? "deleted" : "active");
@@ -455,49 +484,44 @@ OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
 
     if (_ovs[ii].evalue() > maxEvalue) {            //  Too noisy to care
       if (beVerbose)
-        fprintf(stderr, "olap %d too noisy evalue %f > maxEvalue %f\n",
+        writeLog("olap %d too noisy evalue %f > maxEvalue %f\n",
                 ii, AS_OVS_decodeEvalue(_ovs[ii].evalue()), AS_OVS_decodeEvalue(maxEvalue));
       continue;
     }
 
     uint32  olen = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang());
 
-    if (olen < minOverlap) {                        //  Too short to care
+    //  If too short, drop it.
+
+    if (olen < minOverlap) {
       if (beVerbose)
-        fprintf(stderr, "olap %d too short olen %u minOverlap %u\n",
+        writeLog("olap %d too short olen %u minOverlap %u\n",
                 ii, olen, minOverlap);
       continue;
     }
 
     //  Just right!
 
-    _ovsSco[ii]   = olen;
-    _ovsSco[ii] <<= AS_MAX_EVALUE_BITS;
-    _ovsSco[ii]  |= (~_ovs[ii].evalue()) & ERR_MASK;
-    _ovsSco[ii] <<= SALT_BITS;
-    _ovsSco[ii]  |= ii & SALT_MASK;
+    _ovsTmp[ii] = _ovsSco[ii] = ovlSco(olen, _ovs[ii].evalue(), ii);
 
     ns++;
   }
 
-  if (ns <= _maxPer)                                //  Fewer overlaps than the limit, no filtering needed.
+  _minSco[aid] = 0;                          //  Minimum score of overlap we'll keep for this read.
+
+  if (ns <= _maxPer)                         //  Fewer overlaps than the limit, no filtering needed.
     return(ns);
 
-  //  Otherwise, filter out the short and low quality overlaps and count how many we saved.
-
-  memcpy(_ovsTmp, _ovsSco, sizeof(uint64) * no);
-
-  sort(_ovsTmp, _ovsTmp + no);
-
-  uint64  minScore = _ovsTmp[no - _maxPer];
+  sort(_ovsTmp, _ovsTmp + no);               //  Sort the scores so we can pick a minScore that
+  _minSco[aid] = _ovsTmp[no - _maxPer];      //  results in the correct number of overlaps.
 
   ns = 0;
 
   for (uint32 ii=0; ii<no; ii++)
-    if (_ovsSco[ii] < minScore)
-      _ovsSco[ii] = 0;
-    else
-      ns++;
+    if (_ovsSco[ii] < _minSco[aid])          //  Score too low, flag it as junk.
+      _ovsSco[ii] = 0;                       //  We could also do this when copying overlaps to
+    else                                     //  storage, except we need to know how many overlaps
+      ns++;                                  //  to copy so we can allocate storage.
 
   assert(ns <= _maxPer);
 
@@ -536,46 +560,40 @@ OverlapCache::loadOverlaps(ovStore *ovlStore) {
   for (uint32 rr=0; rr<RI->numReads()+1; rr++)
     _ovsMax = max(_ovsMax, ovlStore->numOverlaps(rr));
 
+  _minSco  = new uint64    [RI->numReads()+1];
+
   _ovs     = new ovOverlap [_ovsMax];
   _ovsSco  = new uint64    [_ovsMax];
   _ovsTmp  = new uint64    [_ovsMax];
 
-
   for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
 
-    //  Actually load the overlaps, then detect and remove overlaps between the same pair, then
-    //  filter short and low quality overlaps.
+    //  Actually load the overlaps, then detect and remove overlaps between
+    //  the same pair, then filter short and low quality overlaps.
 
     uint32  no = ovlStore->loadOverlapsForRead(rr, _ovs, _ovsMax);   //  no == total overlaps == numOvl
     uint32  nd = filterDuplicates(no);                               //  nd == duplicated overlaps (no is decreased by this amount)
-    uint32  ns = filterOverlaps(_maxEvalue, _minOverlap, no);        //  ns == acceptable overlaps
+    uint32  ns = filterOverlaps(rr, _maxEvalue, _minOverlap, no);    //  ns == acceptable overlaps
 
-    //if (_ovs[0].a_iid == 3514657)
-    //  fprintf(stderr, "Loaded %u overlaps - no %u nd %u ns %u\n", numOvl, no, nd, ns);
-
-    //  Allocate space for the overlaps.  Allocate a multiple of 8k, assumed to be the page size.
-    //
-    //  If we're loading all overlaps (ns == no) we don't need to overallocate.  Otherwise, we're
-    //  loading only some of them and might have to make a twin later.
-    //
-    //  Once allocated copy the good overlaps.
+    //  If we still have overlaps, get official space to store them and copy
+    //  to storage,
 
     if (ns > 0) {
       uint32  id = _ovs[0].a_iid;
 
       _overlapMax[id] = ns;
       _overlapLen[id] = ns;
-      _overlaps[id]   = _overlapStorage->get(_overlapMax[id]);
+      _overlaps[id]   = _overlapStorage->get(ns);                //  Get space for overlaps.
 
       _memOlaps += _overlapMax[id] * sizeof(BAToverlap);
 
       uint32  oo=0;
 
       for (uint32 ii=0; ii<no; ii++) {
-        if (_ovsSco[ii] == 0)
+        if (_ovsSco[ii] == 0)                                    //  Skip if it was filtered.
           continue;
 
-        _overlaps[id][oo].evalue    = _ovs[ii].evalue();
+        _overlaps[id][oo].evalue    = _ovs[ii].evalue();         //  Or copy to our storage.
         _overlaps[id][oo].a_hang    = _ovs[ii].a_hang();
         _overlaps[id][oo].b_hang    = _ovs[ii].b_hang();
         _overlaps[id][oo].flipped   = _ovs[ii].flipped();
@@ -584,13 +602,13 @@ OverlapCache::loadOverlaps(ovStore *ovlStore) {
         _overlaps[id][oo].a_iid     = _ovs[ii].a_iid;
         _overlaps[id][oo].b_iid     = _ovs[ii].b_iid;
 
-        assert(_overlaps[id][oo].a_iid != 0);
-        assert(_overlaps[id][oo].b_iid != 0);
+        assert(_overlaps[id][oo].a_iid != 0);   //  Guard against some kind of weird error that
+        assert(_overlaps[id][oo].b_iid != 0);   //  I can no longer remember.
 
         oo++;
       }
 
-      assert(oo == _overlapLen[id]);
+      assert(oo == _overlapLen[id]);    //  Ensure we got all the overlaps we were supposed to get.
     }
 
     //  Keep track of what we loaded and didn't.
@@ -664,225 +682,135 @@ searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID, bool flipped) {
 
 void
 OverlapCache::symmetrizeOverlaps(void) {
-  uint32  fiLimit    = RI->numReads();
+  uint32  fiLimit    = RI->numReads() + 1;
   uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+  uint32  blockSize  = (fiLimit < 1000 * numThreads) ? numThreads : fiLimit / 999;
 
   if (_checkSymmetry == false)
     return;
 
-  uint64  nNonSymErr = 0;
-  uint64  nOverlaps  = 0;
-  uint64  nOnly      = 0;
-  uint64  nCritical  = 0;
+  uint32  *nNonSymPerRead = new uint32 [fiLimit];
+  uint32  *nFiltPerRead   = new uint32 [fiLimit];
+  uint32  *nMissPerRead   = new uint32 [fiLimit];
 
-  uint32   *nonsymPerRead = new uint32 [RI->numReads() + 1];  //  Overlap in this read is missing it's twin
-
-  //  For each overlap, see if the twin overlap exists.  It is tempting to skip searching if the
-  //  b-read has loaded all overlaps (the overlap we're searching for must exist) but we can't.
-  //  We must still mark the overlap as being symmetric.
+  for (uint32 rr=0; rr < fiLimit; rr++) {
+    nNonSymPerRead[rr] = 0;
+    nFiltPerRead[rr]   = 0;
+    nMissPerRead[rr]   = 0;
+  }
 
   writeStatus("OverlapCache()--\n");
   writeStatus("OverlapCache()-- Symmetrizing overlaps.\n");
   writeStatus("OverlapCache()--   Finding missing twins.\n");
 
-  FILE *NSE = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-error-rates");
-  FILE *NTW = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-overlaps");
+  FILE *NSE = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-error-rates", false);   //  These turn out to be VERY big
+  FILE *NTW = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-overlaps",    false);
 
   if (NSE) {
     fprintf(NSE, "     aID      bID  a error b error\n");
     fprintf(NSE, "-------- --------  ------- -------\n");
   }
 
+  //  For each overlap, see if the twin overlap exists.  It is tempting to skip searching if the
+  //  b-read has loaded all overlaps (the overlap we're searching for must exist) but we can't.
+  //  We must still mark the overlap as being symmetric.
+
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 ra=0; ra<RI->numReads()+1; ra++) {
-    nonsymPerRead[ra] = 0;
-
+  for (uint32 ra=0; ra < fiLimit; ra++) {
     for (uint32 oa=0; oa<_overlapLen[ra]; oa++) {
-      uint32  rb = _overlaps[ra][oa].b_iid;
+      BAToverlap  *ova = &_overlaps[ra][oa];
+      uint32       rb  =  _overlaps[ra][oa].b_iid;
 
-      if (_overlaps[ra][oa].symmetric == true)   //  If already marked, we're done.
+      //  If already marked, we're done.
+
+      if (ova->symmetric == true)
         continue;
 
-      //  Search for the twin overlap, and if found, we're done.  The twin is marked as symmetric in the function.
+      //  Search for the twin overlap.
 
-      uint32 ob = searchForOverlap(_overlaps[rb], _overlapLen[rb], ra, _overlaps[ra][oa].flipped);
+      uint32       ob  = searchForOverlap(_overlaps[rb], _overlapLen[rb], ra, ova->flipped);
+
+      //  If the twin was found, mark both as symmetric and make sure the
+      //  error rate is symmetric too.
 
       if (ob < UINT32_MAX) {
-        _overlaps[ra][oa].symmetric = true;   //  I have a twin!
-        _overlaps[rb][ob].symmetric = true;   //  My twin has a twin, me!
+        BAToverlap  *ovb = &_overlaps[rb][ob];
 
-        if (_overlaps[ra][oa].evalue != _overlaps[rb][ob].evalue) {
+        ova->symmetric = true;   //  I have a twin!
+        ovb->symmetric = true;   //  My twin has a twin, me!
+
+        if (ova->evalue != ovb->evalue) {
           if (NSE)
             fprintf(NSE, "%8u %8u  %7.3f %7.3f\n",
                      ra, rb,
-                     _overlaps[ra][oa].erate() * 100.0,
-                     _overlaps[rb][ob].erate() * 100.0);
+                     ova->erate() * 100.0,
+                     ovb->erate() * 100.0);
 
-          uint64 ev = min(_overlaps[ra][oa].evalue, _overlaps[rb][ob].evalue);
+          uint64 ev = min(ova->evalue, ovb->evalue);
 
-          _overlaps[ra][oa].evalue = ev;
-          _overlaps[rb][ob].evalue = ev;
+          ova->evalue = ev;
+          ovb->evalue = ev;
 
-          nNonSymErr++;
+          nNonSymPerRead[ra]++;
         }
 
         continue;
       }
 
-      //  Didn't find a twin.  Count how many overlaps we need to create duplicates of.
+      //  Otherwise, the twin was not found.
+
+      //  If this overlap is weak according to the other read (that is, if
+      //  the other read dropped it for whatever reason) flag that we don't
+      //  want to keep it here either.
+
+      uint32  olen = RI->overlapLength(ova->a_iid, ova->b_iid, ova->a_hang, ova->b_hang);
+      uint64  osco = ovlSco(olen, ova->evalue, UINT64_MAX);
+
+      if (osco < _minSco[rb]) {
+        if (NTW)
+          fprintf(NTW, "NO TWIN for %6u -> %6u - length %lu < min %lu - WEAK\n",
+                  ra, ova->b_iid, ovlScoToLength(osco), ovlScoToLength(_minSco[rb]));
+
+        nFiltPerRead[ra]++;
+        ova->filtered = true;
+        continue;
+      }
+
+      //  Not weak.  We want to duplicate this in the other read.
 
       if (NTW)
-        fprintf(NTW, "NO TWIN for %6u vs %6u\n",
-                ra, _overlaps[ra][oa].b_iid);
+        fprintf(NTW, "NO TWIN for %6u -> %6u - length %lu >= min %lu\n",
+                ra, ova->b_iid, ovlScoToLength(osco), ovlScoToLength(_minSco[rb]));
 
-      nonsymPerRead[ra]++;
+      nMissPerRead[rb]++;
     }
   }
 
   AS_UTL_closeFile(NTW);
   AS_UTL_closeFile(NSE);
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    nOverlaps += _overlapLen[rr];
-    nOnly     += nonsymPerRead[rr];
+  uint64   nOverlaps  = 0;
+  uint64   nNonSymErr = 0;
+  uint64   nWeak      = 0;
+  uint64   nMissing   = 0;
 
-    if (_overlapLen[rr] <= _minPer)
-      nCritical += nonsymPerRead[rr];
+  for (uint32 rr=0; rr < fiLimit; rr++) {
+    nOverlaps  += _overlapLen[rr];
+    nNonSymErr += nNonSymPerRead[rr];
+    nWeak      += nFiltPerRead[rr];
+    nMissing   += nMissPerRead[rr];
   }
 
-  writeStatus("OverlapCache()--   Found %llu overlaps with non-symmetric error rates.\n", nNonSymErr);
-  writeStatus("OverlapCache()--   Found %llu missing twins in %llu overlaps, %llu are strong.\n", nOnly, nOverlaps, nCritical);
-
-  //  Score all the overlaps (again) and drop the lower quality ones.  We need to drop half of the
-  //  non-twin overlaps, but also want to retain some minimum number.
-
-  //  But, there are a bunch of overlaps that fall below our score threshold that are symmetric.  We
-  //  need to keep these, only because figuring out which ones are 'saved' above will be a total
-  //  pain in the ass.
-
-  //  Allocate some scratch space for each thread
-
-  uint64  **ovsScoScratch   = new uint64 * [numThreads];
-  uint64  **ovsTmpScratch   = new uint64 * [numThreads];
-  uint64   *nDroppedScratch = new uint64   [numThreads];
-
-  for (uint32 tt=0; tt<numThreads; tt++) {
-    ovsScoScratch[tt]   = new uint64 [_ovsMax];
-    ovsTmpScratch[tt]   = new uint64 [_ovsMax];
-    nDroppedScratch[tt] = 0;
-  }
-
-  writeStatus("OverlapCache()--   Dropping weak non-twin overlaps; allocated " F_U64 " MB scratch space.\n",
-              ((2 * sizeof(uint64 *) + sizeof(uint64)) * numThreads) >> 20);
-
-  //  As advertised, score all the overlaps and drop the weak ones.
-
-  double  fractionToDrop = 0.6;
-
-#pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-
-    if (_overlapLen[rr] <= _minPer)  //  If already too few overlaps, leave them all as is.
-      continue;
-
-    uint64 *ovsSco   = ovsScoScratch[omp_get_thread_num()];
-    uint64 *ovsTmp   = ovsTmpScratch[omp_get_thread_num()];
-    uint64 &nDropped = nDroppedScratch[omp_get_thread_num()];
-
-    for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
-      ovsSco[oo]   = RI->overlapLength( _overlaps[rr][oo].a_iid, _overlaps[rr][oo].b_iid, _overlaps[rr][oo].a_hang, _overlaps[rr][oo].b_hang);
-      ovsSco[oo] <<= AS_MAX_EVALUE_BITS;
-      ovsSco[oo]  |= (~_overlaps[rr][oo].evalue) & ERR_MASK;
-      ovsSco[oo] <<= SALT_BITS;
-      ovsSco[oo]  |= oo & SALT_MASK;
-
-      ovsTmp[oo] = ovsSco[oo];
-    }
-
-    sort(ovsTmp, ovsTmp + _overlapLen[rr]);
-
-    uint32  minIdx   = (uint32)floor(nonsymPerRead[rr] * fractionToDrop);
-
-    if (minIdx < _minPer)
-      minIdx = _minPer;
-
-    uint64  minScore = ovsTmp[minIdx];
-
-    for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
-      if ((ovsSco[oo] < minScore) && (_overlaps[rr][oo].symmetric == false)) {
-        nDropped++;
-        _overlapLen[rr]--;
-        _overlaps[rr][oo] = _overlaps[rr][_overlapLen[rr]];
-        ovsSco       [oo] = ovsSco       [_overlapLen[rr]];
-        oo--;
-      }
-    }
-
-    for (uint32 oo=0; oo<_overlapLen[rr]; oo++)
-      if (_overlaps[rr][oo].symmetric == false)
-        assert(minScore <= ovsSco[oo]);
-  }
-
-  //  Are we sane?
-
-  for (uint32 rr=RI->numReads()+1; rr-- > 0; )
-    if (_overlapLen[rr] > 0) {
-      assert(_overlaps[rr][0                ].a_iid == rr);
-      assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
-    }
-
-  //  Cleanup and log results.
-
-  uint64  nDropped = 0;
-
-  for (uint32 ii=0; ii<numThreads; ii++)
-    nDropped += nDroppedScratch[ii];
-
-
-  delete [] nonsymPerRead;
-  nonsymPerRead = NULL;
-
-  for (uint32 tt=0; tt<numThreads; tt++) {
-    delete [] ovsScoScratch[tt];
-    delete [] ovsTmpScratch[tt];
-  }
-
-  delete [] ovsScoScratch;
-  delete [] ovsTmpScratch;
-  delete [] nDroppedScratch;
-
-  writeStatus("OverlapCache()--   Dropped %llu overlaps; scratch space released.\n", nDropped);
-
-  //  Finally, run through all the saved overlaps and count how many we need to add to each read.
-
-  uint32   *toAddPerRead  = new uint32 [RI->numReads() + 1];  //  Overlap needs to be added to this read
-
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++)
-    toAddPerRead[rr] = 0;
-
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    for (uint32 oo=0; oo<_overlapLen[rr]; oo++)
-      if (_overlaps[rr][oo].symmetric == false)
-        toAddPerRead[_overlaps[rr][oo].b_iid]++;
-  }
-
-  uint64  nToAdd = 0;
-
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++)
-    nToAdd += toAddPerRead[rr];
-
-  writeStatus("OverlapCache()--   Adding %llu missing twin overlaps.\n", nToAdd);
+  writeStatus("OverlapCache()--   In %llu overlaps:\n", nOverlaps);
+  writeStatus("OverlapCache()--     Found %llu overlaps with non-symmetric error rates.\n", nNonSymErr);
+  writeStatus("OverlapCache()--     Found %llu overlaps with missing twins.\n", nMissing);
+  writeStatus("OverlapCache()--     Dropped %llu weak missing-twin overlaps.\n", nWeak);
 
   //
   //  Expand or shrink space for the overlaps.
   //
 
   //  Allocate new temporary pointers for each read.
-
-  BAToverlap  **nPtr = new BAToverlap * [RI->numReads()+1];
-
-  memset(nPtr, 0, sizeof(BAToverlap *) * (RI->numReads()+1));
 
   //  The new storage must start after the old storage.  And if it starts after the old storage ends,
   //  we can copy easier.  If not, we just grab some empty overlaps to make space.
@@ -897,84 +825,116 @@ OverlapCache::symmetrizeOverlaps(void) {
   //
   //  So, we need to compare not overlap counts, but raw positions in the OverlapStorage object.
 
-  OverlapStorage   *oldS = new OverlapStorage(_overlapStorage);  //  Recreates the existing layout without allocating anything
-  OverlapStorage   *newS = _overlapStorage;                      //  Resets pointers for the new layout, using existing space
+  BAToverlap      **nPtr = new BAToverlap * [fiLimit];            //  Pointers to new overlap storage locations
+  OverlapStorage   *oldS = new OverlapStorage(_overlapStorage);   //  Recreates the existing layout without allocating anything
+  OverlapStorage   *newS = _overlapStorage->reset();              //  Resets pointers for the new layout, using existing space
 
-  newS->reset();
+  for (uint32 rr=1; rr < fiLimit; rr++)
+    nPtr[rr] = nullptr;
 
-  for (uint32 rr=1; rr<RI->numReads()+1; rr++) {
-    nPtr[rr] = newS->get(_overlapLen[rr] + toAddPerRead[rr]);     //  Grab the pointer to the new space
+  //  Compute new pointers for overlap data that begin after the old data.
 
-    oldS->get(_overlapMax[rr]);                                   //  Move old storages ahead
+  for (uint32 rr=1; rr < fiLimit; rr++) {
+    uint32  nOvl = _overlapLen[rr] + nMissPerRead[rr] - nFiltPerRead[rr];
 
-    newS->advance(oldS);                                          //  Ensure newS is not before where oldS is.
+    assert(_overlapLen[rr] + nMissPerRead[rr] >= nFiltPerRead[rr]);
 
-    _overlapMax[rr] = _overlapLen[rr] + toAddPerRead[rr];
+    oldS->get(_overlapMax[rr]);   //  Move old storage ahead to the start of the next read.
+    newS->advance(oldS);          //  Advance newS so that it is at or after where oldS is.
+    nPtr[rr] = newS->get(nOvl);   //  Grab space for the number of overlaps we'll end up with on this read.
+
+    _overlapMax[rr] = nOvl;       //  Update the maximum number of overlaps on this read.
   }
 
-  //  With new pointers in hand, copy overlap data - backwards - to the new locations.
-  //  (Remeber that the reads are 1..numReads(), not 0..numReads()-1)
+  //  Copy overlap data from the old space to the new space, backwards.
+  //  THIS CANNOT BE THREADED.
 
-  for (uint32 rr=RI->numReads()+1; rr-- > 0; ) {
-    if (_overlapLen[rr] == 0)
+  writeStatus("OverlapCache()--   Shifting overlaps.\n");
+
+  FILE *NTD = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-weak-dropped", false);
+
+  for (uint32 rr=fiLimit; rr-- > 0; ) {
+    if (_overlapLen[rr] == 0)   //  Skip the asserts!
       continue;
 
-    assert(_overlaps[rr][0                ].a_iid == rr);
-    assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
+    assert(_overlaps[rr][0                ].a_iid == rr);  //  Ensure that we didn't overwrite an existing
+    assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);  //  overlap with overlaps for the reads after it.
 
-    for (uint32 oo=_overlapLen[rr]; oo-- > 0; )
-      nPtr[rr][oo] = _overlaps[rr][oo];
+    uint32 oo = 0;  //  Position in original overlap list
+    uint32 nn = 0;  //  Position in new overlap list
 
-    assert(_overlaps[rr][0                ].a_iid == rr);
-    assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
+    for (; oo<_overlapLen[rr]; oo++)             //  Over all the original overlaps,
+      if (_overlaps[rr][oo].filtered == false)   //  Copy to new storage if they're
+        nPtr[rr][nn++] = _overlaps[rr][oo];      //  not filtered.
+      else
+        if (NTD)
+          fprintf(NTD, "DROP overlap a %u b %u\n", _overlaps[rr][oo].a_iid, _overlaps[rr][oo].b_iid);
+
+    assert(nn == _overlapLen[rr] - nFiltPerRead[rr]);
+
+    _overlapLen[rr] = _overlapLen[rr] - nFiltPerRead[rr];
   }
 
-  //  Swap pointers to the pointers and cleanup.
+  AS_UTL_closeFile(NTD);
+
+  //  Swap pointers to the pointers and remove the old pointer storage.
 
   delete [] _overlaps;
   _overlaps = nPtr;
 
   delete  oldS;
-  //      newS is the original _overlapStorage, which we could delete, we'd just lose all the overlaps.
 
   //  Copy non-twin overlaps to their twin.
-  //
-  //  This cannot (easily) be parallelized.  We're iterating over overlaps in read rr, but inserting
-  //  overlaps into read rb.
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
-      if (_overlaps[rr][oo].symmetric == true)
+  writeStatus("OverlapCache()--   Adding missing twins.\n");
+
+  FILE *NTA = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-added", false);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ra=0; ra < fiLimit; ra++) {
+    for (uint32 oo=0; oo<_overlapLen[ra]; oo++) {
+      if (_overlaps[ra][oo].symmetric == true)
         continue;
 
-      uint32  rb = _overlaps[rr][oo].b_iid;
+      uint32  rb = _overlaps[ra][oo].b_iid;
       uint32  nn = _overlapLen[rb]++;
 
-      _overlaps[rb][nn].evalue    =  _overlaps[rr][oo].evalue;
-      _overlaps[rb][nn].a_hang    = (_overlaps[rr][oo].flipped) ? (_overlaps[rr][oo].b_hang) : (-_overlaps[rr][oo].a_hang);
-      _overlaps[rb][nn].b_hang    = (_overlaps[rr][oo].flipped) ? (_overlaps[rr][oo].a_hang) : (-_overlaps[rr][oo].b_hang);
-      _overlaps[rb][nn].flipped   =  _overlaps[rr][oo].flipped;
+      if (NTA)
+        fprintf(NTA, "add missing twin from read %u -> read %u at pos %u out of %u\n", ra, rb, nn, _overlapMax[rb] - 1);
 
-      _overlaps[rb][nn].filtered  =  _overlaps[rr][oo].filtered;
-      _overlaps[rb][nn].symmetric =  _overlaps[rr][oo].symmetric = true;
+      _overlaps[rb][nn].evalue    =  _overlaps[ra][oo].evalue;
+      _overlaps[rb][nn].a_hang    = (_overlaps[ra][oo].flipped) ? (_overlaps[ra][oo].b_hang) : (-_overlaps[ra][oo].a_hang);
+      _overlaps[rb][nn].b_hang    = (_overlaps[ra][oo].flipped) ? (_overlaps[ra][oo].a_hang) : (-_overlaps[ra][oo].b_hang);
+      _overlaps[rb][nn].flipped   =  _overlaps[ra][oo].flipped;
 
-      _overlaps[rb][nn].a_iid     =  _overlaps[rr][oo].b_iid;
-      _overlaps[rb][nn].b_iid     =  _overlaps[rr][oo].a_iid;
+      _overlaps[rb][nn].filtered  =  _overlaps[ra][oo].filtered;
+      _overlaps[rb][nn].symmetric =  _overlaps[ra][oo].symmetric = true;
+
+      _overlaps[rb][nn].a_iid     =  _overlaps[ra][oo].b_iid;
+      _overlaps[rb][nn].b_iid     =  _overlaps[ra][oo].a_iid;
+
+      assert(ra == _overlaps[ra][oo].a_iid);
+      assert(rb == _overlaps[ra][oo].b_iid);
 
       assert(_overlapLen[rb] <= _overlapMax[rb]);
 
-      assert(toAddPerRead[rb] > 0);
-      toAddPerRead[rb]--;
+      assert(nMissPerRead[rb] > 0);
+
+      nMissPerRead[rb]--;
     }
   }
 
+  AS_UTL_closeFile(NTA);
+
   //  Check that everything worked.
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
-    assert(toAddPerRead[rr] == 0);
+  for (uint32 rr=0; rr < fiLimit; rr++) {
+    assert(nMissPerRead[rr] == 0);
 
     if (_overlapLen[rr] == 0)
       continue;
+
+    assert(_overlapLen[rr] == _overlapMax[rr]);
 
     assert(_overlaps[rr][0                ].a_iid == rr);
     assert(_overlaps[rr][_overlapLen[rr]-1].a_iid == rr);
@@ -982,12 +942,40 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   //  Cleanup.
 
-  delete [] toAddPerRead;
-  toAddPerRead = NULL;
+  delete [] nNonSymPerRead;
+  delete [] nFiltPerRead;
+  delete [] nMissPerRead;
 
   //  Probably should sort again.  Not sure if anything depends on this.
 
-  for (uint32 rr=0; rr<RI->numReads()+1; rr++) {
+  writeStatus("OverlapCache()--   Sorting overlaps.\n");
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 rr=0; rr < fiLimit; rr++)
+    if (_overlapLen[rr] > 0)
+      sort(_overlaps[rr], _overlaps[rr] + _overlapLen[rr], [](BAToverlap const &a, BAToverlap const &b) {
+                                                             return(((a.b_iid == b.b_iid) && (a.flipped < b.flipped)) || (a.b_iid < b.b_iid)); } );
+
+  //  Check that all overlaps are present.
+
+  writeStatus("OverlapCache()--   Checking overlap symmetry.\n");
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ra=0; ra < fiLimit; ra++) {
+    for (uint32 oa=0; oa<_overlapLen[ra]; oa++) {
+      BAToverlap  *ova = &_overlaps[ra][oa];
+      uint32       rb  =  _overlaps[ra][oa].b_iid;
+
+      uint32       ob  = searchForOverlap(_overlaps[rb], _overlapLen[rb], ra, ova->flipped);
+
+      if (ob == UINT32_MAX) {
+        for(uint32 ii=0; ii<_overlapLen[ra]; ii++)
+          fprintf(stderr, "olapA %u -> %u flip %c%s\n", _overlaps[ra][ii].a_iid, _overlaps[ra][ii].b_iid, _overlaps[ra][ii].flipped ? 'Y' : 'N', (ii == ra) ? " **" : "");
+        for(uint32 ii=0; ii<_overlapLen[rb]; ii++)
+          fprintf(stderr, "olapB %u -> %u flip %c\n",   _overlaps[rb][ii].a_iid, _overlaps[rb][ii].b_iid, _overlaps[rb][ii].flipped ? 'Y' : 'N');
+      }
+      assert(ob != UINT32_MAX);
+    }
   }
 
   writeStatus("OverlapCache()--   Finished.\n");

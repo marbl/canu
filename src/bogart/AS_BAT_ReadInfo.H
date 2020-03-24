@@ -63,7 +63,10 @@ public:
 
 
 
-  uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang);
+private:
+  void    overlapLengths  (uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang, uint32 &aovl, uint32 &bovl);
+public:
+  uint32  overlapLength   (uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang);
 
 private:
   struct ReadStatus {
@@ -92,16 +95,19 @@ extern ReadInfo     *RI;
 
 
 inline
-uint32
-ReadInfo::overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
+void
+ReadInfo::overlapLengths(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang, uint32 &aovl_, uint32 &bovl_) {
   int32  alen = readLength(a_iid);
   int32  blen = readLength(b_iid);
   int32  aovl = 0;
   int32  bovl = 0;
 
+  aovl_ = 0;
+  bovl_ = 0;
+
   if ((isValid(a_iid) == false) ||   //  If either read is 'deleted', then
       (isValid(b_iid) == false))     //  the overlap is of length zero.
-    return(0);
+    return;
 
   //  b_hang < 0      ?     ----------  :     ----
   //                  ?  ----------     :  ----------
@@ -136,11 +142,22 @@ ReadInfo::overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) 
   assert(aovl <= alen);
   assert(bovl <= blen);
 
-  //  AVE does not work.      return((uint32)((aovl, bovl)/2));
-  //  MAX does not work.      return((uint32)MAX(aovl, bovl));
+  aovl_ = aovl;
+  bovl_ = bovl;
+}
 
-  return(aovl);
-};
+
+
+inline
+uint32
+ReadInfo::overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
+  uint32  aovl;
+  uint32  bovl;
+
+  overlapLengths(a_iid, b_iid, a_hang, b_hang, aovl, bovl);
+
+  return(max(aovl, bovl));
+}
 
 
 #endif  //  INCLUDE_AS_BAT_READ_INFO

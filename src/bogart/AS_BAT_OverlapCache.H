@@ -206,9 +206,11 @@ public:
   }
 
 
-  void          reset(void) {
+  OverlapStorage *reset(void) {
     _osLen = 0;
     _osPos = 0;
+
+    return(this);
   };
 
 
@@ -270,7 +272,7 @@ public:
   ~OverlapCache();
 
 private:
-  uint32       filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no);
+  uint32       filterOverlaps(uint32 aid, uint32 maxOVSerate, uint32 minOverlap, uint32 no);
   uint32       filterDuplicates(uint32 &no);
 
   void         computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize);
@@ -308,6 +310,8 @@ private:
 
   uint32                  _minPer;     //  Minimum number of overlaps to retain for a single read
   uint32                  _maxPer;     //  Maximum number of overlaps to load for a single read
+
+  uint64                 *_minSco;     //  The minimum score accepted for each read
 
   bool                    _checkSymmetry;
 
