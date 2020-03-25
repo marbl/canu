@@ -34,7 +34,7 @@ template<typename TT>
 static
 bool
 findGFAtokenI(char const *features, char const *token, TT &value) {
-  char *p = NULL;
+  char const *p = NULL;
 
   p = strstr(features, token);
 
