@@ -44,7 +44,7 @@ public:
     return(*this);
   };
 
-  void       generatePlots(char *outputPrefix, char *outputName, uint32 binwidth) {
+  void       generatePlots(char const *outputPrefix, char const *outputName, uint32 binwidth) {
     char  N[FILENAME_MAX];
     FILE *F;
 

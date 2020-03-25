@@ -53,7 +53,7 @@ public:
   void         evaluateTig(tgTig *tig);
   void         finalize(void);
 
-  void         printSummary(FILE *out, char *description, vector<uint32> &data);
+  void         printSummary(FILE *out, char const *description, vector<uint32> &data);
   void         printSummary(FILE *out);
 
 private:

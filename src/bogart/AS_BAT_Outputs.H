@@ -44,8 +44,8 @@
 
 void
 writeTigsToStore(TigVector     &tigs,
-                 char          *filePrefix,
-                 char          *storeName,
+                 char const    *filePrefix,
+                 char const    *storeName,
                  bool           isFinal);
 
 

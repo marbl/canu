@@ -62,11 +62,11 @@ public:
     _Nolap = 0;
   }
 
-  char     *_name;
+  char const  *_name;
 
-  uint32    _bgnID;
-  uint32    _endID;
-  uint64    _Nolap;
+  uint32       _bgnID;
+  uint32       _endID;
+  uint64       _Nolap;
 };
 
 bool
@@ -77,7 +77,7 @@ operator<(evalueFileMap const &a, evalueFileMap const &b) {
 
 
 void
-ovStore::addEvalues(vector<char *> &fileList) {
+ovStore::addEvalues(vector<char const *> &fileList) {
   char  evalueName[FILENAME_MAX+1];
   char  evalueTemp[FILENAME_MAX+1];
 
@@ -179,14 +179,14 @@ ovStore::addEvalues(vector<char *> &fileList) {
 
 int
 main(int argc, char **argv) {
-  char           *ovlName        = NULL;
-  char           *seqName        = NULL;
-  vector<char *>  fileList;
+  char const          *ovlName        = NULL;
+  char const          *seqName        = NULL;
+  vector<char const *>  fileList;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg=1;
+  vector<char const *>  err;
+  int                   arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];

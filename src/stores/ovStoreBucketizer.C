@@ -53,7 +53,7 @@ writeToFile(sqStore          *seq,
             ovFile          **sliceFile,
             uint64           *sliceSize,
             ovStoreConfig    *config,
-            char             *ovlName,
+            char const       *ovlName,
             uint32            bucketNum) {
 
   uint32 df = config->getAssignedSlice(overlap->a_iid);
@@ -82,16 +82,15 @@ writeToFile(sqStore          *seq,
 
 int
 main(int argc, char **argv) {
-  char           *ovlName        = NULL;
-  char           *seqName        = NULL;
-  char           *cfgName        = NULL;
+  char const     *ovlName        = NULL;
+  char const     *seqName        = NULL;
+  char const     *cfgName        = NULL;
   uint32          bucketNum      = UINT32_MAX;
 
   double          maxErrorRate   = 1.0;
 
   bool            deleteInputs   = false;
   bool            forceOverwrite = false;
-  bool            beVerbose      = false;
 
   char            createName[FILENAME_MAX+1];
   char            sliceSName[FILENAME_MAX+1];
@@ -99,8 +98,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg=1;
+  vector<char const *>  err;
+  int                   arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
@@ -122,9 +121,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       forceOverwrite = true;
-
-    } else if (strcmp(argv[arg], "-v") == 0) {
-      beVerbose = true;
 
     } else {
       char *s = new char [1024];
@@ -157,7 +153,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -f                    force overwriting existing data\n");
-    fprintf(stderr, "  -v                    be overly verbose\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)

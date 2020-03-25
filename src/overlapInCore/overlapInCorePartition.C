@@ -280,7 +280,7 @@ partitionLength(sqStore      *seq,
 
 
 FILE *
-openOutput(char *prefix, char *type) {
+openOutput(char const *prefix, char const *type) {
   char  A[FILENAME_MAX];
 
   snprintf(A, FILENAME_MAX, "%s.%s.WORKING", prefix, type);
@@ -298,7 +298,7 @@ openOutput(char *prefix, char *type) {
 
 
 void
-renameToFinal(char *prefix, char *type) {
+renameToFinal(char const *prefix, char const *type) {
   char  A[FILENAME_MAX];
   char  B[FILENAME_MAX];
 
@@ -312,10 +312,10 @@ renameToFinal(char *prefix, char *type) {
 
 int
 main(int argc, char **argv) {
-  char            *seqStoreName        = NULL;
+  char const      *seqStoreName        = NULL;
   sqStore         *seqStore            = NULL;
 
-  char            *outputPrefix        = NULL;
+  char const      *outputPrefix        = NULL;
   char             outputName[FILENAME_MAX];
 
   uint64           ovlHashBlockLength  = 0;

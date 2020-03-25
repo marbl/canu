@@ -35,7 +35,7 @@
 
 
 void
-dumpFile(vector<char *>  &tigInputs) {
+dumpFile(vector<char const *>  &tigInputs) {
   tgTig   *tig      = new tgTig;
 
   for (uint32 ff=0; ff<tigInputs.size(); ff++) {
@@ -57,7 +57,7 @@ dumpFile(vector<char *>  &tigInputs) {
 
 
 void
-testFile(vector<char *>  &tigInputs) {
+testFile(vector<char const *>  &tigInputs) {
   tgTig   *tig      = new tgTig;
 
   for (uint32 ff=0; ff<tigInputs.size(); ff++) {
@@ -88,9 +88,9 @@ testFile(vector<char *>  &tigInputs) {
 
 
 
-void                              //  Create a new store if one doesn't exist, then
-createStore(char *tigName,        //  add empty versions until we get to the one
-            int32 tigVers) {      //  we're supposed to load into.
+void                                 //  Create a new store if one doesn't exist, then
+createStore(char const *tigName,     //  add empty versions until we get to the one
+            int32       tigVers) {   //  we're supposed to load into.
 
   if (directoryExists(tigName) == false) {
     fprintf(stderr, "Creating tig store '%s' version %d\n", tigName, tigVers);
@@ -107,11 +107,11 @@ createStore(char *tigName,        //  add empty versions until we get to the one
 
 
 void
-loadTigs(char            *seqName,
-         char            *tigName,
-         int32            tigVers,
-         tgStoreType      tigType,
-         vector<char *>  &tigInputs) {
+loadTigs(char const            *seqName,
+         char const            *tigName,
+         int32                  tigVers,
+         tgStoreType            tigType,
+         vector<char const *>  &tigInputs) {
   sqStore *seqStore = new sqStore(seqName);
   tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
   tgTig   *tig      = new tgTig;
@@ -144,19 +144,19 @@ loadTigs(char            *seqName,
 
 int
 main (int argc, char **argv) {
-  char            *seqName       = NULL;
-  char            *tigName       = NULL;
-  int32            tigVers       = -1;
-  vector<char *>   tigInputs;
-  char            *tigInputsFile = NULL;
-  tgStoreType      tigType       = tgStoreModify;
-  bool             doDumpFile    = false;
-  bool             doTestFile    = false;
+  char const           *seqName       = NULL;
+  char const           *tigName       = NULL;
+  int32                 tigVers       = -1;
+  vector<char const *>  tigInputs;
+  char const           *tigInputsFile = NULL;
+  tgStoreType           tigType       = tgStoreModify;
+  bool                  doDumpFile    = false;
+  bool                  doTestFile    = false;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];

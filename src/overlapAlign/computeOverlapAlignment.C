@@ -425,8 +425,8 @@ extend3(char   *aRead,  int32  &abgn,  int32  &aend,  int32         alen,   uint
 //  The editDist and alignLen of the alignment are returned.
 //
 bool
-computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen),  char *Alabel,  uint32 Aid,
-                 char  *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   char *Blabel,  uint32 Bid,
+computeAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen),  char const *Alabel,  uint32 Aid,
+                 char  *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   char const *Blabel,  uint32 Bid,
                  double  maxErate,
                  int32  &editDist,
                  int32  &alignLen,

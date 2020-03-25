@@ -649,17 +649,17 @@ processReadBatch(void *G, void *T, void *S) {
       assert(sco2nd <= sco1st);
     }
 
-#if 0
-    if (((sco2nd < DBL_MIN) && (sco1st > DBL_MIN)) ||
-        ((sco2nd > DBL_MIN) && (sco1st / sco2nd > minRatio)))
-      fprintf(stdout, "hap1st %1u sco1st %9.7f matches %6u   hap2 %1u sco2nd %9.7f matches %6u -> %1u\n",
-              hap1st, sco1st, matches[hap1st],
-              hap2nd, sco2ndnd, matches[hap2], hap1st);
-    else
-      fprintf(stdout, "hap1st %1u sco1st %9.7f matches %6u   hap2 %1u sco2nd %9.7f matches %6u -> AMBIGUOUS\n",
-              hap1st, sco1st, matches[hap1st],
-              hap2, sco2nd, matches[hap2]);
-#endif
+    if (0) {
+      if (((sco2nd < DBL_MIN) && (sco1st > DBL_MIN)) ||
+          ((sco2nd > DBL_MIN) && (sco1st / sco2nd > g->_minRatio)))
+        fprintf(stdout, "hap1st %1u sco1st %9.7f matches %6u   hap2 %1u sco2nd %9.7f matches %6u -> %1u\n",
+                hap1st, sco1st, matches[hap1st],
+                hap2nd, sco2nd, matches[hap2nd], hap1st);
+      else
+        fprintf(stdout, "hap1st %1u sco1st %9.7f matches %6u   hap2 %1u sco2nd %9.7f matches %6u -> AMBIGUOUS\n",
+                hap1st, sco1st, matches[hap1st],
+                hap2nd, sco2nd, matches[hap2nd]);
+    }
 
     //  Write the read to the 'best' haplotype, unless it's an ambiguous assignment.
     //
@@ -722,8 +722,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {   //  INPUT READS and RANGE TO PROCESS
       G->_seqName = argv[++arg];

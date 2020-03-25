@@ -144,8 +144,8 @@ public:
            (queryMax            == UINT32_MAX));
   };
 
-  void        loadBogartStatus(const char *prefix, uint32 nReads);
-  void        loadBogartTigs(const char *tigname);
+  void        loadBogartStatus(char const *prefix, uint32 nReads);
+  void        loadBogartTigs(char const *tigname);
 
   void        drawPicture(uint32         Aid,
                           ovOverlap     *overlaps,
@@ -291,7 +291,7 @@ public:
 
 
 void
-dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
+dumpParameters::loadBogartStatus(char const *prefix, uint32 nReads) {
   FILE         *E    = NULL;
 
   if (prefix == NULL)
@@ -358,7 +358,7 @@ dumpParameters::loadBogartStatus(const char *prefix, uint32 nReads) {
 
 
 void
-dumpParameters::loadBogartTigs(const char *tigpath) {
+dumpParameters::loadBogartTigs(char const *tigpath) {
 
   if (directoryExists(tigpath) == false)
     return;
@@ -562,12 +562,12 @@ dumpParameters::drawPicture(uint32         Aid,
     uint32 annotation = MHS + 1+ OLW + 1 + MHS + 1;
 
     if (withStatus) {                                                                  //  "1234567890123456"
-      if      (status[Bid].isContained == true)   strncpy(line + annotation, (const char *)"contained   ", 12);
-      else if (status[Bid].isIgnored   == true)   strncpy(line + annotation, (const char *)"ignored     ", 12);
-      else if (status[Bid].isCovGap    == true)   strncpy(line + annotation, (const char *)"coverage-gap", 12);
-      else if (status[Bid].isLopsided  == true)   strncpy(line + annotation, (const char *)"lopsided    ", 12);
-      else if (status[Bid].isSpur      == true)   strncpy(line + annotation, (const char *)"spur        ", 12);
-      else                                        strncpy(line + annotation, (const char *)"dovetail    ", 12);
+      if      (status[Bid].isContained == true)   strncpy(line + annotation, (char const *)"contained   ", 12);
+      else if (status[Bid].isIgnored   == true)   strncpy(line + annotation, (char const *)"ignored     ", 12);
+      else if (status[Bid].isCovGap    == true)   strncpy(line + annotation, (char const *)"coverage-gap", 12);
+      else if (status[Bid].isLopsided  == true)   strncpy(line + annotation, (char const *)"lopsided    ", 12);
+      else if (status[Bid].isSpur      == true)   strncpy(line + annotation, (char const *)"spur        ", 12);
+      else                                        strncpy(line + annotation, (char const *)"dovetail    ", 12);
 
       annotation += 13;
     }
@@ -624,11 +624,11 @@ dumpParameters::drawPicture(uint32         Aid,
 
 int
 main(int argc, char **argv) {
-  char                 *seqName     = NULL;
-  char                 *ovlName     = NULL;
-  char                 *outPrefix   = NULL;
-  char                 *bogartPath  = NULL;
-  char                 *bogTigPath  = NULL;
+  char const           *seqName     = NULL;
+  char const           *ovlName     = NULL;
+  char const           *outPrefix   = NULL;
+  char const           *bogartPath  = NULL;
+  char const           *bogTigPath  = NULL;
 
   dumpParameters        params;
 
@@ -655,8 +655,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg=1;
+  vector<char const *>  err;
+  int                   arg=1;
   while (arg < argc) {
     if      (strcmp(argv[arg], "-S") == 0)
       seqName = argv[++arg];

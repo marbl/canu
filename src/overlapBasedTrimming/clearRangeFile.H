@@ -49,7 +49,7 @@
 
 class clearRangeFile {
 public:
-  clearRangeFile(char *fileName, sqStore *seq) {
+  clearRangeFile(char const *fileName, sqStore *seq) {
 
     _modified = false;
 

@@ -158,14 +158,14 @@ public:
   void             realignForward(bool verbose=false, bool displayAlign=false);
   void             realignBackward(bool verbose=false, bool displayAlign=false);
 
-  void             display(char    *prefix,
+  void             display(char const *prefix,
                            int32    aLo,   int32   aHi,
                            int32    bLo,   int32   bHi,
                            int32   *delta, int32   deltaLen,
                            bool     displayIt = true,
                            bool     saveStats = false);
 
-  void             display(char    *prefix,
+  void             display(char const *prefix,
                            bool     displayIt = true);
 
   //  Result reporting

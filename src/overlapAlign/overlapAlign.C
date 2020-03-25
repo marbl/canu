@@ -177,7 +177,7 @@ saveClearRanges(trGlobalData *g) {
 
 
 void
-loadClearRanges(trGlobalData *g, vector<char *> &trimFiles) {
+loadClearRanges(trGlobalData *g, vector<char const *> &trimFiles) {
 
   //  For each clear range file, load the data, then copy to
   //  our storage.
@@ -308,12 +308,12 @@ int
 main(int argc, char **argv) {
   trGlobalData   *g = new trGlobalData;
 
-  vector<char *>  trimFiles;
+  vector<char const *>  trimFiles;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0)
       g->seqStoreName = argv[++arg];

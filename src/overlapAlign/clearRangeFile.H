@@ -35,15 +35,15 @@
 
 class clearRangeFile {
 public:
-  clearRangeFile(char *filename);
+  clearRangeFile(char const *filename);
   ~clearRangeFile();
 
 private:
-  void      setFilename(char *filename);
+  void      setFilename(char const *filename);
 
 public:
-  void      loadData(char *filename=NULL);
-  void      saveData(char *filename=NULL, bool force=false);
+  void      loadData(char const *filename=NULL);
+  void      saveData(char const *filename=NULL, bool force=false);
 
 private:
   void      reallocData(uint64 newmax, bool exact=false);

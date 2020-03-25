@@ -32,19 +32,19 @@
 
 int
 main (int argc, char **argv) {
-  char            *seqName        = NULL;
-  char            *corName        = NULL;
-  int32            corVers        = 1;
+  char const            *seqName        = NULL;
+  char const            *corName        = NULL;
+  int32                  corVers        = 1;
 
-  vector<char *>   corInputs;
-  char            *corInputsFile  = NULL;
+  vector<char const *>   corInputs;
+  char const            *corInputsFile  = NULL;
 
-  bool             updateCorStore = false;
+  bool                   updateCorStore = false;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];

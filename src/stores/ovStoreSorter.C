@@ -114,9 +114,9 @@ checkMemory(const char *ovlName, uint32 sliceNum, uint64 totOvl, uint64 maxMemor
 
 int
 main(int argc, char **argv) {
-  char           *ovlName      = NULL;
-  char           *seqName      = NULL;
-  char           *cfgName      = NULL;
+  char const     *ovlName      = NULL;
+  char const     *seqName      = NULL;
+  char const     *cfgName      = NULL;
   uint32          sliceNum     = UINT32_MAX;
 
   uint64          maxMemory    = UINT64_MAX;
@@ -127,8 +127,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg=1;
+  vector<char const *>  err;
+  int                   arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];

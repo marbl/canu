@@ -45,10 +45,10 @@ using namespace std;
 
 int
 main(int argc, char **argv) {
-  char                  *seqStoreName = NULL;
+  char const            *seqStoreName = NULL;
 
-  char                  *ovlFileName = NULL;
-  char                  *ovlStoreName = NULL;
+  char const            *ovlFileName = NULL;
+  char const            *ovlStoreName = NULL;
 
   bool                   asCoords    = false;    //  Format of input overlaps
   bool                   asHangs     = false;
@@ -60,11 +60,11 @@ main(int argc, char **argv) {
   uint32                 abgn = 1, aend = 0;
   uint32                 bbgn = 1, bend = 0;
 
-  vector<char *>         files;
+  vector<char const *>   files;
 
 
-  vector<char *>  err;
-  int32           arg = 1;
+  vector<char const *>  err;
+  int32                 arg = 1;
   while (arg < argc) {
     if      (strcmp(argv[arg], "-S") == 0) {
       seqStoreName = argv[++arg];

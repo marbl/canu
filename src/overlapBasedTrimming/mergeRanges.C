@@ -35,20 +35,20 @@ using namespace std;
 
 int
 main (int argc, char **argv) {
-  char            *seqName       = NULL;
+  char const            *seqName       = NULL;
 
-  vector<char *>   clrName;
-  vector<uint32>   bgnID;
-  vector<uint32>   endID;
+  vector<char const *>   clrName;
+  vector<uint32>         bgnID;
+  vector<uint32>         endID;
 
-  char            *outName       = NULL;
+  char const            *outName       = NULL;
 
-  bool             verbose       = false;
+  bool                   verbose       = false;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];

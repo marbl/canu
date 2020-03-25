@@ -534,7 +534,7 @@ addFiles(char **argv, int arg, int argc, vector<char const *> &err, seqLib &lib)
 
 int
 main(int argc, char **argv) {
-  char            *seqStoreName      = NULL;
+  char const      *seqStoreName      = NULL;
 
   uint32           minReadLength     = 0;
   uint64           genomeSize        = 0;

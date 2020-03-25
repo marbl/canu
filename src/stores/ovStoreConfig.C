@@ -303,25 +303,25 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
 
 int
 main(int argc, char **argv) {
-  char           *seqName         = NULL;
-  uint64          minMemory       = (uint64)1 * 1024 * 1024 * 1024;
-  uint64          maxMemory       = (uint64)4 * 1024 * 1024 * 1024;
+  char                 *seqName         = NULL;
+  uint64                minMemory       = (uint64)1 * 1024 * 1024 * 1024;
+  uint64                maxMemory       = (uint64)4 * 1024 * 1024 * 1024;
 
-  vector<char *>  fileList;
+  vector<char const *>  fileList;
 
-  char           *configOut       = NULL;
-  char           *configIn        = NULL;
+  char const           *configOut       = NULL;
+  char const           *configIn        = NULL;
 
-  bool            writeNumBuckets = false;
-  bool            writeNumSlices  = false;
-  bool            writeMemory     = false;
-  uint32          writeInputs     = 0;
-  uint32          writeSlices     = 0;
+  bool                  writeNumBuckets = false;
+  bool                  writeNumSlices  = false;
+  bool                  writeMemory     = false;
+  uint32                writeInputs     = 0;
+  uint32                writeSlices     = 0;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg=1;
+  vector<char const *>  err;
+  int                   arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];

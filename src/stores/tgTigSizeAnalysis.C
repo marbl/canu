@@ -95,7 +95,7 @@ tgTigSizeAnalysis::finalize(void) {
 }
 
 void
-tgTigSizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &data) {
+tgTigSizeAnalysis::printSummary(FILE *out, char const *description, vector<uint32> &data) {
   uint64  cnt = data.size();
   uint64  sum = 0;
   uint64  tot = 0;

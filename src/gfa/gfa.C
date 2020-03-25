@@ -33,7 +33,7 @@
 template<typename TT>
 static
 bool
-findGFAtokenI(char *features, char *token, TT &value) {
+findGFAtokenI(char const *features, char const *token, TT &value) {
   char *p = NULL;
 
   p = strstr(features, token);
@@ -292,7 +292,7 @@ gfaFile::gfaFile() {
 }
 
 
-gfaFile::gfaFile(char *inName) {
+gfaFile::gfaFile(char const *inName) {
   _header = NULL;
 
   if ((inName[0] == 'H') && (inName[1] == '\t')) {
@@ -318,7 +318,7 @@ gfaFile::~gfaFile() {
 
 
 bool
-gfaFile::loadFile(char *inName) {
+gfaFile::loadFile(char const *inName) {
   char  *L    = NULL;
   uint32 Llen = 0;
   uint32 Lmax = 0;
@@ -363,7 +363,7 @@ gfaFile::loadFile(char *inName) {
 
 
 bool
-gfaFile::saveFile(char *outName) {
+gfaFile::saveFile(char const *outName) {
 
   FILE *F = AS_UTL_openOutputFile(outName);
 

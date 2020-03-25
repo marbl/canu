@@ -51,7 +51,7 @@ using namespace std;
 
 //  Duplicated in generateCorrectionLayouts.C
 void
-loadReadList(char *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &readList) {
+loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &readList) {
   char  L[1024];
 
   if (readListName == NULL)
@@ -247,16 +247,16 @@ generateFalconConsensus(falconConsensus           *fc,
 
 int
 main(int argc, char **argv) {
-  char             *seqName   = 0L;
-  char             *corName   = 0L;
+  char const       *seqName   = 0L;
+  char const       *corName   = 0L;
   uint32            corVers   = 1;
 
-  char             *exportName = NULL;
-  char             *importName = NULL;
+  char const       *exportName = NULL;
+  char const       *importName = NULL;
 
   uint32            errorRate = AS_OVS_encodeEvalue(0.015);
 
-  char             *outputPrefix = NULL;
+  char const       *outputPrefix = NULL;
   bool              outputCNS    = false;
   bool              outputFASTQ  = false;
   bool              outputLog    = false;
@@ -268,7 +268,7 @@ main(int argc, char **argv) {
 
   uint32            idMin = 1;
   uint32            idMax = UINT32_MAX;
-  char             *readListName = NULL;
+  char const       *readListName = NULL;
   set<uint32>       readList;
 
   uint32            numThreads         = omp_get_max_threads();
@@ -283,8 +283,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {   //  INPUTS
       seqName = argv[++arg];

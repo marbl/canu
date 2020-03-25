@@ -26,7 +26,7 @@
 #include "clearRangeFile.H"
 #include "files.H"
 
-clearRangeFile::clearRangeFile(char *filename=NULL) {
+clearRangeFile::clearRangeFile(char const *filename=NULL) {
 
   //  Clear the filename, because it isn't set if the filename passed in is NULL.
 
@@ -76,7 +76,7 @@ clearRangeFile::~clearRangeFile() {
 
 
 void
-clearRangeFile::setFilename(char *filename) {
+clearRangeFile::setFilename(char const *filename) {
 
   if (filename == NULL)   //  Do nothing if no filename supplied; use whatever is there already.
     return;
@@ -88,7 +88,7 @@ clearRangeFile::setFilename(char *filename) {
 
 
 void
-clearRangeFile::loadData(char *filename) {
+clearRangeFile::loadData(char const *filename) {
 
   setFilename(filename);
 
@@ -113,7 +113,7 @@ clearRangeFile::loadData(char *filename) {
 
 
 void
-clearRangeFile::saveData(char *filename, bool force) {
+clearRangeFile::saveData(char const *filename, bool force) {
 
   setFilename(filename);
 

@@ -861,7 +861,7 @@ NDalign::realignBackward(bool displayAlgorithm, bool displayAlign) {
 
 
 void
-NDalign::display(char    *prefix,
+NDalign::display(char const *prefix,
                  int32    aLo,   int32   aHi,
                  int32    bLo,   int32   bHi,
                  int32   *delta, int32   deltaLen,
@@ -1019,7 +1019,7 @@ NDalign::display(char    *prefix,
 
 
 void
-NDalign::display(char *prefix, bool displayIt) {
+NDalign::display(char const *prefix, bool displayIt) {
   display(prefix,
           _bestResult._aLo,   _bestResult._aHi,
           _bestResult._bLo,   _bestResult._bHi,

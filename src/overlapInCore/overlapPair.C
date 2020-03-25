@@ -252,8 +252,8 @@ getRange(uint32 &bgnID, uint32 &endID) {
 //  Try to extend the overlap on the B read.  If successful, returns new bbgn,bend and editDist and alignLen.
 //
 bool
-extendAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen),  char *Alabel,  uint32 Aid,
-                char  *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   char *Blabel,  uint32 Bid,
+extendAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen),  char const *Alabel,  uint32 Aid,
+                char  *bRead,  int32  &bbgn,  int32  &bend,  int32         blen,   char const *Blabel,  uint32 Bid,
                 double  maxErate,
                 int32   slop,
                 int32  &editDist,

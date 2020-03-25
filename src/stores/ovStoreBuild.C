@@ -81,21 +81,19 @@ writeToDumpFile(sqStore          *seq,
 
 int
 main(int argc, char **argv) {
-  char           *ovlName        = NULL;
-  char           *seqName        = NULL;
-  char           *cfgName        = NULL;
+  char const     *ovlName        = NULL;
+  char const     *seqName        = NULL;
+  char const     *cfgName        = NULL;
 
   double          maxErrorRate   = 1.0;
 
   bool            eValues        = false;
-  char           *configOut      = NULL;
-
-  bool            beVerbose      = false;
+  char const     *configOut      = NULL;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg=1;
+  vector<char const *>  err;
+  int                   arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
@@ -108,9 +106,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-v") == 0) {
-      beVerbose = true;
 
     } else {
       char *s = new char [1024];
@@ -134,8 +129,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -C config             path to ovStoreConfig configuration file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -v                    be overly verbose\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -165,7 +158,7 @@ main(int argc, char **argv) {
 
   for (uint32 bb=1; bb<=config->numBuckets(); bb++) {
     for (uint32 ii=0; ii<config->numInputs(bb); ii++) {
-      char              *inputName = config->getInput(bb, ii);
+      char const        *inputName = config->getInput(bb, ii);
       ovFile            *inputFile = new ovFile(seq, inputName, ovFileFull);
 
       ovlsTotal += inputFile->getCounts()->numOverlaps() * 2;
@@ -206,7 +199,7 @@ main(int argc, char **argv) {
 
   for (uint32 bb=1; bb<=config->numBuckets(); bb++) {
     for (uint32 ii=0; ii<config->numInputs(bb); ii++) {
-      char     *inputName = config->getInput(bb, ii);
+      char const *inputName = config->getInput(bb, ii);
 
       fprintf(stderr, "%12.3f %12.3f %7.2f%% %7.2f%% %40s\n",
               ovlsInput   / 1000000.0,

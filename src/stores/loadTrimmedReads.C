@@ -114,8 +114,8 @@ doTest(uint32 bgn, uint32 end, char *bases, bool norm) {
 
 int
 main (int argc, char **argv) {
-  char            *seqName = NULL;
-  char            *clrName = NULL;
+  char const      *seqName = NULL;
+  char const      *clrName = NULL;
 
   sqStore_mode     sqMode  = sqStore_extend;
 
@@ -130,8 +130,8 @@ main (int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];

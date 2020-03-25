@@ -80,53 +80,53 @@ ChunkGraph       *CG  = 0L;
 
 int
 main (int argc, char * argv []) {
-  char      *seqStorePath            = NULL;
-  char      *ovlStorePath            = NULL;
+  char const  *seqStorePath            = NULL;
+  char const  *ovlStorePath            = NULL;
 
-  double    erateGraph               = 0.075;
-  double    erateMax                 = 0.100;
+  double       erateGraph               = 0.075;
+  double       erateMax                 = 0.100;
 
-  bool      filterCoverageGap        = true;
-  bool      filterHighError          = true;
-  bool      filterLopsided           = true;
-  bool      filterSpur               = true;
-  uint32    spurDepth                = 3;
-  bool      filterDeadEnds           = true;
+  bool         filterCoverageGap        = true;
+  bool         filterHighError          = true;
+  bool         filterLopsided           = true;
+  bool         filterSpur               = true;
+  uint32       spurDepth                = 3;
+  bool         filterDeadEnds           = true;
 
-  uint32    covGapOlap               = 500;     //  Require overlap of x bp when detecting coverage gaps.
-  double    lopsidedDiff             = 25.0;    //  Call reads lopsided if diff between is more than x percent.
-  double    minOlapPercent           =  0.0;
+  uint32       covGapOlap               = 500;     //  Require overlap of x bp when detecting coverage gaps.
+  double       lopsidedDiff             = 25.0;    //  Call reads lopsided if diff between is more than x percent.
+  double       minOlapPercent           =  0.0;
 
-  uint64    genomeSize               = 0;
+  uint64       genomeSize               = 0;
 
-  uint32    fewReadsNumber           = 2;      //  Parameters for labeling of unassembled; also set in pipelines/canu/Defaults.pm
-  uint32    tooShortLength           = 0;
-  double    spanFraction             = 1.0;
-  double    lowcovFraction           = 0.5;
-  uint32    lowcovDepth              = 3;
+  uint32       fewReadsNumber           = 2;      //  Parameters for labeling of unassembled; also set in pipelines/canu/Defaults.pm
+  uint32       tooShortLength           = 0;
+  double       spanFraction             = 1.0;
+  double       lowcovFraction           = 0.5;
+  uint32       lowcovDepth              = 3;
 
-  double    deviationGraph           = 6.0,    similarityGraph  = 0.0;
-  double    deviationBubble          = 6.0,    similarityBubble = 0.1;
-  double    deviationRepeat          = 3.0,    similarityRepeat = 0.1;
+  double       deviationGraph           = 6.0,    similarityGraph  = 0.0;
+  double       deviationBubble          = 6.0,    similarityBubble = 0.1;
+  double       deviationRepeat          = 3.0,    similarityRepeat = 0.1;
 
-  uint32    confusedAbsolute         = 2100;
-  double    confusedPercent          = 200.0;
+  uint32       confusedAbsolute         = 2100;
+  double       confusedPercent          = 200.0;
 
-  int32     numThreads               = 0;
+  int32        numThreads               = 0;
 
-  uint64    ovlCacheMemory           = UINT64_MAX;
+  uint64       ovlCacheMemory           = UINT64_MAX;
 
-  char     *prefix                   = NULL;
+  char const  *prefix                   = NULL;
 
-  uint32    minReadLen               = 0;
-  uint32    minOverlapLen            = 500;
-  uint32    minIntersectLen          = 500;
-  uint32    maxPlacements            = 2;
+  uint32       minReadLen               = 0;
+  uint32       minOverlapLen            = 500;
+  uint32       minIntersectLen          = 500;
+  uint32       maxPlacements            = 2;
 
   argc = AS_configure(argc, argv);
 
-  vector<char *>  err;
-  int             arg = 1;
+  vector<char const *>  err;
+  int                   arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqStorePath = argv[++arg];

@@ -63,19 +63,19 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  char  *typeName[13] = { "IDENT",
-                          "DELETE",
-                          "A_SUBST",
-                          "C_SUBST",
-                          "G_SUBST",
-                          "T_SUBST",
-                          "A_INSERT",
-                          "C_INSERT",
-                          "G_INSERT",
-                          "T_INSERT",
-                          "NO_VOTE",
-                          "EXTENSION",
-                          NULL };
+  char const *typeName[13] = { "IDENT",
+                               "DELETE",
+                               "A_SUBST",
+                               "C_SUBST",
+                               "G_SUBST",
+                               "T_SUBST",
+                               "A_INSERT",
+                               "C_INSERT",
+                               "G_INSERT",
+                               "T_INSERT",
+                               "NO_VOTE",
+                               "EXTENSION",
+                               NULL };
 
   memoryMappedFile     *Cfile    = new memoryMappedFile(redName);
   Correction_Output_t  *C        = (Correction_Output_t *)Cfile->get();

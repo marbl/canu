@@ -50,7 +50,7 @@ public:
     _readToSlice   = NULL;
   };
 
-  ovStoreConfig(vector<char *> &names, uint32 maxID) {
+  ovStoreConfig(vector<char const *> &names, uint32 maxID) {
     _maxID         = maxID;
 
     _numBuckets    = 0;
@@ -67,7 +67,7 @@ public:
     _readToSlice   = new uint16 [_maxID+1];
   };
 
-  ovStoreConfig(const char *configName) {
+  ovStoreConfig(char const *configName) {
     _maxID         = 0;
 
     _numBuckets    = 0;
@@ -93,7 +93,7 @@ public:
     delete [] _readToSlice;
   };
 
-  void    loadConfig(const char *configName) {
+  void    loadConfig(char const *configName) {
     FILE *C = AS_UTL_openInputFile(configName);
 
     loadFromFile(_maxID,      "maxID",      C);
@@ -123,7 +123,7 @@ public:
     AS_UTL_closeFile(C, configName);
   };
 
-  void    writeConfig(const char *configName) {
+  void    writeConfig(char const *configName) {
     FILE *C = AS_UTL_openOutputFile(configName);
 
     writeToFile(_maxID,      "maxID",      C);
@@ -165,7 +165,7 @@ public:
     return(ni);
   };
 
-  char   *getInput(uint32 bucketNumber, uint32 fileNumber) {
+  char const *getInput(uint32 bucketNumber, uint32 fileNumber) {
     uint32 ni = 0;
 
     bucketNumber--;  //  Internally starting at 0, externally at 1.

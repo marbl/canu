@@ -346,9 +346,9 @@ checkLink(gfaLink   *link,
 //   Abgn, Aend and score are updated with the alignment.
 //
 bool
-checkRecord_align(char *label,
-                  char *Aname, char *Aseq, int32 Alen, int32 &Abgn, int32 &Aend,
-                  char *Bname, char *Bseq, int32 Blen,
+checkRecord_align(char const *label,
+                  char const *Aname, char const *Aseq, int32 Alen, int32 &Abgn, int32 &Aend,
+                  char const *Bname, char const *Bseq, int32 Blen,
                   int32 &score,
                   bool   beVerbose) {
 
