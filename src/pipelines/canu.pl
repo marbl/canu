@@ -97,6 +97,7 @@ my $cmd     = undef;              #  Temporary string passed to system().
 my $asm     = undef;              #  Name of our assembly.
 my $asmAuto = undef;              #  If set, the name was auto-discovered.
 
+my $citationMode = "canu";        #  For printing the citation(s).
 
 #  What a mess.  We can't set the version string until after we have a bin directory, and
 #  Defaults.pm can't call stuff in Execution.pm.  So, we need to special case setting the version
@@ -124,6 +125,21 @@ foreach my $arg (@ARGV) {
         ($arg eq "--version")) {
         print getGlobal("version") . "\n";
         exit(0);
+    }
+
+    if (($arg eq "-citation")  || ($arg eq "--citation") ||
+        ($arg eq "-citations") || ($arg eq "--citations")) {
+        print STDERR "\n";
+        printCitation(undef, "all");
+        exit(0);
+    }
+
+    if ($arg =~ m/-haplotype\w+/) {
+        $citationMode = "trio";
+    }
+
+    if ($arg eq "-pacbio-hifi") {
+        $citationMode = "hicanu";
     }
 
     if ($arg eq "-fast") {
@@ -167,12 +183,6 @@ while (scalar(@ARGV)) {
     elsif (($arg eq "-fast") ||
            ($arg eq "-accurate")) {
         addCommandLineOption($arg);
-    }
-
-    elsif (($arg eq "-citation") || ($arg eq "--citation")) {
-        print STDERR "\n";
-        printCitation(undef);
-        exit(0);
     }
 
     elsif ($arg eq "-d") {
@@ -337,11 +347,11 @@ printHelp();
 
 print STDERR "-- " . getGlobal("version") . "\n";
 print STDERR "--\n";
-#print STDERR "-- CITATIONS\n";
-#print STDERR "--\n";
-#printCitation("-- ");
-#print STDERR "-- CONFIGURE CANU\n";
-#print STDERR "--\n";
+print STDERR "-- CITATIONS\n";
+print STDERR "--\n";
+printCitation("-- ", $citationMode);
+print STDERR "-- CONFIGURE CANU\n";
+print STDERR "--\n";
 
 #  Check java and gnuplot.
 

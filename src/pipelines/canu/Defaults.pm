@@ -511,41 +511,72 @@ sub printHelp (@) {
 }
 
 
-sub printCitation ($) {
+sub printCitation ($$) {
     my $prefix = shift @_;
+    my $mode   = shift @_;
 
-    print STDERR "${prefix}Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM.\n";
-    print STDERR "${prefix}Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation.\n";
-    print STDERR "${prefix}Genome Res. 2017 May;27(5):722-736.\n";
-    print STDERR "${prefix}http://doi.org/10.1101/gr.215087.116\n";
-    print STDERR "${prefix}\n";
-    print STDERR "${prefix}Koren S, Rhie A, Walenz BP, Dilthey AT, Bickhart DM, Kingan SB, Hiendleder S, Williams JL, Smith TPL, Phillippy AM.\n";
-    print STDERR "${prefix}De novo assembly of haplotype-resolved genomes with trio binning.\n";
-    print STDERR "${prefix}Nat Biotechnol. 2018\n";
-    print STDERR "${prefix}https//doi.org/10.1038/nbt.4277\n";
-    print STDERR "${prefix}\n";
+    if (($mode eq "canu") ||
+        ($mode eq "all")) {
+        print STDERR "${prefix}For 'standard' assemblies of PacBio or Nanopore reads:\n";
+        print STDERR "${prefix}  Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM.\n";
+        print STDERR "${prefix}  Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation.\n";
+        print STDERR "${prefix}  Genome Res. 2017 May;27(5):722-736.\n";
+        print STDERR "${prefix}  http://doi.org/10.1101/gr.215087.116\n";
+        print STDERR "${prefix}\n";
+    }
+
+    if (($mode eq "trio") ||
+        ($mode eq "all")) {
+        print STDERR "${prefix}For 'trio-binned' assemblies of PacBio or Nanopore reads:\n";
+        print STDERR "  ${prefix}Koren S, Rhie A, Walenz BP, Dilthey AT, Bickhart DM, Kingan SB, Hiendleder S, Williams JL, Smith TPL, Phillippy AM.\n";
+        print STDERR "  ${prefix}De novo assembly of haplotype-resolved genomes with trio binning.\n";
+        print STDERR "  ${prefix}Nat Biotechnol. 2018\n";
+        print STDERR "  ${prefix}https//doi.org/10.1038/nbt.4277\n";
+        print STDERR "${prefix}\n";
+    }
+
+    if (($mode eq "hicanu") ||
+        ($mode eq "all")) {
+        print STDERR "${prefix}For assemblies of PacBio HiFi reads:\n";
+        print STDERR "${prefix}  Nurk S, Walenz BP, Rhiea A, Vollger MR, Logsdon GA, Grothe R, Miga KH, Eichler EE, Phillippy AM, Koren S.\n";
+        print STDERR "${prefix}  HiCanu: accurate assembly of segmental duplications, satellites, and allelic variants from high-fidelity long reads.\n";
+        print STDERR "${prefix}  biorXiv. 2020.\n";
+        print STDERR "${prefix}  https://doi.org/10.1101/2020.03.14.992248\n";
+        print STDERR "${prefix}\n";
+    }
+
     print STDERR "${prefix}Read and contig alignments during correction, consensus and GFA building use:\n";
     print STDERR "${prefix}  Šošic M, Šikic M.\n";
     print STDERR "${prefix}  Edlib: a C/C ++ library for fast, exact sequence alignment using edit distance.\n";
     print STDERR "${prefix}  Bioinformatics. 2017 May 1;33(9):1394-1395.\n";
     print STDERR "${prefix}  http://doi.org/10.1093/bioinformatics/btw753\n";
     print STDERR "${prefix}\n";
+
     print STDERR "${prefix}Overlaps are generated using:\n";
-    if (getGlobal("corOverlapper") eq "mhap" || getGlobal("obtOverlapper") eq "mhap" || getGlobal("utgOverlapper") eq "mhap") {
+
+    if ((getGlobal("corOverlapper") eq "mhap") ||
+        (getGlobal("obtOverlapper") eq "mhap") ||
+        (getGlobal("utgOverlapper") eq "mhap")) {
        print STDERR "${prefix}  Berlin K, et al.\n";
        print STDERR "${prefix}  Assembling large genomes with single-molecule sequencing and locality-sensitive hashing.\n";
        print STDERR "${prefix}  Nat Biotechnol. 2015 Jun;33(6):623-30.\n";
        print STDERR "${prefix}  http://doi.org/10.1038/nbt.3238\n";
        print STDERR "${prefix}\n";
     }
-    if (getGlobal("corOverlapper") eq "ovl" || getGlobal("obtOverlapper") eq "ovl" || getGlobal("utgOverlapper") eq "ovl") {
+
+    if ((getGlobal("corOverlapper") eq "ovl") ||
+        (getGlobal("obtOverlapper") eq "ovl") ||
+        (getGlobal("utgOverlapper") eq "ovl")) {
        print STDERR "${prefix}  Myers EW, et al.\n";
        print STDERR "${prefix}  A Whole-Genome Assembly of Drosophila.\n";
        print STDERR "${prefix}  Science. 2000 Mar 24;287(5461):2196-204.\n";
        print STDERR "${prefix}  http://doi.org/10.1126/science.287.5461.2196\n";
        print STDERR "${prefix}\n";
     }
-    if (getGlobal("corOverlapper") eq "minimap" || getGlobal("obtOverlapper") eq "minimap" || getGlobal("utgOverlapper") eq "minimap") {
+
+    if ((getGlobal("corOverlapper") eq "minimap") ||
+        (getGlobal("obtOverlapper") eq "minimap") ||
+        (getGlobal("utgOverlapper") eq "minimap")) {
        print STDERR "${prefix}  Li H.\n";
        print STDERR "${prefix}  Minimap2: pairwise alignment for nucleotide sequences.\n";
        print STDERR "${prefix}  arXiv.org. 2017 Aug 4.\n";
@@ -553,12 +584,15 @@ sub printCitation ($) {
        print STDERR "${prefix}\n";
     }
 
-    print STDERR "${prefix}Corrected read consensus sequences are generated using an algorithm derived from FALCON-sense:\n";
-    print STDERR "${prefix}  Chin CS, et al.\n";
-    print STDERR "${prefix}  Phased diploid genome assembly with single-molecule real-time sequencing.\n";
-    print STDERR "${prefix}  Nat Methods. 2016 Dec;13(12):1050-1054.\n";
-    print STDERR "${prefix}  http://doi.org/10.1038/nmeth.4035\n";
-    print STDERR "${prefix}\n";
+    if ($mode ne "hicanu") {
+        print STDERR "${prefix}Corrected read consensus sequences are generated using an algorithm derived from FALCON-sense:\n";
+        print STDERR "${prefix}  Chin CS, et al.\n";
+        print STDERR "${prefix}  Phased diploid genome assembly with single-molecule real-time sequencing.\n";
+        print STDERR "${prefix}  Nat Methods. 2016 Dec;13(12):1050-1054.\n";
+        print STDERR "${prefix}  http://doi.org/10.1038/nmeth.4035\n";
+        print STDERR "${prefix}\n";
+    }
+
     print STDERR "${prefix}Contig consensus sequences are generated using an algorithm derived from pbdagcon:\n";
     print STDERR "${prefix}  Chin CS, et al.\n";
     print STDERR "${prefix}  Nonhybrid, finished microbial genome assemblies from long-read SMRT sequencing data.\n";
