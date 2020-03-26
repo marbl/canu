@@ -62,7 +62,7 @@ endef
 #   USE WITH EVAL
 #
 define ADD_OBJECT_RULE
-${1}/%.o: ${2}
+${1}/%.o: ${2} utility/src/utility/version.H
 	${3}
 endef
 
@@ -679,8 +679,7 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 # Define the "all" target (which simply builds all user-defined targets) as the
 # default goal.
 .PHONY: all
-all: UPDATE_VERSION MAKE_DIRS \
-     $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
+all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/bin/canu \
      ${TARGET_DIR}/bin/canu-time \
      ${TARGET_DIR}/bin/canu.defaults \
@@ -715,6 +714,7 @@ all: UPDATE_VERSION MAKE_DIRS \
 	@echo ""
 	@echo "Success!"
 	@echo "canu installed in ${TARGET_DIR}/bin/canu"
+	@echo ""
 
 # Add a new target rule for each user-defined target.
 $(foreach TGT,${ALL_TGTS},\
@@ -741,30 +741,18 @@ $(foreach TGT,${ALL_TGTS},\
 $(foreach TGT,${ALL_TGTS},\
   $(eval -include ${${TGT}_DEPS}))
 
-#  A fake target, to regenerate the canu_version.H file on every build.
-.PHONY: UPDATE_VERSION
-UPDATE_VERSION:
-	@../scripts/version_update.pl canu utility/src/utility/version.H
-
-#  A fake target, to make the directory for the canu perl modules.
-.PHONY: MAKE_DIRS
-MAKE_DIRS:
-	@if [ ! -e ${TARGET_DIR}/lib/site_perl/canu ] ; then mkdir -p ${TARGET_DIR}/lib/site_perl/canu ; fi
-	@if [ ! -e ${TARGET_DIR}/share/java/classes ] ; then mkdir -p ${TARGET_DIR}/share/java/classes ; fi
-	@if [ ! -e ${TARGET_DIR}/share/sequence ]     ; then mkdir -p ${TARGET_DIR}/share/sequence     ; fi
-	@if [ ! -e ${TARGET_DIR}/bin ]                ; then mkdir -p ${TARGET_DIR}/bin                ; fi
 
 ${TARGET_DIR}/bin/canu: pipelines/canu.pl
 	cp -pf pipelines/canu.pl ${TARGET_DIR}/bin/canu
-	chmod +x ${TARGET_DIR}/bin/canu
+	@chmod +x ${TARGET_DIR}/bin/canu
 
 ${TARGET_DIR}/bin/canu-time: pipelines/canu-time.pl
 	cp -pf pipelines/canu-time.pl ${TARGET_DIR}/bin/canu-time
-	chmod +x ${TARGET_DIR}/bin/canu-time
+	@chmod +x ${TARGET_DIR}/bin/canu-time
 
 ${TARGET_DIR}/bin/canu.defaults:
-	echo > ${TARGET_DIR}/bin/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
-	chmod -x ${TARGET_DIR}/bin/canu.defaults
+	@echo > ${TARGET_DIR}/bin/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
+
 
 ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar: mhap/mhap-2.1.3.jar
 	cp -pf mhap/mhap-2.1.3.jar ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar
@@ -855,13 +843,19 @@ ${TARGET_DIR}/lib/site_perl/canu/Report.pm: pipelines/canu/Report.pm
 ${TARGET_DIR}/lib/site_perl/canu/Unitig.pm: pipelines/canu/Unitig.pm
 	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/site_perl/canu/
 
-#  Makefile processed.  Report that we're starting the build.
+#  Makefile processed.  Regenerate the version number file, make some
+#  directories, and report that we're starting the build.
 
-$(info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
+$(shell ../scripts/version_update.pl canu utility/src/utility/version.H)
+
+$(shell mkdir -p ${TARGET_DIR}/lib/site_perl/canu)
+$(shell mkdir -p ${TARGET_DIR}/share/java/classes)
+$(shell mkdir -p ${TARGET_DIR}/share/sequence)
+$(shell mkdir -p ${TARGET_DIR}/bin)
+
+$(info For '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
 $(info Using '$(shell which ${CXX})' version '${GXX_VV}'.)
 ifneq ($(origin CXXFLAGSUSER), undefined)
 $(info Using user-supplied CXXFLAGS '${CXXFLAGSUSER}'.)
 endif
 $(info )
-
-#${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
