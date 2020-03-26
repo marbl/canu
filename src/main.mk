@@ -182,8 +182,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 minimap/mmapConvert.mk \
                 \
-                wtdbg/wtdbgConvert.mk \
-                \
                 correction/filterCorrectionOverlaps.mk \
                 correction/generateCorrectionLayouts.mk \
                 correction/filterCorrectionLayouts.mk \
