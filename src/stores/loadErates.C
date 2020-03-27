@@ -5,39 +5,14 @@
  *  sequencing reads into contigs.
  *
  *  This software is based on:
- *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
- *    the 'kmer package' (http://kmer.sourceforge.net)
- *  both originally distributed by Applera Corporation under the GNU General
- *  Public License, version 2.
+ *    'Celera Assembler' r4587 (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' r1994 (http://kmer.sourceforge.net)
  *
- *  Canu branched from Celera Assembler at its revision 4587.
- *  Canu branched from the kmer project at its revision 1994.
+ *  Except as indicated otherwise, this is a 'United States Government Work',
+ *  and is released in the public domain.
  *
- *  This file is derived from:
- *
- *    src/AS_OVS/overlapStoreBuild.C
- *    src/stores/ovStoreBuild.C
- *
- *  Modifications by:
- *
- *    Brian P. Walenz from 2012-APR-02 to 2013-AUG-01
- *      are Copyright 2012-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-JUL-31 to 2015-SEP-21
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2015-NOV-03
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *    Sergey Koren beginning on 2016-FEB-20
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
- *  File 'README.licenses' in the root directory of this distribution contains
- *  full conditions and disclaimers for each license.
+ *  File 'README.licenses' in the root directory of this distribution
+ *  contains full conditions and disclaimers.
  */
 
 #include "runtime.H"
