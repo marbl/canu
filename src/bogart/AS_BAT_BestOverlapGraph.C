@@ -922,6 +922,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
   bool   isIgnI = false;
   bool   isBadL = false;
   bool   isBadO = false;
+  bool   isBadC = false;
 
   if (olap.erate() > _errorLimit)                  //  Our only real test is on
     isBadE = true;                                 //  overlap error rate.
@@ -937,6 +938,10 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
   if ((isLopsided(olap.a_iid) == true) ||          //  Bad if the edge touches a
       (isLopsided(olap.b_iid) == true))            //  lopsided read.
     isBadL = true;
+
+  if ((isCoverageGap(olap.a_iid) == true) ||         //  Bad if the edge touches a
+      (isCoverageGap(olap.b_iid) == true))           //  coverage-gap read.
+    isBadC = true;
 
   if (_minOlapPercent > 0.0) {
     uint32  lenA = RI->readLength(olap.a_iid);     //  But retract goodness if the
@@ -955,6 +960,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
                    (isIgnV == true) ||
                    (isIgnI == true) ||
                    (isBadL == true) ||
+                   (isBadC == true) ||
                    (isBadO == true));
 
   //  Now just a bunch of logging.
@@ -963,7 +969,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
       ((olap.a_iid != 0) ||                      //  is specifically annoying (the default is to
        (olap.a_iid == 0) ||                      //  log for all reads (!= 0).
        (olap.a_iid == 0)))
-    writeLog("isOverlapBadQuality()-- %6d %6d %c  hangs %6d %6d err %.5f -- %c%c%c%c%c\n",
+    writeLog("isOverlapBadQuality()-- %6d %6d %c  hangs %6d %6d err %.5f -- %c%c%c%c%c%c\n",
              olap.a_iid, olap.b_iid,
              olap.flipped ? 'A' : 'N',
              olap.a_hang,
@@ -973,6 +979,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
              (isIgnV) ? 't' : 'f',
              (isIgnI) ? 't' : 'f',
              (isBadL) ? 't' : 'f',
+             (isBadC) ? 't' : 'f',
              (isBadO) ? 't' : 'f');
 
   return(olap.filtered);
