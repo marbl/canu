@@ -9,9 +9,9 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := sqStoreDumpMetaData
-SOURCES  := sqStoreDumpMetaData.C ../sequence/sequence-summarize.C
+SOURCES  := sqStoreDumpMetaData.C ../seqrequester/src/seqrequester/summarize.C
 
-SRC_INCDIRS := .. ../utility/src/utility ../sequence
+SRC_INCDIRS := .. ../utility/src/utility ../seqrequester/src/seqrequester
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -lcanu

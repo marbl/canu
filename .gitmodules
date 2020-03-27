@@ -4,3 +4,6 @@
 [submodule "src/meryl"]
 	path = src/meryl
 	url = https://github.com/marbl/meryl
+[submodule "src/seqrequester"]
+	path = src/seqrequester
+	url = https://github.com/marbl/seqrequester

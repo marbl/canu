@@ -36,6 +36,10 @@ ifeq ($(wildcard meryl/src/Makefile), )
   $(info $(shell git submodule update --init meryl))
   $(info $(space))
 endif
+ifeq ($(wildcard seqrequester/src/Makefile), )
+  $(info $(shell git submodule update --init seqrequester))
+  $(info $(space))
+endif
 
 # ADD_CLEAN_RULE - Parameterized "function" that adds a new rule and phony
 #   target for cleaning the specified target (removing its build-generated
@@ -684,9 +688,6 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/bin/canu-time \
      ${TARGET_DIR}/bin/canu.defaults \
      ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar \
-     ${TARGET_DIR}/share/sequence/ultra-long-nanopore \
-     ${TARGET_DIR}/share/sequence/pacbio \
-     ${TARGET_DIR}/share/sequence/pacbio-hifi\
      ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm \
      ${TARGET_DIR}/lib/site_perl/canu/CorrectReads.pm \
      ${TARGET_DIR}/lib/site_perl/canu/HaplotypeReads.pm \
@@ -756,16 +757,6 @@ ${TARGET_DIR}/bin/canu.defaults:
 
 ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar: mhap/mhap-2.1.3.jar
 	cp -pf mhap/mhap-2.1.3.jar ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar
-
-
-${TARGET_DIR}/share/sequence/ultra-long-nanopore: sequence/share/ultra-long-nanopore
-	cp -pf sequence/share/ultra-long-nanopore ${TARGET_DIR}/share/sequence/ultra-long-nanopore
-
-${TARGET_DIR}/share/sequence/pacbio: sequence/share/pacbio
-	cp -pf sequence/share/pacbio ${TARGET_DIR}/share/sequence/pacbio
-
-${TARGET_DIR}/share/sequence/pacbio-hifi: sequence/share/pacbio-hifi
-	cp -pf sequence/share/pacbio-hifi ${TARGET_DIR}/share/sequence/pacbio-hifi
 
 
 ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm: pipelines/canu/Consensus.pm
