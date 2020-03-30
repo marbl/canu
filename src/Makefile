@@ -439,13 +439,13 @@ ifeq ($(origin CXXFLAGS), undefined)
   #     gcc7:  -Wno-format-truncation  - sprintf() into possibly smaller buffer
   #            -Wno-parentheses
   CXXFLAGS += -Wall -Wextra -Wformat
-  CXXFLAGS += -Wno-write-strings
   CXXFLAGS += -Wno-char-subscripts
   CXXFLAGS += -Wno-sign-compare
   CXXFLAGS += -Wno-unused-function
   CXXFLAGS += -Wno-unused-parameter
   CXXFLAGS += -Wno-unused-variable
   CXXFLAGS += -Wno-deprecated-declarations
+  CXXFLAGS += -Wno-format-truncation
   CXXFLAGS += -std=c++11
 else
   CXXFLAGSUSER := ${CXXFLAGS}
@@ -841,7 +841,6 @@ $(shell ../scripts/version_update.pl canu utility/src/utility/version.H)
 
 $(shell mkdir -p ${TARGET_DIR}/lib/site_perl/canu)
 $(shell mkdir -p ${TARGET_DIR}/share/java/classes)
-$(shell mkdir -p ${TARGET_DIR}/share/sequence)
 $(shell mkdir -p ${TARGET_DIR}/bin)
 
 $(info For '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'.)
