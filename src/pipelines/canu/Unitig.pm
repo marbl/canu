@@ -172,6 +172,7 @@ sub unitig_bogart ($) {
     print F "    -covgapolap "  . getGlobal("minOverlapLength")   . " \\\n";
     print F "    -lopsided 25 "                                   . " \\\n";
     print F "    -minolappercent   0.0 "                          . " \\\n";
+    print F "    -D   most "                                      . " \\\n";
     print F "    -dg "          . getGlobal("utgGraphDeviation")  . " \\\n";
     print F "    -db "          . getGlobal("utgGraphDeviation")  . " \\\n";
     print F "    -dr "          . getGlobal("utgRepeatDeviation") . " \\\n";
