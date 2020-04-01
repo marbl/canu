@@ -754,6 +754,7 @@ OverlapCache::symmetrizeOverlaps(void) {
         fprintf(NTW, "NO TWIN for %6u -> %6u - length %lu >= min %lu\n",
                 ra, ova->b_iid, ovlScoToLength(osco), ovlScoToLength(_minSco[rb]));
 
+#pragma omp critical (nMissPerRead)
       nMissPerRead[rb]++;
     }
   }
@@ -862,7 +863,13 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   FILE *NTA = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-added", false);
 
-#pragma omp parallel for schedule(dynamic, blockSize)
+  //  This has several concurrency issues.
+  //  1)  loop test on overlapLen[ra] can change if we increment overlapLen[rb].
+  //      we could access overlaps[ra][oo] before it is copied to in another thread
+  //  2)  overlapLen[rb]++
+  //  3)  nMissPerRead[rb]
+
+  //#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ra=0; ra < fiLimit; ra++) {
     for (uint32 oo=0; oo<_overlapLen[ra]; oo++) {
       if (_overlaps[ra][oo].symmetric == true)
@@ -870,6 +877,8 @@ OverlapCache::symmetrizeOverlaps(void) {
 
       uint32  rb = _overlaps[ra][oo].b_iid;
       uint32  nn = _overlapLen[rb]++;
+
+      assert(nn < _overlapMax[rb]);
 
       if (NTA)
         fprintf(NTA, "add missing twin from read %u -> read %u at pos %u out of %u\n", ra, rb, nn, _overlapMax[rb] - 1);
@@ -887,8 +896,6 @@ OverlapCache::symmetrizeOverlaps(void) {
 
       assert(ra == _overlaps[ra][oo].a_iid);
       assert(rb == _overlaps[ra][oo].b_iid);
-
-      assert(_overlapLen[rb] <= _overlapMax[rb]);
 
       assert(nMissPerRead[rb] > 0);
 
