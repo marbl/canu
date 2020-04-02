@@ -294,7 +294,8 @@ public:
     };
 
     double    max(double deviations) {
-      return(mean + deviations * stddev);
+      double val = mean + deviations * stddev;
+      return (val < 1e-10 ? 1e-10 : val);
     };
 
     bool operator<(const epValue &that) const { return(bgn < that.bgn); };
