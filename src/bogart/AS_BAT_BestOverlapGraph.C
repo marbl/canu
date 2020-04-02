@@ -117,15 +117,15 @@ BestOverlapGraph::findErrorRateThreshold(void) {
 
     //  If best edges, save the error rate of them.
 
-    if (b5->readId() != 0)   erates.push_back(b5->erate());
-    if (b3->readId() != 0)   erates.push_back(b3->erate());
+    if (b5->isValid() == true)   erates.push_back(b5->erate());
+    if (b3->isValid() == true)   erates.push_back(b3->erate());
 
     //  If no best edges, search for the overlap with the highest number of
     //  matches and use that.  Only filtering on error rate, because that's
     //  all we have computed so far.
 
-    if ((b5->readId() == 0) &&
-        (b3->readId() == 0)) {
+    if ((b5->isUnset() == true) &&
+        (b3->isUnset() == true)) {
       uint32      no    = 0;
       BAToverlap *ovl   = OC->getOverlaps(fi, no);
       uint32      bestM = 0;
@@ -190,8 +190,8 @@ BestOverlapGraph::findErrorRateThreshold(void) {
     BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
     BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
 
-    if ((b5->readId() == 0) &&    //  Read has no best edges, probably
-        (b3->readId() == 0))      //  not corrected.
+    if ((b5->isUnset() == true) &&    //  Read has no best edges, probably
+        (b3->isUnset() == true))      //  not corrected.
       continue;
 
     uint32  nf = ((b5->erate() > _errorLimit) +
@@ -398,16 +398,16 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, dou
     //  Unfortunately, this fails on the reduced graph.
 
 #if 1
-    if ((this5->readId() != 0) && (back5->readId() == 0))
+    if ((this5->isValid() == true) && (back5->isUnset() == true))
       writeStatus("WARNING: read %u 5' has overlap to spur read %u %c'!\n",
                fi, this5->readId(), this5->read3p() ? '3' : '5');
 
-    if ((this3->readId() != 0) && (back3->readId() == 0))
+    if ((this3->isValid() == true) && (back3->isUnset() == true))
       writeStatus("WARNING: read %u 3' has overlap to spur read %u %c'!\n",
                fi, this3->readId(), this3->read3p() ? '3' : '5');
 
-    assert((this5->readId() == 0) || (back5->readId() != 0));
-    assert((this3->readId() == 0) || (back3->readId() != 0));
+    assert((this5->isUnset() == true) || (back5->isValid() == true));
+    assert((this3->isUnset() == true) || (back3->isValid() == true));
 #endif
 
     //  Compute the length of those best overlaps...
@@ -747,8 +747,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       BestEdgeOverlap  *new5 = getBestEdgeOverlap(fi, false);
       BestEdgeOverlap  *new3 = getBestEdgeOverlap(fi,  true);
 
-      if ((orig5all[fi].readId() != 0) &&
-          (new5->readId() != 0) &&
+      if ((orig5all[fi].isValid() == true) &&
+          (new5->isValid() == true) &&
           (orig5all[fi].readId() != new5->readId())) {
         double orig5sco = overlapScore(fi, orig5all[fi].readId());
         double prev5sco = overlapScore(fi, prev5.readId());
@@ -763,8 +763,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
                 100.0 * (new5sco - orig5sco) / orig5sco);
       }
 
-      if ((orig3all[fi].readId() != 0) &&
-          (new3->readId() != 0) &&
+      if ((orig3all[fi].isValid() == true) &&
+          (new3->isValid() == true) &&
           (orig3all[fi].readId() != new3->readId())) {
         double orig3sco = overlapScore(fi, orig3all[fi].readId());
         double prev3sco = overlapScore(fi, prev3.readId());
@@ -784,12 +784,12 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       //  previous edge was there.
 
 #if 0
-      if (getBestEdgeOverlap(fi, false)->readId() == 0)   writeLog("restore edge out of %u 5' to previous best %u %c'\n", fi, prev5.readId(), prev5.read3p() ? '3' : '5');
-      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   writeLog("restore edge out of %u 3' to previous best %u %c'\n", fi, prev3.readId(), prev3.read3p() ? '3' : '5');
+      if (getBestEdgeOverlap(fi, false)->isUnset() == true)   writeLog("restore edge out of %u 5' to previous best %u %c'\n", fi, prev5.readId(), prev5.read3p() ? '3' : '5');
+      if (getBestEdgeOverlap(fi,  true)->isUnset() == true)   writeLog("restore edge out of %u 3' to previous best %u %c'\n", fi, prev3.readId(), prev3.read3p() ? '3' : '5');
 #endif
 
-      if (getBestEdgeOverlap(fi, false)->readId() == 0)   *getBestEdgeOverlap(fi, false) = prev5;
-      if (getBestEdgeOverlap(fi,  true)->readId() == 0)   *getBestEdgeOverlap(fi,  true) = prev3;
+      if (getBestEdgeOverlap(fi, false)->isUnset() == true)   *getBestEdgeOverlap(fi, false) = prev5;
+      if (getBestEdgeOverlap(fi,  true)->isUnset() == true)   *getBestEdgeOverlap(fi,  true) = prev3;
 
       //  Count the number of edges we switched from following a spur path to a normal path.
       //  These are just the edges that are different than their previous version.
@@ -830,8 +830,8 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
     //  Log it.  It's 'terminal' if there is no edge out of that end.
 
-    bool t5 = (getBestEdgeOverlap(fi, false)->readId() == 0);
-    bool t3 = (getBestEdgeOverlap(fi,  true)->readId() == 0);
+    bool t5 = (getBestEdgeOverlap(fi, false)->isUnset() == true);
+    bool t3 = (getBestEdgeOverlap(fi,  true)->isUnset() == true);
 
     if (s5 == true)
       fprintf(F, "%u 5' is a %s spur end\n", fi, (t5) ? "terminal" : "non-terminal");
@@ -916,7 +916,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
 
 
 bool
-BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
+BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) const {
   bool   isBadE = false;
   bool   isIgnV = false;
   bool   isIgnI = false;
@@ -1131,8 +1131,9 @@ BestOverlapGraph::findEdges(bool redoAll) {
 
     //  Compute edges from an end if we're either requested to recompute all
     //  edges, or if there is no edge.
-    bool  c5 = ((redoAll == true) || (_reads[fi]._best5.readId() == 0));
-    bool  c3 = ((redoAll == true) || (_reads[fi]._best3.readId() == 0));
+#warning redoAll == true is redundant
+    bool  c5 = ((redoAll == true) || (_reads[fi]._best5.isUnset() == true));
+    bool  c3 = ((redoAll == true) || (_reads[fi]._best3.isUnset() == true));
 
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
@@ -1166,8 +1167,8 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap  *e5back = getBestEdgeOverlap(e5->readId(), e5->read3p());   //  Get edges that are
       BestEdgeOverlap  *e3back = getBestEdgeOverlap(e3->readId(), e3->read3p());   //  potentially back to us.
 
-      bool  e5e = (e5->readId() == 0) ? false : true;
-      bool  e3e = (e3->readId() == 0) ? false : true;
+      bool  e5e = (e5->isUnset() == true) ? false : true;
+      bool  e3e = (e3->isUnset() == true) ? false : true;
 
       double e5err = AS_OVS_decodeEvalue(e5->evalue());
       double e3err = AS_OVS_decodeEvalue(e3->evalue());
@@ -1249,8 +1250,8 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if ((bestedge5->readId() == 0) &&   //  Ignore singletons.
-          (bestedge3->readId() == 0) &&
+      if ((bestedge5->isUnset() == true) &&   //  Ignore singletons.
+          (bestedge3->isUnset() == true) &&
           (isContained(id) == false))
         continue;
 
@@ -1278,15 +1279,15 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if ((bestedge5->readId() == 0) &&   //  Ignore singletons.
-          (bestedge3->readId() == 0) &&
+      if ((bestedge5->isUnset() == true) &&   //  Ignore singletons.
+          (bestedge3->isUnset() == true) &&
           (isContained(id) == false))
         continue;
 
       if (isContained(id) == true)        //  Ignore contained reads.
         continue;
 
-      if (bestedge5->readId() != 0) {
+      if (bestedge5->isValid() == true) {
         int32  ahang   = bestedge5->ahang();
         int32  bhang   = bestedge5->bhang();
         int32  olaplen = RI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang());
@@ -1305,7 +1306,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 olaplen);
       }
 
-      if (bestedge3->readId() != 0) {
+      if (bestedge3->isValid() == true) {
         int32  ahang   = bestedge3->ahang();
         int32  bhang   = bestedge3->bhang();
         int32  olaplen = RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang());
@@ -1361,7 +1362,7 @@ BestOverlapGraph::reportEdgeStatistics(const char *prefix, const char *label) {
 
     //  Count singleton reads
 
-    if ((this5->readId() == 0) && (this3->readId() == 0)) {
+    if ((this5->isUnset() == true) && (this3->isUnset() == true)) {
       nSingleton++;
       continue;
     }
@@ -1371,13 +1372,13 @@ BestOverlapGraph::reportEdgeStatistics(const char *prefix, const char *label) {
     bool  mutual5 = false;
     bool  mutual3 = false;
 
-    if (this5->readId() != 0) {
+    if (this5->isValid() == true) {
       BestEdgeOverlap *that5 = getBestEdgeOverlap(this5->readId(), this5->read3p());
 
       mutual5 = ((that5->readId() == fi) && (that5->read3p() == false));
     }
 
-    if (this3->readId() != 0) {
+    if (this3->isValid() == true) {
       BestEdgeOverlap *that3 = getBestEdgeOverlap(this3->readId(), this3->read3p());
 
       mutual3 = ((that3->readId() == fi) && (that3->read3p() == true));
@@ -1385,8 +1386,8 @@ BestOverlapGraph::reportEdgeStatistics(const char *prefix, const char *label) {
 
     //  Compute spur, and mutual best
 
-    if ((this5->readId() == 0) ||
-        (this3->readId() == 0)) {
+    if ((this5->isUnset() == true) ||
+        (this3->isUnset() == true)) {
       nSpur++;
       nSpur1Mutual += (mutual5 || mutual3) ? 1 : 0;
       continue;
@@ -1451,49 +1452,39 @@ BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
 
 
 void
-BestOverlapGraph::removeContainedDovetails(void) {
-  uint32  fiLimit = RI->numReads();
-  uint32  fix5    = 0;
-  uint32  fix3    = 0;
+BestOverlapGraph::checkForContainedDovetails(void) const {
+  uint32           fiLimit = RI->numReads();
+  uint32           err5    = 0;
+  uint32           err3    = 0;
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     if (isContained(fi) == true) {
-      if (getBestEdgeOverlap(fi, false)->readId() != 0)
-        fix5++;
-      if (getBestEdgeOverlap(fi, true)->readId() != 0)
-        fix3++;
-
-      getBestEdgeOverlap(fi, false)->clear();
-      getBestEdgeOverlap(fi, true) ->clear();
+      if (getBestEdgeOverlap(fi, false)->isUnset() == false)   err5++;
+      if (getBestEdgeOverlap(fi,  true)->isUnset() == false)   err3++;
     }
   }
 
-  assert(fix5 == 0);
-  assert(fix3 == 0);
+  assert(err5 == 0);
+  assert(err3 == 0);
 }
 
 
 
 void
-BestOverlapGraph::removeCovGapEdges(void) {
-  uint32  fiLimit = RI->numReads();
-  uint32  fix5    = 0;
-  uint32  fix3    = 0;
+BestOverlapGraph::checkForCovGapEdges(void) const {
+  uint32           fiLimit = RI->numReads();
+  uint32           err5    = 0;
+  uint32           err3    = 0;
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     if (isCoverageGap(fi) == true) {
-      if (getBestEdgeOverlap(fi, false)->readId() != 0)
-        fix5++;
-      if (getBestEdgeOverlap(fi, true)->readId() != 0)
-        fix3++;
-
-      getBestEdgeOverlap(fi, false)->clear();
-      getBestEdgeOverlap(fi, true) ->clear();
+      if (getBestEdgeOverlap(fi, false)->isUnset() == false)   err5++;
+      if (getBestEdgeOverlap(fi,  true)->isUnset() == false)   err3++;
     }
   }
 
-  assert(fix5 == 0);
-  assert(fix3 == 0);
+  assert(err5 == 0);
+  assert(err3 == 0);
 }
 
 
@@ -1587,8 +1578,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     if (logFileFlagSet(LOG_BEST_EDGES))
       reportBestEdges(prefix, "1.filtered");
 
-    removeContainedDovetails();
-    removeCovGapEdges();
+    checkForContainedDovetails();
+    checkForCovGapEdges();
   }
 
   else {
@@ -1614,8 +1605,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     if (logFileFlagSet(LOG_BEST_EDGES))
       reportBestEdges(prefix, "2.covGap");
 
-    removeContainedDovetails();
-    removeCovGapEdges();
+    checkForContainedDovetails();
+    checkForCovGapEdges();
   }
 
   else {
@@ -1651,8 +1642,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     if (logFileFlagSet(LOG_BEST_EDGES))
       reportBestEdges(prefix, "3.lopsided");
 
-    removeContainedDovetails();
-    removeCovGapEdges();
+    checkForContainedDovetails();
+    checkForCovGapEdges();
   }
 
   else {
@@ -1685,8 +1676,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     if (logFileFlagSet(LOG_BEST_EDGES))
       reportBestEdges(prefix, "4.spurs");
 
-    removeContainedDovetails();
-    removeCovGapEdges();
+    checkForContainedDovetails();
+    checkForCovGapEdges();
   }
 
   else {
@@ -1711,8 +1702,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
   reportEdgeStatistics(prefix, "FINAL");
 
-  removeContainedDovetails();
-  removeCovGapEdges();
+  checkForContainedDovetails();
+  checkForCovGapEdges();
 
   writeLog("\n");
   writeLog("EDGE FILTERING\n");
