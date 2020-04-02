@@ -1119,6 +1119,7 @@ BestOverlapGraph::findEdges(bool redoAll) {
   }
 
   //  For each read, score every overlap, remembering which is the best for each end.
+  //  Only reads without existing best overlaps are computed, unless redoAll is set.
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -1129,17 +1130,14 @@ BestOverlapGraph::findEdges(bool redoAll) {
         (isLopsided(fi)    == true))           //  Ignore lopsided; they have no edges, period.
       continue;
 
-    //  Compute edges from an end if we're either requested to recompute all
-    //  edges, or if there is no edge.
-#warning redoAll == true is redundant
-    bool  c5 = ((redoAll == true) || (_reads[fi]._best5.isUnset() == true));
-    bool  c3 = ((redoAll == true) || (_reads[fi]._best3.isUnset() == true));
+    bool        c5 = _reads[fi]._best5.isUnset();   //  These change during scoreEdge(), and
+    bool        c3 = _reads[fi]._best3.isUnset();   //  we need to remember the original value.
 
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    for (uint32 ii=0; ii<no; ii++)           //  Compute scores for all overlaps
-      scoreEdge(ovl[ii], c5, c3);            //  and remember the best.
+    for (uint32 ii=0; ii<no; ii++)                  //  Compute scores for all overlaps
+      scoreEdge(ovl[ii], c5, c3);                   //  and remember the best.
   }
 }
 
