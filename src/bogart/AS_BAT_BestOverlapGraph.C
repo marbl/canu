@@ -212,7 +212,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.coverageGap");
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.coverageGap", logFileFlagSet(LOG_BEST_EDGES));
 
   //  Search for reads that have an internal region with no coverage.
   //  If found, flag these as _coverageGap.
@@ -263,36 +263,38 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
     if (IL.numberOfIntervals() == 1)     //  One interval, so it's good.
       continue;
 
-    switch (IL.numberOfIntervals()) {
-      case 2:
-        fprintf(F, "read %u -- %u regions %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                 IL.lo(0), IL.hi(0),
-                 IL.lo(1), IL.hi(1));
-        break;
-      case 3:
-        fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                 IL.lo(0), IL.hi(0),
-                 IL.lo(1), IL.hi(1),
-                 IL.lo(2), IL.hi(2));
-        break;
-      case 4:
-        fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                 IL.lo(0), IL.hi(0),
-                 IL.lo(1), IL.hi(1),
-                 IL.lo(2), IL.hi(2),
-                 IL.lo(3), IL.hi(3));
-        break;
-      case 5:
-        fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                 IL.lo(0), IL.hi(0),
-                 IL.lo(1), IL.hi(1),
-                 IL.lo(2), IL.hi(2),
-                 IL.lo(3), IL.hi(3),
-                 IL.lo(4), IL.hi(4));
-        break;
-      default:
-        fprintf(F, "read %u -- %u regions\n", fi, IL.numberOfIntervals());
-        break;
+    if (F) {
+      switch (IL.numberOfIntervals()) {
+        case 2:
+          fprintf(F, "read %u -- %u regions %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                  IL.lo(0), IL.hi(0),
+                  IL.lo(1), IL.hi(1));
+          break;
+        case 3:
+          fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                  IL.lo(0), IL.hi(0),
+                  IL.lo(1), IL.hi(1),
+                  IL.lo(2), IL.hi(2));
+          break;
+        case 4:
+          fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                  IL.lo(0), IL.hi(0),
+                  IL.lo(1), IL.hi(1),
+                  IL.lo(2), IL.hi(2),
+                  IL.lo(3), IL.hi(3));
+          break;
+        case 5:
+          fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
+                  IL.lo(0), IL.hi(0),
+                  IL.lo(1), IL.hi(1),
+                  IL.lo(2), IL.hi(2),
+                  IL.lo(3), IL.hi(3),
+                  IL.lo(4), IL.hi(4));
+          break;
+        default:
+          fprintf(F, "read %u -- %u regions\n", fi, IL.numberOfIntervals());
+          break;
+      }
     }
 
     setCoverageGap(fi);                  //  Bad regions detected!  Possible chimeric read.
@@ -329,7 +331,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, dou
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  FILE  *LOP = AS_UTL_openOutputFile(prefix, '.', label);
+  FILE  *LOP = AS_UTL_openOutputFile(prefix, '.', label, logFileFlagSet(LOG_BEST_EDGES));
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -409,14 +411,14 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, dou
     setLopsided3(fi, (score3 < lopsidedDiff));
 
 #if 0
-    if (isLopsided(fi) == false)
+    if ((isLopsided(fi) == false) && (LOP))
       fprintf(LOP, "fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
                fi,
                this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
                this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
 #endif
 
-    if (isLopsided(fi) == true) {
+    if ((isLopsided(fi) == true) && (LOP)) {
       if     ((this5->readId() > 0) &&
               (this3->readId() > 0))
 #pragma omp critical (fprintf_LOP)
@@ -729,7 +731,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   //  Set the spur flag for any spur reads, and log the result.
   //
 
-  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.spurs");
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.spurs", logFileFlagSet(LOG_BEST_EDGES));
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     bool s5 = (spurpath5.count(fi) > 0);
@@ -747,14 +749,14 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     bool t5 = (getBestEdgeOverlap(fi, false)->isUnset() == true);
     bool t3 = (getBestEdgeOverlap(fi,  true)->isUnset() == true);
 
-    if (s5 == true)
+    if ((s5 == true) && (F))
       fprintf(F, "%u 5' is a %s spur end\n", fi, (t5) ? "terminal" : "non-terminal");
 
-    if (s3 == true)
+    if ((s3 == true) && (F))
       fprintf(F, "%u 3' is a %s spur end\n", fi, (t3) ? "terminal" : "non-terminal");
   }
 
-  fclose(F);
+  AS_UTL_closeFile(F);
 
   writeStatus("BestOverlapGraph()--   Final         %8u confirmed spur reads - %8u/%-8u 5'/3' spur path reads.\n",
               numSpur(), spurpath5.size(), spurpath3.size());
