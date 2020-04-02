@@ -256,6 +256,7 @@ public:
 
   void      reportEdgeStatistics(const char *prefix, const char *label);
   void      reportBestEdges(const char *prefix, const char *label);
+  double    reportErrorLimit() const {return _errorLimit;};
 
 public:
   bool      isOverlapBadQuality(BAToverlap& olap);  //  Used in repeat detection

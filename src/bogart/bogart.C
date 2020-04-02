@@ -496,7 +496,7 @@ main (int argc, char * argv []) {
 
   set<uint32>   placedReads;
 
-  placeUnplacedUsingAllOverlaps(contigs, deviationBubble, similarityBubble, prefix, placedReads);
+  placeUnplacedUsingAllOverlaps(contigs, deviationGraph, OG->reportErrorLimit(), prefix, placedReads);
 
   //  Compute positions again.  This fixes issues with contains-in-contains that
   //  tend to excessively shrink reads.  The one case debugged placed contains in
