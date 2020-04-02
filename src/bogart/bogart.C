@@ -248,7 +248,6 @@ main (int argc, char * argv []) {
         snprintf(s, 1024, "Unknown '-D' option '%s'.\n", argv[arg]);
         err.push_back(s);
       }
-
     } else if (strcmp(argv[arg], "-d") == 0) {
       uint32  opt = 0;
       uint64  flg = 1;
@@ -528,7 +527,9 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "unplaced");
   contigs.reportErrorProfiles(prefix, "unplaced");
 
-  mergeOrphans(contigs, deviationBubble, similarityBubble);
+  // we call this twice, once to merge in orphans, a second for bubbles
+  mergeOrphans(contigs, deviationGraph, OG->reportErrorLimit(), false);
+  mergeOrphans(contigs, deviationBubble, similarityBubble, true);
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "mergeOrphans");
