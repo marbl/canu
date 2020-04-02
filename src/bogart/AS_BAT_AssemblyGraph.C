@@ -43,7 +43,7 @@ logAGbuild(uint32                     fi,
   if (logFileFlagSet(LOG_PLACE_UNPLACED) == false)
     return;
 
-  writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f%s\n",
+  writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.10f %s\n",
            fi, pp,
            placements[pp].tigID,
            placements[pp].position.bgn, placements[pp].position.end,

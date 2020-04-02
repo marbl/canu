@@ -140,13 +140,13 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
 
       if ((erate > similarity) && (fGood < 0.5)) {
         if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-          writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) fGood %6.2f - HIGH ERROR\n",
+          writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.10f) fGood %6.2f - HIGH ERROR\n",
                    fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate, fGood);
         continue;
       }
 
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-        writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) fGood %6.2f\n",
+        writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.10f) fGood %6.2f\n",
                  fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate, fGood);
 
       if ((b == UINT32_MAX) ||
