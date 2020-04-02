@@ -63,31 +63,6 @@ scoreOverlap(BAToverlap& olap) {
 
 
 
-static
-double
-overlapScore(uint32 aid, uint32 bid) {
-
-  if ((aid == 0) || (bid == 0))
-    return(0);
-
-  uint32        ovlLen = 0;
-  BAToverlap   *ovl    = OC->getOverlaps(aid, ovlLen);
-
-  for (uint32 oo=0; oo<ovlLen; oo++) {
-    BAToverlap *o      = ovl + oo;
-
-    if (o->b_iid != bid)
-      continue;
-
-    return((1 - o->erate()) * RI->overlapLength(o->a_iid, o->b_iid, o->a_hang, o->b_hang));
-  }
-
-  return(0);
-}
-
-
-
-
 //
 //
 //
@@ -573,30 +548,9 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   uint32  n5pChanged = 1;
   uint32  n3pChanged = 1;
 
-#if 1
-  //  Save all the original overlaps.  We'll use this to decide if a new best overlap
-  //  is of sufficient quality to warrant ignoring the spur overlap.
-
-  BestEdgeOverlap    *orig5all = new BestEdgeOverlap [ fiLimit+1 ];
-  BestEdgeOverlap    *orig3all = new BestEdgeOverlap [ fiLimit+1 ];
-
-  for (uint32 fi=0; fi<=fiLimit; fi++) {
-    orig5all[fi] = *getBestEdgeOverlap(fi, false);
-    orig3all[fi] = *getBestEdgeOverlap(fi,  true);
-  }
-#endif
-
   for (uint32 iter=1; ((n5pChanged + n3pChanged > 0) && (iter <= 2 * spurDepth)); iter++) {
-    //writeLog("\n");
-    //writeLog("SPUR path removal iteration %u\n", iter);
-    //writeLog("\n");
-
     n5pChanged = 0;
     n3pChanged = 0;
-
-    char  N[FILENAME_MAX+1];
-    sprintf(N, "%s.spur-scores-iter-%u", prefix, iter);
-    FILE *SS = AS_UTL_openOutputFile(N);
 
     //
     //  For any read that can get out on a non-spur-path end, mark the
@@ -740,45 +694,10 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       }
 
       //  All edges scored.  If the new edge is significantly worse than the
-      //  spur edge, reset to the spur edge.  But there is no clear signal here,
-      //  so all we do is log stuff.
-
-#if 1
-      BestEdgeOverlap  *new5 = getBestEdgeOverlap(fi, false);
-      BestEdgeOverlap  *new3 = getBestEdgeOverlap(fi,  true);
-
-      if ((orig5all[fi].isValid() == true) &&
-          (new5->isValid() == true) &&
-          (orig5all[fi].readId() != new5->readId())) {
-        double orig5sco = overlapScore(fi, orig5all[fi].readId());
-        double prev5sco = overlapScore(fi, prev5.readId());
-        double new5sco  = overlapScore(fi, new5->readId());
-
-        fprintf(SS, "%-7u 5'  orig %7u %10.2f  prev %7u %10.2f  new %7u %10.2f   delta %10.2f %10.2f%%\n",
-                fi,
-                orig5all[fi].readId(), orig5sco,
-                prev5.readId(), prev5sco,
-                new5->readId(), new5sco,
-                (new5sco - orig5sco),
-                100.0 * (new5sco - orig5sco) / orig5sco);
-      }
-
-      if ((orig3all[fi].isValid() == true) &&
-          (new3->isValid() == true) &&
-          (orig3all[fi].readId() != new3->readId())) {
-        double orig3sco = overlapScore(fi, orig3all[fi].readId());
-        double prev3sco = overlapScore(fi, prev3.readId());
-        double new3sco  = overlapScore(fi, new3->readId());
-
-        fprintf(SS, "%-7u 3'  orig %7u %10.2f  prev %7u %10.2f  new %7u %10.2f   delta %10.2f %10.2f%%\n",
-                fi,
-                orig3all[fi].readId(), orig3sco,
-                prev3.readId(), prev3sco,
-                new3->readId(), new3sco,
-                (new3sco - orig3sco),
-                100.0 * (new3sco - orig3sco) / orig3sco);
-      }
-#endif
+      //  spur edge, reset to the spur edge.  But there was no clear signal
+      //  here to filter on and the attempt was abandoned.
+      //
+      //  This was added in af5a174204b37a65ca6e9281cc3e116424c62185.
 
       //  All edges scored.  If no best edge found, log and reset to whatever
       //  previous edge was there.
@@ -802,14 +721,9 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
     //  Done with an interation.  Report a bit of status.
     //
 
-    fclose(SS);
-
     writeStatus("BestOverlapGraph()--   Iteration %1u - %8u terminal  spur reads - %8u/%-8u 5'/3' spur path reads - %8u/%-8u edges changed to avoid spur path.\n",
                 iter, spur.size(), spurpath5.size(), spurpath3.size(), n5pChanged, n3pChanged);
   }
-
-  delete [] orig5all;
-  delete [] orig3all;
 
   //
   //  Set the spur flag for any spur reads, and log the result.
