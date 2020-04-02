@@ -961,21 +961,14 @@ findConfusedEdges(TigVector            &tigs,
 
       if ((internal5sco.score > 0.0) &&
           (external5sco.score > 0.0)) {
-        double  ad5 =         fabs(internal5sco.score - external5sco.score);   //  Absolute difference.
-        double  pd5 = 200 * ad5 / (internal5sco.score + external5sco.score);   //  Percent diffference.
+        double  ad5 = internal5sco.score - external5sco.score;   //  Absolute difference.
+        double  pd5 = 100 * ad5 / internal5sco.score;   //  Percent diffference.
 
         //  This read end is confused if the internal edge is worse than the
-        //  external, or if the differences are small.  The first condition hasn't
-        //  been tested much (21 Feb 2020) and is left disabled.
+        //  external, or if the differences are small.
 
-        bool   isC = false;    //  Argh, isConfused is already used.
-
-        isC |= (internal5sco.score < external5sco.score);
-
-        isC |= ((ad5 < confusedAbsolute) &&
-                (pd5 <  confusedPercent));
-
-        if (isC == true) {
+        if (internal5sco.score < external5sco.score ||
+          (ad5 < confusedAbsolute && pd5 < confusedPercent)) {
           writeLog("tig %7u read %8u pos %7u-%-7u 5' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external5sco.tigId, external5sco.readId,
@@ -983,18 +976,14 @@ findConfusedEdges(TigVector            &tigs,
 
           confusedEdges.push_back(confusedEdge(rdAid, false, external5sco.readId));
           isConfused[ri]++;
-        }
-
-        //  There is a second best edge, and we're better than it.
-        else {
+        } else {
+          //  There is a second best edge, and we're better than it.
           writeLog("tig %7u read %8u pos %7u-%-7u 5' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external5sco.tigId, external5sco.readId,
                    internal5sco.score, external5sco.score, ad5, pd5);
         }
       }
-
-
 
       if (external3sco.score == 0.0) {
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused -- no external edge\n",
@@ -1003,17 +992,11 @@ findConfusedEdges(TigVector            &tigs,
 
       if ((internal3sco.score > 0.0) &&
           (external3sco.score > 0.0)) {
-        double  ad3 =         fabs(internal3sco.score - external3sco.score);   //  Absolute difference.
-        double  pd3 = 200 * ad3 / (internal3sco.score + external3sco.score);   //  Percent diffference.
+        double  ad3 = internal3sco.score - external3sco.score;   //  Absolute difference.
+        double  pd3 = 100 * ad3 / internal3sco.score;   //  Percent diffference.
 
-        bool   isC = false;    //  Argh, isConfused is already used.
-
-        isC |= (internal3sco.score < external3sco.score);
-
-        isC |= ((ad3 <= confusedAbsolute) &&
-                (pd3 <  confusedPercent));
-
-        if (isC == true) {
+        if (internal3sco.score < external3sco.score ||
+          (ad3 <= confusedAbsolute && pd3 < confusedPercent)) {
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external3sco.tigId, external3sco.readId,
@@ -1021,10 +1004,8 @@ findConfusedEdges(TigVector            &tigs,
 
           confusedEdges.push_back(confusedEdge(rdAid, false, external3sco.readId));
           isConfused[ri]++;
-        }
-
-        //  There is a second best edge, and we're better than it.
-        else {
+        } else {
+          //  There is a second best edge, and we're better than it.
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external3sco.tigId, external3sco.readId,
