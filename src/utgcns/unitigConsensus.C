@@ -382,11 +382,13 @@ unitigConsensus::generateTemplateStitch(void) {
     double           templateSize  = 0.80;
     double           extensionSize = 0.20;
 
-    int32            olapLen      = ePos - _utgpos[nr].min();  //  The expected size of the overlap
+    int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
+
     if (olapLen < minOlap) {
-       if (showAlgorithm())
-          fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %d for read %d (%d - %d\n"), olapLen, readLen, nr, readLen, _utgpos[nr].min(), _utgpos[nr].max();
-       olapLen=readLen; 
+      if (showAlgorithm())
+        fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d\n",
+                olapLen, readLen, nr, _utgpos[nr].min(), _utgpos[nr].max());
+      olapLen = readLen; 
     }
 
     int32            templateLen  = 0;
