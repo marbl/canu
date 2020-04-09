@@ -837,7 +837,7 @@ ${TARGET_DIR}/lib/site_perl/canu/Unitig.pm: pipelines/canu/Unitig.pm
 #  Makefile processed.  Regenerate the version number file, make some
 #  directories, and report that we're starting the build.
 
-$(shell ../scripts/version_update.pl canu utility/src/utility/version.H)
+$(eval $(shell ../scripts/version_update.pl canu utility/src/utility/version.H))
 
 $(shell mkdir -p ${TARGET_DIR}/lib/site_perl/canu)
 $(shell mkdir -p ${TARGET_DIR}/share/java/classes)
