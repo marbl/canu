@@ -114,6 +114,7 @@ logAGbuild(uint32                     fi,
 void
 AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
                           double        deviationRepeat,
+                          double        repeatLimit,
                           TigVector    &tigs) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
@@ -176,7 +177,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
     int32                      fiMax  = fiRead->position.max();
     vector<overlapPlacement>   placements;
 
-    placeReadUsingOverlaps(tigs, NULL, fi, placements);
+    placeReadUsingOverlaps(tigs, NULL, fi, placements, placeRead_all, repeatLimit);
 
     //  For each placement decide if the overlap is compatible with the tig.
 

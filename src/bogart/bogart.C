@@ -592,6 +592,7 @@ main (int argc, char * argv []) {
 
   AssemblyGraph *AG = new AssemblyGraph(prefix,
                                         deviationRepeat,
+                                        OG->reportErrorLimit(),
                                         contigs);
 
   //AG->reportReadGraph(contigs, prefix, "initial");
