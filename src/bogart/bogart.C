@@ -529,7 +529,12 @@ main (int argc, char * argv []) {
 
   // we call this twice, once to merge in orphans, a second for bubbles
   mergeOrphans(contigs, deviationGraph, OG->reportErrorLimit(), false);
-  mergeOrphans(contigs, deviationBubble, similarityBubble, true);
+
+  writeStatus("\n");
+  writeStatus("==> MARK SIMPLE BUBBLES.\n");
+  writeStatus("    using %f which is minimum of user-specified %f and auto-selected %f thresholds\n",  min(similarityBubble, erateGraph*10),  similarityBubble, erateGraph*10);
+  writeStatus("\n");
+  mergeOrphans(contigs, deviationBubble, min(similarityBubble, erateGraph*10), true);
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "mergeOrphans");
