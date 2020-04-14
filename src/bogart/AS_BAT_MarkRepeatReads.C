@@ -905,8 +905,9 @@ findConfusedEdges(TigVector            &tigs,
     double      sc        = (rdAhi - rdAlo) / (double)RI->readLength(rdAid);
 
     if ((OG->isContained(rdAid)   == true) ||   //  Don't care about contained or chimeric
-        (OG->isCoverageGap(rdAid) == true))     //  reads; we'll use the container instead.
-      continue;
+        (OG->isCoverageGap(rdAid) == true) ||      //  or non-backbone reads; we'll use the container instead.
+        (OG->isBackbone(rdAid) == false)) 
+     continue;
 
     for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
       int32  rMin = tigMarksR.lo(ri);
@@ -917,10 +918,12 @@ findConfusedEdges(TigVector            &tigs,
         continue;               //  contained in the region.  Skip!
       }
 
+/*
       if ((rMin  <= rdAlo) &&   //  If the read is contained in the repeat region,
           (rdAhi <= rMax)) {    //  it's useless for deciding if this is a
         continue;               //  confused repeat.
       }
+*/
 
       //  This read intersects this repeat region.  Find the
       //  reads we used to construct the tig originally.
