@@ -163,9 +163,13 @@ checkInvalid(dnaSeq &sq, uint64 bgn, uint64 end) {
   uint32   invalid = 0;
   char    *bases   = sq.bases();
 
-  for (uint32 ii=bgn; ii<end; ii++)
+  for (uint32 ii=bgn; ii<end; ii++) {
+    // special case Us
+    if (bases[ii] == 'U' || bases[ii] == 'u')
+       bases[ii] = 'T';
     if (validSeq[bases[ii]] == 0)
       invalid++;
+  }
 
   return(invalid);
 }
