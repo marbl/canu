@@ -162,10 +162,16 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Correcting reads " F_U32 " to " F_U32 ".\n", G->bgnID, G->endID);
 
-  FILE *correctedReads = G->correctedName == NULL ? NULL : fopen(G->correctedName, "w");
-  Correct_Frags(G, seqStore, correctedReads);
-  if (correctedReads != NULL)
-    fclose(correctedReads);
+  compressedFileWriter *correctedReadsWriter = (G->correctedName == NULL) ? NULL : new compressedFileWriter(G->correctedName);
+
+  //FILE *correctedReads = (G->correctedName == NULL) ? NULL : fopen(G->correctedName, "w");
+  Correct_Frags(G, seqStore, (correctedReadsWriter == NULL) ? NULL : correctedReadsWriter->file());
+  if (correctedReadsWriter != NULL) {
+    //fclose(correctedReads);
+    delete correctedReadsWriter;
+    fprintf(stderr, "Exiting");
+    exit(239);
+  }
 
   //  Load overlaps we're going to correct
 
