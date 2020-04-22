@@ -240,6 +240,8 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   else
     _errorLimit = Tpicked;
 
+  static constexpr double META_THRESHOLD = 5e-3;
+  _errorLimit = META_THRESHOLD;
   //  The real filtering is done on the next pass through findEdges().  Here, we're just collecting statistics.
 
   uint32  nFiltered[3] = {0};
@@ -270,6 +272,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   writeLog("mean + std.dev   %6.2f +- %3.0f * %6.2f  ->   %6.2f       %8.4f%%%s\n", 1e5 * _mean,   _deviationGraph, 1e5 * _stddev, 1e5 * Tmean,  100.0 * Tmean,  (_errorLimit == Tmean)  ? "  (enabled)" : "");
   writeLog("median + mad     %6.2f +- %3.0f * %6.2f  ->   %6.2f       %8.4f%%%s\n", 1e5 * _median, _deviationGraph, 1e5 * _mad,    1e5 * Tmad,   100.0 * Tmad,   (_errorLimit == Tmad)   ? "  (enabled)" : "");
   writeLog("90th percentile                          ->   %6.2f       %8.4f%%%s\n",                                                1e5 * Tperct, 100.0 * Tperct, (_errorLimit == Tperct) ? "  (enabled)" : "");
+  writeLog("Fixed meta threshold                     ->   %6.2f       %8.4f%%%s\n",                                                1e5 * _errorLimit, 100.0 * _errorLimit, (_errorLimit == META_THRESHOLD) ? "  (enabled)" : "");
   writeLog("\n");
   writeLog("\n");
   writeLog("BEST EDGE FILTERING\n");
