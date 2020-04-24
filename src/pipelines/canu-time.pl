@@ -19,10 +19,29 @@
 use strict;
 use Time::Piece;
 
-my $asmPath = shift @ARGV;
+my $asmPath;
 my $gridEngine;
 
+my %ignore;
+
 my @files;
+
+while (scalar (@ARGV > 0)) {
+    my $arg = shift @ARGV;
+
+    if ($arg eq "-ignore") {
+        $ignore{shift @ARGV} = 1;
+    }
+
+    elsif (!defined($asmPath)) {
+        $asmPath = $arg;
+    }
+
+    else {
+        die "usage: $0 [-ignore <jobID>] <path-to-assembly>\n";
+    }
+}
+
 
 #  Find the list of canu log files.
 open(F, "ls $asmPath/canu-scripts/canu.*.out |");
@@ -51,8 +70,10 @@ foreach my $file (@files) {
         }
 
         if (m/--\s'(.*).jobSubmit-\d\d.sh'\s->\sjob\s(\d+)\s/) {
-            push @jobNames, $1;
-            push @jobIDs,   $2;
+            if (!exists($ignore{$2})) {
+                push @jobNames, $1;
+                push @jobIDs,   $2;
+            }
 
             #print STDERR " $2 - $1\n";
         }
@@ -63,11 +84,15 @@ foreach my $file (@files) {
             $_ = <F>;  chomp;
 
             if ($_ =~ m/^Your\s+job\s+(\d+)\s/) {
-                push @jobNames, "canu";    #  SGE
-                push @jobIDs,   $1;
+                if (!exists($ignore{$1})) {
+                    push @jobNames, "canu";    #  SGE
+                    push @jobIDs,   $1;
+                }
             } else {
-                push @jobNames, "canu";    #  Slurm
-                push @jobIDs,   $_;
+                if (!exists($ignore{$_})) {
+                    push @jobNames, "canu";    #  Slurm
+                    push @jobIDs,   $_;
+                }
             }
 
             #print STDERR " $_ - canu\n";
@@ -84,13 +109,15 @@ my $maxRSS       = 0;
 my $maxVM        = 0;
 my $totalStart   = 9999999999;
 my $totalEnd     = 0;
+my $totalElapsed = 0;
 
-printf STDOUT "user-time  sys-time wall-time   max-rss    max-vm   elapsed                 start-time                   end-time    jobID stage\n";
-printf STDOUT "  (hours)   (hours)   (hours)      (MB)      (MB)   (hours)\n";
-printf STDOUT "--------- --------- --------- --------- --------- --------- -------------------------- -------------------------- -------- --------------------\n";
+printf STDOUT "         -----sum-of-per-job-times---- ------per-job------ ---------------------------per-stage---------------------------\n";
+printf STDOUT "jobID    user-time  sys-time wall-time   max-rss    max-vm                 start-time                   end-time elapsed  stage\n";
+printf STDOUT "           (hours)   (hours)   (hours)      (MB)      (MB)                                                       (hours)\n";
+printf STDOUT "-------- --------- --------- --------- --------- --------- -------------------------- -------------------------- -------  --------------------\n";
 
 while (scalar(@jobNames) > 0) {
-    my ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd);
+    my ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore);
 
     my $jobName = shift @jobNames;
     my $jobID   = shift @jobIDs;
@@ -100,12 +127,19 @@ while (scalar(@jobNames) > 0) {
     #print STDERR "jobID   - $jobID\n";
 
     if      ($gridEngine eq "SGE") {
-        ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd) = getTimeSGE($jobID);
+        ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore) = getTimeSGE($jobID);
     } elsif ($gridEngine eq "SLURM") {
-        ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd) = getTimeSlurm($jobID);
+        ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore) = getTimeSlurm($jobID);
     } else {
         die "Unknown grid engine '$gridEngine'.\n";
     }
+
+    next if ($ignore);
+
+    my $st = gmtime($jobStart);
+    my $et = gmtime($jobEnd);
+
+    my $jobElapsed = ($jobEnd - $jobStart) / 3600.0;
 
     $totalUser    += $jobUser;
     $totalSystem  += $jobSystem;
@@ -114,24 +148,33 @@ while (scalar(@jobNames) > 0) {
     $maxVM         = ($maxVM      < $jobVM)  ? $jobVM  : $maxVM;
     $totalStart    = ($totalStart < $jobStart) ? $totalStart : $jobStart;
     $totalEnd      = ($totalEnd   > $jobEnd)   ? $totalEnd   : $jobEnd  ;
+    $totalElapsed += $jobElapsed;
 
-    my $st = gmtime($jobStart);
-    my $et = gmtime($jobEnd);
-
-    my $jobElapsed = ($jobEnd - $jobStart) / 3600.0;
-
-    printf STDOUT "%9.2f %9.2f %9.2f %9.3f %9.3f %9.2f %26s %26s %8d %s\n", $jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobElapsed, $st, $et, $jobID, $jobName;
+    printf STDOUT "%-8d %9.2f %9.2f %9.2f %9.3f %9.3f %26s %26s %7.2f  %s\n", $jobID, $jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $st, $et, $jobElapsed, $jobName;
 }
 
 my $st = gmtime($totalStart);
 my $et = gmtime($totalEnd);
 
-my $totalElapsed = ($totalEnd - $totalStart) / 3600.0;
+my $totalInQueue = ($totalEnd - $totalStart) / 3600.0;
 
-printf STDOUT "--------- --------- --------- --------- --------- --------- -------------------------- -------------------------- -------- --------------------\n";
-printf STDOUT "%9.2f %9.2f %9.2f %9.3f %9.3f %9.2f %26s %26s\n", $totalUser, $totalSystem, $totalWall, $maxRSS, $maxVM, $totalElapsed, $st, $et;
+printf STDOUT "-------- --------- --------- --------- --------- --------- -------------------------- -------------------------- -------  --------------------\n";
+printf STDOUT "         %9.2f %9.2f %9.2f %9.3f %9.3f %26s %26s %7.2f\n", $totalUser, $totalSystem, $totalWall, $maxRSS, $maxVM, $st, $et, $totalElapsed;
+printf STDOUT "\n";
+printf STDOUT "Execution time: %s.\n", reportTimeDHM($totalElapsed);
+printf STDOUT "Queue time:     %s.\n", reportTimeDHM($totalInQueue);
+printf STDOUT "CPU time:       %s.\n", reportTimeDHM($totalUser + $totalSystem);
+printf STDOUT "\n";
 
+sub reportTimeDHM ($) {
+    my $t = shift @_;
 
+    my $d = int(($t) / 24);
+    my $h = int(($t - 24 * $d));
+    my $m = int(($t - 24 * $d - $h) * 60);
+
+    return(sprintf "%3d day%s %2d hour%s %2d minute%s", $d, ($d == 1) ? " " : "s", $h, ($h == 1) ? " " : "s", $m, ($m == 1) ? " " : "s");
+}
 
 
 sub getTimeSGE ($) {
@@ -141,11 +184,11 @@ sub getTimeSGE ($) {
     my $jr    = 0;
     my $jv    = 0;
     my $je    = 0;
-
     my $st    = time();
     my $et    = 0;
+    my $ig    = 0;
 
-    open(F, "qacct -j $jobID |");
+    open(F, "qacct -j $jobID 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -195,7 +238,9 @@ sub getTimeSGE ($) {
     }
     close(F);
 
-    return($ju, $js, $je, $jr, $jv, $st, $et);
+    $ig = 1   if ($et == 0);
+
+    return($ju, $js, $je, $jr, $jv, $st, $et, $ig);
 }
 
 
@@ -209,8 +254,9 @@ sub getTimeSlurm ($) {
     my $je    = 0;
     my $st    = 9999999999;
     my $et    = 0;
+    my $ig    = 0;
 
-    open(F, "sacct -n -o 'JobID%30,UserCPU,SystemCPU,TotalCPU,MaxRSS,MaxVMSize,CPUTimeRAW,Elapsed,Start,End' -j $jobID |");
+    open(F, "sacct -n -o 'JobID%30,UserCPU,SystemCPU,TotalCPU,MaxRSS,MaxVMSize,CPUTimeRAW,Elapsed,Start,End' -j $jobID 2> /dev/null |");
     while (<F>) {
         s/^\s+//;
         s/\s+$//;
@@ -237,7 +283,7 @@ sub getTimeSlurm ($) {
     $jr /= 1024.0;
     $jv /= 1024.0;
 
-    return($ju, $js, $je, $jr, $jv, $st, $et);
+    return($ju, $js, $je, $jr, $jv, $st, $et, $ig);
 }
 
 
