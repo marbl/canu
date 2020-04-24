@@ -22,10 +22,12 @@
 
 ReadInfo::ReadInfo(const char *seqStorePath,
                    const char *prefix,
-                   uint32      minReadLen) {
+                   uint32      minReadLen,
+                   uint32      maxReadLen) {
 
   uint32    numNotPresent = 0;
   uint32    numShort      = 0;
+  uint32    numLong       = 0;
   uint32    numLoaded     = 0;
 
   _seqStore     = new sqStore(seqStorePath);
@@ -62,6 +64,10 @@ ReadInfo::ReadInfo(const char *seqStorePath,
       numShort++;
     }
 
+    else if (maxReadLen < len) {
+      numLong++;
+    }
+
     else {
       _readStatus[fi].readLength = len;
       _readStatus[fi].libraryID  = _seqStore->sqStore_getLibraryIDForRead(fi);
@@ -74,13 +80,14 @@ ReadInfo::ReadInfo(const char *seqStorePath,
     }
   }
 
-  if (minReadLen > 0)
-    writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than " F_U32 " bp long.\n",
-                numLoaded, numShort, minReadLen);
 
-  else
-    writeStatus("ReadInfo()-- Using %d reads, no minimum read length used.\n",
-                numLoaded);
+  writeStatus("ReadInfo()-- Found   %9u reads.\n", numLoaded);
+
+  if (minReadLen > 0)
+    writeStatus("ReadInfo()-- Ignored %9u reads shorter than %6u bp.\n", numShort, minReadLen);
+
+  if (maxReadLen < UINT32_MAX)
+    writeStatus("ReadInfo()-- Ignored %9u reads longer  than %6u bp.\n", numLong, maxReadLen);
 }
 
 

@@ -26,7 +26,7 @@
 
 class ReadInfo {
 public:
-  ReadInfo(const char *seqStorePath, const char *prefix, uint32 minReadLen);
+  ReadInfo(const char *seqStorePath, const char *prefix, uint32 minReadLen, uint32 maxReadLen);
   ~ReadInfo();
 
   //  Needed for writing overlaps in BestOverlapGraph.  Do not use for anything else.

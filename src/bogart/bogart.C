@@ -95,6 +95,8 @@ main (int argc, char * argv []) {
   char const  *prefix                   = NULL;
 
   uint32       minReadLen               = 0;
+  uint32       maxReadLen               = UINT32_MAX;
+
   uint32       minOverlapLen            = 500;
   uint32       minIntersectLen          = 500;
   uint32       maxPlacements            = 2;
@@ -158,6 +160,9 @@ main (int argc, char * argv []) {
         snprintf(s, 1024, "Too few parameters to -unassembled option.\n");
         err.push_back(s);
       }
+
+    } else if (strcmp(argv[arg], "-readlen") == 0) {
+      decodeRange(argv[++arg], minReadLen, maxReadLen);
 
     } else if (strcmp(argv[arg], "-mr") == 0) {
       minReadLen = atoi(argv[++arg]);
@@ -362,6 +367,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Lengths:\n");
   fprintf(stderr, "  Minimum read          %u bases\n",     minReadLen);
+  fprintf(stderr, "  Maximum read          %u bases\n",     maxReadLen);
   fprintf(stderr, "  Minimum overlap       %u bases\n",     minOverlapLen);
   fprintf(stderr, "\n");
   fprintf(stderr, "Overlap Error Rates:\n");
@@ -401,7 +407,7 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "filterOverlaps");
 
-  RI = new ReadInfo(seqStorePath, prefix, minReadLen);
+  RI = new ReadInfo(seqStorePath, prefix, minReadLen, maxReadLen);
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
   OG = new BestOverlapGraph(erateGraph,
                             deviationGraph, minOlapPercent,
