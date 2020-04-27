@@ -212,6 +212,11 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
+  uint8  *CG = new uint8 [fiLimit + 1];
+
+  for (uint32 fi=0; fi <= fiLimit; fi++)
+    CG[fi] = 0;
+
   FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.coverageGap", logFileFlagSet(LOG_BEST_EDGES));
 
   //  Search for reads that have an internal region with no coverage.
@@ -219,49 +224,42 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32               fLen = RI->readLength(fi);
     uint32               no   = 0;
     BAToverlap          *ovl  = OC->getOverlaps(fi, no);
-
-    uint32               fLen = RI->readLength(fi);
-
-    bool                 verified = false;
     intervalList<int32>  IL;
 
-    if (isIgnored(fi) == true)
-      continue;
+    //  Add an interval for each 'good' overlap.  Since this is really the
+    //  first filter that would mark a read as 'junk', the test is simply
+    //  overlap error.
 
-    //  Note that we only filter on overlap quality here.
+    for (uint32 ii=0; ii<no; ii++) {
+      if (isOverlapBadQuality(ovl[ii]) == true)
+        continue;
 
-    for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
-      if (isOverlapBadQuality(ovl[ii]) == false) {
-        if      ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang <= 0))   //  Left side dovetail
-          IL.add(0,
-                 fLen - -ovl[ii].b_hang);
+      uint32   bgn =        ((ovl[ii].a_hang <= 0) ? 0 :  ovl[ii].a_hang);
+      uint32   end = fLen - ((ovl[ii].b_hang >= 0) ? 0 : -ovl[ii].b_hang);
 
-        else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang >= 0))   //  Right side dovetail
-          IL.add(ovl[ii].a_hang,
-                 fLen - ovl[ii].a_hang);
+      assert(bgn <= end);
+      assert(end <= fLen);
 
-        else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang <= 0))   //  I contain the other
-          IL.add(ovl[ii].a_hang,
-                 fLen - ovl[ii].a_hang - -ovl[ii].b_hang);
-
-        else if ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang >= 0))   //  I am contained and thus now perfectly good!
-          verified = true;
-
-        else                                                       //  Huh?  Coding error.
-          assert(0);
-      }
+      IL.add(bgn, end - bgn);
     }
 
-    if ((verified == true) ||            //  If verified, we're done.  It's good.
-        (IL.numberOfIntervals() == 0))   //  If no intervals, it's a singleton.  Do nothing.
+    //  Merge all the intervals.  If we then have only one interval, covering
+    //  the whole read, it's a good read.  But if no intervals, it's a
+    //  singleton, and we really don't care what happens, because it has no
+    //  overlaps anyway.
+
+    IL.merge(covGapOlap);
+
+    if ((IL.numberOfIntervals() == 0))
       continue;
 
-    IL.merge(covGapOlap);                //  Merge the overlapping intervals.
-
-    if (IL.numberOfIntervals() == 1)     //  One interval, so it's good.
+    if ((IL.numberOfIntervals() == 1))
       continue;
+
+    //  Otherwise, log and flag it as bad.
 
     if (F) {
       switch (IL.numberOfIntervals()) {
@@ -297,10 +295,19 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
       }
     }
 
-    setCoverageGap(fi);                  //  Bad regions detected!  Possible chimeric read.
+    CG[fi] = 1;   //  Bad regions detected!  Possible chimeric read.
   }
 
   AS_UTL_closeFile(F, prefix, '.', "best.coverageGap");
+
+  //  Finally, set all the coverage gap marks.  This is done last to prevent
+  //  a race when isOverlapBadQuality() ignores a coverage gap read.
+
+  for (uint32 fi=1; fi <= fiLimit; fi++)
+    if (CG[fi])
+      setCoverageGap(fi);   //  Now it's a coverage gap read.
+
+  delete [] CG;
 }
 
 
