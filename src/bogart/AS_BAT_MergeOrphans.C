@@ -676,19 +676,6 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
         bool   tooSmall = (length < 0.75 * orphan->getLength()) ? true : false;
         bool   tooLarge = (length > 1.25 * orphan->getLength()) ? true : false;
 
-/*
- 662     // give more tolerance for shorter stuff
- 663     if (orphan->getLength() <= 50000) {
- 664        if ((regionMax - regionMin < 0.30 * orphan->getLength()) ||
- 665            (regionMax - regionMin > 1.70 * orphan->getLength()))
- 666          continue;
- 667     } else {
- 668        if ((regionMax - regionMin < 0.75 * orphan->getLength()) ||
- 669            (regionMax - regionMin > 1.25 * orphan->getLength()))
- 670          continue;
- 671     }
-*/
-
         if (misOrient) {
           writeLog("  %9d-%-9d %7.1f%% of orphan length - first read at %9d-%-9d last read at %9d-%-9d  MIS-ORIENT\n",
                    pBgn, pEnd, 100.0 * length / orphan->getLength(),
