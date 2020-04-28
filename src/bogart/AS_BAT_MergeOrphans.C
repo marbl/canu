@@ -235,8 +235,9 @@ findPotentialOrphans(TigVector       &tigs,
     //    there are more than 10 coverage intervals
     //    both bgn and end uncovered are non-zero
     //    the largest uncovered region ... ??
+    //    bubbles don't care about intervals since only the ends must be covered
 
-    if (tigCoverage.numberOfIntervals() > 10) {
+    if (!isBubble && tigCoverage.numberOfIntervals() > 10) {
       writeLog("too many intervals: is not orphan\n");
       continue;
     }
