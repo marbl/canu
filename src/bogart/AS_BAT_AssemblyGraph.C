@@ -223,6 +223,10 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
         continue;
       }
 
+     if (placements[pp].fCoverage < 0.01) {
+        logAGbuild(fi, pp, placements, "LOW_COVERAGE");
+        continue;
+     }
       //  A valid placement!
       //
       //  Decide if the overlap is to the:

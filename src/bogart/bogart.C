@@ -532,9 +532,9 @@ main (int argc, char * argv []) {
 
   writeStatus("\n");
   writeStatus("==> MARK SIMPLE BUBBLES.\n");
-  writeStatus("    using %f which is minimum of user-specified %f and auto-selected %f thresholds\n",  min(similarityBubble, erateGraph*10),  similarityBubble, erateGraph*10);
+  writeStatus("    using %f user-specified threshold\n",  similarityBubble);
   writeStatus("\n");
-  mergeOrphans(contigs, deviationBubble, min(similarityBubble, erateGraph*10), true);
+  mergeOrphans(contigs, deviationBubble, similarityBubble, true);
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "mergeOrphans");

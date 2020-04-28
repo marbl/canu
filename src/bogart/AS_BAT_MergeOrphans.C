@@ -851,7 +851,7 @@ mergeOrphans(TigVector    &tigs,
 
   //  For any tig that is a potential orphan, find all read placements.
   //  We don't try to insert orphans if the reads aren't fully contained, for bubbles no minimum threshold as the minimum is the shortest overlap we are willing to consider
-  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs, potentialOrphans, deviation, similarity, (isBubble ? 0.50 : 0.99));
+  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs, potentialOrphans, deviation, similarity, (isBubble ? 0.01 : 0.99));
 
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each orphan to be popped.
@@ -965,7 +965,6 @@ mergeOrphans(TigVector    &tigs,
       if (orphanSize == targetSize && !isBubble) {
         nOrphan++;
         orphanTarget = tt;
-        //nBubble++;
       }
 
       //  If only some of the reads are placed or we're in the bubble rounds, declare this a bubble so we
