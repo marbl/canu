@@ -984,7 +984,7 @@ mergeOrphans(TigVector    &tigs,
     if ((nOrphan == 0) && (nBubble == 0)) {
       writeLog("\n");
       writeLog("Result:\n");
-      writeLog("  tig %8u of length %8u with %6u reads %6u - NO GOOD PLACEMENTS\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      writeLog("  tig %8u of length %8u with %6u reads - NO GOOD PLACEMENTS\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
 
       nNeither      += 1;
       nNeitherReads += orphan->ufpath.size();
@@ -997,7 +997,7 @@ mergeOrphans(TigVector    &tigs,
     if ((nOrphan == 0) && (nBubble > 0)) {
       writeLog("\n");
       writeLog("Result:\n");
-      writeLog("  tig %8u of length %8u with %6u reads %6u - BUBBLE\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      writeLog("  tig %8u of length %8u with %6u reads - BUBBLE%s\n", orphan->id(), orphan->getLength(), orphan->ufpath.size(), repeatBubble ? " TOO MANY PLACEMENTS" : "");
 
       nUniqBubble      += 1;
       nUniqBubbleReads += orphan->ufpath.size();
@@ -1015,7 +1015,7 @@ mergeOrphans(TigVector    &tigs,
     if (nOrphan == 1) {
       writeLog("\n");
       writeLog("Result:\n");
-      writeLog("  tig %8u of length %8u with %6u reads %6u - UNIQUELY PLACED ORPHAN\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      writeLog("  tig %8u of length %8u with %6u reads - UNIQUELY PLACED ORPHAN\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
 
       nUniqOrphan      += 1;
       nUniqOrphanReads += orphan->ufpath.size();
