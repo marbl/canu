@@ -929,8 +929,8 @@ mergeOrphans(TigVector    &tigs,
 
     uint32   nOrphan      = 0;   //  Number of targets that have all the reads.
     uint32   nBubble      = 0;   //  Number of targets that have some reads placed.
+    bool     repeatBubble = false;
     uint32   orphanTarget = 0;   //  If nOrphan == 1, the target we're popping into.
-
 
     for (uint32 tt=0; tt<targets.size(); tt++) {
       uint32  orphanSize   = orphan->ufpath.size();        //  Size of the orphan tig
@@ -944,6 +944,11 @@ mergeOrphans(TigVector    &tigs,
         if (targets[tt]->placed[op].frgID == fRead->ident)    terminalSize++;
         if (targets[tt]->placed[op].frgID == lRead->ident)    terminalSize++;
       }
+
+      // add interval
+      if (targetIntervals[targets[tt]->target->id()] == NULL)
+         targetIntervals[targets[tt]->target->id()] = new intervalList<int32>;
+      targetIntervals[targets[tt]->target->id()]->add(targets[tt]->bgn, targets[tt]->end-targets[tt]->bgn);
 
       //  Report now, before we nuke targets[tt] for being not a orphan!
 
@@ -976,6 +981,21 @@ mergeOrphans(TigVector    &tigs,
       }
     }
 
+    // use the merged intervals to check for if this is a repeat
+    for (auto it=targetIntervals.begin(); it != targetIntervals.end(); ++it) {
+       it->second->merge();
+       writeLog("Merged intervals of orphan %u with %d equivalents into tig %u with %u intervals, first is %u-%u (length %u), ratio %f\n", orphan->id(), nBubble, it->first, it->second->numberOfIntervals(), it->second->lo(0), it->second->hi(0), it->second->hi(0)-it->second->lo(0), double(it->second->hi(0) - it->second->lo(0)) / orphan->getLength());
+       // if this is being placed in multiple disjoint locations in a tig or in a single but extremely large location, it is a repeat
+       if (it->second->numberOfIntervals() > 1 || double((it->second->hi(0) - it->second->lo(0)) / orphan->getLength()) >= 5) {
+          repeatBubble = true;
+          break;
+       }
+       delete it->second;
+    }
+    // lastly even if it met the above criteria, if there weren't too many placements it's not a repat
+    // essentially our critera for repeat is lots of possibilities and they're not all to one/a few tig regions
+    repeatBubble = repeatBubble && (nBubble >= 50);
+    targetIntervals.clear();
 
     //
     //  If neither, be obnoxious.
@@ -999,15 +1019,16 @@ mergeOrphans(TigVector    &tigs,
       writeLog("Result:\n");
       writeLog("  tig %8u of length %8u with %6u reads - BUBBLE%s\n", orphan->id(), orphan->getLength(), orphan->ufpath.size(), repeatBubble ? " TOO MANY PLACEMENTS" : "");
 
-      nUniqBubble      += 1;
-      nUniqBubbleReads += orphan->ufpath.size();
+      if (!repeatBubble) {
+        nUniqBubble      += 1;
+        nUniqBubbleReads += orphan->ufpath.size();
 
-      orphan->_isBubble = true;
+        orphan->_isBubble = true;
 
-      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)
-        OG->setBubble(orphan->ufpath[fi].ident);
+        for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)
+          OG->setBubble(orphan->ufpath[fi].ident);
+      }
     }
-
     //
     //  If a unique orphan placement, place it there.
     //
