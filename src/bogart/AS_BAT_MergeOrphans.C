@@ -1024,8 +1024,10 @@ mergeOrphans(TigVector    &tigs,
         targets[tt]->target->addRead(ufNode(targets[tt]->placed[op].frgID,        //  their placed position.
                                             targets[tt]->placed[op].position));
 
-      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)                           //  Flag them as being an orphan.
+      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {                           //  Flag them as being an orphan.
         OG->setOrphan(orphan->ufpath[fi].ident);
+        OG->setBackbone(orphan->ufpath[fi].ident, false);                           // and reset their backbone status, they're not the backbone of the new tig they've been placed into
+      }
 
       tigs[orphan->id()] = NULL;                                                  //  Delete the original tig.
       delete orphan;
