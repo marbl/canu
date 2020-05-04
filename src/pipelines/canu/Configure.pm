@@ -568,10 +568,11 @@ sub configureAssembler () {
 
     setGlobal("genomeSize", adjustGenomeSize(getGlobal("genomeSize")));
 
-    setGlobal("executiveMemory", adjustMemoryValue(getGlobal("executiveMemory")));
-
     setGlobal("minMemory",  adjustMemoryValue(getGlobal("minMemory")));
     setGlobal("maxMemory",  adjustMemoryValue(getGlobal("maxMemory")));
+
+    setGlobal("executiveMemory", adjustMemoryValue(getGlobal("executiveMemory")));
+    setGlobal("executiveMemory", adjustMemoryValue(getGlobal("minMemory"))) if (getGlobal("minMemory") > getGlobal("executiveMemory"));
 
     #  For overlapper and mhap, allow larger maximums for larger genomes.  More memory won't help
     #  smaller genomes, and the smaller minimums won't hurt larger genomes (which are probably being
