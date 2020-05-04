@@ -54,8 +54,14 @@ Combine_Into_One_Olap(Olap_Info_t olap[], int ct, int deleted[]) {
   t_right_boundary = olap[0].t_right_boundary;
 
   for  (i = 1;  i < ct;  i ++) {
-    if  (olap[i].quality < olap[best].quality)
+    int32 leni = 1 + min(olap[i].s_hi    - olap[i].s_lo,    olap[i].t_hi    - olap[i].t_lo);
+    int32 lenb = 1 + min(olap[best].s_hi - olap[best].s_lo, olap[best].t_hi - olap[best].t_lo);
+
+    if ((olap[i].quality  < olap[best].quality) ||
+        (olap[i].quality == olap[best].quality && leni > lenb))
       best = i;
+    //if  (olap[i].quality < olap[best].quality)
+    //  best = i;
 
     if  (olap[i].min_diag < min_diag)
       min_diag = olap[i].min_diag;
