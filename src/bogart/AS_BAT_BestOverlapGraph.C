@@ -240,7 +240,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   else
     _errorLimit = Tpicked;
 
-  static constexpr double META_THRESHOLD = 5e-3;
+  static constexpr double META_THRESHOLD = 1e-3;
   _errorLimit = META_THRESHOLD;
   //  The real filtering is done on the next pass through findEdges().  Here, we're just collecting statistics.
 
