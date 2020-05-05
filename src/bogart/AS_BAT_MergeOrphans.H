@@ -25,7 +25,8 @@
 void
 mergeOrphans(TigVector    &tigs,
              double        deviation,
-             double        similarity);
+             double        similarity,
+             bool          isBubble);
 
 
 #endif  //  INCLUDE_AS_BAT_MERGEORPHANS

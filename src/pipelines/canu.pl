@@ -616,7 +616,7 @@ if (($numPacBio   == 0) &&
     setGlobalIfUndef("cnsErrorRate",     0.050);
     setGlobalIfUndef("homoPolyCompress", 1);
     setGlobalIfUndef("maxInputCoverage", 50);
-    setGlobalIfUndef("batOptions",       "-eg 0.0003 -sb 0.01 -dg 0 -db 3 -dr 0 -ca 50 -cp 5");
+    setGlobalIfUndef("batOptions",       "-eg 0.0003 -sb 0.01 -dg 0 -db 3 -dr 0 -ca 1000 -cp 10");
 }
 
 if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {

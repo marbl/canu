@@ -112,13 +112,14 @@ typedef  map<uint32, vector<uint32> >  BubTargetList;
 
 void
 findPotentialOrphans(TigVector       &tigs,
-                     BubTargetList   &potentialOrphans) {
+                     BubTargetList   &potentialOrphans,
+                     bool             isBubble) {
 
   writeStatus("\n");
   writeStatus("findPotentialOrphans()-- working on " F_U32 " tigs.\n", tigs.size());
 
   writeLog("\n");
-  writeLog("== Finding Potential Orphans ==\n");
+  writeLog("== Finding Potential %s ==\n", (isBubble ? "Bubbles" : "Orphans"));
   writeLog("\n");
 
   for (uint32 ti=0; ti<tigs.size(); ti++) {
@@ -234,8 +235,9 @@ findPotentialOrphans(TigVector       &tigs,
     //    there are more than 10 coverage intervals
     //    both bgn and end uncovered are non-zero
     //    the largest uncovered region ... ??
+    //    bubbles don't care about intervals since only the ends must be covered
 
-    if (tigCoverage.numberOfIntervals() > 10) {
+    if (!isBubble && tigCoverage.numberOfIntervals() > 10) {
       writeLog("too many intervals: is not orphan\n");
       continue;
     }
@@ -292,7 +294,8 @@ vector<overlapPlacement>  *
 findOrphanReadPlacements(TigVector       &tigs,
                          BubTargetList   &potentialOrphans,
                          double           deviation,
-                         double           similarity) {
+                         double           similarity,
+                         double           coverage) {
   uint32  fiLimit      = RI->numReads();
   uint32  fiNumThreads = omp_get_max_threads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
@@ -384,6 +387,13 @@ findOrphanReadPlacements(TigVector       &tigs,
       if (potentialOrphans.count(rdBtigID) > 0) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
           writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - INTO POTENTIAL ORPHAN\n",
+                   rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
+        continue;
+      }
+
+      if (placements[pi].fCoverage < coverage) {    //  Ignore partially placed reads.
+        if (logFileFlagSet(LOG_ORPHAN_DETAIL))
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - LOW COVERAGE\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -806,13 +816,15 @@ assignReadsToTargets(Unitig                     *orphan,
 void
 mergeOrphans(TigVector    &tigs,
              double        deviation,
-             double        similarity) {
+             double        similarity,
+             bool          isBubble) {
+
 
   //  Find, for each tig, the list of other tigs that it could potentially be placed into.
 
   BubTargetList   potentialOrphans;
 
-  findPotentialOrphans(tigs, potentialOrphans);
+  findPotentialOrphans(tigs, potentialOrphans, isBubble);
 
   //  If you enable this, all reads with any overlap will get removed from the 'reduced' graph.
 #if 0
@@ -826,8 +838,8 @@ mergeOrphans(TigVector    &tigs,
 #endif
 
   //  For any tig that is a potential orphan, find all read placements.
-
-  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs, potentialOrphans, deviation, similarity);
+  //  We don't try to insert orphans if the reads aren't fully contained, for bubbles no minimum threshold as the minimum is the shortest overlap we are willing to consider
+  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs, potentialOrphans, deviation, similarity, (isBubble ? 0.01 : 0.99));
 
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each orphan to be popped.
@@ -904,8 +916,8 @@ mergeOrphans(TigVector    &tigs,
 
     uint32   nOrphan      = 0;   //  Number of targets that have all the reads.
     uint32   nBubble      = 0;   //  Number of targets that have some reads placed.
+    bool     repeatBubble = false;
     uint32   orphanTarget = 0;   //  If nOrphan == 1, the target we're popping into.
-
 
     for (uint32 tt=0; tt<targets.size(); tt++) {
       uint32  orphanSize   = orphan->ufpath.size();        //  Size of the orphan tig
@@ -919,6 +931,11 @@ mergeOrphans(TigVector    &tigs,
         if (targets[tt]->placed[op].frgID == fRead->ident)    terminalSize++;
         if (targets[tt]->placed[op].frgID == lRead->ident)    terminalSize++;
       }
+
+      // add interval
+      if (targetIntervals[targets[tt]->target->id()] == NULL)
+         targetIntervals[targets[tt]->target->id()] = new intervalList<int32>;
+      targetIntervals[targets[tt]->target->id()]->add(targets[tt]->bgn, targets[tt]->end-targets[tt]->bgn);
 
       //  Report now, before we nuke targets[tt] for being not a orphan!
 
@@ -938,19 +955,34 @@ mergeOrphans(TigVector    &tigs,
       //  if this happens more than once, we just split the orphan and merge
       //  reads at their best location.
 
-      if (orphanSize == targetSize) {
+      if (orphanSize == targetSize && !isBubble) {
         nOrphan++;
         orphanTarget = tt;
       }
 
-      //  If only some of the reads are placed, declare this a bubble so we
+      //  If only some of the reads are placed or we're in the bubble rounds, declare this a bubble so we
       //  can ignore reads when finding repeats.
 
-      else if (terminalSize == 2) {
+      else if (orphanSize == targetSize || terminalSize == 2) {
         nBubble++;
       }
     }
 
+    // use the merged intervals to check for if this is a repeat
+    for (auto it=targetIntervals.begin(); it != targetIntervals.end(); ++it) {
+       it->second->merge();
+       writeLog("Merged intervals of orphan %u with %d equivalents into tig %u with %u intervals, first is %u-%u (length %u), ratio %f\n", orphan->id(), nBubble, it->first, it->second->numberOfIntervals(), it->second->lo(0), it->second->hi(0), it->second->hi(0)-it->second->lo(0), double(it->second->hi(0) - it->second->lo(0)) / orphan->getLength());
+       // if this is being placed in multiple disjoint locations in a tig or in a single but extremely large location, it is a repeat
+       if (it->second->numberOfIntervals() > 1 || double((it->second->hi(0) - it->second->lo(0)) / orphan->getLength()) >= 5) {
+          repeatBubble = true;
+          break;
+       }
+       delete it->second;
+    }
+    // lastly even if it met the above criteria, if there weren't too many placements it's not a repat
+    // essentially our critera for repeat is lots of possibilities and they're not all to one/a few tig regions
+    repeatBubble = repeatBubble && (nBubble >= 50);
+    targetIntervals.clear();
 
     //
     //  If neither, be obnoxious.
@@ -959,7 +991,7 @@ mergeOrphans(TigVector    &tigs,
     if ((nOrphan == 0) && (nBubble == 0)) {
       writeLog("\n");
       writeLog("Result:\n");
-      writeLog("  tig %8u of length %8u with %6u reads %6u - NO GOOD PLACEMENTS\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      writeLog("  tig %8u of length %8u with %6u reads - NO GOOD PLACEMENTS\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
 
       nNeither      += 1;
       nNeitherReads += orphan->ufpath.size();
@@ -972,17 +1004,18 @@ mergeOrphans(TigVector    &tigs,
     if ((nOrphan == 0) && (nBubble > 0)) {
       writeLog("\n");
       writeLog("Result:\n");
-      writeLog("  tig %8u of length %8u with %6u reads %6u - BUBBLE\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      writeLog("  tig %8u of length %8u with %6u reads - BUBBLE%s\n", orphan->id(), orphan->getLength(), orphan->ufpath.size(), repeatBubble ? " TOO MANY PLACEMENTS" : "");
 
-      nUniqBubble      += 1;
-      nUniqBubbleReads += orphan->ufpath.size();
+      if (!repeatBubble) {
+        nUniqBubble      += 1;
+        nUniqBubbleReads += orphan->ufpath.size();
 
-      orphan->_isBubble = true;
+        orphan->_isBubble = true;
 
-      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)
-        OG->setBubble(orphan->ufpath[fi].ident);
+        for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)
+          OG->setBubble(orphan->ufpath[fi].ident);
+      }
     }
-
     //
     //  If a unique orphan placement, place it there.
     //
@@ -990,7 +1023,7 @@ mergeOrphans(TigVector    &tigs,
     if (nOrphan == 1) {
       writeLog("\n");
       writeLog("Result:\n");
-      writeLog("  tig %8u of length %8u with %6u reads %6u - UNIQUELY PLACED ORPHAN\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
+      writeLog("  tig %8u of length %8u with %6u reads - UNIQUELY PLACED ORPHAN\n", orphan->id(), orphan->getLength(), orphan->ufpath.size());
 
       nUniqOrphan      += 1;
       nUniqOrphanReads += orphan->ufpath.size();
@@ -999,8 +1032,10 @@ mergeOrphans(TigVector    &tigs,
         targets[tt]->target->addRead(ufNode(targets[tt]->placed[op].frgID,        //  their placed position.
                                             targets[tt]->placed[op].position));
 
-      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++)                           //  Flag them as being an orphan.
+      for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {                           //  Flag them as being an orphan.
         OG->setOrphan(orphan->ufpath[fi].ident);
+        OG->setBackbone(orphan->ufpath[fi].ident, false);                           // and reset their backbone status, they're not the backbone of the new tig they've been placed into
+      }
 
       tigs[orphan->id()] = NULL;                                                  //  Delete the original tig.
       delete orphan;

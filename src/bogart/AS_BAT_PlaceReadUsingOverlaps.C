@@ -34,6 +34,7 @@ placeRead_fromOverlaps(TigVector          &tigs,
                        Unitig             *target,
                        uint32              fid,
                        uint32              flags,
+                       double              errorLimit,
                        uint32              ovlLen,
                        BAToverlap         *ovl,
                        uint32             &ovlPlaceLen,
@@ -50,6 +51,9 @@ placeRead_fromOverlaps(TigVector          &tigs,
 
     if ((btID == 0) ||                                  //  Skip if overlapping read isn't in a tig yet - unplaced contained, or garbage read.
         ((target != NULL) && (target->id() != btID)))   //  Skip if we requested a specific tig and if this isn't it.
+      continue;
+
+   if (ovl[oo].erate() > errorLimit)                    //  Skip if the error is higher than we were told to use
       continue;
 
     Unitig           *btig   = tigs[btID];
@@ -512,7 +516,8 @@ placeReadUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,
-                       uint32                    flags) {
+                       uint32                    flags,
+                       double                    errorLimit) {
 
   set<uint32>  verboseEnable;
 
@@ -551,7 +556,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
   uint32             ovlPlaceLen = 0;
   overlapPlacement  *ovlPlace    = new overlapPlacement [ovlLen];
 
-  placeRead_fromOverlaps(tigs, target, fid, flags, ovlLen, ovl, ovlPlaceLen, ovlPlace);
+  placeRead_fromOverlaps(tigs, target, fid, flags, errorLimit, ovlLen, ovl, ovlPlaceLen, ovlPlace);
 
   //  Sort all the placements.  Sort order is:
   //    unitig ID

@@ -142,7 +142,8 @@ placeReadUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,
-                       uint32                    flags = placeRead_all);
+                       uint32                    flags = placeRead_all,
+                       double                    errorLimit = 1.0);
 
 
 #endif  //  INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS

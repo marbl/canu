@@ -176,7 +176,7 @@ sub unitig_bogart ($) {
     print F "    -db "          . getGlobal("utgGraphDeviation")  . " \\\n";
     print F "    -dr "          . getGlobal("utgRepeatDeviation") . " \\\n";
     print F "    -ca "          . getGlobal("utgRepeatConfusedBP"). " \\\n";
-    print F "    -cp "          . "200"                           . " \\\n";
+    print F "    -cp "          . "30"                            . " \\\n";
     print F "    -threads "     . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
     print F "    -M "           . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
     print F "    -unassembled " . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));

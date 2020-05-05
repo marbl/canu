@@ -253,7 +253,6 @@ main (int argc, char * argv []) {
         snprintf(s, 1024, "Unknown '-D' option '%s'.\n", argv[arg]);
         err.push_back(s);
       }
-
     } else if (strcmp(argv[arg], "-d") == 0) {
       uint32  opt = 0;
       uint64  flg = 1;
@@ -502,7 +501,7 @@ main (int argc, char * argv []) {
 
   set<uint32>   placedReads;
 
-  placeUnplacedUsingAllOverlaps(contigs, deviationBubble, similarityBubble, prefix, placedReads);
+  placeUnplacedUsingAllOverlaps(contigs, deviationGraph, OG->reportErrorLimit(), prefix, placedReads);
 
   //  Compute positions again.  This fixes issues with contains-in-contains that
   //  tend to excessively shrink reads.  The one case debugged placed contains in
@@ -534,7 +533,14 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "unplaced");
   contigs.reportErrorProfiles(prefix, "unplaced");
 
-  mergeOrphans(contigs, deviationBubble, similarityBubble);
+  // we call this twice, once to merge in orphans, a second for bubbles
+  mergeOrphans(contigs, deviationGraph, OG->reportErrorLimit(), false);
+
+  writeStatus("\n");
+  writeStatus("==> MARK SIMPLE BUBBLES.\n");
+  writeStatus("    using %f user-specified threshold\n",  similarityBubble);
+  writeStatus("\n");
+  mergeOrphans(contigs, deviationBubble, similarityBubble, true);
 
   //checkUnitigMembership(contigs);
   //reportOverlaps(contigs, prefix, "mergeOrphans");
@@ -597,6 +603,7 @@ main (int argc, char * argv []) {
 
   AssemblyGraph *AG = new AssemblyGraph(prefix,
                                         deviationRepeat,
+                                        OG->reportErrorLimit(),
                                         contigs);
 
   //AG->reportReadGraph(contigs, prefix, "initial");

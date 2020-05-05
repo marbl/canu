@@ -914,7 +914,7 @@ sub setDefaults () {
     setDefault("utgErrorRate",        undef, "Overlaps at or below this error rate are used to construct contigs");
     setDefault("utgGraphDeviation",   12,     "Overlaps this much above median will not be used for initial graph construction");
     setDefault("utgRepeatDeviation",  6,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
-    setDefault("utgRepeatConfusedBP", 2100,  "Repeats where the next best edge is at least this many bp shorter will not be split");
+    setDefault("utgRepeatConfusedBP", 3000,  "Repeats where the next best edge is at least this many bp shorter will not be split");
     setDefault("corErrorRate",        undef, "Only use raw alignments below this error rate to construct corrected reads");
     setDefault("cnsErrorRate",        undef, "Consensus expects alignments at about this error rate");
 

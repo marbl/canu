@@ -769,6 +769,10 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
 
   bestSco       bestScore;
 
+  // if we are searching for an internal read and have been given no id to search for, it means we're not confused so return score of 0 to signal that
+  if (internal == true && rdB == NULL)
+     return bestScore;
+
   //  is3p on input is telling us if we want overlaps on the low (false) or
   //  high (true) coordinate of rdA.  If the read is in the tig flipped, we
   //  need to flip this flag so it correctly refers to the 3' end of the
@@ -901,8 +905,9 @@ findConfusedEdges(TigVector            &tigs,
     double      sc        = (rdAhi - rdAlo) / (double)RI->readLength(rdAid);
 
     if ((OG->isContained(rdAid)   == true) ||   //  Don't care about contained or chimeric
-        (OG->isCoverageGap(rdAid) == true))     //  reads; we'll use the container instead.
-      continue;
+        (OG->isCoverageGap(rdAid) == true) ||      //  or non-backbone reads; we'll use the container instead.
+        (OG->isBackbone(rdAid) == false)) 
+     continue;
 
     for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
       int32  rMin = tigMarksR.lo(ri);
@@ -913,10 +918,12 @@ findConfusedEdges(TigVector            &tigs,
         continue;               //  contained in the region.  Skip!
       }
 
+/*
       if ((rMin  <= rdAlo) &&   //  If the read is contained in the repeat region,
           (rdAhi <= rMax)) {    //  it's useless for deciding if this is a
         continue;               //  confused repeat.
       }
+*/
 
       //  This read intersects this repeat region.  Find the
       //  reads we used to construct the tig originally.
@@ -957,21 +964,14 @@ findConfusedEdges(TigVector            &tigs,
 
       if ((internal5sco.score > 0.0) &&
           (external5sco.score > 0.0)) {
-        double  ad5 =         fabs(internal5sco.score - external5sco.score);   //  Absolute difference.
-        double  pd5 = 200 * ad5 / (internal5sco.score + external5sco.score);   //  Percent diffference.
+        double  ad5 = internal5sco.score - external5sco.score;   //  Absolute difference.
+        double  pd5 = 100 * ad5 / internal5sco.score;   //  Percent diffference.
 
         //  This read end is confused if the internal edge is worse than the
-        //  external, or if the differences are small.  The first condition hasn't
-        //  been tested much (21 Feb 2020) and is left disabled.
+        //  external, or if the differences are small.
 
-        bool   isC = false;    //  Argh, isConfused is already used.
-
-        isC |= (internal5sco.score < external5sco.score);
-
-        isC |= ((ad5 <= confusedAbsolute) &&
-                (pd5 <  confusedPercent));
-
-        if (isC == true) {
+        if (internal5sco.score < external5sco.score ||
+          (ad5 < confusedAbsolute && pd5 < confusedPercent)) {
           writeLog("tig %7u read %8u pos %7u-%-7u 5' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external5sco.tigId, external5sco.readId,
@@ -979,18 +979,14 @@ findConfusedEdges(TigVector            &tigs,
 
           confusedEdges.push_back(confusedEdge(rdAid, false, external5sco.readId));
           isConfused[ri]++;
-        }
-
-        //  There is a second best edge, and we're better than it.
-        else {
+        } else {
+          //  There is a second best edge, and we're better than it.
           writeLog("tig %7u read %8u pos %7u-%-7u 5' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external5sco.tigId, external5sco.readId,
                    internal5sco.score, external5sco.score, ad5, pd5);
         }
       }
-
-
 
       if (external3sco.score == 0.0) {
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused -- no external edge\n",
@@ -999,17 +995,11 @@ findConfusedEdges(TigVector            &tigs,
 
       if ((internal3sco.score > 0.0) &&
           (external3sco.score > 0.0)) {
-        double  ad3 =         fabs(internal3sco.score - external3sco.score);   //  Absolute difference.
-        double  pd3 = 200 * ad3 / (internal3sco.score + external3sco.score);   //  Percent diffference.
+        double  ad3 = internal3sco.score - external3sco.score;   //  Absolute difference.
+        double  pd3 = 100 * ad3 / internal3sco.score;   //  Percent diffference.
 
-        bool   isC = false;    //  Argh, isConfused is already used.
-
-        isC |= (internal3sco.score < external3sco.score);
-
-        isC |= ((ad3 <= confusedAbsolute) &&
-                (pd3 <  confusedPercent));
-
-        if (isC == true) {
+        if (internal3sco.score < external3sco.score ||
+          (ad3 <= confusedAbsolute && pd3 < confusedPercent)) {
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external3sco.tigId, external3sco.readId,
@@ -1017,10 +1007,8 @@ findConfusedEdges(TigVector            &tigs,
 
           confusedEdges.push_back(confusedEdge(rdAid, false, external3sco.readId));
           isConfused[ri]++;
-        }
-
-        //  There is a second best edge, and we're better than it.
-        else {
+        } else {
+          //  There is a second best edge, and we're better than it.
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tgAid, rdAid, rdAlo, rdAhi,
                    external3sco.tigId, external3sco.readId,

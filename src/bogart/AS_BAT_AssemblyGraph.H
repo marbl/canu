@@ -71,8 +71,9 @@ class AssemblyGraph {
 public:
   AssemblyGraph(const char   *prefix,
                 double        deviationRepeat,
+		double        repeatLimit,
                 TigVector    &tigs) {
-    buildGraph(prefix, deviationRepeat, tigs);
+    buildGraph(prefix, deviationRepeat, repeatLimit, tigs);
   }
 
   ~AssemblyGraph() {
@@ -87,6 +88,7 @@ public:
 public:
   void                      buildGraph(const char   *prefix,
                                        double        deviationRepeat,
+                                       double        repeatLimit,
                                        TigVector    &tigs);
 
 private:

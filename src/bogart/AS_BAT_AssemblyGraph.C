@@ -43,7 +43,7 @@ logAGbuild(uint32                     fi,
   if (logFileFlagSet(LOG_PLACE_UNPLACED) == false)
     return;
 
-  writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f%s\n",
+  writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.10f %s\n",
            fi, pp,
            placements[pp].tigID,
            placements[pp].position.bgn, placements[pp].position.end,
@@ -114,6 +114,7 @@ logAGbuild(uint32                     fi,
 void
 AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
                           double        deviationRepeat,
+                          double        repeatLimit,
                           TigVector    &tigs) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
@@ -176,7 +177,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
     int32                      fiMax  = fiRead->position.max();
     vector<overlapPlacement>   placements;
 
-    placeReadUsingOverlaps(tigs, NULL, fi, placements);
+    placeReadUsingOverlaps(tigs, NULL, fi, placements, placeRead_all, repeatLimit);
 
     //  For each placement decide if the overlap is compatible with the tig.
 
@@ -222,6 +223,10 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
         continue;
       }
 
+     if (placements[pp].fCoverage < 0.01) {
+        logAGbuild(fi, pp, placements, "LOW_COVERAGE");
+        continue;
+     }
       //  A valid placement!
       //
       //  Decide if the overlap is to the:
