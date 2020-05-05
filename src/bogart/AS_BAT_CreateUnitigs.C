@@ -327,7 +327,6 @@ checkRead(Unitig                    *tgA,
     overlapPlacement  &op = rdAplacements[pp];
     Unitig            *tgB = contigs[op.tigID];
 
-    bool    toUnassembled = false;
     bool    toSelf        = false;
     bool    expected5     = false;
     bool    expected3     = false;
@@ -338,10 +337,8 @@ checkRead(Unitig                    *tgA,
 
     //  Silently ignore stuff to unassembled tigs.
 
-    if (tgB->_isUnassembled == true) {
-      toUnassembled = true;
+    if (tgB->_isUnassembled == true)
       continue;
-    }
 
     //  If we're overlapping with ourself, not a useful edge to be splitting on.
 
