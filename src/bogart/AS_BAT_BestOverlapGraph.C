@@ -228,6 +228,8 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
     uint32               no   = 0;
     BAToverlap          *ovl  = OC->getOverlaps(fi, no);
     intervalList<int32>  IL;
+    bool                 cov5 = false;
+    bool                 cov3 = false;
 
     //  Add an interval for each 'good' overlap.  Since this is really the
     //  first filter that would mark a read as 'junk', the test is simply
@@ -243,6 +245,9 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
       assert(bgn <= end);
       assert(end <= fLen);
 
+      if (bgn == 0)      cov5 = true;
+      if (end == fLen)   cov3 = true;
+
       IL.add(bgn, end - bgn);
     }
 
@@ -256,7 +261,9 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
     if ((IL.numberOfIntervals() == 0))
       continue;
 
-    if ((IL.numberOfIntervals() == 1))
+    if ((IL.numberOfIntervals() == 1) &&   //  We could just be testing if IL is covering
+        (cov5 == true) &&                  //  the whole read, but I suspect we'll end up
+        (cov3 == true))                    //  requiring cov5 & cov3 to have an overhang.
       continue;
 
     //  Otherwise, log and flag it as bad.
