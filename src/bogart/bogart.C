@@ -278,6 +278,7 @@ main (int argc, char * argv []) {
     arg++;
   }
 
+  if (genomeSize   == 0)       err.push_back("Genome size (-gs option) must be supplied\n");
   if (erateGraph    < 0.0)     err.push_back("Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
   if (erateMax      < 0.0)     err.push_back("Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
   if (prefix       == NULL)    err.push_back("No output prefix name (-o option) supplied.\n");
