@@ -91,11 +91,18 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
     }
   }
 
-#pragma GCC diagnostic pop
+  //  If no OG, we can't distinguish between contained and unplaced, so we
+  //  just report them all as unplaced.
 
-  writeStatus("\n");
-  writeStatus("placeContains()-- placing %u contained and %u unplaced reads, with %d thread%s.\n",
-              nToPlaceContained, nToPlace, numThreads, (numThreads == 1) ? "" : "s");
+  if (OG) {
+    writeStatus("\n");
+    writeStatus("placeContains()-- placing %u contained and %u unplaced reads, with %d thread%s.\n",
+                nToPlaceContained, nToPlace, numThreads, (numThreads == 1) ? "" : "s");
+  } else {
+    writeStatus("\n");
+    writeStatus("placeContains()-- placing %u unplaced reads, with %d thread%s.\n",
+                nToPlace, numThreads, (numThreads == 1) ? "" : "s");
+  }
 
   //  Do the placing!
 
@@ -193,7 +200,7 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
     //  allowed to seed a tig, and now, could find no place to go.  They're garbage.
 
     if (placedTig[fid] == 0) {
-      if (OG->isContained(fid))
+      if ((OG) && (OG->isContained(fid)))
         nFailedContained++;
       else
         nFailed++;
@@ -202,7 +209,7 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
     //  Otherwise, it was placed somewhere, grab the tig.
 
     else {
-      if (OG->isContained(fid))
+      if ((OG) && (OG->isContained(fid)))
         nPlacedContained++;
       else
         nPlaced++;
@@ -227,10 +234,12 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
 
     //  Update status.
 
-    if (tig)
-      OG->setOrphan(fid);
-    else
-      OG->setDelinquent(fid);
+    if (OG) {
+      if (tig)
+        OG->setOrphan(fid);
+      else
+        OG->setDelinquent(fid);
+    }
   }
 
   //  Cleanup.
@@ -238,8 +247,16 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
   delete [] placedPos;
   delete [] placedTig;
 
-  writeStatus("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
-  writeStatus("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
+  //  If no OG, we can't distinguish between contained and unplaced, so we
+  //  just report them all as unplaced.
+
+  if (OG) {
+    writeStatus("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
+    writeStatus("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
+  } else {
+    writeStatus("placeContains()-- Placed %u unplaced reads.\n", nPlaced);
+    writeStatus("placeContains()-- Failed to place %u unplaced reads (to high error, or lack of overlaps suspected).\n", nFailed);
+  }
 
   //  But wait!  All the tigs need to be sorted.  Well, not really _all_, but the hard ones to sort
   //  are big, and those quite likely had reads added to them, so it's really not worth the effort
