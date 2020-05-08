@@ -82,12 +82,16 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
   uint32   nFailedContained  = 0;
   uint32   nFailed           = 0;
 
-  for (uint32 fid=1; fid<RI->numReads()+1; fid++)
-    if (tigs.inUnitig(fid) == 0)    //  I'm NOT ambiguous!
-      if (OG->isContained(fid))
+  for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
+    if (tigs.inUnitig(fid) == 0) {
+      if ((OG) && (OG->isContained(fid)))   //  layoutReads doesn't have OG.
         nToPlaceContained++;
       else
         nToPlace++;
+    }
+  }
+
+#pragma GCC diagnostic pop
 
   writeStatus("\n");
   writeStatus("placeContains()-- placing %u contained and %u unplaced reads, with %d thread%s.\n",

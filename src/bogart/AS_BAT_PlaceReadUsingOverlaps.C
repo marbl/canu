@@ -532,11 +532,12 @@ placeReadUsingOverlaps(TigVector                &tigs,
   if (verboseEnable.count(fid) > 0)
     logFileFlags |= LOG_PLACE_READ;
 
-  if (logFileFlagSet(LOG_PLACE_READ))  //  Nope, not ambiguous.
+  if (logFileFlagSet(LOG_PLACE_READ)) {
     if (target)
       writeLog("\npRUO()-- begin for read %u length %u into target tig %d\n", fid, RI->readLength(fid), target->id());
     else
       writeLog("\npRUO()-- begin for read %u length %u into all tigs\n", fid, RI->readLength(fid));
+  }
 
   assert(fid > 0);
   assert(fid <= RI->numReads());

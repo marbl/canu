@@ -124,13 +124,14 @@ globalScore::compute(uint32             ovlLen,
   if (fractionFiltered <= 0.95)   stats->reads95OlapsFiltered++;
   if (fractionFiltered <= 1.00)   stats->reads99OlapsFiltered++;
 
-  if (logFile)
+  if (logFile) {
     if (histLen <= expectedCoverage)
       fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (no filtering)\n",
               ovl[0].a_iid, ovlLen, histLen, 0, histLen);
     else
       fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (threshold %u)\n",
               ovl[0].a_iid, ovlLen, histLen, belowCutoffLocal, histLen - belowCutoffLocal, threshold);
+  }
 
   return(threshold);
 }
