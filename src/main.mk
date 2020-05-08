@@ -202,6 +202,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \
                 \
                 bogart/bogart.mk \
+                bogart/layoutReads.mk \
                 \
                 bogus/bogus.mk \
                 \
