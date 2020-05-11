@@ -570,7 +570,7 @@ main(int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-genomesize") == 0) {
-      genomeSize = atoi(argv[++arg]);
+      genomeSize = atof(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-coverage") == 0) {
