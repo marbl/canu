@@ -213,9 +213,6 @@ OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
   writeStatus("OverlapCache()-- Initial guess at " F_U32 " overlaps/read.\n", _maxPer);
   writeStatus("OverlapCache()--\n");
 
-  if (_maxPer < _minPer)
-    writeStatus("OverlapCache()-- Not enough memory to load the minimum number of overlaps; increase -M.\n"), exit(1);
-
   uint64  totalOlaps = ovlStore->numOverlapsInRange();
 
   assert(totalOlaps > 0);
@@ -306,6 +303,9 @@ OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
 
   _checkSymmetry = (numAbove > 0) ? true : false;
   _checkSymmetry = true;
+
+  if (_maxPer < _minPer)
+    writeStatus("OverlapCache()-- Not enough memory to load the minimum number of overlaps; increase -M.\n"), exit(1);
 
   delete [] numPer;
 }
