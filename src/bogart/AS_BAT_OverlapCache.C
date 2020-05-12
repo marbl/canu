@@ -324,21 +324,10 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
     nFiltered++;
 
-    //  Drop the weaker overlap.  If a tie, drop the flipped one.  Use the
-    //  min overlap length here, so that when we get to the B read we compute
-    //  the same scores.  Here's a real example from ecoli when min isn't
-    //  used - we throw out the opposite overlap!
-    //
-    //  Dropping overlap A:     10447 B:     28159 - score     7.94 - 0.0048% -  -5834  -6359 - flipped
-    //  Saving   overlap A:     10447 B:     28159 - score     7.98 - 0.0031% -  -4905  -5413 - 
-    //
-    //  Dropping overlap A:     28159 B:     10447 - score     8.00 - 0.0031% -   4905   5413 - 
-    //  Saving   overlap A:     28159 B:     10447 - score     8.05 - 0.0048% -  -6359  -5834 - flipped
-    //
-    //  It's still possible that assymetric error rates could cause us to throw out the wrong overlap, though.
+    //  Drop the weaker overlap.  If a tie, drop the flipped one.
 
-    double iiSco = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang()) * _ovs[ii].erate();
-    double jjSco = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang()) * _ovs[jj].erate();
+    double iiSco = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang()) * (1.0 - _ovs[ii].erate());
+    double jjSco = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang()) * (1.0 - _ovs[jj].erate());
 
     if (iiSco == jjSco) {             //  Hey gcc!  See how nice I was by putting brackets
       if (_ovs[ii].flipped())         //  around this so you don't get confused by the
@@ -355,9 +344,9 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
 #if 0
     writeLog("OverlapCache::filterDuplicates()-- Dropping overlap A: %9" F_U64P " B: %9" F_U64P " - score %8.2f - %6.4f%% - %6" F_S32P " %6" F_S32P " - %s\n",
-             _ovs[dd].a_iid, _ovs[dd].b_iid, dds, _ovs[dd].erate(), iiSco, _ovs[dd].a_hang(), _ovs[dd].b_hang(), _ovs[dd].flipped() ? "flipped" : "");
+             _ovs[dd].a_iid, _ovs[dd].b_iid, dds, _ovs[dd].erate(), _ovs[dd].a_hang(), _ovs[dd].b_hang(), _ovs[dd].flipped() ? "flipped" : "");
     writeLog("OverlapCache::filterDuplicates()-- Saving   overlap A: %9" F_U64P " B: %9" F_U64P " - score %8.2f - %6.4f%% - %6" F_S32P " %6" F_S32P " - %s\n",
-             _ovs[ss].a_iid, _ovs[ss].b_iid, sss, _ovs[ss].erate(), iiSco, _ovs[ss].a_hang(), _ovs[ss].b_hang(), _ovs[ss].flipped() ? "flipped" : "");
+             _ovs[ss].a_iid, _ovs[ss].b_iid, sss, _ovs[ss].erate(), _ovs[ss].a_hang(), _ovs[ss].b_hang(), _ovs[ss].flipped() ? "flipped" : "");
 #endif
 
     _ovs[dd].a_iid = 0;
