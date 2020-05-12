@@ -189,9 +189,9 @@ main (int argc, char **argv) {
   char const  *readListPath   = NULL;
   char const  *prefix         = NULL;
 
-  double       erateGraph     = 0.075;
+  double       erateGraph     = 1e-5; //0.075;
   double       deviationGraph = 6.0;
-  double       erateMax       = 0.100;
+  double       erateMax       = 1e-5; //0.100;
 
   uint32       minReadLen     = 0;
   uint32       maxReadLen     = UINT32_MAX;
