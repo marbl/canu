@@ -163,7 +163,12 @@ importTigsFromReadList(char const *prefix,
       }
 
       if (placed == false) {
-        writeLog("Failed to place read '%s'\n", words[rr]);
+        writeLog("Failed to place '%s' next read '%s' (flipped %d) with overlaps:\n", words[rr-1], words[rr], wantFlip);
+
+        for (uint32 poo=0; poo<povlLen; poo++)
+          writeLog("  A %8u B %8u hangs %5d,%5d flip %d\n",
+                   povl[poo].a_iid, povl[poo].b_iid, povl[poo].a_hang, povl[poo].b_hang, povl[poo].flipped);
+
         flushLog();
         assert(0);
       }
