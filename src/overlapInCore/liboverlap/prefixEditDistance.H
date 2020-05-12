@@ -38,6 +38,19 @@ enum Overlap_t {
   DOVETAIL
 };
 
+static
+const
+char *
+toString(Overlap_t k) {
+  switch (k) {
+    case  NONE:             return("NONE");             break;
+    case  LEFT_BRANCH_PT:   return("LEFT_BRANCH_PT");   break;
+    case  RIGHT_BRANCH_PT:  return("RIGHT_BRANCH_PT");  break;
+    case  DOVETAIL:         return("DOVETAIL");         break;
+    default:                return("UNKNOWN");          break;
+  }
+};
+
 
 //  the input to Extend_Alignment.
 struct Match_Node_t {
