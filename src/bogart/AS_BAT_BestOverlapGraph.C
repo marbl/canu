@@ -424,34 +424,38 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, dou
     setLopsided5(fi, (score5 < lopsidedDiff));
     setLopsided3(fi, (score3 < lopsidedDiff));
 
-#if 0
-    if ((isLopsided(fi) == false) && (LOP))
-      fprintf(LOP, "fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
-               fi,
-               this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
-               this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
-#endif
+    if (LOP) {
+      char  loplog[1024] = {0};
 
-    if ((isLopsided(fi) == true) && (LOP)) {
-      if     ((this5->readId() > 0) &&
-              (this3->readId() > 0))
-#pragma omp critical (fprintf_LOP)
-        fprintf(LOP, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
-                 fi,
-                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
-                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
+      if (isLopsided(fi) == true) {
+        if     ((this5->readId() > 0) &&
+                (this3->readId() > 0))
+          sprintf(loplog, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
+                  fi,
+                  this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
+                  this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
 
-      else if (this5->readId() > 0)
-#pragma omp critical (fprintf_LOP)
-        fprintf(LOP, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% --\n",
-                 fi,
-                 this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5);
+        else if (this5->readId() > 0)
+          sprintf(loplog, "lopsidedBest %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% --\n",
+                  fi,
+                  this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5);
 
-      else if (this3->readId() > 0)
+        else if (this3->readId() > 0)
+          sprintf(loplog, "lopsidedBest %8u --                                                            -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
+                  fi,
+                  this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
+      }
+
+      //  Waaaaay too much logging to report all the non-lopsided reads.  Unless you really care.
+      //else
+      //  sprintf(loplog, "fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
+      //          fi,
+      //          this5->readId(), this5->read3p() ? '3' : '5', this5ovlLen, back5->readId(), back5->read3p() ? '3' : '5', back5ovlLen, score5,
+      //          this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
+
+      if (loplog[0] != 0)
 #pragma omp critical (fprintf_LOP)
-        fprintf(LOP, "lopsidedBest %8u --                                                            -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
-                 fi,
-                 this3->readId(), this3->read3p() ? '3' : '5', this3ovlLen, back3->readId(), back3->read3p() ? '3' : '5', back3ovlLen, score3);
+        fputs(loplog, LOP);
     }
   }
 
