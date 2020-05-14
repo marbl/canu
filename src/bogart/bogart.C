@@ -62,13 +62,13 @@ main (int argc, char * argv []) {
   double       erateGraph               = 0.075;
   double       erateMax                 = 0.100;
 
+  bool         filterCoverageGap        = true;
   bool         filterHighError          = true;
   bool         filterLopsided           = true;
   bool         filterSpur               = true;
   uint32       spurDepth                = 3;
   bool         filterDeadEnds           = true;
 
-  covgapType   covGapType               = covgapUncovered;
   uint32       covGapOlap               = 500;     //  Require overlap of x bp when detecting coverage gaps.
   double       lopsidedDiff             = 25.0;    //  Call reads lopsided if diff between is more than x percent.
   double       minOlapPercent           =  0.0;
@@ -204,28 +204,15 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-nofilter") == 0) {
       ++arg;
+      filterCoverageGap = ((arg >= argc) || (strcasestr(argv[arg], "coverageGap") == NULL));
+      filterCoverageGap = ((arg >= argc) || (strcasestr(argv[arg], "suspicious")  == NULL));   //  Deprecated!
       filterHighError   = ((arg >= argc) || (strcasestr(argv[arg], "higherror")   == NULL));
       filterLopsided    = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")    == NULL));
       filterSpur        = ((arg >= argc) || (strcasestr(argv[arg], "spur")        == NULL));
       filterDeadEnds    = ((arg >= argc) || (strcasestr(argv[arg], "deadends")    == NULL));
 
-      if (strcasestr(argv[arg], "coverageGap") != NULL)   //  Deprecated!
-        covGapType = covgapNone;
-
     } else if (strcmp(argv[arg], "-minolappercent") == 0) {
       minOlapPercent = strtodouble(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-covgaptype") == 0) {
-      ++arg;
-      if      (strcasecmp(argv[arg], "none")      == 0)   covGapType = covgapNone;
-      else if (strcasecmp(argv[arg], "chimer")    == 0)   covGapType = covgapChimer;
-      else if (strcasecmp(argv[arg], "uncovered") == 0)   covGapType = covgapUncovered;
-      else if (strcasecmp(argv[arg], "deadend")   == 0)   covGapType = covgapDeadend;
-      else {
-        char *s = new char [1024];
-        snprintf(s, 1024, "Unknown '-covgaptype' option '%s'.\n", argv[arg]);
-        err.push_back(s);
-      }
 
     } else if (strcmp(argv[arg], "-covgapolap") == 0) {
       covGapOlap = strtouint32(argv[++arg]);
@@ -349,7 +336,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Secret Algorithmic Options:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -covgaptype n      Set covgap pattern: none, chimer, uncovered, deadend.\n");
     fprintf(stderr, "  -covgapolap n      Require overlaps to overlap by at least n bases.\n");
     fprintf(stderr, "  -lopsided m n      Set how lopsided reads are detected and/or treated.\n");
     fprintf(stderr, "                       m = off        - don't detect at all (omit n parameter)\n");
@@ -426,7 +412,7 @@ main (int argc, char * argv []) {
   OG = new BestOverlapGraph(erateGraph,
                             deviationGraph, minOlapPercent,
                             prefix,
-                            covGapType, covGapOlap,
+                            filterCoverageGap, covGapOlap,
                             filterHighError,
                             filterLopsided, lopsidedDiff,
                             filterSpur, spurDepth);
