@@ -581,11 +581,9 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       if ((RI->isValid(fi)   == false) ||   //  Unused read, ignore.
           (isIgnored(fi)     == true)  ||   //  Ignored read, ignore.
           (isContained(fi)   == true)  ||   //  Contained read, ignore.
-          (isCoverageGap(fi) == true))      //  Chimeric covGap read, ignore.
+          (isCoverageGap(fi) == true)  ||   //  Chimeric covGap read, ignore.
+          (isLopsided(fi)    == true))      //  Lopsided read, ignore.
         continue;
-
-      //if (isLopsided(fi)     == true)    //  Explicitly allow bubble reads
-      //  continue;                        //  to save spurs.
 
       BestEdgeOverlap  *edge5 = getBestEdgeOverlap(fi, false);
       BestEdgeOverlap  *edge3 = getBestEdgeOverlap(fi,  true);
