@@ -184,22 +184,23 @@ importTigsFromReadList(char const *prefix,
 
 int
 main (int argc, char **argv) {
-  char const  *seqStorePath   = NULL;
-  char const  *ovlStorePath   = NULL;
-  char const  *readListPath   = NULL;
-  char const  *prefix         = NULL;
+  char const  *seqStorePath       = NULL;
+  char const  *ovlStorePath       = NULL;
+  char const  *readListPath       = NULL;
+  char const  *prefix             = NULL;
 
-  double       erateGraph     = 1e-5; //0.075;
-  double       deviationGraph = 6.0;
-  double       erateMax       = 1e-5; //0.100;
+  double       erateGraph         = 1e-5;
+  double       deviationGraph     = 6.0;
+  double       erateMax           = 1e-5;
 
-  uint32       minReadLen     = 0;
-  uint32       maxReadLen     = UINT32_MAX;
+  uint32       minReadLen         = 0;
+  uint32       maxReadLen         = UINT32_MAX;
 
-  uint64       ovlCacheMemory = UINT64_MAX;
-  uint32       minOverlapLen  = 500;
+  uint64       ovlCacheMemory     = UINT64_MAX;
+  uint32       minOverlapLen      = 500;
 
-  uint64       genomeSize     = 0;
+  uint64       genomeSize         = 0;
+  bool         doContainPlacement = true;
 
   argc = AS_configure(argc, argv);
 
@@ -226,6 +227,18 @@ main (int argc, char **argv) {
       genomeSize = strtouint64(argv[++arg]);
     }
 
+    else if (strcmp(argv[arg], "-eM") == 0) {
+      erateMax = strtodouble(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-eg") == 0) {
+      erateGraph = strtodouble(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-nocontains") == 0) {
+      doContainPlacement = false;
+    }
+
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
@@ -246,11 +259,17 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Mandatory Parameters:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -S seqPath        Mandatory path to an existing seqStore.\n");
-    fprintf(stderr, "  -O ovlPath        Mandatory path to an existing ovlStore.\n");
-    fprintf(stderr, "  -R readListPath   Mandatory path to an existing ovlStore.\n");
-    fprintf(stderr, "  -o outPrefix      Mandatory prefix for the output files.\n");
+    fprintf(stderr, "  -S  seqPath        Mandatory path to an existing seqStore.\n");
+    fprintf(stderr, "  -O  ovlPath        Mandatory path to an existing ovlStore.\n");
+    fprintf(stderr, "  -R  readListPath   Mandatory path to an existing ovlStore.\n");
+    fprintf(stderr, "  -gs genomeSize     Mandatory genome size in bp.\n");
+    fprintf(stderr, "  -o  outPrefix      Mandatory prefix for the output files.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -eM erate          Max error rate of overlaps to load.\n");
+    fprintf(stderr, "  -eg erate          Max error rate of overlaps to use for placing contained reads.\n");
+    fprintf(stderr, "  -nocontains        Do not place contained reads.\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -288,23 +307,32 @@ main (int argc, char **argv) {
 
   //
 
-  writeStatus("\n");
-  writeStatus("==> INSERTING CONTAINED READS.\n");
-  writeStatus("\n");
 
-  setLogFile(prefix, "placeContains");
+  if (doContainPlacement == false) {
+    writeStatus("\n");
+    writeStatus("==> INSERTING CONTAINED READS DISABLED BY OPTION -nocontains.\n");
+    writeStatus("\n");
+  }
 
-  set<uint32>   placedReads;
+  else {
+    writeStatus("\n");
+    writeStatus("==> INSERTING CONTAINED READS.\n");
+    writeStatus("\n");
 
-  placeUnplacedUsingAllOverlaps(contigs,
-                                deviationGraph,
-                                erateGraph,
-                                prefix,
-                                placedReads);
+    setLogFile(prefix, "placeContains");
 
-  setLogFile(prefix, "placeContainsOpt");
-  contigs.optimizePositions(prefix, "placeContainsOpt");
-  reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
+    set<uint32>   placedReads;
+
+    placeUnplacedUsingAllOverlaps(contigs,
+                                  deviationGraph,
+                                  erateGraph,
+                                  prefix,
+                                  placedReads);
+
+    setLogFile(prefix, "placeContainsOpt");
+    contigs.optimizePositions(prefix, "placeContainsOpt");
+    reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
+  }
 
   //
 
