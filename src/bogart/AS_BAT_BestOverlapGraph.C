@@ -206,8 +206,41 @@ BestOverlapGraph::findErrorRateThreshold(void) {
 
 
 
+static
 void
-BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOlap) {
+logCovGapRead(FILE *F, uint32 fi, intervalList<int32> &IL, bool dove5, bool dove3) {
+  char    log[1024];
+  uint32  lp = 0;
+
+  sprintf(log+lp, "%-7u  %s %s  %3d  %7d-%-7d",
+          fi,
+          (dove5) ? "yes" : "no ",
+          (dove3) ? "yes" : "no ",
+          IL.numberOfIntervals(),
+          IL.lo(0),
+          IL.hi(0));
+
+  while ((lp < 1024) && (log[lp] != 0))
+    lp++;
+
+  for (uint32 ii=1; ((lp < 1000) && (ii < IL.numberOfIntervals())); ii++) {
+    sprintf(log+lp, " %7d-%-7d", IL.lo(ii), IL.hi(ii));
+
+    while ((lp < 1024) && (log[lp] != 0))
+      lp++;
+  }
+
+  log[lp++] = '\n';
+  log[lp++] =  0;
+
+#pragma omp critical (covGapPrint)
+  fputs(log, F);
+}
+
+
+
+void
+BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, covgapType ct, uint32 covGapOlap) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -219,6 +252,12 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
 
   FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.coverageGap", logFileFlagSet(LOG_BEST_EDGES));
 
+  if (F) {
+    fprintf(F, "         covered\n");
+    fprintf(F, "readID     5' 3'  num  covered regions\n");
+    fprintf(F, "-------  --- ---  ---  --------------------\n");
+  }
+
   //  Search for reads that have an internal region with no coverage.
   //  If found, flag these as _coverageGap.
 
@@ -228,8 +267,9 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
     uint32               no   = 0;
     BAToverlap          *ovl  = OC->getOverlaps(fi, no);
     intervalList<int32>  IL;
-    bool                 cov5 = false;
-    bool                 cov3 = false;
+    bool                 dove5    = false;
+    bool                 dove3    = false;
+    bool                 isCovGap = false;
 
     //  Add an interval for each 'good' overlap.  Since this is really the
     //  first filter that would mark a read as 'junk', the test is simply
@@ -245,64 +285,63 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, uint32 covGapOl
       assert(bgn <= end);
       assert(end <= fLen);
 
-      if (bgn == 0)      cov5 = true;
-      if (end == fLen)   cov3 = true;
+      //  I debated a bit if (bgn == 0) was correct, or if the hang needed to
+      //  be non-zero, for this to be called a 'dovetail overhang'.  The
+      //  isContained flag should be filtering out reads that are contained
+      //  in us:
+      //      -------------------- (us)
+      //      -----------          (them)
+      //  so the other case is that (them) must be bigger than (us), e.g.,
+      //  we're a contained read anyway and so don't reallty care about the
+      //  distinction between an end covered exactly by another read vs an
+      //  end covered by another read that extends us.
+      //
+      //  So it's sufficient to just test (end == 0 && not-contained) to
+      //  decide if this read is covered by a read that will allow our path
+      //  to get out of this read.
+
+      if ((bgn == 0)    && (isContained(ovl[ii].b_iid) == false))   dove5 = true;
+      if ((end == fLen) && (isContained(ovl[ii].b_iid) == false))   dove3 = true;
 
       IL.add(bgn, end - bgn);
     }
 
-    //  Merge all the intervals.  If we then have only one interval, covering
-    //  the whole read, it's a good read.  But if no intervals, it's a
-    //  singleton, and we really don't care what happens, because it has no
-    //  overlaps anyway.
+    //  Squish overlapping invervals together.
 
     IL.merge(covGapOlap);
 
-    if ((IL.numberOfIntervals() == 0))
+    //  If no intervals at all, it's a singleton, and we don't care much what
+    //  happens.  The logic is a bit easier if we just bail on it though.
+
+    if (IL.numberOfIntervals() == 0)
       continue;
 
-    if ((IL.numberOfIntervals() == 1) &&   //  We could just be testing if IL is covering
-        (cov5 == true) &&                  //  the whole read, but I suspect we'll end up
-        (cov3 == true))                    //  requiring cov5 & cov3 to have an overhang.
-      continue;
+    //  Test if those intervals indicate a read we want to ignore.
 
-    //  Otherwise, log and flag it as bad.
+    if ((ct == covgapChimer) &&             //  It's a simple chimer if there
+        (IL.numberOfIntervals() > 1))       //  is more than one interval.
+      isCovGap = true;
 
-    if (F) {
-      switch (IL.numberOfIntervals()) {
-        case 2:
-          fprintf(F, "read %u -- %u regions %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                  IL.lo(0), IL.hi(0),
-                  IL.lo(1), IL.hi(1));
-          break;
-        case 3:
-          fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                  IL.lo(0), IL.hi(0),
-                  IL.lo(1), IL.hi(1),
-                  IL.lo(2), IL.hi(2));
-          break;
-        case 4:
-          fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                  IL.lo(0), IL.hi(0),
-                  IL.lo(1), IL.hi(1),
-                  IL.lo(2), IL.hi(2),
-                  IL.lo(3), IL.hi(3));
-          break;
-        case 5:
-          fprintf(F, "read %u -- %u regions %d-%d %d-%d %d-%d %d-%d %d-%d\n", fi, IL.numberOfIntervals(),
-                  IL.lo(0), IL.hi(0),
-                  IL.lo(1), IL.hi(1),
-                  IL.lo(2), IL.hi(2),
-                  IL.lo(3), IL.hi(3),
-                  IL.lo(4), IL.hi(4));
-          break;
-        default:
-          fprintf(F, "read %u -- %u regions\n", fi, IL.numberOfIntervals());
-          break;
-      }
+    if ((ct == covgapUncovered) &&          //  It's an uncovered read if there is more
+        ((IL.numberOfIntervals() > 1) ||    //  than one interval or (implicitly one
+         (IL.lo(0) != 0) ||                 //  interval and) either end is not covered.
+         (IL.hi(0) != fLen)))
+      isCovGap = true;
+
+    if ((ct == covgapDeadend) &&            //  It's an uncovered read with no path out if
+        ((IL.numberOfIntervals() > 1) ||    //  more than one interval or (implicitly one
+         (dove5 == false) ||                //  interval and) either end isn't covered by
+         (dove3 == false)))                 //  a dovetail read.
+      isCovGap = true;
+
+    //  If a covGap log and flag it.
+
+    if (isCovGap == true) {
+      if (F)
+        logCovGapRead(F, fi, IL, dove5, dove3);
+
+      CG[fi] = 1;
     }
-
-    CG[fi] = 1;   //  Bad regions detected!  Possible chimeric read.
   }
 
   AS_UTL_closeFile(F, prefix, '.', "best.coverageGap");
@@ -1471,7 +1510,7 @@ BestOverlapGraph::checkForCovGapEdges(void) const {
 BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    double            deviationGraph,    double  minOlapPercent,
                                    const char       *prefix,
-                                   bool              filterCoverageGap, uint32  covGapOlap,
+                                   covgapType        covGapType,        uint32  covGapOlap,
                                    bool              filterHighError,
                                    bool              filterLopsided,    double  lopsidedDiff,
                                    bool              filterSpur,        uint32  spurDepth,
@@ -1569,10 +1608,12 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  Mark reads as coverageGap if they are not fully covered by (good) overlaps.
   //
 
-  if (filterCoverageGap) {
+  if (covGapType != covgapNone) {
     writeStatus("BestOverlapGraph()-- Filtering reads with a gap in overlap coverage.\n");
 
-    removeReadsWithCoverageGap(prefix, covGapOlap);   //  Remove crappy reads.
+    removeReadsWithCoverageGap(prefix,
+                               covGapType,
+                               covGapOlap);           //  Remove crappy reads.
     findContains();                                   //  Recompute contained reads; remove those contained in covGap reads.
     findEdges(true);                                  //  Recompute best edges.
 
