@@ -815,26 +815,21 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
     //  Otherwise, we're looking for the highest scoring overlap
     //  to a read in a real tig that isn't captured in this tig.
 
-    if ((oTid == 0) ||                          //  Skip overlaps to reads not in a tig, or
-        (tigs[oTid] == NULL) ||                 //  in a singleton tig.
+    if ((oTid == 0) ||                             //  Skip overlaps to reads not in a tig,
+        (tigs[oTid] == NULL) ||                    //  or in a singleton tig.
         (tigs[oTid]->ufpath.size() == 1))
       continue;
 
-    if (OG->isOverlapBadQuality(ovl[oo]))       //  Ignore overlaps that aren't
-      continue;                                 //  of good quality.
-
-    if (o->isDovetail() == false)               //  Skip containment overlaps.
+    if (o->isDovetail() == false)                  //  Skip containment overlaps.
       continue;
 
-    //  Also in AS_BAT_AssemblyGraph.C
-    if (OG->isBubble(oBid) == true)             //  Skip overlaps to bubble tigs.
-      continue;
+    if ((OG->isSpur(oBid)     ==  true) ||         //  Skip overlaps to spur and non-backbone
+        (OG->isBackbone(oBid) == false) ||         //  reads, and reads in bubbles, and ignore
+        (OG->isBubble(oBid)   ==  true))           //  overlaps that suck.
+      continue;                                    //  (isBubble() also in AS_BAT_AssemblyGraph.C)
 
-    if (OG->isSpur(oBid) == true)               //  Skip overlaps to spur tigs.
-      continue;
-
-    if (OG->isBackbone(oBid) == false)          //  Skip overlaps to non-backbone reads.
-      continue;
+    if (OG->isOverlapBadQuality(ovl[oo]) == true)  //  Skip crap overlaps (low identity or to
+      continue;                                    //  reads we claimed are garbage).
 
     //  One last test.  We need to skip overlaps to reads at this location in the tig.
     //  For this, we need to get the reads.

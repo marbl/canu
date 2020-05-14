@@ -641,6 +641,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       if ((RI->isValid(fi)   == false) ||   //  Unused read, ignore.
           (isIgnored(fi)     == true)  ||   //  Ignored read, ignore.
           (isContained(fi)   == true)  ||   //  Contained read, ignore.
+          (isLopsided(fi)    == true)  ||   //  Lopsided read, ignore.
           (isCoverageGap(fi) == true))      //  Chimeric covGap read, ignore.
         continue;
 
@@ -654,26 +655,18 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       getBestEdgeOverlap(fi,  true)->clear();
 
       for (uint32 ii=0; ii<no; ii++) {                            //  Over all overlaps for this read,
-        if ((ovl[ii].isDovetail()         == false) ||            //    Ignore non-dovetail and crappy overlaps.
-            (isOverlapBadQuality(ovl[ii]) == true))               //    They can't form best edges.
+        if (ovl[ii].isDovetail()          == false)               //    Ignore non-dovetail.
           continue;
 
         if ((isIgnored(ovl[ii].b_iid)     == true) ||             //    Ignore overlaps to ignored reads.
             (isContained(ovl[ii].b_iid)   == true) ||             //    Ignore overlaps to contained and chimeric reads.
+            (isCoverageGap(ovl[ii].b_iid) == true) ||             //    No edges to coverage gap reads are allowed.
+            (isLopsided(ovl[ii].b_iid)    == true) ||             //    No edges to lopsided reads are allowed.
             (RI->isValid(fi)              == false))              //    Ignore overlaps to reads that don't exist.
           continue;
 
-        if (isCoverageGap(ovl[ii].b_iid)  == true)                //    No edges to coverage gap reads are allowed.
+        if (isOverlapBadQuality(ovl[ii])  == true)                //    Low quality, ignore.
           continue;
-
-        if ((isLopsided(ovl[ii].a_iid)   == true) ||              //    No edges to or from lopsided reads.
-            (isLopsided(ovl[ii].b_iid)   == true)) {
-          assert(0);
-          continue;
-        }
-
-        //if (isLopsided(ovl[ii].b_iid)     == true)              //    Allow edges to bubble reads.
-        //  continue;
 
         bool   Aend5 = ovl[ii].AEndIs5prime();   //  The overlap must extend off either the 5' or 3' end for it to be
         bool   Aend3 = ovl[ii].AEndIs3prime();   //  a valid BestEdge.  We're not contained, so only one can be true
@@ -948,19 +941,18 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
   assert(isIgnored(olap.a_iid)   == false);     //  It's an error to call this function
   assert(isContained(olap.a_iid) == false);     //  on ignored or contained reads.
 
-  if ((olap.isDovetail()         == false) ||   //  Ignore non-dovetail overlaps.
-      (isContained(olap.b_iid)   == true))      //  Ignore edges into contained.
+  if (olap.isDovetail()          == false)      //  Ignore non-dovetail overlaps.
     return;
 
-  if (isCoverageGap(olap.b_iid)  == true)       //  Ignore edges into coverage gap reads.
-    return;                                     //  Suspected to be bad, why go there?
+  if ((isIgnored(olap.b_iid)     == true) ||    //  Ignore overlaps to reads that
+      (isContained(olap.b_iid)   == true))      //  can't have dovetail overlaps.
+    return;
 
-  //if (isLopsided(olap.b_iid)     == true)     //  Explicitly do NOT ignore edges into lopsided.
-  //  return;                                   //  Known to be very bad if we do.
-
-  if (isIgnored(olap.b_iid) == true) {          //  Ignore ignored reads.  This could
-    logEdgeScore(olap, "ignored");              //  happen; it's just easier to filter
-    return;                                     //  them out here.
+  if ((isCoverageGap(olap.b_iid) == true) ||    //  Ignore overlaps to reads we've
+      (isLopsided(olap.b_iid)    == true) ||    //  decided are junk.
+      (isSpur(olap.b_iid)        == true)) {
+    logEdgeScore(olap, "b-read is junk");
+    return;
   }
 
   if (isOverlapBadQuality(olap) == true) {      //  Ignore the overlap if it is
@@ -1018,11 +1010,14 @@ BestOverlapGraph::findContains(void) {
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
     if ((isIgnored(fi)     == true) ||
-        (isCoverageGap(fi) == true))
+        (isCoverageGap(fi) == true) ||
+        (isSpur(fi)        == true))
       continue;
 
     for (uint32 ii=0; ii<no; ii++) {
-      if (isOverlapBadQuality(ovl[ii]))      //  Ignore crappy overlaps.
+      if ((isIgnored(ovl[ii].b_iid)     == true) ||
+          (isCoverageGap(ovl[ii].b_iid) == true) ||
+          (isSpur(ovl[ii].b_iid)        == true))
         continue;
 
       if ((ovl[ii].a_hang == 0) &&           //  If an exact overlap, make
@@ -1032,6 +1027,9 @@ BestOverlapGraph::findContains(void) {
 
       if ((ovl[ii].a_hang > 0) ||            //  Ignore if A is not
           (ovl[ii].b_hang < 0))              //  contained in B.
+        continue;
+
+      if (isOverlapBadQuality(ovl[ii]))      //  Ignore crappy overlaps.
         continue;
 
       setContained(ovl[ii].a_iid);
