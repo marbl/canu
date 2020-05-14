@@ -1390,6 +1390,46 @@ BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
 
 
 
+//  More comments where this is called.
+void
+BestOverlapGraph::redoFindContains(void) {
+  uint32           fiLimit = RI->numReads();
+
+  //  Recompute what reads are contained, taking into account the current
+  //  state of covGap, lopsided, and spur markings.
+
+  findContains();
+
+  //  That recompute possibly changed a dovetail read into a contained read,
+  //  which would result in a best edge to/from a contained read.  That is
+  //  not allowed.  So, brute force, remove all such edges.
+
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    if (isContained(fi) == true) {
+      getBestEdgeOverlap(fi, false)->clear();
+      getBestEdgeOverlap(fi,  true)->clear();
+    }
+
+    else {
+      uint32 id5 = getBestEdgeOverlap(fi, false)->readId();
+      uint32 id3 = getBestEdgeOverlap(fi,  true)->readId();
+
+      if (isContained(id5))
+        getBestEdgeOverlap(fi, false)->clear();
+
+      if (isContained(id3))
+        getBestEdgeOverlap(fi,  true)->clear();
+    }
+  }
+
+  //  Lastly, recompute best edges for reads that can have a best edge and
+  //  that also do not currently have a best edge.
+
+  findEdges(false);
+}
+
+
+
 void
 BestOverlapGraph::checkForContainedDovetails(void) const {
   uint32           fiLimit = RI->numReads();
@@ -1629,6 +1669,15 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  assembled worse than the 10kb library.  Almost all assemblies are down
   //  to 15 Mbp N50s.  BAC resolution is worse.
   //
+
+  //
+  //  Find reads contained in some other read, and mark them as such.  Reset
+  //  the best edge for any read that now has an edge to a contained read.
+  //
+  //  This is disabled because it has the potential to resurrect paths to
+  //  spur ends.
+  //
+  //redoFindContains();
 
   //
   //  All done!  Do some final checks and cleanup, dump various logs and reports.

@@ -190,6 +190,8 @@ private:
 
   void   findErrorRateThreshold(void);
 
+  void   redoFindContains(void);
+
   void   checkForContainedDovetails(void) const;
   void   checkForCovGapEdges(void) const;
 
