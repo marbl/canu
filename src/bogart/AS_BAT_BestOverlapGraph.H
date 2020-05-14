@@ -28,6 +28,12 @@
 using namespace std;
 
 
+enum covgapType {
+  covgapNone      = 0,
+  covgapChimer    = 1,
+  covgapUncovered = 2,
+  covgapDeadend   = 3,
+};
 
 
 class ReadEnd {
@@ -180,7 +186,7 @@ private:
 
 class BestOverlapGraph {
 private:
-  void   removeReadsWithCoverageGap(const char *prefix, uint32 covGapOlap);
+  void   removeReadsWithCoverageGap(const char *prefix, covgapType covGapType, uint32 covGapOlap);
   void   removeLopsidedEdges(const char *prefix, const char *label, double lopsidedDiff);
   uint32 spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 distance=0);
   void   removeSpannedSpurs(const char *prefix, uint32 spurDepth);
@@ -199,7 +205,7 @@ public:
   BestOverlapGraph(double            erateGraph,
                    double            deviationGraph,    double  minOlapPercent,
                    const char       *prefix,
-                   bool              filterCoverageGap, uint32  covGapOlap,
+                   covgapType        covgapType,        uint32  covGapOlap,
                    bool              filterHighError,
                    bool              filterLopsided,    double  lopsidedDiff,
                    bool              filterSpur,        uint32  spurDepth,
