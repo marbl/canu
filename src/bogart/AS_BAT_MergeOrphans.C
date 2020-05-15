@@ -359,7 +359,7 @@ findOrphanReadPlacements(TigVector       &tigs,
 
     vector<overlapPlacement>   placements;
 
-    placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_noExtend);
+    placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, allowOrphanPlacement ? placeRead_all : placeRead_noExtend);
 
     //  Weed out placements that aren't for orphans, or that are for orphans but are poor quality.  Or are to ourself!
 

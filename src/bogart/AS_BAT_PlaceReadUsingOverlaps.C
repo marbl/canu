@@ -423,12 +423,16 @@ placeRead_computePlacement(overlapPlacement &op,
   op.verified.end = endVer3;
 #endif
 
-  //  Finally, limit verified to be the extent of the tig, or the extent of the placement.
+  //  Finally, limit coordinates to be the extent of the tig, or the extent of the placement.
 
   if (isFwd) {
+    if (op.position.bgn < 0)                  op.position.bgn = 0;
+    if (op.position.end > tigLen)             op.position.end = tigLen;
     if (op.verified.bgn < 0)                  op.verified.bgn = 0;
     if (op.verified.end > tigLen)             op.verified.end = tigLen;
   } else {
+    if (op.position.bgn > tigLen)             op.position.bgn = tigLen;
+    if (op.position.end < 0)                  op.position.end = 0;
     if (op.verified.bgn > tigLen)             op.verified.bgn = tigLen;
     if (op.verified.end < 0)                  op.verified.end = 0;
   }
