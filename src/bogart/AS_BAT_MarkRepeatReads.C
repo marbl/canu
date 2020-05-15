@@ -173,6 +173,7 @@ splitTig(TigVector                &tigs,
         lowCoord[rid] = frgbgn;
 
         newTigs[rid]  = tigs.newUnitig(true);
+        newTigs[rid]->_isBubble = tig->_isBubble;
 
         if (nRepeat[rid] > nUnique[rid])
           newTigs[rid]->_isRepeat = true;
