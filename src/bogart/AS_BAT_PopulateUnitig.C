@@ -154,7 +154,7 @@ populateUnitig(TigVector &tigs,
   bool edgeTo5 = ((backedge5->readId() == fi) && (backedge5->read3p() == false));
   bool edgeTo3 = ((backedge3->readId() == fi) && (backedge3->read3p() ==  true));
 
-  if ((edgeTo5 == false) &&
+  if ((edgeTo5 == false) ||
       (edgeTo3 == false)) {
     if (logFileFlagSet(LOG_BUILD_UNITIG))
       writeLog("tig ------ seed read %7u; non-mutual best edges, not using as a seed.  (edge to: 5' %s 3' %s)\n",
@@ -169,7 +169,7 @@ populateUnitig(TigVector &tigs,
   //  against case (3) is a very very tiny DNA fragment with only two reads
   //  covering it.  In that case we'd never seed a tig (because both reads
   //  would have one end uncovered).
-#if 1
+#if 0
   bool bestEdgeTo5 = false;
   bool bestEdgeTo3 = false;
 
