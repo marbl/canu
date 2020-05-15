@@ -180,6 +180,7 @@ findPotentialOrphans(TigVector       &tigs,
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode     *rdA   = &tig->ufpath[fi];
+      uint32      rdAlen= rdA->position.max() - rdA->position.min();
       uint32      rdAid =  tig->ufpath[fi].ident;
 
       if (OG->isContained(rdAid) == true)  //  Don't need to check contained reads.  If their container
@@ -206,9 +207,14 @@ findPotentialOrphans(TigVector       &tigs,
           continue;
 
         readOlapsTo.insert(ovlTigID);                   //  Otherwise, remember that we had an overlap to ovlTig.
-
         int32  mincoord = rdA->hangToMinCoord(ovl[oi].a_hang, ovl[oi].b_hang);
         int32  maxcoord = rdA->hangToMaxCoord(ovl[oi].a_hang, ovl[oi].b_hang);
+
+        // when we're looking at bubbles, we don't require full read to be placed so if its close enough to the ends, extend the coordinates so we consider this tig
+        if (isBubble && rdAid == fRead->ident && (mincoord / rdAlen) < 0.5)
+           mincoord = 0;
+        if (isBubble && rdAid == lRead->ident && ((tig->getLength() - maxcoord) / rdAlen) < 0.5)
+           maxcoord = tig->getLength();
 
         if (mincoord >= maxcoord)
           fprintf(stderr, "read %u at %u %u olap to read %u hangs %ld %ld -> coords %d %d\n",
@@ -588,7 +594,7 @@ addInitialIntervals(Unitig                               *orphan,
       writeLog("    tig %8u %9u-%-9u ->\n", tid, bgn, bgn+orphanLen);
       targetIntervals[tid]->add(bgn, orphanLen);
     } else {
-      writeLog("    tig %8u %9u-%-9u <-\n", tid, end-orphanLen, end);
+      writeLog("    tig %8u %9u-%-9u <-\n", tid, max(0, (int)(end-orphanLen)), end);
       targetIntervals[tid]->add(end - orphanLen, orphanLen);
     }
   }
