@@ -248,6 +248,8 @@ public:
   ~OverlapCache();
 
 private:
+  bool         compareOverlaps(const ovOverlap &a, const ovOverlap &b) const;
+
   uint32       filterOverlaps(uint32 aid, uint32 maxOVSerate, uint32 minOverlap, uint32 no);
   uint32       filterDuplicates(uint32 &no);
 
