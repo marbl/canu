@@ -103,23 +103,19 @@ BestOverlapGraph::findErrorRateThreshold(void) {
         (b3->isUnset() == true)) {
       uint32      no    = 0;
       BAToverlap *ovl   = OC->getOverlaps(fi, no);
-      uint32      bestM = 0;
-      double      bestE = 0.0;
+      BAToverlap best;
 
       for (uint32 oo=0; oo<no; oo++) {
         if (isOverlapBadQuality(ovl[oo]) == true)
           continue;
 
-        double  matches = (1 - ovl[oo].erate()) * RI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
-
-        if (bestM < matches) {
-          bestM = matches;
-          bestE = ovl[oo].erate();
+        if (best.b_iid == 0 || OC->compareOverlaps(best, ovl[oo])) {
+           best = ovl[oo];
         }
       }
 
-      if (bestM > 0)
-        erates.push_back(bestE);
+      if (best.b_iid != 0)
+         erates.push_back(best.erate());
     }
   }
 

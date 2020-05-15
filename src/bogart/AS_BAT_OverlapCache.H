@@ -247,8 +247,10 @@ public:
                uint64 genomeSize);
   ~OverlapCache();
 
+  bool         compareOverlaps(const BAToverlap &a, const BAToverlap &b) const; // we can almost do templated but the fields are functions in one and just members in the other
+
 private:
-  bool         compareOverlaps(const ovOverlap &a, const ovOverlap &b) const;
+  bool         compareOverlaps(const ovOverlap &a,  const ovOverlap &b) const;
 
   uint32       filterOverlaps(uint32 aid, uint32 maxOVSerate, uint32 minOverlap, uint32 no);
   uint32       filterDuplicates(uint32 &no);

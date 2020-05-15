@@ -320,6 +320,16 @@ bool OverlapCache::compareOverlaps(const ovOverlap &o1, const ovOverlap &o2) con
    return as_tuple(o2) > as_tuple(o1);
 }
 
+
+//return true if o1 is worse than o2
+bool OverlapCache::compareOverlaps(const BAToverlap &o1, const BAToverlap &o2) const {
+   assert(o1.a_iid == o2.a_iid);
+   auto as_tuple = [&](const BAToverlap &o) {
+      return std::make_tuple(1 - o.erate(), RI->overlapLength(o.a_iid, o.b_iid, o.a_hang, o.b_hang), !o.flipped);
+   };
+   return as_tuple(o2) > as_tuple(o1);
+}
+
 uint32
 OverlapCache::filterDuplicates(uint32 &no) {
   uint32   nFiltered = 0;
