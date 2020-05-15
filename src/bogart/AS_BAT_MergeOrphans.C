@@ -296,7 +296,9 @@ findOrphanReadPlacements(TigVector       &tigs,
                          BubTargetList   &potentialOrphans,
                          double           deviation,
                          double           similarity,
-                         double           coverage) {
+                         double           coverage,
+                         bool             allowOrphanPlacement) {
+
   uint32  fiLimit      = RI->numReads();
   uint32  fiNumThreads = omp_get_max_threads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
@@ -361,8 +363,7 @@ findOrphanReadPlacements(TigVector       &tigs,
       if ((rdAtigID == rdBtigID) ||                     //  To ourself.
           (rdBtigID == 0) ||                            //  To a singleton read.
           (rdBtig   == NULL) ||                         //  To a singleton read.
-          (rdBtig->ufpath.size() == 1) ||               //  To a singleton tig.
-          (potentialOrphans.count(rdBtigID) > 0))       //  To a potential orphan tig
+          (rdBtig->ufpath.size() == 1))                 //  To a singleton tig.
         continue;
 
       //  Ignore the placement if it isn't to one of our orphan-popping candidate tigs.
@@ -378,34 +379,33 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       if (dontcare) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - NOT CANDIDATE TIG\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.5f) - NOT CANDIDATE TIG\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
 
       //  Ignore the placement if it is to a potential orphan.
 
-      if (potentialOrphans.count(rdBtigID) > 0) {
+      if (allowOrphanPlacement == false && potentialOrphans.count(rdBtigID) > 0) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - INTO POTENTIAL ORPHAN\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.5f) - INTO POTENTIAL ORPHAN\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
 
       if (placements[pi].fCoverage < coverage) {    //  Ignore partially placed reads.
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - LOW COVERAGE\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.5f) - LOW COVERAGE\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
 
       //  Ignore the placement if it is too diverged from the destination tig.
-
       double fGood = rdBtig->overlapConsistentWithTig(deviation, lo, hi, erate);
 
       if ((erate > similarity) && (fGood < 0.5)) {
         if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
+          writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.5f) - HIGH ERROR\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -413,7 +413,7 @@ findOrphanReadPlacements(TigVector       &tigs,
       //  Good placement!
 
       if (logFileFlagSet(LOG_ORPHAN_DETAIL))
-        writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.4f)\n",
+        writeLog("tig %6u read %8u -> tig %6u (%6u reads) at %8u-%-8u (cov %7.5f erate %6.5f)\n",
                  rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
 
       placed[fi].push_back(placements[pi]);
@@ -848,7 +848,8 @@ mergeOrphans(TigVector    &tigs,
                                                                 potentialOrphans,
                                                                 deviation,
                                                                 similarity,
-                                                                (isBubble) ? 0.01 : 0.99);
+                                                                (isBubble) ? 0.01 : 0.99,
+                                                                isBubble);
 
   //  We now have, in 'placed', a list of all the places that each read could
   //  be placed.  Decide if there is a _single_ place for each orphan to be
@@ -1012,11 +1013,11 @@ mergeOrphans(TigVector    &tigs,
     targetIntervals.clear();
 
     //  However, decide it's not actually as repeat if there aren't that many
-    //  placements in total.  Essentially the critera for a repeat is "lots
+    //  placements or reads in total.  Essentially the critera for a repeat is "lots
     //  of plaements that aren't all to a small number of tig regions" (or
     //  all unique to each tig).
 
-    if (nBubble < 50)
+    if (nBubble < 50 || orphan->ufpath.size() < 15)
       repeatBubble = false;
 
     //
