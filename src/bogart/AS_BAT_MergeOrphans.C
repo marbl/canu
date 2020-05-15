@@ -98,6 +98,35 @@ public:
 //  A list of the target tigs that a orphan could be popped into.
 typedef  map<uint32, vector<uint32> >  BubTargetList;
 
+ufNode* findFirstRead(Unitig *tig) {
+   ufNode   *read = tig->firstRead();
+
+   for (uint32 fi=1; fi < tig->ufpath.size(); fi++) {
+      writeLog("Getting first read for tig %d with current read %d is backbone %d\n", tig->id(), read->ident, OG->isBackbone(read->ident));
+      if (OG->isBackbone(read->ident) && read->position.min() == 0)
+         break;
+      if (tig->ufpath[fi].position.min() == 0)
+         read=&tig->ufpath[fi];
+   }
+   assert(read->position.min() == 0);
+
+   return read;
+}
+
+ufNode* findLastRead(Unitig *tig) {
+   ufNode  *read = tig->lastRead();
+
+   for (uint32 fi=tig->ufpath.size()-1; (fi-- > 0); ) {
+      writeLog("Getting last read for tig %d with current read %d is backbone %d\n", tig->id(), read->ident, OG->isBackbone(read->ident));
+      if (OG->isBackbone(read->ident) && read->position.max() == tig->getLength())
+         break;
+      if (tig->ufpath[fi].position.max() == tig->getLength())
+         read=&tig->ufpath[fi];
+   }
+   assert(read->position.max() == tig->getLength());
+
+   return read;
+}
 
 
 //  Decide which tigs can be orphans.  Any unitig where (nearly) every dovetail
@@ -131,8 +160,8 @@ findPotentialOrphans(TigVector       &tigs,
 
     //  If the first or last read has no best edge, that's it, we're done.
 
-    ufNode   *fRead = tig->firstRead();
-    ufNode   *lRead = tig->lastRead();
+    ufNode   *fRead = findFirstRead(tig);
+    ufNode   *lRead = findLastRead(tig);
 
     bool      fEdgeExists = (fRead->isForward() == true) ? (OG->bestEdgeExists(fRead->ident, false)) : (OG->bestEdgeExists(fRead->ident,  true));
     bool      lEdgeExists = (lRead->isForward() == true) ? (OG->bestEdgeExists(lRead->ident,  true)) : (OG->bestEdgeExists(lRead->ident, false));
@@ -468,10 +497,9 @@ findOrphanReadPlacements(TigVector       &tigs,
 static
 bool
 placeAnchor(Unitig                     *orphan,
-            vector<overlapPlacement>   *placed) {
+            vector<overlapPlacement>   *placed,
+            ufNode *fRead, ufNode *lRead) {
   uint32   nReads = orphan->ufpath.size();
-  ufNode  *fRead  = orphan->firstRead();
-  ufNode  *lRead  = orphan->lastRead();
 
   assert(nReads > 0);
 
@@ -873,7 +901,7 @@ mergeOrphans(TigVector    &tigs,
 
     //  Scan the orphan, decide if there are _ANY_ read placements.  Log appropriately.
 
-    if (placeAnchor(orphan, placed) == false) {
+    if (placeAnchor(orphan, placed, findFirstRead(orphan), findLastRead(orphan)) == false) {
       writeLog("\n");
       writeLog("ANCHOR READS FAILED TO PLACE.\n");
       continue;
@@ -885,8 +913,8 @@ mergeOrphans(TigVector    &tigs,
     //    read        -------
     //    orphan      -------------------------
 
-    ufNode  *fRead = orphan->firstRead();
-    ufNode  *lRead = orphan->lastRead();
+    ufNode  *fRead = findFirstRead(orphan);
+    ufNode  *lRead = findLastRead(orphan);
 
     map<uint32, intervalList<int32> *>   targetIntervals;
 
