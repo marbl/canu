@@ -208,10 +208,13 @@ main (int argc, char * argv []) {
       filterLopsided    = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")    == NULL));
       filterSpur        = ((arg >= argc) || (strcasestr(argv[arg], "spur")        == NULL));
       filterDeadEnds    = ((arg >= argc) || (strcasestr(argv[arg], "deadends")    == NULL));
+      bool found        = (filterHighError || filterLopsided || filterSpur || filterDeadEnds);
 
-      if (strcasestr(argv[arg], "coverageGap") != NULL)   //  Deprecated!
-        covGapType = covgapNone;
-
+      if (found) {
+         char *s = new char[1024];
+         snprintf(s, 1024, "Unknown '-nofilter' option '%s'\n", (arg >= argc ? "null" : argv[arg]));
+         err.push_back(s);
+      }
     } else if (strcmp(argv[arg], "-minolappercent") == 0) {
       minOlapPercent = strtodouble(argv[++arg]);
 
