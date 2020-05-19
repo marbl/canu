@@ -183,9 +183,9 @@ findPotentialOrphans(TigVector       &tigs,
       uint32      rdAlen= rdA->position.max() - rdA->position.min();
       uint32      rdAid =  tig->ufpath[fi].ident;
 
-      if (OG->isContained(rdAid) == true)  //  Don't need to check contained reads.  If their container
-        continue;                          //  passes the tests below, the contained read will too.
-
+      if (rdAid != fRead->ident && rdAid != lRead->ident && OG->isContained(rdAid) == true)  //  Don't need to check contained reads.  If their container
+        continue;                                                                            //  passes the tests below, the contained read will too. 
+                                                                                             //  However, if the end read is contained then we must check it
       nonContainedReads++;
 
       //  Find the list of tigs that this read has an overlap to.
@@ -194,7 +194,6 @@ findPotentialOrphans(TigVector       &tigs,
 
       uint32      ovlLen   = 0;
       BAToverlap *ovl      = OC->getOverlaps(rdAid, ovlLen);
-
       for (uint32 oi=0; oi<ovlLen; oi++) {
         uint32  ovlTigID = tigs.inUnitig(ovl[oi].b_iid);
         Unitig *ovlTig   = tigs[ovlTigID];
@@ -349,7 +348,6 @@ findOrphanReadPlacements(TigVector       &tigs,
     uint32     rdAtigID = tigs.inUnitig(fi);
 
     if ((rdAtigID == 0) ||                           //  Read not placed in a tig, ignore it.
-        (OG->isContained(fi)) ||                     //  Read is contained, ignore it.
         (potentialOrphans.count(rdAtigID) == 0))     //  Read isn't in a potential orphan, ignore it.
       continue;
 
