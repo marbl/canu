@@ -908,15 +908,16 @@ sub setDefaults () {
 
     #####  Error Rates
 
-    setDefault("corOvlErrorRate",     undef, "Overlaps above this error rate are not computed");
-    setDefault("obtOvlErrorRate",     undef, "Overlaps at or below this error rate are used to trim reads");
-    setDefault("utgOvlErrorRate",     undef, "Overlaps at or below this error rate are used to trim reads");
-    setDefault("utgErrorRate",        undef, "Overlaps at or below this error rate are used to construct contigs");
-    setDefault("utgGraphDeviation",   12,     "Overlaps this much above median will not be used for initial graph construction");
-    setDefault("utgRepeatDeviation",  6,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
-    setDefault("utgRepeatConfusedBP", 3000,  "Repeats where the next best edge is at least this many bp shorter will not be split");
-    setDefault("corErrorRate",        undef, "Only use raw alignments below this error rate to construct corrected reads");
-    setDefault("cnsErrorRate",        undef, "Consensus expects alignments at about this error rate");
+    setDefault("corOvlErrorRate",     undef,     "Overlaps above this error rate are not computed");
+    setDefault("obtOvlErrorRate",     undef,     "Overlaps at or below this error rate are used to trim reads");
+    setDefault("utgOvlErrorRate",     undef,     "Overlaps at or below this error rate are used to trim reads");
+    setDefault("utgErrorRate",        undef,     "Overlaps at or below this error rate are used to construct contigs");
+    setDefault("utgGraphDeviation",   12,        "Overlaps this much above median will not be used for initial graph construction");
+    setDefault("utgRepeatDeviation",  6,         "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
+    setDefault("utgRepeatConfusedBP", 3000,      "Repeats where the next best edge is at least this many bp shorter will not be split");
+    setDefault("utgChimeraType",      "deadend", "When to filter reads for contig construction: none, chimera (missing middle), uncovered (missing middle or ends), deadend (missing middle or end or no neighbor) (default)");
+    setDefault("corErrorRate",        undef,     "Only use raw alignments below this error rate to construct corrected reads");
+    setDefault("cnsErrorRate",        undef,     "Consensus expects alignments at about this error rate");
 
     #####  Minimums and maximums
 
@@ -1522,6 +1523,13 @@ sub checkParameters () {
         elsif (getGlobal($var) < 0.0) {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 0.0\n");
         }
+    }
+
+    if ((getGlobal("utgChimeraType") ne "none") &&
+        (getGlobal("utgChimeraType") ne "chimer") &&
+        (getGlobal("utgChimeraType") ne "uncovered") &&
+        (getGlobal("utgChimeraType") ne "deadend")) {
+        addCommandLineError("ERROR:  Invalid 'utgChimeraType' specified (" . getGlobal("utgChimeraType") . "); must be 'none', 'chimer', 'uncovered' or 'deadend'\n");
     }
 
     #
