@@ -239,7 +239,7 @@ What parameters can I tweak?
 
     For polyploid genomes:
 
-        Generally, there's a couple of ways of dealing with the ploidy.
+        Generally, there's a couple of ways of dealing with the ploidy. This is not applicable to HiFi data as the default parameters already separate haplotypes down to 0.01% divergence and thus it always produces assemblies which avoid collapsing the genome. See `My genome size and assembly size are different, help!`_ for details on how to remove this duplication.
 
         1) **Avoid collapsing the genome** so you end up with double (assuming diploid) the genome
            size as long as your divergence is above about 2% (for PacBio data). Below this
@@ -271,11 +271,11 @@ What parameters can I tweak?
         The basic idea is to use all data for assembly rather than just the longest as default. The
         parameters we've used recently are:
 
-          ``corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=200``
+          ``maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=200``
 
     For low coverage:
 
-     - For less than 30X coverage, increase the alllowed difference in overlaps by a few percent
+     - This is not applicable to HiFi data as the defaults are designed for 20-30x coverage. For less than 30X raw PacBio or Nanopore coverage, increase the alllowed difference in overlaps by a few percent
        (from 4.5% to 8.5% (or more) with ``correctedErrorRate=0.105`` for PacBio and from 14.4% to
        16% (or more) with ``correctedErrorRate=0.16`` for Nanopore), to adjust for inferior read
        correction.  Canu will automatically reduce ``corMinCoverage`` to zero to correct as many
@@ -283,7 +283,7 @@ What parameters can I tweak?
 
     For high coverage:
 
-     - For more than 60X coverage, decrease the allowed difference in overlaps (from 4.5% to 4.0%
+     - For HiFi data, Canu automatically downsamples to a random 50x subset so this section is not applicable. For more than 60X raw PacBio or Nanopore coverage, decrease the allowed difference in overlaps (from 4.5% to 4.0%
        with ``correctedErrorRate=0.040`` for PacBio, from 14.4% to 12% with
        ``correctedErrorRate=0.12`` for Nanopore), so that only the better corrected reads are used.
        This is primarily an optimization for speed and generally does not change assembly
