@@ -81,9 +81,9 @@ main (int argc, char * argv []) {
   double       lowcovFraction           = 0.5;
   uint32       lowcovDepth              = 3;
 
-  double       deviationGraph           = 6.0,    similarityGraph  = 0.0;
-  double       deviationBubble          = 6.0,    similarityBubble = 0.1;
-  double       deviationRepeat          = 3.0,    similarityRepeat = 0.1;
+  double       deviationGraph           = 6.0,    similarityGraph  = 0.00;
+  double       deviationBubble          = 6.0,    similarityBubble = 0.01;
+  double       deviationRepeat          = 3.0,    similarityRepeat = 0.01;
 
   uint32       confusedAbsolute         = 3000;
   double       confusedPercent          = 30.0;

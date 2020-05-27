@@ -174,7 +174,7 @@ sub unitig_bogart ($) {
     print F "    -lopsided 25 "                                   . " \\\n";
     print F "    -minolappercent   0.0 "                          . " \\\n";
     print F "    -dg "          . getGlobal("utgGraphDeviation")  . " \\\n";
-    print F "    -db "          . getGlobal("utgGraphDeviation")  . " \\\n";
+    print F "    -db "          . getGlobal("utgBubbleDeviation") . " \\\n";
     print F "    -dr "          . getGlobal("utgRepeatDeviation") . " \\\n";
     print F "    -ca "          . getGlobal("utgRepeatConfusedBP"). " \\\n";
     print F "    -cp "          . "30"                            . " \\\n";
