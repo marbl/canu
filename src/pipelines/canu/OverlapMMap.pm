@@ -60,7 +60,7 @@ sub setParameters ($$) {
        $parameters = "-x ava-ont";
     }
 
-    elsif (($numCor > 0) && ($numPacBio > 0)) {
+    elsif (($numCor > 0) && ($numHiFi > 0 || $numPacBio > 0)) {
        $parameters = "-x ava-pb"; # -Hk21 -w14"; #tuned to find 1000bp 5% error
     }
 
