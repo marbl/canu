@@ -427,6 +427,7 @@ main (int argc, char * argv []) {
   RI = new ReadInfo(seqStorePath, prefix, minReadLen, maxReadLen);
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
   OG = new BestOverlapGraph(erateGraph,
+                            max(erateMax, erateGraph),
                             deviationGraph, minOlapPercent,
                             prefix,
                             covGapType, covGapOlap,

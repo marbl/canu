@@ -203,6 +203,7 @@ private:
 
 public:
   BestOverlapGraph(double            erateGraph,
+                   double            erateMax,
                    double            deviationGraph,    double  minOlapPercent,
                    const char       *prefix,
                    covgapType        covgapType,        uint32  covGapOlap,

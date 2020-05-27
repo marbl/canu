@@ -154,27 +154,39 @@ BestOverlapGraph::findErrorRateThreshold(void) {
     _errorLimit = Tpicked;
 
   //  The real filtering is done on the next pass through findEdges().  Here, we're just collecting statistics.
-
-  uint32  nFiltered[3] = {0};
-
-  for (uint32 fi=1; fi <= fiLimit; fi++) {
-    BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
-
-    if ((b5->isUnset() == true) &&    //  Read has no best edges, probably
-        (b3->isUnset() == true))      //  not corrected.
-      continue;
-
-    uint32  nf = ((b5->erate() > _errorLimit) +
-                  (b3->erate() > _errorLimit));
-
-    nFiltered[nf]++;
-  }
-
   writeLog("\n");
   writeLog("ERROR RATES\n");
   writeLog("-----------\n");
   writeLog("\n");
+
+  uint32  nFiltered[3] = {0};
+  uint32  nTotal = 0;
+  bool    adjustedLimit = false;
+
+  while (nTotal == 0 && adjustedLimit == false) {
+    for (uint32 fi=1; fi <= fiLimit; fi++) {
+      BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
+      BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
+
+      if ((b5->isUnset() == true) &&    //  Read has no best edges, probably
+          (b3->isUnset() == true))      //  not corrected.
+        continue;
+
+      uint32  nf = ((b5->erate() > _errorLimit) +
+                    (b3->erate() > _errorLimit));
+
+      nFiltered[nf]++;
+      nTotal++;
+    }
+    // we only try this once, if we fall back to mean (or if the user restricted us too severely) move on
+    if ((double)nFiltered[0] / nTotal < 0.90 && Tpicked < Tmean && adjustedLimit == false) {
+       adjustedLimit = true;
+       writeLog("Reads with best edges filtered too agressively, %8.4f remaining, falling back to mean/stdev \n", (double)nFiltered[0] / nTotal);
+       nFiltered[0] = nFiltered[1] = nFiltered[2] = nTotal=0;
+       _errorLimit = min(Tinput, Tmean);
+    }
+  }
+
   writeLog("                                                 --------threshold------\n");
   writeLog("%-12u"     "                 fraction error      fraction        percent\n", edgeStats.size());
   writeLog("samples                              (1e-5)         error          error\n");
@@ -188,6 +200,7 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   writeLog("BEST EDGE FILTERING\n");
   writeLog("-------------------\n");
   writeLog("\n");
+  writeLog("Reads with best edges %9u\n", nTotal);
   writeLog("Reads with both best edges below threshold: %9u\n", nFiltered[0]);
   writeLog("Reads with one  best edge  above threshold: %9u\n", nFiltered[1]);
   writeLog("Reads with both best edges above threshold: %9u\n", nFiltered[2]);
@@ -1466,6 +1479,7 @@ BestOverlapGraph::checkForCovGapEdges(void) const {
 
 
 BestOverlapGraph::BestOverlapGraph(double            erateGraph,
+                                   double            erateMax,
                                    double            deviationGraph,    double  minOlapPercent,
                                    const char       *prefix,
                                    covgapType        covGapType,        uint32  covGapOlap,
@@ -1535,6 +1549,30 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
   findContains();
   findEdges(true);
+
+  // check if we were too severely limited by the graph error rate
+  uint32  nFiltered = 0;
+  uint32  nTotal    = 0;
+
+  for (uint32 fi=1; fi <= RI->numReads(); fi++) {
+    if (!RI->isValid(fi) || isContained(fi) || isIgnored(fi))
+       continue;
+
+    nTotal++;
+    if (getBestEdgeOverlap(fi, false)->isUnset() == true &&
+        getBestEdgeOverlap(fi, true)->isUnset() == true)
+      continue;
+
+    nFiltered++;
+  }
+  if (erateMax > _errorLimit && (double)nFiltered / nTotal < 0.90) {
+    writeLog("Reads with edges below threshold: %8.4f, too low, resetting error limit to max\n", (double)nFiltered/nTotal);
+    _errorLimit = erateMax;
+    if (logFileFlagSet(LOG_BEST_OVERLAPS))
+      emitGoodOverlaps(prefix, "0.all");
+    findContains();
+    findEdges(true);
+  }
 
   if (logFileFlagSet(LOG_BEST_EDGES))
     reportBestEdges(prefix, "0.initial");
