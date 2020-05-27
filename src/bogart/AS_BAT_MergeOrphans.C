@@ -98,6 +98,48 @@ public:
 //  A list of the target tigs that a orphan could be popped into.
 typedef  map<uint32, vector<uint32> >  BubTargetList;
 
+// This function checks if the best edges imply a cycle or a shortcut
+// This happens if our best edges are discordant (that is we have bad orientation) or if we are much shorter implying the main tig took a shortcut
+bool isCycle(TigVector       &tigs,
+             uint32           length,
+	     ufNode          *fRead,
+             ufNode          *lRead) {
+   BestEdgeOverlap *prev = (fRead->position.isForward() == true) ? (OG->getBestEdgeOverlap(fRead->ident, false)) : (OG->getBestEdgeOverlap(fRead->ident,  true));
+   BestEdgeOverlap *next = (lRead->position.isForward() == true) ? (OG->getBestEdgeOverlap(lRead->ident,  true)) : (OG->getBestEdgeOverlap(lRead->ident, false));
+
+   // if we have no best edges or they don't point to a single tig, no issue
+   if (!prev->isValid() || !next->isValid() || tigs.inUnitig(prev->readId()) != tigs.inUnitig(next->readId()))
+      return false;
+
+   // find the reads corresponding to our best
+   writeLog("Checking best edges for %d ori %d and %d ori %d, the best next is %d and the best last is %d\n", fRead->ident, fRead->position.isForward(), lRead->ident, lRead->position.isForward(), prev->readId(), next->readId());
+   ufNode *rdPrev = &tigs[tigs.inUnitig(prev->readId())]->ufpath[ tigs.ufpathIdx(prev->readId()) ];
+   ufNode *rdNext = &tigs[tigs.inUnitig(next->readId())]->ufpath[ tigs.ufpathIdx(next->readId()) ];
+
+   writeLog("The prev best edge is %d orient is %d in tig %d (and the coordiantes it has are %d - %d ori %d)\n", prev->readId(), prev->read3p(), tigs.inUnitig(prev->readId()), rdPrev->position.min(), rdPrev->position.max(), rdPrev->position.isForward());
+   writeLog("The next best edge is %d orient is %d in tig %d (and the coordinates it has are %d - %d ori %d)\n", next->readId(), next->read3p(), tigs.inUnitig(next->readId()), rdNext->position.min(), rdNext->position.max(), rdNext->position.isForward());
+
+   // when we have a 3p edge it means we hit the 3' end of that read. so if we are looking upstream of us hitting 3' means the other read is forward and vice versa on the other side of the tig
+   bool pFwd = (prev->read3p() == true);
+   bool nFwd = (next->read3p() == false);
+
+   // look up coordinates, if our orientations are swapped we expect the first read to have larger coordinate
+   int32 start = (pFwd == rdPrev->position.isForward()) ? rdPrev->position.min() : rdNext->position.min();
+   int32 end   = (pFwd == rdPrev->position.isForward()) ? rdNext->position.max() : rdPrev->position.max();
+   int32 dist = end - start;
+
+   //  we have differing orientations (that is one matches what we expect and one doesn't definitely wrong
+   //  TODO: sk think about if this catches all cases or if we need something else
+   bool badOri = ((pFwd == rdPrev->position.isForward()) != (nFwd == rdNext->position.isForward()));
+
+   if (badOri || dist < 0.5*length) {
+      writeLog("Failed cycle check with  %d misOrder and length %d\n", badOri, dist);
+      return true;
+   }
+
+   return false;
+}
+
 ufNode* findFirstRead(Unitig *tig) {
    ufNode   *read = tig->firstRead();
 
@@ -644,8 +686,8 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
   //                    --------------------               //  compared to orpan itself
   //
   for (uint32 ii=0; ii<IL->numberOfIntervals(); ii++) {
-    int32  intBgn   = IL->lo(ii) - 0.25 * orphanLen;   //  Extend the region by 50% of the
-    int32  intEnd   = IL->hi(ii) + 0.25 * orphanLen;   //  orphan length.
+    int32  intBgn   = IL->lo(ii) - 0.50 * orphanLen;   //  Extend the region by 50% of the
+    int32  intEnd   = IL->hi(ii) + 0.50 * orphanLen;   //  orphan length.
 
     intBgn = max(intBgn, 0);
     intEnd = min(intEnd, target->getLength());
@@ -694,8 +736,8 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
         int32  length   = pEnd - pBgn;
 
         bool   misOrder = (length < 0) ? true : false;
-        bool   tooSmall = (length < 0.75 * orphan->getLength()) ? true : false;
-        bool   tooLarge = (length > 1.25 * orphan->getLength()) ? true : false;
+        bool   tooSmall = (length < 0.33 * orphan->getLength()) ? true : false;
+        bool   tooLarge = (length > 3.00 * orphan->getLength()) ? true : false;
 
         if (misOrient) {
           writeLog("  %9d-%-9d %7.1f%% of orphan length - first read at %9d-%-9d last read at %9d-%-9d  MIS-ORIENT\n",
@@ -966,14 +1008,6 @@ mergeOrphans(TigVector    &tigs,
         if (targets[tt]->placed[op].frgID == lRead->ident)    terminalSize++;
       }
 
-      //  Track where we want to place this thing.  We'll use this to decide
-      //  if this looks like a bubble in a repeat or not.
-
-      if (targetIntervals[targetID] == NULL)
-        targetIntervals[targetID] = new intervalList<int32>;
-
-      targetIntervals[targetID]->add(targets[tt]->bgn, targets[tt]->end - targets[tt]->bgn);
-
       //  Report now, before we nuke targets[tt] for being not a orphan!
 
       writeLog("\n");
@@ -1005,40 +1039,8 @@ mergeOrphans(TigVector    &tigs,
       }
     }
 
-    //  Collapse the targetIntervals and decide if this is being placed in a repeat.
-
-    for (auto it=targetIntervals.begin(); it != targetIntervals.end(); ++it) {
-       it->second->merge();
-
-       writeLog("Merged intervals of orphan %u with %d equivalents into tig %u with %u intervals, first is %u-%u (length %u), ratio %f\n",
-                orphan->id(), nBubble,
-                it->first,
-                it->second->numberOfIntervals(),
-                it->second->lo(0), it->second->hi(0),
-                it->second->hi(0) - it->second->lo(0),
-                double(it->second->hi(0) - it->second->lo(0)) / orphan->getLength());
-
-       //  Flag this as a repeatBubble if it is placed more than once in a
-       //  single tig, or if there are a chain of placements all at the same
-       //  location.  Sadly, we can't short circuit here; we need to iterate
-       //  through all intervalLists so we can delete them.
-
-       if ((it->second->numberOfIntervals() > 1) ||
-           (it->second->hi(0) - it->second->lo(0) > 5 * orphan->getLength()))
-         repeatBubble = true;
-
-       delete it->second;
-    }
-
-    targetIntervals.clear();
-
-    //  However, decide it's not actually as repeat if there aren't that many
-    //  placements or reads in total.  Essentially the critera for a repeat is "lots
-    //  of plaements that aren't all to a small number of tig regions" (or
-    //  all unique to each tig).
-
-    if (nBubble < 50 || orphan->ufpath.size() < 15)
-      repeatBubble = false;
+    // If it's a cycle without a unique good placement, a repeat
+    repeatBubble = ((placed[fRead->ident].size() >= 5 || placed[lRead->ident].size() >=5) && isCycle(tigs, orphan->getLength(), fRead, lRead));
 
     //
     //  If neither, be obnoxious.
