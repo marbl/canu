@@ -102,7 +102,6 @@ ufNode* findFirstRead(Unitig *tig) {
    ufNode   *read = tig->firstRead();
 
    for (uint32 fi=1; fi < tig->ufpath.size(); fi++) {
-      writeLog("Getting first read for tig %d with current read %d is backbone %d\n", tig->id(), read->ident, OG->isBackbone(read->ident));
       if (OG->isBackbone(read->ident) && read->position.min() == 0)
          break;
       if (tig->ufpath[fi].position.min() == 0)
@@ -117,7 +116,6 @@ ufNode* findLastRead(Unitig *tig) {
    ufNode  *read = tig->lastRead();
 
    for (uint32 fi=tig->ufpath.size()-1; (fi-- > 0); ) {
-      writeLog("Getting last read for tig %d with current read %d is backbone %d\n", tig->id(), read->ident, OG->isBackbone(read->ident));
       if (OG->isBackbone(read->ident) && read->position.max() == tig->getLength())
          break;
       if (tig->ufpath[fi].position.max() == tig->getLength())
@@ -162,15 +160,6 @@ findPotentialOrphans(TigVector       &tigs,
 
     ufNode   *fRead = findFirstRead(tig);
     ufNode   *lRead = findLastRead(tig);
-
-    bool      fEdgeExists = (fRead->isForward() == true) ? (OG->bestEdgeExists(fRead->ident, false)) : (OG->bestEdgeExists(fRead->ident,  true));
-    bool      lEdgeExists = (lRead->isForward() == true) ? (OG->bestEdgeExists(lRead->ident,  true)) : (OG->bestEdgeExists(lRead->ident, false));
-
-#if 0
-    if ((fEdgeExists == false) ||
-        (lEdgeExists == false))
-      continue;
-#endif
 
     //  Count the number of reads that have an overlap to some other tig.  tigOlapsTo[otherTig] = count.
 
@@ -258,12 +247,11 @@ findPotentialOrphans(TigVector       &tigs,
       endUncovered = tig->getLength() - tigCoverage.hi( tigCoverage.numberOfIntervals()-1 );
     }
 
-    writeLog("tig %8u length %9u nReads %7u/%7u - %3u regions covering %6.2f uncovered %5u/%6u/%5u edges %d %d -- ",
+    writeLog("tig %8u length %9u nReads %7u/%7u - %3u regions covering %6.2f uncovered %5u/%6u/%5u -- ",
              tig->id(), tig->getLength(), nonContainedReads, tig->ufpath.size(),
              tigCoverage.numberOfIntervals(),
              100.0 * spannedBases / tig->getLength(),
-             bgnUncovered, maxUncovered, endUncovered,
-             fEdgeExists, lEdgeExists);
+             bgnUncovered, maxUncovered, endUncovered);
 
     //  Reject this tig as a potential bubble if
     //    there are more than 10 coverage intervals
@@ -617,7 +605,7 @@ addInitialIntervals(Unitig                               *orphan,
     //  Same as above, just backwards.
 
     if (placed[lRead->ident][pp].position.isForward() == lRead->position.isForward()) {
-      writeLog("    tig %8u %9u-%-9u ->\n", tid, end-orphanLen, end);
+      writeLog("    tig %8u %9u-%-9u ->\n", tid, max(0, (int)(end-orphanLen)), end);
       targetIntervals[tid]->add(end - orphanLen, orphanLen);
     } else {
       writeLog("    tig %8u %9u-%-9u <-\n", tid, bgn, bgn+orphanLen);
