@@ -29,13 +29,50 @@
 
 #include "AS_BAT_TigGraph.H"
 
+#include <unordered_map>
+#include <unordered_set>
 
+int32  MAX_SKIP_LIMIT    = 3;
 
 ReadInfo         *RI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 
+uint32 parseReadID(char *word, 
+                   int32 &flen,
+                   bool &ffwd) {
 
+   //  Iterate over every letter in the name.  On the first digit, extract
+   //  the read ID.  And set 'fwd' based on the last =+' or '-'.
+
+   uint32 fi = 0;
+   for (uint32 pp=0; word[pp] != 0; pp++) {
+      if ((fi == 0) && (isdigit(word[pp]))) {
+         fi   = strtouint32(&word[pp]);
+         flen = RI->readLength(fi);
+       }
+
+       if (word[pp] == '-')
+          ffwd = false;
+
+       if (word[pp] == '+')
+         ffwd = true;
+   }
+   if (fi == 0)
+     writeLog("failed to parse read ID from '%s'\n", word);
+   if (flen == 0)
+     writeLog("reference to non-existent read ID %u from '%s'\n", fi, word);
+   assert(fi   != 0);
+   assert(flen != 0);
+   
+   return fi;
+}
+
+void processLine(char *line, uint32 lineLen) {
+    for (uint32 ii=0; ii<lineLen; ii++)    //  Change commas to spaces
+      if (line[ii] == ',')                 //  so we can split out words
+        line[ii] = ' ';                    //  easily.
+}
 
 void
 importTigsFromReadList(char const *prefix,
@@ -46,12 +83,40 @@ importTigsFromReadList(char const *prefix,
   char         *line    = nullptr;
   splitToWords  words;
 
+  std::unordered_map<uint32, uint32> readMap;
+  std::unordered_set<uint32> usedReads;
+
   FILE         *listFile = AS_UTL_openInputFile(readListPath);
 
+  // we make two passes through the reads
+  // the first counts the reads to have information to randomize them
+  // the second will actually build the tig
+  //
   while (AS_UTL_readLine(line, lineLen, lineMax, listFile) == true) {
-    for (uint32 ii=0; ii<lineLen; ii++)    //  Change commas to spaces
-      if (line[ii] == ',')                 //  so we can split out words
-        line[ii] = ' ';                    //  easily.
+    processLine(line, lineLen);
+
+    words.split(line);
+
+    for (uint32 rr=1; rr<words.numWords(); rr++) {
+      uint32   fi   = 0;
+      int32    flen = 0;
+      bool     ffwd = true;
+
+      fi = parseReadID(words[rr], flen, ffwd);
+
+      if (readMap.find(fi) == readMap.end()) {
+         readMap[fi] = 0;
+      }
+      readMap[fi] += 1;
+//fprintf(stderr, "Adding usage of read %d and its count is now %d\n", fi, readMap[fi]);
+    }
+  }
+  AS_UTL_closeFile(listFile, readListPath);
+
+  // OK go now build the tig
+  listFile = AS_UTL_openInputFile(readListPath);
+  while (AS_UTL_readLine(line, lineLen, lineMax, listFile) == true) {
+    processLine(line, lineLen);
 
     words.split(line);
 
@@ -60,6 +125,9 @@ importTigsFromReadList(char const *prefix,
     Unitig *tig = tigs.newUnitig();
 
     //  Add all the reads to it.
+    bool isFirst = true;
+    uint32 lastUsed = 0;
+    uint32 skipped = 0;
 
     for (uint32 rr=1; rr<words.numWords(); rr++) {
       uint32   fi   = 0;
@@ -68,32 +136,29 @@ importTigsFromReadList(char const *prefix,
       int32    flen = 0;
       bool     ffwd = true;
 
-      //  Iterate over every letter in the name.  On the first digit, extract
-      //  the read ID.  And set 'fwd' based on the last =+' or '-'.
+      fi = parseReadID(words[rr], flen, ffwd);
 
-      for (uint32 pp=0; words[rr][pp] != 0; pp++) {
-        if ((fi == 0) && (isdigit(words[rr][pp]))) {
-          fi   = strtouint32(&words[rr][pp]);
-          flen = RI->readLength(fi);
-        }
+      // if we already used this read keep going
+      if (usedReads.find(fi) != usedReads.end())
+         continue;
 
-        if (words[rr][pp] == '-')
-          ffwd = false;
-
-        if (words[rr][pp] == '+')
-          ffwd = true;
+      // generate a random number based on how many times we saw this read
+      uint32 r = (rand() % readMap[fi]) + 1;
+      //fprintf(stderr, "processing read %d with previous count %d and random number generated %d\n", fi, readMap[fi], r);
+      // if we match randomly or we already skipped too many reads recently, we use this read
+      if (r != 1 && skipped < MAX_SKIP_LIMIT) {
+         //fprintf(stderr, "Skpping read %d with %d count because value was %d\n", fi, readMap[fi], r);
+         skipped++;
+         continue;
       }
-
-      if (fi == 0)
-        writeLog("failed to parse read ID from '%s'\n", words[rr]);
-      if (flen == 0)
-        writeLog("reference to non-existent read ID %u from '%s'\n", fi, words[rr]);
-      assert(fi   != 0);
-      assert(flen != 0);
+      skipped =0 ;
+      usedReads.insert(fi);
+      lastUsed = fi;
 
       //  If this is the first read, we can immediately add it.
 
-      if (rr == 1) {
+      if (isFirst) {
+        isFirst = false;
         fbgn = 0;
         fend = flen;
 
@@ -138,8 +203,8 @@ importTigsFromReadList(char const *prefix,
         fbgn = pnode.position.bgn + povl[poo].a_hang;
         fend = pnode.position.bgn + povl[poo].a_hang + flen;
 
-        if (pfwd ==  true)   assert(povl[poo].a_hang >= 0);
-        if (pfwd == false)   assert(povl[poo].a_hang <= 0);
+        if (pfwd ==  true)   assert(povl[poo].a_hang >= -1);
+        if (pfwd == false)   assert(povl[poo].a_hang <= 1);
 
         //  However, testing with bogart layouts occasionally resulted in the
         //  next read being placed before the previous read, probably due to
@@ -163,7 +228,7 @@ importTigsFromReadList(char const *prefix,
       }
 
       if (placed == false) {
-        writeLog("Failed to place '%s' next read '%s' (flipped %d) with overlaps:\n", words[rr-1], words[rr], wantFlip);
+        writeLog("Failed to place '%s' next read '%s' (flipped %d) with overlaps:\n", words[lastUsed], words[rr], wantFlip);
 
         for (uint32 poo=0; poo<povlLen; poo++)
           writeLog("  A %8u B %8u hangs %5d,%5d flip %d\n",
