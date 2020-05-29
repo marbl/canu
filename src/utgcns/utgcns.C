@@ -66,7 +66,7 @@ public:
 
     errorRate        = 0.12;
     errorRateMax     = 0.40;
-    minOverlap       = 40;
+    minOverlap       = 500;
 
     numFailures      = 0;
 

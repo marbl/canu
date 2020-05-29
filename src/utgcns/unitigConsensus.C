@@ -264,7 +264,7 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
 
 char *
 unitigConsensus::generateTemplateStitch(void) {
-  int32   minOlap  = 500;
+  int32   minOlap  = _minOverlap;
 
   //  Initialize, copy the first read.
 
