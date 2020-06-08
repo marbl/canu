@@ -1522,11 +1522,11 @@ BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
       continue;
 
     for (uint32 ii=0; ii<no; ii++) {
-      if (isOverlapBadQuality(ovls[ii]) == false) {
-        ovls[ii].convert(ovl);
+      //if (isOverlapBadQuality(ovls[ii]) == false) {
+      ovls[ii].convert(ovl);
 
-        writer->writeOverlap(&ovl);
-      }
+      writer->writeOverlap(&ovl);
+      //}
     }
   }
 
