@@ -170,7 +170,8 @@ sub unitig_bogart ($) {
     print F "    -eM "          . getGlobal("utgErrorRate")       . " \\\n";
     print F "    -mo "          . getGlobal("minOverlapLength")   . " \\\n";
     print F "    -covgapolap "  . getGlobal("minOverlapLength")   . " \\\n";
-    print F "    -covgaptype "  . getGlobal("utgChimeraType")     . " \\\n";
+    print F "    -covgaptype uncovered"                           . " \\\n";
+    print F "    -D bestOverlaps "                                . " \\\n";
     print F "    -lopsided 25 "                                   . " \\\n";
     print F "    -minolappercent   0.0 "                          . " \\\n";
     print F "    -dg "          . getGlobal("utgGraphDeviation")  . " \\\n";
