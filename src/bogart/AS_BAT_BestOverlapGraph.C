@@ -229,8 +229,9 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   //
   //  Note that there is no guarantee that TpickedTight <= TpickedLoose!
 
-  double   Tgraph  = _erateGraph;   //  was Tinput = _errorLimit
   double   Tmax    = _erateMax;
+  double   Tgraph  = _erateGraph;
+  double   Tforced = _erateForced;
   double   Tmean   = mean   + _deviationGraph          * stddev;
   double   Tmad    = median + _deviationGraph * 1.4826 * mad;
   uint32    pos    = (uint32)((erates.size()+1) * _percentileError);
@@ -262,6 +263,9 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   else
     Tpicked = TpickedTight;
 
+  if (Tforced < 1.0)
+    Tpicked = Tforced;
+
   _errorLimit = Tpicked;
 
   //  Now emit a lovely log.
@@ -273,11 +277,15 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   fprintf(report, "%-12u"     "                 fraction error      fraction        percent\n", edgeStats.size());
   fprintf(report, "samples                              (1e-5)         error          error\n");
   fprintf(report, "                 --------------------------      --------       --------\n");
-  fprintf(report, "command line (-eg)                           ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tgraph, 100.0 * Tgraph, (_errorLimit == Tgraph) ? "  (enabled)" : "");
-  fprintf(report, "command line (-eM)                           ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tmax,   100.0 * Tmax,   (_errorLimit == Tmax)   ? "  (enabled)" : "");
-  fprintf(report, "mean + std.dev   %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * mean,   _deviationGraph, 1e5 * stddev, 1e5 * Tmean,  100.0 * Tmean,  (_errorLimit == Tmean)  ? "  (enabled)" : "");
-  fprintf(report, "median + mad     %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * median, _deviationGraph, 1e5 * mad,    1e5 * Tmad,   100.0 * Tmad,   (_errorLimit == Tmad)   ? "  (enabled)" : "");
-  fprintf(report, "90th percentile                              ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tperct, 100.0 * Tperct, (_errorLimit == Tperct) ? "  (enabled)" : "");
+  fprintf(report, "command line (-eg)                           ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tgraph,  100.0 * Tgraph,  (_errorLimit == Tgraph)  ? "  (enabled)" : "");
+  if (Tforced < 1.0)
+  fprintf(report, "command line (-ef)                           ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tforced, 100.0 * Tforced, (_errorLimit == Tforced) ? "  (enabled)" : "");
+  else
+  fprintf(report, "command line (-ef)                           ->  -----.--      ---.----%%\n");
+  fprintf(report, "command line (-eM)                           ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tmax,    100.0 * Tmax,    (_errorLimit == Tmax)    ? "  (enabled)" : "");
+  fprintf(report, "mean + std.dev   %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * mean,   _deviationGraph, 1e5 * stddev, 1e5 * Tmean,   100.0 * Tmean,   (_errorLimit == Tmean)   ? "  (enabled)" : "");
+  fprintf(report, "median + mad     %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * median, _deviationGraph, 1e5 * mad,    1e5 * Tmad,    100.0 * Tmad,    (_errorLimit == Tmad)    ? "  (enabled)" : "");
+  fprintf(report, "90th percentile                              ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tperct,  100.0 * Tperct,  (_errorLimit == Tperct)  ? "  (enabled)" : "");
   fprintf(report, "\n");
   fprintf(report, "BEST EDGE FILTERING\n");
   fprintf(report, "-------------------\n");
@@ -1501,7 +1509,7 @@ BestOverlapGraph::reportEdgeStatistics(FILE *report, char const *label) {
 
 
 void
-BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
+BestOverlapGraph::outputOverlaps(const char *prefix, const char *label, bool allOverlaps) {
   char            ovlName[FILENAME_MAX+1];
 
   snprintf(ovlName, FILENAME_MAX, "%s.%s.ovlStore", prefix, label);
@@ -1522,14 +1530,12 @@ BestOverlapGraph::emitGoodOverlaps(const char *prefix, const char *label) {
       continue;
 
     for (uint32 ii=0; ii<no; ii++) {
-      if (isOverlapBadQuality(ovls[ii]) == false) {
+      if ((allOverlaps == true) || (isOverlapBadQuality(ovls[ii]) == false)) {
         ovls[ii].convert(ovl);
-
         writer->writeOverlap(&ovl);
       }
     }
   }
-
 
   delete writer;
 }
@@ -1576,6 +1582,7 @@ BestOverlapGraph::checkForCovGapEdges(void) const {
 
 BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    double            erateMax,
+                                   double            erateForced,
                                    double            percentileError,
                                    double            deviationGraph,
                                    double            minOlapPercent,
@@ -1586,8 +1593,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    bool              filterLopsided,    double  lopsidedDiff,
                                    bool              filterSpur,        uint32  spurDepth,
                                    BestOverlapGraph *BOG) :
-  _erateMax(erateMax),
   _erateGraph(erateGraph),
+  _erateMax(erateMax),
+  _erateForced(erateForced),
   _percentileError(percentileError),
   _deviationGraph(deviationGraph),
   _minOlapPercent(minOlapPercent),
@@ -1644,8 +1652,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  and removing coverageGap reads first.
   //
 
-  if (logFileFlagSet(LOG_BEST_OVERLAPS))
-    emitGoodOverlaps(prefix, "0.all");
+  if (logFileFlagSet(LOG_BEST_OVERLAPS) || logFileFlagSet(LOG_SYMMETRIC_OVERLAPS))    //  Output all overlaps if
+    outputOverlaps(prefix, "0.all", logFileFlagSet(LOG_SYMMETRIC_OVERLAPS));          //  LOG_SYMMETRIC_OVERLAPS
 
   findInitialEdges();                 //  Sets _errorLimit to either _erateGraph or _erateMax
 
@@ -1660,7 +1668,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     findEdges(true);                  //  Recompute best edges.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "1.filtered");
+      outputOverlaps(prefix, "1.filtered", false);
 
     writeStatus("BestOverlapGraph()--   Ignore overlaps with more than %.6f%% error.\n", 100.0 * _errorLimit);
 
@@ -1689,7 +1697,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     findEdges(true);                                  //  Recompute best edges.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "2.covGap");
+      outputOverlaps(prefix, "2.covGap", false);
 
     writeStatus("BestOverlapGraph()--   %u reads removed.\n", numCoverageGap());
 
@@ -1726,7 +1734,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     findEdges(false);                                        //  Recompute best edges that have no existing eddge.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "3.lopsided");
+      outputOverlaps(prefix, "3.lopsided", false);
 
     writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
 
@@ -1787,7 +1795,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //
 
   if (logFileFlagSet(LOG_BEST_OVERLAPS))
-    emitGoodOverlaps(prefix, "4.spur-removal");
+    outputOverlaps(prefix, "4.spur-removal", false);
 
   reportBestEdges(prefix, "best");
 

@@ -30,6 +30,9 @@ void         writeLog(char const *fmt, ...);
 void         flushLog(void);
 
 #define      logFileFlagSet(L) ((logFileFlags & L) == L)
+#define      stopFlagSet(L)    ((stopFlags    & L) == L)
+
+//  Global data for deciding what voluminous logging to create.
 
 extern uint64  logFileFlags;
 extern uint32  logFileOrder;  //  Used debug tigStore dumps, etc
@@ -37,6 +40,7 @@ extern uint32  logFileOrder;  //  Used debug tigStore dumps, etc
 extern uint64 LOG_OVERLAP_SCORING;
 extern uint64 LOG_BEST_EDGES;
 extern uint64 LOG_BEST_OVERLAPS;
+extern uint64 LOG_SYMMETRIC_OVERLAPS;
 extern uint64 LOG_ERROR_PROFILES;
 extern uint64 LOG_OPTIMIZE_POSITIONS;
 extern uint64 LOG_CHUNK_GRAPH;
@@ -51,5 +55,15 @@ extern uint64 LOG_STDERR;
 extern uint64 LOG_PLACE_READ;
 
 extern char const *logFileFlagNames[64];
+
+//  Global data for deciding if and where to stop early.
+
+extern uint64  stopFlags;
+
+extern uint64  STOP_AT_END;
+extern uint64  STOP_BEST_EDGES;
+extern uint64  STOP_CHUNK_GRAPH;
+
+extern char const *stopFlagNames[64];
 
 #endif  //  INCLUDE_AS_BAT_LOGGING

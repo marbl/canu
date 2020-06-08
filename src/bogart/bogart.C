@@ -50,6 +50,33 @@ BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 
 
+
+//  Check if we should terminate bogart early.  If so, close the log files,
+//  stop threads, delete the global data, write a nice message and return
+//  true.  Then, in main(), we can call return(0) to actually exit cleanly
+//  (since exit(0) doesn't exit cleanly).
+bool
+terminateBogart(uint64 stop, char const *message) {
+
+  if (stopFlagSet(stop) == false)
+    return(false);
+
+  setLogFile(nullptr, nullptr);   //  Close files.
+  omp_set_num_threads(1);         //  Hopefully kills off other threads.
+
+  delete CG;
+  delete OG;
+  delete OC;
+  delete RI;
+
+  writeStatus("\n");
+  writeStatus(message);
+
+  return(true);
+}
+
+
+
 int
 main (int argc, char * argv []) {
   char const  *seqStorePath            = NULL;
@@ -57,6 +84,7 @@ main (int argc, char * argv []) {
 
   double       erateGraph               = 0.075;
   double       erateMax                 = 0.100;
+  double       erateForced              = 1.0;     //  Used only if erateForced < 1.0
 
   bool         filterHighError          = true;
   bool         filterLopsided           = true;
@@ -176,6 +204,8 @@ main (int argc, char * argv []) {
       erateGraph = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-eM") == 0) {
       erateMax = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-ef") == 0) {
+      erateForced = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ep") == 0) {
       percentileError = atof(argv[++arg]);
@@ -294,6 +324,23 @@ main (int argc, char * argv []) {
         err.push_back(s);
       }
 
+    } else if (strcmp(argv[arg], "-stop") == 0) {
+      uint32  opt = 0;
+      uint64  flg = 1;
+      bool    fnd = false;
+      for (arg++; stopFlagNames[opt]; flg <<= 1, opt++) {
+        if (strcasecmp(stopFlagNames[opt], argv[arg]) == 0) {
+          stopFlags |= flg;
+          fnd = true;
+        }
+      }
+      if (fnd == false) {
+        char *s = new char [1024];
+        snprintf(s, 1024, "Unknown '-stop' option '%s'.\n", argv[arg]);
+        err.push_back(s);
+      }
+
+
     } else {
       char *s = new char [1024];
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
@@ -345,6 +392,11 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -eg F          Do not use overlaps more than F fraction error when when finding initial best edges.\n");
     fprintf(stderr, "  -eM F          Do not load overlaps more then F fraction error (useful only for -save).\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -ef F          Force the final best edge threshold to be F fraction error.  By default,\n");
+    fprintf(stderr, "                 bogart will analyze the overlaps loaded (-eM) that are also below the initial\n");
+    fprintf(stderr, "                 edge threshold (-eg) and pick a final edge threshold; this option forces the \n");
+    fprintf(stderr, "                 final edge threshold to exactly F.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -ep P          When deciding which overlaps to use, fall back to percentile P (0.0-1.0) if\n");
     fprintf(stderr, "                 the median error is 0.0, as commonly found in PacBio HiFi reads.  Default: 0.9\n");
     fprintf(stderr, "\n");
@@ -371,6 +423,10 @@ main (int argc, char * argv []) {
     fprintf(stderr, "                     than fraction f (0.0-1.0) reads that have two best edges.  Default: 0.9\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -stop when     Stop after computing step 'when'..  Useful for debugging and testing.\n");
+    fprintf(stderr, "                   'edges'      - after computing best edges; output asm.best.edges will exist.\n");
+    fprintf(stderr, "                   'chunkgraph' - after building the ChunkGraph and logging.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -D <name>  enable logging/debugging for a specific component.\n");
     fprintf(stderr, "  -d <name>  disable logging/debugging for a specific component.\n");
@@ -400,6 +456,10 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Overlap Error Rates:\n");
   fprintf(stderr, "  Graph                 %.3f (%.3f%%)\n", erateGraph, erateGraph  * 100);
   fprintf(stderr, "  Max                   %.3f (%.3f%%)\n", erateMax,   erateMax    * 100);
+  if (erateForced < 1.0)
+  fprintf(stderr, "  Forced                %.3f (%.3f%%)\n", erateForced, erateForced  * 100);
+  else
+  fprintf(stderr, "  Forced                -.--- (-.---%%)   (not used)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Deviations:\n");
   fprintf(stderr, "  Graph                 %.3f\n", deviationGraph);
@@ -438,6 +498,7 @@ main (int argc, char * argv []) {
   OC = new OverlapCache(ovlStorePath, prefix, std::max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
   OG = new BestOverlapGraph(erateGraph,
                             std::max(erateMax, erateGraph),
+                            erateForced,
                             percentileError,
                             deviationGraph,
                             minOlapPercent,
@@ -447,7 +508,14 @@ main (int argc, char * argv []) {
                             filterHighError,
                             filterLopsided, lopsidedDiff,
                             filterSpur, spurDepth);
+
+  if (terminateBogart(STOP_BEST_EDGES, "Stopping after BestOverlapGraph() construction.\n"))
+    return(0);
+
   CG = new ChunkGraph(prefix);
+
+  if (terminateBogart(STOP_CHUNK_GRAPH, "Stopping after ChunkGraph() construction.\n"))
+    return(0);
 
   //
   //  OG is used:
@@ -702,22 +770,6 @@ main (int argc, char * argv []) {
   //  Tear down bogart.
   //
 
-  //  How bizarre.  Human regression of 2017-07-28-2128 deadlocked (apparently) when deleting OC.
-  //  It had 31 threads in futex_wait, thread 1 was in delete of the second block of data.  CPU
-  //  usage was 100% IIRC.  Reproducable, at least twice, possibly three times.  setLogFilePrefix
-  //  was moved before the deletes in hope that it'll close down threads.  Certainly, it should
-  //  close thread output files from createUnitigs.
-
-  setLogFile(prefix, NULL);    //  Close files.
-  omp_set_num_threads(1);      //  Hopefully kills off other threads.
-
-  delete CG;
-  delete OG;
-  delete OC;
-  delete RI;
-
-  writeStatus("\n");
-  writeStatus("Bye.\n");
-
+  terminateBogart(STOP_AT_END, "Bye.\n");
   return(0);
 }
