@@ -24,6 +24,7 @@
 #include "AS_BAT_Unitig.H"
 
 #include "AS_BAT_MarkRepeatReads.H"
+#include "AS_BAT_SplitTig.H"
 
 #include "intervalList.H"
 #include "stddev.H"
@@ -71,128 +72,6 @@ public:
 
 auto byEviRid = [](olapDat const &A, olapDat const &B) { return(((A.eviRid == B.eviRid) && (A.tigbgn < B.tigbgn)) || (A.eviRid < B.eviRid)); };
 auto byCoord  = [](olapDat const &A, olapDat const &B) { return(                            A.tigbgn < B.tigbgn);                            };
-
-
-
-
-class breakPointCoords {
-public:
-  breakPointCoords(int32 bgn, int32 end, bool rpt=false) {
-    _bgn = bgn;
-    _end = end;
-    _rpt = rpt;
-  };
-  ~breakPointCoords() {
-  };
-
-  bool    operator<(breakPointCoords const &that) const {
-    return(_bgn < that._bgn);
-  };
-
-  int32   _bgn;
-  int32   _end;
-  bool    _rpt;
-};
-
-
-
-uint32
-splitTig(TigVector                &tigs,
-         Unitig                   *tig,
-         vector<breakPointCoords> &BP,
-         Unitig                  **newTigs,
-         int32                    *lowCoord,
-         uint32                   *nRepeat,
-         uint32                   *nUnique,
-         bool                      doMove) {
-
-  if (doMove == true) {
-    memset(newTigs,  0, sizeof(Unitig *) * BP.size());
-    memset(lowCoord, 0, sizeof(int32)    * BP.size());
-  } else {
-    memset(nRepeat,  0, sizeof(uint32)   * BP.size());
-    memset(nUnique,  0, sizeof(uint32)   * BP.size());
-  }
-
-  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-    ufNode     &frg    = tig->ufpath[fi];
-    int32       frgbgn = min(frg.position.bgn, frg.position.end);
-    int32       frgend = max(frg.position.bgn, frg.position.end);
-
-    //  Search for the region that matches the read.  BP's are sorted in increasing order.  It
-    //  probably doesn't matter, but makes the logging a little easier to read.
-
-    uint32      rid = UINT32_MAX;
-    bool        rpt = false;
-
-    //fprintf(stderr, "Searching for placement for read %u at %d-%d\n", frg.ident, frgbgn, frgend);
-
-    for (uint32 ii=0; ii<BP.size(); ii++) {
-      int32   rgnbgn = BP[ii]._bgn;
-      int32   rgnend = BP[ii]._end;
-      bool    repeat = BP[ii]._rpt;
-
-      //  For repeats, the read must be contained fully.
-
-      if ((repeat == true) && (rgnbgn <= frgbgn) && (frgend <= rgnend)) {
-        rid = ii;
-        rpt = true;
-        break;
-      }
-
-      //  For non-repeat, the read just needs to intersect.
-
-      if ((repeat == false) && (rgnbgn < frgend) && (frgbgn < rgnend)) {
-        rid = ii;
-        rpt = false;
-        break;
-      }
-    }
-
-    if (rid == UINT32_MAX) {
-      fprintf(stderr, "Failed to place read %u at %d-%d with %lu BPs:\n", frg.ident, frgbgn, frgend, BP.size());
-      for (uint32 ii=0; ii<BP.size(); ii++)
-        fprintf(stderr, "BP[%3u] at %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._rpt);
-      flushLog();
-    }
-    assert(rid != UINT32_MAX);  //  We searched all the BP's, the read had better be placed!
-
-    //  If moving reads, move the read!
-
-    if (doMove) {
-      if (newTigs[rid] == NULL) {
-        lowCoord[rid] = frgbgn;
-
-        newTigs[rid]  = tigs.newUnitig(true);
-        newTigs[rid]->_isBubble = tig->_isBubble;
-
-        if (nRepeat[rid] > nUnique[rid])
-          newTigs[rid]->_isRepeat = true;
-      }
-
-      newTigs[rid]->addRead(frg, -lowCoord[rid], false);
-    }
-
-    //  Else, we're not moving, just count how many reads came from repeats or uniques.
-
-    else {
-      if (rpt)
-        nRepeat[rid]++;
-      else
-        nUnique[rid]++;
-    }
-  }
-
-  //  Return the number of tigs created.
-
-  uint32  nTigsCreated = 0;
-
-  for (uint32 ii=0; ii<BP.size(); ii++)
-    if (nRepeat[ii] + nUnique[ii] > 0)
-      nTigsCreated++;
-
-  return(nTigsCreated);
-}
 
 
 
@@ -1103,34 +982,134 @@ mergeAdjacentRegions(Unitig                *tig,
 
 
 
-void
-reportTigsCreated(Unitig                    *tig,
-                  vector<breakPointCoords>  &BP,
-                  uint32                     nTigs,
-                  Unitig                   **newTigs,
-                  uint32                    *nRepeat,
-                  uint32                    *nUnique) {
+vector<breakReadEnd>
+buildBreakPoints(TigVector             &tigs,
+                 Unitig                *tig,
+                 intervalList<int32>   &tigMarksR,
+                 intervalList<int32>   &tigMarksU,
+                 vector<confusedEdge>  &confusedEdges) {
+  vector<breakReadEnd>   BE;
 
-  for (uint32 ii=0; ii<BP.size(); ii++) {
-    int32   rgnbgn = BP[ii]._bgn;
-    int32   rgnend = BP[ii]._end;
-    bool    repeat = BP[ii]._rpt;
+  for (uint32 rr=0, uu=0; ((rr < tigMarksR.numberOfIntervals()) ||
+                           (uu < tigMarksU.numberOfIntervals())); ) {
+    bool    isRepeat  = false;
+    int32   regionBgn = 0;
+    int32   regionEnd = 0;
 
-    if      (nRepeat[ii] + nUnique[ii] == 0)
-      writeLog("For tig %5u %s region %8d %8d - %6u/%6u repeat/unique reads - no new unitig created.\n",
-               tig->id(), (repeat == true) ? "repeat" : "unique", rgnbgn, rgnend, nRepeat[ii], nUnique[ii]);
+    //  Use the repeat interval if
+    //    both R and U are valid, and R is first
+    //    only R is valid
 
-    else if (nTigs > 1)
-      writeLog("For tig %5u %s region %8d %8d - %6u/%6u reads repeat/unique - unitig %5u created.\n",
-               tig->id(), (repeat == true) ? "repeat" : "unique", rgnbgn, rgnend, nRepeat[ii], nUnique[ii], newTigs[ii]->id());
+    if (((rr < tigMarksR.numberOfIntervals()) && (uu <  tigMarksU.numberOfIntervals()) && (tigMarksR.lo(rr) < tigMarksU.lo(uu))) ||
+        ((rr < tigMarksR.numberOfIntervals()) && (uu >= tigMarksU.numberOfIntervals()))) {
+      isRepeat  = true;
+      regionBgn = tigMarksR.lo(rr);
+      regionEnd = tigMarksR.hi(rr);
 
-    else
-      writeLog("For tig %5u %s region %8d %8d - %6u/%6u repeat/unique reads - unitig %5u remains unchanged.\n",
-               tig->id(), (repeat == true) ? "repeat" : "unique", rgnbgn, rgnend, nRepeat[ii], nUnique[ii], tig->id());
+      //writeLog("tigMarksR[%2u] = %8d,%-8d (repeat)\n", rr, tigMarksR.lo(rr), tigMarksR.hi(rr));
+      rr++;
+    } else {
+      isRepeat  = false;
+      regionBgn = tigMarksU.lo(uu);
+      regionEnd = tigMarksU.hi(uu);
+
+      //writeLog("tigMarksU[%2u] = %8d,%-8d (unique)\n", uu, tigMarksU.lo(uu), tigMarksU.hi(uu));
+      uu++;
+    }
+
+    writeLog("\n");
+    writeLog("%s interval at %8d,%-8d\n", (isRepeat) ? "Repeat" : "Unique", regionBgn, regionEnd);
+
+    //  Scan all the confused edges.  Remember the extents and count how many we have.
+
+    int32   breakCount = 0;
+    int32   breakBgn   = INT32_MAX;
+    int32   breakEnd   = 0;
+
+    for (uint32 ii=0; ii<confusedEdges.size(); ii++) {
+      uint32  aid    = confusedEdges[ii].aid;
+      uint32  a3p    = confusedEdges[ii].a3p;
+      uint32  bid    = confusedEdges[ii].bid;
+
+      uint32  atid   =  tigs.inUnitig(aid);
+      Unitig *atig   =  tigs[atid];
+      ufNode *aread  = &atig->ufpath[ tigs.ufpathIdx(aid) ];
+      int32   abgn   =  aread->position.bgn;
+      int32   aend   =  aread->position.end;
+      int32   apoint =  (a3p == false) ? aread->position.min() : aread->position.max();
+
+      uint32  btid   =  tigs.inUnitig(bid);
+      Unitig *btig   =  tigs[btid];
+      int32   bbgn   =  btig->ufpath[ tigs.ufpathIdx(bid) ].position.bgn;
+      int32   bend   =  btig->ufpath[ tigs.ufpathIdx(bid) ].position.end;
+
+      if (tig->id() != atid)   //  In a different tig.  (We're keeping a list of ALL confused edges, not just for this tig)
+        continue;
+
+      //  'a3p' is indicitaing min or max coord, not the actual oriented read end
+      //if (((aread->position.isForward() ==  true) && (a3p == true)) ||   //  Read is -------->, want the max coord
+      //    ((aread->position.isForward() == false) && (a3p == false)))    //  Read is <--------, want the max coord
+      //  apoint = aread->position.max();
+      //else
+      //  apoint = aread->position.min();
+
+      if ((apoint < regionBgn) ||   //  Break point isn't in this region.
+          (regionEnd < apoint))
+        continue;
+
+      breakCount++;
+      breakBgn = min(breakBgn, apoint);
+      breakEnd = max(breakEnd, apoint);
+
+      assert(isRepeat == true);
+
+      //  a3p isn't indicating the oriented end of the read, but rather if
+      //  the coordinate we care about is the low or the high one.
+      //
+      //  When a3p is true:
+      //    we want to split on the higher coordinate
+      //    the 'repeat' region is to the left (before) the point
+      //    reads that span the point need to go into the next region
+      //
+      //  When a3p is false:
+      //    we want to split on the lower coordinate
+      //    the 'repeat' region is to the right (after) the point
+      //    reads that span the point need to go into the previous region
+
+      BE.push_back(breakReadEnd(aid, a3p,
+                                apoint,
+                                regionBgn, regionEnd));
+
+
+      writeLog("  confused edge[%2u] on read %7u %c' at %8d,%-8d break at %8u (%s) <-- confused by %7u in tig %5u at %8d,%-8d\n",
+               ii,
+               aid,
+               a3p ? '3' : '5',
+               abgn, aend,
+               apoint, (apoint == aread->position.min()) ? "lo" : "hi",
+               bid,
+               btid,
+               bbgn, bend);
+    }
+
+    if (breakCount == 0) {
+      writeLog("  no confused edges\n");
+    }
+
+    else {
+      //  If in a repeat, and the marked repeat region extends to the end
+      //  of the tig, extend the break region to the end of the tig.
+      if (isRepeat == true) {
+        if (regionBgn == 0)                  breakBgn = 0;
+        if (regionEnd == tig->getLength())   breakEnd = tig->getLength();
+      }
+
+      writeLog("    will break at %8d,%-8d\n", breakBgn, breakEnd);
+    }
   }
+
+  return(BE);
 }
-
-
 
 
 
@@ -1140,7 +1119,7 @@ markRepeatReads(AssemblyGraph         *AG,
                 double                 deviationRepeat,
                 uint32                 confusedAbsolute,
                 double                 confusedPercent,
-                vector<confusedEdge>  &confusedEdges) {
+                vector<confusedEdge>  &confusedEdgesGLOBAL) {
   uint32  tiLimit = tigs.size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
@@ -1152,6 +1131,7 @@ markRepeatReads(AssemblyGraph         *AG,
   intervalList<int32>  tigMarksR;     //  Marked repeats based on reads, filtered by spanning reads
   intervalList<int32>  tigMarksU;     //  Non-repeat invervals, just the inversion of tigMarksR
 
+  vector<confusedEdge> confusedEdges;
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = tigs[ti];
@@ -1191,6 +1171,8 @@ markRepeatReads(AssemblyGraph         *AG,
     //
     //  A region with no such near-best edges is _probably_ correct.
 
+    confusedEdges.clear();
+
     discardUnambiguousRepeats(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
 
     //  Merge adjacent repeats.
@@ -1225,87 +1207,23 @@ markRepeatReads(AssemblyGraph         *AG,
     tigMarksU = tigMarksR;
     tigMarksU.invert(0, tig->getLength());
 
-#if 0
-    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
-      writeLog("tigMarksR[%2u] = %d %d\n", ii, tigMarksR.lo(ii), tigMarksR.hi(ii));
-    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
-      writeLog("tigMarksU[%2u] = %d %d\n", ii, tigMarksU.lo(ii), tigMarksU.hi(ii));
-#endif
+    //  Iterate over the marked intervals, in coordinate order.  Figure out
+    //  which confused edges are in the interval.  If only one, all we can do
+    //  is split the tig.  If multiple, we can split the tig AND flag the
+    //  resulting pieces as either repeat or unique.
 
-    //  Create the list of intervals we'll use to make new tigs.
+    vector<breakReadEnd> BE = buildBreakPoints(tigs, tig, tigMarksR, tigMarksU, confusedEdges);
 
-    vector<breakPointCoords>   BP;
+    //  If there are breaks, split the tig.
 
-    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
-      BP.push_back(breakPointCoords(tigMarksR.lo(ii), tigMarksR.hi(ii), true));
+    if (BE.size() > 0) {
+      splitTigAtReadEnds(tigs, tig, BE, tigMarksR);
 
-    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
-      BP.push_back(breakPointCoords(tigMarksU.lo(ii), tigMarksU.hi(ii), false));
-
-    //  If there is only one BP, the tig is entirely resolved or entirely
-    //  repeat.  Either case, there is nothing more for us to do.
-
-    if (BP.size() == 1)
-      continue;
-
-    //  Report.
-
-    sort(BP.begin(), BP.end());  //  Makes the report nice.  Doesn't impact splitting.
-
-    writeLog("break tig %u into up to %u pieces:\n", ti, BP.size());
-    for (uint32 ii=0; ii<BP.size(); ii++)
-      writeLog("  %8d %8d %s (length %d)\n",
-               BP[ii]._bgn, BP[ii]._end,
-               BP[ii]._rpt ? "repeat" : "unique",
-               BP[ii]._end - BP[ii]._bgn);
-
-    //  Scan the reads, counting the number of reads that would be placed in
-    //  each new tig.  This is done because there are a few 'splits' that
-    //  don't move any reads around.
-
-    Unitig **newTigs   = new Unitig * [BP.size()];
-    int32   *lowCoord  = new int32    [BP.size()];
-    uint32  *nRepeat   = new uint32   [BP.size()];
-    uint32  *nUnique   = new uint32   [BP.size()];
-
-    //  First call, count the number of tigs we would create if we let it create them.
-
-    uint32  nTigs = splitTig(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, false);
-
-    //  Second call, actually create the tigs, if anything would change.
-
-    if (nTigs > 1)
-      splitTig(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
-
-    //  Report the tigs created.
-
-    reportTigsCreated(tig, BP, nTigs, newTigs, nRepeat, nUnique);
-
-    //  Cleanup.
-
-    delete [] newTigs;
-    delete [] lowCoord;
-    delete [] nRepeat;
-    delete [] nUnique;
-
-    //  Remove the old unitig....if we made new ones.
-
-    if (nTigs > 1) {
-      tigs[tig->id()] = NULL;
+      tigs[ti] = nullptr;
       delete tig;
     }
   }
 
-#if 0
-  FILE *F = AS_UTL_openOutputFile("junk.confusedEdges");
-  for (uint32 ii=0; ii<confusedEdges.size(); ii++) {
-    fprintf(F, "%7u %c' from read %7u\n",
-            confusedEdges[ii].aid,
-            confusedEdges[ii].a3p ? '3' : '5',
-            confusedEdges[ii].bid);
-  }
-  AS_UTL_closeFile(F, "junk.confusedEdges");
-#endif
 
   writeStatus("markRepeatReads()-- Found %u confused edges.\n", confusedEdges.size());
 }
