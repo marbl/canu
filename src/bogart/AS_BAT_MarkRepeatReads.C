@@ -1000,7 +1000,7 @@ findConfusedEdges(TigVector            &tigs,
                    external3sco.tigId, external3sco.readId,
                    internal3sco.score, external3sco.score, ad3, pd3);
 
-          confusedEdges.push_back(confusedEdge(rdAid, false, external3sco.readId));
+          confusedEdges.push_back(confusedEdge(rdAid, true, external3sco.readId));
           isConfused[ri]++;
         } else {
           writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
