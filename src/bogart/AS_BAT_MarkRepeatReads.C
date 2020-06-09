@@ -55,14 +55,12 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 class olapDat {
 public:
-  olapDat(uint32 b, uint32 e, uint32 r, uint32 p) {
+  olapDat(int32 b, int32 e, uint32 r, uint32 p) {
     tigbgn  = b;
     tigend  = e;
     eviRid  = r;
     eviPid  = p;
   };
-
-  bool operator<(const olapDat &that)     const { return(tigbgn < that.tigbgn); };
 
   int32   tigbgn;   //  Location of the overlap on this tig
   int32   tigend;   //
@@ -71,15 +69,8 @@ public:
   uint32  eviPid;   //  evidence read placeID
 };
 
-
-
-bool
-olapDatByEviRid(const olapDat &A, const olapDat &B) {
-  if (A.eviRid == B.eviRid)
-    return(A.tigbgn < B.tigbgn);
-
-  return(A.eviRid < B.eviRid);
-}
+auto byEviRid = [](olapDat const &A, olapDat const &B) { return(((A.eviRid == B.eviRid) && (A.tigbgn < B.tigbgn)) || (A.eviRid < B.eviRid)); };
+auto byCoord  = [](olapDat const &A, olapDat const &B) { return(                            A.tigbgn < B.tigbgn);                            };
 
 
 
@@ -252,7 +243,7 @@ mergeAnnotations(vector<olapDat>      &repeatOlaps,
 
   //  Sort the repeat markings by their evidence read id.
 
-  sort(repeatOlaps.begin(), repeatOlaps.end(), olapDatByEviRid);
+  sort(repeatOlaps.begin(), repeatOlaps.end(), byEviRid);
 
 #ifdef SHOW_ANNOTATE
   for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
@@ -304,7 +295,7 @@ mergeAnnotations(vector<olapDat>      &repeatOlaps,
   //  Sort overlaps again.  This pushes all those 'erased' regions to the end
   //  of the list, which we can then just pop off.
 
-  sort(repeatOlaps.begin(), repeatOlaps.end(), olapDatByEviRid);
+  sort(repeatOlaps.begin(), repeatOlaps.end(), byEviRid);
 
   for (uint32 ii=repeatOlaps.size(); ii--; )
     if (repeatOlaps[ii].eviRid == UINT32_MAX)
@@ -312,7 +303,7 @@ mergeAnnotations(vector<olapDat>      &repeatOlaps,
 
   //  Sort by coordinate.
 
-  sort(repeatOlaps.begin(), repeatOlaps.end());
+  sort(repeatOlaps.begin(), repeatOlaps.end(), byCoord);
 
 #ifdef SHOW_ANNOTATE
   for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
