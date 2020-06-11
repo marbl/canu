@@ -94,7 +94,9 @@ sub merylGenerateHistogram ($$) {
 
     return(undef)   if (! -e "$path/$name.histogram");
 
-    #  Load histogram data
+    #  Load histogram data, limited to a max count of 30,000, to prevent
+    #  these arrays from exhausting memory on very very frequent kmers.  It's
+    #  just for display anyway.
 
     my $numTotal    = 0;
     my $numDistinct = 0;
@@ -117,7 +119,7 @@ sub merylGenerateHistogram ($$) {
         $numDistinct = $1   if (m/distinct\s+(\d+)\s/);
         $numTotal    = $1   if (m/present\s+(\d+)\s/);
 
-        if ($v[0] =~ m/^\d+$/) {
+        if (($v[0] =~ m/^\d+$/) && ($v[0] < 30000)) {
             $maxCount             = $v[0];  #  maxCount is last count seen; histogram is sorted.
             $numDistinct[$v[0]]   = $v[1];
             $fractDistinct[$v[0]] = $v[2];
@@ -138,11 +140,43 @@ sub merylGenerateHistogram ($$) {
 
     my $TDmax  = 0;   #  Max count of of any block, excluding the first (we ignore the tail of this block when drawing the histogram)
 
+    my $maxRows = 40;   #  Number of rows for the count histogram.  We'll change the bin
+    my $rowIncr = 1;    #  size (rowIncr) based on the depth of coverage.
+
+    #  Find block sizes for the histogram.
+
     my $lo = 1;
     my $hi = 2;
     my $st = 1;
 
-    for (my $ii=0; $ii <= 40; $ii++) {
+    for (my $bb=1; $bb<6; $bb++) {
+        my $ft;
+
+        $lo = 1;
+        $hi = 2;
+        $st = 1;
+        for (my $ii=0; $ii <= $maxRows; $ii++) {
+            for (my $jj=$lo; $jj < $hi; $jj++) {
+                $ft = $fractTotal[$jj]   if (defined($fractTotal[$jj]))
+            }
+
+            $lo  = $hi;
+            $hi += $st;
+            $st += $bb;
+        }
+
+        if ($ft >= 0.95) {
+            $rowIncr = $bb;
+            last;
+        }
+    }
+
+    #  Find blocks for the histogram.
+
+    $lo = 1;
+    $hi = 2;
+    $st = 1;
+    for (my $ii=0; $ii <= $maxRows; $ii++) {
         for (my $jj=$lo; $jj < $hi; $jj++) {
             $TD[$ii] += $numDistinct[$jj];                                                   #  Sum the number of distinct mers we've seen
 
@@ -156,7 +190,7 @@ sub merylGenerateHistogram ($$) {
 
         $lo  = $hi;
         $hi += $st;
-        $st += 1;
+        $st += $rowIncr;
     }
 
     if ($TDmax == 0) {           #  A pathological case; if all kmers are unique,
@@ -166,7 +200,7 @@ sub merylGenerateHistogram ($$) {
     my $maxY   = 1;              #  Last count to include in the histogram.
     my $Xscale = $TDmax / 70;    #  Scale of each * in the histogram.
 
-    for (my $ii=0; $ii <= 40; $ii++) {
+    for (my $ii=0; $ii <= $maxRows; $ii++) {
         $maxY = $ii  if ($TD[$ii] > 0);
     }
 
@@ -179,8 +213,7 @@ sub merylGenerateHistogram ($$) {
     $lo = 1;
     $hi = 2;
     $st = 1;
-
-    for (my $ii=0; $ii<=40; $ii++) {
+    for (my $ii=0; $ii<=$maxRows; $ii++) {
         my $numXs = int($TD[$ii] / $Xscale);
 
         if ($numXs <= 70) {
@@ -199,7 +232,7 @@ sub merylGenerateHistogram ($$) {
 
         $lo  = $hi;
         $hi += $st;
-        $st += 1;
+        $st += $rowIncr;
     }
 
     $hist .= sprintf("--\n");
