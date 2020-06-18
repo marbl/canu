@@ -264,76 +264,6 @@ discardSpannedRepeats(Unitig              *tig,
 
 
 
-//  This is purely logging.  For each repeat region, report
-//  the thickest overlap between it and any read in the tig.
-void
-reportThickestEdgesInRepeats(Unitig               *tig,
-                             intervalList<int32>  &tigMarksR) {
-
-  writeLog("thickest edges to the repeat regions:\n");
-
-  //  The variable names make no sense.
-  //    t5    - read id with the thickest overlap covering the low end of the repeat region
-  //    l5    - length of that overlap
-  //    t5bgn - position of the read
-  //    t5end - position of the read
-
-  for (uint32 rr=0; rr<tigMarksR.numberOfIntervals(); rr++) {
-    int32    rbgn = tigMarksR.lo(rr);
-    int32    rend = tigMarksR.hi(rr);
-
-    uint32   fi5 = UINT32_MAX, len5 = 0;
-    uint32   fi3 = UINT32_MAX, len3 = 0;
-
-    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      ufNode     *frg       = &tig->ufpath[fi];
-      int32       frglo     = frg->position.min();
-      int32       frghi     = frg->position.max();
-
-      //  Overlap off the 5' end of the region.
-      if (frglo <= rbgn && (rbgn <= frghi) && (len5 < frghi - rbgn)) {
-        fi5  = fi;
-        len5 = frghi - rbgn;
-      }
-
-      //  Overlap off the 3' end of the region.
-      if (frglo <= rend && (rend <= frghi) && (len3 < rend - frglo)) {
-        fi3  = fi;
-        len3 = rend - frglo;
-      }
-
-      //  Read cotains the overlap region.  This shouldn't happen frequently,
-      //  but can if the read is just barely covering the repeat.
-
-      if (frglo <= rbgn && (rend <= frghi))
-        writeLog("saved   region %8d:%-8d - thickest    read %6u (anchor %7d) %8d:%-8d (anchor %7d) (contained)\n",
-                 rbgn, rend, frg->ident, rbgn - frglo, frglo, frghi, frghi - rend);
-    }
-
-    //  Report the thickest overlap into the repeat.
-
-    if (fi5 != UINT32_MAX) {
-      ufNode     *frg       = &tig->ufpath[fi5];
-      int32       frglo     = frg->position.min();
-      int32       frghi     = frg->position.max();
-
-      writeLog("saved   region %8d:%-8d - thickest 5' read %6u (anchor %7d) %8d:%-8d (repeat %7d)\n",
-               rbgn, rend, frg->ident, rbgn - frglo, frglo, frghi, frghi - rbgn);
-    }
-
-    if (fi3 != UINT32_MAX) {
-      ufNode     *frg       = &tig->ufpath[fi3];
-      int32       frglo     = frg->position.min();
-      int32       frghi     = frg->position.max();
-
-      writeLog("saved   region %8d:%-8d - thickest 3' read %6u (repeat %7d) %8d:%-8d (anchor %7d)\n",
-               rbgn, rend, frg->ident, rend - frglo, frglo, frghi, frghi - rend);
-    }
-  }
-}
-
-
-
 //  Returns true if coord is equal to or inside the region.
 bool
 isInside(int32 lo, int32 coord, int32 hi) {
@@ -1163,7 +1093,6 @@ markRepeatReads(AssemblyGraph         *AG,
     //  and any read in the tig.
 
     discardSpannedRepeats(tig, tigMarksR);
-    reportThickestEdgesInRepeats(tig, tigMarksR);
 
     //  Sacn reads.  If a read intersects a repeat interval, and the best
     //  edge for that read is entirely in the repeat region, decide if there
