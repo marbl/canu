@@ -59,9 +59,6 @@ splitTigAtReadEnds(TigVector                &tigs,
                    vector<breakReadEnd>     &BE,
                    intervalList<int32>      &tigMarksR) {
 
-  writeLog("\n");
-  writeLog("splitTig()-- processing tig %u\n", tig->id());
-
   //  Convert the list of breakReadEnd into a list of breakDesc.
   //
   //  --------------------
@@ -191,7 +188,7 @@ splitTigAtReadEnds(TigVector                &tigs,
   //  Display the rules we'll use for moving reads.
 
   writeLog("\n");
-  writeLog("Rules:\n");
+  writeLog("Rules for splitting tig %u:\n", tig->id());
   for (uint32 bp=0; bp<nb; bp++)
     writeLog("  %10s <= bgn < %-10s  AND  %10s <= end < %-10s --> block %u\n",
              toDec(breaks[bp].bgnAtAfter), (breaks[bp].bgnBefore <= tig->getLength()) ? toDec(breaks[bp].bgnBefore) : "end-of-tig",

@@ -111,7 +111,7 @@ annotateRepeatsOnRead(AssemblyGraph   *AG,
     }
   }
 
-  writeLog("Annotated tig %u with %lu external overlaps.\n", tig->id(), repeats.size());
+  writeLog("Annotated with %lu external overlaps.\n", repeats.size());
 }
 
 
@@ -209,9 +209,13 @@ mergeAnnotations(vector<olapDat>      &repeatOlaps,
 void
 discardSpannedRepeats(Unitig              *tig,
                       intervalList<int32> &tigMarksR) {
+  bool   foundSpanners = false;
 
   //  Somewhat inefficiently, for each read in the tig, check if it covers
   //  each repeat region.
+
+  writeLog("\n");
+  writeLog("Dropping repeat regions contained in a read:\n");
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode     *frg       = &tig->ufpath[fi];
@@ -244,13 +248,14 @@ discardSpannedRepeats(Unitig              *tig,
         spanHi = true;
 
       if (spanLo && spanHi) {
-        writeLog("discard region %8d:%-8d - contained in read %6u %8d-%8d\n",
+        writeLog("  region %9d-%-9d inside read %7u %9d-%d\n",
                  tigMarksR.lo(ri), tigMarksR.hi(ri), frg->ident, frglo, frghi);
 
         tigMarksR.lo(ri) = 0;
         tigMarksR.hi(ri) = 0;
 
-        discarded = true;
+        discarded     = true;
+        foundSpanners = true;
       }
     }
 
@@ -260,6 +265,9 @@ discardSpannedRepeats(Unitig              *tig,
     if (discarded)
       tigMarksR.filterShort(1);
   }
+
+  if (foundSpanners == false)
+    writeLog("  no regions contained in a read\n");
 }
 
 
@@ -271,25 +279,66 @@ isInside(int32 lo, int32 coord, int32 hi) {
 }
 
 
-uint32
-findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
-  ufNode     *rdA       = &tig->ufpath[fi];
-  uint32      rdAid     = rdA->ident;
-  bool        rdAfwd    = rdA->position.isForward();
-  int32       rdAlo     = rdA->position.min();
-  int32       rdAhi     = rdA->position.max();
+//
+//  General comments on findThickestPrevRead() (similar for findThickestNextRead())
+//  that were distracting if inlined in the code below.
+//
+//
+//  Decide if the repeat region is to the left or right of this read.
+//  Then ignore this thickest read if it doesn't fall in the repeat correctly.
+//
+//  A prev that ends inside the repeat, and so could be confused:
+//
+//              ----[rrrrrrrrrrrrrrrrrrrrrrrrrrrrr]------------------
+//                                   ----------------------rdA
+//                    rdB------------------
+//
+//  A prev that ends outside the repeat, can't be confused.
+//
+//              ----[rrrrrrrrrrrrrrrrrrrrrrrrrrrrr]------------------
+//                                   ----------------------rdA
+//                    rdB----------------------------
+//
+//  If the high coordinate isn't inside the repeat, we don't care;
+//  rdB will be anchored to unique sequence.
+//
+//  For finding the previous read:
+//
+//        --------[repeat]]]--------
+//                   -------------         READ WE'RE SEARCHING FROM
+//                 ---------u              DON'T CARE, anchored in unique (u)
+//          -----                          DON'T CARE, shouldn't happen
+//
+//  For the next read:
+//
+//        ------[[[repeat]----------
+//       -------------                     READ WE'RE SEARCHING FROM
+//             u---------                  DON'T CARE, anchored in unique (u)
+//                          ------         DON'T CARE, shouldn't happen
+//
+//  The repeat is extended a bit so that the read will have some useful bit
+//  of unique anchoring.
+//
 
-  uint32   bestId  = 0;
+
+ufNode *
+findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax, char *logMsg) {
+  ufNode  *rdA     = &tig->ufpath[fi];
+  uint32   rdAid   = rdA->ident;
+  bool     rdAfwd  = rdA->position.isForward();
+  int32    rdAlo   = rdA->position.min();
+  int32    rdAhi   = rdA->position.max();
+
   uint32   bestIdx = UINT32_MAX;
   uint32   bestLen = 0;
   uint32   olapMin = 0;
-  uint32   olapMax = 0;;
+  uint32   olapMax = 0;
 
-  //  If rdA begins before rMin, we don't need to find the previous read.
-  //  it's not confused.
+  //  If rdA begins before the repeat, it can't be confused; return a null
+  //  previous read.
 
   if (rdAlo < rMin)
-    return(bestIdx);
+    return(nullptr);
 
   //  Otherwise, search for the previous best read.
 
@@ -304,11 +353,7 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
     if (OG->isBackbone(rdB->ident) == false)   //  Skip non-backbone reads.
       continue;
 
-    //if (rdAhi < rdBlo)                         //  We can stop if the read
-    //  break;                                   //  starts after us.
-
     if ((rdBhi >= rdAlo) && (bestLen < rdBhi - rdAlo)) {
-      bestId   = rdB->ident;
       bestIdx  = pi;
       bestLen  = rdBhi - rdAlo;
 
@@ -319,92 +364,56 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
     }
   }
 
-  if (bestIdx == UINT32_MAX)
-    return(bestIdx);
+  //  If this thickest overlap ends outside the repeat region, the overlap
+  //  cannot be confused.
 
-  //  Decide if the repeat region is to the left or right of this read.
-  //  Then ignore this thickest read if it doesn't fall in the repeat correctly.
-  //
-  //  A prev that ends inside the repeat, and so could be confused:
-  //
-  //              ----[rrrrrrrrrrrrrrrrrrrrrrrrrrrrr]------------------
-  //                                   ----------------------rdA
-  //                    rdB------------------
-  //
-  //  A prev that ends outside the repeat, can't be confused.
-  //
-  //              ----[rrrrrrrrrrrrrrrrrrrrrrrrrrrrr]------------------
-  //                                   ----------------------rdA
-  //                    rdB----------------------------
-  //
+  ufNode *rdB   = nullptr;
+  int32   rdBlo = 0;
+  int32   rdBhi = 0;
 
-  assert(rdAlo <= rMax);
-  assert(rMin <= rdAlo);
+  if (bestIdx != UINT32_MAX) {
+    assert(rdAlo <= rMax);
+    assert(rMin <= rdAlo);
 
-  int32    rdBlo = tig->ufpath[bestIdx].position.min();
-  int32    rdBhi = tig->ufpath[bestIdx].position.max();
+    rdB   = &tig->ufpath[bestIdx];
+    rdBlo =  tig->ufpath[bestIdx].position.min();
+    rdBhi =  tig->ufpath[bestIdx].position.max();
 
-  //  If the high coordinate isn't inside the repeat, we don't care;
-  //  rdB will be anchored to unique sequence.
-  //
-  //  For finding the previous read:
-  //
-  //        --------[repeat]]]--------
-  //                   -------------         READ WE'RE SEARCHING FROM
-  //                 ---------u              DON'T CARE, anchored in unique (u)
-  //          -----                          DON'T CARE, shouldn't happen
-  //
-  //  For the next read:
-  //
-  //        ------[[[repeat]----------
-  //       -------------                     READ WE'RE SEARCHING FROM
-  //             u---------                  DON'T CARE, anchored in unique (u)
-  //                          ------         DON'T CARE, shouldn't happen
-  //
-  //  The repeat is extended a bit so that the read will have some useful bit
-  //  of unique anchoring.
-
-  if (isInside(rMin, rdBhi, rMax + 50) == false) {
-    bestId  = 0;
-    bestIdx = UINT32_MAX;
-    bestLen = 0;
+    if (isInside(rMin, rdBhi, rMax + 50) == false)
+      rdB = nullptr;
   }
 
-  //  Log.
-
-  else {
-    writeLog("find prev OLAP from read %u position %u %u to read %u position %u %u - olap %u %u (repeat at %u %u)\n",
-             rdAid,  rdAlo, rdAhi,
-             bestId, rdBlo, rdBhi,
-             olapMin, olapMax, rMin, rMax);
+  if (rdB != nullptr) {
+    writeLog(logMsg);
+    writeLog("    prev-olap-to read %8u %9u-%-9u olap-at %6u-%u\n", rdB->ident, rdBlo, rdBhi, olapMin, olapMax);
+    logMsg[0] = 0;   //  Clear it, so we don't report it again.
   }
 
-  return(bestIdx);
+  return(rdB);
 }
 
 
 
-uint32
-findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
-  ufNode     *rdA       = &tig->ufpath[fi];
-  uint32      rdAid     = rdA->ident;
-  bool        rdAfwd    = rdA->position.isForward();
-  int32       rdAlo     = rdA->position.min();
-  int32       rdAhi     = rdA->position.max();
+ufNode *
+findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax, char *logMsg) {
+  ufNode  *rdA     = &tig->ufpath[fi];
+  uint32   rdAid   = rdA->ident;
+  bool     rdAfwd  = rdA->position.isForward();
+  int32    rdAlo   = rdA->position.min();
+  int32    rdAhi   = rdA->position.max();
 
-  uint32   bestId  = 0;
   uint32   bestIdx = UINT32_MAX;
   uint32   bestLen = 0;
   uint32   olapMin = 0;
-  uint32   olapMax = 0;;
+  uint32   olapMax = 0;
 
-  //  If rdA ends after rMax, we don't need to find the previous read.
-  //  it's not confused.
+  //  If rdA ends after the repeat, it can't be confused; return a null
+  //  next read.
 
   if (rMax < rdAhi)
-    return(bestIdx);
+    return(nullptr);
 
-  //  Otherwise, search for the previous best read.
+  //  Otherwise, search for the next best read.
 
   for (int32 pi=fi+1; pi<tig->ufpath.size(); pi++) {
     ufNode  *rdB   = &tig->ufpath[pi];
@@ -421,7 +430,6 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
       break;                                   //  starts after us.
 
     if ((rdAhi >= rdBlo) && (bestLen < rdAhi - rdBlo)) {
-      bestId  = rdB->ident;
       bestIdx = pi;
       bestLen = rdAhi - rdBlo;
 
@@ -432,53 +440,32 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
     }
   }
 
-  //  This is a very poor bugfix for when we try to find the thickest next
-  //  overlap on the last read in a tig.  Previously, we'd have initialized
-  //  bestIdx to 0, did nothing in the for loop, then returned that the first
-  //  read is our bext next read.
-  //
-  //  "Cute pair of bugs in findThickestPrevRead() / findThickestNextRead().
-  //   findThickestPrevRead() if called on the first read will return that
-  //   read 0 is the thickest prev read.  This is probably harmless, since
-  //   it's the same read.  But for findThickestNextRead called on the last
-  //   read, it also returns 0 (the first read) and this is definitely not
-  //   ignored - it is why we break on the last read in those two examples
-  //   above.  I'll speculate that it only exhibited itself when the first
-  //   and last reads actually had an overlap (otherwise, the length of the
-  //   'internal' overlap would be zero).  Hmmm, this also would explain why
-  //   the bug never showed up on the first read, since there would also be
-  //   no overlap between read A and itself."
-  //
-  //  Both these functions are rewritten in the next commit.
+  //  If this thickest overlap begins outside the repeat region, the overlap
+  //  cannot be confused.
 
-  if (bestIdx == UINT32_MAX)
-    return(bestIdx);
+  ufNode *rdB   = nullptr;
+  int32   rdBlo = 0;
+  int32   rdBhi = 0;
 
-  //  If this thickest read ends after the repeat region, it's not confused.
-  //  (see above)
+  if (bestIdx != UINT32_MAX) {
+    assert(rMin <= rdAhi);
+    assert(rdAhi <= rMax);
 
-  assert(rMin <= rdAhi);
-  assert(rdAhi <= rMax);
+    rdB   = &tig->ufpath[bestIdx];
+    rdBlo =  tig->ufpath[bestIdx].position.min();
+    rdBhi =  tig->ufpath[bestIdx].position.max();
 
-  int32    rdBlo = tig->ufpath[bestIdx].position.min();
-  int32    rdBhi = tig->ufpath[bestIdx].position.max();
-
-  if (isInside(rMin - 50, rdBlo, rMax) == false) {    //  Don't care if the read is outside the repeat.
-    bestId  = 0;                                      //  See above for an example.
-    bestIdx = UINT32_MAX;
-    bestLen = 0;
+    if (isInside(rMin - 50, rdBlo, rMax) == false)   //  Don't care if the read is outside the repeat.
+      rdB = nullptr;                                 //  See above for an example.
   }
 
-  //  Log.
-
-  else {
-    writeLog("find next OLAP from read %u position %u %u to read %u position %u %u - olap %u %u (repeat at %u %u)\n",
-             rdAid,  rdAlo, rdAhi,
-             bestId, rdBlo, rdBhi,
-             olapMin, olapMax, rMin, rMax);
+  if (rdB != nullptr) {
+    writeLog(logMsg);
+    writeLog("    next-olap-to read %8u %9u-%-9u olap-at %6u-%u\n", rdB->ident, rdBlo, rdBhi, olapMin, olapMax);
+    logMsg[0] = 0;       //  Clear it, so we don't report it again.
   }
 
-  return(bestIdx);
+  return(rdB);
 }
 
 //
@@ -606,17 +593,13 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
 
 
 
-uint32 *
+void
 findConfusedEdges(TigVector            &tigs,
                   Unitig                *tig,
                   intervalList<int32>  &tigMarksR,
                   double                confusedAbsolute,
                   double                confusedPercent,
                   vector<confusedEdge> &confusedEdges) {
-
-  uint32  *isConfused  = new uint32 [tigMarksR.numberOfIntervals()];
-
-  memset(isConfused, 0, sizeof(uint32) * tigMarksR.numberOfIntervals());
 
   //  Examine every read in this tig.  If the read intersects a marked
   //  repeat, find the best edge that continues the tig in either direction.
@@ -651,21 +634,21 @@ findConfusedEdges(TigVector            &tigs,
         continue;               //  contained in the region.  Skip!
       }
 
-#if 0
-      if ((rMin  <= rdAlo) &&   //  If the read is contained in the repeat region,
-          (rdAhi <= rMax)) {    //  it's useless for deciding if this is a
-        continue;               //  confused repeat.
-      }
-#endif
+      //  This read intersects this repeat region.  Find the reads we used to
+      //  construct the tig originally.
+      //
+      //  Generate a log that we're checking this guy for confusion.  The log
+      //  will be reported only if we find a thickest edge.
 
-      //  This read intersects this repeat region.  Find the
-      //  reads we used to construct the tig originally.
+      char *logMsg = new char [1024];
 
-      uint32  best5idx = findThickestPrevRead(tig, fi, rMin, rMax);
-      uint32  best3idx = findThickestNextRead(tig, fi, rMin, rMax);
+      snprintf(logMsg, 1024, "\nCheck read %u position %u-%u for confusion; repeat is at %u-%u.\n",
+               rdAid, rdAlo, rdAhi, rMin, rMax);
 
-      ufNode *rdB5 = (best5idx < tig->ufpath.size()) ? &tig->ufpath[best5idx] : NULL;
-      ufNode *rdB3 = (best3idx < tig->ufpath.size()) ? &tig->ufpath[best3idx] : NULL;
+      ufNode *rdB5 = findThickestPrevRead(tig, fi, rMin, rMax, logMsg);
+      ufNode *rdB3 = findThickestNextRead(tig, fi, rMin, rMax, logMsg);
+
+      delete [] logMsg;
 
       //  If no overlaps, we're done with this read.
 
@@ -687,11 +670,6 @@ findConfusedEdges(TigVector            &tigs,
       //  inside the repeat.
       //
 
-      if (external5sco.score == 0.0) {
-          writeLog("tig %7u read %8u pos %7u-%-7u 5' end NOT confused -- no external edge\n",
-                   tgAid, rdAid, rdAlo, rdAhi);
-      }
-
       if ((internal5sco.score > 0.0) &&
           (external5sco.score > 0.0)) {
         double  ad5 = internal5sco.score - external5sco.score;   //  Absolute difference.
@@ -703,24 +681,20 @@ findConfusedEdges(TigVector            &tigs,
         if ((internal5sco.score < external5sco.score) ||
             ((ad5 < confusedAbsolute) &&
              (pd5 < confusedPercent))) {
-          writeLog("tig %7u read %8u pos %7u-%-7u 5' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   tgAid, rdAid, rdAlo, rdAhi,
+          writeLog("    lo end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    external5sco.tigId, external5sco.readId,
                    internal5sco.score, external5sco.score, ad5, pd5);
 
           confusedEdges.push_back(confusedEdge(rdAid, false, external5sco.readId));
-          isConfused[ri]++;
         } else {
-          writeLog("tig %7u read %8u pos %7u-%-7u 5' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   tgAid, rdAid, rdAlo, rdAhi,
+          writeLog("    lo end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    external5sco.tigId, external5sco.readId,
                    internal5sco.score, external5sco.score, ad5, pd5);
         }
       }
-
-      if (external3sco.score == 0.0) {
-          writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused -- no external edge\n",
-                   tgAid, rdAid, rdAlo, rdAhi);
+      else if ((internal5sco.score >  0.0) &&
+               (external5sco.score == 0.0)) {
+        writeLog("    lo end NOT confused -- no external edge\n");
       }
 
       if ((internal3sco.score > 0.0) &&
@@ -731,71 +705,24 @@ findConfusedEdges(TigVector            &tigs,
         if ((internal3sco.score < external3sco.score) ||
             ((ad3 < confusedAbsolute) &&
              (pd3 < confusedPercent))) {
-          writeLog("tig %7u read %8u pos %7u-%-7u 3' end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   tgAid, rdAid, rdAlo, rdAhi,
+          writeLog("    hi end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    external3sco.tigId, external3sco.readId,
                    internal3sco.score, external3sco.score, ad3, pd3);
 
           confusedEdges.push_back(confusedEdge(rdAid, true, external3sco.readId));
-          isConfused[ri]++;
         } else {
-          writeLog("tig %7u read %8u pos %7u-%-7u 3' end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   tgAid, rdAid, rdAlo, rdAhi,
+          writeLog("    hi end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    external3sco.tigId, external3sco.readId,
                    internal3sco.score, external3sco.score, ad3, pd3);
         }
       }
+      else if ((internal3sco.score >  0.0) &&
+               (external3sco.score == 0.0)) {
+        writeLog("    hi end NOT confused -- no external edge\n");
+      }
+
     }  //  Over all marks (ri)
   }  //  Over all reads (fi)
-
-  return(isConfused);
-}
-
-
-
-void
-discardUnambiguousRepeats(TigVector            &tigs,
-                          Unitig                *tig,
-                          intervalList<int32>  &tigMarksR,
-                          double                confusedAbsolute,
-                          double                confusedPercent,
-                          vector<confusedEdge> &confusedEdges) {
-
-  writeLog("search for confused edges:\n");
-
-  //  For each repeat region, count the number of times we find a read
-  //  external to the tig with an overlap more or less of the same strength
-  //  as the overlap interal to the tig.
-
-  uint32  *isConfused = findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
-
-  //  Scan all the regions, delete any that have no confusion.
-
-  bool  discarded = false;
-
-  for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
-    if (isConfused[ri] == 0) {
-      writeLog("discard region %8d:%-8d - no confusion in best edges\n",
-               tigMarksR.lo(ri), tigMarksR.hi(ri));
-
-      tigMarksR.lo(ri) = 0;
-      tigMarksR.hi(ri) = 0;
-
-      discarded = true;
-    }
-
-    else {
-      writeLog("saved   region %8d:%-8d - %u best edges are potentially confused\n",
-               tigMarksR.lo(ri), tigMarksR.hi(ri), isConfused[ri]);
-    }
-  }
-
-  //  Remove discarded regions.
-
-  if (discarded)
-    tigMarksR.filterShort(1);
-
-  delete [] isConfused;
 }
 
 
@@ -847,6 +774,15 @@ buildBreakPoints(TigVector             &tigs,
                  vector<confusedEdge>  &confusedEdges) {
   vector<breakReadEnd>   BE;
 
+  //  Iterate over the two lists of regions, in coordinate order, and:
+  //   - report the region.
+  //   - add any confused edges in that region to the output list of breakReadEnd
+  //   - fail catastrophically if there is a break in a unique region
+  //  
+
+  writeLog("\n");
+  writeLog("Region summary:\n");
+
   for (uint32 rr=0, uu=0; ((rr < tigMarksR.numberOfIntervals()) ||
                            (uu < tigMarksU.numberOfIntervals())); ) {
     bool    isRepeat  = false;
@@ -874,8 +810,7 @@ buildBreakPoints(TigVector             &tigs,
       uu++;
     }
 
-    writeLog("\n");
-    writeLog("%s interval at %8d,%-8d\n", (isRepeat) ? "Repeat" : "Unique", regionBgn, regionEnd);
+    writeLog("  %s interval %8d-%-8d\n", (isRepeat == true) ? "Repeat" : "Unique", regionBgn, regionEnd);
 
     //  Scan all the confused edges.  Remember the extents and count how many we have.
 
@@ -903,13 +838,6 @@ buildBreakPoints(TigVector             &tigs,
       if (tig->id() != atid)   //  In a different tig.  (We're keeping a list of ALL confused edges, not just for this tig)
         continue;
 
-      //  'a3p' is indicitaing min or max coord, not the actual oriented read end
-      //if (((aread->position.isForward() ==  true) && (a3p == true)) ||   //  Read is -------->, want the max coord
-      //    ((aread->position.isForward() == false) && (a3p == false)))    //  Read is <--------, want the max coord
-      //  apoint = aread->position.max();
-      //else
-      //  apoint = aread->position.min();
-
       if ((apoint < regionBgn) ||   //  Break point isn't in this region.
           (regionEnd < apoint))
         continue;
@@ -918,7 +846,7 @@ buildBreakPoints(TigVector             &tigs,
       breakBgn = min(breakBgn, apoint);
       breakEnd = max(breakEnd, apoint);
 
-      assert(isRepeat == true);
+      assert(isRepeat == true);   //  No breaks in unique regions!
 
       //  a3p isn't indicating the oriented end of the read, but rather if
       //  the coordinate we care about is the low or the high one.
@@ -937,31 +865,27 @@ buildBreakPoints(TigVector             &tigs,
                                 apoint,
                                 regionBgn, regionEnd));
 
+      if (a3p ==  true)   assert(apoint == aread->position.max());
+      if (a3p == false)   assert(apoint == aread->position.min());
 
-      writeLog("  confused edge[%2u] on read %7u %c' at %8d,%-8d break at %8u (%s) <-- confused by %7u in tig %5u at %8d,%-8d\n",
-               ii,
-               aid,
-               a3p ? '3' : '5',
-               abgn, aend,
-               apoint, (apoint == aread->position.min()) ? "lo" : "hi",
-               bid,
-               btid,
-               bbgn, bend);
+      writeLog("    read %7u %s at %8d-%-8d %s end <-- confused by read %7u in tig %5u at %8d-%d\n",
+               aid, aread->position.isForward() ? "->" : "<-",
+               abgn, aend, (apoint == aread->position.min()) ? "lo" : "hi",
+               bid, btid, bbgn, bend);
     }
 
-    if (breakCount == 0) {
-      writeLog("  no confused edges\n");
-    }
+    //  If in a repeat, log if there are no confused edges, and
+    //  extend the region to the end of the tig, if needed.
 
-    else {
-      //  If in a repeat, and the marked repeat region extends to the end
-      //  of the tig, extend the break region to the end of the tig.
-      if (isRepeat == true) {
+    if (isRepeat == true) {
+      if (breakCount == 0) {
+        writeLog("    no confused edges\n");
+      }
+
+      else {
         if (regionBgn == 0)                  breakBgn = 0;
         if (regionEnd == tig->getLength())   breakEnd = tig->getLength();
       }
-
-      writeLog("    will break at %8d,%-8d\n", breakBgn, breakEnd);
     }
   }
 
@@ -1012,6 +936,10 @@ markRepeatReads(AssemblyGraph         *AG,
     //  repeats are next to each other, but this pair of repeats occurs only
     //  in this tig.
 
+    writeLog("\n");
+    writeLog("----------------------------------------\n");
+    writeLog("Working on tig %u.\n", ti);
+
     annotateRepeatsOnRead(AG, tig, repeatOlaps);
     mergeAnnotations(repeatOlaps, tigMarksR);
 
@@ -1021,7 +949,7 @@ markRepeatReads(AssemblyGraph         *AG,
 
     discardSpannedRepeats(tig, tigMarksR);
 
-    //  Sacn reads.  If a read intersects a repeat interval, and the best
+    //  Scan reads.  If a read intersects a repeat interval, and the best
     //  edge for that read is entirely in the repeat region, decide if there
     //  is a near-best edge to something not in this tig.
     //
@@ -1029,7 +957,21 @@ markRepeatReads(AssemblyGraph         *AG,
 
     confusedEdges.clear();
 
-    discardUnambiguousRepeats(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
+    //  For each repeat region, count the number of times we find a read
+    //  external to the tig with an overlap more or less of the same strength
+    //  as the overlap interal to the tig.
+    //
+    //  Prior to mid-June 2020 this was also removing any tigMarksR that had
+    //  no confused edges in them.  With the new splitting introduced around
+    //  then, this had the unintended consequence of mislabeling reads as
+    //  unique when no confused edge was found in a region, which could lead
+    //  to new 'repeat' tigs being flagged as unique when they were actually
+    //  mostly repeat, for example: -------[rrrrr]--[rrrrrrrrrr]-[rrr]------
+    //  If no confused edges were found in the middle repeat block, but were
+    //  in the two outer blocks, the new tig created for the middle section
+    //  would be called unique, even though it was mostly repeat.
+
+    findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
 
     //  Merge adjacent repeats.
     //
