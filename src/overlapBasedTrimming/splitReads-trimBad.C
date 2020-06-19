@@ -39,8 +39,12 @@ trimBadInterval(sqStore        *UNUSED(seq),
 
   //  Build an interval list of all the bad regions, and invert them into good regions.
 
-  for (uint32 bb=0; bb<w->blist.size(); bb++)
-    goodRegions.add(w->blist[bb].bgn, w->blist[bb].end - w->blist[bb].bgn);
+  for (uint32 bb=0; bb<w->blist.size(); bb++) {
+    assert(w->blist[bb].end >= w->blist[bb].bgn);
+
+    if (w->blist[bb].end > w->blist[bb].bgn)
+      goodRegions.add(w->blist[bb].bgn, w->blist[bb].end - w->blist[bb].bgn);
+  }
 
   goodRegions.invert(w->clrBgn, w->clrEnd);
 

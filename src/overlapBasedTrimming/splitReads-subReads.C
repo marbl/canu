@@ -239,12 +239,14 @@ detectSubReads(sqStore               *seq,
     //  interval.  False signature will have a large size, and not agree.  We only check for size
     //  though.
     //
-    if (badend - badbgn <= SUBREAD_LOOP_MAX_SIZE)
+    if ((badend - badbgn >  0) &&
+        (badend - badbgn <= SUBREAD_LOOP_MAX_SIZE))
       BAD.add(badbgn, badend - badbgn);
 
     //  Save all plausible pairs.
     //
-    if (badend - badbgn <= SUBREAD_LOOP_EXT_SIZE)
+    if ((badend - badbgn >  0) &&
+        (badend - badbgn <= SUBREAD_LOOP_EXT_SIZE))
       BADall.add(badbgn, badend - badbgn);
   }
 
