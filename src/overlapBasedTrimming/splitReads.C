@@ -342,16 +342,21 @@ main(int argc, char **argv) {
     //  Update stats on what was trimmed.  The asserts say the clear range didn't expand, and the if
     //  tests if the clear range changed.
 
-    assert(w->clrBgn >= w->iniBgn);
-    assert(w->iniEnd >= w->clrEnd);
+    else {
+      if ((w->clrBgn < w->iniBgn) ||
+          (w->iniEnd < w->clrEnd))
+        fprintf(stderr, "WARNING:  Clear range shrank!  ini=%d,%d  clr=%d,%d\n",
+                w->clrBgn, w->clrEnd, w->iniBgn, w->iniEnd);
+      assert(w->clrBgn >= w->iniBgn);
+      assert(w->iniEnd >= w->clrEnd);
 
-    if (w->clrBgn > w->iniBgn)
-      readsTrimmed5 += w->clrBgn - w->iniBgn;
+      if (w->clrBgn > w->iniBgn)
+        readsTrimmed5 += w->clrBgn - w->iniBgn;
 
-    if (w->iniEnd > w->clrEnd)
-      readsTrimmed3 += w->iniEnd - w->clrEnd;
+      if (w->iniEnd > w->clrEnd)
+        readsTrimmed3 += w->iniEnd - w->clrEnd;
+    }
   }
-
 
   delete [] ovl;
 
