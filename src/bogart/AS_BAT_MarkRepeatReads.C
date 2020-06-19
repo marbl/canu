@@ -280,7 +280,7 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
   int32       rdAhi     = rdA->position.max();
 
   uint32   bestId  = 0;
-  uint32   bestIdx = 0;
+  uint32   bestIdx = UINT32_MAX;
   uint32   bestLen = 0;
   uint32   olapMin = 0;
   uint32   olapMax = 0;;
@@ -318,6 +318,9 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
       assert(olapMin <= olapMax);
     }
   }
+
+  if (bestIdx == UINT32_MAX)
+    return(bestIdx);
 
   //  Decide if the repeat region is to the left or right of this read.
   //  Then ignore this thickest read if it doesn't fall in the repeat correctly.
@@ -390,7 +393,7 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
   int32       rdAhi     = rdA->position.max();
 
   uint32   bestId  = 0;
-  uint32   bestIdx = 0;
+  uint32   bestIdx = UINT32_MAX;
   uint32   bestLen = 0;
   uint32   olapMin = 0;
   uint32   olapMax = 0;;
@@ -399,7 +402,7 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
   //  it's not confused.
 
   if (rMax < rdAhi)
-    return(UINT32_MAX);
+    return(bestIdx);
 
   //  Otherwise, search for the previous best read.
 
@@ -428,6 +431,28 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
       assert(olapMin <= olapMax);
     }
   }
+
+  //  This is a very poor bugfix for when we try to find the thickest next
+  //  overlap on the last read in a tig.  Previously, we'd have initialized
+  //  bestIdx to 0, did nothing in the for loop, then returned that the first
+  //  read is our bext next read.
+  //
+  //  "Cute pair of bugs in findThickestPrevRead() / findThickestNextRead().
+  //   findThickestPrevRead() if called on the first read will return that
+  //   read 0 is the thickest prev read.  This is probably harmless, since
+  //   it's the same read.  But for findThickestNextRead called on the last
+  //   read, it also returns 0 (the first read) and this is definitely not
+  //   ignored - it is why we break on the last read in those two examples
+  //   above.  I'll speculate that it only exhibited itself when the first
+  //   and last reads actually had an overlap (otherwise, the length of the
+  //   'internal' overlap would be zero).  Hmmm, this also would explain why
+  //   the bug never showed up on the first read, since there would also be
+  //   no overlap between read A and itself."
+  //
+  //  Both these functions are rewritten in the next commit.
+
+  if (bestIdx == UINT32_MAX)
+    return(bestIdx);
 
   //  If this thickest read ends after the repeat region, it's not confused.
   //  (see above)
