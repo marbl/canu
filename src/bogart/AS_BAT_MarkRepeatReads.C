@@ -380,53 +380,6 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
 }
 
 
-uint32
-findPrevBestRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
-  ufNode     *rdA       = &tig->ufpath[fi];
-  uint32      rdAid     = rdA->ident;
-  bool        rdAfwd    = rdA->position.isForward();
-  int32       rdAlo     = rdA->position.min();
-  int32       rdAhi     = rdA->position.max();
-
-  //  If rdA begins before rMin, we don't need to find the previous read.
-  //  it's not confused.
-
-  if (rdAlo < rMin)
-    return(UINT32_MAX);
-
-  //  If the read is reverse, we want to return the best edge from the 3'
-  //  end, After that, just check that it's in the same tig, at an
-  //  overlapping position and in the correct orientation.
-
-  BestEdgeOverlap  *best = OG->getBestEdgeOverlap(rdAid, rdA->position.isReverse());
-
-  if (best->readId() == 0)
-    return(UINT32_MAX);
-
-  if (tig->inUnitig(best->readId()) == tig->id()) {
-    uint32   pi    =  tig->ufpathIdx(best->readId());
-    ufNode  *rdB   = &tig->ufpath[pi];
-    int32    rdBlo = rdB->position.min();
-    int32    rdBhi = rdB->position.max();
-
-    if (isInside(rMin, rdBhi, rMax + 50) == false)    //  Don't care if the read is outside the repeat.
-      return(UINT32_MAX);                             //  See above for an example.
-
-    if ((rdBlo <= rdAlo) &&
-        (rdAlo <= rdBhi) &&
-        (best->read3p() == rdB->isForward())) {
-      writeLog("find prev BEST from read %u position %u %u to read %u position %u %u - olap %u %u (repeat at %u %u)\n",
-               rdAid,  rdAlo, rdAhi,
-               rdB->ident, rdBlo, rdBhi,
-               rdAlo, rdBhi, rMin, rMax);
-      return(pi);
-    }
-  }
-
-  return(UINT32_MAX);
-}
-
-
 
 uint32
 findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
@@ -502,54 +455,6 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
 
   return(bestIdx);
 }
-
-uint32
-findNextBestRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
-  ufNode     *rdA       = &tig->ufpath[fi];
-  uint32      rdAid     = rdA->ident;
-  bool        rdAfwd    = rdA->position.isForward();
-  int32       rdAlo     = rdA->position.min();
-  int32       rdAhi     = rdA->position.max();
-
-  //  If rdA ends after rMax, we don't need to find the previous read.
-  //  it's not confused.
-
-  if (rMax < rdAhi)
-    return(UINT32_MAX);
-
-  //  If the read is forward, we want to return the best edge from the 3'
-  //  end, After that, just check that it's in the same tig, at an
-  //  overlapping position and in the correct orientation.
-
-  BestEdgeOverlap  *best = OG->getBestEdgeOverlap(rdAid, rdA->position.isForward());
-
-  if (best->readId() == 0)
-    return(UINT32_MAX);
-
-  if (tig->inUnitig(best->readId()) == tig->id()) {
-    uint32   pi    =  tig->ufpathIdx(best->readId());
-    ufNode  *rdB   = &tig->ufpath[pi];
-    int32    rdBlo = rdB->position.min();
-    int32    rdBhi = rdB->position.max();
-
-    if (isInside(rMin - 50, rdBlo, rMax) == false)    //  Don't care if the read is outside the repeat.
-      return(UINT32_MAX);                             //  See above for an example.
-
-    if ((rdBlo <= rdAhi) &&
-        (rdAhi <= rdBhi) &&
-        (best->read3p() == rdB->isReverse())) {
-      writeLog("find next BEST from read %u position %u %u to read %u position %u %u - olap %u %u (repeat at %u %u)\n",
-               rdAid,  rdAlo, rdAhi,
-               rdB->ident, rdBlo, rdBhi,
-               rdBlo, rdAhi, rMin, rMax);
-      return(pi);
-    }
-  }
-
-  return(UINT32_MAX);
-}
-
-
 
 //
 //  Scan all of the rdA overlaps, searching for one to rdB on the correct end of rdA.
@@ -733,9 +638,6 @@ findConfusedEdges(TigVector            &tigs,
 
       uint32  best5idx = findThickestPrevRead(tig, fi, rMin, rMax);
       uint32  best3idx = findThickestNextRead(tig, fi, rMin, rMax);
-
-      //uint32  best5idx = findPrevBestRead(tig, fi, rMin, rMax);
-      //uint32  best3idx = findNextBestRead(tig, fi, rMin, rMax);
 
       ufNode *rdB5 = (best5idx < tig->ufpath.size()) ? &tig->ufpath[best5idx] : NULL;
       ufNode *rdB3 = (best3idx < tig->ufpath.size()) ? &tig->ufpath[best3idx] : NULL;
