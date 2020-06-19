@@ -289,11 +289,11 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax) {
   //  it's not confused.
 
   if (rdAlo < rMin)
-    return(UINT32_MAX);
+    return(bestIdx);
 
   //  Otherwise, search for the previous best read.
 
-  for (int32 pi=fi-1; pi>0; pi--) {
+  for (int32 pi=fi-1; pi >= 0; pi--) {
     ufNode  *rdB   = &tig->ufpath[pi];
     int32    rdBlo = rdB->position.min();
     int32    rdBhi = rdB->position.max();
