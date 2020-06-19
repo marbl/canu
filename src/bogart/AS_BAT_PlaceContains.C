@@ -70,9 +70,6 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
   uint32       *placedTig = new uint32      [RI->numReads() + 1];
   SeqInterval  *placedPos = new SeqInterval [RI->numReads() + 1];
 
-  memset(placedTig, 0, sizeof(uint32)      * (RI->numReads() + 1));
-  memset(placedPos, 0, sizeof(SeqInterval) * (RI->numReads() + 1));
-
   //  Just some logging.  Count the number of reads we try to place.
 
   uint32   nToPlaceContained = 0;
@@ -109,6 +106,10 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
     bool  enableLog = true;
+
+    placedTig[fid]     = 0;   //  MUST be initialized to zero.  placedPos is already
+    placedPos[fid].bgn = 0;   //  initialized, but even if it isn't, it's init'd when
+    placedPos[fid].end = 0;   //  placedTig is set.
 
     if (tigs.inUnitig(fid) > 0)
       continue;
