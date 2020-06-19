@@ -18,7 +18,7 @@
 #include "clearRangeFile.H"
 #include "files.H"
 
-clearRangeFile::clearRangeFile(char const *filename=NULL) {
+clearRangeFile::clearRangeFile(char const *filename) {
 
   //  Clear the filename, because it isn't set if the filename passed in is NULL.
 

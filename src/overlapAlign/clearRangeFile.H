@@ -27,7 +27,7 @@
 
 class clearRangeFile {
 public:
-  clearRangeFile(char const *filename);
+  clearRangeFile(char const *filename=nullptr);
   ~clearRangeFile();
 
 private:
