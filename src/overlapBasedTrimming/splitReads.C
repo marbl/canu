@@ -38,11 +38,6 @@ main(int argc, char **argv) {
   uint32    idMax = UINT32_MAX;
 
   char     *outputPrefix = NULL;
-  char      outputName[FILENAME_MAX];
-
-  FILE     *staFile      = NULL;
-  FILE     *reportFile   = NULL;
-  FILE     *subreadFile  = NULL;
 
   bool      doSubreadLogging        = false;
   bool      doSubreadLoggingVerbose = false;
@@ -132,6 +127,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-V") == 0) {
+      doSubreadLogging        = true;
+
+    } else if (strcmp(argv[arg], "-VV") == 0) {
+      doSubreadLogging        = true;
+      doSubreadLoggingVerbose = true;
+
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -177,36 +179,23 @@ main(int argc, char **argv) {
   clearRangeFile  *finClr = new clearRangeFile(finClrName, seq);
   clearRangeFile  *outClr = new clearRangeFile(outClrName, seq);
 
+  //  If the outClr file exists, those clear ranges are loaded.  We need to
+  //  reset them back to 'untrimmed' for now.
   if (outClr)
-    //  If the outClr file exists, those clear ranges are loaded.  We need to reset them
-    //  back to 'untrimmed' for now.
     outClr->reset(seq);
 
+  //  A finClr file was supplied, so use those as the clear ranges.
   if (finClr && outClr)
-    //  A finClr file was supplied, so use those as the clear ranges.
     outClr->copy(finClr);
 
-
-  snprintf(outputName, FILENAME_MAX, "%s.log",         outputPrefix);
-  errno = 0;
-  reportFile  = fopen(outputName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
-
-  if (doSubreadLogging) {
-    snprintf(outputName, FILENAME_MAX, "%s.subread.log", outputPrefix);
-    errno = 0;
-    subreadFile = fopen(outputName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
-  }
+  FILE *reportFile  = AS_UTL_openOutputFile(outputPrefix, '.', "log",         true);
+  FILE *subreadFile = AS_UTL_openOutputFile(outputPrefix, '.', "subread.log", doSubreadLogging);
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 0;
   ovOverlap  *ovl    = NULL;
 
   workUnit *w = new workUnit;
-
 
   if (idMin < 1)
     idMin = 1;
@@ -380,11 +369,7 @@ main(int argc, char **argv) {
 
   //  Write the summary
 
-  if (outputPrefix) {
-    snprintf(outputName, FILENAME_MAX, "%s.stats", outputPrefix);
-
-    staFile = AS_UTL_openOutputFile(outputName);
-  }
+  FILE *staFile = AS_UTL_openOutputFile(outputPrefix, '.', "stats");
 
   if (staFile == NULL)
     staFile = stdout;
