@@ -547,9 +547,12 @@ ifeq (${CANU_BUILD_ENV}, ports)
 
 else
 
-  CC       ?= gcc6
-  CXX      ?= g++6
-  CCLIB    ?= -rpath /usr/local/lib/gcc6
+  # Ignore the gmake default 'c++' and force g++9.
+	ifeq ($(origin CXX), default)
+    CC    = gcc9
+    CXX   = g++9
+    CCLIB = -rpath /usr/local/lib/gcc9
+  endif
 
   #  GCC
   CXXFLAGS  += -I/usr/local/include -pthread -fopenmp -fPIC
