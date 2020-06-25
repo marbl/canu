@@ -32,7 +32,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-int32  MAX_SKIP_LIMIT    = 3;
+int32  MAX_SKIP_LIMIT    = 1;
 
 ReadInfo         *RI  = 0L;
 OverlapCache     *OC  = 0L;
@@ -77,12 +77,14 @@ void processLine(char *line, uint32 lineLen) {
 void
 importTigsFromReadList(char const *prefix,
                        TigVector  &tigs,
-                       char const *readListPath) {
+                       char const *readListPath,
+                       uint32 seed) {
   uint32        lineLen = 0;
   uint32        lineMax = 0;
   char         *line    = nullptr;
   splitToWords  words;
 
+  srand(seed);
   std::unordered_map<uint32, uint32> readMap;
   std::unordered_set<uint32> usedReads;
 
@@ -108,7 +110,6 @@ importTigsFromReadList(char const *prefix,
          readMap[fi] = 0;
       }
       readMap[fi] += 1;
-//fprintf(stderr, "Adding usage of read %d and its count is now %d\n", fi, readMap[fi]);
     }
   }
   AS_UTL_closeFile(listFile, readListPath);
@@ -128,6 +129,7 @@ importTigsFromReadList(char const *prefix,
     bool isFirst = true;
     uint32 lastUsed = 0;
     uint32 skipped = 0;
+    uint32 notSkipped = 0;
 
     for (uint32 rr=1; rr<words.numWords(); rr++) {
       uint32   fi   = 0;
@@ -146,18 +148,19 @@ importTigsFromReadList(char const *prefix,
       uint32 r = (rand() % readMap[fi]) + 1;
       //fprintf(stderr, "processing read %d with previous count %d and random number generated %d\n", fi, readMap[fi], r);
       // if we match randomly or we already skipped too many reads recently, we use this read
-      if (r != 1 && skipped < MAX_SKIP_LIMIT) {
+      if ((readMap[fi] > 1 && notSkipped > MAX_SKIP_LIMIT) || (r != 1 && skipped < MAX_SKIP_LIMIT)) {
          //fprintf(stderr, "Skpping read %d with %d count because value was %d\n", fi, readMap[fi], r);
          skipped++;
+         notSkipped = 0;
          continue;
       }
       skipped =0 ;
+      notSkipped++;
       usedReads.insert(fi);
-      lastUsed = fi;
 
       //  If this is the first read, we can immediately add it.
-
       if (isFirst) {
+        lastUsed = rr;
         isFirst = false;
         fbgn = 0;
         fend = flen;
@@ -192,9 +195,13 @@ importTigsFromReadList(char const *prefix,
         if (povl[poo].flipped != wantFlip)   //  Overlap flippedness doesn't
           continue;                          //  agree with what we need.
 
-        //  Must be the overlap we want.
+        if ((pfwd == true && povl[poo].a_hang < -1) || (pfwd == false && povl[poo].a_hang > 1))      //Overlap on the expected side of the read
+           continue;
+
+       //  Must be the overlap we want.
 
         placed = true;
+        lastUsed = rr;
 
         //  Compute the position of the read.  Some nuance to point out here.
         //  If pnode is forward, then .bgn is the min coord, and a_hang _should_ be positive.
@@ -202,9 +209,6 @@ importTigsFromReadList(char const *prefix,
 
         fbgn = pnode.position.bgn + povl[poo].a_hang;
         fend = pnode.position.bgn + povl[poo].a_hang + flen;
-
-        if (pfwd ==  true)   assert(povl[poo].a_hang >= -1);
-        if (pfwd == false)   assert(povl[poo].a_hang <= 1);
 
         //  However, testing with bogart layouts occasionally resulted in the
         //  next read being placed before the previous read, probably due to
@@ -271,6 +275,8 @@ main (int argc, char **argv) {
 
   vector<char const *>  err;
   int                   arg = 1;
+  uint32 seed = time(NULL);
+
   while (arg < argc) {
     if      (strcmp(argv[arg], "-S") == 0) {
       seqStorePath = argv[++arg];
@@ -298,6 +304,10 @@ main (int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = strtodouble(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-seed") == 0) {
+      seed = strtouint64(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-nocontains") == 0) {
@@ -364,7 +374,7 @@ main (int argc, char **argv) {
 
   TigVector  contigs(RI->numReads());  //  Both initial greedy tigs and final contigs
 
-  importTigsFromReadList(prefix, contigs, readListPath);
+  importTigsFromReadList(prefix, contigs, readListPath, seed);
 
   setLogFile(prefix, "layoutTigsOpt");
   contigs.optimizePositions(prefix, "layoutTigsOpt");
