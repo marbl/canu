@@ -365,7 +365,7 @@ directly do any significant computations, rather it just examines the files that
 which component to run next.  For example, if overlaps exist but contigs do not, it would create
 contigs next.
 
-When under grid control, some tasks can be run in the same job as the executive, if there is emough
+When under grid control, some tasks can be run in the same job as the executive, if there is enough
 memory and threads reserved for the executive.  The benefit of this is slight; on a heavily loaded
 grid, it would reduce the number of job scheduling iterations Canu needs to run.
 
