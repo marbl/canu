@@ -150,7 +150,7 @@ main(int argc, char **argv) {
     //fclose(correctedReads);
     delete correctedReadsWriter;
     fprintf(stderr, "Exiting");
-    exit(239);
+    exit(0);
   }
 
   //  Load overlaps we're going to correct
