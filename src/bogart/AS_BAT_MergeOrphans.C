@@ -112,12 +112,15 @@ bool isCycle(TigVector       &tigs,
       return false;
 
    // find the reads corresponding to our best
-   writeLog("Checking best edges for %d ori %d and %d ori %d, the best next is %d and the best last is %d\n", fRead->ident, fRead->position.isForward(), lRead->ident, lRead->position.isForward(), prev->readId(), next->readId());
+   if (logFileFlagSet(LOG_ORPHAN_DETAIL))
+      writeLog("Checking best edges for %d ori %d and %d ori %d, the best next is %d and the best last is %d\n", fRead->ident, fRead->position.isForward(), lRead->ident, lRead->position.isForward(), prev->readId(), next->readId());
    ufNode *rdPrev = &tigs[tigs.inUnitig(prev->readId())]->ufpath[ tigs.ufpathIdx(prev->readId()) ];
    ufNode *rdNext = &tigs[tigs.inUnitig(next->readId())]->ufpath[ tigs.ufpathIdx(next->readId()) ];
 
-   writeLog("The prev best edge is %d orient is %d in tig %d (and the coordiantes it has are %d - %d ori %d)\n", prev->readId(), prev->read3p(), tigs.inUnitig(prev->readId()), rdPrev->position.min(), rdPrev->position.max(), rdPrev->position.isForward());
-   writeLog("The next best edge is %d orient is %d in tig %d (and the coordinates it has are %d - %d ori %d)\n", next->readId(), next->read3p(), tigs.inUnitig(next->readId()), rdNext->position.min(), rdNext->position.max(), rdNext->position.isForward());
+   if (logFileFlagSet(LOG_ORPHAN_DETAIL)) {
+      writeLog("The prev best edge is %d orient is %d in tig %d (and the coordiantes it has are %d - %d ori %d)\n", prev->readId(), prev->read3p(), tigs.inUnitig(prev->readId()), rdPrev->position.min(), rdPrev->position.max(), rdPrev->position.isForward());
+      writeLog("The next best edge is %d orient is %d in tig %d (and the coordinates it has are %d - %d ori %d)\n", next->readId(), next->read3p(), tigs.inUnitig(next->readId()), rdNext->position.min(), rdNext->position.max(), rdNext->position.isForward());
+   }
 
    // when we have a 3p edge it means we hit the 3' end of that read. so if we are looking upstream of us hitting 3' means the other read is forward and vice versa on the other side of the tig
    bool pFwd = (prev->read3p() == true);
@@ -133,7 +136,8 @@ bool isCycle(TigVector       &tigs,
    bool badOri = ((pFwd == rdPrev->position.isForward()) != (nFwd == rdNext->position.isForward()));
 
    if (badOri || dist < 0.5*length) {
-      writeLog("Failed cycle check with  %d misOrder and length %d\n", badOri, dist);
+      if (logFileFlagSet(LOG_ORPHAN_DETAIL))
+         writeLog("Failed cycle check with  %d misOrder and length %d\n", badOri, dist);
       return true;
    }
 
@@ -714,6 +718,7 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
 
       //  Over all the last read placements...
       for (uint32 lp=0; lp<lPlaces.size(); lp++) {
+
         if ((target->id() != lPlaces[lp].tigID) ||      //  Placed in wrong tig
             (lPlaces[lp].position.min() < intBgn) ||    //  Read not placed fully
             (intEnd    < lPlaces[lp].position.max()))   //  in the region.
@@ -849,10 +854,11 @@ assignReadsToTargets(Unitig                     *orphan,
           remo = aa;
         }
 
-        writeLog("  duplicate read alignment for tig %u read %u - better %u-%-u %.4f - worse %u-%-u %.4f\n",
-                 t->placed[save].tigID, t->placed[save].frgID,
-                 t->placed[save].position.bgn, t->placed[save].position.end, t->placed[save].erate(),
-                 t->placed[remo].position.bgn, t->placed[remo].position.end, t->placed[remo].erate());
+        if (logFileFlagSet(LOG_ORPHAN_DETAIL))
+          writeLog("  duplicate read alignment for tig %u read %u - better %u-%-u %.4f - worse %u-%-u %.4f\n",
+                   t->placed[save].tigID, t->placed[save].frgID,
+                   t->placed[save].position.bgn, t->placed[save].position.end, t->placed[save].erate(),
+                   t->placed[remo].position.bgn, t->placed[remo].position.end, t->placed[remo].erate());
 
         t->placed[remo] = overlapPlacement();
       }
