@@ -187,7 +187,7 @@ mergeAnnotations(vector<olapDat>      &repeatOlaps,
 #ifdef SHOW_ANNOTATE
   for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
     if (repeatOlaps[ii].tigbgn < 1000000)
-      writeLog("repeatOlaps[%d] %d-%d from tig %u read %u place %u MERGED\n",
+      writeLog("repeatOlaps[%d] %d-%d read %u place %u MERGED\n",
                ii,
                repeatOlaps[ii].tigbgn, repeatOlaps[ii].tigend,
                repeatOlaps[ii].eviRid, repeatOlaps[ii].eviPid);
@@ -379,7 +379,7 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax, char *logMs
     rdBlo =  tig->ufpath[bestIdx].position.min();
     rdBhi =  tig->ufpath[bestIdx].position.max();
 
-    if (isInside(rMin, rdBhi, rMax + 50) == false)
+    if (isInside(rMin, rdBhi, rMax) == false)
       rdB = nullptr;
   }
 
@@ -455,7 +455,7 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax, char *logMs
     rdBlo =  tig->ufpath[bestIdx].position.min();
     rdBhi =  tig->ufpath[bestIdx].position.max();
 
-    if (isInside(rMin - 50, rdBlo, rMax) == false)   //  Don't care if the read is outside the repeat.
+    if (isInside(rMin, rdBlo, rMax) == false)        //  Don't care if the read is outside the repeat.
       rdB = nullptr;                                 //  See above for an example.
   }
 
@@ -957,22 +957,6 @@ markRepeatReads(AssemblyGraph         *AG,
 
     confusedEdges.clear();
 
-    //  For each repeat region, count the number of times we find a read
-    //  external to the tig with an overlap more or less of the same strength
-    //  as the overlap interal to the tig.
-    //
-    //  Prior to mid-June 2020 this was also removing any tigMarksR that had
-    //  no confused edges in them.  With the new splitting introduced around
-    //  then, this had the unintended consequence of mislabeling reads as
-    //  unique when no confused edge was found in a region, which could lead
-    //  to new 'repeat' tigs being flagged as unique when they were actually
-    //  mostly repeat, for example: -------[rrrrr]--[rrrrrrrrrr]-[rrr]------
-    //  If no confused edges were found in the middle repeat block, but were
-    //  in the two outer blocks, the new tig created for the middle section
-    //  would be called unique, even though it was mostly repeat.
-
-    findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
-
     //  Merge adjacent repeats.
     //
     //  When we split (later), we require a MIN_ANCHOR_HANG overlap to anchor
@@ -998,6 +982,22 @@ markRepeatReads(AssemblyGraph         *AG,
     //  hundred bases of non-repeat.
 
     mergeAdjacentRegions(tig, tigMarksR);
+
+    //  For each repeat region, count the number of times we find a read
+    //  external to the tig with an overlap more or less of the same strength
+    //  as the overlap interal to the tig.
+    //
+    //  Prior to mid-June 2020 this was also removing any tigMarksR that had
+    //  no confused edges in them.  With the new splitting introduced around
+    //  then, this had the unintended consequence of mislabeling reads as
+    //  unique when no confused edge was found in a region, which could lead
+    //  to new 'repeat' tigs being flagged as unique when they were actually
+    //  mostly repeat, for example: -------[rrrrr]--[rrrrrrrrrr]-[rrr]------
+    //  If no confused edges were found in the middle repeat block, but were
+    //  in the two outer blocks, the new tig created for the middle section
+    //  would be called unique, even though it was mostly repeat.
+
+    findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
 
     //  Invert.  This finds the non-repeat intervals, which get turned into
     //  non-repeat tigs.
