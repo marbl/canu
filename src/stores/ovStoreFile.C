@@ -23,24 +23,26 @@
 
 
 
+//  Convert slice and piece numbers into a data file name.
+//
+//  It's also used in objectStore.C findOvlStorePath().
+//
+//  Sigh.  The original form of this name was %04u<%03u>, which was just charming.
+//
+//  POSIX.1-2008 defines the Portable Filename Character Set as just
+//      A-Z  a-z  0-9  .  _  -
+//  which makes for very boring filenames.  But, lo!  There ARE filesystems
+//  that require the Portable Filename Character Set.
+//
+//  And so now we have boring file names.
+//
 char *
 ovFile::createDataName(char       *name,
                        const char *storeName,
                        uint32      sliceNum,
                        uint32      pieceNum) {
 
-  //  Sigh.
-  //
-  //  POSIX.1-2008 defines the Portable Filename Character Set as just
-  //      A-Z  a-z  0-9  .  _  -
-  //  which makes for very boring filenames.  But, lo!  There ARE filesystems
-  //  that require the Portable Filename Character Set.
-
-#ifdef POSIX_FILE_NAMES
-  snprintf(name, FILENAME_MAX, "%s/%04u.%03u", storeName, sliceNum, pieceNum);
-#else
-  snprintf(name, FILENAME_MAX, "%s/%04u<%03u>", storeName, sliceNum, pieceNum);
-#endif
+  snprintf(name, FILENAME_MAX, "%s/%04u-%03u", storeName, sliceNum, pieceNum);
 
   return(name);
 }

@@ -384,31 +384,8 @@ ifeq (${OSTYPE}, SunOS)
   endif
 endif
 
-#  Some filesystems cannot use < or > in file names, but for reasons unknown
-#  (or, at least, reasons we're not going to admit to), files in the overlap
-#  store are named ####<###>.  Enabling POSIX_FILE_NAMES Will change the
-#  names to ####.###.
+
 #
-#  Be aware this will break object store compatibility.
-#
-ifeq ($(POSIX_FILE_NAMES), 1)
-  CXXFLAGS += -DPOSIX_FILE_NAMES
-
-else
-  #  Try to create non-<posix> file names.  It's tempting to use 'wildcard' instead
-  #  of the 'ls', but it doesn't work.
-  $(shell touch "non-<posix>-name" > /dev/null 2>&1)
-
-  ifeq (non-<posix>-name, $(shell ls "non-<posix>-name" 2> /dev/null))
-    #$(info Extended POSIX filenames allowed.)
-  else
-    #$(info POSIX filenames required.)
-    CXXFLAGS += -DPOSIX_FILE_NAMES
-  endif
-
-  $(shell rm -f "non-<posix>-name")
-endif
-
 #  Set compiler and flags based on discovered hardware
 #
 #  By default, debug symbols are included in all builds (even optimized).

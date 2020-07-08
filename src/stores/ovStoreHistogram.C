@@ -123,14 +123,10 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 char *
 ovStoreHistogram::createDataName(char *name, const char *prefix) {
 
-  if (directoryExists(prefix)) {                             //  If name is a directory,
-    snprintf(name, FILENAME_MAX, "%s/statistics", prefix);   //  return a file in the directory.
-  }
-
-  else {                                                     //  Otherwise, replace the suffix
-    AS_UTL_findBaseFileName(name, prefix);                   //  with '.statistics'.
-    strcat(name, ".statistics");
-  }
+  if (directoryExists(prefix))
+    snprintf(name, FILENAME_MAX, "%s/statistics", prefix);
+  else
+    snprintf(name, FILENAME_MAX, "%s.statistics", prefix);
 
   return(name);
 }
