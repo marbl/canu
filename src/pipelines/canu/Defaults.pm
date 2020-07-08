@@ -912,10 +912,10 @@ sub setDefaults () {
     setDefault("obtOvlErrorRate",     undef,     "Overlaps at or below this error rate are used to trim reads");
     setDefault("utgOvlErrorRate",     undef,     "Overlaps at or below this error rate are used to trim reads");
     setDefault("utgErrorRate",        undef,     "Overlaps at or below this error rate are used to construct contigs");
-    setDefault("utgGraphDeviation",   12,        "Overlaps this much above median will not be used for initial graph construction");
+    setDefault("utgGraphDeviation",   undef,     "Overlaps this much above median will not be used for initial graph construction");
     setDefault("utgBubbleDeviation",  1,         "Overlaps this much above mean of contig will be used to identify bubbles");
-    setDefault("utgRepeatDeviation",  6,         "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
-    setDefault("utgRepeatConfusedBP", 3000,      "Repeats where the next best edge is at least this many bp shorter will not be split");
+    setDefault("utgRepeatDeviation",  undef,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
+    setDefault("utgRepeatConfusedBP", 2500,      "Repeats where the next best edge is at least this many bp shorter will not be split");
     setDefault("utgChimeraType",      "deadend", "When to filter reads for contig construction: none, chimera (missing middle), uncovered (missing middle or ends), deadend (missing middle or end or no neighbor) (default)");
     setDefault("corErrorRate",        undef,     "Only use raw alignments below this error rate to construct corrected reads");
     setDefault("cnsErrorRate",        undef,     "Consensus expects alignments at about this error rate");
@@ -1515,6 +1515,9 @@ sub checkParameters () {
     }
 
     foreach my $var ("utgGraphDeviation", "utgRepeatDeviation", "utgRepeatConfusedBP", "minReadLength", "minOverlapLength") {
+        setGlobal("utgGraphDeviation", 12) if $var eq "utgGraphDeviation" && !defined(getGlobal($var));
+        setGlobal("utgRepeatDeviation", 1) if $var eq "utgRepeatDeviation" && !defined(getGlobal($var));
+
         if (!defined(getGlobal($var))) {
             addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
         }
