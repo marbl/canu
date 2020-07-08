@@ -381,6 +381,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     double           templateSize  = 0.80;
     double           extensionSize = 0.20;
+    double           bandErrRate   = _errorRate / 4;
 
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
 
@@ -418,7 +419,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     result = edlibAlign(tigseq + tiglen - templateLen, templateLen,
                         fragment, readEnd - readBgn,
-                        edlibNewAlignConfig(olapLen * _errorRate, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+                        edlibNewAlignConfig(olapLen * bandErrRate, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
     //  We're expecting the template to align inside the read.
     //
@@ -488,6 +489,7 @@ unitigConsensus::generateTemplateStitch(void) {
                 (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
       templateSize -= 0.10;
+      bandErrRate += _errorRate / 4;
     }
 
     if ((noResult) || (hitTheEnd && moreToExtend)) {
@@ -496,6 +498,7 @@ unitigConsensus::generateTemplateStitch(void) {
                 (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
       extensionSize += 0.10;
+      bandErrRate += _errorRate / 4;
     }
 
     if (templateSize < 0.01) {
