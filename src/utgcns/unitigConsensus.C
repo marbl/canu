@@ -489,7 +489,7 @@ unitigConsensus::generateTemplateStitch(void) {
                 (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
       templateSize -= 0.10;
-      bandErrRate += _errorRate / 4;
+      bandErrRate = (bandErrRate + _errorRate / 4 >= _errorRate ? _errorRate : bandErrRate + _errorRate / 4);
     }
 
     if ((noResult) || (hitTheEnd && moreToExtend)) {
@@ -498,7 +498,7 @@ unitigConsensus::generateTemplateStitch(void) {
                 (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
       extensionSize += 0.10;
-      bandErrRate += _errorRate / 4;
+      bandErrRate = (bandErrRate + _errorRate / 4 >= _errorRate ? _errorRate : bandErrRate + _errorRate / 4);
     }
 
     if (templateSize < 0.01) {
