@@ -27,7 +27,14 @@
 #       instances of "$" within them need to be escaped with a second "$" to
 #       accomodate the double expansion that occurs when eval is invoked.
 
-#  Before doing ANYTHING, initialize submodules.
+#  Before doing ANYTHING, initialize submodules...if the version of
+#  git is compatible.
+gitv := $(shell git --version | cut -d\  -f 3 | cut -c 1)
+ifeq (1, $(gitv))
+  gitv := $(shell git --version | cut -d\  -f 3)
+  $(error git '$(shell which git)' version '$(gitv)' too old; at least version 2.12 is required)
+endif
+
 ifeq ($(wildcard utility/src/Makefile), )
   $(info $(shell git submodule update --init utility))
   $(info $(space))
