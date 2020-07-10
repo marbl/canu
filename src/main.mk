@@ -58,6 +58,7 @@ SOURCES      := utility/src/utility/runtime.C \
                 utility/src/utility/hexDump.C \
                 utility/src/utility/md5.C \
                 utility/src/utility/mt19937ar.C \
+                utility/src/utility/objectStore.C \
                 utility/src/utility/speedCounter.C \
                 utility/src/utility/sweatShop.C \
                 \
@@ -89,8 +90,6 @@ SOURCES      := utility/src/utility/runtime.C \
                 stores/libsnappy/snappy-sinksource.cc \
                 stores/libsnappy/snappy-stubs-internal.cc \
                 stores/libsnappy/snappy.cc \
-                \
-                stores/objectStore.C \
                 \
                 overlapInCore/overlapReadCache.C \
                 \

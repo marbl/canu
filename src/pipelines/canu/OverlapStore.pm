@@ -724,63 +724,6 @@ sub deleteOverlapIntermediateFiles ($$@) {
 
 
 
-#
-#  Scan the overlap store for old-format file names.  If any are found,
-#  create new-format names as symlinks to the original files.
-#
-sub updateOverlapStoreFiles ($$$) {
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-    my $base    = shift @_;
-
-    my %oldToNew;
-    my @newExists;
-
-    #  Scan the store for any old-format files.
-    #  Remember if new-format links exist too.
-    open(L, "ls $base/$asm.ovlStore/ | ");
-    while (<L>) {
-        chomp;
-
-        if (m/^(\d\d\d\d)<(\d\d\d)>$/) {
-            my $old = "$1<$2>";
-            my $new = "$1-$2";
-
-            $oldToNew{$old} = $new;
-        }
-
-        if (m/^(\d\d\d\d)-(\d\d\d)$/) {
-            my $old = "$1<$2>";
-            my $new = "$1-$2";
-
-            push @newExists, $old;
-        }
-    }
-    close(L);
-
-    #  Forget about old-format names with new-format links already present.
-    foreach my $nn (@newExists) {
-        delete $oldToNew{$nn};
-    }
-
-    #  If there are any old-format names left, make links for them, logging
-    #  whatever we do.
-    if (scalar(%oldToNew) > 0) {
-        print STDERR "--\n";
-        print STDERR "-- UPDATING $base/$asm.ovlStore data files to new name format:\n";
-
-        foreach my $oo (keys %oldToNew) {
-            print STDERR "--   '$oo' -> '$oldToNew{$oo}'\n";
-            system("ln -s '$oo' '$base/$asm.ovlStore/$oldToNew{$oo}'");
-        }
-
-        print STDERR "--\n";
-    }
-}
-
-
-
-
 sub createOverlapStore ($$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -792,13 +735,6 @@ sub createOverlapStore ($$) {
     $base = "correction"  if ($tag eq "cor");
     $base = "trimming"    if ($tag eq "obt");
     $base = "unitigging"  if ($tag eq "utg");
-
-    #  A compatibility fix for renaming ovlStore data files from 0000<000> to 0000-000.
-    #  This change occurred around July 7 2020.
-
-    updateOverlapStoreFiles($asm, $tag, $base);
-
-    #  Now, if the directory exists, we have a store.
 
     goto allDone   if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
     goto allDone   if ((-d "$base/$asm.ctgStore") || (fileExists("$base/$asm.ctgStore.tar.gz")));
