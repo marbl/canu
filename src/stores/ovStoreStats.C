@@ -128,11 +128,11 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (seqName == NULL)
+  if  (seqName == NULL)
     err++;
-  if (ovlName == NULL)
+  if  (ovlName == NULL)
     err++;
-  if (outPrefix == NULL)
+  if ((outPrefix == NULL) && (toFile == true))
     err++;
 
   if (err) {
