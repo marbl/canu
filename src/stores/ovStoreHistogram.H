@@ -39,11 +39,7 @@
 //  When the store is finalized, all the pieces will be collected
 //  into one list.
 //
-class oSH_ovlSco {
-public:
-  oSH_ovlSco()  {}
-  ~oSH_ovlSco() {};
-
+struct oSH_ovlSco {
   uint16    points[N_OVL_SCORE];
   uint16    scores[N_OVL_SCORE];
 };
