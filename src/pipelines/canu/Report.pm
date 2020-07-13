@@ -78,6 +78,7 @@ sub loadReport ($) {
 
         } elsif (m/OVERLAPS\]$/)     {  $rpt = "overlaps";        $report{$rpt} = undef;
         } elsif (m/ADJUSTMENT\]$/)   {  $rpt = "adjustments";     $report{$rpt} = undef;
+        } elsif (m/ERROR RATES\]$/)  {  $rpt = "error rates";     $report{$rpt} = undef;
         } elsif (m/UNITIGS\]$/)      {  $rpt = "unitigs";         $report{$rpt} = undef;
         } elsif (m/CONTIGS\]$/)      {  $rpt = "contigs";         $report{$rpt} = undef;
         } elsif (m/CONSENSUS\]$/)    {  $rpt = "consensus";       $report{$rpt} = undef;
@@ -129,6 +130,7 @@ sub saveReport ($) {
     saveReportItem("UNITIGGING/MERS",        $report{"utgMeryl"});
     saveReportItem("UNITIGGING/OVERLAPS",    $report{"overlaps"});
     saveReportItem("UNITIGGING/ADJUSTMENT",  $report{"adjustments"});
+    saveReportItem("UNITIGGING/ERROR RATES", $report{"error rates"});
     saveReportItem("UNITIGGING/UNITIGS",     $report{"unitigs"});
     saveReportItem("UNITIGGING/CONTIGS",     $report{"contigs"});
     saveReportItem("UNITIGGING/CONSENSUS",   $report{"consensus"});

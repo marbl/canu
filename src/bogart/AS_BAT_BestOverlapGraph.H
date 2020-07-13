@@ -194,7 +194,9 @@ private:
   void   findContains(void);
   void   findEdges(bool redoAll);
 
-  void   findErrorRateThreshold(void);
+  bool   summarizeBestEdges(double errorLimit, double p, uint32 nFiltered[4]);
+  void   findInitialEdges(void);
+  void   findErrorRateThreshold(FILE *report);
 
   void   checkForContainedDovetails(void) const;
   void   checkForCovGapEdges(void) const;
@@ -264,7 +266,7 @@ public:
   uint32    numOrphan     (void) const { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isOrphan(fi))      n++;  return(n); };
   uint32    numDelinquent (void) const { uint32 n=0;  for (uint32 fi=1; fi <= RI->numReads(); fi++)  if (isDelinquent(fi))  n++;  return(n); };
 
-  void      reportEdgeStatistics(const char *prefix, const char *label);
+  void      reportEdgeStatistics(FILE *report, const char *label);
   void      reportBestEdges(const char *prefix, const char *label);
   double    reportErrorLimit() const {return _errorLimit;};
 
@@ -286,12 +288,17 @@ private:
   double                     _median;
   double                     _mad;
 
-public:
-  double                     _erateGraph;
-  double                     _deviationGraph;
+private:
+  double const               _erateMax;
+  double const               _erateGraph;
+  double const               _deviationGraph;
 private:
   double                     _errorLimit;
   double                     _minOlapPercent;
+
+private:
+  uint32                     _nReadsEP[2];   //  These are used for communicating stats between stages,
+  uint32                     _nReadsEF[2];   //  not for use once the graph is built.
 };
 
 

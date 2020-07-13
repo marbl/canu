@@ -70,7 +70,87 @@ scoreOverlap(BAToverlap& olap) {
 
 
 void
-BestOverlapGraph::findErrorRateThreshold(void) {
+BestOverlapGraph::findInitialEdges(void) {
+
+  _nReadsEP[0] = _nReadsEP[1] = 0;   //  Number of reads with an edge possible.   [0] == graph limit
+  _nReadsEF[0] = _nReadsEF[1] = 0;   //  Number of reads with an edge found.      [1] == max   limit
+
+  //  Find initial contained reads and edges using the preferred erateGraph.
+  //  Then count the number of reads that could have an edge, and the number
+  //  that do have at least one edge.
+
+  _errorLimit = _erateGraph;
+
+  findContains();
+  findEdges(true);
+
+  for (uint32 fi=1; fi <= RI->numReads(); fi++) {
+    if (!RI->isValid(fi) || isContained(fi) || isIgnored(fi))
+      continue;
+
+    _nReadsEP[0]++;
+
+    if (getBestEdgeOverlap(fi, false)->isUnset() == false ||
+        getBestEdgeOverlap(fi,  true)->isUnset() == false)
+      _nReadsEF[0]++;
+  }
+
+  //  If we've found a sufficint number of reads with edges, we're done here.
+
+  if (_nReadsEF[0] >= 0.90 * _nReadsEP[0])
+    return;
+
+  //  Otherwise, increase the limit to the max and recompute.
+
+  _errorLimit = _erateMax;
+
+  findContains();
+  findEdges(true);
+
+  for (uint32 fi=1; fi <= RI->numReads(); fi++) {
+    if (!RI->isValid(fi) || isContained(fi) || isIgnored(fi))
+      continue;
+
+    _nReadsEP[1]++;
+
+    if (getBestEdgeOverlap(fi, false)->isUnset() == false ||
+        getBestEdgeOverlap(fi,  true)->isUnset() == false)
+      _nReadsEF[1]++;
+  }
+}
+
+
+
+bool
+BestOverlapGraph::summarizeBestEdges(double errorLimit, double p, uint32 nFiltered[4]) {
+  uint32  fiLimit    = RI->numReads();
+
+  nFiltered[0] = 0;   //  Both edges below limit
+  nFiltered[1] = 0;   //  One edge above limit
+  nFiltered[2] = 0;   //  Both edges above limit
+  nFiltered[3] = 0;   //  Total number of reads with an edge
+
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
+    BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
+
+    if ((b5->isUnset() != true) ||    //  Read has at least one best edge.
+        (b3->isUnset() != true)) {
+      uint32  nf = ((b5->erate() > errorLimit) +
+                    (b3->erate() > errorLimit));
+      nFiltered[nf]++;
+    }
+  }
+
+  nFiltered[3] = nFiltered[0] + nFiltered[1] + nFiltered[2];
+
+  return(nFiltered[0] >= p * nFiltered[3]);
+}
+
+
+
+void
+BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -134,77 +214,92 @@ BestOverlapGraph::findErrorRateThreshold(void) {
   //  Find the median and absolute deviations.
 
   computeMedianAbsoluteDeviation(erates, _median, _mad, true);
-  uint32   pos = (uint32)((erates.size()+1)*0.90);
 
-  //  Compute an error limit based on the median or absolute deviation or quantile
-  //    Use quantile is the median isn't zero.
-  //    Use mean+stddev otherwise.
+  //  Pick an error threshold.
   //
-  //    But either way, let the user lower this via the command line.
+  //  The tight threshold is the minimum of:
+  //    the user supplied threshold (-eg or -eM as decided above)
+  //    the median + mad (if the median isn't zero)
+  //    the 90th percentile error rate (if the median is zero)
+  //
+  //  The loose threshold is the minimum of:
+  //    the user supplied threshold (-eg or -eM as decided above)
+  //    the mean + stddev
+  //
+  //  Note that there is no guarantee that TpickedTight <= TpickedLoose!
 
-  double   Tinput  = _errorLimit;
+  double   Tgraph  = _erateGraph;   //  was Tinput = _errorLimit
+  double   Tmax    = _erateMax;
   double   Tmean   = _mean   + _deviationGraph          * _stddev;
   double   Tmad    = _median + _deviationGraph * 1.4826 * _mad;
+  uint32    pos    = (uint32)((erates.size()+1)*0.90);
   double   Tperct  = erates[pos] + 1e-5;
-  double   Tpicked = (_median > 1e-10) ? Tmad : Tperct;
 
-  if (Tinput < Tpicked)
-    _errorLimit = Tinput;
+  assert((_erateGraph == _errorLimit) ||   //  Either erateGraph or erateMax, as
+         (_erateMax   == _errorLimit));    //  set in findInitialEdges().
+
+  double   TpickedTight = min(_errorLimit, ((_median > 1e-10) ? Tmad : Tperct));
+  double   TpickedLoose = min(_errorLimit, Tmean);
+  double   Tpicked      = 0.0;
+
+  //  Summarize the number of reads with edges.  If there are too few reads
+  //  that have both ends with valid edges, increase the picked error
+  //  threshold to the mean.
+
+  uint32  nFilteredTight[4] = {0};
+  uint32  nFilteredLoose[4] = {0};
+
+  bool  tightGood = summarizeBestEdges(TpickedTight, 0.90, nFilteredTight);   //  Good if more than 90% of the
+  bool  looseGood = summarizeBestEdges(TpickedLoose, 0.90, nFilteredLoose);   //  reads with edges have two edges.
+
+  //  Finally, decide on the tight or loose bound based on the number of reads with two best edges,
+  //  If the tight bound isn't good and it's less that the loose bound, use the loose.
+  //  Otherwise, the tight is good or we'd make it worse by picking the loose.
+
+  if ((tightGood == false) && (TpickedTight < TpickedLoose))
+    Tpicked = TpickedLoose;
   else
-    _errorLimit = Tpicked;
+    Tpicked = TpickedTight;
 
-  //  The real filtering is done on the next pass through findEdges().  Here, we're just collecting statistics.
-  writeLog("\n");
-  writeLog("ERROR RATES\n");
-  writeLog("-----------\n");
-  writeLog("\n");
+  _errorLimit = Tpicked;
 
-  uint32  nFiltered[3] = {0};
-  uint32  nTotal = 0;
-  bool    adjustedLimit = false;
+  //  Now emit a lovely log.
 
-  while (nTotal == 0 && adjustedLimit == false) {
-    for (uint32 fi=1; fi <= fiLimit; fi++) {
-      BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
-      BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
-
-      if ((b5->isUnset() == true) &&    //  Read has no best edges, probably
-          (b3->isUnset() == true))      //  not corrected.
-        continue;
-
-      uint32  nf = ((b5->erate() > _errorLimit) +
-                    (b3->erate() > _errorLimit));
-
-      nFiltered[nf]++;
-      nTotal++;
-    }
-    // we only try this once, if we fall back to mean (or if the user restricted us too severely) move on
-    if ((double)nFiltered[0] / nTotal < 0.90 && Tpicked < Tmean && adjustedLimit == false) {
-       adjustedLimit = true;
-       writeLog("Reads with best edges filtered too agressively, %8.4f remaining, falling back to mean/stdev \n", (double)nFiltered[0] / nTotal);
-       nFiltered[0] = nFiltered[1] = nFiltered[2] = nTotal=0;
-       _errorLimit = min(Tinput, Tmean);
-    }
-  }
-
-  writeLog("                                                 --------threshold------\n");
-  writeLog("%-12u"     "                 fraction error      fraction        percent\n", edgeStats.size());
-  writeLog("samples                              (1e-5)         error          error\n");
-  writeLog("                 --------------------------      --------       --------\n");
-  writeLog("command line                                 ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tinput, 100.0 * Tinput, (_errorLimit == Tinput) ? "  (enabled)" : "");
-  writeLog("mean + std.dev   %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * _mean,   _deviationGraph, 1e5 * _stddev, 1e5 * Tmean,  100.0 * Tmean,  (_errorLimit == Tmean)  ? "  (enabled)" : "");
-  writeLog("median + mad     %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * _median, _deviationGraph, 1e5 * _mad,    1e5 * Tmad,   100.0 * Tmad,   (_errorLimit == Tmad)   ? "  (enabled)" : "");
-  writeLog("90th percentile                              ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tperct, 100.0 * Tperct, (_errorLimit == Tperct) ? "  (enabled)" : "");
-  writeLog("\n");
-  writeLog("\n");
-  writeLog("BEST EDGE FILTERING\n");
-  writeLog("-------------------\n");
-  writeLog("\n");
-  writeLog("Reads with best edges %9u\n", nTotal);
-  writeLog("Reads with both best edges below threshold: %9u\n", nFiltered[0]);
-  writeLog("Reads with one  best edge  above threshold: %9u\n", nFiltered[1]);
-  writeLog("Reads with both best edges above threshold: %9u\n", nFiltered[2]);
-  writeLog("\n");
+  fprintf(report, "\n");
+  fprintf(report, "ERROR RATES\n");
+  fprintf(report, "-----------\n");
+  fprintf(report, "                                                 --------threshold------\n");
+  fprintf(report, "%-12u"     "                 fraction error      fraction        percent\n", edgeStats.size());
+  fprintf(report, "samples                              (1e-5)         error          error\n");
+  fprintf(report, "                 --------------------------      --------       --------\n");
+  fprintf(report, "command line (-eg)                           ->  %8.2f      %8.4f%%%s\n",                                                1e5 * Tgraph, 100.0 * Tgraph, (_errorLimit == Tgraph) ? "  (enabled)" : "");
+  fprintf(report, "command line (-eM)                           ->  %8.2f      %8.4f%%%s\n",                                                1e5 * Tmax,   100.0 * Tmax,   (_errorLimit == Tmax)   ? "  (enabled)" : "");
+  fprintf(report, "mean + std.dev   %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * _mean,   _deviationGraph, 1e5 * _stddev, 1e5 * Tmean,  100.0 * Tmean,  (_errorLimit == Tmean)  ? "  (enabled)" : "");
+  fprintf(report, "median + mad     %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * _median, _deviationGraph, 1e5 * _mad,    1e5 * Tmad,   100.0 * Tmad,   (_errorLimit == Tmad)   ? "  (enabled)" : "");
+  fprintf(report, "90th percentile                              ->  %8.2f      %8.4f%%%s\n",                                                1e5 * Tperct, 100.0 * Tperct, (_errorLimit == Tperct) ? "  (enabled)" : "");
+  fprintf(report, "\n");
+  fprintf(report, "BEST EDGE FILTERING\n");
+  fprintf(report, "-------------------\n");
+  fprintf(report, "At graph threshold %.4f%%, reads:\n", 100.0 * _erateGraph);
+  fprintf(report, "  available to have edges:    %9u\n", _nReadsEP[0]);
+  fprintf(report, "  with at least one edge:     %9u\n", _nReadsEF[0]);
+  fprintf(report, "\n");
+  fprintf(report, "At max threshold %.4f%%, reads:%s\n", 100.0 * _erateMax, (_nReadsEP[1] == 0) ? "  (not computed)" : "");
+  fprintf(report, "  available to have edges:    %9u\n", _nReadsEP[1]);
+  fprintf(report, "  with at least one edge:     %9u\n", _nReadsEF[1]);
+  fprintf(report, "\n");
+  fprintf(report, "At tight threshold %.4f%%, reads with:\n", 100.0 * TpickedTight);
+  fprintf(report, "  both edges below threshold: %9u\n", nFilteredTight[0]);
+  fprintf(report, "  one  edge  above threshold: %9u\n", nFilteredTight[1]);
+  fprintf(report, "  both edges above threshold: %9u\n", nFilteredTight[2]);
+  fprintf(report, "  at least one edge:          %9u\n", nFilteredTight[3]);
+  fprintf(report, "\n");
+  fprintf(report, "At loose threshold %.4f%%, reads with:\n", 100.0 * TpickedLoose);
+  fprintf(report, "  both edges below threshold: %9u\n", nFilteredLoose[0]);
+  fprintf(report, "  one  edge  above threshold: %9u\n", nFilteredLoose[1]);
+  fprintf(report, "  both edges above threshold: %9u\n", nFilteredLoose[2]);
+  fprintf(report, "  at least one edge:          %9u\n", nFilteredLoose[3]);
+  fprintf(report, "\n");
 }
 
 
@@ -1325,7 +1420,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
 
 void
-BestOverlapGraph::reportEdgeStatistics(const char *prefix, const char *label) {
+BestOverlapGraph::reportEdgeStatistics(FILE *report, char const *label) {
   uint32  fiLimit      = RI->numReads();
   uint32  numThreads   = omp_get_max_threads();
   uint32  blockSize    = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -1389,17 +1484,17 @@ BestOverlapGraph::reportEdgeStatistics(const char *prefix, const char *label) {
     nBoth2Mutual += ((mutual5 == true) && (mutual3 == true)) ? 1 : 0;
   }
 
-  writeLog("\n");
-  writeLog("%s EDGES\n", label);
-  writeLog("-------- ----------------------------------------\n");
-  writeLog("%8u reads are contained\n", nContained);
-  writeLog("%8u reads have no best edges (singleton)\n", nSingleton);
-  writeLog("%8u reads have only one best edge (spur) \n", nSpur);
-  writeLog("         %8u are mutual best\n", nSpur1Mutual);
-  writeLog("%8u reads have two best edges \n", nBoth);
-  writeLog("         %8u have one mutual best edge\n", nBoth1Mutual);
-  writeLog("         %8u have two mutual best edges\n", nBoth2Mutual);
-  writeLog("\n");
+  fprintf(report, "\n");
+  fprintf(report, "%s EDGES\n", label);
+  fprintf(report, "-------- ----------------------------------------\n");
+  fprintf(report, "%8u reads are contained\n", nContained);
+  fprintf(report, "%8u reads have no best edges (singleton)\n", nSingleton);
+  fprintf(report, "%8u reads have only one best edge (spur) \n", nSpur);
+  fprintf(report, "         %8u are mutual best\n", nSpur1Mutual);
+  fprintf(report, "%8u reads have two best edges \n", nBoth);
+  fprintf(report, "         %8u have one mutual best edge\n", nBoth1Mutual);
+  fprintf(report, "         %8u have two mutual best edges\n", nBoth2Mutual);
+  fprintf(report, "\n");
 }
 
 
@@ -1486,7 +1581,12 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    bool              filterHighError,
                                    bool              filterLopsided,    double  lopsidedDiff,
                                    bool              filterSpur,        uint32  spurDepth,
-                                   BestOverlapGraph *BOG) {
+                                   BestOverlapGraph *BOG) :
+  _erateMax(erateMax),
+  _erateGraph(erateGraph),
+  _deviationGraph(deviationGraph) {
+
+  FILE *report = AS_UTL_openOutputFile(prefix, '.', "best.report");
 
   writeStatus("\n");
   writeStatus("BestOverlapGraph()-- Computing Best Overlap Graph.\n");
@@ -1507,8 +1607,6 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   _errorLimit          = erateGraph;
   _minOlapPercent      = minOlapPercent;
 
-  _erateGraph          = erateGraph;
-  _deviationGraph      = deviationGraph;
 
   //  If there is a BOG supplied, copy the reads from there to here.
   //
@@ -1534,9 +1632,13 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   }
 
   //
-  //  Find initial edges, report an initial graph, then analyze those edges
-  //  to set a cutoff on overlap quality used for graph building.  Once we
-  //  have the magic error rate limit, recompute best edges.
+  //  Find initial edges.  erateGraph is tried first, but if 90% of
+  //  (eligible) reads do not have two best edges, we'll fall back to using
+  //  all overlaps we know about (erateMax).
+  //
+  //  With some kind of best edge on the reads, next analyze those edges to
+  //  set a cutoff on overlap quality used for graph building.  Once we have
+  //  the magic error rate limit, recompute best edges.
   //
   //  This should be done before removing coverageGap reads, so we can skip
   //  high-error overlaps (that would otherwise mask a problematic read).
@@ -1547,32 +1649,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (logFileFlagSet(LOG_BEST_OVERLAPS))
     emitGoodOverlaps(prefix, "0.all");
 
-  findContains();
-  findEdges(true);
-
-  // check if we were too severely limited by the graph error rate
-  uint32  nFiltered = 0;
-  uint32  nTotal    = 0;
-
-  for (uint32 fi=1; fi <= RI->numReads(); fi++) {
-    if (!RI->isValid(fi) || isContained(fi) || isIgnored(fi))
-       continue;
-
-    nTotal++;
-    if (getBestEdgeOverlap(fi, false)->isUnset() == true &&
-        getBestEdgeOverlap(fi, true)->isUnset() == true)
-      continue;
-
-    nFiltered++;
-  }
-  if (erateMax > _errorLimit && (double)nFiltered / nTotal < 0.90) {
-    writeLog("Reads with edges below threshold: %8.4f, too low, resetting error limit to max\n", (double)nFiltered/nTotal);
-    _errorLimit = erateMax;
-    if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "0.all");
-    findContains();
-    findEdges(true);
-  }
+  findInitialEdges();                 //  Sets _errorLimit to either _erateGraph or _erateMax
 
   if (logFileFlagSet(LOG_BEST_EDGES))
     reportBestEdges(prefix, "0.initial");
@@ -1580,9 +1657,9 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   if (filterHighError) {
     writeStatus("BestOverlapGraph()-- Filtering high error edges.\n");
 
-    findErrorRateThreshold();   //  Set the threshold.
-    findContains();             //  Recompute contained reads; remove those contained in high-error parents.
-    findEdges(true);            //  Recompute best edges.
+    findErrorRateThreshold(report);   //  Set the final threshold.
+    findContains();                   //  Recompute contained reads; remove those contained in high-error parents.
+    findEdges(true);                  //  Recompute best edges.
 
     if (logFileFlagSet(LOG_BEST_OVERLAPS))
       emitGoodOverlaps(prefix, "1.filtered");
@@ -1633,7 +1710,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  Report initial statistics.
   //
 
-  reportEdgeStatistics(prefix, "INITIAL");
+  reportEdgeStatistics(report, "INITIAL");
 
   //
   //  Mark reads as lopsided if the length of the best edge out is very
@@ -1716,22 +1793,24 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
 
   reportBestEdges(prefix, "best");
 
-  reportEdgeStatistics(prefix, "FINAL");
+  reportEdgeStatistics(report, "FINAL");
 
   checkForContainedDovetails();
   checkForCovGapEdges();
 
-  writeLog("\n");
-  writeLog("EDGE FILTERING\n");
-  writeLog("-------- ------------------------------------------\n");
-  writeLog("%8u reads are ignored\n",  numIgnored());
-  writeLog("%8u reads have a gap in overlap coverage\n", numCoverageGap());
-  writeLog("%8u reads have lopsided best edges\n", numLopsided());
+  fprintf(report, "\n");
+  fprintf(report, "EDGE FILTERING\n");
+  fprintf(report, "-------- ------------------------------------------\n");
+  fprintf(report, "%8u reads are ignored\n",  numIgnored());
+  fprintf(report, "%8u reads have a gap in overlap coverage\n", numCoverageGap());
+  fprintf(report, "%8u reads have lopsided best edges\n", numLopsided());
 
   //  Done with scoring data.
 
   delete [] _best5score;    _best5score = NULL;
   delete [] _best3score;    _best3score = NULL;
+
+  AS_UTL_closeFile(report);
 
   setLogFile(prefix, NULL);
 }
