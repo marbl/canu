@@ -916,6 +916,7 @@ sub setDefaults () {
     setDefault("utgBubbleDeviation",  1,         "Overlaps this much above mean of contig will be used to identify bubbles");
     setDefault("utgRepeatDeviation",  undef,     "Overlaps this much above mean unitig error rate will not be used for repeat splitting");
     setDefault("utgRepeatConfusedBP", 2500,      "Repeats where the next best edge is at least this many bp shorter will not be split");
+    setDefault("utgRepeatConfusedPC", 15,        "Repeats where the next best edge is at least this many percent shorter will not be split");
     setDefault("utgChimeraType",      "deadend", "When to filter reads for contig construction: none, chimera (missing middle), uncovered (missing middle or ends), deadend (missing middle or end or no neighbor) (default)");
     setDefault("corErrorRate",        undef,     "Only use raw alignments below this error rate to construct corrected reads");
     setDefault("cnsErrorRate",        undef,     "Consensus expects alignments at about this error rate");

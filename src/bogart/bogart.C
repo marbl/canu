@@ -85,8 +85,8 @@ main (int argc, char * argv []) {
   double       deviationBubble          = 6.0,    similarityBubble = 0.01;
   double       deviationRepeat          = 3.0,    similarityRepeat = 0.01;
 
-  uint32       confusedAbsolute         = 3000;
-  double       confusedPercent          = 30.0;
+  uint32       confusedAbsolute         = 2500;
+  double       confusedPercent          = 15.0;
 
   int32        numThreads               = 0;
 
