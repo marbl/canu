@@ -41,6 +41,25 @@ use canu::Grid_Cloud;
 
 
 
+sub reportBestError ($) {
+    my $asm       = shift @_;
+    my $log       = "unitigging/4-unitigger/$asm.best.report";
+    my $report    = "";
+
+    fetchFile($log);
+
+    if (-e "$log") {
+        open(F, "< $log") or caExit("failed to open filterOverlaps.log for reading: $!", undef);
+        while (<F>) {
+            $report .= "--  $_";
+        }
+        close(F);
+    }
+
+    addToReport("error rates", $report);
+}
+
+
 
 sub reportUnitigSizes ($$$) {
     my $asm       = shift @_;
@@ -327,6 +346,7 @@ sub unitigCheck ($) {
 
     stashFile("$path/unitigger.success");
 
+    reportBestError($asm);
     reportUnitigSizes($asm, 1, "after unitig construction");
 
     generateReport($asm);
