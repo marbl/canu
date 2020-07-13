@@ -669,6 +669,14 @@ findConfusedEdges(TigVector            &tigs,
       //  extends into a repeat region, and the overlap region is entirely
       //  inside the repeat.
       //
+      //  We'll call it confused if there is an overlap to some other read
+      //  that is comparable in length to the overlap to the read in the tig.
+      //    Confused if:
+      //      extOlapLen > intOlapLen - 2500   (confusedAbsolute, -ca parameter)
+      //      extOlapLen > intOlapLen * 0.85   (confusedPercent,  -cp parameter)
+      //
+      //  (if only it was implemented that way)
+      //
 
       if ((internal5sco.score > 0.0) &&
           (external5sco.score > 0.0)) {
