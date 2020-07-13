@@ -395,9 +395,9 @@ sub merylConfigure ($$) {
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
     print F getBinDirectoryShellCode();
-    print F "\n";
-    print F setWorkDirectoryShellCode($path);
-    print F fetchSeqStoreShellCode($asm, $path, "");
+    print F "\n";                                     #  setWDSC() should be OK here, but issue
+    #print F setWorkDirectoryShellCode($path);        #  #1740 had a problem with it, so it is
+    print F fetchSeqStoreShellCode($asm, $path, "");  #  disabled.  We're not sure why it broke.
 
     foreach my $ss (qw(01 02 04 06 08 12 16 20 24 32 40 48 56 64 96)) {
         next  if ($ss > $maxSplit);
