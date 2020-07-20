@@ -70,33 +70,6 @@ sub generateOutputs ($) {
         stashFile("$asm.contigs.layout");
     }
 
-    if (! fileExists("$asm.unitigs.layout")) {
-        fetchFile("unitigging/$asm.utgStore/seqDB.v001.dat");   #  Why is this needed?
-        fetchFile("unitigging/$asm.utgStore/seqDB.v001.tig");
-
-        fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
-        fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
-
-        if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
-            $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -S ./$asm.seqStore \\\n";
-            $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
-            $cmd .= "  -o ./$asm.unitigs \\\n";
-            $cmd .= "  -layout \\\n";
-            $cmd .= "> ./$asm.unitigs.layout.err 2>&1";
-
-            if (runCommand(".", $cmd)) {
-                caExit("failed to output unitig layouts", "$asm.unitigs.layout.err");
-            }
-
-            unlink "$asm.unitigs.layout.err";
-        } else {
-            touch("$asm.unitigs.layout");
-        }
-
-        stashFile("$asm.unitigs.layout");
-    }
-
     #  Sequences
 
     foreach my $tt ("unassembled", "contigs") {
@@ -126,56 +99,6 @@ sub generateOutputs ($) {
         }
     }
 
-    if (! fileExists("$asm.unitigs.$type")) {
-        fetchFile("unitigging/$asm.utgStore/seqDB.v002.dat");
-        fetchFile("unitigging/$asm.utgStore/seqDB.v002.tig");
-
-        if (-e "unitigging/$asm.utgStore/seqDB.v002.tig") {
-            $cmd  = "$bin/tgStoreDump \\\n";
-            $cmd .= "  -S ./$asm.seqStore \\\n";
-            $cmd .= "  -T ./unitigging/$asm.utgStore 2 \\\n";
-            $cmd .= "  -consensus -$type \\\n";
-            $cmd .= "  -contigs \\\n";
-            $cmd .= "> ./$asm.unitigs.$type\n";
-            $cmd .= "2> ./$asm.unitigs.err";
-
-            if (runCommand(".", $cmd)) {
-                caExit("failed to output unitig consensus sequences", "$asm.unitigs.err");
-            }
-
-            unlink "$asm.unitigs.err";
-        } else {
-            touch("$asm.unitigs.$type");
-        }
-
-        stashFile("$asm.unitigs.$type");
-    }
-
-    #  Graphs
-
-    if (!fileExists("$asm.unitigs.gfa")) {
-        fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.gfa");
-
-        if (-e "unitigging/4-unitigger/$asm.unitigs.aligned.gfa") {
-            copy("unitigging/4-unitigger/$asm.unitigs.aligned.gfa", "$asm.unitigs.gfa");
-        } else {
-            touch("$asm.unitigs.gfa");
-        }
-
-        stashFile("$asm.unitigs.gfa");
-    }
-
-    if (!fileExists("$asm.unitigs.bed")) {
-        fetchFile("unitigging/4-unitigger/$asm.unitigs.aligned.bed");
-
-        if (-e "unitigging/4-unitigger/$asm.unitigs.aligned.bed") {
-            copy("unitigging/4-unitigger/$asm.unitigs.aligned.bed", "$asm.unitigs.bed");
-        } else {
-        }
-
-        stashFile("$asm.unitigs.bed");
-    }
-
   finishStage:
     generateReport($asm);
     resetIteration("generateOutputs");
@@ -189,12 +112,7 @@ sub generateOutputs ($) {
     print STDERR "-- Sequences saved:\n";
     print STDERR "--   Contigs       -> '$asm.contigs.$type'\n";
     print STDERR "--   Unassembled   -> '$asm.unassembled.$type'\n";
-    print STDERR "--   Unitigs       -> '$asm.unitigs.$type'\n";
     print STDERR "--\n";
     print STDERR "-- Read layouts saved:\n";
     print STDERR "--   Contigs       -> '$asm.contigs.layout'.\n";
-    print STDERR "--   Unitigs       -> '$asm.unitigs.layout'.\n";
-    print STDERR "--\n";
-    print STDERR "-- Graphs saved:\n";
-    print STDERR "--   Unitigs       -> '$asm.unitigs.gfa'.\n";
 }

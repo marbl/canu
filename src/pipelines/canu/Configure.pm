@@ -178,7 +178,7 @@ sub getAllowedResources ($$$$$@) {
     my $alg  = shift @_;  #  Algorithm, e.g., "mhap", "ovl"
     my $err  = shift @_;  #  Report of things we can't run.
     my $all  = shift @_;  #  Report of things we can run.
-    my $uni  = shift @_;  #  There's only one task to run (bogart, gfa)
+    my $uni  = shift @_;  #  There's only one task to run (bogart)
     my $dbg  = shift @_;  #  Optional, report debugging stuff
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
@@ -452,7 +452,6 @@ sub getAllowedResources ($$$$$@) {
     elsif ($alg eq "oea")       {  $nam = "(overlap error adjustment)"; }
     elsif ($alg eq "bat")       {  $nam = "(contig construction with bogart)"; }
     elsif ($alg eq "cns")       {  $nam = "(consensus)"; }
-    elsif ($alg eq "gfa")       {  $nam = "(GFA alignment and processing)"; }
     else {
         caFailure("unknown task '$alg' in getAllowedResources().", undef);
     }
@@ -810,34 +809,22 @@ sub configureAssembler () {
         setGlobalIfUndef("oeaMemory", "8");           setGlobalIfUndef("oeaThreads", "1");
     }
 
-    #  And bogart and GFA alignment/processing.
-    #
-    #  GFA for genomes less than 40m is run in the canu process itself.
+    #  And bogart.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("batMemory", "4-16");        setGlobalIfUndef("batThreads", "2-4");
 
-        setGlobalIfUndef("gfaMemory", "4-16");         setGlobalIfUndef("gfaThreads", "1-4");
-
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("batMemory", "16-64");       setGlobalIfUndef("batThreads", "2-8");
-
-        setGlobalIfUndef("gfaMemory", "8-16");         setGlobalIfUndef("gfaThreads", "2-8");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("batMemory", "32-256");      setGlobalIfUndef("batThreads", "4-16");
 
-        setGlobalIfUndef("gfaMemory", "16-32");        setGlobalIfUndef("gfaThreads", "4-16");
-
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("batMemory", "128-512");     setGlobalIfUndef("batThreads", "8-32");
 
-        setGlobalIfUndef("gfaMemory", "32-64");       setGlobalIfUndef("gfaThreads", "8-32");
-
     } else {
         setGlobalIfUndef("batMemory", "256-1024");    setGlobalIfUndef("batThreads", "16-64");
-
-        setGlobalIfUndef("gfaMemory", "64-128");       setGlobalIfUndef("gfaThreads", "16-64");
     }
 
 
@@ -879,8 +866,6 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("",    "bat",       $err, $all, 1)   if (uc(getGlobal("unitigger")) eq "BOGART");
 
     ($err, $all) = getAllowedResources("",    "cns",       $err, $all, 0);
-
-    ($err, $all) = getAllowedResources("",    "gfa",       $err, $all, 1);
 
     #  Check some minimums.
 

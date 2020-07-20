@@ -892,7 +892,7 @@ sub fetchOvlStoreShellCode ($$$) {
 sub fetchTigStore ($$$$) {
     my $base   = shift @_;
     my $asm    = shift @_;           #  The name of the assembly.
-    my $type   = shift @_;           #  Type of store: 'corStore' or 'ctgStore' or 'utgStore'.
+    my $type   = shift @_;           #  Type of store: 'corStore' or 'ctgStore'.
     my $vers   = shift @_;           #  Version to fetch, '001' or '002'.
 
     return   if (-e "./$base/$asm.$type/seqDB.v$vers.tig");
@@ -908,7 +908,7 @@ sub fetchTigStore ($$$$) {
 sub fetchTigStoreShellCode ($$$$$) {
     my $path   = shift @_;           #  The subdir we're running in; 'unitigging', etc.
     my $asm    = shift @_;           #  The name of the assembly.
-    my $type   = shift @_;           #  Type of store: 'corStore' or 'ctgStore' or 'utgStore'.
+    my $type   = shift @_;           #  Type of store: 'corStore' or 'ctgStore'.
     my $vers   = shift @_;           #  Version to fetch, '001' or '002'.
     my $indent = shift @_;           #
     my $base   = dirname($path);     #  'unitigging'

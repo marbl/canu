@@ -1068,8 +1068,6 @@ if (setOptions($mode, "assemble") eq "assemble") {
             consensusLoad($asm);
             consensusAnalyze($asm);
 
-            alignGFA($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-
             generateOutputs($asm);
         }
     }

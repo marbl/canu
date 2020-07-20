@@ -525,7 +525,7 @@ sub printCitation ($$) {
         print STDERR "${prefix}\n";
     }
 
-    print STDERR "${prefix}Read and contig alignments during correction, consensus and GFA building use:\n";
+    print STDERR "${prefix}Read and contig alignments during correction and consensus use:\n";
     print STDERR "${prefix}  Šošic M, Šikic M.\n";
     print STDERR "${prefix}  Edlib: a C/C ++ library for fast, exact sequence alignment using edit distance.\n";
     print STDERR "${prefix}  Bioinformatics. 2017 May 1;33(9):1394-1395.\n";
@@ -969,7 +969,7 @@ sub setDefaults () {
 
     setDefault("useGrid", 1, "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'");
 
-    foreach my $c (qw(BAT GFA CNS COR MERYL HAP CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
+    foreach my $c (qw(BAT CNS COR MERYL HAP CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
         setDefault("useGrid$c", 1, "If 'true', run module $c under grid control; if 'false' run locally.");
     }
 
@@ -1005,7 +1005,6 @@ sub setDefaults () {
 
     setExecDefaults("bat",       "unitig construction");
     setExecDefaults("cns",       "unitig consensus");
-    setExecDefaults("gfa",       "graph alignment and processing");
 
     #####  Object Storage
 

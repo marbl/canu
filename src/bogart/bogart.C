@@ -38,16 +38,10 @@
 
 #include "AS_BAT_FindCircular.H"
 
-#include "AS_BAT_DropDeadEnds.H"
-
 #include "AS_BAT_PromoteToSingleton.H"
-
-#include "AS_BAT_CreateUnitigs.H"
 
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_Outputs.H"
-
-#include "AS_BAT_TigGraph.H"
 
 
 ReadInfo         *RI  = 0L;
@@ -456,8 +450,7 @@ main (int argc, char * argv []) {
   //  through all reads and place whatever isn't already placed.
   //
 
-  TigVector         contigs(RI->numReads());  //  Both initial greedy tigs and final contigs
-  TigVector         unitigs(RI->numReads());  //  The 'final' contigs, split at every intersection in the graph
+  TigVector         contigs(RI->numReads());
 
   writeStatus("\n");
   writeStatus("==> BUILDING GREEDY TIGS.\n");
@@ -497,9 +490,7 @@ main (int argc, char * argv []) {
   reportTigs(contigs, prefix, "detectSpurs", genomeSize);
 
   //
-  //  For future use, remember the reads in contigs.  When we make unitigs, we'll
-  //  require that every unitig end with one of these reads -- this will let
-  //  us reconstruct contigs from the unitigs.
+  //  For future use, remember the reads in contigs.
   //
 
   for (uint32 fid=1; fid<RI->numReads()+1; fid++)    //  This really should be incorporated
@@ -689,52 +680,8 @@ main (int argc, char * argv []) {
   reportOverlaps(contigs, prefix, "final");
   reportTigs(contigs, prefix, "final", genomeSize);
 
-  //
-  //  unitigSource:
-  //
-  //  We want some way of tracking unitigs that came from the same contig.  Ideally,
-  //  we'd be able to emit only the edges that would join unitigs into the original
-  //  contig, but it's complicated by containments.  For example:
-  //
-  //    [----------------------------------]   CONTIG
-  //    -------------                          UNITIG
-  //              --------------------------   UNITIG
-  //                         -------           UNITIG
-  //
-  //  So, instead, we just remember the set of unitigs that were created from each
-  //  contig, and assume that any edge between those unitigs represents the contig.
-  //  Which it totally doesn't -- any repeat in the contig collapses -- but is a
-  //  good first attempt.
-  //
-
-  vector<tigLoc>  unitigSource;
-
-  //  The graph must come first, to find circular contigs.
-
-  reportTigGraph(contigs, unitigSource, prefix, "contigs");
-
   setParentAndHang(contigs);
   writeTigsToStore(contigs, prefix, "ctg", true);
-
-  setLogFile(prefix, "tigGraph");
-
-  writeStatus("\n");
-  writeStatus("==> GENERATE UNITIGS.\n");
-  writeStatus("\n");
-
-  setLogFile(prefix, "generateUnitigs");
-
-  contigs.computeErrorProfiles(prefix, "generateUnitigs");
-  contigs.reportErrorProfiles(prefix, "generateUnitigs");
-
-  createUnitigs(contigs, unitigs, minIntersectLen, maxPlacements, confusedEdges, unitigSource);
-
-  splitDiscontinuous(unitigs, minOverlapLen, unitigSource);
-
-  reportTigGraph(unitigs, unitigSource, prefix, "unitigs");
-
-  setParentAndHang(unitigs);
-  writeTigsToStore(unitigs, prefix, "utg", true);
 
   //
   //  Tear down bogart.

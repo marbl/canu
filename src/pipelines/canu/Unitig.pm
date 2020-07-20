@@ -152,7 +152,6 @@ sub unitig_bogart ($) {
     print F "\n";
     print F "cd ..\n";
     print F fileExistsShellCode("exists", "unitigging", "$asm.ctgStore/seqDB.v001.tig", "");
-    print F fileExistsShellCode("exists", "unitigging", "$asm.utgStore/seqDB.v001.tig", "");
     print F "\n";
     print F "cd 4-unitigger\n";
     print F "\n";
@@ -184,9 +183,7 @@ sub unitig_bogart ($) {
     print F "    "              . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
     print F "    > ./unitigger.err 2>&1 \\\n";
     print F "  && \\\n";
-    print F "  mv ./$asm.ctgStore ../$asm.ctgStore \\\n";
-    print F "  && \\\n";
-    print F "  mv ./$asm.utgStore ../$asm.utgStore\n";
+    print F "  mv ./$asm.ctgStore ../$asm.ctgStore\n";
     print F "fi\n";
 }
 
@@ -196,8 +193,7 @@ sub unitig ($) {
     my $asm     = shift @_;
     my $path    = "unitigging/4-unitigger";
 
-    goto allDone    if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
-                        fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
+    goto allDone    if (fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
 
     make_path($path)  if (! -d $path);
 
@@ -232,7 +228,7 @@ sub unitig ($) {
     print F "\n";
     print F getJobIDShellCode();
     print F "\n";
-    print F "if [ -e ../$asm.ctgStore/seqDB.v001.tig -a -e ../$asm.utgStore/seqDB.v001.tig ] ; then\n";
+    print F "if [ -e ../$asm.ctgStore/seqDB.v001.tig ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -246,9 +242,8 @@ sub unitig ($) {
     }
 
     print F "\n";
-    print F "if [ ! -e ../$asm.ctgStore -o \\\n";
-    print F "     ! -e ../$asm.utgStore ] ; then\n";
-    print F "  echo bogart appears to have failed.  No $asm.ctgStore or $asm.utgStore found.\n";
+    print F "if [ ! -e ../$asm.ctgStore ] ; then\n";
+    print F "  echo bogart appears to have failed.  No $asm.ctgStore found.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -261,18 +256,10 @@ sub unitig ($) {
     print F "fi\n";
     print F "\n";
     print F "\n";
-    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.gfa", "");
-    print F stashFileShellCode("unitigging/4-unitigger", "$asm.unitigs.bed", "");
-    print F "\n";
     print F "cd ../$asm.ctgStore\n";
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.dat", "");
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.tig", "");
     print F stashFileShellCode("unitigging/$asm.ctgStore", "seqDB.v001.sizes.txt", "");
-    print F "cd -\n";
-    print F "\n";
-    print F "cd ../$asm.utgStore\n";
-    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.dat", "");
-    print F stashFileShellCode("unitigging/$asm.utgStore", "seqDB.v001.tig", "");
     print F "cd -\n";
     print F "\n";
     print F "\n";
@@ -299,8 +286,7 @@ sub unitigCheck ($) {
     my $path    = "unitigging/4-unitigger";
 
     goto allDone      if (fileExists("$path/unitigger.success"));
-    goto finishStage  if (fileExists("unitigging/$asm.utgStore/seqDB.v001.tig") &&
-                          fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
+    goto finishStage  if (fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
 
     fetchFile("$path/unitigger.sh");
 
