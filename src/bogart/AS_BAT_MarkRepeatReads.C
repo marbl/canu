@@ -26,6 +26,8 @@
 #include "AS_BAT_MarkRepeatReads.H"
 #include "AS_BAT_SplitTig.H"
 
+#include "AS_BAT_FindCircular.H"
+
 #include "intervalList.H"
 #include "stddev.H"
 
@@ -592,10 +594,36 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
 
 
 
+bool
+isCircularizingEdge(Unitig   *tig,
+                    ufNode   *rdA,
+                    bestSco  &internalSco,
+                    bestSco  &externalSco,
+                    bool      rdAhi) {
+
+  if ((externalSco.readId == 0) ||         //  Not circularizing if no read here,
+      (externalSco.tigId  != tig->id()))   //  or if it's in a different tig.
+    return(false);
+
+  if ((internalSco.readId == 0) ||         //  Not circularizing if no read here,
+      (internalSco.tigId  != tig->id()))   //  or if it's in a different tig.
+    return(false);
+
+  writeLog("      checkCircular from external read %6u [%4u] to confused %s end of read %6u [%4u]\n",
+           externalSco.readId, tig->ufpathIdx(externalSco.readId),
+           (rdAhi) ? "hi" : "lo",
+           rdA->ident, tig->ufpathIdx(rdA->ident));
+
+  return(isCircularizingEdge(tig, externalSco.readId, internalSco.readId));
+}
+
+
+
 void
 checkConfusion(uint32                rdAid,
                bestSco const         internalSco,
                bestSco const         externalSco,
+               bool                  isCircular,
                char const           *end,
                bool                  endFlag,
                double                confusedAbsolute,
@@ -618,7 +646,14 @@ checkConfusion(uint32                rdAid,
     double  ad = internalSco.score - externalSco.score;   //  Absolute difference.
     double  pd = 100 * ad / internalSco.score;            //  Percent diffference.
 
-    if ((internalSco.score < externalSco.score) ||
+    if (isCircular == true) {
+      writeLog("    %s end NOT confused by CIRCULAR edge to read     %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+               end,
+               externalSco.readId,
+               internalSco.score, externalSco.score, ad, pd);
+    }
+
+    else if ((internalSco.score < externalSco.score) ||
              ((ad < confusedAbsolute) &&
               (pd < confusedPercent))) {
       writeLog("    %s end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
@@ -716,11 +751,17 @@ findConfusedEdges(TigVector            &tigs,
       bestSco external5sco = scoreBestOverlap(tigs, rdA, NULL, false, false);
       bestSco external3sco = scoreBestOverlap(tigs, rdA, NULL,  true, false);
 
+      //  Decide if the external edge looks like it will circularize the tig.
+      //  If it does, we don't call the read confused.
+
+      bool isC5 = isCircularizingEdge(tig, rdA, internal5sco, external5sco, false);
+      bool isC3 = isCircularizingEdge(tig, rdA, internal5sco, external3sco,  true);
+
       //  Now just check confusion, write a loely log, and add a confused
       //  edge to confusedEdges.
 
-      checkConfusion(rdAid, internal5sco, external5sco, "lo", false, confusedAbsolute, confusedPercent, confusedEdges);
-      checkConfusion(rdAid, internal3sco, external3sco, "hi",  true, confusedAbsolute, confusedPercent, confusedEdges);
+      checkConfusion(rdAid, internal5sco, external5sco, isC5, "lo", false, confusedAbsolute, confusedPercent, confusedEdges);
+      checkConfusion(rdAid, internal3sco, external3sco, isC3, "hi",  true, confusedAbsolute, confusedPercent, confusedEdges);
     }  //  Over all marks (ri)
   }  //  Over all reads (fi)
 }

@@ -36,6 +36,8 @@
 
 #include "AS_BAT_SplitDiscontinuous.H"
 
+#include "AS_BAT_FindCircular.H"
+
 #include "AS_BAT_DropDeadEnds.H"
 
 #include "AS_BAT_PromoteToSingleton.H"
@@ -680,6 +682,8 @@ main (int argc, char * argv []) {
   writeStatus("\n");
 
   setLogFile(prefix, "generateOutputs");
+
+  findCircularContigs(contigs, prefix);
 
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "final");
