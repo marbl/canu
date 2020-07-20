@@ -17,6 +17,7 @@
 
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
+#include "AS_BAT_BestOverlapGraph.H"
 
 #include "AS_BAT_Logging.H"
 
@@ -26,8 +27,6 @@
 #include "AS_BAT_PlaceContains.H"
 
 #include "AS_BAT_Outputs.H"
-
-#include "AS_BAT_TigGraph.H"
 
 #include <unordered_map>
 #include <unordered_set>
