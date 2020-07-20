@@ -97,7 +97,7 @@ BestOverlapGraph::findInitialEdges(void) {
 
   //  If we've found a sufficint number of reads with edges, we're done here.
 
-  if (_nReadsEF[0] >= 0.90 * _nReadsEP[0])
+  if (_nReadsEF[0] >= _minReadsBest * _nReadsEP[0])
     return;
 
   //  Otherwise, increase the limit to the max and recompute.
@@ -232,7 +232,7 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   double   Tmax    = _erateMax;
   double   Tmean   = _mean   + _deviationGraph          * _stddev;
   double   Tmad    = _median + _deviationGraph * 1.4826 * _mad;
-  uint32    pos    = (uint32)((erates.size()+1)*0.90);
+  uint32    pos    = (uint32)((erates.size()+1) * _percentileError);
   double   Tperct  = erates[pos] + 1e-5;
 
   assert((_erateGraph == _errorLimit) ||   //  Either erateGraph or erateMax, as
@@ -249,8 +249,8 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   uint32  nFilteredTight[4] = {0};
   uint32  nFilteredLoose[4] = {0};
 
-  bool  tightGood = summarizeBestEdges(TpickedTight, 0.90, nFilteredTight);   //  Good if more than 90% of the
-  bool  looseGood = summarizeBestEdges(TpickedLoose, 0.90, nFilteredLoose);   //  reads with edges have two edges.
+  bool  tightGood = summarizeBestEdges(TpickedTight, _minReadsBest, nFilteredTight);   //  Good if more than 90% of the
+  bool  looseGood = summarizeBestEdges(TpickedLoose, _minReadsBest, nFilteredLoose);   //  reads with edges have two edges.
 
   //  Finally, decide on the tight or loose bound based on the number of reads with two best edges,
   //  If the tight bound isn't good and it's less that the loose bound, use the loose.
@@ -1575,7 +1575,10 @@ BestOverlapGraph::checkForCovGapEdges(void) const {
 
 BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    double            erateMax,
-                                   double            deviationGraph,    double  minOlapPercent,
+                                   double            percentileError,
+                                   double            deviationGraph,
+                                   double            minOlapPercent,
+                                   double            minReadsBest,
                                    const char       *prefix,
                                    covgapType        covGapType,        uint32  covGapOlap,
                                    bool              filterHighError,
@@ -1584,7 +1587,10 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
                                    BestOverlapGraph *BOG) :
   _erateMax(erateMax),
   _erateGraph(erateGraph),
-  _deviationGraph(deviationGraph) {
+  _percentileError(percentileError),
+  _deviationGraph(deviationGraph),
+  _minOlapPercent(minOlapPercent),
+  _minReadsBest(minReadsBest) {
 
   FILE *report = AS_UTL_openOutputFile(prefix, '.', "best.report");
 
@@ -1605,7 +1611,6 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   _mad                 = 0.0;
 
   _errorLimit          = erateGraph;
-  _minOlapPercent      = minOlapPercent;
 
 
   //  If there is a BOG supplied, copy the reads from there to here.
