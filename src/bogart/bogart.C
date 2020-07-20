@@ -68,6 +68,8 @@ main (int argc, char * argv []) {
   uint32       covGapOlap               = 500;     //  Require overlap of x bp when detecting coverage gaps.
   double       lopsidedDiff             = 25.0;    //  Call reads lopsided if diff between is more than x percent.
   double       minOlapPercent           =  0.0;
+  double       minReadsBest             =  0.9;    //  90% of reads must have best edges.
+  double       percentileError          =  0.9;
 
   uint64       genomeSize               = 0;
 
@@ -176,6 +178,9 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-eM") == 0) {
       erateMax = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-ep") == 0) {
+      percentileError = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-ca") == 0) {  //  Edge confused, based on absolute difference
       confusedAbsolute = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-cp") == 0) {  //  Edge confused, based on percent difference
@@ -211,8 +216,12 @@ main (int argc, char * argv []) {
          snprintf(s, 1024, "Unknown '-nofilter' option '%s'\n", (arg >= argc ? "null" : argv[arg]));
          err.push_back(s);
       }
+
     } else if (strcmp(argv[arg], "-minolappercent") == 0) {
       minOlapPercent = strtodouble(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-minreadsbest") == 0) {
+      minReadsBest = strtodouble(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-covgaptype") == 0) {
       ++arg;
@@ -336,6 +345,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -eg F          Do not use overlaps more than F fraction error when when finding initial best edges.\n");
     fprintf(stderr, "  -eM F          Do not load overlaps more then F fraction error (useful only for -save).\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -ep P          When deciding which overlaps to use, fall back to percentile P (0.0-1.0) if\n");
+    fprintf(stderr, "                 the median error is 0.0, as commonly found in PacBio HiFi reads.  Default: 0.9\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -ca L          Split a contig if there is an alternate path from an overlap of at least L bases.\n");
     fprintf(stderr, "                 Default: 2100.\n");
     fprintf(stderr, "  -cp P          Split a contig if there is an alternate path from an overlap at most P percent\n");
@@ -355,6 +367,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "                       m = noseed n   - detect, n%% difference, allow edges to but don't seed overlaps with them\n");
     fprintf(stderr, "                       m = nobest n   - detect, n%% difference, exclude from bog graph completely\n");
     fprintf(stderr, "  -minolappercent f  Set a minimum overlap length, per overlap, as f*min(readAlen, readBlen)\n");
+    fprintf(stderr, "  -minreadsbest f    Automatically relax overlap quality requirements if there are fewer\n");
+    fprintf(stderr, "                     than fraction f (0.0-1.0) reads that have two best edges.  Default: 0.9\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");
@@ -424,7 +438,10 @@ main (int argc, char * argv []) {
   OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
   OG = new BestOverlapGraph(erateGraph,
                             max(erateMax, erateGraph),
-                            deviationGraph, minOlapPercent,
+                            percentileError,
+                            deviationGraph,
+                            minOlapPercent,
+                            minReadsBest,
                             prefix,
                             covGapType, covGapOlap,
                             filterHighError,

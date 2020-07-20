@@ -206,7 +206,10 @@ private:
 public:
   BestOverlapGraph(double            erateGraph,
                    double            erateMax,
-                   double            deviationGraph,    double  minOlapPercent,
+                   double            percentileError,
+                   double            deviationGraph,
+                   double            minOlapPercent,
+                   double            minReadsBest,
                    const char       *prefix,
                    covgapType        covgapType,        uint32  covGapOlap,
                    bool              filterHighError,
@@ -291,10 +294,13 @@ private:
 private:
   double const               _erateMax;
   double const               _erateGraph;
+  double const               _percentileError;
   double const               _deviationGraph;
+  double const               _minOlapPercent;
+  double const               _minReadsBest;
+
 private:
   double                     _errorLimit;
-  double                     _minOlapPercent;
 
 private:
   uint32                     _nReadsEP[2];   //  These are used for communicating stats between stages,
