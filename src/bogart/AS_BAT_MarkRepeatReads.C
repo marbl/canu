@@ -592,6 +592,58 @@ scoreBestOverlap(TigVector &tigs, ufNode *rdA, ufNode *rdB, bool is3p, bool inte
 
 
 
+void
+checkConfusion(uint32                rdAid,
+               bestSco const         internalSco,
+               bestSco const         externalSco,
+               char const           *end,
+               bool                  endFlag,
+               double                confusedAbsolute,
+               double                confusedPercent,
+               vector<confusedEdge> &confusedEdges) {
+
+  //  The read end is confused if the internal edge is worse than the
+  //  external, or if the differences are small.
+  //
+  //  We'll call it confused if there is an overlap to some other read
+  //  that is comparable in length to the overlap to the read in the tig.
+  //    Confused if:
+  //      extOlapLen > intOlapLen - 2500   (confusedAbsolute, -ca parameter)
+  //      extOlapLen > intOlapLen * 0.85   (confusedPercent,  -cp parameter)
+  //
+  //  (if only it was implemented that way)
+
+  if ((internalSco.score > 0.0) &&
+      (externalSco.score > 0.0)) {
+    double  ad = internalSco.score - externalSco.score;   //  Absolute difference.
+    double  pd = 100 * ad / internalSco.score;            //  Percent diffference.
+
+    if ((internalSco.score < externalSco.score) ||
+             ((ad < confusedAbsolute) &&
+              (pd < confusedPercent))) {
+      writeLog("    %s end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+               end,
+               externalSco.tigId, externalSco.readId,
+               internalSco.score, externalSco.score, ad, pd);
+
+      confusedEdges.push_back(confusedEdge(rdAid, endFlag, externalSco.readId));
+    }
+
+    else {
+      writeLog("    %s end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+               end,
+               externalSco.tigId, externalSco.readId,
+               internalSco.score, externalSco.score, ad, pd);
+    }
+  }
+  else if ((internalSco.score >  0.0) &&
+           (externalSco.score == 0.0)) {
+    writeLog("    %s end NOT confused -- no external edge\n",
+             end);
+  }
+}
+
+
 
 void
 findConfusedEdges(TigVector            &tigs,
@@ -664,71 +716,11 @@ findConfusedEdges(TigVector            &tigs,
       bestSco external5sco = scoreBestOverlap(tigs, rdA, NULL, false, false);
       bestSco external3sco = scoreBestOverlap(tigs, rdA, NULL,  true, false);
 
-      //
-      //  Here, we have a read whose thickest overlap present in the tig
-      //  extends into a repeat region, and the overlap region is entirely
-      //  inside the repeat.
-      //
-      //  We'll call it confused if there is an overlap to some other read
-      //  that is comparable in length to the overlap to the read in the tig.
-      //    Confused if:
-      //      extOlapLen > intOlapLen - 2500   (confusedAbsolute, -ca parameter)
-      //      extOlapLen > intOlapLen * 0.85   (confusedPercent,  -cp parameter)
-      //
-      //  (if only it was implemented that way)
-      //
+      //  Now just check confusion, write a loely log, and add a confused
+      //  edge to confusedEdges.
 
-      if ((internal5sco.score > 0.0) &&
-          (external5sco.score > 0.0)) {
-        double  ad5 = internal5sco.score - external5sco.score;   //  Absolute difference.
-        double  pd5 = 100 * ad5 / internal5sco.score;            //  Percent diffference.
-
-        //  This read end is confused if the internal edge is worse than the
-        //  external, or if the differences are small.
-
-        if ((internal5sco.score < external5sco.score) ||
-            ((ad5 < confusedAbsolute) &&
-             (pd5 < confusedPercent))) {
-          writeLog("    lo end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   external5sco.tigId, external5sco.readId,
-                   internal5sco.score, external5sco.score, ad5, pd5);
-
-          confusedEdges.push_back(confusedEdge(rdAid, false, external5sco.readId));
-        } else {
-          writeLog("    lo end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   external5sco.tigId, external5sco.readId,
-                   internal5sco.score, external5sco.score, ad5, pd5);
-        }
-      }
-      else if ((internal5sco.score >  0.0) &&
-               (external5sco.score == 0.0)) {
-        writeLog("    lo end NOT confused -- no external edge\n");
-      }
-
-      if ((internal3sco.score > 0.0) &&
-          (external3sco.score > 0.0)) {
-        double  ad3 = internal3sco.score - external3sco.score;   //  Absolute difference.
-        double  pd3 = 100 * ad3 / internal3sco.score;            //  Percent diffference.
-
-        if ((internal3sco.score < external3sco.score) ||
-            ((ad3 < confusedAbsolute) &&
-             (pd3 < confusedPercent))) {
-          writeLog("    hi end  IS confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   external3sco.tigId, external3sco.readId,
-                   internal3sco.score, external3sco.score, ad3, pd3);
-
-          confusedEdges.push_back(confusedEdge(rdAid, true, external3sco.readId));
-        } else {
-          writeLog("    hi end NOT confused by edge to tig %8u read %8u - internal edge score %8.2f external edge score %8.2f - absdiff %8.2f percdiff %8.4f\n",
-                   external3sco.tigId, external3sco.readId,
-                   internal3sco.score, external3sco.score, ad3, pd3);
-        }
-      }
-      else if ((internal3sco.score >  0.0) &&
-               (external3sco.score == 0.0)) {
-        writeLog("    hi end NOT confused -- no external edge\n");
-      }
-
+      checkConfusion(rdAid, internal5sco, external5sco, "lo", false, confusedAbsolute, confusedPercent, confusedEdges);
+      checkConfusion(rdAid, internal3sco, external3sco, "hi",  true, confusedAbsolute, confusedPercent, confusedEdges);
     }  //  Over all marks (ri)
   }  //  Over all reads (fi)
 }
