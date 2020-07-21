@@ -87,7 +87,7 @@ public:
   //  Load bogart data.
 
   void        loadBogartStatus(char const *prefix, uint32 nReads);
-  void        loadBogartTigs(char const *tigname);
+  void        loadBogartTigs(char const *tigname, uint32 nReads);
 
   //  Test if parameters are defaults.  If so, we can skip filtering.
 
@@ -314,12 +314,15 @@ dumpParameters::loadBogartStatus(char const *prefix, uint32 nReads) {
 
 
 void
-dumpParameters::loadBogartTigs(char const *tigpath) {
+dumpParameters::loadBogartTigs(char const *tigpath, uint32 nReads) {
 
   if (directoryExists(tigpath) == false)
     return;
 
   withTigID = true;
+
+  if (status == nullptr)
+    allocateArray(status, nReads+1, resizeArray_clearNew);
 
   fprintf(stderr, "loading read to tig mapping from '%s'\n", tigpath);
 
@@ -513,17 +516,18 @@ dumpParameters::drawPicture(uint32         Aid,
       }
     }
 
-    //  Write in any annotation(s)
+    //  Write in any annotation(s).  Do not add a NUL terminator - not sure
+    //  if this is correct though.
 
     uint32 annotation = MHS + 1+ OLW + 1 + MHS + 1;
 
-    if (withStatus) {                                                                  //  "1234567890123456"
-      if      (status[Bid].isContained == true)   strncpy(line + annotation, (char const *)"contained   ", 12);
-      else if (status[Bid].isIgnored   == true)   strncpy(line + annotation, (char const *)"ignored     ", 12);
-      else if (status[Bid].isCovGap    == true)   strncpy(line + annotation, (char const *)"coverage-gap", 12);
-      else if (status[Bid].isLopsided  == true)   strncpy(line + annotation, (char const *)"lopsided    ", 12);
-      else if (status[Bid].isSpur      == true)   strncpy(line + annotation, (char const *)"spur        ", 12);
-      else                                        strncpy(line + annotation, (char const *)"dovetail    ", 12);
+    if (withStatus) {
+      if      (status[Bid].isContained == true)   memcpy(line + annotation, (char const *)"contained   ", sizeof(char) * 12);
+      else if (status[Bid].isIgnored   == true)   memcpy(line + annotation, (char const *)"ignored     ", sizeof(char) * 12);
+      else if (status[Bid].isCovGap    == true)   memcpy(line + annotation, (char const *)"coverage-gap", sizeof(char) * 12);
+      else if (status[Bid].isLopsided  == true)   memcpy(line + annotation, (char const *)"lopsided    ", sizeof(char) * 12);
+      else if (status[Bid].isSpur      == true)   memcpy(line + annotation, (char const *)"spur        ", sizeof(char) * 12);
+      else                                        memcpy(line + annotation, (char const *)"dovetail    ", sizeof(char) * 12);
 
       annotation += 13;
     }
@@ -907,7 +911,7 @@ main(int argc, char **argv) {
   //
 
   params.loadBogartStatus(bogartPath, seqStore->sqStore_lastReadID());
-  params.loadBogartTigs(bogTigPath);
+  params.loadBogartTigs(bogTigPath, seqStore->sqStore_lastReadID());
 
   //
   //  If dumping metadata, no filtering is needed, just tell the store to dump.
