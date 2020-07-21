@@ -116,38 +116,34 @@ public:
 void
 dotplot(uint32 Aid, bool Afwd, char *Aseq,
         uint32 Bid, bool Bfwd, char *Bseq) {
-  char   Aname[FILENAME_MAX+1], Afile[FILENAME_MAX+1];
-  char   Bname[FILENAME_MAX+1], Bfile[FILENAME_MAX+1];
-  char   Pname[FILENAME_MAX+1], Pfile[FILENAME_MAX+1];
+  char   Aname[16];
+  char   Bname[16];
+  char   Pname[64];
   FILE  *F;
 
-  sprintf(Aname, "tig%08u%c",       Aid, (Afwd) ? '+' : '-');
-  sprintf(Afile, "tig%08u%c.fasta", Aid, (Afwd) ? '+' : '-');
-  sprintf(Bname, "tig%08u%c",       Bid, (Bfwd) ? '+' : '-');
-  sprintf(Bfile, "tig%08u%c.fasta", Bid, (Bfwd) ? '+' : '-');
-  sprintf(Pname, "plot-%s-%s",    Aname, Bname);
-  sprintf(Pfile, "plot-%s-%s.sh", Aname, Bname);
+  sprintf(Aname, "tig%08u%c",  Aid, (Afwd) ? '+' : '-');
+  sprintf(Bname, "tig%08u%c",  Bid, (Bfwd) ? '+' : '-');
+  sprintf(Pname, "plot-%s-%s", Aname, Bname);
 
-  F = AS_UTL_openOutputFile(Pfile);
+  F = AS_UTL_openOutputFile(Pname, '.', "sh");
   fprintf(F, "#!/bin/sh\n");
   fprintf(F, "\n");
   fprintf(F, "nucmer --maxmatch --nosimplify -p %s %s.fasta %s.fasta\n", Pname, Aname, Bname);
   fprintf(F, "show-coords -l -o -r -T %s.delta | expand -t 8 > %s.coords\n", Pname, Pname);
   fprintf(F, "mummerplot --fat -t png -p %s %s.delta\n", Pname, Pname);
   fprintf(F, "echo mummerplot --fat -p %s %s.delta\n", Pname, Pname);
-  AS_UTL_closeFile(F, Pfile);
+  AS_UTL_closeFile(F, Pname, '.', "sh");
 
-  F = AS_UTL_openOutputFile(Afile);
+  F = AS_UTL_openOutputFile(Aname, '.', "fasta");
   fprintf(F, ">%s\n%s\n", Aname, Aseq);
-  AS_UTL_closeFile(F, Afile);
+  AS_UTL_closeFile(F, Aname, '.', "fasta");
 
-  F = AS_UTL_openOutputFile(Bfile);
+  F = AS_UTL_openOutputFile(Bname, '.', "fasta");
   fprintf(F, ">%s\n%s\n", Bname, Bseq);
-  AS_UTL_closeFile(F, Bfile);
+  AS_UTL_closeFile(F, Bname, '.', "fasta");
 
-  sprintf(Pfile, "sh plot-%s-%s.sh", Aname, Bname);
-
-  system(Pfile);
+  sprintf(Pname, "sh plot-%s-%s.sh", Aname, Bname);
+  system(Pname);
 }
 
 
