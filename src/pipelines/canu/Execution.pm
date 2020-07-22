@@ -24,7 +24,6 @@ require Exporter;
              resetIteration
              touch
              makeExecutable
-             getInstallDirectory
              getJobIDShellCode
              getLimitShellCode
              getBinDirectory
@@ -295,15 +294,15 @@ sub resetIteration ($) {
 #
 #  To make it more trouble, shell scripts need to do all this by themselves.
 #
-sub getInstallDirectory () {
-    my $installDir = $FindBin::RealBin;
-
-    if ($installDir =~ m!^(.*)/\w+-\w+/bin$!) {
-        $installDir = $1;
-    }
-
-    return($installDir);
-}
+#sub getInstallDirectory () {
+#    my $installDir = ;
+#
+#    if ($installDir =~ m!^(.*)/\w+-\w+/bin$!) {
+#        $installDir = $1;
+#    }
+#
+#    return($installDir);
+#}
 
 
 #  Emits a block of shell code to parse the grid task id and offset.
@@ -384,18 +383,14 @@ sub getLimitShellCode () {
 #  Used inside canu to find where binaries are located.
 #
 sub getBinDirectory () {
-    my $installDir = getInstallDirectory();
+    return($FindBin::RealBin);
 
-    my $syst = `uname -s`;                          chomp $syst;  #  OS implementation
-    my $arch = `uname -m | sed s/x86_64/amd64/`;    chomp $arch;  #  Hardware platform
-
-    my $path = "$installDir/$syst-$arch/bin";
-
-    if (! -d "$path") {
-        $path = $installDir;
-    }
-
-    return($path);
+    #my $idir = getInstallDirectory();
+    #my $path = $idir;
+    #
+    #$path = "$idir/bin"   if (-d "$idir/bin");
+    #
+    #return($path);
 }
 
 
@@ -403,7 +398,7 @@ sub getBinDirectory () {
 #  getBinDirectory.
 #
 sub getBinDirectoryShellCode () {
-    my $installDir = getInstallDirectory();
+    my $idir = $FindBin::RealBin;
     my $string;
 
     #  First, run any preExec command that might exist.
@@ -418,19 +413,12 @@ sub getBinDirectoryShellCode () {
     #  Then, setup and report paths.
 
     my $javaPath = getGlobal("java");
-    my $canu     = "\$bin/" . basename($0);
+    my $canu     = "\$bin/" . basename($0);   #  NOTE: $bin decided at script run time
 
     $string .= "\n";
     $string .= "#  Path to Canu.\n";
     $string .= "\n";
-    $string .= "syst=`uname -s`\n";
-    $string .= "arch=`uname -m | sed s/x86_64/amd64/`\n";
-    $string .= "\n";
-    $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
-    $string .= "\n";
-    $string .= "if [ ! -d \"\$bin\" ] ; then\n";
-    $string .= "  bin=\"$installDir\"\n";
-    $string .= "fi\n";
+    $string .= "bin=\"$idir\"\n";
     $string .= "\n";
     $string .= "#  Report paths.\n";
     $string .= "\n";
