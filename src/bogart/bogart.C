@@ -68,7 +68,7 @@ main (int argc, char * argv []) {
   uint32       covGapOlap               = 500;     //  Require overlap of x bp when detecting coverage gaps.
   double       lopsidedDiff             = 25.0;    //  Call reads lopsided if diff between is more than x percent.
   double       minOlapPercent           =  0.0;
-  double       minReadsBest             =  0.9;    //  90% of reads must have best edges.
+  double       minReadsBest             =  0.8;    //  80% of reads must have best edges.
   double       percentileError          =  0.9;
 
   uint64       genomeSize               = 0;
