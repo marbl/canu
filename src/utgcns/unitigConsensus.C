@@ -379,8 +379,8 @@ unitigConsensus::generateTemplateStitch(void) {
     EdlibAlignResult result;
     bool             aligned       = false;
 
-    double           templateSize  = 0.80;
-    double           extensionSize = 0.20;
+    double           templateSize  = 0.90;
+    double           extensionSize = 0.10;
     double           bandErrRate   = _errorRate / 4;
 
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
@@ -489,7 +489,6 @@ unitigConsensus::generateTemplateStitch(void) {
                 (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
       templateSize -= 0.10;
-      bandErrRate = (bandErrRate + _errorRate / 4 >= _errorRate ? _errorRate : bandErrRate + _errorRate / 4);
     }
 
     if ((noResult) || (hitTheEnd && moreToExtend)) {
@@ -498,13 +497,21 @@ unitigConsensus::generateTemplateStitch(void) {
                 (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
       extensionSize += 0.10;
-      bandErrRate = (bandErrRate + _errorRate / 4 >= _errorRate ? _errorRate : bandErrRate + _errorRate / 4);
     }
 
     if (templateSize < 0.01) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!  Fail!\n");
-      tryAgain = false;
+      if (bandErrRate + _errorRate / 4 >= _errorRate)
+         tryAgain = false;
+      else {
+        if (showAlgorithm()) 
+          fprintf(stderr, "generateTemplateStitch()-- FAILED to align at %.2f error rate, increasing to %.2f\n", bandErrRate, bandErrRate + _errorRate/4);
+        tryAgain = true;
+        templateSize  = 0.90;
+        extensionSize = 0.10;
+        bandErrRate  += _errorRate / 4;
+      }
     }
 
     if (tryAgain) {
