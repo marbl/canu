@@ -174,6 +174,7 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 overlapAlign/overlapAlign.mk \
                 \
                 overlapErrorAdjustment/findErrors.mk \
+                overlapErrorAdjustment/fixErrors.mk \
                 overlapErrorAdjustment/findErrors-Dump.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \
                 \
