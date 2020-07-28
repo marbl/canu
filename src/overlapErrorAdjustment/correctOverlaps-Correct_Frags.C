@@ -19,8 +19,34 @@
 #include "correctionOutput.H"
 
 
-//  Shouldn't be global.
-char  filter[256];
+//  A filter to convert upper- to lower-case, and to map all undefined bases to 'a'.
+//
+//    for (uint32 i = 0; i < 256; i++)
+//      filter[i] = 'a';
+//
+//    filter['A'] = filter['a'] = 'a';
+//    filter['C'] = filter['c'] = 'c';
+//    filter['G'] = filter['g'] = 'g';
+//    filter['T'] = filter['t'] = 't';
+//
+char const
+filter[256] = { 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'c', 'a', 'a', 'a', 'g', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 't', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'c', 'a', 'a', 'a', 'g', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 't', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
+                'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a' };
+
 
 
 void
@@ -138,16 +164,6 @@ void
 Correct_Frags(coParameters *G,
               sqStore      *seqStore,
               FILE *correctedReads) {
-
-  //  The original converted to lowercase, and made non-acgt be 'a'.
-
-  for (uint32 i = 0; i < 256; i++)
-    filter[i] = 'a';
-
-  filter['A'] = filter['a'] = 'a';
-  filter['C'] = filter['c'] = 'c';
-  filter['G'] = filter['g'] = 'g';
-  filter['T'] = filter['t'] = 't';
 
   //  Open the corrections, as an array.
 
