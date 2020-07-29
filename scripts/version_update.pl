@@ -87,7 +87,12 @@ if (-d "../.git") {
 
             $version = "v$major.$minor";
         } else {
-            die "Failed to parse describe string '$_'.\n";
+            $major   = "0";
+            $minor   = "0";
+            $commits = "0";
+            $hash1   = $_;
+
+            $version = "v$major.$minor";
         }
     }
     close(F);
