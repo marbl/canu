@@ -1,3 +1,4 @@
+MODULE       :=    canu
 TARGET       := libcanu.a
 SOURCES      := utility/src/utility/runtime.C \
                 \
