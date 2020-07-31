@@ -689,19 +689,19 @@ processTigs(cnsParameters  &params) {
     params.tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
   }
 
-    fprintf(stdout, "\n");
-    fprintf(stdout, "Processed %u tig%s and %u singleton%s.\n",
-            nTigs, (nTigs == 1)             ? "" : "s",
-            nSingletons, (nSingletons == 1) ? "" : "s");
-    fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "Processed %u tig%s and %u singleton%s.\n",
+          nTigs, (nTigs == 1)             ? "" : "s",
+          nSingletons, (nSingletons == 1) ? "" : "s");
+  fprintf(stdout, "\n");
 
-    if (numFailures) {
-      fprintf(stderr, "WARNING:  %u tig%s failed.\n", numFailures, (numFailures == 1) ? "" : "s");
-      fprintf(stderr, "\n");
-      fprintf(stderr, "Consensus did NOT finish successfully.\n");
-    } else {
-      fprintf(stderr, "Consensus finished successfully.\n");
-    }
+  if (numFailures) {
+    fprintf(stderr, "WARNING:  %u tig%s failed.\n", numFailures, (numFailures == 1) ? "" : "s");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Consensus did NOT finish successfully.\n");
+  } else {
+    fprintf(stderr, "Consensus finished successfully.\n");
+  }
 }
 
 
