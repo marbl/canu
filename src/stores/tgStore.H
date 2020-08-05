@@ -83,27 +83,15 @@ public:
 
   //  Accessors to tig data; these do not load the tig from disk.
 
-  bool           isDeleted(uint32 tigID);
+  bool           isDeleted(uint32 tigID) {
+    assert(tigID < _tigLen);
+    return(_tigEntry[tigID].isDeleted);
+  };
 
-  uint32         getSourceID(uint32 tigID);
-  uint32         getSourceBgn(uint32 tigID);
-  uint32         getSourceEnd(uint32 tigID);
-
-  tgTig_class    getClass(uint32 tigID);
-  bool           getSuggestRepeat(uint32 tigID);
-  bool           getSuggestCircular(uint32 tigID);
-
-  uint32         getNumChildren(uint32 tigID);
-
-  void           setSourceID(uint32 tigID, uint32 id);
-  void           setSourceBgn(uint32 tigID, uint32 bgn);
-  void           setSourceEnd(uint32 tigID, uint32 end);
-
-  void           setClass(uint32 tigID, tgTig_class c);
-  void           setSuggestRepeat(uint32 tigID, bool enable=true);
-  void           setSuggestCircular(uint32 tigID, bool enable=true);
-
-  uint32         getVersion(uint32 tigID);
+  uint32         getVersion(uint32 tigID) {
+    assert(tigID < _tigLen);
+    return(_tigEntry[tigID].svID);
+  };
 
 private:
   struct tgStoreEntry {
@@ -125,7 +113,7 @@ private:
   void                    purgeVersion(uint32 version);
   void                    purgeCurrentVersion(void);
 
-  friend void operationCompress(char *tigName, int tigVers);
+  friend void operationCompress(char *tigName, int tigVers);   //  So it can get to purgeVersion().
 
   FILE                   *openDB(uint32 V);
 
@@ -152,122 +140,5 @@ private:
   dataFileT              *_dataFile;       //  dataFile[version]
 };
 
-
-inline
-bool
-tgStore::isDeleted(uint32 tigID) {
-  return(_tigEntry[tigID].isDeleted);
-}
-
-inline
-uint32
-tgStore::getSourceID(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._sourceID);
-}
-
-inline
-uint32
-tgStore::getSourceBgn(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._sourceBgn);
-}
-
-inline
-uint32
-tgStore::getSourceEnd(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._sourceEnd);
-}
-
-inline
-tgTig_class
-tgStore::getClass(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._class);
-}
-
-inline
-bool
-tgStore::getSuggestRepeat(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._suggestRepeat);
-}
-
-inline
-bool
-tgStore::getSuggestCircular(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._suggestCircular);
-}
-
-inline
-uint32
-tgStore::getNumChildren(uint32 tigID) {
-  return(_tigEntry[tigID].tigRecord._childrenLen);
-}
-
-
-
-inline
-void
-tgStore::setSourceID(uint32 tigID, uint32 id) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._sourceID = id;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_sourceID = id;
-}
-
-inline
-void
-tgStore::setSourceBgn(uint32 tigID, uint32 bgn) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._sourceBgn = bgn;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_sourceBgn = bgn;
-}
-
-inline
-void
-tgStore::setSourceEnd(uint32 tigID, uint32 end) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._sourceEnd = end;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_sourceEnd = end;
-}
-
-inline
-void
-tgStore::setClass(uint32 tigID, tgTig_class c) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._class = c;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_class = c;
-}
-
-inline
-void
-tgStore::setSuggestRepeat(uint32 tigID, bool enable) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._suggestRepeat = enable;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_suggestRepeat = enable;
-}
-
-inline
-void
-tgStore::setSuggestCircular(uint32 tigID, bool enable) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._suggestCircular = enable;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_suggestCircular = enable;
-}
-
-inline
-uint32
-tgStore::getVersion(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].svID);
-}
 
 #endif
