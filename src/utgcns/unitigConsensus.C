@@ -23,6 +23,8 @@
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
 #include "edlib.H"
+#include "align-ssw.H"
+#include "align-ssw-driver.H"
 
 #include <set>
 
@@ -1263,6 +1265,151 @@ unitigConsensus::findRawAlignments(void) {
 
 
 
+void
+unitigConsensus::trimCircular(void) {
+  char    *bases  = _tig->bases();
+  uint32   length = _tig->length();
+
+  if (_tig->_suggestCircular == false)
+    return;
+
+  if (_tig->_circularLength == 0)
+    return;
+
+  if (showAlgorithm())
+    fprintf(stderr, "Circularizing tig %u with expected overlap %u bases.\n", _tig->tigID(), _tig->_circularLength);
+
+  //  Try alignments of various lengths until we find a proper overlap
+  //  between the end and the start at acceptable quality, or until we get
+  //  longer than expected.
+  //
+  //  Stop searching if we found a proper overlap.
+  //
+  //                   bgnA -v        v- end of the tig
+  //            A:  ....---------------
+  //            B:           ----------------......
+  //   beginning of the tig -^        ^- endB
+
+  bool     found = false;
+  sswLib   align(1, -4, -5, -5);
+
+  for (double scale = 1.05; (found == false) && (scale < 2.10); scale += 0.1) {
+    uint32 trylen = min(length, (uint32)(_tig->_circularLength * scale));
+
+    if (showPlacement())
+      fprintf(stderr, "  Align   A %6u-%6u against B %6u-%6u\n",
+              length-trylen, length,
+              0, trylen);
+
+    align.align(bases, length, length-trylen, length,           //  A:  the end of the tig
+                bases, length, 0,             trylen, false);   //  B:  the start of the tig
+
+    if ((align.errorRate() < 0.05) &&         //  "Found" if the error rate is reasonable, and
+        (align.bgnA() > length - trylen) &&   //  A has unaligned stuff at the start, and
+        (align.endB() < trylen))              //  B has unaligned stuff at the end.
+      found = true;
+  }
+
+  if (found == false)   //  No overlap found, probably not circular.
+    return;
+
+  uint32   headBgn = align.bgnB();   //  Should be zero!
+  uint32   headEnd = align.endB();   //  
+
+  uint32   tailBgn = align.bgnA();   //
+  uint32   tailEnd = align.endA();   //  Should be 'length'.
+
+  uint32   keepBgn = 0;              //  Default to trimming the
+  uint32   keepEnd = tailBgn;        //  end part off.
+
+  if (showAlgorithm())
+    fprintf(stderr, "  Aligned A %6u-%6u against B %6u-%6u at %.2f%%\n",
+            tailBgn, tailEnd, headBgn, headEnd, align.percentIdentity());
+
+  if (showAlignments())
+    align.display(20);
+
+  //  Find the biggest match block, and use the middle of that for the trim point.
+
+  uint32  CC = UINT32_MAX;
+
+  for (uint32 cc=0; cc<align.cigarLength(); cc++) {
+    if (align.cigarCode(cc) != '=')
+      continue;
+
+    if ((CC == UINT32_MAX) ||                           //  If not a valid biggest block,
+        (align.cigarValu(CC) <  align.cigarValu(cc)))   //  or the current block is bigger,
+      CC = cc;                                          //  reset the biggest block.
+  }
+
+  if (CC != UINT32_MAX) {
+    uint32  mid = align.cigarToMapBgn(CC) + (align.cigarToMapEnd(CC) - align.cigarToMapBgn(CC)) / 2;
+
+    keepBgn = align.alignMapB(mid);   //  B is the end of the tig, remember?
+    keepEnd = align.alignMapA(mid);   //  A is the start of the tig.
+  }
+
+  if (showAlgorithm())
+    fprintf(stderr, "  Trim to %u-%u\n", keepBgn, keepEnd);
+
+  //  Test the trimming.
+  //
+  //  Align the begin 0..keepBgn   to the end   of the tig buffer+keepEnd..len
+  //  Align the end   keepEnd..len to the begin of the tig            len..keepBgn+buffer
+
+  bool  headTest = false;
+  bool  tailTest = false;
+
+  //  Align trimmed-off start to end of tig.
+  {
+    sswLib testBgn;
+
+    if (showAlgorithm())
+      fprintf(stderr, "  Test   head %6d-%6d against   tail %6d-%6d\n",
+              0, keepBgn, tailBgn-222, tailEnd);
+
+    testBgn.align(bases, length, 0,             keepBgn,
+                  bases, length, tailBgn - 222, tailEnd);
+
+    if (showAlgorithm())
+      fprintf(stderr, "  Tested head %6d-%6d aligns to tail %6d-%6d\n",
+              testBgn.bgnA(), testBgn.endA(), testBgn.bgnB(), testBgn.endB());
+
+    if (testBgn.endB() == keepEnd)
+      headTest = true;
+  }
+
+  //  Align trimmed-off end to start of tig.
+  {
+    sswLib testEnd;
+
+    if (showAlgorithm())
+      fprintf(stderr, "  Test   tail %6d-%6d against   head %6d-%6d\n",
+              keepEnd, length, headBgn, headEnd + 222);
+
+    testEnd.align(bases, length, keepEnd, length,
+                  bases, length, headBgn, headEnd + 222);
+
+    if (showAlgorithm())
+      fprintf(stderr, "  Tested tail %6d-%6d aligns to head %6d-%6d\n",
+              testEnd.bgnA(), testEnd.endA(), testEnd.bgnB(), testEnd.endB());
+
+    if (testEnd.bgnB() == keepBgn)
+      tailTest = true;
+  }
+
+  if ((headTest == true) &&
+      (tailTest == true)) {
+    if (showAlgorithm())
+      fprintf(stderr, "  Tests pass.\n");
+
+    _tig->_trimBgn = keepBgn;
+    _tig->_trimEnd = keepEnd;
+  }
+}
+
+
+
 bool
 unitigConsensus::generate(tgTig                     *tig_,
                           char                       algorithm_,
@@ -1278,18 +1425,22 @@ unitigConsensus::generate(tgTig                     *tig_,
     success = generateQuick(tig_, reads_);
   }
 
-  else if ((algorithm_ == 'P') ||
-           (algorithm_ == 'p')) {
+  else if ((algorithm_ == 'P') ||   //  Normal utgcns.
+           (algorithm_ == 'p')) {   //  'norealign'
     success = generatePBDAG(tig_, aligner_, reads_);
   }
 
+  if (success) {
+    _tig->_trimBgn = 0;
+    _tig->_trimEnd = _tig->length();
 
-  if ((success) &&
-      (algorithm_ == 'P')) {
-    findCoordinates();
-    findRawAlignments();
+    if (algorithm_ == 'P') {
+      findCoordinates();
+      findRawAlignments();
+    }
+
+    trimCircular();
   }
-
 
   return(success);
 }

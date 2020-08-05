@@ -208,14 +208,16 @@ public:
 class Unitig {
 private:
   Unitig(TigVector *v) {
-    _vector        = v;
-    _length        = 0;
-    _id            = 0;
+    _vector         = v;
+    _length         = 0;
+    _id             = 0;
 
-    _isUnassembled = false;
-    _isRepeat      = false;
-    _isCircular    = false;
-    _isBubble      = false;
+    _isUnassembled  = false;
+    _isRepeat       = false;
+    _isCircular     = false;
+    _isBubble       = false;
+
+    _circularLength = 0;
   };
 
 public:
@@ -382,6 +384,8 @@ public:
   bool              _isRepeat;       //  Is from an identified repeat region.
   bool              _isCircular;     //  Is (probably) a circular tig.
   bool              _isBubble;       //  Is (probably) a bubble.
+
+  uint32            _circularLength; //  Length of overlap between ends.
 };
 
 

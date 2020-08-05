@@ -114,6 +114,7 @@ private:
 
   void   findCoordinates(void);
   void   findRawAlignments(void);
+  void   trimCircular(void);
 
 public:
   bool   showProgress(void)         { return(_tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing

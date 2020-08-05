@@ -59,8 +59,12 @@ writeTigsToStore(TigVector     &tigs,
     tig->_suggestRepeat   = utg->_isRepeat;
     tig->_suggestCircular = utg->_isCircular;
     tig->_suggestBubble   = utg->_isBubble;
+    tig->_circularLength  = utg->_circularLength;
 
     tig->_layoutLen       = utg->getLength();
+
+    tig->_trimBgn         = 0;
+    tig->_trimEnd         = utg->getLength();
 
     //  Transfer reads from the bogart tig to the output tig.
 

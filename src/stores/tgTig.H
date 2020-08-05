@@ -219,7 +219,8 @@ public:
   uint32              _suggestRepeat   : 1;
   uint32              _suggestCircular : 1;
   uint32              _suggestBubble   : 1;
-  uint32              _spare           : 27;
+  uint32              _circularLength  : 20;
+  uint32              _spare           : 7;
 
   uint32              _layoutLen;
   uint32              _basesLen;
@@ -322,8 +323,8 @@ public:
   uint32              _suggestRepeat   : 1;    //  Bogart made this from detected repeat.
   uint32              _suggestCircular : 1;    //  Bogart found overlaps making a circle.
   uint32              _suggestBubble   : 1;    //  Bogart thinks this is a bubble.
-
-  uint32              _spare           : 32 - 2 - 3;
+  uint32              _circularLength  : 20;   //  Length of the end-to-end circularizing overlap.
+  uint32              _spare           : 7;
 
   uint32              _layoutLen;         //  The max coord in the layout.  Same as _basesLen if _bases exists.
 

@@ -72,8 +72,8 @@ public:
 
 bool
 isCircularizingEdge(Unitig   *tig,
-                    uint32    rdFid,
-                    uint32    rdTid) {
+                    uint32    rdFid,     //  read From
+                    uint32    rdTid) {   //  read To
   bool   isCircular = true;
 
   if ((rdTid == 0) || (tig->inUnitig(rdTid) != tig->id()) ||   //  Quick sanity checks:
@@ -216,10 +216,10 @@ findCircularContigs(TigVector &tigs,
                     const char *prefix) {
   FILE *CIRC = AS_UTL_openOutputFile(prefix, '.', "circular");
 
-  fprintf(CIRC, "          ---------------------------------------------------------------  ---------------------------------------------------------------\n");
-  fprintf(CIRC, "              first                         overlap                             last                         overlap\n");
-  fprintf(CIRC, "   tigID     readID        bgn-end           readID        bgn-end            readID        bgn-end           readID        bgn-end\n");
-  fprintf(CIRC, "--------  --------- ---------- ---------- --------- ---------- ----------  --------- ---------- ---------- --------- ---------- ----------\n");
+  fprintf(CIRC, "          ----------------------------------------------------------------------  ----------------------------------------------------------------------\n");
+  fprintf(CIRC, "              first                         overlap                                    last                         overlap\n");
+  fprintf(CIRC, "   tigID     readID        bgn-end           readID        bgn-end        length     readID        bgn-end           readID        bgn-end        length\n");
+  fprintf(CIRC, "--------  --------- ---------- ---------- --------- ---------- ---------- ------  --------- ---------- ---------- --------- ---------- ---------- ------\n");
 
   for (uint32 ti=1; ti<tigs.size(); ti++) {
     Unitig  *tig = tigs[ti];
@@ -255,17 +255,30 @@ findCircularContigs(TigVector &tigs,
         (isCf == false))
       continue;
 
-    //  Circular!  Flag it and write out some info.
+    //  Circular!  Find (again) the overlap between lRead and fRead and report an overlap size.
 
-    tig->_isCircular = true;
+    uint32      ovlLen = 0;
+    BAToverlap *ovl    = OC->getOverlaps(lRead->ident, ovlLen);
+
+    uint32      circularLength = 0;
+
+    for (uint32 oo=0; oo<ovlLen; oo++) {
+      if ((ovl[oo].b_iid == fRead->ident) &&
+          (((lRead->position.isForward() ==  true) && (ovl[oo].AEndIs3prime() ==  true)) ||
+           ((lRead->position.isForward() == false) && (ovl[oo].AEndIs5prime() ==  true))))
+        circularLength = RI->overlapLength(lRead->ident, fRead->ident, ovl[oo].a_hang, ovl[oo].b_hang);
+    }
+
+    tig->_isCircular     = true;
+    tig->_circularLength = circularLength;
 
     ufNode *foRead = &tig->ufpath[ tig->ufpathIdx(fEdge->readId()) ];
     ufNode *loRead = &tig->ufpath[ tig->ufpathIdx(lEdge->readId()) ];
 
-    fprintf(CIRC, "%8u  %9u %10u-%-10u %9u %10u-%-10u  %9u %10u-%-10u %9u %10u-%-10u\n",
+    fprintf(CIRC, "%8u  %9u %10u-%-10u %9u %10u-%-10u %6u  %9u %10u-%-10u %9u %10u-%-10u %6u\n",
             ti,
-            fRead->ident, fRead->position.bgn, fRead->position.end, foRead->ident, foRead->position.bgn, foRead->position.end,
-            lRead->ident, lRead->position.bgn, lRead->position.end, loRead->ident, loRead->position.bgn, loRead->position.end);
+            fRead->ident, fRead->position.bgn, fRead->position.end, foRead->ident, foRead->position.bgn, foRead->position.end, tig->_circularLength,
+            lRead->ident, lRead->position.bgn, lRead->position.end, loRead->ident, loRead->position.bgn, loRead->position.end, tig->_circularLength);
   }
 
   AS_UTL_closeFile(CIRC, prefix, '.', "circular");

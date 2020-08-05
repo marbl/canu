@@ -2,6 +2,8 @@ MODULE       :=    canu
 TARGET       := libcanu.a
 SOURCES      := utility/src/utility/runtime.C \
                 \
+                utility/src/utility/align-ssw.C \
+                utility/src/utility/align-ssw-driver.C \
                 utility/src/utility/edlib.C \
                 \
                 utility/src/utility/files.C \
