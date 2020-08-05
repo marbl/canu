@@ -568,7 +568,16 @@ placeReadUsingOverlaps(TigVector                &tigs,
   //    placed orientation (reverse is first)
   //    position
 
-  sort(ovlPlace, ovlPlace + ovlPlaceLen, overlapPlacement_byLocation);
+  auto byLocation = [](overlapPlacement const &A,
+                       overlapPlacement const &B) {
+                      if (A.tigID != B.tigID)
+                        return(A.tigID < B.tigID);
+                      if (A.position.isReverse() != B.position.isReverse())
+                        return(A.position.isReverse() < B.position.isReverse());
+                      return(A.position < B.position);
+                    };
+
+  sort(ovlPlace, ovlPlace + ovlPlaceLen, byLocation);
 
   //  Segregate the overlaps by placement in the unitig.  We want to construct one
   //  overlapPlacement for each distinct placement.  How this is done:
@@ -624,7 +633,12 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
     //  Sort these placements by their clusterID.
 
-    sort(ovlPlace + bgn, ovlPlace + end, overlapPlacement_byCluster);
+    auto byCluster = [](overlapPlacement const &A,
+                        overlapPlacement const &B) {
+                       return(A.clusterID < B.clusterID);
+                     };
+
+    sort(ovlPlace + bgn, ovlPlace + end, byCluster);
 
     //  Run through each 'cluster' and compute a final placement for the read.
     //    A cluster extends from placements os to oe.

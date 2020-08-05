@@ -103,35 +103,6 @@ public:
 };
 
 
-//  Sort by:  clusterID, tigID, orientation, position
-//
-//  This sort is used to cluster the reads into overlapping regions.  We don't care
-//  about ties.
-//
-//  clusterID is UINT32_MAX if the placement should be ignored.
-//
-inline
-bool
-overlapPlacement_byLocation(const overlapPlacement &A, const overlapPlacement &B) {
-  if (A.tigID != B.tigID)
-    return(A.tigID < B.tigID);
-  if (A.position.isReverse() != B.position.isReverse())
-    return(A.position.isReverse() < B.position.isReverse());
-  return(A.position < B.position);
-}
-
-
-//  Sort by:
-//    cluster
-//
-//  This sort is used to group reads by cluster.  We don't care about ties, but they
-//  can change the results if the input overlaps change.
-inline
-bool
-overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B) {
-  return(A.clusterID < B.clusterID);
-}
-
 
 const uint32  placeRead_all        = 0x00;   //  Return all alignments
 const uint32  placeRead_fullMatch  = 0x01;   //  Return only alignments for the whole read
