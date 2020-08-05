@@ -53,9 +53,9 @@ tgPosition::tgPosition() {
 tgTigRecord::tgTigRecord() {
   _tigID             = UINT32_MAX;
 
-  _sourceID          = 0;
-  _sourceBgn         = 0;
-  _sourceEnd         = 0;
+  _unused32          = 0;
+  _trimBgn           = 0;
+  _trimEnd           = 0;
 
   _class             = tgTig_noclass;
   _suggestRepeat     = false;
@@ -75,9 +75,9 @@ tgTigRecord::tgTigRecord() {
 tgTig::tgTig() {
   _tigID                = UINT32_MAX;
 
-  _sourceID             = 0;
-  _sourceBgn            = 0;
-  _sourceEnd            = 0;
+  _unused32             = 0;
+  _trimBgn              = 0;
+  _trimEnd              = 0;
 
   _utgcns_verboseLevel  = 0;
 
@@ -117,9 +117,9 @@ tgTigRecord &
 tgTigRecord::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
 
-  _sourceID            = tg._sourceID;
-  _sourceBgn           = tg._sourceBgn;
-  _sourceEnd           = tg._sourceEnd;
+  _unused32            = tg._unused32;
+  _trimBgn             = tg._trimBgn;
+  _trimEnd             = tg._trimEnd;
 
   _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
@@ -142,9 +142,9 @@ tgTig &
 tgTig::operator=(tgTigRecord & tr) {
   _tigID               = tr._tigID;
 
-  _sourceID            = tr._sourceID;
-  _sourceBgn           = tr._sourceBgn;
-  _sourceEnd           = tr._sourceEnd;
+  _unused32            = tr._unused32;
+  _trimBgn             = tr._trimBgn;
+  _trimEnd             = tr._trimEnd;
 
   _class               = tr._class;
   _suggestRepeat       = tr._suggestRepeat;
@@ -169,9 +169,9 @@ tgTig &
 tgTig::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
 
-  _sourceID            = tg._sourceID;
-  _sourceBgn           = tg._sourceBgn;
-  _sourceEnd           = tg._sourceEnd;
+  _unused32            = tg._unused32;
+  _trimBgn             = tg._trimBgn;
+  _trimEnd             = tg._trimEnd;
 
   _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
@@ -231,9 +231,9 @@ void
 tgTig::clear(void) {
   _tigID                = UINT32_MAX;
 
-  _sourceID             = 0;
-  _sourceBgn            = 0;
-  _sourceEnd            = 0;
+  _unused32             = 0;
+  _trimBgn              = 0;
+  _trimEnd              = 0;
 
   _class                = tgTig_noclass;
   _suggestRepeat        = 0;
@@ -484,9 +484,9 @@ tgTig::dumpLayout(FILE *F, bool withSequence) {
 
   //  Properties.
 
-  fprintf(F, "sourceID        %u\n", _sourceID);
-  fprintf(F, "sourceBgn       %u\n", _sourceBgn);
-  fprintf(F, "sourceEnd       %u\n", _sourceEnd);
+  //fprintf(F, "unused32        %u\n", _unused32);
+  fprintf(F, "trimBgn         %u\n", _trimBgn);
+  fprintf(F, "trimEnd         %u\n", _trimEnd);
   fprintf(F, "class           %s\n", toString(_class));
   fprintf(F, "suggestRepeat   %c\n", _suggestRepeat   ? 'T' : 'F');
   fprintf(F, "suggestBubble   %c\n", _suggestBubble   ? 'T' : 'F');
@@ -582,12 +582,12 @@ tgTig::loadLayout(FILE *F) {
       else
         memcpy(_quals, W[1], sizeof(char) * (_basesLen + 1));
 
-    } else if (strcmp(W[0], "sourceID") == 0) {
-      _sourceID = strtouint32(W[1]);
-    } else if (strcmp(W[0], "sourceBgn") == 0) {
-      _sourceBgn = strtouint32(W[1]);
-    } else if (strcmp(W[0], "sourceEnd") == 0) {
-      _sourceEnd = strtouint32(W[1]);
+    //} else if (strcmp(W[0], "unused32") == 0) {
+    //  _unused32 = strtouint32(W[1]);
+    } else if (strcmp(W[0], "trimBgn") == 0) {
+      _trimBgn = strtouint32(W[1]);
+    } else if (strcmp(W[0], "trimEnd") == 0) {
+      _trimEnd = strtouint32(W[1]);
 
     } else if (strcmp(W[0], "class") == 0) {
       if      (strcmp(W[1], "unassembled") == 0)

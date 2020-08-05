@@ -211,9 +211,9 @@ private:
 public:
   uint32              _tigID;
 
-  uint32              _sourceID;
-  uint32              _sourceBgn;
-  uint32              _sourceEnd;
+  uint32              _unused32;
+  uint32              _trimBgn;
+  uint32              _trimEnd;
 
   tgTig_class         _class           : 2;
   uint32              _suggestRepeat   : 1;
@@ -302,9 +302,19 @@ private:
 public:
   uint32              _tigID;             //  ID in the store, or UINT32_MAX if not set
 
-  uint32              _sourceID;          //  Object we are placed in.
-  uint32              _sourceBgn;         //  Position of object in source - for a corrected read
-  uint32              _sourceEnd;         //  this is the (approximate) position in the raw read.
+  //  This is overloaded.
+  //
+  //  It's set in falconsense to track where we extracted the corrected
+  //  read from.  But that information is never otherwise used, it was
+  //  probably added for doing consensus with raw reads.
+  //
+  //  It's set during utgcns to indiacte what bases should be reported for a
+  //  contig when it is trimmed back to circularize, or maybe later,
+  //  bluntified.
+
+  uint32              _unused32;    //  Previously, _sourceID, but never used.
+  uint32              _trimBgn;
+  uint32              _trimEnd;
 
   //  A variety of flags to suggest what type of unitig this is
 

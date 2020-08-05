@@ -195,12 +195,13 @@ generateFalconConsensus(falconConsensus           *fc,
   fprintf(stdout, "(%6u) memory act %10lu est %10lu act/est %.2f", len, fc->getRSS(), mem, fc->getRSS() * 100.0 / mem);
   fprintf(stdout, "\n");
 
+  //  Note where in the full corrected read the output corrected read came from.
+
+  layout->_trimBgn   = (end == 0) ? (0) : (fd->pos[bgn]);            //  Space based (probably).
+  layout->_trimEnd   = (end == 0) ? (0) : (fd->pos[end - 1] + 1);    //  Space based.
+
   //  Update the layout with consensus sequence, positions, et cetera.
   //  If the whole string is lowercase (grrrr!) then bgn == end == 0.
-
-  layout->_sourceID    = layout->tigID();
-  layout->_sourceBgn   = (end == 0) ? (0) : (fd->pos[bgn]);            //  Space based (probably).
-  layout->_sourceEnd   = (end == 0) ? (0) : (fd->pos[end - 1] + 1);    //  Space based.
 
   resizeArrayPair(layout->_bases, layout->_quals, layout->_basesLen, layout->_basesMax, end - bgn + 1, resizeArray_doNothing);
 
