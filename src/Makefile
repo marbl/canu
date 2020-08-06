@@ -683,6 +683,7 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/bin/canu \
      ${TARGET_DIR}/bin/canu-time \
+     ${TARGET_DIR}/bin/draw-tig \
      ${TARGET_DIR}/bin/canu.defaults \
      ${TARGET_DIR}/share/java/classes/mhap-2.1.3.jar \
      ${TARGET_DIR}/lib/site_perl/canu/Consensus.pm \
@@ -747,6 +748,11 @@ ${TARGET_DIR}/bin/canu: pipelines/canu.pl
 ${TARGET_DIR}/bin/canu-time: pipelines/canu-time.pl
 	cp -pf pipelines/canu-time.pl ${TARGET_DIR}/bin/canu-time
 	@chmod +x ${TARGET_DIR}/bin/canu-time
+
+${TARGET_DIR}/bin/draw-tig: pipelines/draw-tig.pl
+	cp -pf pipelines/draw-tig.pl ${TARGET_DIR}/bin/draw-tig
+	@chmod +x ${TARGET_DIR}/bin/draw-tig
+
 
 ${TARGET_DIR}/bin/canu.defaults:
 	@echo > ${TARGET_DIR}/bin/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
