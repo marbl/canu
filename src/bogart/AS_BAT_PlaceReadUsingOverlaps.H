@@ -18,88 +18,41 @@
 #ifndef INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS
 
-#include "AS_BAT_OverlapCache.H"
-#include "AS_BAT_BestOverlapGraph.H"  //  For ReadEnd
 #include "AS_BAT_Unitig.H"            //  For SeqInterval
 #include "AS_BAT_TigVector.H"
 
 
 class overlapPlacement {
 public:
-  overlapPlacement(uint32 fi=0) {
-    frgID         = fi;
-
-    refID         = 0;
-    tigID         = 0;
-
-    clusterID     = 0;
-
-    position      = SeqInterval();
-    verified      = SeqInterval();
-    covered       = SeqInterval();
-
-    fCoverage     = 0.0;
-
-    errors        = 0.0;
-    aligned       = 0;
-
-    tigFidx       = UINT32_MAX;
-    tigLidx       = 0;
+  overlapPlacement() {
+  };
+  overlapPlacement(uint32 f, uint32 t, SeqInterval c) :
+    frgID(f),
+    tigID(t),
+    covered(c) {
   };
 
-  overlapPlacement(uint32 fid, overlapPlacement &op) {
-    frgID          = fid;
+  uint32        frgID     = 0;            //  Read ID of the read this position is for.
 
-    refID          = UINT32_MAX;       //  Not valid in the output overlapPlacement.
-    tigID          = op.tigID;
+  uint32        refID     = 0;            //  Read ID of the overlapping read were placed with.
+  uint32        tigID     = 0;            //  Unitig ID of this placement
 
-    clusterID      = op.clusterID;     //  Useless to track forward.
+  int32         clusterID = UINT32_MAX;   //  Used for grouping individual placements into mergable order.
+                                              //  UINT32_MAX indicates we don't want this placement in a cluster.
 
-    position.bgn   = 0;
-    position.end   = 0;
+  SeqInterval   position;                 //  Unitig position of this placement
+  SeqInterval   verified;                 //  Unitig position of this placement, verified by overlaps
+  SeqInterval   covered;                  //  Position of the overlap on the read
 
-    verified.bgn   = 0;
-    verified.end   = 0;
+  double        fCoverage = 0.0;          //  Coverage of the read
 
-    covered.bgn    = op.covered.bgn;
-    covered.end    = op.covered.end;
+  double        errors    = 0.0;          //  number of errors in alignments
+  uint32        aligned   = 0;            //  number of bases in alignments
 
-    fCoverage      = 0.0;
+  double        erate(void) const   { return((double)errors / aligned); };
 
-    errors         = 0.0;
-    aligned        = 0;
-
-    tigFidx        = UINT32_MAX;
-    tigLidx        = UINT32_MAX;
-  };
-
-  ~overlapPlacement() {
-  };
-
-  double            erate(void) {
-    return((double)errors / aligned);
-  };
-
-
-public:
-  uint32            frgID;      //  Read ID of the read this position is for.
-
-  uint32            refID;      //  Read ID of the overlapping read were placed with.
-  uint32            tigID;      //  Unitig ID of this placement
-
-  int32             clusterID;
-
-  SeqInterval       position;   //  Unitig position of this placement
-  SeqInterval       verified;   //  Unitig position of this placement, verified by overlaps
-  SeqInterval       covered;    //  Position of the overlap on the read
-
-  double            fCoverage;  //  Coverage of the read
-
-  double            errors;     //  number of errors in alignments
-  uint32            aligned;    //  number of bases in alignments
-
-  uint32            tigFidx;    //  First unitig read that supports this placement
-  uint32            tigLidx;    //  Last  unitig read that supports this placement
+  uint32        tigFidx   = UINT32_MAX;   //  First unitig read that supports this placement
+  uint32        tigLidx   = UINT32_MAX;   //  Last  unitig read that supports this placement
 };
 
 

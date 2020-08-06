@@ -21,48 +21,54 @@
 #include "runtime.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"  //  For ReadEnd
+#include "AS_BAT_PlaceReadUsingOverlaps.H"
 #include "AS_BAT_Unitig.H"            //  For SeqInterval
 #include "AS_BAT_TigVector.H"
 
 
 class BestPlacement {
 public:
-  BestPlacement() {
-    tigID       = UINT32_MAX;
+  BestPlacement(overlapPlacement  &pl,
+                BAToverlap        *ovl,
+                uint32             tc,
+                uint32             t5,
+                uint32             t3) : tigID(pl.tigID),
+                                         olapMin(pl.verified.min()),
+                                         olapMax(pl.verified.max()) {
+    if (tc < UINT32_MAX)   bestC = ovl[tc];
+    if (t5 < UINT32_MAX)   best5 = ovl[t5];
+    if (t3 < UINT32_MAX)   best3 = ovl[t3];
 
-    olapMin     = INT32_MIN;
-    olapMax     = INT32_MAX;
+    if (bestC.b_iid != 0) {                 //  Simple sanity check.  Ensure that contained
+      assert(best5.b_iid == 0);             //  edges have no dovetail edges.  This screws up
+      assert(best3.b_iid == 0);             //  the logic when outputting the graph.
+    }
+
+    assert((bestC.a_hang <= 0) && (bestC.b_hang >= 0));  //  ALL contained edges should be this.
+    assert((best5.a_hang <= 0) && (best5.b_hang <= 0));  //  ALL 5' edges should be this.
+    assert((best3.a_hang >= 0) && (best3.b_hang >= 0));  //  ALL 3' edges should be this.
   };
-  ~BestPlacement() {
-  };
 
-  uint32            tigID;        //  Which tig this is placed in.
+  uint32       tigID   = UINT32_MAX;   //  Which tig this is placed in.
 
-  int32             olapMin;      //  Position in the tig covered by overlaps.
-  int32             olapMax;      //
+  int32        olapMin = INT32_MIN;    //  Position in the tig covered by overlaps.
+  int32        olapMax = INT32_MAX;    //
 
-  BAToverlap        bestC;        //  Used internally to generate back edges,
-  BAToverlap        best5;        //  and in AS_BAT_DropDeadEnds.C
-  BAToverlap        best3;
+  BAToverlap   bestC;                  //  Used internally to generate back edges,
+  BAToverlap   best5;                  //  and in AS_BAT_DropDeadEnds.C
+  BAToverlap   best3;
 };
 
 
 
 class BestReverse {
 public:
-  BestReverse() {
-    readID  = 0;
-    placeID = 0;
-  };
-  BestReverse(uint32 id, uint32 pp) {
-    readID  = id;
-    placeID = pp;
-  };
-  ~BestReverse() {
+  BestReverse(uint32 id=0, uint32 pp=0) : readID(id),
+                                          placeID(pp) {
   };
 
-  uint32    readID;    //  readID we have an overlap from; Index into _pForward
-  uint32    placeID;   //  index into the vector for _pForward[readID]
+  uint32       readID;    //  readID we have an overlap from; Index into _pForward
+  uint32       placeID;   //  index into the vector for _pForward[readID]
 };
 
 
@@ -71,7 +77,7 @@ class AssemblyGraph {
 public:
   AssemblyGraph(const char   *prefix,
                 double        deviationRepeat,
-		double        repeatLimit,
+                double        repeatLimit,
                 TigVector    &tigs) {
     buildGraph(prefix, deviationRepeat, repeatLimit, tigs);
   }
@@ -81,11 +87,9 @@ public:
     delete [] _pReverse;
   };
 
-public:
-  vector<BestPlacement>    &getForward(uint32 fi)  { return(_pForward[fi]); };
-  vector<BestReverse>      &getReverse(uint32 fi)  { return(_pReverse[fi]); };
+  vector<BestPlacement>    &getForward(uint32 fi) const  { return(_pForward[fi]); };
+  vector<BestReverse>      &getReverse(uint32 fi) const  { return(_pReverse[fi]); };
 
-public:
   void                      buildGraph(const char   *prefix,
                                        double        deviationRepeat,
                                        double        repeatLimit,

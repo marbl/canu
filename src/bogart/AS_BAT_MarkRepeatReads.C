@@ -58,11 +58,8 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 class olapDat {
 public:
-  olapDat(int32 b, int32 e, uint32 r, uint32 p) {
-    tigbgn  = b;
-    tigend  = e;
-    eviRid  = r;
-    eviPid  = p;
+  olapDat(int32 b, int32 e, uint32 r, uint32 p) : tigbgn(b), tigend(e),
+                                                  eviRid(r), eviPid(p) {
   };
 
   int32   tigbgn;   //  Location of the overlap on this tig
@@ -80,9 +77,9 @@ auto byCoord  = [](olapDat const &A, olapDat const &B) { return(                
 //  Build a vector of olapDat (tigBgn, tigEnd, eviRid) for all reads that
 //  overlap into this tig.
 void
-annotateRepeatsOnRead(AssemblyGraph   *AG,
-                      Unitig          *tig,
-                      vector<olapDat> &repeats) {
+annotateRepeatsOnRead(AssemblyGraph const *AG,
+                      Unitig              *tig,
+                      vector<olapDat>     &repeats) {
 
   repeats.clear();
 

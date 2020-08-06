@@ -655,10 +655,11 @@ placeReadUsingOverlaps(TigVector                &tigs,
         assert(ovlPlace[os].position.isReverse() == ovlPlace[oe].position.isReverse());
       }
 
-      //  Make a new overlapPlacement from the first placement in this cluster, figure out the first/last tig reads that
-      //  have overlaps to it, and figure out final positions.
+      //  Make a new overlapPlacement from the first placement in this
+      //  cluster, figure out the first/last tig reads that have overlaps to
+      //  it, and figure out final positions.
 
-      overlapPlacement  op(fid, ovlPlace[os]);
+      overlapPlacement  op(ovlPlace[os].frgID, ovlPlace[os].tigID, ovlPlace[os].covered);
 
       placeRead_findFirstLastOverlapping(op, os, oe, ovlPlace, tigs[op.tigID]);
       placeRead_computePlacement        (op, os, oe, ovlPlace, tigs[op.tigID]);

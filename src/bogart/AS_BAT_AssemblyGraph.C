@@ -85,13 +85,11 @@ logAGbuild(uint32                     fi,
 
 static
 void
-logAGbuild(uint32                     fi,
-           uint32                     pp,
-           vector<overlapPlacement>  &placements,
-           uint32                     idC,
-           uint32                     id5,
-           uint32                     id3,
-           const char                *message) {
+logAGbuild(uint32                           fi,
+           uint32                           pp,
+           vector<overlapPlacement> const  &placements,
+           BestPlacement const             &bp,
+           char const                      *message) {
 
   if (logFileFlagSet(LOG_PLACE_UNPLACED) == false)
     return;
@@ -104,9 +102,9 @@ logAGbuild(uint32                     fi,
            placements[pp].fCoverage,
            placements[pp].erate(),
            message,
-           idC,
-           id5,
-           id3);
+           bp.bestC.b_iid,
+           bp.best5.b_iid,
+           bp.best3.b_iid);
 }
 
 
@@ -333,34 +331,15 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       //  Create a new BestPlacement edge and save it on the list of placements for this read.
 
-      BestPlacement  bp;
-
-      bp.tigID     = placements[pp].tigID;
-
-      bp.olapMin   = placements[pp].verified.min();
-      bp.olapMax   = placements[pp].verified.max();
-
-      if (thickestC < no)   bp.bestC = ovl[thickestC];
-      if (thickest5 < no)   bp.best5 = ovl[thickest5];
-      if (thickest3 < no)   bp.best3 = ovl[thickest3];
-
-      if (bp.bestC.b_iid != 0) {                 //  Simple sanity check.  Ensure that contained
-        assert(bp.best5.b_iid == 0);             //  edges have no dovetail edges.  This screws up
-        assert(bp.best3.b_iid == 0);             //  the logic when outputting the graph.
-      }
-
-      assert((bp.bestC.a_hang <= 0) && (bp.bestC.b_hang >= 0));  //  ALL contained edges should be this.
-      assert((bp.best5.a_hang <= 0) && (bp.best5.b_hang <= 0));  //  ALL 5' edges should be this.
-      assert((bp.best3.a_hang >= 0) && (bp.best3.b_hang >= 0));  //  ALL 3' edges should be this.
-
-      _pForward[fi].push_back(bp);
+      _pForward[fi].push_back(BestPlacement(placements[pp],
+                                            ovl, thickestC, thickest5, thickest3));
 
       //  Now just some logging of success.
 
       if (thickestC != UINT32_MAX)
-        logAGbuild(fi, pp, placements, bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid, "CONTAINED");
+        logAGbuild(fi, pp, placements, _pForward[fi].back(), "CONTAINED");
       else
-        logAGbuild(fi, pp, placements, bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid, "DOVETAIL");
+        logAGbuild(fi, pp, placements, _pForward[fi].back(), "DOVETAIL");
     }  //  Over all placements
   }  //  Over all reads
 
