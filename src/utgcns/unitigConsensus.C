@@ -1224,15 +1224,15 @@ unitigConsensus::findCoordinates(void) {
 
       _cnspos[ii].setMinMax(abgn, aend);
 
-      _tig->_children[ii].setMinMax(abgn, aend);
+      _tig->getChild(ii)->setMinMax(abgn, aend);
 
       if (showPlacement())
         fprintf(stderr, "  SUCCESS aligned to %d %d\n", abgn, aend);
 
 #pragma omp critical (tgTigLoadAlign)
       {
-        _tig->_children[ii]._deltaOffset = _tig->_childDeltaBits->getPosition();
-        _tig->_children[ii]._deltaLen    = edlibAlignmentToCanu(_tig->_childDeltaBits,
+        _tig->getChild(ii)->_deltaOffset = _tig->_childDeltaBits->getPosition();
+        _tig->getChild(ii)->_deltaLen    = edlibAlignmentToCanu(_tig->_childDeltaBits,
                                                                 align.alignment,
                                                                 align.alignmentLength,
                                                                 align.startLocations[0],
