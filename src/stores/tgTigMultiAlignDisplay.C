@@ -60,11 +60,11 @@ alignRowEntry::alignRowEntry(sqStore     *seq_,
                              tgTig       *tig_,
                              uint32       child_) {
 
-  sqRead     *read = seq_->sqStore_getRead(tig_->_children[child_].ident(), new sqRead());
+  sqRead     *read = seq_->sqStore_getRead(tig_->getChild(child_)->ident(), new sqRead());
 
   //  Set basic stuff and allocate space.
 
-  position        = &tig_->_children[child_];
+  position        = tig_->getChild(child_);
   sequenceLength  = read->sqRead_length();
 
   bases           = new char  [sequenceLength + 1];
