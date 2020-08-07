@@ -45,35 +45,61 @@ toString(sqLibrary_tech t) {
 
 
 
+//  This object is allocated in
+//    sqStore::sqStore                 (which calls sqLibrary_initialize to clear things)
+//    sqStore::sqStore_loadMetadata    (which loads from disk and does not call initialize)
+//    sqStore::sqStore_addEmptyLibrary (which calls sqLibrary_initialize)
+//
 class sqLibrary {
 public:
-  sqLibrary(char *name=NULL, sqLibrary_tech tech=sqTechType_generic) {
+  void             sqLibrary_initialize(char const    *name = nullptr,
+                                        uint32         id   = 0,
+                                        sqLibrary_tech tech = sqTechType_generic) {
+
+    //  Bullet proof the library name - so we can make files with this prefix.
 
     memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
 
-    if (name)
-      strncpy(_libraryName, name,        LIBRARY_NAME_SIZE-1);
-    else
+    if (name) {
+      uint32  lp = 0;
+      
+      for (char const *orig=name; *orig; orig++) {
+        if        (*orig == '/') {
+          _libraryName[lp++] = '_';
+
+        } else if (isspace(*orig) == 0) {
+          _libraryName[lp++] = *orig;
+
+        } else {
+          _libraryName[lp++] = '_';
+        }
+
+        if (lp >= LIBRARY_NAME_SIZE) {
+          _libraryName[LIBRARY_NAME_SIZE-1] = 0;
+          break;
+        }
+      }
+    }
+
+    else {
       strncpy(_libraryName, "UNDEFINED", LIBRARY_NAME_SIZE-1);
+    }
 
-    _libraryID = UINT32_MAX;
+    //  Set the boring stuff.
 
+    _libraryID = id;
     _techType  = tech;
 
-    _keyLen    = 0;
-    _keyAlloc  = 0;
-    _keys      = NULL;
-    _values    = NULL;
+    //  Clear the unused stuff.
 
-    _kvLen     = 0;
-    _kvAlloc   = 0;
-    _kvData    = NULL;
-  }
+    _U_keyLen    = 0;
+    _U_keyAlloc  = 0;
+    _U_keys      = NULL;
+    _U_values    = NULL;
 
-  ~sqLibrary() {
-    delete [] _keys;
-    delete [] _values;
-    delete [] _kvData;
+    _U_kvLen     = 0;
+    _U_kvAlloc   = 0;
+    _U_kvData    = NULL;
   };
 
 
@@ -84,7 +110,7 @@ public:
   sqLibrary_tech   sqLibrary_techType(void)              { return(_techType);             };
   char const      *sqLibrary_techTypeString(void)        { return(toString(_techType));   };
 
-  char            *sqLibrary_lookupKey(char const *key)  { return(NULL);                  };
+  //char          *sqLibrary_lookupKey(char const *key)  { return(NULL);                  };
 
 private:
   char            _libraryName[LIBRARY_NAME_SIZE];
@@ -92,14 +118,18 @@ private:
 
   sqLibrary_tech  _techType;
 
-  uint32          _keyLen;     //  Number of key/value pairs we have.
-  uint32          _keyAlloc;   //  Number of key/value pairs we have space for.
-  uint32         *_keys;       //  Offset into _kvData for each NUL-terminated key string.
-  uint32         *_values;     //  Offset into _kvData for each NUL-terminated value string.
+  //  The rest of these are unused.  They used to hold a set of key/value pairs
+  //  for library features.  Canu never really used them, and they were removed.
+  //  But to keep file compatibility, we still keep them around.
+  //
+  uint32          _U_keyLen;     //  Number of key/value pairs we have.
+  uint32          _U_keyAlloc;   //  Number of key/value pairs we have space for.
+  uint32         *_U_keys;       //  Offset into _kvData for each NUL-terminated key string.
+  uint32         *_U_values;     //  Offset into _kvData for each NUL-terminated value string.
 
-  uint32          _kvLen;      //  Butes of kvData we have used.
-  uint32          _kvAlloc;    //  Bytes of kvData we have allocated.
-  char           *_kvData;     //  Bulk list of key and value strings.
+  uint32          _U_kvLen;      //  Butes of kvData we have used.
+  uint32          _U_kvAlloc;    //  Bytes of kvData we have allocated.
+  char           *_U_kvData;     //  Bulk list of key and value strings.
 
   friend class sqStore;
 };

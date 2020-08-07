@@ -25,6 +25,7 @@ uint32  MASRversion = 1;
 #define MAX_VERS   1024  //  Linked to 10 bits in the header file.
 
 
+
 tgStore::tgStore(const char *path_,
                  uint32      version_,
                  tgStoreType type_) {
@@ -258,8 +259,8 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
     uint32  neg = 0;
     uint32  pos = 0;
 
-    for (uint32 i=0; i<tig->_childrenLen; i++) {
-      tgPosition *read = tig->_children + i;
+    for (uint32 i=0; i<tig->numberOfChildren(); i++) {
+      tgPosition *read = tig->getChild(i);
 
       if ((read->_max < read->_min))
         fprintf(stderr, "tgStore::insertTig()-- ERROR:   tig %d read %d at (%d,%d) has swapped min/max coordinates\n",
@@ -326,7 +327,7 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
 
   _tigLen = max(_tigLen, tig->_tigID + 1);
 
-  _tigEntry[tig->_tigID].tigRecord       = *tig;
+  tig->saveToRecord(_tigEntry[tig->_tigID].tigRecord);
 
   _tigEntry[tig->_tigID].unusedFlags     = 0;
   _tigEntry[tig->_tigID].flushNeeded     = true;   //  Mark as needing a flush by default
@@ -424,7 +425,7 @@ tgStore::loadTig(uint32 tigID) {
       fprintf(stderr, "Failed to load tig %u.\n", tigID), exit(1);
 
     //  ALWAYS assume the incore record is more up to date
-    *_tigCache[tigID] = _tigEntry[tigID].tigRecord;
+    _tigCache[tigID]->restoreFromRecord(_tigEntry[tigID].tigRecord);
 
     //  Since we just loaded, no flush is needed.
     _tigEntry[tigID].flushNeeded = 0;
@@ -489,7 +490,7 @@ tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
     fprintf(stderr, "Failed to load tig %u.\n", tigID), exit(1);
 
   //  ALWAYS assume the incore record is more up to date
-  *tigcopy = _tigEntry[tigID].tigRecord;
+  tigcopy->restoreFromRecord(_tigEntry[tigID].tigRecord);
 }
 
 

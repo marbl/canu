@@ -145,6 +145,17 @@ sqStore::sqStore(char const    *storePath_,
     _corU           = new sqReadSeq  [_readsAlloc];
     _corC           = new sqReadSeq  [_readsAlloc];
 
+    for (uint32 ii=0; ii<_librariesAlloc; ii++)
+      _libraries[ii].sqLibrary_initialize();
+
+    for (uint32 ii=0; ii<_librariesAlloc; ii++) {
+      _meta[ii].sqReadMeta_initialize();
+      _rawU[ii].sqReadSeq_initialize();
+      _rawC[ii].sqReadSeq_initialize();
+      _corU[ii].sqReadSeq_initialize();
+      _corC[ii].sqReadSeq_initialize();
+    }
+    
     _blobWriter     = new sqStoreBlobWriter(_storePath, &_info);
 
     return;

@@ -21,13 +21,8 @@
 #include "sqStore.H"
 #include "tgStore.H"
 
-#include "stashContains.H"
-
 #include "unitigConsensus.H"
 
-#ifndef BROKEN_CLANG_OpenMP
-#include <omp.h>
-#endif
 #include <map>
 #include <algorithm>
 
@@ -438,7 +433,9 @@ processImportedTigs(cnsParameters  &params) {
 
     //  Stash excess coverage.
 
-    savedChildren *origChildren = stashContains(tig, params.maxCov, true);
+    tgTigStashed   S;
+
+    tig->stashContains(params.maxCov, S);
 
     //  Compute!
 
@@ -454,7 +451,7 @@ processImportedTigs(cnsParameters  &params) {
 
     //  Unstash.
 
-    unstashContains(tig, origChildren);
+    tig->unstashContains();
 
     //  Save the result.
 
@@ -637,16 +634,18 @@ processTigs(cnsParameters  &params) {
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
-    //  Stash excess coverage.
+    //  Stash excess coverage.  Singletons report no logging.
 
-    savedChildren *origChildren = stashContains(tig, params.maxCov, true);
+    tgTigStashed S;
 
-    if (origChildren != NULL) {
+    tig->stashContains(params.maxCov, S);
+
+    if (S.nBack > 0) {
       nTigs++;
       fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
-              origChildren->numContainsSaved,    origChildren->covContainsSaved,
-              origChildren->numContainsRemoved,  origChildren->covContainsRemoved,
-              origChildren->numDovetails,        origChildren->covDovetail);
+              S.nCont, (double)S.bCont / tig->length(),
+              S.nStsh, (double)S.bStsh / tig->length(),
+              S.nBack, (double)S.bBack / tig->length());
     } else {
       nSingletons++;
     }
@@ -665,7 +664,7 @@ processTigs(cnsParameters  &params) {
 
     //  Unstash.
 
-    unstashContains(tig, origChildren);
+    tig->unstashContains();
 
     //  Save the result.
 
@@ -684,7 +683,6 @@ processTigs(cnsParameters  &params) {
     //  Tidy up for the next tig.
 
     delete utgcns;        //  No real reason to keep this until here.
-    delete origChildren;  //  Need to keep it until after we display() above.
 
     params.tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
   }

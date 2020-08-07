@@ -20,8 +20,6 @@
 #include "ovStore.H"
 #include "tgStore.H"
 
-#include "stashContains.H"
-
 #include "strings.H"
 #include "files.H"
 #include "intervalList.H"
@@ -79,7 +77,7 @@ generateLayout(tgTig      *layout,
 
   //  Generate a layout for the read in ovl[0].a_iid, using most or all of the overlaps in ovl.
 
-  resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
+  layout->allocateChildren(ovlLen);
 
   if (logFile)
     fprintf(logFile, "Generate layout for read " F_U32 " length " F_U32 " using up to " F_U32 " overlaps.\n",
@@ -166,7 +164,7 @@ generateLayout(tgTig      *layout,
   //
   //  stashContains() also sorts by position, so we're done after this.
 
-  delete stashContains(layout, maxEvidenceCoverage);
+  layout->stashContains(maxEvidenceCoverage);
 }
 
 

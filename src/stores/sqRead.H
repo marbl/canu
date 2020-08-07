@@ -131,7 +131,7 @@ toString(sqRead_which w) {
 //
 class sqReadSeq {
 public:
-  sqReadSeq() {
+  void        sqReadSeq_initialize(void) {
     _seqValid  = 0;
     _unused1   = 0;
     _seqLength = 0;
@@ -143,9 +143,6 @@ public:
     _trimmed   = 0;
     _unused2   = 0;
     _clearEnd  = 0;
-  };
-
-  ~sqReadSeq() {
   };
 
 private:
@@ -252,19 +249,9 @@ private:
 //  On disk read metadata, in particular, the pointer to the blob data.
 class sqReadMeta {
 public:
-  sqReadMeta() {
-    _readID            = 0;  //  Must be zero so first read (id 0) is
-    _libraryID         = 0;  //  initialized correctly.
-    _assignment        = 0;
-    _assignmentScore   = 0;
-
-    _unused            = 0;
-    _mSegm             = 0;
-    _mByte             = 0;
-  };
-
-  sqReadMeta(uint32 readID, uint32 libraryID) {
-    _readID            = readID;      assert(_readID == readID);
+  void        sqReadMeta_initialize(uint32 readID    = 0,
+                                    uint32 libraryID = 0) {
+    _readID            = readID;      assert(_readID    == readID);
     _libraryID         = libraryID;   assert(_libraryID == libraryID);
     _assignment        = 0;
     _assignmentScore   = 0;
@@ -272,9 +259,6 @@ public:
     _unused            = 0;
     _mSegm             = 0;
     _mByte             = 0;
-  };
-
-  ~sqReadMeta() {
   };
 
   uint32      sqRead_readID(void)           { return(_readID);          };

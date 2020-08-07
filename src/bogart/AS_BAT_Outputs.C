@@ -68,7 +68,7 @@ writeTigsToStore(TigVector     &tigs,
 
     //  Transfer reads from the bogart tig to the output tig.
 
-    resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
+    tig->allocateChildren(utg->ufpath.size());
 
     for (uint32 ti=0; ti<utg->ufpath.size(); ti++) {
       ufNode        *frg   = &utg->ufpath[ti];

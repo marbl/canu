@@ -160,43 +160,22 @@ sqStore::sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType) {
 
   assert(_info.sqInfo_lastLibraryID() <= _librariesAlloc);
 
-  //  Just like with reads below, there is no _libraries[0] element.
+  //  Just like with reads below, there is no _libraries[0] element, so we
+  //  pre-increment the library number then allocate a new library.
 
   _info.sqInfo_addLibrary();
 
-  increaseArray(_libraries, _info.sqInfo_lastLibraryID(), _librariesAlloc, 128);
+  uint32   libIdx = _info.sqInfo_lastLibraryID();
+
+  increaseArray(_libraries, libIdx, _librariesAlloc, 128);
 
   //  Initialize the new library.
 
-  _libraries[_info.sqInfo_lastLibraryID()]            = sqLibrary();
-  _libraries[_info.sqInfo_lastLibraryID()]._libraryID = _info.sqInfo_lastLibraryID();
-  _libraries[_info.sqInfo_lastLibraryID()]._techType  = techType;
+  _libraries[libIdx].sqLibrary_initialize(name, libIdx, techType);
 
-  //  Bullet proof the library name - so we can make files with this prefix.
+  //  And return the freshly created library.
 
-  char   *libname    = _libraries[_info.sqInfo_lastLibraryID()]._libraryName;
-  uint32  libnamepos = 0;
-
-  memset(libname, 0, sizeof(char) * LIBRARY_NAME_SIZE);
-
-  for (char const *orig=name; *orig; orig++) {
-    if        (*orig == '/') {
-      libname[libnamepos++] = '_';
-
-    } else if (isspace(*orig) == 0) {
-      libname[libnamepos++] = *orig;
-
-    } else {
-      libname[libnamepos++] = '_';
-    }
-
-    if (libnamepos >= LIBRARY_NAME_SIZE) {
-      libname[LIBRARY_NAME_SIZE-1] = 0;
-      break;
-    }
-  }
-
-  return(_libraries + _info.sqInfo_lastLibraryID());
+  return(_libraries + libIdx);
 }
 
 
@@ -229,7 +208,11 @@ sqStore::sqStore_addEmptyRead(sqLibrary *lib, const char *name) {
   uint32  rID = _info.sqInfo_lastReadID();
   uint32  lID = lib->sqLibrary_libraryID();
 
-  _meta[rID] = sqReadMeta(rID, lID);
+  _meta[rID].sqReadMeta_initialize(rID, lID);
+  _rawU[rID].sqReadSeq_initialize();
+  _rawC[rID].sqReadSeq_initialize();
+  _corU[rID].sqReadSeq_initialize();
+  _corC[rID].sqReadSeq_initialize();
 
   //  With the read set up, set pointers in the readData.  Whatever data is in there can stay.
 

@@ -69,7 +69,7 @@ toClass(char const *c) {
 //
 class tgPosition {
 public:
-  tgPosition();
+  void                 initialize(void);
 
   //  Accessors
 
@@ -196,19 +196,25 @@ public:
 };
 
 
-class tgTig;  //  Early declaration, for use in tgTigRecord operator=
 
-
-//  On-disk tig, same as tgTig without the pointers
-class tgTigRecord {
+//  Stats on the filtering, for logging by the caller
+class tgTigStashed {
 public:
-  tgTigRecord();
-  tgTigRecord(tgTig &tg) { *this = tg; };   //  to support tgTigRecord tr = tgtig
+  uint32  nBack;   uint64  bBack;   //  Read is backbone.
+  uint32  nCont;   uint64  bCont;   //  Read is contained and used for consensus.
+  uint32  nStsh;   uint64  bStsh;   //  Read is stashed   NOT used for consensus.
 
-  tgTigRecord         &operator=(tgTig & tg);
+  void    clear(void) {
+    nBack = 0;    bBack = 0;
+    nCont = 0;    bCont = 0;
+    nStsh = 0;    bStsh = 0;
+  };
+};
 
-private:
-public:
+
+
+//  On-disk tig, same as tgTig without the pointers.
+struct tgTigRecord {
   uint32              _tigID;
 
   uint32              _unused32;
@@ -229,8 +235,8 @@ public:
 };
 
 
-//  Former MultiAlignT
-//  In core data
+
+//  In-core tig.
 class tgTig {
 public:
   tgTig();    //  All data unallocated, lengths set to zero
@@ -238,66 +244,82 @@ public:
 
   //  Accessors
 
-  uint32               tigID(void)                 { return(_tigID); };
+  uint32         tigID(void)                 { return(_tigID); };
 
-  bool                 consensusExists(void)       { return(_basesLen > 0); };
-  double               computeCoverage(void);
+  bool           consensusExists(void)       { return(_basesLen > 0); };
+  double         computeCoverage(void);
 
   //  Should be private, but used in tgStoreLoad.C for testing cns files.
 public:
-  uint32               length(void)                { return(_layoutLen); };
-  char                *bases(void)                 { return(_bases);     };
-  uint8               *quals(void)                 { return(_quals);     };
+  uint32         length(void)                { return(_layoutLen); };
+  char          *bases(void)                 { return(_bases);     };
+  uint8         *quals(void)                 { return(_quals);     };
 
 public:
-  uint32               numberOfChildren(void)      {                            return(_childrenLen); };
-  tgPosition          *getChild(uint32 c)          { assert(c < _childrenLen);  return(_children + c);  };
-  tgPosition          *addChild(void)              {                            return(_children + _childrenLen++); };
+  uint32         numberOfChildren(void)      {                            return(_childrenLen); };
+  tgPosition    *getChild(uint32 c)          { assert(c < _childrenLen);  return(_children + c);  };
+  tgPosition    *addChild(void)              {
+    increaseArray(_children, _childrenLen, _childrenMax, min(_childrenMax/4, 16u));
+
+    return(_children + _childrenLen++);
+  };
+
+  void           allocateChildren(uint32 m) {
+    resizeArray(_children, _childrenLen, _childrenMax, m, resizeArray_copyData);
+  };
 
   //  Operators
 
-  void                 clear(void);    //  Clears data but doesn't release memory.
+  void           clear(void);    //  Clears data but doesn't release memory.
 
-  tgTig               &operator=(tgTigRecord & tr);
-  tgTig               &operator=(tgTig &tg);
+  tgTig         &operator=(tgTig &tg);
 
-  bool                 loadFromStreamOrLayout(FILE *F);
+  bool           loadFromStreamOrLayout(FILE *F);
 
-  void                 saveToBuffer(writeBuffer *B);
-  bool                 loadFromBuffer(readBuffer *B);
+  void           saveToBuffer(writeBuffer *B);
+  bool           loadFromBuffer(readBuffer *B);
 
-  void                 saveToStream(FILE *F);
-  bool                 loadFromStream(FILE *F);
+  void           saveToStream(FILE *F);
+  bool           loadFromStream(FILE *F);
 
-  void                 dumpLayout(FILE *F, bool withSequence=true);
-  bool                 loadLayout(FILE *F);
+  void           dumpLayout(FILE *F, bool withSequence=true);
+  bool           loadLayout(FILE *F);
+
+  void           stashContains(double maxCov, tgTigStashed &S);
+  void           stashContains(double maxCov) {
+    tgTigStashed S;
+    stashContains(maxCov, S);
+  };
+  void           unstashContains(void);
 
   //  Save and load a package of data needed to process this tig.
 
-  void                 exportData(writeBuffer                *exportDataFile,
-                                  sqStore                    *seqStore,
-                                  bool                        isForCorrection);
+  void           exportData(writeBuffer                *exportDataFile,
+                            sqStore                    *seqStore,
+                            bool                        isForCorrection);
 
-  bool                 importData(readBuffer                 *importDataFile,
-                                  map<uint32, sqRead *>      &reads,
-                                  FILE                       *layoutOutput,
-                                  FILE                       *sequenceOutput);
+  bool           importData(readBuffer                 *importDataFile,
+                            map<uint32, sqRead *>      &reads,
+                            FILE                       *layoutOutput,
+                            FILE                       *sequenceOutput);
 
 
-  void                 reverseComplement(void);  //  Does NOT update childDeltas
+  void           reverseComplement(void);  //  Does NOT update childDeltas
 
-  void                 dumpFASTA(FILE *F);
-  void                 dumpFASTQ(FILE *F);
+  void           dumpFASTA(FILE *F);
+  void           dumpFASTQ(FILE *F);
 
   //  There are two multiAlign displays; this one, and one in abMultiAlign.
-  void                 display(FILE     *F,
-                               sqStore  *seq,
-                               uint32    displayWidth    = 100,    //  Width of display
-                               uint32    displaySpacing  = 3,      //  Space between reads on the same line
-                               bool      withQV          = false,
-                               bool      withDots        = false);
+  void           display(FILE     *F,
+                         sqStore  *seq,
+                         uint32    displayWidth    = 100,    //  Width of display
+                         uint32    displaySpacing  = 3,      //  Space between reads on the same line
+                         bool      withQV          = false,
+                         bool      withDots        = false);
 
-
+  //  Copy our important information to/from a clean struct we can then save to disk.
+  void           saveToRecord(tgTigRecord &tr);
+  void           restoreFromRecord(tgTigRecord &tr);
 
 private:
 public:
@@ -333,10 +355,16 @@ public:
   char               *_bases;             //  Linear consensus sequence.
   uint8              *_quals;             //
 
+private:
   tgPosition         *_children;          //  positions of objects that make up this tig
   uint32              _childrenLen;
   uint32              _childrenMax;
 
+  tgPosition         *_stashed;           //  children that we want to temporarily ignore
+  uint32              _stashedLen;
+  uint32              _stashedMax;
+
+public:
   uint32              _childDeltaBitsLen;
   stuffedBits        *_childDeltaBits;
 

@@ -15,216 +15,203 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "stashContains.H"
+#include "runtime.H"
+#include "sqStore.H"
+#include "tgStore.H"
 
-//  Replace the children list in tig with one that has fewer contains.  The original
-//  list is returned.
-savedChildren *
-stashContains(tgTig       *tig,
-              double       maxCov,
-              bool         beVerbose) {
+#include <map>
+#include <algorithm>
 
-  if (tig->numberOfChildren() == 1)
-    return(NULL);
 
-  //  Stats we report
-  int32  nOrig     = tig->numberOfChildren();
-  int32  nBack     = 0;
-  int32  nCont     = 0;
-  int32  nSave     = 0;
-  int64  nBase     = 0;
-  int64  nBaseDove = 0;
-  int64  nBaseCont = 0;
+//  Replace the children list in tig with one that has fewer contains.
+//  The original list is saved in the tig.
+//  When contains are 'unstashed', positions are updated.
+
+
+
+struct readInfo {
+  uint32    idx;   //  index of the read in the original unsorted _children
+  int32     len;   //  length of the read
+  bool      use;   //  true if the read is not contained in some other read
+};
+
+
+void
+tgTig::stashContains(double  maxCov, tgTigStashed &S) {
+
+  //  Initialize.
+  //    Declare that we have no stashed reads.
+  //    Clear the return statistics.
+
+  _stashedLen = 0;
+
+  S.clear();
+
+  if (_childrenLen == 1)
+    return;
 
   //  Sort the original children by position.
 
-  std::sort(tig->_children, tig->_children + tig->_childrenLen);
+  std::sort(_children, _children + _childrenLen);
 
   //  Decide which children to save.
 
-  bool            *isBack = new bool       [nOrig];   //  True, we save the child for processing
-  readLength      *posLen = new readLength [nOrig];   //  Sorting by length of child
+  readInfo        *posLen  = new readInfo [_childrenLen];   //  Sorting by length of child
 
-  //  The first read is always saved
+  //  Flag the read for stashing if it doesn't extend the tig.
 
-  int32         loEnd = tig->_children[0].min();
-  int32         hiEnd = tig->_children[0].max();
+  int32         hiEnd = -1;
 
-  isBack[0]      = 1;
-  nBack          = 1;
-  posLen[0].idx  = 0;
-  posLen[0].len  = hiEnd - loEnd;
-  nBaseDove     += posLen[0].len;
-  nBase         += posLen[0].len;
-
-  //  For the other reads, save it if it extends the backbone sequence.
-
-  for (uint32 fi=1; fi<nOrig; fi++) {
-    int32  lo = tig->_children[fi].min();
-    int32  hi = tig->_children[fi].max();
-
-    posLen[fi].idx  = fi;
-    posLen[fi].len  = hi - lo;
-    nBase          += posLen[fi].len;
+  for (uint32 ci=0; ci<_childrenLen; ci++) {
+    int32  lo = _children[ci].min();
+    int32  hi = _children[ci].max();
 
     if (hi <= hiEnd) {
-      isBack[fi] = false;
-      nCont++;
-      nBaseCont += posLen[fi].len;
+      posLen[ci].idx = ci;
+      posLen[ci].len = hi - lo;
+      posLen[ci].use = false;
 
-    } else {
-      isBack[fi] = true;
-      nBack++;
-      nBaseDove += posLen[fi].len;
+      S.nStsh += 1;
+      S.bStsh += posLen[ci].len;
+    }
+
+    else {
+      posLen[ci].idx = ci;
+      posLen[ci].len = hi - lo;
+      posLen[ci].use = true;
+
+      S.nBack += 1;
+      S.bBack += posLen[ci].len;
     }
 
     hiEnd = max(hi, hiEnd);
   }
 
-  //  Throw out some of the contained reads to make our coverage acceptable.
+  //  Sort by length, longest first, then verify we're sorted.
 
-  std::sort(posLen, posLen + nOrig, greater<readLength>());  //  Sort by length, larger first
+  auto longestFirst = [](readInfo const &A, readInfo const &B) {
+                        return(A.len > B.len);
+                      };
 
-  for (uint32 ii=1; ii<nOrig; ii++)                 //  Ensure we're sorted.
-    assert(posLen[ii-1].len >= posLen[ii].len);
+  std::sort(posLen, posLen + _childrenLen, longestFirst);
 
-  int64  saveLimit = maxCov * (int64)hiEnd - nBaseDove;
-  int64  nBaseSave = 0;
+  for (uint32 ci=1; ci<_childrenLen; ci++)
+    assert(posLen[ci-1].len >= posLen[ci].len);
 
-  for (uint32 ii=0; ii<nOrig; ii++) {
-    if (isBack[posLen[ii].idx] == true)    //  Already a backbone read.
+  //  Save the longer of the contained reads, until we reach the maximum
+  //  coverage desired.  
+
+  uint64  bLimit = (uint64)floor(maxCov * hiEnd);
+
+  for (uint32 ci=0; ci<_childrenLen; ci++) {
+    if (posLen[ci].use == true)            //  Already a backbone read.
       continue;                            //  Skip this read.
 
-    if (nBaseSave > saveLimit)             //  Exceeded coverage limit.
+    if (S.bCont + S.bBack > bLimit)        //  Exceeded coverage limit.
       break;                               //  Bail.
 
-    isBack[posLen[ii].idx] = true;
-    nSave++;
-    nBaseSave += posLen[ii].len;
+    posLen[ci].use = true;                 //  Do not stash the read.
+
+    S.nStsh -= 1;                          //  Do not stash this read.
+    S.bStsh -= posLen[ci].len;             //
+
+    S.nCont += 1;                          //  And do use it for consensus.
+    S.bCont += posLen[ci].len;             //
   }
 
-  //  Initialize the savedChuldren statistics.
+  //  Make a new list of reads, while saving the original, if there reads
+  //  we want to stash.
 
-  savedChildren   *saved = new savedChildren();
+  if (S.nStsh > 0) {
+    _stashedLen = _childrenLen;                      //  Save the original list
+    _stashedMax = _childrenMax;                      //  so we can restore it later.
+    _stashed    = _children;
 
-  saved->numContains  = nCont;
-  saved->covContain   = (double)nBaseCont / hiEnd;
-  saved->percContain  = 100.0 * nBaseCont / nBase;;
+    _childrenLen  = 0;                               //  Allocate a new list for
+    _childrenMax  = S.nBack + S.nCont;               //  exactly what we need to save.
+    _children     = new tgPosition [_childrenMax];
 
-  saved->numDovetails = nBack;
-  saved->covDovetail  = (double)nBaseDove / hiEnd;
-  saved->percDovetail = 100.0 * nBaseDove / nBase;;
-
-  saved->numContainsSaved   = nSave;
-  saved->covContainsSaved   = (double)nBaseSave / hiEnd;
-
-  saved->numContainsRemoved = nOrig - nBack - nSave;
-  saved->covContainsRemoved = (double)(nBaseCont - nBaseSave) / hiEnd;
-
-  //  If we've flagged stuff for removal, remove them.  Otherwise, coverage
-  //  is acceptable and we didn't do anything to the list of children
-  //  (except sort by position).
-
-  if (saved->numContainsRemoved > 0) {
-    saved->childrenLen = tig->_childrenLen;
-    saved->childrenMax = tig->_childrenMax;
-    saved->children    = tig->_children;
-
-    tig->_childrenLen  = 0;
-    tig->_childrenMax  = nBack + nSave;
-    tig->_children     = new tgPosition [tig->_childrenMax];
-
-    for (uint32 fi=0; fi<nOrig; fi++)
-      if (isBack[fi] == true)
-        tig->_children[tig->_childrenLen++] = saved->children[fi];
+    for (uint32 ci=0; ci<_stashedLen; ci++)
+      if (posLen[ci].use == true)                    //  If used, we want to keep the
+        _children[_childrenLen++] = _stashed[ci];    //  read, so copy it to the new list.
   }
 
-  //  Cleanup and return the saved children (or an empty list if nothing was saved).
+  //  Cleanup and return the statistics.
 
-  delete [] isBack;
   delete [] posLen;
-
-  return(saved);
 }
 
 
-//  Restores the f_list, and updates the position of non-contained reads.
-//
-void
-unstashContains(tgTig                *tig,
-                savedChildren        *saved) {
 
-  if ((saved == NULL) ||
-      (saved->numContainsRemoved == 0))
+void
+tgTig::unstashContains(void) {
+
+  if (_stashed == NULL)   //  If no saved list, nothing to unstash.
     return;
 
-  //  For fragments not involved in the consensus computation, we'll scale their position linearly
-  //  from the old max to the new max.
-  //
-  //  We probably should do an alignment to the consensus sequence to find the true location, but
-  //  that's (a) expensive and (b) likely overkill for these unitigs.
+  //  For the reads we 'stashed', we need to compute a position in the new
+  //  consensus sequence.  We'll just linearly scale the positions.
 
-  uint32   oldMax = 0;
-  uint32   newMax = 0;
-  double   sf     = 1.0;
+  int32   oldMax = 0;
+  int32   newMax = 0;
+  double  sf     = 1.0;
 
-  for (uint32 fi=0, ci=0; fi<saved->childrenLen; fi++)
-    if (oldMax < saved->children[fi].max())
-      oldMax = saved->children[fi].max();
+  for (uint32 ci=0; ci<_stashedLen; ci++)
+    oldMax = max(oldMax, _stashed[ci].max());
 
-  for (uint32 fi=0, ci=0; fi<tig->numberOfChildren(); fi++)
-    if (newMax < tig->getChild(fi)->max())
-      newMax = tig->getChild(fi)->max();
+  for (uint32 ci=0; ci<_childrenLen; ci++)
+    newMax = max(newMax, _children[ci].max());
 
   if (oldMax > 0)
     sf = (double)newMax / oldMax;
 
-  //  First, we need a map from the child id to the location in the current tig
+  //  Build a map from child ID to it's current position.
 
-  map<int32, tgPosition *>   idmap;
+  map<uint32, uint32>   idmap;
 
-  for (uint32 ci=0; ci < tig->numberOfChildren(); ci++)
-    idmap[tig->getChild(ci)->ident()] = tig->getChild(ci);
+  for (uint32 ci=0; ci < _childrenLen; ci++)
+    idmap[_children[ci].ident()] = ci;
 
-  //  Now, over all the reads in the original saved fragment list, update the position.  Either from
-  //  the computed result, or by extrapolating.
+  //  Over all the reads in the original list (currently held in _stashed),
+  //  update the position, either from its current position out of consensus
+  //  or by extrapolating the original position.
 
-  for (uint32 fi=0; fi<saved->childrenLen; fi++) {
-    uint32  iid = saved->children[fi].ident();
+  for (uint32 ci=0; ci<_stashedLen; ci++) {
+    uint32  id = _stashed[ci].ident();
 
-    //  Does the ID exist in the new positions?  Copy the new position to the original list.
-    if (idmap.find(iid) != idmap.end()) {
-      saved->children[fi] = *idmap[iid];
-      idmap.erase(iid);
+    if (idmap.find(id) != idmap.end()) {      //  If we find the ID in the current list,
+      _stashed[ci] = _children[idmap[id]];    //  simply copy the new position data.
+      idmap.erase(id);
     }
 
-    //  Otherwise, fudge the positions.
     else {
-      int32  nmin = sf * saved->children[fi].min();
-      int32  nmax = sf * saved->children[fi].max();
+      int32  nmin = sf * _stashed[ci].min();   //  If not, scale the positions based
+      int32  nmax = sf * _stashed[ci].max();   //  on new vs old tig length.
 
-      if (nmin > newMax)  nmin = newMax;
+      if (nmin > newMax)  nmin = newMax;       //  But don't let them exceed the limit!
       if (nmax > newMax)  nmax = newMax;
 
-      saved->children[fi].setMinMax(nmin, nmax);
+      _stashed[ci].setMinMax(nmin, nmax);
     }
   }
+
+  //  Make sure that we updated all the children.
 
   if (idmap.empty() == false)
     fprintf(stderr, "Failed to unstash the contained reads.  Still have " F_SIZE_T " reads unplaced.\n",
             idmap.size());
   assert(idmap.empty() == true);
 
-  //  Throw out the reduced list, and restore the original.
+  //  Throw out the stashed list, and restore the original.
 
-  delete [] tig->_children;
+  delete [] _children;
 
-  tig->_childrenLen  = saved->childrenLen;
-  tig->_childrenMax  = saved->childrenMax;
-  tig->_children     = saved->children;
+  _childrenLen  = _stashedLen;
+  _childrenMax  = _stashedMax;
+  _children     = _stashed;
 
-  saved->childrenLen = 0;
-  saved->childrenMax = 0;
-  saved->children    = NULL;
+  _stashedLen = 0;
+  _stashedMax = 0;
+  _stashed    = NULL;
 }
 

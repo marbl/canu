@@ -25,7 +25,54 @@
 #include "intervalList.H"
 
 
-tgPosition::tgPosition() {
+
+void
+tgTig::saveToRecord(tgTigRecord &tr) {
+  tr._tigID               = _tigID;
+
+  tr._unused32            = _unused32;
+  tr._trimBgn             = _trimBgn;
+  tr._trimEnd             = _trimEnd;
+
+  tr._class               = _class;
+  tr._suggestRepeat       = _suggestRepeat;
+  tr._suggestBubble       = _suggestBubble;
+  tr._suggestCircular     = _suggestCircular;
+  tr._circularLength      = _circularLength;
+  tr._spare               = _spare;
+
+  tr._layoutLen           = _layoutLen;
+  tr._basesLen            = _basesLen;
+  tr._childrenLen         = _childrenLen;
+  tr._childDeltaBitsLen   = _childDeltaBitsLen;
+}
+
+
+void
+tgTig::restoreFromRecord(tgTigRecord &tr) {
+  _tigID               = tr._tigID;
+
+  _unused32            = tr._unused32;
+  _trimBgn             = tr._trimBgn;
+  _trimEnd             = tr._trimEnd;
+
+  _class               = tr._class;
+  _suggestRepeat       = tr._suggestRepeat;
+  _suggestBubble       = tr._suggestBubble;
+  _suggestCircular     = tr._suggestCircular;
+  _circularLength      = tr._circularLength;
+  _spare               = tr._spare;
+
+  _layoutLen           = tr._layoutLen;
+  _basesLen            = tr._basesLen;
+  _childrenLen         = tr._childrenLen;
+  _childDeltaBitsLen   = tr._childDeltaBitsLen;
+}
+
+
+
+void
+tgPosition::initialize(void) {
   _objID       = UINT32_MAX;
 
   _isRead      = true;   //  Bogus values.
@@ -47,27 +94,6 @@ tgPosition::tgPosition() {
 
   _deltaOffset = UINT32_MAX;
   _deltaLen    = 0;
-}
-
-
-tgTigRecord::tgTigRecord() {
-  _tigID             = UINT32_MAX;
-
-  _unused32          = 0;
-  _trimBgn           = 0;
-  _trimEnd           = 0;
-
-  _class             = tgTig_noclass;
-  _suggestRepeat     = false;
-  _suggestBubble     = false;
-  _suggestCircular   = false;
-  _circularLength    = 0;
-  _spare             = 0;
-
-  _layoutLen         = 0;
-  _basesLen          = 0;
-  _childrenLen       = 0;
-  _childDeltaBitsLen = 0;
 }
 
 
@@ -110,60 +136,6 @@ tgTig::~tgTig() {
   delete [] _children;
   delete    _childDeltaBits;
 }
-
-
-
-
-//  Copy data from an in-core tgTig to an on-disk tgTigRecord.
-tgTigRecord &
-tgTigRecord::operator=(tgTig & tg) {
-  _tigID               = tg._tigID;
-
-  _unused32            = tg._unused32;
-  _trimBgn             = tg._trimBgn;
-  _trimEnd             = tg._trimEnd;
-
-  _class               = tg._class;
-  _suggestRepeat       = tg._suggestRepeat;
-  _suggestBubble       = tg._suggestBubble;
-  _suggestCircular     = tg._suggestCircular;
-  _circularLength      = tg._circularLength;
-  _spare               = tg._spare;
-
-  _layoutLen           = tg._layoutLen;
-  _basesLen            = tg._basesLen;
-  _childrenLen         = tg._childrenLen;
-  _childDeltaBitsLen   = tg._childDeltaBitsLen;
-
-  return(*this);
-}
-
-
-
-//  Copy data from an on-disk tgTigRecord to an in-core tgTig.
-tgTig &
-tgTig::operator=(tgTigRecord & tr) {
-  _tigID               = tr._tigID;
-
-  _unused32            = tr._unused32;
-  _trimBgn             = tr._trimBgn;
-  _trimEnd             = tr._trimEnd;
-
-  _class               = tr._class;
-  _suggestRepeat       = tr._suggestRepeat;
-  _suggestBubble       = tr._suggestBubble;
-  _suggestCircular     = tr._suggestCircular;
-  _circularLength      = tr._circularLength;
-  _spare               = tr._spare;
-
-  _layoutLen           = tr._layoutLen;
-  _basesLen            = tr._basesLen;
-  _childrenLen         = tr._childrenLen;
-  _childDeltaBitsLen   = tr._childDeltaBitsLen;
-
-  return(*this);
-}
-
 
 
 
@@ -289,8 +261,10 @@ tgTig::loadFromStreamOrLayout(FILE *F) {
 
 void
 tgTig::saveToBuffer(writeBuffer *B) {
-  tgTigRecord  tr = *this;
   char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
+  tgTigRecord  tr;
+
+  saveToRecord(tr);
 
   B->write( tag, 4);
   B->write(&tr,  sizeof(tgTigRecord));
@@ -313,13 +287,10 @@ tgTig::saveToBuffer(writeBuffer *B) {
 
 bool
 tgTig::loadFromBuffer(readBuffer *B) {
-  char    tag[4];
-
-  clear();
+  char         tag[4];
+  tgTigRecord  tr;
 
   //  Read the tgTigRecord from disk and copy it into our tgTig.
-
-  tgTigRecord  tr;
 
   if (4 != B->read(tag, 4)) {
     fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
@@ -341,7 +312,8 @@ tgTig::loadFromBuffer(readBuffer *B) {
     return(false);
   }
 
-  *this = tr;
+  clear();
+  restoreFromRecord(tr);
 
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
@@ -374,8 +346,10 @@ tgTig::loadFromBuffer(readBuffer *B) {
 
 void
 tgTig::saveToStream(FILE *F) {
-  tgTigRecord  tr = *this;
   char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
+  tgTigRecord  tr;
+
+  saveToRecord(tr);
 
   writeToFile(tag, "tgTig::saveToStream::tigr", 4, F);
   writeToFile(tr,  "tgTig::saveToStream::tr",      F);
@@ -398,13 +372,12 @@ tgTig::saveToStream(FILE *F) {
 
 bool
 tgTig::loadFromStream(FILE *F) {
-  char    tag[4];
+  char         tag[4];
+  tgTigRecord  tr;
 
   clear();
 
   //  Read the tgTigRecord from disk and copy it into our tgTig.
-
-  tgTigRecord  tr;
 
   if (4 != loadFromFile(tag, "tgTig::saveToStream::tigr", 4, F, false)) {
     fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
@@ -426,7 +399,7 @@ tgTig::loadFromStream(FILE *F) {
     return(false);
   }
 
-  *this = tr;
+  restoreFromRecord(tr);
 
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
