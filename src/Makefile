@@ -391,9 +391,11 @@ endif
 ifeq "$(strip ${DESTDIR})" ""
   BUILD_DIR    := $(realpath ..)/build/obj
   TARGET_DIR   := $(realpath ..)/build
+  OBSOLETE_DIR := $(realpath ..)/${OSTYPE}-${MACHINETYPE}
 else
   BUILD_DIR    := $(DESTDIR)/$(MODULE)/build/obj
   TARGET_DIR   := $(DESTDIR)/$(MODULE)/build
+  OBSOLETE_DIR := $(DESTDIR)/$(MODULE)/${OSTYPE}-${MACHINETYPE}
 endif
 
 #
@@ -710,6 +712,7 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/lib/site_perl/canu/OverlapStore.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Report.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Unitig.pm
+	@if [ -e ${OBSOLETE_DIR}/bin/canu ] ; then echo "Moving obsolete installation from ${OBSOLETE_DIR} to ${OBSOLETE_DIR}-OBSOLETE."; mv ${OBSOLETE_DIR} ${OBSOLETE_DIR}-OBSOLETE ; fi
 	@echo ""
 	@echo "Success!"
 	@echo "canu installed in ${TARGET_DIR}/bin/canu"
