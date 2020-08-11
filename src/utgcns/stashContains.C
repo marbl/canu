@@ -136,6 +136,9 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
         _children[_childrenLen++] = _stashed[posLen[ci].idx];    //  read, so copy it to the new list.
   }
 
+  // since we added the reads using length sorted order, re-sort them by position to make everyone downstream  happy
+  std::sort(_children, _children + _childrenLen);
+
   //  Cleanup and return the statistics.
 
   delete [] posLen;
