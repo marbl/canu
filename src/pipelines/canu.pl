@@ -305,13 +305,13 @@ addCommandLineError("ERROR:  Assembly name prefix (-p) cannot contain spaces.\n"
 
 #  Load paramters from the defaults files
 
-@inputFiles = setParametersFromFile("$bin/canu.defaults", $readdir, @inputFiles)   if (-e "$bin/canu.defaults");
-@inputFiles = setParametersFromFile("$ENV{'HOME'}/.canu", $readdir, @inputFiles)   if (-e "$ENV{'HOME'}/.canu");
+setParametersFromFile("$bin/canu.defaults")   if (-e "$bin/canu.defaults");
+setParametersFromFile("$ENV{'HOME'}/.canu")   if (-e "$ENV{'HOME'}/.canu");
 
 #  For each of the spec files, parse it, setting parameters and remembering any input files discovered.
 
 foreach my $specFile (@specFiles) {
-    @inputFiles = setParametersFromFile($specFile, $readdir, @inputFiles);
+    setParametersFromFile($specFile);
 }
 
 #  Set parameters from the command line.

@@ -657,10 +657,8 @@ sub addSequenceFile ($$@) {
 
 
 
-sub setParametersFromFile ($$@) {
+sub setParametersFromFile ($) {
     my $specFile  = shift @_;
-    my $readdir   = shift @_;
-    my @fragFiles = @_;
 
     #  Client should be ensuring that the file exists before calling this function.
     die "specFile '$specFile' not found.\n"  if (! -e "$specFile");
@@ -686,27 +684,21 @@ sub setParametersFromFile ($$@) {
         next if (length($_) eq 0);
 
         #  First, figure out the two words.
+        #
+        #  Word two won't match a #, but will gobble up spaces at the end.
+        #  Then, we can match a #, and any amount of comment, minimally.  If
+        #  word two is made non-greedy, it will shrink to nothing, as the
+        #  last bit will gobble up everything, since we're allowed to match
+        #  zero #'s in between.
 
         my $one;
         my $two;
-        my $opt;
 
-        #  COMPATIBILITY MODE!
-
-        if (m/^-(pacbio|nanopore)-(corrected|raw)\s+(.*)\s*$/) {   #  Comments not allowed, because then we can't decide
-            $one  = "-$1-$2";                                      #  if the # is a comment, or part of the file!
-            $two = $3;                                             #  e.g.,   this_is_file_#1   vs
-            $opt = 0;                                              #          this_is_the_only_file#no more data
-        }
-
-        elsif (m/^(\w*)\s*=\s*([^#]*)\s*#*.*?$/) {   #  Word two won't match a #, but will gobble up spaces at the end.
-            $one = $1;                               #  Then, we can match a #, and any amount of comment, minimally.
-            $two = $2;                               #  If word two is made non-greedy, it will shrink to nothing, as
-            $opt = 1;                                #  the last bit will gobble up everything, since we're allowed
-        }                                            #  to match zero #'s in between.
-
-        else {
-            addCommandLineError("ERROR:  File not found or unknown specFile option line '$_'.\n");
+        if (m/^(\w*)\s*=\s*([^#]*)\s*#*.*?$/) {
+            $one = $1;
+            $two = $2;
+        } else {
+            addCommandLineError("ERROR:  File not found or unknown specFile option line '$_' in file '$specFile'.\n");
         }
 
         #  Now, clean up the second word to handle quotes.
@@ -719,26 +711,12 @@ sub setParametersFromFile ($$@) {
 
         #  And do something.
 
-        if ($opt == 1) {
-            $two =~ s/^\s+//;  #  Remove spaces again.  They'll just confuse our option processing.
-            $two =~ s/\s+$//;
+        $two =~ s/^\s+//;  #  Remove spaces again.  They'll just confuse our option processing.
+        $two =~ s/\s+$//;
 
-            setGlobal($one, $two);
-        }
-
-        else {
-            my $file = addSequenceFile($readdir, $two, 1);   #  Don't remove spaces.  File could be " file ", for some stupid reason.
-
-            if (defined($file)) {
-                push @fragFiles, "$one\0$file";
-            } else {
-                addCommandLineError("ERROR:  File not found in spec file option '$_'\n");
-            }
-        }
+        setGlobal($one, $two);
     }
     close(F);
-
-    return(@fragFiles);
 }
 
 
