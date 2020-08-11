@@ -142,16 +142,24 @@ foreach my $arg (@ARGV) {
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
 #  all of @ARGV into here, because we need to fix up relative paths first.
 
-my $rootdir          = undef;
-my $readdir          = undef;
+my $rootdir            = undef;
+my $readdir            = undef;
 
-my $mode             = undef;   #  "haplotype", "correct", "trim", "trim-assemble" or "assemble"
-my $step             = "run";   #  Step to start at (?)
+my $mode               = undef;   #  "haplotype", "correct", "trim", "trim-assemble" or "assemble"
+my $step               = "run";   #  Step to start at (?)
 
-#  If no seqStore exists, we depend on the user setting command line
-#  options to tell us the status of the reads.
-my $readsAreRaw      = 1;       #  They're either raw or corrected.
-my $readsAreTrimmed  = 0;       #  They're either untrimmed or trimmed.
+#  If no seqStore exists, we depend on the user setting command line options
+#  to tell us the status of the reads.  The use of four options is so we can
+#  detect invalid cases (-raw -corrected -pacbio) instead of just using the
+#  last one supplied.
+#
+#  If no options are supplied (canu -pacbio file.fasta) we'll later default
+#  to 'raw' and 'full-length'.
+
+my $readsAreRaw        = 0;       #  They're either raw or corrected.
+my $readsAreCorrected  = 0;       #    If neither is set, we'll set to raw later.
+my $readsAreFullLength = 0;       #  They're either full-length or trimmed.
+my $readsAreTrimmed    = 0;       #    If neither is set, we'll set to full-length later.
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
@@ -189,26 +197,75 @@ while (scalar(@ARGV)) {
     }
 
     #  Set the type of read we're getting.
+    #   - 'trimmed' reads have historically implied they are also corrected.
+
+    elsif ($arg eq "-raw") {
+        $readsAreRaw = 1;
+        addCommandLineOption($arg);
+    }
 
     elsif ($arg eq "-corrected") {
-        $readsAreRaw     = 0;
+        $readsAreCorrected = 1;
+        addCommandLineOption($arg);
+    }
+
+    elsif ($arg eq "-full-length") {
+        $readsAreFullLength = 1;
         addCommandLineOption($arg);
     }
 
     elsif ($arg eq "-trimmed") {
+        $readsAreCorrected = 1;
         $readsAreTrimmed = 1;
         addCommandLineOption($arg);
     }
 
     #  Remember the read files we're given.
+    #   - Allow compatibility with Canu v1.x options like -pacbio-raw.  If
+    #     found, insert a '-raw' option explicitly, and switch to '-pacbio'
+    #
+    #   - Allow technically incorrect but "grammatically" pleasant
+    #     constructions like "-pacbio -raw".
+    #
+    #   - Note that '-pacbio-hifi' is NOT a compatibility option;
+    #     "-pacbio -hifi" and "-hifi -pacbio" are not allowed.
 
     elsif (($arg eq "-pacbio") ||
            ($arg eq "-nanopore") ||
-           ($arg eq "-pacbio-raw") ||           # Compatibility with v1.x.
-           ($arg eq "-nanopore-raw") ||         # Compatibility with v1.x.
-           ($arg eq "-pacbio-corrected") ||     # Compatibility with v1.x.
-           ($arg eq "-nanopore-corrected") ||   # Compatibility with v1.x.
+           ($arg eq "-pacbio-raw") ||
+           ($arg eq "-nanopore-raw") ||
+           ($arg eq "-pacbio-corrected") ||
+           ($arg eq "-nanopore-corrected") ||
            ($arg eq "-pacbio-hifi")) {
+
+        if ($arg =~ m/^(-.*)-raw/) {
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  Option '$arg <files>' is deprecated.\n";
+            print STDERR "-- WARNING:  Use option '$1 <files>' in the future.\n";
+            print STDERR "-- WARNING:\n";
+            $readsAreRaw = 1;
+            addCommandLineOption("-raw");
+            $arg = $1;
+        }
+
+        if ($arg =~ m/^(-.*)-corrected/) {
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  Option '$arg' is deprecated.\n";
+            print STDERR "-- WARNING:  Use options '-corrected $1 <files>' in the future.\n";
+            print STDERR "-- WARNING:\n";
+            $readsAreCorrected = 1;
+            addCommandLineOption("-corrected");
+            $arg = $1;
+        }
+
+        if ($ARGV[0] eq "-raw")              {  $readsAreRaw        = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-corrected")        {  $readsAreCorrected  = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-full-length")      {  $readsAreFullLength = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-trimmed")          {  $readsAreTrimmed    = 1;
+                                                $readsAreCorrected  = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+
+        if ($arg     eq "-pacbio-hifi")      {  $readsAreRaw        = 1;
+                                                $readsAreTrimmed    = 1  if ($readsAreFullLength == 0);  }
 
       anotherFile:
         my $file = $ARGV[0];
@@ -474,27 +531,6 @@ elsif (scalar(@inputFiles) > 0) {
     foreach my $tf (@inputFiles) {
         my ($t, $f) = split '\0', $tf;
 
-        #  See setParametersFromFile() in Defaults.pm for more
-        #  COMPATIBILITY MODE stuff.
-
-        if ($t =~ m/^(-.*)-raw/) {
-            print STDERR "-- WARNING:\n";
-            print STDERR "-- WARNING:  Option '$t <files>' is deprecated.\n";
-            print STDERR "-- WARNING:  Use option '$1 <files>' in the future.\n";
-            print STDERR "-- WARNING:\n";
-            $t = $1;
-            $readsAreRaw = 1;
-        }
-
-        if ($t =~ m/^(-.*)-corrected/) {
-            print STDERR "-- WARNING:\n";
-            print STDERR "-- WARNING:  Option '$t' is deprecated.\n";
-            print STDERR "-- WARNING:  Use options '-corrected $1 <files>' in the future.\n";
-            print STDERR "-- WARNING:\n";
-            $t = $1;
-            $readsAreRaw = 0;
-        }
-
         if      ($t eq "-pacbio") {
             $numPacBio++;
         } elsif ($t eq "-nanopore") {
@@ -508,32 +544,45 @@ elsif (scalar(@inputFiles) > 0) {
         $tf = "$t\0$f";
     }
 
-    my $ct;
-    my $rt;
-    my $st;
+    #  If no read type is set, default to 'raw' and 'full-length'.  Note that
+    #  "-pacbio-hifi" sets to raw and trimmed (unless explicitly set to full
+    #  length first).
 
-    #  If no mode set, default -pacbio-hifi to trimmed status.
+    if (($readsAreRaw == 0) && ($readsAreCorrected == 0)) {
+        $readsAreRaw = 1;
+    }
 
-    if (($mode eq "") && ($numHiFi > 0)) {
-        $readsAreTrimmed = 1;
+    if (($readsAreFullLength == 0) && ($readsAreTrimmed == 0)) {
+        $readsAreFullLength = 1;
+    }
+
+    #  If the user told us our HiFi reads are corrected, undo that.
+    #  We need them to be called "raw".
+
+    if (($readsAreRaw == 1) && ($readsAreCorrected == 1) && ($numHiFi > 0)) {
+        $readsAreCorrected = 0;
     }
 
     #  Figure out a human description of the reads, and set
     #  flags to pass to sqStoreCreate.
 
+    my $ct;   #  correction/trimmed status
+    my $rt;   #  read tech
+    my $st;   #  sqStore flags for the reads
+
     if      (($readsAreRaw == 0) && ($readsAreTrimmed == 0)) {
         $numCor = 1;
         $ct = "untrimmed corrected";
         $st = "-corrected";
-    } elsif (($readsAreRaw == 0) && ($readsAreTrimmed != 0)) {
+    } elsif (($readsAreRaw == 0) && ($readsAreTrimmed == 1)) {
         $numCorTri = 1;
         $ct = "trimmed corrected";
         $st = "-corrected -trimmed";
-    } elsif (($readsAreRaw != 0) && ($readsAreTrimmed == 0)) {
+    } elsif (($readsAreRaw == 1) && ($readsAreTrimmed == 0)) {
         $numRaw = 1;
         $ct = "untrimmed raw";
         $st = "-raw";
-    } elsif (($readsAreRaw != 0) && ($readsAreTrimmed != 0)) {
+    } elsif (($readsAreRaw == 1) && ($readsAreTrimmed == 1)) {
         $numRawTri = 1;
         $ct = "trimmed raw";
         $st = "-raw -trimmed";
@@ -564,6 +613,43 @@ elsif (scalar(@inputFiles) > 0) {
     print STDERR "--\n";
     print STDERR "-- Found $ct $rt reads in the input files.\n";
 
+    #  Fail if inconsistent types are set.
+
+    my $inconsistent = 0;
+
+    if (($readsAreRaw == 1) && ($readsAreCorrected == 1)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Reads specified as 'raw' and 'corrected'.\n";
+        print STDERR "-- ERROR:  Reads must be either all raw or all corrected.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if (($readsAreRaw == 1) && ($readsAreTrimmed == 1) && ($numHiFi == 0)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Reads specified as 'raw' and 'trimmed'.\n";
+        print STDERR "-- ERROR:  Canu doesn't support this.  Remove the -trimmed option.\n";
+        print STDERR "-- ERROR:  To not trim after correction, run correction separately,\n";
+        print STDERR "-- ERROR:  then assemble.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if (($readsAreFullLength == 1) && ($readsAreTrimmed == 1)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Reads specified as both 'full-length' and 'trimmed'.\n";
+        print STDERR "-- ERROR:  Please submit an issue for this; it shouldn't happen.\n";
+        print STDERR "-- ERROR:  Try removing the -trimmed option, if present.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if ($inconsistent) {
+        caExit("inconsistent read types", undef);
+    }
 }
 
 #  Otherwise, no reads found in a store, and no input files.
@@ -628,10 +714,11 @@ if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
 #  Set an initial run mode based on what we discovered above.
 
 if (!defined($mode)) {
-    $mode = "run"            if ($numRaw    > 0);
-    $mode = "trim-assemble"  if ($numCor    > 0);
-    $mode = "assemble"       if ($numHiFi   > 0);
-    $mode = "assemble"       if ($numCorTri > 0);
+    $mode = "run"            if  ($numRaw    > 0);
+    $mode = "trim-assemble"  if  ($numCor    > 0);
+    $mode = "assemble"       if (($numHiFi   > 0) && ($readsAreTrimmed    == 1));
+    $mode = "trim-assemble"  if (($numHiFi   > 0) && ($readsAreFullLength == 1));
+    $mode = "assemble"       if  ($numCorTri > 0);
 }
 
 checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
