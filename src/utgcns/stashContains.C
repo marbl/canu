@@ -132,8 +132,8 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
     _children     = new tgPosition [_childrenMax];
 
     for (uint32 ci=0; ci<_stashedLen; ci++)
-      if (posLen[ci].use == true)                    //  If used, we want to keep the
-        _children[_childrenLen++] = _stashed[ci];    //  read, so copy it to the new list.
+      if (posLen[ci].use == true)                                //  If used, we want to keep the
+        _children[_childrenLen++] = _stashed[posLen[ci].idx];    //  read, so copy it to the new list.
   }
 
   //  Cleanup and return the statistics.
