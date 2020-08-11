@@ -50,10 +50,6 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
   if (_childrenLen == 1)
     return;
 
-  //  Sort the original children by position.
-
-  std::sort(_children, _children + _childrenLen);
-
   //  Decide which children to save.
 
   readInfo        *posLen  = new readInfo [_childrenLen];   //  Sorting by length of child
@@ -65,6 +61,9 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
   for (uint32 ci=0; ci<_childrenLen; ci++) {
     int32  lo = _children[ci].min();
     int32  hi = _children[ci].max();
+
+    // make sure the positions make sense
+    assert(ci == 0 || lo >= _children[ci-1].min() || hi >= _children[ci-1].max());
 
     if (hi <= hiEnd) {
       posLen[ci].idx = ci;
