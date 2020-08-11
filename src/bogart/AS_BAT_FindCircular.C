@@ -234,46 +234,27 @@ findCircularContigs(TigVector &tigs,
     ufNode          *fRead = tig->firstRead();
     ufNode          *lRead = tig->lastRead();
 
-    BestEdgeOverlap *fEdge = OG->getBestEdgeOverlap(fRead->ident, fRead->isReverse());
-    BestEdgeOverlap *lEdge = OG->getBestEdgeOverlap(lRead->ident, lRead->isForward());
-
-    //  If either edge points to some other (or no other) tig, this isn't a
-    //  circular tig.
-
-    if ((tigs.inUnitig(fEdge->readId()) != tig->id()) ||
-        (tigs.inUnitig(lEdge->readId()) != tig->id()))
-      continue;
-
-    //  Check that all the implied overlaps are there.  We check twice, from
-    //  each end read to wherever it's best edge read is.  If both paths exist,
-    //  we declare the tig circular.
-
-    bool  isCl = isCircularizingEdge(tig, lRead->ident, lEdge->readId());
-    bool  isCf = isCircularizingEdge(tig, fRead->ident, fEdge->readId());
-
-    if ((isCl == false) ||
-        (isCf == false))
-      continue;
-
-    //  Circular!  Find (again) the overlap between lRead and fRead and report an overlap size.
-
+    uint32      circularLength = 0;
     uint32      ovlLen = 0;
     BAToverlap *ovl    = OC->getOverlaps(lRead->ident, ovlLen);
-
-    uint32      circularLength = 0;
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
       if ((ovl[oo].b_iid == fRead->ident) &&
           (((lRead->position.isForward() ==  true) && (ovl[oo].AEndIs3prime() ==  true)) ||
            ((lRead->position.isForward() == false) && (ovl[oo].AEndIs5prime() ==  true))))
+
+        //  Circular!
         circularLength = RI->overlapLength(lRead->ident, fRead->ident, ovl[oo].a_hang, ovl[oo].b_hang);
     }
+
+    if (circularLength == 0) 
+       continue;
 
     tig->_isCircular     = true;
     tig->_circularLength = circularLength;
 
-    ufNode *foRead = &tig->ufpath[ tig->ufpathIdx(fEdge->readId()) ];
-    ufNode *loRead = &tig->ufpath[ tig->ufpathIdx(lEdge->readId()) ];
+    ufNode *foRead = &tig->ufpath[ tig->ufpathIdx(lRead->ident) ];
+    ufNode *loRead = &tig->ufpath[ tig->ufpathIdx(fRead->ident) ];
 
     fprintf(CIRC, "%8u  %9u %10u-%-10u %9u %10u-%-10u %6u  %9u %10u-%-10u %9u %10u-%-10u %6u\n",
             ti,
