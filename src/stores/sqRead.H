@@ -75,12 +75,6 @@ extern
 sqRead_which  sqRead_defaultVersion;
 
 static
-void
-sqRead_setDefaultVersion(sqRead_which v) {
-  sqRead_defaultVersion = v;
-}
-
-static
 const
 char *
 toString(sqRead_which w) {
@@ -109,6 +103,20 @@ toString(sqRead_which w) {
 
   return("undefined-mode");
 }
+
+static
+void
+sqRead_setDefaultVersion(sqRead_which v) {
+  sqRead_defaultVersion = v;
+}
+
+static
+const
+char *
+sqRead_getDefaultVersion(void) {
+  return(toString(sqRead_defaultVersion));
+}
+
 
 
 

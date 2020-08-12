@@ -890,6 +890,8 @@ main(int argc, char **argv) {
   sqStore   *seqStore = new sqStore(seqName);
   ovStore   *ovlStore = new ovStore(ovlName, seqStore);
 
+  fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", seqName, sqRead_getDefaultVersion());
+
   uint32     ovlLen   = 0;
   uint32     ovlMax   = 65536;
   ovOverlap *ovl      = new ovOverlap [ovlMax];

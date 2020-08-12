@@ -72,8 +72,6 @@ sqStore::sqStore_loadMetadata(void) {
 
   assert(sqRead_defaultVersion != sqRead_unset);
 
-  fprintf(stderr, "sqStore_loadMetadata()-- Using '%s' 0x%02u reads.\n", toString(sqRead_defaultVersion), sqRead_defaultVersion);
-
   //  We can maybe, eventually, be clever and load these on-demand.
   //  For now, load all the metadata.
 

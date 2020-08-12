@@ -314,6 +314,8 @@ main(int argc, char **argv) {
   uint32          numReads  = seqStore->sqStore_lastReadID();
   uint32          numLibs   = seqStore->sqStore_lastLibraryID();
 
+  fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", seqStoreName, sqRead_getDefaultVersion());
+
 #if 0
   clearRangeFile *clrRange  = (clrName == NULL) ? NULL : new clearRangeFile(clrName, seqStore);
 #endif
