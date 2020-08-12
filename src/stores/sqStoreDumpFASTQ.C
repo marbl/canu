@@ -24,55 +24,9 @@
 #include "clearRangeFile.H"
 
 
-
-
-
-
-
-#if 0
-    uint32  clen = rclr - lclr;
-
-    //if (dumpTrimmed == true)
-    //  seq  = readData->sqReadData_getSequence(sqSequence);
-
-    //  Soft mask not-clear bases.
-
-    if (dumpAllBases == true) {
-      for (uint32 i=0; i<lclr; i++)
-        seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
-
-      for (uint32 i=lclr; i<rclr; i++)
-        seq[i] += (seq[i] >= 'A') ? 0 : 'A' - 'a';
-
-      for (uint32 i=rclr; i<flen; i++)
-        seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
-
-      lclr = 0;
-      rclr = flen;
-    }
-
-    //  Chop off the ends we're not printing.
-
-    seq += lclr;
-    qlt += lclr;
-
-    seq[clen] = 0;
-    qlt[clen] = 0;
-
-
-    char   *name = read->sqRead_name();
-    char   *seq  = read->sqRead_sequence();
-    char   *qlt  = qltString;
-#endif
-
-
-
-
-
-
-
-//  Write sequence in multiple formats.  This used to write to four fastq files, the .1, .2, .paired and .unmated.
-//  It's left around for future expansion to .fastq and .bax.h5.
+//  Write sequence in multiple formats.  This used to write to four fastq
+//  files, the .1, .2, .paired and .unmated.  It's left around for future
+//  expansion to .fastq and .bax.h5.
 //
 class libOutput {
 public:
