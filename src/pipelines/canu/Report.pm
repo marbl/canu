@@ -160,20 +160,20 @@ sub saveReport ($) {
 
 
     if ($diff < 0) {
-        print STDERR "-- New report created.\n";
+        #print STDERR "-- New report created.\n";
 
         rename "$asm.report.new", "$asm.report";
         stashFile("$asm.report");
     }
 
     elsif ($diff == 0) {
-        print STDERR "-- No change in report.\n";
+        #print STDERR "-- No change in report.\n";
 
         unlink "$asm.report.new";
     }
 
     else {
-        print STDERR "-- Report changed.\n";
+        #print STDERR "-- Report changed.\n";
 
         unlink "$asm.report";
         rename "$asm.report.new", "$asm.report";
