@@ -24,8 +24,6 @@ use FindBin;
 use Cwd qw(getcwd abs_path);
 
 use lib "$FindBin::RealBin/../lib/site_perl";
-#use lib "$FindBin::RealBin/lib/canu/lib/perl5";
-#use lib "$FindBin::RealBin/lib/canu/lib64/perl5";
 
 use File::Path 2.08 qw(make_path remove_tree);
 
@@ -154,12 +152,12 @@ my $step               = "run";   #  Step to start at (?)
 #  last one supplied.
 #
 #  If no options are supplied (canu -pacbio file.fasta) we'll later default
-#  to 'raw' and 'full-length'.
+#  to 'raw' and 'untrimmed'.
 
 my $readsAreRaw        = 0;       #  They're either raw or corrected.
 my $readsAreCorrected  = 0;       #    If neither is set, we'll set to raw later.
-my $readsAreFullLength = 0;       #  They're either full-length or trimmed.
-my $readsAreTrimmed    = 0;       #    If neither is set, we'll set to full-length later.
+my $readsAreUntrimmed  = 0;       #  They're either trimmed or not.
+my $readsAreTrimmed    = 0;       #    If neither is set, we'll set to untrimmed later.
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
@@ -209,8 +207,8 @@ while (scalar(@ARGV)) {
         addCommandLineOption($arg);
     }
 
-    elsif ($arg eq "-full-length") {
-        $readsAreFullLength = 1;
+    elsif ($arg eq "-untrimmed") {
+        $readsAreUntrimmed = 1;
         addCommandLineOption($arg);
     }
 
@@ -258,14 +256,14 @@ while (scalar(@ARGV)) {
             $arg = $1;
         }
 
-        if ($ARGV[0] eq "-raw")              {  $readsAreRaw        = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-        if ($ARGV[0] eq "-corrected")        {  $readsAreCorrected  = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-        if ($ARGV[0] eq "-full-length")      {  $readsAreFullLength = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-        if ($ARGV[0] eq "-trimmed")          {  $readsAreTrimmed    = 1;
-                                                $readsAreCorrected  = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-raw")              {  $readsAreRaw       = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-corrected")        {  $readsAreCorrected = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-untrimmed")        {  $readsAreUntrimmed = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
+        if ($ARGV[0] eq "-trimmed")          {  $readsAreTrimmed   = 1;
+                                                $readsAreCorrected = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
 
-        if ($arg     eq "-pacbio-hifi")      {  $readsAreRaw        = 1;
-                                                $readsAreTrimmed    = 1  if ($readsAreFullLength == 0);  }
+        if ($arg     eq "-pacbio-hifi")      {  $readsAreRaw       = 1;
+                                                $readsAreTrimmed   = 1  if ($readsAreUntrimmed == 0);  }
 
       anotherFile:
         my $file = $ARGV[0];
@@ -544,16 +542,16 @@ elsif (scalar(@inputFiles) > 0) {
         $tf = "$t\0$f";
     }
 
-    #  If no read type is set, default to 'raw' and 'full-length'.  Note that
-    #  "-pacbio-hifi" sets to raw and trimmed (unless explicitly set to full
-    #  length first).
+    #  If no read type is set, default to 'raw' and 'untrimmed'.  Note that
+    #  "-pacbio-hifi" sets to raw and trimmed (unless explicitly set to
+    #  untrimmed first).
 
     if (($readsAreRaw == 0) && ($readsAreCorrected == 0)) {
         $readsAreRaw = 1;
     }
 
-    if (($readsAreFullLength == 0) && ($readsAreTrimmed == 0)) {
-        $readsAreFullLength = 1;
+    if (($readsAreUntrimmed == 0) && ($readsAreTrimmed == 0)) {
+        $readsAreUntrimmed = 1;
     }
 
     #  If the user told us our HiFi reads are corrected, undo that.
@@ -637,10 +635,10 @@ elsif (scalar(@inputFiles) > 0) {
         $inconsistent = 1;
     }
 
-    if (($readsAreFullLength == 1) && ($readsAreTrimmed == 1)) {
+    if (($readsAreUntrimmed == 1) && ($readsAreTrimmed == 1)) {
         print STDERR "--\n";
         print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  Reads specified as both 'full-length' and 'trimmed'.\n";
+        print STDERR "-- ERROR:  Reads specified as both 'untrimmed' and 'trimmed'.\n";
         print STDERR "-- ERROR:  Please submit an issue for this; it shouldn't happen.\n";
         print STDERR "-- ERROR:  Try removing the -trimmed option, if present.\n";
         print STDERR "-- ERROR:\n";
@@ -716,8 +714,8 @@ if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
 if (!defined($mode)) {
     $mode = "run"            if  ($numRaw    > 0);
     $mode = "trim-assemble"  if  ($numCor    > 0);
-    $mode = "assemble"       if (($numHiFi   > 0) && ($readsAreTrimmed    == 1));
-    $mode = "trim-assemble"  if (($numHiFi   > 0) && ($readsAreFullLength == 1));
+    $mode = "assemble"       if (($numHiFi   > 0) && ($readsAreTrimmed   == 1));
+    $mode = "trim-assemble"  if (($numHiFi   > 0) && ($readsAreUntrimmed == 1));
     $mode = "assemble"       if  ($numCorTri > 0);
 }
 
