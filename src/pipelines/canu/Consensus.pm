@@ -117,14 +117,27 @@ sub partitionTigs ($) {
 
     fetchTigStore("unitigging", $asm, "ctgStore", "001");
 
-    # adjust for the fact that compressed contigs will likely expand and thus take more memory/more space
-    my $partitionScaling = (defined(getGlobal("homoPolyCompress"))) ? 1.5 : 1.0;
+    my $pSize  = 0.8;   #  Make partitions be about 80% the size of the biggest tig.
+    my $pScale = 1.0;   #  Don't pre-scale tig lengths (unless homopoly compressed, below).
+    my $pReads = 0.1;   #  Allow up to 10% of the reads to be in a single partition.
+
+    $pScale = 1.5       if (defined(getGlobal("homoPolyCompress")));
+
+    #  If cnsPartitions set, switch to using the number of reads as the only
+    #  partition sizing.  The +1 is to ensure that we don't end up with a
+    #  tiny partition of left over reads.  pReads will be #.####.
+
+    my $np = getGlobal("cnsPartitions");
+
+    if ($np > 0) {
+        $pSize   = 0.0;
+        $pReads  = int(10000 / $np + 1) / 10000;
+    }
 
     $cmd  = "$bin/utgcns \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -T  ./$asm.ctgStore 1 \\\n";
-    #$cmd .= "  -partition " . getGlobal("cnsPartitionSize") . " \\\n"   if (defined(getGlobal("cnsPartitionSize")));
-    $cmd .= "  -partition 0.8 $partitionScaling 0.1 \\\n";
+    $cmd .= "  -partition $pSize $pScale $pReads \\\n";
     $cmd .= "> ./$asm.ctgStore/partitioning.log 2>&1";
 
     if (runCommand("unitigging", $cmd)) {

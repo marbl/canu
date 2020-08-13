@@ -1053,6 +1053,7 @@ sub setDefaults () {
 
     setDefault("cnsMaxCoverage",  40,          "Limit unitig consensus to at most this coverage; default '40' = unlimited");
     setDefault("cnsConsensus",    "pbdagcon",  "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'");
+    setDefault("cnsPartitions",   0,           "Attempt to create this many consensus jobs; default '0' = based on the largest tig");
 
     #####  Correction Options
 
