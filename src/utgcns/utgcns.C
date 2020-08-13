@@ -30,69 +30,6 @@
 
 class cnsParameters {
 public:
-  cnsParameters(uint32 numThreads_) {
-    seqName          = NULL;
-    seqFile          = NULL;
-
-    tigName          = NULL;
-    tigVers          = UINT32_MAX;
-    tigPart          = 0;
-
-    tigBgn           = 0;
-    tigEnd           = UINT32_MAX;
-
-    outResultsName   = NULL;
-    outLayoutsName   = NULL;
-    outSeqNameA      = NULL;
-    outSeqNameQ      = NULL;
-
-    exportName       = NULL;
-    importName       = NULL;
-
-    algorithm        = 'P';
-    aligner          = 'E';
-
-    createPartitions = false;
-    partitionSize    = 1.00;
-    partitionScaling = 1.00;
-    partitionTigs    = 0.05;
-
-    numThreads 	     = numThreads_;
-
-    errorRate        = 0.12;
-    errorRateMax     = 0.40;
-    minOverlap       = 500;
-
-    numFailures      = 0;
-
-    showResult       = false;
-
-    maxCov           = 0.0;
-    minLen           = 0;
-    maxLen           = UINT32_MAX;
-
-    onlyUnassem      = false;
-    onlyContig       = false;
-
-    noRepeat         = false;
-    noBubble         = false;
-    noSingleton      = false;
-
-    verbosity        = 0;
-
-    seqStore         = NULL;
-    seqReads         = NULL;
-    tigStore         = NULL;
-
-    outResultsFile   = NULL;
-    outLayoutsFile   = NULL;
-    outSeqFileA      = NULL;
-    outSeqFileQ      = NULL;
-  }
-
-  ~cnsParameters() {
-  }
-
   void                    closeAndCleanup(void) {
     delete seqStore;   seqStore = NULL;
     delete tigStore;   tigStore = NULL;
@@ -110,85 +47,68 @@ public:
     AS_UTL_closeFile(outSeqFileQ, outSeqNameQ);
   };
 
-  char                   *seqName;
-  char                   *seqFile;
+  char                   *seqName = nullptr;
+  char                   *seqFile = nullptr;
 
-  char                   *tigName;
-  uint32                  tigVers;
-  uint32                  tigPart;
+  char                   *tigName = nullptr;
+  uint32                  tigVers = UINT32_MAX;
+  uint32                  tigPart = 0;
 
-  uint32                  tigBgn;
-  uint32                  tigEnd;
+  uint32                  tigBgn  = 0;
+  uint32                  tigEnd  = UINT32_MAX;
 
-  char                   *outResultsName;
-  char                   *outLayoutsName;
-  char                   *outSeqNameA;
-  char                   *outSeqNameQ;
+  char                   *outResultsName = nullptr;
+  char                   *outLayoutsName = nullptr;
+  char                   *outSeqNameA    = nullptr;
+  char                   *outSeqNameQ    = nullptr;
 
-  char                   *exportName;
-  char                   *importName;
+  char                   *exportName     = nullptr;
+  char                   *importName     = nullptr;
 
-  char                    algorithm;
-  char                    aligner;
+  char                    algorithm = 'P';
+  char                    aligner   = 'E';
 
-  bool                    createPartitions;
-  double                  partitionSize;
-  double                  partitionScaling;
-  double                  partitionTigs;
+  bool                    createPartitions = false;
+  double                  partitionSize    = 1.00;   //  Size partitions to be 100% of the largest tig.
+  double                  partitionScaling = 1.00;   //  Estimated tig length is 100% of actual tig length.
+  double                  partitionReads   = 0.05;   //  5% of all reads can end up in a single partition.
 
-  uint32                  numThreads;
+  uint32                  numThreads   = omp_get_max_threads();
 
-  double                  errorRate;
-  double                  errorRateMax;
-  uint32                  minOverlap;
+  double                  errorRate    = 0.12;
+  double                  errorRateMax = 0.40;
+  uint32                  minOverlap   = 500;
 
-  uint32                  numFailures;
+  uint32                  numFailures = 0;
 
-  bool                    showResult;
+  bool                    showResult = false;
 
-  double                  maxCov;
-  uint32                  minLen;
-  uint32                  maxLen;
+  double                  maxCov = 0.0;
+  uint32                  minLen = 0;
+  uint32                  maxLen = UINT32_MAX;
 
-  bool                    onlyUnassem;
-  bool                    onlyContig;
+  bool                    onlyUnassem = false;
+  bool                    onlyContig  = false;
 
-  bool                    noBubble;
-  bool                    noRepeat;
-  bool                    noSingleton;
+  bool                    noBubble    = false;
+  bool                    noRepeat    = false;
+  bool                    noSingleton = false;
 
-  uint32                  verbosity;
+  uint32                  verbosity = 0;
 
-  sqStore                *seqStore;
-  map<uint32, sqRead *>  *seqReads;
-  tgStore                *tigStore;
+  sqStore                *seqStore = nullptr;
+  map<uint32, sqRead *>  *seqReads = nullptr;
+  tgStore                *tigStore = nullptr;
 
-  FILE                   *outResultsFile;
-  FILE                   *outLayoutsFile;
-  FILE                   *outSeqFileA;
-  FILE                   *outSeqFileQ;
+  FILE                   *outResultsFile = nullptr;
+  FILE                   *outLayoutsFile = nullptr;
+  FILE                   *outSeqFileA    = nullptr;
+  FILE                   *outSeqFileQ    = nullptr;
 };
 
 
 
-
-
-class tigInfo {
-public:
-  tigInfo() {
-    tigID           = 0;
-    tigLength       = 0;
-    tigChildren     = 0;
-
-    consensusArea   = 0;
-    consensusMemory = 0;
-
-    partition       = 0;
-  };
-
-  bool     operator<(const tigInfo &that) const   { return(tigID         < that.tigID);         };
-  bool     operator>(const tigInfo &that) const   { return(consensusArea > that.consensusArea); };
-
+struct tigInfo {
   uint32   tigID;
   uint64   tigLength;
   uint64   tigChildren;
@@ -200,43 +120,69 @@ public:
 };
 
 
+
 void
 createPartitions_loadTigInfo(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
 
   for (uint32 ti=0; ti<tigsLen; ti++) {
-    if (params.tigStore->isDeleted(ti))
-      continue;
+    uint32  len = 0;
+    uint32  nc  = 0;
 
-    tgTig  *tig = params.tigStore->loadTig(ti);
+    //  If there's a tig here, load it and get the info.
+
+    if (params.tigStore->isDeleted(ti) == false) {
+      tgTig *tig = params.tigStore->loadTig(ti);
+
+      len = tig->length();
+      nc  = tig->numberOfChildren();
+
+      params.tigStore->unloadTig(ti);
+    }
+
+    //  Initialize the tigInfo.  If no tig is here, all the fields will end
+    //  up zero, and we'll not put it into a partition.
 
     tigs[ti].tigID           = ti;
-    tigs[ti].tigLength       = tig->length() * params.partitionScaling;
-    tigs[ti].tigChildren     = tig->numberOfChildren();
+    tigs[ti].tigLength       = len * params.partitionScaling;
+    tigs[ti].tigChildren     = nc;
 
-    tigs[ti].consensusArea   = tigs[ti].tigLength * tigs[ti].tigChildren;
-    tigs[ti].consensusMemory = tigs[ti].tigLength * 1024;
+    tigs[ti].consensusArea   = len * nc;
+    tigs[ti].consensusMemory = len * 1024;
 
-    params.tigStore->unloadTig(ti);
+    tigs[ti].partition       = 0;
   }
-
-  sort(tigs, tigs + tigsLen, greater<tigInfo>());
 }
 
 
 
 uint32
 createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
-  uint64   maxArea     = tigs[0].consensusArea * params.partitionSize;
-  uint32   maxReads    = uint32((params.seqStore->sqStore_lastReadID()+1) * params.partitionTigs + 0.5);
-  uint32   currentPart = 1;
-  uint64   currentArea = 0;
-  uint32   currentTigs = 0;
+
+  //  Sort the tigInfo by decreasing area.
+
+  sort(tigs, tigs + tigsLen, [](tigInfo &A, tigInfo &B) { return(A.consensusArea > B.consensusArea); });
+
+  //  Grab the biggest tig (it's number 0) and compute a maximum area per partition.
+
+  uint64   maxArea         = tigs[0].consensusArea * params.partitionSize;
+  uint32   maxReads        = (uint32)ceil(params.seqStore->sqStore_lastReadID() * params.partitionReads);
+  uint32   currentPart     = 1;
+  uint64   currentArea     = 0;
+  uint32   currentTigs     = 0;
   uint32   currentChildren = 0;
-  bool     stillMore   = true;
+  bool     stillMore       = true;
+
+  if (maxArea == 0)
+    maxArea = UINT64_MAX;
 
   if (params.verbosity > 0) {
-    fprintf(stderr, "      Tig     Reads    Length         Area  Memory GB  Partition\n");
-    fprintf(stderr, "--------- --------- --------- ------------  ---------  ---------\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "maxArea  = %s\n", (maxArea != UINT64_MAX) ? toDec(maxArea) : "infinite");
+    fprintf(stderr, "maxReads = %u\n",  maxReads);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "--------------------- TIG -------------------  ------- PARTITION --------\n");
+    fprintf(stderr, "    ID   Reads    Length         Area Mem(GB)    ID  Total Area  TotReads\n");
+    fprintf(stderr, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
   }
 
   while (stillMore) {
@@ -244,31 +190,38 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
 
     for (uint32 ti=0; ti<tigsLen; ti++) {
 
-      //  Do nothing, it's already in a partition.
-      if      ((tigs[ti].partition != 0) ||
+      //  Do nothing, it's already in a partition or if the area is zero.
+      if      ((tigs[ti].partition     != 0) ||
                (tigs[ti].consensusArea == 0)) {
       }
 
       //  If nothing in the current partition, or still space in the
-      //  partition, add this tig to the current partition.  In particular,
-      //  this allows partitions of a single tig to be larger than the
-      //  maximum (e.g., a partitionSize < 1.0). Also ensure we don't assign too many reads to a partition.
+      //  partition, add this tig to the current partition.
+      //
+      //  In particular, this allows partitions of a single tig to be larger
+      //  than the maximum (e.g., a partitionSize < 1.0).
+      //
+      //  It also ensures we don't assign too many (singleton) reads to a
+      //  partition.
       else if ((currentTigs == 0) ||
-               (currentArea + tigs[ti].consensusArea < maxArea && (currentChildren + tigs[ti].tigChildren) < maxReads)) {
+               ((currentArea     + tigs[ti].consensusArea < maxArea) &&
+                (currentChildren + tigs[ti].tigChildren   < maxReads))) {
         tigs[ti].partition = currentPart;
 
-        currentArea += tigs[ti].consensusArea;
-        currentTigs += 1;
+        currentArea     += tigs[ti].consensusArea;
+        currentTigs     += 1;
         currentChildren += tigs[ti].tigChildren;
 
         if (params.verbosity > 0)
-          fprintf(stderr, "%9u %9lu %9lu %12lu  %9.3f  %9u\n",
+          fprintf(stderr, "%6u %7lu %9lu %12lu %7.3f  %4u %12lu %8u\n",
                   tigs[ti].tigID,
                   tigs[ti].tigChildren,
                   tigs[ti].tigLength,
                   tigs[ti].consensusArea,
                   tigs[ti].consensusMemory / 1024.0 / 1024.0 / 1024.0,
-                  tigs[ti].partition);
+                  tigs[ti].partition,
+                  currentArea,
+                  currentChildren);
       }
 
       //  Do nothing.  This tig is too large for the current partition.
@@ -279,13 +232,11 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
 
     //  Nothing else will fit in this partition.  Move to the next.
 
-    currentPart += 1;
-    currentArea  = 0;
-    currentTigs  = 0;
+    currentPart    += 1;
+    currentArea     = 0;
+    currentTigs     = 0;
     currentChildren = 0;
   }
-
-  sort(tigs, tigs + tigsLen, less<tigInfo>());
 
   return(currentPart);
 }
@@ -299,6 +250,10 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
   sqReadDataWriter     *wr    = new sqReadDataWriter;
   writeBuffer         **parts = new writeBuffer * [nParts];
   char                  partName[FILENAME_MAX+1];
+
+  //  Sort by tigID.
+
+  sort(tigs, tigs + tigsLen, [](tigInfo &A, tigInfo &B) { return(A.tigID < B.tigID); });
 
   //  Build a mapping from readID to partitionID.
 
@@ -400,6 +355,7 @@ createPartitions(cnsParameters  &params) {
 
   //  Clean up.
 
+  delete [] pSize;
   delete [] tigs;
 }
 
@@ -706,7 +662,7 @@ processTigs(cnsParameters  &params) {
 
 int
 main (int argc, char **argv) {
-  cnsParameters  params(omp_get_max_threads());
+  cnsParameters  params;
 
   argc = AS_configure(argc, argv);
 
@@ -723,7 +679,7 @@ main (int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-T") == 0) {
       params.tigName = argv[++arg];
-      params.tigVers = atoi(argv[++arg]);
+      params.tigVers = strtouint32(argv[++arg]);
 
       if (params.tigVers == 0) {
         char *s = new char [1024];
@@ -733,7 +689,7 @@ main (int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-P") == 0) {
-      params.tigPart = atoi(argv[++arg]);
+      params.tigPart = strtouint32(argv[++arg]);
     }
 
 
@@ -762,9 +718,9 @@ main (int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-partition") == 0) {
       params.createPartitions = true;
-      params.partitionSize    = atof(argv[++arg]);
-      params.partitionScaling = atof(argv[++arg]);
-      params.partitionTigs    = atof(argv[++arg]);
+      params.partitionSize    = strtodouble(argv[++arg]);
+      params.partitionScaling = strtodouble(argv[++arg]);
+      params.partitionReads   = strtodouble(argv[++arg]);
     }
 
     //  Algorithm options
@@ -786,7 +742,7 @@ main (int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-threads") == 0) {
-      params.numThreads = atoi(argv[++arg]);
+      params.numThreads = strtouint32(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-export") == 0) {
@@ -798,15 +754,15 @@ main (int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-e") == 0) {
-      params.errorRate = atof(argv[++arg]);
+      params.errorRate = strtodouble(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-em") == 0) {
-      params.errorRateMax = atof(argv[++arg]);
+      params.errorRateMax = strtodouble(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-l") == 0) {
-      params.minOverlap = atoi(argv[++arg]);
+      params.minOverlap = strtouint32(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-v") == 0) {
@@ -818,15 +774,15 @@ main (int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-maxcoverage") == 0) {
-      params.maxCov   = atof(argv[++arg]);
+      params.maxCov   = strtodouble(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-minlength") == 0) {
-      params.minLen   = atof(argv[++arg]);
+      params.minLen   = strtodouble(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-maxlength") == 0) {
-      params.maxLen   = atof(argv[++arg]);
+      params.maxLen   = strtodouble(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-onlyunassem") == 0) {
@@ -868,9 +824,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  INPUT\n");
-    fprintf(stderr, "    -S g            Load reads from sqStore 'g'\n");
+    fprintf(stderr, "    -S g            Load reads from seqStore 'g'\n");
     fprintf(stderr, "    -R f            Load reads from partition file 'f'\n");
-    fprintf(stderr, "    -T t v          Load tig from tgStore 't'.\n");
+    fprintf(stderr, "    -T t v          Load tig from tigStore 't'.\n");
     fprintf(stderr, "    -t file         Test the computation of the tig layout in 'file'\n");
     fprintf(stderr, "                      'file' can be from:\n");
     fprintf(stderr, "                        'tgStoreDump -d layout' (human readable layout format)\n");
@@ -880,6 +836,16 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -import name    Load tig and reads from file 'name' created with -export.  This\n");
     fprintf(stderr, "                    is usually used by developers.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -partition a b c\n");
+    fprintf(stderr, "                    Create partitions in the tigStore.  Canu uses a=0.8 b=1.0 c=0.1.\n");
+    fprintf(stderr, "                      a - Set partition size to be 'a * largest_tig'.  Any tig larger\n");
+    fprintf(stderr, "                          than this size is placed entirely in one partition; it is not\n");
+    fprintf(stderr, "                          split between partitions.\n");
+    fprintf(stderr, "                      b - Scale each tig by 'b' when computing its size.  Only really useful\n");
+    fprintf(stderr, "                          for adjusting for homopolymer compression; b=1.5 suggested.\n");
+    fprintf(stderr, "                      c - Allow up to 'c * NR' reads per partition, where NR is the number\n");
+    fprintf(stderr, "                          of reads in the assembly.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALGORITHM\n");
     fprintf(stderr, "    -quick          Stitch reads together to cover the contig.  The bases in the contig\n");
@@ -900,7 +866,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -edlib          Myers' O(ND) algorithm from Edlib (https://github.com/Martinsos/edlib).\n");
     fprintf(stderr, "                    This is the default (and, yes, there is no non-default aligner).\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  OUTPUT\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
@@ -911,7 +876,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    file can then be sent to the developers for debugging.  The tig(s)\n");
     fprintf(stderr, "                    are not processed and no other outputs are created.  Ideally,\n");
     fprintf(stderr, "                    only one tig is selected (-u, below).\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  TIG SELECTION (if -T input is used)\n");
     fprintf(stderr, "    -tig b          Compute only tig ID 'b' (must be in the correct partition!)\n");
