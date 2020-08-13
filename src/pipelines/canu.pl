@@ -345,7 +345,7 @@ while (scalar(@ARGV)) {
 if (!defined($asm)) {
     $asmAuto = 1;   #  If we don't actually find a prefix, we'll fail right after this, so OK to set blindly.
 
-    open(F, "ls -d . *seqStore |");
+    open(F, "ls -d . *seqStore 2> /dev/null|");
     while (<F>) {
         $asm = $1   if (m/^(.*).seqStore$/);
     }
