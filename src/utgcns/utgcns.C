@@ -125,8 +125,8 @@ void
 createPartitions_loadTigInfo(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
 
   for (uint32 ti=0; ti<tigsLen; ti++) {
-    uint32  len = 0;
-    uint32  nc  = 0;
+    uint64  len = 0;   //  64-bit so we don't overflow the various
+    uint64  nc  = 0;   //  multiplications below.
 
     //  If there's a tig here, load it and get the info.
 
