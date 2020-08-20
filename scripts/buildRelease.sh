@@ -1,13 +1,28 @@
 #!/bin/sh
-
+#
 #  Before building a release:
 #
-#    Update copyrights
+#  Make a place to work, grab the bits you want to release:
+#    git clone git@github.com:marbl/canu canu-release
+#    cd canu-release
+#
+#  Commit to master:
 #    Increase version in documentation/source/conf.py
-#    Increase version in src/canu_version_update.pl
-#    Make a branch:  git checkout -b v2.0-maintenance
-#    Switch "snapshot" to "release" in src/canu_version_update.pl IN THE BANCH
-#    Make a 'v2.0' release.
+#    Increase version in scripts/version_update.pl
+#
+#  Build.  This pulls in submodule code.  This build isn't used
+#  for release.
+#    cd src && gmake
+#
+#  Make a branch:
+#    git checkout -b v2.1-maintenance
+#
+#  Commit to branch:
+#    Change 'snapshot' to 'release' in scripts/version_update.pl
+#
+#  Run this script:
+#    scripts/buildRelease.sh 2.1
+#
 
 version=$1
 
@@ -16,59 +31,102 @@ if [ x$version = x ] ; then
   exit
 fi
 
-#  From the tarball
+#
+#  Cleanup any old build, make space for the new one, and initialize scripts.
+#
 
-if [ ! -e canu-$version.tar.gz ] ; then
-  echo Fetch.
-  curl -L -R -o canu-$version.tar.gz https://github.com/marbl/canu/archive/v$version.tar.gz
-fi
-if [ ! -d canu-$version ] ; then
-  echo Unpack.
-  gzip -dc canu-$version.tar.gz | tar -xf -
-fi
-cd canu-$version
+echo Preparing build trees.
 
-#  From the repo
+rm -rf build
+rm -rf build-darwin build-darwin.out
+rm -rf build-linux  build-linux.out
+rm -rf build-src
 
-#git clone git@github.com:marbl/canu.git
-#mv canu canu-$version
-#cd canu-$version
-#git tag v$version
-#git checkout v$version
+rm  -f build-linux.sh
 
-echo Build MacOS.
+rm  -f canu-${version}.Darwin-amd64.tar canu-${version}.Darwin-amd64.tar.xz
+rm  -f canu-${version}.Linux-amd64.tar  canu-${version}.Linux-amd64.tar.xz
+rm  -f canu-${version}.tar  canu-${version}.tar.xz
+
+mkdir -p build-src/scripts
+mkdir -p build-darwin/scripts
+mkdir -p build-linux/scripts
+
+rsync -a src/ build-src/src
+rsync -a src/ build-darwin/src
+rsync -a src/ build-linux/src
+
+cp -p README* build-src/
+cp -p README* build-darwin/
+cp -p README* build-linux/
+
+cp -p scripts/version_update.pl build-src/scripts/
+cp -p scripts/version_update.pl build-darwin/scripts/
+cp -p scripts/version_update.pl build-linux/scripts/
+
+echo >> build-linux.sh  "#!/bin/bash"
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  "rm -rf /dock/build"
+echo >> build-linux.sh  "cd /dock/src"
+echo >> build-linux.sh  "gmake -j 12 > ../build-linux.out 2>&1"
+echo >> build-linux.sh  "cd .."
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  "mv build/* build-linux/"
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  "rm -rf build-darwin/obj"
+echo >> build-linux.sh  "rm -rf build-linux/obj"
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  "mv build-darwin canu-$version"
+echo >> build-linux.sh  "tar -cf canu-$version.Darwin-amd64.tar canu-$version/README* canu-$version/bin canu-$version/lib canu-$version/share"
+echo >> build-linux.sh  "mv canu-$version build-darwin"
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  "mv build-linux canu-$version"
+echo >> build-linux.sh  "tar -cf canu-$version.Linux-amd64.tar  canu-$version/README*  canu-$version/bin  canu-$version/lib  canu-$version/share"
+echo >> build-linux.sh  "mv canu-$version build-linux"
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  "mv build-src canu-$version"
+echo >> build-linux.sh  "tar -cf canu-$version.tar              canu-$version/README*  canu-$version/src  canu-$version/scripts"
+echo >> build-linux.sh  "mv canu-$version build-src"
+echo >> build-linux.sh  ""
+echo >> build-linux.sh  ""
+
+chmod 755 build-linux.sh
+
+#
+#
+#
+
+echo Build for MacOS.
+
 cd src
-gmake -j 12 > ../Darwin-amd64.out 2>&1
+gmake -j 12 > ../build-darwin.out 2>&1
+cd ..
 
-echo Make static binaries MacOS
-cd ../Darwin-amd64
-if [ ! -e ../statifyOSX.py ]; then
-   curl -L -R -o ../statifyOSX.py https://raw.githubusercontent.com/marbl/canu/master/statifyOSX.py
-fi
+mv build/* build-darwin/
 
-python ../statifyOSX.py bin lib true true >> ../Darwin-amd64.out 2>&1
-python ../statifyOSX.py lib lib true true >> ../Darwin-amd64.out 2>&1
-cd ../..
+echo Make static binaries for MacOS.
 
-rm -f canu-$version/linux.sh
+cd build-darwin
+python ../scripts/statifyOSX.py bin lib true true >> ../build-darwin.out 2>&1
+python ../scripts/statifyOSX.py lib lib true true >> ../build-darwin.out 2>&1
+cd ..
 
-echo >> canu-$version/linux.sh  \#\!/bin/bash
-#echo >> canu-$version/linux.sh  yum install -y git
-echo >> canu-$version/linux.sh  cd /build/canu-$version/src
-echo >> canu-$version/linux.sh  gmake -j 12 \> ../Linux-amd64.out 2\>\&1
-echo >> canu-$version/linux.sh  cd ../..
-echo >> canu-$version/linux.sh  rm -rf canu-$version/Darwin-amd64/obj
-echo >> canu-$version/linux.sh  rm -rf canu-$version/Linux-amd64/obj
-echo >> canu-$version/linux.sh  tar -cf canu-$version.Darwin-amd64.tar canu-$version/README* canu-$version/Darwin-amd64
-echo >> canu-$version/linux.sh  tar -cf canu-$version.Linux-amd64.tar  canu-$version/README* canu-$version/Linux-amd64
+#
+#
+#
 
-chmod 755 canu-$version/linux.sh
+echo Build for Linux and make tarballs.
 
-echo Build Linux and make tarballs.
-docker run -v `pwd`:/build -t -i --rm phusion/holy-build-box-64:latest /hbb_exe/activate-exec bash /build/canu-$version/linux.sh
+echo \
+docker run -v `pwd`:/dock -t -i --rm phusion/holy-build-box-64:latest /hbb_exe/activate-exec bash /dock/build-linux.sh
+docker run -v `pwd`:/dock -t -i --rm phusion/holy-build-box-64:latest /hbb_exe/activate-exec bash /dock/build-linux.sh
+
+#  strip --only-keep-debug
 
 echo Compress.
+
 xz -9v canu-$version.Darwin-amd64.tar
 xz -9v canu-$version.Linux-amd64.tar
+xz -9v canu-$version.tar
 
 exit
