@@ -674,13 +674,14 @@ endif
 #  No backtrace support.
 #CXXFLAGS   += -DNOBACKTRACE
 
-#  But, if we we have an old GCC, stack tracing support isn't there.
-#  The second test is because gcc7 (and only gcc7) reports '7' for -dumpversion.
+#  But, if we we have an old GCC, stack tracing support isn't there.  The
+#  second test is because gcc7 and gcc8 report the major version for
+#  -dumpversion.
 
 GXX_45 := $(shell expr `${CXX} -dumpversion     | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
 GXX_VV := $(shell ${CXX} -dumpversion)
 
-ifeq (${GXX_VV}, 7)
+ifneq (,$(filter ${GXX_VV}, 7 8 9))
 GXX_45 := $(shell expr `${CXX} -dumpfullversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
 GXX_VV := $(shell ${CXX} -dumpfullversion)
 endif
