@@ -37,9 +37,9 @@ my $MODNAME  = $modName;       $MODNAME =~ tr/a-z-/A-Z_/;
 
 my $verFile  = shift @ARGV;
 
-my $label    = "snapshot";      #  If not 'release' print this in the version output.
+my $label    = "release";       #  If not 'release' print this in the version output.
 my $major    = "2";             #  Bump before release.
-my $minor    = "0";             #  Bump before release.
+my $minor    = "1";             #  Bump before release.
 
 my $branch   = "master";
 my $version  = "v$major.$minor";
