@@ -486,6 +486,26 @@ ifeq (${OSTYPE}, Darwin)
   endif
 
   ifeq ($(CC), cc)
+    CC8    := $(shell echo `which gcc-mp-8`)
+    CXX8   := $(shell echo `which g++-mp-8`)
+
+    ifdef CXX8
+      CC  := $(CC8)
+      CXX := $(CXX8)
+    endif
+  endif
+
+  ifeq ($(CC), cc)
+    CC9    := $(shell echo `which gcc-mp-9`)
+    CXX9   := $(shell echo `which g++-mp-9`)
+
+    ifdef CXX9
+      CC  := $(CC9)
+      CXX := $(CXX9)
+    endif
+  endif
+
+  ifeq ($(CC), cc)
     CC8    := $(shell echo `which gcc-7`)
 	  CXX8   := $(shell echo `which g++-7`)
 
@@ -502,6 +522,16 @@ ifeq (${OSTYPE}, Darwin)
     ifdef CXX8
       CC  := $(CC8)
       CXX := $(CXX8)
+    endif
+  endif
+
+  ifeq ($(CC), cc)
+    CC9    := $(shell echo `which gcc-9`)
+	  CXX9   := $(shell echo `which g++-9`)
+
+    ifdef CXX9
+      CC  := $(CC9)
+      CXX := $(CXX9)
     endif
   endif
 
