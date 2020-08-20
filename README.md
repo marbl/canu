@@ -11,6 +11,8 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
 
 ## Install:
 
+* Do NOT download the .zip source code.  It is missing files and will not compile.  This is a [known flaw](https://github.com/dear-github/dear-github/issues/214) with git itself.
+
 * The easiest way to get started is to download a binary [release](http://github.com/marbl/canu/releases).
 
 * Installing with a 'package manager' is not encouraged, but if you have no other choice:
