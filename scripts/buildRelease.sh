@@ -10,9 +10,13 @@
 #    Increase version in documentation/source/conf.py
 #    Increase version in scripts/version_update.pl
 #
-#  Build.  This pulls in submodule code.  This build isn't used
-#  for release.
+#  Build.  This pulls in submodule code.  This build isn't used for release
+#  and can be deleted or aborted (once submodules are populated).
 #    cd src && gmake
+#
+#  Tag the next release development
+#    git tag -a v2.2-development -m "Development for v2.2."
+#    git push --follow-tags
 #
 #  Make a branch:
 #    git checkout -b v2.1-maintenance
