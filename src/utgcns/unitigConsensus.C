@@ -28,6 +28,9 @@
 
 using namespace std;
 
+#define ERROR_RATE_FACTOR 4
+#define NUM_BANDS         2
+#define MAX_RETRIES       ERROR_RATE_FACTOR * NUM_BANDS
 
 abSequence::abSequence(uint32  readID,
                        uint32  length,
@@ -262,6 +265,38 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
     _tig->_layoutLen = layoutLen;
 }
 
+void unitigConsensus::updateReadPositions(void) {
+    // we assume some reads have good positions (recorded in cnspos) but most do not
+    // use those reads with good positions as anchors to re-compute everyone else's positions too
+    // this is very similar to the strategy in the above function to convert between compressed and uncompressed coordinates and it would be nice to unify the logic
+    uint32 newOffset = 0;
+    uint32 oldOffset = 0;
+
+    for (uint32 child = 0; child < _numReads; child++) {
+      if (oldOffset > _utgpos[child].min())
+         fprintf(stderr, "updatePostTemplate()-- Error: there is a gap in positioning, the last read I have ended at %d and the next starts at %d\n", oldOffset, _utgpos[child].min());
+      assert(_utgpos[child].min() >= oldOffset);
+
+       // update best end if needed
+       if (_cnspos[child].max() != 0) {
+          newOffset = _cnspos[child].min();
+          oldOffset = _utgpos[child].min();
+
+          if (showAlgorithm())
+             fprintf(stderr, "updatePostTemplate()-- Updating guide read to be %d which ends at %d. Now my guide originally was at %d now is at %d\n", _utgpos[child].ident(), _utgpos[child].max(), oldOffset, newOffset);
+       }
+
+      uint32 readPosition = _utgpos[child].min() - oldOffset;
+
+      if (showAlgorithm())
+          fprintf(stderr, "updatePostTemplate()-- I'm trying to find start of child %d (dist from guide read is %d) currently from %d-%d\n", _utgpos[child].ident(), readPosition, _utgpos[child].min(), _utgpos[child].max());
+
+      _utgpos[child].setMinMax(readPosition+newOffset, readPosition+newOffset+getSequence(child)->length());
+      if (showAlgorithm())
+           fprintf(stderr, "updatePostTemplate() --Updated read %d which has length %d to be from %d - %d\n", _utgpos[child].ident(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+    }
+}
+
 char *
 unitigConsensus::generateTemplateStitch(void) {
   int32   minOlap  = _minOverlap;
@@ -381,7 +416,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     double           templateSize  = 0.90;
     double           extensionSize = 0.10;
-    double           bandErrRate   = _errorRate / 4;
+    double           bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
 
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
 
@@ -442,10 +477,12 @@ unitigConsensus::generateTemplateStitch(void) {
     bool   hitTheEnd     = (gotResult) && (result.endLocations[0] + 1 == readEnd - readBgn);
     bool   moreToExtend  = (readEnd < readLen);
 
-    //  Reset if the edit distance is waay more than our error rate allows.  This seems to be a quirk with
-    //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
 
-    if ((double)result.editDistance / result.alignmentLength > _errorRate) {
+    int32 maxDifference = min(1000, (int32)ceil(0.1*olapLen));
+    //  Reset if the edit distance is waay more than our error rate allows or it's very short and we haven't topped out on error.  This seems to be a quirk with
+    //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
+    if ((double)result.editDistance / result.alignmentLength > bandErrRate || 
+        (abs(olapLen-result.alignmentLength) > maxDifference && bandErrRate < _errorRate)) {
       noResult    = true;
       gotResult   = false;
       hitTheStart = false;
@@ -502,15 +539,15 @@ unitigConsensus::generateTemplateStitch(void) {
     if (templateSize < 0.01) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!  Fail!\n");
-      if (bandErrRate + _errorRate / 4 >= _errorRate)
+      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate)
          tryAgain = false;
       else {
         if (showAlgorithm()) 
-          fprintf(stderr, "generateTemplateStitch()-- FAILED to align at %.2f error rate, increasing to %.2f\n", bandErrRate, bandErrRate + _errorRate/4);
+          fprintf(stderr, "generateTemplateStitch()-- FAILED to align at %.2f error rate, increasing to %.2f\n", bandErrRate, bandErrRate + _errorRate/ERROR_RATE_FACTOR);
         tryAgain = true;
         templateSize  = 0.90;
         extensionSize = 0.10;
-        bandErrRate  += _errorRate / 4;
+        bandErrRate  += _errorRate / ERROR_RATE_FACTOR;
       }
     }
 
@@ -526,10 +563,14 @@ unitigConsensus::generateTemplateStitch(void) {
       readBgn = result.startLocations[0];     //  Expected to be zero
       readEnd = result.endLocations[0] + 1;   //  Where we need to start copying the read
 
+      // record updated read coordinates which we will use later as anchors to re-computed everyone else
+      _cnspos[nr].setMinMax(tiglen-readEnd, tiglen + readLen - readEnd);
+
       if (showAlgorithm()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
         fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
                 tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+        fprintf(stderr, "generateTemplateStitch()-- New position for read %d is  %d-%d\n", _utgpos[nr].ident(), _cnspos[nr].min(), _cnspos[nr].max());
       }
     } else {
       readBgn = 0;
@@ -583,11 +624,13 @@ unitigConsensus::generateTemplateStitch(void) {
             tiglen, ePos, pd);
   }
 
+  updateReadPositions();
+
   return(tigseq);
 }
 
 
-
+ 
 bool
 alignEdLib(dagAlignment      &aln,
            tgPosition        &utgpos,
@@ -595,31 +638,23 @@ alignEdLib(dagAlignment      &aln,
            uint32             fragmentLength,
            char              *tigseq,
            uint32             tiglen,
-           double             lengthScale,
            double             errorRate,
            bool               verbose) {
 
   EdlibAlignResult align;
 
-  int32   padding        = (int32)ceil(fragmentLength * 0.15);
-  double  bandErrRate    = errorRate / 2;
+  int32   padding        = min(250, (int32)ceil(fragmentLength * 0.05));
+  double  bandErrRate    = errorRate / ERROR_RATE_FACTOR;
   bool    aligned        = false;
   double  alignedErrRate = 0.0;
 
   //  Decide on where to align this read.
 
-  //  But, the utgpos positions are largely bogus, especially at the end of the tig.  utgcns (the
-  //  original) used to track positions of previously placed reads, find an overlap beterrn this
-  //  read and the last read, and use that info to find the coordinates for the new read.  That was
-  //  very complicated.  Here, we just linearly scale.
-
-  int32  tigbgn = max((int32)0,      (int32)floor(lengthScale * utgpos.min() - padding));
-  int32  tigend = min((int32)tiglen, (int32)floor(lengthScale * utgpos.max() + padding));
+  int32  tigbgn = max((int32)0,      (int32)floor(utgpos.min() - padding));
+  int32  tigend = min((int32)tiglen, (int32)floor(utgpos.max() + padding));
 
   if (verbose)
     fprintf(stderr, "alignEdLib()-- align read %7u eRate %.4f at %9d-%-9d", utgpos.ident(), bandErrRate, tigbgn, tigend);
-
-  //  This occurs if we don't lengthScale the positions.
 
   if (tigend < tigbgn) {
     fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
@@ -640,7 +675,7 @@ alignEdLib(dagAlignment      &aln,
 
   if (align.alignmentLength > 0) {
     alignedErrRate = (double)align.editDistance / align.alignmentLength;
-    aligned        = (alignedErrRate <= errorRate);
+    aligned        = (alignedErrRate <= bandErrRate);
     if (verbose)
       fprintf(stderr, " - ALIGNED %.4f at %9d-%-9d\n", alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
   } else {
@@ -648,18 +683,22 @@ alignEdLib(dagAlignment      &aln,
       fprintf(stderr, "\n");
   }
 
-  uint32 MAX_RETRIES=5;
-
-  for (uint32 ii=0; ((ii < MAX_RETRIES) && (aligned == false)); ii++) {
-    tigbgn = max((int32)0,      tigbgn - 3 * padding);
-    tigend = min((int32)tiglen, tigend + 3 * padding);
+  for (uint32 ii=1 /*the 0ths was above*/; ((ii < MAX_RETRIES) && (aligned == false)); ii++) {
+    tigbgn = max((int32)0,      tigbgn - 5 * padding);
+    tigend = min((int32)tiglen, tigend + 5 * padding);
     // last attempt make a very wide band
-    if (ii == (MAX_RETRIES - 1)) {
-       tigbgn = max((int32)0,      tigbgn - 20 * padding);
-       tigend = min((int32)tiglen, tigend + 20 * padding);
+    if ((ii+1) % NUM_BANDS == 0) {
+       tigbgn = max((int32)0,      tigbgn - 25 * padding);
+       tigend = min((int32)tiglen, tigend + 25 * padding);
     }
 
-    bandErrRate += errorRate / 2;
+    // let the band increase without increasing error rate for a while, if we give up increase error rate
+    // and reset bnad
+    if (ii != 0 && ii % NUM_BANDS == 0) {
+       bandErrRate += errorRate / ERROR_RATE_FACTOR;
+       tigbgn = max((int32)0,      (int32)floor(utgpos.min() - padding));
+       tigend = min((int32)tiglen, (int32)floor(utgpos.max() + padding));
+    }
 
     edlibFreeAlignResult(align);
 
@@ -672,7 +711,7 @@ alignEdLib(dagAlignment      &aln,
 
     if (align.alignmentLength > 0) {
       alignedErrRate = (double)align.editDistance / align.alignmentLength;
-      aligned        = (alignedErrRate <= errorRate);
+      aligned        = (alignedErrRate <= bandErrRate);
       if (verbose)
         fprintf(stderr, " - ALIGNED %.4f at %9d-%-9d\n", alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
     } else {
@@ -808,7 +847,6 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
                          _utgpos[ii],
                          seq->getBases(), seq->length(),
                          tigseq, tiglen,
-                         (double)tiglen / _tig->_layoutLen,
                          _errorRate,
                          showAlgorithm());
 
