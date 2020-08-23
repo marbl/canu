@@ -516,11 +516,11 @@ unitigConsensus::generateTemplateStitch(void) {
       fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
 
     if ((showAlgorithm()) && (noResult == false))
-      fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%%\n",
+      fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%% expected %d\n",
               result.startLocations[0], result.endLocations[0]+1,
               result.editDistance,
               result.alignmentLength,
-              100.0 * result.editDistance / result.alignmentLength);
+              100.0 * result.editDistance / result.alignmentLength, olapLen);
 
     if ((noResult) || (hitTheStart)) {
       if (showAlgorithm())
@@ -1265,7 +1265,7 @@ unitigConsensus::findCoordinates(void) {
       _tig->getChild(ii)->setMinMax(abgn, aend);
 
       if (showPlacement())
-        fprintf(stderr, "  SUCCESS aligned to %d %d\n", abgn, aend);
+        fprintf(stderr, "  SUCCESS aligned to %d %d at %f\n", abgn, aend, 100.0 * align.editDistance / align.alignmentLength);
 
 #pragma omp critical (tgTigLoadAlign)
       {
