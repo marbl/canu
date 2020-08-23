@@ -95,6 +95,7 @@ public:
 
 private:
   void   switchToUncompressedCoordinates(void);
+  void   updateReadPositions(void);
 
   char  *generateTemplateStitch(void);
 
