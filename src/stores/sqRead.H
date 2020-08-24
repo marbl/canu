@@ -310,41 +310,6 @@ private:
 //
 class sqRead {
 public:
-  sqRead() {
-    _meta          = NULL;
-    _rawU          = NULL;
-    _rawC          = NULL;
-    _corU          = NULL;
-    _corC          = NULL;
-
-    _metaA         = NULL;
-    _rseqA         = NULL;
-
-    _library       = NULL;
-
-    _blobLoaded    = false;
-
-    _blobName[0]   = 0;
-    _blobName[1]   = 0;
-    _blobName[2]   = 0;
-    _blobName[3]   = 0;
-    _blobLen       = 0;
-    _blobMax       = 0;
-    _blob          = NULL;
-
-    _nameAlloc     = 0;
-    _name          = NULL;
-
-    _rawBasesAlloc = 0;
-    _rawBases      = NULL;
-
-    _corBasesAlloc = 0;
-    _corBases      = NULL;
-
-    _retFlags      = 0;
-    _retBasesAlloc = 0;
-    _retBases      = NULL;
-  }
   ~sqRead() {
     delete [] _metaA;
     delete [] _rseqA;
@@ -495,36 +460,36 @@ private:
   };
 
 private:
-  sqReadMeta   *_meta;      //  Pointers to arrays owned by sqStore.
-  sqReadSeq    *_rawU;
-  sqReadSeq    *_rawC;
-  sqReadSeq    *_corU;
-  sqReadSeq    *_corC;
+  sqReadMeta   *_meta = nullptr;                 //  Pointers to arrays owned by sqStore.
+  sqReadSeq    *_rawU = nullptr;
+  sqReadSeq    *_rawC = nullptr;
+  sqReadSeq    *_corU = nullptr;
+  sqReadSeq    *_corC = nullptr;
 
-  sqReadMeta   *_metaA;  //  When loading without a store, these hold the
-  sqReadSeq    *_rseqA;  //  data for the above pointers.
+  sqReadMeta   *_metaA = nullptr;                //  When loading without a store, these
+  sqReadSeq    *_rseqA = nullptr;                //  hold the data for the above pointers.
 
-  sqLibrary    *_library;  //  Pointer to the library             sqStore_loadReadData().
+  sqLibrary    *_library = nullptr;
 
-  bool          _blobLoaded;
+  bool          _blobLoaded = false;
 
-  char          _blobName[4];
-  uint32        _blobLen;
-  uint32        _blobMax;
-  uint8        *_blob;
+  char          _blobName[4] = {0};
+  uint32        _blobLen     =  0;
+  uint32        _blobMax     =  0;
+  uint8        *_blob        =  nullptr;
 
-  uint32        _nameAlloc;
-  char         *_name;
+  uint32        _nameAlloc = 0;
+  char         *_name      = nullptr;
 
-  uint32        _rawBasesAlloc;    //  The raw sequence, as loaded from disk.
-  char         *_rawBases;
+  uint32        _rawBasesAlloc = 0;              //  The raw sequence, as loaded from disk.
+  char         *_rawBases      = nullptr;
 
-  uint32        _corBasesAlloc;    //  The corrected sequence, as loaded from disk.
-  char         *_corBases;
+  uint32        _corBasesAlloc = 0;              //  The corrected sequence, as loaded from disk.
+  char         *_corBases      = nullptr;
 
-  sqRead_which  _retFlags;         //  Remember what the returned sequence is.
-  uint32        _retBasesAlloc;    //  Scratch space for computing trimmed and compressed
-  char         *_retBases;         //  sequences to return to the user.
+  sqRead_which  _retFlags      = sqRead_unset;   //  Remember what the returned sequence is.
+  uint32        _retBasesAlloc = 0;              //  Scratch space for computing trimmed and
+  char         *_retBases      = nullptr;        //  compressed sequences to return to the user.
 
   friend class sqStore;
   friend class sqCache;
