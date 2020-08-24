@@ -20,7 +20,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption removeHaplotypeOptions addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation addSequenceFile setParametersFromFile setParametersFromCommandLine checkJava checkMinimap checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption removeHaplotypeOptions addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation setParametersFromFile setParametersFromCommandLine checkJava checkMinimap checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
 
 use strict;
 use warnings "all";
@@ -609,50 +609,6 @@ sub fixCase ($) {
         $val =~ tr/A-Z/a-z/;
         setGlobal($var, $val);
     }
-}
-
-
-
-sub addSequenceFile ($$@) {
-    my $dir   = shift @_;
-    my $file  = shift @_;
-    my $err   = shift @_;
-
-    #  If no file name, nothing to do.
-    if (!defined($file)) {
-        return(undef);
-    }
-
-    #  If a DNAnexus link, as created by dx-canu/src/canu-job-launcher.sh, accept the file.
-    #  We'll grab the file when it's needed.
-    #     dnanexus:file-Ac36P534JbZvV2Gd1979x5Qv=reads.fasta.gz
-    if ($file =~ m/^dnanexus:.*=.*$/) {
-        return($file);
-    }
-
-    #  If $dir is defined, assume the file is relative to it.
-    if (defined($dir)) {
-        $file = "$dir/$file";
-    }
-
-    #  If the file exists, and it looks like it might be a bam, throw an error.
-    if ((-e $file) && ($file =~ m/bam$/)) {
-        addCommandLineError("ERROR: BAM input not supported: file '$file'.\n");
-    }
-
-    #  If the file exists, possibly in a relative path, make it a full path.
-    if (-e $file) {
-        return(abs_path($file));
-    }
-
-    #  Otherwise, not found.  Report an error, unless told not to.  This is
-    #  because on the command line, the first word after -pacbio-raw must
-    #  exist, but all the other words could be files or options (and we use
-    #  this function to test if they're files or options).
-
-    addCommandLineError("ERROR: Input read file '$file' not found.\n")  if (defined($err));
-
-    return(undef);
 }
 
 

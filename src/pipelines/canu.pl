@@ -133,12 +133,9 @@ foreach my $arg (@ARGV) {
     }
 }
 
+
 #  By default, all three steps are run.  Options -correct, -trim and -assemble
 #  can limit the pipeline to just that stage.
-
-#  At some pain, we stash the original options for later use.  We need
-#  to use these when we resubmit ourself to the grid.  We can't simply dump
-#  all of @ARGV into here, because we need to fix up relative paths first.
 
 my $rootdir            = undef;
 my $readdir            = undef;
@@ -146,21 +143,56 @@ my $readdir            = undef;
 my $mode               = undef;   #  "haplotype", "correct", "trim", "trim-assemble" or "assemble"
 my $step               = "run";   #  Step to start at (?)
 
+#  The filesAre variable decides what we should do with files.  It remembers
+#  the last '-pacbio' et al. option given, and applies that to any file later
+#  supplied on the command line.  Note that:
+#    -pacbio -haplotypeA A.fasta pacbio.fasta
+#  will treat the two files as belonging to haplotype "A" and result with no
+#  files for assembly.  A more conventional parsing would notice that there
+#  are no read files given for the -pacbio option and fail.
+
+my $filesAre           = "unknown"; #  Treat files as 'pacbio', 'nanopore', 'pacbio-hifi' or 'haplotype' reads.
+my $filesAreHap        = undef;     #  Treat files as haplotype short reads.
+
 #  If no seqStore exists, we depend on the user setting command line options
-#  to tell us the status of the reads.  The use of four options is so we can
-#  detect invalid cases (-raw -corrected -pacbio) instead of just using the
-#  last one supplied.
+#  to tell us the status of the reads.  The use of four readsAre variables is
+#  so we can detect invalid cases (-raw -corrected -pacbio) instead of just
+#  using the last one supplied.
 #
 #  If no options are supplied (canu -pacbio file.fasta) we'll later default
 #  to 'raw' and 'untrimmed'.
 
-my $readsAreRaw        = 0;       #  They're either raw or corrected.
-my $readsAreCorrected  = 0;       #    If neither is set, we'll set to raw later.
-my $readsAreUntrimmed  = 0;       #  They're either trimmed or not.
-my $readsAreTrimmed    = 0;       #    If neither is set, we'll set to untrimmed later.
+my $readsAreRaw        = 0;         #  They're either raw or corrected.
+my $readsAreCorrected  = 0;         #    If neither is set, we'll set to raw later.
+my $readsAreUntrimmed  = 0;         #  They're either trimmed or not.
+my $readsAreTrimmed    = 0;         #    If neither is set, we'll set to untrimmed later.
 
 while (scalar(@ARGV)) {
-    my $arg = shift @ARGV;
+    my $arg  = shift @ARGV;
+    my $file = $arg;
+
+    #  Decide if this argument is a file of reads.
+    #   - Append any -readdir path.
+    #   - Convert to an absolute path.
+    #   - Unset if the path doesn't exist.
+    #   - But then re-set if it looks like a DNA Nexus link (dnanexus:file-Ac36P534JbZvV2Gd1979x5Qv=reads.fasta.gz)
+    #   - Complain if it's a file we can't support.
+
+    $file = "$readdir/$arg"   if (defined($readdir));
+
+    $file = abs_path($file)   if (  -e $file);
+    $file = undef             if (! -e $file);
+
+    $file = "$arg"            if ($arg =~ m/^dnanexus:.*=.*$/);
+
+    if ((-e $file) && ($file =~ m/bam$/)) {
+        addCommandLineError("ERROR: BAM input not supported: file '$arg'.\n");
+    }
+
+    #  Now just run through all the valid options.
+    #
+    #  addCommandLineOption() is just saving a (slightly modified) copy of
+    #  the command line so we can resubmit ourself to the grid.
 
     if     (($arg eq "-h") || ($arg eq "-help") || ($arg eq "--help")) {
         printHelp(1);
@@ -218,81 +250,38 @@ while (scalar(@ARGV)) {
         addCommandLineOption($arg);
     }
 
-    #  Remember the read files we're given.
-    #   - Allow compatibility with Canu v1.x options like -pacbio-raw.  If
-    #     found, insert a '-raw' option explicitly, and switch to '-pacbio'
-    #
-    #   - Allow technically incorrect but "grammatically" pleasant
-    #     constructions like "-pacbio -raw".
-    #
-    #   - Note that '-pacbio-hifi' is NOT a compatibility option;
-    #     "-pacbio -hifi" and "-hifi -pacbio" are not allowed.
+    #  Set the technology of read we're getting.  This one block handles both
+    #  the new style ('-pacbio') and old style ('-pacbio-raw') options.  An
+    #  unfortunate side effect is that '-pacbio-hifi-raw' is allowed.
 
-    elsif (($arg eq "-pacbio") ||
-           ($arg eq "-nanopore") ||
-           ($arg eq "-pacbio-raw") ||
-           ($arg eq "-nanopore-raw") ||
-           ($arg eq "-pacbio-corrected") ||
-           ($arg eq "-nanopore-corrected") ||
-           ($arg eq "-pacbio-hifi")) {
+    elsif ($arg =~ m/^-(pacbio|nanopore|pacbio-hifi)(-raw|-corrected){0,1}$/) {
+        $filesAre          = $1;
+        $readsAreRaw       = 1  if ($2 eq "-raw");
+        $readsAreCorrected = 1  if ($2 eq "-corrected");
 
-        if ($arg =~ m/^(-.*)-raw/) {
-            print STDERR "-- WARNING:\n";
-            print STDERR "-- WARNING:  Option '$arg <files>' is deprecated.\n";
-            print STDERR "-- WARNING:  Use option '$1 <files>' in the future.\n";
-            print STDERR "-- WARNING:\n";
-            $readsAreRaw = 1;
-            addCommandLineOption("-raw");
-            $arg = $1;
-        }
-
-        if ($arg =~ m/^(-.*)-corrected/) {
-            print STDERR "-- WARNING:\n";
-            print STDERR "-- WARNING:  Option '$arg' is deprecated.\n";
-            print STDERR "-- WARNING:  Use options '-corrected $1 <files>' in the future.\n";
-            print STDERR "-- WARNING:\n";
-            $readsAreCorrected = 1;
-            addCommandLineOption("-corrected");
-            $arg = $1;
-        }
-
-        if ($ARGV[0] eq "-raw")              {  $readsAreRaw       = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-        if ($ARGV[0] eq "-corrected")        {  $readsAreCorrected = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-        if ($ARGV[0] eq "-untrimmed")        {  $readsAreUntrimmed = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-        if ($ARGV[0] eq "-trimmed")          {  $readsAreTrimmed   = 1;
-                                                $readsAreCorrected = 1;   addCommandLineOption($ARGV[0]);   shift @ARGV;  }
-
-        if ($arg     eq "-pacbio-hifi")      {  $readsAreRaw       = 1;
-                                                $readsAreTrimmed   = 1  if ($readsAreUntrimmed == 0);  }
-
-      anotherFile:
-        my $file = $ARGV[0];
-        my $fopt = addSequenceFile($readdir, $file);
-
-        if (defined($fopt)) {
-            push @inputFiles, "$arg\0$fopt";
-            addCommandLineOption("$arg '$fopt'");
-            shift @ARGV;
-            goto anotherFile;
-        }
+        addCommandLineOption($2)  if (defined($2));
     }
 
-    #  Trio reads
-
     elsif ($arg =~ m/^-haplotype(\w+)$/) {
-        my $hapn = $1;
-        my $file = $ARGV[0];
-        my $fopt = addSequenceFile($readdir, $file, 1);
+        $filesAre    = "haplotype";
+        $filesAreHap = $1;
+    }
 
-        while (defined($fopt)) {
-            $haplotypeReads{$hapn} .= "$fopt\0";
+    #  File of reads.
 
-            addCommandLineOption("$arg '$fopt'");
+    elsif (defined($file)) {
+        if    ($filesAre eq "haplotype") {
+            $haplotypeReads{$filesAreHap} .= "$file\0";
+            addCommandLineOption("-haplotype$filesAreHap '$file'");
+        }
 
-            shift @ARGV;
+        elsif ($filesAre ne "unknown") {
+            push @inputFiles, "-$filesAre\0$file";
+            addCommandLineOption("-$filesAre '$file'");
+        }
 
-            $file = $ARGV[0];
-            $fopt = addSequenceFile($readdir, $file);
+        else {
+            addCommandLineError("ERROR:  File '$arg' supplied on command line, don't know what to do with it.\n");
         }
     }
 
@@ -325,10 +314,6 @@ while (scalar(@ARGV)) {
     }
 
     #  General options and errors.
-
-    elsif (-e $arg) {
-        addCommandLineError("ERROR:  File '$arg' supplied on command line, don't know what to do with it.\n");
-    }
 
     elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
