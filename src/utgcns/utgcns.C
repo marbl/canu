@@ -160,7 +160,7 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
 
   //  Sort the tigInfo by decreasing area.
 
-  sort(tigs, tigs + tigsLen, [](tigInfo &A, tigInfo &B) { return(A.consensusArea > B.consensusArea); });
+  sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.consensusArea > B.consensusArea); });
 
   //  Grab the biggest tig (it's number 0) and compute a maximum area per partition.
 
@@ -253,7 +253,7 @@ createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 t
 
   //  Sort by tigID.
 
-  sort(tigs, tigs + tigsLen, [](tigInfo &A, tigInfo &B) { return(A.tigID < B.tigID); });
+  sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.tigID < B.tigID); });
 
   //  Build a mapping from readID to partitionID.
 
