@@ -388,8 +388,10 @@ public:
       basesLen = _corU->sqReadSeq_length();
     }
 
-    assert(bases    != NULL);      // How to check we have the blob data loaded?
+    assert(bases    != NULL);      //  How to check we have the blob data loaded?
     assert(basesLen > 0);
+
+    assert(bases[basesLen] == 0);  //  Sequences must by NUL terminated.
 
     //  If neither compressed or trimmed, just return the sequence we already have.
     //
