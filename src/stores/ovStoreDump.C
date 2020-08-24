@@ -77,7 +77,8 @@ public:
                           uint64         overlapsLen,
                           sqStore       *seqStore,
                           uint32         picWidth,
-                          bool           withScores);
+                          bool           withScores,
+                          bool           reversed);
 
   void        reportSimpleStatistics(uint32     Aid,
                                      ovOverlap *overlaps,
@@ -343,15 +344,6 @@ dumpParameters::loadBogartTigs(char const *tigpath, uint32 nReads) {
 
 
 
-class sortByPosition {
-public:
-  bool operator()(const ovOverlap &a, const ovOverlap &b) {
-    if (a.a_bgn() < b.a_bgn())  return(true);
-    if (a.a_bgn() > b.a_bgn())  return(false);
-
-    return(a.a_end() < b.a_end());
-  };
-};
 
 
 
@@ -361,7 +353,8 @@ dumpParameters::drawPicture(uint32         Aid,
                             uint64         overlapsLen,
                             sqStore       *seqStore,
                             uint32         picWidth,
-                            bool           withScores) {
+                            bool           withScores,
+                            bool           reversed) {
   char     line[256] = {0};
 
   uint32   MHS   =        9;  //  Max Hang Size, amount of padding for "+### "
@@ -378,10 +371,17 @@ dumpParameters::drawPicture(uint32         Aid,
   for (int32 i=0; i<OLW; i++)
     line[i + MHS] = '-';
 
-  line[MHS]             = '|';
-  line[MHS + 1 + OLW-1] = '>';
-  line[MHS + 1 + OLW]   = '|';
-  line[MHS + 1 + OLW+1] = 0;
+  if (reversed == false) {
+    line[MHS]             = '|';
+    line[MHS + 1 + OLW-1] = '>';
+    line[MHS + 1 + OLW]   = '|';
+    line[MHS + 1 + OLW+1] = 0;
+  } else {
+    line[MHS]             = '|';
+    line[MHS + 1]         = '<';
+    line[MHS + 1 + OLW]   = '|';
+    line[MHS + 1 + OLW+1] = 0;
+  }
 
   //  Draw the read we're showing overlaps for.
   //  Annotate it as either 'contained', 'covGap', etc as needed.
@@ -392,7 +392,42 @@ dumpParameters::drawPicture(uint32         Aid,
           0, Alen, Alen,
           line);
 
-  sort(overlaps, overlaps + overlapsLen, sortByPosition());
+  //  If drawing the reversed picture, swap all the hangs to 'reverse' the A
+  //  read.
+  //
+  //    ---------->   b         -b  <----------
+  //    a   ---------->   ==>   <----------  -a
+  //
+  //  The 'flipped' label does not change.  When we actually draw the
+  //  overlap, we need to decide what end to draw the arrow head on.
+  //
+  //  This is not a ovOverlap operation simply because it results in an
+  //  invalid overlap layout (the A read in an ovOverlap is _always_ forward
+  //  oriented).
+
+  if (reversed == true) {
+    for (uint32 oo=0; oo<overlapsLen; oo++) {
+      uint32  a5 = overlaps[oo].dat.ovl.ahg5,  a3 = overlaps[oo].dat.ovl.ahg3;
+      uint32  b5 = overlaps[oo].dat.ovl.bhg5,  b3 = overlaps[oo].dat.ovl.bhg3;
+
+      overlaps[oo].dat.ovl.ahg5 = a3;
+      overlaps[oo].dat.ovl.ahg3 = a5;
+
+      overlaps[oo].dat.ovl.bhg5 = b3;
+      overlaps[oo].dat.ovl.bhg3 = b5;
+    }
+  }
+
+  //  Sort the overlaps by their (possibly modified) begin position.
+
+  auto byBgnPosition = [](const ovOverlap &A, const ovOverlap &B) {
+                         if (A.a_bgn() < B.a_bgn())  return(true);
+                         if (A.a_bgn() > B.a_bgn())  return(false);
+
+                         return(A.a_end() < B.a_end());
+                       };
+
+  sort(overlaps, overlaps + overlapsLen, byBgnPosition);
 
   //  Build ascii representations for each overlapping read.
 
@@ -476,10 +511,19 @@ dumpParameters::drawPicture(uint32         Aid,
     for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
       line[i] = c;
 
-    if (overlaps[o].flipped() == true)
-      line[ovlStrBgn] = '<';
-    else
-      line[ovlStrEnd-1] = '>';
+    if (reversed == false) {
+      if (overlaps[o].flipped() == true)
+        line[ovlStrBgn] = '<';
+      else
+        line[ovlStrEnd-1] = '>';
+    }
+
+    else {
+      if (overlaps[o].flipped() == true)
+        line[ovlStrEnd-1] = '>';
+      else
+        line[ovlStrBgn] = '<';
+    }
 
 #else
 
@@ -642,6 +686,7 @@ main(int argc, char **argv) {
   char                  ovlString[1024];
 
   bool                  withScores  = false;
+  bool                  reversed    = false;
 
   uint32                bgnID       = 1;
   uint32                endID       = UINT32_MAX;
@@ -712,6 +757,8 @@ main(int argc, char **argv) {
       picWidth = strtouint32(argv[++arg]);
     else if (strcmp(argv[arg], "-scores") == 0)
       withScores = true;
+    else if (strcmp(argv[arg], "-reversed") == 0)
+      reversed = true;
 
 
     else if (strcmp(argv[arg], "-raw") == 0)
@@ -840,6 +887,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -width w             * for -picture, the width of the overlaps picture\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -scores              * for -picture, also report the score used for correction\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -reversed            * for -picture, flip the read before drawing\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "WHICH READ VERSION TO USE:\n");
     fprintf(stderr, "\n");
@@ -1212,7 +1262,7 @@ main(int argc, char **argv) {
         continue;
 
       if (dumptype == dtPicture)
-        params.drawPicture(rr, ovl, ovlSav, seqStore, picWidth, withScores);
+        params.drawPicture(rr, ovl, ovlSav, seqStore, picWidth, withScores, reversed);
 
       if (dumptype == dtCoverage)
         params.reportSimpleStatistics(rr, ovl, ovlSav, printCovHeader);
