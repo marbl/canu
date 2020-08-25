@@ -207,8 +207,11 @@ importTigsFromReadList(char const *prefix,
         //  If pnode is forward, then .bgn is the min coord, and a_hang _should_ be positive.
         //  If pnode is reverse, then .bgn is the max coord, and a_hang _should_ be negative.
 
-        fbgn = pnode.position.bgn + povl[poo].a_hang;
-        fend = pnode.position.bgn + povl[poo].a_hang + flen;
+        if (pfwd == true)
+           fbgn = pnode.position.bgn + povl[poo].a_hang;
+        else
+           fbgn = pnode.position.end - povl[poo].b_hang;
+        fend = fbgn + flen;
 
         //  However, testing with bogart layouts occasionally resulted in the
         //  next read being placed before the previous read, probably due to
@@ -376,10 +379,6 @@ main (int argc, char **argv) {
 
   importTigsFromReadList(prefix, contigs, readListPath, seed);
 
-  setLogFile(prefix, "layoutTigsOpt");
-  contigs.optimizePositions(prefix, "layoutTigsOpt");
-  reportTigs(contigs, prefix, "layoutTigsOpt", genomeSize);
-
   //
 
 
@@ -404,9 +403,6 @@ main (int argc, char **argv) {
                                   prefix,
                                   placedReads);
 
-    setLogFile(prefix, "placeContainsOpt");
-    contigs.optimizePositions(prefix, "placeContainsOpt");
-    reportTigs(contigs, prefix, "placeContainsOpt", genomeSize);
   }
 
   //
