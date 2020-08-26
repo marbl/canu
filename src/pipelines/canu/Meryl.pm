@@ -389,7 +389,7 @@ sub merylConfigure ($$) {
 
     my $mem = getGlobal("merylMemory");
     my $thr = getGlobal("merylThreads");
-    my $cov = getExpectedCoverage($tag, $asm);
+    my $cov = getExpectedCoverage($asm, $tag);
 
     open(F, "> $path/meryl-configure.sh");
     print F "#!" . getGlobal("shell") . "\n";
@@ -639,7 +639,7 @@ sub merylConfigure ($$) {
     }
 
     if (getGlobal("${tag}Overlapper") eq "mhap") {
-        $mthresh   = int(5.0 * getExpectedCoverage($tag, $asm));
+        $mthresh   = int(5.0 * getExpectedCoverage($asm, $tag));
         $mdistinct = undef;
         $mwordfreq = getGlobal("${tag}MhapFilterThreshold");
     }

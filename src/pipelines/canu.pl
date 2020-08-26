@@ -464,7 +464,6 @@ my $numHiFi       = 0;
 
 #  If a seqStore was found, scan the reads in it to decide what we're working with.
 
-#if ($nCor + $nOBT + $nAsm > 0) {
 if (-e "./$asm.seqStore/info") {
     ($numRaw,
      $numRawTri,
@@ -495,15 +494,17 @@ if (-e "./$asm.seqStore/info") {
     }
 
     print STDERR "--\n";
-    print STDERR "-- In '$asm.seqStore', found $rt reads:\n";
-    print STDERR "--   PacBio CLR:               $numPacBio\n"     if ($numPacBio   > 0);
-    print STDERR "--   Nanopore:                 $numNanopore\n"   if ($numNanopore > 0);
-    print STDERR "--   PacBio HiFi:              $numHiFi\n"       if ($numHiFi     > 0);
+    print STDERR "-- Found $rt reads in '$asm.seqStore':\n";
+    print STDERR "--   Libraries:\n";
+    print STDERR "--     PacBio CLR:            $numPacBio\n"     if ($numPacBio   > 0);
+    print STDERR "--     Nanopore:              $numNanopore\n"   if ($numNanopore > 0);
+    print STDERR "--     PacBio HiFi:           $numHiFi\n"       if ($numHiFi     > 0);
+    print STDERR "--   Reads:\n";
+    print STDERR "--     Raw:                   $numRaw\n"        if ($numRaw      > 0);
+    print STDERR "--     Raw and Trimmed:       $numRawTri\n"     if ($numRawTri   > 0);
+    print STDERR "--     Corrected:             $numCor\n"        if ($numCor      > 0);
+    print STDERR "--     Corrected and Trimmed: $numCorTri\n"     if ($numCorTri   > 0);
     print STDERR "--\n";
-    print STDERR "--   Raw:                      $numRaw\n"        if ($numRaw      > 0);
-    print STDERR "--   Raw and Trimmed:          $numRawTri\n"     if ($numRawTri   > 0);
-    print STDERR "--   Corrected:                $numCor\n"        if ($numCor      > 0);
-    print STDERR "--   Corrected and Trimmed:    $numCorTri\n"     if ($numCorTri   > 0);
 }
 
 #  Otherwise, scan input files, counting the different types of libraries we have.
@@ -694,15 +695,7 @@ if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
    caExit("ERROR: HiFi data cannot currently be combined with another read type", undef);
 }
 
-#  Set an initial run mode based on what we discovered above.
 
-if (!defined($mode)) {
-    $mode = "run"            if  ($numRaw    > 0);
-    $mode = "trim-assemble"  if  ($numCor    > 0);
-    $mode = "assemble"       if (($numHiFi   > 0) && ($readsAreTrimmed   == 1));
-    $mode = "trim-assemble"  if (($numHiFi   > 0) && ($readsAreUntrimmed == 1));
-    $mode = "assemble"       if  ($numCorTri > 0);
-}
 
 checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
 printHelp();           #  And one final last chance to fail.
@@ -711,133 +704,60 @@ printHelp();           #  And one final last chance to fail.
 
 #  Go!
 
+#  Set an initial run mode based on what we discovered above.
+
+#  SHOULD THIS BE SETTING THE MODE, OR LET IT DEFAULT TO RUN?
+#    needs to skip correction for hifi
+#
+if (!defined($mode)) {
+    $mode = "run"            if  ($numRaw    > 0);
+    $mode = "trim-assemble"  if  ($numCor    > 0);
+    $mode = "assemble"       if (($numHiFi   > 0) && ($readsAreTrimmed   == 1));
+    $mode = "trim-assemble"  if (($numHiFi   > 0) && ($readsAreUntrimmed == 1));
+    $mode = "assemble"       if  ($numCorTri > 0);
+}
+
+#  Print a message about what we're going to do.
+
 printf STDERR "--\n";
 printf STDERR "-- Generating assembly '$asm' in '" . getcwd() . "':\n";
-
-if ($mode eq "run") {
-    print STDERR "--    - separate reads into haplotypes.\n"   if (scalar(keys %haplotypeReads) > 0);
-    print STDERR "--    - correct raw reads.\n";
-    print STDERR "--    - trim corrected reads.\n";
-    print STDERR "--    - assemble corrected and trimmed reads.\n";
-}
-
-if ($mode eq "haplotype") {
-    print STDERR "--    - only separate reads into haplotypes.\n";
-}
-
-if ($mode eq "correct") {
-    print STDERR "--    - only correct raw reads.\n";
-}
-
-if ($mode eq "trim") {
-    print STDERR "--    - only trim corrected reads.\n";
-}
-
-if ($mode eq "trim-assemble") {
-   print STDERR "--    - trim corrected reads.\n";
-   print STDERR "--    - assemble corrected and trimmed reads.\n";
-}
-
-if ($mode eq "assemble") {
-    if ($numHiFi  > 0) {
-       print STDERR "--    - assemble HiFi reads.\n";
-    } else {
-       print STDERR "--    - assemble corrected and trimmed reads.\n"    if ($numHiFi == 0);
-   }
-}
-
+printf STDERR "--   genomeSize:\n";
+printf STDERR "--     %s\n", getGlobal("genomeSize");
 printf STDERR "--\n";
-printf STDERR "-- Parameters:\n";
+printf STDERR "--   Overlap Generation Limits:\n";
+printf STDERR "--     corOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("corOvlErrorRate"), getGlobal("corOvlErrorRate") * 100.0;
+printf STDERR "--     obtOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("obtOvlErrorRate"), getGlobal("obtOvlErrorRate") * 100.0;
+printf STDERR "--     utgOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("utgOvlErrorRate"), getGlobal("utgOvlErrorRate") * 100.0;
 printf STDERR "--\n";
-printf STDERR "--  genomeSize        %s\n", getGlobal("genomeSize");
-printf STDERR "--\n";
-printf STDERR "--  Overlap Generation Limits:\n";
-printf STDERR "--    corOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("corOvlErrorRate"), getGlobal("corOvlErrorRate") * 100.0;
-printf STDERR "--    obtOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("obtOvlErrorRate"), getGlobal("obtOvlErrorRate") * 100.0;
-printf STDERR "--    utgOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("utgOvlErrorRate"), getGlobal("utgOvlErrorRate") * 100.0;
-printf STDERR "--\n";
-printf STDERR "--  Overlap Processing Limits:\n";
-printf STDERR "--    corErrorRate    %6.4f (%6.2f%%)\n", getGlobal("corErrorRate"), getGlobal("corErrorRate") * 100.0;
-printf STDERR "--    obtErrorRate    %6.4f (%6.2f%%)\n", getGlobal("obtErrorRate"), getGlobal("obtErrorRate") * 100.0;
-printf STDERR "--    utgErrorRate    %6.4f (%6.2f%%)\n", getGlobal("utgErrorRate"), getGlobal("utgErrorRate") * 100.0;
-printf STDERR "--    cnsErrorRate    %6.4f (%6.2f%%)\n", getGlobal("cnsErrorRate"), getGlobal("cnsErrorRate") * 100.0;
+printf STDERR "--   Overlap Processing Limits:\n";
+printf STDERR "--     corErrorRate    %6.4f (%6.2f%%)\n", getGlobal("corErrorRate"), getGlobal("corErrorRate") * 100.0;
+printf STDERR "--     obtErrorRate    %6.4f (%6.2f%%)\n", getGlobal("obtErrorRate"), getGlobal("obtErrorRate") * 100.0;
+printf STDERR "--     utgErrorRate    %6.4f (%6.2f%%)\n", getGlobal("utgErrorRate"), getGlobal("utgErrorRate") * 100.0;
+printf STDERR "--     cnsErrorRate    %6.4f (%6.2f%%)\n", getGlobal("cnsErrorRate"), getGlobal("cnsErrorRate") * 100.0;
+print  STDERR "--\n";
+print  STDERR "--   Stages to run:\n";
+print  STDERR "--     separate reads into haplotypes.\n"         if (($mode eq "run") && (scalar(keys %haplotypeReads) > 0));
+print  STDERR "--     correct raw reads.\n"                      if (($mode eq "run"));
+print  STDERR "--     trim corrected reads.\n"                   if (($mode eq "run"));
+print  STDERR "--     assemble corrected and trimmed reads.\n"   if (($mode eq "run"));
+print  STDERR "--     only separate reads into haplotypes.\n"    if (($mode eq "haplotype"));
+print  STDERR "--     only correct raw reads.\n"                 if (($mode eq "correct"));
+print  STDERR "--     only trim corrected reads.\n"              if (($mode eq "trim"));
+print  STDERR "--     trim corrected reads.\n"                   if (($mode eq "trim-assemble"));
+print  STDERR "--     assemble corrected and trimmed reads.\n"   if (($mode eq "trim-assemble"));
+print  STDERR "--     assemble HiFi reads.\n"                    if (($mode eq "assemble") && ($numHiFi  > 0));
+print  STDERR "--     assemble corrected and trimmed reads.\n"   if (($mode eq "assemble") && ($numHiFi == 0));
+print  STDERR "--\n";
 
-#  Check that we were supplied a work directory, and that it exists, or we can create it.
+#  Make space for logs, and tell binaries where to write their execution
+#  logging, then dump the parameters given to canu.
 
 make_path("canu-logs")     if (! -d "canu-logs");
 make_path("canu-scripts")  if (! -d "canu-scripts");
 
-#  This environment variable tells the binaries to log their execution in canu-logs/
-
 $ENV{'CANU_DIRECTORY'} = getcwd();
 
-#  Report the parameters used.
-
 writeLog();
-
-#
-#  When doing 'run', this sets options for each stage.
-#    - overlapper 'mhap' for correction, 'ovl' for trimming and assembly.
-#    - consensus 'falconpipe' for correction, 'utgcns' for assembly.  No consensus in trimming.
-#    - errorRates 15% for correction and 2% for trimming and assembly.  Internally, this is
-#      multiplied by three for obt, ovl, cns, etc.
-#
-
-sub setOptions ($$) {
-    my $mode = shift @_;  #  E.g,. "run" or "trim-assemble" or just plain ol' "trim"
-    my $step = shift @_;  #  Step we're setting options for.
-
-    #  Decide if we care about running this step in this mode.  I almost applied
-    #  De Morgan's Laws to this.  I don't think it would have been any clearer.
-
-    if (($mode eq $step) ||
-        ($mode eq "run") ||
-        (($mode eq "trim-assemble") && ($step eq "trim")) ||
-        (($mode eq "trim-assemble") && ($step eq "assemble"))) {
-        #  Do run this.
-    } else {
-        return("don't run this");
-    }
-
-    #  Create directories for the step, if needed.
-
-    make_path("haplotype")    if ((! -d "haplotype")   && ($step eq "haplotype"));
-    make_path("correction")   if ((! -d "correction")  && ($step eq "correct"));
-    make_path("trimming")     if ((! -d "trimming")    && ($step eq "trim"));
-    make_path("unitigging")   if ((! -d "unitigging")  && ($step eq "assemble"));
-
-    #  Return that we want to run this step.
-
-    return($step);
-}
-
-#
-#  Pipeline piece
-#
-
-sub overlap ($$) {
-    my $asm  = shift @_;
-    my $tag  = shift @_;
-
-    my $ovlType = ($tag eq "utg") ? "normal" : "partial";
-
-    if (getGlobal("${tag}overlapper") eq "mhap") {
-        mhapConfigure($asm, $tag, $ovlType);
-        mhapPrecomputeCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
-        mhapCheck($asm, $tag, $ovlType)            foreach (1..getGlobal("canuIterationMax") + 1);          #  this also does mhapReAlign
-
-   } elsif (getGlobal("${tag}overlapper") eq "minimap") {
-        mmapConfigure($asm, $tag, $ovlType);
-        mmapPrecomputeCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
-        mmapCheck($asm, $tag, $ovlType)            foreach (1..getGlobal("canuIterationMax") + 1);
-
-    } else {
-        overlapConfigure($asm, $tag, $ovlType);
-        overlapCheck($asm, $tag, $ovlType)         foreach (1..getGlobal("canuIterationMax") + 1);
-    }
-
-    createOverlapStore($asm, $tag);
-}
 
 #
 #  Begin pipeline
@@ -1034,113 +954,238 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
     exit(0);
 }
 
-if (setOptions($mode, "correct") eq "correct") {
-    if ((getNumberOfBasesInStore($asm, "obt") == 0) &&
-        (! fileExists("$asm.correctedReads.fasta.gz")) &&
-        (! fileExists("$asm.correctedReads.fastq.gz"))) {
 
-        submitScript($asm, undef);   #  See comments there as to why this is safe.
 
+#  Stop if coverage is too low.
+#
+#  If multiple tags are supplied, use the first one that returns non-zero
+#  coverage.
+#
+sub stopOnLowCoverage ($$) {
+    my $asm = shift @_;
+    my $tag = shift @_;
+
+    my $mincov = getGlobal("stopOnLowCoverage");
+    my $curcov = getExpectedCoverage($asm, $tag);
+
+    if ($curcov < $mincov) {
         print STDERR "--\n";
+        print STDERR "-- ERROR:  Read coverage ($curcov) lower than allowed.\n";
+        print STDERR "-- ERROR:    stopOnLowCoverage = $mincov\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  This could be caused by an incorrect genomeSize or poor\n";
+        print STDERR "-- ERROR:  quality reads that cound not be sufficiently corrected.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  You can force Canu to continue by decreasing parameter\n";
+        print STDERR "-- ERROR:  stopOnLowCoverage (and possibly minInputCoverage too).\n";
+        print STDERR "-- ERROR:  Be warned that the quality of corrected reads and/or\n";
+        print STDERR "-- ERROR:  contiguity of contigs will be poor.\n";
         print STDERR "--\n";
-        print STDERR "-- BEGIN CORRECTION\n";
-        print STDERR "--\n";
 
-        if (checkSequenceStore($asm, "cor", @inputFiles)) {
-            merylConfigure($asm, "cor");
-            merylCountCheck($asm, "cor")          foreach (1..getGlobal("canuIterationMax") + 1);
-            merylProcessCheck($asm, "cor")        foreach (1..getGlobal("canuIterationMax") + 1);
-
-            overlap($asm, "cor");
-
-            setupCorrectionParameters($asm);
-
-            buildCorrectionLayoutsConfigure($asm);
-            buildCorrectionLayoutsCheck($asm)     foreach (1..getGlobal("canuIterationMax") + 1);
-
-            filterCorrectionLayouts($asm);
-
-            generateCorrectedReadsConfigure($asm);
-            generateCorrectedReadsCheck($asm)     foreach (1..getGlobal("canuIterationMax") + 1);
-
-            loadCorrectedReads($asm);
-        }
+        caExit("", undef);
     }
 }
 
-dumpCorrectedReads($asm);
 
-if (setOptions($mode, "trim") eq "trim") {
-    if ((getNumberOfBasesInStore($asm, "utg") == 0) &&
-        (! fileExists("$asm.trimmedReads.fasta.gz")) &&
-        (! fileExists("$asm.trimmedReads.fastq.gz"))) {
 
-        submitScript($asm, undef);   #  See comments there as to why this is safe.
+#  Decide if we need to enter the correction pipeline.
+#   - no if the mode tells us not to
+#   - no if the output of correction is present
+#   - no if there are corrected or trimmed reads available in the store
+#
+sub doCorrection ($$) {
+    my $asm      = shift @_;
+    my $mode     = shift @_;
+    my $reason   = undef;
 
+    $reason = "Correction skipped; not enabled"                        if (($mode ne "correct") &&
+                                                                           ($mode ne "run"));
+    $reason = "Correction output exists in $asm.correctedReads.*.gz"   if (fileExists("$asm.correctedReads.fasta.gz") ||
+                                                                           fileExists("$asm.correctedReads.fastq.gz"));
+    $reason = "Corrected reads exist in $asm.seqStore"                 if ((getNumberOfBasesInStore($asm, "obt") > 0) ||
+                                                                           (getNumberOfBasesInStore($asm, "utg") > 0));
+
+    if (defined($reason)) {
         print STDERR "--\n";
-        print STDERR "--\n";
-        print STDERR "-- BEGIN TRIMMING\n";
-        print STDERR "--\n";
-
-        if (checkSequenceStore($asm, "obt", @inputFiles)) {
-            merylConfigure($asm, "obt");
-            merylCountCheck($asm, "obt")     foreach (1..getGlobal("canuIterationMax") + 1);
-            merylProcessCheck($asm, "obt")   foreach (1..getGlobal("canuIterationMax") + 1);
-
-            overlap($asm, "obt");
-
-            trimReads($asm);
-            splitReads($asm);
-
-            loadTrimmedReads($asm);
-        }
+        print STDERR "-- $reason.\n";
+        return(0);
     }
+
+    stopOnLowCoverage($asm, "cor");
+    submitScript($asm, undef);   #  See comments there as to why this is safe.
+
+    print STDERR "--\n";
+    print STDERR "-- BEGIN CORRECTION\n";
+
+    return(1);
 }
 
-dumpTrimmedReads ($asm);
 
-if (setOptions($mode, "assemble") eq "assemble") {
-    if ((! fileExists("$asm.contigs.fasta")) &&
-        (! fileExists("$asm.contigs.fastq"))) {
 
-        submitScript($asm, undef);   #  See comments there as to why this is safe.
+#  Decide if we need to enter the trimming pipeline.
+#   - no if the mode tells us not to
+#   - no if the output of trimming exists.
+#   - no if there are trimmed reads available in the store
+#
+sub doTrimming ($$) {
+    my $asm    = shift @_;
+    my $mode   = shift @_;
+    my $reason = undef;
 
+    $reason = "Trimming skipped; not enabled"                      if (($mode ne "trim") &&
+                                                                       ($mode ne "trim-assemble") &&
+                                                                       ($mode ne "run"));
+    $reason = "Trimming output exists in $asm.trimmedReads.*.gz"   if (fileExists("$asm.trimmedReads.fasta.gz") ||
+                                                                       fileExists("$asm.trimmedReads.fastq.gz"));
+    $reason = "Trimmed reads exist in $asm.seqStore"               if ((getNumberOfBasesInStore($asm, "utg") > 0));
+
+    if (defined($reason)) {
         print STDERR "--\n";
-        print STDERR "--\n";
-        print STDERR "-- BEGIN ASSEMBLY\n";
-        print STDERR "--\n";
-
-        if (checkSequenceStore($asm, "utg", @inputFiles)) {
-            merylConfigure($asm, "utg");
-            merylCountCheck($asm, "utg")       foreach (1..getGlobal("canuIterationMax") + 1);
-            merylProcessCheck($asm, "utg")     foreach (1..getGlobal("canuIterationMax") + 1);
-
-            overlap($asm, "utg");
-
-            #readErrorDetection($asm);
-
-            readErrorDetectionConfigure($asm);
-            readErrorDetectionCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
-
-            overlapErrorAdjustmentConfigure($asm);
-            overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-
-            updateOverlapStore($asm);
-
-            unitig($asm);
-            unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
-
-            foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
-                consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
-                consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
-            }
-
-            consensusLoad($asm);
-            consensusAnalyze($asm);
-
-            generateOutputs($asm);
-        }
+        print STDERR "-- $reason.\n";
+        return(0);
     }
+
+    stopOnLowCoverage($asm, "obt");
+    submitScript($asm, undef);   #  See comments there as to why this is safe.
+
+    print STDERR "--\n";
+    print STDERR "-- BEGIN TRIMMING\n";
+                    
+    return(1);
+}
+
+
+
+#  Decide if we need to enter the unitigging pipeline.
+#   - no if the mode tells us not to
+#   - no if the output of trimming exists.
+#   - no if there are trimmed reads available in the store
+#
+sub doUnitigging ($$) {
+    my $asm    = shift @_;
+    my $mode   = shift @_;
+    my $reason = undef;
+
+    $reason = "Unitigging skipped; not enabled"                  if (($mode ne "assemble") &&
+                                                                     ($mode ne "trim-assemble") &&
+                                                                     ($mode ne "run"));
+    $reason = "Unitigging output exists in $asm.contigs.fasta"   if (fileExists("$asm.contigs.fasta"));
+
+    $reason = "No corrected reads to assemble"                   if ((getNumberOfBasesInStore($asm, "obt") == 0) &&
+                                                                     (getNumberOfBasesInStore($asm, "utg") == 0));
+
+    if (defined($reason)) {
+        print STDERR "--\n";
+        print STDERR "-- $reason.\n";
+        return(0);
+    }
+
+    stopOnLowCoverage($asm, "utg");
+    submitScript($asm, undef);   #  See comments there as to why this is safe.
+
+    print STDERR "--\n";
+    print STDERR "-- BEGIN ASSEMBLY\n";
+
+    return(1);
+}
+
+
+
+#  Run overlap jobs.
+#
+sub overlap ($$) {
+    my $asm  = shift @_;
+    my $tag  = shift @_;
+
+    my $ovlType = ($tag eq "utg") ? "normal" : "partial";
+
+    if (getGlobal("${tag}overlapper") eq "mhap") {
+        mhapConfigure($asm, $tag, $ovlType);
+        mhapPrecomputeCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+        mhapCheck($asm, $tag, $ovlType)            foreach (1..getGlobal("canuIterationMax") + 1);          #  this also does mhapReAlign
+
+   } elsif (getGlobal("${tag}overlapper") eq "minimap") {
+        mmapConfigure($asm, $tag, $ovlType);
+        mmapPrecomputeCheck($asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+        mmapCheck($asm, $tag, $ovlType)            foreach (1..getGlobal("canuIterationMax") + 1);
+
+    } else {
+        overlapConfigure($asm, $tag, $ovlType);
+        overlapCheck($asm, $tag, $ovlType)         foreach (1..getGlobal("canuIterationMax") + 1);
+    }
+
+    createOverlapStore($asm, $tag);
+}
+
+#
+#  The start of the pipeline.
+#
+
+fetchSeqStore($asm);
+createSequenceStore($asm, @inputFiles);
+
+if (doCorrection($asm, $mode)) {
+    merylConfigure($asm, "cor");
+    merylCountCheck($asm, "cor")          foreach (1..getGlobal("canuIterationMax") + 1);
+    merylProcessCheck($asm, "cor")        foreach (1..getGlobal("canuIterationMax") + 1);
+
+    overlap($asm, "cor");
+
+    setupCorrectionParameters($asm);
+
+    buildCorrectionLayoutsConfigure($asm);
+    buildCorrectionLayoutsCheck($asm)     foreach (1..getGlobal("canuIterationMax") + 1);
+
+    filterCorrectionLayouts($asm);
+
+    generateCorrectedReadsConfigure($asm);
+    generateCorrectedReadsCheck($asm)     foreach (1..getGlobal("canuIterationMax") + 1);
+
+    loadCorrectedReads($asm);
+    dumpCorrectedReads($asm);
+}
+
+if (doTrimming($asm, $mode)) {
+    merylConfigure($asm, "obt");
+    merylCountCheck($asm, "obt")     foreach (1..getGlobal("canuIterationMax") + 1);
+    merylProcessCheck($asm, "obt")   foreach (1..getGlobal("canuIterationMax") + 1);
+
+    overlap($asm, "obt");
+
+    trimReads($asm);
+    splitReads($asm);
+
+    loadTrimmedReads($asm);
+    dumpTrimmedReads($asm);
+}
+
+if (doUnitigging($asm, $mode)) {
+    merylConfigure($asm, "utg");
+    merylCountCheck($asm, "utg")       foreach (1..getGlobal("canuIterationMax") + 1);
+    merylProcessCheck($asm, "utg")     foreach (1..getGlobal("canuIterationMax") + 1);
+
+    overlap($asm, "utg");
+
+    readErrorDetectionConfigure($asm);
+    readErrorDetectionCheck($asm)      foreach (1..getGlobal("canuIterationMax") + 1);
+
+    overlapErrorAdjustmentConfigure($asm);
+    overlapErrorAdjustmentCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+
+    updateOverlapStore($asm);
+
+    unitig($asm);
+    unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+
+    foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
+        consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
+        consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
+    }
+
+    consensusLoad($asm);
+    consensusAnalyze($asm);
+
+    generateOutputs($asm);
 }
 
 #  User-supplied termination command.

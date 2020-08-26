@@ -209,22 +209,24 @@ sub loadTrimmedReads ($) {
 
     unlink("$path/$asm.loadTrimmedReads.err");
 
-    #  Save results.
+    #  Summarize and save results.
 
+    generateReadLengthHistogram("utg", $asm);
     stashSeqStore($asm);
 
-    #  Report reads.
+    #  If no trimmed reads were generated, stop now so we
+    #  preserve the stores.
 
-    addToReport("utgSeqStore", generateReadLengthHistogram("utg", $asm));
-
-    #stashFile("./$asm.trimmedReads.fasta.gz");
-
-    if (getGlobal("saveOverlaps") eq "0") {
+    if (getNumberOfReadsInStore($asm, "utg") > 0) {
+        print STDERR "--\n";
+        print STDERR "-- No trimmed reads generated, overlaps used for trimming saved.\n";
+    }
+    elsif (getGlobal("saveOverlaps") eq "0") {
         print STDERR "--\n";
         print STDERR "-- Purging overlaps used for trimming.\n";
-
         remove_tree("trimming/$asm.ovlStore")
-    } else {
+    }
+    else {
         print STDERR "--\n";
         print STDERR "-- Overlaps used for trimming saved.\n";
     }
@@ -244,63 +246,26 @@ sub dumpTrimmedReads ($) {
     my $cmd;
 
     goto allDone   if (fileExists("$asm.trimmedReads.fasta.gz"));
-    goto allDone   if (fileExists("$asm.trimmedReads.fastq.gz"));
     goto allDone   if (getGlobal("saveReads") == 0);
 
-    #  We need to skip this entire function if trimmed reads were not computed.
-    #  Otherwise, we incorrectly declare that all reads were trimmed out
-    #  and halt the assembly.
-    #
-    #  In cloud mode, we dump reads right after loading them, and to load them,
-    #  the 3-overlapbasedtrimming directory must exist, so we use that to decide if trimming
-    #  was attempted.
+    $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
+    $cmd .= "  -trimmed \\\n";
+    $cmd .= "  -S ./$asm.seqStore \\\n";
+    $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
+    $cmd .= "  -fasta \\\n";
+    $cmd .= "  -trimmed -normal -nolibname \\\n";
+    $cmd .= "> ./$asm.trimmedReads.fasta.err 2>&1";
 
-    return         if (! -d "trimming/3-overlapbasedtrimming");
-
-    #  If no trimmed reads exist, don't bother trying to dump them.
-
-    if (getNumberOfReadsInStore($asm, "utg") > 0) {
-        $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
-        $cmd .= "  -trimmed \\\n";
-        $cmd .= "  -S ./$asm.seqStore \\\n";
-        $cmd .= "  -o ./$asm.trimmedReads.gz \\\n";
-        $cmd .= "  -fasta \\\n";
-        $cmd .= "  -trimmed -normal -nolibname \\\n";
-        $cmd .= "> ./$asm.trimmedReads.fasta.err 2>&1";
-
-        if (runCommand(".", $cmd)) {
-            caExit("failed to output trimmed reads", "./$asm.trimmedReads.fasta.err");
-        }
-
-        unlink "./$asm.trimmedReads.fasta.err";
-
-        stashFile("$asm.trimmedReads.fasta.gz");
+    if (runCommand(".", $cmd)) {
+        caExit("failed to output trimmed reads", "./$asm.trimmedReads.fasta.err");
     }
 
-    #  If the trimmed reads file exists, report so.
-    #  Otherwise, report no trimmed reads, and generate fake outputs so we terminate.
+    unlink "./$asm.trimmedReads.fasta.err";
 
-    my $out;
+    stashFile("$asm.trimmedReads.fasta.gz");
 
-    $out = "$asm.trimmedReads.fasta.gz"   if (fileExists("$asm.trimmedReads.fasta.gz"));
-    $out = "$asm.trimmedReads.fastq.gz"   if (fileExists("$asm.trimmedReads.fastq.gz"));
-
-    if (defined($out)) {
-        print STDERR "--\n";
-        print STDERR "-- Trimmed reads saved in '$out'.\n";
-    } else {
-        print STDERR "--\n";
-        print STDERR "-- Yikes!  No trimmed reads generated!\n";
-        print STDERR "-- Can't proceed!\n";
-        print STDERR "--\n";
-        print STDERR "-- Generating empty outputs.\n";
-
-        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
-
-        stashFile("$asm.trimmedReads.fasta.gz");
-
-        generateOutputs($asm);
-    }
+    print STDERR "--\n";
+    print STDERR "-- Trimmed reads saved in '$asm.trimmedReads.fasta.gz'.\n";
 
   finishStage:
     generateReport($asm);

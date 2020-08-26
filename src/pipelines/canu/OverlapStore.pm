@@ -934,7 +934,7 @@ sub createOverlapStore ($$) {
 
     if ($tag eq "utg") {
         $cmd  = "$bin/ovStoreStats \\\n";
-        $cmd .= " -C " . getExpectedCoverage("utg", $asm). " \\\n";
+        $cmd .= " -C " . getExpectedCoverage($asm, "utg"). " \\\n";
         $cmd .= " -S ../$asm.seqStore \\\n";
         $cmd .= " -O  ./$asm.ovlStore \\\n";
         $cmd .= " -o  ./$asm.ovlStore \\\n";

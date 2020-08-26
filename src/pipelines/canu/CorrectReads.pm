@@ -49,7 +49,7 @@ sub getCorCov ($$) {
     my $typ     = shift @_;
     my $cov     = getGlobal("corMaxEvidenceCoverage$typ");
 
-    my $exp = getExpectedCoverage("cor", $asm);
+    my $exp = getExpectedCoverage($asm, "cor");
     my $des = getGlobal("corOutCoverage");
 
     if (!defined($cov)) {
@@ -95,7 +95,7 @@ sub setupCorrectionParameters ($) {
     #  Set the minimum coverage for a corrected read based on coverage in input reads.
 
     if (!defined(getGlobal("corMinCoverage"))) {
-        my $cov = getExpectedCoverage("cor", $asm);
+        my $cov = getExpectedCoverage($asm, "cor");
 
         setGlobal("corMinCoverage", 4);
         setGlobal("corMinCoverage", 4)   if ($cov <  60);
@@ -639,24 +639,26 @@ sub loadCorrectedReads ($) {
 
     unlink("$base/$asm.loadCorrectedReads.err");
 
-    #  Save updated stores.
+    #  Summarize and save updated stores.
 
+    generateReadLengthHistogram("obt", $asm);
     stashSeqStore($asm);
 
     stashFile("$base/$asm.corStore/seqDB.v002.dat");
     stashFile("$base/$asm.corStore/seqDB.v002.tig");
 
-    #  Report reads.
-
-    addToReport("obtSeqStore", generateReadLengthHistogram("obt", $asm));
-
     #  Now that all outputs are (re)written, cleanup the job outputs.
+    #  (unless there are no corrected reads, then leave things alone for debugging)
 
     my $Ncns     = 0;
     my $Nerr     = 0;
     my $Nlog     = 0;
 
-    if (getGlobal("saveReadCorrections") != 1) {
+    if (getNumberOfReadsInStore($asm, "obt") == 0) {
+        print STDERR "--\n";
+        print STDERR "-- No corrected reads generated; correctReads output saved.\n";
+    }
+    elsif (getGlobal("saveReadCorrections") != 1) {
         print STDERR "--\n";
         print STDERR "-- Purging correctReads output after loading into stores.\n";
 
@@ -669,23 +671,11 @@ sub loadCorrectedReads ($) {
                 my $ID4 = substr("000"   . $2, -4);
                 my $ID0 = $2;
 
-                if (-e "correction/$1/results/$ID4.cns") {
-                    $Ncns++;
-                    unlink "correction/$1/results/$ID4.cns";
-                }
-                if (-e "correction/$1/results/$ID4.err") {
-                    $Nlog++;
-                    unlink "correction/$1/results/$ID4.err";
-                }
+                if (-e "correction/$1/results/$ID4.cns")      { $Ncns++;  unlink "correction/$1/results/$ID4.cns";      }
+                if (-e "correction/$1/results/$ID4.err")      { $Nlog++;  unlink "correction/$1/results/$ID4.err";      }
 
-                if (-e "correction/$1/correctReads.$ID6.out") {
-                    $Nlog++;
-                    unlink "correction/$1/correctReads.$ID6.out";
-                }
-                if (-e "correction/$1/correctReads.$ID0.out") {
-                    $Nlog++;
-                    unlink "correction/$1/correctReads.$ID0.out";
-                }
+                if (-e "correction/$1/correctReads.$ID6.out") { $Nlog++;  unlink "correction/$1/correctReads.$ID6.out"; }
+                if (-e "correction/$1/correctReads.$ID0.out") { $Nlog++;  unlink "correction/$1/correctReads.$ID0.out"; }
 
             } else {
                 caExit("unknown correctReads job name '$_'\n", undef);
@@ -696,19 +686,24 @@ sub loadCorrectedReads ($) {
         print STDERR "-- Purged $Ncns .cns outputs.\n"                  if ($Ncns > 0);
         print STDERR "-- Purged $Nerr .err outputs.\n"                  if ($Nerr > 0);
         print STDERR "-- Purged $Nlog .out job log outputs.\n"          if ($Nlog > 0);
-    } else {
+    }
+    else {
         print STDERR "--\n";
         print STDERR "-- Purging correctReads output disabled by saveReadCorrections=true.\n"  if (getGlobal("saveReadCorrections") == 1);
     }
 
     #  And purge the usually massive overlap store.
 
-    if (getGlobal("saveOverlaps") eq "0") {
+    if      (getNumberOfReadsInStore($asm, "obt") > 0) {
+        print STDERR "--\n";
+        print STDERR "-- No corrected reads generated, overlaps used for correction saved.\n";
+    }
+    elsif (getGlobal("saveOverlaps") eq "0") {
         print STDERR "--\n";
         print STDERR "-- Purging overlaps used for correction.\n";
-
         remove_tree("correction/$asm.ovlStore")
-    } else {
+    }
+    else {
         print STDERR "--\n";
         print STDERR "-- Overlaps used for correction saved.\n";
     }
@@ -729,65 +724,26 @@ sub dumpCorrectedReads ($) {
     my $cmd;
 
     goto allDone   if (fileExists("$asm.correctedReads.fasta.gz"));
-    goto allDone   if (fileExists("$asm.correctedReads.fastq.gz"));
     goto allDone   if (getGlobal("saveReads") == 0);
 
-    #  We need to skip this entire function if corrected reads were not computed.
-    #  Otherwise, we incorrectly declare that no corrected reads were generated
-    #  and halt the assembly.
-    #
-    #  In cloud mode, we dump reads right after loading them, and to load them,
-    #  the 2-correction directory must exist, so we use that to decide if correction
-    #  was attempted.
+    $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
+    $cmd .= "  -corrected \\\n";
+    $cmd .= "  -S ./$asm.seqStore \\\n";
+    $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
+    $cmd .= "  -fasta \\\n";
+    $cmd .= "  -nolibname \\\n";
+    $cmd .= "> $asm.correctedReads.fasta.err 2>&1";
 
-    return         if (! -d "correction/2-correction");
-
-    #  If no corrected reads exist, don't bother trying to dump them.
-
-    if (getNumberOfReadsInStore($asm, "obt") > 0) {
-        $cmd  = "$bin/sqStoreDumpFASTQ \\\n";
-        $cmd .= "  -corrected \\\n";
-        $cmd .= "  -S ./$asm.seqStore \\\n";
-        $cmd .= "  -o ./$asm.correctedReads.gz \\\n";
-        $cmd .= "  -fasta \\\n";
-        $cmd .= "  -nolibname \\\n";
-        $cmd .= "> $asm.correctedReads.fasta.err 2>&1";
-
-        if (runCommand(".", $cmd)) {
-            caExit("failed to output corrected reads", "./$asm.correctedReads.fasta.err");
-        }
-
-        unlink "./$asm.correctedReads.fasta.err";
-
-        stashFile("$asm.correctedReads.fasta.gz");
+    if (runCommand(".", $cmd)) {
+        caExit("failed to output corrected reads", "./$asm.correctedReads.fasta.err");
     }
 
-    #  If the corrected reads file exists, report so.
-    #  Otherwise, report no corrected reads, and generate fake outputs so we terminate.
+    unlink "./$asm.correctedReads.fasta.err";
 
-    my $out;
+    stashFile("$asm.correctedReads.fasta.gz");
 
-    $out = "$asm.correctedReads.fasta.gz"   if (fileExists("$asm.correctedReads.fasta.gz"));
-    $out = "$asm.correctedReads.fastq.gz"   if (fileExists("$asm.correctedReads.fastq.gz"));
-
-    if (defined($out)) {
-        print STDERR "--\n";
-        print STDERR "-- Corrected reads saved in '$out'.\n";
-    } else {
-        print STDERR "--\n";
-        print STDERR "-- Yikes!  No corrected reads generated!\n";
-        print STDERR "-- Can't proceed!\n";
-        print STDERR "--\n";
-        print STDERR "-- Generating empty outputs.\n";
-
-        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.correctedReads.gz 2> /dev/null", 0)   if (! -e "$asm.correctedReads.gz");
-        runCommandSilently(".", "gzip -1vc < /dev/null > $asm.trimmedReads.gz   2> /dev/null", 0)   if (! -e "$asm.trimmedReads.gz");
-
-        stashFile("$asm.correctedReads.fasta.gz");
-        stashFile("$asm.trimmedReads.fasta.gz");
-
-        generateOutputs($asm);
-    }
+    print STDERR "--\n";
+    print STDERR "-- Corrected reads saved in '$asm.correctedReads.fasta.gz'.\n";
 
   finishStage:
     generateReport($asm);

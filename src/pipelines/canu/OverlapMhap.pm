@@ -88,7 +88,7 @@ sub mhapConfigure ($$$) {
     my ($numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer);
 
     if (!defined(getGlobal("${tag}MhapSensitivity"))) {
-        my $cov = getExpectedCoverage($tag, $asm);
+        my $cov = getExpectedCoverage($asm, $tag);
 
         setGlobal("${tag}MhapSensitivity", "low");                          #  Yup, super inefficient.  The code is
         setGlobal("${tag}MhapSensitivity", "normal")   if ($cov <  60);     #  compact and clear and runs once.
