@@ -170,6 +170,8 @@ sub readErrorDetectionConfigure ($) {
     my $maxReads     = getGlobal("redBatchSize");
     my $maxBases     = getGlobal("redBatchLength");
 
+    my $minReads     = $maxID;    #  Minimum reads actually in a batch.
+
     print STDERR "--\n";
     print STDERR "-- Configure RED for ", getGlobal("redMemory"), "gb memory.\n";
     print STDERR "--                   Batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads.\n";
@@ -191,6 +193,12 @@ sub readErrorDetectionConfigure ($) {
     push @bgn, 1;
 
     for (my $id = 1; $id <= $maxID; $id++) {
+
+        #  If there is a valid read here, add to the running total.
+        #
+        #  If there is no valid read, do no add, but still check the batch size -- otherwise we'll
+        #  miss the last partition (when $id == $maxID).
+
         if (vec($rlVec, $id, 32) > 0) {
             $reads += 1;
             $bases += vec($rlVec, $id, 32);
@@ -225,6 +233,8 @@ sub readErrorDetectionConfigure ($) {
             (($id == $maxID))) {
             push @end, $id;
 
+            $minReads  = $reads   if (($reads < $minReads) && ($id != $maxID));
+
             printf(STDERR "--   %4u %8.2f %9u-%-9u %9u %12u %8.2f %12u %8.2f %8.2f\n",
                    $nj + 1,
                    $memory / 1024 / 1024,
@@ -247,6 +257,13 @@ sub readErrorDetectionConfigure ($) {
     print  STDERR "--   ---- -------- ------------------- --------- ------------ -------- ------------ -------- --------\n";
     printf(STDERR "--                                               %12u          %12u\n",
            $rlSum, $noSum);
+
+    #  Fail if there are too few reads in the batches (except for the last batch).
+
+    if (($minReads < 100) ||
+        (scalar(@bgn) > 9999)) {
+        caExit("partitioning failed; increase redMemory", undef);
+    }
 
     #  Dump a script.
 
