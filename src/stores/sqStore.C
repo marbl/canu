@@ -180,33 +180,46 @@ sqStore::sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType) {
 
 
 
-
+//  Allocate and return a new sqReadDataWriter that can be used to add a new
+//  read to the store.  This function does NOT actually add the read to the
+//  store; the sqReadDataWriter is used to collect all the info about the
+//  read (read ID, read name, bases, quals, trim points) and then that object
+//  is added to the store after all info is added.
+//
+//  Because the read isn't added until later, two consecutive calls to
+//  createEmptyRead() will result in both sqReadDataWriter objects referring
+//  to the same sqRead.
+//
+//  (The reason for this annoyance is so that sqStoreCreate can test that the
+//  _homopoly_compressed_ length is big enough, and that length is only
+//  computed by sqReadDataWriter::setRawBases().  Thus, we need to populate
+//  the sqReadDataWriter object, test it, then discard it if too short.)
+//
 sqReadDataWriter *
-sqStore::sqStore_addEmptyRead(sqLibrary *lib, const char *name) {
+sqStore::sqStore_createEmptyRead(sqLibrary *lib, const char *name) {
 
   assert(_info.sqInfo_lastReadID() < _readsAlloc);
   assert(_mode != sqStore_readOnly);
 
-  //  We reserve the zeroth read for "null".  This is easy to accomplish
-  //  here, just pre-increment the number of reads.  However, we need to be sure
-  //  to iterate up to and including _info.sqInfo_lastReadID().
+  //  The zeroth read is "null".  To get the next valid read ID, just
+  //  add one to the current last read ID.
 
-  _info.sqInfo_addRead();
+  uint32  rID = _info.sqInfo_lastReadID() + 1;
+  uint32  lID = lib->sqLibrary_libraryID();
 
-  if (_readsAlloc <= _info.sqInfo_lastReadID()) {
-    uint32  newMax = _readsAlloc + _info.sqInfo_lastReadID() / 2;
+  //  Grow the metadata arrays if they're too small.
 
-    setArraySize(_meta, _info.sqInfo_lastReadID(), _readsAlloc, newMax);
-    setArraySize(_rawU, _info.sqInfo_lastReadID(), _readsAlloc, newMax);
-    setArraySize(_rawC, _info.sqInfo_lastReadID(), _readsAlloc, newMax);
-    setArraySize(_corU, _info.sqInfo_lastReadID(), _readsAlloc, newMax);
-    setArraySize(_corC, _info.sqInfo_lastReadID(), _readsAlloc, newMax);
+  if (_readsAlloc <= rID) {
+    uint32  newMax = _readsAlloc + rID / 2;
+
+    setArraySize(_meta, rID, _readsAlloc, newMax);
+    setArraySize(_rawU, rID, _readsAlloc, newMax);
+    setArraySize(_rawC, rID, _readsAlloc, newMax);
+    setArraySize(_corU, rID, _readsAlloc, newMax);
+    setArraySize(_corC, rID, _readsAlloc, newMax);
   }
 
-  //  Initialize the new read.
-
-  uint32  rID = _info.sqInfo_lastReadID();
-  uint32  lID = lib->sqLibrary_libraryID();
+  //  Initialize the metadata.
 
   _meta[rID].sqReadMeta_initialize(rID, lID);
   _rawU[rID].sqReadSeq_initialize();
@@ -214,7 +227,7 @@ sqStore::sqStore_addEmptyRead(sqLibrary *lib, const char *name) {
   _corU[rID].sqReadSeq_initialize();
   _corC[rID].sqReadSeq_initialize();
 
-  //  With the read set up, set pointers in the readData.  Whatever data is in there can stay.
+  //  Make a new writer object, and initialize what we can.
 
   sqReadDataWriter  *rdw = new sqReadDataWriter(&_meta[rID],
                                                 &_rawU[rID],
@@ -227,6 +240,35 @@ sqStore::sqStore_addEmptyRead(sqLibrary *lib, const char *name) {
   return(rdw);
 }
 
+
+
+//  Add a fully initialized read in sqReadDataWriter to the store.
+//
+//  This is inherently dangerous.  It assumes that the supplied sRDW is
+//  actually for the next read.
+//
+//    If we're adding a new read - the ID _must_ be one more than the number
+//    of reads in the store - increment the number of reads in the metadata.
+//
+//    If we're trying to add/modify a read that doesn't exist, blow up.
+//
+//    Otherwise, we're modifying an existing read, and need to only write the
+//    read data.
+//
+void
+sqStore::sqStore_addRead(sqReadDataWriter *rdw) {
+
+  if        (rdw->_meta->sqRead_readID() == _info.sqInfo_lastReadID() + 1)
+    _info.sqInfo_addRead();
+
+  if (rdw->_meta->sqRead_readID() > _info.sqInfo_lastReadID()) {
+    fprintf(stderr, "ERROR:  Attempt to add/modify read %u in a store with only %u reads.\n",
+            rdw->_meta->sqRead_readID(), _info.sqInfo_lastReadID());
+    assert(0);
+  }
+
+  _blobWriter->writeData(rdw);
+}
 
 
 

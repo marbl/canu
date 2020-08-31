@@ -298,6 +298,10 @@ sub createSequenceStore ($@) {
             print F "  -bias       " . getGlobal("readSamplingBias") . " \\\n";
         }
 
+        if (getGlobal("homoPolyCompress") > 0) {   #  Tell sqStoreCreate that these reads should
+            print F "  -homopolycompress \\\n";    #  be homopoly compressed, and so length filtering
+        }                                          #  should be based on that length.
+
         foreach my $iii (@inputs) {
             if ($iii =~ m/^(.*)\0(.*)$/) {
                 my $tech = $1;
@@ -341,7 +345,10 @@ sub createSequenceStore ($@) {
 
     createSequenceStoreMetaDataFiles($asm);
 
-    #  Set or unset the homopolymer compression flag.
+    #  Set or unset the homopolymer compression flag.  This is also initially
+    #  created by sqStoreCreate (also based on the homoPolyCompress flag) but
+    #  we allow canu to explicitly change later.  Though doing that isn't
+    #  recommended.
 
     if (defined(getGlobal("homoPolyCompress"))) {
         touch("./$asm.seqStore/homopolymerCompression");

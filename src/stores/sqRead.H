@@ -562,6 +562,12 @@ public:
     _rawBases[Slen] = 0;
 
     _rawBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
+
+    assert(_rawU->sqReadSeq_valid() == false);
+    assert(_rawC->sqReadSeq_valid() == false);
+
+    _rawU->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, false);
+    _rawC->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, true);
   };
 
   void        sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen) {
@@ -570,10 +576,24 @@ public:
     memcpy(_corBases, S, sizeof(char) * Slen);
     _corBases[Slen] = 0;
 
-    _corBasesLen = Slen + 1;
+    _corBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
+
+    assert(_corU->sqReadSeq_valid() == false);
+    assert(_corC->sqReadSeq_valid() == false);
+
+    _corU->sqReadSeq_setLength(_corBases, _corBasesLen-1, false);
+    _corC->sqReadSeq_setLength(_corBases, _corBasesLen-1, true);
   };
 
   void        sqReadDataWriter_writeBlob(writeBuffer *buffer);
+
+  uint32      sqReadDataWriter_getRawLength(bool compressed) {
+    return((compressed == false) ? _rawU->sqReadSeq_length() : _rawC->sqReadSeq_length());
+  };
+
+  uint32      sqReadDataWriter_getCorrectedLength(bool compressed) {
+    return((compressed == false) ? _corU->sqReadSeq_length() : _corC->sqReadSeq_length());
+  };
 
 private:
   sqReadMeta  *_meta = nullptr;           //  Pointer to the read metadata.

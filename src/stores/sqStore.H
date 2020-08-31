@@ -290,16 +290,22 @@ public:
   bool               sqStore_isTrimmedRead(uint32 id, sqRead_which w=sqRead_defaultVersion);
 
   //  For use ONLY by sqStoreCreate, to add new libraries and reads to a
-  //  store.  The first two allocate a new metadata object in the store,
-  //  while the last loads read sequence data.
+  //  store.
+  //
+  //    addEmptyLibrary() adds a new library to the store.
+  //
+  //    createEmptyRead() allocates a sRDW, but does not add a new read to
+  //    the store.  It must be followed by addRead() to load the data to the
+  //    store.  Of note, the sRDW is assigned a read ID for the next -
+  //    currently non-existent - read in the store.  Calling
+  //    createEmptyRead() twice with no addRead() between will create two
+  //    reads with the same ID and Bad Things will result.
   //
 public:
   sqLibrary         *sqStore_addEmptyLibrary(char const *name, sqLibrary_tech techType);
-  sqReadDataWriter  *sqStore_addEmptyRead(sqLibrary *lib, const char *name);
 
-  void               sqStore_addRead(sqReadDataWriter *rdw) {
-    _blobWriter->writeData(rdw);
-  };
+  sqReadDataWriter  *sqStore_createEmptyRead(sqLibrary *lib, const char *name);
+  void               sqStore_addRead(sqReadDataWriter *rdw);
 
   //  Used when initially loading reads into seqStore, and when loading
   //  trimmed reads.  It sets the ignore flag in both the normal and

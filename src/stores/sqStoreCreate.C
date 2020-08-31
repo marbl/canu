@@ -181,6 +181,7 @@ loadReads(sqStore          *seqStore,
           sqLibrary        *seqLibrary,
           sqRead_which      readStat,
           uint32            minReadLength,
+          bool              homopolyCompress,
           FILE             *nameMap,
           FILE             *errorLog,
           char             *fileName,
@@ -226,64 +227,65 @@ loadReads(sqStore          *seqStore,
     }
 
 
-    //  Drop any sequences that are short.  This just sets length to zero, which we then skip.
-    if (end - bgn < minReadLength) {
+    //  Create a writer for the read data and load bases.
+
+    sqReadDataWriter *rdw  = seqStore->sqStore_createEmptyRead(seqLibrary, sq.name());
+
+    if (readStat & sqRead_raw)
+      rdw->sqReadDataWriter_setRawBases(sq.bases() + bgn, end - bgn);
+    else
+      rdw->sqReadDataWriter_setCorrectedBases(sq.bases() + bgn, end - bgn);
+
+    //  Get the (homopolymer compressed) length of the sequence we just loaded.
+
+    uint32 rLen = (readStat & sqRead_raw) ? rdw->sqReadDataWriter_getRawLength(homopolyCompress)
+                                          : rdw->sqReadDataWriter_getCorrectedLength(homopolyCompress);
+
+    //  Drop any sequences that are short...
+    if      (rLen < minReadLength) {
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - too short, skipping.\n",
               sq.name(), sq.length(), fileName);
 
       filestats.nSHORT += 1;
       filestats.bSHORT += sq.length();
-
-      continue;
     }
 
-
-    //  Warn if this sequence is too long.
-    if (end - bgn > AS_MAX_READLEN - 2) {
+    //  ...or too long...
+    else if (rLen > AS_MAX_READLEN - 2) {
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - too long, skipping.\n",
               sq.name(), sq.length(), fileName);
 
       filestats.nLONG += 1;
       filestats.bLONG += sq.length();
-
-      continue;
     }
 
-    //  Create a writer for the read data and load bases.
+    //  ...and add the ones that are Just Right!
+    //
+    //  With the read added to the store, set trim points.  Presently,
+    //  trimming only occurs on corrected reads, but later we need to allow
+    //  trimmed raw reads.
+    //
+    //  Finally, update the nameMap and save some silly statistics.
+    else {
+      seqStore->sqStore_addRead(rdw);
 
-    sqReadDataWriter *rdw = seqStore->sqStore_addEmptyRead(seqLibrary, sq.name());
+      if (readStat & sqRead_trimmed) {
+        uint32      rid  = seqStore->sqStore_lastReadID();
+        sqReadSeq  *nseq = seqStore->sqStore_getReadSeq(rid, sqRead_corrected);
+        sqReadSeq  *cseq = seqStore->sqStore_getReadSeq(rid, sqRead_corrected | sqRead_compressed);
 
-    if (readStat & sqRead_raw) {
-      rdw->sqReadDataWriter_setRawBases(sq.bases() + bgn, end - bgn);
-    } else {
-      rdw->sqReadDataWriter_setCorrectedBases(sq.bases() + bgn, end - bgn);
+        nseq->sqReadSeq_setAllClear();
+        cseq->sqReadSeq_setAllClear();
+      }
+
+      fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_lastReadID(), sq.name());
+
+      filestats.nLOADED += 1;
+      filestats.bLOADED += end - bgn;
     }
 
-    seqStore->sqStore_addRead(rdw);
-
+    //  All done with this read.  Delete the writer and continue.
     delete rdw;
-
-    //  Now that the read is added to the store, we can set trim points.
-    //  Presently, trimming only occurs on corrected reads, but later we
-    //  need to allow trimmed raw reads.
-
-    if (readStat & sqRead_trimmed) {
-      uint32      rid  = seqStore->sqStore_lastReadID();
-      sqReadSeq  *nseq = seqStore->sqStore_getReadSeq(rid, sqRead_corrected);
-      sqReadSeq  *cseq = seqStore->sqStore_getReadSeq(rid, sqRead_corrected | sqRead_compressed);
-
-      nseq->sqReadSeq_setAllClear();
-      cseq->sqReadSeq_setAllClear();
-    }
-
-    //  And also update our nameMap.
-
-    fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_lastReadID(), sq.name());
-
-    //  Save some silly statistics.
-
-    filestats.nLOADED += 1;
-    filestats.bLOADED += end - bgn;
   }
 
   delete SF;
@@ -302,7 +304,8 @@ loadReads(sqStore          *seqStore,
 bool
 createStore(const char       *seqStoreName,
             vector<seqLib>   &libraries,
-            uint32            minReadLength) {
+            uint32            minReadLength,
+            bool              homopolyCompress) {
 
   sqStore     *seqStore     = new sqStore(seqStoreName, sqStore_create);   //  sqStore_extend MIGHT work
   sqRead      *seqRead      = NULL;
@@ -315,6 +318,11 @@ createStore(const char       *seqStoreName,
   FILE        *nameMap  = AS_UTL_openOutputFile(seqStoreName, '/', "readNames.txt");
 
   loadStats    stats;
+
+  if (homopolyCompress) {
+    FILE *H = AS_UTL_openOutputFile(seqStoreName, '/', "homopolymerCompression");
+    AS_UTL_closeFile(H);
+  }
 
   for (uint32 ll=0; ll<libraries.size(); ll++) {
     fprintf(stderr, "\n");
@@ -346,6 +354,7 @@ createStore(const char       *seqStoreName,
                   seqLibrary,
                   libraries[ll]._stat,
                   minReadLength,
+                  homopolyCompress,
                   nameMap,
                   errorLog,
                   file,
@@ -377,25 +386,31 @@ struct rl_t {
   double   score;
 };
 
-bool  byScore(const rl_t &a, const rl_t &b)   { return(a.score > b.score); }
 
 
 bool
 deleteShortReads(const char *seqStoreName,
                  uint64      genomeSize,
                  double      desiredCoverage,
-                 double      lengthBias) {
+                 double      lengthBias,
+                 uint32      randomSeed) {
   mtRandom     mtctx;
   uint64       desiredBases = (uint64)floor(genomeSize * desiredCoverage);
 
   if (desiredBases == 0)
     return(true);
 
+  if (randomSeed != 0)
+    mtctx.mtSetSeed(randomSeed);
+
   //
-  //  Open the store for modification.
+  //  Open the store for modification.  Request whatever read is the default,
+  //  in the uncompressed format.
   //
 
   sqStore     *seqStore     = new sqStore(seqStoreName, sqStore_extend);
+
+  sqRead_setDefaultVersionExclude(sqRead_compressed);
 
   uint32       nReads       = seqStore->sqStore_lastReadID();
   rl_t        *readLen      = new rl_t [nReads + 1];
@@ -440,15 +455,19 @@ deleteShortReads(const char *seqStoreName,
     //  up to coverage * genomeSize.
     //
 
+    auto  byScore = [](const rl_t &a, const rl_t &b)   { return(a.score > b.score); };
+
     sort(readLen, readLen + nReads+1, byScore);
 
-    fprintf(stdout, "readID    length        score\n");
-    fprintf(stdout, "------- -------- ------------\n");
+    FILE *LOG = AS_UTL_openOutputFile(seqStoreName, '/', "filteredReads");
 
-    for (uint32 ii=0; ii<nReads; ii++) {         //  Start at ii=0.  The zeroth read has
-      fprintf(stdout, "%-7u %8u %12.4f%s\n",     //  min score, and is now at position
-              readLen[ii].readID,                //  [nReads], while the longest read is
-              readLen[ii].length,                //  at position [0].
+    fprintf(LOG, "readID  ordinal   length        score\n");
+    fprintf(LOG, "------- ------- -------- ------------\n");
+
+    for (uint32 ii=0; ii<nReads; ii++) {        //  Start at ii=0.  The zeroth read has
+      fprintf(LOG, "%-7u %7u %8u %12.4e%s\n",   //  min score, and is now at position
+              readLen[ii].readID, ii,           //  [nReads], while the longest read is
+              readLen[ii].length,               //  at position [0].
               readLen[ii].score,
               (basesKept < desiredBases) ? "" : " REMOVED");
 
@@ -467,6 +486,8 @@ deleteShortReads(const char *seqStoreName,
 
     fprintf(stderr, "Dropped  %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsRmvd, basesRmvd, (double)basesRmvd / genomeSize);
     fprintf(stderr, "Retained %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsKept, basesKept, (double)basesKept / genomeSize);
+
+    AS_UTL_closeFile(LOG);
   }
 
   delete [] readLen;
@@ -519,6 +540,9 @@ main(int argc, char **argv) {
   uint64           genomeSize        = 0;
   double           desiredCoverage   = 0;
   double           lengthBias        = 1.0;
+  uint32           randomSeed        = 0;
+
+  bool             homopolyCompress  = false;
 
   vector<seqLib>   libraries;
 
@@ -554,6 +578,15 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-bias") == 0) {
       lengthBias = atof(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-seed") == 0) {
+      randomSeed = atof(argv[++arg]);
+    }
+
+
+    else if (strcmp(argv[arg], "-homopolycompress") == 0) {
+      homopolyCompress = true;
     }
 
     else if (strcmp(argv[arg], "-raw") == 0) {
@@ -626,30 +659,51 @@ main(int argc, char **argv) {
     err.push_back("ERROR: no genome size (-genomesize) set, needed for coverage filtering (-coverage) to work.\n");
 
   if (err.size() > 0) {
-    fprintf(stderr, "usage: %s -o seqStore [-minlength L] [-genomesize G -coverage C] [-pacbio-raw NAME file1 ...]\n", argv[0]);
-    fprintf(stderr, "  -o seqStore            load raw reads into new seqStore\n");
-    fprintf(stderr, "  \n");
-    fprintf(stderr, "  -minlength L           discard reads shorter than L\n");
-    fprintf(stderr, "  \n");
-    fprintf(stderr, "  -genomesize G          expected genome size, for keeping only the longest reads\n");
+    int32 al = strlen(argv[0]);
+
+    fprintf(stderr, "usage: %s -o S.seqStore\n", argv[0]);
+    fprintf(stderr, "       %*s [options] \\\n", al, "");
+    fprintf(stderr, "       %*s [[processing-options] technology-option libName reads ...] ...\n", al, "");
+    fprintf(stderr, "  -o S.seqStore          create output S.seqStore and load reads into it\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -minlength L           discard reads shorter than L (regardless of coverage)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -homopolycompress      set up for accessing homopolymer compressed reads\n");
+    fprintf(stderr, "                         by default; also compute coverage and filter lengths\n");
+    fprintf(stderr, "                         using the compressed read sequence.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "COVERAGE FILTERING\n");
+    fprintf(stderr, "  When more than C coverage in reads is supplied, random reads are removed\n");
+    fprintf(stderr, "  until coverage is C.  Bias B will remove shorter (B > 0) or longer (B < 0)\n");
+    fprintf(stderr, "  reads preferentially.  B=0 will remove random reads.  Default is B=1.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -genomesize G          expected genome size (needed to compute coverage)\n");
     fprintf(stderr, "  -coverage C            desired coverage in long reads\n");
-    fprintf(stderr, "  \n");
-    fprintf(stderr, "  Reads are supplied as a collection of libraries.  Each library should\n");
-    fprintf(stderr, "  contain all the reads from one sequencing experiment (e.g., sample collection,\n");
-    fprintf(stderr, "  sample preperation, sequencing run).\n");
-    fprintf(stderr, "  \n");
-    fprintf(stderr, "  The library is specified as a sequencing technology, a read processing status,\n");
-    fprintf(stderr, "  and a unique library name.\n");
-    fprintf(stderr, "    -technology-status LIBRARY_NAME seqFile1 [seqFile2] [...] \n");
-    fprintf(stderr, "  \n");
-    fprintf(stderr, "  Valid combinations of technology and status are:\n");
-    fprintf(stderr, "    -pacbio-raw\n");
-    fprintf(stderr, "    -pacbio-corrected\n");
-    fprintf(stderr, "    -pacbio-trimmed\n");
-    fprintf(stderr, "    -pacbio-raw\n");
-    fprintf(stderr, "    -nanopore-raw\n");
-    fprintf(stderr, "    -nanopore-corrected\n");
-    fprintf(stderr, "    -nanopore-trimmed\n");
+    fprintf(stderr, "  -bias B                remove shorter (B > 0) or longer (B < 0) reads.\n");
+    fprintf(stderr, "  -seed S                seed the pseudo random number generator with S\n");
+    fprintf(stderr, "                           1 <= S <= 4294967295\n");
+    fprintf(stderr, "                           S = 0 will use a seed derived from the time and process id\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "READ SPECIFICATION\n");
+    fprintf(stderr, "  Reads are supplied as a collection of libraries.  Each library should contain\n");
+    fprintf(stderr, "  all the reads from one sequencing experiment (e.g., sample collection, sample\n");
+    fprintf(stderr, "  preperation, sequencing run).  A library is created when any of the 'read\n");
+    fprintf(stderr, "  technology' options is encountered, and will use whatever 'processing state'\n");
+    fprintf(stderr, "  have been already supplied.  The first word after a 'read technology' option\n");
+    fprintf(stderr, "  must be the name of the library.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Note that -pacbio-hifi will force -corrected status.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Example:  '-raw -pacbio LIBRARY_1 file.fasta'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -raw                   set the 'processing state' of the reads\n");
+    fprintf(stderr, "  -corrected               next on the command line.\n");
+    fprintf(stderr, "  -untrimmed\n");
+    fprintf(stderr, "  -trimmed\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nanopore              set the 'read technology' of the reads\n");
+    fprintf(stderr, "  -pacbio                  next on the command line.\n");
+    fprintf(stderr, "  -pacbio-hifi\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -659,9 +713,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  createStore(seqStoreName, libraries, minReadLength);
+  createStore(seqStoreName, libraries, minReadLength, homopolyCompress);
 
-  deleteShortReads(seqStoreName, genomeSize, desiredCoverage, lengthBias);
+  deleteShortReads(seqStoreName, genomeSize, desiredCoverage, lengthBias, randomSeed);
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Bye.\n");

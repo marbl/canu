@@ -75,8 +75,8 @@ sqReadDataWriter::sqReadDataWriter_writeBlob(writeBuffer *buffer) {
   if ((_rawBases != NULL) && (_rawBases[0] != 0)) {
     assert(_rawBasesLen > 0);
 
-    if ((_rawU) && (_rawU->sqReadSeq_valid() == false))   _rawU->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, false);
-    if ((_rawC) && (_rawC->sqReadSeq_valid() == false))   _rawC->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, true);
+    assert(_rawU->sqReadSeq_valid() == true);   //  setRawBases() should be setting this true.
+    assert(_rawC->sqReadSeq_valid() == true);
 
     rseq     = NULL;
     rseq2Len =                                      encode2bitSequence(rseq, _rawBases, _rawU->sqReadSeq_length());
@@ -87,8 +87,8 @@ sqReadDataWriter::sqReadDataWriter_writeBlob(writeBuffer *buffer) {
   if ((_corBases != NULL) && (_corBases[0] != 0)) {
     assert(_corBasesLen > 0);
 
-    if ((_corU) && (_corU->sqReadSeq_valid() == false))   _corU->sqReadSeq_setLength(_corBases, _corBasesLen-1, false);
-    if ((_corC) && (_corC->sqReadSeq_valid() == false))   _corC->sqReadSeq_setLength(_corBases, _corBasesLen-1, true);
+    assert(_corU->sqReadSeq_valid() == true);   //  setCorrectedBases should be setting this true.
+    assert(_corC->sqReadSeq_valid() == true);
 
     cseq     = NULL;
     cseq2Len =                                      encode2bitSequence(cseq, _corBases, _corU->sqReadSeq_length());
