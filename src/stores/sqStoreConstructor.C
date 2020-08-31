@@ -39,20 +39,25 @@ sqStore::sqStore_loadMetadata(void) {
   AS_UTL_loadFile(_storePath, '/', "libraries", _libraries, _librariesAlloc);
   AS_UTL_loadFile(_storePath, '/', "reads",     _meta,      _readsAlloc);
 
-  //  If the user hasn't set a default version (by calling
-  //  sqRead_setDefaultVersion() before a sqStore object is constructed),
-  //  pick the plausible most recent version.
+  //  If the user hasn't set a default version, or has only requested
+  //  uncompressed reads, pick the plausible most recent version then add
+  //  that to the default.
+  //
+  //  Otherwise, the user HAS requested a default.  If this isn't requesting
+  //  'raw' or 'corrected' (so, e.g., only requesting the latest 'trimmed'
+  //  reads), decide which of 'raw' or 'corrected' is the most recent.
 
-  if (sqRead_defaultVersion == sqRead_unset) {
-    if (sqStore_getNumReads(sqRead_raw)                        > 0)   sqRead_defaultVersion = sqRead_raw;
-    if (sqStore_getNumReads(sqRead_raw | sqRead_trimmed)       > 0)   sqRead_defaultVersion = sqRead_raw       | sqRead_trimmed;
-    if (sqStore_getNumReads(sqRead_corrected)                  > 0)   sqRead_defaultVersion = sqRead_corrected;
-    if (sqStore_getNumReads(sqRead_corrected | sqRead_trimmed) > 0)   sqRead_defaultVersion = sqRead_corrected | sqRead_trimmed;
+  if ((sqRead_defaultVersion == sqRead_normal) ||
+      (sqRead_defaultVersion == sqRead_unset)) {
+    sqRead_which  mr;   //  "Most Recent"
+
+    if (sqStore_getNumReads(sqRead_raw)                        > 0)   mr = sqRead_raw;
+    if (sqStore_getNumReads(sqRead_raw | sqRead_trimmed)       > 0)   mr = sqRead_raw       | sqRead_trimmed;
+    if (sqStore_getNumReads(sqRead_corrected)                  > 0)   mr = sqRead_corrected;
+    if (sqStore_getNumReads(sqRead_corrected | sqRead_trimmed) > 0)   mr = sqRead_corrected | sqRead_trimmed;
+
+    sqRead_defaultVersion |= mr;
   }
-
-  //  Otherwise, if neither raw or corrected reads were specified, decide
-  //  which one is the most recent.  This is for when the user only asks
-  //  for 'trimmed' reads, not caring if they are raw or corrected.
 
   else if (((sqRead_defaultVersion & sqRead_raw)       == sqRead_unset) &&
            ((sqRead_defaultVersion & sqRead_corrected) == sqRead_unset)) {
@@ -60,7 +65,8 @@ sqStore::sqStore_loadMetadata(void) {
     else if (sqStore_getNumReads(sqRead_raw)       > 0)   sqRead_defaultVersion |= sqRead_raw;
   }
 
-  //  The store itself can now insist that 'compressed' reads be used by default.
+  //  If the store is set to return compressed reads by default and the user
+  //  didn't explicitly say to use uncompressed reads, enable compression.
 
   if (((sqRead_defaultVersion & sqRead_normal) == sqRead_unset) &&
       (fileExists(sqStore_path(), '/', "homopolymerCompression") == true)) {
@@ -68,9 +74,31 @@ sqStore::sqStore_loadMetadata(void) {
     sqRead_defaultVersion |=  sqRead_compressed;
   }
 
-  //  Default version MUST be set now.
+  //  The default version MUST be set now:
+  //   - either raw or corrected is set, but not both.
+  //   - at most one of normal or compressed is set (but if neither is set, it's treated as 'normal').
 
-  assert(sqRead_defaultVersion != sqRead_unset);
+  bool  validMode = true;
+
+  if (sqRead_defaultIsNot(sqRead_raw) &&
+      sqRead_defaultIsNot(sqRead_corrected)) {
+    fprintf(stderr, "sqStore_loadMetadata()-- At least one of 'raw' or 'corrected' must be specified.\n");
+    validMode = false;
+  }
+
+  if (sqRead_defaultIs(sqRead_raw) &&
+      sqRead_defaultIs(sqRead_corrected)) {
+    fprintf(stderr, "sqStore_loadMetadata()-- Cannot read both 'raw' and 'corrected' reads at the same time.\n");
+    validMode = false;
+  }
+
+  if (sqRead_defaultIs(sqRead_normal) &&
+      sqRead_defaultIs(sqRead_compressed)) {
+    fprintf(stderr, "sqStore_loadMetadata()-- Cannot read both 'normal' and 'compressed' reads at the same time.\n");
+    validMode = false;
+  }
+
+  assert(validMode == true);
 
   //  We can maybe, eventually, be clever and load these on-demand.
   //  For now, load all the metadata.
