@@ -82,6 +82,8 @@ toString(sqRead_which w) {
   const sqRead_which  t  = sqRead_trimmed;
   const sqRead_which  ct = sqRead_compressed | sqRead_trimmed;
 
+  w &= ~sqRead_normal;  //  Disable flag so we report the normal uncompressed string.
+
   switch (w) {
     case sqRead_unset:            return("unset");                           break;
 
