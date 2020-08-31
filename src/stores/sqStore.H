@@ -248,6 +248,10 @@ public:
 
 private:
   sqReadSeq   *sqStore_getSeq(sqRead_which w) {
+
+    if (w == sqRead_unset)         //  If w is somehow set to the unset state,
+      w = sqRead_defaultVersion;   //  go back to using the global default.
+
     bool  isRaw = ((w & sqRead_raw)        == sqRead_raw);
     bool  isCor = ((w & sqRead_corrected)  == sqRead_corrected);
     bool  isTrm = ((w & sqRead_trimmed)    == sqRead_trimmed);
