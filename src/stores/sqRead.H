@@ -40,26 +40,26 @@ const uint64 AS_BLOBFILE_MAX_SIZE  = 1024 * 1024 * 1024;
 
 
 
-//  Default version is set either by the user explicitly,
-//  or by the store when it is opened.  It should never
-//  be unset.
+//  The default version is set either by the user explicitly, or by the store
+//  when it is opened.  It should never be unset.
 //
-//  Need to track what the 'latest' is:
-//    raw
-//    raw              | trimmed
-//    raw | compressed             -- equivalent, just homopoly compressed
-//    raw | compressed | trimmed   -- equivalent, just homopoly compressed
+//  If the store is created (new sqStore(...)) with no default set, it will
+//  examine what reads are present and return the 'latest' available (raw,
+//  corrected, trimmed, in that order).  If the homopolymer compression flag
+//  exists, compressed reads will be returned.
 //
-//    cor
-//    cor              | trimmed
-//    cor | compressed             -- nonsense?
-//    cor | compressed | trimmed   -- nonsense?
+//  If the default version is set before the store is opened, exactly those
+//  reads will be returned.
 //
 //  The need for sqRead_normal arises when the store is set to return
 //  homopoly compressed reads by default (if file 'homopolymerCompression'
 //  exists).  sqRead_normal prevents sqStore_loadMetadata from enabling
 //  homopoly compression.  It is otherwise not used (and so gets a quite
 //  bogus value).
+//
+//  The 'exclude' function works ONLY AFTER the store is opened - since there
+//  is no default set we can't remove a flag yet.
+//
 
 typedef uint32  sqRead_which;
 
@@ -108,6 +108,30 @@ static
 void
 sqRead_setDefaultVersion(sqRead_which v) {
   sqRead_defaultVersion = v;
+}
+
+static
+void
+sqRead_setDefaultVersionInclude(sqRead_which v) {
+  sqRead_defaultVersion |= v;
+}
+
+static
+void
+sqRead_setDefaultVersionExclude(sqRead_which v) {
+  sqRead_defaultVersion &= ~v;
+}
+
+static    //  Return true of the default version has mode 'v' set.
+bool
+sqRead_defaultIs(sqRead_which v) {
+  return((sqRead_defaultVersion & v) == v);
+}
+
+static    //  Return true of the default version has mode 'v' not set.
+bool
+sqRead_defaultIsNot(sqRead_which v) {
+  return((sqRead_defaultVersion & v) == sqRead_unset);
 }
 
 static
