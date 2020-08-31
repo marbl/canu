@@ -95,8 +95,8 @@ toString(sqRead_which w) {
     case sqRead_corrected | t:    return("corrected-trimmed");               break;
     case sqRead_corrected | ct:   return("corrected-compressed-trimmed");    break;
 
-    case sqRead_compressed:       return("compressed");
-    case sqRead_trimmed:          return("trimmed");
+    case sqRead_compressed:       return("compressed");                      break;
+    case sqRead_trimmed:          return("trimmed");                         break;
 
     default:                      return("undefined-mode");                  break;
   }
