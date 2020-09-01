@@ -156,7 +156,7 @@ dumpReads_setFlagsString(sqStore *seqs, uint32 rid, char *flags) {
 
 
 void
-dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w) {
+dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool showAll) {
   char   l1[1024] = {0};
 
   char   s1len[16] = {0}, s1bgn[16] = {0}, s1end[16] = {0};
@@ -168,7 +168,7 @@ dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w) {
   dumpReads_printHeader(w);
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    bool  active = false;
+    bool  active = showAll;
 
     dumpReads_setClearString(seqs, rid, s1len, s1bgn, s1end, sqRead_raw);
     dumpReads_setClearString(seqs, rid, s2len, s2bgn, s2end, sqRead_raw       | sqRead_compressed);
@@ -225,7 +225,7 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
 
 
 void
-dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool wantLengths) {
+dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool wantLengths) {
   vector<uint64>  lengths;
   uint64          nBases = 0;
 
@@ -233,16 +233,16 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool wa
   //  generate a pretty picture.
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    uint32  len = seqs->sqStore_getReadLength(rid, w);
+    uint32  len = seqs->sqStore_getReadLength(rid);
 
-    if (seqs->sqStore_isValidRead(rid, w) == false)     //  Skip invalid reads.
+    if  (seqs->sqStore_isValidRead(rid) == false)        //  Skip invalid reads.
       continue;
 
-    if (seqs->sqStore_isIgnoredRead(rid, w) == true)    //  Skip ignored reads.
+    if  (seqs->sqStore_isIgnoredRead(rid) == true)       //  Skip ignored reads.
       continue;
 
-    if (seqs->sqStore_isTrimmedRead(rid, w) == false)   //  Skip untrimmed reads,
-      if (w & sqRead_trimmed)                           //  if we want trimmed reads.
+    if ((seqs->sqStore_isTrimmedRead(rid) == false) &&   //  Skip untrimmed reads,
+        (sqRead_defaultVersion & sqRead_trimmed))        //  if we want trimmed reads.
         continue;
 
     lengths.push_back(len);
@@ -251,6 +251,17 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool wa
   }
 
   if (wantLengths == false) {
+    char   msg[1024] = {0};
+
+    strcat(msg, "Histogram of");
+
+    if (sqRead_defaultVersion & sqRead_raw)         strcat(msg, " raw");
+    if (sqRead_defaultVersion & sqRead_corrected)   strcat(msg, " corrected");
+
+    
+
+    fprintf(stdout, "Histogram of %s reads:\n", sqRead_getDefaultVersion());
+
     doSummarize_lengthHistogram(lengths, nBases, false);
   }
 
@@ -301,6 +312,8 @@ main(int argc, char **argv) {
   bool             wantStats         = false;
   bool             wantHistogram     = false;
   bool             wantLengths       = false;
+
+  bool             showAll           = false;
 
   uint32           bgnID             = 1;
   uint32           endID             = UINT32_MAX;
@@ -356,6 +369,10 @@ main(int argc, char **argv) {
       wantLengths   = true;
     }
 
+    else if (strcmp(argv[arg], "-all") == 0) {
+      showAll = true;
+    }
+
     else if (strcmp(argv[arg], "-raw") == 0) {
       which |=  sqRead_raw;
       which &= ~sqRead_corrected;
@@ -370,8 +387,18 @@ main(int argc, char **argv) {
       which |=  sqRead_trimmed;
     }
 
+    else if (strcmp(argv[arg], "-untrimmed") == 0) {
+      which &= ~sqRead_trimmed;
+    }
+
     else if (strcmp(argv[arg], "-compressed") == 0) {
+      which &= ~sqRead_normal;
       which |=  sqRead_compressed;
+    }
+
+    else if (strcmp(argv[arg], "-uncompressed") == 0) {
+      which |=  sqRead_normal;
+      which &= ~sqRead_compressed;
     }
 
     else if (strcmp(argv[arg], "-r") == 0) {
@@ -396,7 +423,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "OUTPUT FORMAT:\n");
     fprintf(stderr, "  -libs            dump information about libraries\n");
-    fprintf(stderr, "  -reads           dump information about reads\n");
+    fprintf(stderr, "  -reads           dump information about reads.  the 'read selection' flags will\n");
+    fprintf(stderr, "                   restrict the output to just those categories selected.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "                     There are four pairs of flags, one for raw, raw-trimmed,\n");
     fprintf(stderr, "                     corrected and corrected-trimmed.  Each pair tells if\n");
     fprintf(stderr, "                     the sequence is valid and if it is ignored.\n");
@@ -412,17 +441,23 @@ main(int argc, char **argv) {
     fprintf(stderr, "                       RR--CCTt - Both raw and corrected versions exist and are used.\n");
     fprintf(stderr, "                                  Corrected trimmed version exists, but is ignored.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -stats           dump summary statistics on reads\n");
+    fprintf(stderr, "  -stats           dump summary statistics on reads.  all read types are summarized.\n");
+    fprintf(stderr, "                   the 'read selection' options have no effect.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -histogram       dump a length histogram\n");
-    fprintf(stderr, "  -lengths         dump just the (sorted) read lengths\n");
+    fprintf(stderr, "  -lengths         dump sorted read lengths\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "READ SELECTION:\n");
+    fprintf(stderr, "  Applies to -reads, -histogram and -lengths.  The default for these\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -r bgn[-end]     output reads/libraies from `bgn` to `end`, inclusive\n");
+    fprintf(stderr, "  -all             show reads not active with the current selection, for -reads\n");
     fprintf(stderr, "  -raw             restrict to 'raw' reads\n");
     fprintf(stderr, "  -corrected       restrict to 'corrected' reads\n");
+    fprintf(stderr, "  -untrimmed       restrict to 'untrimmed' reads\n");
     fprintf(stderr, "  -trimmed         restrict to 'trimmed' reads\n");
-    fprintf(stderr, "  -compressed      restrict to 'compressed' reads\n");
+    fprintf(stderr, "  -uncompressed    restrict to 'normal non-homopolymer compressed' reads\n");
+    fprintf(stderr, "  -compressed      restrict to 'homopolymer compressed' reads\n");
     fprintf(stderr, "\n");
 
     if (seqStoreName == NULL)
@@ -431,13 +466,25 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqRead_setDefaultVersion(which);
+  //  Set the default version if one was supplied.  If one isn't supplied,
+  //  which is sqRead_unset, and this does nothing.
+  //
+  if (which != sqRead_unset)
+    sqRead_setDefaultVersion(which);
 
   sqStore    *seqStore  = new sqStore(seqStoreName, sqStore_readOnly);
   uint32      numReads  = seqStore->sqStore_lastReadID();
   uint32      numLibs   = seqStore->sqStore_lastLibraryID();
 
-  fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", seqStoreName, sqRead_getDefaultVersion());
+  //  If there was no default version supplied, set it to the current default
+  //  (as set by the store).  This lets us call sqRead_length et al. with
+  //  this 'which' regardless of if it's set by the user or not (otherwise
+  //  we'd call sqRead_length(sqRead_unset) which is invalid).
+  //
+  if (which == sqRead_unset)
+    which = sqRead_defaultVersion;
+
+  //fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", seqStoreName, sqRead_getDefaultVersion());
 
   if (wantLibs) {
     if (bgnID < 1)         bgnID = 1;
@@ -457,13 +504,13 @@ main(int argc, char **argv) {
     dumpLibs(seqStore, bgnID, endID);
 
   if (wantReads)
-    dumpReads(seqStore, bgnID, endID, which);
+    dumpReads(seqStore, bgnID, endID, which, showAll);
 
   if (wantStats)
     dumpStats(seqStore, bgnID, endID);
 
   if (wantHistogram)
-    dumpHistogram(seqStore, bgnID, endID, which, wantLengths);
+    dumpHistogram(seqStore, bgnID, endID, wantLengths);
 
   delete seqStore;
 
