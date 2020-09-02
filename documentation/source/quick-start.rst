@@ -68,14 +68,14 @@ For PacBio::
  canu \
   -p ecoli -d ecoli-pacbio \
   genomeSize=4.8m \
-  -pacbio-raw pacbio.fastq
+  -pacbio pacbio.fastq
 
 For Nanopore::
 
  canu \
   -p ecoli -d ecoli-oxford \
   genomeSize=4.8m \
-  -nanopore-raw oxford.fasta
+  -nanopore oxford.fasta
 
 
 Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-nanopore',
@@ -113,7 +113,7 @@ Canu has support for using parental short-read sequencing to classify and bin th
   genomeSize=5m \
   -haplotypeK12 K12.parental.fasta \
   -haplotypeO157 O157.parental.fasta \
-  -pacbio-raw F1.fasta
+  -pacbio F1.fasta
 
 The run will first bin the reads into the haplotypes (``ecoliTrio/haplotype/haplotype-*.fasta.gz``) and provide a summary of the classification in ``ecoliTrio/haplotype/haplotype.log``::
 
@@ -132,7 +132,7 @@ As comparison, you can try co-assembling the datasets instead::
   -p asm -d ecoliHap \
   genomeSize=5m \
   corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" \
- -pacbio-raw F1.fasta
+ -pacbio F1.fasta
 
 and compare the continuity/accuracy. 
 
@@ -152,8 +152,8 @@ file::
  canu \
   -p ecoli -d ecoli-mix \
   genomeSize=4.8m \
-  -pacbio-raw pacbio.part?.fastq.gz \
-  -nanopore-raw oxford.fasta.gz
+  -pacbio pacbio.part?.fastq.gz \
+  -nanopore oxford.fasta.gz
 
 
 Correct, Trim and Assemble, Manually
@@ -168,29 +168,29 @@ We'll use the PacBio reads from above.  First, correct the raw reads::
  canu -correct \
    -p ecoli -d ecoli \
    genomeSize=4.8m \
-   -pacbio-raw  pacbio.fastq
+   -pacbio  pacbio.fastq
 
 Then, trim the output of the correction::
 
  canu -trim \
    -p ecoli -d ecoli \
    genomeSize=4.8m \
-   -pacbio-corrected ecoli/ecoli.correctedReads.fasta.gz
+   -corrected -pacbio ecoli/ecoli.correctedReads.fasta.gz
 
 And finally, assemble the output of trimming, twice, with different stringency on which overlaps to
 use (see :ref:`correctedErrorRate <correctedErrorRate>`)::
 
- canu -assemble \
+ canu \
    -p ecoli -d ecoli-erate-0.039 \
    genomeSize=4.8m \
    correctedErrorRate=0.039 \
-   -pacbio-corrected ecoli/ecoli.trimmedReads.fasta.gz
+   -trimmed -corrected -pacbio ecoli/ecoli.trimmedReads.fasta.gz
 
- canu -assemble \
+ canu \
    -p ecoli -d ecoli-erate-0.075 \
    genomeSize=4.8m \
    correctedErrorRate=0.075 \
-   -pacbio-corrected ecoli/ecoli.trimmedReads.fasta.gz
+   -trimmed -corrected -pacbio ecoli/ecoli.trimmedReads.fasta.gz
 
 Note that the assembly stages use different '-d' directories.  It is not possible to run multiple
 copies of canu with the same work directory.
@@ -209,7 +209,7 @@ quality corrected reads::
   -p asm -d yeast \
   genomeSize=12.1m \
   correctedErrorRate=0.105 \
-  -pacbio-raw yeast.20x.fastq.gz
+  -pacbio yeast.20x.fastq.gz
 
 Consensus Accuracy
 -------------------
