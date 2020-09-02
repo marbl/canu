@@ -39,6 +39,9 @@ sqRead::sqRead_decodeBlob(void) {
   resizeArray(_rawBases, 0, _rawBasesAlloc, rawLength+1, resizeArray_doNothing);
   resizeArray(_corBases, 0, _corBasesAlloc, corLength+1, resizeArray_doNothing);
 
+  _rawBases[0] = 0;  //  We don't need to clear the whole string, but clearing the first byte
+  _corBases[0] = 0;  //  will leave strings that don't decode() below correctly terminated.
+
   //  Forget what sequence we previously returned to the user.
 
   _retFlags = 0;
