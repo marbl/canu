@@ -537,18 +537,6 @@ public:
     _rawC          = rawc;
     _corU          = coru;
     _corC          = corc;
-
-    _nameAlloc     = 0;
-    _nameLen       = 0;
-    _name          = NULL;
-
-    _rawBasesAlloc = 0;
-    _rawBasesLen   = 0;
-    _rawBases      = NULL;
-
-    _corBasesAlloc = 0;
-    _corBasesLen   = 0;
-    _corBases      = NULL;
   };
 
   ~sqReadDataWriter() {
@@ -588,23 +576,23 @@ public:
   void        sqReadDataWriter_writeBlob(writeBuffer *buffer);
 
 private:
-  sqReadMeta  *_meta;             //  Pointer to the read metadata.
-  sqReadSeq   *_rawU;
-  sqReadSeq   *_rawC;
-  sqReadSeq   *_corU;
-  sqReadSeq   *_corC;
+  sqReadMeta  *_meta = nullptr;           //  Pointer to the read metadata.
+  sqReadSeq   *_rawU = nullptr;           //    In sqStoreCreate, these pointers are
+  sqReadSeq   *_rawC = nullptr;           //    back to the data in sqStore itself.
+  sqReadSeq   *_corU = nullptr;
+  sqReadSeq   *_corC = nullptr;
 
-  uint32       _nameAlloc;
-  uint32       _nameLen;
-  char        *_name;
+  uint32       _nameAlloc     = 0;
+  uint32       _nameLen       = 0;
+  char        *_name          = nullptr;
 
-  uint32       _rawBasesAlloc;    //  The raw sequence.
-  uint32       _rawBasesLen;      //  Length of string, INCLUDING terminating NUL byte.
-  char        *_rawBases;
+  uint32       _rawBasesAlloc = 0;        //  The raw sequence.  The length is the
+  uint32       _rawBasesLen   = 0;        //  length of the array, not of the string.
+  char        *_rawBases      = nullptr;
 
-  uint32       _corBasesAlloc;    //  The corrected sequence.
-  uint32       _corBasesLen;      //  Length of string, INCLUDING terminating NUL byte.
-  char        *_corBases;
+  uint32       _corBasesAlloc = 0;        //  The corrected sequence.  The length is the
+  uint32       _corBasesLen   = 0;        //  length of the array, not of the string.
+  char        *_corBases      = nullptr;
 
   friend class sqStore;
   friend class sqStoreBlobWriter;
