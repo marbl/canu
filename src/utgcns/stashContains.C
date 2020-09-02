@@ -43,7 +43,9 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
   //    Declare that we have no stashed reads.
   //    Clear the return statistics.
 
+  _stashed    = nullptr;
   _stashedLen = 0;
+  _stashedMax = 0;
 
   S.clear();
 
