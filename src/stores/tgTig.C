@@ -126,6 +126,10 @@ tgTig::tgTig() {
   _childrenLen          = 0;
   _childrenMax          = 0;
 
+  _stashed              = nullptr;
+  _stashedLen           = 0;
+  _stashedMax           = 0;
+
   _childDeltaBitsLen    = 0;
   _childDeltaBits       = NULL;
 }
@@ -134,6 +138,9 @@ tgTig::~tgTig() {
   delete [] _bases;
   delete [] _quals;
   delete [] _children;
+
+  assert(_stashed == nullptr);
+
   delete    _childDeltaBits;
 }
 
@@ -222,6 +229,10 @@ tgTig::clear(void) {
   _layoutLen            = 0;
   _basesLen             = 0;
   _childrenLen          = 0;
+
+  _stashed              = nullptr;
+  _stashedLen           = 0;
+  _stashedMax           = 0;
 
   delete _childDeltaBits;
 
