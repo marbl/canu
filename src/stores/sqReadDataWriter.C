@@ -24,15 +24,80 @@
 void
 sqReadDataWriter::sqReadDataWriter_importData(sqRead *read) {
 
-  _meta = read->_meta;
+  _meta = read->_meta;   //  These point back to the sqStore.
   _rawU = read->_rawU;
   _rawC = read->_rawC;
   _corU = read->_corU;
   _corC = read->_corC;
 
-  sqReadDataWriter_setName          (read->_name);
-  sqReadDataWriter_setRawBases      (read->_rawBases, read->sqRead_length(sqRead_raw));
-  sqReadDataWriter_setCorrectedBases(read->_corBases, read->sqRead_length(sqRead_corrected));
+  //  Copy the name, raw bases and corrected bases.  We cannot use
+  //  setRawBases/setCorrectedBases because those want to change the metadata
+  //  in sqStore -- even though it should be "changing" the value to the same
+  //  thing.
+  //
+  //  Note that the lengths of these arrays include the NUL terminating byte,
+  //  where the *Len variables below do not.
+
+  uint32   namLen = strlen(read->_name);
+  uint32   rawLen = read->sqRead_length(sqRead_raw);
+  uint32   corLen = read->sqRead_length(sqRead_corrected);
+
+  assert(0 == read->_name[namLen]);
+  assert(0 == read->_rawBases[rawLen]);
+  assert(0 == read->_corBases[corLen]);
+
+  duplicateArray(_name,     _nameLen,     _nameAlloc,     read->_name,     namLen + 1);
+  duplicateArray(_rawBases, _rawBasesLen, _rawBasesAlloc, read->_rawBases, rawLen + 1);
+  duplicateArray(_corBases, _corBasesLen, _corBasesAlloc, read->_corBases, corLen + 1);
+
+  assert(0 == _name[namLen]);
+  assert(0 == _rawBases[rawLen]);
+  assert(0 == _corBases[corLen]);
+}
+
+
+
+void
+sqReadDataWriter::sqReadDataWriter_setName(const char *N) {
+  duplicateArray(_name, _nameLen, _nameAlloc, N, (uint32)strlen(N) + 1);
+}
+
+
+
+void
+sqReadDataWriter::sqReadDataWriter_setRawBases(const char *S, uint32 Slen) {
+
+  setArraySize(_rawBases, _rawBasesLen, _rawBasesAlloc, Slen+1, resizeArray_doNothing);
+
+  memcpy(_rawBases, S, sizeof(char) * Slen);
+  _rawBases[Slen] = 0;
+
+  _rawBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
+
+  assert(_rawU->sqReadSeq_valid() == false);
+  assert(_rawC->sqReadSeq_valid() == false);
+
+  _rawU->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, false);
+  _rawC->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, true);
+}
+
+
+
+void
+sqReadDataWriter::sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen) {
+
+  setArraySize(_corBases, _corBasesLen, _corBasesAlloc, Slen+1, resizeArray_doNothing);
+
+  memcpy(_corBases, S, sizeof(char) * Slen);
+  _corBases[Slen] = 0;
+
+  _corBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
+
+  assert(_corU->sqReadSeq_valid() == false);
+  assert(_corC->sqReadSeq_valid() == false);
+
+  _corU->sqReadSeq_setLength(_corBases, _corBasesLen-1, false);
+  _corC->sqReadSeq_setLength(_corBases, _corBasesLen-1, true);
 }
 
 

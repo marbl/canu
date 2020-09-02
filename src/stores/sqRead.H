@@ -548,42 +548,9 @@ public:
 public:
   void        sqReadDataWriter_importData(sqRead *read);
 
-  void        sqReadDataWriter_setName(const char *N) {
-    duplicateArray(_name, _nameLen, _nameAlloc, N, (uint32)strlen(N) + 1);
-  };
-
-  //  _setBases() doesn't need NUL terminated strings on input, but always
-  //  makes NUL terminated strings for itself.
-
-  void        sqReadDataWriter_setRawBases(const char *S, uint32 Slen) {
-    setArraySize(_rawBases, _rawBasesLen, _rawBasesAlloc, Slen+1, resizeArray_doNothing);
-
-    memcpy(_rawBases, S, sizeof(char) * Slen);
-    _rawBases[Slen] = 0;
-
-    _rawBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
-
-    assert(_rawU->sqReadSeq_valid() == false);
-    assert(_rawC->sqReadSeq_valid() == false);
-
-    _rawU->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, false);
-    _rawC->sqReadSeq_setLength(_rawBases, _rawBasesLen-1, true);
-  };
-
-  void        sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen) {
-    setArraySize(_corBases, _corBasesLen, _corBasesAlloc, Slen+1, resizeArray_doNothing);
-
-    memcpy(_corBases, S, sizeof(char) * Slen);
-    _corBases[Slen] = 0;
-
-    _corBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
-
-    assert(_corU->sqReadSeq_valid() == false);
-    assert(_corC->sqReadSeq_valid() == false);
-
-    _corU->sqReadSeq_setLength(_corBases, _corBasesLen-1, false);
-    _corC->sqReadSeq_setLength(_corBases, _corBasesLen-1, true);
-  };
+  void        sqReadDataWriter_setName(const char *N);
+  void        sqReadDataWriter_setRawBases(const char *S, uint32 Slen);
+  void        sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen);
 
   void        sqReadDataWriter_writeBlob(writeBuffer *buffer);
 
