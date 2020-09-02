@@ -32,12 +32,13 @@ such as reformatting files, but generally just executes other programs.
 
 ::
 
- canu [-trimmed|-untrimmed|-raw|-corrected] \
-   [-s <assembly-specifications-file>] \
+ canu [-haplotype|-correct|-trim] \
+    [-s <assembly-specifications-file>] \
     -p <assembly-prefix> \
     -d <assembly-directory> \
     genomeSize=<number>[g|m|k] \
     [other-options] \
+    [-trimmed|-untrimmed|-raw|-corrected] \
     [-pacbio|-nanopore|-pacbio-hifi] *fastq
 
 The -p option, to set the file name prefix of intermediate and output files, is mandatory.  If -d is
@@ -50,7 +51,7 @@ parameters will be applied before any from the command line are used, providing 
 setting commonly used parameters, but overriding them for specific assemblies.
 
 By default, all needed top-level tasks are performed (-pacbio and -nanopore are assumed to be raw and untrimmed while -pacbio-hifi are assumed to be corrected and trimmed).  It is possible to run exactly one task by
-specifying your read characteristics.  These options can be useful if you want to correct
+specifying your read characteristics and a step name.  These options can be useful if you want to correct
 reads once and try many different assemblies.  We do exactly that in the :ref:`quickstart`.
 Additionally, suppling pre-corrected reads with -pacbio -corrected or -nanopore -corrected
 will run only the trimming and assembling stages. Specifying reads as -corrected -untrimmed will run only the assembly step.
