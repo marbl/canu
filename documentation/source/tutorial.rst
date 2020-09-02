@@ -32,13 +32,13 @@ such as reformatting files, but generally just executes other programs.
 
 ::
 
- canu [-correct | -trim | -assemble | -trim-assemble] \
+ canu [-trimmed|-untrimmed|-raw|-corrected] \
    [-s <assembly-specifications-file>] \
     -p <assembly-prefix> \
     -d <assembly-directory> \
     genomeSize=<number>[g|m|k] \
     [other-options] \
-    [-pacbio-raw | -pacbio-corrected | -nanopore-raw | -nanopore-corrected] *fastq
+    [-pacbio|-nanopore|-pacbio-hifi] *fastq
 
 The -p option, to set the file name prefix of intermediate and output files, is mandatory.  If -d is
 not supplied, canu will run in the current directory, otherwise, Canu will create the
@@ -49,11 +49,11 @@ The -s option will import a list of parameters from the supplied specification (
 parameters will be applied before any from the command line are used, providing a method for
 setting commonly used parameters, but overriding them for specific assemblies.
 
-By default, all three top-level tasks are performed.  It is possible to run exactly one task by
-using the -correct, -trim or -assemble options.  These options can be useful if you want to correct
+By default, all needed top-level tasks are performed (-pacbio and -nanopore are assumed to be raw and untrimmed while -pacbio-hifi are assumed to be corrected and trimmed).  It is possible to run exactly one task by
+specifying your read characteristics.  These options can be useful if you want to correct
 reads once and try many different assemblies.  We do exactly that in the :ref:`quickstart`.
-Additionally, suppling pre-corrected reads with -pacbio-corrected or -nanopore-corrected
-will run only the trimming (-trim) and assembling (-assemble) stages.
+Additionally, suppling pre-corrected reads with -pacbio -corrected or -nanopore -corrected
+will run only the trimming and assembling stages. Specifying reads as -corrected -untrimmed will run only the assembly step.
 
 Parameters are key=value pairs that configure the assembler.  They set run time parameters (e.g.,
 memory, threads, grid), algorithmic parameters (e.g., error rates, trimming aggressiveness), and
@@ -469,8 +469,25 @@ LOGGING
     --   Maximum                      50522         10183
 
   are the reads which were deemed too short to correct. If you increase ``corOutCoverage``, you could get up to 41x more corrected sequence. However, unless the genome is very heterozygous, this does not typically improve the assembly and increases the running time.
+
+  The assembly read error report summarizes how unitigging was run:::
   
-  The assembly statistics (NG50, etc) are reported before and after consensus calling.
+    --  ERROR RATES
+    --  -----------
+    --                                                   --------threshold------
+    --  21017                        fraction error      fraction        percent
+    --  samples                              (1e-5)         error          error
+    --                   --------------------------      --------       --------
+    --  command line (-eg)                           ->     30.00        0.0300%
+    --  command line (-eM)                           ->   1000.00        1.0000%
+    --  mean + std.dev       0.08 +-   4 *     1.05  ->      4.30        0.0043%
+    --  median + mad         0.00 +-   4 *     0.00  ->      0.00        0.0000%
+    --  90th percentile                              ->      1.00        0.0010%  (enabled)
+    --  
+
+  Canu selects multiple error rate thresholds and selects the most appropriate one based on how many reads end up without overlaps at each threshold. In this case, it used 0.001% or 1 error in 10 kbp after considering 1.0% and 0.0043%.
+  
+  The assembly statistics (NG50, etc) are reported before and after consensus calling. Note that for HiFi data, the pre-consensus statistics are in homopolymer-compressed space.
 
 READS
 
@@ -483,18 +500,14 @@ READS
 SEQUENCE
 
 <prefix>.contigs.fasta
-   Everything which could be assembled and is the primary assembly, including both unique
-   and repetitive elements.
-
-<prefix>.unitigs.fasta
-   Contigs, split at alternate paths in the graph.
+   Everything which could be assembled and is the full assembly, including both unique, repetitive, and bubble elements.
 
 <prefix>.unassembled.fasta
    Reads and low-coverage contigs which could not be incorporated into the primary assembly.
 
 The header line for each sequence provides some metadata on the sequence.::
 
-   >tig######## len=<integer> reads=<integer> covStat=<float> gappedBases=<yes|no> class=<contig|bubble|unassm> suggestRepeat=<yes|no> suggestCircular=<yes|no>
+   >tig######## len=<integer> reads=<integer> covStat=<float> class=<contig|bubble|unassm> suggestRepeat=<yes|no> suggestCircular=<yes|no>
 
    len
       Length of the sequence, in bp.
@@ -505,9 +518,6 @@ The header line for each sequence provides some metadata on the sequence.::
    covStat
       The log of the ratio of the contig being unique versus being two-copy, based on the read arrival rate.  Positive values indicate more likely to be unique, while negative values indicate more likely to be repetitive.  See `Footnote 24 <http://science.sciencemag.org/content/287/5461/2196.full#ref-24>`_ in `Myers et al., A Whole-Genome Assembly of Drosophila <http://science.sciencemag.org/content/287/5461/2196.full>`_.
 
-   gappedBases
-      If yes, the sequence includes all gaps in the multialignment.
-
    class
       Type of sequence.  Unassembled sequences are primarily low-coverage sequences spanned by a single read.
 
@@ -515,31 +525,27 @@ The header line for each sequence provides some metadata on the sequence.::
       If yes, sequence was detected as a repeat based on graph topology or read overlaps to other sequences.
 
    suggestCircular
-      If yes, sequence is likely circular.  The GFA file includes the CIGAR sequence for the overlap.
+      If yes, sequence is likely circular.  The fasta def line includes the non-redundant coordinates
 
 GRAPHS
 
 Canu versions prior to v1.9 created a GFA of the contig graph.  However, as noted at the time, the
 GFA format cannot represent partial overlaps between contigs (for more details see the discussion of
 general edges on the `GFA2 <https://github.com/GFA-spec/GFA-spec/blob/master/GFA2.md>`_ page).
-Because Canu contigs are not compatible with the GFA format, <prefix>.contigs.gfa has been removed.
-
-<prefix>.unitigs.gfa
-  Since the GFA format cannot represent partial overlaps, the contigs are split at all such overlap junctions into unitigs. The unitigs capture non-branching subsequences within the contigs and will break at any ambiguity (e.g. a haplotype switch).
-
-<prefix>.unitigs.bed
-  The position of each unitig in a contig.
+Because Canu contigs are not compatible with the GFA format, <prefix>.contigs.gfa has been removed. Prior to Canu v2.1, 
+contigs split at overlap junctions were output as unitigs. However, these graphs often would be missing edges and
+be over-fragmented (split where there is no ambiguity). Thus <prefix>.unitigs.fasta and <prefix.unitigs.gfa have been removed.
 
 METADATA
 
 The layout provides information on where each read ended up in the final assembly, including
 contig and positions. It also includes the consensus sequence for each contig.
 
-<prefix>.contigs.layout, <prefix>.unitigs.layout
+<prefix>.contigs.layout
   (undocumented)
 
-<prefix>.contigs.layout.readToTig, <prefix>.unitigs.layout.readToTig
-  The position of each read in a contig (unitig).
+<prefix>.contigs.layout.readToTig
+  The position of each read in a contig.
   
   The file looks like::
   
@@ -555,8 +561,8 @@ contig and positions. It also includes the consensus sequence for each contig.
 
   which gives you the original read (PacBio in this case) id.
 
-<prefix>.contigs.layout.tigInfo, <prefix>.unitigs.layout.tigInfo
-  A list of the contigs (unitigs), lengths, coverage, number of reads and other metadata.
+<prefix>.contigs.layout.tigInfo
+  A list of the contigs, lengths, coverage, number of reads and other metadata.
   Essentially the same information provided in the FASTA header line.
 
 
