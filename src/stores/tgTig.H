@@ -286,11 +286,19 @@ public:
   bool           loadLayout(FILE *F);
 
   void           stashContains(double maxCov, tgTigStashed &S);
-  void           stashContains(double maxCov) {
-    tgTigStashed S;
-    stashContains(maxCov, S);
-  };
   void           unstashContains(void);
+
+  void           dropExcessCoverage(double maxCov) {
+    tgTigStashed S;
+
+    stashContains(maxCov, S);
+
+    delete [] _stashed;
+
+    _stashedLen = 0;
+    _stashedMax = 0;
+    _stashed    = NULL;
+  };
 
   //  Save and load a package of data needed to process this tig.
 

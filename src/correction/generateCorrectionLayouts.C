@@ -158,13 +158,10 @@ generateLayout(tgTig      *layout,
     children.insert(ovl[oo].b_iid);
   }
 
-  //  Use utgcns's stashContains() to get rid of extra coverage.  This function removes
-  //  extra coverage from the layout and stores it in the savedChildren object.  We don't
-  //  care about these, and can just delete them.
-  //
-  //  stashContains() also sorts by position, so we're done after this.
+  //  Dro excess coverage in the evidence by dropping short reads.  This also
+  //  sorts by position.
 
-  layout->stashContains(maxEvidenceCoverage);
+  layout->dropExcessCoverage(maxEvidenceCoverage);
 }
 
 
