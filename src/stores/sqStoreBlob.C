@@ -102,7 +102,9 @@ sqStoreBlobReader::~sqStoreBlobReader() {
 readBuffer *
 sqStoreBlobReader::getBuffer(sqReadMeta *meta) {
   uint32  file = meta->sqRead_mSegm();
-  uint32  posn = meta->sqRead_mByte();
+  uint64  posn = meta->sqRead_mByte();
+
+  assert(file > 0);
 
   while (_buffersMax <= file)
     resizeArray(_buffers, _buffersMax, _buffersMax, _buffersMax * 2, resizeArray_copyData | resizeArray_clearNew);
