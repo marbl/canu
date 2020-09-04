@@ -26,7 +26,8 @@ require Exporter;
              haplotypeMergeCheck
              haplotypeSubtractCheck
              haplotypeReadsConfigure
-             haplotypeReadsCheck);
+             haplotypeReadsCheck
+             bootstrapHaplotypeAssemblies);
 
 use strict;
 use warnings "all";
@@ -1162,4 +1163,136 @@ sub haplotypeReadsCheck ($@) {
 
   allDone:
     stopAfter("haplotype");
+}
+
+
+
+sub bootstrapHaplotypeAssemblies ($@) {
+    my $bin        = getBinDirectory();
+    my $asm        = shift @_;
+    my @haplotypes =       @_;
+
+    my $techtype   = removeHaplotypeOptions();
+    my @options    = getCommandLineOptions();
+
+    #  Find the maximum length of haplotype names, to make the output pretty.
+
+    my $displLen = 0;
+
+    foreach my $haplotype (@haplotypes) {
+        my $hapLen = length($haplotype);
+        $displLen = ($displLen < $hapLen) ? $hapLen : $displLen;
+    }
+
+    #  Decide if we should use or ignore the unassigned reads, and if we should
+    #  even bother assembling.
+
+    fetchFile("");
+
+    my %hapReads;
+    my %hapBases;
+
+    my $totReads = 0;
+    my $totBases = 0;
+
+    open(F, "< haplotype/haplotype.log") or caExit("can't open 'haplotype/haplotype.log' for reading: $!", undef);
+    while (<F>) {
+        if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+written\s+to\s+haplotype\s+file\s+.*haplotype-(\w+).fasta.gz/) {
+            $hapReads{$3} = $1;
+            $hapBases{$3} = $2;
+
+            $totReads += $1   if ($3 ne "unknown");
+            $totBases += $2   if ($3 ne "unknown");
+        }
+        if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+filtered\s+for\s+being\s+too\s+short/) {
+            $hapReads{"short"} = $1;
+            $hapBases{"short"} = $2;
+        }
+    }
+    close(F);
+
+    print STDERR "--\n";
+    foreach my $haplotype (@haplotypes) {
+        printf STDERR "-- Found   %8d reads and %12d bases for haplotype $haplotype.\n", $hapReads{$haplotype}, $hapBases{$haplotype};
+    }
+    printf STDERR "-- Found   %8d reads and %12d bases assigned to no haplotype.\n", $hapReads{"unknown"}, $hapBases{"unknown"};
+    printf STDERR "-- Ignored %8d reads and %12d bases because they were short.\n",  $hapReads{"short"},   $hapBases{"short"};
+
+    #  Ignore the unknown reads if there aren't that many.
+
+    my $unknownFraction =  getGlobal("hapUnknownFraction");
+    my $withUnknown = (($totBases > 0) && ($hapBases{"unknown"} / $totBases < $unknownFraction)) ? 0 : 1;
+
+    if ($withUnknown == 0) {
+        print STDERR "--\n";
+        print STDERR "-- Fewer than " . $unknownFraction*100 . " % of bases in unassigned reads; don't use them in assemblies.\n";
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- More than " .  $unknownFraction*100 . " % of bases in unassigned reads; including them in assemblies.\n";
+    }
+
+    #  For each haplotype, emit a script to run the assembly.
+
+    print STDERR "--\n";
+    print STDERR "-- Haplotype assembly commands:\n";
+
+    foreach my $haplotype (@haplotypes) {
+        my $hs = substr("$haplotype" . " " x $displLen, 0, $displLen);
+
+        print STDERR "--   ./$asm-haplotype$haplotype.sh\n";
+        #print STDERR "--   $rootdir/$asm-haplotype$haplotype.sh\n";
+
+        open(F, "> ./$asm-haplotype$haplotype.sh");
+        print F "#!/bin/sh\n";
+        print F "\n";
+
+        if (defined(getGlobal("objectStore"))) {
+            print F "\n";
+            print F "#  Fetch the haplotyped reads.  This is just a bit weird.\n";
+            print F "#  The fetch (boilerplate) only works from within a subdirectory,\n";
+            print F "#  so we must cd into it first, fetch, the go back to the root.\n";
+            print F "\n";
+            print F "mkdir -p haplotype\n";
+            print F "cd       haplotype\n";
+            print F fetchFileShellCode("haplotype", "haplotype-$haplotype.fasta.gz", "");
+            print F fetchFileShellCode("haplotype", "haplotype-unnown.fasta.gz", "")      if ($withUnknown);
+            print F "cd ..\n";
+        }
+
+        print F "\n";
+        print F "$bin/canu \\\n";
+        print F "  -p $asm-haplotype$haplotype \\\n";
+        print F "  -d $asm-haplotype$haplotype \\\n";
+        print F "  $_ \\\n"   foreach (@options);
+        print F "  $techtype ./haplotype/haplotype-$haplotype.fasta.gz \\\n";
+        print F "  $techtype ./haplotype/haplotype-unknown.fasta.gz \\\n"     if ($withUnknown);
+        print F "> ./$asm-haplotype$haplotype.out 2>&1\n";
+        print F "\n";
+        print F "exit 0\n";
+        print F "\n";
+        close(F);
+
+        makeExecutable("./$asm-haplotype$haplotype.sh");
+    }
+
+    #  Fail if too many unassigned reads.
+
+    if ($totBases == 0) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  No reads assigned to haplotypes.  Assemblies not started.\n";
+        print STDERR "-- ERROR:\n";
+    }
+
+    elsif ($hapBases{"unknown"} / $totBases > 0.50) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Too many bases in unassigned reads.  Assemblies not started.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  If you run them manually, note that the unassigned reads\n";
+        print STDERR "-- ERROR:  are included in ALL assemblies.\n";
+        print STDERR "-- ERROR:\n";
+    }
+
+    #  Finished.  Let the caller submit the assemblies or not.
 }

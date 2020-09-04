@@ -759,211 +759,14 @@ $ENV{'CANU_DIRECTORY'} = getcwd();
 
 writeLog();
 
-#
-#  Begin pipeline
-#
 
-my @haplotypes = sort keys %haplotypeReads;
-
-if ((scalar(@haplotypes) > 0) &&
-    (setOptions($mode, "haplotype") eq "haplotype")) {
-    if ((! -e "./haplotype/haplotyping.success") &&
-        (haplotypeReadsExist($asm, @haplotypes) eq "no")) {
-
-        submitScript($asm, undef);   #  See comments there as to why this is safe.
-
-        print STDERR "--\n";
-        print STDERR "--\n";
-        print STDERR "-- BEGIN HAPLOTYPING\n";
-        print STDERR "--\n";
-
-        haplotypeCountConfigure($asm, %haplotypeReads);
-
-        haplotypeCountCheck($asm)                   foreach (1..getGlobal("canuIterationMax") + 1);
-        haplotypeMergeCheck($asm, @haplotypes)      foreach (1..getGlobal("canuIterationMax") + 1);
-        haplotypeSubtractCheck($asm, @haplotypes)   foreach (1..getGlobal("canuIterationMax") + 1);
-
-        haplotypeReadsConfigure($asm, \@haplotypes, \@inputFiles);
-        haplotypeReadsCheck($asm)                   foreach (1..getGlobal("canuIterationMax") + 1);
-    }
-}
-
-#  If haplotype reads exist, bootstrap the assemblies.
-#
-#  I tried to use submitScript() to launch these, but that didn't work
-#  so nicely - if not on grid, it wouldn't do anything.
-
-if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
-    my $techtype = removeHaplotypeOptions();
-    my @options  = getCommandLineOptions();
-
-    #  Find the maximum length of haplotype names, to make the output pretty.
-
-    my $displLen = 0;
-
-    foreach my $haplotype (@haplotypes) {
-        my $hapLen = length($haplotype);
-        $displLen = ($displLen < $hapLen) ? $hapLen : $displLen;
-    }
-
-    #  Decide if we should use or ignore the unassigned reads, and if we should
-    #  even bother assembling.
-
-    fetchFile("");
-
-    my %hapReads;
-    my %hapBases;
-
-    my $totReads = 0;
-    my $totBases = 0;
-
-    open(F, "< haplotype/haplotype.log") or caExit("can't open 'haplotype/haplotype.log' for reading: $!", undef);
-    while (<F>) {
-        if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+written\s+to\s+haplotype\s+file\s+.*haplotype-(\w+).fasta.gz/) {
-            $hapReads{$3} = $1;
-            $hapBases{$3} = $2;
-
-            $totReads += $1   if ($3 ne "unknown");
-            $totBases += $2   if ($3 ne "unknown");
-        }
-        if (m/(\d+)\s+reads\s+(\d+)\s+bases\s+filtered\s+for\s+being\s+too\s+short/) {
-            $hapReads{"short"} = $1;
-            $hapBases{"short"} = $2;
-        }
-    }
-    close(F);
-
-    print STDERR "--\n";
-    foreach my $haplotype (@haplotypes) {
-        printf STDERR "-- Found   %8d reads and %12d bases for haplotype $haplotype.\n", $hapReads{$haplotype}, $hapBases{$haplotype};
-    }
-    printf STDERR "-- Found   %8d reads and %12d bases assigned to no haplotype.\n", $hapReads{"unknown"}, $hapBases{"unknown"};
-    printf STDERR "-- Ignored %8d reads and %12d bases because they were short.\n",  $hapReads{"short"},   $hapBases{"short"};
-
-    #  Ignore the unknown reads if there aren't that many.
-
-    my $unknownFraction =  getGlobal("hapUnknownFraction");
-    my $withUnknown = (($totBases > 0) && ($hapBases{"unknown"} / $totBases < $unknownFraction)) ? 0 : 1;
-
-    if ($withUnknown == 0) {
-        print STDERR "--\n";
-        print STDERR "-- Fewer than " . $unknownFraction*100 . " % of bases in unassigned reads; don't use them in assemblies.\n";
-    } else {
-        print STDERR "--\n";
-        print STDERR "-- More than " .  $unknownFraction*100 . " % of bases in unassigned reads; including them in assemblies.\n";
-    }
-
-    #  For each haplotype, emit a script to run the assembly.
-
-    print STDERR "--\n";
-    print STDERR "-- Haplotype assembly commands:\n";
-
-    foreach my $haplotype (@haplotypes) {
-        my $hs = substr("$haplotype" . " " x $displLen, 0, $displLen);
-
-        print STDERR "--   $rootdir/$asm-haplotype$haplotype.sh\n";
-
-        open(F, "> ./$asm-haplotype$haplotype.sh");
-        print F "#!/bin/sh\n";
-        print F "\n";
-
-        if (defined(getGlobal("objectStore"))) {
-            print F "\n";
-            print F "#  Fetch the haplotyped reads.  This is just a bit weird.\n";
-            print F "#  The fetch (boilerplate) only works from within a subdirectory,\n";
-            print F "#  so we must cd into it first, fetch, the go back to the root.\n";
-            print F "\n";
-            print F "mkdir -p haplotype\n";
-            print F "cd       haplotype\n";
-            print F fetchFileShellCode("haplotype", "haplotype-$haplotype.fasta.gz", "");
-            print F fetchFileShellCode("haplotype", "haplotype-unnown.fasta.gz", "")      if ($withUnknown);
-            print F "cd ..\n";
-        }
-
-        print F "\n";
-        print F "$bin/canu \\\n";
-        print F "  -p $asm-haplotype$haplotype \\\n";
-        print F "  -d $asm-haplotype$haplotype \\\n";
-        print F "  $_ \\\n"   foreach (@options);
-        print F "  $techtype ./haplotype/haplotype-$haplotype.fasta.gz \\\n";
-        print F "  $techtype ./haplotype/haplotype-unknown.fasta.gz \\\n"     if ($withUnknown);
-        print F "> ./$asm-haplotype$haplotype.out 2>&1\n";
-        print F "\n";
-        print F "exit 0\n";
-        print F "\n";
-        close(F);
-
-        makeExecutable("./$asm-haplotype$haplotype.sh");
-    }
-
-    #  Fail if too many unassigned reads.
-
-    if ($totBases == 0) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  No reads assigned to haplotypes.  Assemblies not started.\n";
-        print STDERR "-- ERROR:\n";
-    }
-
-    elsif ($hapBases{"unknown"} / $totBases > 0.50) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  Too many bases in unassigned reads.  Assemblies not started.\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  If you run them manually, note that the unassigned reads\n";
-        print STDERR "-- ERROR:  are included in ALL assemblies.\n";
-        print STDERR "-- ERROR:\n";
-    }
-
-    #  Or stop if we're not running assemblies.
-
-    elsif (setOptions($mode, "run") ne "run") {
-        print STDERR "--\n";
-        print STDERR "-- Assemblies not started per '-haplotype' option.\n";
-    }
-
-    #  Or run the assemblies.
-
-    else {
-        print STDERR "--\n";
-
-        foreach my $haplotype (@haplotypes) {
-            if (getGlobal("useGrid") ne "1") {
-                print STDERR "-- Starting haplotype assembly $haplotype.\n";
-            } else {
-                print STDERR "-- Submitting haplotype assembly $haplotype.\n";
-            }
-
-            runCommand(".", "./$asm-haplotype$haplotype.sh");
-        }
-
-        if (getGlobal("useGrid") ne "1") {
-            print STDERR "--\n";
-            print STDERR "-- Haplotype assemblies completed (or failed).\n";
-        } else {
-            print STDERR "--\n";
-            print STDERR "-- Haplotype assemblies submitted.\n";
-        }
-    }
-
-    #  And now we're done.
-
-    print STDERR "--\n";
-    print STDERR "-- Bye.\n";
-
-    exit(0);
-}
-
-
-
-#  Stop if coverage is too low.
-#
-#  If multiple tags are supplied, use the first one that returns non-zero
-#  coverage.
+#  Stop if coverage is too low, unless no seqStore exists.
 #
 sub stopOnLowCoverage ($$) {
     my $asm = shift @_;
     my $tag = shift @_;
+
+    return   if (! -e "./$asm.seqStore/info.txt");
 
     my $mincov = getGlobal("stopOnLowCoverage");
     my $curcov = getExpectedCoverage($asm, $tag);
@@ -984,6 +787,41 @@ sub stopOnLowCoverage ($$) {
 
         caExit("", undef);
     }
+}
+
+
+
+#  Decide if we need to enter the haplotyping pipeline
+#   - no if there is no haplotype data supplied
+#   - no if the mode isn't haplotype or run (and if it is run, the first 'no'
+#     will obviously catch when there is no data to process
+#   - no if the haplotyping is finsihed
+#
+sub doHaplotyping ($$@) {
+    my $asm        = shift @_;
+    my $mode       = shift @_;
+    my @haplotypes =       @_;
+    my $reason     = undef;
+
+    #  Silently return if no haplotypes exist and/or it's just not enabled.
+
+    return(0)   if (haplotypeReadsExist($asm, @haplotypes) eq "no-haplotypes");
+    return(0)   if (($mode ne "haplotype") && ($mode ne "run"));
+
+    $reason = "Haplotyping finished"   if (haplotypeReadsExist($asm, @haplotypes) eq "yes");
+
+    if (defined($reason)) {
+        print STDERR "--\n";
+        print STDERR "-- $reason.\n";
+        return(0);
+    }
+
+    submitScript($asm, undef);   #  See comments there as to why this is safe.
+
+    print STDERR "--\n";
+    print STDERR "-- BEGIN HAPLOTYPING\n";
+
+    return(1);
 }
 
 
@@ -1115,6 +953,55 @@ sub overlap ($$) {
     }
 
     createOverlapStore($asm, $tag);
+}
+
+
+
+#
+#  The start of haplotyping.  Separate reads into haplotypes, then maybe assemble.
+#
+
+my @haplotypes = sort keys %haplotypeReads;
+
+if (doHaplotyping($asm, $mode, @haplotypes)) {
+    haplotypeCountConfigure($asm, %haplotypeReads);
+
+    haplotypeCountCheck($asm)                   foreach (1..getGlobal("canuIterationMax") + 1);
+    haplotypeMergeCheck($asm, @haplotypes)      foreach (1..getGlobal("canuIterationMax") + 1);
+    haplotypeSubtractCheck($asm, @haplotypes)   foreach (1..getGlobal("canuIterationMax") + 1);
+
+    haplotypeReadsConfigure($asm, \@haplotypes, \@inputFiles);
+    haplotypeReadsCheck($asm)                   foreach (1..getGlobal("canuIterationMax") + 1);
+}
+
+if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
+    bootstrapHaplotypeAssemblies($asm, @haplotypes);
+
+    #  If the mode lets us, start the assemblies.
+
+    print STDERR "--\n";
+
+    if ($mode eq "run") {
+        foreach my $haplotype (@haplotypes) {
+            print STDERR "-- Starting haplotype assembly $haplotype.\n"     if (getGlobal("useGrid") ne "1");
+            print STDERR "-- Submitting haplotype assembly $haplotype.\n"   if (getGlobal("useGrid") eq "1");
+
+            runCommand(".", "./$asm-haplotype$haplotype.sh");
+        }
+
+        print STDERR "--\n";
+        print STDERR "-- Haplotype assemblies completed (or failed).\n"     if (getGlobal("useGrid") ne "1");
+        print STDERR "-- Haplotype assemblies submitted.\n"                 if (getGlobal("useGrid") eq "1");
+    } else {
+        print STDERR "-- Not running assemblies.  Haplotyping finished.\n";
+    }
+
+    #  And now we're done.
+
+    print STDERR "--\n";
+    print STDERR "-- Bye.\n";
+
+    exit(0);
 }
 
 #
