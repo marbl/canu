@@ -396,7 +396,9 @@ public:
     bool  trim = ((w & sqRead_trimmed)    == sqRead_unset) ? false : true;
 
     //  Figure out which bases to return, either raw or corrected, and the
-    //  length -- INCLUDING the terminating NUL byte -- of that sequence.
+    //  length of that sequence.  'bases' must be a valid pointer (we're
+    //  either loading raw or corrected bases, but the string can be length
+    //  zero.  In all cases, though, it must be NUL terminated.
 
     sqReadSeq   *seq      = sqRead_getSeq(w);
     char        *bases    = NULL;
@@ -412,10 +414,8 @@ public:
       basesLen = _corU->sqReadSeq_length();
     }
 
-    assert(bases    != NULL);      //  How to check we have the blob data loaded?
-    assert(basesLen > 0);
-
-    assert(bases[basesLen] == 0);  //  Sequences must by NUL terminated.
+    assert(bases           != NULL);
+    assert(bases[basesLen] == 0);
 
     //  If neither compressed or trimmed, just return the sequence we already have.
     //
