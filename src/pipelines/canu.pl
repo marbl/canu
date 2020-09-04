@@ -1121,10 +1121,10 @@ sub overlap ($$) {
 #  The start of the pipeline.
 #
 
-fetchSeqStore($asm);
-createSequenceStore($asm, @inputFiles);
-
 if (doCorrection($asm, $mode)) {
+    fetchSeqStore($asm);
+    createSequenceStore($asm, @inputFiles);
+
     merylConfigure($asm, "cor");
     merylCountCheck($asm, "cor")          foreach (1..getGlobal("canuIterationMax") + 1);
     merylProcessCheck($asm, "cor")        foreach (1..getGlobal("canuIterationMax") + 1);
@@ -1146,6 +1146,9 @@ if (doCorrection($asm, $mode)) {
 }
 
 if (doTrimming($asm, $mode)) {
+    fetchSeqStore($asm);
+    createSequenceStore($asm, @inputFiles);
+
     merylConfigure($asm, "obt");
     merylCountCheck($asm, "obt")     foreach (1..getGlobal("canuIterationMax") + 1);
     merylProcessCheck($asm, "obt")   foreach (1..getGlobal("canuIterationMax") + 1);
@@ -1160,6 +1163,9 @@ if (doTrimming($asm, $mode)) {
 }
 
 if (doUnitigging($asm, $mode)) {
+    fetchSeqStore($asm);
+    createSequenceStore($asm, @inputFiles);
+
     merylConfigure($asm, "utg");
     merylCountCheck($asm, "utg")       foreach (1..getGlobal("canuIterationMax") + 1);
     merylProcessCheck($asm, "utg")     foreach (1..getGlobal("canuIterationMax") + 1);
