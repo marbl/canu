@@ -1095,6 +1095,7 @@ unitigConsensus::findCoordinates(void) {
 
   int32         alignShift = 0;
 
+  #pragma omp parallel for schedule(dynamic)
   for (uint32 ii=0; ii<_numReads; ii++) {
     abSequence   *read    = getSequence(ii);
     char         *readSeq = read->getBases();
