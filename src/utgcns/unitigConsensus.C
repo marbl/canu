@@ -480,7 +480,7 @@ unitigConsensus::generateTemplateStitch(void) {
     bool   moreToExtend  = (readEnd < readLen);
 
 
-    int32 maxDifference = min(1000, (int32)ceil(0.1*olapLen));
+    int32 maxDifference = min(2500, (int32)ceil(0.30*olapLen));
     //  Reset if the edit distance is waay more than our error rate allows or it's very short and we haven't topped out on error.  This seems to be a quirk with
     //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
     if ((double)result.editDistance / result.alignmentLength > bandErrRate || 
