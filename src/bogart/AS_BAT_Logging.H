@@ -21,15 +21,15 @@
 #include "runtime.H"
 #include "files.H"
 
-void    setLogFile(char const *prefix, char const *name);
-char   *getLogFilePrefix(void);
+void         setLogFile(char const *prefix, char const *name);
+char const  *getLogFilePrefix(void);
 
-void    writeStatus(char const *fmt, ...);
-void    writeLog(char const *fmt, ...);
+void         writeStatus(char const *fmt, ...);
+void         writeLog(char const *fmt, ...);
 
-void    flushLog(void);
+void         flushLog(void);
 
-#define logFileFlagSet(L) ((logFileFlags & L) == L)
+#define      logFileFlagSet(L) ((logFileFlags & L) == L)
 
 extern uint64  logFileFlags;
 extern uint32  logFileOrder;  //  Used debug tigStore dumps, etc

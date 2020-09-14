@@ -22,86 +22,150 @@
 
 class logFileInstance {
 public:
-  logFileInstance() {
-    file      = stderr;
-    prefix[0] = 0;
-    name[0]   = 0;
-    part      = 0;
-    length    = 0;
-  };
-  ~logFileInstance() {
-    if ((name[0] != 0) && (file)) {
-      fprintf(stderr, "WARNING: open file '%s'\n", name);
-      AS_UTL_closeFile(file, name);
-    }
-  };
+  logFileInstance()   { clear(); };
+  ~logFileInstance()  { close(); };
 
-  void  set(char const *prefix_, int32 order_, char const *label_, int32 tn_) {
-    if (label_ == NULL) {
-      file      = stderr;
-      prefix[0] = 0;
-      name[0]   = 0;
-      part      = 0;
-      length    = 0;
-      return;
-    }
+  void  clear(void);
 
-    snprintf(prefix, FILENAME_MAX, "%s.%03u.%s",         prefix_, order_, label_);
-    snprintf(name, FILENAME_MAX,   "%s.%03u.%s.thr%03d", prefix_, order_, label_, tn_);
-  };
+  void  set(char const *prefix_, int32 order_, char const *label_, int32 thread_, bool stderr_);
 
-  void  rotate(void) {
+  void  write(char const *fmt, va_list ap);
 
-    assert(name[0] != 0);
+  void  rotate(uint64 limit);
+  void  open(void);
+  void  close(void);
 
-    AS_UTL_closeFile(file, name);
+  void  flush(void);
 
-    file   = NULL;
-    length = 0;
+  const
+  char *prefix(void)  { return(_prefix); };
 
-    part++;
+private:
+  FILE   *_file;
+  char    _prefix[FILENAME_MAX+1];   //  "%s.%03u.%s"
+  char    _name  [FILENAME_MAX+1];   //  "%s.%03u.%s.thr%03d"
+  char    _path  [FILENAME_MAX+1];   //  "%s.%03u.%s.thr%03d.num%03d.log"
+  uint32  _part;
+  uint64  _length;
+};
+
+
+
+//  Set a new "label" for the log files.
+//
+//  If the label is nullptr, just close the files and make it look like we
+//  were just constructed.
+//
+//  If stderr_ is false, _file will remain unset, and we'll open a file for
+//  it in open().
+//
+void
+logFileInstance::set(char const *prefix_, int32 order_, char const *label_, int32 thread_, bool stderr_) {
+
+  assert(prefix_ != nullptr);
+
+  if (label_ == nullptr) {
+    close();
+    return;
   }
 
-  void  open(void) {
-    char    path[FILENAME_MAX];
+  if (stderr_ == true)
+    _file = stderr;
 
-    assert(file == NULL);
-    assert(name[0] != 0);
+  snprintf(_prefix, FILENAME_MAX, "%s.%03u.%s",         prefix_, order_, label_);
+  snprintf(_name,   FILENAME_MAX, "%s.%03u.%s.thr%03d", prefix_, order_, label_, thread_);
+}
 
-    snprintf(path, FILENAME_MAX, "%s.num%03d.log", name, part);
 
-    errno = 0;
-    file = fopen(path, "w");
-    if (errno) {
-      writeStatus("setLogFile()-- Failed to open logFile '%s': %s.\n", path, strerror(errno));
-      writeStatus("setLogFile()-- Will now log to stderr instead.\n");
-      file = stderr;
-    }
-  };
 
-  void  close(void) {
-    AS_UTL_closeFile(file, name);
+//  If the current file size is more than the limit, close the current file
+//  and increment the part number.  The next file will be opened on the next
+//  write.
+void
+logFileInstance::rotate(uint64 limit) {
 
-    file      = NULL;
-    prefix[0] = 0;
-    name[0]   = 0;
-    part      = 0;
-    length    = 0;
-  };
+  if ((_file == nullptr) ||   //  Is nullptr on the first call to rotate(), before open() is called.
+      (_file == stderr) ||
+      (_length < limit))
+    return;
 
-  FILE   *file;
-  char    prefix[FILENAME_MAX];
-  char    name[FILENAME_MAX];
-  uint32  part;
-  uint64  length;
-};
+  fprintf(_file, "logFile()--  size " F_U64 " exceeds limit of " F_U64 "; rotate to new file.\n",
+          _length, limit);
+
+  AS_UTL_closeFile(_file, _name);
+
+  _file    = nullptr;
+  _part   += 1;
+  _length  = 0;
+}
+
+
+
+//  Open a log file.  If there is already a file open, do nothing - this is
+//  actually the usual case.
+//  
+void
+logFileInstance::open(void) {
+
+  if (_file != nullptr)
+    return;
+
+  snprintf(_path, FILENAME_MAX, "%s.num%03d.log", _name, _part);
+
+  _file = fopen(_path, "w");
+
+  if (_file == nullptr) {
+    writeStatus("setLogFile()-- Failed to open logFile '%s': %s.\n", _path, strerror(errno));
+    writeStatus("setLogFile()-- Will now log to stderr instead.\n");
+    _file = stderr;
+  }
+}
+
+
+
+void
+logFileInstance::clear(void) {
+  _file      = nullptr;
+  _prefix[0] = 0;
+  _name[0]   = 0;
+  _path[0]   = 0;
+  _part      = 0;
+  _length    = 0;
+}
+
+
+
+void
+logFileInstance::close(void) {
+  AS_UTL_closeFile(_file, _path);
+  clear();
+}
+
+
+
+void
+logFileInstance::flush(void) {
+  if (_file != nullptr)
+    fflush(_file);
+}
+
+
+
+void
+logFileInstance::write(const char *fmt, va_list ap) {
+  assert(_file != nullptr);
+  _length += vfprintf(_file, fmt, ap);
+}
+
+
+
 
 
 //  NONE of the logFileMain/logFileThread is implemented
 
 
 logFileInstance    logFileMain;           //  For writes during non-threaded portions
-logFileInstance   *logFileThread = NULL;  //  For writes during threaded portions.
+logFileInstance   *logFileThread = nullptr;  //  For writes during threaded portions.
 uint32             logFileOrder  = 0;
 uint64             logFileFlags  = 0;
 
@@ -134,25 +198,23 @@ char const *logFileFlagNames[64] = { "overlapScoring",
                                      "intermediateTigs",
                                      "setParentAndHang",
                                      "stderr",
-                                     NULL
+                                     nullptr
 };
 
-//  Closes the current logFile, opens a new one called 'prefix.logFileOrder.label'.  If 'label' is
-//  NULL, the logFile is reset to stderr.
+
+
+//  Closes the current logFile, opens a new one called
+//  'prefix.logFileOrder.label'.
+//
+//  If 'label' is nullptr, the logFile is reset to stderr.
+//
 void
 setLogFile(char const *prefix, char const *label) {
 
-  assert(prefix != NULL);
+  //  Allocate space.  Unfortunately, this leaks.
 
-  //  Allocate space.
-
-  if (logFileThread == NULL)
+  if (logFileThread == nullptr)
     logFileThread = new logFileInstance [omp_get_max_threads()];
-
-  //  If writing to stderr, that's all we needed to do.
-
-  if (logFileFlagSet(LOG_STDERR))
-    return;
 
   //  Close out the old.
 
@@ -167,10 +229,10 @@ setLogFile(char const *prefix, char const *label) {
 
   //  Set up for that iteration.
 
-  logFileMain.set(prefix, logFileOrder, label, 0);
+  logFileMain.set(prefix, logFileOrder, label, 0, logFileFlagSet(LOG_STDERR));
 
   for (int32 tn=0; tn<omp_get_max_threads(); tn++)
-    logFileThread[tn].set(prefix, logFileOrder, label, tn+1);
+    logFileThread[tn].set(prefix, logFileOrder, label, tn+1, logFileFlagSet(LOG_STDERR));
 
   //  File open is delayed until it is used.
 
@@ -178,21 +240,19 @@ setLogFile(char const *prefix, char const *label) {
 
 
 
-char *
+char const *
 getLogFilePrefix(void) {
-  return(logFileMain.prefix);
+  return(logFileMain.prefix());
 }
 
 
 
 void
 writeStatus(char const *fmt, ...) {
-  va_list           ap;
+  va_list ap;
 
   va_start(ap, fmt);
-
   vfprintf(stderr, fmt, ap);
-
   va_end(ap);
 }
 
@@ -200,34 +260,21 @@ writeStatus(char const *fmt, ...) {
 
 void
 writeLog(char const *fmt, ...) {
-  va_list           ap;
-  int32             nt = omp_get_num_threads();
-  int32             tn = omp_get_thread_num();
+  va_list ap;
+  int32   nt = omp_get_num_threads();
+  int32   tn = omp_get_thread_num();
 
   logFileInstance  *lf = (nt == 1) ? (&logFileMain) : (&logFileThread[tn]);
 
-  //  Rotate the log file please, HAL.
+  //  Close big files and make sure we have a file opened.
 
-  uint64  maxLength = 512 * 1024 * 1024;
-
-  if ((lf->name[0] != 0) &&
-      (lf->length  > maxLength)) {
-    fprintf(lf->file, "logFile()--  size " F_U64 " exceeds limit of " F_U64 "; rotate to new file.\n",
-            lf->length, maxLength);
-    lf->rotate();
-  }
-
-  //  Open the file if needed.
-
-  if (lf->file == NULL)
-    lf->open();
+  lf->rotate(512 * 1024 * 1024);
+  lf->open();
 
   //  Write the log.
 
   va_start(ap, fmt);
-
-  lf->length += vfprintf(lf->file, fmt, ap);
-
+  lf->write(fmt, ap);
   va_end(ap);
 }
 
@@ -235,11 +282,11 @@ writeLog(char const *fmt, ...) {
 
 void
 flushLog(void) {
-  int32             nt = omp_get_num_threads();
-  int32             tn = omp_get_thread_num();
+  int32   nt = omp_get_num_threads();
+  int32   tn = omp_get_thread_num();
 
-  logFileInstance  *lf = (nt == 1) ? (&logFileMain) : (&logFileThread[tn]);
-
-  if (lf->file != NULL)
-    fflush(lf->file);
+  if (nt == 1)
+    logFileMain.flush();
+  else
+    logFileThread[tn].flush();
 }
