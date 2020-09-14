@@ -206,6 +206,8 @@ isCircularizingEdge(Unitig   *tig,
     }
   }
 
+  delete [] rc;
+
   return(isCircular);
 }
 
