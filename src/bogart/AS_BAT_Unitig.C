@@ -239,9 +239,19 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   }
 
   //  Warn if too few or too many overlaps.
+  //
+  //  The stdDev<> cannot handle more than 4 billion entries.  If there are
+  //  more than that, just compute the average and make a single interval
+  //  spanning the tig.
+  //
+  //  This happened once; see https://github.com/marbl/canu/issues/1355
+  //    WARNING:  tig 19049 length 9064 nReads 393906 has 4873434470 overlaps.
+
+  double fakeV = 0.0;
 
   if (olapsLen == 0) {
     writeLog("WARNING:  tig %u length %u nReads %u has no overlaps.\n", id(), getLength(), ufpath.size());
+
     for (uint32 fi=0; fi<ufpath.size(); fi++)
       writeLog("WARNING:    read %7u %7u-%-7u\n",
                ufpath[fi].ident,
@@ -249,30 +259,33 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
                ufpath[fi].position.end);
   }
 
-  if (olapsLen > (uint64)4 * 1024 * 1024 * 1024) {
-    writeLog("WARNING:  tig %u length %u nReads %u has " F_U64 " overlaps.\n", id(), getLength(), ufpath.size(), olapsLen);
-    for (uint32 fi=0; fi<ufpath.size(); fi++)
-      writeLog("WARNING:    read %7u %7u-%-7u\n",
-               ufpath[fi].ident,
-               ufpath[fi].position.bgn,
-               ufpath[fi].position.end);
+  if (olapsLen > (uint64)UINT32_MAX) {
+    for (uint64 oo=0; oo<olapsLen; oo++)
+      fakeV += olaps[oo].erate;
+
+    fakeV /= olapsLen;
+
+    writeLog("WARNING:  tig %u length %u nReads %u has " F_U64 " overlaps; setting to average %f.\n",
+             id(), getLength(), ufpath.size(), olapsLen, fakeV);
+
+    olapsLen = 0;
   }
 
   //  Sort.
 
   std::sort(olaps, olaps + olapsLen);
 
-  //  Convert coordinates into intervals.  Conceptually, squish out the duplicate numbers, then
-  //  create an interval for every adjacent pair.  We need to add intervals for the first and last
-  //  region.  And one more, for convenience, to hold the final 'close' values on intervals that
-  //  extend to the end of the unitig.
+  if (olapsLen == 0)                                       //  No olaps, so add an interval
+    errorProfile.push_back(epValue(fakeV, getLength()));   //  covering the whole tig
 
-  if (olapsLen == 0)                                     //  No olaps, so add an interval
-    errorProfile.push_back(epValue(0, getLength()));     //  covering the whole tig
+  if ((olapsLen > 0) && (olaps[0].pos != 0))               //  Olaps, but missing the first
+    errorProfile.push_back(epValue(0, olaps[0].pos));      //  interval, so add it.
 
-  if ((olapsLen > 0) && (olaps[0].pos != 0))             //  Olaps, but missing the first
-    errorProfile.push_back(epValue(0, olaps[0].pos));    //  interval, so add it.
-
+  //  Convert coordinates into intervals.  Conceptually, squish out the
+  //  duplicate numbers, then create an interval for every adjacent pair.  We
+  //  need to add intervals for the first and last region.  And one more, for
+  //  convenience, to hold the final 'close' values on intervals that extend
+  //  to the end of the unitig.
 
   stdDev<float>  curDev;
 
