@@ -272,10 +272,19 @@ classifyTigsAsUnassembled(TigVector    &tigs,
     bool  r4 = classifyRule4(utg, F, nCoverage,   bCoverage,    lowcovFraction, lowcovDepth);
 
     //  If either first or last read is flagged as a bubble, it's not unassembled.
+    //
+    //  Sept 2020 - bri isn't sure if this is being clever about something or
+    //  not.  When bubbles are assigned - search for setBubble - we're both
+    //  setting the tig _isBubble to true and labelling all reads as
+    //  isBubble().  Could we then be merging a bubble into something else?
+    //  The asserts were added.
 
     if ((OG->isBubble(utg->firstRead()->ident) == true) ||
         (OG->isBubble(utg-> lastRead()->ident) == true))
       bb = true;
+
+    if (bb == true)    assert(utg->_isBubble == true);
+    if (bb == false)   assert(utg->_isBubble == false);
 
     //  If flagged, we're done, just move on.
 
