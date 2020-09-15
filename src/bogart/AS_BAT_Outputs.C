@@ -66,6 +66,10 @@ writeTigsToStore(TigVector     &tigs,
     tig->_trimBgn         = 0;
     tig->_trimEnd         = utg->getLength();
 
+    //  If we're a bubble, we must be a real contig.
+
+    if (tig->_suggestBubble == true)   assert(tig->_class == tgTig_contig);
+
     //  Transfer reads from the bogart tig to the output tig.
 
     tig->allocateChildren(utg->ufpath.size());
