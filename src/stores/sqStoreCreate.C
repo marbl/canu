@@ -57,17 +57,18 @@ public:
 class loadStats {
 public:
   loadStats() {
-    nINVALID = nSHORT = nLONG = nLOADED=0;
-    bINVALID = bSHORT = bLONG = bLOADED=0;
+    nINVALID = nSHORT = nLONG = nLOADED = nWARNINGS = 0;
+    bINVALID = bSHORT = bLONG = bLOADED = 0;
   };
   ~loadStats() {
   };
 
   void         import(loadStats &that) {
-    nINVALID += that.nINVALID;   bINVALID += that.bINVALID;
-    nSHORT   += that.nSHORT;     bSHORT   += that.bSHORT;
-    nLONG    += that.nLONG;      bLONG    += that.bLONG;
-    nLOADED  += that.nLOADED;    bLOADED  += that.bLOADED;
+    nINVALID  += that.nINVALID;   bINVALID  += that.bINVALID;
+    nSHORT    += that.nSHORT;     bSHORT    += that.bSHORT;
+    nLONG     += that.nLONG;      bLONG     += that.bLONG;
+    nLOADED   += that.nLOADED;    bLOADED   += that.bLOADED;
+    nWARNINGS += that.nWARNINGS;
   };
 
 #define PERC(x,t)  (t > 0) ? (100.0 * x / t) : (0.0)
@@ -113,10 +114,15 @@ public:
               nINVALID, PERC(nINVALID, nTotal),
               bINVALID, PERC(bINVALID, bTotal));
 
+    if (nWARNINGS > 0)
+      fprintf(F, "%-10s %9" F_U32P "\n",
+              "Warnings",
+              nWARNINGS);
+
     fprintf(F, "\n");
   };
 
-  uint32       nINVALID, nSHORT, nLONG, nLOADED;
+  uint32       nINVALID, nSHORT, nLONG, nLOADED, nWARNINGS;
   uint64       bINVALID, bSHORT, bLONG, bLOADED;
 };
 
@@ -195,6 +201,20 @@ loadReads(sqStore          *seqStore,
   dnaSeq       sq;
 
   while (SF->loadSequence(sq) == true) {
+
+    //  Check for and log parsing errors.
+
+    if (sq.wasError() == true) {
+      fprintf(errorLog, "error reading sequence at/before '%s' in file '%s'.\n",
+              sq.name(), fileName);
+      filestats.nWARNINGS += 1;
+    }
+
+    if (sq.wasReSync() == true) {
+      fprintf(errorLog, "lost sync reading before sequence '%s' in file '%s'.\n",
+              sq.name(), fileName);
+      filestats.nWARNINGS += 1;
+    }
 
     //  Trim Ns from the ends of the sequence.
     uint64  bgn = trimBgn(sq, 0,   sq.length());
