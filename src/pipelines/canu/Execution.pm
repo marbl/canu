@@ -336,6 +336,10 @@ sub getJobIDShellCode () {
     $string .= "  exit\n";
     $string .= "fi\n";
     $string .= "jobid=`expr -- \$baseid + \$offset`\n";
+    $string .= "if [ x\$baseid = x0 ]; then\n";
+    $string .= "  echo Error: jobid 0 is invalid\\; I need $taskenv set, or a job index on the command line.\n";
+    $string .= "  exit\n";
+    $string .= "fi\n";
     $string .= "if [ x\$$taskenv = x ]; then\n";
     $string .= "  echo Running job \$jobid based on command line options.\n";
     $string .= "else\n";
