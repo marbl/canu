@@ -458,7 +458,7 @@ main(int argc, char **argv) {
   //  partitioning, but that would be wrong, because partitioning uses these objects to determine
   //  the base amount of memory needed.
 
-  falconConsensus           *fc = new falconConsensus(minOutputCoverage, minOutputLength, minOlapIdentity, minOlapLength, restrictToOverlap);
+  falconConsensus           *fc = new falconConsensus(minOutputCoverage, minOlapIdentity, minOlapLength, restrictToOverlap);
   map<uint32, sqRead *>      reads;
 
   if (memoryLimit == 0) {
@@ -485,11 +485,10 @@ main(int argc, char **argv) {
                               trimToAlign,
                               minOlapLength);
 
-      if (cnsFile)
-        layout->saveToStream(cnsFile);
-
-      if (seqFile)
-        layout->dumpFASTQ(seqFile);
+      if (layout->length() >= minOutputLength) {
+        if (cnsFile)   layout->saveToStream(cnsFile);
+        if (seqFile)   layout->dumpFASTQ(seqFile);
+      }
 
       delete layout;
       layout = new tgTig();    //  Next loop needs an existing empty layout.
@@ -701,11 +700,10 @@ main(int argc, char **argv) {
         fc = NULL;
 #endif
 
-        if (cnsFile)
-          layout->saveToStream(cnsFile);
-
-        if (seqFile)
-          layout->dumpFASTQ(seqFile);
+        if (layout->length() >= minOutputLength) {
+          if (cnsFile)   layout->saveToStream(cnsFile);
+          if (seqFile)   layout->dumpFASTQ(seqFile);
+        }
 
         corStore->unloadTig(layout->tigID());
       }
