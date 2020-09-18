@@ -82,7 +82,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        (WARNING: program will succeed if this file is empty)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -u                    Also load the populated tig layout into version 2 of the corStore.\n");
-    fprintf(stderr, "                        (WARNING: not rigorously tested)\n");
+    fprintf(stderr, "                          Doesn't work; falconsense isn't updating the layout with\n");
+    fprintf(stderr, "                          the position of the evidence read in the corrected read.\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
