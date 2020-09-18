@@ -601,6 +601,66 @@ sub overlapStoreSorterCheck ($$$$$) {
 
 
 
+sub overlapStoreIndexerCheck ($$$$$) {
+    my $base       = shift @_;
+    my $asm        = shift @_;
+    my $tag        = shift @_;
+    my $numBuckets = shift @_;
+    my $numSlices  = shift @_;
+
+    my $bin   = getBinDirectory();
+    my $cmd;
+
+    #  If running with showNext, ovStoreIndexer will be run (manually
+    #  possibly) leaving an index file behind, but not renaming the store.
+    #  In that case, jump straight to finishStage and rename it.
+
+    goto allDone      if ((-d "$base/$asm.ovlStore") || (fileExists("$base/$asm.ovlStore.tar.gz")));
+
+    goto finishStage  if (-e  "$base/$asm.ovlStore.BUILDING/index");
+
+    #  Fetch the stats and index data.  If not using an object store, the
+    #  fetch does nothing, and since there is no file, the gzip/tar are
+    #  skipped.
+
+    for (my $ss=1; $ss<=$numSlices; $ss++) {
+        my $slice = substr("0000" . $ss, -4);
+
+        fetchFile("$base/$asm.ovlStore.BUILDING/$slice.statistics.tar.gz");
+
+        if (-e "$base/$asm.ovlStore.BUILDING/$slice.statistics.tar.gz") {
+            runCommandSilently("$base/$asm.ovlStore.BUILDING", "gzip -dc $slice.statistics.tar.gz | tar -xf -", 1);
+            unlink("$base/$asm.ovlStore.BUILDING/$slice.statistics.tar.gz");
+        }
+    }
+
+    $cmd  = "$bin/ovStoreIndexer \\\n";
+    $cmd .= "  -O  ./$asm.ovlStore.BUILDING \\\n";
+    $cmd .= "  -S ../$asm.seqStore \\\n";
+    $cmd .= "  -C  ./$asm.ovlStore.config \\\n";
+    $cmd .= "  -delete \\\n";
+    $cmd .= "> ./$asm.ovlStore.BUILDING.index.err 2>&1";
+
+    if (runCommand("$base", $cmd)) {
+        caExit("failed to build index for overlap store", "$base/$asm.ovlStore.BUILDING.index.err");
+    }
+
+    unlink "$base/$asm.ovlStore.BUILDING.index.err";
+
+  finishStage:
+    print STDERR "-- Overlap store indexer finished.\n";
+ 
+    rename "$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore";
+
+    renameStashedFile("$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore");
+    stashOvlStore($asm, $base);
+
+    #resetIteration("$tag-overlapStoreIndexerCheck");
+
+  allDone:
+}
+
+
 
 sub checkOverlapStore ($$) {
     my $base    = shift @_;
@@ -889,37 +949,7 @@ sub createOverlapStore ($$) {
         createOverlapStoreParallel ($base, $asm, $tag, $numBuckets, $numSlices, $sortMemory);
         overlapStoreBucketizerCheck($base, $asm, $tag, $numBuckets, $numSlices)   foreach (1..getGlobal("canuIterationMax") + 1);
         overlapStoreSorterCheck    ($base, $asm, $tag, $numBuckets, $numSlices)   foreach (1..getGlobal("canuIterationMax") + 1);
-
-        #  Fetch the stats and index data.  If not using an object store, the fetch does nothing,
-        #  and since there is no file, the gzip/tar are skipped.
-
-        for (my $ss=1; $ss<=$numSlices; $ss++) {
-            my $slice = substr("0000" . $ss, -4);
-
-            fetchFile("$base/$asm.ovlStore.BUILDING/$slice.statistics.tar.gz");
-
-            if (-e "$base/$asm.ovlStore.BUILDING/$slice.statistics.tar.gz") {
-                runCommandSilently("$base/$asm.ovlStore.BUILDING", "gzip -dc $slice.statistics.tar.gz | tar -xf -", 1);
-                unlink("$base/$asm.ovlStore.BUILDING/$slice.statistics.tar.gz");
-            }
-        }
-
-        $cmd  = "$bin/ovStoreIndexer \\\n";
-        $cmd .= "  -O  ./$asm.ovlStore.BUILDING \\\n";
-        $cmd .= "  -S ../$asm.seqStore \\\n";
-        $cmd .= "  -C  ./$asm.ovlStore.config \\\n";
-        $cmd .= "  -delete \\\n";
-        $cmd .= "> ./$asm.ovlStore.BUILDING.index.err 2>&1";
-
-        if (runCommand("$base", $cmd)) {
-            caExit("failed to build index for overlap store", "$base/$asm.ovlStore.BUILDING.index.err");
-        }
-
-        unlink "$base/$asm.ovlStore.BUILDING.index.err";
-        rename "$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore";
-
-        renameStashedFile("$base/$asm.ovlStore.BUILDING", "$base/$asm.ovlStore");
-        stashOvlStore($asm, $base);
+        overlapStoreIndexerCheck   ($base, $asm, $tag, $numBuckets, $numSlices);
     }
 
   finishStage:

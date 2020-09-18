@@ -115,9 +115,12 @@ sub buildCorrectionLayoutsConfigure ($) {
     my $base    = "correction";
     my $path    = "correction/2-correction";
 
-    goto allDone   if (-d "$base/$asm.corStore");                         #  Jobs all finished
-    goto allDone   if (fileExists("$base/$asm.corStore/seqDB.v001.dat"));
-    goto allDone   if (fileExists("$base/$asm.corStore/seqDB.v001.tig"));
+    goto allDone       if (-d "$base/$asm.corStore");                             #  Jobs all finished
+    goto allDone       if (fileExists("$base/$asm.corStore/seqDB.v001.dat"));
+    goto allDone       if (fileExists("$base/$asm.corStore/seqDB.v001.tig"));
+
+    goto finishStage   if ((-e "$base/$asm.corStore.WORKING/seqDB.v001.dat") &&   #  Job ran manually, showNext
+                           (-e "$base/$asm.corStore.WORKING/seqDB.v001.tig"));
 
     #  The global filter can be estimated from data saved in ovlStore.  This code will compute it exactly.
     #
@@ -191,13 +194,14 @@ sub buildCorrectionLayoutsConfigure ($) {
         caExit("failed to generate correction layouts", "$base/$asm.corStore.err");
     }
 
-    rename "$base/$asm.corStore.WORKING", "$base/$asm.corStore";
     unlink "$base/$asm.corStore.err";
+
+  finishStage:
+    rename "$base/$asm.corStore.WORKING", "$base/$asm.corStore";
 
     stashFile("$base/$asm.corStore/seqDB.v001.dat");
     stashFile("$base/$asm.corStore/seqDB.v001.tig");
 
-  finishStage:
     generateReport($asm);
     resetIteration("cor-buildCorrectionLayoutsConfigure");
 
@@ -236,7 +240,10 @@ sub filterCorrectionLayouts ($) {
     my $base    = "correction";
     my $path    = "correction/2-correction";
 
-    goto allDone   if (fileExists("$path/$asm.readsToCorrect"));                #  Jobs all finished
+    goto allDone       if (fileExists("$path/$asm.readsToCorrect"));                #  Jobs all finished
+
+    goto finishStage   if ((-e "$path/$asm.readsToCorrect.WORKING.stats") &&        #  Job ran manually, showNext
+                           (-e "$path/$asm.readsToCorrect.WORKING.log"));
 
     #  Analyze the corStore to decide what reads we want to correct.
 
@@ -258,6 +265,7 @@ sub filterCorrectionLayouts ($) {
         caExit("failed to generate list of reads to correct", "$path/$asm.readsToCorrect.err");
     }
 
+  finishStage:
     rename "$path/$asm.readsToCorrect.WORKING",       "$path/$asm.readsToCorrect";
     rename "$path/$asm.readsToCorrect.WORKING.stats", "$path/$asm.readsToCorrect.stats";
     rename "$path/$asm.readsToCorrect.WORKING.log",   "$path/$asm.readsToCorrect.log";
@@ -276,7 +284,6 @@ sub filterCorrectionLayouts ($) {
 
     addToReport("corLayout", $report);
 
-  finishStage:
     generateReport($asm);
     resetIteration("cor-filterCorrectionLayouts");
 
@@ -334,53 +341,54 @@ sub generateCorrectedReadsConfigure ($) {
     #  Generate a script to compute the partitioning of correction jobs, given
     #  the memory allowed per process and memory needed for a correction.
 
-    open(F, "> $path/correctReadsPartition.sh") or caExit("can't open '$path/correctReadsPartition.sh' for writing: $!", undef);
+    if (! -e "$path/correctReadsPartition.batches") {
+        open(F, "> $path/correctReadsPartition.sh") or caExit("can't open '$path/correctReadsPartition.sh' for writing: $!", undef);
 
-    print F "#!" . getGlobal("shell") . "\n";
-    print F "\n";
-    print F getBinDirectoryShellCode();
-    print F "\n";
-    print F "\$bin/falconsense \\\n";
-    print F "  -partition $mem $cnsmem $par $rds \\\n";
-    print F "  -S ../../$asm.seqStore \\\n";
-    print F "  -C ../$asm.corStore \\\n";
-    print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
-    print F "  -t  " . getGlobal("corThreads") . " \\\n";
-    print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
-    print F "  -cl " . getGlobal("minReadLength") . " \\\n";
-    print F "  -oi " . getCorIdentity($asm) . " \\\n";
-    print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
-    print F "  -p ./correctReadsPartition.WORKING \\\n";
-    print F "&& \\\n";
-    print F "mv ./correctReadsPartition.WORKING.batches ./correctReadsPartition.batches \\\n";
-    print F "&& \\\n";
-    print F "exit 0\n";
-    print F "\n";
-    print F "exit 1\n";
+        print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
+        print F "\$bin/falconsense \\\n";
+        print F "  -partition $mem $cnsmem $par $rds \\\n";
+        print F "  -S ../../$asm.seqStore \\\n";
+        print F "  -C ../$asm.corStore \\\n";
+        print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
+        print F "  -t  " . getGlobal("corThreads") . " \\\n";
+        print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
+        print F "  -cl " . getGlobal("minReadLength") . " \\\n";
+        print F "  -oi " . getCorIdentity($asm) . " \\\n";
+        print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
+        print F "  -p ./correctReadsPartition.WORKING \\\n";
+        print F "&& \\\n";
+        print F "mv ./correctReadsPartition.WORKING.batches ./correctReadsPartition.batches \\\n";
+        print F "&& \\\n";
+        print F "exit 0\n";
+        print F "\n";
+        print F "exit 1\n";
 
-    close(F);
+        close(F);
 
-    makeExecutable("$path/correctReadsPartition.sh");
-    stashFile("$path/correctReadsPartition.sh");
+        makeExecutable("$path/correctReadsPartition.sh");
+        stashFile("$path/correctReadsPartition.sh");
 
-    print STDERR "--\n";
-    print STDERR "-- Configuring correction jobs:\n";
-    print STDERR "--   Jobs limited to $mem GB per job (via option corMemory).\n";
-    print STDERR "--   Reads estimated to need at most $cnsmem GB for computation.\n";
-    print STDERR "--   Leaving $remain GB memory for read data.\n";
+        print STDERR "--\n";
+        print STDERR "-- Configuring correction jobs:\n";
+        print STDERR "--   Jobs limited to $mem GB per job (via option corMemory).\n";
+        print STDERR "--   Reads estimated to need at most $cnsmem GB for computation.\n";
+        print STDERR "--   Leaving $remain GB memory for read data.\n";
 
-    if ($remain < 1.0) {
-        #print STDERR "--\n";
-        #print STDERR "-- ERROR: Not enough memory for correction.  Increase corMemory.\n";
-        caExit("not enough memory for correction; increase corMemory", undef);
-    }
+        if ($remain < 1.0) {
+            caExit("not enough memory for correction; increase corMemory", undef);
+        }
 
-    if (runCommand($path, "./correctReadsPartition.sh > ./correctReadsPartition.err 2>&1")) {
-        caExit("failed to partition reads for correction", "$path/correctReadsPartition.err");
+        if (runCommand($path, "./correctReadsPartition.sh > ./correctReadsPartition.err 2>&1")) {
+            caExit("failed to partition reads for correction", "$path/correctReadsPartition.err");
+        }
+
+        unlink("$path/correctReadsPartition.err");
     }
 
     stashFile("$path/correctReadsPartition.batches");
-    unlink("$path/correctReadsPartition.err");
 
     #  Generate a script for computing corrected reads, using the batches file
     #  as a template.
