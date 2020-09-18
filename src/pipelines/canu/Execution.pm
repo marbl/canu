@@ -1283,8 +1283,15 @@ sub submitOrRunParallelJob ($$$$@) {
                 }
 
                 if (uc(getGlobal("gridEngine")) eq "SLURM") {
+                    #  BPW has seen Slurm report "ERROR" instead of something
+                    #  useful here.  If that is seen, report the error to the
+                    #  screen and ignore this job.  We'll redo it on the next
+                    #  iteration (unless this is the second iteration, then
+                    #  we're screwed either way).
                     if (m/Submitted\sbatch\sjob\s(\d+)/) {
                         $jobName = $1;
+                    } elsif (m/ERROR/) {
+                        $jobName = undef;
                     } else {
                         $jobName = $_;
                     }
@@ -1296,13 +1303,17 @@ sub submitOrRunParallelJob ($$$$@) {
             }
             close(F);
 
-            if ($j =~ m/^\d+$/) {
+            if      (!defined($jobName)) {
+                print STDERR "-- '$cmd.sh' -> returned an error; job not submitted.\n";
+            } elsif ($j =~ m/^\d+$/) {
                 print STDERR "-- '$cmd.sh' -> job $jobName task $j.\n";
             } else {
                 print STDERR "-- '$cmd.sh' -> job $jobName tasks $j.\n";
             }
 
-            push @jobsSubmitted, $jobName;
+            if (defined($jobName)) {
+                push @jobsSubmitted, $jobName;
+            }
         }
 
         print STDERR "--\n";
