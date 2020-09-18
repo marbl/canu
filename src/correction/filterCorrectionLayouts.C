@@ -446,8 +446,6 @@ main(int argc, char **argv) {
   readStatus       *status   = new readStatus [numReads + 1];
 
   FILE             *roc      = AS_UTL_openOutputFile(outName);
-  FILE             *stats    = AS_UTL_openOutputFile(outName, '.', "stats");
-  FILE             *log      = AS_UTL_openOutputFile(outName, '.', "log");
 
   //  Initialize.  Used to be done in analuzeLength(), but we skip it on
   //  empty tigs, and the re-sort below absolutely needs every readStatus
@@ -529,7 +527,11 @@ main(int argc, char **argv) {
 
   AS_UTL_closeFile(roc);
 
-  //  Write some statistics and logs.
+  //  Write some statistics and logs.  These are opened just before they're
+  //  written so we can use them for completion tests.
+
+  FILE  *stats    = AS_UTL_openOutputFile(outName, '.', "stats");
+  FILE  *log      = AS_UTL_openOutputFile(outName, '.', "log");
 
   dumpStatistics(stats, status, numReads, genomeSize);
   dumpLog(log, status, numReads);
