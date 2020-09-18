@@ -1222,6 +1222,20 @@ sub submitOrRunParallelJob ($$$$@) {
 
         purgeGridJobSubmitScripts($path, $script);
 
+        if (getGlobal("showNext")) {
+            print STDERR "--\n";
+            print STDERR "-- NEXT COMMANDS\n";
+            print STDERR "--\n";
+            print STDERR "\n";
+            print STDERR prettifyCommand("cd $path"), "\n";
+            foreach my $j (@jobs) {
+                my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
+
+                print STDERR prettifyCommand("./$cmd.sh") . "\n";
+            }
+            exit(0);
+        }
+
         foreach my $j (@jobs) {
             my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
@@ -1376,6 +1390,18 @@ sub submitOrRunParallelJob ($$$$@) {
             $st = $ed = $j;
         }
 
+        if (getGlobal("showNext")) {
+            print STDERR "--\n";
+            print STDERR "-- NEXT COMMANDS\n";
+            print STDERR "--\n";
+            print STDERR "\n";
+            print STDERR prettifyCommand("cd $path") . "\n";
+            for (my $i=$st; $i<=$ed; $i++) {
+                print STDERR prettifyCommand("./$script.sh $i") . "\n";
+            }
+            exit(0);
+        }
+
         for (my $i=$st; $i<=$ed; $i++) {
             schedulerSubmit("./$script.sh $i > ./" . buildOutputName($path, $script, $i) . " 2>&1");
         }
@@ -1473,7 +1499,11 @@ sub runCommand ($$) {
     #  If only showing the next command, show it and stop.
 
     if (getGlobal("showNext")) {
-        print STDERR "--NEXT-COMMAND\n";
+        print STDERR "--\n";
+        print STDERR "-- NEXT COMMAND\n";
+        print STDERR "--\n";
+        print STDERR "\n";
+        print STDERR prettifyCommand("cd $dir") . "\n";
         print STDERR "$dis\n";
         exit(0);
     }
