@@ -24,6 +24,17 @@
 using namespace std;
 
 
+enum dumpType {
+  wantLibs      = 0,
+  wantReads     = 1,
+  wantStats     = 2,
+  wantHistogram = 3,
+  wantLengths   = 4,
+  wantVersions  = 5,
+  wantRevert    = 6
+};
+
+
 void
 dumpLibs(sqStore *seq, uint32 bgnID, uint32 endID) {
 
@@ -225,7 +236,7 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
 
 
 void
-dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool wantLengths) {
+dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool dumpLengths) {
   vector<uint64>  lengths;
   uint64          nBases = 0;
 
@@ -250,7 +261,7 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool wantLengths) {
     nBases += len;
   }
 
-  if (wantLengths == false) {
+  if (dumpLengths == false) {
     char   msg[1024] = {0};
 
     strcat(msg, "Histogram of");
@@ -275,8 +286,8 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool wantLengths) {
 
 
 
-void
-dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
+sqStoreInfo
+getStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
   sqStoreInfo    info;
   sqRead_which   w1 = sqRead_raw;
   sqRead_which   w2 = sqRead_raw       | sqRead_compressed;
@@ -295,9 +306,66 @@ dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
       info.sqInfo_addRead();
   }
 
-  info.writeInfoAsText(stdout);
+  return(info);
 }
 
+
+
+void
+dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
+  getStats(seqs, bgnID, endID).writeInfoAsText(stdout);
+}
+
+
+
+void
+dumpVersions(char const *seqStoreName) {
+  sqRead_which   w1 = sqRead_raw;
+  sqRead_which   w2 = sqRead_raw       | sqRead_trimmed;
+  sqRead_which   w3 = sqRead_corrected;
+  sqRead_which   w4 = sqRead_corrected | sqRead_trimmed;
+
+  fprintf(stdout, "        |----------- Raw ----------|------- Trimmed Raw ------|-------- Corrected -------|---- Trimmed Corrected ---|\n");
+  fprintf(stdout, "Version |     reads          bases |     reads          bases |     reads          bases |     reads          bases |\n");
+  fprintf(stdout, "--------|---------- ---------------|---------- ---------------|---------- ---------------|---------- ---------------|\n");
+
+  //  Find the max version available.  Then do some loop weirdness to iterate
+  //  through versions 1, 2, 3, 4, ..., 0 (the latest).
+
+  uint32  maxV = sqStore::sqStore_lastVersion(seqStoreName);
+
+  for (uint32 v=1; v <= maxV + 1; v++) {
+    uint32       version = (v <= maxV) ? v : 0;
+
+    sqStore     *seqStore = new sqStore(seqStoreName, sqStore_readOnly, version);
+    uint32       numReads = seqStore->sqStore_lastReadID();
+    uint32       numLibs  = seqStore->sqStore_lastLibraryID();
+    sqStoreInfo  info     = getStats(seqStore, 1, numReads);
+
+    delete seqStore;
+
+    fprintf(stdout, "%7s | %9u %14lu | %9u %14lu | %9u %14lu | %9u %14lu |\n",
+            (version == 0) ? "latest" : toDec(version),
+            info.sqInfo_numReads(w1), info.sqInfo_numBases(w1),
+            info.sqInfo_numReads(w2), info.sqInfo_numBases(w2),
+            info.sqInfo_numReads(w3), info.sqInfo_numBases(w3),
+            info.sqInfo_numReads(w4), info.sqInfo_numBases(w4));
+  }
+
+  fprintf(stdout, "\n");
+  fprintf(stdout, "If this store is part of a Canu assembly:\n");
+  fprintf(stdout, "  Version 1 contains all the input data.\n");
+  fprintf(stdout, "  Version 2 contains only maxInputCoverage of the input data.\n");
+  fprintf(stdout, "  Version 3 contains corrected reads.\n");
+  fprintf(stdout, "  Version 4 contains trimmed reads.\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "Versions 3 and 4 will not exist if correction and/or trimming\n");
+  fprintf(stdout, "are not computed.\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "The 'latest' version is the current active data.  Numeric versions\n");
+  fprintf(stdout, "are historical versions and are not active.\n");
+  fprintf(stdout, "\n");
+}
 
 
 
@@ -306,13 +374,8 @@ main(int argc, char **argv) {
   char            *seqStoreName      = NULL;
 
   sqRead_which     which             = sqRead_unset;
-
-  bool             wantLibs          = false;
-  bool             wantReads         = true;
-  bool             wantStats         = false;
-  bool             wantHistogram     = false;
-  bool             wantLengths       = false;
-
+  dumpType         reqDump           = wantReads;
+  uint32           revertVersion     = 0;
   bool             showAll           = false;
 
   uint32           bgnID             = 1;
@@ -329,45 +392,13 @@ main(int argc, char **argv) {
       seqStoreName = argv[++arg];
     }
 
-    else if (strcmp(argv[arg], "-libs") == 0) {
-      wantLibs      = true;
-      wantReads     = false;
-      wantStats     = false;
-      wantHistogram = false;
-      wantLengths   = false;
-    }
-
-    else if (strcmp(argv[arg], "-reads") == 0) {
-      wantLibs      = false;
-      wantReads     = true;
-      wantStats     = false;
-      wantHistogram = false;
-      wantLengths   = false;
-    }
-
-    else if (strcmp(argv[arg], "-stats") == 0) {
-      wantLibs      = false;
-      wantReads     = false;
-      wantStats     = true;
-      wantHistogram = false;
-      wantLengths   = false;
-    }
-
-    else if (strcmp(argv[arg], "-histogram") == 0) {
-      wantLibs      = false;
-      wantReads     = false;
-      wantStats     = false;
-      wantHistogram = true;
-      wantLengths   = false;
-    }
-
-    else if (strcmp(argv[arg], "-lengths") == 0) {
-      wantLibs      = false;
-      wantReads     = false;
-      wantStats     = false;
-      wantHistogram = true;
-      wantLengths   = true;
-    }
+    else if (strcmp(argv[arg], "-libs")      == 0)   { reqDump = wantLibs;      }
+    else if (strcmp(argv[arg], "-reads")     == 0)   { reqDump = wantReads;     }
+    else if (strcmp(argv[arg], "-stats")     == 0)   { reqDump = wantStats;     }
+    else if (strcmp(argv[arg], "-histogram") == 0)   { reqDump = wantHistogram; }
+    else if (strcmp(argv[arg], "-lengths")   == 0)   { reqDump = wantLengths;   }
+    else if (strcmp(argv[arg], "-versions")  == 0)   { reqDump = wantVersions;  }
+    else if (strcmp(argv[arg], "-revert")    == 0)   { reqDump = wantRevert;   revertVersion = strtouint32(argv[++arg]); }
 
     else if (strcmp(argv[arg], "-all") == 0) {
       showAll = true;
@@ -447,6 +478,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -histogram       dump a length histogram\n");
     fprintf(stderr, "  -lengths         dump sorted read lengths\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -versions        dump a list of the historical metadata saved\n");
+    fprintf(stderr, "  -revert n        revert to version 'n' and DESTROY later versions\n");
+    fprintf(stderr, "                    ** INCORRECT USE WILL CAUSE GREAT SUFFERING **\n");
+    fprintf(stderr, "                    ** (you might as well just rm -rf your asm) **\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "READ SELECTION:\n");
     fprintf(stderr, "  Applies to -reads, -histogram and -lengths.  The default for these\n");
     fprintf(stderr, "\n");
@@ -500,17 +536,27 @@ main(int argc, char **argv) {
     fprintf(stderr, "No objects to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID);
 
 
-  if (wantLibs)
+  if (reqDump == wantLibs)
     dumpLibs(seqStore, bgnID, endID);
 
-  if (wantReads)
+  if (reqDump == wantReads)
     dumpReads(seqStore, bgnID, endID, which, showAll);
 
-  if (wantStats)
+  if (reqDump == wantStats)
     dumpStats(seqStore, bgnID, endID);
 
-  if (wantHistogram)
-    dumpHistogram(seqStore, bgnID, endID, wantLengths);
+  if (reqDump == wantHistogram)
+    dumpHistogram(seqStore, bgnID, endID, false);
+
+  if (reqDump == wantLengths)
+    dumpHistogram(seqStore, bgnID, endID, false);
+
+  if (reqDump == wantVersions)
+    dumpVersions(seqStoreName);
+
+  if ((reqDump == wantRevert) &&
+      (revertVersion != 0))
+    sqStore::sqStore_revertVersion(seqStoreName, revertVersion);
 
   delete seqStore;
 

@@ -21,10 +21,101 @@
 #include "files.H"
 
 
+//  Returns the last version available.
+//             0 - no historical versions exist, but store is valid
+//    UINT32_MAX - no store exists at that location
+//
+uint32
+sqStore::sqStore_lastVersion(char const *storePath) {
+  char    versionName[FILENAME_MAX+1];
+  uint32  version = 0;
+
+  if (directoryExists(storePath) == false)
+    return(UINT32_MAX);
+
+  snprintf(versionName, FILENAME_MAX, "%s/version.%03u/info", storePath, ++version);
+
+  while (fileExists(versionName) == true)
+    snprintf(versionName, FILENAME_MAX, "%s/version.%03u/info", storePath, ++version);
+
+  return(version - 1);
+}
+
+
+
+//  Deletes versions higher than 'version' and
+//  makes 'version' be the current.
+void
+sqStore::sqStore_revertVersion(char const *storePath, uint32 version) {
+  char    versionPath[FILENAME_MAX+1];
+
+  if (version == 0)
+    return;
+
+  snprintf(versionPath, FILENAME_MAX, "%s/version.%03u", storePath, version);
+
+  if (fileExists(versionPath, '/', "info") == false) {
+    fprintf(stderr, "Cannot revert to version %u; version not found.\n", version);
+    return;
+  }
+
+  //  Unlink the current data.
+
+  fprintf(stderr, "Removing current data.\n");
+
+  AS_UTL_unlink(storePath, '/', "info");
+  AS_UTL_unlink(storePath, '/', "info.txt");
+  AS_UTL_unlink(storePath, '/', "libraries");
+  AS_UTL_unlink(storePath, '/', "reads");
+  AS_UTL_unlink(storePath, '/', "reads-corc");
+  AS_UTL_unlink(storePath, '/', "reads-coru");
+  AS_UTL_unlink(storePath, '/', "reads-rawc");
+  AS_UTL_unlink(storePath, '/', "reads-rawu");
+
+  //  Move the precious version to current.
+
+  fprintf(stderr, "Restoring version %u.\n", version);
+
+  AS_UTL_rename(versionPath, '/', "info",       storePath, '/', "info");
+  AS_UTL_rename(versionPath, '/', "info.txt",   storePath, '/', "info.txt");
+  AS_UTL_rename(versionPath, '/', "libraries",  storePath, '/', "libraries");
+  AS_UTL_rename(versionPath, '/', "reads",      storePath, '/', "reads");
+  AS_UTL_rename(versionPath, '/', "reads-corc", storePath, '/', "reads-corc");
+  AS_UTL_rename(versionPath, '/', "reads-coru", storePath, '/', "reads-coru");
+  AS_UTL_rename(versionPath, '/', "reads-rawc", storePath, '/', "reads-rawc");
+  AS_UTL_rename(versionPath, '/', "reads-rawu", storePath, '/', "reads-rawu");
+
+  AS_UTL_rmdir(versionPath);
+
+  //  Remove all the now-obsolete versions.
+
+  while (1) {
+    snprintf(versionPath, FILENAME_MAX, "%s/version.%03u", storePath, ++version);
+
+    if (fileExists(versionPath, '/', "info") == false)
+      break;
+
+    fprintf(stderr, "Removing version %u.\n", version);
+
+    AS_UTL_unlink(versionPath, '/', "info");
+    AS_UTL_unlink(versionPath, '/', "info.txt");
+    AS_UTL_unlink(versionPath, '/', "libraries");
+    AS_UTL_unlink(versionPath, '/', "reads");
+    AS_UTL_unlink(versionPath, '/', "reads-corc");
+    AS_UTL_unlink(versionPath, '/', "reads-coru");
+    AS_UTL_unlink(versionPath, '/', "reads-rawc");
+    AS_UTL_unlink(versionPath, '/', "reads-rawu");
+
+    AS_UTL_rmdir(versionPath);
+  }
+
+  fprintf(stderr, "Done.\n");
+}
+
+
 
 void
 sqStore::sqStore_loadMetadata(void) {
-  char    name[FILENAME_MAX+1];
 
   _librariesAlloc = _info.sqInfo_lastLibraryID() + 1;
   _readsAlloc     = _info.sqInfo_lastReadID()    + 1;
@@ -36,8 +127,8 @@ sqStore::sqStore_loadMetadata(void) {
   _corU       = NULL;
   _corC       = NULL;
 
-  AS_UTL_loadFile(_storePath, '/', "libraries", _libraries, _librariesAlloc);
-  AS_UTL_loadFile(_storePath, '/', "reads",     _meta,      _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "libraries", _libraries, _librariesAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads",     _meta,      _readsAlloc);
 
   //  If the user hasn't set a default version, or has only requested
   //  uncompressed reads, pick the plausible most recent version then add
@@ -103,10 +194,10 @@ sqStore::sqStore_loadMetadata(void) {
   //  We can maybe, eventually, be clever and load these on-demand.
   //  For now, load all the metadata.
 
-  AS_UTL_loadFile(_storePath, '/', "reads-rawu", _rawU = new sqReadSeq[_readsAlloc], _readsAlloc);
-  AS_UTL_loadFile(_storePath, '/', "reads-rawc", _rawC = new sqReadSeq[_readsAlloc], _readsAlloc);
-  AS_UTL_loadFile(_storePath, '/', "reads-coru", _corU = new sqReadSeq[_readsAlloc], _readsAlloc);
-  AS_UTL_loadFile(_storePath, '/', "reads-corc", _corC = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-rawu", _rawU = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-rawc", _rawC = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-coru", _corU = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-corc", _corC = new sqReadSeq[_readsAlloc], _readsAlloc);
 }
 
 
@@ -115,10 +206,8 @@ sqStore::sqStore_loadMetadata(void) {
 
 
 sqStore::sqStore(char const    *storePath_,
-                 sqStore_mode   mode_) {
-  char    nameL[FILENAME_MAX+1];
-  char    nameR[FILENAME_MAX+1];
-  char    nameB[FILENAME_MAX+1];
+                 sqStore_mode   mode_,
+                 uint32         version_) {
 
   //  Set the sqStore pointer in an overlap.
 
@@ -126,9 +215,13 @@ sqStore::sqStore(char const    *storePath_,
 
   //  Clear ourself, to make valgrind happier.
 
+  assert(storePath_ != nullptr);
+
   memset(_storePath, 0, sizeof(char) * (FILENAME_MAX + 1));
+  memset(_metaPath,  0, sizeof(char) * (FILENAME_MAX + 1));
 
   _mode                   = mode_;
+  _version                = version_;
 
   _librariesAlloc         = 0;
   _libraries              = NULL;
@@ -143,23 +236,28 @@ sqStore::sqStore(char const    *storePath_,
   _blobReader             = NULL;
   _blobWriter             = NULL;
 
-  //  Save the path and name.
+  //  Save the path to the store and make a metadata path name.
 
-  if (storePath_)   strncpy(_storePath, storePath_, FILENAME_MAX);   //  storePath must always exist though.
+  strncpy(_storePath, storePath_, FILENAME_MAX);
+
+  if (_version > 0)
+    snprintf(_metaPath, FILENAME_MAX, "%s/version.%03u", sqStore_path(), _version);
+  else
+    snprintf(_metaPath, FILENAME_MAX, "%s", sqStore_path());
 
   //  Load the info file, if it exists.  And if not, do nothing.
 
-  _info.readInfo(_storePath);
+  _info.readInfo(_metaPath);
 
   //
   //  CREATE - allocate some memory for saving libraries and reads, and create a file to dump the data into.
   //
 
   if (_mode == sqStore_create) {
-    if (directoryExists(_storePath) == true)
-      fprintf(stderr, "ERROR:  Can't create store '%s': store already exists.\n", _storePath), exit(1);
+    if (directoryExists(sqStore_path()) == true)
+      fprintf(stderr, "ERROR:  Can't create store '%s': store already exists.\n", sqStore_path()), exit(1);
 
-    AS_UTL_mkdir(_storePath);
+    AS_UTL_mkdir(sqStore_path());
 
     _librariesAlloc = 32;           //  _libraries and
     _readsAlloc     = 32768;        //  _reads MUST be preallocated.
@@ -182,26 +280,37 @@ sqStore::sqStore(char const    *storePath_,
       _corC[ii].sqReadSeq_initialize();
     }
     
-    _blobWriter     = new sqStoreBlobWriter(_storePath, &_info);
+    _blobWriter     = new sqStoreBlobWriter(sqStore_path(), &_info);
 
     return;
   }
 
   //
-  //  Not creating, so the store MUST exist.
-  //  Load metadata and check it is compatible.
-  //  Make a writer if we're extending, then make a reader.
+  //  READING or EXTENDING.
   //
 
-  if (directoryExists(_storePath) == false)
-    fprintf(stderr, "sqStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath), exit(1);
+  //  If the store directory doesn't exist, just blow up immediately.
+
+  if (directoryExists(sqStore_path()) == false)
+    fprintf(stderr, "sqStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", sqStore_path()), exit(1);
+
+  //  But if the metadata directory doesn't exist, silently return.  This
+  //  allows sqStoreDumpMetaData to step through the versions and ask if
+  //  there are reads present.  Any other client that wants to use metadata
+  //  versions will need to do a similar check.
+
+  if (directoryExists(_metaPath) == false)
+    return;
+
+  //  Now that we know the store and metadata directories exist, load the
+  //  metadata, make a writer if we're extending, and make a reader.
 
   sqStore_loadMetadata();
 
   if (_mode == sqStore_extend)
-    _blobWriter = new sqStoreBlobWriter(_storePath, &_info);
+    _blobWriter = new sqStoreBlobWriter(sqStore_path(), &_info);
 
-  _blobReader = new sqStoreBlobReader(_storePath);
+  _blobReader = new sqStoreBlobReader(sqStore_path());
 }
 
 
@@ -217,44 +326,44 @@ sqStore::~sqStore() {
   //  Save original metadata.
 
   if (_mode == sqStore_extend) {
-    snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, sqStore_path(), V);
     while (directoryExists(No) == true) {
       V++;
-      snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, _storePath, V);
+      snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, sqStore_path(), V);
     }
 
     AS_UTL_mkdir(No);
 
-    snprintf(No, FILENAME_MAX, "%s/libraries", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/libraries", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/libraries", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/libraries", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/reads", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/reads", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/reads-rawu", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-rawu", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/reads-rawu", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-rawu", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/reads-rawc", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-rawc", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/reads-rawc", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-rawc", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/reads-coru", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-coru", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/reads-coru", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-coru", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/reads-corc", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-corc", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/reads-corc", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-corc", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/info", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/info", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/info", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/info", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
 
-    snprintf(No, FILENAME_MAX, "%s/info.txt", _storePath);
-    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/info.txt", _storePath, V);
+    snprintf(No, FILENAME_MAX, "%s/info.txt", sqStore_path());
+    snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/info.txt", sqStore_path(), V);
     AS_UTL_rename(No, Nn);
   }
 
@@ -269,18 +378,18 @@ sqStore::~sqStore() {
 
   if ((_mode == sqStore_create) ||
       (_mode == sqStore_extend)) {
-    AS_UTL_saveFile(_storePath, '/', "libraries",   _libraries, sqStore_lastLibraryID() + 1);
-    AS_UTL_saveFile(_storePath, '/', "reads",       _meta,      sqStore_lastReadID()    + 1);
-    AS_UTL_saveFile(_storePath, '/', "reads-rawu",  _rawU,      sqStore_lastReadID()    + 1);
-    AS_UTL_saveFile(_storePath, '/', "reads-rawc",  _rawC,      sqStore_lastReadID()    + 1);
-    AS_UTL_saveFile(_storePath, '/', "reads-coru",  _corU,      sqStore_lastReadID()    + 1);
-    AS_UTL_saveFile(_storePath, '/', "reads-corc",  _corC,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "libraries",   _libraries, sqStore_lastLibraryID() + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads",       _meta,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-rawu",  _rawU,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-rawc",  _rawC,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-coru",  _corU,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-corc",  _corC,      sqStore_lastReadID()    + 1);
 
-    _info.writeInfo(_storePath);
+    _info.writeInfo(sqStore_path());
 
-    FILE *F = AS_UTL_openOutputFile(_storePath, '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
+    FILE *F = AS_UTL_openOutputFile(sqStore_path(), '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
     _info.writeInfoAsText(F);                                       //  Do not remove!
-    AS_UTL_closeFile(F, _storePath, '/', "info.txt");
+    AS_UTL_closeFile(F, sqStore_path(), '/', "info.txt");
   }
 
   //  Clean up.
@@ -295,21 +404,3 @@ sqStore::~sqStore() {
   delete    _blobWriter;
   delete    _blobReader;
 };
-
-
-
-void
-sqStore::sqStore_delete(void) {
-  char path[FILENAME_MAX+1];
-
-  snprintf(path, FILENAME_MAX, "%s/info",       _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/libraries",  _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/reads",      _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/reads-rawu", _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/reads-rawc", _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/reads-coru", _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/reads-corc", _storePath);  AS_UTL_unlink(path);
-  snprintf(path, FILENAME_MAX, "%s/blobs",      _storePath);  AS_UTL_unlink(path);
-
-  AS_UTL_rmdir(_storePath);
-}

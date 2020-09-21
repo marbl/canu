@@ -106,7 +106,7 @@ toString(sqStore_mode m) {
 
 static
 void
-makeBlobName(char *storePath, uint32 blobNumber, char *blobName) {
+makeBlobName(char const *storePath, uint32 blobNumber, char *blobName) {
   snprintf(blobName, FILENAME_MAX, "%s/blobs.%04" F_U32P , storePath, blobNumber);
 }
 
@@ -117,17 +117,25 @@ public:
   ~sqStoreInfo();
 
 private:
-  bool      readInfo8(char *storePath);
+  bool      readInfo8(char const *metaPath);
 public:
-  void      readInfo(char *storePath);
-  void      writeInfo(char *storePath);
+  void      readInfo(char const *metaPath);
+  void      writeInfo(char const *metaPath);
 
   void      writeInfoAsText(FILE *F);
 
   uint32    sqInfo_lastLibraryID(void)          { return(_numLibraries); };
   uint32    sqInfo_lastReadID(void)             { return(_numReads);     };
 
-  uint32    sqInfo_numReads(sqRead_which w)     { return(_reads[w]);     };
+  //  Well, shoot.  The on-disk metadata is storing _reads as a 64-bit int
+  //  for some reason, although the store cannot handle more than 4-billion
+  //  reads.  I can't change the 64-bit int to a 32-bit int without breaking
+  //  combatibility, and am not sure what havoc would result if I return a
+  //  64-bit int here (probably none, but it's be a glaring inconsistency all
+  //  over the place, instead of just here).
+  //
+  uint32    sqInfo_numReads(sqRead_which w)     { return((uint32)_reads[w]); };
+  uint64    sqInfo_numBases(sqRead_which w)     { return(        _bases[w]); };
 
 public:
   bool      examineRead(uint32 ii, sqReadSeq *seq, sqRead_which w);
@@ -216,7 +224,7 @@ private:
 
 class sqStore {
 public:
-  sqStore(char const *storePath, sqStore_mode mode=sqStore_readOnly);
+  sqStore(char const *storePath, sqStore_mode mode=sqStore_readOnly, uint32 version=0);
   ~sqStore();
 private:
   void         sqStore_loadMetadata(void);
@@ -224,7 +232,11 @@ private:
 public:
   const char  *sqStore_path(void) { return(_storePath); };  //  Returns the path to the store
 
-  void         sqStore_delete(void);             //  Deletes the files in the store.
+  static
+  uint32       sqStore_lastVersion(char const *storePath);
+
+  static
+  void         sqStore_revertVersion(char const *storePath, uint32 version);
 
   uint32       sqStore_lastLibraryID(void)            { return(_info.sqInfo_lastLibraryID()); };
   uint32       sqStore_lastReadID(void)               { return(_info.sqInfo_lastReadID());    };
@@ -332,8 +344,10 @@ private:
   sqStoreInfo          _info;  //  All the stuff stored on disk.
 
   char                 _storePath[FILENAME_MAX+1];    //  Needed to create files
+  char                 _metaPath[FILENAME_MAX+1];
 
   sqStore_mode         _mode;  //  What mode this store is opened as, sanity checking
+  uint32               _version;
 
   uint32               _librariesAlloc;  //  Size of allocation
   sqLibrary           *_libraries;       //  In core data
