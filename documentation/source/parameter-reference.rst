@@ -264,8 +264,10 @@ File Staging
 The correction stage of Canu requires random access to all the reads.  Performance is greatly
 improved if the gkpStore database of reads is copied locally to each node that computes corrected
 read consensus sequences.  This 'staging' is enabled by supplying a path name to fast local storage
-with the :ref:`stageDirectory` option, and, optionally, requesting access to that resource from the grid
-with the :ref:`gridEngineStageOption` option.
+with the :ref:`stageDirectory <stageDirectory>` option, and, optionally, requesting access to that resource from the grid
+with the :ref:`gridEngineStageOption <gridEngineStageOption>` option.
+
+.. _stageDirectory:
 
 stageDirectory <string=undefined>
   A path to a directory local to each compute node.  The directory should use an environment
@@ -278,6 +280,8 @@ stageDirectory <string=undefined>
   to expand it before Canu sees the option: `stageDirectory=/scratch/\$JOB_ID-\$SGE_TASK_ID`.
 
   If specified in a specFile, do not escape the dollar signs.
+
+.. _gridEngineStageOption:
 
 gridEngineStageOption <string=undefined>
   This string is passed to the job submission command, and is expected to request
@@ -853,6 +857,8 @@ If you have a dataset with uneven coverage or small plasmids, correcting the lon
 give you sufficient coverage of your genome/plasmid. In these cases, you can set
 `corOutCoverage=999`, or any value greater than your total input coverage which will correct and
 assemble all input data, at the expense of runtime.
+
+.. _corErrorRate:
 
 corErrorRate <integer=unset>
   Do not use overlaps with error rate higher than this (estimated error rate for `mhap` and `minimap` overlaps).
