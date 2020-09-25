@@ -734,41 +734,41 @@ set, defaults are chosen based on genomeSize.
 
 Available prefixes are:
 
-+-------+-----------+----------------------------------------+
-|    Prefix         | Algorithm                              |
-+=======+===========+========================================+
-| cor   |           | | Overlap generation using the         |
-+-------|           | | 'mhap' algorithm for                 |
-| obt   | mhap      | | 'cor'=correction,, 'obt'=trimming    |
-+-------|           | | or 'utg'=assembly.                   |
-| utg   |           |                                        |
-+-------+-----------+----------------------------------------+
-| cor   |           | | Overlap generation using the         |
-+-------|           | | 'minimap' algorithm for              |
-| obt   | mmap      | | 'cor'=correction,, 'obt'=trimming    |
-+-------|           | | or 'utg'=assembly.                   |
-| utg   |           |                                        |
-+-------+-----------+----------------------------------------+
-| cor   |           | | Overlap generation using the         |
-+-------|           | | 'overlapInCore' algorithm for        |
-| obt   | ovl       | | 'cor'=correction,, 'obt'=trimming    |
-+-------|           | | or 'utg'=assembly.                   |
-| utg   |           |                                        |
-+-------+-----------+----------------------------------------+
-|       | ovb       | Parallel overlap store bucketizing     |
-+-------+-----------+----------------------------------------+
-|       | ovs       | Parallel overlap store bucket sorting  |
-+-------+-----------+----------------------------------------+
-|       | cor       | Read correction                        |
-+-------+-----------+----------------------------------------+
-|       | red       | Error detection in reads               |
-+-------+-----------+----------------------------------------+
-|       | oea       | Error adjustment in overlaps           |
-+-------+-----------+----------------------------------------+
-|       | bat       | Unitig/contig construction             |
-+-------+-----------+----------------------------------------+
-|       | cns       | Unitig/contig consensus                |
-+-------+-----------+----------------------------------------+
++-------+-----------+---------------------------------------------------------------+
+|    Prefix         | Algorithm                                                     |
++=======+===========+===============================================================+
+| cor   |           | | Overlap generation using the 'mhap' algorithm for           |
++-------+           | | 'cor'=correction                                            |
+| obt   | mhap      | | 'obt'=trimming                                              |
++-------+           | | 'utg'=assembly                                              |
+| utg   |           |                                                               |
++-------+-----------+---------------------------------------------------------------+
+| cor   |           | | Overlap generation using the 'minimap2' algorithm for       |
++-------+           | | 'cor' = correction                                          |
+| obt   | mmap      | | 'obt' = trimming                                            |
++-------+           | | 'utg' = assembly                                            |
+| utg   |           |                                                               |
++-------+-----------+---------------------------------------------------------------+
+| cor   |           | | Overlap generation using the 'overlapInCore' algorithm for  |
++-------+           | | 'cor' = correction                                          |
+| obt   | ovl       | | 'obt' = trimming                                            |
++-------+           | | 'utg' = assembly                                            |
+| utg   |           |                                                               |
++-------+-----------+---------------------------------------------------------------+
+|       | ovb       | Parallel overlap store bucketizing                            |
++-------+-----------+---------------------------------------------------------------+
+|       | ovs       | Parallel overlap store bucket sorting                         |
++-------+-----------+---------------------------------------------------------------+
+|       | cor       | Read correction                                               |
++-------+-----------+---------------------------------------------------------------+
+|       | red       | Error detection in reads                                      |
++-------+-----------+---------------------------------------------------------------+
+|       | oea       | Error adjustment in overlaps                                  |
++-------+-----------+---------------------------------------------------------------+
+|       | bat       | Unitig/contig construction                                    |
++-------+-----------+---------------------------------------------------------------+
+|       | cns       | Unitig/contig consensus                                       |
++-------+-----------+---------------------------------------------------------------+
 
 For example, 'mhapMemory` would set the memory limit for computing overlaps with the mhap algorithm;
 'cormhapMemory' would set the memory limit only when mhap is used for generating overlaps used for
