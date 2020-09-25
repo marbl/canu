@@ -21,15 +21,6 @@ Global Options
 
 The catch all category.
 
-.. _errorRate:
-
-errorRate <float=unset> (OBSOLETE)
-  This parameter was removed on January 27th, 2016, and is valid only in Canu 1.4 or earlier.
-  Canu currently still accepts the :ref:`errorRate <errorRate>` parameter, but its use is strongly discouraged.
-
-  The expected error in a single corrected read.  The seven error rates were then set to three times
-  this value (except for :ref:`corErrorRate <corErrorRate>`).
-
 .. _rawErrorRate:
 
 rawErrorRate <float=unset>
