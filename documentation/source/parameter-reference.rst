@@ -577,8 +577,9 @@ Trio binning Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _hapUnknownFraction:
+
 hapUnknownFraction <float=0.05>
-   Fraction of unclassified bases to ignore for haplotype assemblies. If there are more than this fraction of unclassified bases, they are included in both haplotype assemblies.
+  Fraction of unclassified bases to ignore for haplotype assemblies. If there are more than this fraction of unclassified bases, they are included in both haplotype assemblies.
 
 .. _grid-engine:
 
@@ -899,10 +900,12 @@ Output Filtering
 contigFilter <minReads, integer=2> <minLength, integer=0> <singleReadSpan, float=1.0> <lowCovSpan, float=0.5> <lowCovDepth, integer=5>
   A contig that needs any of the following conditions is flagged as 'unassembled' and removed from
   further consideration:
+
     - fewer than minReads reads (default 2)
     - shorter than minLength bases (default 0)
     - a single read covers more than singleReadSpan fraction of the contig (default 1.0)
     - more than lowCovSpan fraction of the contig is at coverage below lowCovDepth (defaults 0.5, 5)
+
   This filtering is done immediately after initial contigs are formed, before potentially
   incorrectly spanned repeats are detected.  Initial contigs that incorrectly span a repeat can be
   split into multiple contigs; none of these new contigs will be flagged as 'unassembled', even if
