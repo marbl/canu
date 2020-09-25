@@ -76,16 +76,36 @@ minOverlapLength <integer=500>
 .. _readSamplingCoverage:
 
 readSamplingCoverage <integer=unset>
-  After loading all reads into the sequence store, flag some reads as 'not to be used' until this
-  amount of coverage remains.  Reads are flagged according to the score described in
-  :ref:`readSamplingBias <readSamplingBias>`.
+  After loading all reads into the sequence store, discard some reads so that
+  this amount of coverage remains.  Reads are discarded according to the score
+  described in :ref:`readSamplingBias <readSamplingBias>`.
 
 .. _readSamplingBias:
 
 readSamplingBias <float=0.0>
-  Adjust the sampling bias towards shorter (negative numbers) or longer (positive numbers) reads.
-  Reads are assigned a score of `random * length ^ bias` and the lowest scoring reads are flagged as
-  described in :ref:`readSamplingCoverage <readSamplingCoverage>`.
+  Adjust the sampling bias towards discarding longer (negative numbers) or
+  shorter (positive numbers) reads.  Reads are assigned a score equal to
+  `random_number * read_length ^ bias` and the lowest scoring reads are
+  discarded, as described in :ref:`readSamplingCoverage
+  <readSamplingCoverage>`.
+
+  In the pictures below, green reads are kept, while purple reads are
+  discarded.  The reads are along the X axis, sorted by decreasing score.
+  The Y axis is the length of each read.
+
+  A bias of 0.0 will retain random reads:
+
+  .. image:: bias=+00.png
+
+  A negative bias will retain shorter reads:
+
+  .. image:: bias=-01.png
+  .. image:: bias=-10.png
+
+  A positive bias will retain longer reads:
+
+  .. image:: bias=+01.png
+  .. image:: bias=+10.png
 
 .. _genomeSize:
 
