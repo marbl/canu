@@ -24,7 +24,7 @@
 using namespace std;
 
 
-enum dumpType {
+enum class dumpType {
   wantLibs      = 0,
   wantReads     = 1,
   wantStats     = 2,
@@ -389,7 +389,7 @@ main(int argc, char **argv) {
   char            *seqStoreName      = NULL;
 
   sqRead_which     which             = sqRead_unset;
-  dumpType         reqDump           = wantReads;
+  dumpType         reqDump           = dumpType::wantReads;
   uint32           revertVersion     = 0;
   bool             showAll           = false;
 
@@ -407,13 +407,13 @@ main(int argc, char **argv) {
       seqStoreName = argv[++arg];
     }
 
-    else if (strcmp(argv[arg], "-libs")      == 0)   { reqDump = wantLibs;      }
-    else if (strcmp(argv[arg], "-reads")     == 0)   { reqDump = wantReads;     }
-    else if (strcmp(argv[arg], "-stats")     == 0)   { reqDump = wantStats;     }
-    else if (strcmp(argv[arg], "-histogram") == 0)   { reqDump = wantHistogram; }
-    else if (strcmp(argv[arg], "-lengths")   == 0)   { reqDump = wantLengths;   }
-    else if (strcmp(argv[arg], "-versions")  == 0)   { reqDump = wantVersions;  }
-    else if (strcmp(argv[arg], "-revert")    == 0)   { reqDump = wantRevert;   revertVersion = strtouint32(argv[++arg]); }
+    else if (strcmp(argv[arg], "-libs")      == 0)   { reqDump = dumpType::wantLibs;      }
+    else if (strcmp(argv[arg], "-reads")     == 0)   { reqDump = dumpType::wantReads;     }
+    else if (strcmp(argv[arg], "-stats")     == 0)   { reqDump = dumpType::wantStats;     }
+    else if (strcmp(argv[arg], "-histogram") == 0)   { reqDump = dumpType::wantHistogram; }
+    else if (strcmp(argv[arg], "-lengths")   == 0)   { reqDump = dumpType::wantLengths;   }
+    else if (strcmp(argv[arg], "-versions")  == 0)   { reqDump = dumpType::wantVersions;  }
+    else if (strcmp(argv[arg], "-revert")    == 0)   { reqDump = dumpType::wantRevert;   revertVersion = strtouint32(argv[++arg]); }
 
     else if (strcmp(argv[arg], "-all") == 0) {
       showAll = true;
@@ -537,7 +537,7 @@ main(int argc, char **argv) {
 
   //fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", seqStoreName, sqRead_getDefaultVersion());
 
-  if (wantLibs) {
+  if (reqDump == dumpType::wantLibs) {
     if (bgnID < 1)         bgnID = 1;
     if (numLibs < endID)   endID = numLibs;
 
@@ -546,30 +546,30 @@ main(int argc, char **argv) {
     if (numReads < endID)  endID = numReads;
   }
 
+  if (endID < bgnID) {
+    fprintf(stderr, "ERROR: No objects to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 ".\n", bgnID, endID);
+    exit(1);
+  }
 
-  if (endID < bgnID)
-    fprintf(stderr, "No objects to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID);
-
-
-  if (reqDump == wantLibs)
+  if (reqDump == dumpType::wantLibs)
     dumpLibs(seqStore, bgnID, endID);
 
-  if (reqDump == wantReads)
+  if (reqDump == dumpType::wantReads)
     dumpReads(seqStore, bgnID, endID, which, showAll);
 
-  if (reqDump == wantStats)
+  if (reqDump == dumpType::wantStats)
     dumpStats(seqStore, bgnID, endID);
 
-  if (reqDump == wantHistogram)
+  if (reqDump == dumpType::wantHistogram)
     dumpHistogram(seqStore, bgnID, endID, false);
 
-  if (reqDump == wantLengths)
+  if (reqDump == dumpType::wantLengths)
     dumpHistogram(seqStore, bgnID, endID, false);
 
-  if (reqDump == wantVersions)
+  if (reqDump == dumpType::wantVersions)
     dumpVersions(seqStoreName);
 
-  if ((reqDump == wantRevert) &&
+  if ((reqDump == dumpType::wantRevert) &&
       (revertVersion != 0))
     sqStore::sqStore_revertVersion(seqStoreName, revertVersion);
 
