@@ -37,6 +37,13 @@ enum dumpType {
 
 void
 dumpLibs(sqStore *seq, uint32 bgnID, uint32 endID) {
+  uint32  lastLib = seq->sqStore_lastLibraryID();
+
+  assert(bgnID >= 1);
+  assert(bgnID <= lastLib);
+
+  assert(endID >= 1);
+  assert(endID <= lastLib);
 
   fprintf(stdout, "ID         technology  name\n");
   fprintf(stdout, "---- ----------------  ------------------------------\n");
@@ -168,6 +175,14 @@ dumpReads_setFlagsString(sqStore *seqs, uint32 rid, char *flags) {
 
 void
 dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool showAll) {
+  uint32  lastRead = seqs->sqStore_lastReadID();
+
+  assert(bgnID >= 1);
+  assert(bgnID <= lastRead);
+
+  assert(endID >= 1);
+  assert(endID <= lastRead);
+
   char   l1[1024] = {0};
 
   char   s1len[16] = {0}, s1bgn[16] = {0}, s1end[16] = {0};
