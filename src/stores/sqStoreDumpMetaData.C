@@ -97,26 +97,26 @@ dumpReads_printHeader(sqRead_which w) {
 
 
 bool
-dumpReads_setClearString(sqStore *seqs, uint32 rid, char *len, char *bgn, char *end, sqRead_which w) {
+dumpReads_setClearString(sqStore *seq, uint32 rid, char *len, char *bgn, char *end, sqRead_which w) {
 
   //  Set the length of the read.
 
-  if (seqs->sqStore_isValidRead(rid, w) == false)
+  if (seq->sqStore_isValidRead(rid, w) == false)
     memcpy(len, "          -", sizeof(char) * 11);
 
-  else if (seqs->sqStore_isIgnoredRead(rid, w) == true)
+  else if (seq->sqStore_isIgnoredRead(rid, w) == true)
     memcpy(len, "    ignored", sizeof(char) * 11);
 
   else
-    snprintf(len, 12, " %10" F_U32P, seqs->sqStore_getReadLength(rid, w));
+    snprintf(len, 12, " %10" F_U32P, seq->sqStore_getReadLength(rid, w));
 
   assert((w & sqRead_trimmed) == sqRead_unset);   //  Otherwise, length above is trimmed length!
 
   //  Set the clear range.
 
-  if (seqs->sqStore_isTrimmedRead(rid, w) == true) {
-    snprintf(bgn, 12, " %10" F_U32P, seqs->sqStore_getClearBgn(rid, w | sqRead_trimmed));
-    snprintf(end, 12, " %10" F_U32P, seqs->sqStore_getClearEnd(rid, w | sqRead_trimmed));
+  if (seq->sqStore_isTrimmedRead(rid, w) == true) {
+    snprintf(bgn, 12, " %10" F_U32P, seq->sqStore_getClearBgn(rid, w | sqRead_trimmed));
+    snprintf(end, 12, " %10" F_U32P, seq->sqStore_getClearEnd(rid, w | sqRead_trimmed));
   } else {
     memcpy(bgn, "          -", sizeof(char) * 11);
     memcpy(end, "          -", sizeof(char) * 11);
@@ -126,17 +126,17 @@ dumpReads_setClearString(sqStore *seqs, uint32 rid, char *len, char *bgn, char *
   bgn[11] = 0;
   end[11] = 0;
 
-  return(seqs->sqStore_isValidRead(rid, w));
+  return(seq->sqStore_isValidRead(rid, w));
 }
 
 
 
 void
-dumpReads_setFlagsString(sqStore *seqs, uint32 rid, char *flags) {
-  bool   rv = seqs->sqStore_isValidRead  (rid, sqRead_raw);
-  bool   rt = seqs->sqStore_isTrimmedRead(rid, sqRead_raw);
-  bool   cv = seqs->sqStore_isValidRead  (rid, sqRead_corrected);
-  bool   ct = seqs->sqStore_isTrimmedRead(rid, sqRead_corrected);
+dumpReads_setFlagsString(sqStore *seq, uint32 rid, char *flags) {
+  bool   rv = seq->sqStore_isValidRead  (rid, sqRead_raw);
+  bool   rt = seq->sqStore_isTrimmedRead(rid, sqRead_raw);
+  bool   cv = seq->sqStore_isValidRead  (rid, sqRead_corrected);
+  bool   ct = seq->sqStore_isTrimmedRead(rid, sqRead_corrected);
 
   flags[0] = 'r';   //  Default to non-valid raw and corrected reads.
   flags[1] = '-';
@@ -150,21 +150,21 @@ dumpReads_setFlagsString(sqStore *seqs, uint32 rid, char *flags) {
 
   if (rv) {
     flags[0] = 'R';
-    flags[1] = (seqs->sqStore_isIgnoredRead(rid, sqRead_raw)) ? 'I' : 'R';
+    flags[1] = (seq->sqStore_isIgnoredRead(rid, sqRead_raw)) ? 'I' : 'R';
 
     if (rt) {
       flags[2] = 'T';
-      flags[3] = (seqs->sqStore_isIgnoredRead(rid, sqRead_raw | sqRead_trimmed)) ? 'I' : 'T';
+      flags[3] = (seq->sqStore_isIgnoredRead(rid, sqRead_raw | sqRead_trimmed)) ? 'I' : 'T';
     }
   }
 
   if (cv) {
     flags[4] = 'C';
-    flags[5] = (seqs->sqStore_isIgnoredRead(rid, sqRead_corrected)) ? 'I' : 'C';
+    flags[5] = (seq->sqStore_isIgnoredRead(rid, sqRead_corrected)) ? 'I' : 'C';
 
     if (ct) {
       flags[6] = 'T';
-      flags[7] = (seqs->sqStore_isIgnoredRead(rid, sqRead_corrected | sqRead_trimmed)) ? 'I' : 'T';
+      flags[7] = (seq->sqStore_isIgnoredRead(rid, sqRead_corrected | sqRead_trimmed)) ? 'I' : 'T';
     }
   }
 
@@ -174,8 +174,8 @@ dumpReads_setFlagsString(sqStore *seqs, uint32 rid, char *flags) {
 
 
 void
-dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool showAll) {
-  uint32  lastRead = seqs->sqStore_lastReadID();
+dumpReads(sqStore *seq, uint32 bgnID, uint32 endID, sqRead_which w, bool showAll) {
+  uint32  lastRead = seq->sqStore_lastReadID();
 
   assert(bgnID >= 1);
   assert(bgnID <= lastRead);
@@ -196,37 +196,37 @@ dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool showAl
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     bool  active = showAll;
 
-    dumpReads_setClearString(seqs, rid, s1len, s1bgn, s1end, sqRead_raw);
-    dumpReads_setClearString(seqs, rid, s2len, s2bgn, s2end, sqRead_raw       | sqRead_compressed);
-    dumpReads_setClearString(seqs, rid, s3len, s3bgn, s3end, sqRead_corrected);
-    dumpReads_setClearString(seqs, rid, s4len, s4bgn, s4end, sqRead_corrected | sqRead_compressed);
-    dumpReads_setFlagsString(seqs, rid, flags);
+    dumpReads_setClearString(seq, rid, s1len, s1bgn, s1end, sqRead_raw);
+    dumpReads_setClearString(seq, rid, s2len, s2bgn, s2end, sqRead_raw       | sqRead_compressed);
+    dumpReads_setClearString(seq, rid, s3len, s3bgn, s3end, sqRead_corrected);
+    dumpReads_setClearString(seq, rid, s4len, s4bgn, s4end, sqRead_corrected | sqRead_compressed);
+    dumpReads_setFlagsString(seq, rid, flags);
 
     l1[0] = 0;
 
     if ((w == sqRead_unset) || (((w & sqRead_raw) != 0) && ((w & sqRead_compressed) == 0))) {
-      active |= seqs->sqStore_isValidRead(rid, sqRead_raw);
+      active |= seq->sqStore_isValidRead(rid, sqRead_raw);
       strcat(l1, s1len);
       strcat(l1, s1bgn);
       strcat(l1, s1end);
     }
 
     if ((w == sqRead_unset) || (((w & sqRead_raw) != 0) && ((w & sqRead_compressed) != 0))) {
-      active |= seqs->sqStore_isValidRead(rid, sqRead_raw);
+      active |= seq->sqStore_isValidRead(rid, sqRead_raw);
       strcat(l1, s2len);
       strcat(l1, s2bgn);
       strcat(l1, s2end);
     }
 
     if ((w == sqRead_unset) || (((w & sqRead_corrected) != 0) && ((w & sqRead_compressed) == 0))) {
-      active |= seqs->sqStore_isValidRead(rid, sqRead_corrected);
+      active |= seq->sqStore_isValidRead(rid, sqRead_corrected);
       strcat(l1, s3len);
       strcat(l1, s3bgn);
       strcat(l1, s3end);
     }
 
     if ((w == sqRead_unset) || (((w & sqRead_corrected) != 0) && ((w & sqRead_compressed) != 0))) {
-      active |= seqs->sqStore_isValidRead(rid, sqRead_corrected);
+      active |= seq->sqStore_isValidRead(rid, sqRead_corrected);
       strcat(l1, s4len);
       strcat(l1, s4bgn);
       strcat(l1, s4end);
@@ -235,11 +235,11 @@ dumpReads(sqStore *seqs, uint32 bgnID, uint32 endID, sqRead_which w, bool showAl
     if (active)
       fprintf(stdout, "%10" F_U32P " %10" F_U32P "%s  %s %4lu %12lu\n",
               rid,
-              seqs->sqStore_getLibraryIDForRead(rid),
+              seq->sqStore_getLibraryIDForRead(rid),
               l1,
               flags,
-              seqs->sqStore_getReadSegm(rid),
-              seqs->sqStore_getReadByte(rid));
+              seq->sqStore_getReadSegm(rid),
+              seq->sqStore_getReadByte(rid));
   }
 }
 
@@ -251,7 +251,7 @@ doSummarize_lengthHistogram(vector<uint64> lengths,
 
 
 void
-dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool dumpLengths) {
+dumpHistogram(sqStore *seq, uint32 bgnID, uint32 endID, bool dumpLengths) {
   vector<uint64>  lengths;
   uint64          nBases = 0;
 
@@ -259,15 +259,15 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool dumpLengths) {
   //  generate a pretty picture.
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    uint32  len = seqs->sqStore_getReadLength(rid);
+    uint32  len = seq->sqStore_getReadLength(rid);
 
-    if  (seqs->sqStore_isValidRead(rid) == false)        //  Skip invalid reads.
+    if  (seq->sqStore_isValidRead(rid) == false)        //  Skip invalid reads.
       continue;
 
-    if  (seqs->sqStore_isIgnoredRead(rid) == true)       //  Skip ignored reads.
+    if  (seq->sqStore_isIgnoredRead(rid) == true)       //  Skip ignored reads.
       continue;
 
-    if ((seqs->sqStore_isTrimmedRead(rid) == false) &&   //  Skip untrimmed reads,
+    if ((seq->sqStore_isTrimmedRead(rid) == false) &&   //  Skip untrimmed reads,
         (sqRead_defaultVersion & sqRead_trimmed))        //  if we want trimmed reads.
         continue;
 
@@ -302,7 +302,7 @@ dumpHistogram(sqStore *seqs, uint32 bgnID, uint32 endID, bool dumpLengths) {
 
 
 sqStoreInfo
-getStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
+getStats(sqStore *seq, uint32 bgnID, uint32 endID) {
   sqStoreInfo    info;
   sqRead_which   w1 = sqRead_raw;
   sqRead_which   w2 = sqRead_raw       | sqRead_compressed;
@@ -312,10 +312,10 @@ getStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     bool  exists = false;
 
-    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w1), w1);
-    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w2), w2);
-    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w3), w3);
-    exists |= info.examineRead(rid, seqs->sqStore_getReadSeq(rid, w4), w4);
+    exists |= info.examineRead(rid, seq->sqStore_getReadSeq(rid, w1), w1);
+    exists |= info.examineRead(rid, seq->sqStore_getReadSeq(rid, w2), w2);
+    exists |= info.examineRead(rid, seq->sqStore_getReadSeq(rid, w3), w3);
+    exists |= info.examineRead(rid, seq->sqStore_getReadSeq(rid, w4), w4);
 
     if (exists)
       info.sqInfo_addRead();
@@ -327,8 +327,8 @@ getStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
 
 
 void
-dumpStats(sqStore *seqs, uint32 bgnID, uint32 endID) {
-  getStats(seqs, bgnID, endID).writeInfoAsText(stdout);
+dumpStats(sqStore *seq, uint32 bgnID, uint32 endID) {
+  getStats(seq, bgnID, endID).writeInfoAsText(stdout);
 }
 
 
