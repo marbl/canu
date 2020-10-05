@@ -1266,6 +1266,9 @@ main(int argc, char **argv) {
 
       if (dumptype == dtCoverage)
         params.reportSimpleStatistics(rr, ovl, ovlSav, printCovHeader);
+
+      if (rr < endID)
+        fprintf(stdout, "\n");
     }
   }
 
