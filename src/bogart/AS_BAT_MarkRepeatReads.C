@@ -43,9 +43,8 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 #define REPEAT_FRACTION   0.5
 
-#undef  SHOW_ANNOTATE
-#undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
-#undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
+#define SHOW_REPEATS_ON_READ   //  show raw read alignments used to generate repeat annotations
+#undef  SHOW_ANNOTATE          //  show processed repeat annotations
 
 #undef  DUMP_READ_COVERAGE
 
@@ -76,6 +75,11 @@ auto byCoord  = [](olapDat const &A, olapDat const &B) { return(                
 
 //  Build a vector of olapDat (tigBgn, tigEnd, eviRid) for all reads that
 //  overlap into this tig.
+//
+//  This uses the 'AssemblyGraph' which has a list of all the places a read
+//  can go in every tig.  The placements are approximate, using the
+//  placeReadUsingOverlaps() mechanism.
+//
 void
 annotateRepeatsOnRead(AssemblyGraph const *AG,
                       Unitig              *tig,
@@ -92,19 +96,14 @@ annotateRepeatsOnRead(AssemblyGraph const *AG,
       uint32          pID    = rPlace[rr].placeID;
       BestPlacement  &fPlace = AG->getForward(rID)[pID];
 
-      //  Also in AS_BAT_AssemblyGraph.C
-      if (OG->isBubble(rID))              //  Ignore if the incoming overlap is from a bubble.
-        continue;
+      if (OG->isBubble(rID) ||   //  Ignore if the incoming overlap is from a bubble.
+          OG->isSpur(rID))       //  Ignore if the incoming overlap is from a spur.
+        continue;                //  (this skip is also in AS_BAT_AssemblyGraph.C)
 
-      if (OG->isSpur(rID))               //  Ignore if the incoming overlap is from a spur.
-        continue;
-
-      //writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u place %u reverse read %u in tig %u olap %d-%d%s\n",
-      //         tig->id(), ii, read->ident, rr,
-      //         rID,
-      //         tig->inUnitig(rID),
-      //         fPlace.olapMin,   fPlace.olapMax,
-      //         (fPlace.isUnitig) ? " IN_UNITIG" : "");
+#ifdef SHOW_REPEATS_ON_READ
+      writeLog("annotateRepeatsOnRead()-- tig %6u read #%-6u %7u %9d-%-9d <-> place #%3u read %7u in tig %6u <-> overlap at %9d-%d\n",
+               tig->id(), ii, read->ident, read->position.bgn, read->position.end, rr, rID, tig->inUnitig(rID), fPlace.olapMin, fPlace.olapMax);
+#endif
 
       repeats.push_back(olapDat(fPlace.olapMin, fPlace.olapMax, rID, pID));
     }
@@ -334,7 +333,8 @@ findThickestPrevRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax, char *logMs
   uint32   olapMax = 0;
 
   //  If rdA begins before the repeat, it can't be confused; return a null
-  //  previous read.
+  //  previous read.  Repeat coords are space-based; a read starting at rMin
+  //  is included in the repeat.
 
   if (rdAlo < rMin)
     return(nullptr);
@@ -407,7 +407,8 @@ findThickestNextRead(Unitig *tig, uint32 fi, int32 rMin, int32 rMax, char *logMs
   uint32   olapMax = 0;
 
   //  If rdA ends after the repeat, it can't be confused; return a null
-  //  next read.
+  //  next read.    Repeat coords are space-based; a read ending at rMax
+  //  is included in the repeat.
 
   if (rMax < rdAhi)
     return(nullptr);
@@ -677,13 +678,12 @@ checkConfusion(uint32                rdAid,
 
 
 
-void
+vector<confusedEdge>
 findConfusedEdges(TigVector            &tigs,
                   Unitig                *tig,
                   intervalList<int32>  &tigMarksR,
                   double                confusedAbsolute,
-                  double                confusedPercent,
-                  vector<confusedEdge> &confusedEdges) {
+                  double                confusedPercent) {
 
   //  Examine every read in this tig.  If the read intersects a marked
   //  repeat, find the best edge that continues the tig in either direction.
@@ -692,6 +692,8 @@ findConfusedEdges(TigVector            &tigs,
   //  read for any that are of comparable length.  If any are found, declare
   //  this repeat to be potentially confused.  If none are found - for the
   //  whole repeat region - then we can leave the repeat alone.
+
+  vector<confusedEdge> confusedEdges;
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode     *rdA       = &tig->ufpath[fi];
@@ -754,13 +756,15 @@ findConfusedEdges(TigVector            &tigs,
       bool isC5 = isCircularizingEdge(tig, rdA, internal5sco, external5sco, false);
       bool isC3 = isCircularizingEdge(tig, rdA, internal5sco, external3sco,  true);
 
-      //  Now just check confusion, write a loely log, and add a confused
+      //  Now just check confusion, write a lovely log, and add a confused
       //  edge to confusedEdges.
 
       checkConfusion(rdAid, internal5sco, external5sco, isC5, "lo", false, confusedAbsolute, confusedPercent, confusedEdges);
       checkConfusion(rdAid, internal3sco, external3sco, isC3, "hi",  true, confusedAbsolute, confusedPercent, confusedEdges);
     }  //  Over all marks (ri)
   }  //  Over all reads (fi)
+
+  return(confusedEdges);
 }
 
 
@@ -808,15 +812,20 @@ vector<breakReadEnd>
 buildBreakPoints(TigVector             &tigs,
                  Unitig                *tig,
                  intervalList<int32>   &tigMarksR,
-                 intervalList<int32>   &tigMarksU,
                  vector<confusedEdge>  &confusedEdges) {
+  intervalList<int32>    tigMarksU;     //  Non-repeat invervals, just the inversion of tigMarksR
   vector<breakReadEnd>   BE;
+
+  //  Invert.  This finds the non-repeat intervals, which get turned into
+  //  non-repeat tigs.
+
+  tigMarksU = tigMarksR;
+  tigMarksU.invert(0, tig->getLength());
 
   //  Iterate over the two lists of regions, in coordinate order, and:
   //   - report the region.
   //   - add any confused edges in that region to the output list of breakReadEnd
   //   - fail catastrophically if there is a break in a unique region
-  //  
 
   writeLog("\n");
   writeLog("Region summary:\n");
@@ -838,13 +847,17 @@ buildBreakPoints(TigVector             &tigs,
       regionEnd = tigMarksR.hi(rr);
 
       //writeLog("tigMarksR[%2u] = %8d,%-8d (repeat)\n", rr, tigMarksR.lo(rr), tigMarksR.hi(rr));
+
       rr++;
-    } else {
+    }
+
+    else {
       isRepeat  = false;
       regionBgn = tigMarksU.lo(uu);
       regionEnd = tigMarksU.hi(uu);
 
       //writeLog("tigMarksU[%2u] = %8d,%-8d (unique)\n", uu, tigMarksU.lo(uu), tigMarksU.hi(uu));
+
       uu++;
     }
 
@@ -961,8 +974,7 @@ markRepeatReads(AssemblyGraph         *AG,
                 TigVector             &tigs,
                 double                 deviationRepeat,
                 uint32                 confusedAbsolute,
-                double                 confusedPercent,
-                vector<confusedEdge>  &confusedEdgesGLOBAL) {
+                double                 confusedPercent) {
   uint32  tiLimit = tigs.size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
@@ -970,11 +982,7 @@ markRepeatReads(AssemblyGraph         *AG,
   writeLog("repeatDetect()-- working on " F_U32 " tigs, with " F_U32 " thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
   vector<olapDat>      repeatOlaps;   //  Overlaps to reads promoted to tig coords
-
   intervalList<int32>  tigMarksR;     //  Marked repeats based on reads, filtered by spanning reads
-  intervalList<int32>  tigMarksU;     //  Non-repeat invervals, just the inversion of tigMarksR
-
-  vector<confusedEdge> confusedEdges;
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = tigs[ti];
@@ -1011,14 +1019,6 @@ markRepeatReads(AssemblyGraph         *AG,
 
     discardSpannedRepeats(tig, tigMarksR);
 
-    //  Scan reads.  If a read intersects a repeat interval, and the best
-    //  edge for that read is entirely in the repeat region, decide if there
-    //  is a near-best edge to something not in this tig.
-    //
-    //  A region with no such near-best edges is _probably_ correct.
-
-    confusedEdges.clear();
-
     //  Merge adjacent repeats.
     //
     //  When we split (later), we require a MIN_ANCHOR_HANG overlap to anchor
@@ -1045,6 +1045,12 @@ markRepeatReads(AssemblyGraph         *AG,
 
     mergeAdjacentRegions(tig, tigMarksR);
 
+    //  Scan reads.  If a read intersects a repeat interval, and the best
+    //  edge for that read is entirely in the repeat region, decide if there
+    //  is a near-best edge to something not in this tig.
+    //
+    //  A region with no such near-best edges is _probably_ correct.
+
     //  For each repeat region, count the number of times we find a read
     //  external to the tig with an overlap more or less of the same strength
     //  as the overlap interal to the tig.
@@ -1059,20 +1065,13 @@ markRepeatReads(AssemblyGraph         *AG,
     //  in the two outer blocks, the new tig created for the middle section
     //  would be called unique, even though it was mostly repeat.
 
-    findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent, confusedEdges);
-
-    //  Invert.  This finds the non-repeat intervals, which get turned into
-    //  non-repeat tigs.
-
-    tigMarksU = tigMarksR;
-    tigMarksU.invert(0, tig->getLength());
-
     //  Iterate over the marked intervals, in coordinate order.  Figure out
     //  which confused edges are in the interval.  If only one, all we can do
     //  is split the tig.  If multiple, we can split the tig AND flag the
     //  resulting pieces as either repeat or unique.
 
-    vector<breakReadEnd> BE = buildBreakPoints(tigs, tig, tigMarksR, tigMarksU, confusedEdges);
+    vector<confusedEdge> CE = findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent);
+    vector<breakReadEnd> BE = buildBreakPoints(tigs, tig, tigMarksR, CE);
 
     //  If there are breaks, split the tig.
 
@@ -1083,7 +1082,4 @@ markRepeatReads(AssemblyGraph         *AG,
       delete tig;
     }
   }
-
-
-  writeStatus("markRepeatReads()-- Found %u confused edges.\n", confusedEdges.size());
 }

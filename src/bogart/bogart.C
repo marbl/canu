@@ -651,9 +651,7 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "repeats");
   contigs.reportErrorProfiles(prefix, "repeats");
 
-  vector<confusedEdge>  confusedEdges;
-
-  markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent, confusedEdges);
+  markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent);
 
   delete AG;
   AG = NULL;
