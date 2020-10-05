@@ -876,9 +876,33 @@ buildBreakPoints(TigVector             &tigs,
       if (tig->id() != atid)   //  In a different tig.  (We're keeping a list of ALL confused edges, not just for this tig)
         continue;
 
-      if ((apoint < regionBgn) ||   //  Break point isn't in this region.
-          (regionEnd < apoint))
-        continue;
+      //  A bit of nastiness occurs at the junction between a repeat and a
+      //  unique region: we don't know if the 'apoint' belongs to the repeat
+      //  or the unique region.
+      //
+      //  Consider apoint=12637 with these regions:
+      //
+      //    Repeat interval        0-12637
+      //       read  382236 -> at        0-11272    hi end <-- confused by read 1514978 in tig  6142 at     3585-12353
+      //       read 2019594 <- at    11776-2420     hi end <-- confused by read 1514978 in tig  6142 at     3585-12353
+      //       read 1390275 -> at     2580-12637    hi end <-- confused by read  807196 in tig  6142 at     5169-13423
+      //    Unique interval    12637-13259
+      //
+      //  Is 'apoint' the last position in the repeat, or the first position
+      //  in the unique?
+      //
+      //  For here, a point on the boundary is declared to be only in the
+      //  repeat region.  This makes no actual difference, except to avoid
+      //  the assert below for such points (and to not log the point in the
+      //  unique region).
+
+      if ((isRepeat ==  true) && ((apoint <  regionBgn) ||   //  Skip break points that are
+                                  (regionEnd <  apoint)))    //  entirely outside of repeat
+        continue;                                            //  regions.
+
+      if ((isRepeat == false) && ((apoint <= regionBgn) ||   //  Skip break points that are
+                                  (regionEnd <= apoint)))    //  outside or on the edge of
+        continue;                                            //  unique regions.
 
       breakCount++;
       breakBgn = min(breakBgn, apoint);
