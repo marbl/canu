@@ -39,6 +39,11 @@ fi
 #  Cleanup any old build, make space for the new one, and initialize scripts.
 #
 
+if [ -e .git ] ; then
+    echo Moving .git directory out of the way.
+    mv .git dot-git-directory
+fi
+
 echo Preparing build trees.
 
 rm -rf build
@@ -132,5 +137,10 @@ echo Compress.
 xz -9v canu-$version.Darwin-amd64.tar
 xz -9v canu-$version.Linux-amd64.tar
 xz -9v canu-$version.tar
+
+if [ -e dot-git-directory ] ; then
+    echo Restoring .git directory.
+    mv dot-git-directory .git
+fi
 
 exit
