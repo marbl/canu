@@ -39,7 +39,7 @@ my $verFile  = shift @ARGV;
 
 my $label    = "release";       #  If not 'release' print this in the version output.
 my $major    = "2";             #  Bump before release.
-my $minor    = "1";             #  Bump before release.
+my $minor    = "1.1";           #  Bump before release.
 
 my $branch   = "master";
 my $version  = "v$major.$minor";
