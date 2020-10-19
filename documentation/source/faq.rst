@@ -31,8 +31,12 @@ What resources does Canu require for a bacterial genome assembly? A mammalian as
 
 How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
 -------------------------------------
-    Canu will detect and configure itself to use on most grids. Canu will NOT request explicit time limits or
-    queues/partitions. You can supply your own grid options, such as a partition on SLURM, an account code 
+    Canu will detect and configure itself to use on most grids. You do not need to submit Canu to the grid in this case. 
+    Canu will query the system for grid support, configure itself for the machines available in the grid, 
+    then submit itself to the grid for execution. You can then monitor the run using your grid. 
+    
+    Canu will NOT request 
+    explicit time limits or queues/partitions. You can supply your own grid options, such as a partition on SLURM, an account code 
     on SGE, and/or time limits with ``gridOptions="<your options list>"`` which will passed to every job 
     submitted by Canu.  Similar options exist for every stage of Canu, which could be used to, for example, 
     restrict overlapping to a specific partition or queue.
