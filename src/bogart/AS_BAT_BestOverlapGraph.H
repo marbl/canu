@@ -281,16 +281,9 @@ private:
 
 private:
   BestEdgeRead              *_reads;        //  Nodes in the graph.
+  double                     _errorLimit;   //  Final error rate limit.
 
-  uint64                    *_best5score;   //  Temporary data for computing
-  uint64                    *_best3score;   //  best edges.
-
-  double                     _mean;
-  double                     _stddev;
-
-  double                     _median;
-  double                     _mad;
-
+  //  Input parameters.
 private:
   double const               _erateMax;
   double const               _erateGraph;
@@ -299,12 +292,17 @@ private:
   double const               _minOlapPercent;
   double const               _minReadsBest;
 
+  //  Temporary data for computing best edges.
+  //  Set to nullptr once the graph is built.
 private:
-  double                     _errorLimit;
+  uint64                    *_best5score;
+  uint64                    *_best3score;
 
+   //  These are used for communicating stats between stages.
+  //   Not for use once the graph is built.
 private:
-  uint32                     _nReadsEP[2];   //  These are used for communicating stats between stages,
-  uint32                     _nReadsEF[2];   //  not for use once the graph is built.
+  uint32                     _nReadsEP[2];
+  uint32                     _nReadsEF[2];
 };
 
 
