@@ -41,7 +41,7 @@ main(int argc, char **argv) {
   char const *seqStoreIn = nullptr;
   char const *redIn      = nullptr;
 
-  char const *outName    = nullptr;
+  char const *outName    = "-";
 
   uint32      bgnID      = 1;
   uint32      endID      = UINT32_MAX;
