@@ -43,6 +43,8 @@ main(int argc, char **argv) {
 
   char const *outName    = "-";
 
+  bool        useNames   = true;
+
   uint32      bgnID      = 1;
   uint32      endID      = UINT32_MAX;
 
@@ -57,6 +59,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-red") == 0) {
       redIn = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-id") == 0) {
+      useNames = false;
 
     } else if (strcmp(argv[arg], "-r") == 0) {
       decodeRange(argv[++arg], bgnID, endID);
@@ -155,7 +160,10 @@ main(int argc, char **argv) {
                 Clen,
                 changes);
 
-    AS_UTL_writeFastA(outFASTA->file(), corBases, corBasesLen, 0, ">%d\n", curID);
+    if (useNames == true)
+      AS_UTL_writeFastA(outFASTA->file(), corBases, corBasesLen, 0, ">%s\n", read.sqRead_name());
+    else
+      AS_UTL_writeFastA(outFASTA->file(), corBases, corBasesLen, 0, ">%d\n", curID);
 
     corBasesLen = 0;   //  correctRead() appends to the corBases array, which we don't want.
   }
