@@ -253,11 +253,16 @@ while (scalar(@ARGV)) {
     #  Set the technology of read we're getting.  This one block handles both
     #  the new style ('-pacbio') and old style ('-pacbio-raw') options.  An
     #  unfortunate side effect is that '-pacbio-hifi-raw' is allowed.
+    #
+    #  Search for the next (or around the next) instance of readsAreRaw to
+    #  see where the rest of the settings are made.  There we set trimmed
+    #  status and make sure that both raw and corrected aren't set.
 
     elsif ($arg =~ m/^-(pacbio|nanopore|pacbio-hifi)(-raw|-corrected){0,1}$/) {
         $filesAre          = $1;
         $readsAreRaw       = 1  if ($2 eq "-raw");
         $readsAreCorrected = 1  if ($2 eq "-corrected");
+        $readsAreRaw       = 1  if ($1 eq "pacbio-hifi");
 
         addCommandLineOption($2)  if (defined($2));
     }
@@ -528,20 +533,24 @@ elsif (scalar(@inputFiles) > 0) {
         $tf = "$t\0$f";
     }
 
-    #  If no read type is set, default to 'raw' and 'untrimmed'.  Note that
-    #  "-pacbio-hifi" sets to raw and trimmed (unless explicitly set to
-    #  untrimmed first).
+    #  If no read type is set, default to 'raw' and 'untrimmed', unless
+    #  they're HiFi reads, then they're 'raw' and 'trimmed'.
 
     if (($readsAreRaw == 0) && ($readsAreCorrected == 0)) {
         $readsAreRaw = 1;
     }
 
     if (($readsAreUntrimmed == 0) && ($readsAreTrimmed == 0)) {
-        $readsAreUntrimmed = 1;
+        if ($numHiFi == 0) {
+            $readsAreUntrimmed = 1;
+        } else {
+            $readsAreTrimmed = 1;
+        }
     }
 
-    #  If the user told us our HiFi reads are corrected, undo that.
-    #  We need them to be called "raw".
+    #  If the user told us our HiFi reads are corrected (using something like
+    #  "-corrected -pacbio-hifi"), silently undo that.  We need them to be
+    #  called "raw" so they're stored in the store correctly.
 
     if (($readsAreRaw == 1) && ($readsAreCorrected == 1) && ($numHiFi > 0)) {
         $readsAreCorrected = 0;
@@ -909,7 +918,8 @@ sub doUnitigging ($$) {
                                                                      ($mode ne "run"));
     $reason = "Unitigging output exists in $asm.contigs.fasta"   if (fileExists("$asm.contigs.fasta"));
 
-    $reason = "No corrected reads to assemble"                   if ((getNumberOfBasesInStore($asm, "obt") == 0) &&
+    $reason = "No corrected reads to assemble"                   if (fileExists("$asm.seqStore/info") &&
+                                                                     (getNumberOfBasesInStore($asm, "obt") == 0) &&
                                                                      (getNumberOfBasesInStore($asm, "utg") == 0));
 
     if (defined($reason)) {
