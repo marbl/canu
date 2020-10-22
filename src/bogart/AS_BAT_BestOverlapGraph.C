@@ -1584,8 +1584,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     findContains();             //  Recompute contained reads; remove those contained in high-error parents.
     findEdges(true);            //  Recompute best edges.
 
-    if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "1.filtered");
+    //if (logFileFlagSet(LOG_BEST_OVERLAPS))
+    //  emitGoodOverlaps(prefix, "1.filtered");
 
     writeStatus("BestOverlapGraph()--   Ignore overlaps with more than %.6f%% error.\n", 100.0 * _errorLimit);
 
@@ -1613,8 +1613,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     findContains();                                   //  Recompute contained reads; remove those contained in covGap reads.
     findEdges(true);                                  //  Recompute best edges.
 
-    if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "2.covGap");
+    //if (logFileFlagSet(LOG_BEST_OVERLAPS))
+    //  emitGoodOverlaps(prefix, "2.covGap");
 
     writeStatus("BestOverlapGraph()--   %u reads removed.\n", numCoverageGap());
 
@@ -1650,8 +1650,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
     //findContains();                                        //  DO NOT recompute contained reads.
     findEdges(false);                                        //  Recompute best edges that have no existing eddge.
 
-    if (logFileFlagSet(LOG_BEST_OVERLAPS))
-      emitGoodOverlaps(prefix, "3.lopsided");
+    //if (logFileFlagSet(LOG_BEST_OVERLAPS))
+    //  emitGoodOverlaps(prefix, "3.lopsided");
 
     writeStatus("BestOverlapGraph()--   %u reads have lopsided edges.\n", numLopsided());
 
@@ -1711,8 +1711,8 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   //  All done!  Do some final checks and cleanup, dump various logs and reports.
   //
 
-  if (logFileFlagSet(LOG_BEST_OVERLAPS))
-    emitGoodOverlaps(prefix, "4.spur-removal");
+  //if (logFileFlagSet(LOG_BEST_OVERLAPS))
+  //  emitGoodOverlaps(prefix, "4.spur-removal");
 
   reportBestEdges(prefix, "best");
 
@@ -1733,5 +1733,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   delete [] _best5score;    _best5score = NULL;
   delete [] _best3score;    _best3score = NULL;
 
+  writeStatus("Early exiting, don't need the rest of the pipeline.\n");
   setLogFile(prefix, NULL);
+  exit(0);
 }
