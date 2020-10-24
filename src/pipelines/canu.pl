@@ -1078,7 +1078,7 @@ if (doUnitigging($asm, $mode)) {
     updateOverlapStore($asm);
 
     unitig($asm);
-    #unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
+    unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
     #foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
     #    consensusConfigure($asm);                      #  second iterations.  The script is rewritten in

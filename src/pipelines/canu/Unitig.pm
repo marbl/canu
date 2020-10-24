@@ -305,7 +305,8 @@ sub unitigCheck ($) {
     my $attempt = getGlobal("canuIteration");
     my $path    = "unitigging/4-unitigger";
 
-    goto allDone      if (fileExists("$path/unitigger.success"));
+    #goto allDone      if (fileExists("$path/unitigger.success"));
+    goto allDone      if (fileExists("$path/$asm.0.all.ovlStore/info"));
     goto finishStage  if (fileExists("unitigging/$asm.ctgStore/seqDB.v001.tig"));
 
     fetchFile("$path/unitigger.sh");
