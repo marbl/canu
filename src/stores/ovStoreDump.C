@@ -622,6 +622,8 @@ dumpParameters::drawPicture(uint32         Aid,
             overlaps[o].erate() * 100.0,
             line);
   }
+
+  fprintf(stdout, "\n");
 }
 
 
@@ -1266,9 +1268,6 @@ main(int argc, char **argv) {
 
       if (dumptype == dtCoverage)
         params.reportSimpleStatistics(rr, ovl, ovlSav, printCovHeader);
-
-      if (rr < endID)
-        fprintf(stdout, "\n");
     }
   }
 
