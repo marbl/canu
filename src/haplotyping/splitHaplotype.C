@@ -413,14 +413,9 @@ hapData::initializeKmerTable(uint32 maxMemory) {
   if (merylName[0]) {
     merylFileReader  *reader = new merylFileReader(merylName);
 
-    lookup = new merylExactLookup(reader, maxMemory, minFreq, UINT32_MAX);
-
-    if (lookup->configure() == false) {
-      exit(1);
-    }
-
-    lookup->load();
-
+    lookup = new merylExactLookup();
+    lookup->load(reader, maxMemory, true, false, minFreq, UINT32_MAX);
+    
     nKmers = lookup->nKmers();
 
     delete reader;
