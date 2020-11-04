@@ -205,16 +205,21 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-nofilter") == 0) {
       ++arg;
-      filterHighError   = ((arg >= argc) || (strcasestr(argv[arg], "higherror")   == NULL));
-      filterLopsided    = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")    == NULL));
-      filterSpur        = ((arg >= argc) || (strcasestr(argv[arg], "spur")        == NULL));
-      filterDeadEnds    = ((arg >= argc) || (strcasestr(argv[arg], "deadends")    == NULL));
-      bool found        = (filterHighError || filterLopsided || filterSpur || filterDeadEnds);
 
-      if (found) {
-         char *s = new char[1024];
-         snprintf(s, 1024, "Unknown '-nofilter' option '%s'\n", (arg >= argc ? "null" : argv[arg]));
-         err.push_back(s);
+      if ((arg >= argc) || (argv[arg][0] == '-')) {
+        char *s = new char[1024];
+        snprintf(s, 1024, "No filters specified for '-nofilter' option.\n");
+        err.push_back(s);
+      }
+
+      else if (strcasecmp(argv[arg], "higherror") == 0)   { filterHighError = false; }
+      else if (strcasecmp(argv[arg], "lopsided")  == 0)   { filterLopsided  = false; }
+      else if (strcasecmp(argv[arg], "spur")      == 0)   { filterSpur      = false; }
+      else if (strcasecmp(argv[arg], "deadends")  == 0)   { filterDeadEnds  = false; }
+      else {
+        char *s = new char[1024];
+        snprintf(s, 1024, "Invalid filter '%s' specified for '-nofilter' option.\n", argv[arg]);
+        err.push_back(s);
       }
 
     } else if (strcmp(argv[arg], "-minolappercent") == 0) {
@@ -331,16 +336,14 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -mi len        Create unitigs from contig intersections of at least 'len' bases.\n");
     fprintf(stderr, "  -mp num        Create unitigs from contig intersections with at most 'num' placements.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -nofilter [coverageGap],[highError],[lopsided],[spur]\n");
+    fprintf(stderr, "  -nofilter [coverageGap | highError | lopsided | spur]\n");
     fprintf(stderr, "                 Disable filtering of:\n");
     fprintf(stderr, "                   coverageGap - reads that have a suspicious lack of overlaps in the middle\n");
     fprintf(stderr, "                   highError   - overlaps that have error rates well outside the observed\n");
     fprintf(stderr, "                   lopsided    - reads that have unusually asymmetric best overlaps\n");
     fprintf(stderr, "                   spur        - reads that have no overlaps on one end\n");
-    fprintf(stderr, "                 The value supplied to -nofilter must be one word, case, order and punctuation\n");
-    fprintf(stderr, "                 do not matter.  The following examples behave the same:\n");
-    fprintf(stderr, "                    '-nofilter coverageGap,higherror'\n");
-    fprintf(stderr, "                    '-nofilter coveragegap-and-HIGHERROR'\n");
+    fprintf(stderr, "                 Exactly one filter type must be supplied.  Use multiple -nofilter options\n");
+    fprintf(stderr, "                 to disable multiple filters.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -eg F          Do not use overlaps more than F fraction error when when finding initial best edges.\n");
     fprintf(stderr, "  -eM F          Do not load overlaps more then F fraction error (useful only for -save).\n");
