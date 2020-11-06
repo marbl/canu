@@ -1415,20 +1415,19 @@ unitigConsensus::trimCircular(void) {
   //  Align trimmed-off start to end of tig.  EDLIB_MODE_HW allows free gaps
   //  at the start/end of the second sequence.
   {
-    EdlibAlignResult  result;
+    int32  aBgn = 0;
+    int32  aEnd = keepBgn;
+    int32  aLen = aEnd - aBgn;
 
-    uint32  aBgn = 0;
-    uint32  aEnd = keepBgn;
-    uint32  aLen = aEnd - aBgn;
-
-    uint32  bBgn = tailBgn - 222;
-    uint32  bEnd = tailEnd;
-    uint32  bLen = bEnd - bBgn;
+    int32  bBgn = (tailBgn >= 222) ? (tailBgn - 222) : (0);
+    int32  bEnd = tailEnd;
+    int32  bLen = bEnd - bBgn;
 
     if (showAlgorithm())
       fprintf(stderr, "  Test   trimmed head %6d-%6d against   kept tail %6d-%6d\n",
               aBgn, aEnd, bBgn, bEnd);
 
+    EdlibAlignResult  result;
     result = edlibAlign(bases + aBgn, aLen,   //  Piece of the start we trim off
                         bases + bBgn, bLen,   //  Should align into the tail we keep
                         edlibNewAlignConfig(0.5 * aLen, EDLIB_MODE_HW, EDLIB_TASK_PATH));
@@ -1445,20 +1444,19 @@ unitigConsensus::trimCircular(void) {
 
   //  Align trimmed-off end to start of tig.
   {
-    EdlibAlignResult  result;
+    int32  aBgn = keepEnd;
+    int32  aEnd = length;
+    int32  aLen = aEnd - aBgn;
 
-    uint32  aBgn = keepEnd;
-    uint32  aEnd = length;
-    uint32  aLen = aEnd - aBgn;
-
-    uint32  bBgn = headBgn;
-    uint32  bEnd = headEnd + 222;
-    uint32  bLen = bEnd - bBgn;
+    int32  bBgn = headBgn;
+    int32  bEnd = (headEnd + 222 <= length) ? (headEnd + 222) : (length);
+    int32  bLen = bEnd - bBgn;
 
     if (showAlgorithm())
       fprintf(stderr, "  Test   trimmed tail %6d-%6d against   kept head %6d-%6d\n",
               aBgn, aEnd, bBgn, bEnd);
 
+    EdlibAlignResult  result;
     result = edlibAlign(bases + aBgn, aLen,   //  Piece of the end we trim off
                         bases + bBgn, bLen,   //  Should align into the head we keep
                         edlibNewAlignConfig(0.5 * aLen, EDLIB_MODE_HW, EDLIB_TASK_PATH));
