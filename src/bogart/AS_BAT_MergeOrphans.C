@@ -144,35 +144,6 @@ bool isCycle(TigVector       &tigs,
    return false;
 }
 
-ufNode* findFirstRead(Unitig *tig) {
-   ufNode   *read = tig->firstRead();
-
-   for (uint32 fi=1; fi < tig->ufpath.size(); fi++) {
-      if (OG->isBackbone(read->ident) && read->position.min() == 0)
-         break;
-      if (tig->ufpath[fi].position.min() == 0)
-         read=&tig->ufpath[fi];
-   }
-   assert(read->position.min() == 0);
-
-   return read;
-}
-
-ufNode* findLastRead(Unitig *tig) {
-   ufNode  *read = tig->lastRead();
-
-   for (uint32 fi=tig->ufpath.size()-1; (fi-- > 0); ) {
-      if (OG->isBackbone(read->ident) && read->position.max() == tig->getLength())
-         break;
-      if (tig->ufpath[fi].position.max() == tig->getLength())
-         read=&tig->ufpath[fi];
-   }
-   assert(read->position.max() == tig->getLength());
-
-   return read;
-}
-
-
 //  Decide which tigs can be orphans.  Any unitig where (nearly) every dovetail
 //  read has an overlap to some other unitig is a candidate for orphan popping.
 //
@@ -204,8 +175,8 @@ findPotentialOrphans(TigVector       &tigs,
 
     //  If the first or last read has no best edge, that's it, we're done.
 
-    ufNode   *fRead = findFirstRead(tig);
-    ufNode   *lRead = findLastRead(tig);
+    ufNode   *fRead = tig->firstBackboneRead();
+    ufNode   *lRead = tig->lastBackboneRead();
 
     //  Count the number of reads that have an overlap to some other tig.  tigOlapsTo[otherTig] = count.
 
@@ -941,7 +912,7 @@ mergeOrphans(TigVector    &tigs,
 
     //  Scan the orphan, decide if there are _ANY_ read placements.  Log appropriately.
 
-    if (placeAnchor(orphan, placed, findFirstRead(orphan), findLastRead(orphan)) == false) {
+    if (placeAnchor(orphan, placed, orphan->firstBackboneRead(), orphan->lastBackboneRead()) == false) {
       writeLog("\n");
       writeLog("ANCHOR READS FAILED TO PLACE.\n");
       continue;
@@ -953,8 +924,8 @@ mergeOrphans(TigVector    &tigs,
     //    read        -------
     //    orphan      -------------------------
 
-    ufNode  *fRead = findFirstRead(orphan);
-    ufNode  *lRead = findLastRead(orphan);
+    ufNode  *fRead = orphan->firstBackboneRead();
+    ufNode  *lRead = orphan->lastBackboneRead();
 
     map<uint32, intervalList<int32> *>   targetIntervals;
 
@@ -1105,6 +1076,7 @@ mergeOrphans(TigVector    &tigs,
       for (uint32 fi=0; fi<orphan->ufpath.size(); fi++) {                         //  Flag them as being an orphan, and reset backbone
         OG->setOrphan(orphan->ufpath[fi].ident);                                  //  status - they're not part of the backbone
         OG->setBackbone(orphan->ufpath[fi].ident, false);                         //  in the tig they've been placed into.
+        orphan->ufpath[fi].contained=true;
       }
 
       tigs[orphan->id()] = NULL;                                                  //  Delete the original tig.

@@ -30,6 +30,7 @@
 
 using namespace std;
 
+#define MAX_BASES_UNCONTAINED 150
 
 class BestEdgeOverlap;
 class optPos;
@@ -352,6 +353,36 @@ public:
     assert(rd3->position.max() == getLength());
 
     return(rd3);
+  };
+
+  // return first or last read that is not contained or merged closest to the end of the tig
+  // allowing wiggle within start/end because of optimize position which may make a conatined read the only one touching
+  ufNode* firstBackboneRead() {
+    ufNode   *read = firstRead();
+
+    for (uint32 fi=1; fi < ufpath.size(); fi++) {
+      if (read->contained == false && read->position.min() == 0)
+        break;
+      if (ufpath[fi].position.min() <= MAX_BASES_UNCONTAINED)
+        read=&ufpath[fi];
+    }
+    assert(read->position.min() <= MAX_BASES_UNCONTAINED);
+
+    return read;
+  };
+
+  ufNode* lastBackboneRead() {
+    ufNode  *read = lastRead();
+
+    for (uint32 fi=ufpath.size()-1; (fi-- > 0); ) {
+      if (read->contained == false && read->position.max() == getLength())
+        break;
+      if (ufpath[fi].position.max() + MAX_BASES_UNCONTAINED >= getLength())
+        read=&ufpath[fi];
+    }
+    assert(read->position.max() + MAX_BASES_UNCONTAINED >= getLength());
+
+    return read;
   };
 
   // Public Member Variables

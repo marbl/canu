@@ -233,8 +233,8 @@ findCircularContigs(TigVector &tigs,
     //  Grab the first and last reads in the tig, then find the edge that
     //  points out of the tig.
   
-    ufNode          *fRead = tig->firstRead();
-    ufNode          *lRead = tig->lastRead();
+    ufNode          *fRead = tig->firstBackboneRead();
+    ufNode          *lRead = tig->lastBackboneRead();
 
     uint32      circularLength = 0;
     uint32      ovlLen = 0;
