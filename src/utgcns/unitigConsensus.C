@@ -1352,9 +1352,10 @@ unitigConsensus::trimCircular(void) {
     align.alignDovetail(bases, length, length-trylen, length,           //  A:  the end of the tig
                         bases, length, 0,             trylen, false);   //  B:  the start of the tig
 
-    if ((align.errorRate() < 0.05) &&         //  "Found" if the error rate is reasonable, and
-        (align.bgnA() > length - trylen) &&   //  A has unaligned stuff at the start, and
-        (align.endB() < trylen))              //  B has unaligned stuff at the end.
+    if ((align.errorRate() < 0.05) &&                //  "Found" if the error rate is reasonable, and
+        (align.alignmentLength() >= _minOverlap) &&  //  and length is reasonable
+        (align.bgnA() > length - trylen) &&          //  A has unaligned stuff at the start, and
+        (align.endB() < trylen))                     //  B has unaligned stuff at the end.
       found = true;
 
     if ((found == false) && (showPlacement()))
