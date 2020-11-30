@@ -31,6 +31,7 @@ SOURCES      := utility/src/utility/runtime.C \
                 utility/src/utility/kmers.C \
                 \
                 utility/src/utility/bits.C \
+                utility/src/utility/bits-wordArray.C \
                 \
                 utility/src/utility/hexDump.C \
                 utility/src/utility/md5.C \

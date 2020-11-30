@@ -321,7 +321,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-M") == 0) {
       double lo=0.0, hi=0.0;
 
-      decodeRange(argv[++arg], lo, hi);
+      decodeRange<double>(argv[++arg], lo, hi);
 
       minMemory = (uint64)ceil(lo * 1024.0 * 1024.0 * 1024.0);
       maxMemory = (uint64)ceil(hi * 1024.0 * 1024.0 * 1024.0);

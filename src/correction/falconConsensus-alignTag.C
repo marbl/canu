@@ -92,8 +92,8 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),  
     assert(j >= 0);
     assert(j <  Tlen);
 
-    if ((jj   >= uint16MAX) ||
-        (p_jj >= uint16MAX))
+    if ((jj   >= uint16max) ||
+        (p_jj >= uint16max))
       continue;
 
     tags->setTag(j, p_j, jj, p_jj, Qalign[k], p_q_base);
