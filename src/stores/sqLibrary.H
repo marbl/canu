@@ -67,7 +67,7 @@ public:
         if        (*orig == '/') {
           _libraryName[lp++] = '_';
 
-        } else if (isspace(*orig) == 0) {
+        } else if (isWhiteSpace(*orig) == false) {
           _libraryName[lp++] = *orig;
 
         } else {
