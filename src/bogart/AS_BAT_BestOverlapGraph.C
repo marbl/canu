@@ -263,6 +263,8 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
     Tpicked = TpickedTight;
 
   _errorLimit = Tpicked;
+  static constexpr double FIXED_THRESHOLD = 1e-5;
+  _errorLimit = FIXED_THRESHOLD;
 
   //  Now emit a lovely log.
 
@@ -278,6 +280,7 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   fprintf(report, "mean + std.dev   %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * mean,   _deviationGraph, 1e5 * stddev, 1e5 * Tmean,  100.0 * Tmean,  (_errorLimit == Tmean)  ? "  (enabled)" : "");
   fprintf(report, "median + mad     %8.2f +- %3.0f * %8.2f"  "  ->  %8.2f      %8.4f%%%s\n", 1e5 * median, _deviationGraph, 1e5 * mad,    1e5 * Tmad,   100.0 * Tmad,   (_errorLimit == Tmad)   ? "  (enabled)" : "");
   fprintf(report, "90th percentile                              ->  %8.2f      %8.4f%%%s\n",                                              1e5 * Tperct, 100.0 * Tperct, (_errorLimit == Tperct) ? "  (enabled)" : "");
+  fprintf(report, "Perfect overlaps mode                        ->  %8.2f      %8.4f%%%s\n",                                              1e5 * _errorLimit, 100.0 * _errorLimit, (_errorLimit == FIXED_THRESHOLD) ? "  (enabled)" : "");
   fprintf(report, "\n");
   fprintf(report, "BEST EDGE FILTERING\n");
   fprintf(report, "-------------------\n");
