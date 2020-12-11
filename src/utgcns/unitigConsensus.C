@@ -709,6 +709,17 @@ alignEdLib(dagAlignment      &aln,
        tigend = min((int32)tiglen, (int32)floor(utgpos.max() + padding));
     }
 
+    if (tigend < tigbgn) {
+       fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
+               tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
+       // try to align it to full
+       tigbgn = 0;
+       tigend = utgpos.max();
+       fprintf(stderr, "alignEdLib()-- WARNING: updated tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
+               tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
+    }
+    assert(tigend > tigbgn);
+
     edlibFreeAlignResult(align);
 
     if (verbose)
