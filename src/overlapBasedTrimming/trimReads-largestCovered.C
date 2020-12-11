@@ -24,7 +24,7 @@ bool
 largestCovered(ovOverlap    *ovl,
                uint32        ovlLen,
                uint32        readID,
-               uint32 UNUSED(readLen),
+               uint32        readLen,
                uint32 UNUSED(ibgn),
                uint32        iend,
                uint32       &fbgn,
@@ -56,17 +56,48 @@ largestCovered(ovOverlap    *ovl,
     assert(tbgn < tend);
     assert(iid == ovl[i].a_iid);
 
-    if (ovl[i].evalue() > errorValue) {
+    if (ovl[i].evalue() > errorValue || (tend-tbgn < minOverlap)) {
       //  Overlap is crappy.
       //fprintf(stderr, "skip %2u\n", i);
       nSkip++;
       continue;
     }
 
-    //fprintf(stderr, "save %2u\n", i);
+//fprintf(stderr, "Processing interval %d - %d in read %d and currently I have %d stored\n", tbgn, tend, readID, IL.numberOfIntervals());
+// check if this overlap ends at a point we already captured
+bool doSkip = false;
+for (uint32 j = 0; j < IL.numberOfIntervals(); j++) {
+//fprintf(stderr, "Comparing interval from %d - %d in read %d to %d - %d with start bounds %d - %d\n", tbgn, tend, readID, IL.lo(j), IL.hi(j), (int32)(tbgn - floor(minOverlap/10)), (int32)(tbgn + floor(minOverlap/10)));
+   if (tbgn > 15 && (int32)(tbgn - floor(minOverlap/50)) <= (int32)IL.lo(j) && (int32)(tbgn + floor(minOverlap/50)) >= (int32)IL.lo(j)) {
+       doSkip = true;
+//      fprintf(stderr, "Skip interval in read %ul from %ul - %ul because it is too close to %ul - %ul\n", readID, tbgn, tend, IL.lo(j), IL.hi(j));
+      break;
+   } 
+//fprintf(stderr, "Comparing interval from %d - %d in read %d to %d - %d with end bounds %d - %d\n", tbgn, tend, readID, IL.lo(j), IL.hi(j), (int32)(tend - floor(minOverlap/10)), (int32)(tend + floor(minOverlap/10)));
+
+   if (tend < readLen-15 && (int32)(tend - floor(minOverlap/50)) <= IL.hi(j) && (int32)(tend + floor(minOverlap/50)) >= IL.hi(j)) {
+      doSkip = true;
+//      fprintf(stderr, "Skip interval in read %ul from %ul - %ul because it is too close to %ul - %ul\n", readID, tbgn, tend, IL.lo(j), IL.hi(j));
+      break;
+   }
+}
+if (doSkip) {
+      nSkip++;
+continue;
+}
+
+    //fprintf(stderr, "save %2u from %d - %d\n", i, tbgn, tend);
     nUsed++;
 
-    IL.add(tbgn, tend - tbgn);
+
+uint32 trimLen = floor((tend-tbgn) * 0.05);
+if (trimLen > 250) trimLen = 250;
+//fprintf(stderr, "For interval from %d - %d the trim is %d\n", tbgn, tend, trimLen);
+
+    if (tend + trimLen  >= readLen)
+       IL.add(tbgn, tend - tbgn);
+    else
+       IL.add(tbgn, tend - tbgn - trimLen);
   }
 
   if (verbose)
