@@ -581,6 +581,8 @@ tgTig::loadLayout(FILE *F) {
         _class = tgTig_unassembled;
       else if (strcmp(W[1], "contig") == 0)
         _class = tgTig_contig;
+      else if (strcmp(W[1], "unsetc") == 0)
+        _class = tgTig_noclass;
       else
         fprintf(stderr, "tgTig::loadLayout()-- '%s' line " F_U64 " invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
