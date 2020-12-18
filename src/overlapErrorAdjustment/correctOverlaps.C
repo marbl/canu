@@ -48,6 +48,9 @@ main(int argc, char **argv) {
       G->bgnID = atoi(argv[++arg]);
       G->endID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-B") == 0) {
+      G->secondID = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-O") == 0) {  //  -F?  -S Olap_Path
       G->ovlStorePath = argv[++arg];
 
@@ -96,6 +99,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -S   seqStore           path to a sequence store\n");
     fprintf(stderr, "  -O   ovlStore           path to an overlap store\n");
     fprintf(stderr, "  -R   bgn end            only compute for reads bgn-end\n");
+    fprintf(stderr, "  -B   id                 only compute for pairs with second read <id>\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -c   input-name         read corrections from 'input-name'\n");
     fprintf(stderr, "  -o   output-name        write updated error rates to 'output-name'\n");

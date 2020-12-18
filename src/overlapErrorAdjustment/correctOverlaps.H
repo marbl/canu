@@ -250,6 +250,8 @@ public:
     bgnID = 0;
     endID = UINT32_MAX;
 
+    secondID = UINT32_MAX;
+
     bases    = NULL;
     basesLen = 0;
 
@@ -289,6 +291,8 @@ public:
   //  Range of IDs to process
   uint32        bgnID;
   uint32        endID;
+
+  uint32        secondID;
 
   char         *bases;
   uint64        basesLen;
