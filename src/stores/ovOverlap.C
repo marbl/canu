@@ -68,7 +68,7 @@ ovOverlap::toString(char                  *str,
     case ovOverlapAsPaf:
       // miniasm/map expects entries to be separated by tabs
       // no padding spaces on names we don't confuse read identifiers
-      sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " \tdv:f:%6.4f%s",
+      sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " \tdv:f:%6.6f%s",
               a_iid,
               g->sqStore_getReadLength(a_iid), a_bgn(), a_end(),
               flipped() ? '-' : '+',
