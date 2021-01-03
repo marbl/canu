@@ -359,7 +359,7 @@ struct feParameters {
 
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
-    Use_Haplo_Ct     = false;
+    Use_Haplo_Ct     = true;
 
     //  Analyze_Alignment
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
@@ -404,8 +404,8 @@ struct feParameters {
 
   // Set keep flag on end of fragment if number of olaps < this value
   int  Degree_Threshold;
-  // Set false by -h option to ignore haplotype counts when correcting
-  int  Use_Haplo_Ct;
+  // Set false by -p option to ignore haplotype counts when correcting
+  bool  Use_Haplo_Ct;
 
 
   // Length of ends of exact-match regions not used in preventing sequence correction

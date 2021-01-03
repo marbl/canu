@@ -130,7 +130,8 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
       (vote.a_subst >= MIN_HAPLO_OCCURS) +
       (vote.c_subst >= MIN_HAPLO_OCCURS) +
       (vote.g_subst >= MIN_HAPLO_OCCURS) +
-      (vote.t_subst >= MIN_HAPLO_OCCURS));
+      (vote.t_subst >= MIN_HAPLO_OCCURS) +
+      (vote.ins_total() >= MIN_HAPLO_OCCURS));
 
   if (vote_t != DELETE && base == VoteChar(vote_t)) {
     //fprintf(stderr, "SAME  base = %c, vote = %c\n", base, VoteChar(vote_t));
@@ -202,6 +203,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
     return "";
   }
 
+  //no need to check non-insertions here, since we are in no_insert < STRONG_CONFIRMATION_READ_CNT = 2 case
   if ((ins_haplo_ct >= 2) && use_haplo_cnt) {
     //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2\n", ins_haplo_ct);
     return "";
