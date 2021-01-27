@@ -955,6 +955,10 @@ sub setDefaults () {
     setOverlapDefaults("obt", "overlap based trimming", "ovl");   #  Overlaps computed for trimming
     setOverlapDefaults("utg", "unitig construction",    "ovl");   #  Overlaps computed for unitigging
 
+    setGlobal("corReAlign", "false");   #  To guard against someone only setting
+    setGlobal("obtReAlign", "false");   #  utgOverlapper=mhap, we default to realign
+    setGlobal("utgReAlign", "true");    #  enabled.
+
     ##### Overlap Store
 
     #  ovbMemory and ovsMemory are set above.

@@ -121,11 +121,10 @@ foreach my $arg (@ARGV) {
     }
 
     if ($arg eq "-fast") {
-        #  All defaults, unless noted.
         setGlobal("corOverlapper",  "mhap");
         setGlobal("obtOverlapper",  "mhap");
         setGlobal("utgOverlapper",  "mhap");
-        setGlobal("utgReAlign",     "true");
+        setGlobal("utgReAlign",     "true");   #  Enabled by default, too.
     }
 
     if ($arg eq "-accurate") {
