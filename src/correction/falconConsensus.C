@@ -90,11 +90,11 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
       if (tag->delta == 0) {
         t_pos = tag->t_pos;
-        msa[t_pos]->coverage++;
+        msa[t_pos]->incrementCoverage();
       }
 
 #ifdef DEBUG
-      fprintf(stderr, "Processing position %d in sequence %d (in msa it is column %d with cov %d) with delta %d and current size is %d\n", j, i, t_pos, msa[t_pos]->coverage, tag->delta, msa[t_pos]->size);
+      fprintf(stderr, "Processing position %d in sequence %d (in msa it is column %d with cov %d) with delta %d and current size is %d\n", j, i, t_pos, msa[t_pos]->getCoverage(), tag->delta, msa[t_pos]->size);
 #endif
 
       // Assume t_pos was set on earlier iteration.
@@ -125,7 +125,7 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
       bool updated = false;
 
-      col.count += 1;
+      col.incrementCount();
 
       //  Search for a matching column.  If found, add one.  If not found, make a new entry.
 
@@ -201,7 +201,7 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
           //  Score is just our link weight, possibly with the previous column's score, and
           //  penalizing for coverage.
 
-          double score = aln_col->link_count[ck] - msa[i]->coverage * 0.5;
+          double score = aln_col->link_count[ck] - msa[i]->getCoverage() * 0.5;
 
           if ((aln_col->p_t_pos[ck] != -1) &&
               (pj <= msa[pi]->deltaLen))
@@ -259,23 +259,28 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
     char  bb = '-';
 
     switch (kk) {
-      case 0: bb = (msa[i]->coverage <= minOutputCoverage) ? 'a' : 'A'; break;
-      case 1: bb = (msa[i]->coverage <= minOutputCoverage) ? 'c' : 'C'; break;
-      case 2: bb = (msa[i]->coverage <= minOutputCoverage) ? 'g' : 'G'; break;
-      case 3: bb = (msa[i]->coverage <= minOutputCoverage) ? 't' : 'T'; break;
-      case 4: bb =                                                 '-'; break;
+      case 0: bb = (msa[i]->getCoverage() <= minOutputCoverage) ? 'a' : 'A'; break;
+      case 1: bb = (msa[i]->getCoverage() <= minOutputCoverage) ? 'c' : 'C'; break;
+      case 2: bb = (msa[i]->getCoverage() <= minOutputCoverage) ? 'g' : 'G'; break;
+      case 3: bb = (msa[i]->getCoverage() <= minOutputCoverage) ? 't' : 'T'; break;
+      case 4: bb =                                                      '-'; break;
     }
 
     if (bb != '-') {
       fd->seq[fd->len] = bb;
-      fd->eqv[fd->len] = (msa[i]->coverage == g_best_aln_col->count) ? (40) : (-10 * log((msa[i]->coverage - g_best_aln_col->count + 1) / (double)msa[i]->coverage));
+      fd->eqv[fd->len] = 40;
       fd->pos[fd->len] = i;
+
+      assert(g_best_aln_col->getCount() <= msa[i]->getCoverage());
+
+      if (g_best_aln_col->getCount() < msa[i]->getCoverage())
+        fd->eqv[fd->len] = -10 * log((msa[i]->getCoverage() - g_best_aln_col->getCount() + 1) / (double)msa[i]->getCoverage());
 
 #ifdef DEBUG_VERBOSE
       //fprintf(stderr, "seq %5u pos %5u '%c' cov %3u eqv %4d\n",
       //        fd->len, i, bb, msa[i]->coverage, fd->eqv[fd->len]);
       fprintf(stderr, "seq %5u pos %5u '%c' cov %3u\n",
-              fd->len, i, bb, msa[i]->coverage);
+              fd->len, i, bb, msa[i]->getCoverage());
 #endif
 
       if (fd->eqv[fd->len] > 40)

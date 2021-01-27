@@ -114,9 +114,15 @@ public:
 
   int32      best_p_t_pos;
 
+  //  See comment below on msa_delta_group_t::coverage.
+  void   incrementCount(void) { if (count < UINT16_MAX) count++; };
+  uint16 getCount(void)       { return(count); };
+
   uint16     best_p_delta;
   uint16     best_p_q_base;  // encoded base
+private:
   uint16     count;          //  Number of times we've encountered this base
+public:
   uint16     size;           //  Number of items allocated in the arrays
   uint16     n_link;         //  Number of items used in the arrays
 };
@@ -229,8 +235,18 @@ public:
     deltaLen = 0;
   }
 
+  //  We've seen one example of someone correcting short reads where coverage
+  //  of the evidence was more than 65,535 - overflowing both
+  //  msa_delta_group_t::coverage and align_tag_col_t::count and generating a
+  //  bogus (negative) quality score.
+  //
+  void   incrementCoverage(void) { if (coverage < UINT16_MAX) coverage++; };
+  uint16 getCoverage(void)       { return(coverage); };
 
+private:
   uint16             coverage;
+
+public:
   uint16             deltaAlloc;       //  Size of 'delta' array
   uint16             deltaLen;         //  Number of 'delta' positions actually used
   uint16             deltaPtrsLen;     //  Next available spot 'deltaPtrs';
