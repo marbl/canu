@@ -194,8 +194,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 bogart/bogart.mk \
                 bogart/layoutReads.mk \
                 \
-                bogus/bogus.mk \
-                \
                 utgcns/utgcns.mk \
                 \
                 gfa/alignGFA.mk
