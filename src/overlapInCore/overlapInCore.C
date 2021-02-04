@@ -305,11 +305,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-k") == 0) {
       arg++;
 
-      if ((isdigit(argv[arg][0]) && (argv[arg][1] == 0)) ||
-          (isdigit(argv[arg][0]) && isdigit(argv[arg][1]) && (argv[arg][2] == 0)))
-        G.Kmer_Len = strtoull(argv[arg], NULL, 10);
-      else
+      if (fileExists(argv[arg]) == true)
         G.kmerSkipFileName = argv[arg];
+      else
+        G.Kmer_Len = strtouint32(argv[arg]);
 
     } else if (strcmp(argv[arg], "-l") == 0) {
       G.Frag_Olap_Limit = strtol(argv[++arg], NULL, 10);
