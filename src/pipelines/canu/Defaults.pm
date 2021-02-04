@@ -32,24 +32,35 @@ use Sys::Hostname;
 use Text::Wrap;
 use File::Basename;   #  dirname
 
-my %global;    #  Parameter value
-my %synops;    #  Parameter description (for -defaults)
-my %synnam;    #  Parameter name (beacuse the key is lowercase)
+#  Except for some direct access in setDefaults(), the only allowed access
+#  method to these is through setGlobal() and getGlobal().
+#
+my %global;    #  $global{$key} = parameter value           ($key for all of
+my %synops;    #  $synops{$key} = parameter description      these is always
+my %synnam;    #  $synnam{$key} = case-preserved key name    lowercase)
 
 my @cLineOpts;
 my $specLog   = "";
 
 
 
+#  Helper function to append a command line error to the list of command line
+#  errors.
+#
+sub addCommandLineError($) {
+    $global{'errors'} .= shift @_;
+}
+
+
+#  Get the value of a parameter.  The parameter is case insensitive.
+#
+#  We cannot use the normal caFailure here due to a cyclic 'use' structure,
+#  and are forced to fail ungracefully on errors.  These errors should not
+#  depend on user input.
+#
 sub getGlobal ($) {
     my $var = shift @_;
-
     $var =~ tr/A-Z/a-z/;
-
-    #  We lost the use of caFailure in Defaults.pm (because it was moved to
-    #  Execution.pm so it can run stuff) here, so duplicate the functionality.
-    #  This should only trigger on static pipeline errors (i.e., no depending
-    #  on reads input) and so should never occur in the wild.
 
     if (!exists($global{$var})) {
         print STDERR "================================================================================\n";
@@ -62,59 +73,67 @@ sub getGlobal ($) {
 }
 
 
-sub setGlobalSpecialization ($@) {
+sub setGlobalIfUndef ($$) {
+    my $var = shift @_;
     my $val = shift @_;
 
-    foreach my $var (@_) {
-        $global{$var} = $val;
+    if (!defined(getGlobal($var))) {
+        setGlobal($var, $val);
     }
-
-    return(1);
 }
 
 
+#  Set the value of a parameter.  The parameter is case insensitive.
+#
+#  This is a bit complicated by handling of parameter alises (meta-options)
+#  and handling of deprecated options.
+#
+sub setGlobal ($$);   #  A prototype so we can call ourself recursively.
 sub setGlobal ($$) {
     my $VAR = shift @_;
     my $var = $VAR;
     my $val = shift @_;
-    my $set = 0;
 
     $var =~ tr/A-Z/a-z/;
 
-    $val = undef  if ($val eq "undef");   #  Set to undefined, the default for many of the options.
-    $val = undef  if ($val eq "");
+    #  Map undef/empty string and true/false to nicer values.
 
-    #  Map 'true'/'false' et al. to 0/1.
+    $val = undef  if (($val eq "undef")     || ($val eq ""));
+    $val = 0      if (($val =~ m/^false$/i) || ($val =~ m/^f$/i));
+    $val = 1      if (($val =~ m/^true$/i)  || ($val =~ m/^t$/i));
 
-    $val = 0  if (($val =~ m/^false$/i) || ($val =~ m/^f$/i));
-    $val = 1  if (($val =~ m/^true$/i)  || ($val =~ m/^t$/i));
+    #
+    #  Handle real options first.  If there is a key in %global, it's not a
+    #  meta-option and we can set it and get out of here.
+    #
 
-    #  Grid options
-
-    foreach my $opt ("gridoptions") {
-        $set += setGlobalSpecialization($val, ("${opt}corovl",  "${opt}obtovl",  "${opt}utgovl"))   if ($var eq "${opt}ovl");
-        $set += setGlobalSpecialization($val, ("${opt}cormhap", "${opt}obtmhap", "${opt}utgmhap"))  if ($var eq "${opt}mhap");
-        $set += setGlobalSpecialization($val, ("${opt}cormmap", "${opt}obtmmap", "${opt}utgmmap"))  if ($var eq "${opt}mmap");
+    if (exists($global{$var})) {
+        $global{$var} = $val;
+        return;
     }
 
-    foreach my $opt ("memory",
-                     "threads",
-                     "concurrency") {
-        $set += setGlobalSpecialization($val, ( "corovl${opt}",  "obtovl${opt}",  "utgovl${opt}"))  if ($var eq  "ovl${opt}");
-        $set += setGlobalSpecialization($val, ("cormhap${opt}", "obtmhap${opt}", "utgmhap${opt}"))  if ($var eq "mhap${opt}");
-        $set += setGlobalSpecialization($val, ("cormmap${opt}", "obtmmap${opt}", "utgmmap${opt}"))  if ($var eq "mmap${opt}");
-    }
+    #
+    #  Handle meta-options.  These options are aliases for three other
+    #  options, for example:
+    #    ovlMemory -> corOvlMemory and obtOvlMemory and utgOvlMemory
+    #
+    #  They all follow this standard format, except gridOptions, which wants
+    #  to insert the stage name in the middle of the option:
+    #    gridOptionsOVL -> gridOptionsCOROVL.
+    #
+    #  Note the recursive call here.
+    #
 
-    #  Overlapping algorithm choice options
+    if ($var eq "gridoptionsovl")  { setGlobal("gridOptionsCORovl",  $val);  setGlobal("gridOptionsOBTovl",  $val);  setGlobal("gridOptionsUTGovl",  $val);  return; }
+    if ($var eq "gridoptionsmhap") { setGlobal("gridOptionsCORmhap", $val);  setGlobal("gridOptionsOBTmhap", $val);  setGlobal("gridOptionsUTGmhap", $val);  return; }
+    if ($var eq "gridoptionsmmap") { setGlobal("gridOptionsCORmmap", $val);  setGlobal("gridOptionsOBTmmap", $val);  setGlobal("gridOptionsUTGmmap", $val);  return; }
 
-    foreach my $opt ("overlapper",
-                     "realign") {
-        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
-    }
-
-    #  OverlapInCore options
-
-    foreach my $opt ("ovlerrorrate",
+    foreach my $opt ("ovlmemory",      "mhapmemory",      "mmapmemory",      #  Execution options
+                     "ovlthreads",     "mhapthreads",     "mmapthreads",
+                     "ovlconcurrency", "mhapconcurrency", "mmapconcurrency",
+                     "overlapper",                                           #  Overlap algorithm selection
+                     "realign",
+                     "ovlerrorrate",                                         #  Overlapper options
                      "ovlhashblocklength",
                      "ovlrefblocklength",
                      "ovlhashbits",
@@ -122,68 +141,60 @@ sub setGlobal ($$) {
                      "ovlmersize",
                      "ovlmerthreshold",
                      "ovlmerdistinct",
-                     "ovlfrequentmers") {
-        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
-    }
-
-    #  Mhap options
-
-    foreach my $opt ("mhapblocksize",
+                     "ovlfrequentmers",
+                     "mhapblocksize",                                        #  Mhap options
                      "mhapmersize",
                      "mhapsensitivity",
                      "mhapfilterunique",
                      "mhapfilterthreshold",
-                     "mhapnotf") {
-        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
-    }
-
-    #  MiniMap options
-
-    foreach my $opt ("mmapblocksize",
+                     "mhapnotf",
+                     "mmapblocksize",                                        #  Minimap options
                      "mmapmersize") {
-        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
+        if ($var eq "$opt") {
+            setGlobal("cor$opt", $val);
+            setGlobal("obt$opt", $val);
+            setGlobal("utg$opt", $val);
+            return;
+        }
     }
-
-    #  Handle the two error rate aliases.
 
     if ($var eq "rawerrorrate") {
-        setGlobalIfUndef("corOvlErrorRate", $val);
-        setGlobalIfUndef("corErrorRate",    $val);
+        setGlobalIfUndef("corErrorRate",    $val);   setGlobalIfUndef("corOvlErrorRate", $val);
         return;
     }
 
     if ($var eq "correctederrorrate") {
-        setGlobalIfUndef("obtOvlErrorRate", $val);
-        setGlobalIfUndef("obtErrorRate",    $val);
-        setGlobalIfUndef("utgOvlErrorRate", $val);
-        setGlobalIfUndef("utgErrorRate",    $val);
+        setGlobalIfUndef("obtErrorRate",    $val);   setGlobalIfUndef("obtOvlErrorRate", $val);
+        setGlobalIfUndef("utgErrorRate",    $val);   setGlobalIfUndef("utgOvlErrorRate", $val);
         setGlobalIfUndef("cnsErrorRate",    $val);
         return;
     }
 
-    return  if ($set > 0);
+    #
+    #  Replace obsolete options.
+    #
 
-    #  If we get a parameter we don't understand, we should be parsing command line options or
-    #  reading spec files, and we can let the usual error handling handle it.
+    if ($var eq "readsamplingcoverage") {
+        print STDERR "--\n";
+        print STDERR "--  WARNING:  Deprecated option 'readSamplingCoverage' supplied.\n";
+        print STDERR "--  WARNING:  Use 'maxInputCoverage' instead.\n";
+        print STDERR "--  WARNING:  'readSamplingCoverage' will be removed in the next release.\n";
+        print STDERR "--\n";
 
-    addCommandLineError("ERROR:  Parameter '$VAR' is not known.\n")   if (!exists($global{$var}));
+        setGlobal("maxInputCoverage", $val);
+        return;
+    }
 
-    $global{$var} = $val;
+    #
+    #  If here, we got a parameter we don't know about.  Let the usual error
+    #  handling handle it since this should only occur when parsing user
+    #  options (command line or spec file).
+    #
+
+    addCommandLineError("ERROR:  Parameter '$VAR' is not known.\n");
 }
 
 
-
-sub setGlobalIfUndef ($$) {
-    my $var = shift @_;
-    my $val = shift @_;
-
-    $var =~ tr/A-Z/a-z/;
-    $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
-
-    return  if (defined($global{$var}));
-
-    $global{$var} = $val;
-}
 
 
 
@@ -277,9 +288,6 @@ sub removeHaplotypeOptions () {
 
 
 
-sub addCommandLineError($) {
-    $global{'errors'} .= shift @_;
-}
 
 
 
@@ -377,31 +385,44 @@ sub diskSpace ($) {
 sub printOptions () {
     my $pretty = 0;
 
-    foreach my $k (sort values %synnam) {
-        my $o = $k;
-        my $u = $synops{$k};
+    #  Figure out the maximum length of the option names.
+    my $optLength = 0;
+    foreach my $key (keys %synnam) {
+        $optLength = length($synnam{$key})    if ($optLength < length($synnam{$key}));
+    }
 
-        next   if (length($u) == 0);
+    #  Emit a nicely formatted list of options and a description of each.
+    foreach my $key (sort keys %synnam) {
+        my $optName  = $synnam{$key};
+        my $synopsis = $synops{$key};
+
+        next   if ($optName  eq "");
+        next   if ($synopsis eq "");
+
 
         if ($pretty == 0) {
-            $o = substr("$k                                    ", 0, 40);
+            $optName .= " " x ($optLength - length($optName));
 
-        } else {
-            $Text::Wrap::columns = 60;
-
-            $o = "$o\n";
-            $u = wrap("    ", "    ", $u) . "\n";
+            print "$optName$synopsis\n";
         }
+        else {
+            $Text::Wrap::columns = 77;
 
-        print "$o$u\n";
+            $synopsis = wrap("        ", "        ", $synopsis);
+
+            print "\n";
+            print "$optName\n";
+            print "$synopsis\n";
+        }
     }
 }
 
 
 sub printHelp (@) {
-    my $force = shift @_;
+    my $force  = shift @_;
+    my $errors = getGlobal("errors");
 
-    return   if (!defined($force) && !defined($global{"errors"}));
+    return   if (!defined($force) && !defined($errors));
 
     print "\n";
     print "usage:   canu [-version] [-citation] \\\n";
@@ -481,8 +502,8 @@ sub printHelp (@) {
     print "Complete documentation at http://canu.readthedocs.org/en/latest/\n";
     print "\n";
 
-    if (defined($global{'errors'})) {
-        print "$global{'errors'}";
+    if ($errors) {
+        print "$errors";
         print "\n";
         exit(1);
     } else {
@@ -601,14 +622,19 @@ sub makeAbsolute ($) {
 
 
 
-sub fixCase ($) {
+sub fixCase ($@) {
     my $var = shift @_;
-    my $val = getGlobal($var);
+    my $VAL = getGlobal($var);
+    my $val = $VAL;
+    my $upp = shift @_;
 
-    if (defined($val)) {
+    if (defined($upp)) {
+        $val =~ tr/a-z/A-Z/;
+    } else {
         $val =~ tr/A-Z/a-z/;
-        setGlobal($var, $val);
     }
+
+    setGlobal($var, $val)   if ($VAL ne $val)
 }
 
 
@@ -704,41 +730,42 @@ sub setParametersFromCommandLine(@) {
 
 
 
+#  Helper function to add a variable/value pair to the list of global options.
+#  Both getGlobal() and setGlobal() will complain if an unknown variable is accessed.
+#  
+sub setDefault ($$$) {
+    my $VAR         = shift @_;
+    my $var         = $VAR;
+    my $value       = shift @_;
+    my $description = shift @_;
+
+    $var =~ tr/A-Z/a-z/;
+
+    $global{$var} = $value;         #  Internal lookups always use all lowercase.
+    $synops{$var} = $description;   #  But these operate on the case-sensitive input string?
+    $synnam{$var} = $VAR;           #  Remember the stylized version ($VAR) of the option $var.
+}
+
+
+#  Helper to add variable/value pairs for all the options that affect
+#  exectuion.
+#
 sub setExecDefaults ($$) {
     my $tag         = shift @_;
     my $name        = shift @_;
 
-    $global{"gridOptions${tag}"}   = undef;
-    $synops{"gridOptions${tag}"}   = "Grid engine options applied to $name jobs";
-
-    $global{"${tag}Memory"}        = undef;
-    $synops{"${tag}Memory"}        = "Amount of memory, in gigabytes, to use for $name jobs";
-
-    $global{"${tag}Threads"}       = undef;
-    $synops{"${tag}Threads"}       = "Number of threads to use for $name jobs";
-
-    $global{"${tag}StageSpace"}    = undef;
-    $synops{"${tag}StageSpace"}    = "Amount of local disk space needed to stage data for $name jobs";
-
-    $global{"${tag}Concurrency"}   = undef;
-    $synops{"${tag}Concurrency"}   = "If grid not enabled, number of $name jobs to run at the same time; default is n_proc / n_threads";
+    setDefault("useGrid${tag}",     1,     "If 'true', run module $name under grid control; if 'false' run locally.");
+    setDefault("gridOptions${tag}", undef, "Grid engine options applied to $name jobs");
+    setDefault("${tag}Memory",      undef, "Amount of memory, in gigabytes, to use for $name jobs");
+    setDefault("${tag}Threads",     undef, "Number of threads to use for $name jobs");
+    setDefault("${tag}StageSpace",  undef, "Amount of local disk space needed to stage data for $name jobs");
+    setDefault("${tag}Concurrency", undef, "If grid not enabled, number of $name jobs to run at the same time; default is n_proc / n_threads");
 }
 
 
-
-sub setOverlapDefault ($$$$) {
-    my $tag         = shift @_;
-    my $var         = shift @_;
-    my $value       = shift @_;
-    my $description = shift @_;
-
-    $global{"${tag}${var}"}  = $value;
-    $synops{"${tag}${var}"}  = $description;
-    $synops{      "${var}"}  = $description;
-}
-
-
-
+#  Helper to add variable/value pairs for all the options that affect the
+#  overlap computation.
+#
 sub setOverlapDefaults ($$$) {
     my $tag     = shift @_;  #  If 'cor', some parameters are loosened for raw pacbio reads
     my $name    = shift @_;
@@ -746,59 +773,48 @@ sub setOverlapDefaults ($$$) {
 
     #  Which overlapper to use.
 
-    setOverlapDefault($tag, "Overlapper",          $default,                  "Which overlap algorithm to use for $name");
-    setOverlapDefault($tag, "ReAlign",             0,                         "Refine overlaps by computing the actual alignment: 'true' or 'false'.  Not useful for overlapper=ovl.  Uses ${tag}OvlErrorRate");
+    setDefault("${tag}Overlapper",          $default,                  "Which overlap algorithm to use for $name");
+    setDefault("${tag}ReAlign",             0,                         "Refine overlaps by computing the actual alignment: 'true' or 'false'.  Not useful for overlapper=ovl.  Uses ${tag}OvlErrorRate");
 
     #  OverlapInCore parameters.
 
-    setOverlapDefault($tag, "OvlHashBlockLength",  undef,                     "Amount of sequence (bp) to load into the overlap hash table");
-    setOverlapDefault($tag, "OvlRefBlockLength",   undef,                     "Amount of sequence (bp) to search against the hash table per batch");
-    setOverlapDefault($tag, "OvlHashBits",         undef,                     "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength");
-    setOverlapDefault($tag, "OvlHashLoad",         0.80,                      "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75");
-    setOverlapDefault($tag, "OvlMerSize",          ($tag eq "cor") ? 19 : 22, "K-mer size for seeds in overlaps");
-    setOverlapDefault($tag, "OvlMerThreshold",     undef,                     "K-mer frequency threshold; mers more frequent than this count are ignored");
-    setOverlapDefault($tag, "OvlMerDistinct",      undef,                     "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps");
-    setOverlapDefault($tag, "OvlFrequentMers",     undef,                     "Do not seed overlaps with these kmers");
-    setOverlapDefault($tag, "OvlFilter",           undef,                     "Filter overlaps based on expected kmers vs observed kmers");
+    setDefault("${tag}OvlHashBlockLength",  undef,                     "Amount of sequence (bp) to load into the overlap hash table");
+    setDefault("${tag}OvlRefBlockLength",   undef,                     "Amount of sequence (bp) to search against the hash table per batch");
+    setDefault("${tag}OvlHashBits",         undef,                     "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength");
+    setDefault("${tag}OvlHashLoad",         0.80,                      "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75");
+    setDefault("${tag}OvlMerSize",          ($tag eq "cor") ? 19 : 22, "K-mer size for seeds in overlaps");
+    setDefault("${tag}OvlMerThreshold",     undef,                     "K-mer frequency threshold; mers more frequent than this count are ignored");
+    setDefault("${tag}OvlMerDistinct",      undef,                     "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps");
+    setDefault("${tag}OvlFrequentMers",     undef,                     "Do not seed overlaps with these kmers");
+    setDefault("${tag}OvlFilter",           undef,                     "Filter overlaps based on expected kmers vs observed kmers");
 
     #  Mhap parameters.  FilterThreshold MUST be a string, otherwise it gets printed in scientific notation (5e-06) which java doesn't understand.
 
-    setOverlapDefault($tag, "MhapVersion",         "2.1.3",                   "Version of the MHAP jar file to use");
-    setOverlapDefault($tag, "MhapFilterThreshold", "0.0000001",               "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted");
-    setOverlapDefault($tag, "MhapFilterUnique",    undef,                     "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.");
-    setOverlapDefault($tag, "MhapNoTf",            undef,                     "Expert option: True or false, do not use tf weighting, only idf of tf-idf.");
-    setOverlapDefault($tag, "MhapOptions",         undef,                     "Expert option: free-form parameters to pass to MHAP.");
-    setOverlapDefault($tag, "MhapBlockSize",       3000,                      "Number of reads per GB of memory allowed (mhapMemory)");
-    setOverlapDefault($tag, "MhapMerSize",         ($tag eq "cor") ? 16 : 16, "K-mer size for seeds in mhap");
-    setOverlapDefault($tag, "MhapOrderedMerSize",  ($tag eq "cor") ? 12 : 18, "K-mer size for second-stage filter in mhap");
-    setOverlapDefault($tag, "MhapSensitivity",     undef,                     "Coarse sensitivity level: 'low', 'normal' or 'high'.  Set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'");
+    setDefault("${tag}MhapVersion",         "2.1.3",                   "Version of the MHAP jar file to use");
+    setDefault("${tag}MhapFilterThreshold", "0.0000001",               "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted");
+    setDefault("${tag}MhapFilterUnique",    undef,                     "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.");
+    setDefault("${tag}MhapNoTf",            undef,                     "Expert option: True or false, do not use tf weighting, only idf of tf-idf.");
+    setDefault("${tag}MhapOptions",         undef,                     "Expert option: free-form parameters to pass to MHAP.");
+    setDefault("${tag}MhapBlockSize",       3000,                      "Number of reads per GB of memory allowed (mhapMemory)");
+    setDefault("${tag}MhapMerSize",         ($tag eq "cor") ? 16 : 16, "K-mer size for seeds in mhap");
+    setDefault("${tag}MhapOrderedMerSize",  ($tag eq "cor") ? 12 : 18, "K-mer size for second-stage filter in mhap");
+    setDefault("${tag}MhapSensitivity",     undef,                     "Coarse sensitivity level: 'low', 'normal' or 'high'.  Set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'");
 
     #  MiniMap parameters.
 
-    setOverlapDefault($tag, "MMapBlockSize",       6000,                      "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job");
-    setOverlapDefault($tag, "MMapMerSize",         ($tag eq "cor") ? 15 : 21, "K-mer size for seeds in minmap");
-}
-
-
-
-sub setDefault ($$$) {
-    my $var         = shift @_;
-    my $value       = shift @_;
-    my $description = shift @_;
-
-    $global{$var} = $value;
-    $synops{$var} = $description;
+    setDefault("${tag}MMapBlockSize",       6000,                      "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job");
+    setDefault("${tag}MMapMerSize",         ($tag eq "cor") ? 15 : 21, "K-mer size for seeds in minmap");
 }
 
 
 
 sub setDefaults () {
 
-    #####  Internal stuff
+    #####  Internal stuff - no synopsis pre pretty-name for these.
 
-    $global{"errors"}                      = undef;   #  Command line errors
-    $global{"version"}                     = undef;   #  Reset at the end of this function, once we know where binaries are.
-    $global{"availablehosts"}              = undef;   #  Internal list of cpus-memory-nodes describing the grid
+    $global{"errors"}                      = undef;   #  Command line errors.
+    $global{"version"}                     = undef;   #  Set in setVersion() once we know where binaries are.
+    $global{"availablehosts"}              = undef;   #  Internal list of cpus-memory-nodes describing the grid.
 
     $global{"canuiteration"}               = 0;
     $global{"canuiterationmax"}            = 2;
@@ -806,10 +822,13 @@ sub setDefaults () {
     $global{"onexitdir"}                   = undef;   #  Copy of $wrk, for caExit() and caFailure() ONLY.
     $global{"onexitnam"}                   = undef;   #  Copy of $asm, for caExit() and caFailure() ONLY.
 
-    #####  Meta options (no $global for these, only synopsis), more of these, many many more, are defined in setOverlapDefaults().
+    #####  Meta options - no $global for these, only synopsis and pretty-format name,
 
-    $synops{"rawErrorRate"}                = "Expected fraction error in an alignment of two uncorrected reads";
-    $synops{"correctedErrorRate"}          = "Expected fraction error in an alignment of two corrected reads";
+    $synops{"rawerrorrate"}                = "Expected fraction error in an alignment of two uncorrected reads";
+    $synnam{"rawerrorrate"}                = "rawErrorRate";
+
+    $synops{"correctederrorrate"}          = "Expected fraction error in an alignment of two corrected reads";
+    $synnam{"correctederrorrate"}          = "correctedErrorRate";
 
     #####  General Configuration Options (aka miscellany)
 
@@ -861,8 +880,6 @@ sub setDefaults () {
     setDefault("minOverlapLength",     500,       "Overlaps shorter than this length are not computed; default 500");
 
     setDefault("readSamplingBias",     0.0,       "Score reads as 'random * length^bias', keep the highest scoring reads");
-    setDefault("readSamplingCoverage", undef,     "DEPRECATED; use maxInputCoverage.  Discard reads to make the input be of this size");
-    #  DEPRECATED - use minInputCoverage and maxInputCoverage instead
 
     setDefault("minMemory",            undef,     "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
     setDefault("maxMemory",            undef,     "Maximum memory to use by any component of the assembler");
@@ -902,10 +919,6 @@ sub setDefaults () {
     #####  Grid Engine Pipeline
 
     setDefault("useGrid", 1, "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'");
-
-    foreach my $c (qw(BAT CNS COR MERYL HAP CORMHAP CORMMAP COROVL OBTMHAP OBTMMAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
-        setDefault("useGrid$c", 1, "If 'true', run module $c under grid control; if 'false' run locally.");
-    }
 
     #####  Grid Engine configuration, for each step of the pipeline
 
@@ -987,9 +1000,6 @@ sub setDefaults () {
     setDefault("trimReadsOverlap",   500,   "Minimum overlap between evidence to make contiguous trim; default '500'");
     setDefault("trimReadsCoverage",  2,     "Minimum depth of evidence to retain bases; default '2");
 
-    #$global{"splitReads..."}               = 1;
-    #$synops{"splitReads..."}               = "";
-
     #####  Fragment/Overlap Error Correction
 
     setDefault("enableOEA",      1,     "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA); default 'true'");
@@ -1030,18 +1040,15 @@ sub setDefaults () {
 
     setDefault("homoPolyCompress",             undef,        "Compute everything but consensus sequences using homopolymer compressed reads");
 
-    #  Convert all the keys to lowercase, and remember the case-sensitive version
+    #####  Sanity check that all keys are lowercase.
 
-    foreach my $k (keys %synops) {
-        (my $l = $k) =~ tr/A-Z/a-z/;
+    foreach my $key (keys %global) {
+        my $keylc = $key;
+        $keylc =~ tr/A-Z/a-z/;
 
-        $synnam{$l} = $k;                  #  Remember that option $l is stylized as $k.
-
-        next  if (!exists($global{$k}));   #  If no option for this (it's a meta-option), skip.
-        next  if ( exists($global{$l}));   #  If lowercase already exists, skip.
-
-        $global{$l} = $global{$k};         #  Otherwise, set the lowercase option and
-        delete $global{$k};                #  delete the uppercase version
+        if ($key ne $keylc) {
+            die "key '$key' is not all lowercase.\n";
+        }
     }
 }
 
@@ -1058,7 +1065,7 @@ sub setVersion ($) {
     }
     close(F);
 
-    $global{'version'} = $version;
+    setGlobal("version", $version);
 }
 
 
@@ -1332,13 +1339,8 @@ sub checkParameters () {
     fixCase("unitigger");
     fixCase("stopAfter");
 
-    #
-    #  Well, crud.  'gridEngine' and 'objectStore' want to be uppercase, not lowercase like
-    #  fixCase() would do.
-    #
-
-    $global{"gridengine"}  =~ tr/a-z/A-Z/;  #  NOTE: lowercase 'gridengine'
-    $global{"objectstore"} =~ tr/a-z/A-Z/;  #  NOTE: lowercase 'objectstore'
+    fixCase("gridEngine",  "upper");   #  These want to be uppercase, grrrr!
+    fixCase("objectStore", "upper");
 
     #
     #  Check for inconsistent parameters
@@ -1514,15 +1516,6 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'\n");
     }
 
-    if (defined(getGlobal("readSamplingCoverage"))) {
-        print STDERR "--\n";
-        print STDERR "--  WARNING:  Deprecated option 'readSamplingCoverage' supplied.\n";
-        print STDERR "--  WARNING:  Use 'maxInputCoverage' instead.\n";
-        print STDERR "--  WARNING:  'readSamplingCoverage' will be removed in the next release.\n";
-        print STDERR "--\n";
-
-        setGlobal("maxInputCoverage", getGlobal("readSamplingCoverage"));
-    }
     if (!defined(getGlobal("maxInputCoverage"))) {
        setGlobal("maxInputCoverage", 200);
     }
@@ -1547,12 +1540,13 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'saveOverlaps' specified (" . getGlobal("saveOverlaps") . "); must be 'true' or 'false'\n");
     }
 
-
-    if (getGlobal("purgeOverlaps") eq "0") {
+    if ((getGlobal("purgeOverlaps") eq "0") ||
+        (getGlobal("purgeOverlaps") eq "no")) {
         setGlobal("purgeOverlaps", "never");
     }
 
-    if (getGlobal("purgeOverlaps") eq "1") {
+    if ((getGlobal("purgeOverlaps") eq "1") ||
+        (getGlobal("purgeOverlaps") eq "yes")) {
         setGlobal("purgeOverlaps", "normal");
     }
 
