@@ -46,7 +46,7 @@ uint32 parseReadID(char *word,
 
    uint32 fi = 0;
    for (uint32 pp=0; word[pp] != 0; pp++) {
-      if ((fi == 0) && (isdigit(word[pp]))) {
+      if ((fi == 0) && (isDecDigit(word[pp]))) {
          fi   = strtouint32(&word[pp]);
          flen = RI->readLength(fi);
        }
