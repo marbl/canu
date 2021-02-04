@@ -97,14 +97,14 @@ generateLayout(tgTig      *layout,
 
     if (ovl[oo].erate() > maxEvidenceErate) {
       if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - low quality (threshold %.2f)\n",
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.4f - low quality (threshold %.4f)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
     if (ovl[oo].a_end() - ovl[oo].a_bgn() < minEvidenceLength) {
       if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - too short (threshold %u)\n",
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.4f - too short (threshold %u)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
@@ -112,21 +112,21 @@ generateLayout(tgTig      *layout,
     if ((olapThresh != NULL) &&
         (ovlScore < olapThresh[ovl[oo].b_iid])) {
       if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U16 ")\n",
-                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), olapThresh[ovl[oo].b_iid]);
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.4f - filtered by global filter (" F_U16 " < " F_U16 ")\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), ovlScore, olapThresh[ovl[oo].b_iid]);
       continue;
     }
 
     if (children.find(ovl[oo].b_iid) != children.end()) {
       if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - duplicate\n",
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5lu erate %.4f - duplicate\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
       continue;
     }
 
     if (logFile)
-      fprintf(logFile, "  allow  read %9u at position %6u,%6u length %5lu erate %.3f\n",
-              ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
+      fprintf(logFile, "  allow  read %9u at position %6u,%6u length %5lu erate %.4f - allowed  by global filter (" F_U16 " > " F_U16 ")\n",
+              ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), ovlScore, olapThresh[ovl[oo].b_iid]);
 
     tgPosition   *pos = layout->addChild();
 
