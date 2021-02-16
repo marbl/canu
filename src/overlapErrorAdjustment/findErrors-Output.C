@@ -224,6 +224,28 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   return ins_vote;
 }
 
+bool Is_Het(const Vote_Tally_t &vote) {
+  int32 haplo_ct  =  ((vote.deletes >= MIN_HAPLO_OCCURS) +
+      (vote.a_subst >= MIN_HAPLO_OCCURS) +
+      (vote.c_subst >= MIN_HAPLO_OCCURS) +
+      (vote.g_subst >= MIN_HAPLO_OCCURS) +
+      (vote.t_subst >= MIN_HAPLO_OCCURS) +
+      (vote.ins_total() >= MIN_HAPLO_OCCURS));
+
+  return haplo_ct >= 2;
+}
+
+std::vector<uint32>
+Find_Het_Positions(const feParameters *G, const Frag_Info_t &read) {
+  std::vector<uint32> answer;
+  for (uint32 pos = 0; pos < read.clear_len; pos++) {
+    if (Is_Het(read.vote[pos])) {
+      answer.push_back(pos);
+    }
+  }
+  return answer;
+}
+
 //TODO consider special case of two reads voting for different bases
 // return false if nothing happened on the position and true otherwise
 bool
@@ -233,7 +255,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
   Vote_Tally_t vote = read.vote[pos];
   char base = read.sequence[pos];
 
-  static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
+  //static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
 
   if (vote.all_but(base) == 0)
     return false;
@@ -307,7 +329,21 @@ Output_Corrections(feParameters *G) {
 
     //fprintf(stderr, "Checking positions\n");
 
+    std::vector<uint32> het_pos;
+
+    if (G->Use_Haplo_Ct && G->Haplo_Freeze > 0) {
+      het_pos = Find_Het_Positions(G, read);
+    }
+
+    auto het_it = het_pos.begin();
     for (uint32 pos = 0; pos < read.clear_len; pos++) {
+      while (het_it != het_pos.end() && pos > *het_it + G->Haplo_Freeze)
+        ++het_it;
+      //here het_it points to a value >= pos - freeze
+      if (het_it != het_pos.end() && *het_it <= pos + G->Haplo_Freeze) {
+        //fprintf(stderr, "Ignoring position %d too close to a het at position %d\n");
+        continue;
+      }
       Report_Position(G, read, pos, out, fp);
     }
   }

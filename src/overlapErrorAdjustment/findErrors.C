@@ -367,6 +367,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-p") == 0) {
       G->Use_Haplo_Ct = false;
 
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      G->Haplo_Freeze = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-V") == 0) {
       G->Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
 
@@ -405,6 +408,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -d   degree-threshold   set keep flag if fewer than this many overlaps\n");
     fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
     fprintf(stderr, "  -p                      don't use the haplo_ct\n");
+    fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:2, 0 to disable)\n");
     fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "  -x   end-exclude-len    length of end of exact match to exclude in preventing change\n");
 
