@@ -3,6 +3,7 @@ SOURCES  := correctOverlaps.C \
             correctOverlaps-Correct_Frags.C \
             correctOverlaps-Read_Olaps.C \
             correctOverlaps-Redo_Olaps.C \
+            computeDiff.C \
             correctOverlaps-Prefix_Edit_Distance.C
 
 SRC_INCDIRS  := .. ../utility/src/utility ../stores ../overlapInCore/liboverlap
