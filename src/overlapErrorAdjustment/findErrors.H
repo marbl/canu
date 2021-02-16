@@ -90,6 +90,10 @@
 //  a separate haplotype
 #define  MIN_HAPLO_OCCURS            3
 
+//static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
+//This many or more votes indicate sufficient confirmation
+#define  STRONG_CONFIRMATION_READ_CNT 2
+
 //  The amount of memory to allocate for the stack of each thread
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
@@ -360,12 +364,15 @@ struct feParameters {
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
     Use_Haplo_Ct     = true;
+    Haplo_Freeze     = 2;
 
     //  Analyze_Alignment
+
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
     Kmer_Len          = 9;  //DEFAULT_KMER_LEN;
     Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
   };
+
   ~feParameters() {
     delete [] readBases;
     delete [] readVotes;
@@ -406,7 +413,8 @@ struct feParameters {
   int  Degree_Threshold;
   // Set false by -p option to ignore haplotype counts when correcting
   bool  Use_Haplo_Ct;
-
+  // Controls radius around heterozygous position that is considered too risky to correct
+  uint32  Haplo_Freeze;
 
   // Length of ends of exact-match regions not used in preventing sequence correction
   int  End_Exclude_Len;
