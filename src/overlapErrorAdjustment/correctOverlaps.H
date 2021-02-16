@@ -310,7 +310,7 @@ public:
 
   double        errorRate;
   uint32        minOverlap;
-  bool		checkTrivialDNA;
+  bool     checkTrivialDNA;
 
   pedWorkArea_t ped;
 
