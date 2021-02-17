@@ -16,8 +16,10 @@
  */
 
 #include "findErrors.H"
+#include "computeDiff.H"
 
 #include "sequence.H"
+#include <tuple>
 
 #define  DISPLAY_WIDTH   250
 
@@ -123,7 +125,7 @@ Prefix_Edit_Dist(char   *A, int m,
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
-                  char   *b_part, //int32 b_len,
+                  char   *b_part, int32 b_len,
                   int32   sub);
 
 
@@ -205,24 +207,24 @@ Process_Olap(Olap_Info_t        *olap,
   int32    a_end = 0;
   int32    b_end = 0;
 
-  uint32   olap_len = min(a_part_len, b_part_len);
-
   bool     match_to_end = false;
 
   //fprintf(stderr, "A: offset %d length %d\n", a_offset, a_part_len);
   //fprintf(stderr, "B: offset %d length %d\n", b_offset, b_part_len);
 
-  int32    errors = Prefix_Edit_Dist(a_part, a_part_len,
+  auto *ped = &wa->ped;
+
+  int32    all_errors = Prefix_Edit_Dist(a_part, a_part_len,
                                      b_part, b_part_len,
-                                     wa->G->Error_Bound[olap_len],
+                                     wa->G->Error_Bound[min(a_part_len, b_part_len)],
                                      a_end,
                                      b_end,
                                      match_to_end,
-                                     &wa->ped);
+                                     ped);
 
   if ((a_end < 0) || (a_end > a_part_len) || (b_end < 0) || (b_end > b_part_len)) {
     fprintf (stderr, "ERROR:  Bad edit distance.\n");
-    fprintf (stderr, "  errors = %d  a_end = %d  b_end = %d\n", errors, a_end, b_end);
+    fprintf (stderr, "  errors = %d  a_end = %d  b_end = %d\n", all_errors, a_end, b_end);
     fprintf (stderr, "  a_part_len = %d  b_part_len = %d\n", a_part_len, b_part_len);
     fprintf (stderr, "  a_iid = %d  b_iid = %d  match_to_end = %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
   }
@@ -231,26 +233,47 @@ Process_Olap(Olap_Info_t        *olap,
   assert(b_end >= 0);
   assert(b_end <= b_part_len);
 
-  //fprintf(stderr, "  errors = %d  delta_len = %d\n", errors, wa->ped.deltaLen);
+  //fprintf(stderr, "  all_errors = %d  delta_len = %d\n", all_errors, ped.deltaLen);
   //fprintf(stderr, "  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
-  //Display_Alignment(a_part, a_end, b_part, b_end, wa->ped.delta, wa->ped.deltaLen);//, wa->G->reads[ri].clear_len - a_offset);
+  //Display_Alignment(a_part, a_end, b_part, b_end, ped.delta, ped.deltaLen);//, wa->G->reads[ri].clear_len - a_offset);
 
   if ((match_to_end == false) && (a_end + a_offset >= wa->G->reads[ri].clear_len - 1)) {
-    olap_len = min(a_end, b_end);
     match_to_end = true;
   }
 
-  if (match_to_end && errors <= wa->G->Error_Bound[olap_len]) {
-    wa->passedOlaps++;
-    //fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
-    Analyze_Alignment(wa,
-                      a_part, a_end, a_offset,
-                      b_part, //b_end,
-                      ri);
-  } else {
-    wa->failedOlaps++;
-    //fprintf(stderr, "%8d %8d failed overlap\n", olap->a_iid, olap->b_iid);
-    //fprintf(stderr, "%8d %8d match to end %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
-    //fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (errors > wa->G->Error_Bound[olap_len]) ? 'T' : 'F');
+  //TODO Adjusting the extremities?
+  //all_errors -= TrimStartingIndels(a_part, a_end, ped->delta, ped->deltaLen, 1);
+  //all_errors -= TrimStartingIndels(b_part, b_end, ped->delta, ped->deltaLen, -1);
+
+  //fprintf(stderr, "Showing alignment\n");
+  //Display_Alignment(a_part, a_end, b_part, b_end, ped->delta, ped->deltaLen);
+
+  if (match_to_end && a_end > 0 && b_end > 0) {
+    int32 events;
+    int32 alignment_len;
+
+    //fprintf(stderr, "Computing errors\n");
+    //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
+    std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta,
+                                                    a_end, b_end, wa->G->checkTrivialDNA);
+
+    assert(events >= 0 && alignment_len > 0);
+    //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
+    assert(wa->G->checkTrivialDNA || all_errors == events);
+    auto erate = wa->G->checkTrivialDNA ? wa->G->maskedErrorRate : wa->G->errorRate;
+    if (events <= (int32) ceil(alignment_len * erate)) {
+      wa->passedOlaps++;
+      //fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
+      Analyze_Alignment(wa,
+                        a_part, a_end, a_offset,
+                        b_part, b_end,
+                        ri);
+      return;
+    }
   }
+
+  wa->failedOlaps++;
+  //fprintf(stderr, "%8d %8d failed overlap\n", olap->a_iid, olap->b_iid);
+  //fprintf(stderr, "%8d %8d match to end %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
+  //fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (errors > wa->G->Error_Bound[olap_len]) ? 'T' : 'F');
 }
