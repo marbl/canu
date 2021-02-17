@@ -338,10 +338,9 @@ ProcessAlignment(const int32 a_part_len, char *a_part,
   int32 alignment_len;
 
   //fprintf(stderr, "Computing errors\n");
-  static const uint32 FLANK_IGNORE = 5;
   //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
   std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta,
-                                                  a_end, b_end, check_trivial_dna, FLANK_IGNORE);
+                                                  a_end, b_end, check_trivial_dna);
 
   //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
   assert(check_trivial_dna || all_errors == events);
