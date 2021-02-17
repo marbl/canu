@@ -5,6 +5,7 @@ SOURCES  := findErrors.C \
             findErrors-Prefix_Edit_Distance.C \
             findErrors-Process_Olap.C \
             findErrors-Read_Frags.C \
+            computeDiff.C \
             findErrors-Read_Olaps.C
 
 SRC_INCDIRS  := .. ../utility/src/utility ../stores ../overlapInCore/liboverlap

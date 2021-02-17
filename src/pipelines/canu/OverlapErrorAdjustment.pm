@@ -302,6 +302,7 @@ sub readErrorDetectionConfigure ($) {
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
     print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
+    print F "  -m 0.003 \\\n";
     print F "  -o ./\$jobid.red.WORKING \\\n";
     print F "  -t $numThreads \\\n";
     print F "&& \\\n";

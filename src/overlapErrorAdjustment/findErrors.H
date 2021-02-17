@@ -86,6 +86,11 @@
 //  this rate
 #define  MIN_BRANCH_TAIL_SLOPE       0.20
 
+//  Votes at this distance from the extremities of aligned region are ignored
+//  Leads to start/end of reads not being corrected,
+//  which should be accounted by overlap scoring (see DEFAULT_FLANK_IGNORE)
+#define  IGNORE_FLANK_VOTE           5
+
 //  This many or more votes at the same base indicate
 //  a separate haplotype
 #define  MIN_HAPLO_OCCURS            3
@@ -366,6 +371,9 @@ struct feParameters {
     Use_Haplo_Ct     = true;
     Haplo_Freeze     = 2;
 
+    checkTrivialDNA = false;
+    maskedErrorRate = 0.06;
+
     //  Analyze_Alignment
 
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
@@ -415,6 +423,9 @@ struct feParameters {
   bool  Use_Haplo_Ct;
   // Controls radius around heterozygous position that is considered too risky to correct
   uint32  Haplo_Freeze;
+
+  bool  checkTrivialDNA;
+  double  maskedErrorRate;
 
   // Length of ends of exact-match regions not used in preventing sequence correction
   int  End_Exclude_Len;

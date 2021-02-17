@@ -173,7 +173,7 @@ ComputeErrors(const char* const a_part, const char* const b_part,
   };
 
   for (int32 k=0; k < delta_len; k++) {
-    //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
+    //fprintf(stderr, "k=%d (deltalen=%d) deltas[k]=%d i=%d out of %d  j=%d out of %d\n", k, delta_len, deltas[k], i, a_len, j, b_len);
 
     //  Add delta[k] - 1 matches or mismatches; +-1 encodes the 'continuation' of the insertion/deletion
     for (int32 m=1; m<abs(deltas[k]); m++) {

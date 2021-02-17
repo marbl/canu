@@ -101,11 +101,11 @@ Matching_Vote(char ch) {
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
-                  char   *b_part, //int32 b_len,
+                  char   *b_part, int32 b_len,
                   int32   sub) {
 
   assert(a_len >= 0);
-  //assert(b_len >= 0);
+  assert(b_len >= 0);
 
   // ===== COLLECTING EVENTS =====
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
@@ -128,12 +128,13 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   //  fprintf(stderr, " %d ", wa->ped.delta[k]);
   //}
   //fprintf(stderr, "\n");
+
   for (int32 k = 0; k < wa->ped.deltaLen; k++) {
-    //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
+    //fprintf(stderr, "k=%d deltalen=%d  i=%d out of %d   j=%d out of %d\n", k, wa->ped.deltaLen, i, a_len, j, b_len);
 
     //  Add delta[k] - 1 matches or mismatches; +-1 encodes the 'continuation' of the insertion/deletion
     for (int32 m=1; m<abs(wa->ped.delta[k]); m++) {
-      if (a_part[i] != b_part[j]) {
+      if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len && a_part[i] != b_part[j]) {
         wa->globalvote[ct].frag_sub  = i;
         wa->globalvote[ct].align_sub = p;
         wa->globalvote[ct].vote_val = SubstVote(b_part[j]);
@@ -151,13 +152,17 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
     if (wa->ped.delta[k] < 0) {
       //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      wa->globalvote[ct].frag_sub  = i;
-      wa->globalvote[ct].align_sub = p;
-      wa->globalvote[ct].vote_val = InsVote(b_part[j]);
-      //fprintf(stderr, "Vote ins %c at %d\n", b_part[j], i);
-      //fprintf(stderr, "vote_val %d\n", InsVote(b_part[j]));
-      //fprintf(stderr, "ct %d\n", ct);
-      ct++;
+      if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len) {
+        wa->globalvote[ct].frag_sub  = i;
+        wa->globalvote[ct].align_sub = p;
+        wa->globalvote[ct].vote_val = InsVote(b_part[j]);
+        //fprintf(stderr, "Vote ins %c at %d\n", b_part[j], i);
+        //fprintf(stderr, "vote_val %d\n", InsVote(b_part[j]));
+        //fprintf(stderr, "ct %d\n", ct);
+        ct++;
+      } else {
+        //fprintf(stderr, "Ignoring as too close to the flank\n");
+      }
 
       j++;  //assert(j <= b_len);
       p++;
@@ -167,14 +172,18 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
     if (wa->ped.delta[k] > 0) {
       //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
-      wa->globalvote[ct].frag_sub  = i;
-      wa->globalvote[ct].align_sub = p;
-      wa->globalvote[ct].vote_val  = DELETE;
-      //fprintf(stderr, "Vote del at %d\n", i);
-      //fprintf(stderr, "ct %d\n", ct);
-      ct++;
+      if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len) {
+        wa->globalvote[ct].frag_sub  = i;
+        wa->globalvote[ct].align_sub = p;
+        wa->globalvote[ct].vote_val  = DELETE;
+        //fprintf(stderr, "Vote del at %d\n", i);
+        //fprintf(stderr, "ct %d\n", ct);
+        ct++;
+      } else {
+        //fprintf(stderr, "Ignoring as too close to the flank\n");
+      }
 
-      i++;  assert(i <= a_len);
+      i++;  //assert(i <= a_len);
       p++;
     }
   }
@@ -186,7 +195,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   while (i < a_len) {
     //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, a_len, j, b_len);
 
-    if (a_part[i] != b_part[j]) {
+    if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len && a_part[i] != b_part[j]) {
       wa->globalvote[ct].frag_sub  = i;
       wa->globalvote[ct].align_sub = p;
       //fprintf(stderr, "Vote subst %c -> %c at %d\n", a_part[i], b_part[j], i);
@@ -201,6 +210,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   }
 
   assert(i <= a_len);
+  assert(j <= b_len);
   wa->globalvote[ct].frag_sub  = i;
   wa->globalvote[ct].align_sub = p;
 

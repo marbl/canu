@@ -367,6 +367,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-p") == 0) {
       G->Use_Haplo_Ct = false;
 
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      G->maskedErrorRate = atof(argv[++arg]);
+      G->checkTrivialDNA = true;
+      fprintf(stderr, "Masked error rate provided (%.3f), will mask trivial DNA\n", G->maskedErrorRate);
+
     } else if (strcmp(argv[arg], "-f") == 0) {
       G->Haplo_Freeze = atoi(argv[++arg]);
 
@@ -409,6 +414,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
     fprintf(stderr, "  -p                      don't use the haplo_ct\n");
     fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:2, 0 to disable)\n");
+    fprintf(stderr, "  -m   maked-error-rate   post trivial DNA masking error-rate threshold\n");
     fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "  -x   end-exclude-len    length of end of exact match to exclude in preventing change\n");
 
