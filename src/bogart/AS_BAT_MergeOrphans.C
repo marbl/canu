@@ -211,23 +211,52 @@ findPotentialOrphans(TigVector       &tigs,
             (ovlTig->getLength() < tig->getLength()))   //
           continue;
 
-        readOlapsTo.insert(ovlTigID);                   //  Otherwise, remember that we had an overlap to ovlTig.
+        //  Ignore the overlap if the hang of this read is larger than the placed
+        //  length of the read.
+        //
+        //  rdA  --------------------                          --------------------
+        //           a>0   --------------------      --------------------   b<0
+        //
+        if (((ovl[oi].a_hang > 0) && (rdAlen <=  ovl[oi].a_hang)) ||
+            ((ovl[oi].b_hang < 0) && (rdAlen <= -ovl[oi].b_hang))) {
+          writeLog("WARNING:  read rdA %u placed too small: placement %u,%u = %u; hangs to read %u %d,%d\n",
+                   rdAid, rdA->position.bgn, rdA->position.end, rdAlen,
+                   ovl[oi].b_iid, ovl[oi].a_hang, ovl[oi].b_hang);
+          continue;
+        }
+
+        //  Compute the location of the overlap on the tig.  If we're looking
+        //  for bubbles, extend the overlap to the end of the tig if we're
+        //  close enough -- otherwise we miss too many bubble overlaps.
+
         int32  mincoord = rdA->hangToMinCoord(ovl[oi].a_hang, ovl[oi].b_hang);
         int32  maxcoord = rdA->hangToMaxCoord(ovl[oi].a_hang, ovl[oi].b_hang);
 
-        // when we're looking at bubbles, we don't require full read to be placed so if its close enough to the ends, extend the coordinates so we consider this tig
-        if (isBubble && rdAid == fRead->ident && (mincoord / rdAlen) < 0.5)
-           mincoord = 0;
-        if (isBubble && rdAid == lRead->ident && ((tig->getLength() - maxcoord) / rdAlen) < 0.5)
-           maxcoord = tig->getLength();
+        mincoord = std::max(mincoord, 0);                  //  Limit mincoord to 0.
+        maxcoord = std::min(maxcoord, tig->getLength());   //  Limit maxcoord to tigLength.
 
-        if (mincoord >= maxcoord)
-          fprintf(stderr, "read %u at %u %u olap to read %u hangs %ld %ld -> coords %d %d\n",
-                  ovl[oi].a_iid, rdA->position.bgn, rdA->position.end,
-                  ovl[oi].b_iid, ovl[oi].a_hang, ovl[oi].b_hang,
-                  mincoord, maxcoord);
+        if (isBubble == true) {
+          int32  bgnUncovered =                    mincoord;
+          int32  endUncovered = tig->getLength() - maxcoord;
+
+          if ((rdAid == fRead->ident) && (bgnUncovered / rdAlen < 0.5))   mincoord = 0;
+          if ((rdAid == lRead->ident) && (endUncovered / rdAlen < 0.5))   maxcoord = tig->getLength();
+        }
+
+        //  If, after all that effort, we end up with bogus coordinates, give up.
+
+        if (mincoord >= maxcoord) {
+          writeLog("WARNING:  mincoord/maxcoord invalid; mincoord=%d maxcoord=%d\n", mincoord, maxcoord);
+          writeLog("WARNING:  from rdA %u at %u,%u len %u to\n", rdAid, rdA->position.bgn, rdA->position.end, rdAlen);
+          writeLog("WARNING:    to rdB %u hangs %d,%d\n", ovl[oi].b_iid, ovl[oi].a_hang, ovl[oi].b_hang);
+          continue;
+        }
         assert(mincoord < maxcoord);
 
+        //  Remember that we had an overlap to ovlTig, and mark the position
+        //  of this overlap on us.
+
+        readOlapsTo.insert(ovlTigID);
         tigCoverage.add(mincoord, maxcoord - mincoord);
       }
 
