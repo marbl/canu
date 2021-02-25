@@ -41,7 +41,6 @@ my $label    = "snapshot";      #  If not 'release' print this in the version ou
 my $major    = "2";             #  Bump before release.
 my $minor    = "1";             #  Bump before release.
 
-my $branch   = "master";
 my $version  = "v$major.$minor";
 
 my @submodules;
@@ -123,21 +122,34 @@ if (-d "../.git") {
     }
 
 
-    #  But if we're on a branch, replace the version with the name of the branch.
-    open(F, "git rev-parse --abbrev-ref HEAD |");
-    while (<F>) {
-        chomp;
-        $branch  = $_;
-    }
+    #  Figure out which branch we're on.
+    {
+        my $branch;
 
-    if ($branch ne "master") {
-        if ($branch =~ m/v(\d+)\.(\d+)/) {
-            $major = $1;
-            $minor = $2;
+        open(F, "git branch --contains |");
+        while (<F>) {
+            next  if (m/detached\sat/);
+
+            chomp;
+
+            tr/*//d;     #  Remove * from "* master"
+            s/^\s+//;    #  Remove spaces.
+            s/\s+$//;
+
+            $branch = $_;
+            last;
         }
+        close(F);
 
-        $label   = "branch";
-        $version = $branch;
+        if ($branch ne "master") {
+            if ($branch =~ m/v(\d+)\.(\d+)/) {    #  If we're a release branch, save
+                $major = $1;                      #  major and minor versions.
+                $minor = $2;
+            }
+
+            $label   = "branch";
+            $version = $branch;
+        }
     }
 
 
