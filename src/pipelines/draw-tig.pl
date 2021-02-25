@@ -124,6 +124,8 @@ if (!defined($layout)) {
     print "  -no-contawined        do not draw contained reads (needs -bogart)\n";
     print "  -layout L             read the layout from tgStoreDump file L\n";
     print "\n";
+    print "Output is SVG to stdout.\n";
+    print "\n";
     exit(0);
 }
 
