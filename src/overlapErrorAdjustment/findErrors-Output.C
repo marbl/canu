@@ -130,8 +130,7 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
       (vote.a_subst >= MIN_HAPLO_OCCURS) +
       (vote.c_subst >= MIN_HAPLO_OCCURS) +
       (vote.g_subst >= MIN_HAPLO_OCCURS) +
-      (vote.t_subst >= MIN_HAPLO_OCCURS) +
-      (vote.ins_total() >= MIN_HAPLO_OCCURS));
+      (vote.t_subst >= MIN_HAPLO_OCCURS));
 
   if (vote_t != DELETE && base == VoteChar(vote_t)) {
     //fprintf(stderr, "SAME  base = %c, vote = %c\n", base, VoteChar(vote_t));
@@ -225,12 +224,15 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 }
 
 bool Is_Het(const Vote_Tally_t &vote) {
-  int32 haplo_ct  =  ((vote.deletes >= MIN_HAPLO_OCCURS) +
+  //TODO consider using STRONG_CONFIRMATION_READ_CNT
+  if (vote.no_insert >= MIN_HAPLO_OCCURS && vote.ins_total() >= MIN_HAPLO_OCCURS)
+    return true;
+
+  int32 haplo_ct  = ((vote.deletes >= MIN_HAPLO_OCCURS) +
       (vote.a_subst >= MIN_HAPLO_OCCURS) +
       (vote.c_subst >= MIN_HAPLO_OCCURS) +
       (vote.g_subst >= MIN_HAPLO_OCCURS) +
-      (vote.t_subst >= MIN_HAPLO_OCCURS) +
-      (vote.ins_total() >= MIN_HAPLO_OCCURS));
+      (vote.t_subst >= MIN_HAPLO_OCCURS));
 
   return haplo_ct >= 2;
 }
