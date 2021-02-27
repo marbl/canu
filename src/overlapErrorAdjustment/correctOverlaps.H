@@ -52,7 +52,7 @@
 #define  DEFAULT_HALF_LEN            4
 
 //  Default value for  Kmer_Len
-#define  DEFAULT_KMER_LEN            9
+//#define  DEFAULT_KMER_LEN            9
 
 //  Default value for  Quality_Threshold
 #define  DEFAULT_QUALITY_THRESHOLD   0.015
