@@ -361,8 +361,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-d") == 0) {
       G->Degree_Threshold = strtol(argv[++arg], NULL, 10);
 
-    } else if (strcmp(argv[arg], "-k") == 0) {
-      G->Kmer_Len = strtol(argv[++arg], NULL, 10);
+    //} else if (strcmp(argv[arg], "-k") == 0) {
+    //  G->Kmer_Len = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       G->Use_Haplo_Ct = false;
@@ -411,7 +411,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -l   min-overlap        \n");
     fprintf(stderr, "  -t   num-threads        \n");
     fprintf(stderr, "  -d   degree-threshold   set keep flag if fewer than this many overlaps\n");
-    fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
+    //fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
     fprintf(stderr, "  -p                      don't use the haplo_ct\n");
     fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:2, 0 to disable)\n");
     fprintf(stderr, "  -m   maked-error-rate   post trivial DNA masking error-rate threshold\n");

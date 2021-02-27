@@ -222,7 +222,6 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   //  X == changes, mismatch or indel
   //
   //                          ------- <- confirmed count added
-  //                          -----   <- no_insert count added
   //  matching-bases} X 1 2 3 1 2 3 4 3 2 1 X {matching-bases
   //                    -----         -----
   //                    match         match
@@ -242,7 +241,8 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
     const int32 p_hi = (event_idx == ct) ? prev_event_dist : prev_event_dist - wa->G->End_Exclude_Len;
 
     //  If distance to previous match is bigger than 'kmer' size cast flanking matching votes & mark confirmed positions
-    if (prev_event_dist >= wa->G->Kmer_Len) {
+    //if (prev_event_dist >= wa->G->Kmer_Len) {
+    if (prev_event_dist > 0) {
       for (int32 p = 0; p < prev_event_dist; ++p) {
         const int32 part_pos = prev_event_end + p;
         const int32 a_pos = a_offset + part_pos;
@@ -257,9 +257,9 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
           if (wa->G->reads[sub].vote[a_pos].confirmed < MAX_VOTE)
             wa->G->reads[sub].vote[a_pos].confirmed++;
 
-          if ((p < p_hi - 1) &&
-              (wa->G->reads[sub].vote[a_pos].no_insert < MAX_VOTE))
-            wa->G->reads[sub].vote[a_pos].no_insert++;
+          //if ((p < p_hi - 1) &&
+          //    (wa->G->reads[sub].vote[a_pos].no_insert < MAX_VOTE))
+          //  wa->G->reads[sub].vote[a_pos].no_insert++;
         } else {
           //p_hi <= p < prev_event_dist
           Cast_Vote(wa->G,
@@ -303,6 +303,9 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       insertions_str += Vote_Tally_t::INSERTIONS_DELIM;
       wa->G->reads[sub].vote[a_pos].insertion_cnt++;
       //fprintf(stderr, "Increasing insertion count at position %d\n", a_pos);
+    } else {
+      if (wa->G->reads[sub].vote[a_pos].no_insert < MAX_VOTE)
+        wa->G->reads[sub].vote[a_pos].no_insert++;
     }
   }
 }

@@ -378,7 +378,7 @@ struct feParameters {
     //  Analyze_Alignment
 
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
-    Kmer_Len          = 9;  //DEFAULT_KMER_LEN;
+    //Kmer_Len          = 9;  //DEFAULT_KMER_LEN;
     Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
   };
 
@@ -431,7 +431,7 @@ struct feParameters {
   // Length of ends of exact-match regions not used in preventing sequence correction
   int  End_Exclude_Len;
   // Length of minimum exact match in overlap to confirm base pairs
-  int  Kmer_Len;
+  //int  Kmer_Len;
   // Number of bases surrounding a SNP to vote for change
   int  Vote_Qualify_Len;
 
