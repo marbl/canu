@@ -45,12 +45,13 @@ FPrint_Vote(FILE *fp, char base, const Vote_Tally_t &vote) {
   if (vote.all_but(base) == 0)
     fprintf(fp, "%c", base);
   else
-    fprintf(fp, "[%c conf:no_ins %d:%d | del %d | subst %d:%d:%d:%d | ins %d sequences '%s']",
+    fprintf(fp, "[%c conf:conf_no_ins %d:%d | del %d | subst %d:%d:%d:%d | no_ins:ins %d:%d sequences '%s']",
             base,
             vote.confirmed,
-            vote.no_insert,
+            vote.conf_no_insert,
             vote.deletes,
             vote.a_subst, vote.c_subst, vote.g_subst, vote.t_subst,
+            vote.no_insert,
             vote.insertion_cnt,
             vote.insertions.empty() ? "" : vote.insertions.c_str());
 }
@@ -173,7 +174,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   std::map<std::string, uint32> insert_cnts;
   for (const auto &ins : vote.insertions_list()) {
     assert(!ins.empty());
-    insert_cnts[ins] += 1;
+    insert_cnts[ins]++;
   }
 
   int32 ins_haplo_ct = 0;
@@ -190,15 +191,20 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
     }
   }
 
+  //considering empty insertion as a valid vote
+  if (vote.no_insert >= MIN_HAPLO_OCCURS)
+    ins_haplo_ct++;
+
   //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
 
-  if (vote.ins_total() <= 1) {
+  if (vote.insertion_cnt <= 1) {
     //fprintf(stderr, "FEW   ins_total = %d <= 1\n", vote.ins_total());
     return "";
   }
 
-  if (2 * ins_max <= vote.ins_total()) {
-    //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, vote.ins_total());
+  //considering empty insertion as a valid vote
+  if (2 * ins_max <= vote.insertion_cnt + vote.no_insert) {
+    //fprintf(stderr, "WEAK  2*ins_max = %d <= total = %d\n", 2*ins_max, vote.insertion_cnt + vote.no_insert);
     return "";
   }
 
@@ -208,14 +214,14 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
     return "";
   }
 
-  if (vote.no_insert >= 2) {
+  if (vote.conf_no_insert >= 2) {
     //fprintf(stderr, "Support for no insert: no_insert = %d\n", vote.no_insert);
     //Can not be triggered because no_insert < STRONG_CONFIRMATION_READ_CNT = 2
     assert(false);
     return "";
   }
 
-  if (vote.no_insert == 1 && ins_max <= 6) {
+  if (vote.conf_no_insert == 1 && ins_max <= 6) {
     //fprintf(stderr, "No insert was supported & small weight of vote: no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
     return "";
   }
@@ -225,7 +231,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 
 bool Is_Het(const Vote_Tally_t &vote) {
   //TODO consider using STRONG_CONFIRMATION_READ_CNT
-  if (vote.no_insert >= MIN_HAPLO_OCCURS && vote.ins_total() >= MIN_HAPLO_OCCURS)
+  if (vote.no_insert >= MIN_HAPLO_OCCURS && vote.insertion_cnt >= MIN_HAPLO_OCCURS)
     return true;
 
   int32 haplo_ct  = ((vote.deletes >= MIN_HAPLO_OCCURS) +
@@ -267,7 +273,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
 
   bool corrected = false;
 
-  if (vote.no_insert < STRONG_CONFIRMATION_READ_CNT) {
+  if (vote.conf_no_insert < STRONG_CONFIRMATION_READ_CNT) {
     //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, pos);
     std::string ins_str = Check_Insert(vote, base, G->Use_Haplo_Ct);
     if (ins_str.empty()) {
