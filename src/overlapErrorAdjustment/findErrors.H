@@ -106,6 +106,7 @@ using namespace std;
 struct Vote_Tally_t {
   Vote_Tally_t() {
      confirmed = 0;
+     conf_no_insert = 0;
      deletes   = 0;
      a_subst   = 0;
      c_subst   = 0;
@@ -118,14 +119,15 @@ struct Vote_Tally_t {
 
   static const char INSERTIONS_DELIM = '$';
 
-  uint32  confirmed : 16;
-  uint32  deletes   : 16;
-  uint32  a_subst   : 16;
-  uint32  c_subst   : 16;
+  uint32  confirmed      : 16;
+  uint32  conf_no_insert : 16;
+  uint32  deletes        : 16;
+  uint32  a_subst        : 16;
 
-  uint32  g_subst   : 16;
-  uint32  t_subst   : 16;
-  uint32  no_insert : 16;
+  uint32  c_subst        : 16;
+  uint32  g_subst        : 16;
+  uint32  t_subst        : 16;
+  uint32  no_insert      : 16;
 
   uint32 insertion_cnt;
   std::string insertions;
@@ -147,14 +149,6 @@ struct Vote_Tally_t {
     return deletes + a_subst + c_subst + g_subst + t_subst;
   }
 
-  uint32 ins_total() const {
-    return insertion_cnt;
-  }
-
-  uint32 all() const {
-    return total() + ins_total();
-  }
-
   uint32 subst(char bp) const {
     switch (bp) {
       case 'a':
@@ -172,7 +166,7 @@ struct Vote_Tally_t {
   }
 
   uint32 all_but(char bp) const {
-    return all() - subst(bp);
+    return total() + insertion_cnt - subst(bp);
   }
 };
 

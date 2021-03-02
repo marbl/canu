@@ -222,6 +222,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   //  X == changes, mismatch or indel
   //
   //                          ------- <- confirmed count added
+  //                          --------- <- confirmed no insert added
   //  matching-bases} X 1 2 3 1 2 3 4 3 2 1 X {matching-bases
   //                    -----         -----
   //                    match         match
@@ -230,10 +231,11 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
   // ===== PROCESSING COLLECTED EVENTS =====
   assert(ct >= 1);
+  assert(wa->G->End_Exclude_Len > 0);
   //fprintf(stdout, "wa->G->Kmer_Len %d\n", wa->G->Kmer_Len);
 
   for (int32 event_idx = 1; event_idx <= ct; event_idx++) {
-    // ===== CASTING MATCH/CONFIRMED/NO_INSERT VOTES BETWEEN EVENTS event_idx AND event_idx-1 =====
+    // ===== CASTING MATCH/CONFIRMED/CONF_NO_INSERT VOTES BETWEEN EVENTS event_idx AND event_idx-1 =====
     const auto &prev_event = wa->globalvote[event_idx - 1];
     const int32 prev_event_end = prev_event.frag_sub + (prev_event.vote_val < A_INSERT ? 1 : 0);
     const int32 prev_event_dist = wa->globalvote[event_idx].frag_sub - prev_event_end;
@@ -257,11 +259,13 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
           if (wa->G->reads[sub].vote[a_pos].confirmed < MAX_VOTE)
             wa->G->reads[sub].vote[a_pos].confirmed++;
 
-          //if ((p < p_hi - 1) &&
-          //    (wa->G->reads[sub].vote[a_pos].no_insert < MAX_VOTE))
-          //  wa->G->reads[sub].vote[a_pos].no_insert++;
+          if (wa->G->reads[sub].vote[a_pos].conf_no_insert < MAX_VOTE)
+            wa->G->reads[sub].vote[a_pos].conf_no_insert++;
         } else {
           //p_hi <= p < prev_event_dist
+          if (p == p_hi && wa->G->reads[sub].vote[a_pos].conf_no_insert < MAX_VOTE)
+            wa->G->reads[sub].vote[a_pos].conf_no_insert++;
+
           Cast_Vote(wa->G,
                     Matching_Vote(a_part[part_pos]),
                     a_pos,
@@ -270,7 +274,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       }
     }
 
-    // ===== ENDED CASTING MATCH/CONFIRMED/NO_INSERT VOTES =====
+    // ===== ENDED CASTING MATCH/CONFIRMED/CONF_NO_INSERT VOTES =====
 
     //  Don't allow consecutive inserts.  If we aren't the last change, and there is non-adjacent
     //  previous (or this and the previous votes are not insertions), do another vote.
