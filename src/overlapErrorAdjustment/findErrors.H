@@ -93,7 +93,7 @@
 
 //  This many or more votes at the same base indicate
 //  a separate haplotype
-#define  MIN_HAPLO_OCCURS            3
+#define  MIN_HAPLO_OCCURS            5//3
 
 //static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
 //This many or more votes indicate sufficient confirmation
@@ -363,7 +363,7 @@ struct feParameters {
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
     Use_Haplo_Ct     = true;
-    Haplo_Freeze     = 2;
+    Haplo_Freeze     = 1;
 
     checkTrivialDNA = false;
     maskedErrorRate = 0.06;
