@@ -413,7 +413,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -d   degree-threshold   set keep flag if fewer than this many overlaps\n");
     //fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
     fprintf(stderr, "  -p                      don't use the haplo_ct\n");
-    fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:2, 0 to disable)\n");
+    fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:1, 0 to disable)\n");
     fprintf(stderr, "  -m   maked-error-rate   post trivial DNA masking error-rate threshold\n");
     fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "  -x   end-exclude-len    length of end of exact match to exclude in preventing change\n");
