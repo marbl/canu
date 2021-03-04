@@ -229,25 +229,27 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   return ins_vote;
 }
 
-bool Is_Het(const Vote_Tally_t &vote) {
+bool Is_Het_Del(const Vote_Tally_t &vote) {
   //TODO consider using STRONG_CONFIRMATION_READ_CNT
-  if (vote.no_insert >= MIN_HAPLO_OCCURS && vote.insertion_cnt >= MIN_HAPLO_OCCURS)
-    return true;
+  //if (vote.no_insert >= MIN_HAPLO_OCCURS && vote.insertion_cnt >= MIN_HAPLO_OCCURS)
+  //  return true;
 
-  int32 haplo_ct  = ((vote.deletes >= MIN_HAPLO_OCCURS) +
-      (vote.a_subst >= MIN_HAPLO_OCCURS) +
-      (vote.c_subst >= MIN_HAPLO_OCCURS) +
-      (vote.g_subst >= MIN_HAPLO_OCCURS) +
-      (vote.t_subst >= MIN_HAPLO_OCCURS));
+  //int32 haplo_ct  = ((vote.deletes >= MIN_HAPLO_OCCURS) +
+  //    (vote.a_subst >= MIN_HAPLO_OCCURS) +
+  //    (vote.c_subst >= MIN_HAPLO_OCCURS) +
+  //    (vote.g_subst >= MIN_HAPLO_OCCURS) +
+  //    (vote.t_subst >= MIN_HAPLO_OCCURS));
 
-  return haplo_ct >= 2;
+  //return haplo_ct >= 2;
+  return vote.deletes >= MIN_HAPLO_OCCURS &&
+    (vote.total() - vote.deletes) >= MIN_HAPLO_OCCURS;
 }
 
 std::vector<uint32>
-Find_Het_Positions(const feParameters *G, const Frag_Info_t &read) {
+Find_Het_Del_Positions(const feParameters *G, const Frag_Info_t &read) {
   std::vector<uint32> answer;
   for (uint32 pos = 0; pos < read.clear_len; pos++) {
-    if (Is_Het(read.vote[pos])) {
+    if (Is_Het_Del(read.vote[pos])) {
       answer.push_back(pos);
     }
   }
@@ -257,7 +259,7 @@ Find_Het_Positions(const feParameters *G, const Frag_Info_t &read) {
 //TODO consider special case of two reads voting for different bases
 // return false if nothing happened on the position and true otherwise
 bool
-Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
+Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool block_deletion,
     //Correction_Output_t out, std::ostream &os) {
     Correction_Output_t out, FILE *fp) {
   Vote_Tally_t vote = read.vote[pos];
@@ -294,6 +296,8 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos,
     Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Use_Haplo_Ct);
     if (vote_t == NO_VOTE) {
       //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
+    } else if (vote_t == DELETE && block_deletion) {
+      //fprintf(stderr, "Read:pos %d:%d -- deletion blocked\n", out.readID, pos);
     } else {
       out.type       = vote_t;
       out.pos        = pos;
@@ -337,22 +341,27 @@ Output_Corrections(feParameters *G) {
 
     //fprintf(stderr, "Checking positions\n");
 
-    std::vector<uint32> het_pos;
+    std::vector<uint32> het_del_pos;
 
     if (G->Use_Haplo_Ct && G->Haplo_Freeze > 0) {
-      het_pos = Find_Het_Positions(G, read);
+      //no reason to use different value;
+      //freezing one position seems enough to not falsely correct ambiguous deletion
+      assert(G->Haplo_Freeze == 1);
+      het_del_pos = Find_Het_Del_Positions(G, read);
     }
 
-    auto het_it = het_pos.begin();
+    auto het_it = het_del_pos.begin();
     for (uint32 pos = 0; pos < read.clear_len; pos++) {
-      while (het_it != het_pos.end() && pos > *het_it + G->Haplo_Freeze)
+      bool block_deletion = false;
+      while (het_it != het_del_pos.end() && pos > *het_it + G->Haplo_Freeze)
         ++het_it;
       //here het_it points to a value >= pos - freeze
-      if (het_it != het_pos.end() && *het_it <= pos + G->Haplo_Freeze) {
+      if (het_it != het_del_pos.end() && *het_it <= pos + G->Haplo_Freeze) {
         //fprintf(stderr, "Ignoring position %d too close to a het at position %d\n");
-        continue;
+        //blocking deletion near position with heterozygous deletion -- too ambiguous
+        block_deletion = true;
       }
-      Report_Position(G, read, pos, out, fp);
+      Report_Position(G, read, pos, block_deletion, out, fp);
     }
   }
 
