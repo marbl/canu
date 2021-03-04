@@ -372,8 +372,8 @@ main(int argc, char **argv) {
       G->checkTrivialDNA = true;
       fprintf(stderr, "Masked error rate provided (%.3f), will mask trivial DNA\n", G->maskedErrorRate);
 
-    } else if (strcmp(argv[arg], "-f") == 0) {
-      G->Haplo_Freeze = atoi(argv[++arg]);
+    //} else if (strcmp(argv[arg], "-f") == 0) {
+    //  G->Haplo_Freeze = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       G->Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
