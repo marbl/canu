@@ -739,6 +739,7 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_Cloud.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_DNANexus.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_LSF.pm \
+     ${TARGET_DIR}/lib/site_perl/canu/Grid_Local.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_PBSTorque.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_SGE.pm \
      ${TARGET_DIR}/lib/site_perl/canu/Grid_Slurm.pm \
@@ -840,6 +841,9 @@ ${TARGET_DIR}/lib/site_perl/canu/Grid_DNANexus.pm: pipelines/canu/Grid_DNANexus.
 
 ${TARGET_DIR}/lib/site_perl/canu/Grid_LSF.pm: pipelines/canu/Grid_LSF.pm
 	cp -pf pipelines/canu/Grid_LSF.pm ${TARGET_DIR}/lib/site_perl/canu/
+
+${TARGET_DIR}/lib/site_perl/canu/Grid_Local.pm: pipelines/canu/Grid_Local.pm
+	cp -pf pipelines/canu/Grid_Local.pm ${TARGET_DIR}/lib/site_perl/canu/
 
 ${TARGET_DIR}/lib/site_perl/canu/Grid_PBSTorque.pm: pipelines/canu/Grid_PBSTorque.pm
 	cp -pf pipelines/canu/Grid_PBSTorque.pm ${TARGET_DIR}/lib/site_perl/canu/

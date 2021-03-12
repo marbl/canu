@@ -38,8 +38,17 @@ sub detectSGE () {
     return   if ( defined(getGlobal("gridEngine")));
     return   if (!defined($ENV{'SGE_ROOT'}));
 
-    print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
-    setGlobal("gridEngine", "SGE");
+    if (getGlobal("useGrid") eq "0") {
+        print STDERR "--\n";
+        print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
+        print STDERR "--          Sun Grid Engine disabled by useGrid=false\n";
+    }
+    else {
+        print STDERR "--\n";
+        print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
+
+        setGlobal("gridEngine", "SGE");
+    }
 }
 
 

@@ -155,7 +155,9 @@ sub detectDNANexus () {
     my ($version) = `dx --version`;
     chomp $version;
 
+    print STDERR "--\n";
     print STDERR "-- Detected DNA Nexus '$version' in '$ENV{'DNANEXUS_HOME'}'.\n";
+
     setGlobal("gridEngine", "DNANEXUS");
 }
 

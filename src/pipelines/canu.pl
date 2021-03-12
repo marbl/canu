@@ -57,6 +57,7 @@ use canu::Grid_Cloud;
 use canu::Grid_SGE;
 use canu::Grid_Slurm;
 use canu::Grid_PBSTorque;
+use canu::Grid_Local;
 use canu::Grid_LSF;
 use canu::Grid_DNANexus;
 
@@ -347,27 +348,23 @@ addCommandLineError("ERROR:  Assembly name prefix (-p) not supplied.\n")   if (!
 addCommandLineError("ERROR:  Assembly name prefix (-p) cannot contain the path delimiter '/'.\n")   if ($asm =~ m!/!);
 addCommandLineError("ERROR:  Assembly name prefix (-p) cannot contain spaces.\n")   if ($asm =~ m!\s!);
 
-#  Load paramters from the defaults files
+#  Load paramters from the defaults files, then from any spec files on the
+#  command line, then from the command line itself.
 
 setParametersFromFile("$bin/canu.defaults")   if (-e "$bin/canu.defaults");
 setParametersFromFile("$ENV{'HOME'}/.canu")   if (-e "$ENV{'HOME'}/.canu");
-
-#  For each of the spec files, parse it, setting parameters and remembering any input files discovered.
 
 foreach my $specFile (@specFiles) {
     setParametersFromFile($specFile);
 }
 
-#  Set parameters from the command line.
-
 setParametersFromCommandLine(@specOpts);
 
-#  If anything complained (invalid option, missing file, etc) printHelp() will trigger and exit.
+checkParameters();
+printHelp();           #  Fail now if any complaints so far.
 
-printHelp();
-
-#  Now that we know the bin directory, print the version so those pesky users
-#  will (hopefully) include it when they paste in logs.
+#  OK so far, print citations and start run-time configuration by locating
+#  extra binaries.
 
 print STDERR "-- " . getGlobal("version") . "\n";
 print STDERR "--\n";
@@ -377,53 +374,32 @@ printCitation("-- ", $citationMode);
 print STDERR "-- CONFIGURE CANU\n";
 print STDERR "--\n";
 
-#  Check java and gnuplot.
-
 checkJava();
 checkMinimap($bin);
 checkGnuplot();
 
-#  And one last chance to fail - because java and gnuplot both can set an error.
-
-printHelp();
+checkParameters();
+printHelp();           #  Fail now if any complaints so far.
 
 
 ################################################################################
-
-
-
+#
 #  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
 #  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
 #  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
 #  when there isn't a grid.
 
-print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemorySize(), " gigabytes of memory.\n";
-print STDERR "-- Limited to ", getGlobal("maxMemory"), " gigabytes from maxMemory option.\n"  if (defined(getGlobal("maxMemory")));
-print STDERR "-- Limited to ", getGlobal("maxThreads"), " CPUs from maxThreads option.\n"     if (defined(getGlobal("maxThreads")));
-
+detectLocal();
 detectSGE();
 detectSlurm();
 detectPBSTorque();
 detectLSF();
 detectDNANexus();
 
-#  Report if no grid engine found, or if the user has disabled grid support.
-#    If we're off grid (disabled by user, ignore stage directory
-#    for remote, we leave it alone since we still want the user-submitted jobs to use staging
-if (!defined(getGlobal("gridEngine"))) {
-    print STDERR "-- No grid engine detected, grid and staging disabled.\n";
-    setGlobal("stageDirectory", undef);
-}
-
-if ((getGlobal("useGrid") eq "0") && (defined(getGlobal("gridEngine")))) {
-    print STDERR "-- Grid engine and staging disabled per useGrid=false option.\n";
-    setGlobal("gridEngine", undef);
-    setGlobal("stageDirectory", undef);
-}
-
 #  Finish setting up the grid.  This is done AFTER parameters are set from the command line, to
 #  let the user override any of our defaults.
 
+configureLocal();      #  Also handles useGrid=false; needs to be after the detect() above.
 configureSGE();
 configureSlurm();
 configurePBSTorque();
@@ -436,6 +412,7 @@ configureDNANexus();
 #  Check that parameters (except error rates) are valid and consistent;
 #  Fail if any thing flagged an error condition;
 
+checkParameters();
 configureAssembler();  #  Set job sizes and etc bases on genomeSize and hosts available.
 
 #  Make space for us to work in, and move there.
@@ -702,8 +679,6 @@ if (($numPacBio   == 0) &&
 if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
    caExit("ERROR: HiFi data cannot currently be combined with another read type", undef);
 }
-
-
 
 checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
 printHelp();           #  And one final last chance to fail.

@@ -41,8 +41,17 @@ sub detectLSF () {
 
     return   if (!defined($bsub));
 
-    print STDERR "-- Detected LSF with 'bsub' binary in $bsub.\n";
-    setGlobal("gridEngine", "LSF");
+    if (getGlobal("useGrid") eq "0") {
+        print STDERR "--\n";
+        print STDERR "-- Detected LSF with 'bsub' binary in $bsub.\n";
+        print STDERR "--          LSF disabled by useGrid=false\n";
+    }
+    else {
+        print STDERR "--\n";
+        print STDERR "-- Detected LSF with 'bsub' binary in $bsub.\n";
+
+        setGlobal("gridEngine", "LSF");
+    }
 }
 
 

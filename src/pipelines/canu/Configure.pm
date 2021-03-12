@@ -20,13 +20,18 @@ package canu::Configure;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getAllowedResources displayMemoryValue displayGenomeSize configureAssembler);
+@EXPORT = qw(getAllowedResources
+             displayMemoryValue
+             displayGenomeSize
+             configureAssembler);
 
 use strict;
 use warnings "all";
 no  warnings "uninitialized";
 use Carp qw(cluck);
 use Sys::Hostname;
+
+use List::Util qw(min max);
 
 use canu::Defaults;
 use canu::Execution;
@@ -151,19 +156,48 @@ sub expandRange ($$$$) {
 }
 
 
-sub findGridMaxMemoryAndThreads () {
-    my @grid   = split '\0', getGlobal("availableHosts");
-    my $maxmem = 0;
-    my $maxcpu = 0;
+sub findAbsoluteMax ($$) {
+    my $type   = shift @_;
+    my $class  = shift @_;
+
+    #  Find the local resources.
+
+    my $localmem  = getGlobal("localMemory");
+    my $localcpu  = getGlobal("localThreads");
+
+    #  Find the max memory available on any grid host.
+
+    my $gridmem = 0;
+    my $gridcpu = 0;
+    my @grid    = split '\0', getGlobal("availableHosts");
 
     foreach my $g (@grid) {
         my ($cpu, $mem, $num) = split '-', $g;
 
-        $maxmem = ($maxmem < $mem) ? $mem : $maxmem;
-        $maxcpu = ($maxcpu < $cpu) ? $cpu : $maxcpu;
+        $gridmem = ($gridmem < $mem) ? $mem : $gridmem;
+        $gridcpu = ($gridcpu < $cpu) ? $cpu : $gridcpu;
     }
 
-    return($maxmem, $maxcpu);
+    #  Threshold to any max limit.
+
+    my $maxmem  = getGlobal("maxMemory");
+    my $maxcpu  = getGlobal("maxThreads");
+
+    if (defined($maxmem)) {
+        $localmem = min($localmem, $maxmem);
+        $gridmem = min($gridmem, $maxmem);
+    }
+    if (defined($maxcpu)) {
+        $localcpu = min($localcpu, $maxcpu);
+        $gridcpu = min($gridcpu, $maxcpu);
+    }
+
+    #  Return one or the other or fail.
+
+    return(($class eq "grid") ? $gridmem : $localmem)   if ($type eq "memory");
+    return(($class eq "grid") ? $gridcpu : $localcpu)   if ($type eq "threads");
+
+    caExit("Invalid type '$type' supplied to findAbsoluteMax().", undef)
 }
 
 
@@ -191,41 +225,40 @@ sub getAllowedResources ($$$$$@) {
         caExit("invalid useGrid (" . getGlobal("useGrid") . ") and gridEngine (" . getGlobal("gridEngine") . "); found no execution hosts - is grid available from this host?", undef);
     }
 
-    #  Figure out limits.
+    #  Figure out absolute limits of job sizes.  These are just limits on
+    #  what values we'll iterate over when finding a job size.
 
     my $minMemory    = getGlobal("minMemory");
     my $minThreads   = getGlobal("minThreads");
 
-    my $maxMemory    = getGlobal("maxMemory");
-    my $maxThreads   = getGlobal("maxThreads");
+    my $maxMemory    = findAbsoluteMax("memory",  $class);  #  This is the min of any user-defined max and the
+    my $maxThreads   = findAbsoluteMax("threads", $class);  #  local/grid host maximum.  Not param maxMemory, etc.
+
+    caExit("maxMemory is not defined", undef)   if (!defined($maxMemory));
+    caExit("maxThreads is not defined", undef)  if (!defined($maxThreads));
 
     my $taskMemory   = getGlobal("${tag}${alg}Memory");   #  Algorithm limit, "utgovlMemory", etc.
     my $taskThreads  = getGlobal("${tag}${alg}Threads");  #
 
-    #  The task limits MUST be defined.
-
     caExit("${tag}${alg}Memory is not defined", undef)   if (!defined($taskMemory));
     caExit("${tag}${alg}Threads is not defined", undef)  if (!defined($taskThreads));
 
-    #  If the maximum limits aren't set, default to 'unlimited' (for the grid; we'll effectively filter
-    #  by the number of jobs we can fit on the hosts) or to the current hardware limits.
-
     if ($dbg) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR\n";
-        print STDERR "-- ERROR  Limited to at least $minMemory GB memory via minMemory option\n"   if (defined($minMemory));
-        print STDERR "-- ERROR  Limited to at least $minThreads threads via minThreads option\n"   if (defined($minThreads));
-        print STDERR "-- ERROR  Limited to at most $maxMemory GB memory via maxMemory option\n"    if (defined($maxMemory));
-        print STDERR "-- ERROR  Limited to at most $maxThreads threads via maxThreads option\n"    if (defined($maxThreads));
+        my $minm  = getGlobal("minMemory");
+        my $mint  = getGlobal("minThreads");
+
+        my $maxm  = getGlobal("maxMemory");
+        my $maxt  = getGlobal("maxThreads");
+
+        undef $minm   if ($minm == 0);   #  The default is "0"; undef for easier testing below.
+        undef $mint   if ($mint == 0);
+
+        print STDERR "--\n"                              if (defined($minm) || defined($mint) || defined($maxm) || defined($maxt));
+        print STDERR "-- ERROR  minMemory=${minm}g\n"    if (defined($minm));
+        print STDERR "-- ERROR  maxMemory=${maxm}g\n"    if (defined($maxm));
+        print STDERR "-- ERROR  minThreads=${mint}\n"    if (defined($mint));
+        print STDERR "-- ERROR  maxThreads=${maxt}\n"    if (defined($maxt));
     }
-
-    #  Figure out the largest memory and threads that could ever be supported.  This lets us short-circuit
-    #  the loop below.
-
-    my ($gridMaxMem, $gridMaxThr) = findGridMaxMemoryAndThreads();
-
-    $maxMemory  = (($class eq "grid") ? $gridMaxMem : getPhysicalMemorySize())  if (!defined($maxMemory));
-    $maxThreads = (($class eq "grid") ? $gridMaxThr : getNumberOfCPUs())        if (!defined($maxThreads));
 
     #  Build a list of the available hardware configurations we can run on.  If grid, we get this
     #  from the list of previously discovered hosts.  If local, it's just this machine.
@@ -362,13 +395,13 @@ sub getAllowedResources ($$$$$@) {
         print STDERR "-- ERROR\n";
         print STDERR "-- ERROR  Task $tag$alg can't run on any available machines.\n";
         print STDERR "-- ERROR  It is requesting:\n";
-        print STDERR "-- ERROR    ${tag}${alg}Memory=", getGlobal("${tag}${alg}Memory"), " memory (gigabytes)\n";
+        print STDERR "-- ERROR    ${tag}${alg}Memory=", getGlobal("${tag}${alg}Memory"), " gigabytes\n";
         print STDERR "-- ERROR    ${tag}${alg}Threads=", getGlobal("${tag}${alg}Threads"), " threads\n";
         print STDERR "-- ERROR\n";
         print STDERR "-- ERROR  No available machine configuration can run this task.\n";
         print STDERR "-- ERROR\n";
         print STDERR "-- ERROR  Possible solutions:\n";
-        print STDERR "-- ERROR    Increase maxMemory\n"  if (defined(getGlobal("maxMemory")));
+        print STDERR "-- ERROR    Change maxMemory or maxThreads\n";
         print STDERR "-- ERROR    Change ${tag}${alg}Memory and/or ${tag}${alg}Threads\n";
         print STDERR "-- ERROR\n";
 
@@ -497,81 +530,11 @@ sub getAllowedResources ($$$$$@) {
 
 
 
-
-#  Converts number with units to gigabytes.  If no units, gigabytes is assumed.
-sub adjustMemoryValue ($) {
-    my $val = shift @_;
-
-    return(undef)                     if (!defined($val));
-
-    return($1)                        if ($val =~ m/^(\d+\.{0,1}\d*)$/);
-    return($1 / 1024 / 1024)          if ($val =~ m/^(\d+\.{0,1}\d*)[kK]$/);
-    return($1 / 1024)                 if ($val =~ m/^(\d+\.{0,1}\d*)[mM]$/);
-    return($1)                        if ($val =~ m/^(\d+\.{0,1}\d*)[gG]$/);
-    return($1 * 1024)                 if ($val =~ m/^(\d+\.{0,1}\d*)[tT]$/);
-    return($1 * 1024 * 1024)          if ($val =~ m/^(\d+\.{0,1}\d*)[pP]$/);
-
-    die "Invalid memory value '$val'\n";
-}
-
-
-#  Converts gigabytes to number with units.
-sub displayMemoryValue ($) {
-    my $val = shift @_;
-
-    return(($val * 1024 * 1024)        . "k")   if ($val < adjustMemoryValue("1m"));
-    return(($val * 1024)               . "m")   if ($val < adjustMemoryValue("1g"));
-    return(($val)                      . "g")   if ($val < adjustMemoryValue("1t"));
-    return(($val / 1024)               . "t");
-}
-
-
-#  Converts number with units to bases.
-sub adjustGenomeSize ($) {
-    my $val = shift @_;
-
-    return(undef)               if (!defined($val));
-
-    return($1)                  if ($val =~ m/^(\d+\.{0,1}\d*)$/i);
-    return($1 * 1000)           if ($val =~ m/^(\d+\.{0,1}\d*)[kK]$/i);
-    return($1 * 1000000)        if ($val =~ m/^(\d+\.{0,1}\d*)[mM]$/i);
-    return($1 * 1000000000)     if ($val =~ m/^(\d+\.{0,1}\d*)[gG]$/i);
-    return($1 * 1000000000000)  if ($val =~ m/^(\d+\.{0,1}\d*)[tT]$/i);
-
-    die "Invalid genome size '$val'\n";
-}
-
-
-#  Converts bases to number with units.
-sub displayGenomeSize ($) {
-    my $val = shift @_;
-
-    return(($val))                        if ($val < adjustGenomeSize("1k"));
-    return(($val / 1000)          . "k")  if ($val < adjustGenomeSize("1m"));
-    return(($val / 1000000)       . "m")  if ($val < adjustGenomeSize("1g"));
-    return(($val / 1000000000)    . "g")  if ($val < adjustGenomeSize("1t"));
-    return(($val / 1000000000000) . "t");
-}
-
-
-
-
-
 #
 #  If minMemory or minThreads isn't defined, pick a reasonable pair based on genome size.
 #
 
 sub configureAssembler () {
-
-    #  Parse units on things the user possibly set.
-
-    setGlobal("genomeSize", adjustGenomeSize(getGlobal("genomeSize")));
-
-    setGlobal("minMemory",  adjustMemoryValue(getGlobal("minMemory")));
-    setGlobal("maxMemory",  adjustMemoryValue(getGlobal("maxMemory")));
-
-    setGlobal("executiveMemory", adjustMemoryValue(getGlobal("executiveMemory")));
-    setGlobal("executiveMemory", adjustMemoryValue(getGlobal("minMemory"))) if (getGlobal("minMemory") > getGlobal("executiveMemory"));
 
     #  For overlapper and mhap, allow larger maximums for larger genomes.  More memory won't help
     #  smaller genomes, and the smaller minimums won't hurt larger genomes (which are probably being
@@ -827,8 +790,20 @@ sub configureAssembler () {
         setGlobalIfUndef("batMemory", "256-1024");    setGlobalIfUndef("batThreads", "16-64");
     }
 
+    #  Log maxMemory setting.
 
+    {
+        my $maxcpu = getGlobal("maxThreads");            #  Get user-supplied limit.
+        my $maxmem = getGlobal("maxMemory");
 
+        if (($maxcpu > 0) ||
+            ($maxmem > 0)) {
+            printf STDERR "--\n";
+            printf STDERR "-- Job limits:\n";
+            printf(STDERR "--   %4d gigabytes memory  (maxMemory option).\n", $maxmem)    if (defined($maxmem));
+            printf(STDERR "--   %4d CPUs              (maxThreads option).\n", $maxcpu)   if (defined($maxcpu));
+        }
+    }
 
     #  Finally, use all that setup to pick actual values for each component.
     #

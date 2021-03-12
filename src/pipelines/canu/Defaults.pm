@@ -20,7 +20,30 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption removeHaplotypeOptions addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize diskSpace printOptions printHelp printCitation setParametersFromFile setParametersFromCommandLine checkJava checkMinimap checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults setVersion);
+@EXPORT = qw(getCommandLineOptions
+             addCommandLineOption
+             removeHaplotypeOptions
+             addCommandLineError
+             writeLog
+             diskSpace
+             printOptions
+             printHelp
+             printCitation
+             setParametersFromFile
+             setParametersFromCommandLine
+             checkJava
+             checkMinimap
+             checkGnuplot
+             adjustMemoryValue
+             displayMemoryValue
+             adjustGenomeSize
+             displayGenomeSize
+             checkParameters
+             getGlobal
+             setGlobal
+             setGlobalIfUndef
+             setDefaults
+             setVersion);
 
 use strict;
 use warnings "all";
@@ -288,9 +311,6 @@ sub removeHaplotypeOptions () {
 
 
 
-
-
-
 sub writeLog () {
     my $time = time();
     my $host = hostname();
@@ -299,60 +319,6 @@ sub writeLog () {
     open(F, "> canu-logs/${time}_${host}_${pid}_canu");
     print F $specLog;
     close(F);
-}
-
-
-
-#
-#  Host management - these really belong in 'Execution.pm' (or 'Utilities.pm') but can't go there
-#  (Execution.pm) and be used here too.
-#
-
-sub getNumberOfCPUs () {
-    my $os   = $^O;
-    my $ncpu = 1;
-
-    #  See http://stackoverflow.com/questions/6481005/obtain-the-number-of-cpus-cores-in-linux
-
-    if ($os eq "freebsd") {
-        $ncpu = int(`/sbin/sysctl -n hw.ncpu`);
-    }
-
-    if ($os eq "darwin") {
-        $ncpu = int(`/usr/bin/getconf _NPROCESSORS_ONLN`);
-    }
-
-    if ($os eq "linux" || $os eq "cygwin") {
-        $ncpu = int(`getconf _NPROCESSORS_ONLN`);
-    }
-
-    return($ncpu);
-}
-
-
-sub getPhysicalMemorySize () {
-    my $os     = $^O;
-    my $memory = 1;
-
-    if ($os eq "freebsd") {
-        $memory = `/sbin/sysctl -n hw.physmem` / 1024 / 1024 / 1024;
-    }
-
-    if ($os eq "darwin") {
-        $memory = `/usr/sbin/sysctl -n hw.memsize` / 1024 / 1024 / 1024;
-    }
-
-    if ($os eq "linux" || $os eq "cygwin") {
-        open(F, "< /proc/meminfo");        #  Way to go, Linux!  Make it easy on us!
-        while (<F>) {
-            if (m/MemTotal:\s+(\d+)/) {
-                $memory = $1 / 1024 / 1024;
-            }
-        }
-        close(F);
-    }
-
-    return(int($memory + 0.5));  #  Poor man's rounding
 }
 
 
@@ -380,6 +346,7 @@ sub diskSpace ($) {
 
     return (wantarray) ? ($total, $used, $free, $avail) : $avail;
 }
+
 
 
 sub printOptions () {
@@ -816,6 +783,9 @@ sub setDefaults () {
     $global{"version"}                     = undef;   #  Set in setVersion() once we know where binaries are.
     $global{"availablehosts"}              = undef;   #  Internal list of cpus-memory-nodes describing the grid.
 
+    $global{"localmemory"}                 = 0;       #  Amount of memory on the local host, set in Grid_Local.pm
+    $global{"localthreads"}                = 0;
+
     $global{"canuiteration"}               = 0;
     $global{"canuiterationmax"}            = 2;
 
@@ -881,10 +851,10 @@ sub setDefaults () {
 
     setDefault("readSamplingBias",     0.0,       "Score reads as 'random * length^bias', keep the highest scoring reads");
 
-    setDefault("minMemory",            undef,     "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
+    setDefault("minMemory",            0,         "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)");
     setDefault("maxMemory",            undef,     "Maximum memory to use by any component of the assembler");
 
-    setDefault("minThreads",           undef,     "Minimum number of compute threads suggested to compute the assembly");
+    setDefault("minThreads",           0,         "Minimum number of compute threads suggested to compute the assembly");
     setDefault("maxThreads",           undef,     "Maximum number of compute threads to use by any component of the assembler");
 
     setDefault("minInputCoverage",     10,        "Stop if input coverage is too low; default 10");
@@ -1313,6 +1283,63 @@ sub checkGnuplot () {
 
 
 
+#  Converts number with units to gigabytes.  If no units, gigabytes is assumed.
+sub adjustMemoryValue ($) {
+    my $val = shift @_;
+
+    return(undef)                     if (!defined($val));
+
+    return($1)                        if ($val =~ m/^(\d+\.{0,1}\d*)$/);
+    return($1 / 1024 / 1024)          if ($val =~ m/^(\d+\.{0,1}\d*)[kK]$/);
+    return($1 / 1024)                 if ($val =~ m/^(\d+\.{0,1}\d*)[mM]$/);
+    return($1)                        if ($val =~ m/^(\d+\.{0,1}\d*)[gG]$/);
+    return($1 * 1024)                 if ($val =~ m/^(\d+\.{0,1}\d*)[tT]$/);
+    return($1 * 1024 * 1024)          if ($val =~ m/^(\d+\.{0,1}\d*)[pP]$/);
+
+    die "Invalid memory value '$val'\n";
+}
+
+
+#  Converts gigabytes to number with units.
+sub displayMemoryValue ($) {
+    my $val = shift @_;
+
+    return(($val * 1024 * 1024)        . "k")   if ($val < adjustMemoryValue("1m"));
+    return(($val * 1024)               . "m")   if ($val < adjustMemoryValue("1g"));
+    return(($val)                      . "g")   if ($val < adjustMemoryValue("1t"));
+    return(($val / 1024)               . "t");
+}
+
+
+#  Converts number with units to bases.
+sub adjustGenomeSize ($) {
+    my $val = shift @_;
+
+    return(undef)               if (!defined($val));
+
+    return($1)                  if ($val =~ m/^(\d+\.{0,1}\d*)$/i);
+    return($1 * 1000)           if ($val =~ m/^(\d+\.{0,1}\d*)[kK]$/i);
+    return($1 * 1000000)        if ($val =~ m/^(\d+\.{0,1}\d*)[mM]$/i);
+    return($1 * 1000000000)     if ($val =~ m/^(\d+\.{0,1}\d*)[gG]$/i);
+    return($1 * 1000000000000)  if ($val =~ m/^(\d+\.{0,1}\d*)[tT]$/i);
+
+    die "Invalid genome size '$val'\n";
+}
+
+
+#  Converts bases to number with units.
+sub displayGenomeSize ($) {
+    my $val = shift @_;
+
+    return(($val))                        if ($val < adjustGenomeSize("1k"));
+    return(($val / 1000)          . "k")  if ($val < adjustGenomeSize("1m"));
+    return(($val / 1000000)       . "m")  if ($val < adjustGenomeSize("1g"));
+    return(($val / 1000000000)    . "g")  if ($val < adjustGenomeSize("1t"));
+    return(($val / 1000000000000) . "t");
+}
+
+
+
 sub checkParameters () {
 
     #
@@ -1343,26 +1370,29 @@ sub checkParameters () {
     fixCase("objectStore", "upper");
 
     #
+    #  Convert things with units to just values.  The other memory sizes are
+    #  'adjusted' in Configure.sh.
+    #
+
+    setGlobal("genomeSize", adjustGenomeSize(getGlobal("genomeSize")));
+
+    setGlobal("minMemory",  adjustMemoryValue(getGlobal("minMemory")));
+    setGlobal("maxMemory",  adjustMemoryValue(getGlobal("maxMemory")));
+
+    setGlobal("executiveMemory", adjustMemoryValue(getGlobal("executiveMemory")));
+
+    if (getGlobal("executiveMemory") < getGlobal("minMemory")) {   #  Silently bump up execMemory to minMemory
+        setGlobal("executiveMemory", getGlobal("minMemory"));      #  if needed.
+    }
+    
+    #
     #  Check for inconsistent parameters
     #
 
-    #  Genome size isn't properly decoded until later, but we want to fail quickly.  So, just test if
-    #  a unitless number is supplied, and if that number is tiny.
+    my $gs = getGlobal("genomeSize");
 
-    {
-        my $gs = getGlobal("genomeSize");
-
-        if (!defined($gs)) {
-            addCommandLineError("ERROR:  Required parameter 'genomeSize' not set.\n");
-        }
-
-        if (($gs =~ m/^(\d+)$/) ||
-            ($gs =~ m/^(\d+\.\d+)$/)) {
-            if ($gs < 1000) {
-                addCommandLineError("ERROR:  Implausibly small genome size $gs.  Check units!\n");
-            }
-        }
-    }
+    addCommandLineError("ERROR:  Required parameter 'genomeSize' not set.\n")           if (!defined($gs));
+    addCommandLineError("ERROR:  Implausibly small genome size $gs.  Check units!\n")   if ($gs < 1000);
 
     #
     #  If we're running as a job array, unset the ID of the job array.  This screws

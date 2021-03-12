@@ -41,8 +41,17 @@ sub detectSlurm () {
 
     return   if (!defined($sinfo));
 
-    print STDERR "-- Detected Slurm with 'sinfo' binary in $sinfo.\n";
-    setGlobal("gridEngine", "SLURM");
+    if (getGlobal("useGrid") eq "0") {
+        print STDERR "--\n";
+        print STDERR "-- Detected Slurm with 'sinfo' binary in $sinfo.\n";
+        print STDERR "--          Slurm disabled by useGrid=false\n";
+    }
+    else {
+        print STDERR "--\n";
+        print STDERR "-- Detected Slurm with 'sinfo' binary in $sinfo.\n";
+
+        setGlobal("gridEngine", "SLURM");
+    }
 }
 
 

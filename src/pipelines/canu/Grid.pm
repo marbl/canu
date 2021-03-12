@@ -40,12 +40,13 @@ sub formatAllowedResources (\%$) {
     my $hosts     = undef;
 
     print STDERR "-- \n";
+    print STDERR "-- $geName support detected.  Resources available:\n";
 
     foreach my $c (keys %hosts) {
         my ($cpus, $mem) = split '-', $c;
         my  $nodes       = $hosts{$c};
 
-        printf(STDERR "-- Found %3d host%s with %3d core%s and %4d GB memory under $geName control.\n",
+        printf(STDERR "--    %3d host%s with %3d core%s and %4d GB memory.\n",
                $nodes, ($nodes == 1) ? " " : "s",
                $cpus,  ($cpus  == 1) ? " " : "s",
                $mem);

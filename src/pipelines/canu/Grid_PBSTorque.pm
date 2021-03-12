@@ -34,22 +34,23 @@ use canu::Grid "formatAllowedResources";
 
 
 sub detectPBSVersion () {
-    my $isPro   = 0;
+    my $name    = "";
     my $version = "";
 
     open(F, "pbsnodes --version 2>&1 |");
     while (<F>) {
         if (m/pbs_version\s+=\s+(.*)/) {
-            $isPro   =  1;
+            $name    = "PBSPro";
             $version = $1;
         }
         if (m/Version:\s+(.*)/) {
+            $name    = "PBS/Torque";
             $version = $1;
         }
     }
     close(F);
 
-    return($version, $isPro);
+    return($version, $name);
 }
 
 
@@ -61,14 +62,18 @@ sub detectPBSTorque () {
 
     return   if (!defined($pbsnodes));
 
-    my ($version, $isPro) = detectPBSVersion();
+    my ($version, $name) = detectPBSVersion();
 
-    if ($isPro == 0) {
-        print STDERR "-- Detected PBS/Torque '$version' with 'pbsnodes' binary in $pbsnodes.\n";
-        setGlobal("gridEngine", "PBS");
-    } else {
-        print STDERR "-- Detected PBSPro '$version' with 'pbsnodes' binary in $pbsnodes.\n";
-        setGlobal("gridEngine", "PBSPRO");
+    if (getGlobal("useGrid") eq "0") {
+        print STDERR "--\n";
+        print STDERR "-- Detected $name '$version' with 'pbsnodes' binary in $pbsnodes.\n";
+        print STDERR "--          $name disabled by useGrid=false\n";
+    }
+    else {
+        print STDERR "--\n";
+        print STDERR "-- Detected $name '$version' with 'pbsnodes' binary in $pbsnodes.\n";
+
+        setGlobal("gridEngine", ($name == "PBSPro") ? "PBSPRO" : "PBS");
     }
 }
 
