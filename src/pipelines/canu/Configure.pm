@@ -446,7 +446,7 @@ sub getAllowedResources ($$$$$@) {
         #  If already set (on the command line), reset if too big.
 
         if (getGlobal("${tag}${alg}Concurrency") > $nc) {
-            $err .= "-- Reset concurrency from " . getGlobal("${tag}${alg}Concurrency") . " to $nc.\n";
+            $err .= "-- Reset ${tag}${alg}Concurrency from " . getGlobal("${tag}${alg}Concurrency") . " to $nc.\n";
             setGlobal("${tag}${alg}Concurrency", $nc);
         }
 
