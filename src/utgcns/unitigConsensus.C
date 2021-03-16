@@ -308,7 +308,7 @@ void unitigConsensus::updateReadPositions(void) {
 
 char *
 unitigConsensus::generateTemplateStitch(void) {
-  int32   minOlap  = _minOverlap;
+  uint32   minOlap  = _minOverlap;
 
   //  Initialize, copy the first read.
 
@@ -431,9 +431,9 @@ unitigConsensus::generateTemplateStitch(void) {
 
     if (olapLen < minOlap) {
       if (showAlgorithm())
-        fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d\n",
-                olapLen, readLen, nr, _utgpos[nr].min(), _utgpos[nr].max());
-      olapLen = readLen; 
+        fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
+                olapLen, min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
+      olapLen = min(ePos, minOlap); 
     }
 
     int32            templateLen  = 0;
