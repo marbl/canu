@@ -201,11 +201,12 @@ private:
   void   checkForContainedDovetails(void) const;
   void   checkForCovGapEdges(void) const;
 
-  void   emitGoodOverlaps(const char *prefix, const char *label);
+  void   outputOverlaps(const char *prefix, const char *label, bool allOverlaps);
 
 public:
   BestOverlapGraph(double            erateGraph,
                    double            erateMax,
+                   double            erateForced,
                    double            percentileError,
                    double            deviationGraph,
                    double            minOlapPercent,
@@ -285,8 +286,9 @@ private:
 
   //  Input parameters.
 private:
-  double const               _erateMax;
   double const               _erateGraph;
+  double const               _erateMax;
+  double const               _erateForced;
   double const               _percentileError;
   double const               _deviationGraph;
   double const               _minOlapPercent;

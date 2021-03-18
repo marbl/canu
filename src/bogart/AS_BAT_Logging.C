@@ -62,8 +62,6 @@ private:
 void
 logFileInstance::set(char const *prefix_, int32 order_, char const *label_, int32 thread_, bool stderr_) {
 
-  assert(prefix_ != nullptr);
-
   if (label_ == nullptr) {
     close();
     return;
@@ -71,6 +69,8 @@ logFileInstance::set(char const *prefix_, int32 order_, char const *label_, int3
 
   if (stderr_ == true)
     _file = stderr;
+
+  assert(prefix_ != nullptr);
 
   snprintf(_prefix, FILENAME_MAX, "%s.%03u.%s",         prefix_, order_, label_);
   snprintf(_name,   FILENAME_MAX, "%s.%03u.%s.thr%03d", prefix_, order_, label_, thread_);
@@ -172,22 +172,24 @@ uint64             logFileFlags  = 0;
 uint64 LOG_OVERLAP_SCORING             = 0x0000000000000001;  //  Debug, scoring of overlaps
 uint64 LOG_BEST_EDGES                  = 0x0000000000000002;
 uint64 LOG_BEST_OVERLAPS               = 0x0000000000000004;
-uint64 LOG_ERROR_PROFILES              = 0x0000000000000008;
-uint64 LOG_OPTIMIZE_POSITIONS          = 0x0000000000000010;
-uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000020;  //  Report the chunk graph as we build it
-uint64 LOG_BUILD_UNITIG                = 0x0000000000000040;  //  Report building of initial tigs (both unitig creation and read placement)
-uint64 LOG_PLACE_UNPLACED              = 0x0000000000000080;  //  Report placing of unplaced reads
-uint64 LOG_ORPHAN_DETAIL               = 0x0000000000000100;
-uint64 LOG_SPLIT_DISCONTINUOUS         = 0x0000000000000200;  //
-uint64 LOG_INTERMEDIATE_TIGS           = 0x0000000000000400;  //  At various spots, dump the current tigs
-uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000000800;  //
-uint64 LOG_STDERR                      = 0x0000000000001000;  //  Write ALL logging to stderr, not the files.
+uint64 LOG_SYMMETRIC_OVERLAPS          = 0x0000000000000008;
+uint64 LOG_ERROR_PROFILES              = 0x0000000000000010;
+uint64 LOG_OPTIMIZE_POSITIONS          = 0x0000000000000020;
+uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000040;  //  Report the chunk graph as we build it
+uint64 LOG_BUILD_UNITIG                = 0x0000000000000080;  //  Report building of initial tigs (both unitig creation and read placement)
+uint64 LOG_PLACE_UNPLACED              = 0x0000000000000100;  //  Report placing of unplaced reads
+uint64 LOG_ORPHAN_DETAIL               = 0x0000000000000200;
+uint64 LOG_SPLIT_DISCONTINUOUS         = 0x0000000000000400;  //
+uint64 LOG_INTERMEDIATE_TIGS           = 0x0000000000000800;  //  At various spots, dump the current tigs
+uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000001000;  //
+uint64 LOG_STDERR                      = 0x0000000000002000;  //  Write ALL logging to stderr, not the files.
 
 uint64 LOG_PLACE_READ                  = 0x8000000000000000;  //  Internal use only.
 
 char const *logFileFlagNames[64] = { "overlapScoring",
                                      "bestEdges",
                                      "bestOverlaps",
+                                     "symmetricOverlaps",
                                      "errorProfiles",
                                      "optimizePositions",
                                      "chunkGraph",
@@ -200,6 +202,21 @@ char const *logFileFlagNames[64] = { "overlapScoring",
                                      "stderr",
                                      nullptr
 };
+
+uint64  stopFlags = 0;
+
+uint64  STOP_AT_END          = 0x0000000000000000;   //  MUST be zero.
+uint64  STOP_BEST_EDGES      = 0x0000000000000001;
+uint64  STOP_CHUNK_GRAPH     = 0x0000000000000002;
+
+char const *stopFlagNames[64] = { "bestedges",
+                                  "chunkgraph",
+                                  nullptr
+};
+
+
+
+
 
 
 
