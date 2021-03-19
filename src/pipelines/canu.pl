@@ -1124,27 +1124,16 @@ if (doUnitigging($asm, $mode)) {
     unitig($asm);
     unitigCheck($asm)  foreach (1..getGlobal("canuIterationMax") + 1);
 
-    #foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
-    #    consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
-    #    consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
-    #}
+    foreach (1..getGlobal("canuIterationMax") + 1) {   #  Consensus wants to change the script between the first and
+        consensusConfigure($asm);                      #  second iterations.  The script is rewritten in
+        consensusCheck($asm);                          #  consensusConfigure(), so we need to add that to the loop.
+    }
 
-    #consensusLoad($asm);
-    #consensusAnalyze($asm);
+    consensusLoad($asm);
+    consensusAnalyze($asm);
 
-    #generateOutputs($asm);
+    generateOutputs($asm);
 }
 
-#  User-supplied termination command.
-
-if (defined(getGlobal("onSuccess"))) {
-    print STDERR "--\n";
-    print STDERR "-- Running user-supplied termination command.\n";
-    runCommand(getGlobal("onExitDir"), getGlobal("onSuccess") . " $asm");
-}
-
-
-print STDERR "--\n";
-print STDERR "-- Bye.\n";
-
+stopAfter("theEnd");   #  Never returns.
 exit(0);
