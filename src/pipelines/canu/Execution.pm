@@ -265,12 +265,25 @@ sub stopAfter ($) {
 
     $stopAfter =~ tr/A-Z/a-z/;
 
-    if ((defined($stopAfter)) &&
-        (defined(getGlobal("stopAfter"))) &&
-        (getGlobal("stopAfter") eq $stopAfter)) {
-        print STDERR "Stop requested after '$stopAfter'.\n";
-        exit(0);
+    return   if (($stopAfter ne "theend") &&
+                 ($stopAfter ne getGlobal("stopAfter")));
+
+    if ($stopAfter ne "theend") {
+        print STDERR "--\n";
+        print STDERR "--  Stop requested after '$stopAfter'.\n";
     }
+
+    if (defined(getGlobal("onSuccess"))) {
+        print STDERR "--\n";
+        print STDERR "--  Running user-supplied termination command.\n";
+
+        runCommand(getGlobal("onExitDir"), getGlobal("onSuccess") . " " . getGlobal("onExitNam"));
+    }
+
+    print STDERR "--\n";
+    print STDERR "-- Bye.\n";
+
+    exit(0);
 }
 
 
