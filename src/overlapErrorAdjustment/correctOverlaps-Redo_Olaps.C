@@ -343,7 +343,9 @@ ProcessAlignment(const int32 a_part_len, char *a_part,
                                                   a_end, b_end, check_trivial_dna);
 
   //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
-  assert(check_trivial_dna || all_errors == events);
+
+  //Assert can fail if DEFAULT_FLANK_IGNORE > 0
+  //assert(check_trivial_dna || all_errors == events);
 
   assert(events >= 0 && alignment_len > 0);
   return (double) events / alignment_len;

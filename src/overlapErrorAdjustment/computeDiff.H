@@ -7,7 +7,7 @@ static const uint32 DEFAULT_FLANK_IGNORE = 5;
 
 inline
 int32
-TrimStartingIndels(char *s, int32 &s_end, int32 *delta, int32 &deltaLen, int32 val) {
+TrimStartingIndels(char *&s, int32 &s_end, int32 *delta, int32 &deltaLen, int32 val) {
     int32  i = 0;
 
     //while (i < stop && ped->delta[i] == 1)
