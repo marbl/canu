@@ -247,7 +247,7 @@ and four error rates control algorithms (:ref:`corErrorRate <corErrorRate>`, :re
 <obtErrorRate>`, :ref:`utgErrorRate <utgErrorRate>`, :ref:`cnsErrorRate <cnsErrorRate>`).
 
 The three error rates for overlap creation apply to the `ovl` overlap algorithm and the
-:ref:`mhapReAlign <mhapReAlign>` option used to generate alignments from `mhap` or `minimap`
+:ref:`reAlign <reAlign>` option used to generate alignments from `mhap` or `minimap`
 overlaps.  Since `mhap` is used for generating correction overlaps, the :ref:`corOvlErrorRate
 <ovlErrorRate>` parameter is not used by default.  Overlaps for trimming and assembling use the
 `ovl` algorithm, therefore, :ref:`obtOvlErrorRate <ovlErrorRate>` and :ref:`utgOvlErrorRate
@@ -378,7 +378,7 @@ Mhap Overlapper Parameters
 <tag>MhapMerSize
   Use k-mers of this size for detecting overlaps.
 <tag>ReAlign
-  After computing overlaps with mhap, compute a sequence alignment for each overlap.
+  After computing overlaps with mhap, compute a sequence alignment for each overlap. For Canu versions 2.1.1 or earlier we recommend always setting utgReAlign to true. Newer versions default to off for correction and trimming, on for unitigging. Turning it off for unitigging is not recommended and can lead to crashes. Also applicable to Minimap overlaps.
 <tag>MhapSensitivity
   Either 'normal', 'high', or 'fast'.
 
