@@ -281,8 +281,8 @@ placeRead_findFirstLastOverlapping(overlapPlacement &op,
   for (uint32 oo=os; oo<oe; oo++) {
     uint32   ord = tig->ufpathIdx(ovlPlace[oo].refID);
 
-    op.tigFidx = min(ord, op.tigFidx);
-    op.tigLidx = max(ord, op.tigLidx);
+    op.tigFidx = std::min(ord, op.tigFidx);
+    op.tigLidx = std::max(ord, op.tigLidx);
   }
 
   if (op.tigFidx > op.tigLidx)
@@ -368,19 +368,19 @@ placeRead_computePlacement(overlapPlacement &op,
 
 #if 1
     if (isFwd) {
-      bgnVer3 = min(bgnVer3, ovlPlace[oo].verified.bgn);
-      endVer3 = max(endVer3, ovlPlace[oo].verified.end);
+      bgnVer3 = std::min(bgnVer3, ovlPlace[oo].verified.bgn);
+      endVer3 = std::max(endVer3, ovlPlace[oo].verified.end);
     } else {
-      bgnVer3 = max(bgnVer3, ovlPlace[oo].verified.bgn);
-      endVer3 = min(endVer3, ovlPlace[oo].verified.end);
+      bgnVer3 = std::max(bgnVer3, ovlPlace[oo].verified.bgn);
+      endVer3 = std::min(endVer3, ovlPlace[oo].verified.end);
     }
 #endif
 
     op.errors      += ovlPlace[oo].errors;
     op.aligned     += ovlPlace[oo].aligned;
 
-    op.covered.bgn  = min(op.covered.bgn, ovlPlace[oo].covered.bgn);
-    op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
+    op.covered.bgn  = std::min(op.covered.bgn, ovlPlace[oo].covered.bgn);
+    op.covered.end  = std::max(op.covered.end, ovlPlace[oo].covered.end);
   }
 
   op.fCoverage = (op.covered.end - op.covered.bgn) / (double)readLen;
@@ -481,8 +481,8 @@ placeRead_computeCoverage(overlapPlacement &op,
   op.covered.end = INT32_MIN;  //  forward read coordinates
 
   for (uint32 oo=os; oo<oe; oo++) {
-    op.covered.bgn  = min(op.covered.bgn, ovlPlace[oo].covered.bgn);
-    op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
+    op.covered.bgn  = std::min(op.covered.bgn, ovlPlace[oo].covered.bgn);
+    op.covered.end  = std::max(op.covered.end, ovlPlace[oo].covered.end);
 
     if (logFileFlagSet(LOG_PLACE_READ))
       writeLog("pRUO()-- op %3d covers %8d-%-8d extent %8d-%-8d\n",
@@ -516,14 +516,14 @@ placeRead_computeCoverage(overlapPlacement &op,
 
 
 bool
-placeReadUsingOverlaps(TigVector                &tigs,
-                       Unitig                   *target,
-                       uint32                    fid,
-                       vector<overlapPlacement> &placements,
-                       uint32                    flags,
-                       double                    errorLimit) {
+placeReadUsingOverlaps(TigVector                     &tigs,
+                       Unitig                        *target,
+                       uint32                         fid,
+                       std::vector<overlapPlacement> &placements,
+                       uint32                         flags,
+                       double                         errorLimit) {
 
-  set<uint32>  verboseEnable;
+  std::set<uint32>  verboseEnable;
 
   //  Enable logging for all reads, or specific tigs, or not at all.
   //verboseEnable.insert(fid);
@@ -577,7 +577,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
                       return(A.position < B.position);
                     };
 
-  sort(ovlPlace, ovlPlace + ovlPlaceLen, byLocation);
+  std::sort(ovlPlace, ovlPlace + ovlPlaceLen, byLocation);
 
   //  Segregate the overlaps by placement in the unitig.  We want to construct one
   //  overlapPlacement for each distinct placement.  How this is done:
@@ -638,7 +638,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
                        return(A.clusterID < B.clusterID);
                      };
 
-    sort(ovlPlace + bgn, ovlPlace + end, byCluster);
+    std::sort(ovlPlace + bgn, ovlPlace + end, byCluster);
 
     //  Run through each 'cluster' and compute a final placement for the read.
     //    A cluster extends from placements os to oe.

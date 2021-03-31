@@ -21,11 +21,8 @@
 
 #include "stddev.H"
 
-#include <vector>
 #include <algorithm>
 #include <map>
-
-using namespace std;
 
 int
 main(int argc, char **argv) {
@@ -77,8 +74,8 @@ main(int argc, char **argv) {
   // read the file and store best hits
   char  ovStr[1024];
   ovOverlap   ov;
-  map<uint32, uint32> readToLength;
-  map<uint32, double> readToIdy;
+  std::map<uint32, uint32> readToLength;
+  std::map<uint32, double> readToIdy;
   double mean, median, stddev, mad;
   mean = median = stddev = mad = 0.0;
 
@@ -142,7 +139,7 @@ main(int argc, char **argv) {
   uint32   eratesLen = 0;
 
 
-  for (map<uint32, double>::iterator it=readToIdy.begin(); it != readToIdy.end(); ++it) {
+  for (auto it=readToIdy.begin(); it != readToIdy.end(); ++it) {
      edgeStats.insert(erates[eratesLen++] = it->second);
   }
 
@@ -153,7 +150,7 @@ main(int argc, char **argv) {
 
   //  Find the median and absolute deviations.
 
-  sort(erates, erates+eratesLen);
+  std::sort(erates, erates+eratesLen);
 
   median = erates[ eratesLen / 2 ];
 
@@ -175,7 +172,7 @@ main(int argc, char **argv) {
     }
   }
 
-  sort(absdev, absdev+eratesLen);
+  std::sort(absdev, absdev+eratesLen);
 
   assert(absdev[0] >= 0.0);
 

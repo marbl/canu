@@ -26,9 +26,6 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
-
 
 
 
@@ -189,7 +186,7 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
   //  Assign inputs to each bucketizer.  Greedy load balancing.
 
   //  Essentially a free parameter - lower makes bigger buckets and fewer files.
-  _numBuckets = min(_numInputs, _numSlices);
+  _numBuckets = std::min(_numInputs, _numSlices);
 
   uint64  *olapsPerBucket = new uint64 [_numBuckets];
 
@@ -295,26 +292,25 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
 
 int
 main(int argc, char **argv) {
-  char                 *seqName         = NULL;
-  uint64                minMemory       = (uint64)1 * 1024 * 1024 * 1024;
-  uint64                maxMemory       = (uint64)4 * 1024 * 1024 * 1024;
+  char                      *seqName         = NULL;
+  uint64                     minMemory       = (uint64)1 * 1024 * 1024 * 1024;
+  uint64                     maxMemory       = (uint64)4 * 1024 * 1024 * 1024;
 
-  vector<char const *>  fileList;
+  std::vector<char const *>  fileList;
 
-  char const           *configOut       = NULL;
-  char const           *configIn        = NULL;
+  char const                *configOut       = NULL;
+  char const                *configIn        = NULL;
 
-  bool                  writeNumBuckets = false;
-  bool                  writeNumSlices  = false;
-  bool                  writeMemory     = false;
-  uint32                writeInputs     = 0;
-  uint32                writeSlices     = 0;
+  bool                       writeNumBuckets = false;
+  bool                       writeNumSlices  = false;
+  bool                       writeMemory     = false;
+  uint32                     writeInputs     = 0;
+  uint32                     writeSlices     = 0;
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg=1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
 
@@ -356,8 +352,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if ((seqName == NULL) && (configIn == NULL))

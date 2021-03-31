@@ -21,8 +21,6 @@
 
 #include <vector>
 
-using namespace std;
-
 
 int
 main(int argc, char **argv) {
@@ -30,7 +28,7 @@ main(int argc, char **argv) {
   sqStore               *seqStore = NULL;
 
   ovOverlapDisplayType   dt = ovOverlapAsCoords;
-  vector<char *>         files;
+  std::vector<char *>    files;
 
 
   int32     arg = 1;

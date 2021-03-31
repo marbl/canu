@@ -29,9 +29,6 @@
 #include "intervalList.H"
 
 #include <vector>
-#include <map>
-
-using namespace std;
 
 
 //  But then use only overlaps larger than this for some of the more questionable overlaps.
@@ -193,7 +190,7 @@ public:
 
   //  Work space
 
-  vector<badRegion>  blist;
+  std::vector<badRegion>  blist;
 
   //  Overlaps
 

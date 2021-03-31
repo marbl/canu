@@ -75,7 +75,7 @@ pairAlign(char *nameA, char *nameB) {
     //}
 
     fprintf(stdout, "%s ident %6.2f len(a-b) %6d cigar %s\n",
-            seqA.name(),
+            seqA.ident(),
             100.0 - 100.0 * result.editDistance / result.alignmentLength,
             (int32)seqA.length() - (int32)seqB.length(),
             cigar);

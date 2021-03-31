@@ -148,7 +148,7 @@ ReadInfo::overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) 
 
   overlapLengths(a_iid, b_iid, a_hang, b_hang, aovl, bovl);
 
-  return(max(aovl, bovl));
+  return(std::max(aovl, bovl));
 }
 
 

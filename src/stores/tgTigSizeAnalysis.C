@@ -19,12 +19,8 @@
 
 #include <math.h>
 
-#include <map>
-#include <set>
 #include <vector>
 #include <algorithm>
-
-using namespace std;
 
 
 tgTigSizeAnalysis::tgTigSizeAnalysis(uint64 genomeSize_) {
@@ -62,16 +58,16 @@ tgTigSizeAnalysis::evaluateTig(tgTig *tig) {
 void
 tgTigSizeAnalysis::finalize(void) {
 
-  sort(lenSuggestRepeat.begin(),   lenSuggestRepeat.end(),   greater<uint32>());
-  sort(lenSuggestCircular.begin(), lenSuggestCircular.end(), greater<uint32>());
+  std::sort(lenSuggestRepeat.begin(),   lenSuggestRepeat.end(),   std::greater<uint32>());
+  std::sort(lenSuggestCircular.begin(), lenSuggestCircular.end(), std::greater<uint32>());
 
-  sort(lenUnassembled.begin(), lenUnassembled.end(), greater<uint32>());
-  sort(lenBubble.begin(),      lenBubble.end(),      greater<uint32>());
-  sort(lenContig.begin(),      lenContig.end(),      greater<uint32>());
+  std::sort(lenUnassembled.begin(), lenUnassembled.end(), std::greater<uint32>());
+  std::sort(lenBubble.begin(),      lenBubble.end(),      std::greater<uint32>());
+  std::sort(lenContig.begin(),      lenContig.end(),      std::greater<uint32>());
 }
 
 void
-tgTigSizeAnalysis::printSummary(FILE *out, char const *description, vector<uint32> &data) {
+tgTigSizeAnalysis::printSummary(FILE *out, char const *description, std::vector<uint32> &data) {
   uint64  cnt = data.size();
   uint64  sum = 0;
   uint64  tot = 0;

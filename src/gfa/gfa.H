@@ -21,6 +21,7 @@
 #include "runtime.H"
 #include "strings.H"
 
+#include <vector>
 
 
 //  Features assumed to hold only the length, and we don't use it.
@@ -87,10 +88,10 @@ public:
   bool    saveFile(char const *outName);
 
 public:
-  char                  *_header;
+  char                       *_header;
 
-  vector<gfaSequence *>  _sequences;
-  vector<gfaLink *>      _links;
+  std::vector<gfaSequence *>  _sequences;
+  std::vector<gfaLink *>      _links;
 };
 
 

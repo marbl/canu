@@ -28,8 +28,6 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
 
 
 
@@ -108,7 +106,7 @@ public:
     if (N == 0)
       return;
 
-    sort(L, L+N);
+    std::sort(L, L+N);
 
     nReads  = N;
     nBases  = 0;
@@ -480,7 +478,7 @@ main(int argc, char **argv) {
   //  Sort by expected corrected length, then mark reads for correction until we get the desired
   //  outCoverage.  Zeroth read has max corrected length, so remains first in sorted list.
 
-  sort(status, status + numReads+1, sortByCorLength);
+  std::sort(status, status + numReads+1, sortByCorLength);
 
   uint64   desiredLength = genomeSize * outCoverage;
   uint64   corrLength    = 0;
@@ -496,7 +494,7 @@ main(int argc, char **argv) {
 
   //  Sort by ID.
 
-  sort(status, status + numReads+1, sortByReadID);
+  std::sort(status, status + numReads+1, sortByReadID);
 
   //  Scan the tigs again, this time marking reads used as evidence in the corrected reads.
 

@@ -27,8 +27,6 @@
 
 #include <set>
 
-using namespace std;
-
 //  Debugging on which reads are filtered, which are used, and which are removed
 //  to meet coverage thresholds.  Very big.
 #undef DEBUG_LAYOUT
@@ -83,7 +81,7 @@ generateLayout(tgTig      *layout,
     fprintf(logFile, "Generate layout for read " F_U32 " length " F_U32 " using up to " F_U32 " overlaps.\n",
             layout->_tigID, layout->_layoutLen, ovlLen);
 
-  set<uint32_t>  children;
+  std::set<uint32_t>  children;
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
     uint64   ovlLength = ovl[oo].b_len();

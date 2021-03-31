@@ -20,8 +20,6 @@
 #include <set>
 #include <algorithm>
 
-using namespace std;
-
 
 uint16
 globalScore::compute(uint32             ovlLen,
@@ -35,7 +33,7 @@ globalScore::compute(uint32             ovlLen,
 
   histLen = 0;
 
-  resizeArray(hist, histLen, histMax, ovlLen, resizeArray_doNothing);
+  resizeArray(hist, histLen, histMax, ovlLen, _raAct::doNothing);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
     uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();

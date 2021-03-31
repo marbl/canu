@@ -556,16 +556,16 @@ maComputation::computeOverlapAlignment(uint32       ovlid,
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
     int32   b5   = bhg5;
-    int32   b3   = max(4 * bhg5, (int32)(2 * maxRepeat));
+    int32   b3   = std::max(4 * bhg5, (int32)(2 * maxRepeat));
 
     int32   a5   = b5 * (1 + maxErate) + overlapSlop;
     int32   a3   = b3 * (1 + maxErate) + overlapSlop;
 
-    int32   bbgn = max(0,    bhg5 - b5);    //  Now zero.
-    int32   bend = min(blen, bhg5 + b3);
+    int32   bbgn = std::max(0,    bhg5 - b5);    //  Now zero.
+    int32   bend = std::min(blen, bhg5 + b3);
 
-    int32   abgn = max(0,    ahg5 - a5);
-    int32   aend = min(alen, ahg5 + a3);
+    int32   abgn = std::max(0,    ahg5 - a5);
+    int32   aend = std::min(alen, ahg5 + a3);
 
     if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- bhg5:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
@@ -601,16 +601,16 @@ maComputation::computeOverlapAlignment(uint32       ovlid,
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
     int32   a5   = ahg5;
-    int32   a3   = max(4 * ahg5, (int32)(2 * maxRepeat));
+    int32   a3   = std::max(4 * ahg5, (int32)(2 * maxRepeat));
 
     int32   b5   = a5 * (1 + maxErate) + overlapSlop;
     int32   b3   = a3 * (1 + maxErate) + overlapSlop;
 
-    int32   bbgn = max(0,    bhg5 - b5);
-    int32   bend = min(blen, bhg5 + b3);
+    int32   bbgn = std::max(0,    bhg5 - b5);
+    int32   bend = std::min(blen, bhg5 + b3);
 
-    int32   abgn = max(0,    ahg5 - a5);    //  Now zero.
-    int32   aend = min(alen, ahg5 + a3);
+    int32   abgn = std::max(0,    ahg5 - a5);    //  Now zero.
+    int32   aend = std::min(alen, ahg5 + a3);
 
     if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- ahg5:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);
@@ -648,17 +648,17 @@ maComputation::computeOverlapAlignment(uint32       ovlid,
     int32   bhg5 = ovl->dat.ovl.bhg5;
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
-    int32   b5   = max(4 * bhg3, (int32)(2 * maxRepeat));
+    int32   b5   = std::max(4 * bhg3, (int32)(2 * maxRepeat));
     int32   b3   = bhg3;
 
     int32   a5   = b5 * (1 + maxErate) + overlapSlop;
     int32   a3   = b3 * (1 + maxErate) + overlapSlop;
 
-    int32   bbgn = max(0,    blen - bhg3 - b5);
-    int32   bend = min(blen, blen - bhg3 + b3);    //  Now blen.
+    int32   bbgn = std::max(0,    blen - bhg3 - b5);
+    int32   bend = std::min(blen, blen - bhg3 + b3);    //  Now blen.
 
-    int32   abgn = max(0,    alen - ahg3 - a5);
-    int32   aend = min(alen, alen - ahg3 + a3);
+    int32   abgn = std::max(0,    alen - ahg3 - a5);
+    int32   aend = std::min(alen, alen - ahg3 + a3);
 
     if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- bhg3:  B %d-%d onto A %d-%d\n", bbgn, bend, abgn, aend);
@@ -693,17 +693,17 @@ maComputation::computeOverlapAlignment(uint32       ovlid,
     int32   bhg5 = ovl->dat.ovl.bhg5;
     int32   bhg3 = ovl->dat.ovl.bhg3;
 
-    int32   a5   = max(4 * ahg3, (int32)(2 * maxRepeat));
+    int32   a5   = std::max(4 * ahg3, (int32)(2 * maxRepeat));
     int32   a3   = ahg3;
 
     int32   b5   = a5 * (1 + maxErate) + overlapSlop;
     int32   b3   = a3 * (1 + maxErate) + overlapSlop;
 
-    int32   bbgn = max(0,    blen - bhg3 - b5);
-    int32   bend = min(blen, blen - bhg3 + b3);
+    int32   bbgn = std::max(0,    blen - bhg3 - b5);
+    int32   bend = std::min(blen, blen - bhg3 + b3);
 
-    int32   abgn = max(0,    alen - ahg3 - a5);    //  Now alen.
-    int32   aend = min(alen, alen - ahg3 + a3);
+    int32   abgn = std::max(0,    alen - ahg3 - a5);    //  Now alen.
+    int32   aend = std::min(alen, alen - ahg3 + a3);
 
     if (_verboseAlign > 0)
       fprintf(stderr, "computeOverlapAlignment()-- ahg3:  A %d-%d onto B %d-%d\n", abgn, aend, bbgn, bend);

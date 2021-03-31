@@ -28,7 +28,6 @@
 #include <set>
 #include <algorithm>
 
-using namespace std;
 
 #define MAX_BASES_UNCONTAINED 150
 
@@ -46,8 +45,8 @@ public:
   };
 
 
-  int32  min(void) const         {  return(::min(bgn, end));  };
-  int32  max(void) const         {  return(::max(bgn, end));  };
+  int32  min(void) const         {  return(std::min(bgn, end));  };
+  int32  max(void) const         {  return(std::max(bgn, end));  };
 
   bool   isForward(void) const   {  return(bgn < end);        };
   bool   isReverse(void) const   {  return(bgn > end);        };
@@ -165,16 +164,16 @@ public:
   //
   int32  hangToMinCoord(int32 ahang, int32 bhang) {
     if (position.isForward())
-      return(position.bgn + max(0, ahang));
+      return(position.bgn + std::max(0, ahang));
     else
-      return(position.end - min(0, bhang));
+      return(position.end - std::min(0, bhang));
   };
 
   int32  hangToMaxCoord(int32 ahang, int32 bhang) {
     if (position.isForward())
-      return(position.end + min(0, bhang));
+      return(position.end + std::min(0, bhang));
     else
-      return(position.bgn - max(0, ahang));
+      return(position.bgn - std::max(0, ahang));
   };
 
   bool  operator<(ufNode const &that) const {
@@ -248,12 +247,12 @@ public:
                              bool         secondPass,
                              bool         beVerbose);
 
-  void optimize_initPlace(uint32        pp,
-                          optPos       *op,
-                          optPos       *np,
-                          bool          firstPass,
-                          set<uint32>  &failed,
-                          bool          beVerbose);
+  void optimize_initPlace(uint32             pp,
+                          optPos            *op,
+                          optPos            *np,
+                          bool               firstPass,
+                          std::set<uint32>  &failed,
+                          bool               beVerbose);
   void optimize_recompute(uint32        ii,
                           optPos       *op,
                           optPos       *np,
@@ -315,7 +314,7 @@ public:
 
   void   computeArrivalRate(const char *prefix,
                             const char *label,
-                            vector<int32> *hist);
+                            std::vector<int32> *hist);
 
   void   computeErrorProfile(const char *prefix, const char *label);
   void   reportErrorProfile(const char *prefix, const char *label);
@@ -387,9 +386,9 @@ public:
 
   // Public Member Variables
 public:
-  vector<ufNode>     ufpath;
-  vector<epValue>    errorProfile;
-  vector<uint32>     errorProfileIndex;
+  std::vector<ufNode>     ufpath;
+  std::vector<epValue>    errorProfile;
+  std::vector<uint32>     errorProfileIndex;
 
 public:
   //  r > 0 guards against calling these from Idx's, while r < size guards

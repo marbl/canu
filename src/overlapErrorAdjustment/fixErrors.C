@@ -24,6 +24,8 @@
 #include "correctOverlaps.H"
 #include "correctionOutput.H"
 
+#include <vector>
+
 
 //  Technically, private to correctOverlaps-Correct_Frags.C
 void
@@ -51,9 +53,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqStoreIn = argv[++arg];
 
@@ -74,8 +75,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (seqStoreIn == nullptr)   err.push_back("No sequence store (-S option) supplied.\n");
@@ -146,7 +145,7 @@ main(int argc, char **argv) {
     totalBases += read.sqRead_length();
 
     if (read.sqRead_length() > corBasesMax)
-      resizeArray(corBases, 0, corBasesMax, read.sqRead_length() + 1024, resizeArray_doNothing);
+      resizeArray(corBases, 0, corBasesMax, read.sqRead_length() + 1024, _raAct::doNothing);
 
     correctRead(curID,
                 corBases,

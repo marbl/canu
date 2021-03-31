@@ -86,7 +86,7 @@ sqStoreBlobReader::sqStoreBlobReader(const char *storePath) {
   _buffersMax = 0;
   _buffers    = NULL;
 
-  resizeArray(_buffers, _buffersMax, _buffersMax, 128, resizeArray_copyData | resizeArray_clearNew);
+  resizeArray(_buffers, _buffersMax, _buffersMax, 128, _raAct::copyData | _raAct::clearNew);
 }
 
 
@@ -107,7 +107,7 @@ sqStoreBlobReader::getBuffer(sqReadMeta *meta) {
   assert(file > 0);
 
   while (_buffersMax <= file)
-    resizeArray(_buffers, _buffersMax, _buffersMax, _buffersMax * 2, resizeArray_copyData | resizeArray_clearNew);
+    resizeArray(_buffers, _buffersMax, _buffersMax, _buffersMax * 2, _raAct::copyData | _raAct::clearNew);
 
   if (_buffers[file] == NULL) {
     makeBlobName(_storePath, file, _blobName);

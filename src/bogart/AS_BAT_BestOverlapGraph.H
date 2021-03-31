@@ -23,10 +23,6 @@
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 
-#include <set>
-#include <map>
-using namespace std;
-
 
 enum covgapType {
   covgapNone      = 0,

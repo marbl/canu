@@ -22,6 +22,7 @@
 
 #include "mt19937ar.H"
 
+#include <vector>
 #include <algorithm>
 
 
@@ -45,11 +46,11 @@ public:
   };
 
 public:
-  char              *_name;
-  sqLibrary_tech     _tech;
-  sqRead_which       _stat;
+  char                *_name;
+  sqLibrary_tech       _tech;
+  sqRead_which         _stat;
 
-  vector<char *>     _files;
+  std::vector<char *>  _files;
 };
 
 
@@ -198,13 +199,13 @@ loadReads(sqStore          *seqStore,
 
     if (sq.wasError() == true) {
       fprintf(errorLog, "error reading sequence at/before '%s' in file '%s'.\n",
-              sq.name(), fileName);
+              sq.ident(), fileName);
       filestats.nWARNINGS += 1;
     }
 
     if (sq.wasReSync() == true) {
       fprintf(errorLog, "lost sync reading before sequence '%s' in file '%s'.\n",
-              sq.name(), fileName);
+              sq.ident(), fileName);
       filestats.nWARNINGS += 1;
     }
 
@@ -214,23 +215,23 @@ loadReads(sqStore          *seqStore,
 
     if ((bgn > 0) && (end < sq.length()))
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - trimmed " F_U64 " non-ACGT bases from the 5' and " F_U64 " non-ACGT bases from the 3' end.\n",
-              sq.name(), sq.length(), fileName, bgn, sq.length() - end);
+              sq.ident(), sq.length(), fileName, bgn, sq.length() - end);
 
     else if (bgn > 0)
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - trimmed " F_U64 " non-ACGT bases from the 5' end.\n",
-              sq.name(), sq.length(), fileName, bgn);
+              sq.ident(), sq.length(), fileName, bgn);
 
     else if (end < sq.length())
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - trimmed " F_U64 " non-ACGT bases from the 3' end.\n",
-              sq.name(), sq.length(), fileName, sq.length() - end);
-
+              sq.ident(), sq.length(), fileName, sq.length() - end);
 
     //  Check for invalid bases.
+
     uint32 invalid = checkInvalid(sq, bgn, end);
 
     if (invalid > 0) {
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - contains %u invalid letters, skipping.\n",
-              sq.name(), sq.length(), fileName, invalid);
+              sq.ident(), sq.length(), fileName, invalid);
 
       filestats.nINVALID += 1;
       filestats.bINVALID += sq.length();
@@ -238,10 +239,9 @@ loadReads(sqStore          *seqStore,
       continue;
     }
 
-
     //  Create a writer for the read data and load bases.
 
-    sqReadDataWriter *rdw  = seqStore->sqStore_createEmptyRead(seqLibrary, sq.name());
+    sqReadDataWriter *rdw  = seqStore->sqStore_createEmptyRead(seqLibrary, sq.ident());
 
     if (readStat & sqRead_raw)
       rdw->sqReadDataWriter_setRawBases(sq.bases() + bgn, end - bgn);
@@ -256,7 +256,7 @@ loadReads(sqStore          *seqStore,
     //  Drop any sequences that are short...
     if      (rLen < minReadLength) {
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - too short, skipping.\n",
-              sq.name(), sq.length(), fileName);
+              sq.ident(), sq.length(), fileName);
 
       filestats.nSHORT += 1;
       filestats.bSHORT += sq.length();
@@ -265,7 +265,7 @@ loadReads(sqStore          *seqStore,
     //  ...or too long...
     else if (rLen > AS_MAX_READLEN - 2) {
       fprintf(errorLog, "read '%s' of length " F_U64 " in file '%s' - too long, skipping.\n",
-              sq.name(), sq.length(), fileName);
+              sq.ident(), sq.length(), fileName);
 
       filestats.nLONG += 1;
       filestats.bLONG += sq.length();
@@ -290,7 +290,11 @@ loadReads(sqStore          *seqStore,
         cseq->sqReadSeq_setAllClear();
       }
 
-      fprintf(nameMap, F_U32"\t%s\n", seqStore->sqStore_lastReadID(), sq.name());
+      fprintf(nameMap, F_U32"\t%s%s%s\n",
+              seqStore->sqStore_lastReadID(),
+              sq.ident(),
+              (sq.flags()[0] == 0) ? "" : " ",
+              sq.flags());
 
       filestats.nLOADED += 1;
       filestats.bLOADED += end - bgn;
@@ -314,10 +318,10 @@ loadReads(sqStore          *seqStore,
 
 
 bool
-createStore(const char       *seqStoreName,
-            vector<seqLib>   &libraries,
-            uint32            minReadLength,
-            bool              homopolyCompress) {
+createStore(const char            *seqStoreName,
+            std::vector<seqLib>   &libraries,
+            uint32                 minReadLength,
+            bool                   homopolyCompress) {
 
   sqStore     *seqStore     = new sqStore(seqStoreName, sqStore_create);   //  sqStore_extend MIGHT work
   sqRead      *seqRead      = NULL;
@@ -469,7 +473,7 @@ deleteShortReads(const char *seqStoreName,
 
     auto  byScore = [](const rl_t &a, const rl_t &b)   { return(a.score > b.score); };
 
-    sort(readLen, readLen + nReads+1, byScore);
+    std::sort(readLen, readLen + nReads+1, byScore);
 
     FILE *LOG = AS_UTL_openOutputFile(seqStoreName, '/', "filteredReads");
 
@@ -511,7 +515,7 @@ deleteShortReads(const char *seqStoreName,
 
 
 int
-addFiles(char **argv, int arg, int argc, vector<char const *> &err, seqLib &lib) {
+addFiles(char **argv, int arg, int argc, std::vector<char const *> &err, seqLib &lib) {
   char  *opt = argv[arg++];   //  e.g., -pacbio-raw
   char  *nam = argv[arg++];   //  e.g., LIB_NAME
 
@@ -546,19 +550,19 @@ addFiles(char **argv, int arg, int argc, vector<char const *> &err, seqLib &lib)
 
 int
 main(int argc, char **argv) {
-  char const      *seqStoreName      = NULL;
+  char const          *seqStoreName      = NULL;
 
-  uint32           minReadLength     = 0;
-  uint64           genomeSize        = 0;
-  double           desiredCoverage   = 0;
-  double           lengthBias        = 1.0;
-  uint32           randomSeed        = 0;
+  uint32               minReadLength     = 0;
+  uint64               genomeSize        = 0;
+  double               desiredCoverage   = 0;
+  double               lengthBias        = 1.0;
+  uint32               randomSeed        = 0;
 
-  bool             homopolyCompress  = false;
+  bool                 homopolyCompress  = false;
 
-  vector<seqLib>   libraries;
+  std::vector<seqLib>  libraries;
 
-  sqRead_which     readStatus        = sqRead_raw;
+  sqRead_which         readStatus        = sqRead_raw;
 
   //  Initialize the global.
 
@@ -569,9 +573,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-o") == 0) {
       seqStoreName = argv[++arg];
     }
@@ -657,8 +660,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (seqStoreName == NULL)

@@ -73,8 +73,8 @@ enforceMaximumClearRange(uint32           readID,
   } else if ((fbgn < mbgn) ||
              (mend < fend)) {
     //  Final clear extends outside the maximum clear.
-    fbgn = max(fbgn, mbgn);
-    fend = min(fend, mend);
+    fbgn = std::max(fbgn, mbgn);
+    fend = std::min(fend, mend);
 
     strcat(logMsg, (logMsg[0]) ? " - " : "\t");
     strcat(logMsg, "adjusted to obey maximum allowed clear range");

@@ -17,6 +17,8 @@
 
 #include "splitReads.H"
 
+#include <map>
+
 
 //  Examine overlaps for a specific pattern indicating a read that flips back on itself.
 //  This requires multiple overlaps from the same read, in opposite orientation, to work.
@@ -31,8 +33,8 @@
 
 uint32
 intervalOverlap(uint32 b1, uint32 e1, uint32 b2, uint32 e2) {
-  uint32 minmax = min(e1, e2);
-  uint32 maxmin = max(b1, b2);
+  uint32 minmax = std::min(e1, e2);
+  uint32 maxmin = std::max(b1, b2);
 
   if (minmax > maxmin)
     return(minmax - maxmin);
@@ -65,8 +67,8 @@ detectSubReads(sqStore               *seq,
   assert(w->adjLen > 0);
   assert(doCheckSubRead(seq, w->id) == true);
 
-  map<uint32, uint32>  secondIdx;
-  map<uint32, uint32>  numOlaps;
+  std::map<uint32, uint32>  secondIdx;
+  std::map<uint32, uint32>  numOlaps;
 
   bool                 largePalindrome = false;
   intervalList<int32>  BAD;

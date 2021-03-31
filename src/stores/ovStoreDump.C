@@ -25,8 +25,7 @@
 #include "tgStore.H"
 
 #include <algorithm>
-using namespace std;
-
+#include <vector>
 
 
 enum dumpType {
@@ -272,7 +271,7 @@ dumpParameters::loadBogartStatus(char const *prefix, uint32 nReads) {
   }
 
 
-  allocateArray(status, nReads+1, resizeArray_clearNew);
+  allocateArray(status, nReads+1, _raAct::clearNew);
 
 
   uint32        Llen = 0;
@@ -323,7 +322,7 @@ dumpParameters::loadBogartTigs(char const *tigpath, uint32 nReads) {
   withTigID = true;
 
   if (status == nullptr)
-    allocateArray(status, nReads+1, resizeArray_clearNew);
+    allocateArray(status, nReads+1, _raAct::clearNew);
 
   fprintf(stderr, "loading read to tig mapping from '%s'\n", tigpath);
 
@@ -427,7 +426,7 @@ dumpParameters::drawPicture(uint32         Aid,
                          return(A.a_end() < B.a_end());
                        };
 
-  sort(overlaps, overlaps + overlapsLen, byBgnPosition);
+  std::sort(overlaps, overlaps + overlapsLen, byBgnPosition);
 
   //  Build ascii representations for each overlapping read.
 
@@ -616,8 +615,8 @@ dumpParameters::drawPicture(uint32         Aid,
             ovlBgnA,
             ovlEndA,
             Bid,
-            min(ovlBgnB, ovlEndB),
-            max(ovlBgnB, ovlEndB),
+            std::min(ovlBgnB, ovlEndB),
+            std::max(ovlBgnB, ovlEndB),
             seqStore->sqStore_getReadLength(Bid),
             overlaps[o].erate() * 100.0,
             line);
@@ -697,9 +696,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg=1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if      (strcmp(argv[arg], "-S") == 0)
       seqName = argv[++arg];
 
@@ -852,8 +850,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (seqName == NULL)

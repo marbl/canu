@@ -68,9 +68,7 @@ public:
     if (prefix != NULL) {
       snprintf(_name, FILENAME_MAX, "%s.oc", prefix);
 
-      _oprMax = seq->sqStore_lastReadID() + 1;
-
-      allocateArray(_opr, _oprMax, resizeArray_clearNew);
+      allocateArray(_opr, _oprMax, seq->sqStore_lastReadID() + 1, _raAct::clearNew);
     }
   };
 
@@ -150,9 +148,7 @@ public:
 
     //  Otherwise, counts exist, and we load them.
 
-    _oprMax = seq->sqStore_lastReadID() + 1;
-
-    allocateArray(_opr, _oprMax, resizeArray_clearNew);
+    allocateArray(_opr, _oprMax, seq->sqStore_lastReadID() + 1, _raAct::clearNew);
 
     FILE   *F = AS_UTL_openInputFile(name);
 

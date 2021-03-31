@@ -17,6 +17,9 @@
 
 #include "splitReads.H"
 
+#include <vector>
+
+
 //  If after chimer trimming a read had a bad interval in the clear, just delete the read.
 //  Evidence said it was both good and bad.
 //
@@ -30,8 +33,8 @@
 void
 logBadInterval(workUnit *w,
                FILE     *subreadFile) {
-  vector<uint32>   loBad;
-  vector<uint32>   hiBad;
+  std::vector<uint32>   loBad;
+  std::vector<uint32>   hiBad;
 
   uint32   spur5 = UINT32_MAX;
   uint32   spur3 = UINT32_MAX;

@@ -66,8 +66,6 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
 #include "falconConsensus-alignTag.H"
 #include "falconConsensus-msa.H"
 

@@ -21,16 +21,14 @@
 
 #include <vector>
 
-using namespace std;
-
 
 int
 main(int argc, char **argv) {
-  char           *outName     = NULL;
-  char           *seqName     = NULL;
-  int32           minLength   = 0;
+  char                *outName     = NULL;
+  char                *seqName     = NULL;
+  int32                minLength   = 0;
 
-  vector<char *>  files;
+  std::vector<char *>  files;
 
 
   int32     arg = 1;

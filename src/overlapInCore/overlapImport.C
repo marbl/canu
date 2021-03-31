@@ -24,32 +24,29 @@
 
 #include <vector>
 
-using namespace std;
-
 
 int
 main(int argc, char **argv) {
-  char const            *seqStoreName = NULL;
+  char const               *seqStoreName = NULL;
 
-  char const            *ovlFileName = NULL;
-  char const            *ovlStoreName = NULL;
+  char const               *ovlFileName = NULL;
+  char const               *ovlStoreName = NULL;
 
-  bool                   asCoords    = false;    //  Format of input overlaps
-  bool                   asHangs     = false;
-  bool                   asUnaligned = false;
-  bool                   asPAF       = false;
-  bool                   asRandom    = false;
+  bool                      asCoords    = false;    //  Format of input overlaps
+  bool                      asHangs     = false;
+  bool                      asUnaligned = false;
+  bool                      asPAF       = false;
+  bool                      asRandom    = false;
 
-  uint64                 rmin = 0, rmax = 0;
-  uint32                 abgn = 1, aend = 0;
-  uint32                 bbgn = 1, bend = 0;
+  uint64                    rmin = 0, rmax = 0;
+  uint32                    abgn = 1, aend = 0;
+  uint32                    bbgn = 1, bend = 0;
 
-  vector<char const *>   files;
+  std::vector<char const *> files;
 
 
-  vector<char const *>  err;
-  int32                 arg = 1;
-  while (arg < argc) {
+  std::vector<char const *> err;
+  for (int32 arg=1; arg < argc; arg++) {
     if      (strcmp(argv[arg], "-S") == 0) {
       seqStoreName = argv[++arg];
     }
@@ -133,8 +130,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
 

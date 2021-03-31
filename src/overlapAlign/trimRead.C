@@ -198,11 +198,11 @@ maComputation::trimRead(uint32   minOverlapLength,
 
     //  Extend the A region on each side, and the B region by a little bit more (since the end gaps are free).
 
-    abgn = max(amid - extension / 2, 0);
-    aend = min(amid + extension / 2, _readData[_aID].rawLength);
+    abgn = std::max(amid - extension / 2, 0);
+    aend = std::min(amid + extension / 2, _readData[_aID].rawLength);
 
-    bbgn = max(bmid - extension / 2 - bextra, 0);
-    bend = min(bmid + extension / 2 + bextra, _readData[_bID].rawLength);
+    bbgn = std::max(bmid - extension / 2 - bextra, 0);
+    bend = std::min(bmid + extension / 2 + bextra, _readData[_bID].rawLength);
 
     //  Align to find the precise region we align to in the B read.  If the alignment passes,
     //  bbgn and bend are updated to those coordinates.
@@ -251,8 +251,8 @@ maComputation::trimRead(uint32   minOverlapLength,
     while ((erate < maxAcceptErate) &&
            (abgn > 0) &&
            (bbgn > 0)) {
-      int32   ab = max(abgn - extension, 0);
-      int32   ae = min(abgn + anchor,    _readData[_aID].rawLength);
+      int32   ab = std::max(abgn - extension, 0);
+      int32   ae = std::min(abgn + anchor,    _readData[_aID].rawLength);
 
       int32   bb = bbgn - extension - slop;
       int32   be = bbgn + anchor    + slop;
@@ -319,8 +319,8 @@ maComputation::trimRead(uint32   minOverlapLength,
     while ((erate < maxAcceptErate) &&
            (aend < _readData[_aID].rawLength) &&
            (bend < _readData[_bID].rawLength)) {
-      int32   ab = max(aend - anchor,    0);
-      int32   ae = min(aend + extension, _readData[_aID].rawLength);
+      int32   ab = std::max(aend - anchor,    0);
+      int32   ae = std::min(aend + extension, _readData[_aID].rawLength);
 
       int32   bb = bend - anchor    - slop;
       int32   be = bend + extension + slop;

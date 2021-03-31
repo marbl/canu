@@ -25,15 +25,14 @@
 
 #include <map>
 
-using namespace std;
 
 void
 setParentAndHang(TigVector &tigs) {
 
   return;
 
-  map<uint32,bool>  forward;
-  map<uint32,bool>  allreads;
+  std::map<uint32,bool>  forward;
+  std::map<uint32,bool>  allreads;
 
   //  Just for stats, build a map fo the reads in the unitig.
 
@@ -116,7 +115,7 @@ setParentAndHang(TigVector &tigs) {
       int32 bh = (olaps[oo].flipped == false) ? (-olaps[oo].b_hang) : (olaps[oo].a_hang);
 
       if (forward[olaps[oo].b_iid] == false) {
-        swap(ah, bh);
+        std::swap(ah, bh);
         ah = -ah;
         bh = -bh;
       }

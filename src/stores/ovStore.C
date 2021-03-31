@@ -366,9 +366,9 @@ ovStore::setRange(uint32 bgnID, uint32 endID) {
 
   //  Set ranges, limiting them to the last read (possibly last read with overlaps).
 
-  _bgnID = min(bgnID, _info.maxID());
-  _curID = min(bgnID, _info.maxID());
-  _endID = min(endID, _info.maxID());
+  _bgnID = std::min(bgnID, _info.maxID());
+  _curID = std::min(bgnID, _info.maxID());
+  _endID = std::min(endID, _info.maxID());
 
   //  Skip reads with no overlaps.
 

@@ -154,8 +154,8 @@ classifyRule3(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double spanFractio
   for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
     ufNode  *frg = &utg->ufpath[oi];
 
-    int frgbgn = min(frg->position.bgn, frg->position.end);
-    int frgend = max(frg->position.bgn, frg->position.end);
+    int frgbgn = std::min(frg->position.bgn, frg->position.end);
+    int frgend = std::max(frg->position.bgn, frg->position.end);
 
     if (frgend - frgbgn > utg->getLength() * spanFraction) {
       if ((F) && (utg->ufpath.size() > 1))
@@ -186,8 +186,8 @@ classifyRule4(Unitig *utg, FILE *F, uint32 &num, uint64 &len, double lowcovFract
   for (uint32 oi=0; oi<utg->ufpath.size(); oi++) {
     ufNode  *frg = &utg->ufpath[oi];
 
-    int frgbgn = min(frg->position.bgn, frg->position.end);
-    int frgend = max(frg->position.bgn, frg->position.end);
+    int frgbgn = std::min(frg->position.bgn, frg->position.end);
+    int frgend = std::max(frg->position.bgn, frg->position.end);
 
     IL.add(frgbgn, frgend - frgbgn);
   }
@@ -312,7 +312,7 @@ classifyTigsAsUnassembled(TigVector    &tigs,
 
 
 void
-reportN50(FILE *F, vector<uint32> &data, char const *label, uint64 genomeSize) {
+reportN50(FILE *F, std::vector<uint32> &data, char const *label, uint64 genomeSize) {
   uint64  cnt = data.size();
   uint64  sum = 0;
   uint64  tot = 0;
@@ -324,7 +324,7 @@ reportN50(FILE *F, vector<uint32> &data, char const *label, uint64 genomeSize) {
 
   //  Duplicates tgTigSizeAnalysis::printSummary()
 
-  sort(data.begin(), data.end(), greater<uint32>());
+  std::sort(data.begin(), data.end(), std::greater<uint32>());
 
   for (uint64 i=0; i<cnt; i++)
     tot += data[i];
@@ -359,10 +359,10 @@ reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)
 
   //  Generate n50.  Assumes tigs have been 'classified' already.
 
-  vector<uint32>   unassembledLength;
-  vector<uint32>   repeatLength;
-  vector<uint32>   bubbleLength;
-  vector<uint32>   contigLength;
+  std::vector<uint32>   unassembledLength;
+  std::vector<uint32>   repeatLength;
+  std::vector<uint32>   bubbleLength;
+  std::vector<uint32>   contigLength;
 
   for (uint32  ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];

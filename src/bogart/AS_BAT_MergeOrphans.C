@@ -33,7 +33,6 @@
 #include <set>
 #include <map>
 
-using namespace std;
 
 //
 //
@@ -91,18 +90,18 @@ public:
   uint32   bgn;
   uint32   end;
 
-  vector<overlapPlacement>  placed;
+  std::vector<overlapPlacement>  placed;
 };
 
 
 //  A list of the target tigs that a orphan could be popped into.
-typedef  map<uint32, vector<uint32> >  BubTargetList;
+typedef  std::map<uint32, std::vector<uint32> >  BubTargetList;
 
 // This function checks if the best edges imply a cycle or a shortcut
 // This happens if our best edges are discordant (that is we have bad orientation) or if we are much shorter implying the main tig took a shortcut
 bool isCycle(TigVector       &tigs,
              uint32           length,
-	     ufNode          *fRead,
+             ufNode          *fRead,
              ufNode          *lRead) {
    BestEdgeOverlap *prev = (fRead->position.isForward() == true) ? (OG->getBestEdgeOverlap(fRead->ident, false)) : (OG->getBestEdgeOverlap(fRead->ident,  true));
    BestEdgeOverlap *next = (lRead->position.isForward() == true) ? (OG->getBestEdgeOverlap(lRead->ident,  true)) : (OG->getBestEdgeOverlap(lRead->ident, false));
@@ -151,8 +150,8 @@ bool isCycle(TigVector       &tigs,
 //  (tigOlapsTo).  if more than half the reads in the tig have an overlap to
 //  some other tig, it is a potential place to pop the bubble.
 //
-//  Returns BubTargetList, a map of uint32 to vector<uint32>, of the potential
-//  places that some tig could be popped into.
+//  Returns BubTargetList, a std::map of uint32 to std::vector<uint32>, of
+//  the potential places that some tig could be popped into.
 
 void
 findPotentialOrphans(TigVector       &tigs,
@@ -180,14 +179,14 @@ findPotentialOrphans(TigVector       &tigs,
 
     //  Count the number of reads that have an overlap to some other tig.  tigOlapsTo[otherTig] = count.
 
-    intervalList<int32> tigCoverage;
-    map<uint32,uint32>  tigOlapsTo;
-    uint32              nonContainedReads = 0;
+    intervalList<int32>      tigCoverage;
+    std::map<uint32,uint32>  tigOlapsTo;
+    uint32                   nonContainedReads = 0;
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      ufNode     *rdA   = &tig->ufpath[fi];
-      uint32      rdAlen= rdA->position.max() - rdA->position.min();
-      uint32      rdAid =  tig->ufpath[fi].ident;
+      ufNode     *rdA    = &tig->ufpath[fi];
+      uint32      rdAlen = rdA->position.max() - rdA->position.min();
+      uint32      rdAid  = tig->ufpath[fi].ident;
 
       if (rdAid != fRead->ident && rdAid != lRead->ident && OG->isContained(rdAid) == true)  //  Don't need to check contained reads.  If their container
         continue;                                                                            //  passes the tests below, the contained read will too. 
@@ -196,7 +195,7 @@ findPotentialOrphans(TigVector       &tigs,
 
       //  Find the list of tigs that this read has an overlap to.
 
-      set<uint32>  readOlapsTo;
+      std::set<uint32>  readOlapsTo;
 
       uint32      ovlLen   = 0;
       BAToverlap *ovl      = OC->getOverlaps(rdAid, ovlLen);
@@ -263,7 +262,7 @@ findPotentialOrphans(TigVector       &tigs,
       //  With the list of tigs that this read has an overlap to, add one to
       //  each tig in the list of tigs that this tig has an overlap to.
 
-      for (set<uint32>::iterator it=readOlapsTo.begin(); it != readOlapsTo.end(); ++it)
+      for (auto it=readOlapsTo.begin(); it != readOlapsTo.end(); ++it)
         tigOlapsTo[*it]++;
     }
 
@@ -321,7 +320,7 @@ findPotentialOrphans(TigVector       &tigs,
 
     writeLog("potential orphan\n");
 
-    for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
+    for (auto it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
       Unitig  *dest = tigs[it->first];
 
       writeLog("             tig %8u length %9u nReads %7u   %5u reads with overlaps\n",
@@ -359,7 +358,7 @@ findPotentialOrphans(TigVector       &tigs,
 
 //  Find filtered placements for all the reads in the potential orphan tigs.
 
-vector<overlapPlacement>  *
+std::vector<overlapPlacement>  *
 findOrphanReadPlacements(TigVector       &tigs,
                          BubTargetList   &potentialOrphans,
                          double           deviation,
@@ -371,7 +370,7 @@ findOrphanReadPlacements(TigVector       &tigs,
   uint32  fiNumThreads = omp_get_max_threads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
 
-  vector<overlapPlacement>   *placed = new vector<overlapPlacement> [fiLimit + 1];
+  std::vector<overlapPlacement>   *placed = new std::vector<overlapPlacement> [fiLimit + 1];
 
   writeLog("\n");
   writeLog("== Finding Read Placements for Potential Orphans ==\n");
@@ -395,7 +394,7 @@ findOrphanReadPlacements(TigVector       &tigs,
     //  Compute all placements for this read.  It is critical to search for partial
     //  placements, otherwise we'll generally find no bubbles (only orphans).
 
-    vector<overlapPlacement>   placements;
+    std::vector<overlapPlacement>   placements;
 
     placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, allowOrphanPlacement ? placeRead_all : placeRead_noExtend);
 
@@ -437,8 +436,8 @@ findOrphanReadPlacements(TigVector       &tigs,
 
       assert(potentialOrphans.count(rdAtigID) == 1);
 
-      bool             dontcare = true;
-      vector<uint32>  &porphans = potentialOrphans[rdAtigID];
+      bool                  dontcare = true;
+      std::vector<uint32>  &porphans = potentialOrphans[rdAtigID];
 
       for (uint32 pb=0; pb<porphans.size(); pb++)
         if (porphans[pb] == rdBtigID)
@@ -534,9 +533,10 @@ findOrphanReadPlacements(TigVector       &tigs,
 
 static
 bool
-placeAnchor(Unitig                     *orphan,
-            vector<overlapPlacement>   *placed,
-            ufNode *fRead, ufNode *lRead) {
+placeAnchor(Unitig                          *orphan,
+            std::vector<overlapPlacement>   *placed,
+            ufNode *fRead,
+            ufNode *lRead) {
   uint32   nReads = orphan->ufpath.size();
 
   assert(nReads > 0);
@@ -594,11 +594,11 @@ placeAnchor(Unitig                     *orphan,
 
 static
 void
-addInitialIntervals(Unitig                               *orphan,
-                    vector<overlapPlacement>             *placed,
-                    ufNode                               *fRead,
-                    ufNode                               *lRead,
-                    map<uint32, intervalList<int32> *>   &targetIntervals) {
+addInitialIntervals(Unitig                                   *orphan,
+                    std::vector<overlapPlacement>            *placed,
+                    ufNode                                   *fRead,
+                    ufNode                                   *lRead,
+                    std::map<uint32, intervalList<int32> *>  &targetIntervals) {
   uint32   orphanLen  = orphan->getLength();
 
   //  Add extended intervals for the first read.
@@ -626,7 +626,7 @@ addInitialIntervals(Unitig                               *orphan,
       writeLog("    tig %8u %9u-%-9u ->\n", tid, bgn, bgn+orphanLen);
       targetIntervals[tid]->add(bgn, orphanLen);
     } else {
-      writeLog("    tig %8u %9u-%-9u <-\n", tid, max(0, (int)(end-orphanLen)), end);
+      writeLog("    tig %8u %9u-%-9u <-\n", tid, std::max(0, (int)(end-orphanLen)), end);
       targetIntervals[tid]->add(end - orphanLen, orphanLen);
     }
   }
@@ -651,7 +651,7 @@ addInitialIntervals(Unitig                               *orphan,
     //  Same as above, just backwards.
 
     if (placed[lRead->ident][pp].position.isForward() == lRead->position.isForward()) {
-      writeLog("    tig %8u %9u-%-9u ->\n", tid, max(0, (int)(end-orphanLen)), end);
+      writeLog("    tig %8u %9u-%-9u ->\n", tid, std::max(0, (int)(end-orphanLen)), end);
       targetIntervals[tid]->add(end - orphanLen, orphanLen);
     } else {
       writeLog("    tig %8u %9u-%-9u <-\n", tid, bgn, bgn+orphanLen);
@@ -664,13 +664,13 @@ addInitialIntervals(Unitig                               *orphan,
 
 static
 void
-saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
-                                   Unitig                    *target,
-                                   intervalList<int32>       *IL,
-                                   ufNode                    *fRead,
-                                   ufNode                    *lRead,
-                                   vector<overlapPlacement>  *placed,
-                                   vector<candidatePop *>    &targets) {
+saveCorrectlySizedInitialIntervals(Unitig                         *orphan,
+                                   Unitig                         *target,
+                                   intervalList<int32>            *IL,
+                                   ufNode                         *fRead,
+                                   ufNode                         *lRead,
+                                   std::vector<overlapPlacement>  *placed,
+                                   std::vector<candidatePop *>    &targets) {
   uint32   orphanLen  = orphan->getLength();
 
   IL->merge();  // Merge overlapping initial intervals.
@@ -693,16 +693,16 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
     int32  intBgn   = IL->lo(ii) - 0.50 * orphanLen;   //  Extend the region by 50% of the
     int32  intEnd   = IL->hi(ii) + 0.50 * orphanLen;   //  orphan length.
 
-    intBgn = max(intBgn, 0);
-    intEnd = min(intEnd, target->getLength());
+    intBgn = std::max(intBgn, 0);
+    intEnd = std::min(intEnd, target->getLength());
 
     SeqInterval    fPos;
     SeqInterval    lPos;
 
     //  Search placements for a valid placement pair.
 
-    vector<overlapPlacement>  &fPlaces = placed[fRead->ident];
-    vector<overlapPlacement>  &lPlaces = placed[lRead->ident];
+    std::vector<overlapPlacement>  &fPlaces = placed[fRead->ident];
+    std::vector<overlapPlacement>  &lPlaces = placed[lRead->ident];
 
     //  Over all the first read placements...
     for (uint32 fp=0; fp<fPlaces.size(); fp++) {
@@ -794,9 +794,9 @@ saveCorrectlySizedInitialIntervals(Unitig                    *orphan,
 
 
 void
-assignReadsToTargets(Unitig                     *orphan,
-                     vector<overlapPlacement>   *placed,
-                     vector<candidatePop *>     targets) {
+assignReadsToTargets(Unitig                         *orphan,
+                     std::vector<overlapPlacement>  *placed,
+                     std::vector<candidatePop *>    targets) {
 
   //  For each read in the orphan,
   //  For each placement of the read,
@@ -912,12 +912,12 @@ mergeOrphans(TigVector    &tigs,
   //  bubbles no minimum threshold as the minimum is the shortest overlap we
   //  are willing to consider
 
-  vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs,
-                                                                potentialOrphans,
-                                                                deviation,
-                                                                similarity,
-                                                                (isBubble) ? 0.01 : 0.99,
-                                                                isBubble);
+  std::vector<overlapPlacement>   *placed = findOrphanReadPlacements(tigs,
+                                                                     potentialOrphans,
+                                                                     deviation,
+                                                                     similarity,
+                                                                     (isBubble) ? 0.01 : 0.99,
+                                                                     isBubble);
 
   //  We now have, in 'placed', a list of all the places that each read could
   //  be placed.  Decide if there is a _single_ place for each orphan to be
@@ -956,14 +956,14 @@ mergeOrphans(TigVector    &tigs,
     ufNode  *fRead = orphan->firstBackboneRead();
     ufNode  *lRead = orphan->lastBackboneRead();
 
-    map<uint32, intervalList<int32> *>   targetIntervals;
+    std::map<uint32, intervalList<int32> *>   targetIntervals;
 
     addInitialIntervals(orphan, placed, fRead, lRead, targetIntervals);
 
     //  Figure out if each interval has both the first and last read of some orphan, and if those
     //  are properly sized.  If so, save a candidatePop.
 
-    vector<candidatePop *>    targets;
+    std::vector<candidatePop *>    targets;
 
     for (auto it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
       if (tigs[it->first] == NULL)

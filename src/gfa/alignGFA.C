@@ -162,7 +162,7 @@ checkLink(gfaLink   *link,
   int32  Abgn, Aend, Alen = seqs[link->_Aid].len;
   int32  Bbgn, Bend, Blen = seqs[link->_Bid].len;
 
-  double ratio = max((double)Alen/seqs_orig[link->_Aid].len, (double)Blen/seqs_orig[link->_Bid].len);
+  double ratio = std::max((double)Alen/seqs_orig[link->_Aid].len, (double)Blen/seqs_orig[link->_Bid].len);
 
   EdlibAlignResult  result  = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
@@ -196,11 +196,11 @@ checkLink(gfaLink   *link,
   // if we fail to find the specified link, we will shrink A to see if we can find it that way and B will be trimmed to the right point
   // no need to retry on the second time because we'll have the right location of B and will trim A to it
 
-  Abgn = max(Alen - AalignLen, 0);
-  Aend =     Alen;
+  Abgn = std::max(Alen - AalignLen, 0);
+  Aend = Alen;
 
   Bbgn = 0;
-  Bend = min(Blen, (int32)(1.10 * ratio * BalignLen));  //  Expand by whatever factor the contig grew during consensus plus 10%
+  Bend = std::min(Blen, (int32)(1.10 * ratio * BalignLen));  //  Expand by whatever factor the contig grew during consensus plus 10%
 
   maxEdit = (int32)ceil(alignLen * erate);
 
@@ -241,7 +241,7 @@ checkLink(gfaLink   *link,
   //         ^--??  [-------]-----------
   //
 
-  Abgn = max(Alen - (int32)(1.10 * ratio * AalignLen), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
+  Abgn = std::max(Alen - (int32)(1.10 * ratio * AalignLen), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
   // update max edit by new length
   maxEdit = (int32)ceil((Bend-Bbgn+1) * erate);
 
@@ -344,8 +344,8 @@ checkRecord_align(char const *label,
   int32  maxEdit     = (int32)ceil(Blen * 0.03);  //  Should be the same sequence, but allow for a little difference.
   int32  step        = (int32)ceil(Blen * 0.15);
 
-  Aend = min(Aend + 2 * step, Alen);        //  Limit Aend to the actual length of the contig (consensus can shrink)
-  Abgn = max(Aend - Blen - 2 * step, 0);    //  Then push Abgn back to make space for the unitig.
+  Aend = std::min(Aend + 2 * step, Alen);        //  Limit Aend to the actual length of the contig (consensus can shrink)
+  Abgn = std::max(Aend - Blen - 2 * step, 0);    //  Then push Abgn back to make space for the unitig.
 
  tryAgain:
   if (beVerbose)
@@ -425,10 +425,10 @@ checkRecord_align(char const *label,
     //  the A region and try again.
 
     if (Abgn == nAbgn)
-      Abgn = max(Abgn - step, 0);
+      Abgn = std::max(Abgn - step, 0);
 
     if (Aend == nAend)
-      Aend = min(Aend + step, Alen);
+      Aend = std::min(Aend + step, Alen);
 
     goto tryAgain;
   }
@@ -445,8 +445,8 @@ checkRecord_align(char const *label,
     if (beVerbose)
       fprintf(stderr, " - FAILED, RELAX\n");
 
-    Abgn = max(Abgn - step, 0);
-    Aend = min(Aend + step, Alen);
+    Abgn = std::max(Abgn - step, 0);
+    Aend = std::min(Aend + step, Alen);
     maxEdit *= 1.2;
 
     goto tryAgain;
@@ -476,8 +476,8 @@ checkRecord(bedRecord   *record,
 
   double ratio = (double)Alen/ctgs_orig[record->_Aid].len;
 
-  int32  Abgn  = max(0,    (int32)(floor(record->_bgn*ratio)));
-  int32  Aend  = min(Alen, (int32)(ceil (record->_end*ratio)));
+  int32  Abgn  = std::max(0,    (int32)(floor(record->_bgn*ratio)));
+  int32  Aend  = std::min(Alen, (int32)(ceil (record->_end*ratio)));
 
   bool   success    = true;
   int32  alignScore = 0;

@@ -355,7 +355,7 @@ ovFile::loadBuffer(void) {
   uint64  cl64 = 0;                                                             //  MacOS is claiming size_t is different than uint64,
   uint64  clc  = loadFromFile(cl64, "ovFile::loadBuffer::cl", _file, false);    //  but I want to use uint64 here for portability.
 
-  resizeArray(_snappyBuffer, 0, _snappyLen, cl64, resizeArray_doNothing);
+  resizeArray(_snappyBuffer, 0, _snappyLen, cl64, _raAct::doNothing);
 
   uint64  sbc = loadFromFile(_snappyBuffer, "ovFile::loadBuffer::sb", cl64, _file, false);
 

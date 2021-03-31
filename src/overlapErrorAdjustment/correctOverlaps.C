@@ -157,7 +157,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Sorting overlaps.\n");
 
-  sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_bID());
+  std::sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_bID());
 
   //  Recompute overlaps
 
@@ -172,7 +172,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Sorting overlaps.\n");
 
-  sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_Order());
+  std::sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_Order());
 
   //  Dump the new erates
 

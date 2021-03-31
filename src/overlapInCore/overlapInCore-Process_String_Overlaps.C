@@ -29,7 +29,7 @@ uint64 computeMinimumKmers(uint64 kmerSize, double ovlLen, double erate) {
    if (G.Filter_By_Kmer_Count == 0) return G.Filter_By_Kmer_Count;
 
    ovlLen = (ovlLen < 0 ? ovlLen*-1.0 : ovlLen);
-   return max(G.Filter_By_Kmer_Count, computeExpected(kmerSize, ovlLen, erate));
+   return std::max(G.Filter_By_Kmer_Count, computeExpected(kmerSize, ovlLen, erate));
 }
 
 //  Choose the best overlap in  olap[0 .. (ct - 1)] .
@@ -58,8 +58,8 @@ Combine_Into_One_Olap(Olap_Info_t olap[], int ct, int deleted[]) {
   //  the same time.
 
   for  (i = 1;  i < ct;  i ++) {
-    int32 leni = 1 + min(olap[i].s_hi    - olap[i].s_lo,    olap[i].t_hi    - olap[i].t_lo);
-    int32 lenb = 1 + min(olap[best].s_hi - olap[best].s_lo, olap[best].t_hi - olap[best].t_lo);
+    int32 leni = 1 + std::min(olap[i].s_hi    - olap[i].s_lo,    olap[i].t_hi    - olap[i].t_lo);
+    int32 lenb = 1 + std::min(olap[best].s_hi - olap[best].s_lo, olap[best].t_hi - olap[best].t_lo);
 
     if ((olap[i].quality  < olap[best].quality) ||
         (olap[i].quality == olap[best].quality && leni > lenb))
@@ -453,7 +453,7 @@ Process_Matches (int * Start,
       if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
         if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len
              && 1 + T_Hi - T_Lo >= G.Min_Olap_Len) {
-          Olap_Len = 1 + min (S_Hi - S_Lo, T_Hi - T_Lo);
+          Olap_Len = 1 + std::min(S_Hi - S_Lo, T_Hi - T_Lo);
           Quality = (double) Errors / Olap_Len;
 
           if  (Errors <= WA->editDist->Error_Bound[Olap_Len]) {

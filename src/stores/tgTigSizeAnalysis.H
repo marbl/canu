@@ -22,9 +22,6 @@
 
 #include <vector>
 
-using namespace std;
-
-
 class tgTigSizeAnalysis {
 public:
   tgTigSizeAnalysis(uint64 genomeSize);
@@ -33,18 +30,18 @@ public:
   void         evaluateTig(tgTig *tig);
   void         finalize(void);
 
-  void         printSummary(FILE *out, char const *description, vector<uint32> &data);
+  void         printSummary(FILE *out, char const *description, std::vector<uint32> &data);
   void         printSummary(FILE *out);
 
 private:
-  uint64          genomeSize;
+  uint64               genomeSize;
 
-  vector<uint32>  lenSuggestRepeat;
-  vector<uint32>  lenSuggestCircular;
+  std::vector<uint32>  lenSuggestRepeat;
+  std::vector<uint32>  lenSuggestCircular;
 
-  vector<uint32>  lenUnassembled;
-  vector<uint32>  lenBubble;
-  vector<uint32>  lenContig;
+  std::vector<uint32>  lenUnassembled;
+  std::vector<uint32>  lenBubble;
+  std::vector<uint32>  lenContig;
 };
 
 

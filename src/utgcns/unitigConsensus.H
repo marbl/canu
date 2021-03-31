@@ -22,6 +22,9 @@
 
 #include "tgStore.H"
 
+#include <map>
+#include <set>
+
 class ALNoverlap;
 class NDalign;
 
@@ -83,15 +86,15 @@ private:
   void   addRead(uint32 readID,
                  uint32 askip, uint32 bskip,
                  bool complemented,
-                 map<uint32, sqRead *>     *inPackageRead);
+                 std::map<uint32, sqRead *>     *inPackageRead);
 
-  bool   initialize(map<uint32, sqRead *>     *reads);
+  bool   initialize(std::map<uint32, sqRead *>     *reads);
 
 public:
-  bool   generate(tgTig                     *tig_,
-                  char                       algorithm_,
-                  char                       aligner_,
-                  map<uint32, sqRead *>     *reads_ = NULL);
+  bool   generate(tgTig                       *tig_,
+                  char                         algorithm_,
+                  char                         aligner_,
+                  std::map<uint32, sqRead *>  *reads_ = NULL);
 
 private:
   void   switchToUncompressedCoordinates(void);
@@ -99,19 +102,19 @@ private:
 
   char  *generateTemplateStitch(void);
 
-  bool   initializeGenerate(tgTig                     *tig,
-                            map<uint32, sqRead *>     *reads = NULL);
+  bool   initializeGenerate(tgTig                       *tig,
+                            std::map<uint32, sqRead *>  *reads = NULL);
 
 
-  bool   generatePBDAG(tgTig                     *tig,
-                       char                       aligner,
-                       map<uint32, sqRead *>     *reads = NULL);
+  bool   generatePBDAG(tgTig                       *tig,
+                       char                         aligner,
+                       std::map<uint32, sqRead *>  *reads = NULL);
 
-  bool   generateQuick(tgTig                     *tig,
-                       map<uint32, sqRead *>     *reads = NULL);
+  bool   generateQuick(tgTig                       *tig,
+                       std::map<uint32, sqRead *>  *reads = NULL);
 
-  bool   generateSingleton(tgTig                     *tig,
-                           map<uint32, sqRead *>     *reads = NULL);
+  bool   generateSingleton(tgTig                       *tig,
+                           std::map<uint32, sqRead *>  *reads = NULL);
 
   void   findCoordinates(void);
   void   findRawAlignments(void);

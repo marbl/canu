@@ -36,8 +36,8 @@ sqRead::sqRead_decodeBlob(void) {
 
   assert((_rawU != NULL) || (_corU != NULL));
 
-  resizeArray(_rawBases, 0, _rawBasesAlloc, rawLength+1, resizeArray_doNothing);
-  resizeArray(_corBases, 0, _corBasesAlloc, corLength+1, resizeArray_doNothing);
+  resizeArray(_rawBases, 0, _rawBasesAlloc, rawLength+1, _raAct::doNothing);
+  resizeArray(_corBases, 0, _corBasesAlloc, corLength+1, _raAct::doNothing);
 
   _rawBases[0] = 0;  //  We don't need to clear the whole string, but clearing the first byte
   _corBases[0] = 0;  //  will leave strings that don't decode() below correctly terminated.
@@ -56,7 +56,7 @@ sqRead::sqRead_decodeBlob(void) {
     //  Decode the NAME?
 
     if      (strncmp(chunkName, "NAME", 4) == 0) {
-      resizeArray(_name, 0, _nameAlloc, chunkLen + 1, resizeArray_doNothing);
+      resizeArray(_name, 0, _nameAlloc, chunkLen + 1, _raAct::doNothing);
       memcpy(_name, chunk, chunkLen);
       _name[chunkLen] = 0;
     }

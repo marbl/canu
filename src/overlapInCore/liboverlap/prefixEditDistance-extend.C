@@ -54,9 +54,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   int32  T_Right_Begin = Match->Offset + Match->Len;
   int32  T_Right_Len   = T_Len - T_Right_Begin;
 
-  int32  Total_Olap = (min(Match->Start, Match->Offset) +
+  int32  Total_Olap = (std::min(Match->Start, Match->Offset) +
                        Match->Len +
-                       min(S_Right_Len, T_Right_Len));
+                       std::min(S_Right_Len, T_Right_Len));
 
   int32  Error_Limit = Error_Bound[Total_Olap];
 

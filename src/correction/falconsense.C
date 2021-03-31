@@ -27,9 +27,9 @@
 
 #include "falconConsensus.H"
 
+#include <map>
 #include <set>
-
-using namespace std;
+#include <vector>
 
 //  Define this to recreate the falconConsensus object for each read.
 //  This allows the precise memory size needed to process each read to be reported.
@@ -39,7 +39,7 @@ using namespace std;
 
 //  Duplicated in generateCorrectionLayouts.C
 void
-loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, set<uint32> &readList) {
+loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, std::set<uint32> &readList) {
   char  L[1024];
 
   if (readListName == NULL)
@@ -72,9 +72,9 @@ loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, set<uint32>
 
 
 sqRead *
-loadReadData(uint32                     readID,
-             sqStore                   *seqStore,
-             map<uint32, sqRead *>     &reads) {
+loadReadData(uint32                      readID,
+             sqStore                    *seqStore,
+             std::map<uint32, sqRead *> &reads) {
 
   if (reads.count(readID) == 0) {
     reads[readID] = new sqRead;
@@ -89,12 +89,12 @@ loadReadData(uint32                     readID,
 
 
 void
-generateFalconConsensus(falconConsensus           *fc,
-                        tgTig                     *layout,
-                        sqCache                   *seqCache,
-                        map<uint32, sqRead *>     &reads,
-                        bool                       trimToAlign,
-                        uint32                     minOlapLength) {
+generateFalconConsensus(falconConsensus            *fc,
+                        tgTig                      *layout,
+                        sqCache                    *seqCache,
+                        std::map<uint32, sqRead *> &reads,
+                        bool                        trimToAlign,
+                        uint32                      minOlapLength) {
 
   //  What rolls down stairs
   //  alone or in pairs,
@@ -203,7 +203,7 @@ generateFalconConsensus(falconConsensus           *fc,
   //  Update the layout with consensus sequence, positions, et cetera.
   //  If the whole string is lowercase (grrrr!) then bgn == end == 0.
 
-  resizeArrayPair(layout->_bases, layout->_quals, layout->_basesLen, layout->_basesMax, end - bgn + 1, resizeArray_doNothing);
+  resizeArrayPair(layout->_bases, layout->_quals, layout->_basesLen, layout->_basesMax, end - bgn + 1, _raAct::doNothing);
 
   for (uint32 ii=bgn; ii<end; ii++) {
     layout->_bases[ii-bgn] = fd->seq[ii];
@@ -222,7 +222,7 @@ generateFalconConsensus(falconConsensus           *fc,
 
   //  Clean up.  Remvoe all the reads[] we've loaded.
 
-  for (map<uint32, sqRead     *>::iterator it=reads.begin(); it != reads.end(); ++it)
+  for (auto it=reads.begin(); it != reads.end(); ++it)
     delete it->second;
 
   reads.clear();
@@ -258,7 +258,7 @@ main(int argc, char **argv) {
   uint32            idMin = 1;
   uint32            idMax = UINT32_MAX;
   char const       *readListName = NULL;
-  set<uint32>       readList;
+  std::set<uint32>  readList;
 
   uint32            numThreads         = omp_get_max_threads();
 
@@ -272,9 +272,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {   //  INPUTS
       seqName = argv[++arg];
 
@@ -340,8 +339,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if ((seqName == NULL) && (importName == NULL))
@@ -458,8 +455,8 @@ main(int argc, char **argv) {
   //  partitioning, but that would be wrong, because partitioning uses these objects to determine
   //  the base amount of memory needed.
 
-  falconConsensus           *fc = new falconConsensus(minOutputCoverage, minOlapIdentity, minOlapLength, restrictToOverlap);
-  map<uint32, sqRead *>      reads;
+  falconConsensus            *fc = new falconConsensus(minOutputCoverage, minOlapIdentity, minOlapLength, restrictToOverlap);
+  std::map<uint32, sqRead *>  reads;
 
   if (memoryLimit == 0) {
     fprintf(stdout, "    read    read evidence     corrected\n");
@@ -650,7 +647,7 @@ main(int argc, char **argv) {
     //  of times we need each read.  The sqCache can then figure out what
     //  reads to cache, and what reads to load on demand.
 
-    map<uint32,uint32>   readsToLoad;
+    std::map<uint32,uint32>   readsToLoad;
 
     for (uint32 ii=idMin; ii<=idMax; ii++) {
       if ((readList.size() > 0) &&      //  Skip reads not on the read list,

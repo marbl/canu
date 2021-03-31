@@ -20,24 +20,24 @@
 #include "sqStore.H"
 #include "tgStore.H"
 
+#include <vector>
 
 
 int
 main (int argc, char **argv) {
-  char const            *seqName        = NULL;
-  char const            *corName        = NULL;
-  int32                  corVers        = 1;
+  char const                *seqName        = NULL;
+  char const                *corName        = NULL;
+  int32                      corVers        = 1;
 
-  vector<char const *>   corInputs;
-  char const            *corInputsFile  = NULL;
+  std::vector<char const *>  corInputs;
+  char const                *corInputsFile  = NULL;
 
-  bool                   updateCorStore = false;
+  bool                       updateCorStore = false;
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
 
@@ -60,8 +60,6 @@ main (int argc, char **argv) {
       snprintf(s, 1024, "ERROR:  Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (seqName == NULL)

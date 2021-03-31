@@ -20,6 +20,9 @@
 
 #include "runtime.H"
 
+#include <vector>
+
+
 class trimStat {
 public:
   trimStat() {
@@ -66,10 +69,10 @@ public:
     system(N);
   };
 
-  uint32          nReads;
-  uint64          nBases;
+  uint32               nReads;
+  uint64               nBases;
 
-  vector<uint32>  histo;
+  std::vector<uint32>  histo;
 };
 
 #endif  //  TRIM_STAT_H

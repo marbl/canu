@@ -21,7 +21,6 @@
 #include "tgStore.H"
 
 #include <set>
-using namespace std;
 
 class overlapReadCache {
 public:
@@ -30,8 +29,8 @@ public:
 
 private:
   void         loadRead(uint32 id);
-  void         loadReads(set<uint32> reads);
-  void         markForLoading(set<uint32> &reads, uint32 id);
+  void         loadReads(std::set<uint32> reads);
+  void         markForLoading(std::set<uint32> &reads, uint32 id);
 
 public:
   void         loadReads(ovOverlap *ovl, uint32 nOvl);

@@ -18,10 +18,6 @@
 #include "trimReads.H"
 
 #include <vector>
-#include <functional>
-#include <algorithm>
-
-using namespace std;
 
 //  Generates plots for each trim.
 #undef  GNUPLOT
@@ -67,14 +63,14 @@ bestEdge(ovOverlap  *ovl,
   //  Trim again, to maximize overlap length.
   //
 
-  vector<uint32>    trim5;
-  vector<uint32>    trim3;
+  std::vector<uint32>    trim5;
+  std::vector<uint32>    trim3;
 
-  uint32            nContained = 0;
+  uint32                 nContained = 0;
 
 #ifdef GNUPLOT
-  vector<uint32>    trim5iid, trim5sco;
-  vector<uint32>    trim3iid, trim3sco;
+  std::vector<uint32>    trim5iid, trim5sco;
+  std::vector<uint32>    trim3iid, trim3sco;
 #endif
 
   //  For each overlap, add potential trim points where the overlap ends.

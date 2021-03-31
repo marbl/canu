@@ -248,11 +248,11 @@ extendAlignment(char  *aRead,  int32   abgn,  int32   aend,  int32  UNUSED(alen)
 
   //  Find an alignment, allowing extensions on the B read.
 
-  int32   bbgnExt   = max(0,    bbgn - slop);
-  int32   bendExt   = min(blen, bend + slop);
+  int32   bbgnExt   = std::max(0,    bbgn - slop);
+  int32   bendExt   = std::min(blen, bend + slop);
 
   //  This probably isn't exactly correct, but close enough.
-  int32   maxEdit  = (int32)ceil(max(aend - abgn, bendExt - bbgnExt) * maxErate * 1.1);
+  int32   maxEdit  = (int32)ceil(std::max(aend - abgn, bendExt - bbgnExt) * maxErate * 1.1);
 
   if (debug)
     fprintf(stderr, "  align %s %6u %6d-%-6d to %s %6u %6d-%-6d", Alabel, Aid, abgn, aend, Blabel, Bid, bbgnExt, bendExt);
@@ -303,7 +303,7 @@ finalAlignment(char *aRead, int32 alen,// char *Alabel, uint32 Aid,
   int32   bbgn      = (int32)       ovl->dat.ovl.bhg5;
   int32   bend      = (int32)blen - ovl->dat.ovl.bhg3;
 
-  int32   maxEdit  = (int32)ceil(max(aend - abgn, bend - bbgn) * maxErate * 1.1);
+  int32   maxEdit  = (int32)ceil(std::max(aend - abgn, bend - bbgn) * maxErate * 1.1);
 
   result = edlibAlign(aRead + abgn, aend - abgn,
                       bRead + bbgn, bend - bbgn,

@@ -101,9 +101,8 @@ main (int argc, char * argv []) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqStorePath = argv[++arg];
 
@@ -300,8 +299,6 @@ main (int argc, char * argv []) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (genomeSize   == 0)       err.push_back("Genome size (-gs option) must be supplied\n");
@@ -438,9 +435,9 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "filterOverlaps");
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen, maxReadLen);
-  OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
+  OC = new OverlapCache(ovlStorePath, prefix, std::max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
   OG = new BestOverlapGraph(erateGraph,
-                            max(erateMax, erateGraph),
+                            std::max(erateMax, erateGraph),
                             percentileError,
                             deviationGraph,
                             minOlapPercent,
@@ -531,7 +528,7 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "initial");
   contigs.reportErrorProfiles(prefix, "initial");
 
-  set<uint32>   placedReads;
+  std::set<uint32>   placedReads;
 
   placeUnplacedUsingAllOverlaps(contigs, deviationGraph, OG->reportErrorLimit(), prefix, placedReads);
 

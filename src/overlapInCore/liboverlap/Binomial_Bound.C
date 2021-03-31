@@ -104,7 +104,7 @@ void
 Initialize_Match_Limit(int32 *ml, double maxErate, int32 maxErrors) {
   int32 e = 0;
   int32 s = 1;
-  int32 l = min(maxErrors, 2000);  //  Compute the first 2000 values; set to maxErrors to do no estimation
+  int32 l = std::min(maxErrors, 2000);  //  Compute the first 2000 values; set to maxErrors to do no estimation
 
   //  The number of errors that are ignored in setting probability bound for terminating alignment
   //  extensions in edit distance calculations

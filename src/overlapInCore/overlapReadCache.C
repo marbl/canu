@@ -18,10 +18,6 @@
 #include "overlapReadCache.H"
 
 #include <set>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
 
 
 overlapReadCache::overlapReadCache(sqStore *seqStore_, uint64 memLimit) {
@@ -73,7 +69,7 @@ overlapReadCache::loadRead(uint32 id) {
 //  Make sure that the reads in 'reads' are in the cache.
 //  Ideally, these are just the reads we need to load.
 void
-overlapReadCache::loadReads(set<uint32> reads) {
+overlapReadCache::loadReads(std::set<uint32> reads) {
   uint32  nn = 0;
   uint32  nc = reads.size() / 25;
 
@@ -82,7 +78,7 @@ overlapReadCache::loadReads(set<uint32> reads) {
   //if (reads.size() > 0)
   //  fprintf(stderr, "loadReads()--  Need to load %u reads.\n", reads.size());
 
-  for (set<uint32>::iterator it=reads.begin(); it != reads.end(); ++it) {
+  for (auto it=reads.begin(); it != reads.end(); ++it) {
     //if ((++nn % nc) == 0)
     //  fprintf(stderr, "loadReads()-- %6.2f%% finished.\n", 100.0 * nn / reads.size());
 
@@ -109,7 +105,7 @@ overlapReadCache::loadReads(set<uint32> reads) {
 
 
 void
-overlapReadCache::markForLoading(set<uint32> &reads, uint32 id) {
+overlapReadCache::markForLoading(std::set<uint32> &reads, uint32 id) {
 
   //  Note that it was just used.
   readAge[id] = 0;
@@ -130,7 +126,7 @@ overlapReadCache::markForLoading(set<uint32> &reads, uint32 id) {
 
 void
 overlapReadCache::loadReads(ovOverlap *ovl, uint32 nOvl) {
-  set<uint32>     reads;
+  std::set<uint32>     reads;
 
   for (uint32 oo=0; oo<nOvl; oo++) {
     markForLoading(reads, ovl[oo].a_iid);
@@ -144,7 +140,7 @@ overlapReadCache::loadReads(ovOverlap *ovl, uint32 nOvl) {
 
 void
 overlapReadCache::loadReads(tgTig *tig) {
-  set<uint32>     reads;
+  std::set<uint32>     reads;
 
   markForLoading(reads, tig->tigID());
 

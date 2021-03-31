@@ -176,7 +176,7 @@ Prefix_Edit_Dist(char   *A, int32 m,
 
   WA->deltaLen = 0;
 
-  int32 shorter = min(m, n);
+  int32 shorter = std::min(m, n);
 
   int32 Row = 0;
   while ((Row < shorter) && (A[Row] == T[Row]))
@@ -206,8 +206,8 @@ Prefix_Edit_Dist(char   *A, int32 m,
     if (WA->Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space(WA);
 
-    Left  = max(Left  - 1, -e);
-    Right = min(Right + 1,  e);
+    Left  = std::max(Left  - 1, -e);
+    Right = std::min(Right + 1,  e);
 
     WA->Edit_Array_Lazy[e-1][Left]    = -2;
     WA->Edit_Array_Lazy[e-1][Left-1]  = -2;
@@ -216,8 +216,8 @@ Prefix_Edit_Dist(char   *A, int32 m,
 
     for (int32 d=Left; d<=Right; d++) {
       Row = 1 + WA->Edit_Array_Lazy[e-1][d];
-      Row = max(Row, WA->Edit_Array_Lazy[e-1][d-1]);
-      Row = max(Row, WA->Edit_Array_Lazy[e-1][d+1] + 1);
+      Row = std::max(Row, WA->Edit_Array_Lazy[e-1][d-1]);
+      Row = std::max(Row, WA->Edit_Array_Lazy[e-1][d+1] + 1);
 
       while ((Row < m) && (Row + d < n) && (A[Row] == T[Row + d]))
         Row++;
@@ -283,7 +283,7 @@ Prefix_Edit_Dist(char   *A, int32 m,
     //  Neither did overlapper.
 
     if ((Score > Max_Score) &&
-        (Best_e <= WA->G->Error_Bound[min(Longest, Longest + Best_d)])) {
+        (Best_e <= WA->G->Error_Bound[std::min(Longest, Longest + Best_d)])) {
       Max_Score        = Score;
       Max_Score_Len    = Longest;
       Max_Score_Best_d = Best_d;

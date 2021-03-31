@@ -21,8 +21,8 @@
 #include "ovStore.H"
 #include "tgStore.H"
 
+#include <map>
 #include <set>
-using namespace std;
 
 
 //  Stores read sequence, compressed, in memory.
@@ -111,8 +111,8 @@ public:
   //  Data loaders.
   void         sqCache_loadReads(bool verbose=false);
   void         sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose=false);
-  void         sqCache_loadReads(set<uint32> reads, bool verbose=false);
-  void         sqCache_loadReads(map<uint32, uint32> reads, bool verbose=false);
+  void         sqCache_loadReads(std::set<uint32> reads, bool verbose=false);
+  void         sqCache_loadReads(std::map<uint32, uint32> reads, bool verbose=false);
   void         sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose=false);
   void         sqCache_loadReads(tgTig *tig, bool verbose=false);
 

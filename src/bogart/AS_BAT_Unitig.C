@@ -77,9 +77,9 @@ Unitig::cleanUp(void) {
 
   _length = 0;
 
-  for (uint32 fi=0; fi<ufpath.size(); fi++) {          //  Could use position.max(), but since
-    _length = max(_length, ufpath[fi].position.bgn);   //  it too calls max(), there's no win
-    _length = max(_length, ufpath[fi].position.end);
+  for (uint32 fi=0; fi<ufpath.size(); fi++) {               //  Could use position.max(), but since
+    _length = std::max(_length, ufpath[fi].position.bgn);   //  it too calls max(), there's no win
+    _length = std::max(_length, ufpath[fi].position.end);
   }
 }
 
@@ -88,7 +88,7 @@ Unitig::cleanUp(void) {
 void
 Unitig::computeArrivalRate(const char *UNUSED(prefix),
                            const char *UNUSED(label),
-                           vector<int32> *hist) {
+                           std::vector<int32> *hist) {
 
   sort();
 
@@ -224,8 +224,8 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
       if ((rdAhi <= rdBlo) || (rdBhi <= rdAlo))              //  Reads in same tig but not overlapping?
         continue;                                            //  Don't care about this overlap.
 
-      uint32 bgn = max(rdAlo, rdBlo);
-      uint32 end = min(rdAhi, rdBhi);
+      uint32 bgn = std::max(rdAlo, rdBlo);
+      uint32 end = std::min(rdAhi, rdBhi);
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
       writeLog("errorProfile()-- olap %5u read %7u read %7u at %9u-%9u\n",

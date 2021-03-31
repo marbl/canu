@@ -28,8 +28,6 @@
 #include <vector>
 #include <queue>
 
-using namespace std;
-
 
 #define BATCH_SIZE      100
 #define IN_QUEUE_LENGTH 3
@@ -114,33 +112,33 @@ public:
 
 
 public:
-  char                  *_seqName;   //  Input from a Canu seqStore
-  uint32                 _idMin;
-  uint32                 _idCur;
-  uint32                 _idMax;
-  sqStore               *_seqStore;
-  sqRead                 _read;
-  uint32                 _numReads;
+  char                     *_seqName;   //  Input from a Canu seqStore
+  uint32                    _idMin;
+  uint32                    _idCur;
+  uint32                    _idMax;
+  sqStore                  *_seqStore;
+  sqRead                    _read;
+  uint32                    _numReads;
 
-  queue<dnaSeqFile *>    _seqs;      //  Input from FASTA/FASTQ files.
-  uint32                 _seqCounts; // read counts for current file
+  std::queue<dnaSeqFile *>  _seqs;      //  Input from FASTA/FASTQ files.
+  uint32                    _seqCounts; // read counts for current file
 
-  vector<hapData *>      _haps;
+  std::vector<hapData *>    _haps;
 
-  double                 _minRatio;
-  uint32                 _minOutputLength;
+  double                    _minRatio;
+  uint32                    _minOutputLength;
 
-  char                  *_ambiguousName;
-  compressedFileWriter  *_ambiguousWriter;
-  FILE                  *_ambiguous;
-  uint32                 _ambiguousReads;
-  uint64                 _ambiguousBases;
+  char                     *_ambiguousName;
+  compressedFileWriter     *_ambiguousWriter;
+  FILE                     *_ambiguous;
+  uint32                    _ambiguousReads;
+  uint64                    _ambiguousBases;
 
-  uint32                 _filteredReads;
-  uint64                 _filteredBases;
+  uint32                    _filteredReads;
+  uint64                    _filteredBases;
 
-  uint32                 _numThreads;
-  uint32                 _maxMemory;
+  uint32                    _numThreads;
+  uint32                    _maxMemory;
 };
 
 
@@ -190,12 +188,12 @@ public:
   };
 
   //  Allocate psuedo-page size chunks of characters.
-  void    set(char *ins, uint32 insLen=0) {
+  void    set(char const *ins, uint32 insLen=0) {
 
     if (insLen == 0)
       insLen = strlen(ins);
 
-    resizeArray(_str, _strLen, _strMax, 8192 * ((insLen + 8192 + 1) / 8192), resizeArray_doNothing);
+    resizeArray(_str, _strLen, _strMax, 8192 * ((insLen + 8192 + 1) / 8192), _raAct::doNothing);
 
     assert(insLen + 1 <= _strMax);
 
@@ -549,7 +547,7 @@ loadReadBatch(void *G) {
          fprintf(stdout, "-- Begin    processing file %s\n", g->_seqs.front()->filename());
 
       if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
-        s->_names[rr].set(seq.name());                      //  enough, save it to our list.
+        s->_names[rr].set(seq.ident());                     //  enough, save it to our list.
         s->_bases[rr].set(seq.bases(), seq.length());
         s->_files[rr] = UINT32_MAX;
 
@@ -705,9 +703,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {   //  INPUT READS and RANGE TO PROCESS
       G->_seqName = argv[++arg];
 
@@ -746,8 +743,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if ((G->_seqName == NULL) && (G->_seqs.size() == 0))

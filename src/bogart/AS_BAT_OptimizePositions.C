@@ -204,14 +204,14 @@ Unitig::optimize_isCompatible(uint32       ii,
 
 
 void
-Unitig::optimize_initPlace(uint32        ii,
-                           optPos       *op,
-                           optPos       *np,
-                           bool          firstPass,
-                           set<uint32>  &failed,
-                           bool          beVerbose) {
+Unitig::optimize_initPlace(uint32             ii,
+                           optPos            *op,
+                           optPos            *np,
+                           bool               firstPass,
+                           std::set<uint32>  &failed,
+                           bool               beVerbose) {
   uint32   iid  = ufpath[ii].ident;
-  vector<int32> hs;
+  std::vector<int32> hs;
 
   if ((firstPass == false) && (failed.count(iid) == 0))  //  If the second pass and not
     return;                                              //  failed, do nothing.
@@ -303,8 +303,8 @@ Unitig::optimize_recompute(uint32        iid,
   uint32       ovlLen  = 0;
   BAToverlap  *ovl     = OC->getOverlaps(iid, ovlLen);
 
-  vector<int32> hsmin;
-  vector<int32> hsmax;
+  std::vector<int32> hsmin;
+  std::vector<int32> hsmax;
 
   if ((beVerbose) && (logFileFlagSet(LOG_OPTIMIZE_POSITIONS))) {
     writeLog("optimize()--\n");
@@ -549,8 +549,8 @@ TigVector::optimizePositions(const char *prefix, const char *label) {
 
 #pragma omp parallel for schedule(dynamic, tiBlockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
-    Unitig       *tig = operator[](ti);
-    set<uint32>   failed;
+    Unitig            *tig = operator[](ti);
+    std::set<uint32>   failed;
 
     if ((tig == NULL) || (tig->ufpath.size() == 1))
       continue;

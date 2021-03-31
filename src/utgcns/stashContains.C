@@ -86,7 +86,7 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
       S.bBack += posLen[ci].len;
     }
 
-    hiEnd = max(hi, hiEnd);
+    hiEnd = std::max(hi, hiEnd);
   }
 
   //  Sort by length, longest first, then verify we're sorted.
@@ -162,17 +162,17 @@ tgTig::unstashContains(void) {
   double  sf     = 1.0;
 
   for (uint32 ci=0; ci<_stashedLen; ci++)
-    oldMax = max(oldMax, _stashed[ci].max());
+    oldMax = std::max(oldMax, _stashed[ci].max());
 
   for (uint32 ci=0; ci<_childrenLen; ci++)
-    newMax = max(newMax, _children[ci].max());
+    newMax = std::max(newMax, _children[ci].max());
 
   if (oldMax > 0)
     sf = (double)newMax / oldMax;
 
   //  Build a map from child ID to it's current position.
 
-  map<uint32, uint32>   idmap;
+  std::map<uint32, uint32>   idmap;
 
   for (uint32 ci=0; ci < _childrenLen; ci++)
     idmap[_children[ci].ident()] = ci;

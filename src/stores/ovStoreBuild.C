@@ -21,10 +21,8 @@
 #include "ovStore.H"
 #include "ovStoreConfig.H"
 
-#include <vector>
 #include <algorithm>
-
-using namespace std;
+#include <vector>
 
 
 static
@@ -68,9 +66,8 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg=1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
@@ -88,8 +85,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (ovlName == NULL)
@@ -256,7 +251,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "-- SORT OVERLAPS --\n");
   fprintf(stderr, "\n");
 
-  sort(ovls, ovls + ovlsLoaded);
+  std::sort(ovls, ovls + ovlsLoaded);
 
   //  Write.
 

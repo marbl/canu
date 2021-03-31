@@ -160,8 +160,8 @@ NDalgorithm::forward(char    *A,   int32 Alen,
         return;
       }
 
-    Left  = max (Left  - 1, -ei);
-    Right = min (Right + 1,  ei);
+    Left  = std::max(Left  - 1, -ei);
+    Right = std::min(Right + 1,  ei);
 
     //fprintf(stderr, "FORWARD ei=%d Left=%d Right=%d\n", ei, Left, Right);
 

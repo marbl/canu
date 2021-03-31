@@ -205,7 +205,7 @@ Process_Olap(Olap_Info_t        *olap,
   int32    a_end = 0;
   int32    b_end = 0;
 
-  uint32   olap_len = min(a_part_len, b_part_len);
+  uint32   olap_len = std::min(a_part_len, b_part_len);
 
   bool     match_to_end = false;
 
@@ -236,7 +236,7 @@ Process_Olap(Olap_Info_t        *olap,
   //Display_Alignment(a_part, a_end, b_part, b_end, wa->ped.delta, wa->ped.deltaLen);//, wa->G->reads[ri].clear_len - a_offset);
 
   if ((match_to_end == false) && (a_end + a_offset >= wa->G->reads[ri].clear_len - 1)) {
-    olap_len = min(a_end, b_end);
+    olap_len = std::min(a_end, b_end);
     match_to_end = true;
   }
 

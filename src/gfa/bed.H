@@ -21,6 +21,7 @@
 #include "runtime.H"
 #include "strings.H"
 
+#include <vector>
 
 
 class bedRecord {
@@ -56,7 +57,7 @@ public:
   bool    saveFile(char *outName);
 
 public:
-  vector<bedRecord *>    _records;
+  std::vector<bedRecord *>    _records;
 };
 
 

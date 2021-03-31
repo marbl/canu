@@ -142,7 +142,7 @@ alignReadsToTemplate(falconInput    *evidence,
     if (evidence[j].readLength < minOlapLength)
       continue;
 
-    int32 tolerance =  (int32)ceil(min(evidence[j].readLength, evidence[0].readLength) * maxDifference * 1.1);
+    int32 tolerance =  (int32)ceil(std::min(evidence[j].readLength, evidence[0].readLength) * maxDifference * 1.1);
 
     int32  alignBgn = (restrictToOverlap == true) ? evidence[j].placedBgn : 0;
     int32  alignEnd = (restrictToOverlap == true) ? evidence[j].placedEnd : evidence[0].readLength;

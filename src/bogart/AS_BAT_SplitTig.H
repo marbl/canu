@@ -33,8 +33,6 @@
 
 #include <vector>
 
-using namespace std;
-
 
 //  Specifies a read end to break a tig at.  No other reads are allowed
 //  to pass this read end in the post-split tigs.
@@ -64,9 +62,9 @@ public:
 
 
 void
-splitTigAtReadEnds(TigVector                &tigs,
-                   Unitig                   *tig,
-                   vector<breakReadEnd>     &BP,
-                   intervalList<int32>      &tigMarksR);
+splitTigAtReadEnds(TigVector                 &tigs,
+                   Unitig                    *tig,
+                   std::vector<breakReadEnd> &BP,
+                   intervalList<int32>       &tigMarksR);
 
 #endif  //  INCLUDE_AS_BAT_SPLIT_TIG

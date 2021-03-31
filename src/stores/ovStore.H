@@ -114,8 +114,8 @@ public:
   uint32     maxID(void)  { return(_maxID); };
 
   void       addOverlaps(uint32 curID, uint32 nOverlaps=1)   {
-    _bgnID = min(_bgnID, curID);
-    _endID = max(_endID, curID);
+    _bgnID = std::min(_bgnID, curID);
+    _endID = std::max(_endID, curID);
 
     _numOlaps += nOverlaps;
   };
@@ -268,7 +268,7 @@ public:
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
   //  of evalues must agree.
 
-  void               addEvalues(vector<char const *> &fileList);
+  void               addEvalues(std::vector<char const *> &fileList);
 
   //  Return the statistics associated with this store
 

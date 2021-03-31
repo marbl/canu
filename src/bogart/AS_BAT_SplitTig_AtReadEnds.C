@@ -54,10 +54,10 @@ public:
 
 
 void
-splitTigAtReadEnds(TigVector                &tigs,
-                   Unitig                   *tig,
-                   vector<breakReadEnd>     &BE,
-                   intervalList<int32>      &tigMarksR) {
+splitTigAtReadEnds(TigVector                  &tigs,
+                   Unitig                     *tig,
+                   std::vector<breakReadEnd>  &BE,
+                   intervalList<int32>        &tigMarksR) {
 
   //  Convert the list of breakReadEnd into a list of breakDesc.
   //
@@ -243,7 +243,7 @@ splitTigAtReadEnds(TigVector                &tigs,
     if (nPlaces[fi] == 1) {
       uint32  bp = rPlace[fi];
 
-      breaks[bp].lowCoord = min(breaks[bp].lowCoord, read.position.min());
+      breaks[bp].lowCoord = std::min(breaks[bp].lowCoord, read.position.min());
 
       if (isRepeat == true)   breaks[bp].nRepeat++;
       else                    breaks[bp].nUnique++;

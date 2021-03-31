@@ -73,8 +73,8 @@ adjustFlipped(clearRangeFile  *iniClr,
   //fprintf(stderr, "frac a %.20f %.20f b %.20f %.20f\n", afracbgn, afracend, bfracbgn, bfracend);
   //fprintf(stderr, "frac a %.20f %.20f b %.20f %.20f\n", afracbgn * alen, afracend * alen, bfracbgn * blen, bfracend * blen);
 
-  double  maxbgn = max(afracbgn, bfracbgn);
-  double  maxend = max(afracend, bfracend);
+  double  maxbgn = std::max(afracbgn, bfracbgn);
+  double  maxend = std::max(afracend, bfracend);
 
   //fprintf(stderr, "frac a %.20f %.20f b %.20f %.20f\n", maxbgn * alen, maxend * alen, maxbgn * blen, maxend * blen);
 

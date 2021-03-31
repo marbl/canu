@@ -62,12 +62,12 @@ const uint32  placeRead_fullMatch  = 0x01;   //  Return only alignments for the 
 const uint32  placeRead_noExtend   = 0x02;   //  Return only alignments contained in the tig
 
 bool
-placeReadUsingOverlaps(TigVector                &tigs,
-                       Unitig                   *target,
-                       uint32                    fid,
-                       vector<overlapPlacement> &placements,
-                       uint32                    flags = placeRead_all,
-                       double                    errorLimit = 1.0);
+placeReadUsingOverlaps(TigVector                     &tigs,
+                       Unitig                        *target,
+                       uint32                         fid,
+                       std::vector<overlapPlacement> &placements,
+                       uint32                         flags = placeRead_all,
+                       double                         errorLimit = 1.0);
 
 
 #endif  //  INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS

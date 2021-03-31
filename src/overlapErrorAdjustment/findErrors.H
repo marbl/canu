@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 
-using namespace std;
 
 
 
@@ -294,14 +293,14 @@ struct pedWorkArea_t {
 
   feParameters *G;
 
-  int32              delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
-  int32              deltaStack[AS_MAX_READLEN];
-  int32              deltaLen;
+  int32                delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
+  int32                deltaStack[AS_MAX_READLEN];
+  int32                deltaLen;
 
-  vector<int32 *>    alloc;            //  Allocated blocks, don't use directly.
+  std::vector<int32 *> alloc;            //  Allocated blocks, don't use directly.
 
-  int32            **Edit_Array_Lazy;  //  Doled out space.
-  int32              Edit_Array_Max;   //  Former MAX_ERRORS
+  int32              **Edit_Array_Lazy;  //  Doled out space.
+  int32                Edit_Array_Max;   //  Former MAX_ERRORS
 };
 
 

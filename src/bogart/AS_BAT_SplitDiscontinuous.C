@@ -64,7 +64,7 @@ tigIsContiguous(Unitig *tig, uint32 minOverlap) {
     if (frg->position.min() > maxEnd - minOverlap)
       return(false);
 
-    maxEnd = max(maxEnd, frg->position.max());
+    maxEnd = std::max(maxEnd, frg->position.max());
   }
 
   return(true);
@@ -129,7 +129,7 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
       if (bgn <= maxEnd - minOverlap) {
         assert(splitReadsLen < splitReadsMax);
         splitReads[splitReadsLen++] = *frg;
-        maxEnd = max(maxEnd, end);
+        maxEnd = std::max(maxEnd, end);
         continue;
       }
 

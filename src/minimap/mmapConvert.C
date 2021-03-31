@@ -21,17 +21,15 @@
 
 #include <vector>
 
-using namespace std;
-
 int
 main(int argc, char **argv) {
-  char           *outName  = NULL;
-  char           *seqName  = NULL;
-  bool		  partialOverlaps = false;
-  uint32          minOverlapLength = 0;
-  double          erate = 0;
+  char                *outName  = NULL;
+  char                *seqName  = NULL;
+  bool                 partialOverlaps = false;
+  uint32               minOverlapLength = 0;
+  double               erate = 0;
 
-  vector<char *>  files;
+  std::vector<char *>  files;
 
   int32     arg = 1;
   int32     err = 0;

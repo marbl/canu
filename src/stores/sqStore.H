@@ -21,10 +21,6 @@
 #include "runtime.H"
 #include "files.H"
 
-#include <vector>
-
-using namespace std;
-
 //  Versions:
 //
 //   4 - first to be called seqStore.               18 APR 2018.  01d182304a951846677a641197bb761674a5e662

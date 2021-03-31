@@ -145,9 +145,9 @@ clearRangeFile::reallocData(uint64 newmax, bool exact) {
   if (newmax < 128 * 1024)
     newmax = 128 * 1024;
 
-  setArraySize(_bgn,   _maxAlloc, unused, newmax, resizeArray_copyData | resizeArray_clearNew);
-  setArraySize(_end,   _maxAlloc, unused, newmax, resizeArray_copyData | resizeArray_clearNew);
-  setArraySize(_flags, _maxAlloc, unused, newmax, resizeArray_copyData | resizeArray_clearNew);
+  setArraySize(_bgn,   _maxAlloc, unused, newmax, _raAct::copyData | _raAct::clearNew);
+  setArraySize(_end,   _maxAlloc, unused, newmax, _raAct::copyData | _raAct::clearNew);
+  setArraySize(_flags, _maxAlloc, unused, newmax, _raAct::copyData | _raAct::clearNew);
 
   _maxAlloc = newmax;
 }

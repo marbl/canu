@@ -22,7 +22,6 @@
 #include "runtime.H"
 
 #include <vector>
-using namespace std;
 
 
 
@@ -42,7 +41,7 @@ public:
     _readToSlice   = NULL;
   };
 
-  ovStoreConfig(vector<char const *> &names, uint32 maxID) {
+  ovStoreConfig(std::vector<char const *> &names, uint32 maxID) {
     _maxID         = maxID;
 
     _numBuckets    = 0;

@@ -62,7 +62,7 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
                               double               deviation,
                               double               similarity,
                               const char   *UNUSED(prefix),
-                              set<uint32>         &placedReads) {
+                              std::set<uint32>    &placedReads) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -116,7 +116,7 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
 
     //  Place the read.
 
-    vector<overlapPlacement>   placements;
+    std::vector<overlapPlacement>   placements;
 
     placeReadUsingOverlaps(tigs, NULL, fid, placements, placeRead_fullMatch);
 

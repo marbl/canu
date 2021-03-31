@@ -35,10 +35,10 @@
 
 static
 void
-logAGbuild(uint32                     fi,
-           uint32                     pp,
-           vector<overlapPlacement>  &placements,
-           const char                *message) {
+logAGbuild(uint32                          fi,
+           uint32                          pp,
+           std::vector<overlapPlacement>  &placements,
+           const char                     *message) {
 
   if (logFileFlagSet(LOG_PLACE_UNPLACED) == false)
     return;
@@ -57,14 +57,14 @@ logAGbuild(uint32                     fi,
 
 static
 void
-logAGbuild(uint32                     fi,
-           uint32                     pp,
-           vector<overlapPlacement>  &placements,
-           bool                       is5,
-           bool                       is3,
-           bool                       onLeft,
-           bool                       onRight,
-           const char                *message) {
+logAGbuild(uint32                          fi,
+           uint32                          pp,
+           std::vector<overlapPlacement>  &placements,
+           bool                            is5,
+           bool                            is3,
+           bool                            onLeft,
+           bool                            onRight,
+           const char                     *message) {
 
   if (logFileFlagSet(LOG_PLACE_UNPLACED) == false)
     return;
@@ -85,11 +85,11 @@ logAGbuild(uint32                     fi,
 
 static
 void
-logAGbuild(uint32                           fi,
-           uint32                           pp,
-           vector<overlapPlacement> const  &placements,
-           BestPlacement const             &bp,
-           char const                      *message) {
+logAGbuild(uint32                                fi,
+           uint32                                pp,
+           std::vector<overlapPlacement> const  &placements,
+           BestPlacement const                  &bp,
+           char const                           *message) {
 
   if (logFileFlagSet(LOG_PLACE_UNPLACED) == false)
     return;
@@ -138,11 +138,11 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
   }
 
   writeStatus("\n");
-  writeStatus("AssemblyGraph()-- allocating vectors for placements, %.3fMB\n",   //  vector<> is 24 bytes, pretty tiny.
-              (sizeof(vector<BestPlacement>) + sizeof(vector<BestReverse>)) * (fiLimit + 1) / 1048576.0);
+  writeStatus("AssemblyGraph()-- allocating vectors for placements, %.3fMB\n",
+              (sizeof(std::vector<BestPlacement>) + sizeof(std::vector<BestReverse>)) * (fiLimit + 1) / 1048576.0);
 
-  _pForward = new vector<BestPlacement> [fiLimit + 1];
-  _pReverse = new vector<BestReverse>   [fiLimit + 1];
+  _pForward = new std::vector<BestPlacement> [fiLimit + 1];
+  _pReverse = new std::vector<BestReverse>   [fiLimit + 1];
 
   writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d thread%s.\n",
               nToPlaceContained + nToPlace,
@@ -169,11 +169,11 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
     //  Find ALL potential placements, regardless of error rate.
 
-    uint32                     fiLen  = RI->readLength(fi);
-    ufNode                    *fiRead = &tigs[fiTigID]->ufpath[ tigs.ufpathIdx(fi) ];
-    int32                      fiMin  = fiRead->position.min();
-    int32                      fiMax  = fiRead->position.max();
-    vector<overlapPlacement>   placements;
+    uint32                         fiLen  = RI->readLength(fi);
+    ufNode                        *fiRead = &tigs[fiTigID]->ufpath[ tigs.ufpathIdx(fi) ];
+    int32                          fiMin  = fiRead->position.min();
+    int32                          fiMax  = fiRead->position.max();
+    std::vector<overlapPlacement>  placements;
 
     placeReadUsingOverlaps(tigs, NULL, fi, placements, placeRead_all, repeatLimit);
 
@@ -256,7 +256,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //
       //  The short read is placed at (1), but also has an overlap to us at (2).
 
-      set<uint32>  tigReads;
+      std::set<uint32>  tigReads;
 
       for (uint32 rr=placements[pp].tigFidx; rr <= placements[pp].tigLidx; rr++)
         tigReads.insert(tig->ufpath[rr].ident);

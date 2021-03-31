@@ -306,9 +306,9 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
   // reverse the sequence
 
-  reverse(fd->seq, fd->seq + fd->len);
-  reverse(fd->eqv, fd->eqv + fd->len);
-  reverse(fd->pos, fd->pos + fd->len);
+  std::reverse(fd->seq, fd->seq + fd->len);
+  std::reverse(fd->eqv, fd->eqv + fd->len);
+  std::reverse(fd->pos, fd->pos + fd->len);
 
   updateRSS();
 

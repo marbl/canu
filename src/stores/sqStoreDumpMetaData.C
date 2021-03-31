@@ -20,8 +20,7 @@
 #include "strings.H"
 
 #include <map>
-
-using namespace std;
+#include <vector>
 
 
 enum class dumpType {
@@ -245,15 +244,15 @@ dumpReads(sqStore *seq, uint32 bgnID, uint32 endID, sqRead_which w, bool showAll
 
 
 void
-doSummarize_lengthHistogram(vector<uint64> lengths,
-                            uint64         genomeSize,
-                            bool           limitTo1x);
+doSummarize_lengthHistogram(std::vector<uint64> lengths,
+                            uint64              genomeSize,
+                            bool                limitTo1x);
 
 
 void
 dumpHistogram(sqStore *seq, uint32 bgnID, uint32 endID, bool dumpLengths) {
-  vector<uint64>  lengths;
-  uint64          nBases = 0;
+  std::vector<uint64>  lengths;
+  uint64               nBases = 0;
 
   //  Build a vector of sequence lengths, pass that to 'sequence' to
   //  generate a pretty picture.
@@ -292,7 +291,7 @@ dumpHistogram(sqStore *seq, uint32 bgnID, uint32 endID, bool dumpLengths) {
   }
 
   else {
-    sort(lengths.begin(), lengths.end(), less<uint64>());
+    std::sort(lengths.begin(), lengths.end(), std::less<uint64>());
 
     for (uint64 ii=0; ii<lengths.size(); ii++)
       fprintf(stdout, "%lu\n", lengths[ii]);

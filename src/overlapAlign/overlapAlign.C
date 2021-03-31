@@ -34,6 +34,7 @@
 
 #include "clearRangeFile.H"
 
+#include <vector>
 
 
 void *
@@ -165,7 +166,7 @@ saveClearRanges(trGlobalData *g) {
 
 
 void
-loadClearRanges(trGlobalData *g, vector<char const *> &trimFiles) {
+loadClearRanges(trGlobalData *g, std::vector<char const *> &trimFiles) {
 
   //  For each clear range file, load the data, then copy to
   //  our storage.
@@ -296,13 +297,12 @@ int
 main(int argc, char **argv) {
   trGlobalData   *g = new trGlobalData;
 
-  vector<char const *>  trimFiles;
+  std::vector<char const *>  trimFiles;
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0)
       g->seqStoreName = argv[++arg];
 
@@ -365,8 +365,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
 #if 0

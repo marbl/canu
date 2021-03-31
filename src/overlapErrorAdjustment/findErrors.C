@@ -444,7 +444,7 @@ main(int argc, char **argv) {
 
   //  Sort overlaps, process each.
 
-  sort(G->olaps, G->olaps + G->olapsLen);
+  std::sort(G->olaps, G->olaps + G->olapsLen);
 
   uint64  passedOlaps = 0;
   uint64  failedOlaps = 0;

@@ -434,7 +434,7 @@ public:
       uint32  bgn = seq->sqReadSeq_clearBgn();   //  Only valid if trimmed, do not make global!
       uint32  end = seq->sqReadSeq_clearEnd();
 
-      resizeArray(_retBases, 0, _retBasesAlloc, end - bgn + 1, resizeArray_doNothing);
+      resizeArray(_retBases, 0, _retBasesAlloc, end - bgn + 1, _raAct::doNothing);
 
       memmove(_retBases, bases + bgn, end - bgn);
       _retBases[end-bgn] = 0;
@@ -446,7 +446,7 @@ public:
     //  longer than the uncompressed sequence, so we can allocate that much,
     //  instead of tracking down the actual length.
 
-    resizeArray(_retBases, 0, _retBasesAlloc, basesLen + 1, resizeArray_doNothing);
+    resizeArray(_retBases, 0, _retBasesAlloc, basesLen + 1, _raAct::doNothing);
 
     homopolyCompress(bases, basesLen, _retBases);
 

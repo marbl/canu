@@ -275,11 +275,10 @@ main (int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
   uint32 seed = time(NULL);
 
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if      (strcmp(argv[arg], "-S") == 0) {
       seqStorePath = argv[++arg];
     }
@@ -321,8 +320,6 @@ main (int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (genomeSize   == 0)       err.push_back("Genome size (-gs option) must be supplied\n");
@@ -364,7 +361,7 @@ main (int argc, char **argv) {
   setLogFile(prefix, "loadInformation");
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen, maxReadLen);
-  OC = new OverlapCache(ovlStorePath, prefix, max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
+  OC = new OverlapCache(ovlStorePath, prefix, std::max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
 
   //
 
@@ -394,7 +391,7 @@ main (int argc, char **argv) {
 
     setLogFile(prefix, "placeContains");
 
-    set<uint32>   placedReads;
+    std::set<uint32>   placedReads;
 
     placeUnplacedUsingAllOverlaps(contigs,
                                   deviationGraph,

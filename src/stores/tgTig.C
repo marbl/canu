@@ -24,6 +24,7 @@
 #include "strings.H"
 #include "intervalList.H"
 
+#include <map>
 
 
 void
@@ -324,7 +325,7 @@ tgTig::loadFromBuffer(readBuffer *B) {
 
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
-  resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
+  resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, _raAct::doNothing);
 
   if (_basesLen > 0) {
     B->read(_bases, _basesLen);
@@ -336,7 +337,7 @@ tgTig::loadFromBuffer(readBuffer *B) {
 
   //  Allocate space for reads and alignments, and load them.
 
-  resizeArray(_children,    0, _childrenMax,    _childrenLen,    resizeArray_doNothing);
+  resizeArray(_children,    0, _childrenMax,    _childrenLen,    _raAct::doNothing);
 
   if (_childrenLen > 0)
     B->read(_children, sizeof(tgPosition) * _childrenLen);
@@ -411,7 +412,7 @@ tgTig::loadFromStream(FILE *F) {
   //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
   if (_basesLen > 0) {
-    resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
+    resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, _raAct::doNothing);
     loadFromFile(_bases, "tgTig::loadFromStream::bases", _basesLen, F);
     loadFromFile(_quals, "tgTig::loadFromStream::quals", _basesLen, F);
 
@@ -421,7 +422,7 @@ tgTig::loadFromStream(FILE *F) {
 
   //  Allocate space for reads and alignments, and load them.
 
-  resizeArray(_children,    0, _childrenMax,    _childrenLen,    resizeArray_doNothing);
+  resizeArray(_children,    0, _childrenMax,    _childrenLen,    _raAct::doNothing);
 
   if (_childrenLen > 0)
     loadFromFile(_children, "tgTig::savetoStream::children", _childrenLen, F);
@@ -553,7 +554,7 @@ tgTig::loadLayout(FILE *F) {
 
     } else if (strcmp(W[0], "len") == 0) {
       _layoutLen = strtouint32(W[1]);
-      resizeArray(LINE, LINElen, LINEmax, _layoutLen + 1, resizeArray_doNothing);
+      resizeArray(LINE, LINElen, LINEmax, _layoutLen + 1, _raAct::doNothing);
 
     } else if (((strcmp(W[0], "cns") == 0) || (strcmp(W[0], "qlt") == 0)) && (W.numWords() == 1)) {
       _basesLen = 0;
@@ -562,7 +563,7 @@ tgTig::loadLayout(FILE *F) {
       _basesLen  = strlen(W[1]);
       _layoutLen = _basesLen;    //  Must be enforced, probably should be an explicit error.
 
-      resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, resizeArray_doNothing);
+      resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, _raAct::doNothing);
 
       if (W[0][0] == 'c')
         memcpy(_bases, W[1], sizeof(char) * (_basesLen + 1));  //  W[1] is null terminated, and we just copy it in
@@ -598,7 +599,7 @@ tgTig::loadLayout(FILE *F) {
 
     } else if (strcmp(W[0], "numChildren") == 0) {
       //_numChildren = strtouint32(W[1]);
-      //resizeArray(_children, 0, _childrenMax, _childrenLen, resizeArray_doNothing);
+      //resizeArray(_children, 0, _childrenMax, _childrenLen, _raAct::doNothing);
 
     } else if ((strcmp(W[0], "read")   == 0) ||
                (strcmp(W[0], "unitig") == 0) ||
@@ -608,7 +609,7 @@ tgTig::loadLayout(FILE *F) {
         fprintf(stderr, "tgTig::loadLayout()-- '%s' line " F_U64 " invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
       if (nChildren >= _childrenLen) {
-        resizeArray(_children, _childrenLen, _childrenMax, _childrenLen + 1, resizeArray_copyData);
+        resizeArray(_children, _childrenLen, _childrenMax, _childrenLen + 1, _raAct::copyData);
         _childrenLen++;
       }
 
@@ -713,10 +714,10 @@ tgTig::exportData(writeBuffer  *exportDataFile,
 //  Returns true if data was loaded, but minimal checking is done.
 //
 bool
-tgTig::importData(readBuffer                 *importDataFile,
-                  map<uint32, sqRead     *>  &reads,
-                  FILE                       *layoutOutput,
-                  FILE                       *sequenceOutput) {
+tgTig::importData(readBuffer                  *importDataFile,
+                  std::map<uint32, sqRead *>  &reads,
+                  FILE                        *layoutOutput,
+                  FILE                        *sequenceOutput) {
 
   //  Try to load the metadata.  If nothing there, we're done.
 

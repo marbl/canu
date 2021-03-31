@@ -36,7 +36,7 @@ Unitig::addRead(ufNode node, int offset, bool report) {
   _vector->registerRead(node.ident, _id, ufpath.size());
 
   // keep track of max position in unitig
-  int32 frgEnd = max(node.position.bgn, node.position.end);
+  int32 frgEnd = std::max(node.position.bgn, node.position.end);
   if (frgEnd > _length)
     _length = frgEnd;
 

@@ -16,32 +16,28 @@
  */
 
 #include "runtime.H"
-
 #include "sqStore.H"
-
 #include "clearRangeFile.H"
 
 #include <vector>
-using namespace std;
 
 
 int
 main (int argc, char **argv) {
-  char const            *seqName       = NULL;
+  char const                *seqName       = NULL;
 
-  vector<char const *>   clrName;
-  vector<uint32>         bgnID;
-  vector<uint32>         endID;
+  std::vector<char const *>  clrName;
+  std::vector<uint32>        bgnID;
+  std::vector<uint32>        endID;
 
-  char const            *outName       = NULL;
+  char const                *outName       = NULL;
 
-  bool                   verbose       = false;
+  bool                       verbose       = false;
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-S") == 0) {
       seqName = argv[++arg];
 
@@ -61,8 +57,6 @@ main (int argc, char **argv) {
       snprintf(s, 1024, "ERROR:  Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (seqName == NULL)

@@ -24,9 +24,8 @@
 #include "edlib.H"
 #include "align-parasail-driver.H"
 
-#include <set>
+#include <string>
 
-using namespace std;
 
 #define ERROR_RATE_FACTOR 4
 #define NUM_BANDS         2
@@ -114,7 +113,7 @@ void
 unitigConsensus::addRead(uint32   readID,
                          uint32   askip, uint32 bskip,
                          bool     complemented,
-                         map<uint32, sqRead *>     *inPackageRead) {
+                         std::map<uint32, sqRead *>     *inPackageRead) {
 
   //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
   //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
@@ -153,7 +152,7 @@ unitigConsensus::addRead(uint32   readID,
 
 
 bool
-unitigConsensus::initialize(map<uint32, sqRead *>     *reads) {
+unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
 
   if (_numReads == 0) {
     fprintf(stderr, "utgCns::initialize()-- unitig has no children.\n");
@@ -182,7 +181,7 @@ unitigConsensus::initialize(map<uint32, sqRead *>     *reads) {
   //  Check for duplicate reads
 
   {
-    set<uint32>  dupFrag;
+    std::set<uint32>  dupFrag;
 
     for (uint32 i=0; i<_numReads; i++) {
       if (_utgpos[i].isRead() == false) {
@@ -322,7 +321,7 @@ unitigConsensus::generateTemplateStitch(void) {
   uint32       tiglen = 0;
   char        *tigseq = NULL;
 
-  allocateArray(tigseq, tigmax, resizeArray_clearNew);
+  allocateArray(tigseq, tigmax, _raAct::clearNew);
 
   if (showAlgorithm()) {
     fprintf(stderr, "\n");
@@ -432,8 +431,8 @@ unitigConsensus::generateTemplateStitch(void) {
     if (olapLen < minOlap) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
-                olapLen, min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
-      olapLen = min(ePos, minOlap); 
+                olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
+      olapLen = std::min(ePos, minOlap); 
     }
 
     int32            templateLen  = 0;
@@ -487,7 +486,7 @@ unitigConsensus::generateTemplateStitch(void) {
     bool   moreToExtend  = (readEnd < readLen);
 
 
-    int32 maxDifference = min(2500, (int32)ceil(0.30*olapLen));
+    int32 maxDifference = std::min(2500, (int32)ceil(0.30*olapLen));
     //  Reset if the edit distance is waay more than our error rate allows or it's very short and we haven't topped out on error.  This seems to be a quirk with
     //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
     if ((double)result.editDistance / result.alignmentLength > bandErrRate || 
@@ -652,15 +651,15 @@ alignEdLib(dagAlignment      &aln,
 
   EdlibAlignResult align;
 
-  int32   padding        = min(250, (int32)ceil(fragmentLength * 0.05));
+  int32   padding        = std::min(250, (int32)ceil(fragmentLength * 0.05));
   double  bandErrRate    = errorRate / ERROR_RATE_FACTOR;
   bool    aligned        = false;
   double  alignedErrRate = 0.0;
 
   //  Decide on where to align this read.
 
-  int32  tigbgn = max((int32)0,      (int32)floor(utgpos.min() - padding));
-  int32  tigend = min((int32)tiglen, (int32)floor(utgpos.max() + padding));
+  int32  tigbgn = std::max((int32)0,      (int32)floor(utgpos.min() - padding));
+  int32  tigend = std::min((int32)tiglen, (int32)floor(utgpos.max() + padding));
 
   if (verbose)
     fprintf(stderr, "alignEdLib()-- align read %7u eRate %.4f at %9d-%-9d", utgpos.ident(), bandErrRate, tigbgn, tigend);
@@ -693,20 +692,20 @@ alignEdLib(dagAlignment      &aln,
   }
 
   for (uint32 ii=1 /*the 0ths was above*/; ((ii < MAX_RETRIES) && (aligned == false)); ii++) {
-    tigbgn = max((int32)0,      tigbgn - 5 * padding);
-    tigend = min((int32)tiglen, tigend + 5 * padding);
+    tigbgn = std::max((int32)0,      tigbgn - 5 * padding);
+    tigend = std::min((int32)tiglen, tigend + 5 * padding);
     // last attempt make a very wide band
     if ((ii+1) % NUM_BANDS == 0) {
-       tigbgn = max((int32)0,      tigbgn - 25 * padding);
-       tigend = min((int32)tiglen, tigend + 25 * padding);
+       tigbgn = std::max((int32)0,      tigbgn - 25 * padding);
+       tigend = std::min((int32)tiglen, tigend + 25 * padding);
     }
 
     // let the band increase without increasing error rate for a while, if we give up increase error rate
     // and reset bnad
     if (ii != 0 && ii % NUM_BANDS == 0) {
        bandErrRate += errorRate / ERROR_RATE_FACTOR;
-       tigbgn = max((int32)0,      (int32)floor(utgpos.min() - padding));
-       tigend = min((int32)tiglen, (int32)floor(utgpos.max() + padding));
+       tigbgn = std::max((int32)0,      (int32)floor(utgpos.min() - padding));
+       tigend = std::min((int32)tiglen, (int32)floor(utgpos.max() + padding));
     }
 
     if (tigend < tigbgn) {
@@ -813,8 +812,8 @@ alignEdLib(dagAlignment      &aln,
 
 
 bool
-unitigConsensus::initializeGenerate(tgTig                     *tig_,
-                                    map<uint32, sqRead *>     *reads_) {
+unitigConsensus::initializeGenerate(tgTig                       *tig_,
+                                    std::map<uint32, sqRead *>  *reads_) {
 
   _tig      = tig_;
   _numReads = _tig->numberOfChildren();
@@ -832,9 +831,9 @@ unitigConsensus::initializeGenerate(tgTig                     *tig_,
 
 
 bool
-unitigConsensus::generatePBDAG(tgTig                     *tig_,
-                               char                       aligner_,
-                               map<uint32, sqRead *>     *reads_) {
+unitigConsensus::generatePBDAG(tgTig                       *tig_,
+                               char                         aligner_,
+                               std::map<uint32, sqRead *>  *reads_) {
 
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
@@ -890,7 +889,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
   if (showAlgorithm())
     fprintf(stderr, "Constructing graph\n");
 
-  AlnGraphBoost ag(string(tigseq, tiglen));
+  AlnGraphBoost ag(std::string(tigseq, tiglen));
 
   for (uint32 ii=0; ii<_numReads; ii++) {
     _cnspos[ii].setMinMax(aligns[ii].start, aligns[ii].end);
@@ -922,7 +921,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
   //  Save consensus
 
-  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, (uint32) cns.length() + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, (uint32) cns.length() + 1, _raAct::doNothing);
 
   std::string::size_type len = 0;
 
@@ -946,8 +945,8 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
 
 bool
-unitigConsensus::generateQuick(tgTig                     *tig_,
-                               map<uint32, sqRead *>     *reads_) {
+unitigConsensus::generateQuick(tgTig                       *tig_,
+                               std::map<uint32, sqRead *>  *reads_) {
 
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
@@ -959,7 +958,7 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
   //  Save consensus
 
-  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, tiglen + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, tiglen + 1, _raAct::doNothing);
 
   for (uint32 ii=0; ii<tiglen; ii++) {
     _tig->_bases[ii] = tigseq[ii];
@@ -986,8 +985,8 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
 
 bool
-unitigConsensus::generateSingleton(tgTig                     *tig_,
-                                   map<uint32, sqRead *>     *reads_) {
+unitigConsensus::generateSingleton(tgTig                       *tig_,
+                                   std::map<uint32, sqRead *>  *reads_) {
 
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
@@ -1000,7 +999,7 @@ unitigConsensus::generateSingleton(tgTig                     *tig_,
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
-  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, readLen + 1, resizeArray_doNothing);
+  resizeArrayPair(_tig->_bases, _tig->_quals, 0, _tig->_basesMax, readLen + 1, _raAct::doNothing);
 
   for (uint32 ii=0; ii<readLen; ii++) {
     _tig->_bases[ii] = fragment[ii];
@@ -1145,8 +1144,8 @@ unitigConsensus::findCoordinates(void) {
     while ((ext5 < readLen * 1.5) &&
            (ext3 < readLen * 1.5) &&
            (era  < 4 * _errorRate)) {
-      int32 bgn = max(0, origbgn + alignShift - ext5);                          //  First base in tig we'll align to.
-      int32 end = min(   origend + alignShift + ext3, (int32)_tig->length());   //  Last base
+      int32 bgn = std::max(0, origbgn + alignShift - ext5);                          //  First base in tig we'll align to.
+      int32 end = std::min(   origend + alignShift + ext3, (int32)_tig->length());   //  Last base
       int32 len = end - bgn;   //  WAS: +1
 
       //  If the length of the region is (wildly) less than expected, reset
@@ -1353,7 +1352,7 @@ unitigConsensus::trimCircular(void) {
   parasailLib   align(1, -4, 5, 3);
 
   for (double scale = 1.05; (found == false) && (scale < 2.10); scale += 0.1) {
-    uint32 trylen = min(length, (uint32)(_tig->_circularLength * scale));
+    uint32 trylen = std::min(length, (uint32)(_tig->_circularLength * scale));
 
     if (showPlacement())
       fprintf(stderr, "  Align   A %6u-%6u against B %6u-%6u\n",
@@ -1496,10 +1495,10 @@ unitigConsensus::trimCircular(void) {
 
 
 bool
-unitigConsensus::generate(tgTig                     *tig_,
-                          char                       algorithm_,
-                          char                       aligner_,
-                          map<uint32, sqRead *>     *reads_) {
+unitigConsensus::generate(tgTig                       *tig_,
+                          char                         algorithm_,
+                          char                         aligner_,
+                          std::map<uint32, sqRead *>  *reads_) {
   bool  success = false;
 
   if      (tig_->numberOfChildren() == 1) {

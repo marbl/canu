@@ -87,17 +87,17 @@ public:
     delete [] _pReverse;
   };
 
-  vector<BestPlacement>    &getForward(uint32 fi) const  { return(_pForward[fi]); };
-  vector<BestReverse>      &getReverse(uint32 fi) const  { return(_pReverse[fi]); };
+  std::vector<BestPlacement>    &getForward(uint32 fi) const  { return(_pForward[fi]); };
+  std::vector<BestReverse>      &getReverse(uint32 fi) const  { return(_pReverse[fi]); };
 
-  void                      buildGraph(const char   *prefix,
-                                       double        deviationRepeat,
-                                       double        repeatLimit,
-                                       TigVector    &tigs);
+  void                           buildGraph(const char   *prefix,
+                                            double        deviationRepeat,
+                                            double        repeatLimit,
+                                            TigVector    &tigs);
 
 private:
-  vector<BestPlacement>  *_pForward;   //  Where each read is placed in other tigs
-  vector<BestReverse>    *_pReverse;   //  What reads overlap to me
+  std::vector<BestPlacement>  *_pForward;   //  Where each read is placed in other tigs
+  std::vector<BestReverse>    *_pReverse;   //  What reads overlap to me
 };
 
 

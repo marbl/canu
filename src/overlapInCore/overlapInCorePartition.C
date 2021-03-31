@@ -19,6 +19,8 @@
 #include "sqStore.H"
 #include "strings.H"
 
+#include <set>
+
 //  Reads seqStore, outputs three files:
 //    ovlbat - batch names
 //    ovljob - job names
@@ -32,8 +34,8 @@ uint32  batchMax = 1000;
 
 uint32 *
 loadReadLengths(sqStore *seq,
-                set<uint32> &libToHash, uint32 &hashMin, uint32 &hashMax,
-                set<uint32> &libToRef,  uint32 &refMin,  uint32 &refMax) {
+                std::set<uint32> &libToHash, uint32 &hashMin, uint32 &hashMax,
+                std::set<uint32> &libToRef,  uint32 &refMin,  uint32 &refMax) {
   uint32     numReads = seq->sqStore_lastReadID();
   uint32     numLibs  = seq->sqStore_lastLibraryID();
   uint32    *readLen  = new uint32 [numReads + 1];
@@ -101,13 +103,13 @@ loadReadLengths(sqStore *seq,
     readLen[ii] = seq->sqStore_getReadLength(ii);
 
     if ((testHash == true) && (doHash[li] == true)) {
-      hashMin = min(hashMin, ii);
-      hashMax = max(hashMax, ii);
+      hashMin = std::min(hashMin, ii);
+      hashMax = std::max(hashMax, ii);
     }
 
     if ((testRef == true) && (doRef[li] == true)) {
-      refMin = min(refMin, ii);
-      refMax = max(refMax, ii);
+      refMin = std::min(refMin, ii);
+      refMax = std::max(refMax, ii);
     }
 
     if ((ii % reportInterval) == 0)
@@ -129,20 +131,20 @@ loadReadLengths(sqStore *seq,
 
 
 void
-partitionLength(sqStore      *seq,
-                uint32       *readLen,
-                FILE         *BAT,
-                FILE         *JOB,
-                FILE         *OPT,
-                uint32        minOverlapLength,
-                uint64        ovlHashBlockLength,
-                uint64        ovlRefBlockLength,
-                set<uint32>  &libToHash,
-                uint32        hashMin,
-                uint32        hashMax,
-                set<uint32>  &libToRef,
-                uint32        refMin,
-                uint32        refMax) {
+partitionLength(sqStore           *seq,
+                uint32            *readLen,
+                FILE              *BAT,
+                FILE              *JOB,
+                FILE              *OPT,
+                uint32             minOverlapLength,
+                uint64             ovlHashBlockLength,
+                uint64             ovlRefBlockLength,
+                std::set<uint32>  &libToHash,
+                uint32             hashMin,
+                uint32             hashMax,
+                std::set<uint32>  &libToRef,
+                uint32             refMin,
+                uint32             refMax) {
   uint32  hashBeg   = 1;
   uint32  hashEnd   = 0;
   uint32  hashReads = 0;
@@ -301,8 +303,8 @@ main(int argc, char **argv) {
 
   bool             checkAllLibUsed     = true;
 
-  set<uint32>      libToHash;
-  set<uint32>      libToRef;
+  std::set<uint32> libToHash;
+  std::set<uint32> libToRef;
 
   AS_configure(argc, argv);
 
@@ -367,12 +369,12 @@ main(int argc, char **argv) {
   uint32     numLibs     = seq->sqStore_lastLibraryID();
   uint32     invalidLibs = 0;
 
-  for (set<uint32>::iterator it=libToHash.begin(); it != libToHash.end(); it++)
+  for (auto it=libToHash.begin(); it != libToHash.end(); it++)
     if (numLibs < *it)
       fprintf(stderr, "ERROR: -H " F_U32 " is invalid; only " F_U32 " libraries in '%s'\n",
               *it, numLibs, seqStoreName), invalidLibs++;
 
-  for (set<uint32>::iterator it=libToRef.begin(); it != libToRef.end(); it++)
+  for (auto it=libToRef.begin(); it != libToRef.end(); it++)
     if (numLibs < *it)
       fprintf(stderr, "ERROR: -R " F_U32 " is invalid; only " F_U32 " libraries in '%s'\n",
               *it, numLibs, seqStoreName), invalidLibs++;

@@ -40,7 +40,7 @@ Add_Extra_Hash_String(const char *s) {
     sub = String_Ct + Extra_String_Ct;
 
     if (sub >= String_Start_Size) {
-      uint64  n = max(sub * 1.1, String_Start_Size * 1.5);
+      uint64  n = std::max(sub * 1.1, String_Start_Size * 1.5);
 
       //fprintf(stderr, "REALLOC String_Start from " F_U64 " to " F_U64 "\n", String_Start_Size, n);
       resizeArray(String_Start, String_Start_Size, String_Start_Size, n);
@@ -54,7 +54,7 @@ Add_Extra_Hash_String(const char *s) {
   }
 
   if (new_len >= Extra_Data_Len) {
-    uint64  n = max(new_len * 1.1, Extra_Data_Len * 1.5);
+    uint64  n = std::max(new_len * 1.1, Extra_Data_Len * 1.5);
 
     //fprintf(stderr, "REALLOC basesData from " F_U64 " to " F_U64 "\n", Extra_Data_Len, n);
     resizeArray(basesData, Extra_Data_Len, Extra_Data_Len, n);

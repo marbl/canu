@@ -161,7 +161,7 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   //  If there are no best edges, find the overlap with the most matches and
   //  use that.  This shouldn't happen anymore.
 
-  vector<double>  erates;
+  std::vector<double>  erates;
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
@@ -199,7 +199,7 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
     }
   }
 
-  sort(erates.begin(), erates.end());
+  std::sort(erates.begin(), erates.end());
 
   //  Find mean/stddev (with an online calculation) and the median/mad.
 
@@ -239,8 +239,8 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   assert((_erateGraph == _errorLimit) ||   //  Either erateGraph or erateMax, as
          (_erateMax   == _errorLimit));    //  set in findInitialEdges().
 
-  double   TpickedTight = min(_errorLimit, ((median > 1e-10) ? Tmad : Tperct));
-  double   TpickedLoose = min(_errorLimit, Tmean);
+  double   TpickedTight = std::min(_errorLimit, ((median > 1e-10) ? Tmad : Tperct));
+  double   TpickedLoose = std::min(_errorLimit, Tmean);
   double   Tpicked      = 0.0;
 
   //  Summarize the number of reads with edges.  If there are too few reads
@@ -667,9 +667,9 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  set<uint32>  spurpath5;   //  spurpath is true if the edge out of this end
-  set<uint32>  spurpath3;   //           leads to a dead-end spur.
-  set<uint32>  spur;        //  spur     is true if this read is a spur.
+  std::set<uint32>  spurpath5;   //  spurpath is true if the edge out of this end
+  std::set<uint32>  spurpath3;   //           leads to a dead-end spur.
+  std::set<uint32>  spur;        //  spur     is true if this read is a spur.
 
   //  Compute the distance to a dead end.
   //    If zero, flag the read as a spur.
@@ -1329,7 +1329,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     //  First, write the sequences used.  The sequence can be used as either
     //  a source node or a destination node (or both).
 
-    set<uint32>  used;
+    std::set<uint32>  used;
 
     for (uint32 id=1; id<RI->numReads() + 1; id++) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
@@ -1349,7 +1349,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       used.insert(bestedge3->readId());
     }
 
-    for (set<uint32>::iterator it=used.begin(); it != used.end(); it++)
+    for (auto it=used.begin(); it != used.end(); it++)
       if (*it != 0)
         fprintf(BG, "S\tread%08u\t*\tLN:i:%u\n", *it, RI->readLength(*it));
 

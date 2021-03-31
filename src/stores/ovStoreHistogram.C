@@ -20,8 +20,6 @@
 #include <set>
 #include <algorithm>
 
-using namespace std;
-
 
 
 ovErateLengthHistogram::~ovErateLengthHistogram() {
@@ -184,9 +182,8 @@ ovStoreHistogram::mergeScores(ovStoreHistogram *other) {
 
     _scoresBaseID  = 0;
     _scoresLastID  = _maxID;
-    _scoresAlloc   = _maxID + 1;
 
-    allocateArray(_scores, _scoresAlloc, resizeArray_clearNew);
+    allocateArray(_scores, _scoresAlloc, _maxID + 1, _raAct::clearNew);
   }
 
   if (_maxID != other->_maxID) {
@@ -222,11 +219,11 @@ ovStoreHistogram::processScores(uint32 Aid) {
   //  Make space for new scores.
 
   while (scoff >= _scoresAlloc)
-    resizeArray(_scores, _scoresAlloc, _scoresAlloc, scoff + 65536, resizeArray_copyData | resizeArray_clearNew);
+    resizeArray(_scores, _scoresAlloc, _scoresAlloc, scoff + 65536, _raAct::copyData | _raAct::clearNew);
 
   //  Sort the scores in decreasing order.
 
-  sort(_scoresList, _scoresList + _scoresListLen, greater<uint16>());
+  std::sort(_scoresList, _scoresList + _scoresListLen, std::greater<uint16>());
 
   //  Decide on a set of points to save.  Eventually, maybe, we'll analyze the plot
   //  to find inflection points.  For now, we just sample evenly-ish.
@@ -276,25 +273,22 @@ ovStoreHistogram::addOverlap(ovOverlap *overlap) {
     _scoresListAid = overlap->a_iid;
 
     allocateArray(_scoresList, _scoresListMax);
-
-    _scoresAlloc = 65535;
-
-    allocateArray(_scores, _scoresAlloc);
+    allocateArray(_scores,     _scoresAlloc,   65535);
   }
 
   //  And save the overlap, maybe processing the last batch.
 
-  if (_scoresBaseID != UINT32_MAX)                     //  If we've seen an overlap, all remaining overlaps
-    assert(_scoresBaseID <= overlap->a_iid);           //  must be larger than the first ID seen.
+  if (_scoresBaseID != UINT32_MAX)                          //  If we've seen an overlap, all remaining overlaps
+    assert(_scoresBaseID <= overlap->a_iid);                //  must be larger than the first ID seen.
 
-  _scoresBaseID = min(_scoresBaseID, overlap->a_iid);  //  Save the min/max ID of the overlaps we've seen.
-  _scoresLastID = max(_scoresLastID, overlap->a_iid);
+  _scoresBaseID = std::min(_scoresBaseID, overlap->a_iid);  //  Save the min/max ID of the overlaps we've seen.
+  _scoresLastID = std::max(_scoresLastID, overlap->a_iid);
 
-  if (_scoresListAid != overlap->a_iid)                //  Process existing overlaps if we
-    processScores(overlap->a_iid);                     //  have an overlap for a different ID.
+  if (_scoresListAid != overlap->a_iid)                     //  Process existing overlaps if we
+    processScores(overlap->a_iid);                          //  have an overlap for a different ID.
 
-  increaseArray(_scoresList,                           //  Ensure there is space for
-                _scoresListLen,                        //  one more overlap.
+  increaseArray(_scoresList,                                //  Ensure there is space for
+                _scoresListLen,                             //  one more overlap.
                 _scoresListMax, 32768);
 
   _scoresList[_scoresListLen++] = overlap->overlapScore();
@@ -309,7 +303,7 @@ ovErateLengthHistogram::addOverlap(ovOverlap *overlap) {
 
   if (_opelLen == 0) {
     for (uint32 ii=1; ii<_seq->sqStore_lastReadID(); ii++)
-      _opelLen = max(_opelLen, _seq->sqStore_getReadLength(ii));
+      _opelLen = std::max(_opelLen, _seq->sqStore_getReadLength(ii));
 
     _opelLen = _opelLen * 1.40 / _bpb + 1;  //  the overlap could have 40% insertions.
   }

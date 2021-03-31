@@ -151,7 +151,7 @@ TigVector::computeArrivalRate(const char *prefix, const char *label) {
 
   writeStatus("computeArrivalRate()-- Computing arrival rates for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
-  vector<int32>  hist[6];
+  std::vector<int32>  hist[6];
 
   //#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {

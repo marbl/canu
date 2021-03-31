@@ -523,7 +523,7 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
   //TODO discuss the logic!
   //TODO refactor out the code duplication
   if (ped->deltaLen > 0 && ped->delta[0] == 1) {// && a_hang > 0) {
-    //int32  stop = min(ped->deltaLen, (int32) a_hang);
+    //int32  stop = std::min(ped->deltaLen, (int32) a_hang);
     int32  i = 0;
 
     //while (i < stop && ped->delta[i] == 1)
@@ -541,7 +541,7 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
     a_part_len -= i;
     all_errors     -= i;
   } else if (ped->deltaLen > 0 && ped->delta[0] == -1) {// && a_hang < 0) {
-    //int32  stop = min(ped->deltaLen, (int32) -a_hang);
+    //int32  stop = std::min(ped->deltaLen, (int32) -a_hang);
     int32  i = 0;
 
     //while (i < stop && ped->delta[i] == -1)
@@ -562,7 +562,7 @@ ProcessAlignment(int32 a_part_len, const char *a_part, int64 a_hang, int32 b_par
 
   //Display_Alignment(a_part, a_end, b_part, b_end, ped->delta, ped->deltaLen);
 
-  *invalid_olap = (min(a_end, b_end) <= 0);
+  *invalid_olap = (std::min(a_end, b_end) <= 0);
 
   if (!*match_to_end || *invalid_olap) {
     return -1.;
@@ -703,7 +703,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
       bool    invalid_olap = false;
       double err_rate = ProcessAlignment(a_part_len, a_part, olap.a_hang,
                                          b_part_len, b_part,
-                                         G->Error_Bound[min(a_part_len, b_part_len)],
+                                         G->Error_Bound[std::min(a_part_len, b_part_len)],
                                          /*check trivial DNA*/G->checkTrivialDNA,
                                          ped, &match_to_end, &invalid_olap);
 

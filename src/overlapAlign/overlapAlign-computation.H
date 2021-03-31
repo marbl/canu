@@ -20,9 +20,6 @@
 //  and a pointer to the cache is saved so we can retrieve the
 //  reads on demand during the compute.
 
-using namespace std;
-
-
 class maComputation {
 public:
   maComputation(uint32      id,
@@ -67,7 +64,7 @@ public:
     _bMax  = 0;
 
     for (uint32 ii=0; ii<_overlapsLen; ii++)
-      _bMax = max(_bMax, _seqCache->sqCache_getLength(_overlaps[ii].b_iid) + 1);
+      _bMax = std::max(_bMax, _seqCache->sqCache_getLength(_overlaps[ii].b_iid) + 1);
 
     _bRead = new char [_bMax];
 

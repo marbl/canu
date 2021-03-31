@@ -22,8 +22,7 @@
 #include "AS_BAT_Logging.H"
 
 #include "system.H"
-
-#include <sys/types.h>
+#include <tuple>
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 
@@ -477,7 +476,7 @@ OverlapCache::filterOverlaps(uint32 aid, uint32 maxEvalue, uint32 minOverlap, ui
   if (ns <= _maxPer)                         //  Fewer overlaps than the limit, no filtering needed.
     return(ns);
 
-  sort(_ovsTmp, _ovsTmp + no);               //  Sort the scores so we can pick a minScore that
+  std::sort(_ovsTmp, _ovsTmp + no);          //  Sort the scores so we can pick a minScore that
   _minSco[aid] = _ovsTmp[no - _maxPer];      //  results in the correct number of overlaps.
 
   ns = 0;
@@ -523,7 +522,7 @@ OverlapCache::loadOverlaps(ovStore *ovlStore) {
   _ovsMax = 0;
 
   for (uint32 rr=0; rr<RI->numReads()+1; rr++)
-    _ovsMax = max(_ovsMax, ovlStore->numOverlaps(rr));
+    _ovsMax = std::max(_ovsMax, ovlStore->numOverlaps(rr));
 
   _minSco  = new uint64    [RI->numReads()+1];
 
@@ -711,7 +710,7 @@ OverlapCache::symmetrizeOverlaps(void) {
                      ova->erate() * 100.0,
                      ovb->erate() * 100.0);
 
-          uint64 ev = min(ova->evalue, ovb->evalue);
+          uint64 ev = std::min(ova->evalue, ovb->evalue);
 
           ova->evalue = ev;
           ovb->evalue = ev;
@@ -925,8 +924,8 @@ OverlapCache::symmetrizeOverlaps(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 rr=0; rr < fiLimit; rr++)
     if (_overlapLen[rr] > 0)
-      sort(_overlaps[rr], _overlaps[rr] + _overlapLen[rr], [](BAToverlap const &a, BAToverlap const &b) {
-                                                             return(((a.b_iid == b.b_iid) && (a.flipped < b.flipped)) || (a.b_iid < b.b_iid)); } );
+      std::sort(_overlaps[rr], _overlaps[rr] + _overlapLen[rr], [](BAToverlap const &a, BAToverlap const &b) {
+                                                                  return(((a.b_iid == b.b_iid) && (a.flipped < b.flipped)) || (a.b_iid < b.b_iid)); } );
 
   //  Check that all overlaps are present.
 

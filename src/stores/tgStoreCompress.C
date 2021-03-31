@@ -107,11 +107,11 @@ operationCompress(char *tigName, int tigVers) {
 
 int
 main (int argc, char **argv) {
-  char            *seqName   = NULL;
-  char            *tigName   = NULL;
-  int32            tigVers   = -1;
-  vector<char *>   tigInputs;
-  tgStoreType      tigType   = tgStoreModify;
+  char                 *seqName   = NULL;
+  char                 *tigName   = NULL;
+  int32                 tigVers   = -1;
+  std::vector<char *>   tigInputs;
+  tgStoreType           tigType   = tgStoreModify;
 
   argc = AS_configure(argc, argv);
 

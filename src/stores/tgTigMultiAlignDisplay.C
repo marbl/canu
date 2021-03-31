@@ -23,9 +23,6 @@
 #include "sequence.H"
 
 #include <set>
-#include <algorithm>
-
-using namespace std;
 
 //
 //  The original utgcns consensus algorithm generated a gapped consensus sequence, which
@@ -222,7 +219,7 @@ tgTig::display(FILE     *F,
 
   //  Find the list of gaps we need to insert into the reference.
 
-  set<int32>   gapPositions;
+  std::set<int32>   gapPositions;
 
 #if 0
   //  This is wrong, each delta is relative to the last one.

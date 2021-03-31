@@ -22,8 +22,6 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
 
 
 sqCache::sqCache(sqStore *seqStore, sqRead_which which,  uint64 memoryLimit) {
@@ -251,7 +249,7 @@ sqCache::sqCache_getSequence(uint32    id,
   //  Decide how many bases are encoded in the encoding and make space to
   //  decode the entire sequence (that is, the untrimmed sequence).
 
-  resizeArray(seq, 0, seqMax, _reads[id]._basesLength + 1, resizeArray_doNothing);
+  resizeArray(seq, 0, seqMax, _reads[id]._basesLength + 1, _raAct::doNothing);
 
   //  Decode it.
 
@@ -397,7 +395,7 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
 
 //  Load all the reads in a set of IDs.
 void
-sqCache::sqCache_loadReads(set<uint32> reads, bool verbose) {
+sqCache::sqCache_loadReads(std::set<uint32> reads, bool verbose) {
   uint32   nToLoad  = reads.size();
   uint32   nLoaded  = 0;
   uint32   nStep    = nToLoad / 100;
@@ -405,7 +403,7 @@ sqCache::sqCache_loadReads(set<uint32> reads, bool verbose) {
   if (verbose)
     fprintf(stderr, "Loading %u reads.\n", nToLoad);
 
-  for (set<uint32>::iterator it=reads.begin(); it != reads.end(); ++it) {
+  for (auto it=reads.begin(); it != reads.end(); ++it) {
     loadRead(*it);
     nLoaded++;
 
@@ -424,7 +422,7 @@ sqCache::sqCache_loadReads(set<uint32> reads, bool verbose) {
 //  Load all the reads in a set of IDs, setting age to the second
 //  item in the map.
 void
-sqCache::sqCache_loadReads(map<uint32, uint32> reads, bool verbose) {
+sqCache::sqCache_loadReads(std::map<uint32, uint32> reads, bool verbose) {
   uint32   nToLoad  = reads.size();
   uint32   nLoaded  = 0;
   uint32   nSkipped = 0;
@@ -435,7 +433,7 @@ sqCache::sqCache_loadReads(map<uint32, uint32> reads, bool verbose) {
 
   _trackExpiration = true;
 
-  for (map<uint32,uint32>::iterator it=reads.begin(); it != reads.end(); ++it) {
+  for (auto it=reads.begin(); it != reads.end(); ++it) {
     if (it->second > 0) {
       loadRead(it->first, it->second);
       nLoaded++;
@@ -459,7 +457,7 @@ sqCache::sqCache_loadReads(map<uint32, uint32> reads, bool verbose) {
 //  For trimming, load all the reads in a set of overlaps.
 void
 sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
-  set<uint32>     reads;
+  std::set<uint32>  reads;
 
   increaseAge();
 
@@ -478,7 +476,7 @@ sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
 //  For correction, load the read the tig represents, and all evidence reads.
 void
 sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
-  set<uint32>     reads;
+  std::set<uint32>  reads;
 
   increaseAge();
 

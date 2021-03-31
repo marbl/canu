@@ -33,7 +33,6 @@
 
 #include <vector>
 
-using namespace std;
 
 
 
@@ -81,15 +80,15 @@ auto byCoord  = [](olapDat const &A, olapDat const &B) { return(                
 //  placeReadUsingOverlaps() mechanism.
 //
 void
-annotateRepeatsOnRead(AssemblyGraph const *AG,
-                      Unitig              *tig,
-                      vector<olapDat>     &repeats) {
+annotateRepeatsOnRead(AssemblyGraph const   *AG,
+                      Unitig                *tig,
+                      std::vector<olapDat>  &repeats) {
 
   repeats.clear();
 
   for (uint32 ii=0; ii<tig->ufpath.size(); ii++) {
-    ufNode               *read   = &tig->ufpath[ii];
-    vector<BestReverse>  &rPlace = AG->getReverse(read->ident);
+    ufNode                    *read   = &tig->ufpath[ii];
+    std::vector<BestReverse>  &rPlace = AG->getReverse(read->ident);
 
     for (uint32 rr=0; rr<rPlace.size(); rr++) {
       uint32          rID    = rPlace[rr].readID;
@@ -115,8 +114,8 @@ annotateRepeatsOnRead(AssemblyGraph const *AG,
 
 
 void
-mergeAnnotations(vector<olapDat>      &repeatOlaps,
-                 intervalList<int32>  &tigMarksR) {
+mergeAnnotations(std::vector<olapDat>  &repeatOlaps,
+                 intervalList<int32>   &tigMarksR) {
 
   //  Sort the repeat markings by their evidence read id.
 
@@ -159,8 +158,8 @@ mergeAnnotations(vector<olapDat>      &repeatOlaps,
     //  So merge it in too, then mark it as invalid.
 
     else {
-      repeatOlaps[dd].tigbgn = min(repeatOlaps[ss].tigbgn, repeatOlaps[dd].tigbgn);
-      repeatOlaps[dd].tigend = max(repeatOlaps[ss].tigend, repeatOlaps[dd].tigend);
+      repeatOlaps[dd].tigbgn = std::min(repeatOlaps[ss].tigbgn, repeatOlaps[dd].tigbgn);
+      repeatOlaps[dd].tigend = std::max(repeatOlaps[ss].tigend, repeatOlaps[dd].tigend);
 
       repeatOlaps[ss].tigbgn = UINT32_MAX;
       repeatOlaps[ss].tigend = UINT32_MAX;
@@ -618,15 +617,15 @@ isCircularizingEdge(Unitig   *tig,
 
 
 void
-checkConfusion(uint32                rdAid,
-               bestSco const         internalSco,
-               bestSco const         externalSco,
-               bool                  isCircular,
-               char const           *end,
-               bool                  endFlag,
-               double                confusedAbsolute,
-               double                confusedPercent,
-               vector<confusedEdge> &confusedEdges) {
+checkConfusion(uint32                     rdAid,
+               bestSco const              internalSco,
+               bestSco const              externalSco,
+               bool                       isCircular,
+               char const                *end,
+               bool                       endFlag,
+               double                     confusedAbsolute,
+               double                     confusedPercent,
+               std::vector<confusedEdge> &confusedEdges) {
 
   //  The read end is confused if the internal edge is worse than the
   //  external, or if the differences are small.
@@ -678,7 +677,7 @@ checkConfusion(uint32                rdAid,
 
 
 
-vector<confusedEdge>
+std::vector<confusedEdge>
 findConfusedEdges(TigVector            &tigs,
                   Unitig                *tig,
                   intervalList<int32>  &tigMarksR,
@@ -693,7 +692,7 @@ findConfusedEdges(TigVector            &tigs,
   //  this repeat to be potentially confused.  If none are found - for the
   //  whole repeat region - then we can leave the repeat alone.
 
-  vector<confusedEdge> confusedEdges;
+  std::vector<confusedEdge> confusedEdges;
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode     *rdA       = &tig->ufpath[fi];
@@ -776,8 +775,8 @@ mergeAdjacentRegions(Unitig                *tig,
   //  Extend, but don't extend past the end of the tig.
 
   for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++) {
-    tigMarksR.lo(ii) = max<int32>(tigMarksR.lo(ii) - MIN_ANCHOR_HANG, 0);
-    tigMarksR.hi(ii) = min<int32>(tigMarksR.hi(ii) + MIN_ANCHOR_HANG, tig->getLength());
+    tigMarksR.lo(ii) = std::max<int32>(tigMarksR.lo(ii) - MIN_ANCHOR_HANG, 0);
+    tigMarksR.hi(ii) = std::min<int32>(tigMarksR.hi(ii) + MIN_ANCHOR_HANG, tig->getLength());
   }
 
   //  Merge.
@@ -785,8 +784,8 @@ mergeAdjacentRegions(Unitig                *tig,
   bool  merged = false;
 
   for (uint32 ri=1; ri<tigMarksR.numberOfIntervals(); ri++) {
-    uint32  rMin = min(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
-    uint32  rMax = max(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
+    uint32  rMin = std::min(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
+    uint32  rMax = std::max(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
 
     if (tigMarksR.lo(ri) <= tigMarksR.hi(ri-1)) {
       writeLog("merge extended regions %8d:%-8d and %8d:%-8d\n",
@@ -808,13 +807,13 @@ mergeAdjacentRegions(Unitig                *tig,
 
 
 
-vector<breakReadEnd>
-buildBreakPoints(TigVector             &tigs,
-                 Unitig                *tig,
-                 intervalList<int32>   &tigMarksR,
-                 vector<confusedEdge>  &confusedEdges) {
-  intervalList<int32>    tigMarksU;     //  Non-repeat invervals, just the inversion of tigMarksR
-  vector<breakReadEnd>   BE;
+std::vector<breakReadEnd>
+buildBreakPoints(TigVector                  &tigs,
+                 Unitig                     *tig,
+                 intervalList<int32>        &tigMarksR,
+                 std::vector<confusedEdge>  &confusedEdges) {
+  intervalList<int32>        tigMarksU;     //  Non-repeat invervals, just the inversion of tigMarksR
+  std::vector<breakReadEnd>  BE;
 
   //  Invert.  This finds the non-repeat intervals, which get turned into
   //  non-repeat tigs.
@@ -918,8 +917,8 @@ buildBreakPoints(TigVector             &tigs,
         continue;                                            //  unique regions.
 
       breakCount++;
-      breakBgn = min(breakBgn, apoint);
-      breakEnd = max(breakEnd, apoint);
+      breakBgn = std::min(breakBgn, apoint);
+      breakEnd = std::max(breakEnd, apoint);
 
       assert(isRepeat == true);   //  No breaks in unique regions!
 
@@ -981,8 +980,8 @@ markRepeatReads(AssemblyGraph         *AG,
 
   writeLog("repeatDetect()-- working on " F_U32 " tigs, with " F_U32 " thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
-  vector<olapDat>      repeatOlaps;   //  Overlaps to reads promoted to tig coords
-  intervalList<int32>  tigMarksR;     //  Marked repeats based on reads, filtered by spanning reads
+  std::vector<olapDat>  repeatOlaps;   //  Overlaps to reads promoted to tig coords
+  intervalList<int32>   tigMarksR;     //  Marked repeats based on reads, filtered by spanning reads
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = tigs[ti];
@@ -1070,8 +1069,8 @@ markRepeatReads(AssemblyGraph         *AG,
     //  is split the tig.  If multiple, we can split the tig AND flag the
     //  resulting pieces as either repeat or unique.
 
-    vector<confusedEdge> CE = findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent);
-    vector<breakReadEnd> BE = buildBreakPoints(tigs, tig, tigMarksR, CE);
+    std::vector<confusedEdge> CE = findConfusedEdges(tigs, tig, tigMarksR, confusedAbsolute, confusedPercent);
+    std::vector<breakReadEnd> BE = buildBreakPoints(tigs, tig, tigMarksR, CE);
 
     //  If there are breaks, split the tig.
 

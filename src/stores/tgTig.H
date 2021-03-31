@@ -24,7 +24,6 @@
 #include "bits.H"
 
 #include <map>
-using namespace std;
 
 
 typedef enum {
@@ -259,13 +258,13 @@ public:
   uint32         numberOfChildren(void)      {                            return(_childrenLen); };
   tgPosition    *getChild(uint32 c)          { assert(c < _childrenLen);  return(_children + c);  };
   tgPosition    *addChild(void)              {
-    increaseArray(_children, _childrenLen, _childrenMax, min(_childrenMax/4, 16u));
+    increaseArray(_children, _childrenLen, _childrenMax, std::min(_childrenMax/4, 16u));
 
     return(_children + _childrenLen++);
   };
 
   void           allocateChildren(uint32 m) {
-    resizeArray(_children, _childrenLen, _childrenMax, m, resizeArray_copyData);
+    resizeArray(_children, _childrenLen, _childrenMax, m, _raAct::copyData);
   };
 
   //  Operators
@@ -307,7 +306,7 @@ public:
                             bool                        isForCorrection);
 
   bool           importData(readBuffer                 *importDataFile,
-                            map<uint32, sqRead *>      &reads,
+                            std::map<uint32, sqRead *> &reads,
                             FILE                       *layoutOutput,
                             FILE                       *sequenceOutput);
 

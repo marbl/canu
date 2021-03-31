@@ -23,9 +23,6 @@
 
 #include "unitigConsensus.H"
 
-#include <map>
-#include <algorithm>
-
 
 
 class cnsParameters {
@@ -97,7 +94,7 @@ public:
   uint32                  verbosity = 0;
 
   sqStore                *seqStore = nullptr;
-  map<uint32, sqRead *>  *seqReads = nullptr;
+  std::map<uint32, sqRead *>  *seqReads = nullptr;
   tgStore                *tigStore = nullptr;
 
   FILE                   *outResultsFile = nullptr;
@@ -160,7 +157,7 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
 
   //  Sort the tigInfo by decreasing area.
 
-  sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.consensusArea > B.consensusArea); });
+  std::sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.consensusArea > B.consensusArea); });
 
   //  Grab the biggest tig (it's number 0) and compute a maximum area per partition.
 
@@ -245,15 +242,15 @@ createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 
 
 uint64 *
 createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 tigsLen, uint32 nParts) {
-  map<uint32, uint32>   readToPart;
-  sqRead               *rd    = new sqRead;
-  sqReadDataWriter     *wr    = new sqReadDataWriter;
-  writeBuffer         **parts = new writeBuffer * [nParts];
-  char                  partName[FILENAME_MAX+1];
+  std::map<uint32, uint32>   readToPart;
+  sqRead                    *rd    = new sqRead;
+  sqReadDataWriter          *wr    = new sqReadDataWriter;
+  writeBuffer              **parts = new writeBuffer * [nParts];
+  char                       partName[FILENAME_MAX+1];
 
   //  Sort by tigID.
 
-  sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.tigID < B.tigID); });
+  std::sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.tigID < B.tigID); });
 
   //  Build a mapping from readID to partitionID.
 
@@ -382,8 +379,8 @@ processImportedTigs(cnsParameters  &params) {
   FILE       *importedLayouts = AS_UTL_openOutputFile(params.importName, '.', "layout");
   FILE       *importedReads   = AS_UTL_openOutputFile(params.importName, '.', "fasta");
 
-  tgTig                  *tig = new tgTig();
-  map<uint32, sqRead *>   reads;
+  tgTig                       *tig = new tgTig();
+  std::map<uint32, sqRead *>   reads;
 
   while (tig->importData(importFile, reads, importedLayouts, importedReads) == true) {
 
@@ -454,13 +451,13 @@ exportTigs(cnsParameters  &params) {
 
 
 
-set<uint32>
+std::set<uint32>
 loadProcessList(char *prefix, uint32 tigPart) {
-  set<uint32>   processList;
-  uint32        Lmax = 1024;
-  uint32        Llen = 0;
-  char         *L    = new char [Lmax];
-  char         *N    = new char [FILENAME_MAX + 1];
+  std::set<uint32>   processList;
+  uint32             Lmax = 1024;
+  uint32             Llen = 0;
+  char              *L    = new char [Lmax];
+  char              *N    = new char [FILENAME_MAX + 1];
 
   snprintf(N, FILENAME_MAX, "%s/partitioning", prefix);
 
@@ -486,7 +483,7 @@ loadProcessList(char *prefix, uint32 tigPart) {
 
 
 
-map<uint32, sqRead *> *
+std::map<uint32, sqRead *> *
 loadPartitionedReads(char *seqFile) {
 
   if (seqFile == NULL)
@@ -494,9 +491,9 @@ loadPartitionedReads(char *seqFile) {
 
   //  Allocate space for the reads, and buffers to load them.
 
-  map<uint32, sqRead *>  *reads = new map<uint32, sqRead *>;
-  readBuffer             *rb    = new readBuffer(seqFile);
-  sqRead                 *rd    = new sqRead;
+  std::map<uint32, sqRead *>  *reads = new std::map<uint32, sqRead *>;
+  readBuffer                  *rb    = new readBuffer(seqFile);
+  sqRead                      *rd    = new sqRead;
 
   uint64 magc;
   uint64 vers;
@@ -549,7 +546,7 @@ processTigs(cnsParameters  &params) {
 
   //  Load the partition file, if it exists.
 
-  set<uint32>   processList = loadProcessList(params.tigName, params.tigPart);
+  std::set<uint32>   processList = loadProcessList(params.tigName, params.tigPart);
 
   //  Load the partitioned reads, if they exist.
 
@@ -666,9 +663,8 @@ main (int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg = 1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if      (strcmp(argv[arg], "-S") == 0) {
       params.seqName = argv[++arg];
     }
@@ -808,8 +804,6 @@ main (int argc, char **argv) {
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
 

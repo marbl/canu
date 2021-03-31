@@ -427,8 +427,8 @@ maComputation::findMinThickestEdge(int32   &thick5,
       thick5arr[thick5len++] = alen - a3 + b3;
   }
 
-  sort(thick5arr, thick5arr + thick5len);
-  sort(thick3arr, thick3arr + thick3len);
+  std::sort(thick5arr, thick5arr + thick5len);
+  std::sort(thick3arr, thick3arr + thick3len);
 
 #if 0
   for (int32 ii=0; ii<max(thick5len, thick3len); ii++) {

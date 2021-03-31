@@ -24,8 +24,6 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
 
 
 class evalueFileMap {
@@ -52,7 +50,7 @@ operator<(evalueFileMap const &a, evalueFileMap const &b) {
 
 
 void
-ovStore::addEvalues(vector<char const *> &fileList) {
+ovStore::addEvalues(std::vector<char const *> &fileList) {
   char  evalueName[FILENAME_MAX+1];
   char  evalueTemp[FILENAME_MAX+1];
 
@@ -105,7 +103,7 @@ ovStore::addEvalues(vector<char const *> &fileList) {
 
   //  Sort the emap by starting read.
 
-  sort(emap, emap + fileList.size());
+  std::sort(emap, emap + fileList.size());
 
   //  Check that all IDs are present.
 
@@ -154,15 +152,14 @@ ovStore::addEvalues(vector<char const *> &fileList) {
 
 int
 main(int argc, char **argv) {
-  char const          *ovlName        = NULL;
-  char const          *seqName        = NULL;
-  vector<char const *>  fileList;
+  char const                *ovlName        = NULL;
+  char const                *seqName        = NULL;
+  std::vector<char const *>  fileList;
 
   argc = AS_configure(argc, argv);
 
-  vector<char const *>  err;
-  int                   arg=1;
-  while (arg < argc) {
+  std::vector<char const *>  err;
+  for (int32 arg=1; arg < argc; arg++) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
@@ -181,8 +178,6 @@ main(int argc, char **argv) {
       snprintf(s, 1024, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err.push_back(s);
     }
-
-    arg++;
   }
 
   if (ovlName == NULL)

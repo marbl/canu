@@ -325,7 +325,7 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
     _tigCache = nc;
   }
 
-  _tigLen = max(_tigLen, tig->_tigID + 1);
+  _tigLen = std::max(_tigLen, tig->_tigID + 1);
 
   tig->saveToRecord(_tigEntry[tig->_tigID].tigRecord);
 
