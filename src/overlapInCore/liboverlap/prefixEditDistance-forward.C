@@ -102,6 +102,10 @@ prefixEditDistance::forward(char    *A,   int32 m,
   int  Best_d, Best_e, From, Last, Longest, Max, Row;
   int  d, e, i, j, k;
 
+#ifdef SHOW_BRI
+  fprintf(stderr, "FORWARD errorlimit %d m %d n %d\n", Error_Limit, m, n);
+#endif
+
   assert (m <= n);
   Best_d = Best_e = Longest = 0;
   Right_Delta_Len = 0;
@@ -121,8 +125,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
     // Exact match
     A_End = T_End = m;
     Match_To_End = true;
-#ifdef SHOW_EXTEND_ALIGN
-    fprintf(stdout, "WorkArea %2d FWD exact match\n", omp_get_thread_num());
+#ifdef SHOW_BRI
+    fprintf(stderr, "WorkArea %2d FWD exact match\n", omp_get_thread_num());
 #endif
     return  0;
   }
@@ -133,6 +137,10 @@ prefixEditDistance::forward(char    *A,   int32 m,
   double Max_Score = 0.0;
 
   for (e = 1;  e <= Error_Limit;  e++) {
+#ifdef SHOW_BRI
+    fprintf(stderr, "FORWARD errors %d\n", e);
+#endif
+
     if (Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space(e);
 
@@ -157,6 +165,9 @@ prefixEditDistance::forward(char    *A,   int32 m,
         Row++;
 
       Edit_Array_Lazy[e][d] = Row;
+#ifdef SHOW_BRI
+      fprintf(stderr, "Edit_Array_Lazy[%d][%d] = %d\n", e, d, Row);
+#endif
 
       if (Row == m || Row + d == n) {
         //  Check for branch point here caused by uneven distribution of errors
@@ -171,14 +182,21 @@ prefixEditDistance::forward(char    *A,   int32 m,
           abort = true;
 
 #ifdef SHOW_EXTEND_ALIGN
-        fprintf(stdout, "WorkArea %2d FWD e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
+        fprintf(stderr, "WorkArea %2d FWD e=%d MIN=%d Tail_Len=%d Max_Score=%f Score=%f slope=%f SLOPE=%f\n",
                 omp_get_thread_num(), e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, slope, MIN_BRANCH_TAIL_SLOPE);
 #endif
 
         if ((e > MIN_BRANCH_END_DIST / 2) &&
             (Tail_Len >= MIN_BRANCH_END_DIST) &&
-            (slope >= MIN_BRANCH_TAIL_SLOPE))
+            (slope >= MIN_BRANCH_TAIL_SLOPE)) {
+#ifdef SHOW_BRI
+          fprintf(stderr, "ABORT!  e %d > %d MIN_BRANCH_END_DIST/2  AND  TailLen %d >= %d MIN_BRANCH_END_DIST  AND  slope %f >= %f MIN_BRANCH_TAIL_SLOPE\n",
+                  e, MIN_BRANCH_END_DIST / 2,
+                  Tail_Len, MIN_BRANCH_END_DIST,
+                  slope, MIN_BRANCH_TAIL_SLOPE);
+#endif
           abort = true;
+        }
 
         if (abort) {
           A_End = Max_Score_Len;
@@ -188,8 +206,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
           Match_To_End = false;
 
-#ifdef SHOW_EXTEND_ALIGN
-          fprintf(stdout, "WorkArea %2d FWD ABORT alignment at e=%d best_e=%d\n", omp_get_thread_num(), e, Max_Score_Best_e);
+#ifdef SHOW_BRI
+          fprintf(stderr, "RETURN e=%d Max_Score_Best_e %d MAtch_To_End=false\n", e, Max_Score_Best_e);
 #endif
           return(Max_Score_Best_e);
         }
@@ -209,33 +227,57 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
         Match_To_End = true;
 
-#ifdef SHOW_EXTEND_ALIGN
-        fprintf(stdout, "WorkArea %2d FWD END alignment at e=%d\n", omp_get_thread_num(), e);
+#ifdef SHOW_BRI
+        fprintf(stderr, "RETURN e=%d Match_To_End=true\n", e);
 #endif
         return(e);
       }
     }
 
-    while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[e][Left] < Edit_Match_Limit[e]))
+#ifdef SHOW_BRI
+    fprintf(stderr, "Row %4d - left %4d len %5d maxErr %6.2f minLen %7d prev %7d - right %4d len %5d maxErr %6.2f minLen %7d prev %7d\n",
+            Row,
+            Left,  Edit_Array_Lazy[e][Left],  pruneAlign_pe(e, Left, 0, m),  pruneAlign_ml(e, Left, 0, m),  pruneAlign_ML(e, Left, 0, m),
+            Right, Edit_Array_Lazy[e][Right], pruneAlign_pe(e, Right, 0, m), pruneAlign_ml(e, Right, 0, m), pruneAlign_ML(e, Right, 0, m));
+#endif
+
+    //  Close the bounds if the alignment isn't long enough for the number of errors we have
+    while  ((Left <= Right) && (Left < 0) && (pruneAlign(e, Left, 0, m))) {
+#ifdef SHOW_BRI
+      fprintf(stderr, "EAL[e][left=%d] %d  DELETE f1\n", Left, Edit_Array_Lazy[e][Left]);
+#endif
       Left++;
+    }
 
     if (Left >= 0)
-      while  ((Left <= Right) && (Edit_Array_Lazy[e][Left] + Left < Edit_Match_Limit[e]))
+      while  ((Left <= Right) && (pruneAlign(e, Left, Left, m))) {
+#ifdef SHOW_BRI
+        fprintf(stderr, "EAL[e][left=%d] %d  DELETE f2\n", Left, Edit_Array_Lazy[e][Left]);
+#endif
         Left++;
+      }
 
     if (Left > Right) {
 #ifdef SHOW_EXTEND_ALIGN
-      //fprintf(stdout, "WorkArea %2d FWD BREAK at Left=%d Right=%d\n", omp_get_thread_num(), Left, Right);
+      fprintf(stderr, "WorkArea %2d FWD BREAK at Left=%d Right=%d\n", omp_get_thread_num(), Left, Right);
 #endif
       break;
     }
 
-    while  ((Right > 0) && (Edit_Array_Lazy[e][Right] + Right < Edit_Match_Limit[e]))
+    while  ((Right > 0) && (pruneAlign(e, Right, Right, m))) {
+#ifdef SHOW_BRI
+      fprintf(stderr, "EAL[e][right=%d] %d  DELETE f3\n", Right, Edit_Array_Lazy[e][Right]);
+#endif
       Right--;
+    }
 
     if (Right <= 0)
-      while  (Edit_Array_Lazy[e][Right] < Edit_Match_Limit[e])
+      while  (pruneAlign(e, Right, 0, m)) {
+#ifdef SHOW_BRI
+        fprintf(stderr, "EAL[e][right=%d] %d  DELETE f4\n", Right, Edit_Array_Lazy[e][Right]);
+#endif
         Right--;
+      }
 
     assert (Left <= Right);
 
@@ -258,13 +300,15 @@ prefixEditDistance::forward(char    *A,   int32 m,
   }
 
 #ifdef SHOW_EXTEND_ALIGN
-  fprintf(stdout, "WorkArea %2d FWD ERROR_LIMIT at e=%d Error_Limit=%d best_e=%d\n", omp_get_thread_num(), e, Error_Limit, Max_Score_Best_e);
+  fprintf(stderr, "WorkArea %2d FWD ERROR_LIMIT at e=%d Error_Limit=%d best_e=%d\n", omp_get_thread_num(), e, Error_Limit, Max_Score_Best_e);
 #endif
 
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;
   Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
   Match_To_End = false;
+#ifdef SHOW_BRI
+  fprintf(stderr, "RETURN e=%d Exhausted errors Max_Score_Best_e %d\n", e, Max_Score_Best_e);
+#endif
   return  Max_Score_Best_e;
 }
-
