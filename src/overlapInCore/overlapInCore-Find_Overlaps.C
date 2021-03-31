@@ -109,6 +109,10 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
   StrNum = getStringRefStringNum(Ref);
   Sub = (StrNum ^ (StrNum >> STRING_OLAP_SHIFT)) & STRING_OLAP_MASK;
 
+#if 0
+  fprintf(stderr, "Add_Ref()- StrNum %d Sub %d Offset %d\n", StrNum, Sub, Offset);
+#endif
+
   while (WA->String_Olap_Space [Sub].Full
           && WA->String_Olap_Space [Sub].String_Num != StrNum) {
     Prev = Sub;

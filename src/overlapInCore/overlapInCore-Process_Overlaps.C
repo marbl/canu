@@ -70,10 +70,12 @@ Process_Overlaps(void *ptr){
 
       //  Generate overlaps.
 
+      //fprintf(stderr, "FORWARD\n");
       Find_Overlaps(bases, readLen, fi, FORWARD, WA);
 
       reverseComplementSequence(bases, readLen);
 
+      //fprintf(stderr, "REVERSE\n");
       Find_Overlaps(bases, readLen, fi, REVERSE, WA);
     }
 

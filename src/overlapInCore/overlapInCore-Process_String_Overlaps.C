@@ -443,12 +443,18 @@ Process_Matches (int * Start,
     if  (! hit_limit) {
       Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_ID, S_Len, T, T_ID, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
 
-      //fprintf(stderr, "Extend_Alignment()- start %4d len %4d offset %5d diag %5d - S ID %5u %6d-%6d - T ID %5u %6d-%6d\n",
-      //        Longest_Match->Start,
-      //        Longest_Match->Len,
-      //        Longest_Match->Offset,
-      //        Longest_Match->Start - Longest_Match->Offset,
-      //        S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
+#if 0
+      fprintf(stderr, "Extend_Alignment()- start %4d len %4d offset %5d diag %5d - S ID %5u %6d-%6d - T ID %5u %6d-%6d\n",
+              Longest_Match->Start,
+              Longest_Match->Len,
+              Longest_Match->Offset,
+              Longest_Match->Start - Longest_Match->Offset,
+              S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
+      fprintf(stderr, "Extend_Alignment()- Kind %d - S %d > %d - T %d > %d - Errors %d\n",
+              Kind_Of_Olap,
+              1 + S_Hi - S_Lo, G.Min_Olap_Len,
+              1 + T_Hi - T_Lo, G.Min_Olap_Len, Errors);
+#endif
 
       if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
         if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len
@@ -457,7 +463,9 @@ Process_Matches (int * Start,
           Quality = (double) Errors / Olap_Len;
 
           if  (Errors <= WA->editDist->Error_Bound[Olap_Len]) {
-            //fprintf(stderr, "Add_Overlap()-        quality %f count %d\n", Quality, distinct_olap_ct);
+#if 0
+            fprintf(stderr, "Add_Overlap()-        quality %f count %d\n", Quality, distinct_olap_ct);
+#endif
             Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality, distinct_olap, distinct_olap_ct, WA);
           }
         }
@@ -608,8 +616,11 @@ Process_String_Olaps (char * S,
   if  (ct <= G.Frag_Olap_Limit) {
     for  (i = 0;  i < ct;  i ++) {
       root_num = WA->String_Olap_Space[i].String_Num;
-      //fprintf(stderr, "Processing overlap from %d and global, curr match is %d of %.2f len and %d diag matches min of %d\n", ID, (root_num + Hash_String_Num_Offset), (double)WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, WA->String_Olap_Space[i].diag_ct, computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate));
-      if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) { WA->Kmer_Hits_Skipped_Ct++; continue; }
+
+      //if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) {
+      //  WA->Kmer_Hits_Skipped_Ct++;
+      //  continue;
+      //}
 
       Process_Matches(&WA->String_Olap_Space[i].Match_List,
                       S,
