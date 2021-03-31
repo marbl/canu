@@ -158,6 +158,8 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 meryl/src/meryl/meryl.mk \
                 \
+                overlapCheck/overlapCheck.mk \
+                \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
                 overlapInCore/overlapConvert.mk \
