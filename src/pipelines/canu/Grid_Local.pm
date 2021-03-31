@@ -68,6 +68,10 @@ sub getNumberOfCPUs () {
         $ncpu = $ENV{"SLURM_JOB_CPUS_PER_NODE"};
     }
 
+    if (exists($ENV{"PBS_NCPUS"})) {
+        $ncpu = $ENV{"PBS_NCPUS"};
+    }
+
     if (exists($ENV{"PBS_NUM_PPN"})) {
         $ncpu = $ENV{"PBS_NUM_PPN"};
     }
@@ -112,6 +116,10 @@ sub getPhysicalMemorySize () {
 
     if (exists($ENV{"SLURM_MEM_PER_NODE"})) {
         $memory = $ENV{"SLURM_MEM_PER_NODE"};
+    }
+
+    if (exists($ENV{"PBS_RESC_MEM"})) {
+        $memory = $ENV{"PBS_RESC_MEM"} / 1024 / 1024 / 1024;
     }
 
     return(int($memory + 0.5));  #  Poor man's rounding
