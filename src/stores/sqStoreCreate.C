@@ -132,13 +132,11 @@ public:
 
 uint64
 trimBgn(dnaSeq &sq, uint64 bgn, uint64 end) {
-  char *bases = sq.bases();
+  char const *bases = sq.bases();
 
   while ((bgn <= end) && ((bases[bgn] == 'N') ||
-                          (bases[bgn] == 'n'))) {
-    //bases[bgn] = 0;
+                          (bases[bgn] == 'n')))
     bgn++;
-  }
 
   return(bgn);
 }
@@ -147,15 +145,13 @@ trimBgn(dnaSeq &sq, uint64 bgn, uint64 end) {
 
 uint64
 trimEnd(dnaSeq &sq, uint64 bgn, uint64 end) {
-  char *bases = sq.bases();
+  char const *bases = sq.bases();
 
   end--;  //  So end is now the last base in the sequence.
 
   while ((bgn <= end) && ((bases[end] == 'N') ||
-                          (bases[end] == 'n'))) {
-    //bases[end] = 0;
+                          (bases[end] == 'n')))
     end--;
-  }
 
   end++;  //  So now end is the C-style end.
 
@@ -166,16 +162,12 @@ trimEnd(dnaSeq &sq, uint64 bgn, uint64 end) {
 
 uint32
 checkInvalid(dnaSeq &sq, uint64 bgn, uint64 end) {
-  uint32   invalid = 0;
-  char    *bases   = sq.bases();
+  uint32       invalid = 0;
+  char const  *bases   = sq.bases();
 
-  for (uint32 ii=bgn; ii<end; ii++) {
-    // special case Us
-    if (bases[ii] == 'U' || bases[ii] == 'u')
-       bases[ii] = 'T';
-    if (validSeq[bases[ii]] == 0)
-      invalid++;
-  }
+  for (uint32 ii=bgn; ii<end; ii++)   //  The conversion from U to T that
+    if (validSeq[bases[ii]] == 0)     //  was here is now in sqReadDataWriter
+      invalid++;                      //  setRawBases().
 
   return(invalid);
 }
@@ -570,8 +562,8 @@ main(int argc, char **argv) {
 
   //  Initialize the global.
 
-  validSeq['a'] = validSeq['c'] = validSeq['g'] = validSeq['t'] = validSeq['n'] = 1;
-  validSeq['A'] = validSeq['C'] = validSeq['G'] = validSeq['T'] = validSeq['N'] = 1;
+  validSeq['a'] = validSeq['c'] = validSeq['g'] = validSeq['t'] = validSeq['u'] = validSeq['n'] = 1;
+  validSeq['A'] = validSeq['C'] = validSeq['G'] = validSeq['T'] = validSeq['U'] = validSeq['N'] = 1;
 
   //  Parse options.
 

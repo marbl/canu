@@ -69,7 +69,8 @@ sqReadDataWriter::sqReadDataWriter_setRawBases(const char *S, uint32 Slen) {
 
   setArraySize(_rawBases, _rawBasesLen, _rawBasesAlloc, Slen+1, resizeArray_doNothing);
 
-  memcpy(_rawBases, S, sizeof(char) * Slen);
+  for (uint32 ii=0; ii<Slen; ii++)
+    _rawBases[ii] = _charMap[S[ii]];
   _rawBases[Slen] = 0;
 
   _rawBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?
@@ -88,7 +89,8 @@ sqReadDataWriter::sqReadDataWriter_setCorrectedBases(const char *S, uint32 Slen)
 
   setArraySize(_corBases, _corBasesLen, _corBasesAlloc, Slen+1, resizeArray_doNothing);
 
-  memcpy(_corBases, S, sizeof(char) * Slen);
+  for (uint32 ii=0; ii<Slen; ii++)
+    _corBases[ii] = _charMap[S[ii]];
   _corBases[Slen] = 0;
 
   _corBasesLen = Slen + 1;   //  Length INCLUDING NUL, remember?

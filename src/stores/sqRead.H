@@ -543,6 +543,13 @@ public:
     _rawC          = rawc;
     _corU          = coru;
     _corC          = corc;
+
+    _charMap['A'] = _charMap['a'] = 'A';
+    _charMap['C'] = _charMap['c'] = 'C';
+    _charMap['G'] = _charMap['g'] = 'G';
+    _charMap['T'] = _charMap['t'] = 'T';
+    _charMap['U'] = _charMap['u'] = 'T';   //  Map U to T.
+    _charMap['N'] = _charMap['n'] = 'N';
   };
 
   ~sqReadDataWriter() {
@@ -586,6 +593,8 @@ private:
   uint32       _corBasesAlloc = 0;        //  The corrected sequence.  The length is the
   uint32       _corBasesLen   = 0;        //  length of the array, not of the string.
   char        *_corBases      = nullptr;
+
+  char         _charMap[256]  = { 0 };
 
   friend class sqStore;
   friend class sqStoreBlobWriter;
