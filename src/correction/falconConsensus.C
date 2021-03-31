@@ -286,6 +286,9 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
       if (fd->eqv[fd->len] > 40)
         fd->eqv[fd->len] = 40;
 
+      if (fd->eqv[fd->len] < 0)
+        fd->eqv[fd->len] = 0;
+
       assert(0 <= fd->eqv[fd->len]);
 
       fd->len++;
