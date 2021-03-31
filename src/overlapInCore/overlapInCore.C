@@ -453,6 +453,7 @@ main(int argc, char **argv) {
 
   //  Log parameters.
 
+#if 0
   fprintf(stderr, "\n");
   fprintf(stderr, "STRING_NUM_BITS          " F_U32 "\n", STRING_NUM_BITS);
   fprintf(stderr, "OFFSET_BITS              " F_U32 "\n", OFFSET_BITS);
@@ -461,10 +462,10 @@ main(int argc, char **argv) {
   fprintf(stderr, "MAX_STRING_NUM           " F_U64 "\n", MAX_STRING_NUM);
   fprintf(stderr, "\n");
   fprintf(stderr, "Hash_Mask_Bits           " F_U32 "\n", G.Hash_Mask_Bits);
-
+  fprintf(stderr, "\n");
   fprintf(stderr, "bgnHashID                " F_U32 "\n", G.bgnHashID);
   fprintf(stderr, "bgnHashID                " F_U32 "\n", G.endHashID);
-
+  fprintf(stderr, "\n");
   fprintf(stderr, "Max_Hash_Data_Len        " F_U64 "\n", G.Max_Hash_Data_Len);
   fprintf(stderr, "Max_Hash_Load            %f\n", G.Max_Hash_Load);
   fprintf(stderr, "Kmer Length              " F_U64 "\n", G.Kmer_Len);
@@ -473,6 +474,19 @@ main(int argc, char **argv) {
   fprintf(stderr, "Min Kmer Matches         " F_U64 "\n", G.Filter_By_Kmer_Count);
   fprintf(stderr, "\n");
   fprintf(stderr, "Num_PThreads             " F_U32 "\n", G.Num_PThreads);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "sizeof(Hash_Bucket_t)    " F_U64 "\n",     (uint64)sizeof(Hash_Bucket_t));
+  fprintf(stderr, "sizeof(Check_Vector_t)   " F_U64 "\n",     (uint64)sizeof(Check_Vector_t));
+  fprintf(stderr, "sizeof(Hash_Frag_Info_t) " F_U64 "\n",     (uint64)sizeof(Hash_Frag_Info_t));
+  fprintf(stderr, "\n");
+  fprintf(stderr, "HASH_TABLE_SIZE          " F_U64 "\n",     HASH_TABLE_SIZE);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "hash table size:         " F_U64    " MB\n", (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
+  fprintf(stderr, "hash check array         " F_U64    " MB\n", (HASH_TABLE_SIZE    * sizeof (Check_Vector_t))   >> 20);
+  fprintf(stderr, "string info              " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (Hash_Frag_Info_t)) >> 20);
+  fprintf(stderr, "string start             " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (int64))            >> 20);
+  fprintf(stderr, "\n");
+#endif
 
   omp_set_num_threads(G.Num_PThreads);
 
@@ -491,19 +505,6 @@ main(int argc, char **argv) {
     else
       Char_Is_Bad[i] = 1;
   }
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "sizeof(Hash_Bucket_t)    " F_U64 "\n",     (uint64)sizeof(Hash_Bucket_t));
-  fprintf(stderr, "sizeof(Check_Vector_t)   " F_U64 "\n",     (uint64)sizeof(Check_Vector_t));
-  fprintf(stderr, "sizeof(Hash_Frag_Info_t) " F_U64 "\n",     (uint64)sizeof(Hash_Frag_Info_t));
-  fprintf(stderr, "\n");
-  fprintf(stderr, "HASH_TABLE_SIZE          " F_U64 "\n",     HASH_TABLE_SIZE);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "hash table size:         " F_U64    " MB\n", (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
-  fprintf(stderr, "hash check array         " F_U64    " MB\n", (HASH_TABLE_SIZE    * sizeof (Check_Vector_t))   >> 20);
-  fprintf(stderr, "string info              " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (Hash_Frag_Info_t)) >> 20);
-  fprintf(stderr, "string start             " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (int64))            >> 20);
-  fprintf(stderr, "\n");
 
   Hash_Table       = new Hash_Bucket_t    [HASH_TABLE_SIZE];
   Hash_Check_Array = new Check_Vector_t   [HASH_TABLE_SIZE];
