@@ -65,7 +65,7 @@ struct Match_Node_t {
 
 class prefixEditDistance {
 public:
-  prefixEditDistance(bool doingPartialOverlaps_, double maxErate_);
+  prefixEditDistance(bool doingPartialOverlaps_, double maxErate_, double maxAlignErate_);
   ~prefixEditDistance();
 
   void   Allocate_More_Edit_Space(int e);

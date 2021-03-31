@@ -20,7 +20,7 @@
 #include "Binomial_Bound.H"
 
 
-prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxErate_) {
+prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxErate_, double maxAlignErate_) {
   maxErate             = maxErate_;
   doingPartialOverlaps = doingPartialOverlaps_;
 
@@ -52,7 +52,7 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   Edit_Match_Limit_Allocation = new int32 [MAX_ERRORS + 1];
   Edit_Match_Limit = Edit_Match_Limit_Allocation;
 
-  Initialize_Match_Limit(Edit_Match_Limit_Allocation, maxErate, MAX_ERRORS);
+  Initialize_Match_Limit(Edit_Match_Limit_Allocation, maxAlignErate_, MAX_ERRORS);
 
 
   for (int32 i=0; i <= AS_MAX_READLEN; i++) {

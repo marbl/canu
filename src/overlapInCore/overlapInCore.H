@@ -373,6 +373,7 @@ public:
 
   void   initialize(void) {
     maxErate               = 0.06;
+    alignNoise             = 1.0;
     Doing_Partial_Overlaps = false;
 
     bgnHashID = 1;
@@ -410,6 +411,7 @@ public:
   };
 
   double maxErate;
+  double alignNoise;
 
   //  If set true by the G option (G for Granger)
   //  then allow overlaps that do not extend to the end

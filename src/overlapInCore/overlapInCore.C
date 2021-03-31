@@ -133,7 +133,9 @@ Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *readStore, sqCache *readC
 
   allocated += sizeof(ovOverlap) * WA->overlapsMax;
 
-  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
+  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps,
+                                        G.maxErate,
+                                        G.maxErate * G.alignNoise);
 
   WA->q_diff = new char [AS_MAX_READLEN];
   WA->distinct_olap = new Olap_Info_t [MAX_DISTINCT_OLAPS];
@@ -374,6 +376,8 @@ main(int argc, char **argv) {
       G.Filter_By_Kmer_Count = int(floor(exp(-1.0 * (double)G.Kmer_Len * G.maxErate) * (G.Min_Olap_Len - G.Kmer_Len + 1)));
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
       G.maxErate = strtof(argv[++arg], NULL);
+    } else if (strcmp(argv[arg], "--alignnoise") == 0) {
+      G.alignNoise = strtof(argv[++arg], NULL);
 
     } else if (strcmp(argv[arg], "-z") == 0) {
       G.Use_Hopeless_Check = false;
