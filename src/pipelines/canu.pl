@@ -416,6 +416,12 @@ checkParameters();
 configureAssembler();  #  Set job sizes and etc bases on genomeSize and hosts available.
 
 #  Make space for us to work in, and move there.
+#
+#  Unfortunately, if we fail later on because of inconsistent parameters
+#  (e.g., -assemble -raw X.fasta) we end up with an empty output directory.
+#  There is no easy way to get around this; fetchSeqStore() just below needs
+#  the directory to exist before it can fetch, and we don't know enough yet
+#  if the parameters are inconsistent.
 
 setWorkDirectory($asm, $rootdir);
 
@@ -492,7 +498,6 @@ if (-e "./$asm.seqStore/info") {
 #  At the same time, rewrite the sqStoreCreate option to accound for read status.
 
 elsif (scalar(@inputFiles) > 0) {
-
     foreach my $tf (@inputFiles) {
         my ($t, $f) = split '\0', $tf;
 
@@ -581,44 +586,6 @@ elsif (scalar(@inputFiles) > 0) {
 
     print STDERR "--\n";
     print STDERR "-- Found $ct $rt reads in the input files.\n";
-
-    #  Fail if inconsistent types are set.
-
-    my $inconsistent = 0;
-
-    if (($readsAreRaw == 1) && ($readsAreCorrected == 1)) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  Reads specified as 'raw' and 'corrected'.\n";
-        print STDERR "-- ERROR:  Reads must be either all raw or all corrected.\n";
-        print STDERR "-- ERROR:\n";
-        $inconsistent = 1;
-    }
-
-    if (($readsAreRaw == 1) && ($readsAreTrimmed == 1) && ($numHiFi == 0)) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  Reads specified as 'raw' and 'trimmed'.\n";
-        print STDERR "-- ERROR:  Canu doesn't support this.  Remove the -trimmed option.\n";
-        print STDERR "-- ERROR:  To not trim after correction, run correction separately,\n";
-        print STDERR "-- ERROR:  then assemble.\n";
-        print STDERR "-- ERROR:\n";
-        $inconsistent = 1;
-    }
-
-    if (($readsAreUntrimmed == 1) && ($readsAreTrimmed == 1)) {
-        print STDERR "--\n";
-        print STDERR "-- ERROR:\n";
-        print STDERR "-- ERROR:  Reads specified as both 'untrimmed' and 'trimmed'.\n";
-        print STDERR "-- ERROR:  Please submit an issue for this; it shouldn't happen.\n";
-        print STDERR "-- ERROR:  Try removing the -trimmed option, if present.\n";
-        print STDERR "-- ERROR:\n";
-        $inconsistent = 1;
-    }
-
-    if ($inconsistent) {
-        caExit("inconsistent read types", undef);
-    }
 }
 
 #  Otherwise, no reads found in a store, and no input files.
@@ -732,6 +699,94 @@ print  STDERR "--     assemble HiFi reads.\n"                    if (($mode eq "
 print  STDERR "--     assemble corrected and trimmed reads.\n"   if (($mode eq "assemble") && ($numHiFi == 0));
 print  STDERR "--\n";
 
+#  Fail with an error if the options don't make sense or if the types are inconsistent.
+
+if (! -e "./$asm.seqStore/info") {
+    my $inconsistent = 0;
+
+    if (($readsAreRaw == 1) && ($numHiFi == 0) &&
+        (($mode eq "trim") || ($mode eq "trim-assemble") || ($mode eq "assemble"))) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Cannot trim or assemmble raw (uncorrected) reads.\n";
+        print STDERR "-- ERROR:   - If the reads are corrected, add '-corrected'.\n";
+        print STDERR "-- ERROR:   - If the reads are raw, remove '-trim' or '-trim-assemble'.\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  readsAreRaw=true\n"         if ($readsAreRaw);
+        print STDERR "-- ERROR:  readsAreCorrected=true\n"   if ($readsAreCorrected);
+        print STDERR "-- ERROR:  mode=$mode\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if ((($readsAreCorrected == 1) || ($readsAreTrimmed == 1)) &&
+        (($mode eq "correct"))) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Cannot correct already corrected or already trimmed reads.\n";
+        print STDERR "-- ERROR:   - If the reads are raw (uncorrected), or to run\n";
+        print STDERR "-- ERROR:     correction again, remove '-corrected'.\n";
+        print STDERR "-- ERROR:   - Otherwise, remove the '-correct' option.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if (($readsAreTrimmed == 1) &&
+        (($mode eq "trim"))) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Cannot trim already trimmed reads.\n";
+        print STDERR "-- ERROR:   - If the reads are untrimmed, or to run trimming again (*)n";
+        print STDERR "-- ERROR:     replace '-trimmed' with '-corrected'.\n";
+        print STDERR "-- ERROR:       * - Double trimming probably doesn't do much.\n";
+        print STDERR "-- ERROR:   - Otherwise, remove the '-trim' option.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if ($inconsistent) {
+        caExit("inconsistent action for read types supplied", undef);
+    }
+
+    if (($readsAreRaw       == 1) &&
+        ($readsAreCorrected == 1)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Reads specified as 'raw' and 'corrected'.\n";
+        print STDERR "-- ERROR:  Reads must be either all raw or all corrected.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if (($readsAreRaw     == 1) &&
+        ($readsAreTrimmed == 1) &&
+        ($numHiFi         == 0)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Reads specified as 'raw' and 'trimmed'.\n";
+        print STDERR "-- ERROR:  Canu doesn't support this.  Remove the -trimmed option.\n";
+        print STDERR "-- ERROR:  To not trim after correction, run correction separately,\n";
+        print STDERR "-- ERROR:  then assemble.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if (($readsAreUntrimmed == 1) &&
+        ($readsAreTrimmed   == 1)) {
+        print STDERR "--\n";
+        print STDERR "-- ERROR:\n";
+        print STDERR "-- ERROR:  Reads specified as both 'untrimmed' and 'trimmed'.\n";
+        print STDERR "-- ERROR:  Please submit an issue for this; it shouldn't happen.\n";
+        print STDERR "-- ERROR:  Try removing the -trimmed option, if present.\n";
+        print STDERR "-- ERROR:\n";
+        $inconsistent = 1;
+    }
+
+    if ($inconsistent) {
+        caExit("inconsistent read types", undef);
+    }
+}
+
 #  Make space for logs, and tell binaries where to write their execution
 #  logging, then dump the parameters given to canu.
 
@@ -819,16 +874,24 @@ sub doCorrection ($$) {
     my $mode     = shift @_;
     my $reason   = undef;
 
-    $reason = "Correction skipped; not enabled"                        if (($mode ne "correct") &&
-                                                                           ($mode ne "run"));
-    $reason = "Correction output exists in $asm.correctedReads.*.gz"   if (fileExists("$asm.correctedReads.fasta.gz") ||
-                                                                           fileExists("$asm.correctedReads.fastq.gz"));
-    $reason = "Corrected reads exist in $asm.seqStore"                 if ((getNumberOfBasesInStore($asm, "obt") > 0) ||
-                                                                           (getNumberOfBasesInStore($asm, "utg") > 0));
+    my $cr = "corrected reads exist";
+
+    my $exist1 = (fileExists("$asm.correctedReads.fasta.gz") ||
+                  fileExists("$asm.correctedReads.fastq.gz"));
+    my $exist2 = ((getNumberOfBasesInStore($asm, "obt") > 0) ||
+                  (getNumberOfBasesInStore($asm, "utg") > 0));
+
+    $reason = "no raw reads exist in $asm.seqStore"                 if ((fileExists("$asm.seqStore/info")) &&
+                                                                        (getNumberOfBasesInStore($asm, "cor") == 0));
+    $reason = "$cr in $asm.correctedReads.*.gz"                     if ($exist1);
+    $reason = "$cr in $asm.seqStore"                                if ($exist2);
+    $reason = "$cr in $asm.correctedReads.*.gz and $asm.seqStore"   if ($exist1 && $exist2);
+    $reason = "not enabled"                                         if (($mode ne "correct") &&
+                                                                        ($mode ne "run"));
 
     if (defined($reason)) {
         print STDERR "--\n";
-        print STDERR "-- $reason.\n";
+        print STDERR "-- Correction skipped; $reason.\n";
         return(0);
     }
 
@@ -853,16 +916,24 @@ sub doTrimming ($$) {
     my $mode   = shift @_;
     my $reason = undef;
 
-    $reason = "Trimming skipped; not enabled"                      if (($mode ne "trim") &&
-                                                                       ($mode ne "trim-assemble") &&
-                                                                       ($mode ne "run"));
-    $reason = "Trimming output exists in $asm.trimmedReads.*.gz"   if (fileExists("$asm.trimmedReads.fasta.gz") ||
-                                                                       fileExists("$asm.trimmedReads.fastq.gz"));
-    $reason = "Trimmed reads exist in $asm.seqStore"               if ((getNumberOfBasesInStore($asm, "utg") > 0));
+    my $tr = "trimmed reads exist";
+
+    my $exist1 = (fileExists("$asm.trimmedReads.fasta.gz") ||
+                  fileExists("$asm.trimmedReads.fastq.gz"));
+    my $exist2 = (getNumberOfBasesInStore($asm, "utg") > 0);
+
+    $reason = "no corrected reads exist in $asm.seqStore"         if ((fileExists("$asm.seqStore/info")) &&
+                                                                      (getNumberOfBasesInStore($asm, "obt") == 0));
+    $reason = "$tr in $asm.trimmedReads.*.gz"                     if ($exist1);
+    $reason = "$tr in $asm.seqStore"                              if ($exist2);
+    $reason = "$tr in $asm.trimmedReads.*.gz and $asm.seqStore"   if ($exist1 && $exist2);
+    $reason = "not enabled"                                       if (($mode ne "trim") &&
+                                                                      ($mode ne "trim-assemble") &&
+                                                                      ($mode ne "run"));
 
     if (defined($reason)) {
         print STDERR "--\n";
-        print STDERR "-- $reason.\n";
+        print STDERR "-- Trimming skipped; $reason.\n";
         return(0);
     }
 
@@ -887,18 +958,17 @@ sub doUnitigging ($$) {
     my $mode   = shift @_;
     my $reason = undef;
 
-    $reason = "Unitigging skipped; not enabled"                  if (($mode ne "assemble") &&
-                                                                     ($mode ne "trim-assemble") &&
-                                                                     ($mode ne "run"));
-    $reason = "Unitigging output exists in $asm.contigs.fasta"   if (fileExists("$asm.contigs.fasta"));
-
-    $reason = "No corrected reads to assemble"                   if (fileExists("$asm.seqStore/info") &&
-                                                                     (getNumberOfBasesInStore($asm, "obt") == 0) &&
-                                                                     (getNumberOfBasesInStore($asm, "utg") == 0));
+    $reason = "no corrected reads to assemble"        if (fileExists("$asm.seqStore/info") &&
+                                                          (getNumberOfBasesInStore($asm, "obt") == 0) &&
+                                                          (getNumberOfBasesInStore($asm, "utg") == 0));
+    $reason = "contigs exist in $asm.contigs.fasta"   if (fileExists("$asm.contigs.fasta"));
+    $reason = "not enabled"                           if (($mode ne "assemble") &&
+                                                          ($mode ne "trim-assemble") &&
+                                                          ($mode ne "run"));
 
     if (defined($reason)) {
         print STDERR "--\n";
-        print STDERR "-- $reason.\n";
+        print STDERR "-- Unitigging skipped; $reason.\n";
         return(0);
     }
 
