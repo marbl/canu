@@ -73,7 +73,7 @@ sub detectPBSTorque () {
         print STDERR "--\n";
         print STDERR "-- Detected $name '$version' with 'pbsnodes' binary in $pbsnodes.\n";
 
-        setGlobal("gridEngine", ($name == "PBSPro") ? "PBSPRO" : "PBS");
+        setGlobal("gridEngine", ($name eq "PBSPro") ? "PBSPRO" : "PBS");
     }
 }
 
