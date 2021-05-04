@@ -516,17 +516,17 @@ The header line for each sequence provides some metadata on the sequence.::
    reads
       Number of reads used to form the contig.
 
-   covStat
-      The log of the ratio of the contig being unique versus being two-copy, based on the read arrival rate.  Positive values indicate more likely to be unique, while negative values indicate more likely to be repetitive.  See `Footnote 24 <http://science.sciencemag.org/content/287/5461/2196.full#ref-24>`_ in `Myers et al., A Whole-Genome Assembly of Drosophila <http://science.sciencemag.org/content/287/5461/2196.full>`_.
-
    class
       Type of sequence.  Unassembled sequences are primarily low-coverage sequences spanned by a single read.
 
    suggestRepeat
       If yes, sequence was detected as a repeat based on graph topology or read overlaps to other sequences.
 
+   suggestBubble
+      If yes, sequence is likely a bubble based on potential placement within longer sequences.
+
    suggestCircular
-      If yes, sequence is likely circular.  The fasta def line includes the non-redundant coordinates
+      If yes, sequence is likely circular.  The fasta line will have a trim=X-Y to indicate the non-redundant coordinates
 
 GRAPHS
 
