@@ -62,7 +62,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       G->checkTrivialDNA = true;
-      fprintf(stderr, "Correcting HIFI reads\n");
 
     } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file input
       G->correctionsName = argv[++arg];
@@ -145,6 +144,9 @@ main(int argc, char **argv) {
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
 
   fprintf(stderr, "Correcting reads " F_U32 " to " F_U32 ".\n", G->bgnID, G->endID);
+  fprintf(stderr, "  %s alignment errors in simple sequence repeats (-s %ssupplied).\n",
+          G->checkTrivialDNA ? "Ignoring" : "Allowing",
+          G->checkTrivialDNA ? "" : "not ");
 
   FILE *correctedReads = G->correctedName == NULL ? NULL : fopen(G->correctedName, "w");
   Correct_Frags(G, seqStore, correctedReads);
