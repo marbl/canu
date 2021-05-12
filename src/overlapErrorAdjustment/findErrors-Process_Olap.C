@@ -259,9 +259,15 @@ Process_Olap(Olap_Info_t        *olap,
 
     assert(events >= 0 && alignment_len > 0);
     //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
-    assert(wa->G->checkTrivialDNA || all_errors == events);
-    auto erate = wa->G->checkTrivialDNA ? wa->G->maskedErrorRate : wa->G->errorRate;
-    if (events <= (int32) ceil(alignment_len * erate)) {
+
+    //  We used to assert that either checkTrivialDNA was true or that 
+    //  all_errors == events.  This was to ensure that no alignment errors
+    //  were rejected by ComputeErrors() -- but we're now ignoring alignment errors
+    //  near the end of a read in all cases, so all_errors != events.
+    //
+    //assert(wa->G->checkTrivialDNA || all_errors == events);
+
+    if (events <= (int32) ceil(alignment_len * wa->G->maskedErrorRate)) {
       wa->passedOlaps++;
       //fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
       Analyze_Alignment(wa,
