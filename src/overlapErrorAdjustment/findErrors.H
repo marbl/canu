@@ -92,14 +92,6 @@ using namespace std;
 //  which should be accounted by overlap scoring (see DEFAULT_FLANK_IGNORE)
 #define  IGNORE_FLANK_VOTE           5
 
-//  This many or more votes at the same base indicate
-//  a separate haplotype
-#define  MIN_HAPLO_OCCURS            5//3
-
-//static const uint32 STRONG_CONFIRMATION_READ_CNT = 2;
-//This many or more votes indicate sufficient confirmation
-#define  STRONG_CONFIRMATION_READ_CNT 2
-
 //  The amount of memory to allocate for the stack of each thread
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
@@ -363,7 +355,10 @@ struct feParameters {
 
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
-    Use_Haplo_Ct     = true;
+
+    Haplo_Expected   = 2;
+    Haplo_Strong     = 2;
+    Haplo_Confirm    = 5;
     Haplo_Freeze     = 1;
 
     checkTrivialDNA = false;
@@ -414,12 +409,18 @@ struct feParameters {
 
   // Set keep flag on end of fragment if number of olaps < this value
   int  Degree_Threshold;
-  // Set false by -p option to ignore haplotype counts when correcting
-  bool  Use_Haplo_Ct;
+
+  //  Require at least Haplo_Confirm reads to confirm a haplotype, but if there are
+  //  more than Haplo_Expected haplotypes detected, treat the column as a true error.
+  //
+  int32   Haplo_Expected;  //  (2) Number of haplotypes expected; previously hard-coded inline '2'.
+  int32   Haplo_Strong;    //  (2) Number of reads to confirm insert/delete; previously STRONG_CONFIRMATION_READ_CNT.
+  int32   Haplo_Confirm;   //  (5) Number of reads to confirm a haplotype; previously MIN_HAPLO_OCCURS.
+
   // Controls radius around heterozygous position that is considered too risky to correct
   uint32  Haplo_Freeze;
 
-  bool  checkTrivialDNA;
+  bool    checkTrivialDNA;
   double  maskedErrorRate;
 
   // Length of ends of exact-match regions not used in preventing sequence correction
