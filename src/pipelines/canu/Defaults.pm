@@ -972,11 +972,17 @@ sub setDefaults () {
 
     #####  Fragment/Overlap Error Correction
 
-    setDefault("enableOEA",      1,     "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA); default 'true'");
-    setDefault("redBatchSize",   undef, "Number of reads per fragment error detection batch");
-    setDefault("redBatchLength", undef, "Number of bases per fragment error detection batch");
-    setDefault("oeaBatchSize",   undef, "Number of reads per overlap error correction batch");
-    setDefault("oeaBatchLength", undef, "Number of bases per overlap error correction batch");
+    setDefault("enableOEA",       1,     "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA); default 'true'");
+
+    setDefault("oeaHaploConfirm", undef, "This many or more reads will confirm a true haplotype difference; default 5");
+    setDefault("oeaMaskTrivial",  undef, "Mask trivial DNA in Overlap Error Adjustment; default off; on for HiFi reads");
+    setDefault("oeaErrorRate",    undef, "Only use overlaps with at most this much fraction error to find errors in reads; default utgOvlErrorRate, 0.003 for HiFi reads");
+
+    setDefault("redBatchSize",    undef, "Number of reads per fragment error detection batch");
+    setDefault("redBatchLength",  undef, "Number of bases per fragment error detection batch");
+
+    setDefault("oeaBatchSize",    undef, "Number of reads per overlap error correction batch");
+    setDefault("oeaBatchLength",  undef, "Number of bases per overlap error correction batch");
 
     #####  Unitigger & BOG & bogart Options
 

@@ -610,6 +610,8 @@ if (($numPacBio   >= 0) &&
     setGlobalIfUndef("utgOvlErrorRate",  0.120);
     setGlobalIfUndef("corErrorRate",     0.500);
     setGlobalIfUndef("obtErrorRate",     0.120);
+    setGlobalIfUndef("oeaErrorRate",     getGlobal("utgOvlErrorRate"));
+    setGlobalIfUndef("oeaHaploConfirm",  5);
     setGlobalIfUndef("utgErrorRate",     0.120);
     setGlobalIfUndef("cnsErrorRate",     0.200);
 }
@@ -622,6 +624,8 @@ if (($numPacBio    > 0) &&
     setGlobalIfUndef("utgOvlErrorRate",  0.045);
     setGlobalIfUndef("corErrorRate",     0.300);
     setGlobalIfUndef("obtErrorRate",     0.045);
+    setGlobalIfUndef("oeaErrorRate",     getGlobal("utgOvlErrorRate"));
+    setGlobalIfUndef("oeaHaploConfirm",  5);
     setGlobalIfUndef("utgErrorRate",     0.045);
     setGlobalIfUndef("cnsErrorRate",     0.075);
 }
@@ -629,18 +633,20 @@ if (($numPacBio    > 0) &&
 if (($numPacBio   == 0) &&
     ($numNanopore == 0) &&
     ($numHiFi      > 0)) {
-    setGlobalIfUndef("corOvlErrorRate",  0.000);
-    setGlobalIfUndef("obtOvlErrorRate",  0.025);
-    setGlobalIfUndef("utgOvlErrorRate",  0.010);
-    setGlobalIfUndef("corErrorRate",     0.000);
-    setGlobalIfUndef("obtErrorRate",     0.025);
-    setGlobalIfUndef("utgErrorRate",     0.010);
-    setGlobalIfUndef("cnsErrorRate",     0.050);
-    setGlobalIfUndef("homoPolyCompress", 1);
-    setGlobalIfUndef("maxInputCoverage", 50);
-    setGlobalIfUndef("utgGraphDeviation", 4);
+    setGlobalIfUndef("corOvlErrorRate",    0.000);
+    setGlobalIfUndef("obtOvlErrorRate",    0.025);
+    setGlobalIfUndef("utgOvlErrorRate",    0.010);
+    setGlobalIfUndef("corErrorRate",       0.000);
+    setGlobalIfUndef("obtErrorRate",       0.025);
+    setGlobalIfUndef("utgErrorRate",       0.0003);
+    setGlobalIfUndef("cnsErrorRate",       0.050);
+    setGlobalIfUndef("homoPolyCompress",   1);
+    setGlobalIfUndef("maxInputCoverage",   50);
+    setGlobalIfUndef("utgGraphDeviation",  4);
     setGlobalIfUndef("utgRepeatDeviation", 0);
-    setGlobalIfUndef("batOptions",       "-eg 0.0003");
+    setGlobalIfUndef("oeaErrorRate",       0.003);
+    setGlobalIfUndef("oeaMaskTrivial",     1);
+    setGlobalIfUndef("oeaHaploConfirm",    5);
 }
 
 if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {

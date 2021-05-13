@@ -807,8 +807,40 @@ example above, setting maxThreads=4 would result in two concurrent jobs instead 
 Overlap Error Adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-red = Read Error Detection
-oea = Overlap Error Adjustment
+The Overlap Error Adjustment module adjusts the error rate claimed by each
+overlap to account for sequencing error and true polymorphism.  A pair-wise
+multialignment is generated for all overlaps to a given read.  Each
+multialignment column is examined to determine if the base in the given read
+is correct, is part of a true difference, or is a likely sequencing error.
+For the latter case, a base change is noted.  Once all base changes in all
+columns of all reads have been determined, all overlaps are recomputed with
+said changes applied, and the new fraction error stored for each overlap.
+
+Three parameters exist to change the behavior:
+
+oeaErrorRate <real=unset>
+  Do not use overlaps that are above this fraction error for finding true
+  differences and errors.  Mostly useful only when oeaMaskTrivial is enabled.
+  For PacBio and Nanopore data , the default is utgOvlErrorRate.  For HiFi
+  data, the default is 0.003.
+
+oeaHaploConfirm <integer=5>
+  A set of this many reads with the same base in a column is declared to be a
+  true haplotype difference and will increase the fraction error for the
+  overlap.  The default for all read types is 5.
+  
+oeaMaskTrivial <boolean=unset>
+  If true, errors that occur in low-complexity sequence are ignored when
+  finding base changes and when recomputing overlap error rates.  Unless set
+  explicitly, it is true (enabled) for PacBio HiFi data and false otherwise.
+  
+This module consists of two steps: RED (read error detection), and OEA
+(overlap error adjustment).  They have slightly different run-time
+requirements.  RED can use multiple threads and is slightly more
+computationally expensive; OEA can not use multiple threads and is slightly
+more I/O intensive.  The batch length and batch size parameters can tune the
+size of each job, however, the default values have worked well (so well that
+we don't actually document what these values should be set to).
 
 oeaBatchLength <unset>
   Number of bases per overlap error correction batch

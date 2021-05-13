@@ -102,7 +102,7 @@ FPrint_Votes(FILE *fp, const Frag_Info_t &read, uint32 j, uint32 loc_r) {
 }
 
 Vote_Value_t
-Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
+Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Haplo_Confirm) {
   Vote_Value_t  vote_t      = DELETE;
   int32         max       = vote.deletes;
   bool          is_change = true;
@@ -127,11 +127,11 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
     max       = vote.t_subst;
   }
 
-  int32 haplo_ct  =  ((vote.deletes >= MIN_HAPLO_OCCURS) +
-      (vote.a_subst >= MIN_HAPLO_OCCURS) +
-      (vote.c_subst >= MIN_HAPLO_OCCURS) +
-      (vote.g_subst >= MIN_HAPLO_OCCURS) +
-      (vote.t_subst >= MIN_HAPLO_OCCURS));
+  int32 haplo_ct  =  ((vote.deletes >= Haplo_Confirm) +
+                      (vote.a_subst >= Haplo_Confirm) +
+                      (vote.c_subst >= Haplo_Confirm) +
+                      (vote.g_subst >= Haplo_Confirm) +
+                      (vote.t_subst >= Haplo_Confirm));
 
   if (vote_t != DELETE && base == VoteChar(vote_t)) {
     //fprintf(stderr, "SAME  base = %c, vote = %c\n", base, VoteChar(vote_t));
@@ -148,15 +148,8 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
     return NO_VOTE;
   }
 
-  if ((haplo_ct >= 2) && use_haplo_cnt) {
+  if (haplo_ct >= Haplo_Expected) {
     //fprintf(stderr, "HAPLO haplo_ct=%d >= 2\n", haplo_ct);
-    return NO_VOTE;
-  }
-
-  if (vote.confirmed > 2) {
-    //fprintf(stderr, "Support for no correction: confirmed = %d\n", vote.confirmed);
-    //Can not be triggered because confirmed < STRONG_CONFIRMATION_READ_CNT = 2
-    assert(false);
     return NO_VOTE;
   }
 
@@ -169,7 +162,7 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
 }
 
 std::string
-Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
+Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Haplo_Confirm) {
 
   std::map<std::string, uint32> insert_cnts;
   for (const auto &ins : vote.insertions_list()) {
@@ -182,7 +175,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   int32 ins_max = 0;
   std::string ins_vote;
   for (const auto &ins_cnt : insert_cnts) {
-    if (ins_cnt.second >= MIN_HAPLO_OCCURS) {
+    if (ins_cnt.second >= Haplo_Confirm) {
       ins_haplo_ct++;
     }
     if (ins_cnt.second > ins_max) {
@@ -192,7 +185,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   }
 
   //considering empty insertion as a valid vote
-  if (vote.no_insert >= MIN_HAPLO_OCCURS)
+  if (vote.no_insert >= Haplo_Confirm)
     ins_haplo_ct++;
 
   //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
@@ -209,15 +202,8 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   }
 
   //no need to check non-insertions here, since we are in no_insert < STRONG_CONFIRMATION_READ_CNT = 2 case
-  if ((ins_haplo_ct >= 2) && use_haplo_cnt) {
+  if (ins_haplo_ct >= Haplo_Expected) {
     //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2\n", ins_haplo_ct);
-    return "";
-  }
-
-  if (vote.conf_no_insert >= 2) {
-    //fprintf(stderr, "Support for no insert: no_insert = %d\n", vote.no_insert);
-    //Can not be triggered because no_insert < STRONG_CONFIRMATION_READ_CNT = 2
-    assert(false);
     return "";
   }
 
@@ -229,27 +215,27 @@ Check_Insert(const Vote_Tally_t &vote, char base, bool use_haplo_cnt) {
   return ins_vote;
 }
 
-bool Is_Het_Del(const Vote_Tally_t &vote) {
+bool Is_Het_Del(const Vote_Tally_t &vote, int32 Haplo_Confirm) {
   //TODO consider using STRONG_CONFIRMATION_READ_CNT
-  //if (vote.no_insert >= MIN_HAPLO_OCCURS && vote.insertion_cnt >= MIN_HAPLO_OCCURS)
+  //if (vote.no_insert >= Haplo_Confirm && vote.insertion_cnt >= Haplo_Confirm)
   //  return true;
 
-  //int32 haplo_ct  = ((vote.deletes >= MIN_HAPLO_OCCURS) +
-  //    (vote.a_subst >= MIN_HAPLO_OCCURS) +
-  //    (vote.c_subst >= MIN_HAPLO_OCCURS) +
-  //    (vote.g_subst >= MIN_HAPLO_OCCURS) +
-  //    (vote.t_subst >= MIN_HAPLO_OCCURS));
+  //int32 haplo_ct  = ((vote.deletes >= Haplo_Confirm) +
+  //    (vote.a_subst >= Haplo_Confirm) +
+  //    (vote.c_subst >= Haplo_Confirm) +
+  //    (vote.g_subst >= Haplo_Confirm) +
+  //    (vote.t_subst >= Haplo_Confirm));
 
   //return haplo_ct >= 2;
-  return vote.deletes >= MIN_HAPLO_OCCURS &&
-    (vote.total() - vote.deletes) >= MIN_HAPLO_OCCURS;
+  return((vote.deletes                >= Haplo_Confirm) &&
+         (vote.total() - vote.deletes >= Haplo_Confirm));
 }
 
 std::vector<uint32>
-Find_Het_Del_Positions(const feParameters *G, const Frag_Info_t &read) {
+Find_Het_Del_Positions(const feParameters *G, const Frag_Info_t &read, int32 Haplo_Confirm) {
   std::vector<uint32> answer;
   for (uint32 pos = 0; pos < read.clear_len; pos++) {
-    if (Is_Het_Del(read.vote[pos])) {
+    if (Is_Het_Del(read.vote[pos], Haplo_Confirm)) {
       answer.push_back(pos);
     }
   }
@@ -275,9 +261,9 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
 
   bool corrected = false;
 
-  if (vote.conf_no_insert < STRONG_CONFIRMATION_READ_CNT) {
+  if (vote.conf_no_insert < G->Haplo_Strong) {
     //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, pos);
-    std::string ins_str = Check_Insert(vote, base, G->Use_Haplo_Ct);
+    std::string ins_str = Check_Insert(vote, base, G->Haplo_Expected, G->Haplo_Confirm);
     if (ins_str.empty()) {
       //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
     } else {
@@ -291,9 +277,9 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
     }
   }
 
-  if (vote.confirmed < STRONG_CONFIRMATION_READ_CNT) {
+  if (vote.confirmed < G->Haplo_Strong) {
     //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, pos);
-    Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Use_Haplo_Ct);
+    Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Haplo_Expected, G->Haplo_Confirm);
     if (vote_t == NO_VOTE) {
       //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
     } else if (vote_t == DELETE && block_deletion) {
@@ -343,11 +329,11 @@ Output_Corrections(feParameters *G) {
 
     std::vector<uint32> het_del_pos;
 
-    if (G->Use_Haplo_Ct && G->Haplo_Freeze > 0) {
+    if ((G->Haplo_Expected < INT32_MAX) && (G->Haplo_Freeze > 0)) {
       //no reason to use different value;
       //freezing one position seems enough to not falsely correct ambiguous deletion
       assert(G->Haplo_Freeze == 1);
-      het_del_pos = Find_Het_Del_Positions(G, read);
+      het_del_pos = Find_Het_Del_Positions(G, read, G->Haplo_Confirm);
     }
 
     auto het_it = het_del_pos.begin();

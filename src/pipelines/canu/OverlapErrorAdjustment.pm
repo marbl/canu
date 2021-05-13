@@ -301,8 +301,11 @@ sub readErrorDetectionConfigure ($) {
     print F "  -S ../../$asm.seqStore \\\n";
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
-    print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
-    print F "  -m 0.003 \\\n";
+    print F "  -e " . getGlobal("utgOvlErrorRate") . " \\\n";
+    print F "  -l " . getGlobal("minOverlapLength") . " \\\n";
+    print F "  -m " . getGlobal("oeaErrorRate") . " \\\n";
+    print F "  -s \\\n"   if (getGlobal("oeaMaskTrivial") != 0);
+    print F "  -p " . getGlobal("oeaHaploConfirm") . " \\\n";
     print F "  -o ./\$jobid.red.WORKING \\\n";
     print F "  -t $numThreads \\\n";
     print F "&& \\\n";
@@ -605,8 +608,9 @@ sub overlapErrorAdjustmentConfigure ($) {
     print F "  -S ../../$asm.seqStore \\\n";
     print F "  -O ../$asm.ovlStore \\\n";
     print F "  -R \$minid \$maxid \\\n";
-    print F "  -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
-    print F "  -s \\\n"                                   if (defined(getGlobal("homoPolyCompress")));
+    print F "  -e " . getGlobal("utgOvlErrorRate") . " \\\n";
+    print F "  -l " . getGlobal("minOverlapLength") . " \\\n";
+    print F "  -s \\\n"   if (getGlobal("oeaMaskTrivial") != 0);
     print F "  -c ./red.red \\\n";
     print F "  -o ./\$jobid.oea.WORKING \\\n";
     print F "&& \\\n";

@@ -365,12 +365,16 @@ main(int argc, char **argv) {
     //  G->Kmer_Len = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
-      G->Use_Haplo_Ct = false;
+      G->Haplo_Confirm = strtoint32(argv[++arg]);
+
+      if (G->Haplo_Confirm == 0)         //  If 0, set to max to disable
+        G->Haplo_Confirm = INT32_MAX;    //  detection of haplotypes.
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      G->checkTrivialDNA = true;
 
     } else if (strcmp(argv[arg], "-m") == 0) {
       G->maskedErrorRate = atof(argv[++arg]);
-      G->checkTrivialDNA = true;
-      fprintf(stderr, "Masked error rate provided (%.3f), will mask trivial DNA\n", G->maskedErrorRate);
 
     //} else if (strcmp(argv[arg], "-f") == 0) {
     //  G->Haplo_Freeze = atoi(argv[++arg]);
@@ -412,7 +416,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t   num-threads        \n");
     fprintf(stderr, "  -d   degree-threshold   set keep flag if fewer than this many overlaps\n");
     //fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
-    fprintf(stderr, "  -p                      don't use the haplo_ct\n");
+    fprintf(stderr, "  -p   num-reads          confirm haplotypes if at least num-reads have it\n");
+    fprintf(stderr, "                            if not set, haplotypes will never be confirmed\n");
     fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:1, 0 to disable)\n");
     fprintf(stderr, "  -m   maked-error-rate   post trivial DNA masking error-rate threshold\n");
     fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
