@@ -50,6 +50,10 @@ with::
 
  curl -L -o pacbio.fastq http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq
 
+Confirm the MD5SUM matches::
+
+ 9bb4c10c41c5442d630af8b504042334  pacbio.fastq
+
 There doesn't appear to be any "official" Oxford Nanopore sample data, but the `Loman Lab
 <http://lab.loman.net/>`_ released a `set of runs
 <http://lab.loman.net/2015/09/24/first-sqk-map-006-experiment/>`_, also for Escherichia coli K12.
@@ -58,6 +62,10 @@ This is early data, from September 2015.  Any of the four runs will work; we pic
 line with::
 
  curl -L -o oxford.fasta http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta
+
+Confirm the MD5SUM matches::
+
+ 660bcde6e4456d7bac962080b92a7f47  oxford.fasta
 
 By default, Canu will correct the reads, then trim the reads, then assemble the reads to unitigs.
 Canu needs to know the approximate genome size (so it can determine coverage in the input reads)
@@ -102,11 +110,19 @@ Trio Binning Assembly
 ----------------------------------
 
 Canu has support for using parental short-read sequencing to classify and bin the F1 reads (see `Trio Binning manuscript
-<https://www.biorxiv.org/content/early/2018/02/26/271486>`_ for details). This example demonstrates the functionality using a synthetic mix of two Escherichia coli datasets.  First download the data::
+<https://www.biorxiv.org/content/early/2018/02/26/271486>`_ for details). This example demonstrates the functionality using a synthetic mix of two Escherichia coli datasets.  First download the data ::
 
  curl -L -o K12.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/k12.12.fasta
  curl -L -o O157.parental.fasta https://gembox.cbcb.umd.edu/triobinning/example/o157.12.fasta
  curl -L -o F1.fasta https://gembox.cbcb.umd.edu/triobinning/example/pacbio.fasta
+
+Confirm the MD5SUM matches::
+
+ 69920456a2ef25fc3e89cdcb604861ed  K12.parental.fasta
+ 792d0af43740b3534516e8f73ead8a35  O157.parental.fasta
+ 64c8befea83d043344bdff7c43b04a71  F1.fasta
+
+and run Canu::
 
  canu \
   -p asm -d ecoliTrio \
