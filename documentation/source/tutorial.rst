@@ -1,7 +1,3 @@
-
-
-.. _celera-assembler: `Celera Assembler <http://wgs-assembler.sourceforge.net>`
-
 .. _tutorial:
 
 Canu Tutorial
@@ -9,7 +5,7 @@ Canu Tutorial
 
 Canu assembles reads from PacBio RS II or Oxford Nanopore MinION instruments into
 uniquely-assemblable contigs, unitigs.  Canu owes lots of it design and code to
-`celera-assembler <Celera Assembler>`_.
+`Celera Assembler <http://wgs-assembler.sourceforge.net/>`_.
 
 Canu can be run using hardware of nearly any shape or size, anywhere from laptops to computational
 grids with thousands of nodes.  Obviously, larger assemblies will take a long time to compute on
@@ -22,7 +18,7 @@ parallelized (to use all the nodes in a grid), or both (all the cores on all the
 .. _canu-command:
 
 Canu, the command
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 The **canu** command is the 'executive' program that runs all modules of the assembler.  It oversees
 each of the three top-level tasks (correction, trimming, unitig construction), each of which
@@ -371,7 +367,7 @@ and 8 'distinct' kmers.
   don't compute frequent kmers, use those listed in this file
 
 Mhap Overlapper Parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 <tag>MhapBlockSize
   Chunk of reads that can fit into 1GB of memory. Combined with memory to compute the size of chunk the reads are split into.
@@ -385,7 +381,7 @@ Mhap Overlapper Parameters
 Mhap also will down-weight frequent kmers (using tf-idf), but it's selection of frequent is not exposed.
 
 Minimap Overlapper Parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 <tag>MMapBlockSize
   Chunk of reads that can fit into 1GB of memory. Combined with memory to compute the size of chunk the reads are split into.
 <tag>MMapMerSize
@@ -396,7 +392,7 @@ Minimap also will ignore high-frequency minimizers, but it's selection of freque
 .. _outputs:
 
 Outputs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
 
 As Canu runs, it outputs status messages, execution logs, and some analysis to the console.  Most of
 the analysis is captured in ``<prefix>.report`` as well.

@@ -1,32 +1,3 @@
-
-..
- introduction
-  what this is
-
- quick start
-  one PacBio SMRT cell from ecoli
-
- pipeline (not reference, designed to be read through)
-  overview
-   introduce modular pipeline
-   introduce gkpStore, overlaps, ovlStore, tigStore
-  read correction
-  read trimming
-  unitig construction
-
-  local vs grid mode
-
-
- canu option reference
-  each option, in detail, grouped by function
-
- canu executable reference
-  each binary, in detail, alphabetical
-
- option index (alphabetical)
-
- history
-
 Canu
 ====
 
@@ -38,7 +9,6 @@ Canu
    tutorial
    pipeline
    parameter-reference
-   command-reference
    history
 
 
@@ -47,7 +17,7 @@ designed for high-noise single-molecule sequencing (such as
 the PacBio RSII or Oxford Nanopore MinION).
 
 Publications
-===========
+============
 
 Canu
   Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM.
@@ -62,7 +32,7 @@ HiCanu
   `HiCanu: accurate assembly of segmental duplications, satellites, and allelic variants from high-fidelity long reads <https://doi.org/10.1101/gr.263566.120>`_. Genome Research. (2020).
 
 Install
-=========
+=======
 The easiest way to get started is to download a `release <https://github.com/marbl/canu/releases>`_. If you encounter
 any issues, please report them using the `github issues <http://github.com/marbl/canu/issues>`_ page.
 
@@ -75,7 +45,7 @@ Alternatively, you can also build the latest unreleased from github:
   make -j <number of threads>
 
 Learn
-=========
+=====
 
 *  :ref:`Quick Start               <quickstart>` - no experience or data required, download and assemble *Escherichia coli* today!
 *  :ref:`FAQ                       <faq>` - Frequently asked questions
@@ -83,5 +53,4 @@ Learn
 *  :ref:`Canu pipeline             <pipeline>`   - what, exactly, is canu doing, anyway?
 
 *  :ref:`Canu Parameter Reference  <parameter-reference>` - all the parameters, grouped by function.
-*  :ref:`Canu Command Reference    <command-reference>` - all the commands that canu runs for you.
 *  :ref:`Canu History              <history>` - the history of the Canu project.
