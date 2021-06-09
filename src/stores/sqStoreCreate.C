@@ -166,9 +166,11 @@ checkInvalid(dnaSeq &sq, uint64 bgn, uint64 end) {
   uint32       invalid = 0;
   char const  *bases   = sq.bases();
 
-  for (uint32 ii=bgn; ii<end; ii++)   //  The conversion from U to T that
-    if (validSeq[bases[ii]] == 0)     //  was here is now in sqReadDataWriter
-      invalid++;                      //  setRawBases().
+  //  The conversion from U to T that was here is now in sqReadDataWriter
+  //  setRawBases().
+  for (uint32 ii=bgn; ii<end; ii++)         //  We cast to uint8 because char is signed so values >128 get interpreted as negative
+    if (validSeq[uint8(bases[ii])] == 0)    //  and access invalid memory locations in the array.
+      invalid++;
 
   return(invalid);
 }
