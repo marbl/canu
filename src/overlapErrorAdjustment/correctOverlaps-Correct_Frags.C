@@ -274,7 +274,7 @@ Correct_Frags(coParameters *G,
                   changes);
 
       if (correctedReads != NULL) {
-        AS_UTL_writeFastA(correctedReads, read.bases, read.basesLen, 60, ">%d\n", curID);
+        outputFASTA(correctedReads, read.bases, read.basesLen, 60, "%d", curID);
       }
     }
 

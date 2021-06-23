@@ -778,17 +778,16 @@ tgTig::dumpFASTA(FILE *F) {
   if (consensusExists() == false)
     return;
 
-  AS_UTL_writeFastA(F,
-                    bases(), length(), 100,
-                    ">tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestBubble=%s suggestCircular=%s trim=%u-%u\n",
-                    tigID(),
-                    length(),
-                    numberOfChildren(),
-                    toString(_class),
-                    _suggestRepeat ? "yes" : "no",
-                    _suggestBubble ? "yes" : "no",
-                    _suggestCircular ? "yes" : "no",
-                    _trimBgn, _trimEnd);
+  outputFASTA(F, bases(), length(), 100,
+              "tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestBubble=%s suggestCircular=%s trim=%u-%u",
+              tigID(),
+              length(),
+              numberOfChildren(),
+              toString(_class),
+              _suggestRepeat ? "yes" : "no",
+              _suggestBubble ? "yes" : "no",
+              _suggestCircular ? "yes" : "no",
+              _trimBgn, _trimEnd);
 }
 
 
@@ -798,16 +797,14 @@ tgTig::dumpFASTQ(FILE *F) {
   if (consensusExists() == false)
     return;
 
-  AS_UTL_writeFastQ(F,
-                    bases(), length(),
-                    quals(), length(),
-                    "@tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestBubble=%s suggestCircular=%s trim=%u-%u\n",
-                    tigID(),
-                    length(),
-                    numberOfChildren(),
-                    toString(_class),
-                    _suggestRepeat ? "yes" : "no",
-                    _suggestBubble ? "yes" : "no",
-                    _suggestCircular ? "yes" : "no",
-                    _trimBgn, _trimEnd);
+  outputFASTQ(F, bases(), quals(), length(),
+              "tig%08u len=" F_U32 " reads=" F_U32 " class=%s suggestRepeat=%s suggestBubble=%s suggestCircular=%s trim=%u-%u",
+              tigID(),
+              length(),
+              numberOfChildren(),
+              toString(_class),
+              _suggestRepeat ? "yes" : "no",
+              _suggestBubble ? "yes" : "no",
+              _suggestCircular ? "yes" : "no",
+              _trimBgn, _trimEnd);
 }

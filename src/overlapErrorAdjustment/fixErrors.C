@@ -160,9 +160,9 @@ main(int argc, char **argv) {
                 changes);
 
     if (useNames == true)
-      AS_UTL_writeFastA(outFASTA->file(), corBases, corBasesLen, 0, ">%s\n", read.sqRead_name());
+      outputFASTA(outFASTA->file(), corBases, corBasesLen, 0, "%s", read.sqRead_name());
     else
-      AS_UTL_writeFastA(outFASTA->file(), corBases, corBasesLen, 0, ">%d\n", curID);
+      outputFASTA(outFASTA->file(), corBases, corBasesLen, 0, "%d", curID);
 
     corBasesLen = 0;   //  correctRead() appends to the corBases array, which we don't want.
   }

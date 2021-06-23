@@ -683,9 +683,8 @@ outputReadBatch(void *G, void *S) {
       g->_haps[ff]->nBases += s->_bases[ii].length();
     }
 
-    AS_UTL_writeFastA(F,
-                      s->_bases[ii].string(), s->_bases[ii].length(), 0,
-                      ">%s\n", s->_names[ii].string());
+    outputFASTA(F, s->_bases[ii].string(), s->_bases[ii].length(), 0,
+                "%s", s->_names[ii].string());
   }
 
   delete s;    //  We should recycle this, but hard to do.

@@ -8,6 +8,7 @@ SOURCES      := utility/src/utility/runtime.C \
                 utility/src/utility/files.C \
                 utility/src/utility/files-buffered.C \
                 utility/src/utility/files-compressed.C \
+                utility/src/utility/files-fasta-fastq.C \
                 utility/src/utility/files-memoryMapped.C \
                 \
                 utility/src/utility/logging.C \

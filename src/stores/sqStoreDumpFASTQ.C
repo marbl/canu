@@ -391,9 +391,9 @@ main(int argc, char **argv) {
       snprintf(readName, 1024, "read" F_U32, rid);
 
     if (dumpFASTQ)
-      AS_UTL_writeFastQ(out[outid]->getFASTQ(), seq, seqLen, qlt, seqLen, "@%s\n", readName);
+      outputFASTQ(out[outid]->getFASTQ(), seq, qlt, seqLen,    "%s", readName);
     else
-      AS_UTL_writeFastA(out[outid]->getFASTA(), seq, seqLen, 0,           ">%s\n", readName);
+      outputFASTA(out[outid]->getFASTA(), seq,      seqLen, 0, "%s", readName);
   }
 
   delete    read;
