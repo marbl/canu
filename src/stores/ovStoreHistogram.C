@@ -103,7 +103,7 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
   loadFromFile(_maxID, "ovStoreHistogram::maxID", F);
 
   loadFromFile(_scoresBaseID, "ovStoreHistogram::scoresBaseID", F);
-  loadFromFile(_scoresLastID, "ovStoreHistogram::scoresBaseID", F);
+  loadFromFile(_scoresLastID, "ovStoreHistogram::scoresLastID", F);
 
   _scoresAlloc = _scoresLastID - _scoresBaseID + 1;
   _scores      = new oSH_ovlSco [_scoresAlloc];
