@@ -222,9 +222,16 @@ alignReadsToTemplate(falconInput    *evidence,
   for (uint32 j=0; j<evidenceLen; j++)
     tagList[j] = NULL;
 
+  //  The first evidence read is ourself, and we know how to add that alignment immediately.
+
+  tagList[0] = getAlignTags(evidence[0].read, 0, evidence[0].readLength,
+                            evidence[0].read, 0, evidence[0].readLength,
+                            evidence[0].readLength);
+
+  //  For the rest of the evidence: align, parse, add.
 
 #pragma omp parallel for schedule(dynamic)
-  for (uint32 j=0; j<evidenceLen; j++) {
+  for (uint32 j=1; j<evidenceLen; j++) {
     if (evidence[j].readLength < minOlapLength)
       continue;
 
