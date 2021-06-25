@@ -244,15 +244,17 @@ dumpReads(sqStore *seq, uint32 bgnID, uint32 endID, sqRead_which w, bool showAll
 
 
 void
-doSummarize_lengthHistogram(std::vector<uint64> lengths,
-                            uint64              genomeSize,
-                            bool                limitTo1x);
+doSummarize_lengthHistogram(uint64               *shortLengths,
+                            uint32                shortLengthsLen,
+                            std::vector<uint64>  &longLengths,
+                            uint64                genomeSize,
+                            bool                  limitTo1x);
 
 
 void
 dumpHistogram(sqStore *seq, uint32 bgnID, uint32 endID, bool dumpLengths) {
-  std::vector<uint64>  lengths;
-  uint64               nBases = 0;
+  std::vector<uint64>   longLengths;
+  uint64                nBases = 0;
 
   //  Build a vector of sequence lengths, pass that to 'sequence' to
   //  generate a pretty picture.
@@ -270,7 +272,7 @@ dumpHistogram(sqStore *seq, uint32 bgnID, uint32 endID, bool dumpLengths) {
         (sqRead_defaultVersion & sqRead_trimmed))        //  if we want trimmed reads.
         continue;
 
-    lengths.push_back(len);
+    longLengths.push_back(len);
 
     nBases += len;
   }
@@ -283,18 +285,16 @@ dumpHistogram(sqStore *seq, uint32 bgnID, uint32 endID, bool dumpLengths) {
     if (sqRead_defaultVersion & sqRead_raw)         strcat(msg, " raw");
     if (sqRead_defaultVersion & sqRead_corrected)   strcat(msg, " corrected");
 
-    
-
     fprintf(stdout, "Histogram of %s reads:\n", sqRead_getDefaultVersion());
 
-    doSummarize_lengthHistogram(lengths, nBases, false);
+    doSummarize_lengthHistogram(nullptr, 0, longLengths, nBases, false);
   }
 
   else {
-    std::sort(lengths.begin(), lengths.end(), std::less<uint64>());
+    std::sort(longLengths.begin(), longLengths.end(), std::less<uint64>());
 
-    for (uint64 ii=0; ii<lengths.size(); ii++)
-      fprintf(stdout, "%lu\n", lengths[ii]);
+    for (uint64 ii=0; ii<longLengths.size(); ii++)
+      fprintf(stdout, "%lu\n", longLengths[ii]);
   }
 }
 
