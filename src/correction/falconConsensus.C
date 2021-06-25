@@ -318,16 +318,22 @@ falconConsensus::getConsensus(uint32         tagsLen,                //  Number 
 
 
 falconData *
-falconConsensus::generateConsensus(falconInput   *evidence,
-                                   uint32         evidenceLen) {
-
+falconConsensus::generateConsensus(falconInput *evidence, uint32 evidenceLen) {
   setRSS();
 
+  double         t1   = getTime();
   alignTagList **tags = alignReadsToTemplate(evidence, evidenceLen, minOlapIdentity, minOlapLength, restrictToOverlap);
+  double         t2   = getTime();
 
   updateRSS();
 
-  return(getConsensus(evidenceLen, tags, evidence[0].readLength));
+  falconData    *ret  = getConsensus(evidenceLen, tags, evidence[0].readLength);
+  double         t3   = getTime();
+
+  alignTime     = t2 - t1;
+  consensusTime = t3 - t2;
+
+  return(ret);
 }
 
 

@@ -172,6 +172,8 @@ public:
     restrictToOverlap   = restrictToOverlap_;
     minRSS              = 0;
     maxRSS              = 0;
+    alignTime           = 0.0;
+    consensusTime       = 0.0;
   };
 
   ~falconConsensus() {
@@ -235,6 +237,10 @@ private:
 
   uint64               minRSS;
   uint64               maxRSS;
+
+public:
+  double               alignTime;
+  double               consensusTime;
 };
 
 

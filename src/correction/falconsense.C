@@ -37,6 +37,12 @@
 //#define CHECK_MEMORY
 
 
+//  For logging of alignments, in falconConsensus-alignTag.C
+void  openAlignLogFiles(char const *outputPrefix);
+void closeAlignLogFiles(char const *outputPrefix);
+
+
+
 //  Duplicated in generateCorrectionLayouts.C
 void
 loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, std::set<uint32> &readList) {
@@ -103,11 +109,19 @@ generateFalconConsensus(falconConsensus            *fc,
   //  And fits on your back?
   //  It's log, log, log!
 
-  fprintf(stdout, "%8u %7u %8u", layout->tigID(), layout->length(), layout->numberOfChildren());
+  uint32 estlen = 0;
+  uint64 estmem = 0;
+
+  fc->analyzeLength(layout, estlen, estmem);  //  To get estimated length and memory
+
+  fprintf(stdout, "%8u %7u %7u %8u %8lu",
+          layout->tigID(), layout->length(), estlen, layout->numberOfChildren(), estmem >> 20);
+  fflush(stdout);
 
   //  Parse the layout and push all the sequences onto our seqs vector.  The first 'evidence'
   //  sequence is the read we're trying to correct.
 
+  double         t1 = getTime();
   falconInput   *evidence = new falconInput [layout->numberOfChildren() + 1];
 
   uint32         seqLen   = 0;
@@ -150,9 +164,15 @@ generateFalconConsensus(falconConsensus            *fc,
 
   delete [] seq;
 
+  double  t2 = getTime();
+
   //  Loaded all reads, build consensus.
 
   falconData  *fd = fc->generateConsensus(evidence, layout->numberOfChildren() + 1);
+
+  //  Add logging of run-time characteristics.
+
+  fprintf(stdout, " %8lu %6.1f %6.1f %6.1f", fc->getRSS() >> 20, t2 - t1, fc->alignTime, fc->consensusTime);
 
   //  Find the largest stretch of uppercase sequence.  Lowercase sequence denotes MSA coverage was below minOutputCoverage.
 
@@ -165,7 +185,7 @@ generateFalconConsensus(falconConsensus            *fc,
     bool   isLast  = (ee == fd->len - 1);
 
     if ((in == true) && (isLower || isLast)) {     //  Report the regions we could be saving.
-      fprintf(stdout, " %6u-%-6u", bb, ee + isLast);
+      fprintf(stdout, " %7u-%-7u", bb, ee + isLast);
       nrg++;
     }
 
@@ -185,14 +205,8 @@ generateFalconConsensus(falconConsensus            *fc,
   }
 
   if (nrg == 0)
-    fprintf(stdout, " %6u-%-6u", 0, 0);
+    fprintf(stdout, " %7u-%-7u", 0, 0);
 
-  uint32 len = 0;
-  uint64 mem = 0;
-
-  fc->analyzeLength(layout, len, mem);
-
-  fprintf(stdout, "(%6u) memory act %10lu est %10lu act/est %.2f", len, fc->getRSS(), mem, fc->getRSS() * 100.0 / mem);
   fprintf(stdout, "\n");
 
   //  Note where in the full corrected read the output corrected read came from.
@@ -439,15 +453,12 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  FILE *logFile = NULL;
-  FILE *cnsFile = NULL;
-  FILE *seqFile = NULL;
-  FILE *batFile = NULL;
+  FILE *cnsFile = AS_UTL_openOutputFile(outputPrefix, '.', "cns",     outputCNS);
+  FILE *seqFile = AS_UTL_openOutputFile(outputPrefix, '.', "fastq",   outputFASTQ);
+  FILE *batFile = AS_UTL_openOutputFile(outputPrefix, '.', "batches", memoryLimit > 0);
 
-  cnsFile = AS_UTL_openOutputFile(outputPrefix, '.', "cns",     outputCNS);
-  seqFile = AS_UTL_openOutputFile(outputPrefix, '.', "fastq",   outputFASTQ);
-  logFile = AS_UTL_openOutputFile(outputPrefix, '.', "log",     outputLog);
-  batFile = AS_UTL_openOutputFile(outputPrefix, '.', "batches", memoryLimit > 0);
+  if (outputLog)
+    openAlignLogFiles(outputPrefix);
 
   //  Initialize processing.
   //
@@ -459,9 +470,9 @@ main(int argc, char **argv) {
   std::map<uint32, sqRead *>  reads;
 
   if (memoryLimit == 0) {
-    fprintf(stdout, "    read    read evidence     corrected\n");
-    fprintf(stdout, "      ID  length    reads       regions\n");
-    fprintf(stdout, "-------- ------- -------- ------------- ...\n");
+    fprintf(stdout, "    read    read     est evidence      est   actual   load  align cons's      corrected\n");
+    fprintf(stdout, "      ID  length  length    reads   memory   memory   time   time   time        regions\n");
+    fprintf(stdout, "-------- ------- ------- -------- ----(MB) ----(MB) ---(s) ---(s) ---(s) --(bgn)-(end)-- ...\n");
   }
 
   //
@@ -709,10 +720,12 @@ main(int argc, char **argv) {
 
   //  Close files and clean up.
 
-  AS_UTL_closeFile(logFile);
-  AS_UTL_closeFile(cnsFile);
-  AS_UTL_closeFile(seqFile);
-  AS_UTL_closeFile(batFile);
+  AS_UTL_closeFile(batFile, outputPrefix, '.', "batches");
+  AS_UTL_closeFile(seqFile, outputPrefix, '.', "fastq");
+  AS_UTL_closeFile(cnsFile, outputPrefix, '.', "cns");
+
+  if (outputLog)
+    closeAlignLogFiles(outputPrefix);
 
   delete    exportFile;
   delete    importFile;

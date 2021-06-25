@@ -57,13 +57,95 @@
 #include "falconConsensus.H"
 #include "edlib.H"
 
-#undef  DEBUG_ALIGN
+#include <stdarg.h>
+
 #undef  DEBUG_ALIGN_VERBOSE
+
+
+FILE **thrlog = nullptr;
+
+void
+openAlignLogFiles(char const *outputPrefix) {
+  char  N[FILENAME_MAX+1] = {0};
+
+  if (thrlog != nullptr)
+    return;
+
+  thrlog = new FILE * [omp_get_max_threads()];
+
+  for (uint32 ii=0; ii<omp_get_max_threads(); ii++) {
+    snprintf(N, FILENAME_MAX, "%s.align_%02u.log", outputPrefix, ii);
+
+    thrlog[ii] = AS_UTL_openOutputFile(N);
+  }
+}
+
+
+void
+closeAlignLogFiles(char const *prefix) {
+
+  if (thrlog == nullptr)
+    return;
+
+  for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+    AS_UTL_closeFile(thrlog[ii]);
+
+  delete [] thrlog;
+}
+
+
+void
+printAllLog(char const *format, ...) {
+  va_list ap;
+
+  if (thrlog == nullptr)
+    return;
+
+  va_start(ap, format);
+
+  for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+    vfprintf(thrlog[ii], format, ap);
+
+  va_end(ap);
+}
+
+
+void
+printLog(falconInput *evidence, uint32 j, char const *format, ...) {
+  va_list ap;
+
+  if (thrlog == nullptr)
+    return;
+
+  uint32  tid = omp_get_thread_num();
+
+  va_start(ap, format);
+  fprintf(thrlog[tid], "read%08u-evidence%08u len %-6u ", evidence[0].ident, evidence[j].ident, evidence[j].readLength);
+  vfprintf(thrlog[tid], format, ap);
+  va_end(ap);
+}
+
+
+void
+printLog(char const *format, ...) {
+  va_list ap;
+
+  if (thrlog == nullptr)
+    return;
+
+  uint32  tid = omp_get_thread_num();
+
+  va_start(ap, format);
+  vfprintf(thrlog[tid], format, ap);
+  va_end(ap);
+}
+
+
 
 static
 alignTagList *
-getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),    //  read
-             char       *Talign,   int32 Tbgn,  int32 Tlen,                       //  template
+getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen,    //  read
+             char       *Talign,   int32 Tbgn,  int32 Tlen,    //  template
              int32       alignLen) {
   int32   i        = Qbgn - 1;   //  Position in query, not really used.
   int32   j        = Tbgn - 1;   //  Position in template
@@ -99,8 +181,8 @@ getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen, int32 UNUSED(Qid),  
     tags->setTag(j, p_j, jj, p_jj, Qalign[k], p_q_base);
 
 #ifdef DEBUG_ALIGN_VERBOSE
-    fprintf(stderr, "set tag j %5d p_j %5d jj %5d p_jj %5d base %c p_q_base %c\n",
-            j, p_j, jj, p_jj, Qalign[k], p_q_base);
+    printLog("set tag j %5d p_j %5d jj %5d p_jj %5d base %c p_q_base %c\n",
+             j, p_j, jj, p_jj, Qalign[k], p_q_base);
 #endif
 
     p_j       = j;
@@ -122,6 +204,10 @@ alignReadsToTemplate(falconInput    *evidence,
 
   double         maxDifference = 1.0 - minOlapIdentity;
   alignTagList **tagList = new alignTagList * [evidenceLen];
+
+  printAllLog("STARTING read %u length %u with %u evidence reads.\n",
+              evidence[0].ident, evidence[0].readLength,
+              evidenceLen);
 
   //  I don't remember where this was causing problems, but reads longer than the template were.  So truncate them.
 
@@ -161,75 +247,57 @@ alignReadsToTemplate(falconInput    *evidence,
     if (alignBgn < 0)                         alignBgn = 0;
     if (alignEnd > evidence[0].readLength)    alignEnd = evidence[0].readLength;
 
-#ifdef DEBUG_ALIGN
-    fprintf(stderr, "ALIGN to %d-%d length %d\n",
-            alignBgn, alignEnd, evidence[0].readLength);
-#endif
-
     EdlibAlignResult align = edlibAlign(evidence[j].read,            evidence[j].readLength,
                                         evidence[0].read + alignBgn, alignEnd - alignBgn,
                                         edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
-#ifdef DEBUG_ALIGN
-    for (int32 l=0; l<align.numLocations; l++)
-      fprintf(stderr, "read%u #%u location %d to template %d-%d length %d diff %f\n",
-              evidence[j].ident,
-              j,
-              l,
-              align.startLocations[l],
-              align.endLocations[l],
-              align.endLocations[l] - align.startLocations[l],
-              (float)align.editDistance / (align.endLocations[l] - align.startLocations[l]));
-#endif
-
     if (align.numLocations == 0) {
+      printLog(evidence, j, "ALIGN to template %7d-%-7d   tolerance %5d -- FAILED TO ALIGN\n",
+               alignBgn, alignEnd, tolerance);
       edlibFreeAlignResult(align);
-#ifdef DEBUG_ALIGN
-      fprintf(stderr, "read %7u failed to map\n", j);
-#endif
       continue;
     }
 
-    int32  alignLen  = align.endLocations[0] - align.startLocations[0];
-    double alignDiff = align.editDistance / (double)alignLen;
-
-    if (alignLen < minOlapLength) {
-      edlibFreeAlignResult(align);
-#ifdef DEBUG_ALIGN
-      fprintf(stderr, "read %7u failed to map - short\n", j);
-#endif
-      continue;
-    }
-
-    if (alignDiff >= maxDifference) {
-      edlibFreeAlignResult(align);
-#ifdef DEBUG_ALIGN
-      fprintf(stderr, "read %7u failed to map - different\n", j);
-#endif
-      continue;
-    }
+    int32  tBgn = alignBgn + align.startLocations[0];
+    int32  tEnd = alignBgn + align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
+    int32  tLen = tEnd - tBgn;
+    double tDif = 100.0 * align.editDistance / tLen;
 
     int32  rBgn = 0;
     int32  rEnd = evidence[j].readLength;
 
-    int32  tBgn = alignBgn + align.startLocations[0];
-    int32  tEnd = alignBgn + align.endLocations[0] + 1;    //  Edlib returns position of last base aligned
+    for (int32 ll=0; ll<align.numLocations; ll++)   //  Report ALL aligns, not just the first
+      printLog(evidence, j, "    #%-2u  template %7d-%-7d  evidence %7d-%-7d  %6.3f%%\n",
+               ll,
+               alignBgn + align.startLocations[ll], alignBgn + align.endLocations[ll] + 1,
+               rBgn, rEnd,
+               100.0 * align.editDistance / (align.endLocations[ll] - align.startLocations[ll]));
 
-    if ((alignBgn > 0) &&
-        (tBgn <= alignBgn)) {
+    if (tLen < minOlapLength) {
+      printLog(evidence, j, "ALIGNED  template %7d-%-7d   tolerance %5d -- TOO SHORT %u < %u\n",
+               tBgn, tEnd, tolerance, tLen, minOlapLength);
       edlibFreeAlignResult(align);
-#ifdef DEBUG_ALIGN
-      fprintf(stderr, "bumped into start align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
-#endif
+      continue;
+    }
+
+    if (tDif >= 100.0 * maxDifference) {
+      printLog(evidence, j, "ALIGNED  template %7d-%-7d   tolerance %5d -- TOO DIFFERENT %.3f%% >= %.3f%%\n",
+               alignBgn, alignEnd, tolerance, tDif, 100.0 * maxDifference);
+      edlibFreeAlignResult(align);
+      continue;
+    }
+
+    if ((alignBgn > 0) && (tBgn <= alignBgn)) {
+      printLog(evidence, j, "ALIGNED  template %7d-%-7d   tolerance %5d -- HIT BEGIN\n",
+               tBgn, tEnd, tolerance);
+      edlibFreeAlignResult(align);
       goto again;
     }
 
-    if ((alignEnd < evidence[0].readLength) &&
-        (tEnd >= alignEnd)) {
+    if ((alignEnd < evidence[0].readLength) && (tEnd >= alignEnd)) {
+      printLog(evidence, j, "ALIGNED  template %7d-%-7d   tolerance %5d -- HIT END\n",
+               tBgn, tEnd, tolerance);
       edlibFreeAlignResult(align);
-#ifdef DEBUG_ALIGN
-      fprintf(stderr, "bumped into end align %d-%d mapped %d-%d\n", alignBgn, alignEnd, tBgn, tEnd);
-#endif
       goto again;
     }
 
@@ -263,17 +331,14 @@ alignReadsToTemplate(falconInput    *evidence,
     rAln[lBase] = 0;   //  Truncate the alignments before the gaps.
     tAln[lBase] = 0;
 
-#ifdef DEBUG_ALIGN
-    fprintf(stderr, "mapped %5u %5u-%5u to template %6u-%6u trimmed by %6u-%6u %s %s\n",
-            evidence[j].ident,
-            rBgn - fBase, rEnd + align.alignmentLength - lBase,
-            tBgn, tEnd,
-            fBase, align.alignmentLength - lBase,
-            rAln + lBase - 10,
-            tAln + lBase - 10);
-#endif
+    //  Convert the alignment into tags.
 
-    tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength, j,
+    printLog(evidence, j, "ALIGNED  template %7d-%-7d  evidence %7d-%-7d  %6.3f%%  skip %d %d\n",
+             tBgn, tEnd,       //  The skip/endgap reported isn't really correct.
+             rBgn, rEnd,       //  See the next commit.
+             fBase, lBase);
+
+    tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength,
                               tAln + fBase, tBgn, evidence[0].readLength,
                               lBase - fBase);
 
