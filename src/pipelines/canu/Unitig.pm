@@ -262,7 +262,7 @@ sub unitig ($) {
     print F "#  seqStore and ctgStore on cloud runs.  The output is generated\n";
     print F "#  again if it is missing, so no damage done if it isn't made here.\n";
     print F "#\n";
-    print F "if [ -e ../$asm.ctgStore -a \\\\n";
+    print F "if [ -e ../$asm.ctgStore -a \\\n";
     print F "   ! -e ../$asm.ctgStore/seqDB.v001.sizes.txt ] ; then\n";
     print F "  \$bin/tgStoreDump \\\n";                     #  Duplicated in reportUnitigSizes()
     print F "    -S ../../$asm.seqStore \\\n";              #  Done here so we don't need another
