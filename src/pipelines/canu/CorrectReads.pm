@@ -122,59 +122,18 @@ sub buildCorrectionLayoutsConfigure ($) {
     goto finishStage   if ((-e "$base/$asm.corStore.WORKING/seqDB.v001.dat") &&   #  Job ran manually, showNext
                            (-e "$base/$asm.corStore.WORKING/seqDB.v001.tig"));
 
-    #  The global filter can be estimated from data saved in ovlStore.  This code will compute it exactly.
-    #
-    #  IT HAS NOT BEEN UPDATED OR TESTED.
-
-    fetchFile("$path/$asm.globalScores");
-
-    my $computeGlobalScores = 0;
-
-    if ($computeGlobalScores) {
-        if (! fileExists("$path/$asm.globalScores")) {
-            print STDERR "-- Computing global filter scores '$path/$asm.globalScores'.\n";
-
-            fetchOvlStore($asm, $base);
-
-            $cmd  = "$bin/filterCorrectionOverlaps \\\n";
-            $cmd .= "  -estimate -nolog \\\n";
-            $cmd .= "  -S ../../$asm.seqStore \\\n";
-            $cmd .= "  -O    ../$asm.ovlStore \\\n";
-            $cmd .= "  -scores ./$asm.globalScores.WORKING \\\n";
-            $cmd .= "  -c " . getCorCov($asm, "Global") . " \\\n";
-            $cmd .= "  -l " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
-            $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-            $cmd .= "> ./$asm.globalScores.err 2>&1";
-
-            if (runCommand($path, $cmd)) {
-                caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
-            }
-
-            rename "$path/$asm.globalScores.WORKING",       "$path/$asm.globalScores";
-            rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
-            rename "$path/$asm.globalScores.WORKING.log",   "$path/$asm.globalScores.log";
-            unlink "$path/$asm.globalScores.err";
-
-            stashFile("$path/$asm.globalScores");
-
-            my $report = getFromReport("corFilter");
-
-            open(F, "< $path/$asm.globalScores.stats") or caExit("can't open '$path/$asm.globalScores.stats' for reading: $!", undef);
-            while(<F>) {
-                $report .= "--  $_";
-            }
-            close(F);
-
-            addToReport("corFilter", $report);
-
-        } else {
-            print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
-        }
-    } else {
-        print STDERR "-- Global filter scores will be estimated.\n";
-    }
-
     #  Make layouts for each corrected read.
+    #
+    #  The global filter is estimated from data saved in ovlStore.  To
+    #  compute it exactly, use filterCorrectionOverlaps, with parameter
+    #  -scores <outfile>.globalScores, and pass that to
+    #  generateCorrectionLayouts using the -scores parameter.
+    #
+    #  This was the original way to apply the global filter, but once scores
+    #  were saved in the overlap store, it has not been tested.
+    #
+    #  (the pipeline code for this was removed somewhere after
+    #  81fe8a145ee9006d35503a9e8fba259cbde88a51)
 
     fetchOvlStore($asm, $base);
 
@@ -184,7 +143,6 @@ sub buildCorrectionLayoutsConfigure ($) {
     $cmd .= "  -S ../$asm.seqStore \\\n";
     $cmd .= "  -O  ./$asm.ovlStore \\\n";
     $cmd .= "  -C  ./$asm.corStore.WORKING \\\n";
-    $cmd .= "  -scores 2-correction/$asm.globalScores \\\n"         if (-e "$path/$asm.globalScores");
     $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     $cmd .= "  -eC " . getCorCov($asm, "Local") . " \\\n";
