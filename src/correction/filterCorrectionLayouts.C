@@ -29,77 +29,29 @@
 #include <algorithm>
 
 
-
-
 class readStatus {
 public:
-  readStatus() {
-    readID             = 0;
+  uint32   readID            = 0;
 
-    numOlaps           = 0;
+  uint32   numOlaps          = 0;
 
-    origLength         = 0;
-    corrLength         = 0;
+  uint32   origLength        = 0;
+  uint32   corrLength        = 0;
 
-    memoryRequired     = 0;
+  uint64   memoryRequired    = 0;
 
-    usedForEvidence    = false;
-    usedForCorrection  = false;
-    rescued            = false;
-  };
-  ~readStatus() {
-  };
-
-  uint32   readID;
-
-  uint32   numOlaps;
-
-  uint32   origLength;
-  uint32   corrLength;
-
-  uint64   memoryRequired;
-
-  bool     usedForEvidence;
-  bool     usedForCorrection;
-  bool     rescued;
+  bool     usedForEvidence   = false;
+  bool     usedForCorrection = false;
+  bool     rescued           = false;
 };
-
-bool
-sortByCorLength(readStatus const &a, readStatus const &b) {
-  return(a.corrLength > b.corrLength);
-}
-
-bool
-sortByReadID(readStatus const &a, readStatus const &b) {
-  return(a.readID < b.readID);
-}
-
-
-
 
 
 class lengthStats {
 public:
-  lengthStats(uint32 maxN) {
-    L = new uint32 [maxN];
-    N = 0;
+  lengthStats(uint32 maxN)    {  L = new uint32 [maxN];  };
+  ~lengthStats(void)          {  delete [] L;            };
 
-    nReads  = 0;
-    nBases  = 0;
-    cov     = 0;
-    median  = 0;
-    mean    = 0;
-    n50     = 0;
-    minimum = 0;
-    maximum = 0;
-  };
-  ~lengthStats(void) {
-    delete [] L;
-  };
-
-  void     add(uint32 length) {
-    L[N++] = length;
-  };
+  void     add(uint32 length) {  L[N++] = length;        };
 
   void     compute(uint64 genomeSize) {
 
@@ -130,36 +82,18 @@ public:
   };
 
 
-  uint32  *L;
-  uint32   N;
+  uint32  *L        = nullptr;
+  uint32   N        = 0;
 
-  uint32   nReads;
-  uint64   nBases;
-  double   cov;
-  uint32   median;
-  uint32   mean;
-  uint32   n50;
-  uint32   minimum;
-  uint32   maximum;
+  uint32   nReads  = 0;
+  uint64   nBases  = 0;
+  double   cov     = 0;
+  uint32   median  = 0;
+  uint32   mean    = 0;
+  uint32   n50     = 0;
+  uint32   minimum = 0;
+  uint32   maximum = 0;
 };
-
-
-
-void
-markEvidence(tgTig            *layout,
-             readStatus       *status) {
-  uint32  readID        = layout->tigID();
-
-  //  If not used for correction, don't flag the evidence!
-
-  if (status[readID].usedForCorrection == false)
-    return;
-
-  //  Otherwise, used for correction, so flag the evidence.
-
-  for (uint32 ii=0; ii<layout->numberOfChildren(); ii++)
-    status[layout->getChild(ii)->ident()].usedForEvidence = true;
-}
 
 
 
@@ -322,12 +256,6 @@ main(int argc, char **argv) {
   char           *corStoreName      = NULL;
   char           *outName           = NULL;
 
-#if 0
-  //  for future work...
-  bool            filterNone        = false;
-  bool            filterStandard    = true;
-#endif
-
   uint32          minOutputCoverage = 4;
   uint32          minOutputLength   = 500;
 
@@ -348,17 +276,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-R") == 0) {
       outName = argv[++arg];
 
-
-#if 0
-    } else if (strcmp(argv[arg], "-all") == 0) {
-      filterNone     = true;
-      filterStandard = false;
-
-    } else if (strcmp(argv[arg], "-normal") == 0) {
-      filterNone     = false;
-      filterStandard = true;
-#endif
-
     } else if (strcmp(argv[arg], "-cc") == 0) {
       minOutputCoverage = strtoul(argv[++arg], NULL, 10);
 
@@ -370,7 +287,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       outCoverage = strtoul(argv[++arg], NULL, 10);
-
 
     } else {
       fprintf(stderr, "ERROR:  invalid arg '%s'\n", argv[arg]);
@@ -404,22 +320,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "FILTERING STRATEGY and PARAMETERS\n");
     fprintf(stderr, "\n");
-#if 0
-    fprintf(stderr, "  -all                     no filtering, correct all reads (NOT IMPLEMENTED)\n");
-    fprintf(stderr, "  -normal                  correct longest expected corrected reads\n");
-    fprintf(stderr, "\n");
-#endif
     fprintf(stderr, "  -cc                      minimum coverage of evidence reads\n");
     fprintf(stderr, "  -cl                      minimum length of a corrected read\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -g                       estimated genome size\n");
     fprintf(stderr, "  -c                       desired coverage in corrected reads\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "RESCUE\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -rescue                  enable rescue - if read not used as evidence\n");
-    fprintf(stderr, "                           force it to be corrected\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
 
     if (seqStoreName == NULL)
@@ -443,14 +348,9 @@ main(int argc, char **argv) {
 
   readStatus       *status   = new readStatus [numReads + 1];
 
-  FILE             *roc      = AS_UTL_openOutputFile(outName);
+  for (uint32 rr=0; rr<numReads+1; rr++)    //  Initialize read status with the readID
+    status[rr].readID = rr;                 //  so sort byReadID works correctly.
 
-  //  Initialize.  Used to be done in analuzeLength(), but we skip it on
-  //  empty tigs, and the re-sort below absolutely needs every readStatus
-  //  element with a valid read id.
-
-  for (uint32 rr=0; rr<numReads+1; rr++)
-    status[rr].readID = rr;
 
   //  Scan the tigs, computing expected corrected length.
 
@@ -475,13 +375,18 @@ main(int argc, char **argv) {
     corStore->unloadTig(ti);
   }
 
-  //  Sort by expected corrected length, then mark reads for correction until we get the desired
-  //  outCoverage.  Zeroth read has max corrected length, so remains first in sorted list.
+  //  Sort by expected corrected length, then mark reads for correction until
+  //  we get the desired outCoverage.  The unused zeroth read has max
+  //  corrected length, so remains first in sorted list and we start at
+  //  readID 1.  When done, sort back to readID order.
 
-  std::sort(status, status + numReads+1, sortByCorLength);
+  auto  byCorLength = [](readStatus const &a, readStatus const &b)   { return(a.corrLength > b.corrLength); };
+  auto  byReadID    = [](readStatus const &a, readStatus const &b)   { return(a.readID     < b.readID);     };
 
   uint64   desiredLength = genomeSize * outCoverage;
   uint64   corrLength    = 0;
+
+  std::sort(status, status + numReads+1, byCorLength);
 
   for (uint32 rr=1; rr<numReads+1; rr++) {
     if (status[rr].corrLength == 0)
@@ -492,31 +397,34 @@ main(int argc, char **argv) {
     corrLength += status[rr].corrLength;
   }
 
-  //  Sort by ID.
+  std::sort(status, status + numReads+1, byReadID);
 
-  std::sort(status, status + numReads+1, sortByReadID);
-
-  //  Scan the tigs again, this time marking reads used as evidence in the corrected reads.
+  //  Scan the tigs again, this time marking reads used as evidence in the
+  //  corrected reads.
 
   for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
     tgTig  *layout = corStore->loadTig(ti);
 
-    if (layout)
-      markEvidence(layout, status);
+    if ((layout != nullptr) &&
+        (status[layout->tigID()].usedForCorrection == true))
+      for (uint32 ii=0; ii<layout->numberOfChildren(); ii++)
+        status[layout->getChild(ii)->ident()].usedForEvidence = true;
 
     corStore->unloadTig(ti);
   }
 
-  //  And finally, flag any read for correction if it isn't already used as evidence or being corrected.
+  //  And finally, flag any read for correction if it isn't already used as
+  //  evidence or being corrected.
 
-  for (uint32 rr=1; rr<numReads+1; rr++) {
+  for (uint32 rr=1; rr<numReads+1; rr++)
     if ((status[rr].usedForCorrection == false) &&
         (status[rr].usedForEvidence   == false) &&
         (status[rr].corrLength         > minOutputLength))
       status[rr].rescued = true;
-  }
 
   //  Output the list of reads to correct.
+
+  FILE  *roc      = AS_UTL_openOutputFile(outName);
 
   for (uint32 rr=1; rr<numReads+1; rr++)
     if ((status[rr].usedForCorrection == true) ||
