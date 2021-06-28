@@ -142,6 +142,76 @@ printLog(char const *format, ...) {
 
 
 
+uint32
+stripLeadingGaps(char *tAln,
+                 char *rAln, int32 alignLen) {
+  int32  fBase    = 0;
+  bool   skipping = true;
+
+  //  Skip initial gaps.
+  while ((fBase < alignLen) && (tAln[fBase] == '-'))
+    fBase++;
+
+  //  Count the number of ACGT in a row, then the number of gaps we find.
+  //  If there are more ACGT than gaps, stop skipping.
+  while (skipping == true) {
+    int32  nBase    = 0;
+    int32  nGap     = 0;
+
+    while ((fBase+nBase < alignLen) && (tAln[fBase+nBase] != '-'))
+      nBase++;
+    while ((fBase+nBase+nGap < alignLen) && (tAln[fBase+nBase+nGap] == '-'))
+      nGap++;
+
+    if ((nBase < 16) || (nBase < nGap))
+      fBase += nBase + nGap;
+    else
+      skipping = false;
+
+    if (fBase >= alignLen)
+      skipping = false;
+  }
+
+  return(fBase);
+}
+
+
+
+uint32
+stripTrailingGaps(char *tAln,
+                  char *rAln, int32 alignLen) {
+  int32  lBase    = alignLen - 1;
+  bool   skipping = true;
+
+  //  Skip initial gaps.
+  while ((lBase >= 0) && (tAln[lBase] == '-'))
+    lBase--;
+
+  //  Count the number of ACGT in a row, then the number of gaps we find.
+  //  If there are more ACGT than gaps, stop skipping.
+  while (skipping == true) {
+    int32  nBase    = 0;
+    int32  nGap     = 0;
+
+    while ((lBase-nBase >= 0) && (tAln[lBase-nBase] != '-'))
+      nBase++;
+    while ((lBase-nBase-nGap >= 0) && (tAln[lBase-nBase-nGap] == '-'))
+      nGap++;
+
+    if ((nBase < 16) || (nBase < nGap))
+      lBase -= nBase + nGap;
+    else
+      skipping = false;
+
+    if (lBase < 0)
+      skipping = false;
+  }
+
+  return(alignLen - 1 - lBase);
+}
+
+
+
 static
 alignTagList *
 getAlignTags(char       *Qalign,   int32 Qbgn,  int32 Qlen,    //  read
@@ -318,36 +388,62 @@ alignReadsToTemplate(falconInput    *evidence,
                             evidence[0].read, evidence[j].read,
                             tAln, rAln);
 
-    //  Strip leading/trailing gaps on template sequence.
+    //  Strip leading/trailing gaps on template sequence.  These are the
+    //  number of alignment letters to ignore on either end.
 
-    uint32 fBase = 0;                        //  First non-gap in the alignment
-    uint32 lBase = align.alignmentLength;    //  Last base in the alignment (actually, first gap in the gaps at the end, but that was too long for a variable name)
+    int32 bSkip = stripLeadingGaps (tAln, rAln, align.alignmentLength);   //  Alignment letters to skip
+    int32 eSkip = stripTrailingGaps(tAln, rAln, align.alignmentLength);   //  because they're junk gaps.
 
-    while ((fBase < align.alignmentLength) && (tAln[fBase] == '-'))
-      fBase++;
+    //  We need to know the position in the template that the (trimmed)
+    //  alignment starts at, so we count how many non-gap letters are skipped
+    //  in either sequence at either end.
 
-    while ((lBase > fBase) && (tAln[lBase-1] == '-'))
-      lBase--;
+    int32  tbSkip = 0, teSkip = 0;   //  Sequence bases to skip in (t)emplate or evidence (r)ead,
+    int32  rbSkip = 0, reSkip = 0;   //  at the (b)egin or (e)nd of the sequence.
 
-    rBgn += fBase;
-    rEnd -= align.alignmentLength - lBase;
+    for (int32 ii=0; ii<bSkip; ii++) {
+      if (tAln[ii] != '-')   tbSkip++;
+      if (rAln[ii] != '-')   rbSkip++;
+    }
 
-    assert(rBgn >= 0);      assert(rEnd <= evidence[j].readLength);
-    assert(tBgn >= 0);      assert(tEnd <= evidence[0].readLength);
+    for (int32 ii=0; ii<eSkip; ii++) {
+      if (tAln[align.alignmentLength - ii - 1] != '-')   teSkip++;
+      if (rAln[align.alignmentLength - ii - 1] != '-')   reSkip++;
+    }
 
-    rAln[lBase] = 0;   //  Truncate the alignments before the gaps.
-    tAln[lBase] = 0;
+#if 1
+    printLog(evidence, j, "ALIGNED  template %7d-%-7d  evidence %7d-%-7d  %6.3f%%  skip %d %d endgaps %d %d\n",
+             tBgn + tbSkip, tEnd - teSkip,
+             rBgn + rbSkip, rEnd - reSkip,
+             bSkip, eSkip,
+             rbSkip, reSkip);
+#endif
+
+#if 0
+    printLog(evidence, j, "    full template %100.100s...\n", tAln);
+    printLog(evidence, j, "    full evidence %100.100s...\n", rAln);
+
+    printLog(evidence, j, "    full template ...%100.100s\n", tAln + align.alignmentLength - 100);
+    printLog(evidence, j, "    full evidence ...%100.100s\n", rAln + align.alignmentLength - 100);
+#endif
+
+    tAln[align.alignmentLength - eSkip] = 0;   //  Truncate the alignment strings for printing.
+    rAln[align.alignmentLength - eSkip] = 0;
+
+#if 0
+    printLog(evidence, j, "         template %100.100s...\n", tAln + bSkip);
+    printLog(evidence, j, "         evidence %100.100s...\n", rAln + bSkip);
+
+    printLog(evidence, j, "         template ...%100.100s\n", tAln + align.alignmentLength - eSkip - 100);
+    printLog(evidence, j, "         evidence ...%100.100s\n", rAln + align.alignmentLength - eSkip - 100);
+#endif
 
     //  Convert the alignment into tags.
 
-    printLog(evidence, j, "ALIGNED  template %7d-%-7d  evidence %7d-%-7d  %6.3f%%  skip %d %d\n",
-             tBgn, tEnd,       //  The skip/endgap reported isn't really correct.
-             rBgn, rEnd,       //  See the next commit.
-             fBase, lBase);
-
-    tagList[j] = getAlignTags(rAln + fBase, rBgn, evidence[j].readLength,
-                              tAln + fBase, tBgn, evidence[0].readLength,
-                              lBase - fBase);
+    if (align.alignmentLength > bSkip + eSkip + 500)
+      tagList[j] = getAlignTags(rAln + bSkip, rBgn + rbSkip, evidence[j].readLength,
+                                tAln + bSkip, tBgn + tbSkip, evidence[0].readLength,
+                                align.alignmentLength - bSkip - eSkip);
 
     delete [] tAln;
     delete [] rAln;
