@@ -181,7 +181,6 @@ main(int argc, char **argv) {
   bool              doLogging  = false;
 
   uint32            expectedCoverage    = 40;    //  How many overlaps per read to save, global filter
-  uint32            minEvidenceOverlap  = 40;
 
   uint32            iidMin = 1;
   uint32            iidMax = UINT32_MAX;
@@ -212,26 +211,28 @@ main(int argc, char **argv) {
 
 
     } else if (strcmp(argv[arg], "-b") == 0) {   //  READ SELECTION
-      iidMin  = atoi(argv[++arg]);
+      iidMin  = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      iidMax  = atoi(argv[++arg]);
+      iidMax  = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-eL") == 0) {   //  EVIDENCE SELECTION
-      minEvidenceLength  = atoi(argv[++arg]);
+      minEvidenceLength  = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-eE") == 0) {
-      maxEvidenceErate = atof(argv[++arg]);
+      maxEvidenceErate = strtodouble(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-eC") == 0) {
-      maxEvidenceCoverage = atof(argv[++arg]);
+      maxEvidenceCoverage = strtodouble(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-xC") == 0) {
+      expectedCoverage = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       doLogging = true;
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       dumpScores = true;
-
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -267,6 +268,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -eL length       minimum length of evidence overlaps\n");
     fprintf(stderr, "  -eE erate        maximum error rate of evidence overlaps\n");
     fprintf(stderr, "  -eC coverage     maximum coverage of evidence reads to emit\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -xC coverage     estimated coverage in input reads\n");
     fprintf(stderr, "\n");
 
     if (seqName == NULL)
