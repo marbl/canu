@@ -390,9 +390,10 @@ Unitig::overlapConsistentWithTig(double deviations,
   int32  nBelow = 0;
   int32  nAbove = 0;
 
-  assert(bgn <  end);
-  assert(bgn <  getLength());
-  assert(end <= getLength());
+  if ((bgn >= end) ||           //  If the read placement is garbage,
+      (bgn >= getLength()) ||   //  the placement is not consistent!
+      (end >  getLength()))     //  (used to just assert on these,
+    return(1.0);                //   and they almost never occur)
 
   //  If this is a singleton tig - we should only be here when finding graph edges to repeats -
   //  we've got nothing to go on, so default to 'consistent'.

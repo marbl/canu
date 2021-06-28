@@ -124,7 +124,7 @@ placeRead_fromOverlaps(TigVector          &tigs,
     if (ovl[oo].b_hang > 0)
       bposlen -= ovl[oo].b_hang;
 
-    if (bposlen < 0) {
+    if (bposlen <= 0) {
       writeLog("WARNING: read %u overlap to read %u in tig %u at %d-%d - hangs %d %d to large for placement, ignoring overlap\n",
                ovl[oo].a_iid,
                ovl[oo].b_iid,
