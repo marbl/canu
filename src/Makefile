@@ -475,74 +475,27 @@ endif
 #  So, we require gcc7 (from MacPorts) or gcc8 (from hommebrew).
 #
 #  If from MacPorts:
-#    port install gcc7
-#    port select gcc mp-gcc7
+#    port install gcc9
+#    port select gcc mp-gcc9
 #
 #  If CC is set to 'cc', the GNU make default, we'll automagically search for other
-#  versions and use those if found, preferring gcc7 over gcc8.
+#  versions and use those if found.
 #
-#  There' definitely a clever way to do this with 'foreach', but my Make is lacking.
-#
+
+define TEST_COMPILER
+  ifeq ($${CC}, cc)
+    CCTEST  := $$(shell echo `which gcc-${1}`)
+    CXXTEST := $$(shell echo `which g++-${1}`)
+
+    ifdef CXXTEST
+      CC  := $${CCTEST}
+      CXX := $${CXXTEST}
+    endif
+  endif
+endef
+
 ifeq (${OSTYPE}, Darwin)
-  ifeq ($(CC), cc)
-    CC7    := $(shell echo `which gcc-mp-7`)
-    CXX7   := $(shell echo `which g++-mp-7`)
-
-    ifdef CXX7
-      CC  := $(CC7)
-      CXX := $(CXX7)
-    endif
-  endif
-
-  ifeq ($(CC), cc)
-    CC8    := $(shell echo `which gcc-mp-8`)
-    CXX8   := $(shell echo `which g++-mp-8`)
-
-    ifdef CXX8
-      CC  := $(CC8)
-      CXX := $(CXX8)
-    endif
-  endif
-
-  ifeq ($(CC), cc)
-    CC9    := $(shell echo `which gcc-mp-9`)
-    CXX9   := $(shell echo `which g++-mp-9`)
-
-    ifdef CXX9
-      CC  := $(CC9)
-      CXX := $(CXX9)
-    endif
-  endif
-
-  ifeq ($(CC), cc)
-    CC8    := $(shell echo `which gcc-7`)
-	  CXX8   := $(shell echo `which g++-7`)
-
-    ifdef CXX8
-      CC  := $(CC8)
-      CXX := $(CXX8)
-    endif
-  endif
-
-  ifeq ($(CC), cc)
-    CC8    := $(shell echo `which gcc-8`)
-	  CXX8   := $(shell echo `which g++-8`)
-
-    ifdef CXX8
-      CC  := $(CC8)
-      CXX := $(CXX8)
-    endif
-  endif
-
-  ifeq ($(CC), cc)
-    CC9    := $(shell echo `which gcc-9`)
-	  CXX9   := $(shell echo `which g++-9`)
-
-    ifdef CXX9
-      CC  := $(CC9)
-      CXX := $(CXX9)
-    endif
-  endif
+  $(foreach suffix,mp-9 9  mp-8 8  mp-7 7,$(eval $(call TEST_COMPILER,${suffix})))
 
   ifneq ($(shell echo `$(CXX) --version 2>&1 | grep -c clang`), 0)
      CPATH := $(shell echo `which $(CXX)`)
@@ -684,8 +637,7 @@ endif
 #CXXFLAGS   += -DNOBACKTRACE
 
 #  But, if we we have an old GCC, stack tracing support isn't there.  The
-#  second test is because gcc7 and gcc8 report the major version for
-#  -dumpversion.
+#  second test is because gcc7 (and only gcc7) reports '7' for -dumpversion.
 
 GXX_45 := $(shell expr `${CXX} -dumpversion     | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40500)
 GXX_VV := $(shell ${CXX} -dumpversion)
@@ -756,7 +708,7 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
 	@if [ -e ${OBSOLETE_DIR}/bin/canu ] ; then echo "Moving obsolete installation from ${OBSOLETE_DIR} to ${OBSOLETE_DIR}-OBSOLETE."; mv ${OBSOLETE_DIR} ${OBSOLETE_DIR}-OBSOLETE ; fi
 	@echo ""
 	@echo "Success!"
-	@echo "canu installed in ${TARGET_DIR}/bin/canu"
+	@echo "${MODULE} installed in ${TARGET_DIR}/bin/${MODULE}"
 	@echo ""
 
 # Add a new target rule for each user-defined target.
