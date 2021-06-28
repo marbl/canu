@@ -298,16 +298,16 @@ BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   fprintf(report, "  with at least one edge:     %9u\n", _nReadsEF[1]);
   fprintf(report, "\n");
   fprintf(report, "At tight threshold %.4f%%, reads with:\n", 100.0 * TpickedTight);
-  fprintf(report, "  both edges below threshold: %9u\n", nFilteredTight[0]);
-  fprintf(report, "  one  edge  above threshold: %9u\n", nFilteredTight[1]);
-  fprintf(report, "  both edges above threshold: %9u\n", nFilteredTight[2]);
-  fprintf(report, "  at least one edge:          %9u\n", nFilteredTight[3]);
+  fprintf(report, "  both edges below error threshold: %9u  (%5.2f%% minReadsBest threshold = %u)\n", nFilteredTight[0], 100.0 * _minReadsBest, (uint32)(_minReadsBest * nFilteredTight[3]));
+  fprintf(report, "  one  edge  above error threshold: %9u\n",                                        nFilteredTight[1]);
+  fprintf(report, "  both edges above error threshold: %9u\n",                                        nFilteredTight[2]);
+  fprintf(report, "  at least one edge:                %9u\n",                                        nFilteredTight[3]);
   fprintf(report, "\n");
   fprintf(report, "At loose threshold %.4f%%, reads with:\n", 100.0 * TpickedLoose);
-  fprintf(report, "  both edges below threshold: %9u\n", nFilteredLoose[0]);
-  fprintf(report, "  one  edge  above threshold: %9u\n", nFilteredLoose[1]);
-  fprintf(report, "  both edges above threshold: %9u\n", nFilteredLoose[2]);
-  fprintf(report, "  at least one edge:          %9u\n", nFilteredLoose[3]);
+  fprintf(report, "  both edges below error threshold: %9u  (%5.2f%% minReadsBest threshold = %u)\n", nFilteredLoose[0], 100.0 * _minReadsBest, (uint32)(_minReadsBest * nFilteredLoose[3]));
+  fprintf(report, "  one  edge  above error threshold: %9u\n",                                        nFilteredLoose[1]);
+  fprintf(report, "  both edges above error threshold: %9u\n",                                        nFilteredLoose[2]);
+  fprintf(report, "  at least one edge:                %9u\n",                                        nFilteredLoose[3]);
   fprintf(report, "\n");
 }
 
