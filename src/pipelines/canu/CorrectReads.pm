@@ -138,6 +138,8 @@ sub buildCorrectionLayoutsConfigure ($) {
     fetchOvlStore($asm, $base);
 
     print STDERR "-- Computing correction layouts.\n";
+    print STDERR "--   Local  filter coverage   ", getCorCov($asm, "Local"),  "\n";
+    print STDERR "--   Global filter coverage   ", getCorCov($asm, "Global"), "\n";
 
     $cmd  = "$bin/generateCorrectionLayouts \\\n";
     $cmd .= "  -S ../$asm.seqStore \\\n";
@@ -146,6 +148,7 @@ sub buildCorrectionLayoutsConfigure ($) {
     $cmd .= "  -eL " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     $cmd .= "  -eE " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     $cmd .= "  -eC " . getCorCov($asm, "Local") . " \\\n";
+    $cmd .= "  -xC " . getCorCov($asm, "Global") . " \\\n";
     $cmd .= "> ./$asm.corStore.err 2>&1";
 
     if (runCommand($base, $cmd)) {
