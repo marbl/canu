@@ -452,6 +452,26 @@ sub mhapConfigure ($$$) {
     print F "echo \"\"\n";
     print F "\n";
     print F "if [ ! -e \$outPath/\$qry.mhap ] ; then\n";
+
+    if (getGlobal("${tag}mhapPipe")) {
+        print F "  #  Make a fifo so we can check return status on both\n";
+        print F "  #  mhap and mhapConvert, and still pipe results so we\n";
+        print F "  #  stop filling up disks.\n";
+        print F "  rm -f  \$qry-pipe\n";
+        print F "  mkfifo \$qry-pipe\n";
+        print F "\n";
+        print F "  #  Start up the consumer.\n";
+        print F "  \$bin/mhapConvert \\\n";
+        print F "    -S ../../$asm.seqStore \\\n";
+        print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
+        print F "    -minlength ", getGlobal("minOverlapLength"), " \\\n";
+        print F "    \$qry-pipe \\\n";
+        print F "  && \\\n";
+        print F "  touch ./results/\$qry.mcvt.success &\n";
+        print F "\n";
+    }
+
+    print F "  #  Start up the producer.\n";
     print F "  $javaPath $javaOpt -XX:ParallelGCThreads=",  getGlobal("${tag}mhapThreads"), " -server -Xms", $javaMemory, "m -Xmx", $javaMemory, "m \\\n";
     print F "    -jar $cygA \$bin/../share/java/classes/mhap-" . getGlobal("${tag}MhapVersion") . ".jar $cygB \\\n";
     print F "    --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
@@ -469,30 +489,49 @@ sub mhapConfigure ($$$) {
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "    -s $cygA ./blocks/\$blk.dat \$slf $cygB \\\n";
     print F "    -q $cygA queries/\$qry $cygB \\\n";
-    print F "  > \$outPath/\$qry.mhap.WORKING \\\n";
-    print F "  && \\\n";
-    print F "  mv -f \$outPath/\$qry.mhap.WORKING \$outPath/\$qry.mhap\n";
-    print F "fi\n";
-    print F "\n";
 
-    print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
-    print F "     ! -e ./results/\$qry.ovb ] ; then\n";
-    print F "  \$bin/mhapConvert \\\n";
-    print F "    -S ../../$asm.seqStore \\\n";
-    print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
-    print F "    -minlength ", getGlobal("minOverlapLength"), " \\\n";
-    print F "    \$outPath/\$qry.mhap \\\n";
-    print F "  && \\\n";
-    print F "  mv ./results/\$qry.mhap.ovb.WORKING ./results/\$qry.mhap.ovb\n";
-    print F "fi\n";
-    print F "\n";
-
-    if (getGlobal('purgeOverlaps') ne "never") {
-        print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
-        print F "       -e ./results/\$qry.mhap.ovb ] ; then\n";
-        print F "  rm -f \$outPath/\$qry.mhap\n";
+    if (getGlobal("${tag}mhapPipe")) {
+        print F "  > \$qry-pipe \\\n";
+        print F "  && \\\n";
+        print F "  touch ./results/\$qry.mhap.success\n";
+        print F "\n";
+        print F "  #  Now that they're done, check status.\n";
+        print F "  if [ -e ./results/\$qry.mhap.success -a -e ./results/\$qry.mcvt.success ] ; then\n";
+        print F "    mv ./results/\$qry.mhap.ovb.WORKING ./results/\$qry.mhap.ovb\n";
+        print F "    rm -f ./results/\$qry.mhap.success\n";
+        print F "    rm -f ./results/\$qry.mcvt.success\n";
+        print F "  fi\n";
+        print F "\n";
+        print F "  #  And destroy the pipe.\n";
+        print F "  rm -f  \$qry-pipe\n";
         print F "fi\n";
         print F "\n";
+    } else {
+        print F "  > \$outPath/\$qry.mhap.WORKING \\\n";
+        print F "  && \\\n";
+        print F "  mv -f \$outPath/\$qry.mhap.WORKING \$outPath/\$qry.mhap\n";
+        print F "fi\n";
+        print F "\n";
+
+        print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
+        print F "     ! -e ./results/\$qry.ovb ] ; then\n";
+        print F "  \$bin/mhapConvert \\\n";
+        print F "    -S ../../$asm.seqStore \\\n";
+        print F "    -o ./results/\$qry.mhap.ovb.WORKING \\\n";
+        print F "    -minlength ", getGlobal("minOverlapLength"), " \\\n";
+        print F "    \$outPath/\$qry.mhap \\\n";
+        print F "  && \\\n";
+        print F "  mv ./results/\$qry.mhap.ovb.WORKING ./results/\$qry.mhap.ovb\n";
+        print F "fi\n";
+        print F "\n";
+
+        if (getGlobal('purgeOverlaps') ne "never") {
+            print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
+            print F "       -e ./results/\$qry.mhap.ovb ] ; then\n";
+            print F "  rm -f \$outPath/\$qry.mhap\n";
+            print F "fi\n";
+            print F "\n";
+        }
     }
 
     if (getGlobal("${tag}ReAlign") eq "1") {

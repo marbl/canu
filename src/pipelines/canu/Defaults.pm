@@ -171,6 +171,7 @@ sub setGlobal ($$) {
                      "mhapfilterunique",
                      "mhapfilterthreshold",
                      "mhapnotf",
+                     "mhappipe",
                      "mmapblocksize",                                        #  Minimap options
                      "mmapmersize") {
         if ($var eq "$opt") {
@@ -762,6 +763,7 @@ sub setOverlapDefaults ($$$) {
     setDefault("${tag}MhapFilterUnique",    undef,                     "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.");
     setDefault("${tag}MhapNoTf",            undef,                     "Expert option: True or false, do not use tf weighting, only idf of tf-idf.");
     setDefault("${tag}MhapOptions",         undef,                     "Expert option: free-form parameters to pass to MHAP.");
+    setDefault("${tag}MhapPipe",            1,                         "Report results to a pipe instead of *large* files.");
     setDefault("${tag}MhapBlockSize",       3000,                      "Number of reads per GB of memory allowed (mhapMemory)");
     setDefault("${tag}MhapMerSize",         ($tag eq "cor") ? 16 : 16, "K-mer size for seeds in mhap");
     setDefault("${tag}MhapOrderedMerSize",  ($tag eq "cor") ? 12 : 18, "K-mer size for second-stage filter in mhap");
