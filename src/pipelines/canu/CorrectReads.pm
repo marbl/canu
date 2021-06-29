@@ -62,25 +62,6 @@ sub getCorCov ($$) {
 }
 
 
-#  Query seqStore to find the read types involved.  Return an error rate that is appropriate for
-#  aligning reads of that type to each other.
-sub getCorIdentity ($) {
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $erate   = getGlobal("corErrorRate");
-
-    if (defined($erate)) {
-        print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads (from corErrorRate parameter).\n";
-        return(1 - $erate);
-    }
-
-    $erate = 0.30;
-    print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads.\n";
-
-    return(1 - $erate);
-}
-
-
 
 sub setupCorrectionParameters ($) {
     my $asm     = shift @_;
@@ -314,11 +295,11 @@ sub generateCorrectedReadsConfigure ($) {
         print F "  -S ../../$asm.seqStore \\\n";
         print F "  -C ../$asm.corStore \\\n";
         print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
-        print F "  -t  " . getGlobal("corThreads") . " \\\n";
-        print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
-        print F "  -cl " . getGlobal("minReadLength") . " \\\n";
-        print F "  -oi " . getCorIdentity($asm) . " \\\n";
-        print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
+        print F "  -t  " .       getGlobal("corThreads") . " \\\n";
+        print F "  -cc " .       getGlobal("corMinCoverage") . " \\\n";
+        print F "  -cl " .       getGlobal("minReadLength") . " \\\n";
+        print F "  -oi " . 1.0 - getGlobal("corErrorRate") . " \\\n";
+        print F "  -ol " .       getGlobal("minOverlapLength") . " \\\n";
         print F "  -p ./correctReadsPartition.WORKING \\\n";
         print F "&& \\\n";
         print F "mv ./correctReadsPartition.WORKING.batches ./correctReadsPartition.batches \\\n";
@@ -443,11 +424,11 @@ sub generateCorrectedReadsConfigure ($) {
     print F "  -C ../$asm.corStore \\\n";
     print F "  -R ./$asm.readsToCorrect \\\n"                if ( fileExists("$path/$asm.readsToCorrect"));
     print F "  -r \$bgnid-\$endid \\\n";
-    print F "  -t  " . getGlobal("corThreads") . " \\\n";
-    print F "  -cc " . getGlobal("corMinCoverage") . " \\\n";
-    print F "  -cl " . getGlobal("minReadLength") . " \\\n";
-    print F "  -oi " . getCorIdentity($asm) . " \\\n";
-    print F "  -ol " . getGlobal("minOverlapLength") . " \\\n";
+    print F "  -t  " .       getGlobal("corThreads") . " \\\n";
+    print F "  -cc " .       getGlobal("corMinCoverage") . " \\\n";
+    print F "  -cl " .       getGlobal("minReadLength") . " \\\n";
+    print F "  -oi " . 1.0 - getGlobal("corErrorRate") . " \\\n";
+    print F "  -ol " .       getGlobal("minOverlapLength") . " \\\n";
     print F "  -p ./results/\$jobid.WORKING \\\n";
     print F "  -cns \\\n";
     print F "  > ./results/\$jobid.err 2>&1 \\\n";
