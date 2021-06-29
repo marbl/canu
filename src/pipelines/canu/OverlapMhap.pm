@@ -495,6 +495,9 @@ sub mhapConfigure ($$$) {
         print F "  && \\\n";
         print F "  touch ./results/\$qry.mhap.success\n";
         print F "\n";
+        print F "  #  Wait for mhapConvert to finish.\n";
+        print F "  wait\n";
+        print F "\n";
         print F "  #  Now that they're done, check status.\n";
         print F "  if [ -e ./results/\$qry.mhap.success -a -e ./results/\$qry.mcvt.success ] ; then\n";
         print F "    mv ./results/\$qry.mhap.ovb.WORKING ./results/\$qry.mhap.ovb\n";
