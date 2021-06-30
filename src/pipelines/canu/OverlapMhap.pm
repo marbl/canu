@@ -421,22 +421,14 @@ sub mhapConfigure ($$$) {
     print F "\n";
 
     my $stageDir = getGlobal("stageDirectory");
+    my $mhapPipe = getGlobal("${tag}mhapPipe");
 
-    if (defined($stageDir)) {
-        print F "#  Output staging enabled, write outputs in scratch space!\n";
-        print F "outPath=\"$stageDir\"\n";
-        print F "\n";
-    }
-
-    else {
-        print F "#  Output staging disabled, write all outputs in assembly directory.\n";
-        print F "outPath=\"./results\"\n";
-        print F "\n";
-    }
-
+    print F "outPath=\"$stageDir\"\n"          if ( defined($stageDir) && ($mhapPipe == 0));
+    print F "outPath=\"./results\"\n"          if (!defined($stageDir) && ($mhapPipe == 0));
+    print F "\n";
     print F "if [ ! -d ./results ]; then  mkdir -p ./results;  fi\n";
     print F "if [ ! -d ./blocks  ]; then  mkdir -p ./blocks;   fi\n";
-    print F "if [ ! -d \$outPath ]; then  mkdir -p \$outPath;  fi\n";
+    print F "if [ ! -d \$outPath ]; then  mkdir -p \$outPath;  fi\n"   if ($mhapPipe == 0);
     print F "\n";
 
     print F fetchFileShellCode("$path", "blocks/\$blk.dat", "");
@@ -446,14 +438,13 @@ sub mhapConfigure ($$$) {
     print F    fetchFileShellCode("$path", "blocks/\$ii", "  ");
     print F "done\n";
     print F "\n";
-
     print F "echo \"\"\n";
     print F "echo Running block \$blk in query \$qry\n";
     print F "echo \"\"\n";
     print F "\n";
-    print F "if [ ! -e \$outPath/\$qry.mhap ] ; then\n";
+    print F "if [ ! -e ./results/\$qry.mhap.ovb ] ; then\n";
 
-    if (getGlobal("${tag}mhapPipe")) {
+    if ($mhapPipe) {
         print F "  #  Make a fifo so we can check return status on both\n";
         print F "  #  mhap and mhapConvert, and still pipe results so we\n";
         print F "  #  stop filling up disks.\n";
@@ -490,7 +481,7 @@ sub mhapConfigure ($$$) {
     print F "    -s $cygA ./blocks/\$blk.dat \$slf $cygB \\\n";
     print F "    -q $cygA queries/\$qry $cygB \\\n";
 
-    if (getGlobal("${tag}mhapPipe")) {
+    if ($mhapPipe) {
         print F "  > \$qry-pipe \\\n";
         print F "  && \\\n";
         print F "  touch ./results/\$qry.mhap.success\n";
@@ -515,7 +506,6 @@ sub mhapConfigure ($$$) {
         print F "  mv -f \$outPath/\$qry.mhap.WORKING \$outPath/\$qry.mhap\n";
         print F "fi\n";
         print F "\n";
-
         print F "if [   -e \$outPath/\$qry.mhap -a \\\n";
         print F "     ! -e ./results/\$qry.ovb ] ; then\n";
         print F "  \$bin/mhapConvert \\\n";

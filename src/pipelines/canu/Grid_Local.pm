@@ -156,13 +156,12 @@ sub configureLocal () {
 
     return   if (defined(getGlobal("gridEngine")));
 
+    #  Otherwise, setup for local mode...only there's nothing we need to do
+    #  at the moment.  This used to disable stageDirectory (before 29 June
+    #  2021) but that was because there was no way to prevent jobs from using
+    #  the same stage directory on top of each other.  See
+    #  CorrectReads.pm/OverlapMhap.pm for how to do it 'properly'.
+
     print STDERR "--\n";
     print STDERR "-- Local machine mode enabled; grid support not detected or not allowed.\n";
-
-    #  Disable stage directory
-
-    if (defined(getGlobal("stageDirectory"))) {
-        print STDERR "-- Stage directory support disabled in local run mode.\n";
-        setGlobal("stageDirectory", undef);
-    }
 }

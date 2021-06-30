@@ -378,13 +378,13 @@ sub generateCorrectedReadsConfigure ($) {
     print F "\n";
 
     print F "\n";
-    print F "if [ -e \"./results/\$jobid.cns\" ] ; then\n";
+    print F "if [ -e ./results/\$jobid.cns ] ; then\n";
     print F "  echo Job finished successfully.\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ ! -d \"./results\" ] ; then\n";
-    print F "  mkdir -p \"./results\"\n";
+    print F "if [ ! -d ./results ] ; then\n";
+    print F "  mkdir -p ./results\n";
     print F "fi\n";
     print F "\n";
 
@@ -395,30 +395,28 @@ sub generateCorrectedReadsConfigure ($) {
     print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
     print F "\n";
 
-    print F "seqStore=\"../../$asm.seqStore\"\n";
+    print F "seqStore=../../$asm.seqStore\n";
     print F "\n";
 
     my $stageDir = getGlobal("stageDirectory");
+    my $storeDir = "$stageDir/$asm-\$jobid.seqStore";    #  jobid is expanded during the job, in the shell
 
     if (defined($stageDir)) {
-        print F "if [ ! -d $stageDir ] ; then\n";
-        print F "  mkdir -p $stageDir\n";
+        print F "#  Try to make the seqStore directory in the stage location.\n";
+        print F "#  If that fails, fallback to using the original store.\n";
+        print F "\n";
+        print F "mkdir -p $storeDir\n";
+        print F "\n";
+        print F "if [ -d $storeDir ] ; then\n";
+        print F "  seqStore=$storeDir\n";
+        print F "  cp -p ../../$asm.seqStore/info      $storeDir/info\n";
+        print F "  cp -p ../../$asm.seqStore/libraries $storeDir/libraries\n";
+        print F "  cp -p ../../$asm.seqStore/reads*    $storeDir/\n";
+        print F "  cp -p ../../$asm.seqStore/blobs.*   $storeDir/\n";
         print F "fi\n";
-        print F "\n";
-        print F "mkdir -p $stageDir/$asm.seqStore\n";
-        print F "\n";
-        print F "echo Start copy at `date`\n";
-        print F "cp -p \$seqStore/info      $stageDir/$asm.seqStore/info\n";
-        print F "cp -p \$seqStore/libraries $stageDir/$asm.seqStore/libraries\n";
-        print F "cp -p \$seqStore/reads*    $stageDir/$asm.seqStore/\n";
-        print F "cp -p \$seqStore/blobs.*   $stageDir/$asm.seqStore/\n";
-        print F "echo Finished   at `date`\n";
-        print F "\n";
-        print F "seqStore=\"$stageDir/$asm.seqStore\"\n";
         print F "\n";
     }
 
-    print F "\n";
     print F "\$bin/falconsense \\\n";
     print F "  -S \$seqStore \\\n";
     print F "  -C ../$asm.corStore \\\n";
@@ -439,19 +437,15 @@ sub generateCorrectedReadsConfigure ($) {
     print F stashFileShellCode("$path", "results/\$jobid.cns", "");
 
     if (defined($stageDir)) {
-        print F "rm -rf $stageDir/$asm.seqStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
+        print F "rm -rf $storeDir\n";
         print F "rmdir  $stageDir\n";
         print F "\n";
     }
-
-    print F "\n";
-    print F "exit 0\n";
 
     close(F);
 
     makeExecutable("$path/correctReads.sh");
     stashFile("$path/correctReads.sh");
-
 
   finishStage:
     generateReport($asm);
