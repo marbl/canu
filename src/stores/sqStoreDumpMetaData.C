@@ -563,7 +563,7 @@ main(int argc, char **argv) {
     dumpHistogram(seqStore, bgnID, endID, false);
 
   if (reqDump == dumpType::wantLengths)
-    dumpHistogram(seqStore, bgnID, endID, false);
+    dumpHistogram(seqStore, bgnID, endID, true);
 
   if (reqDump == dumpType::wantVersions)
     dumpVersions(seqStoreName);
