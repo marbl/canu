@@ -41,7 +41,8 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
                            double maxErate,
                            uint32 minOverlap,
                            uint64 memlimit,
-                           uint64 genomeSize) {
+                           uint64 genomeSize,
+                           bool symmetrize) {
 
   _prefix = prefix;
 
@@ -159,7 +160,8 @@ OverlapCache::OverlapCache(const char *ovlStorePath,
   delete [] _ovsTmp;    _ovsTmp   = NULL;   //  it loaded updated erates into memory), so release
   delete     ovlStore;   ovlStore = NULL;   //  these before symmetrizing overlaps.
 
-  symmetrizeOverlaps();
+  if (symmetrize == true)
+    symmetrizeOverlaps();
 
   delete [] _minSco;    _minSco   = NULL;
 }
@@ -287,21 +289,6 @@ OverlapCache::computeOverlapLimit(ovStore *ovlStore, uint64 genomeSize) {
 
     _maxPer += increase;
   }
-
-  //  We used to (pre 6 Jul 2017) do the symmetry check only if we didn't load all overlaps.
-  //  However, symmetry can also break if we use an error rate cutoff because - for reasons not
-  //  explored - the error rate on symmetric overlaps differs.  So, just enable this always.
-  //
-  //  On a moderate coverage human nanopore assembly, it does:
-  //
-  //    OverlapCache()-- Symmetrizing overlaps -- finding missing twins.
-  //    OverlapCache()--                       -- found 8609 missing twins in 51413413 overlaps, 8002 are strong.
-  //    OverlapCache()-- Symmetrizing overlaps -- dropping weak non-twin overlaps.
-  //    OverlapCache()--                       -- dropped 454 overlaps.
-  //    OverlapCache()-- Symmetrizing overlaps -- adding 8155 missing twin overlaps.
-
-  _checkSymmetry = (numAbove > 0) ? true : false;
-  _checkSymmetry = true;
 
   if (_maxPer < _minPer)
     writeStatus("OverlapCache()-- Not enough memory to load the minimum number of overlaps; increase -M.\n"), exit(1);
@@ -649,9 +636,6 @@ OverlapCache::symmetrizeOverlaps(void) {
   uint32  fiLimit    = RI->numReads() + 1;
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 1000 * numThreads) ? numThreads : fiLimit / 999;
-
-  if (_checkSymmetry == false)
-    return;
 
   uint32  *nNonSymPerRead = new uint32 [fiLimit];
   uint32  *nFiltPerRead   = new uint32 [fiLimit];

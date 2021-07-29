@@ -273,6 +273,8 @@ main (int argc, char **argv) {
   uint64       genomeSize         = 0;
   bool         doContainPlacement = true;
 
+  bool         doSymmetrize       = false;
+
   argc = AS_configure(argc, argv);
 
   uint32 seed = time(NULL);
@@ -315,6 +317,10 @@ main (int argc, char **argv) {
       doContainPlacement = false;
     }
 
+    else if (strcmp(argv[arg], "-symmetrize") == 0) {
+      doSymmetrize = true;
+    }
+
     else {
       char *s = new char [1024];
       snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
@@ -344,6 +350,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -eM erate          Max error rate of overlaps to load.\n");
     fprintf(stderr, "  -eg erate          Max error rate of overlaps to use for placing contained reads.\n");
     fprintf(stderr, "  -nocontains        Do not place contained reads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -symmetrize        Check and fix symmetry of overlaps (slow).\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
@@ -361,7 +369,7 @@ main (int argc, char **argv) {
   setLogFile(prefix, "loadInformation");
 
   RI = new ReadInfo(seqStorePath, prefix, minReadLen, maxReadLen);
-  OC = new OverlapCache(ovlStorePath, prefix, std::max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize);
+  OC = new OverlapCache(ovlStorePath, prefix, std::max(erateMax, erateGraph), minOverlapLen, ovlCacheMemory, genomeSize, doSymmetrize);
 
   //
 
