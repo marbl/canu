@@ -244,7 +244,8 @@ public:
                double maxErate,
                uint32 minOverlap,
                uint64 maxMemory,
-               uint64 genomeSize);
+               uint64 genomeSize,
+               bool symmetrize=true);
   ~OverlapCache();
 
   bool         compareOverlaps(const BAToverlap &a, const BAToverlap &b) const; // we can almost do templated but the fields are functions in one and just members in the other
@@ -292,8 +293,6 @@ private:
   uint32                  _maxPer;     //  Maximum number of overlaps to load for a single read
 
   uint64                 *_minSco;     //  The minimum score accepted for each read
-
-  bool                    _checkSymmetry;
 
   uint32                  _ovsMax;     //  For loading overlaps
   ovOverlap              *_ovs;        //
