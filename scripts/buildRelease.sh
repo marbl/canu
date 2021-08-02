@@ -3,18 +3,19 @@
 #  Before building a release:
 #
 #  Make a place to work, grab the bits you want to release:
-#    git clone git@github.com:marbl/canu canu-release
-#    cd canu-release
+#    git clone git@github.com:marbl/PACKAGE PACKAGE-release
+#    cd PACKAGE-release
 #
 #  Commit to master:
-#    Increase version in documentation/source/conf.py
+#    Increase version in documentation/source/conf.py  (if present)
 #    Increase version in scripts/version_update.pl
 #
-#  Build.  This pulls in submodule code.  This build isn't used for release
-#  and can be deleted or aborted (once submodules are populated).
+#  Build.  This pulls in submodule code.  This build isn't used
+#  for creating the release and can be deleted or aborted (once
+#  submodules are populated):
 #    cd src && gmake
 #
-#  Tag the next release development
+#  Tag the next release development at the tip in master:
 #    git tag -a v2.2-development -m "Development for v2.2."
 #    git push --follow-tags
 #
@@ -23,15 +24,25 @@
 #
 #  Commit to branch:
 #    Change 'snapshot' to 'release' in scripts/version_update.pl
+#    git push --set-upstream origin v2.1-maintenance
 #
 #  Run this script:
-#    scripts/buildRelease.sh 2.1
+#    scripts/buildRelease.sh PACKAGE 2.1
+#
+#  Some notes:
+#   - The source code from the branch made above will be used
+#     to build tarballs with source and binaries.
+#   - These tarballs (and scratch space) are called 'build-*'.
+#   - The very first step is to rename '.git' to 'dot-git-directory';
+#     catastrophic failure (of this script) could leave it
+#     renamed.
 #
 
-version=$1
+package=$1
+version=$2
 
 if [ x$version = x ] ; then
-  echo usage: $0 numeric-version
+  echo "usage: $0 package-name numeric-version"
   exit
 fi
 
@@ -53,9 +64,9 @@ rm -rf build-src
 
 rm  -f build-linux.sh
 
-rm  -f canu-${version}.Darwin-amd64.tar canu-${version}.Darwin-amd64.tar.xz
-rm  -f canu-${version}.Linux-amd64.tar  canu-${version}.Linux-amd64.tar.xz
-rm  -f canu-${version}.tar  canu-${version}.tar.xz
+rm  -f ${package}-${version}.Darwin-amd64.tar ${package}-${version}.Darwin-amd64.tar.xz
+rm  -f ${package}-${version}.Linux-amd64.tar  ${package}-${version}.Linux-amd64.tar.xz
+rm  -f ${package}-${version}.tar  ${package}-${version}.tar.xz
 
 mkdir -p build-src/scripts
 mkdir -p build-darwin/scripts
@@ -85,17 +96,17 @@ echo >> build-linux.sh  ""
 echo >> build-linux.sh  "rm -rf build-darwin/obj"
 echo >> build-linux.sh  "rm -rf build-linux/obj"
 echo >> build-linux.sh  ""
-echo >> build-linux.sh  "mv build-darwin canu-$version"
-echo >> build-linux.sh  "tar -cf canu-$version.Darwin-amd64.tar canu-$version/README* canu-$version/bin canu-$version/lib canu-$version/share"
-echo >> build-linux.sh  "mv canu-$version build-darwin"
+echo >> build-linux.sh  "mv build-darwin ${package}-${version}"
+echo >> build-linux.sh  "tar -cf ${package}-${version}.Darwin-amd64.tar ${package}-${version}/README* ${package}-${version}/bin ${package}-${version}/lib ${package}-${version}/share"
+echo >> build-linux.sh  "mv ${package}-${version} build-darwin"
 echo >> build-linux.sh  ""
-echo >> build-linux.sh  "mv build-linux canu-$version"
-echo >> build-linux.sh  "tar -cf canu-$version.Linux-amd64.tar  canu-$version/README*  canu-$version/bin  canu-$version/lib  canu-$version/share"
-echo >> build-linux.sh  "mv canu-$version build-linux"
+echo >> build-linux.sh  "mv build-linux ${package}-${version}"
+echo >> build-linux.sh  "tar -cf ${package}-${version}.Linux-amd64.tar  ${package}-${version}/README*  ${package}-${version}/bin  ${package}-${version}/lib  ${package}-${version}/share"
+echo >> build-linux.sh  "mv ${package}-${version} build-linux"
 echo >> build-linux.sh  ""
-echo >> build-linux.sh  "mv build-src canu-$version"
-echo >> build-linux.sh  "tar -cf canu-$version.tar              canu-$version/README*  canu-$version/src  canu-$version/scripts"
-echo >> build-linux.sh  "mv canu-$version build-src"
+echo >> build-linux.sh  "mv build-src ${package}-${version}"
+echo >> build-linux.sh  "tar -cf ${package}-${version}.tar              ${package}-${version}/README*  ${package}-${version}/src  ${package}-${version}/scripts"
+echo >> build-linux.sh  "mv ${package}-${version} build-src"
 echo >> build-linux.sh  ""
 echo >> build-linux.sh  ""
 
@@ -134,9 +145,9 @@ docker run -v `pwd`:/dock -t -i --rm phusion/holy-build-box-64:latest /hbb_exe/a
 
 echo Compress.
 
-xz -9v canu-$version.Darwin-amd64.tar
-xz -9v canu-$version.Linux-amd64.tar
-xz -9v canu-$version.tar
+xz -9v ${package}-${version}.Darwin-amd64.tar
+xz -9v ${package}-${version}.Linux-amd64.tar
+xz -9v ${package}-${version}.tar
 
 if [ -e dot-git-directory ] ; then
     echo Restoring .git directory.
