@@ -184,7 +184,9 @@ sub getTimeSGE ($) {
     my $jr    = 0;
     my $jv    = 0;
     my $je    = 0;
-    my $st    = time();
+    my $ST    = time();
+    my $st    = $ST;
+    my $ET    = 0;
     my $et    = 0;
     my $ig    = 0;
 
@@ -198,14 +200,12 @@ sub getTimeSGE ($) {
         my $val = join ' ', @v;
 
         if    ($tag eq "start_time") {
-            my $t = parseDate($val);
-
+            my $t = parseDate($val, $st);
             $st = ($st < $t) ? $st : $t;
         }
 
         elsif ($tag eq "end_time") {
-            my $t = parseDate($val);
-
+            my $t = parseDate($val, $et);
             $et = ($t < $et) ? $et : $t;
         }
 
@@ -238,7 +238,8 @@ sub getTimeSGE ($) {
     }
     close(F);
 
-    $ig = 1   if ($et == 0);
+    $ig = 1   if ($st == $ST);   #  Ignore this result if either
+    $ig = 1   if ($et == $ET);   #  time was missing.
 
     return($ju, $js, $je, $jr, $jv, $st, $et, $ig);
 }
@@ -272,10 +273,10 @@ sub getTimeSlurm ($) {
         $jv  = ($v[5] < $jv) ? $jv : $v[5];
         $je += parseTime($v[7]);
 
-        $t = parseDate($v[8]);
+        $t = parseDate($v[8], $st);
         $st = ($st < $t) ? $st : $t;
 
-        $t = parseDate($v[9]);
+        $t = parseDate($v[9], $et);
         $et = ($t < $et) ? $et : $t;
     }
     close(F);
@@ -325,14 +326,17 @@ sub parseTime ($) {
 #              %a  %b  %e %H:%M:%S %Y
 #  Slurm returns YYYY-MM-DDTHH:MM:SS
 #                %Y-%m-%dT%H:%M:%S
-sub parseDate ($) {
-    my $d = $_[0];
+sub parseDate ($$) {
+    my $d = $_[0];   #  Input date/time string.
+    my $f = $_[1];   #  If fail to parse, return this instead.
     my $t;
 
-    if ($d =~ m/^\d+-\d+-\d/) {
+    if      ($d =~ m/^\d+-\d+-\d/) {
         $t = Time::Piece->strptime($d, "%Y-%m-%dT%H:%M:%S");
-    } else {
+    } elsif ($d =~ m/\s\d+:\d+:\d+\s\d\d\d\d$/) {
         $t = Time::Piece->strptime($d, "%a %b %e %H:%M:%S %Y");
+    } else {
+        return($f);
     }
 
     #my $T = gmtime($t->epoch);
