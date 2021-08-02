@@ -15,4 +15,24 @@ http://rest-sphinx-memo.readthedocs.io/en/latest/ReST.html
 **bold**
 ``red-code``
 
+--------------------
+`LINK <URL>`_
 
+--------------------
+Indented text makes a quote
+
+  this is a
+  quotation
+
+--------------------
+Indented text can be turned into a code block with some kind of higlighting
+
+  .. code-block:: none
+
+  -rw-r--r--  1 bri  bri  5964 Jun 10  2001 ne-20010611-1812/near-identity/meryl/meryl.C
+  -rw-r--r--  1 bri  bri   180 Jul  3  2001 ne-20010703-1747/near-identity/meryl/meryl.C
+
+--------------------
+https://docutils.sourceforge.io/docs/ref/rst/directives.html#math
+
+The area of a circle is :math:`A_\text{c} = (\pi/4) d^2`.
