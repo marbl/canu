@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "system.H"
 #include "strings.H"
 
 #include "sqStore.H"
@@ -69,8 +70,6 @@ public:
   double                  partitionSize    = 1.00;   //  Size partitions to be 100% of the largest tig.
   double                  partitionScaling = 1.00;   //  Estimated tig length is 100% of actual tig length.
   double                  partitionReads   = 0.05;   //  5% of all reads can end up in a single partition.
-
-  uint32                  numThreads   = omp_get_max_threads();
 
   double                  errorRate    = 0.12;
   double                  errorRateMax = 0.40;
@@ -658,7 +657,7 @@ processTigs(cnsParameters  &params) {
 
 
 int
-main (int argc, char **argv) {
+main(int argc, char **argv) {
   cnsParameters  params;
 
   argc = AS_configure(argc, argv);
@@ -738,7 +737,7 @@ main (int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-threads") == 0) {
-      params.numThreads = strtouint32(argv[++arg]);
+      setNumThreads(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-export") == 0) {
@@ -905,9 +904,6 @@ main (int argc, char **argv) {
 
     exit(1);
   }
-
-
-  omp_set_num_threads(params.numThreads);
 
 
   //  Open inputs.

@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "runtime.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_ReadInfo.H"
@@ -504,7 +506,7 @@ Unitig::optimize_setPositions(optPos  *op,
 
 void
 TigVector::optimizePositions(const char *prefix, const char *label) {
-  uint32  numThreads  = omp_get_max_threads();
+  uint32  numThreads  = getNumThreads();
 
   uint32  tiLimit     = size();
   uint32  tiBlockSize = 10; //(tiLimit <   10 * numThreads) ? numThreads : tiLimit / 9;

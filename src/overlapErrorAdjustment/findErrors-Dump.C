@@ -25,7 +25,7 @@ int
 main(int argc, char **argv) {
   char       *redName = NULL;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int arg = 1;
   int err = 0;

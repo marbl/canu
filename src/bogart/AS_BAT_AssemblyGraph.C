@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_AssemblyGraph.H"
@@ -115,7 +117,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
                           double        repeatLimit,
                           TigVector    &tigs) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   //  Just some logging.  Count the number of reads we try to place.

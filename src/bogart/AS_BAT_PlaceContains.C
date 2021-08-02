@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
@@ -64,7 +66,7 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
                               const char   *UNUSED(prefix),
                               std::set<uint32>    &placedReads) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   uint32       *placedTig = new uint32      [RI->numReads() + 1];

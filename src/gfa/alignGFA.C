@@ -16,6 +16,8 @@
  */
 
 #include "runtime.H"
+#include "system.H"
+
 #include "sqStore.H"
 #include "tgStore.H"
 
@@ -592,7 +594,7 @@ processGFA(char     *tigName,
   uint32  failNormal = 0;
 
   uint32  iiLimit      = gfa->_links.size();
-  uint32  iiNumThreads = omp_get_max_threads();
+  uint32  iiNumThreads = getNumThreads();
   uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
   fprintf(stderr, "-- Aligning " F_U32 " links using " F_U32 " threads and %.2f error rate.\n", iiLimit, iiNumThreads, erate*100);
@@ -699,7 +701,7 @@ processBED(char   *tigName,
   uint32  fail = 0;
 
   uint32  iiLimit      = bed->_records.size();
-  uint32  iiNumThreads = omp_get_max_threads();
+  uint32  iiNumThreads = getNumThreads();
   uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
   fprintf(stderr, "-- Aligning " F_U32 " records using " F_U32 " threads.\n", iiLimit, iiNumThreads);
@@ -768,7 +770,7 @@ processBEDtoGFA(char   *tigName,
   //  Iterate over sequences, looking for overlaps in contigs.  Stupid, O(n^2) but seems fast enough.
 
   uint32  iiLimit      = bed->_records.size();
-  uint32  iiNumThreads = omp_get_max_threads();
+  uint32  iiNumThreads = getNumThreads();
   uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
   fprintf(stderr, "-- Aligning " F_U32 " records using " F_U32 " threads.\n", iiLimit, iiNumThreads);
@@ -893,7 +895,7 @@ main (int argc, char **argv) {
       verbosity++;
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      omp_set_num_threads(atoi(argv[++arg]));
+      setNumThreads(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       erate = atof(argv[++arg]);

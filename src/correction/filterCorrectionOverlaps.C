@@ -67,7 +67,7 @@ main(int argc, char **argv) {
   double          maxErate         = 1.0;
   double          minErate         = 1.0;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int32     arg = 1;
   int32     err = 0;

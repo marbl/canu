@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_Logging.H"
 
 #include <stdarg.h>
@@ -231,13 +233,13 @@ setLogFile(char const *prefix, char const *label) {
   //  Allocate space.  Unfortunately, this leaks.
 
   if (logFileThread == nullptr)
-    logFileThread = new logFileInstance [omp_get_max_threads()];
+    logFileThread = new logFileInstance [getNumThreads()];
 
   //  Close out the old.
 
   logFileMain.close();
 
-  for (int32 tn=0; tn<omp_get_max_threads(); tn++)
+  for (int32 tn=0; tn<getNumThreads(); tn++)
     logFileThread[tn].close();
 
   //  Move to the next iteration.
@@ -248,7 +250,7 @@ setLogFile(char const *prefix, char const *label) {
 
   logFileMain.set(prefix, logFileOrder, label, 0, logFileFlagSet(LOG_STDERR));
 
-  for (int32 tn=0; tn<omp_get_max_threads(); tn++)
+  for (int32 tn=0; tn<getNumThreads(); tn++)
     logFileThread[tn].set(prefix, logFileOrder, label, tn+1, logFileFlagSet(LOG_STDERR));
 
   //  File open is delayed until it is used.
@@ -278,8 +280,8 @@ writeStatus(char const *fmt, ...) {
 void
 writeLog(char const *fmt, ...) {
   va_list ap;
-  int32   nt = omp_get_num_threads();
-  int32   tn = omp_get_thread_num();
+  int32   nt = getNumThreadsActive();
+  int32   tn = getThreadNum();
 
   logFileInstance  *lf = (nt == 1) ? (&logFileMain) : (&logFileThread[tn]);
 
@@ -299,8 +301,8 @@ writeLog(char const *fmt, ...) {
 
 void
 flushLog(void) {
-  int32   nt = omp_get_num_threads();
-  int32   tn = omp_get_thread_num();
+  int32   nt = getNumThreadsActive();
+  int32   tn = getThreadNum();
 
   if (nt == 1)
     logFileMain.flush();

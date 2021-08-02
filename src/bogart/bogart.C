@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -62,7 +64,7 @@ terminateBogart(uint64 stop, char const *message) {
     return(false);
 
   setLogFile(nullptr, nullptr);   //  Close files.
-  omp_set_num_threads(1);         //  Hopefully kills off other threads.
+  setNumThreads(1);               //  Hopefully kills off other threads.
 
   delete CG;
   delete OG;
@@ -114,8 +116,6 @@ main (int argc, char * argv []) {
   uint32       confusedAbsolute         = 2500;
   double       confusedPercent          = 15.0;
 
-  int32        numThreads               = 0;
-
   uint64       ovlCacheMemory           = UINT64_MAX;
 
   char const  *prefix                   = NULL;
@@ -142,8 +142,7 @@ main (int argc, char * argv []) {
 
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
-      if ((numThreads = atoi(argv[++arg])) > 0)
-        omp_set_num_threads(numThreads);
+      setNumThreads(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
@@ -446,7 +445,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Resources:\n");
   fprintf(stderr, "  Memory                " F_U64 " GB\n", ovlCacheMemory >> 30);
-  fprintf(stderr, "  Compute Threads       %d (%s)\n", omp_get_max_threads(), (numThreads > 0) ? "command line" : "OpenMP default");
+  fprintf(stderr, "  Compute Threads       %d\n", getNumThreads());
   fprintf(stderr, "\n");
   fprintf(stderr, "Lengths:\n");
   fprintf(stderr, "  Minimum read          %u bases\n",     minReadLen);

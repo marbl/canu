@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "system.H"
 
 #include <pthread.h>
 
@@ -262,7 +263,7 @@ public:
     olaps    = NULL;
     olapsLen = 0;
 
-    numThreads = 1;
+    numThreads = getMaxThreadsAllowed();
     errorRate  = 0.06;
     minOverlap = 0;
     checkTrivialDNA = false;

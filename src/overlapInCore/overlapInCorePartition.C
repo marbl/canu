@@ -306,7 +306,7 @@ main(int argc, char **argv) {
   std::set<uint32> libToHash;
   std::set<uint32> libToRef;
 
-  AS_configure(argc, argv);
+  AS_configure(argc, argv, 1);
 
   int arg = 1;
   int err = 0;

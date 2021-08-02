@@ -175,7 +175,7 @@ main(int argc, char **argv) {
   char    *nameB           = NULL;
   bool     reference       = false;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int err=0;
   int arg=1;

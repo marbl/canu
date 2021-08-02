@@ -29,7 +29,7 @@ main(int argc, char **argv) {
   char            *blobName  = NULL;
   uint64           offset    = 0;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int arg = 1;
   int err = 0;

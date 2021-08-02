@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -367,7 +369,7 @@ findOrphanReadPlacements(TigVector       &tigs,
                          bool             allowOrphanPlacement) {
 
   uint32  fiLimit      = RI->numReads();
-  uint32  fiNumThreads = omp_get_max_threads();
+  uint32  fiNumThreads = getNumThreads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
 
   std::vector<overlapPlacement>   *placed = new std::vector<overlapPlacement> [fiLimit + 1];

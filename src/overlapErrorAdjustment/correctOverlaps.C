@@ -36,7 +36,7 @@ int
 main(int argc, char **argv) {
   coParameters  *G = new coParameters();
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int arg = 1;
   int err = 0;
@@ -73,7 +73,7 @@ main(int argc, char **argv) {
       G->eratesName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {  //  But we're not threaded!
-      G->numThreads = atoi(argv[++arg]);
+      G->numThreads = setNumThreads(argv[++arg]);
 
     } else {
       err++;

@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_Unitig.H"
@@ -146,7 +148,7 @@ Unitig *&operator[](uint32 i) {
 void
 TigVector::computeArrivalRate(const char *prefix, const char *label) {
   uint32  tiLimit = size();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
   writeStatus("computeArrivalRate()-- Computing arrival rates for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
@@ -185,7 +187,7 @@ TigVector::computeArrivalRate(const char *prefix, const char *label) {
 void
 TigVector::computeErrorProfiles(const char *prefix, const char *label) {
   uint32  tiLimit = size();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
   writeStatus("computeErrorProfiles()-- Computing error profiles for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
@@ -211,7 +213,7 @@ TigVector::computeErrorProfiles(const char *prefix, const char *label) {
 void
 TigVector::reportErrorProfiles(const char *prefix, const char *label) {
   uint32  tiLimit = size();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
   for (uint32 ti=0; ti<tiLimit; ti++) {

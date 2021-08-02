@@ -178,7 +178,7 @@ main(int argc, char **argv) {
 
   bool             asReverse         = false;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int arg = 1;
   int err = 0;

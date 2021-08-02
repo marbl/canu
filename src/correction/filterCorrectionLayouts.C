@@ -262,7 +262,7 @@ main(int argc, char **argv) {
   uint64          genomeSize        = 0;
   uint32          outCoverage       = 40;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int32     arg = 1;
   int32     err = 0;

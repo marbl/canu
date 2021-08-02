@@ -274,8 +274,6 @@ main(int argc, char **argv) {
   char const       *readListName = NULL;
   std::set<uint32>  readList;
 
-  uint32            numThreads         = omp_get_max_threads();
-
   uint32            minOutputCoverage  = 4;
   uint32            minOutputLength    = 1000;
   double            minOlapIdentity    = 0.5;
@@ -314,7 +312,7 @@ main(int argc, char **argv) {
       readLimit   = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-t") == 0) {   //  COMPUTE RESOURCES
-      numThreads = strtouint32(argv[++arg]);
+      setNumThreads(argv[++arg]);
 
 
     } else if (strcmp(argv[arg], "-f") == 0) {   //  ALGORITHM OPTIONS
@@ -405,8 +403,6 @@ main(int argc, char **argv) {
 
     exit(1);
   }
-
-  omp_set_num_threads(numThreads);
 
   //  Probably not needed, as sqCache explicitly loads only sqRead_raw, but
   //  setting the default version guarantees that we access only 'raw' reads.

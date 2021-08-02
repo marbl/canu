@@ -73,7 +73,7 @@ main(int argc, char **argv) {
   char            sliceSName[FILENAME_MAX+1];
   char            bucketName[FILENAME_MAX+1];
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   std::vector<char const *>  err;
   for (int32 arg=1; arg < argc; arg++) {

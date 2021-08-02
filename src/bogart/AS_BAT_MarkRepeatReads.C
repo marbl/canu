@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -975,7 +977,7 @@ markRepeatReads(AssemblyGraph         *AG,
                 uint32                 confusedAbsolute,
                 double                 confusedPercent) {
   uint32  tiLimit = tigs.size();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
   writeLog("repeatDetect()-- working on " F_U32 " tigs, with " F_U32 " thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");

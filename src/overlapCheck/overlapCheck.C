@@ -442,9 +442,7 @@ main(int argc, char **argv) {
   char const   *kmerDBname    = nullptr;
   uint64        maxMemory     = 32llu * 1024 * 1024 * 1024;
 
-  argc = AS_configure(argc, argv);
-
-  omp_set_num_threads(16);
+  argc = AS_configure(argc, argv, 16);
 
   std::vector<char const *>  err;
   for (int arg=1; arg < argc; arg++) {

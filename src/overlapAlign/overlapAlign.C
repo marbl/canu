@@ -315,7 +315,7 @@ main(int argc, char **argv) {
 
 
     else if (strcmp(argv[arg], "-threads") == 0)
-      g->numThreads = atoi(argv[++arg]);
+      g->numThreads = setNumThreads(argv[++arg]);
 
     else if (strcmp(argv[arg], "-memory") == 0)
       g->memLimit = atoi(argv[++arg]);

@@ -356,7 +356,7 @@ main(int argc, char **argv) {
       G->outputFileName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      G->numThreads = atoi(argv[++arg]);
+      G->numThreads = setNumThreads(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       G->Degree_Threshold = strtol(argv[++arg], NULL, 10);

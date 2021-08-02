@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "system.H"
 
 #include "sqStore.H"
 #include "sqCache.H"
@@ -401,7 +402,7 @@ public:
     Outfile_Name = NULL;
     Outstat_Name = NULL;
 
-    Num_PThreads = 1;
+    Num_PThreads = getMaxThreadsAllowed();
 
     Min_Olap_Len = 0;
 

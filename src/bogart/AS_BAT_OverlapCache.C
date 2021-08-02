@@ -634,7 +634,7 @@ searchForOverlap(BAToverlap *ovl, uint32 ovlLen, uint32 bID, bool flipped) {
 void
 OverlapCache::symmetrizeOverlaps(void) {
   uint32  fiLimit    = RI->numReads() + 1;
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 1000 * numThreads) ? numThreads : fiLimit / 999;
 
   uint32  *nNonSymPerRead = new uint32 [fiLimit];

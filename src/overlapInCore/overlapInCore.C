@@ -367,7 +367,7 @@ main(int argc, char **argv) {
       G.Outstat_Name = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      G.Num_PThreads = strtoull(argv[++arg], NULL, 10);
+      G.Num_PThreads = setNumThreads(argv[++arg]);
 
 
     } else if (strcmp(argv[arg], "--minlength") == 0) {
@@ -487,8 +487,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "string start             " F_SIZE_T " MB\n", ((G.endHashID - G.bgnHashID + 1) * sizeof (int64))            >> 20);
   fprintf(stderr, "\n");
 #endif
-
-  omp_set_num_threads(G.Num_PThreads);
 
   assert (8 * sizeof (uint64) > 2 * G.Kmer_Len);
 

@@ -31,7 +31,7 @@ main(int argc, char **argv) {
   float          mass=0.98;
   bool           isOvl=false;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int32     arg = 1;
   int32     err = 0;

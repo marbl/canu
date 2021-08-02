@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "system.H"
 
 #include <pthread.h>
 
@@ -346,7 +347,7 @@ struct feParameters {
 
     outputFileName = NULL;
 
-    numThreads     = 4;
+    numThreads     = getMaxThreadsAllowed();
     errorRate      = 0.06;
     minOverlap     = 0;
 

@@ -90,7 +90,7 @@ public:
     _filteredReads   = 0;
     _filteredBases   = 0;
 
-    _numThreads      = 1;
+    _numThreads      = getMaxThreadsAllowed();
     _maxMemory       = 0;
   };
 
@@ -728,7 +728,7 @@ main(int argc, char **argv) {
       G->_minOutputLength = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
-      G->_numThreads = strtouint32(argv[++arg]);
+      G->_numThreads = setNumThreads(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-memory") == 0) {
       G->_maxMemory  = strtouint32(argv[++arg]);
@@ -799,8 +799,6 @@ main(int argc, char **argv) {
 
     exit(1);
   }
-
-  omp_set_num_threads(G->_numThreads);  //  Lets the kmer data be loaded with threads.
 
   G->openInputs();
   G->openOutputs();

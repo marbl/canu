@@ -30,6 +30,7 @@ main(int argc, char **argv) {
   ovOverlapDisplayType   dt = ovOverlapAsCoords;
   std::vector<char *>    files;
 
+  argc = AS_configure(argc, argv, 1);
 
   int32     arg = 1;
   int32     err = 0;

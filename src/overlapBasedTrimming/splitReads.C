@@ -96,7 +96,7 @@ main(int argc, char **argv) {
 
   trimStat  deletedOut;               //  Read was deleted by trimming
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int arg=1;
   int err=0;

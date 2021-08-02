@@ -71,9 +71,9 @@ openAlignLogFiles(char const *outputPrefix) {
   if (thrlog != nullptr)
     return;
 
-  thrlog = new FILE * [omp_get_max_threads()];
+  thrlog = new FILE * [getNumThreads()];
 
-  for (uint32 ii=0; ii<omp_get_max_threads(); ii++) {
+  for (uint32 ii=0; ii<getNumThreads(); ii++) {
     snprintf(N, FILENAME_MAX, "%s.align_%02u.log", outputPrefix, ii);
 
     thrlog[ii] = AS_UTL_openOutputFile(N);
@@ -87,7 +87,7 @@ closeAlignLogFiles(char const *prefix) {
   if (thrlog == nullptr)
     return;
 
-  for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+  for (uint32 ii=0; ii<getNumThreads(); ii++)
     AS_UTL_closeFile(thrlog[ii]);
 
   delete [] thrlog;
@@ -103,7 +103,7 @@ printAllLog(char const *format, ...) {
 
   va_start(ap, format);
 
-  for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+  for (uint32 ii=0; ii<getNumThreads(); ii++)
     vfprintf(thrlog[ii], format, ap);
 
   va_end(ap);
@@ -117,7 +117,7 @@ printLog(falconInput *evidence, uint32 j, char const *format, ...) {
   if (thrlog == nullptr)
     return;
 
-  uint32  tid = omp_get_thread_num();
+  uint32  tid = getThreadNum();
 
   va_start(ap, format);
   fprintf(thrlog[tid], "read%08u-evidence%08u len %-6u ", evidence[0].ident, evidence[j].ident, evidence[j].readLength);
@@ -133,7 +133,7 @@ printLog(char const *format, ...) {
   if (thrlog == nullptr)
     return;
 
-  uint32  tid = omp_get_thread_num();
+  uint32  tid = getThreadNum();
 
   va_start(ap, format);
   vfprintf(thrlog[tid], format, ap);

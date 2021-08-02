@@ -190,7 +190,7 @@ main(int argc, char **argv) {
   double            maxEvidenceCoverage = DBL_MAX;
 
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   int arg=1;
   int err=0;

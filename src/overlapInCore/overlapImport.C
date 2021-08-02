@@ -44,6 +44,7 @@ main(int argc, char **argv) {
 
   std::vector<char const *> files;
 
+  argc = AS_configure(argc, argv, 1);
 
   std::vector<char const *> err;
   for (int32 arg=1; arg < argc; arg++) {

@@ -21,15 +21,17 @@
 
 #include <vector>
 
-
 int
 main(int argc, char **argv) {
   char                *outName     = NULL;
   char                *seqName     = NULL;
   int32                minLength   = 0;
 
+
+
   std::vector<char *>  files;
 
+  argc = AS_configure(argc, argv, 1);
 
   int32     arg = 1;
   int32     err = 0;

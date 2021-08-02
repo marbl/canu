@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -311,6 +313,10 @@ main (int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-seed") == 0) {
       seed = strtouint64(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-threads") == 0) {
+      setNumThreads(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-nocontains") == 0) {

@@ -46,7 +46,7 @@ public:
 class trGlobalData {
 public:
   trGlobalData() {
-    numThreads          = 1;
+    numThreads          = getMaxThreadsAllowed();
 
     maxErate            = 0.30;
     memLimit            = UINT64_MAX;

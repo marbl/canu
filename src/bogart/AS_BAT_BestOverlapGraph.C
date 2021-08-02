@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
@@ -152,7 +154,7 @@ BestOverlapGraph::summarizeBestEdges(double errorLimit, double p, uint32 nFilter
 void
 BestOverlapGraph::findErrorRateThreshold(FILE *report) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   //  Find and remember the erate for every best edge.  No way around this,
@@ -355,7 +357,7 @@ logCovGapRead(FILE *F, uint32 fi, intervalList<int32> &IL, bool dove5, bool dove
 void
 BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, covgapType ct, uint32 covGapOlap) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   uint8  *CG = new uint8 [fiLimit + 1];
@@ -494,7 +496,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, covgapType ct, 
 void
 BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, double lopsidedDiff) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   FILE  *LOP = AS_UTL_openOutputFile(prefix, '.', label, logFileFlagSet(LOG_BEST_EDGES));
@@ -672,7 +674,7 @@ BestOverlapGraph::spurDistance(BestEdgeOverlap *edge, uint32 limit, uint32 dista
 void
 BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   std::set<uint32>  spurpath5;   //  spurpath is true if the edge out of this end
@@ -1153,7 +1155,7 @@ BestOverlapGraph::scoreEdge(BAToverlap& olap, bool c5, bool c3) {
 void
 BestOverlapGraph::findContains(void) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   //  Remove containment flags.
@@ -1196,7 +1198,7 @@ BestOverlapGraph::findContains(void) {
 void
 BestOverlapGraph::findEdges(bool redoAll) {
   uint32  fiLimit    = RI->numReads();
-  uint32  numThreads = omp_get_max_threads();
+  uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   //  Reset our scores.
@@ -1431,7 +1433,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 void
 BestOverlapGraph::reportEdgeStatistics(FILE *report, char const *label) {
   uint32  fiLimit      = RI->numReads();
-  uint32  numThreads   = omp_get_max_threads();
+  uint32  numThreads   = getNumThreads();
   uint32  blockSize    = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   uint32  nContained   = 0;

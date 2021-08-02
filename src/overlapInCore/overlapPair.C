@@ -658,7 +658,7 @@ main(int argc, char **argv) {
   uint32   bgnID           = 0;
   uint32   endID           = UINT32_MAX;
 
-  uint32   numThreads      = 1;
+  uint32   numThreads      = getMaxThreadsAllowed();
 
   double   maxErate        = 0.12;
   bool     partialOverlaps = false;
@@ -687,7 +687,7 @@ main(int argc, char **argv) {
       endID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      numThreads = atoi(argv[++arg]);
+      numThreads = setNumThreads(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-erate") == 0) {
       maxErate = atof(argv[++arg]);

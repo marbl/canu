@@ -307,7 +307,7 @@ main(int argc, char **argv) {
   uint32                     writeInputs     = 0;
   uint32                     writeSlices     = 0;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   std::vector<char const *>  err;
   for (int32 arg=1; arg < argc; arg++) {

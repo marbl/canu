@@ -30,7 +30,7 @@ main(int argc, char **argv) {
   char const     *cfgName     = NULL;
   bool            deleteInter = false;
 
-  argc = AS_configure(argc, argv);
+  argc = AS_configure(argc, argv, 1);
 
   std::vector<char const *>  err;
   for (int32 arg=1; arg < argc; arg++) {
