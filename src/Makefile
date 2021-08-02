@@ -472,7 +472,7 @@ endif
 
 #  The default MacOS compiler - even as of 10.13 High Sierra - doesn't support OpenMP.
 #  Clang 6.0 installed from MacPorts supports OpenMP, but fails to compile Canu.
-#  So, we require gcc7 (from MacPorts) or gcc8 (from hommebrew).
+#  So, we require gcc9 (from MacPorts) or gcc8 (from hommebrew).
 #
 #  If from MacPorts:
 #    port install gcc9
