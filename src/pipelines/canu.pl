@@ -608,7 +608,7 @@ if (($numPacBio   >= 0) &&
     setGlobalIfUndef("corOvlErrorRate",  0.320);
     setGlobalIfUndef("obtOvlErrorRate",  0.120);
     setGlobalIfUndef("utgOvlErrorRate",  0.120);
-    setGlobalIfUndef("corErrorRate",     0.500);
+    setGlobalIfUndef("corErrorRate",     0.300);
     setGlobalIfUndef("obtErrorRate",     0.120);
     setGlobalIfUndef("oeaErrorRate",     getGlobal("utgOvlErrorRate"));
     setGlobalIfUndef("oeaHaploConfirm",  5);
@@ -622,7 +622,7 @@ if (($numPacBio    > 0) &&
     setGlobalIfUndef("corOvlErrorRate",  0.240);
     setGlobalIfUndef("obtOvlErrorRate",  0.045);
     setGlobalIfUndef("utgOvlErrorRate",  0.045);
-    setGlobalIfUndef("corErrorRate",     0.300);
+    setGlobalIfUndef("corErrorRate",     0.250);
     setGlobalIfUndef("obtErrorRate",     0.045);
     setGlobalIfUndef("oeaErrorRate",     getGlobal("utgOvlErrorRate"));
     setGlobalIfUndef("oeaHaploConfirm",  5);
