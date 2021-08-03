@@ -24,13 +24,22 @@ my $gridEngine;
 
 my %ignore;
 
-my @files;
+my @jobNames;
+my @jobIDs;
+
 
 while (scalar (@ARGV > 0)) {
     my $arg = shift @ARGV;
 
-    if ($arg eq "-ignore") {
+    if    ($arg eq "-ignore") {
         $ignore{shift @ARGV} = 1;
+    }
+
+    elsif ($arg eq "-job") {
+        my $jobID = shift @ARGV;
+
+        push @jobNames, "";
+        push @jobIDs,   $jobID;
     }
 
     elsif (!defined($asmPath)) {
@@ -38,68 +47,18 @@ while (scalar (@ARGV > 0)) {
     }
 
     else {
-        die "usage: $0 [-ignore <jobID>] <path-to-assembly>\n";
+        die "usage: $0 [-ignore <jobID>] [-job <jobID>] <path-to-assembly>\n";
     }
 }
 
-
-#  Find the list of canu log files.
-open(F, "ls $asmPath/canu-scripts/canu.*.out |");
-@files = <F>;
-chomp @files;
-close(F);
-
-my @jobNames;
-my @jobIDs;
-
-#  Parse log files, looking for submitted jobs.
-#    -- 'meryl-count.jobSubmit-01.sh' -> job 21767697 task 1.
-foreach my $file (@files) {
-    #print STDERR "Scanning '$file'.\n";
-
-    open(F, "< $file");
-    while (! eof(F)) {
-        $_ = <F>;
-
-        if (m/--\sDetected\sSun\sGrid\sEngine\s/) {
-            $gridEngine = "SGE";
-        }
-
-        if (m/--\sDetected\sSlurm\s/) {
-            $gridEngine = "SLURM";
-        }
-
-        if (m/--\s'(.*).jobSubmit-\d\d.sh'\s->\sjob\s(\d+)\s/) {
-            if (!exists($ignore{$2})) {
-                push @jobNames, $1;
-                push @jobIDs,   $2;
-            }
-
-            #print STDERR " $2 - $1\n";
-        }
-
-        #  Look for 'canu-scripts/canu.##.sh', and then parse the next line
-        #  for the job ID.  Ugly.
-        if (m/canu-scripts/) {
-            $_ = <F>;  chomp;
-
-            if ($_ =~ m/^Your\s+job\s+(\d+)\s/) {
-                if (!exists($ignore{$1})) {
-                    push @jobNames, "canu";    #  SGE
-                    push @jobIDs,   $1;
-                }
-            } else {
-                if (!exists($ignore{$_})) {
-                    push @jobNames, "canu";    #  Slurm
-                    push @jobIDs,   $_;
-                }
-            }
-
-            #print STDERR " $_ - canu\n";
-        }
-    }
-    close(F);
+if (scalar(@jobIDs) == 0) {
+    findCanuJobs($asmPath);
 }
+
+else {
+    detectGridEngine($asmPath);
+}
+
 
 #  Grab accounting for all these
 my $totalUser    = 0;
@@ -116,7 +75,7 @@ printf STDOUT "jobID    user-time  sys-time wall-time   max-rss    max-vm       
 printf STDOUT "           (hours)   (hours)   (hours)      (MB)      (MB)                                                       (hours)\n";
 printf STDOUT "-------- --------- --------- --------- --------- --------- -------------------------- -------------------------- -------  --------------------\n";
 
-while (scalar(@jobNames) > 0) {
+while (scalar(@jobIDs) > 0) {
     my ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore);
 
     my $jobName = shift @jobNames;
@@ -127,9 +86,9 @@ while (scalar(@jobNames) > 0) {
     #print STDERR "jobID   - $jobID\n";
 
     if      ($gridEngine eq "SGE") {
-        ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore) = getTimeSGE($jobID);
+        ($jobName, $jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore) = getTimeSGE($jobName, $jobID);
     } elsif ($gridEngine eq "SLURM") {
-        ($jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore) = getTimeSlurm($jobID);
+        ($jobName, $jobUser, $jobSystem, $jobWall, $jobRSS, $jobVM, $jobStart, $jobEnd, $ignore) = getTimeSlurm($jobName, $jobID);
     } else {
         die "Unknown grid engine '$gridEngine'.\n";
     }
@@ -166,6 +125,90 @@ printf STDOUT "Queue time:     %s.\n", reportTimeDHM($totalInQueue);
 printf STDOUT "CPU time:       %s.\n", reportTimeDHM($totalUser + $totalSystem);
 printf STDOUT "\n";
 
+
+
+
+
+sub findCanuJobs ($) {
+    my $asmPath = shift @_;
+    my @files;
+
+    #  Find the list of canu log files.
+    open(F, "ls $asmPath/canu-scripts/canu.*.out |");
+    @files = <F>;
+    chomp @files;
+    close(F);
+
+    if (scalar(@files) == 0) {
+        die "Didn't find any canu.*.out files in $asmPath/canu-scripts/.\n";
+    }
+
+
+    #  Parse log files, looking for submitted jobs.
+    #    -- 'meryl-count.jobSubmit-01.sh' -> job 21767697 task 1.
+    foreach my $file (@files) {
+        #print STDERR "Scanning '$file'.\n";
+
+        open(F, "< $file");
+        while (! eof(F)) {
+            $_ = <F>;
+
+            if (m/--\sDetected\sSun\sGrid\sEngine\s/) {
+                $gridEngine = "SGE";
+            }
+
+            if (m/--\sDetected\sSlurm\s/) {
+                $gridEngine = "SLURM";
+            }
+
+            if (m/--\s'(.*).jobSubmit-\d\d.sh'\s->\sjob\s(\d+)\s/) {
+                if (!exists($ignore{$2})) {
+                    push @jobNames, $1;
+                    push @jobIDs,   $2;
+                }
+
+                #print STDERR " $2 - $1\n";
+            }
+
+            #  Look for 'canu-scripts/canu.##.sh', and then parse the next line
+            #  for the job ID.  Ugly.
+            if (m/canu-scripts/) {
+                $_ = <F>;  chomp;
+
+                if ($_ =~ m/^Your\s+job\s+(\d+)\s/) {
+                    if (!exists($ignore{$1})) {
+                        push @jobNames, "canu";    #  SGE
+                        push @jobIDs,   $1;
+                    }
+                } else {
+                    if (!exists($ignore{$_})) {
+                        push @jobNames, "canu";    #  Slurm
+                        push @jobIDs,   $_;
+                    }
+                }
+
+                #print STDERR " $_ - canu\n";
+            }
+        }
+        close(F);
+    }
+}
+
+
+
+sub detectGridEngine ($) {
+    my $asmPath = shift @_;
+
+    if (exists($ENV{'SGE_CELL'})) {
+        $gridEngine = "SGE";
+    } else {
+        $gridEngine = "SLURM";
+    }
+}
+
+
+
+
 sub reportTimeDHM ($) {
     my $t = shift @_;
 
@@ -178,17 +221,19 @@ sub reportTimeDHM ($) {
 
 
 sub getTimeSGE ($) {
-    my $jobID = shift @_;
-    my $ju    = 0;
-    my $js    = 0;
-    my $jr    = 0;
-    my $jv    = 0;
-    my $je    = 0;
-    my $ST    = time();
-    my $st    = $ST;
-    my $ET    = 0;
-    my $et    = 0;
-    my $ig    = 0;
+    my $jobName = shift @_;
+    my $jobID   = shift @_;
+    my $jn      = $jobName;
+    my $ju      = 0;
+    my $js      = 0;
+    my $jr      = 0;
+    my $jv      = 0;
+    my $je      = 0;
+    my $ST      = time();
+    my $st      = $ST;
+    my $ET      = 0;
+    my $et      = 0;
+    my $ig      = 0;
 
     open(F, "qacct -j $jobID 2> /dev/null |");
     while (<F>) {
@@ -199,7 +244,11 @@ sub getTimeSGE ($) {
         my $tag = shift @v;
         my $val = join ' ', @v;
 
-        if    ($tag eq "start_time") {
+        if    (($tag eq "jobname") && ($jobName eq "")) {
+            $jn = $val;
+        }
+
+        elsif ($tag eq "start_time") {
             my $t = parseDate($val, $st);
             $st = ($st < $t) ? $st : $t;
         }
@@ -241,21 +290,23 @@ sub getTimeSGE ($) {
     $ig = 1   if ($st == $ST);   #  Ignore this result if either
     $ig = 1   if ($et == $ET);   #  time was missing.
 
-    return($ju, $js, $je, $jr, $jv, $st, $et, $ig);
+    return($jn, $ju, $js, $je, $jr, $jv, $st, $et, $ig);
 }
 
 
 
 sub getTimeSlurm ($) {
-    my $jobID = shift @_;
-    my $ju    = 0;
-    my $js    = 0;
-    my $jr    = 0;
-    my $jv    = 0;
-    my $je    = 0;
-    my $st    = 9999999999;
-    my $et    = 0;
-    my $ig    = 0;
+    my $jobName = shift @_;
+    my $jobID   = shift @_;
+    my $jn      = $jobName;
+    my $ju      = 0;
+    my $js      = 0;
+    my $jr      = 0;
+    my $jv      = 0;
+    my $je      = 0;
+    my $st      = 9999999999;
+    my $et      = 0;
+    my $ig      = 0;
 
     open(F, "sacct -n -o 'JobID%30,UserCPU,SystemCPU,TotalCPU,MaxRSS,MaxVMSize,CPUTimeRAW,Elapsed,Start,End' -j $jobID 2> /dev/null |");
     while (<F>) {
@@ -266,6 +317,8 @@ sub getTimeSlurm ($) {
         my $t;
 
         next if ($v[0] !~ m/batch/);
+
+        $jn = $v[0]   if ($jn eq "");
 
         $ju += parseTime($v[1]);
         $js += parseTime($v[2]);
@@ -284,7 +337,7 @@ sub getTimeSlurm ($) {
     $jr /= 1024.0;
     $jv /= 1024.0;
 
-    return($ju, $js, $je, $jr, $jv, $st, $et, $ig);
+    return($jn, $ju, $js, $je, $jr, $jv, $st, $et, $ig);
 }
 
 
