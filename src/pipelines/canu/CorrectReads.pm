@@ -284,6 +284,24 @@ sub generateCorrectedReadsConfigure ($) {
     #  the memory allowed per process and memory needed for a correction.
 
     if (! -e "$path/correctReadsPartition.batches") {
+        print STDERR "--\n";  
+        print STDERR "-- Configuring correction jobs:\n";  
+        print STDERR "--   Jobs limited to $mem GB per job (via option corMemory).\n"      if (defined($mem) && ($mem > 0));  
+ 
+        if (!defined($mem) || ($mem == 0)) { 
+           $mem = int($cnsmem + 2); 
+           setGlobal("corMemory", $mem); 
+           $remain = int(($mem - $cnsmem) * 1000) / 1000; 
+           print STDERR "--   Jobs configured to $mem GB per job\n"; 
+        } 
+ 
+        print STDERR "--   Reads estimated to need at most $cnsmem GB for computation.\n"; 
+        print STDERR "--   Leaving $remain GB memory for read data.\n"; 
+ 
+        if ($remain < 1.0) { 
+            caExit("not enough memory for correction; increase corMemory", undef); 
+        } 
+
         open(F, "> $path/correctReadsPartition.sh") or caExit("can't open '$path/correctReadsPartition.sh' for writing: $!", undef);
 
         print F "#!" . getGlobal("shell") . "\n";
@@ -312,16 +330,6 @@ sub generateCorrectedReadsConfigure ($) {
 
         makeExecutable("$path/correctReadsPartition.sh");
         stashFile("$path/correctReadsPartition.sh");
-
-        print STDERR "--\n";
-        print STDERR "-- Configuring correction jobs:\n";
-        print STDERR "--   Jobs limited to $mem GB per job (via option corMemory).\n";
-        print STDERR "--   Reads estimated to need at most $cnsmem GB for computation.\n";
-        print STDERR "--   Leaving $remain GB memory for read data.\n";
-
-        if ($remain < 1.0) {
-            caExit("not enough memory for correction; increase corMemory", undef);
-        }
 
         if (runCommand($path, "./correctReadsPartition.sh > ./correctReadsPartition.err 2>&1")) {
             caExit("failed to partition reads for correction", "$path/correctReadsPartition.err");

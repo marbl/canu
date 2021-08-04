@@ -682,17 +682,17 @@ sub configureAssembler () {
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "1-4");
-        setGlobalIfUndef("corMemory",     "8");        setGlobalIfUndef("corThreads",      "4");
+        setGlobalIfUndef("corMemory",     "0");        setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("corPartitions", "64");       setGlobalIfUndef("corPartitionMin", "10000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "16");       setGlobalIfUndef("corThreads",      "4");
+        setGlobalIfUndef("corMemory",     "0");       setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("corPartitions", "128");      setGlobalIfUndef("corPartitionMin", "20000");
 
     } else {
         setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "24");       setGlobalIfUndef("corThreads",      "4");
+        setGlobalIfUndef("corMemory",     "0");       setGlobalIfUndef("corThreads",      "4");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "40000");
     }
 
