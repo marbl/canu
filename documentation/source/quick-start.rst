@@ -54,18 +54,12 @@ Confirm the MD5SUM matches::
 
  9bb4c10c41c5442d630af8b504042334  pacbio.fastq
 
-There doesn't appear to be any "official" Oxford Nanopore sample data, but the `Loman Lab
-<http://lab.loman.net/>`_ released a `set of runs
-<http://lab.loman.net/2015/09/24/first-sqk-map-006-experiment/>`_, also for Escherichia coli K12.
-This is early data, from September 2015.  Any of the four runs will work; we picked `MAP-006-1
-<http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta>`_ (243 MB).  Download from the command
-line with::
-
- curl -L -o oxford.fasta http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta
+There doesn't appear to be any "official" Oxford Nanopore sample data, but the `Albertsen Lab <https://albertsenlab.org/>`_ released a `run
+<https://albertsenlab.org/we-ar10-3-pretty-close-now/>`_, also for Escherichia coli K12.  Download the R10 data from `FigShare <https://figshare.com/articles/dataset/Ecoli_K12_MG1655_R10_3_HAC/11823087>`_
 
 Confirm the MD5SUM matches::
 
- 660bcde6e4456d7bac962080b92a7f47  oxford.fasta
+ e2688fd8b3fba61aabc6b65b787c72a4 ecolk12mg1655_R10_3_guppy_345_HAC.fastq 
 
 By default, Canu will correct the reads, then trim the reads, then assemble the reads to unitigs.
 Canu needs to know the approximate genome size (so it can determine coverage in the input reads)
@@ -82,9 +76,8 @@ For Nanopore::
 
  canu \
   -p ecoli -d ecoli-oxford \
-  genomeSize=4.8m \
-  -nanopore oxford.fasta
-
+  genomeSize=4.8m maxInputCoverage=100 \
+  -nanopore ecolk12mg1655_R10_3_guppy_345_HAC.fastq
 
 Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-nanopore',
 respectively.  Intermediate files are written in directories 'correction', 'trimming' and
@@ -210,6 +203,14 @@ use (see :ref:`correctedErrorRate <correctedErrorRate>`)::
 
 Note that the assembly stages use different '-d' directories.  It is not possible to run multiple
 copies of canu with the same work directory.
+
+You can also try uncorrected ONT assembly which works for higher quality (95% accuracy) data, though this mode should be considered experimental::
+
+ canu \
+  -p ecoli -d ecoli-oxford-uncorrected \
+  genomeSize=4.8m \
+  -untrimmed correctedErrorRate=0.12 maxInputCoverage=100 'batOptions=-eg 0.10 -sb 0.01 -dg 2 -db 1 -dr 3' -pacbio-hifi ecolk12mg1655_R10_3_guppy_345_HAC.fastq 
+
 
 Assembling Low Coverage Datasets
 ----------------------------------
