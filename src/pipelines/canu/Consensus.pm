@@ -215,10 +215,7 @@ sub estimateMemoryNeededForConsensusJobs ($) {
     } else {
         setGlobal("cnsMemory", $minMem);
 
-        my $err;
-        my $all;
-
-        ($err, $all) = getAllowedResources("", "cns", $err, $all, 0);
+        my ($err, $all) = getAllowedResources("", "cns", "", "", 0);
 
         print STDERR "--\n";
         print STDERR $all;
