@@ -242,18 +242,39 @@ sub generateCorrectedReadsConfigure ($) {
     my $base    = "correction";
     my $path    = "correction/2-correction";
 
-    goto allDone   if (fileExists("$path/correctReads.sh"));
+    #  We cannot do this; we still need to figure out if corMemory is set
+    #  appropriately.
+    #goto allDone   if (fileExists("$path/correctReads.sh"));
 
     make_path("$path/results")  if (! -d "$path/results");
 
-    #  Figure out the maximum memory needed to correct a read, then configure correction
-    #  jobs so they fit in memory.
+    #  Set corMemory to the maximum of:
+    #    minmem:  genome size based minimum size
+    #    estmem:  falconsense estimated memory requirement + 2 GB
+    #    cormem:  user supplied corMemory
+    #
+    #  The genome size based minimum is to give more memory to larger genomes
+    #  that (should) have more reads so falconsense can fit more evidence
+    #  sequence in memory.
 
-    my $cnsmem   = 1 * 1024 * 1024 * 1024;
-    my $mem      = getGlobal("corMemory");
-    my $par      = getGlobal("corPartitions");
-    my $rds      = getGlobal("corPartitionMin");
-    my $remain   = 0;
+    my $minmem   = 0;
+    my $estmem   = 0;
+    my $maxmem   = getGlobal("corMemory");
+
+    #  Figure out the genome size based minimum memory.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+        $minmem =  6;
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
+        $minmem = 12;
+    } else {
+        $minmem = 16;
+    }
+
+    #  Find the largest estimated memory needed to compute a corrected read.
+    #
+    #  This does not include overhead for opening stores or for loading reads
+    #  into memory.
 
     fetchFile("$path/$asm.readsToCorrect.stats");
 
@@ -261,47 +282,70 @@ sub generateCorrectedReadsConfigure ($) {
         caExit("failed to find `$path/$asm.readsToCorrect.stats` to read maximum estimated memory needed for correction", undef);
     }
 
-    #  Read the (vast overestimate) of memory needed to compute consensus for each read,
-    #  and return the maximum.  This does not include overhead for opening stores or
-    #  for loading reads into memory.
-
     open(F, "< $path/$asm.readsToCorrect.stats") or caExit("can't open '$path/$asm.readsToCorrect.stats' for reading: $!", undef);
     while (<F>) {
         if (m/Maximum\s+Memory\s+(\d+)/) {
-            $cnsmem = ($cnsmem < $1) ? $1 : $cnsmem;
+            $estmem = ($estmem < $1) ? $1 : $estmem;
         }
     }
     close(F);
 
-    $cnsmem /= 1024.0;
-    $cnsmem /= 1024.0;
-    $cnsmem /= 1024.0;
+    $estmem = int($estmem / 1024.0 / 1024.0 / 1024.0 * 1000) / 1000;   #  truncate trailing digits past X.XXX.
 
-    $cnsmem = int($cnsmem * 1000) / 1000;
-    $remain = int(($mem - $cnsmem) * 1000) / 1000;
+    #  Pick the maximum.  The estimated memory is padded by 2gb to give some
+    #  extra room in case estimates are incorrect.
+
+    my $reqmem;
+
+    $reqmem =                         $minmem;
+    $reqmem = ($estmem+2 > $reqmem) ? $estmem+2 : $reqmem;
+    $reqmem = ($maxmem   > $reqmem) ? $maxmem   : $reqmem;
+
+    #  If there was a corMemory request (maxmem), and it is smaller than what
+    #  we want, fail.  On the otherhand, if the corMemory request is larger
+    #  than what we estimate, use the original request.
+
+    if (($maxmem > 0) && ($maxmem < $reqmem)) {
+        caExit("not enough memory for correction; increase corMemory to at least $reqmem", undef); 
+    }
+
+    #  Reset corMemory to whatever our request is.  Then call getAllowedResources() to
+    #  set up other stuff, like corConcurrency, based on memory and threads.
+
+    {
+        print STDERR "--\n";  
+        print STDERR "-- Correction jobs estimated to need at most $estmem GB for computation.\n"; 
+        print STDERR "-- Correction jobs will request $reqmem GB each.\n";
+
+        setGlobal("corMemory", $reqmem);
+
+        my ($err, $all) = getAllowedResources("", "cor", "", "", 0);
+
+        print STDERR "--\n";
+        print STDERR $all;
+        print STDERR "--\n";
+    }
+
+    #  If both the batch output and the correction script exist, we're done here.
+
+    if ((-e "$path/correctReadsPartition.batches") &&
+        (-e "$path/correctReads.sh")) {
+        goto allDone;
+    }
+
 
     #  Generate a script to compute the partitioning of correction jobs, given
     #  the memory allowed per process and memory needed for a correction.
 
     if (! -e "$path/correctReadsPartition.batches") {
+        my $par = getGlobal("corPartitions");
+        my $rds = getGlobal("corPartitionMin");
+
         print STDERR "--\n";  
         print STDERR "-- Configuring correction jobs:\n";  
-        print STDERR "--   Jobs limited to $mem GB per job (via option corMemory).\n"      if (defined($mem) && ($mem > 0));  
+        print STDERR "--   Reads estimated to need at most $estmem GB for computation.\n"; 
+        print STDERR "--   Jobs will request $reqmem GB each.\n";
  
-        if (!defined($mem) || ($mem == 0)) { 
-           $mem = int($cnsmem + 2); 
-           setGlobal("corMemory", $mem); 
-           $remain = int(($mem - $cnsmem) * 1000) / 1000; 
-           print STDERR "--   Jobs configured to $mem GB per job\n"; 
-        } 
- 
-        print STDERR "--   Reads estimated to need at most $cnsmem GB for computation.\n"; 
-        print STDERR "--   Leaving $remain GB memory for read data.\n"; 
- 
-        if ($remain < 1.0) { 
-            caExit("not enough memory for correction; increase corMemory", undef); 
-        } 
-
         open(F, "> $path/correctReadsPartition.sh") or caExit("can't open '$path/correctReadsPartition.sh' for writing: $!", undef);
 
         print F "#!" . getGlobal("shell") . "\n";
@@ -309,7 +353,7 @@ sub generateCorrectedReadsConfigure ($) {
         print F getBinDirectoryShellCode();
         print F "\n";
         print F "\$bin/falconsense \\\n";
-        print F "  -partition $mem $cnsmem $par $rds \\\n";
+        print F "  -partition $reqmem $estmem $par $rds \\\n";
         print F "  -S ../../$asm.seqStore \\\n";
         print F "  -C ../$asm.corStore \\\n";
         print F "  -R ./$asm.readsToCorrect \\\n"   if ( fileExists("$path/$asm.readsToCorrect"));
@@ -336,9 +380,9 @@ sub generateCorrectedReadsConfigure ($) {
         }
 
         unlink("$path/correctReadsPartition.err");
-    }
 
-    stashFile("$path/correctReadsPartition.batches");
+        stashFile("$path/correctReadsPartition.batches");
+    }
 
     #  Generate a script for computing corrected reads, using the batches file
     #  as a template.
