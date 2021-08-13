@@ -680,20 +680,28 @@ sub configureAssembler () {
     #    Consensus memory is set based on tig size in Consensus.pm.
     #  Both are set to zero here, a special case that will configure only the thread component.
 
+    setGlobalIfUndef("cnsMemory",  "0");
+    setGlobalIfUndef("corMemory",  "0");
+
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "1-4");
-        setGlobalIfUndef("corMemory",     "0");        setGlobalIfUndef("corThreads",      "4");
-        setGlobalIfUndef("corPartitions", "64");       setGlobalIfUndef("corPartitionMin", "10000");
+        setGlobalIfUndef("corThreads", "4");
+        setGlobalIfUndef("cnsThreads", "1-4");
+    } else {
+        setGlobalIfUndef("corThreads", "4");
+        setGlobalIfUndef("cnsThreads", "2-8");
+    }
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+        setGlobalIfUndef("corPartitions",   "64");
+        setGlobalIfUndef("corPartitionMin", "10000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "0");       setGlobalIfUndef("corThreads",      "4");
-        setGlobalIfUndef("corPartitions", "128");      setGlobalIfUndef("corPartitionMin", "20000");
+        setGlobalIfUndef("corPartitions",   "128");
+        setGlobalIfUndef("corPartitionMin", "20000");
 
     } else {
-        setGlobalIfUndef("cnsMemory",     "0");        setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "0");       setGlobalIfUndef("corThreads",      "4");
-        setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "40000");
+        setGlobalIfUndef("corPartitions",   "256");
+        setGlobalIfUndef("corPartitionMin", "40000");
     }
 
     #  Meryl too, basically just small or big.  This should really be using the number of bases
