@@ -343,117 +343,119 @@ sub generateCorrectedReadsConfigure ($) {
     #  Generate a script for computing corrected reads, using the batches file
     #  as a template.
 
-    open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
+    if (! -e "$path/correctReads.sh") {
+        open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh' for writing: $!", undef);
 
-    print F "#!" . getGlobal("shell") . "\n";
-    print F "\n";
-    print F getBinDirectoryShellCode();
-    print F "\n";
-    print F setWorkDirectoryShellCode($path);
-    print F "\n";
-    print F getJobIDShellCode();
-    print F "\n";
-    print F "bgnid=0\n";
-    print F "endid=0\n";
-    print F "\n";
-
-    my $nJobs = 0;
-
-    open(B, "< $path/correctReadsPartition.batches") or caExit("can't open '$path/correctReadsPartition.batches' for reading: $!", undef);
-    $_ = <B>;    #  Skip header line 1
-    $_ = <B>;    #  Skip header line 2
-    while (<B>) {
-        s/^\s+//;
-        s/\s+$//;
-
-        my ($jobID, $bgnID, $endID, $nReads, $mem) = split '\s+', $_;
-
-        print  F "if [ \$jobid -eq $jobID ] ; then\n";
-        printf F "  jobid=%04d\n", $jobID;   #  Parsed in Check() below.
-        print  F "  bgnid=$bgnID\n";
-        print  F "  endid=$endID\n";
-        print  F "fi\n";
-
-        $nJobs = $jobID;
-    }
-    close(B);
-
-    print F "\n";
-    print F "if [ \$bgnid -eq 0 ]; then\n";
-    print F "  echo Error: Invalid job \$jobid requested, must be between 1 and $nJobs.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
-    print F "\n";
-
-    print F "\n";
-    print F "if [ -e ./results/\$jobid.cns ] ; then\n";
-    print F "  echo Job finished successfully.\n";
-    print F "  exit 0\n";
-    print F "fi\n";
-    print F "\n";
-    print F "if [ ! -d ./results ] ; then\n";
-    print F "  mkdir -p ./results\n";
-    print F "fi\n";
-    print F "\n";
-
-    print F fetchSeqStoreShellCode($asm, $path, "");
-    print F "\n";
-    print F fetchTigStoreShellCode("correction/2-correction", $asm, "corStore", "001", "");
-    print F "\n";
-    print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
-    print F "\n";
-
-    print F "seqStore=../../$asm.seqStore\n";
-    print F "\n";
-
-    my $stageDir = getGlobal("stageDirectory");
-    my $storeDir = "$stageDir/$asm-\$jobid.seqStore";    #  jobid is expanded during the job, in the shell
-
-    if (defined($stageDir)) {
-        print F "#  Try to make the seqStore directory in the stage location.\n";
-        print F "#  If that fails, fallback to using the original store.\n";
+        print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
-        print F "mkdir -p $storeDir\n";
+        print F getBinDirectoryShellCode();
         print F "\n";
-        print F "if [ -d $storeDir ] ; then\n";
-        print F "  seqStore=$storeDir\n";
-        print F "  cp -p ../../$asm.seqStore/info      $storeDir/info\n";
-        print F "  cp -p ../../$asm.seqStore/libraries $storeDir/libraries\n";
-        print F "  cp -p ../../$asm.seqStore/reads*    $storeDir/\n";
-        print F "  cp -p ../../$asm.seqStore/blobs.*   $storeDir/\n";
+        print F setWorkDirectoryShellCode($path);
+        print F "\n";
+        print F getJobIDShellCode();
+        print F "\n";
+        print F "bgnid=0\n";
+        print F "endid=0\n";
+        print F "\n";
+
+        my $nJobs = 0;
+
+        open(B, "< $path/correctReadsPartition.batches") or caExit("can't open '$path/correctReadsPartition.batches' for reading: $!", undef);
+        $_ = <B>;    #  Skip header line 1
+        $_ = <B>;    #  Skip header line 2
+        while (<B>) {
+            s/^\s+//;
+            s/\s+$//;
+
+            my ($jobID, $bgnID, $endID, $nReads, $reqmem) = split '\s+', $_;
+
+            print  F "if [ \$jobid -eq $jobID ] ; then\n";
+            printf F "  jobid=%04d\n", $jobID;   #  Parsed in Check() below.
+            print  F "  bgnid=$bgnID\n";
+            print  F "  endid=$endID\n";
+            print  F "fi\n";
+
+            $nJobs = $jobID;
+        }
+        close(B);
+
+        print F "\n";
+        print F "if [ \$bgnid -eq 0 ]; then\n";
+        print F "  echo Error: Invalid job \$jobid requested, must be between 1 and $nJobs.\n";
+        print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
-    }
 
-    print F "\$bin/falconsense \\\n";
-    print F "  -S \$seqStore \\\n";
-    print F "  -C ../$asm.corStore \\\n";
-    print F "  -R ./$asm.readsToCorrect \\\n"   if ( fileExists("$path/$asm.readsToCorrect"));
-    print F "  -r \$bgnid-\$endid \\\n";
-    print F "  -t  " .        getGlobal("corThreads")       . " \\\n";
-    print F "  -cc " .        getGlobal("corMinCoverage")   . " \\\n";
-    print F "  -cl " .        getGlobal("minReadLength")    . " \\\n";
-    print F "  -oi " . (1.0 - getGlobal("corErrorRate"))    . " \\\n";
-    print F "  -ol " .        getGlobal("minOverlapLength") . " \\\n";
-    print F "  -p ./results/\$jobid.WORKING \\\n";
-    print F "  -cns \\\n";
-    print F "  > ./results/\$jobid.err 2>&1 \\\n";
-    print F "&& \\\n";
-    print F "mv ./results/\$jobid.WORKING.cns ./results/\$jobid.cns \\\n";
-    print F "\n";
-
-    print F stashFileShellCode("$path", "results/\$jobid.cns", "");
-
-    if (defined($stageDir)) {
-        print F "rm -rf $storeDir\n";
-        print F "rmdir  $stageDir\n";
         print F "\n";
+        print F "if [ -e ./results/\$jobid.cns ] ; then\n";
+        print F "  echo Job finished successfully.\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+        print F "\n";
+        print F "if [ ! -d ./results ] ; then\n";
+        print F "  mkdir -p ./results\n";
+        print F "fi\n";
+        print F "\n";
+
+        print F fetchSeqStoreShellCode($asm, $path, "");
+        print F "\n";
+        print F fetchTigStoreShellCode("correction/2-correction", $asm, "corStore", "001", "");
+        print F "\n";
+        print F fetchFileShellCode($path, "$asm.readsToCorrect", "");
+        print F "\n";
+
+        print F "seqStore=../../$asm.seqStore\n";
+        print F "\n";
+
+        my $stageDir = getGlobal("stageDirectory");
+        my $storeDir = "$stageDir/$asm-\$jobid.seqStore";    #  jobid is expanded during the job, in the shell
+
+        if (defined($stageDir)) {
+            print F "#  Try to make the seqStore directory in the stage location.\n";
+            print F "#  If that fails, fallback to using the original store.\n";
+            print F "\n";
+            print F "mkdir -p $storeDir\n";
+            print F "\n";
+            print F "if [ -d $storeDir ] ; then\n";
+            print F "  seqStore=$storeDir\n";
+            print F "  cp -p ../../$asm.seqStore/info      $storeDir/info\n";
+            print F "  cp -p ../../$asm.seqStore/libraries $storeDir/libraries\n";
+            print F "  cp -p ../../$asm.seqStore/reads*    $storeDir/\n";
+            print F "  cp -p ../../$asm.seqStore/blobs.*   $storeDir/\n";
+            print F "fi\n";
+            print F "\n";
+        }
+
+        print F "\$bin/falconsense \\\n";
+        print F "  -S \$seqStore \\\n";
+        print F "  -C ../$asm.corStore \\\n";
+        print F "  -R ./$asm.readsToCorrect \\\n"   if ( fileExists("$path/$asm.readsToCorrect"));
+        print F "  -r \$bgnid-\$endid \\\n";
+        print F "  -t  " .        getGlobal("corThreads")       . " \\\n";
+        print F "  -cc " .        getGlobal("corMinCoverage")   . " \\\n";
+        print F "  -cl " .        getGlobal("minReadLength")    . " \\\n";
+        print F "  -oi " . (1.0 - getGlobal("corErrorRate"))    . " \\\n";
+        print F "  -ol " .        getGlobal("minOverlapLength") . " \\\n";
+        print F "  -p ./results/\$jobid.WORKING \\\n";
+        print F "  -cns \\\n";
+        print F "  > ./results/\$jobid.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "mv ./results/\$jobid.WORKING.cns ./results/\$jobid.cns \\\n";
+        print F "\n";
+
+        print F stashFileShellCode("$path", "results/\$jobid.cns", "");
+
+        if (defined($stageDir)) {
+            print F "rm -rf $storeDir\n";
+            print F "rmdir  $stageDir\n";
+            print F "\n";
+        }
+
+        close(F);
+
+        makeExecutable("$path/correctReads.sh");
+        stashFile("$path/correctReads.sh");
     }
-
-    close(F);
-
-    makeExecutable("$path/correctReads.sh");
-    stashFile("$path/correctReads.sh");
 
   finishStage:
     generateReport($asm);
