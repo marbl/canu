@@ -158,10 +158,21 @@ ComputeErrors(const char* const a_part, const char* const b_part,
   static const int32 MM_SIZE_FACTOR = 6;
   static const int32 MM_REPEAT_NUM = 5;
 
-  //static const int32 IND_SIZE_FACTOR = MM_SIZE_FACTOR;
-  //static const int32 IND_REPEAT_NUM = MM_REPEAT_NUM;
-  static const int32 IND_SIZE_FACTOR = 4;
-  static const int32 IND_REPEAT_NUM = 3;
+  //  The following two IND constants were tested against v2.1.1 and v2.2.
+  //    In v2.1.1, IND_SIZE_FACTOR=6 and IND_REPEAT_NUM=5.
+  //    They were changed to 4 and 3, respectively in commit
+  //      cb94432adf36cbb77c7ec22517a50e3051abd066
+  //
+  //  The changed values resulted in many more misassemblies on
+  //  human-chm13-hifi-20k, from 9 in v2.1.1 to 14 with the new values.  (The
+  //  effect is also observable in dmel f1, but I don't have exact numbers.)
+  //
+  //  Switching back to the v2.1.1 values (6 and 5) actually drops
+  //  misassembles down to 6, due to other changes made around commit
+  //  cb94432.
+  //
+  static const int32 IND_SIZE_FACTOR = 6;
+  static const int32 IND_REPEAT_NUM = 5;
 
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
   int32  all_ct = 0;
