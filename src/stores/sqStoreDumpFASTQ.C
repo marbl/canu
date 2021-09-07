@@ -261,7 +261,7 @@ main(int argc, char **argv) {
   if (outPrefix == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s [...] -o out-prefix -g seqStore\n", argv[0]);
+    fprintf(stderr, "usage: %s -S seqStore -o out-prefix [...]\n", argv[0]);
     fprintf(stderr, "  -S seqStore\n");
     fprintf(stderr, "  -o out-prefix       write files out-prefix.(libname).fastq, ...\n");
     fprintf(stderr, "                      if out-prefix is '-', all sequences output to stdout\n");
