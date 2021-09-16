@@ -24,107 +24,249 @@
 
 #include <vector>
 
+//  Life is so much easier if these are just global.
+
+char const               *seqStoreName     = nullptr;
+
+char const               *ovlFileName      = nullptr;
+char const               *ovlStoreName     = nullptr;
+
+enum class inType {
+  asCoords,
+  asHangs,
+  asUnaligned,
+  asPAF,
+  asOVB,
+  asRandom
+};
+
+inType                    inputType        = inType::asCoords;
+
+double                    maxError         = 1.0;
+uint32                    minReadLength    = 0;
+uint32                    minOverlapLength = 0;
+
+uint64                    rmin = 0, rmax = 0;
+uint32                    abgn = 1, aend = 0;
+uint32                    bbgn = 1, bend = 0;
+
+std::vector<char const *> files;
+
+uint64                    totalOverlaps   = 0;
+uint64                    filteredOlapLen = 0;
+uint64                    filteredReadLen = 0;
+uint64                    filteredBoth    = 0;
+uint64                    overlapOutput   = 0;
+
+sqStore                  *ss = nullptr;
+
+ovOverlap                 ov;
+
+ovFile                   *of = nullptr;
+ovStoreWriter            *os = nullptr;
+
+
+
+void
+outputOverlap(void) {
+  bool  shortOvl  = false;
+  bool  shortRead = false;
+
+  //  Test if we want to emit this overlap.
+
+  if (ov.length() < minOverlapLength)
+    shortOvl = true;
+
+  if ((ss->sqStore_getReadLength(ov.a_iid) < minReadLength) ||
+      (ss->sqStore_getReadLength(ov.b_iid) < minReadLength))
+    shortRead = true;
+
+  //  Count the test results.
+
+  if ((shortOvl) && (shortRead))   filteredBoth++;
+  if  (shortOvl)                   filteredOlapLen++;
+  if                (shortRead)    filteredReadLen++;
+
+  //  Bail if we want to discard the overlap.
+
+  totalOverlaps++;
+
+  if ((shortOvl) || (shortRead))
+    return;
+
+  //  Count and output the good overlap.
+
+  overlapOutput++;
+
+  if (of)   of->writeOverlap(&ov);
+  if (os)   os->writeOverlap(&ov);
+}
+
+
+
+void
+makeRandomOverlaps(void) {
+  mtRandom  mt;
+
+  if (aend == 0)   aend = ss->sqStore_lastReadID();
+  if (bend == 0)   bend = ss->sqStore_lastReadID();
+
+  uint64  numRandom = rmin + floor(mt.mtRandomRealOpen() * (rmax - rmin));
+
+  for (uint64 ii=0; ii<numRandom; ii++) {
+    uint32   aID      = abgn + floor(mt.mtRandomRealOpen() * (aend - abgn));
+    uint32   bID      = bbgn + floor(mt.mtRandomRealOpen() * (bend - bbgn));
+
+    if (aID < bID) {
+      uint32 t = aID;
+      aID = bID;
+      bID = aID;
+    }
+
+#if 0
+    //  For testing when reads have no overlaps in store building.  Issue #302.
+    aID = aID & 0xfffffff0;
+    bID = bID & 0xfffffff0;
+
+    if (aID == 0)   aID = 1;
+    if (bID == 0)   bID = 1;
+#endif
+
+    uint32   aLen     = ss->sqStore_getReadLength(aID);
+    uint32   bLen     = ss->sqStore_getReadLength(bID);
+
+    bool     olapFlip = mt.mtRandom32() % 2;
+
+    //  We could be fancy and make actual overlaps that make sense, or punt and make overlaps that
+    //  are valid but nonsense.
+
+    ov.a_iid = aID;
+    ov.b_iid = bID;
+
+    ov.flipped(olapFlip);
+
+    ov.a_hang((int32)(mt.mtRandomRealOpen() * 2 * aLen - aLen));
+    ov.b_hang((int32)(mt.mtRandomRealOpen() * 2 * bLen - bLen));
+
+    ov.dat.ovl.forOBT = false;
+    ov.dat.ovl.forDUP = false;
+    ov.dat.ovl.forUTG = true;
+
+    ov.erate(mt.mtRandomRealOpen() * 0.1);
+
+    outputOverlap();
+  }
+}
+
+
+
+void
+readOVB(ovFile *in) {
+
+  while (in->readOverlap(&ov)) {
+    outputOverlap();
+  }
+
+  delete in;
+}
+
+
+
+void
+readASCII(compressedFileReader *in) {
+  char           S[1024];
+  splitToWords   W;
+
+  fgets(S, 1024, in->file());
+
+  while (!feof(in->file())) {
+    W.split(S);
+
+    switch (inputType) {
+      case inType::asCoords:
+        ov.fromString(W, ovOverlapAsCoords);
+        break;
+      case inType::asHangs:
+        ov.fromString(W, ovOverlapAsHangs);
+        break;
+      case inType::asUnaligned:
+        ov.fromString(W, ovOverlapAsUnaligned);
+        break;
+      case inType::asPAF:
+        ov.fromString(W, ovOverlapAsPaf);
+        break;
+      default:
+        assert(0);
+        break;
+    }
+
+    outputOverlap();
+
+    fgets(S, 1024, in->file());
+  }
+
+  delete in;
+}
+
+
 
 int
 main(int argc, char **argv) {
-  char const               *seqStoreName = NULL;
-
-  char const               *ovlFileName = NULL;
-  char const               *ovlStoreName = NULL;
-
-  bool                      asCoords    = false;    //  Format of input overlaps
-  bool                      asHangs     = false;
-  bool                      asUnaligned = false;
-  bool                      asPAF       = false;
-  bool                      asRandom    = false;
-
-  uint64                    rmin = 0, rmax = 0;
-  uint32                    abgn = 1, aend = 0;
-  uint32                    bbgn = 1, bend = 0;
-
-  std::vector<char const *> files;
 
   argc = AS_configure(argc, argv, 1);
 
   std::vector<char const *> err;
   for (int32 arg=1; arg < argc; arg++) {
-    if      (strcmp(argv[arg], "-S") == 0) {
+    if      (strcmp(argv[arg], "-S") == 0)
       seqStoreName = argv[++arg];
-    }
-
-    else if (strcmp(argv[arg], "-o") == 0) {
+    else if (strcmp(argv[arg], "-o") == 0)
       ovlFileName = argv[++arg];
-    }
-
-    else if (strcmp(argv[arg], "-O") == 0) {
+    else if (strcmp(argv[arg], "-O") == 0)
       ovlStoreName = argv[++arg];
-    }
-
 
     else if (strcmp(argv[arg], "-raw") == 0)
       sqRead_setDefaultVersion(sqRead_raw);
-
     else if (strcmp(argv[arg], "-obt") == 0)
       sqRead_setDefaultVersion(sqRead_corrected);
-
     else if (strcmp(argv[arg], "-utg") == 0)
       sqRead_setDefaultVersion(sqRead_trimmed);
 
 
-    else if (strcmp(argv[arg], "-coords") == 0) {
-      asCoords    = true;
-      asHangs     = false;
-      asUnaligned = false;
-      asPAF       = false;
-      asRandom    = false;
+    else if (strcmp(argv[arg], "-coords") == 0)
+      inputType = inType::asCoords;
+    else if (strcmp(argv[arg], "-hangs") == 0)
+      inputType = inType::asHangs;
+    else if (strcmp(argv[arg], "-unaligned") == 0)
+      inputType = inType::asUnaligned;
+    else if (strcmp(argv[arg], "-paf") == 0)
+      inputType = inType::asPAF;
+    else if (strcmp(argv[arg], "-ovb") == 0)
+      inputType = inType::asOVB;
+
+    else if (strcmp(argv[arg], "-maxerror") == 0) {
+      if (*strtonumber(argv[++arg], maxError) == '%')
+        maxError /= 100.0;
     }
 
-    else if (strcmp(argv[arg], "-hangs") == 0) {
-      asCoords    = false;
-      asHangs     = true;
-      asUnaligned = false;
-      asPAF       = false;
-      asRandom    = false;
-    }
+    else if (strcmp(argv[arg], "-minreadlength") == 0)
+      minReadLength = strtouint32(argv[++arg]);
 
-    else if (strcmp(argv[arg], "-unaligned") == 0) {
-      asCoords    = false;
-      asHangs     = false;
-      asUnaligned = true;
-      asPAF       = false;
-      asRandom    = false;
-    }
-
-    else if (strcmp(argv[arg], "-paf") == 0) {
-      asCoords    = false;
-      asHangs     = false;
-      asUnaligned = false;
-      asPAF       = true;
-      asRandom    = false;
-    }
+    else if (strcmp(argv[arg], "-minoverlaplength") == 0)
+      minOverlapLength = strtouint32(argv[++arg]);
 
     else if (strcmp(argv[arg], "-random") == 0) {
-      asCoords    = false;
-      asHangs     = false;
-      asUnaligned = false;
-      asPAF       = false;
-      asRandom    = true;
-
+      inputType = inType::asRandom;
       decodeRange(argv[++arg], rmin, rmax);
     }
 
-    else if (strcmp(argv[arg], "-a") == 0) {
+    else if (strcmp(argv[arg], "-a") == 0)
       decodeRange(argv[++arg], abgn, aend);
-    }
-
-    else if (strcmp(argv[arg], "-b") == 0) {
+    else if (strcmp(argv[arg], "-b") == 0)
       decodeRange(argv[++arg], bbgn, bend);
-    }
 
     else if ((strcmp(argv[arg], "-") == 0) ||
-             (fileExists(argv[arg]))) {
+             (fileExists(argv[arg])))
       files.push_back(argv[arg]);
-    }
 
     else {
       char *s = new char [1024];
@@ -134,10 +276,10 @@ main(int argc, char **argv) {
   }
 
 
-  if (seqStoreName == NULL)
+  if (seqStoreName == nullptr)
     err.push_back("ERROR: no input seqStore (-S) supplied.\n");
 
-  if ((files.size() == 0) && (asRandom == false))
+  if ((files.size() == 0) && (inputType != inType::asRandom))
     err.push_back("ERROR: no input overlap files supplied.\n");
 
 
@@ -154,6 +296,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -hangs              as dovetail hangs\n");
     fprintf(stderr, "  -unaligned          as unaligned regions on each read\n");
     fprintf(stderr, "  -paf                as miniasm Pairwise mApping Format\n");
+    fprintf(stderr, "  -ovb                as canu binary .ovb overlaps\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "FILTER OPTIONS:\n");
+    fprintf(stderr, "  -maxerror x         discard overlaps above x fraction error (e.g., '0.05').\n");
+    fprintf(stderr, "  -maxerror x%%        discard overlaps above x percent error (e.g., '5.0%%').\n");
+    fprintf(stderr, "  -minreadlength l    discard overlaps involving reads shorter than l bases.\n");
+    fprintf(stderr, "  -minoverlaplength l discard overlaps shorter than l bases.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "READ VERSION:\n");
     fprintf(stderr, "  -raw                uncorrected raw reads\n");
@@ -178,121 +327,57 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  sqStore       *seqStore = new sqStore(seqStoreName);
+  ss = new sqStore(seqStoreName);
 
-  char          *S     = new char [1024];
-  splitToWords   W;
-  ovOverlap     ov;
-
-  ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(seqStore, ovlFileName, ovFileFullWrite);
-  ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, seqStore);
+  of = (ovlFileName  == nullptr) ? nullptr : new ovFile(ss, ovlFileName, ovFileFullWrite);
+  os = (ovlStoreName == nullptr) ? nullptr : new ovStoreWriter(ovlStoreName, ss);
 
   //  Make random inputs first.
 
-  if (asRandom == true) {
-    mtRandom  mt;
+  switch (inputType) {
+    case inType::asCoords:
+    case inType::asHangs:
+    case inType::asUnaligned:
+    case inType::asPAF:
+      for (uint32 ff=0; ff<files.size(); ff++)
+        readASCII(new compressedFileReader(files[ff]));
+      break;
 
-    if (aend == 0)   aend = seqStore->sqStore_lastReadID();
-    if (bend == 0)   bend = seqStore->sqStore_lastReadID();
+    case inType::asOVB:
+      for (uint32 ff=0; ff<files.size(); ff++)
+        readOVB(new ovFile(ss, files[ff], ovFileFull));
+      break;
 
-    uint64  numRandom = rmin + floor(mt.mtRandomRealOpen() * (rmax - rmin));
+    case inType::asRandom:
+      makeRandomOverlaps();
+      break;
 
-    for (uint64 ii=0; ii<numRandom; ii++) {
-      uint32   aID      = abgn + floor(mt.mtRandomRealOpen() * (aend - abgn));
-      uint32   bID      = bbgn + floor(mt.mtRandomRealOpen() * (bend - bbgn));
-
-      if (aID < bID) {
-        uint32 t = aID;
-        aID = bID;
-        bID = aID;
-      }
-
-#if 0
-      //  For testing when reads have no overlaps in store building.  Issue #302.
-      aID = aID & 0xfffffff0;
-      bID = bID & 0xfffffff0;
-
-      if (aID == 0)   aID = 1;
-      if (bID == 0)   bID = 1;
-#endif
-
-      uint32   aLen     = seqStore->sqStore_getReadLength(aID);
-      uint32   bLen     = seqStore->sqStore_getReadLength(bID);
-
-      bool     olapFlip = mt.mtRandom32() % 2;
-
-      //  We could be fancy and make actual overlaps that make sense, or punt and make overlaps that
-      //  are valid but nonsense.
-
-      ov.a_iid = aID;
-      ov.b_iid = bID;
-
-      ov.flipped(olapFlip);
-
-      ov.a_hang((int32)(mt.mtRandomRealOpen() * 2 * aLen - aLen));
-      ov.b_hang((int32)(mt.mtRandomRealOpen() * 2 * bLen - bLen));
-
-      ov.dat.ovl.forOBT = false;
-      ov.dat.ovl.forDUP = false;
-      ov.dat.ovl.forUTG = true;
-
-      ov.erate(mt.mtRandomRealOpen() * 0.1);
-
-      if (of)
-        of->writeOverlap(&ov);
-
-      if (os)
-        os->writeOverlap(&ov);
-    }
+    default:
+      assert(0);
+      break;
   }
 
-  //  Now process any files.
+  //  Close outputs and inputs.
 
-  for (uint32 ff=0; ff<files.size(); ff++) {
-    compressedFileReader   *in = new compressedFileReader(files[ff]);
+  delete os;
+  delete of;
+  delete ss;
 
-    fgets(S, 1024, in->file());
+  //  Bye.
 
-    while (!feof(in->file())) {
-      W.split(S);
+  filteredOlapLen -= filteredBoth;
+  filteredReadLen -= filteredBoth;
 
-      if (asCoords) {
-        ov.fromString(W, ovOverlapAsCoords);
-      }
-
-      else if (asHangs) {
-        ov.fromString(W, ovOverlapAsHangs);
-      }
-
-      else if (asUnaligned) {
-        ov.fromString(W, ovOverlapAsUnaligned);
-      }
-
-      else if (asPAF) {
-        ov.fromString(W, ovOverlapAsPaf);
-      }
-
-      else {
-      }
-
-      if (of)
-        of->writeOverlap(&ov);
-
-      if (os)
-        os->writeOverlap(&ov);
-
-      fgets(S, 1024, in->file());
-    }
-
-    delete in;
-  }
-
-  delete    os;
-  delete    of;
-
-  delete [] S;
-
-  delete seqStore;
+  fprintf(stderr, "Overlaps processed:\n");
+  fprintf(stderr, "  %8lu\n", totalOverlaps);
+  fprintf(stderr, "Overlaps discarded:\n");
+  fprintf(stderr, "  %8lu %6.2f%% - overlap length  too short\n", filteredOlapLen, 100.0 * filteredOlapLen / totalOverlaps);
+  fprintf(stderr, "  %8lu %6.2f%% - read    length  too short\n", filteredReadLen, 100.0 * filteredReadLen / totalOverlaps);
+  fprintf(stderr, "  %8lu %6.2f%% - both    lengths too short\n", filteredBoth,    100.0 * filteredBoth    / totalOverlaps);
+  fprintf(stderr, "Overlaps output:\n");
+  fprintf(stderr, "  %8lu %6.2f%%\n", overlapOutput, 100.0 * overlapOutput / totalOverlaps);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Bye.\n");
 
   exit(0);
 }
