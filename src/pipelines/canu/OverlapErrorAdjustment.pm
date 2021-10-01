@@ -260,7 +260,7 @@ sub readErrorDetectionConfigure ($) {
 
     #  Fail if there are too few reads in the batches (except for the last batch).
 
-    if (($minReads < 100) ||
+    if (($minReads < 100 && $minReads < $maxID) ||
         (scalar(@bgn) > 9999)) {
         caExit("partitioning failed; increase redMemory", undef);
     }
