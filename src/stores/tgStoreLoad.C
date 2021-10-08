@@ -57,7 +57,7 @@ testFile(std::vector<char const *>  &tigInputs) {
 
       for (uint32 ii=0; ii<tig->numberOfChildren(); ii++) {
         minP = std::min(minP, tig->getChild(ii)->min());
-        maxP = std::min(maxP, tig->getChild(ii)->max());
+        maxP = std::max(maxP, tig->getChild(ii)->max());
       }
 
       if ((minP != 0) ||
