@@ -79,7 +79,8 @@ public:
   unitigConsensus(sqStore  *seqStore_,
                   double    errorRate_,
                   double    errorRateMax_,
-                  uint32    minOverlap_);
+                  uint32    minOverlap_,
+                  uint32    minCoverage_);
   ~unitigConsensus();
 
 private:
@@ -148,6 +149,7 @@ private:
   tgPosition     *_cnspos;      //  Actual location in frankenstein.
 
   uint32          _minOverlap;
+  uint32          _minCoverage;
   double          _errorRate;
   double          _errorRateMax;
 };

@@ -175,6 +175,9 @@ public:
     ///        default = 0
     const std::string consensus(int minWeight=0);
 
+    /// Same as above but will only trim bases below minWeight either at the start or end of the sequence, not in the middle 
+    const std::string consensusNoSplit(int minWeight=0);
+
     /// Generates all consensus sequences from a target that meet the minimum
     /// weight requirement.
     void consensus(std::vector<CnsResult>& seqs, int minWeight=0, size_t minLength=500);

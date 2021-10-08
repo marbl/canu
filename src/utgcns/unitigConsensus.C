@@ -77,7 +77,8 @@ abSequence::abSequence(uint32  readID,
 unitigConsensus::unitigConsensus(sqStore  *seqStore_,
                                  double    errorRate_,
                                  double    errorRateMax_,
-                                 uint32    minOverlap_) {
+                                 uint32    minOverlap_,
+                                 uint32    minCoverage_) {
 
   _seqStore        = seqStore_;
 
@@ -94,6 +95,7 @@ unitigConsensus::unitigConsensus(sqStore  *seqStore_,
   _minOverlap      = minOverlap_;
   _errorRate       = errorRate_;
   _errorRateMax    = errorRateMax_;
+  _minCoverage     = minCoverage_;
 }
 
 
@@ -915,7 +917,7 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
     fprintf(stderr, "Calling consensus\n");
 
   //FIXME why do we have 0weight nodes (template seq w/o support even from the read that generated them)?
-  std::string cns = ag.consensus(0);
+  std::string cns = ag.consensusNoSplit(_minCoverage);
 
   delete [] tigseq;
 

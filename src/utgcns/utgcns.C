@@ -74,6 +74,7 @@ public:
   double                  errorRate    = 0.12;
   double                  errorRateMax = 0.40;
   uint32                  minOverlap   = 500;
+  uint32                  minCoverage  = 0;
 
   uint32                  numFailures = 0;
 
@@ -176,7 +177,7 @@ processImportedTigs(cnsParameters  &params) {
 
     tig->_utgcns_verboseLevel = params.verbosity;
 
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap);
+    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap, params.minCoverage);
     bool              success = utgcns->generate(tig, params.algorithm, params.aligner, &reads);
 
     //  Show the result, if requested.
@@ -389,7 +390,7 @@ processTigs(cnsParameters  &params) {
 
     tig->_utgcns_verboseLevel = params.verbosity;
 
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap);
+    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap, params.minCoverage);
     bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
 
     //  Show the result, if requested.
@@ -449,6 +450,10 @@ main(int argc, char **argv) {
   for (int32 arg=1; arg < argc; arg++) {
     if      (strcmp(argv[arg], "-S") == 0) {
       params.seqName = argv[++arg];
+    }
+
+    else if (strcmp(argv[arg], "-C") == 0){
+       params.minCoverage = strtouint32(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-R") == 0) {
