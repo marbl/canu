@@ -323,6 +323,8 @@ unitigConsensus::generateTemplateStitch(void) {
   uint32       tiglen = 0;
   char        *tigseq = NULL;
 
+  double	savedErrorRate = _errorRate;
+
   allocateArray(tigseq, tigmax, _raAct::clearNew);
 
   if (showAlgorithm()) {
@@ -421,6 +423,7 @@ unitigConsensus::generateTemplateStitch(void) {
     int32  readBgn;
     int32  readEnd;
 
+    _errorRate=savedErrorRate;
     EdlibAlignResult result;
     bool             aligned       = false;
 
@@ -429,16 +432,22 @@ unitigConsensus::generateTemplateStitch(void) {
     double           bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
 
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
-
+    int32            origLen       = olapLen;
+ 
     if (olapLen < minOlap) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
                 olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
-      olapLen = std::min(ePos, minOlap); 
+      // olapLen = std::min(ePos, minOlap); 
+      // hack for mikkos consensus to prevent overlaps
+      olapLen=10;
+      _errorRate=0;
     }
 
-    int32            templateLen  = 0;
-    int32            extensionLen = 0;
+    int32            templateLen      = 0;
+    int32            extensionLen     = 0;
+    bool             increasedOverlap = false;
+    bool             decreasedOverlap = false;
 
   alignAgain:
     templateLen  = (int32)ceil(olapLen * templateSize);    //  Extract 80% of the expected overlap size
@@ -548,9 +557,34 @@ unitigConsensus::generateTemplateStitch(void) {
 
     if (templateSize < 0.01) {
       if (showAlgorithm())
-        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!  Fail!\n");
-      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate)
-         tryAgain = false;
+        fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!");
+      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate) {
+         if (increasedOverlap == false) {
+            if (showAlgorithm()) fprintf(stderr, "  Increase allowed overlap!\n");
+
+            increasedOverlap=true;
+             tryAgain=true;
+             // first time we hit this, try increasing overlap size and reset parameters
+             templateSize  = 0.90;
+             extensionSize = 0.10;
+             bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
+             olapLen       *= 2.5;
+         } else if (increasedOverlap == true && decreasedOverlap == false) {
+            if (showAlgorithm()) fprintf(stderr, "  Decrease allowed overlap!\n");
+            decreasedOverlap=true;
+            tryAgain=true;
+            templateSize  = 0.90;
+            extensionSize = 0.10;
+            bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
+            olapLen       /= 2.5;
+            olapLen       /= 2;
+         } else {
+            if (showAlgorithm()) fprintf(stderr, "  Fail!\n");
+
+            tryAgain = false;
+            olapLen=origLen;
+         }
+      }
       else {
         if (showAlgorithm()) 
           fprintf(stderr, "generateTemplateStitch()-- FAILED to align at %.2f error rate, increasing to %.2f\n", bandErrRate, bandErrRate + _errorRate/ERROR_RATE_FACTOR);
