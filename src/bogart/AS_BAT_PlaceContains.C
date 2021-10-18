@@ -224,7 +224,7 @@ placeUnplacedUsingAllOverlaps(TigVector           &tigs,
 
     if (tig) {
       frg.ident             = fid;
-      frg.contained         = OG->isContained(fid);
+      frg.contained         = (OG != nullptr) ? OG->isContained(fid) : false;
       frg.parent            = 0;
       frg.ahang             = 0;
       frg.bhang             = 0;
