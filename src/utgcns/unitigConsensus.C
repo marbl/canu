@@ -423,7 +423,7 @@ unitigConsensus::generateTemplateStitch(void) {
     int32  readBgn;
     int32  readEnd;
 
-    _errorRate=savedErrorRate;
+    _errorRate = savedErrorRate;
     EdlibAlignResult result;
     bool             aligned       = false;
 
@@ -438,10 +438,13 @@ unitigConsensus::generateTemplateStitch(void) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
                 olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
-      // olapLen = std::min(ePos, minOlap); 
-      // hack for mikkos consensus to prevent overlaps
-      olapLen=10;
-      _errorRate=0;
+      if (olapLen > 50) {
+         olapLen = std::min(ePos, minOlap); 
+      } else {
+         // hack for mikkos consensus to prevent overlaps
+         olapLen=10;
+         _errorRate=0;
+       }
     }
 
     int32            templateLen      = 0;
@@ -558,7 +561,7 @@ unitigConsensus::generateTemplateStitch(void) {
     if (templateSize < 0.01) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!");
-      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate) {
+      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate || bandErrRate - _errorRate < 1e-9) {
          if (increasedOverlap == false) {
             if (showAlgorithm()) fprintf(stderr, "  Increase allowed overlap!\n");
 
