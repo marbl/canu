@@ -180,28 +180,6 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
             reads);
   }
 
-  //  Check for duplicate reads
-
-  {
-    std::set<uint32>  dupFrag;
-
-    for (uint32 i=0; i<_numReads; i++) {
-      if (_utgpos[i].isRead() == false) {
-        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is not a read.\n",
-                _tig->tigID(), _utgpos[i].ident());
-        return(false);
-      }
-
-      if (dupFrag.find(_utgpos[i].ident()) != dupFrag.end()) {
-        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is a duplicate.\n",
-                _tig->tigID(), _utgpos[i].ident());
-        return(false);
-      }
-
-      dupFrag.insert(_utgpos[i].ident());
-    }
-  }
-
   return(true);
 }
 
