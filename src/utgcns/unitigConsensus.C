@@ -561,7 +561,7 @@ unitigConsensus::generateTemplateStitch(void) {
     if (templateSize < 0.01) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!");
-      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate || bandErrRate - _errorRate < 1e-9) {
+      if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate || _errorRate - bandErrRate < 1e-9) {
          if (increasedOverlap == false) {
             if (showAlgorithm()) fprintf(stderr, "  Increase allowed overlap!\n");
 
