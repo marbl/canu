@@ -159,8 +159,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 meryl/src/meryl/meryl.mk \
                 \
-                overlapCheck/overlapCheck.mk \
-                \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
                 overlapInCore/overlapConvert.mk \
@@ -180,8 +178,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 correction/falconsense.mk \
                 \
                 correction/errorEstimate.mk \
-                \
-                haplotyping/splitHaplotype.mk \
                 \
                 overlapBasedTrimming/trimReads.mk \
                 overlapBasedTrimming/splitReads.mk \
