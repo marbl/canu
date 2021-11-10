@@ -17,6 +17,7 @@
 
 #include "tgTig.H"
 #include "sqStore.H"
+#include "sqCache.H"
 
 #include "files.H"
 #include "sequence.H"
@@ -301,7 +302,8 @@ tgTig::loadFromBuffer(readBuffer *B) {
   //  Read the tgTigRecord from disk and copy it into our tgTig.
 
   if (4 != B->read(tag, 4)) {
-    fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
+    if (errno)
+      fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
     return(false);
   }
 
@@ -675,7 +677,15 @@ tgTig::loadLayout(FILE *F) {
 
 
 //  Dump the tig and all data referenced to a file.
-//  For correction, we also need to dump the read this tig is representing.
+//
+//  For correction, we also need to dump the read this tig is representing;
+//  for everything else, this isn't used and a redundant copy of the first
+//  read is exported.
+//
+//  The file format is
+//   - tig metadata
+//   - template read / redundant read
+//   - reads used in the tig, in order (not sure that's important)
 //
 void
 tgTig::exportData(writeBuffer  *exportDataFile,
@@ -684,22 +694,12 @@ tgTig::exportData(writeBuffer  *exportDataFile,
   sqRead           *rd = new sqRead;
   sqReadDataWriter *wr = new sqReadDataWriter;
 
-  //  Export the metadata.
-
   saveToBuffer(exportDataFile);
-
-  //  Export a read.
-  //
-  //  This is either the read we're trying to correct, or the first read in
-  //  the tig (redundantly stored).
 
   if (isForCorrection)
     seqStore->sqStore_saveReadToBuffer(exportDataFile, tigID(), rd, wr);
-
   else
     seqStore->sqStore_saveReadToBuffer(exportDataFile, getChild(0)->ident(), rd, wr);
-
-  //  Now export all the reads in the layot.
 
   for (uint32 ii=0; ii<numberOfChildren(); ii++)
     seqStore->sqStore_saveReadToBuffer(exportDataFile, getChild(ii)->ident(), rd, wr);
@@ -707,6 +707,29 @@ tgTig::exportData(writeBuffer  *exportDataFile,
   delete wr;
   delete rd;
 }
+
+
+void
+tgTig::exportData(writeBuffer  *exportDataFile,
+                  sqCache      *seqCache,
+                  bool          isForCorrection=false) {
+  sqRead           *rd = new sqRead;
+  sqReadDataWriter *wr = new sqReadDataWriter;
+
+  saveToBuffer(exportDataFile);
+
+  if (isForCorrection)
+    seqCache->sqCache_saveReadToBuffer(exportDataFile, tigID(), rd, wr);
+  else
+    seqCache->sqCache_saveReadToBuffer(exportDataFile, getChild(0)->ident(), rd, wr);
+
+  for (uint32 ii=0; ii<numberOfChildren(); ii++)
+    seqCache->sqCache_saveReadToBuffer(exportDataFile, getChild(ii)->ident(), rd, wr);
+
+  delete wr;
+  delete rd;
+}
+
 
 
 
@@ -723,8 +746,13 @@ tgTig::importData(readBuffer                  *importDataFile,
 
   //  Try to load the metadata.  If nothing there, we're done.
 
+  //fprintf(stderr, "importData()-\n");
+
   if (loadFromBuffer(importDataFile) == false)
     return(false);
+
+  //fprintf(stderr, "importData()- found tig %u\n", _tigID);
+  //dumpLayout(stderr);
 
   if (layoutOutput)
     dumpLayout(layoutOutput);
@@ -738,12 +766,14 @@ tgTig::importData(readBuffer                  *importDataFile,
 
     sqStore::sqStore_loadReadFromBuffer(importDataFile, read);
 
+    //fprintf(stderr, "found read %u of length %u\n", read->sqRead_readID(), read->sqRead_length());
+
     if (reads[read->sqRead_readID()] != NULL)     //  If we already have data, just nuke it.  We've
       delete read;                                //  got to read the data from disk regardless.
 
     else {
       if (sequenceOutput)
-        fprintf(sequenceOutput, ">read%u\n%s\b", read->sqRead_readID(), read->sqRead_sequence());
+        fprintf(sequenceOutput, ">read%u\n%s\n", read->sqRead_readID(), read->sqRead_sequence());
 
       reads[read->sqRead_readID()] = read;
     }

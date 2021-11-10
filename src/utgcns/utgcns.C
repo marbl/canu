@@ -23,7 +23,7 @@
 #include "tgStore.H"
 
 #include "unitigConsensus.H"
-
+#include "unitigPartition.H"
 
 
 class cnsParameters {
@@ -104,255 +104,25 @@ public:
 
 
 
-struct tigInfo {
-  uint32   tigID;
-  uint64   tigLength;
-  uint64   tigChildren;
-
-  uint64   consensusArea;
-  uint64   consensusMemory;
-
-  uint32   partition;
-};
-
-
-
-void
-createPartitions_loadTigInfo(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
-
-  for (uint32 ti=0; ti<tigsLen; ti++) {
-    uint64  len = 0;   //  64-bit so we don't overflow the various
-    uint64  nc  = 0;   //  multiplications below.
-
-    //  If there's a tig here, load it and get the info.
-
-    if (params.tigStore->isDeleted(ti) == false) {
-      tgTig *tig = params.tigStore->loadTig(ti);
-
-      len = tig->length();
-      nc  = tig->numberOfChildren();
-
-      params.tigStore->unloadTig(ti);
-    }
-
-    //  Initialize the tigInfo.  If no tig is here, all the fields will end
-    //  up zero, and we'll not put it into a partition.
-
-    tigs[ti].tigID           = ti;
-    tigs[ti].tigLength       = len * params.partitionScaling;
-    tigs[ti].tigChildren     = nc;
-
-    tigs[ti].consensusArea   = len * nc;
-    tigs[ti].consensusMemory = len * 1024;
-
-    tigs[ti].partition       = 0;
-  }
-}
-
-
-
-uint32
-createPartitions_greedilyPartition(cnsParameters &params, tigInfo *tigs, uint32 tigsLen) {
-
-  //  Sort the tigInfo by decreasing area.
-
-  std::sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.consensusArea > B.consensusArea); });
-
-  //  Grab the biggest tig (it's number 0) and compute a maximum area per partition.
-
-  uint64   maxArea         = tigs[0].consensusArea * params.partitionSize;
-  uint32   maxReads        = (uint32)ceil(params.seqStore->sqStore_lastReadID() * params.partitionReads);
-  uint32   currentPart     = 1;
-  uint64   currentArea     = 0;
-  uint32   currentTigs     = 0;
-  uint32   currentChildren = 0;
-  bool     stillMore       = true;
-
-  if (maxArea == 0)
-    maxArea = UINT64_MAX;
-
-  if (params.verbosity > 0) {
-    fprintf(stderr, "\n");
-    fprintf(stderr, "maxArea  = %s\n", (maxArea != UINT64_MAX) ? toDec(maxArea) : "infinite");
-    fprintf(stderr, "maxReads = %u\n",  maxReads);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--------------------- TIG -------------------  ------- PARTITION --------\n");
-    fprintf(stderr, "    ID   Reads    Length         Area Mem(GB)    ID  Total Area  TotReads\n");
-    fprintf(stderr, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
-  }
-
-  while (stillMore) {
-    stillMore = false;
-
-    for (uint32 ti=0; ti<tigsLen; ti++) {
-
-      //  Do nothing, it's already in a partition or if the area is zero.
-      if      ((tigs[ti].partition     != 0) ||
-               (tigs[ti].consensusArea == 0)) {
-      }
-
-      //  If nothing in the current partition, or still space in the
-      //  partition, add this tig to the current partition.
-      //
-      //  In particular, this allows partitions of a single tig to be larger
-      //  than the maximum (e.g., a partitionSize < 1.0).
-      //
-      //  It also ensures we don't assign too many (singleton) reads to a
-      //  partition.
-      else if ((currentTigs == 0) ||
-               ((currentArea     + tigs[ti].consensusArea < maxArea) &&
-                (currentChildren + tigs[ti].tigChildren   < maxReads))) {
-        tigs[ti].partition = currentPart;
-
-        currentArea     += tigs[ti].consensusArea;
-        currentTigs     += 1;
-        currentChildren += tigs[ti].tigChildren;
-
-        if (params.verbosity > 0)
-          fprintf(stderr, "%6u %7lu %9lu %12lu %7.3f  %4u %12lu %8u\n",
-                  tigs[ti].tigID,
-                  tigs[ti].tigChildren,
-                  tigs[ti].tigLength,
-                  tigs[ti].consensusArea,
-                  tigs[ti].consensusMemory / 1024.0 / 1024.0 / 1024.0,
-                  tigs[ti].partition,
-                  currentArea,
-                  currentChildren);
-      }
-
-      //  Do nothing.  This tig is too large for the current partition.
-      else {
-        stillMore = true;
-      }
-    }
-
-    //  Nothing else will fit in this partition.  Move to the next.
-
-    currentPart    += 1;
-    currentArea     = 0;
-    currentTigs     = 0;
-    currentChildren = 0;
-  }
-
-  return(currentPart);
-}
-
-
-
-uint64 *
-createPartitions_outputPartitions(cnsParameters &params, tigInfo *tigs, uint32 tigsLen, uint32 nParts) {
-  std::map<uint32, uint32>   readToPart;
-  sqRead                    *rd    = new sqRead;
-  sqReadDataWriter          *wr    = new sqReadDataWriter;
-  writeBuffer              **parts = new writeBuffer * [nParts];
-  char                       partName[FILENAME_MAX+1];
-
-  //  Sort by tigID.
-
-  std::sort(tigs, tigs + tigsLen, [](tigInfo const &A, tigInfo const &B) { return(A.tigID < B.tigID); });
-
-  //  Build a mapping from readID to partitionID.
-
-  for (uint32 ti=0; ti<tigsLen; ti++) {
-    if (tigs[ti].partition > 0) {
-      tgTig  *tig = params.tigStore->loadTig(tigs[ti].tigID);
-
-      for (uint32 fi=0; fi<tig->numberOfChildren(); fi++)
-        readToPart[tig->getChild(fi)->ident()] = tigs[ti].partition;
-
-      params.tigStore->unloadTig(tigs[ti].tigID);
-    }
-  }
-
-  //  Create output files for each partition and write a small header.
-
-  uint64  *pSize = new uint64 [nParts];
-
-  for (uint32 pi=0; pi<nParts; pi++) {
-    parts[pi] = NULL;
-    pSize[pi] = 0;
-  }
-
-  for (uint32 pi=1; pi<nParts; pi++) {
-    snprintf(partName, FILENAME_MAX, "%s/partition.%04u", params.tigName, pi);
-
-    parts[pi] = new writeBuffer(partName, "w");
-
-    uint64  magc = (uint64)0x5f5f656c69467173llu;   //  'sqFile__'
-    uint64  vers = (uint64)0x0000000000000001llu;
-    uint64  defv = (uint64)sqRead_defaultVersion;
-
-    parts[pi]->writeIFFobject("MAGC", magc);
-    parts[pi]->writeIFFobject("VERS", vers);
-    parts[pi]->writeIFFobject("DEFV", defv);
-  }
-
-  //  Scan the store, copying read data to partition files.
-
-  for (uint32 fi=1; fi<params.seqStore->sqStore_lastReadID()+1; fi++)
-    if (readToPart.count(fi) > 0)
-      params.seqStore->sqStore_saveReadToBuffer(parts[readToPart[fi]], fi, rd, wr);
-
-  //  Return the size, in bytes, of each partition.
-
-  for (uint32 pi=1; pi<nParts; pi++)
-    pSize[pi] = parts[pi]->tell();
-
-  //  All done!  Cleanup.
-
-  for (uint32 pi=1; pi<nParts; pi++)
-    delete parts[pi];
-
-  delete [] parts;
-  delete    wr;
-  delete    rd;
-
-  return(pSize);
-}
-
-
-
-//  Scan the tigs to compute expected consensus effort.
 //
 //  The memory estimate is _very_ simple, just 1 GB memory for each 1 Mbp
 //  of sequence (which is, of course, 1 KB memory for every base).
 void
 createPartitions(cnsParameters  &params) {
-  uint32   tigsLen = params.tigStore->numTigs();
-  tigInfo *tigs    = new tigInfo [tigsLen];
+  tigPartitioning  tp;
 
-  createPartitions_loadTigInfo(params, tigs, tigsLen);
+  tp.loadTigInfo(params.tigStore);
 
-  //  Greedily assign tigs to partitions, then save reads into
-  //  partition files.
+  tp.greedilyPartition(params.partitionSize,
+                       params.partitionScaling,
+                       params.partitionReads,
+                       params.verbosity > 0);
 
-  uint32 nParts = createPartitions_greedilyPartition(params, tigs, tigsLen);
-  uint64 *pSize = createPartitions_outputPartitions(params, tigs, tigsLen, nParts);
-
-  //  Report partitioning
+  tp.outputPartitions(params.seqStore, params.tigStore, params.tigName);
 
   FILE   *partFile = AS_UTL_openOutputFile(params.tigName, '/', "partitioning");
-
-  fprintf(partFile, "      Tig     Reads    Length         Area  Memory GB  Partition    Data GB\n");
-  fprintf(partFile, "--------- --------- --------- ------------  ---------  ---------  ---------\n");
-
-  for (uint32 ti=0; ti<tigsLen; ti++)
-    if (tigs[ti].partition != 0)
-      fprintf(partFile, "%9u %9lu %9lu %12lu  %9.3f  %9u  %9.3f\n",
-              tigs[ti].tigID,
-              tigs[ti].tigChildren,
-              tigs[ti].tigLength,
-              tigs[ti].consensusArea,
-              tigs[ti].consensusMemory / 1024.0 / 1024.0 / 1024.0,
-              tigs[ti].partition,
-              pSize[tigs[ti].partition] / 1024.0 / 1024.0 / 1024.0);
-
+  tp.reportPartitioning(partFile);
   AS_UTL_closeFile(partFile);
-
-  //  Clean up.
-
-  delete [] pSize;
-  delete [] tigs;
 }
 
 
@@ -371,9 +141,6 @@ printHeader(cnsParameters  &params) {
 
 void
 processImportedTigs(cnsParameters  &params) {
-
-  fprintf(stderr, "-- Opening input package '%s'.\n", params.importName);
-
   readBuffer *importFile      = new readBuffer(params.importName);
   FILE       *importedLayouts = AS_UTL_openOutputFile(params.importName, '.', "layout");
   FILE       *importedReads   = AS_UTL_openOutputFile(params.importName, '.', "fasta");
@@ -381,13 +148,27 @@ processImportedTigs(cnsParameters  &params) {
   tgTig                       *tig = new tgTig();
   std::map<uint32, sqRead *>   reads;
 
+  sqRead_defaultVersion = sqRead_raw | sqRead_normal;
+
   while (tig->importData(importFile, reads, importedLayouts, importedReads) == true) {
 
-    //  Stash excess coverage.
+    //  Log that we're processing.
 
-    tgTigStashed   S;
+    if (tig->numberOfChildren() > 1) {
+      fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
+    }
+
+    //  Stash excess coverage.  Singletons report no logging.
+
+    tgTigStashed S;
 
     tig->stashContains(params.maxCov, S);
+
+    if (S.nBack > 0)
+      fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
+              S.nCont, (double)S.bCont / tig->length(),
+              S.nStsh, (double)S.bStsh / tig->length(),
+              S.nBack, (double)S.bBack / tig->length());
 
     //  Compute!
 

@@ -305,6 +305,10 @@ public:
                             sqStore                    *seqStore,
                             bool                        isForCorrection);
 
+  void           exportData(writeBuffer                *exportDataFile,
+                            sqCache                    *seqCache,
+                            bool                        isForCorrection);
+
   bool           importData(readBuffer                 *importDataFile,
                             std::map<uint32, sqRead *> &reads,
                             FILE                       *layoutOutput,

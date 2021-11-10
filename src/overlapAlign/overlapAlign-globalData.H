@@ -92,7 +92,7 @@ public:
 
     fprintf(stderr, "Loading all reads.\n");
 
-    seqCache  = new sqCache(seqStore, sqRead_defaultVersion, memLimit);
+    seqCache  = new sqCache(seqStore, sqRead_defaultVersion);
     seqCache->sqCache_loadReads();
 
     //  Open overlaps.

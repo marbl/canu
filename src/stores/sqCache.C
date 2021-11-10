@@ -23,132 +23,78 @@
 #include <algorithm>
 
 
+void
+sqCache::loadMetadata(void) {
 
-sqCache::sqCache(sqStore *seqStore, sqRead_which which,  uint64 memoryLimit) {
+  _readsMax = _seqStore->sqStore_lastReadID() + 1;
+  _readsLen = _seqStore->sqStore_lastReadID() + 1;
+  _reads    = new sqCacheEntry [_readsMax];
+
+  for (uint32 id=1; id < _readsMax; id++) {
+    _reads[id]._nLen           = 0;
+    _reads[id]._sLen           = 0;
+    _reads[id]._bgn            = 0;
+    _reads[id]._end            = 0;
+    _reads[id]._nData          = nullptr;
+    _reads[id]._sData          = nullptr;
+  }
+
+  for (uint32 id=1; id <= _readsLen; id++) {
+    if (_seqStore->sqStore_isIgnoredRead(id, _which) == true)
+      continue;
+
+    //  Set the length of the data we're going to store.
+
+    if (_which & sqRead_raw)
+      _reads[id]._sLen = _seqStore->sqStore_getReadLength(id, sqRead_raw);
+
+    if (_which & sqRead_corrected)
+      _reads[id]._sLen = _seqStore->sqStore_getReadLength(id, sqRead_corrected);
+
+    //  Set the portion of the read we should be returning to the user.
+
+    _reads[id]._bgn = (_trimmed == true) ? _seqStore->sqStore_getClearBgn(id, _which) : 0;
+    _reads[id]._end = (_trimmed == true) ? _seqStore->sqStore_getClearEnd(id, _which) : _seqStore->sqStore_getReadLength(id, _which);
+  }
+}
+
+
+sqCache::sqCache(sqStore       *seqStore,
+                 sqRead_which   which) {
 
   _seqStore        =  seqStore;
-  _nReads          = _seqStore->sqStore_lastReadID();
-
-  _trackAge        = true;
-  _trackExpiration = false;
-  _noMoreLoads     = false;
 
   _which           = which;
   _compressed      = ((_which & sqRead_compressed) == sqRead_unset) ? false : true;
   _trimmed         = ((_which & sqRead_trimmed)    == sqRead_unset) ? false : true;
 
-  _memoryLimit   = memoryLimit * 1024 * 1024 * 1024;
-
-  if (_memoryLimit == 0) {
-    _trackAge    = false;
-    _memoryLimit = UINT64_MAX;
-  }
-
-  _reads         = new sqCacheEntry [_nReads + 1];
-
-  _dataLen       = 0;
-  _dataMax       = 0;
-  _data          = NULL;
-
-  _dataBlocksLen = 0;
-  _dataBlocksMax = 0;
-  _dataBlocks    = NULL;
-
-  uint32  nReads = 0;
-  uint64  nBases = 0;
-
-  for (uint32 id=1; id <= _nReads; id++) {
-    if (_seqStore->sqStore_isIgnoredRead(id, _which) == true) {
-      _reads[id]._basesLength    = 0;
-      _reads[id]._bgn            = 0;
-      _reads[id]._end            = 0;
-      _reads[id]._dataExpiration = UINT32_MAX;
-      _reads[id]._data           = NULL;
-      continue;
-    }
-
-    //  _basesLength is the length of the sequence encoded in _data.  It is NOT
-    //  the length of the read we will be returning.
-
-    if (_which & sqRead_raw)
-      _reads[id]._basesLength = _seqStore->sqStore_getReadLength(id, sqRead_raw);
-
-    if (_which & sqRead_corrected)
-      _reads[id]._basesLength = _seqStore->sqStore_getReadLength(id, sqRead_corrected);
-
-    //  Set bgn and end based on trimming status.
-
-    _reads[id]._bgn = (_trimmed == true) ? _seqStore->sqStore_getClearBgn(id, _which) : 0;
-    _reads[id]._end = (_trimmed == true) ? _seqStore->sqStore_getClearEnd(id, _which) : _seqStore->sqStore_getReadLength(id, _which);
-
-    //  Set the age, expiration and clear the data pointer.
-
-    //_reads[id]._dataAge        = 0;
-    _reads[id]._dataExpiration = UINT32_MAX;
-    _reads[id]._data           = NULL;
-
-    //  Do some accounting.
-
-    if (sqCache_getLength(id) > 0) {
-      nReads += 1;
-      nBases += _reads[id]._end - _reads[id]._bgn;
-    }
-  }
-
-  fprintf(stderr, "sqCache: found %u %s reads with %lu bases.\n", nReads, toString(_which), nBases);
+  if (_seqStore)
+    loadMetadata();
 }
 
 
 
 sqCache::~sqCache() {
+  if (_data == nullptr)                        //  If no data blocks, we have allocated
+    for (uint32 ii=0; ii <= _readsLen; ii++)   //  data for each read.
+      delete [] _reads[ii]._sData;
 
-  //  If we've got a big block of data allocated, reset all the read
-  //  data pointers to NULL so they don't try to delete memory that
-  //  can't be deleted.
+  delete [] _reads;                            //  Delete read metadata.
 
-  if (_data)
-    for (uint32 ii=0; ii <= _nReads; ii++)
-      _reads[ii]._data = NULL;
-
-  delete [] _reads;
-
-  //  Now just delete!
-
-  for (uint32 ii=0; ii<_dataBlocksLen; ii++)
+  for (uint32 ii=0; ii<_dataBlocksLen; ii++)   //  Delete any data blocks
     delete [] _dataBlocks[ii];
 
-  delete [] _dataBlocks;
+  delete [] _dataBlocks;                       //  And pointers to data blocks.
 }
 
 
 
-
-
 void
-sqCache::loadRead(uint32 id, uint32 expiration) {
+sqCache::loadRead(uint32 id) {
 
-  //  Reset the age and/or expiration of this read.
-
-  if (_trackAge)
-    _reads[id]._dataExpiration = 0;
-
-  if (_trackExpiration)
-    _reads[id]._dataExpiration = expiration;
-
-  //  If already loaded, don't load it again.
-
-  if (_reads[id]._data != NULL)
+  if ((_reads[id]._sData != nullptr) ||        //  If already loaded, we're done.
+      (_reads[id]._sLen == 0))                 //  If the read doesn't exist, we're done.
     return;
-
-  //  If no read to load, don't load it.
-
-  if (_reads[id]._basesLength == 0)
-    return;
-
-  //fprintf(stderr, "Loading read %u of length %u with expiration %u\n",
-  //        id, _reads[id]._basesLength, expiration);
-
-  assert(_noMoreLoads == false);
 
   //  Load the encoded blob, without decoding it.
 
@@ -157,8 +103,8 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
   //  Find the encoded read data.  This mirrors sqRead_loadFromBuffer.
 
   uint32   blobPos  = 0;
-  uint8   *rptr     = NULL;
-  uint8   *cptr     = NULL;
+  uint8   *rptr     = nullptr;
+  uint8   *cptr     = nullptr;
 
   while (blobPos < _read._blobLen) {
     char   *cName =  (char *)  (_read._blob + blobPos + 0);
@@ -185,24 +131,24 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
   //  If we have a gigantic storage space for read data, use that, otherwise,
   //  allocate space for this data.
 
-  if (_data == NULL) {
-    _reads[id]._data = new uint8 [blen];
+  if (_data == nullptr) {
+    _reads[id]._sData = new uint8 [blen];
   }
 
   else {
     if (_dataLen + blen > _dataMax)
       allocateNewBlock();
 
-    _reads[id]._data = _data + _dataLen;
+    _reads[id]._sData = _data + _dataLen;
   }
 
   //  Copy the data and release the blob.
 
-  memcpy(_reads[id]._data, bptr, blen);
+  memcpy(_reads[id]._sData, bptr, blen);
 
   //  Update the pointer to the next free chunk of storage.
 
-  if (_data != NULL) {
+  if (_data != nullptr) {
     _dataLen += blen;
 
     assert(_dataLen <= _dataMax);
@@ -212,14 +158,81 @@ sqCache::loadRead(uint32 id, uint32 expiration) {
 
 
 void
-sqCache::removeRead(uint32 id) {
+sqCache::loadRead(dnaSeq &seq) {
 
-  if (_data == NULL)
-    delete [] _reads[id]._data;
+  //  Make space for this read.
+  //
+  //  We need space for both metadata (in _reads) and read sequence (in
+  //  _data, etc).  The former we grow by 128k entries whenever needed; the
+  //  latter is allocated initially, then whenever the read data has a chance
+  //  of not fitting in the current chunk.
+  
+  increaseArray(_reads, _readsLen, _readsMax, 131072);
 
-  _reads[id]._data           = NULL;
-  //_reads[id]._dataAge        = 0;
-  _reads[id]._dataExpiration = 0;
+  if (_dataBlocksLen == 0)
+    allocateNewBlock();
+
+  if (_dataLen + 4 + 4 + seq.length() + 4 > _dataMax)
+    allocateNewBlock();
+
+  //  Clear metadata for this read.
+
+  uint32  id = ++_readsLen;
+  uint8  *dd = _data + _dataLen + 8;
+
+  _reads[id]._sLen  = seq.length();
+  _reads[id]._bgn   = 0;
+  _reads[id]._end   = seq.length();
+  _reads[id]._sData = _data + _dataLen;
+
+  //  Save the name to id mapping.
+
+  _nameToID[ std::string(seq.ident()) ] = id;
+
+  //  Encode the data as 2-bit, 3-bit, or plain bases, whatever works first.
+  //  Note the '+8' is to leave space at the start for the AIFF tag and
+  //  length; see sqReadData.C and/or sqReadDataWriter.C for details,
+
+  uint8  tag[4] = { '2', 'S', 'Q', 'R' };
+
+  uint32 el2    =                            encode2bitSequence(dd, seq.bases(), seq.length());
+  uint32 el3    = (el2 == 0)               ? encode3bitSequence(dd, seq.bases(), seq.length()) : 0;
+  uint32 elu    = (el2 == 0) && (el3 == 0) ? encode8bitSequence(dd, seq.bases(), seq.length()) : 0;
+  uint32 ell    = 0;
+
+  //  Store the IFF tag and length at the start of the data block.
+
+  if      (el2 > 0) {
+    //fprintf(stderr, "  read %9u name '%s' length %5lu 2-bit encoded in %4u bytes.\n", id, seq.ident(), seq.length(), el2);
+    tag[0] = '2';
+    ell    = el2;
+  }
+  else if (el3 > 0) {
+    //fprintf(stderr, "  read %9u name '%s' length %5lu 3-bit encoded in %4u bytes.\n", id, seq.ident(), seq.length(), el3);
+    tag[0] = '3';
+    ell    = el3;
+  }
+  else {
+    //fprintf(stderr, "  read %9u name '%s' length %5lu byte encoded in %4u bytes.\n", id, seq.ident(), seq.length(), elu);
+    tag[0] = 'U';
+    ell    = elu;
+  }
+
+  dd = _data + _dataLen;
+
+  memcpy(dd+0,  tag, sizeof(uint8) * 4);
+  memcpy(dd+4, &ell, sizeof(uint32));
+
+  //  Clear any pad bytes at the end of the data.
+
+  uint32 padLen = 4 - (ell % 4);
+
+  for (uint32 ii=0; ii<padLen; ii++)
+    dd[ell + ii] = 0;
+
+  //  Advance the storage pointer.
+
+  _dataLen += 4 + 4 + ell + padLen;
 }
 
 
@@ -228,7 +241,7 @@ char *
 sqCache::sqCache_getSequence(uint32    id) {
   uint32  seqLen = 0;
   uint32  seqMax = 0;
-  char   *seq     = NULL;
+  char   *seq     = nullptr;
 
   return(sqCache_getSequence(id, seq, seqLen, seqMax));
 }
@@ -243,39 +256,39 @@ sqCache::sqCache_getSequence(uint32    id,
 
   //  If not loaded, load it.
 
-  if (_reads[id]._data == NULL)
+  if (_reads[id]._sData == nullptr)
     loadRead(id);
 
   //  Decide how many bases are encoded in the encoding and make space to
   //  decode the entire sequence (that is, the untrimmed sequence).
 
-  resizeArray(seq, 0, seqMax, _reads[id]._basesLength + 1, _raAct::doNothing);
+  resizeArray(seq, 0, seqMax, _reads[id]._sLen + 1, _raAct::doNothing);
 
   //  Decode it.
 
-  char   *cName =  (char *)  (_reads[id]._data + 0);
-  uint32  cLen  = *(uint32 *)(_reads[id]._data + 4);
-  uint8  *chunk     =        (_reads[id]._data + 8);
+  char   *cName =  (char *)  (_reads[id]._sData + 0);
+  uint32  cLen  = *(uint32 *)(_reads[id]._sData + 4);
+  uint8  *chunk     =        (_reads[id]._sData + 8);
 
   if      (((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == '2') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
-    decode2bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
+    decode2bitSequence(chunk, cLen, seq, _reads[id]._sLen);
 
   else if (((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == '3') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
-    decode3bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
+    decode3bitSequence(chunk, cLen, seq, _reads[id]._sLen);
 
   else if (((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'R')) ||
            ((cName[0] == 'U') && (cName[1] == 'S') && (cName[2] == 'Q') && (cName[3] == 'C')))
-    decode8bitSequence(chunk, cLen, seq, _reads[id]._basesLength);
+    decode8bitSequence(chunk, cLen, seq, _reads[id]._sLen);
 
   //  If a compressed read, we need to ... compress it.
   //  If not compressed, the (untrimmed) length is exactly basesLen.
 
   if (_compressed)
-    seqLen = homopolyCompress(seq, _reads[id]._basesLength, seq);
+    seqLen = homopolyCompress(seq, _reads[id]._sLen, seq);
   else
-    seqLen = _reads[id]._basesLength;
+    seqLen = _reads[id]._sLen;
 
   //  If a trimmed read, we need to ... trim it.
   //  If not trimmed, seqLen is already set, as is seq, so we're done.
@@ -289,18 +302,6 @@ sqCache::sqCache_getSequence(uint32    id,
     seq[seqLen] = 0;
   }
 
-  //  If we're tracking age, reset the age to zero.
-
-  if (_trackAge)
-    _reads[id]._dataExpiration = 0;
-
-  //  If we're tracking expiration dates, release the data if we're done.
-
-  if ((_trackExpiration) && (--_reads[id]._dataExpiration == 0)) {
-    //fprintf(stderr, "READ %u expired.\n", id);
-    removeRead(id);
-  }
-
   //  Return the sequence.
 
   return(seq);
@@ -308,24 +309,24 @@ sqCache::sqCache_getSequence(uint32    id,
 
 
 
-void
-sqCache::increaseAge(void) {
-  if (_trackAge == false)
-    return;
+uint32
+sqCache::sqCache_mapNameToID(char const *readName) {
+  auto  elt = _nameToID.find(std::string(readName));
 
-  for (uint32 id=0; id <= _nReads; id++)   //  Add one to the age of
-    if (_reads[id]._data)                  //  any read that is loaded.
-      _reads[id]._dataExpiration++;
+  if (elt == _nameToID.end())
+    return(0);
+  else
+    return(elt->second);
 }
+
+
 
 
 
 //  Just load all reads.
 void
 sqCache::sqCache_loadReads(bool verbose) {
-  sqCache_loadReads((uint32)0, _nReads, verbose);
-
-  _noMoreLoads = true;
+  sqCache_loadReads((uint32)0, _readsLen, verbose);
 }
 
 
@@ -336,7 +337,7 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
   uint64  nBases = 0;
 
   for (uint32 id=bgnID; id <= endID; id++) {
-    if (_reads[id]._basesLength > 0) {
+    if (_reads[id]._sLen > 0) {
       nReads += 1;
       nBases += _reads[id]._end - _reads[id]._bgn;
     }
@@ -345,20 +346,6 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
   if (verbose)
     fprintf(stderr, "Loading %u reads and %lu bases from range %u-%u inclusive.\n",
             nReads, nBases, bgnID, endID);
-
-  //  For 50x human, with N's in the sequence, we need 50 * 3 Gbp / 3 bytes.
-  //  We'll allocate that in nice 32 MB chunks, 1490 chunks.
-  //
-  //  Don't bother pre-allocation dataBlocks; easy enough to do that on the
-  //  fly.
-
-  _dataMax       = 32 * 1024 * 1024;
-  _dataLen       = 0;
-  _data          = NULL;
-
-  _dataBlocksLen = 0;
-  _dataBlocksMax = 0;
-  _dataBlocks    = NULL;
 
   //  Allocate a block.
 
@@ -387,8 +374,6 @@ sqCache::sqCache_loadReads(uint32 bgnID, uint32 endID, bool verbose) {
             bgnID, endID, endID,
             100.0, approxSize);
   }
-
-  _noMoreLoads = true;
 }
 
 
@@ -413,14 +398,20 @@ sqCache::sqCache_loadReads(std::set<uint32> reads, bool verbose) {
 
   if (verbose)
     fprintf(stderr, "\nLoaded " F_SIZE_T " reads.\n", reads.size());
-
-  _noMoreLoads = true;
 }
 
 
 
 //  Load all the reads in a set of IDs, setting age to the second
 //  item in the map.
+//
+//  falconsense gives us a map of readID -> occurrences, which we _could_
+//  use to purge reads from the cache when they're no longer used, or to
+//  only load reads used more than once.  But we don't do that.
+//
+//  There was support for 'expiring' reads and removing their data, which we
+//  don't do anymore either.
+//
 void
 sqCache::sqCache_loadReads(std::map<uint32, uint32> reads, bool verbose) {
   uint32   nToLoad  = reads.size();
@@ -431,11 +422,10 @@ sqCache::sqCache_loadReads(std::map<uint32, uint32> reads, bool verbose) {
   if (verbose)
     fprintf(stderr, "Loading %u reads.\n", nToLoad);
 
-  _trackExpiration = true;
-
   for (auto it=reads.begin(); it != reads.end(); ++it) {
     if (it->second > 0) {
-      loadRead(it->first, it->second);
+      //loadRead(it->first, it->second);
+      loadRead(it->first);
       nLoaded++;
 
     } else {
@@ -448,8 +438,6 @@ sqCache::sqCache_loadReads(std::map<uint32, uint32> reads, bool verbose) {
 
   if (verbose)
     fprintf(stderr, "\nLoaded %u reads; skipped %u singleton reads.\n", nLoaded, nSkipped);
-
-  _noMoreLoads = true;
 }
 
 
@@ -459,16 +447,12 @@ void
 sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
   std::set<uint32>  reads;
 
-  increaseAge();
-
   for (uint32 oo=0; oo<nOvl; oo++) {
     reads.insert(ovl[oo].a_iid);
     reads.insert(ovl[oo].b_iid);
   }
 
   sqCache_loadReads(reads, verbose);
-
-  _noMoreLoads = true;
 }
 
 
@@ -478,8 +462,6 @@ void
 sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
   std::set<uint32>  reads;
 
-  increaseAge();
-
   reads.insert(tig->tigID());
 
   for (uint32 oo=0; oo<tig->numberOfChildren(); oo++)
@@ -487,47 +469,77 @@ sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
       reads.insert(tig->getChild(oo)->ident());
 
   sqCache_loadReads(reads, verbose);
-
-  _noMoreLoads = true;
 }
 
 
 
+//  Load ALL reads in the (possibly compressed) file.  The map<> will allow
+//  mapping between sequence names and the ID used in the cache.
 
-
-#if 0
 void
-sqCache::sqCache_purgeReads(void) {
-  uint32  maxAge     = 0;
-  uint64  memoryUsed = 0;
+sqCache::sqCache_loadReads(char const *filename) {
+  dnaSeqFile *readFile = new dnaSeqFile(filename, false);
+  dnaSeq      readSeq;
 
-  //  Find maxAge, and sum memory used
+  fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
 
-  for (uint32 rr=0; rr <= _nReads; rr++) {
-    if (maxAge < readAge[rr])
-      maxAge = readAge[rr];
+  while (readFile->loadSequence(readSeq) == true) {
+    if ((_readsLen & 0xfff) == 0xfff)
+      fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
 
-    memoryUsed += readLen[rr];
+    loadRead(readSeq);
   }
 
-  //  Purge oldest until memory is below watermark
+  fprintf(stderr, "-- Loaded  reads from '%s': %8lu reads.\n", filename, _readsLen);
 
-  while ((_memoryLimit < memoryUsed) &&
-         (maxAge > 1)) {
-    fprintf(stderr, "purgeReads()--  used " F_U64 "MB limit " F_U64 "MB -- purge age " F_U32 "\n", memoryUsed >> 20, _memoryLimit >> 20, maxAge);
-
-    for (uint32 rr=0; rr <= _nReads; rr++) {
-      if (maxAge == readAge[rr]) {
-        memoryUsed -= readLen[rr];
-
-        delete [] readSeqFwd[rr];  readSeqFwd[rr] = NULL;
-
-        readLen[rr] = 0;
-        readAge[rr] = 0;
-      }
-    }
-
-    maxAge--;
-  }
+  delete readFile;
 }
-#endif
+
+
+
+
+void
+sqCache::sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadDataWriter *wr) {
+  sqReadMeta  readMeta;
+  sqReadSeq   rawU;   rawU.sqReadSeq_initialize();
+  sqReadSeq   rawC;   rawC.sqReadSeq_initialize();
+  sqReadSeq   corU;   corU.sqReadSeq_initialize();
+  sqReadSeq   corC;   corC.sqReadSeq_initialize();
+
+  //  Load the sequence data, then write it out.
+
+  char    *seq    = nullptr;
+  uint32   seqLen = 0;
+  uint32   seqMax = 0;
+
+  sqCache_getSequence(id, seq, seqLen, seqMax);
+  assert(seq[seqLen] == 0);
+
+  //  Create read metadata and write it.
+
+  readMeta.sqReadMeta_initialize(id);
+
+  B->write(&readMeta, sizeof(sqReadMeta));
+
+  //  Create sequence metadata and write it.
+
+  rawU.sqReadSeq_setLength(seq, seqLen, false);
+  rawC.sqReadSeq_setLength(seq, seqLen, true);
+  //corU.sqReadSeq_setLength(seq, seqLen, false);
+  //corC.sqReadSeq_setLength(seq, seqLen, false);
+
+  B->write(&rawU, sizeof(sqReadSeq));
+  B->write(&rawC, sizeof(sqReadSeq));
+  B->write(&corU, sizeof(sqReadSeq));
+  B->write(&corC, sizeof(sqReadSeq));
+
+  //  Import the sequence and metadata to the data writer, then write it.
+
+  wr->sqReadDataWriter_importData("",
+                                  seq,
+                                  seqLen, 0, seqLen,
+                                  &rawU, &rawC, &corU, &corC);
+
+  wr->sqReadDataWriter_writeBlob(B);
+}
+

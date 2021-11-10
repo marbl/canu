@@ -1,5 +1,5 @@
 TARGET   := utgcns
-SOURCES  := utgcns.C stashContains.C unitigConsensus.C
+SOURCES  := utgcns.C stashContains.C unitigPartition.C unitigConsensus.C
 
 SRC_INCDIRS  := .. \
                 ../utility/src/utility \

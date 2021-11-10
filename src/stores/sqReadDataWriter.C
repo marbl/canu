@@ -57,6 +57,47 @@ sqReadDataWriter::sqReadDataWriter_importData(sqRead *read) {
 
 
 
+//  Import data from raw sequence; to be used only for writing utgcns packages!
+void
+sqReadDataWriter::sqReadDataWriter_importData(char const *readName,
+                                              char const *readBases,
+                                              uint32      readLength, uint32 bgn, uint32 end,
+                                              sqReadSeq  *rawU,
+                                              sqReadSeq  *rawC,
+                                              sqReadSeq  *corU,
+                                              sqReadSeq  *corC) {
+
+  _meta = nullptr;   //  Not used.
+  _rawU = rawU;
+  _rawC = rawC;
+  _corU = corU;
+  _corC = corC;
+
+  assert(bgn == 0);
+  assert(end == readLength);   //  Don't support trimming yet.
+
+  uint32   namLen = strlen(readName);
+  uint32   rawLen = readLength;
+  uint32   corLen = 0;
+
+  assert(readLength == strlen(readBases));
+
+  assert(0 == readName[namLen]);
+  assert(0 == readBases[rawLen]);
+  //assert(0 == read->_corBases[corLen]);
+
+  duplicateArray(_name,     _nameLen,     _nameAlloc,     readName,     namLen + 1);
+  duplicateArray(_rawBases, _rawBasesLen, _rawBasesAlloc, readBases,    rawLen + 1);
+  //duplicateArray(_corBases, _corBasesLen, _corBasesAlloc, read->_corBases, corLen + 1);
+
+  assert(0 == _name[namLen]);
+  assert(0 == _rawBases[rawLen]);
+  //assert(0 == _corBases[corLen]);
+}
+
+
+
+
 void
 sqReadDataWriter::sqReadDataWriter_setName(const char *N) {
   duplicateArray(_name, _nameLen, _nameAlloc, N, (uint32)strlen(N) + 1);
@@ -142,25 +183,29 @@ sqReadDataWriter::sqReadDataWriter_writeBlob(writeBuffer *buffer) {
   if ((_rawBases != NULL) && (_rawBases[0] != 0)) {
     assert(_rawBasesLen > 0);
 
-    assert(_rawU->sqReadSeq_valid() == true);   //  setRawBases() should be setting this true.
-    assert(_rawC->sqReadSeq_valid() == true);
+    if (_rawU)  assert(_rawU->sqReadSeq_valid() == true);   //  setRawBases() should be setting this true.
+    if (_rawC)  assert(_rawC->sqReadSeq_valid() == true);
+
+    if (_rawU)  assert(_rawBasesLen-1 == _rawU->sqReadSeq_length());
 
     rseq     = NULL;
-    rseq2Len =                                      encode2bitSequence(rseq, _rawBases, _rawU->sqReadSeq_length());
-    rseq3Len = (rseq2Len == 0)                    ? encode3bitSequence(rseq, _rawBases, _rawU->sqReadSeq_length()) : 0;
-    rseqULen = (rseq2Len == 0) && (rseq3Len == 0) ? encode8bitSequence(rseq, _rawBases, _rawU->sqReadSeq_length()) : 0;
+    rseq2Len =                                      encode2bitSequence(rseq, _rawBases, _rawBasesLen-1);
+    rseq3Len = (rseq2Len == 0)                    ? encode3bitSequence(rseq, _rawBases, _rawBasesLen-1) : 0;
+    rseqULen = (rseq2Len == 0) && (rseq3Len == 0) ? encode8bitSequence(rseq, _rawBases, _rawBasesLen-1) : 0;
   }
 
   if ((_corBases != NULL) && (_corBases[0] != 0)) {
     assert(_corBasesLen > 0);
 
-    assert(_corU->sqReadSeq_valid() == true);   //  setCorrectedBases should be setting this true.
-    assert(_corC->sqReadSeq_valid() == true);
+    if (_corU)  assert(_corU->sqReadSeq_valid() == true);   //  setCorrectedBases should be setting this true.
+    if (_corC)  assert(_corC->sqReadSeq_valid() == true);
+
+    if (_corU)  assert(_corBasesLen-1 == _corU->sqReadSeq_length());
 
     cseq     = NULL;
-    cseq2Len =                                      encode2bitSequence(cseq, _corBases, _corU->sqReadSeq_length());
-    cseq3Len = (cseq2Len == 0)                    ? encode3bitSequence(cseq, _corBases, _corU->sqReadSeq_length()) : 0;
-    cseqULen = (cseq2Len == 0) && (cseq3Len == 0) ? encode8bitSequence(cseq, _corBases, _corU->sqReadSeq_length()) : 0;
+    cseq2Len =                                      encode2bitSequence(cseq, _corBases, _corBasesLen-1);
+    cseq3Len = (cseq2Len == 0)                    ? encode3bitSequence(cseq, _corBases, _corBasesLen-1) : 0;
+    cseqULen = (cseq2Len == 0) && (cseq3Len == 0) ? encode8bitSequence(cseq, _corBases, _corBasesLen-1) : 0;
   }
 
   //  Write the header and name.

@@ -274,6 +274,7 @@ private:
 
   friend class sqRead;
   friend class sqStore;
+  friend class sqCache;
   friend class sqStoreInfo;
   friend class sqReadDataWriter;
 };
@@ -560,6 +561,13 @@ public:
 
 public:
   void        sqReadDataWriter_importData(sqRead *read);
+  void        sqReadDataWriter_importData(char const *readName,
+                                          char const *readBases,
+                                          uint32      readLength, uint32 bgn, uint32 end,
+                                          sqReadSeq  *rawU,
+                                          sqReadSeq  *rawC,
+                                          sqReadSeq  *corU,
+                                          sqReadSeq  *corC);
 
   void        sqReadDataWriter_setName(const char *N);
   void        sqReadDataWriter_setRawBases(const char *S, uint32 Slen);
