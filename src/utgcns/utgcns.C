@@ -156,6 +156,8 @@ processImportedTigs(cnsParameters  &params) {
 
     if (tig->numberOfChildren() > 1) {
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
+    } else {
+      fprintf(stdout, "%7u %9u %7u\n", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
     //  Stash excess coverage.  Singletons report no logging.

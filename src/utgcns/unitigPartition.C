@@ -135,13 +135,9 @@ tigPartitioning::greedilyPartition(double   partitionSizeScale,
     maxArea = uint64max;
 
   if (verbose) {
-    //fprintf(stderr, "\n");
-    //fprintf(stderr, "maxArea  = %s\n", 
-    //fprintf(stderr, "maxReads = %u\n",  maxReads);
-    //fprintf(stderr, "\n");
-    fprintf(stderr, "--------------------- TIG -------------------  ------- PARTITION --------  maxArea:  %s\n", (maxArea != uint64max) ? toDec(maxArea) : "infinite");
-    fprintf(stderr, "    ID   Reads    Length         Area Mem(GB)    ID   Total Area TotReads  maxReads: %u\n", maxReads);
-    fprintf(stderr, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
+    fprintf(stdout, "--------------------- TIG -------------------  ------- PARTITION --------  maxArea:  %s\n", (maxArea != uint64max) ? toDec(maxArea) : "infinite");
+    fprintf(stdout, "    ID   Reads    Length         Area Mem(GB)    ID   Total Area TotReads  maxReads: %u\n", maxReads);
+    fprintf(stdout, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
   }
 
   while (stillMore) {
@@ -173,7 +169,7 @@ tigPartitioning::greedilyPartition(double   partitionSizeScale,
         currentChildren += _tigInfo[ti].tigChildren;
 
         if (verbose)
-          fprintf(stderr, "%6u %7lu %9lu %12lu %7.3f  %4u %12lu %8u\n",
+          fprintf(stdout, "%6u %7lu %9lu %12lu %7.3f  %4u %12lu %8u\n",
                   _tigInfo[ti].tigID,
                   _tigInfo[ti].tigChildren,
                   _tigInfo[ti].tigLength,
@@ -198,10 +194,20 @@ tigPartitioning::greedilyPartition(double   partitionSizeScale,
     currentChildren = 0;
   }
 
-  if (verbose)
-    fprintf(stderr, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
+  //  All done.
 
   _nPartitions = currentPart;
+
+  if (verbose)
+    fprintf(stdout, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
+
+  //  Resort back to tigID order.
+
+  auto byTigID = [](tigInfo const &A, tigInfo const &B) {
+    return(A.tigID < B.tigID);
+  };
+
+  std::sort(_tigInfo.begin(), _tigInfo.end(), byTigID);
 }
 
 
@@ -209,14 +215,6 @@ tigPartitioning::greedilyPartition(double   partitionSizeScale,
 void
 tigPartitioning::outputPartitions(sqStore *seqStore, tgStore *tigStore, char const *storeName) {
   std::map<uint32, uint32>   readToPart;
-
-  //  Sort by tigID.
-
-  auto byTigID = [](tigInfo const &A, tigInfo const &B) {
-    return(A.tigID < B.tigID);
-  };
-
-  std::sort(_tigInfo.begin(), _tigInfo.end(), byTigID);
 
   //  Build a mapping from readID to partitionID.
 

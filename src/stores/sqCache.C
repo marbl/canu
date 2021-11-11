@@ -484,7 +484,7 @@ sqCache::sqCache_loadReads(char const *filename) {
   fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
 
   while (readFile->loadSequence(readSeq) == true) {
-    if ((_readsLen & 0xfff) == 0xfff)
+    if ((_readsLen & 0x1ff) == 0x1ff)
       fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
 
     loadRead(readSeq);
