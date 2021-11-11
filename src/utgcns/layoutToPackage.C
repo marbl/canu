@@ -234,7 +234,7 @@ main(int argc, char **argv) {
   //  Output each tig to the correct package.
   //
 
-  fprintf(stderr, "-- Creating packages with %lu tigs.\n", tigs.size());
+  fprintf(stderr, "-- Creating packages with %lu tigs.\n", tigs.size() - 1);
 
   for (uint32 ti=0; ti<tigs.size(); ti++)
     if (tigs[ti])

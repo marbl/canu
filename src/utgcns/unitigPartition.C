@@ -201,7 +201,7 @@ tigPartitioning::greedilyPartition(double   partitionSizeScale,
   if (verbose)
     fprintf(stderr, "------ ------- --------- ------------ -------  ---- ------------ --------\n");
 
-  _nPartitions = currentPart - 1;
+  _nPartitions = currentPart;
 }
 
 
