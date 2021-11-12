@@ -35,6 +35,8 @@ void
 loadVerkkoLayouts(sqCache              *reads,
                   std::vector<tgTig *> &tigs,
                   compressedFileReader *layoutFile) {
+  std::vector<char const *>  err;
+  char         *s = new char[1024];   
   splitToWords  W;
   uint32        lineLen = 0;
   uint32        lineMax = 0;
@@ -53,9 +55,11 @@ loadVerkkoLayouts(sqCache              *reads,
     if      (nReads > 0) {
       uint32  id = reads->sqCache_mapNameToID(W[0]);
 
-      if (id == 0)
-        assert(0);  //  Error!  Unknown read name!
-
+      if (id == 0) { 
+         snprintf(s, 1024, "ERROR: Read '%s' was not found.\n", W[0]);
+         err.push_back(s);
+         continue; 
+      }
       tig->addChild()->set(id, 0, 0, 0, strtouint32(W[1]), strtouint32(W[2]));
 
       nReads--;
@@ -76,20 +80,34 @@ loadVerkkoLayouts(sqCache              *reads,
     }
 
     else if (strcmp(W[0], "end") == 0) {
-      assert(nReads == 0);
-
-      fprintf(stderr, "-- Loading layouts - tig %6u of length %9u bp with %7u reads\n", tig->tigID(), tig->length(), tig->numberOfChildren());
-      tigs.push_back(tig);
+      if (nReads == 0) {
+         snprintf(s, 1024, "Error: Tig '%d' has no reads\n", tig->tigID());
+         err.push_back(s);
+      } else {
+         fprintf(stderr, "-- Loading layouts - tig %6u of length %9u bp with %7u reads\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+         tigs.push_back(tig);
+      }
       tig = new tgTig;
     }
 
     else {
+      fprintf(stderr, "ERROR: Uknown input line %s\n", W[0]);
       assert(0);  //  Error!  Unknown line!
     }
   }
 
   delete [] line;
   delete    tig;
+  delete [] s;
+
+  if (err.size() > 0) {
+    fprintf(stderr, "ERROR: loading layouts failed, check your input sequences and layout file!");
+    fprintf(stderr, "\n");
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
+    assert(0); 
+  }
 }
 
 
