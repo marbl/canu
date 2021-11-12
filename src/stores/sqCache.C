@@ -167,7 +167,7 @@ sqCache::loadRead(dnaSeq &seq) {
   //  latter is allocated initially, then whenever the read data has a chance
   //  of not fitting in the current chunk.
   
-  increaseArray(_reads, _readsLen, _readsMax, 131072);
+  increaseArray(_reads, _readsLen+1, _readsMax, 131072);
 
   if (_dataBlocksLen == 0)
     allocateNewBlock();
@@ -541,5 +541,7 @@ sqCache::sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
                                   &rawU, &rawC, &corU, &corC);
 
   wr->sqReadDataWriter_writeBlob(B);
+
+  delete [] seq;
 }
 
