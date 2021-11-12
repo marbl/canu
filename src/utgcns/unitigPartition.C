@@ -214,7 +214,7 @@ tigPartitioning::greedilyPartition(double   partitionSizeScale,
 
 void
 tigPartitioning::outputPartitions(sqStore *seqStore, tgStore *tigStore, char const *storeName) {
-  std::map<uint32, uint32>   readToPart;
+  std::map<uint32, std::set<uint32>>   readToPart;
 
   //  Build a mapping from readID to partitionID.
 
@@ -223,7 +223,7 @@ tigPartitioning::outputPartitions(sqStore *seqStore, tgStore *tigStore, char con
       tgTig  *tig = tigStore->loadTig(_tigInfo[ti].tigID);
 
       for (uint32 fi=0; fi<tig->numberOfChildren(); fi++)
-        readToPart[tig->getChild(fi)->ident()] = _tigInfo[ti].partition;
+        readToPart[tig->getChild(fi)->ident()].insert(_tigInfo[ti].partition);
 
       tigStore->unloadTig(_tigInfo[ti].tigID);
     }
@@ -255,7 +255,8 @@ tigPartitioning::outputPartitions(sqStore *seqStore, tgStore *tigStore, char con
 
   for (uint32 fi=1; fi<seqStore->sqStore_lastReadID()+1; fi++)
     if (readToPart.count(fi) > 0)
-      seqStore->sqStore_saveReadToBuffer(parts[readToPart[fi]], fi, rd, wr);
+      for (uint32 p: readToPart[fi])
+         seqStore->sqStore_saveReadToBuffer(parts[p], fi, rd, wr);
 
   delete    wr;
   delete    rd;
