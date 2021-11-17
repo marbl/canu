@@ -28,21 +28,30 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <fstream>
 
 
 
 void
 loadVerkkoLayouts(sqCache              *reads,
                   std::vector<tgTig *> &tigs,
-                  compressedFileReader *layoutFile) {
+                  compressedFileReader *layoutFile,
+                  const char           *outputPrefix) {
+
   uint32        err = 0;
   splitToWords  W;
   uint32        lineLen = 0;
   uint32        lineMax = 0;
   char         *line    = nullptr;
 
-  tgTig        *tig    = new tgTig;
-  uint32        nReads = 0;
+  tgTig        *tig     = new tgTig;
+  uint32        nReads  = 0;
+  char          fname[FILENAME_MAX+1];
+
+  snprintf(fname, FILENAME_MAX, "%s.tig_names.txt", outputPrefix);
+  std::ofstream tigNames(fname, std::ofstream::out);
+  snprintf(fname, FILENAME_MAX, "%s.readNames.txt", outputPrefix);
+  std::ofstream readNames(fname, std::ofstream::out);
 
   //  A real tigStore doesn't have a zeroth tig, and we maintain that here by
   //  adding a nullptr to our list.
@@ -58,8 +67,10 @@ loadVerkkoLayouts(sqCache              *reads,
          fprintf(stderr, "ERROR: While processing tig %d, Read '%s' was not found.\n", tig->tigID(), W[0]);
          err++;
       }
-      else
+      else {
          tig->addChild()->set(id, 0, 0, 0, strtouint32(W[1]), strtouint32(W[2]));
+         readNames << W[0] << "\t" << id << "\t" << tig->tigID() << std::endl; 
+      }
 
       nReads--;
     }
@@ -67,6 +78,7 @@ loadVerkkoLayouts(sqCache              *reads,
     else if (strcmp(W[0], "tig") == 0) {
 #warning still need to save tigName somewhere
       tig->_tigID = tigs.size();
+      tigNames << tig->tigID() << "\t" << W[1] << std::endl;
       //tig->_tigName = duplicateString(W[1]);
     }
 
@@ -96,6 +108,8 @@ loadVerkkoLayouts(sqCache              *reads,
 
   delete [] line;
   delete    tig;
+  tigNames.close();
+  readNames.close();
 
   if (err > 0) {
     fprintf(stderr, "ERROR: loading layouts failed, check your input sequences and layout file!");
@@ -208,7 +222,7 @@ main(int argc, char **argv) {
   std::vector<tgTig *>   tigs;
   compressedFileReader  *layoutFile = new compressedFileReader(layoutFilename);
 
-  loadVerkkoLayouts(reads, tigs, layoutFile);
+  loadVerkkoLayouts(reads, tigs, layoutFile, outputPrefix);
 
   delete layoutFile;
 
