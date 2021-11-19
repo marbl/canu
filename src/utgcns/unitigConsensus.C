@@ -543,13 +543,13 @@ unitigConsensus::generateTemplateStitch(void) {
          if (increasedOverlap == false) {
             if (showAlgorithm()) fprintf(stderr, "  Increase allowed overlap!\n");
 
-            increasedOverlap=true;
+             increasedOverlap=true;
              tryAgain=true;
              // first time we hit this, try increasing overlap size and reset parameters
              templateSize  = 0.90;
              extensionSize = 0.10;
              bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
-             olapLen       *= 2.5;
+             olapLen       = (olapLen*2.5 > tiglen ? tiglen-1 : olapLen*2.5);
          } else if (increasedOverlap == true && decreasedOverlap == false) {
             if (showAlgorithm()) fprintf(stderr, "  Decrease allowed overlap!\n");
             decreasedOverlap=true;
@@ -557,13 +557,13 @@ unitigConsensus::generateTemplateStitch(void) {
             templateSize  = 0.90;
             extensionSize = 0.10;
             bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
-            olapLen       /= 2.5;
+            olapLen       = origLen;
             olapLen       /= 2;
          } else {
             if (showAlgorithm()) fprintf(stderr, "  Fail!\n");
 
             tryAgain = false;
-            olapLen=origLen;
+            olapLen = origLen;
          }
       }
       else {
