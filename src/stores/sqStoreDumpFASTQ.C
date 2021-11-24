@@ -24,13 +24,57 @@
 #include "clearRangeFile.H"
 
 
+class params {
+public:
+  params() {
+  }
+  ~params() {
+    delete    seqStore;
+    delete    read;
+    delete [] readName;
+    delete [] seq;
+    delete [] qlt;
+  }
+
+  char            *seqStoreName  = nullptr;
+  sqStore         *seqStore      = nullptr;
+  uint32           numReads      = 0;
+  uint32           numLibs       = 0;
+
+  sqRead          *read          = new sqRead();
+  char            *readName      = new char [1024];
+  char            *seq           = new char [AS_MAX_READLEN + 1];
+  char            *qlt           = new char [AS_MAX_READLEN + 1];
+
+  char            *outPrefix     = nullptr;
+  char            *outSuffix     = nullptr;
+
+  uint32           libToDump     = 0;
+
+  uint32           bgnID         = 1;
+  uint32           endID         = uint32max;
+  std::set<uint32> setIDs;
+
+  sqRead_which     readType      = sqRead_unset;
+
+  bool             dumpFASTQ     = true;
+
+  bool             withLibName   = true;
+  bool             withReadName  = true;
+
+  bool             asReverse     = false;
+};
+
+
+
+
 //  Write sequence in multiple formats.  This used to write to four fastq
 //  files, the .1, .2, .paired and .unmated.  It's left around for future
 //  expansion to .fastq and .bax.h5.
 //
 class libOutput {
 public:
-  libOutput(char const *outPrefix, char const *outSuffix, char const *libName = NULL) {
+  libOutput(char const *outPrefix, char const *outSuffix, char const *libName = nullptr) {
     strcpy(_p, outPrefix);
 
     if (outSuffix[0])
@@ -43,9 +87,9 @@ public:
     else
       _n[0] = 0;
 
-    _WRITER = NULL;
-    _FASTA  = NULL;
-    _FASTQ  = NULL;
+    _WRITER = nullptr;
+    _FASTA  = nullptr;
+    _FASTQ  = nullptr;
   };
 
   ~libOutput() {
@@ -124,7 +168,6 @@ private:
 
 
 
-
 char *
 scanPrefix(char *prefix) {
   int32 len = strlen(prefix);
@@ -149,34 +192,83 @@ scanPrefix(char *prefix) {
 
 
 
+//  If arg has commas, or if bgnID or endID have been set, store the IDs to dump in setIDs.
+void
+decodeRange(char const *arg, uint32 &bgnID, uint32 &endID, std::set<uint32> &setIDs) {
+  char const *comma = strchr(arg, ',');
+
+  if ((bgnID != 1) || (endID != uint32max)) {
+    for (uint32 ii=bgnID; ii<endID; ii++)
+      setIDs.insert(ii);
+
+    bgnID = 1;
+    endID = uint32max;
+  }
+
+  if ((comma != nullptr) ||
+      (setIDs.size() > 0))
+    decodeRange(arg, setIDs);
+  else
+    decodeRange(arg, bgnID, endID);
+}
+
+
+
+void
+dumpRead(params &p, libOutput **out, uint32 rid) {
+  uint32       libID  = p.seqStore->sqStore_getLibraryIDForRead(rid);
+
+  //  Skip the read if it isn't in our library.
+  if ((p.libToDump != 0) && (libID != p.libToDump))
+    return;
+
+  //  Skip the read if it is ignored or not valid.
+  if ((p.seqStore->sqStore_isValidRead(rid)   == false) ||
+      (p.seqStore->sqStore_isIgnoredRead(rid) == true))
+    return;
+
+  //  Skip the read if it's out of range.
+  if (p.numReads < rid)
+    return;
+
+  //  Dump the read.  The store does all trimming and compressing, we just
+  //  need to (maybe) reverse-complement it, and print it.
+
+  p.seqStore->sqStore_getRead(rid, p.read);     //  Load the sequence data.
+
+  uint32   seqLen = p.seqStore->sqStore_getReadLength(rid);
+  char    *S      = p.read->sqRead_sequence();
+
+  for (uint32 i=0; i<seqLen; i++) {             //  Create a QV string.
+    p.seq[i] = S[i];
+    p.qlt[i] = '!';
+  }
+  p.seq[seqLen] = 0;
+  p.qlt[seqLen] = 0;
+
+  if (p.asReverse)                              //  Reverse complement?
+    reverseComplement(p.seq, p.qlt, seqLen);
+
+  //  Print the read.
+
+  uint32  outid = (p.withLibName == false) ? 0 : libID;
+
+  if (p.withReadName)
+    snprintf(p.readName, 1024, "%s id=" F_U32, p.read->sqRead_name(), rid);
+  else
+    snprintf(p.readName, 1024, "read" F_U32, rid);
+
+  if (p.dumpFASTQ)
+    outputFASTQ(out[outid]->getFASTQ(), p.seq, p.qlt, seqLen,    "%s", p.readName);
+  else
+    outputFASTA(out[outid]->getFASTA(), p.seq,        seqLen, 0, "%s", p.readName);
+}
+
+
 
 int
 main(int argc, char **argv) {
-  char            *seqStoreName      = NULL;
-
-  char            *outPrefix         = NULL;
-  char            *outSuffix         = NULL;
-
-  uint32           libToDump         = 0;
-
-  uint32           bgnID             = 1;
-  uint32           endID             = UINT32_MAX;
-
-  sqRead_which     readType          = sqRead_unset;
-
-#if 0
-  char            *clrName           = NULL;
-  bool             dumpAllReads      = false;
-  bool             dumpAllBases      = false;
-  bool             dumpOnlyDeleted   = false;
-#endif
-
-  bool             dumpFASTQ         = true;
-
-  bool             withLibName       = true;
-  bool             withReadName      = true;
-
-  bool             asReverse         = false;
+  params           p;
 
   argc = AS_configure(argc, argv, 1);
 
@@ -184,69 +276,47 @@ main(int argc, char **argv) {
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-S") == 0) {
-      seqStoreName = argv[++arg];
+      p.seqStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      outPrefix = argv[++arg];
-      outSuffix = scanPrefix(outPrefix);
-
+      p.outPrefix = argv[++arg];
+      p.outSuffix = scanPrefix(p.outPrefix);
 
     } else if (strcmp(argv[arg], "-l") == 0) {
-      libToDump = atoi(argv[++arg]);
-
+      p.libToDump = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      decodeRange(argv[++arg], bgnID, endID);
+      decodeRange(argv[++arg], p.bgnID, p.endID, p.setIDs);
 
 
     } else if (strcmp(argv[arg], "-raw") == 0) {
-      readType &= ~sqRead_corrected;
-      readType |=  sqRead_raw;
-
+      p.readType &= ~sqRead_corrected;
+      p.readType |=  sqRead_raw;
     } else if (strcmp(argv[arg], "-corrected") == 0) {
-      readType &= ~sqRead_raw;
-      readType |=  sqRead_corrected;
-
+      p.readType &= ~sqRead_raw;
+      p.readType |=  sqRead_corrected;
     } else if (strcmp(argv[arg], "-trimmed") == 0) {
-      readType |=  sqRead_trimmed;
-
+      p.readType |=  sqRead_trimmed;
     } else if (strcmp(argv[arg], "-compressed") == 0) {
-      readType |=  sqRead_compressed;
-
+      p.readType |=  sqRead_compressed;
     } else if (strcmp(argv[arg], "-normal") == 0) {
-      readType |=  sqRead_normal;
-
-#if 0
-    } else if (strcmp(argv[arg], "-c") == 0) {
-      clrName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-allreads") == 0) {
-      dumpAllReads    = true;
-
-    } else if (strcmp(argv[arg], "-allbases") == 0) {
-      dumpAllBases    = true;
-
-    } else if (strcmp(argv[arg], "-onlydeleted") == 0) {
-      dumpOnlyDeleted = true;
-      dumpAllReads    = true;  //  Otherwise we won't report the deleted reads!
-#endif
+      p.readType |=  sqRead_normal;
 
 
     } else if (strcmp(argv[arg], "-fastq") == 0) {
-      dumpFASTQ       = true;
-
+      p.dumpFASTQ       = true;
     } else if (strcmp(argv[arg], "-fasta") == 0) {
-      dumpFASTQ       = false;
+      p.dumpFASTQ       = false;
 
 
     } else if (strcmp(argv[arg], "-nolibname") == 0) {
-      withLibName     = false;
+      p.withLibName     = false;
 
     } else if (strcmp(argv[arg], "-noreadname") == 0) {
-      withReadName    = false;
+      p.withReadName    = false;
 
     } else if (strcmp(argv[arg], "-reverse") == 0) {
-      asReverse       = true;
+      p.asReverse       = true;
 
 
     } else {
@@ -256,9 +326,9 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (seqStoreName == NULL)
+  if (p.seqStoreName == nullptr)
     err++;
-  if (outPrefix == NULL)
+  if (p.outPrefix == nullptr)
     err++;
   if (err) {
     fprintf(stderr, "usage: %s -S seqStore -o out-prefix [...]\n", argv[0]);
@@ -300,111 +370,84 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
 #endif
 
-    if (seqStoreName == NULL)
+    if (p.seqStoreName == nullptr)
       fprintf(stderr, "ERROR: no seqStore (-S) supplied.\n");
-    if (outPrefix == NULL)
+    if (p.outPrefix == nullptr)
       fprintf(stderr, "ERROR: no output prefix (-o) supplied.\n");
 
     exit(1);
   }
 
-  sqRead_setDefaultVersion(readType);
+  //  Open the store.
 
-  sqStore        *seqStore  = new sqStore(seqStoreName, sqStore_readOnly);
-  uint32          numReads  = seqStore->sqStore_lastReadID();
-  uint32          numLibs   = seqStore->sqStore_lastLibraryID();
+  sqRead_setDefaultVersion(p.readType);
 
-  fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", seqStoreName, sqRead_getDefaultVersion());
+  p.seqStore  = new sqStore(p.seqStoreName, sqStore_readOnly);
+  p.numReads  = p.seqStore->sqStore_lastReadID();
+  p.numLibs   = p.seqStore->sqStore_lastLibraryID();
 
-#if 0
-  clearRangeFile *clrRange  = (clrName == NULL) ? NULL : new clearRangeFile(clrName, seqStore);
-#endif
+  fprintf(stderr, "Opened seqStore '%s' for '%s' reads.\n", p.seqStoreName, sqRead_getDefaultVersion());
 
-  if (bgnID < 1)
-    bgnID = 1;
+  //  Check ranges.
 
-  if (numReads < endID)
-    endID = numReads;
+  if (p.setIDs.size() > 0) {
+    uint32  nInv = 0;
+    uint32  minID = uint32max;
+    uint32  maxID = 0;
 
-  if (endID < bgnID)
-    fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID), exit(1);
+    for (auto id=p.setIDs.begin(); id != p.setIDs.end(); id++) {
+      minID = std::min(*id, minID);
+      maxID = std::max(*id, maxID);
 
+      if ((*id < 1) ||
+          (p.numReads < *id)) {
+        fprintf(stderr, "ERROR: id %u is not a valid read (range %u-%u).\n", *id, 1, p.numReads);
+        nInv++;
+      }
 
-  fprintf(stderr, "Dumping %s reads from %u to %u (inclusive).\n",
-          toString(sqRead_defaultVersion), bgnID, endID);
+      if (nInv > 0)
+        fprintf(stderr, "Invalid read IDs detected.  No reads dumped.\n"), exit(1);
+    }
 
+    fprintf(stderr, "Dumping %u %s reads between %u and %u (inclusive).\n",
+            p.setIDs.size(), toString(sqRead_defaultVersion), minID, maxID);
+  }
+  else {
+    if (p.bgnID < 1)           p.bgnID = 1;
+    if (p.numReads < p.endID)  p.endID = p.numReads;
+
+    if (p.endID < p.bgnID)
+      fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", p.bgnID, p.endID), exit(1);
+
+    fprintf(stderr, "Dumping %s reads from %u to %u (inclusive).\n",
+            toString(sqRead_defaultVersion), p.bgnID, p.endID);
+  }
 
   //  Allocate outputs.  If withLibName == false, all reads will artificially be in lib zero, the
   //  other files won't ever be created.  Otherwise, the zeroth file won't ever be created.
 
-  libOutput   **out = new libOutput * [numLibs + 1];
+  libOutput   **out = new libOutput * [p.numLibs + 1];
 
-  out[0] = new libOutput(outPrefix, outSuffix, NULL);
+  out[0] = new libOutput(p.outPrefix, p.outSuffix, nullptr);
 
-  for (uint32 i=1; i<=numLibs; i++)
-    out[i] = new libOutput(outPrefix, outSuffix, seqStore->sqStore_getLibrary(i)->sqLibrary_libraryName());
+  for (uint32 i=1; i<=p.numLibs; i++)
+    out[i] = new libOutput(p.outPrefix, p.outSuffix, p.seqStore->sqStore_getLibrary(i)->sqLibrary_libraryName());
 
+  //  Dump!
 
+  if (p.setIDs.size() > 0)
+    for (auto id=p.setIDs.begin(); id != p.setIDs.end(); id++)
+      dumpRead(p, out, *id);
 
-  sqRead       *read      = new sqRead();
-  char         *readName  = new char [1024];
-  char         *seq       = new char [AS_MAX_READLEN + 1];
-  char         *qlt       = new char [AS_MAX_READLEN + 1];
+  else
+    for (uint32 rid=p.bgnID; rid<=p.endID; rid++)
+      dumpRead(p, out, rid);
 
-  for (uint32 rid=bgnID; rid<=endID; rid++) {
-    uint32       libID  = seqStore->sqStore_getLibraryIDForRead(rid);
+  //  Cleanup.
 
-    //  Skip the read if it isn't in our library.
-    if ((libToDump != 0) && (libID != libToDump))
-      continue;
-
-    //  Skip the read if it is ignored or not valid.
-    if ((seqStore->sqStore_isValidRead(rid)   == false) ||
-        (seqStore->sqStore_isIgnoredRead(rid) == true))
-      continue;
-
-    //  Dump the read.  The store does all trimming and compressing, we just
-    //  need to (maybe) reverse-complement it, and print it.
-
-    seqStore->sqStore_getRead(rid, read);       //  Load the sequence data.
-
-    uint32   seqLen = seqStore->sqStore_getReadLength(rid);
-    char    *S      = read->sqRead_sequence();
-
-    for (uint32 i=0; i<seqLen; i++) {           //  Create a QV string.
-      seq[i] = S[i];
-      qlt[i] = '!';
-    }
-    seq[seqLen] = 0;
-    qlt[seqLen] = 0;
-
-    if (asReverse)                              //  Reverse complement?
-      reverseComplement(seq, qlt, seqLen);
-
-    //  Print the read.
-
-    uint32  outid = (withLibName == false) ? 0 : libID;
-
-    if (withReadName)
-      snprintf(readName, 1024, "%s id=" F_U32, read->sqRead_name(), rid);
-    else
-      snprintf(readName, 1024, "read" F_U32, rid);
-
-    if (dumpFASTQ)
-      outputFASTQ(out[outid]->getFASTQ(), seq, qlt, seqLen,    "%s", readName);
-    else
-      outputFASTA(out[outid]->getFASTA(), seq,      seqLen, 0, "%s", readName);
-  }
-
-  delete    read;
-  delete [] readName;
-  delete [] qlt;
-
-  for (uint32 i=0; i<=numLibs; i++)
+  for (uint32 i=0; i<=p.numLibs; i++)
     delete out[i];
   delete [] out;
-
-  delete seqStore;
 
   exit(0);
 }
