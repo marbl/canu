@@ -62,6 +62,7 @@ public:
 
   char                   *exportName     = nullptr;
   char                   *importName     = nullptr;
+  bool                    dumpImport     = false;
 
   char                    algorithm = 'P';
   char                    aligner   = 'E';
@@ -144,8 +145,13 @@ printHeader(cnsParameters  &params) {
 void
 processImportedTigs(cnsParameters  &params) {
   readBuffer *importFile      = new readBuffer(params.importName);
-  FILE       *importedLayouts = AS_UTL_openOutputFile(params.importName, '.', "layout");
-  FILE       *importedReads   = AS_UTL_openOutputFile(params.importName, '.', "fasta");
+  FILE       *importedLayouts = nullptr;
+  FILE       *importedReads   = nullptr;
+
+  if (params.dumpImport) {
+    importedLayouts = AS_UTL_openOutputFile(params.importName, '.', "layout");
+    importedReads   = AS_UTL_openOutputFile(params.importName, '.', "fasta");
+  }
 
   tgTig                       *tig = new tgTig();
   std::map<uint32, sqRead *>   reads;
@@ -537,6 +543,10 @@ main(int argc, char **argv) {
       params.importName = argv[++arg];
     }
 
+    else if (strcmp(argv[arg], "-dumpimport") == 0) {
+      params.dumpImport = true;
+    }
+
     else if (strcmp(argv[arg], "-e") == 0) {
       params.errorRate = strtodouble(argv[++arg]);
     }
@@ -616,7 +626,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "                        'utgcns -O'             (binary multialignment format)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -import name    Load tig and reads from file 'name' created with -export.  This\n");
-    fprintf(stderr, "                    is usually used by developers.\n");
+    fprintf(stderr, "                    is usually used by developers (and Verkko).\n");
+    fprintf(stderr, "    -dumpimport     Write the layout and reads from the import file to files\n");
+    fprintf(stderr, "                    'name.layout' and 'name.fasta'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -partition a b c\n");
