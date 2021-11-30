@@ -411,13 +411,13 @@ unitigConsensus::generateTemplateStitch(void) {
 
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
     int32            origLen       = olapLen;
- 
+
     if (olapLen < minOlap) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
                 olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
       if (olapLen > 50) {
-         olapLen = std::min(ePos, minOlap); 
+         olapLen = std::min(ePos, minOlap);
       } else {
          // hack for mikkos consensus to prevent overlaps
          olapLen=10;
@@ -567,7 +567,7 @@ unitigConsensus::generateTemplateStitch(void) {
          }
       }
       else {
-        if (showAlgorithm()) 
+        if (showAlgorithm())
           fprintf(stderr, "generateTemplateStitch()-- FAILED to align at %.2f error rate, increasing to %.2f\n", bandErrRate, bandErrRate + _errorRate/ERROR_RATE_FACTOR);
         tryAgain = true;
         templateSize  = 0.90;
@@ -655,7 +655,7 @@ unitigConsensus::generateTemplateStitch(void) {
 }
 
 
- 
+
 bool
 alignEdLib(dagAlignment      &aln,
            tgPosition        &utgpos,
@@ -1394,7 +1394,7 @@ unitigConsensus::trimCircular(void) {
     return;
 
   uint32   headBgn = align.bgnB();   //  Should be zero!
-  uint32   headEnd = align.endB();   //  
+  uint32   headEnd = align.endB();   //
 
   uint32   tailBgn = align.bgnA();   //
   uint32   tailEnd = align.endA();   //  Should be 'length'.
