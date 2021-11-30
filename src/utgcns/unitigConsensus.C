@@ -549,7 +549,7 @@ unitigConsensus::generateTemplateStitch(void) {
              templateSize  = 0.90;
              extensionSize = 0.10;
              bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
-             olapLen       = (olapLen*2.5 > tiglen ? tiglen-1 : olapLen*2.5);
+             olapLen       = (olapLen*2.5 > tiglen ? tiglen-1 : olapLen*2.5); // guard against overlap becoming bigger than the tig
          } else if (increasedOverlap == true && decreasedOverlap == false) {
             if (showAlgorithm()) fprintf(stderr, "  Decrease allowed overlap!\n");
             decreasedOverlap=true;
@@ -558,7 +558,7 @@ unitigConsensus::generateTemplateStitch(void) {
             extensionSize = 0.10;
             bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
             olapLen       = origLen;
-            olapLen       /= 2;
+            olapLen       = (olapLen / 2 < 5 ? 5 : olapLen / 2);  // guard against overlap becoming 0 after rounding
          } else {
             if (showAlgorithm()) fprintf(stderr, "  Fail!\n");
 
