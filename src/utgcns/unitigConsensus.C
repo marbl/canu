@@ -30,6 +30,7 @@
 #define ERROR_RATE_FACTOR 4
 #define NUM_BANDS         2
 #define MAX_RETRIES       ERROR_RATE_FACTOR * NUM_BANDS
+#define TRIM_BP           500
 
 abSequence::abSequence(uint32  readID,
                        uint32  length,
@@ -341,8 +342,18 @@ unitigConsensus::generateTemplateStitch(void) {
   //
 
   while (rid < _numReads) {
-    uint32 nr = 0;  //  Next read
-    uint32 nm = 0;  //  Next read maximum position
+    uint32 nr             = 0;   //  Next read
+    uint32 nm             = 0;   //  Next read maximum position
+
+    uint32 lastStart      = rid; // Track where we start looking for the next read from, we'll come back and look again if first choice fails
+    std::set<uint32> badToAdd;   // Track the list of bad reads, we'll add these at the end
+    uint32 firstCandidate = 0;   // Track the first read we can use so we know when we have to give up
+
+  retryCandidate:
+    //  Reset the candidate back to the beginning and scan forward again
+    //  if this is the second or later time we hit this, then we will not pick the failed read and will pick prior good
+    rid = lastStart;
+    nm  = 0;
 
     //  Pick the next read as the one with the longest extension from all with some minimum overlap
     //  to the template
@@ -364,10 +375,12 @@ unitigConsensus::generateTemplateStitch(void) {
       bool   first = (nm == 0);
       bool   save  = false;
 
-      if ((nm < _utgpos[ii].max()) && (thick || first)) {
+      if ((nm < _utgpos[ii].max()) && (thick || first) && badToAdd.count(ii) == 0) {
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();
+        if (first && firstCandidate == 0)
+           firstCandidate = ii;
       }
 
       if (showAlgorithm())
@@ -593,11 +606,40 @@ unitigConsensus::generateTemplateStitch(void) {
 
       if (showAlgorithm()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
-        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
-                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
+        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template. Increased: %d decreased: %d overlap length\n",
+                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen, increasedOverlap, decreasedOverlap);
         fprintf(stderr, "generateTemplateStitch()-- New position for read %d is  %d-%d\n", _utgpos[nr].ident(), _cnspos[nr].min(), _cnspos[nr].max());
       }
     } else {
+      // try to go back and pick a different read to extend with if that's an option
+      // it's not an option if we're already the next read
+      badToAdd.insert(nr);
+      if (rid != firstCandidate) {
+         olapLen = origLen;
+         if (showAlgorithm()) {
+            fprintf(stderr, "generateTemplateStitch()--\n");
+            fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d to last added %d ident %d, will go back and re-try an earlier read until we hit %d\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), firstCandidate);
+            fprintf(stderr, "generateTemplateStitch()--\n");
+         }
+         goto retryCandidate;
+      }
+      else if (tiglen > TRIM_BP && olapLen - TRIM_BP > minOlap) {
+         if (showAlgorithm()) {
+            fprintf(stderr, "generateTemplateStitch()--\n");
+            fprintf(stderr, "FAILED to align read #%d ident %d to last added %d ident %d, will try to trim template of %d bp by %d bases\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), tiglen, TRIM_BP);
+         }
+
+         tigseq[tiglen-TRIM_BP] = 0;
+         tiglen=strlen(tigseq);
+         badToAdd.clear();
+
+         if (showAlgorithm()) {
+            fprintf(stderr, "Trimmed template to %d bp\n", tiglen);
+            fprintf(stderr, "generateTemplateStitch()--\n");
+         }
+         goto retryCandidate;
+      }
+
       readBgn = 0;
       readEnd = olapLen;
 
