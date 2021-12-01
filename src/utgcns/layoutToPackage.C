@@ -36,7 +36,7 @@ void
 loadVerkkoLayouts(sqCache              *reads,
                   std::vector<tgTig *> &tigs,
                   compressedFileReader *layoutFile,
-                  const char           *outputPrefix) {
+                  const char           *mapPrefix) {
 
   uint32        err = 0;
   splitToWords  W;
@@ -48,10 +48,23 @@ loadVerkkoLayouts(sqCache              *reads,
   uint32        nReads  = 0;
   char          fname[FILENAME_MAX+1];
 
-  snprintf(fname, FILENAME_MAX, "%s.tig_names.txt", outputPrefix);
-  std::ofstream tigNames(fname, std::ofstream::out);
-  snprintf(fname, FILENAME_MAX, "%s.readNames.txt", outputPrefix);
-  std::ofstream readNames(fname, std::ofstream::out);
+  FILE         *readMap = AS_UTL_openOutputFile(mapPrefix, '.', "readName_to_ID.map");
+  FILE         *tigMap  = AS_UTL_openOutputFile(mapPrefix, '.', "tigName_to_ID.map");
+
+  if (readMap) {
+    fprintf(readMap, "    readID       tigID  read name\n");
+    fprintf(readMap, "----------  ----------  --------------------\n");
+  }
+
+  if (tigMap) {
+    fprintf(tigMap, "     tigID  tig name\n");
+    fprintf(tigMap, "----------  --------------------\n");
+  }
+
+  //snprintf(fname, FILENAME_MAX, "%s.tig_names.txt", outputPrefix);
+  //std::ofstream tigNames(fname, std::ofstream::out);
+  //snprintf(fname, FILENAME_MAX, "%s.readNames.txt", outputPrefix);
+  //std::ofstream readNames(fname, std::ofstream::out);
 
   //  A real tigStore doesn't have a zeroth tig, and we maintain that here by
   //  adding a nullptr to our list.
@@ -69,7 +82,9 @@ loadVerkkoLayouts(sqCache              *reads,
       }
       else {
          tig->addChild()->set(id, 0, 0, 0, strtouint32(W[1]), strtouint32(W[2]));
-         readNames << W[0] << "\t" << id << "\t" << tig->tigID() << std::endl; 
+
+         if (readMap)
+           fprintf(readMap, "%10u  %10u  %s\n", id, tig->tigID(), W[0]);
       }
 
       nReads--;
@@ -78,7 +93,10 @@ loadVerkkoLayouts(sqCache              *reads,
     else if (strcmp(W[0], "tig") == 0) {
 #warning still need to save tigName somewhere
       tig->_tigID = tigs.size();
-      tigNames << tig->tigID() << "\t" << W[1] << std::endl;
+
+      if (tigMap)
+        fprintf(tigMap, "%10u  %s\n", tig->tigID(), W[1]);
+
       //tig->_tigName = duplicateString(W[1]);
     }
 
@@ -108,8 +126,9 @@ loadVerkkoLayouts(sqCache              *reads,
 
   delete [] line;
   delete    tig;
-  tigNames.close();
-  readNames.close();
+
+  AS_UTL_closeFile(tigMap);
+  AS_UTL_closeFile(readMap);
 
   if (err > 0) {
     fprintf(stderr, "ERROR: loading layouts failed, check your input sequences and layout file!");
@@ -123,7 +142,8 @@ loadVerkkoLayouts(sqCache              *reads,
 int
 main(int argc, char **argv) {
   char const                *layoutFilename = nullptr;
-  char const                *outputPrefix   = nullptr;
+  char const                *outputPattern  = nullptr;
+  char const                *mapPrefix      = nullptr;
 
   std::vector<char const *>  readFilenames;
 
@@ -146,7 +166,11 @@ main(int argc, char **argv) {
     }
 
     else if (strcmp(argv[arg], "-output") == 0) {      //  Output package filename
-      outputPrefix = argv[++arg];                      //  prefix; prefix.####.package
+      outputPattern = argv[++arg];                     //  pattern.
+    }
+
+    else if (strcmp(argv[arg], "-idmap") == 0) {       //  Output read/tig id map
+      mapPrefix = argv[++arg];                         //  filename prefix.
     }
 
     else if (strcmp(argv[arg], "-partition") == 0) {
@@ -181,20 +205,32 @@ main(int argc, char **argv) {
       err.push_back(es);
     }
 
-  if (outputPrefix == nullptr)
-    err.push_back("ERROR:  No output prefix (-output) supplied!\n");
+  if (outputPattern == nullptr)
+    err.push_back("ERROR:  No output pattern (-output) supplied!\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  INPUT\n");
-    fprintf(stderr, "    -layout l            Input layouts.\n");
-    fprintf(stderr, "    -reads a [b ...]     Input reads, fasta/fasta, uncompressed/gz/bz2/xz.\n");
-    fprintf(stderr, "    -output p            Output prefix.\n");
-    fprintf(stderr, "    -partition s x n     Partitioning parameters.\n");
-    fprintf(stderr, "                           s - max size of each partition\n");
-    fprintf(stderr, "                           x - scaling\n");
-    fprintf(stderr, "                           n - max number of reads per partition\n");
+    fprintf(stderr, "    -layout l                  Input layouts.\n");
+    fprintf(stderr, "    -reads a [b ...]           Input reads, fasta/fasta, uncompressed/gz/bz2/xz.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -output name####.cnspack   Output file pattern.  Must include one or more consecutive '#'\n");
+    fprintf(stderr, "                               symbols.  These will be replaced with the zero-leading number of\n");
+    fprintf(stderr, "                               the package, expanded to fit the number of packages if needed.\n");
+    fprintf(stderr, "                                 Examples:  (assume 173 total packages)\n");
+    fprintf(stderr, "                                  'name.cnspack'     ->  'name.cnspack001'  through 'name.cnspack173'\n");
+    fprintf(stderr, "                                  'name#.cnspack'    ->  'name001.cnspack'  through 'name173.cnspack'\n");
+    fprintf(stderr, "                                  'name####.cnspack' ->  'name0001.cnspack' through 'name0173.cnspack'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -idmap prefix              Write a mapping of read/tig name <-> read/tig ID to files\n");
+    fprintf(stderr, "                                 prefix.readName_to_ID.map\n");
+    fprintf(stderr, "                                 prefix.tigName_to_ID.map\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -partition s x n           Partitioning parameters.\n");
+    fprintf(stderr, "                                  s - max size of each partition\n");
+    fprintf(stderr, "                                  x - scaling\n");
+    fprintf(stderr, "                                  n - max number of reads per partition\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -222,7 +258,7 @@ main(int argc, char **argv) {
   std::vector<tgTig *>   tigs;
   compressedFileReader  *layoutFile = new compressedFileReader(layoutFilename);
 
-  loadVerkkoLayouts(reads, tigs, layoutFile, outputPrefix);
+  loadVerkkoLayouts(reads, tigs, layoutFile, mapPrefix);
 
   delete layoutFile;
 
@@ -242,18 +278,55 @@ main(int argc, char **argv) {
                        true);
 
   //
-  //  Output packages for each partition.
+  //  Open packages for each partition.
   //
 
   writeBuffer  **package = new writeBuffer * [tp._nPartitions];
 
-  fprintf(stderr, "-- Opening %u output packages.\n", tp._nPartitions);
+  {
+    char    packageFormat[FILENAME_MAX+1];
+    char    packageName[FILENAME_MAX+1];
+    char    nDig = '0';
+    char    nSym = '0';
 
-  for (uint32 pi=0; pi<tp._nPartitions; pi++) {
-    char packageName[FILENAME_MAX+1];
-    snprintf(packageName, FILENAME_MAX, "%s.%04u.cnspack", outputPrefix, pi);
+    if      (tp._nPartitions < 10)      nDig = '1';   //  Count the number of
+    else if (tp._nPartitions < 100)     nDig = '2';   //  digits needed.  Simple,
+    else if (tp._nPartitions < 1000)    nDig = '3';   //  but ugly.
+    else if (tp._nPartitions < 10000)   nDig = '4';
+    else                                nDig = '5';
 
-    package[pi] = new writeBuffer(packageName, "w");
+    char const   *pp = outputPattern;
+    uint32        pi = 0;
+
+    while ((*pp != 0) && (*pp != '#'))    //  Copy the output format up
+      packageFormat[pi++] = *pp++;        //  to the first '#' symbol.
+
+    while ((*pp != 0) && (*pp == '#'))    //  Count and skip '#' symbols.
+      nSym++, pp++;
+
+    if (nDig < nSym)                      //  If user requested more, use
+      nDig = nSym;                        //  their value.
+
+    if (nDig > '9')                       //  But never more than 9.
+      nDig = '9';
+
+    packageFormat[pi++] = '%';            //  Insert the proper format string.
+    packageFormat[pi++] = '0';
+    packageFormat[pi++] = nDig;
+    packageFormat[pi++] = 'u';
+
+    while (*pp != 0)                      //  Copy the rest of the string.
+      packageFormat[pi++] = *pp++;
+
+
+    fprintf(stderr, "-- Opening %u output packages.\n", tp._nPartitions);
+
+    for (uint32 pi=0; pi<tp._nPartitions; pi++) {
+      snprintf(packageName, FILENAME_MAX, packageFormat, pi);
+
+      fprintf(stderr, "--  '%s'\n", packageName);
+      package[pi] = new writeBuffer(packageName, "w");
+    }
   }
 
   //
