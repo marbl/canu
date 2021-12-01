@@ -623,18 +623,24 @@ unitigConsensus::generateTemplateStitch(void) {
          }
          goto retryCandidate;
       }
-      else if (tiglen > TRIM_BP && olapLen - TRIM_BP > minOlap) {
+      else if (tiglen > minOlap && origLen - TRIM_BP > minOlap) {
+         int32 trimbp = origLen - minOlap - TRIM_BP;
+         assert(trimbp > 0);
+         assert(origLen - trimbp >= minOlap);
+         assert(ePos > trimbp);
+
          if (showAlgorithm()) {
             fprintf(stderr, "generateTemplateStitch()--\n");
-            fprintf(stderr, "FAILED to align read #%d ident %d to last added %d ident %d, will try to trim template of %d bp by %d bases\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), tiglen, TRIM_BP);
+            fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d to last added %d ident %d, will try to trim template of %d bp by %d bases\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), tiglen, trimbp);
          }
 
-         tigseq[tiglen-TRIM_BP] = 0;
+         ePos -= trimbp; 
+         tigseq[tiglen-trimbp] = 0;
          tiglen=strlen(tigseq);
          badToAdd.clear();
 
          if (showAlgorithm()) {
-            fprintf(stderr, "Trimmed template to %d bp\n", tiglen);
+            fprintf(stderr, "generateTemplateStitch()-- Trimmed template to %d bp\n", tiglen);
             fprintf(stderr, "generateTemplateStitch()--\n");
          }
          goto retryCandidate;
