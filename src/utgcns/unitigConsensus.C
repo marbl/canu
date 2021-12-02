@@ -552,32 +552,11 @@ unitigConsensus::generateTemplateStitch(void) {
     if (templateSize < 0.01) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!");
+
       if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate || _errorRate - bandErrRate < 1e-9) {
-         if (increasedOverlap == false) {
-            if (showAlgorithm()) fprintf(stderr, "  Increase allowed overlap!\n");
-
-             increasedOverlap=true;
-             tryAgain=true;
-             // first time we hit this, try increasing overlap size and reset parameters
-             templateSize  = 0.90;
-             extensionSize = 0.10;
-             bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
-             olapLen       = (olapLen*2.5 > tiglen ? tiglen-1 : olapLen*2.5); // guard against overlap becoming bigger than the tig
-         } else if (increasedOverlap == true && decreasedOverlap == false) {
-            if (showAlgorithm()) fprintf(stderr, "  Decrease allowed overlap!\n");
-            decreasedOverlap=true;
-            tryAgain=true;
-            templateSize  = 0.90;
-            extensionSize = 0.10;
-            bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
-            olapLen       = origLen;
-            olapLen       = (olapLen / 2 < 5 ? 5 : olapLen / 2);  // guard against overlap becoming 0 after rounding
-         } else {
-            if (showAlgorithm()) fprintf(stderr, "  Fail!\n");
-
-            tryAgain = false;
-            olapLen = origLen;
-         }
+        if (showAlgorithm()) fprintf(stderr, "  Fail!\n");
+        tryAgain = false;
+        olapLen = origLen;
       }
       else {
         if (showAlgorithm())
