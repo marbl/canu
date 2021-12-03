@@ -602,10 +602,10 @@ unitigConsensus::generateTemplateStitch(void) {
          }
          goto retryCandidate;
       }
-      else if (tiglen > minOlap && origLen - TRIM_BP > minOlap) {
+      else if (tiglen > minOlap && origLen > minOlap + TRIM_BP ) {
          int32 trimbp = origLen - minOlap - TRIM_BP;
          assert(trimbp > 0);
-         assert(origLen - trimbp >= minOlap);
+         assert(origLen > minOlap + trimbp);
          assert(ePos > trimbp);
 
          if (showAlgorithm()) {
