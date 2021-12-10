@@ -616,6 +616,7 @@ unitigConsensus::generateTemplateStitch(void) {
          ePos -= trimbp; 
          tigseq[tiglen-trimbp] = 0;
          tiglen=strlen(tigseq);
+         firstCandidate = 0;
          badToAdd.clear();
 
          if (showAlgorithm()) {
