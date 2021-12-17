@@ -444,7 +444,8 @@ main(int argc, char **argv) {
   }
 
   //  We know enough now to set the hash function variables, and some other random variables.
-
+    
+  G.Max_Hash_Data_Len += AS_MAX_READLEN;
   HSF1 = G.Kmer_Len - (G.Hash_Mask_Bits / 2);
   HSF2 = 2 * G.Kmer_Len - G.Hash_Mask_Bits;
   SV1  = HSF1 + 2;
