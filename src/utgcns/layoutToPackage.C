@@ -91,7 +91,6 @@ loadVerkkoLayouts(sqCache              *reads,
     }
 
     else if (strcmp(W[0], "tig") == 0) {
-#warning still need to save tigName somewhere
       tig->_tigID = tigs.size();
 
       if (tigMap)
