@@ -481,7 +481,8 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
           nLoadable, maxAlloc, nShort, nSkipped);
 
   //  This should be less than what the user requested on the command line
-
+  //  We allow AS_MAX_READLEN above (by adding it to the Hash_Data_Len and this is the extra one we load to realize we're out of space
+  //
   if (maxAlloc >= G.Max_Hash_Data_Len + AS_MAX_READLEN)
     fprintf(stderr, "maxAlloc = " F_U64 " G.Max_Hash_Data_Len = " F_U64 "  AS_MAX_READLEN = %u\n", maxAlloc, G.Max_Hash_Data_Len, AS_MAX_READLEN);
   assert(maxAlloc < G.Max_Hash_Data_Len + AS_MAX_READLEN);
