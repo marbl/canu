@@ -425,11 +425,12 @@ unitigConsensus::generateTemplateStitch(void) {
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
     int32            origLen       = olapLen;
 
-    if (olapLen < minOlap) {
+    // compare as ints to ensure that <0 overlap sizes are caught
+    if ((int32)olapLen < (int32)minOlap) {
       if (showAlgorithm())
         fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
                 olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
-      if (olapLen > 50) {
+      if (olapLen > 50 || olapLen < 0) {
          olapLen = std::min(ePos, minOlap);
       } else {
          // hack for mikkos consensus to prevent overlaps
@@ -440,8 +441,6 @@ unitigConsensus::generateTemplateStitch(void) {
 
     int32            templateLen      = 0;
     int32            extensionLen     = 0;
-    bool             increasedOverlap = false;
-    bool             decreasedOverlap = false;
 
   alignAgain:
     templateLen  = (int32)ceil(olapLen * templateSize);    //  Extract 80% of the expected overlap size
@@ -585,8 +584,8 @@ unitigConsensus::generateTemplateStitch(void) {
 
       if (showAlgorithm()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
-        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template. Increased: %d decreased: %d overlap length\n",
-                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen, increasedOverlap, decreasedOverlap);
+        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
+                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
         fprintf(stderr, "generateTemplateStitch()-- New position for read %d is  %d-%d\n", _utgpos[nr].ident(), _cnspos[nr].min(), _cnspos[nr].max());
       }
     } else {
