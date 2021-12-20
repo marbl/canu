@@ -160,6 +160,10 @@ processImportedTigs(cnsParameters  &params) {
 
   while (tig->importData(importFile, reads, importedLayouts, importedReads) == true) {
 
+    if (tig->tigID() < params.tigBgn || tig->tigID() > params.tigEnd) {
+       fprintf(stdout, "Skipping tig %d\n", tig->tigID());
+       continue;
+    }
     //  Log that we're processing.
 
     if (tig->numberOfChildren() > 1) {
