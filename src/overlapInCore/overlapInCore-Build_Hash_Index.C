@@ -455,7 +455,7 @@ Build_Hash_Index(sqStore *seqStore, uint32 bgnID, uint32 endID) {
   uint64  maxAlloc = 0;
   uint32  curID    = 0;  //  The last ID loaded into the hash
 
-  for (curID=bgnID; ((total_len <  G.Max_Hash_Data_Len) &&
+  for (curID=bgnID; ((maxAlloc <  G.Max_Hash_Data_Len) &&
                      (curID     <= endID)); curID++) {
     uint32  libID   = seqStore->sqStore_getLibraryIDForRead(curID);
     uint32  readLen = seqStore->sqStore_getReadLength(curID);
