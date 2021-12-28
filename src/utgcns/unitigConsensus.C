@@ -423,7 +423,7 @@ unitigConsensus::generateTemplateStitch(void) {
     double           bandErrRate   = _errorRate / ERROR_RATE_FACTOR;
 
     int32            olapLen       = ePos - _utgpos[nr].min();  //  The expected size of the overlap
-    int32            origLen       = olapLen;
+    int32            origLen       = (olapLen < 0 ? 0 : olapLen);
 
     // compare as ints to ensure that <0 overlap sizes are caught
     if ((int32)olapLen < (int32)minOlap) {
