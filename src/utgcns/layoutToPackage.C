@@ -316,7 +316,7 @@ main(int argc, char **argv) {
 
     while (*pp != 0)                      //  Copy the rest of the string.
       packageFormat[pi++] = *pp++;
-
+    packageFormat[pi] = 0;
 
     fprintf(stderr, "-- Opening %u output packages.\n", tp._nPartitions);
 
