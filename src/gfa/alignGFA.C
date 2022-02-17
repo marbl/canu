@@ -652,6 +652,7 @@ processGFA(char     *tigName,
 
   fprintf(stderr, "-- Cleaning up.\n");
 
+  delete seqs_origp;
   delete seqsp;
   delete gfa;
 
@@ -845,6 +846,7 @@ processBEDtoGFA(char   *tigName,
   delete gfa;
   delete bed;
 
+  delete seqs_origp;
   delete seqsp;
 }
 
