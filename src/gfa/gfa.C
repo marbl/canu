@@ -48,9 +48,8 @@ findGFAtokenI(char const *features, char const *token, TT &value) {
 
 //  Search for canu-specific names, and convert to tigID's.
 //    Allow either 'tig', 'utg' or 'ctg'.
-static
 uint32
-nameToCanuID(char *name) {
+gfaSequence::nameToCanuID(const char *name) {
   uint32   id = UINT32_MAX;
 
   if (((name[0] == 't') && (name[1] == 'i') && (name[2] == 'g')) ||
@@ -58,6 +57,9 @@ nameToCanuID(char *name) {
       ((name[0] == 'c') && (name[1] == 't') && (name[2] == 'g')))
     id = strtoll(name + 3, NULL, 10);
 
+  if((name[0] == 'u') && (name[1] == 't') && (name[2] == 'i') && (name[3] == 'g') && (name[4] == '1' || name[4] == '2' || name[4] == '3' || name[4] == '4') && (name[5] == '-'))
+    id = strtoll(name + 6, NULL, 10);
+ 
   return(id);
 }
 
@@ -102,21 +104,26 @@ gfaSequence::load(char *inLine) {
   _name     = new char [strlen(W[1]) + 1];
   _id       = UINT32_MAX;
   _sequence = new char [strlen(W[2]) + 1];
-  _features = new char [strlen(W[3]) + 1];
-
-  _length   = 0;
 
   strcpy(_name,     W[1]);
   strcpy(_sequence, W[2]);
-  strcpy(_features, W[3]);
 
-  //  Scan the _features for a length.
+  if (W.numWords() > 3) {
+     _features = new char [strlen(W[3]) + 1];
 
-  findGFAtokenI(_features, "LN:i:", _length);
+     _length   = 0;
+     strcpy(_features, W[3]);
+    //  Scan the _features for a length.
+
+    findGFAtokenI(_features, "LN:i:", _length);
+  } else {
+     _features = NULL;
+     _length = strlen(_sequence);
+  }
 
   //  And any canu ID
 
-  _id = nameToCanuID(_name);
+  _id = gfaSequence::nameToCanuID(_name);
 }
 
 
@@ -165,8 +172,8 @@ gfaLink::gfaLink(char *Aname, uint32 Aid, bool Afwd,
   strcpy(_Bname,    Bname);
   strcpy(_cigar,    cigar);
 
-  _Aid = nameToCanuID(_Aname);    //  Search for canu-specific names, and convert to tigID's.
-  _Bid = nameToCanuID(_Bname);
+  _Aid = gfaSequence::nameToCanuID(_Aname);    //  Search for canu-specific names, and convert to tigID's.
+  _Bid = gfaSequence::nameToCanuID(_Bname);
 }
 
 
@@ -199,8 +206,8 @@ gfaLink::load(char *inLine) {
   strcpy(_cigar,    W[5]);
   strcpy(_features, (W[6]) ? W[6] : "");
 
-  _Aid = nameToCanuID(_Aname);    //  Search for canu-specific names, and convert to tigID's.
-  _Bid = nameToCanuID(_Bname);
+  _Aid = gfaSequence::nameToCanuID(_Aname);    //  Search for canu-specific names, and convert to tigID's.
+  _Bid = gfaSequence::nameToCanuID(_Bname);
 }
 
 

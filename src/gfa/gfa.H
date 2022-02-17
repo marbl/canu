@@ -28,6 +28,8 @@
 
 class gfaSequence {
 public:
+  static uint32 nameToCanuID(const char *name);
+
   gfaSequence();
   gfaSequence(char *inLine);
   gfaSequence(char *name, uint32 id, uint32 len);

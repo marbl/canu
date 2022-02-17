@@ -39,10 +39,29 @@ public:
   sequence() {
     seq = NULL;
     len = 0;
+    padding = 0;
   };
   ~sequence() {
     delete [] seq;
   };
+
+  void  set(dnaSeq &sq) {
+    len = sq.length();
+    seq = new char [len + 1];
+
+    memcpy(seq, sq.bases(), len);
+    seq[len] = 0;
+    padding = 0;
+  }
+
+  void set(gfaSequence *sq) {
+     len = sq->_length;
+     seq = new char[len + 1];
+
+     memcpy(seq, sq->_sequence, len);
+     seq[len] = 0;  
+     padding = 0;
+  }
 
   void  set(tgTig *tig) {
     len = tig->length();
@@ -54,16 +73,134 @@ public:
        memset(seq, 0, len);
 
     seq[len] = 0;
+    padding = 0;
   };
+
+  void   getContainedSequenceBounds(sequence& other, bool compress, bool beVerbose) {
+     uint32 MAX_CHUNK = 50000;
+     padding = 0;
+
+     EdlibAlignResult r =  { 0, NULL, NULL, 0, NULL, 0, 0 };
+
+     if (len < MAX_CHUNK) {
+        char *compr = NULL;
+        uint32 len_compr = 0;
+
+        if (compress) {
+           compr = new char[len];
+           len_compr = homopolyCompress(seq, len, compr, NULL);
+           compr[len_compr] = 0;
+        } else {
+           compr = seq;
+           len_compr = len;
+        }
+        r = edlibAlign(other.seq,  other.len,   //  The 'query'
+                       compr,      len_compr,   //  The 'target'
+                       edlibNewAlignConfig(ceil(0.005*other.len), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+        if (r.numLocations > 0) {
+           padding = r.startLocations[0] + (len_compr - r.endLocations[0]);
+           if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr, padding);
+        }
+        edlibFreeAlignResult(r);
+        if (compress) delete[] compr;
+      } else {
+         char *compr_left = NULL;
+         uint32 len_compr_left = MAX_CHUNK;
+         char *compr_right = NULL;
+         uint32 len_compr_right = MAX_CHUNK;
+ 
+         if (compress) {
+            compr_left = new char[MAX_CHUNK];
+            len_compr_left = homopolyCompress(seq, MAX_CHUNK, compr_left, NULL);
+            compr_right = new char[MAX_CHUNK];
+            len_compr_right = homopolyCompress(seq+len-MAX_CHUNK, MAX_CHUNK, compr_right, NULL);
+         } else {
+            compr_left  = seq;
+            compr_right = seq + len - MAX_CHUNK;
+         } 
+         r = edlibAlign(other.seq, ceil(0.6*MAX_CHUNK), //  The 'query'
+                        compr_left, len_compr_left,      //  The 'target'
+                        edlibNewAlignConfig(ceil(0.005*0.6*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+         if (r.numLocations > 0) {
+            padding = r.startLocations[0];
+            if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, padding);
+         }
+         edlibFreeAlignResult(r);
+         r = edlibAlign(other.seq+other.len-(uint32)ceil(0.6*MAX_CHUNK), ceil(0.6*MAX_CHUNK), //  The 'query'
+                        compr_right,                             len_compr_right, //  The 'target'
+                        edlibNewAlignConfig(ceil(0.005*0.6*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+         if (r.numLocations > 0) {
+             padding += (len_compr_right - r.endLocations[0]);
+             if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, padding);
+         }
+         edlibFreeAlignResult(r);
+         if (compress) {
+            delete[] compr_left;
+            delete[] compr_right;
+         }
+      }
+   }
 
   char   *seq;
   uint32  len;
+  uint32  padding;
 };
 
 
 
 class sequences {
 public:
+  sequences(char *fileName, uint32 numEntries, uint32 offset) {
+    assert(offset < numEntries);
+
+    dnaSeqFile  *SF = new dnaSeqFile(fileName);
+    dnaSeq       sq;
+    uint32       count = 0;
+
+    b    = 0; 
+    e    = 0;
+    seqs = new sequence [numEntries+1];
+    used = new uint32   [numEntries+1];
+
+    while (SF->loadSequence(sq) == true) {
+      //  Check for and log parsing errors.
+
+      if (sq.wasError() == true) {
+        fprintf(stderr, "error reading sequence at/before '%s' in file '%s'.\n",
+                sq.ident(), fileName);
+        continue;
+      }
+      if (sq.wasReSync() == true) {
+        fprintf(stderr, "lost sync reading before sequence '%s' in file '%s'.\n",
+                sq.ident(), fileName);
+        continue;
+      }
+
+      e++;
+      if (e <= offset) {
+         continue;
+      }
+      uint32 id = gfaSequence::nameToCanuID(sq.ident());
+      assert(id < numEntries);
+      seqs[id].set(sq);
+      used[id]=0;
+    }
+    delete SF;
+    assert(e == numEntries);
+  };
+  
+  sequences(std::vector<gfaSequence *> sqs) {
+    b = 0;
+    e = sqs.size();
+    seqs = new sequence[e+1];
+    used = new uint32[e+1];
+
+    for (uint32 ii=0; ii<sqs.size(); ii++) {
+       seqs[ii].set(sqs[ii]);
+       used[ii] = 0;
+    } 
+  }
+
   sequences(char *tigName, uint32 tigVers) {
     if (tigVers <= 0)
        fprintf(stderr, "Error: invalid version of tigstore: %d, not supported\n", tigVers);
@@ -85,7 +222,6 @@ public:
         continue;
 
       seqs[ti].set(tig);
-
       tigStore->unloadTig(ti);
     }
 
@@ -148,8 +284,6 @@ dotplot(uint32 Aid, bool Afwd, char *Aseq,
   system(Pname);
 }
 
-
-
 bool
 checkLink(gfaLink   *link,
           sequences &seqs,
@@ -165,6 +299,8 @@ checkLink(gfaLink   *link,
   int32  Bbgn, Bend, Blen = seqs[link->_Bid].len;
 
   double ratio = std::max((double)Alen/seqs_orig[link->_Aid].len, (double)Blen/seqs_orig[link->_Bid].len);
+  uint32 Bpad=seqs[link->_Bid].padding;
+  uint32 Apad=seqs[link->_Aid].padding;
 
   EdlibAlignResult  result  = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
@@ -202,16 +338,16 @@ checkLink(gfaLink   *link,
   Aend = Alen;
 
   Bbgn = 0;
-  Bend = std::min(Blen, (int32)(1.10 * ratio * BalignLen));  //  Expand by whatever factor the contig grew during consensus plus 10%
+  Bend = std::min(Blen, (int32)(1.10 * ratio * (Bpad+BalignLen)));  //  Expand by whatever factor the contig grew during consensus plus 10%
 
-  maxEdit = (int32)ceil(alignLen * erate);
+  maxEdit = (int32)ceil((alignLen+Bpad+Apad) * ratio * erate);
 
   while (result.numLocations == 0) {
     if (beVerbose)
-      fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u\n",
+      fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u ratio %6f\n",
               link->_Aid, (link->_Afwd) ? '+' : '-', "",
               link->_Bid, (link->_Bfwd) ? '+' : '-', "",
-              AalignLen, BalignLen, alignLen);
+              AalignLen, BalignLen, alignLen, ratio);
 
     if (beVerbose)
       fprintf(stderr, "TEST tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (extend B)",
@@ -243,7 +379,7 @@ checkLink(gfaLink   *link,
   //         ^--??  [-------]-----------
   //
 
-  Abgn = std::max(Alen - (int32)(1.10 * ratio * AalignLen), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
+  Abgn = std::max(Alen - (int32)(1.10 * ratio * (Apad+AalignLen)), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
   // update max edit by new length
   maxEdit = (int32)ceil((Bend-Bbgn+1) * erate);
 
@@ -568,14 +704,41 @@ processGFA(char     *tigName,
 
   gfaFile   *gfa  = new gfaFile(inGFA);
 
-  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
+  sequences *seqs_origp = NULL;
+  sequences *seqsp = NULL;  
 
-  sequences *seqs_origp = new sequences(tigName, tigVers-1);
+  if (tigVers > 0) {
+    fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
+
+    seqs_origp = new sequences(tigName, tigVers-1);
+
+    fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
+
+    seqsp = new sequences(tigName, tigVers);
+  } else {  // assume input is a fasta
+    fprintf(stderr, "-- Loading sequences from gfa\n");
+    seqs_origp = new sequences(gfa->_sequences);
+
+    fprintf(stderr, "-- Loading sequences from file '%s'\n", tigName);
+    seqsp = new sequences(tigName, gfa->_sequences.size(), 0); 
+
+    // update sequences
+    for (uint32 ii=0; ii<gfa->_sequences.size(); ii++) {
+      delete [] gfa->_sequences[ii]->_sequence;
+      gfa->_sequences[ii]->_sequence = new char[(*seqsp)[gfa->_sequences[ii]->_id].len + 1];
+      memcpy(gfa->_sequences[ii]->_sequence, (*seqsp)[gfa->_sequences[ii]->_id].seq, (*seqsp)[gfa->_sequences[ii]->_id].len);
+      gfa->_sequences[ii]->_sequence[(*seqsp)[gfa->_sequences[ii]->_id].len] = 0;
+
+      // update where the old sequences ends within our bounds too
+      if (verbosity > 0) fprintf(stderr, "Aligning sequence %s to its original sequence to find bounds\n", gfa->_sequences[ii]->_name);
+      (*seqsp)[gfa->_sequences[ii]->_id].getContainedSequenceBounds((*seqs_origp)[gfa->_sequences[ii]->_id], true, (verbosity > 0));
+   }
+   delete[] gfa->_header;
+   gfa->_header = new char[255];
+   sprintf(gfa->_header, "VN:Z:1.0 PN:Z:verkko-alignGFA");
+  }
+ 
   sequences &seqs_orig  = *seqs_origp;
-
-  fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
-
-  sequences *seqsp = new sequences(tigName, tigVers);
   sequences &seqs  = *seqsp;
 
   //  Set GFA lengths based on the sequences we loaded.
@@ -655,7 +818,7 @@ processGFA(char     *tigName,
   delete seqsp;
   delete gfa;
 
-  fprintf(stderr, "-- Aligned %6u ciruclar tigs, failed %6u\n", passCircular, failCircular);
+  fprintf(stderr, "-- Aligned %6u circular tigs, failed %6u\n", passCircular, failCircular);
   fprintf(stderr, "-- Aligned %6u   linear tigs, failed %6u\n", passNormal,   failNormal);
 }
 
@@ -915,8 +1078,6 @@ main (int argc, char **argv) {
   if (otGraph == NULL)
     err++;
 
-  if ((tigName) && (tigVers == 0))
-    err++;
   if ((seqName) && (seqVers == 0))
     err++;
 
@@ -951,8 +1112,6 @@ main (int argc, char **argv) {
     if (otGraph == NULL)
       fprintf(stderr, "ERROR: no output GFA (-o) supplied.\n");
 
-    if ((tigName) && (tigVers == 0))
-      fprintf(stderr, "ERROR: invalid tigStore version (-T) supplied.\n");
     if ((seqName) && (seqVers == 0))
       fprintf(stderr, "ERROR: invalid tigStore version (-C) supplied.\n");
 
