@@ -77,7 +77,7 @@ public:
   };
 
   void   getContainedSequenceBounds(sequence& other, bool compress, bool beVerbose) {
-     uint32 MAX_CHUNK = 50000;
+     uint32 MAX_CHUNK = 100000;
      padding = 0;
 
      EdlibAlignResult r =  { 0, NULL, NULL, 0, NULL, 0, 0 };
@@ -96,10 +96,13 @@ public:
         }
         r = edlibAlign(other.seq,  other.len,   //  The 'query'
                        compr,      len_compr,   //  The 'target'
-                       edlibNewAlignConfig(ceil(0.005*other.len), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                       edlibNewAlignConfig(ceil(0.020*other.len), EDLIB_MODE_HW, EDLIB_TASK_LOC));
         if (r.numLocations > 0) {
            padding = r.startLocations[0] + (len_compr - r.endLocations[0]);
            if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr, padding);
+        } else {
+           fprintf(stderr, "Error: failed to find an alignment\n");
+           assert(0);
         }
         edlibFreeAlignResult(r);
         if (compress) delete[] compr;
@@ -118,20 +121,26 @@ public:
             compr_left  = seq;
             compr_right = seq + len - MAX_CHUNK;
          } 
-         r = edlibAlign(other.seq, ceil(0.6*MAX_CHUNK), //  The 'query'
+         r = edlibAlign(other.seq, ceil(0.3*MAX_CHUNK), //  The 'query'
                         compr_left, len_compr_left,      //  The 'target'
-                        edlibNewAlignConfig(ceil(0.005*0.6*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                        edlibNewAlignConfig(ceil(0.020*0.3*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
          if (r.numLocations > 0) {
             padding = r.startLocations[0];
-            if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, padding);
+            if (beVerbose) fprintf(stderr, "Found left alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, padding);
+         } else {
+            fprintf(stderr, "Error: found no left alignment locations\n");
+            assert(0);
          }
          edlibFreeAlignResult(r);
-         r = edlibAlign(other.seq+other.len-(uint32)ceil(0.6*MAX_CHUNK), ceil(0.6*MAX_CHUNK), //  The 'query'
+         r = edlibAlign(other.seq+other.len-(uint32)ceil(0.5*MAX_CHUNK), ceil(0.5*MAX_CHUNK), //  The 'query'
                         compr_right,                             len_compr_right, //  The 'target'
-                        edlibNewAlignConfig(ceil(0.005*0.6*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                        edlibNewAlignConfig(ceil(0.020*0.5*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
          if (r.numLocations > 0) {
              padding += (len_compr_right - r.endLocations[0]);
-             if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, padding);
+             if (beVerbose) fprintf(stderr, "Found right alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, padding);
+         } else {
+            fprintf(stderr, "Error: found no right alignment locations\n");
+            assert(0);
          }
          edlibFreeAlignResult(r);
          if (compress) {
@@ -155,7 +164,6 @@ public:
 
     dnaSeqFile  *SF = new dnaSeqFile(fileName);
     dnaSeq       sq;
-    uint32       count = 0;
 
     b    = 0; 
     e    = 0;
@@ -182,11 +190,12 @@ public:
       }
       uint32 id = gfaSequence::nameToCanuID(sq.ident());
       assert(id < numEntries);
+      assert(seqs[id].len == 0);
       seqs[id].set(sq);
       used[id]=0;
     }
+    e = numEntries;
     delete SF;
-    assert(e == numEntries);
   };
   
   sequences(std::vector<gfaSequence *> sqs) {
@@ -196,9 +205,13 @@ public:
     used = new uint32[e+1];
 
     for (uint32 ii=0; ii<sqs.size(); ii++) {
-       seqs[ii].set(sqs[ii]);
-       used[ii] = 0;
-    } 
+       uint32 id = gfaSequence::nameToCanuID(sqs[ii]->_name);
+       assert(id < e);
+       assert(seqs[id].len == 0);
+
+       seqs[id].set(sqs[ii]);
+       used[id] = 0;
+    }
   }
 
   sequences(char *tigName, uint32 tigVers) {
@@ -725,13 +738,22 @@ processGFA(char     *tigName,
     // update sequences
     for (uint32 ii=0; ii<gfa->_sequences.size(); ii++) {
       delete [] gfa->_sequences[ii]->_sequence;
-      gfa->_sequences[ii]->_sequence = new char[(*seqsp)[gfa->_sequences[ii]->_id].len + 1];
-      memcpy(gfa->_sequences[ii]->_sequence, (*seqsp)[gfa->_sequences[ii]->_id].seq, (*seqsp)[gfa->_sequences[ii]->_id].len);
-      gfa->_sequences[ii]->_sequence[(*seqsp)[gfa->_sequences[ii]->_id].len] = 0;
 
-      // update where the old sequences ends within our bounds too
-      if (verbosity > 0) fprintf(stderr, "Aligning sequence %s to its original sequence to find bounds\n", gfa->_sequences[ii]->_name);
-      (*seqsp)[gfa->_sequences[ii]->_id].getContainedSequenceBounds((*seqs_origp)[gfa->_sequences[ii]->_id], true, (verbosity > 0));
+      if ((*seqsp)[gfa->_sequences[ii]->_id].len == 0) { // delete sequences that didn't have reads assigned to them
+         if (verbosity > 0)
+            fprintf(stderr, "Sequence %s (%d) is empty in the input fasta so deleting it and all its links\n", gfa->_sequences[ii]->_name, gfa->_sequences[ii]->_id);
+         delete [] gfa->_sequences[ii]->_features;
+         delete [] gfa->_sequences[ii]->_name;
+         gfa->_sequences[ii] = NULL;
+      } else {
+         gfa->_sequences[ii]->_sequence = new char[(*seqsp)[gfa->_sequences[ii]->_id].len + 1];
+         memcpy(gfa->_sequences[ii]->_sequence, (*seqsp)[gfa->_sequences[ii]->_id].seq, (*seqsp)[gfa->_sequences[ii]->_id].len);
+         gfa->_sequences[ii]->_sequence[(*seqsp)[gfa->_sequences[ii]->_id].len] = 0;
+
+         // update where the old sequences ends within our bounds too
+         if (verbosity > 0) fprintf(stderr, "Aligning sequence %s to its original sequence to find bounds\n", gfa->_sequences[ii]->_name);
+         (*seqsp)[gfa->_sequences[ii]->_id].getContainedSequenceBounds((*seqs_origp)[gfa->_sequences[ii]->_id], true, (verbosity > 0));
+      } 
    }
    delete[] gfa->_header;
    gfa->_header = new char[255];
@@ -745,8 +767,11 @@ processGFA(char     *tigName,
 
   fprintf(stderr, "-- Resetting sequence lengths.\n");
 
-  for (uint32 ii=0; ii<gfa->_sequences.size(); ii++)
+  for (uint32 ii=0; ii<gfa->_sequences.size(); ii++) {
+    if  (gfa->_sequences[ii] == NULL)
+       continue;
     gfa->_sequences[ii]->_length = seqs[gfa->_sequences[ii]->_id].len;
+  }
 
   //  Align!
 
@@ -766,7 +791,13 @@ processGFA(char     *tigName,
   for (uint32 ii=0; ii<iiLimit; ii++) {
     gfaLink *link = gfa->_links[ii];
 
-    if (link->_Aid == link->_Bid) {
+    if  (gfa->_sequences[link->_Aid] == NULL || gfa->_sequences[link->_Bid] == NULL) {
+        delete[] link->_cigar;
+        link->_cigar = NULL;
+        fprintf(stderr, "Deleting link between %d and %d because one was not consensused\n", link->_Aid, link->_Bid);
+    }
+
+    else if (link->_Aid == link->_Bid) {
       if (verbosity > 0)
         fprintf(stderr, "Processing circular link for tig %u\n", link->_Aid);
 
@@ -815,6 +846,7 @@ processGFA(char     *tigName,
 
   fprintf(stderr, "-- Cleaning up.\n");
 
+  delete seqs_origp;
   delete seqsp;
   delete gfa;
 
@@ -1008,6 +1040,7 @@ processBEDtoGFA(char   *tigName,
   delete gfa;
   delete bed;
 
+  delete seqs_origp;
   delete seqsp;
 }
 
