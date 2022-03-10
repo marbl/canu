@@ -39,7 +39,8 @@ public:
   sequence() {
     seq = NULL;
     len = 0;
-    padding = 0;
+    bgn_padding = 0;
+    end_padding = 0;
   };
   ~sequence() {
     delete [] seq;
@@ -51,7 +52,7 @@ public:
 
     memcpy(seq, sq.bases(), len);
     seq[len] = 0;
-    padding = 0;
+    bgn_padding = end_padding = 0;
   }
 
   void set(gfaSequence *sq) {
@@ -60,7 +61,7 @@ public:
 
      memcpy(seq, sq->_sequence, len);
      seq[len] = 0;  
-     padding = 0;
+     bgn_padding = end_padding = 0;
   }
 
   void  set(tgTig *tig) {
@@ -73,40 +74,35 @@ public:
        memset(seq, 0, len);
 
     seq[len] = 0;
-    padding = 0;
+    bgn_padding = end_padding = 0;
   };
+
+uint32 findStartGap(sequence &other) {
+for (uint32 i = 0; i< other.len; i++) { 
+   if (other.seq[i] != 'N')
+      return i;
+}
+return other.len;
+}
+
+uint32 findEndGap(sequence &other) {
+ for(uint32 i = other.len-1; i<=0; i--) { 
+    if (other.seq[i] != 'N') 
+       return other.len-i;
+}
+return other.len;
+}
 
   void   getContainedSequenceBounds(sequence& other, bool compress, bool beVerbose) {
      uint32 MAX_CHUNK = 100000;
-     padding = 0;
+     bgn_padding = end_padding = 0;
 
      EdlibAlignResult r =  { 0, NULL, NULL, 0, NULL, 0, 0 };
 
-     if (len < MAX_CHUNK) {
-        char *compr = NULL;
-        uint32 len_compr = 0;
+uint32 start_gap = findStartGap(other);
+uint32 end_gap = findEndGap(other);
 
-        if (compress) {
-           compr = new char[len];
-           len_compr = homopolyCompress(seq, len, compr, NULL);
-           compr[len_compr] = 0;
-        } else {
-           compr = seq;
-           len_compr = len;
-        }
-        r = edlibAlign(other.seq,  other.len,   //  The 'query'
-                       compr,      len_compr,   //  The 'target'
-                       edlibNewAlignConfig(ceil(0.020*other.len), EDLIB_MODE_HW, EDLIB_TASK_LOC));
-        if (r.numLocations > 0) {
-           padding = r.startLocations[0] + (len_compr - r.endLocations[0]);
-           if (beVerbose) fprintf(stderr, "Found alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr, padding);
-        } else {
-           fprintf(stderr, "Error: failed to find an alignment\n");
-           assert(0);
-        }
-        edlibFreeAlignResult(r);
-        if (compress) delete[] compr;
-      } else {
+fprintf(stderr, "Chgecked other seq of length %d and it has start Ns %d and end Ns %d\n", other.len, start_gap, end_gap);
          char *compr_left = NULL;
          uint32 len_compr_left = MAX_CHUNK;
          char *compr_right = NULL;
@@ -114,45 +110,83 @@ public:
  
          if (compress) {
             compr_left = new char[MAX_CHUNK];
-            len_compr_left = homopolyCompress(seq, MAX_CHUNK, compr_left, NULL);
+            len_compr_left = homopolyCompress(seq, std::min(len, MAX_CHUNK), compr_left, NULL);
             compr_right = new char[MAX_CHUNK];
-            len_compr_right = homopolyCompress(seq+len-MAX_CHUNK, MAX_CHUNK, compr_right, NULL);
+            len_compr_right = homopolyCompress(seq+std::max(0, (int32)(len-MAX_CHUNK)), std::min(len, MAX_CHUNK), compr_right, NULL);
          } else {
             compr_left  = seq;
-            compr_right = seq + len - MAX_CHUNK;
+            compr_right = seq + std::max(0, (int32)(len - MAX_CHUNK));
          } 
-         r = edlibAlign(other.seq, ceil(0.3*MAX_CHUNK), //  The 'query'
-                        compr_left, len_compr_left,      //  The 'target'
-                        edlibNewAlignConfig(ceil(0.020*0.3*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+fprintf(stderr, "Aligning sequence query is %d and source is %d\n", other.len, len_compr_left);
+         // we first take the start of the other sequence and try to see if it can fit it inside the start of the new compressed sequence
+         // so we expect:
+         //       -------------------> (compr_left)
+         //           ---------------> (other.seq)
+         //  if they're smaller than the MAX_CHUNK then we just take 1/3 of the sequence
+         r = edlibAlign(other.seq,  std::min((uint32)ceil(0.3*other.len), (uint32)ceil(0.3*MAX_CHUNK)), //  The 'query'
+                        compr_left, len_compr_left,                                                     //  The 'target'
+                        edlibNewAlignConfig(ceil(0.020*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
          if (r.numLocations > 0) {
-            padding = r.startLocations[0];
-            if (beVerbose) fprintf(stderr, "Found left alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, padding);
+            bgn_padding = r.startLocations[0];
+            if (beVerbose) fprintf(stderr, "Found left alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, bgn_padding);
          } else {
-            fprintf(stderr, "Error: found no left alignment locations\n");
-            assert(0);
+fprintf(stderr, "Swapping alignments now query is %d and source is %d\n", len_compr_left, std::min(other.len, MAX_CHUNK));
+             edlibFreeAlignResult(r);
+             // the above failed so this could be because the new sequence is actually trimmed with respect to old so we swap query/target
+             //  we take 1/3 of it and align
+             //  so we expect:
+             //      ---------> (compr_left) 
+             //    -----------> (other.seq)   
+             r = edlibAlign(compr_left, (uint32)ceil(0.3*len_compr_left),
+                            other.seq, std::min(other.len, MAX_CHUNK),
+                            edlibNewAlignConfig(ceil(0.020*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+             if (r.numLocations > 0) {
+                bgn_padding = r.startLocations[0]*-1;
+fprintf(stderr, "Found negative left alignmnet, locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], other.len, bgn_padding);
+            } else {
+               fprintf(stderr, "Error: found no left alignment locations\n");
+               //assert(0);
+            }
          }
          edlibFreeAlignResult(r);
-         r = edlibAlign(other.seq+other.len-(uint32)ceil(0.5*MAX_CHUNK), ceil(0.5*MAX_CHUNK), //  The 'query'
-                        compr_right,                             len_compr_right, //  The 'target'
-                        edlibNewAlignConfig(ceil(0.020*0.5*MAX_CHUNK), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+         // same as above, now we're looking at the end of the sequence and expect new to extend past
+         // --------- > (compr_right)
+         // ------->    (other.seq)
+         r = edlibAlign(other.seq + std::max((int32)ceil(0.3*other.len), int32(other.len-ceil(0.3*MAX_CHUNK))), std::min((uint32)ceil(0.3*other.len), (uint32)ceil(0.3*MAX_CHUNK)), //  The 'query'
+                        compr_right,                                     len_compr_right,                                                                                           //  The 'target'
+                        edlibNewAlignConfig(ceil(0.020*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
          if (r.numLocations > 0) {
-             padding += (len_compr_right - r.endLocations[0]);
-             if (beVerbose) fprintf(stderr, "Found right alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, padding);
+             end_padding = (len_compr_right - r.endLocations[0]);
+             if (beVerbose) fprintf(stderr, "Found right alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, end_padding);
          } else {
-            fprintf(stderr, "Error: found no right alignment locations\n");
-            assert(0);
+fprintf(stderr, "Swapping alignments\n");
+            // again, as above we try to swap and take 1/3 of our new sequence and expect it to be inside the old
+            // -----> (compr_right)
+            // --------> (other.seq)
+            edlibFreeAlignResult(r);
+            r = edlibAlign(compr_right + len_compr_right - (uint32)ceil(0.3*len_compr_right), (uint32)ceil(0.3*len_compr_right),
+                           other.seq+std::max(0, int32(other.len-MAX_CHUNK)), std::min(other.len, MAX_CHUNK),
+                           edlibNewAlignConfig(ceil(0.020*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+
+            if (r.numLocations > 0) {
+               end_padding = -1*(std::min(MAX_CHUNK, other.len) - r.endLocations[0]);
+fprintf(stderr, "Found negative right alignmnet, locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], other.len, end_padding);
+            } else {
+               fprintf(stderr, "Error: found no right alignment locations\n");
+               //assert(0);
+            }
          }
          edlibFreeAlignResult(r);
          if (compress) {
             delete[] compr_left;
             delete[] compr_right;
          }
-      }
    }
 
   char   *seq;
   uint32  len;
-  uint32  padding;
+  uint32  bgn_padding;
+  uint32  end_padding; 
 };
 
 
@@ -312,8 +346,8 @@ checkLink(gfaLink   *link,
   int32  Bbgn, Bend, Blen = seqs[link->_Bid].len;
 
   double ratio = std::max((double)Alen/seqs_orig[link->_Aid].len, (double)Blen/seqs_orig[link->_Bid].len);
-  uint32 Bpad=seqs[link->_Bid].padding;
-  uint32 Apad=seqs[link->_Aid].padding;
+  uint32 Bpad=(link->_Bfwd == true) ? seqs[link->_Bid].bgn_padding : seqs[link->_Bid].end_padding;
+  uint32 Apad=(link->_Afwd == true) ? seqs[link->_Aid].end_padding : seqs[link->_Aid].bgn_padding;
 
   EdlibAlignResult  result  = { 0, NULL, NULL, 0, NULL, 0, 0 };
 
@@ -351,7 +385,7 @@ checkLink(gfaLink   *link,
   Aend = Alen;
 
   Bbgn = 0;
-  Bend = std::min(Blen, (int32)(1.10 * ratio * (Bpad+BalignLen)));  //  Expand by whatever factor the contig grew during consensus plus 10%
+  Bend = std::min(Blen, (int32)(1.10 * ratio * (Apad+Bpad+BalignLen)));  //  Expand by whatever factor the contig grew during consensus plus 10%
 
   maxEdit = (int32)ceil((alignLen+Bpad+Apad) * ratio * erate);
 
@@ -392,7 +426,7 @@ checkLink(gfaLink   *link,
   //         ^--??  [-------]-----------
   //
 
-  Abgn = std::max(Alen - (int32)(1.10 * ratio * (Apad+AalignLen)), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
+  Abgn = std::max(Alen - (int32)(1.10 * ratio * (Bpad+Apad+AalignLen)), 0);  //  Expand by whatever factor the contig grew during consensus plus 10%
   // update max edit by new length
   maxEdit = (int32)ceil((Bend-Bbgn+1) * erate);
 
