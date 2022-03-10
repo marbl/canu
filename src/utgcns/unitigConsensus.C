@@ -298,7 +298,7 @@ unitigConsensus::generateTemplateStitch(void) {
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
-  uint32       tigmax = AS_MAX_READLEN;  //  Must be at least AS_MAX_READLEN, else resizeArray() could fail
+  uint32       tigmax = std::max(readLen, AS_MAX_READLEN);  //  Must be at least AS_MAX_READLEN, else resizeArray() could fail
   uint32       tiglen = 0;
   char        *tigseq = NULL;
 
