@@ -349,6 +349,8 @@ unitigConsensus::generateTemplateStitch(void) {
     std::set<uint32> badToAdd;   // Track the list of bad reads, we'll add these at the end
     uint32 firstCandidate = 0;   // Track the first read we can use so we know when we have to give up
 
+    _errorRate = savedErrorRate;
+
   retryCandidate:
     //  Reset the candidate back to the beginning and scan forward again
     //  if this is the second or later time we hit this, then we will not pick the failed read and will pick prior good
@@ -414,7 +416,6 @@ unitigConsensus::generateTemplateStitch(void) {
     int32  readBgn;
     int32  readEnd;
 
-    _errorRate = savedErrorRate;
     EdlibAlignResult result;
     bool             aligned       = false;
 
