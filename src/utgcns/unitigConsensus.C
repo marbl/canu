@@ -603,7 +603,7 @@ unitigConsensus::generateTemplateStitch(void) {
          goto retryCandidate;
       }
       else if (tiglen > minOlap && origLen > minOlap + TRIM_BP ) {
-         int32 trimbp = origLen - minOlap - TRIM_BP;
+         int32 trimbp = std::min(tiglen - minOlap,  origLen - minOlap - TRIM_BP);
          assert(trimbp > 0);
          assert(origLen > minOlap + trimbp);
          assert(ePos > trimbp);
