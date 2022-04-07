@@ -109,8 +109,12 @@ bool isCycle(TigVector       &tigs,
    BestEdgeOverlap *next = (lRead->position.isForward() == true) ? (OG->getBestEdgeOverlap(lRead->ident,  true)) : (OG->getBestEdgeOverlap(lRead->ident, false));
 
    // if we have no best edges or they don't point to a single tig, no issue
-   if (!prev->isValid() || !next->isValid() || tigs.inUnitig(prev->readId()) != tigs.inUnitig(next->readId()))
-      return false;
+   if (              (prev->isValid() == false) ||
+       (tigs.inUnitig(prev->readId()) == 0)    ||
+                     (next->isValid() == false) ||
+       (tigs.inUnitig(next->readId()) == 0)     ||
+       (tigs.inUnitig(prev->readId()) != tigs.inUnitig(next->readId())))
+     return false;
 
    // find the reads corresponding to our best
    if (logFileFlagSet(LOG_ORPHAN_DETAIL))
