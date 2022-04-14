@@ -159,16 +159,12 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 meryl/src/meryl/meryl.mk \
                 \
-                overlapCheck/overlapCheck.mk \
-                \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
                 overlapInCore/overlapConvert.mk \
                 overlapInCore/overlapImport.mk \
                 overlapInCore/overlapPair.mk \
                 overlapInCore/edalign.mk \
-                \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimitGenerate.mk \
                 \
                 mhap/mhapConvert.mk \
                 \
