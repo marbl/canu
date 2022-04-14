@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "strings.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
@@ -29,7 +30,7 @@ main (int argc, char **argv) {
   char const                *corName        = NULL;
   int32                      corVers        = 1;
 
-  std::vector<char const *>  corInputs;
+  stringList                 corInputs;
   char const                *corInputsFile  = NULL;
 
   bool                       updateCorStore = false;
@@ -47,13 +48,13 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       corInputsFile = argv[++arg];
-      AS_UTL_loadFileList(corInputsFile, corInputs);
+      corInputs.load(corInputsFile);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       updateCorStore = true;
 
     } else if (fileExists(argv[arg])) {
-      corInputs.push_back(argv[arg]);
+      corInputs.add(argv[arg]);
 
     } else {
       char *s = new char [1024];

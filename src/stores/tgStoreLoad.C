@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "strings.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
@@ -135,7 +136,7 @@ main (int argc, char **argv) {
   char const                *seqName       = NULL;
   char const                *tigName       = NULL;
   int32                      tigVers       = -1;
-  std::vector<char const *>  tigInputs;
+  stringList                 tigInputs;
   char const                *tigInputsFile = NULL;
   tgStoreType                tigType       = tgStoreModify;
   bool                       doDumpFile    = false;
@@ -154,7 +155,7 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       tigInputsFile = argv[++arg];
-      AS_UTL_loadFileList(tigInputsFile, tigInputs);
+      tigInputs.load(tigInputsFile);
 
     } else if (strcmp(argv[arg], "-n") == 0) {
       tigType = tgStoreReadOnly;
@@ -166,7 +167,7 @@ main (int argc, char **argv) {
       doTestFile = true;
 
     } else if (fileExists(argv[arg])) {
-      tigInputs.push_back(argv[arg]);
+      tigInputs.add(argv[arg]);
 
     } else {
       char *s = new char [1024];
@@ -218,16 +219,16 @@ main (int argc, char **argv) {
 
 
   if (doDumpFile == true) {
-    dumpFile(tigInputs);
+    dumpFile(tigInputs.getVector());
   }
 
   else if (doTestFile == true) {
-    testFile(tigInputs);
+    testFile(tigInputs.getVector());
   }
 
   else {
     createStore(tigName, tigVers);
-    loadTigs(seqName, tigName, tigVers, tigType, tigInputs);
+    loadTigs(seqName, tigName, tigVers, tigType, tigInputs.getVector());
   }
 
   exit(0);
