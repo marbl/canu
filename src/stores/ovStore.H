@@ -268,7 +268,7 @@ public:
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
   //  of evalues must agree.
 
-  void               addEvalues(std::vector<char const *> &fileList);
+  void               addEvalues(stringList &fileList);
 
   //  Return the statistics associated with this store
 

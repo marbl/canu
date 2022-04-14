@@ -16,6 +16,7 @@
  */
 
 #include "runtime.H"
+#include "strings.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
@@ -50,7 +51,7 @@ operator<(evalueFileMap const &a, evalueFileMap const &b) {
 
 
 void
-ovStore::addEvalues(std::vector<char const *> &fileList) {
+ovStore::addEvalues(stringList &fileList) {
   char  evalueName[FILENAME_MAX+1];
   char  evalueTemp[FILENAME_MAX+1];
 
@@ -154,7 +155,7 @@ int
 main(int argc, char **argv) {
   char const                *ovlName        = NULL;
   char const                *seqName        = NULL;
-  std::vector<char const *>  fileList;
+  stringList                 fileList;
 
   argc = AS_configure(argc, argv, 1);
 
@@ -167,11 +168,11 @@ main(int argc, char **argv) {
       seqName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-L") == 0) {
-      AS_UTL_loadFileList(argv[++arg], fileList);
+      fileList.load(argv[++arg]);
 
     } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
                (fileExists(argv[arg]))) {
-      fileList.push_back(argv[arg]);        //  Assume it's an input file
+      fileList.add(argv[arg]);        //  Assume it's an input file
 
     } else {
       char *s = new char [1024];

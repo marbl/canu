@@ -296,7 +296,7 @@ main(int argc, char **argv) {
   uint64                     minMemory       = (uint64)1 * 1024 * 1024 * 1024;
   uint64                     maxMemory       = (uint64)4 * 1024 * 1024 * 1024;
 
-  std::vector<char const *>  fileList;
+  stringList                 fileList;
 
   char const                *configOut       = NULL;
   char const                *configIn        = NULL;
@@ -323,7 +323,7 @@ main(int argc, char **argv) {
       maxMemory = (uint64)ceil(hi * 1024.0 * 1024.0 * 1024.0);
 
     } else if (strcmp(argv[arg], "-L") == 0) {
-      AS_UTL_loadFileList(argv[++arg], fileList);
+      fileList.load(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-create") == 0) {
       configOut = argv[++arg];
@@ -345,7 +345,7 @@ main(int argc, char **argv) {
     } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
                (fileExists(argv[arg]))) {
       //  Assume it's an input file
-      fileList.push_back(argv[arg]);
+      fileList.add(argv[arg]);
 
     } else {
       char *s = new char [1024];
@@ -422,7 +422,7 @@ main(int argc, char **argv) {
     sqStore        *seq    = new sqStore(seqName);
     uint32          maxID  = seq->sqStore_lastReadID();
 
-    config = new ovStoreConfig(fileList, maxID);
+    config = new ovStoreConfig(fileList.getVector(), maxID);
 
     config->assignReadsToSlices(seq, minMemory, maxMemory);
     config->writeConfig(configOut);
