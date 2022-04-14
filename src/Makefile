@@ -497,7 +497,7 @@ endef
 ifeq (${OSTYPE}, Darwin)
   $(foreach suffix,mp-9 9  mp-8 8  mp-7 7,$(eval $(call TEST_COMPILER,${suffix})))
 
-  ifneq ($(shell echo `$(CXX) --version 2>&1 | grep -c clang`), 0)
+  ifneq ($(shell echo `$(CXX) --version 2>&1 | grep -c Apple`), 0)
      CPATH := $(shell echo `which $(CXX)`)
      CLANG := $(shell echo `$(CXX) --version 2>&1 | grep clang`)
      space := 
