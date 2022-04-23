@@ -78,6 +78,7 @@ abSequence::abSequence(uint32  readID,
 unitigConsensus::unitigConsensus(sqStore  *seqStore_,
                                  double    errorRate_,
                                  double    errorRateMax_,
+                                 uint32    errorRateMaxID_,
                                  uint32    minOverlap_,
                                  uint32    minCoverage_) {
 
@@ -96,6 +97,7 @@ unitigConsensus::unitigConsensus(sqStore  *seqStore_,
   _minOverlap      = minOverlap_;
   _errorRate       = errorRate_;
   _errorRateMax    = errorRateMax_;
+  _errorRateMaxID  = errorRateMaxID_;
   _minCoverage     = minCoverage_;
 }
 
@@ -407,6 +409,11 @@ unitigConsensus::generateTemplateStitch(void) {
 
     assert(nr != 0);
 
+   if (_utgpos[rid].ident() <= _errorRateMaxID || _utgpos[nr].ident() <= _errorRateMaxID) {
+      if (showAlgorithm()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), _errorRateMaxID);
+      _errorRate = _errorRateMax;
+   }
+  
     rid      = nr;        //  We'll place read 'nr' in the template.
 
     seq      = getSequence(rid);
@@ -911,7 +918,7 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
                          _utgpos[ii],
                          seq->getBases(), seq->length(),
                          tigseq, tiglen,
-                         _errorRate,
+                         _errorRateMax,
                          showAlgorithm());
 
     if (aligned == false) {
@@ -1169,7 +1176,7 @@ unitigConsensus::findCoordinates(void) {
 
     int32         ext5    = readLen * 0.01;  //  Try an initial alignment nice and tight.  This is
     int32         ext3    = readLen * 0.01;  //  important for the first/last reads so we get them
-    double        era     = _errorRate;      //  aligned at the end of the tig.
+    double        era     = _errorRateMax;   //  aligned at the end of the tig.
 
     if (showPlacement()) {
       fprintf(stderr, "\n");

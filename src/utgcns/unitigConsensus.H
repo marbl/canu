@@ -79,6 +79,7 @@ public:
   unitigConsensus(sqStore  *seqStore_,
                   double    errorRate_,
                   double    errorRateMax_,
+                  uint32    errorRateMaxID_,
                   uint32    minOverlap_,
                   uint32    minCoverage_);
   ~unitigConsensus();
@@ -152,6 +153,7 @@ private:
   uint32          _minCoverage;
   double          _errorRate;
   double          _errorRateMax;
+  uint32          _errorRateMaxID; 
 };
 
 

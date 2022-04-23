@@ -81,7 +81,8 @@ sub utgcns ($$) {
     print F "  -P \$jobid \\\n";
     print F "  -O ./ctgcns/\$jobid.cns.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
-    print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
+    print F "  -e  " . getGlobal("cnsErrorRate") . " \\\n";
+    print F "  -em " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
     print F "  -pbdagcon \\\n"   if (getGlobal("cnsConsensus") eq "pbdagcon");
     print F "  -edlib    \\\n"   if (getGlobal("canuIteration") >= 0);

@@ -72,8 +72,10 @@ public:
   double                  partitionScaling = 1.00;   //  Estimated tig length is 100% of actual tig length.
   double                  partitionReads   = 0.05;   //  5% of all reads can end up in a single partition.
 
-  double                  errorRate    = 0.12;
-  double                  errorRateMax = 0.40;
+  double                  errorRate      = 0.12;
+  double                  errorRateMax   = 0.40;
+  uint32                  errorRateMaxID = 0;
+
   uint32                  minOverlap   = 500;
   uint32                  minCoverage  = 0;
 
@@ -188,7 +190,7 @@ processImportedTigs(cnsParameters  &params) {
 
     tig->_utgcns_verboseLevel = params.verbosity;
 
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap, params.minCoverage);
+    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
     bool              success = utgcns->generate(tig, params.algorithm, params.aligner, &reads);
 
     //  Show the result, if requested.
@@ -401,7 +403,7 @@ processTigs(cnsParameters  &params) {
 
     tig->_utgcns_verboseLevel = params.verbosity;
 
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.minOverlap, params.minCoverage);
+    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
     bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
 
     //  Show the result, if requested.
@@ -557,6 +559,10 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-em") == 0) {
       params.errorRateMax = strtodouble(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-EM") == 0) {
+      params.errorRateMaxID = strtouint32(argv[++arg]);
     }
 
     else if (strcmp(argv[arg], "-l") == 0) {
