@@ -166,8 +166,6 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 overlapInCore/overlapPair.mk \
                 overlapInCore/edalign.mk \
                 \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimitGenerate.mk \
-                \
                 mhap/mhapConvert.mk \
                 \
                 minimap/mmapConvert.mk \
