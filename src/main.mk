@@ -179,6 +179,8 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 \
                 correction/errorEstimate.mk \
                 \
+                haplotyping/splitHaplotype.mk \
+                \
                 overlapBasedTrimming/trimReads.mk \
                 overlapBasedTrimming/splitReads.mk \
                 overlapBasedTrimming/mergeRanges.mk \
