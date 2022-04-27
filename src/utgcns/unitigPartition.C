@@ -20,12 +20,12 @@
 
 
 void
-tigPartitioning::loadTigInfo(tgStore *tigStore) {
+tigPartitioning::loadTigInfo(tgStore *tigStore, bool verbose) {
 
   _nTigs  = tigStore->numTigs();
   _nReads = 0;
 
-  _tigInfo.reserve(_nTigs);
+  _tigInfo.resize(_nTigs);
 
   for (uint32 ti=0; ti<_nTigs; ti++) {
     uint64  len = 0;   //  64-bit so we don't overflow the various
@@ -41,7 +41,14 @@ tigPartitioning::loadTigInfo(tgStore *tigStore) {
 
       _nReads += nc;
 
+      if (verbose)
+        fprintf(stderr, "loadTigInfo()- tig %8u %9lubp with %6lu reads.\n", ti, len, nc);
+
       tigStore->unloadTig(ti);
+    }
+    else {
+      if (verbose)
+        fprintf(stderr, "loadTigInfo()- tig %8u deleted.\n", ti);
     }
 
     //  Initialize the tigInfo.  If no tig is here, all the fields will end
@@ -60,7 +67,7 @@ tigPartitioning::loadTigInfo(tgStore *tigStore) {
 
 
 void
-tigPartitioning::loadTigInfo(std::vector<tgTig *> &tigList) {
+tigPartitioning::loadTigInfo(std::vector<tgTig *> &tigList, bool verbose) {
 
   _nTigs  = tigList.size();
   _nReads = 0;
@@ -78,6 +85,13 @@ tigPartitioning::loadTigInfo(std::vector<tgTig *> &tigList) {
       nc  = tigList[ti]->numberOfChildren();
 
       _nReads += nc;
+
+      if (verbose)
+        fprintf(stderr, "loadTigInfo()- tig %8u %9lubp with %6lu reads.\n", ti, len, nc);
+    }
+    else {
+      if (verbose)
+        fprintf(stderr, "loadTigInfo()- tig %8u not present.\n", ti);
     }
 
     //  Initialize the tigInfo.  If no tig is here, all the fields will end

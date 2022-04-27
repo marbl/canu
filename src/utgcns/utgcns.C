@@ -116,7 +116,7 @@ void
 createPartitions(cnsParameters  &params) {
   tigPartitioning  tp;
 
-  tp.loadTigInfo(params.tigStore);
+  tp.loadTigInfo(params.tigStore, params.verbosity > 1);
 
   tp.greedilyPartition(params.partitionSize,
                        params.partitionScaling,

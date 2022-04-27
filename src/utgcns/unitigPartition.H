@@ -41,13 +41,13 @@ struct tigInfo {
 
 class tigPartitioning {
 public:
-  void     loadTigInfo(tgStore             *tigStore);
-  void     loadTigInfo(std::vector<tgTig *> &tigList);
+  void     loadTigInfo(tgStore             *tigStore, bool verbose=false);
+  void     loadTigInfo(std::vector<tgTig *> &tigList, bool verbose=false);
 
   void     greedilyPartition(double   partitionSizeScale,
                              double   tigLengthScale,
                              double   maxReadsPer,
-                             bool     verbose);
+                             bool     verbose=false);
 
   void     outputPartitions(sqStore *seqStore, tgStore *tigStore, char const *storeName);
   void     reportPartitioning(FILE *partFile);
