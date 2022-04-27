@@ -174,10 +174,9 @@ public:
     return(_readToSlice[id] + 1);
   };
 
-
-  void    assignReadsToSlices(sqStore *seq,
-                              uint64   minMemory,
-                              uint64   maxMemory);
+  void    assignReadsToSlices(sqStore *seq,          //  ovStoreConfig (the program)
+                              uint64   minMemory,    //  calls this method to figure
+                              uint64   maxMemory);   //  out store building partitioning.
 
 private:
   uint32     _maxID;

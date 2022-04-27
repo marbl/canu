@@ -163,6 +163,9 @@ public:
     delete [] _opr;
   };
 
+  //  The number of overlaps reported here are counting BOTH the A and B id in
+  //  each overlap - so they're twice the number of actual overlaps in the file.
+  //
   uint64        numOverlaps(void)           { return(_nOlaps);      };
   uint32        numOverlaps(uint32 readID)  { return(_opr[readID]); };
 

@@ -28,127 +28,123 @@
 
 
 
+void
+adjustMemoryLimits(uint64 maxPerRead,
+                   uint64 olapsPerSliceMin, uint64 &minMemory,
+                   uint64 olapsPerSliceMax, uint64 &maxMemory) {
+
+  if ((maxPerRead <= olapsPerSliceMin) &&
+      (maxPerRead <= olapsPerSliceMax))
+    return;
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "WARNING:\n");
+
+  if (olapsPerSliceMin < maxPerRead) {
+    fprintf(stderr, "WARNING:  Increasing minimum memory to handle " F_U64 " overlaps per read.\n", maxPerRead);
+    olapsPerSliceMin = maxPerRead;
+    minMemory        = maxPerRead * ovOverlapSortSize + OVSTORE_MEMORY_OVERHEAD;
+  }
+
+  if (olapsPerSliceMax < maxPerRead) {
+    fprintf(stderr, "WARNING:  Increasing maximum memory to handle " F_U64 " overlaps per read.\n", maxPerRead);
+    olapsPerSliceMax = maxPerRead;
+    maxMemory        = maxPerRead * ovOverlapSortSize + OVSTORE_MEMORY_OVERHEAD;
+  }
+
+  fprintf(stderr, "WARNING:\n");
+  fprintf(stderr, "\n");
+}
+
+
+double
+GBforOlaps(uint64 no) {
+  return((OVSTORE_MEMORY_OVERHEAD + no * ovOverlapSortSize) / 1024.0 / 1024.0 / 1024.0);
+}
+
 
 void
 ovStoreConfig::assignReadsToSlices(sqStore        *seq,
                                    uint64          minMemory,
                                    uint64          maxMemory) {
 
-  int64    procMax       = sysconf(_SC_CHILD_MAX);
-  int64    openMax       = sysconf(_SC_OPEN_MAX) - 16;
-
   //
   //  Load the number of overlaps per read.
   //
 
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Finding number of overlaps per read and per file.\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   Moverlaps\n");
-  fprintf(stderr, "------------ ----------------------------------------\n");
-
-  uint64             *oPF                = new uint64 [_numInputs];
-  uint32             *oPR                = new uint32 [_maxID + 1];
-  uint64              numOverlaps        = 0;
+  uint64    *oPF         = new uint64 [_numInputs];   //  Overlaps per file.
+  uint64    *oPR         = new uint64 [_maxID + 1];   //  Overlaps per read.
+  uint64     numOverlaps = 0;                         //  Total overlaps.
+  uint64     maxPerRead  = 0;
 
   memset(oPF, 0, sizeof(uint64) * (_numInputs));
-  memset(oPR, 0, sizeof(uint32) * (_maxID + 1));
+  memset(oPR, 0, sizeof(uint64) * (_maxID + 1));
 
   for (uint32 ii=0; ii<_numInputs; ii++) {
-    ovFile            *inputFile = new ovFile(seq, _inputNames[ii], ovFileFullCounts);
+    ovFile  *inputFile = new ovFile(seq, _inputNames[ii], ovFileFullCounts);
 
     for (uint32 rr=0; rr<_maxID + 1; rr++) {
-      oPF[ii] += inputFile->getCounts()->numOverlaps(rr) / 2;   //  Reports counts as if they were
-      oPR[rr] += inputFile->getCounts()->numOverlaps(rr);       //  already symmetrized.
+      uint32 no = inputFile->getCounts()->numOverlaps(rr);
+      oPF[ii]     += no;
+      oPR[rr]     += no;   //  So much negativity here, sorry.
+      numOverlaps += no;
     }
 
-    numOverlaps += oPF[ii] * 2;
-
     delete inputFile;
-
-    fprintf(stderr, "%12.3f %40s\n", oPF[ii] / 1000000.0, _inputNames[ii]);
   }
 
-  fprintf(stderr, "------------ ----------------------------------------\n");
+  for (uint64 ii=0; ii<_maxID+1; ii++)
+    maxPerRead = std::max(maxPerRead, oPR[ii]);
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "   Moverlaps Input file\n");
+  fprintf(stderr, "------------ ----------\n");
+
+  for (uint32 ii=0; ii<_numInputs; ii++)
+    fprintf(stderr, "%12.3f %s\n", oPF[ii] / 1000000.0 / 2, _inputNames[ii]);   //  Report number of canonical overlaps.
+
+  fprintf(stderr, "------------\n");
   fprintf(stderr, "%12.3f Moverlaps in inputs\n", numOverlaps / 2 / 1000000.0);
   fprintf(stderr, "%12.3f Moverlaps to sort\n",   numOverlaps     / 1000000.0);
   fprintf(stderr, "\n");
 
-  if (numOverlaps == 0)
-    fprintf(stderr, "Found no overlaps to sort.\n");
-
-
   //
-  //  Partition the overlaps into buckets.
-  //
-  //  This will pick the smallest memory size that uses fewer than maxFiles buckets.  Unreasonable
-  //  values can break this - either too low memory or too high allowed open files (an OS limit).
+  //  Decide how many overlaps per slice we want to allow.  This directly
+  //  affects how much memory we need for sorting.  The user has specified a
+  //  minimum and maximum sort size, which could be the same.  We'll adjust
+  //  this as needed to fit overlaps for extremely repetitive in one slice,
+  //  but then pick a value 3/4 between min and max memory allowed.
   //
 
-  uint64  olapsPerSliceMin = (minMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
-  uint64  olapsPerSliceMax = (maxMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
+  uint64  olapsPerSliceMin   = (minMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
+  uint64  olapsPerSlice      = 0;
+  uint64  olapsPerSliceExtra = 0;
+  uint64  olapsPerSliceMax   = (maxMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
 
-  //  Reset the limits so that the maximum number of overlaps per read can be held in one slice.
+  //  Reset the memory limits so that the maximum number of overlaps per read
+  //  can be held in one slice.
 
-  uint64  maxOverlapsPerRead = 0;
+  adjustMemoryLimits(maxPerRead,
+                     olapsPerSliceMin, minMemory,
+                     olapsPerSliceMax, maxMemory);
 
-  for (uint64 olaps=0, ii=0; ii<_maxID+1; ii++)
-    if (maxOverlapsPerRead < oPR[ii])
-      maxOverlapsPerRead = oPR[ii];
-
-  if ((olapsPerSliceMin < maxOverlapsPerRead) ||
-      (olapsPerSliceMax < maxOverlapsPerRead)) {
-    fprintf(stderr, "WARNING:\n");
-
-    if (olapsPerSliceMin < maxOverlapsPerRead) {
-      fprintf(stderr, "WARNING:  Increasing minimum memory to handle " F_U64 " overlaps per read.\n", maxOverlapsPerRead);
-      olapsPerSliceMin = maxOverlapsPerRead;
-      minMemory        = maxOverlapsPerRead * ovOverlapSortSize + OVSTORE_MEMORY_OVERHEAD;
-    }
-
-    if (olapsPerSliceMax < maxOverlapsPerRead) {
-      fprintf(stderr, "WARNING:  Increasing maximum memory to handle " F_U64 " overlaps per read.\n", maxOverlapsPerRead);
-      olapsPerSliceMax = maxOverlapsPerRead;
-      maxMemory        = maxOverlapsPerRead * ovOverlapSortSize + OVSTORE_MEMORY_OVERHEAD;
-    }
-
-    fprintf(stderr, "WARNING:\n");
-    fprintf(stderr, "\n");
-  }
-
-  fprintf(stderr, "Configuring for:\n");
-  fprintf(stderr, "  Up to " F_S64 " processes.\n", procMax);
-  fprintf(stderr, "  Up to " F_S64 " open files.\n", openMax);
-
-  if (minMemory < maxMemory)
-    fprintf(stderr, "  At least %5.2f GB memory -> %4" F_U64P " sort processes with %.2f Moverlaps each.\n",
-            minMemory / 1024.0 / 1024.0 / 1024.0,
-            numOverlaps / olapsPerSliceMin + 1,
-            olapsPerSliceMin / 1000000.0);
-
-  fprintf(stderr, "  At most  %5.2f GB memory -> %4" F_U64P " sort processes with %.2f Moverlaps each.\n",
-          maxMemory / 1024.0 / 1024.0 / 1024.0,
-          numOverlaps / olapsPerSliceMax + 1,
-          olapsPerSliceMax / 1000000.0);
-  fprintf(stderr, "\n");
-
-
-
-  //  More processes -> higher bandwidth utilization, but can also thrash the FS
-  //  More memory    -> harder to get machines to run on
+  //  Compute how many overlaps we can fit in the largest memory size allowed,
+  //  then count how many slices we'd need to do that.
   //
-  //  So arbitrarily pick a memory size 75% of the maximum.
+  //  Now knowing how many slices we need, recompute olapsPerSlice to make
+  //  jobs more equal (but never smaller than the max number of overlaps per
+  //  read).
+  //
+  //  But if thise size is close to maxMemory, add another (and another and
+  //  another) slice until it is below the max.
+  //
+  //  With that, compute the final (estimated) memory size for sorting jobs,
+  //  and a limit on how many additional overlaps we can allow in a slice
+  //  before exceeding the maximum limit.
 
-  uint64  sortMemory       = minMemory + 3 * (maxMemory - minMemory) / 4;
-
-  uint64  olapsPerSlice    = (sortMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
-
-  //  With that upper limit on the number of overlaps per slice, count how many slices
-  //  we need to make.
+  olapsPerSlice = (maxMemory - OVSTORE_MEMORY_OVERHEAD) / ovOverlapSortSize;
 
   _numSlices = 1;
-
-  uint64 total = 0;
 
   for (uint64 olaps=0, ii=0; ii<_maxID+1; ii++) {
     if (olaps + oPR[ii] > olapsPerSlice) {
@@ -157,132 +153,125 @@ ovStoreConfig::assignReadsToSlices(sqStore        *seq,
     }
 
     olaps += oPR[ii];
-    total += oPR[ii];
   }
-
-  //  Divide those overlaps evenly among the slices, but no smaller than
-  //  our minimum (oddly called 'maxOverlapsPerRead').
 
   olapsPerSlice = (uint64)ceil((double)numOverlaps / (double)_numSlices) + 1;
 
-  if (olapsPerSlice < maxOverlapsPerRead)
-    olapsPerSlice = maxOverlapsPerRead;
+  while (GBforOlaps(olapsPerSlice) + 1.0 > maxMemory)
+    _numSlices++;
+
+  if (olapsPerSlice < maxPerRead)   //  Slices cannot be smaller than the maximum
+    olapsPerSlice = maxPerRead;     //  number of overlaps per read.
 
   _sortMemory = (olapsPerSlice * ovOverlapSortSize + OVSTORE_MEMORY_OVERHEAD) / 1024.0 / 1024.0 / 1024.0;
 
-  //  One more time, just to count the number of slices we're making.
+  olapsPerSliceExtra = ((maxMemory - _sortMemory) * 1024.0 * 1024.0 * 1024.0) / ovOverlapSortSize;
 
-  _numSlices = 1;
+  //  Greedily assign inputs to each bucketizer task.
+  //
+  //  The number of buckets to make is essentially a free parameter - lower
+  //  makes bigger buckets and fewer files.
 
-  for (uint64 olaps=0, ii=0; ii<_maxID+1; ii++) {
-    if (olaps + oPR[ii] > olapsPerSlice) {
-      olaps = 0;
-      _numSlices++;
-    }
-
-    olaps += oPR[ii];
-  }
-
-  //  Assign inputs to each bucketizer.  Greedy load balancing.
-
-  //  Essentially a free parameter - lower makes bigger buckets and fewer files.
   _numBuckets = std::min(_numInputs, _numSlices);
 
   uint64  *olapsPerBucket = new uint64 [_numBuckets];
+  uint32  *inputPerBucket = new uint32 [_numBuckets];
 
-  for (uint32 ii=0; ii<_numBuckets; ii++)
+  for (uint32 ii=0; ii<_numBuckets; ii++) {
     olapsPerBucket[ii] = 0;
+    inputPerBucket[ii] = 0;
+  }
 
   for (uint32 ss=0, ii=0; ii<_numInputs; ii++) {
     uint32  mb = 0;
 
-    for (uint32 bb=0; bb<_numBuckets; bb++)
-      if (olapsPerBucket[bb] < olapsPerBucket[mb])
-        mb = bb;
+    for (uint32 bb=0; bb<_numBuckets; bb++)          //  Find the bucket with the
+      if (olapsPerBucket[bb] < olapsPerBucket[mb])   //  fewest number of overlaps
+        mb = bb;                                     //  assigned to it.
 
-    _inputToBucket[ii]  = mb;
-    olapsPerBucket[mb] += oPF[ii] * 2;
+    _inputToBucket[ii]  = mb;                        //  And add this input to
+    olapsPerBucket[mb] += oPF[ii];                   //  that bucket.
+    inputPerBucket[mb] += 1;
   }
 
   delete [] oPF;
 
-
   //  Report ovb to bucket mapping.
 
-  fprintf(stderr, "------------------------------------------------------------\n");
-  fprintf(stderr, "Will bucketize using " F_U32 " processes.\n", _numBuckets);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "         number    number of\n");
-  fprintf(stderr, " bucket  inputs     overlaps\n");
-  fprintf(stderr, "------- ------- ------------\n");
+  {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "         number    number of\n");
+    fprintf(stderr, " bucket  inputs     overlaps\n");
+    fprintf(stderr, "------- ------- ------------\n");
 
-  uint64  totOlaps = 0;
-
-  for (uint32 ii=0; ii<_numBuckets; ii++) {
-    uint32  ni = 0;
-
-    for (uint32 xx=0; xx<_numInputs; xx++) {
-      if (_inputToBucket[xx] == ii)
-        ni++;
+    uint64 totOlaps = 0;
+    for (uint32 ii=0; ii<_numBuckets; ii++) {
+      fprintf(stderr, "%7" F_U32P " %7" F_U32P " %12" F_U64P "\n",
+              ii, inputPerBucket[ii], olapsPerBucket[ii]);
+      totOlaps += olapsPerBucket[ii];
     }
 
-    fprintf(stderr, "%7" F_U32P " %7" F_U32P " %12" F_U64P "\n",
-            ii, ni, olapsPerBucket[ii]);
+    fprintf(stderr, "------- ------- ------------\n");
+    fprintf(stderr, "                %12" F_U64P "\n", totOlaps);
+    fprintf(stderr, "\n");
 
-    totOlaps += olapsPerBucket[ii];
+    assert(totOlaps == numOverlaps);
   }
 
   delete [] olapsPerBucket;
+  delete [] inputPerBucket;
 
-  fprintf(stderr, "------- ------- ------------\n");
-  fprintf(stderr, "                %12" F_U64P "\n", totOlaps);
-  fprintf(stderr, "\n");
-
+  //
   //  Assign reads to slices.
+  //
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "------------------------------------------------------------\n");
-  fprintf(stderr, "Will sort using " F_U32 " processes.\n",  _numSlices);
-  fprintf(stderr, "  Up to %7.2f M overlaps\n", olapsPerSlice / 1000000.0);
-  fprintf(stderr, "        %7.2f GB memory\n", _sortMemory);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "          number of\n");
-  fprintf(stderr, " slice     overlaps       read range\n");
-  fprintf(stderr, "------ ------------ ---------------------\n");
-
-  totOlaps = 0;
+  fprintf(stderr, "          number of    expected\n");
+  fprintf(stderr, " slice     overlaps memory (GB)       read range\n");
+  fprintf(stderr, "------ ------------ ----------- ---------------------\n");
 
   {
-    uint32  first = 1;
-    uint64  olaps = 0;
-    uint32  slice = 0;
+    uint32  first    = 1;
+    uint64  olaps    = 0;
+    uint32  slice    = 0;
+    uint64  totOlaps = 0;
 
     for (uint32 ii=0; ii<_maxID+1; ii++) {
-      if (olaps + oPR[ii] > olapsPerSlice) {
-        fprintf(stderr, "%6" F_U32P " %12" F_U64P " %10" F_U32P "-%-10" F_U32P "\n", slice, olaps, first, ii-1);
-        totOlaps += olaps;
-        olaps = 0;
-        slice++;
-        first = ii;
+      //  All overlaps fit easily into this slice.
+      if (olaps + oPR[ii] < olapsPerSlice) {
+        _readToSlice[ii]  =   slice;
+        olaps            += oPR[ii];
       }
 
-      olaps            += oPR[ii];
-      _readToSlice[ii]  = slice;
+      //  All overlaps fit mostly in this slice; add them to it and move to the next slice.
+      else if (olaps + oPR[ii] < olapsPerSlice + olapsPerSliceExtra) {
+        fprintf(stderr, "%6u %12lu %11.3f %10u-%-10u\n", slice, olaps + oPR[ii], GBforOlaps(olaps + oPR[ii]), first, ii);
+        _readToSlice[ii]  = slice++;
+        first             = ii+1;
+        olaps             = 0;
+      }
+
+      //  All overlaps do not fit at all in this slice; add them to the next slice.
+      else {
+        fprintf(stderr, "%6u %12lu %11.3f %10u-%-10u\n", slice, olaps, GBforOlaps(olaps), first, ii-1);
+        _readToSlice[ii]  = ++slice;
+        first             = ii;
+        olaps             = oPR[ii];
+      }
+
+      totOlaps += oPR[ii];
     }
 
-    fprintf(stderr, "%6" F_U32P " %12" F_U64P " %10" F_U32P "-%-10" F_U32P "\n", slice, olaps, first, _maxID);
-    totOlaps += olaps;
+    if (olaps > 0)
+      fprintf(stderr, "%6u %12lu %11.3f %10u-%-10u\n", slice, olaps, GBforOlaps(olaps), first, _maxID);
 
-    if (slice + 1 != _numSlices)
-      fprintf(stderr, "ERROR: expected %u slices, generated %u instead.  %lu overlaps per slice allowed.\n",
-              _numSlices, slice, olapsPerSlice);
-    assert(slice + 1 == _numSlices);
+    fprintf(stderr, "------ ------------ ----------- ---------------------\n");
+    fprintf(stderr, "       %12" F_U64P "\n", totOlaps);
+    fprintf(stderr, "\n");
+
+    assert(totOlaps == numOverlaps);
   }
-
-  fprintf(stderr, "------ ------------\n");
-  fprintf(stderr, "       %12" F_U64P "\n", totOlaps);
-
-  fprintf(stderr, "\n");
 
   delete [] oPR;
 }
@@ -414,11 +403,6 @@ main(int argc, char **argv) {
   //  Check parameters, reset some of them.
 
   else {
-    if (minMemory < OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize) {
-      fprintf(stderr, "Reset minMemory from " F_U64 " to " F_SIZE_T "\n", minMemory, OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize);
-      minMemory  = OVSTORE_MEMORY_OVERHEAD + ovOverlapSortSize;
-    }
-
     sqStore        *seq    = new sqStore(seqName);
     uint32          maxID  = seq->sqStore_lastReadID();
 
