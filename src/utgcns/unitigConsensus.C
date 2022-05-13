@@ -306,6 +306,8 @@ unitigConsensus::generateTemplateStitch(void) {
 
   double	savedErrorRate = _errorRate;
 
+  bool          allowContains  = false;
+
   allocateArray(tigseq, tigmax, _raAct::clearNew);
 
   if (showAlgorithm()) {
@@ -352,6 +354,7 @@ unitigConsensus::generateTemplateStitch(void) {
     uint32 firstCandidate = 0;   // Track the first read we can use so we know when we have to give up
 
     _errorRate = savedErrorRate;
+    allowContains = false;
 
   retryCandidate:
     //  Reset the candidate back to the beginning and scan forward again
@@ -369,7 +372,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
       //  If contained, move to the next read.  (Not terribly useful to log, so we don't)
 
-      if (_utgpos[ii].max() < ePos)
+      if (_utgpos[ii].max() < ePos && allowContains == false)
         continue;
 
       //  If a bigger end position, save the overlap.  One quirk: if we've already saved an overlap, and this
@@ -383,7 +386,7 @@ unitigConsensus::generateTemplateStitch(void) {
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();
-        if (first && firstCandidate == 0)
+        if ((first && firstCandidate == 0) || ii < firstCandidate)
            firstCandidate = ii;
       }
 
@@ -599,8 +602,10 @@ unitigConsensus::generateTemplateStitch(void) {
     } else {
       // try to go back and pick a different read to extend with if that's an option
       // it's not an option if we're already the next read
+      // if we're out of reads but didn't try contains, try again anyway, after this we give up and trim the template below
       badToAdd.insert(nr);
-      if (rid != firstCandidate) {
+      if (rid != firstCandidate || allowContains == false) {
+         allowContains = true;
          olapLen = origLen;
          if (showAlgorithm()) {
             fprintf(stderr, "generateTemplateStitch()--\n");
