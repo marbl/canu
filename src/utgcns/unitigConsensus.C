@@ -603,8 +603,10 @@ unitigConsensus::generateTemplateStitch(void) {
       // try to go back and pick a different read to extend with if that's an option
       // it's not an option if we're already the next read
       // if we're out of reads but didn't try contains, try again anyway, after this we give up and trim the template below
+      // note that we check if this read was already tried because when we go back and re-try the contained reads, we may end up not at the firstCandidate (since it was uncontained) but if we run out of new reads to try we need to stop
+      bool isAlreadyBad = badToAdd.count(nr) == 0;
       badToAdd.insert(nr);
-      if (rid != firstCandidate || allowContains == false) {
+      if ((rid != firstCandidate && !isAlreadyBad) || allowContains == false) {
          allowContains = true;
          olapLen = origLen;
          if (showAlgorithm()) {
