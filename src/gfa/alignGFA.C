@@ -105,7 +105,7 @@ public:
      //  if they're smaller than the MAX_CHUNK then we just take 1/3 of the sequence
      r = edlibAlign(other.seq,  std::min((uint32)ceil(0.3*other.len), (uint32)ceil(0.3*MAX_CHUNK)), //  The 'query'
                     compr_left, len_compr_left,                                                     //  The 'target'
-                    edlibNewAlignConfig(ceil(0.020*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                    edlibNewAlignConfig(ceil(0.10*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
      if (r.numLocations > 0) {
         bgn_padding = r.startLocations[0];
         if (beVerbose) fprintf(stderr, "Found left alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, bgn_padding);
@@ -119,7 +119,7 @@ public:
         //    -----------> (other.seq)   
         r = edlibAlign(compr_left, (uint32)ceil(0.3*len_compr_left),
                        other.seq, std::min(other.len, MAX_CHUNK),
-                       edlibNewAlignConfig(ceil(0.020*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                       edlibNewAlignConfig(ceil(0.10*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
         if (r.numLocations > 0) {
             bgn_padding = r.startLocations[0]*-1;
             if (beVerbose) fprintf(stderr, "Found negative left alignmnet, locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], other.len, bgn_padding);
@@ -133,9 +133,10 @@ public:
     // same as above, now we're looking at the end of the sequence and expect new to extend past
     // --------- > (compr_right)
     // ------->    (other.seq)
+    if (beVerbose) fprintf(stderr, "Aligning sequence query is %d and source is %d\n", other.len, len_compr_right);
     r = edlibAlign(other.seq + std::max((int32)ceil(0.3*other.len), int32(other.len-ceil(0.3*MAX_CHUNK))), std::min((uint32)ceil(0.3*other.len), (uint32)ceil(0.3*MAX_CHUNK)), //  The 'query'
                    compr_right,                                     len_compr_right,                                                                                           //  The 'target'
-                   edlibNewAlignConfig(ceil(0.020*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                   edlibNewAlignConfig(ceil(0.10*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
     if (r.numLocations > 0) {
         end_padding = (len_compr_right - r.endLocations[0]);
         if (beVerbose) fprintf(stderr, "Found right alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, end_padding);
@@ -147,7 +148,7 @@ public:
         edlibFreeAlignResult(r);
         r = edlibAlign(compr_right + len_compr_right - (uint32)ceil(0.3*len_compr_right), (uint32)ceil(0.3*len_compr_right),
                        other.seq+std::max(0, int32(other.len-MAX_CHUNK)), std::min(other.len, MAX_CHUNK),
-                       edlibNewAlignConfig(ceil(0.020*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
+                       edlibNewAlignConfig(ceil(0.10*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
         if (r.numLocations > 0) {
            end_padding = -1*(std::min(MAX_CHUNK, other.len) - r.endLocations[0]);
@@ -378,6 +379,7 @@ fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coord
               AalignLen, BalignLen, alignLen, ratio);
      delete[] Arev;
      delete[] Brev;
+
      return false;
   }
  
@@ -482,7 +484,7 @@ fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coord
     fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d   %.4f\n",
             link->_Aid, (link->_Afwd) ? '+' : '-', Abgn, Aend,
             link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
-            (double)editDist / alignLen);
+            (double)editDist / (alignLen > 0 ? alignLen : 1));
 
   //  Make a plot.
 
@@ -852,8 +854,11 @@ processGFA(char     *tigName,
 
       if (pN == true)
         passNormal++;
-      else
+      else {
+        link->_cigar = new char[3];
+        strcpy(link->_cigar, "0M");
         failNormal++;
+      }
     }
 
     //  If the cigar exists, we found an alignment.  If not, delete the link.
