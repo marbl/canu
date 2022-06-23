@@ -70,22 +70,59 @@ loadVerkkoLayouts(sqCache              *reads,
   //  adding a nullptr to our list.
   tigs.push_back(nullptr);
 
+  //  We're expecting a layout with format:
+  //    tig  piece000001
+  //    len  3434115
+  //    rds  8738
+  //    m54316_180808_005743/7668064/ccs  10831  0     200  900
+  //    m54316_180808_005743/12583071/ccs  1510  11740   0  2000
+  //    m54316_180808_005743/9240893/ccs   2002  12086
+  //
+  //  The whitespace is (probably) tabs, but we don't care.
+  //
+  //  The first pair of numbers is the position the trimmed read is expected
+  //  to go.  The second pair is the amount to trim from the read in the
+  //  orientation the read is placed in the tig (unitigConsensus.C:146).  So,
+  //  the first read will be placed reversed, with 200 bp trimmed from the
+  //  start (the original end) and 900 bp from the end (the original start):
+  //
+  //               0             10831
+  //        [200bp]<------------------[900bp]
+  //                  [0bp]-------------->[2000bp]
+  //                          ------------->
+  //
   while (AS_UTL_readLine(line, lineLen, lineMax, layoutFile->file()) == true) {
     W.split(line);
+
+    //  nReads is more than zero if we've encountered a 'rds' line, and we're
+    //  expecting to find that many read lines.  We first map the read name
+    //  to the id of the read in our sqCache, then add the read to the tig,
+    //  with or without skip information.
+    //
+    //  Errors are reported but the read is still processed.  We will crash
+    //  asserting err == 0 after all the input is processed.
 
     if      (nReads > 0) {
       uint32  id = reads->sqCache_mapNameToID(W[0]);
 
-      if (id == 0) {
-         fprintf(stderr, "ERROR: While processing tig %d, Read '%s' was not found.\n", tig->tigID(), W[0]);
-         err++;
-      }
-      else {
-         tig->addChild()->set(id, 0, 0, 0, strtouint32(W[1]), strtouint32(W[2]));
+      if (id == 0)
+        fprintf(stderr, "ERROR: While processing tig %d, Read '%s' was not found.\n", tig->tigID(), W[0]), err++;
 
-         if (readMap)
-           fprintf(readMap, "%10u  %10u  %s\n", id, tig->tigID(), W[0]);
-      }
+      if (readMap)
+        fprintf(readMap, "%10u  %10u  %s\n", id, tig->tigID(), W[0]);
+
+      if      (W.numWords() == 3)
+        tig->addChild()->set(id,
+                             0,
+                             0, 0,
+                             strtouint32(W[1]), strtouint32(W[2]));
+      else if (W.numWords() == 5)
+        tig->addChild()->set(id,                                    //  ID of the read.
+                             0,                                     //  Parent, unused.
+                             strtouint32(W[3]), strtouint32(W[4]),  //  Skip amounts on oriented ends.
+                             strtouint32(W[1]), strtouint32(W[2])); //  Position of the (aligned) read in the layout.
+      else
+        fprintf(stderr, "ERROR: While processing tig %d, expected 3 or 5 words, got %u in line '%s'.\n", tig->tigID(), W.numWords(), line), err++;
 
       nReads--;
     }
@@ -95,8 +132,6 @@ loadVerkkoLayouts(sqCache              *reads,
 
       if (tigMap)
         fprintf(tigMap, "%10u  %s\n", tig->tigID(), W[1]);
-
-      //tig->_tigName = duplicateString(W[1]);
     }
 
     else if (strcmp(W[0], "len") == 0) {
@@ -108,18 +143,16 @@ loadVerkkoLayouts(sqCache              *reads,
     }
 
     else if (strcmp(W[0], "end") == 0) {
-      if (nReads != 0) {
-         fprintf(stderr, "ERROR: Tig '%d' reads doesn't match number expected\n", tig->tigID());
-         err++;
-      }
+      if (nReads != 0)
+        fprintf(stderr, "ERROR: Tig '%d' reads doesn't match number expected\n", tig->tigID()), err++;
+
       fprintf(stderr, "-- Loading layouts - tig %6u of length %9u bp with %7u reads\n", tig->tigID(), tig->length(), tig->numberOfChildren());
       tigs.push_back(tig);
       tig = new tgTig;
     }
 
     else {
-      fprintf(stderr, "ERROR: Unexpected input line %s\n", line);
-      err++;
+      fprintf(stderr, "ERROR: Unexpected input line %s\n", line), err++;
     }
   }
 

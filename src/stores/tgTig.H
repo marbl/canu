@@ -78,6 +78,8 @@ public:
   bool                 isUnitig(void)  const { return(_isUnitig == true); };
   bool                 isContig(void)  const { return(_isContig == true); };
 
+  //  These are not really used anywhere, just in tgTig::dumpLayout.
+  //  See comments near the definition of _anchor below.
   uint32               anchor(void)          { return(_anchor); };
   int32                aHang(void)           { return(_ahang);  };
   int32                bHang(void)           { return(_bhang);  };
@@ -104,11 +106,13 @@ public:
   uint32               deltaLength(void)     { return(_deltaLen);    };
 
   //  Set just the anchor and hangs, leave positions alone.
+#if 0   //  Unused.
   void                 setAnchor(uint32 anchor, int32 ahang, int32 bhang) {
     _anchor = anchor;
     _ahang  = ahang;
     _bhang  = bhang;
   };
+#endif
 
   //  Set everything.  This is to be used by unitigger.
   void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
@@ -179,12 +183,15 @@ public:
 
   uint32              _spare       : 28;
 
+  //  These are not used any more; they were used by the early consensus
+  //  algorithm; they are still set in bogart, and MUST remain in the structure
+  //  for binary compatibility.
   uint32              _anchor;           //  ID of the like-type object we align to
   int32               _ahang;            //  Placement relative to anchor object
   int32               _bhang;            //
 
   int32               _askip;            //  Amount of sequence to not align on each end
-  int32               _bskip;            //
+  int32               _bskip;            //  Used in correction and verkko consensus.
 
   //  Must be signed, utgcns can push reads negative.
   int32               _min;
