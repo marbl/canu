@@ -129,11 +129,18 @@ canuIteration <internal parameter, do not use>
   Which parallel iteration is being attempted.
 
 canuIterationMax <integer=2>
-  How many parallel iterations to try.  Ideally, the parallel jobs, run under grid control, would
-  all finish successfully on the first try.
-  Sometimes, jobs fail due to other jobs exhausting resources (memory), or by the node itself
-  failing.  In this case, canu will launch the jobs again.  This parameter controls how many times
-  it tries.
+  How many attempts, in total, Canu will make to execute a stage.  A stage
+  is, e.g., computing overlaps for trimming, or computing consensus
+  sequences, and is composed of several (typically hundreds) of compute jobs.
+
+  The default setting of 2 allows a stage to fail once by *force majeure*
+  (node failure, memory exaustion caused by other processes, etc) without
+  stopping the entire workflow.  If a stage fails a second time the workflow
+  will terminate.
+
+  Any number of compute jobs can fail per attempt.  For example, if seven
+  jobs on the first attempt failed, exactly those seven jobs will be executed
+  again in the second attempt.
 
 .. _onSuccess:
 
