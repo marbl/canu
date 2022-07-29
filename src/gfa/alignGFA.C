@@ -748,6 +748,10 @@ processGFA(char     *tigName,
   sequences *seqs_origp = NULL;
   sequences *seqsp = NULL;  
 
+   uint32  iiLimit      = gfa->_sequences.size();
+   uint32  iiNumThreads = getNumThreads();
+   uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
+
   if (tigVers > 0) {
     fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
 
@@ -777,7 +781,11 @@ processGFA(char     *tigName,
          gfa->_sequences[ii]->_sequence = new char[(*seqsp)[gfa->_sequences[ii]->_id].len + 1];
          memcpy(gfa->_sequences[ii]->_sequence, (*seqsp)[gfa->_sequences[ii]->_id].seq, (*seqsp)[gfa->_sequences[ii]->_id].len);
          gfa->_sequences[ii]->_sequence[(*seqsp)[gfa->_sequences[ii]->_id].len] = 0;
-
+      }
+   }
+#pragma omp parallel for schedule(dynamic, iiBlockSize)
+   for (uint32 ii=0; ii<gfa->_sequences.size(); ii++) { 
+      if (gfa->_sequences[ii] != NULL) { 
          // update where the old sequences ends within our bounds too
          if (verbosity > 0) fprintf(stderr, "Aligning sequence %s to its original sequence to find bounds\n", gfa->_sequences[ii]->_name);
          (*seqsp)[gfa->_sequences[ii]->_id].getContainedSequenceBounds((*seqs_origp)[gfa->_sequences[ii]->_id], true, (verbosity > 0));
@@ -795,6 +803,7 @@ processGFA(char     *tigName,
 
   fprintf(stderr, "-- Resetting sequence lengths.\n");
 
+#pragma omp parallel for schedule(dynamic, iiBlockSize)
   for (uint32 ii=0; ii<gfa->_sequences.size(); ii++) {
     if  (gfa->_sequences[ii] == NULL)
        continue;
@@ -809,9 +818,8 @@ processGFA(char     *tigName,
   uint32  passNormal = 0;
   uint32  failNormal = 0;
 
-  uint32  iiLimit      = gfa->_links.size();
-  uint32  iiNumThreads = getNumThreads();
-  uint32  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
+  iiLimit      = gfa->_links.size();
+  iiBlockSize  = (iiLimit < 1000 * iiNumThreads) ? iiNumThreads : iiLimit / 999;
 
   fprintf(stderr, "-- Aligning " F_U32 " links using " F_U32 " threads and %.2f error rate.\n", iiLimit, iiNumThreads, erate*100);
 
