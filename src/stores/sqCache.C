@@ -160,13 +160,21 @@ sqCache::loadRead(uint32 id) {
 void
 sqCache::loadRead(dnaSeq &seq) {
 
+  //  This avoids a crash in merylutil::encode2bitSequence() when it tries
+  //  to check that the sequence is nul-terminated; accessing seq[len-1] is
+  //  invalid.  But Canu can't (Oct 2022) update merylutil without huge
+  //  changes to use it's new namespace support.
+  //
+  if (seq.length() == 0)
+    return;
+
   //  Make space for this read.
   //
   //  We need space for both metadata (in _reads) and read sequence (in
   //  _data, etc).  The former we grow by 128k entries whenever needed; the
   //  latter is allocated initially, then whenever the read data has a chance
   //  of not fitting in the current chunk.
-  
+
   increaseArray(_reads, _readsLen+1, _readsMax, 131072);
 
   if (_dataBlocksLen == 0)
@@ -487,7 +495,8 @@ sqCache::sqCache_loadReads(char const *filename) {
     if ((_readsLen & 0x1ff) == 0x1ff)
       fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
 
-    loadRead(readSeq);
+    if (readSeq.length() > 0)
+      loadRead(readSeq);
   }
 
   fprintf(stderr, "-- Loaded  reads from '%s': %8lu reads.\n", filename, _readsLen);
