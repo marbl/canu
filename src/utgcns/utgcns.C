@@ -205,7 +205,7 @@ processImportedTigs(cnsParameters  &params) {
       utgcns = nullptr;
     }
     else {
-      fprintf(stdout, "%7u %9u %7u  skipped.", tig->tigID(), tig->length(), tig->numberOfChildren());
+      fprintf(stdout, "%7u %9u %7u  skipped.\n", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
     //  Tidy up for the next tig.
