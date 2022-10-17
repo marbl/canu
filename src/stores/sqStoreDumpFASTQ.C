@@ -409,7 +409,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "Invalid read IDs detected.  No reads dumped.\n"), exit(1);
     }
 
-    fprintf(stderr, "Dumping %u %s reads between %u and %u (inclusive).\n",
+    fprintf(stderr, "Dumping %lu %s reads between %u and %u (inclusive).\n",
             p.setIDs.size(), toString(sqRead_defaultVersion), minID, maxID);
   }
   else {
