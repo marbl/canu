@@ -59,7 +59,7 @@ There doesn't appear to be any "official" Oxford Nanopore sample data, but the `
 
 Confirm the MD5SUM matches::
 
- e2688fd8b3fba61aabc6b65b787c72a4 ecolk12mg1655_R10_3_guppy_345_HAC.fastq 
+ 14ae7c31805ab048e0b413261857d82f ecolk12mg1655_R10_3_guppy_345_HAC.fastq.gz
 
 By default, Canu will correct the reads, then trim the reads, then assemble the reads to unitigs.
 Canu needs to know the approximate genome size (so it can determine coverage in the input reads)
