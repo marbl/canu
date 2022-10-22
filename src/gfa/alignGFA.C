@@ -372,7 +372,7 @@ checkLink(gfaLink   *link,
 fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coordinates are %d %d and b is %d %d alignlengths %d %d  %d\n", ratio, Apad, Bpad, Abgn, Aend, Bbgn, Bend, alignLen, AalignLen, BalignLen);
   maxEdit = (int32)ceil((alignLen+Bpad+Apad) * ratio * erate);
 
-  if (Apad+Bpad+AalignLen < 0 || Aend == Abgn || Bbgn == Bend) {
+  if (alignLen == 0 || Apad+Bpad+AalignLen < 0 || Aend == Abgn || Bbgn == Bend) {
      fprintf(stderr, "LINK tig%08u %c %17s    tig%08u %c %17s   Aalign %6u Balign %6u align %6u ratio %6f has 0-bp alignment, erasing link\n",
               link->_Aid, (link->_Afwd) ? '+' : '-', "",
               link->_Bid, (link->_Bfwd) ? '+' : '-', "",
