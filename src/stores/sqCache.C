@@ -30,7 +30,7 @@ sqCache::loadMetadata(void) {
   _readsLen = _seqStore->sqStore_lastReadID() + 1;
   _reads    = new sqCacheEntry [_readsMax];
 
-  for (uint32 id=1; id < _readsMax; id++) {
+  for (uint32 id=0; id < _readsMax; id++) {
     _reads[id]._nLen           = 0;
     _reads[id]._sLen           = 0;
     _reads[id]._bgn            = 0;
