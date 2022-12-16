@@ -440,7 +440,7 @@ alignReadsToTemplate(falconInput    *evidence,
 
     //  Convert the alignment into tags.
 
-    if (align.alignmentLength > bSkip + eSkip + 500)
+    if (align.alignmentLength > bSkip + eSkip + minOlapLength)
       tagList[j] = getAlignTags(rAln + bSkip, rBgn + rbSkip, evidence[j].readLength,
                                 tAln + bSkip, tBgn + tbSkip, evidence[0].readLength,
                                 align.alignmentLength - bSkip - eSkip);
