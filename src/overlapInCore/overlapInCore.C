@@ -373,7 +373,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--minlength") == 0) {
       G.Min_Olap_Len = strtol (argv[++arg], NULL, 10);
     } else if (strcmp(argv[arg], "--minkmers") == 0) {
-      G.Filter_By_Kmer_Count = int(floor(exp(-1.0 * (double)G.Kmer_Len * G.maxErate) * (G.Min_Olap_Len - G.Kmer_Len + 1)));
+      G.Filter_By_Kmer_Count = 1;
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
       G.maxErate = strtof(argv[++arg], NULL);
     } else if (strcmp(argv[arg], "--alignnoise") == 0) {
@@ -403,6 +403,10 @@ main(int argc, char **argv) {
 
   if (G.Outfile_Name == NULL)
     fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
+
+   // if we were asked to use the k-mer filter, initialize its value now that we know the parameters
+   if (G.Filter_By_Kmer_Count == 1)
+      G.Filter_By_Kmer_Count = int(floor(exp(-1.0 * (double)G.Kmer_Len * G.maxErate) * (G.Min_Olap_Len - G.Kmer_Len + 1)));
 
   if ((err) || (G.Frag_Store_Path == NULL)) {
     fprintf(stderr, "USAGE:  %s [options] <seqStorePath>\n", argv[0]);
