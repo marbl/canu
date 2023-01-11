@@ -617,10 +617,10 @@ Process_String_Olaps (char * S,
     for  (i = 0;  i < ct;  i ++) {
       root_num = WA->String_Olap_Space[i].String_Num;
 
-      //if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) {
-      //  WA->Kmer_Hits_Skipped_Ct++;
-      //  continue;
-      //}
+      if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) {
+        WA->Kmer_Hits_Skipped_Ct++;
+        continue;
+      }
 
       Process_Matches(&WA->String_Olap_Space[i].Match_List,
                       S,
