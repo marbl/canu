@@ -29,7 +29,7 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
 
 ## Learn:
 
-The [quick start](http://canu.readthedocs.io/en/latest/quick-start.html) will get you assembling quickly, while the [tutorial](http://canu.readthedocs.io/en/latest/tutorial.html) explains things in more detail.
+The [quick start](http://canu.readthedocs.io/en/latest/quick-start.html) and its corresponding [interactive Jupyter notebook](https://biotutorials.org/canu) will get you assembling quickly, while the [tutorial](http://canu.readthedocs.io/en/latest/tutorial.html) explains things in more detail.
 
 ## Run:
 
