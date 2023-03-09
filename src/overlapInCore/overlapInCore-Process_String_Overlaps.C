@@ -372,10 +372,8 @@ Process_Matches (int * Start,
   int  distinct_olap_ct;
   int  Max_Len, S_Lo, S_Hi, T_Lo, T_Hi;
   int  t_len;
-  int  Done_S_Left, Done_S_Right;
   int  Errors;
 
-  Done_S_Left = Done_S_Right = false;
   t_len = t_info.length;
 
   assert ((* Start) != 0);
@@ -410,6 +408,7 @@ Process_Matches (int * Start,
     }
 
     if  (is_hopeless) {
+      fprintf(stderr, "IS_HOPELESS\n");
       (* Start) = 0;
       WA->Kmer_Hits_Without_Olap_Ct ++;
       return;
@@ -443,18 +442,12 @@ Process_Matches (int * Start,
     if  (! hit_limit) {
       Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_ID, S_Len, T, T_ID, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
 
-#if 0
       fprintf(stderr, "Extend_Alignment()- start %4d len %4d offset %5d diag %5d - S ID %5u %6d-%6d - T ID %5u %6d-%6d\n",
               Longest_Match->Start,
               Longest_Match->Len,
               Longest_Match->Offset,
               Longest_Match->Start - Longest_Match->Offset,
               S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
-      fprintf(stderr, "Extend_Alignment()- Kind %d - S %d > %d - T %d > %d - Errors %d\n",
-              Kind_Of_Olap,
-              1 + S_Hi - S_Lo, G.Min_Olap_Len,
-              1 + T_Hi - T_Lo, G.Min_Olap_Len, Errors);
-#endif
 
       if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
         if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len
@@ -463,9 +456,7 @@ Process_Matches (int * Start,
           Quality = (double) Errors / Olap_Len;
 
           if  (Errors <= WA->editDist->Error_Bound[Olap_Len]) {
-#if 0
             fprintf(stderr, "Add_Overlap()-        quality %f count %d\n", Quality, distinct_olap_ct);
-#endif
             Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality, distinct_olap, distinct_olap_ct, WA);
           }
         }
@@ -536,16 +527,14 @@ Process_Matches (int * Start,
   }
 
 
-  if  (overlaps_output == 0)
+  if  (overlaps_output == 0) {
+    fprintf(stderr, "NO OVERLAP FOUND\n");
     WA->Kmer_Hits_Without_Olap_Ct++;
-  else
-    {
-      WA->Kmer_Hits_With_Olap_Ct++;
-      if  (overlaps_output > 1)
-        WA->Multi_Overlap_Ct++;
-    }
-
-  return;
+  } else {
+    WA->Kmer_Hits_With_Olap_Ct++;
+    if  (overlaps_output > 1)
+      WA->Multi_Overlap_Ct++;
+  }
 }
 
 
@@ -580,11 +569,11 @@ By_Diag_Sum (const void * a, const void * b) {
 //  Len  is the length of  S ,  ID  is its fragment ID  and
 //  Dir  indicates if  S  is forward, or reverse-complemented.
 int
-Process_String_Olaps (char * S,
-                      int Len,
-                      uint32 ID,
-                      Direction_t Dir,
-                      Work_Area_t * WA) {
+workArea::processOverlaps(char   *readSeq,
+                          uint32  readLen,
+                          uint32  readID,
+                          bool    doForward) {
+
   int32  i, ct, root_num, start, processed_ct;
 
   //  Move all full entries to front of String_Olap_Space and set
@@ -596,7 +585,7 @@ Process_String_Olaps (char * S,
   for  (i = ct = 0;  i < WA->Next_Avail_String_Olap;  i ++)
     if  (WA->String_Olap_Space[i].Full) {
       root_num = WA->String_Olap_Space[i].String_Num;
-      if  (root_num + Hash_String_Num_Offset > ID) {
+      if  (root_num + HT->_bgnRead > ID) {
         if  (WA->String_Olap_Space[i].Match_List == 0) {
           fprintf (stderr, " Curr_String_Num = %d  root_num  %d have no matches\n", ID, root_num);
           exit (-2);
@@ -616,11 +605,8 @@ Process_String_Olaps (char * S,
   if  (ct <= G.Frag_Olap_Limit) {
     for  (i = 0;  i < ct;  i ++) {
       root_num = WA->String_Olap_Space[i].String_Num;
-
-      if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) {
-        WA->Kmer_Hits_Skipped_Ct++;
-        continue;
-      }
+      //fprintf(stderr, "Processing overlap from %d and global, curr match is %d of %.2f len and %d diag matches min of %d\n", ID, (root_num + HT->_bgnRead), (double)WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, WA->String_Olap_Space[i].diag_ct, computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate));
+      if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) { WA->Kmer_Hits_Skipped_Ct++; continue; }
 
       Process_Matches(&WA->String_Olap_Space[i].Match_List,
                       S,
@@ -629,7 +615,7 @@ Process_String_Olaps (char * S,
                       Dir,
                       basesData + String_Start[root_num],
                       String_Info[root_num],
-                      root_num + Hash_String_Num_Offset,
+                      root_num + HT->_bgnRead,
                       WA,
                       WA->String_Olap_Space[i].consistent);
 
@@ -659,7 +645,7 @@ Process_String_Olaps (char * S,
                     Dir,
                     basesData + String_Start[root_num],
                     String_Info[root_num],
-                    root_num + Hash_String_Num_Offset,
+                    root_num + HT->_bgnRead,
                     WA,
                     WA->String_Olap_Space[i].consistent);
 
@@ -679,7 +665,7 @@ Process_String_Olaps (char * S,
                     Dir,
                     basesData + String_Start[root_num],
                     String_Info[root_num],
-                    root_num + Hash_String_Num_Offset,
+                    root_num + HT->_bgnRead,
                     WA,
                     WA->String_Olap_Space[i].consistent);
 

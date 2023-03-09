@@ -1,0 +1,69 @@
+
+
+overlapInCore-Build_Hash_Index.C
+overlapInCore-Output.C
+
+
+overlapInCore.C
+ - processes command line then calls OverlapDriver().
+    - load reference reads into the cache
+    - Build_Hash_Index() with as much data as possible
+    - Process_Overlaps() in threads
+
+
+overlapInCore-Process_Overlaps.C
+ - this is the main entry point for a work thread
+ - iterates over reads bgnID to endID in WA
+    - loads read sequence from sqCache
+    - Find_Overlaps()
+    - revComp()
+    - Find_Overlaps()
+ - after each batch, enters a critical section
+    - foreach overlap, BOF->writeOverlap()
+    - updates stats
+    - moves this WA to the next batch of reads
+
+overlapInCore-Find_Overlaps.C
+ - searches hash table for hits, adds 
+
+
+
+overlapInCore-Process_String_Overlaps.C
+
+overlapInCore.C
+
+
+----------------------------------------
+Hash Table
+
+Precompute the total size of data loaded into the table,
+both frequent kmers and actual reads.
+    computeKmerSize(frequentMersPath);
+    computeReadSize(seqStore);
+
+
+
+
+
+
+----------------------------------------
+Main Loop, run in a thread
+
+for (uint32 fi=thrBgn[tt]; fi <= thrEnd[tt]; fi++) {
+  readCache->sqCache_getSequence(fi, bases, basesLen, basesMax);
+
+  WA->findOverlaps   (bases, readLen, fi, true);
+  WA->processOverlaps(bases, readLen, fi, true);
+
+  reverseComplementSequence(bases, readLen);
+
+  WA->findOverlaps   (bases, readLen, fi, false);
+  WA->processOverlaps(bases, readLen, fi, false);
+}
+
+#  Critical Section
+statistics += WA->outputOverlaps(tt, thrBgn[tt], thrEnd[tt], OF);
+
+--------------------
+findOverlaps()
+  keyIterator over bases

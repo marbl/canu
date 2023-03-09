@@ -15,7 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "overlapInCore.H"
+//#include "overlapInCore.H"
 #include "prefixEditDistance.H"
 
 
@@ -61,9 +61,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   int32  Error_Limit = Error_Bound[Total_Olap];
 
 #ifdef SHOW_EXTEND_ALIGN
-  fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
+  fprintf(stdout, "prefixEditDistance::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
           Total_Olap, Error_Limit, 100.0 * Error_Limit / Total_Olap);
-  fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  S: %d-%d and %d-%d  T: %d-%d and %d-%d\n",
+  fprintf(stdout, "prefixEditDistance::Extend_Alignment()--  S: %d-%d and %d-%d  T: %d-%d and %d-%d\n",
           0, S_Left_Begin, S_Right_Begin, S_Right_Begin + S_Right_Len,
           0, T_Left_Begin, T_Right_Begin, T_Right_Begin + T_Right_Len);
 #endif
@@ -139,17 +139,15 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   if ((Right_Errors > Error_Limit) ||
       (Left_Errors  > Error_Limit) ||
       (Errors       > Error_Limit))
-#ifdef SHOW_BRI
     fprintf(stderr, "Extend_Alignment()- S_ID %u T_ID %u Error_Limit %d Left_Errors %d Right_Errors %d\n",
             S_ID, T_ID, Error_Limit, Left_Errors, Right_Errors);
-#endif
 
   assert(Right_Errors <= Error_Limit);
   assert(Left_Errors  <= Error_Limit);
   assert(Errors       <= Error_Limit);
 
 #ifdef SHOW_EXTEND_ALIGN
-  fprintf(stderr, "WorkArea %2d OVERLAP %6d %6d - %5d + %5d = %5d errors\n", omp_get_thread_num(), S_ID, T_ID, Left_Errors, Right_Errors, Errors);
+  fprintf(stdout, "WorkArea %2d OVERLAP %6d %6d - %5d + %5d = %5d errors out of %d possible\n", omp_get_thread_num(), S_ID, T_ID, Left_Errors, Right_Errors, Errors, Edit_Space_Lazy_Max);
 #endif
 
   //  No overlap if both right and left don't match to end, otherwise a branch point if only one.
@@ -176,8 +174,6 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   //  Return.
 
-#ifdef SHOW_BRI
-  fprintf(stderr, "Extend_Alignment() return type %d\n", return_type);
-#endif
+  //fprintf(stderr, "Extend_Alignment() return type %d\n", return_type);
   return(return_type);
 }

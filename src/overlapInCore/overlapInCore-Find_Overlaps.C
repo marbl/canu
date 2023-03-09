@@ -21,30 +21,52 @@
 //  starting at subscript  (* start). The matching window begins
 //  offset  bytes from the beginning of this string.
 
+
 static
 void
-Add_Match(String_Ref_t ref,
-          int * start,
-          int offset,
-          int * consistent,
-          Work_Area_t * WA) {
+workArea::addMatch(kmerRef ref,
+                   int * start,
+                   int offset,             //  Should be increasing; position in read we're processing
+                   int * consistent,
+                   Work_Area_t * WA) {
+
   int  * p, save;
   int  diag = 0, new_diag, expected_start = 0, num_checked = 0;
   int  move_to_front = false;
 
-  new_diag = getStringRefOffset(ref) - offset;
+  new_diag = ref._stringPos - offset;  //  diagonal in hash_read vs query_read alignmment
 
+  // walk through all the entries for this read
+  // 
   for (p = start;  (* p) != 0;  p = & (WA->Match_Node_Space [(* p)].Next)) {
-    expected_start = WA->Match_Node_Space [(* p)].Start + WA->Match_Node_Space [(* p)].Len - G.Kmer_Len + 1 + HASH_KMER_SKIP;
 
-    diag = WA->Match_Node_Space [(* p)].Offset - WA->Match_Node_Space [(* p)].Start;
+    //  compute the expected start of an extension of this match
+    //  and the diagonal we're on
+    expected_start = WA->Match_Node_Space [(* p)].Start  + WA->Match_Node_Space [(* p)].Len - G.Kmer_Len + 1;
+    diag           = WA->Match_Node_Space [(* p)].Offset - WA->Match_Node_Space [(* p)].Start;
 
+    //  if the expected start is before the start of the match, stop.
+    //  why??
     if (expected_start < offset)
       break;
 
+    //  if the expected start is exactly the start of the new match
     if (expected_start == offset) {
+
+      //  and it's on the same diagonal,
+      //    increase the length of this match by one
+      //    possibly move this entry to the start of the list
+      //    and return
       if (new_diag == diag) {
-        WA->Match_Node_Space [(* p)].Len += 1 + HASH_KMER_SKIP;
+        WA->Match_Node_Space [(* p)].Len += 1;
+
+        //  if we ...
+        //    save the index we're looking at
+        //    move to the next one
+        //    set the Next pointer to point to the 'start' of the list
+        //    and make the start of the list be the index we're looking at
+        //  so indeed we just move this Node_Space to the start of the list
+        //
         if (move_to_front) {
           save = (* p);
           (* p) = WA->Match_Node_Space [(* p)].Next;
@@ -52,12 +74,22 @@ Add_Match(String_Ref_t ref,
           (* start) = save;
         }
         return;
-      } else
+      }
+
+      //  but if on a different diagonal
+      //    flag it so we move it to the start of the list if we ever extend it
+      //    i suspect this keeps the Match_Node_Space list sorted by decreasing expected_start
+      else
         move_to_front = true;
     }
+
     num_checked ++;
   }
 
+  //  if here we either failed to find an exact 'expected_start' match on the correct diagonal
+  //  or all the rest of the Match_Node_Space entries end before we start
+
+  // Allocate more match node space if needed
   if (WA->Next_Avail_Match_Node == WA->Match_Node_Size) {
     int32          newSize  = WA->Match_Node_Size * 2;
     Match_Node_t  *newSpace = new Match_Node_t [newSize];
@@ -70,23 +102,32 @@ Add_Match(String_Ref_t ref,
     WA->Match_Node_Space = newSpace;
   }
 
+  //  if a bunch of stuff is true set non-consistent
+  //    start isn't the first node in the array
+  //      we checked at least one node -- the first node started after this kmer
+  //      a very different diagonal
+  //      a gap in the kmers
+  //  then not consistent
+
   if ((* start) != 0
       && (num_checked > 0
           || abs (diag - new_diag) > 3
           || offset < expected_start + G.Kmer_Len - 2))
     (* consistent) = false;
 
+  // remember the address of the current head, set 'start' to the next free node
   save = (* start);
   (* start) = WA->Next_Avail_Match_Node;
   WA->Next_Avail_Match_Node ++;
 
-  WA->Match_Node_Space [(* start)].Offset = getStringRefOffset(ref);
-  WA->Match_Node_Space [(* start)].Len = G.Kmer_Len;
-  WA->Match_Node_Space [(* start)].Start = offset;
-  WA->Match_Node_Space [(* start)].Next = save;
+  // populate the free node
+  WA->Match_Node_Space [(* start)].Offset = ref._stringPos;  //  start of align in hash table read
+  WA->Match_Node_Space [(* start)].Len    = G.Kmer_Len;      //  length of hit
+  WA->Match_Node_Space [(* start)].Start  = offset;          //  start of align in query read
+  WA->Match_Node_Space [(* start)].Next   = save;            //  pointer to the rest of the hits
 
 #if 0
-  fprintf(stderr, "Add_Match()-- %3d offset %d len %d start %d next %d\n",
+  fprintf(stderr, "addMatch()-- %3d offset %d len %d start %d next %d\n",
           *start,
           WA->Match_Node_Space [(* start)].Offset,
           WA->Match_Node_Space [(* start)].Len,
@@ -100,23 +141,22 @@ Add_Match(String_Ref_t ref,
 //  Add information for Ref and all its matches to the global hash table in String_Olap_Space. Grow
 //  the space if necessary. The matching window begins Offset bytes from the beginning of this
 //  string.
-static
+
 void
-Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
-  uint32  Prev, StrNum, Sub;
-  int  consistent;
+workArea::addReference(kmerRef kmer,
+                       uint64  offset) {
 
-  StrNum = getStringRefStringNum(Ref);
-  Sub = (StrNum ^ (StrNum >> STRING_OLAP_SHIFT)) & STRING_OLAP_MASK;
+  uint32  Prev;
 
-#if 0
-  fprintf(stderr, "Add_Ref()- StrNum %d Sub %d Offset %d\n", StrNum, Sub, Offset);
-#endif
+  uint32 StrNum = kmer._stringID;
+  uint32 Sub    = (StrNum ^ (StrNum >> STRING_OLAP_SHIFT)) & STRING_OLAP_MASK;
 
-  while (WA->String_Olap_Space [Sub].Full
-          && WA->String_Olap_Space [Sub].String_Num != StrNum) {
+  while ((WA->String_Olap_Space[Sub].Full) &&
+         (WA->String_Olap_Space[Sub].String_Num != StrNum)) {
+
     Prev = Sub;
-    Sub = WA->String_Olap_Space [Sub].Next;
+    Sub = WA->String_Olap_Space[Sub].Next;
+
     if (Sub == 0) {
       if (WA->Next_Avail_String_Olap == WA->String_Olap_Size) {
         int32          newSize  = WA->String_Olap_Size * 2;
@@ -130,34 +170,40 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
         WA->String_Olap_Space = newSpace;
       }
 
-      Sub = WA->Next_Avail_String_Olap ++;
+      Sub = WA->Next_Avail_String_Olap++;
+
       WA->String_Olap_Space [Prev].Next = Sub;
-      WA->String_Olap_Space [Sub].Full = false;
+      WA->String_Olap_Space[Sub].Full = false;
+
       break;
     }
   }
 
-  if (! WA->String_Olap_Space [Sub].Full) {
-    WA->String_Olap_Space [Sub].String_Num = StrNum;
-    WA->String_Olap_Space [Sub].Match_List = 0;
-    WA->String_Olap_Space [Sub].diag_sum = 0.0;
-    WA->String_Olap_Space [Sub].diag_ct = 0;
-    WA->String_Olap_Space [Sub].diag_bgn = AS_MAX_READLEN;
-    WA->String_Olap_Space [Sub].diag_end = 0;
-    WA->String_Olap_Space [Sub].Next = 0;
-    WA->String_Olap_Space [Sub].Full = true;
-    WA->String_Olap_Space [Sub].consistent = true;
+  if (! WA->String_Olap_Space[Sub].Full) {
+    WA->String_Olap_Space[Sub].String_Num = StrNum;
+    WA->String_Olap_Space[Sub].Match_List = 0;
+    WA->String_Olap_Space[Sub].diag_sum = 0.0;
+    WA->String_Olap_Space[Sub].diag_ct = 0;
+    WA->String_Olap_Space[Sub].diag_bgn = AS_MAX_READLEN;
+    WA->String_Olap_Space[Sub].diag_end = 0;
+    WA->String_Olap_Space[Sub].Next = 0;
+    WA->String_Olap_Space[Sub].Full = true;
+    WA->String_Olap_Space[Sub].consistent = true;
   }
 
-  consistent = WA->String_Olap_Space [Sub].consistent;
+  int consistent = WA->String_Olap_Space[Sub].consistent;
 
-  WA->String_Olap_Space [Sub].diag_sum += (double)getStringRefOffset(Ref) - Offset;
-  WA->String_Olap_Space [Sub].diag_ct ++;
-  if (WA->String_Olap_Space [Sub].diag_bgn > Offset) WA->String_Olap_Space [Sub].diag_bgn = Offset;
-  if (WA->String_Olap_Space [Sub].diag_end < Offset) WA->String_Olap_Space [Sub].diag_end = Offset;
-  Add_Match (Ref, & (WA->String_Olap_Space [Sub].Match_List), Offset, & consistent, WA);
+  WA->String_Olap_Space[Sub].diag_sum += (double)kmer._stringPos - offset;
+  WA->String_Olap_Space[Sub].diag_ct++;
 
-  WA->String_Olap_Space [Sub].consistent = consistent;
+  if (WA->String_Olap_Space[Sub].diag_bgn > offset) WA->String_Olap_Space[Sub].diag_bgn = offset;
+  if (WA->String_Olap_Space[Sub].diag_end < offset) WA->String_Olap_Space[Sub].diag_end = offset;
+
+  //                start of list of exact matches in match node space
+  //
+  addMatch(kmer, & (WA->String_Olap_Space[Sub].Match_List), offset, & consistent, WA);
+
+  WA->String_Olap_Space[Sub].consistent = consistent;
 
   return;
 }
@@ -172,166 +218,101 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
 //  Extra_Ref_Space  where the reference was found if it was found there.
 //  Set  (* hi_hits)  to  true  if hash table entry is found but is empty
 //  because it was screened out, otherwise set to false.
-static
-String_Ref_t
-Hash_Find(uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits) {
-  String_Ref_t  H_Ref = 0;
-  char  * T;
-  unsigned char  Key_Check;
-  int64  Ct, Probe;
-  int  i;
 
-  Key_Check = KEY_CHECK_FUNCTION (Key);
-  Probe = PROBE_FUNCTION (Key);
+kmerRef
+Hash_Find(uint64 key, char *s) {
+  uint64  bucket   = Hash_Bucket_t::hashFunction(key);
+  uint64  probe    = Hash_Bucket_t::hashProbe(key);
+  uint8   keycheck = Hash_Bucket_t::keyCheck(key);
 
-  (* hi_hits) = false;
-  Ct = 0;
-  do {
-    for (i = 0;  i < Hash_Table [Sub].Entry_Ct;  i ++)
-      if (Hash_Table [Sub].Check [i] == Key_Check) {
-        int  is_empty;
+  //  If the check bit isn't set for this bucket, then the kmer isn't in this
+  //  bucket or any of it's probe buckets.
 
-        H_Ref = Hash_Table [Sub].Entry [i];
-        //fprintf(stderr, "Href = Hash_Table %u Entry %u = " F_U64 "\n", Sub, i, H_Ref);
+  if (Hash_Table[bucket].isNotPresent(key) == true)
+    return(kmerRef());
 
-        is_empty = getStringRefEmpty(H_Ref);
-        if (! getStringRefLast(H_Ref) && ! is_empty) {
-          (* Where) = ((uint64)getStringRefStringNum(H_Ref) << OFFSET_BITS) + getStringRefOffset(H_Ref);
-          H_Ref = Extra_Ref_Space [(* Where)];
-          //fprintf(stderr, "Href = Extra_Ref_Space " F_U64 " = " F_U64 "\n", *Where, H_Ref);
-        }
-        //fprintf(stderr, "Href = " F_U64 "  Get String_Start[ " F_U64 " ] + " F_U64 "\n", getStringRefStringNum(H_Ref), getStringRefOffset(H_Ref));
-        T = basesData + String_Start [getStringRefStringNum(H_Ref)] + getStringRefOffset(H_Ref);
-        if (strncmp (S, T, G.Kmer_Len) == 0) {
-          if (is_empty) {
-            setStringRefEmpty(H_Ref, TRUELY_ONE);
-            (* hi_hits) = true;
-          }
-          return  H_Ref;
-        }
-      }
-    if (Hash_Table [Sub].Entry_Ct < ENTRIES_PER_BUCKET) {
-      setStringRefEmpty(H_Ref, TRUELY_ONE);
-      return  H_Ref;
+  //  Iterate until we find the kmer, or we've visited every bucket in the
+  //  table and decide the table is full.
+
+  for (int64 Ct=0; Ct < HASH_TABLE_SIZE; Ct++) {
+    for (uint32 ee=0; ee < Hash_Table[bucket]._bucketLen; ee++) {
+      kmerRef  hashref = Hash_Table[bucket]._bucket[ee];
+      char         *t       = basesData + hashref.position();
+
+      if ((Hash_Table[bucket]_bcheck[ee] != keycheck) ||   //  If check fails, kmer can't be here,
+          (strncmp(s, t, G.Kmer_Len) != 0))               //  otherwise verify it's the same kmer.
+        continue;
+
+      return(hashref);
     }
-    Sub = (Sub + Probe) % HASH_TABLE_SIZE;
-  }  while (++ Ct < HASH_TABLE_SIZE);
 
-  setStringRefEmpty(H_Ref, TRUELY_ONE);
-  return  H_Ref;
+    //  If the bucket isn't full, we're done, no need to probe ahead to the
+    //  next bucket.  Otherwise, probe ahead!
+
+    if (Hash_Table[bucket]._bucketLen == ENTRIES_PER_BUCKET)
+      return(kmerRef());
+
+    bucket = (bucket + probe) % HASH_TABLE_SIZE;
+  }
+
+  //  We checked everywhere we could and didn't find it.  Bummer, eh.
+
+  return(kmerRef());
 }
 
 
 
 
-
-
-//  Find and output all overlaps and branch points between string
-//   Frag  and any fragment currently in the global hash table.
-//   Frag_Len  is the length of  Frag  and  Frag_Num  is its ID number.
-//   Dir  is the orientation of  Frag .
-
+//  Lookup each kmer in the hash table.
+//
+//  If the kmer is frequent and we're near the end of the read, flag the
+//  read as such and ignore the hits.
+//
+//  If it isn't frequent, zip down the linear reference array adding hits
+//  for each position.
+//
 void
-Find_Overlaps(char Frag [], int Frag_Len, uint32 Frag_Num, Direction_t Dir, Work_Area_t * WA) {
-  String_Ref_t  Ref;
-  char  * P, * Window;
-  uint64  Key, Next_Key;
-  int64  Sub, Next_Sub, Where;
-  Check_Vector_t  This_Check, Next_Check;
-  int  Offset, Shift, Next_Shift;
-  int  hi_hits;
-  int  j;
+workArea::findOverlaps(char       *readSeq,
+                       uint32      readLen,
+                       uint32      readID,
+                       bool        doForward,
+                       hashTable  *HT) {
 
-  memset (WA->String_Olap_Space, 0, STRING_OLAP_MODULUS * sizeof (String_Olap_t));
-  WA->Next_Avail_String_Olap = STRING_OLAP_MODULUS;
-  WA->Next_Avail_Match_Node = 1;
+  memset(String_Olap_Space, 0, STRING_OLAP_MODULUS * sizeof (String_Olap_t));
 
-  assert (Frag_Len >= G.Kmer_Len);
+  Next_Avail_String_Olap = STRING_OLAP_MODULUS;
+  Next_Avail_Match_Node  = 1;
 
-  Offset = 0;
-  P = Window = Frag;
+  left_end_screened  = false;
+  right_end_screened = false;
 
-  WA->left_end_screened  = false;
-  WA->right_end_screened = false;
+  A_Olaps_For_Frag = 0;
+  B_Olaps_For_Frag = 0;
 
-  WA->A_Olaps_For_Frag = 0;
-  WA->B_Olaps_For_Frag = 0;
+  keyIterator    it(readSeq, HT->kmerSize());
 
-  Key = 0;
-  for (j = 0;  j < G.Kmer_Len;  j ++)
-    Key |= (uint64) (Bit_Equivalent [(int) * (P ++)]) << (2 * j);
+  while (it.next() == true) {
+    kmerRef  hashref = Hash_Find(it.key, it.merBgn);
+    uint64   refiter = hashref.getLinearPointer();
 
-  Sub = HASH_FUNCTION (Key);
-  Shift = HASH_CHECK_FUNCTION (Key);
-  Next_Key = (Key >> 2);
-  Next_Key |= ((uint64) (Bit_Equivalent [(int) * P])) << (2 * (G.Kmer_Len - 1));
-  Next_Sub = HASH_FUNCTION (Next_Key);
-  Next_Shift = HASH_CHECK_FUNCTION (Next_Key);
-  Next_Check = Hash_Check_Array [Next_Sub];
+    if (hashref._ignore) {
+      int32  bgnSize =            it.ref._stringPos;
+      int32  endSize = Frag_Len - it.ref._stringPos - G.Kmer_Len + 1;
 
-  if ((Hash_Check_Array [Sub] & (((Check_Vector_t) 1) << Shift)) != 0) {
-    Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
-    if (hi_hits) {
-      WA->left_end_screened = true;
+      if (bgnSize < HOPELESS_MATCH)   left_end_screened  = true;
+      if (endSize < HOPELESS_MATCH)   right_end_screened = true;
+
+      continue;
     }
-    if (! getStringRefEmpty(Ref)) {
-      while (true) {
-        if (Frag_Num < getStringRefStringNum(Ref) + Hash_String_Num_Offset)
-          Add_Ref  (Ref, Offset, WA);
 
-        if (getStringRefLast(Ref))
-          break;
-        else {
-          Ref = Extra_Ref_Space [++ Where];
-          assert (! getStringRefEmpty(Ref));
-        }
-      }
+    hashref = Extra_Ref_Space[refiter++];
+
+    while (hashref._isLast == false) {
+      if (Frag_Num < HT->_bgnRead + hashref._stringID)
+        addReference(hashref,                            //  the hit in the hash table
+                     it.ref._stringPos - G.Kmer_Len);    //  start position of kmer in the read
+
+      hashref = Extra_Ref_Space[refiter++];
     }
   }
-
-  while ((* P) != '\0') {
-    Window ++;
-    Offset ++;
-
-    Key = Next_Key;
-    Shift = Next_Shift;
-    Sub = Next_Sub;
-    This_Check = Next_Check;
-    P ++;
-    Next_Key = (Key >> 2);
-    Next_Key |= ((uint64)
-                 (Bit_Equivalent [(int) * P])) << (2 * (G.Kmer_Len - 1));
-    Next_Sub = HASH_FUNCTION (Next_Key);
-    Next_Shift = HASH_CHECK_FUNCTION (Next_Key);
-    Next_Check = Hash_Check_Array [Next_Sub];
-
-    if ((This_Check & (((Check_Vector_t) 1) << Shift)) != 0) {
-      Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
-      if (hi_hits) {
-        if (Offset < HOPELESS_MATCH) {
-          WA->left_end_screened = true;
-        }
-        if (Frag_Len - Offset - G.Kmer_Len + 1 < HOPELESS_MATCH) {
-          WA->right_end_screened = true;
-        }
-      }
-      if (! getStringRefEmpty(Ref)) {
-        while (true) {
-          if (Frag_Num < getStringRefStringNum(Ref) + Hash_String_Num_Offset)
-            Add_Ref  (Ref, Offset, WA);
-
-          if (getStringRefLast(Ref))
-            break;
-          else {
-            Ref = Extra_Ref_Space [++ Where];
-            assert (! getStringRefEmpty(Ref));
-          }
-        }
-      }
-    }
-  }
-
-
-  Process_String_Olaps  (Frag, Frag_Len, Frag_Num, Dir, WA);
 }
-

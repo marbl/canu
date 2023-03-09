@@ -1,0 +1,9 @@
+overlapInCore-Build_Hash_Index.C
+
+ dd10d72d6122aa90b53c02548665ee8515ec733a
+ - comment about allowing an extra READLEN in maxAlloc
+
+ af0f896513e0c98af3477c421a91d5bbda1d2723
+ - change limit on hash load from total_len to maxAlloc
+
+common ancestor: 88590e745f7096519763c2ab74cb93a7c2fd5361
