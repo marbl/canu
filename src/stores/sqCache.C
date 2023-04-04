@@ -195,7 +195,10 @@ sqCache::loadRead(dnaSeq &seq) {
 
   //  Save the name to id mapping.
 
-  _nameToID[ std::string(seq.ident()) ] = id;
+  std::string readname = seq.ident();
+
+  _nameToID[ readname ] = id;
+  _IDtoName.push_back( _nameToID.find(readname) );
 
   //  Encode the data as 2-bit, 3-bit, or plain bases, whatever works first.
   //  Note the '+8' is to leave space at the start for the AIFF tag and
@@ -481,9 +484,7 @@ sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
 
 
 
-//  Load ALL reads in the (possibly compressed) file.  The map<> will allow
-//  mapping between sequence names and the ID used in the cache.
-
+//  Load ALL reads in the (possibly compressed) file.
 void
 sqCache::sqCache_loadReads(char const *filename) {
   dnaSeqFile *readFile = new dnaSeqFile(filename, false);
@@ -542,9 +543,22 @@ sqCache::sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
   B->write(&corU, sizeof(sqReadSeq));
   B->write(&corC, sizeof(sqReadSeq));
 
+  //  Figure out the name of this read.
+  //
+  //  When reads are loaded from seqStore, names do NOT exist, and the
+  //  _IDtoName vector is empty; we pass an empty name to importData().
+  //
+  //  When reads are loaded from sequence files, names DO exist.  All id's
+  //  will have a name; we just ensure that the id is within range.
+
+  char const *name = "";
+
+  if (id < _IDtoName.size())
+    name = _IDtoName[id]->first.c_str();
+
   //  Import the sequence and metadata to the data writer, then write it.
 
-  wr->sqReadDataWriter_importData("",
+  wr->sqReadDataWriter_importData(name,
                                   seq,
                                   seqLen, 0, seqLen,
                                   &rawU, &rawC, &corU, &corC);

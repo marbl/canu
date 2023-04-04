@@ -115,8 +115,14 @@ private:
   uint64           _readsLen        = 0;
   uint64           _readsMax        = 0;
 
+  //  We need to convert a read name into a read ID when converting verkko
+  //  layouts to a utgcns packages, and we also need to do the reverse lookup
+  //  when the package is actually written.  The reverse lookup is
+  //  accomplished using an array of iterators to the map element.
   typedef std::map<std::string, uint32>    nameMap;
+  typedef std::vector<nameMap::iterator>   naidMap;
   nameMap          _nameToID;
+  naidMap          _IDtoName;
 
   void            allocateNewBlock(void) {
     increaseArray(_dataBlocks, _dataBlocksLen, _dataBlocksMax, 16);
