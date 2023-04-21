@@ -314,7 +314,7 @@ dotplot(uint32 Aid, bool Afwd, char *Aseq,
   merylutil::closeFile(F, Bname, '.', "fasta");
 
   sprintf(Pname, "sh plot-%s-%s.sh", Aname, Bname);
-  system(Pname);
+  ::system(Pname);
 }
 
 bool

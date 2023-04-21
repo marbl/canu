@@ -65,7 +65,7 @@ public:
 
     snprintf(N, FILENAME_MAX, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);
 
-    system(N);
+    ::system(N);
   };
 
   uint32               nReads;
