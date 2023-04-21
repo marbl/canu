@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
@@ -59,7 +58,7 @@ main(int argc, char **argv) {
 
   tig.loadFromStream(F);
 
-  AS_UTL_closeFile(F, tigFileName);
+  merylutil::closeFile(F, tigFileName);
 
   uint32  displayWidth    = 250;
   uint32  displaySpacing  = 10;

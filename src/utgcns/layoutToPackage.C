@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "system.H"
 #include "strings.H"
 
@@ -48,8 +47,8 @@ loadVerkkoLayouts(sqCache              *reads,
   uint32        nReads  = 0;
   char          fname[FILENAME_MAX+1];
 
-  FILE         *readMap = AS_UTL_openOutputFile(mapPrefix, '.', "readName_to_ID.map");
-  FILE         *tigMap  = AS_UTL_openOutputFile(mapPrefix, '.', "tigName_to_ID.map");
+  FILE         *readMap = merylutil::openOutputFile(mapPrefix, '.', "readName_to_ID.map");
+  FILE         *tigMap  = merylutil::openOutputFile(mapPrefix, '.', "tigName_to_ID.map");
 
   if (readMap) {
     fprintf(readMap, "    readID       tigID  read name\n");
@@ -91,7 +90,7 @@ loadVerkkoLayouts(sqCache              *reads,
   //                  [0bp]-------------->[2000bp]
   //                          ------------->
   //
-  while (AS_UTL_readLine(line, lineLen, lineMax, layoutFile->file()) == true) {
+  while (merylutil::readLine(line, lineLen, lineMax, layoutFile->file()) == true) {
     W.split(line);
 
     //  nReads is more than zero if we've encountered a 'rds' line, and we're
@@ -159,8 +158,8 @@ loadVerkkoLayouts(sqCache              *reads,
   delete [] line;
   delete    tig;
 
-  AS_UTL_closeFile(tigMap);
-  AS_UTL_closeFile(readMap);
+  merylutil::closeFile(tigMap);
+  merylutil::closeFile(readMap);
 
   if (err > 0) {
     fprintf(stderr, "ERROR: loading layouts failed, check your input sequences and layout file!");

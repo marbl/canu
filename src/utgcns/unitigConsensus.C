@@ -21,8 +21,7 @@
 
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
-#include "edlib.H"
-#include "align-parasail-driver.H"
+#include "align.H"
 
 #include <string>
 

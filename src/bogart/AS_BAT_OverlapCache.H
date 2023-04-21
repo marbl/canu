@@ -18,7 +18,6 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-#include "runtime.H"
 #include "ovStore.H"
 #include "sqStore.H"
 

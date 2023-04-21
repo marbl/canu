@@ -15,7 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
+#include "system.H"
 #include "strings.H"
 
 #include "sqStore.H"
@@ -116,7 +116,7 @@ main (int argc, char **argv) {
     nSkip = 0;
     nLoad = 0;
 
-    FILE *TI = AS_UTL_openInputFile(corInputs[ff]);
+    FILE *TI = merylutil::openInputFile(corInputs[ff]);
 
     while (tig->loadFromStreamOrLayout(TI) == true) {
       uint32  rID  = tig->tigID();
@@ -158,7 +158,7 @@ main (int argc, char **argv) {
       assert(seqStore->sqStore_getReadLength(rID, sqRead_corrected) == tig->length());
     }
 
-    AS_UTL_closeFile(TI, corInputs[ff]);
+    merylutil::closeFile(TI, corInputs[ff]);
 
     fprintf(stderr, "%9" F_U64P " %9" F_U64P " %35s\n", nLoad, nSkip, corInputs[ff]);
 

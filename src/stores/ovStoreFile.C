@@ -77,13 +77,13 @@ ovFile::~ovFile() {
 
   writeBuffer(true);
 
-  AS_UTL_closeFile(_file, _name);
+  merylutil::closeFile(_file, _name);
 
   if ((_isOutput) && (_histogram))
     _histogram->saveHistogram(_prefix);
 
   if (_isTemporary)
-    AS_UTL_unlink(_name);
+    merylutil::unlink(_name);
 
   delete    _countsW;
   delete    _countsR;
@@ -139,7 +139,7 @@ ovFile::construct(sqStore     *seq,
   memset(_name,   0, FILENAME_MAX+1);
 
   strncpy(_name, name, FILENAME_MAX);        //  Logic also used in ovFile::deleteDiskFiles.
-  AS_UTL_findBaseFileName(_prefix, _name);
+  merylutil::findBaseFileName(_prefix, _name);
 
   //
   //  Handle ovStore files.  These CANNOT be compressed, not even snappy.  We need
@@ -150,7 +150,7 @@ ovFile::construct(sqStore     *seq,
     _isTemporary = fetchFromObjectStore(_name);     //  the object store if needed.
 
   if (type == ovFileNormal) {
-    _file        = AS_UTL_openInputFile(_name);
+    _file        = merylutil::openInputFile(_name);
     _bufferLoc   = 0;
     _isOutput    = false;
     _useSnappy   = false;
@@ -158,7 +158,7 @@ ovFile::construct(sqStore     *seq,
   }
 
   if (type == ovFileNormalWrite) {
-    _file        = AS_UTL_openOutputFile(_name);
+    _file        = merylutil::openOutputFile(_name);
     _isOutput    = true;
     _useSnappy   = false;
     _histogram   = new ovStoreHistogram(_seq);
@@ -174,7 +174,7 @@ ovFile::construct(sqStore     *seq,
   //
 
   if (type == ovFileFull) {                       //  No automagic object store fetch;
-    _file        = AS_UTL_openInputFile(_name);   //  the executive must do this for us.
+    _file        = merylutil::openInputFile(_name);   //  the executive must do this for us.
     _isOutput    = false;
     _useSnappy   = true;
     _countsR     = new ovFileOCR(_seq, _prefix);
@@ -188,7 +188,7 @@ ovFile::construct(sqStore     *seq,
   }
 
   if (type == ovFileFullWrite) {
-    _file        = AS_UTL_openOutputFile(_name);
+    _file        = merylutil::openOutputFile(_name);
     _isOutput    = true;
     _useSnappy   = true;
     _countsW     = new ovFileOCW(_seq, _prefix);
@@ -200,7 +200,7 @@ ovFile::construct(sqStore     *seq,
   //
 
   if (type == ovFileFullWriteNoCounts) {
-    _file        = AS_UTL_openOutputFile(_name);
+    _file        = merylutil::openOutputFile(_name);
     _isOutput    = true;
     _useSnappy   = true;
   }
@@ -339,7 +339,7 @@ ovFile::loadBuffer(void) {
   //  allowed and expected to have a short read at the end of the file.
 
   if (_useSnappy == false) {
-    _bufferLoc = AS_UTL_ftell(_file) / sizeof(uint32);
+    _bufferLoc = merylutil::ftell(_file) / sizeof(uint32);
     _bufferPos = 0;
     _bufferLen = loadFromFile(_buffer, "ovFile::loadBuffer", _bufferMax, _file, false);
 
@@ -469,7 +469,7 @@ ovFile::seekOverlap(off_t overlap) {
   //        _bufferLoc, _bufferLoc + _bufferLen, _bufferLoc + _bufferPos,
   //        seekToWord);
 
-  AS_UTL_fseek(_file, seekToByte, SEEK_SET);
+  merylutil::fseek(_file, seekToByte, SEEK_SET);
 
   _bufferPos = _bufferLen;   //  Force a buffer reload.
 }

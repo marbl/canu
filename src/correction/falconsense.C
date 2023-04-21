@@ -15,13 +15,12 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "sqStore.H"
 #include "sqCache.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 
 #include "sequence.H"
 
@@ -59,7 +58,7 @@ loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, std::set<ui
 
   readList.insert(0);
 
-  FILE *R = AS_UTL_openInputFile(readListName);
+  FILE *R = merylutil::openInputFile(readListName);
 
   for (fgets(L, 1024, R);
        feof(R) == false;
@@ -71,7 +70,7 @@ loadReadList(char const *readListName, uint32 iidMin, uint32 iidMax, std::set<ui
       readList.insert(id);
   }
 
-  AS_UTL_closeFile(R, readListName);
+  merylutil::closeFile(R, readListName);
 }
 
 
@@ -449,9 +448,9 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  FILE *cnsFile = AS_UTL_openOutputFile(outputPrefix, '.', "cns",     outputCNS);
-  FILE *seqFile = AS_UTL_openOutputFile(outputPrefix, '.', "fastq",   outputFASTQ);
-  FILE *batFile = AS_UTL_openOutputFile(outputPrefix, '.', "batches", memoryLimit > 0);
+  FILE *cnsFile = merylutil::openOutputFile(outputPrefix, '.', "cns",     outputCNS);
+  FILE *seqFile = merylutil::openOutputFile(outputPrefix, '.', "fastq",   outputFASTQ);
+  FILE *batFile = merylutil::openOutputFile(outputPrefix, '.', "batches", memoryLimit > 0);
 
   if (outputLog)
     openAlignLogFiles(outputPrefix);
@@ -478,8 +477,8 @@ main(int argc, char **argv) {
   if (importFile) {
     tgTig                     *layout = new tgTig();
 
-    FILE  *importedLayouts = AS_UTL_openOutputFile(importName, '.', "layout", (importName != NULL));
-    FILE  *importedReads   = AS_UTL_openOutputFile(importName, '.', "fasta",  (importName != NULL));
+    FILE  *importedLayouts = merylutil::openOutputFile(importName, '.', "layout", (importName != NULL));
+    FILE  *importedReads   = merylutil::openOutputFile(importName, '.', "fasta",  (importName != NULL));
 
     while (layout->importData(importFile, reads, NULL, NULL) == true) {
       generateFalconConsensus(fc,
@@ -498,8 +497,8 @@ main(int argc, char **argv) {
       layout = new tgTig();    //  Next loop needs an existing empty layout.
     }
 
-    AS_UTL_closeFile(importedReads);
-    AS_UTL_closeFile(importedLayouts);
+    merylutil::closeFile(importedReads);
+    merylutil::closeFile(importedLayouts);
 
     //  We properly should clean up the data loaded.
 
@@ -716,9 +715,9 @@ main(int argc, char **argv) {
 
   //  Close files and clean up.
 
-  AS_UTL_closeFile(batFile, outputPrefix, '.', "batches");
-  AS_UTL_closeFile(seqFile, outputPrefix, '.', "fastq");
-  AS_UTL_closeFile(cnsFile, outputPrefix, '.', "cns");
+  merylutil::closeFile(batFile, outputPrefix, '.', "batches");
+  merylutil::closeFile(seqFile, outputPrefix, '.', "fastq");
+  merylutil::closeFile(cnsFile, outputPrefix, '.', "cns");
 
   if (outputLog)
     closeAlignLogFiles(outputPrefix);

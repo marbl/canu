@@ -16,13 +16,13 @@
  */
 
 #include "system.H"
+#include "math.H"
 
-#include "runtime.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
-#include "stddev.H"
+
 #include <vector>
 
 //  History of this, as "remembered" by BPW in Feb 2020.

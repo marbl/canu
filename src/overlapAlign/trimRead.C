@@ -15,9 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 #include "system.H"
 #include "sequence.H"
 

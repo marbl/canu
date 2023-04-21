@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "files.H"
 
 #include "bed.H"
@@ -76,7 +75,7 @@ bedRecord::~bedRecord() {
 
 void
 bedRecord::load(char *inLine) {
-  splitToWords W(inLine);
+  merylutil::splitToWords W(inLine);
 
   _Aname    = new char [strlen(W[0]) + 1];
   _Aid      = UINT32_MAX;
@@ -123,13 +122,13 @@ bedFile::loadFile(char *inName) {
   uint32 Llen = 0;
   uint32 Lmax = 0;
 
-  FILE *F = AS_UTL_openInputFile(inName);
+  FILE *F = merylutil::openInputFile(inName);
 
-  while (AS_UTL_readLine(L, Llen, Lmax, F)) {
+  while (merylutil::readLine(L, Llen, Lmax, F)) {
     _records.push_back(new bedRecord(L));
   }
 
-  AS_UTL_closeFile(F, inName);
+  merylutil::closeFile(F, inName);
 
   delete [] L;
 
@@ -144,13 +143,13 @@ bedFile::loadFile(char *inName) {
 bool
 bedFile::saveFile(char *outName) {
 
-  FILE *F = AS_UTL_openOutputFile(outName);
+  FILE *F = merylutil::openOutputFile(outName);
 
   for (uint32 ii=0; ii<_records.size(); ii++)
     if (_records[ii])
       _records[ii]->save(F);
 
-  AS_UTL_closeFile(F, outName);
+  merylutil::closeFile(F, outName);
 
   return(true);
 }

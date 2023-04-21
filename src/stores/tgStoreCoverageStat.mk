@@ -1,7 +1,7 @@
 TARGET   := tgStoreCoverageStat
 SOURCES  := tgStoreCoverageStat.C
 
-SRC_INCDIRS := .. ../utility/src/utility
+SRC_INCDIRS := .. ../utility/src
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

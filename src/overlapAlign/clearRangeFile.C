@@ -84,18 +84,18 @@ clearRangeFile::loadData(char const *filename) {
 
   setFilename(filename);
 
-  FILE  *F = AS_UTL_openInputFile(_filename);
+  FILE  *F = merylutil::openInputFile(_filename);
 
-  loadFromFile(_minSet, "clearRangeFile::minSet",         F);
-  loadFromFile(_maxSet, "clearRangeFile::maxSet",         F);
+  merylutil::loadFromFile(_minSet, "clearRangeFile::minSet",         F);
+  merylutil::loadFromFile(_maxSet, "clearRangeFile::maxSet",         F);
 
   reallocData(_maxSet, true);
 
-  loadFromFile(_bgn   + _minSet,  "clearRangeFile::bgn",   _maxSet - _minSet + 1, F);
-  loadFromFile(_end   + _minSet,  "clearRangeFile::end",   _maxSet - _minSet + 1, F);
-  loadFromFile(_flags + _minSet,  "clearRangeFile::flags", _maxSet - _minSet + 1, F);
+  merylutil::loadFromFile(_bgn   + _minSet,  "clearRangeFile::bgn",   _maxSet - _minSet + 1, F);
+  merylutil::loadFromFile(_end   + _minSet,  "clearRangeFile::end",   _maxSet - _minSet + 1, F);
+  merylutil::loadFromFile(_flags + _minSet,  "clearRangeFile::flags", _maxSet - _minSet + 1, F);
 
-  AS_UTL_closeFile(F, _filename);
+  merylutil::closeFile(F, _filename);
 
   fprintf(stderr, "clearRangeFile()-- loaded reads %u-%u from '%s'.\n", _minSet, _maxSet, _filename);
 
@@ -112,16 +112,16 @@ clearRangeFile::saveData(char const *filename, bool force) {
   if ((_modified == false) && (force == false))
     return;
 
-  FILE  *F = AS_UTL_openOutputFile(_filename);
+  FILE  *F = merylutil::openOutputFile(_filename);
 
-  writeToFile(_minSet, "clearRangeFile::minSet",         F);
-  writeToFile(_maxSet, "clearRangeFile::maxSet",         F);
+  merylutil::writeToFile(_minSet, "clearRangeFile::minSet",         F);
+  merylutil::writeToFile(_maxSet, "clearRangeFile::maxSet",         F);
 
-  writeToFile(_bgn   + _minSet,  "clearRangeFile::bgn",   _maxSet - _minSet + 1, F);
-  writeToFile(_end   + _minSet,  "clearRangeFile::end",   _maxSet - _minSet + 1, F);
-  writeToFile(_flags + _minSet,  "clearRangeFile::flags", _maxSet - _minSet + 1, F);
+  merylutil::writeToFile(_bgn   + _minSet,  "clearRangeFile::bgn",   _maxSet - _minSet + 1, F);
+  merylutil::writeToFile(_end   + _minSet,  "clearRangeFile::end",   _maxSet - _minSet + 1, F);
+  merylutil::writeToFile(_flags + _minSet,  "clearRangeFile::flags", _maxSet - _minSet + 1, F);
 
-  AS_UTL_closeFile(F, _filename);
+  merylutil::closeFile(F, _filename);
 
   fprintf(stderr, "clearRangeFile()-- saved reads %u-%u to '%s'.\n", _minSet, _maxSet, _filename);
 
@@ -145,9 +145,11 @@ clearRangeFile::reallocData(uint64 newmax, bool exact) {
   if (newmax < 128 * 1024)
     newmax = 128 * 1024;
 
-  setArraySize(_bgn,   _maxAlloc, unused, newmax, _raAct::copyData | _raAct::clearNew);
-  setArraySize(_end,   _maxAlloc, unused, newmax, _raAct::copyData | _raAct::clearNew);
-  setArraySize(_flags, _maxAlloc, unused, newmax, _raAct::copyData | _raAct::clearNew);
+  merylutil::_raAct cc = merylutil::_raAct::copyData | merylutil::_raAct::clearNew;
+
+  merylutil::setArraySize(_bgn,   _maxAlloc, unused, newmax, cc);
+  merylutil::setArraySize(_end,   _maxAlloc, unused, newmax, cc);
+  merylutil::setArraySize(_flags, _maxAlloc, unused, newmax, cc);
 
   _maxAlloc = newmax;
 }

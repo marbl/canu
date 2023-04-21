@@ -18,12 +18,11 @@
 #ifndef TRIM_READS_H
 #define TRIM_READS_H
 
-#include "runtime.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 
 
 #define OBT_MODE_WIGGLE      (5)

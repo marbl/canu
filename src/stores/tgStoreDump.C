@@ -15,16 +15,16 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
-
+#include "system.H"
 #include "strings.H"
+#include "intervals.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
 
-#include "intervalList.H"
-
 #include "tgTigSizeAnalysis.H"
+
+#include <algorithm>
 
 #undef  DEBUG_IGNORE
 
@@ -307,8 +307,8 @@ dumpConsensus(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bo
 
 void
 dumpInfo(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *outPrefix) {
-  FILE *tigs   = AS_UTL_openOutputFile(outPrefix, '.', "layout.tigInfo");
-  FILE *reads  = AS_UTL_openOutputFile(outPrefix, '.', "layout.readToTig");
+  FILE *tigs   = merylutil::openOutputFile(outPrefix, '.', "layout.tigInfo");
+  FILE *reads  = merylutil::openOutputFile(outPrefix, '.', "layout.readToTig");
 
   dumpTigHeader(tigs);
   dumpReadHeader(reads);
@@ -337,8 +337,8 @@ dumpInfo(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, char *o
     tigStore->unloadTig(ti);
   }
 
-  AS_UTL_closeFile(tigs,  outPrefix, '.', "layout.tigInfo");
-  AS_UTL_closeFile(reads, outPrefix, '.', "layout.readToTig");
+  merylutil::closeFile(tigs,  outPrefix, '.', "layout.tigInfo");
+  merylutil::closeFile(reads, outPrefix, '.', "layout.readToTig");
 }
 
 
@@ -446,13 +446,13 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
   //  Dump the values from min to max
 
-  FILE *F = AS_UTL_openOutputFile(N);
+  FILE *F = merylutil::openOutputFile(N);
 
   for (uint32 ii=minii; ii<=maxii; ii++)
     for (uint32 xx=0; xx<cov[ii]; xx++)
       fprintf(F, F_U32"\n", ii);
 
-  AS_UTL_closeFile(F, N);
+  merylutil::closeFile(F, N);
 
   //  Decide on a bucket size.  We want some even number, like 10, 100, 1000, 5000.
 
@@ -496,12 +496,12 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
 
   //  Dump the values again, this time as a real histogram.
 
-  F = AS_UTL_openOutputFile(N);
+  F = merylutil::openOutputFile(N);
 
   for (uint32 ii=minii; ii<=maxii; ii++)
     fprintf(F, F_U32"\t" F_U64 "\n", ii, cov[ii]);
 
-  AS_UTL_closeFile(F, N);
+  merylutil::closeFile(F, N);
 }
 
 
@@ -699,14 +699,14 @@ dumpCoverage(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, cha
 
       snprintf(outName, FILENAME_MAX, "%s.tig%08u.depth", outPrefix, tig->tigID());
 
-      FILE *outFile = AS_UTL_openOutputFile(outName);
+      FILE *outFile = merylutil::openOutputFile(outName);
 
       for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
         fprintf(outFile, "%d\t%u\n", ID.lo(ii),     ID.depth(ii));
         fprintf(outFile, "%d\t%u\n", ID.hi(ii) - 1, ID.depth(ii));
       }
 
-      AS_UTL_closeFile(outFile, outName);
+      merylutil::closeFile(outFile, outName);
 
       FILE *gnuPlot = popen("gnuplot > /dev/null 2>&1", "w");
 

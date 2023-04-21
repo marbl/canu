@@ -22,7 +22,7 @@
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_PlaceReadUsingOverlaps.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 
 #include <vector>
 #include <algorithm>

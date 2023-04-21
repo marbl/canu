@@ -15,9 +15,10 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
-#include "ovStore.H"
+#include "system.H"
 #include "strings.H"
+
+#include "ovStore.H"
 
 #include <vector>
 

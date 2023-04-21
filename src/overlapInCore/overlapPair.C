@@ -15,19 +15,15 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "system.H"
-
-#include <pthread.h>
+#include "sequence.H"
+#include "align.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
 
-#include "edlib.H"
-
 #include "overlapReadCache.H"
 
-#include "sequence.H"
 
 //  The process will load BATCH_SIZE overlaps into memory, then load all the reads referenced by
 //  those overlaps.  Once all data is loaded, compute threads are spawned.  Each thread will reserve

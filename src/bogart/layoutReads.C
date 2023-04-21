@@ -89,13 +89,13 @@ importTigsFromReadList(char const *prefix,
   std::unordered_map<uint32, uint32> readMap;
   std::unordered_set<uint32> usedReads;
 
-  FILE         *listFile = AS_UTL_openInputFile(readListPath);
+  FILE         *listFile = merylutil::openInputFile(readListPath);
 
   // we make two passes through the reads
   // the first counts the reads to have information to randomize them
   // the second will actually build the tig
   //
-  while (AS_UTL_readLine(line, lineLen, lineMax, listFile) == true) {
+  while (merylutil::readLine(line, lineLen, lineMax, listFile) == true) {
     processLine(line, lineLen);
 
     words.split(line);
@@ -113,11 +113,11 @@ importTigsFromReadList(char const *prefix,
       readMap[fi] += 1;
     }
   }
-  AS_UTL_closeFile(listFile, readListPath);
+  merylutil::closeFile(listFile, readListPath);
 
   // OK go now build the tig
-  listFile = AS_UTL_openInputFile(readListPath);
-  while (AS_UTL_readLine(line, lineLen, lineMax, listFile) == true) {
+  listFile = merylutil::openInputFile(readListPath);
+  while (merylutil::readLine(line, lineLen, lineMax, listFile) == true) {
     processLine(line, lineLen);
 
     words.split(line);
@@ -250,7 +250,7 @@ importTigsFromReadList(char const *prefix,
 
   delete [] line;
 
-  AS_UTL_closeFile(listFile, readListPath);
+  merylutil::closeFile(listFile, readListPath);
 }
 
 

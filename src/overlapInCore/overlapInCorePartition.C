@@ -15,9 +15,10 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
-#include "sqStore.H"
+#include "system.H"
 #include "strings.H"
+
+#include "sqStore.H"
 
 #include <set>
 
@@ -283,7 +284,7 @@ renameToFinal(char const *prefix, char const *type) {
   snprintf(A, FILENAME_MAX, "%s.%s.WORKING", prefix, type);
   snprintf(B, FILENAME_MAX, "%s.%s",         prefix, type);
 
-  AS_UTL_rename(A, B);
+  merylutil::rename(A, B);
 }
 
 
@@ -414,9 +415,9 @@ main(int argc, char **argv) {
 
   partitionLength(seq, readLen, BAT, JOB, OPT, minOverlapLength, ovlHashBlockLength, ovlRefBlockLength, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
 
-  AS_UTL_closeFile(BAT);
-  AS_UTL_closeFile(JOB);
-  AS_UTL_closeFile(OPT);
+  merylutil::closeFile(BAT);
+  merylutil::closeFile(JOB);
+  merylutil::closeFile(OPT);
 
   delete [] readLen;
 

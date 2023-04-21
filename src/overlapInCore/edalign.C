@@ -15,14 +15,13 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
-
+#include "system.H"
 #include "sequence.H"
 #include "files.H"
 #include "strings.H"
+#include "align.H"
 
-#include "edlib.H"
-
+using namespace merylutil;
 
 bool
 readLine(FILE *file, char *line, int32 lineMax, int32 &len, splitToWords &s) {

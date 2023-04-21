@@ -1,7 +1,7 @@
 TARGET   := filterCorrectionLayouts
 SOURCES  := filterCorrectionLayouts.C
 
-SRC_INCDIRS  := .. ../utility/src/utility ../stores
+SRC_INCDIRS  := .. ../utility/src ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

@@ -216,7 +216,7 @@ isCircularizingEdge(Unitig   *tig,
 void
 findCircularContigs(TigVector &tigs,
                     const char *prefix) {
-  FILE *CIRC = AS_UTL_openOutputFile(prefix, '.', "circular");
+  FILE *CIRC = merylutil::openOutputFile(prefix, '.', "circular");
 
   fprintf(CIRC, "          ----------------------------------------------------------------------  ----------------------------------------------------------------------\n");
   fprintf(CIRC, "              first                         overlap                                    last                         overlap\n");
@@ -265,5 +265,5 @@ findCircularContigs(TigVector &tigs,
             lRead->ident, lRead->position.bgn, lRead->position.end, loRead->ident, loRead->position.bgn, loRead->position.end, tig->_circularLength);
   }
 
-  AS_UTL_closeFile(CIRC, prefix, '.', "circular");
+  merylutil::closeFile(CIRC, prefix, '.', "circular");
 }

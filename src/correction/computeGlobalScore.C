@@ -20,6 +20,7 @@
 #include <set>
 #include <algorithm>
 
+using namespace merylutil;
 
 uint16
 globalScore::compute(uint32             ovlLen,

@@ -22,7 +22,6 @@
 //    from overlappers, the number of overlaps per read.
 //    in the store, the number of overlaps per (evalue,overlapLength)
 
-#include "runtime.H"
 #include "sqStore.H"
 #include "ovStoreFile.H"  //  For ovFileType.
 
