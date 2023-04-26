@@ -73,7 +73,7 @@ endef
 #   USE WITH EVAL
 #
 define ADD_OBJECT_RULE
-${1}/%.o: ${2} utility/src/utility/version.H
+${1}/%.o: ${2} utility/src/version.H
 	${3}
 endef
 
