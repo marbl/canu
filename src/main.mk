@@ -141,19 +141,19 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
 
 
 ifeq (${BUILDSTACKTRACE}, 1)
-SOURCES      += utility/src/utility/libbacktrace/atomic.c \
-                utility/src/utility/libbacktrace/backtrace.c \
-                utility/src/utility/libbacktrace/dwarf.c \
-                utility/src/utility/libbacktrace/elf.c \
-                utility/src/utility/libbacktrace/fileline.c \
-                utility/src/utility/libbacktrace/mmap.c \
-                utility/src/utility/libbacktrace/mmapio.c \
-                utility/src/utility/libbacktrace/posix.c \
-                utility/src/utility/libbacktrace/print.c \
-                utility/src/utility/libbacktrace/simple.c \
-                utility/src/utility/libbacktrace/sort.c \
-                utility/src/utility/libbacktrace/state.c \
-                utility/src/utility/libbacktrace/unknown.c
+SOURCES      += utility/src/system/libbacktrace/atomic.c \
+                utility/src/system/libbacktrace/backtrace.c \
+                utility/src/system/libbacktrace/dwarf.c \
+                utility/src/system/libbacktrace/elf.c \
+                utility/src/system/libbacktrace/fileline.c \
+                utility/src/system/libbacktrace/mmap.c \
+                utility/src/system/libbacktrace/mmapio.c \
+                utility/src/system/libbacktrace/posix.c \
+                utility/src/system/libbacktrace/print.c \
+                utility/src/system/libbacktrace/simple.c \
+                utility/src/system/libbacktrace/sort.c \
+                utility/src/system/libbacktrace/state.c \
+                utility/src/system/libbacktrace/unknown.c
 endif
 
 
