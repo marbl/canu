@@ -81,7 +81,8 @@ public:
                   double    errorRateMax_,
                   uint32    errorRateMaxID_,
                   uint32    minOverlap_,
-                  uint32    minCoverage_);
+                  uint32    minCoverage_,
+                  merlinGlobal *merlinGlobal_);
   ~unitigConsensus();
 
 private:
@@ -118,7 +119,7 @@ private:
   bool   generateSingleton(tgTig                       *tig,
                            std::map<uint32, sqRead *>  *reads = NULL);
 
-  void   findCoordinates(void);
+  void   findCoordinates(std::map<uint32, sqRead *>     *reads);
   void   findRawAlignments(void);
   void   trimCircular(void);
 
@@ -154,6 +155,7 @@ private:
   double          _errorRate;
   double          _errorRateMax;
   uint32          _errorRateMaxID; 
+  merlinGlobal    *_merlinGlobal;
 };
 
 

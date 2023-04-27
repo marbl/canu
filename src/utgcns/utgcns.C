@@ -19,6 +19,8 @@
 #include "system.H"
 #include "strings.H"
 
+#include "merlin-globals.H"
+
 #include "sqStore.H"
 #include "tgStore.H"
 
@@ -104,6 +106,8 @@ public:
   FILE                   *outLayoutsFile = nullptr;
   FILE                   *outSeqFileA    = nullptr;
   FILE                   *outSeqFileQ    = nullptr;
+  merlinGlobal           *merlinGlobal_  = nullptr;
+  char                   *markerDB       = nullptr;
 };
 
 
@@ -182,7 +186,9 @@ processImportedTigs(cnsParameters  &params) {
 
       tig->_utgcns_verboseLevel = params.verbosity;
 
-      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
+      params.merlinGlobal_->markerDBname = params.markerDB;
+      params.merlinGlobal_->load_Kmers(params.markerDB);
+      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
       bool              success = utgcns->generate(tig, params.algorithm, params.aligner, &reads);
 
       //  Show the result, if requested.
@@ -410,7 +416,9 @@ processTigs(cnsParameters  &params) {
 
     tig->_utgcns_verboseLevel = params.verbosity;
 
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
+    params.merlinGlobal_->markerDBname = params.markerDB;
+    params.merlinGlobal_->load_Kmers(params.markerDB);
+    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
     bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
 
     //  Show the result, if requested.
@@ -463,6 +471,8 @@ processTigs(cnsParameters  &params) {
 int
 main(int argc, char **argv) {
   cnsParameters  params;
+
+  params.merlinGlobal_ = new merlinGlobal(argv[0]);
 
   argc = AS_configure(argc, argv);
 
@@ -612,6 +622,9 @@ main(int argc, char **argv) {
     }
     else if (strcmp(argv[arg], "-nosingleton") == 0) {
       params.noSingleton = true;
+    }
+    else if (strcmp(argv[arg], "-markers") == 0) {
+      params.markerDB = argv[++arg];
     }
 
     else {

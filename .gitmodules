@@ -7,3 +7,6 @@
 [submodule "src/seqrequester"]
 	path = src/seqrequester
 	url = https://github.com/marbl/seqrequester
+[submodule "src/utgcns/htslib"]
+	path = src/utgcns/htslib
+	url = https://github.com/samtools/htslib.git

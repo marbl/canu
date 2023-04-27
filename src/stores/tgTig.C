@@ -96,6 +96,7 @@ tgPosition::initialize(void) {
 
   _deltaOffset = UINT32_MAX;
   _deltaLen    = 0;
+  _isIgnored   = false;
 }
 
 
@@ -499,8 +500,8 @@ tgTig::dumpLayout(FILE *F, bool withSequence) {
 
 
     if (imp->_isRead)
-      fprintf(F, "read   %9" F_U32P " anchor %9" F_U32P " hang %7" F_S32P " %7" F_S32P " position %9" F_U32P " %9" F_U32P "%s%s\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
+      fprintf(F, "read   %9" F_U32P " anchor %9" F_U32P " hang %7" F_S32P " %7" F_S32P " position %9" F_U32P " %9" F_U32P " isIgnored:  %9" F_U32P "%s%s\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->isIgnored(), trimString, deltaString);
 
     if (imp->_isUnitig)
       fprintf(F, "unitig %9" F_U32P " anchor %9" F_U32P " hang %7" F_S32P " %7" F_S32P " position %9" F_U32P " %9" F_U32P "%s%s\n",
@@ -795,7 +796,7 @@ tgTig::reverseComplement(void) {
     int32  bgn = _basesLen - _children[ii].bgn();
     int32  end = _basesLen - _children[ii].end();
 
-    _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end);
+    _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end, _children[ii].isIgnored());
   }
 
   //  _childDeltas are also invalid.

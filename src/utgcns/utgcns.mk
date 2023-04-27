@@ -6,8 +6,14 @@ SRC_INCDIRS  := .. \
                 ../utility/src/parasail \
                 ../stores \
                 libpbutgcns \
-                libboost
+                libboost \
+                htslib \
+                htslib/lib \
+                htslib/htscodecs/htscodecs \
+                ../merlin \
+                ../merlin/build/lib
 
-TGT_LDFLAGS := -L${TARGET_DIR}/lib
-TGT_LDLIBS  := -l${MODULE}
+
+TGT_LDFLAGS := -L${TARGET_DIR}/lib -L/ßdata/solarsj/verkko/src/utgcns/htslib/lib
+TGT_LDLIBS  := -l${MODULE} -lhts
 TGT_PREREQS := lib${MODULE}.a
