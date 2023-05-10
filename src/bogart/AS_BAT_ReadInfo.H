@@ -18,6 +18,7 @@
 #ifndef INCLUDE_AS_BAT_READ_INFO
 #define INCLUDE_AS_BAT_READ_INFO
 
+#include "runtime.H"
 #include "ovStore.H"
 #include "sqStore.H"
 

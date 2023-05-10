@@ -18,6 +18,7 @@
 #ifndef ADJUST_OVERLAPS_H
 #define ADJUST_OVERLAPS_H
 
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "ovStore.H"

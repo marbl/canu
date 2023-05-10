@@ -15,6 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 
 #include "files.H"
 #include "kmers.H"
@@ -150,8 +151,8 @@ dumpKmers(ovOverlap   ovl,
   sprintf(NA, "align/%08u-%08u-%s.align", ovl.a_iid, ovl.b_iid, ovl.flipped() ? "flip" : "norm");
   sprintf(NK, "align/%08u-%08u-%s.kmers", ovl.a_iid, ovl.b_iid, ovl.flipped() ? "flip" : "norm");
 
-  FILE *FA = merylutil::openOutputFile(NA);
-  FILE *FK = merylutil::openOutputFile(NK);
+  FILE *FA = AS_UTL_openOutputFile(NA);
+  FILE *FK = AS_UTL_openOutputFile(NK);
 
   //  Output the alignments.
 
@@ -197,8 +198,8 @@ dumpKmers(ovOverlap   ovl,
 
   //  Cleanup.
 
-  merylutil::closeFile(FA);
-  merylutil::closeFile(FK);
+  AS_UTL_closeFile(FA);
+  AS_UTL_closeFile(FK);
 }
 
 

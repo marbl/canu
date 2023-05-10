@@ -15,8 +15,13 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
+
+#include "sweatShop.H"
 #include "system.H"
 #include "sequence.H"
+
+#include <pthread.h>
 
 #include "sqStore.H"
 #include "sqCache.H"

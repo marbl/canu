@@ -15,6 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 
 #include "system.H"
 #include "sequence.H"
@@ -27,7 +28,7 @@
 #include "overlapAlign-threadData.H"
 #include "overlapAlign-computation.H"
 
-#include <algorithm>
+
 
 void
 maComputation::fetchUntrimmedRead(uint32 id_,

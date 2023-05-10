@@ -15,12 +15,11 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
-#include "strings.H"
-
 #include "splitReads.H"
 #include "trimStat.H"
 #include "clearRangeFile.H"
+
+#include "strings.H"
 
 
 int
@@ -189,8 +188,8 @@ main(int argc, char **argv) {
   if (finClr && outClr)
     outClr->copy(finClr);
 
-  FILE *reportFile  = merylutil::openOutputFile(outputPrefix, '.', "log",         true);
-  FILE *subreadFile = merylutil::openOutputFile(outputPrefix, '.', "subread.log", doSubreadLogging);
+  FILE *reportFile  = AS_UTL_openOutputFile(outputPrefix, '.', "log",         true);
+  FILE *subreadFile = AS_UTL_openOutputFile(outputPrefix, '.', "subread.log", doSubreadLogging);
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 0;
@@ -370,12 +369,12 @@ main(int argc, char **argv) {
 
   //  Close log files
 
-  merylutil::closeFile(reportFile);
-  merylutil::closeFile(subreadFile);
+  AS_UTL_closeFile(reportFile);
+  AS_UTL_closeFile(subreadFile);
 
   //  Write the summary
 
-  FILE *staFile = merylutil::openOutputFile(outputPrefix, '.', "stats");
+  FILE *staFile = AS_UTL_openOutputFile(outputPrefix, '.', "stats");
 
   if (staFile == NULL)
     staFile = stdout;
@@ -445,7 +444,7 @@ main(int argc, char **argv) {
   //  CHIMERA TYPE = TRIMMED and DELETED chimera and both categories
 
   if (staFile != stdout)
-    merylutil::closeFile(staFile);
+    AS_UTL_closeFile(staFile);
 
   exit(0);
 }

@@ -17,7 +17,6 @@
 
 #include "unitigPartition.H"
 
-#include <algorithm>
 
 
 void

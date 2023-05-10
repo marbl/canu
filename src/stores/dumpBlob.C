@@ -15,9 +15,9 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "sqStore.H"
 
-#include "system.H"
 #include "files.H"
 #include "strings.H"
 
@@ -59,7 +59,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  memoryMappedFile  *blobMap = new memoryMappedFile(blobName, mftReadOnly);
+  memoryMappedFile  *blobMap = new memoryMappedFile(blobName, memoryMappedFile_readOnly);
   uint8             *blob    = (uint8 *)blobMap->get(0) + offset;
   uint8             *blobMax = (uint8 *)blobMap->get(0) + blobMap->length();
   uint64             blobPos = offset;

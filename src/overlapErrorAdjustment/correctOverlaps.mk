@@ -6,7 +6,7 @@ SOURCES  := correctOverlaps.C \
             computeDiff.C \
             correctOverlaps-Prefix_Edit_Distance.C
 
-SRC_INCDIRS  := .. ../utility/src ../stores ../overlapInCore/liboverlap
+SRC_INCDIRS  := .. ../utility/src/utility ../stores ../overlapInCore/liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

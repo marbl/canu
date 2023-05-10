@@ -18,6 +18,7 @@
 #ifndef UNITIGCONSENSUS_H
 #define UNITIGCONSENSUS_H
 
+#include "runtime.H"
 
 #include "tgStore.H"
 

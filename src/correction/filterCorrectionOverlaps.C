@@ -15,10 +15,9 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
-#include "strings.H"
-
+#include "runtime.H"
 #include "ovStore.H"
+#include "strings.H"
 
 #include "computeGlobalScore.H"
 
@@ -243,8 +242,8 @@ main(int argc, char **argv) {
   if (scoreFile)
     writeToFile(scores, "scores", seqStore->sqStore_lastReadID() + 1, scoreFile);
 
-  merylutil::closeFile(scoreFile, scoreFileName);
-  merylutil::closeFile(logFile,   logFileName);
+  AS_UTL_closeFile(scoreFile, scoreFileName);
+  AS_UTL_closeFile(logFile,   logFileName);
 
   delete [] scores;
 
@@ -258,7 +257,7 @@ main(int argc, char **argv) {
   if (noStats == true)
     exit(0);
 
-  FILE  *statsFile = merylutil::openOutputFile(statsFileName);
+  FILE  *statsFile = AS_UTL_openOutputFile(statsFileName);
 
   fprintf(statsFile, "PARAMETERS:\n");
   fprintf(statsFile, "----------\n");
@@ -301,7 +300,7 @@ main(int argc, char **argv) {
   fprintf(statsFile, "%12" F_U64P " (<= 100%% overlaps filtered)\n", gs->reads99OlapsFiltered());
   fprintf(statsFile, "\n");
 
-  merylutil::closeFile(statsFile, statsFileName);
+  AS_UTL_closeFile(statsFile, statsFileName);
 
   delete gs;
 

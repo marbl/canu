@@ -18,6 +18,7 @@
 #ifndef TGSTORE_H
 #define TGSTORE_H
 
+#include "runtime.H"
 #include "tgTig.H"
 //
 //  The tgStore is a disk-resident (with memory cache) database of tgTig structures.

@@ -194,19 +194,19 @@ sqStoreInfo::readInfo8(char const *metaPath) {
   uint64  magic;
   uint64  version;
 
-  FILE  *I = merylutil::openInputFile(metaPath, '/', "info");
+  FILE  *I = AS_UTL_openInputFile(metaPath, '/', "info");
 
   loadFromFile(&_sqMagic,            "sqInfo_sqMagic", I);
   loadFromFile(&_sqVersion,          "sqInfo_sqVersion", I);
 
   if (_sqMagic != SQ_MAGIC8) {   //  The magic number changed at version 9, to fix a type,
-    merylutil::closeFile(I);         //  and to get rid of GKP.
+    AS_UTL_closeFile(I);         //  and to get rid of GKP.
     return(false);
   }
 
   if (_sqVersion < 8) {
     fprintf(stderr, "sqStore_loadInfo()-- Error: Unsupported historical version %lu detected.\n", _sqVersion);
-    merylutil::closeFile(I);
+    AS_UTL_closeFile(I);
     exit(1);
   }
 
@@ -247,12 +247,12 @@ sqStoreInfo::readInfo8(char const *metaPath) {
     _sqMagic   = SQ_MAGIC;
     _sqVersion = 9;
 
-    merylutil::closeFile(I);
+    AS_UTL_closeFile(I);
     return(true);
   }
 
   if (_sqVersion > 8) {
-    merylutil::closeFile(I);
+    AS_UTL_closeFile(I);
     return(false);
   }
 

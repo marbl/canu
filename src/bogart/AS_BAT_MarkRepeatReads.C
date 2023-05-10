@@ -16,8 +16,6 @@
  */
 
 #include "system.H"
-#include "intervals.H"
-#include "math.H"
 
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
@@ -31,6 +29,9 @@
 #include "AS_BAT_SplitTig.H"
 
 #include "AS_BAT_FindCircular.H"
+
+#include "intervalList.H"
+#include "stddev.H"
 
 #include <vector>
 

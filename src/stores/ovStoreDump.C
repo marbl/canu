@@ -15,9 +15,10 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "strings.H"
 
-#include "intervals.H"
+#include "intervalList.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
@@ -255,13 +256,13 @@ dumpParameters::loadBogartStatus(char const *prefix, uint32 nReads) {
   withStatus = true;
 
   if (fileExists(prefix) == true)
-    E = merylutil::openInputFile(prefix);
+    E = AS_UTL_openInputFile(prefix);
 
   if (fileExists(prefix, '.', "edges") == true)
-    E = merylutil::openInputFile(prefix, '.', "edges");
+    E = AS_UTL_openInputFile(prefix, '.', "edges");
 
   if (fileExists(prefix, '.', "best.edges") == true)
-    E = merylutil::openInputFile(prefix, '.', "best.edges");
+    E = AS_UTL_openInputFile(prefix, '.', "best.edges");
 
   if (E == NULL) {
     fprintf(stderr, "Failed to find bogart best edges in either '%s', '%s.edges', or '%s.best.edges'.\n",
@@ -278,7 +279,7 @@ dumpParameters::loadBogartStatus(char const *prefix, uint32 nReads) {
   char         *L    = NULL;
   splitToWords  W;
 
-  while (merylutil::readLine(L, Llen, Lmax, E)) {
+  while (AS_UTL_readLine(L, Llen, Lmax, E)) {
     W.split(L);
 
     if (W.numWords() == 0)
@@ -305,7 +306,7 @@ dumpParameters::loadBogartStatus(char const *prefix, uint32 nReads) {
     status[rid].isSpur      = (W[2][4] == 'S');
   }
 
-  merylutil::closeFile(E);
+  AS_UTL_closeFile(E);
 
   delete [] L;
 }
@@ -1038,11 +1039,11 @@ main(int argc, char **argv) {
 
     else {
 
-      FILE *D = merylutil::openOutputFile(outPrefix, '.', "dat");
+      FILE *D = AS_UTL_openOutputFile(outPrefix, '.', "dat");
       hist->dumpEvalueLength(D);
-      merylutil::closeFile(D, outPrefix, '.', "dat");
+      AS_UTL_closeFile(D, outPrefix, '.', "dat");
 
-      FILE *G = merylutil::openOutputFile(outPrefix, '.', "gp");
+      FILE *G = AS_UTL_openOutputFile(outPrefix, '.', "gp");
       fprintf(G, "unset key\n");
       fprintf(G, "set tic scale 0\n");
       fprintf(G, "\n");
@@ -1100,7 +1101,7 @@ main(int argc, char **argv) {
               hist->maxErate(),
               outPrefix);
 
-      merylutil::closeFile(G, outPrefix, '.', "gp");
+      AS_UTL_closeFile(G, outPrefix, '.', "gp");
     }
 
     //  All dumped!  Delete the data.
@@ -1124,8 +1125,8 @@ main(int argc, char **argv) {
     if (dumpformat == dfGFA) {
       allocateArray(gfaReads, seqStore->sqStore_lastReadID() + 1);
 
-      gfaLinks  = merylutil::openOutputFile(outPrefix, '.', "gfalinks");
-      gfaFile   = merylutil::openOutputFile(outPrefix, '.', "gfa");
+      gfaLinks  = AS_UTL_openOutputFile(outPrefix, '.', "gfalinks");
+      gfaFile   = AS_UTL_openOutputFile(outPrefix, '.', "gfa");
     }
 
     if (dumpformat == dfBinary) {
@@ -1209,7 +1210,7 @@ main(int argc, char **argv) {
       char   *buffer = new char [bufferMax];
 
       //  Close the links file.
-      merylutil::closeFile(gfaLinks);
+      AS_UTL_closeFile(gfaLinks);
 
       //  Write the header to the actual output file.
       fprintf(gfaFile, "H\tVN:Z:1.0\n");
@@ -1218,15 +1219,15 @@ main(int argc, char **argv) {
           fprintf(gfaFile, "S\tread%08u\t*\tLN:i:%u\n", ii, seqStore->sqStore_getReadLength(ii));
 
       //  Reopen the links file, and copy all data to the output file.
-      gfaLinks  = merylutil::openInputFile(outPrefix, '.', "gfalinks");
+      gfaLinks  = AS_UTL_openInputFile(outPrefix, '.', "gfalinks");
       while (!feof(gfaLinks)) {
         bufferLen = loadFromFile(buffer, "copybuffer", sizeof(char), bufferMax, gfaLinks, false);
         writeToFile(buffer, "copybuffer", sizeof(char), bufferLen, gfaFile);
       }
-      merylutil::closeFile(gfaFile);
+      AS_UTL_closeFile(gfaFile);
 
       //  Delete the links.
-      merylutil::unlink(outPrefix, '.', "gfalinks");
+      AS_UTL_unlink(outPrefix, '.', "gfalinks");
 
       delete [] gfaReads;
       delete [] buffer;

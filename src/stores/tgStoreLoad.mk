@@ -1,7 +1,7 @@
 TARGET   := tgStoreLoad
 SOURCES  := tgStoreLoad.C
 
-SRC_INCDIRS := .. ../utility/src
+SRC_INCDIRS := .. ../utility/src/utility
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

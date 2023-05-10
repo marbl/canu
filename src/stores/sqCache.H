@@ -15,6 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
+
 #include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"

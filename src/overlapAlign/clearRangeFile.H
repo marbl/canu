@@ -18,6 +18,7 @@
 #ifndef CLEAR_RANGE_FILE_H
 #define CLEAR_RANGE_FILE_H
 
+#include "runtime.H"
 #include "arrays.H"
 
 #include <algorithm>

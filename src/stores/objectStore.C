@@ -21,8 +21,6 @@
 #include "arrays.H"
 #include "strings.H"
 
-using namespace merylutil;
-
 #include "objectStore.H"
 
 #include <libgen.h>

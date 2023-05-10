@@ -18,6 +18,7 @@
 #ifndef AS_OVSTORE_H
 #define AS_OVSTORE_H
 
+#include "runtime.H"
 #include "files.H"
 
 #include "sqStore.H"
@@ -61,7 +62,7 @@ public:
     else
       snprintf(name, FILENAME_MAX, "%s/%04u.info", path, index);
 
-    merylutil::loadFile(name, this, 1);
+    AS_UTL_loadFile(name, this, 1);
 
     if (_ovsMagic != ovStoreMagic)
       failed += fprintf(stderr, "ERROR:  directory '%s' is not an ovStore.\n", path);
@@ -105,7 +106,7 @@ public:
     //fprintf(stderr, "ovStoreInfo::save()-- bgnID=%u endID=%u maxID=%u numOlaps=%lu\n",
     //        _bgnID, _endID, _maxID, _numOlaps);
 
-    merylutil::saveFile(name, this, 1);
+    AS_UTL_saveFile(name, this, 1);
   };
 
   uint32     bgnID(void)  { return(_bgnID); };

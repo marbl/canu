@@ -15,13 +15,14 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "sqStore.H"
 #include "ovStore.H"
 #include "tgStore.H"
 
 #include "strings.H"
 #include "files.H"
-#include "intervals.H"
+#include "intervalList.H"
 #include "sequence.H"
 
 #include <set>
@@ -45,7 +46,7 @@ loadThresholds(sqStore *seqStore,
   uint16  *olapThresh = new uint16 [numReads + 1];
 
   if (scoreName != NULL)
-    merylutil::loadFile(scoreName, olapThresh, numReads + 1);
+    AS_UTL_loadFile(scoreName, olapThresh, numReads + 1);
 
   else {
     ovStoreHistogram  *ovlHisto = ovlStore->getHistogram();
@@ -304,8 +305,8 @@ main(int argc, char **argv) {
 
   //  Open logging and summary files
 
-  FILE *logFile = merylutil::openOutputFile(corName, '.', "log",    doLogging);
-  FILE *scoFile = merylutil::openOutputFile(corName, '.', "scores", dumpScores);
+  FILE *logFile = AS_UTL_openOutputFile(corName, '.', "log",    doLogging);
+  FILE *scoFile = AS_UTL_openOutputFile(corName, '.', "scores", dumpScores);
 
   //  Load read scores, if supplied.
 
@@ -341,7 +342,7 @@ main(int argc, char **argv) {
 
   //  Close files and clean up.
 
-  merylutil::closeFile(logFile);
+  AS_UTL_closeFile(logFile);
 
   delete [] olapThresh;
   delete [] ovl;

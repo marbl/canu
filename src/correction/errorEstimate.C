@@ -15,11 +15,11 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
-#include "strings.H"
-#include "math.H"
-
+#include "runtime.H"
 #include "ovStore.H"
+#include "strings.H"
+
+#include "stddev.H"
 
 #include <algorithm>
 #include <map>
@@ -128,7 +128,7 @@ main(int argc, char **argv) {
          readToIdy[ov.b_iid] = ov.erate();
       }
   }
-  merylutil::closeFile(scoreFile, scoreFileName);
+  AS_UTL_closeFile(scoreFile, scoreFileName);
 
   stdDev<double>  edgeStats;
 

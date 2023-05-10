@@ -61,14 +61,14 @@ ovStore::ovStore(const char *path, sqStore *seq) {
 
   _index = new ovStoreOfft [_info.maxID()+1];
 
-  merylutil::loadFile(_storePath, '/', "index", _index, _info.maxID()+1);
+  AS_UTL_loadFile(_storePath, '/', "index", _index, _info.maxID()+1);
 
   //  Open and load erates
 
   snprintf(name, FILENAME_MAX, "%s/evalues", _storePath);
 
   if (fileExists(name)) {
-    _evaluesMap  = new memoryMappedFile(name, mftReadOnly);
+    _evaluesMap  = new memoryMappedFile(name, memoryMappedFile_readOnly);
     _evalues     = (uint16 *)_evaluesMap->get(0);
   }
 }

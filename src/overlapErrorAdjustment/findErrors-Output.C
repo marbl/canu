@@ -298,7 +298,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
 
 void
 Output_Corrections(feParameters *G) {
-  FILE *fp = merylutil::openOutputFile(G->outputFileName);
+  FILE *fp = AS_UTL_openOutputFile(G->outputFileName);
   //std::ofstream os(G->outputFileName);
   fprintf(stderr, "Output file: %s\n", G->outputFileName);
 
@@ -351,5 +351,5 @@ Output_Corrections(feParameters *G) {
     }
   }
 
-  merylutil::closeFile(fp, G->outputFileName);
+  AS_UTL_closeFile(fp, G->outputFileName);
 }

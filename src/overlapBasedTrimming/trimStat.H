@@ -18,6 +18,7 @@
 #ifndef TRIM_STAT_H
 #define TRIM_STAT_H
 
+#include "runtime.H"
 
 #include <vector>
 
@@ -43,13 +44,13 @@ public:
     FILE *F;
 
     snprintf(N, FILENAME_MAX, "%s.%s.dat", outputPrefix, outputName);
-    F = merylutil::openOutputFile(N);
+    F = AS_UTL_openOutputFile(N);
     for (uint64 ii=0; ii<histo.size(); ii++)
       fprintf(F, F_U32"\n", histo[ii]);
-    merylutil::closeFile(F, N);
+    AS_UTL_closeFile(F, N);
 
     snprintf(N, FILENAME_MAX, "%s.%s.gp", outputPrefix, outputName);
-    F = merylutil::openOutputFile(N);
+    F = AS_UTL_openOutputFile(N);
     fprintf(F, "set title '%s'\n", outputName);
     fprintf(F, "set xlabel 'length, bin width = %u'\n", binwidth);
     fprintf(F, "set ylabel 'number'\n");
@@ -61,11 +62,11 @@ public:
     fprintf(F, "set terminal png size 1024,1024\n");
     fprintf(F, "set output '%s.%s.png'\n", outputPrefix, outputName);
     fprintf(F, "plot [] [0:] '%s.%s.dat' using (bin($1,binwidth)):(1.0) smooth freq with boxes title ''\n", outputPrefix, outputName);
-    merylutil::closeFile(F, N);
+    AS_UTL_closeFile(F, N);
 
     snprintf(N, FILENAME_MAX, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);
 
-    ::system(N);
+    system(N);
   };
 
   uint32               nReads;

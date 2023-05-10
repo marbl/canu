@@ -15,8 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
-
+#include "runtime.H"
 #include "sqStore.H"
 #include "clearRangeFile.H"
 

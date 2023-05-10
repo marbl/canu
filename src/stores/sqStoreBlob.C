@@ -44,7 +44,7 @@ sqStoreBlobWriter::sqStoreBlobWriter(const char *storePath, sqStoreInfo *info) {
 sqStoreBlobWriter::~sqStoreBlobWriter() {
   delete _buffer;
 
-  merylutil::makeReadOnly(_blobName);
+  AS_UTL_makeReadOnly(_blobName);
 }
 
 
@@ -58,7 +58,7 @@ sqStoreBlobWriter::writeData(sqReadDataWriter *rdw) {
   if (_buffer->tell() > AS_BLOBFILE_MAX_SIZE) {
     delete _buffer;
 
-    merylutil::makeReadOnly(_blobName);
+    AS_UTL_makeReadOnly(_blobName);
 
     _info->_numBlobs++;
 

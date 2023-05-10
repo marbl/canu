@@ -23,7 +23,7 @@
 #include "sequence.H"
 
 #include "strings.H"
-#include "intervals.H"
+#include "intervalList.H"
 
 #include <map>
 

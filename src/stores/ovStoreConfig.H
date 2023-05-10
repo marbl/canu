@@ -18,9 +18,12 @@
 #ifndef OVSTORECONFIG_H
 #define OVSTORECONFIG_H
 
-#include "types.H"
+
+#include "runtime.H"
 
 #include <vector>
+
+
 
 class ovStoreConfig {
 public:
@@ -82,7 +85,7 @@ public:
   };
 
   void    loadConfig(char const *configName) {
-    FILE *C = merylutil::openInputFile(configName);
+    FILE *C = AS_UTL_openInputFile(configName);
 
     loadFromFile(_maxID,      "maxID",      C);
     loadFromFile(_numBuckets, "numBuckets", C);
@@ -108,11 +111,11 @@ public:
     loadFromFile(_inputToBucket, "inputToBucket", _numInputs, C);
     loadFromFile(_readToSlice,   "readToSlice",   _maxID+1,   C);
 
-    merylutil::closeFile(C, configName);
+    AS_UTL_closeFile(C, configName);
   };
 
   void    writeConfig(char const *configName) {
-    FILE *C = merylutil::openOutputFile(configName);
+    FILE *C = AS_UTL_openOutputFile(configName);
 
     writeToFile(_maxID,      "maxID",      C);
     writeToFile(_numBuckets, "numBuckets", C);
@@ -130,7 +133,7 @@ public:
     writeToFile(_inputToBucket, "inputToBucket", _numInputs, C);
     writeToFile(_readToSlice,   "readToSlice",   _maxID + 1, C);
 
-    merylutil::closeFile(C, configName);
+    AS_UTL_closeFile(C, configName);
 
     fprintf(stderr, "\n");
     fprintf(stderr, "Saved configuration to '%s'.\n", configName);

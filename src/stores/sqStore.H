@@ -18,6 +18,7 @@
 #ifndef SQSTORE_H
 #define SQSTORE_H
 
+#include "runtime.H"
 #include "files.H"
 
 //  Versions:

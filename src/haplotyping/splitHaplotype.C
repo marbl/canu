@@ -15,18 +15,19 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
+#include "runtime.H"
+#include "sqStore.H"
+
 #include "files.H"
 #include "kmers.H"
 #include "strings.H"
 #include "sequence.H"
 
-using namespace merylutil::kmers::v1;
-
-#include "sqStore.H"
+#include "sweatShop.H"
 
 #include <vector>
 #include <queue>
+
 
 #define BATCH_SIZE      100
 #define IN_QUEUE_LENGTH 3
@@ -297,8 +298,8 @@ getMinFreqFromHistogram(char *histoName) {
   uint32        histoMax = 1024;
   uint64       *histo    = new uint64 [histoMax];
 
-  FILE *H = merylutil::openInputFile(histoName);
-  while (merylutil::readLine(L, Llen, Lmax, H)) {
+  FILE *H = AS_UTL_openInputFile(histoName);
+  while (AS_UTL_readLine(L, Llen, Lmax, H)) {
     S.split(L);
 
     uint32  f = 0;   //  Frequency
@@ -318,7 +319,7 @@ getMinFreqFromHistogram(char *histoName) {
     histo[f] = v;
     histoLen = f + 1;
   }
-  merylutil::closeFile(H, histoName);
+  AS_UTL_closeFile(H, histoName);
 
   delete [] L;
 

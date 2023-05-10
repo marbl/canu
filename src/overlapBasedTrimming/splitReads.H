@@ -18,6 +18,7 @@
 #ifndef SPLIT_READS_H
 #define SPLIT_READS_H
 
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
@@ -25,7 +26,7 @@
 #include "adjustOverlaps.H"
 #include "clearRangeFile.H"
 
-#include "intervals.H"
+#include "intervalList.H"
 
 #include <vector>
 

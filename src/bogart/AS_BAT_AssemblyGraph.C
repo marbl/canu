@@ -16,8 +16,6 @@
  */
 
 #include "system.H"
-#include "intervals.H"
-#include "math.H"
 
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -25,6 +23,9 @@
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_PlaceReadUsingOverlaps.H"
+
+#include "intervalList.H"
+#include "stddev.H"
 
 #undef  FILTER_DENSE_BUBBLES_FROM_GRAPH
 #define FILTER_DENSE_BUBBLES_THRESHOLD    3   //  Retain bubbles if they have fewer than this number of edges to other tigs

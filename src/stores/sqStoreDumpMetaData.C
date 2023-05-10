@@ -15,14 +15,12 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
+#include "runtime.H"
+#include "sqStore.H"
 #include "strings.H"
 
-#include "sqStore.H"
-
-#include <vector>
 #include <map>
-#include <algorithm>
+#include <vector>
 
 
 enum class dumpType {

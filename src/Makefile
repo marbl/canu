@@ -73,7 +73,7 @@ endef
 #   USE WITH EVAL
 #
 define ADD_OBJECT_RULE
-${1}/%.o: ${2} utility/src/version.H
+${1}/%.o: ${2} utility/src/utility/version.H
 	${3}
 endef
 
@@ -839,7 +839,7 @@ ${TARGET_DIR}/lib/site_perl/canu/Unitig.pm: pipelines/canu/Unitig.pm
 #  Makefile processed.  Regenerate the version number file, make some
 #  directories, and report that we're starting the build.
 
-$(eval $(shell ../scripts/version_update.pl $(MODULE) utility/src/version.H))
+$(eval $(shell ../scripts/version_update.pl $(MODULE) utility/src/utility/version.H))
 
 $(shell mkdir -p ${TARGET_DIR}/lib/site_perl/canu)
 $(shell mkdir -p ${TARGET_DIR}/share/java/classes)

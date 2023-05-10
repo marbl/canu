@@ -18,6 +18,7 @@
 #ifndef CLEAR_RANGE_FILE_H
 #define CLEAR_RANGE_FILE_H
 
+#include "runtime.H"
 
 #include "sqStore.H"
 
@@ -60,13 +61,13 @@ public:
     else {
       _modified = false;
 
-      FILE  *F = merylutil::openInputFile(_fileName);
+      FILE  *F = AS_UTL_openInputFile(_fileName);
 
       loadFromFile(_lastID, "clearRangeFile::lastID",             F);
       loadFromFile(_bgn,    "clearRangeFile::bgn",   _lastID + 1, F);
       loadFromFile(_end,    "clearRangeFile::end",   _lastID + 1, F);
 
-      merylutil::closeFile(F, _fileName);
+      AS_UTL_closeFile(F, _fileName);
 
       assert(seq->sqStore_lastReadID() == _lastID);  //  Sane?  And if wrong, we've overwritten _bgn and _end, and crash anyway.
     }
@@ -75,13 +76,13 @@ public:
 
   ~clearRangeFile() {
     if (_modified == true) {
-      FILE  *F = merylutil::openOutputFile(_fileName);
+      FILE  *F = AS_UTL_openOutputFile(_fileName);
 
       writeToFile(_lastID, "clearRangeFile::lastID",             F);
       writeToFile(_bgn,    "clearRangeFile::bgn",   _lastID + 1, F);
       writeToFile(_end,    "clearRangeFile::end",   _lastID + 1, F);
 
-      merylutil::closeFile(F, _fileName);
+      AS_UTL_closeFile(F, _fileName);
     }
 
     delete [] _bgn;

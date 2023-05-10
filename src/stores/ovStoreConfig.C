@@ -15,7 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
+#include "runtime.H"
+
 #include "strings.H"
 
 #include "sqStore.H"

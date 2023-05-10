@@ -15,8 +15,8 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "files.H"
-#include "strings.H"
 
 #include "gfa.H"
 
@@ -99,7 +99,7 @@ gfaSequence::~gfaSequence() {
 
 void
 gfaSequence::load(char *inLine) {
-  merylutil::splitToWords W(inLine);
+  splitToWords W(inLine);
 
   _name     = new char [strlen(W[1]) + 1];
   _id       = UINT32_MAX;
@@ -187,7 +187,7 @@ gfaLink::~gfaLink() {
 
 void
 gfaLink::load(char *inLine) {
-  merylutil::splitToWords W(inLine);
+  splitToWords W(inLine);
 
   _Aname    = new char [strlen(W[1]) + 1];
   _Aid      = UINT32_MAX;
@@ -322,9 +322,9 @@ gfaFile::loadFile(char const *inName) {
   uint32 Llen = 0;
   uint32 Lmax = 0;
 
-  FILE *F = merylutil::openInputFile(inName);
+  FILE *F = AS_UTL_openInputFile(inName);
 
-  while (merylutil::readLine(L, Llen, Lmax, F)) {
+  while (AS_UTL_readLine(L, Llen, Lmax, F)) {
     char  type = L[0];
 
     if (L[1] != '\t')
@@ -349,7 +349,7 @@ gfaFile::loadFile(char const *inName) {
     }
   }
 
-  merylutil::closeFile(F, inName);
+  AS_UTL_closeFile(F, inName);
 
   delete [] L;
 
@@ -364,7 +364,7 @@ gfaFile::loadFile(char const *inName) {
 bool
 gfaFile::saveFile(char const *outName) {
 
-  FILE *F = merylutil::openOutputFile(outName);
+  FILE *F = AS_UTL_openOutputFile(outName);
 
   fprintf(F, "H\t%s\n", _header);
 
@@ -376,7 +376,7 @@ gfaFile::saveFile(char const *outName) {
     if (_links[ii])
       _links[ii]->save(F);
 
-  merylutil::closeFile(F, outName);
+  AS_UTL_closeFile(F, outName);
 
   return(true);
 }

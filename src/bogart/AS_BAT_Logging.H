@@ -18,6 +18,7 @@
 #ifndef INCLUDE_AS_BAT_LOGGING
 #define INCLUDE_AS_BAT_LOGGING
 
+#include "runtime.H"
 #include "files.H"
 
 void         setLogFile(char const *prefix, char const *name);

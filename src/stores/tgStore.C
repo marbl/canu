@@ -15,6 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "files.H"
 #include "tgStore.H"
 
@@ -68,7 +69,7 @@ tgStore::tgStore(const char *path_,
   //  Create a new one?
 
   if (type_ == tgStoreCreate) {
-    merylutil::mkdir(_path);                 //  Create the directory, if needed.
+    AS_UTL_mkdir(_path);                 //  Create the directory, if needed.
     purgeCurrentVersion();               //  Purge any data there currently.
 
     for (int32 vv=1; vv<version_; vv++)  //  Move to the requested version.
@@ -154,7 +155,7 @@ tgStore::~tgStore() {
 
   for (uint32 v=0; v<MAX_VERS; v++)
     if (_dataFile[v].FP)
-      merylutil::closeFile(_dataFile[v].FP);
+      AS_UTL_closeFile(_dataFile[v].FP);
 
   delete [] _dataFile;
 }
@@ -164,9 +165,9 @@ tgStore::~tgStore() {
 void
 tgStore::purgeVersion(uint32 version) {
 
-  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.dat", _path, version);   merylutil::unlink(_name);
-  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.ctg", _path, version);   merylutil::unlink(_name);
-  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.utg", _path, version);   merylutil::unlink(_name);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.dat", _path, version);   AS_UTL_unlink(_name);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.ctg", _path, version);   AS_UTL_unlink(_name);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.utg", _path, version);   AS_UTL_unlink(_name);
 }
 
 
@@ -191,7 +192,7 @@ tgStore::nextVersion(void) {
   //  Close the current version; we'll reopen on demand.
 
   if (_dataFile[_currentVersion].FP) {
-    merylutil::closeFile(_dataFile[_currentVersion].FP, _name);
+    AS_UTL_closeFile(_dataFile[_currentVersion].FP, _name);
 
     _dataFile[_currentVersion].FP    = NULL;
     _dataFile[_currentVersion].atEOF = false;
@@ -232,12 +233,12 @@ tgStore::writeTigToDisk(tgTig *tig, tgStoreEntry *te) {
   //  these only write data, so no repositioning of the stream is needed.
   //
   if (_dataFile[te->svID].atEOF == false) {
-    merylutil::fseek(FP, 0, SEEK_END);
+    AS_UTL_fseek(FP, 0, SEEK_END);
     _dataFile[te->svID].atEOF = true;
   }
 
   te->flushNeeded = 0;
-  te->fileOffset  = merylutil::ftell(FP);
+  te->fileOffset  = AS_UTL_ftell(FP);
 
   //fprintf(stderr, "tgStore::writeTigToDisk()-- write tig " F_S32 " in store version " F_U64 " at file position " F_U64 "\n",
   //        tig->_tigID, te->svID, te->fileOffset);
@@ -416,7 +417,7 @@ tgStore::loadTig(uint32 tigID) {
       _dataFile[_tigEntry[tigID].svID].atEOF = false;
     }
 
-    merylutil::fseek(FP, _tigEntry[tigID].fileOffset, SEEK_SET);
+    AS_UTL_fseek(FP, _tigEntry[tigID].fileOffset, SEEK_SET);
 
     _tigCache[tigID] = new tgTig;
 
@@ -481,7 +482,7 @@ tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
     _dataFile[_tigEntry[tigID].svID].atEOF = false;
   }
 
-  merylutil::fseek(FP, _tigEntry[tigID].fileOffset, SEEK_SET);
+  AS_UTL_fseek(FP, _tigEntry[tigID].fileOffset, SEEK_SET);
 
   tigcopy->clear();
 
@@ -541,13 +542,13 @@ tgStore::numTigsInMASRfile(char *name) {
   if (fileExists(name) == false)
     return(0);
 
-  FILE *F = merylutil::openInputFile(name);
+  FILE *F = AS_UTL_openInputFile(name);
 
   loadFromFile(MASRmagicInFile,   "MASRmagic",   F);
   loadFromFile(MASRversionInFile, "MASRversion", F);
   loadFromFile(MASRtotalInFile,   "MASRtotal",   F);
 
-  merylutil::closeFile(F, name);
+  AS_UTL_closeFile(F, name);
 
   if (MASRmagicInFile != MASRmagic) {
     fprintf(stderr, "tgStore::numTigsInMASRfile()-- Failed to open '%s': magic number mismatch; file=0x%08x code=0x%08x\n",
@@ -569,7 +570,7 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
 
   snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
 
-  FILE *F = merylutil::openOutputFile(_name);
+  FILE *F = AS_UTL_openOutputFile(_name);
 
   writeToFile(MASRmagic,   "MASRmagic",   F);
   writeToFile(MASRversion, "MASRversion", F);
@@ -585,7 +586,7 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
   writeToFile(L,       "MASRlen",         F);
   writeToFile(R,       "MASR",         L, F);
 
-  merylutil::closeFile(F, _name);
+  AS_UTL_closeFile(F, _name);
 }
 
 
@@ -620,7 +621,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
   if (V == 0)
     fprintf(stderr, "tgStore::loadMASR()-- Failed to find any tigs in store '%s'.\n", _path), exit(1);
 
-  FILE *F = merylutil::openInputFile(_name);
+  FILE *F = AS_UTL_openInputFile(_name);
 
   uint32        MASRmagicInFile   = 0;
   uint32        MASRversionInFile = 0;
@@ -654,7 +655,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
   loadFromFile(R, "MASR", masrLen, F);
 
-  merylutil::closeFile(F, _name);
+  AS_UTL_closeFile(F, _name);
 }
 
 

@@ -54,6 +54,7 @@
  * SUCH DAMAGE.
  */
 
+#include "runtime.H"
 
 #include "tgStore.H"  //  for tgTig
 

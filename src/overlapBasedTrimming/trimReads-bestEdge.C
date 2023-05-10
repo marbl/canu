@@ -334,7 +334,7 @@ bestEdge(ovOverlap  *ovl,
                 0, 0, 0,
                 trim3[i], trim3sco[i], trim3iid[i]);
     }
-    merylutil::closeFile(F, D);
+    AS_UTL_closeFile(F, D);
 
 
     F = fopen(G, "w");
@@ -344,7 +344,7 @@ bestEdge(ovOverlap  *ovl,
     fprintf(F, "plot \"trim-%08d.dat\" using 3:5 with linespoints, \"trim-%08d.dat\" using 10:12 with linespoints\n",
             readID,
             readID);
-    merylutil::closeFile(F, G);
+    AS_UTL_closeFile(F, G);
 
 
     system(S);

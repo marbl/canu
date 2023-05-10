@@ -15,9 +15,10 @@
  *  contains full conditions and disclaimers.
  */
 
-#ifndef BED_H
-#define BED_H
+#ifndef AS_UTL_BED_H
+#define AS_UTL_BED_H
 
+#include "runtime.H"
 #include "strings.H"
 
 #include <vector>
@@ -62,4 +63,4 @@ public:
 
 
 
-#endif  //  BED_H
+#endif  //  AS_UTL_BED_H

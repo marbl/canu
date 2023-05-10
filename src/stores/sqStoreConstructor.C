@@ -63,29 +63,29 @@ sqStore::sqStore_revertVersion(char const *storePath, uint32 version) {
 
   fprintf(stderr, "Removing current data.\n");
 
-  merylutil::unlink(storePath, '/', "info");
-  merylutil::unlink(storePath, '/', "info.txt");
-  merylutil::unlink(storePath, '/', "libraries");
-  merylutil::unlink(storePath, '/', "reads");
-  merylutil::unlink(storePath, '/', "reads-corc");
-  merylutil::unlink(storePath, '/', "reads-coru");
-  merylutil::unlink(storePath, '/', "reads-rawc");
-  merylutil::unlink(storePath, '/', "reads-rawu");
+  AS_UTL_unlink(storePath, '/', "info");
+  AS_UTL_unlink(storePath, '/', "info.txt");
+  AS_UTL_unlink(storePath, '/', "libraries");
+  AS_UTL_unlink(storePath, '/', "reads");
+  AS_UTL_unlink(storePath, '/', "reads-corc");
+  AS_UTL_unlink(storePath, '/', "reads-coru");
+  AS_UTL_unlink(storePath, '/', "reads-rawc");
+  AS_UTL_unlink(storePath, '/', "reads-rawu");
 
   //  Move the precious version to current.
 
   fprintf(stderr, "Restoring version %u.\n", version);
 
-  merylutil::rename(versionPath, '/', "info",       storePath, '/', "info");
-  merylutil::rename(versionPath, '/', "info.txt",   storePath, '/', "info.txt");
-  merylutil::rename(versionPath, '/', "libraries",  storePath, '/', "libraries");
-  merylutil::rename(versionPath, '/', "reads",      storePath, '/', "reads");
-  merylutil::rename(versionPath, '/', "reads-corc", storePath, '/', "reads-corc");
-  merylutil::rename(versionPath, '/', "reads-coru", storePath, '/', "reads-coru");
-  merylutil::rename(versionPath, '/', "reads-rawc", storePath, '/', "reads-rawc");
-  merylutil::rename(versionPath, '/', "reads-rawu", storePath, '/', "reads-rawu");
+  AS_UTL_rename(versionPath, '/', "info",       storePath, '/', "info");
+  AS_UTL_rename(versionPath, '/', "info.txt",   storePath, '/', "info.txt");
+  AS_UTL_rename(versionPath, '/', "libraries",  storePath, '/', "libraries");
+  AS_UTL_rename(versionPath, '/', "reads",      storePath, '/', "reads");
+  AS_UTL_rename(versionPath, '/', "reads-corc", storePath, '/', "reads-corc");
+  AS_UTL_rename(versionPath, '/', "reads-coru", storePath, '/', "reads-coru");
+  AS_UTL_rename(versionPath, '/', "reads-rawc", storePath, '/', "reads-rawc");
+  AS_UTL_rename(versionPath, '/', "reads-rawu", storePath, '/', "reads-rawu");
 
-  merylutil::rmdir(versionPath);
+  AS_UTL_rmdir(versionPath);
 
   //  Remove all the now-obsolete versions.
 
@@ -97,16 +97,16 @@ sqStore::sqStore_revertVersion(char const *storePath, uint32 version) {
 
     fprintf(stderr, "Removing version %u.\n", version);
 
-    merylutil::unlink(versionPath, '/', "info");
-    merylutil::unlink(versionPath, '/', "info.txt");
-    merylutil::unlink(versionPath, '/', "libraries");
-    merylutil::unlink(versionPath, '/', "reads");
-    merylutil::unlink(versionPath, '/', "reads-corc");
-    merylutil::unlink(versionPath, '/', "reads-coru");
-    merylutil::unlink(versionPath, '/', "reads-rawc");
-    merylutil::unlink(versionPath, '/', "reads-rawu");
+    AS_UTL_unlink(versionPath, '/', "info");
+    AS_UTL_unlink(versionPath, '/', "info.txt");
+    AS_UTL_unlink(versionPath, '/', "libraries");
+    AS_UTL_unlink(versionPath, '/', "reads");
+    AS_UTL_unlink(versionPath, '/', "reads-corc");
+    AS_UTL_unlink(versionPath, '/', "reads-coru");
+    AS_UTL_unlink(versionPath, '/', "reads-rawc");
+    AS_UTL_unlink(versionPath, '/', "reads-rawu");
 
-    merylutil::rmdir(versionPath);
+    AS_UTL_rmdir(versionPath);
   }
 
   fprintf(stderr, "Done.\n");
@@ -127,8 +127,8 @@ sqStore::sqStore_loadMetadata(void) {
   _corU       = NULL;
   _corC       = NULL;
 
-  merylutil::loadFile(_metaPath, '/', "libraries", _libraries, _librariesAlloc);
-  merylutil::loadFile(_metaPath, '/', "reads",     _meta,      _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "libraries", _libraries, _librariesAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads",     _meta,      _readsAlloc);
 
   //  If the user hasn't set a default version, or has only requested
   //  uncompressed reads, pick the plausible most recent version then add
@@ -194,10 +194,10 @@ sqStore::sqStore_loadMetadata(void) {
   //  We can maybe, eventually, be clever and load these on-demand.
   //  For now, load all the metadata.
 
-  merylutil::loadFile(_metaPath, '/', "reads-rawu", _rawU = new sqReadSeq[_readsAlloc], _readsAlloc);
-  merylutil::loadFile(_metaPath, '/', "reads-rawc", _rawC = new sqReadSeq[_readsAlloc], _readsAlloc);
-  merylutil::loadFile(_metaPath, '/', "reads-coru", _corU = new sqReadSeq[_readsAlloc], _readsAlloc);
-  merylutil::loadFile(_metaPath, '/', "reads-corc", _corC = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-rawu", _rawU = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-rawc", _rawC = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-coru", _corU = new sqReadSeq[_readsAlloc], _readsAlloc);
+  AS_UTL_loadFile(_metaPath, '/', "reads-corc", _corC = new sqReadSeq[_readsAlloc], _readsAlloc);
 }
 
 
@@ -257,7 +257,7 @@ sqStore::sqStore(char const    *storePath_,
     if (directoryExists(sqStore_path()) == true)
       fprintf(stderr, "ERROR:  Can't create store '%s': store already exists.\n", sqStore_path()), exit(1);
 
-    merylutil::mkdir(sqStore_path());
+    AS_UTL_mkdir(sqStore_path());
 
     _librariesAlloc = 32;           //  _libraries and
     _readsAlloc     = 32768;        //  _reads MUST be preallocated.
@@ -332,39 +332,39 @@ sqStore::~sqStore() {
       snprintf(No, FILENAME_MAX, "%s/version.%03" F_U32P, sqStore_path(), V);
     }
 
-    merylutil::mkdir(No);
+    AS_UTL_mkdir(No);
 
     snprintf(No, FILENAME_MAX, "%s/libraries", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/libraries", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/reads", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/reads-rawu", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-rawu", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/reads-rawc", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-rawc", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/reads-coru", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-coru", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/reads-corc", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/reads-corc", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/info", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/info", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
 
     snprintf(No, FILENAME_MAX, "%s/info.txt", sqStore_path());
     snprintf(Nn, FILENAME_MAX, "%s/version.%03" F_U32P "/info.txt", sqStore_path(), V);
-    merylutil::rename(No, Nn);
+    AS_UTL_rename(No, Nn);
   }
 
   //  Recount.  This is significantly easier than trying to adjust stats
@@ -378,18 +378,18 @@ sqStore::~sqStore() {
 
   if ((_mode == sqStore_create) ||
       (_mode == sqStore_extend)) {
-    merylutil::saveFile(sqStore_path(), '/', "libraries",   _libraries, sqStore_lastLibraryID() + 1);
-    merylutil::saveFile(sqStore_path(), '/', "reads",       _meta,      sqStore_lastReadID()    + 1);
-    merylutil::saveFile(sqStore_path(), '/', "reads-rawu",  _rawU,      sqStore_lastReadID()    + 1);
-    merylutil::saveFile(sqStore_path(), '/', "reads-rawc",  _rawC,      sqStore_lastReadID()    + 1);
-    merylutil::saveFile(sqStore_path(), '/', "reads-coru",  _corU,      sqStore_lastReadID()    + 1);
-    merylutil::saveFile(sqStore_path(), '/', "reads-corc",  _corC,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "libraries",   _libraries, sqStore_lastLibraryID() + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads",       _meta,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-rawu",  _rawU,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-rawc",  _rawC,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-coru",  _corU,      sqStore_lastReadID()    + 1);
+    AS_UTL_saveFile(sqStore_path(), '/', "reads-corc",  _corC,      sqStore_lastReadID()    + 1);
 
     _info.writeInfo(sqStore_path());
 
-    FILE *F = merylutil::openOutputFile(sqStore_path(), '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
+    FILE *F = AS_UTL_openOutputFile(sqStore_path(), '/', "info.txt");   //  Used by Canu/Gatekeeper.pm
     _info.writeInfoAsText(F);                                       //  Do not remove!
-    merylutil::closeFile(F, sqStore_path(), '/', "info.txt");
+    AS_UTL_closeFile(F, sqStore_path(), '/', "info.txt");
   }
 
   //  Clean up.

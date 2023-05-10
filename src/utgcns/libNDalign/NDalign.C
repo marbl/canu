@@ -17,7 +17,7 @@
 
 #include "NDalign.H"
 
-#include "math.H"
+#include "stddev.H"
 
 #include "Display_Alignment.H"
 
@@ -692,9 +692,9 @@ NDalign::scanDeltaForBadness(bool verbose, bool showAlign) {
 
   for (uint32 ii=0; _resDisplay[ii]; ii++) {
     if (_resDisplay[ii] == '^')
-      ema = merylutil::computeExponentialMovingAverage(alpha, ema, 1.0);
+      ema = computeExponentialMovingAverage(alpha, ema, 1.0);
     else
-      ema = merylutil::computeExponentialMovingAverage(alpha, ema, 0.0);
+      ema = computeExponentialMovingAverage(alpha, ema, 0.0);
 
     if (ema > 0.25)
       badBlocks++;

@@ -15,12 +15,13 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "system.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
 
-#include "align.H"
+#include "edlib.H"
 
 #include "strings.H"
 #include "sequence.H"
@@ -33,20 +34,15 @@
 
 #define STEP_BP        500
 
-//  There was a collision between merylutil::sequence and the below class,
-//  originally called 'sequence'.  I renamed it to gfaseq (and the related
-//  'sequences' to 'gfaseqs').  Be aware there is also a gfaSequence class!
-//    --bri
-
-class gfaseq {
+class sequence {
 public:
-  gfaseq() {
+  sequence() {
     seq = NULL;
     len = 0;
     bgn_padding = 0;
     end_padding = 0;
   };
-  ~gfaseq() {
+  ~sequence() {
     delete [] seq;
   };
 
@@ -81,7 +77,7 @@ public:
     bgn_padding = end_padding = 0;
   };
 
-  void   getContainedSequenceBounds(gfaseq& other, bool compress, bool beVerbose) {
+  void   getContainedSequenceBounds(sequence& other, bool compress, bool beVerbose) {
      uint32 MAX_CHUNK = 100000;
      bgn_padding = end_padding = 0;
 
@@ -177,9 +173,9 @@ public:
 
 
 
-class gfaseqs {
+class sequences {
 public:
-  gfaseqs(char *fileName, uint32 numEntries, uint32 offset) {
+  sequences(char *fileName, uint32 numEntries, uint32 offset) {
     assert(offset < numEntries);
 
     dnaSeqFile  *SF = new dnaSeqFile(fileName);
@@ -187,7 +183,7 @@ public:
 
     b    = 0; 
     e    = 0;
-    seqs = new gfaseq [numEntries+1];
+    seqs = new sequence [numEntries+1];
     used = new uint32   [numEntries+1];
 
     while (SF->loadSequence(sq) == true) {
@@ -218,10 +214,10 @@ public:
     delete SF;
   };
   
-  gfaseqs(std::vector<gfaSequence *> sqs) {
+  sequences(std::vector<gfaSequence *> sqs) {
     b = 0;
     e = sqs.size();
-    seqs = new gfaseq[e+1];
+    seqs = new sequence[e+1];
     used = new uint32[e+1];
 
     for (uint32 ii=0; ii<sqs.size(); ii++) {
@@ -234,7 +230,7 @@ public:
     }
   }
 
-  gfaseqs(char *tigName, uint32 tigVers) {
+  sequences(char *tigName, uint32 tigVers) {
     if (tigVers <= 0)
        fprintf(stderr, "Error: invalid version of tigstore: %d, not supported\n", tigVers);
     assert(tigVers > 0);
@@ -243,7 +239,7 @@ public:
 
     b    = 0;
     e    = tigStore->numTigs();
-    seqs = new gfaseq [e+1];
+    seqs = new sequence [e+1];
     used = new uint32   [e+1];
 
     for (uint32 ti=b; ti < e; ti++) {
@@ -261,12 +257,12 @@ public:
     delete tigStore;
   };
 
-  ~gfaseqs() {
+  ~sequences() {
     delete [] seqs;
     delete [] used;
   };
 
-  gfaseq &operator[](uint32 xx) {
+  sequence &operator[](uint32 xx) {
     if (xx < e)
       return(seqs[xx]);
 
@@ -278,7 +274,7 @@ public:
 
   uint32    b;
   uint32    e;
-  gfaseq *seqs;
+  sequence *seqs;
   uint32   *used;
 };
 
@@ -296,31 +292,31 @@ dotplot(uint32 Aid, bool Afwd, char *Aseq,
   sprintf(Bname, "tig%08u%c",  Bid, (Bfwd) ? '+' : '-');
   sprintf(Pname, "plot-%s-%s", Aname, Bname);
 
-  F = merylutil::openOutputFile(Pname, '.', "sh");
+  F = AS_UTL_openOutputFile(Pname, '.', "sh");
   fprintf(F, "#!/bin/sh\n");
   fprintf(F, "\n");
   fprintf(F, "nucmer --maxmatch --nosimplify -p %s %s.fasta %s.fasta\n", Pname, Aname, Bname);
   fprintf(F, "show-coords -l -o -r -T %s.delta | expand -t 8 > %s.coords\n", Pname, Pname);
   fprintf(F, "mummerplot --fat -t png -p %s %s.delta\n", Pname, Pname);
   fprintf(F, "echo mummerplot --fat -p %s %s.delta\n", Pname, Pname);
-  merylutil::closeFile(F, Pname, '.', "sh");
+  AS_UTL_closeFile(F, Pname, '.', "sh");
 
-  F = merylutil::openOutputFile(Aname, '.', "fasta");
+  F = AS_UTL_openOutputFile(Aname, '.', "fasta");
   fprintf(F, ">%s\n%s\n", Aname, Aseq);
-  merylutil::closeFile(F, Aname, '.', "fasta");
+  AS_UTL_closeFile(F, Aname, '.', "fasta");
 
-  F = merylutil::openOutputFile(Bname, '.', "fasta");
+  F = AS_UTL_openOutputFile(Bname, '.', "fasta");
   fprintf(F, ">%s\n%s\n", Bname, Bseq);
-  merylutil::closeFile(F, Bname, '.', "fasta");
+  AS_UTL_closeFile(F, Bname, '.', "fasta");
 
   sprintf(Pname, "sh plot-%s-%s.sh", Aname, Bname);
-  ::system(Pname);
+  system(Pname);
 }
 
 bool
 checkLink(gfaLink   *link,
-          gfaseqs &seqs,
-          gfaseqs &seqs_orig,
+          sequences &seqs,
+          sequences &seqs_orig,
           double     erate,
           bool       beVerbose,
           bool       doPlot) {
@@ -545,14 +541,14 @@ checkRecord_align(char const *label,
   char  bch = Bseq[Bend];   Bseq[Bend] = 0;
 
   sprintf(N, "compare%04d-%04d-ctg%04d.fasta", record->_Aid, record->_Bid, record->_Aid);
-  F = merylutil::openOutputFile(N);
+  F = AS_UTL_openOutputFile(N);
   fprintf(F, ">ctg%04d\n%s\n", record->_Aid, Aseq + Abgn);
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 
   sprintf(N, "compare%04d-%04d-utg%04d.fasta", record->_Aid, record->_Bid, record->_Bid);
-  F = merylutil::openOutputFile(N);
+  F = AS_UTL_openOutputFile(N);
   fprintf(F, ">utg%04d\n%s\n", record->_Bid, Bseq + Bbgn);
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 
   Aseq[Aend] = ach;
   Bseq[Bend] = bch;
@@ -645,9 +641,9 @@ checkRecord_align(char const *label,
 
 bool
 checkRecord(bedRecord   *record,
-            gfaseqs   &ctgs,
-            gfaseqs   &ctgs_orig,
-            gfaseqs   &utgs,
+            sequences   &ctgs,
+            sequences   &ctgs_orig,
+            sequences   &utgs,
             bool         beVerbose,
             bool         UNUSED(doPlot)) {
 
@@ -749,8 +745,8 @@ processGFA(char     *tigName,
 
   gfaFile   *gfa  = new gfaFile(inGFA);
 
-  gfaseqs *seqs_origp = NULL;
-  gfaseqs *seqsp = NULL;  
+  sequences *seqs_origp = NULL;
+  sequences *seqsp = NULL;  
 
    uint32  iiLimit      = gfa->_sequences.size();
    uint32  iiNumThreads = getNumThreads();
@@ -759,17 +755,17 @@ processGFA(char     *tigName,
   if (tigVers > 0) {
     fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
 
-    seqs_origp = new gfaseqs(tigName, tigVers-1);
+    seqs_origp = new sequences(tigName, tigVers-1);
 
     fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
-    seqsp = new gfaseqs(tigName, tigVers);
+    seqsp = new sequences(tigName, tigVers);
   } else {  // assume input is a fasta
     fprintf(stderr, "-- Loading sequences from gfa\n");
-    seqs_origp = new gfaseqs(gfa->_sequences);
+    seqs_origp = new sequences(gfa->_sequences);
 
     fprintf(stderr, "-- Loading sequences from file '%s'\n", tigName);
-    seqsp = new gfaseqs(tigName, gfa->_sequences.size(), 0); 
+    seqsp = new sequences(tigName, gfa->_sequences.size(), 0); 
 
     // update sequences
     for (uint32 ii=0; ii<gfa->_sequences.size(); ii++) {
@@ -800,8 +796,8 @@ processGFA(char     *tigName,
    sprintf(gfa->_header, "VN:Z:1.0 PN:Z:verkko-alignGFA");
   }
  
-  gfaseqs &seqs_orig  = *seqs_origp;
-  gfaseqs &seqs  = *seqsp;
+  sequences &seqs_orig  = *seqs_origp;
+  sequences &seqs  = *seqsp;
 
   //  Set GFA lengths based on the sequences we loaded.
 
@@ -920,18 +916,18 @@ processBED(char   *tigName,
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
-  gfaseqs *utgsp = new gfaseqs(tigName, tigVers);
-  gfaseqs &utgs  = *utgsp;
+  sequences *utgsp = new sequences(tigName, tigVers);
+  sequences &utgs  = *utgsp;
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", seqName, seqVers-1);
 
-  gfaseqs *ctgs_origp = new gfaseqs(seqName, seqVers-1);
-  gfaseqs &ctgs_orig  = *ctgs_origp;
+  sequences *ctgs_origp = new sequences(seqName, seqVers-1);
+  sequences &ctgs_orig  = *ctgs_origp;
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", seqName, seqVers);
 
-  gfaseqs *ctgsp = new gfaseqs(seqName, seqVers);
-  gfaseqs &ctgs  = *ctgsp;
+  sequences *ctgsp = new sequences(seqName, seqVers);
+  sequences &ctgs  = *ctgsp;
 
   //  Align!
 
@@ -990,13 +986,13 @@ processBEDtoGFA(char   *tigName,
   //  alignments for all the overlaps, and so we'll need the sequences too.
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers-1);
 
-  gfaseqs *seqs_origp = new gfaseqs(tigName, tigVers-1);
-  gfaseqs &seqs_orig  = *seqs_origp;
+  sequences *seqs_origp = new sequences(tigName, tigVers-1);
+  sequences &seqs_orig  = *seqs_origp;
 
   fprintf(stderr, "-- Loading sequences from tigStore '%s' version %u.\n", tigName, tigVers);
 
-  gfaseqs *seqsp = new gfaseqs(tigName, tigVers);
-  gfaseqs &seqs  = *seqsp;
+  sequences *seqsp = new sequences(tigName, tigVers);
+  sequences &seqs  = *seqsp;
 
   //  Load the BED file and allocate an output GFA.
 

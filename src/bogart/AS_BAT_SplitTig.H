@@ -28,8 +28,8 @@
 
 #include "AS_BAT_MarkRepeatReads.H"
 
-#include "intervals.H"
-#include "math.H"
+#include "intervalList.H"
+#include "stddev.H"
 
 #include <vector>
 

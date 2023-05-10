@@ -1,7 +1,7 @@
 TARGET   := loadTrimmedReads
 SOURCES  := loadTrimmedReads.C
 
-SRC_INCDIRS := .. ../stores ../utility/src ../overlapBasedTrimming
+SRC_INCDIRS := .. ../stores ../utility/src/utility ../overlapBasedTrimming
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

@@ -2,7 +2,7 @@ TARGET   := layoutToPackage
 SOURCES  := layoutToPackage.C unitigPartition.C
 
 SRC_INCDIRS  := .. \
-                ../utility/src \
+                ../utility/src/utility \
                 ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib

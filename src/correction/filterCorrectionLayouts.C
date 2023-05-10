@@ -15,6 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
@@ -22,7 +23,7 @@
 #include "falconConsensus.H"
 //#include "computeGlobalScore.H"
 
-#include "intervals.H"
+#include "intervalList.H"
 
 #include <vector>
 #include <algorithm>
@@ -423,26 +424,26 @@ main(int argc, char **argv) {
 
   //  Output the list of reads to correct.
 
-  FILE  *roc      = merylutil::openOutputFile(outName);
+  FILE  *roc      = AS_UTL_openOutputFile(outName);
 
   for (uint32 rr=1; rr<numReads+1; rr++)
     if ((status[rr].usedForCorrection == true) ||
         (status[rr].rescued           == true))
       fprintf(roc, "%u\n", status[rr].readID);
 
-  merylutil::closeFile(roc);
+  AS_UTL_closeFile(roc);
 
   //  Write some statistics and logs.  These are opened just before they're
   //  written so we can use them for completion tests.
 
-  FILE  *stats    = merylutil::openOutputFile(outName, '.', "stats");
-  FILE  *log      = merylutil::openOutputFile(outName, '.', "log");
+  FILE  *stats    = AS_UTL_openOutputFile(outName, '.', "stats");
+  FILE  *log      = AS_UTL_openOutputFile(outName, '.', "log");
 
   dumpStatistics(stats, status, numReads, genomeSize);
   dumpLog(log, status, numReads);
 
-  merylutil::closeFile(stats);
-  merylutil::closeFile(log);
+  AS_UTL_closeFile(stats);
+  AS_UTL_closeFile(log);
 
   //  And say goodbye.
 

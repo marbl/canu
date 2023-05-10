@@ -16,14 +16,22 @@
  */
 
 #include "system.H"
-#include "intervals.H"
-#include "math.H"
 
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_Unitig.H"
+
+#include "intervalList.H"
+#include "stddev.H"
+
+
+
+//
+//
+//
+
 
 
 //  Compute a score for an overlap.
@@ -357,7 +365,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, covgapType ct, 
   for (uint32 fi=0; fi <= fiLimit; fi++)
     CG[fi] = 0;
 
-  FILE   *F = merylutil::openOutputFile(prefix, '.', "best.coverageGap", logFileFlagSet(LOG_BEST_EDGES));
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.coverageGap", logFileFlagSet(LOG_BEST_EDGES));
 
   if (F) {
     fprintf(F, "         covered\n");
@@ -451,7 +459,7 @@ BestOverlapGraph::removeReadsWithCoverageGap(const char *prefix, covgapType ct, 
     }
   }
 
-  merylutil::closeFile(F, prefix, '.', "best.coverageGap");
+  AS_UTL_closeFile(F, prefix, '.', "best.coverageGap");
 
   //  Finally, set all the coverage gap marks.  This is done last to prevent
   //  a race when isOverlapBadQuality() ignores a coverage gap read.
@@ -491,7 +499,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, dou
   uint32  numThreads = getNumThreads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  FILE  *LOP = merylutil::openOutputFile(prefix, '.', label, logFileFlagSet(LOG_BEST_EDGES));
+  FILE  *LOP = AS_UTL_openOutputFile(prefix, '.', label, logFileFlagSet(LOG_BEST_EDGES));
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -605,7 +613,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *prefix, const char *label, dou
     }
   }
 
-  merylutil::closeFile(LOP);
+  AS_UTL_closeFile(LOP);
 
   //  Remove overlaps to or from lopsided reads.  We'll let the parent find
   //  new edges, as needed.
@@ -890,7 +898,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
   //  Set the spur flag for any spur reads, and log the result.
   //
 
-  FILE   *F = merylutil::openOutputFile(prefix, '.', "best.spurs", logFileFlagSet(LOG_BEST_EDGES));
+  FILE   *F = AS_UTL_openOutputFile(prefix, '.', "best.spurs", logFileFlagSet(LOG_BEST_EDGES));
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     bool s5 = (spurpath5.count(fi) > 0);
@@ -915,7 +923,7 @@ BestOverlapGraph::removeSpannedSpurs(const char *prefix, uint32 spurDepth) {
       fprintf(F, "%u 3' is a %s spur end\n", fi, (t3) ? "terminal" : "non-terminal");
   }
 
-  merylutil::closeFile(F);
+  AS_UTL_closeFile(F);
 
   writeStatus("BestOverlapGraph()--   Final         %8u confirmed spur reads - %8u/%-8u 5'/3' spur path reads.\n",
               numSpur(), spurpath5.size(), spurpath3.size());
@@ -1238,8 +1246,8 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
   //  Open output files.
 
-  snprintf(N, FILENAME_MAX, "%s.%s.edges",     prefix, label);   FILE *BE = merylutil::openOutputFile(N);
-  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa", prefix, label);   FILE *BG = merylutil::openOutputFile(N);
+  snprintf(N, FILENAME_MAX, "%s.%s.edges",     prefix, label);   FILE *BE = AS_UTL_openOutputFile(N);
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa", prefix, label);   FILE *BG = AS_UTL_openOutputFile(N);
 
   //  Write best edges, flagging singleton, coverageGap, lopsided, etc.
 
@@ -1416,8 +1424,8 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
   //  Close all the files.
 
-  merylutil::closeFile(BE);
-  merylutil::closeFile(BG);
+  AS_UTL_closeFile(BE);
+  AS_UTL_closeFile(BG);
 }
 
 
@@ -1595,7 +1603,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   _minOlapPercent(minOlapPercent),
   _minReadsBest(minReadsBest) {
 
-  FILE *report = merylutil::openOutputFile(prefix, '.', "best.report");
+  FILE *report = AS_UTL_openOutputFile(prefix, '.', "best.report");
 
   writeStatus("\n");
   writeStatus("BestOverlapGraph()-- Computing Best Overlap Graph.\n");
@@ -1810,7 +1818,7 @@ BestOverlapGraph::BestOverlapGraph(double            erateGraph,
   delete [] _best5score;    _best5score = NULL;
   delete [] _best3score;    _best3score = NULL;
 
-  merylutil::closeFile(report);
+  AS_UTL_closeFile(report);
 
   setLogFile(prefix, NULL);
 }

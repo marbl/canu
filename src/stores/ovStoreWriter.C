@@ -36,7 +36,7 @@ ovStoreWriter::ovStoreWriter(const char *path, sqStore *seq) {
 
   //  Create the new store
 
-  merylutil::mkdir(_storePath);
+  AS_UTL_mkdir(_storePath);
 
   _info.clear(seq->sqStore_lastReadID());
   //_info.save(_storePath);   Used to save this as a sentinel, but now fails asserts I like
@@ -58,7 +58,7 @@ ovStoreWriter::~ovStoreWriter() {
 
   //  Write the index
 
-  merylutil::saveFile(_storePath, '/', "index", _index, _info.maxID()+1);
+  AS_UTL_saveFile(_storePath, '/', "index", _index, _info.maxID()+1);
 
   delete [] _index;
 
@@ -197,7 +197,7 @@ ovStoreSliceWriter::loadBucketSizes(uint64 *bucketSizes) {
     //  Load the slice sizes, and save the number of overlaps in this slice.
 
     snprintf(name, FILENAME_MAX, "%s/bucket%04u/sliceSizes", _storePath, i);
-    merylutil::loadFile(name, sliceSizes, _numSlices + 1);  //  Checks that all data is loaded, too.
+    AS_UTL_loadFile(name, sliceSizes, _numSlices + 1);  //  Checks that all data is loaded, too.
 
     fprintf(stderr, "  found %10" F_U64P " overlaps in '%s'.\n", sliceSizes[_sliceNum], name);
 
@@ -304,7 +304,7 @@ ovStoreSliceWriter::writeOverlaps(ovOverlap  *ovls,
 
   char indexName[FILENAME_MAX+1];
   snprintf(indexName, FILENAME_MAX, "%s/%04u.index", _storePath, _sliceNum);
-  merylutil::saveFile(indexName, index, info.maxID()+1);
+  AS_UTL_saveFile(indexName, index, info.maxID()+1);
 
   delete [] index;
 
@@ -364,7 +364,7 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
     //  Load the index for this piece.
 
     snprintf(indexName, FILENAME_MAX, "%s/%04u.index", _storePath, ss);
-    merylutil::loadFile(indexName, indexpiece, info.maxID()+1);
+    AS_UTL_loadFile(indexName, indexpiece, info.maxID()+1);
 
     //  Copy index elements to the master index, updating overlapID.
 
@@ -390,7 +390,7 @@ ovStoreSliceWriter::mergeInfoFiles(void) {
 
   //  And the new index
 
-  merylutil::saveFile(_storePath, '/', "index", index, info.maxID()+1);
+  AS_UTL_saveFile(_storePath, '/', "index", index, info.maxID()+1);
 
   //  Cleanup and done!
 
@@ -446,7 +446,7 @@ ovStoreSliceWriter::removeOverlapSlice(void) {
 
   for (uint32 bb=0; bb<=_numBuckets; bb++) {
     snprintf(name, FILENAME_MAX, "%s/bucket%04u/slice%04u", _storePath, bb, _sliceNum);
-    merylutil::unlink(name);
+    AS_UTL_unlink(name);
   }
 }
 
@@ -497,10 +497,10 @@ ovStoreSliceWriter::removeAllIntermediateFiles(void) {
 
   for (uint32 ss=1; ss <= _numSlices; ss++) {
     snprintf(name, FILENAME_MAX, "%s/%04u.index", _storePath, ss);
-    merylutil::unlink(name);
+    AS_UTL_unlink(name);
 
     snprintf(name, FILENAME_MAX, "%s/%04u.info",  _storePath, ss);
-    merylutil::unlink(name);
+    AS_UTL_unlink(name);
 
     for (uint32 pp=1; pp < 1000; pp++) {
       ovFile::createDataName(name, _storePath, ss, pp);
@@ -509,7 +509,7 @@ ovStoreSliceWriter::removeAllIntermediateFiles(void) {
       if (fileExists(nomo) == false)
         break;
 
-      merylutil::unlink(nomo);
+      AS_UTL_unlink(nomo);
     }
   }
 
@@ -517,14 +517,14 @@ ovStoreSliceWriter::removeAllIntermediateFiles(void) {
 
   for (uint32 bb=1; bb <= _numBuckets; bb++) {
     snprintf(name, FILENAME_MAX, "%s/bucket%04u/sliceSizes", _storePath, bb);
-    merylutil::unlink(name);
+    AS_UTL_unlink(name);
 
     for (uint32 ss=1; ss <= _numSlices; ss++) {
       snprintf(name, FILENAME_MAX, "%s/bucket%04u/slice%04u", _storePath, bb, ss);
-      merylutil::unlink(name);
+      AS_UTL_unlink(name);
     }
 
     snprintf(name, FILENAME_MAX, "%s/bucket%04u",            _storePath, bb);
-    merylutil::rmdir(name);
+    AS_UTL_rmdir(name);
   }
 }

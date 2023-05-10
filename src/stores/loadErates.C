@@ -15,7 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
+#include "runtime.H"
 #include "strings.H"
 
 #include "sqStore.H"
@@ -90,13 +90,13 @@ ovStore::addEvalues(stringList &fileList) {
     emap[ii]._endID = 0;
     emap[ii]._Nolap = 0;
 
-    FILE *E = merylutil::openInputFile(fileList[ii]);
+    FILE *E = AS_UTL_openInputFile(fileList[ii]);
 
     loadFromFile(emap[ii]._bgnID, "bgnID", E);
     loadFromFile(emap[ii]._endID, "endID", E);
     loadFromFile(emap[ii]._Nolap, "Nolap", E);
 
-    merylutil::closeFile(E);
+    AS_UTL_closeFile(E);
 
     fprintf(stderr, "  '%s' covers reads %7" F_U32P "-%-7" F_U32P " with %10" F_U64P " overlaps.\n",
             emap[ii]._name, emap[ii]._bgnID, emap[ii]._endID, emap[ii]._Nolap);
@@ -119,12 +119,12 @@ ovStore::addEvalues(stringList &fileList) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Merging.\n");
 
-  FILE *EO = merylutil::openOutputFile(evalueTemp);
+  FILE *EO = AS_UTL_openOutputFile(evalueTemp);
 
   for (uint32 ii=0; ii<fileList.size(); ii++) {
     uint16 *ev = new uint16 [emap[ii]._Nolap + 8];
 
-    merylutil::loadFile(emap[ii]._name, ev, emap[ii]._Nolap + 8);
+    AS_UTL_loadFile(emap[ii]._name, ev, emap[ii]._Nolap + 8);
 
     writeToFile(ev + 8, "evalues", emap[ii]._Nolap, EO);
 
@@ -134,13 +134,13 @@ ovStore::addEvalues(stringList &fileList) {
             emap[ii]._name, emap[ii]._bgnID, emap[ii]._endID, emap[ii]._Nolap);
   }
 
-  merylutil::closeFile(EO, evalueTemp);
+  AS_UTL_closeFile(EO, evalueTemp);
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Renaming.\n");
 
-  merylutil::unlink(evalueName);
-  merylutil::rename(evalueTemp, evalueName);
+  AS_UTL_unlink(evalueName);
+  AS_UTL_rename(evalueTemp, evalueName);
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Success!\n");

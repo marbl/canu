@@ -184,7 +184,7 @@ main(int argc, char **argv) {
 
   fprintf (stderr, "Saving corrected error rates to file %s\n", G->eratesName);
 
-  FILE *fp = merylutil::openOutputFile(G->eratesName);
+  FILE *fp = AS_UTL_openOutputFile(G->eratesName);
 
   writeToFile(G->bgnID,    "loid", fp);
   writeToFile(G->endID,    "hiid", fp);
@@ -202,7 +202,7 @@ main(int argc, char **argv) {
 
   delete [] evalue;
 
-  merylutil::closeFile(fp, G->eratesName);
+  AS_UTL_closeFile(fp, G->eratesName);
 
   //  Finished.
 

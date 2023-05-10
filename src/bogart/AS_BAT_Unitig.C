@@ -15,6 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "runtime.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -525,21 +526,21 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
 
   snprintf(N, FILENAME_MAX, "%s.%s.%08u.profile", prefix, label, id());
 
-  F = merylutil::openOutputFile(N);
+  F = AS_UTL_openOutputFile(N);
 
   for (uint32 ii=0; ii<errorProfile.size(); ii++)
     fprintf(F, "%u %u %.5f +- %.5f\n",
             errorProfile[ii].bgn,  errorProfile[ii].end,
             errorProfile[ii].mean, errorProfile[ii].stddev);
 
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 
   //  Reporting the index isn't generally useful, only for debugging.
 
 #if 0
   snprintf(N, FILENAME_MAX, "%s.%s.%08u.profile.index", prefix, label, id());
 
-  F = merylutil::openOutputFile(N);
+  F = AS_UTL_openOutputFile(N);
 
   for (uint32 ii=0; ii<errorProfileIndex.size(); ii++) {
     uint32  xx = errorProfileIndex[ii];
@@ -552,6 +553,6 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
             errorProfile[xx].mean,
             errorProfile[xx].stddev);
   }
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 #endif
 }

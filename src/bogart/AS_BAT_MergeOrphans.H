@@ -18,6 +18,7 @@
 #ifndef INCLUDE_AS_BAT_MERGEORPHANS
 #define INCLUDE_AS_BAT_MERGEORPHANS
 
+#include "runtime.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Unitig.H"
 

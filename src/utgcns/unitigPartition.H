@@ -18,6 +18,7 @@
 #ifndef UNITIGPARTITION_H
 #define UNITIGPARTITION_H
 
+#include "runtime.H"
 #include "system.H"
 #include "strings.H"
 

@@ -24,7 +24,7 @@
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_Outputs.H"
 
-#include "intervals.H"
+#include "intervalList.H"
 
 //  Will fail if a read is in unitig 0, or if a read isn't in a unitig.
 
@@ -240,7 +240,7 @@ classifyTigsAsUnassembled(TigVector    &tigs,
 
   snprintf(N, FILENAME_MAX, "%s.unassembled", getLogFilePrefix());
 
-  FILE *F = merylutil::openOutputFile(N);
+  FILE *F = AS_UTL_openOutputFile(N);
 
   fprintf(F, "# Contigs flagged as unassembled.\n");
   fprintf(F, "#\n");
@@ -299,7 +299,7 @@ classifyTigsAsUnassembled(TigVector    &tigs,
     utg->_isUnassembled = false;
   }
 
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- singleton\n",                                               nSingleton,  bSingleton,  fewReadsNumber);
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too few reads        (< %u reads)\n",                       nTooFew,     bTooFew,     fewReadsNumber);
@@ -391,14 +391,14 @@ reportTigs(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(name)
 
   snprintf(N, FILENAME_MAX, "%s.sizes", getLogFilePrefix());
 
-  FILE *F = merylutil::openOutputFile(N);
+  FILE *F = AS_UTL_openOutputFile(N);
 
   reportN50(F, unassembledLength, "UNASSEMBLED", genomeSize);
   reportN50(F, repeatLength,      "REPEATS",     genomeSize);
   reportN50(F, bubbleLength,      "BUBBLES",     genomeSize);
   reportN50(F, contigLength,      "CONTIGS",     genomeSize);
 
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 
   if (logFileFlagSet(LOG_INTERMEDIATE_TIGS) == 0)
     return;
@@ -682,7 +682,7 @@ reportOverlaps(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(n
 
   snprintf(N, FILENAME_MAX, "%s.overlaps", getLogFilePrefix());
 
-  FILE *F = merylutil::openOutputFile(N);
+  FILE *F = AS_UTL_openOutputFile(N);
 
   fprintf(F, "=====================================\n");
   fprintf(F, "OVERLAP COUNTS\n");
@@ -773,7 +773,7 @@ reportOverlaps(TigVector &tigs, const char *UNUSED(prefix), const char *UNUSED(n
   fprintf(F, "\n");
   fprintf(F, "\n");
 
-  merylutil::closeFile(F, N);
+  AS_UTL_closeFile(F, N);
 
   delete dd;
   delete dc;

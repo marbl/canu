@@ -18,10 +18,11 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
+#include "runtime.H"
 #include "AS_BAT_TigVector.H"
 #include "AS_BAT_OverlapCache.H"
 
-#include "math.H"
+#include "stddev.H"
 
 #include <vector>
 #include <set>

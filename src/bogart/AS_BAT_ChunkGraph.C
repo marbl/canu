@@ -56,7 +56,7 @@ ChunkGraph::ChunkGraph(const char *prefix) {
   //  For each actual read, compute both end path lengths, and save the
   //  total path length in _chunkLength.
 
-  FILE *chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? merylutil::openOutputFile(prefix, '.', "chunkGraph.log") : NULL;
+  FILE *chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? AS_UTL_openOutputFile(prefix, '.', "chunkGraph.log") : NULL;
 
   for (uint32 fid=1; fid <= maxID; fid++) {
     if ((RI->isValid(fid)       == false) ||     //  Read just doesn't exist.
@@ -70,7 +70,7 @@ ChunkGraph::ChunkGraph(const char *prefix) {
                                  countFullWidth(ReadEnd(fid, true),  endPathLen, chunkLog));
   }
 
-  merylutil::closeFile(chunkLog, prefix, '.', "chunkGraph.log");
+  AS_UTL_closeFile(chunkLog, prefix, '.', "chunkGraph.log");
 
   delete [] endPathLen;
 

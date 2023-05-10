@@ -55,7 +55,7 @@
  */
 
 #include "falconConsensus.H"
-#include "align.H"
+#include "edlib.H"
 
 #include <stdarg.h>
 
@@ -76,7 +76,7 @@ openAlignLogFiles(char const *outputPrefix) {
   for (uint32 ii=0; ii<getNumThreads(); ii++) {
     snprintf(N, FILENAME_MAX, "%s.align_%02u.log", outputPrefix, ii);
 
-    thrlog[ii] = merylutil::openOutputFile(N);
+    thrlog[ii] = AS_UTL_openOutputFile(N);
   }
 }
 
@@ -88,7 +88,7 @@ closeAlignLogFiles(char const *prefix) {
     return;
 
   for (uint32 ii=0; ii<getNumThreads(); ii++)
-    merylutil::closeFile(thrlog[ii]);
+    AS_UTL_closeFile(thrlog[ii]);
 
   delete [] thrlog;
 }

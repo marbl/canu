@@ -15,12 +15,15 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
-#include "intervals.H"
-#include "math.H"
+#include "runtime.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
+
+#include "stddev.H"
+#include "intervalList.H"
+#include "speedCounter.H"
+
 
 #define OVL_5                 0x01
 #define OVL_3                 0x02
@@ -237,7 +240,7 @@ main(int argc, char **argv) {
   char  LOGname[FILENAME_MAX+1];
   snprintf(LOGname, FILENAME_MAX, "%s.per-read.log", outPrefix);
 
-  FILE  *LOG = merylutil::openOutputFile(LOGname);
+  FILE  *LOG = AS_UTL_openOutputFile(LOGname);
 
   //  Compute!
 
@@ -509,7 +512,7 @@ main(int argc, char **argv) {
     C.tick();
   }
 
-  merylutil::closeFile(LOG, LOGname);  //  Done with logging.
+  AS_UTL_closeFile(LOG, LOGname);  //  Done with logging.
 
   readHole->finalizeData();
   olapHole->finalizeData();
@@ -570,7 +573,7 @@ main(int argc, char **argv) {
   if (toFile == true) {
     snprintf(LOGname, FILENAME_MAX, "%s.summary", outPrefix);
 
-    LOG = merylutil::openOutputFile(LOGname);
+    LOG = AS_UTL_openOutputFile(LOGname);
   }
 
   fprintf(LOG, "category            reads     %%          read length        feature size or coverage  analysis\n");
@@ -591,7 +594,7 @@ main(int argc, char **argv) {
   fprintf(LOG, "uniq-anchor       %7" F_U64P "  %6.2f  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (repeat read, with unique section, probable bad read)\n",                                        readUniqAnchor->numberOfObjects(),     readUniqAnchor->numberOfObjects()/nReads,     readUniqAnchor->mean(),     readUniqAnchor->stddev(),     olapUniqAnchor->mean(), olapUniqAnchor->stddev());
 
   if (toFile == true)
-    merylutil::closeFile(LOG, LOGname);
+    AS_UTL_closeFile(LOG, LOGname);
 
   // Clean up the histograms
   delete readNoOlaps;
