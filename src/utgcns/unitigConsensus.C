@@ -405,9 +405,6 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
       bool   save  = false;
 
       if ((nm < _utgpos[ii].max()) && (thick || (first && !allowContains)) && badToAdd.count(ii) == 0) {
-        fprintf(stderr, "new version.\n");
-      // if ((nm < _utgpos[ii].max()) && (thick || first) && badToAdd.count(ii) == 0) {
-      //   fprintf(stderr, "old version.\n");
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();
