@@ -65,28 +65,37 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
   int32         hiEnd = -1;
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
-    int32  lo = _children[ci].min();
-    int32  hi = _children[ci].max();
-
-    if (hi <= hiEnd) {
+    if (_children[ci].isIgnored()) {
       posLen[ci].idx = ci;
-      posLen[ci].len = hi - lo;
+      posLen[ci].len = _children[ci].max() -  _children[ci].min();
       posLen[ci].use = false;
 
       S.nStsh += 1;
       S.bStsh += posLen[ci].len;
+    } else {
+      int32  lo = _children[ci].min();
+      int32  hi = _children[ci].max();
+
+      if (hi <= hiEnd) {
+        posLen[ci].idx = ci;
+        posLen[ci].len = hi - lo;
+        posLen[ci].use = false;
+
+        S.nStsh += 1;
+        S.bStsh += posLen[ci].len;
+      }
+
+      else {
+        posLen[ci].idx = ci;
+        posLen[ci].len = hi - lo;
+        posLen[ci].use = true;
+
+        S.nBack += 1;
+        S.bBack += posLen[ci].len;
+      }
+
+      hiEnd = std::max(hi, hiEnd);
     }
-
-    else {
-      posLen[ci].idx = ci;
-      posLen[ci].len = hi - lo;
-      posLen[ci].use = true;
-
-      S.nBack += 1;
-      S.bBack += posLen[ci].len;
-    }
-
-    hiEnd = std::max(hi, hiEnd);
   }
 
   //  Sort by length, longest first, then verify we're sorted.
@@ -108,6 +117,10 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
   for (uint32 ci=0; ci<_childrenLen; ci++) {
     if (posLen[ci].use == true)            //  Already a backbone read.
       continue;                            //  Skip this read.
+
+    if (_children[posLen[ci].idx].isIgnored())
+      continue;
+
 
     if (S.bCont + S.bBack > bLimit)        //  Exceeded coverage limit.
       break;                               //  Bail.
@@ -133,9 +146,10 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
     _childrenMax  = S.nBack + S.nCont;               //  exactly what we need to save.
     _children     = new tgPosition [_childrenMax];
 
-    for (uint32 ci=0; ci<_stashedLen; ci++)
-      if (posLen[ci].use == true)                                //  If used, we want to keep the
+    for (uint32 ci=0; ci<_stashedLen; ci++) {
+      if (posLen[ci].use == true)                               //  If used, we want to keep the
         _children[_childrenLen++] = _stashed[posLen[ci].idx];    //  read, so copy it to the new list.
+    }
   }
 
   // since we added the reads using length sorted order, re-sort them by position to make everyone downstream  happy
@@ -150,6 +164,7 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
 
 void
 tgTig::unstashContains(void) {
+  fprintf(stderr, "unstashContains();\n");
 
   if (_stashed == NULL)   //  If no saved list, nothing to unstash.
     return;

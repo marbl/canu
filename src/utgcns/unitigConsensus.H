@@ -39,6 +39,7 @@ public:
     _iid        = 0;
 
     _complement = false;
+    _isIgnored  = false;
 
     _length     = 0;
     _bases      = NULL;
@@ -47,6 +48,7 @@ public:
   abSequence(uint32  readID,
              uint32  length,
              char   *seq,
+             uint32  isIgnored,
              uint32  complemented);
 
   ~abSequence() {
@@ -57,6 +59,7 @@ public:
   uint32      seqIdent(void)          { return(_iid);        };
 
   bool        isForward(void)         { return(_complement == false); };
+  bool        isIgnored(void)         { return(_isIgnored); };
 
   uint32      length(void)            { return(_length);     };
   char        getBase(uint32 o)       { return(_bases[o]);   };
@@ -67,6 +70,7 @@ private:
   uint32     _iid;            //  external, aka seqStore, ID;
 
   bool       _complement;
+  bool       _isIgnored;
 
   uint32     _length;
   char      *_bases;
@@ -89,6 +93,7 @@ private:
   void   addRead(uint32 readID,
                  uint32 askip, uint32 bskip,
                  bool complemented,
+                 bool isIgnored,
                  std::map<uint32, sqRead *>     *inPackageRead);
 
   bool   initialize(std::map<uint32, sqRead *>     *reads);
@@ -97,26 +102,42 @@ public:
   bool   generate(tgTig                       *tig_,
                   char                         algorithm_,
                   char                         aligner_,
+                  double                       maxCoverage,
+                  uint32                      *nTigs = NULL,
+                  uint32                      *nSingletons = NULL,
                   std::map<uint32, sqRead *>  *reads_ = NULL);
 
 private:
-  void   switchToUncompressedCoordinates(void);
-  void   updateReadPositions(void);
+  void   switchToUncompressedCoordinates(std::map<uint32, sqRead *>  *reads_);
+  void   updateReadPositions(std::map<uint32, sqRead *>     *reads_);
 
-  char  *generateTemplateStitch(void);
+  char  *generateTemplateStitch(double                      maxCoverage,
+                                std::map<uint32, sqRead *>     *reads);
 
   bool   initializeGenerate(tgTig                       *tig,
+                            double                       maxCoverage,
+                            uint32                      *nTigs = NULL,
+                            uint32                      *nSingletons = NULL,
                             std::map<uint32, sqRead *>  *reads = NULL);
 
 
   bool   generatePBDAG(tgTig                       *tig,
                        char                         aligner,
+                       double                       maxCoverage,
+                       uint32                      *nTigs = NULL,
+                       uint32                      *nSingletons = NULL,
                        std::map<uint32, sqRead *>  *reads = NULL);
 
   bool   generateQuick(tgTig                       *tig,
+                       double                       maxCoverage,
+                       uint32                      *nTigs = NULL,
+                       uint32                      *nSingletons = NULL,
                        std::map<uint32, sqRead *>  *reads = NULL);
 
   bool   generateSingleton(tgTig                       *tig,
+                           double                       maxCoverage,
+                           uint32                      *nTigs = NULL,
+                           uint32                      *nSingletons = NULL,
                            std::map<uint32, sqRead *>  *reads = NULL);
 
   void   findCoordinates(std::map<uint32, sqRead *>     *reads);

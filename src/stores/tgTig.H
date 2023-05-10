@@ -152,6 +152,10 @@ public:
     _max = max;
   };
 
+  void                 setIsIgnored(uint32 isIgnored_) {
+    _isIgnored = isIgnored_;
+  }
+
   //  Operators
 
   bool                 operator<(tgPosition const &that) const {

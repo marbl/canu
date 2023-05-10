@@ -172,15 +172,15 @@ processImportedTigs(cnsParameters  &params) {
 
       //  Stash excess coverage.  Singletons report no logging.
 
-      tgTigStashed S;
+      // tgTigStashed S;
 
-      tig->stashContains(params.maxCov, S);
+      // tig->stashContains(params.maxCov, S);
 
-      if (S.nBack > 0)
-        fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
-                S.nCont, (double)S.bCont / tig->length(),
-                S.nStsh, (double)S.bStsh / tig->length(),
-                S.nBack, (double)S.bBack / tig->length());
+      // if (S.nBack > 0)
+      //   fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
+      //           S.nCont, (double)S.bCont / tig->length(),
+      //           S.nStsh, (double)S.bStsh / tig->length(),
+      //           S.nBack, (double)S.bBack / tig->length());
 
       //  Compute!
 
@@ -189,7 +189,7 @@ processImportedTigs(cnsParameters  &params) {
       params.merlinGlobal_->markerDBname = params.markerDB;
       params.merlinGlobal_->load_Kmers(params.markerDB);
       unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
-      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, &reads);
+      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, NULL, NULL, &reads);
 
       //  Show the result, if requested.
 
@@ -197,8 +197,7 @@ processImportedTigs(cnsParameters  &params) {
         tig->display(stdout, params.seqStore, 200, 3);
 
       //  Unstash.
-
-      tig->unstashContains();
+      // tig->unstashContains();
 
       //  Save the result.
 
@@ -398,19 +397,19 @@ processTigs(cnsParameters  &params) {
 
     //  Stash excess coverage.  Singletons report no logging.
 
-    tgTigStashed S;
+    // tgTigStashed S;
 
-    tig->stashContains(params.maxCov, S);
+    // tig->stashContains(params.maxCov, S);
 
-    if (S.nBack > 0) {
-      nTigs++;
-      fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
-              S.nCont, (double)S.bCont / tig->length(),
-              S.nStsh, (double)S.bStsh / tig->length(),
-              S.nBack, (double)S.bBack / tig->length());
-    } else {
-      nSingletons++;
-    }
+    // if (S.nBack > 0) {
+    //   nTigs++;
+    //   fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
+    //           S.nCont, (double)S.bCont / tig->length(),
+    //           S.nStsh, (double)S.bStsh / tig->length(),
+    //           S.nBack, (double)S.bBack / tig->length());
+    // } else {
+    //   nSingletons++;
+    // }
 
     //  Compute!
 
@@ -419,7 +418,7 @@ processTigs(cnsParameters  &params) {
     params.merlinGlobal_->markerDBname = params.markerDB;
     params.merlinGlobal_->load_Kmers(params.markerDB);
     unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
-    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
+    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, &nTigs, &nSingletons, params.seqReads);
 
     //  Show the result, if requested.
 
@@ -428,7 +427,7 @@ processTigs(cnsParameters  &params) {
 
     //  Unstash.
 
-    tig->unstashContains();
+    // tig->unstashContains();
 
     //  Save the result.
 
