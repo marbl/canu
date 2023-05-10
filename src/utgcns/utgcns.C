@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "system.H"
 #include "strings.H"
 
@@ -40,11 +39,11 @@ public:
 
     delete seqReads;
 
-    AS_UTL_closeFile(outResultsFile, outResultsName);
-    AS_UTL_closeFile(outLayoutsFile, outLayoutsName);
+    merylutil::closeFile(outResultsFile, outResultsName);
+    merylutil::closeFile(outLayoutsFile, outLayoutsName);
 
-    AS_UTL_closeFile(outSeqFileA, outSeqNameA);
-    AS_UTL_closeFile(outSeqFileQ, outSeqNameQ);
+    merylutil::closeFile(outSeqFileA, outSeqNameA);
+    merylutil::closeFile(outSeqFileQ, outSeqNameQ);
   };
 
   char                   *seqName = nullptr;
@@ -129,9 +128,9 @@ createPartitions(cnsParameters  &params) {
 
   tp.outputPartitions(params.seqStore, params.tigStore, params.tigName);
 
-  FILE   *partFile = AS_UTL_openOutputFile(params.tigName, '/', "partitioning");
+  FILE   *partFile = merylutil::openOutputFile(params.tigName, '/', "partitioning");
   tp.reportPartitioning(partFile);
-  AS_UTL_closeFile(partFile);
+  merylutil::closeFile(partFile);
 }
 
 
@@ -155,8 +154,8 @@ processImportedTigs(cnsParameters  &params) {
   FILE       *importedReads   = nullptr;
 
   if (params.dumpImport) {
-    importedLayouts = AS_UTL_openOutputFile(params.importName, '.', "layout");
-    importedReads   = AS_UTL_openOutputFile(params.importName, '.', "fasta");
+    importedLayouts = merylutil::openOutputFile(params.importName, '.', "layout");
+    importedReads   = merylutil::openOutputFile(params.importName, '.', "fasta");
   }
 
   tgTig                       *tig = new tgTig();
@@ -226,8 +225,8 @@ processImportedTigs(cnsParameters  &params) {
 
   delete tig;
 
-  AS_UTL_closeFile(importedReads);
-  AS_UTL_closeFile(importedLayouts);
+  merylutil::closeFile(importedReads);
+  merylutil::closeFile(importedLayouts);
 
   delete importFile;
 }
@@ -271,16 +270,16 @@ loadProcessList(char *prefix, uint32 tigPart) {
 
   if ((tigPart > 0) &&             //  Partitioning requested, and
       (fileExists(N) == true)) {   //  partitioning file exists, load it.
-    FILE *F = AS_UTL_openInputFile(N);
+    FILE *F = merylutil::openInputFile(N);
 
-    while (AS_UTL_readLine(L, Llen, Lmax, F)) {
+    while (merylutil::readLine(L, Llen, Lmax, F)) {
       splitToWords S(L);
 
       if (S.touint32(5) == tigPart)
         processList.insert(S.touint32(0));
     }
 
-    AS_UTL_closeFile(F, N);
+    merylutil::closeFile(F, N);
   }
 
   delete [] N;
@@ -769,22 +768,22 @@ main(int argc, char **argv) {
 
   if ((params.exportName == NULL) && (params.outResultsName)) {
     fprintf(stderr, "-- Opening output results file '%s'.\n", params.outResultsName);
-    params.outResultsFile = AS_UTL_openOutputFile(params.outResultsName);
+    params.outResultsFile = merylutil::openOutputFile(params.outResultsName);
   }
 
   if ((params.exportName == NULL) && (params.outLayoutsName)) {
     fprintf(stderr, "-- Opening output layouts file '%s'.\n", params.outLayoutsName);
-    params.outLayoutsFile = AS_UTL_openOutputFile(params.outLayoutsName);
+    params.outLayoutsFile = merylutil::openOutputFile(params.outLayoutsName);
   }
 
   if ((params.exportName == NULL) && (params.outSeqNameA)) {
     fprintf(stderr, "-- Opening output FASTA file '%s'.\n", params.outSeqNameA);
-    params.outSeqFileA    = AS_UTL_openOutputFile(params.outSeqNameA);
+    params.outSeqFileA    = merylutil::openOutputFile(params.outSeqNameA);
   }
 
   if ((params.exportName == NULL) && (params.outSeqNameQ)) {
     fprintf(stderr, "-- Opening output FASTQ file '%s'.\n", params.outSeqNameQ);
-    params.outSeqFileQ    = AS_UTL_openOutputFile(params.outSeqNameQ);
+    params.outSeqFileQ    = merylutil::openOutputFile(params.outSeqNameQ);
   }
 
   //

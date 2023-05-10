@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "strings.H"
 
 #include "sqStore.H"
@@ -30,12 +29,12 @@ dumpFile(std::vector<char const *>  &tigInputs) {
   for (uint32 ff=0; ff<tigInputs.size(); ff++) {
     fprintf(stderr, "Reading layouts from '%s'.\n", tigInputs[ff]);
 
-    FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
+    FILE *TI = merylutil::openInputFile(tigInputs[ff]);
 
     while (tig->loadFromStreamOrLayout(TI) == true)
       tig->dumpLayout(stdout);
 
-    AS_UTL_closeFile(TI, tigInputs[ff]);
+    merylutil::closeFile(TI, tigInputs[ff]);
 
     fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
   }
@@ -50,7 +49,7 @@ testFile(std::vector<char const *>  &tigInputs) {
   tgTig   *tig      = new tgTig;
 
   for (uint32 ff=0; ff<tigInputs.size(); ff++) {
-    FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
+    FILE *TI = merylutil::openInputFile(tigInputs[ff]);
 
     while (tig->loadFromStreamOrLayout(TI) == true) {
       int32  minP = INT32_MAX;
@@ -69,7 +68,7 @@ testFile(std::vector<char const *>  &tigInputs) {
         fprintf(stdout, "GOOD %8u\n", tig->tigID());
     }
 
-    AS_UTL_closeFile(TI, tigInputs[ff]);
+    merylutil::closeFile(TI, tigInputs[ff]);
   }
 
   delete tig;
@@ -108,7 +107,7 @@ loadTigs(char const                 *seqName,
   for (uint32 ff=0; ff<tigInputs.size(); ff++) {
     fprintf(stderr, "Reading layouts from '%s'.\n", tigInputs[ff]);
 
-    FILE *TI = AS_UTL_openInputFile(tigInputs[ff]);
+    FILE *TI = merylutil::openInputFile(tigInputs[ff]);
 
     while (tig->loadFromStreamOrLayout(TI) == true) {
       if (tig->numberOfChildren() > 0)                       //  Insert it!
@@ -118,7 +117,7 @@ loadTigs(char const                 *seqName,
         tigStore->deleteTig(tig->tigID());
     }
 
-    AS_UTL_closeFile(TI, tigInputs[ff]);
+    merylutil::closeFile(TI, tigInputs[ff]);
 
     fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
   }

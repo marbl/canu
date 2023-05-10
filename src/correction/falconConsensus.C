@@ -58,7 +58,7 @@
 #include "falconConsensus-alignTag.H"
 #include "falconConsensus-msa.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 
 
 #undef DEBUG

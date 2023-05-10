@@ -26,8 +26,7 @@
 
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
-#include "edlib.H"
-#include "align-parasail-driver.H"
+#include "align.H"
 
 #include <string>
 
@@ -404,7 +403,7 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
       bool   first = (nm == 0);
       bool   save  = false;
 
-      if ((nm < _utgpos[ii].max()) && (thick || first) && badToAdd.count(ii) == 0) {
+      if ((nm < _utgpos[ii].max()) && (thick || (first && !allowContains)) && badToAdd.count(ii) == 0) {
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();

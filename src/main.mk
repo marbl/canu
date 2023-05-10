@@ -1,44 +1,68 @@
 MODULE       :=    canu
 TARGET       := libcanu.a
-SOURCES      := utility/src/utility/runtime.C \
+SOURCES      := utility/src/align/align-ksw2-driver.C \
+                utility/src/align/align-ksw2-extz.C \
+                utility/src/align/align-ksw2-extz2-sse.C \
+                utility/src/align/align-parasail-driver.C \
+                utility/src/align/align-ssw-driver.C \
+                utility/src/align/align-ssw.C \
+                utility/src/align/edlib.C \
                 \
-                utility/src/utility/align-parasail-driver.C \
-                utility/src/utility/edlib.C \
+                utility/src/bits/fibonacci-v1.C \
+                utility/src/bits/hexDump-v1.C \
+                utility/src/bits/stuffedBits-v1-binary.C \
+                utility/src/bits/stuffedBits-v1-bits.C \
+                utility/src/bits/stuffedBits-v1-delta.C \
+                utility/src/bits/stuffedBits-v1-gamma.C \
+                utility/src/bits/stuffedBits-v1-golomb.C \
+                utility/src/bits/stuffedBits-v1-omega.C \
+                utility/src/bits/stuffedBits-v1-unary.C \
+                utility/src/bits/stuffedBits-v1-zeckendorf.C \
+                utility/src/bits/stuffedBits-v1.C \
+                utility/src/bits/wordArray-v1.C \
                 \
-                utility/src/utility/files.C \
-                utility/src/utility/files-buffered.C \
-                utility/src/utility/files-compressed.C \
-                utility/src/utility/files-fasta-fastq.C \
-                utility/src/utility/files-memoryMapped.C \
+                utility/src/datastructures/keyAndValue-v1.C \
+                utility/src/datastructures/splitToWords-v1.C \
+                utility/src/datastructures/stringList-v1.C \
+                utility/src/datastructures/strings-v1.C \
+                utility/src/datastructures/types-v1.C \
                 \
-                utility/src/utility/logging.C \
+                utility/src/files/accessing-v1.C \
+                utility/src/files/buffered-v1-reading.C \
+                utility/src/files/buffered-v1-writing.C \
+                utility/src/files/compressed-v1-reading.C \
+                utility/src/files/compressed-v1-writing.C \
+                utility/src/files/compressed-v1.C \
+                utility/src/files/fasta-fastq-v1.C \
+                utility/src/files/files-v1.C \
+                utility/src/files/memoryMapped-v1.C \
+                utility/src/files/readLine-v0.C \
+                utility/src/files/readLine-v1.C \
+                utility/src/files/reading-v1.C \
+                utility/src/files/writing-v1.C \
                 \
-                utility/src/utility/strings.C \
+                utility/src/kmers-v1/kmers-exact.C \
+                utility/src/kmers-v1/kmers-files.C \
+                utility/src/kmers-v1/kmers-histogram.C \
+                utility/src/kmers-v1/kmers-reader.C \
+                utility/src/kmers-v1/kmers-writer-block.C \
+                utility/src/kmers-v1/kmers-writer-stream.C \
+                utility/src/kmers-v1/kmers-writer.C \
+                utility/src/kmers-v1/kmers.C \
                 \
-                utility/src/utility/system.C \
-                utility/src/utility/system-stackTrace.C \
+                utility/src/kmers-v2/kmers-exact.C \
+                utility/src/kmers-v2/kmers-files.C \
+                utility/src/kmers-v2/kmers-histogram.C \
+                utility/src/kmers-v2/kmers-reader-dump.C \
+                utility/src/kmers-v2/kmers-reader.C \
+                utility/src/kmers-v2/kmers-writer-block.C \
+                utility/src/kmers-v2/kmers-writer-stream.C \
+                utility/src/kmers-v2/kmers-writer.C \
+                utility/src/kmers-v2/kmers.C \
                 \
-                utility/src/utility/sequence.C \
-                \
-                utility/src/utility/types.C \
-                \
-                utility/src/utility/kmers-exact.C \
-                utility/src/utility/kmers-files.C \
-                utility/src/utility/kmers-histogram.C \
-                utility/src/utility/kmers-reader.C \
-                utility/src/utility/kmers-writer-block.C \
-                utility/src/utility/kmers-writer-stream.C \
-                utility/src/utility/kmers-writer.C \
-                utility/src/utility/kmers.C \
-                \
-                utility/src/utility/bits.C \
-                utility/src/utility/bits-wordArray.C \
-                \
-                utility/src/utility/hexDump.C \
-                utility/src/utility/md5.C \
-                utility/src/utility/mt19937ar.C \
-                utility/src/utility/speedCounter.C \
-                utility/src/utility/sweatShop.C \
+                utility/src/math/md5-v1.C \
+                utility/src/math/mt19937ar-v1.C \
+                utility/src/math/sampledDistribution-v1.C \
                 \
                 utility/src/parasail/cpuid.c \
                 utility/src/parasail/memory.c \
@@ -48,6 +72,17 @@ SOURCES      := utility/src/utility/runtime.C \
                 utility/src/parasail/sg_qb_de_dispatch.c \
                 utility/src/parasail/sg_qe_db_dispatch.c \
                 utility/src/parasail/cigar.c \
+                \
+                utility/src/sequence/dnaSeq-v1.C \
+                utility/src/sequence/dnaSeqFile-v1.C \
+                utility/src/sequence/sequence-v1.C \
+                \
+                utility/src/system/logging-v1.C \
+                utility/src/system/runtime-v1.C \
+                utility/src/system/speedCounter-v1.C \
+                utility/src/system/sweatShop-v1.C \
+                utility/src/system/system-stackTrace-v1.C \
+                utility/src/system/system-v1.C \
                 \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
@@ -106,27 +141,25 @@ SOURCES      := utility/src/utility/runtime.C \
 
 
 ifeq (${BUILDSTACKTRACE}, 1)
-SOURCES      += utility/src/utility/libbacktrace/atomic.c \
-                utility/src/utility/libbacktrace/backtrace.c \
-                utility/src/utility/libbacktrace/dwarf.c \
-                utility/src/utility/libbacktrace/elf.c \
-                utility/src/utility/libbacktrace/fileline.c \
-                utility/src/utility/libbacktrace/mmap.c \
-                utility/src/utility/libbacktrace/mmapio.c \
-                utility/src/utility/libbacktrace/posix.c \
-                utility/src/utility/libbacktrace/print.c \
-                utility/src/utility/libbacktrace/simple.c \
-                utility/src/utility/libbacktrace/sort.c \
-                utility/src/utility/libbacktrace/state.c \
-                utility/src/utility/libbacktrace/unknown.c
+SOURCES      += utility/src/system/libbacktrace/atomic.c \
+                utility/src/system/libbacktrace/backtrace.c \
+                utility/src/system/libbacktrace/dwarf.c \
+                utility/src/system/libbacktrace/elf.c \
+                utility/src/system/libbacktrace/fileline.c \
+                utility/src/system/libbacktrace/mmap.c \
+                utility/src/system/libbacktrace/mmapio.c \
+                utility/src/system/libbacktrace/posix.c \
+                utility/src/system/libbacktrace/print.c \
+                utility/src/system/libbacktrace/simple.c \
+                utility/src/system/libbacktrace/sort.c \
+                utility/src/system/libbacktrace/state.c \
+                utility/src/system/libbacktrace/unknown.c
 endif
 
 
 
 SRC_INCDIRS  := . \
                 utility/src \
-                utility/src/utility \
-                utility/src/parasail \
                 stores \
                 stores/libsnappy \
                 alignment \

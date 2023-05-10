@@ -23,6 +23,8 @@
 #include "arrays.H"
 #include "sequence.H"
 
+using namespace merylutil;  //  HUGE cop out.
+
 class sqRead;
 class sqLibrary;
 
@@ -206,7 +208,7 @@ private:
     if (doCompress == false)
       sl = basesLen;
     else
-      sl = homopolyCompress(bases, basesLen);
+      sl = merylutil::homopolyCompress(bases, basesLen);
 
     assert(_seqValid == 0);
 
@@ -435,7 +437,7 @@ public:
       uint32  bgn = seq->sqReadSeq_clearBgn();   //  Only valid if trimmed, do not make global!
       uint32  end = seq->sqReadSeq_clearEnd();
 
-      resizeArray(_retBases, 0, _retBasesAlloc, end - bgn + 1, _raAct::doNothing);
+      merylutil::resizeArray(_retBases, 0, _retBasesAlloc, end - bgn + 1, _raAct::doNothing);
 
       memmove(_retBases, bases + bgn, end - bgn);
       _retBases[end-bgn] = 0;
@@ -447,7 +449,7 @@ public:
     //  longer than the uncompressed sequence, so we can allocate that much,
     //  instead of tracking down the actual length.
 
-    resizeArray(_retBases, 0, _retBasesAlloc, basesLen + 1, _raAct::doNothing);
+    merylutil::resizeArray(_retBases, 0, _retBasesAlloc, basesLen + 1, _raAct::doNothing);
 
     homopolyCompress(bases, basesLen, _retBases);
 
@@ -466,7 +468,7 @@ public:
   };
 
 private:
-  void        sqRead_fetchBlob(readBuffer *B);
+  void        sqRead_fetchBlob(merylutil::readBuffer *B);
   void        sqRead_decodeBlob(void);
 
 private:

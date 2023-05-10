@@ -172,10 +172,10 @@ TigVector::computeArrivalRate(const char *prefix, const char *label) {
     char  N[FILENAME_MAX];
 
     snprintf(N, FILENAME_MAX, "%s.arrivalRate.%u.dat", prefix, ii);
-    FILE *F = AS_UTL_openOutputFile(N);
+    FILE *F = merylutil::openOutputFile(N);
     for (uint32 jj=0; jj<hist[ii].size(); jj++)
       fprintf(F, "%d\n", hist[ii][jj]);
-    AS_UTL_closeFile(F, N);
+    merylutil::closeFile(F, N);
   }
 }
 

@@ -18,7 +18,7 @@
 #ifndef INCLUDE_AS_BAT_TIGVECTOR
 #define INCLUDE_AS_BAT_TIGVECTOR
 
-#include "runtime.H"
+#include "types.H"
 
 class Unitig;
 

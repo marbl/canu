@@ -200,7 +200,7 @@ Mark_Skip_Kmers(void) {
   //fprintf(stderr, "Extra_String_Subcount = " F_U64 "\n", Extra_String_Subcount);
   //fprintf(stderr, "\n");
 
-  FILE *F = AS_UTL_openInputFile(G.kmerSkipFileName);
+  FILE *F = merylutil::openInputFile(G.kmerSkipFileName);
 
   while (fgets(line, 1024, F) != NULL) {
     lineNum++;
@@ -245,7 +245,7 @@ Mark_Skip_Kmers(void) {
     kmerNum++;
   }
 
-  AS_UTL_closeFile(F, G.kmerSkipFileName);
+  merylutil::closeFile(F, G.kmerSkipFileName);
 
   //  BPW has no idea what these are.
   //fprintf(stderr, "String_Ct             = " F_U64 "\n", String_Ct);

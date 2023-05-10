@@ -94,7 +94,7 @@ logFileInstance::rotate(uint64 limit) {
   fprintf(_file, "logFile()--  size " F_U64 " exceeds limit of " F_U64 "; rotate to new file.\n",
           _length, limit);
 
-  AS_UTL_closeFile(_file, _name);
+  merylutil::closeFile(_file, _name);
 
   _file    = nullptr;
   _part   += 1;
@@ -139,7 +139,7 @@ logFileInstance::clear(void) {
 
 void
 logFileInstance::close(void) {
-  AS_UTL_closeFile(_file, _path);
+  merylutil::closeFile(_file, _path);
   clear();
 }
 

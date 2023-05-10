@@ -15,7 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
+#include "system.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
@@ -182,8 +182,8 @@ main(int argc, char **argv) {
 
   //  Make directories.
 
-  AS_UTL_mkdir(ovlName);
-  AS_UTL_mkdir(createName);
+  merylutil::mkdir(ovlName);
+  merylutil::mkdir(createName);
 
   //  Allocate stuff.
 
@@ -237,11 +237,11 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<config->numSlices() + 1; i++)
     delete sliceFile[i];
 
-  AS_UTL_saveFile(sliceSName, sliceSize, config->numSlices() + 1);
+  merylutil::saveFile(sliceSName, sliceSize, config->numSlices() + 1);
 
   //  Rename the bucket to show we're done.
 
-  AS_UTL_rename(createName, bucketName);
+  merylutil::rename(createName, bucketName);
 
   //  Delete the inputs, if requested.
 

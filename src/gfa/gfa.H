@@ -15,10 +15,9 @@
  *  contains full conditions and disclaimers.
  */
 
-#ifndef AS_UTL_GFA_H
-#define AS_UTL_GFA_H
+#ifndef GFA_H
+#define GFA_H
 
-#include "runtime.H"
 #include "strings.H"
 
 #include <vector>
@@ -99,4 +98,4 @@ public:
 
 
 
-#endif  //  AS_UTL_GFA_H
+#endif  //  GFA_H

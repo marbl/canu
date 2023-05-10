@@ -15,16 +15,13 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
-
 #include "system.H"
 #include "sequence.H"
+#include "align.H"
 
 #include "sqStore.H"
 #include "sqCache.H"
 #include "ovStore.H"
-
-#include "edlib.H"
 
 #include "overlapAlign-globalData.H"
 #include "overlapAlign-threadData.H"

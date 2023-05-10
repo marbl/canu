@@ -2,8 +2,7 @@ TARGET   := utgcns
 SOURCES  := utgcns.C stashContains.C unitigPartition.C unitigConsensus.C
 
 SRC_INCDIRS  := .. \
-                ../utility/src/utility \
-                ../utility/src/parasail \
+                ../utility/src \
                 ../stores \
                 libpbutgcns \
                 libboost \

@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 #include "types.H"
 #include "arrays.H"
 

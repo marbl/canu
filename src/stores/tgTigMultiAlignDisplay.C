@@ -15,7 +15,6 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
 
 #include "sqStore.H"
 #include "tgStore.H"
@@ -23,6 +22,7 @@
 #include "sequence.H"
 
 #include <set>
+#include <algorithm>
 
 //
 //  The original utgcns consensus algorithm generated a gapped consensus sequence, which

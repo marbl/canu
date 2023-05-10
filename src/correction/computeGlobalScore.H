@@ -18,7 +18,6 @@
 #ifndef COMPUTEGLOBALSCORES_H
 #define COMPUTEGLOBALSCORES_H
 
-#include "runtime.H"
 #include "ovStore.H"
 
 class globalScoreStats {

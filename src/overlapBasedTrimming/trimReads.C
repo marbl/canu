@@ -15,12 +15,12 @@
  *  contains full conditions and disclaimers.
  */
 
+#include "system.H"
+#include "strings.H"
+
 #include "trimReads.H"
 #include "trimStat.H"
 #include "clearRangeFile.H"
-
-#include "strings.H"
-
 
 
 
@@ -226,7 +226,7 @@ main(int argc, char **argv) {
   if (outputPrefix) {
     snprintf(logName, FILENAME_MAX, "%s.log",   outputPrefix);
 
-    logFile = AS_UTL_openOutputFile(logName);
+    logFile = merylutil::openOutputFile(logName);
 
     fprintf(logFile, "id\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
   }
@@ -435,7 +435,7 @@ main(int argc, char **argv) {
   delete    maxClr;
   delete    outClr;
 
-  AS_UTL_closeFile(logFile, logName);
+  merylutil::closeFile(logFile, logName);
 
   //  should fprintf() the numbers directly here so an explanation of each category can be supplied;
   //  simpler for now to have report() do it.
@@ -445,7 +445,7 @@ main(int argc, char **argv) {
   if (outputPrefix) {
     snprintf(sumName, FILENAME_MAX, "%s.stats", outputPrefix);
 
-    staFile = AS_UTL_openOutputFile(sumName);
+    staFile = merylutil::openOutputFile(sumName);
   }
 
   if (staFile == NULL)
@@ -491,7 +491,7 @@ main(int argc, char **argv) {
   trim5.generatePlots(outputPrefix, "trim5", 25);
   trim3.generatePlots(outputPrefix, "trim3", 25);
 
-  AS_UTL_closeFile(staFile, sumName);
+  merylutil::closeFile(staFile, sumName);
 
   //  Buh-bye.
 

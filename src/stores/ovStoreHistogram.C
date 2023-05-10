@@ -98,7 +98,7 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 
   //  Load!
 
-  FILE *F = AS_UTL_openInputFile(name);
+  FILE *F = merylutil::openInputFile(name);
 
   loadFromFile(_maxID, "ovStoreHistogram::maxID", F);
 
@@ -110,7 +110,7 @@ ovStoreHistogram::ovStoreHistogram(const char *path) {
 
   loadFromFile(_scores,       "ovStoreHistogram::scores",       _scoresAlloc, F);
 
-  AS_UTL_closeFile(F, name);
+  merylutil::closeFile(F, name);
 }
 
 
@@ -144,7 +144,7 @@ ovStoreHistogram::saveHistogram(char *prefix) {
 
   createDataName(name, prefix);
 
-  FILE   *F = AS_UTL_openOutputFile(name);
+  FILE   *F = merylutil::openOutputFile(name);
 
   //  Save all the parameters.
 
@@ -166,7 +166,7 @@ ovStoreHistogram::saveHistogram(char *prefix) {
 
   //  That's it!
 
-  AS_UTL_closeFile(F, name);
+  merylutil::closeFile(F, name);
 }
 
 

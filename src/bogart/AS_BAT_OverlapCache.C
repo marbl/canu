@@ -651,8 +651,8 @@ OverlapCache::symmetrizeOverlaps(void) {
   writeStatus("OverlapCache()-- Symmetrizing overlaps.\n");
   writeStatus("OverlapCache()--   Finding missing twins.\n");
 
-  FILE *NSE = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-error-rates", false);   //  These turn out to be VERY big
-  FILE *NTW = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-overlaps",    false);
+  FILE *NSE = merylutil::openOutputFile(_prefix, '.', "non-symmetric-error-rates", false);   //  These turn out to be VERY big
+  FILE *NTW = merylutil::openOutputFile(_prefix, '.', "non-symmetric-overlaps",    false);
 
   if (NSE) {
     fprintf(NSE, "     aID      bID  a error b error\n");
@@ -735,8 +735,8 @@ OverlapCache::symmetrizeOverlaps(void) {
     }
   }
 
-  AS_UTL_closeFile(NTW);
-  AS_UTL_closeFile(NSE);
+  merylutil::closeFile(NTW);
+  merylutil::closeFile(NSE);
 
   uint64   nOverlaps  = 0;
   uint64   nNonSymErr = 0;
@@ -800,7 +800,7 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   writeStatus("OverlapCache()--   Shifting overlaps.\n");
 
-  FILE *NTD = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-weak-dropped", false);
+  FILE *NTD = merylutil::openOutputFile(_prefix, '.', "non-symmetric-weak-dropped", false);
 
   for (uint32 rr=fiLimit; rr-- > 0; ) {
     if (_overlapLen[rr] == 0)   //  Skip the asserts!
@@ -824,7 +824,7 @@ OverlapCache::symmetrizeOverlaps(void) {
     _overlapLen[rr] = _overlapLen[rr] - nFiltPerRead[rr];
   }
 
-  AS_UTL_closeFile(NTD);
+  merylutil::closeFile(NTD);
 
   //  Swap pointers to the pointers and remove the old pointer storage.
 
@@ -837,7 +837,7 @@ OverlapCache::symmetrizeOverlaps(void) {
 
   writeStatus("OverlapCache()--   Adding missing twins.\n");
 
-  FILE *NTA = AS_UTL_openOutputFile(_prefix, '.', "non-symmetric-added", false);
+  FILE *NTA = merylutil::openOutputFile(_prefix, '.', "non-symmetric-added", false);
 
   //  This has several concurrency issues.
   //  1)  loop test on overlapLen[ra] can change if we increment overlapLen[rb].
@@ -879,7 +879,7 @@ OverlapCache::symmetrizeOverlaps(void) {
     }
   }
 
-  AS_UTL_closeFile(NTA);
+  merylutil::closeFile(NTA);
 
   //  Check that everything worked.
 

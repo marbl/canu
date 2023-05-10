@@ -17,7 +17,7 @@
 
 #include "trimReads.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 
 
 bool

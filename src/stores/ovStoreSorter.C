@@ -15,7 +15,7 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
+#include "system.H"
 
 #include "sqStore.H"
 #include "ovStore.H"
@@ -48,7 +48,7 @@ checkSentinel(const char *ovlName, uint32 sliceNum, ovStoreConfig *config, bool 
 
   //  Not done and not running, so create a sentinel to say we're running.
 
-  AS_UTL_createEmptyFile(N);
+  merylutil::createEmptyFile(N);
 }
 
 
@@ -59,7 +59,7 @@ removeSentinel(const char *ovlName, uint32 sliceNum) {
 
   snprintf(N, FILENAME_MAX, "%s/%04u.started", ovlName, sliceNum);
 
-  AS_UTL_unlink(N);
+  merylutil::unlink(N);
 }
 
 

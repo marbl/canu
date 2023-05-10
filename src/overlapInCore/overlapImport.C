@@ -15,12 +15,12 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
+#include "system.H"
+#include "strings.H"
+#include "math.H"
+
 #include "sqStore.H"
 #include "ovStore.H"
-
-#include "strings.H"
-#include "mt19937ar.H"
 
 #include <vector>
 
@@ -50,7 +50,7 @@ uint64                    rmin = 0, rmax = 0;
 uint32                    abgn = 1, aend = 0;
 uint32                    bbgn = 1, bend = 0;
 
-std::vector<char const *> files;
+std::vector<char const *> infiles;
 
 uint64                    totalOverlaps   = 0;
 uint64                    filteredOlapLen = 0;
@@ -266,7 +266,7 @@ main(int argc, char **argv) {
 
     else if ((strcmp(argv[arg], "-") == 0) ||
              (fileExists(argv[arg])))
-      files.push_back(argv[arg]);
+      infiles.push_back(argv[arg]);
 
     else {
       char *s = new char [1024];
@@ -279,7 +279,7 @@ main(int argc, char **argv) {
   if (seqStoreName == nullptr)
     err.push_back("ERROR: no input seqStore (-S) supplied.\n");
 
-  if ((files.size() == 0) && (inputType != inType::asRandom))
+  if ((infiles.size() == 0) && (inputType != inType::asRandom))
     err.push_back("ERROR: no input overlap files supplied.\n");
 
 
@@ -339,13 +339,13 @@ main(int argc, char **argv) {
     case inType::asHangs:
     case inType::asUnaligned:
     case inType::asPAF:
-      for (uint32 ff=0; ff<files.size(); ff++)
-        readASCII(new compressedFileReader(files[ff]));
+      for (uint32 ff=0; ff<infiles.size(); ff++)
+        readASCII(new compressedFileReader(infiles[ff]));
       break;
 
     case inType::asOVB:
-      for (uint32 ff=0; ff<files.size(); ff++)
-        readOVB(new ovFile(ss, files[ff], ovFileFull));
+      for (uint32 ff=0; ff<infiles.size(); ff++)
+        readOVB(new ovFile(ss, infiles[ff], ovFileFull));
       break;
 
     case inType::asRandom:

@@ -18,9 +18,7 @@
 #ifndef AS_OVSTOREFILE_H
 #define AS_OVSTOREFILE_H
 
-#include "runtime.H"
 #include "sqStore.H"
-
 #include "ovOverlap.H"
 
 class ovStoreHistogram;
@@ -81,7 +79,7 @@ public:
     //  saved, we'd need to special case a whole bunch of stuff that assumes counts exist
     //  (e.g., in ovStoreConfig).
 
-    FILE   *F = AS_UTL_openOutputFile(_name);
+    FILE   *F = merylutil::openOutputFile(_name);
 
     writeToFile(_nOlaps, "ovStoreHistogram::nr",           F);
     writeToFile(_oprMax, "ovStoreHistogram::nr",           F);
@@ -150,13 +148,13 @@ public:
 
     allocateArray(_opr, _oprMax, seq->sqStore_lastReadID() + 1, _raAct::clearNew);
 
-    FILE   *F = AS_UTL_openInputFile(name);
+    FILE   *F = merylutil::openInputFile(name);
 
     loadFromFile(_nOlaps, "ovStoreHistogram::nr",           F);
     loadFromFile(_oprMax, "ovStoreHistogram::nr",           F);
     loadFromFile(_opr,    "ovStoreHistogram::opr", _oprMax, F);
 
-    AS_UTL_closeFile(F, name);
+    merylutil::closeFile(F, name);
   };
 
   ~ovFileOCR() {
@@ -171,7 +169,7 @@ public:
 
   static
   void          deleteDiskFile(const char *prefix) {
-    AS_UTL_unlink(prefix, '.', "oc");
+    merylutil::unlink(prefix, '.', "oc");
   };
 
 private:
@@ -241,10 +239,10 @@ public:
   void    deleteDiskFiles(const char *name) {
     char  prefix[FILENAME_MAX + 1];
 
-    AS_UTL_unlink(name);
+    merylutil::unlink(name);
 
     strncpy(prefix, name, FILENAME_MAX);
-    AS_UTL_findBaseFileName(prefix, name);
+    merylutil::findBaseFileName(prefix, name);
 
     ovFileOCR::deleteDiskFile(prefix);
   };

@@ -29,7 +29,7 @@
 
 #include "AS_BAT_MergeOrphans.H"
 
-#include "intervalList.H"
+#include "intervals.H"
 
 #include <vector>
 #include <set>

@@ -15,12 +15,12 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "runtime.H"
-#include "sqStore.H"
+#include "system.H"
 #include "files.H"
 #include "strings.H"
+#include "math.H"
 
-#include "mt19937ar.H"
+#include "sqStore.H"
 
 #include <vector>
 #include <algorithm>
@@ -332,14 +332,14 @@ createStore(const char            *seqStoreName,
   uint32       inLineLen    = 1024;
   char         inLine[1024] = { 0 };
 
-  FILE        *errorLog = AS_UTL_openOutputFile(seqStoreName, '/', "errorLog");
-  FILE        *nameMap  = AS_UTL_openOutputFile(seqStoreName, '/', "readNames.txt");
+  FILE        *errorLog = merylutil::openOutputFile(seqStoreName, '/', "errorLog");
+  FILE        *nameMap  = merylutil::openOutputFile(seqStoreName, '/', "readNames.txt");
 
   loadStats    stats;
 
   if (homopolyCompress) {
-    FILE *H = AS_UTL_openOutputFile(seqStoreName, '/', "homopolymerCompression");
-    AS_UTL_closeFile(H);
+    FILE *H = merylutil::openOutputFile(seqStoreName, '/', "homopolymerCompression");
+    merylutil::closeFile(H);
   }
 
   for (uint32 ll=0; ll<libraries.size(); ll++) {
@@ -384,8 +384,8 @@ createStore(const char            *seqStoreName,
 
   delete seqStore;
 
-  AS_UTL_closeFile(nameMap,  seqStoreName, '/', "readNames.txt");
-  AS_UTL_closeFile(errorLog, seqStoreName, '/', "errorLog");
+  merylutil::closeFile(nameMap,  seqStoreName, '/', "readNames.txt");
+  merylutil::closeFile(errorLog, seqStoreName, '/', "errorLog");
 
   fprintf(stderr, "\n");
   fprintf(stderr, "All reads processed.\n");
@@ -477,7 +477,7 @@ deleteShortReads(const char *seqStoreName,
 
     std::sort(readLen, readLen + nReads+1, byScore);
 
-    FILE *LOG = AS_UTL_openOutputFile(seqStoreName, '/', "filteredReads");
+    FILE *LOG = merylutil::openOutputFile(seqStoreName, '/', "filteredReads");
 
     fprintf(LOG, "readID  ordinal   length        score\n");
     fprintf(LOG, "------- ------- -------- ------------\n");
@@ -505,7 +505,7 @@ deleteShortReads(const char *seqStoreName,
     fprintf(stderr, "Dropped  %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsRmvd, basesRmvd, (double)basesRmvd / genomeSize);
     fprintf(stderr, "Retained %9" F_U32P " reads with %12" F_U64P " bases (%.2fX coverage).\n",  readsKept, basesKept, (double)basesKept / genomeSize);
 
-    AS_UTL_closeFile(LOG);
+    merylutil::closeFile(LOG);
   }
 
   delete [] readLen;
