@@ -547,6 +547,7 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-norealign") == 0) {
       params.algorithm = 'p';
+      params.algorithm = 'Q';
     }
 
     else if (strcmp(argv[arg], "-edlib") == 0) {

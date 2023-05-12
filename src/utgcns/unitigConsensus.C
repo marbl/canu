@@ -185,7 +185,7 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
   //  Initialize abacus with the reads.
 
   for (int32 i=0; i<_numReads; i++) {
-    fprintf(stderr, "initialize()-- read %s min %u max %u.\n", (*reads)[ _utgpos[i].ident() ]->sqRead_name(), _utgpos[i].min(), _utgpos[i].max());
+    // fprintf(stderr, "initialize()-- read %s min %u max %u.\n", (*reads)[ _utgpos[i].ident() ]->sqRead_name(), _utgpos[i].min(), _utgpos[i].max());
     _cnspos[i].setMinMax(0, 0);
 
     addRead(_utgpos[i].ident(),
@@ -217,7 +217,7 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
 
     for (uint32 child = 0; child < _numReads; child++) {
 
-      fprintf(stderr, "idx: %u. name: %s.\n", child, (*reads_)[ _tig->getChild(child)->ident() ]->sqRead_name());
+      // fprintf(stderr, "idx: %u. name: %s.\n", child, (*reads_)[ _tig->getChild(child)->ident() ]->sqRead_name());
 
       if (compressedOffset > _utgpos[child].min())
         fprintf(stderr, "switchToUncompressedCoordinates()-- ERROR1 in gap in positioning, last read ends at %d; next read %s starts at %d\n",
@@ -234,12 +234,12 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
          i++;
 
       //if (showAlgorithm())
-       fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d %s compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), _utgpos[child].min(), readCompressedPosition, i);
+      //  fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d %s compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), _utgpos[child].min(), readCompressedPosition, i);
 
       _utgpos[child].setMinMax(i+uncompressedOffset, i+uncompressedOffset+getSequence(child)->length());
 
       //if (showAlgorithm())
-       fprintf(stderr, "switchToUncompressedCoordinates() --Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+      //  fprintf(stderr, "switchToUncompressedCoordinates() --Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
 
        // update best end if needed
        if (ntoc == NULL || compressedEnd > currentEnd) {
@@ -254,7 +254,7 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
           uncompressedOffset = _utgpos[child].min();
 
           //if (showAlgorithm())
-           fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d %s which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
+          //  fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d %s which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
        }
 
       if (_utgpos[child].max() > layoutLen)
@@ -288,18 +288,18 @@ void unitigConsensus::updateReadPositions(std::map<uint32, sqRead *>     *reads_
       oldOffset = _utgpos[child].min();
 
       //if (showAlgorithm())
-      fprintf(stderr, "updatePostTemplate()-- Updating guide read to be %d %s which ends at %d. Now my guide originally was at %d now is at %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), _utgpos[child].max(), oldOffset, newOffset);
+      // fprintf(stderr, "updatePostTemplate()-- Updating guide read to be %d %s which ends at %d. Now my guide originally was at %d now is at %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), _utgpos[child].max(), oldOffset, newOffset);
     }
 
     uint32 readPosition = _utgpos[child].min() - oldOffset;
 
     //if (showAlgorithm())
-    fprintf(stderr, "updatePostTemplate()-- I'm trying to find start of child %d %s (dist from guide read is %d) currently from %d-%d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), readPosition, _utgpos[child].min(), _utgpos[child].max());
+    // fprintf(stderr, "updatePostTemplate()-- I'm trying to find start of child %d %s (dist from guide read is %d) currently from %d-%d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), readPosition, _utgpos[child].min(), _utgpos[child].max());
 
     _utgpos[child].setMinMax(readPosition+newOffset, readPosition+newOffset+getSequence(child)->length());
 
     // if (showAlgorithm())
-    fprintf(stderr, "updatePostTemplate() --Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+    // fprintf(stderr, "updatePostTemplate() --Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
   }
 }
 
@@ -393,7 +393,7 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
 
       if (_utgpos[ii].isIgnored() || (_utgpos[ii].max() < ePos && allowContains == false)) {
         _utgpos[ii].setIsIgnored(true);
-        fprintf(stderr, "generateTemplateStitch()-- ignore read %s because _utgpos[ii].max()=%u < ePos=%u\n", (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), _utgpos[ii].max(), ePos);
+        // fprintf(stderr, "generateTemplateStitch()-- ignore read %s because _utgpos[ii].max()=%u < ePos=%u\n", (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), _utgpos[ii].max(), ePos);
         continue;
       }
 
@@ -404,7 +404,10 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
       bool   first = (nm == 0);
       bool   save  = false;
 
-      if ((nm < _utgpos[ii].max()) && (thick || first) && badToAdd.count(ii) == 0) {
+      if ((nm < _utgpos[ii].max()) && (thick || (first && !allowContains)) && badToAdd.count(ii) == 0) {
+        fprintf(stderr, "new version.\n");
+      // if ((nm < _utgpos[ii].max()) && (thick || first) && badToAdd.count(ii) == 0) {
+      //   fprintf(stderr, "old version.\n");
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();
@@ -906,19 +909,19 @@ unitigConsensus::initializeGenerate(tgTig                       *tig_,
 
   _tig      = tig_;
 
-  tgTigStashed S;
-  _tig->stashContains(maxCoverage, S);
-  if (S.nBack > 0) {
-    if (nTigs)
-      (*nTigs)++;
-    fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
-            S.nCont, (double)S.bCont / tig_->length(),
-            S.nStsh, (double)S.bStsh / tig_->length(),
-            S.nBack, (double)S.bBack / tig_->length());
-  } else {
-    if (nSingletons)
-      (*nSingletons)++;
-  }
+  // tgTigStashed S;
+  // _tig->stashContains(maxCoverage, S);
+  // if (S.nBack > 0) {
+  //   if (nTigs)
+  //     (*nTigs)++;
+  //   fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
+  //           S.nCont, (double)S.bCont / tig_->length(),
+  //           S.nStsh, (double)S.bStsh / tig_->length(),
+  //           S.nBack, (double)S.bBack / tig_->length());
+  // } else {
+  //   if (nSingletons)
+  //     (*nSingletons)++;
+  // }
 
   _numReads = _tig->numberOfChildren();
 
@@ -1067,7 +1070,6 @@ unitigConsensus::generateQuick(tgTig                       *tig_,
   //  Quick is just the template sequence, so one and done!
 
   char   *tigseq = generateTemplateStitch(maxCoverage, reads_);
-  return false;
   uint32  tiglen = strlen(tigseq);
 
   //  Save consensus
@@ -1717,13 +1719,13 @@ unitigConsensus::generate(tgTig                       *tig_,
     success = generatePBDAG(tig_, aligner_, maxCoverage, nTigs, nSingletons, reads_);
   }
 
-  _tig->unstashContains();
+  // _tig->unstashContains();
 
   if (success) {
     _tig->_trimBgn = 0;
     _tig->_trimEnd = _tig->length();
-    // if (algorithm_ == 'P') {
-    if ((algorithm_ == 'P') || (algorithm_ == 'Q')) {   
+    if (algorithm_ == 'P') {
+    // if ((algorithm_ == 'P') || (algorithm_ == 'Q')) {   
       findCoordinates(reads_);
       findRawAlignments();
     }
