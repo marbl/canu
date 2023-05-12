@@ -381,7 +381,7 @@ unitigConsensus::generateTemplateStitch(void) {
       bool   first = (nm == 0);
       bool   save  = false;
 
-      if ((nm < _utgpos[ii].max()) && (thick || (first && !allowContains)) && badToAdd.count(ii) == 0) {
+      if ((nm < _utgpos[ii].max()) && (thick || (first && badToAdd.size() == 0)) && badToAdd.count(ii) == 0) {
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();
