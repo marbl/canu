@@ -116,7 +116,7 @@ public:
 #endif
 
   //  Set everything.  This is to be used by unitigger.
-  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end, uint32 isIgnored) {
+  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end, uint32 isIgnored = 0) {
 
     _objID     = id;
 

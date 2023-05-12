@@ -101,6 +101,10 @@ SOURCES      := utility/src/utility/runtime.C \
                 \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 \
+		merlin/merlin.C \
+		merlin/merlin-graph.C \
+		merlin/merlin-globals.C \
+		\
                 gfa/gfa.C \
                 gfa/bed.C
 
