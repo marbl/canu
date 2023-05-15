@@ -186,10 +186,15 @@ processImportedTigs(cnsParameters  &params) {
 
       tig->_utgcns_verboseLevel = params.verbosity;
 
-      params.merlinGlobal_->markerDBname = params.markerDB;
-      params.merlinGlobal_->load_Kmers(params.markerDB);
-      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
-      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, NULL, NULL, &reads);
+      if (params.markerDB) {
+        params.merlinGlobal_->markerDBname = params.markerDB;
+        params.merlinGlobal_->load_Kmers(params.markerDB);
+        unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
+      } else {
+        unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, NULL);
+      }
+
+      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, &reads);
 
       //  Show the result, if requested.
 
@@ -414,11 +419,15 @@ processTigs(cnsParameters  &params) {
     //  Compute!
 
     tig->_utgcns_verboseLevel = params.verbosity;
+    if (params.markerDB) {
+      params.merlinGlobal_->markerDBname = params.markerDB;
+      params.merlinGlobal_->load_Kmers(params.markerDB);
+      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
+    } else {
+      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, NULL);
+    }
 
-    params.merlinGlobal_->markerDBname = params.markerDB;
-    params.merlinGlobal_->load_Kmers(params.markerDB);
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
-    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, &nTigs, &nSingletons, params.seqReads);
+    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
 
     //  Show the result, if requested.
 

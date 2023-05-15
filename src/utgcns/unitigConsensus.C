@@ -1424,7 +1424,10 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads) {
         kmerIterator  kiter(readSeq, strlen(readSeq));
         bool first = true;
         while (kiter.nextMer()) {
-          count = _merlinGlobal->lookupMarker(kiter.fmer(), kiter.rmer());
+          if (_merlinGlobal)
+            count = _merlinGlobal->lookupMarker(kiter.fmer(), kiter.rmer());
+          else
+            count = 0;
           countStr = std::to_string(count);
           if (first) {
             merylStr += countStr;
