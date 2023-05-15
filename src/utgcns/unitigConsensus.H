@@ -102,42 +102,27 @@ public:
   bool   generate(tgTig                       *tig_,
                   char                         algorithm_,
                   char                         aligner_,
-                  double                       maxCoverage,
-                  uint32                      *nTigs = NULL,
-                  uint32                      *nSingletons = NULL,
                   std::map<uint32, sqRead *>  *reads_ = NULL);
 
 private:
-  void   switchToUncompressedCoordinates(std::map<uint32, sqRead *>  *reads_);
-  void   updateReadPositions(std::map<uint32, sqRead *>     *reads_);
+  void   switchToUncompressedCoordinates(void);
+  void   updateReadPositions(void);
 
   char  *generateTemplateStitch(double                      maxCoverage,
                                 std::map<uint32, sqRead *>     *reads);
 
   bool   initializeGenerate(tgTig                       *tig,
-                            double                       maxCoverage,
-                            uint32                      *nTigs = NULL,
-                            uint32                      *nSingletons = NULL,
                             std::map<uint32, sqRead *>  *reads = NULL);
 
 
   bool   generatePBDAG(tgTig                       *tig,
                        char                         aligner,
-                       double                       maxCoverage,
-                       uint32                      *nTigs = NULL,
-                       uint32                      *nSingletons = NULL,
                        std::map<uint32, sqRead *>  *reads = NULL);
 
   bool   generateQuick(tgTig                       *tig,
-                       double                       maxCoverage,
-                       uint32                      *nTigs = NULL,
-                       uint32                      *nSingletons = NULL,
                        std::map<uint32, sqRead *>  *reads = NULL);
 
   bool   generateSingleton(tgTig                       *tig,
-                           double                       maxCoverage,
-                           uint32                      *nTigs = NULL,
-                           uint32                      *nSingletons = NULL,
                            std::map<uint32, sqRead *>  *reads = NULL);
 
   void   findCoordinates(std::map<uint32, sqRead *>     *reads);

@@ -185,7 +185,6 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
   //  Initialize abacus with the reads.
 
   for (int32 i=0; i<_numReads; i++) {
-    // fprintf(stderr, "initialize()-- read %s min %u max %u.\n", (*reads)[ _utgpos[i].ident() ]->sqRead_name(), _utgpos[i].min(), _utgpos[i].max());
     _cnspos[i].setMinMax(0, 0);
 
     addRead(_utgpos[i].ident(),
@@ -197,7 +196,7 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
   return(true);
 }
 
-void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>  *reads_) {
+void unitigConsensus::switchToUncompressedCoordinates(void) {
     // update coordinates of the tig when needed (when it was assembled in compressed space, in normal space this will be skiped)
     // we do this by tracking the read reaching furthest to the right and keeping its offset + homopolymer coordinate translation
     // the read that overlaps it is then updated to start at that reads uncompressed offset + uncompressed bases based on the overlapping coordinate positions
@@ -217,11 +216,9 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
 
     for (uint32 child = 0; child < _numReads; child++) {
 
-      // fprintf(stderr, "idx: %u. name: %s.\n", child, (*reads_)[ _tig->getChild(child)->ident() ]->sqRead_name());
-
       if (compressedOffset > _utgpos[child].min())
-        fprintf(stderr, "switchToUncompressedCoordinates()-- ERROR1 in gap in positioning, last read ends at %d; next read %s starts at %d\n",
-                compressedOffset, (*reads_)[ _tig->getChild(child)->ident() ]->sqRead_name(), _utgpos[child].min());
+        fprintf(stderr, "switchToUncompressedCoordinates()-- ERROR1 in gap in positioning, last read ends at %d; next read starts at %d\n",
+                compressedOffset, _utgpos[child].min());
       assert(_utgpos[child].min() >= compressedOffset);
 
       uint32 readCompressedPosition = _utgpos[child].min() - compressedOffset;
@@ -234,12 +231,12 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
          i++;
 
       //if (showAlgorithm())
-      //  fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d %s compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), _utgpos[child].min(), readCompressedPosition, i);
+      //  fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), _utgpos[child].min(), readCompressedPosition, i);
 
       _utgpos[child].setMinMax(i+uncompressedOffset, i+uncompressedOffset+getSequence(child)->length());
 
       //if (showAlgorithm())
-      //  fprintf(stderr, "switchToUncompressedCoordinates() --Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+      //  fprintf(stderr, "switchToUncompressedCoordinates() --Updated read %d which has length %d to be from %d - %d\n", _utgpos[child].ident(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
 
        // update best end if needed
        if (ntoc == NULL || compressedEnd > currentEnd) {
@@ -254,7 +251,7 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
           uncompressedOffset = _utgpos[child].min();
 
           //if (showAlgorithm())
-          //  fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d %s which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
+          //  fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
        }
 
       if (_utgpos[child].max() > layoutLen)
@@ -272,7 +269,7 @@ void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>
 // function to convert between compressed and uncompressed coordinates and it
 // would be nice to unify the logic
 //
-void unitigConsensus::updateReadPositions(std::map<uint32, sqRead *>     *reads_) {
+void unitigConsensus::updateReadPositions(void) {
   uint32 newOffset = 0;
   uint32 oldOffset = 0;
 
@@ -288,24 +285,23 @@ void unitigConsensus::updateReadPositions(std::map<uint32, sqRead *>     *reads_
       oldOffset = _utgpos[child].min();
 
       //if (showAlgorithm())
-      // fprintf(stderr, "updatePostTemplate()-- Updating guide read to be %d %s which ends at %d. Now my guide originally was at %d now is at %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), _utgpos[child].max(), oldOffset, newOffset);
+      // fprintf(stderr, "updatePostTemplate()-- Updating guide read to be %d which ends at %d. Now my guide originally was at %d now is at %d\n", _utgpos[child].ident(), _utgpos[child].max(), oldOffset, newOffset);
     }
 
     uint32 readPosition = _utgpos[child].min() - oldOffset;
 
     //if (showAlgorithm())
-    // fprintf(stderr, "updatePostTemplate()-- I'm trying to find start of child %d %s (dist from guide read is %d) currently from %d-%d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), readPosition, _utgpos[child].min(), _utgpos[child].max());
+    // fprintf(stderr, "updatePostTemplate()-- I'm trying to find start of child %d (dist from guide read is %d) currently from %d-%d\n", _utgpos[child].ident(), readPosition, _utgpos[child].min(), _utgpos[child].max());
 
     _utgpos[child].setMinMax(readPosition+newOffset, readPosition+newOffset+getSequence(child)->length());
 
     // if (showAlgorithm())
-    // fprintf(stderr, "updatePostTemplate() --Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[_utgpos[child].ident()]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+    // fprintf(stderr, "updatePostTemplate() --Updated read %d which has length %d to be from %d - %d\n", _utgpos[child].ident(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
   }
 }
 
 char *
-unitigConsensus::generateTemplateStitch(double                      maxCoverage,
-                                        std::map<uint32, sqRead *>     *reads) {
+unitigConsensus::generateTemplateStitch(void) {
   uint32   minOlap  = _minOverlap;
 
   //  Initialize, copy the first read.
@@ -331,8 +327,8 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
 
   if (showAlgorithm()) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d %s (len=%d to %d-%d)\n",
-            rid, _utgpos[rid].ident(), (*reads)[_utgpos[rid].ident()]->sqRead_name(), readLen, _utgpos[rid].min(), _utgpos[rid].max());
+    fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
+            rid, _utgpos[rid].ident(), readLen, _utgpos[rid].min(), _utgpos[rid].max());
   }
 
   for (uint32 ii=0; ii<readLen; ii++)
@@ -393,7 +389,6 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
 
       if (_utgpos[ii].isIgnored() || (_utgpos[ii].max() < ePos && allowContains == false)) {
         _utgpos[ii].setIsIgnored(true);
-        // fprintf(stderr, "generateTemplateStitch()-- ignore read %s because _utgpos[ii].max()=%u < ePos=%u\n", (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), _utgpos[ii].max(), ePos);
         continue;
       }
 
@@ -410,12 +405,11 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
         nm   = _utgpos[ii].max();
         if ((first && firstCandidate == 0) || ii < firstCandidate)
            firstCandidate = ii;
-        fprintf(stderr, "generateTemplateStitch()-- save read %s\n", (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name());
       }
 
       if (showAlgorithm())
-        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d name %s position %d-%d%s%s%s\n",
-                ii, _numReads, _utgpos[ii].ident(), (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), _utgpos[ii].min(), _utgpos[ii].max(),
+        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d%s%s%s\n",
+                ii, _numReads, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(),
                 (save  == true)  ? " SAVE"  : "",
                 (thick == false) ? " THIN"  : "",
                 (first == true)  ? " FIRST" : "");
@@ -491,9 +485,9 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
 
     if (showAlgorithm()) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %s %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
+      fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
               tiglen - templateLen, tiglen, templateLen,
-              nr, _utgpos[nr].ident(), (*reads)[ _utgpos[nr].ident() ]->sqRead_name(), readBgn, readEnd, readEnd - readBgn, readLen,
+              nr, _utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen,
               _utgpos[nr].min(), _utgpos[nr].max(),
               olapLen);
     }
@@ -560,8 +554,7 @@ unitigConsensus::generateTemplateStitch(double                      maxCoverage,
       fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
 
     if ((showAlgorithm()) && (noResult == false))
-      fprintf(stderr, "generateTemplateStitch()-- FOUND alignment for read %s, in template %d-%d at %d-%d editDist %d alignLen %d %.f%% expected %d\n",
-              (*reads)[ _utgpos[nr].ident() ]->sqRead_name(),
+      fprintf(stderr, "generateTemplateStitch()-- FOUND alignment in template %d-%d at %d-%d editDist %d alignLen %d %.f%% expected %d\n",
               tiglen - templateLen, tiglen,
               result.startLocations[0], result.endLocations[0]+1,
               result.editDistance,
@@ -899,27 +892,9 @@ alignEdLib(dagAlignment      &aln,
 
 bool
 unitigConsensus::initializeGenerate(tgTig                       *tig_,
-                                    double                      maxCoverage,
-                                    uint32                      *nTigs,
-                                    uint32                      *nSingletons,
                                     std::map<uint32, sqRead *>  *reads_) {
 
   _tig      = tig_;
-
-  // tgTigStashed S;
-  // _tig->stashContains(maxCoverage, S);
-  // if (S.nBack > 0) {
-  //   if (nTigs)
-  //     (*nTigs)++;
-  //   fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
-  //           S.nCont, (double)S.bCont / tig_->length(),
-  //           S.nStsh, (double)S.bStsh / tig_->length(),
-  //           S.nBack, (double)S.bBack / tig_->length());
-  // } else {
-  //   if (nSingletons)
-  //     (*nSingletons)++;
-  // }
-
   _numReads = _tig->numberOfChildren();
 
   if (initialize(reads_) == false) {
@@ -937,17 +912,14 @@ unitigConsensus::initializeGenerate(tgTig                       *tig_,
 bool
 unitigConsensus::generatePBDAG(tgTig                       *tig_,
                                char                        aligner_,
-                               double                      maxCoverage,
-                               uint32                      *nTigs,
-                               uint32                      *nSingletons,
                                std::map<uint32, sqRead *>  *reads_) {
 
-  if (initializeGenerate(tig_, maxCoverage, nTigs, nSingletons, reads_) == false)
+  if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
   //  Build a quick consensus to align to.
 
-  char   *tigseq = generateTemplateStitch(maxCoverage, reads_);
+  char   *tigseq = generateTemplateStitch();
   uint32  tiglen = strlen(tigseq);
 
   if (showAlgorithm())
@@ -968,8 +940,6 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
     bool         aligned  = false;
 
     assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
-
-    fprintf(stderr, "generatePBDAG()-- Attempting to align read name %s", (*reads_)[_utgpos[ii].ident()]->sqRead_name());
 
     aligned = alignEdLib(aligns[ii],
                          _utgpos[ii],
@@ -1056,17 +1026,14 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
 
 bool
 unitigConsensus::generateQuick(tgTig                       *tig_,
-                               double                      maxCoverage,
-                               uint32                      *nTigs,
-                               uint32                      *nSingletons,
                                std::map<uint32, sqRead *>  *reads_) {
 
-  if (initializeGenerate(tig_, maxCoverage, nTigs, nSingletons, reads_) == false)
+  if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
   //  Quick is just the template sequence, so one and done!
 
-  char   *tigseq = generateTemplateStitch(maxCoverage, reads_);
+  char   *tigseq = generateTemplateStitch();
   uint32  tiglen = strlen(tigseq);
 
   //  Save consensus
@@ -1099,12 +1066,9 @@ unitigConsensus::generateQuick(tgTig                       *tig_,
 
 bool
 unitigConsensus::generateSingleton(tgTig                       *tig_,
-                                   double                      maxCoverage,
-                                   uint32                      *nTigs,
-                                   uint32                      *nSingletons,
                                    std::map<uint32, sqRead *>  *reads_) {
 
-  if (initializeGenerate(tig_, maxCoverage, nTigs, nSingletons, reads_) == false)
+  if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
   assert(_numReads == 1);
@@ -1266,8 +1230,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads) {
 
     if (showPlacement()) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "ALIGN read #%d %u %s length %u cnspos %d %d\n",
-              ii, read->seqIdent(), (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), readLen, _cnspos[ii].min(), _cnspos[ii].max());
+      fprintf(stderr, "ALIGN read #%d %u length %u cnspos %d %d\n",
+              ii, read->seqIdent(), readLen, _cnspos[ii].min(), _cnspos[ii].max());
     }
 
     _cnspos[ii].setMinMax(0, 0);  //  When the read aligns, we set the true position.
@@ -1323,8 +1287,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads) {
       //  Some logging.
 
       if (showPlacement())
-        fprintf(stderr, "align read #%u %s length %u to %d-%d - shift %d extension %d %d error rate %.3f\n",
-                ii, (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), readLen, bgn, end, alignShift, ext5, ext3, era);
+        fprintf(stderr, "align read #%u length %u to %d-%d - shift %d extension %d %d error rate %.3f\n",
+                ii, readLen, bgn, end, alignShift, ext5, ext3, era);
 
       //  More logging.
 
@@ -1355,7 +1319,7 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads) {
         era  += 0.025;
 
         if (showPlacement())
-          fprintf(stderr, "  NO ALIGNMENT - read %s Increase extension to %d / %d and error rate to %.3f\n", (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), ext5, ext3, era);
+          fprintf(stderr, "  NO ALIGNMENT - Increase extension to %d / %d and error rate to %.3f\n", ext5, ext3, era);
 
         edlibFreeAlignResult(align);
 
@@ -1369,8 +1333,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads) {
       int32 unaligned3 = len - (align.endLocations[0] + 1);   //  0-based position of last character in alignment.
 
       if (showPlacement())
-        fprintf(stderr, "               - read %4u %s original %9u-%9u claimed %9u-%9u aligned %9u-%9u unaligned %d %d\n",
-                ii, (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(),
+        fprintf(stderr, "               - read %4u original %9u-%9u claimed %9u-%9u aligned %9u-%9u unaligned %d %d\n",
+                ii,
                 _utgpos[ii].min(), _utgpos[ii].max(),
                 origbgn, origend,
                 bgn, end,
@@ -1421,7 +1385,7 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads) {
       _tig->getChild(ii)->setMinMax(abgn, aend);
 
       if (showPlacement())
-        fprintf(stderr, "  SUCCESS aligned %s to %d %d at %f\n", (*reads)[ _tig->getChild(ii)->ident() ]->sqRead_name(), abgn, aend, 100.0 * align.editDistance / align.alignmentLength);
+        fprintf(stderr, "  SUCCESS aligned to %d %d at %f\n", abgn, aend, 100.0 * align.editDistance / align.alignmentLength);
 
 #pragma omp critical (tgTigLoadAlign)
       {
@@ -1697,32 +1661,27 @@ bool
 unitigConsensus::generate(tgTig                       *tig_,
                           char                         algorithm_,
                           char                         aligner_,
-                          double                       maxCoverage,
-                          uint32                      *nTigs,
-                          uint32                      *nSingletons,
                           std::map<uint32, sqRead *>  *reads_) {
   bool  success = false;
 
   if      (tig_->numberOfChildren() == 1) {
-    success = generateSingleton(tig_, maxCoverage, nTigs, nSingletons, reads_);
+    success = generateSingleton(tig_, reads_);
   }
 
   else if (algorithm_ == 'Q') {
-    success = generateQuick(tig_, maxCoverage, nTigs, nSingletons, reads_);
+    success = generateQuick(tig_, reads_);
   }
 
   else if ((algorithm_ == 'P') ||   //  Normal utgcns.
            (algorithm_ == 'p')) {   //  'norealign'
-    success = generatePBDAG(tig_, aligner_, maxCoverage, nTigs, nSingletons, reads_);
+    success = generatePBDAG(tig_, aligner_, reads_);
   }
 
-  // _tig->unstashContains();
 
   if (success) {
     _tig->_trimBgn = 0;
     _tig->_trimEnd = _tig->length();
     if (algorithm_ == 'P') {
-    // if ((algorithm_ == 'P') || (algorithm_ == 'Q')) {   
       findCoordinates(reads_);
       findRawAlignments();
     }

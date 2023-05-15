@@ -170,7 +170,7 @@ processImportedTigs(cnsParameters  &params) {
       fprintf(stdout, "%7u %9u %7u%s", tig->tigID(), tig->length(), tig->numberOfChildren(),
               (tig->numberOfChildren() == 1) ? "\n" : "");
 
-      //  Stash excess coverage.  Singletons report no logging.
+      //  No longer stash excess coverage, flag reads to be ignored instead.  Singletons report no logging.
 
       // tgTigStashed S;
 
@@ -395,7 +395,7 @@ processTigs(cnsParameters  &params) {
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
-    //  Stash excess coverage.  Singletons report no logging.
+    //  No longer stash excess coverage, flag reads to be ignored instead.  Singletons report no logging.
 
     // tgTigStashed S;
 
@@ -547,7 +547,6 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-norealign") == 0) {
       params.algorithm = 'p';
-      params.algorithm = 'Q';
     }
 
     else if (strcmp(argv[arg], "-edlib") == 0) {
