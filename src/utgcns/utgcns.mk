@@ -14,6 +14,6 @@ SRC_INCDIRS  := .. \
                 ../merlin/build/lib
 
 
-TGT_LDFLAGS := -L${TARGET_DIR}/lib -L/ßdata/solarsj/verkko/src/utgcns/htslib/lib
+TGT_LDFLAGS := -L${TARGET_DIR}/lib -Lhtslib/lib
 TGT_LDLIBS  := -l${MODULE} -lhts
 TGT_PREREQS := lib${MODULE}.a
