@@ -114,14 +114,22 @@ loadVerkkoLayouts(sqCache              *reads,
         tig->addChild()->set(id,
                              0,
                              0, 0,
-                             strtouint32(W[1]), strtouint32(W[2]));
+                             strtouint32(W[1]), strtouint32(W[2]),
+                             0);                                    //  Use read by default.
+      else if (W.numWords() == 4)
+        tig->addChild()->set(id,
+                             0,
+                             0, 0,
+                             strtouint32(W[1]), strtouint32(W[2]),
+                             strtouint32(W[3]));                    //  Flag to ignore or use read.
       else if (W.numWords() == 5)
         tig->addChild()->set(id,                                    //  ID of the read.
                              0,                                     //  Parent, unused.
                              strtouint32(W[3]), strtouint32(W[4]),  //  Skip amounts on oriented ends.
-                             strtouint32(W[1]), strtouint32(W[2])); //  Position of the (aligned) read in the layout.
+                             strtouint32(W[1]), strtouint32(W[2]),  //  Position of the (aligned) read in the layout.
+                             0);                                    //  Use read by default.
       else
-        fprintf(stderr, "ERROR: While processing tig %d, expected 3 or 5 words, got %u in line '%s'.\n", tig->tigID(), W.numWords(), line), err++;
+        fprintf(stderr, "ERROR: While processing tig %d, expected 3 to 5 words, got %u in line '%s'.\n", tig->tigID(), W.numWords(), line), err++;
 
       nReads--;
     }

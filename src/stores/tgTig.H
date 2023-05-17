@@ -71,6 +71,7 @@ public:
   //  Accessors
 
   uint32               ident(void)     const { return(_objID); };
+  char*                readName(std::map<uint32, sqRead *>  *reads_) const { return((*reads_)[_objID]->sqRead_name()); };
 
   bool                 isRead(void)    const { return(_isRead   == true); };
   bool                 isUnitig(void)  const { return(_isUnitig == true); };
@@ -84,6 +85,7 @@ public:
 
   bool                 isForward(void) const { return(_isReverse == false); };
   bool                 isReverse(void) const { return(_isReverse == true);  };
+  bool                 isIgnored(void) const { return(_isIgnored); };
 
   //  Position in the parent, both oriented (bgn/end) and unoriented (min/max).
 
@@ -113,7 +115,7 @@ public:
 #endif
 
   //  Set everything.  This is to be used by unitigger.
-  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
+  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end, uint32 isIgnored = 0) {
 
     _objID     = id;
 
@@ -140,12 +142,18 @@ public:
 
     _deltaOffset = 0;
     _deltaLen    = 0;
+    _isIgnored   = isIgnored;
   };
 
   //  Set the coords, ignoring orientation.
   void                 setMinMax(int32 min, int32 max) {
     _min = min;
     _max = max;
+  };
+
+
+  void                 setIsIgnored(uint32 isIgnored_) {
+    _isIgnored = isIgnored_;
   };
 
   //  Operators
@@ -178,8 +186,9 @@ public:
   uint32              _isContig    : 1;  //
 
   uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
+  uint32              _isIgnored   : 1;  //  Child is to be ignored during consensus.
 
-  uint32              _spare       : 28;
+  uint32              _spare       : 27;
 
   //  These are not used any more; they were used by the early consensus
   //  algorithm; they are still set in bogart, and MUST remain in the structure
@@ -291,6 +300,8 @@ public:
 
   void           stashContains(double maxCov, tgTigStashed &S);
   void           unstashContains(void);
+  void           flagContains(double maxCov, tgTigStashed &S);
+
 
   void           dropExcessCoverage(double maxCov) {
     tgTigStashed S;

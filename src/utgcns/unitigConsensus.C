@@ -23,6 +23,11 @@
 #include "AlnGraphBoost.H"
 #include "align.H"
 
+#include <htslib/sam.h>
+#include <htslib/bgzf.h>
+#include "kmers.H"
+#include "merlin-globals.H"
+
 #include <string>
 
 
@@ -34,10 +39,12 @@
 abSequence::abSequence(uint32  readID,
                        uint32  length,
                        char   *seq,
-                       uint32  complemented) {
+                       uint32  complemented,
+                       uint32  isIgnored) {
   _iid              = readID;
   _length           = length;
   _complement       = complemented;
+  _isIgnored        = isIgnored;
 
   _bases            = new char  [_length + 1];
 
@@ -79,7 +86,8 @@ unitigConsensus::unitigConsensus(sqStore  *seqStore_,
                                  double    errorRateMax_,
                                  uint32    errorRateMaxID_,
                                  uint32    minOverlap_,
-                                 uint32    minCoverage_) {
+                                 uint32    minCoverage_,
+                                 merlinGlobal *merlinGlobal_ = NULL) {
 
   _seqStore        = seqStore_;
 
@@ -98,6 +106,7 @@ unitigConsensus::unitigConsensus(sqStore  *seqStore_,
   _errorRateMax    = errorRateMax_;
   _errorRateMaxID  = errorRateMaxID_;
   _minCoverage     = minCoverage_;
+  _merlinGlobal    = merlinGlobal_;
 }
 
 
@@ -117,6 +126,7 @@ void
 unitigConsensus::addRead(uint32   readID,
                          uint32   askip, uint32 bskip,
                          bool     complemented,
+                         bool     isIgnored,
                          std::map<uint32, sqRead *>     *inPackageRead) {
 
   //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
@@ -148,7 +158,7 @@ unitigConsensus::addRead(uint32   readID,
 
   increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
 
-  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, complemented);
+  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, complemented, isIgnored);
 
   delete readToDelete;
 }
@@ -178,7 +188,7 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
 
     addRead(_utgpos[i].ident(),
             _utgpos[i]._askip, _utgpos[i]._bskip,
-            _utgpos[i].isReverse(),
+            _utgpos[i].isReverse(), _utgpos[i].isIgnored(),
             reads);
   }
 
@@ -294,6 +304,9 @@ unitigConsensus::generateTemplateStitch(void) {
   //  Initialize, copy the first read.
 
   uint32       rid      = 0;
+  // set rid to be the first non-ignored read idx
+  while (getSequence(rid)->isIgnored())
+    rid++;
 
   abSequence  *seq      = getSequence(rid);
   char        *fragment = seq->getBases();
@@ -312,7 +325,7 @@ unitigConsensus::generateTemplateStitch(void) {
   if (showAlgorithm()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
-            0, _utgpos[0].ident(), readLen, _utgpos[0].min(), _utgpos[0].max());
+            rid, _utgpos[rid].ident(), readLen, _utgpos[rid].min(), _utgpos[rid].max());
   }
 
   for (uint32 ii=0; ii<readLen; ii++)
@@ -320,7 +333,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
   tigseq[tiglen] = 0;
 
-  uint32       ePos = _utgpos[0].max();   //  Expected end of template, from bogart supplied positions.
+  uint32       ePos = _utgpos[rid].max();   //  Expected end of template, from bogart supplied positions.
 
 
   //  Find the next read that has some minimum overlap and a large extension, copy that into the template.
@@ -350,7 +363,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     uint32 lastStart      = rid; // Track where we start looking for the next read from, we'll come back and look again if first choice fails
     std::set<uint32> badToAdd;   // Track the list of bad reads, we'll add these at the end
-    uint32 firstCandidate = 0;   // Track the first read we can use so we know when we have to give up
+    uint32 firstCandidate = rid;   // Track the first read we can use so we know when we have to give up
 
     _errorRate = savedErrorRate;
     allowContains = false;
@@ -371,7 +384,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
       //  If contained, move to the next read.  (Not terribly useful to log, so we don't)
 
-      if (_utgpos[ii].max() < ePos && allowContains == false)
+      if (_utgpos[ii].isIgnored() || (_utgpos[ii].max() < ePos && allowContains == false))
         continue;
 
       //  If a bigger end position, save the overlap.  One quirk: if we've already saved an overlap, and this
@@ -381,7 +394,7 @@ unitigConsensus::generateTemplateStitch(void) {
       bool   first = (nm == 0);
       bool   save  = false;
 
-      if ((nm < _utgpos[ii].max()) && (thick || first) && badToAdd.count(ii) == 0) {
+      if ((nm < _utgpos[ii].max()) && (thick || (first && badToAdd.size() == 0)) && badToAdd.count(ii) == 0) {
         save = true;
         nr   = ii;
         nm   = _utgpos[ii].max();
@@ -958,7 +971,8 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
         (aligns[ii].end   == 0))
       continue;
 
-    ag.addAln(aligns[ii]);
+    if (!_utgpos[ii].isIgnored())
+      ag.addAln(aligns[ii]);
 
     aligns[ii].clear();
   }
@@ -1159,7 +1173,30 @@ edlibAlignmentToCanu(stuffedBits *align,
 //  Reads that fail to align have their cnspos set to 0.
 //
 void
-unitigConsensus::findCoordinates(void) {
+unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
+  fprintf(stderr, "findCoordinates();\n");
+  char filenameBam[sizeof "tig00000000.bam"];
+  sprintf(filenameBam, "tig%08d.bam", _tig->tigID());
+  samFile *bamFp = sam_open(filenameBam, "wb");
+  if (bamFp == NULL) {
+    fprintf(stderr, "Failed to open output file!\n");
+    exit(1);
+  }
+
+  sam_hdr_t *bamHeader = sam_hdr_init();
+  bamHeader->n_targets = 1;
+  bamHeader->target_len = (uint32_t*)malloc(bamHeader->n_targets * sizeof(uint32_t));
+  bamHeader->target_len[0] = _tig->length();
+  bamHeader->target_name = (char**)malloc(bamHeader->n_targets * sizeof(char*));
+  char targetName[100];
+  sprintf(targetName, "tig%08d", _tig->tigID());
+  bamHeader->target_name[0] = strdup(targetName);
+  int ret = bam_hdr_write(bamFp->fp.bgzf, bamHeader);
+  if (ret < 0) {
+    fprintf(stderr, "Failed to write header to BAM file!\n");
+    exit(1);
+  }
+
 
   if (showPlacement()) {
     fprintf(stderr, "\n");
@@ -1184,7 +1221,7 @@ unitigConsensus::findCoordinates(void) {
 
     int32         ext5    = readLen * 0.01;  //  Try an initial alignment nice and tight.  This is
     int32         ext3    = readLen * 0.01;  //  important for the first/last reads so we get them
-    double        era     = _errorRateMax;   //  aligned at the end of the tig.
+    double        era     = _errorRate;      //  aligned at the end of the tig.
 
     if (showPlacement()) {
       fprintf(stderr, "\n");
@@ -1203,7 +1240,7 @@ unitigConsensus::findCoordinates(void) {
 
     while ((ext5 < readLen * 1.5) &&
            (ext3 < readLen * 1.5) &&
-           (era  < 4 * _errorRate)) {
+           (era  <= _errorRateMax)) {
       int32 bgn = std::max(0, origbgn + alignShift - ext5);                          //  First base in tig we'll align to.
       int32 end = std::min(   origend + alignShift + ext3, (int32)_tig->length());   //  Last base
       int32 len = end - bgn;   //  WAS: +1
@@ -1355,6 +1392,67 @@ unitigConsensus::findCoordinates(void) {
                                                                 align.endLocations[0] + 1,
                                                                 0,
                                                                 readLen);
+        char *cigar = edlibAlignmentToCigar(align.alignment,
+                                            align.alignmentLength, 
+                                            EDLIB_CIGAR_EXTENDED);
+        bam1_t *bamRecord = bam_init1();
+        char *cigarCopy = strdup(cigar);
+        bam1_t *cigarRecord = bam_init1();
+        ssize_t numCigarOps = bam_parse_cigar(cigarCopy, NULL, cigarRecord);
+        if (numCigarOps < 0) {
+          fprintf(stderr, "Failed to process cigar string to numCigarOps!\n");
+          exit(1);
+        }
+        uint32_t *cigarData = (uint32_t *) malloc(numCigarOps * sizeof(uint32_t));
+        size_t *cigarElems = (size_t *) malloc(sizeof(size_t));
+        numCigarOps = sam_parse_cigar(cigarCopy, NULL, &cigarData, cigarElems);
+        char *readName = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
+        char qual[strlen(readSeq) + 1];
+        for (int i = 0; i < strlen(readSeq); i++) {
+          qual[i] = 'F';
+        }
+        qual[strlen(readSeq)] = '\0';
+        const char* qualPtr = (const char*) qual;
+        int ret = bam_set1(bamRecord, strlen(readName), readName, read->isForward() ? 0 : 16, 
+                          0, abgn, 255, numCigarOps, cigarData, 0, 0, _tig->length(),
+                          strlen(readSeq), readSeq, qualPtr, 0);
+        if (ret < 0) { 
+          fprintf(stderr, "Failed to create bam record!\n");
+          exit(1);
+        }
+
+        if (_merlinGlobal) {
+          std::string merylStr;
+          uint32_t count;
+          std::string countStr;
+          kmerIterator  kiter(readSeq, strlen(readSeq));
+          bool first = true;
+          while (kiter.nextMer()) {
+            count = _merlinGlobal->lookupMarker(kiter.fmer(), kiter.rmer());
+            countStr = std::to_string(count);
+            if (first) {
+              merylStr += countStr;
+              first = false;
+            } else {
+              merylStr += ',' + countStr;
+            }
+          }
+          uint8_t* auxData = (uint8_t*) malloc(sizeof(uint8_t) * (merylStr.length() + 1));
+          memcpy(auxData, merylStr.c_str(), merylStr.length() + 1);    
+          const char* tag = "CO";
+          ret = bam_aux_append(bamRecord, tag, 'Z', merylStr.length() + 1, auxData);
+          if (ret < 0) { 
+            fprintf(stderr, "Failed to add meryl data tag!\n");
+            exit(1);
+          }
+          free(auxData);
+        }
+
+        bam_write1(bamFp->fp.bgzf, bamRecord);
+        bam_destroy1(cigarRecord);
+        bam_destroy1(bamRecord);
+        delete[] cigarCopy;
+        delete[] cigar;
       }
 
       edlibFreeAlignResult(align);
@@ -1362,6 +1460,8 @@ unitigConsensus::findCoordinates(void) {
       break;   //  Stop looping over extension and error rate.
     }  //  Looping over extension and error rate.
   }    //  Looping over reads.
+  sam_close(bamFp);
+  bam_hdr_destroy(bamHeader);
 }
 
 
@@ -1558,8 +1658,13 @@ bool
 unitigConsensus::generate(tgTig                       *tig_,
                           char                         algorithm_,
                           char                         aligner_,
+                          double                       maxCov,
+                          tgTigStashed                 S,
                           std::map<uint32, sqRead *>  *reads_) {
   bool  success = false;
+
+  //  Flag excess coverage to be ignored.  Singletons report no logging.
+  tig_->flagContains(maxCov, S);
 
   if      (tig_->numberOfChildren() == 1) {
     success = generateSingleton(tig_, reads_);
@@ -1579,7 +1684,7 @@ unitigConsensus::generate(tgTig                       *tig_,
     _tig->_trimEnd = _tig->length();
 
     if (algorithm_ == 'P') {
-      findCoordinates();
+      findCoordinates(reads_);
       findRawAlignments();
     }
 

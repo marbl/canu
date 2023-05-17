@@ -18,6 +18,8 @@
 #include "system.H"
 #include "strings.H"
 
+#include "merlin-globals.H"
+
 #include "sqStore.H"
 #include "tgStore.H"
 
@@ -103,6 +105,8 @@ public:
   FILE                   *outLayoutsFile = nullptr;
   FILE                   *outSeqFileA    = nullptr;
   FILE                   *outSeqFileQ    = nullptr;
+  merlinGlobal           *merlinGlobal_  = nullptr;
+  char                   *markerDB       = nullptr;
 };
 
 
@@ -165,11 +169,19 @@ processImportedTigs(cnsParameters  &params) {
       fprintf(stdout, "%7u %9u %7u%s", tig->tigID(), tig->length(), tig->numberOfChildren(),
               (tig->numberOfChildren() == 1) ? "\n" : "");
 
-      //  Stash excess coverage.  Singletons report no logging.
-
       tgTigStashed S;
 
-      tig->stashContains(params.maxCov, S);
+      //  Compute!
+
+      tig->_utgcns_verboseLevel = params.verbosity;
+      if (params.markerDB) {
+        params.merlinGlobal_->markerDBname = params.markerDB;
+        params.merlinGlobal_->load_Kmers(params.markerDB);
+      } else {
+        params.merlinGlobal_ = NULL;
+      }      
+      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
+      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, S, &reads);
 
       if (S.nBack > 0)
         fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
@@ -177,21 +189,10 @@ processImportedTigs(cnsParameters  &params) {
                 S.nStsh, (double)S.bStsh / tig->length(),
                 S.nBack, (double)S.bBack / tig->length());
 
-      //  Compute!
-
-      tig->_utgcns_verboseLevel = params.verbosity;
-
-      unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
-      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, &reads);
-
       //  Show the result, if requested.
 
       if (params.showResult)
         tig->display(stdout, params.seqStore, 200, 3);
-
-      //  Unstash.
-
-      tig->unstashContains();
 
       //  Save the result.
 
@@ -389,11 +390,19 @@ processTigs(cnsParameters  &params) {
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
     }
 
-    //  Stash excess coverage.  Singletons report no logging.
-
     tgTigStashed S;
 
-    tig->stashContains(params.maxCov, S);
+    //  Compute!
+
+    tig->_utgcns_verboseLevel = params.verbosity;
+    if (params.markerDB) {
+      params.merlinGlobal_->markerDBname = params.markerDB;
+      params.merlinGlobal_->load_Kmers(params.markerDB);
+    } else {
+      params.merlinGlobal_ = NULL;
+    }
+    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
+    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, S, params.seqReads);
 
     if (S.nBack > 0) {
       nTigs++;
@@ -405,21 +414,11 @@ processTigs(cnsParameters  &params) {
       nSingletons++;
     }
 
-    //  Compute!
-
-    tig->_utgcns_verboseLevel = params.verbosity;
-
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
-    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
-
     //  Show the result, if requested.
 
     if (params.showResult)
       tig->display(stdout, params.seqStore, 200, 3);
 
-    //  Unstash.
-
-    tig->unstashContains();
 
     //  Save the result.
 
@@ -462,6 +461,8 @@ processTigs(cnsParameters  &params) {
 int
 main(int argc, char **argv) {
   cnsParameters  params;
+
+  params.merlinGlobal_ = new merlinGlobal(argv[0]);
 
   argc = AS_configure(argc, argv);
 
@@ -611,6 +612,9 @@ main(int argc, char **argv) {
     }
     else if (strcmp(argv[arg], "-nosingleton") == 0) {
       params.noSingleton = true;
+    }
+    else if (strcmp(argv[arg], "-markers") == 0) {
+      params.markerDB = argv[++arg];
     }
 
     else {

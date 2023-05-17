@@ -20,6 +20,7 @@
 
 
 #include "tgStore.H"
+#include "merlin-globals.H"
 
 #include <map>
 #include <set>
@@ -38,6 +39,7 @@ public:
     _iid        = 0;
 
     _complement = false;
+    _isIgnored  = false;
 
     _length     = 0;
     _bases      = NULL;
@@ -46,7 +48,8 @@ public:
   abSequence(uint32  readID,
              uint32  length,
              char   *seq,
-             uint32  complemented);
+             uint32  complemented,
+             uint32  isIgnored = false);
 
   ~abSequence() {
     delete [] _bases;
@@ -56,6 +59,7 @@ public:
   uint32      seqIdent(void)          { return(_iid);        };
 
   bool        isForward(void)         { return(_complement == false); };
+  bool        isIgnored(void)         { return(_isIgnored); };
 
   uint32      length(void)            { return(_length);     };
   char        getBase(uint32 o)       { return(_bases[o]);   };
@@ -66,6 +70,7 @@ private:
   uint32     _iid;            //  external, aka seqStore, ID;
 
   bool       _complement;
+  bool       _isIgnored;
 
   uint32     _length;
   char      *_bases;
@@ -80,13 +85,14 @@ public:
                   double    errorRateMax_,
                   uint32    errorRateMaxID_,
                   uint32    minOverlap_,
-                  uint32    minCoverage_);
+                  uint32    minCoverage_,
+                  merlinGlobal *merlinGlobal);
   ~unitigConsensus();
 
 private:
   void   addRead(uint32 readID,
                  uint32 askip, uint32 bskip,
-                 bool complemented,
+                 bool complemented, bool isIgnored,
                  std::map<uint32, sqRead *>     *inPackageRead);
 
   bool   initialize(std::map<uint32, sqRead *>     *reads);
@@ -95,6 +101,8 @@ public:
   bool   generate(tgTig                       *tig_,
                   char                         algorithm_,
                   char                         aligner_,
+                  double                       maxCov,
+                  tgTigStashed                 S,
                   std::map<uint32, sqRead *>  *reads_ = NULL);
 
 private:
@@ -117,7 +125,7 @@ private:
   bool   generateSingleton(tgTig                       *tig,
                            std::map<uint32, sqRead *>  *reads = NULL);
 
-  void   findCoordinates(void);
+  void   findCoordinates(std::map<uint32, sqRead *>     *reads);
   void   findRawAlignments(void);
   void   trimCircular(void);
 
@@ -153,6 +161,7 @@ private:
   double          _errorRate;
   double          _errorRateMax;
   uint32          _errorRateMaxID; 
+  merlinGlobal    *_merlinGlobal;
 };
 
 

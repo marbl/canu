@@ -68,6 +68,8 @@ sqCache::sqCache(sqStore       *seqStore,
   _compressed      = ((_which & sqRead_compressed) == sqRead_unset) ? false : true;
   _trimmed         = ((_which & sqRead_trimmed)    == sqRead_unset) ? false : true;
 
+  _IDtoName.push_back(_nameToID.begin());
+
   if (_seqStore)
     loadMetadata();
 }
