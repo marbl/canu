@@ -31,12 +31,13 @@ sqCache::loadMetadata(void) {
   _reads    = new sqCacheEntry [_readsMax];
 
   for (uint32 id=0; id < _readsMax; id++) {
-    _reads[id]._nLen           = 0;
-    _reads[id]._sLen           = 0;
-    _reads[id]._bgn            = 0;
-    _reads[id]._end            = 0;
-    _reads[id]._nData          = nullptr;
-    _reads[id]._sData          = nullptr;
+    _reads[id]._nLen  = 0;
+    _reads[id]._sLen  = 0;
+    _reads[id]._bgn   = 0;
+    _reads[id]._end   = 0;
+    _reads[id]._nData = nullptr;
+    _reads[id]._sData = nullptr;
+    _reads[id]._name  = nullptr;
   }
 
   for (uint32 id=1; id <= _readsLen; id++) {
@@ -183,22 +184,20 @@ sqCache::loadRead(dnaSeq &seq) {
   if (_dataLen + 4 + 4 + seq.length() + 4 > _dataMax)
     allocateNewBlock();
 
-  //  Clear metadata for this read.
+  //  Initialize metadata for this read.
+  //   - _nameToID maps a name (string) to the integer ID.
+  //   - _name saves a pointer to the c_str of the key in the map.
 
   uint32  id = ++_readsLen;
   uint8  *dd = _data + _dataLen + 8;
 
-  _reads[id]._sLen  = seq.length();
-  _reads[id]._bgn   = 0;
-  _reads[id]._end   = seq.length();
-  _reads[id]._sData = _data + _dataLen;
+  _nameToID[ seq.ident() ] = id;
 
-  //  Save the name to id mapping.
-
-  std::string readname = seq.ident();
-
-  _nameToID[ readname ] = id;
-  _IDtoName.push_back( _nameToID.find(readname) );
+  _reads[id]._sLen     = seq.length();
+  _reads[id]._bgn      = 0;
+  _reads[id]._end      = seq.length();
+  _reads[id]._sData    = _data + _dataLen;
+  _reads[id]._name     = _nameToID.find( seq.ident() )->first.c_str();
 
   //  Encode the data as 2-bit, 3-bit, or plain bases, whatever works first.
   //  Note the '+8' is to leave space at the start for the AIFF tag and
@@ -543,22 +542,10 @@ sqCache::sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
   B->write(&corU, sizeof(sqReadSeq));
   B->write(&corC, sizeof(sqReadSeq));
 
-  //  Figure out the name of this read.
-  //
-  //  When reads are loaded from seqStore, names do NOT exist, and the
-  //  _IDtoName vector is empty; we pass an empty name to importData().
-  //
-  //  When reads are loaded from sequence files, names DO exist.  All id's
-  //  will have a name; we just ensure that the id is within range.
-
-  char const *name = "";
-
-  if (id < _IDtoName.size())
-    name = _IDtoName[id]->first.c_str();
-
   //  Import the sequence and metadata to the data writer, then write it.
+  //   - only reads from fasta/fastq have a valid name!
 
-  wr->sqReadDataWriter_importData(name,
+  wr->sqReadDataWriter_importData(_reads[id]._name,
                                   seq,
                                   seqLen, 0, seqLen,
                                   &rawU, &rawC, &corU, &corC);

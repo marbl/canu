@@ -28,29 +28,6 @@
 //
 
 
-//  An entry in the cache.
-//
-//  _basesLength is the length of the sequence stored in the blob.  It
-//  is NOT the length of the read we will eventually return.
-//
-//  _bgn and _end tell what bases we will be returning, _end - _bgn is the
-//  length of the read we are storing.
-//    If not trimmed, these must be 0 and the actual length of the read.
-//    If homopoly compressed, this will be the compressed length of the read.
-//
-struct sqCacheEntry {
-  uint32  _nLen           = 0;           //  Length of unencoded data, not
-  uint32  _sLen           = 0;           //  including any terminating nul.
-
-  uint32  _bgn            = 0;           //  Portion of the read we'll return.
-  uint32  _end            = 0;
-
-  uint8  *_nData          = nullptr;
-  uint8  *_sData          = nullptr;
-};
-
-
-
 //  Loads part/all of a sqStore, or all of a fasta/fastq file, into memory.
 //
 class sqCache {
@@ -109,18 +86,47 @@ private:
   bool             _compressed      = false;
   bool             _trimmed         = false;
 
+  //  A map from read names to read IDs, used when converting verkko layouts
+  //  to a utgcns packages.  The reverse lookup -- from read ID to read name,
+  //  used when writing reads to packages -- is in the sqCacheEntry below.
+
+  std::map<std::string, uint32>    _nameToID;
+
+  //  An entry in the cache.
+  //
+  //  _basesLength is the length of the sequence stored in the blob.  It
+  //  is NOT the length of the read we will eventually return.
+  //
+  //  _bgn and _end tell what bases we will be returning, _end - _bgn is the
+  //  length of the read we are storing.
+  //    If not trimmed, these must be 0 and the actual length of the read.
+  //    If homopoly compressed, this will be the compressed length of the read.
+  //
+  //  NOTE!  falconsense.C needs the size of this struct.
+  //
+  struct sqCacheEntry {
+    uint32      _nLen   = 0;           //  Length of unencoded data, not
+    uint32      _sLen   = 0;           //  including any terminating nul.
+
+    uint32      _bgn    = 0;           //  Portion of the read we'll return.
+    uint32      _end    = 0;
+
+    uint8      *_nData  = nullptr;
+    uint8      *_sData  = nullptr;
+
+    char const *_name   = nullptr;
+  };
+
+public:
+  static            //  Used by falconsense.
+  uint32            sqCacheEntrySize(void) { return sizeof(sqCacheEntry); }
+
+private:
   sqCacheEntry    *_reads           = nullptr;
   uint64           _readsLen        = 0;
   uint64           _readsMax        = 0;
 
-  //  We need to convert a read name into a read ID when converting verkko
-  //  layouts to a utgcns packages, and we also need to do the reverse lookup
-  //  when the package is actually written.  The reverse lookup is
-  //  accomplished using an array of iterators to the map element.
-  typedef std::map<std::string, uint32>    nameMap;
-  typedef std::vector<nameMap::iterator>   naidMap;
-  nameMap          _nameToID;
-  naidMap          _IDtoName;
+
 
   void            allocateNewBlock(void) {
     increaseArray(_dataBlocks, _dataBlocksLen, _dataBlocksMax, 16);

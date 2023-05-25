@@ -76,6 +76,9 @@ sqReadDataWriter::sqReadDataWriter_importData(char const *readName,
   assert(bgn == 0);
   assert(end == readLength);   //  Don't support trimming yet.
 
+  if (readName == nullptr)
+    readName = "";
+
   uint32   namLen = strlen(readName);
   uint32   rawLen = readLength;
   uint32   corLen = 0;
