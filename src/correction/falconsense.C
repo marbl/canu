@@ -543,13 +543,13 @@ main(int argc, char **argv) {
     //  Load read lengths, convert to an approximate size they'll use when loaded, and initialize references to zero.
     //
     //  It's not ideal, since we use lots of insider knowledge.
-    //    12          - chunk header, chunk length, possibly length of data
-    //    Length / 4  - 2-bit encoded bases
-    //    4           - padding on chunk
-    //    cacheEntry  - storage internal to the cache.
+    //    12                  - chunk header, chunk length, possibly length of data
+    //    Length / 4          - 2-bit encoded bases
+    //    4                   - padding on chunk
+    //    sqCacheEntrySize()  - storage internal to the cache.
 
     for (uint32 ii=1; ii <= lastID; ii++) {
-      readLens[ii] = 12 + seqStore->sqStore_getReadLength(ii, sqRead_raw) / 4 + 4 + sizeof(sqCacheEntry);   //  Round up, and 3 extra uint32.
+      readLens[ii] = 12 + seqStore->sqStore_getReadLength(ii, sqRead_raw) / 4 + 4 + sqCache::sqCacheEntrySize();
       readRefs[ii] = 0;
     }
 
