@@ -214,22 +214,6 @@ public:
 
 
 
-//  Stats on the filtering, for logging by the caller
-class tgTigStashed {
-public:
-  uint32  nBack;   uint64  bBack;   //  Read is backbone.
-  uint32  nCont;   uint64  bCont;   //  Read is contained and used for consensus.
-  uint32  nStsh;   uint64  bStsh;   //  Read is stashed   NOT used for consensus.
-
-  void    clear(void) {
-    nBack = 0;    bBack = 0;
-    nCont = 0;    bCont = 0;
-    nStsh = 0;    bStsh = 0;
-  };
-};
-
-
-
 //  On-disk tig, same as tgTig without the pointers.
 struct tgTigRecord {
   uint32              _tigID;
@@ -302,19 +286,12 @@ public:
   void           dumpLayout(FILE *F, bool withSequence=true);
   bool           loadLayout(FILE *F);
 
-  void           stashContains(double maxCov, tgTigStashed &S);
+  void           stashContains(double maxCov);
   void           unstashContains(void);
 
   void           dropExcessCoverage(double maxCov) {
-    tgTigStashed S;
-
-    stashContains(maxCov, S);
-
-    delete [] _stashed;
-
-    _stashedLen = 0;
-    _stashedMax = 0;
-    _stashed    = NULL;
+    stashContains(maxCov);
+    clearStash();
   };
 
   //  Save and load a package of data needed to process this tig.
@@ -389,9 +366,39 @@ private:
   uint32              _childrenLen;
   uint32              _childrenMax;
 
+private:
   tgPosition         *_stashed;           //  children that we want to temporarily ignore
   uint32              _stashedLen;
   uint32              _stashedMax;
+
+  uint64              _stashBack[2];       //  Stash stats: read is backbone.
+  uint64              _stashCont[2];       //  Stash stats: read is contained and used for consensus.
+  uint64              _stashStsh[2];       //  Stash stats: read is stashed   NOT used for consensus.
+  uint64              _stashIgnr[2];       //  Stash stats: read is ignore    NOT used for consensus.
+
+public:
+  void                 clearStash(void) {
+    delete [] _stashed;
+    _stashed = nullptr;
+
+    _stashedLen = 0;
+    _stashedMax = 0;
+
+    _stashBack[0] = _stashBack[1] = 0;
+    _stashCont[0] = _stashCont[1] = 0;
+    _stashStsh[0] = _stashStsh[1] = 0;
+    _stashIgnr[0] = _stashIgnr[1] = 0;
+  }
+
+  uint64               nStashBack(void) { return _stashBack[0]; }
+  uint64               nStashCont(void) { return _stashCont[0]; }
+  uint64               nStashStsh(void) { return _stashStsh[0]; }
+  uint64               nStashIgnr(void) { return _stashIgnr[0]; }
+
+  double               cStashBack(void) { return _stashBack[0] / (double)length(); }
+  double               cStashCont(void) { return _stashCont[0] / (double)length(); }
+  double               cStashStsh(void) { return _stashStsh[0] / (double)length(); }
+  double               cStashIgnr(void) { return _stashIgnr[0] / (double)length(); }
 
 public:
   uint32              _childDeltaBitsLen;

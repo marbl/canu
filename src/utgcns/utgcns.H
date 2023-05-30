@@ -18,83 +18,110 @@
 #ifndef UTGCNS_H
 #define UTGCNS_H
 
+#include "system.H"
+#include "strings.H"
+
+#include "sqStore.H"
+#include "tgStore.H"
+
+#include "unitigConsensus.H"
+#include "unitigPartition.H"
+
+#include <set>
+#include <map>
+
+//
+//  Essentially global structure containing command line parameters and a
+//  few utility functions that clutter up processing algorithms.
+//
+
 class cnsParameters {
 public:
-  void                    closeAndCleanup(void) {
-    delete seqStore;   seqStore = NULL;
-    delete tigStore;   tigStore = NULL;
+  void      loadPartitionedReads(void);
+  void      loadProcessList(void);
+  tgTig    *loadTig(uint32 ti);
+  bool      skipTig(tgTig *tig);
+  void      unloadTig(tgTig *tig);
+  void      unloadReads(void);
+  void      closeAndCleanup(void);
 
-    if (seqReads)
-      for (auto it=seqReads->begin(); it != seqReads->end(); it++)
-        delete it->second;
+public:
+  char         *seqName = nullptr;
+  char         *seqFile = nullptr;
 
-    delete seqReads;
+  char         *tigName = nullptr;
+  uint32        tigVers = UINT32_MAX;
+  uint32        tigPart = 0;
 
-    merylutil::closeFile(outResultsFile, outResultsName);
-    merylutil::closeFile(outLayoutsFile, outLayoutsName);
+  typedef std::set<uint32> intSet;
 
-    merylutil::closeFile(outSeqFileA, outSeqNameA);
-    merylutil::closeFile(outSeqFileQ, outSeqNameQ);
-  };
+  intSet        processList;
 
-  char                   *seqName = nullptr;
-  char                   *seqFile = nullptr;
+  uint32        tigBgn  = 1;
+  uint32        tigCur  = 0;
+  uint32        tigEnd  = UINT32_MAX;
 
-  char                   *tigName = nullptr;
-  uint32                  tigVers = UINT32_MAX;
-  uint32                  tigPart = 0;
+  char         *outResultsName = nullptr;
+  char         *outLayoutsName = nullptr;
+  char         *outSeqNameA    = nullptr;
+  char         *outSeqNameQ    = nullptr;
 
-  uint32                  tigBgn  = 0;
-  uint32                  tigEnd  = UINT32_MAX;
+  char         *exportName     = nullptr;
 
-  char                   *outResultsName = nullptr;
-  char                   *outLayoutsName = nullptr;
-  char                   *outSeqNameA    = nullptr;
-  char                   *outSeqNameQ    = nullptr;
+  char         *importName     = nullptr;
+  readBuffer   *importFile     = nullptr;
 
-  char                   *exportName     = nullptr;
-  char                   *importName     = nullptr;
-  bool                    dumpImport     = false;
+  bool          dumpImport     = false;
+  FILE         *dumpedLayouts  = nullptr;
+  FILE         *dumpedReads    = nullptr;
 
-  char                    algorithm = 'P';
-  char                    aligner   = 'E';
+  char          algorithm = 'P';
+  char          aligner   = 'E';
 
-  bool                    createPartitions = false;
-  double                  partitionSize    = 1.00;   //  Size partitions to be 100% of the largest tig.
-  double                  partitionScaling = 1.00;   //  Estimated tig length is 100% of actual tig length.
-  double                  partitionReads   = 0.05;   //  5% of all reads can end up in a single partition.
+  bool          createPartitions = false;
+  double        partitionSize    = 1.00;   //  Size partitions to be 100% of the largest tig.
+  double        partitionScaling = 1.00;   //  Estimated tig length is 100% of actual tig length.
+  double        partitionReads   = 0.05;   //  5% of all reads can end up in a single partition.
 
-  double                  errorRate      = 0.12;
-  double                  errorRateMax   = 0.40;
-  uint32                  errorRateMaxID = 0;
+  double        errorRate      = 0.12;
+  double        errorRateMax   = 0.40;
+  uint32        errorRateMaxID = 0;
 
-  uint32                  minOverlap   = 500;
-  uint32                  minCoverage  = 0;
+  uint32        minOverlap   = 500;
+  uint32        minCoverage  = 0;
 
-  uint32                  numFailures = 0;
+  uint32        numFailures = 0;
 
-  bool                    showResult = false;
+  bool          showResult = false;
 
-  double                  maxCov = 0.0;
-  uint32                  minLen = 0;
-  uint32                  maxLen = UINT32_MAX;
+  double        maxCov = 0.0;
+  uint32        minLen = 0;
+  uint32        maxLen = UINT32_MAX;
 
-  bool                    onlyUnassem = false;
-  bool                    onlyContig  = false;
+  bool          onlyUnassem = false;
+  bool          onlyContig  = false;
 
-  bool                    noBubble    = false;
-  bool                    noRepeat    = false;
-  bool                    noSingleton = false;
+  bool          noBubble    = false;
+  bool          noRepeat    = false;
+  bool          noSingleton = false;
 
-  uint32                  verbosity = 0;
+  uint32        verbosity = 0;
 
-  sqStore                *seqStore = nullptr;
-  std::map<uint32, sqRead *>  *seqReads = nullptr;
-  tgStore                *tigStore = nullptr;
+  typedef std::map<uint32, sqRead *> readMap;
 
-  FILE                   *outResultsFile = nullptr;
-  FILE                   *outLayoutsFile = nullptr;
-  FILE                   *outSeqFileA    = nullptr;
-  FILE                   *outSeqFileQ    = nullptr;
+  sqStore      *seqStore = nullptr;
+  readMap       seqReads;
+  tgStore      *tigStore = nullptr;
+
+  FILE         *outResultsFile = nullptr;
+  FILE         *outLayoutsFile = nullptr;
+  FILE         *outSeqFileA    = nullptr;
+  FILE         *outSeqFileQ    = nullptr;
 };
 
+void   createPartitions(cnsParameters  &params);
+void   exportTigs(cnsParameters  &params);
+
+void   processTigs(cnsParameters  &params);
+
+#endif  //  UTGCNS_H

@@ -15,22 +15,17 @@
  *  contains full conditions and disclaimers.
  */
 
-#include "system.H"
-#include "strings.H"
-
-#include "sqStore.H"
-#include "tgStore.H"
-
-#include "unitigConsensus.H"
-#include "unitigPartition.H"
+#include "utgcns.H"
 
 
 
-
-//  Scan the tigs to compute expected consensus effort.
+////////////////////
 //
-//  The memory estimate is _very_ simple, just 1 GB memory for each 1 Mbp
-//  of sequence (which is, of course, 1 KB memory for every base).
+//  Scan the tigs to compute expected consensus effort and use that to create
+//  partitions of the tigs to compute consensus in several batches.
+//
+//  The memory estimate is _very_ simple, just 1 GB memory for each 1 Mbp of
+//  sequence (which is, of course, 1 KB memory for every base).
 void
 createPartitions(cnsParameters  &params) {
   tigPartitioning  tp;
@@ -50,10 +45,10 @@ createPartitions(cnsParameters  &params) {
 }
 
 
-
-
-
-
+////////////////////
+//
+//  Write the tigs selected by command line options to a single
+//  self-contained 'package' file for debugging or later processing.
 void
 exportTigs(cnsParameters  &params) {
 
@@ -399,29 +394,19 @@ main(int argc, char **argv) {
   //  Process!
   //
 
-  if      (params.createPartitions) {
+  if      (params.createPartitions)
     createPartitions(params);
-  }
 
-  else if (params.importName) {
-    printHeader(params);
-    processImportedTigs(params);
-  }
-
-  else if (params.exportName) {
+  else if (params.exportName)
     exportTigs(params);
-  }
 
-  else if ((params.seqFile) ||
-           (params.seqName)) {
-    printHeader(params);
+  else if ((params.importName) ||
+           (params.seqFile) ||
+           (params.seqName))
     processTigs(params);
-  }
 
-  else {
-    fprintf(stderr, "How'd you do this?  I don't know what to do.  Oops.\n");
-    exit(1);
-  }
+  else
+    fprintf(stderr, "How'd you do this?  I don't know what to do.  Oops.\n"), exit(1);
 
   //
   //  Cleanup!

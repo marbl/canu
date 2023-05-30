@@ -19,15 +19,83 @@
 
 
 
+
+tgTig *
+loadTigFromImport(cnsParameters &params) {
+  tgTig *tig = nullptr;
+
+ tryImportAgain:
+  tig = new tgTig;
+  tig->_utgcns_verboseLevel = params.verbosity;
+ 
+  params.unloadReads();                       //  Forget any reads from the last tig.
+
+  if (tig->importData(params.importFile,      //  Load the next tig/reads from the package.
+                      params.seqReads,        //  If no next, we're done.
+                      params.dumpedLayouts,
+                      params.dumpedReads) == false) {
+    delete tig;
+    return nullptr;
+  }
+
+  if (params.skipTig(tig)) {                  //  If params say to skip the tig,
+    delete tig;                               //  forget the tig and
+    goto tryImportAgain;                      //  load another one.
+  }
+
+  return tig;
+}
+
+
+
+tgTig *
+loadTigFromStore(cnsParameters &params) {
+  tgTig *tig = nullptr;
+
+ tryLoadAgain:
+  if (params.tigCur < params.tigBgn)    //  Advance to the first or next tig.  On the first
+    params.tigCur = params.tigBgn;      //  call, tigCur is 0, and we'll either set it to
+  else                                  //  tigBgn (above) or to 1 (below).  On later calls,
+    params.tigCur++;                    //  we'll always increment tigCur.
+  
+  if (params.tigCur >= params.tigEnd)   //  If current is past the end, we're done.
+    return nullptr;
+
+  tig = params.loadTig(params.tigCur);  //  Otherwise, load the tig from the store.
+  tig->_utgcns_verboseLevel = params.verbosity;
+
+  if (params.skipTig(tig)) {            //  f params say to skip the tig,
+    params.unloadTig(tig);              //  forget the tig and
+    goto tryLoadAgain;                  //  load another one.
+  }
+
+  return tig;
+}
+
+
+
+tgTig *
+loadNextTig(cnsParameters &params) {
+  tgTig  *tig = nullptr;
+
+  if (params.importFile)
+    tig = loadTigFromImport(params);
+  else
+    tig = loadTigFromStore(params);
+
+  return tig;
+}
+
+
+
 void
 processTigs(cnsParameters  &params) {
-  uint32   nTigs       = 0;
-  uint32   nSingletons = 0;
-  uint32   numFailures = 0;
+  uint32      nTigs           = 0;
+  uint32      nSingletons     = 0;
+  uint32      numFailures     = 0;
 
+  //  Print a lovely header for the progress report.
 
-void
-printHeader(cnsParameters  &params) {
   fprintf(stderr, "--\n");
   fprintf(stderr, "-- Computing consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
           params.tigBgn, params.tigEnd, params.errorRate, params.errorRateMax, params.minOverlap);
@@ -35,83 +103,59 @@ printHeader(cnsParameters  &params) {
   fprintf(stdout, "                           ----------CONTAINED READS----------  -DOVETAIL  READS-\n");
   fprintf(stdout, "  tigID    length   reads      used coverage  ignored coverage      used coverage\n");
   fprintf(stdout, "------- --------- -------  -------- -------- -------- --------  -------- --------\n");
-}
 
+  //  Load the partitioned reads or open the package.
 
-  //  Load the partition file, if it exists.
-
-  std::set<uint32>   processList = loadProcessList(params.tigName, params.tigPart);
-
-  //  Load the partitioned reads, if they exist.
-
-  params.seqReads = loadPartitionedReads(params.seqFile);
+  if (params.importName) {
+    params.importFile    = new readBuffer(params.importName);
+    params.dumpedLayouts = merylutil::openOutputFile(params.importName, '.', "layout", params.dumpImport);
+    params.dumpedReads   = merylutil::openOutputFile(params.importName, '.', "fasta",  params.dumpImport);
+  }
+  else {
+    params.loadPartitionedReads();
+  }
 
   //  Loop over all tigs, loading each one and processing if requested.
 
-  for (uint32 ti=params.tigBgn; ti<=params.tigEnd; ti++) {
+  for (tgTig *tig=loadNextTig(params); tig != nullptr; tig=loadNextTig(params)) {
 
-    if ((processList.size() > 0) &&       //  Ignore tigs not in our partition.
-        (processList.count(ti) == 0))     //  (if a partition exists)
-      continue;
+    //  Log that we're processing (but ignore singletons) and filter
+    //  contained and ignore reads.
 
-    tgTig *tig = params.tigStore->loadTig(ti);
+    nTigs       += (tig->numberOfChildren() > 1) ? 1 : 0;
+    nSingletons += (tig->numberOfChildren() > 1) ? 0 : 1;
 
-    if ((tig == NULL) ||                  //  Ignore non-existent and
-        (tig->numberOfChildren() == 0))   //  empty tigs.
-      continue;
-
-    //  Skip stuff we want to skip.
-
-    if (((params.onlyUnassem == true) && (tig->_class != tgTig_unassembled)) ||
-        ((params.onlyContig  == true) && (tig->_class != tgTig_contig)) ||
-        ((params.noSingleton == true) && (tig->numberOfChildren() == 1)) ||
-        (tig->length() < params.minLen) ||
-        (tig->length() > params.maxLen))
-      continue;
-
-    //  Skip repeats and bubbles.
-
-    if (((params.noRepeat == true) && (tig->_suggestRepeat == true)) ||
-        ((params.noBubble == true) && (tig->_suggestBubble == true)))
-      continue;
-
-    //  Log that we're processing.
-
-    if (tig->numberOfChildren() > 1) {
+    if (tig->numberOfChildren() > 1)
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
-    }
 
-    //  Stash excess coverage.  Singletons report no logging.
+    tig->stashContains(params.maxCov);
 
-    tgTigStashed S;
-
-    tig->stashContains(params.maxCov, S);
-
-    if (S.nBack > 0) {
-      nTigs++;
-      fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
-              S.nCont, (double)S.bCont / tig->length(),
-              S.nStsh, (double)S.bStsh / tig->length(),
-              S.nBack, (double)S.bBack / tig->length());
-    } else {
-      nSingletons++;
-    }
+    if (tig->numberOfChildren() > 1)
+      fprintf(stdout, "  %8lu %7.2fx %8lu %7.2fx  %8lu %7.2fx\n",
+              tig->nStashCont(), tig->cStashCont(),
+              tig->nStashStsh(), tig->cStashStsh(),
+              tig->nStashBack(), tig->cStashBack());
 
     //  Compute!
+    unitigConsensus  *utgcns  = nullptr;
+    bool              success = false;
 
-    tig->_utgcns_verboseLevel = params.verbosity;
+    utgcns  = new unitigConsensus(params.seqStore,
+                                  params.errorRate, params.errorRateMax, params.errorRateMaxID,
+                                  params.minOverlap,
+                                  params.minCoverage);
 
-    unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage);
-    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.seqReads);
+    success = utgcns->generate(tig,
+                               params.algorithm,
+                               params.aligner,
+                              &params.seqReads);
+
+    delete utgcns;
 
     //  Show the result, if requested.
 
     if (params.showResult)
       tig->display(stdout, params.seqStore, 200, 3);
-
-    //  Unstash.
-
-    tig->unstashContains();
 
     //  Save the result.
 
@@ -129,22 +173,22 @@ printHeader(cnsParameters  &params) {
 
     //  Tidy up for the next tig.
 
-    delete utgcns;        //  No real reason to keep this until here.
-
-    params.tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
+    delete tig;
+    //params.unloadTig(tig);
   }
 
-  fprintf(stdout, "\n");
-  fprintf(stdout, "Processed %u tig%s and %u singleton%s.\n",
+  fprintf(stdout, "------- --------- -------  -------- -------- -------- --------  -------- --------\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "-- Processed %u tig%s and %u singleton%s.\n",
           nTigs, (nTigs == 1)             ? "" : "s",
           nSingletons, (nSingletons == 1) ? "" : "s");
-  fprintf(stdout, "\n");
+  fprintf(stdout, "-- \n");
 
   if (numFailures) {
-    fprintf(stderr, "WARNING:  %u tig%s failed.\n", numFailures, (numFailures == 1) ? "" : "s");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Consensus did NOT finish successfully.\n");
+    fprintf(stderr, "-- WARNING:  %u tig%s failed.\n", numFailures, (numFailures == 1) ? "" : "s");
+    fprintf(stderr, "-- \n");
+    fprintf(stderr, "-- Consensus did NOT finish successfully.\n");
   } else {
-    fprintf(stderr, "Consensus finished successfully.\n");
+    fprintf(stderr, "-- Consensus finished successfully.\n");
   }
 }

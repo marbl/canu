@@ -1,5 +1,10 @@
 TARGET   := utgcns
-SOURCES  := utgcns.C stashContains.C unitigPartition.C unitigConsensus.C
+SOURCES  := utgcns.C \
+            stashContains.C \
+            unitigConsensus.C \
+            unitigPartition.C \
+            utgcns-parameters.C \
+            utgcns-processTigs.C
 
 SRC_INCDIRS  := .. \
                 ../utility/src \
