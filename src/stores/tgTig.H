@@ -115,32 +115,45 @@ public:
   //  Set everything.  This is to be used by unitigger.
   void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
 
-    _objID     = id;
+    _objID         = id;
 
-    _isRead    = true;
-    _isUnitig  = false;
-    _isContig  = false;
+    _isRead        = true;
+    _isUnitig      = false;
+    _isContig      = false;
 
-    _anchor    = anchor;
-    _ahang     = ahang;
-    _bhang     = bhang;
+    _anchor        = anchor;
+    _ahang         = ahang;
+    _bhang         = bhang;
 
-    _askip     = 0;
-    _bskip     = 0;
+    _askip         = 0;
+    _bskip         = 0;
 
-    if (bgn < end) {
-      _min       = bgn;
-      _max       = end;
-      _isReverse = false;
-    } else {
-      _min       = end;
-      _max       = bgn;
-      _isReverse = true;
-    }
+    _min           = std::min(bgn, end);
+    _max           = std::max(bgn, end);
+    _isReverse     = (bgn < end);
 
-    _deltaOffset = 0;
-    _deltaLen    = 0;
+    _deltaOffset   = 0;
+    _deltaLen      = 0;
   };
+
+  //  Reverse-complement the read.
+  //  Anchor and hangs are invalidated.
+  void                 reverseComplement(int32 len) {
+    int32  min = len - _max;
+    int32  max = len - _min;
+
+    assert(_min < _max);
+    assert( min <  max);
+
+    _anchor    = 0;
+    _ahang     = 0;    _askip = 0;    _deltaOffset = 0;
+    _bhang     = 0;    _bskip = 0;    _deltaLen    = 0;
+
+    _min       = min;
+    _max       = max;
+
+    _isReverse = !_isReverse;
+  }
 
   //  Set the coords, ignoring orientation.
   void                 setMinMax(int32 min, int32 max) {
