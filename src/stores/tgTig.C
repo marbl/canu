@@ -784,21 +784,15 @@ tgTig::importData(readBuffer                  *importDataFile,
 
 
 
+//  Note that _anchor, hangs, skips and delta are all invalid after this.
+//
 void
 tgTig::reverseComplement(void) {
 
-  //  Note that _anchor and the hangs are now invalid.
-
   ::reverseComplement(_bases, _quals, _basesLen);
 
-  for (uint32 ii=0; ii<_childrenLen; ii++) {
-    int32  bgn = _basesLen - _children[ii].bgn();
-    int32  end = _basesLen - _children[ii].end();
-
-    _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end);
-  }
-
-  //  _childDeltas are also invalid.
+  for (uint32 ii=0; ii<_childrenLen; ii++)
+    _children[ii].reverseComplement(_basesLen);
 }
 
 
