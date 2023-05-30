@@ -450,7 +450,7 @@ tgStore::unloadTig(uint32 tigID, bool discardChanges) {
 }
 
 
-void
+tgTig *
 tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
 
   assert(tigID <  _tigLen);
@@ -459,14 +459,14 @@ tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
 
   if (_tigEntry[tigID].isDeleted) {
     tigcopy->clear();
-    return;
+    return tigcopy;
   }
 
   //  In the cache?  Deep copy it and return.
 
   if (_tigCache[tigID]) {
     *tigcopy = *_tigCache[tigID];
-    return;
+    return tigcopy;
   }
 
   //  Otherwise, load from disk.
@@ -490,6 +490,8 @@ tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
 
   //  ALWAYS assume the incore record is more up to date
   tigcopy->restoreFromRecord(_tigEntry[tigID].tigRecord);
+
+  return tigcopy;
 }
 
 
