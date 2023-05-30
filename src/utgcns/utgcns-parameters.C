@@ -26,17 +26,16 @@
 //
 //  Loads reads from a sqStore partition into 'seqReads',
 //
-std::map<uint32, sqRead *> *
-loadPartitionedReads(char *seqFile) {
+void
+cnsParameters::loadPartitionedReads(void) {
 
-  if (seqFile == NULL)
-    return(NULL);
+  if (seqFile == nullptr)
+    return;
 
   //  Allocate space for the reads, and buffers to load them.
 
-  std::map<uint32, sqRead *>  *reads = new std::map<uint32, sqRead *>;
-  readBuffer                  *rb    = new readBuffer(seqFile);
-  sqRead                      *rd    = new sqRead;
+  readBuffer  *rb = new readBuffer(seqFile);
+  sqRead      *rd = new sqRead;
 
   uint64 magc;
   uint64 vers;
@@ -66,17 +65,13 @@ loadPartitionedReads(char *seqFile) {
   //  Read the reads.
 
   while (sqStore::sqStore_loadReadFromBuffer(rb, rd) == true) {
-    (*reads)[rd->sqRead_readID()] = rd;
+    seqReads[rd->sqRead_readID()] = rd;
 
     rd = new sqRead;
   }
 
   delete rd;
   delete rb;
-
-  //  Return the reads.
-
-  return(reads);
 }
 
 
@@ -86,15 +81,14 @@ loadPartitionedReads(char *seqFile) {
 //  std:set<uint32> processList, so we can later ignore tigs not
 //  in the partition.
 //
-std::set<uint32>
-loadProcessList(char *prefix, uint32 tigPart) {
-  std::set<uint32>   processList;
+void
+cnsParameters::loadProcessList(void) {
   uint32             Lmax = 1024;
   uint32             Llen = 0;
   char              *L    = new char [Lmax];
   char              *N    = new char [FILENAME_MAX + 1];
 
-  snprintf(N, FILENAME_MAX, "%s/partitioning", prefix);
+  snprintf(N, FILENAME_MAX, "%s/partitioning", tigName);
 
   if ((tigPart > 0) &&             //  Partitioning requested, and
       (fileExists(N) == true)) {   //  partitioning file exists, load it.
@@ -112,6 +106,102 @@ loadProcessList(char *prefix, uint32 tigPart) {
 
   delete [] N;
   delete [] L;
+}
 
-  return(processList);
+
+////////////////////
+//
+//  Loads a tig, or returns nullptr if it isn't in the partition we're
+//  operating on.
+//
+tgTig *
+cnsParameters::loadTig(uint32 ti) {
+
+  if ((tigName != nullptr) && (processList.size() == 0))
+    loadProcessList();
+
+  if ((processList.size() > 0) &&       //  Ignore tigs not in our partition.
+      (processList.count(ti) == 0))     //  (if a partition exists)
+    return nullptr;
+
+  return tigStore->copyTig(ti, new tgTig);
+}
+
+
+////////////////////
+//
+//  Returns true if we should NOT process this tig according to:
+//   - lack of a tig or no reads
+//   - length of the tig
+//   - command line selection
+//      - only unassem
+//      - only contigs
+//      - no singletons
+//      - no repeats
+//      - no bubbles
+//
+bool
+cnsParameters::skipTig(tgTig *tig) {
+
+  if (tig == nullptr)
+    return true;
+
+  if ((tig->numberOfChildren() == 0) ||
+      (tig->length() < minLen) ||
+      (tig->length() > maxLen) ||
+      ((onlyUnassem == true) && (tig->_class != tgTig_unassembled)) ||
+      ((onlyContig  == true) && (tig->_class != tgTig_contig)) ||
+      ((noSingleton == true) && (tig->numberOfChildren() == 1)) ||
+      ((noRepeat    == true) && (tig->_suggestRepeat == true)) ||
+      ((noBubble    == true) && (tig->_suggestBubble == true))) {
+    unloadTig(tig);
+    return true;
+  }
+
+  tig->_utgcns_verboseLevel = verbosity;  //  Propagate verbosity to low-level algorithms.
+
+  return false;
+}
+
+
+////////////////////
+//
+//  Returns a tig to the store for deallocation.
+//
+void
+cnsParameters::unloadTig(tgTig *tig) {
+  tigStore->unloadTig(tig->tigID(), true);
+}
+
+
+////////////////////
+//
+//  Delete any reads we've saved.
+//
+void
+cnsParameters::unloadReads(void) {
+
+  for (auto it=seqReads.begin(); it != seqReads.end(); ++it)
+    delete it->second;
+
+  seqReads.clear();
+}
+
+
+////////////////////
+//
+//  Finsihed processing; release memory, close inputs and outputs.
+//
+void
+cnsParameters::closeAndCleanup(void) {
+  delete seqStore;   seqStore = nullptr;
+  delete tigStore;   tigStore = nullptr;
+
+  unloadReads();
+
+  merylutil::closeFile(outResultsFile, outResultsName);
+  merylutil::closeFile(outLayoutsFile, outLayoutsName);
+
+  merylutil::closeFile(outSeqFileA, outSeqNameA);
+  merylutil::closeFile(outSeqFileQ, outSeqNameQ);
 }

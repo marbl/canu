@@ -35,112 +35,94 @@ struct readInfo {
 };
 
 
+
 void
-tgTig::stashContains(double  maxCov, tgTigStashed &S) {
+tgTig::stashContains(double  maxCov) {
 
-  //  Initialize.
-  //    Declare that we have no stashed reads.
-  //    Clear the return statistics.
+  clearStash();
 
-  _stashed    = nullptr;
-  _stashedLen = 0;
-  _stashedMax = 0;
-
-  S.clear();
-
-  if (_childrenLen == 1)
+  if (_childrenLen == 1)  //  And do nothing if only a single read.
     return;
 
-  //  Sort the original children by position.
+  //  Flag the read for stashing if it doesn't extend the tig or is to be ignored.
 
   std::sort(_children, _children + _childrenLen);
 
-  //  Decide which children to save.
-
-  readInfo        *posLen  = new readInfo [_childrenLen];   //  Sorting by length of child
-
-  //  Flag the read for stashing if it doesn't extend the tig.
-
-  int32         hiEnd = -1;
+  readInfo   *posLen = new readInfo [_childrenLen];   //  Sorting by length of child
+  int32       hiEnd  = -1;
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
     int32  lo = _children[ci].min();
     int32  hi = _children[ci].max();
+    bool   use = (hiEnd < hi);   //  Use the read if it extends the tig.
 
-    if (hi <= hiEnd) {
-      posLen[ci].idx = ci;
-      posLen[ci].len = hi - lo;
-      posLen[ci].use = false;
+    if (use)  assert(hiEnd < hi);
 
-      S.nStsh += 1;
-      S.bStsh += posLen[ci].len;
-    }
+    if (use)                      //  Extend the useful length of the tig.
+      hiEnd = hi;
 
-    else {
-      posLen[ci].idx = ci;
-      posLen[ci].len = hi - lo;
-      posLen[ci].use = true;
+    posLen[ci].idx = ci;          //  Save the read info.
+    posLen[ci].len = hi - lo;
+    posLen[ci].use = use;
 
-      S.nBack += 1;
-      S.bBack += posLen[ci].len;
-    }
-
-    hiEnd = std::max(hi, hiEnd);
+    if      (use == true) { _stashBack[0] += 1;  _stashBack[1] += posLen[ci].len; }   //  Count where
+    else                  { _stashStsh[0] += 1;  _stashStsh[1] += posLen[ci].len; }   //  reads go.
   }
 
-  //  Sort by length, longest first, then verify we're sorted.
+  //  Save the longer of the contained reads, until we reach the maximum
+  //  coverage desired.  
 
   auto longestFirst = [](readInfo const &A, readInfo const &B) {
                         return(A.len > B.len);
                       };
 
-  std::sort(posLen, posLen + _childrenLen, longestFirst);
+  std::sort(posLen, posLen + _childrenLen, longestFirst);   //  Sort by length.
 
-  for (uint32 ci=1; ci<_childrenLen; ci++)
+  for (uint32 ci=1; ci<_childrenLen; ci++)                  //  and verify.
     assert(posLen[ci-1].len >= posLen[ci].len);
-
-  //  Save the longer of the contained reads, until we reach the maximum
-  //  coverage desired.  
 
   uint64  bLimit = (uint64)floor(maxCov * hiEnd);
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
-    if (posLen[ci].use == true)            //  Already a backbone read.
-      continue;                            //  Skip this read.
+    if  (posLen[ci].use == true)                 //  Already a backbone read;
+      continue;                                  //  skip this read.
 
-    if (S.bCont + S.bBack > bLimit)        //  Exceeded coverage limit.
-      break;                               //  Bail.
+    if (_stashCont[1] + _stashBack[1] > bLimit)  //  Exceeded coverage limit.
+      break;                                     //  Bail.
+    
+    posLen[ci].use = true;                       //  Do not stash the read.
 
-    posLen[ci].use = true;                 //  Do not stash the read.
+    _stashStsh[0] -= 1;                          //  Do not stash this read.
+    _stashStsh[1] -= posLen[ci].len;             //
 
-    S.nStsh -= 1;                          //  Do not stash this read.
-    S.bStsh -= posLen[ci].len;             //
-
-    S.nCont += 1;                          //  And do use it for consensus.
-    S.bCont += posLen[ci].len;             //
+    _stashCont[0] += 1;                          //  Do use it for consensus.
+    _stashCont[1] += posLen[ci].len;             //
   }
 
-  //  Make a new list of reads, while saving the original, if there reads
-  //  we want to stash.
+  //  Remove unused reads from the tig.
 
-  if (S.nStsh > 0) {
+  if (_stashStsh[0] > 0) {
     _stashedLen = _childrenLen;                      //  Save the original list
     _stashedMax = _childrenMax;                      //  so we can restore it later.
     _stashed    = _children;
 
+    uint32 c = 0;
+    for (uint32 ci=0; ci<_stashedLen; ci++)          //  Count how many reads we
+      if (posLen[ci].use == true)                    //  want to save.
+        c++;
+
     _childrenLen  = 0;                               //  Allocate a new list for
-    _childrenMax  = S.nBack + S.nCont;               //  exactly what we need to save.
+    _childrenMax  = c;                               //  exactly what we need to save.
     _children     = new tgPosition [_childrenMax];
 
-    for (uint32 ci=0; ci<_stashedLen; ci++)
-      if (posLen[ci].use == true)                                //  If used, we want to keep the
-        _children[_childrenLen++] = _stashed[posLen[ci].idx];    //  read, so copy it to the new list.
+    for (uint32 ci=0; ci<_stashedLen; ci++)          //  Copy used reads to the new list.
+      if (posLen[ci].use == true)
+        _children[_childrenLen++] = _stashed[posLen[ci].idx];
+
+    std::sort(_children, _children + _childrenLen);  //  Sort by position.
   }
 
-  // since we added the reads using length sorted order, re-sort them by position to make everyone downstream  happy
-  std::sort(_children, _children + _childrenLen);
-
-  //  Cleanup and return the statistics.
+  //  Cleanup.
 
   delete [] posLen;
 }

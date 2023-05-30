@@ -132,6 +132,11 @@ tgTig::tgTig() {
   _stashedLen           = 0;
   _stashedMax           = 0;
 
+  _stashBack[0] = _stashBack[1] = 0;
+  _stashCont[0] = _stashCont[1] = 0;
+  _stashStsh[0] = _stashStsh[1] = 0;
+  _stashIgnr[0] = _stashIgnr[1] = 0;
+
   _childDeltaBitsLen    = 0;
   _childDeltaBits       = NULL;
 }
