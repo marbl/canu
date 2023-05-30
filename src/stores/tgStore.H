@@ -59,13 +59,18 @@ public:
   //
   void           deleteTig(uint32 tigID);
 
-  //  load() will load and cache the MA.  THE STORE OWNS THIS OBJECT.
-  //  copy() will load and copy the MA.  It will not cache.  YOU OWN THIS OBJECT.
+  //  loadTig() will load and cache the tig.  THE STORE OWNS THIS OBJECT.
+  //  unloadTig() allows the store to release the cached tig.
+  //
+  //  copyTig() will load and copy the tig to the supplied object.  YOU OWN
+  //  THIS OBJECT, and can delete it at will.  The object passed in is the
+  //  return value (so you can create and load in one line:
+  //    tgTig *tig = store->copyTig(new tgTig);
   //
   tgTig         *loadTig(uint32 tigID);
   void           unloadTig(uint32 tigID, bool discardChanges=false);
 
-  void           copyTig(uint32 tigID, tgTig *ma);
+  tgTig         *copyTig(uint32 tigID, tgTig *tig);
 
   //  Flush to disk any cached MAs.  This is called by flushCache().
   //
