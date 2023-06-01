@@ -148,7 +148,7 @@ processTigs(cnsParameters  &params) {
     success = utgcns->generate(tig,
                                params.algorithm,
                                params.aligner,
-                              &params.seqReads);
+                               params.seqReads);
 
     delete utgcns;
 
