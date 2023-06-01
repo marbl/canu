@@ -34,10 +34,14 @@
 abSequence::abSequence(uint32  readID,
                        uint32  length,
                        char   *seq,
-                       uint32  complemented) {
+                       bool    complemented) {
   _iid              = readID;
-  _length           = length;
   _complement       = complemented;
+  _length           = length;
+  _bases            = nullptr;
+
+  if (length == 0)
+    return;
 
   _bases            = new char  [_length + 1];
 
@@ -70,7 +74,12 @@ abSequence::abSequence(uint32  readID,
       _bases[pp] = inv[ seq[ii] ];
 
   _bases[_length] = 0;  //  NUL terminate the strings so we can use them in aligners.
-};
+}
+
+
+abSequence::~abSequence() {
+  delete [] _bases;
+}
 
 
 
@@ -114,10 +123,8 @@ unitigConsensus::~unitigConsensus() {
 
 
 void
-unitigConsensus::addRead(uint32   readID,
-                         uint32   askip, uint32 bskip,
-                         bool     complemented,
-                         std::map<uint32, sqRead *>     *inPackageRead) {
+unitigConsensus::addRead(uint32 readID, uint32 askip, uint32 bskip, bool complemented,
+                         std::map<uint32, sqRead *> &reads) {
 
   //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
   //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
@@ -126,13 +133,13 @@ unitigConsensus::addRead(uint32   readID,
   sqRead      *readToDelete = NULL;
   sqRead      *read         = NULL;
 
-  if (inPackageRead == NULL) {
+  if (reads.size() == 0) {
     readToDelete = new sqRead;
     read         = _seqStore->sqStore_getRead(readID, readToDelete);
   }
 
   else {
-    read         = (*inPackageRead)[readID];
+    read         = reads[readID];
   }
 
   if (read == NULL)
@@ -156,7 +163,7 @@ unitigConsensus::addRead(uint32   readID,
 
 
 bool
-unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
+unitigConsensus::initialize(std::map<uint32, sqRead *> &reads) {
 
   if (_numReads == 0) {
     fprintf(stderr, "utgCns::initialize()-- unitig has no children.\n");
@@ -873,7 +880,7 @@ alignEdLib(dagAlignment      &aln,
 
 bool
 unitigConsensus::initializeGenerate(tgTig                       *tig_,
-                                    std::map<uint32, sqRead *>  *reads_) {
+                                    std::map<uint32, sqRead *>  &reads_) {
 
   _tig      = tig_;
   _numReads = _tig->numberOfChildren();
@@ -893,7 +900,7 @@ unitigConsensus::initializeGenerate(tgTig                       *tig_,
 bool
 unitigConsensus::generatePBDAG(tgTig                       *tig_,
                                char                         aligner_,
-                               std::map<uint32, sqRead *>  *reads_) {
+                               std::map<uint32, sqRead *>  &reads_) {
 
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
@@ -1006,7 +1013,7 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
 
 bool
 unitigConsensus::generateQuick(tgTig                       *tig_,
-                               std::map<uint32, sqRead *>  *reads_) {
+                               std::map<uint32, sqRead *>  &reads_) {
 
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
@@ -1046,7 +1053,7 @@ unitigConsensus::generateQuick(tgTig                       *tig_,
 
 bool
 unitigConsensus::generateSingleton(tgTig                       *tig_,
-                                   std::map<uint32, sqRead *>  *reads_) {
+                                   std::map<uint32, sqRead *>  &reads_) {
 
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
@@ -1558,7 +1565,7 @@ bool
 unitigConsensus::generate(tgTig                       *tig_,
                           char                         algorithm_,
                           char                         aligner_,
-                          std::map<uint32, sqRead *>  *reads_) {
+                          std::map<uint32, sqRead *>  &reads_) {
   bool  success = false;
 
   if      (tig_->numberOfChildren() == 1) {

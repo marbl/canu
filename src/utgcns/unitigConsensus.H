@@ -34,41 +34,28 @@ class NDalign;
 
 class abSequence {
 public:
-  abSequence() {
-    _iid        = 0;
+  abSequence(uint32  readID = 0,
+             uint32  length = 0,
+             char   *seq    = nullptr,
+             bool    comp   = false);
+  ~abSequence();
 
-    _complement = false;
+  uint32      seqIdent(void)          { return(_iid);        }
 
-    _length     = 0;
-    _bases      = NULL;
-  };
+  bool        isForward(void)         { return(_complement == false); }
 
-  abSequence(uint32  readID,
-             uint32  length,
-             char   *seq,
-             uint32  complemented);
+  uint32      length(void)            { return(_length);     }
+  char        getBase(uint32 o)       { return(_bases[o]);   }
 
-  ~abSequence() {
-    delete [] _bases;
-  };
-
-
-  uint32      seqIdent(void)          { return(_iid);        };
-
-  bool        isForward(void)         { return(_complement == false); };
-
-  uint32      length(void)            { return(_length);     };
-  char        getBase(uint32 o)       { return(_bases[o]);   };
-
-  char       *getBases(void)          { return(_bases);      };
+  char       *getBases(void)          { return(_bases);      }
 
 private:
-  uint32     _iid;            //  external, aka seqStore, ID;
+  uint32     _iid = 0;            //  external, aka seqStore, ID;
 
-  bool       _complement;
+  bool       _complement = false;
 
-  uint32     _length;
-  char      *_bases;
+  uint32     _length = 0;
+  char      *_bases  = nullptr;
 };
 
 
@@ -84,18 +71,16 @@ public:
   ~unitigConsensus();
 
 private:
-  void   addRead(uint32 readID,
-                 uint32 askip, uint32 bskip,
-                 bool complemented,
-                 std::map<uint32, sqRead *>     *inPackageRead);
+  void   addRead(uint32 readID, uint32 askip, uint32 bskip, bool complemented,
+                 std::map<uint32, sqRead *> &reads);
 
-  bool   initialize(std::map<uint32, sqRead *>     *reads);
+  bool   initialize(std::map<uint32, sqRead *> &reads);
 
 public:
   bool   generate(tgTig                       *tig_,
                   char                         algorithm_,
                   char                         aligner_,
-                  std::map<uint32, sqRead *>  *reads_ = NULL);
+                  std::map<uint32, sqRead *>  &reads_);
 
 private:
   void   switchToUncompressedCoordinates(void);
@@ -104,18 +89,18 @@ private:
   char  *generateTemplateStitch(void);
 
   bool   initializeGenerate(tgTig                       *tig,
-                            std::map<uint32, sqRead *>  *reads = NULL);
+                            std::map<uint32, sqRead *>  &reads);
 
 
   bool   generatePBDAG(tgTig                       *tig,
                        char                         aligner,
-                       std::map<uint32, sqRead *>  *reads = NULL);
+                       std::map<uint32, sqRead *>  &reads);
 
   bool   generateQuick(tgTig                       *tig,
-                       std::map<uint32, sqRead *>  *reads = NULL);
+                       std::map<uint32, sqRead *>  &reads);
 
   bool   generateSingleton(tgTig                       *tig,
-                           std::map<uint32, sqRead *>  *reads = NULL);
+                           std::map<uint32, sqRead *>  &reads);
 
   void   findCoordinates(void);
   void   findRawAlignments(void);
