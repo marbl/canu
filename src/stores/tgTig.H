@@ -395,10 +395,10 @@ public:
   uint64               nStashStsh(void) { return _stashStsh[0]; }
   uint64               nStashIgnr(void) { return _stashIgnr[0]; }
 
-  double               cStashBack(void) { return _stashBack[0] / (double)length(); }
-  double               cStashCont(void) { return _stashCont[0] / (double)length(); }
-  double               cStashStsh(void) { return _stashStsh[0] / (double)length(); }
-  double               cStashIgnr(void) { return _stashIgnr[0] / (double)length(); }
+  double               cStashBack(void) { return (double)_stashBack[1] / length(); }
+  double               cStashCont(void) { return (double)_stashCont[1] / length(); }
+  double               cStashStsh(void) { return (double)_stashStsh[1] / length(); }
+  double               cStashIgnr(void) { return (double)_stashIgnr[1] / length(); }
 
 public:
   uint32              _childDeltaBitsLen;
