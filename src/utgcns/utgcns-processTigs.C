@@ -128,7 +128,7 @@ processTigs(cnsParameters  &params) {
     if (tig->numberOfChildren() > 1)
       fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
 
-    tig->stashContains(params.maxCov);
+    tig->filterContains(params.maxCov, false);
 
     if (tig->numberOfChildren() > 1)
       fprintf(stdout, "  %8lu %7.2fx %8lu %7.2fx  %8lu %7.2fx\n",

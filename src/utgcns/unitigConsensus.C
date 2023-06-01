@@ -296,38 +296,39 @@ void unitigConsensus::updateReadPositions(void) {
 
 char *
 unitigConsensus::generateTemplateStitch(void) {
-  uint32   minOlap  = _minOverlap;
+  uint32       minOlap  = _minOverlap;
+  double       savedErrorRate = _errorRate;
+  bool         allowContains  = false;
 
-  //  Initialize, copy the first read.
+  //  Find the first non-omitted read, copy that to the template.
 
   uint32       rid      = 0;
+
+  while ((rid < _numReads) && (_utgpos[rid].skipConsensus() == true))
+    rid++;
 
   abSequence  *seq      = getSequence(rid);
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
-  uint32       tigmax = std::max(readLen, AS_MAX_READLEN);  //  Must be at least AS_MAX_READLEN, else resizeArray() could fail
-  uint32       tiglen = 0;
-  char        *tigseq = NULL;
-
-  double	savedErrorRate = _errorRate;
-
-  bool          allowContains  = false;
-
-  allocateArray(tigseq, tigmax, _raAct::clearNew);
-
   if (showAlgorithm()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
-            0, _utgpos[0].ident(), readLen, _utgpos[0].min(), _utgpos[0].max());
+            rid, _utgpos[rid].ident(), readLen, _utgpos[rid].min(), _utgpos[rid].max());
   }
+
+  uint32       tigmax = std::max(readLen, AS_MAX_READLEN);  //  Must be at least AS_MAX_READLEN, else resizeArray() could fail
+  uint32       tiglen = 0;
+  char        *tigseq = nullptr;
+
+  allocateArray(tigseq, tigmax, _raAct::clearNew);
 
   for (uint32 ii=0; ii<readLen; ii++)
     tigseq[tiglen++] = fragment[ii];
 
   tigseq[tiglen] = 0;
 
-  uint32       ePos = _utgpos[0].max();   //  Expected end of template, from bogart supplied positions.
+  uint32       ePos = _utgpos[rid].max();   //  Expected end of template, from bogart supplied positions.
 
 
   //  Find the next read that has some minimum overlap and a large extension, copy that into the template.
@@ -357,7 +358,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     uint32 lastStart      = rid; // Track where we start looking for the next read from, we'll come back and look again if first choice fails
     std::set<uint32> badToAdd;   // Track the list of bad reads, we'll add these at the end
-    uint32 firstCandidate = 0;   // Track the first read we can use so we know when we have to give up
+    uint32 firstCandidate = rid; // Track the first read we can use so we know when we have to give up
 
     _errorRate = savedErrorRate;
     allowContains = false;
@@ -376,10 +377,10 @@ unitigConsensus::generateTemplateStitch(void) {
 
     for (uint32 ii=rid+1; ii < _numReads; ii++) {
 
-      //  If contained, move to the next read.  (Not terribly useful to log, so we don't)
-
-      if (_utgpos[ii].max() < ePos && allowContains == false)
-        continue;
+      if ((_utgpos[ii].skipConsensus() == true) ||   //  If  told to not use this read, or
+          ((_utgpos[ii].max() < ePos) &&             //  read is contained in the template
+           (allowContains == false)))                //  (and we're not allowing that),
+        continue;                                    //  skip the read.
 
       //  If a bigger end position, save the overlap.  One quirk: if we've already saved an overlap, and this
       //  overlap is thin, don't save the thin overlap.
@@ -965,7 +966,8 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
         (aligns[ii].end   == 0))
       continue;
 
-    ag.addAln(aligns[ii]);
+    if (_utgpos[ii].skipConsensus() == false)
+      ag.addAln(aligns[ii]);
 
     aligns[ii].clear();
   }
@@ -1179,7 +1181,7 @@ unitigConsensus::findCoordinates(void) {
 
   int32         alignShift = 0;
 
-  #pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
   for (uint32 ii=0; ii<_numReads; ii++) {
     abSequence   *read    = getSequence(ii);
     char         *readSeq = read->getBases();

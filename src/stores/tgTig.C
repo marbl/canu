@@ -82,6 +82,8 @@ tgPosition::initialize(void) {
   _isContig    = true;
   _isReverse   = false;
 
+  _skipCNS     = false;
+
   _spare       = 0;
 
   _anchor      = UINT32_MAX;

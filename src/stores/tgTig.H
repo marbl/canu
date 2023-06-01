@@ -85,6 +85,13 @@ public:
   bool                 isForward(void) const { return(_isReverse == false); };
   bool                 isReverse(void) const { return(_isReverse == true);  };
 
+  //  We want to ignore some reads during consensus, like excess contained reads
+  //  and ONT in verkko.  The flag is antisense for compatibility with existing
+  //  Canu stores - those will have the _skipCNS bit set to 0, so if our
+  //  flag was _useInCNS, no reads would be used!
+  bool                 skipConsensus(void) const { return _skipCNS; }
+  void                 skipConsensus(bool v)     { _skipCNS = v;    }
+
   //  Position in the parent, both oriented (bgn/end) and unoriented (min/max).
 
   int32                bgn(void) const       { return((_isReverse == false) ? _min : _max); };
@@ -120,6 +127,7 @@ public:
     _isRead        = true;
     _isUnitig      = false;
     _isContig      = false;
+    //kipCNS       = _skipCNS;   //  Leave unchanged!
 
     _anchor        = anchor;
     _ahang         = ahang;
@@ -184,15 +192,17 @@ public:
 
 private:
 public:
-  uint32              _objID;            //  ID of this object
+  uint32              _objID;          //  ID of this object
 
-  uint32              _isRead      : 1;  //  A full length read alignment
-  uint32              _isUnitig    : 1;  //
-  uint32              _isContig    : 1;  //
+  uint32              _isRead    : 1;  //  A full length read alignment
+  uint32              _isUnitig  : 1;  //
+  uint32              _isContig  : 1;  //
 
-  uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
+  uint32              _isReverse : 1;  //  Child is oriented forward relative to parent, used during consensus.
 
-  uint32              _spare       : 28;
+  uint32              _skipCNS   : 1;  //  Child should not be used for consensus.
+
+  uint32              _spare     : 27;
 
   //  These are not used any more; they were used by the early consensus
   //  algorithm; they are still set in bogart, and MUST remain in the structure
@@ -286,11 +296,11 @@ public:
   void           dumpLayout(FILE *F, bool withSequence=true);
   bool           loadLayout(FILE *F);
 
-  void           stashContains(double maxCov);
+  void           filterContains(double maxCov, bool enableStash);
   void           unstashContains(void);
 
   void           dropExcessCoverage(double maxCov) {
-    stashContains(maxCov);
+    filterContains(maxCov, true);
     clearStash();
   };
 
