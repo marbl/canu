@@ -32,12 +32,13 @@ struct readInfo {
   uint32    idx;   //  index of the read in the original unsorted _children
   int32     len;   //  length of the read
   bool      use;   //  true if the read is not contained in some other read
+  bool      ign;   //  true if the read should not be used at all in consensus
 };
 
 
 
 void
-tgTig::stashContains(double  maxCov) {
+tgTig::filterContains(double  maxCov, bool enableStash) {
 
   clearStash();
 
@@ -54,8 +55,10 @@ tgTig::stashContains(double  maxCov) {
   for (uint32 ci=0; ci<_childrenLen; ci++) {
     int32  lo = _children[ci].min();
     int32  hi = _children[ci].max();
-    bool   use = (hiEnd < hi);   //  Use the read if it extends the tig.
+    bool   ign = _children[ci].skipConsensus();    //  Completely ignore the read if told to.
+    bool   use = (ign == false) && (hiEnd < hi);   //  Use the read if it extends the tig.
 
+    if (ign)  assert(use == false);
     if (use)  assert(hiEnd < hi);
 
     if (use)                      //  Extend the useful length of the tig.
@@ -64,9 +67,11 @@ tgTig::stashContains(double  maxCov) {
     posLen[ci].idx = ci;          //  Save the read info.
     posLen[ci].len = hi - lo;
     posLen[ci].use = use;
+    posLen[ci].ign = ign;
 
-    if      (use == true) { _stashBack[0] += 1;  _stashBack[1] += posLen[ci].len; }   //  Count where
-    else                  { _stashStsh[0] += 1;  _stashStsh[1] += posLen[ci].len; }   //  reads go.
+    if      (ign == true) { _stashIgnr[0] += 1;  _stashIgnr[1] += posLen[ci].len; }   //  Count where
+    else if (use == true) { _stashBack[0] += 1;  _stashBack[1] += posLen[ci].len; }   //  reads go.
+    else                  { _stashStsh[0] += 1;  _stashStsh[1] += posLen[ci].len; }   //
   }
 
   //  Save the longer of the contained reads, until we reach the maximum
@@ -84,7 +89,8 @@ tgTig::stashContains(double  maxCov) {
   uint64  bLimit = (uint64)floor(maxCov * hiEnd);
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
-    if  (posLen[ci].use == true)                 //  Already a backbone read;
+    if ((posLen[ci].use == true) ||              //  Already a backbone read or
+        (posLen[ci].ign == true))                //  something we want to ignore;
       continue;                                  //  skip this read.
 
     if (_stashCont[1] + _stashBack[1] > bLimit)  //  Exceeded coverage limit.
@@ -99,9 +105,15 @@ tgTig::stashContains(double  maxCov) {
     _stashCont[1] += posLen[ci].len;             //
   }
 
-  //  Remove unused reads from the tig.
+  //  Transfer the 'use' flag to the reads in the tig.
 
-  if (_stashStsh[0] > 0) {
+  for (uint32 ci=0; ci<_childrenLen; ci++)
+    _children[ posLen[ci].idx ].skipConsensus( !posLen[ci].use );
+
+  //  Optionally remove the unused reads from the tig.  Read correction (with
+  //  falconsense) uses this mode; utgcns does not.
+
+  if ((enableStash) && (_stashStsh[0] > 0)) {
     _stashedLen = _childrenLen;                      //  Save the original list
     _stashedMax = _childrenMax;                      //  so we can restore it later.
     _stashed    = _children;
@@ -128,7 +140,7 @@ tgTig::stashContains(double  maxCov) {
 }
 
 
-
+#if 0
 void
 tgTig::unstashContains(void) {
 
@@ -200,4 +212,7 @@ tgTig::unstashContains(void) {
   _stashedMax = 0;
   _stashed    = NULL;
 }
+#endif
+
+
 
