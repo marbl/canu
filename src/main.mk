@@ -230,3 +230,35 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 utgcns/layoutToPackage.mk \
                 \
                 gfa/alignGFA.mk
+
+EXECUTABLES := pipelines/canu.pl                        -> bin/canu \
+               pipelines/canu-time.pl                   -> bin/canu-time \
+               pipelines/draw-tig.pl                    -> bin/draw-tig
+
+FILES       += pipelines/canu.defaults                  -> bin/canu.defaults \
+               mhap/mhap-2.1.3.jar                      -> share/java/classes/mhap-2.1.3.jar \
+               pipelines/canu/Consensus.pm              -> lib/site_perl/canu/Consensus.pm \
+               pipelines/canu/CorrectReads.pm           -> lib/site_perl/canu/CorrectReads.pm \
+               pipelines/canu/HaplotypeReads.pm         -> lib/site_perl/canu/HaplotypeReads.pm \
+               pipelines/canu/Configure.pm              -> lib/site_perl/canu/Configure.pm \
+               pipelines/canu/Defaults.pm               -> lib/site_perl/canu/Defaults.pm \
+               pipelines/canu/Execution.pm              -> lib/site_perl/canu/Execution.pm \
+               pipelines/canu/SequenceStore.pm          -> lib/site_perl/canu/SequenceStore.pm \
+               pipelines/canu/Grid.pm                   -> lib/site_perl/canu/Grid.pm \
+               pipelines/canu/Grid_Cloud.pm             -> lib/site_perl/canu/Grid_Cloud.pm \
+               pipelines/canu/Grid_DNANexus.pm          -> lib/site_perl/canu/Grid_DNANexus.pm \
+               pipelines/canu/Grid_LSF.pm               -> lib/site_perl/canu/Grid_LSF.pm \
+               pipelines/canu/Grid_Local.pm             -> lib/site_perl/canu/Grid_Local.pm \
+               pipelines/canu/Grid_PBSTorque.pm         -> lib/site_perl/canu/Grid_PBSTorque.pm \
+               pipelines/canu/Grid_SGE.pm               -> lib/site_perl/canu/Grid_SGE.pm \
+               pipelines/canu/Grid_Slurm.pm             -> lib/site_perl/canu/Grid_Slurm.pm \
+               pipelines/canu/Meryl.pm                  -> lib/site_perl/canu/Meryl.pm \
+               pipelines/canu/Output.pm                 -> lib/site_perl/canu/Output.pm \
+               pipelines/canu/OverlapBasedTrimming.pm   -> lib/site_perl/canu/OverlapBasedTrimming.pm \
+               pipelines/canu/OverlapErrorAdjustment.pm -> lib/site_perl/canu/OverlapErrorAdjustment.pm \
+               pipelines/canu/OverlapInCore.pm          -> lib/site_perl/canu/OverlapInCore.pm \
+               pipelines/canu/OverlapMhap.pm            -> lib/site_perl/canu/OverlapMhap.pm \
+               pipelines/canu/OverlapMMap.pm            -> lib/site_perl/canu/OverlapMMap.pm \
+               pipelines/canu/OverlapStore.pm           -> lib/site_perl/canu/OverlapStore.pm \
+               pipelines/canu/Report.pm                 -> lib/site_perl/canu/Report.pm \
+               pipelines/canu/Unitig.pm                 -> lib/site_perl/canu/Unitig.pm
