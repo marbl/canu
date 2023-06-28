@@ -39,7 +39,7 @@ sqCache::loadMetadata(void) {
     _reads[id]._sData          = nullptr;
   }
 
-  for (uint32 id=1; id <= _readsLen; id++) {
+  for (uint32 id=1; id < _readsLen; id++) {
     if (_seqStore->sqStore_isIgnoredRead(id, _which) == true)
       continue;
 
@@ -76,7 +76,7 @@ sqCache::sqCache(sqStore       *seqStore,
 
 sqCache::~sqCache() {
   if (_data == nullptr)                        //  If no data blocks, we have allocated
-    for (uint32 ii=0; ii <= _readsLen; ii++)   //  data for each read.
+    for (uint32 ii=0; ii < _readsLen; ii++)    //  data for each read.
       delete [] _reads[ii]._sData;
 
   delete [] _reads;                            //  Delete read metadata.
