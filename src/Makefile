@@ -155,7 +155,7 @@ define SET_DEFAULT_FLAGS
       CFLAGS   += -Wno-format-truncation
 
       CXXFLAGS += -Wno-format-truncation   #  Disable 'sprintf() into possibly smaller buffer'
-      CXXFLAGS += -std=c++20
+      CXXFLAGS += -std=c++2a
     endif
 
   else
