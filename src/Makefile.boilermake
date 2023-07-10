@@ -161,8 +161,8 @@ endef
 #  with nothing.
 #
 define MAKE_FILE_COPY_LIST
-  $(subst         $_ ->$_,->,$\
-          $(subst $_-> $_,->,$\
+  $(subst         $  ->$ ,->,$\
+          $(subst $ -> $ ,->,$\
                   $(strip ${1})))
 endef
 
