@@ -126,7 +126,7 @@ define SET_DEFAULT_FLAGS
 
     #  Enable gobs of warnings.
 
-    CFLAGS   += -pedantic
+    #CFLAGS   += -pedantic
     CFLAGS   += -Wall -Wextra -Wformat
     CFLAGS   += -Wno-char-subscripts
     CFLAGS   += -Wno-sign-compare
@@ -135,7 +135,7 @@ define SET_DEFAULT_FLAGS
     CFLAGS   += -Wno-unused-variable
     CFLAGS   += -Wno-deprecated-declarations
 
-    CXXFLAGS += -pedantic
+    #CXXFLAGS += -pedantic
     CXXFLAGS += -Wall -Wextra -Wformat
     CXXFLAGS += -Wno-char-subscripts
     CXXFLAGS += -Wno-sign-compare
@@ -377,7 +377,7 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS})
 
 .PHONY: clean
 clean:
-	find ../build -type d -print | sort -r | xargs -n 100 rmdir
+	if [ -d ../build ] ; then find ../build -type d -print | sort -r | xargs -n 100 rmdir ; fi
 	@echo ""
 	@echo "Cleaned."
 	@echo ""
