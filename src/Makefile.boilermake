@@ -79,7 +79,7 @@ TGT_STACK :=
 
 define BOILERMAKE
   # Create INCDIR and DEFS variables.
-  INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
+  INCDIRS := $(addprefix -iquote,$(call CANONICAL_PATH,${INCDIRS}))
   DEFS    := $(addprefix -D,${DEFS})
 
   # Add a new target rule for each user-defined target.
@@ -159,6 +159,9 @@ endef
 #  '->' in the user-supplied file-copy-list.  It works by first squashing
 #  adjacent white space to a single space, then replacing adjacent whitespace
 #  with nothing.
+#
+#  (The $\ at the end of some of these lines serve to eat up whitespace
+#   before the continued line.)
 #
 define MAKE_FILE_COPY_LIST
   $(subst         $  ->$ ,->,$\
@@ -390,7 +393,7 @@ define INCLUDE_SUBMAKEFILE
         $${OBJS}: SRC_CFLAGS   := $${$${TGT}_CFLAGS} $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${$${TGT}_CXXFLAGS} $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${$${TGT}_DEFS} $${SRC_DEFS})
-        $${OBJS}: SRC_INCDIRS  := $$(addprefix -I,\
+        $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,\
                                      $${$${TGT}_INCDIRS} $${SRC_INCDIRS})
     endif
 
