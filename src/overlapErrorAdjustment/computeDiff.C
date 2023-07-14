@@ -51,7 +51,7 @@ Convert2Int(const char* seq, int32 prefix_len) {
       ans |= Nucl2Int(*(seq - i)) << (2 * i);
     }
   }
-  assert(ans < (1 << (2 * prefix_len)));
+  assert(ans < (1 << (2 * std::abs(prefix_len))));
   return ans;
 }
 
