@@ -79,7 +79,7 @@ TGT_STACK :=
 
 define BOILERMAKE
   # Create INCDIR and DEFS variables.
-  INCDIRS := $(addprefix -iquote,$(call CANONICAL_PATH,${INCDIRS}))
+  INCDIRS := $(addprefix -iquote,$(call CANONICAL_PATH,${INCDIRS})) $(addprefix -isystem,$(call CANONICAL_PATH,${INCDIRS}))
   DEFS    := $(addprefix -D,${DEFS})
 
   # Add a new target rule for each user-defined target.
@@ -394,7 +394,7 @@ define INCLUDE_SUBMAKEFILE
         $${OBJS}: SRC_CXXFLAGS := $${$${TGT}_CXXFLAGS} $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${$${TGT}_DEFS} $${SRC_DEFS})
         $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,\
-                                     $${$${TGT}_INCDIRS} $${SRC_INCDIRS})
+                                     $${$${TGT}_INCDIRS} $${SRC_INCDIRS}) $$(addprefix -isystem,$${$${TGT}_INCDIRS} $${SRC_INCDIRS})
     endif
 
     ifneq "$$(strip $${SUBMAKEFILES})" ""

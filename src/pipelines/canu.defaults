@@ -1,0 +1,2 @@
+# this script can specify defaults for canu to use for all runs
+# for example, gridOptions to specify a partition or accounting info
