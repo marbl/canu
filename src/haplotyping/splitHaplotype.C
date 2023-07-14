@@ -79,6 +79,7 @@ public:
 
     _minRatio         = 1.0;
     _minOutputLength  = 1000;
+    _fastqOutput = false;
 
     _ambiguousName   = NULL;
     _ambiguousWriter = NULL;
@@ -126,6 +127,7 @@ public:
 
   double                    _minRatio;
   uint32                    _minOutputLength;
+  bool                      _fastqOutput;
 
   char                     *_ambiguousName;
   compressedFileWriter     *_ambiguousWriter;
@@ -224,12 +226,14 @@ public:
 
     _names = new simpleString [_maxReads];
     _bases = new simpleString [_maxReads];
+    _quals = new simpleString [_maxReads];
     _files = new uint32       [_maxReads];
   };
 
   ~readBatch() {
     delete [] _names;
     delete [] _bases;
+    delete [] _quals;
     delete [] _files;  //  Closed elsewhere!
   };
 
@@ -238,6 +242,7 @@ public:
 
   simpleString  *_names;       //  Name of each sequence.
   simpleString  *_bases;       //  Bases in each sequence.
+  simpleString  *_quals;       //  Quals in each sequence.
   uint32        *_files;       //  File ID where each sequence should be output.
 };
 
@@ -548,6 +553,8 @@ loadReadBatch(void *G) {
       if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
         s->_names[rr].set(seq.ident());                     //  enough, save it to our list.
         s->_bases[rr].set(seq.bases(), seq.length());
+        //if (g->_fastqOutput)
+        s->_quals[rr].set((const char*)seq.quals(), seq.length());
         s->_files[rr] = UINT32_MAX;
 
         s->_numReads++;
@@ -682,8 +689,13 @@ outputReadBatch(void *G, void *S) {
       g->_haps[ff]->nBases += s->_bases[ii].length();
     }
 
+    if (g->_fastqOutput) {
+    outputFASTQ(F, s->_bases[ii].string(),(const uint8*) s->_quals[ii].string(), s->_bases[ii].length(),
+                "%s", s->_names[ii].string());
+    } else {
     outputFASTA(F, s->_bases[ii].string(), s->_bases[ii].length(), 0,
                 "%s", s->_names[ii].string());
+    }
   }
 
   delete s;    //  We should recycle this, but hard to do.
@@ -726,6 +738,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-cl") == 0) {
       G->_minOutputLength = strtouint32(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-fastq") == 0) {
+      G->_fastqOutput = true;
     } else if (strcmp(argv[arg], "-threads") == 0) {
       G->_numThreads = setNumThreads(argv[++arg]);
 
@@ -788,6 +802,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "PARAMETERS\n");
     fprintf(stderr, "  -cr ratio        minimum ratio between best and second best to classify\n");
     fprintf(stderr, "  -cl length       minimum length of output read\n");
+    fprintf(stderr, "  -fastq           print fastq output instead of fasta\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -v               report how many batches per second are being processed\n");
     fprintf(stderr, "\n");
