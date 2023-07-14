@@ -614,6 +614,7 @@ if (($numPacBio   >= 0) &&
     setGlobalIfUndef("oeaHaploConfirm",  5);
     setGlobalIfUndef("utgErrorRate",     0.120);
     setGlobalIfUndef("cnsErrorRate",     0.200);
+    setGlobalIfUndef("maxInputCoverage",   200);
 }
 
 if (($numPacBio    > 0) &&
@@ -628,6 +629,7 @@ if (($numPacBio    > 0) &&
     setGlobalIfUndef("oeaHaploConfirm",  5);
     setGlobalIfUndef("utgErrorRate",     0.045);
     setGlobalIfUndef("cnsErrorRate",     0.075);
+    setGlobalIfUndef("maxInputCoverage",   200);
 }
 
 if (($numPacBio   == 0) &&

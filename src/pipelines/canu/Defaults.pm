@@ -1554,9 +1554,6 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'\n");
     }
 
-    if (!defined(getGlobal("maxInputCoverage"))) {
-       setGlobal("maxInputCoverage", 200);
-    }
     if (getGlobal("maxInputCoverage") eq "all") {
         setGlobal("maxInputCoverage", 0);
     }
