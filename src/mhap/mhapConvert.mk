@@ -1,7 +1,7 @@
 TARGET   := mhapConvert
 SOURCES  := mhapConvert.C
 
-SRC_INCDIRS  := .. ../utility/src ../stores liboverlap
+SRC_INCDIRS  := ../utility/src ../stores liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

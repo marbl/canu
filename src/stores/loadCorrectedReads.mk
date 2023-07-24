@@ -1,7 +1,7 @@
 TARGET   := loadCorrectedReads
 SOURCES  := loadCorrectedReads.C
 
-SRC_INCDIRS := .. ../utility/src
+SRC_INCDIRS := ../utility/src
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

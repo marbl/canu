@@ -1,7 +1,7 @@
 TARGET   := errorEstimate
 SOURCES  := errorEstimate.C
 
-SRC_INCDIRS  := .. ../utility/src ../stores ../overlapInCore ../overlapErrorAdjustment
+SRC_INCDIRS  := ../utility/src ../stores ../overlapInCore ../overlapErrorAdjustment
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

@@ -6,11 +6,7 @@ SOURCES  := utgcns.C \
             utgcns-parameters.C \
             utgcns-processTigs.C
 
-SRC_INCDIRS  := .. \
-                ../utility/src \
-                ../stores \
-                libpbutgcns \
-                libboost
+SRC_INCDIRS := ../utility/src ../stores libpbutgcns libboost
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}
