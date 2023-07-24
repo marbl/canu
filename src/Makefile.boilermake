@@ -54,15 +54,6 @@ JAVA_EXTS    := %.jar %.tar
 ALL_SRC_EXTS := ${C_SRC_EXTS} ${CXX_SRC_EXTS} ${JAVA_EXTS}
 
 #
-# Initialize global variables.
-#   INCDIRS is a list of include directories to pass to the compiler;
-#           "-I{path}INCDIR".  It has the canonical path added.
-#   DEFS is passed to the compiler; "-D{def}"
-#
-INCDIRS   :=
-DEFS      :=
-
-#
 # Initialize internal variables.
 #
 ALL_TGTS  :=
@@ -78,9 +69,6 @@ TGT_STACK :=
 ########################################
 
 define BOILERMAKE
-  # Create INCDIR and DEFS variables.
-  INCDIRS := $(addprefix -iquote,$(call CANONICAL_PATH,${INCDIRS})) $(addprefix -isystem,$(call CANONICAL_PATH,${INCDIRS}))
-  DEFS    := $(addprefix -D,${DEFS})
 
   # Add a new target rule for each user-defined target.
   $(foreach TGT,${ALL_TGTS},\
@@ -241,21 +229,10 @@ define ADD_TARGET_RULE
   endif
 endef
 
-# CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
-#   form. The canonical form is the path, relative to the project's top-level
-#   directory (the directory from which "make" is run), and without
-#   any "./" or "../" sequences. For paths that are not  located below the
-#   top-level directory, the canonical form is the absolute path (i.e. from
-#   the root of the filesystem) also without "./" or "../" sequences.
-define CANONICAL_PATH
-$(patsubst ${CURDIR}/%,%,$(abspath ${1}))
-endef
-
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
-	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
+	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${SRC_INCDIRS} ${EXT_INCDIRS} ${SRC_DEFS} $<)
 	@cp ${@:%$(suffix $@)=%.d} ${@:%$(suffix $@)=%.P}; \
 	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < ${@:%$(suffix $@)=%.d} \
@@ -266,8 +243,7 @@ endef
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
-	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
+	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${SRC_INCDIRS} ${EXT_INCDIRS} ${SRC_DEFS} $<)
 	@cp ${@:%$(suffix $@)=%.d} ${@:%$(suffix $@)=%.P}; \
 	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < ${@:%$(suffix $@)=%.d} \
@@ -285,15 +261,9 @@ define INCLUDE_SUBMAKEFILE
     # Initialize all variables that can be defined by a makefile fragment, then
     # include the specified makefile fragment.
     TARGET        :=
-    TGT_CFLAGS    :=
-    TGT_CXXFLAGS  :=
-    TGT_DEFS      :=
-    TGT_INCDIRS   :=
     TGT_LDFLAGS   :=
     TGT_LDLIBS    :=
     TGT_LINKER    :=
-    TGT_POSTCLEAN :=
-    TGT_POSTMAKE  :=
     TGT_PREREQS   :=
 
     SOURCES       :=
@@ -301,6 +271,8 @@ define INCLUDE_SUBMAKEFILE
     SRC_CXXFLAGS  :=
     SRC_DEFS      :=
     SRC_INCDIRS   :=
+
+    EXT_INCDIRS   :=
 
     SUBMAKEFILES  :=
 
@@ -328,35 +300,17 @@ define INCLUDE_SUBMAKEFILE
           TGT := $$(addprefix bin/, $$(strip $${TARGET}))
         endif
         ALL_TGTS += $${TGT}
-        $${TGT}_CFLAGS    := $${TGT_CFLAGS}
-        $${TGT}_CXXFLAGS  := $${TGT_CXXFLAGS}
-        $${TGT}_DEFS      := $${TGT_DEFS}
-        $${TGT}_DEPS      :=
-        TGT_INCDIRS       := $$(call QUALIFY_PATH,$${DIR},$${TGT_INCDIRS})
-        TGT_INCDIRS       := $$(call CANONICAL_PATH,$${TGT_INCDIRS})
-        $${TGT}_INCDIRS   := $${TGT_INCDIRS}
         $${TGT}_LDFLAGS   := $${TGT_LDFLAGS}
         $${TGT}_LDLIBS    := $${TGT_LDLIBS}
         $${TGT}_LINKER    := $${TGT_LINKER}
         $${TGT}_OBJS      :=
-        $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
-        $${TGT}_POSTMAKE  := $${TGT_POSTMAKE}
         $${TGT}_PREREQS   := $$(addprefix $${TARGET_DIR}/lib/,$${TGT_PREREQS})
-        $${TGT}_SOURCES   :=
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
         TGT := $$(strip $$(call PEEK,$${TGT_STACK}))
-        $${TGT}_CFLAGS    += $${TGT_CFLAGS}
-        $${TGT}_CXXFLAGS  += $${TGT_CXXFLAGS}
-        $${TGT}_DEFS      += $${TGT_DEFS}
-        TGT_INCDIRS       := $$(call QUALIFY_PATH,$${DIR},$${TGT_INCDIRS})
-        TGT_INCDIRS       := $$(call CANONICAL_PATH,$${TGT_INCDIRS})
-        $${TGT}_INCDIRS   += $${TGT_INCDIRS}
         $${TGT}_LDFLAGS   += $${TGT_LDFLAGS}
         $${TGT}_LDLIBS    += $${TGT_LDLIBS}
-        $${TGT}_POSTCLEAN += $${TGT_POSTCLEAN}
-        $${TGT}_POSTMAKE  += $${TGT_POSTMAKE}
         $${TGT}_PREREQS   += $${TGT_PREREQS}
     endif
 
@@ -376,6 +330,8 @@ define INCLUDE_SUBMAKEFILE
         SOURCES     := $$(call CANONICAL_PATH,$${SOURCES})
         SRC_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${SRC_INCDIRS})
         SRC_INCDIRS := $$(call CANONICAL_PATH,$${SRC_INCDIRS})
+        EXT_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${EXT_INCDIRS})
+        EXT_INCDIRS := $$(call CANONICAL_PATH,$${EXT_INCDIRS})
 
         # Save the list of source files for this target.
         $${TGT}_SOURCES += $${SOURCES}
@@ -390,11 +346,11 @@ define INCLUDE_SUBMAKEFILE
         # variables that were defined.
         $${TGT}_OBJS += $${OBJS}
         $${TGT}_DEPS += $${OBJS:%.o=%.P}
-        $${OBJS}: SRC_CFLAGS   := $${$${TGT}_CFLAGS} $${SRC_CFLAGS}
-        $${OBJS}: SRC_CXXFLAGS := $${$${TGT}_CXXFLAGS} $${SRC_CXXFLAGS}
-        $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${$${TGT}_DEFS} $${SRC_DEFS})
-        $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,\
-                                     $${$${TGT}_INCDIRS} $${SRC_INCDIRS}) $$(addprefix -isystem,$${$${TGT}_INCDIRS} $${SRC_INCDIRS})
+        $${OBJS}: SRC_CFLAGS   := $${SRC_CFLAGS}
+        $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
+        $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${SRC_DEFS})
+        $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,$${SRC_INCDIRS})
+        $${OBJS}: EXT_INCDIRS  := $$(addprefix -isystem,$${EXT_INCDIRS})
     endif
 
     ifneq "$$(strip $${SUBMAKEFILES})" ""
@@ -438,6 +394,16 @@ endef
 #   delimited stack, and results in the new value of the stack.
 define PUSH
 ${2:%=${1}:%}
+endef
+
+# CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
+#   form. The canonical form is the path, relative to the project's top-level
+#   directory (the directory from which "make" is run), and without
+#   any "./" or "../" sequences. For paths that are not  located below the
+#   top-level directory, the canonical form is the absolute path (i.e. from
+#   the root of the filesystem) also without "./" or "../" sequences.
+define CANONICAL_PATH
+$(patsubst ${CURDIR}/%,%,$(abspath ${1}))
 endef
 
 # QUALIFY_PATH - Given a "root" directory and one or more paths, qualifies the

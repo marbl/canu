@@ -7,7 +7,9 @@ SOURCES  := utgcns.C \
             utgcns-processTigs.C \
             libpbutgcns/AlnGraphBoost.C
 
-SRC_INCDIRS := ../utility/src ../stores libpbutgcns libboost
+SRC_INCDIRS := ../utility/src ../stores libpbutgcns
+
+EXT_INCDIRS := libboost
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}
