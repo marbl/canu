@@ -125,15 +125,6 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 overlapInCore/liboverlap/prefixEditDistance-forward.C \
                 overlapInCore/liboverlap/prefixEditDistance-reverse.C \
                 \
-                utgcns/libNDalign/NDalign.C \
-                \
-                utgcns/libNDalign/Binomial_Bound.C \
-                utgcns/libNDalign/NDalgorithm.C \
-                utgcns/libNDalign/NDalgorithm-allocateMoreSpace.C \
-                utgcns/libNDalign/NDalgorithm-extend.C \
-                utgcns/libNDalign/NDalgorithm-forward.C \
-                utgcns/libNDalign/NDalgorithm-reverse.C \
-                \
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 \
                 gfa/gfa.C \
