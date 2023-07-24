@@ -44,18 +44,23 @@ $(eval $(call TEST_VERSION, ${MAKE}, 3, 3.81))
 
 #
 #  Initialize submodules if they aren't here yet.
+#   - if the submodule directory exists and it is empty, then have
+#     git fetch the submodule (with some fancy logging).
 #
 
 define INIT_SUBMODULE
-  ifeq ($$(wildcard ${2}), )
-    $$(info $$(shell git submodule update --init ${1}))
+  ifeq ($$(wildcard ${1}),${1})
+  ifeq ($$(wildcard ${1}/*),)
+    $$(info Fetching submodule '${1}')
+    $$(shell git submodule update --init ${1} 2>&1 | awk '{ print " - "$$$$0 }' 1>&2)
     $$(info )
+  endif
   endif
 endef
 
-$(eval $(call INIT_SUBMODULE, utility,      utility/src/Makefile))
-$(eval $(call INIT_SUBMODULE, meryl,        meryl/src/Makefile))
-$(eval $(call INIT_SUBMODULE, seqrequester, seqrequester/src/Makefile))
+$(eval $(call INIT_SUBMODULE,utility))
+$(eval $(call INIT_SUBMODULE,meryl))
+$(eval $(call INIT_SUBMODULE,seqrequester))
 
 #
 #  Set compiler and flags based on operating system and compiler toolchain.
@@ -119,10 +124,12 @@ define SET_DEFAULT_FLAGS
       LDFLAGS  += -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
     endif
 
-    #  htslib and meryl-utility need this.
+    #  htslib and meryl-utility need this for SIMD support.
 
-    #CFLAGS   += -mxsave
-    #CXXFLAGS += -mxsave
+    ifeq ($$(MACHINETYPE), amd64)
+      CFLAGS   += -mxsave
+      CXXFLAGS += -mxsave
+    endif
 
     #  Enable gobs of warnings.
 
@@ -396,10 +403,19 @@ $(eval $(call BOILERMAKE))
 #
 #  But, because make helpfully squashes all the lines to a single line we
 #  need to do something funky and write the version information for C++ and
-#  for make to one file.
+#  for make to one file - which then is included here and in source files.
+#  Makefile.boilermake adds this file as a dependency to ALL source files.
+#
+#  For projects that include meryl-utility as a submodule (the usual case)
+#  write version.H in the submodule src/ directory; for meryl-utility itself,
+#  write in the current directory.
 #
 
-VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} utility/src/version.H)
+ifeq ($(wildcard utility/src), utility/src)
+  VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} utility/src/version.H)
+else
+  VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} version.H)
+endif
 
 include ${VERSION_H}
 
