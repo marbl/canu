@@ -83,6 +83,7 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/system/sweatShop-v1.C \
                 utility/src/system/system-stackTrace-v1.C \
                 utility/src/system/system-v1.C \
+                utility/src/system/time-v1.C \
                 \
                 correction/computeGlobalScore.C \
                 correction/falconConsensus.C \
