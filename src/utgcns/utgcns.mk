@@ -4,7 +4,8 @@ SOURCES  := utgcns.C \
             unitigConsensus.C \
             unitigPartition.C \
             utgcns-parameters.C \
-            utgcns-processTigs.C
+            utgcns-processTigs.C \
+            libpbutgcns/AlnGraphBoost.C
 
 SRC_INCDIRS := ../utility/src ../stores libpbutgcns libboost
 

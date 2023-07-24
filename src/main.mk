@@ -125,8 +125,6 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 overlapInCore/liboverlap/prefixEditDistance-forward.C \
                 overlapInCore/liboverlap/prefixEditDistance-reverse.C \
                 \
-                utgcns/libpbutgcns/AlnGraphBoost.C  \
-                \
                 gfa/gfa.C \
                 gfa/bed.C
 
@@ -147,20 +145,12 @@ SOURCES      += utility/src/system/libbacktrace/atomic.c \
                 utility/src/system/libbacktrace/unknown.c
 endif
 
-
-
-SRC_INCDIRS  := . \
-                utility/src \
+SRC_INCDIRS  := utility/src \
                 stores \
                 stores/libsnappy \
-                alignment \
-                utgcns/libNDalign \
-                utgcns/libcns \
-                utgcns/libpbutgcns \
-                utgcns/libNDFalcon \
-                utgcns/libboost \
                 overlapInCore \
                 overlapInCore/liboverlap
+
 
 SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/ovStoreBuild.mk \
