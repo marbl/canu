@@ -304,6 +304,8 @@ public:
     clearStash();
   };
 
+  void           cleanup(void);   //  Sort reads, make sure the start at zero, set length.
+
   //  Save and load a package of data needed to process this tig.
 
   void           exportData(writeBuffer                *exportDataFile,

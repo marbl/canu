@@ -114,12 +114,12 @@ loadVerkkoLayouts(sqCache              *reads,
         tig->addChild()->set(id,
                              0,
                              0, 0,
-                             strtouint32(W[1]), strtouint32(W[2]));
+                             strtoint32(W[1]), strtoint32(W[2]));
       else if (W.numWords() == 5)
         tig->addChild()->set(id,                                    //  ID of the read.
                              0,                                     //  Parent, unused.
-                             strtouint32(W[3]), strtouint32(W[4]),  //  Skip amounts on oriented ends.
-                             strtouint32(W[1]), strtouint32(W[2])); //  Position of the (aligned) read in the layout.
+                             strtoint32(W[3]), strtoint32(W[4]),  //  Skip amounts on oriented ends.
+                             strtoint32(W[1]), strtoint32(W[2])); //  Position of the (aligned) read in the layout.
       else
         fprintf(stderr, "ERROR: While processing tig %d, expected 3 or 5 words, got %u in line '%s'.\n", tig->tigID(), W.numWords(), line), err++;
 
@@ -144,6 +144,8 @@ loadVerkkoLayouts(sqCache              *reads,
     else if (strcmp(W[0], "end") == 0) {
       if (nReads != 0)
         fprintf(stderr, "ERROR: Tig '%d' reads doesn't match number expected\n", tig->tigID()), err++;
+
+      tig->cleanup();
 
       fprintf(stderr, "-- Loading layouts - tig %6u of length %9u bp with %7u reads\n", tig->tigID(), tig->length(), tig->numberOfChildren());
       tigs.push_back(tig);

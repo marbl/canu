@@ -683,6 +683,32 @@ tgTig::loadLayout(FILE *F) {
 
 
 
+//  Adjusts positions so the tig starts at zero.
+//  Updates length to then be the max-coord.
+//  Does NOT change the order of reads.
+//
+void
+tgTig::cleanup(void) {
+  int32   minC = int32max;
+  int32   maxC = int32min;
+
+  for (uint32 ii=0; ii<_childrenLen; ii++) {
+    minC = std::min(minC, _children[ii]._min);
+    maxC = std::max(maxC, _children[ii]._max);
+  }
+
+  for (uint32 ii=0; ii<_childrenLen; ii++) {
+    _children[ii]._min -= minC;
+    _children[ii]._max -= minC;
+  }  
+
+  if (_childrenLen > 0)
+    _layoutLen = maxC - minC;
+}
+
+
+
+
 //  Dump the tig and all data referenced to a file.
 //
 //  For correction, we also need to dump the read this tig is representing;
