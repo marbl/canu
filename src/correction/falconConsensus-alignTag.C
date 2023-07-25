@@ -101,12 +101,11 @@ printAllLog(char const *format, ...) {
   if (thrlog == nullptr)
     return;
 
-  va_start(ap, format);
-
-  for (uint32 ii=0; ii<getNumThreads(); ii++)
+  for (uint32 ii=0; ii<getNumThreads(); ii++) {
+    va_start(ap, format);
     vfprintf(thrlog[ii], format, ap);
-
-  va_end(ap);
+    va_end(ap);
+  }
 }
 
 
@@ -120,7 +119,7 @@ printLog(falconInput *evidence, uint32 j, char const *format, ...) {
   uint32  tid = getThreadNum();
 
   va_start(ap, format);
-  fprintf(thrlog[tid], "read%08u-evidence%08u len %-6u ", evidence[0].ident, evidence[j].ident, evidence[j].readLength);
+  fprintf(thrlog[tid], "read%08u-evidence%08u len %-6d ", evidence[0].ident, evidence[j].ident, evidence[j].readLength);
   vfprintf(thrlog[tid], format, ap);
   va_end(ap);
 }
@@ -275,7 +274,7 @@ alignReadsToTemplate(falconInput    *evidence,
   double         maxDifference = 1.0 - minOlapIdentity;
   alignTagList **tagList = new alignTagList * [evidenceLen];
 
-  printAllLog("STARTING read %u length %u with %u evidence reads.\n",
+  printAllLog("STARTING read %u length %d with %u evidence reads.\n",
               evidence[0].ident, evidence[0].readLength,
               evidenceLen);
 
