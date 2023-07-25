@@ -138,7 +138,7 @@ public:
 
     _min           = std::min(bgn, end);
     _max           = std::max(bgn, end);
-    _isReverse     = (bgn < end);
+    _isReverse     = (bgn >= end);
 
     _deltaOffset   = 0;
     _deltaLen      = 0;
