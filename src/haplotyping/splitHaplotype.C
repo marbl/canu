@@ -35,8 +35,16 @@ using namespace merylutil::kmers::v1;
 
 class hapData {
 public:
-  hapData(char *merylname, char *histoname, char *fastaname);
-  ~hapData();
+  hapData(char *merylname, char *histoname, char *fastaname) {
+    strncpy(merylName,  merylname, FILENAME_MAX);
+    strncpy(histoName,  histoname, FILENAME_MAX);
+    strncpy(outputName, fastaname, FILENAME_MAX);
+  }
+
+  ~hapData() {
+    delete lookup;
+    delete outputWriter;
+  }
 
 public:
   void   initializeKmerTable(uint32 maxMemory);
@@ -47,20 +55,20 @@ public:
   };
 
 public:
-  char                  merylName[FILENAME_MAX+1];
-  char                  histoName[FILENAME_MAX+1];
-  char                  outputName[FILENAME_MAX+1];
+  char                  merylName[FILENAME_MAX+1]  = {0};
+  char                  histoName[FILENAME_MAX+1]  = {0};
+  char                  outputName[FILENAME_MAX+1] = {0};
 
-  merylExactLookup     *lookup;
-  uint32                minCount;
-  uint32                maxCount;
-  uint64                nKmers;
+  merylExactLookup     *lookup   = nullptr;
+  uint32                minCount = 0;
+  uint32                maxCount = uint32max;
+  uint64                nKmers   = 0;
 
-  uint32                nReads;
-  uint64                nBases;
+  uint32                nReads = 0;
+  uint64                nBases = 0;
 
-  compressedFileWriter *outputWriter;
-  FILE                 *outputFile;
+  compressedFileWriter *outputWriter = nullptr;
+  FILE                 *outputFile   = nullptr;
 };
 
 
@@ -68,35 +76,11 @@ public:
 class allData {
 public:
   allData() {
-    _seqName          = NULL;
-    _idMin            = 1;
-    _idCur            = 1;
-    _idMax            = UINT32_MAX;
-    _seqStore         = NULL;
-    _numReads         = 0;
-
-    //  _seqs and _haps are assumed to be clear already.
-
-    _minRatio         = 1.0;
-    _minOutputLength  = 1000;
-
-    _ambiguousName   = NULL;
-    _ambiguousWriter = NULL;
-    _ambiguous       = NULL;
-    _ambiguousReads  = 0;
-    _ambiguousBases  = 0;
-
-    _filteredReads   = 0;
-    _filteredBases   = 0;
-
-    _numThreads      = getMaxThreadsAllowed();
-    _maxMemory       = 0;
+    _numThreads = getMaxThreadsAllowed();
   };
 
   ~allData() {
-
-    if (_seqStore)
-      delete _seqStore;
+    delete _seqStore;
 
     for (uint32 ii=0; ii<_haps.size(); ii++)
       delete _haps[ii];
@@ -109,75 +93,63 @@ public:
   void      openOutputs(void);
   void      loadHaplotypeData(void);
 
-
 public:
-  char                     *_seqName;   //  Input from a Canu seqStore
-  uint32                    _idMin;
-  uint32                    _idCur;
-  uint32                    _idMax;
-  sqStore                  *_seqStore;
+  char                     *_seqName   = nullptr;   //  Input from a Canu seqStore
+  uint32                    _idMin     = 1;
+  uint32                    _idCur     = 1;
+  uint32                    _idMax     = uint32max;
+  sqStore                  *_seqStore  = nullptr;
   sqRead                    _read;
-  uint32                    _numReads;
+  uint32                    _numReads  = 0;
 
-  std::queue<dnaSeqFile *>  _seqs;      //  Input from FASTA/FASTQ files.
-  uint32                    _seqCounts; // read counts for current file
+  std::queue<char const *>  _inNames;
+  dnaSeqFile               *_seqs      = nullptr;   //  Input from FASTA/FASTQ files.
+  uint32                    _seqCounts = 0;         // read counts for current file
 
   std::vector<hapData *>    _haps;
 
-  double                    _minRatio;
-  uint32                    _minOutputLength;
+  double                    _minRatio        = 1.0;
+  uint32                    _minOutputLength = 1000;
 
-  char                     *_ambiguousName;
-  compressedFileWriter     *_ambiguousWriter;
-  FILE                     *_ambiguous;
-  uint32                    _ambiguousReads;
-  uint64                    _ambiguousBases;
+  char                     *_ambiguousName   = nullptr;
+  compressedFileWriter     *_ambiguousWriter = nullptr;
+  FILE                     *_ambiguous       = nullptr;
+  uint32                    _ambiguousReads  = 0;
+  uint64                    _ambiguousBases  = 0;
 
-  uint32                    _filteredReads;
-  uint64                    _filteredBases;
+  uint32                    _filteredReads   = 0;
+  uint64                    _filteredBases   = 0;
 
-  uint32                    _numThreads;
-  uint32                    _maxMemory;
+  uint32                    _numThreads      = 0;   //  Reset in constructor.
+  uint32                    _maxMemory       = 0;
 };
 
 
 
 class thrData {
 public:
-  thrData() {
-    matches = NULL;
-  };
-
-  ~thrData() {
-    delete [] matches;
-  };
+  thrData()   {                    };
+  ~thrData()  { delete [] matches; };
 
 public:
   void          clearMatches(uint32 nHaps) {
-    if (matches == NULL)
+    if (matches == nullptr)
       matches = new uint32 [nHaps];
 
     for (uint32 hh=0; hh<nHaps; hh++)
       matches[hh] = 0;
   };
 
-
 public:
-  uint32       *matches;
+  uint32       *matches = nullptr;
 };
 
 
 
 class simpleString {
 public:
-  simpleString() {
-    _strLen = 0;
-    _strMax = 0;
-    _str    = NULL;
-  };
-  ~simpleString() {
-    delete [] _str;
-  };
+  simpleString()   {                 };
+  ~simpleString()  { delete [] _str; };
 
   void    clear(void) {
     _strLen = 0;
@@ -201,17 +173,12 @@ public:
     _strLen = insLen;
   }
 
-  uint32  length(void) {
-    return(_strLen);
-  };
+  uint32  length(void)  { return(_strLen); };
+  char   *string(void)  { return(_str);    };
 
-  char   *string(void)  {
-    return(_str);
-  };
-
-  uint32  _strLen;
-  uint32  _strMax;
-  char   *_str;
+  uint32  _strLen = 0;
+  uint32  _strMax = 0;
+  char   *_str    = nullptr;
 };
 
 
@@ -233,45 +200,14 @@ public:
     delete [] _files;  //  Closed elsewhere!
   };
 
-  uint32         _maxReads;    //  Maximum number of reads we can store here.
-  uint32         _numReads;    //  Actual number of reads stored here.
+  uint32         _maxReads = 0;     //  Maximum number of reads we can store here.
+  uint32         _numReads = 0;     //  Actual number of reads stored here.
 
-  simpleString  *_names;       //  Name of each sequence.
-  simpleString  *_bases;       //  Bases in each sequence.
-  uint32        *_files;       //  File ID where each sequence should be output.
+  simpleString  *_names = nullptr;  //  Name of each sequence.
+  simpleString  *_bases = nullptr;  //  Bases in each sequence.
+  uint32        *_files = nullptr;  //  File ID where each sequence should be output.
 };
 
-
-
-
-
-
-
-
-
-
-hapData::hapData(char *merylname, char *histoname, char *fastaname) {
-  strncpy(merylName,  merylname, FILENAME_MAX);
-  strncpy(histoName,  histoname, FILENAME_MAX);
-  strncpy(outputName, fastaname, FILENAME_MAX);
-
-  lookup       = NULL;
-  minCount     = 0;
-  maxCount     = UINT32_MAX;
-  nKmers       = 0;
-
-  nReads       = 0;
-  nBases       = 0;
-
-  outputWriter = NULL;
-  outputFile   = NULL;
-};
-
-
-hapData::~hapData() {
-  delete lookup;
-  delete outputWriter;
-};
 
 
 
@@ -526,24 +462,32 @@ loadReadBatch(void *G) {
 
     //  Nope, try to load from one of the sequence files.
 
-    if (g->_seqs.empty() == false) {
-      if (g->_seqs.front()->loadSequence(seq) == false) {   //  Failed to load a sequence, hit EOF.
+    if (g->_inNames.empty() == false) {
+      if (g->_seqs == nullptr) {
+        fprintf(stdout, "-- Begin    processing file %s\n", g->_inNames.front());
+        g->_seqs = new dnaSeqFile(g->_inNames.front());
+      }
+
+      if (g->_seqs->loadSequence(seq) == false) {   //  Failed to load a sequence, hit EOF.
         if (g->_seqCounts == 0) {
             fprintf(stdout, "--\n");
-            fprintf(stdout, "-- ERROR:   loaded no reads from file %s, are you sure it is a valid fastq/fasta file?\n", g->_seqs.front()->filename());
+            fprintf(stdout, "-- ERROR:   loaded no reads from file %s, are you sure it is a valid fastq/fasta file?\n", g->_inNames.front());
             fprintf(stdout, "--\n");
             fflush(stdout);
             exit(1);
         }
-        fprintf(stdout, "-- Finished processing file %s with %d records\n", g->_seqs.front()->filename(), g->_seqCounts);
+
+        fprintf(stdout, "-- Finished processing file %s with %d records\n", g->_inNames.front(), g->_seqCounts);
         fprintf(stdout, "--\n");
+
+        delete g->_seqs;                            //  Discard the file and try the next.
+
+        g->_seqs = nullptr;
         g->_seqCounts = 0;
-        delete g->_seqs.front();                            //  Discard the file and try the next.
-        g->_seqs.pop();
+        g->_inNames.pop();
+
         continue;
       }
-      if (g->_seqCounts == 0)
-         fprintf(stdout, "-- Begin    processing file %s\n", g->_seqs.front()->filename());
 
       if (seq.length() >= g->_minOutputLength) {            //  Loaded something.  If it's long
         s->_names[rr].set(seq.ident());                     //  enough, save it to our list.
@@ -711,7 +655,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-R") == 0) {
       while ((arg < argc) && (fileExists(argv[arg+1])))
-        G->_seqs.push(new dnaSeqFile(argv[++arg]));
+        G->_inNames.push(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-H") == 0) {   //  HAPLOTYPE SPECIFICATION
       G->_haps.push_back(new hapData(argv[arg+1], argv[arg+2], argv[arg+3]));
@@ -743,9 +687,9 @@ main(int argc, char **argv) {
     }
   }
 
-  if ((G->_seqName == NULL) && (G->_seqs.size() == 0))
+  if ((G->_seqName == NULL) && (G->_inNames.size() == 0))
     err.push_back("No input sequences supplied with either (-S) or (-R).\n");
-  if ((G->_seqName != NULL) && (G->_seqs.size() != 0))
+  if ((G->_seqName != NULL) && (G->_inNames.size() != 0))
     err.push_back("Only one type of input reads (-S or -R) supported.\n");
   if (G->_haps.size() < 2)
     err.push_back("Not enough haplotypes (-H) supplied.\n");
