@@ -129,7 +129,7 @@ sqStore::sqStore_loadReadFromBuffer(readBuffer *B, sqRead *read) {
 //
 void
 sqStore::sqStore_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadDataWriter *wr) {
-  sqReadSeq   emptySeq;
+  sqReadSeq   emptySeq;   emptySeq.sqReadSeq_initialize();
 
   //  Write the read metadata.
 
