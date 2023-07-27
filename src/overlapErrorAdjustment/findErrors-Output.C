@@ -101,6 +101,18 @@ FPrint_Votes(FILE *fp, const Frag_Info_t &read, uint32 j, uint32 loc_r) {
   fprintf(fp, "\n");
 }
 
+
+//  Return the highest count DELETE or SUBST vote.
+//  Returns NO_VOTE if
+//    The SUBST is what is there already
+//    There is only one vote
+//    The highest vote is less than 50% of votes
+//    There are Haplo_Expected or more votes (DEL/SUBST) with weight >= Haplo_Confirm
+//    The vote is 'confirmed == 1' and weight <= 6
+//
+//  'confirmed' means that a read has this base and it is at least 3 bases
+//  away from an alignment difference.
+//
 Vote_Value_t
 Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Haplo_Confirm) {
   Vote_Value_t  vote_t      = DELETE;
@@ -161,6 +173,12 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32
   return vote_t;
 }
 
+//  Returns a string to insert.
+//    Empty string if only one read supports the insertion
+//    Empty string if the insertion is not dominant (including reads that vote for no insertion)
+//    Empty string if more than 2 votes for an insertion (or one insert and one no insertion)
+//    Empty string if EXACTLY one read confirms no insertion and 6 or fewer vote for an insertion.
+//
 std::string
 Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Haplo_Confirm) {
 
@@ -214,6 +232,10 @@ Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Ha
 
   return ins_vote;
 }
+
+
+//  Returns true if a Haplo_Confirm delete is present AND 
+//
 
 bool Is_Het_Del(const Vote_Tally_t &vote, int32 Haplo_Confirm) {
   //TODO consider using STRONG_CONFIRMATION_READ_CNT
