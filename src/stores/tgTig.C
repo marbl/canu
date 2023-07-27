@@ -777,6 +777,9 @@ tgTig::importData(readBuffer                  *importDataFile,
                   FILE                        *layoutOutput,
                   FILE                        *sequenceOutput) {
 
+  constexpr sqRead_which  RN = sqRead_raw       | sqRead_normal;   //  From Verkko
+  constexpr sqRead_which  CT = sqRead_corrected | sqRead_trimmed;  //  From utgcns
+
   //  Try to load the metadata.  If nothing there, we're done.
 
   //fprintf(stderr, "importData()-\n");
@@ -798,6 +801,24 @@ tgTig::importData(readBuffer                  *importDataFile,
     sqRead     *read = new sqRead;
 
     sqStore::sqStore_loadReadFromBuffer(importDataFile, read);
+
+    //  BPW thinks, but isn't 100% positive, that all reads will be either RN
+    //  (if from verkko) or CT (if from canu) but never both.
+    //
+    //  Because read->sqRead_sequence() below needs to know the version to
+    //  use, we can either set the default on the first read or remember the
+    //  version for each read and pass it explicitly.  Since we're pretty
+    //  sure the version is the same for everyone, we just set it on the
+    //  first read.
+    //
+    //  Just in case we get both versions in a package, we want to use CT
+    //  preferentially over RN - this would happen in a Canu package if it
+    //  happens at all.
+    //
+    if (sqRead_defaultVersion == sqRead_unset) {
+      if (read->sqRead_length(RN) > 0)   sqRead_defaultVersion = RN;
+      if (read->sqRead_length(CT) > 0)   sqRead_defaultVersion = CT;
+    }
 
     //fprintf(stderr, "found read %u of length %u\n", read->sqRead_readID(), read->sqRead_length());
 
