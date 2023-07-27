@@ -26,7 +26,6 @@ loadTigFromImport(cnsParameters &params) {
 
  tryImportAgain:
   tig = new tgTig;
-  tig->_utgcns_verboseLevel = params.verbosity;
  
   params.unloadReads();                       //  Forget any reads from the last tig.
 
@@ -61,11 +60,10 @@ loadTigFromStore(cnsParameters &params) {
   if (params.tigCur >= params.tigEnd)   //  If current is past the end, we're done.
     return nullptr;
 
-  tig = params.loadTig(params.tigCur);  //  Otherwise, load the tig from the store.
-  tig->_utgcns_verboseLevel = params.verbosity;
+  tig = params.copyTig(params.tigCur);  //  Otherwise, load A COPY of the tig from the store.
 
-  if (params.skipTig(tig)) {            //  f params say to skip the tig,
-    params.unloadTig(tig);              //  forget the tig and
+  if (params.skipTig(tig)) {            //  If params say to skip the tig,
+    delete tig;                         //  forget the tig (we own the copy) and
     goto tryLoadAgain;                  //  load another one.
   }
 
@@ -125,15 +123,12 @@ processTigs(cnsParameters  &params) {
     nTigs       += (tig->numberOfChildren() > 1) ? 1 : 0;
     nSingletons += (tig->numberOfChildren() > 1) ? 0 : 1;
 
-    if (tig->numberOfChildren() > 1)
-      fprintf(stdout, "%7u %9u %7u", tig->tigID(), tig->length(), tig->numberOfChildren());
-
     tig->filterContains(params.maxCov, false);
 
     if (tig->numberOfChildren() > 1)
-      fprintf(stdout, "  %8lu %7.2fx %8lu %7.2fx  %8lu %7.2fx\n",
-              tig->nStashCont(), tig->cStashCont(),
-              tig->nStashStsh(), tig->cStashStsh(),
+      fprintf(stdout, "  %8lu %7.2fx %8lu %7.2fx  %8lu %7.2fx\n",  //  The start of this line
+              tig->nStashCont(), tig->cStashCont(),                //  is printed by
+              tig->nStashStsh(), tig->cStashStsh(),                //  cnsParameters::skipTig().
               tig->nStashBack(), tig->cStashBack());
 
     //  Compute!
@@ -174,7 +169,6 @@ processTigs(cnsParameters  &params) {
     //  Tidy up for the next tig.
 
     delete tig;
-    //params.unloadTig(tig);
   }
 
   fprintf(stdout, "------- --------- -------  -------- -------- -------- --------  -------- --------\n");

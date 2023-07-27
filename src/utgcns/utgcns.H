@@ -39,9 +39,8 @@ class cnsParameters {
 public:
   void      loadPartitionedReads(void);
   void      loadProcessList(void);
-  tgTig    *loadTig(uint32 ti);
+  tgTig    *copyTig(uint32 ti);
   bool      skipTig(tgTig *tig);
-  void      unloadTig(tgTig *tig);
   void      unloadReads(void);
   void      closeAndCleanup(void);
 

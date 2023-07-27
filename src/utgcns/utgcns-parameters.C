@@ -111,11 +111,12 @@ cnsParameters::loadProcessList(void) {
 
 ////////////////////
 //
-//  Loads a tig, or returns nullptr if it isn't in the partition we're
-//  operating on.
+//  Loads a COPY of the specified tig, or returns nullptr if it isn't in the
+//  partition we're operating on.  The COPY is important, as it lets us treat
+//  tigs from the store and tigs from the package the same way.
 //
 tgTig *
-cnsParameters::loadTig(uint32 ti) {
+cnsParameters::copyTig(uint32 ti) {
 
   if ((tigName != nullptr) && (processList.size() == 0))
     loadProcessList();
@@ -142,35 +143,48 @@ cnsParameters::loadTig(uint32 ti) {
 //
 bool
 cnsParameters::skipTig(tgTig *tig) {
+  int32  skip = 0;
 
   if (tig == nullptr)
     return true;
 
-  if ((tig->numberOfChildren() == 0) ||
-      (tig->length() < minLen) ||
-      (tig->length() > maxLen) ||
-      ((onlyUnassem == true) && (tig->_class != tgTig_unassembled)) ||
-      ((onlyContig  == true) && (tig->_class != tgTig_contig)) ||
-      ((noSingleton == true) && (tig->numberOfChildren() == 1)) ||
-      ((noRepeat    == true) && (tig->_suggestRepeat == true)) ||
-      ((noBubble    == true) && (tig->_suggestBubble == true))) {
-    unloadTig(tig);
-    return true;
-  }
+  tig->_utgcns_verboseLevel = verbosity;   //  Propagate verbosity to low-level algorithms.
 
-  tig->_utgcns_verboseLevel = verbosity;  //  Propagate verbosity to low-level algorithms.
+  if (tig->numberOfChildren() == 0)
+    skip = fprintf(stdout, "%7u %9u %7u  skip: no children\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  if ((tig->length() < minLen) ||
+      (tig->length() > maxLen))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: length outside range %u-%u\n", tig->tigID(), tig->length(), tig->numberOfChildren(), minLen, maxLen);
+
+  if ((tig->tigID() < tigBgn) ||
+      (tig->tigID() > tigEnd))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: id outside range %u-%u\n", tig->tigID(), tig->length(), tig->numberOfChildren(), tigBgn, tigEnd);
+
+  if ((onlyUnassem == true) && (tig->_class != tgTig_unassembled))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: not unassembled\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  if ((onlyContig  == true) && (tig->_class != tgTig_contig))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: not contig\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  if ((noSingleton == true) && (tig->numberOfChildren() == 1))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: not singleton\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  if ((noRepeat    == true) && (tig->_suggestRepeat == true))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: not repeat\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  if ((noBubble    == true) && (tig->_suggestBubble == true))
+    skip = fprintf(stdout, "%7u %9u %7u  skip: not bubble\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+
+  if (skip)        //  If skipped, we'll immediately next get another
+    return true;   //  tig from whatever input we're reading from.
+
+  if (tig->numberOfChildren() > 1)
+    fprintf(stdout, "%7u %9u %7u",         //  The end of this line is printed
+            tig->tigID(), tig->length(),   //  by processTigs() after it
+            tig->numberOfChildren());      //  filters contains.
 
   return false;
-}
-
-
-////////////////////
-//
-//  Returns a tig to the store for deallocation.
-//
-void
-cnsParameters::unloadTig(tgTig *tig) {
-  tigStore->unloadTig(tig->tigID(), true);
 }
 
 
