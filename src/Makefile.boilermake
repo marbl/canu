@@ -300,6 +300,7 @@ define INCLUDE_SUBMAKEFILE
           TGT := $$(addprefix bin/, $$(strip $${TARGET}))
         endif
         ALL_TGTS += $${TGT}
+        $${TGT}_DEPS      :=
         $${TGT}_LDFLAGS   := $${TGT_LDFLAGS}
         $${TGT}_LDLIBS    := $${TGT_LDLIBS}
         $${TGT}_LINKER    := $${TGT_LINKER}
