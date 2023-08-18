@@ -160,7 +160,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -Ci clearFile  path to input clear ranges\n");
-    fprintf(stderr, "  -Co clearFile  path to ouput clear ranges\n");
+    fprintf(stderr, "  -Co clearFile  path to output clear ranges\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e erate       ignore overlaps with more than 'erate' percent error\n");
     //fprintf(stderr, "  -l length      ignore overlaps shorter than 'l' aligned bases (NOT SUPPORTED)\n");

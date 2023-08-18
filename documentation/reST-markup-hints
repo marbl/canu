@@ -25,7 +25,7 @@ Indented text makes a quote
   quotation
 
 --------------------
-Indented text can be turned into a code block with some kind of higlighting
+Indented text can be turned into a code block with some kind of highlighting
 
   .. code-block:: none
 

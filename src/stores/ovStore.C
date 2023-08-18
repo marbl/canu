@@ -122,7 +122,7 @@ ovStore::testStore(bool verbose) {
       ovlLen = loadOverlapsForRead(tid, ovl, ovlMax);
 
       if (ovlLen != nopr[tid]) {
-        fprintf(stderr, "ERRROR:  Failed loading overlaps for read %u: expected %u overlaps, loaded %u.\n",
+        fprintf(stderr, "ERROR:  Failed loading overlaps for read %u: expected %u overlaps, loaded %u.\n",
                 tid, nopr[tid], ovlLen);
         exit(1);
       }

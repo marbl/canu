@@ -404,7 +404,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -cp P          Split a contig if there is an alternate path from an overlap at most P percent\n");
     fprintf(stderr, "                 different from the length of the best overlap.  Default: 200.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -dg D          Use overlaps upto D standard deviations from the mean when building the best\n");
+    fprintf(stderr, "  -dg D          Use overlaps up to D standard deviations from the mean when building the best\n");
     fprintf(stderr, "                 overlap graph.  Default 6.0.\n");
     fprintf(stderr, "  -db D          Like -dg, but for merging bubbles into primary contigs.  Default 6.0.\n");
     fprintf(stderr, "  -dr D          Like -dg, but for breaking repeats.  Default 3.0.\n");

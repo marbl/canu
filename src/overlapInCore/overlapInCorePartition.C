@@ -356,7 +356,7 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "  Someone should write the command line help.\n");
-    fprintf(stderr, "  But this is only used interally to canu, so...\n");
+    fprintf(stderr, "  But this is only used internally to canu, so...\n");
     exit(1);
   }
 
