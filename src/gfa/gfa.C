@@ -328,7 +328,7 @@ gfaFile::loadFile(char const *inName) {
     char  type = L[0];
 
     if (L[1] != '\t')
-      fprintf(stderr, "gfaFile::loadFile()-- misformed file; second letter must be tab in line '%s'\n", L), exit(1);
+      fprintf(stderr, "gfaFile::loadFile()-- malformed file; second letter must be tab in line '%s'\n", L), exit(1);
 
     if      (type == 'H') {
       delete [] _header;
