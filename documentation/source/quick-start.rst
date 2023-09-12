@@ -79,7 +79,7 @@ For Nanopore::
   genomeSize=4.8m maxInputCoverage=100 \
   -nanopore ecolk12mg1655_R10_3_guppy_345_HAC.fastq
 
-Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-nanopore',
+Output and intermediate files will be in directories 'ecoli-pacbio' and 'ecoli-oxford',
 respectively.  Intermediate files are written in directories 'correction', 'trimming' and
 'unitigging' for the respective stages.  Output files are named using the '-p' prefix, such as
 'ecoli.contigs.fasta', 'ecoli.unitigs.gfa', etc.  See section :ref:`outputs` for more details on
