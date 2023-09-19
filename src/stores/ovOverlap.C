@@ -190,6 +190,13 @@ ovOverlap::fromString(splitToWords          &W,
             erate(strtodouble(W[i]+5));
             break;
           }
+		  else if ((W[i][0] == 'b' && W[i][1] == 'i' && W[i][3] == 'f') ||
+		           (W[i][0] == 'i' && W[i][1] == 'd' && W[i][3] == 'f')) {
+		    double idy = strtodouble(W[i]+5);
+
+		    erate(1-(idy <= 1 ? idy : idy/100));
+			break;
+		  }
       }
 
       dat.ovl.forUTG = true;

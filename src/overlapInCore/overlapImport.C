@@ -56,6 +56,7 @@ uint64                    totalOverlaps   = 0;
 uint64                    filteredOlapLen = 0;
 uint64                    filteredReadLen = 0;
 uint64                    filteredBoth    = 0;
+uint64                    filteredOlapErr = 0;
 uint64                    overlapOutput   = 0;
 
 sqStore                  *ss = nullptr;
@@ -71,8 +72,12 @@ void
 outputOverlap(void) {
   bool  shortOvl  = false;
   bool  shortRead = false;
+  bool  highError = false;
 
   //  Test if we want to emit this overlap.
+
+  if (ov.erate() > maxError)
+    highError = true;
 
   if (ov.length() < minOverlapLength)
     shortOvl = true;
@@ -86,12 +91,13 @@ outputOverlap(void) {
   if ((shortOvl) && (shortRead))   filteredBoth++;
   if  (shortOvl)                   filteredOlapLen++;
   if                (shortRead)    filteredReadLen++;
+  if (highError)                   filteredOlapErr++;
 
   //  Bail if we want to discard the overlap.
 
   totalOverlaps++;
 
-  if ((shortOvl) || (shortRead))
+  if ((shortOvl) || (shortRead) || (highError))
     return;
 
   //  Count and output the good overlap.
@@ -374,6 +380,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "  %8lu %6.2f%% - overlap length  too short\n", filteredOlapLen, 100.0 * filteredOlapLen / totalOverlaps);
   fprintf(stderr, "  %8lu %6.2f%% - read    length  too short\n", filteredReadLen, 100.0 * filteredReadLen / totalOverlaps);
   fprintf(stderr, "  %8lu %6.2f%% - both    lengths too short\n", filteredBoth,    100.0 * filteredBoth    / totalOverlaps);
+  fprintf(stderr, "  %8lu %6.2f%% - overlap error   too high\n",  filteredOlapErr, 100.0 * filteredOlapErr / totalOverlaps);
   fprintf(stderr, "Overlaps output:\n");
   fprintf(stderr, "  %8lu %6.2f%%\n", overlapOutput, 100.0 * overlapOutput / totalOverlaps);
   fprintf(stderr, "\n");
