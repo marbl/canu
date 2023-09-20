@@ -48,6 +48,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-unaligned") == 0) {
       dt = ovOverlapAsUnaligned;
 
+    } else if (strcmp(argv[arg], "-paf") == 0) {
+      dt = ovOverlapAsPaf;
+
     } else if (fileExists(argv[arg])) {
       files.push_back(argv[arg]);
 
@@ -68,11 +71,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -S             seqStore (needed for -coords, the default)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coords        output coordiantes on reads\n");
+    fprintf(stderr, "  -paf           output as PAF format\n");
     fprintf(stderr, "  -hangs         output hangs on reads\n");
     fprintf(stderr, "  -unaligned     output unaligned regions on each read\n");
     fprintf(stderr, "\n");
 
-    if ((seqStoreName == NULL) && (dt == ovOverlapAsCoords))
+    if ((seqStoreName == NULL) && ((dt == ovOverlapAsCoords) || dt == ovOverlapAsPaf))
       fprintf(stderr, "ERROR:  -coords mode requires a seqStore (-S)\n");
 
     if (files.size() == 0)
