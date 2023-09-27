@@ -1,2 +1,10 @@
-# this script can specify defaults for canu to use for all runs
-# for example, gridOptions to specify a partition or accounting info
+#  Add site specific options (for setting up Grid or limiting memory/threads) here.
+#  (User specific settings can go into ~/.canu)
+#
+
+
+#  Disable grid support.
+#useGrid=false
+
+#  Pass grid-specifi options to all grid submit commands.
+#gridOptions = --account 52gj --project godzilla_genome --queue fast.q
