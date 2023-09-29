@@ -233,9 +233,9 @@ Process_Olap(Olap_Info_t        *olap,
   assert(b_end >= 0);
   assert(b_end <= b_part_len);
 
-  //fprintf(stderr, "  all_errors = %d  delta_len = %d\n", all_errors, ped.deltaLen);
+  //fprintf(stderr, "  all_errors = %d  delta_len = %d\n", all_errors, ped->deltaLen);
   //fprintf(stderr, "  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
-  //Display_Alignment(a_part, a_end, b_part, b_end, ped.delta, ped.deltaLen);//, wa->G->reads[ri].clear_len - a_offset);
+  //Display_Alignment(a_part, a_end, b_part, b_end, ped->delta, ped->deltaLen);//, wa->G->reads[ri].clear_len - a_offset);
 
   if ((match_to_end == false) && (a_end + a_offset >= wa->G->reads[ri].clear_len - 1)) {
     match_to_end = true;
@@ -281,5 +281,5 @@ Process_Olap(Olap_Info_t        *olap,
   wa->failedOlaps++;
   //fprintf(stderr, "%8d %8d failed overlap\n", olap->a_iid, olap->b_iid);
   //fprintf(stderr, "%8d %8d match to end %c\n", olap->a_iid, olap->b_iid, match_to_end ? 'T' : 'F');
-  //fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (errors > wa->G->Error_Bound[olap_len]) ? 'T' : 'F');
+  //fprintf(stderr, "%8d %8d too many errors %c\n", olap->a_iid, olap->b_iid, (all_errors > wa->G->Error_Bound[a_part_len]) ? 'T' : 'F');
 }
