@@ -186,7 +186,7 @@ ovOverlap::fromString(splitToWords          &W,
       dat.ovl.bhg3 = (dat.ovl.flipped) ?      bend : blen - bend;
 
       for (int i = 0; i < W.numWords(); i++) {
-         if (W[i][0] == 'd' && W[i][1] == 'v' && W[i][3] == 'f') {
+         if (W[i][0] == 'd' && (W[i][1] == 'v' || W[i][1] == 'e') && W[i][3] == 'f') {
             erate(strtodouble(W[i]+5));
             break;
           }
