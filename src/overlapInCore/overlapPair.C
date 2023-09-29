@@ -40,7 +40,7 @@
 #define THREAD_SIZE  128
 
 //  Does slightly better with 2550 than 500.  Speed takes a slight hit.
-#define MHAP_SLOP       500
+#define MHAP_SLOP       1000
 
 
 
@@ -445,7 +445,6 @@ recomputeOverlaps(void *ptr) {
       }
 
       //  If we're just doing partial alignments or if we've found a dovetail, we're all done.
-
       if (WA->partialOverlaps == true) {
         localStats.nPartial++;
         goto finished;
