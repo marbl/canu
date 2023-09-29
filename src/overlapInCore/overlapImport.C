@@ -180,12 +180,13 @@ readOVB(ovFile *in) {
 
 void
 readASCII(compressedFileReader *in) {
-  char           S[1024];
+  uint32        Llen     = 0;
+  uint32        Lmax     = 0;
+  char         *S        = new char [Lmax];
+
   splitToWords   W;
 
-  fgets(S, 1024, in->file());
-
-  while (!feof(in->file())) {
+  while (merylutil::readLine(S, Llen, Lmax, in->file())) {
     W.split(S);
 
     switch (inputType) {
@@ -207,10 +208,9 @@ readASCII(compressedFileReader *in) {
     }
 
     outputOverlap();
-
-    fgets(S, 1024, in->file());
   }
 
+  delete [] S;
   delete in;
 }
 
