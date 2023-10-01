@@ -133,6 +133,7 @@ define SET_DEFAULT_FLAGS
 
     #  Enable gobs of warnings.
 
+    #CFLAGS   += -DMACHINETYPE_${MACHINETYPE}
     #CFLAGS   += -pedantic
     CFLAGS   += -Wall -Wextra -Wformat
     CFLAGS   += -Wno-char-subscripts
@@ -142,6 +143,7 @@ define SET_DEFAULT_FLAGS
     CFLAGS   += -Wno-unused-variable
     CFLAGS   += -Wno-deprecated-declarations
 
+    #CXXFLAGS += -DMACHINETYPE_${MACHINETYPE}
     #CXXFLAGS += -pedantic
     CXXFLAGS += -Wall -Wextra -Wformat
     CXXFLAGS += -Wno-char-subscripts

@@ -65,13 +65,14 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/math/sampledDistribution-v1.C \
                 \
                 utility/src/parasail/cpuid.c \
+                utility/src/parasail/cigar.c \
                 utility/src/parasail/memory.c \
                 utility/src/parasail/sg.c \
                 utility/src/parasail/sg_trace.c \
-                utility/src/parasail/sg_qx_dispatch.c \
                 utility/src/parasail/sg_qb_de_dispatch.c \
                 utility/src/parasail/sg_qe_db_dispatch.c \
-                utility/src/parasail/cigar.c \
+                utility/src/parasail/sg_qx_dispatch.c \
+                utility/src/parasail/sg_trace.c \
                 \
                 utility/src/sequence/dnaSeq-v1.C \
                 utility/src/sequence/dnaSeqFile-v1.C \
