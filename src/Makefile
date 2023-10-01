@@ -221,8 +221,8 @@ else
 
   $(eval $(call SET_DEFAULT_FLAGS,))
 
-  CXXFLAGS  += -I/usr/local/include -pthread -fopenmp -fPIC
-  CFLAGS    += -I/usr/local/include -pthread -fopenmp -fPIC
+  CXXFLAGS  += -pthread -fopenmp -fPIC
+  CFLAGS    += -pthread -fopenmp -fPIC
 
   LDFLAGS   += -L/usr/local/lib     -pthread -fopenmp -lm -lexecinfo
 endif
