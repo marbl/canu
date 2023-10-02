@@ -18,6 +18,7 @@
 #include "findErrors.H"
 #include <map>
 
+//FIXME update?
 //void
 //Output_Details(feParameters *G, uint32 i) {
 //
@@ -283,7 +284,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
 
   bool corrected = false;
 
-  if (vote.conf_no_insert < G->Haplo_Strong) {
+  if (vote.conf_no_insert < G->Haplo_Strong || vote.conf_no_insert_rc == 0) {
     //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, pos);
     std::string ins_str = Check_Insert(vote, base, G->Haplo_Expected, G->Haplo_Confirm);
     if (ins_str.empty()) {
@@ -299,7 +300,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
     }
   }
 
-  if (vote.confirmed < G->Haplo_Strong) {
+  if (vote.confirmed < G->Haplo_Strong || vote.confirmed_rc == 0) {
     //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, pos);
     Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Haplo_Expected, G->Haplo_Confirm);
     if (vote_t == NO_VOTE) {

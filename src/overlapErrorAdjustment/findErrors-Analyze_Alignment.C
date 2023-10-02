@@ -94,6 +94,7 @@ Matching_Vote(char ch) {
 //   a_offset  bytes in from the start of the a sequence in  G->reads[sub] .
 //   a_len  and  b_len  are the lengths of the prefixes of  a_part  and
 //   b_part , resp., that align.
+//   b_rc shows if b was reverse complemented
 
 //b read should be the "primary" overlaps for which are being analyzed
 //BUT the votes are cast for the "a" read, with a "shifted" id == sub
@@ -102,6 +103,7 @@ void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
                   char   *b_part, int32 b_len,
+                  bool   b_rc,
                   int32   sub) {
 
   assert(a_len >= 0);
@@ -259,12 +261,21 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
           if (wa->G->reads[sub].vote[a_pos].confirmed < MAX_VOTE)
             wa->G->reads[sub].vote[a_pos].confirmed++;
 
+          if (b_rc && wa->G->reads[sub].vote[a_pos].confirmed_rc < MAX_VOTE)
+            wa->G->reads[sub].vote[a_pos].confirmed_rc++;
+
           if (wa->G->reads[sub].vote[a_pos].conf_no_insert < MAX_VOTE)
             wa->G->reads[sub].vote[a_pos].conf_no_insert++;
+
+          if (b_rc && wa->G->reads[sub].vote[a_pos].conf_no_insert_rc < MAX_VOTE)
+            wa->G->reads[sub].vote[a_pos].conf_no_insert_rc++;
         } else {
           //p_hi <= p < prev_event_dist
           if (p == p_hi && wa->G->reads[sub].vote[a_pos].conf_no_insert < MAX_VOTE)
             wa->G->reads[sub].vote[a_pos].conf_no_insert++;
+
+          if (b_rc && p == p_hi && wa->G->reads[sub].vote[a_pos].conf_no_insert_rc < MAX_VOTE)
+            wa->G->reads[sub].vote[a_pos].conf_no_insert_rc++;
 
           Cast_Vote(wa->G,
                     Matching_Vote(a_part[part_pos]),

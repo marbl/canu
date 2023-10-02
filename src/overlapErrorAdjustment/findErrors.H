@@ -98,6 +98,8 @@ struct Vote_Tally_t {
   Vote_Tally_t() {
      confirmed = 0;
      conf_no_insert = 0;
+     confirmed_rc = 0;
+     conf_no_insert_rc = 0;
      deletes   = 0;
      a_subst   = 0;
      c_subst   = 0;
@@ -111,13 +113,16 @@ struct Vote_Tally_t {
   static const char INSERTIONS_DELIM = '$';
 
   uint32  confirmed      : 16;
+  uint32  confirmed_rc   : 16;
   uint32  conf_no_insert : 16;
-  uint32  deletes        : 16;
-  uint32  a_subst        : 16;
+  uint32  conf_no_insert_rc : 16;
 
+  uint32  a_subst        : 16;
   uint32  c_subst        : 16;
   uint32  g_subst        : 16;
   uint32  t_subst        : 16;
+
+  uint32  deletes        : 16;
   uint32  no_insert      : 16;
 
   uint32 insertion_cnt;
