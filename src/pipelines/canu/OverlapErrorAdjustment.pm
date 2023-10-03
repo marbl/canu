@@ -306,6 +306,9 @@ sub readErrorDetectionConfigure ($) {
     print F "  -m " . getGlobal("oeaErrorRate") . " \\\n";
     print F "  -s \\\n"   if (getGlobal("oeaMaskTrivial") != 0);
     print F "  -p " . getGlobal("oeaHaploConfirm") . " \\\n";
+    #print F "  -b 3 \\\n";  # number of supporting reads to trust base
+    #print F "  -B 1 \\\n";  # require some of them to have opposite direction
+    #print F "  -f 50 \\\n"; # alignment flanks to ignore
     print F "  -o ./\$jobid.red.WORKING \\\n";
     print F "  -t $numThreads \\\n";
     print F "&& \\\n";
