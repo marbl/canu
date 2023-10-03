@@ -108,14 +108,14 @@ FPrint_Votes(FILE *fp, const Frag_Info_t &read, uint32 j, uint32 loc_r) {
 //    The SUBST is what is there already
 //    There is only one vote
 //    The highest vote is less than 50% of votes
-//    There are Haplo_Expected or more votes (DEL/SUBST) with weight >= Haplo_Confirm
+//    There are >1 votes (DEL/SUBST) with weight >= Haplo_Confirm
 //    The vote is 'confirmed == 1' and weight <= 6
 //
 //  'confirmed' means that a read has this base and it is at least 3 bases
 //  away from an alignment difference.
 //
 Vote_Value_t
-Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Haplo_Confirm) {
+Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Confirm) {
   Vote_Value_t  vote_t      = DELETE;
   int32         max       = vote.deletes;
   bool          is_change = true;
@@ -161,7 +161,7 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32
     return NO_VOTE;
   }
 
-  if (haplo_ct >= Haplo_Expected) {
+  if (haplo_ct > 1) {
     //fprintf(stderr, "HAPLO haplo_ct=%d >= 2\n", haplo_ct);
     return NO_VOTE;
   }
@@ -181,7 +181,7 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32
 //    Empty string if EXACTLY one read confirms no insertion and 6 or fewer vote for an insertion.
 //
 std::string
-Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Haplo_Confirm) {
+Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Confirm) {
 
   std::map<std::string, uint32> insert_cnts;
   for (const auto &ins : vote.insertions_list()) {
@@ -221,7 +221,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Ha
   }
 
   //no need to check non-insertions here, since we are in no_insert < STRONG_CONFIRMATION_READ_CNT = 2 case
-  if (ins_haplo_ct >= Haplo_Expected) {
+  if (ins_haplo_ct > 1) {
     //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2\n", ins_haplo_ct);
     return "";
   }
@@ -286,7 +286,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
 
   if (vote.conf_no_insert < G->Haplo_Strong || vote.conf_no_insert_rc == 0) {
     //fprintf(stderr, "Checking read:pos %d:%d for insertion\n", out.readID, pos);
-    std::string ins_str = Check_Insert(vote, base, G->Haplo_Expected, G->Haplo_Confirm);
+    std::string ins_str = Check_Insert(vote, base, G->Haplo_Confirm);
     if (ins_str.empty()) {
       //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
     } else {
@@ -302,7 +302,7 @@ Report_Position(const feParameters *G, const Frag_Info_t &read, uint32 pos, bool
 
   if (vote.confirmed < G->Haplo_Strong || vote.confirmed_rc == 0) {
     //fprintf(stderr, "Checking read:pos %d:%d for del/subst\n", out.readID, pos);
-    Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Haplo_Expected, G->Haplo_Confirm);
+    Vote_Value_t vote_t = Check_Del_Subst(vote, base, G->Haplo_Confirm);
     if (vote_t == NO_VOTE) {
       //fprintf(stderr, "Read:pos %d:%d -- filtered out\n", out.readID, pos);
     } else if (vote_t == DELETE && block_deletion) {
@@ -352,7 +352,7 @@ Output_Corrections(feParameters *G) {
 
     std::vector<uint32> het_del_pos;
 
-    if ((G->Haplo_Expected < INT32_MAX) && (G->Haplo_Freeze > 0)) {
+    if (G->Haplo_Freeze > 0) {
       //no reason to use different value;
       //freezing one position seems enough to not falsely correct ambiguous deletion
       assert(G->Haplo_Freeze == 1);

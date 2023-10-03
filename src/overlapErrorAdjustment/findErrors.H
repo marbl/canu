@@ -360,7 +360,6 @@ struct feParameters {
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
 
-    Haplo_Expected   = 2;
     Haplo_Strong     = 2;
     Haplo_Confirm    = 5;
     Haplo_Freeze     = 1;
@@ -372,7 +371,7 @@ struct feParameters {
 
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
     //Kmer_Len          = 9;  //DEFAULT_KMER_LEN;
-    Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
+    //Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
   };
 
   ~feParameters() {
@@ -411,14 +410,11 @@ struct feParameters {
   int  Edit_Match_Limit [AS_MAX_READLEN + 1];
 
 
+  //FIXME does it do anything?
   // Set keep flag on end of fragment if number of olaps < this value
   int  Degree_Threshold;
 
-  //  Require at least Haplo_Confirm reads to confirm a haplotype, but if
-  //  there are more than Haplo_Expected haplotypes detected, treat the
-  //  column as a true error.
-  //
-  int32   Haplo_Expected;  //  (2) Number of haplotypes expected; previously hard-coded inline '2'.
+  //  Require at least Haplo_Confirm reads to confirm a haplotype, if > 1 haplotypes detected -- don't try to correct
   int32   Haplo_Strong;    //  (2) Number of reads to confirm insert/delete; previously STRONG_CONFIRMATION_READ_CNT.
   int32   Haplo_Confirm;   //  (5) Number of reads to confirm a haplotype; previously MIN_HAPLO_OCCURS.
   uint32  Haplo_Freeze;    //  (1) Radius around heterozygous position that is considered too risky to correct.
@@ -431,7 +427,7 @@ struct feParameters {
   // Length of minimum exact match in overlap to confirm base pairs
   //int  Kmer_Len;
   // Number of bases surrounding a SNP to vote for change
-  int  Vote_Qualify_Len;
+  //int  Vote_Qualify_Len;
 
 
   //  This array [i] is the maximum number of errors allowed in a match between sequences of length

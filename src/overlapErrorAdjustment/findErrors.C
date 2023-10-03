@@ -370,6 +370,9 @@ main(int argc, char **argv) {
       if (G->Haplo_Confirm == 0)         //  If 0, set to max to disable
         G->Haplo_Confirm = INT32_MAX;    //  detection of haplotypes.
 
+    } else if (strcmp(argv[arg], "-r") == 0) {
+      G->Haplo_Strong = strtoint32(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-s") == 0) {
       G->checkTrivialDNA = true;
 
@@ -379,8 +382,8 @@ main(int argc, char **argv) {
     //} else if (strcmp(argv[arg], "-f") == 0) {
     //  G->Haplo_Freeze = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-V") == 0) {
-      G->Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
+    //} else if (strcmp(argv[arg], "-V") == 0) {
+    //  G->Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-x") == 0) {
       G->End_Exclude_Len = strtol(argv[++arg], NULL, 10);
@@ -418,9 +421,11 @@ main(int argc, char **argv) {
     //fprintf(stderr, "  -k   kmer-size          minimum exact-match region to prevent change\n");
     fprintf(stderr, "  -p   num-reads          confirm haplotypes if at least num-reads have it\n");
     fprintf(stderr, "                            if not set, haplotypes will never be confirmed\n");
+    fprintf(stderr, "  -r   num-reads          don't try to modify call if at least num-reads have it\n");
     fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:1, 0 to disable)\n");
-    fprintf(stderr, "  -m   maked-error-rate   post trivial DNA masking error-rate threshold\n");
-    fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
+    fprintf(stderr, "  -s                      ignore alignment errors in simple sequence\n");
+    fprintf(stderr, "  -m   masked-error-rate  post trivial DNA masking error-rate threshold\n");
+    //fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "  -x   end-exclude-len    length of end of exact match to exclude in preventing change\n");
 
     if (G->seqStorePath == NULL)
