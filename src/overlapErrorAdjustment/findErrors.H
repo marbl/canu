@@ -355,9 +355,10 @@ struct feParameters {
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
 
-    Haplo_Strong     = 2;
+    Base_Confirm     = 2;
+    Opposite_Confirm = 1;
     Haplo_Confirm    = 5;
-    Haplo_Freeze     = 1;
+    Het_Del_Freeze   = 1;
 
     ignoreFlank      = 5;
 
@@ -412,9 +413,10 @@ struct feParameters {
   int  Degree_Threshold;
 
   //  Require at least Haplo_Confirm reads to confirm a haplotype, if > 1 haplotypes detected -- don't try to correct
-  int32   Haplo_Strong;    //  (2) Number of reads to confirm insert/delete; previously STRONG_CONFIRMATION_READ_CNT.
+  int32   Base_Confirm;    //  (2) Number of reads (any direction) to confirm base (absense of insertion); previously STRONG_CONFIRMATION_READ_CNT.
+  int32   Opposite_Confirm;//  (1) Number of reads in opposite direction to confirm base.
   int32   Haplo_Confirm;   //  (5) Number of reads to confirm a haplotype; previously MIN_HAPLO_OCCURS.
-  uint32  Haplo_Freeze;    //  (1) Radius around heterozygous position that is considered too risky to correct.
+  uint32  Het_Del_Freeze;  //  (1) Radius around heterozygous deletion that is considered too risky to correct.
 
   bool    checkTrivialDNA;
 
