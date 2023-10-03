@@ -63,6 +63,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       G->checkTrivialDNA = true;
 
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      G->ignoreFlank = strtoint32(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file input
       G->correctionsName = argv[++arg];
 
@@ -108,6 +111,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -l   min-len            ignore overlaps shorter than this\n");
     fprintf(stderr, "  -e   max-erate s        ignore overlaps higher than this error\n");
     fprintf(stderr, "  -s                      ignore alignment errors in simple sequence\n");
+    fprintf(stderr, "  -f   ignore-flank       ignore differences at the extremities of alignments\n");
     exit(1);
   }
 

@@ -118,6 +118,8 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   wa->globalvote[ct].vote_val  = A_SUBST;   // Dummy value
   ct++;
 
+  uint32 ignoreFlank = wa->G->ignoreFlank;
+
   //position in a_part
   int32  i = 0;
   //position in b_part
@@ -136,7 +138,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
     //  Add delta[k] - 1 matches or mismatches; +-1 encodes the 'continuation' of the insertion/deletion
     for (int32 m=1; m<abs(wa->ped.delta[k]); m++) {
-      if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len && a_part[i] != b_part[j]) {
+      if (j >= ignoreFlank && j + ignoreFlank < b_len && a_part[i] != b_part[j]) {
         wa->globalvote[ct].frag_sub  = i;
         wa->globalvote[ct].align_sub = p;
         wa->globalvote[ct].vote_val = SubstVote(b_part[j]);
@@ -154,7 +156,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
     if (wa->ped.delta[k] < 0) {
       //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len) {
+      if (j >= ignoreFlank && j + ignoreFlank < b_len) {
         wa->globalvote[ct].frag_sub  = i;
         wa->globalvote[ct].align_sub = p;
         wa->globalvote[ct].vote_val = InsVote(b_part[j]);
@@ -174,7 +176,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
     if (wa->ped.delta[k] > 0) {
       //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
-      if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len) {
+      if (j >= ignoreFlank && j + ignoreFlank < b_len) {
         wa->globalvote[ct].frag_sub  = i;
         wa->globalvote[ct].align_sub = p;
         wa->globalvote[ct].vote_val  = DELETE;
@@ -197,7 +199,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   while (i < a_len) {
     //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, a_len, j, b_len);
 
-    if (j >= IGNORE_FLANK_VOTE && j + IGNORE_FLANK_VOTE < b_len && a_part[i] != b_part[j]) {
+    if (j >= ignoreFlank && j + ignoreFlank < b_len && a_part[i] != b_part[j]) {
       wa->globalvote[ct].frag_sub  = i;
       wa->globalvote[ct].align_sub = p;
       //fprintf(stderr, "Vote subst %c -> %c at %d\n", a_part[i], b_part[j], i);

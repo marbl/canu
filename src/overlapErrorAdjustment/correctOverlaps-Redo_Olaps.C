@@ -302,6 +302,7 @@ double
 ProcessAlignment(const int32 a_part_len, char *a_part,
                  const int32 b_part_len, char *b_part,
                  int32 error_bound, bool check_trivial_dna,
+                 uint32 ignore_flank,
                  pedWorkArea_t *ped, bool *match_to_end, bool *invalid_olap) {
   int32   a_end        = 0;
   int32   b_end        = 0;
@@ -340,7 +341,7 @@ ProcessAlignment(const int32 a_part_len, char *a_part,
   //fprintf(stderr, "Computing errors\n");
   //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
   std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta,
-                                                  a_end, b_end, check_trivial_dna);
+                                                  a_end, b_end, check_trivial_dna, ignore_flank);
 
   //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
 
@@ -472,7 +473,7 @@ Redo_Olaps(coParameters *G, /*const*/ sqStore *seqStore) {
                                          b_part_len, b_part,
                                          G->Error_Bound[std::min(a_part_len, b_part_len)],
                                          /*check trivial DNA*/G->checkTrivialDNA,
-                                         ped, &match_to_end, &invalid_olap);
+                                         G->ignoreFlank, ped, &match_to_end, &invalid_olap);
 
       if (err_rate >= 0.) {
         //if (err_rate > /*report_threshold*/ 0.) {

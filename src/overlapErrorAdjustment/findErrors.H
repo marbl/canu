@@ -86,11 +86,6 @@
 //  this rate
 #define  MIN_BRANCH_TAIL_SLOPE       0.20
 
-//  Votes at this distance from the extremities of aligned region are ignored
-//  Leads to start/end of reads not being corrected,
-//  which should be accounted by overlap scoring (see DEFAULT_FLANK_IGNORE)
-#define  IGNORE_FLANK_VOTE           5
-
 //  The amount of memory to allocate for the stack of each thread
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
@@ -364,6 +359,8 @@ struct feParameters {
     Haplo_Confirm    = 5;
     Haplo_Freeze     = 1;
 
+    ignoreFlank      = 5;
+
     checkTrivialDNA = false;
     maskedErrorRate = 0.06;
 
@@ -420,6 +417,12 @@ struct feParameters {
   uint32  Haplo_Freeze;    //  (1) Radius around heterozygous position that is considered too risky to correct.
 
   bool    checkTrivialDNA;
+
+  //  Votes at this distance from the extremities of aligned region are ignored
+  //  Leads to start/end of reads not being corrected,
+  //  which should be accounted by overlap scoring
+  uint32  ignoreFlank;
+
   double  maskedErrorRate;
 
   // Length of ends of exact-match regions not used in preventing sequence correction

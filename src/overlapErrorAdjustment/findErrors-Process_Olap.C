@@ -258,12 +258,13 @@ Process_Olap(Olap_Info_t        *olap,
     //fprintf(stderr, "Computing errors\n");
     //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
     std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta,
-                                                    a_end, b_end, wa->G->checkTrivialDNA);
+                                                    a_end, b_end, wa->G->checkTrivialDNA,
+                                                    wa->G->ignoreFlank);
 
     assert(events >= 0 && alignment_len > 0);
     //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
 
-    //  We used to assert that either checkTrivialDNA was true or that 
+    //  We used to assert that either checkTrivialDNA was true or that
     //  all_errors == events.  This was to ensure that no alignment errors
     //  were rejected by ComputeErrors() -- but we're now ignoring alignment errors
     //  near the end of a read in all cases, so all_errors != events.

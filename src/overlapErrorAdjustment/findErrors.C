@@ -376,10 +376,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       G->checkTrivialDNA = true;
 
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      G->ignoreFlank = strtoint32(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-m") == 0) {
       G->maskedErrorRate = atof(argv[++arg]);
 
-    //} else if (strcmp(argv[arg], "-f") == 0) {
+    //} else if (strcmp(argv[arg], "-h") == 0) {
     //  G->Haplo_Freeze = atoi(argv[++arg]);
 
     //} else if (strcmp(argv[arg], "-V") == 0) {
@@ -422,8 +425,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -p   num-reads          confirm haplotypes if at least num-reads have it\n");
     fprintf(stderr, "                            if not set, haplotypes will never be confirmed\n");
     fprintf(stderr, "  -r   num-reads          don't try to modify call if at least num-reads have it\n");
-    fprintf(stderr, "  -f                      change 'freeze' radius around heterozygous positions (default:1, 0 to disable)\n");
+    //fprintf(stderr, "  -h                      change 'freeze' radius around heterozygous positions (default:1, 0 to disable)\n");
     fprintf(stderr, "  -s                      ignore alignment errors in simple sequence\n");
+    fprintf(stderr, "  -f   ignore-flank       ignore differences at the extremities of alignments\n");
     fprintf(stderr, "  -m   masked-error-rate  post trivial DNA masking error-rate threshold\n");
     //fprintf(stderr, "  -V   vote-len           number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "  -x   end-exclude-len    length of end of exact match to exclude in preventing change\n");
