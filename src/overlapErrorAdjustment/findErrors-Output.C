@@ -140,12 +140,6 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Confirm) {
     max       = vote.t_subst;
   }
 
-  int32 haplo_ct  =  ((vote.deletes >= Haplo_Confirm) +
-                      (vote.a_subst >= Haplo_Confirm) +
-                      (vote.c_subst >= Haplo_Confirm) +
-                      (vote.g_subst >= Haplo_Confirm) +
-                      (vote.t_subst >= Haplo_Confirm));
-
   if (vote_t != DELETE && base == VoteChar(vote_t)) {
     //fprintf(stderr, "SAME  base = %c, vote = %c\n", base, VoteChar(vote_t));
     return NO_VOTE;
@@ -161,13 +155,19 @@ Check_Del_Subst(const Vote_Tally_t &vote, char base, int32 Haplo_Confirm) {
     return NO_VOTE;
   }
 
+  int32 haplo_ct  =  ((vote.deletes >= Haplo_Confirm) +
+                      (vote.a_subst >= Haplo_Confirm) +
+                      (vote.c_subst >= Haplo_Confirm) +
+                      (vote.g_subst >= Haplo_Confirm) +
+                      (vote.t_subst >= Haplo_Confirm));
+
   if (haplo_ct > 1) {
     //fprintf(stderr, "HAPLO haplo_ct=%d >= 2\n", haplo_ct);
     return NO_VOTE;
   }
 
-  if (vote.confirmed == 1 && max <= 6) {
-    //fprintf(stderr, "No correction was supported & small weight of vote: confirmed = %d ins_max = %d\n", vote.confirmed, max);
+  if (max <= 6 * vote.confirmed) {
+    //fprintf(stderr, "No correction was supported & small weight of vote: confirmed = %d max = %d\n", vote.confirmed, max);
     return NO_VOTE;
   }
 
@@ -226,7 +226,7 @@ Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Confirm) {
     return "";
   }
 
-  if (vote.conf_no_insert == 1 && ins_max <= 6) {
+  if (ins_max <= 6 * vote.conf_no_insert) {
     //fprintf(stderr, "No insert was supported & small weight of vote: no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
     return "";
   }
