@@ -267,7 +267,7 @@ Process_Olap(Olap_Info_t        *olap,
     //
     //assert(wa->G->checkTrivialDNA || all_errors == events);
 
-    if (events <= (int32) ceil(alignment_len * wa->G->maskedErrorRate)) {
+    if ((alignment_len >= wa->G->minOverlap) && events <= (int32) ceil(alignment_len * wa->G->maskedErrorRate)) {
       wa->passedOlaps++;
       //fprintf(stderr, "%8d %8d passed overlap\n", olap->a_iid, olap->b_iid);
       Analyze_Alignment(wa,
