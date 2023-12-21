@@ -464,6 +464,8 @@ unitigConsensus::generateTemplateStitch(void) {
     // enforce minimum template length
     if (templateLen <= 1)
        templateLen ++;
+	if (templateLen > tiglen)
+	   templateLen = tiglen-1;
 
     if (showAlgorithm()) {
       fprintf(stderr, "\n");
