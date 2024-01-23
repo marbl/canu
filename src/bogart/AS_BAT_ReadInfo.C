@@ -82,6 +82,7 @@ ReadInfo::ReadInfo(const char *seqStorePath,
 
 
   writeStatus("ReadInfo()-- Found   %9u reads.\n", numLoaded);
+  writeStatus("ReadInfo()-- Found   %9u reads ignored.\n", numNotPresent);
 
   if (minReadLen > 0)
     writeStatus("ReadInfo()-- Ignored %9u reads shorter than %6u bp.\n", numShort, minReadLen);

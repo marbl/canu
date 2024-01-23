@@ -334,9 +334,9 @@ ovErateLengthHistogram::addOverlap(ovOverlap *overlap) {
   }
 
   else {
-    fprintf(stderr, "BOGUS overlap - id %8u (len %6d) hangs %6" F_OVP " %6" F_OVP " -- id %8u (len %6d) hangs %6" F_OVP " %6" F_OVP "%s\n",
-            overlap->a_iid, alen, overlap->dat.ovl.ahg5, overlap->dat.ovl.ahg3,
-            overlap->b_iid, blen, overlap->dat.ovl.bhg5, overlap->dat.ovl.bhg3,
+    fprintf(stderr, "BOGUS overlap - id %8u (len %6d) hangs %6s %6s -- id %8u (len %6d) hangs %6s %6s%s\n",
+            overlap->a_iid, alen, toDec(overlap->dat.ovl.ahg5), toDec(overlap->dat.ovl.ahg3),
+            overlap->b_iid, blen, toDec(overlap->dat.ovl.bhg5), toDec(overlap->dat.ovl.bhg3),
             overlap->dat.ovl.flipped ? " flipped" : "");
   }
 }

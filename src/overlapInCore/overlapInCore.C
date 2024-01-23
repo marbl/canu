@@ -112,7 +112,7 @@ ovFile  *Out_BOF = NULL;
 //  Set  thread_id  field to  id .
 void
 Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *readStore, sqCache *readCache) {
-  uint64  allocated = 0;
+  //uint64  allocated = 0;
 
   WA->String_Olap_Size  = INIT_STRING_OLAP_SIZE;
   WA->String_Olap_Space = new String_Olap_t [WA->String_Olap_Size];
@@ -120,8 +120,8 @@ Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *readStore, sqCache *readC
   WA->Match_Node_Size  = INIT_MATCH_NODE_SIZE;
   WA->Match_Node_Space = new Match_Node_t [WA->Match_Node_Size];
 
-  allocated += WA->String_Olap_Size * sizeof (String_Olap_t);
-  allocated += WA->Match_Node_Size  * sizeof (Match_Node_t);
+  //allocated += WA->String_Olap_Size * sizeof (String_Olap_t);
+  //allocated += WA->Match_Node_Size  * sizeof (Match_Node_t);
 
   WA->status     = 0;
   WA->thread_id  = id;
@@ -133,7 +133,7 @@ Initialize_Work_Area(Work_Area_t *WA, int id, sqStore *readStore, sqCache *readC
   WA->overlapsMax = 1024 * 1024 / sizeof(ovOverlap);
   WA->overlaps    = new ovOverlap [WA->overlapsMax];
 
-  allocated += sizeof(ovOverlap) * WA->overlapsMax;
+  //allocated += sizeof(ovOverlap) * WA->overlapsMax;
 
   WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps,
                                         G.maxErate,

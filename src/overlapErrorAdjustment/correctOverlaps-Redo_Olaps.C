@@ -348,6 +348,7 @@ ProcessAlignment(const int32 a_part_len, char *a_part,
   //assert(check_trivial_dna || all_errors == events);
 
   assert(events >= 0 && alignment_len > 0);
+  assert(all_errors > int32min);  //  Useless but makes all_errors be 'used',
   return (double) events / alignment_len;
 }
 

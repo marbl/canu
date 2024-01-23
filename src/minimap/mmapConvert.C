@@ -125,11 +125,11 @@ main(int argc, char **argv) {
 
       if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
           (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3))
-        fprintf(stderr, "INVALID OVERLAP " F_U32 " (len %6d) " F_U32 " (len %6d) hangs " F_OV " " F_OV " - " F_OV " " F_OV "%s\n",
+        fprintf(stderr, "INVALID OVERLAP " F_U32 " (len %6d) " F_U32 " (len %6d) hangs %s %s - %s %s%s\n",
                 ov.a_iid, alen,
                 ov.b_iid, blen,
-                ov.dat.ovl.ahg5, ov.dat.ovl.ahg3,
-                ov.dat.ovl.bhg5, ov.dat.ovl.bhg3,
+                toDec(ov.dat.ovl.ahg5), toDec(ov.dat.ovl.ahg3),
+                toDec(ov.dat.ovl.bhg5), toDec(ov.dat.ovl.bhg3),
                 (ov.dat.ovl.flipped) ? " flipped" : ""), exit(1);
 
       ov.dat.ovl.forUTG = (partialOverlaps == false) && (ov.overlapIsDovetail() == true);;

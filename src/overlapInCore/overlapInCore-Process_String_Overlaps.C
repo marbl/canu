@@ -372,10 +372,8 @@ Process_Matches (int * Start,
   int  distinct_olap_ct;
   int  Max_Len, S_Lo, S_Hi, T_Lo, T_Hi;
   int  t_len;
-  int  Done_S_Left, Done_S_Right;
   int  Errors;
 
-  Done_S_Left = Done_S_Right = false;
   t_len = t_info.length;
 
   assert ((* Start) != 0);

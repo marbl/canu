@@ -175,7 +175,7 @@ ComputeErrors(const char* const a_part, const char* const b_part,
   static const int32 IND_REPEAT_NUM = 5;
 
   //  Event counter. Each individual (1bp) mismatch/insertion/deletion is an event
-  int32  all_ct = 0;
+  //t32  all_ct = 0;
   //  Processed event counter
   int32  ct = 0;
   //position in a_part
@@ -208,8 +208,7 @@ ComputeErrors(const char* const a_part, const char* const b_part,
       if (a_part[i] != b_part[j]) {
         //Substitution at i in a_part (p in "alignment")
         //fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
-
-        all_ct++;
+        //all_ct++;
         ct += (int32) cnt_event_f(MM_SIZE_FACTOR, MM_REPEAT_NUM);
       }
 
@@ -223,7 +222,7 @@ ComputeErrors(const char* const a_part, const char* const b_part,
     if (deltas[k] < 0) {
       //Insertion at i - 1 in a_part (p in "alignment")
       //fprintf(stderr, "INSERT %c at %d #%d\n", b_part[j], i-1, p);
-      all_ct++;
+      //all_ct++;
       ct += (int32) cnt_event_f(IND_SIZE_FACTOR, IND_REPEAT_NUM);
 
       j++;  //assert(j <= b_len);
@@ -235,7 +234,7 @@ ComputeErrors(const char* const a_part, const char* const b_part,
     if (deltas[k] > 0) {
       //Deletion at i in a_part (p in "alignment")
       //fprintf(stderr, "DELETE %c at %d #%d\n", a_part[i], i, p);
-      all_ct++;
+      //all_ct++;
       ct += (int32) cnt_event_f(IND_SIZE_FACTOR, IND_REPEAT_NUM);
 
       i++;  //assert(i <= a_len);
@@ -248,7 +247,7 @@ ComputeErrors(const char* const a_part, const char* const b_part,
     if (a_part[i] != b_part[j]) {
       //fprintf(stderr, "SUBST %c -> %c at %d #%d\n", a_part[i], b_part[j], i, p);
       //Substitution at i in a_part (p in "alignment")
-      all_ct++;
+      //all_ct++;
       ct += (int32) cnt_event_f(MM_SIZE_FACTOR, MM_REPEAT_NUM);
     }
 

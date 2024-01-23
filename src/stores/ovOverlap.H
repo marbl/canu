@@ -51,8 +51,6 @@
 #define        ovOverlapNWORDS  2
 #define        ovOverlapWORDSZ  64
 typedef uint64 ovOverlapWORD;
-#define        F_OV   F_U64
-#define        F_OVP  F_U64P
 
 class ovOverlapDAT {
 public:
@@ -84,8 +82,6 @@ public:
 #define        ovOverlapNWORDS  6
 #define        ovOverlapWORDSZ  32
 typedef uint32 ovOverlapWORD;
-#define        F_OV   F_U32
-#define        F_OVP  F_U32P
 
 class ovOverlapDAT {
 public:

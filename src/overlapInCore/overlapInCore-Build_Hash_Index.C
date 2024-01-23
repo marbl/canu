@@ -335,9 +335,9 @@ Put_String_In_Hash(uint32 UNUSED(curID), uint32 i) {
   uint64        key_is_bad;
   int           j;
 
-  uint32        kmers_skipped  = 0;
-  uint32        kmers_bad      = 0;
-  uint32        kmers_inserted = 0;
+  //uint32        kmers_skipped  = 0;
+  //uint32        kmers_bad      = 0;
+  //uint32        kmers_inserted = 0;
 
   char *p      = basesData + String_Start[i];
   char *window = basesData + String_Start[i];
@@ -362,10 +362,10 @@ Put_String_In_Hash(uint32 UNUSED(curID), uint32 i) {
 
   if (key_is_bad == false) {
     Hash_Insert(ref, key, window);
-    kmers_inserted++;
+    //kmers_inserted++;
 
   } else {
-    kmers_bad++;
+    //kmers_bad++;
   }
 
   while (*p != 0) {
@@ -386,17 +386,17 @@ Put_String_In_Hash(uint32 UNUSED(curID), uint32 i) {
     key  |= (uint64) (Bit_Equivalent[(int) * (p ++)]) << (2 * (G.Kmer_Len - 1));
 
     if (skip_ct > 0) {
-      kmers_skipped++;
+      //kmers_skipped++;
       continue;
     }
 
     if (key_is_bad) {
-      kmers_bad++;
+      //kmers_bad++;
       continue;
     }
 
     Hash_Insert(ref, key, window);
-    kmers_inserted++;
+    //kmers_inserted++;
   }
 
   //fprintf(stderr, "STRING %u skipped %u bad %u inserted %u\n",

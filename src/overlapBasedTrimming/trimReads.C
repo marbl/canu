@@ -98,7 +98,6 @@ main(int argc, char **argv) {
   char       *outClrName = NULL;
 
   uint32      errorValue     = AS_OVS_encodeEvalue(0.015);
-  uint32      minAlignLength = 40;
   uint32      minReadLength  = 64;
 
   char       *outputPrefix  = NULL;
@@ -150,9 +149,6 @@ main(int argc, char **argv) {
       double erate = atof(argv[++arg]);
       errorValue = AS_OVS_encodeEvalue(erate);
 
-    } else if (strcmp(argv[arg], "-l") == 0) {
-      minAlignLength = atoi(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
 
@@ -190,11 +186,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -Ci clearFile  path to input clear ranges (NOT SUPPORTED)\n");
-    //fprintf(stderr, "  -Cm clearFile  path to maximal clear ranges\n");
+    //rintf(stderr, "  -Cm clearFile  path to maximal clear ranges\n");
     fprintf(stderr, "  -Co clearFile  path to output clear ranges\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e erate       ignore overlaps with more than 'erate' percent error\n");
-    //fprintf(stderr, "  -l length      ignore overlaps shorter than 'l' aligned bases (NOT SUPPORTED)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -ol l          the minimum evidence overlap length\n");
     fprintf(stderr, "  -oc c          the minimum evidence overlap coverage\n");

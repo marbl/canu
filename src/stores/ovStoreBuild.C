@@ -119,7 +119,6 @@ main(int argc, char **argv) {
 
   uint32  maxID       = seq->sqStore_lastReadID();
   uint64  ovlsTotal   = 0;  //  Total in inputs.
-  uint32  numInputs   = 0;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "-- SCANNING INPUTS --\n");
@@ -133,7 +132,6 @@ main(int argc, char **argv) {
       ovFile            *inputFile = new ovFile(seq, inputName, ovFileFull);
 
       ovlsTotal += inputFile->getCounts()->numOverlaps() * 2;
-      numInputs += 1;
 
       fprintf(stderr, "%12.3f %40s\n",
               inputFile->getCounts()->numOverlaps() / 1000000.0,

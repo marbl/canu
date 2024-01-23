@@ -297,8 +297,6 @@ private:
   ovOverlap              *_ovs;        //
   uint64                 *_ovsSco;     //  For scoring overlaps during the load
   uint64                 *_ovsTmp;     //  For picking out a score threshold
-
-  uint64                  _genomeSize;
 };
 
 

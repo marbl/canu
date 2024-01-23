@@ -658,8 +658,6 @@ tgTig::loadLayout(FILE *F) {
           _children[nChildren]._askip = strtouint32(W[++pos]);
           _children[nChildren]._bskip = strtouint32(W[++pos]);
         }
-
-        pos++;
       }
 
       nChildren++;

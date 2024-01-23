@@ -52,12 +52,12 @@ ovOverlap::toString(char                  *str,
       break;
 
     case ovOverlapAsUnaligned:
-      sprintf(str, "%10" F_U32P " %10" F_U32P "  %c  %6" F_U32P "  %6" F_OVP " %6" F_OVP "  %6" F_OVP " %6" F_OVP "  %7.6f %s %s %s%s",
+      sprintf(str, "%10" F_U32P " %10" F_U32P "  %c  %6" F_U32P "  %6s %6s %6s %6s  %7.6f %s %s %s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
-              dat.ovl.ahg5, dat.ovl.ahg3,
-              dat.ovl.bhg5, dat.ovl.bhg3,
+              toDec(dat.ovl.ahg5), toDec(dat.ovl.ahg3),
+              toDec(dat.ovl.bhg5), toDec(dat.ovl.bhg3),
               erate(),
               dat.ovl.forOBT ? "OBT" : "   ",
               dat.ovl.forDUP ? "DUP" : "   ",

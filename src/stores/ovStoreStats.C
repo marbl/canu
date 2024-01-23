@@ -260,7 +260,7 @@ main(int argc, char **argv) {
     bool    readCoverage5     = false;
     bool    readCoverage3     = false;
     bool    readContained     = false;
-    bool    readContainer     = false;
+    //ol    readContainer     = false;
     bool    readPartial       = false;
 
     for (uint32 oo=0; oo<overlapsLen; oo++) {
@@ -288,7 +288,7 @@ main(int argc, char **argv) {
       readCoverage5    |= is5prime;     //  If there is a 5' overlap, the read isn't missing 5' coverage
       readCoverage3    |= is3prime;
       readContained    |= isContained;  //  Read is contained in something else
-      readContainer    |= isContainer;  //  Read is a container of somethign else
+      //adContainer    |= isContainer;  //  Read is a container of somethign else
       readPartial      |= isPartial;
 
       cov.add(overlaps[oo].a_bgn(), overlaps[oo].a_end() - overlaps[oo].a_bgn());

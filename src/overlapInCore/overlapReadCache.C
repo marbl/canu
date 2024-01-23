@@ -92,11 +92,11 @@ overlapReadCache::loadReads(std::set<uint32> reads) {
 
   //  Age all the reads in the cache.
 
-  uint32  nLoaded = 0;
+  //uint32  nLoaded = 0;
 
   for (uint32 id=0; id<nReads; id++) {
-    if (readLen[id] > 0)
-      nLoaded++;
+    //if (readLen[id] > 0)
+    //  nLoaded++;
     readAge[id]++;
   }
 

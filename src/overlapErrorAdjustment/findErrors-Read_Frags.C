@@ -46,8 +46,6 @@ Read_Frags(feParameters   *G,
 
   uint64  basesLength = 0;
   uint64  votesLength = 0;
-  uint64  readsLoaded = 0;
-
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     basesLength += seqStore->sqStore_getReadLength(curID) + 1;
@@ -82,7 +80,6 @@ Read_Frags(feParameters   *G,
 
     basesLength += readLength + 1;
     votesLength += readLength;
-    readsLoaded += 1;
 
     if (readLength > 0) {
       char   *readBases  = read->sqRead_sequence();
