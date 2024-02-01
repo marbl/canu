@@ -77,16 +77,19 @@ AlnGraphBoost::AlnGraphBoost(const std::string& backbone) {
     _enterVtx = *curr++;
     _g[_enterVtx].base = '^';
     _g[_enterVtx].backbone = true;
+    _g[_enterVtx].tpos = 0;
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
         _g[v].backbone = true;
         _g[v].weight = 0;
         _g[v].base = backbone[i];
         _bbMap[v] = v;
+        _g[v].tpos = 0;
     }
     _exitVtx = *curr;
     _g[_exitVtx].base = '$';
     _g[_exitVtx].backbone = true;
+    _g[_exitVtx].tpos = 0;
 }
 
 AlnGraphBoost::AlnGraphBoost(const size_t blen) {
@@ -100,6 +103,7 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
     _enterVtx = *curr++;
     _g[_enterVtx].base = '^';
     _g[_enterVtx].backbone = true;
+    _g[_enterVtx].tpos = 0;
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
         _g[v].backbone = true;
@@ -107,10 +111,12 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
         _g[v].deleted = false;
         _g[v].base = 'N';
         _bbMap[v] = v;
+        _g[v].tpos = 0;
     }
     _exitVtx = *curr;
     _g[_exitVtx].base = '$';
     _g[_exitVtx].backbone = true;
+    _g[_exitVtx].tpos = 0;
 }
 
 void AlnGraphBoost::addAln(dagAlignment& aln) {
@@ -121,6 +127,14 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
     for (size_t i = 0; i < aln.length; i++) {
         char queryBase = aln.qstr[i], targetBase = aln.tstr[i];
         VtxDesc currVtx = index[bbPos];
+        _g[_bbMap[currVtx]].tpos = bbPos;
+        // fprintf(stderr, "addAln()-- queryBase: %c targetBase: %c, tpos = bbPos = %u.\n", queryBase, targetBase, bbPos);
+//        if (bbPos < 50 || bbPos > 4659000) {
+//            fprintf(stderr, "addAln()-- queryBase: %c targetBase: %c, tpos = bbPos = %u.\n", queryBase, targetBase, bbPos);
+//            if (queryBase != targetBase) {
+//                fprintf(stderr, "addAln()-- Not equal! queryBase: %c != targetBase: %c, tpos = bbPos = %u.\n", queryBase, targetBase, bbPos);    
+//            }
+//        }
         // match
         if (queryBase == targetBase) {
             _g[_bbMap[currVtx]].coverage++;
@@ -133,6 +147,8 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
                 addEdge(prevVtx, currVtx);
             else
                 addEdge(_bbMap[bbPos-1], currVtx);
+
+            // _g[_bbMap[currVtx]].tpos = bbPos;
             bbPos++;
             prevVtx = currVtx;
         // query deletion
@@ -141,6 +157,8 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
 
             // NOTE: for empty backbones
             _g[_bbMap[currVtx]].base = targetBase;
+
+            // _g[_bbMap[currVtx]].tpos = bbPos;
 
             bbPos++;
         // query insertion
@@ -152,6 +170,7 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
             _g[newVtx].backbone = false;
             _g[newVtx].deleted = false;
             _bbMap[newVtx] = bbPos;
+            // _g[_bbMap[currVtx]].tpos = bbPos;
 
             if (prevVtx != _enterVtx || bbPos <= MAX_OFFSET || MAX_OFFSET == 0)
                addEdge(prevVtx, newVtx);
@@ -160,6 +179,8 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
             prevVtx = newVtx;
         }
     }
+    // _g[_bbMap[prevVtx]].tpos = bbPos;
+ //   fprintf(stderr, "addAln()-- final tpos = bbPos = %u.\n", bbPos);
     if (bbPos + MAX_OFFSET >= _templateLength || MAX_OFFSET == 0)
        addEdge(prevVtx, _exitVtx);
     else
@@ -411,6 +432,74 @@ const std::string AlnGraphBoost::consensusNoSplit(int minWeight) {
         }
         idx++;
     }
+
+    fprintf(stderr, "AlnGraphBoost::consensusNoSplit()-- trim tig to substring %u - %u\n", offs, (offMax-offs));
+
+    return cns.substr(offs, (offMax-offs));
+}
+
+// const std::string AlnGraphBoost::consensusNoSplitMap(int minWeight, std::map<uint32_t, uint32_t>& templateToFinal) {
+const std::string AlnGraphBoost::consensusNoSplitMap(int minWeight, uint32_t *templateToFinal, int *startTrim) {
+    // get the best scoring path
+    std::vector<AlnNode> path = bestPath();
+
+    // consensus sequence
+    std::string cns;
+
+    // track the longest consensus path meeting minimum weight
+    int offs = 0, offMax = 0, idx = 0;
+    // int lastTpos = 0, lastIdx = 0, lastTwoTpos = 0, lastTwoIdx = 0;
+    bool metWeight = false;
+    std::vector<AlnNode>::iterator curr = path.begin();
+    for (; curr != path.end(); ++curr) {
+        AlnNode n = *curr;
+        if (n.base == _g[_enterVtx].base || n.base == _g[_exitVtx].base)
+            continue;
+
+        cns += n.base;
+        if (metWeight == false && n.weight >= minWeight) {
+           metWeight = true;
+           offs=idx;
+        }
+        if (n.weight >= minWeight && idx > offMax) {
+           offMax = idx;
+        }
+        idx++;
+        if (n.tpos != UINT32_MAX) {
+            // fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- n.base: %c n.tpos: %u idx: %u\n", n.base, n.tpos, idx);
+            templateToFinal[n.tpos] = idx;
+            // if (true) {
+            //     fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- n.base = %c, n.tpos = %u, idx = %u \n", n.base, n.tpos, idx); 
+
+            // // if (lastTpos == n.tpos - 1 && lastIdx = idx - 1 && lastTwoTpos == lastTpos - 1 && lastTwoIdx = lastIdx - 1) {
+            //     // fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- skip mapping tpos %u to adjpos %u, because we have prior mappings tpos %u to adjpos %u and tpos %u to adjpos %u", n.tpos, idx, lastTpos, lastIdx, lastTwoTpos, lastTwoIdx);
+            //     // if (n.tpos < 100 || n.tpos > 4659000) {
+            //     //     fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- n.base = %c, n.tpos = %u, idx = %u \n", n.base, n.tpos, idx); 
+            //     // }
+            //     // else {
+            //     //     templateToFinal[n.tpos] = idx;
+            //     // }
+            //     // lastTwoTpos = lastTpos;
+            //     // lastTpos = n.tpos;
+            //     // lastTwoIdx = lastIdx;
+            //     // lastIdx = idx;
+            // }
+        }
+    }
+
+    fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- trim tig to substring %u - %u\n", offs, (offMax-offs));
+    *startTrim = offs;
+    fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- set _startTrim = offs, %u = %u\n", *startTrim, offs);
+
+    // std::map<uint32_t, uint32_t>::iterator it = templateToFinal.begin();
+
+    // // Print the first 5 elements
+    // int count = 0;
+    // while (it != templateToFinal.end() && count < 150) {
+    //     fprintf(stderr, "AlnGraphBoost::consensusNoSplitMap()-- Key: %u Value: %u\n", it->first, it->second);
+    //     ++it;
+    //     count++;
+    // }
 
     return cns.substr(offs, (offMax-offs));
 }

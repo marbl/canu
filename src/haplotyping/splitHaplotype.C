@@ -385,11 +385,6 @@ getMinFreqFromHistogram(char *histoName) {
   return(minFreq);
 }
 
-
-
-
-
-
 void
 hapData::initializeKmerTable(uint32 maxMemory) {
 

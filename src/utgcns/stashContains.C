@@ -350,8 +350,9 @@ tgTig::unstashContains(void) {
 
 
 void
-tgTig::flagContains(double  maxCov, tgTigStashed &S) {
+tgTig::flagContains(double  maxCov, tgTigStashed &S, std::map<uint32, sqRead *>  *reads_) {
 
+  fprintf(stderr, "flagContains()-- _childrenLen %u\n", _childrenLen);
   //  Initialize.
   //    Declare that we have no stashed reads.
   //    Clear the return statistics.
@@ -362,10 +363,11 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S) {
 
   S.clear();
 
-  if (_childrenLen == 1)
-    return;
+  // if (_childrenLen == 1)
+  //   return;
 
   //  Sort the original children by position.
+  // fprintf(stderr, "original _children size: %lu\n", _childrenLen);
 
   std::sort(_children, _children + _childrenLen);
 
@@ -378,6 +380,13 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S) {
   int32         hiEnd = -1;
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
+    // fprintf(stderr, "flagContains()-- read %s isIgnored %u\n", _children[ci].readName(reads_), _children[ci].isIgnored());
+    _children[ci].setIsONT(_children[ci].isIgnored());
+    // if (_children[ci].isONT()) {
+    //   fprintf(stderr, "flagContains()-- read %s isONT\n", _children[ci].readName(reads_));
+    // } else {
+    //   fprintf(stderr, "flagContains()-- read %s is HiFi\n", _children[ci].readName(reads_));
+    // }
     int32  lo = _children[ci].min();
     int32  hi = _children[ci].max();
     posLen[ci].idx = ci;
@@ -396,6 +405,7 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S) {
       }
       hiEnd = std::max(hi, hiEnd);
     }
+    // fprintf(stderr, "flagContains()-- saw read %s\n", _children[ci].readName(reads_));
   }
 
   //  Sort by length, longest first, then verify we're sorted.
@@ -435,9 +445,10 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S) {
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
     _children[posLen[ci].idx].setIsIgnored(!posLen[ci].use);
+    // fprintf(stderr, "flagContains()-- marked read %s as isIgnored %u\n", _children[posLen[ci].idx].readName(reads_),_children[posLen[ci].idx].isIgnored() );
   }
 
   //  Cleanup and return the statistics.
-
+  // fprintf(stderr, "after flagging _children size: %lu\n", _childrenLen);
   delete [] posLen;
 }

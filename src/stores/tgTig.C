@@ -97,6 +97,7 @@ tgPosition::initialize(void) {
   _deltaOffset = UINT32_MAX;
   _deltaLen    = 0;
   _isIgnored   = false;
+  _isONT   = false;
 }
 
 
@@ -796,7 +797,7 @@ tgTig::reverseComplement(void) {
     int32  bgn = _basesLen - _children[ii].bgn();
     int32  end = _basesLen - _children[ii].end();
 
-    _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end, _children[ii].isIgnored());
+    _children[ii].set(_children[ii].ident(), 0, 0, 0, bgn, end, _children[ii].isIgnored(), _children[ii].isONT());
   }
 
   //  _childDeltas are also invalid.

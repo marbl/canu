@@ -83,12 +83,14 @@ struct AlnNode {
     bool deleted; ///< mark for removed as part of the merging process
     graphTraits::edge_descriptor bestInEdge; ///< Best scoring in edge
     graphTraits::edge_descriptor bestOutEdge; ///< Best scoring out edge
+    int tpos;
     AlnNode() {
         base = 'N';
         coverage = 0;
         weight = 0;
         backbone = false;
         deleted = false;
+        tpos = UINT32_MAX;
     }
 };
 
@@ -178,6 +180,9 @@ public:
     /// Same as above but will only trim bases below minWeight either at the start or end of the sequence, not in the middle 
     const std::string consensusNoSplit(int minWeight=0);
 
+    /// Same as above but will track the trim offset 
+    // const std::string consensusNoSplitMap(int minWeight, std::map<uint32_t, uint32_t> &templateToFinal);
+    const std::string consensusNoSplitMap(int minWeight, uint32_t *templateToFinal, int *trimStart);
     /// Generates all consensus sequences from a target that meet the minimum
     /// weight requirement.
     void consensus(std::vector<CnsResult>& seqs, int minWeight=0, size_t minLength=500);

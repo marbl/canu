@@ -147,6 +147,55 @@ printHeader(cnsParameters  &params) {
 }
 
 
+// This will only work for fairly homozygous genomes, where the 2-copy homozygous peak is taller than the 1-copy heterozygous peak, otherwise its assumptions will be violated.
+uint32_t
+estimateOneCopyPeak(merylHistogram *stats) {
+  uint32_t  aveSize = 5;
+  uint64_t  thisSum = 0;
+  uint32_t  thisLen = 0;
+
+  uint32_t  f = 1;
+
+  uint32_t  minFreq = 1;
+  uint64_t  minAve  = stats->histogramOccurrences(f++);
+  uint32_t histoLen = stats->histogramLength();
+
+  for (; f < histoLen; f++) {
+    if (thisLen == aveSize) {
+      thisSum += stats->histogramOccurrences(f);
+      thisSum -= stats->histogramOccurrences(f - aveSize);
+    }
+
+    else {
+      thisSum += stats->histogramOccurrences(f);
+      thisLen++;
+    }
+
+    if (thisSum / thisLen < minAve) {
+      minFreq = f - thisLen/2;
+      minAve  = thisSum / thisLen;
+    }
+
+    if (2 * minAve * aveSize < thisSum)   //  Over estimates the minimum sum when thisLen < aveSize - i.e., for
+      break;                              //  frequencies 1, 2, 3 and 4.  Probably not an issue.
+  }
+
+  uint32_t maxDepth = 0;
+  uint32_t maxFreq = 0;
+
+  for (uint32_t ii=minFreq; ii<stats->histogramLength(); ii++)
+    if (stats->histogramOccurrences(ii) > maxDepth) {
+      maxDepth = stats->histogramOccurrences(ii);
+      maxFreq = stats->histogramValue(ii);
+    }
+
+  uint32_t oneCopyPeak = uint32_t(maxFreq/2);
+  #warning This assumes a genome where the 2-copy peak is taller than the 1-copy peak to estimate the haploid coverage, if this does not hold true this may return the 1-copy peak / 2.
+  fprintf(stderr, "The one copy peak is estimated to be: " F_U32 "x. WARNING: This assumes a genome where 2-copy peak > 1-copy peak.\n", oneCopyPeak);
+  return(oneCopyPeak);
+}
+
+
 void
 processImportedTigs(cnsParameters  &params) {
   readBuffer *importFile      = new readBuffer(params.importName);
@@ -160,9 +209,19 @@ processImportedTigs(cnsParameters  &params) {
 
   tgTig                       *tig = new tgTig();
   std::map<uint32, sqRead *>   reads;
+  merylFileReader *reader;
 
   sqRead_defaultVersion = sqRead_raw | sqRead_normal;
-
+  uint32_t oneCopyPeak = 1;
+  if (params.markerDB) {
+    params.merlinGlobal_->markerDBname = params.markerDB;
+    params.merlinGlobal_->load_Kmers(params.markerDB);
+    reader = new merylFileReader(params.markerDB);
+    merylHistogram *stats = reader->stats();
+    oneCopyPeak = estimateOneCopyPeak(stats);
+  } else {
+    params.merlinGlobal_ = NULL;
+  }
   while (tig->importData(importFile, reads, importedLayouts, importedReads) == true) {
     if ((params.tigBgn <= tig->tigID()) &&
         (tig->tigID()  <= params.tigEnd)) {
@@ -173,15 +232,10 @@ processImportedTigs(cnsParameters  &params) {
 
       //  Compute!
 
-      tig->_utgcns_verboseLevel = params.verbosity;
-      if (params.markerDB) {
-        params.merlinGlobal_->markerDBname = params.markerDB;
-        params.merlinGlobal_->load_Kmers(params.markerDB);
-      } else {
-        params.merlinGlobal_ = NULL;
-      }      
+      tig->_utgcns_verboseLevel = params.verbosity;     
+      // fprintf(stderr, "processImportedTigs()-- utgcns reads.size(): %lu\n", reads.size()); 
       unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
-      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, S, &reads);
+      bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, S, oneCopyPeak, &reads);
 
       if (S.nBack > 0)
         fprintf(stdout, "  %8u %7.2fx %8u %7.2fx  %8u %7.2fx\n",
@@ -223,7 +277,10 @@ processImportedTigs(cnsParameters  &params) {
 
   merylutil::closeFile(importedReads);
   merylutil::closeFile(importedLayouts);
-
+  if (params.markerDB) {
+    delete reader;
+    delete params.merlinGlobal_;
+  }
   delete importFile;
 }
 
@@ -352,9 +409,18 @@ processTigs(cnsParameters  &params) {
   std::set<uint32>   processList = loadProcessList(params.tigName, params.tigPart);
 
   //  Load the partitioned reads, if they exist.
-
+  uint32_t oneCopyPeak = 1;
   params.seqReads = loadPartitionedReads(params.seqFile);
-
+  merylFileReader *reader;
+  if (params.markerDB) {
+    params.merlinGlobal_->markerDBname = params.markerDB;
+    params.merlinGlobal_->load_Kmers(params.markerDB);
+    reader = new merylFileReader(params.markerDB);
+    merylHistogram *stats = reader->stats();
+    oneCopyPeak = estimateOneCopyPeak(stats);
+  } else {
+    params.merlinGlobal_ = NULL;
+  }
   //  Loop over all tigs, loading each one and processing if requested.
 
   for (uint32 ti=params.tigBgn; ti<=params.tigEnd; ti++) {
@@ -395,14 +461,8 @@ processTigs(cnsParameters  &params) {
     //  Compute!
 
     tig->_utgcns_verboseLevel = params.verbosity;
-    if (params.markerDB) {
-      params.merlinGlobal_->markerDBname = params.markerDB;
-      params.merlinGlobal_->load_Kmers(params.markerDB);
-    } else {
-      params.merlinGlobal_ = NULL;
-    }
     unitigConsensus  *utgcns  = new unitigConsensus(params.seqStore, params.errorRate, params.errorRateMax, params.errorRateMaxID, params.minOverlap, params.minCoverage, params.merlinGlobal_);
-    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, S, params.seqReads);
+    bool              success = utgcns->generate(tig, params.algorithm, params.aligner, params.maxCov, S, oneCopyPeak, params.seqReads);
 
     if (S.nBack > 0) {
       nTigs++;
@@ -447,6 +507,11 @@ processTigs(cnsParameters  &params) {
           nSingletons, (nSingletons == 1) ? "" : "s");
   fprintf(stdout, "\n");
 
+  if (params.markerDB) {
+    delete reader;
+    delete params.merlinGlobal_;
+  }
+
   if (numFailures) {
     fprintf(stderr, "WARNING:  %u tig%s failed.\n", numFailures, (numFailures == 1) ? "" : "s");
     fprintf(stderr, "\n");
@@ -461,8 +526,6 @@ processTigs(cnsParameters  &params) {
 int
 main(int argc, char **argv) {
   cnsParameters  params;
-
-  params.merlinGlobal_ = new merlinGlobal(argv[0]);
 
   argc = AS_configure(argc, argv);
 
@@ -615,6 +678,7 @@ main(int argc, char **argv) {
     }
     else if (strcmp(argv[arg], "-markers") == 0) {
       params.markerDB = argv[++arg];
+      params.merlinGlobal_ = new merlinGlobal(argv[0]);
     }
 
     else {

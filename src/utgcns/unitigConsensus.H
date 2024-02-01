@@ -40,6 +40,7 @@ public:
 
     _complement = false;
     _isIgnored  = false;
+    _isONT  = false;
 
     _length     = 0;
     _bases      = NULL;
@@ -49,7 +50,8 @@ public:
              uint32  length,
              char   *seq,
              uint32  complemented,
-             uint32  isIgnored = false);
+             uint32  isIgnored = false,
+             uint32  isONT = false);
 
   ~abSequence() {
     delete [] _bases;
@@ -60,6 +62,9 @@ public:
 
   bool        isForward(void)         { return(_complement == false); };
   bool        isIgnored(void)         { return(_isIgnored); };
+  bool        isUsed(void) const { return(!_isIgnored); };
+  bool        isONT(void)             { return(_isONT); };
+  bool        isHiFi(void) const { return(!_isONT); };
 
   uint32      length(void)            { return(_length);     };
   char        getBase(uint32 o)       { return(_bases[o]);   };
@@ -71,6 +76,7 @@ private:
 
   bool       _complement;
   bool       _isIgnored;
+  bool       _isONT;
 
   uint32     _length;
   char      *_bases;
@@ -92,7 +98,7 @@ public:
 private:
   void   addRead(uint32 readID,
                  uint32 askip, uint32 bskip,
-                 bool complemented, bool isIgnored,
+                 bool complemented, bool isIgnored, bool isONT,
                  std::map<uint32, sqRead *>     *inPackageRead);
 
   bool   initialize(std::map<uint32, sqRead *>     *reads);
@@ -103,20 +109,30 @@ public:
                   char                         aligner_,
                   double                       maxCov,
                   tgTigStashed                 S,
+                  uint32_t                     oneCopyPeak,
                   std::map<uint32, sqRead *>  *reads_ = NULL);
 
 private:
-  void   switchToUncompressedCoordinates(void);
+  void   switchToUncompressedCoordinates(std::map<uint32, sqRead *>  *reads_);
   void   updateReadPositions(void);
 
-  char  *generateTemplateStitch(void);
+  char  *generateTemplateStitch(std::map<uint32, sqRead *>  *reads_);
 
   bool   initializeGenerate(tgTig                       *tig,
                             std::map<uint32, sqRead *>  *reads = NULL);
+  
+  std::map<uint32, uint32> createMapFromCigar(char *cigar);
+ 
+  uint32 convertTemplateToCnsCoord(uint32 coord);
+
+  tgPosition adjustPosition(tgPosition original, char* readname);
+
+  uint32 getNumHiFiReads(tgTig                      *tig, 
+                         std::map<uint32, sqRead *> *reads_);
 
 
   bool   generatePBDAG(tgTig                       *tig,
-                       char                         aligner,
+                       char                        aligner,
                        std::map<uint32, sqRead *>  *reads = NULL);
 
   bool   generateQuick(tgTig                       *tig,
@@ -125,7 +141,14 @@ private:
   bool   generateSingleton(tgTig                       *tig,
                            std::map<uint32, sqRead *>  *reads = NULL);
 
-  void   findCoordinates(std::map<uint32, sqRead *>     *reads);
+  void   findCoordinates(uint32_t                     oneCopyPeak,
+                         char                         aligner_, 
+                         std::map<uint32, sqRead *>   *reads);
+
+  void   findCoordinates1(uint32_t                     oneCopyPeak,
+                          char                         aligner_, 
+                          std::map<uint32, sqRead *>   *reads);
+
   void   findRawAlignments(void);
   void   trimCircular(void);
 
@@ -155,6 +178,7 @@ private:
   //
   tgPosition     *_utgpos;      //  Original unitigger location.
   tgPosition     *_cnspos;      //  Actual location in frankenstein.
+  tgPosition     *_adjpos;
 
   uint32          _minOverlap;
   uint32          _minCoverage;
@@ -162,6 +186,9 @@ private:
   double          _errorRateMax;
   uint32          _errorRateMaxID; 
   merlinGlobal    *_merlinGlobal;
+  uint32_t        *_templateToCns;
+  uint32_t        _templateLength;
+  int             _startTrim;
 };
 
 

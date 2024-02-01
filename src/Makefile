@@ -460,8 +460,8 @@ endif
 
 
 ifeq (${OSTYPE}, Linux)
-  CC        ?= gcc
-  CXX       ?= g++
+  CC        ?= gcc -g
+  CXX       ?= g++ -g
 
   CXXFLAGS  += -pthread -fopenmp -fPIC
   LDFLAGS   += -pthread -fopenmp -lm

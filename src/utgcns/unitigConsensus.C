@@ -29,7 +29,8 @@
 #include "merlin-globals.H"
 
 #include <string>
-
+#include <vector>
+#include <algorithm>
 
 #define ERROR_RATE_FACTOR 4
 #define NUM_BANDS         2
@@ -40,11 +41,13 @@ abSequence::abSequence(uint32  readID,
                        uint32  length,
                        char   *seq,
                        uint32  complemented,
-                       uint32  isIgnored) {
+                       uint32  isIgnored,
+                       uint32  isONT) {
   _iid              = readID;
   _length           = length;
   _complement       = complemented;
   _isIgnored        = isIgnored;
+  _isONT            = isONT;
 
   _bases            = new char  [_length + 1];
 
@@ -100,6 +103,7 @@ unitigConsensus::unitigConsensus(sqStore  *seqStore_,
 
   _utgpos          = NULL;
   _cnspos          = NULL;
+  _adjpos          = NULL;
 
   _minOverlap      = minOverlap_;
   _errorRate       = errorRate_;
@@ -118,6 +122,7 @@ unitigConsensus::~unitigConsensus() {
   delete [] _sequences;
   delete [] _utgpos;
   delete [] _cnspos;
+  delete [] _adjpos;
 }
 
 
@@ -126,7 +131,7 @@ void
 unitigConsensus::addRead(uint32   readID,
                          uint32   askip, uint32 bskip,
                          bool     complemented,
-                         bool     isIgnored,
+                         bool     isIgnored, bool isONT,
                          std::map<uint32, sqRead *>     *inPackageRead) {
 
   //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
@@ -158,7 +163,7 @@ unitigConsensus::addRead(uint32   readID,
 
   increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
 
-  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, complemented, isIgnored);
+  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, complemented, isIgnored, isONT);
 
   delete readToDelete;
 }
@@ -175,9 +180,11 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
 
   _utgpos = new tgPosition [_numReads];
   _cnspos = new tgPosition [_numReads];
+  _adjpos = new tgPosition [_numReads];
 
   memcpy(_utgpos, _tig->getChild(0), sizeof(tgPosition) * _numReads);
   memcpy(_cnspos, _tig->getChild(0), sizeof(tgPosition) * _numReads);
+  memcpy(_adjpos, _tig->getChild(0), sizeof(tgPosition) * _numReads);
 
   //  Clear the cnspos position.  We use this to show it's been placed by consensus.
   //  Guess the number of columns we'll end up with.
@@ -185,17 +192,18 @@ unitigConsensus::initialize(std::map<uint32, sqRead *>     *reads) {
 
   for (int32 i=0; i<_numReads; i++) {
     _cnspos[i].setMinMax(0, 0);
+    _adjpos[i].setMinMax(0, 0);
 
     addRead(_utgpos[i].ident(),
             _utgpos[i]._askip, _utgpos[i]._bskip,
-            _utgpos[i].isReverse(), _utgpos[i].isIgnored(),
+            _utgpos[i].isReverse(), _utgpos[i].isIgnored(), _utgpos[i].isONT(), 
             reads);
   }
 
   return(true);
 }
 
-void unitigConsensus::switchToUncompressedCoordinates(void) {
+void unitigConsensus::switchToUncompressedCoordinates(std::map<uint32, sqRead *>  *reads_) {
     // update coordinates of the tig when needed (when it was assembled in compressed space, in normal space this will be skiped)
     // we do this by tracking the read reaching furthest to the right and keeping its offset + homopolymer coordinate translation
     // the read that overlaps it is then updated to start at that reads uncompressed offset + uncompressed bases based on the overlapping coordinate positions
@@ -230,27 +238,28 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
          i++;
 
       //if (showAlgorithm())
-      //  fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), _utgpos[child].min(), readCompressedPosition, i);
+       //fprintf(stderr, "switchToUncompressedCoordinates()-- I'm trying to find start of child %d %s compressed %d (dist from guide read is %d and in uncompressed in becomes %d)\n", _utgpos[child].ident(), (*reads_)[ _utgpos[child].ident() ]->sqRead_name(), _utgpos[child].min(), readCompressedPosition, i);
 
       _utgpos[child].setMinMax(i+uncompressedOffset, i+uncompressedOffset+getSequence(child)->length());
 
       //if (showAlgorithm())
-      //  fprintf(stderr, "switchToUncompressedCoordinates() --Updated read %d which has length %d to be from %d - %d\n", _utgpos[child].ident(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
+       //fprintf(stderr, "switchToUncompressedCoordinates()-- Updated read %d %s which has length %d to be from %d - %d\n", _utgpos[child].ident(), (*reads_)[ _utgpos[child].ident() ]->sqRead_name(), getSequence(child)->length(), _utgpos[child].min(), _utgpos[child].max());
 
-       // update best end if needed
-       if (ntoc == NULL || compressedEnd > currentEnd) {
-          nlen  = getSequence(child)->length();
-          delete[] ntoc;
-          ntoc  = new uint32 [ nlen + 1 ];
-          uint32 clen  = homopolyCompress(getSequence(child)->getBases(), nlen, NULL, ntoc);
+      // update best end if needed
+      if ((ntoc == NULL || compressedEnd > currentEnd) && getSequence(child)->isHiFi()) { 
+        // && getSequence(child)->isHiFi()
+        nlen  = getSequence(child)->length();
+        delete[] ntoc;
+        ntoc  = new uint32 [ nlen + 1 ];
+        uint32 clen  = homopolyCompress(getSequence(child)->getBases(), nlen, NULL, ntoc);
 
-          currentEnd         = compressedEnd;
-          compressedOffset   = compressedStart;
-          uncompressedOffset = _utgpos[child].min();
+        currentEnd         = compressedEnd;
+        compressedOffset   = compressedStart;
+        uncompressedOffset = _utgpos[child].min();
 
-          //if (showAlgorithm())
-          //  fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
-       }
+        //if (showAlgorithm())
+         //fprintf(stderr, "switchToUncompressedCoordinates()-- Updating guide read to be %d %s which ends at %d. Best before ended at %d. Now my guide is at %d (%d uncompressed)\n", _utgpos[child].ident(), (*reads_)[ _utgpos[child].ident() ]->sqRead_name(), compressedEnd, currentEnd, compressedOffset, uncompressedOffset);
+      }
 
       if (_utgpos[child].max() > layoutLen)
         layoutLen = _utgpos[child].max();
@@ -298,15 +307,19 @@ void unitigConsensus::updateReadPositions(void) {
 }
 
 char *
-unitigConsensus::generateTemplateStitch(void) {
+unitigConsensus::generateTemplateStitch(std::map<uint32, sqRead *>  *reads_) {
   uint32   minOlap  = _minOverlap;
 
   //  Initialize, copy the first read.
 
   uint32       rid      = 0;
   // set rid to be the first non-ignored read idx
-  while (getSequence(rid)->isIgnored())
+  fprintf(stderr, "generateTemplateStitch()-- Starting with read #%d %d %s isIgnored %u %u\n", rid, _utgpos[rid].ident(), (*reads_)[ _utgpos[rid].ident() ]->sqRead_name(), _utgpos[rid].isIgnored(), getSequence(rid)->isIgnored());
+  while (getSequence(rid)->isIgnored()) {
+    fprintf(stderr, "generateTemplateStitch()-- Skipping read #%d %d %s isIgnored %u %u\n", rid, _utgpos[rid].ident(), (*reads_)[ _utgpos[rid].ident() ]->sqRead_name(), _utgpos[rid].isIgnored(), getSequence(rid)->isIgnored());
     rid++;
+  }
+  fprintf(stderr, "generateTemplateStitch()-- Using read #%d %d %s isIgnored %u %u\n", rid, _utgpos[rid].ident(), (*reads_)[ _utgpos[rid].ident() ]->sqRead_name(), _utgpos[rid].isIgnored(), getSequence(rid)->isIgnored());
 
   abSequence  *seq      = getSequence(rid);
   char        *fragment = seq->getBases();
@@ -321,11 +334,12 @@ unitigConsensus::generateTemplateStitch(void) {
   bool          allowContains  = false;
 
   allocateArray(tigseq, tigmax, _raAct::clearNew);
-
+  char *readName = (*reads_)[ _utgpos[rid].ident() ]->sqRead_name();
   if (showAlgorithm()) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
-            rid, _utgpos[rid].ident(), readLen, _utgpos[rid].min(), _utgpos[rid].max());
+    fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d %s (len=%d to %d-%d)\n",
+            rid, _utgpos[rid].ident(), readName, readLen, _utgpos[rid].min(), _utgpos[rid].max());
+    // fprintf(stderr, "generateTemplateStitch()-- bases: %s\n", getSequence(rid)->getBases());
   }
 
   for (uint32 ii=0; ii<readLen; ii++)
@@ -381,6 +395,7 @@ unitigConsensus::generateTemplateStitch(void) {
       fprintf(stderr, "\n");
 
     for (uint32 ii=rid+1; ii < _numReads; ii++) {
+      char *readName = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
 
       //  If contained, move to the next read.  (Not terribly useful to log, so we don't)
 
@@ -403,8 +418,8 @@ unitigConsensus::generateTemplateStitch(void) {
       }
 
       if (showAlgorithm())
-        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d%s%s%s\n",
-                ii, _numReads, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(),
+        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d %s position %d-%d%s%s%s\n",
+                ii, _numReads, _utgpos[ii].ident(), readName, _utgpos[ii].min(), _utgpos[ii].max(),
                 (save  == true)  ? " SAVE"  : "",
                 (thick == false) ? " THIN"  : "",
                 (first == true)  ? " FIRST" : "");
@@ -425,7 +440,7 @@ unitigConsensus::generateTemplateStitch(void) {
     assert(nr != 0);
 
    if (_utgpos[rid].ident() <= _errorRateMaxID || _utgpos[nr].ident() <= _errorRateMaxID) {
-      if (showAlgorithm()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), _errorRateMaxID);
+      if (showAlgorithm()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) name %s is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), readName, _errorRateMaxID);
       _errorRate = _errorRateMax;
    }
   
@@ -451,8 +466,8 @@ unitigConsensus::generateTemplateStitch(void) {
     // compare as ints to ensure that <0 overlap sizes are caught
     if ((int32)olapLen < (int32)minOlap) {
       if (showAlgorithm())
-        fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
-                olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
+        fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u %s (%d - %d)\n",
+                olapLen, std::min(ePos, minOlap), nr, (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), _utgpos[nr].min(), _utgpos[nr].max());
       if (olapLen > 50 || olapLen < 0) {
          olapLen = std::min(ePos, minOlap);
       } else {
@@ -480,11 +495,11 @@ unitigConsensus::generateTemplateStitch(void) {
 
     if (showAlgorithm()) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d\n",
+      fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %s %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d templateLen %d\n",
               tiglen - templateLen, tiglen, templateLen,
-              nr, _utgpos[nr].ident(), readBgn, readEnd, readEnd - readBgn, readLen,
+              nr, _utgpos[nr].ident(), (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), readBgn, readEnd, readEnd - readBgn, readLen,
               _utgpos[nr].min(), _utgpos[nr].max(),
-              olapLen);
+              olapLen, templateLen);
     }
 
     result = edlibAlign(tigseq + tiglen - templateLen, templateLen,
@@ -607,9 +622,9 @@ unitigConsensus::generateTemplateStitch(void) {
 
       if (showAlgorithm()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
-        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
-                tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
-        fprintf(stderr, "generateTemplateStitch()-- New position for read %d is  %d-%d\n", _utgpos[nr].ident(), _cnspos[nr].min(), _cnspos[nr].max());
+        fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %s %d-%d; copy read %d-%d to template.\n",
+                tiglen - templateLen, tiglen, nr, (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), readBgn, readEnd, readEnd, readLen);
+        fprintf(stderr, "generateTemplateStitch()-- New position for read %d %s is %d-%d\n", _utgpos[nr].ident(), (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), _cnspos[nr].min(), _cnspos[nr].max());
       }
     } else {
       // try to go back and pick a different read to extend with if that's an option
@@ -623,7 +638,7 @@ unitigConsensus::generateTemplateStitch(void) {
          olapLen = origLen;
          if (showAlgorithm()) {
             fprintf(stderr, "generateTemplateStitch()--\n");
-            fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d to last added %d ident %d, will go back and re-try an earlier read until we hit %d and allowing contains is %d\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), firstCandidate, allowContains);
+            fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d %s to last added %d ident %d, will go back and re-try an earlier read until we hit %d and allowing contains is %d\n", rid, _utgpos[nr].ident(), (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), lastStart, _utgpos[lastStart].ident(), firstCandidate, allowContains);
             fprintf(stderr, "generateTemplateStitch()--\n");
          }
          edlibFreeAlignResult(result);
@@ -637,7 +652,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
          if (showAlgorithm()) {
             fprintf(stderr, "generateTemplateStitch()--\n");
-            fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d to last added %d ident %d, will try to trim template of %d bp by %d bases\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), tiglen, trimbp);
+            fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d %s to last added %d ident %d, will try to trim template of %d bp by %d bases\n", rid, _utgpos[nr].ident(), (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), lastStart, _utgpos[lastStart].ident(), tiglen, trimbp);
          }
 
          ePos -= trimbp; 
@@ -659,8 +674,8 @@ unitigConsensus::generateTemplateStitch(void) {
 
       if (showAlgorithm()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
-        fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
-                readEnd, readLen);
+        fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %s %d-%d to template.\n",
+                (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), readEnd, readLen);
       }
     }
 
@@ -677,7 +692,7 @@ unitigConsensus::generateTemplateStitch(void) {
     //  from the end of a read, and (2) edlib is allowing matches to Ns.
 
     if (showAlgorithm())
-      fprintf(stderr, "generateTemplateStitch()-- Append read from %u to %u, starting at tiglen %u\n", readEnd, readLen, tiglen);
+      fprintf(stderr, "generateTemplateStitch()-- Append read %s from %u to %u, starting at tiglen %u\n", (*reads_)[ _utgpos[nr].ident() ]->sqRead_name(), readEnd, readLen, tiglen);
 
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
@@ -706,7 +721,13 @@ unitigConsensus::generateTemplateStitch(void) {
   }
 
   updateReadPositions();
-
+  // char tigNameTemplateFa[sizeof "tig00000000_template.fa"];
+  // char tigName[sizeof "tig00000000"];
+  // sprintf(tigNameTemplateFa, "tig%08d_template.fa", _tig->tigID());
+  // sprintf(tigName, "tig%08d", _tig->tigID());
+  // FILE *fp = fopen(tigNameTemplateFa, "w");
+  // fprintf(fp, ">%s\n%s\n", tigName, tigseq);
+  // fclose(fp);
   return(tigseq);
 }
 
@@ -724,7 +745,7 @@ alignEdLib(dagAlignment      &aln,
 
   EdlibAlignResult align;
 
-  int32   padding        = std::min(250, (int32)ceil(fragmentLength * 0.05));
+  int32   padding        = std::min(250, (int32)ceil(fragmentLength * 0.05)); 
   double  bandErrRate    = errorRate / ERROR_RATE_FACTOR;
   bool    aligned        = false;
   double  alignedErrRate = 0.0;
@@ -735,14 +756,14 @@ alignEdLib(dagAlignment      &aln,
   int32  tigend = std::min((int32)tiglen, (int32)floor(utgpos.max() + padding));
 
   if (verbose)
-    fprintf(stderr, "alignEdLib()-- align read %7u eRate %.4f at %9d-%-9d", utgpos.ident(), bandErrRate, tigbgn, tigend);
+    fprintf(stderr, "alignEdLib()-- align read %7u eRate %.4f at %9d-%-9d\n", utgpos.ident(), bandErrRate, tigbgn, tigend);
 
   if (tigend < tigbgn) {
     fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
             tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
     // try to align it to full
     tigbgn = 0;
-    tigend = (utgpos.max() < 0 ? tiglen : utgpos.max());
+    tigend = (utgpos.max() < 0 ? tiglen : std::min((int32)tiglen, (int32)utgpos.max()));
     fprintf(stderr, "alignEdLib()-- WARNING: updated tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
             tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
   }
@@ -758,7 +779,7 @@ alignEdLib(dagAlignment      &aln,
     alignedErrRate = (double)align.editDistance / align.alignmentLength;
     aligned        = (alignedErrRate <= bandErrRate);
     if (verbose)
-      fprintf(stderr, " - ALIGNED %.4f at %9d-%-9d\n", alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
+      fprintf(stderr, "alignEdLib()-- - ALIGNED read %7u %.4f at %9d-%-9d\n", utgpos.ident(), alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
   } else {
     if (verbose)
       fprintf(stderr, "\n");
@@ -786,7 +807,7 @@ alignEdLib(dagAlignment      &aln,
                tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
        // try to align it to full
        tigbgn = 0;
-       tigend = (utgpos.max() < 0 ? tiglen : utgpos.max());
+       tigend = (utgpos.max() < 0 ? tiglen : std::min((int32)tiglen, (int32)utgpos.max()));
        fprintf(stderr, "alignEdLib()-- WARNING: updated tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
                tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
     }
@@ -795,7 +816,7 @@ alignEdLib(dagAlignment      &aln,
     edlibFreeAlignResult(align);
 
     if (verbose)
-      fprintf(stderr, "alignEdLib()--                    eRate %.4f at %9d-%-9d", bandErrRate, tigbgn, tigend);
+      fprintf(stderr, "alignEdLib()--                  read %7u eRate %.4f at %9d-%-9d\n", utgpos.ident(), bandErrRate, tigbgn, tigend);
 
     align = edlibAlign(fragment, strlen(fragment),
                        tigseq + tigbgn, tigend - tigbgn,
@@ -805,7 +826,7 @@ alignEdLib(dagAlignment      &aln,
       alignedErrRate = (double)align.editDistance / align.alignmentLength;
       aligned        = (alignedErrRate <= bandErrRate);
       if (verbose)
-        fprintf(stderr, " - ALIGNED %.4f at %9d-%-9d\n", alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
+        fprintf(stderr, "alignEdLib()-- - ALIGNED read %7u %.4f at %9d-%-9d\n", utgpos.ident(), alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
     } else {
       if (verbose)
         fprintf(stderr, "\n");
@@ -813,6 +834,7 @@ alignEdLib(dagAlignment      &aln,
   }
 
   if (aligned == false) {
+    fprintf(stderr, "alignEdLib()-- failed to align read %7u.\n", utgpos.ident());
     edlibFreeAlignResult(align);
     return(false);
   }
@@ -882,6 +904,186 @@ alignEdLib(dagAlignment      &aln,
   return(true);
 }
 
+EdlibAlignResult
+alignEdLib1(dagAlignment    &aln,
+            bool            &success,
+            tgPosition      &cnspos,
+            uint32          isONT,
+            char            *fragment,
+            uint32          fragmentLength,
+            char            *tigseq,
+            uint32          tiglen,
+            double          errorRate,
+            bool            verbose,
+            char            *readName) {
+
+  EdlibAlignResult align;
+  int32 padding;
+  if (isONT) {
+    padding        = std::min(2000, (int32)ceil(fragmentLength * 0.05));
+  } else {
+    padding        = std::min(250, (int32)ceil(fragmentLength * 0.05));
+  }
+  // fprintf(stderr, "alignEdLib1()-- align read %7u %s isONT %u with padding %u\n", cnspos.ident(), readName, isONT, padding);
+
+  double  bandErrRate    = errorRate / ERROR_RATE_FACTOR;
+  bool    aligned        = false;
+  double  alignedErrRate = 0.0;
+
+  //  Decide on where to align this read.
+
+  int32  tigbgn = std::max((int32)0,      (int32)floor(cnspos.min() - padding));
+  int32  tigend = std::min((int32)tiglen, (int32)floor(cnspos.max() + padding));
+
+  if (verbose)
+    fprintf(stderr, "alignEdLib1()-- align read %7u %s eRate %.4f adjusted pos %d-%d at %d-%d\n", cnspos.ident(), readName, bandErrRate, cnspos.min(), cnspos.max(), tigbgn, tigend);
+
+  if (tigend < tigbgn) {
+    fprintf(stderr, "alignEdLib1()-- WARNING: read %s tigbgn %d > tigend %d - tiglen %d cnspos %d-%d padding %d\n",
+            readName, tigbgn, tigend, tiglen, cnspos.min(), cnspos.max(), padding);
+    // try to align it to full
+    tigbgn = 0;
+    tigend = (cnspos.max() < 0 ? tiglen : std::min((int32)tiglen, (int32)cnspos.max()));
+    fprintf(stderr, "alignEdLib1()-- WARNING: read %s updated tigbgn %d > tigend %d - tiglen %d cnspos %d-%d padding %d\n",
+            readName, tigbgn, tigend, tiglen, cnspos.min(), cnspos.max(), padding);
+  }
+  assert(tigend > tigbgn);
+
+  //  Align!  If there is an alignment, compute error rate and declare success if acceptable.
+
+  align = edlibAlign(fragment, fragmentLength,
+                     tigseq + tigbgn, tigend - tigbgn,
+                     edlibNewAlignConfig(bandErrRate * fragmentLength, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+  if (align.alignmentLength > 0) {
+    alignedErrRate = (double)align.editDistance / align.alignmentLength;
+    aligned        = (alignedErrRate <= bandErrRate);
+    if (verbose)
+      fprintf(stderr, "alignEdLib1()-- - ALIGNED read %s, %.4f at %9d-%9d\n", readName, alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
+  } else {
+    if (verbose)
+      fprintf(stderr, "\n");
+  }
+
+  for (uint32 ii=1 /*the 0ths was above*/; ((ii < MAX_RETRIES) && (aligned == false)); ii++) {
+    tigbgn = std::max((int32)0,      tigbgn - 5 * padding);
+    tigend = std::min((int32)tiglen, tigend + 5 * padding);
+    // last attempt make a very wide band
+    if ((ii+1) % NUM_BANDS == 0) {
+       tigbgn = std::max((int32)0,      tigbgn - 25 * padding);
+       tigend = std::min((int32)tiglen, tigend + 25 * padding);
+    }
+
+    // let the band increase without increasing error rate for a while, if we give up increase error rate
+    // and reset bnad
+    if (ii != 0 && ii % NUM_BANDS == 0) {
+       bandErrRate += errorRate / ERROR_RATE_FACTOR;
+       tigbgn = std::max((int32)0,      (int32)floor(cnspos.min() - padding));
+       tigend = std::min((int32)tiglen, (int32)floor(cnspos.max() + padding));
+    }
+
+    if (tigend < tigbgn) {
+       fprintf(stderr, "alignEdLib1()-- WARNING: read %s tigbgn %d > tigend %d - tiglen %d cnspos %d-%d padding %d\n",
+               readName, tigbgn, tigend, tiglen, cnspos.min(), cnspos.max(), padding);
+       // try to align it to full
+       tigbgn = 0;
+       tigend = (cnspos.max() < 0 ? tiglen : std::min((int32)tiglen, (int32)cnspos.max()));
+       fprintf(stderr, "alignEdLib1()-- WARNING: read %s updated tigbgn %d > tigend %d - tiglen %d cnspos %d-%d padding %d\n",
+               readName, tigbgn, tigend, tiglen, cnspos.min(), cnspos.max(), padding);
+    }
+    assert(tigend > tigbgn);
+
+    edlibFreeAlignResult(align);
+
+    if (verbose)
+      fprintf(stderr, "alignEdLib1()--                 read %s   eRate %.4f at %9d-%-9d\n", readName, bandErrRate, tigbgn, tigend);
+
+    align = edlibAlign(fragment, strlen(fragment),
+                       tigseq + tigbgn, tigend - tigbgn,
+                       edlibNewAlignConfig(bandErrRate * fragmentLength, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+
+    if (align.alignmentLength > 0) {
+      alignedErrRate = (double)align.editDistance / align.alignmentLength;
+      aligned        = (alignedErrRate <= bandErrRate);
+      if (verbose)
+        fprintf(stderr, "alignEdLib1()-- - ALIGNED read %s, %.4f at %9d-%-9d\n", readName, alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
+    } else {
+      if (verbose)
+        fprintf(stderr, "\n");
+    }
+  }
+
+  if (aligned == false) {
+    success = aligned;
+    // fprintf(stderr, "alignEdLib1 read %s success: %u\n", readName, success);
+    return align;
+  }
+
+  char *tgtaln = new char [align.alignmentLength+1];
+  char *qryaln = new char [align.alignmentLength+1];
+
+  memset(tgtaln, 0, sizeof(char) * (align.alignmentLength+1));
+  memset(qryaln, 0, sizeof(char) * (align.alignmentLength+1));
+
+  edlibAlignmentToStrings(align.alignment,               //  Alignment
+                          align.alignmentLength,         //    and length
+                          align.startLocations[0],       //  tgtStart
+                          align.endLocations[0]+1,       //  tgtEnd
+                          0,                             //  qryStart
+                          fragmentLength,                //  qryEnd
+                          tigseq + tigbgn,               //  tgt sequence
+                          fragment,                      //  qry sequence
+                          tgtaln,                   //  output tgt alignment string
+                          qryaln);                  //  output qry alignment string
+
+  //  Populate the output.  AlnGraphBoost does not handle mismatch alignments, at all, so convert
+  //  them to a pair of indel.
+
+  uint32 nMatch = 0;
+
+  for (uint32 ii=0; ii<align.alignmentLength; ii++)   //  Edlib guarantees aln[alignmentLength] == 0.
+    if ((tgtaln[ii] != '-') &&
+        (qryaln[ii] != '-') &&
+        (tgtaln[ii] != qryaln[ii]))
+      nMatch++;
+
+  aln.start  = tigbgn + align.startLocations[0] + 1;   //  AlnGraphBoost expects 1-based positions.
+  aln.end    = tigbgn + align.endLocations[0] + 1;     //  EdLib returns 0-based positions.
+
+  aln.qstr   = new char [align.alignmentLength + nMatch + 1];
+  aln.tstr   = new char [align.alignmentLength + nMatch + 1];
+
+  for (uint32 ii=0, jj=0; ii<align.alignmentLength; ii++) {
+    char  tc = tgtaln[ii];
+    char  qc = qryaln[ii];
+
+    if ((tc != '-') &&
+        (qc != '-') &&
+        (tc != qc)) {
+      aln.tstr[jj] = '-';   aln.qstr[jj] = qc;    jj++;
+      aln.tstr[jj] = tc;    aln.qstr[jj] = '-';   jj++;
+    } else {
+      aln.tstr[jj] = tc;    aln.qstr[jj] = qc;    jj++;
+    }
+
+    aln.length = jj;
+  }
+
+  aln.qstr[aln.length] = 0;
+  aln.tstr[aln.length] = 0;
+
+  delete [] tgtaln;
+  delete [] qryaln;
+
+  if (tigbgn + align.endLocations[0] + 1 > tiglen)
+    fprintf(stderr, "ERROR:  alignment from %d to %d, but tiglen is only %d\n", tigbgn + align.startLocations[0] + 1, tigbgn + align.endLocations[0] + 1, tiglen);
+  assert(tigbgn + align.endLocations[0] + 1 <= tiglen);
+
+  success = aligned;
+  // fprintf(stderr, "edlib1 success: %u\n", success);
+  return align;
+}
+
 
 
 bool
@@ -896,12 +1098,60 @@ unitigConsensus::initializeGenerate(tgTig                       *tig_,
     return(false);
   }
 
-  switchToUncompressedCoordinates();
+  switchToUncompressedCoordinates(reads_);
 
   return(true);
 }
 
+// std::map<uint32, uint32>
+// unitigConsensus::createMapFromCigar(char *cigar) {
+//   map<uint32, uint32>templateToCns;
+//   size_t i = 0;
+//   uint32 templateIdx = -1;
+//   uint32 cnsIdx = -1;
+//   templateToCns[0] = 0;
+//   while (i < strlen(cigar)) {
+//     int len = 0;
+//     while (i < strlen(cigar) && cigar[i] >= '0' && cigar[i] <= '9') {
+//       len = len * 10 + (cigar[i] - '0');
+//       i++;
+//     }
 
+//     char op = '\0';
+//     if (i < strlen(cigar)) {
+//       op = cigar[i];
+//       i++;
+//     }
+    
+//     if (op == '=' || op == 'X') {
+//       if (templateIdx > 0 && cnsIdx > 0) templateToCns[templateIdx] = cnsIdx;
+//       templateIdx += len;
+//       cnsIdx += len;
+//       templateToCns[templateIdx] = cnsIdx;
+//     } else if (op == 'I') {
+//       templateIdx += len;
+//     } else if (op == 'D') {
+//       templateIdx++;
+//       cnsIdx += len;
+//     }
+//   }
+//   return templateToCns;
+// }
+
+// uint32
+// unitigConsensus::convertTemplateToCnsCoord(uint32 coord) {
+//   auto it = _templateToCnsTest.find(coord);
+//   if (it != _templateToCnsTest.end()) {
+//     return it->second;
+//   } else {
+//     auto lowerBound = _templateToCnsTest.lower_bound(coord);
+//     if (lowerBound != _templateToCnsTest.begin()) lowerBound--;
+//     auto upperBound = _templateToCnsTest.upper_bound(coord);
+//     if (upperBound == _templateToCnsTest.end()) upperBound--;
+//     if (lowerBound->second == upperBound->second) return lowerBound->second;
+//     else return lowerBound->second + (coord - lowerBound->first);
+//   }
+// }
 
 bool
 unitigConsensus::generatePBDAG(tgTig                       *tig_,
@@ -913,7 +1163,7 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
 
   //  Build a quick consensus to align to.
 
-  char   *tigseq = generateTemplateStitch();
+  char   *tigseq = generateTemplateStitch(reads_);
   uint32  tiglen = strlen(tigseq);
 
   if (showAlgorithm())
@@ -932,6 +1182,7 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
   for (uint32 ii=0; ii<_numReads; ii++) {
     abSequence  *seq      = getSequence(ii);
     bool         aligned  = false;
+    char *rn = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
 
     assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
 
@@ -944,7 +1195,7 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
 
     if (aligned == false) {
       if (showAlgorithm())
-        fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", _utgpos[ii].ident());
+        fprintf(stderr, "generatePBDAG()--    read %7u %s FAILED\n", _utgpos[ii].ident(), rn);
 
       fail++;
 
@@ -955,13 +1206,14 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
   }
 
   if (showAlgorithm())
-    fprintf(stderr, "generatePBDAG()--    read alignment: %d failed, %d passed.\n", fail, pass);
+    fprintf(stderr, "generatePBDAG()--    TIG %u read alignment: %d failed, %d passed.\n", _tig->tigID(), fail, pass);
 
   //  Construct the graph from the alignments.  This is not thread safe.
 
   if (showAlgorithm())
     fprintf(stderr, "Constructing graph\n");
 
+  fprintf(stderr, "TIG %u tiglen %u\n", _tig->tigID(), tiglen);
   AlnGraphBoost ag(std::string(tigseq, tiglen));
 
   for (uint32 ii=0; ii<_numReads; ii++) {
@@ -989,7 +1241,64 @@ unitigConsensus::generatePBDAG(tgTig                       *tig_,
     fprintf(stderr, "Calling consensus\n");
 
   //FIXME why do we have 0weight nodes (template seq w/o support even from the read that generated them)?
-  std::string cns = ag.consensusNoSplit(_minCoverage);
+  fprintf(stderr, "generatePBDAG()--    Trimming consensus for tig %u.\n", tig_->tigID());
+  fprintf(stderr, "make _templateToCns of length tiglen+1 =  %u\n", tiglen+1);
+  _templateToCns = new uint32_t[tiglen + 1];
+  _templateLength = tiglen;
+  for (uint32 i=0; i < tiglen; i++) {
+    _templateToCns[i] = UINT32_MAX;
+  }
+  _startTrim = 0;
+  std::string cns = ag.consensusNoSplitMap(_minCoverage, _templateToCns, &_startTrim);
+  // for (uint32 i=0; i < tiglen; i++) {
+  //   fprintf(stderr, "generatePBDAG()--    _templateToCns[%u] = %u\n", i, _templateToCns[i]);
+  // }
+
+
+  // char tigName[sizeof "tig00000000"];
+  // sprintf(tigName, "tig%08d", _tig->tigID());
+  // char tigNameFinalFa[sizeof "tig00000000_final.fa"];
+  // sprintf(tigNameFinalFa, "tig%08d_final.fa", _tig->tigID());
+  // sprintf(tigName, "tig%08d", _tig->tigID());
+  // FILE *fp = fopen(tigNameFinalFa, "w");
+  // fprintf(fp, ">%s\n%s\n", tigName, (char*)cns.c_str());
+  // fclose(fp);
+
+  // align tigseq to cns, get cigar string to create a coordinate mapping
+  // dagAlignment *aln = new dagAlignment();
+  // bool aligned = false;
+  // tgPosition tgPos = tgPosition();
+  // tgPos.setMinMax(0,  (uint32) cns.length() + 1);
+
+  // EdlibAlignResult align = alignEdLib1(*aln,
+  //                                      aligned,
+  //                                      tgPos,
+  //                                      0,
+  //                                      tigseq, tiglen,
+  //                                      (char*)cns.c_str(), cns.length(),
+  //                                      _errorRateMax,
+  //                                      showAlgorithm(),
+  //                                      tigName);
+  // char *cigar = edlibAlignmentToCigar(align.alignment,
+  //                                       align.alignmentLength, 
+  //                                       EDLIB_CIGAR_EXTENDED);
+  // _templateToCnsTest = createMapFromCigar(cigar);
+  // fprintf(stderr, "generatePBDAG()-- cns to template alignment cigar string: \n %s\n", cigar);
+
+  // Print the map elements
+  // std::map<uint32_t, uint32_t>::iterator it = _templateToCns.begin();
+  // int count = 0;
+  // while (it != _templateToCns.end() && count < 10) {
+  //     fprintf(stderr, "findCoordinates()-- Key: %u Value: %u\n", it->first, it->second);
+  //     ++it;
+  //     count++;
+  // }
+
+  // auto it_rev = _templateToCns.rbegin();  // Start at the reverse beginning
+
+  // for (int c = 0; it_rev != _templateToCns.rend() && c < 10; ++it_rev, ++c) {
+  //   fprintf(stderr, "findCoordinates()-- Key: %u Value: %u\n", it_rev->first, it_rev->second);
+  // }
 
   delete [] tigseq;
 
@@ -1027,7 +1336,7 @@ unitigConsensus::generateQuick(tgTig                       *tig_,
 
   //  Quick is just the template sequence, so one and done!
 
-  char   *tigseq = generateTemplateStitch();
+  char   *tigseq = generateTemplateStitch(reads_);
   uint32  tiglen = strlen(tigseq);
 
   //  Save consensus
@@ -1065,11 +1374,21 @@ unitigConsensus::generateSingleton(tgTig                       *tig_,
   if (initializeGenerate(tig_, reads_) == false)
     return(false);
 
-  assert(_numReads == 1);
+  assert((getNumHiFiReads(tig_, reads_) == 1));
+  // assert(_numReads == 1);
 
   //  Copy the single read to the tig sequence.
+  uint32 rid = 0;
+  while (rid < tig_->numberOfChildren()) {
+    if (getSequence(rid)->isHiFi()) {
+      break;
+    }
+    rid++;
+  }
+  
+  fprintf(stderr, "generateSingleton()-- read rid %u id %u name %s isHiFi %u\n", rid, tig_->getChild(rid)->ident(), (*reads_)[tig_->getChild(rid)->ident()]->sqRead_name(), tig_->getChild(rid)->isHiFi());
 
-  abSequence  *seq      = getSequence(0);
+  abSequence  *seq      = getSequence(rid);
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
@@ -1164,6 +1483,91 @@ edlibAlignmentToCanu(stuffedBits *align,
 }
 
 
+tgPosition
+unitigConsensus::adjustPosition(tgPosition original, char* readname) {
+  int32 original_min = original.min();
+  int32 original_max = original.max();
+  int32 adjusted_min = 0;
+  int32 adjusted_max = 0;
+
+  fprintf(stderr, "adjustPosition()-- read %s original min %u original max %u _templateLength = %u _tig->length() = %u _startTrim %u\n", readname, original_min, original_max, _templateLength, _tig->length(), _startTrim);
+
+  if (original_min > _templateLength) {
+    //fprintf(stderr, "adjustPosition()-- read %s original min %u > _templateLength %u - return (-1,-1) don't align\n", readname, original_min, _templateLength);
+    tgPosition pos = tgPosition();
+    pos.initialize();
+    pos.setMinMax(-1, -1);
+    return pos;
+  }
+
+  bool endOffTheTig = false;
+
+  if (original_max > _templateLength) {
+    //fprintf(stderr, "adjustPosition()-- read %s original max %u > _templateLength %u set endOffTheTig = true\n", readname, original_max, _templateLength);
+    endOffTheTig = true;
+  }
+
+  adjusted_max = endOffTheTig ? _templateLength : _templateToCns[original_max];
+  //fprintf(stderr, "adjustPosition()-- read %s original max %u to adjusted max %u endOffTheTig = %u\n", readname, original_max, adjusted_max, endOffTheTig);
+  // if (adjusted_max == 0) {
+  //   int32 temp_original_max = original_max;
+  //   while (temp_original_max < _templateLength && adjusted_max == 0) {
+  //     fprintf(stderr, "adjustPosition()-- read %s original max %u not in map, adjusted max is %u\n", readname, temp_original_max, adjusted_max);
+  //     adjusted_max = _templateToCns[++temp_original_max];
+  //     fprintf(stderr, "adjustPosition()-- read %s increment original max to %u - adjusted max is now %u\n", readname, temp_original_max, adjusted_max);
+  //   }
+  // }
+  if (adjusted_max > _startTrim && adjusted_max - _startTrim > _tig->length()) {
+    //fprintf(stderr, "adjustPosition()-- read %s adjusted max %u - _startTrim %u = %u > _tig->length() %u set endOffTheTig = true\n", readname, adjusted_max, _startTrim, adjusted_max - _startTrim, _tig->length());
+    endOffTheTig = true;
+  }
+
+  while ( (adjusted_max == UINT32_MAX || adjusted_max == 0) && original_max < _templateLength) {
+    //fprintf(stderr, "adjustPosition()-- read %s original max %u not in map, adjusted max is %u\n", readname, original_max, adjusted_max);
+    adjusted_max = _templateToCns[++original_max];
+    //fprintf(stderr, "adjustPosition()-- read %s increment original max to %u - adjusted max is now %u\n", readname, original_max, adjusted_max);
+  }
+
+  if (original_max == _templateLength) {
+    //fprintf(stderr, "adjustPosition()-- original max %u could not find next entry in in map, set endOffTheTig = true and then set to _tig->length() %u\n", original.max(), _tig->length());
+    endOffTheTig = true;
+    adjusted_max = _tig->length();
+  } else if (_startTrim > 0 && adjusted_max > _startTrim && !endOffTheTig) {
+    //fprintf(stderr, "adjustPosition()-- adjusted_max %u - _startTrim %u = %u\n", adjusted_max, _startTrim, adjusted_max - _startTrim);
+    adjusted_max -= _startTrim;
+  }
+
+  adjusted_min = _templateToCns[original_min];
+
+  //fprintf(stderr, "adjustPosition()-- read %s original min %u to adjusted min %u\n", readname, original_min, adjusted_min);
+
+  while (adjusted_min == UINT32_MAX && original_min > 0) {
+    //fprintf(stderr, "adjustPosition()-- read %s original min %u not in map, adjusted min is %u\n", readname, original_min, adjusted_min);
+    adjusted_min = _templateToCns[--original_min];
+    //fprintf(stderr, "adjustPosition()-- read %s decrement original min to %u - adjusted min is now %u\n", readname, original_min, adjusted_min);
+  }
+
+  if (original_min == 0) {
+    //fprintf(stderr, "adjustPosition()-- read %s original min %u could not find previous entry in in map. Set adjusted_min to 0\n", readname, original.min());
+    adjusted_min = 0;
+  } else if (_startTrim > 0) {
+    if (adjusted_min > _startTrim) {
+      //fprintf(stderr, "adjustPosition()-- read %s adjusted_min %u - _startTrim %u = %u\n", readname, adjusted_min, _startTrim, adjusted_min - _startTrim);
+      adjusted_min = adjusted_min - _startTrim;
+    } else {
+      //fprintf(stderr, "adjustPosition()-- read %s _startTrim %u > adjusted_min %u, so set to 0\n", readname, _startTrim, adjusted_min);
+      adjusted_min = 0;
+    }
+  }
+
+  //fprintf(stderr, "adjustPosition()-- read %s final adjusted_min %u adjusted_max %u\n", readname, adjusted_min, adjusted_max);
+  tgPosition pos = tgPosition();
+  pos.initialize();
+  pos.setMinMax(adjusted_min, adjusted_max);
+  fprintf(stderr, "adjustPosition()-- read %s return adjust position min %u max %u\n", readname, pos.min(), pos.max());
+
+  return pos;
+}
 
 //  Align each read to the region of the consensus sequence the read claims
 //  to be from, extended by 5% of the read length on either end.  If it fails
@@ -1173,27 +1577,539 @@ edlibAlignmentToCanu(stuffedBits *align,
 //  Reads that fail to align have their cnspos set to 0.
 //
 void
-unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
-  fprintf(stderr, "findCoordinates();\n");
-  char filenameBam[sizeof "tig00000000.bam"];
-  sprintf(filenameBam, "tig%08d.bam", _tig->tigID());
-  samFile *bamFp = sam_open(filenameBam, "wb");
-  if (bamFp == NULL) {
+unitigConsensus::findCoordinates(uint32_t                     oneCopyPeak,
+                                 char                         aligner_,
+                                 std::map<uint32, sqRead *>   *reads_) {
+  #warning Kmer normalization assumes a genome where the 2-copy peak is taller than the 1-copy peak to estimate the haploid coverage, if this does not hold true this may return the 1-copy peak / 2.
+  fprintf(stderr, "findCoordinates()-- One copy peak estimate used to normalize kmer counts: " F_U32 "x. WARNING: assumes a genome where 2-copy peak is taller than 1-copy peak! \n", oneCopyPeak);
+  char filenameSam[sizeof "tig00000000.sam"];
+  char tigName[sizeof "tig00000000"];
+  sprintf(tigName, "tig%08d", _tig->tigID());
+  sprintf(filenameSam, "tig%08d.sam", _tig->tigID());
+  FILE *fp = fopen(filenameSam, "w");
+  fprintf(fp, "@SQ\tSN:%s\tLN:%u\n", tigName, _tig->length());
+  fclose(fp);
+  samFile *samFp = sam_open(filenameSam, "a+");
+  if (samFp == NULL) {
     fprintf(stderr, "Failed to open output file!\n");
     exit(1);
   }
 
-  sam_hdr_t *bamHeader = sam_hdr_init();
-  bamHeader->n_targets = 1;
-  bamHeader->target_len = (uint32_t*)malloc(bamHeader->n_targets * sizeof(uint32_t));
-  bamHeader->target_len[0] = _tig->length();
-  bamHeader->target_name = (char**)malloc(bamHeader->n_targets * sizeof(char*));
+  sam_hdr_t *samHeader = sam_hdr_init();
+  samHeader->n_targets = 1;
+  samHeader->target_len = (uint32_t*)malloc(samHeader->n_targets * sizeof(uint32_t));
+  samHeader->target_len[0] = _tig->length();
+  samHeader->target_name = (char**)malloc(samHeader->n_targets * sizeof(char*));
   char targetName[100];
   sprintf(targetName, "tig%08d", _tig->tigID());
-  bamHeader->target_name[0] = strdup(targetName);
-  int ret = bam_hdr_write(bamFp->fp.bgzf, bamHeader);
+  samHeader->target_name[0] = strdup(targetName);
+  // int ret = bam_hdr_write(bamFp->fp.bgzf, bamHeader);
+  int ret = sam_hdr_write(samFp, samHeader);
   if (ret < 0) {
-    fprintf(stderr, "Failed to write header to BAM file!\n");
+    fprintf(stderr, "Failed to write header to SAM file!\n");
+    exit(1);
+  }
+
+
+  if (showPlacement()) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "TIG %u length %u\n", _tig->tigID(), _tig->length());
+    fprintf(stderr, "\n");
+  }
+  
+
+  if ( _tig->length() == 0) {
+    fprintf(stderr, "TIG %u length is %u, exit findCoordinates()\n", _tig->tigID(), _tig->length());
+    sam_close(samFp);
+    sam_hdr_destroy(samHeader);
+    delete[] _templateToCns;
+    return;
+  }
+
+  _tig->_childDeltaBitsLen  = 1;
+  _tig->_childDeltaBits     = new stuffedBits();
+  dagAlignment *alns        = new dagAlignment [_numReads];
+  EdlibAlignResult *aligns  = new EdlibAlignResult [_numReads];
+  uint32           pass     = 0;
+  uint32           fail     = 0;
+  char             *tigseq  = _tig->bases();
+  uint32           tiglen   = strlen(tigseq);
+  fprintf(stderr, "findCoordinates()-- TIG %u _tig->_length() %u\n", _tig->tigID(), _tig->length());
+  fprintf(stderr, "findCoordinates()-- TIG %u tiglen %u\n", _tig->tigID(), tiglen);
+  // int32         alignShift  = 0;
+
+  #pragma omp parallel for schedule(dynamic)
+  for (uint32 ii=0; ii<_numReads; ii++) {
+    abSequence  *seq      = getSequence(ii);
+    bool        aligned   = false;
+    int32       tigbgn    = 0;
+
+    assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
+    char *rn = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
+
+    // std::map<uint32_t, uint32_t>::iterator it = _templateToCns.begin();
+
+    // // Print the map elements
+    // while (it != _templateToCns.end()) {
+    //     fprintf(stderr, "findCoordinates()-- Key: %u Value: %u\n", it->first, it->second);
+    //     ++it;
+    // }
+
+    // fprintf(stderr, "findCoordinates()-- starting adjpos of read %u %s: %u-%u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max());
+    // std::vector<uint32_t> myVector(std::begin(_templateToCns), std::end(_templateToCns));
+
+    // printf("Elements of the array: ");
+    // for (size_t i = 0; i < tiglen + 1; ++i) {
+    //     printf("%ld : %d \n", i, _templateToCns[i]);
+    // }
+
+    // bool offTheTig = false;
+    // if (_tig->numberOfChildren() > 1) {
+
+    //   if (_cnspos[ii].min() == 0 && _cnspos[ii].max() == 0) {
+    //     fprintf(stderr, "findCoordinates()-- read %u %s unaligned, original position is utgpos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _utgpos[ii].min(), _utgpos[ii].max());
+    //     if (_utgpos[ii].max() > tiglen) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s utgpos max %u > tiglen %u - set offTheTig = true\n", _tig->getChild(ii)->ident(), rn, _utgpos[ii].max(), tiglen);
+    //       offTheTig = true;
+    //     }
+
+    //     if (_utgpos[ii].min() > tiglen) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s utgpos min %u > tiglen %u - dont bother aligning\n", _tig->getChild(ii)->ident(), rn, _utgpos[ii].min(), tiglen);
+          
+    //       if (showAlgorithm())
+    //         fprintf(stderr, "findCoordinates()--    read %7u %s FAILED\n", _utgpos[ii].ident(), rn);
+          
+    //       fail++;
+    //       continue;
+    //     }
+
+    //     _adjpos[ii].setMinMax(
+    //               _templateToCns[_utgpos[ii].min()],
+    //               offTheTig ? tiglen : _templateToCns[_utgpos[ii].max()]);
+    //     fprintf(stderr, "findCoordinates()-- read %u %s unaligned, adjust utgpos to adjpos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max());
+        
+    //     // if (_adjpos[ii].max() == UINT32_MAX || _adjpos[ii].max() > tiglen) {
+    //     //   fprintf(stderr, "findCoordinates()-- read %u %s adjpos max %u not in map. Update to utgpos max %u .\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].max(), _utgpos[ii].max());
+    //     //   _adjpos[ii].setMinMax(
+    //     //     _adjpos[ii].min(),
+    //     //     _utgpos[ii].max());
+    //     // }
+
+    //     if (_adjpos[ii].min() == UINT32_MAX) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s adjpos min %u not in map. Update to utgpos min %u .\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _utgpos[ii].min());
+    //       _adjpos[ii].setMinMax(
+    //         _utgpos[ii].min(),
+    //         _adjpos[ii].max());
+    //     }
+
+    //     if (_adjpos[ii].min() > _adjpos[ii].max()) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s adjpos min %u > adjpos max %u set to utgpos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max(), _utgpos[ii].min(), _utgpos[ii].max());
+    //       _adjpos[ii].setMinMax(
+    //         _utgpos[ii].min(),
+    //         offTheTig ? tiglen : _utgpos[ii].max());
+    //     }
+    //   } 
+      
+    //   else {
+    //     fprintf(stderr, "findCoordinates()-- read %u %s aligned, original position is cnspos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _cnspos[ii].min(), _cnspos[ii].max());
+    //     if (_cnspos[ii].max() > tiglen) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s cnspos max %u > tiglen %u - set offTheTig = true\n", _tig->getChild(ii)->ident(), rn, _cnspos[ii].max(), tiglen);
+    //       offTheTig = true;
+    //     }
+    //     if (_cnspos[ii].min() > tiglen) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s cnspos min %u > tiglen %u - dont bother aligning\n", _tig->getChild(ii)->ident(), rn, _cnspos[ii].min(), tiglen);
+          
+    //       if (showAlgorithm())
+    //         fprintf(stderr, "findCoordinates()--    read %7u %s FAILED\n", _utgpos[ii].ident(), rn);
+          
+    //       fail++;
+    //       continue;
+    //     }
+    //     _adjpos[ii].setMinMax(
+    //       _templateToCns[_cnspos[ii].min()],
+    //       offTheTig ? tiglen : _templateToCns[_cnspos[ii].max()]);
+    //     fprintf(stderr, "findCoordinates()-- read %u %s aligned, adjust cnspos to adjpos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max());
+
+    //   //  fprintf(stderr, "findCoordinates()-- read %u %s adjust min %u to %u, adjust max %u to %u\n", _tig->getChild(ii)->ident(), rn, _cnspos[ii].min(), _adjpos[ii].min(), _cnspos[ii].max(), _adjpos[ii].max());
+    //     // if (_adjpos[ii].max() == UINT32_MAX || _adjpos[ii].max() > tiglen) {
+    //     //   fprintf(stderr, "findCoordinates()-- read %u %s adjpos max %u not in map. Update to min(cnspos max, tiglen) = min(%u, %u) = %u .\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].max(), _cnspos[ii].max(), tiglen, std::min(_cnspos[ii]min(), tiglen));
+    //     //   _adjpos[ii].setMinMax(
+    //     //     _adjpos[ii].min(),
+    //     //     std::min(_cnspos[ii].max(), tiglen));
+    //     // }
+    //     if (_adjpos[ii].min() == UINT32_MAX) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s adjpos min %u not in map. Update to cnspos min %u .\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _cnspos[ii].min());
+    //       _adjpos[ii].setMinMax(
+    //         _cnspos[ii].min(),
+    //         _adjpos[ii].max());
+    //     }
+    //     if (_adjpos[ii].min() > _adjpos[ii].max()) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s adjpos min %u > adjpos max %u set to cnspos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max(), _cnspos[ii].min(), _cnspos[ii].max());
+    //       _adjpos[ii].setMinMax(
+    //         _cnspos[ii].min(),
+    //         offTheTig ? tiglen : _cnspos[ii].max());
+    //     }
+    //   }
+    // }
+    // else {
+    //   if (_cnspos[ii].min() == 0 && _cnspos[ii].max() == 0) {
+    //     if (_utgpos[ii].max() > tiglen) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s utgpos max %u > tiglen %u, set offTheTig = true\n", _tig->getChild(ii)->ident(), rn, _utgpos[ii].max(), tiglen);
+    //       offTheTig = true;
+    //     }
+    //     _adjpos[ii].setMinMax(
+    //       _utgpos[ii].min(),
+    //       offTheTig ? tiglen : _utgpos[ii].max());
+    //     fprintf(stderr, "findCoordinates()-- read %u %s is a singleton and unaligned, leaving adjpos at utgpos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max());
+    
+    //   } else {
+    //     if (_cnspos[ii].max() > tiglen) {
+    //       fprintf(stderr, "findCoordinates()-- read %u %s utgpos max %u > tiglen %u, set offTheTig = true\n", _tig->getChild(ii)->ident(), rn, _utgpos[ii].max(), tiglen);
+    //       offTheTig = true;
+    //     }
+    //     _adjpos[ii].setMinMax(
+    //       _cnspos[ii].min(),
+    //       offTheTig ? tiglen : _cnspos[ii].max());
+    //     fprintf(stderr, "findCoordinates()-- read %u %s is a singleton, leaving adjpos at cnspos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _adjpos[ii].min(), _adjpos[ii].max());
+    //   }
+    // }
+    // fprintf(stderr, "findCoordinates()-- read %u %s convert min %u to %u, convert max %u to %u\n", _tig->getChild(ii)->ident(), rn, _cnspos[ii].min(), _adjpos[ii].min(), _cnspos[ii].max(), _adjpos[ii].max());
+    // _adjpos[ii].setMinMax(convertTemplateToCnsCoord(_cnspos[ii].min()), convertTemplateToCnsCoord(_cnspos[ii].max()));
+    if (getNumHiFiReads(_tig, reads_) > 1) {
+      if (_cnspos[ii].min() == 0 && _cnspos[ii].max() == 0) {
+        //fprintf(stderr, "findCoordinates()-- read %u %s unaligned, original position is utgpos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _utgpos[ii].min(), _utgpos[ii].max());
+        _adjpos[ii] = adjustPosition(_utgpos[ii], rn);
+      } else {
+        //fprintf(stderr, "findCoordinates()-- read %u %s aligned, original position is cnspos min %u max %u\n", _tig->getChild(ii)->ident(), rn, _cnspos[ii].min(), _cnspos[ii].max());
+        _adjpos[ii] = adjustPosition(_cnspos[ii], rn);
+      }
+    } else {
+      if (_cnspos[ii].min() == 0 && _cnspos[ii].max() == 0) {
+        //fprintf(stderr, "findCoordinates()-- read %u %s is a singleton and unaligned, set adjpos to 0, tiglen %u\n", _tig->getChild(ii)->ident(), rn, tiglen);
+        _adjpos[ii].setMinMax(0, tiglen);
+      } else {
+        //fprintf(stderr, "findCoordinates()-- read %u %s is a singleton and aligned, set adjpos to 0, tiglen %u\n", _tig->getChild(ii)->ident(), rn, tiglen);
+        _adjpos[ii].setMinMax(0, tiglen);
+      }
+    }
+
+    if (_adjpos[ii].min() == -1 && _adjpos[ii].max() == -1) {
+        //fprintf(stderr, "findCoordinates()-- read %u %s has an adjpos of (-1,-1), don't bother to realign\n", _tig->getChild(ii)->ident(), rn);          
+        //if (showAlgorithm())
+          //fprintf(stderr, "findCoordinates()--    read %7u %s FAILED\n", _utgpos[ii].ident(), rn);
+          
+        fail++;
+        continue;
+    }
+
+    EdlibAlignResult align = alignEdLib1(alns[ii],
+                                         aligned,
+                                         _adjpos[ii],
+                                         _tig->getChild(ii)->isONT(), //isONT,
+                                         seq->getBases(),
+                                         seq->length(),
+                                         tigseq,
+                                         tiglen,
+                                         _errorRateMax,
+                                         showAlgorithm(),
+                                         rn);
+    if (aligned == false) {
+      if (showAlgorithm())
+        fprintf(stderr, "findCoordinates()--    read %7u %s FAILED\n", _utgpos[ii].ident(), rn);
+
+      fail++;
+
+      continue;
+    }
+
+    aligns[ii] = align;
+    pass++;
+    // int32 alnBgn = _cnspos[ii].min() + alignShift + align.startLocations[0];
+    // int32 alnEnd = _cnspos[ii].max() + alignShift + align.endLocations[0] + 1;
+    // if (!_cnspos[ii].min() == 0 && !_cnspos[ii].max() == 0)
+    //   alignShift = alnBgn - _cnspos[ii].min();
+    if (showAlgorithm())
+      fprintf(stderr, "findCoordinates()-- read %7u %s PASSED - PBDAG placed at %u %u realigned to %u %u, final pos is %u %u\n", _utgpos[ii].ident(), rn, _cnspos[ii].min(), _cnspos[ii].max(), _adjpos[ii].min(), _adjpos[ii].max(), alns[ii].start - 1, alns[ii].end);
+  }
+
+  if (getNumHiFiReads(_tig, reads_) > 1) {
+    delete[] _templateToCns;
+  }
+    // aligned = alignEdLib(alns[ii],
+    //                      _cnspos[ii],
+    //                      seq->getBases(), seq->length(),
+    //                      tigseq, tiglen,
+    //                      _errorRateMax,
+    //                      showAlgorithm());
+
+    //   if (aligned == false) {
+    //     if (showAlgorithm())
+    //       fprintf(stderr, "findCoordinates()--    read %7u %s FAILED\n", _cnspos[ii].ident(), rn);
+
+    //     fail++;
+
+    //     continue;
+    //   }
+
+    //   pass++;
+    // }
+
+  fprintf(stderr, "findCoordinates()--    TIG %u read alignment: %d failed, %d passed.\n", _tig->tigID(), fail, pass);
+  fprintf(stderr, "findCoordinates()-- tig %u _numReads: %u\n", _tig->tigID(), _numReads);
+
+  for (uint32 ii=0; ii<_numReads; ii++) {
+    abSequence   *seq      = getSequence(ii);
+    char         *readSeq = seq->getBases();
+    uint32       readLen = seq->length();
+    EdlibAlignResult align = aligns[ii];
+
+    // _cnspos[ii].setMinMax(alns[ii].start, alns[ii].end);
+  
+    if ((alns[ii].start == 0) &&
+        (alns[ii].end   == 0))
+      continue;
+    
+    char *cigar = edlibAlignmentToCigar(align.alignment,
+                                        align.alignmentLength, 
+                                        EDLIB_CIGAR_EXTENDED);
+    bam1_t *bamRecord = bam_init1();
+	  char *cigarCopy = strdup(cigar);
+    bam1_t *cigarRecord = bam_init1();
+    ssize_t numCigarOpsBam = bam_parse_cigar(cigarCopy,
+    NULL,
+    cigarRecord);
+    if (numCigarOpsBam < 0) {
+      fprintf(stderr, "Failed to process cigar string to numCigarOps!\n");
+      exit(1);
+    }
+    uint32_t *cigarData = (uint32_t *) malloc((numCigarOpsBam + 1) * sizeof(uint32_t));
+    size_t numOpsCast = static_cast<size_t>(numCigarOpsBam);
+    ssize_t numCigarOpsSam = sam_parse_cigar(
+      cigarCopy,
+      NULL,
+      &cigarData,
+      &numOpsCast);
+        
+	  char *readName = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
+    char qual[readLen + 1];
+    for (int i = 0; i < readLen; i++) {
+      qual[i] = 'F';
+    }
+    qual[readLen] = '\0';
+    const char* qualPtr = (const char*) qual;
+
+    // fprintf(stderr, "read %u %s is mapped to pos %u.\n", _tig->getChild(ii)->ident(), readName, alns[ii].start);
+    // uint32_t start = (alns[ii].start == 1) ? 1 : alns[ii].start - 1;
+    // if (strcmp(readName, "m54316_180808_005743/13566531/ccs") == 0 || strcmp(readName, "35a98b31-44f8-4ebc-b3ef-71853d2d6573") == 0) {
+      // fprintf(stderr, "readName: %s aligned at position %u, start = %u.\n", readName, alns[ii].start, start);
+    // }
+    // int ret = bam_set1(bamRecord, strlen(readName), readName, seq->isForward() ? 0 : 16, 
+    //                   0, (alns[ii].start > 1) ? alns[ii].start - 1 : alns[ii].start, 255, numCigarOpsSam, cigarData, 0, 0, _tig->length(),
+    //                   readLen, readSeq, qualPtr, 0);
+
+    int ret = bam_set1(
+      bamRecord,
+      strlen(readName),
+      readName,
+      seq->isForward() ? 0 : 16, 
+      0,
+      alns[ii].start - 1,
+      255,
+      numCigarOpsSam,
+      cigarData,
+      0,
+      0,
+      _tig->length(),
+      readLen,
+      readSeq,
+      qualPtr,
+      0);
+    if (ret < 0) { 
+      fprintf(stderr, "Failed to create bam record!\n");
+      exit(1);
+    }
+    // fprintf(stderr, "Created a bam record for read %s isIgnored %u\n", readName, seq->isIgnored());
+    free(cigarCopy);
+    char leftClipStr [11] = "0";
+    char rightClipStr [11] = "0";
+    uint32_t leftClipLen = 0;
+    uint32_t rightClipLen = 0;
+    char leftOp = '\0';
+    char rightOp = '\0';
+    uint32_t first_pos = 0;
+    uint32_t totClipping = 0;
+    // fprintf(stderr, "findCoordinates()-- clipping tag for read %u %s\n", _tig->getChild(ii)->ident(), readName);
+    while (first_pos < strlen(cigar)) {
+        // fprintf(stderr, "read %u %s %u %c\n", _tig->getChild(ii)->ident(), readName, first_pos, cigar[first_pos]);
+      if (!isDecDigit(cigar[first_pos])) {
+        leftOp = cigar[first_pos];
+        if (leftOp != '=' && leftOp != 'M') {
+          strncpy(leftClipStr, cigar, first_pos);
+          // for (int64 ii=0; ii<11; ii++) {
+          //   fprintf(stderr, "findCoordinates()-- read %u %s leftClipStr[%lu] = %d\n", _tig->getChild(ii)->ident(), readName, ii, leftClipStr[ii]);
+          // }
+          // fprintf(stderr, "findCoordinates()-- read %u %s isDecDigit(%c) is false\n", _tig->getChild(ii)->ident(), readName, cigar[first_pos]);
+          // fprintf(stderr, "findCoordinates()-- read %u %s leftClipStr: %s\n", _tig->getChild(ii)->ident(), readName, leftClipStr);
+          leftClipLen = std::atol(leftClipStr);
+          // fprintf(stderr, "findCoordinates()-- read %u %s leftClipLen: %u\n", _tig->getChild(ii)->ident(), readName, leftClipLen);
+          leftOp = cigar[first_pos];
+          // fprintf(stderr, "findCoordinates()-- read %u %s leftOp: %c\n", _tig->getChild(ii)->ident(), readName, leftOp);
+          totClipping += leftClipLen;
+        }
+        break;
+      }
+      first_pos++;
+    }
+
+    uint32_t last_pos = strlen(cigar) - 1;
+    rightOp = cigar[last_pos--];
+    if (rightOp != '=' && rightOp != 'M') {
+        // fprintf(stderr, "findCoordinates()-- read %u %s rightOp: %c\n", _tig->getChild(ii)->ident(), readName, rightOp); 
+        while (last_pos > 0) {
+          // fprintf(stderr, "findCoordinates()-- read %u %s %u %c\n", _tig->getChild(ii)->ident(), readName, last_pos, cigar[last_pos]);
+          if (!isDecDigit(cigar[last_pos])) {
+            // fprintf(stderr, "findCoordinates()-- read %u %s isDecDigit(%c) is false\n", _tig->getChild(ii)->ident(), readName, cigar[last_pos]);
+            strncpy(rightClipStr, cigar + last_pos + 1, strlen(cigar) - last_pos - 2);
+            // fprintf(stderr, "findCoordinates()-- read %u %s rightClipStr: %s\n", _tig->getChild(ii)->ident(), readName, rightClipStr);
+            rightClipLen = std::atol(rightClipStr);
+            // fprintf(stderr, "findCoordinates()-- read %u %s rightClipLen: %u\n", _tig->getChild(ii)->ident(), readName, rightClipLen);
+            totClipping += rightClipLen;
+            break;
+          }
+          last_pos--;
+        }
+    }
+
+    std::string totClippingStr = std::to_string(totClipping);
+    
+    // printf("%s\n", totClippingStr.c_str());
+
+    // int64 sum = 0;
+    // for (int64 ii=0; ii<totClippingStr.length() + 1; ii++) {
+    //   fprintf(stderr, "findCoordinates()-- read %u %s totClippingStr[%lu] = %d\n", _tig->getChild(ii)->ident(), readName, ii, totClippingStr[ii]);
+    //   sum += totClippingStr[ii];
+    // }
+    // fprintf(stderr, "findCoordinates()-- read %u %s totClippingStr checksum %ld\n", _tig->getChild(ii)->ident(), readName, sum);
+
+    if (_merlinGlobal) {
+      std::string merylStr;
+      uint32_t count;
+      float normCount;
+      std::string countStr;
+      kmerIterator  kiter(readSeq, readLen);
+      bool first = true;
+      while (kiter.nextMer()) {
+        count = _merlinGlobal->lookupMarker(kiter.fmer(), kiter.rmer());
+        normCount = count / float(oneCopyPeak);
+        countStr = std::to_string(normCount);
+        if (first) {
+          merylStr += countStr;
+          first = false;
+        } else {
+          merylStr += ',' + countStr;
+        }
+      }
+      uint8_t* auxMerylData = (uint8_t*) malloc(sizeof(uint8_t) * (merylStr.length() + 1));
+      memcpy(auxMerylData, merylStr.c_str(), merylStr.length() + 1);    
+      const char* COtag = "CO";
+      ret = bam_aux_append(
+        bamRecord,
+        COtag,
+        'Z',
+        merylStr.length() + 1,
+        auxMerylData);
+      if (ret < 0) { 
+        fprintf(stderr, "Failed to add meryl data tag!\n");
+        exit(1);
+      }
+
+      // sum = 0;
+      // for (int64 ii=0; ii<merylStr.length() + 1; ii++)
+      //   sum += auxMerylData[ii];
+      // fprintf(stderr, "findCoordinates()-- read %u %s tag CO checksum %ld\n", _tig->getChild(ii)->ident(), readName, sum);
+
+      free(auxMerylData);
+    }
+
+    uint8_t* auxClippingData = (uint8_t*) malloc(sizeof(uint8_t) * (totClippingStr.length() + 1));
+    memcpy(
+      auxClippingData,
+      totClippingStr.c_str(),
+      totClippingStr.length() + 1);
+    const char* IHtag = "IH";
+    ret = bam_aux_append(bamRecord,
+      IHtag,
+      'Z',
+      totClippingStr.length() + 1,
+      auxClippingData);
+    if (ret < 0) { 
+      fprintf(stderr, "Failed to add clipping tag!\n");
+      exit(1);
+    }
+
+    // sum = 0;
+    // for (int64 ii=0; ii<totClippingStr.length() + 1; ii++) {
+    //   fprintf(stderr, "findCoordinates()-- read %u %s auxClippingData[%lu] = %d\n", _tig->getChild(ii)->ident(), readName, ii, auxClippingData[ii]);
+    //   sum += auxClippingData[ii];
+    // }
+    // fprintf(stderr, "findCoordinates()-- read %u %s tag IH checksum %ld\n", _tig->getChild(ii)->ident(), readName, sum);
+
+    free(auxClippingData);
+
+    ret = sam_write1(
+      samFp,
+      samHeader,
+      bamRecord);
+    if (ret < 0) {
+      fprintf(stderr, "Failed to write sam record!\n");
+      exit(1);
+    }
+    // fprintf(stderr, "findCoordinates()-- wrote read %s isIgnored %u to SAM.\n", readName, seq->isIgnored());
+    bam_destroy1(cigarRecord);
+    bam_destroy1(bamRecord);
+  	free(cigarData);
+	  // free(cigarCopy);
+    delete[] cigar;
+    edlibFreeAlignResult(align);
+  }
+  delete[] alns;
+  delete[] aligns;
+  sam_close(samFp);
+  sam_hdr_destroy(samHeader);
+}
+
+void
+unitigConsensus::findCoordinates1(uint32_t                     oneCopyPeak,
+                                  char                         aligner_,
+                                  std::map<uint32, sqRead *>   *reads_) {
+  #warning Kmer normalization assumes a genome where the 2-copy peak is taller than the 1-copy peak to estimate the haploid coverage, if this does not hold true this may return the 1-copy peak / 2.
+  fprintf(stderr, "findCoordinates()-- One copy peak estimate used to normalize kmer counts: " F_U32 "x. WARNING: assumes a genome where 2-copy peak is taller than 1-copy peak! \n", oneCopyPeak);
+
+  char filenameSam[sizeof "tig00000000.sam"];
+  char tigName[sizeof "tig00000000"];
+  sprintf(tigName, "tig%08d", _tig->tigID());
+  sprintf(filenameSam, "tig%08d.sam", _tig->tigID());
+  FILE *fp = fopen(filenameSam, "w");
+  fprintf(fp, "@SQ\tSN:%s\tLN:%u\n", tigName, _tig->length());
+  fclose(fp);
+  samFile *samFp = sam_open(filenameSam, "a+");
+  if (samFp == NULL) {
+    fprintf(stderr, "Failed to open output file!\n");
+    exit(1);
+  }
+
+  sam_hdr_t *samHeader = sam_hdr_init();
+  samHeader->n_targets = 1;
+  samHeader->target_len = (uint32_t*)malloc(samHeader->n_targets * sizeof(uint32_t));
+  samHeader->target_len[0] = _tig->length();
+  samHeader->target_name = (char**)malloc(samHeader->n_targets * sizeof(char*));
+  char targetName[100];
+  sprintf(targetName, "tig%08d", _tig->tigID());
+  samHeader->target_name[0] = strdup(targetName);
+  // int ret = bam_hdr_write(bamFp->fp.bgzf, bamHeader);
+  int ret = sam_hdr_write(samFp, samHeader);
+  if (ret < 0) {
+    fprintf(stderr, "Failed to write header to SAM file!\n");
     exit(1);
   }
 
@@ -1225,8 +2141,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
 
     if (showPlacement()) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "ALIGN read #%d %u length %u cnspos %d %d\n",
-              ii, read->seqIdent(), readLen, _cnspos[ii].min(), _cnspos[ii].max());
+      fprintf(stderr, "ALIGN read #%d %s %u isIgnored %u length %u cnspos %d %d\n",
+              ii, (*reads_)[read->seqIdent()]->sqRead_name(), read->seqIdent(), read->isIgnored(), readLen, _cnspos[ii].min(), _cnspos[ii].max());
     }
 
     _cnspos[ii].setMinMax(0, 0);  //  When the read aligns, we set the true position.
@@ -1234,7 +2150,7 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
     if ((origbgn == 0) &&
         (origend == 0)) {
       if (showPlacement())
-        fprintf(stderr, "skip, failed to align to template initially.\n");
+        fprintf(stderr, "skip read %s isIgnored %u, failed to align to template initially.\n", (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored());
       continue;
     }
 
@@ -1256,7 +2172,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
         int32 endnew = bgn + (origend - origbgn) + ext5 + ext3;
 
         if (showPlacement())
-          fprintf(stderr, "reset position from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
+          fprintf(stderr, "reset position for read %s isIgnored %u from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
+                  (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored(),
                   bgn, end,
                   bgn, endnew,
                   len, ext5, origlen, ext3);
@@ -1270,7 +2187,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
         int32 bgnnew = end - (origend - origbgn) - ext5 - ext3;
 
         if (showPlacement())
-          fprintf(stderr, "reset position from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
+          fprintf(stderr, "reset position for read %s isIgnored %u from %d-%d to %d-%d based on len=%d ext5=%d origlen=%d ext3=%d\n",
+                  (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored(),
                   bgn,    end,
                   bgnnew, end,
                   len, ext5, origlen, ext3);
@@ -1282,8 +2200,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
       //  Some logging.
 
       if (showPlacement())
-        fprintf(stderr, "align read #%u length %u to %d-%d - shift %d extension %d %d error rate %.3f\n",
-                ii, readLen, bgn, end, alignShift, ext5, ext3, era);
+        fprintf(stderr, "align read #%u %s isIgnored %u length %u to %d-%d - shift %d extension %d %d error rate %.3f\n",
+                ii, (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored(), readLen, bgn, end, alignShift, ext5, ext3, era);
 
       //  More logging.
 
@@ -1314,7 +2232,7 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
         era  += 0.025;
 
         if (showPlacement())
-          fprintf(stderr, "  NO ALIGNMENT - Increase extension to %d / %d and error rate to %.3f\n", ext5, ext3, era);
+          fprintf(stderr, "  NO ALIGNMENT - Increase extension to %d / %d and error rate to %.3f for read %s isIgnored %u\n", ext5, ext3, era, (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored());
 
         edlibFreeAlignResult(align);
 
@@ -1328,8 +2246,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
       int32 unaligned3 = len - (align.endLocations[0] + 1);   //  0-based position of last character in alignment.
 
       if (showPlacement())
-        fprintf(stderr, "               - read %4u original %9u-%9u claimed %9u-%9u aligned %9u-%9u unaligned %d %d\n",
-                ii,
+        fprintf(stderr, "               showPlacement()- read %4u %s isIgnored %u original %9u-%9u claimed %9u-%9u aligned %9u-%9u unaligned %d %d\n",
+                ii, (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored(),
                 _utgpos[ii].min(), _utgpos[ii].max(),
                 origbgn, origend,
                 bgn, end,
@@ -1341,8 +2259,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
         ext5 += readLen * 0.05;
 
         if (showPlacement())
-          fprintf(stderr, "  BUMPED START - unaligned hangs %d %d - increase 5' extension to %d\n",
-                  unaligned5, unaligned3, ext5);
+          fprintf(stderr, "  BUMPED START - unaligned hangs %d %d - increase 5' extension to %d for read %s isIgnored %u\n",
+                  unaligned5, unaligned3, ext5, (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored());
 
         edlibFreeAlignResult(align);
 
@@ -1355,8 +2273,8 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
         ext3 += readLen * 0.05;
 
         if (showPlacement())
-          fprintf(stderr, "  BUMPED END   - unaligned hangs %d %d - increase 3' extension to %d\n",
-                  unaligned5, unaligned3, ext3);
+          fprintf(stderr, "  BUMPED END   - unaligned hangs %d %d - increase 3' extension to %d for read %s isIgnored %u\n",
+                  unaligned5, unaligned3, ext3, (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored());
 
         edlibFreeAlignResult(align);
 
@@ -1380,7 +2298,7 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
       _tig->getChild(ii)->setMinMax(abgn, aend);
 
       if (showPlacement())
-        fprintf(stderr, "  SUCCESS aligned to %d %d at %f\n", abgn, aend, 100.0 * align.editDistance / align.alignmentLength);
+        fprintf(stderr, "  SUCCESS aligned read %s isIgnored %u to %d %d at %f\n", (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored(), abgn, aend, 100.0 * align.editDistance / align.alignmentLength);
 
 #pragma omp critical (tgTigLoadAlign)
       {
@@ -1396,17 +2314,20 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
                                             align.alignmentLength, 
                                             EDLIB_CIGAR_EXTENDED);
         bam1_t *bamRecord = bam_init1();
-        char *cigarCopy = strdup(cigar);
+        //char *cigarCopy = (char*) malloc(strlen(cigar) + 1);
+	      //cigarCopy = strcpy(cigarCopy, cigar);
+	      char *cigarCopy = strdup(cigar);
         bam1_t *cigarRecord = bam_init1();
-        ssize_t numCigarOps = bam_parse_cigar(cigarCopy, NULL, cigarRecord);
-        if (numCigarOps < 0) {
+	      ssize_t numCigarOpsBam = bam_parse_cigar(cigarCopy, NULL, cigarRecord);
+        if (numCigarOpsBam < 0) {
           fprintf(stderr, "Failed to process cigar string to numCigarOps!\n");
           exit(1);
         }
-        uint32_t *cigarData = (uint32_t *) malloc(numCigarOps * sizeof(uint32_t));
-        size_t *cigarElems = (size_t *) malloc(sizeof(size_t));
-        numCigarOps = sam_parse_cigar(cigarCopy, NULL, &cigarData, cigarElems);
-        char *readName = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
+        uint32_t *cigarData = (uint32_t *) malloc((numCigarOpsBam + 1) * sizeof(uint32_t));
+	      size_t numOpsCast = static_cast<size_t>(numCigarOpsBam);
+        ssize_t numCigarOpsSam = sam_parse_cigar(cigarCopy, NULL, &cigarData, &numOpsCast);
+        
+	      char *readName = (*reads_)[ _tig->getChild(ii)->ident() ]->sqRead_name();
         char qual[strlen(readSeq) + 1];
         for (int i = 0; i < strlen(readSeq); i++) {
           qual[i] = 'F';
@@ -1414,22 +2335,58 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
         qual[strlen(readSeq)] = '\0';
         const char* qualPtr = (const char*) qual;
         int ret = bam_set1(bamRecord, strlen(readName), readName, read->isForward() ? 0 : 16, 
-                          0, abgn, 255, numCigarOps, cigarData, 0, 0, _tig->length(),
+                          0, abgn, 255, numCigarOpsSam, cigarData, 0, 0, _tig->length(),
                           strlen(readSeq), readSeq, qualPtr, 0);
         if (ret < 0) { 
           fprintf(stderr, "Failed to create bam record!\n");
           exit(1);
         }
+        fprintf(stderr, "Created a bam record for read %s isIgnored %u\n", readName, read->isIgnored());
+
+        cigarCopy = strdup(cigar);
+        char leftClipStr [strlen(cigarCopy)];
+        char rightClipStr [strlen(cigarCopy)];
+        long long leftClipLen = -1;
+        long long rightClipLen = -1;
+        char leftOp = '\0';
+        char rightOp = '\0';
+        size_t first_pos = 0;
+        while (first_pos < strlen(cigarCopy)) {
+          if (!isDecDigit(cigarCopy[first_pos])) {
+            strncpy(leftClipStr, cigarCopy, first_pos);
+            leftClipLen = std::stoll(leftClipStr);
+            leftOp = cigarCopy[first_pos];
+            break;
+          }
+          first_pos++;
+        }
+        size_t last_pos = strlen(cigarCopy) - 1;
+        rightOp = cigarCopy[last_pos--];
+        while (last_pos > 0) {
+          if (!isDecDigit(cigarCopy[last_pos])) {
+            strncpy(rightClipStr, cigarCopy + last_pos + 1, strlen(cigarCopy) - 1);
+            rightClipLen = std::stoll(rightClipStr);
+            break;
+          }
+          last_pos--;
+        }
+        long long totClipping = 0;
+        if (leftOp != '=') totClipping += leftClipLen;
+        if (rightOp != '=') totClipping += rightClipLen;
+        std::string totClippingStr = std::to_string(totClipping);
+        // float clipPct = totClippage / readLen; 
 
         if (_merlinGlobal) {
           std::string merylStr;
           uint32_t count;
+          float normCount;
           std::string countStr;
           kmerIterator  kiter(readSeq, strlen(readSeq));
           bool first = true;
           while (kiter.nextMer()) {
             count = _merlinGlobal->lookupMarker(kiter.fmer(), kiter.rmer());
-            countStr = std::to_string(count);
+            normCount = count / float(oneCopyPeak);
+            countStr = std::to_string(normCount);
             if (first) {
               merylStr += countStr;
               first = false;
@@ -1437,21 +2394,33 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
               merylStr += ',' + countStr;
             }
           }
-          uint8_t* auxData = (uint8_t*) malloc(sizeof(uint8_t) * (merylStr.length() + 1));
-          memcpy(auxData, merylStr.c_str(), merylStr.length() + 1);    
-          const char* tag = "CO";
-          ret = bam_aux_append(bamRecord, tag, 'Z', merylStr.length() + 1, auxData);
+          uint8_t* auxMerylData = (uint8_t*) malloc(sizeof(uint8_t) * (merylStr.length() + 1));
+          memcpy(auxMerylData, merylStr.c_str(), merylStr.length() + 1);    
+          const char* COtag = "CO";
+          ret = bam_aux_append(bamRecord, COtag, 'Z', merylStr.length() + 1, auxMerylData);
           if (ret < 0) { 
             fprintf(stderr, "Failed to add meryl data tag!\n");
             exit(1);
           }
-          free(auxData);
+          free(auxMerylData);
         }
 
-        bam_write1(bamFp->fp.bgzf, bamRecord);
+        uint8_t* auxClippingData = (uint8_t*) malloc(sizeof(uint8_t) * (totClippingStr.length() + 1));
+        memcpy(auxClippingData, totClippingStr.c_str(), totClippingStr.length() + 1);
+        const char* IHtag = "IH";
+        ret = bam_aux_append(bamRecord, IHtag, 'Z', totClippingStr.length() + 1, auxClippingData);
+        if (ret < 0) { 
+          fprintf(stderr, "Failed to add clipping tag!\n");
+          exit(1);
+        }
+        free(auxClippingData);
+
+        sam_write1(samFp, samHeader, bamRecord);
+        fprintf(stderr, "findCoordinates()-- wrote read %s isIgnored %u to SAM.\n", readName, read->isIgnored());
         bam_destroy1(cigarRecord);
         bam_destroy1(bamRecord);
-        delete[] cigarCopy;
+  	    free(cigarData);
+	      free(cigarCopy);
         delete[] cigar;
       }
 
@@ -1459,9 +2428,10 @@ unitigConsensus::findCoordinates(std::map<uint32, sqRead *>     *reads_) {
 
       break;   //  Stop looping over extension and error rate.
     }  //  Looping over extension and error rate.
+    fprintf(stderr, "DONE aligning read %s isIgnored %u\n", (*reads_)[read->seqIdent()]->sqRead_name(), read->isIgnored());
   }    //  Looping over reads.
-  sam_close(bamFp);
-  bam_hdr_destroy(bamHeader);
+  sam_close(samFp);
+  sam_hdr_destroy(samHeader);
 }
 
 
@@ -1652,6 +2622,20 @@ unitigConsensus::trimCircular(void) {
   }
 }
 
+uint32
+unitigConsensus::getNumHiFiReads(tgTig                      *tig_, 
+                                 std::map<uint32, sqRead *> *reads_) {
+  int32 rid = 0;
+  int32 numHiFiReads = 0;
+  while (rid < tig_->numberOfChildren()) {
+    //fprintf(stderr, "getNumHiFiReads()-- read %u %s isHiFi: %u\n", tig_->getChild(rid)->ident(), (*reads_)[tig_->getChild(rid)->ident()]->sqRead_name(), tig_->getChild(rid)->isHiFi());
+    if (tig_->getChild(rid)->isHiFi()) {
+      numHiFiReads++;
+    }
+    rid++;
+  }
+  return numHiFiReads;
+}
 
 
 bool
@@ -1660,18 +2644,23 @@ unitigConsensus::generate(tgTig                       *tig_,
                           char                         aligner_,
                           double                       maxCov,
                           tgTigStashed                 S,
+                          uint32_t                     oneCopyPeak,
                           std::map<uint32, sqRead *>  *reads_) {
   bool  success = false;
 
   //  Flag excess coverage to be ignored.  Singletons report no logging.
-  tig_->flagContains(maxCov, S);
-
-  if      (tig_->numberOfChildren() == 1) {
-    success = generateSingleton(tig_, reads_);
+  tig_->flagContains(maxCov, S, reads_);
+  if (getNumHiFiReads(tig_, reads_) == 1) {
+      success = generateSingleton(tig_, reads_);
   }
+  else if (tig_->numberOfChildren() == 1) {
+    fprintf(stderr, "generate()-- TIG %u has only one ONT read, don't generate ONT singleton\n", tig_->tigID());
+  }
+
 
   else if (algorithm_ == 'Q') {
     success = generateQuick(tig_, reads_);
+    // findCoordinates(oneCopyPeak, aligner_, reads_);
   }
 
   else if ((algorithm_ == 'P') ||   //  Normal utgcns.
@@ -1684,11 +2673,11 @@ unitigConsensus::generate(tgTig                       *tig_,
     _tig->_trimEnd = _tig->length();
 
     if (algorithm_ == 'P') {
-      findCoordinates(reads_);
-      findRawAlignments();
+      findCoordinates(oneCopyPeak, aligner_, reads_);
+      // findRawAlignments();
     }
 
-    trimCircular();
+    // trimCircular();
   }
 
   return(success);
