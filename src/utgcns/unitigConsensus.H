@@ -119,11 +119,7 @@ private:
   char  *generateTemplateStitch(std::map<uint32, sqRead *>  *reads_);
 
   bool   initializeGenerate(tgTig                       *tig,
-                            std::map<uint32, sqRead *>  *reads = NULL);
-  
-  std::map<uint32, uint32> createMapFromCigar(char *cigar);
- 
-  uint32 convertTemplateToCnsCoord(uint32 coord);
+                            std::map<uint32, sqRead *>  *reads = NULL); 
 
   tgPosition adjustPosition(tgPosition original, char* readname);
 
@@ -144,10 +140,6 @@ private:
   void   findCoordinates(uint32_t                     oneCopyPeak,
                          char                         aligner_, 
                          std::map<uint32, sqRead *>   *reads);
-
-  void   findCoordinates1(uint32_t                     oneCopyPeak,
-                          char                         aligner_, 
-                          std::map<uint32, sqRead *>   *reads);
 
   void   findRawAlignments(void);
   void   trimCircular(void);

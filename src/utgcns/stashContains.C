@@ -1,4 +1,3 @@
-
 /******************************************************************************
  *
  *  This file is part of canu, a software program that assembles whole-genome
@@ -145,136 +144,6 @@ tgTig::stashContains(double  maxCov, tgTigStashed &S) {
 }
 
 
-// void
-// tgTig::stashContainsAndONT(double  maxCov, tgTigStashed &S) {
-
-//   //  Initialize.
-//   //    Declare that we have no stashed reads.
-//   //    Clear the return statistics.
-
-//   _stashed    = nullptr;
-//   _stashedLen = 0;
-//   _stashedMax = 0;
-
-//   S.clear();
-
-//   if (_childrenLen == 1)
-//     return;
-
-//   //  Sort the original children by position.
-
-//   std::sort(_children, _children + _childrenLen);
-
-//   //  Decide which children to save.
-
-//   readInfo        *posLen  = new readInfo [_childrenLen];   //  Sorting by length of child
-
-//   //  Flag the read for stashing if it doesn't extend the tig.
-
-//   int32         hiEnd = -1;
-
-//   for (uint32 ci=0; ci<_childrenLen; ci++) {
-//     if (_children[ci].isIgnored()) {
-//       posLen[ci].idx = ci;
-//       posLen[ci].len = _children[ci].max() - _children[ci].min();
-//       posLen[ci].use = false;
-
-//       S.nStsh += 1;
-//       S.bStsh += posLen[ci].len;
-//     } 
-    
-//     else {
-//       int32  lo = _children[ci].min();
-//       int32  hi = _children[ci].max();
-
-//       if (hi <= hiEnd) {
-//         posLen[ci].idx = ci;
-//         posLen[ci].len = hi - lo;
-//         posLen[ci].use = false;
-
-//         S.nStsh += 1;
-//         S.bStsh += posLen[ci].len;
-//       }
-
-//       else {
-//         posLen[ci].idx = ci;
-//         posLen[ci].len = hi - lo;
-//         posLen[ci].use = true;
-
-//         S.nBack += 1;
-//         S.bBack += posLen[ci].len;
-//       }
-
-//       hiEnd = std::max(hi, hiEnd);
-//     }
-//   }
-
-//   //  Sort by length, longest first, then verify we're sorted.
-
-//   auto longestFirst = [](readInfo const &A, readInfo const &B) {
-//                         return(A.len > B.len);
-//                       };
-
-//   std::sort(posLen, posLen + _childrenLen, longestFirst);
-
-//   for (uint32 ci=1; ci<_childrenLen; ci++)
-//     assert(posLen[ci-1].len >= posLen[ci].len);
-
-//   //  Save the longer of the contained reads, until we reach the maximum
-//   //  coverage desired.  
-
-//   uint64  bLimit = (uint64)floor(maxCov * hiEnd);
-
-//   for (uint32 ci=0; ci<_childrenLen; ci++) {
-//     if (posLen[ci].use == true)            //  Already a backbone read.
-//       continue;                            //  Skip this read.
-    
-//     if (_children[posLen[ci].idx].isIgnored())
-//       continue;
-
-//     if (S.bCont + S.bBack > bLimit)        //  Exceeded coverage limit.
-//       break;                               //  Bail.
-
-//     posLen[ci].use = true;                 //  Do not stash the read.
-
-//     S.nStsh -= 1;                          //  Do not stash this read.
-//     S.bStsh -= posLen[ci].len;             //
-
-//     S.nCont += 1;                          //  And do use it for consensus.
-//     S.bCont += posLen[ci].len;             //
-//   }
-
-//   //  Make a new list of reads, while saving the original, if there reads
-//   //  we want to stash.
-
-//   if (S.nStsh > 0) {
-//     _stashedLen = _childrenLen;                      //  Save the original list
-//     _stashedMax = _childrenMax;                      //  so we can restore it later.
-//     _stashed    = _children;
-
-//     _childrenLen  = 0;                               //  Allocate a new list for
-//     _childrenMax  = S.nBack + S.nCont;               //  exactly what we need to save.
-//     _children     = new tgPosition [_childrenMax];
-
-//     for (uint32 ci=0; ci<_stashedLen; ci++)
-//       if (posLen[ci].use == true) {                                //  If used, we want to keep the
-//         _children[_childrenLen++] = _stashed[posLen[ci].idx];    //  read, so copy it to the new list.
-//         fprintf(stderr, "kept read: %s\n", _stashed[posLen[ci].idx].readName(reads_));
-//       }
-//       else
-//         fprintf(stderr, "stashed read: %s\n", _stashed[posLen[ci].idx].readName(reads_));
-//   }
-
-//   // since we added the reads using length sorted order, re-sort them by position to make everyone downstream  happy
-//   std::sort(_children, _children + _childrenLen);
-
-//   //  Cleanup and return the statistics.
-
-//   delete [] posLen;
-// }
-
-
-
 void
 tgTig::unstashContains(void) {
 
@@ -348,11 +217,11 @@ tgTig::unstashContains(void) {
 }
 
 
-
+// Instead of stashing contained + ONT reads, flag them to be ignored in generating consensus
+// This allows us to access them for realignment in findCoordinates
 void
 tgTig::flagContains(double  maxCov, tgTigStashed &S, std::map<uint32, sqRead *>  *reads_) {
 
-  fprintf(stderr, "flagContains()-- _childrenLen %u\n", _childrenLen);
   //  Initialize.
   //    Declare that we have no stashed reads.
   //    Clear the return statistics.
@@ -362,12 +231,6 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S, std::map<uint32, sqRead *> 
   _stashedMax = 0;
 
   S.clear();
-
-  // if (_childrenLen == 1)
-  //   return;
-
-  //  Sort the original children by position.
-  // fprintf(stderr, "original _children size: %lu\n", _childrenLen);
 
   std::sort(_children, _children + _childrenLen);
 
@@ -380,13 +243,7 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S, std::map<uint32, sqRead *> 
   int32         hiEnd = -1;
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
-    // fprintf(stderr, "flagContains()-- read %s isIgnored %u\n", _children[ci].readName(reads_), _children[ci].isIgnored());
     _children[ci].setIsONT(_children[ci].isIgnored());
-    // if (_children[ci].isONT()) {
-    //   fprintf(stderr, "flagContains()-- read %s isONT\n", _children[ci].readName(reads_));
-    // } else {
-    //   fprintf(stderr, "flagContains()-- read %s is HiFi\n", _children[ci].readName(reads_));
-    // }
     int32  lo = _children[ci].min();
     int32  hi = _children[ci].max();
     posLen[ci].idx = ci;
@@ -405,7 +262,6 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S, std::map<uint32, sqRead *> 
       }
       hiEnd = std::max(hi, hiEnd);
     }
-    // fprintf(stderr, "flagContains()-- saw read %s\n", _children[ci].readName(reads_));
   }
 
   //  Sort by length, longest first, then verify we're sorted.
@@ -445,10 +301,8 @@ tgTig::flagContains(double  maxCov, tgTigStashed &S, std::map<uint32, sqRead *> 
 
   for (uint32 ci=0; ci<_childrenLen; ci++) {
     _children[posLen[ci].idx].setIsIgnored(!posLen[ci].use);
-    // fprintf(stderr, "flagContains()-- marked read %s as isIgnored %u\n", _children[posLen[ci].idx].readName(reads_),_children[posLen[ci].idx].isIgnored() );
   }
 
   //  Cleanup and return the statistics.
-  // fprintf(stderr, "after flagging _children size: %lu\n", _childrenLen);
   delete [] posLen;
 }

@@ -213,6 +213,8 @@ processImportedTigs(cnsParameters  &params) {
 
   sqRead_defaultVersion = sqRead_raw | sqRead_normal;
   uint32_t oneCopyPeak = 1;
+
+  // load kmers from markerDB
   if (params.markerDB) {
     params.merlinGlobal_->markerDBname = params.markerDB;
     params.merlinGlobal_->load_Kmers(params.markerDB);
@@ -412,6 +414,8 @@ processTigs(cnsParameters  &params) {
   uint32_t oneCopyPeak = 1;
   params.seqReads = loadPartitionedReads(params.seqFile);
   merylFileReader *reader;
+
+  // load kmers from markerDB
   if (params.markerDB) {
     params.merlinGlobal_->markerDBname = params.markerDB;
     params.merlinGlobal_->load_Kmers(params.markerDB);
