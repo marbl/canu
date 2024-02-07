@@ -341,8 +341,6 @@ main(int argc, char **argv) {
   sqStore          *seqStore = new sqStore(seqStoreName);
   tgStore          *corStore = new tgStore(corStoreName, 1);
 
-  falconConsensus  *fc       = new falconConsensus(minOutputCoverage, minOutputLength, 0, 0);  //  For memory estimtes
-
   uint32            numReads = seqStore->sqStore_lastReadID();
 
   readStatus       *status   = new readStatus [numReads + 1];
@@ -350,28 +348,32 @@ main(int argc, char **argv) {
   for (uint32 rr=0; rr<numReads+1; rr++)    //  Initialize read status with the readID
     status[rr].readID = rr;                 //  so sort byReadID works correctly.
 
-
   //  Scan the tigs, computing expected corrected length.
 
-  for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
-    tgTig  *layout = corStore->loadTig(ti);
+  {
+    falconConsensus  fc(minOutputCoverage, minOutputLength, 0, 0);  //  For memory estimtes
 
-    if (layout) {
-      status[ti].readID         = layout->tigID();
+    for (uint32 ti=1; ti<corStore->numTigs(); ti++) {
+      tgTig  *layout = corStore->loadTig(ti);
 
-      status[ti].numOlaps       = layout->numberOfChildren();
+      if (layout) {
+        assert(status[ti].readID == layout->tigID());
+        status[ti].readID         = layout->tigID();
 
-      status[ti].origLength     = layout->length();
-      status[ti].corrLength     = 0;
+        status[ti].numOlaps       = layout->numberOfChildren();
 
-      status[ti].memoryRequired = 0;
+        status[ti].origLength     = layout->length();
+        status[ti].corrLength     = 0;
 
-      fc->analyzeLength(layout,
-                        status[ti].corrLength,         //  output
-                        status[ti].memoryRequired);    //  output
+        status[ti].memoryRequired = 0;
+
+        fc.analyzeLength(layout,
+                         status[ti].corrLength,         //  output
+                         status[ti].memoryRequired);    //  output
+      }
+
+      corStore->unloadTig(ti);
     }
-
-    corStore->unloadTig(ti);
   }
 
   //  Sort by expected corrected length, then mark reads for correction until
@@ -447,6 +449,8 @@ main(int argc, char **argv) {
   //  And say goodbye.
 
   delete [] status;
+  delete    corStore;
+  delete    seqStore;
 
   fprintf(stderr, "Bye.\n");
 
