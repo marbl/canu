@@ -411,12 +411,19 @@ $(eval $(call BOILERMAKE))
 #  For projects that include meryl-utility as a submodule (the usual case)
 #  write version.H in the submodule src/ directory; for meryl-utility itself,
 #  write in the current directory.
+#   - This _should_ be indentifying if the submodule exists in
+#     utility/src, but on the very first build (when the submodules
+#     are initialized above) a file-based detection was reliably failing,
+#     as if `ifeq ($(wildcard utility/src), utility/src)` was tested
+#     before the submodule was init'd.  Rather than deal with all
+#     that baloney, we just assume that any build using this build
+#     system is either meryl-utility itself or something that uses it.
 #
 
-ifeq ($(wildcard utility/src), utility/src)
-  VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} utility/src/version.H)
-else
+ifeq (${MODULE}, meryl-utility)
   VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} version.H)
+else
+  VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} utility/src/version.H)
 endif
 
 include ${VERSION_H}
