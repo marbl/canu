@@ -629,6 +629,7 @@ tgTig::loadLayout(FILE *F) {
       _children[nChildren]._isUnitig    = (strcmp(W[0], "unitig") == 0);
       _children[nChildren]._isContig    = (strcmp(W[0], "contig") == 0);
       _children[nChildren]._isReverse   = false;
+      _children[nChildren]._skipCNS     = false;
       _children[nChildren]._spare       = 0;
       _children[nChildren]._anchor      = strtouint32(W[3]);
       _children[nChildren]._ahang       = strtouint32(W[5]);

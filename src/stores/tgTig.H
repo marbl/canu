@@ -263,11 +263,16 @@ public:
   tgPosition    *addChild(void)              {
     increaseArray(_children, _childrenLen, _childrenMax, std::min(_childrenMax/4, 16u));
 
+    _children[_childrenLen].initialize();
+
     return(_children + _childrenLen++);
   };
 
   void           allocateChildren(uint32 m) {
-    resizeArray(_children, _childrenLen, _childrenMax, m, _raAct::copyData);
+    resizeArray(_children, _childrenLen, _childrenMax, m, _raAct::doNothing);
+
+    for (uint32 ii=0; ii<m; ii++)
+      _children[ii].initialize();
   };
 
   //  Operators
