@@ -23,7 +23,7 @@ no  warnings "uninitialized";
 use FindBin;
 use Cwd qw(getcwd abs_path);
 
-use lib "$FindBin::RealBin/../lib/site_perl";
+use lib "$FindBin::RealBin/../lib/perl5/site_perl";
 
 use File::Path 2.08 qw(make_path remove_tree);
 
