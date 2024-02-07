@@ -167,27 +167,18 @@ public:
   void                 setMinMax(int32 min, int32 max) {
     _min = min;
     _max = max;
-  };
+  }
 
-  //  Operators
-
+  //  Sort by position, however, if:
+  //   - I'm the anchor of the other tig, I must be before it.
+  //   - My anchor is the other tig, I must be after it.
+  //
   bool                 operator<(tgPosition const &that) const {
-    int32 al = min();
-    int32 bl = that.min();
-
-    if (al != bl)
-      return(al < bl);
-
-    if (that._anchor == _objID)  //  I'm his anchor, I must be before it.
-      return(true);
-
-    if (_anchor == that._objID)  //  My anchor is the other tig; I must
-      return(false);             //  be after it.
-
-    int32 ah = max();
-    int32 bh = that.max();
-
-    return(ah > bh);
+    if      (min()   != that.min())   return min()   < that.min();
+    else if (_objID  == that._anchor) return true;
+    else if (_anchor == that._objID)  return false;
+    else if (max()   != that.max())   return max()   > that.max();
+    else                              return ident() < that.ident();
   }
 
 private:

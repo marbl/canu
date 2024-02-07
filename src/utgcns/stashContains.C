@@ -78,7 +78,8 @@ tgTig::filterContains(double  maxCov, bool enableStash) {
   //  coverage desired.  
 
   auto longestFirst = [](readInfo const &A, readInfo const &B) {
-                        return(A.len > B.len);
+                        if (A.len != B.len)  return A.len > B.len;
+                        else                 return A.idx < B.idx;
                       };
 
   std::sort(posLen, posLen + _childrenLen, longestFirst);   //  Sort by length.
