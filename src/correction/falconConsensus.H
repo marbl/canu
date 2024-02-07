@@ -54,13 +54,10 @@
  * SUCH DAMAGE.
  */
 
-
 #include "tgStore.H"  //  for tgTig
 
 #include <vector>
 #include <string>
-#include <cstdlib>
-#include <stdint.h>
 
 #include <vector>
 #include <algorithm>

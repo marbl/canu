@@ -26,7 +26,7 @@
 ///
 
 #include <string>
-#include <stdint.h>
+#include <cstdint>
 
 class dagAlignment {
 public:
