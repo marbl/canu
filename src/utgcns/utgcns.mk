@@ -35,6 +35,9 @@ ifeq (${OSTYPE}, Darwin)
   endif
 endif
 
+ifeq (${BOOST}, libboost)
+  SRC_CXXFLAGS += -DBOOST_NO_AUTO_PTR
+endif
 
 SRC_INCDIRS := ../utility/src ../stores libpbutgcns
 

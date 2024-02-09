@@ -50,14 +50,6 @@
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 
-#include <cassert>
-#include <string>
-#include <queue>
-#include <map>
-#include <vector>
-#include <boost/graph/graph_traits.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/utility/value_init.hpp>
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
 

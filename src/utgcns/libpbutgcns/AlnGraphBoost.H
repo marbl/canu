@@ -54,7 +54,15 @@
 #ifndef __GCON_ALNGRAPHBOOST_HPP__
 #define __GCON_ALNGRAPHBOOST_HPP__
 
+#include <cassert>
+#include <string>
+#include <queue>
+#include <map>
+#include <vector>
+
+#include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/utility/value_init.hpp>
 
 /// Alignment graph representation and consensus caller.  Based on the original
 /// Python implementation, pbdagcon.  This class is modelled after its
