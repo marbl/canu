@@ -1,4 +1,7 @@
 MODULE       :=    canu
+VERSION      := snapshot v2.2
+VERSION_H    := utility/src/version.H
+
 TARGET       := libcanu.a
 SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/align/align-ksw2-extz.C \

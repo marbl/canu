@@ -52,15 +52,15 @@ define INIT_SUBMODULE
   ifeq ($$(wildcard ${1}),${1})
   ifeq ($$(wildcard ${1}/*),)
     $$(info Fetching submodule '${1}')
-    $$(shell git submodule update --init ${1} 2>&1 | awk '{ print " - "$$$$0 }' 1>&2)
+    $$(shell git submodule update --init ${2} ${1} 2>&1 | awk '{ print " - "$$$$0 }' 1>&2)
     $$(info )
   endif
   endif
 endef
 
-$(eval $(call INIT_SUBMODULE,utility))
-$(eval $(call INIT_SUBMODULE,meryl))
-$(eval $(call INIT_SUBMODULE,seqrequester))
+$(eval $(call INIT_SUBMODULE,utility,))
+$(eval $(call INIT_SUBMODULE,meryl,))
+$(eval $(call INIT_SUBMODULE,seqrequester,))
 
 #
 #  Set compiler and flags based on operating system and compiler toolchain.
@@ -369,28 +369,44 @@ ifneq ($(COMPILETEST), pass)
 endif
 
 #
-# Recursively include user-supplied submakefiles.
+# Define the two exported targets, 'all' and 'clean' as phony rules that
+# point to the real rules.  This is done before including main.mk so that it
+# can define any weird one-off special-case targets without them becoming the
+# first (and thus default) rule.
 #
+# Then recursively include user-supplied submakefiles.
+#
+# Then define the real 'all' and 'clean' targets.
+#
+# Targets 'doall' and 'doclean' are used internally to add more targets to
+# the global build.  'doclean-final' is a trouble maker because it needs to
+# run after all the other 'doclean' steps, and the only way to ensure that is
+# to give it a new target.
+
+.PHONY: all
+all: doall
+
+.PHONY: clean
+clean: doclean-final
 
 $(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
 
-#
-# Define the two exported targets: 'all' (default) and 'clean'.
-#
-
-.PHONY: all
-all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS})
+.PHONY: doall
+doall: $(addprefix ${TARGET_DIR}/,${ALL_TGTS})
 	@echo ""
 	@echo "Success!"
 	@echo "${MODULE} installed in ${TARGET_DIR}/bin/${MODULE}"
 	@echo ""
 
-.PHONY: clean
-clean:
-	if [ -d ../build ] ; then find ../build -type d -print | sort -r | xargs -n 100 rmdir ; fi
+.PHONY: doclean-final
+doclean-final: doclean
+	if [ -d ${TARGET_DIR} ] ; then find ${TARGET_DIR} -type d -print | sort -r | xargs -n 100 rmdir ; fi
 	@echo ""
 	@echo "Cleaned."
 	@echo ""
+
+.PHONY: doclean
+doclean:
 
 #
 #  Let boilermake do its thing.
@@ -401,8 +417,8 @@ $(eval $(call BOILERMAKE))
 #
 #  Generate a version number.  This needs to come AFTER submakefiles are
 #  included (so we know what ${MODULE} is) but before we build anything
-#  (because this generates 'utility/src/version.H' and also prints
-#  information about submodule versions).
+#  (because this generates 'version.H' and also prints information about
+#  submodule versions).
 #
 #  But, because make helpfully squashes all the lines to a single line we
 #  need to do something funky and write the version information for C++ and
@@ -421,10 +437,11 @@ $(eval $(call BOILERMAKE))
 #     system is either meryl-utility itself or something that uses it.
 #
 
-ifeq (${MODULE}, meryl-utility)
-  VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} version.H)
-else
-  VERSION_H := $(shell ../scripts/version_update.pl ${MODULE} utility/src/version.H)
+#$(info Calling  ./${VERSION_H:.H=.pl} ${MODULE} ${VERSION} ${VERSION_H})
+VERSION_H := $(shell ./${VERSION_H:.H=.pl} ${MODULE} ${VERSION} ${VERSION_H})
+
+ifeq (${VERSION_H}, )
+$(error Failed to create version.H, possibly missing the 'meryl-utility' submodule)
 endif
 
 include ${VERSION_H}

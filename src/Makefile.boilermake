@@ -112,11 +112,11 @@ endef
 #  (removing its build-generated files).  Use with EVAL.
 #
 define ADD_CLEAN_RULE
-    clean: clean_${1}
-    .PHONY: clean_${1}
-    clean_${1}:
-	$$(strip rm -f ${TARGET_DIR}/${1} $${${1}_OBJS:%.o=%.[doP]})
-	$${${1}_POSTCLEAN}
+  doclean: doclean-${1}
+  .PHONY: doclean-${1}
+  doclean-${1}:
+		$$(strip rm -f ${TARGET_DIR}/${1} $${${1}_OBJS:%.o=%.[doP]})
+		$${${1}_POSTCLEAN}
 endef
 
 #  ADD_FILE_COPY_RULES adds rules to copy source files directly to the
@@ -158,22 +158,21 @@ define MAKE_FILE_COPY_LIST
 endef
 
 define ADD_FILE_COPY_RULE
-  #$$(info Add rule for '$1' to '$${TARGET_DIR}/$2' $3)
-  all: $${TARGET_DIR}/$2
+  doall: $${TARGET_DIR}/$2
   ifeq ($3,executable)
-    $${TARGET_DIR}/$2: $1
-	    @mkdir -p $$(dir $${TARGET_DIR}/$2)
-	    cp -pf $1 $${TARGET_DIR}/$2
-	    chmod +x $${TARGET_DIR}/$2
+  $${TARGET_DIR}/$2: $1
+		@mkdir -p $$(dir $${TARGET_DIR}/$2)
+		cp -pf $1 $${TARGET_DIR}/$2
+		chmod +x $${TARGET_DIR}/$2
   else
-    $${TARGET_DIR}/$2: $1
-	    @mkdir -p $$(dir $${TARGET_DIR}/$2)
-	    cp -pf $1 $${TARGET_DIR}/$2
+  $${TARGET_DIR}/$2: $1
+		@mkdir -p $$(dir $${TARGET_DIR}/$2)
+		cp -pf $1 $${TARGET_DIR}/$2
   endif
-  clean: clean_$1
-  .PHONY: clean_$1
-  clean_$1:
-	  rm -f $${TARGET_DIR}/$2
+  doclean: doclean-$1
+  .PHONY: doclean-$1
+  doclean-$1:
+		rm -f $${TARGET_DIR}/$2
 endef
 
 define ADD_FILE_COPY_RULES
@@ -191,41 +190,41 @@ endef
 #  Use with EVAL.
 #
 define ADD_OBJECT_RULE
-${1}/%.o: ${2} ${VERSION_H}
-	${3}
+  ${1}/%.o: ${2} ${VERSION_H}
+		${3}
 endef
 
 #  Adds a new target to the Makefile.  Targets are executable files unless
 #  they end with '.a'.  Use with EVAL.
 #
 define ADD_TARGET_RULE
-    ifeq "$$(suffix ${1})" ".a"
-        # Add a target for creating a static library.
-        $${TARGET_DIR}/${1}: $${${1}_OBJS}
-	        @mkdir -p $$(dir $$@)
-	        $$(strip $${AR} $${ARFLAGS} $$@ $${${1}_OBJS})
-	        $${${1}_POSTMAKE}
-    else
-      # Add a target for linking an executable. First, attempt to select the
-      # appropriate front-end to use for linking. This might not choose the
-      # right one (e.g. if linking with a C++ static library, but all other
-      # sources are C sources), so the user makefile is allowed to specify a
-      # linker to be used for each target.
-      ifeq "$$(strip $${${1}_LINKER})" ""
-          # No linker was explicitly specified to be used for this target. If
-          # there are any C++ sources for this target, use the C++ compiler.
-          # For all other targets, default to using the C compiler.
-          ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-              ${1}_LINKER = $${CXX}
-          else
-              ${1}_LINKER = $${CC}
-          endif
+  ifeq "$$(suffix ${1})" ".a"
+    # Add a target for creating a static library.
+    $${TARGET_DIR}/${1}: $${${1}_OBJS}
+			@mkdir -p $$(dir $$@)
+			$$(strip $${AR} $${ARFLAGS} $$@ $${${1}_OBJS})
+			$${${1}_POSTMAKE}
+  else
+    # Add a target for linking an executable. First, attempt to select the
+    # appropriate front-end to use for linking. This might not choose the
+    # right one (e.g. if linking with a C++ static library, but all other
+    # sources are C sources), so the user makefile is allowed to specify a
+    # linker to be used for each target.
+    ifeq "$$(strip $${${1}_LINKER})" ""
+      # No linker was explicitly specified to be used for this target. If
+      # there are any C++ sources for this target, use the C++ compiler.
+      # For all other targets, default to using the C compiler.
+      ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+        ${1}_LINKER = $${CXX}
+      else
+        ${1}_LINKER = $${CC}
       endif
+    endif
 
-      $${TARGET_DIR}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	      @mkdir -p $$(dir $$@)
-	      $$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_LDLIBS} $${LDLIBS})
-	      $${${1}_POSTMAKE}
+    $${TARGET_DIR}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
+			@mkdir -p $$(dir $$@)
+			$$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_LDLIBS} $${LDLIBS})
+			$${${1}_POSTMAKE}
   endif
 endef
 
@@ -258,117 +257,117 @@ endef
 #   USE WITH EVAL
 #
 define INCLUDE_SUBMAKEFILE
-    # Initialize all variables that can be defined by a makefile fragment, then
-    # include the specified makefile fragment.
-    TARGET        :=
-    TGT_LDFLAGS   :=
-    TGT_LDLIBS    :=
-    TGT_LINKER    :=
-    TGT_PREREQS   :=
+  # Initialize all variables that can be defined by a makefile fragment, then
+  # include the specified makefile fragment.
+  TARGET        :=
+  TGT_LDFLAGS   :=
+  TGT_LDLIBS    :=
+  TGT_LINKER    :=
+  TGT_PREREQS   :=
 
-    SOURCES       :=
-    SRC_CFLAGS    :=
-    SRC_CXXFLAGS  :=
-    SRC_DEFS      :=
-    SRC_INCDIRS   :=
+  SOURCES       :=
+  SRC_CFLAGS    :=
+  SRC_CXXFLAGS  :=
+  SRC_DEFS      :=
+  SRC_INCDIRS   :=
 
-    EXT_INCDIRS   :=
+  EXT_INCDIRS   :=
 
-    SUBMAKEFILES  :=
+  SUBMAKEFILES  :=
 
-    # A directory stack is maintained so that the correct paths are used as we
-    # recursively include all submakefiles. Get the makefile's directory and
-    # push it onto the stack.
-    DIR := $(call CANONICAL_PATH,$(dir ${1}))
-    DIR_STACK := $$(call PUSH,$${DIR_STACK},$${DIR})
+  # A directory stack is maintained so that the correct paths are used as we
+  # recursively include all submakefiles. Get the makefile's directory and
+  # push it onto the stack.
+  DIR := $(call CANONICAL_PATH,$(dir ${1}))
+  DIR_STACK := $$(call PUSH,$${DIR_STACK},$${DIR})
 
-    include ${1}
+  include ${1}
 
-    # Initialize internal local variables.
-    OBJS :=
+  # Initialize internal local variables.
+  OBJS :=
 
-    # Determine which target this makefile's variables apply to. A stack is
-    # used to keep track of which target is the "current" target as we
-    # recursively include other submakefiles.
-    ifneq "$$(strip $${TARGET})" ""
-        # This makefile defined a new target. Target variables defined by this
-        # makefile apply to this new target. Initialize the target's variables.
+  # Determine which target this makefile's variables apply to. A stack is
+  # used to keep track of which target is the "current" target as we
+  # recursively include other submakefiles.
+  ifneq "$$(strip $${TARGET})" ""
+    # This makefile defined a new target. Target variables defined by this
+    # makefile apply to this new target. Initialize the target's variables.
 
-        ifeq "$$(suffix $${TARGET})" ".a"
-          TGT := $$(addprefix lib/, $$(strip $${TARGET}))
-        else
-          TGT := $$(addprefix bin/, $$(strip $${TARGET}))
-        endif
-        ALL_TGTS += $${TGT}
-        $${TGT}_DEPS      :=
-        $${TGT}_LDFLAGS   := $${TGT_LDFLAGS}
-        $${TGT}_LDLIBS    := $${TGT_LDLIBS}
-        $${TGT}_LINKER    := $${TGT_LINKER}
-        $${TGT}_OBJS      :=
-        $${TGT}_PREREQS   := $$(addprefix $${TARGET_DIR}/lib/,$${TGT_PREREQS})
+    ifeq "$$(suffix $${TARGET})" ".a"
+      TGT := $$(addprefix lib/, $$(strip $${TARGET}))
     else
-        # The values defined by this makefile apply to the the "current" target
-        # as determined by which target is at the top of the stack.
-        TGT := $$(strip $$(call PEEK,$${TGT_STACK}))
-        $${TGT}_LDFLAGS   += $${TGT_LDFLAGS}
-        $${TGT}_LDLIBS    += $${TGT_LDLIBS}
-        $${TGT}_PREREQS   += $${TGT_PREREQS}
+      TGT := $$(addprefix bin/, $$(strip $${TARGET}))
+    endif
+    ALL_TGTS += $${TGT}
+    $${TGT}_DEPS      :=
+    $${TGT}_LDFLAGS   := $${TGT_LDFLAGS}
+    $${TGT}_LDLIBS    := $${TGT_LDLIBS}
+    $${TGT}_LINKER    := $${TGT_LINKER}
+    $${TGT}_OBJS      :=
+    $${TGT}_PREREQS   := $$(addprefix $${TARGET_DIR}/lib/,$${TGT_PREREQS})
+  else
+    # The values defined by this makefile apply to the the "current" target
+    # as determined by which target is at the top of the stack.
+    TGT := $$(strip $$(call PEEK,$${TGT_STACK}))
+    $${TGT}_LDFLAGS   += $${TGT_LDFLAGS}
+    $${TGT}_LDLIBS    += $${TGT_LDLIBS}
+    $${TGT}_PREREQS   += $${TGT_PREREQS}
+  endif
+
+  # Push the current target onto the target stack.
+  TGT_STACK := $$(call PUSH,$${TGT_STACK},$${TGT})
+
+  ifneq "$$(strip $${SOURCES})" ""
+    # This makefile builds one or more objects from source. Validate the
+    # specified sources against the supported source file types.
+    BAD_SRCS := $$(strip $$(filter-out $${ALL_SRC_EXTS},$${SOURCES}))
+    ifneq "$${BAD_SRCS}" ""
+      $$(error Unsupported source file(s) found in ${1} [$${BAD_SRCS}])
     endif
 
-    # Push the current target onto the target stack.
-    TGT_STACK := $$(call PUSH,$${TGT_STACK},$${TGT})
+    # Qualify and canonicalize paths.
+    SOURCES     := $$(call QUALIFY_PATH,$${DIR},$${SOURCES})
+    SOURCES     := $$(call CANONICAL_PATH,$${SOURCES})
+    SRC_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${SRC_INCDIRS})
+    SRC_INCDIRS := $$(call CANONICAL_PATH,$${SRC_INCDIRS})
+    EXT_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${EXT_INCDIRS})
+    EXT_INCDIRS := $$(call CANONICAL_PATH,$${EXT_INCDIRS})
 
-    ifneq "$$(strip $${SOURCES})" ""
-        # This makefile builds one or more objects from source. Validate the
-        # specified sources against the supported source file types.
-        BAD_SRCS := $$(strip $$(filter-out $${ALL_SRC_EXTS},$${SOURCES}))
-        ifneq "$${BAD_SRCS}" ""
-            $$(error Unsupported source file(s) found in ${1} [$${BAD_SRCS}])
-        endif
+    # Save the list of source files for this target.
+    $${TGT}_SOURCES += $${SOURCES}
 
-        # Qualify and canonicalize paths.
-        SOURCES     := $$(call QUALIFY_PATH,$${DIR},$${SOURCES})
-        SOURCES     := $$(call CANONICAL_PATH,$${SOURCES})
-        SRC_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${SRC_INCDIRS})
-        SRC_INCDIRS := $$(call CANONICAL_PATH,$${SRC_INCDIRS})
-        EXT_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${EXT_INCDIRS})
-        EXT_INCDIRS := $$(call CANONICAL_PATH,$${EXT_INCDIRS})
+    # Convert the source file names to their corresponding object file
+    # names.
+    OBJS := $$(addprefix $${BUILD_DIR}/$$(call CANONICAL_PATH,$${TGT})/,\
+              $$(addsuffix .o,$$(basename $${SOURCES})))
 
-        # Save the list of source files for this target.
-        $${TGT}_SOURCES += $${SOURCES}
+    # Add the objects to the current target's list of objects, and create
+    # target-specific variables for the objects based on any source
+    # variables that were defined.
+    $${TGT}_OBJS += $${OBJS}
+    $${TGT}_DEPS += $${OBJS:%.o=%.P}
+    $${OBJS}: SRC_CFLAGS   := $${SRC_CFLAGS}
+    $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
+    $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${SRC_DEFS})
+    $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,$${SRC_INCDIRS})
+    $${OBJS}: EXT_INCDIRS  := $$(addprefix -isystem,$${EXT_INCDIRS})
+  endif
 
-        # Convert the source file names to their corresponding object file
-        # names.
-        OBJS := $$(addprefix $${BUILD_DIR}/$$(call CANONICAL_PATH,$${TGT})/,\
-                   $$(addsuffix .o,$$(basename $${SOURCES})))
+  ifneq "$$(strip $${SUBMAKEFILES})" ""
+    # This makefile has submakefiles. Recursively include them.
+    $$(foreach MK,$${SUBMAKEFILES},\
+      $$(eval $$(call INCLUDE_SUBMAKEFILE,\
+                $$(call CANONICAL_PATH,\
+                  $$(call QUALIFY_PATH,$${DIR},$${MK})))))
+  endif
 
-        # Add the objects to the current target's list of objects, and create
-        # target-specific variables for the objects based on any source
-        # variables that were defined.
-        $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $${OBJS:%.o=%.P}
-        $${OBJS}: SRC_CFLAGS   := $${SRC_CFLAGS}
-        $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
-        $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${SRC_DEFS})
-        $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,$${SRC_INCDIRS})
-        $${OBJS}: EXT_INCDIRS  := $$(addprefix -isystem,$${EXT_INCDIRS})
-    endif
+  # Reset the "current" target to it's previous value.
+  TGT_STACK := $$(call POP,$${TGT_STACK})
+  TGT := $$(call PEEK,$${TGT_STACK})
 
-    ifneq "$$(strip $${SUBMAKEFILES})" ""
-        # This makefile has submakefiles. Recursively include them.
-        $$(foreach MK,$${SUBMAKEFILES},\
-           $$(eval $$(call INCLUDE_SUBMAKEFILE,\
-                      $$(call CANONICAL_PATH,\
-                         $$(call QUALIFY_PATH,$${DIR},$${MK})))))
-    endif
-
-    # Reset the "current" target to it's previous value.
-    TGT_STACK := $$(call POP,$${TGT_STACK})
-    TGT := $$(call PEEK,$${TGT_STACK})
-
-    # Reset the "current" directory to it's previous value.
-    DIR_STACK := $$(call POP,$${DIR_STACK})
-    DIR := $$(call PEEK,$${DIR_STACK})
+  # Reset the "current" directory to it's previous value.
+  DIR_STACK := $$(call POP,$${DIR_STACK})
+  DIR := $$(call PEEK,$${DIR_STACK})
 endef
 
 
