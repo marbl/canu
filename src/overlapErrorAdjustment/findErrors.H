@@ -86,11 +86,6 @@
 //  this rate
 #define  MIN_BRANCH_TAIL_SLOPE       0.20
 
-//  Votes at this distance from the extremities of aligned region are ignored
-//  Leads to start/end of reads not being corrected,
-//  which should be accounted by overlap scoring (see DEFAULT_FLANK_IGNORE)
-#define  IGNORE_FLANK_VOTE           5
-
 //  The amount of memory to allocate for the stack of each thread
 #define  THREAD_STACKSIZE        (128 * 512 * 512)
 
@@ -98,6 +93,8 @@ struct Vote_Tally_t {
   Vote_Tally_t() {
      confirmed = 0;
      conf_no_insert = 0;
+     confirmed_rc = 0;
+     conf_no_insert_rc = 0;
      deletes   = 0;
      a_subst   = 0;
      c_subst   = 0;
@@ -111,13 +108,16 @@ struct Vote_Tally_t {
   static const char INSERTIONS_DELIM = '$';
 
   uint32  confirmed      : 16;
+  uint32  confirmed_rc   : 16;
   uint32  conf_no_insert : 16;
-  uint32  deletes        : 16;
-  uint32  a_subst        : 16;
+  uint32  conf_no_insert_rc : 16;
 
+  uint32  a_subst        : 16;
   uint32  c_subst        : 16;
   uint32  g_subst        : 16;
   uint32  t_subst        : 16;
+
+  uint32  deletes        : 16;
   uint32  no_insert      : 16;
 
   uint32 insertion_cnt;
@@ -355,10 +355,12 @@ struct feParameters {
     //  Output
     Degree_Threshold = 2;  //, DEFAULT_DEGREE_THRESHOLD;
 
-    Haplo_Expected   = 2;
-    Haplo_Strong     = 2;
+    Base_Confirm     = 2;
+    Opposite_Confirm = 0;
     Haplo_Confirm    = 5;
-    Haplo_Freeze     = 1;
+    Het_Del_Freeze   = 1;
+
+    ignoreFlank      = 5;
 
     checkTrivialDNA = false;
     maskedErrorRate = 0.06;
@@ -367,7 +369,7 @@ struct feParameters {
 
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
     //Kmer_Len          = 9;  //DEFAULT_KMER_LEN;
-    Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
+    //Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
   };
 
   ~feParameters() {
@@ -406,19 +408,23 @@ struct feParameters {
   int  Edit_Match_Limit [AS_MAX_READLEN + 1];
 
 
+  //FIXME does it do anything?
   // Set keep flag on end of fragment if number of olaps < this value
   int  Degree_Threshold;
 
-  //  Require at least Haplo_Confirm reads to confirm a haplotype, but if
-  //  there are more than Haplo_Expected haplotypes detected, treat the
-  //  column as a true error.
-  //
-  int32   Haplo_Expected;  //  (2) Number of haplotypes expected; previously hard-coded inline '2'.
-  int32   Haplo_Strong;    //  (2) Number of reads to confirm insert/delete; previously STRONG_CONFIRMATION_READ_CNT.
+  //  Require at least Haplo_Confirm reads to confirm a haplotype, if > 1 haplotypes detected -- don't try to correct
+  int32   Base_Confirm;    //  (2) Number of reads (any direction) to confirm base (absense of insertion); previously STRONG_CONFIRMATION_READ_CNT.
+  int32   Opposite_Confirm;//  (0) Number of reads in opposite direction to confirm base.
   int32   Haplo_Confirm;   //  (5) Number of reads to confirm a haplotype; previously MIN_HAPLO_OCCURS.
-  uint32  Haplo_Freeze;    //  (1) Radius around heterozygous position that is considered too risky to correct.
+  uint32  Het_Del_Freeze;  //  (1) Radius around heterozygous deletion that is considered too risky to correct.
 
   bool    checkTrivialDNA;
+
+  //  Votes at this distance from the extremities of aligned region are ignored
+  //  Leads to start/end of reads not being corrected,
+  //  which should be accounted by overlap scoring
+  uint32  ignoreFlank;
+
   double  maskedErrorRate;
 
   // Length of ends of exact-match regions not used in preventing sequence correction
@@ -426,7 +432,7 @@ struct feParameters {
   // Length of minimum exact match in overlap to confirm base pairs
   //int  Kmer_Len;
   // Number of bases surrounding a SNP to vote for change
-  int  Vote_Qualify_Len;
+  //int  Vote_Qualify_Len;
 
 
   //  This array [i] is the maximum number of errors allowed in a match between sequences of length

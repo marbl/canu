@@ -266,6 +266,7 @@ public:
     errorRate  = 0.06;
     minOverlap = 0;
     checkTrivialDNA = false;
+    ignoreFlank = 5;
   };
   ~coParameters() {
     delete [] bases;
@@ -309,6 +310,7 @@ public:
   double        errorRate;
   uint32        minOverlap;
   bool          checkTrivialDNA;
+  uint32        ignoreFlank;
 
   pedWorkArea_t ped;
 

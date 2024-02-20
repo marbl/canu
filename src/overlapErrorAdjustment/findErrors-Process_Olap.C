@@ -126,7 +126,8 @@ void
 Analyze_Alignment(Thread_Work_Area_t *wa,
                   char   *a_part, int32 a_len, int32 a_offset,
                   char   *b_part, int32 b_len,
-                  int32   sub);
+                  bool   b_rc,
+                  int32  sub);
 
 
 //  Find the alignment referred to in  olap , where the  a_iid
@@ -173,10 +174,12 @@ Process_Olap(Olap_Info_t        *olap,
 
   //  If innie, reverse-complement the B sequence.
 
+  bool b_rc = false;
   if ((olap->innie == true) && (wa->rev_id != olap->b_iid)) {
     strcpy(b_part, b_seq);
     reverseComplementSequence(b_part, 0);
     wa->rev_id = olap->b_iid;
+    b_rc = true;
   }
 
   //  Adjust for hangs.
@@ -255,12 +258,13 @@ Process_Olap(Olap_Info_t        *olap,
     //fprintf(stderr, "Computing errors\n");
     //fprintf(stderr, "Checking for trivial DNA regions: %d\n", check_trivial_dna);
     std::tie(events, alignment_len) = ComputeErrors(a_part, b_part, ped->deltaLen, ped->delta,
-                                                    a_end, b_end, wa->G->checkTrivialDNA);
+                                                    a_end, b_end, wa->G->checkTrivialDNA,
+                                                    wa->G->ignoreFlank);
 
     assert(events >= 0 && alignment_len > 0);
     //fprintf(stderr, "Old errors %d new events %d\n", all_errors, events);
 
-    //  We used to assert that either checkTrivialDNA was true or that 
+    //  We used to assert that either checkTrivialDNA was true or that
     //  all_errors == events.  This was to ensure that no alignment errors
     //  were rejected by ComputeErrors() -- but we're now ignoring alignment errors
     //  near the end of a read in all cases, so all_errors != events.
@@ -273,6 +277,7 @@ Process_Olap(Olap_Info_t        *olap,
       Analyze_Alignment(wa,
                         a_part, a_end, a_offset,
                         b_part, b_end,
+                        b_rc,
                         ri);
       return;
     }
