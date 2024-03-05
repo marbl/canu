@@ -78,7 +78,8 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/parasail/sg_trace.c \
                 \
                 utility/src/sequence/dnaSeq-v1.C \
-                utility/src/sequence/dnaSeqFile-v1.C \
+                utility/src/sequence/bufSeqFile-v1.C \
+                utility/src/sequence/htsSeqFile-v1.C \
                 utility/src/sequence/sequence-v1.C \
                 \
                 utility/src/system/logging-v1.C \
@@ -133,6 +134,54 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 gfa/gfa.C \
                 gfa/bed.C
 
+SOURCES      += utility/src/htslib/hts/bcf_sr_sort.c \
+                utility/src/htslib/hts/bgzf.c \
+                utility/src/htslib/hts/errmod.c \
+                utility/src/htslib/hts/faidx.c \
+                utility/src/htslib/hts/header.c \
+                utility/src/htslib/hts/hfile.c \
+                utility/src/htslib/hts/hts.c \
+                utility/src/htslib/hts/hts_expr.c \
+                utility/src/htslib/hts/hts_os.c \
+                utility/src/htslib/hts/kfunc.c \
+                utility/src/htslib/hts/kstring.c \
+                utility/src/htslib/hts/md5.c \
+                utility/src/htslib/hts/multipart.c \
+                utility/src/htslib/hts/probaln.c \
+                utility/src/htslib/hts/realn.c \
+                utility/src/htslib/hts/regidx.c \
+                utility/src/htslib/hts/region.c \
+                utility/src/htslib/hts/sam.c \
+                utility/src/htslib/hts/synced_bcf_reader.c \
+                utility/src/htslib/hts/tbx.c \
+                utility/src/htslib/hts/textutils.c \
+                utility/src/htslib/hts/thread_pool.c \
+                utility/src/htslib/hts/vcf.c \
+                utility/src/htslib/hts/vcf_sweep.c \
+                utility/src/htslib/hts/vcfutils.c \
+                utility/src/htslib/cram/cram_codecs.c \
+                utility/src/htslib/cram/cram_decode.c \
+                utility/src/htslib/cram/cram_encode.c \
+                utility/src/htslib/cram/cram_external.c \
+                utility/src/htslib/cram/cram_index.c \
+                utility/src/htslib/cram/cram_io.c \
+                utility/src/htslib/cram/cram_stats.c \
+                utility/src/htslib/cram/mFILE.c \
+                utility/src/htslib/cram/open_trace_file.c \
+                utility/src/htslib/cram/pooled_alloc.c \
+                utility/src/htslib/cram/string_alloc.c \
+                utility/src/htslib/htscodecs/arith_dynamic.c \
+                utility/src/htslib/htscodecs/fqzcomp_qual.c \
+                utility/src/htslib/htscodecs/htscodecs.c \
+                utility/src/htslib/htscodecs/pack.c \
+                utility/src/htslib/htscodecs/rANS_static.c \
+                utility/src/htslib/htscodecs/rANS_static32x16pr.c \
+                utility/src/htslib/htscodecs/rANS_static32x16pr_neon.c \
+                utility/src/htslib/htscodecs/rANS_static4x16pr.c \
+                utility/src/htslib/htscodecs/rle.c \
+                utility/src/htslib/htscodecs/tokenise_name3.c \
+                utility/src/htslib/htscodecs/utils.c
+
 
 ifeq (${BUILDSTACKTRACE}, 1)
 SOURCES      += utility/src/system/libbacktrace/atomic.c \
@@ -156,6 +205,8 @@ SRC_INCDIRS  := utility/src \
                 overlapInCore \
                 overlapInCore/liboverlap
 
+#  libs for all binaries
+LDLIBS  += -lz -llzma -lbz2 -lcurl
 
 SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/ovStoreBuild.mk \

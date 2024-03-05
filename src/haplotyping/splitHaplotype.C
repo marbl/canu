@@ -465,7 +465,7 @@ loadReadBatch(void *G) {
     if (g->_inNames.empty() == false) {
       if (g->_seqs == nullptr) {
         fprintf(stdout, "-- Begin    processing file %s\n", g->_inNames.front());
-        g->_seqs = new dnaSeqFile(g->_inNames.front());
+        g->_seqs = openSequenceFile(g->_inNames.front());
       }
 
       if (g->_seqs->loadSequence(seq) == false) {   //  Failed to load a sequence, hit EOF.

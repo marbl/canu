@@ -192,7 +192,7 @@ loadReads(sqStore          *seqStore,
 
   loadStats    filestats;
 
-  dnaSeqFile  *SF = new dnaSeqFile(fileName);
+  dnaSeqFile  *SF = openSequenceFile(fileName);
   dnaSeq       sq;
 
   while (SF->loadSequence(sq) == true) {

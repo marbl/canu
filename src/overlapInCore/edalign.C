@@ -44,8 +44,8 @@ readLine(FILE *file, char *line, int32 lineMax, int32 &len, splitToWords &s) {
 
 void
 pairAlign(char *nameA, char *nameB) {
-  dnaSeqFile  *fileA = new dnaSeqFile(nameA);
-  dnaSeqFile  *fileB = new dnaSeqFile(nameB);
+  dnaSeqFile  *fileA = openSequenceFile(nameA);
+  dnaSeqFile  *fileB = openSequenceFile(nameB);
   dnaSeq       seqA;
   dnaSeq       seqB;
 
@@ -114,9 +114,9 @@ pairAlign(char *nameA, char *nameB) {
 void
 refAlign(char *nameA, char *nameB) {
   dnaSeq        seqA;
-  dnaSeqFile   *fileA = new dnaSeqFile(nameA);
+  dnaSeqFile   *fileA = openSequenceFile(nameA);
   dnaSeq        seqB;
-  dnaSeqFile   *fileB = new dnaSeqFile(nameB);
+  dnaSeqFile   *fileB = openSequenceFile(nameB);
 
   fileB->loadSequence(seqB);
 

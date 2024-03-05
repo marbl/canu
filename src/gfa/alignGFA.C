@@ -182,7 +182,7 @@ public:
   gfaseqs(char *fileName, uint32 numEntries, uint32 offset) {
     assert(offset < numEntries);
 
-    dnaSeqFile  *SF = new dnaSeqFile(fileName);
+    dnaSeqFile  *SF = openSequenceFile(fileName);
     dnaSeq       sq;
 
     b    = 0; 

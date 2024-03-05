@@ -486,7 +486,7 @@ sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
 //  Load ALL reads in the (possibly compressed) file.
 void
 sqCache::sqCache_loadReads(char const *filename) {
-  dnaSeqFile *readFile = new dnaSeqFile(filename, false);
+  dnaSeqFile *readFile = openSequenceFile(filename, false);
   dnaSeq      readSeq;
 
   fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
