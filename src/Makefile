@@ -52,7 +52,7 @@ define INIT_SUBMODULE
   ifeq ($$(wildcard ${1}),${1})
   ifeq ($$(wildcard ${1}/*),)
     $$(info Fetching submodule '${1}')
-    $$(shell git submodule update --init ${2} ${1} 2>&1 | awk '{ print " - "$$$$0 }' 1>&2)
+    $$(shell cd $$(dir ${1}) ; git submodule update --init ${2} $$(notdir ${1}) 2>&1 | awk '{ print " - "$$$$0 }' 1>&2)
     $$(info )
   endif
   endif
@@ -382,6 +382,7 @@ endif
 # the global build.  'doclean-final' is a trouble maker because it needs to
 # run after all the other 'doclean' steps, and the only way to ensure that is
 # to give it a new target.
+#
 
 .PHONY: all
 all: doall
@@ -437,7 +438,6 @@ $(eval $(call BOILERMAKE))
 #     system is either meryl-utility itself or something that uses it.
 #
 
-#$(info Calling  ./${VERSION_H:.H=.pl} ${MODULE} ${VERSION} ${VERSION_H})
 VERSION_H := $(shell ./${VERSION_H:.H=.pl} ${MODULE} ${VERSION} ${VERSION_H})
 
 ifeq (${VERSION_H}, )
