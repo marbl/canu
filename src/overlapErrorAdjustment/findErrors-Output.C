@@ -225,6 +225,15 @@ Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Ha
     return "";
   }
 
+  //  BPW, 2023-APR-13:  (test looks incorrect)
+  //    (this comment was a year old by the time I committed it)
+  //    I think this is saying that if EXACTLY one read confirms the no
+  //    insert case and the support for the insertion is weak, don’t do the
+  //    insertion.  Why not conf_no_insert >= 1?!
+  //
+  //    The 'confirmed' values are how many reads support this call using
+  //    bases that are at least 3bp away from any alignment mismatch/indel.
+  //
   if (vote.conf_no_insert == 1 && ins_max <= 6) {
     //fprintf(stderr, "No insert was supported & small weight of vote: no_insert = %d ins_max = %d\n", vote.no_insert, ins_max);
     return "";
@@ -236,7 +245,13 @@ Check_Insert(const Vote_Tally_t &vote, char base, int32 Haplo_Expected, int32 Ha
 
 //  Returns true if a Haplo_Confirm delete is present AND 
 //
-
+//  BPW, 2023-APR-13:  (test looks incorrect)
+//    (this comment was a year old by the time I committed it)
+//    This seems to be saying that if Haplo_Confirm reads call a delete and
+//    there are at least two Haplo_Confirm reads that do not call a delete,
+//    to call this a heterozygous deletion.  The other two reads can
+//    disagree.
+//
 bool Is_Het_Del(const Vote_Tally_t &vote, int32 Haplo_Confirm) {
   //TODO consider using STRONG_CONFIRMATION_READ_CNT
   //if (vote.no_insert >= Haplo_Confirm && vote.insertion_cnt >= Haplo_Confirm)
