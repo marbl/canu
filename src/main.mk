@@ -140,6 +140,8 @@ SOURCES      += utility/src/htslib/hts/bcf_sr_sort.c \
                 utility/src/htslib/hts/faidx.c \
                 utility/src/htslib/hts/header.c \
                 utility/src/htslib/hts/hfile.c \
+                utility/src/htslib/hts/hfile_libcurl.c \
+                utility/src/htslib/hts/hfile_s3.c \
                 utility/src/htslib/hts/hts.c \
                 utility/src/htslib/hts/hts_expr.c \
                 utility/src/htslib/hts/hts_os.c \
