@@ -35,13 +35,16 @@ ifeq (${OSTYPE}, Darwin)
   endif
 endif
 
+#  Probably won't hurt to always enable this, but it is defintely
+#  required for the well-aged boost we package with canu when
+#  modern compilers are used.
 ifeq (${BOOST}, libboost)
   SRC_CXXFLAGS += -DBOOST_NO_AUTO_PTR
 endif
 
 SRC_INCDIRS := ../utility/src ../stores libpbutgcns
 
-EXT_INCDIRS := ${BOOST}
+SYS_INCDIRS := ${BOOST}
 
 TGT_LDFLAGS := -L${TARGET_DIR}/lib
 TGT_LDLIBS  := -l${MODULE}

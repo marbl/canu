@@ -231,7 +231,7 @@ endef
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${SRC_INCDIRS} ${EXT_INCDIRS} ${SRC_DEFS} $<)
+	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${SRC_INCDIRS} ${SYS_INCDIRS} ${SRC_DEFS} $<)
 	@cp ${@:%$(suffix $@)=%.d} ${@:%$(suffix $@)=%.P}; \
 	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < ${@:%$(suffix $@)=%.d} \
@@ -242,7 +242,7 @@ endef
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${SRC_INCDIRS} ${EXT_INCDIRS} ${SRC_DEFS} $<)
+	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${SRC_INCDIRS} ${SYS_INCDIRS} ${SRC_DEFS} $<)
 	@cp ${@:%$(suffix $@)=%.d} ${@:%$(suffix $@)=%.P}; \
 	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < ${@:%$(suffix $@)=%.d} \
@@ -271,7 +271,7 @@ define INCLUDE_SUBMAKEFILE
   SRC_DEFS      :=
   SRC_INCDIRS   :=
 
-  EXT_INCDIRS   :=
+  SYS_INCDIRS   :=
 
   SUBMAKEFILES  :=
 
@@ -330,8 +330,8 @@ define INCLUDE_SUBMAKEFILE
     SOURCES     := $$(call CANONICAL_PATH,$${SOURCES})
     SRC_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${SRC_INCDIRS})
     SRC_INCDIRS := $$(call CANONICAL_PATH,$${SRC_INCDIRS})
-    EXT_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${EXT_INCDIRS})
-    EXT_INCDIRS := $$(call CANONICAL_PATH,$${EXT_INCDIRS})
+    SYS_INCDIRS := $$(call QUALIFY_PATH,$${DIR},$${SYS_INCDIRS})
+    SYS_INCDIRS := $$(call CANONICAL_PATH,$${SYS_INCDIRS})
 
     # Save the list of source files for this target.
     $${TGT}_SOURCES += $${SOURCES}
@@ -350,7 +350,7 @@ define INCLUDE_SUBMAKEFILE
     $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
     $${OBJS}: SRC_DEFS     := $$(addprefix -D,$${SRC_DEFS})
     $${OBJS}: SRC_INCDIRS  := $$(addprefix -iquote,$${SRC_INCDIRS})
-    $${OBJS}: EXT_INCDIRS  := $$(addprefix -isystem,$${EXT_INCDIRS})
+    $${OBJS}: SYS_INCDIRS  := $$(addprefix -isystem,$${SYS_INCDIRS})
   endif
 
   ifneq "$$(strip $${SUBMAKEFILES})" ""

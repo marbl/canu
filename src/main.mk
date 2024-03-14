@@ -207,8 +207,9 @@ SRC_INCDIRS  := utility/src \
                 overlapInCore \
                 overlapInCore/liboverlap
 
-#  libs for all binaries
-LDLIBS  += -lz -llzma -lbz2 -lcurl
+SYS_INCDIRS  += $(shell pkg-config --cflags-only-I openssl libcurl liblzma | sed s:-I/:/:g)
+LDFLAGS      += $(shell pkg-config --libs-only-L   openssl libcurl liblzma)
+LDLIBS       += $(shell pkg-config --libs-only-l   openssl libcurl liblzma) -lz -lbz2
 
 SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/ovStoreBuild.mk \

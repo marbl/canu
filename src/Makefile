@@ -235,7 +235,7 @@ else
 
   BUILDSTACKTRACE ?= 1
 
-  $(eval $(call SET_DEFAULT_FLAGS,-I/usr/local/include,-L/usr/local/lib -lexecinfo))
+  $(eval $(call SET_DEFAULT_FLAGS,,))
 endif
 endif
 
