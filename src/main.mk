@@ -53,16 +53,6 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/kmers-v1/kmers-writer.C \
                 utility/src/kmers-v1/kmers.C \
                 \
-                utility/src/kmers-v2/kmers-exact.C \
-                utility/src/kmers-v2/kmers-files.C \
-                utility/src/kmers-v2/kmers-histogram.C \
-                utility/src/kmers-v2/kmers-reader-dump.C \
-                utility/src/kmers-v2/kmers-reader.C \
-                utility/src/kmers-v2/kmers-writer-block.C \
-                utility/src/kmers-v2/kmers-writer-stream.C \
-                utility/src/kmers-v2/kmers-writer.C \
-                utility/src/kmers-v2/kmers.C \
-                \
                 utility/src/math/md5-v1.C \
                 utility/src/math/mt19937ar-v1.C \
                 utility/src/math/sampledDistribution-v1.C \
@@ -183,7 +173,6 @@ SOURCES      += utility/src/htslib/hts/bcf_sr_sort.c \
                 utility/src/htslib/htscodecs/rle.c \
                 utility/src/htslib/htscodecs/tokenise_name3.c \
                 utility/src/htslib/htscodecs/utils.c
-
 
 ifeq (${BUILDSTACKTRACE}, 1)
 SOURCES      += utility/src/system/libbacktrace/atomic.c \
