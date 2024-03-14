@@ -229,6 +229,8 @@ SUBMAKEFILES := stores/dumpBlob.mk \
                 stores/loadTrimmedReads.mk \
                 stores/loadErates.mk \
                 \
+                seqrequester/src/seqrequester/seqrequester.mk \
+                \
                 meryl/src/meryl/meryl.mk \
                 \
                 overlapInCore/overlapInCore.mk \

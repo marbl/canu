@@ -137,10 +137,11 @@ sub haplotypeSplitReads ($$%) {
 
             print STDERR "--   <-- '$file'.\n";
             open(INP, "< $file");
-            open(INP, "gzip  -dc      $file |")   if ($file =~ m/\.gz$/);
-            open(INP, "bzip2 -dc      $file |")   if ($file =~ m/\.ba2$/);
-            open(INP, "xz    -dc      $file |")   if ($file =~ m/\.xz$/);
-            open(INP, "samtools fasta $file |")   if ($file =~ m/\.(sam|bam|cram)$/);
+            open(INP, "gzip  -dc                        $file |")   if ($file =~ m/\.gz$/);
+            open(INP, "bzip2 -dc                        $file |")   if ($file =~ m/\.ba2$/);
+            open(INP, "xz    -dc                        $file |")   if ($file =~ m/\.xz$/);
+            #pen(INP, "samtools fasta                   $file |")   if ($file =~ m/\.(sam|bam|cram)$/);
+            open(INP, "$bin/seqrequester extract -fasta $file |")   if ($file =~ m/\.(sam|bam|cram)$/);
 
             while (!eof(INP)) {
                 $_ = <INP>;
