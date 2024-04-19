@@ -739,7 +739,7 @@ alignEdLib(dagAlignment      &aln,
             tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
     // try to align it to full
     tigbgn = 0;
-    tigend = (utgpos.max() < 0 ? tiglen : utgpos.max());
+    tigend = (utgpos.max() < 0 || utgpos.max() > tiglen ? tiglen : utgpos.max());
     fprintf(stderr, "alignEdLib()-- WARNING: updated tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
             tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
   }
@@ -783,7 +783,7 @@ alignEdLib(dagAlignment      &aln,
                tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
        // try to align it to full
        tigbgn = 0;
-       tigend = (utgpos.max() < 0 ? tiglen : utgpos.max());
+       tigend = (utgpos.max() < 0 || utgpos.max() > tiglen ? tiglen : utgpos.max());
        fprintf(stderr, "alignEdLib()-- WARNING: updated tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
                tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
     }
