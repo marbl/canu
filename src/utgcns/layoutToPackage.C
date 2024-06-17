@@ -102,7 +102,15 @@ loadVerkkoLayouts(sqCache              *reads,
     //  asserting err == 0 after all the input is processed.
 
     if      (nReads > 0) {
-      uint32  id = reads->sqCache_mapNameToID(W[0]);
+      tgPosition *ch = tig->addChild();
+
+      uint32      id     = reads->sqCache_mapNameToID(W[0]);                        //  First word: read ID.
+      uint32      pa     = 0;                                                       //  Parent never used.
+      int32       bgn    = (W.numWords() >= 3) ?  strtoint32(W[1])       : 0;       //  2nd: bgn position
+      int32       end    = (W.numWords() >= 3) ?  strtoint32(W[2])       : 0;       //  3rd: end position
+      bool        ignore = (W.numWords() == 4) ? (strtoint32(W[3]) != 0) : false;   //  4th: ignore this read?  (verkko)
+      int32       askp   = (W.numWords() == 5) ?  strtoint32(W[3])       : 0;       //  4th: ignore bases?      (canu)
+      int32       bskp   = (W.numWords() == 5) ?  strtoint32(W[4])       : 0;       //  5th: ignore bases?      (canu)
 
       if (id == 0)
         fprintf(stderr, "ERROR: While processing tig %d, Read '%s' was not found.\n", tig->tigID(), W[0]), err++;
@@ -110,18 +118,11 @@ loadVerkkoLayouts(sqCache              *reads,
       if (readMap)
         fprintf(readMap, "%10u  %10u  %s\n", id, tig->tigID(), W[0]);
 
-      if      (W.numWords() == 3)
-        tig->addChild()->set(id,
-                             0,
-                             0, 0,
-                             strtoint32(W[1]), strtoint32(W[2]));
-      else if (W.numWords() == 5)
-        tig->addChild()->set(id,                                    //  ID of the read.
-                             0,                                     //  Parent, unused.
-                             strtoint32(W[3]), strtoint32(W[4]),  //  Skip amounts on oriented ends.
-                             strtoint32(W[1]), strtoint32(W[2])); //  Position of the (aligned) read in the layout.
-      else
-        fprintf(stderr, "ERROR: While processing tig %d, expected 3 or 5 words, got %u in line '%s'.\n", tig->tigID(), W.numWords(), line), err++;
+      ch->set(id, pa, askp, bskp, bgn, end);
+      ch->skipConsensus(ignore);
+
+      if ((W.numWords() < 3) || (W.numWords() > 5))
+        fprintf(stderr, "ERROR: While processing tig %d, expected 3, 4 or 5 words, got %u in line '%s'.\n", tig->tigID(), W.numWords(), line), err++;
 
       nReads--;
     }
