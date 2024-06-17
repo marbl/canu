@@ -68,16 +68,19 @@ AlnGraphBoost::AlnGraphBoost(const std::string& backbone) {
     boost::tie(curr, last) = boost::vertices(_g);
     _enterVtx = *curr++;
     _g[_enterVtx].base = '^';
+    _g[_enterVtx].tpos = 0;
     _g[_enterVtx].backbone = true;
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
         _g[v].backbone = true;
         _g[v].weight = 0;
         _g[v].base = backbone[i];
+        _g[v].tpos = 0;
         _bbMap[v] = v;
     }
     _exitVtx = *curr;
     _g[_exitVtx].base = '$';
+    _g[_exitVtx].tpos = 0;
     _g[_exitVtx].backbone = true;
 }
 
@@ -91,6 +94,7 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
     boost::tie(curr, last) = boost::vertices(_g);
     _enterVtx = *curr++;
     _g[_enterVtx].base = '^';
+    _g[_enterVtx].tpos = 0;
     _g[_enterVtx].backbone = true;
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
@@ -98,10 +102,12 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
         _g[v].weight = 0;
         _g[v].deleted = false;
         _g[v].base = 'N';
+        _g[v].tpos = 0;
         _bbMap[v] = v;
     }
     _exitVtx = *curr;
     _g[_exitVtx].base = '$';
+    _g[_exitVtx].tpos = 0;
     _g[_exitVtx].backbone = true;
 }
 
@@ -113,6 +119,7 @@ void AlnGraphBoost::addAln(dagAlignment& aln) {
     for (size_t i = 0; i < aln.length; i++) {
         char queryBase = aln.qstr[i], targetBase = aln.tstr[i];
         VtxDesc currVtx = index[bbPos];
+        _g[_bbMap[currVtx]].tpos = bbPos;
         // match
         if (queryBase == targetBase) {
             _g[_bbMap[currVtx]].coverage++;
@@ -376,12 +383,17 @@ const std::string AlnGraphBoost::consensus(int minWeight) {
     return cns.substr(bestOffs, length);
 }
 
-const std::string AlnGraphBoost::consensusNoSplit(int minWeight) {
+const std::string AlnGraphBoost::consensusNoSplit(int       minWeight,
+                                                  uint32_t *templateToFinal,
+                                                  uint32_t  templateLength) {
     // get the best scoring path
     std::vector<AlnNode> path = bestPath();
 
     // consensus sequence
     std::string cns;
+
+    for (uint32_t ii=0; ii<templateLength; ii++)
+      templateToFinal[ii] = UINT32_MAX;
 
     // track the longest consensus path meeting minimum weight
     int offs = 0, offMax = 0, idx = 0;
@@ -391,9 +403,7 @@ const std::string AlnGraphBoost::consensusNoSplit(int minWeight) {
         AlnNode n = *curr;
         if (n.base == _g[_enterVtx].base || n.base == _g[_exitVtx].base)
             continue;
-
         cns += n.base;
-
         if (metWeight == false && n.weight >= minWeight) {
            metWeight = true;
            offs=idx;
@@ -401,8 +411,30 @@ const std::string AlnGraphBoost::consensusNoSplit(int minWeight) {
         if (n.weight >= minWeight && idx > offMax) {
            offMax = idx;
         }
+        if (n.tpos != UINT32_MAX) {
+            templateToFinal[n.tpos] = idx + 1;
+        }
         idx++;
     }
+
+    for (uint32_t ii=0; ii<templateLength; ii++)  //  Adjust templateToFinal map:
+      if (templateToFinal[ii] == UINT32_MAX)      //    Base not referenced,
+        ;                                         //      leave it alone.
+
+      else if (templateToFinal[ii] < offs)        //    Base trimmed out,
+        templateToFinal[ii] = 0;                  //      reset to first base.
+
+      else if (templateToFinal[ii] > offMax)      //    Base trimmed out,
+        templateToFinal[ii] = offMax - offs;      //      reset to last base.
+
+      else                                        //    Base referenced,
+        templateToFinal[ii] -= offs;              //      trim off offset.
+
+    for (uint32_t ii=templateLength; ii--; )      //  Reset all mappings at the end
+      if (templateToFinal[ii] == UINT32_MAX)      //  to the end of the cns.
+        templateToFinal[ii] = offMax - offs;
+      else
+        break;
 
     return cns.substr(offs, (offMax-offs));
 }
