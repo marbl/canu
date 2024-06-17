@@ -75,29 +75,30 @@ tgTig::restoreFromRecord(tgTigRecord &tr) {
 
 void
 tgPosition::initialize(void) {
-  _objID       = UINT32_MAX;
+  _objID        = UINT32_MAX;
 
-  _isRead      = true;   //  Bogus values.
-  _isUnitig    = true;
-  _isContig    = true;
-  _isReverse   = false;
+  _isRead       = true;   //  Bogus values.
+  _isUnitig     = true;
+  _isContig     = true;
+  _isReverse    = false;
 
-  _skipCNS     = false;
+  _skipCNS      = false;
+  _isLowQuality = false;
 
-  _spare       = 0;
+  _spare        = 0;
 
-  _anchor      = UINT32_MAX;
-  _ahang       = INT32_MAX;
-  _bhang       = INT32_MAX;
+  _anchor       = UINT32_MAX;
+  _ahang        = INT32_MAX;
+  _bhang        = INT32_MAX;
 
-  _askip       = 0;
-  _bskip       = 0;
+  _askip        = 0;
+  _bskip        = 0;
 
-  _min         = INT32_MIN;
-  _max         = INT32_MAX;
+  _min          = INT32_MIN;
+  _max          = INT32_MAX;
 
-  _deltaOffset = UINT32_MAX;
-  _deltaLen    = 0;
+  _deltaOffset  = UINT32_MAX;
+  _deltaLen     = 0;
 }
 
 
@@ -624,22 +625,23 @@ tgTig::loadLayout(FILE *F) {
         _childrenLen++;
       }
 
-      _children[nChildren]._objID       = strtouint32(W[1]);
-      _children[nChildren]._isRead      = (strcmp(W[0], "read")   == 0);
-      _children[nChildren]._isUnitig    = (strcmp(W[0], "unitig") == 0);
-      _children[nChildren]._isContig    = (strcmp(W[0], "contig") == 0);
-      _children[nChildren]._isReverse   = false;
-      _children[nChildren]._skipCNS     = false;
-      _children[nChildren]._spare       = 0;
-      _children[nChildren]._anchor      = strtouint32(W[3]);
-      _children[nChildren]._ahang       = strtouint32(W[5]);
-      _children[nChildren]._bhang       = strtouint32(W[6]);
-      _children[nChildren]._askip       = 0;
-      _children[nChildren]._bskip       = 0;
-      _children[nChildren]._min         = strtouint32(W[8]);
-      _children[nChildren]._max         = strtouint32(W[9]);
-      _children[nChildren]._deltaOffset = 0;
-      _children[nChildren]._deltaLen    = 0;
+      _children[nChildren]._objID        = strtouint32(W[1]);
+      _children[nChildren]._isRead       = (strcmp(W[0], "read")   == 0);
+      _children[nChildren]._isUnitig     = (strcmp(W[0], "unitig") == 0);
+      _children[nChildren]._isContig     = (strcmp(W[0], "contig") == 0);
+      _children[nChildren]._isReverse    = false;
+      _children[nChildren]._skipCNS      = false;
+      _children[nChildren]._isLowQuality = false;
+      _children[nChildren]._spare        = 0;
+      _children[nChildren]._anchor       = strtouint32(W[3]);
+      _children[nChildren]._ahang        = strtouint32(W[5]);
+      _children[nChildren]._bhang        = strtouint32(W[6]);
+      _children[nChildren]._askip        = 0;
+      _children[nChildren]._bskip        = 0;
+      _children[nChildren]._min          = strtouint32(W[8]);
+      _children[nChildren]._max          = strtouint32(W[9]);
+      _children[nChildren]._deltaOffset  = 0;
+      _children[nChildren]._deltaLen     = 0;
 
       if (_children[nChildren]._max < _children[nChildren]._min) {
         _children[nChildren]._min       = strtouint32(W[9]);
