@@ -21,6 +21,10 @@
 #include "system.H"
 #include "strings.H"
 
+#include "kmers.H"
+
+using namespace merylutil::kmers::v1;
+
 #include "sqStore.H"
 #include "tgStore.H"
 
@@ -64,8 +68,11 @@ public:
   char         *outLayoutsName = nullptr;
   char         *outSeqNameA    = nullptr;
   char         *outSeqNameQ    = nullptr;
+  char         *outBAMName     = nullptr;
 
   char         *exportName     = nullptr;
+
+  //ar         *markersName    = nullptr;
 
   char         *importName     = nullptr;
   readBuffer   *importFile     = nullptr;
@@ -112,10 +119,15 @@ public:
   readMap       seqReads;
   tgStore      *tigStore = nullptr;
 
+  //uint32            markersPeak = 0;
+  //merylExactLookup *markers     = nullptr;
+
   FILE         *outResultsFile = nullptr;
   FILE         *outLayoutsFile = nullptr;
   FILE         *outSeqFileA    = nullptr;
   FILE         *outSeqFileQ    = nullptr;
+  sam_hdr_t    *outBAMhp       = nullptr;
+  samFile      *outBAMfp       = nullptr;
 };
 
 void   createPartitions(cnsParameters  &params);

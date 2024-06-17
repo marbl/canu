@@ -16,6 +16,7 @@
  */
 
 #include "utgcns.H"
+#include "htslib/hts/sam.h"
 
 
 
@@ -83,6 +84,9 @@ main(int argc, char **argv) {
 
   std::vector<char const *>  err;
   for (int32 arg=1; arg < argc; arg++) {
+
+    //  Inputs
+
     if      (strcmp(argv[arg], "-S") == 0) {
       params.seqName = argv[++arg];
     }
@@ -106,15 +110,24 @@ main(int argc, char **argv) {
       }
     }
 
+#if 0
+    else if (strcmp(argv[arg], "-markers") == 0) {
+      params.markersName = argv[++arg];
+    }
+#endif
+
+    //  Selection
+
     else if (strcmp(argv[arg], "-P") == 0) {
       params.tigPart = strtouint32(argv[++arg]);
     }
-
 
     else if ((strcmp(argv[arg], "-u") == 0) ||
              (strcmp(argv[arg], "-tig") == 0)) {
       decodeRange(argv[++arg], params.tigBgn, params.tigEnd);
     }
+
+    //  Outputs
 
     else if (strcmp(argv[arg], "-O") == 0) {
       params.outResultsName = argv[++arg];
@@ -130,6 +143,10 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-Q") == 0) {
       params.outSeqNameQ = argv[++arg];
+    }
+
+    else if (strcmp(argv[arg], "-B") == 0) {
+      params.outBAMName = argv[++arg];
     }
 
     //  Partition options
@@ -202,6 +219,8 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-maxcoverage") == 0) {
       params.maxCov   = strtodouble(argv[++arg]);
     }
+
+    //  More selection
 
     else if (strcmp(argv[arg], "-minlength") == 0) {
       params.minLen   = strtodouble(argv[++arg]);
@@ -297,6 +316,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
     fprintf(stderr, "    -A fasta        Write computed tigs to fasta  output file 'fasta'\n");
     fprintf(stderr, "    -Q fastq        Write computed tigs to fastq  output file 'fastq'\n");
+    fprintf(stderr, "    -B bam          Write computed tigs to bam    output file 'bam'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -export name    Create a copy of the inputs needed to compute the tigs.  This\n");
     fprintf(stderr, "                    file can then be sent to the developers for debugging.  The tig(s)\n");
@@ -338,7 +358,6 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
   //  Open inputs.
   //
   //  We want to use corrected and trimmed reads, but definitely not
@@ -368,6 +387,30 @@ main(int argc, char **argv) {
       params.tigEnd = params.tigStore->numTigs() - 1;
   }
 
+#if 0
+  if (params.markersName) {
+    fprintf(stderr, "-- Loading markers from '%s'.\n", params.markersName);
+
+    merylFileReader *reader = new merylFileReader(params.markersName);
+
+    params.markers = new merylExactLookup();
+    params.markers->load(reader, 0, 0);
+
+    merylHistogram  *stats = reader->stats();
+    stats->computePloidyPeaks();
+
+    double p1 = stats->getPloidy(1);
+    double p2 = stats->getPloidy(2);
+
+    if (p2 < 0.1)                               //  Take the 1x copy peak if there is no 2x peak.
+      params.markersPeak = p1;                  //  Otherwise, take the average of the 1x-peak and
+    else                                        //  half of the 1x peak.
+      params.markersPeak = (p1 + p2/2) / 2;
+
+    delete reader;
+  }
+#endif
+
   //  Open output files.  If we're creating a package, the usual output files are not opened.
 
   if ((params.exportName == NULL) && (params.outResultsName)) {
@@ -388,6 +431,17 @@ main(int argc, char **argv) {
   if ((params.exportName == NULL) && (params.outSeqNameQ)) {
     fprintf(stderr, "-- Opening output FASTQ file '%s'.\n", params.outSeqNameQ);
     params.outSeqFileQ    = merylutil::openOutputFile(params.outSeqNameQ);
+  }
+
+  if ((params.exportName == NULL) && (params.outBAMName)) {
+    fprintf(stderr, "-- Writing tigs individually to '%s########.bam'.\n", params.outBAMName);
+
+    char *l = strrchr(params.outBAMName, '/');     //  If a '/' is present, remove it and any
+    if (l) {                                       //  file prefix after the last one, then
+      *l = 0;                                      //  make all components of the path.
+      merylutil::mkpath(params.outBAMName, true);  //  Otherwise, it's just a file prefix
+      *l = '/';                                    //  and there is no directory to make.
+    }
   }
 
   //

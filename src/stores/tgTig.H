@@ -23,6 +23,8 @@
 
 #include <map>
 
+//  Used in unitigConsensus and tgTig::dumpBAM.
+using u32toRead = std::map<uint32, sqRead *>;
 
 typedef enum {
   tgTig_noclass      = 0x00,    //  0x02 was for bubbles, but that was moved
@@ -327,6 +329,7 @@ public:
 
   void           dumpFASTA(FILE *F);
   void           dumpFASTQ(FILE *F);
+  void           dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads);
 
   //  There are two multiAlign displays; this one, and one in abMultiAlign.
   void           display(FILE     *F,
@@ -414,8 +417,10 @@ public:
   double               cStashIgnr(void) { return (double)_stashIgnr[1] / length(); }
 
 public:
-  uint32              _childDeltaBitsLen;
-  stuffedBits        *_childDeltaBits;
+  uint32              _childDeltaBitsLen;   //  Created by utgcns or loaded from
+  stuffedBits        *_childDeltaBits;      //  tgStore output of consensus
+
+  char              **_childCIGAR;          //  Used by utgcns to output BAM format
 
   //  Flags for computing consensus/multialignments
 

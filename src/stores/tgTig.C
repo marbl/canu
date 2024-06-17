@@ -142,6 +142,8 @@ tgTig::tgTig() {
 
   _childDeltaBitsLen    = 0;
   _childDeltaBits       = NULL;
+
+  _childCIGAR           = nullptr;
 }
 
 tgTig::~tgTig() {
@@ -152,6 +154,12 @@ tgTig::~tgTig() {
   assert(_stashed == nullptr);
 
   delete    _childDeltaBits;
+
+  if (_childCIGAR)
+    for (uint32 ii=0; ii<_childrenLen; ii++)
+      delete [] _childCIGAR[ii];
+
+  delete [] _childCIGAR;
 }
 
 
@@ -886,4 +894,118 @@ tgTig::dumpFASTQ(FILE *F) {
               _suggestBubble ? "yes" : "no",
               _suggestCircular ? "yes" : "no",
               _trimBgn, _trimEnd);
+}
+
+
+void
+tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
+  char    *tigName = new char [16];
+  char    *bamName = new char [16 + strlen(prefix)];
+
+  sprintf(tigName, "tig%08d",             tigID());
+  sprintf(bamName,  "%s%08d.bam", prefix, tigID());
+
+  //  Create a BAM header and output file, then populate it with one
+  //  reference sequence.
+
+  sam_hdr_t *outBAMhp = sam_hdr_init();
+  samFile   *outBAMfp = hts_open(bamName, "wb");
+  if (outBAMfp == NULL) {
+    fprintf(stderr, "Failed to open BAM output file '%s': %s\n", bamName, strerror(errno));
+    exit(1);
+  }
+
+  sam_hdr_add_line(outBAMhp, "HD", "VN", SAM_FORMAT_VERSION, nullptr);
+  sam_hdr_add_pg  (outBAMhp, "utgcns", "VN", CANU_VERSION, nullptr);
+
+  outBAMhp->n_targets      = 1;
+  outBAMhp->target_len     = (uint32_t *)malloc(1 * sizeof(uint32_t));
+  outBAMhp->target_name    = (char    **)malloc(1 * sizeof(char *));
+
+  outBAMhp->target_len[0]  = length();
+  outBAMhp->target_name[0] = strdup(tigName);
+
+  int ret = sam_hdr_write(outBAMfp, outBAMhp);
+  if (ret < 0) {
+    fprintf(stderr, "Failed to write header to BAM file!\n");
+    exit(1);
+  }
+
+  //  Iterate over reads, outputting.
+
+  for (uint32 rr=0; rr<_childrenLen; rr++) {
+    tgPosition  *child         = getChild(rr);
+    bam1_t      *bamRecord     = bam_init1();
+
+    char        *cigar         = _childCIGAR[rr];
+    size_t       cigarArrayLen = strlen(cigar);
+    uint32_t    *cigarArray    = new uint32_t [cigarArrayLen];
+    ssize_t      cigarLenS     = sam_parse_cigar(cigar, nullptr, &cigarArray, &cigarArrayLen);
+
+    char const  *readName      = seqReads[child->ident()]->sqRead_name();
+
+    uint32       readlen       = seqReads[child->ident()]->sqRead_length() - child->_askip - child->_bskip;
+    char        *readseq       = seqReads[child->ident()]->sqRead_sequence();
+
+    if (child->isReverse() == true)                                       //  If reverse, get a copy of
+      readseq = reverseComplementCopy(readseq + child->_bskip, readlen);  //  the RC of the read, otherwise
+    else                                                                  //  get a copy of the forward seq.
+      readseq = duplicateString(readseq + child->_askip);                 //  This duplicates unitigConsensus's
+    readseq[readlen] = 0;                                                 //  addRead / abSequence.
+
+
+    int ret = bam_set1(bamRecord,                           //  Record to add to
+                       strlen(readName), readName,          //  Name of entry to add
+                       child->isForward() ? 0 : 16,         //  Flags.
+                       0,                                   //  Target ID (first and only target sequence)
+                       child->min(),                        //  Start position on target, 0-based
+                       255,                                 //  Mapping Quality not available
+                       cigarLenS, cigarArray,               //  Number of CIGAR operations, and operations
+                       -1, -1,                              //  Position (target, begin) of next read in template
+                       0, /*_tig->length(),*/               //  Length of template
+                       readlen, readseq, nullptr,           //  Read length, sequence and quality values
+                       0);                                  //  Space to reserve for auxiliary data
+    if (ret < 0) { 
+      fprintf(stderr, "Failed to create bam record!\n");
+      exit(1);
+    }
+
+    delete [] readseq;
+
+    //  Get clipping information for the IH tag.
+
+    auto findclip = [&](uint32 c) -> uint32 {
+      char   t = bam_cigar_opchr(cigarArray[c]);
+      uint32 l = bam_cigar_oplen(cigarArray[c]);
+
+      return ((t == 'M') || (t == '=')) ? 0 : l;
+    };
+
+    uint32  Lclip = findclip(0);
+    uint32  Rclip = findclip(cigarLenS-1);
+
+    char    clipstr[37] = {0};
+    sprintf(clipstr, "%u", Lclip + Rclip);
+
+    ret = bam_aux_append(bamRecord, "IH", 'Z', strlen(clipstr)+1, (uint8 *)clipstr);   //  Gah!
+    if (ret < 0) { 
+      fprintf(stderr, "Failed to add clipping tag!\n");
+      exit(1);
+    }
+
+    //  Write full bam record to the file.
+
+    ret = sam_write1(outBAMfp, outBAMhp, bamRecord);
+    if (ret < 0) {
+      fprintf(stderr, "Failed to write sam record! %s\n", strerror(errno));
+      exit(1);
+    }
+
+    delete [] cigarArray;
+
+    bam_destroy1(bamRecord);
+  }
+
+  sam_close(outBAMfp);
+  sam_hdr_destroy(outBAMhp);
 }
