@@ -47,6 +47,7 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/kmers-v1/kmers-exact.C \
                 utility/src/kmers-v1/kmers-files.C \
                 utility/src/kmers-v1/kmers-histogram.C \
+                utility/src/kmers-v1/kmers-histogram-ploidy.C \
                 utility/src/kmers-v1/kmers-reader.C \
                 utility/src/kmers-v1/kmers-writer-block.C \
                 utility/src/kmers-v1/kmers-writer-stream.C \
