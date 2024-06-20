@@ -270,7 +270,10 @@ unitigConsensus::generateTemplateStitch(void) {
   char        *fragment = seq->getBases();
   uint32       readLen  = seq->length();
 
-  if (showAlgorithm()) {
+  if (showAlgorithm())
+    fprintf(stderr, "generateTemplate on tig %u begins at %f seconds.\n", _tig->tigID(), getProcessTime());
+
+  if (showPlacement()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "generateTemplateStitch()-- COPY READ read #%d %d (len=%d to %d-%d)\n",
             rid, _utgpos[rid].ident(), readLen, _utgpos[rid].min(), _utgpos[rid].max());
@@ -331,7 +334,7 @@ unitigConsensus::generateTemplateStitch(void) {
     //  Pick the next read as the one with the longest extension from all with some minimum overlap
     //  to the template
 
-    if (showAlgorithm())
+    if (showPlacement())
       fprintf(stderr, "\n");
 
     for (uint32 ii=rid+1; ii < _numReads; ii++) {
@@ -356,7 +359,7 @@ unitigConsensus::generateTemplateStitch(void) {
           firstCandidate = ii;
       }
 
-      if (showAlgorithm())
+      if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d%s%s%s\n",
                 ii, _numReads, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(),
                 (save  == true)  ? " SAVE"  : "",
@@ -371,7 +374,7 @@ unitigConsensus::generateTemplateStitch(void) {
     }
 
     if (nr == 0) {
-      if (showAlgorithm())
+      if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- NO MORE READS TO ALIGN\n");
       break;
     }
@@ -379,7 +382,7 @@ unitigConsensus::generateTemplateStitch(void) {
     assert(nr != 0);
 
     if (_utgpos[rid].ident() <= _errorRateMaxID || _utgpos[nr].ident() <= _errorRateMaxID) {
-      if (showAlgorithm()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), _errorRateMaxID);
+      if (showPlacement()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), _errorRateMaxID);
       _errorRate = _errorRateMax;
     }
   
@@ -404,7 +407,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     // compare as ints to ensure that <0 overlap sizes are caught
     if ((int32)olapLen < (int32)minOlap) {
-      if (showAlgorithm())
+      if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- WARNING, increasing min overlap from %d to %u for read %u (%d - %d)\n",
                 olapLen, std::min(ePos, minOlap), nr, _utgpos[nr].min(), _utgpos[nr].max());
       if (olapLen > 50 || olapLen < 0) {
@@ -434,7 +437,7 @@ unitigConsensus::generateTemplateStitch(void) {
     if (templateLen > tiglen)
       templateLen = tiglen-1;
 
-    if (showAlgorithm()) {
+    if (showPlacement()) {
       fprintf(stderr, "\n");
       fprintf(stderr, "generateTemplateStitch()-- ALIGN template %d-%d (len=%d) to read #%d %d %d-%d (len=%d actual=%d at %d-%d)  expecting olap of %d templateLen %d\n",
               tiglen - templateLen, tiglen, templateLen,
@@ -501,10 +504,10 @@ unitigConsensus::generateTemplateStitch(void) {
 
     //  Now, report what happened, and maybe try again.
 
-    if ((showAlgorithm()) && (noResult == true))
+    if ((showPlacement()) && (noResult == true))
       fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no result\n");
 
-    if ((showAlgorithm()) && (noResult == false))
+    if ((showPlacement()) && (noResult == false))
       fprintf(stderr, "generateTemplateStitch()-- FOUND alignment at %d-%d editDist %d alignLen %d %.f%% expected %d\n",
               result.startLocations[0], result.endLocations[0]+1,
               result.editDistance,
@@ -512,7 +515,7 @@ unitigConsensus::generateTemplateStitch(void) {
               100.0 * result.editDistance / result.alignmentLength, olapLen);
 
     if ((noResult) || (hitTheStart)) {
-      if (showAlgorithm())
+      if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - %s - decrease template size by 10%%\n",
                 (noResult == true) ? "no result" : "hit the start");
       tryAgain = true;
@@ -520,7 +523,7 @@ unitigConsensus::generateTemplateStitch(void) {
     }
 
     if ((noResult) || (hitTheEnd && moreToExtend)) {
-      if (showAlgorithm())
+      if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - %s - increase read size by 10%%\n",
                 (noResult == true) ? "no result" : "hit the end");
       tryAgain = true;
@@ -528,16 +531,16 @@ unitigConsensus::generateTemplateStitch(void) {
     }
 
     if (templateSize < 0.01) {
-      if (showAlgorithm())
+      if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- FAILED to align - no more template to remove!");
 
       if (bandErrRate + _errorRate / ERROR_RATE_FACTOR > _errorRate || _errorRate - bandErrRate < 1e-9) {
-        if (showAlgorithm()) fprintf(stderr, "  Fail!\n");
+        if (showPlacement()) fprintf(stderr, "  Fail!\n");
         tryAgain = false;
         olapLen = origLen;
       }
       else {
-        if (showAlgorithm())
+        if (showPlacement())
           fprintf(stderr, "generateTemplateStitch()-- FAILED to align at %.2f error rate, increasing to %.2f\n", bandErrRate, bandErrRate + _errorRate/ERROR_RATE_FACTOR);
         tryAgain = true;
         templateSize  = 0.90;
@@ -561,7 +564,7 @@ unitigConsensus::generateTemplateStitch(void) {
       // record updated read coordinates which we will use later as anchors to re-computed everyone else
       _cnspos[nr].setMinMax(tiglen-readEnd, tiglen + readLen - readEnd);
 
-      if (showAlgorithm()) {
+      if (showPlacement()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
         fprintf(stderr, "generateTemplateStitch()-- Aligned template %d-%d to read %u %d-%d; copy read %d-%d to template.\n",
                 tiglen - templateLen, tiglen, nr, readBgn, readEnd, readEnd, readLen);
@@ -577,7 +580,7 @@ unitigConsensus::generateTemplateStitch(void) {
       if ((rid != firstCandidate && !isAlreadyBad) || allowContains == false) {
         allowContains = (allowContains || rid == firstCandidate || isAlreadyBad);  // we hit the end so now we can try to allow contains
         olapLen = origLen;
-        if (showAlgorithm()) {
+        if (showPlacement()) {
           fprintf(stderr, "generateTemplateStitch()--\n");
           fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d to last added %d ident %d, will go back and re-try an earlier read until we hit %d and allowing contains is %d\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), firstCandidate, allowContains);
           fprintf(stderr, "generateTemplateStitch()--\n");
@@ -591,7 +594,7 @@ unitigConsensus::generateTemplateStitch(void) {
         assert(origLen > minOlap + trimbp);
         assert(ePos > trimbp);
 
-        if (showAlgorithm()) {
+        if (showPlacement()) {
           fprintf(stderr, "generateTemplateStitch()--\n");
           fprintf(stderr, "generateTemplateStitch()-- FAILED to align read #%d ident %d to last added %d ident %d, will try to trim template of %d bp by %d bases\n", rid, _utgpos[nr].ident(), lastStart, _utgpos[lastStart].ident(), tiglen, trimbp);
         }
@@ -602,7 +605,7 @@ unitigConsensus::generateTemplateStitch(void) {
         firstCandidate = 0;
         badToAdd.clear();
 
-        if (showAlgorithm()) {
+        if (showPlacement()) {
           fprintf(stderr, "generateTemplateStitch()-- Trimmed template to %d bp\n", tiglen);
           fprintf(stderr, "generateTemplateStitch()--\n");
         }
@@ -613,7 +616,7 @@ unitigConsensus::generateTemplateStitch(void) {
       readBgn = 0;
       readEnd = olapLen;
 
-      if (showAlgorithm()) {
+      if (showPlacement()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
         fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
                 readEnd, readLen);
@@ -632,21 +635,19 @@ unitigConsensus::generateTemplateStitch(void) {
     //  As of March 2019, this isn't really needed, for two reasons: (1) sqStore is trimming N's
     //  from the end of a read, and (2) edlib is allowing matches to Ns.
 
-    if (showAlgorithm())
-      fprintf(stderr, "generateTemplateStitch()-- Append read from %u to %u, starting at tiglen %u\n", readEnd, readLen, tiglen);
-
     for (uint32 ii=readEnd; ii<readLen; ii++)
       tigseq[tiglen++] = fragment[ii];
-
     tigseq[tiglen] = 0;
-
     assert(tiglen < tigmax);
 
     ePos = _utgpos[rid].max();
 
     if (showAlgorithm())
-      fprintf(stderr, "generateTemplateStitch()-- Template now length %d, expected %d, difference %7.4f%%\n",
-              tiglen, ePos, 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos));
+      fprintf(stderr, "generateTemplateStitch()-- Append read #%-8d ident %-8d %9u-%-9u to tig %9u-%-9u expected %-9u difference %7.4f%%\n",
+              rid, _utgpos[nr].ident(),
+              readEnd, readLen,
+              tiglen-(readLen-readEnd), tiglen,
+              ePos, 200.0 * ((int32)tiglen - (int32)ePos) / ((int32)tiglen + (int32)ePos));
   }
 
   //  Report the expected and final size.  We used to guard against long tigs getting chopped, but
@@ -775,7 +776,6 @@ alignEdLib(dagAlignment      &aln,
   }
 
   if (aligned == false) {
-    fprintf(stderr, "alignEdLib()-- failed to align read %7u.\n", utgpos.ident());
     edlibFreeAlignResult(align);
     return(false);
   }
@@ -848,20 +848,22 @@ alignEdLib(dagAlignment      &aln,
 
 
 bool
-unitigConsensus::generatePBDAG(tgTig *tig_, char aligner_, u32toRead &reads_) {
+unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
 
   //  Build a quick consensus to align to.
+
+  if (showAlgorithm())
+    fprintf(stderr, "generatePBDAG on tig %u begins at %f seconds.\n", _tig->tigID(), getProcessTime());
 
   char   *tigseq = generateTemplateStitch();
   uint32  tiglen = strlen(tigseq);
 
-  if (showAlgorithm())
+  if (showAlgorithm()) {
     fprintf(stderr, "Generated template of length %d\n", tiglen);
+    fprintf(stderr, "Aligning reads at %f seconds.\n", getProcessTime());
+  }
 
   //  Compute alignments of each sequence in parallel
-
-  if (showAlgorithm())
-    fprintf(stderr, "Aligning reads.\n");
 
   dagAlignment *aligns = new dagAlignment [_numReads];
   uint32        pass = 0;
@@ -879,7 +881,7 @@ unitigConsensus::generatePBDAG(tgTig *tig_, char aligner_, u32toRead &reads_) {
                          seq->getBases(), seq->length(),
                          tigseq, tiglen,
                          _errorRateMax,
-                         showAlgorithm());
+                         showAlignments());
 
     if (aligned == false) {
       if (showAlgorithm())
@@ -899,7 +901,7 @@ unitigConsensus::generatePBDAG(tgTig *tig_, char aligner_, u32toRead &reads_) {
   //  Construct the graph from the alignments.  This is not thread safe.
 
   if (showAlgorithm())
-    fprintf(stderr, "Constructing graph\n");
+    fprintf(stderr, "Constructing graph at %f seconds.\n", getProcessTime());
 
   AlnGraphBoost ag(std::string(tigseq, tiglen));
 
@@ -919,13 +921,13 @@ unitigConsensus::generatePBDAG(tgTig *tig_, char aligner_, u32toRead &reads_) {
   delete [] aligns;
 
   if (showAlgorithm())
-    fprintf(stderr, "Merging graph\n");
+    fprintf(stderr, "Merging graph at %f seconds.\n", getProcessTime());
 
   //  Merge the nodes and call consensus
   ag.mergeNodes();
 
   if (showAlgorithm())
-    fprintf(stderr, "Calling consensus\n");
+    fprintf(stderr, "Calling consensus at %f seconds.\n", getProcessTime());
 
   //FIXME why do we have 0weight nodes (template seq w/o support even from the read that generated them)?
 
@@ -958,13 +960,16 @@ unitigConsensus::generatePBDAG(tgTig *tig_, char aligner_, u32toRead &reads_) {
 
   assert(len < _tig->_basesMax);
 
+  if (showAlgorithm())
+    fprintf(stderr, "generatePBDAG on tig %u finishes at %f seconds.\n", _tig->tigID(), getProcessTime());
+
   return(true);
 }
 
 
 
 bool
-unitigConsensus::generateQuick(tgTig *tig_, u32toRead &reads_) {
+unitigConsensus::generateQuick(u32toRead &reads_) {
 
   //  Quick is just the template sequence, so one and done!
 
@@ -1000,7 +1005,7 @@ unitigConsensus::generateQuick(tgTig *tig_, u32toRead &reads_) {
 
 
 bool
-unitigConsensus::generateSingleton(tgTig *tig_, u32toRead &reads_) {
+unitigConsensus::generateSingleton(u32toRead &reads_) {
 
   assert(_numReadsUsable == 1);
 
@@ -1044,8 +1049,9 @@ unitigConsensus::generateSingleton(tgTig *tig_, u32toRead &reads_) {
 
 //  This has more canu dependency than edlib dependency, so it's here instead of in edlib.c
 //
+#if 0
 uint32
-edlibAlignmentToCanu(stuffedBits *align,
+edlibAlignmentToCanu(stuffedBits *bits,
                      const unsigned char* alignment,
                      int alignmentLength,
                      int tgtStart, int tgtEnd,
@@ -1053,59 +1059,76 @@ edlibAlignmentToCanu(stuffedBits *align,
   int32  qryPos = qryStart;
   int32  tgtPos = tgtStart;
 
-  //  Count the length of the alignment.
-
   int32  nMatch  = 0;   //  Counting the number of match/mismatch in a delta block.
   int32  nBlocks = 0;   //  Number of blocks in the delta encoding.
-
-  //  Code the alignment.
 
   for (int32 a=0; a<alignmentLength; a++) {
     assert(qryPos <= qryEnd);
     assert(tgtPos <= tgtEnd);
 
-    //  Match or mismatch.
-    if ((alignment[a] == EDLIB_EDOP_MATCH) ||
-        (alignment[a] == EDLIB_EDOP_MISMATCH)) {
-      nMatch++;
-
-      qryPos++;
-      tgtPos++;
+    if ((alignment[a] == EDLIB_EDOP_MATCH) ||      //  Match or mismatch.
+        (alignment[a] == EDLIB_EDOP_MISMATCH)) {   //  Just count how many we see.
+      nMatch++;      qryPos++;   tgtPos++;
     }
-
-    //  Insertion in target.
-    else if (alignment[a] == EDLIB_EDOP_INSERT) {
-      align->setEliasDelta(nMatch + 1);
-      align->setBit(0);
-
-      nMatch = 0;
-      nBlocks++;
-
-      qryPos++;
+    else if (alignment[a] == EDLIB_EDOP_INSERT) {  //  Insertion in target.
+      bits->setEliasDelta(nMatch + 1);   bits->setBit(0);
+      nMatch = 0;   nBlocks++;   qryPos++;
     }
-
-    //  Insertion in query.
-    else if (alignment[a] == EDLIB_EDOP_DELETE) {
-      align->setEliasDelta(nMatch + 1);
-      align->setBit(1);
-
-      nMatch = 0;
-      nBlocks++;
-
-      tgtPos++;
+    else if (alignment[a] == EDLIB_EDOP_DELETE) {  //  Insertion in query.
+      bits->setEliasDelta(nMatch + 1);   bits->setBit(1);
+      nMatch = 0;   nBlocks++;   tgtPos++;
     }
   }
 
-  //  Don't forget the last match/mismatch block.
-  //align->setEliasDelta(nMatch + 1);
-  //align->setBit(1);
-
-  //nMatch = 0;
-  //nBlocks++;
-
-  //fprintf(stderr, "Align of length %d with %d gaps stored in %lu bits.\n", alignmentLength, nBlocks, align->getLength());
-
   return(nBlocks);
+}
+#endif
+
+
+
+
+void
+edlibToDelta(tgTig             *tig,
+             tgPosition        *child,
+             uint32             readlen,
+             EdlibAlignResult  &align) {
+  const unsigned char *alignment       = align.alignment;
+  const int32          alignmentLength = align.alignmentLength;
+
+        int32 tgtPos = align.startLocations[0];
+  const int32 tgtEnd = align.endLocations[0] + 1;
+        int32 qryPos = 0;
+  const int32 qryEnd = readlen;
+
+  stuffedBits *bits = tig->_childDeltaBits;
+
+  int32  nMatch  = 0;   //  Counting the number of match/mismatch in a delta block.
+  int32  nBlocks = 0;   //  Number of blocks in the delta encoding.
+
+#pragma omp critical (tgTigLoadAlign)
+  {
+    child->_deltaOffset = bits->getPosition();
+
+    for (int32 a=0; a<alignmentLength; a++) {
+      assert(tgtPos <= tgtEnd);   //  We don't run off the end of the tig
+      assert(qryPos <= qryEnd);   //  We don't run off the end of the read
+
+      if ((alignment[a] == EDLIB_EDOP_MATCH) ||      //  Match or mismatch.
+          (alignment[a] == EDLIB_EDOP_MISMATCH)) {   //  Just count how many we see.
+        nMatch++;      qryPos++;   tgtPos++;
+      }
+      else if (alignment[a] == EDLIB_EDOP_INSERT) {  //  Insertion in target.
+        bits->setEliasDelta(nMatch + 1);   bits->setBit(0);
+        nMatch = 0;   nBlocks++;   qryPos++;
+      }
+      else if (alignment[a] == EDLIB_EDOP_DELETE) {  //  Insertion in query.
+        bits->setEliasDelta(nMatch + 1);   bits->setBit(1);
+        nMatch = 0;   nBlocks++;   tgtPos++;
+      }
+    }
+  }
+
+  child->_deltaLen = nBlocks;
 }
 
 
@@ -1215,17 +1238,12 @@ openBAMforWrite(char const *bamPrefix, tgTig *_tig) {
 void
 unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
 
-#warning DEBUG
-  //_tig->_utgcns_verboseLevel = 4;
+  if (algorithm_ != 'P')      return;   //  -norealign or -quick
+  if (_tig->length() == 0)    return;   //  Failed consensus.
+  if (_templateLength == 0)   return;   //  Singleton.
 
-  if (algorithm_ != 'P')       return;
-  if (_tig->length() == 0)     return;
-
-  if (showPlacement()) {
-    fprintf(stderr, "\n");
-    fprintf(stderr, "TIG %u length %u\n", _tig->tigID(), _tig->length());
-    fprintf(stderr, "\n");
-  }
+  if (showAlgorithm())
+    fprintf(stderr, "findCoordinates on tig %u starts at %f seconds.\n", _tig->tigID(), getProcessTime());
 
   _tig->_childDeltaBitsLen = 1;
   _tig->_childDeltaBits    = new stuffedBits();
@@ -1234,9 +1252,6 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
 
   for (uint32 ii=0; ii<_numReads; ii++)
     _tig->_childCIGAR[ii] = nullptr;
-
-
-  //samFP_t    fp = openBAMforWrite("bams", _tig);
 
   uint32     pass        = 0;
   uint32     fail        = 0;
@@ -1258,37 +1273,54 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
     int32  maxpad   = (_tig->getChild(ii)->isLowQuality() == true) ? 2000 : 250;  //  Pad low-quality reads by at most
     int32  padding  = std::min(maxpad, (int32)ceil(readlen * 0.05));              //  2Kbp, high-quality by only 250bp.
 
-    int32  alignbgn    = 0;
-    int32  alignend    = 0;
-    double bandqual[9] = { 1*_errorRateMax / 3, 1*_errorRateMax / 3, 1*_errorRateMax / 3,
-                           2*_errorRateMax / 3, 2*_errorRateMax / 3, 2*_errorRateMax / 3,
-                           3*_errorRateMax / 3, 3*_errorRateMax / 3, 3*_errorRateMax / 3 };
+    int32  bandpad[9]  = {  1 * padding,  5 * padding, 25 * padding,
+                            1 * padding,  5 * padding, 25 * padding,
+                            1 * padding,  5 * padding, 25 * padding };
+
+    double bandqual[9] = { 0.25 * _errorRateMax,  0.20 * _errorRateMax, 0.15 * _errorRateMax,
+                           0.50 * _errorRateMax,  0.45 * _errorRateMax, 0.40 * _errorRateMax,
+                           0.75 * _errorRateMax,  0.90 * _errorRateMax, 1.00 * _errorRateMax };
 
     EdlibAlignResult align;
 
-    double           quality  = 1.0;
-    bool             aligned  = false;
+    int32   alignbgn  = 0;       //  How evil is it to have variables
+    int32   alignend  = 0;       //       alignend
+    double  alignqual = 1.0;     //  and  |||||| |    (they even align!)
+    bool    aligned   = false;   //       aligne d
 
-    //  Align!
+    //  Make several attempts to align.
+    //
+    //  The general idea is to make several attempts at high-, medium- and
+    //  low-quality alignments (bandqual), each attempt lowering the
+    //  precision of where the read is expected to align (bandpad).
+    //
+    //  A further refinement is to require slightly higher identity as the
+    //  location precision is reduced - most alignments succeed on the first
+    //  attempt.
 
     for (uint32 attempt=0; (attempt < 9) && (aligned == false); attempt++) {
+      int32 aspanbgn  = std::max(0, _adjpos[ii].min() - bandpad[attempt]);
+      int32 aspanend  = std::min(   _adjpos[ii].max() + bandpad[attempt], tiglen);
+
+#if 0
       if ((attempt % 3) == 0) {   //  Before first and after third attempt, reset band, but increase error rate
-        alignbgn  = std::max(0, _adjpos[ii].min() - 1 * padding);
-        alignend  = std::min(   _adjpos[ii].max() + 1 * padding, tiglen);
+        aspanbgn  = std::max(0, _adjpos[ii].min() - 1 * padding);
+        aspanend  = std::min(   _adjpos[ii].max() + 1 * padding, tiglen);
         //bandqual  = _errorRateMax / 3;
       }
 
       if ((attempt % 3) == 1) {   //  After first attempt, extend band
-        alignbgn  = std::max(0, _adjpos[ii].min() - 5 * padding);
-        alignend  = std::min(   _adjpos[ii].max() + 5 * padding, tiglen);
+        aspanbgn  = std::max(0, _adjpos[ii].min() - 5 * padding);
+        aspanend  = std::min(   _adjpos[ii].max() + 5 * padding, tiglen);
       }
 
       if ((attempt % 3) == 2) {   //  After second attempt, extend band even more
-        alignbgn  = std::max(0, _adjpos[ii].min() - 25 * padding);
-        alignend  = std::min(   _adjpos[ii].max() + 25 * padding, tiglen);
+        aspanbgn  = std::max(0, _adjpos[ii].min() - 25 * padding);
+        aspanend  = std::min(   _adjpos[ii].max() + 25 * padding, tiglen);
       }
+#endif
 
-      assert(alignbgn < alignend);
+      assert(aspanbgn < aspanend);
 
       if (showPlacement()) {
         if (attempt == 0)
@@ -1296,36 +1328,38 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
                   ii, _utgpos[ii].ident(), readlen,
                   _utgpos[ii].min(), _utgpos[ii].max(),
                   _cnspos[ii].min(), _cnspos[ii].max(),
-                  alignbgn,          alignend, attempt+1);
+                  aspanbgn,          aspanend, attempt+1);
         else
           fprintf(stderr, "                                                                                              -> consensus %8d,%-8d - attempt %d:",
-                  alignbgn,          alignend, attempt+1);
+                  aspanbgn,          aspanend, attempt+1);
       }
 
       align = edlibAlign(readseq, readlen,
-                         _tig->bases() + alignbgn, alignend - alignbgn,
+                         _tig->bases() + aspanbgn, aspanend - aspanbgn,
                          edlibNewAlignConfig(bandqual[attempt] * readlen, EDLIB_MODE_HW, EDLIB_TASK_PATH));
 
-      if (align.alignmentLength > 0) {
-        quality  = (double)align.editDistance / align.alignmentLength;
-        aligned  = (double)align.editDistance / align.alignmentLength <= bandqual[attempt];
-
-        alignend = alignbgn + align.endLocations[0] + 1;
-        alignbgn = alignbgn + align.startLocations[0];
+      if (align.alignmentLength == 0) {
+        alignbgn  = 0;
+        alignend  = 0;
+        alignqual = 1.0;
+        aligned   = false;
       }
       else {
-        quality = 1.0;
+        alignbgn  = aspanbgn + align.startLocations[0];
+        alignend  = aspanbgn + align.endLocations[0] + 1;
+        alignqual = (double)align.editDistance / align.alignmentLength;
+        aligned   = (double)align.editDistance / align.alignmentLength <= bandqual[attempt];
       }
 
       if (showPlacement()) {
         if (aligned)
           fprintf(stderr, " - SUCCESS %8d,%-8d %6u/%-6u = %6.3f%% < %6.3f%%\n",
                   alignbgn, alignend, align.editDistance, align.alignmentLength,
-                  100.0 * quality, 100.0 * bandqual[attempt]);
-        else if (quality < 1.0)
+                  100.0 * alignqual, 100.0 * bandqual[attempt]);
+        else if (alignqual < 1.0)
           fprintf(stderr, " - FAILURE %8d,%-8d %6u/%-6u = %6.3f%% > %6.3f%%\n",
                   alignbgn, alignend, align.editDistance, align.alignmentLength,
-                  100.0 * quality, 100.0 * bandqual[attempt]);
+                  100.0 * alignqual, 100.0 * bandqual[attempt]);
         else
           fprintf(stderr, " - FAILURE\n");
       }
@@ -1338,36 +1372,29 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
       fail++;
       continue;
     }
+    pass++;
 
     //  Save the result for tgStore and BAM outputs.
-    {
-      _cnspos[ii].        setMinMax(alignbgn, alignend);    //  Final position in consensus.
-      _tig->getChild(ii)->setMinMax(alignbgn, alignend);    //  Save in tig.
+    _cnspos[ii].        setMinMax(alignbgn, alignend);    //  Final position in consensus.
+    _tig->getChild(ii)->setMinMax(alignbgn, alignend);    //  Save in tig.
 
-      _tig->_childCIGAR[ii] = edlibAlignmentToCigar(align.alignment, align.alignmentLength, EDLIB_CIGAR_EXTENDED);
+    _tig->_childCIGAR[ii] = edlibAlignmentToCigar(align.alignment, align.alignmentLength, EDLIB_CIGAR_EXTENDED);
 
+    edlibToDelta(_tig, _tig->getChild(ii), readlen, align);
+
+#if 0
 #pragma omp critical (tgTigLoadAlign)
-      {
-        _tig->getChild(ii)->_deltaOffset = _tig->_childDeltaBits->getPosition();
-        _tig->getChild(ii)->_deltaLen    = edlibAlignmentToCanu(_tig->_childDeltaBits,
-                                                                align.alignment,
-                                                                align.alignmentLength,
-                                                                align.startLocations[0],
-                                                                align.endLocations[0] + 1,
-                                                                0,
-                                                                readlen);
-      }
+    { _tig->getChild(ii)->_deltaOffset = _tig->_childDeltaBits->getPosition();
+      _tig->getChild(ii)->_deltaLen    = edlibAlignmentToCanu(_tig->_childDeltaBits, align.alignment, align.alignmentLength,
+                                                              align.startLocations[0], align.endLocations[0] + 1, 0, readlen);
     }
-
-    //  Save the bam result.
-
-    pass++;
+#endif
 
     edlibFreeAlignResult(align);
   }    //  Looping over reads.
 
-  //sam_close(fp.samFp);
-  //sam_hdr_destroy(fp.samHp);
+  if (showAlgorithm())
+    fprintf(stderr, "findCoordinates on tig %u finishes at %f seconds. %u pass %u fail.\n", _tig->tigID(), getProcessTime(), pass, fail);
 }
 
 
@@ -1583,12 +1610,12 @@ unitigConsensus::generate(tgTig      *tig_,
   switchToUncompressedCoordinates();
 
   if      (_numReadsUsable == 1)                       //  Boring, just a single read.
-    success = generateSingleton(_tig, reads_);
+    success = generateSingleton(reads_);
   else if (algorithm_ == 'Q')                          //  Quick consensus, just the template.
-    success = generateQuick(_tig, reads_);
+    success = generateQuick(reads_);
   else if ((algorithm_ == 'P') ||                      //  Normal utgcns.
            (algorithm_ == 'p'))                        //  'norealign' variant of normal utgcns.
-    success = generatePBDAG(_tig, aligner_, reads_);
+    success = generatePBDAG(aligner_, reads_);
 
   _tig->_trimBgn = 0;
   _tig->_trimEnd = _tig->length();

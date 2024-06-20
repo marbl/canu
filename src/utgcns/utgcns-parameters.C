@@ -211,6 +211,8 @@ cnsParameters::closeAndCleanup(void) {
   delete seqStore;   seqStore = nullptr;
   delete tigStore;   tigStore = nullptr;
 
+  delete importFile; importFile = nullptr;
+
   unloadReads();
 
   merylutil::closeFile(outResultsFile, outResultsName);

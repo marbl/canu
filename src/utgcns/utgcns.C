@@ -262,6 +262,11 @@ main(int argc, char **argv) {
   if ((params.tigName == NULL)  && (params.importName == NULL))
     err.push_back("ERROR:  No tigStore (-T) OR no test tig (-t) OR no package (-p) supplied.\n");
 
+  if ((params.outBAMName != nullptr) && (params.algorithm == 'q'))
+    err.push_back("ERROR:  BAM output (-B) incompatible with -quick.\n");
+  if ((params.outBAMName != nullptr) && (params.algorithm == 'p'))
+    err.push_back("ERROR:  BAM output (-B) incompatible with -norealign.\n");
+
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);

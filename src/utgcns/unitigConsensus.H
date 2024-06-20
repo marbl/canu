@@ -86,9 +86,9 @@ private:
                  
   char  *generateTemplateStitch(void);
 
-  bool   generatePBDAG     (tgTig *tig, char aligner, u32toRead &reads);
-  bool   generateQuick     (tgTig *tig,               u32toRead &reads);
-  bool   generateSingleton (tgTig *tig,               u32toRead &reads);
+  bool   generatePBDAG     (char aligner, u32toRead &reads);
+  bool   generateQuick     (              u32toRead &reads);
+  bool   generateSingleton (              u32toRead &reads);
 
   void   adjustPosition(tgPosition   utgpos,
                         tgPosition   cnspos,
