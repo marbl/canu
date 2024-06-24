@@ -1106,8 +1106,8 @@ unitigConsensus::adjustPosition(tgPosition   utgpos,
 
   //  Adjust the 'original' position so it is between 0 and templateLength.
 
-  int32 omin = std::min(std::max(0, original.min()), (int32)_templateLength);
-  int32 omax = std::min(            original.max() , (int32)_templateLength);
+  int32 omin = std::min(std::max(0, original.min()), (int32)_templateLength-1);
+  int32 omax = std::min(            original.max() , (int32)_templateLength-1);
 
   //  But if omin == omax 
   assert(omin < _templateLength);
