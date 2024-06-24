@@ -1046,47 +1046,6 @@ unitigConsensus::generateSingleton(u32toRead &reads_) {
 
 
 
-
-//  This has more canu dependency than edlib dependency, so it's here instead of in edlib.c
-//
-#if 0
-uint32
-edlibAlignmentToCanu(stuffedBits *bits,
-                     const unsigned char* alignment,
-                     int alignmentLength,
-                     int tgtStart, int tgtEnd,
-                     int qryStart, int qryEnd) {
-  int32  qryPos = qryStart;
-  int32  tgtPos = tgtStart;
-
-  int32  nMatch  = 0;   //  Counting the number of match/mismatch in a delta block.
-  int32  nBlocks = 0;   //  Number of blocks in the delta encoding.
-
-  for (int32 a=0; a<alignmentLength; a++) {
-    assert(qryPos <= qryEnd);
-    assert(tgtPos <= tgtEnd);
-
-    if ((alignment[a] == EDLIB_EDOP_MATCH) ||      //  Match or mismatch.
-        (alignment[a] == EDLIB_EDOP_MISMATCH)) {   //  Just count how many we see.
-      nMatch++;      qryPos++;   tgtPos++;
-    }
-    else if (alignment[a] == EDLIB_EDOP_INSERT) {  //  Insertion in target.
-      bits->setEliasDelta(nMatch + 1);   bits->setBit(0);
-      nMatch = 0;   nBlocks++;   qryPos++;
-    }
-    else if (alignment[a] == EDLIB_EDOP_DELETE) {  //  Insertion in query.
-      bits->setEliasDelta(nMatch + 1);   bits->setBit(1);
-      nMatch = 0;   nBlocks++;   tgtPos++;
-    }
-  }
-
-  return(nBlocks);
-}
-#endif
-
-
-
-
 void
 edlibToDelta(tgTig             *tig,
              tgPosition        *child,
@@ -1177,57 +1136,6 @@ unitigConsensus::adjustPosition(tgPosition   utgpos,
 
 
 
-
-
-#if 0
-struct samFP_t {
-  samFile   *samFp;
-  sam_hdr_t *samHp;
-};
-
-samFP_t
-openBAMforWrite(char const *bamPrefix, tgTig *_tig) {
-  char    *tigName = new char [16];
-  char    *samName = new char [16 + strlen(bamPrefix)];
-  samFP_t  sfp;
-
-  sprintf(tigName,    "tig%08d",                _tig->tigID());
-  sprintf(samName, "%s/tig%08d.bam", bamPrefix, _tig->tigID());
-
-  sfp.samHp = sam_hdr_init();
-  sfp.samFp = sam_open(samName, "wb");
-  if (sfp.samFp == NULL) {
-    fprintf(stderr, "Failed to open output file!\n");
-    exit(1);
-  }
-
-  sam_hdr_add_line(sfp.samHp, "HD", "VN", SAM_FORMAT_VERSION, nullptr);
-  sam_hdr_add_pg  (sfp.samHp, "utgcns", "VN", CANU_VERSION, nullptr);
-
-  sfp.samHp->n_targets      = 1;
-  sfp.samHp->target_len     = (uint32_t*)malloc(sfp.samHp->n_targets * sizeof(uint32_t));
-  sfp.samHp->target_name    = (char   **)malloc(sfp.samHp->n_targets * sizeof(char *));
-
-  sfp.samHp->target_len[0]  = _tig->length();
-  sfp.samHp->target_name[0] = strdup(tigName);
-
-  int ret = sam_hdr_write(sfp.samFp, sfp.samHp);
-  if (ret < 0) {
-    fprintf(stderr, "Failed to write header to BAM file!\n");
-    exit(1);
-  }
-
-  delete [] samName;
-  delete [] tigName;
-
-  return sfp;
-}
-#endif
-
-
-
-
-
 //  Align each read to the region of the consensus sequence the read claims
 //  to be from, extended by 5% of the read length on either end.  If it fails
 //  to align full length, make the extensions larger and/or error rate more
@@ -1302,24 +1210,6 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
       int32 aspanbgn  = std::max(0, _adjpos[ii].min() - bandpad[attempt]);
       int32 aspanend  = std::min(   _adjpos[ii].max() + bandpad[attempt], tiglen);
 
-#if 0
-      if ((attempt % 3) == 0) {   //  Before first and after third attempt, reset band, but increase error rate
-        aspanbgn  = std::max(0, _adjpos[ii].min() - 1 * padding);
-        aspanend  = std::min(   _adjpos[ii].max() + 1 * padding, tiglen);
-        //bandqual  = _errorRateMax / 3;
-      }
-
-      if ((attempt % 3) == 1) {   //  After first attempt, extend band
-        aspanbgn  = std::max(0, _adjpos[ii].min() - 5 * padding);
-        aspanend  = std::min(   _adjpos[ii].max() + 5 * padding, tiglen);
-      }
-
-      if ((attempt % 3) == 2) {   //  After second attempt, extend band even more
-        aspanbgn  = std::max(0, _adjpos[ii].min() - 25 * padding);
-        aspanend  = std::min(   _adjpos[ii].max() + 25 * padding, tiglen);
-      }
-#endif
-
       assert(aspanbgn < aspanend);
 
       if (showPlacement()) {
@@ -1381,14 +1271,6 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
     _tig->_childCIGAR[ii] = edlibAlignmentToCigar(align.alignment, align.alignmentLength, EDLIB_CIGAR_EXTENDED);
 
     edlibToDelta(_tig, _tig->getChild(ii), readlen, align);
-
-#if 0
-#pragma omp critical (tgTigLoadAlign)
-    { _tig->getChild(ii)->_deltaOffset = _tig->_childDeltaBits->getPosition();
-      _tig->getChild(ii)->_deltaLen    = edlibAlignmentToCanu(_tig->_childDeltaBits, align.alignment, align.alignmentLength,
-                                                              align.startLocations[0], align.endLocations[0] + 1, 0, readlen);
-    }
-#endif
 
     edlibFreeAlignResult(align);
   }    //  Looping over reads.
