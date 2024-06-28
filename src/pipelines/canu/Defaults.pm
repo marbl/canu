@@ -34,6 +34,7 @@ require Exporter;
              checkJava
              checkMinimap
              checkGnuplot
+             checkSamtools
              adjustMemoryValue
              displayMemoryValue
              adjustGenomeSize
@@ -817,6 +818,8 @@ sub setDefaults () {
     setDefault("gnuplot",             "gnuplot",  "Path to the gnuplot executable");
     setDefault("gnuplotImageFormat",  undef,      "Image format that gnuplot will generate.  Default: based on gnuplot, 'png', 'svg' or 'gif'");
 
+    setDefault("samtools",            "samtools", "Path to the samtools executable");
+
     setDefault("stageDirectory",      undef,      "If set, copy heavily used data to this node-local location");
     setDefault("preExec",             undef,      "A command line to run at the start of Canu execution scripts");
 
@@ -1003,6 +1006,9 @@ sub setDefaults () {
     setDefault("cnsConsensus",    "pbdagcon",  "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'");
     setDefault("cnsPartitions",   0,           "Attempt to create this many consensus jobs; default '0' = based on the largest tig");
 
+    setDefault("bamOutput",       1,           "Output contigs as BAM");
+    #etDefault("fastaOutput",     1,           "Output contigs as FASTA");
+
     #####  Correction Options
 
     setDefault("corPartitions",                undef,        "Partition read correction into N jobs");
@@ -1115,7 +1121,7 @@ sub checkJava () {
 
 
 
-sub checkMinimap ($) {
+sub checkMinimap () {
     my $minimap = getGlobal("minimap");
     my $version = undef;
 
@@ -1287,6 +1293,43 @@ sub checkGnuplot () {
     unlink "/tmp/gnuplot-$$-test.err";
     unlink "/tmp/gnuplot-$$-test.1.$format";
     unlink "/tmp/gnuplot-$$-test.2.$format";
+}
+
+
+
+sub checkSamtools () {
+    my $samtools = getGlobal("samtools");
+    my $sversion = undef;
+    my $hversion = undef;
+
+    return  if (getGlobal("bamOutput") ne "1");
+
+    if ($samtools =~ m/^\./) {
+        addCommandLineError("ERROR:  path to samtools '$samtools' must not be a relative path.\n");
+        goto cleanupSamtools;
+    }
+
+    system("cd /tmp && $samtools --version > /tmp/samtools-$$.err 2>&1");
+
+    open(F, "< /tmp/samtools-$$.err");
+    while (<F>) {
+        $sversion = $1  if ($_ =~ m/samtools\s+(\d+.\d+.\d+)$/);
+        $hversion = $1  if ($_ =~ m/htslib\s+(\d+.\d+.\d+)$/);
+    }
+    close(F);
+
+    if (!defined($sversion)) {
+        addCommandLineError("ERROR:  failed to run samtools using command '$samtools'\n");
+        addCommandLineError("          set samtools=/path/to/samtools to fix, or\n");
+        addCommandLineError("          set bamOutput=false to disable.\n");
+        goto cleanupSamtools;
+    }
+
+    print STDERR "-- Detected samtools version '$sversion' (from '$samtools').\n"                               if (!defined($hversion));
+    print STDERR "-- Detected samtools version '$sversion' / htslib version '$hversion' (from '$samtools').\n"  if ( defined($hversion));
+
+ cleanupSamtools:
+    unlink "/tmp/samtools-$$.err";
 }
 
 
