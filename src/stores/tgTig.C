@@ -899,6 +899,16 @@ tgTig::dumpFASTQ(FILE *F) {
 void
 tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
 
+  //  If a singleton, or no alignment, don't create the output.
+  //
+  //  However, the rest of the code will work correctly even if _childCIGAR
+  //  is nullptr; this is just a quick way to decide if the tig was a
+  //  singlton - in particular, a verkko tig is a singleton if it has one
+  //  HiFi read and any number of ONT reads.)
+
+  if (_childCIGAR == nullptr)
+    return;
+
   //  Create a BAM header and output file, then populate it with one
   //  reference sequence.
 
@@ -927,6 +937,9 @@ tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
 
   delete [] bamName;
   delete [] tigName;
+
+  //  For sam, we need to have ... something ... (some field that I forget
+  //  which) else hdr_write doesn't write any SQ records.
 
   int ret = sam_hdr_write(outBAMfp, outBAMhp);
   if (ret < 0) {
