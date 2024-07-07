@@ -491,6 +491,11 @@ sqCache::sqCache_loadReads(char const *filename) {
 
   fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
 
+  if (readFile == nullptr) {
+    fprintf(stderr, "-- Failed to open '%s' for reading.\n");
+    exit(1);
+  }
+
   while (readFile->loadSequence(readSeq) == true) {
     if ((_readsLen & 0x1ff) == 0x1ff)
       fprintf(stderr, "-- Loading reads from '%s': %8lu reads.\r", filename, _readsLen);
