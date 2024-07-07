@@ -926,7 +926,7 @@ tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
   }
 
   sam_hdr_add_line(outBAMhp, "HD", "VN", SAM_FORMAT_VERSION, nullptr);
-  sam_hdr_add_pg  (outBAMhp, "utgcns", "VN", CANU_VERSION, nullptr);
+  sam_hdr_add_pg  (outBAMhp, "utgcns", "VN", MERYL_UTILITY_VERSION, nullptr);
 
   outBAMhp->n_targets      = 1;
   outBAMhp->target_len     = (uint32_t *)malloc(1 * sizeof(uint32_t));
