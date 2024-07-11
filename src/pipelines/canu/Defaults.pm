@@ -1313,8 +1313,8 @@ sub checkSamtools () {
 
     open(F, "< /tmp/samtools-$$.err");
     while (<F>) {
-        $sversion = $1  if ($_ =~ m/samtools\s+(\d+.\d+.\d+)$/);
-        $hversion = $1  if ($_ =~ m/htslib\s+(\d+.\d+.\d+)$/);
+        $sversion = $1  if ($_ =~ m/samtools\s+(.*)\s*$/);
+        $hversion = $1  if ($_ =~ m/htslib\s+(.*)\s*$/);
     }
     close(F);
 
