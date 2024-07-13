@@ -66,7 +66,6 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/parasail/sg_qb_de_dispatch.c \
                 utility/src/parasail/sg_qe_db_dispatch.c \
                 utility/src/parasail/sg_qx_dispatch.c \
-                utility/src/parasail/sg_trace.c \
                 \
                 utility/src/sequence/dnaSeq-v1.C \
                 utility/src/sequence/bufSeqFile-v1.C \
