@@ -57,7 +57,7 @@ loadTigFromStore(cnsParameters &params) {
   else                                  //  tigBgn (above) or to 1 (below).  On later calls,
     params.tigCur++;                    //  we'll always increment tigCur.
   
-  if (params.tigCur >= params.tigEnd)   //  If current is past the end, we're done.
+  if (params.tigCur > params.tigEnd)   //  If current is past the end, we're done.
     return nullptr;
 
   tig = params.copyTig(params.tigCur);  //  Otherwise, load A COPY of the tig from the store.
