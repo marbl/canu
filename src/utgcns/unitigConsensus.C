@@ -1259,18 +1259,24 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
     }
 
     if (aligned == false) {
+      _cnspos[ii].        setMinMax(0, 0);                  //  NO final position
+      _tig->getChild(ii)->setMinMax(0, 0);                  //  in consensus.
+
+      _tig->_childCIGAR[ii]    = new char [1];              //  NO final alignment.
+      _tig->_childCIGAR[ii][0] = 0;
+
       fail++;
-      continue;
     }
-    pass++;
+    else {
+      _cnspos[ii].        setMinMax(alignbgn, alignend);    //  Final position in consensus.
+      _tig->getChild(ii)->setMinMax(alignbgn, alignend);    //  Save in tig.
 
-    //  Save the result for tgStore and BAM outputs.
-    _cnspos[ii].        setMinMax(alignbgn, alignend);    //  Final position in consensus.
-    _tig->getChild(ii)->setMinMax(alignbgn, alignend);    //  Save in tig.
+      _tig->_childCIGAR[ii] = edlibAlignmentToCigar(align.alignment, align.alignmentLength, EDLIB_CIGAR_EXTENDED);
 
-    _tig->_childCIGAR[ii] = edlibAlignmentToCigar(align.alignment, align.alignmentLength, EDLIB_CIGAR_EXTENDED);
+      edlibToDelta(_tig, _tig->getChild(ii), readlen, align);
 
-    edlibToDelta(_tig, _tig->getChild(ii), readlen, align);
+      pass++;
+    }
 
     edlibFreeAlignResult(align);
   }    //  Looping over reads.
