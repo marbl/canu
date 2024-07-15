@@ -1006,7 +1006,8 @@ sub setDefaults () {
     setDefault("cnsConsensus",    "pbdagcon",  "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'");
     setDefault("cnsPartitions",   0,           "Attempt to create this many consensus jobs; default '0' = based on the largest tig");
 
-    setDefault("bamOutput",       1,           "Output contigs as BAM");
+    setDefault("cnsAlign",        1,           "Realign reads to contigs after consensus");
+    setDefault("bamOutput",       1,           "Output contigs as BAM (enables cnsAlign)");
     #etDefault("fastaOutput",     1,           "Output contigs as FASTA");
 
     #####  Correction Options

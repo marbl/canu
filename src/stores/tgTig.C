@@ -32,10 +32,6 @@ void
 tgTig::saveToRecord(tgTigRecord &tr) {
   tr._tigID               = _tigID;
 
-  tr._unused32            = _unused32;
-  tr._trimBgn             = _trimBgn;
-  tr._trimEnd             = _trimEnd;
-
   tr._class               = _class;
   tr._suggestRepeat       = _suggestRepeat;
   tr._suggestBubble       = _suggestBubble;
@@ -43,20 +39,20 @@ tgTig::saveToRecord(tgTigRecord &tr) {
   tr._circularLength      = _circularLength;
   tr._spare               = _spare;
 
+  tr._trimBgn             = _trimBgn;
+  tr._trimEnd             = _trimEnd;
+
   tr._layoutLen           = _layoutLen;
   tr._basesLen            = _basesLen;
   tr._childrenLen         = _childrenLen;
   tr._childDeltaBitsLen   = _childDeltaBitsLen;
+  tr._childCIGARLen       = _childCIGARLen;
 }
 
 
 void
 tgTig::restoreFromRecord(tgTigRecord &tr) {
   _tigID               = tr._tigID;
-
-  _unused32            = tr._unused32;
-  _trimBgn             = tr._trimBgn;
-  _trimEnd             = tr._trimEnd;
 
   _class               = tr._class;
   _suggestRepeat       = tr._suggestRepeat;
@@ -65,10 +61,14 @@ tgTig::restoreFromRecord(tgTigRecord &tr) {
   _circularLength      = tr._circularLength;
   _spare               = tr._spare;
 
+  _trimBgn             = tr._trimBgn;
+  _trimEnd             = tr._trimEnd;
+
   _layoutLen           = tr._layoutLen;
   _basesLen            = tr._basesLen;
   _childrenLen         = tr._childrenLen;
   _childDeltaBitsLen   = tr._childDeltaBitsLen;
+  _childCIGARLen       = tr._childCIGARLen;
 }
 
 
@@ -103,74 +103,11 @@ tgPosition::initialize(void) {
 
 
 
-
-tgTig::tgTig() {
-  _tigID                = UINT32_MAX;
-
-  _unused32             = 0;
-  _trimBgn              = 0;
-  _trimEnd              = 0;
-
-  _utgcns_verboseLevel  = 0;
-
-  _class                = tgTig_noclass;
-  _suggestRepeat        = 0;
-  _suggestBubble        = 0;
-  _suggestCircular      = 0;
-  _circularLength       = 0;
-  _spare                = 0;
-
-  _layoutLen            = 0;
-
-  _basesLen             = 0;
-  _basesMax             = 0;
-  _bases                = NULL;
-  _quals                = NULL;
-
-  _children             = NULL;
-  _childrenLen          = 0;
-  _childrenMax          = 0;
-
-  _stashed              = nullptr;
-  _stashedLen           = 0;
-  _stashedMax           = 0;
-
-  _stashBack[0] = _stashBack[1] = 0;
-  _stashCont[0] = _stashCont[1] = 0;
-  _stashStsh[0] = _stashStsh[1] = 0;
-  _stashIgnr[0] = _stashIgnr[1] = 0;
-
-  _childDeltaBitsLen    = 0;
-  _childDeltaBits       = NULL;
-
-  _childCIGAR           = nullptr;
-}
-
-tgTig::~tgTig() {
-  delete [] _bases;
-  delete [] _quals;
-  delete [] _children;
- 
-  assert(_stashed == nullptr);
-
-  delete    _childDeltaBits;
-
-  if (_childCIGAR)
-    for (uint32 ii=0; ii<_childrenLen; ii++)
-      delete [] _childCIGAR[ii];
-
-  delete [] _childCIGAR;
-}
-
-
-
-
 //  Deep copy the tig.
 tgTig &
 tgTig::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
 
-  _unused32            = tg._unused32;
   _trimBgn             = tg._trimBgn;
   _trimEnd             = tg._trimEnd;
 
@@ -228,11 +165,11 @@ tgTig::computeCoverage(void) {
 
 
 //  Clears the data but doesn't release memory.  The only way to do that is to delete it.
+
 void
 tgTig::clear(void) {
   _tigID                = UINT32_MAX;
 
-  _unused32             = 0;
   _trimBgn              = 0;
   _trimEnd              = 0;
 
@@ -244,69 +181,167 @@ tgTig::clear(void) {
   _spare                = 0;
 
   _layoutLen            = 0;
+
+  delete [] _bases;
+  delete [] _quals;
+
   _basesLen             = 0;
-  _childrenLen          = 0;
+  _basesMax             = 0;
+  _bases                = nullptr;
+  _quals                = nullptr;
 
   delete _childDeltaBits;
 
   _childDeltaBitsLen    = 0;
-  _childDeltaBits       = NULL;
+  _childDeltaBits       = nullptr;
+
+  if ((_childCIGAR     != nullptr) &&          //  CIGAR data exists, and it is stored
+      (_childCIGARData == nullptr))            //  as individual strings, delete those
+    for (uint32 ii=0; ii<_childrenLen; ii++)   //  strings (this created by utgcns).
+      delete [] _childCIGAR[ii];
+  delete [] _childCIGARData;                   //  Bulk data, if loaded from a store.
+  delete [] _childCIGAR;
+
+  _childCIGARLen        = 0;
+  _childCIGARData       = nullptr;
+  _childCIGAR           = nullptr;
+
+  delete [] _children; 
+
+  _children             = nullptr;
+  _childrenLen          = 0;
+  _childrenMax          = 0;
+
+  clearStash();
 }
 
 
 
+//  Decide if the file contains an ASCII layout or a binary stream.  It's
+//  probably rather fragile, testing if the first byte is 't' (from 'tig') or
+//  'T' (from 'TIGR').
+//
 bool
 tgTig::loadFromStreamOrLayout(FILE *F) {
+  int ch = getc(F);   ungetc(ch, F);
 
-  //  Decide if the file contains an ASCII layout or a binary stream.  It's probably rather fragile,
-  //  testing if the first byte is 't' (from 'tig') or 'T' (from 'TIGR').
-
-  int ch = getc(F);
-
-  ungetc(ch, F);
-
-  if (ch == 't')
-    return(loadLayout(F));
-
-  else if (ch == 'T')
-    return(loadFromStream(F));
-
-  else
-    return(false);
+  if      (ch == 't')   return loadLayout(F);
+  else if (ch == 'T')   return loadFromStream(F);
+  else                  return false;
 }
 
 
+void
+tgTig::sumCIGAR(void) {
 
+  _childCIGARLen = 0;
 
+  if (_childCIGAR == nullptr)
+    return;
 
+  for (uint32 ii=0; ii<_childrenLen; ii++)
+    assert(_childCIGAR[ii] != nullptr);
 
+  for (uint32 ii=0; ii<_childrenLen; ii++)                //  Compute sum of the CIGAR string lengths,
+    _childCIGARLen += strlen(_childCIGAR[ii]) + 1;        //  INCLUDING the NUL byte for each string.
+}
 
+void
+tgTig::writeCIGAR(writeBuffer *B, FILE *F) {
+  char  nul = 0;
+
+  if (_childCIGAR == nullptr)
+    return;
+
+  for (uint32 ii=0; ii<_childrenLen; ii++)
+    assert(_childCIGAR[ii] != nullptr);
+
+  if (B)                                                    //  Child CIGAR alignments, INCLUDING the
+    for (uint32 ii=0; ii<_childrenLen; ii++)                //  NUL byte.
+      B->write(_childCIGAR[ii], strlen(_childCIGAR[ii]) + 1);
+
+  if (F)
+    for (uint32 ii=0; ii<_childrenLen; ii++)
+      writeToFile(_childCIGAR[ii], "tgTig::saveToStream::CIGAR", strlen(_childCIGAR[ii]) + 1, F);
+}
+
+void
+tgTig::loadCIGAR(readBuffer *B, FILE *F) {
+
+  if (_childCIGARLen == 0)
+    return;
+
+  _childCIGARData = new char   [_childCIGARLen];            //  Allocate space and read
+  _childCIGAR     = new char * [_childrenLen];              //  bulk data from disk
+
+  if (B)
+    B->read(_childCIGARData, sizeof(char) * _childCIGARLen);
+
+  if (F)
+    loadFromFile(_childCIGARData, "tgTig::loadFromStream::childCIGARData", _childCIGARLen, F);
+
+  uint64  cp = 0;                                           //  Set pointers to individual
+  uint64  ii = 0;                                           //  strings in bulk data.
+
+  for (; (cp < _childCIGARLen) && (ii < _childrenLen); ii++) {
+    _childCIGAR[ii] = _childCIGARData + cp;
+
+    while ((cp < _childCIGARLen) && (_childCIGARData[cp] != 0))
+      cp++;
+    cp++;
+  }
+
+  assert(ii == _childrenLen);
+  assert(cp == _childCIGARLen);
+}
 
 
 void
 tgTig::saveToBuffer(writeBuffer *B) {
-  char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
+  char         tag[4] = {'T', 'I', 'G', 'R', };             //  That's tigRecord, not TIGR
   tgTigRecord  tr;
 
-  saveToRecord(tr);
+  sumCIGAR();
+  saveToRecord(tr);                                         //  Copy tgTig (this) to the on-disk struct.
 
-  B->write( tag, 4);
-  B->write(&tr,  sizeof(tgTigRecord));
+  B->write( tag, 4);                                        //  Write the TIGR tag and
+  B->write(&tr,  sizeof(tgTigRecord));                      //  the on-disk struct
 
-  //  We could save the null byte too, but don't.  It's explicitly added during the load.
+  B->write(_bases, _basesLen);                              //  Write bases and quals, EXCLUDING the
+  B->write(_quals, _basesLen);                              //  NUL byte (it is added back during load).
 
-  if (_basesLen > 0) {
-    B->write(_bases, _basesLen);
-    B->write(_quals, _basesLen);
-  }
-
-  if (_childrenLen > 0)
-    B->write(_children, sizeof(tgPosition) * _childrenLen);
+  B->write(_children, sizeof(tgPosition) * _childrenLen);
 
   if (_childDeltaBitsLen > 0)
     _childDeltaBits->dumpToBuffer(B);
+
+  if (_childCIGARLen > 0)                                   //  sumCIGAR() computes this.
+    writeCIGAR(B, nullptr);
 }
 
+
+void
+tgTig::saveToStream(FILE *F) {  //  see above for comments...
+  char         tag[4] = {'T', 'I', 'G', 'R', };
+  tgTigRecord  tr;
+
+  sumCIGAR();
+  saveToRecord(tr);
+
+  writeToFile(tag, "tgTig::saveToStream::tigr", 4, F);   //  see above for interesting,
+  writeToFile(tr,  "tgTig::saveToStream::tr",      F);   //  helpful and useful comments.
+
+  writeToFile(_bases, "tgTig::saveToStream::bases", _basesLen, F);
+  writeToFile(_quals, "tgTig::saveToStream::quals", _basesLen, F);
+
+  writeToFile(_children, "tgTig::saveToStream::children", _childrenLen, F);
+
+  if (_childDeltaBitsLen > 0)
+    _childDeltaBits->dumpToFile(F);
+
+  if (_childCIGARLen > 0)
+    writeCIGAR(nullptr, F);
+}
 
 
 bool
@@ -314,85 +349,56 @@ tgTig::loadFromBuffer(readBuffer *B) {
   char         tag[4];
   tgTigRecord  tr;
 
+  clear();
+
   //  Read the tgTigRecord from disk and copy it into our tgTig.
 
+  if (B->eof() == true)
+    return false;
+
   if (4 != B->read(tag, 4)) {
-    if (errno)
-      fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
-    return(false);
+    fprintf(stderr, "tgTig::loadFromBuffer()-- failed to read four byte code: %s\n", strerror(errno));
+    return false;
   }
 
   if ((tag[0] != 'T') ||
       (tag[1] != 'I') ||
       (tag[2] != 'G') ||
       (tag[3] != 'R')) {
-    fprintf(stderr, "tgTig::loadFromStream()-- not at a tigRecord, got bytes '%c%c%c%c' (0x%02x%02x%02x%02x).\n",
+    fprintf(stderr, "tgTig::loadFromBuffer()-- not at a tigRecord, got bytes '%c%c%c%c' (0x%02x%02x%02x%02x).\n",
             tag[0], tag[1], tag[2], tag[3],
             tag[0], tag[1], tag[2], tag[3]);
-    return(false);
+    return false;
   }
 
   if (sizeof(tgTigRecord) != B->read(&tr, sizeof(tgTigRecord))) {
-    fprintf(stderr, "tgTig::loadFromStream()-- failed to read tgTigRecord: %s\n", strerror(errno));
-    return(false);
+    fprintf(stderr, "tgTig::loadFromBuffer()-- failed to read tgTigRecord: %s\n", strerror(errno));
+    return false;
   }
 
-  clear();
   restoreFromRecord(tr);
 
-  //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
+  //  Allocate space for bases/quals, reads, alignments and load them.
+  //   - bases and quals have a NUL byte added when loaded.
+  //   - CIGARs are stored as a single array, with embedded NULs, and
+  //     are split into individual strings.
 
-  resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, _raAct::doNothing);
+  resizeArrayPair(_bases, _quals, 0, _basesMax,    _basesLen + 1, _raAct::doNothing);
+  resizeArray    (_children,      0, _childrenMax, _childrenLen,  _raAct::doNothing);
 
-  if (_basesLen > 0) {
-    B->read(_bases, _basesLen);
-    B->read(_quals, _basesLen);
+  B->read(_bases, _basesLen);   _bases[_basesLen] = 0;
+  B->read(_quals, _basesLen);   _quals[_basesLen] = 0;
 
-    _bases[_basesLen] = 0;
-    _quals[_basesLen] = 0;
-  }
-
-  //  Allocate space for reads and alignments, and load them.
-
-  resizeArray(_children,    0, _childrenMax,    _childrenLen,    _raAct::doNothing);
-
-  if (_childrenLen > 0)
-    B->read(_children, sizeof(tgPosition) * _childrenLen);
+  B->read(_children, sizeof(tgPosition) * _childrenLen);
 
   if (_childDeltaBitsLen > 0)
     _childDeltaBits = new stuffedBits(B);
 
-  //  Return success.
+  if (_childCIGARLen > 0)
+    loadCIGAR(B, nullptr);
 
-  return(true);
+  return true;
 }
-
-
-
-void
-tgTig::saveToStream(FILE *F) {
-  char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
-  tgTigRecord  tr;
-
-  saveToRecord(tr);
-
-  writeToFile(tag, "tgTig::saveToStream::tigr", 4, F);
-  writeToFile(tr,  "tgTig::saveToStream::tr",      F);
-
-  //  We could save the null byte too, but don't.  It's explicitly added during the load.
-
-  if (_basesLen > 0) {
-    writeToFile(_bases, "tgTig::saveToStream::bases", _basesLen, F);
-    writeToFile(_quals, "tgTig::saveToStream::quals", _basesLen, F);
-  }
-
-  if (_childrenLen > 0)
-    writeToFile(_children, "tgTig::saveToStream::children", _childrenLen, F);
-
-  if (_childDeltaBitsLen > 0)
-    _childDeltaBits->dumpToFile(F);
-}
-
 
 
 bool
@@ -402,11 +408,12 @@ tgTig::loadFromStream(FILE *F) {
 
   clear();
 
-  //  Read the tgTigRecord from disk and copy it into our tgTig.
+  if (feof(F))
+    return false;
 
-  if (4 != loadFromFile(tag, "tgTig::saveToStream::tigr", 4, F, false)) {
+  if (4 != loadFromFile(tag, "tgTig::loadFromStream::tigr", 4, F, false)) {
     fprintf(stderr, "tgTig::loadFromStream()-- failed to read four byte code: %s\n", strerror(errno));
-    return(false);
+    return false;
   }
 
   if ((tag[0] != 'T') ||
@@ -416,45 +423,32 @@ tgTig::loadFromStream(FILE *F) {
     fprintf(stderr, "tgTig::loadFromStream()-- not at a tigRecord, got bytes '%c%c%c%c' (0x%02x%02x%02x%02x).\n",
             tag[0], tag[1], tag[2], tag[3],
             tag[0], tag[1], tag[2], tag[3]);
-    return(false);
+    return false;
   }
 
   if (0 == loadFromFile(tr, "tgTig::loadFromStream::tr", F, false)) {
     fprintf(stderr, "tgTig::loadFromStream()-- failed to read tgTigRecord: %s\n", strerror(errno));
-    return(false);
+    return false;
   }
 
   restoreFromRecord(tr);
 
-  //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
+  resizeArrayPair(_bases, _quals, 0, _basesMax,    _basesLen + 1, _raAct::doNothing);
+  resizeArray    (_children,      0, _childrenMax, _childrenLen,  _raAct::doNothing);
 
-  if (_basesLen > 0) {
-    resizeArrayPair(_bases, _quals, 0, _basesMax, _basesLen + 1, _raAct::doNothing);
-    loadFromFile(_bases, "tgTig::loadFromStream::bases", _basesLen, F);
-    loadFromFile(_quals, "tgTig::loadFromStream::quals", _basesLen, F);
+  loadFromFile(_bases, "tgTig::loadFromStream::bases", _basesLen, F);   _bases[_basesLen] = 0;
+  loadFromFile(_quals, "tgTig::loadFromStream::quals", _basesLen, F);   _quals[_basesLen] = 0;
 
-    _bases[_basesLen] = 0;
-    _quals[_basesLen] = 0;
-  }
-
-  //  Allocate space for reads and alignments, and load them.
-
-  resizeArray(_children,    0, _childrenMax,    _childrenLen,    _raAct::doNothing);
-
-  if (_childrenLen > 0)
-    loadFromFile(_children, "tgTig::savetoStream::children", _childrenLen, F);
+  loadFromFile(_children, "tgTig::savetoStream::children", _childrenLen, F);
 
   if (_childDeltaBitsLen > 0)
     _childDeltaBits = new stuffedBits(F);
 
-  //  Return success.
+  if (_childCIGARLen > 0)
+    loadCIGAR(nullptr, F);
 
-  return(true);
+  return true;
 };
-
-
-
-
 
 
 
@@ -488,7 +482,6 @@ tgTig::dumpLayout(FILE *F, bool withSequence) {
 
   //  Properties.
 
-  //fprintf(F, "unused32        %u\n", _unused32);
   fprintf(F, "trimBgn         %u\n", _trimBgn);
   fprintf(F, "trimEnd         %u\n", _trimEnd);
   fprintf(F, "class           %s\n", toString(_class));
@@ -587,8 +580,6 @@ tgTig::loadLayout(FILE *F) {
       else
         memcpy(_quals, W[1], sizeof(char) * (_basesLen + 1));
 
-    //} else if (strcmp(W[0], "unused32") == 0) {
-    //  _unused32 = strtouint32(W[1]);
     } else if (strcmp(W[0], "trimBgn") == 0) {
       _trimBgn = strtouint32(W[1]);
     } else if (strcmp(W[0], "trimEnd") == 0) {
@@ -896,7 +887,7 @@ tgTig::dumpFASTQ(FILE *F) {
 }
 
 
-void
+void   //  See also tgTigDisplay.C
 tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
 
   //  If a singleton, or no alignment, don't create the output.
@@ -938,11 +929,8 @@ tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
   delete [] bamName;
   delete [] tigName;
 
-  //  For sam, we need to have ... something ... (some field that I forget
-  //  which) else hdr_write doesn't write any SQ records.
-
-  int ret = sam_hdr_write(outBAMfp, outBAMhp);
-  if (ret < 0) {
+  int ret = sam_hdr_write(outBAMfp, outBAMhp);   //  Only works for BAM; sam needs some extra field
+  if (ret < 0) {                                 //  set so that hdr_write will output SQ records.
     fprintf(stderr, "Failed to write header to BAM file!\n");
     exit(1);
   }
@@ -952,8 +940,8 @@ tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
   for (uint32 rr=0; rr<_childrenLen; rr++) {
     tgPosition  *child         = getChild(rr);
 
-    const char  *cigar         = ((_childCIGAR == nullptr) || (_childCIGAR[rr] == nullptr)) ? "" :       _childCIGAR[rr];
-    size_t       cigarArrayLen = ((_childCIGAR == nullptr) || (_childCIGAR[rr] == nullptr)) ? 0  : strlen(_childCIGAR[rr]);
+    const char  *cigar         = (_childCIGAR == nullptr) ? "" :       _childCIGAR[rr];
+    size_t       cigarArrayLen = (_childCIGAR == nullptr) ? 0  : strlen(_childCIGAR[rr]);
 
     uint32_t    *cigarArray    = (cigarArrayLen == 0) ? nullptr : new uint32_t [cigarArrayLen];
     ssize_t      cigarLenS     = (cigarArrayLen == 0) ? 0       : sam_parse_cigar(cigar, nullptr, &cigarArray, &cigarArrayLen);

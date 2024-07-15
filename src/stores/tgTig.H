@@ -115,15 +115,6 @@ public:
   uint32               deltaOffset(void)     { return(_deltaOffset); };
   uint32               deltaLength(void)     { return(_deltaLen);    };
 
-  //  Set just the anchor and hangs, leave positions alone.
-#if 0   //  Unused.
-  void                 setAnchor(uint32 anchor, int32 ahang, int32 bhang) {
-    _anchor = anchor;
-    _ahang  = ahang;
-    _bhang  = bhang;
-  };
-#endif
-
   //  Set everything.  This is to be used by unitigger.
   void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
 
@@ -223,7 +214,7 @@ public:
 
 
 //  On-disk tig, same as tgTig without the pointers.
-struct tgTigRecord {
+struct tgTigRecordV1 {
   uint32              _tigID;
 
   uint32              _unused32;
@@ -244,12 +235,60 @@ struct tgTigRecord {
 };
 
 
+//  On-disk tig, same as tgTig without the pointers.
+//  Version 2 was introduced in Canu v2.3 to handle CIGAR strings
+//  and BAM output.  Lengths were increased to 64-bit.
+//
+struct tgTigRecord {
+  uint32              _tigID;
+
+  tgTig_class         _class           : 2;
+  uint32              _suggestRepeat   : 1;
+  uint32              _suggestCircular : 1;
+  uint32              _suggestBubble   : 1;
+  uint32              _circularLength  : 20;
+  uint32              _spare           : 7;
+
+  uint32              _trimBgn;
+  uint32              _trimEnd;
+
+  uint64              _layoutLen;
+  uint64              _basesLen;
+  uint64              _childrenLen;
+  uint64              _childDeltaBitsLen;
+  uint64              _childCIGARLen;
+
+  tgTigRecord&
+  operator=(const tgTigRecordV1 &that) {
+    _tigID             = that._tigID;
+
+    _class             = that._class;
+    _suggestRepeat     = that._suggestRepeat;
+    _suggestCircular   = that._suggestCircular;
+    _suggestBubble     = that._suggestBubble;
+    _circularLength    = that._circularLength;
+    _spare             = that._spare;
+    _trimBgn           = that._trimBgn;
+    _trimEnd           = that._trimEnd;
+
+    _layoutLen         = that._layoutLen;
+    _basesLen          = that._basesLen;
+    _childrenLen       = that._childrenLen;
+    _childDeltaBitsLen = that._childDeltaBitsLen;
+    _childCIGARLen     = 0;
+
+    return *this;
+  }
+};
+
 
 //  In-core tig.
 class tgTig {
 public:
-  tgTig();    //  All data unallocated, lengths set to zero
-  ~tgTig();   //  Releases memory
+  tgTig()   {          }   //  All data unallocated, lengths set to zero
+  ~tgTig()  { clear(); }   //  Releases memory
+
+  void           clear(void);    //  Releases memory and clears data.
 
   //  Accessors
 
@@ -284,16 +323,24 @@ public:
 
   //  Operators
 
-  void           clear(void);    //  Clears data but doesn't release memory.
-
   tgTig         &operator=(tgTig &tg);
 
   bool           loadFromStreamOrLayout(FILE *F);
 
-  void           saveToBuffer(writeBuffer *B);
-  bool           loadFromBuffer(readBuffer *B);
+private:
+  void           sumCIGAR(void);
+  void           writeCIGAR(writeBuffer *B, FILE *);
+  void           loadCIGAR(readBuffer *B, FILE *F);
+public:
+  char const    *getChildCIGAR(uint32 child) {
+    return (_childCIGAR == nullptr) ? nullptr : _childCIGAR[child];
+  }
 
+public:
+  void           saveToBuffer(writeBuffer *B);
   void           saveToStream(FILE *F);
+
+  bool           loadFromBuffer(readBuffer *B);
   bool           loadFromStream(FILE *F);
 
   void           dumpLayout(FILE *F, bool withSequence=true);
@@ -345,7 +392,7 @@ public:
 
 private:
 public:
-  uint32              _tigID;             //  ID in the store, or UINT32_MAX if not set
+  uint32       _tigID = uint32max;             //  ID in the store, or UINT32_MAX if not set
 
   //  This is overloaded.
   //
@@ -357,46 +404,53 @@ public:
   //  contig when it is trimmed back to circularize, or maybe later,
   //  bluntified.
 
-  uint32              _unused32;    //  Previously, _sourceID, but never used.
-  uint32              _trimBgn;
-  uint32              _trimEnd;
+  uint32       _trimBgn = 0;
+  uint32       _trimEnd = 0;
 
   //  A variety of flags to suggest what type of unitig this is
 
-  tgTig_class         _class           : 2;    //  Output classification: unassembled, bubble, contig
-  uint32              _suggestRepeat   : 1;    //  Bogart made this from detected repeat.
-  uint32              _suggestCircular : 1;    //  Bogart found overlaps making a circle.
-  uint32              _suggestBubble   : 1;    //  Bogart thinks this is a bubble.
-  uint32              _circularLength  : 20;   //  Length of the end-to-end circularizing overlap.
-  uint32              _spare           : 7;
+  tgTig_class  _class           : 2  = tgTig_noclass;  //  Output classification: unassembled, bubble, contig
+  uint32       _suggestRepeat   : 1  = false;          //  Bogart made this from detected repeat.
+  uint32       _suggestCircular : 1  = false;          //  Bogart found overlaps making a circle.
+  uint32       _suggestBubble   : 1  = false;          //  Bogart thinks this is a bubble.
+  uint32       _circularLength  : 20 = 0;              //  Length of the end-to-end circularizing overlap.
+  uint32       _spare           : 7  = 0;
 
-  uint32              _layoutLen;         //  The max coord in the layout.  Same as _basesLen if _bases exists.
+  uint32       _layoutLen = 0;           //  The max coord in the layout.  Same as _basesLen if _bases exists.
 
-  uint32              _basesLen;          //  Doesn't include the NUL.
-  uint32              _basesMax;          //  Does    include the NUL.
-  char               *_bases;             //  Linear consensus sequence.
-  uint8              *_quals;             //
+  uint32       _basesLen = 0;            //  Doesn't include the NUL.
+  uint32       _basesMax = 0;            //  Does    include the NUL.
+  char        *_bases    = nullptr;      //  Linear consensus sequence.
+  uint8       *_quals    = nullptr;      //
+
+public:
+  uint64       _childDeltaBitsLen = 0;         //  Created by utgcns or loaded from
+  stuffedBits *_childDeltaBits    = nullptr;   //  tgStore output of consensus
+
+  uint64       _childCIGARLen  = 0;
+  char        *_childCIGARData = nullptr;
+  char       **_childCIGAR     = nullptr;      //  Used by utgcns to output BAM format
 
 private:
-  tgPosition         *_children;          //  positions of objects that make up this tig
-  uint32              _childrenLen;
-  uint32              _childrenMax;
+  tgPosition  *_children    = nullptr;   //  positions of objects that make up this tig
+  uint32       _childrenLen = 0;
+  uint32       _childrenMax = 0;
 
 private:
-  tgPosition         *_stashed;           //  children that we want to temporarily ignore
-  uint32              _stashedLen;
-  uint32              _stashedMax;
+  tgPosition  *_stashed    = nullptr;    //  children that we want to temporarily ignore
+  uint32       _stashedLen = 0;
+  uint32       _stashedMax = 0;
 
-  uint64              _stashBack[2];       //  Stash stats: read is backbone.
-  uint64              _stashCont[2];       //  Stash stats: read is contained and used for consensus.
-  uint64              _stashStsh[2];       //  Stash stats: read is stashed   NOT used for consensus.
-  uint64              _stashIgnr[2];       //  Stash stats: read is ignore    NOT used for consensus.
+  uint64       _stashBack[2] = {0, 0};   //  Stash stats: read is backbone.
+  uint64       _stashCont[2] = {0, 0};   //  Stash stats: read is contained and used for consensus.
+  uint64       _stashStsh[2] = {0, 0};   //  Stash stats: read is stashed   NOT used for consensus.
+  uint64       _stashIgnr[2] = {0, 0};   //  Stash stats: read is ignore    NOT used for consensus.
 
 public:
   void                 clearStash(void) {
     delete [] _stashed;
-    _stashed = nullptr;
 
+    _stashed    = nullptr;
     _stashedLen = 0;
     _stashedMax = 0;
 
@@ -406,25 +460,19 @@ public:
     _stashIgnr[0] = _stashIgnr[1] = 0;
   }
 
-  uint64               nStashBack(void) { return _stashBack[0]; }
-  uint64               nStashCont(void) { return _stashCont[0]; }
-  uint64               nStashStsh(void) { return _stashStsh[0]; }
-  uint64               nStashIgnr(void) { return _stashIgnr[0]; }
+  uint64        nStashBack(void) { return _stashBack[0]; }
+  uint64        nStashCont(void) { return _stashCont[0]; }
+  uint64        nStashStsh(void) { return _stashStsh[0]; }
+  uint64        nStashIgnr(void) { return _stashIgnr[0]; }
 
-  double               cStashBack(void) { return (double)_stashBack[1] / length(); }
-  double               cStashCont(void) { return (double)_stashCont[1] / length(); }
-  double               cStashStsh(void) { return (double)_stashStsh[1] / length(); }
-  double               cStashIgnr(void) { return (double)_stashIgnr[1] / length(); }
-
-public:
-  uint32              _childDeltaBitsLen;   //  Created by utgcns or loaded from
-  stuffedBits        *_childDeltaBits;      //  tgStore output of consensus
-
-  char              **_childCIGAR;          //  Used by utgcns to output BAM format
+  double        cStashBack(void) { return (double)_stashBack[1] / length(); }
+  double        cStashCont(void) { return (double)_stashCont[1] / length(); }
+  double        cStashStsh(void) { return (double)_stashStsh[1] / length(); }
+  double        cStashIgnr(void) { return (double)_stashIgnr[1] / length(); }
 
   //  Flags for computing consensus/multialignments
 
-  uint32              _utgcns_verboseLevel;
+  uint32       _utgcns_verboseLevel = 0;
 };
 
 

@@ -31,135 +31,101 @@
 
 class alignRowEntry {
 public:
-  alignRowEntry(sqStore *seq_, tgTig *tig_, uint32 child_);
+  alignRowEntry(sqStore *seq_,
+                tgTig   *tig_,
+                uint32   child_) {
+    sqRead  read;
+
+    seq_->sqStore_getRead(tig_->getChild(child_)->ident(), &read);
+
+    position        = tig_->getChild(child_);          //  Set basic stuff and allocate space.
+    sequenceLength  = read.sqRead_length();
+
+    bases           = new char  [sequenceLength + 1];    bases[sequenceLength] = 0;
+    quals           = new char  [sequenceLength + 1];    quals[sequenceLength] = 0;
+    delta           = new int32 [position->deltaLength()];
+    deltaLength     =            position->deltaLength();
+
+    char  *b = read.sqRead_sequence();                 //  Copy sequence and create empty quals.
+
+    for (uint32 ii=0; ii<sequenceLength; ii++) {
+      bases[ii] = b[ii];
+      quals[ii] = '!';
+    }
+
+    if (position->isReverse())                         //  Reverse complement if needed.
+      ::reverseComplement(bases, quals, sequenceLength);
+
+    tig_->_childDeltaBits->setPosition(position->deltaOffset());
+
+    for (uint32 dd=0; dd<deltaLength; dd++) {          //  Decode deltas.
+      delta[dd] = tig_->_childDeltaBits->getEliasDelta();
+
+      if (tig_->_childDeltaBits->getBit() == 0)
+        delta[dd] = -delta[dd];
+
+      //fprintf(stderr, "READ %8u DELTA[%02u] %d\n", tig_->getChild(child_)->ident(), dd, delta[dd]);
+    }
+  }
 
   ~alignRowEntry() {
     delete [] bases;
     delete [] quals;
     delete [] delta;
-  };
+  }
 
-  tgPosition     *position;
-  int32           sequenceLength;
+  tgPosition     *position       = nullptr;
+  int32           sequenceLength = 0;
 
-  char           *bases;
-  char           *quals;
+  char           *bases          = nullptr;
+  char           *quals          = nullptr;
 
-  int32          *delta;
-  int32           deltaLength;
+  int32          *delta          = nullptr;
+  int32           deltaLength    = 0;
 
-  alignRowEntry  *nextEntry;
+  alignRowEntry  *nextEntry      = nullptr;
 };
-
-
-
-alignRowEntry::alignRowEntry(sqStore     *seq_,
-                             tgTig       *tig_,
-                             uint32       child_) {
-
-  sqRead     *read = seq_->sqStore_getRead(tig_->getChild(child_)->ident(), new sqRead());
-
-  //  Set basic stuff and allocate space.
-
-  position        = tig_->getChild(child_);
-  sequenceLength  = read->sqRead_length();
-
-  bases           = new char  [sequenceLength + 1];
-  quals           = new char  [sequenceLength + 1];
-  delta           = new int32 [position->deltaLength()];
-  deltaLength     = position->deltaLength();
-
-  nextEntry       = NULL;
-
-  //  Copy sequence and create empty quals.
-
-  char  *b = read->sqRead_sequence();
-
-  for (uint32 ii=0; ii<sequenceLength; ii++) {
-    bases[ii] = b[ii];
-    quals[ii] = '!';
-  }
-
-  bases[sequenceLength] = 0;
-  quals[sequenceLength] = 0;
-
-  //  Flip the sequence if needed.  The deltas are relative to this flipped sequence.
-
-  if (position->isReverse())
-    ::reverseComplement(bases, quals, sequenceLength);
-
-  //  Decode deltas.
-
-  tig_->_childDeltaBits->setPosition(position->deltaOffset());
-
-  for (uint32 dd=0; dd<deltaLength; dd++) {
-    delta[dd] = tig_->_childDeltaBits->getEliasDelta();
-
-    if (tig_->_childDeltaBits->getBit() == 0)
-      delta[dd] = -delta[dd];
-  }
-
-  //  Cleanup.
-
-  delete read;
-}
-
 
 
 class alignRow {
 public:
   alignRow() {
-    firstEntry = NULL;
-    lastEntry  = NULL;
-    lastColumn = 0;
-  };
-
-  ~alignRow() {
-    alignRowEntry  *e = firstEntry;
-    alignRowEntry  *n = NULL;
-
-    while (e) {
-      n = e->nextEntry;
-      delete e;
-      e = n;
-    }
-  };
-
-  bool    addEntry(alignRowEntry *entry, uint32 spacing);
-
-  alignRowEntry   *firstEntry;
-  alignRowEntry   *lastEntry;
-
-  int32            lastColumn;
-};
-
-
-
-bool
-alignRow::addEntry(alignRowEntry *entry, uint32 spacing) {
-  int32 leftPos = entry->position->min();
-
-  if ((lastColumn > 0) &&                  //  If something in this row, fail
-      (leftPos < lastColumn + spacing))    //  if the new entry intersects.
-    return(false);
-
-  assert(entry->nextEntry == NULL);
-
-  if (firstEntry == NULL) {                //  Add the entry to our list
-    firstEntry           = entry;          //  of entries.
-    lastEntry            = entry;
-  } else {
-    lastEntry->nextEntry = entry;
-    lastEntry            = entry;
-    lastEntry->nextEntry = NULL;
   }
 
-  lastColumn = leftPos + entry->deltaLength + entry->sequenceLength;
+  ~alignRow() {
+    for (alignRowEntry *e=firstEntry, *n; e; e=n) {   //  Walk down the singly-linked list,
+      n = e->nextEntry;                               //  deleting nodes and moving to the next.
+      delete e;
+    }
+  }
 
-  return(true);
-}
+  bool    addEntry(alignRowEntry *entry, uint32 spacing) {
+    int32 leftPos = entry->position->min();
 
+    if ((lastColumn > 0) &&                  //  If something in this row, fail
+        (leftPos < lastColumn + spacing))    //  if the new entry intersects.
+      return false;
 
+    assert(entry->nextEntry == nullptr);
+
+    if (firstEntry == nullptr) {             //  Add the entry to our list
+      firstEntry           = entry;          //  of entries.
+      lastEntry            = entry;
+    } else {
+      lastEntry->nextEntry = entry;
+      lastEntry            = entry;
+    }
+
+    lastColumn = leftPos + entry->deltaLength + entry->sequenceLength;
+
+    return true;
+  }
+
+  alignRowEntry   *firstEntry = nullptr;
+  alignRowEntry   *lastEntry  = nullptr;
+
+  int32            lastColumn = 0;
+};
 
 
 
@@ -176,142 +142,120 @@ tgTig::display(FILE     *F,
   withQV   = false;
   withDots = true;
 
-  if (consensusExists() == 0) {
+  if (consensusExists() == false) {
     fprintf(F, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", tigID());
     return;
   }
-
-  fprintf(stderr, "tgTig::display()--  display tig %d with %d children\n", tigID(), _childrenLen);
-  fprintf(stderr, "tgTig::display()--  width %u spacing %u\n", displayWidth, displaySpacing);
-
-  //
-  //  Convert the children to a list of rows to print.  Worst case is one row per child.
-  //
-
-  alignRow  *row     = NULL;
-  alignRow  *rows    = new alignRow [_childrenLen];
-  int32      rowsLen = 0;
 
   // Sort the children by leftmost position within tig.
 
   std::sort(_children, _children + _childrenLen);
 
-  //  Load into rows.
+  //  Assign children to rows, reusing rows when they have empty space.
+  //    row1 -- [read1  read4  .]
+  //    row2 -- [   read2  .....]
+  //    row3 -- [     read3  ...]
+  //  Worst case is one row per read.
+  //
+  //  The inner loop tries to add the read ('entry') to each existing row.
+  //  If there is space for the read, true is returned and the loop exits.
+  //  If all existing rows are full, a fresh empty row is used, and the
+  //  number of active rows is increased.
+
+  alignRow  *row     = nullptr;
+  alignRow  *rows    = new alignRow [_childrenLen];
+  uint32     rowsLen = 0;
 
   for (int32 i=0; i<_childrenLen; i++) {
-    alignRowEntry  *entry = new alignRowEntry(seq, this, i);
-    uint32          rowsPos;
+    alignRowEntry  *entry = new alignRowEntry(seq, this, i);   //  Everything we need to know about a read in a row.
 
-    //  Try to add this new node to the rows.  The last iteration will always succeed, adding the
-    //  node to a fresh empty lane.
-
-    for (rowsPos=0; rowsPos <= rowsLen; rowsPos++)
-      if (rows[rowsPos].addEntry(entry, displaySpacing))
+    for (uint32 rr=0; rr<_childrenLen; rr++)
+      if (rows[rr].addEntry(entry, displaySpacing)) {
+        rowsLen = std::max(rowsLen, rr+1);
         break;
-
-    assert(rowsPos <= rowsLen);
-
-    //  If it is added to the last one, increment our cnsLen.
-
-    if (rowsPos == rowsLen)
-      rowsLen++;
+      }
   }
 
   //  Find the list of gaps we need to insert into the reference.
 
-  std::set<int32>   gapPositions;
+  uint32  gapPositionsSize = 1024;
 
 #if 0
+  std::set<int32>   gapPositions;
+
   //  This is wrong, each delta is relative to the last one.
   for (int32 rr=0; rr<rowsLen; rr++)
-    for (alignRowEntry *entry=rows[rr].firstEntry; entry != NULL; entry = entry->nextEntry)
+    for (alignRowEntry *entry=rows[rr].firstEntry; entry != nullptr; entry = entry->nextEntry)
       for (uint32 dd=0; dd<entry->deltaLength; dd++)
         if (entry->delta[dd] < 0)
           gapPositions.insert(entry->position->min() + -entry->delta[dd] - 1);
 #endif
 
-  //  Allocate space.
+  //  Allocate space for the display - a matrix of [rows][columns], where the
+  //  number of rows is as above, and the number of columns is the tigLength
+  //  + gaps + a little bit.
 
-  char   **displayBases  = new char  * [rowsLen];   //  Bases to print in the current window.
-  char   **displayQuals  = new char  * [rowsLen];   //  Quals to print in the current window.
-  int32  **displayIDs    = new int32 * [rowsLen];   //  The ID present at this position.
-  char   **displayFwd    = new char  * [rowsLen];   //
+  char   **displayBases  = new char  * [rowsLen];   //  Base at this [row][column]
+  int32  **displayIDs    = new int32 * [rowsLen];   //  Read ID
+  char   **displayFwd    = new char  * [rowsLen];   //  Read orientation
 
-  for (uint32 ii=0; ii<rowsLen; ii++) {
-    displayBases[ii] = new char  [length() + gapPositions.size() + displayWidth + 1];
-    displayQuals[ii] = new char  [length() + gapPositions.size() + displayWidth + 1];
-    displayIDs[ii]   = new int32 [length() + gapPositions.size() + 1];
-    displayFwd[ii]   = new char  [length() + gapPositions.size() + 1];
+  for (uint32 rr=0; rr<rowsLen; rr++) {
+    uint32  sl = length() + gapPositionsSize + displayWidth + 1;   //  Sequence length
+    uint32  il = length() + gapPositionsSize + displayWidth + 1;   //  Information length
 
-    memset(displayBases[ii], ' ', sizeof(char)  * (length() + gapPositions.size() + displayWidth + 1));
-    memset(displayQuals[ii], ' ', sizeof(char)  * (length() + gapPositions.size() + displayWidth + 1));
-
-    memset(displayIDs[ii],    0,  sizeof(int32) * (length() + gapPositions.size() + 1));
-    memset(displayFwd[ii],    0,  sizeof(char)  * (length() + gapPositions.size() + 1));
+    displayBases[rr] = new char  [sl];    memset(displayBases[rr], ' ', sizeof(char)  * sl);
+    displayIDs[rr]   = new int32 [il];    memset(displayIDs[rr],    0,  sizeof(int32) * il);
+    displayFwd[rr]   = new char  [il];    memset(displayFwd[rr],    0,  sizeof(char)  * il);
   }
 
-  //  Copy read sequence to the display arrays, ignoring gaps in the tig for now.
+  //  Copy read data to the display arrays.  We cannot show gaps in the tig.
   //
-  //  Set bases.  Three cases.
-  //    No gap      - just copy the base.
-  //    Gap in read - set to 'gap' base/qual
-  //    Gap in tig  - ignore for now
+  //  Each row has a singly-linked list of the reads that are contained it.
 
   for (int32 rr=0; rr<rowsLen; rr++) {
-    for (alignRowEntry *entry=rows[rr].firstEntry; entry != NULL; entry = entry->nextEntry) {
-      int32 readPos   = 0;
-      int32 activeCol = entry->position->min();
+    for (alignRowEntry *entry=rows[rr].firstEntry; entry != nullptr; entry = entry->nextEntry) {
+      int32 rPos = 0;                        //  Position we're at in the read.
+      int32 dPos = entry->position->min();   //  Position we're at in the row.
 
       for (int32 j=0; j<entry->deltaLength; j++) {
         int32 delta  = entry->delta[j];
         int32 seglen = ((delta > 0) ? delta : -delta) - 1;
 
-        //  Copy bases from the read to the alignment.  We ignore gaps in the tig caused
-        //  by other reads (gapPositions.count(activeCol+cc) > 0) here.
+        //  Copy seglen bases from the read to the display.
 
-        for (int32 cc=0; cc<seglen; cc++) {
-          displayBases[rr][activeCol]   = entry->bases[readPos];
-          displayQuals[rr][activeCol]   = entry->quals[readPos++];
-          displayIDs  [rr][activeCol]   = entry->position->ident();
-          displayFwd  [rr][activeCol++] = entry->position->isForward();
+        for (int32 cc=0; cc<seglen; cc++, rPos++, dPos++) {
+          displayBases[rr][dPos] = entry->bases[rPos];
+          displayIDs  [rr][dPos] = entry->position->ident();
+          displayFwd  [rr][dPos] = entry->position->isForward();
         }
 
-        //  Add a gap into the read.
+        //  Add a gap.
+        //    delta > 0 -> gap in the read, extra base in the tig
+        //    delta < 0 -> gap in the tig, extra base in the read - these are ignored
 
         if (delta > 0) {
-          displayBases[rr][activeCol]   = '-';
-          displayQuals[rr][activeCol]   = '-';
-          displayIDs  [rr][activeCol]   = entry->position->ident();
-          displayFwd  [rr][activeCol++] = entry->position->isForward();
+          displayBases[rr][dPos] = '-';
+          displayIDs  [rr][dPos] = entry->position->ident();
+          displayFwd  [rr][dPos] = entry->position->isForward();
+          dPos++;
         }
-
-        //  But ignore gaps into the tig, and skip over the base in the read.
         else {
-          readPos++;
+          rPos++;
         }
       }
 
-      //  Copy in the rest of the sequence.
-#if 1
-      while (readPos < entry->sequenceLength) {
-        displayBases[rr][activeCol]   = entry->bases[readPos];
-        displayQuals[rr][activeCol]   = entry->quals[readPos++];
-        displayIDs  [rr][activeCol]   = entry->position->ident();
-        displayFwd  [rr][activeCol++] = entry->position->isForward();
+      //  Done with the gaps.  Copy the rest of the sequence.
+
+      for (int32 cc=0; rPos < entry->sequenceLength; rPos++, dPos++) {
+        displayBases[rr][dPos] = entry->bases[rPos];
+        displayIDs  [rr][dPos] = entry->position->ident();
+        displayFwd  [rr][dPos] = entry->position->isForward();
       }
-#endif
-      //memcpy(srow + col, entry->bases + cols, entry->readLen - cols);
-      //memcpy(qrow + col, entry->quals + cols, entry->readLen - cols);
     }
   }
 
-  //  Cleanup
-
-  delete [] rows;
-
-
   //
-  //
+  //  DISPLAY!
   //
 
   fprintf(F, "<<< begin Contig %d >>>", tigID());
@@ -364,7 +308,7 @@ tgTig::display(FILE     *F,
     }
 
 
-    {
+    if (1) {  //  Display the tig sequence.
       char save = _bases[window + rowlen];
       _bases[window + rowlen] = 0;
 
@@ -373,7 +317,7 @@ tgTig::display(FILE     *F,
       _bases[window + rowlen] = save;
     }
 
-    {
+    if (0) {  //  Display the tig quality.
       for (uint32 ii=0; ii<rowlen; ii++)   //  Adjust QV for display.
         _quals[window+ii] += '!';
 
@@ -388,57 +332,44 @@ tgTig::display(FILE     *F,
         _quals[window+ii] -= '!';
     }
 
-    //  Display.
+    //  Display each row.
 
-    for (uint32 i=0; i<rowsLen; i++) {
+    for (uint32 rr=0; rr<rowsLen; rr++) {
       int32 row_id = -1;
       bool  isfwd = false;
 
       //  Change matching bases to '.' or lowercase.
-      //  Count the number of non-blank letters.
 
-      for (int32 j=0; j<displayWidth; j++) {
-        if (window + j > length())
+      for (int32 cc=0; cc<displayWidth; cc++) {
+        if (window + cc > length())
           break;
 
-        if (displayBases[i][window+j] == _bases[window+j]) {
+        if (displayBases[rr][window+cc] == _bases[window+cc]) {
           if (withDots) {
-            displayBases[i][window+j] = '.';
-            displayQuals[i][window+j] = ' ';
+            displayBases[rr][window+cc] = '.';
           } else {
-            displayBases[i][window+j] = tolower(displayBases[i][window+j]);
+            displayBases[rr][window+cc] = tolower(displayBases[rr][window+cc]);
           }
         }
 
-        if (displayIDs[i][window + j] > 0) {
-          row_id = displayIDs[i][window + j];
-          isfwd  = displayFwd[i][window + j];
+        if (displayIDs[rr][window + cc] > 0) {
+          row_id = displayIDs[rr][window + cc];
+          isfwd  = displayFwd[rr][window + cc];
         }
       }
 
-      if (row_id == -1)
+      if (row_id == -1)  //  Nothing in this row
         continue;
 
       //  Display the bases in this row, with orientation and the id.
 
       {
-        char save = displayBases[i][window + displayWidth];
-        displayBases[i][window + displayWidth] = 0;
+        char save = displayBases[rr][window + displayWidth];
+        displayBases[rr][window + displayWidth] = 0;
 
-        fprintf(F, "%s   %c   (%d)\n", displayBases[i] + window, (isfwd) ? '>' : '<', row_id);
+        fprintf(F, "%s   %c   (%d)\n", displayBases[rr] + window, (isfwd) ? '>' : '<', row_id);
 
-        displayBases[i][window + displayWidth] = save;
-      }
-
-      //  Display the quals in this row.
-
-      if (withQV) {
-        char save = displayQuals[i][window + displayWidth];
-        displayQuals[i][window + displayWidth] = 0;
-
-        fprintf(F, "%s\n", displayQuals[i] + window);
-
-        displayQuals[i][window + displayWidth] = save;
+        displayBases[rr][window + displayWidth] = save;
       }
     }
 
@@ -450,15 +381,13 @@ tgTig::display(FILE     *F,
   delete [] uruler;
   delete [] gruler;
 
-  for (uint32 i=0; i < rowsLen; i++) {
-    delete [] displayBases[i];
-    delete [] displayQuals[i];
-    delete [] displayIDs[i];
-    delete [] displayFwd[i];
+  for (uint32 rr=0; rr<rowsLen; rr++) {
+    delete [] displayBases[rr];
+    delete [] displayIDs[rr];
+    delete [] displayFwd[rr];
   }
 
   delete [] displayBases;
-  delete [] displayQuals;
   delete [] displayIDs;
   delete [] displayFwd;
 

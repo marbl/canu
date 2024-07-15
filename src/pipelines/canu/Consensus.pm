@@ -80,7 +80,8 @@ sub utgcns ($$) {
     print F "  -T ../$asm.ctgStore 1 \\\n";
     print F "  -P \$jobid \\\n";
     print F "  -O ./ctgcns/\$jobid.cns.WORKING \\\n";
-    print F "  -B ./ctgcns/\$jobid.bams/ \\\n"   if (getGlobal("bamOutput") eq "1");
+    print F "  -norealign \\\n"  if ((getGlobal("cnsAlign")  eq "0") &&
+                                     (getGlobal("bamOutput") eq "0"));
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
     print F "  -e  " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -em " . getGlobal("cnsErrorRate") . " \\\n";
@@ -477,7 +478,7 @@ sub consensusLoad ($) {
         $cmd .= "> ./5-consensus/ctgcns.files.ctgStoreLoad.err 2>&1";
 
         if (runCommand("unitigging", $cmd)) {
-            caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
+          caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
         }
         unlink "$path/ctgcns.files.ctgStoreLoad.err";
 
@@ -485,31 +486,29 @@ sub consensusLoad ($) {
         stashFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
     }
 
-    #  Consolidate BAM outputs.
+    #  And extract bam records.
 
-    if (getGlobal("bamOutput") eq "1") {
-      my $samtools = getGlobal("samtools");
+    if ((getGlobal("bamOutput") eq "1") &&
+        (! fileExists("$asm.contigs.bam"))) {
+        my $samtools = getGlobal("samtools");
 
-      open(F, "find $path/ctgcns -type f -print |");
-      open(O, "> $path/ctgcns.bam.list") or caExit("failed to open '$path/ctgcns.bam.list' for writing: $!\n", undef);
-      while (<F>) {
-        if (m!ctgcns/\d+.bams/\d+.bam!) {
-          print O $_;
+        $cmd  = "$bin/tgTigDisplay \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
+        $cmd .= "  -b \\\n";
+        $cmd .= "  -o ../$asm.contigs.unsorted.bam \\\n";
+        $cmd .= "  -L ./5-consensus/ctgcns.files \\\n";
+        $cmd .= "> ./5-consensus/ctgcns.files.contigs.bam.err 2>&1";
+      
+        if (runCommand("unitigging", $cmd)) {
+            caExit("failed to extract BAM records from ctgcns files", "$path/ctgcns.files.contigs.bam.err");
         }
-      }
-      close(O);
-      close(F);
+        unlink "$path/ctgcns.files.contigs.bam.err";
 
-      if (runCommand(".", "$samtools merge -o ./$asm.contigs.unsorted.bam -b $path/ctgcns.bam.list > $path/ctgcns.bam.err 2>&1")) {
-        caExit("failed to merge BAM outputs into ./$asm.contigs.unsorted.bam", "$path/ctgcns.bam.err");
-      }
-      unlink "$path/ctgcns.bam.err";
-
-      if (runCommand(".", "$samtools sort --write-index --threads 2 -o ./$asm.contigs.bam ./$asm.contigs.unsorted.bam > $path/ctgcns.bam.err 2>&1")) {
-        caExit("failed to sort BAM outputs from ./$asm.contigs.unsorted.bam to ./$asm.contigs.bam", "$path/ctgcns.bam.err");
-      }
-      unlink "./$asm.contigs.unsorted.bam";
-      unlink "$path/ctgcns.bam.err";
+        if (runCommand(".", "$samtools sort --write-index --threads 2 -o ./$asm.contigs.bam ./$asm.contigs.unsorted.bam > ./ctgcns.bam.err 2>&1")) {
+            caExit("failed to sort BAM outputs from ./$asm.contigs.unsorted.bam to ./$asm.contigs.bam", "./ctgcns.bam.err");
+        }
+        unlink "./$asm.contigs.unsorted.bam";
+        unlink "./ctgcns.bam.err";
     }
 
     #  Remove consensus outputs

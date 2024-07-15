@@ -19,7 +19,7 @@
 #include "tgStore.H"
 
 uint32  MASRmagic   = 0x5253414d;  //  'MASR', as a big endian integer
-uint32  MASRversion = 1;
+uint32  MASRversion = 2;
 
 #define MAX_VERS   1024  //  Linked to 10 bits in the header file.
 
@@ -125,14 +125,6 @@ tgStore::tgStore(const char *path_,
       assert(0);
       break;
   }
-
-
-  //  Fail (again?) if there are no tigs loaded.
-
-  //if (_tigLen == 0) {
-  //  fprintf(stderr, "tgStore::tgStore()-- ERROR, didn't find any tigs in the store.  Correct version?\n");
-  //  exit(1);
-  //}
 }
 
 
@@ -643,18 +635,29 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
     exit(1);
   }
 
-  if (MASRversionInFile != MASRversion) {
-    fprintf(stderr, "tgStore::loadMASR()-- Failed to open '%s': version number mismatch; file=%d code=%d\n",
-            _name, MASRversionInFile, MASRversion);
-    exit(1);
-  }
-
-  //  Check we're consistent.
   if (L < MASRtotalInFile)
     fprintf(stderr, "tgStore::loadMASR()-- '%s' has more tigs (" F_U32 ") than expected (" F_U32 ").\n",
             _name, MASRtotalInFile, L), exit(1);
 
-  loadFromFile(R, "MASR", masrLen, F);
+  if (MASRversionInFile == 1) {
+    tgStoreEntry *Rv1 = new tgStoreEntry [M];
+    loadFromFile(Rv1, "MASR", masrLen, F);
+
+    for (uint32 ii=0; ii<masrLen; ii++)
+      R[ii] = Rv1[ii];   //  A format conversion!
+
+    delete [] Rv1;
+  }
+
+  else if (MASRversionInFile == 2) {
+    loadFromFile(R, "MASR", masrLen, F);
+  }
+
+  else {
+    fprintf(stderr, "tgStore::loadMASR()-- Failed to open '%s': version number mismatch; file=%d code=%d\n",
+            _name, MASRversionInFile, MASRversion);
+    exit(1);
+  }
 
   merylutil::closeFile(F, _name);
 }
