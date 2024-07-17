@@ -409,12 +409,9 @@ configureRemote();
 configureCloud($asm, $rootdir);
 configureDNANexus();
 
-#  Set jobs sizes based on genomeSize and available hosts;
 #  Check that parameters (except error rates) are valid and consistent;
-#  Fail if any thing flagged an error condition;
 
 checkParameters();
-configureAssembler();  #  Set job sizes and etc bases on genomeSize and hosts available.
 
 #  Make space for us to work in, and move there.
 #
@@ -655,6 +652,10 @@ if (($numPacBio   == 0) &&
 if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
    caExit("ERROR: HiFi data cannot currently be combined with another read type", undef);
 }
+
+#  Now we can set memory/thread limits and any other parameters.
+
+configureAssembler($numPacBio, $numNanopore, $numHiFi);
 
 checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
 printHelp();           #  And one final last chance to fail.

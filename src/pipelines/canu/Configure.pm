@@ -534,7 +534,10 @@ sub getAllowedResources ($$$$$@) {
 #  If minMemory or minThreads isn't defined, pick a reasonable pair based on genome size.
 #
 
-sub configureAssembler () {
+sub configureAssembler ($$$) {
+    my $numPacBio   = shift @_;
+    my $numNanopore = shift @_;
+    my $numHiFi     = shift @_;
 
     #  For overlapper and mhap, allow larger maximums for larger genomes.  More memory won't help
     #  smaller genomes, and the smaller minimums won't hurt larger genomes (which are probably being
@@ -782,20 +785,18 @@ sub configureAssembler () {
 
     #  And bogart.
 
-    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("batMemory", "4-16");        setGlobalIfUndef("batThreads", "2-4");
-
-    } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("batMemory", "16-64");       setGlobalIfUndef("batThreads", "2-8");
-
-    } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("batMemory", "32-256");      setGlobalIfUndef("batThreads", "4-16");
-
-    } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-        setGlobalIfUndef("batMemory", "128-512");     setGlobalIfUndef("batThreads", "8-32");
-
+    if ($numHiFi == 0) {
+      if    (getGlobal("genomeSize") < adjustGenomeSize("40m"))  { setGlobalIfUndef("batMemory",   "4-16");    setGlobalIfUndef("batThreads", "2-4");  }
+      elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) { setGlobalIfUndef("batMemory",  "16-48");    setGlobalIfUndef("batThreads", "2-8");  }
+      elsif (getGlobal("genomeSize") < adjustGenomeSize("2g"))   { setGlobalIfUndef("batMemory",  "32-128");   setGlobalIfUndef("batThreads", "4-16"); }
+      elsif (getGlobal("genomeSize") < adjustGenomeSize("5g"))   { setGlobalIfUndef("batMemory",  "64-256");   setGlobalIfUndef("batThreads", "8-32"); }
+      else                                                       { setGlobalIfUndef("batMemory",  "64-512");   setGlobalIfUndef("batThreads", "8-64"); }
     } else {
-        setGlobalIfUndef("batMemory", "256-1024");    setGlobalIfUndef("batThreads", "16-64");
+      if    (getGlobal("genomeSize") < adjustGenomeSize("40m"))  { setGlobalIfUndef("batMemory",   "4-16");    setGlobalIfUndef("batThreads", "2-4");  }
+      elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) { setGlobalIfUndef("batMemory",   "8-32");    setGlobalIfUndef("batThreads", "2-8");  }
+      elsif (getGlobal("genomeSize") < adjustGenomeSize("2g"))   { setGlobalIfUndef("batMemory",  "16-64");    setGlobalIfUndef("batThreads", "4-16"); }
+      elsif (getGlobal("genomeSize") < adjustGenomeSize("5g"))   { setGlobalIfUndef("batMemory",  "32-128");   setGlobalIfUndef("batThreads", "8-32"); }
+      else                                                       { setGlobalIfUndef("batMemory",  "32-256");   setGlobalIfUndef("batThreads", "8-64"); }
     }
 
     #  Log maxMemory setting.
