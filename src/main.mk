@@ -47,6 +47,7 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/kmers-v1/kmers-exact.C \
                 utility/src/kmers-v1/kmers-files.C \
                 utility/src/kmers-v1/kmers-histogram.C \
+                utility/src/kmers-v1/kmers-histogram-ploidy.C \
                 utility/src/kmers-v1/kmers-reader.C \
                 utility/src/kmers-v1/kmers-writer-block.C \
                 utility/src/kmers-v1/kmers-writer-stream.C \
@@ -65,7 +66,6 @@ SOURCES      := utility/src/align/align-ksw2-driver.C \
                 utility/src/parasail/sg_qb_de_dispatch.c \
                 utility/src/parasail/sg_qe_db_dispatch.c \
                 utility/src/parasail/sg_qx_dispatch.c \
-                utility/src/parasail/sg_trace.c \
                 \
                 utility/src/sequence/dnaSeq-v1.C \
                 utility/src/sequence/bufSeqFile-v1.C \

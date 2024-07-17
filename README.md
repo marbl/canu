@@ -19,13 +19,41 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
   * Conda: `conda install -c conda-forge -c bioconda -c defaults canu`
   * Homebrew: `brew install brewsci/bio/canu`
 
-* Alternatively, you can use the latest unreleased version from the source code.  This version has not undergone the same testing as a release and so may have unknown bugs or issues generating sub-optimal assemblies. We recommend the release version for most users.
+* Alternatively, you can use the latest unreleased version from the source
+  code.  This version has not undergone the same testing as a release and so
+  may have unknown bugs or issues generating sub-optimal assemblies. We
+  recommend the release version for most users.
 
         git clone https://github.com/marbl/canu.git
         cd canu/src
         make -j <number of threads>
 
- * An *unsupported* Docker image made by Frank Förster is at https://hub.docker.com/r/greatfireball/canu/.
+  * FreeBSD generally requires libboost be installed from packages/ports.  It
+    will compile with either clang (>= 14) or gcc (>= 9).  It requires
+    openjdk18.
+
+        With clang, (default 14) needs libboost from ports.
+
+          gmake
+
+        With gcc (9+), can use the canu-supplied libboost or libboost from ports.
+
+          gmake CC=gcc9 CXX=g++9 BOOST=libboost    #  Canu-supplied boost
+          gmake CC=gcc9 CXX=g++9                   #  Ports/packages supplied boost
+
+  * MacOS Apple Silicon requires libboost, and either openjdk or oracle-jdk
+    to be installed from homebrew (preferred) or MacPorts.  It will compile
+    with either clang (>=14) or gcc (>= 9) but WILL NOT compile with the
+    standard Xcode compiler.
+
+          make CC=gcc-11 CXX=g++-11 BOOST=libboost  #  Ports/packages supplied boost
+          make CC=gcc-11 CXX=g++-11                 #  Ports/packages supplied boost
+
+  * MacOS Intel is probably the same as Apple Silicon, but not tested.
+
+  * Linux does not need a system installed libboost.
+
+* An *unsupported* Docker image made by Frank Förster is at https://hub.docker.com/r/greatfireball/canu/.
 
 ## Learn:
 

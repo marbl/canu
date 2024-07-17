@@ -375,8 +375,9 @@ print STDERR "-- CONFIGURE CANU\n";
 print STDERR "--\n";
 
 checkJava();
-checkMinimap($bin);
+checkMinimap();
 checkGnuplot();
+checkSamtools();
 
 checkParameters();
 printHelp();           #  Fail now if any complaints so far.

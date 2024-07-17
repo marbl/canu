@@ -86,21 +86,13 @@ loadNextTig(cnsParameters &params) {
 
 
 
+
+
 void
 processTigs(cnsParameters  &params) {
   uint32      nTigs           = 0;
   uint32      nSingletons     = 0;
   uint32      numFailures     = 0;
-
-  //  Print a lovely header for the progress report.
-
-  fprintf(stderr, "--\n");
-  fprintf(stderr, "-- Computing consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
-          params.tigBgn, params.tigEnd, params.errorRate, params.errorRateMax, params.minOverlap);
-  fprintf(stderr, "--\n");
-  fprintf(stdout, "                           ----------CONTAINED READS----------  -DOVETAIL  READS-\n");
-  fprintf(stdout, "  tigID    length   reads      used coverage  ignored coverage      used coverage\n");
-  fprintf(stdout, "------- --------- -------  -------- -------- -------- --------  -------- --------\n");
 
   //  Load the partitioned reads or open the package.
 
@@ -113,12 +105,26 @@ processTigs(cnsParameters  &params) {
     params.loadPartitionedReads();
   }
 
+  //  Print a lovely header for the progress report.
+
+  fprintf(stderr, "--\n");
+  fprintf(stderr, "-- Computing consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
+          params.tigBgn, params.tigEnd, params.errorRate, params.errorRateMax, params.minOverlap);
+  fprintf(stderr, "--\n");
+  fprintf(stdout, "                           ----------CONTAINED READS----------  -DOVETAIL  READS-\n");
+  fprintf(stdout, "  tigID    length   reads      used coverage  ignored coverage      used coverage\n");
+  fprintf(stdout, "------- --------- -------  -------- -------- -------- --------  -------- --------\n");
+
   //  Loop over all tigs, loading each one and processing if requested.
+  //   - filter contained and low-quality reads
+  //   - don't clutter the log with singletons
+  //   - if we successfully generate consensus, show or output it
 
   for (tgTig *tig=loadNextTig(params); tig != nullptr; tig=loadNextTig(params)) {
-
-    //  Log that we're processing (but ignore singletons) and filter
-    //  contained and ignore reads.
+    unitigConsensus  utgcns(params.seqStore,
+                            params.errorRate, params.errorRateMax, params.errorRateMaxID,
+                            params.minOverlap,
+                            params.minCoverage);
 
     nTigs       += (tig->numberOfChildren() > 1) ? 1 : 0;
     nSingletons += (tig->numberOfChildren() > 1) ? 0 : 1;
@@ -131,45 +137,24 @@ processTigs(cnsParameters  &params) {
               tig->nStashStsh(), tig->cStashStsh(),                //  cnsParameters::skipTig().
               tig->nStashBack(), tig->cStashBack());
 
-    //  Compute!
-    unitigConsensus  *utgcns  = nullptr;
-    bool              success = false;
+    if (utgcns.generate(tig, params.algorithm, params.aligner, params.seqReads) == true) {
+      if (params.showResult)       tig->display(stdout, params.seqStore, 200, 3);
 
-    utgcns  = new unitigConsensus(params.seqStore,
-                                  params.errorRate, params.errorRateMax, params.errorRateMaxID,
-                                  params.minOverlap,
-                                  params.minCoverage);
-
-    success = utgcns->generate(tig,
-                               params.algorithm,
-                               params.aligner,
-                               params.seqReads);
-
-    delete utgcns;
-
-    //  Show the result, if requested.
-
-    if (params.showResult)
-      tig->display(stdout, params.seqStore, 200, 3);
-
-    //  Save the result.
-
-    if (params.outResultsFile)   tig->saveToStream(params.outResultsFile);
-    if (params.outLayoutsFile)   tig->dumpLayout(params.outLayoutsFile);
-    if (params.outSeqFileA)      tig->dumpFASTA(params.outSeqFileA);
-    if (params.outSeqFileQ)      tig->dumpFASTQ(params.outSeqFileQ);
-
-    //  Count failure.
-
-    if (success == false) {
+      if (params.outResultsFile)   tig->saveToStream(params.outResultsFile);
+      if (params.outLayoutsFile)   tig->dumpLayout(params.outLayoutsFile);
+      if (params.outSeqFileA)      tig->dumpFASTA(params.outSeqFileA);
+      if (params.outSeqFileQ)      tig->dumpFASTQ(params.outSeqFileQ);
+      if (params.outBAMName)       tig->dumpBAM(params.outBAMName, params.seqStore, params.seqReads);
+    }
+    else {
       fprintf(stderr, "unitigConsensus()-- tig %d failed.\n", tig->tigID());
       numFailures++;
     }
 
-    //  Tidy up for the next tig.
-
-    delete tig;
+    delete tig;    //  We own this, really, we do.
   }
+
+  //  And a footer to go with the header.
 
   fprintf(stdout, "------- --------- -------  -------- -------- -------- --------  -------- --------\n");
   fprintf(stdout, "--\n");

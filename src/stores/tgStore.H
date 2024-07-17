@@ -98,13 +98,34 @@ public:
   };
 
 private:
+  struct tgStoreEntryV1 {
+    tgTigRecordV1  tigRecord;
+    uint64         unusedFlags : 12;  //  One whole bit for future use.
+    uint64         flushNeeded : 1;   //  If true, this MAR and associated tig are NOT saved to disk.
+    uint64         isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
+    uint64         svID        : 10;  //  10 -> 1024 versions (HARDCODED in tgStore.C)
+    uint64         fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
+  };
   struct tgStoreEntry {
-    tgTigRecord  tigRecord;
-    uint64       unusedFlags : 12;  //  One whole bit for future use.
-    uint64       flushNeeded : 1;   //  If true, this MAR and associated tig are NOT saved to disk.
-    uint64       isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
-    uint64       svID        : 10;  //  10 -> 1024 versions (HARDCODED in tgStore.C)
-    uint64       fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
+    tgTigRecord    tigRecord;
+    uint64         unusedFlags : 12;  //  One whole bit for future use.
+    uint64         flushNeeded : 1;   //  If true, this MAR and associated tig are NOT saved to disk.
+    uint64         isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
+    uint64         svID        : 10;  //  10 -> 1024 versions (HARDCODED in tgStore.C)
+    uint64         fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
+
+    tgStoreEntry &
+    operator=(const tgStoreEntryV1 &that) {
+      tigRecord   = that.tigRecord;   //  Itself an overloaded operator=().
+
+      unusedFlags = that.unusedFlags;
+      flushNeeded = that.flushNeeded;
+      isDeleted   = that.isDeleted;
+      svID        = that.svID;
+      fileOffset  = that.fileOffset;
+
+      return *this;
+    }
   };
 
   void                    writeTigToDisk(tgTig *ma, tgStoreEntry *maRecord);

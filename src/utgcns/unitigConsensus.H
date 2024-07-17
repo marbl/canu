@@ -34,31 +34,28 @@ class NDalign;
 
 class abSequence {
 public:
-  abSequence(uint32  readID = 0,
-             uint32  length = 0,
-             char   *seq    = nullptr,
-             bool    comp   = false);
+  abSequence(uint32  readID       = 0,
+             uint32  length       = 0,
+             char   *seq          = nullptr,
+             bool    isReverse    = false);
   ~abSequence();
 
-  uint32      seqIdent(void)          { return(_iid);        }
+  uint32      seqIdent(void)          { return _iid;          }
 
-  bool        isForward(void)         { return(_complement == false); }
+  uint32      length(void)            { return _length;       }
+  char        getBase(uint32 o)       { return _bases[o];     }
 
-  uint32      length(void)            { return(_length);     }
-  char        getBase(uint32 o)       { return(_bases[o]);   }
-
-  char       *getBases(void)          { return(_bases);      }
+  char       *getBases(void)          { return _bases;        }
 
 private:
   uint32     _iid = 0;            //  external, aka seqStore, ID;
 
-  bool       _complement = false;
-
-  uint32     _length = 0;
-  char      *_bases  = nullptr;
+  uint32     _length       = 0;
+  char      *_bases        = nullptr;
 };
 
 
+//typedef std::map<uint32, sqRead *>  u32toRead;
 
 class unitigConsensus {
 public:
@@ -71,38 +68,34 @@ public:
   ~unitigConsensus();
 
 private:
-  void   addRead(uint32 readID, uint32 askip, uint32 bskip, bool complemented,
-                 std::map<uint32, sqRead *> &reads);
-
-  bool   initialize(std::map<uint32, sqRead *> &reads);
+  void   addRead(uint32     readID,
+                 uint32     askip,
+                 uint32     bskip,
+                 bool       complemented,
+                 u32toRead &reads);
 
 public:
-  bool   generate(tgTig                       *tig_,
-                  char                         algorithm_,
-                  char                         aligner_,
-                  std::map<uint32, sqRead *>  &reads_);
+  bool   generate(tgTig      *tig_,
+                  char        algorithm_,
+                  char        aligner_,
+                  u32toRead  &reads_);
 
 private:
   void   switchToUncompressedCoordinates(void);
   void   updateReadPositions(void);
-
+                 
   char  *generateTemplateStitch(void);
 
-  bool   initializeGenerate(tgTig                       *tig,
-                            std::map<uint32, sqRead *>  &reads);
+  bool   generatePBDAG     (char aligner, u32toRead &reads);
+  bool   generateQuick     (              u32toRead &reads);
+  bool   generateSingleton (              u32toRead &reads);
 
+  void   adjustPosition(tgPosition   utgpos,
+                        tgPosition   cnspos,
+                        tgPosition  &adjusted,
+                        bool         isS);
 
-  bool   generatePBDAG(tgTig                       *tig,
-                       char                         aligner,
-                       std::map<uint32, sqRead *>  &reads);
-
-  bool   generateQuick(tgTig                       *tig,
-                       std::map<uint32, sqRead *>  &reads);
-
-  bool   generateSingleton(tgTig                       *tig,
-                           std::map<uint32, sqRead *>  &reads);
-
-  void   findCoordinates(void);
+  void   findCoordinates(char algorithm_, u32toRead &reads_);
   void   findRawAlignments(void);
   void   trimCircular(void);
 
@@ -118,26 +111,32 @@ public:
   };
 
 private:
-  sqStore        *_seqStore;
+  sqStore        *_seqStore = nullptr;
 
-  tgTig          *_tig;
-  uint32          _numReads;    //  == tig->numberOfChildren()
+  tgTig          *_tig = nullptr;
 
-  uint32          _sequencesMax;
-  uint32          _sequencesLen;
-  abSequence    **_sequences;
+  uint32          _numReads       = 0;   //  == tig->numberOfChildren()
+  uint32          _numReadsUsable = 0;   //  == number not 'ont'
+
+  uint32          _sequencesMax = 0;
+  uint32          _sequencesLen = 0;
+  abSequence    **_sequences    = nullptr;
 
   //  The two positions below are storing the low/high coords for the read.
   //  They do not encode the orientation in the coordinates.
   //
-  tgPosition     *_utgpos;      //  Original unitigger location.
-  tgPosition     *_cnspos;      //  Actual location in frankenstein.
+  tgPosition     *_utgpos = nullptr;     //  Original unitigger location.
+  tgPosition     *_cnspos = nullptr;     //  Actual location in frankenstein.
+  tgPosition     *_adjpos = nullptr;
 
-  uint32          _minOverlap;
-  uint32          _minCoverage;
-  double          _errorRate;
-  double          _errorRateMax;
-  uint32          _errorRateMaxID; 
+  uint32         *_templateToCNS  = nullptr;
+  uint32          _templateLength = 0;
+
+  uint32          _minOverlap     = 0;
+  uint32          _minCoverage    = 0;
+  double          _errorRate      = 0;
+  double          _errorRateMax   = 0;
+  uint32          _errorRateMaxID = 0;
 };
 
 

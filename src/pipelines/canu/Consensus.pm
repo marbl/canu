@@ -80,6 +80,8 @@ sub utgcns ($$) {
     print F "  -T ../$asm.ctgStore 1 \\\n";
     print F "  -P \$jobid \\\n";
     print F "  -O ./ctgcns/\$jobid.cns.WORKING \\\n";
+    print F "  -norealign \\\n"  if ((getGlobal("cnsAlign")  eq "0") &&
+                                     (getGlobal("bamOutput") eq "0"));
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
     print F "  -e  " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -em " . getGlobal("cnsErrorRate") . " \\\n";
@@ -371,16 +373,31 @@ sub consensusCheck ($) {
 
 
 
-sub purgeFiles ($$$$$$) {
+sub purgeFiles ($$) {
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $Ncns    = shift @_;
-    my $Nfastq  = shift @_;
-    my $Nlayout = shift @_;
-    my $Nlog    = shift @_;
+    my ($Ncns, $Nfastq, $Nbam, $Nlayout, $Nlog) = (0, 0, 0, 0, 0);
 
     my $path = "unitigging/5-consensus";
 
+    #  Remove single-tig bam outputs.  If the bam.list doesn't exist, then either
+    #  there are no bam outputs, or merge/sort failed.
+
+    if (-e "$path/ctgcns.bam.list") {
+        open(F, "< $path/ctgcns.bam.list") or caExit("can't open '$path/ctgcns.bam.list' for reading: $!\n", undef);
+        while (<F>) {
+            chomp;
+            if (-e $_) {
+                $Nbam++;
+                unlink $_;
+            }
+        }
+        close(F);
+    }
+
+    #  Remove utgcns outputs and logs.
+
+    unlink "$path/ctgcns.bam.list";
     open(F, "< $path/$tag.files") or caExit("can't open '$path/$tag.files' for reading: $!\n", undef);
     while (<F>) {
         chomp;
@@ -401,6 +418,10 @@ sub purgeFiles ($$$$$$) {
                 $Nlayout++;
                 unlink "unitigging/$1/$ID4.layout";
             }
+            if (-e "unitigging/$1/$ID4.bams") {
+                rmdir "unitigging/$1/$ID4.bams";
+            }
+
             if (-e "unitigging/$1/consensus.$ID6.out") {
                 $Nlog++;
                 unlink "unitigging/$1/consensus.$ID6.out";
@@ -419,7 +440,7 @@ sub purgeFiles ($$$$$$) {
     unlink "$path/$tag.files";
     rmdir  "$path/$tag";
 
-    return($Ncns, $Nfastq, $Nlayout, $Nlog);
+    return($Ncns, $Nfastq, $Nbam, $Nlayout, $Nlog);
 }
 
 
@@ -457,7 +478,7 @@ sub consensusLoad ($) {
         $cmd .= "> ./5-consensus/ctgcns.files.ctgStoreLoad.err 2>&1";
 
         if (runCommand("unitigging", $cmd)) {
-            caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
+          caExit("failed to load unitig consensus into ctgStore", "$path/ctgcns.files.ctgStoreLoad.err");
         }
         unlink "$path/ctgcns.files.ctgStoreLoad.err";
 
@@ -465,20 +486,41 @@ sub consensusLoad ($) {
         stashFile("unitigging/$asm.ctgStore/seqDB.v002.tig");
     }
 
-    #  Remvoe consensus outputs
+    #  And extract bam records.
+
+    if ((getGlobal("bamOutput") eq "1") &&
+        (! fileExists("$asm.contigs.bam"))) {
+        my $samtools = getGlobal("samtools");
+
+        $cmd  = "$bin/tgTigDisplay \\\n";
+        $cmd .= "  -S ../$asm.seqStore \\\n";
+        $cmd .= "  -b \\\n";
+        $cmd .= "  -o ../$asm.contigs.unsorted.bam \\\n";
+        $cmd .= "  -L ./5-consensus/ctgcns.files \\\n";
+        $cmd .= "> ./5-consensus/ctgcns.files.contigs.bam.err 2>&1";
+      
+        if (runCommand("unitigging", $cmd)) {
+            caExit("failed to extract BAM records from ctgcns files", "$path/ctgcns.files.contigs.bam.err");
+        }
+        unlink "$path/ctgcns.files.contigs.bam.err";
+
+        if (runCommand(".", "$samtools sort --write-index --threads 2 -o ./$asm.contigs.bam ./$asm.contigs.unsorted.bam > ./ctgcns.bam.err 2>&1")) {
+            caExit("failed to sort BAM outputs from ./$asm.contigs.unsorted.bam to ./$asm.contigs.bam", "./ctgcns.bam.err");
+        }
+        unlink "./$asm.contigs.unsorted.bam";
+        unlink "./ctgcns.bam.err";
+    }
+
+    #  Remove consensus outputs
 
     if (-e "$path/ctgcns.files") {
         print STDERR "-- Purging consensus output after loading to ctgStore.\n";
 
-        my $Ncns    = 0;
-        my $Nfastq  = 0;
-        my $Nlayout = 0;
-        my $Nlog    = 0;
-
-        ($Ncns, $Nfastq, $Nlayout, $Nlog) = purgeFiles($asm, "ctgcns", $Ncns, $Nfastq, $Nlayout, $Nlog);
+        my ($Ncns, $Nfastq, $Nbam, $Nlayout, $Nlog) = purgeFiles($asm, "ctgcns");
 
         print STDERR "-- Purged $Ncns .cns outputs.\n"        if ($Ncns > 0);
         print STDERR "-- Purged $Nfastq .fastq outputs.\n"    if ($Nfastq > 0);
+        print STDERR "-- Purged $Nbam .bam outputs.\n"        if ($Nbam > 0);
         print STDERR "-- Purged $Nlayout .layout outputs.\n"  if ($Nlayout > 0);
         print STDERR "-- Purged $Nlog .err log outputs.\n"    if ($Nlog > 0);
     }

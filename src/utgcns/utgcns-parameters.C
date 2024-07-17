@@ -44,23 +44,23 @@ cnsParameters::loadPartitionedReads(void) {
   //  Read the header.
 
   if (rb->readIFFobject("MAGC", magc) == false)
-    fprintf(stderr, "File '%s' isn't a utgcns seqFile: no magic number found.\n", seqFile), exit(1);
+    fprintf(stderr, "ERROR: File '%s' isn't a utgcns seqFile: no magic number found.\n", seqFile), exit(1);
 
   if (magc != 0x5f5f656c69467173llu)
-    fprintf(stderr, "File '%s' isn't a utgcns seqFile: found magic 0x%016lx.\n", seqFile, magc), exit(1);
+    fprintf(stderr, "ERROR: File '%s' isn't a utgcns seqFile: found magic 0x%016lx.\n", seqFile, magc), exit(1);
 
   if (rb->readIFFobject("VERS", vers) == false)
-    fprintf(stderr, "File '%s' isn't a utgcns seqFile: no file version found.\n", seqFile), exit(1);
+    fprintf(stderr, "ERROR: File '%s' isn't a utgcns seqFile: no file version found.\n", seqFile), exit(1);
 
   if (vers != 0x0000000000000001llu)
-    fprintf(stderr, "File '%s' is a utgcns seqFile, but an unsupported version %lu.\n", seqFile, vers), exit(1);
+    fprintf(stderr, "ERROR: File '%s' is a utgcns seqFile, but an unsupported version %lu.\n", seqFile, vers), exit(1);
 
   if (rb->readIFFobject("DEFV", defv) == false)
-    fprintf(stderr, "File '%s' isn't a utgcns seqFile: no default version found.\n", seqFile), exit(1);
+    fprintf(stderr, "ERROR: File '%s' isn't a utgcns seqFile: no default version found.\n", seqFile), exit(1);
 
   sqRead_defaultVersion = (sqRead_which)defv;
 
-  fprintf(stderr, "Loading %s reads from seqFile '%s'\n", toString(sqRead_defaultVersion), seqFile);
+  fprintf(stderr, "-- Loading %s reads from seqFile '%s'\n", toString(sqRead_defaultVersion), seqFile);
 
   //  Read the reads.
 
@@ -210,6 +210,8 @@ void
 cnsParameters::closeAndCleanup(void) {
   delete seqStore;   seqStore = nullptr;
   delete tigStore;   tigStore = nullptr;
+
+  delete importFile; importFile = nullptr;
 
   unloadReads();
 

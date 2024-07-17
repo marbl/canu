@@ -83,6 +83,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> g
 /// in the alignment graph.
 struct AlnNode {
     char base; ///< DNA base: [ACTG]
+    int tpos; ///< position in template
     int coverage; ///< Number of reads align to this position, but not
                   ///< necessarily match
     int weight; ///< Number of reads that align to this node *with the same base*, but not
@@ -93,6 +94,7 @@ struct AlnNode {
     graphTraits::edge_descriptor bestOutEdge; ///< Best scoring out edge
     AlnNode() {
         base = 'N';
+        tpos = UINT32_MAX;
         coverage = 0;
         weight = 0;
         backbone = false;
@@ -181,10 +183,14 @@ public:
     /// each base meets the minimum weight requirement.
     /// \param minWeight sets the minimum weight for each base in the consensus.
     ///        default = 0
-    const std::string consensus(int minWeight=0);
+    const std::string consensus(int minWeight);
 
-    /// Same as above but will only trim bases below minWeight either at the start or end of the sequence, not in the middle 
-    const std::string consensusNoSplit(int minWeight=0);
+    /// Same as above but will only trim bases below minWeight either at the
+    /// start or end of the sequence, not in the middle.  Also tracks trim
+    /// offsets.
+    const std::string consensusNoSplit(int       minWeight,
+                                       uint32_t *templateToFinal,
+                                       uint32_t  templateLength);
 
     /// Generates all consensus sequences from a target that meet the minimum
     /// weight requirement.
