@@ -873,6 +873,24 @@ sub doHaplotyping ($$@) {
 
 
 
+sub doSeqStore ($$) {
+    my $asm      = shift @_;
+    my $mode     = shift @_;
+
+    if (fileExists("$asm.seqStore/info")) {
+      return(0);
+    }
+
+    stopOnLowCoverage($asm, "cor");
+    submitScript($asm, undef);   #  See comments there as to why this is safe.
+
+    print STDERR "--\n";
+    print STDERR "-- BEGIN STORE CREATION\n";
+
+    return(1);
+}
+
+
 #  Decide if we need to enter the correction pipeline.
 #   - no if the mode tells us not to
 #   - no if the output of correction is present
@@ -1070,11 +1088,34 @@ if (haplotypeReadsExist($asm, @haplotypes) eq "yes") {
 #
 #  The start of the pipeline.
 #
+#  Correction and Trimming call do*() twice.  The first call checks if the
+#  store needs to be created, and the second call checks if the store has the
+#  desired read type in it already.
+#
+#  This occurs if reads come in pre-corrected or pre-trimmed AND the user has explicitly
+#  requested correction/trimming be performed.
+#
+#   - In local mode, the first call to do*() would return true and the store
+#     would be created.  It would then setup meryl, run jobs, etc, and continue
+#     on with correction/trimming.
+#
+#   - In grid mode, the first call to do*() would return true and the store
+#     would be created.  It would then setup meryl, but submit jobs to the grid,
+#     and also re-submit itself to the grid.  When canu restarts, it notices
+#     that corrected/trimmed reads already exist (since they were flagged as
+#     being pre-corrected/pre-trimmed) and correction/trimming would be skipped.
+#
+#  With the two-test method, both local and grid mode runs would create the
+#  store the detect that pre-corrected/pre-trimmed reads exist and skip
+#  correction/trimming.
+#
 
-if (doCorrection($asm, $mode)) {
+if (doSeqStore($asm, $mode)) {
     fetchSeqStore($asm);
     createSequenceStore($asm, @inputFiles);
+}
 
+if (doCorrection($asm, $mode)) {
     merylConfigure($asm, "cor");
     merylCountCheck($asm, "cor")          foreach (1..getGlobal("canuIterationMax") + 1);
     merylProcessCheck($asm, "cor")        foreach (1..getGlobal("canuIterationMax") + 1);
@@ -1096,9 +1137,6 @@ if (doCorrection($asm, $mode)) {
 }
 
 if (doTrimming($asm, $mode)) {
-    fetchSeqStore($asm);
-    createSequenceStore($asm, @inputFiles);
-
     merylConfigure($asm, "obt");
     merylCountCheck($asm, "obt")     foreach (1..getGlobal("canuIterationMax") + 1);
     merylProcessCheck($asm, "obt")   foreach (1..getGlobal("canuIterationMax") + 1);
@@ -1113,9 +1151,6 @@ if (doTrimming($asm, $mode)) {
 }
 
 if (doUnitigging($asm, $mode)) {
-    fetchSeqStore($asm);
-    createSequenceStore($asm, @inputFiles);
-
     merylConfigure($asm, "utg");
     merylCountCheck($asm, "utg")       foreach (1..getGlobal("canuIterationMax") + 1);
     merylProcessCheck($asm, "utg")     foreach (1..getGlobal("canuIterationMax") + 1);
