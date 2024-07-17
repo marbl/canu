@@ -68,19 +68,19 @@ AlnGraphBoost::AlnGraphBoost(const std::string& backbone) {
     boost::tie(curr, last) = boost::vertices(_g);
     _enterVtx = *curr++;
     _g[_enterVtx].base = '^';
-    _g[_enterVtx].tpos = 0;
+    _g[_enterVtx].tpos = UINT32_MAX;
     _g[_enterVtx].backbone = true;
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
         _g[v].backbone = true;
         _g[v].weight = 0;
         _g[v].base = backbone[i];
-        _g[v].tpos = 0;
+        _g[v].tpos = UINT32_MAX;
         _bbMap[v] = v;
     }
     _exitVtx = *curr;
     _g[_exitVtx].base = '$';
-    _g[_exitVtx].tpos = 0;
+    _g[_exitVtx].tpos = UINT32_MAX;
     _g[_exitVtx].backbone = true;
 }
 
@@ -94,7 +94,7 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
     boost::tie(curr, last) = boost::vertices(_g);
     _enterVtx = *curr++;
     _g[_enterVtx].base = '^';
-    _g[_enterVtx].tpos = 0;
+    _g[_enterVtx].tpos = UINT32_MAX;
     _g[_enterVtx].backbone = true;
     for (size_t i = 0; i < blen; i++, ++curr) {
         VtxDesc v = *curr;
@@ -102,12 +102,12 @@ AlnGraphBoost::AlnGraphBoost(const size_t blen) {
         _g[v].weight = 0;
         _g[v].deleted = false;
         _g[v].base = 'N';
-        _g[v].tpos = 0;
+        _g[v].tpos = UINT32_MAX;
         _bbMap[v] = v;
     }
     _exitVtx = *curr;
     _g[_exitVtx].base = '$';
-    _g[_exitVtx].tpos = 0;
+    _g[_exitVtx].tpos = UINT32_MAX;
     _g[_exitVtx].backbone = true;
 }
 
