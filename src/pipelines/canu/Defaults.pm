@@ -1450,18 +1450,8 @@ sub checkParameters () {
     #  If we're running as a job array, unset the ID of the job array.  This screws
     #  up our scheduling, as our jobs think they're running in a task array.
     #
-    #  Silly SGE sets this to 'undefined' for normal jobs.
-    #
 
     if (exists($ENV{getGlobal("gridEngineTaskID")})) {
-        my $ja = $ENV{getGlobal("gridEngineTaskID")};
-
-        if (($ja ne "undefined") &&
-            ($ja ne "0")) {
-            print STDERR "--\n";
-            print STDERR "-- I appear to be task $ja in a job array, unsetting ", getGlobal("gridEngineTaskID"), ".\n";
-        }
-
         undef $ENV{getGlobal("gridEngineTaskID")};
     }
 
