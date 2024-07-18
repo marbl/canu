@@ -149,6 +149,17 @@ sub haplotypeSplitReads ($$%) {
                 #  If looks like FASTA or FASTQ name, make new sequence
                 if ((m/^\@/) ||
                     (m/^>/)) {
+                    # check if we're out of size on the file, only check when we're at the start of a sequence
+                    if ($fileLength > $fileLengthMax) {
+                       close(OUT);
+                       stashFile("$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
+
+                       $fileNumber++;
+                       $fileLength = 0;
+
+                       print STDERR "--   --> '$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz'.\n";
+                       open(OUT, "| gzip -1c > $path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
+                    }
                     print OUT ">\n";
                     next;
                 }
@@ -163,17 +174,6 @@ sub haplotypeSplitReads ($$%) {
                 print OUT $_;
 
                 $fileLength += length($_) - 1;
-
-                if ($fileLength > $fileLengthMax) {
-                    close(OUT);
-                    stashFile("$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
-
-                    $fileNumber++;
-                    $fileLength = 0;
-
-                    print STDERR "--   --> '$path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz'.\n";
-                    open(OUT, "| gzip -1c > $path/reads-$haplotype/reads-$haplotype-$fileNumber.fasta.gz");
-                }
             }
 
             close(INP);
