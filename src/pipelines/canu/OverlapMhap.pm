@@ -140,7 +140,6 @@ sub mhapConfigure ($$$) {
     my $memorySize    = getGlobal("${tag}mhapMemory") * 0.9;
     my $blockPerGb    = getGlobal("${tag}MhapBlockSize") / (($numHashes < 768) ? 1 : 2);
 
-    my $javaPath      = getGlobal("java");
     my $javaOpt       = "-d64" if (defined(getGlobal("javaUse64Bit")) && getGlobal("javaUse64Bit") == 1);
     my $javaMemory    = int(getGlobal("${tag}mhapMemory") * 1024 * 0.9 + 0.5);
 
@@ -344,7 +343,7 @@ sub mhapConfigure ($$$) {
     print F "#  So mhap writes its output in the correct spot.\n";
     print F "cd ./blocks\n";
     print F "\n";
-    print F "$javaPath $javaOpt -XX:ParallelGCThreads=",  getGlobal("${tag}mhapThreads"), " -server -Xms", $javaMemory, "m -Xmx", $javaMemory, "m \\\n";
+    print F "\$je $javaOpt -XX:ParallelGCThreads=",  getGlobal("${tag}mhapThreads"), " -server -Xms", $javaMemory, "m -Xmx", $javaMemory, "m \\\n";
     print F "  -jar $cygA \$bin/../share/java/classes/mhap-" . getGlobal("${tag}MhapVersion") . ".jar $cygB \\\n";
     print F "  --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "  --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
@@ -463,7 +462,7 @@ sub mhapConfigure ($$$) {
     }
 
     print F "  #  Start up the producer.\n";
-    print F "  $javaPath $javaOpt -XX:ParallelGCThreads=",  getGlobal("${tag}mhapThreads"), " -server -Xms", $javaMemory, "m -Xmx", $javaMemory, "m \\\n";
+    print F "  \$je $javaOpt -XX:ParallelGCThreads=",  getGlobal("${tag}mhapThreads"), " -server -Xms", $javaMemory, "m -Xmx", $javaMemory, "m \\\n";
     print F "    -jar $cygA \$bin/../share/java/classes/mhap-" . getGlobal("${tag}MhapVersion") . ".jar $cygB \\\n";
     print F "    --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "    --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);

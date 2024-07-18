@@ -297,27 +297,6 @@ sub resetIteration ($) {
 
 
 
-#  Decide what bin directory to use.
-#
-#  When we are running on the grid, the path of this perl script is NOT always the correct
-#  architecture.  If the submission host is FreeBSD, but the grid is Linux, the BSD box will submit
-#  FreeBSD/bin/canu to the grid.  Unless it knows which grid host it will run on in advance, there
-#  is no way to pick the correct one.  The grid host then has to have enough smarts to choose the
-#  correct binaries, and that is what we're doing here.
-#
-#  To make it more trouble, shell scripts need to do all this by themselves.
-#
-#sub getInstallDirectory () {
-#    my $installDir = ;
-#
-#    if ($installDir =~ m!^(.*)/\w+-\w+/bin$!) {
-#        $installDir = $1;
-#    }
-#
-#    return($installDir);
-#}
-
-
 #  Emits a block of shell code to parse the grid task id and offset.
 #  Expects zero or one argument, which is interpreted different in grid and non-grid mode.
 #    Off grid - the job to run
@@ -401,13 +380,6 @@ sub getLimitShellCode () {
 #
 sub getBinDirectory () {
     return($FindBin::RealBin);
-
-    #my $idir = getInstallDirectory();
-    #my $path = $idir;
-    #
-    #$path = "$idir/bin"   if (-d "$idir/bin");
-    #
-    #return($path);
 }
 
 
@@ -415,44 +387,44 @@ sub getBinDirectory () {
 #  getBinDirectory.
 #
 sub getBinDirectoryShellCode () {
-    my $idir = $FindBin::RealBin;
     my $string;
 
-    #  First, run any preExec command that might exist.
-
-    if (defined(getGlobal("preExec"))) {
-        $string .= "#  Pre-execution commands.\n";
-        $string .= "\n";
-        $string .= getGlobal('preExec') . "\n";
-        $string .= "\n";
-    }
-
-    #  Then, setup and report paths.
-
-    my $javaPath = getGlobal("java");
-    my $canu     = "\$bin/" . basename($0);   #  NOTE: $bin decided at script run time
-
+    $string  = "\n";
+    $string .= "#  Pre-execution commands.\n"  if (defined(getGlobal("preExec")));
+    $string .= "\n"                            if (defined(getGlobal("preExec")));
+    $string .= getGlobal('preExec') . "\n"     if (defined(getGlobal("preExec")));
+    $string .= "\n"                            if (defined(getGlobal("preExec")));
+    $string .= "#  Paths to things we run.\n";
     $string .= "\n";
-    $string .= "#  Path to Canu.\n";
+    $string .= "bin=\"$FindBin::RealBin\"\n";
     $string .= "\n";
-    $string .= "bin=\"$idir\"\n";
+    $string .= "pn=" . getGlobal("perl") . "\n";
+    $string .= "pe=" . "`command -v \$pn`" . "\n";
+    $string .= "pv=" . "`command    \$pn --version | grep version`" . "\n";
+    $string .= "\n";
+    $string .= "jn=" . getGlobal("java") . "\n";
+    $string .= "je=" . "`command -v \$jn`" . "\n";
+    $string .= "jv=" . "`command    \$jn -showversion 2>&1 | head -n 1`" . "\n";
+    $string .= "\n";
+    $string .= "cn=" . "$FindBin::RealBin/" . basename($0) . "\n";
+    $string .= "ce=" . "`command -v \$cn`" . "\n";
+    $string .= "cv=" . "`command    \$cn -version`" . "\n";
     $string .= "\n";
     $string .= "#  Report paths.\n";
     $string .= "\n";
     $string .= "echo \"\"\n";
-    $string .= "echo \"Found perl:\"\n";
-    $string .= "echo \"  \" `which perl`\n";
-    $string .= "echo \"  \" `perl --version | grep version`\n";
+    $string .= "echo \"Found perl (from '\$pn'):\"\n";
+    $string .= "echo \"  \$pe\"\n";
+    $string .= "echo \"  \$pv\"\n";
     $string .= "echo \"\"\n";
-    $string .= "echo \"Found java:\"\n";
-    $string .= "echo \"  \" `which $javaPath`\n";
-    $string .= "echo \"  \" `$javaPath -showversion 2>&1 | head -n 1`\n";
+    $string .= "echo \"Found java (from '\$jn'):\"\n";
+    $string .= "echo \"  \$je\"\n";
+    $string .= "echo \"  \$jv\"\n";
     $string .= "echo \"\"\n";
-    $string .= "echo \"Found canu:\"\n";
-    $string .= "echo \"  \" $canu\n";
-    $string .= "echo \"  \" `$canu -version`\n";
+    $string .= "echo \"Found canu (from '\$cn'):\"\n";
+    $string .= "echo \"  \$ce\"\n";
+    $string .= "echo \"  \$cv\"\n";
     $string .= "echo \"\"\n";
-    $string .= "\n";
     $string .= "\n";
     $string .= "#  Environment for any object storage.\n";
     $string .= "\n";
@@ -461,7 +433,6 @@ sub getBinDirectoryShellCode () {
     $string .= "export CANU_OBJECT_STORE_CLIENT_DA=" . getGlobal("objectStoreClientDA")  . "\n";
     $string .= "export CANU_OBJECT_STORE_NAMESPACE=" . getGlobal("objectStoreNameSpace") . "\n";
     $string .= "export CANU_OBJECT_STORE_PROJECT="   . getGlobal("objectStoreProject")   . "\n";
-    $string .= "\n";
     $string .= "\n";
 
     return($string);
@@ -686,7 +657,7 @@ sub submitScript ($$) {
     print F "rm -f canu.out\n";
     print F "ln -s $scriptOut canu.out\n";
     print F "\n";
-    print F "/usr/bin/env perl \\\n";
+    print F "\$pe \\\n";
     print F "\$bin/" . basename($0) . " " . getCommandLineOptions() . " canuIteration=" . getGlobal("canuIteration") . "\n";
     close(F);
 

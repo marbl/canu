@@ -786,6 +786,9 @@ sub setDefaults () {
     $global{"version"}                     = undef;   #  Set in setVersion() once we know where binaries are.
     $global{"availablehosts"}              = undef;   #  Internal list of cpus-memory-nodes describing the grid.
 
+    $global{"perl"}                        = $^X;     #  Use whatever perl interpreter is in use now for resubmission.
+    $global{"perl"}                        = `command -v perl`   if (!defined($global{"perl"}));
+
     $global{"localmemory"}                 = 0;       #  Amount of memory on the local host, set in Grid_Local.pm
     $global{"localthreads"}                = 0;
 
@@ -809,7 +812,7 @@ sub setDefaults () {
 
     setDefault("showNext",            undef,      "Don't run any commands, just report what would run");
     setDefault("shell",               "/bin/sh",  "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
-
+               
     setDefault("minimap",             "minimap2", "Path to minimap2; default 'minimap2'");
 
     setDefault("java",                $java,      "Java interpreter to use; at least version 1.8; default 'java'");
@@ -1055,22 +1058,28 @@ sub setVersion ($) {
 
 
 sub checkJava () {
+    my $java;
+
     return  if ((getGlobal("corOverlapper") ne "mhap") &&
                 (getGlobal("obtOverlapper") ne "mhap") &&
                 (getGlobal("utgOverlapper") ne "mhap"));
 
-    my $java         = getGlobal("java");
-    my $javaUse64Bit = getGlobal("javaUse64Bit");
-    my $versionStr   = "unknown";
-    my $version      = 0;
-    my @javaVersionStrings;
+    $java = getGlobal("java");
+    $java = `command -v $java`;  #  See Execution.pm getBinDirectoryShellCode()
+    $java =~ s/^\s+//;
+    $java =~ s/\s+$//;
 
     if ($java =~ m/^\./) {
         addCommandLineError("ERROR:  path to java '$java' must not be a relative path.\n");
     }
 
-    #  We've seen errors running just this tiny java if too many copies are ran at the same time.
-    #  So, run it twice, if needed, with a little random delay between.
+    #  We've seen errors running just this tiny java if too many copies are
+    #  run at the same time.  So, run it twice, if needed, with a little
+    #  random delay between.
+
+    my @javaVersionStrings;
+    my $versionStr   = "unknown";
+    my $version      = 0;
 
     for (my $iter=0; $iter<2; $iter++) {
         open(F, "$java -Xmx1g -showversion 2>&1 |");
