@@ -15,7 +15,8 @@ however, between 30x and 60x coverage is the recommended minimum.  More coverage
 longer reads for assembly, which will result in better assemblies.
 
 Input sequences can be FASTA or FASTQ format, uncompressed or compressed with gzip (.gz), bzip2
-(.bz2) or xz (.xz).  Note that zip files (.zip) are not supported.
+(.bz2) or xz (.xz).  Note that zip files (.zip) are not supported.  Up to 4,095 input files are
+allowed.
 
 Canu can resume incomplete assemblies, allowing for recovery from system outages or other abnormal
 terminations.  On each restart of Canu, it will examine the files in the assembly directory to
@@ -152,7 +153,7 @@ Trio binning does not yet support inputting PacBio HiFi reads for binning as the
 Assembling With Multiple Technologies and Multiple Files
 -------------------------------------------
 
-Canu can use reads from any number of input files, which can be a mix of formats and technologies. Note that current combining PacBio HiFi data with other datatypes it not supported. We'll assemble a mix of 10X PacBio CLR reads in two FASTQ files and 10X of Nanopore reads in one FASTA
+Canu can use reads from any number of input files (up to 4,095 in total), which can be a mix of formats and technologies. Note that current combining PacBio HiFi data with other datatypes it not supported. We'll assemble a mix of 10X PacBio CLR reads in two FASTQ files and 10X of Nanopore reads in one FASTA
 file::
 
  curl -L -o mix.tar.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz

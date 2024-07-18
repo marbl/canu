@@ -584,6 +584,17 @@ elsif (scalar(@inputFiles) > 0) {
 
     print STDERR "--\n";
     print STDERR "-- Found $ct $rt reads in the input files.\n";
+
+    #  If there are more than 4095 input files, sqStore fails as it needs to
+    #  encode the (possibly unused anymore) read library id (equivalent to
+    #  the input file number) in 12 bits.  The best we can do is fail now -
+    #  increasing the limit will result in an on-disk metadata change (see
+    #  _libraryID in sqRead.H).  Issue #1910.
+    #
+    if (scalar(@inputFiles >= 4096)) {
+      my $nf = scalar(@inputFiles);
+      caExit("ERROR: Too many input read files ($nf).  Must be fewer than 4096", undef);
+    }
 }
 
 #  Otherwise, no reads found in a store, and no input files.
