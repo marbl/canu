@@ -210,119 +210,22 @@ public:
 
 
 
-
-
 uint32
 getMinFreqFromHistogram(char *histoName) {
+  merylHistogram stats;
 
   //  If the file doesn't exist, assume it's a number and return that.
 
   if (fileExists(histoName) == false)
-    return(strtouint32(histoName));
+    return strtouint32(histoName);
 
-  //  Otherwise, open the histogram file and load into memory.  This handles
-  //  both 'meryl statistics' and 'meryl histogram' outputs.
+  //  Otherwise let meryl compute the noise trough and use kmers above it.
 
-  splitToWords  S;
+  stats.load(histoName);
+  stats.computePloidyPeaks();
 
-  uint32        Llen     = 0;
-  uint32        Lmax     = 0;
-  char         *L        = new char [Lmax];
-
-  uint32        histoLen = 0;
-  uint32        histoMax = 1024;
-  uint64       *histo    = new uint64 [histoMax];
-
-  FILE *H = merylutil::openInputFile(histoName);
-  while (merylutil::readLine(L, Llen, Lmax, H)) {
-    S.split(L);
-
-    uint32  f = 0;   //  Frequency
-    uint64  v = 0;   //  Number of kmers at that frequency.
-
-    if (S.numWords() >= 2) {  //  First word must be the frequency,
-      f = S.touint32(0);     //  second word must be the number of
-      v = S.touint64(1);     //  kmer that occur exactly f times.
-    }
-
-    if (f == 0)              //  If zero, assume it's a header line
-      continue;              //  or some other such crud.
-
-    if (f >= histoMax)       //  If big, we're done, we don't
-      break;                 //  care about highly common kmers.
-
-    histo[f] = v;
-    histoLen = f + 1;
-  }
-  merylutil::closeFile(H, histoName);
-
-  delete [] L;
-
-  //  Use the histogram to decide on min and max frequency thresholds.
-  //  Pick the frequency:
-  //    For min, at the bottom of the trough between the noise and real.
-  //    For max, after the peak, and that has count 75% of the min.
-  //
-  //  *
-  //   *       **
-  //    *     *  *
-  //     *   *    *
-  //      ***      *  +-max
-  //       ^        * v
-  //       +-min     ***
-  //                    **
-  //
-  //  Both are picked using a 9-window rolling average.
-  //
-  //  The maximum cutoff is disabled, based on limited testing and the
-  //  argument that even if they are repeat kmers, they are still unique to
-  //  the haplotype, so are still useful.
-
-  uint32  aveSize = 5;
-  uint64  thisSum = 0;
-  uint32  thisLen = 0;
-
-  uint32  f = 1;
-
-  uint32  minFreq = 1;
-  uint64  minAve  = histo[f++];
-
-  //for (uint32 ii=0; ii<aveSize; ii++) {
-  //  thisSum += histo[f++];
-  //  thisLen += 1;
-  //}
-
-  //  Scan forward until the rolling average starts to increase, declare the middle
-  //  of the average the minimum.  Keep searching ahead until our current average is
-  //  twice that of the minimum found.
-
-  for (; f < histoLen; f++) {
-    if (thisLen == aveSize) {
-      thisSum += histo[f];
-      thisSum -= histo[f - aveSize];
-    }
-
-    else {
-      thisSum += histo[f];
-      thisLen++;
-    }
-
-    if (thisSum / thisLen < minAve) {
-      minFreq = f - thisLen/2;
-      minAve  = thisSum / thisLen;
-    }
-
-    if (2 * minAve * aveSize < thisSum)   //  Over estimates the minimum sum when thisLen < aveSize - i.e., for
-      break;                              //  frequencies 1, 2, 3 and 4.  Probably not an issue.
-  }
-
-  delete [] histo;
-
-  return(minFreq);
+  return (uint32)std::round(stats.getNoiseTrough()) + 1;
 }
-
-
-
 
 
 
