@@ -65,7 +65,7 @@ my @specFiles;       #  Files of specs
 my @specOpts;        #  Command line specs
 my @inputFiles;      #  Command line inputs, later inputs in spec files are added
 
-my %haplotypeReads;  #  Inpout reads for haplotypes; each element is a NUL-delimited list of files
+my %haplotypeReads;  #  Input reads for haplotypes; each element is a NUL-delimited list of files
 
 #  Initialize our defaults.  Must be done before defaults are reported in printOptions() below.
 
@@ -666,7 +666,7 @@ if (($numPacBio > 0 || $numNanopore >0) && $numHiFi > 0) {
 
 #  Now we can set memory/thread limits and any other parameters.
 
-configureAssembler($numPacBio, $numNanopore, $numHiFi);
+configureAssembler($numPacBio, $numNanopore, $numHiFi, scalar(keys %haplotypeReads));
 
 checkParameters();     #  Check all parameters (except error rates) are valid and consistent.
 printHelp();           #  And one final last chance to fail.

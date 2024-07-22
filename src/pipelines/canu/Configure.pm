@@ -534,10 +534,11 @@ sub getAllowedResources ($$$$$@) {
 #  If minMemory or minThreads isn't defined, pick a reasonable pair based on genome size.
 #
 
-sub configureAssembler ($$$) {
-    my $numPacBio   = shift @_;
-    my $numNanopore = shift @_;
-    my $numHiFi     = shift @_;
+sub configureAssembler ($$$$) {
+    my $numPacBio    = shift @_;
+    my $numNanopore  = shift @_;
+    my $numHiFi      = shift @_;
+    my $numHaplotype = shift @_;
 
     #  For overlapper and mhap, allow larger maximums for larger genomes.  More memory won't help
     #  smaller genomes, and the smaller minimums won't hurt larger genomes (which are probably being
@@ -723,16 +724,11 @@ sub configureAssembler ($$$) {
     #  Total guesses on read-to-haplotype assignment.  A well-behaved nanopore human
     #  was running in 2GB memory.
 
-    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
-        setGlobalIfUndef("hapMemory", "4-8");     setGlobalIfUndef("hapThreads", "1-4");
-
-    } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("hapMemory", "6-12");    setGlobalIfUndef("hapThreads", "8-24");
-
-    } else {
-        setGlobalIfUndef("hapMemory", "8-16");    setGlobalIfUndef("hapThreads", "16-64");
+    if ($numHaplotype > 0) {
+        if    (getGlobal("genomeSize") < adjustGenomeSize("100m")) { setGlobalIfUndef("hapMemory", "4-8");    setGlobalIfUndef("hapThreads",  "1-4");  }
+        elsif (getGlobal("genomeSize") < adjustGenomeSize("1g"))   { setGlobalIfUndef("hapMemory", "6-12");   setGlobalIfUndef("hapThreads",  "8-24"); }
+        else                                                       { setGlobalIfUndef("hapMemory", "8-16");   setGlobalIfUndef("hapThreads", "16-64"); }
     }
-
 
     if (getGlobal("genomeSize") < 10000000) {
         setGlobal("corOvlMerDistinct",  "0.9999")   if (!defined(getGlobal("corOvlMerThreshold")) && !defined(getGlobal("corOvlMerDistinct")));
@@ -825,7 +821,7 @@ sub configureAssembler ($$$) {
 
     ($err, $all) = getAllowedResources("",    "meryl",     $err, $all, 0);
 
-    ($err, $all) = getAllowedResources("",    "hap",       $err, $all, 0);
+    ($err, $all) = getAllowedResources("",    "hap",       $err, $all, 0)   if ($numHaplotype > 0);
 
     ($err, $all) = getAllowedResources("cor", "mhap",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "mhap");
     ($err, $all) = getAllowedResources("cor", "mmap",      $err, $all, 0)   if (getGlobal("corOverlapper") eq "minimap");
