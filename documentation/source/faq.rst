@@ -10,7 +10,7 @@ Canu FAQ
 
 
 What resources does Canu require for a bacterial genome assembly? A mammalian assembly?
--------------------------------------
+---------------------------------------------------------------------------------------
     Canu will detect available resources and configure itself to run efficiently using those
     resources.  It will request resources, for example, the number of compute threads to use, Based
     on the genome size being assembled. It will fail to even start if it feels there are
@@ -30,7 +30,7 @@ What resources does Canu require for a bacterial genome assembly? A mammalian as
 
 
 How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
--------------------------------------
+----------------------------------------------------------------
     Canu will detect and configure itself to use on most grids. You do not need to submit Canu to the grid in this case. 
     Canu will query the system for grid support, configure itself for the machines available in the grid, 
     then submit itself to the grid for execution. You can then monitor the run using your grid. 
@@ -50,12 +50,12 @@ How do I run Canu on my SLURM / SGE / PBS / LSF / Torque system?
 
 
 My run stopped with the error ``'Mhap precompute jobs failed'``
--------------------------------------
+---------------------------------------------------------------
 
     Several package managers make a mess of the installation causing this error (conda and ubuntu in particular). Package managers don't add much benefit to a tool like Canu which is distributed as pre-compiled binaries compatible with most systems so our recommended installation method is downloading a binary release. Try running the assembly from scratch using our release distribution and if you continue to encounter errors, submit an issue.
 
 My run stopped with the error ``'Failed to submit batch jobs'``
--------------------------------------
+---------------------------------------------------------------
 
     The grid you run on must allow compute nodes to submit jobs. This means that if you are on a
     compute host, ``qsub/bsub/sbatch/etc`` must be available and working. You can test this by
@@ -71,7 +71,7 @@ My run stopped with the error ``'Failed to submit batch jobs'``
 
 
 My run of Canu was killed by the sysadmin; the power going out; my cat stepping on the power button; et cetera.  Is it safe to restart?  How do I restart?
--------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------
 
     Yes, perfectly safe!  It's actually how Canu runs normally: each time Canu starts, it examines
     the state of the assembly to decide what it should do next.  For example, if six overlap tasks
@@ -85,7 +85,7 @@ My run of Canu was killed by the sysadmin; the power going out; my cat stepping 
 
 
 My genome size and assembly size are different, help!
--------------------------------------
+-----------------------------------------------------
     The difference could be due to a heterozygous genome where the assembly separated some loci. It could also be because the previous estimate is incorrect. We typically use two analyses to see what happened. First, a `BUSCO <https://busco.ezlab.org>`_ analysis will indicate duplicated genes. For example this assembly::
 
       INFO	C:98.5%[S:97.9%,D:0.6%],F:1.0%,M:0.5%,n:2799
@@ -103,7 +103,7 @@ My genome size and assembly size are different, help!
     does. We have had success using `purge_dups <https://github.com/dfguan/purge_dups>`_ to remove duplication. Purge dups will also generate a coverage histogram which will usually have two peaks when assemblies have separated some loci, make sure to inspect it to make sure the cutoffs selected are reasonable. 
 
 What parameters should I use for my reads?
--------------------------------------
+------------------------------------------
     Canu is designed to be universal on a large range of PacBio CLR, PacBio HiFi, Oxford
     Nanopore (R6 through R10) data.  Assembly quality and/or efficiency can be enhanced for specific
     datatypes:
@@ -132,11 +132,9 @@ What parameters should I use for my reads?
        Based on a human dataset, the flip-flop basecaller reduces both the raw read error rate and the residual error rate remaining after Canu read correction. For this reason you can reduce the error tolerated by Canu. If you have over 30x coverage add the options: ``'corMhapOptions=--threshold 0.8 --ordered-sketch-size 1000 --ordered-kmer-size 14' correctedErrorRate=0.105``. This is primarily a speed optimization so you can use defaults, especially if your genome's accuracy is not improved by the flip-flop caller.
 
     **PacBio Sequel**
-       Based on an *A. thaliana* `dataset
-       <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
+       Based on an *A. thaliana* `dataset <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_,
        and a few more recent mammalian genomes, slightly increase the maximum allowed difference from the default of 4.5% to 8.5% with
-       ``correctedErrorRate=0.085 corMhapSensitivity=normal``.
-      Only add the second parameter (``corMhapSensivity=normal``) if you have >50x coverage.
+       ``correctedErrorRate=0.085``. If you have more than 50x covergae, also increase the sensitivity from low to normal with ``corMhapSensivity=normal``.
 
     **PacBio Sequel II**
        The defaults for PacBio should work on this data. You could speed up the assembly by decreasing the error rate from the default, especially if you have high (>50x) coverage via ``correctedErrorRate=0.035 utgOvlErrorRate=0.065 trimReadsCoverage=2 trimReadsOverlap=500``
@@ -146,7 +144,7 @@ What parameters should I use for my reads?
 
 
 Can I assemble RNA sequence data?
--------------------------------------
+---------------------------------
     Canu will likely mis-assemble, or completely fail to assemble, RNA data.  It will do a
     reasonable job at generating corrected reads though.  Reads are corrected using (local) best
     alignments to other reads, and alignments between different isoforms are usually obviously not
@@ -157,11 +155,11 @@ Can I assemble RNA sequence data?
     the output bases back to 'U'.
     
 Can I assemble amplicon sequence data?
--------------------------------------   
+--------------------------------------   
     In short, yes. Typically these have very high coverage so we recommend randomly downsampling (``'readSamplingCoverage=100'``) and turning off filtering of short contigs ``contigFilter="2 0 1.0 0.5 0"``.
 
 My assembly is running out of space, is too slow?
--------------------------------------
+-------------------------------------------------
     We don't have a good way to estimate of disk space used for the assembly. It varies with genome size, repeat content, and sequencing depth. A human genome sequenced with PacBio or Nanopore at 40-50x typically requires 1-2TB of space at the peak. Plants, unfortunately, seem to want a lot of space. 10TB is a reasonable guess. We've seen it as bad as 20TB on some very repetitive genomes.
     
     The most common cause of high disk usage is a very repetitive or large genome. There are some parameters you can tweak to both reduce disk space and speed up the run. Try adding the options ``corMhapFilterThreshold=0.0000000002 corMhapOptions="--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50" mhapMemory=60g mhapBlockSize=500 ovlMerDistinct=0.975``. This will suppress repeats more than the default settings and speed up both correction and assembly.
@@ -169,7 +167,7 @@ My assembly is running out of space, is too slow?
     It is also possible to clean up some intermediate outputs before the assembly is complete to save space. If you already have a ```*.ovlStore.BUILDING/1-bucketize.successs`` file in your current step (e.g. ``correct```), you can clean up the files under ``1-overlapper/blocks``. You can also remove the ovlStore for the previous step if you have its output (e.g. if you have ``asm.trimmedReads.fasta.gz``, you can remove ``trimming/asm.ovlStore``). 
 
 My assembly continuity is not good, how can I improve it?
--------------------------------------
+---------------------------------------------------------
     The most important determinant for assembly quality is sequence length, followed by the repeat
     complexity/heterozygosity of your sample.  The first thing to check is the amount of corrected
     bases output by the correction step.  This is logged in the stdout of Canu or in
@@ -199,7 +197,7 @@ My assembly continuity is not good, how can I improve it?
 .. _tweak:
 
 What parameters can I tweak?
--------------------------------------
+----------------------------
     For all stages:
 
     - ``rawErrorRate`` is the maximum expected difference in an alignment of two _uncorrected_
@@ -295,7 +293,7 @@ What parameters can I tweak?
 
 
 My asm.contigs.fasta is empty, why?
--------------------------------------
+-----------------------------------
     Canu creates three assembled sequence :ref:`output files <outputs>`: ``<prefix>.contigs.fasta``,
     ``<prefix>.unitigs.fasta``, and ``<prefix>.unassembled.fasta``, where contigs are the primary
     output, unitigs are the primary output split at alternate paths,
@@ -309,7 +307,7 @@ My asm.contigs.fasta is empty, why?
 
 
 Why is my assembly is missing my favorite short plasmid?
--------------------------------------
+--------------------------------------------------------
     In Canu v1.6 and earlier only the longest 40X of data (based on the specified genome size) is
     used for correction.  Datasets with uneven coverage or small plasmids can fail to generate
     enough corrected reads to give enough coverage for assembly, resulting in gaps in the genome or
@@ -323,7 +321,7 @@ Why is my assembly is missing my favorite short plasmid?
     plasmids so this should no longer happen.
 
 Why do I get less corrected read data than I asked for?
--------------------------------------
+-------------------------------------------------------
     Some reads are trimmed during correction due to being chimeric or because there wasn't enough
     evidence to generate a quality corrected sequence.  Typically, this results in a 25% loss.
     Setting ``corMinCoverage=0`` will report all bases, even low those of low quality.  Canu will
@@ -331,23 +329,23 @@ Why do I get less corrected read data than I asked for?
 
 
 What is the minimum coverage required to run Canu?
--------------------------------------
+--------------------------------------------------
     For HiFi data, we recommend 20-25x or higher. 
     For raw data, coverage more than 20X is typically enough to outperform current hybrid
     methods.  Below that, you will likely not assemble the full genome.  The following
     two papers have several examples.
-     * `Koren et al. (2013) Reducing assembly complexity of microbial genomes with single-molecule sequencing <https://www.ncbi.nlm.nih.gov/pubmed/24034426>`_
-     * `Koren and Walenz et al. (2017) Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <https://www.ncbi.nlm.nih.gov/pubmed/28298431>`_
+    * `Koren et al. (2013) Reducing assembly complexity of microbial genomes with single-molecule sequencing <https://www.ncbi.nlm.nih.gov/pubmed/24034426>`_
+    * `Koren and Walenz et al. (2017) Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <https://www.ncbi.nlm.nih.gov/pubmed/28298431>`_
 
 Can I use Illumina data too?
--------------------------------------
+----------------------------
     No.  We've seen that using short reads for correction will homogenize repeats and
     mix up haplotypes.  Even though the short reads are very high quality, their length
     isn't sufficient for the true alignment to be identified, and so reads from other repeat
     instances are used for correction, resulting in incorrect corrections.
 
 My circular element is duplicated/has overlap?
--------------------------------------
+----------------------------------------------
     This is expected for any circular elements. They can overlap by up to a read length due to how
     Canu constructs contigs. Canu provides an alignment string in the GFA output which can be
     converted to an alignment to identify the trimming points.
@@ -367,7 +365,7 @@ My circular element is duplicated/has overlap?
     <https://github.com/PacificBiosciences/Bioinformatics-Training/wiki/Circularizing-and-trimming>`_.
 
 My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly repetitive genomes?
--------------------------------------
+----------------------------------------------------------------------------------------------------
    On bacterial genomes, no adjustment of parameters is (usually) needed.  See the next question.
 
    On repetitive genomes with with a significantly skewed AT/GC ratio, the Jaccard estimate used by
@@ -380,7 +378,7 @@ My genome is AT (or GC) rich, do I need to adjust parameters?  What about highly
 
 
 How can I send data to you?
--------------------------------------
+---------------------------
    FTP to ftp://ftp.cbcb.umd.edu/incoming/sergek.  This is a write-only location that only the Canu
    developers can see.
 
