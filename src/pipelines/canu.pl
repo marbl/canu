@@ -706,6 +706,20 @@ printf STDERR "--     obtErrorRate    %6.4f (%6.2f%%)\n", getGlobal("obtErrorRat
 printf STDERR "--     utgErrorRate    %6.4f (%6.2f%%)\n", getGlobal("utgErrorRate"), getGlobal("utgErrorRate") * 100.0;
 printf STDERR "--     cnsErrorRate    %6.4f (%6.2f%%)\n", getGlobal("cnsErrorRate"), getGlobal("cnsErrorRate") * 100.0;
 print  STDERR "--\n";
+if (getGlobal("corOverlapper") eq "ovl") {
+  print STDERR "--   WARNING--DO-NOT-USE--DO-NOT-USE--DO-NOT-USE--DO-NOT-USE--WARNING\n";
+  print STDERR "--   WARNING                                                  WARNING\n";
+  print STDERR "--   WARNING    corOverlapper=ovl is NOT SUPPORTED            WARNING\n";
+  print STDERR "--   WARNING                      is MISCONFIGURED            WARNING\n";
+  print STDERR "--   WARNING                      is LUDICROUSLY SLOW         WARNING\n";
+  print STDERR "--   WARNING                     has LOUSY SENSITIVITY        WARNING\n";
+  print STDERR "--   WARNING                     and WORSE SPECIFICITY        WARNING\n";
+  print STDERR "--   WARNING                                                  WARNING\n";
+  print STDERR "--   WARNING    USE THE DEFAULT corOverlapper=mhap INSTEAD    WARNING\n";
+  print STDERR "--   WARNING                                                  WARNING\n";
+  print STDERR "--   WARNING--DO-NOT-USE--DO-NOT-USE--DO-NOT-USE--DO-NOT-USE--WARNING\n";
+  print STDERR "--\n";    sleep(10);
+}
 print  STDERR "--   Stages to run:\n";
 print  STDERR "--     separate reads into haplotypes.\n"         if (($mode eq "run") && (scalar(keys %haplotypeReads) > 0));
 print  STDERR "--     correct raw reads.\n"                      if (($mode eq "run"));

@@ -440,7 +440,7 @@ Overlapper Configuration, ovl Algorithm
   * :ref:`obtOvlErrorRate <obtOvlErrorRate>` applied to overlaps generated for trimming reads;
   * :ref:`utgOvlErrorRate <utgOvlErrorRate>` applies to overlaps generated for assembling reads.
   These limits apply to the 'ovl' overlap algorithm and when alignments are computed for mhap
-  overlaps with :ref:`mhapReAlign <mhapReAlign>`.
+  overlaps with :ref:`reAlign <reAlign>`.
 
 {prefix}OvlFrequentMers <string=undefined>
   Do not seed overlaps with these kmers, or, for mhap, do not seed with these kmers unless necessary (down-weight them).

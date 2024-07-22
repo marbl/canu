@@ -152,10 +152,20 @@ sub setGlobal ($$) {
     if ($var eq "gridoptionsmhap") { setGlobal("gridOptionsCORmhap", $val);  setGlobal("gridOptionsOBTmhap", $val);  setGlobal("gridOptionsUTGmhap", $val);  return; }
     if ($var eq "gridoptionsmmap") { setGlobal("gridOptionsCORmmap", $val);  setGlobal("gridOptionsOBTmmap", $val);  setGlobal("gridOptionsUTGmmap", $val);  return; }
 
+    #
+    #  Cycle through some aliases that will set parameters for all primary
+    #  stages (correction, trimming, and unitigging), primarily overlapper
+    #  options.
+    #
+    #  We used to allow 'overlapper=ovl' here, but that would enable ovl for
+    #  correction, and that isn't supported without MUCH fiddling of
+    #  parameters (it's super slow, and by default makes a billion jobs - see
+    #  https://github.com/marbl/canu/issues/1924).
+    #
+
     foreach my $opt ("ovlmemory",      "mhapmemory",      "mmapmemory",      #  Execution options
                      "ovlthreads",     "mhapthreads",     "mmapthreads",
                      "ovlconcurrency", "mhapconcurrency", "mmapconcurrency",
-                     "overlapper",                                           #  Overlap algorithm selection
                      "realign",
                      "ovlerrorrate",                                         #  Overlapper options
                      "ovlhashblocklength",

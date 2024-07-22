@@ -581,10 +581,10 @@ sub configureAssembler ($$$) {
     my $hx = 1.25 * 1000000;
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",    64 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",    64 * $hx);
-        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",   1000000000);    setGlobalIfUndef("utgOvlRefBlockLength",   1000000000);   #    1 Gbp
+        setGlobalIfUndef("corOvlHashBlockLength",   250000000);    setGlobalIfUndef("obtOvlHashBlockLength",    64 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",    64 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",    250000000);    setGlobalIfUndef("obtOvlRefBlockLength",   1000000000);    setGlobalIfUndef("utgOvlRefBlockLength",   1000000000);   #    1 Gbp
 
-        setGlobalIfUndef("corOvlMemory", "2");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 22);
+        setGlobalIfUndef("corOvlMemory", "24");      setGlobalIfUndef("corOvlThreads", "4-16");   setGlobalIfUndef("corOvlHashBits", 25);
         setGlobalIfUndef("obtOvlMemory", "4");       setGlobalIfUndef("obtOvlThreads", "2-8");    setGlobalIfUndef("obtOvlHashBits", 22);
         setGlobalIfUndef("utgOvlMemory", "4");       setGlobalIfUndef("utgOvlThreads", "2-8");    setGlobalIfUndef("utgOvlHashBits", 22);
 
@@ -597,10 +597,10 @@ sub configureAssembler ($$$) {
         setGlobalIfUndef("utgMMapMemory", "4-6");    setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   128 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   128 * $hx);
-        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",   5000000000);    setGlobalIfUndef("utgOvlRefBlockLength",   5000000000);   #    5 Gbp
+        setGlobalIfUndef("corOvlHashBlockLength",   250000000);    setGlobalIfUndef("obtOvlHashBlockLength",   128 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   128 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",   1000000000);    setGlobalIfUndef("obtOvlRefBlockLength",   5000000000);    setGlobalIfUndef("utgOvlRefBlockLength",   5000000000);   #    5 Gbp
 
-        setGlobalIfUndef("corOvlMemory", "2");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 23);
+        setGlobalIfUndef("corOvlMemory", "24");      setGlobalIfUndef("corOvlThreads", "4-16");   setGlobalIfUndef("corOvlHashBits", 25);
         setGlobalIfUndef("obtOvlMemory", "8");       setGlobalIfUndef("obtOvlThreads", "2-8");    setGlobalIfUndef("obtOvlHashBits", 23);
         setGlobalIfUndef("utgOvlMemory", "8");       setGlobalIfUndef("utgOvlThreads", "2-8");    setGlobalIfUndef("utgOvlHashBits", 23);
 
@@ -613,10 +613,10 @@ sub configureAssembler ($$$) {
         setGlobalIfUndef("utgMMapMemory", "8-13");   setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   256 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   256 * $hx);
-        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",  15000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  15000000000);   #   15 Gbp
+        setGlobalIfUndef("corOvlHashBlockLength",   500000000);    setGlobalIfUndef("obtOvlHashBlockLength",   256 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   256 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",   4000000000);    setGlobalIfUndef("obtOvlRefBlockLength",  15000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  15000000000);   #   15 Gbp
 
-        setGlobalIfUndef("corOvlMemory", "8");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 24);
+        setGlobalIfUndef("corOvlMemory", "24");      setGlobalIfUndef("corOvlThreads", "4-16");   setGlobalIfUndef("corOvlHashBits", 26);
         setGlobalIfUndef("obtOvlMemory", "16");      setGlobalIfUndef("obtOvlThreads", "4-16");   setGlobalIfUndef("obtOvlHashBits", 24);
         setGlobalIfUndef("utgOvlMemory", "16");      setGlobalIfUndef("utgOvlThreads", "4-16");   setGlobalIfUndef("utgOvlHashBits", 24);
 
@@ -629,10 +629,10 @@ sub configureAssembler ($$$) {
         setGlobalIfUndef("utgMMapMemory", "16-32");  setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   512 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   512 * $hx);
-        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",  20000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  20000000000);   #   20 Gbp
+        setGlobalIfUndef("corOvlHashBlockLength",   500000000);    setGlobalIfUndef("obtOvlHashBlockLength",   512 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   512 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",  10000000000);    setGlobalIfUndef("obtOvlRefBlockLength",  20000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  20000000000);   #   20 Gbp
 
-        setGlobalIfUndef("corOvlMemory", "8");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 25);
+        setGlobalIfUndef("corOvlMemory", "32");      setGlobalIfUndef("corOvlThreads", "4-16");   setGlobalIfUndef("corOvlHashBits", 26);
         setGlobalIfUndef("obtOvlMemory", "24");      setGlobalIfUndef("obtOvlThreads", "4-16");   setGlobalIfUndef("obtOvlHashBits", 25);
         setGlobalIfUndef("utgOvlMemory", "24");      setGlobalIfUndef("utgOvlThreads", "4-16");   setGlobalIfUndef("utgOvlHashBits", 25);
 
@@ -645,10 +645,10 @@ sub configureAssembler ($$$) {
         setGlobalIfUndef("utgMMapMemory", "16-48");  setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } else {
-        setGlobalIfUndef("corOvlHashBlockLength",     2500000);    setGlobalIfUndef("obtOvlHashBlockLength",   512 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   512 * $hx);
-        setGlobalIfUndef("corOvlRefBlockLength",      2000000);    setGlobalIfUndef("obtOvlRefBlockLength",  30000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  30000000000);   #   30 Gbp
+        setGlobalIfUndef("corOvlHashBlockLength",   500000000);    setGlobalIfUndef("obtOvlHashBlockLength",   512 * $hx);    setGlobalIfUndef("utgOvlHashBlockLength",   512 * $hx);
+        setGlobalIfUndef("corOvlRefBlockLength",  20000000000);    setGlobalIfUndef("obtOvlRefBlockLength",  30000000000);    setGlobalIfUndef("utgOvlRefBlockLength",  30000000000);   #   30 Gbp
 
-        setGlobalIfUndef("corOvlMemory", "8");       setGlobalIfUndef("corOvlThreads", "1");      setGlobalIfUndef("corOvlHashBits", 25);
+        setGlobalIfUndef("corOvlMemory", "32");      setGlobalIfUndef("corOvlThreads", "4-16");   setGlobalIfUndef("corOvlHashBits", 26);
         setGlobalIfUndef("obtOvlMemory", "24");      setGlobalIfUndef("obtOvlThreads", "4-16");   setGlobalIfUndef("obtOvlHashBits", 25);
         setGlobalIfUndef("utgOvlMemory", "24");      setGlobalIfUndef("utgOvlThreads", "4-16");   setGlobalIfUndef("utgOvlHashBits", 25);
 

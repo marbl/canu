@@ -66,8 +66,7 @@ way becomes a 'library' of reads.  The reads should have been (physically) gener
 time using the same steps, but perhaps sequenced in multiple batches.  In canu, each library has a
 set of options setting various algorithmic parameters, for example, how aggressively to trim.  To
 explicitly set library parameters, a text 'gkp' file describing the library and the input files must
-be created.  Don't worry too much about this yet, it's an advanced feature, fully described in
-Section :ref:`gkp-files`.
+be created.  Don't worry too much about this; it's an advanced feature and not described anywhere.
 
 The read-files contain sequence data in either FASTA or FASTQ format (or both!  A quirk of the
 implementation allows files that contain both FASTA and FASTQ format reads).  The files can be
@@ -139,7 +138,7 @@ The tags are:
 |utgovl  | the standard overlapper, as used in the assembly phase            |
 +--------+-------------------------------------------------------------------+
 +--------+-------------------------------------------------------------------+
-|mhap    | the mhap overlapper                                               |
+|mhap    | the `mhap <https://github.com/marbl/MHAP>`_ overlapper            |
 +--------+-------------------------------------------------------------------+
 |cormhap | the mhap overlapper, as used in the correction phase              |
 +--------+-------------------------------------------------------------------+
@@ -148,13 +147,13 @@ The tags are:
 |utgmhap | the mhap overlapper, as used in the assembly phase                |
 +--------+-------------------------------------------------------------------+
 +--------+-------------------------------------------------------------------+
-|mmap    | the `minimap <https://github.com/lh3/minimap>`_ overlapper        |
+|mmap    | the `minimap2 <https://github.com/lh3/minimap2>`_ overlapper      |
 +--------+-------------------------------------------------------------------+
-|cormmap | the minimap overlapper, as used in the correction phase           |
+|cormmap | the minimap2 overlapper, as used in the correction phase          |
 +--------+-------------------------------------------------------------------+
-|obtmmap | the minimap overlapper, as used in the trimming phase             |
+|obtmmap | the minimap2 overlapper, as used in the trimming phase            |
 +--------+-------------------------------------------------------------------+
-|utgmmap | the minimap overlapper, as used in the assembly phase             |
+|utgmmap | the minimap2 overlapper, as used in the assembly phase            |
 +--------+-------------------------------------------------------------------+
 +--------+-------------------------------------------------------------------+
 |ovb     | the bucketizing phase of overlap store building                   |
@@ -269,7 +268,7 @@ correctedErrorRate 0.045   0.144
 In practice, only :ref:`correctedErrorRate <correctedErrorRate>` is usually changed.  The :ref:`faq`
 has :ref:`specific suggestions <tweak>` on when to change this.
 
-Canu v1.4 and earlier used the :ref:`errorRate <errorRate>` parameter, which set the expected
+Canu v1.4 and earlier used the ``errorRate`` parameter, which set the expected
 rate of error in a single corrected read.
 
 .. _minimum-lengths:
@@ -302,14 +301,29 @@ For example:
 - To change the k-mer size for just the ovl overlapper used during correction, 'corMerSize=16' would be used.
 - To change the mhap k-mer size for all instances, 'mhapMerSize=18' would be used.
 - To change the mhap k-mer size just during correction, 'corMhapMerSize=15' would be used.
-- To use minimap for overlap computation just during correction, 'corOverlapper=minimap' would be used. The minimap2 executable must be symlinked from the Canu binary folder ('Linux-amd64/bin' or 'Darwin-amd64/bin' depending on your system).
+- To use minimap2 for overlap computation just during correction, 'corOverlapper=minimap' would be used. The minimap2 executable must be symlinked from the Canu binary folder ('Linux-amd64/bin' or 'Darwin-amd64/bin' depending on your system).
 
 Ovl Overlapper Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 <tag>Overlapper
-  select the overlap algorithm to use, 'ovl' or 'mhap'.
+  select the overlap algorithm to use, 'ovl', 'mhap' or 'minimap'.
 
+  For correction:
+    * ``corOverlapper=ovl`` is not supported and is very very slow.
+    * ``corOverlapper=mhap`` is the default.
+    * ``corOverlapper=minimap`` is not widely tested.
+
+  For trimming:
+    * ``obtOverlapper=ovl`` is the default.
+    * ``obtOverlapper=mhap`` is significantly faster, but assemblies are slightly worse.
+    * ``obtOverlapper=minimap`` is significantly faster, but assemblies are slightly worse and has not been widely tested.
+
+  For contig creation (unitigging):
+    * ``utgOverlapper=ovl`` is the default.
+    * ``utgOverlapper=mhap`` is significantly faster, but assemblies are slightly worse.
+    * ``utgOverlapper=minimap`` is significantly faster, but assemblies are slightly worse and has not been widely tested.
+            
 Ovl Overlapper Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -365,6 +379,8 @@ and 8 'distinct' kmers.
   fraction 0.667 of the k-mers (8/12) will be at or below threshold 2.
 <tag>FrequentMers
   don't compute frequent kmers, use those listed in this file
+
+.. _reAlign:
 
 Mhap Overlapper Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
