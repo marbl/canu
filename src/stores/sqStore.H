@@ -90,12 +90,12 @@ const
 char *
 toString(sqStore_mode m) {
   switch (m) {
-    case sqStore_create:       return("sqStore_create");       break;
-    case sqStore_extend:       return("sqStore_extend");       break;
-    case sqStore_readOnly:     return("sqStore_readOnly");     break;
+    case sqStore_create:       return "sqStore_create";       break;
+    case sqStore_extend:       return "sqStore_extend";       break;
+    case sqStore_readOnly:     return "sqStore_readOnly";     break;
   }
 
-  return("undefined-mode");
+  return "undefined-mode";
 }
 
 
@@ -119,8 +119,8 @@ public:
 
   void      writeInfoAsText(FILE *F);
 
-  uint32    sqInfo_lastLibraryID(void)          { return(_numLibraries); };
-  uint32    sqInfo_lastReadID(void)             { return(_numReads);     };
+  uint32    sqInfo_lastLibraryID(void)          { return _numLibraries; }
+  uint32    sqInfo_lastReadID(void)             { return _numReads;     }
 
   //  Well, shoot.  The on-disk metadata is storing _reads as a 64-bit int
   //  for some reason, although the store cannot handle more than 4-billion
@@ -129,8 +129,8 @@ public:
   //  64-bit int here (probably none, but it's be a glaring inconsistency all
   //  over the place, instead of just here).
   //
-  uint32    sqInfo_numReads(sqRead_which w)     { return((uint32)_reads[w]); };
-  uint64    sqInfo_numBases(sqRead_which w)     { return(        _bases[w]); };
+  uint32    sqInfo_numReads(sqRead_which w)     { return (uint32)_reads[w]; }
+  uint64    sqInfo_numBases(sqRead_which w)     { return         _bases[w]; }
 
 public:
   bool      examineRead(uint32 ii, sqReadSeq *seq, sqRead_which w);
@@ -149,8 +149,8 @@ public:
   //  For info in dumpMetaData, these are used to count the number
   //  of objects seen in the scan.
   //
-  void      sqInfo_addLibrary(void)             { _numLibraries++;       };
-  void      sqInfo_addRead(void)                { _numReads++;           };
+  void      sqInfo_addLibrary(void)             { _numLibraries++;       }
+  void      sqInfo_addRead(void)                { _numReads++;           }
 
 private:
   uint64    _sqMagic;
@@ -203,7 +203,7 @@ public:
   ~sqStoreBlobReader();
 
   readBuffer    *getBuffer(sqReadMeta *meta);
-  readBuffer    *getBuffer(sqReadMeta &meta)   { return(getBuffer(&meta)); };
+  readBuffer    *getBuffer(sqReadMeta &meta)   { return getBuffer(&meta); }
 
 private:
   char          _storePath[FILENAME_MAX+1];        //  Path to the seqStore.
@@ -225,7 +225,7 @@ private:
   void         sqStore_loadMetadata(void);
 
 public:
-  const char  *sqStore_path(void) { return(_storePath); };  //  Returns the path to the store
+  const char  *sqStore_path(void) { return _storePath; }  //  Returns the path to the store
 
   static
   uint32       sqStore_lastVersion(char const *storePath);
@@ -233,16 +233,16 @@ public:
   static
   void         sqStore_revertVersion(char const *storePath, uint32 version);
 
-  uint32       sqStore_lastLibraryID(void)            { return(_info.sqInfo_lastLibraryID()); };
-  uint32       sqStore_lastReadID(void)               { return(_info.sqInfo_lastReadID());    };
+  uint32       sqStore_lastLibraryID(void)            { return _info.sqInfo_lastLibraryID(); }
+  uint32       sqStore_lastReadID(void)               { return _info.sqInfo_lastReadID();    }
 
   //  If iterating over reads, use sqStore_lastReadID(), not sqStore_getNumReads().
-  uint32       sqStore_getNumReads(sqRead_which w)    { return(_info.sqInfo_numReads(w));     };
+  uint32       sqStore_getNumReads(sqRead_which w)    { return _info.sqInfo_numReads(w);     }
 
-  sqLibrary   *sqStore_getLibrary(uint32 id)          { return(&_libraries[id]); };
+  sqLibrary   *sqStore_getLibrary(uint32 id)          { return &_libraries[id]; }
 
-  uint32       sqStore_getLibraryIDForRead(uint32 id) { return(_meta[id].sqRead_libraryID()); };
-  sqLibrary   *sqStore_getLibraryForRead(uint32 id)   { return(&_libraries[_meta[id].sqRead_libraryID()]); };
+  uint32       sqStore_getLibraryIDForRead(uint32 id) { return _meta[id].sqRead_libraryID(); }
+  sqLibrary   *sqStore_getLibraryForRead(uint32 id)   { return &_libraries[_meta[id].sqRead_libraryID()]; }
 
 public:
   readBuffer  *sqStore_getReadBuffer(uint32 readID);
@@ -264,17 +264,17 @@ private:
     bool  isTrm = ((w & sqRead_trimmed)    == sqRead_trimmed);
     bool  isCmp = ((w & sqRead_compressed) == sqRead_compressed);
 
-    if ((isRaw == true) && (isCmp == false))          { return(_rawU); };
-    if ((isRaw == true) && (isCmp == true))           { return(_rawC); };
+    if ((isRaw == true) && (isCmp == false))          { return _rawU; }
+    if ((isRaw == true) && (isCmp == true))           { return _rawC; }
 
-    if ((isCor == true) && (isCmp == false))          { return(_corU); };
-    if ((isCor == true) && (isCmp == true))           { return(_corC); };
+    if ((isCor == true) && (isCmp == false))          { return _corU; }
+    if ((isCor == true) && (isCmp == true))           { return _corC; }
 
     fprintf(stderr, "sqStore_getSeq()-- Unknown which '%s'\n", toString(w));
 
     assert(0);
-    return(NULL);
-  };
+    return nullptr;
+  }
 
   //  Accessors to read data.
 public:
@@ -367,14 +367,14 @@ private:
 inline
 uint64
 sqStore::sqStore_getReadSegm(uint32 id) {
-  return(_meta[id].sqRead_mSegm());
+  return _meta[id].sqRead_mSegm();
 }
 
 
 inline
 uint64
 sqStore::sqStore_getReadByte(uint32 id) {
-  return(_meta[id].sqRead_mByte());
+  return _meta[id].sqRead_mByte();
 }
 
 
@@ -385,7 +385,7 @@ sqStore::sqStore_getReadSeq(uint32 id, sqRead_which w) {
 
   assert(id > 0);
 
-  return((seq == NULL) ? NULL : &seq[id]);
+  return (seq == nullptr) ? nullptr : &seq[id];
 }
 
 
@@ -423,13 +423,13 @@ sqStore::sqStore_getClearBgn  (uint32 id, sqRead_which w) {
 
   assert(id > 0);
 
-  if (seq == NULL)
-    return(0);
+  if (seq == nullptr)
+    return 0;
 
   if (w & sqRead_trimmed)
-    return(seq[id].sqReadSeq_clearBgn());
+    return seq[id].sqReadSeq_clearBgn();
   else
-    return(0);
+    return 0;
 }
 
 
@@ -440,13 +440,13 @@ sqStore::sqStore_getClearEnd  (uint32 id, sqRead_which w) {
 
   assert(id > 0);
 
-  if (seq == NULL)
-    return(0);
+  if (seq == nullptr)
+    return 0;
 
   if (w & sqRead_trimmed)
-    return(seq[id].sqReadSeq_clearEnd());
+    return seq[id].sqReadSeq_clearEnd();
   else
-    return(seq[id].sqReadSeq_length());
+    return seq[id].sqReadSeq_length();
 }
 
 
@@ -457,13 +457,13 @@ sqStore::sqStore_isValidRead(uint32 id, sqRead_which w) {
 
   assert(id > 0);
 
-  if (seq == NULL)
-    return(false);
+  if (seq == nullptr)
+    return false;
 
   if (w & sqRead_trimmed)
-    return(seq[id].sqReadSeq_valid() && seq[id].sqReadSeq_trimmed());
+    return seq[id].sqReadSeq_valid() && seq[id].sqReadSeq_trimmed();
   else
-    return(seq[id].sqReadSeq_valid());
+    return seq[id].sqReadSeq_valid();
 }
 
 
@@ -474,16 +474,16 @@ sqStore::sqStore_isIgnoredRead(uint32 id, sqRead_which w) {
 
   assert(id > 0);
 
-  if (seq == NULL)
-    return(false);
+  if (seq == nullptr)
+    return false;
 
   if (sqStore_isValidRead(id, w) == false)
-    return(true);
+    return true;
 
   if (w & sqRead_trimmed)
-    return(seq[id].sqReadSeq_ignoreT());
+    return seq[id].sqReadSeq_ignoreT();
   else
-    return(seq[id].sqReadSeq_ignoreU());
+    return seq[id].sqReadSeq_ignoreU();
 }
 
 
@@ -494,13 +494,7 @@ sqStore::sqStore_isTrimmedRead(uint32 id, sqRead_which w) {
 
   assert(id > 0);
 
-  return((seq == NULL) ? false : seq[id].sqReadSeq_trimmed());
+  return (seq == nullptr) ? false : seq[id].sqReadSeq_trimmed();
 }
-
-
-
-
-
-
 
 #endif  //  SQSTORE_H
