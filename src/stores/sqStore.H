@@ -399,18 +399,17 @@ uint32
 sqStore::sqStore_getReadLength(uint32 id, sqRead_which w) {
   sqReadSeq  *seq = sqStore_getSeq(w);
 
-  assert(id > 0);
+  if ((id == 0) || (seq == nullptr))
+    return 0;
 
   if (w & sqRead_trimmed)
-    return(((seq == NULL) ||
-            (seq[id].sqReadSeq_trimmed() == false) ||
+    return ((seq[id].sqReadSeq_trimmed() == false) ||
             (seq[id].sqReadSeq_valid()   == false) ||
-            (seq[id].sqReadSeq_ignoreT() == true)) ? 0 : (seq[id].sqReadSeq_clearEnd() - seq[id].sqReadSeq_clearBgn()));
+            (seq[id].sqReadSeq_ignoreT() == true)) ? (0) : (seq[id].sqReadSeq_clearEnd() - seq[id].sqReadSeq_clearBgn());
 
   else
-    return(((seq == NULL) ||
-            (seq[id].sqReadSeq_valid()   == false) ||
-            (seq[id].sqReadSeq_ignoreU() == true)) ? 0 : (seq[id].sqReadSeq_length()));
+    return ((seq[id].sqReadSeq_valid()   == false) ||
+            (seq[id].sqReadSeq_ignoreU() == true)) ? (0) : (seq[id].sqReadSeq_length());
 }
 
 
