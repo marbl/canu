@@ -844,7 +844,8 @@ sub stopOnLowCoverage ($$) {
     my $mincov = getGlobal("stopOnLowCoverage");
     my $curcov = getExpectedCoverage($asm, $tag);
 
-    if ($curcov < $mincov) {
+    if (($curcov == 0) ||
+        ($curcov < $mincov)) {
         print STDERR "--\n";
         print STDERR "-- ERROR:  Read coverage ($curcov) lower than allowed.\n";
         print STDERR "-- ERROR:    stopOnLowCoverage = $mincov\n";
@@ -934,7 +935,7 @@ sub doCorrection ($$) {
     my $exist2 = ((getNumberOfBasesInStore($asm, "obt") > 0) ||
                   (getNumberOfBasesInStore($asm, "utg") > 0));
 
-    $reason = "no raw reads exist in $asm.seqStore"                 if ((fileExists("$asm.seqStore/info")) &&
+    $reason = "no reads for correction exist in $asm.seqStore"      if ((fileExists("$asm.seqStore/info")) &&
                                                                         (getNumberOfBasesInStore($asm, "cor") == 0));
     $reason = "$cr in $asm.correctedReads.*.gz"                     if ($exist1);
     $reason = "$cr in $asm.seqStore"                                if ($exist2);
@@ -975,7 +976,7 @@ sub doTrimming ($$) {
                   fileExists("$asm.trimmedReads.fastq.gz"));
     my $exist2 = (getNumberOfBasesInStore($asm, "utg") > 0);
 
-    $reason = "no corrected reads exist in $asm.seqStore"         if ((fileExists("$asm.seqStore/info")) &&
+    $reason = "no reads for trimming exist in $asm.seqStore"      if ((fileExists("$asm.seqStore/info")) &&
                                                                       (getNumberOfBasesInStore($asm, "obt") == 0));
     $reason = "$tr in $asm.trimmedReads.*.gz"                     if ($exist1);
     $reason = "$tr in $asm.seqStore"                              if ($exist2);
@@ -1011,13 +1012,12 @@ sub doUnitigging ($$) {
     my $mode   = shift @_;
     my $reason = undef;
 
-    $reason = "no corrected reads to assemble"        if (fileExists("$asm.seqStore/info") &&
-                                                          (getNumberOfBasesInStore($asm, "obt") == 0) &&
-                                                          (getNumberOfBasesInStore($asm, "utg") == 0));
-    $reason = "contigs exist in $asm.contigs.fasta"   if (fileExists("$asm.contigs.fasta"));
-    $reason = "not enabled"                           if (($mode ne "assemble") &&
-                                                          ($mode ne "trim-assemble") &&
-                                                          ($mode ne "run"));
+    $reason = "no reads for assembly exist in $asm.seqStore"  if ((fileExists("$asm.seqStore/info")) &&
+                                                                  (getNumberOfBasesInStore($asm, "utg") == 0));
+    $reason = "contigs exist in $asm.contigs.fasta"           if (fileExists("$asm.contigs.fasta"));
+    $reason = "not enabled"                                   if (($mode ne "assemble") &&
+                                                                  ($mode ne "trim-assemble") &&
+                                                                  ($mode ne "run"));
 
     if (defined($reason)) {
         print STDERR "--\n";

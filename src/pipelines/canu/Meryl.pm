@@ -435,20 +435,23 @@ sub merylConfigure ($$) {
     #  results in the smallest number of batches.
     #
 
-    my $merylMemory;
-    my $merylSegments;
+    my $merylMemory   = 0;
+    my $merylSegments = 0;
     my $merylBatches  = 1048576;
 
     printf(STDERR "--  segments   memory batches\n");
     printf(STDERR "--  -------- -------- -------\n");
 
     foreach my $ss (qw(01 02 04 06 08 12 16 20 24 32 40 48 56 64 96)) {
-        next  if ($ss > $maxSplit);
-
         my $mem = undef;
         my $bat = undef;
 
+        if ($ss > $maxSplit) {
+            printf(STDERR "--       %3s  -.-- GB       -  (segment size too small)\n", $ss);
+            next;
+        }
         if (! -e "$path/$name.config.$ss.out") {
+            printf(STDERR "--       %3s  -.-- GB       -  (no configure output)\n", $ss);
             next;
         }
 
