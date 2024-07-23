@@ -245,7 +245,8 @@ main(int argc, char **argv) {
 
 
   for (uint32 id=idMin; id<=idMax; id++) {
-    sqLibrary  *libr = seq->sqStore_getLibraryForRead(id);
+    sqLibrary  *libr    = seq->sqStore_getLibraryForRead(id);
+    uint32      readlen = seq->sqStore_getReadLength(id);
 
     logMsg[0] = 0;
 
@@ -254,7 +255,7 @@ main(int argc, char **argv) {
     //  we skip.
     //
     if ((iniClr) && (iniClr->isDeleted(id) == true)) {
-      deletedIn += seq->sqStore_getReadLength(id);
+      deletedIn += readlen;
       continue;
     }
 
@@ -265,12 +266,12 @@ main(int argc, char **argv) {
     //  (yes, this is nonsense)
     if ((libr->sqLibrary_finalTrim() == SQ_FINALTRIM_LARGEST_COVERED) &&
         (libr->sqLibrary_finalTrim() == SQ_FINALTRIM_BEST_EDGE)) {
-      noTrimIn += seq->sqStore_getReadLength(id);
+      noTrimIn += readlen;
       continue;
     }
 #endif
 
-    readsIn += seq->sqStore_getReadLength(id);
+    readsIn += readlen;
 
 
     //  Decide on the initial trimming.  We copied any iniClr into outClr above, and if there wasn't
@@ -303,7 +304,7 @@ main(int argc, char **argv) {
       assert(id == ovl[0].a_iid);
 
       isGood = largestCovered(ovl, ovlLen,
-                              id, seq->sqStore_getReadLength(id),
+                              id, readlen,
                               ibgn, iend, fbgn, fend,
                               logMsg,
                               errorValue,
@@ -321,7 +322,7 @@ main(int argc, char **argv) {
       assert(id == ovl[0].a_iid);
 
       isGood = bestEdge(ovl, ovlLen,
-                        id, seq->sqStore_getReadLength(id),
+                        id, readlen,
                         ibgn, iend, fbgn, fend,
                         logMsg,
                         errorValue,
@@ -356,7 +357,7 @@ main(int argc, char **argv) {
     //  If bad trimming or too small, write the log and keep going.
     //
     if (ovlLen == 0) {
-      noOvlOut += seq->sqStore_getReadLength(id);
+      noOvlOut += readlen;
 
       outClr->setbgn(id) = fbgn;
       outClr->setend(id) = fend;
@@ -370,7 +371,7 @@ main(int argc, char **argv) {
     }
 
     else if ((isGood == false) || (fend - fbgn < minReadLength)) {
-      deletedOut += seq->sqStore_getReadLength(id);
+      deletedOut += readlen;
 
       outClr->setbgn(id) = fbgn;
       outClr->setend(id) = fend;
@@ -387,7 +388,7 @@ main(int argc, char **argv) {
     //
     else if ((ibgn == fbgn) &&
              (iend == fend)) {
-      noChangeOut += seq->sqStore_getReadLength(id);
+      noChangeOut += readlen;
 
       fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tNOC%s\n",
               id,

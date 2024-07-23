@@ -210,11 +210,12 @@ main(int argc, char **argv) {
           errorRate);
 
   for (uint32 id=idMin; id<=idMax; id++) {
-    sqLibrary  *libr = seq->sqStore_getLibraryForRead(id);
+    sqLibrary  *libr    = seq->sqStore_getLibraryForRead(id);
+    uint32      readlen = seq->sqStore_getReadLength(id);
 
     if (finClr->isDeleted(id)) {
       //  Read already trashed.
-      deletedIn += seq->sqStore_getReadLength(id);
+      deletedIn += readlen;
       continue;
     }
 
@@ -223,12 +224,12 @@ main(int argc, char **argv) {
         (libr->sqLibrary_removeChimericReads() == false) &&
         (libr->sqLibrary_checkForSubReads()    == false)) {
       //  Nothing to do.
-      noTrimIn += seq->sqStore_getReadLength(id);
+      noTrimIn += readlen;
       continue;
     }
 #endif
 
-    readsIn += seq->sqStore_getReadLength(id);
+    readsIn += readlen;
 
 
     ovlLen = ovs->loadOverlapsForRead(id, ovl, ovlMax);
@@ -237,7 +238,7 @@ main(int argc, char **argv) {
 
     if (ovlLen == 0) {
       //  No overlaps, nothing to check!
-      noOverlaps += seq->sqStore_getReadLength(id);
+      noOverlaps += readlen;
       continue;
     }
 
@@ -246,7 +247,7 @@ main(int argc, char **argv) {
 
     if (w->adjLen == 0) {
       //  All overlaps trimmed out!
-      noCoverage += seq->sqStore_getReadLength(id);
+      noCoverage += readlen;
       continue;
     }
 
@@ -259,19 +260,19 @@ main(int argc, char **argv) {
     //  markBad(seq, w, subreadFile, doSubreadLoggingVerbose);
 
     //if (libr->sqLibrary_removeSpurReads() == true) {
-    //  readsProcSpur += seq->sqStore_getReadLength(id);
+    //  readsProcSpur += readlen;
     //  detectSpur(seq, w, subreadFile, doSubreadLoggingVerbose);
     //  Get stats on spur region detected - save the length of each region to the trimStats object.
     //}
 
     //if (libr->sqLibrary_removeChimericReads() == true) {
-    //  readsProcChimera += seq->sqStore_getReadLength(id);
+    //  readsProcChimera += readlen;
     //  detectChimer(seq, w, subreadFile, doSubreadLoggingVerbose);
     //  Get stats on chimera region detected - save the length of each region to the trimStats object.
     //}
 
     //if (libr->sqLibrary_checkForSubReads() == true) {
-      readsProcSubRead += seq->sqStore_getReadLength(id);
+      readsProcSubRead += readlen;
       detectSubReads(seq, w, subreadFile, doSubreadLoggingVerbose);
     //}
 
@@ -279,7 +280,7 @@ main(int argc, char **argv) {
     //  I don't want to pass all the stats objects into there.
 
     if (w->blist.size() == 0) {
-      readsNoChange += seq->sqStore_getReadLength(id);
+      readsNoChange += readlen;
     }
 
     else {
@@ -335,7 +336,7 @@ main(int argc, char **argv) {
     //  And maybe delete the read.
 
     if (w->isOK == false) {
-      deletedOut += seq->sqStore_getReadLength(id);
+      deletedOut += readlen;
 
       outClr->setDeleted(w->id);
     }
