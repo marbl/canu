@@ -33,6 +33,11 @@ adjustFlipped(clearRangeFile  *iniClr,
 
   assert(ovl->flipped() == true);
 
+  if ((ovl->a_iid == 0) ||
+      (ovl->b_iid == 0)) {
+    return false;
+  }
+
   uint32  bLen = seq->sqStore_getReadLength(ovl->b_iid);
 
   aovlbgn =        ovl->a_bgn();
@@ -58,7 +63,7 @@ adjustFlipped(clearRangeFile  *iniClr,
             aclrbgn, aclrend,
             bclrbgn, bclrend);
 #endif
-    return(false);
+    return false;
   }
 
 
