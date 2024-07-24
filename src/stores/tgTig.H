@@ -116,7 +116,7 @@ public:
   uint32               deltaLength(void)     { return(_deltaLen);    };
 
   //  Set everything.  This is to be used by unitigger.
-  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
+  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end, uint32 askip = 0, uint32 bskip = 0) {
 
     _objID         = id;
 
@@ -130,8 +130,8 @@ public:
     _ahang         = ahang;
     _bhang         = bhang;
 
-    _askip         = 0;
-    _bskip         = 0;
+    _askip         = askip;
+    _bskip         = bskip;
 
     _min           = std::min(bgn, end);
     _max           = std::max(bgn, end);

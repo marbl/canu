@@ -118,7 +118,7 @@ loadVerkkoLayouts(sqCache              *reads,
       if (readMap)
         fprintf(readMap, "%10u  %10u  %s\n", id, tig->tigID(), W[0]);
 
-      ch->set(id, pa, askp, bskp, bgn, end);
+      ch->set(id, pa, 0, 0, bgn, end, askp, bskp);
       ch->skipConsensus(ignore);
 
       if ((W.numWords() < 3) || (W.numWords() > 5))

@@ -695,7 +695,7 @@ alignEdLib(dagAlignment      &aln,
   int32  tigend = std::min((int32)tiglen, (int32)floor(utgpos.max() + padding));
 
   if (verbose)
-    fprintf(stderr, "alignEdLib()-- align read %7u padding %d maxpad %d eRate %.4f at %9d-%-9d\n", utgpos.ident(), padding, maxpad, bandErrRate, tigbgn, tigend);
+    fprintf(stderr, "alignEdLib()-- align read %7u padding %7u maxpad %7u eRate %.4f at %9d-%-9d\n", utgpos.ident(), padding, maxpad, bandErrRate, tigbgn, tigend);
 
   if (tigend < tigbgn) {
     fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
@@ -1182,8 +1182,7 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
 
     //  Decide on where to align this read and the expected quality.
 
-    int32  maxpad   = (_tig->getChild(ii)->isLowQuality() == true) ? MAX_PADDING : MAX_PADDING;  //  Pad low-quality reads by at most
-    int32  padding  = std::min(maxpad, (int32)ceil(readlen * 0.05));                             //  2.5Kbp, high-quality by only 250bp.
+    int32  padding  = std::min(MAX_PADDING, (int32)ceil(readlen * 0.05));
 
     int32  bandpad[9]  = {  1 * padding,  5 * padding, MAX_PADDING_MULT * padding,
                             1 * padding,  5 * padding, MAX_PADDING_MULT * padding,
