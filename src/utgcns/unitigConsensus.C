@@ -36,6 +36,8 @@
 #define NUM_BANDS         2
 #define MAX_RETRIES       ERROR_RATE_FACTOR * NUM_BANDS
 #define TRIM_BP           500
+#define MAX_PADDING       250
+#define MAX_PADDING_MULT  25
 
 abSequence::abSequence(uint32  readID,
                        uint32  length,
@@ -187,7 +189,7 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
     uint32 readCompressedPosition =  _utgpos[child].min() - compressedOffset;
     uint32 compressedEnd          =  _utgpos[child].max();
     uint32 compressedStart        =  _utgpos[child].min();
-    bool   isHQ                   = !_utgpos[child].isLowQuality();
+    bool   isHQ                   = !_utgpos[child].skipConsensus();
 
     // find the start position in normal read based on position in compressed read
     uint32 i = 0;
@@ -381,7 +383,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     assert(nr != 0);
 
-    if (_utgpos[rid].ident() <= _errorRateMaxID || _utgpos[nr].ident() <= _errorRateMaxID) {
+    if (_utgpos[rid].isLowQuality() || _utgpos[nr].isLowQuality()) {
       if (showPlacement()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), _errorRateMaxID);
       _errorRate = _errorRateMax;
     }
@@ -472,7 +474,7 @@ unitigConsensus::generateTemplateStitch(void) {
     bool   moreToExtend  = (readEnd < readLen);
 
 
-    int32 maxDifference = std::min(2500, (int32)ceil(0.30*olapLen));
+    int32 maxDifference = std::min(MAX_PADDING, (int32)ceil(0.30*olapLen));
     //  Reset if the edit distance is waay more than our error rate allows or it's very short and we haven't topped out on error.  This seems to be a quirk with
     //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
     if ((double)result.editDistance / result.alignmentLength > bandErrRate || 
@@ -677,11 +679,12 @@ alignEdLib(dagAlignment      &aln,
            char              *tigseq,
            uint32             tiglen,
            double             errorRate,
+           int32              maxpad,
            bool               verbose) {
 
   EdlibAlignResult align;
 
-  int32   padding        = std::min(250, (int32)ceil(fragmentLength * 0.05));
+  int32   padding        = std::min(maxpad, (int32)ceil(fragmentLength * 0.05));
   double  bandErrRate    = errorRate / ERROR_RATE_FACTOR;
   bool    aligned        = false;
   double  alignedErrRate = 0.0;
@@ -692,7 +695,7 @@ alignEdLib(dagAlignment      &aln,
   int32  tigend = std::min((int32)tiglen, (int32)floor(utgpos.max() + padding));
 
   if (verbose)
-    fprintf(stderr, "alignEdLib()-- align read %7u eRate %.4f at %9d-%-9d\n", utgpos.ident(), bandErrRate, tigbgn, tigend);
+    fprintf(stderr, "alignEdLib()-- align read %7u padding %d maxpad %d eRate %.4f at %9d-%-9d\n", utgpos.ident(), padding, maxpad, bandErrRate, tigbgn, tigend);
 
   if (tigend < tigbgn) {
     fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
@@ -729,8 +732,8 @@ alignEdLib(dagAlignment      &aln,
     tigend = std::min((int32)tiglen, tigend + 5 * padding);
     // last attempt make a very wide band
     if ((ii+1) % NUM_BANDS == 0) {
-      tigbgn = std::max((int32)0,      tigbgn - 25 * padding);
-      tigend = std::min((int32)tiglen, tigend + 25 * padding);
+      tigbgn = std::max((int32)0,      tigbgn - MAX_PADDING_MULT * padding);
+      tigend = std::min((int32)tiglen, tigend + MAX_PADDING_MULT * padding);
     }
 
     // let the band increase without increasing error rate for a while, if we give up increase error rate
@@ -881,6 +884,7 @@ unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
                          seq->getBases(), seq->length(),
                          tigseq, tiglen,
                          _errorRateMax,
+                         _utgpos[ii].isLowQuality() == true ? MAX_PADDING*5 : MAX_PADDING,  //  Pad low-quality reads by more
                          showAlignments());
 
     if (aligned == false) {
@@ -1012,7 +1016,7 @@ unitigConsensus::generateSingleton(u32toRead &reads_) {
   //  Find the first usable read.
 
   uint32 fid=0;
-  while ((fid < _numReads) && (_utgpos[fid].isLowQuality() == true))
+  while ((fid < _numReads) && (_utgpos[fid].skipConsensus() == true))
     fid++;
 
   assert(fid < _numReads);
@@ -1178,12 +1182,12 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
 
     //  Decide on where to align this read and the expected quality.
 
-    int32  maxpad   = (_tig->getChild(ii)->isLowQuality() == true) ? 2000 : 250;  //  Pad low-quality reads by at most
-    int32  padding  = std::min(maxpad, (int32)ceil(readlen * 0.05));              //  2Kbp, high-quality by only 250bp.
+    int32  maxpad   = (_tig->getChild(ii)->isLowQuality() == true) ? MAX_PADDING : MAX_PADDING;  //  Pad low-quality reads by at most
+    int32  padding  = std::min(maxpad, (int32)ceil(readlen * 0.05));                             //  2.5Kbp, high-quality by only 250bp.
 
-    int32  bandpad[9]  = {  1 * padding,  5 * padding, 25 * padding,
-                            1 * padding,  5 * padding, 25 * padding,
-                            1 * padding,  5 * padding, 25 * padding };
+    int32  bandpad[9]  = {  1 * padding,  5 * padding, MAX_PADDING_MULT * padding,
+                            1 * padding,  5 * padding, MAX_PADDING_MULT * padding,
+                            1 * padding,  5 * padding, MAX_PADDING_MULT * padding };
 
     double bandqual[9] = { 0.25 * _errorRateMax,  0.20 * _errorRateMax, 0.15 * _errorRateMax,
                            0.50 * _errorRateMax,  0.45 * _errorRateMax, 0.40 * _errorRateMax,
@@ -1480,8 +1484,12 @@ unitigConsensus::generate(tgTig      *tig_,
   memcpy(_adjpos = new tgPosition [_numReads], _tig->getChild(0), sizeof(tgPosition) * _numReads);
 
   for (int32 ii=0; ii<_numReads; ii++) {
-    if (_tig->getChild(ii)->isLowQuality() == false)   //  Count the number usable
+    if (_tig->getChild(ii)->skipConsensus() == false)   //  Count the number usable
       _numReadsUsable++;                               //  for consensus.
+    // initialize low quality flag based on supplied ID cutoff
+    _utgpos[ii].isLowQuality(_utgpos[ii].ident() <= _errorRateMaxID);
+    _cnspos[ii].isLowQuality(_utgpos[ii].ident() <= _errorRateMaxID);
+    _adjpos[ii].isLowQuality(_utgpos[ii].ident() <= _errorRateMaxID);
 
     addRead(_utgpos[ii].ident(),                       //  Copy read metadata and seq
             _utgpos[ii]._askip, _utgpos[ii]._bskip,    //  from utgpos and seqStore
