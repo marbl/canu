@@ -449,6 +449,10 @@ sub mhapConfigure ($$$) {
         print F "  #  stop filling up disks.\n";
         print F "  rm -f  \$qry-pipe\n";
         print F "  mkfifo \$qry-pipe\n";
+        print F "  if [ \$? -ne 0 ]; then\n";
+        print F "     echo \"Error: it appears your system doesn't support named pipes, please re-run the assembly after adding mhapPipe=false\"\n"; 
+        print F "     exit 1\n";
+        print F "  fi\n";
         print F "\n";
         print F "  #  Start up the consumer.\n";
         print F "  \$bin/mhapConvert \\\n";
