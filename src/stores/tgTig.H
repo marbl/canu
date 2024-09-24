@@ -226,7 +226,8 @@ struct tgTigRecordV1 {
   uint32              _suggestCircular : 1;
   uint32              _suggestBubble   : 1;
   uint32              _circularLength  : 20;
-  uint32              _spare           : 7;
+  uint32              _suggestNoTrim   : 1;
+  uint32              _spare           : 6;
 
   uint32              _layoutLen;
   uint32              _basesLen;
@@ -247,7 +248,8 @@ struct tgTigRecord {
   uint32              _suggestCircular : 1;
   uint32              _suggestBubble   : 1;
   uint32              _circularLength  : 20;
-  uint32              _spare           : 7;
+  uint32              _suggestNoTrim   : 1;
+  uint32              _spare           : 6;
 
   uint32              _trimBgn;
   uint32              _trimEnd;
@@ -267,6 +269,7 @@ struct tgTigRecord {
     _suggestCircular   = that._suggestCircular;
     _suggestBubble     = that._suggestBubble;
     _circularLength    = that._circularLength;
+    _suggestNoTrim     = that._suggestNoTrim;
     _spare             = that._spare;
     _trimBgn           = that._trimBgn;
     _trimEnd           = that._trimEnd;
@@ -414,7 +417,8 @@ public:
   uint32       _suggestCircular : 1  = false;          //  Bogart found overlaps making a circle.
   uint32       _suggestBubble   : 1  = false;          //  Bogart thinks this is a bubble.
   uint32       _circularLength  : 20 = 0;              //  Length of the end-to-end circularizing overlap.
-  uint32       _spare           : 7  = 0;
+  uint32       _suggestNoTrim   : 1 = false;           //  If set to true, ignore any trim value specified on the command line to consensus and do no trimming
+  uint32       _spare           : 6  = 0;
 
   uint32       _layoutLen = 0;           //  The max coord in the layout.  Same as _basesLen if _bases exists.
 

@@ -142,6 +142,10 @@ loadVerkkoLayouts(sqCache              *reads,
       nReads = strtouint32(W[1]);
     }
 
+	else if (strcmp(W[0], "trm") == 0) {
+	   tig->_suggestNoTrim = (strtouint32(W[1]) != 0);
+    }
+
     else if (strcmp(W[0], "end") == 0) {
       if (nReads != 0)
         fprintf(stderr, "ERROR: Tig '%d' reads doesn't match number expected\n", tig->tigID()), err++;

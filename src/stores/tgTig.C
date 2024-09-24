@@ -37,6 +37,7 @@ tgTig::saveToRecord(tgTigRecord &tr) {
   tr._suggestBubble       = _suggestBubble;
   tr._suggestCircular     = _suggestCircular;
   tr._circularLength      = _circularLength;
+  tr._suggestNoTrim       = _suggestNoTrim;
   tr._spare               = _spare;
 
   tr._trimBgn             = _trimBgn;
@@ -59,6 +60,7 @@ tgTig::restoreFromRecord(tgTigRecord &tr) {
   _suggestBubble       = tr._suggestBubble;
   _suggestCircular     = tr._suggestCircular;
   _circularLength      = tr._circularLength;
+  _suggestNoTrim       = tr._suggestNoTrim;
   _spare               = tr._spare;
 
   _trimBgn             = tr._trimBgn;
@@ -116,6 +118,7 @@ tgTig::operator=(tgTig & tg) {
   _suggestBubble       = tg._suggestBubble;
   _suggestCircular     = tg._suggestCircular;
   _circularLength      = tg._circularLength;
+  _suggestNoTrim       = tg._suggestNoTrim;
   _spare               = tg._spare;
 
   _layoutLen           = tg._layoutLen;
@@ -178,6 +181,7 @@ tgTig::clear(void) {
   _suggestBubble        = 0;
   _suggestCircular      = 0;
   _circularLength       = 0;
+  _suggestNoTrim        = 0;
   _spare                = 0;
 
   _layoutLen            = 0;

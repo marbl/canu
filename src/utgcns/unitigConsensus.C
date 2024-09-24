@@ -474,7 +474,7 @@ unitigConsensus::generateTemplateStitch(void) {
     bool   moreToExtend  = (readEnd < readLen);
 
 
-    int32 maxDifference = std::min(MAX_PADDING*10, (int32)ceil(0.30*olapLen));
+    int32 maxDifference = std::min(MAX_PADDING, (int32)ceil(0.30*olapLen));
     //  Reset if the edit distance is waay more than our error rate allows or it's very short and we haven't topped out on error.  This seems to be a quirk with
     //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
     if ((double)result.editDistance / result.alignmentLength > bandErrRate || 
@@ -940,7 +940,7 @@ unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
   _templateToCNS  = new uint32 [tiglen + 1];
   _templateLength = tiglen;
 
-  std::string cns = ag.consensusNoSplit(_minCoverage, _templateToCNS, _templateLength);
+  std::string cns = ag.consensusNoSplit((_tig->_suggestNoTrim == 0 ? _minCoverage : 0), _templateToCNS, _templateLength);
 
   delete [] tigseq;
 
