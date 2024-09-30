@@ -108,6 +108,7 @@ sub getPhysicalMemorySize () {
     }
 
     #  See src/utility/src/utility/system.C
+    #  slurm can report memory in mb not gb which means divide by 1024, assume if we end up with a very large limit, we need to divide
 
     if (exists($ENV{"SLURM_MEM_PER_CPU"}) &&
         exists($ENV{"SLURM_JOB_CPUS_PER_NODE"})) {
@@ -122,6 +123,7 @@ sub getPhysicalMemorySize () {
         $memory = $ENV{"PBS_RESC_MEM"} / 1024 / 1024 / 1024;
     }
 
+    $memory /= 1024 if ($memory > 10240);
     return(int($memory + 0.5));  #  Poor man's rounding
 }
 
