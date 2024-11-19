@@ -104,7 +104,7 @@ sub configureSlurm () {
     if (!defined(getGlobal("gridEngineMemoryPerJob"))) {
         if (getGlobal("gridEngineResourceOption") !~ m/mem-per-cpu/i) {
             print STDERR "-- Enable memory-per-job mode.\n";
-            setGlobalfUnset("gridEngineMemoryPerJob", "1");
+            setGlobalIfUndef("gridEngineMemoryPerJob", "1");
         }
     }
 
