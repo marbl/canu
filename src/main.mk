@@ -1,5 +1,5 @@
 MODULE       :=    canu
-VERSION      := snapshot v2.2
+VERSION      := snapshot v2.3
 VERSION_H    := utility/src/version.H
 
 TARGET       := libcanu.a
