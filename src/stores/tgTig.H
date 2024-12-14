@@ -26,11 +26,17 @@
 //  Used in unitigConsensus and tgTig::dumpBAM.
 using u32toRead = std::map<uint32, sqRead *>;
 
-typedef enum {
+//  This stupid enum.  It used to be a legacy typedef, but gcc 9.2 in
+//  holy-build-box started complaining about it (December 2024) not fitting
+//  in the bitfield in tgTigRecord.  BPW switched it to the below
+//  forced-unsigned but that didn't help; gcc 9.2 is just broken and needs
+//  -fpermissive; see utility/scripts/build-release.sh.
+//
+enum tgTig_class : uint32 {
   tgTig_noclass      = 0x00,    //  0x02 was for bubbles, but that was moved
   tgTig_unassembled  = 0x01,    //  to be only a suggestion.
   tgTig_contig       = 0x03     //  tgTig_contig MUST be 3 for compatibility.
-} tgTig_class;
+};
 
 static
 const
