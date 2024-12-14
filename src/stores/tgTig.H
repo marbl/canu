@@ -386,8 +386,7 @@ public:
                          sqStore  *seq,
                          uint32    displayWidth    = 100,    //  Width of display
                          uint32    displaySpacing  = 3,      //  Space between reads on the same line
-                         bool      withQV          = false,
-                         bool      withDots        = false);
+                         bool      withDots        = true);
 
   //  Copy our important information to/from a clean struct we can then save to disk.
   void           saveToRecord(tgTigRecord &tr);

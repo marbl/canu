@@ -136,11 +136,7 @@ tgTig::display(FILE     *F,
                sqStore  *seq,
                uint32    displayWidth,
                uint32    displaySpacing,
-               bool      withQV,
                bool      withDots)  {
-
-  withQV   = false;
-  withDots = true;
 
   if (consensusExists() == false) {
     fprintf(F, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", tigID());

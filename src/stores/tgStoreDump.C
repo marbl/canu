@@ -369,7 +369,7 @@ dumpLayout(sqStore *UNUSED(seqStore), tgStore *tigStore, tgFilter &filter, bool 
 
 
 void
-dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWithQV, bool maWithDots, uint32 maDisplayWidth, uint32 maDisplaySpacing) {
+dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWithDots, uint32 maDisplayWidth, uint32 maDisplaySpacing) {
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -385,7 +385,7 @@ dumpMultialign(sqStore *seqStore, tgStore *tigStore, tgFilter &filter, bool maWi
       continue;
     }
 
-    tig->display(stdout, seqStore, maDisplayWidth, maDisplaySpacing, maWithQV, maWithDots);
+    tig->display(stdout, seqStore, maDisplayWidth, maDisplaySpacing, maWithDots);
 
     tigStore->unloadTig(ti);
   }
@@ -962,7 +962,6 @@ main (int argc, char **argv) {
 
   char          cnsFormat         = 'A';  //  Or 'Q' for FASTQ
 
-  bool          maWithQV          = false;
   bool          maWithDots        = true;
   uint32        maDisplayWidth    = 100;
   uint32        maDisplaySpacing  = 3;
@@ -1272,7 +1271,7 @@ main (int argc, char **argv) {
         dumpLayout(seqStore, tigStore, filter, layWithSequence);
       break;
     case DUMP_MULTIALIGN:
-      dumpMultialign(seqStore, tigStore, filter, maWithQV, maWithDots, maDisplayWidth, maDisplaySpacing);
+      dumpMultialign(seqStore, tigStore, filter, maWithDots, maDisplayWidth, maDisplaySpacing);
       break;
     case DUMP_SIZES:
       dumpSizes(seqStore, tigStore, filter, genomeSize);

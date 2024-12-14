@@ -29,7 +29,6 @@ main(int argc, char **argv) {
   bool          DEMADenable     = false;
   uint32        DEMADwidth      = 250;
   uint32        DEMADspace      = 10;
-  bool          DEMADshowQV     = false;
   bool          DEMADshowDiffs  = true;
 
   //  CIGAR Encoded Multi Align Display - CEMAD (or CIGAREMAD).
@@ -109,7 +108,7 @@ main(int argc, char **argv) {
       tgTig        tig;
 
       while (tig.loadFromBuffer(tigBuffer))
-        tig.display(stdout, seqStore, DEMADwidth, DEMADspace, DEMADshowQV, DEMADshowDiffs);
+        tig.display(stdout, seqStore, DEMADwidth, DEMADspace, DEMADshowDiffs);
 
       delete tigBuffer;
     }
