@@ -401,6 +401,7 @@ doall: $(addprefix ${TARGET_DIR}/,${ALL_TGTS})
 
 .PHONY: doclean-final
 doclean-final: doclean
+	if [ -d ${TARGET_DIR} ] ; then find ${TARGET_DIR} -type f -print |           xargs -n 100 rm -f ; fi
 	if [ -d ${TARGET_DIR} ] ; then find ${TARGET_DIR} -type d -print | sort -r | xargs -n 100 rmdir ; fi
 	@echo ""
 	@echo "Cleaned."
