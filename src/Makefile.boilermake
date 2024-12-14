@@ -221,6 +221,12 @@ define ADD_TARGET_RULE
       endif
     endif
 
+    ifneq ($(origin BUILDRELEASE), undefined)
+    ifeq (${OSTYPE}, Darwin)
+      ${1}_POSTMAKE = utility/scripts/statify $${TARGET_DIR}/lib $${TARGET_DIR}/${1}
+    endif
+    endif
+
     $${TARGET_DIR}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
 			@mkdir -p $$(dir $$@)
 			$$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_LDLIBS} $${LDLIBS})
