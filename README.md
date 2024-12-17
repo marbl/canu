@@ -31,37 +31,49 @@ use a more recent assembler, such as
 
 * Alternatively, you can use the latest unreleased version from the source
   code.  This version has not undergone the same testing as a release and so
-  may have unknown bugs or issues generating sub-optimal assemblies. We
-  recommend the release version for most users.
+  may have unknown bugs or issues generating sub-optimal assemblies.
+  Depending on your operating system (see below), additional packages will
+  need to be installed.
 
         git clone https://github.com/marbl/canu.git
         cd canu/src
         make -j <number of threads>
 
-  * FreeBSD generally requires libboost be installed from packages/ports.  It
+  * Linux needs some development packages installed.  Installing
+    libboost1.83-all-dev is perhaps advised, as it is more recent than the one
+    included in Canu, but not required.
+
+        On Ubuntu:
+
+          apt install zlib1g-dev libcurl4-openssl-dev libssl-dev liblzma-dev libbz2-dev
+
+  * FreeBSD generally requires libboost installed from packages/ports.  It
     will compile with either clang (>= 14) or gcc (>= 9).  It requires
     openjdk18.
 
-        With clang, (default 14) needs libboost from ports.
+        With clang, libboost MUST be installed from ports.
 
           gmake
 
-        With gcc (9+), can use the canu-supplied libboost or libboost from ports.
+        With gcc, either the canu-supplied or ports-supplied libboost can be used.
 
           gmake CC=gcc9 CXX=g++9 BOOST=libboost    #  Canu-supplied boost
           gmake CC=gcc9 CXX=g++9                   #  Ports/packages supplied boost
 
   * MacOS Apple Silicon requires libboost, and either openjdk or oracle-jdk
-    to be installed from homebrew (preferred) or MacPorts.  It will compile
+    installed from homebrew (preferred) or MacPorts.  It will compile
     with either clang (>=14) or gcc (>= 9) but WILL NOT compile with the
     standard Xcode compiler.
 
-          make CC=gcc-11 CXX=g++-11 BOOST=libboost  #  Ports/packages supplied boost
+          brew install llvm openjdk boost
+          make CC=gcc-11 CXX=g++-11 BOOST=libboost  #  Canu-supplied boost
           make CC=gcc-11 CXX=g++-11                 #  Ports/packages supplied boost
 
-  * MacOS Intel is probably the same as Apple Silicon, but not tested.
+        You might need to add the following to .zshrc:
 
-  * Linux does not need a system installed libboost.
+          export JAVA_HOME=/opt/homebrew/opt/openjdk
+
+  * MacOS Intel is probably the same as Apple Silicon, but not tested.
 
 * An *unsupported* Docker image made by Frank Förster is at https://hub.docker.com/r/greatfireball/canu/.
 
