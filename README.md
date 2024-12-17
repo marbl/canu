@@ -1,13 +1,23 @@
-# Canu
+<a href="documentation/HiCanu_Genome_Research.jpg"><img src="documentation/HiCanu_Genome_Research_Small.jpg" align="right" title="Dark and Stormy until HiCanu sees the Light, the Genome Research cover by Arang Rhie."></a>
 
 Canu is a fork of the [Celera Assembler](http://wgs-assembler.sourceforge.net/wiki/index.php?title=Main_Page), designed for high-noise single-molecule sequencing (such as the [PacBio](http://www.pacb.com) [RS II](http://www.pacb.com/products-and-services/pacbio-systems/rsii/)/[Sequel](http://www.pacb.com/products-and-services/pacbio-systems/sequel/) or [Oxford Nanopore](https://www.nanoporetech.com/) [MinION](https://nanoporetech.com/products)).
-
+ 
 Canu is a hierarchical assembly pipeline which runs in four steps:
-
 * Detect overlaps in high-noise sequences using [MHAP](https://github.com/marbl/MHAP)
 * Generate corrected sequence consensus
 * Trim corrected sequences
 * Assemble trimmed corrected sequences
+
+>[!CAUTION]
+>Canu has reached END OF LIFE.  It hasn't seen
+active development since around 2021 and has not been tuned or tested on
+more recent data.  Unless you're assembling reads from that era,
+use a more recent assembler, such as
+[Flye](https://github.com/mikolmogorov/Flye),
+[Hifiasm](https://github.com/chhylp123/hifiasm) or
+[Verkko](https://github.com/marbl/verkko).
+
+*Dark and Stormy until HiCanu sees the Light*, the Genome Research cover image by [Arang Rhie](https://genomeinformatics.github.io/people/rhie/).
 
 ## Install:
 
