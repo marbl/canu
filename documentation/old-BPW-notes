@@ -1,0 +1,1354 @@
+These are VERY old, VERY contradictory, VERY incomplete, and probably VERY
+*wrong* notes, on Canu and Meryl development and bugs, that BPW wanted to
+preserve but didn't want to actually manage.  So they were combined into one
+file and added to the repo for the amusement of future archaeologists.  Don't
+waste your time.
+
+BPW 2024-12-17
+
+
+=============================================================================
+bri   944 Sep 18 04:45:49 2018 DOCUMENTATION:HAPLOTYPE_PIPELINE
+
+Canu executive splits illumina input reads into multiple files, each of some
+arbitrary fixed size.  Kmers in these files are counted in parallel (many
+jobs).  Kmers for each haplotype are merged into a single database
+(number-of-haplotype jobs).  Haplotype specific kmers are discovered by
+subtraction (number-of-haplotype jobs).  One (large) job then assigns reads
+(in fasta/fastq format) to a haplotype.  The outpout of this one job is a set
+of fasta.gz files, one per haplotype.  Canu is then run on each set of
+haplotype-specific reads.
+
+For H haplotypes:
+
+Executive - split Illumina fasta/fastq into multiple smaller fasta
+Grid      - (? jobs) count kmers in each file
+Grid      - (H jobs) merge results for a single haplotype into a single database
+Grid      - (H jobs) find haplotype specific kmers by subtracting other databases from each
+Grid      - (1 job)  assign reads to haplotypes
+
+
+=============================================================================
+bri  1735 Jan 11 20:14:38 2019 DOCUMENTATION:LOW_COVERAGE
+
+https://github.com/marbl/canu/issues/937
+  Cleaning up intermediate results.  No resolution, was just closed.
+
+https://github.com/marbl/canu/issues/942
+  Repetitive genome.
+  High coverage contaminant or simple repeat
+    corMhapFilterThreshold=0.0000000002
+    corMhapOptions="--threshold 0.80 --num-hashes 768 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50
+    mhapMemory=60g
+    mhapBlockSize=500
+
+https://github.com/marbl/canu/issues/1039
+  Overlap sensitivity is increased when coverage is below 30x.
+  Results in more noise overlaps.
+  Human nanopore paper suggests
+    corMhapOptions=--threshold 0.8 --num-hashes 768 --num-min-matches 3 --ordered-sketch-size 1000 -ordered-kmer-size 14 --min-olap-length 2000
+
+https://github.com/marbl/canu/issues/1058
+  Mammalian genome, 2.4g, around 30x coverage pacbio.
+    LOW COVERAGE -> corMinCoverage=0 corMhapSensitivity=high correctedErrorRate=0.105
+    LARGE NUMBER OF OVERLAPS
+    TODO: ERASE BLOCKS after overlaps are completed.
+    TODO: ADD unsafe mode to remove inputs after bucketizing.
+
+https://github.com/marbl/canu/issues/1068
+  Large trimming overlap store
+  POINTS TO FAQ https://canu.readthedocs.io/en/latest/faq.html#my-assembly-is-running-out-of-space-is-too-slow
+  "It is safe to remove the 1-overlapper/blocks or 1-overlapper/results
+   folders when you are already running the sort step of the overlapping
+   store. You can also clean up the results file for each completed bucked
+   (e.g. file 000001.ovb for bucket00001).
+
+
+=============================================================================
+bri  1332 Jan 31 19:44:17 2019 zzzPOA_CONSENSUS
+
+generateConsensus(s, G, w) {
+  b = 0;
+
+  while (sequences left to bundle) {
+    P  = HEAVIEST_BUNDLE(G, w);
+    Cb = CREATE_SEQUENCE_ON_PATH(P, G);
+    I  = ADD_SEQUENCES_TO_BUNDLE(S, B, G, Cb);
+
+    stop if (I is NULL);
+
+    RESCALE_WEIGHTS(I, w);
+
+    b++;
+  }
+
+  return list of Cb;
+}
+
+
+generateConsensus(s, G, w) {
+  b = 0;
+
+  while (sequences left to bundle) {
+    //P  = HEAVIEST_BUNDLE(G, w);
+    for i in all nodes in G from left to right {    //  r = TRAVERSE_HB(G, w)
+      p = BEST_PREDECESSOR(w, t);
+      if (p != NULL) {
+        SAVE_TRACEBACK(i, p);
+        si = sp + wpi;
+      }
+    }
+    r = node with highest score
+
+    if (r is not an end node)
+      r = BRANCH_COMPLETION(r, G, w);
+
+    P = TRACEBACK(r, G);
+    //  HEAVIEST_BUNDLE
+
+    Cb = CREATE_SEQUENCE_ON_PATH(P, G);
+
+    //I  = ADD_SEQUENCES_TO_BUNDLE(S, B, G, Cb);
+    I = NULL;
+    for k in all_sequences_in_S {
+      if ((Bk is NULL) &&               //  If sequence k not in a bundle
+          (INCLUSION_RULE(Sk, Cb))) {   //  and it can go in this bundle
+        Bk = Cb;                        //    Assign sequence k to bundle b
+        add Sk to list I;               //    Save sequence k in list I
+      }
+    }
+    //  ADD_SEQUENCES_TO_BUNDLE
+
+    stop if (I is NULL);
+
+    RESCALE_WEIGHTS(I, w);
+
+    b++;
+  }
+
+  return list of Cb;
+}
+
+
+=============================================================================
+bri  1286 Feb 15 04:33:09 2019 DEVELOPMENT:BOGART_GFA_CREATION
+
+https://github.com/marbl/canu/issues/754
+
+It's not documented, but it relatively simple in principle. Overlaps are used
+to 'place' each terminal contig read (the read(s) that touch the end
+coordinate of the contig) in other contigs. This overlap is used to 'align'
+the two contigs. If all reads that should have an overlap as computed by the
+'alignment' do indeed have an overlap, then an edge is formed in the output
+GFA.
+
+For example, if the first read in contigA aligns to the middle of contigB
+
+                -----------contigA-------->
+                ----->
+                    -------
+                         ----------
+<-----------contigB--------------
+                    -------
+                    ----------
+                       ----------
+
+and the three reads shown in contigB have overlaps to the reads in contig A,
+then we can confidently predict that contigA and contigB overlap. If any of
+these reads fails to overlap, then the two contigs do not overlap and no GFA
+edge is created - this would happen if contigA starts with a repeat that
+aligns to the middle of contigB.
+
+There isn't any filtering for repeats or size of overlap, but there might be
+filtering for quality of overlap. If so, it'd the be same filtering used for
+when assembling reads into contigs.
+
+
+=============================================================================
+bri  2840 Jun 13 11:31:30 2019 DOCUMENTATION:PIPELINES_AND_NEW_SEQSTORE
+
+Existing
+----------
+load RAW
+compute mhap
+compute corrections
+load CORRECTED
+compute overlaps
+compute trimming
+load TRIMMED on CORRECTED
+compute overlaps
+compute contigs
+compute consensus
+
+Hifi
+----------
+load RAW
+load COMPRESSED
+if (doCorrection)
+  compute kmer correction
+  load CORRECTED
+compute overlaps
+compute trimming
+load TRIMMED on COMPRESSED or CORRECTED
+compute overlaps
+compute contigs
+compute consensus <- RAW
+
+ - Cannot compute consensus using corrected reads, those only exist as
+   compressed.
+ - Can only get trimmed raw reads if we align corrected back to compressed to
+   pass through the trim points.
+
+PacBio ('corrected reads')
+----------
+load RAW
+compute mhap
+compute trimming
+load TRIMMED on RAW
+compute correction
+load CORRECTED
+compute overlaps
+compute contigs
+compute consensus
+
+ - Compression not supported.  This is the correction pipeline, just moving
+   trimming to be before correction.
+
+Nanopore ('homopoly compression instead of correction')
+----------
+load RAW
+if (doCompression)
+  load COMPRESSED
+compute mhap
+compute trimming
+load TRIMMED on RAW or COMPRESSED (map through to RAW)
+compute overlap aligns
+compute overlap filtering
+compute contigs
+compute consensus <- RAW
+
+ - CAN map trimming back through compression.
+ - Only RAW can be compressed, so can generate that on the fly.
+ - RAW can be trimmed, COMPRESSED can be trimmed, but it must agree with RAW.
+ - READ METADATA: 3x 64-bit words.
+ - SEQ  METADATA: 6x 32-bit words.
+ - USE three different files, one for read metadata, one for raw sequence
+   metadata and one for corrected sequence metadata.  in theory, then we can
+   add/remove sequence at will.
+
+----------
+uint28  _readID;           //  268 million
+uint12  _libraryID;        //    4 thousand
+uint16  _assignment;       //   65 thousand
+uint8   _assignmentScore;  //  256
+
+uint40  _mBtye;            //  position in blob file - 1 TB max blob file size
+uint24  FREE
+
+uint32  _blobLen;          //  length of data for this read
+uint16  _mSegm;            //  65k seqStore files, each 1GB -- merge?
+uint16  _mPart;            //  65k partitions               -- merge?
+
+----------
+Can ask for full length raw read, trimmed raw read, full length compressed,
+or trimmed compressed.  If trimming done on compressed data, need to map it
+back to the raw sequence, but building a map from compressed position to raw
+position.
+
+RAW READ
+uint31  _seqLength;
+uint31  _clearBgn;
+uint31  _clearEnd;
+uint1   _validData;
+uint1   _ignore;
+uint1   _latest;
+
+----------
+Corrected reads can be created from either raw or compressed inputs.
+
+Trimming is done once, on either the raw or the corrected.  If on the
+corrected, we need to map back to the raw, by alignment.
+
+CORRECTED READ
+uint31  _seqLength;
+uint31  _clearBgn;
+uint31  _clearEnd;
+uint1   _validData;
+uint1   _ignore;
+uint1   _latest;
+
+-> 15 32 bit words, but 64-bit aligned.
+
+
+=============================================================================
+bri  2990 Oct 18 09:32:25 2019 DOCUMENTATION:BOGART_ALGORITHM_OCT_2019
+
+BOGART TOP LEVEL
+
+1)  Load read info from seqStore
+     - seqStore never used again
+
+2)  Load overlaps from ovlStore
+     - load any overlap at most max(erateMax, erateGraph)
+     - drop short and high-error overlaps (per read) to fit in memory
+     - symmetrize missing overlaps
+     - ovlStore never used again
+
+3)  Create BestOverlapGraph
+     - uses erateGraph and deviationGraph
+     - filter and symmetrize overlaps
+
+4)  Create ChunkGraph
+     - for each read, compute the length of the
+       path out of each read end
+     - make tigs in decreasing path length order
+        - tigs end earlier than expected if the path
+          encounters a read already placed
+     - after this, every read is in a tig (even garbage reads)
+
+5)  breakSingletonTigs()
+     - remove reads from singleton tigs and delete the tig
+
+6)  optimizePosition()
+     - attempt to build a layout that is consistent with
+       every overlap, not just the best
+
+7)  splitDiscontinuous()
+     - break tigs that have coverage gaps in the layout
+
+8)  detectSpurs()
+     - just detects and reports spurs.  New as of a month ago.
+
+9)  Mark any read currently in a tig as a 'backbone' read.
+    When unitigs are constructed, we'll require that one of
+    these reads is on the end.
+
+10) Place unplaced reads at their best location.
+     - Use all overlaps to find all places each read could go.    ***  WHICH OVERLAPS??
+     - Discard placements that are covering less than 99% of the read.
+     - Compute length-aware average overlap identity between read and tig.
+     - Compute same for reads in tig.
+     - Discard placement if read-tig identity is significantly worse
+     - Place read at its best placement.
+
+11) splitDiscontinuous()
+
+12) mergeOrphans()  (AKA bubble popping)
+     - uses deviationBubble (called deviationOrphan in the code)
+     - for each tig count the number of overlaps we have to any other tig
+        - if ALL backbone reads have an overlap to some other tig,
+          this tig is a potential orphan
+     - find placements for each read in a potential orphan (as before, I think)
+     - if the end reads aren't placed, stop
+        - BUG!  looks at ALL reads, not just the backbone reads
+     - 
+
+13) classify tigs as unassembled.
+     - unassembled tigs CAN / CAN NOT ?? be used for repeat splitting
+
+14) Construct AssemblyGraph()  -- DEVIATION REPEAT
+
+15) markRepeatReads() -- DEVIATION REPEAT, CONFUSED
+
+16) splitDiscontinuous()
+17) promoteToSingleton()
+     - move any unplaced read to a new singleton tig
+
+18) filterDeadEnds?
+     - dropDeadEnds()
+     - splitDiscontinuous()
+     - promoteToSingleton()
+
+19) cleanup graph
+     - rebuild assembly graph
+     - filter edges
+
+20) output
+     - reportReadGraph("final")
+     - reportTigGraph("contigs")
+     - setParentAndHang("contigs")
+     - writeTigsToStore("contigs")
+     - createUnitigs()
+     - splitDiscontinuous(unitigs)
+     - reportTigGraph("unitigs")
+     - setParentAndHang("unitigs")
+     - writeTigsToStore("unitigs")
+
+
+=============================================================================
+bri   382 Nov  1 06:27:03 2019 DEVELOPMENT:BOGART_BUBBLE_ORPHAN_RULES
+
+Place a tig as an orphan if
+  a unique placement and all reads fit there -> move orphan there
+  a repeat placement and all reads are placed -> move reads to their best location
+
+Place a tig as a bubble if
+  not an orphan
+  either the terminal reads are placed
+  or more than half the reads are placed
+
+Bubble tigs do NOT get merged into the larger tig; they are just noted.
+
+
+=============================================================================
+bri  2147 Nov  3 20:40:43 2019 DOCUMENTATION:CHANGES_SINCE_1.8
+
+10/22 - v1.8 is released
+11/02 - meryl import
+11/04 - meryl multiset
+11/07 - -haplotype option ******
+11/09 - utgcns alignment fails
+11/15 - utgcns
+12/04 - align reads back to original position
+12/10 - optimize #1
+12/11 - posix file names
+12/12 - vgp genome stats
+12/17 - still vgp
+12/20 - meryl command line parsing bugs (with count and output)
+01/02 - trim Ns from read ends *****
+01/03 - sequence.C
+01/09 - sequence.C mutate
+01/10 - allow matches to N in cns ****
+01/11 - Add gridEngineResourceOption; replaces gridEngineMemoryOption and gridEngineThreadsOption.
+01/17 - store read-to-tig alignments in tigStore, multialign output
+02/12 - meryl histogram for count > 32-million
+02/12 - seqCache in falconsense
+02/15 - BAM inputs explicitly not allowed
+02/22 - meryl work
+03/08 - 'redo object store methods'
+03/12 - utgcns bugs
+03/25 - Allow blobs in a partitioned store to be larger than 4 GB.  Fixes assert(blob[0] == 'B').
+03/28 - falconsense partitioning better with very long reads
+04/04 - Numerous PSD fixes from Tomoaki Nishiyama
+04/17 - meryl lookup memory reduction
+04/18 - sequence siulate mode for deep simulator
+04/22 - overapAlign initial version
+04/25 - overlapAlign trimming initial version
+05/14 - align trimmed overlaps
+05/20 - readBuffer::seek() will now seek correctly in the buffer
+05/21 - initial hifi support
+05/28 - remove kmer databases when done with them (in haplotype mode)
+06/04 - OPTION purgeOverlaps, saveOveraps changed
+06/05 - vastly improved performance when reading overlaps
+06/07 - OBT in batches, but no pipeline support
+06/27 - object store fixes for overlapper output and ovlStore input
+07/05 - IFF file support
+07/14 - more work on overlapAlign
+07/15 - split into 1.9/master around here
+07/27 - optimize #2
+07/30 - mhap intermediates to stageDirectory if set
+08/14 - don't call lsadmin if memory units is set
+08/15 -  embarassing bug filtering out most if not all insertion corrections
+09/25 - increase utgcns banding
+09/26 - actually use erates in overlaps
+09/26 - int64 scoring, bug which caused cns to output template string
+10/03 - new OEA code from Sergey
+10/11 - DNAnexus start (through about 10/28)
+
+
+=============================================================================
+bri  4077 Nov 14 21:22:51 2019 CRASH:BOGART_ORPHAN_VALGRIND
+
+==> MERGE ORPHANS.
+
+computeErrorProfiles()-- Computing error profiles for 10395 tigs, with 1 thread.
+computeErrorProfiles()-- Finished.
+
+findPotentialOrphans()-- working on 10395 tigs.
+
+==29882== Invalid read of size 8
+==29882==    at 0x50DAC00: std::_Rb_tree_increment(std::_Rb_tree_node_base const*) (in /usr/local/lib/gcc6/libstdc++.so.6.0.22)
+==29882==    by 0x4A68CF: operator++ (stl_tree.h:209)
+==29882==    by 0x4A68CF: findPotentialOrphans(TigVector&, std::map<unsigned int, std::vector<unsigned int, std::allocator<unsigned int> >, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, std::vector<unsigned int, std::allocator<unsigned int> > > > >&) (AS_BAT_MergeOrphans.C:150)
+==29882==    by 0x4A6BF3: mergeOrphans(TigVector&, double, double, std::set<unsigned int, std::less<unsigned int>, std::allocator<unsigned int> >&) (AS_BAT_MergeOrphans.C:569)
+==29882==    by 0x40422B: main (bogart.C:535)
+==29882==  Address 0x7c71ec8 is 24 bytes inside a block of size 40 free'd
+==29882==    at 0x4C25C2D: operator delete(void*) (in /usr/local/lib/valgrind/vgpreload_memcheck-amd64-freebsd.so)
+==29882==    by 0x4A68C1: deallocate (new_allocator.h:110)
+==29882==    by 0x4A68C1: deallocate (alloc_traits.h:462)
+==29882==    by 0x4A68C1: _M_put_node (stl_tree.h:509)
+==29882==    by 0x4A68C1: _M_drop_node (stl_tree.h:576)
+==29882==    by 0x4A68C1: _M_erase_aux (stl_tree.h:2275)
+==29882==    by 0x4A68C1: erase (stl_tree.h:1047)
+==29882==    by 0x4A68C1: erase (stl_map.h:951)
+==29882==    by 0x4A68C1: findPotentialOrphans(TigVector&, std::map<unsigned int, std::vector<unsigned int, std::allocator<unsigned int> >, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, std::vector<unsigned int, std::allocator<unsigned int> > > > >&) (AS_BAT_MergeOrphans.C:152)
+==29882==    by 0x4A6BF3: mergeOrphans(TigVector&, double, double, std::set<unsigned int, std::less<unsigned int>, std::allocator<unsigned int> >&) (AS_BAT_MergeOrphans.C:569)
+==29882==    by 0x40422B: main (bogart.C:535)
+==29882== 
+==29882== Invalid read of size 8
+==29882==    at 0x50DAC1E: std::_Rb_tree_increment(std::_Rb_tree_node_base const*) (in /usr/local/lib/gcc6/libstdc++.so.6.0.22)
+==29882==    by 0x4A68CF: operator++ (stl_tree.h:209)
+==29882==    by 0x4A68CF: findPotentialOrphans(TigVector&, std::map<unsigned int, std::vector<unsigned int, std::allocator<unsigned int> >, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, std::vector<unsigned int, std::allocator<unsigned int> > > > >&) (AS_BAT_MergeOrphans.C:150)
+==29882==    by 0x4A6BF3: mergeOrphans(TigVector&, double, double, std::set<unsigned int, std::less<unsigned int>, std::allocator<unsigned int> >&) (AS_BAT_MergeOrphans.C:569)
+==29882==    by 0x40422B: main (bogart.C:535)
+==29882==  Address 0x7c71eb8 is 8 bytes inside a block of size 40 free'd
+==29882==    at 0x4C25C2D: operator delete(void*) (in /usr/local/lib/valgrind/vgpreload_memcheck-amd64-freebsd.so)
+==29882==    by 0x4A68C1: deallocate (new_allocator.h:110)
+==29882==    by 0x4A68C1: deallocate (alloc_traits.h:462)
+==29882==    by 0x4A68C1: _M_put_node (stl_tree.h:509)
+==29882==    by 0x4A68C1: _M_drop_node (stl_tree.h:576)
+==29882==    by 0x4A68C1: _M_erase_aux (stl_tree.h:2275)
+==29882==    by 0x4A68C1: erase (stl_tree.h:1047)
+==29882==    by 0x4A68C1: erase (stl_map.h:951)
+==29882==    by 0x4A68C1: findPotentialOrphans(TigVector&, std::map<unsigned int, std::vector<unsigned int, std::allocator<unsigned int> >, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, std::vector<unsigned int, std::allocator<unsigned int> > > > >&) (AS_BAT_MergeOrphans.C:152)
+==29882==    by 0x4A6BF3: mergeOrphans(TigVector&, double, double, std::set<unsigned int, std::less<unsigned int>, std::allocator<unsigned int> >&) (AS_BAT_MergeOrphans.C:569)
+==29882==    by 0x40422B: main (bogart.C:535)
+==29882== 
+
+mergeOrphans()-- Found 463 potential orphans.
+mergeOrphans()-- placed        2 unique orphan tigs with 0 reads
+mergeOrphans()-- shattered     1 repeat orphan tigs with 0 reads
+mergeOrphans()--
+
+
+=============================================================================
+bri   532 Nov 26 03:06:30 2019 DOCUMENTATION:BANDAGE_REDUCE
+
+# Remove new line characters from list of nodes
+
+tr -d '\n' < bin001.nodes.txt > bin001.inline.nodes.txt
+
+# Select all contiguous nodes to bin001 
+
+Bandage \
+  reduce \
+  k99.fastg \
+  bin001.gfa \
+  --scope aroundnodes --distance 50 --nodes `cat bin001.inline.nodes.txt`
+
+# Load the Bandage GUI, load the CSV, and reinspect the bins
+
+# Select nodes >500x coverage and three connected nodes to maintain links
+
+Bandage \
+  reduce \
+  k99.fastg \
+  graph.gfa \
+  --scope depthrange --mindepth 500.0 --maxdepth 1000000 --distance 3
+
+
+=============================================================================
+bri  3636 Nov 26 04:36:50 2019 TODO:MERYL
+
+Wrapper to split fastq and run meryl
+
+----------------------------------------
+
+DOCUMENTATION
+ - description and features
+ - user guide
+ - recipes
+
+Big kmers
+
+Lookups for multi-set kmers
+
+EXACT needs to store both suffix and count in a single word.  It doesn't check that this fits.
+
+segments MUST come before input file.  this is not tested for.
+  meryl k=22 count segment=1/5 D.seqStore output JUNK
+
+op->initizie() is only called on the root node.
+chains that are completely independent will not call initialize() (* will they even work?? *)
+  meryl [count ...] [count ...]
+
+Histogram of HUGE values is probably broken.
+
+SMALL STUFF
+
+- test suite
+   - A intersect B is empty
+
+- bloom filter to weed out unique mers
+- bloom filter output instead of table output
+
+- kmer-mask reimplement
+
+- possible to make a simple wrapper that reads sequence and passes 1 Mbp chunks
+              to a set of counting engines, then merge results at the end?
+
+- histogram - don't open 64 files until needed (resolved?)
+- histogram - kmers with big counts are probably lost
+
+- hardcode 64 files, where?
+
+- prefixSize in stream?
+
+- value bits in lookup can overflow silently
+
+- print needs to default to one thread, unless reset, but normal op should use all threads
+- currently calls initialize() for each data file when streaming, very slow
+
+- histogram not storing very verry big values
+
+- --help (--version exists).  -h works.  -v doesn't.  -V is verbose
+
+----------------------------------------
+
+meryl-lookup
+ - annotate sequence with counts
+
+meryl-mask
+ - old kmer-mask thing
+
+----------------------------------------
+Added v2 merylIndex.
+
+Add import.
+ - expects input format "kkkkkkkk ######".
+ - kmer size can be set from first kmer, then just check all the rest
+ - option to sum values for the same kmer, or load as a multiset
+
+Fix processing.
+ - for multiset, treat value=0 as wildcard
+ - For multiset, treat value=0 as highest
+
+----------------------------------------
+
+implement multi-set option
+implement fibonacci codes
+
+----------------------------------------
+
+Meryl
+ - builds sorted list of <kmer><count><values>...<values>
+ - 'meryl count' populates only the count; values are null
+ - values can only be set via import
+    - values as positions can be set from sequence
+ - NUMBER OF VALUES MUST BE THE SAME AS THE COUNT
+
+Positions stored as
+ - integer offset into chained sequences?
+    - needs index, which can be built as kmers are counted
+ - sequence # AND position in sequence?
+    - needs max length and max number of sequences, else both limited to 32-bit
+
+----------------------------------------
+
+Define:
+
+Define 'the count' as the number of time a kmer is seen in the input.
+A kmer always has a count.
+
+Define 'the value' as a 64-bit quantity associated with a kmer.
+If a kmer has values, it must have exactly 'count' of them.
+
+meryl-count  - generates a database of kmers that occur in an input
+sequence (and the number of times they occur).
+
+meryl-import - generates a database of kmers from an input text
+file listing kmers and (optionally) values.
+
+meryl-import - generates a database of kmers present in an input
+sequence, with values representing the position in the sequence.
+
+Adding values will probably be implemented in two-passes, one to generate
+the database, and one to add values.  Otherwise, values need to be
+stored when kmers are sorted during counting.
+
+The database can be queried to get:
+  existence of a kmer
+  the count
+  the list of values
+
+PROBLEMS:
+  adding positions to a database will make it huge
+  if two-pass, the sequence must be the same for both passes (so that the count agrees)
+
+
+=============================================================================
+bri   627 Nov 27 08:41:40 2019 DOCUMENTATION:NOTES_FROM_FLYE_TALK
+
+AGB          Mikheenko 2019 in bioinfo
+repeat graph Pevzner 2004
+
+a-Bruijn graph -- Rafael 2005
+
+- Build sinmplified graph of alignments
+- Threads then follow paths through theis graph using thickest overlap
+
+1)  Build overlaps using solid kmers
+2)  Reads overlap if sufficient number of solid kmers are shared in order
+    (longest common subsequence problem)
+    (pnas 2016 Lin, Yuan, Komogorov)
+3)  Repeats labeled by coverage (> ~1.75x)
+4)  Try to anchor repeats with spanning reads
+    Trestle algorithm - Can handle exactly the 2-in 2-out pattern
+
+
+=============================================================================
+bri   669 Nov 27 09:46:39 2019 TODO:DNA_NEXUS
+
+Should save bogart logs
+
+Should check that redMemory doesn't result in jobs processing 1 read at a time.
+  - make it fail if there are more than 999 jobs.
+
+Trio first job is small, it just splits input fasta, doesn't need big node.
+But does need storage.
+
+What instance size for executive??
+
+Can exec run locally (on desktop machine) and just submit computes?
+How would it get notified of a job being done?
+
+Correction jobs need to use more cores to get more memory.
+
+--
+
+Disable logging for fetch of reports
+Disable logging of "no change in report"
+Disable logging of "reset canuIteration"
+
+RED for 5gb ??
+ - unlimited reads
+ - 500 Mbp
+ - evidence of 536 Mbp per job
+
+
+=============================================================================
+bri   562 Nov 27 11:13:04 2019 zzzTODO
+
+FAQ         - linux help
+              ftp://ftp.wayne.edu/ldp/en/Intro-Linux/Intro-Linux.pdf and the section on PATH on page 35
+
+OVSTORE     - ovlStoreDump -counts needs to grab the first data file?
+
+PIPELINE    - For parallel jobs, scan all .out .err for "Bye".  If not found, report last 5 lines.
+            - do not write .err from binaries, let it go to grid output
+
+GATEKEEPER  - add option to dump raw reads that were not corrected
+            - add option to dump raw reads used as evidence (and not corrected?)
+
+ENGINEERING - Remove BOOST dependency
+
+
+=============================================================================
+bri  1590 Aug 19 15:51:37 2020 zzzTODO-20200819
+
+Make getNumThreads() check environment variables for
+  SGE
+  PBS
+  Slurm
+    NTASKS
+    CPUS_PER_TASK
+    MEM_PER_CPU
+    CPUS_ON_NODE
+    JOB_CPUS_PER_NODE
+    MEM_PER_NODE
+  omp
+  return(1)
+
+Document gryphon human-reads tests.
+Cleanup  gryphon human-reads tests.
+
+Meryl
+  Want to have a 32-bit count field AND an (optional) 64-bit value field.
+  Incompatible with version 1.8.
+
+HiFi eval on biowulf.
+  Generate overlaps at 1% for both OBT and UTG, then trim at 1%, but UTG at
+  0% -- guaranteed to have spurs.
+
+  Really want some form of error correction BEFORE trimming.
+
+  Lighter? - uses QVs.  Serge will try.
+
+overlapAlign
+  Pipeline needed (still).
+
+  Needs to output overlapFile, not overlapStore, so we can then use the
+  symmetrization done when overlapStore is created from files.  What
+  to do about duplicates?
+
+  How to set parameters for trimming?
+  How to set parameters for overlap filtering?
+
+  Make standalone version, outside canu.  Still need to have most of canu libraries.
+  Need input from PAF.  Use only minimap2 alignments.
+  How long for human?
+
+  Simulate ecoli mix as nanopore.
+
+  Can I filter out contained reads entirely?
+
+  Minimap2 pairwise alignment library?
+
+Wanted to try trimming raw reads before correction.
+  Possibly need to keep aligning reads until we hit 4x coverage aligned,
+  then trim to largest 4x covered.
+
+  Previous mode of no trimming during correction, then OBT, can't
+  be supported; it definitely needs another trim pass.
+
+
+=============================================================================
+bri  1183 Sep 25 08:48:53 2020 zzzTODO_TESTING
+
+Three goals of testing:
+ - do we assemble correctly (needs manual inspection)
+ - did canu change (automated canu-regression)
+ - does canu crash (run random vgp?  nctc?)
+
+Try different aligners for quast?
+
+NCTC set
+ - what to evaluate?
+ - for now, just count ciruclar genomes and plasmid
+
+30x and 60x thresholds?
+
+canu-regression -- include thresholds for when to report a change:
+ - e.g., if one base change, don't care, don't report.
+   if hundreds bp change, do care and need to report
+ - update human to use chm13 reference
+   assemblies/releases/v1.0/asm.fasta
+
+simulated data for diploid
+ - use chrX from two hg002 and chm13
+ - rice?
+ - dros iso1 and a4
+   - iso1 has a reference
+   - a4 does not - but it has pacbio reads
+
+----------------------------------------
+PLANS
+
+Sergey wants to work on, after the t2t conference:
+ - overlap error symmetry
+ - finding more uncorrected errors
+
+Bri is hoping to 'finish' meryl.
+
+Bri should examine why we get worse assemblies with higher coverage?
+ - suspecting orphans are related
+ - certainly on hifi
+ - need to increase minOlap for higher coverage?
+ - adjust lopsided?
+
+Metagenomes?
+
+
+=============================================================================
+bri   663 Sep 29 23:13:28 2020 zzzMEETING_2020_08_xx
+
+PROBLEM: kmer filtering in overlaps
+ - we seem to be ignoring unique kmers that should be seeding overlaps
+
+Replace overlapper with winnowmap (and then don't need kmer filter)
+
+Storing more overlaps?  Need to store up to 8 overlaps per pair?
+2x dovetail
+2x contained
+
+Trimming raw reads
+ - mhap vs winnowmap
+
+cns edlib vs sswalign for template construction
+
+trimming (raw nano; hifi) then generate asm overlaps
+multiple overlaps per read
+trim and detect/fix errors in reads
+then just recompute each oerlap independently
+
+olapInCore
+ - merge trim and oea
+ - compressed hifi or nano
+
+robust consensus
+
+robust oveerlaps and read correction
+
+oea vs kmer correction
+
+
+=============================================================================
+bri   551 Oct 19 03:09:05 2020 zzzMEETING_2020_10_19
+
+meryl threads support
+
+utgcns dumping of tig broken?  I think I fixed already.
+
+gfalib in rust - sergey and pavel
+
+contained reads
+ - special test if next best is contained and then
+   to use it as best edge
+ - we've been using "contained" to mean "not useful for assembly",
+   but we need to be asking "contained in all paths it could go in"
+ - so something like:
+    - build all paths with all reads
+    - decide if read should be placed "contained" or "dovetail"
+ - but need some way of deciding if
+    - contained is best
+    - dovetail is best
+
+
+=============================================================================
+bri  1047 Aug 26 18:02:20 2021 zzzCONTIG_POSITION
+
+Given overlaps, defined by unaligned sequence at either end:
+
+x1 ------------
+       ======== o12
+x2     ---------------
+            === o13
+            ========== o23
+x3          ----------------
+
+Real alignments have gaps in them that make the length of
+the overlap different than the length of sequence-hangs:
+
+x1 -------~~~-----
+       =========== o12
+x2     ---------------
+            ====== o13
+            =========== o23
+x3          ---~-------------
+
+These gaps change the coordinates of each read, and the
+estimated length of the consensus sequence.
+
+We can write equations to compute the length of the consensus, Xn:
+
+(xi is the start position of read i)
+(l1 is the length in bp of read i)
+
+x1 = 0
+x2 = x1 + l1 - o12
+x3 = x1 + l1 - o13
+x3 = x2 + l2 - o12
+
+o12 = l1 - hang + gap12 + gap21
+o21 = l2 - hang + gap21 + gap12
+o12 = o21
+
+gap12 is the number of gaps in sequence 1 in the alignment of 1-to-2
+gap21 is the number of gaps in sequence 2 in the alignment of 2-to-1
+(the two alignments are the same)
+
+The goal is to minimize xn.
+
+
+=============================================================================
+bri  ---- Apr 12 --:--:-- 2023
+
+Does sweatshop actually need locks?
+
+bogart circles and SIMD optimized alignment fail on --constraint=x2650
+
+Canu 2068.
+
+----------------------------------------
+MISCELANEOUS
+ - fix snakemake --max-jobs-per-second and --max-status-checks-per-second.
+   submit pull request to github, tell Wolfgang about it
+     status_rate_limiter
+     RateLimiter (wants two params, per-second and period)
+     executors/__init__.py line 1138
+
+----------------------------------------
+VERKKO
+
+Canu 2068
+Canu 2087 has data - /data/korens/test/bug2087/
+
+Stlll need to generate stats on the reads.
+Run regression.
+
+VGP update and fix.
+
+LJA Polish is just uncompressing homopoly
+ - "kmer strips"?
+
+Rukki
+ - trio and other (strand seq, ...)
+ - get merqury databases (compressed) so verkko colors nodes, passes to rukki
+ - need to add compression to merqury
+
+1 compression to merqury
+2 inject coverage - inject hifi coverage to final graph
+3 add rukki
+4 launch v5 once more data shows up
+   - jambi v4 is with r=10000 everything else in there is r=4000
+
+/data/projects/Phillippy/verkko/ has raw results
+
+Engineering
+ - replace Verkko process-reads.py with seqrequester
+ - auto-submit to grid ala canu?
+ - add option for supplying corrected hifi directly
+ - add option to set genome size for job memory sizing
+
+Runs
+ - hprc genomes
+     https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=working/
+       PacBio_Hifi
+       nanopore
+ - generate summary stats for the below data
+ - primates from Serge
+     /data/Phillippy/seq/primate_T2T/AG06213_PAB/:
+     drwxrwxr-x  2 korens Phillippy 4.0K Dec 15 15:59 HiFi
+     drwxrwxr-x. 3 korens Phillippy 4.0K Jan 18 11:26 illumina
+     drwxrwxr-x. 7 korens Phillippy 4.0K Jan 18 11:26 ONT
+     -rw-rw-r--  1 korens Phillippy   34 Jan 18 11:26 README
+
+     /data/Phillippy/seq/primate_T2T/AG18354_PTR/:
+     drwxrwxr-x  2 korens Phillippy 8.0K Jan 18 14:44 HiFi
+     drwxrwxr-x. 7 korens Phillippy 4.0K Jan 18 12:39 ONT
+     -rw-rw-r--. 1 korens Phillippy   23 Jan 18 12:39 README
+
+     /data/Phillippy/seq/primate_T2T/Jim_GGO/:
+     drwxrwxr-x. 2 korens Phillippy 4.0K Oct 25 15:55 HiFi
+     drwxrwxr-x. 5 korens Phillippy 4.0K Dec 15 15:59 illumina
+     drwxrwxr-x. 9 korens Phillippy 8.0K Jan 11 16:40 ONT
+     -rw-rw-r--. 1 korens Phillippy    8 Oct 22 09:42 README
+
+VGP.GITHUB.IO
+ - weird file names for pacbio
+ - https://vgp.github.io/genomeark/Falco_peregrinus/ is broken
+ - Lx numbers are off-by-one; they start at 0 instead of 1
+
+Investigate workflow managers
+ - Snakemake
+ - Toil workflow UCSC
+    - https://toil.readthedocs.io/en/latest/
+    - https://www.biorxiv.org/content/10.1101/062497v1
+ - Nextflow workflow (Java)
+    - https://www.nextflow.io/
+
+
+=============================================================================
+bri  3864 Jan 23 21:02:49 2023 zzzTODO-20220307
+
+Finish verkko short/contaminant contig filtering.
+ - 'rename-haplotype-contig'
+ - create list of short contigs to remove
+ - create list of contaminant to remove
+    - save single best of each contaminant to single file
+ - rewrite assembly.fasta
+    - contaminants    -> assembly.contaminant.fasta
+    - everything else -> assembly.fasta
+
+Test arabidopsis and merge.
+ - cnsgap - merged
+ - auto-cns-memory - merged
+ - count-all-kmers - single commit
+ - rename-haplotype-contig - single commit
+
+Integrate meryl counting of phase data.
+ - serge did not make any progress on this
+
+New meryl release
+ - to support compressed option in merqury v1.4
+ - 'wider k-mer size bug fix is critical in verkko'
+ - need to redo this
+
+Meryl2 disaster.
+
+Overlapper faster (for ultralong duplex)?
+
+Scan github repos for orphaned projects.
+Summarize results for Adam to ping responsible people.
+Take care of any silly ones.
+
+Lose my desk.
+
+
+=============================================================================
+bri  1118 May 31 14:53:33 2022 zzzTODO-20220531
+
+computing syncmers?
+
+primate assemblies will shortly have
+ - deep consensus hifi
+ - ont guppy6
+
+genomeark
+ - metadata to aws
+ - get primate data up, so adam can make a t2t tracking page
+    - no metadata to denote a t2t assembly, just a static page
+ - brandon reupload primate data to a few files
+    - ont/
+    - ont_duplex/
+ - AuN area under N measure?
+
+verkko
+ - consensus read subsequence
+ - don't output empty haplotype files
+ - regressions need updated binaries
+    - include code as submodule
+    - include binary?  include binary in a separate repo just for regression?
+ - rukki gap estimates are incorrect
+    - use gfa 1.2 gap
+
+meryl
+ - gene fastk uses superkmers to group
+ - kmer profile isn't terribly useful, but is a big feature of fastk
+    - not useful on reads, this is more of an exploration of a new datatype
+    - possibly useful over contigs to get coverage
+ - big kmers not terribly useful (useful in a graph, not as kmer data)
+
+verkko pipeline
+ - refactor conceptually
+    - what steps are getting done, when, where, why?
+ - refactor technically
+    - merge existing python into a single module
+
+
+=============================================================================
+bri  6705 Jun 22 23:17:21 2022 zzzBUGS
+
+Note that canu.pl line 640 the error rates for hifi-only
+are wrong for correctErrors; it should be using the pre-correction
+error rate -- but i remember we discussed this and decided it was
+correct after all.
+
+----------------------------------------
+older
+
+Don't hardcode the number of threads to run in each script.  Use
+OMP_NUM_THREADS, and set that (if not set) based on the grid-specific
+environment variables.  Issue #1255.
+
+----------------------------------------
+PIPELINE
+
+We can't detect parameter chages and either recompute early stages, fail,
+or restart the current stage based on the change.  One solution is to dump
+all of the $globals to disk.  But then what?  Will each stage need to compare
+$globals to $oldglobals and decide what to do?
+
+Add an assembly 'mode' option to set common options.  Issue #1306.
+Possible choices are wgs, linear, plasmid.  In linear mode, don't trim ends,
+and maybe don't trim low coverage regions (Issue #1018).
+
+Provide a mapping of read to result: what happened to each input read -
+contig, bubble, trimmed out, not corrected, etc.  Issue #255.
+
+Configuration tries to configure for steps that won't run.
+Issue #1536.  See also #137.
+
+Use the concurrency options to limit the number of grid jobs running at once.
+See PR #1033.
+
+----------------------------------------
+INFRASTRUCTURE
+
+The current prototype of sqStore_getRead() is exceptionally confusing.  Make
+something that fills in a sqRead reference, and one that returns a new sqRead
+object.
+
+Add error handling when reading IFF files, specifically EOF and short reads.
+
+Finish the generic logging class.
+
+Finish a rewrite of intervalList and intervalDepth.
+IntervalDepth fails if intervals are length zero.
+
+----------------------------------------
+OUTPUTS
+
+Use actual read names in output files, instead of read ID.  Probably want to
+duplicate all the logs, since read IDs are more useful to us.  Or maybe a
+script to convert (some) logging from readID to readName.
+
+ovStoreStats categories need descriptions and clarifications on what units
+the various features are in.
+
+----------------------------------------
+MHAP
+
+Can we compress the mhap output as it is written?
+
+A checksum on the blocks would be nice, so we can detect when blocks are incomplete.
+Doesn't seem to be an issue anymore.  Possibly was caused by running multiple
+mhap precompute jobs at once.
+
+----------------------------------------
+CORRECTION
+
+Read rescue is saving too much stuff.  Instead excluding read that "are used
+for correction" switch the rule to be "could have been used for correction".
+Maybe only do this on deep coverage.
+
+Multithread generateCorrectionLayouts and/or parallelize it too.
+
+----------------------------------------
+CONSENSUS
+
+There are 'uncovered' bases in consensus sequences from realign problems.
+These probably result in truncated contigs.  Detect, then fix.
+
+Not all reads have positions recomputed, only the reads used for generating
+consensus do.
+
+Fix bug where even those positions are not stored in the final tig.  Not sure
+why ctgpos isn't being saved.
+dc94228a0227f0faef95d9cf2cc2c12453164814
+
+Realign all reads to get coordinates
+
+Build multi alignment layout for tgTig structure.  Store in tgStore.  Useful
+only for debugging/evaluating consensus algorithms.
+a6871e446ecba0fa5a8aaa72c23bae5bf8e96e60
+
+Compute consensus using raw reads instead of corrected reads.
+
+Output BAM (or CRAM) of raw reads aligned to final consensus.  It's
+free, so output BAM of corrected reads too.  Implement this as a
+tgStoreDump option.
+
+Allow disjoint ranges when selecting tigs to process (e.g., 3,6,9-12,33).
+
+Thread a the tig level, not the alignment level.  Need to be sure that we
+don't blow up memory.
+
+----------------------------------------
+MERYL
+
+Add operation union-subtract
+
+Replace 'don't know what to do' error with something more useful
+
+Import value screws up histogram.  numTotal is bogus.  Will this be fixed by count/value change?
+
+coding
+ - Value coding type `1` is just a 32-bit integer.  Read in
+   fileReader::loadBlock() and decodeBlock() but probably not checked.
+ - Extend to have both a 32-bit count and a 64-bit value
+
+multiset
+ - Kmer files have kmers listed more than once, with different counts and
+   values
+ - Ops flatten-sum flatten-max flatten-min convert multiset to single kmers
+ - These are similar to normal operations, but use both kmer+value to as a
+   key.  We can generalize the normal operations to use kmer+value always,
+   but let value be zero bits wide for non-multiset.
+ - If multiset-vs-single treat the single value as a wildcard that matches
+   any value.
+    union     -- what to do if the single isn't in the multiset -- what
+                 value should it get?
+    intersect -- only outputs a kmer+value if it exists in the single set
+
+----------------------------------------
+TRIO
+
+splitHaplotype needs debugging options.
+
+splitHaplotype needs to report statistics
+ - on read assignment (logged to canu stderr)
+ - histogram of hapA vs hapB scores
+ - logging of "readID #kmersHap1 #kmersHap2"
+
+----------------------------------------
+BOGART
+
+Contigs smaller than a single read (plasmid, mito) are caught by the unassembled filter.
+
+What does the lopsided filter do?
+Why are orphans created?
+
+AS_BAT_Instrumentation.C reportOverlaps() (called once in bogart.C) was reported
+to be very slow on nanopore human (a year or so ago).
+
+What is the impact of low memory and filtering of overlaps?
+
+Don't split a tig if the evidence tig is short.
+Define "short" as the two end reads overlapping:
+    -----------------------
+    ------------>
+            -------------->
+
+----------------------------------------
+OEA
+
+Switch RED/OEA to edlib.  This is done in branch edlib_overlaps but is very
+very out of date by now.  Also try libksw2 or libSSW?
+
+----------------------------------------
+GRID
+
+Make SGE and Slurm detect default queues.  Easy on Slurm, I haven't
+figured out how to tell this on SGE:
+ -  suserl  - list of active users
+ -  sql     - list of queues
+ -  sq      - gives list of hosts in a queue
+ -  shgrpl  - show list of host groups
+ -  shgrp   - show host in specific group
+ -  sul     - show user list
+
+interactive logins:
+ - useGrid=remote doesn't work
+ - useGrid=true doesn't work; it thinks it's running one process on that node
+
+Better logging of what grid jobs will run (how many, how big); especially
+useful for useGrid=remote
+
+Changing state of useGrid in the middle of a run doesn't work.
+Issue 389.  The JOBID is hardcoded for the grid type.
+
+Disable memory request by removing MEMORY from gridEngineResourceOption.
+Also then need to change Configure.pm to ignore memory size of each job.
+Issues #651 and #1227.
+
+
+========================================
+bri  1838 Feb  9 04:15:23 2024 zzzTODO-20240129
+
+add parallel overlap store construction to verkko
+ - problem is a 1.5KB ruminant repeat that matches everywhere
+ - on hold pending mikko changes to hifi overlapper to filter
+   based on coverage
+ - compute errors also runs very slow - 5 days with 500 jobs
+
+trio and hic integration from Serge
+ - trio for scaffolding
+ - hic for rdna integration (i think)
+
+again motivated to integrate meryl trio processing
+ - stumbling block was the threshold filter detection
+ - stumbling block could be doing this using meryl2 all in one go
+   (need to figure out how to determine threshold without having a histogram already)
+
+HPRC
+ - need to develop lots of post-processing scripts for filtering and stats
+    - chromosome assignment script from Serge, Brandon and KOLF
+    - rdna cleanup
+
+next release goals
+ - MBG update
+ - t2t regressions
+ - trio vs hic merge
+
+----------------------------------------
+
+canu commit
+canu human on trek and/or biowulf
+canu release
+
+kmer filter threshold algorithm
+kmer filter into meryl
+kmer filter inline?
+hprc meryl trio database building
+ - meryl read bam/cram
+hprc fetch/kmer/stats/assembly/stats script
+
+genomeark update
+genomeark hybrid
+
+verkko gaf
+verkko gfa
+
+verkko build system after release
+ - CXXFLAGS on biowulf disable optimizations
+ - add logging to the end of build reporting flags and WARN if optimizations are off
+
+simple sequence repeats
+
+canu make has a race on version.H
+ - fresh checkout of everything on macOS failed with -j 12
+    - note that version.H exists after first build!
+ - fails with no template unary_function if boost not installed
+ - it's making both version.H and utility/src/version.H - which is correct!?
+
