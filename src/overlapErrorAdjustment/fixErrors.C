@@ -143,8 +143,10 @@ main(int argc, char **argv) {
 
     totalBases += read.sqRead_length();
 
+    // update array if we don't have enough space, pad by 5% to account of insertions due to corrections
+	// if these are very erroneous reads, likely need more than 5%
     if (read.sqRead_length() > corBasesMax)
-      resizeArray(corBases, 0, corBasesMax, read.sqRead_length() + 1024, _raAct::doNothing);
+      resizeArray(corBases, 0, corBasesMax, read.sqRead_length() + std::max(1024, int(0.05 * read.sqRead_length())), _raAct::doNothing);
 
     correctRead(curID,
                 corBases,
