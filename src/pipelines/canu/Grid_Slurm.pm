@@ -37,7 +37,7 @@ sub detectSlurm () {
 
     return   if ( defined(getGlobal("gridEngine")));
 
-    my $sinfo = findExecutable("sinfo");
+    my $sinfo = findCommand("sinfo");
 
     return   if (!defined($sinfo));
 

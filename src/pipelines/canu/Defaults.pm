@@ -31,6 +31,7 @@ require Exporter;
              printCitation
              setParametersFromFile
              setParametersFromCommandLine
+             findCommand
              checkJava
              checkMinimap
              checkGnuplot
@@ -797,7 +798,6 @@ sub setDefaults () {
     $global{"availablehosts"}              = undef;   #  Internal list of cpus-memory-nodes describing the grid.
 
     $global{"perl"}                        = $^X;     #  Use whatever perl interpreter is in use now for resubmission.
-    $global{"perl"}                        = `command -v perl`   if (!defined($global{"perl"}));
 
     $global{"localmemory"}                 = 0;       #  Amount of memory on the local host, set in Grid_Local.pm
     $global{"localthreads"}                = 0;
@@ -818,14 +818,12 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
-    my $java = (exists $ENV{"JAVA_HOME"} && -e "$ENV{'JAVA_HOME'}/bin/java") ? "$ENV{'JAVA_HOME'}/bin/java" : "java";
-
     setDefault("showNext",            undef,      "Don't run any commands, just report what would run");
     setDefault("shell",               "/bin/sh",  "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'");
                
     setDefault("minimap",             "minimap2", "Path to minimap2; default 'minimap2'");
 
-    setDefault("java",                $java,      "Java interpreter to use; at least version 1.8; default 'java'");
+    setDefault("java",                undef,      "Java interpreter to use; at least version 1.8; default 'java'");   #  Set in checkJava().
     setDefault("javaUse64Bit",        undef,      "Java interpreter supports the -d64 or -d32 flags; default auto");
 
     setDefault("gnuplot",             "gnuplot",  "Path to the gnuplot executable");
@@ -1067,20 +1065,44 @@ sub setVersion ($) {
 }
 
 
-sub checkJava () {
-    my $java;
 
+#  Scan the PATH, return the first executable found.
+sub findCommand ($) {
+    my $cmd  = shift @_;
+    my @path = File::Spec->path;
+
+    foreach my $path (@path) {
+        return "$path/$cmd"   if (-x "$path/$cmd");
+    }
+    return undef;
+}
+
+
+
+sub checkJava () {
     return  if ((getGlobal("corOverlapper") ne "mhap") &&
                 (getGlobal("obtOverlapper") ne "mhap") &&
                 (getGlobal("utgOverlapper") ne "mhap"));
 
-    $java = getGlobal("java");
-    $java = `command -v $java`;  #  See Execution.pm getBinDirectoryShellCode()
+    my $javag = getGlobal("java");
+    my $javah = "$ENV{'JAVA_HOME'}/bin/java"   if (exists $ENV{"JAVA_HOME"});
+    my $javap = findCommand("java");
+    my $java;
+
+    if    (defined($javag))   { $java = $javag; }
+    elsif (-e $javah)         { $java = $javah; }
+    else                      { $java = $javap; }
+
     $java =~ s/^\s+//;
     $java =~ s/\s+$//;
 
-    if ($java =~ m/^\./) {
+    if ($java !~ m!^/!) {
         addCommandLineError("ERROR:  path to java '$java' must not be a relative path.\n");
+        return;
+    }
+    if (! -x $java) {
+        addCommandLineError("ERROR:  java interpreter '$java' not found.\n");
+        return;
     }
 
     #  We've seen errors running just this tiny java if too many copies are
@@ -1460,10 +1482,10 @@ sub checkParameters () {
     #  Check for inconsistent parameters
     #
 
-    my $gs = getGlobal("genomeSize");
+    my $gs  = getGlobal("genomeSize");
 
     addCommandLineError("ERROR:  Required parameter 'genomeSize' not set.\n")           if (!defined($gs));
-    addCommandLineError("ERROR:  Implausibly small genome size $gs.  Check units!\n")   if ($gs < 1000);
+    addCommandLineError("ERROR:  Implausibly small genome size $gs.  Check units!\n")   if ($gs < 1000) && (defined($gs));
 
     #
     #  If we're running as a job array, unset the ID of the job array.  This screws
