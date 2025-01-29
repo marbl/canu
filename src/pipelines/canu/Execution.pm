@@ -34,8 +34,6 @@ require Exporter;
              submitOrRunParallelJob
              runCommand
              runCommandSilently
-             findCommand
-             findExecutable
              caExit
              caFailure);
 
@@ -1561,34 +1559,6 @@ sub runCommandSilently ($$$) {
     return(1);
 }
 
-
-
-sub findCommand ($) {
-    my $cmd  = shift @_;
-    my @path = File::Spec->path;
-
-    for my $path (@path) {
-        if (-x "$path/$cmd") {
-            return("$path/$cmd");
-        }
-    }
-
-    return(undef);
-}
-
-
-
-sub findExecutable ($) {
-    my $exec = shift @_;
-
-    my $path = `which \"$exec\" 2> /dev/null`;
-
-    $path =~ s/^\s+//;
-    $path =~ s/\s+$//;
-
-    return(undef)  if ($path eq "");
-    return($path);
-}
 
 
 #  Use caExit() for transient errors, like not opening files, processes that die, etc.

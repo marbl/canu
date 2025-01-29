@@ -58,7 +58,7 @@ sub detectPBSTorque () {
 
     return   if ( defined(getGlobal("gridEngine")));
 
-    my $pbsnodes = findExecutable("pbsnodes");
+    my $pbsnodes = findCommand("pbsnodes");
 
     return   if (!defined($pbsnodes));
 

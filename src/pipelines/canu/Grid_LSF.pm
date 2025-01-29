@@ -37,7 +37,7 @@ sub detectLSF () {
 
     return   if ( defined(getGlobal("gridEngine")));
 
-    my $bsub = findExecutable("bsub");
+    my $bsub = findCommand("bsub");
 
     return   if (!defined($bsub));
 

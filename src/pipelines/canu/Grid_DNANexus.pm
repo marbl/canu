@@ -148,7 +148,7 @@ sub detectDNANexus () {
     return   if ( defined(getGlobal("gridEngine")));   #  Grid not requested.
     return   if (!defined($ENV{'DNANEXUS_HOME'}));     #  Not a DNA Nexus grid
 
-    my $dnanodes = findExecutable("dx-jobutil-new-job");
+    my $dnanodes = findCommand("dx-jobutil-new-job");
 
     return   if (!defined($dnanodes));
 
