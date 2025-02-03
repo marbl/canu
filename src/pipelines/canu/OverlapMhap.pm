@@ -242,8 +242,11 @@ sub mhapConfigure ($$$) {
             #  Make a place to save queries.  If this is the last-block-special-case, make a directory,
             #  but don't link in any files.  Without the directory, we'd need even more special case
             #  code down in mhap.sh to exclude the -q option for this last block.
+            #  always create an empty file to esnure empty directory is not removed for last block
 
             make_path("$path/queries/$job");
+            open my $fh, '>', "$path/queries/$job/.emptyfile.txt";
+            close $fh;
 
             if ($qbgn < $numBlocks) {
                 print L "Job ", scalar(@hashes), " computes block $bid vs blocks $qbgn-$qend$andSelf,\n";
