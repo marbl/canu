@@ -402,6 +402,9 @@ sub getBinDirectoryShellCode () {
     $string .= "\n";
     $string .= "jn=" . getGlobal("java") . "\n";
     $string .= "je=" . "`command -v \$jn`" . "\n";
+    $string .= "if [ \"x\$je\" = \"x\" ]; then" . "\n";
+    $string .= "   je=\$jn\n";
+    $string .= "fi\n";
     $string .= "jv=" . "`command    \$jn -showversion 2>&1 | head -n 1`" . "\n";
     $string .= "\n";
     $string .= "cn=" . "$FindBin::RealBin/" . basename($0) . "\n";

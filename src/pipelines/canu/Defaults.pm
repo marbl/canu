@@ -1158,6 +1158,7 @@ sub checkJava () {
         print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java')";
         print STDERR (defined(getGlobal("javaUse64Bit")) && getGlobal("javaUse64Bit") == 1) ? " with " : " without ";
         print STDERR "-d64 support.\n";
+        setGlobal("java", $java);
     }
 }
 
