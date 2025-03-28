@@ -719,7 +719,7 @@ alignEdLib(dagAlignment      &aln,
 
   if (align.alignmentLength > 0) {
     alignedErrRate = (double)align.editDistance / align.alignmentLength;
-    aligned        = (alignedErrRate <= bandErrRate);
+    aligned        = (alignedErrRate <= bandErrRate) && align.alignmentLength >= fragmentLength;
     if (verbose)
       fprintf(stderr, "alignEdLib()-- - ALIGNED read %7u %.4f at %9d-%-9d\n", utgpos.ident(), alignedErrRate, tigbgn + align.startLocations[0], tigbgn + align.endLocations[0]+1);
   } else {
@@ -883,7 +883,7 @@ unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
                          _utgpos[ii],
                          seq->getBases(), seq->length(),
                          tigseq, tiglen,
-                         _errorRateMax,
+                         _utgpos[ii].isLowQuality() == true ? _errorRateMax : _errorRate,   //  Allow higher error for low-quality reads
                          _utgpos[ii].isLowQuality() == true ? MAX_PADDING*5 : MAX_PADDING,  //  Pad low-quality reads by more
                          showAlignments());
 
@@ -1183,14 +1183,15 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
     //  Decide on where to align this read and the expected quality.
 
     int32  padding  = std::min(MAX_PADDING, (int32)ceil(readlen * 0.05));
+	double erate    = _utgpos[ii].isLowQuality() ? _errorRateMax : _errorRate;
 
     int32  bandpad[9]  = {  1 * padding,  5 * padding, MAX_PADDING_MULT * padding,
                             1 * padding,  5 * padding, MAX_PADDING_MULT * padding,
                             1 * padding,  5 * padding, MAX_PADDING_MULT * padding };
 
-    double bandqual[9] = { 0.25 * _errorRateMax,  0.20 * _errorRateMax, 0.15 * _errorRateMax,
-                           0.50 * _errorRateMax,  0.45 * _errorRateMax, 0.40 * _errorRateMax,
-                           0.75 * _errorRateMax,  0.90 * _errorRateMax, 1.00 * _errorRateMax };
+    double bandqual[9] = { 0.25 * erate,  0.20 * erate, 0.15 * erate,
+                           0.50 * erate,  0.45 * erate, 0.40 * erate,
+                           0.75 * erate,  0.90 * erate, 1.00 * erate };
 
     EdlibAlignResult align;
 
@@ -1241,7 +1242,7 @@ unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
         alignbgn  = aspanbgn + align.startLocations[0];
         alignend  = aspanbgn + align.endLocations[0] + 1;
         alignqual = (double)align.editDistance / align.alignmentLength;
-        aligned   = (double)align.editDistance / align.alignmentLength <= bandqual[attempt];
+        aligned   = (double)align.editDistance / align.alignmentLength <= bandqual[attempt] && align.alignmentLength >= readlen;
       }
 
       if (showPlacement()) {
