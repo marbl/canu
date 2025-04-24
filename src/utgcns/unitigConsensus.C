@@ -697,7 +697,7 @@ alignEdLib(dagAlignment      &aln,
   if (verbose)
     fprintf(stderr, "alignEdLib()-- align read %7u padding %7u maxpad %7u eRate %.4f at %9d-%-9d\n", utgpos.ident(), padding, maxpad, bandErrRate, tigbgn, tigend);
 
-  if (tigend < tigbgn) {
+  if (tigend <= tigbgn) {
     fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
             tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
     // try to align it to full
@@ -744,7 +744,7 @@ alignEdLib(dagAlignment      &aln,
       tigend = std::min((int32)tiglen, (int32)floor(utgpos.max() + padding));
     }
 
-    if (tigend < tigbgn) {
+    if (tigend <= tigbgn) {
       fprintf(stderr, "alignEdLib()-- WARNING: tigbgn %d > tigend %d - tiglen %d utgpos %d-%d padding %d\n",
               tigbgn, tigend, tiglen, utgpos.min(), utgpos.max(), padding);
       // try to align it to full
