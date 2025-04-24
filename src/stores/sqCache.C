@@ -393,7 +393,7 @@ void
 sqCache::sqCache_loadReads(std::set<uint32> reads, bool verbose) {
   uint32   nToLoad  = reads.size();
   uint32   nLoaded  = 0;
-  uint32   nStep    = nToLoad / 100;
+  uint32   nStep    = (nToLoad < 100 ? 1 : nToLoad / 100);
 
   if (verbose)
     fprintf(stderr, "Loading %u reads.\n", nToLoad);
@@ -469,15 +469,15 @@ sqCache::sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose) {
 
 //  For correction, load the read the tig represents, and all evidence reads.
 void
-sqCache::sqCache_loadReads(tgTig *tig, bool verbose) {
+sqCache::sqCache_loadReads(tgTig *tig, bool verbose, bool forCorrection) {
   std::set<uint32>  reads;
 
-  reads.insert(tig->tigID());
+  if (forCorrection == true)
+     reads.insert(tig->tigID());
 
   for (uint32 oo=0; oo<tig->numberOfChildren(); oo++)
     if (tig->getChild(oo)->isRead() == true)
       reads.insert(tig->getChild(oo)->ident());
-
   sqCache_loadReads(reads, verbose);
 }
 
@@ -558,5 +558,18 @@ sqCache::sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
   wr->sqReadDataWriter_writeBlob(B);
 
   delete [] seq;
+}
+
+void sqCache::sqCache_loadIDs() {
+  FILE        *nameMap  = merylutil::openInputFile(_seqStore->sqStore_path(), '/', "readNames.txt");
+  char  *L    = NULL;
+  uint32 Llen = 0;
+  uint32 Lmax = 0;
+
+  while (merylutil::readLine(L, Llen, Lmax, nameMap)) {
+     splitToWords words;
+     words.split(L);
+     _nameToID[ std::string(words[1]) ] = atoi(words[0]);
+  }
 }
 

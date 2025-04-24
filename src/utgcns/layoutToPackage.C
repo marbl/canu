@@ -142,8 +142,8 @@ loadVerkkoLayouts(sqCache              *reads,
       nReads = strtouint32(W[1]);
     }
 
-	else if (strcmp(W[0], "trm") == 0) {
-	   tig->_suggestNoTrim = (strtouint32(W[1]) != 0);
+    else if (strcmp(W[0], "trm") == 0) {
+       tig->_suggestNoTrim = (strtouint32(W[1]) != 0);
     }
 
     else if (strcmp(W[0], "end") == 0) {
@@ -183,6 +183,8 @@ main(int argc, char **argv) {
   char const                *outputPattern  = nullptr;
   char const                *mapPrefix      = nullptr;
 
+  // we need either a list of input files or a seqStore 
+  char const                *storeFilename  = nullptr;
   std::vector<char const *>  readFilenames;
 
   double   partitionSize    = 1.00;   //  Size partitions to be 100% of the largest tig.
@@ -201,6 +203,11 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-reads") == 0) {       //  Input sequence files,
       while (fileExists(argv[arg+1]) == true)          //  multiple files per switch
         readFilenames.push_back(argv[++arg]);          //  supported.
+    }
+
+    else if (strcmp(argv[arg], "-store") == 0) {       //  Input sequence store
+      if (directoryExists(argv[arg+1]) == true)
+        storeFilename = argv[++arg];
     }
 
     else if (strcmp(argv[arg], "-output") == 0) {      //  Output package filename
@@ -233,8 +240,17 @@ main(int argc, char **argv) {
     err.push_back(es);
   }
 
-  if (readFilenames.size() == 0)
-    err.push_back("ERROR:  No input read sequence files (-reads) supplied!\n");
+  if (storeFilename == nullptr && readFilenames.size() == 0)
+    err.push_back("ERROR:  No input read sequence files (-reads) or store (-store) supplied!\n");
+
+  if (storeFilename != nullptr && readFilenames.size() > 0)
+    err.push_back("ERROR:  Only one of (-reads) or store (-store) should be supplied!\n");
+
+  if ((storeFilename != nullptr) && (directoryExists(storeFilename) == false)) {
+      char *es = new char [1024];
+      snprintf(es, 1024, "ERROR:  Input read sequence file (-reads) '%s' doesn't exist!\n", storeFilename);
+      err.push_back(es);
+    }
 
   for (uint32 rr=0; rr<readFilenames.size(); rr++)
     if (fileExists(readFilenames[rr]) == false) {
@@ -252,6 +268,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  INPUT\n");
     fprintf(stderr, "    -layout l                  Input layouts.\n");
     fprintf(stderr, "    -reads a [b ...]           Input reads, fasta/fasta, uncompressed/gz/bz2/xz.\n");
+    fprintf(stderr, "    -store a                   Input store, seqtore format.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -output name####.cnspack   Output file pattern.  Must include one or more consecutive '#'\n");
     fprintf(stderr, "                               symbols.  These will be replaced with the zero-leading number of\n");
@@ -278,14 +295,22 @@ main(int argc, char **argv) {
     return(1);
   }
 
-  //  Load read sequences and build a map from read-name to read-id.
+  //  Load read info and build a map from read-name to read-id.
+  sqStore *store = nullptr;
+  sqCache *reads = nullptr;
 
-  sqCache *reads = new sqCache();
-
-  for (char const *filename : readFilenames) {
-    fprintf(stderr, "-- Loading reads from '%s'.\n", filename);
-    reads->sqCache_loadReads(filename);
-  }
+  if (storeFilename == nullptr) {
+    reads = new sqCache();
+    for (char const *filename : readFilenames) {
+      fprintf(stderr, "-- Loading reads from '%s'.\n", filename);
+      reads->sqCache_loadReads(filename);
+    }
+   } else {
+     store = new sqStore(storeFilename, sqStore_readOnly);
+     reads = new sqCache(store);
+     sqRead_setDefaultVersion(sqRead_raw & ~sqRead_compressed);
+     reads->sqCache_loadIDs();
+   }
 
   //
   //  Load the layout first so we can fail quickly if needed.
@@ -373,9 +398,17 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "-- Creating packages with %lu tigs.\n", tigs.size() - 1);
 
-  for (uint32 ti=0; ti<tigs.size(); ti++)
-    if (tigs[ti])
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    if (tigs[ti]) {
+      if (store != nullptr) {
+        // clear cache and populate it with only reads from the current tig
+        delete reads;
+        reads = new sqCache(store);
+        reads->sqCache_loadReads(tigs[ti], false, false);
+      }
       tigs[ti]->exportData(package[ tp._tigInfo[ti].partition ], reads, false);
+    }
+  }
 
   //
   //  Close outputs, cleanup and go home.
@@ -391,6 +424,7 @@ main(int argc, char **argv) {
     delete tigs[ti];
 
   delete reads;
+  delete store;
 
   fprintf(stderr, "Bye.\n");
   return(0);

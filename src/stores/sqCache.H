@@ -68,12 +68,13 @@ public:
   void         sqCache_loadReads(std::set<uint32> reads, bool verbose=false);
   void         sqCache_loadReads(std::map<uint32, uint32> reads, bool verbose=false);
   void         sqCache_loadReads(ovOverlap *ovl, uint32 nOvl, bool verbose=false);
-  void         sqCache_loadReads(tgTig *tig, bool verbose=false);
+  void         sqCache_loadReads(tgTig *tig, bool verbose=false, bool forCorrection=true);
 
   //  Data loader from a single fasta/fastq file.  The 'id' of the read is
   //  assigned incrementally starting from 1.  ALL reads are loaded by this call.
 
   void         sqCache_loadReads(char const *filename);
+  void         sqCache_loadIDs();
 
 public:
   void         sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadDataWriter *wr);
