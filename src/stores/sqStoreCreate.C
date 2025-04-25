@@ -292,11 +292,12 @@ loadReads(sqStore          *seqStore,
         cseq->sqReadSeq_setAllClear();
       }
 
-      fprintf(nameMap, F_U32"\t%s%s%s\n",
+      fprintf(nameMap, F_U32"\t%s%s%s\t%s\n",
               seqStore->sqStore_lastReadID(),
               sq.ident(),
               (sq.flags()[0] == 0) ? "" : " ",
-              sq.flags());
+              sq.flags(),
+              seqLibrary->sqLibrary_libraryName());
 
       filestats.nLOADED += 1;
       filestats.bLOADED += end - bgn;

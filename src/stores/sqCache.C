@@ -568,8 +568,14 @@ void sqCache::sqCache_loadIDs() {
 
   while (merylutil::readLine(L, Llen, Lmax, nameMap)) {
      splitToWords words;
-     words.split(L);
-     _nameToID[ std::string(words[1]) ] = atoi(words[0]);
+     words.split(L, splitTabs);
+	 splitToWords name;
+	 name.split(words[1]);
+	 // we prepent the library name if one exists, this is to avoid name conflicts in verkko 
+	 if (words.numWords() > 2)
+       _nameToID[ std::string(words.last()) + "_" + std::string(name.first()) ] = words.touint32(0);
+	 else
+	   _nameToID[ std::string(name.first()) ] = words.touint32(0);
   }
 }
 
