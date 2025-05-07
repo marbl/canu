@@ -405,6 +405,7 @@ main(int argc, char **argv) {
         delete reads;
         reads = new sqCache(store);
         reads->sqCache_loadReads(tigs[ti], false, false);
+        reads->sqCache_loadIDs();
       }
       tigs[ti]->exportData(package[ tp._tigInfo[ti].partition ], reads, false);
     }

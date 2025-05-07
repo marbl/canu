@@ -548,7 +548,7 @@ sqCache::sqCache_saveReadToBuffer(writeBuffer *B, uint32 id, sqRead *rd, sqReadD
   B->write(&corC, sizeof(sqReadSeq));
 
   //  Import the sequence and metadata to the data writer, then write it.
-  //   - only reads from fasta/fastq have a valid name!
+  //   - only reads from fasta/fastq have a valid name unless you call loadIDs first!
 
   wr->sqReadDataWriter_importData(_reads[id]._name,
                                   seq,
@@ -568,14 +568,17 @@ void sqCache::sqCache_loadIDs() {
 
   while (merylutil::readLine(L, Llen, Lmax, nameMap)) {
      splitToWords words;
+     std::string ident;
      words.split(L, splitTabs);
-	 splitToWords name;
-	 name.split(words[1]);
-	 // we prepent the library name if one exists, this is to avoid name conflicts in verkko 
-	 if (words.numWords() > 2)
-       _nameToID[ std::string(words.last()) + "_" + std::string(name.first()) ] = words.touint32(0);
-	 else
-	   _nameToID[ std::string(name.first()) ] = words.touint32(0);
+     splitToWords name;
+     name.split(words[1]);
+     // we prepent the library name if one exists, this is to avoid name conflicts in verkko 
+     if (words.numWords() > 2)
+        ident = std::string(words.last()) + "_" + std::string(name.first());
+     else
+        ident = std::string(name.first());
+     _nameToID[ ident ] = words.touint32(0);
+     _reads [ words.touint32(0) ]._name = _nameToID.find( ident )->first.c_str();
   }
 }
 
