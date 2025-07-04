@@ -83,10 +83,10 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> g
 /// in the alignment graph.
 struct AlnNode {
     char base; ///< DNA base: [ACTG]
-    int tpos; ///< position in template
-    int coverage; ///< Number of reads align to this position, but not
+    uint32_t tpos; ///< position in template
+    uint8_t coverage; ///< Number of reads align to this position, but not
                   ///< necessarily match
-    int weight; ///< Number of reads that align to this node *with the same base*, but not
+    uint8_t weight; ///< Number of reads that align to this node *with the same base*, but not
                 ///< necessarily represented in the target.
     bool backbone; ///< Is this node based on the reference
     bool deleted; ///< mark for removed as part of the merging process
@@ -104,7 +104,7 @@ struct AlnNode {
 
 /// Graph edge property. Represents an edge between alignment nodes.
 struct AlnEdge {
-    int count; ///< Number of times this edge was confirmed by an alignment
+    uint8_t count; ///< Number of times this edge was confirmed by an alignment
     bool visited; ///< Tracks a visit during algorithm processing
     AlnEdge() {
         count = 0;
@@ -183,18 +183,18 @@ public:
     /// each base meets the minimum weight requirement.
     /// \param minWeight sets the minimum weight for each base in the consensus.
     ///        default = 0
-    const std::string consensus(int minWeight);
+    const std::string consensus(uint8_t minWeight);
 
     /// Same as above but will only trim bases below minWeight either at the
     /// start or end of the sequence, not in the middle.  Also tracks trim
     /// offsets.
-    const std::string consensusNoSplit(int       minWeight,
+    const std::string consensusNoSplit(uint8_t  minWeight,
                                        uint32_t *templateToFinal,
                                        uint32_t  templateLength);
 
     /// Generates all consensus sequences from a target that meet the minimum
     /// weight requirement.
-    void consensus(std::vector<CnsResult>& seqs, int minWeight=0, size_t minLength=500);
+    void consensus(std::vector<CnsResult>& seqs, uint8_t minWeight=0, size_t minLength=500);
 
     /// Locates the optimal path through the graph.  Called by consensus()
     const std::vector<AlnNode> bestPath();
