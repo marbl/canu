@@ -121,8 +121,16 @@ public:
   uint32               deltaOffset(void)     { return(_deltaOffset); };
   uint32               deltaLength(void)     { return(_deltaLen);    };
 
+  uint32               getMAPQ(void)         {
+    if (_numPlacement <= 1) {
+        return 60;  // high cofidence
+    }
+    double p_err = 1.0 - (1.0 / _numPlacement);
+    return int(floor(-10.0 * log10(p_err)));
+  }
+
   //  Set everything.  This is to be used by unitigger.
-  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end, uint32 askip = 0, uint32 bskip = 0) {
+  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end, uint32 askip = 0, uint32 bskip = 0, uint32 numPlacement = 1) {
 
     _objID         = id;
 
@@ -138,6 +146,8 @@ public:
 
     _askip         = askip;
     _bskip         = bskip;
+
+    _numPlacement = (numPlacement >= 32 ? 31 : numPlacement);
 
     _min           = std::min(bgn, end);
     _max           = std::max(bgn, end);
@@ -197,7 +207,8 @@ public:
   uint32              _skipCNS      : 1;  //  Child should not be used for consensus.
   uint32              _isLowQuality : 1;  //  Child should not be used for consensus.
 
-  uint32              _spare        : 26;
+  uint32              _numPlacement : 5;  // Number of times this read is placed in the assembly, used to compute MAPQ in bam output, canu always sets this to 1
+  uint32              _spare        : 21;
 
   //  These are not used any more; they were used by the early consensus
   //  algorithm; they are still set in bogart, and MUST remain in the structure

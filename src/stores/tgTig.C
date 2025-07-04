@@ -87,6 +87,7 @@ tgPosition::initialize(void) {
   _skipCNS      = false;
   _isLowQuality = false;
 
+  _numPlacement = 0;
   _spare        = 0;
 
   _anchor       = UINT32_MAX;
@@ -632,8 +633,9 @@ tgTig::loadLayout(FILE *F) {
       _children[nChildren]._isUnitig     = (strcmp(W[0], "unitig") == 0);
       _children[nChildren]._isContig     = (strcmp(W[0], "contig") == 0);
       _children[nChildren]._isReverse    = false;
-      _children[nChildren]._skipCNS      = false;
-      _children[nChildren]._isLowQuality = false;
+      _children[nChildren]._skipCNS      = false;                          // these are used for verkko consensus not canu
+      _children[nChildren]._isLowQuality = false;                          // not present in layout for backwards compatibilty
+      _children[nChildren]._numPlacement = 1;                              // initialize to defaults
       _children[nChildren]._spare        = 0;
       _children[nChildren]._anchor       = strtouint32(W[3]);
       _children[nChildren]._ahang        = strtouint32(W[5]);
@@ -972,7 +974,7 @@ tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
                        flags,                               //  Flags.
                        0,                                   //  Target ID (first and only target sequence)
                        child->min(),                        //  Start position on target, 0-based
-                       255,                                 //  Mapping Quality not available
+                       child->getMAPQ(),                    //  Mapping Quality based on placement
                        cigarLenS, cigarArray,               //  Number of CIGAR operations, and operations
                        -1, -1,                              //  Position (target, begin) of next read in template
                        0, /*_tig->length(),*/               //  Length of template

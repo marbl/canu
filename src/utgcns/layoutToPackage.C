@@ -108,9 +108,10 @@ loadVerkkoLayouts(sqCache              *reads,
       uint32      pa     = 0;                                                       //  Parent never used.
       int32       bgn    = (W.numWords() >= 3) ?  strtoint32(W[1])       : 0;       //  2nd: bgn position
       int32       end    = (W.numWords() >= 3) ?  strtoint32(W[2])       : 0;       //  3rd: end position
-      bool        ignore = (W.numWords() == 4) ? (strtoint32(W[3]) != 0) : false;   //  4th: ignore this read?  (verkko)
-      int32       askp   = (W.numWords() == 5) ?  strtoint32(W[3])       : 0;       //  4th: ignore bases?      (canu)
-      int32       bskp   = (W.numWords() == 5) ?  strtoint32(W[4])       : 0;       //  5th: ignore bases?      (canu)
+      int32       copy   = (W.numWords() > 3)  ?  strtoint32(W[3])       : 0;       //  4th: number of copies of this read
+      bool        ignore = (W.numWords() == 5) ? (strtoint32(W[4]) != 0) : false;   //  5th: ignore this read?  (verkko)
+      int32       askp   = (W.numWords() == 6) ?  strtoint32(W[4])       : 0;       //  5th: ignore bases?      (canu)
+      int32       bskp   = (W.numWords() == 6) ?  strtoint32(W[5])       : 0;       //  6th: ignore bases?      (canu)
 
       if (id == 0)
         fprintf(stderr, "ERROR: While processing tig %d, Read '%s' was not found.\n", tig->tigID(), W[0]), err++;
@@ -118,7 +119,7 @@ loadVerkkoLayouts(sqCache              *reads,
       if (readMap)
         fprintf(readMap, "%10u  %10u  %s\n", id, tig->tigID(), W[0]);
 
-      ch->set(id, pa, 0, 0, bgn, end, askp, bskp);
+      ch->set(id, pa, 0, 0, bgn, end, askp, bskp, copy);
       ch->skipConsensus(ignore);
 
       if ((W.numWords() < 3) || (W.numWords() > 5))
@@ -171,7 +172,7 @@ loadVerkkoLayouts(sqCache              *reads,
   if (err > 0) {
     fprintf(stderr, "ERROR: loading layouts failed, check your input sequences and layout file!");
     fprintf(stderr, "\n");
-    assert(0); 
+    assert(0);
   }
 }
 
@@ -183,7 +184,7 @@ main(int argc, char **argv) {
   char const                *outputPattern  = nullptr;
   char const                *mapPrefix      = nullptr;
 
-  // we need either a list of input files or a seqStore 
+  // we need either a list of input files or a seqStore
   char const                *storeFilename  = nullptr;
   std::vector<char const *>  readFilenames;
 
