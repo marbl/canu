@@ -580,5 +580,6 @@ void sqCache::sqCache_loadIDs() {
      _nameToID[ ident ] = words.touint32(0);
      _reads [ words.touint32(0) ]._name = _nameToID.find( ident )->first.c_str();
   }
+  merylutil::closeFile(nameMap);
 }
 
