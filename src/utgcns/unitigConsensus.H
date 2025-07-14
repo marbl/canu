@@ -20,6 +20,7 @@
 
 
 #include "tgStore.H"
+#include "intervals.H"
 
 #include <map>
 #include <set>
@@ -81,9 +82,12 @@ public:
                   u32toRead  &reads_);
 
 private:
+  void   promoteLowQualUniques(uint32 length, uint8_t minCov, uint32 minLen);
+  bool   needLowQualReads(uint32 rid, uint32 ePos, std::set<uint32>& badToAdd);
+  bool   templateIsLowQual(uint32 rid);
   void   switchToUncompressedCoordinates(void);
   void   updateReadPositions(void);
-                 
+
   char  *generateTemplateStitch(void);
 
   bool   generatePBDAG     (char aligner, u32toRead &reads);
@@ -125,9 +129,14 @@ private:
   //  The two positions below are storing the low/high coords for the read.
   //  They do not encode the orientation in the coordinates.
   //
+  tgPosition     *_utghpc = nullptr;     //  Original HPC location, if not HPC then == utgpos
   tgPosition     *_utgpos = nullptr;     //  Original unitigger location.
   tgPosition     *_cnspos = nullptr;     //  Actual location in frankenstein.
   tgPosition     *_adjpos = nullptr;
+
+  // annotate on the template where we either used a low quality read or had to force-append
+  // then we allow more error when aligning to this part of the template
+  intervals<int32> _templateLowQual;
 
   uint32         *_templateToCNS  = nullptr;
   uint32          _templateLength = 0;
