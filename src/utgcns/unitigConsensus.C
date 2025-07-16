@@ -316,16 +316,14 @@ bool unitigConsensus::needLowQualReads(uint32 rid, uint32 ePos, std::set<uint32>
              // we have an in consensus low quality read so we will promote it and tell template to use it
              if (ePos + _minOverlap < lowQualMax) {
                 if (showPlacement()) fprintf(stderr, "generateTemplateStitch()-- read %d/%d ident %d will allow low qual read %d aka %d at template %d\n", ii, _numReads, _utgpos[ii].ident(), lowQualReadID, _utgpos[lowQualReadID].ident(), ePos);
-                return true;
              // we have a read but it's not currently in connsesus, promote it
              } else if (ePos + _minOverlap < nonCNSQualMax) {
                 if (showPlacement()) fprintf(stderr, "generateTemplateStitch()-- read %d/%d ident %d will allow non-cns read %d aka %d at template %d\n", ii, _numReads, _utgpos[ii].ident(), nonCNSReadID, _utgpos[nonCNSReadID].ident(), ePos);
                 _utgpos[nonCNSReadID].skipConsensus(false);
-                return true;
              } else {
                  if (showPlacement()) fprintf(stderr, "generateTemplateStitch()-- read %d/%d ident %d no read to close a gap in consenus at template %d\n", ii, _numReads, _utgpos[ii].ident(), ePos);
-                 return false;
              }
+             return true;
          }
          return false;
       } else {
@@ -480,9 +478,9 @@ unitigConsensus::generateTemplateStitch(void) {
       //  If this read has an overlap smaller than we want, stop searching.
       if (thick == false) {
         // when we ended on a gap and this is the first time we looked at this position, not just a small overlap, disallow this read and try again to select one that won't leave a gap
-        if (badToAdd.size() == 0 && nr != 0 && ((first && _utgpos[nr].min() > ePos+minOlap) || _utgpos[nr].max() < _utgpos[ii].min()+minOlap)) {
+        if (badToAdd.size() == 0 && nr != 0 && allowLowQV && ((first && _utgpos[nr].min() > ePos+minOlap) || _utgpos[nr].max() < _utgpos[ii].min()+minOlap)) {
            badToAdd.insert(nr);
-           fprintf(stderr, "ERROR: ended up with a gap at %d aka %d from %d-%d and last added was %d going to try to go backwards to %d and allow easlier longer reads to be selected\n", ii, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(), rid, 0);
+           if (showPlacement()) fprintf(stderr, "ERROR: ended up with a gap at %d aka %d from %d-%d and last added was %d going to try to go backwards to %d and allow earlier longer reads to be selected\n", ii, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(), rid, 0);
            lastStart = 0;
            goto retryCandidate;
         }
@@ -498,7 +496,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     assert(nr != 0);
 
-    if (_utgpos[rid].isLowQuality() || _utgpos[nr].isLowQuality()) {
+    if ((rid != 0 && _utgpos[rid].isLowQuality()) || _utgpos[nr].isLowQuality()) {
       if (showPlacement()) fprintf(stderr, "generateTemplateStitch()-- Increasing threshold because either %d (%d) or %d (%d) is below requested ID %d\n", rid, _utgpos[rid].ident(), nr, _utgpos[nr].ident(), _errorRateMaxID);
       _errorRate = _errorRateMax / ALIGN_FACTOR;
        padding = MAX_PADDING;
@@ -763,7 +761,6 @@ unitigConsensus::generateTemplateStitch(void) {
 
     edlibFreeAlignResult(result);
 
-
     resizeArray(tigseq, tiglen, tigmax, tiglen + readLen - readEnd + 1);
 
     //  Append the read bases to the template.
@@ -783,7 +780,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
     // record if this alignment used a low quality read of we were forced to join a read
     // then we can allow more error tolerance when aligning to this part of the template
-    if (_utgpos[rid].isLowQuality() || _utgpos[nr].isLowQuality() || readEnd == 0)
+    if ((rid != 0 && _utgpos[rid].isLowQuality()) || _utgpos[nr].isLowQuality() || readEnd == 0)
        _templateLowQual.add_position(std::max((uint32)0, tiglen-readLen), tiglen);
 
     if (showAlgorithm())
