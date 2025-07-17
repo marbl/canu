@@ -223,7 +223,22 @@ if (trimLen > 250) trimLen = 250;
   }
 
   ////////////////////////////////////////
-
+//hack to merge all intervals internally to allow uncovered regions in the reads
+/*
+uint32 lastEnd = 0;
+intervalList<uint32> SK;
+for (uint32 it=0; it<IL.numberOfIntervals(); it++) {
+   if (verbose)
+      fprintf(stderr, "SK - Looking at interval %d - %d and last end was %d\n", IL.lo(it), IL.hi(it), lastEnd);
+   if (lastEnd < IL.lo(it) && lastEnd > minOverlap && lastEnd < readLen - minOverlap) {
+      SK.add(lastEnd-minOverlap, IL.lo(it)+minOverlap-lastEnd+minOverlap); 
+   }
+   SK.add(IL.lo(it), IL.hi(it)-IL.lo(it));
+   lastEnd = IL.hi(it);
+}
+SK.merge(minOverlap);
+IL=SK;
+*/
   if (IL.numberOfIntervals() == 0) {
     if (verbose)
       fprintf(stderr, "no high quality overlaps\n");

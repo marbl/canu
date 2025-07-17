@@ -229,6 +229,11 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
     uint32 compressedEnd          =  _utgpos[child].max();
     uint32 compressedStart        =  _utgpos[child].min();
     bool   isHQ                   = !_utgpos[child].skipConsensus();
+    //HACK HACK HACK REMOVE BEFORE COMMIT, BACKWARDS TO PACKAGE WHERE WE OVERLOADED ANCHOR TO REPRESENT COUNTS
+    if (_utgpos[child]._anchor != 0) {
+       _utgpos[child]._numPlacement = _utgpos[child]._anchor >= 32 ? 31 : _utgpos[child]._anchor;
+       _tig->getChild(child)->_numPlacement = _utgpos[child]._anchor >= 32 ? 31 : _utgpos[child]._anchor;
+    }
 
     // find the start position in normal read based on position in compressed read
     uint32 i = 0;
@@ -448,6 +453,7 @@ unitigConsensus::generateTemplateStitch(void) {
     for (uint32 ii=rid+1; ii < _numReads; ii++) {
 
       if ((_utgpos[ii].skipConsensus() == true) ||   //  If  told to not use this read, or
+          _cnspos[ii].max() != 0                ||   //  read is already used, or
           (_utgpos[ii].max() < ePos))                //  read is contained in the template
         continue;                                    //  skip the read.
 
@@ -468,11 +474,14 @@ unitigConsensus::generateTemplateStitch(void) {
       }
 
       if (showPlacement())
-        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d%s%s%s\n",
+        fprintf(stderr, "generateTemplateStitch()-- read #%d/%d ident %d position %d-%d templateEnd %d%s%s%s%s%s\n",
                 ii, _numReads, _utgpos[ii].ident(), _utgpos[ii].min(), _utgpos[ii].max(),
-                (save  == true)  ? " SAVE"  : "",
-                (thick == false) ? " THIN"  : "",
-                (first == true)  ? " FIRST" : "");
+                ePos,
+                (save  == true)             ? " SAVE"  : "",
+                (thick == false)            ? " THIN"  : "",
+                (first == true)             ? " FIRST" : "",
+                (_utgpos[ii].isLowQuality() ? " LOW" : ""),
+                (badToAdd.count(ii) > 0)    ? " BAD" : "");
 
 
       //  If this read has an overlap smaller than we want, stop searching.
@@ -710,7 +719,10 @@ unitigConsensus::generateTemplateStitch(void) {
         allowLargerShift = (allowLargerShift || rid == firstCandidate || isAlreadyBad);  // we hit the end so now we can try to allow larger shifts for the same reads
         // when we've switched to allowLargerShift, we reset our list of bad reads so we can try them again allowing larger shift
         // we also make sure to reset the error rate back to default since we'll be processing a new read
-        if (rid == firstCandidate || isAlreadyBad) badToAdd.clear();
+        if (rid == firstCandidate || isAlreadyBad) {
+           badToAdd.clear();
+           badToAdd.insert(rid);
+        }
         _errorRate = savedErrorRate;
         olapLen = origLen;
         if (showPlacement()) {
@@ -734,6 +746,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
         // trim the template and also reset error rate and the list of bad reads since we're going to be retrying them all
         ePos -= trimbp;
+        lastAddedBP = 0;
         tigseq[tiglen-trimbp] = 0;
         tiglen=strlen(tigseq);
         firstCandidate = 0;
@@ -1060,7 +1073,9 @@ unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
   promoteLowQualUniques(tiglen, MIN_COV, MIN_COV_SIZE);
 
   //  Compute alignments of each sequence in parallel
-
+  std::string cns;
+  uint32 MAX_ITER = 2;
+for (uint32 iterations = 1; iterations <= MAX_ITER; iterations++) {
   dagAlignment *aligns = new dagAlignment [_numReads];
   uint32        pass = 0;
   uint32        fail = 0;
@@ -1137,9 +1152,29 @@ unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
   _templateToCNS  = new uint32 [tiglen + 1];
   _templateLength = tiglen;
 
-  std::string cns = ag.consensusNoSplit((_tig->_suggestNoTrim == 0 ? _minCoverage : 0), _templateToCNS, _templateLength);
+fprintf(stderr, "Allocated new space for translation\n");
+  cns = ag.consensusNoSplit((_tig->_suggestNoTrim == 0 ? _minCoverage : 0), _templateToCNS, _templateLength);
 
   delete [] tigseq;
+  tigseq=nullptr;
+
+  if (iterations < MAX_ITER) {
+  fprintf(stderr, "Doign another iteration will rebuild tiglen currently %d will be %d\n", tiglen, cns.size());
+     tiglen = (uint32) cns.size();
+     allocateArray(tigseq, tiglen+1, _raAct::clearNew);
+     fprintf(stderr, "Allocated new tig array of %d\n", tiglen);
+     memcpy(tigseq, cns.data(), cns.size());
+     fprintf(stderr, "Copied over the data\n");
+     tigseq[tiglen] = 0;
+
+     // update positions for second round
+     for (uint32 jj=0; jj<_numReads; jj++) {
+       adjustPosition(_utgpos[jj], _cnspos[jj], _utgpos[jj], false);
+       }
+     delete[] _templateToCNS;
+     _templateToCNS=nullptr;
+   }
+}
 
   //  Save consensus
 
