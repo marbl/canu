@@ -896,14 +896,14 @@ tgTig::dumpFASTQ(FILE *F) {
 void   //  See also tgTigDisplay.C
 tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
 
-  //  If a singleton, or no alignment, don't create the output.
+  //  If a singleton, don't create the output.
   //
   //  However, the rest of the code will work correctly even if _childCIGAR
   //  is nullptr; this is just a quick way to decide if the tig was a
   //  singlton - in particular, a verkko tig is a singleton if it has one
   //  HiFi read and any number of ONT reads.)
 
-  if (_childCIGAR == nullptr)
+  if (_childrenLen == 1)
     return;
 
   //  Create a BAM header and output file, then populate it with one

@@ -341,7 +341,7 @@ void AlnGraphBoost::reapNodes() {
     }
 }
 
-const std::string AlnGraphBoost::consensus(uint8_t minWeight) {
+std::string AlnGraphBoost::consensus(uint8_t minWeight) {
     // get the best scoring path
     std::vector<AlnNode> path = bestPath();
 
@@ -383,7 +383,7 @@ const std::string AlnGraphBoost::consensus(uint8_t minWeight) {
     return cns.substr(bestOffs, length);
 }
 
-const std::string AlnGraphBoost::consensusNoSplit(uint8_t  minWeight,
+std::string AlnGraphBoost::consensusNoSplit(uint8_t  minWeight,
                                                   uint32_t *templateToFinal,
                                                   uint32_t  templateLength) {
     // get the best scoring path

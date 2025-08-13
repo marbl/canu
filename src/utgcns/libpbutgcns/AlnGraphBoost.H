@@ -183,12 +183,12 @@ public:
     /// each base meets the minimum weight requirement.
     /// \param minWeight sets the minimum weight for each base in the consensus.
     ///        default = 0
-    const std::string consensus(uint8_t minWeight);
+    std::string consensus(uint8_t minWeight);
 
     /// Same as above but will only trim bases below minWeight either at the
     /// start or end of the sequence, not in the middle.  Also tracks trim
     /// offsets.
-    const std::string consensusNoSplit(uint8_t  minWeight,
+    std::string consensusNoSplit(uint8_t  minWeight,
                                        uint32_t *templateToFinal,
                                        uint32_t  templateLength);
 

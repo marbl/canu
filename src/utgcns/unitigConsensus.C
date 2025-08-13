@@ -173,18 +173,21 @@ unitigConsensus::addRead(uint32     readID,
 
 void unitigConsensus::promoteLowQualUniques(uint32 tiglen, uint8_t minCov, uint32 minLen) {
   // now go through, compute coverage and flip unused reads to be promoted to consensus in regions w/low unique coverage
-  uint8_t* cov = new uint8_t[tiglen + 1];
-  memset(cov, 0, sizeof(uint8_t) * (tiglen + 1));
+  uint32_t* cov = new uint32_t[tiglen + 1];
+  memset(cov, 0, sizeof(uint32_t) * (tiglen + 1));
+  #pragma omp parallel for schedule(dynamic)
   for (uint32 child = 0; child < _numReads; child++) {
      if (_utgpos[child]._numPlacement == 1 && !_utgpos[child].skipConsensus()) {
-        #pragma omp parallel for schedule(dynamic)
         for (uint32 j = _utgpos[child].min(); j < _utgpos[child].max(); j++) {
-           if (j < tiglen && cov[j] < UINT8_MAX)
+           if (j < tiglen) {
+              #pragma omp atomic
               cov[j]++;
+           }
         }
      }
   }
 
+  #pragma omp parallel for schedule(dynamic)
   for (uint32 child = 0; child < _numReads; child++) {
      uint32 basesBelow = 0;
      for (uint32 j = _utgpos[child].min(); j < _utgpos[child].max() && j < tiglen; j++) {
@@ -193,13 +196,20 @@ void unitigConsensus::promoteLowQualUniques(uint32 tiglen, uint8_t minCov, uint3
            basesBelow++;
      }
      if (basesBelow >= minLen && _utgpos[child]._numPlacement == 1 && _utgpos[child].skipConsensus()) {
-        if (showAlignments())
-           fprintf(stderr, "promoteLowQualUniques()-- PROMOTE READ read %d/%d ident %d at coordinates %d-%d to be used in consensus because it's unique and bases it covers below %d is %d\n", child, _numReads, _utgpos[child].ident(), _utgpos[child].min(), _utgpos[child].max(), minCov, basesBelow);
+        if (showAlignments()) {
+            #pragma omp critical  // Protect stderr output
+            {
+              fprintf(stderr, "promoteLowQualUniques()-- PROMOTE READ read %d/%d ident %d at coordinates %d-%d to be used in consensus because it's unique and bases it covers below %d is %d\n", child, _numReads, _utgpos[child].ident(), _utgpos[child].min(), _utgpos[child].max(), minCov, basesBelow);
+            }
+        }
         _utgpos[child].skipConsensus(false);
      }
   }
   delete[] cov;
 }
+
+
+
 void unitigConsensus::switchToUncompressedCoordinates(void) {
   // update coordinates of the tig when needed (when it was assembled in compressed space, in normal space this will be skiped)
   // we do this by tracking the read reaching furthest to the right and keeping its offset + homopolymer coordinate translation
@@ -307,8 +317,8 @@ bool unitigConsensus::needLowQualReads(uint32 rid, uint32 ePos, std::set<uint32>
 
     // back up a bit from the last added read and look for a suitable extension
     for (uint32 ii=rid+1; ii < _numReads; ii++) {
-      if (_utgpos[ii].max() < ePos || badToAdd.count(ii) != 0)                  //  If read is contained in the template
-        continue;                                                               //  skip the read.
+      if (_cnspos[ii].max() != 0 || _utgpos[ii].max() < ePos || badToAdd.count(ii) != 0)    //  If read is contained in the template
+        continue;                                                                           //  skip the read.
 
       // if we ran out of large overlaps, check if this read would still be OK to use given our selected extension, if not, allow low quality reads
       if (_utgpos[ii].min() + _minOverlap >= ePos) {
@@ -346,10 +356,15 @@ bool unitigConsensus::needLowQualReads(uint32 rid, uint32 ePos, std::set<uint32>
 
 bool
 unitigConsensus::templateIsLowQual(uint32 rid) {
+   return templateIsLowQual(_utgpos[rid].min(), _utgpos[rid].max());
+}
+
+bool
+unitigConsensus::templateIsLowQual(uint32 min, uint32 max) {
    for (uint32 i = 0; i < _templateLowQual.size(); i++) {
-      if (_templateLowQual.bgn(i) >= _utgpos[rid].max())
+      if (_templateLowQual.bgn(i) >= max)
          break;
-      if (_templateLowQual.end(i) > _utgpos[rid].min())
+      if (_templateLowQual.end(i) > min)
          return true;
    }
    return false;
@@ -445,8 +460,8 @@ unitigConsensus::generateTemplateStitch(void) {
     if (showPlacement())
       fprintf(stderr, "\n");
 
-    for (uint32 ii=rid+1; ii < _numReads; ii++) {
-
+    uint32 ii = rid+1;
+    for (ii=rid+1; ii < _numReads; ii++) {
       if ((_utgpos[ii].skipConsensus() == true) ||   //  If  told to not use this read, or
           _cnspos[ii].max() != 0                ||   //  read is already used, or
           (_utgpos[ii].max() < ePos))                //  read is contained in the template
@@ -493,6 +508,7 @@ unitigConsensus::generateTemplateStitch(void) {
     }
 
     if (nr == 0) {
+      assert(ii >= _numReads);
       if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- NO MORE READS TO ALIGN\n");
       break;
