@@ -79,20 +79,22 @@ public:
   bool   generate(tgTig      *tig_,
                   char        algorithm_,
                   char        aligner_,
+                  uint32      numIterations_,
                   u32toRead  &reads_);
 
 private:
   void   promoteLowQualUniques(uint32 length, uint8_t minCov, uint32 minLen);
   bool   needLowQualReads(uint32 rid, uint32 ePos, std::set<uint32>& badToAdd);
+  bool   templateIsLowQual(uint32 min, uint32 max);
   bool   templateIsLowQual(uint32 rid);
   void   switchToUncompressedCoordinates(void);
   void   updateReadPositions(void);
 
   char  *generateTemplateStitch(void);
 
-  bool   generatePBDAG     (char aligner, u32toRead &reads);
-  bool   generateQuick     (              u32toRead &reads);
-  bool   generateSingleton (              u32toRead &reads);
+  bool   generatePBDAG     (char aligner, uint32 numIterations, u32toRead &reads);
+  bool   generateQuick     (                                    u32toRead &reads);
+  bool   generateSingleton (                                    u32toRead &reads);
 
   void   adjustPosition(tgPosition   utgpos,
                         tgPosition   cnspos,

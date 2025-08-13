@@ -95,6 +95,7 @@ public:
 
   uint32        minOverlap   = 500;
   uint32        minCoverage  = 0;
+  uint32        numIterations = 1;
 
   uint32        numFailures = 0;
 

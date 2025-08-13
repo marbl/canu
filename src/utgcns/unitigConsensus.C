@@ -1067,7 +1067,7 @@ alignEdLib(dagAlignment      &aln,
 
 
 bool
-unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
+unitigConsensus::generatePBDAG(char aligner_, uint32 numIterations_, u32toRead &reads_) {
 
   //  Build a quick consensus to align to.
 
@@ -1084,86 +1084,104 @@ unitigConsensus::generatePBDAG(char aligner_, u32toRead &reads_) {
   promoteLowQualUniques(tiglen, MIN_COV, MIN_COV_SIZE);
 
   //  Compute alignments of each sequence in parallel
+  std::string cns;
+  cns.reserve(tiglen*1.1);
+  for (uint32 iteration = 1; iteration <= numIterations_; iteration++) {
+    dagAlignment *aligns = new dagAlignment [_numReads];
+    uint32        pass = 0;
+    uint32        fail = 0;
+    uint32        skip = 0;
 
-  dagAlignment *aligns = new dagAlignment [_numReads];
-  uint32        pass = 0;
-  uint32        fail = 0;
-  uint32        skip = 0;
+    #pragma omp parallel for schedule(dynamic)
+    for (uint32 ii=0; ii<_numReads; ii++) {
+      abSequence  *seq      = getSequence(ii);
+      bool         aligned  = false;
 
-#pragma omp parallel for schedule(dynamic)
-  for (uint32 ii=0; ii<_numReads; ii++) {
-    abSequence  *seq      = getSequence(ii);
-    bool         aligned  = false;
+      assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
 
-    assert(aligner_ == 'E');  //  Maybe later we'll have more than one aligner again.
+      if (_utgpos[ii].skipConsensus() == false) {
+         aligned = alignEdLib(aligns[ii],
+                             _utgpos[ii],
+                             seq->getBases(), seq->length(),
+                            tigseq, tiglen,
+                            (_utgpos[ii].isLowQuality() == true || templateIsLowQual(ii)) ? (_errorRateMax) : (_errorRate),   //  Allow higher error for low-quality reads or low quality template
+                            (_utgpos[ii].isLowQuality() == true || templateIsLowQual(ii)) ? MAX_PADDING*5 : MAX_PADDING,      //  Pad low-quality reads by more
+                            showAlignments());
 
-    if (_utgpos[ii].skipConsensus() == false) {
-       aligned = alignEdLib(aligns[ii],
-                         _utgpos[ii],
-                         seq->getBases(), seq->length(),
-                         tigseq, tiglen,
-                         (_utgpos[ii].isLowQuality() == true || templateIsLowQual(ii)) ? (_errorRateMax) : (_errorRate),   //  Allow higher error for low-quality reads or low quality template
-                         (_utgpos[ii].isLowQuality() == true || templateIsLowQual(ii)) ? MAX_PADDING*5 : MAX_PADDING,      //  Pad low-quality reads by more
-                         showAlignments());
+         if (aligned == false) {
+           if (showAlgorithm())
+             fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", _utgpos[ii].ident());
 
-       if (aligned == false) {
-         if (showAlgorithm())
-           fprintf(stderr, "generatePBDAG()--    read %7u FAILED\n", _utgpos[ii].ident());
+           fail++;
 
-         fail++;
+           continue;
+         }
 
-         continue;
-      }
+        pass++;
+      } else
+        skip++;
+    }
 
-      pass++;
-    } else
-      skip++;
+    if (showAlgorithm())
+      fprintf(stderr, "generatePBDAG()--    read alignment: %d failed, %d skipped, %d passed.\n", fail, skip, pass);
+
+    //  Construct the graph from the alignments.  This is not thread safe.
+
+    if (showAlgorithm())
+      fprintf(stderr, "Constructing graph at %f seconds.\n", getProcessTime());
+
+    AlnGraphBoost ag(std::string(tigseq, tiglen));
+
+    for (uint32 ii=0; ii<_numReads; ii++) {
+      _cnspos[ii].setMinMax(aligns[ii].start, aligns[ii].end);
+
+      if ((aligns[ii].start == 0) &&
+          (aligns[ii].end   == 0))
+        continue;
+
+      if (_utgpos[ii].skipConsensus() == false)
+        ag.addAln(aligns[ii]);
+
+      aligns[ii].clear();
+    }
+
+    delete [] aligns;
+
+    if (showAlgorithm())
+      fprintf(stderr, "Merging graph iteration %d at %f seconds.\n", iteration, getProcessTime());
+
+    //  Merge the nodes and call consensus
+    ag.mergeNodes();
+
+    if (showAlgorithm())
+      fprintf(stderr, "Calling consensus iteration %d at %f seconds.\n", iteration, getProcessTime());
+
+    //FIXME why do we have 0weight nodes (template seq w/o support even from the read that generated them)?
+
+    assert(_templateToCNS == nullptr);
+
+    _templateToCNS  = new uint32 [tiglen + 1];
+    _templateLength = tiglen;
+
+    delete [] tigseq;
+    tigseq=nullptr;
+
+    cns = ag.consensusNoSplit((_tig->_suggestNoTrim == 0 || templateIsLowQual(std::max(0, (int32)tiglen-MIN_COV_SIZE*10), tiglen) ? _minCoverage : 0), _templateToCNS, _templateLength);
+
+    if (iteration == numIterations_ || cns.size() == 0)
+      break;
+
+    tiglen = (uint32) cns.size();
+    allocateArray(tigseq, tiglen+1, _raAct::clearNew);
+    memcpy(tigseq, cns.data(), cns.size());
+    tigseq[tiglen] = 0;
+
+    // update positions for second round
+    for (uint32 jj=0; jj<_numReads; jj++)
+      adjustPosition(_utgpos[jj], _cnspos[jj], _utgpos[jj], false);
+    delete[] _templateToCNS;
+    _templateToCNS=nullptr;
   }
-
-  if (showAlgorithm())
-    fprintf(stderr, "generatePBDAG()--    read alignment: %d failed, %d skipped, %d passed.\n", fail, skip, pass);
-
-  //  Construct the graph from the alignments.  This is not thread safe.
-
-  if (showAlgorithm())
-    fprintf(stderr, "Constructing graph at %f seconds.\n", getProcessTime());
-
-  AlnGraphBoost ag(std::string(tigseq, tiglen));
-
-  for (uint32 ii=0; ii<_numReads; ii++) {
-    _cnspos[ii].setMinMax(aligns[ii].start, aligns[ii].end);
-
-    if ((aligns[ii].start == 0) &&
-        (aligns[ii].end   == 0))
-      continue;
-
-    if (_utgpos[ii].skipConsensus() == false)
-      ag.addAln(aligns[ii]);
-
-    aligns[ii].clear();
-  }
-
-  delete [] aligns;
-
-  if (showAlgorithm())
-    fprintf(stderr, "Merging graph at %f seconds.\n", getProcessTime());
-
-  //  Merge the nodes and call consensus
-  ag.mergeNodes();
-
-  if (showAlgorithm())
-    fprintf(stderr, "Calling consensus at %f seconds.\n", getProcessTime());
-
-  //FIXME why do we have 0weight nodes (template seq w/o support even from the read that generated them)?
-
-  assert(_templateToCNS == nullptr);
-
-  _templateToCNS  = new uint32 [tiglen + 1];
-  _templateLength = tiglen;
-
-  std::string cns = ag.consensusNoSplit((_tig->_suggestNoTrim == 0 ? _minCoverage : 0), _templateToCNS, _templateLength);
-
-  delete [] tigseq;
 
   //  Save consensus
 
@@ -1688,6 +1706,7 @@ bool
 unitigConsensus::generate(tgTig      *tig_,
                           char        algorithm_,
                           char        aligner_,
+                          uint32      numIterations_,
                           u32toRead  &reads_) {
   bool  success = false;
 
@@ -1733,7 +1752,7 @@ unitigConsensus::generate(tgTig      *tig_,
     success = generateQuick(reads_);
   else if ((algorithm_ == 'P') ||                      //  Normal utgcns.
            (algorithm_ == 'p'))                        //  'norealign' variant of normal utgcns.
-    success = generatePBDAG(aligner_, reads_);
+    success = generatePBDAG(aligner_, numIterations_, reads_);
 
   _tig->_trimBgn = 0;
   _tig->_trimEnd = _tig->length();

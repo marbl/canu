@@ -95,6 +95,10 @@ main(int argc, char **argv) {
        params.minCoverage = strtouint32(argv[++arg]);
     }
 
+    else if (strcmp(argv[arg], "-I") == 0){
+       params.numIterations = strtouint32(argv[++arg]);
+    }
+
     else if (strcmp(argv[arg], "-R") == 0) {
       params.seqFile = argv[++arg];
     }

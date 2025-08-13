@@ -137,7 +137,7 @@ processTigs(cnsParameters  &params) {
               tig->nStashStsh(), tig->cStashStsh(),                //  cnsParameters::skipTig().
               tig->nStashBack(), tig->cStashBack());
 
-    if (utgcns.generate(tig, params.algorithm, params.aligner, params.seqReads) == true) {
+    if (utgcns.generate(tig, params.algorithm, params.aligner, params.numIterations, params.seqReads) == true) {
       if (params.showResult)       tig->display(stdout, params.seqStore, 200, 3);
 
       if (params.outResultsFile)   tig->saveToStream(params.outResultsFile);
