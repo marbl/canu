@@ -622,7 +622,7 @@ unitigConsensus::generateTemplateStitch(void) {
     // pad the difference by the difference between our overlap in compressed space (estimated) and current overlap, this is in rare cases where our uncompression caused a shift
     //  Reset if the edit distance is waay more than our error rate allows or it's very short and we haven't topped out on error.  This seems to be a quirk with
     //  edlib when aligning to N's - I got startLocation = endLocation = 0 and editDistance = alignmentLength.
-    if ((double)result.editDistance / result.alignmentLength > bandErrRate ||
+    if ((double)result.editDistance / result.alignmentLength > bandErrRate || (double)result.alignmentLength / olapLen < 0.51 ||
         (result.numLocations > 0 && abs(result.endLocations[0]-olapLen) > maxDifference && bandErrRate < _errorRate && !allowLargerShift)) {
       noResult    = true;
       gotResult   = false;
@@ -828,6 +828,8 @@ unitigConsensus::generateTemplateStitch(void) {
             tiglen, ePos, pd);
   }
 
+  // restore saved error rate
+  _errorRate = savedErrorRate * ALIGN_FACTOR;
   updateReadPositions();
 
   return(tigseq);
