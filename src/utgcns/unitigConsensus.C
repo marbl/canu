@@ -1167,8 +1167,7 @@ unitigConsensus::generatePBDAG(char aligner_, uint32 numIterations_, u32toRead &
 
     delete [] tigseq;
     tigseq=nullptr;
-
-    cns = ag.consensusNoSplit((_tig->_suggestNoTrim == 0 || templateIsLowQual(std::max(0, (int32)tiglen-MIN_COV_SIZE*10), tiglen) ? _minCoverage : 0), _templateToCNS, _templateLength);
+    cns = ag.consensusNoSplit(((_tig->_suggestNoTrim == 0 || templateIsLowQual(std::max(0, (int32)tiglen-MIN_COV_SIZE*10), tiglen)) && iteration == numIterations_ ? _minCoverage : 0), _templateToCNS, _templateLength);
 
     if (iteration == numIterations_ || cns.size() == 0)
       break;
