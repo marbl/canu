@@ -1747,6 +1747,9 @@ unitigConsensus::generate(tgTig      *tig_,
   memcpy(_cnspos = new tgPosition [_numReads], _tig->getChild(0), sizeof(tgPosition) * _numReads);
   memcpy(_adjpos = new tgPosition [_numReads], _tig->getChild(0), sizeof(tgPosition) * _numReads);
 
+  bool haveHiFi=false;
+  bool haveNonHiFi=false;
+
   for (int32 ii=0; ii<_numReads; ii++) {
     if (_tig->getChild(ii)->skipConsensus() == false)   //  Count the number usable
       _numReadsUsable++;                               //  for consensus.
@@ -1754,6 +1757,27 @@ unitigConsensus::generate(tgTig      *tig_,
     _utgpos[ii].isLowQuality(_utgpos[ii].ident() <= _errorRateMaxID);
     _cnspos[ii].isLowQuality(_utgpos[ii].ident() <= _errorRateMaxID);
     _adjpos[ii].isLowQuality(_utgpos[ii].ident() <= _errorRateMaxID);
+
+   // temporary test to skip lower quality "HiFi" reads like hifiasm or herro corrected ONT data during consensus
+   if (strncmp(reads_[_utgpos[ii].ident()]->sqRead_name(), "hifi_", 5) == 0 && strncmp(reads_[_utgpos[ii].ident()]->sqRead_name(), "hifi_m", 6) != 0) {
+      haveNonHiFi=true;
+      if (haveHiFi && ii > 1000 && ii < _numReads-1000) {
+        if (showAlignments()) fprintf(stderr, "Found a hifi non-hifi read, %d marking it as skip %s\n", ii, reads_[_utgpos[ii].ident()]->sqRead_name());
+       _utgpos[ii].skipConsensus(true);
+       _cnspos[ii].skipConsensus(true);
+       _adjpos[ii].skipConsensus(true);
+       _utgpos[ii].isLowQuality(true);
+       _cnspos[ii].isLowQuality(true);
+       _adjpos[ii].isLowQuality(true);
+     }
+   }
+   if (strncmp(reads_[_utgpos[ii].ident()]->sqRead_name(), "hifi_m", 6) == 0 && haveNonHiFi == true) {
+      haveHiFi=true;
+      if (showAlignments()) fprintf(stderr, "Promoting hifi read %d because we have non-hifi reads too\n", ii);
+      _utgpos[ii].skipConsensus(false);
+      _cnspos[ii].skipConsensus(false);
+      _adjpos[ii].skipConsensus(false);
+    }
 
     addRead(_utgpos[ii].ident(),                       //  Copy read metadata and seq
             _utgpos[ii]._askip, _utgpos[ii]._bskip,    //  from utgpos and seqStore
