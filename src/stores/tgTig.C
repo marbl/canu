@@ -903,7 +903,7 @@ tgTig::dumpBAM(char const *prefix, sqStore *seqStore, u32toRead &seqReads) {
   //  singlton - in particular, a verkko tig is a singleton if it has one
   //  HiFi read and any number of ONT reads.)
 
-  if (_childrenLen == 1)
+  if (_childrenLen == 1 || length() == 0)
     return;
 
   //  Create a BAM header and output file, then populate it with one

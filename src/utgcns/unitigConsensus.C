@@ -216,9 +216,18 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
   // the read that overlaps it is then updated to start at that reads uncompressed offset + uncompressed bases based on the overlapping coordinate positions
   //
 
-  // check that we need to do something first
-  // just rely on first read
-  if ((double)getSequence(0)->length() / (_utgpos[0].max()-_utgpos[0].min()) <= 1.2)
+  // just rely on first non-loq qual read
+  uint32 checkID = 0;
+  while (checkID < _numReads && (_utgpos[checkID].isLowQuality() || _utgpos[checkID].skipConsensus()))
+     checkID++;
+  if (checkID >= _numReads) { // if we have hit numreads and we had no reads where we didn't skip consensus/low qual, try again ignoring any skip reads, may be a gap-fill read only tig
+     checkID = 0;
+     while (checkID < _numReads && (_utgpos[checkID].skipConsensus()))
+        checkID++;
+  }
+  assert(checkID < _numReads); // if we have hit numreads and we had no reads where we didn't skip consensus/low qual, what is this tig?
+  if (showPlacement()) fprintf(stderr, "switchToUncompressedCoordinates()-- INFO: Checking read %d which had coordinates %d - %d aka %d bp vs raw %d or %f vs 1.2 threshold\n", _utgpos[checkID].ident(), _utgpos[checkID].min(), _utgpos[checkID].max(), (_utgpos[checkID].max()-_utgpos[checkID].min()), getSequence(checkID)->length(), (double)getSequence(checkID)->length() / (_utgpos[checkID].max()-_utgpos[checkID].min()));
+  if ((double)getSequence(checkID)->length() / (_utgpos[checkID].max()-_utgpos[checkID].min()) <= 1.2)
     return;
 
   uint32 compressedOffset   = 0;
@@ -381,7 +390,7 @@ unitigConsensus::generateTemplateStitch(void) {
 
 
   //  Find the first non-omitted read, copy that to the template.
-
+retryTig:
   uint32       rid      = 0;
 
   while ((rid < _numReads) && (_utgpos[rid].skipConsensus() == true))
@@ -464,7 +473,7 @@ unitigConsensus::generateTemplateStitch(void) {
     for (ii=rid+1; ii < _numReads; ii++) {
       if ((_utgpos[ii].skipConsensus() == true) ||   //  If  told to not use this read, or
           _cnspos[ii].max() != 0                ||   //  read is already used, or
-          (_utgpos[ii].max() < ePos))                //  read is contained in the template
+          (_utgpos[ii].max() <= ePos))               //  read is contained in the template
         continue;                                    //  skip the read.
 
       //  If a bigger end position, save the overlap.  One quirk: if we've already saved an overlap, and this
@@ -508,7 +517,13 @@ unitigConsensus::generateTemplateStitch(void) {
     }
 
     if (nr == 0) {
-      assert(ii >= _numReads);
+      if (ii < _numReads) { // we failed to get to the end but didn't have a read to align? restart from scratch with higher error rate
+	     if (_errorRateMax < savedErrorRate) assert (ii >= _numReads); // we can't increase the error rate, really give up
+		 fprintf(stderr, "generateTemplateStitch()-- Warning: failed to build tig %d template at error rate %f, trying %f\n",  _tig->tigID(), savedErrorRate, (savedErrorRate*1.25));
+		 delete[] tigseq;
+		 savedErrorRate *= 1.25;
+		 goto retryTig;
+	  }
       if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- NO MORE READS TO ALIGN\n");
       break;
@@ -744,8 +759,9 @@ unitigConsensus::generateTemplateStitch(void) {
         edlibFreeAlignResult(result);
         goto retryCandidate;
       }
-      else if (tiglen > minOlap && origLen > minOlap + TRIM_BP && lastAddedBP > 0 && lastStart > 0) {
+      else if (tiglen > minOlap && origLen > (minOlap + TRIM_BP) && lastAddedBP > (minOlap + TRIM_BP) && lastStart > 0) {
         int32 trimbp = std::min((_utgpos[lastStart].max()-_utgpos[lastStart].min()) - minOlap, lastAddedBP - minOlap - TRIM_BP);
+        if (trimbp > tiglen) trimbp = tiglen - minOlap;
         assert(trimbp > 0);
         assert(lastAddedBP > 0);
         assert(ePos > trimbp);
@@ -776,6 +792,13 @@ unitigConsensus::generateTemplateStitch(void) {
       readBgn = 0;
       readEnd = olapLen;
 
+      // avoid pathological case where we try to extend the template by nothing
+      if (readEnd-readLen == 0) {
+         if (showPlacement()) fprintf(stderr, "Nothing to append going to try again\n");
+         lastStart=rid;
+         edlibFreeAlignResult(result);
+         goto retryCandidate;
+      }
       if (showPlacement()) {
         fprintf(stderr, "generateTemplateStitch()--\n");
         fprintf(stderr, "generateTemplateStitch()-- Alignment failed, use original overlap; copy read %d-%d to template.\n",
@@ -1167,7 +1190,7 @@ unitigConsensus::generatePBDAG(char aligner_, uint32 numIterations_, u32toRead &
 
     delete [] tigseq;
     tigseq=nullptr;
-    cns = ag.consensusNoSplit(((_tig->_suggestNoTrim == 0 || templateIsLowQual(std::max(0, (int32)tiglen-MIN_COV_SIZE*10), tiglen)) && iteration == numIterations_ ? _minCoverage : 0), _templateToCNS, _templateLength);
+    cns = ag.consensusNoSplit(((_tig->_suggestNoTrim == 0 || templateIsLowQual(0, std::min((uint32)MIN_COV_SIZE*10, tiglen)) || templateIsLowQual(std::max(0, (int32)tiglen-MIN_COV_SIZE*10), tiglen)) && iteration == numIterations_ ? _minCoverage : 0), _templateToCNS, _templateLength);
 
     if (iteration == numIterations_ || cns.size() == 0)
       break;
@@ -1389,7 +1412,6 @@ unitigConsensus::adjustPosition(tgPosition   utgpos,
 //
 void
 unitigConsensus::findCoordinates(char algorithm_, u32toRead  &reads_) {
-
   if (algorithm_ != 'P')      return;   //  -norealign or -quick
   if (_tig->length() == 0)    return;   //  Failed consensus.
   if (_templateLength == 0)   return;   //  Singleton.
