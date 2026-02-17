@@ -108,7 +108,7 @@ public:
     olap.b_hang(b_hang);
   }
 
-#if AS_MAX_READLEN_BITS < 24
+#if AS_MAX_READLEN_BITS < (64 - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - AS_MAX_READLEN_BITS - 1)
   uint64      evalue    : AS_MAX_EVALUE_BITS;     //  12
   int64       a_hang    : AS_MAX_READLEN_BITS+1;  //  21+1
   int64       b_hang    : AS_MAX_READLEN_BITS+1;  //  21+1

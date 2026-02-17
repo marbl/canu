@@ -85,15 +85,21 @@ public:
 
 private:
   uint32            _id;
+#if AS_MAX_READLEN_BITS >= (64 - AS_MAX_EVALUE_BITS - 1 - AS_MAX_READLEN_BITS - 1)
+  int32             _ahang;
+  int32             _bhang;
+  uint32            _e3p    : 1;
+  uint32            _evalue : AS_MAX_EVALUE_BITS;
+#else
   uint64            _e3p    : 1;
   int64             _ahang  : AS_MAX_READLEN_BITS+1;
   int64             _bhang  : AS_MAX_READLEN_BITS+1;
   uint64            _evalue : AS_MAX_EVALUE_BITS;
-};
-
 #if (1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_EVALUE_BITS > 64)
 #error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
 #endif
+#endif
+};
 
 
 
