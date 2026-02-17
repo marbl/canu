@@ -227,6 +227,7 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
   }
   assert(checkID < _numReads); // if we have hit numreads and we had no reads where we didn't skip consensus/low qual, what is this tig?
   if (showPlacement()) fprintf(stderr, "switchToUncompressedCoordinates()-- INFO: Checking read %d which had coordinates %d - %d aka %d bp vs raw %d or %f vs 1.2 threshold\n", _utgpos[checkID].ident(), _utgpos[checkID].min(), _utgpos[checkID].max(), (_utgpos[checkID].max()-_utgpos[checkID].min()), getSequence(checkID)->length(), (double)getSequence(checkID)->length() / (_utgpos[checkID].max()-_utgpos[checkID].min()));
+
   if ((double)getSequence(checkID)->length() / (_utgpos[checkID].max()-_utgpos[checkID].min()) <= 1.2)
     return;
 

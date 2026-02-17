@@ -392,8 +392,8 @@ main(int argc, char **argv) {
     reads->sqCache_loadIDs();
     reads->sqCache_loadReads(partToReads[pp], true);
 
+    fprintf(stderr, "Exporting %ld tigs for partition %d/%d\n", partToTig[pp].size(), pp, tp._nPartitions);
     for (auto ti=partToTig[pp].begin(); ti != partToTig[pp].end(); ++ti) {
-      fprintf(stderr, "Exporing data for tig %d\n", *ti);
       tigs[*ti]->exportData(package[ pp ], reads, false);
     }
   }
