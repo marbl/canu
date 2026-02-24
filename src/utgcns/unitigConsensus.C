@@ -216,19 +216,21 @@ void unitigConsensus::switchToUncompressedCoordinates(void) {
   // the read that overlaps it is then updated to start at that reads uncompressed offset + uncompressed bases based on the overlapping coordinate positions
   //
 
-  // just rely on first non-loq qual read
-  uint32 checkID = 0;
-  while (checkID < _numReads && (_utgpos[checkID].isLowQuality() || _utgpos[checkID].skipConsensus()))
-     checkID++;
-  if (checkID >= _numReads) { // if we have hit numreads and we had no reads where we didn't skip consensus/low qual, try again ignoring any skip reads, may be a gap-fill read only tig
-     checkID = 0;
-     while (checkID < _numReads && (_utgpos[checkID].skipConsensus()))
-        checkID++;
-  }
-  assert(checkID < _numReads); // if we have hit numreads and we had no reads where we didn't skip consensus/low qual, what is this tig?
-  if (showPlacement()) fprintf(stderr, "switchToUncompressedCoordinates()-- INFO: Checking read %d which had coordinates %d - %d aka %d bp vs raw %d or %f vs 1.2 threshold\n", _utgpos[checkID].ident(), _utgpos[checkID].min(), _utgpos[checkID].max(), (_utgpos[checkID].max()-_utgpos[checkID].min()), getSequence(checkID)->length(), (double)getSequence(checkID)->length() / (_utgpos[checkID].max()-_utgpos[checkID].min()));
+  // decide if we need to uncompress at all based on average ratio of read length to coordinate length
+  // if it is over 1.2 then we assume HPC, otherwise return
+  double avgDiff = 0;
+  uint32 count   = 0;
 
-  if ((double)getSequence(checkID)->length() / (_utgpos[checkID].max()-_utgpos[checkID].min()) <= 1.2)
+  for (uint32 ii = 0; ii < _numReads; ii++) {
+     if (_utgpos[ii].skipConsensus()) continue;
+     count++;
+     avgDiff += (((double)getSequence(ii)->length() / (_utgpos[ii].max() - _utgpos[ii].min())) - avgDiff) / count;
+  }
+  assert (count > 0 && avgDiff > 0);
+
+  if (showPlacement()) fprintf(stderr, "switchToUncompressedCoordinates()-- INFO: Checking tig %d with %d reads avg difference in length is %f vs 1.2 threshold\n",  _tig->tigID(), count, avgDiff);
+
+  if (avgDiff <= 1.2)
     return;
 
   uint32 compressedOffset   = 0;
@@ -519,12 +521,12 @@ retryTig:
 
     if (nr == 0) {
       if (ii < _numReads) { // we failed to get to the end but didn't have a read to align? restart from scratch with higher error rate
-	     if (_errorRateMax < savedErrorRate) assert (ii >= _numReads); // we can't increase the error rate, really give up
-		 fprintf(stderr, "generateTemplateStitch()-- Warning: failed to build tig %d template at error rate %f, trying %f\n",  _tig->tigID(), savedErrorRate, (savedErrorRate*1.25));
-		 delete[] tigseq;
-		 savedErrorRate *= 1.25;
-		 goto retryTig;
-	  }
+         if (_errorRateMax < savedErrorRate) assert (ii >= _numReads); // we can't increase the error rate, really give up
+         fprintf(stderr, "generateTemplateStitch()-- Warning: failed to build tig %d template at error rate %f, trying %f\n",  _tig->tigID(), savedErrorRate, (savedErrorRate*1.25));
+         delete[] tigseq;
+         savedErrorRate *= 1.25;
+         goto retryTig;
+      }
       if (showPlacement())
         fprintf(stderr, "generateTemplateStitch()-- NO MORE READS TO ALIGN\n");
       break;
