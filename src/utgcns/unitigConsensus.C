@@ -396,7 +396,7 @@ unitigConsensus::generateTemplateStitch(void) {
 retryTig:
   uint32       rid      = 0;
 
-  while ((rid < _numReads) && (_utgpos[rid].skipConsensus() == true))
+  while ((rid < _numReads) && ((_utgpos[rid].skipConsensus() == true) || _utgpos[rid].isLowQuality() == true))
     rid++;
 
   abSequence  *seq      = getSequence(rid);
