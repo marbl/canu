@@ -349,7 +349,7 @@ bool unitigConsensus::needLowQualReads(uint32 rid, uint32 ePos, std::set<uint32>
          }
          return false;
       } else {
-         if (currMax < _utgpos[ii].max() && !_utgpos[ii].isLowQuality()) {
+         if (currMax < _utgpos[ii].max() && !_utgpos[ii].isLowQuality() && !_utgpos[ii].skipConsensus()) {
             currMax = _utgpos[ii].max();
          }
          if (lowQualMax < _utgpos[ii].max() && !_utgpos[ii].skipConsensus()) {
