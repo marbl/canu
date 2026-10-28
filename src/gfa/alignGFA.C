@@ -81,6 +81,24 @@ public:
     bgn_padding = end_padding = 0;
   };
 
+  uint32 pickBest(const EdlibAlignResult *r, bool greatest) {
+    if (r == nullptr || r->editDistance < 0 || r->numLocations <= 0)
+        return -1;
+
+    const int *locations = greatest ? r->endLocations : r->startLocations;
+    if (locations == nullptr)
+        return -1;
+
+    uint32 best = 0;
+    for (uint32 i = 1; i < r->numLocations; ++i) {
+        if (greatest ? locations[i] > locations[best]
+                     : locations[i] < locations[best])
+            best = i;
+    }
+
+    return best;
+  }
+
   void   getContainedSequenceBounds(gfaseq& other, bool compress, bool beVerbose) {
      uint32 MAX_CHUNK = 100000;
      bgn_padding = end_padding = 0;
@@ -111,7 +129,8 @@ public:
                     compr_left, len_compr_left,                                                     //  The 'target'
                     edlibNewAlignConfig(ceil(0.10*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
      if (r.numLocations > 0) {
-        bgn_padding = r.startLocations[0];
+        // pick leftmost start
+        bgn_padding = r.startLocations[pickBest(&r, false)];
         if (beVerbose) fprintf(stderr, "Found left alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_left, bgn_padding);
      } else {
         if (beVerbose) fprintf(stderr, "Swapping alignments now query is %d and source is %d\n", len_compr_left, std::min(other.len, MAX_CHUNK));
@@ -125,7 +144,7 @@ public:
                        other.seq, std::min(other.len, MAX_CHUNK),
                        edlibNewAlignConfig(ceil(0.10*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
         if (r.numLocations > 0) {
-            bgn_padding = r.startLocations[0]*-1;
+            bgn_padding = r.startLocations[pickBest(&r, false)]*-1;
             if (beVerbose) fprintf(stderr, "Found negative left alignmnet, locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], other.len, bgn_padding);
         } else {
             if (beVerbose) fprintf(stderr, "Warning: found no left alignment locations, using default pad\n");
@@ -138,11 +157,12 @@ public:
     // --------- > (compr_right)
     // ------->    (other.seq)
     if (beVerbose) fprintf(stderr, "Aligning sequence query is %d and source is %d\n", other.len, len_compr_right);
-    r = edlibAlign(other.seq + std::max((int32)ceil(0.3*other.len), int32(other.len-ceil(0.3*MAX_CHUNK))), std::min((uint32)ceil(0.3*other.len), (uint32)ceil(0.3*MAX_CHUNK)), //  The 'query'
-                   compr_right,                                     len_compr_right,                                                                                           //  The 'target'
+    uint32 selectedlen = std::min((uint32)ceil(0.3*other.len), (uint32)ceil(0.3*MAX_CHUNK));
+    r = edlibAlign(other.seq + other.len - selectedlen, selectedlen,     //  The 'query'
+                   compr_right,                         len_compr_right, //  The 'target'
                    edlibNewAlignConfig(ceil(0.10*std::min(other.len, (uint32)ceil(0.3*MAX_CHUNK))), EDLIB_MODE_HW, EDLIB_TASK_LOC));
     if (r.numLocations > 0) {
-        end_padding = (len_compr_right - r.endLocations[0]);
+        end_padding = (len_compr_right - r.endLocations[pickBest(&r, true)] - 1);
         if (beVerbose) fprintf(stderr, "Found right alignment locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], len_compr_right, end_padding);
     } else {
         if (beVerbose) fprintf(stderr, "Swapping alignments\n");
@@ -155,7 +175,7 @@ public:
                        edlibNewAlignConfig(ceil(0.10*std::min(other.len, MAX_CHUNK)), EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
         if (r.numLocations > 0) {
-           end_padding = -1*(std::min(MAX_CHUNK, other.len) - r.endLocations[0]);
+           end_padding = -1*(std::min(MAX_CHUNK, other.len) - r.endLocations[pickBest(&r, true)]);
            if (beVerbose) fprintf(stderr, "Found negative right alignmnet, locations are %d to %d len %d means padding is %d\n", r.startLocations[0], r.endLocations[0], other.len, end_padding);
         } else {
            if (beVerbose) fprintf(stderr, "Warning: found no right alignment locations, using default pad\n");
@@ -358,7 +378,6 @@ checkLink(gfaLink   *link,
     Aseq = Arev = reverseComplementCopy(Aseq, Alen);
   if (link->_Bfwd == false)
     Bseq = Brev = reverseComplementCopy(Bseq, Blen);
-
   //  Ty to find the end coordinate on B.  Align the last bits of A to B.
   //
   //   -------(---------]     v--??
@@ -373,7 +392,7 @@ checkLink(gfaLink   *link,
   Bbgn = 0;
   Bend = std::min(Blen, (int32)(1.10 * ratio * (Apad+Bpad+BalignLen)));  //  Expand by whatever factor the contig grew during consensus plus 10%
 
-fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coordinates are %d %d and b is %d %d alignlengths %d %d  %d\n", ratio, Apad, Bpad, Abgn, Aend, Bbgn, Bend, alignLen, AalignLen, BalignLen);
+  fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coordinates are %d %d and b is %d %d alignlengths %d %d  %d\n", ratio, Apad, Bpad, Abgn, Aend, Bbgn, Bend, alignLen, AalignLen, BalignLen);
   maxEdit = (int32)ceil((alignLen+Bpad+Apad) * ratio * erate);
 
   if (alignLen == 0 || Apad+Bpad+AalignLen < 0 || Aend == Abgn || Bbgn == Bend) {
@@ -450,7 +469,9 @@ fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coord
       fprintf(stderr, " - FAILED\n");
   }
 
-  //  One more alignment, this time, with feeling - notice EDLIB_MODE_MW and EDLIB_TASK_PATH.
+  //  One more alignment, this time, with feeling - notice EDLIB_MODE_NW and EDLIB_TASK_PATH.
+  //  also note we swapped the A and B order in the alignment
+  //  this is because the cigar string needs to be relative to A (reference) not B by GFA spec
 
   if (beVerbose)
     fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d  maxEdit=%6d  (final)",
@@ -458,8 +479,9 @@ fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coord
             link->_Bid, (link->_Bfwd) ? '+' : '-', Bbgn, Bend,
             maxEdit);
 
-  result = edlibAlign(Aseq + Abgn, Aend-Abgn,
+  result = edlibAlign(
                       Bseq + Bbgn, Bend-Bbgn,
+                      Aseq + Abgn, Aend-Abgn,
                       edlibNewAlignConfig(2 * maxEdit, EDLIB_MODE_NW, EDLIB_TASK_PATH));
 
 
@@ -476,13 +498,12 @@ fprintf(stderr, "Processing link with ratio %f and padding A %d  b %d so a coord
     link->_cigar = edlibAlignmentToCigar(result.alignment,
                                          result.alignmentLength, EDLIB_CIGAR_STANDARD);
 
-    edlibFreeAlignResult(result);
-
     success = true;
   } else {
     if (beVerbose)
       fprintf(stderr, " - FAILED\n");
   }
+  edlibFreeAlignResult(result);
 
   if (beVerbose)
     fprintf(stderr, "     tig%08u %c %8d-%-8d    tig%08u %c %8d-%-8d   %.4f\n",
